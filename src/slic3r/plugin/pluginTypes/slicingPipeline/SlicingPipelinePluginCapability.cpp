@@ -18,26 +18,36 @@ bool SlicingPipelineContext::cancelled() const { return print && print->canceled
 void SlicingPipelinePluginCapability::RegisterBindings(py::module_& module) {
     auto slicing = module.def_submodule("slicing", "Slicing pipeline API (research/experimental).");
 
-    py::enum_<SlicingPipelineStepPlugin>(slicing, "Step")
-        .value("posSlice", SlicingPipelineStepPlugin::posSlice)
-        .value("posPerimeters", SlicingPipelineStepPlugin::posPerimeters)
-        .value("posEstimateCurledExtrusions", SlicingPipelineStepPlugin::posEstimateCurledExtrusions)
-        .value("posPrepareInfill", SlicingPipelineStepPlugin::posPrepareInfill) // after prepare_infill, before make_fills: editing fill_surfaces here CASCADES
-        .value("posInfill", SlicingPipelineStepPlugin::posInfill)          // after make_fills: editing fill_surfaces here does NOT regenerate the fills
-        .value("posIroning", SlicingPipelineStepPlugin::posIroning)
-        .value("posContouring", SlicingPipelineStepPlugin::posContouring)
-        .value("posSupportMaterial", SlicingPipelineStepPlugin::posSupportMaterial)
-        .value("posDetectOverhangsForLift", SlicingPipelineStepPlugin::posDetectOverhangsForLift)
-        .value("posSimplifyPath", SlicingPipelineStepPlugin::posSimplifyPath) // covers all simplify sub-steps
-        .value("psWipeTower", SlicingPipelineStepPlugin::psWipeTower)
-        .value("psSkirtBrim", SlicingPipelineStepPlugin::psSkirtBrim)
-        // Post-process seam: fires in the GUI export path AFTER the classic post_process scripts, on the
-        // exported G-code file. Unlike every step above it is NOT fired by Print::process(): ctx.print and
-        // ctx.object are None; instead ctx.gcode_path / ctx.host / ctx.output_name are set and the plugin
-        // edits the file at ctx.gcode_path IN PLACE. May fire more than once per slice (file export and/or
-        // upload each fire once, on separate working copies) and its output is not reflected in the G-code
-        // preview (the viewer maps the pre-post-process file). ctx.config_value() still works.
-        .value("psGCodePostProcess", SlicingPipelineStepPlugin::psGCodePostProcess)
+    py::enum_<SlicingPipelineStepPlugin>(
+        slicing, "Step",
+        "Point in slicing at which execute(ctx) runs, given as ctx.step. The pos* steps run for each\n"
+        "PrintObject that recomputed that step in the current slice, with ctx.object set; an object whose\n"
+        "step is still valid from an earlier slice is not passed again. The ps* steps run once for the whole\n"
+        "print, with ctx.object None.")
+        .value("posSlice", SlicingPipelineStepPlugin::posSlice, "After the object is sliced into layers.")
+        .value("posPerimeters", SlicingPipelineStepPlugin::posPerimeters, "After the object's walls are generated.")
+        .value("posEstimateCurledExtrusions", SlicingPipelineStepPlugin::posEstimateCurledExtrusions,
+               "After curled extrusions are estimated.")
+        .value("posPrepareInfill", SlicingPipelineStepPlugin::posPrepareInfill,
+               "After the infill regions are prepared and before the fills are generated, so edits to\n"
+               "fill_surfaces here change the fills generated next.")
+        .value("posInfill", SlicingPipelineStepPlugin::posInfill,
+               "After the fills are generated; edits to fill_surfaces here do not regenerate them.")
+        .value("posIroning", SlicingPipelineStepPlugin::posIroning, "After ironing is generated.")
+        .value("posContouring", SlicingPipelineStepPlugin::posContouring, "After Z contouring.")
+        .value("posSupportMaterial", SlicingPipelineStepPlugin::posSupportMaterial, "After supports are generated.")
+        .value("posDetectOverhangsForLift", SlicingPipelineStepPlugin::posDetectOverhangsForLift,
+               "After overhangs are detected for Z lift.")
+        .value("posSimplifyPath", SlicingPipelineStepPlugin::posSimplifyPath,
+               "After the extrusion paths are simplified, covering all of its sub-steps.")
+        .value("psWipeTower", SlicingPipelineStepPlugin::psWipeTower, "After the wipe tower is generated.")
+        .value("psSkirtBrim", SlicingPipelineStepPlugin::psSkirtBrim, "After the skirt and brim are generated.")
+        .value("psGCodePostProcess", SlicingPipelineStepPlugin::psGCodePostProcess,
+               "After G-code export, following the post-processing scripts. ctx.print and ctx.object are None;\n"
+               "ctx.gcode_path, ctx.host and ctx.output_name are set, and the plugin edits the file at\n"
+               "ctx.gcode_path in place. It can run more than once per slice, once for each file export or upload,\n"
+               "each on its own working copy, and the G-code preview does not show its edits.\n"
+               "ctx.config_value() still works.")
         .export_values();
 
     // The read-graph data model (Surface / ExPolygon / the extrusion tree / LayerRegion /
@@ -50,9 +60,14 @@ void SlicingPipelinePluginCapability::RegisterBindings(py::module_& module) {
     slicing.def("unscale", [](coord_t v) { return unscale<double>(v); }, py::arg("coord"),
         "Convert a scaled integer coordinate to millimeters (reads the live SCALING_FACTOR).");
 
-    py::class_<SlicingPipelineContext>(slicing, "SlicingPipelineContext")
-        .def_readonly("orca_version", &SlicingPipelineContext::orca_version)
-        .def_readonly("step", &SlicingPipelineContext::step)
+    py::class_<SlicingPipelineContext>(
+        slicing, "SlicingPipelineContext",
+        "What execute(ctx) receives: the Step, and either the slicing graph (print, object) for the slicing\n"
+        "steps or the exported G-code file for Step.psGCodePostProcess. Valid only during that execute() call.")
+        .def_readonly("orca_version", &SlicingPipelineContext::orca_version, "The OrcaSlicer version string.")
+        .def_readonly("step", &SlicingPipelineContext::step,
+                      "The Step this call is for. execute() runs at every step, so return early for the steps the\n"
+                      "plugin does not handle.")
         .def_readonly("gcode_path", &SlicingPipelineContext::gcode_path,
             "Path to the working G-code file, set ONLY at Step.psGCodePostProcess. Edit it in "
             "place; empty at every other step.")
@@ -86,16 +101,28 @@ void SlicingPipelinePluginCapability::RegisterBindings(py::module_& module) {
                 return config_value_or_none(*ctx.full_config, key);
             return py::none();
         }, py::arg("key"),
-           "serialized value of a resolved (full) print config option for this slice, or "
-           "None if absent. Shorthand for ctx.print.config_value(key).")
-        .def("cancelled", &SlicingPipelineContext::cancelled);
+           "Return the serialized value of a resolved (full) print config option for this slice, as a\n"
+           "string, or None if absent. At the slicing steps it is shorthand for ctx.print.config_value(key);\n"
+           "it also works at Step.psGCodePostProcess.")
+        .def("cancelled", &SlicingPipelineContext::cancelled,
+             "Return True once the user has cancelled this slice; a long step should check it and return early.\n"
+             "Always False at Step.psGCodePostProcess.");
 
     py::class_<SlicingPipelinePluginCapability, PluginCapabilityInterface,
                PySlicingPipelinePluginCapabilityTrampoline,
-               std::shared_ptr<SlicingPipelinePluginCapability>>(slicing, "SlicingPipelineCapabilityBase")
+               std::shared_ptr<SlicingPipelinePluginCapability>>(
+        slicing, "SlicingPipelineCapabilityBase",
+        "Base for a slicing pipeline capability: Python run at each Step of slicing and on the exported G-code,\n"
+        "to read and change the intermediate slicing data. It runs only for slices whose print settings select\n"
+        "it in the Slicing Pipeline Plugin option.")
         .def(py::init<>())
-        .def("get_type", &SlicingPipelinePluginCapability::get_type)
-        .def("execute", &SlicingPipelinePluginCapability::execute);
+        .def("get_type", &SlicingPipelinePluginCapability::get_type, "Return PluginType.SlicingPipeline.")
+        .def("execute", &SlicingPipelinePluginCapability::execute, py::arg("ctx"),
+             "Required. Called at every Step with ctx, a SlicingPipelineContext, on the slicing thread; it must be\n"
+             "a plain def, not async def, and must not call orca.host.ui. Return an ExecutionResult. At the\n"
+             "slicing steps FatalError, like a raised exception, stops the slice with its message as the error,\n"
+             "and the other statuses let slicing continue. At Step.psGCodePostProcess RecoverableError and\n"
+             "FatalError, like a raised exception, fail the export. A non-empty message is logged.");
 }
 
 } // namespace Slic3r

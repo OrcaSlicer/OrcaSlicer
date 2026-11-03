@@ -119,11 +119,48 @@ int         arg_int(const nlohmann::json& args, const char* key, int fallback);
 double      arg_double(const nlohmann::json& args, const char* key, double fallback);
 bool        arg_bool(const nlohmann::json& args, const char* key, bool fallback);
 
+// ---- search (McpToolsCommon.cpp) -------------------------------------------------------------
+
+// The words of a search query: lower case, split at anything but a letter or a digit. "to" or "of"
+// starts a word of most help texts, so words of fewer than three letters are left out when the query
+// has longer ones.
+std::vector<std::string> query_words(const std::string& query);
+
+// How well an entry matches the words of query_words(): {words found in `name` or `text`, of them those
+// found in `name`}, {0, 0} when none is. A word is found where a word of the text starts with it, so
+// "retract" finds "retraction"; the text's words are split at underscores, dots and the like and also
+// at a capital in a CamelCase name, so "mesh" finds TriangleMesh.
+std::pair<int, int> match_score(const std::vector<std::string>& words, const std::string& name, const std::string& text);
+
+// The first sentence of `text` on one line, for a listing: up to the first full stop followed by a space
+// or the end, "e.g." and "i.e." aside; the whole text when it has none.
+std::string first_sentence(const std::string& text);
+
 // A setting value from JSON in the serialized form set_deserialize accepts: "3", "0.2", "1"/"0"
 // for booleans, "a,b" for arrays. A list of strings (`key` names a coStrings option, such as
 // post_process) is quoted and separated by semicolons, as ConfigOptionStrings writes it, since its
 // entries may contain commas. Throws ToolFailure for values with no such form.
 std::string to_config_string(const nlohmann::json& value, const std::string& key = {});
+
+// ---- Python (McpToolsPython.cpp) -------------------------------------------------------------
+
+// python_api's reference: every public module, class, function, method, property, named instance (such
+// as orca.host.preset.process) and constant (such as orca.host.ui.PD_CAN_ABORT) of the orca package, in
+// the order the package lists them, each {name, kind, signature, doc}. signature holds the signature lines
+// pybind11 starts a docstring with (a class's are its constructors, joined with " | "), and doc the rest
+// of the docstring: a class's own followed by what its constructors say, and for a constant, which has
+// none, the entries whose doc names it. An enum's values are in its class's doc, not entries of their own.
+// Takes the GIL; the caller keeps the interpreter running (a PythonRuntimeLease). Throws ToolFailure when
+// the package can't be read.
+nlohmann::json python_api_reference();
+
+// The entries of python_api_reference() that `query` describes, best first: those matching more of its
+// words (in the name, signature or doc), then those matching more of them in their name.
+nlohmann::json rank_python_api(const nlohmann::json& reference, const std::string& query);
+
+// Whether numpy is installed in OrcaSlicer's Python, which the mesh and matrix arrays of orca.host need.
+// Takes the GIL, as python_api_reference() does.
+bool python_has_numpy();
 
 // ---- settings scopes (McpToolsConfig.cpp) ----------------------------------------------------
 
@@ -159,6 +196,11 @@ nlohmann::json option_meta(const ConfigOptionDef& def);
 // outranks one whose help text only mentions it. Words of fewer than three letters are left out when
 // the query has longer ones.
 std::vector<std::string> rank_settings(const std::string& query, const std::vector<std::string>& within, std::size_t limit);
+
+// get_settings' search without a scope, for api_describe: the process, filament and printer settings being
+// edited that `query` describes, best first, {total, items: [{key, scope, label, where}]} with at most
+// `limit` items. UI thread.
+nlohmann::json search_settings(const std::string& query, std::size_t limit);
 
 // For a per-variant or per-extruder vector `key` of a preset's `config` that has more than one entry:
 // {"variants": [what each entry is for], "active": [the entry each extruder prints with, extruder 1

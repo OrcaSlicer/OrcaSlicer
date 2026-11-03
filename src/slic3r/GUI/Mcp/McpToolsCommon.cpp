@@ -14,11 +14,13 @@
 #include <wx/window.h>
 
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <initializer_list>
+#include <iterator>
 #include <string>
 #include <thread>
 #include <utility>
@@ -82,6 +84,49 @@ ToolDef mutate_tool(std::string name, std::string title, std::string description
 }
 
 namespace {
+
+// The words of `text` in lower case, split at anything but a letter or a digit. With `camel`, a word
+// with a capital after a lower-case letter also counts as its parts: TriangleMesh as triangle and mesh.
+std::vector<std::string> text_words(const std::string& text, bool camel)
+{
+    std::vector<std::string> words;
+    std::string              word;
+    std::vector<std::size_t> parts; // where each CamelCase part after the first starts in `word`
+    const auto               flush = [&] {
+        if (word.empty())
+            return;
+        std::size_t from = 0;
+        for (const std::size_t at : parts) {
+            words.push_back(word.substr(from, at - from));
+            from = at;
+        }
+        if (!parts.empty())
+            words.push_back(word.substr(from));
+        words.push_back(std::exchange(word, {}));
+        parts.clear();
+    };
+    unsigned char previous = 0;
+    for (const char c : text) {
+        const auto u = static_cast<unsigned char>(c);
+        if (!std::isalnum(u)) {
+            flush();
+            previous = 0;
+            continue;
+        }
+        if (camel && std::isupper(u) && std::islower(previous))
+            parts.push_back(word.size());
+        word += char(std::tolower(u));
+        previous = u;
+    }
+    flush();
+    return words;
+}
+
+// Whether a word of `words` starts with `w`.
+bool has_word(const std::vector<std::string>& words, const std::string& w)
+{
+    return std::any_of(words.begin(), words.end(), [&w](const std::string& word) { return word.compare(0, w.size(), w) == 0; });
+}
 
 // Whether a 3D view is shown but can't draw yet. On Wayland a canvas gets its GL surface from the
 // map event GTK handles once the main loop runs again, after the closures queued with the change
@@ -214,6 +259,40 @@ json page(const json& items, const json& args, std::size_t default_limit)
     if (offset + limit < total)
         result["next_offset"] = offset + limit;
     return result;
+}
+
+std::vector<std::string> query_words(const std::string& query)
+{
+    std::vector<std::string> words = text_words(query, false);
+    std::vector<std::string> longer;
+    std::copy_if(words.begin(), words.end(), std::back_inserter(longer), [](const std::string& w) { return w.size() >= 3; });
+    return longer.empty() ? words : longer;
+}
+
+std::pair<int, int> match_score(const std::vector<std::string>& words, const std::string& name, const std::string& text)
+{
+    const std::vector<std::string> in_name = text_words(name, true);
+    const std::vector<std::string> in_text = text_words(text, true);
+    std::pair<int, int>            score;
+    for (const std::string& w : words)
+        if (has_word(in_name, w)) {
+            ++score.first;
+            ++score.second;
+        } else if (has_word(in_text, w))
+            ++score.first;
+    return score;
+}
+
+std::string first_sentence(const std::string& text)
+{
+    std::string line = text;
+    std::replace(line.begin(), line.end(), '\n', ' ');
+    for (std::size_t dot = line.find('.'); dot != std::string::npos; dot = line.find('.', dot + 1)) {
+        const bool abbreviation = dot >= 3 && (line.compare(dot - 3, 3, "e.g") == 0 || line.compare(dot - 3, 3, "i.e") == 0);
+        if (!abbreviation && (dot + 1 == line.size() || line[dot + 1] == ' '))
+            return line.substr(0, dot + 1);
+    }
+    return line;
 }
 
 json poll_ui(ToolContext& ctx, const std::function<json()>& poll, std::chrono::milliseconds timeout, const std::string& what)

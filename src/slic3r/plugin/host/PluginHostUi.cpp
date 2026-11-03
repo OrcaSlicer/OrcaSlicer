@@ -778,7 +778,10 @@ void PluginHostUi::RegisterBindings(pybind11::module_& host)
     ui.attr("WINDOW_MODAL")      = py::int_(WINDOW_MODAL);
 
     py::class_<UiWindowHandle>(ui, "UiWindow", "Handle to a plugin HTML window or modal dialog created by create_window().")
-        .def_property_readonly("id", [](const UiWindowHandle& h) { return h.id; })
+        .def_property_readonly(
+            "id", [](const UiWindowHandle& h) { return h.id; },
+            "Positive integer identifying this window, unique among plugin UI handles for the app's lifetime and "
+            "never reused; two handles with equal ids refer to the same window.")
         .def(
             "post", [](const UiWindowHandle& h, py::object data) { handle_post(h.id, std::move(data)); },
             py::arg("data"), "Send a payload to the page (delivered to window.orca.onMessage handlers).")
@@ -796,7 +799,10 @@ void PluginHostUi::RegisterBindings(pybind11::module_& host)
            "is called when the page submits; offload heavy work to a thread and push results back with window.post().");
 
     py::class_<UiDockPanelHandle>(ui, "UiDockPanel", "Handle to a dockable plugin HTML panel created by create_dock_panel().")
-        .def_property_readonly("id", [](const UiDockPanelHandle& h) { return h.id; })
+        .def_property_readonly(
+            "id", [](const UiDockPanelHandle& h) { return h.id; },
+            "Positive integer identifying this panel, unique among plugin UI handles for the app's lifetime and "
+            "never reused; two handles with equal ids refer to the same panel.")
         .def(
             "post", [](const UiDockPanelHandle& h, py::object data) { handle_post(h.id, std::move(data)); },
             py::arg("data"), "Send a payload to the page (delivered to window.orca.onMessage handlers).")
@@ -822,8 +828,12 @@ void PluginHostUi::RegisterBindings(pybind11::module_& host)
 
     py::class_<UiProgressHandle>(ui, "ProgressDialog", "Handle to a native progress dialog.")
         .def(py::init(&new_progress_dialog), py::arg("title"), py::arg("message"), py::arg("maximum") = 100,
-             py::arg("style") = wxPD_APP_MODAL | wxPD_AUTO_HIDE)
-        .def_property_readonly("id", [](const UiProgressHandle& h) { return h.id; })
+             py::arg("style") = wxPD_APP_MODAL | wxPD_AUTO_HIDE,
+             "Open a native progress dialog, as create_progress_dialog() does, with the same arguments.")
+        .def_property_readonly(
+            "id", [](const UiProgressHandle& h) { return h.id; },
+            "Positive integer identifying this progress dialog, unique among plugin UI handles for the app's lifetime "
+            "and never reused; two handles with equal ids refer to the same dialog.")
         .def(
             "pulse", [](const UiProgressHandle& h, const std::string& message) { return progress_pulse(h.id, message); },
             py::arg("message") = "", "Pulse the dialog gauge; returns False if the dialog is closed or cancelled.")
@@ -855,7 +865,14 @@ void PluginHostUi::RegisterBindings(pybind11::module_& host)
 
     ui.def("create_progress_dialog", &ui_create_progress_dialog, py::arg("title"), py::arg("message"),
            py::arg("maximum") = 100, py::arg("style") = wxPD_APP_MODAL | wxPD_AUTO_HIDE,
-           "Create a native progress dialog and return a ProgressDialog handle.");
+           "Create a native progress dialog and return a ProgressDialog handle. maximum is the value update() reaches "
+           "when the work is done (100 when 0 or less). style combines these flags with |: PD_APP_MODAL disables every "
+           "other OrcaSlicer window while the dialog shows, not only the one it belongs to (on macOS, only that one "
+           "either way); PD_AUTO_HIDE hides the dialog once update() reaches maximum, where without it that update() "
+           "shows \"Done.\" and returns only once the person closes the dialog; PD_CAN_ABORT adds a Cancel button, "
+           "after which update() and pulse() return False; PD_ELAPSED_TIME, PD_ESTIMATED_TIME and PD_REMAINING_TIME "
+           "show those times; PD_CAN_SKIP has no effect, as the dialog has no Skip button. The default is "
+           "PD_APP_MODAL | PD_AUTO_HIDE.");
 
     py::enum_<GUI::NotificationManager::NotificationLevel>(ui, "NotificationLevel")
         .value("ProgressBarNotificationLevel", GUI::NotificationManager::NotificationLevel::ProgressBarNotificationLevel)

@@ -1033,26 +1033,7 @@ json option_meta(const ConfigOptionDef& def)
 
 std::vector<std::string> rank_settings(const std::string& query, const std::vector<std::string>& within, std::size_t limit)
 {
-    const auto words_of = [](const std::string& text) {
-        std::vector<std::string> words;
-        std::string              word;
-        for (const char c : lower(text) + ' ') {
-            if (std::isalnum(static_cast<unsigned char>(c)))
-                word += c;
-            else if (!word.empty())
-                words.push_back(std::exchange(word, {}));
-        }
-        return words;
-    };
-    const auto has = [](const std::vector<std::string>& words, const std::string& w) {
-        return std::any_of(words.begin(), words.end(), [&w](const std::string& word) { return word.compare(0, w.size(), w) == 0; });
-    };
-    // "to" or "of" starts a word of most help texts, so short words count only when the query has no longer one.
-    std::vector<std::string> words = words_of(query);
-    std::vector<std::string> longer;
-    std::copy_if(words.begin(), words.end(), std::back_inserter(longer), [](const std::string& w) { return w.size() >= 3; });
-    if (!longer.empty())
-        words = std::move(longer);
+    const std::vector<std::string> words = query_words(query);
     // (query words matched, those matched in the key or label) per key.
     std::vector<std::pair<std::pair<int, int>, std::string>> scored;
     std::set<std::string>                                    seen; // a scope's options can list a key twice
@@ -1060,15 +1041,7 @@ std::vector<std::string> rank_settings(const std::string& query, const std::vect
         const ConfigOptionDef* def = print_config_def.get(key);
         if (def == nullptr || !seen.insert(key).second)
             continue;
-        const std::vector<std::string> name    = words_of(key + ' ' + def->label + ' ' + def->full_label);
-        const std::vector<std::string> tooltip = words_of(def->tooltip);
-        std::pair<int, int>            score;
-        for (const std::string& w : words)
-            if (has(name, w)) {
-                ++score.first;
-                ++score.second;
-            } else if (has(tooltip, w))
-                ++score.first;
+        const std::pair<int, int> score = match_score(words, key + ' ' + def->label + ' ' + def->full_label, def->tooltip);
         if (score.first > 0)
             scored.emplace_back(score, key);
     }
@@ -1610,22 +1583,31 @@ std::string to_config_string(const json& v, const std::string& key)
 
 namespace {
 
+// The scopes a search without one looks through: the process, filament and printer settings being edited,
+// since a question about an effect rarely knows which tab answers it.
+const char* const kSearchScopes[]{"process", "filament", "printer"};
+
+// The keys of kSearchScopes, each once, with the scope that offers it first. UI thread.
+std::vector<std::string> search_scope_options(std::map<std::string, std::string>& scope_of)
+{
+    std::vector<std::string> options;
+    for (const char* scope : kSearchScopes)
+        for (const std::string& key : resolve_target(json{{"scope", scope}}, false).options)
+            if (scope_of.emplace(key, scope).second)
+                options.push_back(key);
+    return options;
+}
+
 // get_settings: the settings `args` asks for, read on the UI thread.
 json read_settings(const json& args)
 {
-    // A search with no scope looks through the process, filament and printer settings being edited, since a
-    // question about an effect rarely knows which tab answers it; each match names its scope.
+    // A search with no scope looks through kSearchScopes; each match names its scope.
     if (args.contains("query") && !args.contains("scope") && !args.contains("preset") && !args.contains("compare")) {
-        const char* const                  scopes[]{"process", "filament", "printer"};
-        std::vector<std::string>           options;
         std::map<std::string, std::string> scope_of;
-        for (const char* scope : scopes)
-            for (const std::string& key : resolve_target(json{{"scope", scope}}, false).options)
-                if (scope_of.emplace(key, scope).second)
-                    options.push_back(key);
-        const std::vector<std::string> ranked = rank_settings(arg_string(args, "query"), options, 200);
-        std::map<std::string, json>    found;
-        for (const char* scope : scopes) {
+        const std::vector<std::string>     options = search_scope_options(scope_of);
+        const std::vector<std::string>     ranked  = rank_settings(arg_string(args, "query"), options, 200);
+        std::map<std::string, json>        found;
+        for (const char* scope : kSearchScopes) {
             json keys = json::array();
             for (const std::string& key : ranked)
                 if (scope_of[key] == scope)
@@ -1759,6 +1741,31 @@ json read_settings(const json& args)
 }
 
 } // namespace
+
+json search_settings(const std::string& query, std::size_t limit)
+{
+    ui_plater(); // the presets and the settings pages exist once the main window does
+    std::map<std::string, std::string> scope_of;
+    const std::vector<std::string>     options = search_scope_options(scope_of);
+    const std::vector<std::string>     ranked  = rank_settings(query, options, options.size());
+    const std::map<std::string, Preset::Type> types{{"process", Preset::TYPE_PRINT}, {"filament", Preset::TYPE_FILAMENT},
+                                                    {"printer", Preset::TYPE_PRINTER}};
+    std::map<std::string, std::map<std::string, std::string>> places;
+    json                                                      items = json::array();
+    for (std::size_t i = 0; i < ranked.size() && i < limit; ++i) {
+        const std::string&     key   = ranked[i];
+        const std::string&     scope = scope_of[key];
+        const ConfigOptionDef* def   = print_config_def.get(key);
+        auto                   place = places.find(scope);
+        if (place == places.end())
+            place = places.emplace(scope, setting_places(types.at(scope))).first;
+        json item{{"key", key}, {"scope", scope}, {"label", def->full_label.empty() ? def->label : def->full_label}};
+        if (const auto where = place->second.find(key); where != place->second.end())
+            item["where"] = where->second;
+        items.push_back(std::move(item));
+    }
+    return {{"total", ranked.size()}, {"items", std::move(items)}};
+}
 
 void register_config_tools(McpService& service)
 {
@@ -2030,6 +2037,7 @@ void register_config_tools(McpService& service)
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
         [](const json& args, ToolContext& ctx) {
             return ToolResult::ok(ctx.run_ui([&] {
+                ui_plater(); // the presets and the settings pages exist once the main window does
                 return read_settings(args);
             }));
         }));

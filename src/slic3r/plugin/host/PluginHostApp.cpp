@@ -156,35 +156,55 @@ py::object selected_printer()
 // app and only reachable once the GUI is up (the accessors throw before that).
 void host_bindings::register_app(py::module_& host)
 {
-    py::class_<GUI::Plater, std::unique_ptr<GUI::Plater, py::nodelete>>(host, "Plater")
-        .def("model", static_cast<Model& (GUI::Plater::*)()>(&GUI::Plater::model), py::return_value_policy::reference_internal)
-        .def("is_project_dirty", &GUI::Plater::is_project_dirty)
-        .def("is_presets_dirty", &GUI::Plater::is_presets_dirty)
-        .def("inside_snapshot_capture", &GUI::Plater::inside_snapshot_capture)
-        // Path the project was last opened from or saved to; empty while it has never been saved.
+    py::class_<GUI::Plater, std::unique_ptr<GUI::Plater, py::nodelete>>(host, "Plater",
+        "The app's project editor: the live project's Model and its saved state. Get it with orca.host.plater().")
+        .def("model", static_cast<Model& (GUI::Plater::*)()>(&GUI::Plater::model),
+             py::return_value_policy::reference_internal,
+             "The live project's Model, the same one orca.host.model() returns.")
+        .def("is_project_dirty", &GUI::Plater::is_project_dirty,
+             "True when the project has unsaved changes: to its objects and plates, its project settings or its "
+             "presets (see is_presets_dirty()).")
+        .def("is_presets_dirty", &GUI::Plater::is_presets_dirty,
+             "True when any preset has unsaved edits or, for a project opened from or saved to a file, when the "
+             "printer, process, filament presets or filament colours differ from the ones it was opened or saved with.")
+        .def("inside_snapshot_capture", &GUI::Plater::inside_snapshot_capture,
+             "True while the app is inside an edit grouped into a single undo step, during which it takes no further "
+             "undo snapshots.")
         .def("project_path", [](GUI::Plater& plater) {
             require_main_thread("project_path");
             return GUI::into_u8(plater.get_project_filename(".3mf"));
-        })
+        }, "Path of the project's .3mf file, where it was last opened from or saved to; empty while it has never been "
+           "saved. UI thread only: from a worker thread, where run_python scripts run, it raises RuntimeError.")
         .def("export_3mf_copy", &export_3mf_copy, py::arg("path"),
              "Write the current project, unsaved changes included, to path as a 3MF copy. The project's "
-             "file name and saved state are not changed, and the signed-in account is not written as the designer.");
+             "file name and saved state are not changed, and the signed-in account is not written as the designer. "
+             "The path must end in .3mf (ValueError otherwise), and writing it goes through the same permission check "
+             "as open(path, \"w\"). Raises RuntimeError while the 3D view is not ready yet. UI thread only: from a "
+             "worker thread, where run_python scripts run, it raises RuntimeError.");
 
-    host.def("plater", &current_plater, py::return_value_policy::reference);
+    host.def("plater", &current_plater, py::return_value_policy::reference,
+             "The app's Plater, which holds the live project. Raises RuntimeError before the app's main window is up.");
     host.def("model", []() -> Model& {
         return current_plater()->model();
-    }, py::return_value_policy::reference);
-    host.def("preset_bundle", &current_preset_bundle, py::return_value_policy::reference);
+    }, py::return_value_policy::reference,
+       "The live project's Model: what the 3D editor shows, owned by the app and changed as the person or tools edit "
+       "it. The objects, volumes and instances it hands out are references into it, so fetch them again after the "
+       "project changes rather than keeping them. Raises RuntimeError before the app's main window is up.");
+    host.def("preset_bundle", &current_preset_bundle, py::return_value_policy::reference,
+             "The app's live PresetBundle: every loaded printer, process and filament preset and the ones selected for "
+             "the project. Raises RuntimeError while the app is still loading its presets at startup.");
     host.def("app_info", &app_info,
              "The running app: version, build, mode, language, app_config_version (the version that wrote the app config "
              "before this run, empty when there was none), stealth_mode, is_signed_in (Orca Cloud), is_bambu_signed_in (Bambu Cloud), network_plugin_version (empty "
-             "when the Bambu network plugin is not loaded) and network_plugin_error (empty unless it failed to load).");
+             "when the Bambu network plugin is not loaded) and network_plugin_error (empty unless it failed to load). "
+             "UI thread only: from a worker thread, where run_python scripts run, it raises RuntimeError.");
     host.def("gl_info", &gl_info,
              "OpenGL vendor, renderer, version, glsl_version and core_profile of the 3D view; None before it has been created.");
     host.def("selected_printer", &selected_printer,
              "Agent, model_id, connection ('lan' or 'cloud'), online, connected and firmware of the printer selected in the "
              "device list; model_id and firmware are empty for non-Bambu agents. None when none is selected. Print hosts "
-             "configured in the printer preset (OctoPrint and the like) are not in the device list.");
+             "configured in the printer preset (OctoPrint and the like) are not in the device list. UI thread only: from "
+             "a worker thread, where run_python scripts run, it raises RuntimeError.");
 }
 
 } // namespace Slic3r

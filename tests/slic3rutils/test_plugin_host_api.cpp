@@ -43,6 +43,10 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include <nlohmann/json.hpp>
+#include <slic3r/GUI/Mcp/McpTools.hpp>
+
+#include <regex>
 #include <set>
 #include <string>
 #include <vector>
@@ -631,4 +635,41 @@ TEST_CASE("Plugin host API exposes TriangleMesh geometry to Python", "[PluginHos
     // Instance offset (5, 6, 0) must land in the matrix translation column.
     REQUIRE_THAT(instance_matrix.attr("__getitem__")(py::make_tuple(0, 3)).cast<double>(), WithinAbs(5.0, 1e-6));
     REQUIRE_THAT(instance_matrix.attr("__getitem__")(py::make_tuple(1, 3)).cast<double>(), WithinAbs(6.0, 1e-6));
+}
+
+TEST_CASE("every public member of the orca package has documentation and named parameters", "[PluginHost][Python]")
+{
+    // python_api serves this documentation to agents writing scripts and plugins: a member without it, or
+    // with a parameter pybind11 names argN, is one they can only guess at. A constant's documentation is
+    // the documentation that names it, and a class's goes on with what its constructors say; an enum's
+    // constructor takes one of the values its documentation lists.
+    const py::module_        orca = import_orca_module();
+    const py::object         cleandoc = py::module_::import("inspect").attr("cleandoc");
+    const std::regex         positional(R"(\barg\d+\b)");
+    const std::regex         takes_arguments(R"(\w\((?!\)))");
+    std::vector<std::string> undocumented;
+    std::vector<std::string> unnamed;
+    std::vector<std::string> constructors;
+    for (const nlohmann::json& entry : Slic3r::GUI::Mcp::python_api_reference()) {
+        const std::string name      = entry["name"].get<std::string>();
+        const std::string signature = entry["signature"].get<std::string>();
+        const std::string doc       = entry["doc"].get<std::string>();
+        if (doc.empty())
+            undocumented.push_back(name);
+        if (std::regex_search(signature, positional))
+            unnamed.push_back(name);
+        if (entry["kind"] == "class" && std::regex_search(signature, takes_arguments)) {
+            py::object cls = orca;
+            for (std::size_t from = name.find('.') + 1, dot = 0; dot != std::string::npos; from = dot + 1) {
+                dot = name.find('.', from);
+                cls = cls.attr(name.substr(from, dot - from).c_str());
+            }
+            const py::object own = cls.attr("__doc__");
+            if (!py::hasattr(cls, "__members__") && doc == cleandoc(own.is_none() ? py::str("") : own).cast<std::string>())
+                constructors.push_back(name);
+        }
+    }
+    CHECK(undocumented == std::vector<std::string>{});
+    CHECK(unnamed == std::vector<std::string>{});
+    CHECK(constructors == std::vector<std::string>{});
 }

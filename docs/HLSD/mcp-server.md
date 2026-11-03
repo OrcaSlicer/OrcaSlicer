@@ -85,8 +85,11 @@ They say to prefer typed tools over clicks and never retry a call that returned 
 `get_settings`' meta and search for what a setting does, say how a gizmo opens and is driven (and that
 `gizmo_file` only stands in for a file picker inside one, since its name draws agents to it for any
 gizmo work), that the camera turns with `set_view` rather than a drag, and which indices are 0-based.
-They also point to `api_describe` for the operations plugins offer, which `tools/list` never shows, so
-nothing else tells an agent they exist. Clients that defer tools load only their names and the
+They also point to `api_describe {query}` as the one search across every catalog an agent calls into:
+the tools, the operations plugins offer (which `tools/list` never shows, so nothing else tells an agent
+they exist), Speed Dial actions, settings, the Python API and the Design tab's methods. An agent rarely
+knows which catalog answers "how do I add a brim", and each catalog has its own search with its own
+arguments. Clients that defer tools load only their names and the
 instructions at first, so the instructions are how an agent without a skill learns which tool to
 load.
 
@@ -397,8 +400,8 @@ the UI thread.
 | Scripts | `run_script` | run a script file or inline script, with results per step |
 | | `export_script` | write the session journal as a script that can be replayed; calls whose job is still running are left out and listed |
 | | `run_python` | run Python code against `orca.host`, calling tools through `orca.host.tools`; needs the Python setting (see Python scripts); cancellable |
-| | `python_api` | search `orca.host` in the running build: names, signatures and documentation |
-| API | `api_describe` | look up any registered tool or plugin operation: its schema by name, matches by words, or every name |
+| | `python_api` | search the `orca` package in the running build: names, signatures and documentation, paged |
+| API | `api_describe` | look up any registered tool or plugin operation by name, list every name, or search every catalog by words |
 | | `api_call` | call a registered tool or plugin operation by name; runs and is journaled as that tool's own call |
 | CAD | `cad_call` | a method of the Design tab: sketches, features, reads and measurements, feature and body edits, undo, commit to plate; `describe_tools` lists them (CAD builds, Design tab enabled) |
 
@@ -2544,8 +2547,22 @@ agent's idle wait, and a `tools/mcp` driver run from the dialog against the same
 
 **Journal and replay.** `run_python` is journaled as one step holding its code, kept when the code failed
 partway; its tool calls are not journaled. In a JSON script a `run_python` step's `code` is never
-substituted, and a step whose outcome is not `finished` fails. `python_api` searches the reference built
-from the running build's `orca.host`.
+substituted, and a step whose outcome is not `finished` fails.
+
+**The reference.** `python_api` serves the reference `python_api_reference()` builds from the running
+build's `orca` package: `orca.host`, and the classes, events and pages plugins build on. It walks the
+modules and lists each public class, function, method, property, named instance (such as
+`orca.host.preset.process`) and constant (such as `orca.host.ui.PD_CAN_ABORT`) with its signature and
+documentation. The signature lines pybind11 starts a docstring with become the signature, a class's are its
+constructors, and an enum's values stay in its documentation rather than becoming entries, as they would
+where a module exports them. The documentation is the bindings' own docstrings, a class's followed by what
+its constructors say of their arguments; a constant can't carry one, so its documentation names the entries
+whose documentation names it. The reference is only as good as the docstrings: a test requires every entry
+to have documentation, every constructor that takes arguments to say what they are, and every parameter a
+name (pybind11 names an unnamed one `arg0`). A query ranks the
+entries as the settings search does (`query_words()`, `match_score()`); without one the whole package is
+listed with each entry's first sentence. The reply says whether numpy is installed, which the mesh and
+matrix arrays need and which the bundled Python lacks unless a file run's PEP 723 block installs it.
 
 ## Plugins and the tools
 
@@ -2602,8 +2619,20 @@ offered again by a new load). The call's job is the caller's, so an operation al
 plugin unloads runs to its end; its own tool calls are refused from then on.
 
 **`api_describe` and `api_call`.** `api_describe` gives the schema of any registered tool or operation,
-searches them by words (each match with its schema), or lists every name; for `cad_call` it points to
-`describe_tools`, which lists the Design tab's methods. `api_call {tool, args}` is dispatched before it runs
+or lists every name; for `cad_call` it points to `describe_tools`, which lists the Design tab's methods.
+Its search by words is the one search across catalogs: the best five tools and operations that match (more
+with `limit`), a tool with the first sentence of its description, since `tools/list` has its schema, and an
+operation with its schema, which nothing else lists; and beside them the best five of each other catalog with
+its total and how to use it: Speed Dial
+actions, the settings being edited (`search_settings()`, as `get_settings` searches without a scope), the
+Python reference and the Design tab's methods (noting when the Design tab is off). Every catalog is ranked
+the same way (`query_words()`, `match_score()`): a query word matches where a word of the name or text
+starts with it, CamelCase parts included, and entries matching more words, then more of them in the name,
+come first. Scores of different catalogs don't compare, so each keeps its own list. Actions, settings
+and the Design tab's methods are read on the UI thread: when it can't run the call (a native dialog holds
+it, or it is busy) the search leaves those three out, and before the main window exists (the server starts
+ahead of it) it leaves out the settings. The tools, operations and Python reference answer whatever the UI
+thread is doing. `api_call {tool, args}` is dispatched before it runs
 (`resolve_api_call()`, in the protocol, in child calls and in the plugin caller): the target's arguments
 are normalized and validated, and the call runs as the target's own, with its guard, mode, budget and
 journal flag, so the journal records the target.

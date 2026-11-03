@@ -577,7 +577,14 @@ std::vector<std::string> list_bundle_ids()
 
 void host_bindings::register_presets(py::module_& host)
 {
-    auto preset  = host.def_submodule("preset", "Preset operations");
+    auto preset  = host.def_submodule("preset",
+                                      "Preset editing. orca.host.preset.process, orca.host.preset.printer and "
+                                      "orca.host.preset.filament are the PresetEditor instances that change the "
+                                      "edited process, printer and filament presets: update(key, value) for one "
+                                      "setting, begin_update() for a batch. Each accepts only settings of its own "
+                                      "category, so a printer setting passed to process is rejected rather than "
+                                      "written. bundles reloads local preset bundles. To read presets and settings, "
+                                      "use orca.host.preset_bundle().");
     auto bundles = preset.def_submodule("bundles", "Local preset bundle operations");
     bundles.def("reload_local", &reload_local_bundle, py::arg("bundle_id"),
                 "Reload one local preset bundle from the active user's _local directory.");
@@ -585,34 +592,45 @@ void host_bindings::register_presets(py::module_& host)
                 "IDs of local preset bundles in the active user's _local directory that reload_local() accepts, "
                 "including bundles added after startup.");
 
-    py::enum_<Preset::Type>(host, "PresetType")
-        .value("Invalid", Preset::TYPE_INVALID)
-        .value("Print", Preset::TYPE_PRINT)
-        .value("SlaPrint", Preset::TYPE_SLA_PRINT)
-        .value("Filament", Preset::TYPE_FILAMENT)
-        .value("SlaMaterial", Preset::TYPE_SLA_MATERIAL)
-        .value("Printer", Preset::TYPE_PRINTER)
-        .value("PhysicalPrinter", Preset::TYPE_PHYSICAL_PRINTER)
-        .value("Plate", Preset::TYPE_PLATE)
-        .value("Model", Preset::TYPE_MODEL);
+    py::enum_<Preset::Type>(host, "PresetType",
+                            "Kind of preset: the type of a Preset, and the category a PresetEditor, PresetTransaction "
+                            "or PresetUpdateResult targets.")
+        .value("Invalid", Preset::TYPE_INVALID, "No preset type (an unset value).")
+        .value("Print", Preset::TYPE_PRINT,
+               "Process preset, the print settings the GUI calls \"process\" (PresetBundle.prints).")
+        .value("SlaPrint", Preset::TYPE_SLA_PRINT, "SLA print preset; not used by OrcaSlicer's FFF printers.")
+        .value("Filament", Preset::TYPE_FILAMENT, "Filament preset (PresetBundle.filaments).")
+        .value("SlaMaterial", Preset::TYPE_SLA_MATERIAL, "SLA resin preset; not used by OrcaSlicer's FFF printers.")
+        .value("Printer", Preset::TYPE_PRINTER, "Printer (machine) preset (PresetBundle.printers).")
+        .value("PhysicalPrinter", Preset::TYPE_PHYSICAL_PRINTER,
+               "A physical printer's connection settings; no Preset has this type.")
+        .value("Plate", Preset::TYPE_PLATE,
+               "Per-plate settings of the project; no PresetBundle collection holds this type.")
+        .value("Model", Preset::TYPE_MODEL,
+               "Per-object and per-part settings of the project; no PresetBundle collection holds this type.");
 
     py::class_<PresetUpdateResult>(preset, "PresetUpdateResult",
-                                   "Outcome of one committed preset transaction. target_name is the preset that was "
-                                   "edited; selection_changed says whether begin_update() switched the active preset; "
-                                   "for filament, slot_number is the 1-based target slot, slot_assignment_changed "
-                                   "says whether selecting the requested preset reassigned that slot, and shared_slots "
-                                   "lists every 1-based slot whose assigned preset is the edited (shared) one. keys "
-                                   "lists the settings applied, in order, and dirty says whether the edited preset "
-                                   "now differs from its saved state.")
-        .def_readonly("type", &PresetUpdateResult::type)
-        .def_readonly("target_name", &PresetUpdateResult::target_name)
-        .def_readonly("selection_changed", &PresetUpdateResult::selection_changed)
-        .def_readonly("slot_number", &PresetUpdateResult::slot_number)
-        .def_readonly("slot_assignment_changed", &PresetUpdateResult::slot_assignment_changed)
-        .def_readonly("shared_slots", &PresetUpdateResult::shared_slots)
-        .def_readonly("keys", &PresetUpdateResult::keys)
-        .def_readonly("dirty", &PresetUpdateResult::dirty)
-        .def_property_readonly("category", [](const PresetUpdateResult& result) { return preset_tab_name(result.type); })
+                                   "Outcome of one committed preset transaction, returned by "
+                                   "PresetTransaction.commit(). Filament slot numbers are 1-based.")
+        .def_readonly("type", &PresetUpdateResult::type, "PresetType of the edited preset: Print, Printer or Filament.")
+        .def_readonly("target_name", &PresetUpdateResult::target_name, "Internal name of the preset that was edited.")
+        .def_readonly("selection_changed", &PresetUpdateResult::selection_changed,
+                      "True when begin_update() switched the edited preset to reach the target; False when the target "
+                      "was already being edited.")
+        .def_readonly("slot_number", &PresetUpdateResult::slot_number,
+                      "1-based filament slot the transaction targeted; -1 for process and printer.")
+        .def_readonly("slot_assignment_changed", &PresetUpdateResult::slot_assignment_changed,
+                      "True when begin_update() assigned the requested preset to the filament slot in place of its "
+                      "previous one; always False for process and printer.")
+        .def_readonly("shared_slots", &PresetUpdateResult::shared_slots,
+                      "1-based filament slots whose assigned preset is the edited one, all of which the edit affects; "
+                      "empty for process and printer.")
+        .def_readonly("keys", &PresetUpdateResult::keys, "Setting keys that were applied, in staging order.")
+        .def_readonly("dirty", &PresetUpdateResult::dirty,
+                      "True when the edited preset now differs from its saved state and still needs saving.")
+        .def_property_readonly(
+            "category", [](const PresetUpdateResult& result) { return preset_tab_name(result.type); },
+            "Category of the edited preset: \"process\", \"printer\" or \"filament\".")
         .def("__repr__", [](const PresetUpdateResult& result) {
             return std::string("<PresetUpdateResult ") + preset_tab_name(result.type) + " \"" + result.target_name
                    + "\" keys=" + std::to_string(result.keys.size()) + ">";
@@ -626,20 +644,29 @@ void host_bindings::register_presets(py::module_& host)
                                   "while the UI thread stays responsive; set() and commit() run synchronously on the "
                                   "same worker. Nothing is saved to disk: the edited preset stays dirty until the user "
                                   "saves it.")
-        .def_readonly("type", &PresetTransaction::type)
-        .def_readonly("target_name", &PresetTransaction::target_name)
-        .def_readonly("selection_changed", &PresetTransaction::selection_changed)
-        .def_property_readonly("slot_number", [](const PresetTransaction& transaction) {
-            return transaction.filament ? transaction.slot_number : -1;
-        })
-        .def_property_readonly("category", [](const PresetTransaction& transaction) { return preset_tab_name(transaction.type); })
-        .def_property_readonly("staged_keys", [](const PresetTransaction& transaction) {
-            std::vector<std::string> keys;
-            keys.reserve(transaction.staged.size());
-            for (const auto& entry : transaction.staged)
-                keys.push_back(entry.first);
-            return keys;
-        })
+        .def_readonly("type", &PresetTransaction::type, "PresetType of the target preset: Print, Printer or Filament.")
+        .def_readonly("target_name", &PresetTransaction::target_name,
+                      "Internal name of the preset this transaction edits.")
+        .def_readonly("selection_changed", &PresetTransaction::selection_changed,
+                      "True when begin_update() switched the edited preset to reach the target; False when the target "
+                      "was already being edited.")
+        .def_property_readonly(
+            "slot_number",
+            [](const PresetTransaction& transaction) { return transaction.filament ? transaction.slot_number : -1; },
+            "1-based filament slot this transaction was created for; -1 for process and printer.")
+        .def_property_readonly(
+            "category", [](const PresetTransaction& transaction) { return preset_tab_name(transaction.type); },
+            "Category of the target preset: \"process\", \"printer\" or \"filament\".")
+        .def_property_readonly(
+            "staged_keys",
+            [](const PresetTransaction& transaction) {
+                std::vector<std::string> keys;
+                keys.reserve(transaction.staged.size());
+                for (const auto& entry : transaction.staged)
+                    keys.push_back(entry.first);
+                return keys;
+            },
+            "Setting keys staged with set() so far, in staging order, as a new list.")
         .def("set", &PresetTransaction::set, py::arg("key"), py::arg("value"),
              "Stage one setting change. key must be a setting of the target preset category and value its "
              "serialized string form; staging validates neither, so commit() is where an invalid key or value "
@@ -655,7 +682,9 @@ void host_bindings::register_presets(py::module_& host)
                              "Handle to a category of currently edited preset. It is not a snapshot: it always "
                              "resolves the preset the matching tab edits now, so it stays usable across preset "
                              "switches. update() edits the preset in place; the change is not saved to disk.")
-        .def_readonly("type", &PresetEditor::type)
+        .def_readonly("type", &PresetEditor::type,
+                      "PresetType this editor edits: Print for orca.host.preset.process, Printer for "
+                      "orca.host.preset.printer, Filament for orca.host.preset.filament.")
         .def(
             "begin_update",
             [](const PresetEditor& editor, const std::string& preset_name) {
@@ -727,100 +756,196 @@ void host_bindings::register_presets(py::module_& host)
             "(the slot's current assignment is kept), then set(key, value) and commit(); like "
             "begin_update() this call blocks the background Script worker.");
 
-    // The three preset categories edited by the main tabs. `process` is the print/process preset,
-    // `printer` the machine preset and `filament` the currently edited filament preset (its
-    // 3-argument form addresses a 1-based filament slot); each only accepts its own settings, so a
-    // printer setting passed to `process` is rejected instead of written silently.
     preset.attr("process")  = py::cast(PresetEditor{Preset::TYPE_PRINT});
     preset.attr("printer")  = py::cast(PresetEditor{Preset::TYPE_PRINTER});
     preset.attr("filament") = py::cast(PresetEditor{Preset::TYPE_FILAMENT});
 
-    py::class_<Preset, std::unique_ptr<Preset, py::nodelete>>(host, "Preset")
-        .def_readonly("type", &Preset::type)
-        .def_readonly("name", &Preset::name)
-        .def_readonly("alias", &Preset::alias)
-        .def_readonly("file", &Preset::file)
-        .def_readonly("is_default", &Preset::is_default)
-        .def_readonly("is_external", &Preset::is_external)
-        .def_readonly("is_system", &Preset::is_system)
-        .def_readonly("is_visible", &Preset::is_visible)
-        .def_readonly("is_dirty", &Preset::is_dirty)
-        .def_readonly("is_compatible", &Preset::is_compatible)
-        .def_readonly("is_project_embedded", &Preset::is_project_embedded)
-        .def_readonly("bundle_id", &Preset::bundle_id)
-        .def("is_user", &Preset::is_user)
-        .def("is_from_bundle", &Preset::is_from_bundle)
-        .def("label", &Preset::label, py::arg("no_alias") = false)
-        .def("config_keys", [](const Preset& preset) { return preset.config.keys(); })
-        .def("config_value", [](const Preset& preset, const std::string& key) {
-            return config_value_or_none(preset.config, key);
-        });
+    py::class_<Preset, std::unique_ptr<Preset, py::nodelete>>(
+        host, "Preset",
+        "One named set of process, filament or printer settings. Get presets from orca.host.preset_bundle(): its "
+        "prints, filaments and printers collections, or the current_*_preset() shortcuts. A Preset is a live "
+        "reference into the app's preset store, not a copy: it reflects later edits, and adding or deleting presets "
+        "(saving a new preset, loading a project, reloading a bundle) invalidates it, so look presets up again "
+        "instead of keeping them. Read a setting with config_value(key); change one through orca.host.preset.process, "
+        ".printer or .filament (PresetEditor), never through this object.")
+        .def_readonly("type", &Preset::type, "PresetType of this preset: Print (process), Filament or Printer.")
+        .def_readonly("name", &Preset::name,
+                      "Internal name, unique within its collection. find_preset(), "
+                      "PresetEditor.begin_update(preset_name) and the filament slot assignments use it. A preset "
+                      "from an imported bundle is named \"_local/<bundle_id>/<name>\" or "
+                      "\"_subscribed/<bundle_id>/<name>\".")
+        .def_readonly("alias", &Preset::alias,
+                      "Logical name without the printer suffix, such as \"Generic PLA\" for \"Generic PLA @BBL X1C\"; "
+                      "label() shows it in place of name. Empty when the preset has none. find_preset() does not "
+                      "match it.")
+        .def_readonly("file", &Preset::file,
+                      "Path of the file this preset was loaded from or is saved to; empty for the built-in default "
+                      "preset.")
+        .def_readonly("is_default", &Preset::is_default,
+                      "True for the built-in default preset at index 0 of each collection (\"Default Setting\", "
+                      "\"Default Filament\" or \"Default Printer\"), which holds every setting's default value.")
+        .def_readonly("is_external", &Preset::is_external,
+                      "True for a preset loaded from a file outside OrcaSlicer's preset folders, such as a config "
+                      "file or the settings stored in a G-code or 3MF project.")
+        .def_readonly("is_system", &Preset::is_system,
+                      "True for a read-only system preset from a vendor profile; changes to it can only be saved as a "
+                      "new user preset.")
+        .def_readonly("is_visible", &Preset::is_visible,
+                      "Whether the preset selectors offer it: False for a system printer whose model or variant, or a "
+                      "system filament, is not enabled in the printer and filament selection. The default preset is "
+                      "visible only when nothing else is available.")
+        .def_readonly("is_dirty", &Preset::is_dirty,
+                      "True when the preset has unsaved changes. Only the selected preset and its edited copy "
+                      "(PresetCollection.edited_preset()) can be dirty.")
+        .def_readonly("is_compatible", &Preset::is_compatible,
+                      "Whether it suits the selected printer (its compatible_printers or "
+                      "compatible_printers_condition) and, for a filament, the edited process (compatible_prints). The "
+                      "selectors hide incompatible presets. Always True for printer presets.")
+        .def_readonly("is_project_embedded", &Preset::is_project_embedded,
+                      "True for a preset stored in the loaded 3MF project rather than in the user's preset folder.")
+        .def_readonly("bundle_id", &Preset::bundle_id,
+                      "ID of the imported preset bundle this preset came from (an Orca Cloud UUID, or a name and "
+                      "timestamp for an external bundle); empty when it is not from a bundle.")
+        .def("is_user", &Preset::is_user,
+             "True for a user preset: not the default preset, not a system preset, not embedded in the project and "
+             "not from a bundle.")
+        .def("is_from_bundle", &Preset::is_from_bundle,
+             "True when the preset came from an imported preset bundle, that is when bundle_id is set.")
+        .def("label", &Preset::label, py::arg("no_alias") = false,
+             "Display label: alias, or name when there is no alias or no_alias is True, prefixed with the GUI's "
+             "unsaved-changes marker (\"* \" in English) when is_dirty. Look presets up by name, not by label.")
+        .def(
+            "config_keys", [](const Preset& preset) { return preset.config.keys(); },
+            "Names of every setting in this preset. A preset holds its complete config, so a user preset also lists "
+            "the settings it inherits unchanged from its parent.")
+        .def(
+            "config_value",
+            [](const Preset& preset, const std::string& key) { return config_value_or_none(preset.config, key); },
+            py::arg("key"),
+            "Serialized value of one setting, in the string form PresetTransaction.set() and PresetEditor.update() "
+            "take: numbers as text, booleans \"1\"/\"0\", enums by name, percentages with \"%\", vector options "
+            "comma-separated (string lists ';'-separated, quoted where needed). None when the preset has no such "
+            "setting.");
 
-    py::class_<PresetCollection, std::unique_ptr<PresetCollection, py::nodelete>>(host, "PresetCollection")
-        .def("size", &PresetCollection::size)
-        .def("get_selected_preset", [](PresetCollection& collection) -> Preset& {
-            return collection.get_selected_preset();
-        }, py::return_value_policy::reference_internal)
-        .def("selected_preset", [](PresetCollection& collection) -> Preset& {
-            return collection.get_selected_preset();
-        }, py::return_value_policy::reference_internal)
-        .def("get_selected_preset_name", &PresetCollection::get_selected_preset_name)
-        .def("selected_preset_name", &PresetCollection::get_selected_preset_name)
-        .def("get_edited_preset", [](PresetCollection& collection) -> Preset& {
-            return collection.get_edited_preset();
-        }, py::return_value_policy::reference_internal)
-        .def("edited_preset", [](PresetCollection& collection) -> Preset& {
-            return collection.get_edited_preset();
-        }, py::return_value_policy::reference_internal)
-        .def("preset", [](PresetCollection& collection, size_t index) -> Preset& {
-            if (index >= collection.size())
-                throw py::index_error("preset index out of range");
-            return collection.preset(index);
-        }, py::return_value_policy::reference_internal)
-        .def("find_preset", [](PresetCollection& collection, const std::string& name) -> Preset* {
-            return collection.find_preset(name);
-        }, py::return_value_policy::reference_internal)
-        .def("preset_names", [](const PresetCollection& collection) {
-            std::vector<std::string> names;
-            names.reserve(collection.get_presets().size());
-            for (const Preset& preset : collection.get_presets())
-                names.push_back(preset.name);
-            return names;
-        });
+    py::class_<PresetCollection, std::unique_ptr<PresetCollection, py::nodelete>>(
+        host, "PresetCollection",
+        "All presets of one type: the prints (process), filaments or printers collection of "
+        "orca.host.preset_bundle(). Index 0 is the built-in default preset; hidden and incompatible presets are "
+        "included. Items are live Preset references (see Preset). Read a setting with Preset.config_value(key); to "
+        "change one, use orca.host.preset.process, .filament or .printer (PresetEditor), which edit the currently "
+        "edited preset the way the settings tab does.")
+        .def("size", &PresetCollection::size,
+             "Number of presets, including the default preset at index 0; preset(index) accepts 0 to size() - 1.")
+        .def(
+            "get_selected_preset",
+            [](PresetCollection& collection) -> Preset& { return collection.get_selected_preset(); },
+            py::return_value_policy::reference_internal,
+            "The selected preset as last saved, without unsaved changes; edited_preset() has the values in effect. "
+            "Same as selected_preset().")
+        .def(
+            "selected_preset", [](PresetCollection& collection) -> Preset& { return collection.get_selected_preset(); },
+            py::return_value_policy::reference_internal,
+            "The selected preset as last saved, without unsaved changes; edited_preset() has the values in effect.")
+        .def("get_selected_preset_name", &PresetCollection::get_selected_preset_name,
+             "Internal name of the selected preset, or \"\" when none is selected. Same as selected_preset_name().")
+        .def("selected_preset_name", &PresetCollection::get_selected_preset_name,
+             "Internal name of the selected preset, or \"\" when none is selected.")
+        .def(
+            "get_edited_preset", [](PresetCollection& collection) -> Preset& { return collection.get_edited_preset(); },
+            py::return_value_policy::reference_internal,
+            "The selected preset including its unsaved changes. Same as edited_preset().")
+        .def(
+            "edited_preset", [](PresetCollection& collection) -> Preset& { return collection.get_edited_preset(); },
+            py::return_value_policy::reference_internal,
+            "The selected preset including its unsaved changes: the values the settings tab shows. The object follows "
+            "the collection's selection, so once another preset is selected it describes that one. For filaments it is "
+            "the preset the Filament tab shows; PresetBundle.current_filament_presets() gives every slot's preset.")
+        .def(
+            "preset",
+            [](PresetCollection& collection, size_t index) -> Preset& {
+                if (index >= collection.size())
+                    throw py::index_error("preset index out of range");
+                return collection.preset(index);
+            },
+            py::arg("index"), py::return_value_policy::reference_internal,
+            "The preset at a 0-based index, 0 being the built-in default preset; at the selected index it is the "
+            "edited copy with unsaved changes. Raises IndexError when index >= size().")
+        .def(
+            "find_preset",
+            [](PresetCollection& collection, const std::string& name) -> Preset* {
+                return collection.find_preset(name);
+            },
+            py::arg("name"), py::return_value_policy::reference_internal,
+            "The preset with this internal name (a renamed system preset is also found by a former name), or None. "
+            "For the selected preset it is the edited copy with unsaved changes. Aliases and display labels do not "
+            "match.")
+        .def(
+            "preset_names",
+            [](const PresetCollection& collection) {
+                std::vector<std::string> names;
+                names.reserve(collection.get_presets().size());
+                for (const Preset& preset : collection.get_presets())
+                    names.push_back(preset.name);
+                return names;
+            },
+            "Internal names of all presets in index order, so preset_names()[i] is preset(i).name; the default preset "
+            "comes first.");
 
-    py::class_<PresetBundle, std::unique_ptr<PresetBundle, py::nodelete>>(host, "PresetBundle")
-        .def_property_readonly("prints", [](PresetBundle& bundle) -> PresetCollection& {
-            return bundle.prints;
-        }, py::return_value_policy::reference_internal)
-        .def_property_readonly("printers", &printer_presets, py::return_value_policy::reference_internal)
-        .def_property_readonly("filaments", [](PresetBundle& bundle) -> PresetCollection& {
-            return bundle.filaments;
-        }, py::return_value_policy::reference_internal)
-        .def_property_readonly("sla_prints", [](PresetBundle& bundle) -> PresetCollection& {
-            return bundle.sla_prints;
-        }, py::return_value_policy::reference_internal)
-        .def_property_readonly("sla_materials", [](PresetBundle& bundle) -> PresetCollection& {
-            return bundle.sla_materials;
-        }, py::return_value_policy::reference_internal)
-        .def("current_process_preset", [](PresetBundle& bundle) -> Preset& {
-            return bundle.prints.get_edited_preset();
-        }, py::return_value_policy::reference_internal)
-        .def("current_print_preset", [](PresetBundle& bundle) -> Preset& {
-            return bundle.prints.get_edited_preset();
-        }, py::return_value_policy::reference_internal)
-        .def("current_printer_preset", [](PresetBundle& bundle) -> Preset& {
-            return bundle.printers.get_edited_preset();
-        }, py::return_value_policy::reference_internal)
-        .def("current_filament_preset_names", [](PresetBundle& bundle) {
-            return bundle.filament_presets;
-        })
-        .def("current_filament_presets", &current_filament_presets)
-        .def("full_config_keys", [](const PresetBundle& bundle) {
-            return bundle.full_config().keys();
-        })
-        .def("full_config_value", [](const PresetBundle& bundle, const std::string& key) {
-            return config_value_or_none(bundle.full_config(), key);
-        });
+    py::class_<PresetBundle, std::unique_ptr<PresetBundle, py::nodelete>>(
+        host, "PresetBundle",
+        "All loaded presets and the current selection; orca.host.preset_bundle() returns the app's live bundle. "
+        "prints, filaments and printers are the PresetCollections; current_process_preset(), current_printer_preset() "
+        "and current_filament_presets() are the presets in effect, and full_config_value(key) reads the merged "
+        "settings slicing would use. It only reads: to change a setting use orca.host.preset.process, .filament or "
+        ".printer (PresetEditor.update(key, value) or begin_update()), which apply it through the settings tab.")
+        .def_property_readonly(
+            "prints", [](PresetBundle& bundle) -> PresetCollection& { return bundle.prints; },
+            py::return_value_policy::reference_internal, "PresetCollection of process (print settings) presets.")
+        .def_property_readonly("printers", &printer_presets, py::return_value_policy::reference_internal,
+                               "PresetCollection of printer presets.")
+        .def_property_readonly(
+            "filaments", [](PresetBundle& bundle) -> PresetCollection& { return bundle.filaments; },
+            py::return_value_policy::reference_internal,
+            "PresetCollection of filament presets; current_filament_presets() says which one each slot uses.")
+        .def_property_readonly(
+            "sla_prints", [](PresetBundle& bundle) -> PresetCollection& { return bundle.sla_prints; },
+            py::return_value_policy::reference_internal,
+            "PresetCollection of SLA print presets; not used by OrcaSlicer's FFF printers.")
+        .def_property_readonly(
+            "sla_materials", [](PresetBundle& bundle) -> PresetCollection& { return bundle.sla_materials; },
+            py::return_value_policy::reference_internal,
+            "PresetCollection of SLA resin presets; not used by OrcaSlicer's FFF printers.")
+        .def(
+            "current_process_preset", [](PresetBundle& bundle) -> Preset& { return bundle.prints.get_edited_preset(); },
+            py::return_value_policy::reference_internal,
+            "The edited process preset, with its unsaved changes; same as prints.edited_preset().")
+        .def(
+            "current_print_preset", [](PresetBundle& bundle) -> Preset& { return bundle.prints.get_edited_preset(); },
+            py::return_value_policy::reference_internal, "Same as current_process_preset().")
+        .def(
+            "current_printer_preset",
+            [](PresetBundle& bundle) -> Preset& { return bundle.printers.get_edited_preset(); },
+            py::return_value_policy::reference_internal,
+            "The edited printer preset, with its unsaved changes; same as printers.edited_preset().")
+        .def(
+            "current_filament_preset_names", [](PresetBundle& bundle) { return bundle.filament_presets; },
+            "Preset name stored for each filament slot, as a new list where index i is slot i + 1.")
+        .def("current_filament_presets", &current_filament_presets,
+             "The preset assigned to each filament slot, as a list where index i is slot i + 1, with None for a slot "
+             "whose name matches no preset. A slot assigned the edited filament preset gives the edited copy with "
+             "unsaved changes.")
+        .def(
+            "full_config_keys", [](const PresetBundle& bundle) { return bundle.full_config().keys(); },
+            "Names of every setting in the merged config full_config_value() reads.")
+        .def(
+            "full_config_value",
+            [](const PresetBundle& bundle, const std::string& key) {
+                return config_value_or_none(bundle.full_config(), key);
+            },
+            py::arg("key"),
+            "Serialized value of one setting from the merged config slicing would use: the edited process and printer "
+            "presets, each filament slot's preset and the project settings. Per-filament settings hold one value per "
+            "slot, in slot order. None when key is not a setting. Each call rebuilds the merged config.");
 }
 
 } // namespace Slic3r

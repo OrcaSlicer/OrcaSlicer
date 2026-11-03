@@ -13,6 +13,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include "python_test_support.hpp"
+
 #include "slic3r/GUI/Mcp/McpTools.hpp"
 #include "slic3r/GUI/Mcp/McpTypes.hpp"
 #include "slic3r/GUI/Mcp/McpJournal.hpp"
@@ -24,7 +26,9 @@
 
 #include <nlohmann/json.hpp>
 
+#include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace Slic3r::GUI::Mcp;
@@ -56,6 +60,73 @@ TEST_CASE("setting values serialize the way their options read them back", "[Mcp
     CHECK(to_config_string(json("a.py;b.py"), "post_process") == "a.py;b.py");
 
     CHECK_THROWS_AS(to_config_string(json::object()), ToolFailure);
+}
+
+TEST_CASE("a search matches query words at the start of a text's words, CamelCase parts included", "[Mcp]")
+{
+    // Short words drop out once the query has a longer one.
+    CHECK(query_words("Add a Brim to it") == std::vector<std::string>{"add", "brim"});
+    CHECK(query_words("z") == std::vector<std::string>{"z"});
+
+    const std::vector<std::string> words = query_words("mesh normals");
+    // "mesh" starts the second part of TriangleMesh and "normals" a word of the name: both in the name.
+    CHECK(match_score(words, "orca.host.TriangleMesh.face_normals", "Per-triangle normals.") == std::pair<int, int>{2, 2});
+    // A word only the text has counts, but not as a name match.
+    CHECK(match_score(words, "orca.host.ModelVolume.mesh", "Face normals are not cached.") == std::pair<int, int>{2, 1});
+    CHECK(match_score(words, "orca.host.Model", "The project's objects.") == std::pair<int, int>{0, 0});
+    // A word is matched at the start of a word, never inside one.
+    CHECK(match_score(query_words("range"), "arrange", "") == std::pair<int, int>{0, 0});
+    CHECK(match_score(query_words("retract"), "retraction_length", "") == std::pair<int, int>{1, 1});
+}
+
+TEST_CASE("a listing summary is a documentation's first sentence on one line", "[Mcp]")
+{
+    CHECK(first_sentence("Return the mesh.\nIt is a copy.") == "Return the mesh.");
+    CHECK(first_sentence("A box, e.g. the bed's. More.") == "A box, e.g. the bed's.");
+    CHECK(first_sentence("Version 2.5 of the\nformat") == "Version 2.5 of the format");
+    CHECK(first_sentence("") == "");
+}
+
+TEST_CASE("python_api's reference covers the orca package with constructors and named instances", "[Mcp][Python]")
+{
+    (void) import_orca_module();
+    const json                  reference = python_api_reference();
+    std::map<std::string, json> by_name;
+    for (const json& entry : reference)
+        by_name[entry["name"].get<std::string>()] = entry;
+
+    // The plugin classes and pages beside orca.host.
+    CHECK(by_name.count("orca.pages") == 1);
+    CHECK(by_name.count("orca.script.ScriptPluginCapabilityBase") == 1);
+    // A class's signature is its constructors, and its documentation goes on with what they say.
+    REQUIRE(by_name.count("orca.host.Point") == 1);
+    CHECK(by_name["orca.host.Point"]["signature"].get<std::string>().rfind("Point(x: ", 0) == 0);
+    REQUIRE(by_name.count("orca.host.ExPolygon") == 1);
+    CHECK(by_name["orca.host.ExPolygon"]["doc"].get<std::string>().find("Orientation is normalized") != std::string::npos);
+    // A constant, which has no docstring, points at the documentation that says what it means.
+    REQUIRE(by_name.count("orca.host.ui.PD_CAN_ABORT") == 1);
+    const json& abort = by_name["orca.host.ui.PD_CAN_ABORT"];
+    CHECK(abort["kind"] == "constant");
+    CHECK(abort["signature"].get<std::string>().rfind("PD_CAN_ABORT = ", 0) == 0);
+    CHECK(abort["doc"].get<std::string>().find("orca.host.ui.create_progress_dialog") != std::string::npos);
+    // An instance a module offers by name.
+    REQUIRE(by_name.count("orca.host.preset.process") == 1);
+    CHECK(by_name["orca.host.preset.process"]["kind"] == "attribute");
+    // An enum's values are in its documentation, also where a module exports them.
+    CHECK(by_name.count("orca.host.PresetType.Print") == 0);
+    CHECK(by_name.count("orca.Analysis") == 0);
+    // pybind11's signature lines are the signature, not documentation.
+    REQUIRE(by_name.count("orca.host.TriangleMesh.face_normals") == 1);
+    const json& normals = by_name["orca.host.TriangleMesh.face_normals"];
+    CHECK(normals["signature"].get<std::string>().rfind("face_normals(self)", 0) == 0);
+    CHECK(normals["doc"].get<std::string>().find("face_normals(") == std::string::npos);
+    // An overloaded method's signature is its overloads, not pybind11's name(*args, **kwargs) before them.
+    REQUIRE(by_name.count("orca.host.preset.PresetEditor.begin_update") == 1);
+    const std::string overloads = by_name["orca.host.preset.PresetEditor.begin_update"]["signature"];
+    CHECK(overloads.find("*args") == std::string::npos);
+    CHECK(overloads.find("slot_number") != std::string::npos);
+
+    CHECK(rank_python_api(reference, "mesh normals")[0]["name"] == "orca.host.TriangleMesh.face_normals");
 }
 
 TEST_CASE("every tool of the catalog has the lane the concept gives it", "[Mcp]")

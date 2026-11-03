@@ -26,15 +26,11 @@ PLUGIN = "mcp_tools_fixture"
 CAPABILITIES = ["MCP tools fixture call", "MCP tools fixture thread", "MCP tools fixture rule", "MCP tools fixture export",
                 "MCP tools fixture handle"]
 BROKEN = "mcp_tools_broken"
-# A script that finds the fixture's handle among the loaded modules and tries one of its methods.
+# A script that finds the fixture's progress dialog among the loaded modules and moves its gauge.
 GRAB_HANDLE = """
 import sys
 handle = next(m.HANDLE for m in list(sys.modules.values()) if getattr(m, "HANDLE", None) is not None)
-try:
-    handle.update(5)
-    result = "allowed"
-except RuntimeError as e:
-    result = str(e)
+result = handle.update(5)
 """
 RULE = "MCP tools fixture never shown"  # the match of the auto-answer rule the fixture's "rule" script sets
 PORT = 13692
@@ -157,6 +153,27 @@ def main():
         exported = run_script(orca, plugin_dir, "export", CAPABILITIES[3])
         check("a plugin is refused export_script", exported.get("ok") is False and "agent's session" in exported.get("error", ""),
               exported)
+        # api_describe's one search: an operation with its schema, a tool with its summary (its schema is in
+        # tools/list), and beside them the other catalogs' best matches.
+        found = orca.call("api_describe", query="fixture measure")
+        operation = next((i for i in found["items"] if i["name"] == f"plugin.{PLUGIN}.measure"), {})
+        check("api_describe's search finds the plugin's operation with its schema", "input_schema" in operation, found)
+        found = orca.call("api_describe", query="slice plate")
+        tool = next((i for i in found["items"] if i["name"] == "slice"), {})
+        check("api_describe's search names a tool with its summary", tool.get("summary") and "input_schema" not in tool, found)
+        found = orca.call("api_describe", query="brim width")
+        check("api_describe's search finds settings", any(s["key"] == "brim_width" for s in found.get("settings", {}).get("items", [])),
+              found)
+        found = orca.call("api_describe", query="arrange")
+        check("api_describe's search finds Speed Dial actions", any("arrange" in a["id"] for a in found.get("actions", {}).get("items", [])),
+              found)
+        found = orca.call("api_describe", query="mesh normals")
+        check("api_describe's search finds the Python API", found.get("python", {}).get("items", [{}])[0].get("name") ==
+              "orca.host.TriangleMesh.face_normals", found)
+        found = orca.call("api_describe", query="extrude")
+        check("api_describe's search finds the Design tab's methods", found.get("cad", {}).get("items"), found)
+        found = orca.call("api_describe", query="?")
+        check("a query with no words to search for matches nothing", found.get("total") == 0 and "names" not in found, found)
         journal = orca.call("export_script")["script"]["steps"]
         check("a plugin's calls are not in the agent's journal", not any(s["tool"] == "dialog_auto_answer" for s in journal),
               journal)
@@ -165,7 +182,7 @@ def main():
         held = run_script(orca, plugin_dir, "handle", CAPABILITIES[4])
         check("the plugin opens a progress dialog and keeps its handle", held.get("ok") is True, held)
         grab = orca.await_job(orca.call("run_python", code=GRAB_HANDLE))
-        check("a script that finds a plugin's handle is refused its methods", "is for plugins" in str(grab.get("result")), grab)
+        check("a script that finds a plugin's handle can use its methods", grab.get("result") is True, grab)
 
         # --- The plugin unloads, as a person unticks it in the Plugins dialog. ---
         rules = lambda: json.dumps(orca.call("get_state").get("auto_answer_rules"))

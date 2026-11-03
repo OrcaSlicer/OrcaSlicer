@@ -15,7 +15,7 @@ Each script writes what happened to out_<name>.json in the plugin's storage fold
 permission unless ORCA_MCP_TOOLS_FIXTURE_ASK is 0. "call" calls get_state,
 "thread" calls it from a thread the script starts, "rule" registers an auto-answer rule, "export" asks for
 export_script, which a plugin is refused, and "handle" opens a progress dialog and keeps its handle in
-HANDLE, for a script to be refused its methods. The plugin also offers the operation "measure", which
+HANDLE, for a script to find and use. The plugin also offers the operation "measure", which
 doubles its argument a.
 """
 import json
@@ -87,7 +87,7 @@ class ExportScript(orca.script.ScriptPluginCapabilityBase):
         return record("export", lambda: orca.host.tools.call("export_script"))
 
 
-# A handle only the plugin's own calls may use; a script that finds it here is refused its methods.
+# The progress dialog the "handle" script opens; a script that finds it here uses it as the plugin can.
 HANDLE = None
 
 
