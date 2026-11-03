@@ -24193,7 +24193,7 @@ msgid "Klipper version => 0.9.0"
 msgstr "Требуется Klipper 0.9.0 или новее."
 
 msgid ""
-"RepRap firmware version => 3.4.0\n"
+"RepRapFirmware version => 3.4.0\n"
 "Check your firmware documentation for supported shaper types."
 msgstr ""
 "Требуется RepRap 3.4.0 или новее.\n"
@@ -24214,7 +24214,7 @@ msgstr "Y, начало / конец: "
 msgid "Frequency settings"
 msgstr "Настройка частоты"
 
-msgid "RepRap firmware uses the same frequency range for both axes."
+msgid "RepRapFirmware uses the same frequency range for both axes."
 msgstr "Прошивка RepRap использует общий диапазон частот для обеих осей."
 
 msgid "Damp: "
@@ -24254,7 +24254,7 @@ msgstr "Частота X / Y: "
 msgid "Damp (Start / End): "
 msgstr "Затухание (начало / конец): "
 
-msgid "RepRap firmware uses the same frequency for both axes."
+msgid "RepRapFirmware uses the same frequency for both axes."
 msgstr "Прошивка RepRap использует общую частоту для обеих осей."
 
 msgid "Note: Use previously calculated frequencies."
