@@ -375,13 +375,13 @@ void ModeSwitchButton::doRender(wxDC& dc)
         }
     }
     else { // Developer mode
-        double scale = 1.00;
-#ifdef __WXOSX__
-        scale = Slic3r::GUI::mac_max_scaling_factor();
-        dc.SetFont(dc.GetFont().Scaled(scale));
-#elif defined(__WXMSW__)
-        scale = m_parent->GetDPIScaleFactor();
-        dc.SetFont(dc.GetFont().Scaled(scale));
+        // Only the MSW DC draws in physical pixels, so the font and its baseline offset follow the
+        // DPI scale there. macOS and GTK draw in logical units: scaling the font again by the Retina
+        // backing factor made "DEV" overflow the switch.
+        double y_offset = 0.0;
+#if defined(__WXMSW__)
+        y_offset = m_parent->GetDPIScaleFactor();
+        dc.SetFont(dc.GetFont().Scaled(y_offset));
 #endif
         wxString str = "DEV";
         int kerning = 3; // pixels between chars
@@ -396,11 +396,6 @@ void ModeSwitchButton::doRender(wxDC& dc)
 
         wxFontMetrics fm = dc.GetFontMetrics();
         int lineHeight   = fm.ascent + fm.descent + fm.internalLeading;
-
-        double y_offset = scale;
-#if   defined(__WXGTK__)
-        y_offset = 0;
-#endif
 
         wxCoord y = std::floor(v_center - lineHeight * 0.50 - y_offset);
 

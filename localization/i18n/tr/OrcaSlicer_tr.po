@@ -24507,7 +24507,7 @@ msgid "Klipper version => 0.9.0"
 msgstr "Klipper sürümü => 0.9.0"
 
 msgid ""
-"RepRap firmware version => 3.4.0\n"
+"RepRapFirmware version => 3.4.0\n"
 "Check your firmware documentation for supported shaper types."
 msgstr ""
 "RepRap ürün yazılımı sürümü => 3.4.0\n"
@@ -24527,7 +24527,7 @@ msgstr "Y Başlangıç / Bitiş: "
 msgid "Frequency settings"
 msgstr "Frekans ayarları"
 
-msgid "RepRap firmware uses the same frequency range for both axes."
+msgid "RepRapFirmware uses the same frequency range for both axes."
 msgstr "RepRap ürün yazılımı her iki eksen için aynı frekans aralığını kullanır."
 
 # AI Translated
@@ -24568,7 +24568,7 @@ msgstr "Frekans X / Y: "
 msgid "Damp (Start / End): "
 msgstr "Sönümleme (Başlangıç / Bitiş): "
 
-msgid "RepRap firmware uses the same frequency for both axes."
+msgid "RepRapFirmware uses the same frequency for both axes."
 msgstr "RepRap ürün yazılımı her iki eksen için de aynı frekansı kullanır."
 
 msgid "Note: Use previously calculated frequencies."
