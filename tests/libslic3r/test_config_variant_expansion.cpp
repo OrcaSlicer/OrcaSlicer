@@ -914,5 +914,70 @@ TEST_CASE("Different nozzles add independent flow variants without changing prof
 
     config.option<ConfigOptionBool>("allow_different_nozzles")->value = true;
     config.set_num_extruders(1);
+    REQUIRE(config.support_different_extruders(count));
+}
+
+TEST_CASE("Profile nozzle selection can be enabled and disabled without losing capabilities", "[Config][FilamentVariants]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    const unsigned int tools = GENERATE(1u, 2u, 4u);
+    // Vendor defaults, including Snapmaker U1, explicitly enable the switch.
+    const std::string variants = "Direct Drive Standard,Direct Drive High Flow";
+    config.option<ConfigOptionStrings>("extruder_variant_list")->values = {variants};
+    config.option<ConfigOptionBool>("allow_different_nozzles")->value = true;
+    config.set_num_extruders(tools);
+
+    int count = 0;
+    REQUIRE(config.support_different_extruders(count));
+    REQUIRE(count == tools);
+    REQUIRE(config.option<ConfigOptionStrings>("printer_extruder_variant")->size() == tools * 2);
+    for (unsigned int tool = 0; tool < tools; ++tool) {
+        REQUIRE(get_extruder_variant_list(config, tool) == variants);
+        REQUIRE(get_extruder_supported_nozzle_volume_types(config, tool) ==
+                std::set<NozzleVolumeType>({nvtStandard, nvtHighFlow}));
+        REQUIRE(config.get_index_for_extruder(tool + 1, "printer_extruder_id", etDirectDrive,
+                                            nvtHighFlow, "printer_extruder_variant") >= 0);
+    }
+}
+
+TEST_CASE("Disabling nozzle selection overrides a vendor profile's declared variants", "[Config][FilamentVariants]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    const unsigned int tools = GENERATE(1u, 2u, 4u);
+    const std::string variants = "Direct Drive Standard,Direct Drive High Flow";
+    config.option<ConfigOptionStrings>("extruder_variant_list")->values = {variants};
+    config.option<ConfigOptionBool>("allow_different_nozzles")->value = true;
+    config.set_num_extruders(tools);
+    const auto columns = config.option<ConfigOptionStrings>("printer_extruder_variant")->values;
+    int count = 0;
+    REQUIRE(config.support_different_extruders(count));
+
+    config.option<ConfigOptionBool>("allow_different_nozzles")->value = false;
+    config.set_num_extruders(tools);
     REQUIRE_FALSE(config.support_different_extruders(count));
+    REQUIRE(count == tools);
+    REQUIRE(config.option<ConfigOptionStrings>("printer_extruder_variant")->values == columns);
+
+    config.option<ConfigOptionBool>("allow_different_nozzles")->value = true;
+    REQUIRE(config.support_different_extruders(count));
+}
+
+TEST_CASE("Nozzle selection preserves each tool's retraction and motion limits", "[Config][FilamentVariants]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.option<ConfigOptionStrings>("extruder_variant_list")->values = {"Direct Drive Standard"};
+    config.set_num_extruders(2);
+    config.option<ConfigOptionFloats>("retraction_length")->values = {1., 2.};
+    config.option<ConfigOptionFloats>("machine_max_speed_x")->values = {500., 200., 400., 150.};
+    config.option<ConfigOptionBool>("allow_different_nozzles")->value = true;
+    config.set_num_extruders(2);
+    REQUIRE(config.option<ConfigOptionFloats>("retraction_length")->values ==
+            std::vector<double>({1., 1., 1., 2., 2., 2.}));
+    REQUIRE(config.option<ConfigOptionFloats>("machine_max_speed_x")->values ==
+            std::vector<double>({500., 200., 500., 200., 500., 200., 400., 150., 400., 150., 400., 150.}));
+
+    config.option<ConfigOptionBool>("allow_different_nozzles")->value = false;
+    config.set_num_extruders(2);
+    REQUIRE(config.option<ConfigOptionFloats>("retraction_length")->values == std::vector<double>({1., 2.}));
+    REQUIRE(config.option<ConfigOptionFloats>("machine_max_speed_x")->values == std::vector<double>({500., 200., 400., 150.}));
 }

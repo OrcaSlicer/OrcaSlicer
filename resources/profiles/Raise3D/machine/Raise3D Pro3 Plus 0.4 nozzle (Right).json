@@ -7,6 +7,7 @@
 	"instantiation": "true",
 	"printer_model": "Raise3D Pro3 Plus",
 	"default_print_profile": "0.20mm Standard @Raise3D Pro3Plus",
+	"allow_different_nozzles": "1",
 	"nozzle_diameter": [
 		"0.4",
 		"0.4"

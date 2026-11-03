@@ -12,6 +12,7 @@
 	"printer_variant": "0.6",
 	"max_layer_height": "0.4",
 	"min_layer_height": "0.15",
+	"allow_different_nozzles": "1",
 	"nozzle_diameter": [
 		"0.6",
 		"0.6",

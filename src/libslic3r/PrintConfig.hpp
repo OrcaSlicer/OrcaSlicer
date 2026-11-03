@@ -1821,6 +1821,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionString,              file_start_gcode))
     ((ConfigOptionString,              machine_start_gcode))
     ((ConfigOptionStrings,             filament_start_gcode))
+    ((ConfigOptionBool,                allow_different_nozzles))
     ((ConfigOptionBool,                single_extruder_multi_material))
     ((ConfigOptionBool,                manual_filament_change))
     // IDEX/IQEX (independent X extruder) — parallel printing support for IDEX/IQEX printers

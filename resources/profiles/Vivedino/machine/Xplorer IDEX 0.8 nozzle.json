@@ -160,6 +160,7 @@
 		"0.2",
 		"0.2"
 	],
+	"allow_different_nozzles": "1",
 	"nozzle_diameter": [
 		"0.8",
 		"0.8"

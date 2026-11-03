@@ -1126,15 +1126,9 @@ void Sidebar::priv::layout_printer(bool isBBL, bool isDual)
         // ORCA: a non-Bambu printer with several extruders lists one nozzle row per tool; Bambu's own
         // multi-extruder printers keep the left/right pair above.
         const bool multi_extruder_rows = !preset_bundle.is_bbl_vendor() && extruder_count > 1;
-        const auto &diameters = cfg.option<ConfigOptionFloats>("nozzle_diameter")->values;
-        const bool mixed_diameters = std::any_of(diameters.begin(), diameters.end(), [&diameters](double value) {
-            return get_diameter_string(value) != get_diameter_string(diameters.front());
-        });
-
-        // The variant box switches the machine variant. The card below lists the nozzles when there
-        // are flow variants to choose or extruders of different diameters; otherwise the box says it all.
+        // The checkbox controls the nozzle selector for both custom and vendor profiles.
         panel_nozzle_dia->Show(true);
-        extruder_single_sizer->Show(has_flow_variant || (multi_extruder_rows && mixed_diameters));
+        extruder_single_sizer->Show(has_flow_variant);
         single_extruder->SetNozzleRowCount(multi_extruder_rows ? size_t(extruder_count) : 1);
     } else {
         panel_nozzle_dia->Show(false);

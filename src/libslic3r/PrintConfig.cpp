@@ -844,7 +844,8 @@ std::string get_extruder_variant_list(const DynamicPrintConfig &printer_config, 
     const auto *allow = printer_config.option<ConfigOptionBool>("allow_different_nozzles");
     const auto *diameters = printer_config.option<ConfigOptionFloats>("nozzle_diameter");
     const auto *types = printer_config.option<ConfigOptionEnumsGeneric>("extruder_type");
-    if (allow && allow->value && diameters && diameters->size() > 1 && types) {
+    if (allow && allow->value && diameters && !diameters->values.empty() && types &&
+        result.find(',') == std::string::npos) {
         // Keep the profile's drive type and vendor-specific variants. Hybrid requires
         // physical sub-nozzle inventory and is deliberately not added here.
         for (NozzleVolumeType volume : {nvtStandard, nvtHighFlow, nvtExtraHighFlow}) {
@@ -7033,7 +7034,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("allow_different_nozzles", coBool);
     def->label = L("Allow different nozzles");
-    def->tooltip = L("Allow printers with multiple extruders to select standard, high flow, or extra high flow nozzles independently for each extruder.");
+    def->tooltip = L("Enable nozzle flow type selection for each extruder. Disable to use the printer profile's default nozzle flow types.");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -10631,9 +10632,11 @@ static void extend_extruder_variant(DynamicPrintConfig& config, const unsigned i
     // 2. Update `printer_extruder_variant` and `printer_extruder_id` based on `extruder_variant_list`
     auto printer_extruder_id_opt = dynamic_cast<ConfigOptionInts*>(config.option("printer_extruder_id"));
     assert(printer_extruder_id_opt != nullptr);
+    const auto old_ids = printer_extruder_id_opt->values;
     printer_extruder_id_opt->values.clear();
     auto printer_extruder_variant_opt = dynamic_cast<ConfigOptionStrings*>(config.option("printer_extruder_variant"));
     assert(printer_extruder_variant_opt != nullptr);
+    const auto old_variants = printer_extruder_variant_opt->values;
     printer_extruder_variant_opt->values.clear();
     for (int i = 0; i < num_extruders; i++) {
         // `extruder_variant_list` specifies supported variant of each nozzle/extruder,
@@ -10645,6 +10648,35 @@ static void extend_extruder_variant(DynamicPrintConfig& config, const unsigned i
         if (!variants_list.empty()) {
             printer_extruder_id_opt->values.insert(printer_extruder_id_opt->values.end(), variants_list.size(), i + 1);
             printer_extruder_variant_opt->values.insert(printer_extruder_variant_opt->values.end(), variants_list.begin(), variants_list.end());
+        }
+    }
+
+    // Switching nozzle selection can insert/remove columns within each tool.
+    // Keep that tool's retraction and motion settings attached to its columns.
+    // Changing the tool count retains the existing resize behavior below.
+    if (config.has("allow_different_nozzles") && !old_ids.empty() &&
+        old_ids.size() == old_variants.size() &&
+        *std::max_element(old_ids.begin(), old_ids.end()) == int(num_extruders) &&
+        old_variants != printer_extruder_variant_opt->values) {
+        auto indices = map_variant_indices(printer_extruder_variant_opt->values, printer_extruder_id_opt->values,
+                                           old_variants, old_ids);
+        for (size_t i = 0; i < indices.size(); ++i)
+            if (indices[i] < 0) {
+                const auto it = std::find(old_ids.begin(), old_ids.end(), printer_extruder_id_opt->values[i]);
+                indices[i] = it == old_ids.end() ? 0 : int(it - old_ids.begin());
+            }
+        for (const auto *keys : {&printer_options_with_variant_1, &printer_options_with_variant_2}) {
+            const size_t stride = keys == &printer_options_with_variant_2 ? 2 : 1;
+            for (const auto &key : *keys) {
+                auto *opt = dynamic_cast<ConfigOptionVectorBase *>(config.option(key));
+                if (!opt || opt->size() < old_ids.size() * stride)
+                    continue;
+                const std::unique_ptr<ConfigOption> previous(opt->clone());
+                opt->resize(indices.size() * stride, previous.get());
+                for (size_t i = 0; i < indices.size(); ++i)
+                    for (size_t j = 0; j < stride; ++j)
+                        opt->set_at(previous.get(), i * stride + j, size_t(indices[i]) * stride + j);
+            }
         }
     }
 
@@ -10841,6 +10873,12 @@ bool DynamicPrintConfig::support_different_extruders(int& extruder_count) const
     if (nozzle_diameters_opt != nullptr) {
         int size = nozzle_diameters_opt->size();
         extruder_count = size;
+        // A profile can retain its parameter columns while the user disables
+        // nozzle selection. Missing keys in legacy partial configs keep their
+        // profile-defined capabilities until preset defaults are applied.
+        const auto *allow = option<ConfigOptionBool>("allow_different_nozzles");
+        if (allow && !allow->value)
+            return false;
         auto extruder_variant_opt = dynamic_cast<const ConfigOptionStrings*>(this->option("extruder_variant_list"));
         if (extruder_variant_opt != nullptr) {
             for (int index = 0; index < size; index++) {

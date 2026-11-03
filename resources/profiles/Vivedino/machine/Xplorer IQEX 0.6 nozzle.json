@@ -255,6 +255,7 @@
 		"0.12",
 		"0.12"
 	],
+	"allow_different_nozzles": "1",
 	"nozzle_diameter": [
 		"0.6",
 		"0.6",

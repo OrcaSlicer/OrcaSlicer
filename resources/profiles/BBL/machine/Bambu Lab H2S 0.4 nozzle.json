@@ -31,6 +31,7 @@
 	"extruder_clearance_height_to_lid": "187",
 	"extruder_clearance_height_to_rod": "33",
 	"extruder_clearance_max_radius": "81",
+	"allow_different_nozzles": "1",
 	"extruder_variant_list": [
 		"Direct Drive Standard,Direct Drive High Flow,Direct Drive E3D High Flow"
 	],

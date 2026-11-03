@@ -9,6 +9,7 @@
     "extruders_count": "2",
     "nozzle_count": "2",
     "printer_variant": "0.6",
+    "allow_different_nozzles": "1",
     "nozzle_diameter": [
         "0.6",
         "0.6"

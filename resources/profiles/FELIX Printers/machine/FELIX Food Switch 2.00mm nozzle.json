@@ -13,6 +13,7 @@
     "Direct Drive",
     "Direct Drive"
   ],
+  "allow_different_nozzles": "1",
   "nozzle_diameter": [
     "2.0",
     "2.0"

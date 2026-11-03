@@ -10,6 +10,7 @@
 	"manual_filament_change": "0",
 	"single_extruder_multi_material": "0",
 	"printer_model": "Z-Bolt S800 Dual",
+	"allow_different_nozzles": "1",
 	"nozzle_diameter": [
 		"0.4",
 		"0.4"

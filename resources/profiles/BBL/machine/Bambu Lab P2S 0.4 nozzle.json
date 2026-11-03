@@ -34,6 +34,7 @@
 	"extruder_offset": [
 		"0X0"
 	],
+	"allow_different_nozzles": "1",
 	"extruder_variant_list": [
 		"Direct Drive Standard,Direct Drive High Flow,Direct Drive E3D High Flow"
 	],

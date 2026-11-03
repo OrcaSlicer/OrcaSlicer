@@ -43,6 +43,7 @@
 		"0x0,325x0,325x320,0x320",
 		"25x0,350x0,350x320,25x320"
 	],
+	"allow_different_nozzles": "1",
 	"extruder_variant_list": [
 		"Direct Drive Standard,Direct Drive High Flow",
 		"Direct Drive Standard,Direct Drive High Flow,Direct Drive TPU High Flow"
