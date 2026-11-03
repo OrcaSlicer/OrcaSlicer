@@ -5195,7 +5195,7 @@ void GCode::process_layers(
             const LayerTools& layer_tools = tool_ordering.tools_for_layer(layer.first);
             print.set_status(80, Slic3r::format(_(L("Generating G-code: layer %1%")), std::to_string(precomputed.index + 1)));
             // A layer that joined the tower layer below continues it.
-            if (m_wipe_tower && layer_tools.has_wipe_tower && layer_tools.wipe_tower_print_z == layer_tools.print_z)
+            if (m_wipe_tower && layer_tools.has_wipe_tower && ! layer_tools.joins_wipe_tower_layer_below())
                 m_wipe_tower->next_layer();
             //BBS
             check_placeholder_parser_failed();
@@ -7439,7 +7439,8 @@ LayerResult GCode::process_layer(
         gcode += insert_timelapse_gcode();
     }
 
-    if (m_wipe_tower)
+    // A joined layer continues a tower layer whose first print is already done.
+    if (m_wipe_tower && ! layer_tools.joins_wipe_tower_layer_below())
         m_wipe_tower->set_is_first_print(true);
 
     auto insert_wrapping_detection_gcode = [this, &print, &print_z, &most_used_extruder]() -> std::string {

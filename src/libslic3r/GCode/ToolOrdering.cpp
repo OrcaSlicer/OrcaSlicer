@@ -1242,28 +1242,45 @@ void ToolOrdering::fill_wipe_tower_partitions(const PrintConfig &config, coordf_
     }
 
     // Calculate the wipe_tower_layer_height values. Precise Z height ends each object at its exact
-    // top, so another object's layers can sit a few microns above these. A tower layer that thin
-    // cannot be printed, and a purge sized for it runs hundreds of mm long, so it joins the tower
-    // layer below. The floor matches the towers' own WT_EPSILON merge, which would otherwise size
-    // the joined tool changes with the sliver's height.
-    const double min_tower_layer_height = std::max(0.5 * calc_min_layer_height(config), 1e-3);
+    // top, so another object's layers can sit above these by less than the printer's minimum layer
+    // height. A tower layer that thin cannot be printed, and a purge sized for it runs up to hundreds
+    // of mm long, so it joins the tower layer below. The floor matches the towers' own WT_EPSILON
+    // merge, which would otherwise size the joined tool changes with the sliver's height.
+    const double min_tower_layer_height = std::max(calc_min_layer_height(config), 1e-3);
     coordf_t     wipe_tower_print_z_last = 0.;
-    LayerTools  *tower_layer_last        = nullptr;
+    // The layer that finishes the current tower layer, and whether any layer of it changes tools.
+    LayerTools  *tower_layer_end         = nullptr;
+    bool         tower_layer_changes     = false;
+    unsigned int current_extruder        = (unsigned int) -1;
     for (LayerTools &lt : m_layer_tools) {
         lt.wipe_tower_layer_ends = true;
+        // The G-code takes one tower result per tool change, so a layer that changes tools always
+        // takes one; a layer that does not takes one only when it finishes the tower layer.
+        const bool changes = ! lt.extruders.empty() &&
+            (current_extruder == (unsigned int) -1 || lt.extruders.size() > 1 || lt.extruders.front() != current_extruder);
+        if (! lt.extruders.empty())
+            current_extruder = lt.extruders.back();
         if (! lt.has_wipe_tower)
             continue;
-        // Only a layer that prints finishes the tower layer it joins.
-        if (tower_layer_last != nullptr && ! lt.extruders.empty() && lt.print_z - wipe_tower_print_z_last < min_tower_layer_height) {
-            lt.wipe_tower_print_z                   = tower_layer_last->wipe_tower_print_z;
-            lt.wipe_tower_layer_height              = tower_layer_last->wipe_tower_layer_height;
-            tower_layer_last->wipe_tower_layer_ends = false;
+        // Only a layer that prints joins, so the tower layer is always finished by a printing layer.
+        if (tower_layer_end != nullptr && ! lt.extruders.empty() && lt.print_z - wipe_tower_print_z_last < min_tower_layer_height) {
+            lt.wipe_tower_print_z      = tower_layer_end->wipe_tower_print_z;
+            lt.wipe_tower_layer_height = tower_layer_end->wipe_tower_layer_height;
+            // The finish rides on the last tool change of the joined layers, as it does on its own
+            // layer: one that takes over after the last result is gone has nothing left to print.
+            if (changes || ! tower_layer_changes) {
+                tower_layer_end->wipe_tower_layer_ends = false;
+                tower_layer_end                        = &lt;
+            } else
+                lt.wipe_tower_layer_ends = false;
+            tower_layer_changes |= changes;
         } else {
             lt.wipe_tower_print_z      = lt.print_z;
             lt.wipe_tower_layer_height = lt.print_z - wipe_tower_print_z_last;
             wipe_tower_print_z_last    = lt.print_z;
+            tower_layer_end            = &lt;
+            tower_layer_changes        = changes;
         }
-        tower_layer_last = &lt;
     }
 }
 

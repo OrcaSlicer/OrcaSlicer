@@ -675,36 +675,93 @@ TEST_CASE("Without sparse layers the filament change starts at the tallest print
     }
 }
 
-TEST_CASE("A layer a few microns above another prints its tool changes on the tower layer below", "[WipeTower]")
+// Two cubes at 0.2 mm layers with precise Z height on: the 20 mm cube stays on the 0.2 mm grid, and
+// precise Z height spreads the other's gap to `short_height` over its last five layers, moving them
+// off the grid. Slices and exports the plate; the emitter throws if it loses step with the tower.
+static void slice_precise_z_pair(DynamicPrintConfig config, const char *tower_type, double short_height, Print &print,
+                                 const std::vector<std::vector<ConfigBase::SetDeserializeItem>> *overrides = nullptr)
 {
-    // Precise Z height ends the 10.004 mm cube at its exact top by thickening its last five 0.2 mm
-    // layers by 0.0008 mm each, so they sit 0.0008 to 0.004 mm above the 20 mm cube's layers. Both
-    // filaments print on every layer, so those slivers carry tool changes. A purge sized for a
-    // 0.0008 mm layer is 100 / (0.0008 * 50) = 2500 mm deep; on the 0.2 mm layer below it is 10 mm.
-    const char *tower_type = GENERATE("type1", "type2");
-    DynamicPrintConfig config = tower_estimate_config("rectangle");
     // The default position puts the 50 mm tower plus its 3 mm brim past the 200 mm test bed.
     config.set_deserialize_strict({ { "precise_z_height", "1" }, { "wipe_tower_type", tower_type },
                                     { "wipe_tower_x", "130" }, { "wipe_tower_y", "140" } });
-
-    Print print;
     Model model;
-    init_print({ cube(20), make_cube(20, 20, 10.004) }, print, model, config);
+    init_print({ cube(20), make_cube(20, 20, short_height) }, print, model, config, overrides);
     print.apply(model, config); // see slice_with_prime_tower
     REQUIRE(print.has_wipe_tower());
-
     std::string out;
     REQUIRE_NOTHROW(out = gcode(print));
     CHECK_FALSE(out.empty());
+}
 
-    // The slivers did reach the tower, and each joined the tower layer below it.
+static size_t count_joined_layers(const Print &print)
+{
     size_t joined = 0;
     for (const LayerTools &lt : print.wipe_tower_data().tool_ordering.layer_tools())
-        if (lt.has_wipe_tower && lt.wipe_tower_print_z != lt.print_z) {
-            ++joined;
-            CHECK(lt.print_z - lt.wipe_tower_print_z < 0.005);
-        }
-    CHECK(joined > 0);
-    // A joined tower layer holds both cubes' purges, 2 x 10 mm.
+        joined += lt.joins_wipe_tower_layer_below() ? 1 : 0;
+    return joined;
+}
+
+TEST_CASE("A layer less than the minimum layer height above another prints its tool changes on the tower layer below", "[WipeTower]")
+{
+    // Both filaments print on every layer of both cubes, so every off-grid layer changes tools. At
+    // 10.004 mm the last five layers grow by 0.0008 mm each and sit 0.0008 to 0.004 mm above the 20 mm
+    // cube's; at 10.15 mm they shrink by 0.01 mm each, leaving the 20 mm cube's layers 0.01 to 0.05 mm
+    // above them. All of that is under the 0.07 mm minimum layer height. A purge sized for a 0.0008 mm
+    // layer is 100 / (0.0008 * 50) = 2500 mm deep, for a 0.05 mm one 40 mm; on a 0.19 mm layer it is
+    // about 10.5 mm, and a joined layer holds two.
+    const char  *tower_type   = GENERATE("type1", "type2");
+    const double short_height = GENERATE(10.004, 10.15);
+    DynamicPrintConfig config = tower_estimate_config("rectangle");
+    config.set_deserialize_strict({ { "min_layer_height", "0.07" } });
+
+    Print print;
+    slice_precise_z_pair(config, tower_type, short_height, print);
+
+    CHECK(count_joined_layers(print) > 0);
+    for (const LayerTools &lt : print.wipe_tower_data().tool_ordering.layer_tools())
+        if (lt.joins_wipe_tower_layer_below())
+            CHECK(lt.print_z - lt.wipe_tower_print_z < 0.07);
     CHECK(print.wipe_tower_data().depth < 30.f);
+}
+
+TEST_CASE("A joined layer that keeps its filament leaves finishing the tower layer to the one that changed", "[WipeTower]")
+{
+    // The 20 mm cube prints both filaments on every layer, the short one only `filament`. Whenever the
+    // 20 mm cube's layer ends on that filament, the off-grid layer joined to it changes nothing, and the
+    // tower layer's results are all taken by the time it would finish the layer.
+    const char *tower_type = GENERATE("type1", "type2");
+    const int   filament   = GENERATE(1, 2);
+    // An unset feature filament reads as filament 1, so the short cube names its filament for each.
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides = {
+        {},
+        { { "extruder", filament }, { "outer_wall_filament_id", filament }, { "inner_wall_filament_id", filament },
+          { "sparse_infill_filament_id", filament }, { "internal_solid_filament_id", filament },
+          { "top_surface_filament_id", filament }, { "bottom_surface_filament_id", filament } } };
+    const DynamicPrintConfig config = tower_estimate_config("rectangle");
+
+    Print print;
+    slice_precise_z_pair(config, tower_type, 10.004, print, &overrides);
+
+    // At least one joined layer must change no tools, or this does not test the case.
+    size_t       keeps_filament = 0;
+    unsigned int last           = (unsigned int) -1;
+    for (const LayerTools &lt : print.wipe_tower_data().tool_ordering.layer_tools()) {
+        if (lt.joins_wipe_tower_layer_below() && lt.extruders.size() == 1 && lt.extruders.front() == last)
+            ++keeps_filament;
+        if (! lt.extruders.empty())
+            last = lt.extruders.back();
+    }
+    CHECK(keeps_filament > 0);
+}
+
+TEST_CASE("Smooth timelapse prints each tower layer's wall once when a layer joins it", "[WipeTower]")
+{
+    // Smooth timelapse prints a tower on every layer even with one filament, and the Type 1 tower opens
+    // each of its layers with the timelapse wall. A layer joined to the one below must not print it again.
+    DynamicPrintConfig config = tower_estimate_config("rectangle", 1);
+    config.set_deserialize_strict({ { "timelapse_type", "1" } });
+
+    Print print;
+    slice_precise_z_pair(config, "type1", 10.004, print);
+    CHECK(count_joined_layers(print) > 0);
 }

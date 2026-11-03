@@ -29,14 +29,23 @@ the tower is continuous from the bed to its last purge. `wipe_tower_layer_height
 is the distance from the previous tower layer, which is the object's layer height
 whenever the tower prints on every layer.
 
-A tower layer thinner than half the printer's minimum layer height (never less
-than the towers' own 1e-3 mm merge) is not printed on its own: it joins the tower
-layer below. Precise Z height leaves such slivers, a few microns above another
-object's layers, when it ends each object at its exact top; a purge sized for one
-would run hundreds of mm. A joined layer takes `wipe_tower_print_z` and
-`wipe_tower_layer_height` from the tower layer below, and that layer's
-`wipe_tower_layer_ends` turns false, so the joined layer is the one that finishes
-it.
+A tower layer thinner than the printer's minimum layer height (never less than
+the towers' own 1e-3 mm merge) is not printed on its own: it joins the tower layer
+below. Precise Z height leaves such layers when it ends each object at its exact
+top, moving one object's last layers off another's by anything up to a layer
+height; a purge sized for a layer a few microns thick would run hundreds of mm.
+A joined layer takes `wipe_tower_print_z` and `wipe_tower_layer_height` from the
+tower layer below, and its purges print at the joined layer's own nozzle height,
+less than a minimum layer height above that tower layer. Layers from the minimum
+layer height up stay tower layers of their own, sized for their height.
+
+The emitter takes one tower result per toolchange, and a layer without one takes
+a result only to finish the tower layer. So `wipe_tower_layer_ends` marks the last
+of the tower layer and its joined layers that changes tools, or the last of them
+when none does: a joined layer that changes nothing after the results are all
+taken has nothing left to finish with. A joined layer also does not reset the
+Type 1 tower's first print, so smooth timelapse prints each tower layer's wall
+once.
 
 `Print::_make_wipe_tower` plans every such object layer at its
 `wipe_tower_print_z`: one tower layer per object layer, except that a joined
@@ -204,5 +213,8 @@ read as off rather than compacting or merging in one place and not another.
   and the clearance geometry the plater draws.
 - [Slicing tests](../../tests/fff_print/test_wipe_tower.cpp) slice a real print
   and check that a run folds, that the tower still covers the object exactly
-  once, that a run too thin for the cap is left alone, and that a merged layer
-  declares its height in the tag the printer's processor reads.
+  once, that a run too thin for the cap is left alone, that a merged layer
+  declares its height in the tag the printer's processor reads, and that layers
+  precise Z height moves less than a minimum layer height off another object's
+  join the tower layer below, with and without their own toolchange and with
+  smooth timelapse.
