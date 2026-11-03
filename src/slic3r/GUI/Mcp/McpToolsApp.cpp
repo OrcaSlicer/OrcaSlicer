@@ -9,6 +9,7 @@
 #include "McpTools.hpp"
 #include "McpTypes.hpp"
 #include "ModalTracker.hpp"
+#include "PythonScriptsDialog.hpp"
 #include "UiInspector.hpp"
 #include "slic3r/GUI/GCodeViewer.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
@@ -22,6 +23,7 @@
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/PrintHostDialogs.hpp"
+#include "slic3r/plugin/PythonInterpreter.hpp"
 #if defined(__WXGTK__)
 #include "slic3r/GUI/LinuxDisplayBackend.hpp"
 #endif
@@ -104,6 +106,9 @@ json app_state(McpService& service)
                {"closed_menus", service.inspector().closed_menus()},
                {"auto_answer_rules", service.modals().rules_json()},
                {"mcp", service.describe()},
+               {"python",
+                {{"available", PythonInterpreter::instance().is_initialized()},
+                 {"scripts_allowed", python_scripts_allowed(*wxGetApp().app_config)}}},
                {"jobs", service.jobs().list()}};
     if (json recording = service.recorder().state(); !recording.is_null())
         state["recording"] = std::move(recording);
@@ -121,6 +126,12 @@ json app_state(McpService& service)
                          {"shown", frame->IsShown()}};
     if (Notebook* tabs = frame->m_tabpanel; tabs != nullptr && tabs->GetSelection() != wxNOT_FOUND)
         state["tab"] = into_u8(tabs->GetPageName(size_t(tabs->GetSelection())));
+    // The page exists only when the CAD preference was on at startup.
+#ifdef SLIC3R_CAD
+    state["design_tab"] = frame->m_design_page != nullptr;
+#else
+    state["design_tab"] = false;
+#endif
     state["mode"]               = mode_name(wxGetApp().get_mode());
     state["printer_technology"] = plater->printer_technology() == ptFFF ? "FFF" : "SLA";
     state["project"]            = {{"name", into_u8(plater->get_project_name())},
@@ -156,6 +167,10 @@ json app_state(McpService& service)
         }
     state["objects"]      = plater->model().objects.size();
     state["slicing"]      = plater->is_slicing_any();
+    // The selection select acts on: the assemble view's while it is shown, else Prepare's.
+    GLCanvas3D* assemble = plater->get_assmeble_canvas3D();
+    GLCanvas3D* scene    = assemble != nullptr && plater->get_current_canvas3D() == assemble ? assemble : plater->get_view3D_canvas3D();
+    state["selection"]   = scene != nullptr ? selection_state(*scene) : json();
     // The session's print host uploads, as the upload queue lists them; `id` is its ID column.
     json uploads = json::array();
     if (const PrintHostQueueDialog* queue = frame->printhost_queue_dlg())
@@ -207,11 +222,19 @@ void register_app_tools(McpService& service)
 
     reg.add(inspect_tool(
         "get_state", L("Get app state"),
-        "Snapshot of OrcaSlicer: version, platform, whether it is ready, current tab and mode, project, selected printer/process/"
-        "filament presets, plates, the Preview's view type, time mode and layer range (1-based, with their Z), object count, "
-        "slicing state, print host uploads (state, progress, error), the open gizmo, open modal dialogs, menus closed "
-        "unseen (a menu a call opened that no reply listed), notifications, running jobs and a running recording. Call it "
-        "first and whenever you are unsure what the app is doing.",
+        "Snapshot of OrcaSlicer. Call it first and whenever you are unsure what the app is doing. The app: version, platform "
+        "and display backend, whether it is ready, the main window, the MCP endpoint (mcp), python (available: Python runs "
+        "in this build; scripts_allowed: run_python may run, which only a person turns on, in Preferences > AI features > "
+        "Python scripts) and design_tab (the Design tab and cad_call are on; a person turns the CAD feature on in "
+        "Preferences and restarts). The project: current tab and mode, printer technology, name, path and unsaved changes, "
+        "selected printer/process/filament presets, plates (count, current), object count, the selection (objects, the "
+        "instances [[object, instance]] they are selected in and, when parts rather than whole instances are selected, "
+        "volumes [[object, part]], in the indices select takes; wipe_tower when a prime tower is selected; canvas is the 3D "
+        "view it belongs to), slicing state, and "
+        "the Preview's view type, time mode and layer range (1-based, with their Z). What is going on: open modal "
+        "dialogs, menus closed unseen (a menu a call opened that no reply listed), dialog_auto_answer rules in force, "
+        "notifications, print host uploads (state, progress, error), the open gizmo, running jobs and a running "
+        "recording.",
         object_schema({}), [&service](const json&, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&service] { return app_state(service); })); }));
 
     ToolDef wait = inspect_tool(

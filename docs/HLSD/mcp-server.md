@@ -355,7 +355,7 @@ the UI thread.
 
 | Group | Tool | Purpose |
 |---|---|---|
-| App | `get_state` | version, platform and display backend, ready, tab, mode, project, presets, plates, the Preview's view type, time mode and layer range, objects, slicing, print host uploads, the open gizmo, dialogs, menus closed unseen, notifications, jobs, window |
+| App | `get_state` | version, platform and display backend, ready, window, the MCP endpoint, whether Python runs and Python scripts are allowed, whether the Design tab is on, tab, mode, project, presets, plates, objects, the selection, slicing, the Preview's view type, time mode and layer range, print host uploads, the open gizmo, dialogs, menus closed unseen, auto-answer rules, notifications, jobs |
 | | `wait` | `ready`, `idle`, `dialog`, `no_dialog` or a `job` (default the job given, else `idle`); `timeout_s` up to 50 |
 | | `get_log` | end of the current log file, filtered by minimum level |
 | Speed Dial | `list_actions` | search the action catalog, paged |
@@ -1018,7 +1018,8 @@ the dialogs, and their descriptions point at `calibrate`.
 `cad_call {method, params}` reaches the Design tab's control surface (`CAD/McpControl.cpp`), the
 same methods the `ORCA_CAD_MCP` socket serves, as one generic tool rather than a schema per
 method, so agents that never open the Design tab pay nothing for it. It needs the CAD feature on
-(Preferences > Features), which the app reads only at startup. One table, `kCadMethods`, declares
+(Preferences > Features), which the app reads only at startup; `get_state.design_tab` says whether
+this session built the tab. One table, `kCadMethods`, declares
 every method's name, access and handler; the dispatcher, the busy gate and `describe_tools` all
 read it. `describe_tools` is the parameter schema of record: one row per method with typed params,
 units and defaults, and its access. `params.method` (a name or a list) and `params.query` (text in a
@@ -1430,10 +1431,13 @@ stable across runs and is what the journal stores. A locator is one of:
 - `{web: "Next", kind, css, within, index}` for an element of a web page, by its label, kind or a CSS
   selector (see Web pages below).
 
-`select` selects objects, instances and parts, after which `run_action` runs the object operations
-the catalog has (delete, split, mirror, center, drop, instances, arrange, orient, change type, rename,
-assemble, set as individual objects, order by) and `set_settings` with the object or volume scope
-edits their settings and filament. `add_part` adds parts, modifiers and support shapes,
+`select` selects objects, instances and parts and replies with the selection as `get_state.selection`
+gives it (`selection_state()`): in `select`'s own indices, the objects, the instances they are selected
+in and, when the selection holds parts rather than whole instances, those parts. An agent reads it
+before an operation that acts on the selection: `run_action` runs the object operations the catalog
+has (delete, split, mirror, center, drop, instances, arrange, orient, change type, rename, assemble,
+set as individual objects, order by), and `set_settings` with the object or volume scope edits their
+settings and filament. `add_part` adds parts, modifiers and support shapes,
 `set_layer_ranges` sets height range modifiers, and `set_layer_height_profile` runs the Variable layer
 height panel's buttons. `set_layer_gcode` does what the Preview layer slider's right-click menu does.
 The rest of the object menu is reached through a right click on the object in the 3D view, or on
@@ -2558,7 +2562,8 @@ its windows, callbacks and storage stay the plugin's.
 `run_python` run; with it off they are refused (a plugin's `run_python` needs none). It is changed only in
 `PythonScriptsDialog`, opened from Preferences › AI features › Python scripts, which is named
 `kHiddenFromAutomation`: the UI tools never see it and `ModalTracker` leaves it off the stack, so no dialog tool or
-auto-answer rule reaches it. No tool writes the key.
+auto-answer rule reaches it. No tool writes the key, and `get_state.python.scripts_allowed` reads it, so an
+agent learns that `run_python` is off before it plans a run rather than from the refusal.
 
 **The host surface and the bridge.** A script reaches the whole `orca.host`, as a plugin does: reads, `orca.host.ui`
 (message boxes, progress dialogs, HTML windows, dock panels, notifications), the staged preset update, bundle
@@ -2823,7 +2828,8 @@ sizes, the object structure commands' params, the height ranges `set_layer_range
 overlaps, bounds, keys), and `set_layer_gcode`'s edits of a layer slider built in the test (by layer
 and height, in-place edits, refusals that leave the slider as it was, the type names). On the app,
 `tools/mcp/tests/scene.json` checks object structure and placement (transform on instances, plates and
-parts, what `list_objects` reports of them, shapes at a size, arrange and Fill bed, `add_part`, the
+parts, what `list_objects` reports of them, the selection `select` and `get_state` report, shapes at a
+size, arrange and Fill bed, `add_part`, the
 object structure commands, then all of them on one scene through to a slice);
 `tools/mcp/tests/layers.json` height range modifiers and variable layer height profiles (set, read
 back, undone, sliced, refused, kept by a 3MF) and layer G-codes (placed by layer and height, edited in

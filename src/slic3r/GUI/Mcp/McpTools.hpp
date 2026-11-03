@@ -367,6 +367,10 @@ nlohmann::json object_info(const ModelObject& object, std::size_t index);
 // rotation and scale in the object's frame, mesh, paint, and what a text or SVG part was made from.
 nlohmann::json volume_info(const ModelVolume& volume, std::size_t index);
 
+// What `canvas` has selected, in the indices select takes: its objects, the instances [[object, instance]]
+// they are selected in and, when the selection holds parts rather than whole instances, those parts
+// [[object, part]]; wipe_tower when a prime tower is selected. UI thread.
+nlohmann::json selection_state(GLCanvas3D& canvas);
 // A part's type as list_objects and add_part name it: part, negative, modifier, support_blocker,
 // support_enforcer, precise_seam (any subtype), else other.
 const char* volume_type_name(ModelVolumeType type);

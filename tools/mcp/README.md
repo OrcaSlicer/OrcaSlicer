@@ -150,7 +150,8 @@ tools/mcp/orca_mcp.py call run_script '{"path": "/abs/tools/mcp/tests/gizmos.jso
 
 `tests/scene.json` checks object structure and placement: `transform` on an instance (the drop after a
 scale, `size`, a move to another plate), on a part, what `list_objects` reports of them (bounding boxes
-on the bed, filament, the scaled volume, a mirrored part and instance), the shape commands with a size
+on the bed, filament, the scaled volume, a mirrored part and instance), the selection as `select` and
+`get_state` report it (parts, whole instances, one instance of two), the shape commands with a size
 param, `arrange` on one plate and every plate, Fill bed, the Speed Dial no-op that `run_action`
 reports as an error, `add_part` (shapes at a size and a position, a model file, one undo step,
 and what it refuses), and the object structure commands (Change Type, Rename, number of instances,

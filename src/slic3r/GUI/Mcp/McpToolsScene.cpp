@@ -259,21 +259,6 @@ json list_objects(const json& args)
     return out;
 }
 
-json selection_summary(const Selection& sel)
-{
-    json out{{"empty", sel.is_empty()}};
-    if (!sel.is_empty()) {
-        out["object"]   = sel.get_object_idx();
-        out["instance"] = sel.get_instance_idx();
-        std::set<int> objects;
-        for (unsigned int idx : sel.get_volume_idxs())
-            if (const GLVolume* v = sel.get_volume(idx))
-                objects.insert(v->object_idx());
-        out["objects"] = std::vector<int>(objects.begin(), objects.end());
-    }
-    return out;
-}
-
 struct SliceTicket
 {
     SliceTicketState state;
@@ -649,6 +634,34 @@ json add_part(Plater& plater, const json& args)
 
 } // namespace
 
+json selection_state(GLCanvas3D& canvas)
+{
+    const Selection&              sel = canvas.get_selection();
+    std::set<int>                 objects;
+    std::set<std::pair<int, int>> instances, volumes;
+    bool                          wipe_tower = false;
+    for (unsigned int idx : sel.get_volume_idxs()) {
+        const GLVolume* v = sel.get_volume(idx);
+        if (v == nullptr)
+            continue;
+        if (v->is_wipe_tower) {
+            wipe_tower = true;
+            continue;
+        }
+        objects.insert(v->object_idx());
+        instances.emplace(v->object_idx(), v->instance_idx());
+        if (v->volume_idx() >= 0)
+            volumes.emplace(v->object_idx(), v->volume_idx());
+    }
+    json out{{"canvas", canvas_name(&canvas)}, {"empty", sel.is_empty()}, {"objects", objects}, {"instances", instances}};
+    // A whole instance brings all its parts along; only a selection of parts lists them.
+    if (sel.get_mode() == Selection::Volume && !volumes.empty())
+        out["volumes"] = volumes;
+    if (wipe_tower)
+        out["wipe_tower"] = true;
+    return out;
+}
+
 const char* volume_type_name(ModelVolumeType type)
 {
     if (is_precise_seam(type))
@@ -908,7 +921,7 @@ void register_scene_tools(McpService& service)
         "select", L("Select objects"),
         "Select objects, instances or parts in the 3D view (the assemble view while it is shown, else Prepare, switching to it), as clicking them would. Give objects, "
         "instances ([[object, instance], ...]) or volumes ([[object, part], ...]); add keeps the current selection; all / "
-        "none select everything or nothing.",
+        "none select everything or nothing. The reply is the selection as get_state.selection gives it.",
         object_schema({{"objects", array_prop({{"type", "integer"}}, "Object indices.")},
                        {"instances", array_prop({{"type", "array"}}, "[[object, instance], ...]")},
                        {"volumes", array_prop({{"type", "array"}}, "[[object, part], ...]")},
@@ -934,7 +947,7 @@ void register_scene_tools(McpService& service)
                     else
                         plater.deselect_all();
                     canvas.set_as_dirty();
-                    return selection_summary(sel);
+                    return selection_state(canvas);
                 }
                 if (arg_bool(args, "all", false)) {
                     if (assemble)
@@ -942,7 +955,7 @@ void register_scene_tools(McpService& service)
                     else
                         plater.select_all();
                     canvas.set_as_dirty();
-                    return selection_summary(sel);
+                    return selection_state(canvas);
                 }
                 const size_t  count = plater.model().objects.size();
                 bool          first = !arg_bool(args, "add", false);
@@ -1008,7 +1021,7 @@ void register_scene_tools(McpService& service)
                 }
                 wxGetApp().obj_list()->update_selections();
                 canvas.set_as_dirty();
-                return selection_summary(sel);
+                return selection_state(canvas);
             });
             settle(ctx);
             return ToolResult::ok(out);

@@ -1,5 +1,5 @@
-// Object structure and scene: transform on instances, plates and parts, shapes added at a size
-// without the Primitive size dialog, arrange, parts added to an object with add_part, and the object
+// Object structure and scene: transform on instances, plates and parts, the selection as select and
+// get_state report it, shapes added at a size without the Primitive size dialog, arrange, parts added to an object with add_part, and the object
 // list's context-menu commands (Change Type, Rename, instances, Assemble, Order By), then all of them
 // on one scene from start to slice. Run on a live app:
 //   python3 tools/mcp/orca_mcp.py run-script tools/mcp/tests/scene.json --out <dir>
@@ -74,10 +74,14 @@
                                         "/items/0/volumes/1/mesh_volume": {"gt": 1000},
                                         "/items/0/volumes/1/scaled_volume": {"gt": 0, "lt": 100}}},
     // a mirrored part is mirrored in the object's frame; an instance mirrored twice is a half turn
-    {"tool": "select", "args": {"volumes": [[0, 1]]}},
+    {"tool": "select", "args": {"volumes": [[0, 1]]},
+     "expect": {"/canvas": {"eq": "3d"}, "/objects": {"eq": [0]}, "/instances": {"eq": [[0, 0]]}, "/volumes": {"eq": [[0, 1]]}}},
+    {"tool": "get_state", "expect": {"/selection/volumes": {"eq": [[0, 1]]}, "/python/available": {"eq": true},
+                                     "/python/scripts_allowed": {"ne": null}, "/design_tab": {"ne": null}}},
     {"tool": "run_action", "args": {"id": "orca_command:obj_mirror_x:orca"}},
     {"tool": "list_objects", "expect": {"/items/0/volumes/1/mirrored": {"eq": true}, "/items/0/instances/0/mirrored": {"eq": false}}},
-    {"tool": "select", "args": {"objects": [0]}},
+    // a whole instance lists no parts
+    {"tool": "select", "args": {"objects": [0]}, "expect": {"/instances": {"eq": [[0, 0]]}, "/volumes": {"exists": false}}},
     {"tool": "run_action", "args": {"id": "orca_command:obj_mirror_y:orca"}},
     {"tool": "list_objects", "expect": {"/items/0/instances/0/mirrored": {"eq": true}, "/items/0/instances/0/scale/0": {"gt": 0},
                                         "/items/0/volumes/1/mirrored": {"eq": true}}},
@@ -85,7 +89,7 @@
     {"tool": "list_objects", "expect": {"/items/0/instances/0/mirrored": {"eq": false}}},
 
     // ---- Shapes at a size, without the dialog ----
-    {"tool": "select", "args": {"none": true}},
+    {"tool": "select", "args": {"none": true}, "expect": {"/empty": {"eq": true}, "/objects": {"empty": true}}},
     {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "40 40 10"}},
     {"tool": "list_objects", "expect": {"/total": {"eq": 2}, "/items/1/bbox/size/0": {"ge": 39.99, "le": 40.01},
                                         "/items/1/bbox/size/2": {"ge": 9.99, "le": 10.01}}},
@@ -174,6 +178,10 @@
     {"tool": "run_action", "args": {"id": "orca_command:obj_instances_up:orca"}},
     {"tool": "add_part", "args": {"object": 0, "type": "modifier", "shape": "cube"}, "optional": true},
     {"tool": "list_objects", "expect": {"/items/0/volumes/6": {"exists": false}, "/items/0/instances/1": {"exists": true}}},
+    // the selection names the instances it is in
+    {"tool": "select", "args": {"instances": [[0, 1]]}, "expect": {"/objects": {"eq": [0]}, "/instances": {"eq": [[0, 1]]}}},
+    {"tool": "select", "args": {"objects": [0]}, "expect": {"/instances": {"eq": [[0, 0], [0, 1]]}}},
+    {"tool": "get_state", "expect": {"/selection/instances": {"eq": [[0, 0], [0, 1]]}}},
     {"tool": "run_action", "args": {"id": "orca_command:obj_instances_down:orca"}},
     // a shape folds the instance's scale into the parts, as the menu does
     {"tool": "select", "args": {"none": true}},
