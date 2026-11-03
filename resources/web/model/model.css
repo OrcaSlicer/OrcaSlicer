@@ -36,9 +36,7 @@ body
 	display: flex;
 }
 
-@media (prefers-color-scheme: dark) { 
-	#EmptyArea img { content:url(./img/null2.png);}
-}
+:root[data-orca-theme="dark"] #EmptyArea img { content:url(./img/null2.png); }
 
 #WholeArea
 {

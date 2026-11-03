@@ -504,6 +504,7 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
         {"from_to", _u8L("from/to")},
     };
     m_webview->AddUserScript(wxString::FromUTF8(WebViewHostDialog::localized_strings_script(page_strings)));
+    m_webview->AddUserScript(wxString::FromUTF8(WebViewHostDialog::theme_user_script()));
     main_sizer->Add(m_webview, 1, wxEXPAND);
 
     fs::path filepath = fs::path(resources_dir()) / "web/flush/WipingDialog.html";

@@ -66,7 +66,7 @@ body
 	text-align: left;
 	font-size: 14px;
 	line-height: 22px;
-	color: #464646;
+	color: var(--fg-color-text);
 	position: relative;
 	display:flex;
 	flex-direction: column;		

@@ -159,7 +159,7 @@ function OnInit() {
   });
 
   document.addEventListener("click", (e) => {
-    if (!e.target.closest(".ctx")) hideMenu();
+    if (!e.target.closest(".ContextMenu")) hideMenu();
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") hideMenu();

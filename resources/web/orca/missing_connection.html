@@ -5,7 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Printer Connection Required</title>
 <link rel="stylesheet" type="text/css" href="css/home.css" />
-<link rel="stylesheet" type="text/css" href="css/dark.css" />
+<script type="text/javascript">
+// The host tags the UA with (dark)/(light) from the app theme; this page has no
+// access to the data-orca-theme contract, so match the UA so it follows the app
+// theme instead of the OS preference.
+if (/\(dark\)/i.test(navigator.userAgent)) {
+    document.documentElement.setAttribute('data-orca-theme', 'dark');
+    document.write('<link rel="stylesheet" type="text/css" href="css/dark.css" />');
+}
+</script>
 <script type="text/javascript" src="../include/i18n.js"></script>	
 <script type="text/javascript" src="../include/jquery-3.6.0.min.js"></script>
 <script type="text/javascript" src="../homepage/js/json2.js"></script>

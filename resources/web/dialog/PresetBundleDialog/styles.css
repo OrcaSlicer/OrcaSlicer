@@ -209,7 +209,13 @@ body {
 
 
 
-.bundle-status-icon-spacer,
+.bundle-status-icon-spacer {
+  display: inline-flex;
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+}
+
 .bundle-status-icon {
   display: inline-flex;
   flex: 0 0 8px;
@@ -238,6 +244,7 @@ body {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  scrollbar-gutter: stable;
 }
 
 /* Column separators + clipping */

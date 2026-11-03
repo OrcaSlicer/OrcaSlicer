@@ -288,6 +288,7 @@ body {
 }
 
 .plugin-update-btn {
+  color: var(--fg-light-fixed);
   display: inline-flex;
   background: var(--gradient-green);
 }

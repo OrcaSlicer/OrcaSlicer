@@ -399,4 +399,4 @@ function CheckCssLinkExist( LinkPath )
 /*------Dark Mode------*/
 
 // SwitchDarkMode() is gone. It polled the user agent and toggled dark.css to match the app theme.
-// Pages now follow the WebView color scheme through global.css (prefers-color-scheme).
+// Pages now follow the host theme through global.css's data-orca-theme contract.

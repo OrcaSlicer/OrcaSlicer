@@ -244,6 +244,7 @@ GuideFrame::GuideFrame(GUI_App *pGUI, long style)
         return;
     }
     m_browser->AddUserScript(wxString::FromUTF8(WebViewHostDialog::localized_strings_script(guide_strings())));
+    m_browser->AddUserScript(wxString::FromUTF8(WebViewHostDialog::theme_user_script()));
     m_browser->Hide();
     m_browser->SetSize(0, 0);
 

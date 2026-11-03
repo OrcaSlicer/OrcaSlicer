@@ -1,8 +1,6 @@
 /* Just use required code instead loading multiple files for best performance */
 :root {--bg-color: #FFFFFF}
-@media (prefers-color-scheme: dark) { 
-:root {--bg-color: #2D2D31}
-}
+:root[data-orca-theme="dark"] {--bg-color: #2D2D31}
 
 @keyframes rotate {
     from {

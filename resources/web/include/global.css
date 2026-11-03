@@ -95,7 +95,7 @@ TabCtrl tabs changes its positions because of font width change
   --tone-red              : #b42318;
   --tone-red-12           : #b423181F; /*12% opacity*/
   --tone-blue             : #377EC0;
-  --tone-blue-12          : #345BA91F; /*12% opacity*/
+  --tone-blue-12          : #377EC01F; /*12% opacity*/
   --tone-teal             : #009688;
   --tone-teal-12          : #0096881F; /*12% opacity*/
   --tone-neutral          : #44505c;
@@ -120,8 +120,11 @@ TabCtrl tabs changes its positions because of font width change
   --bg-color-sidebar      : #FEFFFF;   /*matches sidebar background on BBL Device, Project, Calibration, Multi device pages*/
 }
   
-@media (prefers-color-scheme: dark) { 
-:root {
+/* Dark palette. Applied only when the host stamps data-orca-theme="dark"
+   (WebViewHostDialog::theme_user_script()). There is no prefers-color-scheme
+   fallback: a page that loads this file must be hosted by a webview that
+   injects the attribute. */
+:root[data-orca-theme="dark"] {
   --main-color            : #00675B;
   --main-color-hover      : #008172;
   --main-color-fixed      : #009688;   /*Use on thin elements like text, lines for better dark mode support*/
@@ -182,7 +185,6 @@ TabCtrl tabs changes its positions because of font width change
   --alert-color           : var(--tone-red);
   --alert-color-bg        : var(--tone-red-12);
   --bg-color-sidebar      : #242428;   /*matches sidebar background on BBL Device, Project, Calibration, Multi device pages*/
-}
 }
 
 /*//////////////////////////////////////*/
@@ -381,7 +383,6 @@ CONTROLLING
   background: var(--glassbox-bg);
   border: 1px solid var(--glassbox-bg);
   box-shadow: inset 0 -1px 4px 1px var(--glassbox-bg);
-  pointer-events: none;
   user-select: none;
 }
 
