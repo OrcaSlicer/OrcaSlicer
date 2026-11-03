@@ -48,6 +48,21 @@
     {"tool": "get_settings", "args": {"query": "ooze during long travel"},
      "expect": {"/items/0/key": {"regex": "retraction_length$"}, "/items/0/scope": {"regex": "^(filament|printer)$"},
                 "/items/0/value": {"exists": true}}},
+    // Keys named without a scope are read from the scope that has each one, in the order named; a key no
+    // preset scope has is unknown, with the project scope named when that has it.
+    {"tool": "get_settings", "args": {"keys": ["nozzle_temperature", "layer_height", "nozzle_diameter", "curr_bed_type", "no_such_key"],
+                                      "include_meta": false},
+     "expect": {"/items/0/key": {"eq": "nozzle_temperature"}, "/items/0/scope": {"eq": "filament"},
+                "/items/1/key": {"eq": "layer_height"}, "/items/1/scope": {"eq": "process"},
+                "/items/2/key": {"eq": "nozzle_diameter"}, "/items/2/scope": {"eq": "printer"},
+                "/unknown_keys": {"eq": ["curr_bed_type", "no_such_key"]}, "/scope_of": {"eq": {"curr_bed_type": "project"}}}},
+    // A key read in the wrong scope is unknown there, with the scope that has it.
+    {"tool": "get_settings", "args": {"scope": "process", "keys": ["nozzle_temperature"]},
+     "expect": {"/items": {"empty": true}, "/scope_of/nozzle_temperature": {"eq": "filament"}}},
+    // set_settings defaults to the process, so it refuses a filament key there (naming the filament scope)
+    // and changes nothing.
+    {"tool": "set_settings", "args": {"values": {"nozzle_temperature": 215}}, "optional": true},
+    {"tool": "get_settings", "args": {"scope": "filament", "compare": ":saved"}, "expect": {"/total": {"eq": 0}}},
     // where lists one group with values and meta.
     {"tool": "get_settings", "args": {"scope": "process", "where": "Quality > Seam"},
      "expect": {"/items/0/meta/where": {"eq": "Quality > Seam"}, "/items/0/value": {"exists": true},

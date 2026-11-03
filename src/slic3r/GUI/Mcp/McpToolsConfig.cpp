@@ -225,6 +225,46 @@ std::vector<std::string> project_options()
     return keys;
 }
 
+// The scopes get_settings looks through when keys or a query come without one: the process, filament and printer
+// settings being edited, since a question about an effect rarely knows which tab answers it.
+const char* const kSearchScopes[]{"process", "filament", "printer"};
+
+// The scope `key` is a setting of, for a call that named it where it isn't one: the first of kSearchScopes that has
+// it, else the project's; empty when none does. UI thread.
+std::string scope_of_key(const std::string& key)
+{
+    for (const char* scope : kSearchScopes)
+        if (const std::vector<std::string>& options = preset_options(preset_type(scope));
+            std::find(options.begin(), options.end(), key) != options.end())
+            return scope;
+    const std::vector<std::string> project = project_options();
+    return std::find(project.begin(), project.end(), key) != project.end() ? "project" : "";
+}
+
+// Sets unknown_keys to the keys a read named that its scope lacks, and scope_of to the scope that has each of those
+// another scope has, so the agent can ask there. UI thread.
+void add_unknown_keys(json& out, const json& unknown)
+{
+    if (unknown.empty())
+        return;
+    out["unknown_keys"] = unknown;
+    json scopes         = json::object();
+    for (const json& key : unknown)
+        if (std::string scope = scope_of_key(key.get<std::string>()); !scope.empty())
+            scopes[key.get<std::string>()] = std::move(scope);
+    if (!scopes.empty())
+        out["scope_of"] = std::move(scopes);
+}
+
+// The refusal of a key that `scope` lacks: it names the scope that has the key when another does, since the usual
+// cause is a key passed to the wrong scope or to none (the process). UI thread.
+ToolFailure unknown_setting(const std::string& key, const std::string& scope, json details)
+{
+    if (const std::string other = scope_of_key(key); !other.empty() && other != (scope == "print" ? "process" : scope))
+        return ToolFailure("\"" + key + "\" is a " + other + " setting: pass scope \"" + other + "\"");
+    return ToolFailure("Unknown setting \"" + key + "\" for the " + scope + " scope", std::move(details));
+}
+
 // The project scope's values: project_config's, with the wipe tower position one entry per plate and a
 // mixed flag per slot, since a project can store fewer of either. UI thread.
 DynamicPrintConfig project_settings()
@@ -307,7 +347,7 @@ ToolResult set_project_settings(const json& args, ToolContext& ctx)
         for (auto it = values_in.begin(); it != values_in.end(); ++it) {
             const std::string& key = it.key();
             if (std::find(options.begin(), options.end(), key) == options.end())
-                throw ToolFailure("Unknown setting \"" + key + "\" for the project scope", {{"keys", options}});
+                throw unknown_setting(key, "project", {{"keys", options}});
             if (key == "filament_is_mixed")
                 throw ToolFailure("filament_is_mixed is read-only: mixed filaments are made in the sidebar's mixed filament list");
             if (project_key_read_only(key))
@@ -530,8 +570,7 @@ json plate_settings(const json& args)
     }
     json out     = page(items, args, 100);
     out["plate"] = index;
-    if (!unknown.empty())
-        out["unknown_keys"] = unknown;
+    add_unknown_keys(out, unknown);
     return out;
 }
 
@@ -567,8 +606,8 @@ ToolResult set_plate_settings(const json& args, ToolContext& ctx)
             const std::string& key   = it.key();
             const json&        value = it.value();
             if (std::find(std::begin(plate_scope_keys), std::end(plate_scope_keys), key) == std::end(plate_scope_keys))
-                throw ToolFailure("Unknown setting \"" + key + "\" for the plate scope",
-                                  {{"keys", std::vector<std::string>(std::begin(plate_scope_keys), std::end(plate_scope_keys))}});
+                throw unknown_setting(key, "plate",
+                                      {{"keys", std::vector<std::string>(std::begin(plate_scope_keys), std::end(plate_scope_keys))}});
             if (key == "name" && !value.is_string())
                 throw ToolFailure("name takes a string (\"\" for none)");
             if (key == "locked" && !value.is_boolean())
@@ -1583,10 +1622,6 @@ std::string to_config_string(const json& v, const std::string& key)
 
 namespace {
 
-// The scopes a search without one looks through: the process, filament and printer settings being edited,
-// since a question about an effect rarely knows which tab answers it.
-const char* const kSearchScopes[]{"process", "filament", "printer"};
-
 // The keys of kSearchScopes, each once, with the scope that offers it first. UI thread.
 std::vector<std::string> search_scope_options(std::map<std::string, std::string>& scope_of)
 {
@@ -1601,15 +1636,29 @@ std::vector<std::string> search_scope_options(std::map<std::string, std::string>
 // get_settings: the settings `args` asks for, read on the UI thread.
 json read_settings(const json& args)
 {
-    // A search with no scope looks through kSearchScopes; each match names its scope.
-    if (args.contains("query") && !args.contains("scope") && !args.contains("preset") && !args.contains("compare")) {
+    if (int(args.contains("keys")) + int(args.contains("query")) + int(args.contains("where")) > 1)
+        throw ToolFailure("Give one of keys, query or where");
+    // A search or named keys with no scope look through kSearchScopes; each item names its scope.
+    if ((args.contains("query") || args.contains("keys")) && !args.contains("scope") && !args.contains("preset") &&
+        !args.contains("compare")) {
         std::map<std::string, std::string> scope_of;
         const std::vector<std::string>     options = search_scope_options(scope_of);
-        const std::vector<std::string>     ranked  = rank_settings(arg_string(args, "query"), options, 200);
-        std::map<std::string, json>        found;
+        std::vector<std::string>           wanted;
+        json                               unknown = json::array();
+        if (args.contains("query"))
+            wanted = rank_settings(arg_string(args, "query"), options, 200);
+        else
+            for (const json& k : args["keys"]) {
+                const std::string key = k.get<std::string>();
+                if (scope_of.count(key) == 0)
+                    unknown.push_back(key);
+                else if (std::find(wanted.begin(), wanted.end(), key) == wanted.end())
+                    wanted.push_back(key);
+            }
+        std::map<std::string, json> found;
         for (const char* scope : kSearchScopes) {
             json keys = json::array();
-            for (const std::string& key : ranked)
+            for (const std::string& key : wanted)
                 if (scope_of[key] == scope)
                     keys.push_back(key);
             if (keys.empty())
@@ -1626,10 +1675,12 @@ json read_settings(const json& args)
             }
         }
         json items = json::array();
-        for (const std::string& key : ranked)
+        for (const std::string& key : wanted)
             if (const auto it = found.find(key); it != found.end())
                 items.push_back(std::move(it->second));
-        return page(items, args, 20);
+        json out = page(items, args, args.contains("query") ? 20 : 100);
+        add_unknown_keys(out, unknown);
+        return out;
     }
     if (arg_string(args, "scope") == "plate")
         return plate_settings(args);
@@ -1637,8 +1688,6 @@ json read_settings(const json& args)
         return preferences_settings(*wxGetApp().app_config, args);
     const ConfigTarget t       = resolve_target(args, false);
     const bool         compare = args.contains("compare");
-    if (int(args.contains("keys")) + int(args.contains("query")) + int(args.contains("where")) > 1)
-        throw ToolFailure("Give one of keys, query or where");
     // A preset's whole listing, hundreds of keys, is for scanning values; what one key takes
     // comes with it when it is named, searched for or listed with its group.
     const bool whole = !args.contains("keys") && !args.contains("query") && !args.contains("where") && t.object == nullptr && !t.project;
@@ -1735,8 +1784,7 @@ json read_settings(const json& args)
         if (part_only)
             out["note"] = "A part's value (source \"part\", or in parts) applies only inside that part's volume.";
     }
-    if (!unknown.empty())
-        out["unknown_keys"] = unknown;
+    add_unknown_keys(out, unknown);
     return out;
 }
 
@@ -1769,12 +1817,16 @@ json search_settings(const std::string& query, std::size_t limit)
 
 void register_config_tools(McpService& service)
 {
-    ToolRegistry& reg = service.registry();
-    const json    scope_prop = enum_prop({"print", "process", "filament", "printer", "object", "volume", "project", "plate", "preferences"},
-                                         "Which settings: the process (print), filament or printer preset being edited, an "
-                                         "object's / part's own overrides, the project's own settings, a plate's, or the "
-                                         "app's preferences (read only).");
+    ToolRegistry& reg        = service.registry();
     const json    plate_prop = {{"type", "integer"}, {"minimum", 0}, {"description", "Plate index (plate scope; default: the current plate)."}};
+    // get_settings and set_settings take the same scopes and differ in what they do without one.
+    const std::vector<std::string> scopes{"print", "process", "filament", "printer", "object", "volume", "project", "plate", "preferences"};
+    const std::string              scope_text = "Which settings: the process (print), filament or printer preset being edited, an "
+                                                "object's / part's own overrides, the project's own settings, a plate's, or the "
+                                                "app's preferences (read only).";
+    const json read_scope_prop  = enum_prop(scopes, scope_text + " Without it, keys and query look through the process, filament "
+                                                                 "and printer settings; anything else reads the process.");
+    const json write_scope_prop = enum_prop(scopes, scope_text + " Default: the process.");
 
     reg.add(inspect_tool(
         "list_presets", L("List presets"),
@@ -2005,7 +2057,10 @@ void register_config_tools(McpService& service)
         "change it, what it affects), where (its settings page and group), type, unit, range, allowed values and their "
         "labels, and mode. Name keys; find the settings for an effect with query, a few words matched in keys, labels and "
         "descriptions, best matches first; or list one page or group with where (an unknown one lists them all). Without "
-        "these, every option of the scope is listed, paged, without meta in a preset scope. A per-variant value lists in "
+        "these, every option of the scope is listed, paged, without meta in a preset scope. Without a scope, keys and query "
+        "look through the process, filament and printer settings and each item names its scope, which set_settings takes; "
+        "anything else reads the process. Keys the scope lacks are listed in unknown_keys, and scope_of names the scope "
+        "that has each one another scope has. A per-variant value lists in "
         "meta its variants (what each entry is for) and active (the entry each "
         "extruder prints with). preset reads a saved preset without selecting it; compare lists only the keys that differ "
         "from another preset, each with value and other. For object/volume scopes only the overrides that object or part "
@@ -2017,7 +2072,7 @@ void register_config_tools(McpService& service)
         "other_layers_print_sequence, name and locked, each with value (the plate's own, null where it follows the global "
         "setting or Auto) and effective. The preferences scope reads the named keys of the app configuration (the Preferences "
         "dialog's settings, keys as its controls are named), values as stored, and lists no keys unasked.",
-        object_schema({{"scope", scope_prop},
+        object_schema({{"scope", read_scope_prop},
                        {"keys", array_prop({{"type", "string"}}, "Option keys, e.g. [\"layer_height\", \"wall_loops\"].")},
                        {"query", prop("string", "A few distinctive words, e.g. \"stringing\" or \"ooze travel\"; the best 20 "
                                                 "matches unless limit says otherwise.")},
@@ -2044,9 +2099,10 @@ void register_config_tools(McpService& service)
 
     reg.add(mutate_tool(
         "set_settings", L("Change settings"),
-        "Change settings as if typed into the settings tab: all values are parsed strictly first and applied together, and "
-        "nothing changes if any is invalid. Values may be strings in OrcaSlicer's format (\"15%\", \"0.2\", \"1,2\") or JSON "
-        "numbers, booleans and arrays (a point as [x, y]). object/volume scopes set per-object or per-part overrides, of the "
+        "Change settings of one scope (default the process) as if typed into the settings tab: all values are parsed "
+        "strictly first and applied together, and nothing changes if any is invalid; a key of another scope is refused "
+        "with that scope named, as get_settings without a scope reports it. Values may be strings in OrcaSlicer's format "
+        "(\"15%\", \"0.2\", \"1,2\") or JSON numbers, booleans and arrays (a point as [x, y]). object/volume scopes set per-object or per-part overrides, of the "
         "keys the object list offers there; a null value removes an override. extruder is the object's or part's filament "
         "(1-based; 0 or null is Default), set as the Change Filament menu does. A preset's per-variant value (get_settings "
         "meta.variants) takes a single value for the entries in use (meta.active, as the tab writes the variant it shows), "
@@ -2063,7 +2119,7 @@ void register_config_tools(McpService& service)
         "spiral_mode (true asks for confirmation: blocked_by_dialog), first_layer_print_sequence (every slot once, e.g. [2, "
         "1]) and other_layers_print_sequence ([{from: layer >= 2, to, order}], to omitted for the last layer), null for the "
         "global setting or Auto; name, and locked (true or false). One undo step.",
-        object_schema({{"scope", scope_prop},
+        object_schema({{"scope", write_scope_prop},
                        {"values", {{"type", "object"}, {"description", "{key: value}, or {key: {index, value}} for one entry"}}},
                        {"reset_all", prop("boolean", "Preset scopes: discard the unsaved changes before applying values.")},
                        {"reset_to", enum_prop({"saved", "parent"}, "Preset scopes: what a null value takes a key back to: the "
@@ -2108,12 +2164,14 @@ void register_config_tools(McpService& service)
                 std::vector<std::pair<std::string, std::string>> values;
                 std::vector<std::string>                         removals;
                 for (auto it = values_in.begin(); it != values_in.end(); ++it) {
-                    if (std::find(t.options.begin(), t.options.end(), it.key()) == t.options.end())
-                        throw ToolFailure(t.object != nullptr && print_config_def.get(it.key()) != nullptr ?
-                                              "The object list does not offer \"" + it.key() + "\" for " +
-                                                  (t.volume != nullptr ? "a part or modifier" : "an object") :
-                                              "Unknown setting \"" + it.key() + "\" for this scope",
-                                          {{"similar", search_keys(it.key().substr(0, std::max<std::size_t>(3, it.key().size() / 2)), t.options, 5)}});
+                    if (std::find(t.options.begin(), t.options.end(), it.key()) == t.options.end()) {
+                        json similar{{"similar", search_keys(it.key().substr(0, std::max<std::size_t>(3, it.key().size() / 2)), t.options, 5)}};
+                        if (t.object != nullptr && print_config_def.get(it.key()) != nullptr)
+                            throw ToolFailure("The object list does not offer \"" + it.key() + "\" for " +
+                                                  (t.volume != nullptr ? "a part or modifier" : "an object"),
+                                              std::move(similar));
+                        throw unknown_setting(it.key(), arg_string(args, "scope", "process"), std::move(similar));
+                    }
                     if (it.value().is_null() && reference != nullptr) {
                         if (!reference->config.has(it.key()))
                             throw ToolFailure("\"" + reference->name + "\" has no " + it.key());

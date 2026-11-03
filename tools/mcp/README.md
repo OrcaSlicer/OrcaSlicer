@@ -195,7 +195,9 @@ rule), and drops unsaved edits with `set_settings {"reset_all": true}`. It reads
 selected and compares presets (`get_settings` `preset` and `compare`), writes one entry of a
 per-variant value, and checks `set_settings`' `changed` after the spiral vase dialog. It reads what
 settings do from `get_settings`' meta (`description`, `where`): by key, for one group, and found by
-the words of their descriptions, in one scope and in all three. It reverts single keys (`null`, `reset_to`), and answers the unsaved-changes prompts:
+the words of their descriptions, in one scope and in all three. Keys named without a scope are read
+from the scope that has each one, and a key named in the wrong scope is listed with the scope that has
+it (`scope_of`) and refused by `set_settings`. It reverts single keys (`null`, `reset_to`), and answers the unsaved-changes prompts:
 `select_preset` without `changes` still opens the prompt, `changes` transfers or discards without it,
 and `new_project` keeps modified presets unless `changes` is `"discard"`. It ends by deleting the
 presets it made with `delete_preset`: filaments the tab edits and does not, a base process and its

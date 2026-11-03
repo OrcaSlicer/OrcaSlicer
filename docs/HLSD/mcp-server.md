@@ -723,9 +723,18 @@ letters count only when the query has nothing longer, since most help texts have
 matching more of the query's words come first, then those matching more of them in the key or label.
 With no weighting by how rare a word is, a generic word such as "reduce" counts as much as
 "stringing", so the tool asks for a few distinctive words. A search returns the best 20 unless `limit`
-asks for more. Without a `scope` it looks through the process, filament and printer settings being
-edited, since a question about an effect rarely knows which tab answers it (stringing is retraction on
-the printer tab and its overrides on the filament's), and each match names its `scope`.
+asks for more.
+
+Without a `scope`, a search and named keys look through the process, filament and printer settings
+being edited, since a question about an effect rarely knows which tab answers it (stringing is
+retraction on the printer tab and its overrides on the filament's), and an agent naming a key seldom
+knows which tab holds it; each item names its `scope`, the first of the three that has the key. Every
+other read without a scope (`where`, the whole listing, `preset`, `compare`) reads the process, and
+`set_settings` writes it: a write takes one scope, whose values apply together as one undo step, so it
+never spreads over several by itself. A key the scope lacks is listed in `unknown_keys`, and `scope_of`
+names the scope that has it (those three, then the project's) when another does; `set_settings`
+refuses such a key with that scope named, so an agent that passed a filament key with no scope learns
+where it belongs instead of reading "unknown".
 
 Many process, filament and printer values hold one entry per extruder variant (an extruder type and
 nozzle flow type, such as the X1C's "Direct Drive Standard" and "Direct Drive High Flow"), the machine
