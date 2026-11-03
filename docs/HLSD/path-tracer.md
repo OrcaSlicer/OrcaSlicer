@@ -26,7 +26,7 @@ Scene geometry is organized in a two-level bounding volume hierarchy consisting 
   - Binding 4: Top-level acceleration structure (`TlasBuffer`)
   - Binding 5: Vertex normals of smooth triangles (`NormalBuffer`), Prepare only
 
-Transformations of objects or plates update only the instance buffer without triggering a BLAS rebuild. Color changes in Prepare or Preview update vertex shading buffers in-place via `glBufferSubData` without rebuilding either hierarchy, triggering triangle buffer uploads only when opacity values change.
+Transformations of objects or plates update only the instance buffer without triggering a BLAS rebuild. In Prepare there is one BLAS per object instance, built relative to the instance transformation; each BLAS knows its instance by `GLVolume::geometry_id.second`, the ID of the `ModelInstance`, and not by object and instance indices. An arrange or an undo can reorder the objects of the model, and the canvas then keeps its volumes and renumbers them, so the meshes and the BLAS stay while the indices change. The explosion of the Assemble view moves parts within an instance and so rebuilds the BLAS. Color changes in Prepare or Preview update vertex shading buffers in-place via `glBufferSubData` without rebuilding either hierarchy, triggering triangle buffer uploads only when opacity values change.
 
 ## Frame scheduling and interactivity
 

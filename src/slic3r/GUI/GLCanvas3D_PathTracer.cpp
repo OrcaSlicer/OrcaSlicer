@@ -398,9 +398,6 @@ GLCanvas3D::PathTraceSceneBuildResult GLCanvas3D::_build_pathtrace_scene_async(
             blas.tri_count = uint32_t(result.gpu_scene.triangles.size());
             blas.local_bounds_min = Vec3f(result.gpu_scene.nodes[0].bounds_min[0], result.gpu_scene.nodes[0].bounds_min[1], result.gpu_scene.nodes[0].bounds_min[2]);
             blas.local_bounds_max = Vec3f(result.gpu_scene.nodes[0].bounds_max[0], result.gpu_scene.nodes[0].bounds_max[1], result.gpu_scene.nodes[0].bounds_max[2]);
-            blas.object_idx = -1;
-            blas.instance_idx = -1;
-            blas.volume_idx = -1;
             blas.plate_idx = -1;
             result.volume_blas.push_back(blas);
         }
@@ -443,12 +440,9 @@ GLCanvas3D::PathTraceSceneBuildResult GLCanvas3D::_build_pathtrace_scene_async(
             blas.tri_count = uint32_t(local_scene.triangles.size());
             blas.local_bounds_min = Vec3f(local_scene.nodes[0].bounds_min[0], local_scene.nodes[0].bounds_min[1], local_scene.nodes[0].bounds_min[2]);
             blas.local_bounds_max = Vec3f(local_scene.nodes[0].bounds_max[0], local_scene.nodes[0].bounds_max[1], local_scene.nodes[0].bounds_max[2]);
-            blas.object_idx = grp_data.object_idx;
-            blas.instance_idx = grp_data.instance_idx;
-            blas.volume_idx = grp_data.volume_idx;
+            blas.instance_id = grp_data.instance_id;
             blas.plate_idx = -1;
             blas.is_wipe_tower = grp_data.is_wipe_tower;
-            blas.wipe_tower_plate_idx = grp_data.wipe_tower_plate_idx;
             result.volume_blas.push_back(blas);
 
             result.gpu_scene.nodes.insert(result.gpu_scene.nodes.end(), local_scene.nodes.begin(), local_scene.nodes.end());
@@ -511,9 +505,6 @@ GLCanvas3D::PathTraceSceneBuildResult GLCanvas3D::_build_pathtrace_scene_async(
         blas.tri_count = uint32_t(plate_scene.triangles.size());
         blas.local_bounds_min = Vec3f(plate_scene.nodes[0].bounds_min[0], plate_scene.nodes[0].bounds_min[1], plate_scene.nodes[0].bounds_min[2]);
         blas.local_bounds_max = Vec3f(plate_scene.nodes[0].bounds_max[0], plate_scene.nodes[0].bounds_max[1], plate_scene.nodes[0].bounds_max[2]);
-        blas.object_idx = -1;
-        blas.instance_idx = -1;
-        blas.volume_idx = -1;
         blas.plate_idx = plate_data.plate_idx;
         result.volume_blas.push_back(blas);
 
@@ -882,11 +873,8 @@ void GLCanvas3D::_extract_prepare_volumes_for_pathtrace(
         return;
 
     struct VolumeGroup {
-        int object_idx{-1};
-        int instance_idx{-1};
-        int volume_idx{-1};
+        size_t instance_id{0};
         bool is_wipe_tower{false};
-        int wipe_tower_plate_idx{-1};
         Transform3d instance_trafo{Transform3d::Identity()};
         Transform3d inv_instance_trafo{Transform3d::Identity()};
         std::vector<const GLVolume*> volumes;
@@ -905,11 +893,8 @@ void GLCanvas3D::_extract_prepare_volumes_for_pathtrace(
 
         if (volume->is_wipe_tower || volume->object_idx() < 0) {
             VolumeGroup grp;
-            grp.object_idx = volume->object_idx();
-            grp.instance_idx = volume->instance_idx();
-            grp.volume_idx = volume->volume_idx();
+            grp.instance_id = volume->geometry_id.second;
             grp.is_wipe_tower = volume->is_wipe_tower;
-            grp.wipe_tower_plate_idx = volume->is_wipe_tower ? (volume->object_idx() - 1000) : -1;
             grp.instance_trafo = volume->world_matrix();
             grp.inv_instance_trafo = grp.instance_trafo.inverse();
             grp.volumes.push_back(volume);
@@ -919,11 +904,7 @@ void GLCanvas3D::_extract_prepare_volumes_for_pathtrace(
             auto it = instance_to_group.find(key);
             if (it == instance_to_group.end()) {
                 VolumeGroup grp;
-                grp.object_idx = key.first;
-                grp.instance_idx = key.second;
-                grp.volume_idx = volume->volume_idx();
-                grp.is_wipe_tower = false;
-                grp.wipe_tower_plate_idx = -1;
+                grp.instance_id = volume->geometry_id.second;
                 grp.instance_trafo = volume->get_instance_transformation().get_matrix();
                 grp.inv_instance_trafo = grp.instance_trafo.inverse();
                 grp.volumes.push_back(volume);
@@ -1019,7 +1000,7 @@ void GLCanvas3D::_extract_prepare_volumes_for_pathtrace(
             extract_volume_triangles(volume, group, local_triangles, local_ext_ids);
 
         if (!local_triangles.empty()) {
-            job.volume_groups.push_back({group.object_idx, group.instance_idx, group.volume_idx, group.is_wipe_tower, group.wipe_tower_plate_idx, std::move(local_triangles), std::move(local_ext_ids)});
+            job.volume_groups.push_back({group.instance_id, group.is_wipe_tower, std::move(local_triangles), std::move(local_ext_ids)});
         }
     }
 
@@ -1037,6 +1018,17 @@ void GLCanvas3D::_extract_prepare_volumes_for_pathtrace(
 
 void GLCanvas3D::_update_pathtrace_instances_and_tlas(size_t transform_signature)
 {
+    // The current trafo of each instance, the one its BLAS was built relative to, see
+    // _extract_prepare_volumes_for_pathtrace(). The first active volume of an instance gives it.
+    std::map<std::pair<bool, size_t>, Transform3d> instance_trafos;
+    for (const GLVolume* v : m_volumes.volumes) {
+        if (v == nullptr || !v->is_active)
+            continue;
+        const bool own_trafo = v->is_wipe_tower || v->object_idx() < 0;
+        instance_trafos.emplace(std::make_pair(v->is_wipe_tower, v->geometry_id.second),
+                                own_trafo ? v->world_matrix() : v->get_instance_transformation().get_matrix());
+    }
+
     m_pathtrace_gpu_instances.clear();
     for (PathTraceVolumeBlas& blas : m_pathtrace_volume_blas) {
         if (blas.node_count == 0 || blas.tri_count == 0)
@@ -1048,30 +1040,11 @@ void GLCanvas3D::_update_pathtrace_instances_and_tlas(size_t transform_signature
         inst.data[3] = blas.tri_count;
 
         Transform3d world_trafo = Transform3d::Identity();
-        const GLVolume* vol = nullptr;
-        if (blas.is_wipe_tower) {
-            for (const GLVolume* v : m_volumes.volumes) {
-                if (v != nullptr && v->is_wipe_tower && (v->object_idx() - 1000) == blas.wipe_tower_plate_idx) {
-                    vol = v;
-                    break;
-                }
-            }
-            if (vol == nullptr || !vol->is_active)
+        if (blas.instance_id != 0) {
+            const auto it = instance_trafos.find({blas.is_wipe_tower, blas.instance_id});
+            if (it == instance_trafos.end())
                 continue;
-            world_trafo = vol->world_matrix();
-        } else if (blas.object_idx >= 0) {
-            for (const GLVolume* v : m_volumes.volumes) {
-                if (v != nullptr && v->object_idx() == blas.object_idx && v->instance_idx() == blas.instance_idx) {
-                    vol = v;
-                    break;
-                }
-            }
-            if (vol == nullptr || !vol->is_active)
-                continue;
-            if (m_model != nullptr && vol->object_idx() >= 0 && vol->object_idx() < int(m_model->objects.size()))
-                world_trafo = vol->get_instance_transformation().get_matrix();
-            else
-                world_trafo = vol->world_matrix();
+            world_trafo = it->second;
         }
         const Transform3d inv_trafo = world_trafo.inverse();
         const Eigen::Matrix4f m_inv = inv_trafo.matrix().cast<float>();
@@ -1443,6 +1416,9 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
         }
     } else if (m_model != nullptr) {
         combine_geom(m_model->objects.size());
+        // The BLAS of an instance holds its parts moved apart by the explosion of the assembly view.
+        if (m_canvas_type == ECanvasType::CanvasAssembleView)
+            combine_geom(std::hash<float>{}(GLVolume::explosion_ratio));
         for (const GLVolume* volume : m_volumes.volumes) {
             if (volume == nullptr)
                 continue;

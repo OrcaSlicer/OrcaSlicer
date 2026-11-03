@@ -790,12 +790,12 @@ private:
         uint32_t tri_count{0};
         Vec3f local_bounds_min{Vec3f::Zero()};
         Vec3f local_bounds_max{Vec3f::Zero()};
-        int object_idx{-1};
-        int instance_idx{-1};
-        int volume_idx{-1};
+        // GLVolume::geometry_id.second of the volumes: the ID of their ModelInstance, or of the wipe
+        // tower's plate. Object indices go stale when an arrange or an undo reorders the objects of the
+        // model, which keeps the meshes and so this BLAS. 0 for the toolpaths and the plates.
+        size_t instance_id{0};
         int plate_idx{-1};
         bool is_wipe_tower{false};
-        int wipe_tower_plate_idx{-1};
     };
     std::vector<PathTraceVolumeBlas> m_pathtrace_volume_blas;
     std::vector<PathTraceGpuInstance> m_pathtrace_gpu_instances;
@@ -841,11 +841,8 @@ private:
         std::vector<float> source_tri_delta_angle;
         std::vector<float> source_tri_opacity;
         struct VolumeGroupTriangles {
-            int object_idx{-1};
-            int instance_idx{-1};
-            int volume_idx{-1};
+            size_t instance_id{0};
             bool is_wipe_tower{false};
-            int wipe_tower_plate_idx{-1};
             std::vector<PathTraceTriangle> triangles;
             std::vector<uint32_t> triangle_extruder_ids;
         };
