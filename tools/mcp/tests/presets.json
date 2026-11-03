@@ -328,7 +328,7 @@
     {"tool": "set_settings", "args": {"scope": "preferences", "values": {"auto_arrange": false}}, "optional": true},
     {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca", "param": "advanced"}, "optional": true},
     {"tool": "get_state", "expect": {"/dialogs": {"empty": true}}},
-    {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca", "param": "control:auto_arrange"}, "await": false, "save_as": "prefs"},
+    {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca", "param": "behaviour:auto_arrange"}, "await": false, "save_as": "prefs"},
     {"tool": "ui_input", "args": {"target": {"name": "auto_arrange", "within": "Preferences"}, "value": false}, "expect": {"/checked": {"eq": false}}},
     {"tool": "dialog_respond", "args": {"dialog": {"title": "Preferences"}, "button": "close"}},
     {"tool": "wait", "args": {"for": "job", "job": "${jobs.prefs}"}},

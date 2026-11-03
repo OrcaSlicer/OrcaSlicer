@@ -204,7 +204,7 @@ from, unsaved changes and a printer that is not selected. It exports a filament 
 Preset Bundle dialog to its `out_dir` (`export_config` with a directory), imports the archive again
 with `import_configs` and a path (kept while the preset exists, imported once it is deleted) and
 imports `tests/fixtures/mcp_import_pla.json`. It changes a preference in the Preferences dialog
-opened with `open_preferences` `control:auto_arrange`, by the control's name, and reads it back with
+opened with `open_preferences` `behaviour:auto_arrange`, by the control's name, and reads it back with
 `get_settings {"scope": "preferences"}`. It starts from the harness's default printer with one
 filament slot in Simple mode, deleting slots and selecting the mode first, and reruns on the same
 datadir.

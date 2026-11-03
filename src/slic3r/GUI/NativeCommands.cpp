@@ -524,7 +524,7 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"open_preferences", "Open the Preferences dialog on a tab, scrolled to one preference when given (shown on its own tab). Its "
                              "controls are named after their preference keys: ui_input {\"target\": {\"name\": key, \"within\": "
                              "\"Preferences\"}} changes one through the dialog; get_settings scope preferences reads them.",
-         CommandParamType::Text, "general, control, graphics, online or developer, optionally :<key>, e.g. control:auto_arrange"},
+         CommandParamType::Text, "general, files, behaviour, control, graphics, online or developer, optionally :<key>, e.g. behaviour:auto_arrange"},
         {"mode_simple", "Switch the settings view to Simple mode."},
         {"mode_advanced", "Switch the settings view to Advanced mode."},
         {"mode_expert", "Switch the settings view to Expert mode."},
@@ -770,6 +770,8 @@ std::vector<NativeCommand> build_command_catalog()
         }
         // "tab[:key]": the tab to show, and the preference whose control is scrolled into view and focused.
         static const std::pair<const char*, PreferencesTab> tabs[] = {{"general", PreferencesTab::General},
+                                                                      {"files", PreferencesTab::Files},
+                                                                      {"behaviour", PreferencesTab::Behaviour},
                                                                       {"control", PreferencesTab::Control},
                                                                       {"graphics", PreferencesTab::Graphics},
                                                                       {"online", PreferencesTab::Online},
@@ -779,7 +781,7 @@ std::vector<NativeCommand> build_command_catalog()
         const auto        it    = std::find_if(std::begin(tabs), std::end(tabs), [&](const auto& t) { return tab == t.first; });
         if (it == std::end(tabs))
             return AppActionRunResult{AppActionRunResult::Level::Error,
-                                      from_u8("Unknown tab \"" + tab + "\": general, control, graphics, online or developer")};
+                                      from_u8("Unknown tab \"" + tab + "\": general, files, behaviour, control, graphics, online or developer")};
         wxGetApp().open_preferences(it->second, colon == std::string::npos ? std::string() : param.substr(colon + 1));
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });

@@ -64,6 +64,9 @@ enum class ObjectOrder { Name, Filament, Height, Size };
 // Stable sort by natural name order, filament, top Z, or bounding box volume of the first instance.
 void sort_objects(std::vector<ModelObject*>& objects, ObjectOrder order, bool descending = false);
 
+// Set import-only presentation ranks without changing part order used by slicing.
+void set_import_volume_order(ModelObject& object, bool sort_names);
+
 // The dimensions the Primitive size dialog asks for a shape ("Cube", "Cylinder", "Sphere", "Cone", "Disc", "Torus"), in its
 // order, as untranslated labels; none for another name.
 std::vector<const char*> primitive_size_names(const std::string& type_name);

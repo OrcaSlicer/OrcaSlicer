@@ -910,8 +910,8 @@ which close the endpoint the call came through). Writing the key would skip all 
 
 The dialog's controls are named after their AppConfig keys, so `ui_snapshot` shows the key and
 `ui_input {"target": {"name": "export_statistics", "within": "Preferences"}, "value": true}` changes one
-through its own handler. The Speed Dial's `open_preferences` takes `<tab>[:<key>]` (`general`, `control`,
-`graphics`, `online` or `developer`) and opens the dialog there through `GUI_App::open_preferences()`,
+through its own handler. The Speed Dial's `open_preferences` takes `<tab>[:<key>]` (`general`, `files`,
+`behaviour`, `control`, `graphics`, `online` or `developer`) and opens the dialog there through `GUI_App::open_preferences()`,
 scrolled to the key's control and focused; a key on another tab is shown on its own tab. Checkboxes,
 number and text fields and the language combobox change this way. The other comboboxes (those of
 `create_item_combobox()`, the log level, the login region and the network plug-in version) save from a

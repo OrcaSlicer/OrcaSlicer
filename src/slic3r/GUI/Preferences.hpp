@@ -40,7 +40,7 @@ namespace Slic3r { namespace GUI {
 #define DESIGN_LEFT_MARGIN 25
 
 // The tabs other dialogs and the Speed Dial's open_preferences open Preferences on.
-enum class PreferencesTab { General, Control, Graphics, Online, Developer };
+enum class PreferencesTab { General, Files, Behaviour, Control, Graphics, Online, Developer };
 
 class PreferencesDialog : public DPIDialog
 {

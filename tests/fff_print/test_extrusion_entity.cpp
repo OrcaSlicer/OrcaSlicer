@@ -91,31 +91,80 @@ SCENARIO("Polygon flattening", "[ExtrusionEntity]") {
     }
 }
 
-static ExtrusionPaths straight_path(const std::vector<double> &xs)
+static ExtrusionPaths path_through(const std::vector<Vec2d> &points)
 {
     ExtrusionPath path{erExternalPerimeter, 1.0, 0.45f, 0.2f};
-    for (double x : xs)
-        path.polyline.append(Point3::new_scale(x, 0., 0.));
+    for (const Vec2d &point : points)
+        path.polyline.append(Point3::new_scale(point.x(), point.y(), 0.));
     return {path};
 }
 
-TEST_CASE("Scarf ramp ends on the next loop vertex instead of leaving a short stub", "[ExtrusionEntity]")
+static ExtrusionPaths straight_path(const std::vector<double> &xs)
+{
+    std::vector<Vec2d> points;
+    for (double x : xs)
+        points.emplace_back(x, 0.);
+    return path_through(points);
+}
+
+TEST_CASE("Scarf ramp leaves no short stub before the next loop vertex", "[ExtrusionEntity]")
 {
     using Catch::Matchers::WithinAbs;
-    // A 20 mm scarf in 10 steps: a remainder shorter than half a 2 mm step is snapped forward.
+    // A 20 mm scarf in 10 steps: a remainder shorter than half a 2 mm step is merged away.
     const double slope_length = 20.;
     const double max_segment  = scale_(slope_length / 10);
 
-    SECTION("a 0.09 mm remainder extends the ramp to the vertex") {
+    SECTION("a 0.09 mm remainder before a vertex on the straight line skips that vertex") {
         ExtrusionPaths     paths = straight_path({0., 5., 10., 15., 20.09, 25., 30.});
         ExtrusionLoopSloped loop(paths, 0., slope_length, max_segment, 0.);
         REQUIRE(loop.starts.size() == 1);
         REQUIRE(loop.ends.size() == 1);
         REQUIRE(loop.paths.size() == 1);
-        CHECK_THAT(unscale_(loop.starts.front().polyline.last_point().x()), WithinAbs(20.09, 1e-3));
-        CHECK_THAT(unscale_(loop.ends.front().polyline.last_point().x()), WithinAbs(20.09, 1e-3));
-        CHECK_THAT(unscale_(loop.paths.front().polyline.first_point().x()), WithinAbs(20.09, 1e-3));
-        CHECK_THAT(unscale_(loop.paths.front().polyline.lines().front().length()), WithinAbs(4.91, 1e-3));
+        CHECK_THAT(unscale_(loop.starts.front().polyline.last_point().x()), WithinAbs(20., 1e-3));
+        CHECK_THAT(unscale_(loop.ends.front().polyline.last_point().x()), WithinAbs(20., 1e-3));
+        const Polyline3 &flat = loop.paths.front().polyline;
+        CHECK_THAT(unscale_(flat.first_point().x()), WithinAbs(20., 1e-3));
+        CHECK_THAT(unscale_(flat.lines().front().length()), WithinAbs(5., 1e-3));
+        CHECK_THAT(unscale_(flat.last_point().x()), WithinAbs(30., 1e-3));
+    }
+
+    SECTION("the ramp ends at the same place whichever vertex the loop has just past it") {
+        // One layer's wall has a vertex 0.1 mm past the scarf length, the next layer's 0.4 mm past it.
+        for (double vertex : {20.1, 20.4}) {
+            ExtrusionPaths     paths = straight_path({0., 5., 10., 15., vertex, 25., 30.});
+            ExtrusionLoopSloped loop(paths, 0., slope_length, max_segment, 0.);
+            REQUIRE(loop.paths.size() == 1);
+            CHECK_THAT(unscale_(loop.starts.front().polyline.last_point().x()), WithinAbs(20., 1e-3));
+            CHECK_THAT(unscale_(loop.paths.front().polyline.lines().front().length()), WithinAbs(5., 1e-3));
+        }
+    }
+
+    SECTION("a slight bend within the window is skipped, a corner is not") {
+        // Skipping a vertex 0.3 mm past the ramp moves the path by 0.3 mm times the sine of its turn:
+        // 0.026 mm at 5 degrees, 0.15 mm at 30 degrees, against a tolerance of 0.05 mm.
+        ExtrusionPaths     bend = path_through({{0., 0.}, {5., 0.}, {10., 0.}, {15., 0.}, {20.3, 0.}, {25.28, 0.436}, {30.26, 0.872}});
+        ExtrusionLoopSloped bend_loop(bend, 0., slope_length, max_segment, 0.);
+        REQUIRE(bend_loop.paths.size() == 1);
+        CHECK_THAT(unscale_(bend_loop.starts.front().polyline.last_point().x()), WithinAbs(20., 1e-3));
+        CHECK(bend_loop.paths.front().polyline.size() == 3);
+
+        ExtrusionPaths     corner = path_through({{0., 0.}, {5., 0.}, {10., 0.}, {15., 0.}, {20.3, 0.}, {24.63, 2.5}, {28.96, 5.}});
+        ExtrusionLoopSloped corner_loop(corner, 0., slope_length, max_segment, 0.);
+        REQUIRE(corner_loop.paths.size() == 1);
+        CHECK_THAT(unscale_(corner_loop.starts.front().polyline.last_point().x()), WithinAbs(20.3, 1e-3));
+        CHECK(corner_loop.paths.front().polyline.size() == 3);
+    }
+
+    SECTION("the ramp that ends in a loop's second path keeps its exact length too") {
+        ExtrusionPaths     paths = straight_path({0., 5., 12.});
+        ExtrusionPaths     rest  = straight_path({12., 15., 20.2, 25., 30.});
+        paths.push_back(rest.front());
+        ExtrusionLoopSloped loop(paths, 0., slope_length, max_segment, 0.);
+        REQUIRE(loop.starts.size() == 2);
+        REQUIRE(loop.paths.size() == 1);
+        CHECK_THAT(unscale_(loop.starts.back().polyline.last_point().x()), WithinAbs(20., 1e-3));
+        CHECK_THAT(unscale_(loop.paths.front().polyline.first_point().x()), WithinAbs(20., 1e-3));
+        CHECK_THAT(unscale_(loop.paths.front().polyline.lines().front().length()), WithinAbs(5., 1e-3));
     }
 
     SECTION("a remainder longer than half a step keeps the exact scarf length") {
