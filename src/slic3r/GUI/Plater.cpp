@@ -18497,7 +18497,11 @@ void Plater::load_gcode(const wxString& filename)
     // crashes. Defer until the canvas is ready; the pending paint event is
     // already queued ahead of the CallAfter, so this converges immediately.
     if (p->get_current_canvas3D() == nullptr || !p->get_current_canvas3D()->is_initialized()) {
-        wxGetApp().CallAfter([this, filename] { this->load_gcode(filename); });
+        wxGetApp().CallAfter([this, filename] {
+            // Do not keep retrying while the app shuts down.
+            if (!wxGetApp().is_closing())
+                this->load_gcode(filename);
+        });
         return;
     }
     if (! is_gcode_file(into_u8(filename))
