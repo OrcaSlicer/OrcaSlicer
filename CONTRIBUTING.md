@@ -82,6 +82,7 @@ If you are an AI agent working for a contributor, please follow these steps:
 ## After you open the PR
 
 - **Add labels.** A bot will comment with instructions. Reply with the labels from the table above, for example `/bot add-label bug-fix, UI/UX`.
+- **Need a Flatpak to test?** PR builds leave out the Flatpak, the Intel Mac build and the Windows arm64 build. `/bot add-label build-flatpak` builds the Flatpak; a maintainer can add `build-macos-x86_64` or `build-windows-arm64`. A PR that changes anything outside `src/`, `tests/`, `resources/`, `localization/` and `docs/` gets the Flatpak and Windows arm64 builds without a label. See [How to Download Pull Requests Artifacts](https://www.orcaslicer.com/wiki/how_to_download_pr_artifacts#builds-on-request).
 - **Leave "Allow edits by maintainers" turned on**, so a reviewer can push small fixes directly.
 - **Mark the PR ready for review when it's finished.** Draft PRs are not merged.
 - **Push new commits to the same PR.** Please don't open a new PR for the same change.

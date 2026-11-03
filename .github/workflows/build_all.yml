@@ -51,7 +51,6 @@ on:
      - 'scripts/build_preset_cache.*'
      - 'scripts/prune_cached_presets.ps1'
      - 'scripts/test_prune_cached_presets.ps1'
-     - 'scripts/flatpak/**'
      - 'scripts/msix/**'
      - 'tests/**'
 
@@ -123,10 +122,14 @@ jobs:
     strategy:
       fail-fast: false
       # SELF_HOSTED skips arm64 (the self-hosted Windows server is x64-only).
+      # So does a pull request; build_optional.yml builds arm64 on the
+      # build-windows-arm64 label or a change outside the sources.
       matrix:
         include: ${{ fromJSON(vars.SELF_HOSTED
           && '[{"arch":"x64","os":"orca-win-server","compiler":"clang"}]'
-          || '[{"arch":"x64","os":"windows-latest","compiler":"clang"},{"arch":"arm64","os":"windows-11-vs2026-arm","compiler":"clang"}]') }}
+          || (github.event_name == 'pull_request'
+            && '[{"arch":"x64","os":"windows-latest","compiler":"clang"}]'
+            || '[{"arch":"x64","os":"windows-latest","compiler":"clang"},{"arch":"arm64","os":"windows-11-vs2026-arm","compiler":"clang"}]')) }}
     needs: check_build_script
     # Don't run scheduled builds on forks:
     if: ${{ !cancelled() && needs.check_build_script.result == 'success' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
@@ -141,10 +144,11 @@ jobs:
   build_macos_arch:
     strategy:
       fail-fast: false
+      # Hosted macOS runners are scarce, so a pull request builds arm64 only and
+      # ships it as its own DMG; build_optional.yml builds x86_64 on the
+      # build-macos-x86_64 label. Pushes build both and combine them below.
       matrix:
-        arch:
-          - arm64
-          - x86_64
+        arch: ${{ fromJSON(github.event_name == 'pull_request' && '["arm64"]' || '["arm64", "x86_64"]') }}
     # Don't run scheduled builds on forks:
     if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
@@ -157,7 +161,7 @@ jobs:
   build_macos_universal:
     name: Build macOS Universal
     needs: build_macos_arch
-    if: ${{ !cancelled() && needs.build_macos_arch.result == 'success' && !inputs.build-deps-only && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    if: ${{ !cancelled() && needs.build_macos_arch.result == 'success' && !inputs.build-deps-only && github.event_name != 'pull_request' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_orca.yml
     with:
       os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
@@ -192,7 +196,7 @@ jobs:
   unit_tests_windows_arm64:
     name: Windows arm64
     needs: build_windows
-    if: ${{ !cancelled() && success() && !vars.SELF_HOSTED }}
+    if: ${{ !cancelled() && success() && !vars.SELF_HOSTED && github.event_name != 'pull_request' }}
     uses: ./.github/workflows/unit_tests.yml
     with:
       os: windows-11-vs2026-arm
@@ -257,9 +261,10 @@ jobs:
         with:
           name: test-results-*
           failOnError: false
+  # Pull requests build it on the build-flatpak label, from build_optional.yml.
   flatpak:
     name: Flatpak
     # Don't run scheduled builds on forks; skip entirely on self-hosted runners
-    if: ${{ !cancelled() && !vars.SELF_HOSTED && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    if: ${{ !cancelled() && !vars.SELF_HOSTED && github.event_name != 'pull_request' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_flatpak.yml
     secrets: inherit
