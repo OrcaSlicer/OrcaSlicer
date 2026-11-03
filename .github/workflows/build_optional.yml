@@ -160,11 +160,11 @@ jobs:
       artifact: ${{ github.sha }}-tests-windows-arm64
       test-dir: build-arm64/tests
 
-  # A cl.exe build of x64. Nothing is uploaded: it only shows whether the
-  # sources compile with cl, which clang-cl, the compiler that ships, does not
-  # check. No push build saves a cl deps cache, so the first build on a pull
-  # request builds the deps too; later builds on the same pull request restore
-  # them.
+  # A cl.exe build of x64, for what clang-cl, the compiler that ships, does
+  # not catch. Its portable build, installer and PDB upload under _msvc names;
+  # nothing deploys. No push build saves a cl deps cache, so the first build
+  # on a pull request builds the deps too; later builds on the same pull
+  # request restore them.
   build_windows_msvc:
     name: Build Windows x64 MSVC
     needs: select
