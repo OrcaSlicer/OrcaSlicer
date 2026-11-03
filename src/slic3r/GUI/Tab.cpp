@@ -4346,9 +4346,8 @@ void TabPrintPlate::on_value_change(const std::string& opt_key, const boost::any
                 }
             }
             if (k == "spiral_mode_choice") {
-                bool spiral_mode = m_config->opt_enum<SpiralModeChoice>(k) == smcEnable;
-                plate->set_spiral_vase_mode(spiral_mode, false);
-                m_config->set_key_value("spiral_mode", new ConfigOptionBool(spiral_mode));
+                plate->set_spiral_vase_mode(m_config->opt_enum<SpiralModeChoice>(k) == smcEnable, false);
+                m_config->set_key_value("spiral_mode", new ConfigOptionBool(plate->get_spiral_vase_mode())); // may be declined
             }
         }
         m_all_keys = concat(m_all_keys, { k });
