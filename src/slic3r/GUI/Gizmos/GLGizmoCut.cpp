@@ -438,9 +438,15 @@ bool GLGizmoCut3D::on_mouse(const wxMouseEvent &mouse_event)
         if (! m_connectors_editing && mouse_event.GetModifiers() == wxMOD_NONE &&
             CutMode(m_mode) == CutMode::cutPlanar) {
             // Check the internal part raycasters.
-            if (! m_part_selection.valid())
+            const bool had_part_selection = m_part_selection.valid();
+            if (!had_part_selection)
                 process_contours();
-            m_part_selection.toggle_selection(mouse_pos);
+            if (!m_part_selection.toggle_selection(mouse_pos)) {
+                // An empty-space click must not enter contour cutting mode.
+                if (!had_part_selection)
+                    reset_cut_by_contours();
+                return true;
+            }
             check_and_update_connectors_state(); // after a contour is deactivated, its connectors are inside the object
             return true;
         }
@@ -2281,7 +2287,7 @@ std::vector<Cut::Part> GLGizmoCut3D::PartSelection::get_cut_parts()
 }
 
 
-void GLGizmoCut3D::PartSelection::toggle_selection(const Vec2d& mouse_pos)
+bool GLGizmoCut3D::PartSelection::toggle_selection(const Vec2d& mouse_pos)
 {
     // FIXME: Cache the transforms.
     const Camera& camera     = wxGetApp().plater()->get_camera();
@@ -2317,7 +2323,9 @@ void GLGizmoCut3D::PartSelection::toggle_selection(const Vec2d& mouse_pos)
             }
             ++cont_id;
         }
+        return true;
     }
+    return false;
 }
 
 void GLGizmoCut3D::PartSelection::turn_over_selection()
