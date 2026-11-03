@@ -77,9 +77,40 @@ concurrency:
   
 
 jobs:
-  # build_win.bat ships a test suite. Run it before the Windows builds.
+  # build_win.bat and two of the scripts it runs ship test suites. They run
+  # before the Windows builds, on a pull request only when it changes one of
+  # the scripts or the suites: the suites build their own fixtures and read
+  # nothing else from the tree. Pushes and the nightly always run them.
+  build_script_changes:
+    name: Look for build script changes
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-24.04
+    outputs:
+      changed: ${{ steps.changes.outputs.changed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          lfs: 'false'
+          # The merge commit plus its first parent, the base it is diffed against.
+          fetch-depth: 2
+          sparse-checkout: .github/workflows
+      - name: Look for changed files
+        id: changes
+        run: |
+          if git diff --quiet HEAD^1 HEAD -- build_win.bat .github/workflows/build_all.yml \
+              scripts/check_exception_throw_info.ps1 scripts/prune_cached_presets.ps1 \
+              scripts/test_build_win.ps1 scripts/test_check_exception_throw_info.ps1 scripts/test_prune_cached_presets.ps1; then
+            echo "No build script changes."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
   check_build_script:
     name: Windows build script tests
+    needs: build_script_changes
+    # Runs unless the lookup ran and found nothing: skipped off pull requests,
+    # and failed lookups run the suites rather than skip them.
+    if: ${{ !cancelled() && (needs.build_script_changes.result != 'success' || needs.build_script_changes.outputs.changed == 'true') }}
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -140,7 +171,7 @@ jobs:
       contents: write
       id-token: write
     # Don't run scheduled builds on forks:
-    if: ${{ !cancelled() && needs.check_build_script.result == 'success' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    if: ${{ !cancelled() && contains(fromJSON('["success", "skipped"]'), needs.check_build_script.result) && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
       os: ${{ matrix.os }}
@@ -193,10 +224,11 @@ jobs:
     with:
       os: ubuntu-24.04-arm
       artifact: ${{ github.sha }}-tests-linux-aarch64
+  # The explicit result, as the script tests ahead of the build may be skipped.
   unit_tests_windows_x64:
     name: Windows x64
     needs: build_windows
-    if: ${{ !cancelled() && success() }}
+    if: ${{ !cancelled() && needs.build_windows.result == 'success' }}
     uses: ./.github/workflows/unit_tests.yml
     with:
       os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-latest' }}
@@ -204,7 +236,7 @@ jobs:
   unit_tests_windows_arm64:
     name: Windows arm64
     needs: build_windows
-    if: ${{ !cancelled() && success() && !vars.SELF_HOSTED && github.event_name != 'pull_request' }}
+    if: ${{ !cancelled() && needs.build_windows.result == 'success' && !vars.SELF_HOSTED && github.event_name != 'pull_request' }}
     uses: ./.github/workflows/unit_tests.yml
     with:
       os: windows-11-vs2026-arm
