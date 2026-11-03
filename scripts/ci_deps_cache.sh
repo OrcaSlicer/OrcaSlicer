@@ -14,7 +14,7 @@
 # Writes key-inputs, wait-for and wait-since to $GITHUB_OUTPUT.
 set -uo pipefail
 
-workflow=$WORKFLOW
+workflow=${WORKFLOW:?}
 
 # Must match the job names in build_all.yml, build_check_cache.yml and build_deps.yml.
 job=${JOB:-build_macos_arch (${ARCH:-})}
