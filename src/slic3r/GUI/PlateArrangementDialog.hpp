@@ -95,6 +95,8 @@ private:
     // Selection. The cursor is the plate keyboard moves start from; it is also the canvas' current plate.
     void select(int index, bool extend, bool toggle);
     void set_canvas_plate(int index);
+    // Ends the name field's edit: its text goes to the plate when it changed.
+    void apply_plate_name();
     bool is_selected(PartPlate* plate) const { return m_selection.count(plate) != 0; }
     std::vector<bool> selection_mask() const;
 
@@ -181,6 +183,7 @@ private:
 
     PartPlate*            m_name_plate{ nullptr };  // plate whose name is in m_name_buf
     std::array<char, 256> m_name_buf{};
+    bool                  m_name_editing{ false };  // the name field was active in the last frame
 
     std::map<PartPlate*, Thumbnail> m_thumbnails;
 

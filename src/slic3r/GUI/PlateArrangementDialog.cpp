@@ -141,6 +141,8 @@ int PlateArrangementDialog::grid_columns(int plate_count)
 
 void PlateArrangementDialog::on_set_state()
 {
+    if (m_name_editing) // closed mid-edit
+        apply_plate_name();
     m_drag       = Drag();
     m_name_plate = nullptr;
     m_selection.clear();
@@ -428,8 +430,10 @@ void PlateArrangementDialog::render_bottom_bar()
     // While editing: Orca accent at 15% and an accent border.
     dl->AddRectFilled(f0, f1, editing ? ImGui::ColorConvertFloat4ToU32(w_alpha(ImGuiWrapper::COL_ORCA, .15f)) : ImGui::GetColorU32(ImGuiCol_WindowBg), cfg.frame_rounding);
     dl->AddRect(f0, f1, frame, cfg.frame_rounding);
+    if (m_name_editing && single != m_name_plate) // the field moves to another plate, or goes away, mid-edit
+        apply_plate_name();
     if (single != nullptr) {
-        if (single != m_name_plate && !editing) {
+        if (single != m_name_plate) {
             m_name_buf.fill('\0');
             std::strncpy(m_name_buf.data(), single->get_plate_name().c_str(), m_name_buf.size() - 1);
             m_name_plate = single;
@@ -447,13 +451,12 @@ void PlateArrangementDialog::render_bottom_bar()
         ImGui::PushStyleColor(ImGuiCol_FrameBgActive , ImVec4(0.f, 0.f, 0.f, 0.f));
         ImGui::InputTextWithHint("##plate_name", _u8L("Plate name").c_str(), m_name_buf.data(), m_name_buf.size());
         ImGui::PopStyleColor(3);
-        if (ImGui::IsItemDeactivatedAfterEdit() && m_name_plate != nullptr)
-            plater->CallAfter([this, target = m_name_plate, name = std::string(m_name_buf.data())]() {
-                if (index_of(target) >= 0) { // the plate may be gone by now
-                    target->set_plate_name(name);
-                    wxGetApp().plater()->get_view3D_canvas3D()->set_as_dirty(); // redraw the name on the bed
-                }
-            });
+        // The edit ends when the field stops being active, however that happened. Not IsItemDeactivatedAfterEdit():
+        // a click on the canvas clears ImGui's active widget between frames, where ImGui does not see the change.
+        const bool active = ImGui::IsItemActive();
+        if (m_name_editing && !active)
+            apply_plate_name();
+        m_name_editing = active;
     } else {
         const int         n    = int(m_selection.size());
         const std::string text = format(std::string(_L_PLURAL("%1% plate selected", "%1% plates selected", n).utf8_str()), n);
@@ -777,6 +780,22 @@ void PlateArrangementDialog::set_canvas_plate(int index)
         if (const int i = index_of(plate); i >= 0 && i != m_plate_list->get_curr_plate_index()) {
             wxGetApp().plater()->select_plate(i);
             wxGetApp().plater()->deselect_all();
+        }
+    });
+}
+
+void PlateArrangementDialog::apply_plate_name()
+{
+    m_name_editing = false;
+    if (index_of(m_name_plate) < 0) // gone since the frame began
+        return;
+    const std::string name(m_name_buf.data());
+    if (name == m_name_plate->get_plate_name())
+        return;
+    wxGetApp().plater()->CallAfter([this, target = m_name_plate, name]() {
+        if (index_of(target) >= 0) { // the plate may be gone by now
+            target->set_plate_name(name);
+            wxGetApp().plater()->get_view3D_canvas3D()->set_as_dirty(); // redraw the name on the bed
         }
     });
 }
