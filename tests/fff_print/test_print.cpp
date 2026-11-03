@@ -1556,12 +1556,12 @@ TEST_CASE("Sequential printing counts a raft toward what reaches the rod", "[Pri
     CHECK((error.find("too tall") != std::string::npos) == raft);
 }
 
-TEST_CASE("Sequential printing keeps the rod height for an object only its raft lifts above the rod", "[Print]")
+TEST_CASE("Sequential printing no longer lets an object its raft lifts above the rod use the rod height", "[Print]")
 {
     // With the lid below the rod, an object that shares a Y band with a later one is checked against the
     // rod height instead of the lid. The fins face away from each other and stay below the rod on their
-    // own; only the raft lifts them above it. The too-tall check compares the top without the raft, so the
-    // slabs keep the footprint test and the rod height, and the plate still validates.
+    // own, but the raft lifts their tops above it. Above the rod, only the last object may also be taller
+    // than the lid, and both slabs are, so the plate is refused, as it is with fins that tall and no raft.
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
         { "print_sequence",                   "by object" },
@@ -1579,7 +1579,7 @@ TEST_CASE("Sequential printing keeps the rod height for an object only its raft 
 
     const std::string error = print.validate().string;
     INFO(error);
-    CHECK(error.empty());
+    CHECK(error.find("too tall") != std::string::npos);
 }
 
 TEST_CASE("Sequential printing applies an instance's rotation to the part above the rod", "[Print]")
@@ -1654,6 +1654,73 @@ TEST_CASE("By-layer As object list keeps copies of one object in their list orde
     REQUIRE(ordered.size() == copies.size());
     for (size_t k = 0; k < copies.size(); ++k)
         REQUIRE(ordered[k]->model_instance == copies[k]);
+}
+
+TEST_CASE("Sequential printing prints last a raised object that only clears the lid there", "[Print]")
+{
+    // A raised object (snap to the bed turned off) whose own height is below the lid but whose top is above
+    // it. Only the last object may reach above the lid, so it has to print last, although it comes first in
+    // the object list.
+    std::vector<TriangleMesh> meshes;
+    TriangleMesh raised = make_cube(10, 10, 10);
+    raised.translate(40.f, 40.f, 0.f);
+    meshes.push_back(std::move(raised));
+    TriangleMesh low = make_cube(10, 10, 5);
+    low.translate(140.f, 140.f, 0.f);
+    meshes.push_back(std::move(low));
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_height_to_lid", 30 },
+        { "extruder_clearance_height_to_rod", 25 },
+        { "skirt_loops",                      0 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    Print print;
+    Model model;
+    Test::init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false);
+    ModelInstance *instance = model.objects.front()->instances.front();
+    instance->set_offset(instance->get_offset() + Vec3d(0., 0., 25.));
+    print.apply(model, config);
+    REQUIRE(print.objects().front()->height() <= scale_(30.));
+    REQUIRE(print.objects().front()->max_z() > scale_(30.));
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    CHECK(error.empty());
+    // validate() records the print order on the print's own copy of the model.
+    const ModelObjectPtrs &objects = print.model().objects;
+    CHECK(objects[0]->instances.front()->arrange_order > objects[1]->instances.front()->arrange_order);
+}
+
+TEST_CASE("Sequential printing counts a raft toward the height checked against the rod", "[Print]")
+{
+    // Two 24.8 mm boxes that share a Y band, on a 3 layer raft. The boxes alone stay below the 25 mm rod,
+    // but the raft lifts their tops above it, so whichever prints first is in the rod's way while the other
+    // one prints.
+    std::vector<TriangleMesh> meshes;
+    for (float x : { 40.f, 150.f }) {
+        TriangleMesh box = make_cube(20, 20, 24.8);
+        box.translate(x, 80.f, 0.f);
+        meshes.push_back(std::move(box));
+    }
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_height_to_rod", 25 },
+        { "skirt_loops",                      0 },
+        { "raft_layers",                      3 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    Print print;
+    Model model;
+    Test::init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false);
+    REQUIRE(24.8 + print.objects().front()->slicing_parameters().object_print_z_min > 25.);
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    CHECK(error.find("too tall") != std::string::npos);
 }
 
 // A sequential (by-object) print must publish the print-level nozzle group result just
