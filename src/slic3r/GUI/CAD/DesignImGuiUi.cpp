@@ -582,7 +582,11 @@ void DesignTopBar::render(ImGuiWrapper& imgui, float scale, float inset_left)
         const Doc& d = docs[i];
         begin_item(btn_w, false);
         ImGui::PushID(int(i));
-        if (icon_button(svg_texture(std::string("icon:") + d.icon, { d.icon }), d.tip, true) && d.run) d.run();
+        const bool on = d.checked && d.checked();
+        if (on) ImGui::PushStyleColor(ImGuiCol_Button, style.Colors[ImGuiCol_ButtonActive]);   // a toggle that is on stays pressed
+        const bool hit = icon_button(svg_texture(std::string("icon:") + d.icon, { d.icon }), d.tip, !d.enabled || d.enabled());
+        if (on) ImGui::PopStyleColor();
+        if (hit && d.run) d.run();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", d.tip.c_str());
         ImGui::PopID();
     }

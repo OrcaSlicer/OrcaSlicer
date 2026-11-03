@@ -110,7 +110,8 @@ private:
 class DesignTopBar
 {
 public:
-    struct Doc    { std::string icon; std::string tip; std::function<void()> run; };
+    // enabled: greys the button when it returns false; checked: draws it pressed (a toggle). Both optional.
+    struct Doc    { std::string icon; std::string tip; std::function<void()> run; std::function<bool()> enabled = nullptr; std::function<bool()> checked = nullptr; };
     struct Commit { std::string label; std::string tip; };
     std::vector<Doc>    docs;                  // New, Import STEP, Import mesh, Export
     std::vector<Commit> commit_modes;          // one row per mode of the Commit split button

@@ -12798,6 +12798,18 @@ void DesignPanel::set_imgui_topbar(bool on)
     b.docs.push_back({"design_step",        _u8L("Import STEP (editable B-rep solid)"),                            later([this] { on_import_step(); })});
     b.docs.push_back({"design_import_mesh", _u8L("Import mesh (STL/OBJ) as an editable B-rep solid"),              later([this] { on_import_mesh(); })});
     b.docs.push_back({"design_export",      _u8L("Export STEP…"),                                                  later([this] { on_export_step(); })});
+    // Undo / Redo (the same route as Ctrl+Z) and the grid snap toggle: the wx row that held the checkbox is hidden while this bar is
+    // drawn, and the tab has no undo of its own.
+    b.docs.push_back({"design_undo", _u8L("Undo (Ctrl+Z)"), later([this] { do_undo_redo(false); }), [this] { return menu_can_undo_redo(false); }});
+    b.docs.push_back({"design_redo", _u8L("Redo (Ctrl+Y)"), later([this] { do_undo_redo(true); }),  [this] { return menu_can_undo_redo(true); }});
+    b.docs.push_back({"fc_sk_grid_magnet", _u8L("Snap to grid — points land on the grid (I; Shift bypasses it for one click)"),
+                      later([this] {
+                          m_grid_magnet = !m_grid_magnet;
+                          if (m_grid_magnet && m_grid_snap) m_grid_snap->SetValue(true);   // show the grid it snaps to
+                          push_grid_snap();
+                          set_status(StatusKind::Info, m_grid_magnet ? _L("Snap to grid: on (Shift bypasses it for one click)") : _L("Snap to grid: off"));
+                      }),
+                      nullptr, [this] { return m_grid_magnet; }});
     b.commit_modes = {
         {_u8L("Commit to Plate"),            _u8L("All bodies become one object with a part per body, keeping their relative positions")},
         {_u8L("Commit to Plate (as bodies)"), _u8L("Each body becomes its own object, placed on its own")},

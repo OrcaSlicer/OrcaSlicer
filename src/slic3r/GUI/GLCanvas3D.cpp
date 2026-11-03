@@ -2247,6 +2247,10 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
     camera.apply_projection(_max_bounding_box(true, true, true));
 
+    // ImGui is shared by every GL canvas and each canvas's _resize() sets its display size. A canvas that is hidden (or built ahead
+    // of use) resizes to a few pixels, and this canvas's own _resize() then returns early because ITS size did not change: the bars
+    // were laid out in a 20x1 area and the Design tab showed a bare canvas. Say what this canvas's size is, every frame, as the frame starts.
+    wxGetApp().imgui()->set_display_size(float(std::max(1, cnv_size.get_width())), float(std::max(1, cnv_size.get_height())));
     wxGetApp().imgui()->new_frame();
 
     if (m_picking_enabled && !m_benchmarking) {
