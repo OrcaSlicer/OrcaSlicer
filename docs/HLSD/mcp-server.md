@@ -444,6 +444,14 @@ process, so the journal leaves them out of those tools' calls (`without_expected
 `api_call` and inline `run_script` steps too, and a replay addresses by index; a `run_python` step's code
 and `args`, and a plugin operation's own arguments, are kept as written.
 
+Descriptions keep one order: what the tool does, the arguments that change it, `Reply:` with the
+fields it has, then edge cases; a long one puts each case on a line of its own (the scopes of
+`get_settings` and `set_settings`, `ui_click`'s web pages). What several tools share is written once,
+since every session loads the whole tool list: the locator grammar in `ui_snapshot`'s description,
+which hands out the refs, each `target` giving two examples and pointing there; the paging shape, and
+that a part is a `volume` in argument names, in the server instructions. A tool that takes one plate
+calls it `plate`, an index; one that also takes `"current"` or `"all"` calls it `plates`.
+
 Each tool family registers itself from its own `McpTools*.cpp` through `register_*_tools()`.
 List tools take `limit` and `offset` and reply `{items, offset, total}` (`page()`), with `next_offset` while
 more remain; `list_actions` names its items `actions`. The server instructions give that shape once, rather

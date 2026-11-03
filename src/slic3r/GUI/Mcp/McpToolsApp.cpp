@@ -240,10 +240,9 @@ void register_app_tools(McpService& service)
     ToolDef wait = inspect_tool(
         "wait", L("Wait for a condition"),
         "Block until a condition holds or timeout_s passes (max 50). for: \"ready\" (startup finished), \"idle\" (no dialog, "
-        "no running job (a run_python run counts only through the calls it makes), nothing slicing or arranging, no gizmo "
-        "working in the background), \"dialog\" / \"no_dialog\", or "
-        "\"job\" with a job id returned by "
-        "an earlier call - then the reply is that job's result. Returns {satisfied:false} on timeout; call it again.",
+        "no running job, nothing slicing or arranging, no gizmo working in the background; a run_python run counts only "
+        "through the calls it makes), \"dialog\" / \"no_dialog\", or \"job\" with a job id an earlier call returned, whose "
+        "result is then the reply. On timeout the reply is {satisfied: false}: call it again.",
         object_schema({{"for", enum_prop({"ready", "idle", "dialog", "no_dialog", "job"}, "What to wait for; default job when job "
                                                                                           "is given, else idle.")},
                        {"job", prop("string", "Job id, for \"job\".")},

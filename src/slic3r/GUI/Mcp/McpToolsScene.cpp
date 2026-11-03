@@ -1040,7 +1040,7 @@ void register_scene_tools(McpService& service)
         "\"absolute\" sets it. An instance is dropped back onto the bed unless drop_to_bed is false. A part moves as the "
         "Object manipulation panel moves it: translate and rotate along the bed's axes, measured on instance 0, scale and "
         "size along its own axes; every instance shows the change, and Auto Drop may lower the object afterwards. One "
-        "undo step. Replies with the instance's offset, scale and plate, or the part's size along its own axes and its "
+        "undo step. Reply: the instance's offset, scale and plate, or the part's size along its own axes and its "
         "list_objects entry (volume_info).",
         object_schema({{"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (list_objects)."}}},
                        {"instance", {{"type", "integer"}, {"minimum", 0}, {"description", "Default 0."}}},
@@ -1081,8 +1081,9 @@ void register_scene_tools(McpService& service)
         "menu puts it (a shape beside the object, a file at its coordinates relative to the object's first part) unless "
         "position is given. Like the menu, adding a shape folds the instance's rotation and scale into the object's parts "
         "(the instance's scale then reads 1). Refused for an object with several instances: add parts first. A STEP file "
-        "may ask for mesh options (blocked_by_dialog). The new part is selected; one undo step. Replies with its index, which is not always the last (parts are ordered by type), "
-        "the object's part count and the part's list_objects entry (volume_info).",
+        "may ask for mesh options (blocked_by_dialog). The new part is selected; one undo step. Reply: its index, which is "
+        "not always the last (parts are ordered by type), the object's part count and the part's list_objects entry "
+        "(volume_info).",
         object_schema({{"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (list_objects)."}}},
                        {"object_id", expected_id_prop("object")},
                        {"type", enum_prop({"part", "negative", "modifier", "support_blocker", "support_enforcer", "precise_seam"},
@@ -1103,12 +1104,13 @@ void register_scene_tools(McpService& service)
 
     reg.add(mutate_tool(
         "arrange", L("Arrange objects or fill the bed"),
-        "Arrange objects as the toolbar's Arrange does (every unlocked plate) or as one plate's Arrange icon does (plates: "
-        "an index or \"current\"), or fill object fill's plate with more of it, as Fill bed with instances or copies does. "
-        "spacing, rotate, align_y and multi_material are the Arrange options panel's settings: values given are kept as the "
-        "panel keeps them, so later arranges use them too. Waits for the arrangement (a longer one replies with a job); "
-        "the reply has the settings in force, instances left off every plate, plates the all-plates arrange skipped and "
-        "the job's notifications. An arrange may reorder objects, so list_objects again. One undo step.",
+        "Arrange the objects of every unlocked plate as the toolbar's Arrange does, or of one plate (plates: an index or "
+        "\"current\") as its Arrange icon does. With fill, fill that object's plate with more of it instead, as Fill bed "
+        "with instances (or copies, by fill_with) does. spacing, rotate, align_y and multi_material are the Arrange options "
+        "panel's settings: the values given stay in the panel, so later arranges use them too. Waits for the arrangement "
+        "(a longer one replies with a job). Reply: the settings in force, instances left off every plate, plates the "
+        "all-plates arrange skipped and the job's notifications. An arrange may reorder objects, so list_objects again. "
+        "One undo step.",
         object_schema({{"plates", {{"type", {"string", "integer"}}, {"description", "\"all\" (default), \"current\" or a plate index."}}},
                        {"spacing", {{"type", "number"}, {"minimum", 0}, {"description", "mm between objects; 0 means auto."}}},
                        {"rotate", prop("boolean", "Auto rotate for arrangement.")},
@@ -1286,10 +1288,10 @@ void register_scene_tools(McpService& service)
 
     ToolDef cancel = mutate_tool(
         "cancel", L("Cancel an operation"),
-        "Stop the running slice or G-code export, as the cancel button on the slicing progress does, or the background job "
-        "(an arrange, orient or fill bed) an MCP call started. That job then reports cancelled; a background job keeps "
-        "other changes out until it has really stopped. With job, only when that job is the running operation, or a "
-        "running encode_recording, which stops and reports cancelled. Allowed while an operation holds the project.",
+        "Stop the running operation: a slice or G-code export, as the slicing progress's cancel button does, or a "
+        "background job an MCP call started (an arrange, orient or fill bed). Its job then reports cancelled; a background "
+        "job keeps other changes out until it has really stopped. With job, only that job is stopped: the running "
+        "operation, a run_python run or an encode_recording. Allowed while an operation holds the project.",
         object_schema({{"job", prop("string", "The operation's job to cancel, e.g. \"j12\".")}}),
         [&service](const json& args, ToolContext& ctx) {
             const auto ops = service.jobs().running_operations();

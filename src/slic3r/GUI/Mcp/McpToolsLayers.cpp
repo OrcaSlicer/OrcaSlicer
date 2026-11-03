@@ -588,7 +588,7 @@ void register_layer_tools(McpService& service)
         "set_layer_ranges", L("Set height range modifiers"),
         "Replace an object's height range modifiers (Height Range Modifier in the object list): Z ranges in mm, each printed "
         "with its own layer_height, filament and process settings, starting from the object's layer height and filament. "
-        "Ranges may touch but not overlap; [] removes them all. One undo step; the object is selected. Replies with the "
+        "Ranges may touch but not overlap; [] removes them all. One undo step; the object is selected. Reply: the "
         "object's height and its ranges as list_objects shows them, and warnings, such as a variable layer height profile "
         "deciding the layer heights instead.",
         object_schema({{"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (list_objects)."}}},
@@ -606,7 +606,7 @@ void register_layer_tools(McpService& service)
         "Run the Variable layer height panel's Adaptive, Smooth or Reset on an object, without opening the panel: adaptive "
         "computes layer heights from the object's shape (inside a height range, the range's layer_height), smooth smooths "
         "its profile (or the one its height ranges give), reset goes back to its layer height and ranges. One undo step; "
-        "the object is selected. Replies with the object's height, its layer_height_profile {points, min_height, "
+        "the object is selected. Reply: the object's height, its layer_height_profile {points, min_height, "
         "max_height} as list_objects shows it (absent after reset), and warnings.",
         object_schema({{"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (list_objects)."}}},
                        {"object_id", expected_id_prop("object")},
@@ -646,8 +646,8 @@ void register_layer_tools(McpService& service)
         "plate needs an up-to-date slice, or must be the one the Preview still shows after an earlier edit; the call selects "
         "it and shows the Preview. Applies clear, then remove, then add, all checked first. One code per layer: a custom "
         "code or filament change where there is one replaces it. Not undoable, as in the slider. A change invalidates the "
-        "plate's slice: slice again before exporting. Replies with the plate's codes as list_plates' layer_gcode lists "
-        "them, each with z and layer.",
+        "plate's slice: slice again before exporting. Reply: the plate's codes as list_plates' layer_gcode lists them, "
+        "each with z and layer.",
         object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Default: the current plate."}}},
                        {"add", array_prop(object_schema({{"layer", layer},
                                                          {"z", z},

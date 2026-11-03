@@ -2007,11 +2007,12 @@ void register_config_tools(McpService& service)
 
     ToolDef save = mutate_tool(
         "save_preset", L("Save a preset"),
-        "Save the printer, process or filament preset being edited, unsaved changes included, under name, as the tab's Save "
-        "and the Save preset dialog's OK do; it is then selected. A filament is filament_slot's (default 1), and every slot "
-        "using the old preset takes the new one. Replacing another existing preset needs overwrite (pass it in scripts meant "
-        "to be rerun). Reply: saved, user, project, inherits, filament_slots. A temperature warning or an unsaved-changes "
-        "prompt makes it blocked_by_dialog. To keep only some edits, set_settings {reset_all: true, values} first.",
+        "Save the printer, process or filament preset being edited, with its unsaved changes, as a preset called name, "
+        "which is then selected: what the tab's Save button does through its dialog. A filament is filament_slot's "
+        "(default 1), and every slot using the old preset takes the new one. Replacing another existing preset needs "
+        "overwrite (pass it in scripts meant to be rerun). Reply: saved, user, project, inherits, filament_slots. A "
+        "temperature warning or an unsaved-changes prompt makes it blocked_by_dialog. To keep only some edits, set_settings "
+        "{reset_all: true, values} first.",
         object_schema({{"type", enum_prop({"printer", "process", "filament"}, "Preset category.")},
                        {"name", prop("string", "Name to save under.")},
                        {"filament_slot", {{"type", "integer"}, {"minimum", 1}, {"description", "Filament slot, 1-based."}}},
@@ -2141,25 +2142,27 @@ void register_config_tools(McpService& service)
 
     reg.add(inspect_tool(
         "get_settings", L("Read settings"),
-        "Read setting values (as OrcaSlicer serializes them) with meta: label, description (what the setting does, when to "
-        "change it, what it affects), where (its settings page and group), type, unit, range, allowed values and their "
-        "labels, and mode. Name keys; find the settings for an effect with query, a few words matched in keys, labels and "
-        "descriptions, best matches first; or list one page or group with where (an unknown one lists them all). Without "
-        "these, every option of the scope is listed, paged, without meta in a preset scope. Without a scope, keys and query "
-        "look through the process, filament and printer settings and each item names its scope, which set_settings takes; "
-        "anything else reads the process. Keys the scope lacks are listed in unknown_keys, and scope_of names the scope "
-        "that has each one another scope has. A per-variant value lists in "
-        "meta its variants (what each entry is for) and active (the entry each "
-        "extruder prints with). preset reads a saved preset without selecting it; compare lists only the keys that differ "
-        "from another preset, each with value and other. For object/volume scopes only the overrides that object or part "
-        "carries are listed, each with effective (the value it prints with) and source (part, object, process or default); "
-        "an object's item lists in parts the parts and modifiers that override the key inside their own volume. The project "
-        "scope has the plate type, slot colours, flushing volumes, purge mode, prime tower position per plate, which slots are "
-        "mixed and, with several extruders, the filament grouping; meta.offered lists the choices this printer has. The plate "
-        "scope lists a plate's curr_bed_type, print_sequence, spiral_mode, first_layer_print_sequence, "
+        "Read settings: each item has its value, as OrcaSlicer writes it, and meta: label, description (what the setting "
+        "does, when to change it), where (its settings page and group), type, unit, range, allowed values and mode. Choose "
+        "them by keys; by query, a few words matched in keys, labels and descriptions, best matches first; by where, a page "
+        "or group (an unknown one lists them all); or by none of these, for the whole scope, paged and, in a preset scope, "
+        "without meta. Keys the scope lacks are listed in unknown_keys, and scope_of gives the scope of those another "
+        "scope has.\n"
+        "- No scope: keys and query look through the process, filament and printer settings, and each item names its "
+        "scope, the one set_settings takes; anything else reads the process.\n"
+        "- print (process), filament, printer: the preset being edited, or with preset a saved one; compare lists only "
+        "the keys that differ from another preset (value and other). A per-variant value lists in meta its variants (what "
+        "each entry is for) and active (the entry each extruder prints with).\n"
+        "- object, volume: the overrides that object or part carries, each with effective (the value it prints with) and "
+        "source (part, object, process or default); an object's item lists in parts the parts and modifiers that override "
+        "the key inside their own volume.\n"
+        "- project: the plate type, slot colours, flushing volumes, purge mode, prime tower position per plate, mixed slots "
+        "and, with several extruders, the filament grouping; meta.offered lists the choices this printer has.\n"
+        "- plate: a plate's curr_bed_type, print_sequence, spiral_mode, first_layer_print_sequence, "
         "other_layers_print_sequence, name and locked, each with value (the plate's own, null where it follows the global "
-        "setting or Auto) and effective. The preferences scope reads the named keys of the app configuration (the Preferences "
-        "dialog's settings, keys as its controls are named), values as stored, and lists no keys unasked.",
+        "setting or Auto) and effective.\n"
+        "- preferences: the named keys of the app configuration (the Preferences dialog's settings, keys as its controls "
+        "are named), as stored; it lists none unasked.",
         object_schema({{"scope", read_scope_prop},
                        {"keys", array_prop({{"type", "string"}}, "Option keys, e.g. [\"layer_height\", \"wall_loops\"].")},
                        {"query", prop("string", "A few distinctive words, e.g. \"stringing\" or \"ooze travel\"; the best 20 "
@@ -2187,26 +2190,27 @@ void register_config_tools(McpService& service)
 
     reg.add(mutate_tool(
         "set_settings", L("Change settings"),
-        "Change settings of one scope (default the process) as if typed into the settings tab: all values are parsed "
-        "strictly first and applied together, and nothing changes if any is invalid; a key of another scope is refused "
-        "with that scope named, as get_settings without a scope reports it. Values may be strings in OrcaSlicer's format "
-        "(\"15%\", \"0.2\", \"1,2\") or JSON numbers, booleans and arrays (a point as [x, y]). object/volume scopes set per-object or per-part overrides, of the "
-        "keys the object list offers there; a null value removes an override. extruder is the object's or part's filament "
-        "(1-based; 0 or null is Default), set as the Change Filament menu does. A preset's per-variant value (get_settings "
-        "meta.variants) takes a single value for the entries in use (meta.active, as the tab writes the variant it shows), "
-        "{\"index\": i, \"value\": v} for one entry, or an array of all. "
-        "In a preset scope, null takes a key back to its saved value (reset_to parent: the parent's), and reset_all first "
-        "discards every unsaved change, as the tab's undo button does (reply: reverted), then applies values. Reply: applied, "
-        "and changed, every setting the call changed, including those the app adjusted in turn. Spiral vase and some others "
-        "confirm their adjustments in a dialog (blocked_by_dialog). The project scope writes as the sidebar's controls do: "
-        "curr_bed_type, filament_colour (#RRGGBB per slot), flush_multiplier, flush_volumes_matrix (per nozzle, slots x slots "
-        "from row to column, in config order over every slot, mixed ones left as they are; before the multiplier, which the "
-        "G-code header applies; a colour change can recalculate it, so set it last), prime_volume_mode, and wipe_tower_x/y "
-        "(mm from the plate's origin, one per plate; undoable). The plate scope writes as the Plate Settings dialog's OK does, "
-        "after selecting the plate as its icon does: curr_bed_type, print_sequence (\"by layer\", \"by object\"), "
-        "spiral_mode (true asks for confirmation: blocked_by_dialog), first_layer_print_sequence (every slot once, e.g. [2, "
-        "1]) and other_layers_print_sequence ([{from: layer >= 2, to, order}], to omitted for the last layer), null for the "
-        "global setting or Auto; name, and locked (true or false). One undo step.",
+        "Change settings of one scope (default the process) as typing them into its settings tab would. Values are strings "
+        "in OrcaSlicer's format (\"15%\", \"0.2\", \"1,2\") or JSON numbers, booleans and arrays (a point as [x, y]). All are "
+        "parsed strictly first and applied together, so nothing changes if one is invalid, and a key of another scope is "
+        "refused with that scope named. Reply: applied, and changed, every setting the call changed, including those the "
+        "app adjusted in turn. One undo step. Spiral vase and a few others confirm their adjustments in a dialog "
+        "(blocked_by_dialog).\n"
+        "- print (process), filament, printer: null takes a key back to its saved value, or with reset_to parent to the "
+        "parent's; reset_all first discards every unsaved change, as the tab's undo button does (reply: reverted). A "
+        "per-variant value (get_settings meta.variants) takes one value for the entries in use (meta.active), {index, "
+        "value} for one entry, or an array of all.\n"
+        "- object, volume: overrides of the keys the object list offers there; null removes one. extruder is the object's "
+        "or part's filament (1-based; 0 or null for Default), set as the Change Filament menu does.\n"
+        "- project, as the sidebar's controls write them: curr_bed_type, filament_colour (#RRGGBB per slot), "
+        "flush_multiplier, flush_volumes_matrix, prime_volume_mode, and wipe_tower_x/y (mm from the plate's origin, one per "
+        "plate). flush_volumes_matrix is per nozzle, slots x slots from row to column, in config order over every slot, "
+        "before the multiplier; mixed slots' entries are left as they are, and a colour change can recalculate it, so set "
+        "it last.\n"
+        "- plate, which it selects and writes as the Plate Settings dialog's OK does: curr_bed_type, print_sequence (\"by "
+        "layer\", \"by object\"), spiral_mode (true asks for confirmation), first_layer_print_sequence (every slot once, "
+        "e.g. [2, 1]), other_layers_print_sequence ([{from: layer >= 2, to, order}], to omitted for the last layer), name "
+        "and locked; null returns a value to the global setting or Auto.",
         object_schema({{"scope", write_scope_prop},
                        {"values", {{"type", "object"}, {"description", "{key: value}, or {key: {index, value}} for one entry"}}},
                        {"reset_all", prop("boolean", "Preset scopes: discard the unsaved changes before applying values.")},

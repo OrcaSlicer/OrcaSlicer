@@ -387,12 +387,14 @@ void register_project_tools(McpService& service)
     reg.add(mutate_tool(
         "open_files", L("Open files"),
         "Open model files (STL, 3MF, STEP, OBJ, AMF, SVG...), a project (.3mf) or G-code by absolute path, without a file "
-        "dialog. Models are added to the current project. A .3mf opens as a project (replacing the current one: pass "
-        "discard_changes when it has unsaved changes) unless as is \"geometry\". Importing can open a dialog (STEP mesh "
-        "options, for instance); the reply is then blocked_by_dialog.",
+        "dialog. Models are added to the current project. A .3mf opens as a project, replacing the current one, unless as "
+        "is \"geometry\"; when the current project has unsaved changes that fails, changing nothing, unless "
+        "discard_changes. Importing can open a dialog (STEP mesh options, for instance); the reply is then "
+        "blocked_by_dialog.",
         object_schema({{"paths", array_prop({{"type", "string"}}, "Absolute paths.")},
                        {"as", enum_prop({"auto", "geometry", "project"}, "How to open .3mf files. Default auto (= project).")},
-                       {"discard_changes", prop("boolean", "Replace a project with unsaved changes without asking.")}},
+                       {"discard_changes", prop("boolean", "Drop the project's unsaved changes rather than fail when a .3mf "
+                                                           "replaces it.")}},
                       {"paths"}),
         [&service](const json& args, ToolContext& ctx) {
             std::vector<fs::path> paths;
@@ -436,12 +438,14 @@ void register_project_tools(McpService& service)
 
     reg.add(mutate_tool(
         "new_project", L("New project"),
-        "Start a new, empty project. Fails when the current project has unsaved changes unless discard_changes is true. "
-        "Modified printer, process and filament presets are kept for the new project, unless changes is \"discard\", the "
-        "two answers of New Project's prompt. Reply: objects, names, plates; when presets had or have unsaved changes, "
-        "discarded and modified list per preset the keys dropped and the keys still unsaved.",
-        object_schema({{"discard_changes", prop("boolean", "Drop unsaved changes without asking.")},
-                       {"changes", enum_prop({"keep", "discard"}, "Unsaved changes of the presets: keep them (default) or drop them.")}}),
+        "Start a new, empty project. Fails, changing nothing, when the current project has unsaved changes, unless "
+        "discard_changes. The presets' unsaved changes carry over to the new project unless changes is \"discard\", as "
+        "New Project's prompt offers. Reply: objects, names, plates; when presets had or have unsaved changes, discarded "
+        "and modified list per preset the keys dropped and the keys still unsaved.",
+        object_schema({{"discard_changes", prop("boolean", "Drop the project's unsaved changes rather than fail; for the "
+                                                           "presets', see changes.")},
+                       {"changes", enum_prop({"keep", "discard"}, "The presets' unsaved changes, not the project's: keep "
+                                                                  "them for the new project (default) or drop them.")}}),
         [&service](const json& args, ToolContext& ctx) {
             const bool discard         = arg_bool(args, "discard_changes", false) || service.discard_authorized(ctx.lineage());
             const bool discard_presets = arg_string(args, "changes", "keep") == "discard";
@@ -501,9 +505,10 @@ void register_project_tools(McpService& service)
              {"auto_scale", prop("boolean", "temperature, vfa: scale the model to the nozzle (default true).")},
              {"auto_adjust", prop("boolean", "vfa: lower the layer height, else the end speed, to stay within the filament's "
                                              "maximum volumetric speed (default true).")},
-             {"discard_changes", prop("boolean", "Replace a project with unsaved changes.")},
-             {"changes", enum_prop({"keep", "discard"}, "Unsaved preset changes: keep them for the test, or drop them first. "
-                                                        "Required when presets are modified.")}},
+             {"discard_changes", prop("boolean", "Drop the project's unsaved changes rather than fail; for the presets', "
+                                                 "see changes.")},
+             {"changes", enum_prop({"keep", "discard"}, "The presets' unsaved changes, not the project's: keep them for the "
+                                                        "test or drop them first. Required when presets are modified.")}},
             {"test"}),
         [&service](const json& args, ToolContext& ctx) {
             json       recorded = args;
@@ -618,7 +623,7 @@ void register_project_tools(McpService& service)
             // A project file holds no G-code, so a .gcode.3mf saved here would lack what its name promises.
             if (boost::algorithm::iends_with(arg_string(args, "path"), ".gcode.3mf"))
                 throw ToolFailure("save_project writes the project without G-code; a .gcode.3mf with the sliced plates is "
-                                  "export {format: \"sliced_3mf\"} (plate \"all\" for every plate)");
+                                  "export {format: \"sliced_3mf\"} (plates \"all\" for every plate)");
             std::string err;
             auto        path = resolve_output_path(arg_string(args, "path"), arg_bool(args, "overwrite", false), err);
             if (!path)
@@ -635,13 +640,15 @@ void register_project_tools(McpService& service)
 
     reg.add(mutate_tool(
         "export", L("Export"),
-        "Write the project to a file without a dialog. gcode: the current plate's G-code (slice first; runs in the "
-        "background and the call completes when the file is written). sliced_3mf: the sliced plate (or all plates) as "
-        ".gcode.3mf. 3mf: the model without slicing data. stl: all objects as one STL. Without format, the path's "
-        "extension (.gcode, .gcode.3mf, .3mf, .stl) says which. plate selects the plate first.",
+        "Write the project to a file without a dialog. gcode: the plate's G-code (slice first; it is written in the "
+        "background, and the call returns once it is). sliced_3mf: the sliced plate, or all plates, as .gcode.3mf. 3mf: "
+        "the model without slicing data. stl: all objects as one STL. Without format, the path's extension (.gcode, "
+        ".gcode.3mf, .3mf, .stl) says which.",
         object_schema({{"format", enum_prop({"gcode", "sliced_3mf", "3mf", "stl"}, "What to write; default from the path's extension.")},
                        {"path", prop("string", "Absolute output path.")},
-                       {"plate", {{"type", {"string", "integer"}}, {"description", "\"current\" (default), a plate index, or \"all\" (sliced_3mf only)."}}},
+                       {"plates", {{"type", {"string", "integer"}},
+                                   {"description", "\"current\" (default), a plate index, which is selected first, or \"all\" "
+                                                   "(sliced_3mf only)."}}},
                        {"overwrite", prop("boolean", "Replace an existing file.")}},
                       {"path"}),
         [](const json& args, ToolContext& ctx) {
@@ -650,10 +657,10 @@ void register_project_tools(McpService& service)
             auto              path = resolve_output_path(arg_string(args, "path"), arg_bool(args, "overwrite", false), err);
             if (!path)
                 throw ToolFailure(err);
-            const json plate = args.value("plate", json("current"));
+            const json plate = args.value("plates", json("current"));
             const bool all   = plate.is_string() && plate.get<std::string>() == "all";
             if (all && format != "sliced_3mf")
-                throw ToolFailure("plate \"all\" applies to sliced_3mf only");
+                throw ToolFailure("plates \"all\" applies to sliced_3mf only");
             json started = ctx.run_ui([&]() -> json {
                 // A G-code export finishes in the background: held from before it starts.
                 if (format == "gcode")

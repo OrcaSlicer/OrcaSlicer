@@ -209,7 +209,7 @@ void register_python_tools(McpService& service)
         "python_api says is installed or not; a file run's PEP 723 block can install it. The code runs on a worker "
         "thread, where calls documented as UI thread only raise RuntimeError. The run ends once its code and the non-daemon "
         "threads and pool tasks it started are done; its windows close with it. `args` holds the args you pass; set `result` "
-        "to a JSON value to return it; print() output comes back as output. Returns {status: finished | raised | cancelled | "
+        "to a JSON value to return it; print() output comes back as output. Reply: {status: finished | raised | cancelled | "
         "timed_out, result, output, traceback?, message?}; a script that raised changed what it changed before. Python runs "
         "with OrcaSlicer's full access to the computer, so a person must allow Python scripts in Preferences first. Recorded "
         "by export_script as one step with its code, which a replay runs again against the project as it is then.",

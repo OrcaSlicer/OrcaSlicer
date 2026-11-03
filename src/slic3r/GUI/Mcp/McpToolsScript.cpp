@@ -179,7 +179,7 @@ void register_script_tools(McpService& service)
         "with refs replaced by locators, job replies replayed with await:false, and screenshot paths moved under ${out_dir}. "
         "Calls that failed, at once or as a job later, are left out; so is a call whose job is still running (unless it "
         "waits on a dialog), which left_out_running lists as {tool, job}. "
-        "Returns the script; with path, also writes it. clear:true starts a new recording afterwards.",
+        "Reply: the script, which with path is also written there. clear:true starts a new recording afterwards.",
         object_schema({{"name", prop("string", "Script name.")},
                        {"path", prop("string", "Absolute .json path to write.")},
                        {"overwrite", prop("boolean", "Replace an existing file.")},
