@@ -6689,8 +6689,8 @@ void PrintConfigDef::init_fff_params()
                      "by both the actual outer-wall width and the available spacing to the adjacent wall, so values "
                      "above 100% or an equivalent absolute distance have no additional effect. "
                      "Set to 0 to disable the offset.\n\n"
-                     "With Inner/Outer/Inner wall order, the offset is limited to 50% of the actual outer-wall width "
-                     "because the adjacent inner wall is printed last. "
+                     "With Outer/Inner or Inner/Outer/Inner wall order, the offset is limited to 50% of the actual "
+                     "outer-wall width because the adjacent inner wall is printed after the outer wall. "
                      "This also applies to equivalent distances specified in millimeters.");
     def->sidetext = L("mm or %");
     def->ratio_over = "outer_wall_line_width";

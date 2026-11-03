@@ -8804,10 +8804,10 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
             // a different width than the config default.
             const double outer_wall_line_width = paths.front().width;
             const double requested_offset = m_config.wipe_inward_distance.get_abs_value(outer_wall_line_width);
-            // Sandwich order leaves the adjacent inner wall until last. Only
-            // the outer bead's own inner half is available for wiping now.
+            // Outer/Inner and sandwich order print the adjacent inner wall after
+            // this one. Only the outer bead's own inner half is available for wiping now.
             const double max_offset = outer_wall_line_width *
-                (m_config.wall_sequence == WallSequence::InnerOuterInner ? 0.5 : 1.);
+                (m_config.wall_sequence == WallSequence::InnerOuter ? 1. : 0.5);
             const double offset_dist = scale_(std::min(requested_offset, max_offset));
             if (offset_dist > SCALED_EPSILON) {
                 const Point seam_start = paths.front().first_point();

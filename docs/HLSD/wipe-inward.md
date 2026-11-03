@@ -30,12 +30,15 @@ the local geometry may contain fewer walls, and walls scheduled later do not
 provide support. Outer/Inner wall order therefore normally retains the regular
 wipe path.
 
-With Inner/Outer/Inner wall order the adjacent inner wall is printed last. An
-inward wipe can use the external bead's own material only up to half its actual
-width. Larger requested offsets are limited to this half-width, even if a more
-distant inner perimeter was printed earlier. This limit applies to percentages
-and equivalent absolute distances, using the actual extrusion width rather than
-the configured Auto width.
+Outer/Inner and Inner/Outer/Inner wall orders print the adjacent inner wall
+after the external wall. An inward wipe can then use the external bead's own
+material only up to half its actual width. Larger requested offsets are limited
+to this half-width, even if a more distant inner perimeter was printed earlier:
+the third wall in Inner/Outer/Inner order, or the inner wall of another loop
+across a thin section in Outer/Inner order. The limit follows the configured
+order, so it also applies on the first layer, where sandwich order is not used.
+It applies to percentages and equivalent absolute distances, using the actual
+extrusion width rather than the configured Auto width.
 
 Retraction and pressure advance calibrations disable inward wiping so it cannot
 mask the behavior being measured. The calibration settings turn it off, and
