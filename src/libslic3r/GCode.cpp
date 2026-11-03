@@ -1167,7 +1167,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         // over the tower - which is what the is_finish_first travel above does. Otherwise the nozzle
         // is still over the model and this descent would drive it into the print, so defer it to the
         // re-descents below, which run after the travel to the tower.
-        const bool defer_compacted_descend = m_sparse_layers_skipped
+        // A layer joined to the tower layer below descends to it the same way, by less than a layer.
+        const bool joined_below_layer      = m_layer_joined && !tcr.priming && (current_z - z) > EPSILON;
+        const bool defer_compacted_descend = (m_sparse_layers_skipped || joined_below_layer)
             && !tcr.priming && !tcr.is_finish_first && (current_z - z) > EPSILON;
         if (!is_approx(z, current_z) && !defer_compacted_descend) {
             gcode += gcodegen.writer().retract();
@@ -1176,7 +1178,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         }
         // Tower compacted below the object, so any extrusion emitted without an explicit z has to be
         // pulled back down to it first.
-        const bool compacted_below_object = m_sparse_layers_skipped && z >= 0. && (tcr.print_z - z) > EPSILON;
+        const bool compacted_below_object = (m_sparse_layers_skipped && z >= 0. && (tcr.print_z - z) > EPSILON) || joined_below_layer;
 
         // Process the end filament gcode.
         bool        add_change_filament_624 = false;
@@ -2098,7 +2100,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                         ignore_sparse = wipe_tower_layer_is_sparse(m_tool_changes[m_layer_idx]) && m_layer_idx != 0;
                         if (m_tool_change_idx == 0 && !ignore_sparse)
                         wipe_tower_z = m_last_wipe_tower_print_z + m_tool_changes[m_layer_idx].front().layer_height;
-                    }
+                    } else if (m_layer_joined)
+                        wipe_tower_z = joined_tower_z();
 
                     if (!ignore_sparse) {
                         gcode += append_tcr2(gcodegen, m_tool_changes[m_layer_idx][m_tool_change_idx++], extruder_id, wipe_tower_z);
@@ -2115,7 +2118,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             if (m_sparse_layers_skipped) {
                 ignore_sparse = wipe_tower_layer_is_sparse(m_tool_changes[m_layer_idx]);
                 wipe_tower_z  = m_compacted_tower_z[m_layer_idx];
-            }
+            } else if (m_layer_joined)
+                wipe_tower_z = joined_tower_z();
 
             if ((m_enable_timelapse_print || m_enable_wrapping_detection) && m_is_first_print) {
                 gcode += append_tcr(gcodegen, m_tool_changes[m_layer_idx][0], m_tool_changes[m_layer_idx][0].new_tool, wipe_tower_z);
@@ -5195,8 +5199,12 @@ void GCode::process_layers(
             const LayerTools& layer_tools = tool_ordering.tools_for_layer(layer.first);
             print.set_status(80, Slic3r::format(_(L("Generating G-code: layer %1%")), std::to_string(precomputed.index + 1)));
             // A layer that joined the tower layer below continues it.
-            if (m_wipe_tower && layer_tools.has_wipe_tower && ! layer_tools.joins_wipe_tower_layer_below())
-                m_wipe_tower->next_layer();
+            if (m_wipe_tower && layer_tools.has_wipe_tower) {
+                if (layer_tools.joins_wipe_tower_layer_below())
+                    m_wipe_tower->join_layer();
+                else
+                    m_wipe_tower->next_layer();
+            }
             //BBS
             check_placeholder_parser_failed();
             print.throw_if_canceled();

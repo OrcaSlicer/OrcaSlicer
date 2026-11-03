@@ -1245,7 +1245,8 @@ void ToolOrdering::fill_wipe_tower_partitions(const PrintConfig &config, coordf_
     // top, so another object's layers can sit above these by less than the printer's minimum layer
     // height. A tower layer that thin cannot be printed, and a purge sized for it runs up to hundreds
     // of mm long, so it joins the tower layer below. The floor matches the towers' own WT_EPSILON
-    // merge, which would otherwise size the joined tool changes with the sliver's height.
+    // merge, which would otherwise size the joined tool changes with the sliver's height. The EPSILON
+    // margin keeps layers sliced at exactly the minimum height, whose sums round below it, apart.
     const double min_tower_layer_height = std::max(calc_min_layer_height(config), 1e-3);
     coordf_t     wipe_tower_print_z_last = 0.;
     // The layer that finishes the current tower layer, and whether any layer of it changes tools.
@@ -1263,7 +1264,7 @@ void ToolOrdering::fill_wipe_tower_partitions(const PrintConfig &config, coordf_
         if (! lt.has_wipe_tower)
             continue;
         // Only a layer that prints joins, so the tower layer is always finished by a printing layer.
-        if (tower_layer_end != nullptr && ! lt.extruders.empty() && lt.print_z - wipe_tower_print_z_last < min_tower_layer_height) {
+        if (tower_layer_end != nullptr && ! lt.extruders.empty() && lt.print_z - wipe_tower_print_z_last + EPSILON < min_tower_layer_height) {
             lt.wipe_tower_print_z      = tower_layer_end->wipe_tower_print_z;
             lt.wipe_tower_layer_height = tower_layer_end->wipe_tower_layer_height;
             // The finish rides on the last tool change of the joined layers, as it does on its own
