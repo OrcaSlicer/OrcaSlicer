@@ -434,7 +434,7 @@ void PlateArrangementDialog::render_bottom_bar()
     if (m_name_editing && single != m_name_plate) // the field moves to another plate, or goes away, mid-edit
         apply_plate_name();
     if (single != nullptr) {
-        if (single != m_name_plate) {
+        if (single != m_name_plate || (!m_name_editing && single->get_plate_name() != m_name_buf.data())) {
             m_name_buf.fill('\0');
             std::strncpy(m_name_buf.data(), single->get_plate_name().c_str(), m_name_buf.size() - 1);
             m_name_plate = single;
@@ -790,12 +790,9 @@ void PlateArrangementDialog::apply_plate_name()
     m_name_editing = false;
     if (index_of(m_name_plate) < 0) // gone since the frame began
         return;
-    const std::string name(m_name_buf.data());
-    if (name == m_name_plate->get_plate_name())
-        return;
-    wxGetApp().plater()->CallAfter([this, target = m_name_plate, name]() {
-        if (index_of(target) >= 0) { // the plate may be gone by now
-            target->set_plate_name(name);
+    wxGetApp().plater()->CallAfter([this, target = m_name_plate, name = std::string(m_name_buf.data())]() {
+        if (const int i = index_of(target); i >= 0) { // the plate may be gone by now
+            wxGetApp().plater()->rename_plate(i, name);
             wxGetApp().plater()->get_view3D_canvas3D()->set_as_dirty(); // redraw the name on the bed
         }
     });
