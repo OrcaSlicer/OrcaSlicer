@@ -52,8 +52,8 @@ modules:
       - -Dtests=disabled
     sources:
       - type: archive
-        url: https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.22.11.tar.xz
-        sha256: 6ddd032381827d31820540735f0004b429436b0bdac19aaeab44fa22faad52e2
+        url: https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.26.11.tar.xz
+        sha256: 001deb0876d5d743cd3448abf74a27adec3fd850012fcb1b00994861bd6c1145
 
   - name: kde-extra-cmake-modules
     buildsystem: cmake-ninja
