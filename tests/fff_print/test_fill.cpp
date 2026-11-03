@@ -13,6 +13,7 @@
 #include <iterator>
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/Line.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -2504,4 +2505,54 @@ TEST_CASE("Monotonic line top surfaces print their gap fill next to their lines 
     }
     REQUIRE(gap_fills > 0);
     CHECK(gap_fills_before_a_line > 0);
+}
+
+// Orca: counts the gap fills of the fills that keep their order, and those printed before an extrusion of the fill they touch.
+static std::pair<size_t, size_t> gap_fills_and_those_before_an_extrusion_they_touch(const Print &print)
+{
+    size_t gap_fills = 0, before = 0;
+    for (const Layer *layer : print.objects().front()->layers())
+        for (const LayerRegion *region : layer->regions())
+            for (const ExtrusionEntity *entity : region->fills.entities) {
+                auto *fill = dynamic_cast<const ExtrusionEntityCollection *>(entity);
+                if (fill == nullptr || ! fill->no_sort)
+                    continue;
+                for (size_t i = 0; i < fill->entities.size(); ++ i) {
+                    if (fill->entities[i]->role() != erGapFill)
+                        continue;
+                    ++ gap_fills;
+                    const Polygons gap = fill->entities[i]->polygons_covered_by_width(float(scale_(0.05)));
+                    before += std::any_of(fill->entities.begin() + i + 1, fill->entities.end(), [&gap](const ExtrusionEntity *ee) {
+                        return ee->role() != erGapFill && ! intersection(gap, ee->polygons_covered_by_width()).empty();
+                    });
+                }
+            }
+    return { gap_fills, before };
+}
+
+TEST_CASE("Gap fill of a fill that keeps its order prints after the extrusions it touches", "[Fill]")
+{
+    using Slic3r::Test::TestMesh;
+    const auto [pattern_key, pattern, target] = GENERATE(table<const char *, const char *, const char *>({
+        { "internal_solid_infill_pattern", "spiralinset", "everywhere" },
+        { "top_surface_pattern", "concentric", "topbottom" },
+        { "top_surface_pattern", "monotonic", "topbottom" },
+        { "top_surface_pattern", "monotonicline", "topbottom" },
+    }));
+    // The slanted legs of the V and the hole of the cube leave gap fill next to the lines of each pattern.
+    const TestMesh mesh = GENERATE(TestMesh::V, TestMesh::cube_with_hole);
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{pattern_key, pattern},
+                                   {"gap_fill_target", target},
+                                   {"filter_out_gap_fill", 0},
+                                   {"layer_height", 0.2},
+                                   {"initial_layer_print_height", 0.2}});
+    Print print;
+    Model model;
+    Slic3r::Test::init_print({mesh}, print, model, config);
+    print.process();
+    const auto [gap_fills, before] = gap_fills_and_those_before_an_extrusion_they_touch(print);
+    INFO(pattern << " on " << Slic3r::Test::mesh_names.at(mesh));
+    REQUIRE(gap_fills > 0);
+    CHECK(before == 0);
 }
