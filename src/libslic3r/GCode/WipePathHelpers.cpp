@@ -513,7 +513,11 @@ static std::optional<Vec2d> support_offset_at_start(
         const Vec2d support_edge = (nearest_line.b - nearest_line.a).cast<double>();
         if (support_edge.norm() > SCALED_EPSILON) {
             const Vec2d support_tangent = support_edge.normalized();
-            sampled_offset -= support_tangent * sampled_offset.dot(support_tangent);
+            const Vec2d normal_offset = sampled_offset - support_tangent * sampled_offset.dot(support_tangent);
+            // At a shared endpoint the selected edge may erase the entire
+            // direction to the inner wall. Keep the endpoint vector in that case.
+            if (normal_offset.norm() > SCALED_EPSILON)
+                sampled_offset = normal_offset;
         }
     }
     if (sampled_offset.norm() <= SCALED_EPSILON)
@@ -526,10 +530,20 @@ static std::optional<Vec2d> support_offset_at_start(
     // sampled point itself would add the distance already travelled along the
     // perimeter and turn a normal transition into a long diagonal move.
     const Vec2d sampled_direction = sampled_offset.normalized();
-    Vec2d local_offset = sampled_offset;
+    // Use the same corner reach as support validation. A displacement measured
+    // at the sample is not an available offset at the actual wall endpoint.
+    const double max_local_distance = miter_limit * max_support_distance + 4. * SCALED_EPSILON;
+    Point local_support;
+    nearest_line.distance_to_squared(local_origin, &local_support);
+    const Vec2d branch_offset = (local_support - local_origin).cast<double>();
+    const double branch_distance = branch_offset.norm();
+    std::optional<Vec2d> local_offset;
+    // The sampled branch may end before the seam. Its local endpoint remains
+    // usable even when the direction there differs from the sampled normal.
+    if (branch_distance > SCALED_EPSILON && branch_distance <= max_local_distance)
+        local_offset = branch_offset;
     double best_local_score = std::numeric_limits<double>::infinity();
-    for (size_t line_index : support_distancer.all_lines_in_radius(
-             local_origin, 2. * max_support_distance + 4. * SCALED_EPSILON)) {
+    for (size_t line_index : support_distancer.all_lines_in_radius(local_origin, max_local_distance)) {
         Point local_support;
         const Line &line = support_distancer.get_line(line_index);
         const double distance_squared = line.distance_to_squared(local_origin, &local_support);
@@ -733,10 +747,9 @@ bool offset_wipe_path_toward_support(Polyline &polyline, Point seam_start, Point
         double path_length;
     };
 
-    // Direction and wall contact have different origins after a loop pre-move.
-    // Keep the construction's wall endpoint for intersection checks even when
-    // the candidate's direction must be checked from the current nozzle position.
-    const auto validate_candidate = [&](Polyline path, Point path_start, Point direction_start,
+    // Check direction from the actual nozzle position, while retaining the
+    // construction's wall endpoint for connector intersection checks.
+    const auto validate_candidate = [&](Polyline path, Point path_start,
                                         double path_contact_tolerance,
                                         const Vec2d &candidate_support_direction,
                                         double candidate_offset,
@@ -749,7 +762,7 @@ bool offset_wipe_path_toward_support(Polyline &polyline, Point seam_start, Point
         // than the requested offset. Preserve the zero-gap clearance rule, but
         // check direction and local material side independently for every gap.
         const bool material_side = wipe_path_stays_on_material_side(
-            path, direction_start, candidate_support_direction,
+            path, wipe_start, candidate_support_direction,
             support_distancer, current_perimeter_distancer, candidate_offset,
             require_clearance && seam_start == seam_end);
         const bool connector_clear = initial_connector_is_clear(
@@ -769,7 +782,7 @@ bool offset_wipe_path_toward_support(Polyline &polyline, Point seam_start, Point
         if (! offset_wipe_path(path, seam_start, seam_end, wipe_start, dir,
                                effective_offset, max_wipe_length))
             return std::nullopt;
-        return validate_candidate(std::move(path), seam_start, seam_start,
+        return validate_candidate(std::move(path), seam_start,
                                   contact_tolerance, support_direction, effective_offset);
     };
 
@@ -790,7 +803,7 @@ bool offset_wipe_path_toward_support(Polyline &polyline, Point seam_start, Point
                                    candidate_translation, max_wipe_length))
             return std::nullopt;
         const double candidate_tolerance = wipe_tolerance(candidate_offset);
-        return validate_candidate(std::move(source), source_start, source_start, candidate_tolerance,
+        return validate_candidate(std::move(source), source_start, candidate_tolerance,
                                   candidate_support_offset / support_distance, candidate_offset);
     };
 
@@ -815,7 +828,7 @@ bool offset_wipe_path_toward_support(Polyline &polyline, Point seam_start, Point
         const double candidate_tolerance = wipe_tolerance(candidate_offset);
         // Check the executed direction from the nozzle after any loop pre-move,
         // but retain the wall origin for the connector's intersection checks.
-        return validate_candidate(std::move(path), origin, wipe_start,
+        return validate_candidate(std::move(path), origin,
                                   candidate_tolerance, direction, candidate_offset, false);
     };
     std::optional<Candidate> direct = direct_candidate(seam_end, toward_support);
@@ -842,7 +855,7 @@ bool offset_wipe_path_toward_support(Polyline &polyline, Point seam_start, Point
                     offset_wipe_path(reversed_source, seam_end, seam_start, wipe_start,
                                      -preferred_dir, reverse_offset, max_wipe_length)) {
                     reversed_source.points.front() = seam_start;
-                    auto candidate = validate_candidate(std::move(reversed_source), seam_end, seam_end,
+                    auto candidate = validate_candidate(std::move(reversed_source), seam_end,
                         wipe_tolerance(reverse_offset), reversed_support_offset->normalized(), reverse_offset);
                     if (candidate && (! reversed ||
                         (candidate->path_length > reversed->path_length + length_margin &&

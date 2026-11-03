@@ -46,7 +46,10 @@ G-code generation enforces this even if a profile or object override enables it.
 The planner identifies an adjacent inner perimeter on the material side of the
 outgoing wall. Contour winding and the distinction between outer contours and
 holes establish a preferred direction; local printed geometry resolves ambiguous
-or self-touching contours.
+or self-touching contours. Sampling farther along the wall identifies its adjacent
+branch, while the available offset is measured from a nearby support point at the
+extrusion endpoint. This local search has the same bounded corner reach as support
+validation; a displacement measured at the sample cannot substitute for local support.
 
 Candidate paths offset or translate the portion needed for the configured wipe
 distance. A wide seam gap can prevent a supported forward path; following the
@@ -80,9 +83,10 @@ material-side and support checks apply without that additional clearance rule.
 
 An accepted candidate replaces the stored wipe path as a whole. A short direct
 inward move is also eligible when longer candidates fail validation. It may
-waive full wall clearance, but must pass the material-side check. Its initial
-direction is checked from the actual nozzle position after any loop pre-move;
-the original wall endpoint is retained separately for intersection checks. It takes
+waive full wall clearance, but must pass the material-side check. Every candidate's
+initial direction is checked from the actual nozzle position, including the seam
+gap and any loop pre-move; its construction origin is retained separately for
+intersection checks. The short direct move takes
 priority over the alternate offset when the preferred and translated paths
 are unusable. A longer reversed path may replace the selected candidate only
 when its distance to the target inner wall is no worse within tolerance.

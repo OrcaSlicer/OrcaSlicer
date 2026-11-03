@@ -507,6 +507,41 @@ TEST_CASE("Inward wipe is retained across layers with a back seam", "[Wipe][Regr
     }
 }
 
+TEST_CASE("Inward wipe leaves a sandwich wall corner toward the printed material",
+          "[Wipe][InwardCornerRegression][Regression]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    const char *layer_height = GENERATE("0.1", "0.2");
+    const char *seam_gap = GENERATE("0%", "10%");
+    const bool wipe_on_loops = GENERATE(false, true);
+    CAPTURE(wall_generator, layer_height, seam_gap, wipe_on_loops);
+    DynamicPrintConfig config = wipe_config(
+        wall_generator, true, "50%", seam_gap, wipe_on_loops, "3", "inner-outer-inner wall", false, "0%", "back");
+    config.set_deserialize_strict({
+        {"layer_height", layer_height},
+        {"initial_layer_print_height", layer_height},
+        {"initial_layer_line_width", "0.5"},
+        {"outer_wall_line_width", "0.42"},
+        {"inner_wall_line_width", "0.45"},
+        {"elefant_foot_compensation", "0"},
+        {"retraction_minimum_travel", "0"},
+    });
+    size_t outer_wipes = 0;
+    const double requested_offset = 0.42 * 0.5;
+    for (const WipeTrajectory &trajectory : wipe_trajectories(slice({make_cube(27., 27., 0.6)}, config))) {
+        // This back seam lies above x=y=13; the inner walls lie below it.
+        if (trajectory.start.x() <= 13. || trajectory.start.y() <= 13.)
+            continue;
+        ++outer_wipes;
+        REQUIRE_FALSE(trajectory.destinations.empty());
+        const Vec2d first_move = trajectory.destinations.front() - trajectory.start;
+        CHECK(first_move.x() < -0.2 * requested_offset);
+        CHECK(first_move.y() < -0.2 * requested_offset);
+        CHECK(first_move.norm() > 0.5 * requested_offset);
+    }
+    REQUIRE(outer_wipes == size_t(std::lround(0.6 / std::stod(layer_height))));
+}
+
 TEST_CASE("Literal inward wipe distance is clamped to the outer wall width", "[Wipe][Regression]")
 {
     const char *wall_generator = GENERATE("classic", "arachne");
