@@ -27,6 +27,7 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/FilamentMixer.hpp"
+#include <slic3r/GUI/Widgets/Button.hpp>
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "libslic3r/ParameterUtils.hpp"
 #include <cstddef>
