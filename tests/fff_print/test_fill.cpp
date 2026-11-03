@@ -1059,6 +1059,56 @@ TEST_CASE("Spiral inset fill closes the gaps with variable width walls", "[Fill]
     CHECK(2 * spirals < walls_across);
 }
 
+TEST_CASE("Spiral inset fill prints the open walls at the centre end of the spiral", "[Fill][Regression]")
+{
+    // Arachne leaves the middle of this ellipse as an open wall. Printed after an outward spiral, which
+    // ends at the edge, it sent the nozzle back across the surface to the centre.
+    const double    spacing = 0.45;
+    Slic3r::Polygon ellipse;
+    for (int i = 0; i < 90; ++i) {
+        const double angle = 2.0 * PI * i / 90.0;
+        ellipse.points.emplace_back(Slic3r::Point::new_scale(10 * std::cos(angle), 5 * std::sin(angle)));
+    }
+    const Slic3r::SurfaceFillOrder order = GENERATE(Slic3r::SurfaceFillOrder::Default, Slic3r::SurfaceFillOrder::Inward);
+    CAPTURE(int(order));
+
+    Slic3r::PrintConfig       print_config;
+    Slic3r::PrintObjectConfig object_config;
+    const Slic3r::Surface     surface(Slic3r::stTop, Slic3r::ExPolygon(ellipse));
+    auto fill = [&](Slic3r::ExtrusionRole role) {
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("spiralinset"));
+        filler->spacing             = spacing;
+        filler->overlap             = 0.5 * spacing;
+        filler->print_config        = &print_config;
+        filler->print_object_config = &object_config;
+
+        Slic3r::FillParams params;
+        params.density        = 1.f;
+        params.dont_adjust    = false;
+        params.layer_height   = 0.2;
+        params.use_arachne    = true;
+        params.extrusion_role = role;
+        params.fill_order     = order;
+        return filler->fill_surface_arachne(&surface, params);
+    };
+
+    const Slic3r::ThickPolylines paths = fill(Slic3r::erTopSolidInfill);
+    REQUIRE(paths.size() > 1);
+    // The spiral goes last when it runs outwards and first when it runs inwards.
+    const auto spiral = std::max_element(paths.begin(), paths.end(), [](const Slic3r::ThickPolyline &a, const Slic3r::ThickPolyline &b) {
+        return a.length() < b.length();
+    });
+    CHECK(spiral == (order == Slic3r::SurfaceFillOrder::Inward ? paths.begin() : paths.end() - 1));
+
+    // Internal solid infill gets the same walls rather than fixed width loops, which leave gaps.
+    const Slic3r::ThickPolylines solid = fill(Slic3r::erSolidInfill);
+    REQUIRE(solid.size() == paths.size());
+    for (size_t i = 0; i < paths.size(); ++i) {
+        CHECK(solid[i].points == paths[i].points);
+        CHECK(solid[i].width == paths[i].width);
+    }
+}
+
 TEST_CASE("Honeycomb infill rounds its cell corners with the smooth factor", "[Fill]")
 {
     // A cell whose sides are several times the line width, so that the corners have room to be rounded.
