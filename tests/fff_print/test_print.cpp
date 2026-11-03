@@ -2605,3 +2605,112 @@ TEST_CASE("Height range settings follow a Z shrinkage change that comes with a m
 
     check_thin_dense_height_range(*print.objects().front(), 95.);
 }
+
+namespace {
+
+// One tray of the device AMS inventory, with the keys build_filament_ams_list() puts in the payload.
+DynamicPrintConfig loaded_filament_tray(const std::string &colour, const std::string &type, const std::string &tray_name)
+{
+    DynamicPrintConfig tray;
+    tray.set_key_value("filament_colour",     new ConfigOptionStrings{ colour });
+    tray.set_key_value("filament_type",       new ConfigOptionStrings{ type });
+    tray.set_key_value("tray_name",           new ConfigOptionStrings{ tray_name });
+    tray.set_key_value("filament_id",         new ConfigOptionStrings{ "GFA00" });
+    tray.set_key_value("filament_is_support", new ConfigOptionBools{ false });
+    return tray;
+}
+
+// Two extruders with one nozzle each, slicing red and green PLA in Convenience (auto for match) mode
+// with the prime tower that the grouping step feeds.
+DynamicPrintConfig machine_inventory_config()
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "printer_technology",             "FFF" },
+        { "print_sequence",                 "by layer" },
+        { "nozzle_diameter",                "0.4,0.4" },
+        { "printer_extruder_id",            "1,2" },
+        { "printer_extruder_variant",       "Direct Drive Standard;Direct Drive Standard" },
+        { "extruder_printable_height",      "0,0" },
+        { "single_extruder_multi_material", 0 },
+        { "extruder_ams_count",             "1#0|4#1;1#0|4#1" },
+        { "filament_ids",                   "GFA00;GFA00" },
+        { "filament_map",                   "1,1" },
+        { "filament_map_mode",              "Auto For Match" },
+        { "enable_prime_tower",             1 },
+        { "wipe_tower_type",                "type1" },
+        { "prime_tower_width",              35 },
+        { "wipe_tower_x",                   "50" },
+        { "wipe_tower_y",                   "50" },
+        { "layer_height",                   "0.3" },
+        // init_print applies it on top, so re-applying this config has no diff of its own.
+        { "gcode_comments",                 "1" },
+    });
+    size_flush_to_nozzles(config);
+    return config;
+}
+
+} // namespace
+
+// The AMS inventory is device state that only feeds filament grouping. A changed inventory has to
+// invalidate the grouping steps, while the refreshes a connected device keeps sending -- the same
+// trays, volatile metadata, or an empty payload while it reconnects -- must not.
+TEST_CASE("A changed AMS filament inventory invalidates the grouping steps", "[Print][MultiNozzle][Regression]")
+{
+    DynamicPrintConfig config = machine_inventory_config();
+    Print               print;
+    Model               model;
+    init_print({ cube(20) }, print, model, config);
+    // A single-extruder print returns early in grouping, which would make the test vacuous.
+    REQUIRE(print.config().nozzle_diameter.size() == 2);
+
+    print.is_BBL_printer() = true;
+    print.process();
+    // invalidate_step() only takes back a step that is done.
+    REQUIRE(print.is_step_done(psWipeTower));
+    REQUIRE(print.is_step_done(psSkirtBrim));
+
+    const std::vector<std::vector<DynamicPrintConfig>> red_green = {
+        { loaded_filament_tray("#FF0000", "PLA", "A1") },
+        { loaded_filament_tray("#00FF00", "PLA", "Ext") },
+    };
+
+    // The setter only stashes the payload, apply() installs it.
+    print.set_extruder_filament_info(red_green);
+    CHECK(print.get_extruder_filament_info().empty());
+    // No inventory on the print before this pass means "unknown", not a change.
+    print.apply(model, config);
+    REQUIRE(print.get_extruder_filament_info().size() == 2);
+
+    // The same inventory sent again must not invalidate, even though the engine wrote its grouping
+    // result back into the filament maps during process(), which on its own reports a config change.
+    print.set_extruder_filament_info(red_green);
+    CHECK(print.apply(model, config) != PrintBase::APPLY_STATUS_INVALIDATED);
+
+    // The grouping steps must still be done here, or the invalidation below proves nothing.
+    REQUIRE(print.is_step_done(psWipeTower));
+    REQUIRE(print.is_step_done(psSkirtBrim));
+
+    // One tray's colour changed and both grouping steps were done, so they are taken back.
+    std::vector<std::vector<DynamicPrintConfig>> cyan_green = red_green;
+    cyan_green[0] = { loaded_filament_tray("#00FFFF", "PLA", "A1") };
+    print.set_extruder_filament_info(cyan_green);
+    CHECK(print.apply(model, config) == PrintBase::APPLY_STATUS_INVALIDATED);
+    CHECK_FALSE(print.is_step_done(psWipeTower));
+    CHECK_FALSE(print.is_step_done(psSkirtBrim));
+
+    print.process();
+    REQUIRE(print.is_step_done(psWipeTower));
+
+    // Volatile device metadata: the loaded filaments are unchanged, so nothing is invalidated.
+    std::vector<std::vector<DynamicPrintConfig>> retagged = cyan_green;
+    retagged[0][0].set_key_value("filament_changed", new ConfigOptionBool(true));
+    retagged[0][0].set_key_value("tag_uid",          new ConfigOptionStrings{ "A1B2C3D4" });
+    retagged[0][0].set_key_value("slot_id",          new ConfigOptionStrings{ "0" });
+    print.set_extruder_filament_info(retagged);
+    CHECK(print.apply(model, config) != PrintBase::APPLY_STATUS_INVALIDATED);
+
+    // An empty payload means "inventory unknown" (AMS disconnected): install it, never invalidate.
+    print.set_extruder_filament_info({});
+    CHECK(print.apply(model, config) != PrintBase::APPLY_STATUS_INVALIDATED);
+    CHECK(print.get_extruder_filament_info().empty());
+}
