@@ -225,6 +225,8 @@ std::string slice_organic_with_variable_layer_height(Slic3r::Print &print, Slic3
         { "initial_layer_print_height",  0.2 },
         { "support_top_z_distance",      0.2 },
         { "support_bottom_z_distance",   0.2 },
+        // validate() otherwise asks for a G92 E0 in the layer change G-code, which these tests don't emit.
+        { "use_relative_e_distances",    0 },
     });
     ModelObject *object = model.add_object();
     object->add_volume(two_tier_mesh());
@@ -283,7 +285,9 @@ TEST_CASE("Organic tree support keeps the top Z distance with variable layer hei
 {
     Slic3r::Print print;
     Slic3r::Model model;
-    REQUIRE(slice_organic_with_variable_layer_height(print, model).empty());
+    const std::string error = slice_organic_with_variable_layer_height(print, model);
+    INFO(error);
+    REQUIRE(error.empty());
 
     const PrintObject &object = *print.objects().front();
     // The bottom of the first layer of the 50 x 50 mm upper plate.
