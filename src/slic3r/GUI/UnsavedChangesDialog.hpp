@@ -10,6 +10,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include <array>
 #include <wx/dataview.h>
+#include <climits>
 #include <map>
 #include <vector>
 #include <wx/event.h>
@@ -276,6 +277,9 @@ struct PresetItem
     wxString     option_name;
     wxString     old_value;
     wxString     new_value;
+    int          order{ INT_MAX };  // position on the settings pages; rows on no page sort last
+    int          extruder_id{ 0 };  // extruder of a per-extruder page row, else 0
+    bool         has_icon{ false }; // a value is too long to show, so the row has a compare button
 };
 
 
@@ -300,6 +304,9 @@ protected:
     wxStaticText*           m_action_line   { nullptr };
     wxStaticText*           m_info_line     { nullptr };
     wxScrolledWindow*       m_scrolledWindow{ nullptr };
+
+    int                     m_first_value_width { 0 };
+    int                     m_content_width     { 0 };
 
     bool                    m_has_long_strings  { false };
     int                     m_save_btn_id       { wxID_ANY };
@@ -365,7 +372,7 @@ public:
     UnsavedChangesDialog(Preset::Type type, PresetCollection* dependent_presets, const std::string& new_selected_preset, bool no_transfer = false);
     // show unsaved changes for all another cases
     UnsavedChangesDialog(const wxString& caption, const wxString& header, const std::string& app_config_key, int act_buttons);
-    UnsavedChangesDialog(const wxString &caption, const wxString &header, DynamicConfig *config, int from, int to, bool left_to_right, NozzleVolumeType nozzle);
+    UnsavedChangesDialog(const wxString &caption, const wxString &header, Preset::Type type, DynamicConfig *config, int from, int to, bool left_to_right, NozzleVolumeType nozzle);
     ~UnsavedChangesDialog() override = default;
 
     int ShowModal() override;
@@ -373,7 +380,7 @@ public:
     void        build(Preset::Type type, PresetCollection *dependent_presets, const std::string &new_selected_preset, const wxString &header = "");
     void update(Preset::Type type, PresetCollection* dependent_presets, const std::string& new_selected_preset, const wxString& header);
     void update_list(SyncExtruderParams *params = nullptr);
-    std::string subreplace(std::string resource_str, std::string sub_str, std::string new_str);
+    bool value_clips(const wxString &value) const;
     void        update_tree(Preset::Type type, PresetCollection *presets);
     void        update_tree(Preset::Type type, DynamicConfig *config, int from, int to);
     void show_info_line(Action action, std::string preset_name = "");

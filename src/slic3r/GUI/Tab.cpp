@@ -8758,7 +8758,7 @@ wxSizer* TabPrinter::create_bed_shape_widget(wxWindow* parent)
 
     {
         Search::SettingsIndex& index = wxGetApp().sidebar().settings_index();
-        const Search::GroupAndCategory& gc = index.get_group_and_category("printable_area");
+        const Search::GroupAndCategory gc = index.get_group_and_category("printable_area", m_type);
         index.add_key("bed_custom_texture", m_type, gc.group, gc.category, gc.icon);
         index.add_key("bed_custom_model", m_type, gc.group, gc.category, gc.icon);
     }
@@ -9388,8 +9388,9 @@ void Tab::sync_excluder()
     auto extruders      = printer_preset.config.option<ConfigOptionEnumsGeneric>("extruder_type");
     // Motion ability options hold a (normal, silent) pair per variant, so switch_excluder indexes that page with stride 2.
     const int stride = m_active_page->title().StartsWith("Motion ability") ? 2 : 1;
+    const Preset::Type base_type = m_type >= Preset::TYPE_COUNT ? Preset::TYPE_PRINT : m_type;
     auto get_index_for_extruder =
-            [this, &extruders, stride, variant_keys = extruder_variant_keys[m_type >= Preset::TYPE_COUNT ? Preset::TYPE_PRINT : m_type]](int extruder_id, NozzleVolumeType nozzle_type) {
+            [this, &extruders, stride, variant_keys = extruder_variant_keys[base_type]](int extruder_id, NozzleVolumeType nozzle_type) {
         return m_config->get_index_for_extruder(extruder_id + 1, variant_keys.first,
             ExtruderType(extruders->values[extruder_id]), nozzle_type, variant_keys.second, stride);
     };
@@ -9450,7 +9451,7 @@ void Tab::sync_excluder()
     wxString title  = wxString::Format(_L("Modify parameters of %s"), _L(active_nozzle_name));
     wxString header = wxString::Format(_L("Do you want to modify the following parameters of the %s to that of the %s?"),
                                        _L(active_nozzle_name), _L(other_nozzle_name));
-    UnsavedChangesDialog dlg(title, header, &config_origin, from_index, dest_index, active_index == 0, active_nozzle);
+    UnsavedChangesDialog dlg(title, header, base_type, &config_origin, from_index, dest_index, active_index == 0, active_nozzle);
     dlg.ShowModal();
     if (dlg.transfer_changes()) {
         m_config->apply(config_to_apply);
