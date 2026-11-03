@@ -1071,11 +1071,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     }
 
     // A folded tower layer is thicker than the object layer it sits on, so the height process_layer
-    // emitted is not the tower's. Both writers declare one, but each hardcodes a tag dialect - Type 1
-    // forces s_IsBBLPrinter and writes "; LAYER_HEIGHT:", Type 2 writes ";HEIGHT:" - and the processor
-    // reads only its printer's, so a Type 1 tower on a non-BBL printer loses it and the merged layer
-    // is drawn and costed as a thin one. Declare it here, where the printer is known, unless the tower
-    // already wrote the right tag. _extrude puts the object's height back on the next object path,
+    // emitted is not the tower's. Supply a fallback declaration unless the tower already wrote a
+    // height tag in the printer's format. _extrude puts the object's height back on the next object path,
     // since process_layer forces the role to erWipeTower on any layer with a tower.
     std::string WipeTowerIntegration::tower_height_tag(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr,
                                                        const std::string &tcr_gcode) const

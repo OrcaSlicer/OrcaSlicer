@@ -28,6 +28,7 @@
 #include "libslic3r/GCode/WipeTower.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Utils.hpp"
 
 #include "test_helpers.hpp"
 #include "test_utils.hpp"
@@ -195,6 +196,40 @@ static std::string slice_with_prime_tower(const DynamicPrintConfig &config)
     return gcode(print);
 }
 
+TEST_CASE("Tower consumption is classified separately for each printer kind", "[WipeTower][Regression]")
+{
+    const auto [is_bbl, tower_type] = GENERATE(table<bool, std::string>({
+        { false, "type1" }, { false, "type2" }, { true, "type1" } }));
+    CAPTURE(is_bbl, tower_type);
+    const bool previous_bbl = GCodeProcessor::s_IsBBLPrinter;
+    const ScopeGuard restore_bbl([previous_bbl] { GCodeProcessor::s_IsBBLPrinter = previous_bbl; });
+
+    DynamicPrintConfig config = wipe_tower_toolchange_config("marlin");
+    config.set_deserialize_strict({ { "wipe_tower_type", tower_type } });
+    Print print;
+    print.is_BBL_printer() = is_bbl;
+    Model model;
+    init_print({ cube(10) }, print, model, config);
+    print.apply(model, config);
+
+    // Cover the initial non-BBL slice (the global defaults to true) and a change of printer kind.
+    GCodeProcessor::s_IsBBLPrinter = !is_bbl;
+    print.process();
+    CHECK(GCodeProcessor::s_IsBBLPrinter == is_bbl);
+
+    GCodeProcessorResult result;
+    gcode(print, &result);
+    const auto &statistics = result.print_statistics;
+    REQUIRE(statistics.wipe_tower_volumes_per_extruder.size() == 2);
+    for (size_t filament_id : { size_t(0), size_t(1) }) {
+        CAPTURE(filament_id);
+        REQUIRE(statistics.wipe_tower_volumes_per_extruder.count(filament_id) == 1);
+        CHECK(statistics.wipe_tower_volumes_per_extruder.at(filament_id) > 0.);
+        REQUIRE(statistics.model_volumes_per_extruder.count(filament_id) == 1);
+        CHECK(statistics.model_volumes_per_extruder.at(filament_id) > 0.);
+    }
+}
+
 TEST_CASE("The wipe tower's toolchange planner flush follows the gcode flavor", "[WipeTower]")
 {
     auto [flavor, expected, unexpected] = GENERATE(table<std::string, std::string, std::string>({
@@ -245,6 +280,10 @@ TEST_CASE("The wipe tower's G-code moves keep a decimal point in a comma-decimal
 
 TEST_CASE("The wipe tower's flow tags keep a decimal point in a comma-decimal locale", "[WipeTower]")
 {
+    const bool is_bbl = GENERATE(false, true);
+    CAPTURE(is_bbl);
+    const bool previous_bbl = GCodeProcessor::s_IsBBLPrinter;
+    const ScopeGuard restore_bbl([previous_bbl] { GCodeProcessor::s_IsBBLPrinter = previous_bbl; });
     // GCodeProcessor parses these values with the C locale: a comma makes it log an error and
     // ignore the tag, leaving the extrusion width and height it assumes to its own defaults.
     CommaNumericLocale comma;
@@ -253,17 +292,23 @@ TEST_CASE("The wipe tower's flow tags keep a decimal point in a comma-decimal lo
         SKIP("no locale with a comma decimal separator is installed");
     DynamicPrintConfig config = wipe_tower_toolchange_config("klipper");
     config.set_deserialize_strict({ { "wipe_tower_type", "type1" } });
-    const std::string gcode = slice_with_prime_tower(config);
-    // WipeTowerWriter forces the BBL flag, so the tower writes these spellings on every printer.
-    // By the time the test asks, export has reset the flag for this Klipper config and
-    // reserved_tag() would hand back the main G-code's ";HEIGHT:" / ";WIDTH:" instead.
+    Print print;
+    print.is_BBL_printer() = is_bbl;
+    Model model;
+    init_print({ cube(10) }, print, model, config);
+    print.apply(model, config);
+    print.process();
+    std::string tower_gcode;
+    for (const auto &layer : print.wipe_tower_data().tool_changes)
+        for (const auto &change : layer)
+            tower_gcode += change.gcode;
     // The width and height tags are both written by the writer's constructor, before the
-    // tower's start tag, so scan the whole slice.
-    const std::string height_tag = "; LAYER_HEIGHT: ";
-    const std::string width_tag  = "; LINE_WIDTH: ";
+    // tower's start tag, so scan the complete tower blocks without the model's tags.
+    const std::string height_tag = is_bbl ? "; LAYER_HEIGHT: " : ";HEIGHT:";
+    const std::string width_tag  = is_bbl ? "; LINE_WIDTH: " : ";WIDTH:";
     size_t heights = 0;
     size_t widths  = 0;
-    std::istringstream lines(gcode);
+    std::istringstream lines(tower_gcode);
     for (std::string line; std::getline(lines, line);) {
         const bool is_height = line.compare(0, height_tag.size(), height_tag) == 0;
         const bool is_width  = line.compare(0, width_tag.size(), width_tag) == 0;
