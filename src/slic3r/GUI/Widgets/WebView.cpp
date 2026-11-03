@@ -535,9 +535,8 @@ void WebView::RecreateAll()
         webView->SetUserAgent(wxString::Format("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) BBL-Slicer/v%s (%s) BBL-Language/%s",
                                                Slic3r::GUI::wxGetApp().get_bbl_client_version(), dark ? "dark" : "light", language_code.mb_str()));
 #endif
-        // A host-themed WebViewHostDialog re-themes in place (no reload). If it handles
-        // the event, skip the reload; legacy pages fall through and reload as before
-        // (their own dark.css swap re-themes them on reload).
+        // Host-themed views update in place; others reload and pick up the new theme
+        // from the user agent set above.
         wxCommandEvent evt(EVT_WEBVIEW_RECREATED);
         evt.SetEventObject(webView);
         if (!webView->GetEventHandler()->ProcessEvent(evt))

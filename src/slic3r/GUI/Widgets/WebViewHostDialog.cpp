@@ -62,8 +62,10 @@ std::string host_theme_vars_css()
     s += "--orca-accent-fg:#ffffff;";
     s += "--orca-font:" + (font.empty() ? std::string() : "'" + font + "',") +
          "system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;";
-    s += "color-scheme:" + host_theme_name() + ";";
     s += "}";
+    // Follow data-orca-theme so color-scheme stays correct after a theme change.
+    s += ":root[data-orca-theme=\"dark\"]{color-scheme:dark;}";
+    s += ":root[data-orca-theme=\"light\"]{color-scheme:light;}";
     return s;
 }
 
@@ -87,15 +89,16 @@ if(document.documentElement)
 
 std::string WebViewHostDialog::theme_apply_script() { return host_theme_apply_js(); }
 
-// Document-start user script: injects the contract <style>, stamps data-orca-theme before
-// first paint, and raises a JS flag so the legacy globalapi.js dark.css poll stands down for
-// host-themed pages. The WebView2 timing guard lives in document_start_injector().
+// Document-start user script: injects the theme <style> and sets data-orca-theme before
+// first paint. The theme is read from the user agent on each load, so reloaded pages
+// get the current theme.
 std::string WebViewHostDialog::theme_user_script()
 {
     const std::string style = "<style id=\"orca-host-theme-vars\">" + host_theme_vars_css() + "</style>";
     return document_start_injector(
         style, "orca-host-theme-vars", "afterbegin",
-        "window.__orcaHostThemed=true;var theme=\"" + host_theme_name() + "\";",
+        "window.__orcaHostThemed=true;var theme=\"" + host_theme_name() + "\";"
+        "var m=/BBL-Slicer\\/\\S*\\s+\\((dark|light)\\)/.exec(navigator.userAgent||'');if(m)theme=m[1];",
         "if(document.documentElement)document.documentElement.setAttribute('data-orca-theme',theme);");
 }
 
