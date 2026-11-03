@@ -81,7 +81,9 @@ test off, the body's back faces less its front faces into the stencil buffer, wi
 at that cap alone and whole at its other end, which is zero where the ray misses the body or
 crosses it whole and one where it leaves through the opening, that is, where the cap plane lies
 inside the body; a quad in that cut plane, in the cap's colour darkened, is drawn where it is not
-zero. Counting both cuts in one pass would see an open tube: a ray through both openings as closed
+zero. The count runs with depth clamping on, since the light's frustum ends at the highest
+visible layer: a part above the range, cut by its near plane, would keep only its far faces and
+count as open, and cast a cap-shaped shadow of itself. Counting both cuts in one pass would see an open tube: a ray through both openings as closed
 and one in through a wall and out through the other opening as open, with the cap drawn in the
 air. Between the lines of a sparse layer on the cut, that quad is what shows, rather than the
 first layer or the bed far below moving with the camera. The toolpath layers of the reduced set are

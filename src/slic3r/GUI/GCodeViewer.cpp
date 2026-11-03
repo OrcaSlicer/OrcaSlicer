@@ -2478,9 +2478,12 @@ void GCodeViewer::render_shadow_casters(const Transform3d& light_view_matrix, co
 
 // The stencil count that tells where a body cut at one cap alone is open: with the depth test off,
 // its back faces add one and its front faces take one away, so a pixel where the ray leaves the
-// body through the opening ends nonzero. The caller draws the body between the two.
+// body through the opening ends nonzero. The caller draws the body between the two. Depth clamping
+// keeps the faces past the near plane in the count: the light's frustum ends at the top visible
+// layer, so without it a part above the range keeps only its far faces and counts as open.
 static void begin_cap_count()
 {
+    glsafe(::glEnable(GL_DEPTH_CLAMP));
     glsafe(::glStencilMask(0xFF));
     glsafe(::glClear(GL_STENCIL_BUFFER_BIT));
     glsafe(::glStencilFunc(GL_ALWAYS, 0, 0xFF));
@@ -2494,6 +2497,7 @@ static void begin_cap_count()
 // After the count, what is drawn next lands only where the body was open.
 static void end_cap_count()
 {
+    glsafe(::glDisable(GL_DEPTH_CLAMP));
     glsafe(::glEnable(GL_DEPTH_TEST));
     glsafe(::glDepthMask(GL_TRUE));
     glsafe(::glStencilFunc(GL_NOTEQUAL, 0, 0xFF));
