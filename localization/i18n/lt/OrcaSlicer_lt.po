@@ -24524,7 +24524,7 @@ msgid "Klipper version => 0.9.0"
 msgstr "Klipper versija => 0.9.0 (Klipper)"
 
 msgid ""
-"RepRap firmware version => 3.4.0\n"
+"RepRapFirmware version => 3.4.0\n"
 "Check your firmware documentation for supported shaper types."
 msgstr ""
 "RepRap programinės aparatinės įrangos versija => 3.4.0\n"
@@ -24544,7 +24544,7 @@ msgstr "Y pradžia / pabaiga: "
 msgid "Frequency settings"
 msgstr "Dažnio nustatymai"
 
-msgid "RepRap firmware uses the same frequency range for both axes."
+msgid "RepRapFirmware uses the same frequency range for both axes."
 msgstr "RepRap programinė aparatinė įranga naudoja tą patį dažnių diapazoną abiem ašims."
 
 msgid "Damp: "
@@ -24584,7 +24584,7 @@ msgstr "Dažnis X / Y: "
 msgid "Damp (Start / End): "
 msgstr "Slopinimas (pradžia / pabaiga): "
 
-msgid "RepRap firmware uses the same frequency for both axes."
+msgid "RepRapFirmware uses the same frequency for both axes."
 msgstr "RepRap programinė aparatinė įranga naudoja tą patį dažnį abiem ašims."
 
 msgid "Note: Use previously calculated frequencies."

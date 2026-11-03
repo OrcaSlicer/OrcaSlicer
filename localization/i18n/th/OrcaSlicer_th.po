@@ -24600,7 +24600,7 @@ msgid "Klipper version => 0.9.0"
 msgstr "คลิปเปอร์เวอร์ชัน => 0.9.0"
 
 msgid ""
-"RepRap firmware version => 3.4.0\n"
+"RepRapFirmware version => 3.4.0\n"
 "Check your firmware documentation for supported shaper types."
 msgstr ""
 "เฟิร์มแวร์ RepRap เวอร์ชัน => 3.4.0\n"
@@ -24620,7 +24620,7 @@ msgstr "Y เริ่ม / สิ้นสุด: "
 msgid "Frequency settings"
 msgstr "การตั้งค่าความถี่"
 
-msgid "RepRap firmware uses the same frequency range for both axes."
+msgid "RepRapFirmware uses the same frequency range for both axes."
 msgstr "เฟิร์มแวร์ RepRap ใช้ช่วงความถี่เดียวกันสำหรับทั้งสองแกน"
 
 msgid "Damp: "
@@ -24661,7 +24661,7 @@ msgstr "ความถี่ X / Y: "
 msgid "Damp (Start / End): "
 msgstr "การหน่วง (เริ่ม / สิ้นสุด): "
 
-msgid "RepRap firmware uses the same frequency for both axes."
+msgid "RepRapFirmware uses the same frequency for both axes."
 msgstr "เฟิร์มแวร์ RepRap ใช้ความถี่เดียวกันสำหรับทั้งสองแกน"
 
 msgid "Note: Use previously calculated frequencies."

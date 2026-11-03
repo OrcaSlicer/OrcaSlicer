@@ -25825,7 +25825,7 @@ msgid "Klipper version => 0.9.0"
 msgstr "Klipper 版本 => 0.9.0"
 
 msgid ""
-"RepRap firmware version => 3.4.0\n"
+"RepRapFirmware version => 3.4.0\n"
 "Check your firmware documentation for supported shaper types."
 msgstr ""
 "RepRap 韌體版本 => 3.4.0\n"
@@ -25846,7 +25846,7 @@ msgstr "Y 開始 / 結束： "
 msgid "Frequency settings"
 msgstr "頻率設定"
 
-msgid "RepRap firmware uses the same frequency range for both axes."
+msgid "RepRapFirmware uses the same frequency range for both axes."
 msgstr "RepRap 韌體對兩個軸使用相同的頻率範圍。"
 
 msgid "Damp: "
@@ -25888,7 +25888,7 @@ msgstr "頻率 X / Y： "
 msgid "Damp (Start / End): "
 msgstr "阻尼（開始 / 結束）： "
 
-msgid "RepRap firmware uses the same frequency for both axes."
+msgid "RepRapFirmware uses the same frequency for both axes."
 msgstr "RepRap 韌體對兩個軸使用相同的頻率。"
 
 msgid "Note: Use previously calculated frequencies."
