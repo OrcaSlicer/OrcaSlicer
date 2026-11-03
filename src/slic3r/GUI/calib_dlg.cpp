@@ -40,6 +40,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Utils.hpp"
+#include "Plater.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -70,7 +71,7 @@ CheckBox* add_scale_checkbox(wxWindow* parent, wxSizer* settings_sizer)
     auto cb   = new CheckBox(parent);
     cb->SetValue(true);
     auto text = new wxStaticText(parent, wxID_ANY, _L("Auto-scale for nozzle"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
-    cb->SetToolTip(_L("This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+    cb->SetToolTip(_L("This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height.\n"
                       "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter"
                       " and an appropriate layer height, making the test both accurate and easy to read.\n"
                       "Turn scaling off only if you wish to print the reference model exactly as-is."));
@@ -939,7 +940,7 @@ void VFA_Test_Dlg::on_start(wxCommandEvent& event)
             MessageDialog msg_dlg(nullptr,
                 wxString::Format(_L("The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed "
                                     "(%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and "
-                                    "layer height.\n Speeds above this will be clamped, so the upper blocks of the tower "
+                                    "layer height.\nSpeeds above this will be clamped, so the upper blocks of the tower "
                                     "will not print at the requested speed.\n\n%s"),
                                  m_params.end, max_vol_speed, speed_limit_for_lh(default_lh), question),
                 _L("VFA test"), wxICON_WARNING | wxYES_NO | wxNO_DEFAULT);

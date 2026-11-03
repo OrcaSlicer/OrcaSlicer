@@ -15,6 +15,7 @@
 #include "PythonPluginInterface.hpp"
 #include "PythonInterpreter.hpp"
 #include "PluginFsUtils.hpp"
+#include "PluginJsonPy.hpp"
 #include "PluginAuditManager.hpp"
 #include "pybind11/cast.h"
 #include <pybind11/pybind11.h>

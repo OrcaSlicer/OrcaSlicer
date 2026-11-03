@@ -1189,7 +1189,8 @@ void MenuFactory::append_menu_item_change_extruder(wxMenu* menu)
 void MenuFactory::append_menu_item_scale_selection_to_fit_print_volume(wxMenu* menu)
 {
     append_menu_item(menu, wxID_ANY, _L("Scale to build volume"), _L("Scale an object to fit the build volume"),
-        [](wxCommandEvent&) { plater()->scale_selection_to_fit_print_volume(); }, "", menu);
+        [](wxCommandEvent&) { plater()->scale_selection_to_fit_print_volume(); }, "", menu,
+        []() { return plater()->can_scale_to_print_volume(); }, m_parent);
 }
 
 void MenuFactory::append_menu_items_flush_options(wxMenu* menu, size_t pos)
@@ -2014,6 +2015,27 @@ void MenuFactory::create_plate_menu()
             return !plater()->get_partplate_list().get_selected_plate()->get_objects().empty();
         }, m_parent);
 
+    // order objects on current plate, or on all plates
+    wxMenu* order_menu     = new wxMenu();
+    wxMenu* order_all_menu = new wxMenu();
+    const std::vector<std::pair<ObjectOrder, wxString>> orders = {
+        {ObjectOrder::Name, _L("Name")}, {ObjectOrder::Filament, _L("Filament")},
+        {ObjectOrder::Height, _L("Height")}, {ObjectOrder::Size, _L("Size")}};
+    for (const auto& entry : orders) {
+        const ObjectOrder order = entry.first;
+        append_menu_item(order_menu, wxID_ANY, entry.second, "",
+            [order](wxCommandEvent&) { obj_list()->order_objects(order, false); }, "", nullptr,
+            []() { return !plater()->get_partplate_list().get_selected_plate()->empty(); }, m_parent);
+        append_menu_item(order_all_menu, wxID_ANY, entry.second, "",
+            [order](wxCommandEvent&) { obj_list()->order_objects(order, true); }, "", nullptr,
+            []() { return true; }, m_parent);
+    }
+    order_menu->AppendSeparator();
+    append_submenu(order_menu, order_all_menu, wxID_ANY, _L("All Plates"), "", "",
+        []() { return plater()->get_partplate_list().get_plate_count() > 1; }, m_parent);
+    append_submenu(menu, order_menu, wxID_ANY, _L("Order By"), "", "",
+        []() { return !plater()->model().objects.empty(); }, m_parent);
+
     wxMenu* modify_menu = new wxMenu();
 
     // fix objects on current plate
@@ -2373,7 +2395,7 @@ void MenuFactory::append_menu_item_simplify(wxMenu* menu)
 void MenuFactory::append_menu_item_smooth_mesh(wxMenu *menu)
 {
     wxMenuItem *menu_item = append_menu_item(
-        menu, wxID_ANY, _L("Subdivision mesh (Lost color)"), "", [](wxCommandEvent &) { obj_list()->smooth_mesh(); }, "", menu, []() { return plater()->can_smooth_mesh(); },
+        menu, wxID_ANY, _L("Subdivision mesh"), "", [](wxCommandEvent &) { obj_list()->smooth_mesh(); }, "", menu, []() { return plater()->can_smooth_mesh(); },
         m_parent);
 }
 

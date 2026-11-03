@@ -4,6 +4,7 @@
 #include <chrono>
 #include <map>
 #include <string>
+#include <vector>
 #include <wx/string.h>
 #include <boost/optional.hpp>
 #include <boost/asio/ip/address.hpp>
@@ -40,6 +41,11 @@ public:
     static std::string model_display_name(const std::string& model);
     std::string query_boxes_info() const;
     std::string model_name() const;
+    // The WebSocket commands that start gcode_path, built from the send dialog's
+    // extended_info (enableSelfTest and the colorMatch_<n> slot mapping).
+    static std::vector<std::string> start_print_commands(bool                                      multi_color,
+                                                         const std::string&                        gcode_path,
+                                                         const std::map<std::string, std::string>& extended_info);
 
 protected:
     virtual void set_auth(Http& http) const;
