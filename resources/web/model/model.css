@@ -26,6 +26,10 @@ body
 	line-height: 24px;
 }
 
+body:has(#EmptyArea) {
+	background-color: var(--bg-color-sidebar);
+}
+
 #EmptyArea
 {
 	/* min-width: 1280px; ORCA fixes scrollbar appear on welcome screen */
