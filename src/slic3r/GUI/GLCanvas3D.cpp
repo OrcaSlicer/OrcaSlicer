@@ -5232,6 +5232,9 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
     else if (evt.Dragging() && evt.LeftIsDown() && m_plate_drag.plate_idx != -1) {
         // A click that jitters a few pixels still selects the plate.
         if (m_mouse.dragging || (pos - m_plate_drag.start).cwiseAbs().maxCoeff() > Mouse::Drag::MoveThresholdPx) {
+            // Only a real drag hides the other plates' buttons, so a click does not make them flicker.
+            if (!m_mouse.dragging)
+                wxGetApp().plater()->get_partplate_list().set_dragged_plate(m_plate_drag.plate_idx);
             m_mouse.dragging = true;
             _update_plate_drag(pos);
         }
@@ -12216,7 +12219,6 @@ bool GLCanvas3D::_start_plate_drag(const Point& mouse_pos)
     m_plate_drag.marker     = -1;
     m_plate_drag.last_frame = std::chrono::steady_clock::now();
     m_plate_drag.thumbnail.reset();
-    plate_list.set_dragged_plate(plate_idx);
     _build_plate_drag_markers();
     if (!has_mouse_capture())
         m_canvas->CaptureMouse();

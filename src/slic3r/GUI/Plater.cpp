@@ -21715,13 +21715,11 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
 
     // After any bed-shape or is_imex change, ensure the IMEX mode icon geometry and
     // raycaster are correct.  set_shape() short-circuits when the bed is unchanged,
-    // so we call refresh_imex_icons() explicitly whenever is_imex is active.
+    // so we call refresh_imex_icons() explicitly.
+    // Orca: also when is_imex is turned off, as the plate move handle takes the IMEX icon's place.
     // Always done AFTER set_bed_shape() so m_shape is current.
-    if (bed_shape_changed || imex_changed) {
-        auto* is_imex_opt = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionBool>("is_imex");
-        if (is_imex_opt && is_imex_opt->value)
-            p->partplate_list.refresh_imex_icons();
-    }
+    if (bed_shape_changed || imex_changed)
+        p->partplate_list.refresh_imex_icons();
 
     config_change_notification(config, std::string("print_sequence"));
 

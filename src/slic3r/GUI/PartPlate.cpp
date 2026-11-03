@@ -773,8 +773,15 @@ void PartPlate::refresh_imex_icon()
     if (!preset) return;
     bool dual_bbl = preset->is_bbl_vendor() && preset->get_printer_extruder_count() == 2;
     auto* is_imex_opt = preset->printers.get_edited_preset().config.option<ConfigOptionBool>("is_imex");
-    if (is_imex_opt && is_imex_opt->value) {
-        int imex_slot = dual_bbl ? 8 : 7;
+    const bool imex = is_imex_opt && is_imex_opt->value;
+    // Orca: the move handle is the last icon, after the IDEX/IQEX mode icon when that is shown.
+    calc_vertex_for_icons(dual_bbl ? (imex ? 8 : 7) : (imex ? 7 : 6), m_move_plate_icon);
+    if (GLCanvas3D *canvas = m_plater->get_view3D_canvas3D()) {
+        canvas->remove_raycasters_for_picking(SceneRaycaster::EType::Bed, picking_id_component(PLATE_MOVE_ID));
+        register_model_for_picking(*canvas, m_move_plate_icon, picking_id_component(PLATE_MOVE_ID));
+    }
+    if (imex) {
+        int imex_slot = dual_bbl ? 7 : 6;
         calc_vertex_for_icons(imex_slot, m_imex_mode_icon);
         calc_vertex_for_imex_warn_badge(imex_slot, m_imex_warn_icon);
 
@@ -2608,8 +2615,8 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
             } else
                 render_icon_texture(m_move_front_icon.model, m_partplate_list->m_move_front_texture);
 
-            // Orca: nothing to reorder with one plate, or with the other plates hidden (focus mode).
-            if (m_partplate_list->get_plate_count() > 1 && !wxGetApp().focus_mode()) {
+            // Orca: nothing to reorder with the other plates hidden (focus mode).
+            if (!wxGetApp().focus_mode()) {
                 if (hover_id == PLATE_MOVE_ID || m_partplate_list->get_dragged_plate() == m_plate_index) {
                     render_icon_texture(m_move_plate_icon.model, m_partplate_list->m_move_plate_hovered_texture);
                     if (hover_id == PLATE_MOVE_ID)
@@ -5174,11 +5181,13 @@ bool PartPlate::set_shape(const Pointfs& shape, const Pointfs& exclude_areas, co
 			dual_bbl = (preset->is_bbl_vendor() && preset->get_printer_extruder_count() == 2);
 			calc_vertex_for_icons(dual_bbl ? 5 : 6, m_plate_filament_map_icon);
 			calc_vertex_for_icons(dual_bbl ? 6 : 5, m_move_front_icon);
-			calc_vertex_for_icons(dual_bbl ? 7 : 6, m_move_plate_icon);
 			{
 				auto* is_imex_opt = preset->printers.get_edited_preset().config.option<ConfigOptionBool>("is_imex");
-				if (is_imex_opt && is_imex_opt->value) {
-					int imex_slot = dual_bbl ? 8 : 7;
+				const bool imex = is_imex_opt && is_imex_opt->value;
+				// Orca: the move handle is the last icon, after the IDEX/IQEX mode icon when that is shown.
+				calc_vertex_for_icons(dual_bbl ? (imex ? 8 : 7) : (imex ? 7 : 6), m_move_plate_icon);
+				if (imex) {
+					int imex_slot = dual_bbl ? 7 : 6;
 					calc_vertex_for_icons(imex_slot, m_imex_mode_icon);
 					calc_vertex_for_imex_warn_badge(imex_slot, m_imex_warn_icon);
 				}
