@@ -19,7 +19,6 @@
 
 #include <wx/colour.h> // the WXK_* key codes, as misc-include-cleaner maps them
 #include <wx/event.h>
-#include <wx/glcanvas.h>
 #include <wx/string.h>
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
@@ -90,8 +89,11 @@ bool PlateArrangementDialog::on_key(const wxKeyEvent& evt)
 
     static const std::set<int> keys = { WXK_LEFT, WXK_RIGHT, WXK_UP, WXK_DOWN, WXK_HOME, WXK_END, WXK_ESCAPE };
     // The name field keeps its keys, and the canvas keeps them while the dialog is not the focused overlay.
-    if (!m_open || !m_focused || !keys.count(key) || m_imgui->text_input_active())
+    // A key the dialog does not take also drops any claim left on it: its release went elsewhere and the canvas gets this press's release.
+    if (!m_open || !m_focused || !keys.count(key) || m_imgui->text_input_active()) {
+        m_claimed_keys.erase(key);
         return false;
+    }
     m_claimed_keys.insert(key);
     m_imgui->set_requires_extra_frame();
 

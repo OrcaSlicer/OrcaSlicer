@@ -43,6 +43,8 @@ public:
     // Called by the canvas for each key event before its own shortcuts. Returns true when the dialog takes the
     // key; a key-down's decision also covers its char event and its release.
     bool on_key(const wxKeyEvent& evt);
+    // When the canvas loses the keyboard focus: the releases of the keys taken so far go elsewhere.
+    void forget_key_claims() { m_claimed_keys.clear(); }
     // The canvas forwards wx's double click: ImGui's own detection times clicks by its frame clock, which only
     // advances when the canvas redraws, so it misses most double clicks.
     void on_double_click() { m_double_click = m_open; }
