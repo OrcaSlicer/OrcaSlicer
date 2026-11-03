@@ -9,6 +9,7 @@
 #include "libvgcode/include/PathVertex.hpp"
 #include "libvgcode/include/Types.hpp"
 #include "libvgcode/src/Layers.hpp"
+#include "libvgcode/src/Utils.hpp"
 #include "slic3r/GUI/LibVGCode/LibVGCodeWrapper.hpp"
 
 using libvgcode::EGCodeExtrusionRole;
@@ -248,4 +249,39 @@ TEST_CASE("A tally with no labelled object yields no closed-layer list", "[Libvg
     closed.add(0, -1, EGCodeExtrusionRole::InternalInfill, EMoveType::Extrude);
     closed.add(1, -1, EGCodeExtrusionRole::Perimeter, EMoveType::Extrude);
     CHECK(closed.finish(2).empty());
+}
+
+namespace {
+
+PathVertex move_of(EMoveType type, EGCodeExtrusionRole role = EGCodeExtrusionRole::None)
+{
+    PathVertex v;
+    v.type = type;
+    v.role = role;
+    return v;
+}
+
+} // namespace
+
+TEST_CASE("Between the end layers the solid model keeps the supports and the travels alone", "[Libvgcode]")
+{
+    using libvgcode::EReducedDetailMode;
+    using libvgcode::keep_in_reduced_set;
+    const EReducedDetailMode solid = EReducedDetailMode::EndLayersOnly;
+    CHECK(keep_in_reduced_set(solid, false, move_of(EMoveType::Travel), false));
+    CHECK(keep_in_reduced_set(solid, false, move_of(EMoveType::Extrude, EGCodeExtrusionRole::SupportMaterial), false));
+    CHECK_FALSE(keep_in_reduced_set(solid, false, move_of(EMoveType::Extrude, EGCodeExtrusionRole::ExternalPerimeter), false));
+    CHECK_FALSE(keep_in_reduced_set(solid, false, move_of(EMoveType::Retract), false));
+    CHECK(keep_in_reduced_set(solid, false, move_of(EMoveType::Extrude, EGCodeExtrusionRole::ExternalPerimeter), true));
+}
+
+TEST_CASE("Between the end layers the shell view drops only the infill under the skins", "[Libvgcode]")
+{
+    using libvgcode::EReducedDetailMode;
+    using libvgcode::keep_in_reduced_set;
+    const EReducedDetailMode shell = EReducedDetailMode::ShellOnly;
+    CHECK(keep_in_reduced_set(shell, true, move_of(EMoveType::Travel), false));
+    CHECK(keep_in_reduced_set(shell, true, move_of(EMoveType::Extrude, EGCodeExtrusionRole::ExternalPerimeter), false));
+    CHECK_FALSE(keep_in_reduced_set(shell, true, move_of(EMoveType::Extrude, EGCodeExtrusionRole::InternalInfill), false));
+    CHECK(keep_in_reduced_set(shell, false, move_of(EMoveType::Extrude, EGCodeExtrusionRole::InternalInfill), false));
 }

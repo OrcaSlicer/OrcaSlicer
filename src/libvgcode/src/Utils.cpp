@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <cmath>
 #include "../include/Types.hpp"
+#include "../include/PathVertex.hpp"
 #include <vector>
 #include <cstdint>
 #include <algorithm>
@@ -69,6 +70,34 @@ Vec3 operator - (const Vec3& v1, const Vec3& v2) {
 
 Vec3 operator * (float f, const Vec3& v) {
     return { f * v[0], f * v[1], f * v[2] };
+}
+
+// the roles that lie under a skin or between walls, never seen from outside the print
+static bool is_hidden_in_shell(EGCodeExtrusionRole role)
+{
+    return role == EGCodeExtrusionRole::InternalInfill ||
+           role == EGCodeExtrusionRole::SolidInfill ||
+           role == EGCodeExtrusionRole::InternalBridgeInfill ||
+           role == EGCodeExtrusionRole::GapFill;
+}
+
+static bool is_support(EGCodeExtrusionRole role)
+{
+    return role == EGCodeExtrusionRole::SupportMaterial ||
+           role == EGCodeExtrusionRole::SupportMaterialInterface ||
+           role == EGCodeExtrusionRole::SupportTransition;
+}
+
+bool keep_in_reduced_set(EReducedDetailMode mode, bool hide_infill, const PathVertex& v, bool end_layer)
+{
+    if (end_layer)
+        return true;
+    switch (mode) {
+    // the caller draws the print itself, which stands in for neither the supports nor the travels
+    case EReducedDetailMode::EndLayersOnly: return v.is_travel() || (v.is_extrusion() && is_support(v.role));
+    case EReducedDetailMode::ShellOnly:     return v.is_option() || !v.is_extrusion() || !hide_infill || !is_hidden_in_shell(v.role);
+    default:                                return false;
+    }
 }
 
 std::size_t weighted_median_index(const std::vector<std::pair<float, float>>& samples)

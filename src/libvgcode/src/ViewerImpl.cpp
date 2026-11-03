@@ -1318,25 +1318,6 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
     update_enabled_entities();
 }
 
-#ifndef ENABLE_OPENGL_ES
-// the roles that lie under a skin or between walls, never seen from outside the print
-static bool is_hidden_in_shell(EGCodeExtrusionRole role)
-{
-    return role == EGCodeExtrusionRole::InternalInfill ||
-           role == EGCodeExtrusionRole::SolidInfill ||
-           role == EGCodeExtrusionRole::InternalBridgeInfill ||
-           role == EGCodeExtrusionRole::GapFill;
-}
-
-// the roles no solid stands in for while only the end layers are drawn
-static bool is_support(EGCodeExtrusionRole role)
-{
-    return role == EGCodeExtrusionRole::SupportMaterial ||
-           role == EGCodeExtrusionRole::SupportMaterialInterface ||
-           role == EGCodeExtrusionRole::SupportTransition;
-}
-#endif // ENABLE_OPENGL_ES
-
 void ViewerImpl::update_enabled_entities()
 {
     if (m_vertices.empty())
@@ -1408,18 +1389,8 @@ void ViewerImpl::update_enabled_entities()
         if (build_reduced) {
             const bool end_layer = (v.layer_id >= layers_range[0] && v.layer_id <= whole_layers[0]) ||
                                    (v.layer_id >= whole_layers[1] && v.layer_id <= layers_range[1]);
-            if (end_layer)
+            if (keep_in_reduced_set(reduced_mode, hide_infill, v, end_layer))
                 (v.is_option() ? enabled_options_reduced : enabled_segments_reduced).push_back(static_cast<uint32_t>(i));
-            else if (reduced_mode == EReducedDetailMode::EndLayersOnly) {
-                if (v.is_extrusion() && is_support(v.role))
-                    enabled_segments_reduced.push_back(static_cast<uint32_t>(i));
-            }
-            else if (reduced_mode == EReducedDetailMode::ShellOnly) {
-                if (v.is_option())
-                    enabled_options_reduced.push_back(static_cast<uint32_t>(i));
-                else if (!v.is_extrusion() || !hide_infill || !is_hidden_in_shell(v.role))
-                    enabled_segments_reduced.push_back(static_cast<uint32_t>(i));
-            }
         }
 #endif // ENABLE_OPENGL_ES
     }

@@ -35,6 +35,9 @@ extern Vec3 operator * (float f, const Vec3& v);
 // sample at which the cumulative weight reaches half of the total. Samples that weigh nothing
 // between them fall back to the middle one by value; no samples gives their count.
 extern std::size_t weighted_median_index(const std::vector<std::pair<float, float>>& samples);
+// Whether the reduced set the mode builds keeps the vertex, one the full set shows: all of it on the
+// layers at the ends of the range, and between them what the mode keeps of the rest.
+extern bool keep_in_reduced_set(EReducedDetailMode mode, bool hide_infill, const PathVertex& v, bool end_layer);
 // The extrusions of the role on the layer among the vertices of the range that end inside the
 // box: their ids, and a (value, length) sample of each from what the view grades by. Where the
 // view grades by nothing, value_of() has no value and the first id found is returned at once.
