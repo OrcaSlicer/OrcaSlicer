@@ -1,8 +1,0 @@
-{
-    "type": "filament",
-    "name": "Pro PCTG Refuel @System",
-    "from": "system",
-    "instantiation": "true",
-    "inherits": "Pro PCTG Refuel @base",
-    "compatible_printers": []
-}

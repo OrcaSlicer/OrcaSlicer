@@ -1,8 +1,0 @@
-{
-    "type": "filament",
-    "name": "Pro PETG Refuel @System",
-    "from": "system",
-    "instantiation": "true",
-    "inherits": "Pro PETG Refuel @base",
-    "compatible_printers": []
-}
