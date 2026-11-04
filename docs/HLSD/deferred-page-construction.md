@@ -139,6 +139,16 @@ setting from search or the Speed Dial opens its page (and extruder), reruns that
 page's rules, and only a setting still hidden then displays its explanation instead
 of focusing an invisible input.
 
+A tab can also hide a whole page, which keeps it out of the page tree and records its
+options as hidden. The Process, object, part, layer and Filament tabs hide their
+Multimaterial page on a printer with one nozzle, without single extruder multi-material
+and not from Bambu Lab, since nothing on it applies with one filament. The Printer tab
+keeps its page, which holds the options that turn those modes on. Option rules keep
+running on a hidden page's keys and loading a preset clears the rules' records, so the
+registry stores the page's restriction apart from them: it wins over a rule's reason,
+survives both, and is lifted only by showing the page. Search, the Speed Dial and
+navigation read it like any other hidden reason.
+
 ### The 3D view's GL resources
 
 OpenGL is loaded on the Prepare tab's canvas. When the start page is not Prepare, loading

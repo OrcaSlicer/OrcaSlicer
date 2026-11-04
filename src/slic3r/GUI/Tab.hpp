@@ -84,6 +84,7 @@ class Page: public std::enable_shared_from_this<Page>// : public wxScrolledWindo
 	// BBS: new layout
 	wxStaticText*	m_page_title;
     bool            m_show = true;
+    bool            m_hidden = false;
     bool            m_visibility_applied = false;
 public:
 	//BBS: GUI refactor
@@ -136,7 +137,9 @@ public:
 	const wxColour	get_item_colour() {
 			return *m_item_color;
 	}
-    bool get_show() const { return m_show; }
+    bool get_show() const { return m_show && !m_hidden; }
+    bool is_hidden() const { return m_hidden; }
+    void set_hidden(bool hidden) { m_hidden = hidden; }
 
     std::map<std::string, std::string> m_opt_id_map;
 
@@ -466,6 +469,7 @@ public:
 	virtual void	reload_config();
     void            update_mode();
     void            update_visibility();
+    void            set_page_hidden(const wxString& title, bool hidden, const wxString& reason);
     virtual void    msw_rescale();
     virtual void	sys_color_changed();
 	Field*			get_field(const t_config_option_key& opt_key, int opt_index = -1) const;

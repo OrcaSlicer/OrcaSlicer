@@ -1812,6 +1812,21 @@ void Tab::update_visibility()
     Thaw();
 }
 
+void Tab::set_page_hidden(const wxString& title, bool hidden, const wxString& reason)
+{
+    for (const PageShp& page : m_pages) {
+        if (page->title() != title || page->is_hidden() == hidden)
+            continue;
+        page->set_hidden(hidden);
+        for (const ConfigOptionsGroupShp& group : page->m_optgroups)
+            for (const auto& kvp : group->opt_map())
+                m_option_state_registry.set_page_hidden(kvp.second.first, hidden, reason);
+        update_visibility();
+        update_changed_tree_ui();
+        return;
+    }
+}
+
 void Tab::msw_rescale()
 {
     m_em_unit = em_unit(m_parent);
@@ -2690,13 +2705,20 @@ void Tab::activate_option(const std::string& opt_key, const wxString& category)
 
     while (cur_item >= 0) {
         if (page_title.empty()) {
+            const wxString item_title = m_tabctrl->GetItemText(cur_item);
             bool has = false;
-            for (auto &g : m_pages[cur_item]->m_optgroups) {
-                for (auto &l : g->get_lines()) {
-                    for (auto &o : l.get_options()) { if (o.opt.opt_key == opt_key) { has = true; break; } }
+            // Tree positions skip hidden pages, so find the item's page by its title.
+            for (const PageShp &page : m_pages) {
+                if (translate_category(page->title(), m_type) != item_title)
+                    continue;
+                for (auto &g : page->m_optgroups) {
+                    for (auto &l : g->get_lines()) {
+                        for (auto &o : l.get_options()) { if (o.opt.opt_key == opt_key) { has = true; break; } }
+                        if (has) break;
+                    }
                     if (has) break;
                 }
-                if (has) break;
+                break;
             }
             if (!has) {
                 cur_item = m_tabctrl->GetNextVisible(cur_item);
@@ -7141,6 +7163,20 @@ void TabPrinter::on_value_change(const std::string& opt_key, const boost::any& v
         Tab::on_value_change(opt_key, value);
 }
 
+// The Printer tab keeps its Multimaterial page: it holds the options that turn these modes on.
+static void update_multimaterial_pages()
+{
+    const bool hide = wxGetApp().preset_bundle->get_printer_extruder_count() < 2 && !Sidebar::should_show_SEMM_buttons();
+    const wxString reason = _L("This setting requires a printer with multiple extruders or with Single Extruder Multi Material enabled.");
+
+    std::vector<Tab*> tabs = wxGetApp().model_tabs_list;
+    tabs.push_back(wxGetApp().get_tab(Preset::TYPE_PRINT));
+    tabs.push_back(wxGetApp().get_tab(Preset::TYPE_FILAMENT));
+    for (Tab* tab : tabs)
+        if (tab)
+            tab->set_page_hidden("Multimaterial", hide, reason);
+}
+
 void TabPrinter::update()
 {
     m_update_cnt++;
@@ -7207,6 +7243,8 @@ void TabPrinter::update_fff()
             m_config->set_key_value("build_plate_tilt_y", new ConfigOptionFloat(0.));
     }
     m_was_belt_printer = m_config->opt_bool("belt_printer");
+
+    update_multimaterial_pages();
 
     toggle_options();
 }
