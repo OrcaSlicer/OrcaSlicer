@@ -34,6 +34,7 @@ struct CutConnectorAttributes;
 namespace GUI {
 class Selection;
 class ImGuiWrapper;
+class GLGizmoPathCut;
 
 enum class SLAGizmoEventType : unsigned char;
 
@@ -239,6 +240,7 @@ class GLGizmoCut3D : public GLGizmoBase
     };
 
     size_t m_mode{ size_t(CutMode::cutPlanar) };
+    bool   m_curve{ false }; // Curve mode, see set_curve()
 
     std::vector<std::string> m_connector_modes;
     CutConnectorMode m_connector_mode{ CutConnectorMode::Manual };
@@ -292,6 +294,10 @@ public:
     static std::optional<ModeButton> render_mode_buttons(ImGuiWrapper &imgui, ModeButton active, float controls_x, float scale, bool enabled, bool is_dark);
     // Selects Planar or Dovetail, as when coming back from the Curve tool.
     void select_mode(ModeButton mode);
+    // Curve mode: this tool stays the active one and lets the "Cut along path" tool draw, take the mouse and
+    // fill the window in its place, as the other modes do. Kept when the tool closes, like the other modes.
+    bool is_curve() const { return m_curve; }
+    void set_curve(bool curve);
 
 protected:
     bool               on_init() override;
@@ -365,6 +371,7 @@ protected:
 private:
     void set_center(const Vec3d&center, bool update_tbb = false);
     void switch_to_mode(size_t new_mode);
+    GLGizmoPathCut *path_cut() const;
     bool render_cut_mode_buttons(bool enabled);
     bool render_double_input(const std::string& label, double& value_in);
     bool render_slider_two_input(const std::string& label, float& value_in, float& tolerance_in, float min_val = -0.1f, float max_tolerance = -0.1f);

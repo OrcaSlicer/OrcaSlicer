@@ -61,9 +61,11 @@ force a connector where the check rejects it.
 ## GUI
 
 The tool is the Curve mode of the Cut tool. It has no toolbar icon of its own: the Cut tool shows its
-modes (Planar, Dovetail, Curve) as a row of icon buttons, and Curve opens `GLGizmoPathCut`, which
-shows the same row to go back to the other two. It stays a separate gizmo because it works on points
-picked on the mesh rather than on the cut plane the Cut tool is built around.
+modes (Planar, Dovetail, Curve) as a row of icon buttons. In Curve mode `GLGizmoCut3D` stays the active
+gizmo and hands rendering, the mouse, its window and its common data requirements to `GLGizmoPathCut`,
+which draws the same row of modes at the top of the window to go back. `GLGizmoPathCut` stays a class of
+its own because it works on points picked on the mesh rather than on the cut plane the Cut tool is
+built around; `GLGizmosManager::active_path_cut()` gives it when the Cut tool shows it.
 
 `GLGizmoPathCut` collects the points, runs the cut as a background job on a copy of the mesh, shows
 a preview with the pieces moved apart, and replaces the object with the pieces only when the user

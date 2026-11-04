@@ -705,15 +705,14 @@ void GLGizmoPathCut::on_render_input_window(float x, float y, float bottom_limit
     // checkbox square + its spacing, generously: the toolbar style draws larger boxes
     const float check_x = ImGui::GetStyle().WindowPadding.x + ImGui::GetFrameHeight() * 1.5f + check_w + gap;
 
-    // Shown as the Curve mode of the Cut tool: the same row leads back to Planar and Dovetail.
+    // Drawn by the Cut tool as its Curve mode: the same row leads back to Planar and Dovetail.
     if (const std::optional<GLGizmoCut3D::ModeButton> clicked =
             GLGizmoCut3D::render_mode_buttons(*m_imgui, GLGizmoCut3D::ModeButton::Curve, field_x, scale, !m_busy, m_is_dark_mode))
         wxGetApp().CallAfter([this, mode = *clicked]() {
-            GLGizmosManager &manager = m_parent.get_gizmos_manager();
-            if (!manager.open_gizmo(GLGizmosManager::Cut))
-                return;
-            if (auto *cut = dynamic_cast<GLGizmoCut3D *>(manager.get_current()))
+            if (auto *cut = dynamic_cast<GLGizmoCut3D *>(m_parent.get_gizmos_manager().get_gizmo(GLGizmosManager::Cut))) {
+                cut->set_curve(false);
                 cut->select_mode(mode);
+            }
         });
     ImGui::Separator();
 
@@ -2235,7 +2234,13 @@ void GLGizmoPathCut::do_apply_cut(const std::shared_ptr<PathCutJob> &st)
                       "separate it. Connectors are only added once the cut separates the object."));
         if (!done_faces.indices.empty())
             wxGetApp().CallAfter([this, done_faces = std::move(done_faces), done_routes = std::move(done_routes)]() mutable {
-                if (!m_parent.get_gizmos_manager().open_gizmo(GLGizmosManager::PathCut))
+                // Opens again as the Curve mode of the Cut tool.
+                GLGizmosManager &manager = m_parent.get_gizmos_manager();
+                auto            *cut     = dynamic_cast<GLGizmoCut3D *>(manager.get_gizmo(GLGizmosManager::Cut));
+                if (cut == nullptr)
+                    return;
+                cut->set_curve(true);
+                if (!manager.open_gizmo(GLGizmosManager::Cut) || get_state() != On)
                     return;
                 m_done_faces  = std::move(done_faces);
                 m_done_routes = std::move(done_routes);

@@ -907,7 +907,7 @@ bool GLGizmosManager::on_char(wxKeyEvent& evt)
             if (m_current != Undefined) {
                 if ((m_current == Measure || m_current == Assembly) && gizmo_event(SLAGizmoEventType::Escape)) {
                     // do nothing
-                } else if (m_current == PathCut && static_cast<GLGizmoPathCut *>(get_current())->on_escape_key()) {
+                } else if (GLGizmoPathCut *path_cut = active_path_cut(); path_cut != nullptr && path_cut->on_escape_key()) {
                     // back from the preview to editing the cut
                 } else
                 //if ((m_current != SlaSupports) || !gizmo_event(SLAGizmoEventType::DiscardChanges))
@@ -921,7 +921,7 @@ bool GLGizmosManager::on_char(wxKeyEvent& evt)
         case WXK_NUMPAD_ENTER:
         {
             // Cut along path: Enter computes the preview of the cut.
-            if (m_current == PathCut && static_cast<GLGizmoPathCut *>(get_current())->on_enter_key())
+            if (GLGizmoPathCut *path_cut = active_path_cut(); path_cut != nullptr && path_cut->on_enter_key())
                 processed = true;
             break;
         }
@@ -1059,7 +1059,7 @@ bool GLGizmosManager::on_key(wxKeyEvent& evt)
         {
             processed = true;
         }
-        else if (m_current == Cut)
+        else if (m_current == Cut && active_path_cut() == nullptr)
         {
             auto do_move = [this, &processed](double delta_z) {
                 GLGizmoCut3D* cut = dynamic_cast<GLGizmoCut3D*>(get_current());
@@ -1540,6 +1540,14 @@ bool GLGizmosManager::activate_gizmo(EType type)
     return true;
 }
 
+
+GLGizmoPathCut *GLGizmosManager::active_path_cut() const
+{
+    if (m_current != Cut || m_gizmos.size() <= size_t(PathCut))
+        return nullptr;
+    const auto *cut = dynamic_cast<const GLGizmoCut3D *>(m_gizmos[Cut].get());
+    return cut != nullptr && cut->is_curve() ? dynamic_cast<GLGizmoPathCut *>(m_gizmos[PathCut].get()) : nullptr;
+}
 
 bool GLGizmosManager::grabber_contains_mouse() const
 {

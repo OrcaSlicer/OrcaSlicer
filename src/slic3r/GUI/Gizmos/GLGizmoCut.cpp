@@ -67,6 +67,7 @@
 #include "slic3r/GUI/GLSelectionRectangle.hpp"
 #include "slic3r/GUI/GLShader.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoPathCut.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include <array>
 #include <optional>
@@ -290,6 +291,9 @@ GLGizmoCut3D::GLGizmoCut3D(GLCanvas3D& parent, const std::string& icon_filename,
 
 std::string GLGizmoCut3D::get_tooltip() const
 {
+    if (m_curve)
+        if (const GLGizmoPathCut *curve_tool = path_cut())
+            return curve_tool->get_tooltip();
     std::string tooltip;
     if (m_hover_id == Z || (m_dragging && m_hover_id == CutPlane)) {
         double koef = m_imperial_units ? GizmoObjectManipulation::mm_to_in : 1.0;
@@ -329,6 +333,10 @@ std::string GLGizmoCut3D::get_tooltip() const
 
 bool GLGizmoCut3D::on_mouse(const wxMouseEvent &mouse_event)
 {
+    if (m_curve) {
+        GLGizmoPathCut *curve_tool = path_cut();
+        return curve_tool != nullptr && curve_tool->on_mouse(mouse_event);
+    }
     Vec2i32 mouse_coord(mouse_event.GetX(), mouse_event.GetY());
     Vec2d mouse_pos = mouse_coord.cast<double>();
 
@@ -604,6 +612,43 @@ void GLGizmoCut3D::select_mode(ModeButton mode)
     check_and_update_connectors_state();
 }
 
+GLGizmoPathCut *GLGizmoCut3D::path_cut() const
+{
+    return dynamic_cast<GLGizmoPathCut *>(m_parent.get_gizmos_manager().get_gizmo(GLGizmosManager::PathCut));
+}
+
+void GLGizmoCut3D::set_curve(bool curve)
+{
+    GLGizmoPathCut *curve_tool = path_cut();
+    if (curve == m_curve || curve_tool == nullptr)
+        return;
+    m_curve = curve;
+    if (m_state != On)
+        return;
+    if (curve) {
+        // Nothing of the planar cut stays on screen or under the mouse.
+        unregister_raycasters_for_picking();
+        if (auto oc = m_c->object_clipper()) {
+            oc->set_behavior(true, true, 0.);
+            oc->release();
+        }
+        m_parent.set_use_color_clip_plane(false);
+        curve_tool->set_state(On);
+        m_parent.toggle_model_objects_visibility(true); // all objects in their own colors, as the Curve tool shows them
+    } else {
+        curve_tool->set_state(Off);
+        m_parent.set_use_color_clip_plane(true);
+    }
+    // The two tools need different common data (the Curve tool picks points on the mesh).
+    m_parent.get_gizmos_manager().update_data();
+    if (!curve) {
+        register_raycasters_for_picking();
+        reset_cut_by_contours();
+    }
+    m_parent.set_as_dirty();
+    m_parent.request_extra_frame();
+}
+
 bool GLGizmoCut3D::render_cut_mode_buttons(bool enabled)
 {
     const std::optional<ModeButton> clicked = render_mode_buttons(*m_imgui, ModeButton(m_mode), m_label_width, m_parent.get_scale(),
@@ -611,8 +656,8 @@ bool GLGizmoCut3D::render_cut_mode_buttons(bool enabled)
     if (!clicked)
         return false;
     if (*clicked == ModeButton::Curve) {
-        // Opened after this frame: the Cut tool is closed while it draws its window otherwise.
-        wxGetApp().CallAfter([this]() { m_parent.get_gizmos_manager().open_gizmo(GLGizmosManager::PathCut); });
+        // Switched after this frame: the window being drawn changes otherwise.
+        wxGetApp().CallAfter([this]() { set_curve(true); });
         return false;
     }
     Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Change cut mode"), UndoRedo::SnapshotType::GizmoAction);
@@ -1493,8 +1538,13 @@ void GLGizmoCut3D::apply_color_clip_plane_colors()
 
 void GLGizmoCut3D::on_set_state()
 {
+    GLGizmoPathCut *curve_tool = m_curve ? path_cut() : nullptr;
+    if (curve_tool != nullptr)
+        curve_tool->set_state(m_state == On ? On : Off);
     if (m_state == On) {
-        m_parent.set_use_color_clip_plane(true);
+        m_parent.set_use_color_clip_plane(curve_tool == nullptr);
+        if (curve_tool != nullptr)
+            m_parent.toggle_model_objects_visibility(true);
 
         update_bb();
         m_connectors_editing = !m_selected.empty();
@@ -1530,6 +1580,8 @@ void GLGizmoCut3D::on_register_raycasters_for_picking()
  //   assert(m_raycasters.empty());
     if (!m_raycasters.empty())
         on_unregister_raycasters_for_picking();
+    if (m_curve)
+        return; // the Curve tool picks on the mesh itself
     // the gizmo grabbers are rendered on top of the scene, so the raytraced picker should take it into account
     m_parent.set_raycaster_gizmos_on_top(true);
 
@@ -2368,6 +2420,11 @@ void GLGizmoCut3D::PartSelection::turn_over_selection()
 
 void GLGizmoCut3D::on_render()
 {
+    if (m_curve) {
+        if (GLGizmoPathCut *curve_tool = path_cut())
+            curve_tool->render();
+        return;
+    }
     if (m_state == On) {
         // This gizmo is showing the object elevated. Tell the common
         // SelectionInfo object to lie about the actual shift.
@@ -3229,6 +3286,11 @@ void GLGizmoCut3D::render_input_window_warning() const
 
 void GLGizmoCut3D::on_render_input_window(float x, float y, float bottom_limit)
 {
+    if (m_curve) {
+        if (GLGizmoPathCut *curve_tool = path_cut())
+            curve_tool->render_input_window(x, y, bottom_limit);
+        return;
+    }
     GizmoImguiSetNextWIndowPos(x, y, ImGuiCond_Always, 0.0f, 0.0f);
     ImGuiWrapper::push_toolbar_style(m_parent.get_scale());
     GizmoImguiBegin(get_name(), ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
@@ -4019,6 +4081,8 @@ void GLGizmoCut3D::process_selection_rectangle(CutConnectors &connectors)
 
 bool GLGizmoCut3D::gizmo_event(SLAGizmoEventType action, const Vec2d& mouse_position, bool shift_down, bool alt_down, bool control_down)
 {
+    if (m_curve)
+        return false; // the Curve tool takes the mouse in on_mouse()
     if (is_dragging() || m_connector_mode == CutConnectorMode::Auto)
         return false;
 
@@ -4091,6 +4155,9 @@ bool GLGizmoCut3D::gizmo_event(SLAGizmoEventType action, const Vec2d& mouse_posi
 }
 
 CommonGizmosDataID GLGizmoCut3D::on_get_requirements() const {
+    if (m_curve)
+        if (const GLGizmoPathCut *curve_tool = path_cut())
+            return curve_tool->get_requirements();
     return CommonGizmosDataID(
                 int(CommonGizmosDataID::SelectionInfo)
               | int(CommonGizmosDataID::InstancesHider)
@@ -4100,6 +4167,8 @@ CommonGizmosDataID GLGizmoCut3D::on_get_requirements() const {
 void GLGizmoCut3D::data_changed(bool is_serializing) 
 {
     update_bb();
+    if (m_curve)
+        return; // no planar cut on screen
     if (auto oc = m_c->object_clipper())
         oc->set_behavior(m_connectors_editing, m_connectors_editing, double(m_contour_width));
 }
