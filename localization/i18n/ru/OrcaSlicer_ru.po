@@ -7255,7 +7255,6 @@ msgid "Print plate"
 msgstr "Распечатать стол"
 
 msgid "Export plate sliced file"
-msgstr "Экспорт стола в файл проекта"
 msgstr "Экспорт в сжатый G-код"
 
 msgid "Export all sliced file"
