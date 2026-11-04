@@ -4916,18 +4916,6 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         return;
     }
 
-    // ORCA the thin divider bars drawn between toolbar groups (main toolbar / gizmos toolbar /
-    // assemble view toolbar) are rendering-only and were never part of the mouse dispatch chain,
-    // so a click landing exactly on one used to fall through to the 3D scene below and could
-    // deselect the current selection or close the active arrange/orient/layersediting popup.
-    // Swallow it here as a no-op, same as any other in-toolbar click.
-    if (!mouse_in_layer_editing && _is_mouse_over_separator_toolbar(pos.cast<double>())) {
-        if (evt.LeftUp() || evt.MiddleUp() || evt.RightUp())
-            mouse_up_cleanup();
-        m_mouse.set_start_position_3D_as_invalid();
-        return;
-    }
-
     //BBS: GUI refactor: GLToolbar
     if (!mouse_in_layer_editing && m_assemble_view_toolbar.on_mouse(evt, *this)) {
         if (evt.LeftUp() || evt.MiddleUp() || evt.RightUp())
@@ -5022,6 +5010,17 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         // A gizmo that acts on a click or a drag may not request a frame itself.
         if (!evt.Moving())
             m_dirty = true;
+        return;
+    }
+
+    // ORCA the toolbars above have already handled clicks on their buttons. Any other click inside the top toolbar
+    // strip (dividers, toolbar background, margins around icons) is swallowed, so it can't fall through to the 3D scene
+    // and deselect the current selection or close the active arrange/orient/layers editing popup.
+    if (!mouse_in_layer_editing && (evt.ButtonDown() || evt.ButtonUp() || evt.ButtonDClick()) &&
+        !m_mouse.dragging && !m_rectangle_selection.is_dragging() && _is_mouse_over_top_toolbar(pos.cast<double>())) {
+        if (evt.ButtonUp())
+            mouse_up_cleanup();
+        m_mouse.set_start_position_3D_as_invalid();
         return;
     }
 
@@ -11476,37 +11475,29 @@ void GLCanvas3D::_render_separator_toolbar_left() const
     m_separator_toolbar.render(*this,GLToolbarItem::SeparatorLine);
 }
 
-// ORCA clicks on dividers / toolbar background / margins around icons fall straight through to the 3D scene
-// that causes deselecting the current selection / closing the active widget
-bool GLCanvas3D::_is_mouse_over_separator_toolbar(const Vec2d& mouse_pos) const
+// ORCA whether the mouse (canvas pixels, origin at top-left) is over the top toolbar strip:
+// main toolbar | divider | gizmos toolbar | divider | assemble view toolbar
+// In the assemble view only the gizmos toolbar is drawn there, placed right after the canvas center.
+bool GLCanvas3D::_is_mouse_over_top_toolbar(const Vec2d& mouse_pos) const
 {
-    if (!m_separator_toolbar.is_enabled())
-        return false;
-
-    const Size cnv_size = get_canvas_size();
-    const Vec2d scaled_mouse_pos((mouse_pos.x() - 0.5 * (double)cnv_size.get_width()), (0.5 * (double)cnv_size.get_height() - mouse_pos.y()));
-
-    const float gizmo_width = m_gizmos.get_scaled_total_width();
-    const float separator_width = m_separator_toolbar.get_width();
-    const float separator_height = m_separator_toolbar.get_height();
-    const float top = 0.5f * (float)cnv_size.get_height();
-    const float main_toolbar_left = -0.5f * (float)cnv_size.get_width() + get_main_toolbar_offset();
-
-    // same "left" values used by _render_separator_toolbar_right()/_left() above
-    const float left_positions[2] = {
-        main_toolbar_left + (m_main_toolbar.get_width() + gizmo_width + separator_width / 2), // right divider
-        main_toolbar_left + (m_main_toolbar.get_width())                                      // left divider
-    };
-
-    for (float left : left_positions) {
-        const float right  = left + separator_width * 0.5f;
-        const float bottom = top - separator_height;
-        if (left <= (float)scaled_mouse_pos.x() && (float)scaled_mouse_pos.x() <= right &&
-            bottom <= (float)scaled_mouse_pos.y() && (float)scaled_mouse_pos.y() <= top)
-            return true;
+    float left, width, height;
+    if (m_canvas_type == ECanvasType::CanvasAssembleView) {
+        if (!m_gizmos.is_enabled() || m_gizmos.get_selectable_icons_cnt() == 0)
+            return false;
+        // same left edge as GLGizmosManager::do_render_overlay()
+        left   = 0.5f * (float)get_canvas_size().get_width() + 0.5f * m_paint_toolbar_width;
+        width  = m_gizmos.get_scaled_total_width();
+        height = m_gizmos.get_scaled_total_height();
+    } else {
+        if (!m_main_toolbar.is_enabled())
+            return false;
+        left   = (float)get_main_toolbar_offset();
+        width  = m_main_toolbar.get_width() + m_separator_toolbar.get_width() + m_gizmos.get_scaled_total_width() + m_assemble_view_toolbar.get_width();
+        height = std::max({ m_main_toolbar.get_height(), m_gizmos.get_scaled_total_height(), m_assemble_view_toolbar.get_height() });
     }
 
-    return false;
+    return left <= (float)mouse_pos.x() && (float)mouse_pos.x() <= left + width &&
+           0.f  <= (float)mouse_pos.y() && (float)mouse_pos.y() <= height;
 }
 
 void GLCanvas3D::_render_collapse_toolbar() const
