@@ -1434,7 +1434,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 config.set_key_value("filament_tower_interface_purge_volume", new ConfigOptionFloat(full_config.filament_tower_interface_purge_volume.get_at(new_filament_id)));
                 config.set_key_value("filament_tower_interface_print_temp", new ConfigOptionInt(interface_temp));
 
-                int   flush_count = std::min(g_max_flush_count, (int) std::round(purge_volume / g_purge_volume_one_time));
+                // At least one chunk, or a flush under half a chunk is dropped from flush_length_1..4.
+                int   flush_count = std::clamp((int) std::round(purge_volume / g_purge_volume_one_time), 1, g_max_flush_count);
                 float flush_unit  = purge_length / flush_count;
                 int   flush_idx   = 0;
                 for (; flush_idx < flush_count; flush_idx++) {
@@ -11337,7 +11338,8 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     }
     dyn_config.set_key_value("flush_length", new ConfigOptionFloat(wipe_length));
 
-    int flush_count = std::min(g_max_flush_count, (int)std::round(wipe_volume / g_purge_volume_one_time));
+    // At least one chunk, or a flush under half a chunk is dropped from flush_length_1..4.
+    int flush_count = std::clamp((int)std::round(wipe_volume / g_purge_volume_one_time), 1, g_max_flush_count);
     float flush_unit = wipe_length / flush_count;
     int flush_idx = 0;
     for (; flush_idx < flush_count; flush_idx++) {
