@@ -327,6 +327,84 @@ std::string normalize_zip_entry_name(std::string entry_name)
     return entry_name;
 }
 
+// Locate the single "<name>.dist-info/" directory in a wheel. Returns false when there is none or
+// when the archive holds more than one.
+bool find_wheel_dist_info_dir(mz_zip_archive& archive, std::string& dist_info_dir, std::string& error)
+{
+    dist_info_dir.clear();
+
+    // Scan ALL entries, not just directory entries — some zip writers omit
+    // explicit directory entries. normalize_zip_entry_name strips trailing
+    // slashes, so we match ".dist-info" as the last path component of a
+    // directory entry, and ".dist-info/" embedded in a file path.
+    const mz_uint num_entries = mz_zip_reader_get_num_files(&archive);
+    mz_zip_archive_file_stat stat;
+
+    for (mz_uint i = 0; i < num_entries; ++i) {
+        if (!mz_zip_reader_file_stat(&archive, i, &stat))
+            continue;
+
+        std::string entry_name = normalize_zip_entry_name(zip_entry_name(archive, stat));
+        if (entry_name.empty())
+            continue;
+
+        // Find .dist-info as a path component.
+        size_t pos = entry_name.find(".dist-info");
+        if (pos == std::string::npos)
+            continue;
+
+        std::string candidate;
+        if (pos + 10 == entry_name.size()) {
+            // Directory entry itself (trailing / stripped by normalize).
+            candidate = entry_name + "/";
+        } else if (pos + 10 < entry_name.size() && entry_name[pos + 10] == '/') {
+            // File inside .dist-info/:  name.dist-info/METADATA
+            candidate = entry_name.substr(0, pos + 11); // include trailing /
+        } else {
+            continue; // .dist-info mid-name, not a path component.
+        }
+
+        if (!dist_info_dir.empty() && candidate != dist_info_dir) {
+            error = "Wheel contains multiple .dist-info directories: " + dist_info_dir + " and " + candidate;
+            return false;
+        }
+        dist_info_dir = candidate;
+    }
+
+    if (dist_info_dir.empty()) {
+        error = "Wheel does not contain a .dist-info directory";
+        return false;
+    }
+
+    return true;
+}
+
+// All Tag: values declared by a WHEEL file, in file order.
+std::vector<std::string> parse_wheel_tags(const std::string& wheel_content)
+{
+    std::vector<std::string> tags;
+
+    std::istringstream stream(wheel_content);
+    std::string        line;
+    while (std::getline(stream, line)) {
+        while (!line.empty() && (line.back() == '\r' || line.back() == '\n'))
+            line.pop_back();
+        if (line.rfind("Tag:", 0) != 0)
+            continue;
+
+        std::string tag = line.substr(4);
+        size_t      start = 0;
+        size_t      end   = tag.size();
+        while (start < end && (tag[start] == ' ' || tag[start] == '\t'))
+            ++start;
+        while (end > start && (tag[end - 1] == ' ' || tag[end - 1] == '\t'))
+            --end;
+        tags.push_back(tag.substr(start, end - start));
+    }
+
+    return tags;
+}
+
 struct ZipReaderGuard
 {
     mz_zip_archive archive;
@@ -763,7 +841,8 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginDescrip
     // Package-level auto-load flag only. The per-capability enable flags stay in the sidecar: a
     // capability has no existence — and so no state — until it is materialized, at which point the
     // loader seeds the flag onto the capability itself.
-    entry.enabled = state.enabled;
+    entry.enabled               = state.enabled;
+    entry.wheel_install_enabled = state.wheel_install;
     return true;
 }
 
@@ -815,6 +894,9 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstall
         if (state.contains("enabled") && state["enabled"].is_boolean())
             parsed.enabled = state["enabled"].get<bool>();
 
+        if (state.contains("wheel_install") && state["wheel_install"].is_boolean())
+            parsed.wheel_install = state["wheel_install"].get<bool>();
+
         // capabilities is a JSON array of single-key objects {<cap_name>: <bool>}.
         if (state.contains("capabilities") && state["capabilities"].is_array()) {
             for (const auto& item : state["capabilities"]) {
@@ -834,6 +916,25 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstall
     }
 }
 
+PluginInstallStateStatus read_install_state_status(const boost::filesystem::path& plugin_dir, PluginInstallState& out)
+{
+    namespace fs = boost::filesystem;
+
+    const fs::path sidecar_path = plugin_dir / INSTALL_STATE_FILE;
+
+    boost::system::error_code ec;
+    const bool exists = fs::exists(sidecar_path, ec);
+    if (ec)
+        return PluginInstallStateStatus::Invalid;
+    if (!exists)
+        return PluginInstallStateStatus::Missing;
+
+    if (!fs::is_regular_file(sidecar_path, ec) || ec)
+        return PluginInstallStateStatus::Invalid;
+
+    return read_install_state(plugin_dir, out) ? PluginInstallStateStatus::Ok : PluginInstallStateStatus::Invalid;
+}
+
 namespace {
 
 // The single descriptor -> sidecar metadata mapping. Prefer installed_version (fetched at install
@@ -844,6 +945,7 @@ void apply_install_metadata(PluginInstallState& state, const PluginDescriptor& e
     state.installed_version = !entry.installed_version.empty() ? entry.installed_version : entry.version;
     state.plugin_name       = entry.name;
     state.cloud_uuid        = entry.cloud_uuid();
+    state.wheel_install     = entry.wheel_install_enabled;
 }
 
 } // namespace
@@ -859,14 +961,27 @@ void seed_install_metadata(PluginInstallState& state, const PluginDescriptor& en
 
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginInstallState& state)
 {
-    namespace fs                = boost::filesystem;
-    const fs::path sidecar_path = plugin_dir / ".install_state.json";
+    namespace fs = boost::filesystem;
+
+    // Never replace a sidecar that exists but cannot be read: that would silently discard the
+    // permissions and capability choices still stored in it.
+    PluginInstallState probe;
+    if (read_install_state_status(plugin_dir, probe) == PluginInstallStateStatus::Invalid) {
+        BOOST_LOG_TRIVIAL(error) << "Refusing to overwrite unreadable plugin install state in " << plugin_dir.string();
+        return false;
+    }
+
+    const fs::path    sidecar_path = plugin_dir / INSTALL_STATE_FILE;
+    const std::string unique       = fs::unique_path("%%%%-%%%%-%%%%").string();
+    const fs::path    temp_path    = plugin_dir / (std::string(INSTALL_STATE_FILE) + ".tmp-" + unique);
 
     nlohmann::json json;
     json["installed_from"]    = state.installed_from;
     json["installed_version"] = state.installed_version;
     json["plugin_name"]       = state.plugin_name;
     json["enabled"]           = state.enabled;
+    if (state.wheel_install)
+        json["wheel_install"] = true;
     if (!state.cloud_uuid.empty())
         json["cloud_uuid"] = state.cloud_uuid;
 
@@ -885,12 +1000,61 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
         capabilities.push_back(nlohmann::json{{name, enabled}});
     json["capabilities"] = std::move(capabilities);
 
-    boost::nowide::ofstream f(sidecar_path.string());
-    if (!f)
-        return false;
+    // Write beside the sidecar first, then replace it. A truncated or half-written sidecar would
+    // lose permissions, capability enable flags and the auto-load state for the whole plugin.
+    {
+        boost::nowide::ofstream f(temp_path.string());
+        if (!f)
+            return false;
 
-    f << json.dump(2);
-    return static_cast<bool>(f);
+        f << json.dump(2, ' ', false, nlohmann::json::error_handler_t::replace);
+        f.flush();
+        if (!f) {
+            f.close();
+            boost::system::error_code remove_ec;
+            fs::remove(temp_path, remove_ec);
+            return false;
+        }
+    }
+
+    boost::system::error_code ec;
+    fs::rename(temp_path, sidecar_path, ec);
+    if (!ec)
+        return true;
+
+    // Windows cannot rename over an existing file. Replace through a sibling backup so a failure at
+    // any point leaves either the old or the new sidecar readable; the backup is kept if the final
+    // rename fails.
+    boost::system::error_code exists_ec;
+    if (!fs::exists(sidecar_path, exists_ec)) {
+        boost::system::error_code remove_ec;
+        fs::remove(temp_path, remove_ec);
+        return false;
+    }
+
+    const fs::path previous_path = plugin_dir / (std::string(INSTALL_STATE_FILE) + ".prev-" + unique);
+    fs::rename(sidecar_path, previous_path, ec);
+    if (ec) {
+        boost::system::error_code remove_ec;
+        fs::remove(temp_path, remove_ec);
+        return false;
+    }
+
+    fs::rename(temp_path, sidecar_path, ec);
+    if (ec) {
+        boost::system::error_code restore_ec;
+        fs::rename(previous_path, sidecar_path, restore_ec);
+        if (restore_ec)
+            BOOST_LOG_TRIVIAL(error) << "Failed to replace plugin install state; the previous sidecar was kept at "
+                                     << previous_path.string() << ": " << restore_ec.message();
+        boost::system::error_code remove_ec;
+        fs::remove(temp_path, remove_ec);
+        return false;
+    }
+
+    boost::system::error_code remove_ec;
+    fs::remove(previous_path, remove_ec);
+    return true;
 }
 
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginDescriptor& entry, bool enabled,
@@ -898,8 +1062,15 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
 {
     PluginInstallState state;
     // Loading a plugin updates its lifecycle/capability state, but must retain permissions granted
-    // during register_capabilities() or by a previous runtime audit prompt.
-    read_install_state(plugin_dir, state);
+    // during register_capabilities() or by a previous runtime audit prompt. An unreadable sidecar
+    // is not an absent one: refuse to replace it rather than silently discarding its grants.
+    const PluginInstallStateStatus status = read_install_state_status(plugin_dir, state);
+    if (status == PluginInstallStateStatus::Invalid) {
+        BOOST_LOG_TRIVIAL(error) << "Refusing to overwrite unreadable plugin install state in " << plugin_dir.string();
+        return false;
+    }
+    if (status == PluginInstallStateStatus::Missing)
+        seed_install_metadata(state, entry);
     apply_install_metadata(state, entry);
     state.enabled      = enabled;
     state.capabilities = capabilities;
@@ -912,6 +1083,12 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
     // sidecar is (re)initialized to "auto-load, nothing disabled". This intentionally resets
     // permissions on a fresh install/reinstall. PluginManager writes the real per-capability flags
     // while preserving permissions once the package is loaded, via the overload above.
+    PluginInstallState probe;
+    if (read_install_state_status(plugin_dir, probe) == PluginInstallStateStatus::Invalid) {
+        BOOST_LOG_TRIVIAL(error) << "Refusing to overwrite unreadable plugin install state in " << plugin_dir.string();
+        return false;
+    }
+
     PluginInstallState state;
     seed_install_metadata(state, entry);
     return write_install_state(plugin_dir, state);
@@ -1019,49 +1196,9 @@ bool read_wheel_plugin_metadata(const boost::filesystem::path& whl_path, PluginD
     reader.opened = true;
 
     // Find the single .dist-info directory.
-    // Scan ALL entries, not just directory entries — some zip writers omit
-    // explicit directory entries.  normalize_zip_entry_name strips trailing
-    // slashes, so we match ".dist-info" as the last path component of a
-    // directory entry, and ".dist-info/" embedded in a file path.
-    const mz_uint num_entries = mz_zip_reader_get_num_files(&reader.archive);
     std::string dist_info_dir;
-    mz_zip_archive_file_stat stat;
-
-    for (mz_uint i = 0; i < num_entries; ++i) {
-        if (!mz_zip_reader_file_stat(&reader.archive, i, &stat))
-            continue;
-
-        std::string entry_name = normalize_zip_entry_name(zip_entry_name(reader.archive, stat));
-        if (entry_name.empty())
-            continue;
-
-        // Find .dist-info as a path component.
-        size_t pos = entry_name.find(".dist-info");
-        if (pos == std::string::npos)
-            continue;
-
-        std::string candidate;
-        if (pos + 10 == entry_name.size()) {
-            // Directory entry itself (trailing / stripped by normalize).
-            candidate = entry_name + "/";
-        } else if (pos + 10 < entry_name.size() && entry_name[pos + 10] == '/') {
-            // File inside .dist-info/:  name.dist-info/METADATA
-            candidate = entry_name.substr(0, pos + 11); // include trailing /
-        } else {
-            continue; // .dist-info mid-name, not a path component.
-        }
-
-        if (!dist_info_dir.empty() && candidate != dist_info_dir) {
-            error = "Wheel contains multiple .dist-info directories: " + dist_info_dir + " and " + candidate;
-            return false;
-        }
-        dist_info_dir = candidate;
-    }
-
-    if (dist_info_dir.empty()) {
-        error = "Wheel does not contain a .dist-info directory";
+    if (!find_wheel_dist_info_dir(reader.archive, dist_info_dir, error))
         return false;
-    }
 
     // Read METADATA.
     const std::string metadata_path = dist_info_dir + "METADATA";
@@ -1097,21 +1234,7 @@ bool read_wheel_plugin_metadata(const boost::filesystem::path& whl_path, PluginD
 
     // Parse and validate wheel platform tags.
     {
-        std::vector<std::string> wheel_tags;
-        std::istringstream wstream(wheel_content);
-        std::string wline;
-        while (std::getline(wstream, wline)) {
-            while (!wline.empty() && (wline.back() == '\r' || wline.back() == '\n'))
-                wline.pop_back();
-            if (wline.rfind("Tag:", 0) == 0) {
-                std::string tag = wline.substr(4);
-                size_t s = 0, e = tag.size();
-                while (s < e && (tag[s] == ' ' || tag[s] == '\t')) ++s;
-                while (e > s && (tag[e - 1] == ' ' || tag[e - 1] == '\t')) --e;
-                wheel_tags.push_back(tag.substr(s, e - s));
-            }
-        }
-
+        const std::vector<std::string> wheel_tags = parse_wheel_tags(wheel_content);
         if (!wheel_tags.empty()) {
             bool compatible = false;
             const std::string abi_tag = PythonInterpreter::python_abi_tag();
@@ -1204,6 +1327,58 @@ bool read_wheel_plugin_metadata(const boost::filesystem::path& whl_path, PluginD
     descriptor.description = meta_summary;
     descriptor.author     = meta_author;
 
+    return true;
+}
+
+bool read_wheel_install_metadata(const boost::filesystem::path& whl_path, WheelInstallMetadata& out, std::string& error)
+{
+    namespace fs = boost::filesystem;
+
+    out = {};
+    error.clear();
+
+    if (!fs::exists(whl_path) || !fs::is_regular_file(whl_path)) {
+        error = "Wheel plugin file does not exist: " + whl_path.string();
+        return false;
+    }
+
+    ZipReaderGuard reader;
+    if (!open_zip_reader(&reader.archive, whl_path.string())) {
+        error = "Failed to open wheel as zip: " + MZ_Archive::get_errorstr(mz_zip_get_last_error(&reader.archive));
+        return false;
+    }
+    reader.opened = true;
+
+    std::string dist_info_dir;
+    if (!find_wheel_dist_info_dir(reader.archive, dist_info_dir, error))
+        return false;
+
+    std::string meta_content;
+    if (!read_zip_text_file(reader.archive, (dist_info_dir + "METADATA").c_str(), meta_content, error))
+        return false;
+
+    std::string              meta_name, meta_version, meta_summary, meta_author, meta_requires_python, meta_import_name;
+    std::vector<std::string> requires_dist;
+    std::string              meta_error;
+    parse_metadata_rfc822(meta_content, meta_name, meta_version, meta_summary, meta_author, meta_requires_python, meta_import_name,
+                          requires_dist, meta_error);
+
+    if (meta_name.empty()) {
+        error = "Wheel METADATA missing required Name field";
+        return false;
+    }
+    if (meta_version.empty()) {
+        error = "Wheel METADATA missing required Version field";
+        return false;
+    }
+
+    std::string wheel_content;
+    if (!read_zip_text_file(reader.archive, (dist_info_dir + "WHEEL").c_str(), wheel_content, error))
+        return false;
+
+    out.name    = std::move(meta_name);
+    out.version = std::move(meta_version);
+    out.tags    = parse_wheel_tags(wheel_content);
     return true;
 }
 

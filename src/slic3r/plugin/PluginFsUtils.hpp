@@ -40,6 +40,9 @@ struct PluginInstallState {
     PluginPermissions permissions;
 
     bool enabled = true;
+    // Opt-in: install the entry wheel with uv instead of extracting it at load time. Absent in the
+    // sidecar means false, so existing installations keep the legacy behavior until migrated.
+    bool wheel_install = false;
     std::vector<std::pair<std::string, bool>> capabilities; // name -> enabled, ordered
 };
 
@@ -96,6 +99,16 @@ bool read_python_plugin_metadata(const boost::filesystem::path& py_path, PluginD
 // Returns true on success.
 bool read_wheel_plugin_metadata(const boost::filesystem::path& whl_path, PluginDescriptor& descriptor, std::string& error);
 
+// The subset of wheel metadata uv needs to accept a staged copy under a valid filename: the
+// distribution name and version from METADATA and the declared WHEEL Tag lines.
+struct WheelInstallMetadata
+{
+    std::string              name;
+    std::string              version;
+    std::vector<std::string> tags;
+};
+bool read_wheel_install_metadata(const boost::filesystem::path& whl_path, WheelInstallMetadata& out, std::string& error);
+
 // Find the single plugin entry file (.py or .whl) in a directory.
 // Ignores __whl_extracted__ and hidden files/dirs.
 // Returns the path to the entry file, or an empty path with error set if zero or multiple candidates.
@@ -127,5 +140,16 @@ void seed_install_metadata(PluginInstallState& state, const PluginDescriptor& en
 bool read_install_state(const boost::filesystem::path& plugin_dir, PluginDescriptor& entry);
 // Full read of the sidecar; returns false if there is no/invalid sidecar.
 bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstallState& out);
+
+// Whether the sidecar is absent, present but unreadable/malformed, or readable. Callers that
+// rewrite state must not treat Invalid as Missing: overwriting it would silently discard the
+// permissions and capability choices it still holds.
+enum class PluginInstallStateStatus
+{
+    Missing,
+    Invalid,
+    Ok,
+};
+PluginInstallStateStatus read_install_state_status(const boost::filesystem::path& plugin_dir, PluginInstallState& out);
 
 } // namespace Slic3r

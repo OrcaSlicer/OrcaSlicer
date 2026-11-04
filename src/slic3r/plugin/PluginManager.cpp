@@ -13,6 +13,7 @@
 #include "PluginFsUtils.hpp"
 #include "PluginHooks.hpp"
 #include "PluginAuditManager.hpp"
+#include "PluginWheelInstall.hpp"
 #include "PyPluginTrampoline.hpp"
 #include "PythonInterpreter.hpp"
 #include "PythonPluginBridge.hpp"
@@ -32,6 +33,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <map>
 #include <mutex>
 #include "slic3r/plugin/CloudPluginService.hpp"
 #include <slic3r/plugin/PluginConfig.hpp>
@@ -684,6 +686,50 @@ bool PluginManager::is_plugin_load_in_progress(const std::string& plugin_key) co
     return m_load_in_progress.count(plugin_key) > 0;
 }
 
+bool PluginManager::is_plugin_operation_in_progress_locked(const std::string& plugin_key) const
+{
+    return m_plugin_operations.find(plugin_key) != m_plugin_operations.end();
+}
+
+namespace {
+// Same-thread nesting depth for plugin operations. An update reserves the key and then delegates
+// to install; that is the same operation, not a conflicting one.
+thread_local std::map<std::string, int> t_plugin_operation_depth;
+} // namespace
+
+bool PluginManager::begin_plugin_operation(const std::string& plugin_key)
+{
+    if (plugin_key.empty())
+        return true;
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+    int&                        local_depth = t_plugin_operation_depth[plugin_key];
+    if (m_plugin_operations.find(plugin_key) != m_plugin_operations.end() && local_depth == 0) {
+        t_plugin_operation_depth.erase(plugin_key);
+        return false;
+    }
+    ++m_plugin_operations[plugin_key];
+    ++local_depth;
+    return true;
+}
+
+void PluginManager::end_plugin_operation(const std::string& plugin_key)
+{
+    if (plugin_key.empty())
+        return;
+    std::lock_guard<std::mutex> lock(m_mutex);
+    auto it = m_plugin_operations.find(plugin_key);
+    if (it != m_plugin_operations.end()) {
+        if (--it->second <= 0)
+            m_plugin_operations.erase(it);
+    }
+    auto local = t_plugin_operation_depth.find(plugin_key);
+    if (local != t_plugin_operation_depth.end()) {
+        if (--local->second <= 0)
+            t_plugin_operation_depth.erase(local);
+    }
+}
+
 void PluginManager::wait_for_all_plugin_loads() const
 {
     std::unique_lock<std::mutex> lock(m_mutex);
@@ -843,6 +889,7 @@ void PluginManager::load_plugin(const std::string& plugin_key, bool skip_deps, s
     bool load_in_progress = false;
     bool load_slot_claimed = false;
     bool shutting_down     = false;
+    bool operation_in_progress = false;
     std::string invalid_error;
     std::vector<std::string> loaded_capability_names;
 
@@ -863,13 +910,20 @@ void PluginManager::load_plugin(const std::string& plugin_key, bool skip_deps, s
             }
         }
 
-        load_in_progress = m_load_in_progress.count(plugin_id) > 0;
-        shutting_down   = m_shutting_down.load(std::memory_order_acquire);
-        if (exists && !invalid && !already_loaded && !load_in_progress && !shutting_down) {
+        load_in_progress     = m_load_in_progress.count(plugin_id) > 0;
+        operation_in_progress = is_plugin_operation_in_progress_locked(plugin_id);
+        shutting_down        = m_shutting_down.load(std::memory_order_acquire);
+        if (!operation_in_progress && exists && !invalid && !already_loaded && !load_in_progress && !shutting_down) {
             m_load_in_progress.insert(plugin_id);
             m_load_errors.erase(plugin_id);
             load_slot_claimed = true;
         }
+    }
+
+    if (operation_in_progress) {
+        // An install/update/migration/delete owns this package; it may already have unloaded it.
+        BOOST_LOG_TRIVIAL(info) << "Plugin load refused — plugin operation in progress: " << plugin_id;
+        return;
     }
 
     if (already_loaded) {
@@ -1188,6 +1242,14 @@ void PluginManager::set_capability_enabled(const PluginCapabilityId& id, bool en
 
 void PluginManager::write_loaded_plugin_install_state(const std::string& plugin_key)
 {
+    // An install/update/migration owns the sidecar while it is replacing the package. A load
+    // callback must not write the old package's state over the new sidecar.
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (is_plugin_operation_in_progress_locked(plugin_key))
+            return;
+    }
+
     std::lock_guard<std::mutex> state_lock(m_install_state_mutex);
 
     PluginDescriptor descriptor;
@@ -1208,11 +1270,25 @@ void PluginManager::write_loaded_plugin_install_state(const std::string& plugin_
     if (descriptor.plugin_root.empty())
         return;
 
-    write_install_state(boost::filesystem::path(descriptor.plugin_root), descriptor, /*enabled=*/true, capabilities);
+    if (write_install_state(boost::filesystem::path(descriptor.plugin_root), descriptor, /*enabled=*/true, capabilities)) {
+        // The new sidecar is authoritative again; a later unload should update it normally.
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_suppress_unload_state_write.erase(plugin_key);
+    }
 }
 
 void PluginManager::mark_plugin_install_state_disabled(const std::string& plugin_key)
 {
+    // During an operation the package state is being replaced; the operation writes the new sidecar
+    // itself, and this callback must not rewrite the old (possibly restored) one as disabled. The
+    // per-key suppression persists until the next successful load, so a queued callback is covered
+    // too.
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (is_plugin_operation_in_progress_locked(plugin_key) || m_suppress_unload_state_write.count(plugin_key) > 0)
+            return;
+    }
+
     std::lock_guard<std::mutex> state_lock(m_install_state_mutex);
 
     PluginDescriptor descriptor;
@@ -1221,7 +1297,12 @@ void PluginManager::mark_plugin_install_state_disabled(const std::string& plugin
 
     const boost::filesystem::path root(descriptor.plugin_root);
     PluginInstallState state;
-    if (!read_install_state(root, state))
+    const PluginInstallStateStatus status = read_install_state_status(root, state);
+    if (status == PluginInstallStateStatus::Invalid) {
+        BOOST_LOG_TRIVIAL(error) << "Refusing to modify unreadable plugin install state for " << plugin_key;
+        return;
+    }
+    if (status == PluginInstallStateStatus::Missing)
         seed_install_metadata(state, descriptor);
     state.enabled = false;
     if (!write_install_state(root, state))
@@ -1456,15 +1537,50 @@ bool PluginManager::install_plugin(const boost::filesystem::path& filepath, Plug
         cloud_user_id = m_cloud_user_id;
     }
 
-    // A local overwrite must not leave the old module holding the package file or its Python
-    // namespace while the installer replaces the package on disk.
-    if (!plugin_descriptor.is_cloud_plugin()) {
-        const std::string local_plugin_key = make_local_plugin_key(filepath.stem().string());
-        if (is_plugin_loaded(local_plugin_key))
-            unload_plugin(local_plugin_key);
+    // The installer replaces the package on disk. Reserve the key for the whole operation so a load
+    // or delete cannot start between the checks below and the promotion. The existing successful
+    // update lifecycle is preserved: a loaded plugin is unloaded just before promotion and is not
+    // reloaded afterwards.
+    std::string plugin_key = plugin_descriptor.plugin_key;
+    if (plugin_key.empty()) {
+        if (plugin_descriptor.is_cloud_plugin())
+            plugin_key = plugin_descriptor.cloud_uuid();
+        else
+            plugin_key = make_local_plugin_key(filepath.stem().string());
     }
 
-    if (!plugin_loader::install_plugin(filepath, cloud_user_id, plugin_descriptor, error)) {
+    PluginOperationScope operation(*this, plugin_key);
+    if (!operation.acquired()) {
+        error = _u8L("Another operation is already running for this plugin.");
+        if (!plugin_descriptor.plugin_key.empty())
+            set_plugin_error(plugin_descriptor.plugin_key, error);
+        return false;
+    }
+
+    if (!plugin_key.empty() && is_plugin_load_in_progress(plugin_key)) {
+        error = _u8L("The plugin is still loading. Try again when it has finished.");
+        if (!plugin_descriptor.plugin_key.empty())
+            set_plugin_error(plugin_descriptor.plugin_key, error);
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": " << error;
+        return false;
+    }
+
+    // Called by the installer after the complete candidate (including its uv target) is staged and
+    // immediately before the existing root is replaced. A staging failure therefore never disturbs
+    // a live plugin or its enabled state.
+    auto unload_before_promote = [this, plugin_key]() {
+        if (!plugin_key.empty() && is_plugin_loaded(plugin_key)) {
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                // The operation writes the new sidecar; a (possibly queued) unload callback must not
+                // flip it to enabled=false, now or after the operation ends.
+                m_suppress_unload_state_write.insert(plugin_key);
+            }
+            unload_plugin(plugin_key);
+        }
+    };
+
+    if (!plugin_loader::install_plugin(filepath, cloud_user_id, plugin_descriptor, error, unload_before_promote)) {
         if (!plugin_descriptor.plugin_key.empty())
             set_plugin_error(plugin_descriptor.plugin_key, error);
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << error;
@@ -1479,6 +1595,134 @@ bool PluginManager::install_plugin(const boost::filesystem::path& filepath, Plug
     if (!plugin_descriptor.plugin_key.empty())
         clear_plugin_error(plugin_descriptor.plugin_key);
 
+    return true;
+}
+
+bool PluginManager::is_wheel_install_enabled(const std::string& plugin_key) const
+{
+    PluginDescriptor descriptor;
+    return try_get_plugin_descriptor(plugin_key, descriptor) && descriptor.wheel_install_enabled;
+}
+
+bool PluginManager::set_wheel_install_enabled(const std::string& plugin_key, bool enabled, std::string& error)
+{
+    error.clear();
+
+    PluginDescriptor descriptor;
+    if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
+        error = GUI::format(_u8L("Plugin not found: %1%"), plugin_key);
+        return false;
+    }
+    if (descriptor.plugin_root.empty()) {
+        error = _u8L("Plugin is not installed.");
+        return false;
+    }
+    if (descriptor.wheel_install_enabled == enabled)
+        return true;
+
+    // Reserve the key so no load/capability state write can race the sidecar update or the uv
+    // installation. Migration never unloads or reloads.
+    PluginOperationScope operation(*this, plugin_key);
+    if (!operation.acquired()) {
+        error = _u8L("Another operation is already running for this plugin.");
+        return false;
+    }
+
+    // Switching the method is allowed only for a stopped plugin: an active or loading package keeps
+    // its interpreter/module state and files in use, so this method never unloads or reloads it.
+    if (is_plugin_loaded(plugin_key)) {
+        error = _u8L("Stop the plugin before changing its installation method.");
+        return false;
+    }
+    if (is_plugin_load_in_progress(plugin_key)) {
+        error = _u8L("Wait for the plugin to finish loading before changing its installation method.");
+        return false;
+    }
+
+    const boost::filesystem::path root(descriptor.plugin_root);
+
+    // An unreadable sidecar is not an absent one: refuse to replace it and lose permissions and
+    // capability choices. With an operation reserved, this read stays authoritative.
+    PluginInstallState current_state;
+    const PluginInstallStateStatus state_status = read_install_state_status(root, current_state);
+    if (state_status == PluginInstallStateStatus::Invalid) {
+        error = _u8L("The plugin's installation state is unreadable. Remove or reinstall the plugin before changing its installation method.");
+        return false;
+    }
+
+    auto build_state = [&]() {
+        PluginInstallState state = current_state;
+        if (state_status == PluginInstallStateStatus::Missing) {
+            seed_install_metadata(state, descriptor);
+            // Do not silently change the auto-load flag just by recording the method.
+            state.enabled = descriptor.enabled;
+        }
+        return state;
+    };
+
+    if (!enabled) {
+        // The installed target is left in place as inert cache: it is ignored while the opt-in is
+        // off, and re-enabling reuses it if the wheel is unchanged.
+        {
+            std::lock_guard<std::mutex> state_lock(m_install_state_mutex);
+            PluginInstallState state = build_state();
+            state.wheel_install      = false;
+            if (!write_install_state(root, state)) {
+                // TRN %1% is the path of the plugin's .install_state.json sidecar.
+                error =
+                    GUI::format(_u8L("Failed to save plugin installation state: %1%"), (root / INSTALL_STATE_FILE).string());
+                return false;
+            }
+        }
+
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (Plugin* plugin = find_plugin_locked(plugin_key))
+            plugin->descriptor.wheel_install_enabled = false;
+        return true;
+    }
+
+    if (boost::filesystem::path(descriptor.entry_path).extension() != ".whl") {
+        error = _u8L("Only .whl plugins can be installed with uv.");
+        return false;
+    }
+
+    // Install the uv target beside the stored wheel. ensure_installed stages and promotes only a
+    // complete target; on failure the stored wheel, the legacy extraction and the sidecar are
+    // untouched, so the plugin keeps its previous method.
+    std::string install_error;
+    bool        installed = false;
+    try {
+        installed = plugin_wheel_install::ensure_installed(descriptor, install_error);
+    } catch (const std::exception& ex) {
+        install_error = ex.what();
+    } catch (...) {
+        install_error = "unknown error";
+    }
+    if (!installed) {
+        // TRN %1% is the uv/installation error detail.
+        error = GUI::format(_u8L("Failed to install plugin wheel: %1%"), install_error);
+        return false;
+    }
+
+    // Record the choice, preserving the enabled flag, permissions and capability state read above.
+    {
+        std::lock_guard<std::mutex> state_lock(m_install_state_mutex);
+        PluginInstallState state = build_state();
+        state.wheel_install      = true;
+        if (!write_install_state(root, state)) {
+            // TRN %1% is the path of the plugin's .install_state.json sidecar.
+            error = GUI::format(_u8L("Failed to save plugin installation state: %1%"), (root / INSTALL_STATE_FILE).string());
+            return false;
+        }
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (Plugin* plugin = find_plugin_locked(plugin_key))
+            plugin->descriptor.wheel_install_enabled = true;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "Enabled uv wheel installation for plugin " << plugin_key << " (" << root.string() << ")";
     return true;
 }
 
@@ -1549,7 +1793,8 @@ void PluginManager::update_cloud_metadata(const std::vector<PluginDescriptor>& c
         const bool has_local_package        = entry.has_local_package();
         const std::string previous_error    = entry.error;
         // The cloud does not know about the local auto-load flag, which comes from the sidecar.
-        const bool enabled = entry.enabled;
+        const bool enabled               = entry.enabled;
+        const bool wheel_install_enabled = entry.wheel_install_enabled;
 
         entry             = cloud_entry;
         entry.plugin_root = local_plugin_root;
@@ -1558,9 +1803,10 @@ void PluginManager::update_cloud_metadata(const std::vector<PluginDescriptor>& c
             apply_plugin_metadata_fallbacks(entry, local_entry);
         if (entry.plugin_key.empty())
             entry.plugin_key = cloud_uuid;
-        entry.metadata_valid = has_local_package ? local_metadata_ok : cloud_entry.metadata_valid;
-        entry.error          = previous_error;
-        entry.enabled        = enabled;
+        entry.metadata_valid        = has_local_package ? local_metadata_ok : cloud_entry.metadata_valid;
+        entry.error                 = previous_error;
+        entry.enabled               = enabled;
+        entry.wheel_install_enabled = wheel_install_enabled;
         if (!entry.cloud.has_value())
             entry.cloud = CloudPluginState{cloud_uuid, has_local_package, false, false};
         else if (entry.cloud->uuid.empty())
@@ -1774,6 +2020,18 @@ bool PluginManager::download_and_install_cloud_plugin(const std::string& plugin_
 {
     error.clear();
 
+    // The download is part of the update operation: reserve the key so a load or delete cannot
+    // start while the candidate is being fetched and installed. Install reserves again (nested).
+    PluginOperationScope operation(*this, plugin_key);
+    if (!operation.acquired()) {
+        error = _u8L("Another operation is already running for this plugin.");
+        return false;
+    }
+    if (!plugin_key.empty() && is_plugin_load_in_progress(plugin_key)) {
+        error = _u8L("The plugin is still loading. Try again when it has finished.");
+        return false;
+    }
+
     CloudPluginDownload download;
     PluginDescriptor descriptor;
     if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
@@ -1805,6 +2063,8 @@ bool PluginManager::download_and_install_cloud_plugin(const std::string& plugin_
     // local manifest/PEP723 header version.
     descriptor.installed_version = requested_version;
 
+    // install_plugin() unloads a live module before replacing the package; the installer stages the
+    // replacement first and restores the previous installation if the promotion fails.
     if (!install_plugin(download.package_path, descriptor, error)) {
         if (error.empty())
             error = _u8L("Failed to install cloud plugin.");
@@ -1853,6 +2113,15 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
 {
     error.clear();
 
+    // Reserve the key for the whole update (descriptor read, download, install) so a load or delete
+    // cannot interleave. download_and_install() and install_plugin() reserve again on this thread.
+    PluginOperationScope operation(*this, plugin_key);
+    if (!operation.acquired()) {
+        error = _u8L("Another operation is already running for this plugin.");
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
+
     PluginDescriptor descriptor;
     if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
         error = GUI::format(_u8L("Plugin not found: %1%"), plugin_key);
@@ -1879,13 +2148,21 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
 
     clear_plugin_error(plugin_key);
 
+    // An update replaces the package, so it must not begin while a load is in progress.
+    // install_plugin() re-checks this after the download; this early check avoids a wasted download.
+    if (is_plugin_load_in_progress(plugin_key)) {
+        error = _u8L("The plugin is still loading. Try again when it has finished.");
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
+
     if (descriptor.has_local_package()) {
         boost::filesystem::path resolved_root;
         bool resolved_allowed_plugin_root = false;
         {
             std::lock_guard<std::mutex> lock(m_mutex);
             resolved_allowed_plugin_root = resolve_allowed_plugin_root(descriptor, get_plugin_directories(m_cloud_user_id),
-                                                                       _u8L("Refusing to delete a plugin outside the known plugin directories."),
+                                                                       _u8L("Refusing to update a plugin outside the known plugin directories."),
                                                                        resolved_root, error);
         }
 
@@ -1893,15 +2170,12 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
             set_plugin_error(plugin_key, error);
             return false;
         }
-
-        unload_plugin(plugin_key);
-
-        if (!delete_plugin_root(resolved_root, plugin_key, error)) {
-            set_plugin_error(plugin_key, error);
-            return false;
-        }
     }
 
+    // The existing package is not deleted up front: download_and_install_cloud_plugin() stages the
+    // complete replacement and only then backs up the old root and promotes the candidate. A failed
+    // download or staging step therefore leaves the working installation in place, and the previous
+    // root is retained after a successful update.
     if (!download_and_install_cloud_plugin(plugin_key, version, error)) {
         set_plugin_error(plugin_key, error);
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": " << error;
@@ -1917,6 +2191,17 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
 
 bool PluginManager::delete_installed_plugin_package(const PluginDescriptor& plugin, std::string& error)
 {
+    // Reserve the key so an install or load cannot start while the package is being removed.
+    PluginOperationScope operation(*this, plugin.plugin_key);
+    if (!operation.acquired()) {
+        error = _u8L("Another operation is already running for this plugin.");
+        return false;
+    }
+    if (!plugin.plugin_key.empty() && is_plugin_load_in_progress(plugin.plugin_key)) {
+        error = _u8L("The plugin is still loading. Try again when it has finished.");
+        return false;
+    }
+
     boost::filesystem::path resolved_root;
     bool resolved_allowed_plugin_root = false;
     {
@@ -1938,6 +2223,7 @@ bool PluginManager::delete_installed_plugin_package(const PluginDescriptor& plug
         m_plugins.erase(std::remove_if(m_plugins.begin(), m_plugins.end(),
                                        [&plugin](const Plugin& entry) { return entry.descriptor.plugin_key == plugin.plugin_key; }),
                         m_plugins.end());
+        m_suppress_unload_state_write.erase(plugin.plugin_key);
     }
 
     return true;
@@ -1946,6 +2232,17 @@ bool PluginManager::delete_installed_plugin_package(const PluginDescriptor& plug
 bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugin_descriptor, std::string& error)
 {
     namespace fs = boost::filesystem;
+
+    // Reserve the key so an install or load cannot start while the package is being re-keyed.
+    PluginOperationScope operation(*this, plugin_descriptor.plugin_key);
+    if (!operation.acquired()) {
+        error = _u8L("Another operation is already running for this plugin.");
+        return false;
+    }
+    if (!plugin_descriptor.plugin_key.empty() && is_plugin_load_in_progress(plugin_descriptor.plugin_key)) {
+        error = _u8L("The plugin is still loading. Try again when it has finished.");
+        return false;
+    }
 
     boost::filesystem::path resolved_root;
 
@@ -1996,7 +2293,8 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
             install_state.installed_version = !local_descriptor.installed_version.empty()
                                                   ? local_descriptor.installed_version
                                                   : local_descriptor.version;
-            install_state.enabled = local_descriptor.enabled;
+            install_state.enabled       = local_descriptor.enabled;
+            install_state.wheel_install = local_descriptor.wheel_install_enabled;
         }
         install_state.installed_from = "local";
         install_state.plugin_name    = local_descriptor.name;
@@ -2070,6 +2368,19 @@ bool PluginManager::delete_plugin(const std::string& plugin_key, std::string& er
 
     error.clear();
 
+    // Reserve for the delete; delete_installed_plugin_package() reserves again (nested).
+    PluginOperationScope operation(*this, plugin_key);
+    if (!operation.acquired()) {
+        error = _u8L("Another operation is already running for this plugin.");
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
+    if (is_plugin_load_in_progress(plugin_key)) {
+        error = _u8L("The plugin is still loading. Try again when it has finished.");
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
+
     PluginDescriptor descriptor;
     if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
         error = GUI::format(_u8L("Plugin not found: %1%"), plugin_key);
@@ -2091,6 +2402,19 @@ bool PluginManager::unsubscribe_cloud_plugin(const std::string& plugin_key, std:
         return false;
 
     error.clear();
+
+    // Reserve through the unsubscribe request and the local keep/remove step.
+    PluginOperationScope operation(*this, plugin_key);
+    if (!operation.acquired()) {
+        error = _u8L("Another operation is already running for this plugin.");
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
+    if (is_plugin_load_in_progress(plugin_key)) {
+        error = _u8L("The plugin is still loading. Try again when it has finished.");
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
 
     PluginDescriptor descriptor;
     if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
@@ -2124,6 +2448,20 @@ bool PluginManager::delete_and_unsubscribe_cloud_plugin(const std::string& plugi
         return false;
 
     error.clear();
+
+    // Reserve the key through the unsubscribe request and the local removal so a load cannot start
+    // between the unload below and the delete.
+    PluginOperationScope operation(*this, plugin_key);
+    if (!operation.acquired()) {
+        error = _u8L("Another operation is already running for this plugin.");
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
+    if (is_plugin_load_in_progress(plugin_key)) {
+        error = _u8L("The plugin is still loading. Try again when it has finished.");
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
 
     PluginDescriptor descriptor;
     if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
