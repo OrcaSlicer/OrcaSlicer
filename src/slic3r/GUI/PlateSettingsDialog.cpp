@@ -674,7 +674,8 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
             return;
         }
         wxCommandEvent evt(EVT_SET_BED_TYPE_CONFIRM, GetId());
-        static_cast<wxEvtHandler*>(m_other_layers_seq_panel)->ProcessEvent(evt);
+        if (get_other_layers_print_seq_choice() != 0)
+            static_cast<wxEvtHandler*>(m_other_layers_seq_panel)->ProcessEvent(evt);
         GetEventHandler()->ProcessEvent(evt);
         if (evt.GetString() == "Invalid")
             return;
