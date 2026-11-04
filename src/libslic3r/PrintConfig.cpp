@@ -13361,6 +13361,7 @@ OtherSlicingStatesConfigDef::OtherSlicingStatesConfigDef()
     def->tooltip = L("Are the extra multi-material priming regions used in this print?");
 
     new_def("initial_no_support_extruder", coInt, L("Initial no support extruder"), L("Zero-based index of the first extruder used for printing without support. Same as initial_no_support_tool."));
+    new_def("initial_no_support_nozzle_id", coInt, L("Initial non-support nozzle"), L("Zero-based logical nozzle index used first for printing the object without support."));
     new_def("in_head_wrap_detect_zone", coBool, L("In head wrap detect zone"), L("Indicates if the first layer overlaps with the head wrap zone."));
     new_def("curr_bed_type", coString, L("Current bed type"), L("Name of the currently selected bed plate type (e.g. 'Textured PEI Plate', 'Smooth High Temp Plate')."));
     new_def("imex_mode", coString, L("IDEX/IQEX active mode"), L("Name of the active IDEX/IQEX parallel print mode for this plate (e.g. 'primary', 'mirror', 'copy'). Empty string if IDEX/IQEX is not enabled."));

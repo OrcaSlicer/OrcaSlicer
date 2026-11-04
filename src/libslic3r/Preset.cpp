@@ -1637,7 +1637,7 @@ static std::vector<std::string> s_Preset_printer_options {
     "imex_nozzle_clearance_x", "imex_nozzle_clearance_y", "imex_carriage_margin", "imex_viz_theme",
     "imex_mode_names", "imex_mode_active_tools", "imex_mode_gcodes",
     // Multi-nozzle count + pre-heat model printer options
-    "extruder_max_nozzle_count", "group_algo_with_time", "enable_pre_heating", "hotend_heating_rate", "hotend_cooling_rate",
+    "extruder_max_nozzle_count", "handle_hotend_as_extruder", "group_algo_with_time", "enable_pre_heating", "hotend_heating_rate", "hotend_cooling_rate",
     "machine_hotend_change_time", "machine_prepare_compensation_time",
     // Fast-purge printer flag + device/firmware-facing per-variant extruder-change
     // deretraction speed (unconsumed by the slicer; carried by H2D/A2L/X2D/P2S machine profiles).
