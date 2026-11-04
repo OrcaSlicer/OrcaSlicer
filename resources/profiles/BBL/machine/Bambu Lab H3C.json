@@ -12,5 +12,5 @@
 	"family": "BBL-3DP",
 	"machine_tech": "FFF",
 	"model_id": "N10",
-	"default_materials": "Bambu PLA Matte @BBL H3C;Bambu PLA Basic @BBL H3C;Bambu PLA Silk @BBL H3C;Bambu PLA Marble @BBL H3C;Bambu PLA Sparkle @BBL H3C;Generic PLA @BBL H3C;Bambu TPU 95A HF @BBL H3C;Bambu ABS @BBL H3C;Bambu PLA Pure @BBL H3C;Bambu PLA Palette @BBL H3C"
+	"default_materials": "Bambu PLA Matte @BBL H3C;Bambu PLA Basic @BBL H3C;Bambu PLA Silk @BBL H3C;Bambu PLA Marble @BBL H3C;Bambu PLA Sparkle @BBL H3C;Generic PLA @BBL H3C;Bambu TPU 95A HF @BBL H3C;Bambu ABS @BBL H3C;Bambu PLA Pure @BBL H3C;Bambu PLA Palette @BBL H3C;Bambu PLA Basic @BBL H3C 0.2 nozzle;Bambu PLA Basic @BBL H3C 0.6 nozzle;Bambu PLA Basic @BBL H3C 0.8 nozzle"
 }
