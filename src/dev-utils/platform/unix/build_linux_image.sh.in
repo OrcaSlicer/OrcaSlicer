@@ -185,6 +185,8 @@ echo -n "[9/9] Generating Linux app..."
     fi
 
     cp -Rf ../resources "$APPDIR/resources"
+    # Orca: ship the HMS catalogs zipped; HMSQuery extracts the one a Bambu Lab printer needs
+    "@CMAKE_COMMAND@" -DHMS_DIR="$APPDIR/resources/hms" -P "@CMAKE_SOURCE_DIR@/cmake/modules/PackHmsResources.cmake"
 
     ORIGINAL_BINARY_LOCATION=""
     if [ -f "src/${CONFIG}/@SLIC3R_APP_CMD@" ]; then
