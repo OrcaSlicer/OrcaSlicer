@@ -62,6 +62,7 @@ static void fill_initial_stats(const indexed_triangle_set &its, TriangleMeshStat
 {
     out.number_of_facets    = its.indices.size();
     out.volume              = its_volume(its);
+    out.surface_area        = its_surface_area(its);
     update_bounding_box(its, out);
 
     const std::vector<Vec3i32> face_neighbors = its_face_neighbors(its);
@@ -205,6 +206,7 @@ bool TriangleMesh::from_stl(stl_file& stl, bool repair)
     m_stats.max = stl.stats.max;
     m_stats.size = stl.stats.size;
     m_stats.volume = stl.stats.volume;
+    m_stats.surface_area = stl.stats.surface_area;
 
     auto facets_w_1_bad_edge = stl.stats.connected_facets_2_edge - stl.stats.connected_facets_3_edge;
     auto facets_w_2_bad_edge = stl.stats.connected_facets_1_edge - stl.stats.connected_facets_2_edge;
@@ -248,6 +250,13 @@ float TriangleMesh::volume()
     if (m_stats.volume == -1)
         m_stats.volume = its_volume(this->its);
     return m_stats.volume;
+}
+
+float TriangleMesh::surface_area()
+{
+    if (m_stats.surface_area == -1)
+        m_stats.surface_area = its_surface_area(this->its);
+    return m_stats.surface_area;
 }
 
 void TriangleMesh::WriteOBJFile(const char* output_file) const
@@ -378,6 +387,7 @@ void TriangleMesh::flip_triangles()
 {
     its_flip_triangles(its);
     m_stats.volume = - m_stats.volume;
+    m_stats.surface_area = - m_stats.surface_area;
 }
 
 void TriangleMesh::align_to_origin()
@@ -1497,6 +1507,22 @@ float its_volume(const indexed_triangle_set &its)
 
     return volume;
 }
+
+float its_surface_area(const indexed_triangle_set& its, const Transform3d &t)
+{
+    if (its.empty()) return 0;
+    
+    const auto m = t.matrix().block(0, 0, 3, 3).cast<float>();
+    double total = 0.0;
+    for (const stl_triangle_vertex_indices& i : its.indices) {
+        const Vec3f a =  m*its.vertices[i(0)];
+        const Vec3f b =  m*its.vertices[i(1)];
+        const Vec3f c =  m*its.vertices[i(2)];
+        total += 0.5 * (b - a).cross(c - a).norm();
+    }
+    return total;
+}
+
 
 MassProperties MassProperties::transformed(const Transform3d &trafo) const
 {
