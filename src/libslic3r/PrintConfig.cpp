@@ -1522,6 +1522,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("spiral_mode_choice", coEnum);
     def->label = L("Spiral vase");
+    def->tooltip = L("This enables spiraling, which smooths out the Z moves of the outer contour and turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam.");
     def->enum_keys_map = &ConfigOptionEnum<SpiralModeChoice>::get_enum_values();
     def->enum_values.push_back("Same as Global");
     def->enum_values.push_back("Enable");
