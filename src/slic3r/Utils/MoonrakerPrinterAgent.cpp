@@ -2274,13 +2274,17 @@ nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
         payload["print"]["mc_percent"] = mc_percent;
     }
 
-    if (status_cache.contains("print_stats") && status_cache["print_stats"].contains("total_duration") &&
-        status_cache["print_stats"].contains("print_duration") && status_cache["print_stats"]["total_duration"].is_number() &&
+    // Moonraker exposes no remaining-time field: estimate it from elapsed print
+    // time and progress (remaining = elapsed * (1 - p) / p). The previous
+    // total_duration - print_duration only measured paused time, so it stayed
+    // near zero while printing and the UI never showed a remaining time.
+    if (mc_percent > 0 && status_cache.contains("print_stats") &&
+        status_cache["print_stats"].contains("print_duration") &&
         status_cache["print_stats"]["print_duration"].is_number()) {
-        const double total   = status_cache["print_stats"]["total_duration"].get<double>();
         const double elapsed = status_cache["print_stats"]["print_duration"].get<double>();
-        if (total > 0.0 && elapsed >= 0.0) {
-            const auto remaining_minutes          = std::max(0, static_cast<int>((total - elapsed) / 60.0));
+        if (elapsed > 0.0) {
+            const auto remaining_minutes =
+                std::max(0, static_cast<int>(elapsed * (100.0 - mc_percent) / mc_percent / 60.0));
             payload["print"]["mc_remaining_time"] = remaining_minutes;
         }
     }
