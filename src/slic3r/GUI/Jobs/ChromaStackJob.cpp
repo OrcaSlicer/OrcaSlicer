@@ -7,6 +7,8 @@
 #include <utility>
 #include <vector>
 
+#include "libslic3r/ChromaDiagnostics.hpp"
+#include "libslic3r/ChromaProfile.hpp"
 #include "libslic3r/ChromaStack.hpp"
 #include "libslic3r/TextureDisplacement.hpp"
 
@@ -29,6 +31,7 @@ void ChromaPlateJob::process(Ctl &ctl)
     // field queues several of these, and all but the last can be dropped before they start.
     if (ctl.was_canceled() || (m_current_generation && m_current_generation->load() != m_generation))
         return;
+    ChromaProfileScope prof("plate_mesh");
     m_result.mesh = chroma_plate_mesh(m_input.plate);
 }
 
@@ -122,6 +125,7 @@ ChromaSolveResult chroma_run_solve(ChromaSolveInput &input, const std::function<
     const auto stop = [&superseded]() { return superseded && superseded(); };
     if (stop())
         return result;
+    ChromaProfileSteps prof(std::string("solve") + (input.high_quality ? "(hq)" : "(live)"));
 
     // Decoding goes through the same cache as a layer's own texture: the probe carries nothing but
     // the image, and the cache is keyed by that buffer, so re-solving never decodes the PNG twice.
@@ -129,6 +133,7 @@ ChromaSolveResult chroma_run_solve(ChromaSolveInput &input, const std::function<
     TextureDisplacementLayer probe;
     probe.image_data = layer.chroma_source;
     const DecodedHeightTexture source = decode_height_texture(probe);
+    prof.step("decode", std::to_string(source.width) + "x" + std::to_string(source.height));
     if (source.empty() || stop())
         return result;
 
@@ -166,17 +171,22 @@ ChromaSolveResult chroma_run_solve(ChromaSolveInput &input, const std::function<
         width  = rw;
         height = rh;
     }
+    prof.step("downsample", std::to_string(width) + "x" + std::to_string(height) + " cap=" +
+                                std::to_string(input.max_solve_px));
     if (stop())
         return result;
 
     // The patch the picture is printed on, and how far from level it is. Both are pure functions of
     // the mesh snapshot taken when this was queued, which is what keeps the Model out of here.
     const indexed_triangle_set patch = extract_painted_patch(input.base_mesh, input.facet_data);
+    prof.step("extract_patch", std::to_string(patch.indices.size()) + " tri of " +
+                                   std::to_string(input.base_mesh.indices.size()));
     if (stop())
         return result;
 
     const ChromaPatchMetrics metrics = chroma_measure_patch(patch, input.trafo, input.bake,
                                                             input.instance_bottom_z);
+    prof.step("measure_patch");
     // The panel keeps the base up to date while it is open, but a solve is the point at which being
     // wrong stops being recoverable: it is what writes the height map every later step reads.
     if (input.base_auto && metrics.valid && layer.chroma.layer_height_mm > 0.f) {
@@ -191,6 +201,7 @@ ChromaSolveResult chroma_run_solve(ChromaSolveInput &input, const std::function<
     ChromaSurface surface;
     if (metrics.valid && metrics.tilt_deg > 0.5f)
         surface = chroma_build_surface(patch, input.trafo, input.bake, layer, aspect, width, height);
+    prof.step("build_surface", metrics.valid && metrics.tilt_deg > 0.5f ? "tilted" : "level, skipped");
     if (stop())
         return result;
 
@@ -200,14 +211,27 @@ ChromaSolveResult chroma_run_solve(ChromaSolveInput &input, const std::function<
     // to max_solve_px while the final one is the picture's own size, so the same millimetre is a
     // different number of texels in each.
     ChromaSolveOptions options;
-    options.high_quality = input.high_quality;
+    options.high_quality   = input.high_quality;
+    options.despike_layers = input.despike_layers;
     if (input.picture_mm > 0.f && input.line_width_mm > 0.f && width > 0) {
         const float mm_per_texel = input.picture_mm / float(width);
         if (mm_per_texel > 0.f)
             options.dither_cell_px = std::max(1, int(std::ceil(input.line_width_mm / mm_per_texel)));
     }
 
+    // Asked of the picture this run actually works on, so the number the card quotes is the number the
+    // solve saw. Cheap next to the solve itself, and it is the only chance to ask: the card has a
+    // thumbnail, and a thumbnail of flat artwork has blended edges and hundreds of colours.
+    result.palette = chroma_image_is_palette_exact(rgb, width, height);
+    prof.step("palette_exact");
+    result.diagnostics = chroma_diagnose(rgb, width, height, layer.chroma);
+    prof.step("diagnose");
+
     ChromaSolve solve = chroma_solve(rgb, width, height, layer.chroma, options);
+    prof.step("chroma_solve", std::string(layer.chroma.dither ? "dither " : "no-dither ") + "cell=" +
+                                  std::to_string(options.dither_cell_px) + " bands=" +
+                                  std::to_string(layer.chroma.bands.size()) + " relief=" +
+                                  std::to_string(layer.chroma.relief_layers()));
     if (solve.empty() || stop())
         return result;
 
@@ -216,6 +240,7 @@ ChromaSolveResult chroma_run_solve(ChromaSolveInput &input, const std::function<
     // Deepening the map texel by texel puts them back; the depth it asks for is what the layer then
     // carries. A level patch comes back untouched.
     const float depth_mm = chroma_tilt_relief(solve, layer.chroma, surface);
+    prof.step("tilt_relief");
 
     // Printed picture-side down, the relief grows into the plate rather than out of it: the column that
     // is tallest in the print is the one that reaches furthest *up* from the face lying on the build
@@ -226,11 +251,16 @@ ChromaSolveResult chroma_run_solve(ChromaSolveInput &input, const std::function<
         chroma_invert_relief(solve);
 
     std::vector<unsigned char> png = chroma_encode_height_png(solve);
+    prof.step("encode_png", std::to_string(png.size() / 1024) + " KiB");
     if (png.empty() || stop())
         return result;
 
     result.png      = std::make_shared<std::vector<unsigned char>>(std::move(png));
     result.depth_mm = depth_mm;
+
+    // Before the moves below, and taken whole: the split reads it, and it is the one thing the height
+    // map cannot be turned back into.
+    result.levels = solve.levels;
 
     result.preview.width  = solve.width;
     result.preview.height = solve.height;
@@ -240,6 +270,7 @@ ChromaSolveResult chroma_run_solve(ChromaSolveInput &input, const std::function<
     result.mean_delta_e   = solve.mean_delta_e;
     result.max_delta_e    = solve.max_delta_e;
     result.ok             = true;
+    prof.total();
     return result;
 }
 

@@ -80,6 +80,10 @@ uniform vec3  band_color[CHROMA_MAX_BANDS];
 uniform float band_density[CHROMA_MAX_BANDS];
 uniform float band_layers[CHROMA_MAX_BANDS];
 uniform float total_layers;
+// How much of that is the picture: the stack's own layers, without the opaque base under (or, face
+// down, over) them. It is the sum of band_layers above and is uploaded rather than summed here only
+// because the walk below would otherwise need a loop before it can start.
+uniform float relief_layers;
 // 1 when the plate prints picture down, 0 otherwise.
 //
 // Face down the picture's face is the plate's *bottom* and the opaque base is on top, so the filament
@@ -89,7 +93,18 @@ uniform float total_layers;
 // this shader, the walls and the layer lines included, follows from that one number.
 uniform int   stack_flipped;
 
-uniform float base_z;        // world Z of the bottom of the object
+// The print as it was when it had got this far up, or 0 for the finished print.
+//
+// A stack is paid for one swap at a time and it is not obvious from the finished picture which swap
+// bought what. Walking the limit up the stack answers that: everything already below it is finished
+// and does not move, and everything still to come shows the colour the stack had reached at the
+// time, which is what the print on the bed actually looked like at that layer. It costs one clamp,
+// because the walk is already layer by layer from the bottom.
+uniform float layer_limit;
+
+// World Z of the plate's picture plane: the bottom of the object as its mesh stands before the preview
+// displaces it, which is the face the relief grows out of in both orientations.
+uniform float base_z;
 uniform float layer_height;  // mm
 // World +Z in eye space: the direction the stack is built along, which is what the view ray's path
 // through it is measured against.
@@ -98,6 +113,25 @@ uniform vec3  stack_axis;
 // rim; an opaque stack should not glow.
 uniform float translucency;
 uniform float alpha;
+
+// Whether the plate is drawn as the translucent object it is.
+//
+// The walk below already knows how much light the stack stops, because stopping light is the only
+// thing it computes: the product of the bands' transmittances along the view ray is what the plate
+// lets past. Handed to the blender as this fragment's alpha, that *is* the see-through part of how a
+// print looks, and no ray has to be traced through the scene for it - whatever stands behind the plate
+// is already in the colour buffer by the time this pass runs, so one blend per fragment buys what a
+// ray would have gone and fetched.
+//
+// What it does and does not show is worth being plain about. A ChromaStack plate is built to be
+// opaque: CHROMA_TD_OPAQUE_FRACTION says a filament hides what is behind it after about a tenth of its
+// TD, so a finished two-millimetre stack stops essentially all of the light and comes out opaque here
+// too, correctly. What shows through is the thin places - the first layers of a clear filament, a plate
+// whose relief is most of its depth, the stack as the layer slider walks up it - which is also where a
+// real print is see-through and nowhere else.
+//
+// 0, which is what an unset uniform gives, draws the plate opaque exactly as before.
+uniform int see_through;
 
 // CHROMA_LIT_FRONT or CHROMA_LIT_BACK, and the panel the print stands on when it is back lit. The
 // colour and the intensity are read only in that mode, so leaving them unset cannot dim anything.
@@ -123,6 +157,42 @@ uniform float tiling_scale;  // mm per uv unit
 uniform float tex_aspect;    // picture width / height
 uniform float rotation_rad;
 uniform vec2  uv_offset;
+
+// Lateral scattering: light that goes into the plastic at one point and comes back out at another.
+//
+// The walk above is the straight-through part and it is exact, but filament is a dense scattering
+// medium - nearer to wax than to glass - so a print is softer than the solve it came from. Detail
+// finer than the depth at which the filament goes opaque does not survive the plastic, which is why
+// a real plate never shows the hard terrace edges this shader drew without it.
+//
+// It is done in the picture's own space rather than on screen: the picture is flat and its uv is
+// already reconstructed here in closed form (picture_uv()), so the radius can be stated in
+// millimetres on the print and stay the same however far the view is zoomed. A screen-space blur
+// would have to be re-derived per fragment, would smear across silhouettes, and would need a
+// resolve pass this gizmo does not have.
+//
+// `scatter_tex` holds what the solve predicts the print looks like, straight down, at the solve's own
+// resolution. What is added back is the DIFFERENCE the neighbourhood makes, not the neighbourhood
+// itself, so everything the walk knows about grazing angles and walls survives untouched.
+uniform int       scatter_enabled;
+uniform sampler2D scatter_tex;
+uniform vec2      scatter_uv;      // the scattering radius, in uv, already corrected for the picture's aspect
+uniform float     scatter_strength;
+
+// ---- The debug views ----
+//
+// What the shader believes, drawn instead of what it predicts. The preview answers "does this look
+// right"; when it does not, each of these answers a different "why not". The first is the one that
+// matters most often: a stack whose relief never reached the mesh reads as the top filament
+// everywhere, and that looks exactly like a correct solve of a very dark picture.
+#define CHROMA_DBG_OFF    0
+#define CHROMA_DBG_HEIGHT 1
+#define CHROMA_DBG_BAND   2
+#define CHROMA_DBG_FACING 3
+#define CHROMA_DBG_UV     4
+#define CHROMA_DBG_SOLVE  5
+#define CHROMA_DBG_ALBEDO 6
+uniform int chroma_debug;
 
 in vec3  clipping_planes_dots;
 in vec3  eye_normal;
@@ -154,22 +224,79 @@ vec3 error_ramp(float e)
     return   mix(c, ERROR_RAMP_WRONG, clamp((e * ERROR_DE_FULL - ERROR_DE_BAD) / (ERROR_DE_FULL - ERROR_DE_BAD), 0.0, 1.0));
 }
 
+// Two rings of six taps and a centre, weighted as a coarse Gaussian. Written as trigonometry rather
+// than a table of offsets because GLSL 110 has no array initializers, and the same source has to
+// compile on both profiles.
+// The ramp the debug views measure with: dark blue at 0 through cyan and green to pale yellow at 1.
+// Its lightness rises the whole way, so a value can be read off it in a greyscale screenshot and by
+// an eye that does not separate the hues.
+vec3 debug_ramp(float t)
+{
+    t      = clamp(t, 0.0, 1.0);
+    vec3 c = mix(vec3(0.10, 0.05, 0.45), vec3(0.00, 0.55, 0.85), clamp(t * 3.0, 0.0, 1.0));
+    c      = mix(c, vec3(0.30, 0.85, 0.25), clamp(t * 3.0 - 1.0, 0.0, 1.0));
+    return   mix(c, vec3(1.00, 0.95, 0.35), clamp(t * 3.0 - 2.0, 0.0, 1.0));
+}
+
+// A colour per band index. The golden ratio puts adjacent indices on opposite sides of the hue
+// wheel, so one band's worth of step reads as a step rather than as a gradient.
+vec3 debug_index_color(float i)
+{
+    float h = fract(i * 0.6180339887);
+    vec3  k = vec3(1.0, 2.0 / 3.0, 1.0 / 3.0);
+    return clamp(abs(fract(vec3(h) + k) * 6.0 - 3.0) - 1.0, 0.0, 1.0) * 0.85 + 0.15;
+}
+
+vec3 scatter_at(vec2 uv, out vec3 centre)
+{
+    centre     = texture(scatter_tex, uv).rgb;
+    vec3  sum  = centre * 0.42;
+    float wsum = 0.42;
+    for (int ring = 0; ring < 2; ++ring) {
+        float r = (ring == 0) ? 0.45 : 1.0;
+        float w = (ring == 0) ? 0.055 : 0.03;
+        float t = (ring == 0) ? 0.0 : 0.5;
+        for (int i = 0; i < 6; ++i) {
+            float a = (float(i) + t) * 1.0471976;
+            sum  += texture(scatter_tex, uv + vec2(cos(a), sin(a)) * r * scatter_uv).rgb * w;
+            wsum += w;
+        }
+    }
+    return sum / max(wsum, 1.0e-4);
+}
+
 void main()
 {
     if (any(lessThan(clipping_planes_dots, vec3(0.0))))
         discard;
 
-    float z_rel  = world_z - base_z;
-    float layers = max(z_rel / layer_height, 0.0);
-    // Measured from the top down when the picture is on the underside. A uniform decides it, so every
-    // fragment of a quad takes the same branch and fwidth() below still has its derivatives.
+    // How high this fragment stands above the plate's picture plane, in layers. That plane is the
+    // undisplaced face the relief was displaced from, and it is the object's own bottom in both
+    // orientations, because base_z is read off the volume's mesh before the preview displaces it.
+    float z_rel  = (world_z - base_z) / layer_height;
+    float layers = max(z_rel, 0.0);
+    // Measured from the top down when the picture is on the underside: the relief is cut up into the
+    // plate there, so a column whose face has risen k layers off the bed is k layers shorter than the
+    // stack, and what the eye looking at that face sees through is the rest of it. A uniform decides
+    // it, so every fragment of a quad takes the same branch and fwidth() below still has its
+    // derivatives.
+    //
+    // Against the relief rather than the whole stack, because the base is on the far side of the
+    // picture here: a column raised the full depth has the base directly against its face and is seen
+    // through nothing at all. Measuring against total_layers instead adds the base's own thickness to
+    // every column, which saturates the deepest fifth of the picture into one flat field and leaves
+    // the rest a band too dark.
     if (stack_flipped != 0)
-        layers = max(total_layers - layers, 0.0);
+        layers = max(relief_layers - layers, 0.0);
     // How much of a layer one pixel covers. Past half a layer the height is taken as continuous, so a
     // surface too far away to resolve its layers averages them instead of flickering between them.
     float px      = fwidth(layers);
     float stepped = clamp(ceil(layers - 1.0e-4), 1.0, total_layers);
     float here    = mix(stepped, clamp(layers, 0.0, total_layers), clamp(px - 0.5, 0.0, 1.0));
+    // Clamped after the sub-layer blend above rather than before it, so that a surface too far away
+    // to resolve its layers still averages them instead of snapping to the limit.
+    if (layer_limit > 0.0)
+        here = min(here, layer_limit);
 
     vec3 N = normalize(eye_normal);
     vec3 V = normalize(-eye_position);
@@ -182,9 +309,18 @@ void main()
 
     // Walk the bands from the bottom, stopping at the layer this fragment sits at. `own` is the
     // filament of the band that layer belongs to, which is what the side of the print shows.
-    vec3  composite = band_color[0];
+    //
+    // `stacked` is the light the filament itself sends back, already weighted by how much of the
+    // fragment it covers, and `clear` is what the whole column passes. Kept apart rather than
+    // composited over a backing colour because the two answers wanted below differ only in what is
+    // assumed to be behind the stack, and one walk gives both.
+    vec3  stacked   = vec3(0.0);
+    float clear     = 1.0;
     vec3  own       = band_color[0];
     vec3  through   = vec3(1.0);
+    // Which band the fragment's own layer fell in, for the debug views; the walk itself has no use
+    // for it, since `own` already carries that band's colour.
+    float band_hit  = 0.0;
     float consumed  = 0.0;
     for (int i = 0; i < CHROMA_MAX_BANDS; ++i) {
         if (i >= band_count)
@@ -192,8 +328,9 @@ void main()
         float n = clamp(here - consumed, 0.0, band_layers[i]);
         if (n <= 0.0)
             break;
-        float t   = exp(-band_density[i] * path * n);
-        composite = (1.0 - t) * band_color[i] + t * composite;
+        float t = exp(-band_density[i] * path * n);
+        stacked = (1.0 - t) * band_color[i] + t * stacked;
+        clear  *= t;
         // Back lit, nothing is composited over anything: what leaves the band is what it passed, so
         // the transmittances multiply. The same density and the same lengthened path - a ray crossing
         // the stack at an angle goes through more filament whichever side the light is on - with the
@@ -203,13 +340,52 @@ void main()
             through *= exp(-band_density[i] * path * n *
                            mix(vec3(CHROMA_BACK_ABSORB_FLOOR), vec3(1.0), 1.0 - band_color[i]));
         own       = band_color[i];
+        band_hit  = float(i);
         consumed += band_layers[i];
     }
+
+    // The two readings of that one walk.
+    //
+    // Backed by band 0 - the filament the base prints in, which the model treats as opaque - it is the
+    // old composite: stacked + clear * band_color[0] expands term for term to the recursion this loop
+    // used to carry, by induction on the bands with "nothing walked yet" giving band_color[0]. So the
+    // opaque view is the same expression and not an approximation of it, down to the one extra
+    // multiply-add's worth of float rounding.
+    //
+    // Divided by what the stack stopped instead, it is the colour of the filament on its own with
+    // nothing assumed behind it. That is the one to shade when the blender is about to put the scene
+    // behind the plate back in: the colour has to be what the plate adds, not what it adds plus a
+    // backing it has not got.
+    vec3 composite = (see_through != 0) ? stacked / max(1.0 - clear, 1.0e-4) :
+                                         stacked + clear * band_color[0];
 
     // A terrace is a column seen through; a wall is the layers seen edge on. Everything between is
     // between.
     float up     = clamp(abs(world_normal.z), 0.0, 1.0);
     vec3  albedo = mix(own, composite, smoothstep(0.35, 0.8, up));
+
+    // How much of this fragment the plate stops, which is the alpha the blender wants.
+    //
+    // A wall is opaque whatever its column says. This shader knows the depth of filament along the
+    // stacking axis and nothing whatever about how far the print reaches sideways, and the side of a
+    // plate has the body of the print behind it - so the one case it could guess at is the one case the
+    // guess would be wrong in.
+    float opacity = (see_through != 0) ? mix(1.0, 1.0 - clear, smoothstep(0.35, 0.8, up)) : 1.0;
+
+    // Lateral scattering, on the picture's own surface only: a wall is the cut side of the layers and
+    // shows its band's colour, with no picture on it to diffuse. Added as the difference the
+    // neighbourhood makes, so the walk's own level and its grazing-angle darkening both survive.
+    if (scatter_enabled != 0) {
+        // Sampled before the picture's bounds are tested rather than inside the test, for the same
+        // reason the error overlay is: a fetch under non-uniform control flow has no defined
+        // derivatives, and off the picture there is nothing solved to diffuse anyway.
+        vec2 suv = picture_uv();
+        vec3 centre;
+        vec3 soft = scatter_at(clamp(suv, vec2(0.0), vec2(1.0)), centre);
+        float on  = (all(greaterThanEqual(suv, vec2(0.0))) && all(lessThanEqual(suv, vec2(1.0)))) ? 1.0 : 0.0;
+        albedo   += (soft - centre) * scatter_strength * smoothstep(0.35, 0.8, up) * on;
+        albedo    = max(albedo, vec3(0.0));
+    }
 
     // Layer lines, on the walls only: a terrace is one layer's top surface and has none to show.
     float wall   = 1.0 - up;
@@ -234,6 +410,12 @@ void main()
 
     vec3 color = albedo * (INTENSITY_AMBIENT + diffuse) + vec3(spec) + albedo * rim * translucency * 0.55;
 
+    // Even a clear sheet shows the light on its own face. One alpha has to carry both the filament's
+    // transmission and that reflection, so it never falls below what the surface itself sends back: a
+    // fully clear fragment keeps its glint and its lit edge instead of vanishing along with the plastic.
+    if (see_through != 0)
+        opacity = clamp(max(opacity, spec + rim * translucency * 0.55), 0.0, 1.0);
+
     // Back lit: none of that light is in the picture. A lithophane shows the LED through the column,
     // so the transmittance walked above *is* the image, and thickness is what makes it dark. A wall is
     // edge on to the panel with filament behind it whichever way it faces, so it keeps its own band's
@@ -247,6 +429,10 @@ void main()
         // colours the solve was chosen against stay the same picture.
         color = (lighting_mode == CHROMA_LIT_BACK) ? behind :
                                                      mix(color, behind, clamp(lighting_balance, 0.0, 1.0));
+        // Behind a back-lit plate is the panel, and what the panel sends through the plate has just
+        // been drawn. Letting the scene show through as well would be that same light counted twice,
+        // with the thinnest and so brightest part of a lithophane fading into the background.
+        opacity = 1.0;
     }
 
     // The error overlay replaces the colour outright, in either lighting mode: how far the stack
@@ -265,7 +451,51 @@ void main()
         float on_picture = (all(greaterThanEqual(uv, vec2(0.0))) && all(lessThanEqual(uv, vec2(1.0)))) ? 1.0 : 0.0;
         float shade      = mix(ERROR_SHADE_FLOOR, 1.0, clamp(INTENSITY_AMBIENT + diffuse, 0.0, 1.0));
         color            = mix(color, error_ramp(e) * (shade * lines) + vec3(spec), on_picture);
+        // The overlay is a reading rather than a picture of the print, so it has to be legible over
+        // whatever the plate happens to be standing in front of.
+        opacity          = mix(opacity, 1.0, on_picture);
     }
 
-    out_color = vec4(color, alpha);
+    // A debug view replaces the colour outright and keeps only a trace of the shading, so the shape
+    // still reads. Last of everything, so that whichever overlay was on, this is what is seen.
+    if (chroma_debug != CHROMA_DBG_OFF) {
+        float shade = mix(0.72, 1.0, clamp(INTENSITY_AMBIENT + diffuse, 0.0, 1.0));
+        vec3  dbg   = vec3(1.0, 0.0, 1.0);
+        if (chroma_debug == CHROMA_DBG_HEIGHT) {
+            // How far up the stack this fragment sits, as the shader measures it: 0 at the base and 1
+            // at the top, through the ramp. A plate whose relief never made it into the mesh is one
+            // flat colour here, which is the first thing to rule out.
+            dbg = debug_ramp(here / max(total_layers, 1.0));
+        } else if (chroma_debug == CHROMA_DBG_BAND) {
+            // Which band the fragment's own layer belongs to - the filament the wall would show. The
+            // terraces of the picture should be visible as flat fields with hard edges between them.
+            dbg = debug_index_color(band_hit);
+        } else if (chroma_debug == CHROMA_DBG_FACING) {
+            // Green where the shader reads a terrace and composites the column through it, red where
+            // it reads a wall and shows that band's own colour. The gradient between the two is the
+            // mix it really uses, not a threshold drawn for the picture.
+            dbg = mix(vec3(0.90, 0.15, 0.10), vec3(0.15, 0.85, 0.25), smoothstep(0.35, 0.8, up));
+        } else if (chroma_debug == CHROMA_DBG_UV) {
+            // Where the picture lands on the model, as its own uv. Black off the picture, so the edge
+            // of the black is the edge of the picture.
+            vec2  uv = picture_uv();
+            float on = (all(greaterThanEqual(uv, vec2(0.0))) && all(lessThanEqual(uv, vec2(1.0)))) ? 1.0 : 0.0;
+            dbg      = vec3(fract(uv.x), fract(uv.y), 0.35) * on;
+        } else if (chroma_debug == CHROMA_DBG_SOLVE) {
+            // What the solve predicted, straight out of its own image: the panel's "What prints"
+            // thumbnail, laid on the model. Where this and the default view disagree, the walk and
+            // the solve disagree, and the geometry between them is what to look at.
+            vec2  uv = picture_uv();
+            float on = (all(greaterThanEqual(uv, vec2(0.0))) && all(lessThanEqual(uv, vec2(1.0)))) ? 1.0 : 0.0;
+            dbg      = texture(scatter_tex, clamp(uv, vec2(0.0), vec2(1.0))).rgb * on;
+        } else {
+            // The walk's own answer with no light on it at all.
+            dbg = albedo;
+        }
+        color = dbg * shade;
+        // Same reason as the error overlay: a debug view is read, not looked through.
+        opacity = 1.0;
+    }
+
+    out_color = vec4(color, alpha * opacity);
 }

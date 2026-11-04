@@ -2,6 +2,7 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdio>
 #include <ios>
@@ -532,4 +533,397 @@ TEST_CASE("A transmission distance is written into a preset as a number the opti
     REQUIRE(filament_td_format_mm(1000.f) == "100");
     // A number that is not one at all still has to come out as something the option will take.
     REQUIRE(filament_td_format_mm(std::numeric_limits<float>::quiet_NaN()) == "4");
+}
+
+// --------------------------------------------------------------------------------------------------
+// Where a number comes from: the sources, their order, and what an update is allowed to do.
+//
+// Everything below goes through real files in a data directory of its own, because the thing being
+// tested is which file answers and which file gets written - neither of which is visible from a table
+// handed in by hand.
+// --------------------------------------------------------------------------------------------------
+
+namespace {
+
+// A data directory of its own, with the cached table dropped on the way in and on the way out. Both
+// data_dir() and that cache are process-wide, so a test that writes libraries has to put both back -
+// including through a failed REQUIRE, which is what keeps this file green under --order rand.
+class ScopedLibraries
+{
+public:
+    ScopedLibraries() : m_data(m_dir.path()) { filament_td_reset_cache(); }
+    ~ScopedLibraries() { filament_td_reset_cache(); }
+    ScopedLibraries(const ScopedLibraries &)            = delete;
+    ScopedLibraries &operator=(const ScopedLibraries &) = delete;
+
+    boost::filesystem::path path() const { return m_dir.path(); }
+
+private:
+    ScopedTemporaryDir m_dir;
+    ScopedDataDir      m_data;
+};
+
+// Three colours of one line, far enough apart that a lookup tells them apart, written as the bytes a
+// file spells them with so that a round trip through a hex colour is exact.
+const ColorRGB LAGOON = ColorRGB(0x38 / 255.f, 0x4a / 255.f, 0x5e / 255.f);
+const ColorRGB EMBER  = ColorRGB(0xb7 / 255.f, 0x29 / 255.f, 0x24 / 255.f);
+const ColorRGB CHALK  = ColorRGB(0xf0 / 255.f, 0xee / 255.f, 0xe6 / 255.f);
+// And one nothing we ship has measured: every colour of Polymaker's that we do ship is more than 25
+// dE away from it, so a test that asks for it and expects nothing back is asking about the library
+// under test rather than about the table in the resources directory.
+const ColorRGB ORCHID = ColorRGB(0xc8 / 255.f, 0x1e / 255.f, 0x96 / 255.f);
+
+// One spool as the user would have come by it: a wedge printed, a number read off the step it stopped
+// showing through at.
+FilamentTd measured(const std::string &name, const ColorRGB &color, float td_mm)
+{
+    FilamentTd entry;
+    entry.brand = "Polymaker";
+    entry.name  = name;
+    entry.type  = "PLA";
+    entry.color = color;
+    entry.td_mm = td_mm;
+    return entry;
+}
+
+// The name a measurement is stored under, which is the name a library's row for the same spool gets:
+// the brand goes in front, because a preset is named "<brand> <type> @<printer>" and the search wants
+// two words in common with it.
+const char *const LAGOON_NAME = "Polymaker Panchroma Matte PLA Deep Lagoon";
+const char *const EMBER_NAME  = "Polymaker Panchroma Matte PLA Ember Red";
+const char *const CHALK_NAME  = "Polymaker Panchroma Matte PLA Chalk White";
+
+// A library as a community list hands it over: text, because that is what the GUI has after fetching a
+// URL, and there is no file anywhere in the update path.
+std::string library_text(const std::string &lagoon_td, const std::string &orchid_td)
+{
+    return "[\n"
+           "  { \"brand\": \"Polymaker\", \"name\": \"Panchroma Matte PLA Deep Lagoon\", \"type\": \"PLA\","
+           " \"color\": \"#384a5e\", \"td\": " +
+           lagoon_td +
+           " },\n"
+           "  { \"brand\": \"Polymaker\", \"name\": \"Panchroma Matte PLA Wild Orchid\", \"type\": \"PLA\","
+           " \"color\": \"#c81e96\", \"td\": " +
+           orchid_td + " }\n]";
+}
+
+} // namespace
+
+TEST_CASE("A directory of libraries with no sources file reads in the order it always had", "[ChromaStack]")
+{
+    const ScopedLibraries libraries;
+    const Library         file(TWO_JSON_ENTRIES);
+    REQUIRE(filament_td_import(file.path()).taken == 2);
+    // Without pinning it, because pinning is what writes a sources file and this is the case where
+    // there is none.
+    REQUIRE(filament_td_record_measured(measured("Panchroma Matte PLA Deep Lagoon", LAGOON, 2.5f), false));
+
+    const FilamentTdSourceList list = filament_td_sources();
+    REQUIRE(list.sources.size() == 3);
+    // The user's own measurements, then the library they imported, then what shipped: the order this
+    // had before there was a list to write it down in.
+    REQUIRE(list.sources[0].kind == FilamentTdSourceKind::Personal);
+    REQUIRE(list.sources[1].kind == FilamentTdSourceKind::Imported);
+    REQUIRE(list.sources[2].kind == FilamentTdSourceKind::Shipped);
+    REQUIRE(list.sources[1].entries == 2);
+    REQUIRE(list.sources[1].origin == file.path());
+
+    // Nothing wrote a sources file. A list derived from the directory is the common case and not a
+    // special one, which is what makes a user who only ever imported a library see no change at all.
+    REQUIRE_FALSE(boost::filesystem::exists(libraries.path() / "filament_td" / "sources.json"));
+
+    // And the import answers for its own spools exactly as it did before there were sources.
+    const FilamentTd *red = filament_td_lookup("Polymaker", "Panchroma PLA Matte @base", EMBER);
+    REQUIRE(red != nullptr);
+    REQUIRE_THAT(red->td_mm, WithinAbs(0.8f, 1e-4f));
+    REQUIRE(red->imported);
+    REQUIRE(red->source_kind == FilamentTdSourceKind::Imported);
+}
+
+TEST_CASE("The user's own measurement answers before a library that knows the same spool", "[ChromaStack]")
+{
+    const ScopedLibraries libraries;
+    const Library         file(library_text("0.1", "0.8")); // this one has Deep Lagoon at 0.1
+    REQUIRE(filament_td_import(file.path()).taken == 2);
+    REQUIRE(filament_td_record_measured(measured("Panchroma Matte PLA Deep Lagoon", LAGOON, 2.5f)));
+
+    SECTION("the spool they measured comes out of their own file")
+    {
+        const FilamentTd *found = filament_td_lookup("Polymaker", "Panchroma PLA Matte @base", LAGOON);
+        REQUIRE(found != nullptr);
+        REQUIRE_THAT(found->td_mm, WithinAbs(2.5f, 1e-4f));
+        REQUIRE(found->source_kind == FilamentTdSourceKind::Personal);
+        REQUIRE_FALSE(found->imported);
+    }
+
+    SECTION("a spool only the library knows still comes out of the library")
+    {
+        const FilamentTd *found = filament_td_lookup("Polymaker", "Panchroma PLA Matte @base", ORCHID);
+        REQUIRE(found != nullptr);
+        REQUIRE_THAT(found->td_mm, WithinAbs(0.8f, 1e-4f));
+        REQUIRE(found->source_kind == FilamentTdSourceKind::Imported);
+    }
+
+    SECTION("a library turned off answers for nothing, and the user's own file still does")
+    {
+        FilamentTdSourceList list = filament_td_sources();
+        for (FilamentTdSource &row : list.sources)
+            if (row.kind == FilamentTdSourceKind::Imported)
+                row.enabled = false;
+        REQUIRE(filament_td_sources_save(list));
+
+        REQUIRE(filament_td_lookup("Polymaker", "Panchroma PLA Matte @base", ORCHID) == nullptr);
+        const FilamentTd *found = filament_td_lookup("Polymaker", "Panchroma PLA Matte @base", LAGOON);
+        REQUIRE(found != nullptr);
+        REQUIRE_THAT(found->td_mm, WithinAbs(2.5f, 1e-4f));
+    }
+
+    SECTION("and the order cannot be edited to put a library above the user's own measurements")
+    {
+        // A sources file is a file somebody can edit, and this is the one line of the order that is
+        // not theirs to change: a number nobody else can reproduce answers first.
+        FilamentTdSourceList list = filament_td_sources();
+        std::reverse(list.sources.begin(), list.sources.end());
+        REQUIRE(filament_td_sources_save(list));
+
+        REQUIRE(filament_td_sources().sources.front().kind == FilamentTdSourceKind::Personal);
+        const FilamentTd *found = filament_td_lookup("Polymaker", "Panchroma PLA Matte @base", LAGOON);
+        REQUIRE(found != nullptr);
+        REQUIRE_THAT(found->td_mm, WithinAbs(2.5f, 1e-4f));
+    }
+}
+
+TEST_CASE("An update says what it would do before it does any of it", "[ChromaStack]")
+{
+    // The library as it stands, and the library as it has just been fetched: one row unchanged, one
+    // corrected, one new, and one the list has dropped.
+    const std::vector<FilamentTd> current = {
+        { "polymaker", LAGOON_NAME, "PLA", LAGOON, 0.1f },
+        { "polymaker", EMBER_NAME, "PLA", EMBER, 0.8f },
+        { "polymaker", CHALK_NAME, "PLA", CHALK, 4.1f },
+    };
+    std::vector<FilamentTd> fetched = { current[0], current[1] };
+    fetched[1].td_mm                = 1.2f;
+    fetched.push_back({ "polymaker", "Polymaker Panchroma Matte PLA Army Blue", "PLA",
+                        ColorRGB(0.18f, 0.27f, 0.38f), 0.3f });
+
+    SECTION("with nothing pinned, every row is accounted for once")
+    {
+        const FilamentTdUpdate update = filament_td_merge(current, fetched, FilamentTdSourceList());
+        REQUIRE(update.unchanged == 1);
+        REQUIRE(update.updated == 1);
+        REQUIRE(update.added == 1);
+        REQUIRE(update.dropped == 1);
+        REQUIRE(update.suppressed == 0);
+        REQUIRE_FALSE(update.nothing_to_do());
+        // The merged library is what was fetched; the row the list dropped is not in it.
+        REQUIRE(update.merged.size() == 3);
+        REQUIRE(entry_with(update.merged, "Chalk White") == nullptr);
+        const FilamentTd *red = entry_with(update.merged, "Ember Red");
+        REQUIRE(red != nullptr);
+        REQUIRE_THAT(red->td_mm, WithinAbs(1.2f, 1e-4f));
+    }
+
+    SECTION("a pinned row is not corrected, however the library has changed its mind")
+    {
+        FilamentTdSourceList sources;
+        sources.suppressed.push_back(filament_td_entry_key(current[1]));
+
+        const FilamentTdUpdate update = filament_td_merge(current, fetched, sources);
+        REQUIRE(update.suppressed == 1);
+        REQUIRE(update.updated == 0);
+        REQUIRE(update.unchanged == 1);
+        REQUIRE(update.added == 1);
+        const FilamentTd *red = entry_with(update.merged, "Ember Red");
+        REQUIRE(red != nullptr);
+        REQUIRE_THAT(red->td_mm, WithinAbs(0.8f, 1e-4f));
+    }
+
+    SECTION("a pinned row the library has dropped altogether stays where it is")
+    {
+        // Gone upstream is gone, except for the one the user measured: a library dropping a row is
+        // still an update, and an update may not take away a number somebody measured.
+        FilamentTdSourceList sources;
+        sources.suppressed.push_back(filament_td_entry_key(current[2]));
+
+        const FilamentTdUpdate update = filament_td_merge(current, fetched, sources);
+        REQUIRE(update.dropped == 0);
+        REQUIRE(update.suppressed == 1);
+        REQUIRE(entry_with(update.merged, "Chalk White") != nullptr);
+    }
+
+    SECTION("a library that has not moved says so")
+    {
+        const FilamentTdUpdate update = filament_td_merge(current, current, FilamentTdSourceList());
+        REQUIRE(update.unchanged == 3);
+        REQUIRE(update.added == 0);
+        REQUIRE(update.updated == 0);
+        REQUIRE(update.dropped == 0);
+        REQUIRE(update.nothing_to_do());
+    }
+}
+
+TEST_CASE("A spool the user measured survives an update that would overwrite it", "[ChromaStack]")
+{
+    const ScopedLibraries libraries;
+    const std::string     id = filament_td_subscribe("https://example.invalid/library.json", "Community list");
+    REQUIRE_FALSE(id.empty());
+
+    // The first fetch. A subscription nobody has fetched yet has no library, so every row is news.
+    const FilamentTdUpdate first = filament_td_update_prepare(id, library_text("0.1", "0.8"), "Community list");
+    REQUIRE_FALSE(first.parsed.unreadable);
+    REQUIRE(first.added == 2);
+    REQUIRE(first.suppressed == 0);
+    REQUIRE(filament_td_update_apply(id, first));
+
+    // Then the user measures one of those spools on their own printer, which pins it.
+    REQUIRE(filament_td_record_measured(measured("Panchroma Matte PLA Deep Lagoon", LAGOON, 2.5f)));
+    REQUIRE(filament_td_sources().is_suppressed(filament_td_entry_key(
+        FilamentTd{ "polymaker", LAGOON_NAME, "PLA", LAGOON, 2.5f })));
+
+    // And the list comes back with a different number for it, and a correction for the other one.
+    const FilamentTdUpdate second = filament_td_update_prepare(id, library_text("3.3", "0.9"), "Community list");
+    REQUIRE(second.suppressed == 1);
+    REQUIRE(second.updated == 1);
+    REQUIRE(second.added == 0);
+    REQUIRE(filament_td_update_apply(id, second));
+
+    SECTION("the number that answers is still the one they measured")
+    {
+        const FilamentTd *found = filament_td_lookup("Polymaker", "Panchroma PLA Matte @base", LAGOON);
+        REQUIRE(found != nullptr);
+        REQUIRE_THAT(found->td_mm, WithinAbs(2.5f, 1e-4f));
+        REQUIRE(found->source_kind == FilamentTdSourceKind::Personal);
+    }
+
+    SECTION("the subscription's own copy was left alone as well")
+    {
+        // Not only outranked: untouched. The row in the library is the one it had before the update,
+        // so turning the user's own file off would not uncover a number they had already rejected.
+        std::vector<FilamentTd> library;
+        REQUIRE(filament_td_parse((libraries.path() / "filament_td" / (id + ".json")).string(), library).taken == 2);
+        const FilamentTd *blue = entry_with(library, "Deep Lagoon");
+        REQUIRE(blue != nullptr);
+        REQUIRE_THAT(blue->td_mm, WithinAbs(0.1f, 1e-4f));
+    }
+
+    SECTION("the spool nobody pinned did take the correction")
+    {
+        const FilamentTd *found = filament_td_lookup("Polymaker", "Panchroma PLA Matte @base", ORCHID);
+        REQUIRE(found != nullptr);
+        REQUIRE_THAT(found->td_mm, WithinAbs(0.9f, 1e-4f));
+        REQUIRE(found->source_kind == FilamentTdSourceKind::Subscription);
+    }
+
+    SECTION("and a fetch that did not arrive changes nothing")
+    {
+        const FilamentTdUpdate failed = filament_td_update_prepare(id, "504 Gateway Time-out", "Community list");
+        REQUIRE(failed.parsed.unreadable);
+        REQUIRE(failed.added == 0);
+        REQUIRE(failed.dropped == 0);
+        REQUIRE(failed.merged.empty());
+    }
+}
+
+TEST_CASE("No update can write to the user's own measurements", "[ChromaStack]")
+{
+    const ScopedLibraries libraries;
+    REQUIRE(filament_td_record_measured(measured("Panchroma Matte PLA Deep Lagoon", LAGOON, 2.5f)));
+
+    SECTION("a library offered as an update to the personal file is refused outright")
+    {
+        const FilamentTdUpdate update = filament_td_update_prepare("personal", library_text("0.1", "0.8"),
+                                                                   "Community list");
+        REQUIRE(update.added == 0);
+        REQUIRE(update.updated == 0);
+        REQUIRE(update.merged.empty());
+        REQUIRE_FALSE(filament_td_update_apply("personal", update));
+    }
+
+    SECTION("nor can an update worked out for a library be applied to the personal file")
+    {
+        const std::string id = filament_td_subscribe("https://example.invalid/library.json", "Community list");
+        REQUIRE_FALSE(id.empty());
+        const FilamentTdUpdate update = filament_td_update_prepare(id, library_text("0.1", "0.8"), "Community list");
+        REQUIRE(update.suppressed == 1); // Deep Lagoon, which the user has measured
+        REQUIRE(update.added == 1);      // Wild Orchid, which they have not
+        REQUIRE_FALSE(filament_td_update_apply("personal", update));
+    }
+
+    SECTION("nor can the personal file be deleted as though it were a library")
+    {
+        REQUIRE_FALSE(filament_td_source_remove("personal"));
+        REQUIRE_FALSE(filament_td_source_remove("shipped"));
+        REQUIRE(boost::filesystem::exists(libraries.path() / "filament_td" / "personal.json"));
+    }
+
+    const FilamentTd *found = filament_td_lookup("Polymaker", "Panchroma PLA Matte @base", LAGOON);
+    REQUIRE(found != nullptr);
+    REQUIRE_THAT(found->td_mm, WithinAbs(2.5f, 1e-4f));
+}
+
+TEST_CASE("A personal library exports as the file the importer reads back", "[ChromaStack]")
+{
+    const ScopedLibraries libraries;
+    REQUIRE(filament_td_record_measured(measured("Panchroma Matte PLA Deep Lagoon", LAGOON, 2.5f), false));
+    REQUIRE(filament_td_record_measured(measured("Panchroma Matte PLA Ember Red", EMBER, 0.85f), false));
+
+    const ScopedTemporaryFile file(".json");
+    const FilamentTdExport    wrote = filament_td_export_personal(file.string());
+    REQUIRE(wrote.ok);
+    REQUIRE(wrote.written == 2);
+
+    std::vector<FilamentTd> back;
+    const FilamentTdImport  read = filament_td_parse(file.string(), back);
+    REQUIRE(read.taken == 2);
+    REQUIRE(read.skipped() == 0);
+
+    const std::vector<FilamentTd> mine = filament_td_personal_entries();
+    REQUIRE(back.size() == mine.size());
+    for (size_t i = 0; i < mine.size(); ++i) {
+        // The five fields that are data come back exactly, which is what lets a library be carried
+        // between machines by copying a file. The provenance deliberately does not: the importer
+        // stamps the file it actually read, because where you got a file is a fact about you rather
+        // than a claim the file gets to make.
+        REQUIRE(back[i].brand == mine[i].brand);
+        REQUIRE(back[i].name == mine[i].name);
+        REQUIRE(back[i].type == mine[i].type);
+        REQUIRE_THAT(back[i].td_mm, WithinAbs(mine[i].td_mm, 1e-6f));
+        REQUIRE_THAT(back[i].color.r(), WithinAbs(mine[i].color.r(), 1e-6f));
+        REQUIRE_THAT(back[i].color.g(), WithinAbs(mine[i].color.g(), 1e-6f));
+        REQUIRE_THAT(back[i].color.b(), WithinAbs(mine[i].color.b(), 1e-6f));
+    }
+
+    SECTION("and measuring the same spool again corrects it rather than listing it twice")
+    {
+        REQUIRE(filament_td_record_measured(measured("Panchroma Matte PLA Deep Lagoon", LAGOON, 3.f), false));
+        const std::vector<FilamentTd> again = filament_td_personal_entries();
+        REQUIRE(again.size() == 2);
+        const FilamentTd *blue = entry_with(again, "Deep Lagoon");
+        REQUIRE(blue != nullptr);
+        REQUIRE_THAT(blue->td_mm, WithinAbs(3.f, 1e-4f));
+    }
+}
+
+TEST_CASE("A library can be forgotten, and takes its file with it", "[ChromaStack]")
+{
+    const ScopedLibraries libraries;
+    const std::string     id = filament_td_subscribe("https://example.invalid/library.json", "Community list");
+    REQUIRE_FALSE(id.empty());
+    const FilamentTdUpdate update = filament_td_update_prepare(id, library_text("0.1", "0.8"), "Community list");
+    REQUIRE(filament_td_update_apply(id, update));
+    REQUIRE(boost::filesystem::exists(libraries.path() / "filament_td" / (id + ".json")));
+
+    SECTION("subscribing to the same list twice subscribes to it once")
+    {
+        REQUIRE(filament_td_subscribe("https://example.invalid/library.json", "Another name") == id);
+    }
+
+    SECTION("removing it takes the row and the library together")
+    {
+        REQUIRE(filament_td_source_remove(id));
+        REQUIRE_FALSE(boost::filesystem::exists(libraries.path() / "filament_td" / (id + ".json")));
+        REQUIRE(filament_td_sources().find(id) == nullptr);
+        REQUIRE(filament_td_lookup("Polymaker", "Panchroma PLA Matte @base", ORCHID) == nullptr);
+    }
 }

@@ -1505,6 +1505,209 @@ TEST_CASE("a full turn of the hue leaves a colour where it started", "[TextureDi
         REQUIRE(std::abs(int(out.rgb[i]) - int(src.rgb[i])) <= 2);
 }
 
+// ---- Perceptual (CIE Lab) brightness ---------------------------------------------------------------
+
+// CIELAB under D65, the same conversion TextureDisplacement.cpp uses. Repeated here because the
+// production copy is file-static, but note what it is actually used for below: the *hue angle*
+// atan2(b*, a*) of one colour compared with the hue angle of another. That is a relation between two
+// images rather than an absolute, so a conversion constant that was wrong in both copies could not make a
+// brightness mode that shifts hue look like one that does not.
+struct TestLab
+{
+    double l = 0., a = 0., b = 0.;
+};
+
+static TestLab test_lab_of(uint8_t r8, uint8_t g8, uint8_t b8)
+{
+    const auto to_linear = [](uint8_t v) {
+        const double c = double(v) / 255.;
+        return c <= 0.04045 ? c / 12.92 : std::pow((c + 0.055) / 1.055, 2.4);
+    };
+    const auto   f  = [](double t) { return t > 0.008856 ? std::cbrt(t) : (7.787 * t + 16. / 116.); };
+    const double rl = to_linear(r8), gl = to_linear(g8), bl = to_linear(b8);
+    const double fx = f((0.4124 * rl + 0.3576 * gl + 0.1805 * bl) / 0.95047);
+    const double fy = f(0.2126 * rl + 0.7152 * gl + 0.0722 * bl);
+    const double fz = f((0.0193 * rl + 0.1192 * gl + 0.9505 * bl) / 1.08883);
+    return TestLab{ 116. * fy - 16., 500. * (fx - fy), 200. * (fy - fz) };
+}
+
+static double test_hue_deg(const TestLab &lab) { return std::atan2(lab.b, lab.a) * 180. / M_PI; }
+static double test_chroma(const TestLab &lab) { return std::hypot(lab.a, lab.b); }
+
+TEST_CASE("the brightness mode defaults to the per-channel lift it has always been", "[TextureDisplacement]")
+{
+    // The default has to be the old path: nothing serializes a TextureAdjustments, so an older project
+    // carries no mode at all and what it means is whatever this default says.
+    CHECK(TextureAdjustments{}.brightness_space == TextureBrightnessSpace::Rgb);
+    // The mode on its own is not an adjustment either. With brightness at zero the two curves are the
+    // same no-op, and calling that non-identity would send every image through the pass for a copy.
+    TextureAdjustments mode_only;
+    mode_only.brightness_space = TextureBrightnessSpace::PerceptualLab;
+    CHECK(mode_only.identity());
+
+    // The old path in full: each channel lifted toward white by the same fraction, which in 8-bit terms
+    // is c + 0.4 * (255 - c), so 200 -> 222, 60 -> 138 and 30 -> 120, exactly and with no rounding to
+    // argue about.
+    TextureAdjustments adj;
+    adj.brightness                 = 0.4f;
+    const DecodedHeightTexture out = apply_texture_adjustments(make_rgb_flat(200, 60, 30), adj);
+    REQUIRE(out.has_color());
+    REQUIRE(out.rgb.size() >= 3);
+    CHECK(int(out.rgb[0]) == 222);
+    CHECK(int(out.rgb[1]) == 138);
+    CHECK(int(out.rgb[2]) == 120);
+
+    // And it is per-channel: the same three levels through the grayscale path land on the same three
+    // numbers, because both read one scalar curve. That is exactly what the Lab mode gives up.
+    DecodedHeightTexture grey;
+    grey.width  = 3;
+    grey.height = 1;
+    grey.pixels = { 200, 60, 30 };
+    const DecodedHeightTexture grey_out = apply_texture_adjustments(grey, adj);
+    REQUIRE(grey_out.pixels.size() == 3);
+    CHECK(int(grey_out.pixels[0]) == 222);
+    CHECK(int(grey_out.pixels[1]) == 138);
+    CHECK(int(grey_out.pixels[2]) == 120);
+}
+
+TEST_CASE("the brightness mode is not something a project file can carry", "[TextureDisplacement]")
+{
+    // The backward-compatibility argument for the new mode, written down. A TextureAdjustments is the
+    // state of an open panel rather than a property of a layer: neither the .3mf JSON here nor the cereal
+    // save()/load() on TextureDisplacementLayer writes `preview_adjust`, so there is no field for an older
+    // document to be missing and nothing it can mean but the default. A layer saved mid-adjustment comes
+    // back with the panel closed, which is what it has always done.
+    std::vector<TextureDisplacementLayer> layers(1);
+    layers[0].slot                            = 0;
+    layers[0].preview_adjust.brightness       = 0.6f;
+    layers[0].preview_adjust.brightness_space = TextureBrightnessSpace::PerceptualLab;
+
+    TextureDisplacementOptions options;
+    const std::string          json = texture_displacement_layers_to_json(layers, options);
+    CHECK(json.find("brightness") == std::string::npos);
+
+    std::vector<TextureDisplacementLayer> read_layers;
+    TextureDisplacementOptions            read_options;
+    REQUIRE(texture_displacement_layers_from_json(json, read_layers, read_options));
+    REQUIRE(read_layers.size() == 1);
+    CHECK(read_layers[0].preview_adjust.identity());
+    CHECK(read_layers[0].preview_adjust.brightness_space == TextureBrightnessSpace::Rgb);
+}
+
+TEST_CASE("brightening a mid grey in Lab leaves it grey", "[TextureDisplacement]")
+{
+    const DecodedHeightTexture src = make_rgb_flat(128, 128, 128);
+    TextureAdjustments         adj;
+    adj.brightness                 = 0.4f;
+    adj.brightness_space           = TextureBrightnessSpace::PerceptualLab;
+    const DecodedHeightTexture out = apply_texture_adjustments(src, adj);
+    REQUIRE(out.has_color());
+    REQUIRE(out.rgb.size() >= 3);
+
+    // A neutral has a* = b* = 0, so moving L* can only move it along the grey axis. The one level of slack
+    // is for the 8-bit rounding and for the published sRGB matrices, which are rounded enough to put a few
+    // thousandths of chroma on a grey that has none.
+    for (size_t i = 0; i + 2 < out.rgb.size(); i += 3) {
+        REQUIRE(std::abs(int(out.rgb[i]) - int(out.rgb[i + 1])) <= 1);
+        REQUIRE(std::abs(int(out.rgb[i + 1]) - int(out.rgb[i + 2])) <= 1);
+    }
+    CHECK(int(out.rgb[0]) > 128); // and it did brighten
+
+    // The two modes really are different curves - one applied to the sRGB code, one to L* - so a mid grey
+    // does not land in the same place under both. Were they the same, every check above would pass on a
+    // mode that was never wired up.
+    TextureAdjustments rgb_mode = adj;
+    rgb_mode.brightness_space   = TextureBrightnessSpace::Rgb;
+    CHECK(apply_texture_adjustments(src, rgb_mode).rgb != out.rgb);
+}
+
+TEST_CASE("brightening a saturated colour in Lab keeps its hue where the per-channel lift does not",
+          "[TextureDisplacement]")
+{
+    const DecodedHeightTexture src    = make_rgb_flat(200, 60, 30);
+    const TestLab              before = test_lab_of(200, 60, 30);
+
+    TextureAdjustments lab;
+    lab.brightness                     = 0.35f;
+    lab.brightness_space               = TextureBrightnessSpace::PerceptualLab;
+    const DecodedHeightTexture lab_out = apply_texture_adjustments(src, lab);
+    REQUIRE(lab_out.has_color());
+    REQUIRE(lab_out.rgb.size() >= 3);
+    const TestLab lab_lab = test_lab_of(lab_out.rgb[0], lab_out.rgb[1], lab_out.rgb[2]);
+
+    // Two degrees of Lab hue angle: the budget for the 8-bit rounding on the way out plus whatever the
+    // gamut search gives up. This colour does leave the gamut when it is lifted - there is no light salmon
+    // carrying the chroma of a mid red - so the search pulls a* and b* in toward the achromatic axis, and
+    // surviving that is the whole claim, since scaling both by one factor cannot move atan2(b*, a*). The
+    // measured shift is about a sixteenth of a degree.
+    CHECK_THAT(test_hue_deg(lab_lab), WithinAbs(test_hue_deg(before), 2.0));
+
+    TextureAdjustments rgb = lab;
+    rgb.brightness_space               = TextureBrightnessSpace::Rgb;
+    const DecodedHeightTexture rgb_out = apply_texture_adjustments(src, rgb);
+    REQUIRE(rgb_out.has_color());
+    REQUIRE(rgb_out.rgb.size() >= 3);
+    const TestLab rgb_lab = test_lab_of(rgb_out.rgb[0], rgb_out.rgb[1], rgb_out.rgb[2]);
+
+    // The reason the mode is worth having: the per-channel lift misses the hue by more than that whole
+    // tolerance (about four degrees here)...
+    CHECK(std::abs(test_hue_deg(rgb_lab) - test_hue_deg(before)) > 2.0);
+    // ... and spends most of the chroma getting there, which on a stack with a few dozen reachable colours
+    // is the whole budget the picture had to spend.
+    CHECK(test_chroma(lab_lab) > test_chroma(rgb_lab));
+}
+
+TEST_CASE("Lab brightness still reaches pure white and pure black at the ends of the slider",
+          "[TextureDisplacement]")
+{
+    // The two modes agree at the ends - it is the same lift curve, applied to L*/100 rather than to the
+    // channel - which is what keeps the slider feeling like the same slider when the mode is switched
+    // under it. At L* 100 and L* 0 the only printable colour is neutral, so the gamut search takes the
+    // chroma all the way out and even a saturated colour ends on white and on black.
+    const DecodedHeightTexture src = make_rgb_flat(200, 60, 30);
+
+    TextureAdjustments up;
+    up.brightness                    = 1.f;
+    up.brightness_space              = TextureBrightnessSpace::PerceptualLab;
+    const DecodedHeightTexture white = apply_texture_adjustments(src, up);
+    REQUIRE(white.has_color());
+    CHECK(std::all_of(white.rgb.begin(), white.rgb.end(), [](uint8_t v) { return v == 255; }));
+
+    TextureAdjustments down = up;
+    down.brightness         = -1.f;
+    const DecodedHeightTexture black = apply_texture_adjustments(src, down);
+    REQUIRE(black.has_color());
+    CHECK(std::all_of(black.rgb.begin(), black.rgb.end(), [](uint8_t v) { return v == 0; }));
+}
+
+TEST_CASE("Lab brightness on a grayscale image stays an ordered curve", "[TextureDisplacement]")
+{
+    // A grey has no a* or b* to hold, so the Lab lift collapses to a scalar curve and the grayscale path
+    // keeps its one table lookup per texel. What has to survive is what survives in RGB mode: every level
+    // gets brighter, the order is preserved, and the top of the range does not collapse into a flat
+    // plateau - this image is also the height map, and a plateau there bakes as flat relief.
+    const DecodedHeightTexture src = make_gray_ramp();
+    TextureAdjustments         adj;
+    adj.brightness                 = 0.4f;
+    adj.brightness_space           = TextureBrightnessSpace::PerceptualLab;
+    const DecodedHeightTexture out = apply_texture_adjustments(src, adj);
+
+    REQUIRE_FALSE(out.has_color());
+    REQUIRE(out.pixels.size() == src.pixels.size());
+    for (size_t i = 0; i < out.pixels.size(); ++i)
+        REQUIRE(out.pixels[i] >= src.pixels[i]);
+    for (int x = 1; x < out.width; ++x)
+        REQUIRE(out.pixels[size_t(x)] >= out.pixels[size_t(x - 1)]);
+    const size_t clipped = size_t(std::count(out.pixels.begin(), out.pixels.end(), uint8_t(255)));
+    CHECK(clipped * 100 < out.pixels.size());
+
+    // And it is not the RGB curve wearing a different name: L* is not the sRGB code, so the two disagree
+    // in the middle of the range even though they agree at both ends.
+    TextureAdjustments rgb_mode = adj;
+    rgb_mode.brightness_space   = TextureBrightnessSpace::Rgb;
+    CHECK(apply_texture_adjustments(src, rgb_mode).pixels != out.pixels);
+}
+
 TEST_CASE("the adjustment blur radius ramps from zero and stays under its cost cap", "[TextureDisplacement]")
 {
     CHECK_THAT(adjustment_blur_radius(0.f, 512, 512), Catch::Matchers::WithinAbs(0.f, 1e-6f));

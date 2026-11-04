@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
+#include <ctime>
 #include <initializer_list>
 #include <ios>
 #include <iterator>
@@ -100,32 +101,58 @@ std::string table_brand(const std::string &vendor)
 } // namespace
 
 namespace {
-// One file: a vendor's worth of colours. `brand` is on the file rather than on every row, since a
-// file belongs to one brand - except in a file the importer wrote, where one library spans brands and
-// every row names its own.
-void read_file(const boost::filesystem::path &path, std::vector<FilamentTd> &out)
+// What a library file says about itself, as against the rows in it. `brand` is on the file rather
+// than on every row, since a file belongs to one brand - except in a file the importer wrote, where
+// one library spans brands and every row names its own.
+//
+// The rest of it is the source's own row: a library carries its name, where it came from and when it
+// was last written, so that the list of sources can be rebuilt out of the directory alone. A sources
+// file somebody has deleted costs the order and the enabled flags, not the knowledge of what these
+// libraries are.
+struct LibraryHeader
+{
+    std::string brand;
+    std::string source;
+    std::string origin;
+    std::string kind;
+    std::time_t updated  = 0;
+    bool        imported = false;
+};
+
+// One file: a vendor's worth of colours, or a whole imported library.
+void read_file(const boost::filesystem::path &path, LibraryHeader &header, std::vector<FilamentTd> &out)
 {
     boost::nowide::ifstream in(path.string());
     if (!in.good())
         return;
     nlohmann::json root;
     in >> root;
-    const std::string brand = root.value("brand", std::string());
+    header.brand = root.value("brand", std::string());
     // Where the numbers came from, and whether they are ours: a file the importer wrote says so, and
     // the card has to be able to tell somebody else's measurement from the one we shipped.
-    const std::string source   = root.value("source", std::string());
-    const bool        imported = root.value("imported", false);
-    const size_t      before   = out.size();
+    header.source   = root.value("source", std::string());
+    header.imported = root.value("imported", false);
+    header.kind     = root.value("kind", std::string());
+    // `origin` is what this writes now; the two fallbacks are what the files already on disk say. The
+    // shipped tables name the database they came out of under "url", and a file today's importer wrote
+    // names the path it read under "imported_from".
+    header.origin = root.value("origin", std::string());
+    if (header.origin.empty())
+        header.origin = root.value("imported_from", std::string());
+    if (header.origin.empty())
+        header.origin = root.value("url", std::string());
+    header.updated      = std::time_t(root.value("updated", (long long) 0));
+    const size_t before = out.size();
     for (const nlohmann::json &one : root.value("filaments", nlohmann::json::array())) {
         if (out.size() - before >= FILAMENT_TD_IMPORT_MAX_ENTRIES)
             break; // no one file is allowed to be the whole of memory, however it got into the directory
         FilamentTd entry;
-        entry.brand     = one.value("brand", brand);
+        entry.brand     = one.value("brand", header.brand);
         entry.name      = one.value("name", std::string());
         entry.type      = one.value("type", std::string());
         entry.td_mm     = one.value("td", 0.f);
-        entry.td_source = source;
-        entry.imported  = imported;
+        entry.td_source = header.source;
+        entry.imported  = header.imported;
         const std::string hex = one.value("color", std::string());
         if (entry.brand.empty() || entry.name.empty() || entry.td_mm <= 0.f || hex.size() < 7)
             continue;
@@ -133,6 +160,13 @@ void read_file(const boost::filesystem::path &path, std::vector<FilamentTd> &out
         entry.color = ColorRGB(channel(1), channel(3), channel(5));
         out.push_back(std::move(entry));
     }
+}
+
+// The same, for a caller that wants the rows and not the file's own story.
+void read_file(const boost::filesystem::path &path, std::vector<FilamentTd> &out)
+{
+    LibraryHeader header;
+    read_file(path, header, out);
 }
 
 // Every .json in a directory, in name order so a build is the same twice running.
@@ -167,41 +201,293 @@ const std::vector<FilamentTd> &shipped_table()
     }();
     return table;
 }
+
+// The directory every library but the shipped one lives in, and the two names in it that are not a
+// library: the list of sources, and the file holding the user's own measurements. Both are named
+// rather than derived, because the one thing in here that must never be guessed at is which file is
+// the user's.
+boost::filesystem::path user_td_dir() { return boost::filesystem::path(data_dir()) / "filament_td"; }
+
+const char *const SOURCES_FILE_NAME  = "sources.json";
+const char *const PERSONAL_SOURCE_ID = "personal";
+const char *const SHIPPED_SOURCE_ID  = "shipped";
+
+// A library file and the source row it describes.
+struct LoadedSource
+{
+    FilamentTdSource        source;
+    std::vector<FilamentTd> entries;
+};
+
+// Where a kind sits when nothing has said otherwise: the user's own measurements, then the libraries
+// they have, then what shipped. This is the order the table has always had, written down - a
+// directory with no sources file reads exactly as it did before there were sources.
+int kind_rank(FilamentTdSourceKind kind)
+{
+    switch (kind) {
+    case FilamentTdSourceKind::Personal: return 0;
+    case FilamentTdSourceKind::Imported: return 1;
+    case FilamentTdSourceKind::Subscription: return 2;
+    case FilamentTdSourceKind::Shipped: return 3;
+    }
+    return 2;
+}
+
+// Every library in the user's directory, read. The id is the file's stem, which is what makes a
+// library removable by deleting a file and a re-import or a re-fetch replace one rather than add
+// another beside it.
+std::vector<LoadedSource> read_user_sources()
+{
+    std::vector<LoadedSource>     out;
+    boost::system::error_code     ec;
+    const boost::filesystem::path dir = user_td_dir();
+    if (data_dir().empty() || !boost::filesystem::is_directory(dir, ec))
+        return out;
+
+    std::vector<boost::filesystem::path> files;
+    for (boost::filesystem::directory_iterator it(dir, ec), end; it != end && !ec; it.increment(ec))
+        if (it->path().extension() == ".json" && it->path().filename().string() != SOURCES_FILE_NAME)
+            files.push_back(it->path());
+    std::sort(files.begin(), files.end());
+
+    for (const boost::filesystem::path &file : files) {
+        LoadedSource  one;
+        LibraryHeader header;
+        try {
+            read_file(file, header, one.entries);
+        } catch (...) {
+            continue; // one unreadable library, not a broken feature
+        }
+        one.source.id = file.stem().string();
+        if (one.source.id.empty())
+            continue;
+        // The kind the file claims, and failing that the kind its `imported` flag implies, which is
+        // what every file written before there were kinds says. A file in the user's own directory
+        // cannot claim to be shipped, whatever it writes: shipped means "in the resources we
+        // installed", and that is a fact about where the file is.
+        one.source.kind = header.kind.empty() ? (header.imported ? FilamentTdSourceKind::Imported :
+                                                                   FilamentTdSourceKind::Personal) :
+                                                filament_td_source_kind_of(header.kind);
+        if (one.source.kind == FilamentTdSourceKind::Shipped)
+            one.source.kind = FilamentTdSourceKind::Personal;
+        // And the file named personal.json is the user's own, whatever it says about itself. This is
+        // the one place where the name of a file decides something, and it decides it because the
+        // alternative is a library talking its way into the one slot an update may not write to.
+        if (one.source.id == PERSONAL_SOURCE_ID)
+            one.source.kind = FilamentTdSourceKind::Personal;
+        one.source.name   = header.source;
+        one.source.origin = header.origin;
+        one.source.updated = header.updated;
+        if (one.source.updated == 0) {
+            const std::time_t written = boost::filesystem::last_write_time(file, ec);
+            one.source.updated        = ec ? 0 : written;
+        }
+        one.source.entries = one.entries.size();
+        out.push_back(std::move(one));
+    }
+
+    std::stable_sort(out.begin(), out.end(), [](const LoadedSource &a, const LoadedSource &b) {
+        return kind_rank(a.source.kind) < kind_rank(b.source.kind);
+    });
+    return out;
+}
+
+// The stored list, which is the part the user decides: the order, the names they gave, what is turned
+// off, and which spools they have pinned to their own measurement. Nothing in it is trusted to
+// describe a file - the files describe themselves - so a stale row costs nothing.
+FilamentTdSourceList read_stored_sources()
+{
+    FilamentTdSourceList list;
+    if (data_dir().empty())
+        return list;
+    try {
+        const boost::filesystem::path file = user_td_dir() / SOURCES_FILE_NAME;
+        boost::system::error_code     ec;
+        if (!boost::filesystem::is_regular_file(file, ec) || ec)
+            return list;
+        const boost::uintmax_t size = boost::filesystem::file_size(file, ec);
+        if (ec || size == 0 || size > FILAMENT_TD_IMPORT_MAX_BYTES)
+            return list;
+        boost::nowide::ifstream in(file.string());
+        if (!in.good())
+            return list;
+        nlohmann::json root;
+        in >> root;
+
+        FilamentTdSourceList read;
+        for (const nlohmann::json &one : root.value("sources", nlohmann::json::array())) {
+            if (read.sources.size() >= FILAMENT_TD_SOURCES_MAX)
+                break;
+            if (!one.is_object())
+                continue;
+            FilamentTdSource source;
+            source.id = one.value("id", std::string());
+            if (source.id.empty() || read.find(source.id) != nullptr)
+                continue; // a list that names one source twice names it once
+            source.name    = one.value("name", std::string());
+            source.kind    = filament_td_source_kind_of(one.value("kind", std::string()));
+            source.origin  = one.value("origin", std::string());
+            source.updated = std::time_t(one.value("updated", (long long) 0));
+            source.enabled = one.value("enabled", true);
+            read.sources.push_back(std::move(source));
+        }
+        for (const nlohmann::json &one : root.value("suppressed", nlohmann::json::array())) {
+            if (read.suppressed.size() >= FILAMENT_TD_IMPORT_MAX_ENTRIES)
+                break;
+            if (one.is_string())
+                read.suppressed.push_back(one.get<std::string>());
+        }
+        std::sort(read.suppressed.begin(), read.suppressed.end());
+        read.suppressed.erase(std::unique(read.suppressed.begin(), read.suppressed.end()), read.suppressed.end());
+        return read;
+    } catch (...) {
+        // A sources file we cannot read is a list of preferences lost, which is recoverable, and not a
+        // reason to come up with no libraries at all.
+    }
+    return FilamentTdSourceList();
+}
+
+// The stored list and the directory, reconciled. The stored list gives the order and the flags; the
+// directory gives what actually exists. Rows are matched by id, a stored row whose library has gone is
+// dropped unless it is a subscription that has not been fetched yet, and a library the list has never
+// heard of is folded in at its kind's place.
+FilamentTdSourceList combine_sources(const FilamentTdSourceList &stored, const std::vector<LoadedSource> &found)
+{
+    FilamentTdSourceList list;
+    list.suppressed = stored.suppressed;
+
+    std::set<std::string> placed;
+    for (const FilamentTdSource &row : stored.sources) {
+        if (placed.count(row.id) != 0)
+            continue;
+        const auto at = std::find_if(found.begin(), found.end(),
+                                     [&row](const LoadedSource &one) { return one.source.id == row.id; });
+        if (at != found.end()) {
+            // The file's own facts, with the user's preferences kept over them: they renamed it, they
+            // turned it off, and neither of those is the file's to say.
+            FilamentTdSource merged = at->source;
+            if (!row.name.empty())
+                merged.name = row.name;
+            if (merged.origin.empty())
+                merged.origin = row.origin;
+            merged.enabled = row.enabled;
+            list.sources.push_back(std::move(merged));
+        } else if (row.kind == FilamentTdSourceKind::Shipped || row.kind == FilamentTdSourceKind::Subscription) {
+            // Shipped has no file in this directory, and a subscription with none is one nobody has
+            // fetched yet. Any other row without a file is a library the user deleted.
+            FilamentTdSource kept = row;
+            kept.entries          = 0;
+            list.sources.push_back(std::move(kept));
+        }
+        placed.insert(row.id);
+    }
+
+    for (const LoadedSource &one : found)
+        if (placed.count(one.source.id) == 0) {
+            const int  rank  = kind_rank(one.source.kind);
+            const auto after = std::find_if(list.sources.begin(), list.sources.end(),
+                                            [rank](const FilamentTdSource &row) { return kind_rank(row.kind) > rank; });
+            list.sources.insert(after, one.source);
+            placed.insert(one.source.id);
+        }
+
+    // By kind and not by id, because what has to be in the list is the shipped table and not a
+    // particular word: a user file that happens to be called shipped.json is a library of theirs, and
+    // it is not the resources directory.
+    if (std::none_of(list.sources.begin(), list.sources.end(),
+                     [](const FilamentTdSource &row) { return row.kind == FilamentTdSourceKind::Shipped; })) {
+        FilamentTdSource shipped;
+        shipped.id   = SHIPPED_SOURCE_ID;
+        shipped.kind = FilamentTdSourceKind::Shipped;
+        list.sources.push_back(std::move(shipped));
+    }
+    for (FilamentTdSource &row : list.sources)
+        if (row.kind == FilamentTdSourceKind::Shipped)
+            row.entries = shipped_table().size();
+
+    // The one part of the order that is not the user's to change. A measurement somebody took on their
+    // own printer is the only number here nobody else can reproduce, so it answers first whatever the
+    // file on disk asks for - including a file written by a build that let the list say otherwise, or
+    // one edited by hand.
+    std::stable_partition(list.sources.begin(), list.sources.end(),
+                          [](const FilamentTdSource &row) { return row.kind == FilamentTdSourceKind::Personal; });
+    return list;
+}
 } // namespace
 
-// The table is cached, and an import has to be visible without a restart, so it is a guarded global
-// rather than a function-local static. The mutex makes a rebuild atomic with respect to any lookup
-// that starts during it; what it cannot do is keep a pointer *already* handed out valid across one,
-// which is why filament_td_reset_cache() is documented as a UI-thread call and why every consumer
-// copies the number it wanted (see ChromaFilament) instead of holding the entry.
+// The table and the list of sources are cached together, because they are one read: the list is what
+// says which files to read and in what order, and the table is those files concatenated in it. An
+// import or an update has to be visible without a restart, so they are guarded globals rather than
+// function-local statics. The mutex makes a rebuild atomic with respect to any lookup that starts
+// during it; what it cannot do is keep a pointer *already* handed out valid across one, which is why
+// filament_td_reset_cache() is documented as a UI-thread call and why every consumer in the tree
+// copies the value it wanted out of the entry (see ChromaFilament) instead of holding the entry.
 static std::mutex              s_td_table_mutex;
 static std::vector<FilamentTd> s_td_table;
+static FilamentTdSourceList    s_td_sources;
 static bool                    s_td_table_loaded = false;
+
+// Read the sources, then the enabled ones in order, stamping every entry with the source it came out
+// of. The concatenation is the precedence, and it only ever decides an exact tie, since the search
+// picks on match quality first: a library that matches the spool in hand better than the source above
+// it does still win, which is the search's business and not the order's.
+static void td_load_locked()
+{
+    if (s_td_table_loaded)
+        return;
+    const std::vector<LoadedSource> found = read_user_sources();
+    FilamentTdSourceList            list  = combine_sources(read_stored_sources(), found);
+
+    std::vector<FilamentTd> out;
+    for (const FilamentTdSource &row : list.sources) {
+        if (!row.enabled)
+            continue;
+        const size_t before = out.size();
+        if (row.kind == FilamentTdSourceKind::Shipped) {
+            const std::vector<FilamentTd> &shipped = shipped_table();
+            out.insert(out.end(), shipped.begin(), shipped.end());
+        } else {
+            const auto at = std::find_if(found.begin(), found.end(),
+                                         [&row](const LoadedSource &one) { return one.source.id == row.id; });
+            if (at == found.end())
+                continue; // a subscription nobody has fetched yet, which has no library to contribute
+            out.insert(out.end(), at->entries.begin(), at->entries.end());
+        }
+        for (size_t i = before; i < out.size(); ++i) {
+            out[i].source_id   = row.id;
+            out[i].source_kind = row.kind;
+            // Kept in step with the kind rather than read off the file, so that the two can never
+            // disagree: a card that tells somebody else's measurement from ours by this flag would
+            // otherwise be one hand-edited file away from being wrong.
+            out[i].imported = row.kind == FilamentTdSourceKind::Imported ||
+                              row.kind == FilamentTdSourceKind::Subscription;
+        }
+    }
+
+    s_td_table        = std::move(out);
+    s_td_sources      = std::move(list);
+    s_td_table_loaded = true;
+}
 
 const std::vector<FilamentTd> &filament_td_table()
 {
     std::lock_guard<std::mutex> lock(s_td_table_mutex);
-    if (!s_td_table_loaded) {
-        std::vector<FilamentTd> out;
-        read_dir(boost::filesystem::path(data_dir()) / "filament_td", out);
-        // Precedence, and it only decides an exact tie, since the search below picks on match quality
-        // first and keeps the first of equals: a value the user measured for their own spool, then one
-        // out of a library they imported, then what shipped. A number somebody wrote down themselves
-        // beats a community library, and both beat nothing; an import that matches a spool better than
-        // a shipped entry does still wins, because that is the search's business and not the order's.
-        std::stable_partition(out.begin(), out.end(), [](const FilamentTd &entry) { return !entry.imported; });
-        const std::vector<FilamentTd> &shipped = shipped_table();
-        out.insert(out.end(), shipped.begin(), shipped.end());
-        s_td_table        = std::move(out);
-        s_td_table_loaded = true;
-    }
+    td_load_locked();
     return s_td_table;
+}
+
+const FilamentTdSourceList &filament_td_sources()
+{
+    std::lock_guard<std::mutex> lock(s_td_table_mutex);
+    td_load_locked();
+    return s_td_sources;
 }
 
 void filament_td_reset_cache()
 {
     std::lock_guard<std::mutex> lock(s_td_table_mutex);
     s_td_table.clear();
+    s_td_sources      = FilamentTdSourceList();
     s_td_table_loaded = false;
 }
 
@@ -691,9 +977,9 @@ std::string composed_name(const std::string &brand, const std::string &type, con
     return trimmed(out);
 }
 
-// What makes two rows the same spool: the brand key, the words of the name, and the colour as the
-// three bytes it is written as. Two rows this agrees on are one measurement offered twice.
-std::string dedupe_key(const FilamentTd &entry)
+} // namespace
+
+std::string filament_td_entry_key(const FilamentTd &entry)
 {
     std::string key = entry.brand;
     key += '|';
@@ -705,6 +991,8 @@ std::string dedupe_key(const FilamentTd &entry)
     key += color_hex(entry.color);
     return key;
 }
+
+namespace {
 
 struct Normalized
 {
@@ -781,39 +1069,150 @@ bool looks_like_json(const std::string &text)
     return false;
 }
 
+// A library as a file: the shape filament_td_parse() reads, which is also the shape every library
+// under `data_dir()/filament_td` is written in. One shape for what we write and what we read is what
+// makes an export and an import the same thing seen from two sides, and it is why a library can be
+// moved between machines by copying a file.
+nlohmann::json library_json(const std::vector<FilamentTd> &entries, const std::string &name,
+                            FilamentTdSourceKind kind, const std::string &origin, std::time_t updated)
+{
+    nlohmann::json root;
+    if (!name.empty())
+        root["source"] = name;
+    root["kind"] = filament_td_source_kind_key(kind);
+    // Written as well as the kind, for a build that predates kinds: that one reads this flag and
+    // nothing else to tell somebody else's numbers from ours, and a file written here still has to
+    // read correctly there.
+    root["imported"] = kind == FilamentTdSourceKind::Imported || kind == FilamentTdSourceKind::Subscription;
+    if (!origin.empty())
+        root["origin"] = origin;
+    root["unit"] = "mm";
+    if (updated != 0)
+        root["updated"] = (long long) updated;
+
+    nlohmann::json list = nlohmann::json::array();
+    for (const FilamentTd &entry : entries) {
+        nlohmann::json one;
+        one["brand"] = entry.brand;
+        one["name"]  = entry.name;
+        if (!entry.type.empty())
+            one["type"] = entry.type;
+        one["color"] = color_hex(entry.color);
+        // Three decimals, rounded in double so that the file reads 1.2 rather than a float's nearest
+        // neighbour to it. A transmission distance is known to about a tenth of a millimetre, and the
+        // digits past that are noise written out as though measured. Three is also two more than any
+        // path into here can produce, which is what makes the round trip through the importer exact.
+        one["td"] = std::round(double(entry.td_mm) * 1000.) / 1000.;
+        list.push_back(std::move(one));
+    }
+    root["filaments"] = std::move(list);
+    return root;
+}
+
+// Through a temporary and into place, so that a write interrupted half way leaves the file that was
+// there whole rather than half a library.
+bool write_json_atomic(const boost::filesystem::path &file, const nlohmann::json &root)
+{
+    try {
+        boost::system::error_code ec;
+        boost::filesystem::create_directories(file.parent_path(), ec);
+        const boost::filesystem::path temp = file.string() + ".tmp";
+        {
+            boost::nowide::ofstream write(temp.string(), std::ios::binary | std::ios::trunc);
+            if (!write.good())
+                return false;
+            // Replacing rather than refusing on bad UTF-8: the names came out of a file we do not
+            // trust, and one byte somebody's exporter got wrong is not a reason to lose the library.
+            write << root.dump(1, ' ', false, nlohmann::json::error_handler_t::replace) << "\n";
+            if (!write.good())
+                return false;
+        }
+        boost::filesystem::remove(file, ec); // rename over an existing file is not portable
+        boost::filesystem::rename(temp, file, ec);
+        if (ec) {
+            boost::filesystem::remove(temp, ec);
+            return false;
+        }
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+// A file-name safe, stable slug out of whatever the user called a thing.
+std::string slug(const std::string &text, size_t cap = 48)
+{
+    std::string out;
+    for (unsigned char c : text) {
+        if (std::isalnum(c))
+            out.push_back(char(std::tolower(c)));
+        else if (!out.empty() && out.back() != '-')
+            out.push_back('-');
+        if (out.size() >= cap)
+            break;
+    }
+    while (!out.empty() && out.back() == '-')
+        out.pop_back();
+    return out;
+}
+
+// The file a library lives in. An id that is not a plain file name gets nothing back: ids are file
+// stems, but the list they are read from is a file somebody can edit, and "../../something" is not an
+// id. Every path in here that writes or deletes goes through this.
+boost::filesystem::path library_file(const std::string &id)
+{
+    if (id.empty() || data_dir().empty() || boost::filesystem::path(id).filename().string() != id)
+        return boost::filesystem::path();
+    return user_td_dir() / (id + ".json");
+}
+
+// Whether an update would be saying anything about a spool we already have. The brand and the colour
+// are equal already - they are what the key is made of - so what is left is the number, the name as
+// the library spells it now, and the type.
+bool same_measurement(const FilamentTd &a, const FilamentTd &b)
+{
+    return a.name == b.name && a.type == b.type && std::fabs(a.td_mm - b.td_mm) < 1e-4f;
+}
+
 // The file name an import lands under. One file per source, named after it, so that re-importing a
 // corrected library replaces it instead of adding to a pile, and so that a user can delete an
 // imported library without touching the values they measured themselves.
 std::string import_file_name(const boost::filesystem::path &from)
 {
-    std::string slug;
-    for (unsigned char c : from.stem().string()) {
-        if (std::isalnum(c))
-            slug.push_back(char(std::tolower(c)));
-        else if (!slug.empty() && slug.back() != '-')
-            slug.push_back('-');
-        if (slug.size() >= 48)
-            break;
-    }
-    while (!slug.empty() && slug.back() == '-')
-        slug.pop_back();
-    return "imported-" + (slug.empty() ? std::string("library") : slug) + ".json";
+    const std::string stem = slug(from.stem().string());
+    return "imported-" + (stem.empty() ? std::string("library") : stem) + ".json";
 }
 } // namespace
 
 FilamentTdImport filament_td_parse(const std::string &path, std::vector<FilamentTd> &out)
 {
-    FilamentTdImport result;
     const boost::filesystem::path from(path);
-    // The file's own name is the provenance, and data rather than a sentence: the GUI is what says
-    // "imported from" around it, in the user's language.
-    result.source = from.filename().string();
-
-    std::string text;
+    std::string                   text;
     if (!read_text(from, text)) {
+        FilamentTdImport result;
+        // The file's own name is the provenance, and data rather than a sentence: the GUI is what
+        // says "imported from" around it, in the user's language.
+        result.source     = from.filename().string();
         result.unreadable = true;
         return result;
     }
+    return filament_td_parse_text(text, from.filename().string(), out);
+}
+
+FilamentTdImport filament_td_parse_text(const std::string &raw, const std::string &source_name,
+                                        std::vector<FilamentTd> &out)
+{
+    FilamentTdImport result;
+    result.source = source_name;
+    if (raw.empty() || raw.size() > FILAMENT_TD_IMPORT_MAX_BYTES) {
+        // Nothing, or more than a library is: a fetch that failed and gave us its error page instead,
+        // or a file big enough that parsing it is the attack.
+        result.unreadable = true;
+        return result;
+    }
+    // A BOM, which a spreadsheet writes and nothing here wants to see. read_text() takes it off what
+    // it reads; text handed to us straight off a URL has had nobody to take it off.
+    const std::string text = raw.compare(0, 3, "\xEF\xBB\xBF") == 0 ? raw.substr(3) : raw;
 
     Collected collected;
     try {
@@ -852,13 +1251,13 @@ FilamentTdImport filament_td_parse(const std::string &path, std::vector<Filament
     // better, which is the search's business.
     std::set<std::string> shipped_keys;
     for (const FilamentTd &entry : shipped_table())
-        shipped_keys.insert(dedupe_key(entry));
+        shipped_keys.insert(filament_td_entry_key(entry));
 
     std::map<std::string, size_t> at;
     std::vector<Normalized>       kept;
     kept.reserve(normalized.size());
     for (Normalized &one : normalized) {
-        const std::string key = dedupe_key(one.entry);
+        const std::string key = filament_td_entry_key(one.entry);
         if (shipped_keys.count(key) != 0) {
             ++result.skipped_duplicate;
             continue;
@@ -889,60 +1288,14 @@ FilamentTdImport filament_td_import(const std::string &path)
     if (entries.empty() || data_dir().empty())
         return result;
 
-    try {
-        const boost::filesystem::path dir = boost::filesystem::path(data_dir()) / "filament_td";
-        boost::system::error_code     ec;
-        boost::filesystem::create_directories(dir, ec);
-        const boost::filesystem::path file = dir / import_file_name(boost::filesystem::path(path));
-
-        // Our own shape, so that read_file() above picks it up with no special case: the brand on
-        // every row rather than on the file, since one library spans brands, and the flag that says
-        // these numbers are somebody else's.
-        nlohmann::json root;
-        root["source"]        = result.source;
-        root["imported"]      = true;
-        root["imported_from"] = boost::filesystem::path(path).string();
-        root["unit"]          = "mm";
-        nlohmann::json list   = nlohmann::json::array();
-        for (const FilamentTd &entry : entries) {
-            nlohmann::json one;
-            one["brand"] = entry.brand;
-            one["name"]  = entry.name;
-            if (!entry.type.empty())
-                one["type"] = entry.type;
-            one["color"] = color_hex(entry.color);
-            // Three decimals, rounded in double so that the file reads 1.2 rather than a float's
-            // nearest neighbour to it. A transmission distance is known to about a tenth of a
-            // millimetre, and the digits past that are noise written out as though measured.
-            one["td"] = std::round(double(entry.td_mm) * 1000.) / 1000.;
-            list.push_back(std::move(one));
-        }
-        root["filaments"] = std::move(list);
-
-        // Through a temporary and into place, so that an import interrupted half way leaves the
-        // previous one whole rather than a file that is half a library.
-        const boost::filesystem::path temp = file.string() + ".tmp";
-        {
-            boost::nowide::ofstream write(temp.string(), std::ios::binary | std::ios::trunc);
-            if (!write.good())
-                return result;
-            // Replacing rather than refusing on bad UTF-8: the names came out of a file we do not
-            // trust, and one byte somebody's exporter got wrong is not a reason to lose the library.
-            write << root.dump(1, ' ', false, nlohmann::json::error_handler_t::replace) << "\n";
-            if (!write.good())
-                return result;
-        }
-        boost::filesystem::remove(file, ec); // rename over an existing file is not portable
-        boost::filesystem::rename(temp, file, ec);
-        if (ec) {
-            boost::filesystem::remove(temp, ec);
-            return result;
-        }
+    const boost::filesystem::path file = user_td_dir() / import_file_name(boost::filesystem::path(path));
+    // Our own shape, so that read_file() above picks it up with no special case: the brand on every
+    // row rather than on the file, since one library spans brands, and the kind that says these
+    // numbers are somebody else's. A write that did not happen is reported by an empty written_path,
+    // not by an exception reaching the GUI.
+    if (write_json_atomic(file, library_json(entries, result.source, FilamentTdSourceKind::Imported,
+                                             boost::filesystem::path(path).string(), std::time(nullptr))))
         result.written_path = file.string();
-    } catch (...) {
-        // A write that did not happen is reported by an empty written_path, not by an exception
-        // reaching the GUI.
-    }
     return result;
 }
 
@@ -957,6 +1310,399 @@ std::string filament_td_format_mm(float td_mm)
     if (!out.empty() && out.back() == '.')
         out.pop_back();
     return out;
+}
+
+// --------------------------------------------------------------------------------------------------
+// The sources, and the operations a GUI performs on them
+//
+// Everything below reads the list, changes one thing in it and writes it back, because the list is
+// small and the alternative - a live object the GUI mutates - would have to answer what happens when
+// two of them disagree. The cost is a file write per change, on a path a user takes a few times a
+// year.
+// --------------------------------------------------------------------------------------------------
+
+const char *filament_td_source_kind_key(FilamentTdSourceKind kind)
+{
+    switch (kind) {
+    case FilamentTdSourceKind::Shipped: return "shipped";
+    case FilamentTdSourceKind::Personal: return "personal";
+    case FilamentTdSourceKind::Imported: return "imported";
+    case FilamentTdSourceKind::Subscription: return "subscription";
+    }
+    return "imported";
+}
+
+FilamentTdSourceKind filament_td_source_kind_of(const std::string &key)
+{
+    if (key == "shipped")
+        return FilamentTdSourceKind::Shipped;
+    if (key == "personal")
+        return FilamentTdSourceKind::Personal;
+    if (key == "subscription")
+        return FilamentTdSourceKind::Subscription;
+    // Imported for a word we do not know, because it is the kind that claims least: it ranks below
+    // the user's own measurements, and nothing refreshes it behind their back.
+    return FilamentTdSourceKind::Imported;
+}
+
+const FilamentTdSource *FilamentTdSourceList::find(const std::string &id) const
+{
+    const auto at = std::find_if(sources.begin(), sources.end(),
+                                 [&id](const FilamentTdSource &row) { return row.id == id; });
+    return at == sources.end() ? nullptr : &*at;
+}
+
+bool FilamentTdSourceList::is_suppressed(const std::string &entry_key) const
+{
+    // Linear, and deliberately not a binary search: the list is written sorted but it is also a list a
+    // caller can build by hand, and a search that quietly misses entries in an unsorted one would fail
+    // in the direction this whole feature exists to prevent. A merge over a large library builds its
+    // own set once (see filament_td_merge), so the cost lands nowhere that repeats.
+    return std::find(suppressed.begin(), suppressed.end(), entry_key) != suppressed.end();
+}
+
+bool filament_td_sources_save(const FilamentTdSourceList &list)
+{
+    if (data_dir().empty())
+        return false;
+
+    nlohmann::json root;
+    root["version"] = 1;
+
+    nlohmann::json       rows = nlohmann::json::array();
+    std::set<std::string> seen;
+    for (const FilamentTdSource &row : list.sources) {
+        if (rows.size() >= FILAMENT_TD_SOURCES_MAX)
+            break;
+        if (row.id.empty() || !seen.insert(row.id).second)
+            continue; // a list that names one source twice names it once
+        nlohmann::json one;
+        one["id"] = row.id;
+        if (!row.name.empty())
+            one["name"] = row.name;
+        one["kind"] = filament_td_source_kind_key(row.kind);
+        if (!row.origin.empty())
+            one["origin"] = row.origin;
+        if (row.updated != 0)
+            one["updated"] = (long long) row.updated;
+        one["enabled"] = row.enabled;
+        rows.push_back(std::move(one));
+    }
+    root["sources"] = std::move(rows);
+
+    std::vector<std::string> keys = list.suppressed;
+    std::sort(keys.begin(), keys.end());
+    keys.erase(std::unique(keys.begin(), keys.end()), keys.end());
+    if (keys.size() > FILAMENT_TD_IMPORT_MAX_ENTRIES)
+        keys.resize(FILAMENT_TD_IMPORT_MAX_ENTRIES);
+    root["suppressed"] = keys;
+
+    if (!write_json_atomic(user_td_dir() / SOURCES_FILE_NAME, root))
+        return false;
+    filament_td_reset_cache();
+    return true;
+}
+
+std::string filament_td_subscribe(const std::string &url, const std::string &name)
+{
+    const std::string where = trimmed(url);
+    if (where.empty() || where.size() > FILAMENT_TD_IMPORT_MAX_STRING * 8)
+        return std::string();
+
+    FilamentTdSourceList list = filament_td_sources();
+    for (const FilamentTdSource &row : list.sources)
+        if (row.kind == FilamentTdSourceKind::Subscription && row.origin == where)
+            return row.id; // subscribing twice to one list is subscribing once
+
+    std::string base = "sub-" + slug(name.empty() ? where : name);
+    if (base == "sub-")
+        base = "sub-library";
+    std::string id = base;
+    for (int n = 2; list.find(id) != nullptr && n < 1000; ++n)
+        id = base + "-" + std::to_string(n);
+    if (list.find(id) != nullptr)
+        return std::string();
+
+    FilamentTdSource row;
+    row.id     = id;
+    row.name   = name.empty() ? where : name;
+    row.kind   = FilamentTdSourceKind::Subscription;
+    row.origin = where;
+    // Below the libraries already there and above the shipped table: a list somebody has just gone and
+    // found is worth more than nothing and less than what they had already chosen to keep. The order
+    // is theirs to change afterwards, which is the point of there being one.
+    const auto at = std::find_if(list.sources.begin(), list.sources.end(), [](const FilamentTdSource &row) {
+        return row.kind == FilamentTdSourceKind::Shipped;
+    });
+    list.sources.insert(at, std::move(row));
+    return filament_td_sources_save(list) ? id : std::string();
+}
+
+bool filament_td_source_remove(const std::string &id)
+{
+    FilamentTdSourceList    list = filament_td_sources();
+    const FilamentTdSource *row  = list.find(id);
+    if (row == nullptr || row->kind == FilamentTdSourceKind::Personal || row->kind == FilamentTdSourceKind::Shipped)
+        return false;
+    const boost::filesystem::path file = library_file(id);
+    if (file.empty())
+        return false;
+
+    list.sources.erase(list.sources.begin() + (row - list.sources.data()));
+    // The list first and the file second. A library whose row has gone is a file nothing reads; a row
+    // whose library has gone is a source the user sees and cannot use.
+    if (!filament_td_sources_save(list))
+        return false;
+    boost::system::error_code ec;
+    boost::filesystem::remove(file, ec);
+    filament_td_reset_cache();
+    return true;
+}
+
+bool filament_td_suppress(const FilamentTd &entry, bool suppressed)
+{
+    if (entry.brand.empty() || entry.name.empty())
+        return false;
+    const std::string    key  = filament_td_entry_key(entry);
+    FilamentTdSourceList list = filament_td_sources();
+    const auto           at   = std::find(list.suppressed.begin(), list.suppressed.end(), key);
+    if (suppressed) {
+        if (at != list.suppressed.end())
+            return true;
+        if (list.suppressed.size() >= FILAMENT_TD_IMPORT_MAX_ENTRIES)
+            return false;
+        list.suppressed.push_back(key);
+    } else {
+        if (at == list.suppressed.end())
+            return true;
+        list.suppressed.erase(at);
+    }
+    return filament_td_sources_save(list);
+}
+
+bool filament_td_record_measured(const FilamentTd &entry, bool suppress)
+{
+    const boost::filesystem::path file = library_file(PERSONAL_SOURCE_ID);
+    if (file.empty())
+        return false;
+
+    // Through the same normalizing a library's rows go through, so that a measurement is found by
+    // exactly what a library's row is found by - and so that the file round trips through the importer
+    // unchanged, which is what lets it be carried to another machine by copying it.
+    FilamentTd one;
+    one.brand = table_brand(entry.brand);
+    if (one.brand.empty() || name_tokens(entry.name).empty())
+        return false;
+    one.name        = composed_name(entry.brand, entry.type, entry.name);
+    one.type        = entry.type;
+    one.color       = entry.color;
+    one.td_mm       = std::isfinite(entry.td_mm) ? std::clamp(entry.td_mm, FILAMENT_TD_MIN_MM, FILAMENT_TD_MAX_MM) :
+                                                   FILAMENT_TD_DEFAULT_MM;
+    one.source_id   = PERSONAL_SOURCE_ID;
+    one.source_kind = FilamentTdSourceKind::Personal;
+
+    std::vector<FilamentTd>   entries;
+    boost::system::error_code ec;
+    if (boost::filesystem::is_regular_file(file, ec) && !ec) {
+        try {
+            read_file(file, entries);
+        } catch (...) {
+            // A personal library we cannot read is not one to write over. Somebody can go and look at
+            // the file; nothing here can give it back once it is gone.
+            return false;
+        }
+    }
+
+    const std::string key      = filament_td_entry_key(one);
+    bool              replaced = false;
+    for (FilamentTd &have : entries)
+        if (filament_td_entry_key(have) == key) {
+            have     = one; // measuring the same spool again corrects it rather than listing it twice
+            replaced = true;
+            break;
+        }
+    if (!replaced) {
+        if (entries.size() >= FILAMENT_TD_IMPORT_MAX_ENTRIES)
+            return false;
+        entries.push_back(one);
+    }
+
+    // No name on the file, so that an entry out of it carries no library name: a number of your own is
+    // not from anywhere, and the card says what Personal means in the user's language rather than
+    // printing a word out of a file.
+    if (!write_json_atomic(file, library_json(entries, std::string(), FilamentTdSourceKind::Personal, std::string(),
+                                              std::time(nullptr))))
+        return false;
+    filament_td_reset_cache();
+    // Pinning it is almost always what somebody who has just measured a spool wants: the number they
+    // measured is the number they meant, and a library that disagrees is not news.
+    return suppress ? filament_td_suppress(one, true) : true;
+}
+
+std::vector<FilamentTd> filament_td_personal_entries()
+{
+    // Read afresh rather than filtered out of the table, deliberately: a Personal source the user has
+    // turned off is still theirs, and an export that quietly left it out would be exactly the kind of
+    // loss everything else in here is arranged to prevent.
+    std::vector<FilamentTd> out;
+    for (const LoadedSource &one : read_user_sources()) {
+        if (one.source.kind != FilamentTdSourceKind::Personal)
+            continue;
+        for (const FilamentTd &entry : one.entries) {
+            FilamentTd copy  = entry;
+            copy.source_id   = one.source.id;
+            copy.source_kind = FilamentTdSourceKind::Personal;
+            copy.imported    = false;
+            out.push_back(std::move(copy));
+        }
+    }
+    return out;
+}
+
+bool filament_td_export(const std::string &path, const std::vector<FilamentTd> &entries, const std::string &name)
+{
+    if (path.empty())
+        return false;
+    // Written as a personal library, because that is what leaves a machine this way: your own
+    // measurements, on their way to your other printer. Dropping the file into that machine's
+    // `filament_td` directory makes it a Personal source there, which is right - they are still your
+    // measurements. Somebody else's library arrives through the importer instead, and is stamped as
+    // theirs.
+    return write_json_atomic(boost::filesystem::path(path),
+                             library_json(entries, name, FilamentTdSourceKind::Personal, std::string(),
+                                          std::time(nullptr)));
+}
+
+FilamentTdExport filament_td_export_personal(const std::string &path)
+{
+    FilamentTdExport              out;
+    const std::vector<FilamentTd> entries = filament_td_personal_entries();
+    out.ok                                = filament_td_export(path, entries, std::string());
+    out.written                           = out.ok ? entries.size() : 0;
+    return out;
+}
+
+FilamentTdUpdate filament_td_merge(const std::vector<FilamentTd> &current, const std::vector<FilamentTd> &fetched,
+                                   const FilamentTdSourceList &sources)
+{
+    FilamentTdUpdate out;
+    // One set, built once: is_suppressed() is linear, and a merge asks it a question per row.
+    const std::set<std::string> pinned(sources.suppressed.begin(), sources.suppressed.end());
+
+    std::map<std::string, const FilamentTd *> have;
+    for (const FilamentTd &entry : current)
+        have.emplace(filament_td_entry_key(entry), &entry);
+
+    std::set<std::string> seen;
+    out.merged.reserve(std::max(current.size(), fetched.size()));
+    for (const FilamentTd &entry : fetched) {
+        const std::string key = filament_td_entry_key(entry);
+        if (!seen.insert(key).second)
+            continue; // the library lists one spool twice; the first of them stands
+        const auto at = have.find(key);
+        if (pinned.count(key) != 0) {
+            // The user measured this one. The library does not get to say anything about it, whether
+            // it is offering a correction or offering the spool for the first time: suppression is a
+            // statement about the spool, not about this version of this file.
+            ++out.suppressed;
+            if (at != have.end())
+                out.merged.push_back(*at->second);
+            continue;
+        }
+        if (at == have.end()) {
+            if (out.merged.size() >= FILAMENT_TD_IMPORT_MAX_ENTRIES) {
+                // Past what one library may hold. Only additions are refused here: an entry already in
+                // the file, and above all one the user has pinned, is never dropped to make room.
+                ++out.over_cap;
+                continue;
+            }
+            ++out.added;
+            out.merged.push_back(entry);
+        } else if (same_measurement(*at->second, entry)) {
+            ++out.unchanged;
+            out.merged.push_back(*at->second); // the entry as it is, provenance and all
+        } else {
+            ++out.updated;
+            out.merged.push_back(entry);
+        }
+    }
+
+    // What the library used to list and does not any more. Gone upstream is gone, unless it is one the
+    // user pinned, in which case it stays exactly as it is: an update is not allowed to take away a
+    // number somebody measured, and a library dropping a row is still an update.
+    for (const FilamentTd &entry : current) {
+        const std::string key = filament_td_entry_key(entry);
+        if (!seen.insert(key).second)
+            continue;
+        if (pinned.count(key) != 0) {
+            ++out.suppressed;
+            out.merged.push_back(entry);
+        } else {
+            ++out.dropped;
+        }
+    }
+    return out;
+}
+
+FilamentTdUpdate filament_td_update_prepare(const std::string &source_id, const std::string &text,
+                                            const std::string &source_name)
+{
+    FilamentTdUpdate            out;
+    const FilamentTdSourceList  list = filament_td_sources();
+    const FilamentTdSource     *row  = list.find(source_id);
+    if (source_id == PERSONAL_SOURCE_ID || (row != nullptr && (row->kind == FilamentTdSourceKind::Personal ||
+                                                               row->kind == FilamentTdSourceKind::Shipped)))
+        return out; // not a library an update may rewrite: nothing added, nothing dropped, nothing done
+
+    std::vector<FilamentTd> fetched;
+    const std::string       name = !source_name.empty() ? source_name :
+                                   (row != nullptr && !row->name.empty() ? row->name : source_id);
+    FilamentTdImport        parsed = filament_td_parse_text(text, name, fetched);
+    if (parsed.unreadable) {
+        // A fetch that did not arrive, or arrived as somebody's error page. It changes nothing, which
+        // is the whole point of working the update out before applying it.
+        out.parsed = std::move(parsed);
+        return out;
+    }
+
+    std::vector<FilamentTd>       current;
+    const boost::filesystem::path file = library_file(source_id);
+    boost::system::error_code     ec;
+    if (!file.empty() && boost::filesystem::is_regular_file(file, ec) && !ec) {
+        try {
+            read_file(file, current);
+        } catch (...) {
+            current.clear(); // an unreadable library is one every row of the new one is news to
+        }
+    }
+
+    out        = filament_td_merge(current, fetched, list);
+    out.parsed = std::move(parsed);
+    return out;
+}
+
+bool filament_td_update_apply(const std::string &source_id, const FilamentTdUpdate &update)
+{
+    // The three refusals that make a measurement impossible to lose. Not because the merge is careful
+    // - it is, but careful is a property that can be edited away - but because this is the only path
+    // by which a fetched library reaches disk, it writes one file, and that file can never be the one
+    // the user's own measurements are in.
+    if (source_id == PERSONAL_SOURCE_ID)
+        return false;
+    const FilamentTdSourceList  list = filament_td_sources();
+    const FilamentTdSource     *row  = list.find(source_id);
+    if (row == nullptr || row->kind == FilamentTdSourceKind::Personal || row->kind == FilamentTdSourceKind::Shipped)
+        return false;
+    const boost::filesystem::path file = library_file(source_id);
+    if (file.empty())
+        return false;
+
+    if (!write_json_atomic(file, library_json(update.merged, row->name, row->kind, row->origin, std::time(nullptr))))
+        return false;
+    // The row's own count and timestamp are re-derived from the file it has just written, so there is
+    // nothing to save: the sources file holds what the user decided, and the libraries hold the facts.
+    filament_td_reset_cache();
+    return true;
 }
 
 } // namespace Slic3r

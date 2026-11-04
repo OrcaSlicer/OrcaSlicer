@@ -171,6 +171,26 @@ struct TextureIsland
 // chart to its true mm area, so a freshly unwrapped patch has uniform texel density to begin with.
 void average_island_scales(std::vector<TextureIsland> &islands);
 
+// Which space TextureAdjustments::brightness works in.
+//
+// Rgb is the original behaviour and stays the default, because every project and every undo step that
+// exists today means it. It lifts each of the three channels toward white (or toward black) by the same
+// fraction, which is cheap and is what most sliders do, but it drags the colour along with it: the three
+// channels converge as they approach the endpoint, so a brightened red loses chroma and slides toward
+// pink, and the hue the user picked is not the hue that gets printed.
+//
+// PerceptualLab moves L* in CIE Lab and leaves a* and b* where they are, so a texel keeps its hue and its
+// chroma and only gets lighter. It costs a colour-space round trip per texel instead of a table lookup,
+// and it is worth more here than the same switch would be in a photo editor: a ChromaStack palette is a
+// few dozen colours reachable from a handful of filaments, and a brightness pass that wanders off the hue
+// it started on spends that budget on colours nobody asked for. HueForge arrived at the same conclusion
+// in 0.9.4, which is where the idea comes from.
+enum class TextureBrightnessSpace : int
+{
+    Rgb           = 0, // per-channel lift toward white or black (default)
+    PerceptualLab = 1, // lift L* in CIE Lab, a* and b* held
+};
+
 // Photo-style adjustments to a layer's source image, as the gizmo's image-adjustment panel sets them.
 //
 // These are *not* layer parameters: nothing here is stored on TextureDisplacementLayer and nothing here is
@@ -198,6 +218,17 @@ struct TextureAdjustments
     // filter can do to it.
     float saturation = 0.f;
 
+    // Which space `brightness` works in. See TextureBrightnessSpace. Deliberately last in the struct: as
+    // the comment above says, nothing serializes a TextureAdjustments - neither the cereal save()/load()
+    // on TextureDisplacementLayer nor the .3mf JSON carries `preview_adjust` - so there is no archive to
+    // append to and a project saved by an older build loads with the Rgb default and reproduces exactly.
+    // If a serialize() is ever added here, this member is already at the end, which is where a new field
+    // has to go.
+    TextureBrightnessSpace brightness_space = TextureBrightnessSpace::Rgb;
+
+    // The mode is not part of this: with `brightness` at zero it selects between two curves that both do
+    // nothing, and reporting such an adjustment as non-identity would send the whole image through the
+    // adjustment pass to get a copy of itself back.
     bool identity() const
     {
         return brightness == 0.f && contrast == 0.f && sharpness == 0.f && blur == 0.f && hue_deg == 0.f &&
@@ -205,10 +236,14 @@ struct TextureAdjustments
     }
     // Exact equality, which is what is wanted: these come straight off sliders, and the question asked of
     // them is "is this still the value the preview on screen was computed from", not "are these close".
+    // The mode *is* part of this one, even though a zero brightness makes it irrelevant: the cost of an
+    // unnecessary recompute is one pass over the image, and the cost of missing a real one is a preview
+    // that disagrees with the picture.
     bool operator==(const TextureAdjustments &o) const
     {
         return brightness == o.brightness && contrast == o.contrast && sharpness == o.sharpness &&
-               blur == o.blur && hue_deg == o.hue_deg && saturation == o.saturation;
+               blur == o.blur && hue_deg == o.hue_deg && saturation == o.saturation &&
+               brightness_space == o.brightness_space;
     }
     bool operator!=(const TextureAdjustments &o) const { return !(*this == o); }
 };

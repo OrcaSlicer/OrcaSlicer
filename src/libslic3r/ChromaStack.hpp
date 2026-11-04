@@ -7,6 +7,10 @@
 #include <vector>
 
 #include <cereal/cereal.hpp>
+// ChromaFilament carries a std::string name, and cereal answers a missing string serializer with a
+// page of static_assert rather than a missing-include error. It is included here rather than left
+// to whoever instantiates an archive, because that is the only place the requirement is visible.
+#include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
 #include <nlohmann/json_fwd.hpp>
 
@@ -449,6 +453,21 @@ struct ChromaStack
     // stipple is the artifact rather than the cure.
     bool dither = false;
 
+    // How far off-colour a band may be and still claim a pixel, 0 to 100.
+    //
+    // The match takes the nearest palette entry however far away it is, which is right for a picture
+    // the filaments can reach and wrong for one they cannot: a region whose colour no height comes
+    // near is still claimed by whatever was least unlike it, and it prints as a smear of that. The eye
+    // reads the result as muddy rather than as wrong, and muddy is the worse of the two - it looks
+    // like a bad print, where wrong looks like the filaments it was printed in.
+    //
+    // This caps the colour difference a match may accept. chroma_match_cap_de() turns the number into
+    // that cap and says what a pixel does when nothing is inside it.
+    //
+    // 0 is no cap at all, which is the match exactly as it has always been, so a stack saved before
+    // this existed solves to the height map it was printing.
+    int match_strictness = 0;
+
     // A fingerprint of the object height ranges this stack last wrote, or 0 for none. The swaps are
     // written whenever the stack changes, which is only safe while they are still the ones we wrote:
     // the ranges are the object's, a user may have made their own, and silently replacing those would
@@ -517,6 +536,7 @@ struct ChromaStack
         led_color = ColorRGB(lr, lg, lb);
         ar(importance);
         ar(lighting_balance);
+        ar(match_strictness);
     }
 };
 
@@ -629,6 +649,54 @@ struct ChromaSolve
 // which is the one thing the image is for.
 static constexpr float CHROMA_ERROR_IMAGE_FULL_SCALE_DE = 25.f;
 
+// The colour difference a strictness of 100 would allow, which is what the scale is measured down
+// from: black to white is exactly 100 dE in CIE76, so a cap of 100 is a cap on nothing at all and the
+// slider's own number is the same quantity the match is measured in, upside down.
+static constexpr float CHROMA_MATCH_STRICTNESS_FULL_SCALE_DE = 100.f;
+
+// What `ChromaStack::match_strictness` is worth setting. 0 is no cap, which is what the match did
+// before the setting existed and still does by default. 75 caps at 25 dE, which is
+// CHROMA_ERROR_IMAGE_FULL_SCALE_DE - the difference past which the error image stops distinguishing
+// one failure from another - so it refuses exactly the matches the panel already draws as unreachable.
+static constexpr int CHROMA_MATCH_STRICTNESS_DEFAULT     = 0;
+static constexpr int CHROMA_MATCH_STRICTNESS_RECOMMENDED = 75;
+
+// The tightest cap the slider can ask for, at a strictness of 100.
+//
+// It exists because 0 is already taken: chroma_match_cap_de() returns 0 for "no cap at all", so the
+// scale cannot also run down to 0 at the other end - full strictness would read as no strictness, and
+// the last step of the slider would undo every step before it. Half a dE is under the difference a
+// careful eye finds at all, so this is "only a match the eye would call exact", which is what the top
+// of the slider should mean.
+static constexpr float CHROMA_MATCH_STRICTNESS_TIGHTEST_DE = 0.5f;
+
+// The colour difference a match may accept at this strictness, in dE, or 0 for no cap at all.
+//
+// It is CHROMA_MATCH_STRICTNESS_FULL_SCALE_DE minus the strictness, which is to say the strictness is
+// the dE scale upside down: 10 allows 90 dE, which no palette of real filaments is ever that far from
+// and so is no cap in practice, 50 allows 50, and 95 allows 5 - about where a careful eye first sees a
+// difference at all. A strictness of 0 is returned as 0 rather than as the full scale so that it is
+// today's match bit for bit rather than nearly - and because 0 is therefore a sentinel, the other end
+// of the scale stops at CHROMA_MATCH_STRICTNESS_TIGHTEST_DE rather than reaching it.
+//
+// A pixel with nothing inside the cap takes the palette entry nearest it *in lightness alone*, and
+// the error image records how far that entry really is. Of the two honest answers, this is the one
+// that makes the setting mean anything: taking the nearest colour anyway is what the match already
+// did, so the slider would move nothing. Giving up the hue and keeping the tone is also the better
+// print - the eye reads a picture's luminance structure first, so an unreachable region comes out as a
+// tonal relief of itself rather than as a flat patch of the one colour that was least unlike it.
+//
+// ChromaSolve::delta keeps the meaning it documents throughout: it is the difference between the
+// picture and what will actually be printed, measured in whichever metric the solve was asked for, so
+// a fallback is recorded as the larger error it is. Raising the strictness therefore raises
+// mean_delta_e, and that is the solve admitting it cannot reach those colours rather than a
+// regression.
+//
+// The metric is the caller's (ChromaSolveOptions::high_quality). A CIEDE2000 dE is compressed against
+// a CIE76 one at the far end of the scale, so the same strictness is slightly stricter in high
+// quality mode; both run on the same thresholds the panel reports, which is what matters.
+float chroma_match_cap_de(int match_strictness);
+
 // How to run the solve, as against what it is solving. The stack says which colours can be printed;
 // this says how hard to look for them and how coarse an answer the printer can actually make.
 //
@@ -666,7 +734,57 @@ struct ChromaSolveOptions
     // and the final pass at the picture's own resolution, so the same print is a different number of
     // texels in each.
     int dither_cell_px = 1;
+
+    // Pull down a texel that stands this many layers or more above every one of its neighbours. 0, the
+    // default, leaves the solved height map exactly as the match left it.
+    //
+    // A lone texel that high is a tower one extrusion wide standing in open air: the slicer has to
+    // retract, travel, lay a dot and travel away again for every one of them, which is a retraction
+    // apiece on the print and a string apiece on the part. It is also almost never the picture - at a
+    // tenth of a millimetre a texel, a single-texel feature is below what the nozzle can draw at all -
+    // so what it usually is is a stray pixel in the source, or the dither's residual landing on one
+    // texel.
+    //
+    // It is an option rather than a field of the stack for the reason everything else here is: how
+    // narrow a column is worth printing is a fact about the nozzle, not about the picture, and the
+    // caller is the one that knows the line width. See chroma_despike_levels() for the rule and for
+    // why a shared step is not a spike.
+    int despike_layers = 0;
 };
+
+// What `ChromaSolveOptions::despike_layers` is worth passing. 0 is off, which is the solve as it was
+// before the filter existed. Three layers above *every* neighbour is a conservative value: it cannot
+// touch a photograph, where a neighbourhood that disagrees by three steps is a neighbourhood with an
+// edge through it and an edge is shared by the texels on both sides of it, and it still catches the
+// stray texel and the dither's worst residual.
+static constexpr int CHROMA_DESPIKE_LAYERS_DEFAULT     = 0;
+static constexpr int CHROMA_DESPIKE_LAYERS_RECOMMENDED = 3;
+
+// Pulls isolated spikes out of a solved height map, and returns how many texels it moved.
+//
+// `levels` is one height per texel over `width` x `height`, row-major: the solve's own choices, or
+// ChromaSolve::levels, which is the same map with the base added to every entry and so has the same
+// differences. A texel is a spike when it stands `threshold_layers` or more above every neighbour it
+// has, of the eight around it, and it is pulled down to the highest of them - the highest thing it can
+// sit on and no longer be a spike, which is the smallest change that removes the retraction.
+//
+// Every one of those words is load bearing, because the filter must not touch line art. A step that
+// several adjacent texels share is a feature: each texel of it has at least one neighbour at its own
+// height, so the test fails for every texel of the step and the edge survives whole, however tall it
+// is and however thin the line is. Only a texel with nothing beside it at its own height is a spike,
+// which is why the neighbourhood is all eight rather than the four: a diagonal line of single texels
+// is a line, and a line is a feature.
+//
+// A threshold of 0 or less does nothing, so the filter is off by default wherever it is wired in. The
+// map is read from a copy, so the result does not depend on the order the texels are visited in and
+// the same picture gives the same answer every run.
+// `step` is how far away a neighbour has to be to count as one, in texels. It is 1 for an ordinary
+// solve, and the dither cell's own width for a dithered one: dithering gives every texel of a cell the
+// same level, so a neighbour one texel away is part of the same cell, stands at the same height, and
+// makes the test "higher than everything around it" fail for every spike there is. Stepping by exactly
+// the cell width lands all eight neighbours in the eight surrounding cells instead.
+int chroma_despike_levels(std::vector<uint16_t> &levels, int width, int height, int threshold_layers,
+                          int step = 1);
 
 // The painted surface itself, sampled on the solve's own grid: how far from level it is at each
 // texel of the picture. Built by the GUI, which is the only place that knows where the picture lands
@@ -715,28 +833,83 @@ void chroma_invert_relief(ChromaSolve &solve);
 // Solves `rgb` (width * height * 3 bytes, row-major, top-to-bottom) against the stack's palette.
 // An empty stack, a zero-sized image or a stack with no relief layers gives an empty result.
 //
-// It runs as five stages, and they are stages rather than one pass because each of them is a different
+// It runs as six stages, and they are stages rather than one pass because each of them is a different
 // decision and all but the first are optional:
 //
 //  a. the palette and its precomputed Lab - what this stack can print, built once;
-//  b. the match - per pixel, which of those colours is closest, by CIE76 or CIEDE2000;
+//  b. the match - per pixel, which of those colours is closest, by CIE76 or CIEDE2000, and no further
+//     off-colour than ChromaStack::match_strictness allows;
 //  c. the dither - the same match with the residual passed on to neighbouring cells instead of thrown
 //     away, which replaces (b) rather than following it, since the choice a pixel makes depends on
 //     what its neighbours did;
-//  d. the retouch - the stack's own edits, applied in order over whatever (b) or (c) decided;
-//  e. the outputs - the quantization to a grey level, the preview, the error image and the statistics.
+//  d. the despike - ChromaSolveOptions::despike_layers over whatever (b) or (c) left, which is after
+//     the dither because the dither is where most lone texels come from;
+//  e. the retouch - the stack's own edits, applied in order, last of the passes over the choices
+//     because an edit is the user overruling every rule above it, the despike included;
+//  f. the outputs - the quantization to a grey level, the preview, the error image and the statistics.
 //
-// Weighting one pixel against another is ChromaStack::importance, and it lands in (e): which colour a
+// Weighting one pixel against another is ChromaStack::importance, and it lands in (f): which colour a
 // pixel gets is decided by that pixel alone, so a weight cannot change the match, only how much that
-// pixel's error counts in the mean. Anything that overrides a decision belongs beside (d) as another
-// pass over the choices, and anything that changes what a pixel is matched against belongs between
-// (a) and (b). None of them needs to touch the other stages.
+// pixel's error counts in the mean. Anything that overrides a decision belongs beside (d) and (e) as
+// another pass over the choices, and anything that changes what a pixel is matched against belongs
+// between (a) and (b). None of them needs to touch the other stages.
 //
 // The overload without options is the one the GUI and ChromaSolveJob call, and it is this one with
 // everything defaulted.
 ChromaSolve chroma_solve(const uint8_t *rgb, int width, int height, const ChromaStack &stack,
                          const ChromaSolveOptions &options);
 ChromaSolve chroma_solve(const uint8_t *rgb, int width, int height, const ChromaStack &stack);
+
+// What chroma_image_is_palette_exact() found: whether a picture is flat artwork, and the evidence for
+// it, because a panel that acts on this has to be able to say why.
+struct ChromaPaletteReport
+{
+    // Distinct colours in the picture, counted no further than `limit`: past there the picture is a
+    // photograph as far as this question goes and how many hundreds of colours it has is of no
+    // interest. `more` is set when the count stopped at the limit, in which case `colors` is the limit
+    // and means "at least this many".
+    int  colors = 0;
+    bool more   = false;
+    int  limit  = 0;
+
+    // How much of the picture is flat fill: the share of texels every neighbour of which (of the four
+    // it has, or the two or three a border texel has) is exactly its own colour. A logo is nearly all
+    // of it, a photograph almost none. This is what a panel can put in a sentence - "most of this
+    // picture is flat colour" - where the colour count on its own means nothing to a user.
+    float flat_fraction = 0.f;
+    // The mean length, in texels, of a horizontal run of one colour. The other half of the same
+    // statement, and the one that survives a picture made of thin flat strokes rather than large
+    // areas: a photograph runs at about one, artwork at tens.
+    float mean_run_px = 0.f;
+
+    // The verdict: artwork drawn from a fixed palette rather than a photograph, which is the colour
+    // count coming in under the limit and nothing else. Deliberately the same rule, and by default the
+    // same number, that the image decode reaches for a source PNG
+    // (DecodedHeightTexture::palette_exact), so that two parts of the panel cannot say different
+    // things about one picture. The two measures above are evidence for the user rather than further
+    // conditions: with no more colours than this there are no intermediate colours for an edge to be
+    // soft with, so "the edges are hard" is the same fact as "there are few colours" and counting it
+    // twice would only make the verdict harder to explain.
+    bool palette_exact = false;
+};
+
+// Whether `rgb` (width * height * 3 bytes, row-major) is flat artwork - a logo, a flag, line art, a
+// cartoon cel - rather than a photograph.
+//
+// It matters because two of the things done to a picture on the way to a solve are wrong for artwork.
+// Averaging texels on the way down to the solve's grid invents colours that are in neither of the
+// areas an edge divides, and the match then sends them to a height between the two, so a hard edge
+// prints as a soft terraced ramp; and error diffusion trades the banding a photograph shows across a
+// sky for fine stipple, which on a logo is speckle along every edge and nothing traded away.
+//
+// This changes nothing by itself and deliberately decides nothing: it answers the question so that a
+// caller can offer the answer. `max_colors` is the threshold for the verdict, and 0 means the one the
+// image decode uses, which is where the number lives so that there is only one of it.
+//
+// Cheap on the pictures it says no to: the count gives up the moment the picture has too many colours
+// to be artwork, which a photograph reaches within its first few hundred texels, and the two measures
+// are only taken for a picture that got that far.
+ChromaPaletteReport chroma_image_is_palette_exact(const uint8_t *rgb, int width, int height, int max_colors = 0);
 
 // How many layers of this filament it takes to hide what is under it, at this layer height. The
 // single most useful number about a stack and the one nothing else makes visible: it is what decides
@@ -1003,6 +1176,48 @@ indexed_triangle_set chroma_wedge_mesh(const ChromaWedge &wedge);
 // The transmission distance a wedge has measured: `step` is the first step at which the base below no
 // longer shows through. 0 or less means it was not readable, and gives 0.
 float chroma_td_from_step(int step, float layer_height_mm);
+
+// A strip of the solved stack's own colours, printed beside the picture so the print can be held
+// against the prediction.
+//
+// The wedge above measures one filament cold, against a contrasting base, before there is a stack at
+// all. Nothing checks the other end: a finished print either looks like the preview or it does not,
+// and when it does not there is no way to tell which band's transmission distance was wrong. This is
+// that check. One block per band, each as tall as that band's top actually is in this stack, so the
+// swaps the picture is printed with carry the strip too and every block comes out in exactly the
+// colour the palette says the top of that band shows. A block that does not match its square on the
+// card is a band whose TD needs correcting, and chroma_wedge_mesh() is then where to correct it.
+//
+// It is a plain mesh and nothing more: where it goes on the plate, and whether it goes there at all,
+// is the caller's.
+struct ChromaPaletteStrip
+{
+    float swatch_mm = 12.f; // one block, along the strip
+    float width_mm  = 12.f; // across it
+    // Between two blocks. 0 leaves them touching, which is how the wedge's steps are built: one solid
+    // staircase rather than a handful of tiles to keep track of, and the shared faces are the slicer's
+    // business.
+    float gap_mm = 0.f;
+    // A first block at the bare base, which is the one height the solve can choose that is not the top
+    // of a band (ChromaRetouchEdit::Target::Band with -1, i.e. none of the picture printed here). Off
+    // by default because the base is a measurement of the model rather than a part of the picture: on
+    // a picture painted onto a tall part it is hundreds of layers, and that block is a tower rather
+    // than a swatch.
+    bool include_base = false;
+};
+
+// The strip as a mesh, sitting on z = 0 with its first block at the origin and running along +x in
+// printing order, the bottom band first. An empty stack, or one with no relief, gives an empty mesh.
+//
+// A band of no layers reaches the height the band below it already reached and gets no block: it would
+// print as a second swatch of a colour that is already there.
+//
+// Face down (ChromaOrientation::FaceDown) the blocks are the complement, because that is what a
+// face-down column is: the plate is printed to its full thickness and the relief is the material
+// missing from underneath, so a block runs from the height its own band's top leaves to the top of the
+// stack. With the default gap of 0 they fuse into one slab with a stepped underside, which is exactly
+// the shape of the plate they are a strip of.
+indexed_triangle_set chroma_palette_strip_mesh(const ChromaStack &stack, const ChromaPaletteStrip &strip);
 
 // A starting point for a stack: the given filaments, lightest at the bottom, each with an equal
 // share of `relief_layers` on top of `base_layers`.

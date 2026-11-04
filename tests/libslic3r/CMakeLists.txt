@@ -38,6 +38,9 @@ add_executable(${_TEST_NAME}_tests
     test_fill_tpms_adaptive.cpp
     test_geometry.cpp
     test_chromastack.cpp
+    test_chroma_diagnostics.cpp
+    test_chroma_tiles.cpp
+    test_chroma_split.cpp
     test_transmission_distance.cpp
     test_imex_arrange.cpp
     test_imex_helpers.cpp

@@ -984,15 +984,37 @@ void StackImpl::reduce_noisy_snapshots(const std::string& new_name)
 {
 	// Preceding snapshot must be a "leave gizmo" snapshot.
 	assert(! m_snapshots.empty() && m_snapshots.back().is_topmost() && m_snapshots.back().timestamp == m_active_snapshot_time);
+	// Both walks below are bounded by the EnteringGizmo snapshot that opened this gizmo session, and
+	// that snapshot is not always still in the stack by the time the session is left. The one that
+	// bites in practice is the memory limit: release_least_recently_used() erases from the front, and
+	// a gizmo that bakes a mesh of several hundred thousand triangles fills the whole budget on its
+	// own, so the history in front of it is ground away - the EnteringGizmo with it. A project
+	// separator clears the stack outright, and a gizmo re-activated while the stack is being
+	// deserialized never records an entering snapshot in the first place.
+	//
+	// Without the bound the loop simply kept decrementing past begin() and assigned the new name
+	// through an iterator pointing at whatever was mapped before the vector - in the crash this was
+	// written from, a read-only page of libgtk. The asserts that were meant to catch it are compiled
+	// out of every build a user runs.
+	if (m_snapshots.size() < 2)
+		return;
 	auto it_last = m_snapshots.end();
 	-- it_last; -- it_last;
-	assert(it_last != m_snapshots.begin() && (it_last->snapshot_data.snapshot_type == SnapshotType::LeavingGizmoNoAction || it_last->snapshot_data.snapshot_type == SnapshotType::LeavingGizmoWithAction));
+	assert(it_last->snapshot_data.snapshot_type == SnapshotType::LeavingGizmoNoAction || it_last->snapshot_data.snapshot_type == SnapshotType::LeavingGizmoWithAction);
 	if (it_last->snapshot_data.snapshot_type == SnapshotType::LeavingGizmoWithAction) {
-		for (-- it_last; it_last->snapshot_data.snapshot_type != SnapshotType::EnteringGizmo; -- it_last) {
+		while (it_last != m_snapshots.begin()) {
+			-- it_last;
+			if (it_last->snapshot_data.snapshot_type == SnapshotType::EnteringGizmo)
+				break;
 			if (it_last->snapshot_data.snapshot_type == SnapshotType::GizmoAction) {
                 it_last->name = new_name;
                 auto it = it_last;
-				for (-- it; it->snapshot_data.snapshot_type == SnapshotType::GizmoAction; -- it) ;
+				// Back to the snapshot before this run of gizmo actions. Stopping at begin() leaves
+				// `it` on a gizmo action rather than on the snapshot before one, which costs the run
+				// its first entry and nothing else: one snapshot that could have been folded away is
+				// kept instead.
+				while (it != m_snapshots.begin() && (-- it)->snapshot_data.snapshot_type == SnapshotType::GizmoAction)
+					;
 				if (++ it < it_last) {
 					// Drop (it, it_last>
 					for (auto &kvp : m_objects)
@@ -1001,7 +1023,6 @@ void StackImpl::reduce_noisy_snapshots(const std::string& new_name)
 					it_last = this->release_snapshots(it + 1, it_last + 1);
 				}
 			}
-			assert(it_last != m_snapshots.begin());
 		}
 	}
 }

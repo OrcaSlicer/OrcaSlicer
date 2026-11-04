@@ -271,6 +271,39 @@ filter averages the bands a pixel covers instead of picking one of them.
 The overlay is drawn pulled forward and without depth writes, the same pass the painted-colour
 overlay uses, since it is the same surface as whatever is underneath it.
 
+### Lateral scattering
+
+The walk above is the light that goes straight through, and it is exact. It is not all of the light.
+Filament is a dense scattering medium, nearer to wax than to glass, so some of what enters at one
+point leaves at another: a print is softer than the stack it was solved from, and detail finer than
+the depth at which the filament stops hiding what is under it does not survive the plastic at all.
+Without this the preview drew hard terrace edges that no print has ever produced, and told the user
+the match was good at a level of detail the material cannot hold.
+
+It is computed in the picture's own space rather than on screen. The picture is flat and the shader
+already reconstructs its uv in closed form for the error overlay, so the radius can be stated in
+millimetres on the print and stay the same however far the view is zoomed. A screen-space blur would
+have to re-derive that radius per fragment, would smear across silhouettes, and would need a resolve
+pass this gizmo does not have - and the 110 profile cannot blit a depth buffer to get one.
+
+The source is the solve's own prediction, uploaded at the solve's resolution rather than the card's:
+a thumbnail texel is most of a millimetre on a plate, and the effect is a fraction of one. Thirteen
+taps on two rings approximate the diffusion, and what is added back is the *difference* the
+neighbourhood makes rather than the neighbourhood itself, so everything the walk knows about grazing
+angles and walls survives untouched. Walls are excluded by the same factor that already decides
+whether a fragment shows its band or the column through it: a wall is the cut side of the layers and
+has no picture on it to diffuse.
+
+The radius comes from the filament on top, because that is the one the light has to get into and back
+out of, and it is the same depth `CHROMA_TD_OPAQUE_FRACTION` encodes - a medium that absorbs over a
+distance scatters sideways over about the same one. Back lit the light crosses the whole column
+instead, so the radius becomes the stack's own depth, which is why a lithophane loses fine detail.
+The strength follows the same translucency that drives the rim and the wrapped terminator: an opaque
+filament sends almost nothing sideways.
+
+It is a view, not a print setting, so it switches off for anyone who wants to see the solve's own
+terraces, and it is on by default because the softened picture is the one the printer makes.
+
 The same shader draws the other things there are to see. Back lit it composites the transmitted light
 instead of the reflected light, by the same per-band walk and the same grazing-angle path, with the
 lamp's colour and brightness as uniforms; lit from both sides it weighs that against the reflected
@@ -286,6 +319,330 @@ rather than relying on hue alone. The error has no height to be indexed by - two
 height can be wrong by different amounts - so this is the one thing the shader reconstructs the
 picture's own coordinate for, in closed form from the fragment's world position, through the same
 projection the bake samples by.
+
+### Why these colours
+
+The error image answers *where* a solve failed, per pixel, on the model. It cannot answer why, and the
+three usual answers look identical from a red wash over one flower: two filaments competing for the
+same depths so the swap between them buys nothing, a band whose top layers repeat the colour the layer
+below already showed, or a picture whose colours are not in the drawer at all. The three have
+different fixes, and a user who cannot tell them apart will try all three.
+
+`ChromaDiagnostics` puts the stack and the picture side by side in the one space where the question is
+legible: hue against lightness, in CIELAB's own cylindrical coordinates. Lightness is the axis the
+relief works along, because a column's height reaches the eye mostly as tone, which is why two
+filaments of the same L\* give a tonal ramp that does not ramp however different their hues are.
+Plotting a\* against b\* instead would mix the two things a stack is chosen for onto axes that
+answer neither.
+
+What the stack can reach is `chroma_palette()` and what the picture wants is `chroma_histogram()` -
+both already exist and neither is reimplemented. The reach is drawn as a curve through the palette's
+own consecutive levels, so where it doubles back on itself a swap is being paid for twice; the wants
+are a cloud weighted by how much of the picture each colour is, so distance from cloud to curve is
+what cannot be printed. A level that prints none of the picture is drawn hollow, which makes a dead
+stretch of the curve visible as a run of them, and a near-grey is drawn faint because its hue angle is
+arithmetically well defined and means nothing.
+
+The analysis carries no GUI at all, deliberately: the same measurement has to be printable as ranked
+sentences and drawable as a chart, and a panel that wants either should not have to measure again. It
+is computed in the solve job, where the picture exists at the resolution the solve saw, and carried
+back rather than asked a second time.
+
+Two metrics on purpose. Everything measured against the picture is CIE76, so it is the same number
+`chroma_stack_error()` minimised when the filaments were picked and the findings cannot contradict the
+picker. The stack's judgements about itself are CIEDE2000, because those are threshold tests at a
+just-noticeable difference, which is exactly where CIE76 is unreliable.
+
+The card shows the worst finding on one line and puts the chart behind a button. A user who is not
+looking for the diagnosis still has to be told there is one; the chart is where the claim can be
+checked.
+
+### The layer slider
+
+Which swap bought what is not a question the finished picture can answer. Every band sits under every
+band above it, and a band that contributed nothing looks exactly like the band that carried the
+picture. So the preview can be stopped at a layer: everything already finished below that line keeps
+its colour and does not move, and everything still to come shows the colour the stack had reached by
+then, which is what the print on the bed actually looked like at that moment.
+
+It costs one clamp in the shader, because the walk is already layer by layer from the bottom, and one
+uniform. The limit is held as a layer index rather than a fraction of the stack, so it survives a
+re-solve that changes the depth, and the top of its range is the finished print, so the slider rests
+there instead of being a mode that has to be switched off. The millimetre height rides along in the
+slider's own text, since a layer number means nothing on a stack whose layer height was set somewhere
+else.
+
+The use it is for: stop just below a band and then just above it, and see whether the picture moved.
+If it did not, that band is paying for a filament swap and buying nothing, and `Trim wasted layers`
+should have caught it.
+
+### Where a fragment sits on the stack
+
+The overlay reads a fragment's colour from its own height, so the one number everything else rests on
+is how far up the stack it is. Both orientations measure that from the plate's picture plane: the
+bottom of the object's mesh as it stands *before* the preview displaces it. The undisplaced box is
+the only frame the two share - face up the relief grows the box, and a box that followed the preview
+would move the origin the shader measures from every time the solve changed.
+
+Face up, the relief rises out of that face and a fragment's height above it is its depth into the
+stack directly.
+
+Face down the plate still rests on z = 0 and the relief is cut *up into* it. The picture's face is
+the plate's bottom, so a column that prints short is one whose face has been raised off the bed, and
+the plate's thickness is the whole stack rather than a base plus a relief standing on it. Three
+things follow from that, and each is somewhere in the code rather than derivable where it is used:
+
+- the height map is complemented (`chroma_invert_relief()`), so a grey level still means the same
+  number of layers it meant face up;
+- the displacement runs *against* the surface's own outward normal, which is the only sign flip in
+  `TextureDisplacement.cpp` (`displacement_sign()`). The picture's face looks down at the bed, so
+  displacing it outwards would put the whole picture under the build plate;
+- the shader measures a fragment against the relief rather than the whole stack, because the base is
+  on the far side of the picture here: a column raised the full depth has the base directly against
+  its face and is seen through nothing at all.
+
+The last two fail silently, and both fail as something else. Displacing outwards leaves a plate whose
+picture was flattened into its own bottom plane by the clamp on the resting plane before anything
+could read it, so the preview is one flat colour. Measuring against the whole stack adds the base's
+thickness to every column, which saturates the deepest fifth of the picture into one field and leaves
+the rest a band too dark. Neither reads as a sign error; both read as a bad solve. The `Height` debug
+view is what separates them from one: a flat field there is a height that never varied.
+
+### Seeing through the plate
+
+A print is a translucent object standing in a scene, and the overlay above draws it as an opaque one.
+The missing part is the light that goes all the way through the filament and out the far side, which
+is a different quantity from the light that comes back out of it (`Lateral scattering`, above) and is
+the only one of the two the walk already has: the product of the bands' transmittances along the view
+ray *is* what the plate lets past. Handed to the blender as the fragment's alpha, it buys what a ray
+cast through the scene would have gone and fetched, for one blend per fragment, because whatever
+stands behind the plate is already in the colour buffer by the time this pass runs.
+
+One walk answers both readings. Carrying the light the filament sends back (`stacked`) separately
+from what the column passes (`clear`), the opaque answer is `stacked + clear * band_color[0]` - the
+stack backed by the filament the base prints in, which expands term for term to the recursion the
+walk used when it composited over a backing colour - and the translucent one is `stacked / (1 -
+clear)`, the colour of the filament with nothing assumed behind it, with `1 - clear` for its alpha.
+So the opaque view is the same expression rather than an approximation of it, and the translucent one
+costs a divide.
+
+Three things are deliberately left opaque. A wall, because the shader knows the depth of filament
+along the stacking axis and nothing at all about how far the print reaches sideways, and the side of
+a plate has the body of the print behind it. A back-lit plate, because it stands in front of its own
+lamp and what the shader has just drawn is the light that came through it - letting the scene show
+through as well would be that light counted twice, with the thinnest and so brightest part of a
+lithophane fading into the background. And the error overlay and the debug views, which are readings
+rather than pictures of the print and have to stay legible over whatever the plate is standing in
+front of. A surface highlight is the one place the single alpha is stretched: a clear sheet still
+shows the light on its own face, so the opacity never falls below what the specular and the lit edge
+reflect, or a thin spot would read as a hole.
+
+This is the only view option that changes how the plate is drawn rather than what it is drawn as. A
+translucent surface blended over an opaque copy of itself blends with the copy, so the opaque pass
+has to be left out of the frame rather than covered - and with it goes the paint highlight, which is
+an opaque plane over the whole volume and would block the view just as thoroughly. A stroke over a
+see-through plate therefore shows its feedback as the translucent tint, the same trade the shaded
+preview already makes. Leaving geometry out on the strength of a draw that has not happened yet is
+the hazard, so the test that decides it repeats every guard the draw itself applies, the mesh upload
+included.
+
+Within the pass the plate is drawn twice, back faces then front faces, because blending does not
+commute and the blender cannot tell which of two fragments is in front. A plate is a height field on
+a slab, so along any view ray its back faces really are behind its front faces: this is the right
+order rather than a cheap stand-in for one, which is what makes sorting affordable every frame. Only
+the front half writes depth - the back half would otherwise occlude it, and the overlays drawn after
+need a surface to sort against now that the opaque one is gone.
+
+What it shows is worth stating plainly, because it is less than the words "see through" promise. A
+finished plate is nearly opaque, by the model and by design: `CHROMA_TD_OPAQUE_FRACTION` has a
+filament hiding what is behind it after about a tenth of its TD, so at a 0.08 mm layer height a
+filament of TD 2 passes 9% of the light after two layers and 0.2% after five, and a plate with any
+base at all passes nothing. The thin places are where this shows, and they are the places a real
+print is see-through: the first layers of a clear filament, a plate that is almost all relief, or the
+stack part way up as the layer slider walks it. Grazing angles go the other way - the view ray's path
+through the layers lengthens, so a silhouette is more opaque than the face, which is also what a slab
+of plastic does.
+
+### The stack as its own sheets
+
+The pass above, and everything before it, draws the stack onto a surface. A fragment of that surface
+knows its own height, walks the bands from it and arrives at a colour, and the answer is exact for
+the point it was asked at. What it cannot be is a stack: there is no geometry per layer, so the
+layers cannot be seen apart from one another, cannot slide against each other as the view turns, and
+a swap bought one layer too early reads as a colour rather than as a layer.
+
+The layered view is the same print drawn as what it is made of. One quad per printed layer, over the
+picture's own rectangle, at that layer's own height in world space - which is where a printed layer
+really is, since the printer stacks them along world Z whatever the plate's frame does. Each quad is
+cut back to the texels whose column reaches that height, tinted with its band's filament, given
+`1 - exp(-density)` for its alpha along the view ray, and handed to the blender back to front.
+
+So this is not an approximation of the walk. "Over" applied back to front with one sheet per layer is
+the recursion `chromastack.fs` runs per band, carried out by the blender over real geometry rather
+than in one fragment: the two agree on a column seen straight down, and where they differ is where
+the walk was assuming a column. What the sheets add is the parallax between layers at an angle, the
+relief's own silhouette, and terraces that stand apart instead of meeting in a shaded edge. What they
+give up is the shading, because a sheet has no shape to light.
+
+Three things keep the two views in register. The quad is built from the *inverse* of the same closed
+form `picture_uv()` evaluates, so a sheet's texel is the surface pass's texel including the offset
+and the rotation. The sheets are cut by the solve's own height map, the one the displacement is
+driven by, so a sheet's edge lands where the mesh's terrace does. And the fractional part of that
+map is kept rather than rounded: between two texels printing different numbers of layers, a bilinear
+sample reads a height genuinely part way between them, and a sheet half covered is the honest drawing
+of a terrace edge that falls inside a texel.
+
+The opaque backing is one sheet rather than its own hundreds, since the model has it stopping all the
+light and nothing behind it can show. Face down, the bands are laid in reverse and the backing goes
+on top of them, which is the whole of what the orientation changes here (see `chroma_ranges()`). It
+is drawn only when the viewer asks for it, because at any real thickness it is simply opaque, and an
+opaque sheet behind the stack hides the one thing this view exists to show: a base measured off the
+model is often a hundred layers, and the picture then sits against a wall. With it off, the thin
+parts of the picture let the scene behind the plate through, and that needs no flag of its own - few
+sheets stop little light.
+
+Nothing in this pass is lit, and that is the subject rather than a simplification. A sheet is its
+filament's own colour at the alpha that one printed layer of it stops, and what makes the picture is
+that there are two dozen of them and their transmittances have multiplied: a translucent filament
+stops around five per cent in a 0.08 mm layer, so one sheet on its own is very nearly invisible and
+the colour arrives only once the stack has accumulated.
+
+An earlier version of the pass shaded every sheet, taking a normal from the height map's own
+gradient and adding a diffuse term, a glint and a rim light to it. That was wrong rather than merely
+expensive. Shading decides a surface's colour from where the light is; a stack decides it from how
+much plastic the light crossed. Put the two in one fragment and the shading wins, because it varies
+over the whole sheet while the accumulation varies only with the picture, and what comes out reads as
+one lit slab with a pattern on it. The only geometric term left is the path length, which is not
+light but distance: a ray entering at a grazing angle crosses more of a layer, so it stops more of
+it, which is why a print deepens as it is tilted.
+
+Lit from behind, the sheets do not composite at all - they multiply. A lithophane is not the stack
+laid over a background, it is the lamp seen through the stack, so a lamp quad is drawn at the far end
+and each sheet multiplies the frame buffer by its own per-channel transmittance. That is the one
+place fixed-function blending can tint what is behind the plate: "over" carries a single alpha and
+cannot, which is exactly the limit the surface pass runs into. Lit from both sides, the transmitted
+pass is laid down first and the reflected one composited over it at the weight `chroma_palette()`
+blends the two palettes with.
+
+The backing is one sheet and not its own hundreds, but it is not a special case: it carries its whole
+thickness as its density, so the shader works out what it stops the same way it does for any other
+sheet. A base of any real thickness comes out of that at 0.999 and over, and a stack with no base at
+all correctly lets the scene through instead of being handed an opacity it has not got.
+
+It is offered only for a generated plate. A printed layer is a horizontal slice of world space, and
+that is a sheet over the picture only while the picture is a flat rectangle lying on the bed; a
+picture painted onto somebody's model has the surface pass and nothing else.
+
+### Debug views
+
+A preview that looks wrong cannot say why. A stack whose relief never reached the mesh, a picture
+that landed somewhere else on the model, and a walk that genuinely came out dark all end as the same
+flat wash of the top filament, and no amount of looking at that wash separates them. So the shader
+can draw what it works from instead of what it predicts, one quantity at a time, chosen from a combo
+in the card's light and detail section. The C++ enum and the shader's `CHROMA_DBG_*` are the same
+numbers under the same names and have to be changed together.
+
+Each one rules out a different cause, and they are listed in the order worth trying:
+
+- **Height in the stack** is the fragment's own depth as the walk measures it, zero at the base and
+  one at the top, through a ramp whose luminance rises the whole way. This is the first thing to
+  look at, because it is the one that separates a geometry problem from a colour problem: if the
+  relief is there, the picture is visible here whatever the filaments do.
+- **Which band** is the band that fragment's layer falls in, one colour per index, placed around the
+  hue wheel by the golden ratio so that neighbouring bands are not neighbouring hues. The terraces
+  should read as flat fields with hard edges; a gradient here means the depth is continuous where it
+  should have been quantised.
+- **Terrace or wall** is the `up` term the walk mixes with: green where it looks down through the
+  column, red where it reads the cut side of the layers instead. A plate that is all red is being
+  shaded as if it were edge on.
+- **Where the picture lands** is the picture's own uv, black beyond its edge, which answers the
+  placement question on the model rather than in the panel.
+- **What the solve predicted** is the solve's own prediction image laid on the surface. Where it and
+  the normal preview disagree, the solver and the shader disagree, and the geometry between them is
+  what to look at.
+- **Colour with no light on it** is the walk's answer with the shading removed, for when the question
+  is whether a colour is wrong or merely badly lit.
+
+A debug view suppresses the lateral scattering, since diffusing a diagnostic would blur the thing
+being read, and it draws whether or not the colours themselves are switched on. The solve view falls
+back to the unlit colour when there is no solve to show, because a black model with no explanation is
+exactly the failure these exist to prevent.
+
+The first thing the height view catches is the overlay's one real dependency on the rest of the
+gizmo. The colours come from each fragment's height on the surface the overlay is drawn on, so the
+relief has to be in that surface. The Fast view never runs the displacement - that is what makes it
+fast - and leaves the overlay on the flat base mesh, where every point of the picture is at the same
+height and so gets the same answer: the top of the stack, everywhere. A plate in one flat colour is
+indistinguishable from a correct solve of a very dark picture, so the card says which it is, in the
+problem bar, rather than leaving it to be guessed.
+
+### Printing it in pieces
+
+A picture larger than the bed is tiled. The planner is `ChromaTiles`, and almost all of its design is
+in service of one constraint: **a filament swap is a print-Z event across a whole plate**, so every
+tile has to be solved against the same stack and the same layer assignment or the colours step at
+every seam.
+
+That is made structurally impossible rather than merely careful. `ChromaTile` has no stack field, so
+there is nowhere to put a second one. Every solve entry point takes a plan and a tile index and none
+takes a stack, so a caller cannot route a different stack to one tile. The cuts come from a single
+expression in which tile *k*'s far edge and tile *k+1*'s near edge are literally the same call, so
+contiguity is exact rather than close. Tile millimetres are the pixel rectangle times the scale, never
+the plate divided by the tile count, so the widths sum to the plate instead of to the plate plus a
+rounding error per tile. A fingerprint of the stack is stored with the plan and checked before
+printing, which catches the one remaining way to break it: the stack being edited after the plan was
+made.
+
+A dithered stack cannot be tiled seam-exactly, because error diffusion's support is the whole row, and
+a retouch mask is in the picture's coordinates rather than the tile's. So the per-tile solve refuses
+in that case and the caller is pushed to cutting tiles out of the whole picture's solve. Refusing is
+the point: a tiling with a seam in it is worse than no tiling.
+
+Borders go on the outside of the assembled piece only. An interior tile is handed a plate with no
+frame width at all, so a builder given one cannot grow a moulding through the middle of the picture.
+Spacing counts toward the assembled size without rescaling the picture, which is where the user finds
+out that their gap made the finished thing bigger. Each tile carries a halo of the neighbouring
+picture beyond its own edge, because a filter that looks at neighbours would otherwise behave
+differently at a seam than in the middle.
+
+A shaped plate outline is dropped when a plate is tiled, and said so rather than silently honoured: an
+ellipse grown symmetrically about each tile's own centre gives nine small ellipses, not one. Clipping
+a silhouette across a tiling is a real feature and a different one.
+
+### Splitting it into parts
+
+A stack is normally printed by swapping filament at a print-Z boundary. The other way to print it is
+to hand a multi-material printer one part per band and let it change filament inside a layer, which
+is what `chroma_split_bands()` builds: one closed solid per band, each the region of the plate
+between the Z where its band starts and the Z where the next one does, clipped to the part of the
+picture that reaches that high. The pieces share their vertices exactly rather than nearly, which is
+what lets them be handed to a boolean as well as to a slicer.
+
+The interesting decision is the fill. A stack carries its picture in the height of its columns, so
+the plate it makes tapers, and a flat tile has to put something where a short column is not. There
+are two places to put it, and they are different prints rather than variants of one:
+
+- **in front of the picture**: the stack stays where a swapped print puts it, measured from the
+  backing, and the fill occupies the space between the terraces and the plate's near face. That space
+  is on the eye's side, so whatever fills it is in the light's way before the light reaches any
+  colour. It has to be a filament that passes light, and its own haze is in the picture, thickest
+  where the picture is thinnest. This is what HueForge's FlatFill plugin prints;
+- **behind the picture**: the stack hangs from the plate's own face instead, so the face is flat and
+  the terraces point inward, and the fill occupies the space behind them. It is then continuous with
+  the backing, prints in the backing's own filament, and is never seen. No clear filament is involved
+  at all.
+
+What changes optically between them is the order in which the light crosses the bands, and only that.
+A column of *k* layers holds the same *k* bands either way - the same set, in the reverse sequence -
+and absorption multiplies, so the hue a column shows is very nearly the same. What does differ is the
+part that depends on order: each layer's own scattered contribution, and which filament's surface the
+eye is actually looking at.
+
+Face up and face down are the same split with the plate turned over, which is what `PieceSpec::mirror`
+is for: the turn is taken on the levels rather than on the finished vertices, so a height is rounded
+to a float once instead of twice and two pieces still meet exactly. A frame is left out, because a
+swept moulding is not a height map and splitting a sweep by Z planes is different geometry;
+`ChromaSplitPieces::frame_omitted` says so rather than leaving the caller to notice.
 
 ## What the panel shows
 
@@ -407,6 +764,30 @@ swapped under a saved project without the stack silently claiming to be somethin
 project's filament in that slot no longer matches, the band's swatch carries a mark, and the mark is
 the control: clicking it adopts what the project has and re-solves. Reported rather than corrected,
 because adopting it changes every colour in the picture and that is the user's call.
+
+### How close a match has to be
+
+The match takes the nearest colour the stack can print, however far away that is. For a picture whose
+colours are in the drawer that is right; for one whose are not, it smears the least-wrong filament
+over a region and the result reads muddy rather than wrong, which is the harder failure to diagnose.
+
+`match_strictness` caps the difference the match may accept. Above the cap it falls back to lightness
+alone, which prints that region as a tonal relief of itself: honest about what the drawer cannot do,
+and legible as shading rather than as the wrong colour. It defaults to 0, which is no cap and
+therefore the match as it has always been, and old projects carry no value and read as 0.
+
+One consequence worth stating plainly, because it looks like a regression: **the reported error goes
+up as strictness goes up.** The solve records the real distance to what it actually printed, so
+refusing a stand-in it cannot justify makes the mean worse while making the print better. Anything
+reading that mean as a quality score will now read it backwards.
+
+A lone texel standing several layers above everything around it is a retraction, a string and a blob,
+and nothing on the plate is one texel wide anyway. Those columns come from the dither rather than from
+the picture, so the solve can pull them down - after the dither, which is where they come from, and
+before the retouch, because an edit is the user overruling every rule above it and a painted
+single-texel column must survive the next solve. A step several texels wide is a feature and is left
+alone. It is off by default and is a per-run option rather than part of the saved stack: how many
+layers make a spike is a fact about the printer, not about the picture.
 
 ### The picture, and what can be done to it before solving
 

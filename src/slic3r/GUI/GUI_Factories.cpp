@@ -1620,7 +1620,7 @@ void MenuFactory::create_default_menu()
         [](wxCommandEvent&) { plater()->add_file(); }, "menu_add_part", &m_default_menu,
         []() {return wxGetApp().plater()->can_add_model(); }, m_parent);
     // A picture with no model behind it: the plate to print it on is made from the picture.
-    append_menu_item(&m_default_menu, wxID_ANY, _L("Add color picture"),
+    append_menu_item(&m_default_menu, wxID_ANY, _L("Add ChromaStack picture"),
         _L("Print a picture in color: a plate sized to it, with a frame, ready to paint with filament swaps"),
         [](wxCommandEvent&) { add_chroma_picture_plate(); }, "menu_add_part", &m_default_menu,
         []() {return wxGetApp().plater()->can_add_model(); }, m_parent);
@@ -2027,7 +2027,7 @@ void MenuFactory::create_plate_menu()
         [](wxCommandEvent&) { plater()->add_file(); }, "menu_add_part", menu,
         []() {return wxGetApp().plater()->can_add_model(); }, m_parent);
     // A picture with no model behind it: the plate to print it on is made from the picture.
-    append_menu_item(menu, wxID_ANY, _L("Add color picture"),
+    append_menu_item(menu, wxID_ANY, _L("Add ChromaStack picture"),
         _L("Print a picture in color: a plate sized to it, with a frame, ready to print in filament swaps"),
         [](wxCommandEvent&) { add_chroma_picture_plate(); }, "menu_add_part", menu,
         []() {return wxGetApp().plater()->can_add_model(); }, m_parent);
@@ -2701,7 +2701,7 @@ void MenuFactory::update_object_menu()
 
 void MenuFactory::update_default_menu()
 {
-    for (auto& name : { _L("Add Primitive") , _L("Add Handy models"), _L("Add color picture"), _L("Show Labels") }) {
+    for (auto& name : { _L("Add Primitive") , _L("Add Handy models"), _L("Add ChromaStack picture"), _L("Show Labels") }) {
         const auto menu_item_id = m_default_menu.FindItem(name);
         if (menu_item_id != wxNOT_FOUND)
             m_default_menu.Destroy(menu_item_id);

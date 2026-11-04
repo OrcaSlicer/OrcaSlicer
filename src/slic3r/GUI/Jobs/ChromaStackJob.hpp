@@ -8,6 +8,7 @@
 #include <memory>
 #include <vector>
 
+#include "libslic3r/ChromaDiagnostics.hpp"
 #include "libslic3r/ChromaStack.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/TextureDisplacement.hpp"
@@ -107,6 +108,10 @@ struct ChromaSolveInput
     // gets printed; the interactive one stays on the cheaper metric, where the difference against a
     // one-dimensional palette is hard to see and the cost is easy to feel.
     bool                                     high_quality      = false;
+    // How many layers a lone texel has to stand above its neighbours before the solve pulls it down,
+    // or 0 to leave them. A per-run option rather than part of the stack, like the dither cell: it is
+    // a property of the printer the relief is going to, not of the picture.
+    int                                      despike_layers    = 0;
 };
 
 struct ChromaSolveResult
@@ -114,6 +119,15 @@ struct ChromaSolveResult
     bool                                        ok           = false;
     std::shared_ptr<std::vector<unsigned char>> png;
     float                                       depth_mm     = 0.f;
+    // Whether the picture is flat artwork rather than a photograph, and the evidence for saying so.
+    // Decided here because this is where the picture exists at its own resolution; the card only
+    // reports it, and the dither the solve already switched off is the thing it explains.
+    ChromaPaletteReport                         palette;
+    // Why the solve came out the way it did: the picture's colours and the stack's reach in one space,
+    // plus the ranked findings. Computed here because this is where the picture exists at the
+    // resolution the solve saw, and carried back rather than recomputed, since asking the question a
+    // second time would mean walking every pixel a second time.
+    ChromaDiagnostics                           diagnostics;
     // -1 leaves the caller's own value alone; anything else is what the patch measured.
     int                                         base_layers  = -1;
     // The predicted print, for the card's second thumbnail. Uploaded by the caller, since a GL
@@ -126,6 +140,12 @@ struct ChromaSolveResult
     std::vector<uint8_t>                        delta;
     double                                      mean_delta_e = 0.;
     double                                      max_delta_e  = 0.;
+    // The column's printed layer count per pixel, on the same grid as `preview`, exactly as the solve
+    // produced it. The height map above is the same thing quantised to a byte and then reworked for
+    // the surface it is displaced onto - deepened for tilt, complemented face down - so it is the
+    // wrong thing to rebuild levels from. Carried because splitting a stack into parts
+    // (chroma_split_bands()) is arithmetic on layer counts and nothing else will do.
+    std::vector<uint16_t>                       levels;
 };
 
 // The solve itself, with "has this been superseded?" left to the caller - which is what lets one

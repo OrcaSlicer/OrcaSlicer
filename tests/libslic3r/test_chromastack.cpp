@@ -1,6 +1,7 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 #include <algorithm>
 #include <array>
@@ -20,6 +21,8 @@
 #include "libslic3r/TransmissionDistance.hpp"
 #include "libslic3r/TextureDisplacement.hpp"
 #include "libslic3r/PNGReadWrite.hpp"
+#include "libslic3r/TriangleSelector.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 
 using namespace Slic3r;
 using Catch::Matchers::WithinAbs;
@@ -2005,4 +2008,739 @@ TEST_CASE("A plate and the frame it is wearing survive the project file", "[Chro
         REQUIRE_THAT(restored.importance.weight, WithinRel(3.5f, 1e-6f));
         REQUIRE(restored.importance.region.runs == stack.importance.region.runs);
     }
+}
+
+TEST_CASE("Match strictness stops a band claiming a colour it comes nowhere near", "[ChromaStack]")
+{
+    // Two saturated filaments, so the palette is a path through colour rather than a grey ramp. That
+    // is what the fallback needs to be visible at all: on a neutral stack the entry nearest a pixel
+    // and the entry nearest it in lightness are the same entry, and a cap could change nothing.
+    ChromaStack stack;
+    stack.layer_height_mm = 0.08f;
+    stack.base_layers     = 2;
+    stack.bands           = { band(filament(0, ColorRGB(0.95f, 0.85f, 0.10f), 3.f), 5),
+                              band(filament(1, ColorRGB(0.10f, 0.20f, 0.90f), 3.f), 5) };
+
+    constexpr int              width = 20, height = 13;
+    const std::vector<uint8_t> picture = fixed_picture(width, height);
+
+    // The scale: the strictness is the dE scale upside down, and 0 is no cap rather than a cap of 100.
+    REQUIRE(stack.match_strictness == CHROMA_MATCH_STRICTNESS_DEFAULT);
+    REQUIRE_THAT(chroma_match_cap_de(0), WithinAbs(0.f, 1e-6f));
+    REQUIRE_THAT(chroma_match_cap_de(90), WithinRel(10.f, 1e-4f));
+    REQUIRE_THAT(chroma_match_cap_de(CHROMA_MATCH_STRICTNESS_RECOMMENDED),
+                 WithinRel(CHROMA_ERROR_IMAGE_FULL_SCALE_DE, 1e-4f));
+    // The top of the scale stops short of 0, because 0 is the "no cap" sentinel: a strictness of 100
+    // has to be the tightest cap there is, not the absence of one.
+    REQUIRE_THAT(chroma_match_cap_de(100), WithinRel(CHROMA_MATCH_STRICTNESS_TIGHTEST_DE, 1e-4f));
+    REQUIRE(chroma_match_cap_de(100) < chroma_match_cap_de(99));
+    REQUIRE(chroma_match_cap_de(100) > 0.f);
+    // Out of range is not a second meaning: it is the nearest setting that exists. Above the top that
+    // is the tightest cap, and below the bottom it is no cap at all.
+    REQUIRE_THAT(chroma_match_cap_de(1000), WithinRel(CHROMA_MATCH_STRICTNESS_TIGHTEST_DE, 1e-4f));
+    REQUIRE_THAT(chroma_match_cap_de(-5), WithinAbs(0.f, 1e-6f));
+
+    const ChromaSolve loose = chroma_solve(picture.data(), width, height, stack);
+    REQUIRE_FALSE(loose.empty());
+
+    // What the stack can reach, worked out here rather than asked of the thing under test.
+    const std::vector<ColorRGB>       palette = chroma_palette(stack);
+    const int                         relief  = stack.relief_layers();
+    std::vector<std::array<float, 3>> reachable;
+    for (int i = 0; i <= relief; ++i) {
+        const ColorRGB &c = palette[size_t(stack.base_layers + i)];
+        reachable.push_back(to_lab(c.r(), c.g(), c.b()));
+    }
+
+    const size_t       count = loose.levels.size();
+    std::vector<float> nearest(count, 0.f), nearest_l(count, 0.f);
+    for (size_t px = 0; px < count; ++px) {
+        const std::array<float, 3> target = to_lab(picture[px * 3] / 255.f, picture[px * 3 + 1] / 255.f,
+                                                   picture[px * 3 + 2] / 255.f);
+        float                      de = std::numeric_limits<float>::max();
+        float                      dl = std::numeric_limits<float>::max();
+        for (const std::array<float, 3> &candidate : reachable) {
+            de = std::min(de, cie76(target, candidate));
+            dl = std::min(dl, std::abs(target[0] - candidate[0]));
+        }
+        nearest[px]   = de;
+        nearest_l[px] = dl;
+    }
+
+    // A cap at the middle of what this picture actually asks for, so the test has both a population
+    // the stack can reach and one it cannot, whatever the arithmetic of the palette turns out to be.
+    std::vector<float> spread = nearest;
+    std::nth_element(spread.begin(), spread.begin() + std::ptrdiff_t(spread.size() / 2), spread.end());
+    const int   strictness = std::clamp(int(std::lround(100.f - spread[spread.size() / 2])), 1, 99);
+    const float cap        = chroma_match_cap_de(strictness);
+
+    ChromaStack strict      = stack;
+    strict.match_strictness = strictness;
+    const ChromaSolve tight = chroma_solve(picture.data(), width, height, strict);
+    REQUIRE(tight.levels.size() == count);
+
+    int refused = 0, accepted = 0, tonal_misses = 0, nearest_misses = 0, understated = 0, misreported = 0;
+    for (size_t px = 0; px < count; ++px) {
+        const std::array<float, 3> target = to_lab(picture[px * 3] / 255.f, picture[px * 3 + 1] / 255.f,
+                                                   picture[px * 3 + 2] / 255.f);
+        const int   chose    = int(tight.levels[px]) - stack.base_layers;
+        const float chose_de = cie76(target, reachable[size_t(chose)]);
+        const float chose_dl = std::abs(target[0] - reachable[size_t(chose)][0]);
+        // A hair either side of the cap is a pixel whose fate the last bit of the arithmetic decides.
+        // Everything further out than that has one right answer.
+        if (nearest[px] > cap + 1e-2f) {
+            ++refused;
+            // Nothing is inside the cap, so the tone is kept and the hue given up: what it took is as
+            // near in lightness as any entry there is.
+            if (chose_dl > nearest_l[px] + 1e-3f)
+                ++tonal_misses;
+            // And the error image reports the colour that will be printed, which is the fallback's own
+            // distance and never less than the one the match wanted.
+            if (int(tight.delta[px]) + 1 < int(loose.delta[px]))
+                ++understated;
+            const int expect = std::clamp(int(std::lround(double(chose_de) * 255.0 /
+                                                          double(CHROMA_ERROR_IMAGE_FULL_SCALE_DE))),
+                                          0, 255);
+            if (std::abs(int(tight.delta[px]) - expect) > 2)
+                ++misreported;
+        } else if (nearest[px] < cap - 1e-2f) {
+            ++accepted;
+            // Inside the cap nothing has changed: it is still the nearest colour the stack can print.
+            if (chose_de > nearest[px] + 1e-3f)
+                ++nearest_misses;
+        }
+    }
+    REQUIRE(refused > 0);
+    REQUIRE(accepted > 0);
+    CHECK(tonal_misses == 0);
+    CHECK(nearest_misses == 0);
+    CHECK(understated == 0);
+    CHECK(misreported == 0);
+    // Raising the strictness raises the mean, and that is the solve admitting it cannot reach those
+    // colours rather than a regression.
+    CHECK(tight.mean_delta_e >= loose.mean_delta_e);
+
+    SECTION("and a stack that sets none of it solves exactly as it always did")
+    {
+        ChromaStack unlimited      = stack;
+        unlimited.match_strictness = 0;
+        const ChromaSolve same     = chroma_solve(picture.data(), width, height, unlimited);
+        REQUIRE(same.levels == loose.levels);
+        REQUIRE(same.grey == loose.grey);
+        REQUIRE(same.preview == loose.preview);
+        REQUIRE(same.delta == loose.delta);
+        REQUIRE_THAT(same.mean_delta_e, WithinAbs(loose.mean_delta_e, 1e-12));
+    }
+
+    SECTION("and the cap holds through a dithered solve too")
+    {
+        // The dither replaces the match rather than following it, so the cap has to be inside the
+        // cell's own choice and not applied afterwards.
+        ChromaStack dithered      = strict;
+        dithered.dither           = true;
+        const ChromaSolve spread_out = chroma_solve(picture.data(), width, height, dithered);
+        REQUIRE_FALSE(spread_out.empty());
+        REQUIRE(spread_out.levels.size() == count);
+        for (const uint16_t level : spread_out.levels) {
+            CHECK(int(level) >= stack.base_layers);
+            CHECK(int(level) <= stack.total_layers());
+        }
+    }
+}
+
+TEST_CASE("Match strictness survives the project file and an undo step", "[ChromaStack]")
+{
+    ChromaStack stack;
+    stack.layer_height_mm   = 0.08f;
+    stack.base_layers       = 3;
+    stack.bands             = { band(WHITE_OPAQUE, 4), band(BLACK_TRANSLUCENT, 6) };
+    stack.match_strictness  = 70;
+
+    nlohmann::json json;
+    chroma_stack_to_json(json, stack);
+    ChromaStack back;
+    chroma_stack_from_json(json, back);
+    REQUIRE(back.match_strictness == 70);
+
+    SECTION("and a project saved before the setting existed is the match it was printed with")
+    {
+        nlohmann::json old;
+        old["layer_height_mm"] = 0.08f;
+        old["bands"]           = nlohmann::json::array({ nlohmann::json{
+            { "filament", 0 }, { "td_mm", 8.f }, { "color", nlohmann::json::array({ 0, 0, 0 }) }, { "layers", 6 } } });
+
+        ChromaStack plain;
+        chroma_stack_from_json(old, plain);
+        REQUIRE(plain.match_strictness == CHROMA_MATCH_STRICTNESS_DEFAULT);
+        REQUIRE_THAT(chroma_match_cap_de(plain.match_strictness), WithinAbs(0.f, 1e-6f));
+    }
+
+    SECTION("and a value no slider could have produced reads as the nearest one that exists")
+    {
+        nlohmann::json odd = json;
+        odd["match_strictness"] = 150;
+        ChromaStack high;
+        chroma_stack_from_json(odd, high);
+        REQUIRE(high.match_strictness == 100);
+
+        odd["match_strictness"] = -20;
+        ChromaStack low;
+        chroma_stack_from_json(odd, low);
+        REQUIRE(low.match_strictness == 0);
+    }
+
+    SECTION("and an undo step keeps it")
+    {
+        std::stringstream stream;
+        {
+            cereal::BinaryOutputArchive out(stream);
+            out(stack);
+        }
+        ChromaStack restored;
+        {
+            cereal::BinaryInputArchive in(stream);
+            in(restored);
+        }
+        REQUIRE(restored.match_strictness == 70);
+        REQUIRE(restored.bands.size() == 2);
+    }
+}
+
+TEST_CASE("A lone texel standing above its neighbourhood is pulled down", "[ChromaStack]")
+{
+    constexpr int width = 5, height = 5;
+    const auto    at    = [](int x, int y) { return size_t(y) * size_t(width) + size_t(x); };
+
+    SECTION("a spike is one texel with nothing beside it at its own height")
+    {
+        std::vector<uint16_t> levels(size_t(width) * size_t(height), 4);
+        levels[at(2, 2)] = 9;
+
+        REQUIRE(chroma_despike_levels(levels, width, height, 3) == 1);
+        // Down to the highest neighbour: the highest it can sit at and no longer be a spike, which is
+        // the smallest change that removes the retraction.
+        REQUIRE(levels[at(2, 2)] == 4);
+        // And nothing else moved.
+        for (size_t i = 0; i < levels.size(); ++i)
+            CHECK(levels[i] == 4);
+    }
+
+    SECTION("a spike shorter than the threshold is left where it is")
+    {
+        std::vector<uint16_t> levels(size_t(width) * size_t(height), 4);
+        levels[at(2, 2)] = 6;
+        REQUIRE(chroma_despike_levels(levels, width, height, 3) == 0);
+        REQUIRE(levels[at(2, 2)] == 6);
+    }
+
+    SECTION("a step several texels share is a feature, however tall it is")
+    {
+        // A line of line art: every texel of it has a neighbour at its own height, so none of them is
+        // a spike and the edge survives whole. This is the case the filter must never touch.
+        std::vector<uint16_t> levels(size_t(width) * size_t(height), 0);
+        for (int y = 0; y < height; ++y)
+            levels[at(2, y)] = 40;
+        const std::vector<uint16_t> before = levels;
+
+        REQUIRE(chroma_despike_levels(levels, width, height, 1) == 0);
+        REQUIRE(levels == before);
+    }
+
+    SECTION("and a diagonal line is a line, which is why the neighbourhood is all eight")
+    {
+        std::vector<uint16_t> levels(size_t(width) * size_t(height), 0);
+        for (int i = 0; i < height; ++i)
+            levels[at(i, i)] = 12;
+        const std::vector<uint16_t> before = levels;
+
+        REQUIRE(chroma_despike_levels(levels, width, height, 1) == 0);
+        REQUIRE(levels == before);
+    }
+
+    SECTION("a spike in the corner has only the neighbours it has")
+    {
+        std::vector<uint16_t> levels(size_t(width) * size_t(height), 2);
+        levels[at(0, 0)] = 11;
+        REQUIRE(chroma_despike_levels(levels, width, height, 3) == 1);
+        REQUIRE(levels[at(0, 0)] == 2);
+    }
+
+    SECTION("and the filter is off unless it is asked for")
+    {
+        std::vector<uint16_t> levels(size_t(width) * size_t(height), 4);
+        levels[at(2, 2)]                   = 9;
+        const std::vector<uint16_t> before = levels;
+
+        REQUIRE(chroma_despike_levels(levels, width, height, 0) == 0);
+        REQUIRE(chroma_despike_levels(levels, width, height, -1) == 0);
+        REQUIRE(levels == before);
+
+        // A map that is not the grid it was handed is not touched either.
+        std::vector<uint16_t> wrong(3, 0);
+        REQUIRE(chroma_despike_levels(wrong, width, height, 1) == 0);
+    }
+}
+
+TEST_CASE("The solve can drop the spikes the printer would string over", "[ChromaStack]")
+{
+    // One stray texel in a field of one colour, which is what a dust speck on a scan or the dither's
+    // residual landing on one texel looks like by the time it reaches the height map.
+    ChromaStack stack;
+    stack.layer_height_mm = 0.08f;
+    stack.base_layers     = 2;
+    stack.bands           = { band(WHITE_OPAQUE, 4), band(BLACK_TRANSLUCENT, 8) };
+
+    constexpr int        width = 7, height = 7;
+    std::vector<uint8_t> picture = flat_picture(ColorRGB(1.f, 1.f, 1.f), width, height);
+    const size_t         centre  = (size_t(height / 2) * size_t(width) + size_t(width / 2));
+    picture[centre * 3] = picture[centre * 3 + 1] = picture[centre * 3 + 2] = 0;
+
+    const ChromaSolve plain = chroma_solve(picture.data(), width, height, stack);
+    REQUIRE_FALSE(plain.empty());
+    // The speck really is a lone tower: it prints the whole relief where everything around it prints
+    // none of it.
+    REQUIRE(plain.levels[centre] > plain.levels[0]);
+    REQUIRE(int(plain.levels[centre]) - int(plain.levels[0]) >= CHROMA_DESPIKE_LAYERS_RECOMMENDED);
+
+    ChromaSolveOptions options;
+    options.despike_layers  = CHROMA_DESPIKE_LAYERS_RECOMMENDED;
+    const ChromaSolve filtered = chroma_solve(picture.data(), width, height, stack, options);
+    REQUIRE_FALSE(filtered.empty());
+    REQUIRE(filtered.levels[centre] == filtered.levels[0]);
+
+    // The outputs come with it: the texel now prints its neighbours' colour, and the error image says
+    // how far that colour is from the picture rather than how far the one the match wanted was.
+    CHECK(filtered.preview[centre * 3] == filtered.preview[0]);
+    CHECK(filtered.delta[centre] > plain.delta[centre]);
+    CHECK(filtered.grey[centre] == filtered.grey[0]);
+
+    SECTION("and the solve it replaced is what a defaulted run still does")
+    {
+        REQUIRE(ChromaSolveOptions{}.despike_layers == CHROMA_DESPIKE_LAYERS_DEFAULT);
+        const ChromaSolve defaulted = chroma_solve(picture.data(), width, height, stack, ChromaSolveOptions{});
+        REQUIRE(defaulted.levels == plain.levels);
+        REQUIRE(defaulted.grey == plain.grey);
+        REQUIRE(defaulted.preview == plain.preview);
+        REQUIRE(defaulted.delta == plain.delta);
+    }
+
+    SECTION("and a hard edge in flat artwork goes through it untouched")
+    {
+        // Half white, half black: every texel of the step has a neighbour at its own height, so the
+        // filter has nothing to say about any of them.
+        std::vector<uint8_t> art = flat_picture(ColorRGB(1.f, 1.f, 1.f), width, height);
+        for (int y = 0; y < height; ++y)
+            for (int x = 0; x < width / 2; ++x) {
+                const size_t px = size_t(y) * size_t(width) + size_t(x);
+                art[px * 3] = art[px * 3 + 1] = art[px * 3 + 2] = 0;
+            }
+
+        const ChromaSolve as_is = chroma_solve(art.data(), width, height, stack);
+        const ChromaSolve swept = chroma_solve(art.data(), width, height, stack, options);
+        REQUIRE(swept.levels == as_is.levels);
+        REQUIRE(swept.grey == as_is.grey);
+        REQUIRE(swept.delta == as_is.delta);
+    }
+
+    SECTION("and an edit is the user's last word, so it is not swept away")
+    {
+        // The retouch runs after the filter: a stroke that lifts one texel is a column the user asked
+        // for, and asking for it again every time the solve runs is not an answer.
+        std::vector<uint8_t> painted(size_t(width) * size_t(height), 0);
+        painted[centre] = 1;
+        ChromaRetouchEdit lift;
+        lift.region = chroma_mask_encode(painted.data(), width, height);
+        lift.target = ChromaRetouchEdit::Target::Band;
+        lift.value  = 1; // the top of the last band, i.e. the whole relief
+
+        ChromaStack edited = stack;
+        edited.retouch.edits = { lift };
+        const ChromaSolve kept = chroma_solve(picture.data(), width, height, edited, options);
+        REQUIRE(int(kept.levels[centre]) == edited.base_layers + chroma_band_top(edited, 1));
+        REQUIRE(kept.levels[centre] > kept.levels[0]);
+    }
+}
+
+namespace {
+// Four quadrants of four colours: flat artwork as far as every measure here is concerned, and the
+// smallest picture that has an edge in both directions.
+std::vector<uint8_t> quartered_picture(int width, int height)
+{
+    std::vector<uint8_t> out(size_t(width) * size_t(height) * 3, 0);
+    const uint8_t        quadrant[4][3] = { { 255, 0, 0 }, { 0, 255, 0 }, { 0, 0, 255 }, { 255, 255, 0 } };
+    for (int y = 0; y < height; ++y)
+        for (int x = 0; x < width; ++x) {
+            const int    which = (y < height / 2 ? 0 : 2) + (x < width / 2 ? 0 : 1);
+            const size_t px    = size_t(y) * size_t(width) + size_t(x);
+            for (int c = 0; c < 3; ++c)
+                out[px * 3 + size_t(c)] = quadrant[which][c];
+        }
+    return out;
+}
+} // namespace
+
+TEST_CASE("Flat artwork can be told from a photograph, with the evidence for it", "[ChromaStack]")
+{
+    constexpr int width = 32, height = 32;
+
+    SECTION("a picture drawn from a handful of fills")
+    {
+        const std::vector<uint8_t>  art    = quartered_picture(width, height);
+        const ChromaPaletteReport   report = chroma_image_is_palette_exact(art.data(), width, height);
+        REQUIRE(report.palette_exact);
+        REQUIRE_FALSE(report.more);
+        REQUIRE(report.colors == 4);
+        // The threshold is the one the image decode judges a source PNG by, so the panel and the solve
+        // cannot say different things about one picture.
+        REQUIRE(report.limit == PALETTE_EXACT_MAX_COLORS);
+        // Two runs to a row, whatever is in them.
+        REQUIRE_THAT(report.mean_run_px, WithinRel(float(width) / 2.f, 1e-4f));
+        // Everything but the texels along the two edges is flat fill.
+        REQUIRE(report.flat_fraction > 0.8f);
+    }
+
+    SECTION("a photograph, which gives up before it has counted it")
+    {
+        const std::vector<uint8_t> noise  = fixed_picture(width, height);
+        const ChromaPaletteReport  report = chroma_image_is_palette_exact(noise.data(), width, height);
+        REQUIRE_FALSE(report.palette_exact);
+        REQUIRE(report.more);
+        REQUIRE(report.colors == report.limit);
+        // Not measured for a picture that is settled: they are two numbers to describe artwork with.
+        REQUIRE_THAT(report.flat_fraction, WithinAbs(0.f, 1e-6f));
+        REQUIRE_THAT(report.mean_run_px, WithinAbs(0.f, 1e-6f));
+    }
+
+    SECTION("a picture of one colour")
+    {
+        const std::vector<uint8_t> flat   = flat_picture(ColorRGB(0.2f, 0.4f, 0.6f), width, height);
+        const ChromaPaletteReport  report = chroma_image_is_palette_exact(flat.data(), width, height);
+        REQUIRE(report.palette_exact);
+        REQUIRE(report.colors == 1);
+        REQUIRE_THAT(report.flat_fraction, WithinAbs(1.f, 1e-6f));
+        REQUIRE_THAT(report.mean_run_px, WithinRel(float(width), 1e-4f));
+    }
+
+    SECTION("and the threshold is the caller's when it wants a stricter one")
+    {
+        const std::vector<uint8_t> art    = quartered_picture(width, height);
+        const ChromaPaletteReport  strict = chroma_image_is_palette_exact(art.data(), width, height, 3);
+        REQUIRE_FALSE(strict.palette_exact);
+        REQUIRE(strict.more);
+        REQUIRE(strict.limit == 3);
+        REQUIRE(strict.colors == 3);
+
+        const ChromaPaletteReport exact = chroma_image_is_palette_exact(art.data(), width, height, 4);
+        REQUIRE(exact.palette_exact);
+        REQUIRE(exact.colors == 4);
+    }
+
+    SECTION("and nothing at all is not artwork")
+    {
+        const ChromaPaletteReport none = chroma_image_is_palette_exact(nullptr, width, height);
+        REQUIRE_FALSE(none.palette_exact);
+        const std::vector<uint8_t> art  = quartered_picture(width, height);
+        const ChromaPaletteReport  zero = chroma_image_is_palette_exact(art.data(), 0, 0);
+        REQUIRE_FALSE(zero.palette_exact);
+    }
+}
+
+TEST_CASE("The palette strip is the stack's own bands at the heights they reach", "[ChromaStack]")
+{
+    ChromaStack stack;
+    stack.layer_height_mm = 0.1f;
+    stack.base_layers     = 4;
+    stack.bands           = { band(WHITE_OPAQUE, 3), band(BLACK_TRANSLUCENT, 5) };
+
+    ChromaPaletteStrip strip;
+    strip.swatch_mm = 10.f;
+    strip.width_mm  = 8.f;
+    strip.gap_mm    = 2.f;
+
+    const indexed_triangle_set its = chroma_palette_strip_mesh(stack, strip);
+    REQUIRE_FALSE(its.indices.empty());
+    // One box per band, each box 8 vertices and 12 facets, and nothing else in it.
+    REQUIRE(its.vertices.size() == size_t(8 * stack.bands.size()));
+    REQUIRE(its.indices.size() == size_t(12 * stack.bands.size()));
+    REQUIRE(is_closed(its));
+
+    BoundingBoxf3 box;
+    for (const Vec3f &v : its.vertices)
+        box.merge(v.cast<double>());
+    REQUIRE_THAT(box.min.z(), WithinAbs(0., 1e-6));
+    REQUIRE_THAT(box.min.x(), WithinAbs(0., 1e-6));
+    REQUIRE_THAT(box.max.y(), WithinAbs(8., 1e-6));
+    // Two swatches and the gap between them.
+    REQUIRE_THAT(box.max.x(), WithinAbs(22., 1e-5));
+    // The tallest block is the whole stack: the base and every band over it.
+    REQUIRE_THAT(box.max.z(), WithinAbs(double(stack.total_layers()) * 0.1, 1e-5));
+
+    // Each block's top is the print height at which its own band's top is printed, which is the whole
+    // point: the swaps that print the picture print the strip in the colours the palette predicts.
+    std::vector<double> heights;
+    for (const Vec3f &v : its.vertices)
+        if (std::find_if(heights.begin(), heights.end(),
+                         [&v](double z) { return std::abs(z - double(v.z())) < 1e-6; }) == heights.end())
+            heights.push_back(double(v.z()));
+    std::sort(heights.begin(), heights.end());
+    REQUIRE(heights.size() == 3); // the bed, and one top per band
+    REQUIRE_THAT(heights[0], WithinAbs(0., 1e-6));
+    REQUIRE_THAT(heights[1], WithinAbs(double(stack.base_layers + chroma_band_top(stack, 0)) * 0.1, 1e-5));
+    REQUIRE_THAT(heights[2], WithinAbs(double(stack.base_layers + chroma_band_top(stack, 1)) * 0.1, 1e-5));
+    // And the printed layer at that height is the top of that band, so the block really does show the
+    // palette entry the card draws beside it.
+    REQUIRE(chroma_level_at(stack, heights[1]) == stack.base_layers + chroma_band_top(stack, 0));
+    REQUIRE(chroma_level_at(stack, heights[2]) == stack.base_layers + chroma_band_top(stack, 1));
+
+    SECTION("and the bare base is a swatch too when it is asked for")
+    {
+        ChromaPaletteStrip with_base = strip;
+        with_base.include_base       = true;
+        const indexed_triangle_set base_first = chroma_palette_strip_mesh(stack, with_base);
+        REQUIRE(base_first.vertices.size() == size_t(8 * (stack.bands.size() + 1)));
+
+        BoundingBoxf3 wider;
+        for (const Vec3f &v : base_first.vertices)
+            wider.merge(v.cast<double>());
+        REQUIRE_THAT(wider.max.x(), WithinAbs(34., 1e-5)); // three swatches and two gaps
+        // The first block is the base alone: none of the picture printed there.
+        double lowest = std::numeric_limits<double>::max();
+        for (const Vec3f &v : base_first.vertices)
+            if (v.x() < 1e-6f && v.z() > 1e-6f)
+                lowest = std::min(lowest, double(v.z()));
+        REQUIRE_THAT(lowest, WithinAbs(double(stack.base_layers) * 0.1, 1e-5));
+    }
+
+    SECTION("and a band that prints nothing is not a second swatch of the colour below it")
+    {
+        ChromaStack repeated = stack;
+        repeated.bands.push_back(band(BLACK_TRANSLUCENT, 0));
+        const indexed_triangle_set same = chroma_palette_strip_mesh(repeated, strip);
+        REQUIRE(same.vertices.size() == size_t(8 * 2));
+    }
+
+    SECTION("and a face-down plate gets the complement, which is what a face-down column is")
+    {
+        ChromaStack down            = stack;
+        down.plate.generated        = true;
+        down.plate.orientation      = ChromaOrientation::FaceDown;
+        const indexed_triangle_set flipped = chroma_palette_strip_mesh(down, strip);
+        REQUIRE(flipped.vertices.size() == size_t(8 * down.bands.size()));
+
+        BoundingBoxf3 flipped_box;
+        for (const Vec3f &v : flipped.vertices)
+            flipped_box.merge(v.cast<double>());
+        // Every block runs to the top of the stack, and the deepest one reaches the build plate.
+        REQUIRE_THAT(flipped_box.max.z(), WithinAbs(double(down.total_layers()) * 0.1, 1e-5));
+        REQUIRE_THAT(flipped_box.min.z(), WithinAbs(0., 1e-6));
+
+        // The first band's block starts where its own top leaves off, measured down from the picture's
+        // face rather than up from the bed.
+        double first_bottom = std::numeric_limits<double>::max();
+        for (const Vec3f &v : flipped.vertices)
+            if (v.x() < 1e-6f)
+                first_bottom = std::min(first_bottom, double(v.z()));
+        REQUIRE_THAT(first_bottom,
+                     WithinAbs(double(down.relief_layers() - chroma_band_top(down, 0)) * 0.1, 1e-5));
+    }
+
+    SECTION("and a stack with nothing in it makes no strip")
+    {
+        REQUIRE(chroma_palette_strip_mesh(ChromaStack{}, strip).indices.empty());
+        ChromaStack no_relief = stack;
+        for (ChromaBand &b : no_relief.bands)
+            b.layers = 0;
+        REQUIRE(chroma_palette_strip_mesh(no_relief, strip).indices.empty());
+    }
+}
+
+// ---- The relief has to reach the mesh ----
+//
+// A ChromaStack plate's colours are read per fragment from the surface's own height, so a plate whose
+// relief never got into the displaced mesh shows one flat colour - and that looks exactly like a
+// correct solve of a very dark picture. Nothing downstream can tell the two apart, which is why this
+// asks the question at the only place it has a yes or no answer: after the displacement, did the
+// surface move?
+//
+// It walks the path the gizmo walks - plate mesh, solve, height map, paint, displacement - because
+// each step hands the next something the one before it decided, and a break anywhere in that chain
+// ends in the same flat plate.
+TEST_CASE("A ChromaStack plate's relief reaches the displaced mesh", "[ChromaStack]")
+{
+    const bool face_down = GENERATE(false, true);
+    CAPTURE(face_down);
+
+    ChromaPlate plate;
+    plate.generated   = true;
+    plate.width_mm    = 60.f;
+    plate.height_mm   = 60.f;
+    // Face up this is the backing under the picture; face down it is the whole slab, which has to
+    // hold the stack or the recess cut into its underside opens out through the back.
+    plate.base_mm     = face_down ? 4.f : 1.2f;
+    plate.orientation = face_down ? ChromaOrientation::FaceDown : ChromaOrientation::FaceUp;
+
+    const ChromaPlateMesh plate_mesh = chroma_plate_mesh(plate);
+    REQUIRE_FALSE(plate_mesh.its.indices.empty());
+    REQUIRE(plate_mesh.picture_triangles > 0);
+
+    ChromaStack stack;
+    stack.layer_height_mm = 0.2f;
+    stack.base_layers     = 6;
+    stack.bands           = { band(filament(0, ColorRGB(0.95f, 0.95f, 0.92f), 2.f), 6),
+                              band(filament(1, ColorRGB(0.10f, 0.10f, 0.12f), 4.f), 6) };
+    stack.plate           = plate;
+    REQUIRE(stack.relief_layers() > 0);
+
+    // A picture with a real gradient in it, so the height map is not one level and a displacement that
+    // moved nothing cannot pass by accident.
+    constexpr int        pw = 48, ph = 48;
+    std::vector<uint8_t> picture(size_t(pw) * size_t(ph) * 3);
+    for (int y = 0; y < ph; ++y)
+        for (int x = 0; x < pw; ++x) {
+            const uint8_t v              = uint8_t(255 * x / (pw - 1));
+            const size_t  px             = (size_t(y) * size_t(pw) + size_t(x)) * 3;
+            picture[px] = picture[px + 1] = picture[px + 2] = v;
+        }
+
+    ChromaSolve solve = chroma_solve(picture.data(), pw, ph, stack);
+    REQUIRE_FALSE(solve.empty());
+    // The picture really does ask for more than one height, or nothing below could tell a working
+    // displacement from a dead one.
+    REQUIRE(*std::max_element(solve.grey.begin(), solve.grey.end()) >
+            *std::min_element(solve.grey.begin(), solve.grey.end()));
+    if (face_down)
+        chroma_invert_relief(solve);
+
+    const std::vector<unsigned char> png = chroma_encode_height_png(solve);
+    REQUIRE_FALSE(png.empty());
+
+    TextureDisplacementLayer layer;
+    layer.slot           = 0;
+    layer.chroma_enabled = true;
+    layer.chroma         = stack;
+    layer.image_data     = std::make_shared<std::vector<unsigned char>>(png);
+    layer.depth_mm       = stack.depth_mm();
+    layer.blend_mode     = TextureBlendMode::Add;
+    REQUIRE(layer.depth_mm > 0.f);
+    REQUIRE_FALSE(layer.empty());
+
+    // One copy of the picture laid over the picture's own face, which is what the gizmo does for a
+    // generated plate: without it the picture is a tile of some arbitrary size starting at the
+    // volume's origin, and most of the plate samples nothing at all.
+    Vec2f lo = Vec2f(plate_mesh.its.vertices.front().x(), plate_mesh.its.vertices.front().y());
+    Vec2f hi = lo;
+    for (const Vec3f &v : plate_mesh.its.vertices) {
+        lo = lo.cwiseMin(Vec2f(v.x(), v.y()));
+        hi = hi.cwiseMax(Vec2f(v.x(), v.y()));
+    }
+    ChromaPatchMetrics metrics;
+    metrics.valid      = true;
+    metrics.planar_min = lo;
+    metrics.planar_max = hi;
+    chroma_fit_layer_to_patch(layer, metrics, float(pw) / float(ph));
+    REQUIRE(layer.tiling_scale > 0.f);
+
+    // The picture's face, which chroma_plate_mesh() builds first precisely so it can be found again by
+    // index whatever the rest of the plate turned into.
+    TriangleSelector selector{ TriangleMesh(plate_mesh.its) };
+    for (size_t i = 0; i < plate_mesh.picture_triangles; ++i)
+        selector.set_facet(int(i), EnforcerBlockerType::ENFORCER);
+    TextureDisplacementFacetsData facets{};
+    facets[0] = selector.serialize();
+    // The paint has to survive serialization, and it has to describe the face: the displacement skips
+    // a layer whose serialized selector has nothing in it at all.
+    REQUIRE_FALSE(facets[0].triangles_to_split.empty());
+    const indexed_triangle_set painted = extract_painted_patch(plate_mesh.its, facets[0]);
+    REQUIRE_FALSE(painted.indices.empty());
+    REQUIRE(painted.indices.size() == plate_mesh.picture_triangles);
+
+    // The picture's own face, by vertex index. chroma_plate_mesh() builds it first for exactly this
+    // reason, and pipeline v1 keeps every index it was given, so the same set can be measured on the
+    // plate before and on the mesh after.
+    std::vector<int> picture_vertices;
+    {
+        std::vector<char> on_face(plate_mesh.its.vertices.size(), 0);
+        for (size_t i = 0; i < plate_mesh.picture_triangles; ++i)
+            for (int k = 0; k < 3; ++k)
+                on_face[size_t(plate_mesh.its.indices[i][k])] = 1;
+        for (size_t v = 0; v < on_face.size(); ++v)
+            if (on_face[v])
+                picture_vertices.push_back(int(v));
+    }
+    REQUIRE(picture_vertices.size() > 3);
+
+    const auto span_z = [](const indexed_triangle_set &m, const std::vector<int> &vs) {
+        float zlo = 1e9f, zhi = -1e9f;
+        for (const int v : vs) {
+            zlo = std::min(zlo, m.vertices[size_t(v)].z());
+            zhi = std::max(zhi, m.vertices[size_t(v)].z());
+        }
+        return zhi - zlo;
+    };
+    const auto lowest_z = [](const indexed_triangle_set &m) {
+        float zlo = 1e9f;
+        for (const Vec3f &v : m.vertices)
+            zlo = std::min(zlo, v.z());
+        return zlo;
+    };
+    // Vertices that are off both of the plate's own planes, which is the one measure of "the relief
+    // is in the mesh" that does not depend on which way the relief went. A remeshing pipeline keeps
+    // none of the indices above, so this is what v2 is asked.
+    const auto off_the_flats = [&](const indexed_triangle_set &m) {
+        size_t n = 0;
+        for (const Vec3f &v : m.vertices)
+            if (std::abs(v.z()) > 1e-3f && std::abs(v.z() - plate.base_mm) > 1e-3f)
+                ++n;
+        return n;
+    };
+    // The plate as built is two flat planes and the wall between them, so anything off them afterwards
+    // was put there by the displacement.
+    REQUIRE(off_the_flats(plate_mesh.its) == 0);
+    REQUIRE_THAT(span_z(plate_mesh.its, picture_vertices), WithinAbs(0.f, 1e-4f));
+
+    // What the displacement will ask for, asked here first: the height field over the picture's face.
+    // Zero everywhere is a mapping that puts the face outside the picture, which is a different fault
+    // from a displacement that read a height and then did not move the surface. The sign is the
+    // answer's own - face down the relief is cut into the plate, so the face moves against its normal
+    // and the sampler returns negative millimetres.
+    {
+        const HeightFieldSampler sampler = make_combined_displacement_sampler(plate_mesh.its, { layer }, facets);
+        REQUIRE(bool(sampler));
+        const Vec3f normal(0.f, 0.f, face_down ? -1.f : 1.f);
+        float lo = 1e9f, hi = -1e9f;
+        for (const int v : picture_vertices) {
+            const float h = sampler(plate_mesh.its.vertices[size_t(v)], normal);
+            lo = std::min(lo, h);
+            hi = std::max(hi, h);
+        }
+        INFO("sampled height over the picture face: " << lo << " .. " << hi << " mm");
+        CHECK(hi - lo > 0.25f * layer.depth_mm);
+        if (face_down)
+            CHECK(lo < 0.f);
+        else
+            CHECK(hi > 0.f);
+    }
+
+    TextureDisplacementOptions options;
+    // Both pipelines, because the displacement's direction is decided once, in displacement_sign(),
+    // and both of them read it.
+    {
+        TextureDisplacementOptions v1 = options;
+        v1.pipeline_v2 = false;
+        const indexed_triangle_set a = build_texture_displacement(plate_mesh.its, { layer }, facets, v1);
+        REQUIRE(a.vertices.size() >= plate_mesh.its.vertices.size());
+        INFO("pipeline v1 picture face z span: " << span_z(a, picture_vertices) << " of " << layer.depth_mm
+                                                 << " mm of relief");
+        CHECK(span_z(a, picture_vertices) > 0.5f * layer.depth_mm);
+        // The plate rests on the bed in both orientations. Face down it is the relief itself that
+        // would otherwise hang under it: the picture's face is the plate's bottom, and displacing it
+        // outwards puts the whole picture below z = 0.
+        CHECK(lowest_z(a) > -1e-3f);
+    }
+
+    const indexed_triangle_set displaced = build_texture_displacement(plate_mesh.its, { layer }, facets, options);
+    REQUIRE_FALSE(displaced.indices.empty());
+    INFO("pipeline v2 vertices off the plate's planes: " << off_the_flats(displaced));
+    CHECK(off_the_flats(displaced) > 0);
+    CHECK(lowest_z(displaced) > -1e-3f);
 }

@@ -7,6 +7,7 @@
 #include <functional>
 #include <utility>
 #include "libslic3r/TextureDisplacement.hpp"
+#include "libslic3r/ChromaProfile.hpp"
 #include <exception>
 
 namespace Slic3r::GUI {
@@ -26,6 +27,7 @@ void TextureDisplacementPreviewJob::process(Ctl &ctl)
 
     // Only ever touches m_input (captured by value before this job was queued) and local state -
     // never the live Model - so this is safe to run concurrently with the UI thread.
+    ChromaProfileScope   prof("preview_job/build_texture_displacement");
     TextureColorRequest  color_request;
     TextureColorRequest *color = nullptr;
     if (!m_input.color.empty()) {

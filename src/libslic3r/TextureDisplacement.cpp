@@ -534,6 +534,137 @@ float apply_brightness(float v, float b)
     return b >= 0.f ? v + b * (1.f - v) : v * (1.f + b);
 }
 
+// The sRGB transfer function and its inverse, for the perceptual brightness path below.
+//
+// The real piecewise curve, not the gamma-2.2 approximation it is often replaced by. The two agree at
+// the ends and differ by several 8-bit levels through the middle of the range, which is precisely where
+// a brightness slider spends its time: approximating here would make the midtones of a Lab brightening
+// land somewhere other than where the Lab arithmetic says they should, and the whole point of the mode
+// is that the arithmetic is right.
+//
+// ChromaStack.cpp has this same pair, with the same white point and the same matrices, but they are
+// file-static there and nothing is declared in ChromaStack.hpp, so there is no declaration to include
+// and they are repeated rather than shared. Worth promoting to a header of their own the next time
+// something else needs them.
+float srgb_to_linear(float c) { return c <= 0.04045f ? c / 12.92f : std::pow((c + 0.055f) / 1.055f, 2.4f); }
+float linear_to_srgb(float c) { return c <= 0.0031308f ? c * 12.92f : 1.055f * std::pow(c, 1.f / 2.4f) - 0.055f; }
+
+// CIELAB under D65. L* in [0, 100], a*/b* roughly in [-128, 127].
+struct LabColor
+{
+    float l = 0.f, a = 0.f, b = 0.f;
+};
+
+// The CIELAB companding function and its inverse, on a channel already divided by its white point.
+float lab_f(float t) { return t > 0.008856f ? std::cbrt(t) : (7.787f * t + 16.f / 116.f); }
+float lab_f_inv(float t) { return t * t * t > 0.008856f ? t * t * t : (t - 16.f / 116.f) / 7.787f; }
+
+LabColor srgb_to_lab(float r, float g, float b)
+{
+    const float rl = srgb_to_linear(r), gl = srgb_to_linear(g), bl = srgb_to_linear(b);
+    const float x  = (0.4124f * rl + 0.3576f * gl + 0.1805f * bl) / 0.95047f;
+    const float y  = (0.2126f * rl + 0.7152f * gl + 0.0722f * bl);
+    const float z  = (0.0193f * rl + 0.1192f * gl + 0.9505f * bl) / 1.08883f;
+    const float fx = lab_f(x), fy = lab_f(y), fz = lab_f(z);
+    return LabColor{ 116.f * fy - 16.f, 500.f * (fx - fy), 200.f * (fy - fz) };
+}
+
+// Lab back to *linear* sRGB, unclamped. Stopping short of the transfer function is what makes the gamut
+// search below cheap: linear_to_srgb() is monotonic, so a channel is inside [0, 1] after companding
+// exactly when it was inside [0, 1] before, and the search can test a candidate without paying for
+// three pow() calls per step.
+std::array<float, 3> lab_to_linear_rgb(const LabColor &lab)
+{
+    const float fy = (lab.l + 16.f) / 116.f;
+    const float fx = fy + lab.a / 500.f;
+    const float fz = fy - lab.b / 200.f;
+    const float x = lab_f_inv(fx) * 0.95047f, y = lab_f_inv(fy), z = lab_f_inv(fz) * 1.08883f;
+    return { 3.2406f * x - 1.5372f * y - 0.4986f * z,
+            -0.9689f * x + 1.8758f * y + 0.0415f * z,
+             0.0557f * x - 0.2040f * y + 1.0570f * z };
+}
+
+// How far above 1 a linear channel may sit and still count as printable. The matrices above are the
+// rounded published ones, so a colour exactly on the gamut boundary reads as a hair outside it - sRGB
+// white most obviously, which comes back as 1.0003 - and without this slack the search would desaturate
+// colours that are perfectly representable. The final clamp deals with the overshoot itself.
+//
+// There is deliberately no matching slack below zero. The dark end is where the sRGB transfer function is
+// at its steepest (a slope of 12.92), so a thousandth of linear light is three 8-bit levels down there,
+// and allowing it would leave a visible tint on a colour taken all the way to black: at L* 0 the only
+// printable colour is black, and the search has to be allowed to say so.
+constexpr float GAMUT_SLACK_HIGH = 1e-3f;
+
+bool linear_rgb_in_gamut(const std::array<float, 3> &c)
+{
+    for (float v : c)
+        if (v < 0.f || v > 1.f + GAMUT_SLACK_HIGH)
+            return false;
+    return true;
+}
+
+// Brightness in CIE Lab: L* is moved by the same lift curve apply_brightness() uses, on L*/100, and a*
+// and b* are left exactly where they are. So the two modes agree at the ends of the slider (|b| == 1 is
+// still pure white and pure black) and differ in between, which is the only place a brightness control is
+// interesting. Keeping the curve on L*/100 rather than inventing a second shape also means the slider
+// still feels like the same slider when the mode is switched under it.
+//
+// Out of gamut is the real question here, because holding a* and b* while raising L* walks straight out of
+// what sRGB can show - there is no light salmon at L* 95 with the chroma of a mid red. Two answers were
+// available:
+//
+//   - clamp each channel into [0, 1] after converting back. Cheap, and exactly the failure the mode exists
+//     to avoid: clipping one channel and not the others *is* a hue shift, so the one thing the user asked
+//     for is the first thing that would be given away.
+//   - scale a* and b* toward the achromatic axis until the colour fits. Hue angle in Lab is atan2(b*, a*),
+//     which is invariant under scaling both by the same factor, so the hue survives exactly and the cost
+//     is paid in chroma instead.
+//
+// The second is what this does. Giving up chroma is also the honest trade for a ChromaStack picture: the
+// stack cannot print a chroma it does not have, and a saturated colour that is merely too saturated lands
+// on the right band, while one whose hue has drifted lands on the wrong one.
+//
+// The scale is found by bisection on [lo, hi] with lo known good and hi known bad. lo starts at 0, which
+// needs no test: a neutral at any L* in [0, 100] is on the sRGB grey axis by construction. Ten steps put
+// the answer within 1/1024 of the original chroma, which is far below one 8-bit level of a*/b*.
+std::array<float, 3> perceptual_brightness(float r, float g, float b, float amount)
+{
+    LabColor      lab = srgb_to_lab(r, g, b);
+    const float   ln  = std::clamp(lab.l / 100.f, 0.f, 1.f);
+    lab.l             = 100.f * std::clamp(apply_brightness(ln, amount), 0.f, 1.f);
+
+    std::array<float, 3> lin = lab_to_linear_rgb(lab);
+    if (!linear_rgb_in_gamut(lin)) {
+        const float a0 = lab.a, b0 = lab.b;
+        float       lo = 0.f, hi = 1.f;
+        for (int i = 0; i < 10; ++i) {
+            const float mid = 0.5f * (lo + hi);
+            if (linear_rgb_in_gamut(lab_to_linear_rgb(LabColor{ lab.l, a0 * mid, b0 * mid })))
+                lo = mid;
+            else
+                hi = mid;
+        }
+        lin = lab_to_linear_rgb(LabColor{ lab.l, a0 * lo, b0 * lo });
+    }
+
+    return { std::clamp(linear_to_srgb(std::clamp(lin[0], 0.f, 1.f)), 0.f, 1.f),
+             std::clamp(linear_to_srgb(std::clamp(lin[1], 0.f, 1.f)), 0.f, 1.f),
+             std::clamp(linear_to_srgb(std::clamp(lin[2], 0.f, 1.f)), 0.f, 1.f) };
+}
+
+// The same thing for a neutral value, where it collapses to a scalar curve and so can live in the tonal
+// lookup table. A grey has a* = b* = 0, nothing can leave the gamut (the grey axis is in it from end to
+// end), and X and Z follow Y, so only the Y channel has to be carried: sRGB to linear, to L*, lift, and
+// back. The rounded matrices above would put a few thousandths of chroma on a grey that has none, which
+// is why this does not simply call perceptual_brightness(v, v, v) - grey in has to be grey out.
+float perceptual_brightness_neutral(float v, float amount)
+{
+    const float y  = srgb_to_linear(std::clamp(v, 0.f, 1.f));
+    const float ln = std::clamp((116.f * lab_f(y) - 16.f) / 100.f, 0.f, 1.f);
+    const float fy = (100.f * std::clamp(apply_brightness(ln, amount), 0.f, 1.f) + 16.f) / 116.f;
+    return std::clamp(linear_to_srgb(std::clamp(lab_f_inv(fy), 0.f, 1.f)), 0.f, 1.f);
+}
+
 // Contrast about the 0.5 pivot. Gain is 1/(1-c) going up (c == 1 would be an infinite-slope threshold, so
 // the caller's clamp keeps it finite) and 1+c going down, reaching a flat mid-grey at c == -1.
 float apply_contrast(float v, float c)
@@ -672,17 +803,36 @@ DecodedHeightTexture apply_texture_adjustments(const DecodedHeightTexture &src, 
     // appears; the tonal ones are per-texel curves, so they map each of a flat image's fills to one
     // colour and can only leave it with fewer distinct colours than it had. Hence palette-exactness
     // survives a brightness or hue change and not a blur. See DecodedHeightTexture::palette_exact.
+    //
+    // Lab brightness is not a per-channel curve, but it is still a function of the texel's own three
+    // channels and of nothing else, which is all the argument above actually needs: equal fills in, equal
+    // fills out, no colour invented from a neighbour. So it keeps the flag too.
     if (blur > 0.f || sharpness > 0.f)
         out.palette_exact = false;
+
+    // Whether brightness is handled in Lab rather than in RGB. Only when it would actually do something:
+    // at brightness 0 the two modes are the same no-op, and taking the Lab path there would cost a colour
+    // round trip per texel to reproduce the image.
+    const bool lab_brightness = adj.brightness_space == TextureBrightnessSpace::PerceptualLab &&
+                                brightness != 0.f;
 
     // The tonal pass: a 256-entry lookup table, because brightness and contrast are the same scalar
     // curve for every texel and every channel. Building it once beats evaluating two curves a few
     // million times, and it is what keeps this pass off the panel's critical path.
+    //
+    // Lab brightness on a colour image is the exception: it is a function of all three channels together,
+    // not a per-channel curve, so it cannot be folded into this table and runs as its own pass below,
+    // before the table. On a grayscale image it can be folded in after all - a grey has no a* or b* to
+    // hold, so the Lab lift reduces to one scalar curve (perceptual_brightness_neutral()) and the grey
+    // path stays a single lookup per texel.
     std::array<uint8_t, 256> tone{};
     for (int i = 0; i < 256; ++i) {
         float v = float(i) / 255.f;
-        v       = apply_brightness(v, brightness);
-        v       = apply_contrast(v, contrast);
+        if (!lab_brightness)
+            v = apply_brightness(v, brightness);
+        else if (!out.has_color())
+            v = perceptual_brightness_neutral(v, brightness);
+        v               = apply_contrast(v, contrast);
         tone[size_t(i)] = uint8_t(std::lround(std::clamp(v, 0.f, 1.f) * 255.f));
     }
 
@@ -694,6 +844,22 @@ DecodedHeightTexture apply_texture_adjustments(const DecodedHeightTexture &src, 
         });
         adjust_channel_spatial(out.pixels, w, h, blur, sharpness);
         return out;
+    }
+
+    // Colour, in Lab brightness mode: L* first, in its own pass over the texels, so that what reaches the
+    // tonal table below is already the brightened colour and the documented order (brightness, then
+    // contrast, then hue) still holds. The round trip through 8-bit here is not a loss worth avoiding -
+    // the table that follows is a byte table, so the value would be quantised a line later anyway.
+    if (lab_brightness) {
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, n), [&](const tbb::blocked_range<size_t> &r) {
+            for (size_t i = r.begin(); i < r.end(); ++i) {
+                const std::array<float, 3> lifted =
+                    perceptual_brightness(float(out.rgb[i * 3]) / 255.f, float(out.rgb[i * 3 + 1]) / 255.f,
+                                          float(out.rgb[i * 3 + 2]) / 255.f, brightness);
+                for (int ch = 0; ch < 3; ++ch)
+                    out.rgb[i * 3 + size_t(ch)] = uint8_t(std::lround(lifted[size_t(ch)] * 255.f));
+            }
+        });
     }
 
     // Colour: tone each channel through the same table, then rotate the hue about the luminance axis.
@@ -3016,6 +3182,26 @@ namespace {
 
 // Wired to the same layer stack via make_combined_displacement_sampler(), so layers, blend modes and
 // projections behave identically in both paths and the comparison is between the meshing strategies.
+// Which way a layer's relief leaves the surface it is painted on.
+//
+// Outwards along the vertex normal, which is the height-map convention, and inwards when the layer is
+// inverted. A generated ChromaStack plate printed picture down turns that around once more, and it is
+// the only thing in the file that does.
+//
+// Its picture is the plate's *bottom* face (chroma_plate_mesh()), so that face's own outward normal
+// points down at the bed - but the relief it carries is not hung below the plate. A face-down column
+// is the full thickness of the slab minus the material missing from underneath it, so the plate still
+// rests on z = 0 and the picture is cut up *into* it; chroma_invert_relief() complements the height
+// map for exactly that reading. Displacing outwards here would push the whole picture under the build
+// plate, where the clamp on the resting plane flattens it into one plane and the plate previews and
+// prints as a single colour.
+float displacement_sign(const TextureDisplacementLayer &layer)
+{
+    const bool into_the_plate = layer.chroma_enabled && layer.chroma.plate.generated &&
+                                layer.chroma.plate.orientation == ChromaOrientation::FaceDown;
+    return (layer.invert != into_the_plate) ? -1.f : 1.f;
+}
+
 indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set                  &mesh,
                                                    const std::vector<TextureDisplacementLayer> &layers,
                                                    const TextureDisplacementFacetsData         &facets_data,
@@ -3633,7 +3819,7 @@ static indexed_triangle_set build_texture_displacement_in_place(
             }
         }
 
-        const float sign = layer->invert ? -1.f : 1.f;
+        const float sign = displacement_sign(*layer);
         // A vertex may be reached by several of the patch's triangles; each must fold into the
         // running total exactly once, or a Multiply/Subtract layer would apply two or three times
         // over depending on how many painted triangles happen to share the vertex. Collecting the
@@ -4179,7 +4365,7 @@ HeightFieldSampler make_combined_displacement_sampler(const indexed_triangle_set
             if (!p.lscm_uv(pos, uv, lscm_uv))
                 continue; // off this unwrap layer's patch: no uv, so no contribution
             const float h        = sample_layer_height(p.tex, p.layer, pos, normal, p.center, p.axis, lscm_uv);
-            const float sign     = p.layer.invert ? -1.f : 1.f;
+            const float sign     = displacement_sign(p.layer);
             const float signed_h = (h - p.layer.midlevel) * p.layer.depth_mm * sign;
             // The first (lowest) sampleable layer folds additively; the rest use their own blend mode -
             // same rule build_texture_displacement() applies per vertex.

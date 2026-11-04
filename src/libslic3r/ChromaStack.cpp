@@ -8,6 +8,11 @@
 
 #include "Polygon.hpp"
 #include "Utils.hpp"
+// For PALETTE_EXACT_MAX_COLORS alone, which is where the tree already keeps the number of colours that
+// separates artwork from a photograph (DecodedHeightTexture::palette_exact). The header above this one
+// includes ours rather than the other way round, so this is a dependency of the implementation only
+// and nothing about the colour model gains one.
+#include "TextureDisplacement.hpp"
 #include "TextureToColor/ColorUtils.hpp"
 #include "Triangulation.hpp"
 #include "libslic3r.h"
@@ -246,6 +251,20 @@ static std::vector<uint8_t> mask_on_grid(const ChromaMask &mask, int width, int 
     return out;
 }
 
+float chroma_match_cap_de(int match_strictness)
+{
+    const int s = std::clamp(match_strictness, 0, 100);
+    // Exactly 0, not the full scale, so that a stack with no strictness set runs the match it always
+    // ran: a cap of 100 dE is a cap on nothing in practice, but "in practice" is not the same promise
+    // as "bit for bit".
+    if (s == 0)
+        return 0.f;
+    // Floored, because the formula reaches 0 at 100 and 0 is the sentinel above: without this the top
+    // of the slider would read as no cap at all, so 99 would refuse everything past 1 dE and 100 would
+    // refuse nothing.
+    return std::max(CHROMA_MATCH_STRICTNESS_TIGHTEST_DE, CHROMA_MATCH_STRICTNESS_FULL_SCALE_DE - float(s));
+}
+
 namespace {
 
 // ---- Stage (a): what this stack can print ------------------------------------------------------
@@ -298,28 +317,65 @@ float choice_error(const ChromaChoices &choices, bool high_quality, const Lab &t
 }
 
 // ---- Stage (b): the match, for one pixel -------------------------------------------------------
-int pick_choice(const ChromaChoices &choices, bool high_quality, float r, float g, float b, float &out_error)
+//
+// `cap_de` is how far off-colour a choice may be, from chroma_match_cap_de(), and 0 is no limit, which
+// is the whole of what this function did before strictness existed. A pixel with nothing inside the
+// cap keeps its tone and gives up its hue: it takes the entry nearest it in lightness alone, and the
+// error it reports is that entry's real distance in the metric this solve is running, so the error
+// image still says how far the print will land from the picture. See chroma_match_cap_de() for why
+// that fallback rather than the nearest colour anyway.
+int pick_choice(const ChromaChoices &choices, bool high_quality, float cap_de, float r, float g, float b,
+                float &out_error)
 {
     const float cr = std::clamp(r, 0.f, 1.f), cg = std::clamp(g, 0.f, 1.f), cb = std::clamp(b, 0.f, 1.f);
-    const Lab   target_lab  = high_quality ? Lab{} : srgb_to_lab(cr, cg, cb);
+    const bool  capped = cap_de > 0.f;
+    // High quality mode otherwise has no use for the Lab form - its metric converts both sides itself -
+    // but the fallback is a comparison of lightnesses, so a capped match pays for the conversion.
+    const Lab   target_lab = (high_quality && !capped) ? Lab{} : srgb_to_lab(cr, cg, cb);
     const tex2color::color_utils::ColorDouble target_srgb{ double(cr), double(cg), double(cb) };
 
     int   best   = 0;
     float best_d = std::numeric_limits<float>::max();
+    int   tonal   = 0; // the entry nearest in lightness, for a pixel the cap refuses
+    float tonal_d = std::numeric_limits<float>::max();
     for (int i = 0; i < choices.count(); ++i) {
         const float d = choice_error(choices, high_quality, target_lab, target_srgb, i);
         if (d < best_d) {
             best_d = d;
             best   = i;
         }
+        if (capped) {
+            // Strictly better, like the match above, so a tie goes to the lower entry: the shorter
+            // column, and the same one on every run.
+            const float dl = std::abs(target_lab.l - choices.lab[size_t(i)].l);
+            if (dl < tonal_d) {
+                tonal_d = dl;
+                tonal   = i;
+            }
+        }
+    }
+    if (capped && best_d > cap_de) {
+        best   = tonal;
+        best_d = choice_error(choices, high_quality, target_lab, target_srgb, best);
     }
     out_error = best_d;
     return best;
 }
 
+// The error a height really has, for a stage that has overruled the match. Nothing after stage (b)
+// looks at the picture for any other reason: a choice the user or the printer imposed still has to be
+// reported as the colour difference it will print, not as the one the match would have accepted.
+float error_for(const ChromaChoices &choices, bool high_quality, const uint8_t *rgb, size_t px, int chosen)
+{
+    const uint8_t *src = rgb + px * 3;
+    const float    r = src[0] / 255.f, g = src[1] / 255.f, b = src[2] / 255.f;
+    return choice_error(choices, high_quality, srgb_to_lab(r, g, b),
+                        tex2color::color_utils::ColorDouble{ double(r), double(g), double(b) }, chosen);
+}
+
 // ---- Stage (b) over the picture: every pixel on its own ----------------------------------------
 void match_pixels(const uint8_t *rgb, int width, int height, const ChromaChoices &choices, bool high_quality,
-                  std::vector<uint16_t> &choice, std::vector<float> &errors)
+                  float cap_de, std::vector<uint16_t> &choice, std::vector<float> &errors)
 {
     tbb::parallel_for(tbb::blocked_range<int>(0, height), [&](const tbb::blocked_range<int> &range) {
         for (int y = range.begin(); y < range.end(); ++y)
@@ -327,7 +383,7 @@ void match_pixels(const uint8_t *rgb, int width, int height, const ChromaChoices
                 const size_t   px  = size_t(y) * size_t(width) + size_t(x);
                 const uint8_t *src = rgb + px * 3;
                 float          err = 0.f;
-                choice[px] = uint16_t(pick_choice(choices, high_quality, src[0] / 255.f, src[1] / 255.f,
+                choice[px] = uint16_t(pick_choice(choices, high_quality, cap_de, src[0] / 255.f, src[1] / 255.f,
                                                   src[2] / 255.f, err));
                 errors[px] = err;
             }
@@ -352,7 +408,8 @@ void match_pixels(const uint8_t *rgb, int width, int height, const ChromaChoices
 // At cell 1 this is the texel-by-texel diffusion that was here before cells existed, arithmetic
 // included: a mean over one texel is that texel, and the cell grid is the texel grid.
 void match_pixels_dithered(const uint8_t *rgb, int width, int height, int cell, const ChromaChoices &choices,
-                           bool high_quality, std::vector<uint16_t> &choice, std::vector<float> &errors)
+                           bool high_quality, float cap_de, std::vector<uint16_t> &choice,
+                           std::vector<float> &errors)
 {
     const int cols = (width + cell - 1) / cell;
     const int rows = (height + cell - 1) / cell;
@@ -383,7 +440,7 @@ void match_pixels_dithered(const uint8_t *rgb, int width, int height, int cell, 
         for (int i = 0; i < cols; ++i) {
             const int cx     = ltr ? i : cols - 1 - i;
             float     err    = 0.f;
-            const int picked = pick_choice(choices, high_quality, row[size_t(cx)][0], row[size_t(cx)][1],
+            const int picked = pick_choice(choices, high_quality, cap_de, row[size_t(cx)][0], row[size_t(cx)][1],
                                            row[size_t(cx)][2], err);
             // Every texel of the cell takes the cell's choice and the cell's error: the cell is the
             // smallest thing the printer can give a height of its own to, so it is also the smallest
@@ -418,7 +475,33 @@ void match_pixels_dithered(const uint8_t *rgb, int width, int height, int cell, 
     }
 }
 
-// ---- Stage (d): the stack's own edits ----------------------------------------------------------
+// ---- Stage (d): the spikes the printer cannot build --------------------------------------------
+//
+// The filter itself is chroma_despike_levels(), which knows nothing about colour; this is what puts
+// the errors back in step with it. A texel it pulled down now prints a colour the match did not
+// choose, and the error image has to say how far that colour is rather than how far the one the match
+// wanted was.
+void apply_despike(const uint8_t *rgb, int width, int height, int threshold, int step,
+                   const ChromaChoices &choices, bool high_quality, std::vector<uint16_t> &choice,
+                   std::vector<float> &errors)
+{
+    if (threshold <= 0)
+        return;
+    const std::vector<uint16_t> before = choice;
+    if (chroma_despike_levels(choice, width, height, threshold, step) == 0)
+        return;
+
+    tbb::parallel_for(tbb::blocked_range<int>(0, height), [&](const tbb::blocked_range<int> &range) {
+        for (int y = range.begin(); y < range.end(); ++y)
+            for (int x = 0; x < width; ++x) {
+                const size_t px = size_t(y) * size_t(width) + size_t(x);
+                if (choice[px] != before[px])
+                    errors[px] = error_for(choices, high_quality, rgb, px, int(choice[px]));
+            }
+    });
+}
+
+// ---- Stage (e): the stack's own edits ----------------------------------------------------------
 //
 // In the order they were painted, each one over whatever the ones before it left, which is what makes
 // a later stroke over the same pixels win. Nothing here looks at the picture again except to say how
@@ -453,19 +536,14 @@ void apply_retouch(const ChromaStack &stack, const uint8_t *rgb, int width, int 
                     if (clamped == int(choice[px]))
                         continue;
                     choice[px] = uint16_t(clamped);
-
-                    const uint8_t *src = rgb + px * 3;
-                    const float    r = src[0] / 255.f, g = src[1] / 255.f, b = src[2] / 255.f;
-                    errors[px] = choice_error(choices, high_quality, srgb_to_lab(r, g, b),
-                                              tex2color::color_utils::ColorDouble{ double(r), double(g), double(b) },
-                                              clamped);
+                    errors[px] = error_for(choices, high_quality, rgb, px, clamped);
                 }
             }
         });
     }
 }
 
-// ---- Stage (e): the choices as everything a solve hands back -----------------------------------
+// ---- Stage (f): the choices as everything a solve hands back -----------------------------------
 //
 // `weights` is the importance region sampled onto this grid, or empty when there is none, and the
 // only thing it touches is the mean: which colour a pixel got is its own business, how much that
@@ -536,15 +614,28 @@ ChromaSolve chroma_solve(const uint8_t *rgb, int width, int height, const Chroma
     std::vector<uint16_t> choice(count, 0);
     std::vector<float>    errors(count, 0.f);
 
+    // How far off-colour a band may be before it is refused this pixel. 0 is no limit, which is the
+    // match as it was before strictness existed and what every stack that has not set one gets.
+    const float cap_de = chroma_match_cap_de(stack.match_strictness);
+
+    // A cell larger than the picture would leave one cell, which is a solid colour rather than a
+    // dither; the caller's number comes from a line width and a scale and has no reason to know how
+    // small a preview grid it landed on. Hoisted out of the branch because the despike below needs it
+    // too, and 1 - a neighbour one texel away - is what "no dither" means for that.
+    const int dither_cell = stack.dither ? std::clamp(options.dither_cell_px, 1, std::max(width, height)) : 1;
+
     if (stack.dither) {
-        // A cell larger than the picture would leave one cell, which is a solid colour rather than a
-        // dither; the caller's number comes from a line width and a scale and has no reason to know
-        // how small a preview grid it landed on.
-        const int cell = std::clamp(options.dither_cell_px, 1, std::max(width, height));
-        match_pixels_dithered(rgb, width, height, cell, choices, options.high_quality, choice, errors);
+        match_pixels_dithered(rgb, width, height, dither_cell, choices, options.high_quality, cap_de, choice,
+                              errors);
     } else {
-        match_pixels(rgb, width, height, choices, options.high_quality, choice, errors);
+        match_pixels(rgb, width, height, choices, options.high_quality, cap_de, choice, errors);
     }
+
+    // Stepped by the dither cell, which is 1 when there is no dither: a dithered cell is one level
+    // across several texels, so a despike that looked one texel out would find the spike's own cell
+    // and conclude it was not a spike. See chroma_despike_levels().
+    apply_despike(rgb, width, height, options.despike_layers, dither_cell, choices, options.high_quality,
+                  choice, errors);
 
     apply_retouch(stack, rgb, width, height, relief, choices, options.high_quality, choice, errors);
 
@@ -570,6 +661,136 @@ ChromaSolve chroma_solve(const uint8_t *rgb, int width, int height, const Chroma
 ChromaSolve chroma_solve(const uint8_t *rgb, int width, int height, const ChromaStack &stack)
 {
     return chroma_solve(rgb, width, height, stack, ChromaSolveOptions{});
+}
+
+int chroma_despike_levels(std::vector<uint16_t> &levels, int width, int height, int threshold_layers,
+                          int step)
+{
+    if (threshold_layers <= 0 || width <= 0 || height <= 0 ||
+        levels.size() != size_t(width) * size_t(height))
+        return 0;
+    step = std::max(1, step);
+
+    // Read from a copy and write to the map. A filter that read its own output would decide a texel
+    // differently depending on whether its neighbours had been visited yet, which over rows handed to
+    // different threads is a different answer from one run to the next - and the solve is deterministic
+    // on purpose.
+    const std::vector<uint16_t> src = levels;
+    // Counted per row and added up afterwards, in row order, for the same reason the search in
+    // chroma_auto_stack() picks its winner serially: the number must not depend on how the rows were
+    // divided between threads.
+    std::vector<int> per_row(size_t(height), 0);
+
+    tbb::parallel_for(tbb::blocked_range<int>(0, height), [&](const tbb::blocked_range<int> &range) {
+        for (int y = range.begin(); y < range.end(); ++y) {
+            int moved = 0;
+            for (int x = 0; x < width; ++x) {
+                const size_t px   = size_t(y) * size_t(width) + size_t(x);
+                const int    here = int(src[px]);
+                // The highest neighbour, which is also the smallest gap this texel stands above the
+                // neighbourhood by: if that gap reaches the threshold, every other one does too, which
+                // is what "above every one of its neighbours" means.
+                int highest = -1;
+                for (int dy = -1; dy <= 1; ++dy)
+                    for (int dx = -1; dx <= 1; ++dx) {
+                        if (dx == 0 && dy == 0)
+                            continue;
+                        const int nx = x + dx * step, ny = y + dy * step;
+                        if (nx < 0 || ny < 0 || nx >= width || ny >= height)
+                            continue;
+                        highest = std::max(highest, int(src[size_t(ny) * size_t(width) + size_t(nx)]));
+                    }
+                // A texel with no neighbours at all is a one-texel picture, where there is no
+                // neighbourhood to be a spike against.
+                if (highest < 0 || here - highest < threshold_layers)
+                    continue;
+                levels[px] = uint16_t(highest);
+                ++moved;
+            }
+            per_row[size_t(y)] = moved;
+        }
+    });
+
+    return std::accumulate(per_row.begin(), per_row.end(), 0);
+}
+
+ChromaPaletteReport chroma_image_is_palette_exact(const uint8_t *rgb, int width, int height, int max_colors)
+{
+    ChromaPaletteReport out;
+    // Where the number lives is the image decode, because that is where the same question is already
+    // asked of a source PNG; taking it from there rather than keeping a second copy of it here is what
+    // stops the panel and the solve disagreeing about one picture.
+    out.limit = max_colors > 0 ? max_colors : PALETTE_EXACT_MAX_COLORS;
+    if (rgb == nullptr || width <= 0 || height <= 0)
+        return out;
+
+    const size_t count = size_t(width) * size_t(height);
+    const auto   at    = [rgb](size_t px) {
+        const uint8_t *p = rgb + px * 3;
+        return (uint32_t(p[0]) << 16) | (uint32_t(p[1]) << 8) | uint32_t(p[2]);
+    };
+
+    // The same counter the decode uses, and for the same reason it is shaped this way: the last colour
+    // seen is checked first, because artwork is long runs of one fill and that turns the usual texel
+    // into a single comparison, and the count stops the moment the picture has too many colours to be
+    // artwork, so a photograph pays for a few hundred comparisons rather than for a pass over itself.
+    std::vector<uint32_t> seen;
+    seen.reserve(size_t(out.limit));
+    uint32_t last      = 0;
+    bool     have_last = false;
+    for (size_t i = 0; i < count; ++i) {
+        const uint32_t color = at(i);
+        if (have_last && color == last)
+            continue;
+        last      = color;
+        have_last = true;
+        if (std::find(seen.begin(), seen.end(), color) != seen.end())
+            continue;
+        if (int(seen.size()) == out.limit) {
+            out.more = true;
+            break;
+        }
+        seen.push_back(color);
+    }
+    out.colors        = int(seen.size());
+    out.palette_exact = !out.more;
+    if (!out.palette_exact)
+        // Settled, and the two measures below are about how to describe artwork. Measuring them for a
+        // photograph would be a second pass over the picture to produce two numbers nobody reads.
+        return out;
+
+    size_t flat = 0; // texels every neighbour of which is their own colour
+    size_t runs = 0; // horizontal runs of one colour, which the mean length is count / runs of
+    for (int y = 0; y < height; ++y) {
+        uint32_t run_color = 0;
+        bool     in_run    = false;
+        for (int x = 0; x < width; ++x) {
+            const size_t   px = size_t(y) * size_t(width) + size_t(x);
+            const uint32_t c  = at(px);
+            if (!in_run || c != run_color) {
+                ++runs;
+                run_color = c;
+                in_run    = true;
+            }
+            // The four it has rather than the four a middle texel would have: a fill that runs to the
+            // edge of the picture is as flat there as it is anywhere, and counting the border against
+            // it would say a logo on a coloured ground is less flat the smaller the picture is.
+            bool same = true;
+            if (x > 0 && at(px - 1) != c)
+                same = false;
+            if (same && x + 1 < width && at(px + 1) != c)
+                same = false;
+            if (same && y > 0 && at(px - size_t(width)) != c)
+                same = false;
+            if (same && y + 1 < height && at(px + size_t(width)) != c)
+                same = false;
+            if (same)
+                ++flat;
+        }
+    }
+    out.flat_fraction = float(double(flat) / double(count));
+    out.mean_run_px   = runs > 0 ? float(double(count) / double(runs)) : 0.f;
+    return out;
 }
 
 ChromaMask chroma_mask_encode(const uint8_t *mask, int width, int height)
@@ -1690,6 +1911,51 @@ indexed_triangle_set chroma_wedge_mesh(const ChromaWedge &wedge)
     return its;
 }
 
+indexed_triangle_set chroma_palette_strip_mesh(const ChromaStack &stack, const ChromaPaletteStrip &strip)
+{
+    indexed_triangle_set its;
+    const int            relief = stack.relief_layers();
+    if (stack.bands.empty() || relief <= 0 || stack.layer_height_mm <= 0.f)
+        return its;
+
+    const float h       = stack.layer_height_mm;
+    const int   base    = std::max(0, stack.base_layers);
+    const float swatch  = std::max(2.f, strip.swatch_mm);
+    const float across  = std::max(2.f, strip.width_mm);
+    const float gap     = std::max(0.f, strip.gap_mm);
+    const float total   = float(base + relief) * h;
+
+    // The heights this strip shows, in printing order: the bare base if it was asked for, then the top
+    // of each band. A band of no layers tops out where the band below it did and gets no block of its
+    // own - it would be a second swatch of a colour that is already on the strip.
+    std::vector<int> levels;
+    if (strip.include_base)
+        levels.push_back(0);
+    for (size_t i = 0; i < stack.bands.size(); ++i) {
+        const int top = chroma_band_top(stack, int(i));
+        if (levels.empty() || top > levels.back())
+            levels.push_back(top);
+    }
+
+    float x = 0.f;
+    for (const int k : levels) {
+        const float x1 = x + swatch;
+        if (stack.plate.orientation == ChromaOrientation::FaceDown)
+            // The complement, which is what a face-down column is: the plate is printed to its full
+            // thickness and the relief is the material missing from underneath, so this block starts
+            // where its own band's top leaves off and runs to the top of the stack. The light enters
+            // through its underside, exactly as it does through the picture.
+            append_box(its, Vec3f(x, 0.f, float(relief - k) * h), Vec3f(x1, across, total));
+        else
+            // Face up a block is the column itself, from the build plate to the top of its band: the
+            // same base under it and the same bands over that, so the same swaps print it in the same
+            // colour the palette predicts for that height.
+            append_box(its, Vec3f(x, 0.f, 0.f), Vec3f(x1, across, float(base + k) * h));
+        x = x1 + gap;
+    }
+    return its;
+}
+
 float chroma_td_from_step(int step, float layer_height_mm)
 {
     if (step <= 0 || layer_height_mm <= 0.f)
@@ -1809,11 +2075,12 @@ void mask_from_json(const nlohmann::json &j, ChromaMask &mask)
 
 void chroma_stack_to_json(nlohmann::json &chroma, const ChromaStack &stack)
 {
-    chroma["layer_height_mm"] = stack.layer_height_mm;
-    chroma["base_layers"]     = stack.base_layers;
-    chroma["base_auto"]       = stack.base_auto;
-    chroma["dither"]          = stack.dither;
-    chroma["applied_ranges"]  = stack.applied_ranges;
+    chroma["layer_height_mm"]  = stack.layer_height_mm;
+    chroma["base_layers"]      = stack.base_layers;
+    chroma["base_auto"]        = stack.base_auto;
+    chroma["dither"]           = stack.dither;
+    chroma["applied_ranges"]   = stack.applied_ranges;
+    chroma["match_strictness"] = stack.match_strictness;
 
     nlohmann::json &bands = chroma["bands"];
     bands                 = nlohmann::json::array();
@@ -1898,6 +2165,11 @@ void chroma_stack_from_json(const nlohmann::json &chroma, ChromaStack &stack)
     chroma_read(chroma, "base_auto", stack.base_auto);
     chroma_read(chroma, "dither", stack.dither);
     chroma_read(chroma, "applied_ranges", stack.applied_ranges);
+    chroma_read(chroma, "match_strictness", stack.match_strictness);
+    // The slider's own range. A file carrying anything else is a file this build does not understand,
+    // and the honest reading of it is the nearest setting that exists: 0 is no cap, which is the match
+    // every project written before the key existed was solved with.
+    stack.match_strictness = std::clamp(stack.match_strictness, 0, 100);
 
     if (const auto bands = chroma.find("bands"); bands != chroma.end() && bands->is_array()) {
         stack.bands.clear();
