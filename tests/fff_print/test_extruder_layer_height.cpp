@@ -44,10 +44,11 @@ void collect_heights(const ExtrusionEntityCollection &collection, std::vector<do
     }
 }
 
-DynamicPrintConfig layer_config()
+DynamicPrintConfig layer_config(unsigned int filaments = 2)
 {
-    auto config = multifilament_config(2);
-    config.set_num_extruders(2);
+    // Construct at the final count: growing set_num_filaments() later leaves variant
+    // metadata and the per-nozzle flush blocks at their original size.
+    auto config = multifilament_config(filaments);
     config.set_deserialize_strict({
         {"nozzle_diameter", "0.4,0.4"}, {"extruder_layer_height", "0.1,0.2"},
         {"min_layer_height", "0.05,0.05"}, {"max_layer_height", "0.3,0.3"},
@@ -59,6 +60,7 @@ DynamicPrintConfig layer_config()
         {"top_shell_layers", "2"}, {"bottom_shell_layers", "2"},
         {"top_shell_thickness", "0"}, {"bottom_shell_thickness", "0"}
     });
+    config.set_num_extruders(filaments);
     config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode")->value = fmmManual;
     size_flush_to_nozzles(config);
     return config;
@@ -315,14 +317,13 @@ TEST_CASE("Unused nozzle heights do not constrain a single used tool", "[Extrude
 {
     const bool explicit_height = GENERATE(false, true);
     const int filament = GENERATE(1, 2);
-    auto config = layer_config();
-    config.set_num_filaments(4);
-    config.set_num_extruders(4);
+    auto config = layer_config(4);
     config.set_deserialize_strict({{"nozzle_diameter", "0.2,0.4,0.6,0.8"}, {"filament_map", "2,2,3,4"},
         {"min_layer_height", "0.05,0.07,0.1,0.15"}, {"max_layer_height", "0.15,0.3,0.45,0.6"},
         {"extruder_layer_height", explicit_height ? "0.101,0.2,0.233,0.377" : "0.101,0,0.233,0.377"}});
     config.set_deserialize_strict("layer_change_gcode", "G92 E0");
-    size_flush_to_nozzles(config);
+    REQUIRE(config.option<ConfigOptionStrings>("filament_type")->size() == 4);
+    REQUIRE(config.option<ConfigOptionFloats>("flush_volumes_matrix")->size() == 4 * 4 * 4);
     Print print;
     Model model;
     const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{{{"extruder", std::to_string(filament)}}};
@@ -367,9 +368,7 @@ TEST_CASE("Support bodies and interfaces use independent tool heights", "[Extrud
     const int interface_count = GENERATE(1, 3);
     const bool staggered = GENERATE(false, true);
     CAPTURE(style, coarse_interface, mapped, fine_height, interface_count, staggered);
-    auto config = layer_config();
-    config.set_num_extruders(3);
-    config.set_num_filaments(3);
+    auto config = layer_config(3);
     config.set_deserialize_strict({
         {"nozzle_diameter", coarse_interface ? "0.2,0.6,0.2" : "0.6,0.2,0.2"},
         {"extruder_layer_height", coarse_interface ? "0.1,0.3,0.1" : "0.3,0.1,0.1"},
@@ -390,7 +389,8 @@ TEST_CASE("Support bodies and interfaces use independent tool heights", "[Extrud
         std::swap(nozzles[0], nozzles[1]);
         config.set_deserialize_strict("filament_map", "2,1,3");
     }
-    size_flush_to_nozzles(config);
+    REQUIRE(config.option<ConfigOptionStrings>("filament_type")->size() == 3);
+    REQUIRE(config.option<ConfigOptionFloats>("flush_volumes_matrix")->size() == 3 * 3 * 3);
     TriangleMesh overhang = make_cube(6., 6., 4.1);
     TriangleMesh roof = make_cube(20., 6., 1.);
     roof.translate(-7., 0., 4.);
