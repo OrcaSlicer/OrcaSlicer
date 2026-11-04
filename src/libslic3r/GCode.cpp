@@ -48,6 +48,7 @@
 #include "GCode/OrderingStrategies.hpp"
 #include "Print.hpp"
 #include "Utils.hpp"
+#include "Memory.hpp"
 #include "ClipperUtils.hpp"
 #include "LocalesUtils.hpp"
 #include "libslic3r/format.hpp"
@@ -3099,6 +3100,7 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
 
     BOOST_LOG_TRIVIAL(info) << "Exporting G-code finished" << log_memory_info();
     print->set_done(psGCodeExport);
+    trim_process_memory();
 
     {
         LifecycleEventContext ctx;
