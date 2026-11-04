@@ -39,6 +39,7 @@
 #include "Camera.hpp"
 #include "SceneRaycaster.hpp"
 #include "SceneCache.hpp"
+#include "SelectionOutline.hpp"
 #include "FrameProfiler.hpp"
 #include "IMToolbar.hpp"
 #include "slic3r/GUI/3DBed.hpp"
@@ -930,6 +931,9 @@ public:
     std::array<unsigned int, 2> m_ssao_texture_size{ { 0, 0 } };
     // The last scene pass, for frames that only rebuild the overlay.
     SceneCache m_scene_cache;
+    SelectionOutline m_selection_outline;
+    // Selected volumes the object passes of this frame drew, outlined after them.
+    std::vector<GLVolume*> m_outlined_volumes;
     // Signature of the overlay on screen; empty after render(), a paint request or a frame drawn but
     // not shown, so the next frame is presented regardless.
     std::optional<size_t> m_presented_signature;
@@ -1557,6 +1561,7 @@ private:
     // IMEX ghost hover tooltip: filament swatch + label drawn as an ImGui overlay.
     void _render_imex_ghost_tooltip();
     void _render_section_view_caps();
+    void _render_selection_outline();
     void _render_wireframe_overlay();
     bool _is_below_plate_view_active() const;
     void _render_below_plate_volumes();
