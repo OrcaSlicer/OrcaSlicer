@@ -1070,24 +1070,6 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         return gcode;
     }
 
-    // A folded tower layer is thicker than the object layer it sits on, so the height process_layer
-    // emitted is not the tower's. Supply a fallback declaration unless the tower already wrote a
-    // height tag in the printer's format. _extrude puts the object's height back on the next object path,
-    // since process_layer forces the role to erWipeTower on any layer with a tower.
-    std::string WipeTowerIntegration::tower_height_tag(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr,
-                                                       const std::string &tcr_gcode) const
-    {
-        const std::string tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height);
-        if (! m_sparse_layers_combined || std::abs(gcodegen.m_last_height - tcr.layer_height) <= EPSILON ||
-            tcr_gcode.find(tag) != std::string::npos)
-            return {};
-        // Keep m_last_height what the G-code last declared, so a second visit does not repeat it.
-        gcodegen.m_last_height = tcr.layer_height;
-        char buf[64];
-        sprintf(buf, "%s%g\n", tag.c_str(), tcr.layer_height);
-        return buf;
-    }
-
     // FanMover consumes these markers (and drops them) to avoid splitting a G1 inside custom gcode.
     // Only written when FanMover runs, the same gate as its construction in GCode::process_layers.
     static std::string wrap_custom_gcode_for_fan_mover(const FullPrintConfig &config, const std::string &gcode)
@@ -1627,7 +1609,6 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         config.set_key_value("filament_start_gcode", new ConfigOptionString(start_filament_gcode_str));
         std::string tcr_gcode, tcr_escaped_gcode = gcodegen.placeholder_parser_process("tcr_rotated_gcode", tcr_rotated_gcode, new_filament_id, &config);
         unescape_string_cstyle(tcr_escaped_gcode, tcr_gcode);
-        gcode += tower_height_tag(gcodegen, tcr, tcr_gcode);
         gcode += tcr_gcode;
         // Count the toolchange only when the emitted block really changed the tool —
         // tower visits without a filament change must not advance the ordinal.
@@ -1942,7 +1923,6 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         std::string tcr_gcode,
             tcr_escaped_gcode = gcodegen.placeholder_parser_process("tcr_rotated_gcode", tcr_rotated_gcode, new_extruder_id, &config);
         unescape_string_cstyle(tcr_escaped_gcode, tcr_gcode);
-        gcode += tower_height_tag(gcodegen, tcr, tcr_gcode);
         gcode += tcr_gcode;
         check_add_eol(toolchange_gcode_str);
 

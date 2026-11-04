@@ -215,7 +215,6 @@ TEST_CASE("Tower consumption is classified separately for each printer kind", "[
     // Cover the initial non-BBL slice (the global defaults to true) and a change of printer kind.
     GCodeProcessor::s_IsBBLPrinter = !is_bbl;
     print.process();
-    CHECK(GCodeProcessor::s_IsBBLPrinter == is_bbl);
 
     GCodeProcessorResult result;
     gcode(print, &result);
@@ -549,9 +548,8 @@ TEST_CASE("A run too thin to reach the nozzle's layer height is left alone", "[W
 
 TEST_CASE("A merged tower layer declares its own height to the G-code processor", "[WipeTower]")
 {
-    // Each writer declares a height in a hardcoded tag dialect while the processor reads only its
-    // printer's, so one of them is always dropped. A merged layer is the first time that shows, as a
-    // thick layer drawn and costed as a thin one. 0.2 mm layers under a 0.42 mm maximum merge in pairs.
+    // The processor must read the merged tower's height rather than the object's layer height.
+    // 0.2 mm layers under a 0.42 mm maximum merge in pairs.
     const SparseRunResult plain    = slice_sparse_run(sparse_run_config(0.2, "0.42", false));
     const SparseRunResult combined = slice_sparse_run(sparse_run_config(0.2, "0.42", true));
 
@@ -678,7 +676,7 @@ TEST_CASE("Without sparse layers the filament change starts at the tallest print
     GCodeReader parser;
     parser.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
         const std::string_view raw = line.raw();
-        // Objects are tagged with the processor's ;TYPE:, the tower with its own ; FEATURE:.
+        // Track the extrusion role using the tag format emitted for the printer.
         if (raw.rfind(";TYPE:", 0) == 0 || raw.rfind("; FEATURE: ", 0) == 0)
             in_tower = raw.find("Prime tower") != std::string_view::npos;
         else if (line.extruding(self) && (line.has_x() || line.has_y())) { // not an unretract

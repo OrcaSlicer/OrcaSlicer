@@ -142,18 +142,12 @@ its accumulation points; Type 2 guards the equivalent block in `finish_layer`,
 which also stops a merged-away layer from adding height of its own — the layer
 that prints the run carries all of it.
 
-A merged layer is the only case where the tower's layer height differs from the
-object layer it sits on, and therefore the only case where the height the
-exporter already emitted for that layer is wrong for the tower. Both generators
-do declare a height, but each hardcodes a tag dialect — the block tower forces
-the BBL tag, the other writes the compatible one — while the G-code processor
-reads only the tag its printer uses. On a non-BBL printer with a Type 1 tower the
-declaration is dropped, and the merged layer is drawn and costed as a thin one.
-`WipeTowerIntegration::tower_height_tag` therefore declares it at export time,
-where the printer is known, and only when the tower's own G-code does not already
-carry the tag that will be read. The object's height returns on the next object
-path, because emission forces the processor role to the tower on any layer that
-carries one.
+A merged tower layer can be thicker than the object layer it sits on. Both
+generators declare the tower's layer height in their own G-code blocks.
+`Print::_make_wipe_tower` selects the printer's tag format before either
+generator runs, so the G-code processor recognises the tower's height and
+extrusion role. The object's height returns on the next object path, because
+emission forces the processor role to the tower on any layer that carries one.
 
 ## Constraints
 
