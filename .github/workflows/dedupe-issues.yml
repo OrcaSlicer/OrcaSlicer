@@ -32,6 +32,8 @@ jobs:
           # Issues are opened by users without write access; the job's permissions and the
           # allowed-tools list in .claude/commands/dedupe.md keep what Claude can do narrow.
           allowed_non_write_users: "*"
+          # The backfill workflow dispatches this one with GITHUB_TOKEN, so those runs come from github-actions[bot]
+          allowed_bots: "github-actions"
           prompt: "/dedupe ${{ github.repository }}/issues/${{ github.event.issue.number || inputs.issue_number }}"
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: '--model claude-haiku-5-5 --disallowedTools "WebFetch,WebSearch,Write,Edit,MultiEdit,NotebookEdit"'
