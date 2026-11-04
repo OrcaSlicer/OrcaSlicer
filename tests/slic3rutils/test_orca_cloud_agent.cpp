@@ -890,3 +890,14 @@ TEST_CASE_METHOD(HealthCheckFixture, "A session with no saved sync state pulls w
     REQUIRE(requests.size() == 1);
     CHECK(requests.front().request_line == "GET /api/v1/sync/pull HTTP/1.1");
 }
+
+TEST_CASE_METHOD(HealthCheckFixture, "A pull answered 304 keeps the sync state it had", "[OrcaCloudServiceAgent]")
+{
+    sign_in("user-a");
+    server.set_reply("304 Not Modified", "");
+    REQUIRE(agent->get_setting_list2("", nullptr, nullptr, nullptr) == BAMBU_NETWORK_SUCCESS);
+
+    // Nothing changed, so there is still no cursor and none is written for the next session.
+    CHECK(agent->get_sync_state().last_sync_timestamp == 0);
+    CHECK_FALSE(fs::exists(dir.path() / "user" / "user-a" / "sync_state"));
+}
