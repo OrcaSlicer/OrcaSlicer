@@ -3304,32 +3304,30 @@ static inline std::vector<const PrintInstance*> sort_object_instances_by_max_z(c
 }
 #endif
 
-// Produce a vector of PrintObjects in the order of their respective ModelObjects in print.model().
+// Produce a vector of PrintInstances in the order of their ModelInstances in the object and instance lists of print.model().
 //BBS: add sort logic for seq-print
 std::vector<const PrintInstance*> sort_object_instances_by_model_order(const Print& print, bool init_order)
 {
-    auto find_object_index = [](const Model& model, const ModelObject* obj) {
-        for (int index = 0; index < model.objects.size(); index++)
-        {
-            if (model.objects[index] == obj)
-                return index;
-        }
-        return -1;
-    };
+    if (init_order) {
+        // Number by position in the model's object and instance lists. Copies of one object can be split
+        // into separate PrintObjects, one per distinct transformation, and print.objects() orders those by
+        // transformation, so its order is not the list order.
+        int order = 0;
+        for (const ModelObject *model_object : print.model().objects)
+            for (ModelInstance *model_instance : model_object->instances)
+                model_instance->arrange_order = ++order;
+    }
 
     // Build up map from ModelInstance* to PrintInstance*
     std::vector<std::pair<const ModelInstance*, const PrintInstance*>> model_instance_to_print_instance;
     model_instance_to_print_instance.reserve(print.num_object_instances());
     for (const PrintObject *print_object : print.objects())
         for (const PrintInstance &print_instance : print_object->instances())
-        {
-            if (init_order)
-                const_cast<ModelInstance*>(print_instance.model_instance)->arrange_order = find_object_index(print.model(), print_object->model_object());
             model_instance_to_print_instance.emplace_back(print_instance.model_instance, &print_instance);
-        }
     std::sort(model_instance_to_print_instance.begin(), model_instance_to_print_instance.end(), [](auto &l, auto &r) { return l.first->arrange_order < r.first->arrange_order; });
     if (init_order) {
-        // Re-assign the arrange_order so each instance has a unique order number
+        // Re-assign the arrange_order so each instance of this print has a unique order number. The
+        // numbering above covers the whole model, including the instances of the other plates.
         for (int k = 0; k < model_instance_to_print_instance.size(); k++) {
             const_cast<ModelInstance*>(model_instance_to_print_instance[k].first)->arrange_order = k + 1;
         }
@@ -3337,13 +3335,8 @@ std::vector<const PrintInstance*> sort_object_instances_by_model_order(const Pri
 
     std::vector<const PrintInstance*> instances;
     instances.reserve(model_instance_to_print_instance.size());
-    for (const ModelObject *model_object : print.model().objects)
-        for (const ModelInstance *model_instance : model_object->instances) {
-            auto it = std::lower_bound(model_instance_to_print_instance.begin(), model_instance_to_print_instance.end(), std::make_pair(model_instance, nullptr), [](auto &l, auto &r) { return l.first->arrange_order < r.first->arrange_order; });
-            if (it != model_instance_to_print_instance.end() && it->first == model_instance)
-                instances.emplace_back(it->second);
-        }
-    std::sort(instances.begin(), instances.end(), [](auto& l, auto& r) { return l->model_instance->arrange_order < r->model_instance->arrange_order; });
+    for (const auto &model_instance_print_instance : model_instance_to_print_instance)
+        instances.emplace_back(model_instance_print_instance.second);
     return instances;
 }
 
