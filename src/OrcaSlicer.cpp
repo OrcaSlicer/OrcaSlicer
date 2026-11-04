@@ -3509,9 +3509,15 @@ int CLI::run(int argc, char **argv)
     //set the filament settings into print config
     if ((load_filament_count > 0) || (up_config_to_date) || !load_filaments_config.empty())
     {
-        //std::vector<int> filament_variant_count(filament_count, 1);
-        std::vector<int> old_start_indice(filament_count, 0);
-        std::vector<int> old_variant_counts(filament_count, 1), new_variant_counts;
+        // The tables below are walked with the loaded filaments' 1-based indices, which
+        // run past the project's own filament count when more filaments are loaded than
+        // the project defines (two --load-filaments on a one-filament project).
+        int table_count = filament_count;
+        for (int index : load_filaments_index)
+            table_count = std::max(table_count, index);
+        //std::vector<int> filament_variant_count(table_count, 1);
+        std::vector<int> old_start_indice(table_count, 0);
+        std::vector<int> old_variant_counts(table_count, 1), new_variant_counts;
 
         ConfigOptionInts* filament_self_index_opt = m_print_config.option<ConfigOptionInts>("filament_self_index");
         bool need_regenerate_self_index = !filament_self_index_opt;
@@ -3530,18 +3536,18 @@ int CLI::run(int argc, char **argv)
             // one-filament project sliced with two --load-filaments) leaves the tables half filled:
             // the variant matching below then reads past filament_extruder_variant and
             // set_with_restore_2 throws an uncaught size error. Regenerate in that case too.
-            if (max_self_index > filament_count || min_self_index < 1 || max_self_index < filament_count
-                || (int) filament_self_index_opt->values.size() < filament_count) {
+            if (max_self_index > table_count || min_self_index < 1 || max_self_index < table_count
+                || (int) filament_self_index_opt->values.size() < table_count) {
                 BOOST_LOG_TRIVIAL(warning) << boost::format("filament_self_index range [%1%, %2%] (size %4%) is invalid for filament_count %3%, regenerating")
-                        % min_self_index % max_self_index % filament_count % filament_self_index_opt->values.size();
+                        % min_self_index % max_self_index % table_count % filament_self_index_opt->values.size();
                 need_regenerate_self_index = true;
             }
         }
         if (need_regenerate_self_index) {
             filament_self_index_opt = m_print_config.option<ConfigOptionInts>("filament_self_index", true);
             std::vector<int>& filament_self_indice = filament_self_index_opt->values;
-            filament_self_indice.resize(filament_count);
-            for (int index = 0; index < filament_count; index++)
+            filament_self_indice.resize(table_count);
+            for (int index = 0; index < table_count; index++)
                 filament_self_indice[index] = index + 1;
         }
 
