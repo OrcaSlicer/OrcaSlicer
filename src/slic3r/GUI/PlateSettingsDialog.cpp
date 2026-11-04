@@ -80,10 +80,10 @@ static void on_locked_entry_text(wxCommandEvent& e)
 static void on_locked_entry_click(wxMouseEvent& e)
 {
     auto combo = static_cast<ComboBox*>(static_cast<wxWindow*>(e.GetEventObject())->GetParent());
-    if (combo->GetSelection() == 0)
-        combo->ForceDropdownOpen();
-    else
+    if (combo->GetSelection() != 0) // Dont re-open if "Same as Global" selected
         e.Skip();
+    else if (combo->GetDropDown().HasDismissLongTime())
+        combo->ForceDropdownOpen();
 }
 
 void PlateSettingsDialog::lock_first_entry(ComboBox* combo)
