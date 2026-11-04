@@ -31,6 +31,7 @@ add_executable(${_TEST_NAME}_tests
     test_config.cpp
     test_config_variant_expansion.cpp
     test_locales_utils.cpp
+    test_memory.cpp
     test_drc.cpp
     test_gcodereader.cpp
     test_toolordering_nozzle_group.cpp
