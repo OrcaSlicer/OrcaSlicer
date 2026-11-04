@@ -1677,6 +1677,52 @@ void PluginManager::fetch_plugins_from_cloud(std::vector<std::string>* out_not_f
         }
     }
 
+    // A successful fetch is the only point where update availability is authoritative. Publish
+    // one aggregate notice after the orphan/unauthorized verdicts above so a plugin the user can
+    // no longer act on is not advertised. The check is repeated when the callback runs, keeping
+    // the notice fresh if an update was installed while the fetch was in flight.
+    if (cloud_fetch_succeeded) {
+        std::string fetched_cloud_user;
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            fetched_cloud_user = m_cloud_user_id;
+        }
+
+        auto push_update_notification = [this, fetched_cloud_user]() {
+            if (wxTheApp == nullptr || m_shutting_down.load(std::memory_order_acquire))
+                return;
+            if (GUI::wxGetApp().is_closing())
+                return;
+            GUI::Plater* plater = GUI::wxGetApp().plater();
+            // Before post_init() there is no plater yet; GUI_App's startup report delivers the
+            // notice instead of dropping it.
+            if (plater == nullptr)
+                return;
+
+            bool update_available = false;
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                if (m_cloud_user_id != fetched_cloud_user)
+                    return; // login/logout while the fetch was in flight
+                update_available = std::any_of(m_plugins.begin(), m_plugins.end(), [](const Plugin& plugin) {
+                    return plugin.descriptor.has_update_available();
+                });
+            }
+            if (!update_available)
+                return;
+
+            GUI::NotificationManager* notifications = plater->get_notification_manager();
+            if (notifications == nullptr ||
+                notifications->has_notification_of_type(GUI::NotificationType::OrcaCloudPluginUpdateAvailable))
+                return;
+            notifications->push_notification(GUI::NotificationType::OrcaCloudPluginUpdateAvailable);
+        };
+        if (wxTheApp == nullptr || wxIsMainThread())
+            push_update_notification();
+        else
+            GUI::wxGetApp().CallAfter(std::move(push_update_notification));
+    }
+
     if (out_not_found)
         *out_not_found = std::move(not_found);
     if (out_unauthorized)
