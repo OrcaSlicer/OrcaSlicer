@@ -318,7 +318,7 @@ try {
         $h = [math]::Floor($t.TotalHours)
         $m = [math]::Floor($t.TotalMinutes) % 60
         $s = [math]::Round($t.Seconds)
-        if ($h) { "\{0\}:\{1:00\}:\{2:00\}" -f $h, $m, $s }
+        if ($h) { "{0}:{1:00}:{2:00}" -f $h, $m, $s }
         elseif ($m) { "{0}m {1:00}s" -f $m, $s }
         else { "{0}s" -f $s }
     }
