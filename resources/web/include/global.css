@@ -66,6 +66,7 @@ TabCtrl tabs changes its positions because of font width change
   --bg-color              : #FFFFFF;
   --bg-color-secondary    : #F4F4F4;
   --bg-color-alt          : #F0F0F0;
+  --bg-color-sidebar      : #FEFFFF;   /*matches sidebar background on BBL Device, Project, Calibration, Multi device pages*/
   --disabled-bg           : #F0F0F1;   /*Disabled control background (combobox, checkbox, input...)*/
                                        /*IMPORTANT - Using RGBA instead RGB causing combo dropdowns using incorrect color*/
   --checked-bg            : #BFE1DE;   /*main color with 25% opacity. checked menu item bg on combox, active tab control bg...*/
@@ -117,7 +118,6 @@ TabCtrl tabs changes its positions because of font width change
   --warn-color-bg         : var(--tone-orange-12);
   --alert-color           : var(--tone-red);
   --alert-color-bg        : var(--tone-red-12);
-  --bg-color-sidebar      : #FEFFFF;   /*matches sidebar background on BBL Device, Project, Calibration, Multi device pages*/
 }
   
 /* Dark palette. Applied only when the host stamps data-orca-theme="dark"
@@ -133,6 +133,7 @@ TabCtrl tabs changes its positions because of font width change
   --bg-color              : #2D2D31;
   --bg-color-secondary    : #36363B;
   --bg-color-alt          : #242428;
+  --bg-color-sidebar      : #242428;   /*matches sidebar background on BBL Device, Project, Calibration, Multi device pages*/
   --disabled-bg           : #333337;   /*Disabled control background (combobox, checkbox, input...)*/
                                        /*IMPORTANT - Using RGBA instead RGB causing combo dropdowns using incorrect color*/
   --checked-bg            : #223C3C;   /*main color with 25% opacity. checked menu item bg on combox, active tab control bg...*/
@@ -184,7 +185,6 @@ TabCtrl tabs changes its positions because of font width change
   --warn-color-bg         : var(--tone-orange-12);
   --alert-color           : var(--tone-red);
   --alert-color-bg        : var(--tone-red-12);
-  --bg-color-sidebar      : #242428;   /*matches sidebar background on BBL Device, Project, Calibration, Multi device pages*/
 }
 
 /*//////////////////////////////////////*/
