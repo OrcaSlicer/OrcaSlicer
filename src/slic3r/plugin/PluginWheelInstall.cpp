@@ -4,6 +4,7 @@
 #include "PluginUv.hpp"
 #include "PythonInterpreter.hpp"
 
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/directory.hpp>
@@ -565,7 +566,9 @@ bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, co
         error = "Plugin has no entry file.";
         return false;
     }
-    if (fs::path(descriptor.entry_path).extension() != ".whl") {
+    std::string extension = fs::path(descriptor.entry_path).extension().string();
+    boost::algorithm::to_lower(extension);
+    if (extension != ".whl") {
         error = "uv wheel installation is only available for .whl plugins.";
         return false;
     }
@@ -603,25 +606,33 @@ bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, co
 
     std::string staged_name = entry.filename().string();
     if (!is_valid_wheel_filename(staged_name)) {
-        // Cloud downloads and side-loaded wheels can carry names uv rejects. Stage a copy under a
-        // name derived from the wheel's own metadata; the stored wheel is left untouched.
-        WheelInstallMetadata metadata;
-        std::string           metadata_error;
-        if (!read_wheel_install_metadata(entry, metadata, metadata_error)) {
-            error = "Failed to read wheel metadata for installation: " + metadata_error;
-            return false;
-        }
+        // uv accepts only the lowercase ".whl" extension. A stored wheel with an uppercase
+        // extension keeps its name on disk; only the staged input copy is normalized.
+        const std::string normalized_name = entry.stem().string() + ".whl";
+        if (is_valid_wheel_filename(normalized_name)) {
+            staged_name = normalized_name;
+        } else {
+            // Cloud downloads and side-loaded wheels can carry names uv rejects. Stage a copy
+            // under a name derived from the wheel's own metadata; the stored wheel is left
+            // untouched.
+            WheelInstallMetadata metadata;
+            std::string           metadata_error;
+            if (!read_wheel_install_metadata(entry, metadata, metadata_error)) {
+                error = "Failed to read wheel metadata for installation: " + metadata_error;
+                return false;
+            }
 
-        const std::string tag = wheel_filename_tag(metadata.tags);
-        if (tag.empty()) {
-            error = "Wheel " + entry.filename().string() +
-                    " has no usable filename tag and declares no well-formed python-abi-platform tag in its WHEEL file.";
-            return false;
-        }
-        staged_name = make_wheel_filename(metadata.name, metadata.version, tag);
-        if (staged_name.empty()) {
-            error = "Cannot build a valid wheel filename from the metadata of " + entry.filename().string() + ".";
-            return false;
+            const std::string tag = wheel_filename_tag(metadata.tags);
+            if (tag.empty()) {
+                error = "Wheel " + entry.filename().string() +
+                        " has no usable filename tag and declares no well-formed python-abi-platform tag in its WHEEL file.";
+                return false;
+            }
+            staged_name = make_wheel_filename(metadata.name, metadata.version, tag);
+            if (staged_name.empty()) {
+                error = "Cannot build a valid wheel filename from the metadata of " + entry.filename().string() + ".";
+                return false;
+            }
         }
     }
 

@@ -841,8 +841,7 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginDescrip
     // Package-level auto-load flag only. The per-capability enable flags stay in the sidecar: a
     // capability has no existence — and so no state — until it is materialized, at which point the
     // loader seeds the flag onto the capability itself.
-    entry.enabled               = state.enabled;
-    entry.wheel_install_enabled = state.wheel_install;
+    entry.enabled = state.enabled;
     return true;
 }
 
@@ -894,9 +893,6 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstall
         if (state.contains("enabled") && state["enabled"].is_boolean())
             parsed.enabled = state["enabled"].get<bool>();
 
-        if (state.contains("wheel_install") && state["wheel_install"].is_boolean())
-            parsed.wheel_install = state["wheel_install"].get<bool>();
-
         // capabilities is a JSON array of single-key objects {<cap_name>: <bool>}.
         if (state.contains("capabilities") && state["capabilities"].is_array()) {
             for (const auto& item : state["capabilities"]) {
@@ -916,25 +912,6 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstall
     }
 }
 
-PluginInstallStateStatus read_install_state_status(const boost::filesystem::path& plugin_dir, PluginInstallState& out)
-{
-    namespace fs = boost::filesystem;
-
-    const fs::path sidecar_path = plugin_dir / INSTALL_STATE_FILE;
-
-    boost::system::error_code ec;
-    const bool exists = fs::exists(sidecar_path, ec);
-    if (ec)
-        return PluginInstallStateStatus::Invalid;
-    if (!exists)
-        return PluginInstallStateStatus::Missing;
-
-    if (!fs::is_regular_file(sidecar_path, ec) || ec)
-        return PluginInstallStateStatus::Invalid;
-
-    return read_install_state(plugin_dir, out) ? PluginInstallStateStatus::Ok : PluginInstallStateStatus::Invalid;
-}
-
 namespace {
 
 // The single descriptor -> sidecar metadata mapping. Prefer installed_version (fetched at install
@@ -945,7 +922,6 @@ void apply_install_metadata(PluginInstallState& state, const PluginDescriptor& e
     state.installed_version = !entry.installed_version.empty() ? entry.installed_version : entry.version;
     state.plugin_name       = entry.name;
     state.cloud_uuid        = entry.cloud_uuid();
-    state.wheel_install     = entry.wheel_install_enabled;
 }
 
 } // namespace
@@ -961,27 +937,14 @@ void seed_install_metadata(PluginInstallState& state, const PluginDescriptor& en
 
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginInstallState& state)
 {
-    namespace fs = boost::filesystem;
-
-    // Never replace a sidecar that exists but cannot be read: that would silently discard the
-    // permissions and capability choices still stored in it.
-    PluginInstallState probe;
-    if (read_install_state_status(plugin_dir, probe) == PluginInstallStateStatus::Invalid) {
-        BOOST_LOG_TRIVIAL(error) << "Refusing to overwrite unreadable plugin install state in " << plugin_dir.string();
-        return false;
-    }
-
-    const fs::path    sidecar_path = plugin_dir / INSTALL_STATE_FILE;
-    const std::string unique       = fs::unique_path("%%%%-%%%%-%%%%").string();
-    const fs::path    temp_path    = plugin_dir / (std::string(INSTALL_STATE_FILE) + ".tmp-" + unique);
+    namespace fs                = boost::filesystem;
+    const fs::path sidecar_path = plugin_dir / ".install_state.json";
 
     nlohmann::json json;
     json["installed_from"]    = state.installed_from;
     json["installed_version"] = state.installed_version;
     json["plugin_name"]       = state.plugin_name;
     json["enabled"]           = state.enabled;
-    if (state.wheel_install)
-        json["wheel_install"] = true;
     if (!state.cloud_uuid.empty())
         json["cloud_uuid"] = state.cloud_uuid;
 
@@ -1000,61 +963,12 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
         capabilities.push_back(nlohmann::json{{name, enabled}});
     json["capabilities"] = std::move(capabilities);
 
-    // Write beside the sidecar first, then replace it. A truncated or half-written sidecar would
-    // lose permissions, capability enable flags and the auto-load state for the whole plugin.
-    {
-        boost::nowide::ofstream f(temp_path.string());
-        if (!f)
-            return false;
-
-        f << json.dump(2, ' ', false, nlohmann::json::error_handler_t::replace);
-        f.flush();
-        if (!f) {
-            f.close();
-            boost::system::error_code remove_ec;
-            fs::remove(temp_path, remove_ec);
-            return false;
-        }
-    }
-
-    boost::system::error_code ec;
-    fs::rename(temp_path, sidecar_path, ec);
-    if (!ec)
-        return true;
-
-    // Windows cannot rename over an existing file. Replace through a sibling backup so a failure at
-    // any point leaves either the old or the new sidecar readable; the backup is kept if the final
-    // rename fails.
-    boost::system::error_code exists_ec;
-    if (!fs::exists(sidecar_path, exists_ec)) {
-        boost::system::error_code remove_ec;
-        fs::remove(temp_path, remove_ec);
+    boost::nowide::ofstream f(sidecar_path.string());
+    if (!f)
         return false;
-    }
 
-    const fs::path previous_path = plugin_dir / (std::string(INSTALL_STATE_FILE) + ".prev-" + unique);
-    fs::rename(sidecar_path, previous_path, ec);
-    if (ec) {
-        boost::system::error_code remove_ec;
-        fs::remove(temp_path, remove_ec);
-        return false;
-    }
-
-    fs::rename(temp_path, sidecar_path, ec);
-    if (ec) {
-        boost::system::error_code restore_ec;
-        fs::rename(previous_path, sidecar_path, restore_ec);
-        if (restore_ec)
-            BOOST_LOG_TRIVIAL(error) << "Failed to replace plugin install state; the previous sidecar was kept at "
-                                     << previous_path.string() << ": " << restore_ec.message();
-        boost::system::error_code remove_ec;
-        fs::remove(temp_path, remove_ec);
-        return false;
-    }
-
-    boost::system::error_code remove_ec;
-    fs::remove(previous_path, remove_ec);
-    return true;
+    f << json.dump(2);
+    return static_cast<bool>(f);
 }
 
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginDescriptor& entry, bool enabled,
@@ -1062,15 +976,8 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
 {
     PluginInstallState state;
     // Loading a plugin updates its lifecycle/capability state, but must retain permissions granted
-    // during register_capabilities() or by a previous runtime audit prompt. An unreadable sidecar
-    // is not an absent one: refuse to replace it rather than silently discarding its grants.
-    const PluginInstallStateStatus status = read_install_state_status(plugin_dir, state);
-    if (status == PluginInstallStateStatus::Invalid) {
-        BOOST_LOG_TRIVIAL(error) << "Refusing to overwrite unreadable plugin install state in " << plugin_dir.string();
-        return false;
-    }
-    if (status == PluginInstallStateStatus::Missing)
-        seed_install_metadata(state, entry);
+    // during register_capabilities() or by a previous runtime audit prompt.
+    read_install_state(plugin_dir, state);
     apply_install_metadata(state, entry);
     state.enabled      = enabled;
     state.capabilities = capabilities;
@@ -1083,12 +990,6 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
     // sidecar is (re)initialized to "auto-load, nothing disabled". This intentionally resets
     // permissions on a fresh install/reinstall. PluginManager writes the real per-capability flags
     // while preserving permissions once the package is loaded, via the overload above.
-    PluginInstallState probe;
-    if (read_install_state_status(plugin_dir, probe) == PluginInstallStateStatus::Invalid) {
-        BOOST_LOG_TRIVIAL(error) << "Refusing to overwrite unreadable plugin install state in " << plugin_dir.string();
-        return false;
-    }
-
     PluginInstallState state;
     seed_install_metadata(state, entry);
     return write_install_state(plugin_dir, state);

@@ -284,7 +284,6 @@ private:
     void delete_local_plugin(const Slic3r::PluginDescriptor& plugin);
     void unsubscribe_cloud_plugin(const Slic3r::PluginDescriptor& plugin);
     void reload_local_plugin(const std::string& plugin_key, bool clear_cache);
-    void change_wheel_install_method(const std::string& plugin_key, bool enable);
     void reinstall_cloud_plugin(const Slic3r::PluginDescriptor& plugin);
 
     // In the future, we can allow users to choose which plugin version they want to install.

@@ -55,10 +55,7 @@ bool is_installed(const PluginDescriptor& descriptor, std::string* reason = null
 // Install the plugin's entry wheel with uv into <plugin_root>/__wheel_install__ unless a matching
 // installation already exists. The wheel is installed to a fresh staging target and promoted only
 // after a successful, complete installation; the previous target stays usable on failure.
-//
-// Opt-in is the caller's decision (PluginDescriptor::wheel_install_enabled); this function only
-// performs the installation. On failure `error` explains the cause and no partial target is
-// importable.
+// On failure `error` explains the cause and no partial target is importable.
 bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, const UvRunner& runner = {});
 
 } // namespace Slic3r::plugin_wheel_install

@@ -4,7 +4,6 @@
 #include "GUI_App.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "I18N.hpp"
-#include "MsgDialog.hpp"
 #include "OrcaCloudServiceAgent.hpp"
 #include "slic3r/plugin/PluginConfig.hpp"
 #include "slic3r/plugin/PluginFsUtils.hpp"
@@ -126,8 +125,6 @@ struct PluginDialogItem
     bool unauthorized          = false;
     bool has_script_capability = false;
     bool can_run_script        = false;
-    bool has_wheel             = false;
-    bool wheel_install_enabled = false;
 
     // Runtime capabilities in registration order, or descriptor-only type rows when unloaded.
     std::vector<PluginCapabilityView> capabilities;
@@ -283,13 +280,6 @@ PluginAvailableActions evaluate_action_policy(const PluginDialogItem& item)
 
     add_action("open_folder", L("Show in folder"), has_local);
 
-    if (item.has_wheel || (has_local && item.wheel_install_enabled)) {
-        if (item.wheel_install_enabled)
-            add_action("revert_wheel_install", L("Use previous installation method..."));
-        else
-            add_action("migrate_wheel", L("Use new installation method..."));
-    }
-
     if (!is_orphaned) {
         if (is_cloud) {
             add_action("reinstall_plugin", L("Reinstall"));
@@ -355,9 +345,6 @@ PluginDialogItem build_plugin_dialog_item(const PluginDescriptor& descriptor)
     item.unauthorized          = descriptor.is_unauthorized();
     item.is_loaded             = manager.is_plugin_loaded(descriptor.plugin_key);
     item.loading               = manager.is_plugin_load_in_progress(descriptor.plugin_key);
-    item.has_wheel             = item.has_local_package && !descriptor.entry_path.empty() &&
-                                 boost::filesystem::path(descriptor.entry_path).extension() == ".whl";
-    item.wheel_install_enabled = item.has_local_package && manager.is_wheel_install_enabled(descriptor.plugin_key);
     item.has_script_capability = false;
     for (const auto& capability : capabilities) {
         item.capabilities.push_back({capability->identity(), capability->is_enabled(), true, false, capability->config_ui_available()});
@@ -1027,10 +1014,6 @@ void PluginsDialog::handle_plugin_menu_action(const std::string& plugin_key, con
         reload_local_plugin(plugin_key, /*clear_cache=*/false);
     } else if (action == "clear_cache_reload_plugin") {
         reload_local_plugin(plugin_key, /*clear_cache=*/true);
-    } else if (action == "migrate_wheel") {
-        change_wheel_install_method(plugin_key, true);
-    } else if (action == "revert_wheel_install") {
-        change_wheel_install_method(plugin_key, false);
     } else if (action == "reinstall_plugin") {
         if (row_data.is_cloud_plugin())
             reinstall_cloud_plugin(row_data);
@@ -1409,12 +1392,13 @@ void PluginsDialog::reload_local_plugin(const std::string& plugin_key, bool clea
                     return {false, _u8L("Failed to unload plugin.")};
 
                 if (clear_cache) {
+                    // The extracted and uv-installed copies are both caches; the stored wheel and
+                    // the plugin data directory are left untouched.
                     for (const char* cache_name : {"__whl_extracted__", plugin_wheel_install::INSTALL_DIR_NAME}) {
                         boost::system::error_code ec;
                         boost::filesystem::remove_all(plugin_root / cache_name, ec);
                         if (ec)
-                            return {false, GUI::format(_u8L("Failed to clear plugin cache: %1%. The plugin remains off and its cache may be partially cleared."),
-                                                       ec.message())};
+                            return {false, GUI::format(_u8L("Failed to clear plugin cache: %1%"), ec.message())};
                     }
                 }
 
@@ -1443,65 +1427,6 @@ void PluginsDialog::reload_local_plugin(const std::string& plugin_key, bool clea
 
     send_plugins();
     show_status(wxString::Format(_L("Reloaded \"%s\"."), plugin_display_name(plugin_key)), "success");
-}
-
-void PluginsDialog::change_wheel_install_method(const std::string& plugin_key, bool enable)
-{
-    const auto alive = m_alive;
-    const wxString plugin_name = plugin_display_name(plugin_key);
-    PluginManager& manager = PluginManager::instance();
-    if (manager.is_plugin_load_in_progress(plugin_key)) {
-        show_status(_L("Wait for the plugin to finish loading, then turn it off before changing its installation method."), "warn");
-        return;
-    }
-    if (manager.is_plugin_loaded(plugin_key)) {
-        show_status(_L("Turn off the plugin before changing its installation method."), "warn");
-        return;
-    }
-
-    // TRN %1% is the plugin name. The new method installs the plugin wheel and its dependencies.
-    const wxString message = enable ?
-        GUI::format_wxstr(_L("Use the new installation method for \"%1%\"?\n\nThis installs the plugin and its required packages, which may be downloaded. "
-                            "The plugin will remain off until you turn it on."), plugin_name) :
-        // TRN %1% is the plugin name. The previous method extracts the plugin wheel instead of installing it.
-        GUI::format_wxstr(_L("Use the previous installation method for \"%1%\"?\n\nThis extracts the plugin package instead of installing it. "
-                            "The plugin will remain off until you turn it on."),
-                          plugin_name);
-    MessageDialog confirm(this, message, _L("Change plugin installation method"), wxYES_NO | wxNO_DEFAULT | wxICON_QUESTION);
-    const int answer = confirm.ShowModal();
-    if (!alive->load(std::memory_order_acquire))
-        return;
-    restore_z_order();
-    if (answer != wxID_YES)
-        return;
-
-    std::pair<bool, std::string> result{false, {}};
-    try {
-        result = run_with_dialog_wait(
-            [plugin_key, enable]() -> std::pair<bool, std::string> {
-                std::string error;
-                const bool success = PluginManager::instance().set_wheel_install_enabled(plugin_key, enable, error);
-                return {success, std::move(error)};
-            },
-            _L("Updating plugin installation"), _L("Updating plugin installation..."));
-    } catch (const std::exception& ex) {
-        result = {false, ex.what()};
-    } catch (...) {
-        result = {false, _u8L("Unknown plugin installation error.")};
-    }
-
-    if (!alive->load(std::memory_order_acquire))
-        return;
-    send_plugins();
-    if (!result.first) {
-        show_status(result.second.empty() ? _L("Failed to update plugin installation.") : from_u8(result.second), "error");
-        return;
-    }
-    // TRN %1% is the plugin name. The plugin stays off after its installation method changes.
-    show_status(GUI::format_wxstr(enable ?
-                                      _L("Changed \"%1%\" to the new installation method. Turn the plugin on to use it.") :
-                                      _L("Changed \"%1%\" to the previous installation method. Turn the plugin on to use it."),
-                                  plugin_name), "success");
 }
 
 void PluginsDialog::reinstall_cloud_plugin(const PluginDescriptor& plugin)

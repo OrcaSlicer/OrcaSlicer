@@ -265,17 +265,15 @@ bool load(const PluginDescriptor&                          descriptor,
     plugin.descriptor  = descriptor;
     plugin.module_name = plugin_module_name(descriptor);
 
-    // Opt-in per-plugin migration: install the entry wheel with uv into a private target instead
-    // of extracting the archive at every load. The stored wheel, plugin key and sidecar stay as
-    // they are; only the import location changes.
-    const bool use_wheel_install =
-        descriptor.wheel_install_enabled && plugin_package_extension(descriptor.entry_path) == ".whl";
-    if (use_wheel_install) {
+    // A wheel entry is installed with the bundled uv into a private directory instead of being
+    // extracted at import time. The installation is reused while the stored wheel and interpreter
+    // are unchanged, so a normal startup does not run uv again. The stored wheel, plugin key and
+    // sidecar are untouched: only the import location changes.
+    const bool has_entry_wheel = plugin_package_extension(descriptor.entry_path) == ".whl";
+    if (has_entry_wheel) {
         std::string wheel_install_error;
         if (!plugin_wheel_install::ensure_installed(descriptor, wheel_install_error)) {
-            // Fail rather than silently falling back to legacy extraction: the opt-in is explicit.
-            // The stored wheel and any legacy __whl_extracted__ cache stay on disk, so turning the
-            // opt-in off makes the plugin load the legacy way again.
+            // Report the failure instead of silently falling back to the legacy extraction.
             // TRN %1% is the uv/installation error detail.
             error = GUI::format(_u8L("Failed to install plugin wheel: %1%"), wheel_install_error);
             return false;
@@ -301,10 +299,10 @@ bool load(const PluginDescriptor&                          descriptor,
     }
 
     std::string load_error;
-    PyObject*   module = use_wheel_install ? interpreter.load_module_from_directory(
-                                                plugin_wheel_install::install_dir(descriptor.plugin_root),
-                                                descriptor.entry_package, load_error, &plugin.plugin_sys_paths, &plugin.plugin_modules) :
-                                             import_plugin_module(descriptor, plugin.plugin_sys_paths, plugin.plugin_modules, load_error);
+    PyObject*   module = has_entry_wheel ? interpreter.load_module_from_directory(
+                                               plugin_wheel_install::install_dir(descriptor.plugin_root),
+                                               descriptor.entry_package, load_error, &plugin.plugin_sys_paths, &plugin.plugin_modules) :
+                                           import_plugin_module(descriptor, plugin.plugin_sys_paths, plugin.plugin_modules, load_error);
     if (module == nullptr) {
         bridge.cancel_plugin_capture(descriptor.entry_path);
         error = GUI::format(_u8L("Failed to load plugin module: %1%"), load_error);
@@ -574,13 +572,15 @@ bool install_plugin(const boost::filesystem::path& filepath, const std::string& 
 bool install_plugin(const boost::filesystem::path& filepath,
                     const std::string&             cloud_user_id,
                     PluginDescriptor&              plugin_descriptor,
-                    std::string&                   error,
-                    const std::function<void()>&   before_promote)
+                    std::string&                   error)
 {
     namespace fs = boost::filesystem;
 
     const std::string cloud_uuid       = plugin_descriptor.cloud_uuid();
     const bool        is_cloud_install = !cloud_uuid.empty();
+
+    fs::path backup_dir;
+    bool     backup_created = false;
 
     auto fail = [&error](const std::string& message) {
         error = GUI::format(_u8L("Plugin installation failed: %1%"), message);
@@ -635,27 +635,8 @@ bool install_plugin(const boost::filesystem::path& filepath,
             return fail("Side-loaded .py plugin is missing required PEP 723 metadata: 'name' is required");
     }
 
-    // Use the descriptor's installed root for a cloud update when it is set, but only after
-    // validating that it is a directory for this UUID inside the plugin root we would otherwise
-    // derive. A catalog/manager descriptor must not redirect the install somewhere else.
-    fs::path final_dir;
-    if (is_cloud_install) {
-        if (!plugin_descriptor.plugin_root.empty()) {
-            const fs::path candidate = canonical_or_absolute(plugin_descriptor.plugin_root);
-            const std::vector<std::string> allowed_roots = { plugin_root.string() };
-            if (candidate.filename().string() != cloud_uuid || !is_plugin_root_allowed(candidate, allowed_roots))
-                return fail(_u8L("Refusing to update a cloud plugin outside its installed plugin root."));
-            final_dir = candidate;
-        } else {
-            final_dir = plugin_root / cloud_uuid;
-        }
-    } else {
-        final_dir = local_plugin_install_dir(source_path);
-    }
-
-    const fs::path install_parent = final_dir.parent_path();
-    const fs::path dest_name      = source_path.filename();
-    const fs::path final_entry    = final_dir / dest_name;
+    const fs::path final_dir = is_cloud_install ? plugin_root / cloud_uuid : local_plugin_install_dir(source_path);
+    const fs::path dest_file = final_dir / source_path.filename();
 
     // Local key is the plugin file stem; cloud key is the cloud UUID.
     if (is_cloud_install)
@@ -663,135 +644,64 @@ bool install_plugin(const boost::filesystem::path& filepath,
     else
         assign_local_plugin_key(plugin_descriptor, source_path);
 
-    // The existing sidecar is authoritative for the uv opt-in: the descriptor may be a stale
-    // catalog or manager copy. Do not silently inherit an opt-out or an opt-in from it. An
-    // unreadable sidecar is not treated as absent; the update proceeds with the legacy method and
-    // the old file is preserved by the backup.
-    PluginInstallState previous_state;
-    const PluginInstallStateStatus previous_status = read_install_state_status(final_dir, previous_state);
-    if (previous_status == PluginInstallStateStatus::Ok) {
-        plugin_descriptor.wheel_install_enabled = previous_state.wheel_install;
-    } else if (previous_status == PluginInstallStateStatus::Invalid) {
-        BOOST_LOG_TRIVIAL(warning) << "Unreadable plugin install state in " << final_dir.string()
-                                   << "; updating with the legacy method and preserving the old sidecar in the backup.";
-        plugin_descriptor.wheel_install_enabled = false;
-    }
-
-    // Build the complete replacement in a staging directory that discovery ignores: the wheel, its
-    // sidecar and, when opted in, the uv installation target. The existing plugin root is not
-    // touched until this candidate is complete.
-    const std::string unique      = fs::unique_path("%%%%-%%%%-%%%%").string();
-    const fs::path    staging_dir = install_parent / ("__staging__-" + unique);
-
-    auto fail_staging = [&error, &staging_dir](const std::string& message) {
-        boost::system::error_code remove_ec;
-        fs::remove_all(staging_dir, remove_ec);
-        error = GUI::format(_u8L("Plugin installation failed: %1%"), message);
-        return false;
-    };
-
-    ec.clear();
-    const bool has_existing = fs::exists(final_dir, ec);
-    if (ec)
-        // TRN %1% is a folder path, %2% the system error message.
-        return fail(GUI::format(_u8L("Failed to check existing plugin %1%: %2%"), final_dir.string(), ec.message()));
-
-    fs::create_directories(staging_dir, ec);
-    if (ec)
-        return fail_staging(
-            GUI::format(_u8L("Failed to create plugin directory %1%: %2%"), staging_dir.string(), ec.message()));
-
-    const fs::path staged_file = staging_dir / dest_name;
-    fs::copy_file(source_path, staged_file, ec);
-    if (ec)
-        // TRN %1% is a file path, %2% the system error message.
-        return fail_staging(
-            GUI::format(_u8L("Failed to copy plugin file to %1%: %2%"), staged_file.string(), ec.message()));
-
-    // The candidate descriptor points into staging so the uv target is built beside the wheel and
-    // moves with the directory on promotion. Caller-visible paths are set only after promotion.
-    PluginDescriptor staged_entry = plugin_descriptor;
-    staged_entry.plugin_root      = staging_dir.string();
-    staged_entry.entry_path       = staged_file.string();
-    staged_entry.set_metadata_valid(true);
-    staged_entry.clear_error();
-
-    {
-        PluginDescriptor sidecar_entry = staged_entry;
-        if (is_cloud_install)
-            sidecar_entry.cloud = CloudPluginState{cloud_uuid, true, false, false, plugin_descriptor.cloud->is_mine};
-        if (!write_install_state(staging_dir, sidecar_entry))
-            return fail_staging(
-                GUI::format(_u8L("Failed to write plugin install state: %1%"), (staging_dir / INSTALL_STATE_FILE).string()));
-    }
-
-    // A plugin opted into uv wheel installation is only completely installed once its target exists
-    // and contains the entry package. Build it in staging before the existing root is replaced.
-    if (staged_entry.wheel_install_enabled && ext == ".whl") {
-        std::string wheel_install_error;
-        bool        wheel_installed = false;
-        try {
-            wheel_installed = plugin_wheel_install::ensure_installed(staged_entry, wheel_install_error);
-        } catch (const std::exception& ex) {
-            wheel_install_error = ex.what();
-        } catch (...) {
-            wheel_install_error = "unknown error";
-        }
-        if (!wheel_installed) {
-            // TRN %1% is the uv/installation error detail.
-            return fail_staging(GUI::format(_u8L("Failed to install plugin wheel: %1%"), wheel_install_error));
-        }
-    }
-
-    // Staging is complete and the uv target (if any) is built. Release a live plugin now, as late
-    // as possible and immediately before the existing root is replaced.
-    if (before_promote) {
-        try {
-            before_promote();
-        } catch (...) {
-            return fail_staging("Failed to release the existing plugin before promotion.");
-        }
-    }
-
-    // Promote: move the actual existing root aside, then the complete candidate into place. The
-    // backup is kept after a successful update because the new package may only fail when it is
-    // started; it is never mistaken for a plugin (discovery ignores "__" directories).
-    fs::path backup_dir;
-    bool     backup_created = false;
-    if (has_existing) {
-        backup_dir = install_parent / ("__backup__-" + final_dir.filename().string() + "-" + unique);
+    // Backup existing installation if present.
+    if (fs::exists(final_dir, ec)) {
+        backup_dir = plugin_root / (final_dir.filename().string() + ".backup-" + fs::unique_path("%%%%-%%%%-%%%%").string());
         fs::rename(final_dir, backup_dir, ec);
         if (ec)
             // TRN %1% is a folder path, %2% the system error message.
-            return fail_staging(
-                GUI::format(_u8L("Failed to back up existing plugin %1%: %2%"), final_dir.string(), ec.message()));
+            return fail(GUI::format(_u8L("Failed to back up existing plugin %1%: %2%"), final_dir.string(), ec.message()));
         backup_created = true;
     }
 
-    fs::rename(staging_dir, final_dir, ec);
+    // Create the plugin directory and copy the file.
+    fs::create_directories(final_dir, ec);
     if (ec) {
-        std::string message = "Failed to activate the new plugin installation: " + ec.message();
         if (backup_created) {
             boost::system::error_code restore_ec;
             fs::rename(backup_dir, final_dir, restore_ec);
-            if (restore_ec)
-                // TRN %1% is the backup folder path, %2% the system error message.
-                message += " " + GUI::format(_u8L("The previous installation could not be restored and was kept at %1%: %2%"),
-                                             backup_dir.string(), restore_ec.message());
         }
-        boost::system::error_code remove_ec;
-        fs::remove_all(staging_dir, remove_ec);
-        return fail(message);
+        return fail(GUI::format(_u8L("Failed to create plugin directory %1%: %2%"), final_dir.string(), ec.message()));
     }
 
-    if (backup_created)
-        BOOST_LOG_TRIVIAL(info) << "Installed plugin " << plugin_descriptor.name << "; previous version kept at "
-                                << backup_dir.string();
+    fs::copy_file(source_path, dest_file, ec);
+    if (ec) {
+        if (backup_created) {
+            boost::system::error_code restore_ec;
+            fs::remove_all(final_dir, restore_ec);
+            fs::rename(backup_dir, final_dir, restore_ec);
+        }
+        // TRN %1% is a file path, %2% the system error message.
+        return fail(GUI::format(_u8L("Failed to copy plugin file to %1%: %2%"), dest_file.string(), ec.message()));
+    }
 
+    // Update entry_path to the installed location.
     plugin_descriptor.plugin_root = final_dir.string();
-    plugin_descriptor.entry_path  = final_entry.string();
+    plugin_descriptor.entry_path  = dest_file.string();
     plugin_descriptor.set_metadata_valid(true);
     plugin_descriptor.clear_error();
+
+    // Write install state sidecar before removing the backup.
+    {
+        PluginDescriptor installed_entry = plugin_descriptor;
+        if (is_cloud_install)
+            installed_entry.cloud = CloudPluginState{cloud_uuid, true, false, false, plugin_descriptor.cloud->is_mine};
+        if (!write_install_state(final_dir, installed_entry)) {
+            // Roll back: remove new files and restore backup.
+            boost::system::error_code rollback_ec;
+            fs::remove_all(final_dir, rollback_ec);
+            if (backup_created)
+                fs::rename(backup_dir, final_dir, rollback_ec);
+            return fail(GUI::format(_u8L("Failed to write plugin install state: %1%"), (final_dir / INSTALL_STATE_FILE).string()));
+        }
+    }
+
+    if (backup_created) {
+        boost::system::error_code remove_ec;
+        fs::remove_all(backup_dir, remove_ec);
+        if (remove_ec)
+            BOOST_LOG_TRIVIAL(warning) << "Failed to remove plugin backup " << backup_dir.string() << ": " << remove_ec.message();
+    }
 
     BOOST_LOG_TRIVIAL(info) << "Installed plugin " << plugin_descriptor.name << " to " << final_dir.string();
 

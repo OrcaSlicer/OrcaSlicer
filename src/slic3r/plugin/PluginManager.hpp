@@ -212,17 +212,6 @@ public:
                                       bool& existing_installation,
                                       std::string& error) const;
 
-    // Per-plugin opt-in for installing the entry wheel with the bundled uv instead of extracting it
-    // at load time. Only a stopped plugin can switch: enabling fails while the package is loaded or
-    // loading, and neither direction unloads or reloads a plugin. Enabling installs the wheel into
-    // the plugin's private uv target (blocking, up to 120 s) and records the choice in
-    // .install_state.json only after the installation succeeds; on failure the stored wheel, legacy
-    // extraction and previous method are untouched. Disabling only clears the flag and keeps the
-    // installed target as inert cache. The stored wheel, plugin key and identity are unchanged.
-    // Call off the GUI thread: uv installation blocks.
-    bool set_wheel_install_enabled(const std::string& plugin_key, bool enabled, std::string& error);
-    bool is_wheel_install_enabled(const std::string& plugin_key) const;
-
     bool set_plugin_error(const std::string& plugin_key, std::string error);
     bool clear_plugin_error(const std::string& plugin_key);
 
@@ -278,37 +267,6 @@ private:
     // Caller holds m_mutex. Non-empty return means the load must be abandoned.
     std::string check_registry_locked(const std::string& plugin_key, const Plugin& candidate) const;
 
-    // Reserve a plugin key for an install/update/migration/delete. Nested reservations from the
-    // same thread are allowed (an update reserves, then delegates to install); a concurrent
-    // operation on another thread is refused. load_plugin() refuses the key while reserved, and
-    // sidecar writes from on-unload/load callbacks are suppressed so the operation owns the state
-    // it is replacing.
-    bool begin_plugin_operation(const std::string& plugin_key);
-    void end_plugin_operation(const std::string& plugin_key);
-    bool is_plugin_operation_in_progress_locked(const std::string& plugin_key) const;
-
-    class PluginOperationScope
-    {
-    public:
-        PluginOperationScope(PluginManager& manager, std::string plugin_key)
-            : m_manager(manager), m_plugin_key(std::move(plugin_key)),
-              m_acquired(m_manager.begin_plugin_operation(m_plugin_key))
-        {}
-        ~PluginOperationScope()
-        {
-            if (m_acquired)
-                m_manager.end_plugin_operation(m_plugin_key);
-        }
-        bool acquired() const { return m_acquired; }
-        PluginOperationScope(const PluginOperationScope&)            = delete;
-        PluginOperationScope& operator=(const PluginOperationScope&) = delete;
-
-    private:
-        PluginManager& m_manager;
-        std::string    m_plugin_key;
-        bool           m_acquired = false;
-    };
-
     void run_discovery(bool async, bool clear);
     void run_discovery_task(bool clear);
     void merge_discovered_plugins(std::vector<PluginDescriptor> discovered, bool clear);
@@ -362,13 +320,6 @@ private:
     std::unordered_set<std::string> m_missing_plugin_keys;
 
     std::unordered_set<std::string> m_load_in_progress;
-    // Per-key operation reservations (install/update/migration/delete). A count allows an update to
-    // delegate to install while still excluding loads for the whole operation.
-    std::map<std::string, int> m_plugin_operations;
-    // Keys whose unload callback must not flip the sidecar to enabled=false. Set when an install
-    // releases a live plugin for replacement, cleared by the next successful load. This also covers
-    // a callback that runs queued after the operation has ended.
-    std::unordered_set<std::string> m_suppress_unload_state_write;
     // Keys whose in-flight load has been cancelled. Cancellation does NOT remove the key from
     // m_load_in_progress: the detached worker is still inside the loader touching Python, and it
     // releases its own slot only once it has unwound. Dropping the key here would let

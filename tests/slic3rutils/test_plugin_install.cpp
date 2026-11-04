@@ -1,4 +1,3 @@
-#include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
@@ -279,54 +278,4 @@ TEST_CASE("extract_zip_to_directory rejects an entry that escapes the destinatio
     CHECK_FALSE(extract_zip_to_directory(wheel, dir.path() / "out", error));
     CHECK_THAT(error, Catch::Matchers::ContainsSubstring("escapes the plugin package"));
     CHECK_FALSE(fs::exists(dir.path() / "escape.txt"));
-}
-
-TEST_CASE("an update keeps the previous package as an ignored backup", "[PluginInstall]")
-{
-    ScopedDataDir data_dir_guard("backup-retained");
-
-    const std::string contents = "# /// script\n"
-                                 "# requires-python = \">=3.12\"\n"
-                                 "#\n"
-                                 "# [tool.orcaslicer.plugin]\n"
-                                 "# name = \"Retained Backup\"\n"
-                                 "# type = \"script\"\n"
-                                 "# ///\n"
-                                 "print('ok')\n";
-
-    const fs::path source = data_dir_guard.dir / "src" / "retained.py";
-    fs::create_directories(source.parent_path());
-    {
-        std::ofstream out(source.string());
-        out << contents;
-    }
-
-    PluginDescriptor first;
-    std::string      error;
-    REQUIRE(plugin_loader::install_plugin(source, /*cloud_user_id=*/"", first, error));
-
-    // The second install replaces the package but deliberately keeps the previous one for user
-    // recovery: the new version may only fail when it is started later.
-    PluginDescriptor second;
-    REQUIRE(plugin_loader::install_plugin(source, /*cloud_user_id=*/"", second, error));
-
-    fs::path backup;
-    int      backup_count = 0;
-    for (fs::directory_iterator it(data_dir_guard.plugins_dir()); it != fs::directory_iterator(); ++it) {
-        const std::string name = it->path().filename().string();
-        if (name.rfind("__backup__-", 0) == 0) {
-            backup = it->path();
-            ++backup_count;
-        }
-    }
-
-    REQUIRE(backup_count == 1);
-    CHECK(is_ignored_plugin_directory(backup));
-    CHECK(fs::is_regular_file(backup / "retained.py"));
-    CHECK(fs::is_regular_file(second.entry_path));
-    CHECK(fs::is_regular_file(fs::path(second.plugin_root) / "retained.py"));
-
-    boost::system::error_code ec;
-    fs::remove_all(backup, ec);
-    CHECK_FALSE(ec);
 }

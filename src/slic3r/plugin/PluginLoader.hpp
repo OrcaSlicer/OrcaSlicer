@@ -41,16 +41,11 @@ bool inspect_local_plugin_package(const boost::filesystem::path& filepath,
 
 // Copy a .py/.whl package into the plugin directory (the per-user cloud directory when the
 // descriptor carries a cloud UUID and cloud_user_id is non-empty) and write its
-// .install_state.json sidecar. The complete replacement, including a uv installation target when
-// the plugin is opted in, is built in a staging directory first; before_promote (when given) runs
-// after staging and immediately before the existing root is moved aside, so the caller can release
-// a live plugin without disturbing it when staging fails. On a failed promotion the previous root is
-// restored. After a successful update the previous root is kept as an ignored backup directory.
+// .install_state.json sidecar, backing up and restoring any existing installation on failure.
 bool install_plugin(const boost::filesystem::path& filepath,
                     const std::string&             cloud_user_id,
                     PluginDescriptor&              plugin_descriptor,
-                    std::string&                   error,
-                    const std::function<void()>&   before_promote = {});
+                    std::string&                   error);
 bool install_plugin(const boost::filesystem::path& filepath, const std::string& cloud_user_id, std::string& error);
 
 } // namespace Slic3r::plugin_loader

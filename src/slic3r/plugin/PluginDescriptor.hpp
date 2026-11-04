@@ -76,10 +76,6 @@ struct PluginDescriptor
     // sidecar has never been installed through Orca and carries no auto-load intent, so it must not
     // be loaded at startup. Installing a package writes the sidecar with enabled = true.
     bool enabled = false;
-    // Opt-in: load this plugin's .whl through a uv installation instead of extracting it at load
-    // time. Read from .install_state.json; false for every existing installation until the user
-    // explicitly migrates the plugin.
-    bool wheel_install_enabled = false;
     std::string sharing_token;             // Use BASE_URL/p/SHARING_TOKEN to open relevant plugin in browser.
     std::string thumbnail_url;             // Cloud main_image pre-signed (access_url) thumbnail; empty for local plugins. Display-only.
 

@@ -8,20 +8,16 @@
 #include <cstddef>
 #include <libslic3r/Zipper.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
-#include <slic3r/plugin/PluginFsUtils.hpp>
-#include <slic3r/plugin/PluginLoader.hpp>
 #include <slic3r/plugin/PluginWheelInstall.hpp>
 
 #include <algorithm>
 #include <chrono>
 #include <fstream>
-#include <iterator>
 #include <string>
 #include <vector>
 
 #include "catch2/catch_test_macros.hpp"
 #include "catch2/matchers/catch_matchers.hpp"
-#include "plugin_test_utils.hpp"
 #include "test_utils.hpp"
 
 using namespace Slic3r;
@@ -57,11 +53,10 @@ void write_wheel(const fs::path& path,
 PluginDescriptor make_descriptor(const fs::path& plugin_root, const fs::path& wheel)
 {
     PluginDescriptor descriptor;
-    descriptor.plugin_key      = "demo_plugin";
-    descriptor.plugin_root     = plugin_root.string();
-    descriptor.entry_path      = wheel.string();
-    descriptor.entry_package   = "demo_pkg";
-    descriptor.wheel_install_enabled = true;
+    descriptor.plugin_key    = "demo_plugin";
+    descriptor.plugin_root   = plugin_root.string();
+    descriptor.entry_path    = wheel.string();
+    descriptor.entry_package = "demo_pkg";
     descriptor.set_metadata_valid(true);
     return descriptor;
 }
@@ -193,77 +188,6 @@ TEST_CASE("a staged wheel filename uses the tags the wheel declares", "[PluginWh
           "cp312-cp312-linux_x86_64");
 }
 
-TEST_CASE("the uv opt-in is sidecar state and defaults to off", "[PluginWheelInstall][PluginInstall]")
-{
-    ScopedTemporaryDir dir("wheel-opt-in");
-    const fs::path      plugin_dir = dir.path();
-
-    PluginDescriptor descriptor;
-    descriptor.name    = "Demo";
-    descriptor.version = "1.0";
-
-    REQUIRE(write_install_state(plugin_dir, descriptor));
-
-    PluginInstallState state;
-    REQUIRE(read_install_state(plugin_dir, state));
-    CHECK_FALSE(state.wheel_install);
-
-    PluginDescriptor scanned;
-    REQUIRE(read_install_state(plugin_dir, scanned));
-    CHECK_FALSE(scanned.wheel_install_enabled);
-
-    descriptor.wheel_install_enabled = true;
-    REQUIRE(write_install_state(plugin_dir, descriptor));
-
-    REQUIRE(read_install_state(plugin_dir, scanned));
-    CHECK(scanned.wheel_install_enabled);
-
-    // The load-time writer rewrites the sidecar around a live plugin; it must not drop the opt-in.
-    REQUIRE(write_install_state(plugin_dir, descriptor, /*enabled=*/true, {}));
-    PluginInstallState after_load;
-    REQUIRE(read_install_state(plugin_dir, after_load));
-    CHECK(after_load.wheel_install);
-}
-
-TEST_CASE("an update keeps a plugin's uv opt-in", "[PluginWheelInstall][PluginInstall]")
-{
-    ScopedDataDir data_dir_guard("wheel-update-opt-in");
-
-    const std::string contents = "# /// script\n"
-                                 "# requires-python = \">=3.12\"\n"
-                                 "#\n"
-                                 "# [tool.orcaslicer.plugin]\n"
-                                 "# name = \"Keep Opt-in\"\n"
-                                 "# type = \"script\"\n"
-                                 "# ///\n"
-                                 "print('ok')\n";
-
-    const fs::path source = data_dir_guard.dir / "src" / "keepopt.py";
-    fs::create_directories(source.parent_path());
-    {
-        std::ofstream out(source.string());
-        out << contents;
-    }
-
-    PluginDescriptor first;
-    std::string      error;
-    REQUIRE(plugin_loader::install_plugin(source, /*cloud_user_id=*/"", first, error));
-
-    const fs::path plugin_root = data_dir_guard.plugins_dir() / "keepopt.py";
-    PluginInstallState state;
-    REQUIRE(read_install_state(plugin_root, state));
-    state.wheel_install = true;
-    REQUIRE(write_install_state(plugin_root, state));
-
-    // A fresh descriptor (as produced by inspection for an update) knows nothing about the sidecar.
-    PluginDescriptor second;
-    REQUIRE(plugin_loader::install_plugin(source, /*cloud_user_id=*/"", second, error));
-
-    PluginInstallState after_update;
-    REQUIRE(read_install_state(plugin_root, after_update));
-    CHECK(after_update.wheel_install);
-}
-
 TEST_CASE("a wheel with an invalid stored name is staged under a valid name", "[PluginWheelInstall]")
 {
     ScopedTemporaryDir dir("wheel-install-stage");
@@ -315,6 +239,25 @@ TEST_CASE("a wheel with a valid stored name is passed to uv unchanged", "[Plugin
 
     // The stored wheel is neither renamed on disk nor renamed in the staged copy.
     CHECK(fs::path(descriptor.entry_path).filename().string() == "demo_pkg-1.0-py3-none-any.whl");
+    CHECK(fs::path(captured.back()).filename().string() == "demo_pkg-1.0-py3-none-any.whl");
+}
+
+TEST_CASE("an uppercase stored wheel extension is staged under a lowercase .whl name", "[PluginWheelInstall]")
+{
+    ScopedTemporaryDir dir("wheel-install-uppercase");
+    const fs::path      plugin_root = dir.path() / "plugin";
+    fs::create_directories(plugin_root);
+    const fs::path wheel = plugin_root / "demo_pkg-1.0-py3-none-any.WHL";
+    write_wheel(wheel, "py3-none-any", "VALUE = 1\n");
+
+    const PluginDescriptor descriptor = make_descriptor(plugin_root, wheel);
+
+    std::vector<std::string> captured;
+    std::string              error;
+    REQUIRE(wheel_install::ensure_installed(descriptor, error, fake_uv(&captured, nullptr, "")));
+
+    // The stored file keeps its name; uv only sees the lowercase extension it accepts.
+    CHECK(fs::path(descriptor.entry_path).filename().string() == "demo_pkg-1.0-py3-none-any.WHL");
     CHECK(fs::path(captured.back()).filename().string() == "demo_pkg-1.0-py3-none-any.whl");
 }
 
@@ -395,95 +338,4 @@ TEST_CASE("a declared wheel tag is used unchanged in the staged filename", "[Plu
     REQUIRE(wheel_install::ensure_installed(descriptor, error, fake_uv(&captured, &calls, "")));
     CHECK(calls == 1);
     CHECK(fs::path(captured.back()).filename().string() == "demo_pkg-1.0-py2-none-any.whl");
-}
-
-TEST_CASE("rewriting install state preserves its contents and leaves no temporary sidecar",
-          "[PluginWheelInstall][PluginInstall]")
-{
-    ScopedTemporaryDir dir("sidecar-replace");
-
-    PluginInstallState state;
-    state.installed_from     = "local";
-    state.installed_version  = "1.0";
-    state.plugin_name        = "Demo";
-    state.enabled            = false;
-    state.wheel_install      = true;
-    state.permissions.fs_read = {"/path/to/read"};
-    state.capabilities        = {{"demo_cap", false}};
-
-    REQUIRE(write_install_state(dir.path(), state));
-
-    PluginInstallState loaded;
-    REQUIRE(read_install_state(dir.path(), loaded));
-    CHECK(loaded.enabled == false);
-    CHECK(loaded.wheel_install);
-    CHECK(loaded.permissions.fs_read == state.permissions.fs_read);
-    REQUIRE(loaded.capabilities.size() == 1);
-
-    // The second write replaces the file through a temporary, not by truncating it in place.
-    state.enabled = true;
-    REQUIRE(write_install_state(dir.path(), state));
-
-    REQUIRE(read_install_state(dir.path(), loaded));
-    CHECK(loaded.enabled);
-    CHECK(loaded.wheel_install);
-    CHECK(loaded.permissions.fs_read == state.permissions.fs_read);
-
-    int sidecars = 0;
-    for (fs::directory_iterator it(dir.path()); it != fs::directory_iterator(); ++it) {
-        const std::string name = it->path().filename().string();
-        CHECK(name.find(".tmp-") == std::string::npos);
-        CHECK(name.find(".prev-") == std::string::npos);
-        if (name == INSTALL_STATE_FILE)
-            ++sidecars;
-    }
-    CHECK(sidecars == 1);
-}
-
-TEST_CASE("an unreadable install state is not treated as absent or overwritten", "[PluginWheelInstall][PluginInstall]")
-{
-    ScopedTemporaryDir dir("sidecar-corrupt");
-    const fs::path      sidecar = dir.path() / INSTALL_STATE_FILE;
-    {
-        std::ofstream out(sidecar.string());
-        out << "{ this is not json";
-    }
-
-    PluginInstallState state;
-    CHECK(read_install_state_status(dir.path(), state) == PluginInstallStateStatus::Invalid);
-    CHECK_FALSE(write_install_state(dir.path(), state));
-
-    // The corrupt file is left exactly as it was; only a later explicit repair may replace it.
-    std::ifstream in(sidecar.string());
-    const std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-    CHECK(contents == "{ this is not json");
-}
-
-TEST_CASE("the on-disk opt-out wins over a stale descriptor during install", "[PluginWheelInstall][PluginInstall]")
-{
-    ScopedDataDir data_dir_guard("opt-out-sidecar");
-    const fs::path plugin_root = data_dir_guard.plugins_dir() / "opt.whl";
-    fs::create_directories(plugin_root);
-    const fs::path wheel = plugin_root / "opt.whl";
-    write_wheel(wheel, "py3-none-any", "VALUE = 1\n");
-
-    PluginInstallState state;
-    state.installed_from    = "local";
-    state.installed_version = "0.9";
-    state.wheel_install     = false;
-    REQUIRE(write_install_state(plugin_root, state));
-
-    // A stale catalog/manager copy claims the plugin is opted in; the sidecar says it is not.
-    PluginDescriptor descriptor;
-    descriptor.plugin_key            = "opt";
-    descriptor.plugin_root           = plugin_root.string();
-    descriptor.wheel_install_enabled = true;
-
-    std::string error;
-    REQUIRE(plugin_loader::install_plugin(wheel, /*cloud_user_id=*/"", descriptor, error));
-    CHECK_FALSE(descriptor.wheel_install_enabled);
-
-    PluginInstallState installed;
-    REQUIRE(read_install_state(plugin_root, installed));
-    CHECK_FALSE(installed.wheel_install);
 }
