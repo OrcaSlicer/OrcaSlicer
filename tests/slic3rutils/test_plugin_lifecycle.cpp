@@ -1,13 +1,17 @@
+#include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/file_status.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <ios>
 #include <libslic3r/LifecycleEvents.hpp>
+#include <libslic3r/Zipper.hpp>
 #include <memory>
 #include <slic3r/Utils/Http.hpp>
 #include <slic3r/Utils/NetworkAgentFactory.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
+#include <slic3r/plugin/PluginLoader.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
@@ -26,6 +30,7 @@
 #include <algorithm>
 #include <chrono>
 #include <condition_variable>
+#include <cstddef>
 #include <fstream>
 #include <mutex>
 #include "slic3r/plugin/PythonPluginInterface.hpp"
@@ -220,6 +225,67 @@ PluginDescriptor descriptor_of(PluginManager& manager, const std::string& plugin
     PluginDescriptor descriptor;
     manager.try_get_plugin_descriptor(plugin_key, descriptor);
     return descriptor;
+}
+
+// Writes a pure-Python wheel of distribution `dist` holding `files` (archive path, contents), with
+// the .dist-info entries read_wheel_plugin_metadata needs.
+void write_wheel(const fs::path&                                         wheel,
+                 const std::string&                                      dist,
+                 const std::string&                                      version,
+                 const std::vector<std::pair<std::string, std::string>>& files)
+{
+    const std::string dist_info = dist + "-" + version + ".dist-info";
+    std::vector<std::pair<std::string, std::string>> entries = files;
+    entries.emplace_back(dist_info + "/METADATA", "Metadata-Version: 2.1\nName: " + dist + "\nVersion: " + version + "\n");
+    entries.emplace_back(dist_info + "/WHEEL", "Wheel-Version: 1.0\nGenerator: tests\nRoot-Is-Purelib: true\nTag: py3-none-any\n");
+    entries.emplace_back(dist_info + "/top_level.txt", dist + "\n");
+
+    std::string record;
+    for (const auto& [name, contents] : entries)
+        record += name + ",,\n";
+    entries.emplace_back(dist_info + "/RECORD", record + dist_info + "/RECORD,,\n");
+
+    Zipper zipper(wheel.string(), Zipper::NO_COMPRESSION);
+    for (const auto& [name, contents] : entries)
+        zipper.add_entry(name, contents.data(), contents.size());
+    zipper.finalize();
+}
+
+// The source of a wheel plugin package whose one script capability is named `capability_name`.
+std::string make_wheel_plugin_source(const std::string& capability_name)
+{
+    return "import orca\n"
+           "\n"
+           "class Probe(orca.script.ScriptPluginCapabilityBase):\n"
+           "    def get_name(self):\n"
+           "        return '" + capability_name + "'\n"
+           "\n"
+           "    def execute(self, ctx):\n"
+           "        return orca.ExecutionResult.success()\n"
+           "\n"
+           "@orca.plugin\n"
+           "class ProbePackage(orca.base):\n"
+           "    def register_capabilities(self):\n"
+           "        orca.register_capability(Probe)\n";
+}
+
+// The key discovery gave the plugin whose entry file is `entry`. Looked up by file because the key
+// is derived from the entry file's name.
+std::string discovered_key_of(PluginManager& manager, const fs::path& entry)
+{
+    for (const PluginDescriptor& descriptor : manager.get_plugin_descriptors())
+        if (fs::path(descriptor.entry_path).filename() == entry.filename())
+            return descriptor.plugin_key;
+    return {};
+}
+
+std::size_t count_directories(const fs::path& dir)
+{
+    std::size_t count = 0;
+    for (fs::directory_iterator it(dir); it != fs::directory_iterator(); ++it)
+        if (fs::is_directory(it->status()))
+            ++count;
+    return count;
 }
 
 } // namespace
@@ -836,6 +902,136 @@ TEST_CASE("Overwriting a local plugin unloads its live module", "[PluginLifecycl
 
     REQUIRE(manager.install_plugin(package, error));
     CHECK_FALSE(manager.is_plugin_loaded("Echo_Plugin"));
+}
+
+TEST_CASE("Replacing a plugin's wheel in its folder makes the next load run the new wheel", "[PluginLifecycle][Python][Wheel]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir  data_dir_guard("lifecycle-wheel-swap");
+    const fs::path plugin_dir = data_dir_guard.plugins_dir() / "Wheel_Probe";
+    fs::create_directories(plugin_dir);
+
+    PluginManager& manager = PluginManager::instance();
+
+    const fs::path old_wheel = plugin_dir / "wheel_probe-1.0-py3-none-any.whl";
+    write_wheel(old_wheel, "wheel_probe", "1.0", {{"wheel_probe/__init__.py", make_wheel_plugin_source("Probe 1.0")}});
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    const std::string old_key = discovered_key_of(manager, old_wheel);
+    REQUIRE_FALSE(old_key.empty());
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, old_key, error));
+    INFO("load error: " << error);
+    const auto old_capabilities = capabilities_of(manager, old_key);
+    REQUIRE(old_capabilities.size() == 1);
+    CHECK(old_capabilities.front()->name() == "Probe 1.0");
+    REQUIRE(manager.unload_plugin(old_key));
+
+    // Upgrade by hand: the new wheel takes the old one's place next to its extraction.
+    fs::remove(old_wheel);
+    const fs::path new_wheel = plugin_dir / "wheel_probe-1.1-py3-none-any.whl";
+    write_wheel(new_wheel, "wheel_probe", "1.1", {{"wheel_probe/__init__.py", make_wheel_plugin_source("Probe 1.1")}});
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    const std::string new_key = discovered_key_of(manager, new_wheel);
+    REQUIRE_FALSE(new_key.empty());
+
+    std::string reload_error;
+    REQUIRE(load_and_wait(manager, new_key, reload_error));
+    INFO("reload error: " << reload_error);
+    const auto new_capabilities = capabilities_of(manager, new_key);
+    REQUIRE(new_capabilities.size() == 1);
+    CHECK(new_capabilities.front()->name() == "Probe 1.1");
+
+    // The old wheel's extraction is replaced, not kept beside the new one.
+    CHECK(count_directories(plugin_dir / "__whl_extracted__") == 1);
+
+    manager.unload_plugin(new_key);
+}
+
+TEST_CASE("Replacing a dependency wheel beside a plugin makes the next load import the new dependency",
+          "[PluginLifecycle][Python][Wheel]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir  data_dir_guard("lifecycle-dependency-wheel-swap");
+    const fs::path plugin_dir = data_dir_guard.plugins_dir() / "Dependency_Host";
+    fs::create_directories(plugin_dir);
+
+    // The capability takes its name from the dependency, so the name shows which build was imported.
+    const fs::path entry = plugin_dir / "Dependency_Host.py";
+    {
+        std::ofstream out(entry.string(), std::ios::binary);
+        out << R"PY(# /// script
+# requires-python = ">=3.12"
+#
+# [tool.orcaslicer.plugin]
+# name = "Dependency Host"
+# description = "Imports a dependency wheel that sits beside it"
+# author = "OrcaSlicer"
+# version = "1.0"
+# type = "script"
+# ///
+import orca
+import probe_dependency
+
+class Probe(orca.script.ScriptPluginCapabilityBase):
+    def get_name(self):
+        return probe_dependency.NAME
+
+    def execute(self, ctx):
+        return orca.ExecutionResult.success()
+
+@orca.plugin
+class ProbePackage(orca.base):
+    def register_capabilities(self):
+        orca.register_capability(Probe)
+)PY";
+    }
+
+    // Rebuilt at the same version, so the replacement keeps the old file name.
+    const fs::path dependency_wheel = plugin_dir / "probe_dependency-1.0-py3-none-any.whl";
+    const auto     write_dependency = [&](const std::string& name) {
+        fs::remove(dependency_wheel);
+        write_wheel(dependency_wheel, "probe_dependency", "1.0", {{"probe_dependency/__init__.py", "NAME = '" + name + "'\n"}});
+    };
+
+    // Discovery takes a folder with a single entry file, so build the descriptor the way the scan
+    // does and load it through the loader directly.
+    PluginDescriptor descriptor;
+    std::string      metadata_error;
+    REQUIRE(read_python_plugin_metadata(entry, descriptor, metadata_error));
+    descriptor.plugin_root = plugin_dir.string();
+    descriptor.entry_path  = entry.string();
+    descriptor.plugin_key  = "Dependency_Host";
+    descriptor.set_metadata_valid(true);
+
+    const auto load_capability_name = [&](std::string& error) -> std::string {
+        Plugin plugin;
+        if (!plugin_loader::load(descriptor, /*skip_deps=*/true, {}, {}, plugin, error))
+            return {};
+        const std::string name = plugin.capabilities.size() == 1 ? plugin.capabilities.front()->name() : std::string();
+        plugin_loader::unload(plugin);
+        return name;
+    };
+
+    write_dependency("Dependency build 1");
+    std::string error;
+    const std::string first = load_capability_name(error);
+    INFO("load error: " << error);
+    CHECK(first == "Dependency build 1");
+
+    write_dependency("Dependency build 2");
+    std::string reload_error;
+    const std::string second = load_capability_name(reload_error);
+    INFO("reload error: " << reload_error);
+    CHECK(second == "Dependency build 2");
+
+    CHECK(count_directories(plugin_dir / "__whl_extracted__") == 1);
 }
 
 TEST_CASE("capabilities_to_enable selects which capabilities come up enabled", "[PluginLifecycle][Python]")

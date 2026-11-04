@@ -1214,12 +1214,9 @@ PyObject* PythonInterpreter::load_module_from_whl(const std::string& file_path,
         return nullptr;
     }
 
-    fs::path extract_dir = whl_path.parent_path() / "__whl_extracted__" / pkg_name;
-
-    if (!fs::exists(extract_dir)) {
-        if (!extract_zip_to_directory(whl_path, extract_dir, error))
-            return nullptr;
-    }
+    const fs::path extract_dir = extract_wheel_for_import(whl_path, whl_path.parent_path() / "__whl_extracted__", pkg_name, error);
+    if (extract_dir.empty())
+        return nullptr;
 
     return load_module_from_directory(extract_dir.string(), pkg_name, error, plugin_paths, plugin_modules);
 }

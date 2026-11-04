@@ -85,6 +85,16 @@ bool is_safe_relative_path(const boost::filesystem::path& path);
 bool is_valid_plugin_id(const std::string& id);
 bool extract_zip_to_directory(const boost::filesystem::path& zip_path, const boost::filesystem::path& destination, std::string& error);
 
+// Extract a wheel for import into a folder of `extract_root` named after `name` and the wheel's
+// contents, and return that folder; empty with `error` set on failure. A complete extraction of the
+// same contents is reused, so a wheel replaced in place is always imported from its own files.
+// Extractions of `name` from other contents are then removed, best effort: on Windows a compiled
+// extension loaded earlier in this process keeps its folder until the app restarts.
+boost::filesystem::path extract_wheel_for_import(const boost::filesystem::path& whl_path,
+                                                 const boost::filesystem::path& extract_root,
+                                                 const std::string&             name,
+                                                 std::string&                   error);
+
 // Read PEP 723 inline script metadata from a .py plugin file.
 // Populates metadata.dependencies and local identity fallbacks.
 // Returns true on success (including when no PEP 723 block is found — deps will be empty).

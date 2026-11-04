@@ -168,14 +168,13 @@ bool add_wheel_dependencies_to_sys_path(const PluginDescriptor& descriptor,
         if (it->path() == entry_path)
             continue;
 
-        const fs::path dep_dir = plugin_dir / "__whl_extracted__" / it->path().stem().string();
-        if (!fs::exists(dep_dir)) {
-            std::string extract_error;
-            if (!extract_zip_to_directory(it->path(), dep_dir, extract_error)) {
-                // TRN %1% is the dependency file, %2% the error detail.
-                error = GUI::format(_u8L("Failed to extract plugin .whl dependency %1%: %2%"), it->path().string(), extract_error);
-                return false;
-            }
+        std::string    extract_error;
+        const fs::path dep_dir =
+            extract_wheel_for_import(it->path(), plugin_dir / "__whl_extracted__", it->path().stem().string(), extract_error);
+        if (dep_dir.empty()) {
+            // TRN %1% is the dependency file, %2% the error detail.
+            error = GUI::format(_u8L("Failed to extract plugin .whl dependency %1%: %2%"), it->path().string(), extract_error);
+            return false;
         }
 
         std::string syspath_error;

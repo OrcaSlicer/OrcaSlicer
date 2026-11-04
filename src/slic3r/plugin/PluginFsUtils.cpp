@@ -11,6 +11,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <boost/system/error_code.hpp>
 
 #include "PluginAuditManager.hpp"
 #include "PythonInterpreter.hpp"
@@ -28,8 +29,11 @@
 #include <utility>
 #include <algorithm>
 #include <cctype>
+#include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
+#include <ios>
 #include <sstream>
 #include <unordered_set>
 #include <vector>
@@ -734,6 +738,102 @@ bool extract_zip_to_directory(const boost::filesystem::path& zip_path, const boo
     }
 
     return true;
+}
+
+namespace {
+
+// Written into a wheel extraction once every entry is in place, so a folder left by an interrupted
+// extraction is never imported.
+const char* const WHEEL_EXTRACTED_MARKER = ".extracted";
+
+// CRC-32 over each entry's name, CRC-32 and size from the wheel's central directory. It changes
+// with any file in the wheel, needs no decompression, and does not rely on file timestamps, which a
+// quick rebuild or a copy can leave unchanged.
+bool wheel_content_fingerprint(const boost::filesystem::path& whl_path, std::string& fingerprint, std::string& error)
+{
+    ZipReaderGuard reader;
+    if (!open_zip_reader(&reader.archive, whl_path.string())) {
+        error = "Failed to open plugin zip: " + MZ_Archive::get_errorstr(mz_zip_get_last_error(&reader.archive));
+        return false;
+    }
+    reader.opened = true;
+
+    mz_ulong                 crc         = MZ_CRC32_INIT;
+    const mz_uint            num_entries = mz_zip_reader_get_num_files(&reader.archive);
+    mz_zip_archive_file_stat stat;
+    for (mz_uint i = 0; i < num_entries; ++i) {
+        if (!mz_zip_reader_file_stat(&reader.archive, i, &stat)) {
+            error = "Failed to read plugin zip entry metadata: " + MZ_Archive::get_errorstr(mz_zip_get_last_error(&reader.archive));
+            return false;
+        }
+        const std::string   name    = zip_entry_name(reader.archive, stat);
+        const std::uint64_t entry[] = {stat.m_crc32, stat.m_uncomp_size};
+        crc = mz_crc32(crc, reinterpret_cast<const unsigned char*>(name.c_str()), name.size() + 1);
+        crc = mz_crc32(crc, reinterpret_cast<const unsigned char*>(entry), sizeof(entry));
+    }
+
+    char hex[9];
+    std::snprintf(hex, sizeof(hex), "%08lx", static_cast<unsigned long>(crc & 0xffffffffUL));
+    fingerprint = hex;
+    return true;
+}
+
+// Whether `folder` holds an extraction of `name`: `name`, '.' and the eight hex digits of a
+// fingerprint, or `name` alone, the layout of extractions made without one.
+bool is_wheel_extraction_of(const std::string& folder, const std::string& name)
+{
+    if (folder == name)
+        return true;
+    const std::size_t fingerprint_start = name.size() + 1;
+    return folder.size() == fingerprint_start + 8 && folder.compare(0, name.size(), name) == 0 && folder[name.size()] == '.' &&
+           std::all_of(folder.begin() + fingerprint_start, folder.end(), [](unsigned char c) { return std::isxdigit(c) != 0; });
+}
+
+} // namespace
+
+boost::filesystem::path extract_wheel_for_import(const boost::filesystem::path& whl_path,
+                                                 const boost::filesystem::path& extract_root,
+                                                 const std::string&             name,
+                                                 std::string&                   error)
+{
+    namespace fs = boost::filesystem;
+
+    std::string fingerprint;
+    if (!wheel_content_fingerprint(whl_path, fingerprint, error))
+        return {};
+
+    const fs::path            extract_dir = extract_root / (name + "." + fingerprint);
+    boost::system::error_code ec;
+    if (!fs::exists(extended_path(extract_dir / WHEEL_EXTRACTED_MARKER), ec)) {
+        // Drop whatever an interrupted extraction left before extracting again.
+        fs::remove_all(extended_path(extract_dir), ec);
+        if (!extract_zip_to_directory(whl_path, extract_dir, error))
+            return {};
+        boost::nowide::ofstream marker(extended_path(extract_dir / WHEEL_EXTRACTED_MARKER), std::ios::binary);
+        if (!marker) {
+            error = "Failed to complete the plugin wheel extraction in " + extract_dir.string();
+            return {};
+        }
+    }
+
+    // A folder that cannot be removed now is never imported again; the next load retries.
+    std::vector<fs::path> stale;
+    for (fs::directory_iterator it(extended_path(extract_root), ec), end; !ec && it != end; it.increment(ec)) {
+        const std::string folder = it->path().filename().string();
+        if (folder != extract_dir.filename().string() && is_wheel_extraction_of(folder, name))
+            stale.push_back(it->path());
+    }
+    for (const fs::path& folder : stale) {
+        // The marker goes first, so a folder that is only partly removed is never taken as complete.
+        boost::system::error_code remove_ec;
+        fs::remove(folder / WHEEL_EXTRACTED_MARKER, remove_ec);
+        fs::remove_all(folder, remove_ec);
+        if (remove_ec)
+            BOOST_LOG_TRIVIAL(info) << "Could not remove outdated plugin wheel extraction " << folder.string() << ": "
+                                    << remove_ec.message();
+    }
+
+    return extract_dir;
 }
 
 bool read_install_state(const boost::filesystem::path& plugin_dir, PluginDescriptor& entry)
