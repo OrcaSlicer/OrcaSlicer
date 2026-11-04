@@ -253,6 +253,17 @@ jobs:
         run: |
           ./build_release_macos.sh -u -x ${{ !vars.SELF_HOSTED && '-j 3' || '' }} -a universal -t 10.15
 
+      # xcrun stapler fetches the notarization ticket over HTTP/3 (UDP 443),
+      # which GitHub-hosted macOS runners drop, failing with Error 68
+      # (actions/runner-images#14924). Blocking UDP 443 makes it fall back to
+      # TCP. Skipped on self-hosted runners, where the pf rules would outlive
+      # the job.
+      - name: Force stapler onto TCP
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && runner.os == 'macOS' && inputs.macos-combine-only && !vars.SELF_HOSTED
+        run: |
+          echo "block return out quick proto udp from any to any port 443" | sudo pfctl -f -
+          sudo pfctl -E
+
  # Thanks to RaySajuuk, it's working now
       - name: Sign app and notary
         if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && runner.os == 'macOS' && inputs.macos-combine-only
@@ -639,6 +650,9 @@ jobs:
           chmod +x "$appimage"
           "$appimage" --appimage-extract
           ./scripts/build_preset_cache.sh -b build build/package/resources/profiles squashfs-root/resources/profiles
+          # The runtime extracts every directory as 0700, and appimagetool (continuous
+          # build 333 onwards) refuses to pack a tree other users cannot read.
+          chmod -R a+rX squashfs-root
           appimagetool=$(find build -name "appimagetool.AppImage" | head -1)
           ARCH=$(uname -m) "$appimagetool" --appimage-extract-and-run squashfs-root "$appimage"
           rm -rf squashfs-root

@@ -5,10 +5,14 @@
 #include "libslic3r/libslic3r.h" // GCODEVIEWER_APP_KEY, and SLIC3R_APP_KEY via libslic3r_version.h
 #include "libslic3r_version.h"
 
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/filesystem/file_status.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/system/error_code.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -161,6 +165,185 @@ static bool is_fs_category(AuditEventCategory category)
     }
 }
 
+// HTTP and raw-socket events are governed by the same network permission: a declared host may be
+// reached through either layer, and the layers nest for one plugin action (urllib -> http.client
+// -> socket).
+static bool is_network_category(AuditEventCategory category)
+{
+    return category == AuditEventCategory::Http || category == AuditEventCategory::Socket;
+}
+
+// ---------------------------------------------------------------------------
+// Network permission identity
+// ---------------------------------------------------------------------------
+
+static std::string ascii_lower(std::string value)
+{
+    boost::algorithm::to_lower(value);
+    return value;
+}
+
+static std::string trim_ascii_space(std::string value)
+{
+    boost::algorithm::trim(value);
+    return value;
+}
+
+// Canonical storage keeps IPv6 literals bracketed (https://[::1]), while a socket address
+// exposes the bare literal (::1). Compare them without the brackets.
+static std::string without_ipv6_brackets(std::string host)
+{
+    if (host.size() >= 2 && host.front() == '[' && host.back() == ']')
+        host = host.substr(1, host.size() - 2);
+    return host;
+}
+
+// Returns the host part of a URL authority, dropping userinfo and port. IPv6 literals keep their
+// brackets so that a URL and a bare address compare consistently.
+static std::string host_from_authority(std::string authority)
+{
+    const size_t at = authority.rfind('@');
+    if (at != std::string::npos)
+        authority.erase(0, at + 1);
+
+    if (authority.empty())
+        return {};
+
+    if (authority.front() == '[') {
+        const size_t close = authority.find(']');
+        if (close == std::string::npos)
+            return {};
+        authority.erase(close + 1);
+        return ascii_lower(authority);
+    }
+
+    const size_t colon = authority.find(':');
+    if (colon != std::string::npos)
+        authority.erase(colon);
+
+    if (authority.find_first_of(" \t\r\n/?#@") != std::string::npos)
+        return {};
+
+    return ascii_lower(authority);
+}
+
+// Extracts a host from a target that is not a URL: "host", "host:443", "[::1]:443", "('host',
+// 443)" (the form older releases persisted for socket address events), or "'host'".
+static std::string network_host_from_target(const std::string& target)
+{
+    std::string value = trim_ascii_space(target);
+    if (value.empty())
+        return {};
+
+    if (value.front() == '(') {
+        // Legacy persisted address tuple: ("host", 443) or ("host", 443, 0, 0).
+        const size_t quote = value.find_first_of("'\"");
+        if (quote != std::string::npos) {
+            const char   delimiter = value[quote];
+            const size_t end       = value.find(delimiter, quote + 1);
+            if (end == std::string::npos)
+                return {};
+            value = value.substr(quote + 1, end - quote - 1);
+        } else {
+            value = value.substr(1);
+            const size_t comma = value.find(',');
+            if (comma != std::string::npos)
+                value.erase(comma);
+        }
+    } else if (value.front() == '[') {
+        const size_t close = value.find(']');
+        if (close == std::string::npos)
+            return {};
+        value.erase(close + 1);
+    } else {
+        // Strip a ":port" suffix, but leave a bare IPv6 literal ("::1") intact.
+        const size_t colon = value.find(':');
+        if (colon != std::string::npos && value.find(':', colon + 1) == std::string::npos)
+            value.erase(colon);
+    }
+
+    value = trim_ascii_space(value);
+    if (value.empty() || value.find_first_of(" \t\r\n/?#@") != std::string::npos)
+        return {};
+
+    return ascii_lower(value);
+}
+
+std::string PluginAuditManager::normalize_network_url(const std::string& url)
+{
+    const size_t scheme_end = url.find("://");
+    if (scheme_end == std::string::npos || scheme_end == 0)
+        return {};
+
+    const std::string scheme = ascii_lower(url.substr(0, scheme_end));
+    if (scheme != "http" && scheme != "https")
+        return {};
+
+    const size_t authority_start = scheme_end + 3;
+    const size_t authority_end   = url.find_first_of("/?#", authority_start);
+    const std::string authority  = url.substr(authority_start, authority_end == std::string::npos
+                                                                    ? std::string::npos
+                                                                    : authority_end - authority_start);
+
+    const std::string host = host_from_authority(authority);
+    if (host.empty())
+        return {};
+
+    return scheme + "://" + host;
+}
+
+bool PluginAuditManager::network_permission_matches(const std::vector<std::string>& granted,
+                                                    const std::string&              target)
+{
+    if (target.empty())
+        return false;
+
+    const bool        target_is_url = target.find("://") != std::string::npos;
+    const std::string target_url    = normalize_network_url(target);
+    if (target_is_url && target_url.empty()) {
+        // A non-http(s) URL has no network identity we can generalize; only an exact grant
+        // recorded by an earlier approval stays valid, so an unrelated scheme never matches.
+        return std::find(granted.begin(), granted.end(), target) != granted.end();
+    }
+
+    const std::string target_host =
+        target_is_url ? std::string{} : without_ipv6_brackets(network_host_from_target(target));
+    if (!target_is_url && target_host.empty())
+        return false;
+
+    for (const std::string& entry : granted) {
+        // Preserve an exact grant recorded by an older release, e.g. a full URL with a query.
+        if (entry == target)
+            return true;
+
+        const std::string entry_url = normalize_network_url(entry);
+        if (target_is_url) {
+            // Canonical scheme://host grants are host-wide. Older grants that persisted a full
+            // URL remain scoped to that exact URL, preserving the operation-root URL check.
+            if (!entry_url.empty() && entry_url == entry && entry_url == target_url)
+                return true;
+            continue;
+        }
+
+        if (!entry_url.empty()) {
+            // A bare host carries no scheme: only a canonical scheme://host grant is host-wide.
+            // A grant that persisted a full URL stays scoped to that URL, so it must not
+            // authorize raw socket access to its whole host. Normalization lowercases the scheme
+            // and host, so a canonical grant compares equal to its lowercased form.
+            if (ascii_lower(entry) == entry_url) {
+                const std::string entry_host = entry_url.substr(entry_url.find("://") + 3);
+                if (without_ipv6_brackets(entry_host) == target_host)
+                    return true;
+            }
+        } else if (without_ipv6_brackets(network_host_from_target(entry)) == target_host) {
+            // Legacy persisted address tuples, e.g. "('host', 443)".
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // The category's name in a saved event grant, e.g. "FsRead" in "FsRead:open".
 static const char* category_name(AuditEventCategory category)
 {
@@ -201,6 +384,33 @@ boost::filesystem::path canonical_for_comparison(const boost::filesystem::path& 
             canon = path;
     }
     return canon;
+}
+
+// True when the final component of `path` is a symlink whose target does not exist.
+//
+// weakly_canonical() leaves such a link in its lexical tail: it stats the prefix and stops at the
+// first non-existing component, and exists() follows the link and reports false for a dangling
+// one. A target such as <tree>/link would therefore compare as if it lived inside the tree even
+// though a write through it lands at the link's target, which the grant does not describe.
+//
+// A link whose target exists is not dangling: symlink_status() reports the link itself (it does
+// not follow it) while exists() follows it and succeeds. The canonical form of such a candidate is
+// already resolved to the target, so this check does not fire for it. An intermediate dangling
+// component is not reported here and needs no special case: the open cannot follow it either, so
+// nothing is created.
+bool ends_in_dangling_symlink(const boost::filesystem::path& path)
+{
+    namespace fs = boost::filesystem;
+
+    boost::system::error_code ec;
+    const fs::file_status status = fs::symlink_status(path, ec);
+    // symlink_status does not follow the link, so a missing target still reports symlink; a path
+    // that does not exist at all reports an error instead.
+    if (ec || !fs::is_symlink(status))
+        return false;
+
+    // exists() follows the link: false means the target is missing.
+    return !fs::exists(path, ec);
 }
 
 bool same_path_component(const boost::filesystem::path& lhs, const boost::filesystem::path& rhs)
@@ -252,8 +462,17 @@ bool suffix_inside_root(const boost::filesystem::path& canonical_candidate,
 
 bool is_inside_allowed_root(const boost::filesystem::path& candidate, const boost::filesystem::path& allowed_root)
 {
+    const boost::filesystem::path canonical_candidate = canonical_for_comparison(candidate);
+
+    // Fail closed on a dangling final symlink instead of comparing the path it is spelled as: the
+    // grant describes the link, not the destination a write through it would create. The test is
+    // applied to the canonical form, which leaves a dangling link unresolved as its final
+    // component, so a trailing separator does not hide it either.
+    if (ends_in_dangling_symlink(canonical_candidate))
+        return false;
+
     boost::filesystem::path suffix;
-    return suffix_inside_root(canonical_for_comparison(candidate), canonical_for_comparison(allowed_root), suffix);
+    return suffix_inside_root(canonical_candidate, canonical_for_comparison(allowed_root), suffix);
 }
 
 // ---------------------------------------------------------------------------
@@ -562,6 +781,42 @@ AuditDecision PluginAuditManager::check_open(const std::string& path_str, const 
     return check_path_access(boost::filesystem::path(path_str), is_write);
 }
 
+namespace {
+
+// Builds and shows the modal confirmation. Must run on the GUI thread. The prompt helpers in
+// PluginAuditDetail below share it so every permission prompt is styled the same way.
+bool show_permission_dialog(const wxString& message, const wxString& title)
+{
+    wxMessageDialog dialog(nullptr, message, title, wxYES_NO | wxICON_WARNING);
+    return dialog.ShowModal() == wxID_YES;
+}
+
+} // namespace
+
+bool PluginAuditManager::request_network_permissions(const std::string&              plugin_key,
+                                                      const std::vector<std::string>& urls)
+{
+    if (plugin_key.empty() || urls.empty())
+        return true;
+
+    // Reduce every request to scheme://host before comparing or persisting it, so a URL with a
+    // path or query cannot create a second grant for the same host.
+    PluginPermissions requested;
+    for (const std::string& url : urls) {
+        const std::string normalized = normalize_network_url(url);
+        if (normalized.empty()) {
+            BOOST_LOG_TRIVIAL(warning) << "[AUDIT] Invalid network permission request for plugin " << plugin_key << ": " << url;
+            return false;
+        }
+        if (std::find(requested.network_http.begin(), requested.network_http.end(), normalized) == requested.network_http.end())
+            requested.network_http.push_back(normalized);
+    }
+
+    // network_permission_matches() also applies the recorded host grant to raw socket events, so
+    // one HTTP grant covers both event layers without prompting for each list separately.
+    return request_permissions(plugin_key, requested);
+}
+
 void PluginAuditManager::report_violation(const AuditViolation& violation)
 {
     m_last_violation     = violation;
@@ -604,6 +859,39 @@ PyObject* tuple_item(PyObject* args, Py_ssize_t index)
     return PyTuple_GET_ITEM(args, index);
 }
 
+std::string python_unicode(PyObject* object)
+{
+    if (!object || !PyUnicode_Check(object))
+        return {};
+    const char* text = PyUnicode_AsUTF8(object);
+    if (!text) {
+        PyErr_Clear();
+        return {};
+    }
+    return text;
+}
+
+// Converts a str/bytes leaf to text, clearing a failed conversion. Returns false when `object` is
+// neither str nor bytes, so callers can apply their own fallback.
+bool python_text(PyObject* object, std::string& out)
+{
+    if (PyUnicode_Check(object)) {
+        out = python_unicode(object);
+        return true;
+    }
+    if (PyBytes_Check(object)) {
+        const char* value = PyBytes_AsString(object);
+        if (!value) {
+            PyErr_Clear();
+            out.clear();
+            return true;
+        }
+        out = value;
+        return true;
+    }
+    return false;
+}
+
 std::string python_path(PyObject* object)
 {
     if (!object)
@@ -615,24 +903,10 @@ std::string python_path(PyObject* object)
         return {};
     }
 
-    const char* path = PyUnicode_Check(path_object) ? PyUnicode_AsUTF8(path_object) : PyBytes_AsString(path_object);
-    std::string result = path ? path : "";
+    std::string result;
+    python_text(path_object, result);
     Py_DECREF(path_object);
-    if (!path)
-        PyErr_Clear();
     return result;
-}
-
-std::string python_unicode(PyObject* object)
-{
-    if (!object || !PyUnicode_Check(object))
-        return {};
-    const char* text = PyUnicode_AsUTF8(object);
-    if (!text) {
-        PyErr_Clear();
-        return {};
-    }
-    return text;
 }
 
 std::string python_str(PyObject* object)
@@ -848,9 +1122,115 @@ std::string event_grant_key(AuditEventCategory category, const std::string& even
     return std::string(category_name(category)) + ":" + event_name;
 }
 
-bool has_permission(const std::vector<std::string>& granted, const std::string& target)
+// The directory named by a directory-tree grant, i.e. "<dir>/*". "*" is the only wildcard, and
+// only as the grant's final path component; any other "*" is an ordinary character, so a grant
+// can never widen into a pattern the plugin did not spell out. Returns false for a grant that is
+// not a tree grant.
+bool tree_grant_root(const std::string& grant, boost::filesystem::path& root)
 {
-    return std::find(granted.begin(), granted.end(), target) != granted.end();
+    if (grant.size() < 2 || grant.back() != '*' || grant.find('*') != grant.size() - 1)
+        return false;
+
+    const boost::filesystem::path path(grant);
+    if (path.filename() != "*")
+        return false;
+
+    const boost::filesystem::path parent = path.parent_path();
+    if (parent.empty())
+        return false;
+
+    // Never resolve ".." here: a grant shown to the user as "/a/../*" must not silently become
+    // the root or another ancestor. Without a wildcard the string still matches verbatim.
+    for (const boost::filesystem::path& component : parent) {
+        if (component == "..")
+            return false;
+    }
+
+    // Rebuild from the components so "." and duplicate separators do not affect the canonical
+    // comparison below.
+    boost::filesystem::path normalized;
+    for (const boost::filesystem::path& component : parent.lexically_normal()) {
+        if (!component.empty())
+            normalized /= component;
+    }
+    root = std::move(normalized);
+    return !root.empty();
+}
+
+// The grant to display and store for a permission request: a recognized tree grant is resolved
+// against the working directory when the request is made, so a relative "<dir>/*" names the
+// directory it actually covers. Grants that are already absolute, exact (non-tree) grants, and
+// the non-filesystem buckets are returned unchanged: they are matched verbatim, and re-rendering
+// them would change the string the user approved.
+std::string absolute_tree_grant(const std::string& grant)
+{
+    boost::filesystem::path root;
+    if (!tree_grant_root(grant, root) || root.is_absolute())
+        return grant;
+
+    boost::system::error_code ec;
+    const boost::filesystem::path absolute_root = boost::filesystem::absolute(root, ec);
+    if (ec || !absolute_root.is_absolute())
+        return grant;
+
+    return (absolute_root.lexically_normal() / "*").string();
+}
+
+// True when a filesystem grant covers a target: the exact string, or -- for a tree grant -- the
+// granted folder itself and every path beneath it, at any depth. Components are compared one by
+// one, so "/root/*" covers "/root/a/b" but not "/root-other/file".
+//
+// A tree grant and its target are both canonicalized before the comparison, so a symlink inside
+// the granted folder cannot launder access to a path outside it, and a grant rooted at a symlink
+// applies to the symlink's target. weakly_canonical keeps a write target whose tail does not
+// exist yet matchable: it canonicalizes the existing prefix and appends the rest lexically. A
+// dangling final symlink is not covered at all: containment fails closed, because a write through
+// it would land at its target rather than at the granted path.
+bool fs_grant_covers(const std::string& grant, const std::string& target)
+{
+    if (grant == target)
+        return true;
+    if (target.empty())
+        return false;
+
+    boost::filesystem::path root;
+    if (!tree_grant_root(grant, root))
+        return false;
+
+    return is_inside_allowed_root(boost::filesystem::path(target), root);
+}
+
+// True when `granted` already covers `target`. Only the filesystem buckets accept a tree grant:
+// an event grant ("FsRead:open") and the non-filesystem buckets (URLs, socket addresses,
+// commands) are matched verbatim, as before.
+bool has_permission(AuditEventCategory category, bool by_event, const std::vector<std::string>& granted,
+                    const std::string& target)
+{
+    const bool fs_bucket =
+        !by_event && (category == AuditEventCategory::FsRead || category == AuditEventCategory::FsReadWrite);
+    for (const auto& grant : granted) {
+        if (grant == target)
+            return true;
+        if (fs_bucket && fs_grant_covers(grant, target))
+            return true;
+    }
+    return false;
+}
+
+// A declared or previously approved network grant may live in either network list: an HTTP grant
+// covers the sockets the same request opens, and a raw socket grant covers a later HTTP call to
+// the same host.
+bool has_network_permission(const PluginPermissions& permissions, const std::string& target)
+{
+    return PluginAuditManager::network_permission_matches(permissions.network_http, target) ||
+           PluginAuditManager::network_permission_matches(permissions.network_socket, target);
+}
+
+// A targetless network event names no host the grant could be matched against: http.client.send
+// writes to a connection that was already opened. Any recorded network grant covers it.
+bool has_any_network_permission(const PluginPermissions& permissions)
+{
+    return !permissions.network_http.empty() || !permissions.network_socket.empty();
 }
 
 // A sandbox plugin may not have a sidecar yet. Seed the small amount of install metadata the
@@ -869,6 +1249,8 @@ void seed_install_metadata(const PluginDescriptor& descriptor, PluginInstallStat
 
 bool persist_permission(const std::string&        plugin_key,
                         PluginInstallState&       state,
+                        AuditEventCategory        category,
+                        bool                      by_event,
                         std::vector<std::string>& permission_list,
                         const std::string&        target)
 {
@@ -878,7 +1260,7 @@ bool persist_permission(const std::string&        plugin_key,
 
     seed_install_metadata(descriptor, state);
 
-    if (!has_permission(permission_list, target))
+    if (!has_permission(category, by_event, permission_list, target))
         permission_list.push_back(target);
     return write_install_state(boost::filesystem::path(descriptor.plugin_root), state);
 }
@@ -931,9 +1313,17 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
                                           "Plugin \"%s\" is requesting to delete the following files:\n%s", target_count),
                                 plugin_name, target_list);
     case AuditEventCategory::Http:
-        return wxString::Format(_L("Plugin \"%s\" is requesting to make an HTTP request to:\n%s"), plugin_name, target_list);
+        return wxString::Format(
+            _L("Plugin \"%s\" is requesting network access to:\n%s\n\n"
+               "Approval covers HTTP or HTTPS access and raw network connections to the listed hosts. "
+               "It does not restrict ports. A URL with a path, query or port is covered only for that "
+               "exact URL."),
+            plugin_name, target_list);
     case AuditEventCategory::Socket:
-        return wxString::Format(_L("Plugin \"%s\" is requesting to open a network connection to:\n%s"), plugin_name, target_list);
+        return wxString::Format(
+            _L("Plugin \"%s\" is requesting network access to:\n%s\n\n"
+               "Approval covers raw network connections to the listed hosts. It does not restrict ports."),
+            plugin_name, target_list);
     case AuditEventCategory::ProcessCreate:
         return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to run the following command:\n%s",
                                           "Plugin \"%s\" is requesting to run the following commands:\n%s", target_count),
@@ -955,11 +1345,10 @@ bool prompt_for_targets(AuditEventCategory category, const std::string& plugin_n
     for (const auto& target : unresolved)
         target_list += wxString::FromUTF8(target.c_str()) + "\n";
 
-    wxMessageDialog dialog(nullptr,
-                           audit_message(category, wxString::FromUTF8(plugin_name.c_str()),
-                                        wxString::FromUTF8(event_name.c_str()), target_list, unresolved.size()),
-                           _L("Plugin permission request"), wxYES_NO | wxICON_WARNING);
-    return dialog.ShowModal() == wxID_YES;
+    return show_permission_dialog(
+        audit_message(category, wxString::FromUTF8(plugin_name.c_str()), wxString::FromUTF8(event_name.c_str()),
+                      target_list, unresolved.size()),
+        _L("Plugin permission request"));
 }
 
 // Shows a prompt whose body may cover several permission buckets. Must run on the GUI thread.
@@ -982,10 +1371,11 @@ void persist_grant(const std::string& plugin_key, AuditEventCategory category, b
         return;
 
     for (const auto& key : keys)
-        persist_permission(plugin_key, state, *permission_list, key);
+        persist_permission(plugin_key, state, category, by_event, *permission_list, key);
 }
 
 static PluginAuditManager::PermissionPrompt s_permission_prompt_for_testing;
+static PluginAuditManager::PermissionMessagePrompt s_permission_message_prompt_for_testing;
 
 static const char* audit_category_name(AuditEventCategory category)
 {
@@ -1064,11 +1454,18 @@ int decide_audited_event(PluginAuditManager&             mgr,
     std::vector<std::string>*      permission_list = permission_list_for(category, by_event, state.permissions);
 
     std::vector<std::string> unresolved = keys;
-    if (permission_list) {
+    if (permission_list || is_network_category(category)) {
         unresolved.clear();
-        for (const auto& key : keys)
-            if (!has_permission(*permission_list, key))
+        for (const auto& key : keys) {
+            // A network grant authorizes a specific host, except for a targetless event such as
+            // http.client.send, which names no host: any network grant covers that.
+            const bool granted_network =
+                is_network_category(category) &&
+                (by_event ? has_any_network_permission(state.permissions)
+                          : has_network_permission(state.permissions, key));
+            if (!(permission_list && has_permission(category, by_event, *permission_list, key)) && !granted_network)
                 unresolved.push_back(key);
+        }
         if (unresolved.empty())
             return 0;
     }
@@ -1083,7 +1480,7 @@ int decide_audited_event(PluginAuditManager&             mgr,
 
     if (permission_list)
         for (const auto& key : unresolved)
-            persist_permission(plugin_key, state, *permission_list, key);
+            persist_permission(plugin_key, state, category, by_event, *permission_list, key);
     return 0;
 }
 
@@ -1165,15 +1562,34 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     };
     std::vector<MissingBucket> missing_buckets;
 
-    const auto collect_missing = [&missing_buckets](AuditEventCategory category,
-                                                    const std::vector<std::string>& requested_targets,
-                                                    const std::vector<std::string>& granted_targets) {
+    // A network target counts as granted when either network list covers it, matched the same
+    // way the audit hook matches it (canonical scheme://host, bare host, legacy address tuple),
+    // so a declaration that is already reachable is not asked for again.
+    const auto collect_missing = [&missing_buckets, &state](AuditEventCategory category,
+                                                            const std::vector<std::string>& requested_targets,
+                                                            const std::vector<std::string>& granted_targets) {
+        // Only the filesystem buckets accept a tree grant. Network targets match by host and the
+        // remaining buckets verbatim.
+        const bool tree_grant_bucket =
+            category == AuditEventCategory::FsRead || category == AuditEventCategory::FsReadWrite;
         MissingBucket bucket{category, {}};
-        for (const std::string& target : requested_targets) {
-            if (target.empty())
+        for (const std::string& requested_target : requested_targets) {
+            if (requested_target.empty())
                 continue;
-            if (std::find(granted_targets.begin(), granted_targets.end(), target) == granted_targets.end() &&
-                std::find(bucket.targets.begin(), bucket.targets.end(), target) == bucket.targets.end())
+            // A relative wildcard names a directory relative to the working directory the request
+            // is made in, while the audit hook reports absolute targets. Resolve it once, here, so
+            // the prompt shows and the sidecar stores the scope the grant actually covers.
+            const std::string target = tree_grant_bucket
+                                           ? PluginAuditDetail::absolute_tree_grant(requested_target)
+                                           : requested_target;
+            // A saved wildcard already covers a more specific request. Deduplicate inside the
+            // request verbatim only: two requested entries may cover different sets.
+            const bool already_granted =
+                is_network_category(category)
+                    ? PluginAuditDetail::has_network_permission(state.permissions, target)
+                    : PluginAuditDetail::has_permission(category, /*by_event=*/false, granted_targets, target);
+
+            if (!already_granted && std::find(bucket.targets.begin(), bucket.targets.end(), target) == bucket.targets.end())
                 bucket.targets.push_back(target);
         }
         if (!bucket.targets.empty())
@@ -1189,9 +1605,6 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
 
     if (missing_buckets.empty())
         return true;
-
-    if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
-        return false;
 
     const auto build_message = [](const std::string& plugin_name, const std::vector<MissingBucket>& buckets) {
         wxString message;
@@ -1209,7 +1622,13 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     };
 
     bool granted = false;
-    if (wxIsMainThread()) {
+    if (PluginAuditDetail::s_permission_message_prompt_for_testing) {
+        // Tests run without a wxApp to host the dialog: hand the seam the message it would show.
+        granted = PluginAuditDetail::s_permission_message_prompt_for_testing(
+            build_message(descriptor.name, missing_buckets).utf8_string());
+    } else if (wxTheApp == nullptr || GUI::wxGetApp().is_closing()) {
+        return false;
+    } else if (wxIsMainThread()) {
         granted = PluginAuditDetail::prompt_for_permission_message(build_message(descriptor.name, missing_buckets));
     } else {
         auto result = std::make_shared<std::promise<bool>>();
@@ -1335,6 +1754,11 @@ void PluginAuditManager::release_frames(std::vector<PyObject*>& frames)
 void PluginAuditManager::set_permission_prompt_for_testing(PermissionPrompt prompt)
 {
     PluginAuditDetail::s_permission_prompt_for_testing = std::move(prompt);
+}
+
+void PluginAuditManager::set_permission_message_prompt_for_testing(PermissionMessagePrompt prompt)
+{
+    PluginAuditDetail::s_permission_message_prompt_for_testing = std::move(prompt);
 }
 
 int PluginAuditManager::audit_hook(const char* event, PyObject* args, void* user_data)

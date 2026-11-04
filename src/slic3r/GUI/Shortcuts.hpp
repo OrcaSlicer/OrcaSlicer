@@ -48,7 +48,11 @@ enum class Shortcut : uint8_t {
     // Display
     ShowLabels, ShowCollisionVolumes, ShowWireframe, ToggleGcodeWindow, ToggleOneLayerMode, ToggleBeltRawGcode,
     // Application
-    Preferences, Search, SwitchView, CollapseSidebar, ReloadDevicePage, KeyboardShortcuts, Quit,
+    Preferences, Search, SwitchView, CollapseSidebar, GoToHome,
+#ifdef SLIC3R_CAD
+    GoToDesign,
+#endif
+    GoToPrepare, GoToPreview, GoToDevice, GoToMultiDevice, GoToProject, GoToCalibration, TabNext, TabPrevious, ReloadDevicePage, KeyboardShortcuts, Quit,
     // Speed Dial
     SpeedDial,
     Count

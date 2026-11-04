@@ -1221,12 +1221,8 @@ void PluginManager::mark_plugin_install_state_disabled(const std::string& plugin
 
     const boost::filesystem::path root(descriptor.plugin_root);
     PluginInstallState state;
-    if (!read_install_state(root, state)) {
-        state.installed_from    = descriptor.is_cloud_plugin() ? "cloud" : "local";
-        state.installed_version = !descriptor.installed_version.empty() ? descriptor.installed_version : descriptor.version;
-        state.plugin_name       = descriptor.name;
-        state.cloud_uuid        = descriptor.cloud_uuid();
-    }
+    if (!read_install_state(root, state))
+        seed_install_metadata(state, descriptor);
     state.enabled = false;
     if (!write_install_state(root, state))
         return;
@@ -1679,6 +1675,52 @@ void PluginManager::fetch_plugins_from_cloud(std::vector<std::string>* out_not_f
                 break;
             }
         }
+    }
+
+    // A successful fetch is the only point where update availability is authoritative. Publish
+    // one aggregate notice after the orphan/unauthorized verdicts above so a plugin the user can
+    // no longer act on is not advertised. The check is repeated when the callback runs, keeping
+    // the notice fresh if an update was installed while the fetch was in flight.
+    if (cloud_fetch_succeeded) {
+        std::string fetched_cloud_user;
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            fetched_cloud_user = m_cloud_user_id;
+        }
+
+        auto push_update_notification = [this, fetched_cloud_user]() {
+            if (wxTheApp == nullptr || m_shutting_down.load(std::memory_order_acquire))
+                return;
+            if (GUI::wxGetApp().is_closing())
+                return;
+            GUI::Plater* plater = GUI::wxGetApp().plater();
+            // Before post_init() there is no plater yet; GUI_App's startup report delivers the
+            // notice instead of dropping it.
+            if (plater == nullptr)
+                return;
+
+            bool update_available = false;
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                if (m_cloud_user_id != fetched_cloud_user)
+                    return; // login/logout while the fetch was in flight
+                update_available = std::any_of(m_plugins.begin(), m_plugins.end(), [](const Plugin& plugin) {
+                    return plugin.descriptor.has_update_available();
+                });
+            }
+            if (!update_available)
+                return;
+
+            GUI::NotificationManager* notifications = plater->get_notification_manager();
+            if (notifications == nullptr ||
+                notifications->has_notification_of_type(GUI::NotificationType::OrcaCloudPluginUpdateAvailable))
+                return;
+            notifications->push_notification(GUI::NotificationType::OrcaCloudPluginUpdateAvailable);
+        };
+        if (wxTheApp == nullptr || wxIsMainThread())
+            push_update_notification();
+        else
+            GUI::wxGetApp().CallAfter(std::move(push_update_notification));
     }
 
     if (out_not_found)
@@ -2157,7 +2199,7 @@ void ScriptAsyncRuntime::Impl::run_invocation(const std::shared_ptr<Run>& run)
     {
         PythonRuntimeLease lease = PythonInterpreter::instance().acquire_runtime_lease();
         if (!lease) {
-            completion.error = _u8L("Python interpreter is shutting down");
+            completion.error = _u8L("Python interpreter is shutting down.");
         } else {
             pybind11::gil_scoped_acquire gil;
 

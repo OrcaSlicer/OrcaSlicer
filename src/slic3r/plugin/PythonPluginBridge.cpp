@@ -31,6 +31,7 @@
 #include <pybind11/pytypes.h>
 #include <pybind11/gil.h>
 #include "slic3r/GUI/I18N.hpp"
+#include <nlohmann/json.hpp>
 
 namespace py = pybind11;
 
@@ -567,29 +568,55 @@ void bind_python_api(pybind11::module_& m)
            const std::vector<std::string>& network_http,
            const std::vector<std::string>& network_socket,
            const std::vector<std::string>& process,
-           bool                            threading) {
+           bool                            threading,
+           const std::vector<std::string>& network) {
             if (g_active_plugin_key.empty())
                 throw py::value_error("request_permissions() called outside plugin discovery context");
+
+            // Validate and canonicalize everything before touching the pending registry, so a
+            // partially invalid call cannot leave a half-recorded request behind.
+            const auto reject_empty = [](const char* name, const std::vector<std::string>& targets) {
+                for (const std::string& target : targets)
+                    if (target.empty())
+                        throw py::value_error(std::string("request_permissions(") + name +
+                                              "=...) does not accept empty values");
+            };
+            reject_empty("fs_read", fs_read);
+            reject_empty("fs_readwrite", fs_readwrite);
+            reject_empty("network_http", network_http);
+            reject_empty("network_socket", network_socket);
+            reject_empty("process", process);
+
+            // A network URL is reduced to scheme://host, so one grant covers every path, query
+            // and port on that host. It is recorded as an HTTP grant; network_permission_matches
+            // applies that grant to raw socket events for the same host too.
+            std::vector<std::string> normalized_network;
+            normalized_network.reserve(network.size());
+            for (const std::string& url : network) {
+                const std::string normalized = PluginAuditManager::normalize_network_url(url);
+                if (normalized.empty())
+                    throw py::value_error(
+                        "request_permissions(network=...) requires an http:// or https:// URL with a host");
+                if (std::find(normalized_network.begin(), normalized_network.end(), normalized) ==
+                    normalized_network.end())
+                    normalized_network.push_back(normalized);
+            }
 
             std::lock_guard<std::mutex> lock(g_registry_mutex);
             PluginPermissions& requested = g_pending_permissions[g_active_plugin_key];
 
-            const auto add_targets = [](std::vector<std::string>& bucket, const char* name,
-                                        const std::vector<std::string>& targets) {
-                for (const std::string& target : targets) {
-                    if (target.empty())
-                        throw py::value_error(std::string("request_permissions(") + name +
-                                              "=...) does not accept empty values");
+            const auto add_targets = [](std::vector<std::string>& bucket, const std::vector<std::string>& targets) {
+                for (const std::string& target : targets)
                     if (std::find(bucket.begin(), bucket.end(), target) == bucket.end())
                         bucket.push_back(target);
-                }
             };
 
-            add_targets(requested.fs_read, "fs_read", fs_read);
-            add_targets(requested.fs_readwrite, "fs_readwrite", fs_readwrite);
-            add_targets(requested.network_http, "network_http", network_http);
-            add_targets(requested.network_socket, "network_socket", network_socket);
-            add_targets(requested.process, "process", process);
+            add_targets(requested.fs_read, fs_read);
+            add_targets(requested.fs_readwrite, fs_readwrite);
+            add_targets(requested.network_http, network_http);
+            add_targets(requested.network_http, normalized_network);
+            add_targets(requested.network_socket, network_socket);
+            add_targets(requested.process, process);
 
             if (threading && std::find(requested.threading.begin(), requested.threading.end(),
                                        kThreadPermissionTarget) == requested.threading.end())
@@ -601,6 +628,7 @@ void bind_python_api(pybind11::module_& m)
         py::arg("network_socket") = std::vector<std::string>{},
         py::arg("process") = std::vector<std::string>{},
         py::arg("threading") = false,
+        py::arg("network") = std::vector<std::string>{},
         R"pbdoc(Request permissions while OrcaSlicer loads your module.
 
 Each bucket takes the target strings the plugin expects the corresponding audit event to
@@ -608,8 +636,19 @@ report: filesystem paths for fs_read and fs_readwrite, URLs for network_http, so
 for network_socket, and commands for process. threading=True requests permission to start
 threads. Targets already granted to the plugin are not asked for again.
 
-The host presents one request to the user after register_capabilities() returns and before any
-capability instance is created. Denying the request aborts the plugin load.)pbdoc");
+A filesystem target may end in "/*" to grant a whole directory tree, for example
+"/path/to/folder/*". That covers the folder itself and every path beneath it, at any depth.
+"*" is the only wildcard and is recognized only as the final path component; a "*" anywhere
+else in a target is an ordinary character. Wildcards apply to fs_read and fs_readwrite only,
+and a grant in one of those buckets never authorizes the other direction. Tree grants are
+matched on canonical paths, so a symlink below the granted folder does not extend the grant
+outside it. Paths the host denies by name or keyword stay denied even when a wildcard covers
+them.
+
+`network` also lists http(s) URLs, but each is reduced to its scheme and host, so one grant covers
+every path, query and port on that host and also authorizes raw socket events for it. The host
+presents one request to the user after register_capabilities() returns and before any capability
+instance is created. Denying the request aborts the plugin load.)pbdoc");
 
     m.def("plugin", [](py::object cls) {
         if (g_active_plugin_key.empty())

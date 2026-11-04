@@ -1,6 +1,7 @@
 #include "GLGizmoSVG.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
 #include "slic3r/GUI/MainFrame.hpp" // to update title when add text
@@ -1689,7 +1690,9 @@ void GLGizmoSVG::draw_depth()
         result_scale = 1. / (*m_scale_depth);
     }
     
-    if (ImGui::InputDouble("##depth", &input, step, step_fast, size_format)) {
+    const bool input_changed = ImGui::InputDouble("##depth", &input, step, step_fast, size_format);
+    m_imgui->request_frames_while_held(); // ORCA auto-repeat of the +/- buttons
+    if (input_changed) {
         if (result_scale.has_value())
             input *= (*result_scale);
         apply(input, limits.depth);

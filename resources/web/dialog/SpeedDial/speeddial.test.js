@@ -101,6 +101,22 @@ assert.equal(ctx.searchActions(pool, "layer").length >= 2, true,
 assert.equal(ctx.searchActions(pool, "surface")[0].id, "c2",
     "a later-but-precise match still ranks by relevance, not by pool type");
 
+
+const restrictedSettings = [
+    { id: "thin-wall", title: "Thin wall detection", source: "Process", desc: "Disabled: unavailable with Arachne." },
+    { id: "wall-generator", title: "Wall generator", source: "Process", desc: "Choose a wall generator." }
+];
+const settingsWithoutReasons = restrictedSettings.map(function (a) {
+    return { id: a.id, title: a.title, source: a.source };
+});
+assert.deepEqual(
+    ctx.searchActions(restrictedSettings, "wall").map(function (a) { return a.id; }),
+    ctx.searchActions(settingsWithoutReasons, "wall").map(function (a) { return a.id; }),
+    "availability explanations do not change name-match ordering"
+);
+assert.equal(ctx.searchActions(restrictedSettings, "Arachne").length, 0,
+    "a dependency mentioned only in the explanation does not match the setting name");
+
 const pluginPool = [
     { id: "plugin-action", title: "Optimize G-code", source: "Gcode Optimizer", group: "", kind: "plugin" },
     { id: "command-action", title: "Open Preferences", source: "OrcaSlicer", group: "Commands", kind: "command" }

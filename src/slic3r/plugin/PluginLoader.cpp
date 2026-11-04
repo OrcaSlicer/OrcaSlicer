@@ -23,7 +23,7 @@
 #include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/file_status.hpp>
 #include <boost/log/trivial.hpp>
-#include <boost/process.hpp>
+#include <slic3r/Utils/BoostProcessCompat.hpp>
 #include "slic3r/plugin/PluginDescriptor.hpp"
 #include <optional>
 #include <vector>
@@ -31,13 +31,7 @@
 #include "slic3r/plugin/PythonPluginInterface.hpp"
 #include <cstddef>
 #include <functional>
-#include <boost/process/pipe.hpp>
-#include <boost/process/args.hpp>
-#include <boost/process/io.hpp>
 #include <system_error>
-#ifdef _WIN32
-#include <boost/process/windows.hpp>
-#endif
 
 #include <algorithm>
 #include <chrono>

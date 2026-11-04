@@ -117,6 +117,8 @@
 #include "SafetyOptionsDialog.hpp"
 
 #include "ThermalPreconditioningDialog.hpp"
+#include "Monitor.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include <wx/dcgraph.h>
 
 
@@ -958,7 +960,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     m_request_failed_panel    = new wxPanel(parent, wxID_ANY);
     m_request_failed_panel->SetBackgroundColour(*wxWHITE);
     wxBoxSizer *static_request_failed_panel_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_request_failed_info = new wxStaticText(m_request_failed_panel, wxID_ANY, _L("You have completed printing the mall model, \nbut synchronizing rating information has failed."), wxDefaultPosition, wxDefaultSize, 0);
+    m_request_failed_info = new wxStaticText(m_request_failed_panel, wxID_ANY, _L("You have completed printing the mall model,\nbut synchronizing rating information has failed."), wxDefaultPosition, wxDefaultSize, 0);
     m_request_failed_info->Wrap(-1);
     m_request_failed_info->SetForegroundColour(*wxRED);
     m_request_failed_info->SetFont(::Label::Body_10);
@@ -6198,7 +6200,7 @@ wxBoxSizer *ScoreDialog::get_main_sizer(const std::vector<std::pair<wxString, st
     m_main_sizer->Add(m_line_top, 0, wxEXPAND, 0);
     m_main_sizer->Add(0, 0, 0, wxTOP, FromDIP(32));
 
-    warning_text = new wxStaticText(this, wxID_ANY, _L("At least one successful print record of this print profile is required \nto give a positive rating (4 or 5 stars)."));
+    warning_text = new wxStaticText(this, wxID_ANY, _L("At least one successful print record of this print profile is required\nto give a positive rating (4 or 5 stars)."));
     warning_text->SetForegroundColour(*wxRED);
     warning_text->SetFont(::Label::Body_13);
 
