@@ -41,6 +41,7 @@
 
 #ifdef __WXGTK__
 #include <gtk/gtk.h>
+#include <pango/pangocairo.h>
 #endif 
 
 #include <wx/toplevel.h>
@@ -402,6 +403,30 @@ int get_dpi_for_window(const wxWindow *window)
     return DPI_DEFAULT;
 #endif
 }
+
+#ifdef __WXGTK__
+double get_gtk_text_scale(const wxWindow *window)
+{
+    double res = -1.0;
+    if (window != nullptr && window->GetHandle() != nullptr) {
+        if (PangoContext *ctx = gtk_widget_get_pango_context(GTK_WIDGET(window->GetHandle())))
+            res = pango_cairo_context_get_resolution(ctx);
+    }
+    if (res <= 0.0) {
+        if (GdkScreen *screen = gdk_screen_get_default())
+            res = gdk_screen_get_resolution(screen);
+    }
+    // -1 means "not set", in which case Pango uses its default of 96 DPI.
+    const double scale = res > 0.0 ? res / double(DPI_DEFAULT) : 1.0;
+    static double logged_scale = 0.0;
+    if (std::abs(scale - logged_scale) > 0.001) {
+        logged_scale = scale;
+        BOOST_LOG_TRIVIAL(info) << "GTK text scale: " << scale << " (Pango resolution " << res << ")"
+                                << (std::abs(scale - 1.0) < 0.05 ? ", using fixed em unit" : ", using font-based em unit");
+    }
+    return scale;
+}
+#endif // __WXGTK__
 
 wxFont get_default_font_for_dpi(const wxWindow *window, int dpi)
 {

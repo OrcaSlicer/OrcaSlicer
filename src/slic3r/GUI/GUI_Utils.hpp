@@ -127,6 +127,14 @@ int get_dpi_for_window(const wxWindow *window);
 wxFont get_default_font_for_dpi(const wxWindow* window, int dpi);
 inline wxFont get_default_font(const wxWindow* window) { return get_default_font_for_dpi(window, get_dpi_for_window(window)); }
 
+#ifdef __WXGTK__
+// Ratio between the resolution Pango renders text with and the 96 DPI baseline, in GTK logical pixels.
+// FromDIP() is an identity on GTK3 (integer GDK scaling is handled by GTK itself), so any value other than
+// ~1.0 means text is scaled beyond what FromDIP() accounts for (e.g. KDE fractional scaling via Xft.dpi,
+// GDK_DPI_SCALE or a desktop "text scaling factor").
+double get_gtk_text_scale(const wxWindow* window);
+#endif // __WXGTK__
+
 bool check_dark_mode();
 void update_dark_config();
 #ifdef _WIN32
@@ -285,8 +293,14 @@ private:
 #if !defined(__WXGTK__)
         m_em_unit = std::max<size_t>(10, 10.0f * m_scale_factor);
 #else
-        // initialize default width_unit according to the width of the one symbol ("m") of the currently active font of this window.
-        m_em_unit = std::max<size_t>(10, this->GetTextExtent("m").x - 1);
+        // If text is rendered at the same scale FromDIP() uses, use a fixed em unit so the UI matches
+        // Windows/macOS and doesn't depend on the distro's default font. FromDIP(10) follows GDK_SCALE.
+        if (std::abs(get_gtk_text_scale(this) - 1.0) < 0.05)
+            m_em_unit = std::max<int>(10, this->FromDIP(10));
+        else
+            // Fonts are scaled beyond FromDIP() (e.g. KDE fractional scaling on X11):
+            // derive the em unit from the width of the symbol "m" of the currently active font of this window.
+            m_em_unit = std::max<size_t>(10, this->GetTextExtent("m").x - 1);
 #endif // __WXGTK__
     }
 
