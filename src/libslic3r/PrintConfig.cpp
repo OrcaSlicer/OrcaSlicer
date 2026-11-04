@@ -8248,7 +8248,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Mixed color sublayer");
     def->tooltip = L("Enable mixed color sublayer splitting. When enabled, layers containing mixed color "
                      "filaments will be split into sub-layers to achieve color mixing effects.");
-    def->category = L("Quality");
+    def->category = L("Multimaterial");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(false));
 
