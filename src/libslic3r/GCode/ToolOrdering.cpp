@@ -157,7 +157,9 @@ static unsigned int region_filament(const ExtrusionEntityCollection &extrusions,
             return config.bottom_surface_filament_id.value;
         return config.internal_solid_filament_id.value;
     }
-    // Walls, and the gap fill between them.
+    // Orca: Classic gap fill lies inside the outer wall. With one wall, the inner wall filament is not in use.
+    if (extrusions.role() == erGapFill)
+        return config.wall_loops.value > 1 ? config.inner_wall_filament_id.value : config.outer_wall_filament_id.value;
     const ExtrusionEntitiesPtr &walls = extrusions.entities;
     return !walls.empty() && std::all_of(walls.begin(), walls.end(), [](const ExtrusionEntity *ee) { return is_inner_wall(*ee); }) ?
         config.inner_wall_filament_id.value : config.outer_wall_filament_id.value;
