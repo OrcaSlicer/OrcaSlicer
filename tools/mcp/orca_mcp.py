@@ -91,13 +91,14 @@ class OrcaMcp:
     def call_raw(self, tool, args=None, timeout=None):
         return self.request("tools/call", {"name": tool, "arguments": args or {}}, timeout=timeout)
 
-    def call(self, tool, _timeout=None, **args):
+    def call(self, tool, /, _timeout=None, **args):
         """Call a tool and return its JSON result; raise McpError when the tool reports an error.
 
-        A call that returns a job envelope (running / blocked_by_dialog) is returned as is."""
+        A call that returns a job envelope (running / blocked_by_dialog) is returned as is. The tool
+        name is positional-only, so an argument named tool (api_call's) goes to the tool."""
         return self.call_with_text(tool, _timeout, **args)[0]
 
-    def call_with_text(self, tool, _timeout=None, **args):
+    def call_with_text(self, tool, /, _timeout=None, **args):
         """Like call(), plus the text blocks after the JSON one (ui_snapshot's tree)."""
         result = self.call_raw(tool, args, timeout=_timeout)
         texts = [c["text"] for c in result.get("content", []) if c.get("type") == "text"]
@@ -110,7 +111,7 @@ class OrcaMcp:
             data = {"text": text}
         return data, texts[1:]
 
-    def images(self, tool, **args):
+    def images(self, tool, /, **args):
         """Call a tool and return (json_result, [png bytes...]) for image content blocks."""
         result = self.call_raw(tool, args)
         if result.get("isError"):
