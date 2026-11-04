@@ -1672,13 +1672,13 @@ static FilamentGroupContext build_filament_group_context(
     return context;
 }
 
-// Orca: restore the master-extruder preference. Orca historically ran
-// optimize_group_for_master_extruder / can_swap_groups after grouping so a light-filament print stays
-// on the primary/master extruder. A weak in-enum penalty alone cannot overcome a pre-existing
-// non-zero right-extruder self-flush term in the flush matrix (which otherwise pulls a lone filament
-// onto the non-master extruder and changes H2D/H2C g-code). We re-apply the preference ONLY in this
-// slicing wrapper — never in the FilamentGroup engine or the test harness — so existing prints keep
-// their extruder assignment while the new engine's genuine multi-filament grouping deltas still land.
+// Orca: the master-extruder preference for flush-mode grouping on two-extruder machines. It keeps a
+// light-filament print on the master extruder, which the engine's own in-enum penalty is too weak to
+// do against a non-zero right-extruder self-flush term in the flush matrix (that term pulls a lone
+// filament onto the non-master extruder). It lives in this slicing wrapper, not in the FilamentGroup
+// engine, so the engine and its golden tests stay comparable with BambuStudio's. It only breaks ties
+// against the filaments loaded in the printer: get_recommended_filament_maps keeps the engine's
+// grouping when that matches them better.
 static bool can_swap_extruder_groups(int extruder_id_0, const std::set<int>& group_0, int extruder_id_1, const std::set<int>& group_1, const FilamentGroupContext& ctx)
 {
     using namespace FilamentGroupUtils;
@@ -1839,11 +1839,20 @@ MultiNozzleUtils::LayeredNozzleGroupResult ToolOrdering::get_recommended_filamen
                 if (!has_multiple_nozzle)
                     fg.get_custom_seq = get_custom_seq;
                 ret = fg.calc_filament_group();
-                // Flush-mode auto grouping: restore the master-extruder preference
-                // (optimize_group_for_master_extruder). Match mode assigns by AMS colour and never had
-                // it. Kept out of the FilamentGroup engine so the test harness is unaffected.
-                if (context.group_info.mode == FGMode::FlushMode)
-                    ret = apply_master_extruder_preference(context, used_filaments, ret);
+                // Flush mode prefers the master extruder; match mode groups by the AMS colours alone.
+                // select_best_group_for_ams keeps the first candidate on a tie and when the printer
+                // reports no filaments, so the preferred grouping loses only to one that matches the
+                // loaded filaments strictly better.
+                if (context.group_info.mode == FGMode::FlushMode) {
+                    std::vector<int> preferred = apply_master_extruder_preference(context, used_filaments, ret);
+                    std::vector<FilamentGroupUtils::FilamentInfo> used_filament_info;
+                    for (auto f : used_filaments)
+                        used_filament_info.emplace_back(context.model_info.filament_info[f]);
+                    // The context's nozzle list, which the nozzle ids in ret index (one entry per
+                    // physical nozzle), not the one-per-extruder nozzle_list above.
+                    ret = select_best_group_for_ams({preferred, ret}, context.nozzle_info.nozzle_list, used_filaments, used_filament_info,
+                                                    context.machine_info.machine_filament_info, context.group_info.has_filament_switcher);
+                }
             }
         }
 

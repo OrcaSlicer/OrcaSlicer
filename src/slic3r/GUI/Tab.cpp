@@ -2437,7 +2437,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                 msg_text += "\n\n" + _L("Change these settings automatically\?\nYes - Change these settings automatically.\nNo  - Do not change these settings for me.");
             } else {
                 msg_text = _L("When using soluble material for the support interface, we recommend the following settings:\n"
-                              "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
+                              "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height "
                               "and use soluble materials for both support interface and support base.");
                 msg_text += "\n\n" + _L("Change these settings automatically\?\nYes - Change these settings automatically.\nNo  - Do not change these settings for me.");
             }
@@ -2649,7 +2649,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
 
 void Tab::show_timelapse_warning_dialog() {
     if (!m_is_timelapse_wipe_tower_already_prompted) {
-        wxString      msg_text = _(L("When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
+        wxString      msg_text = _(L("When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" "
                                 "by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."));
         msg_text += "\n";
         MessageDialog dialog(nullptr, msg_text, "", wxICON_WARNING | wxOK);
@@ -3699,7 +3699,8 @@ void TabPrint::update()
             toggle_options();
         // update() could be called during undo/redo execution
         // Update of objectList can cause a crash in this case (because m_objects doesn't match ObjectList)
-        if (m_type != Preset::TYPE_MODEL && !wxGetApp().plater()->inside_snapshot_capture())
+        // Before the main window is shown no object can be selected, and the refresh would only lay out the sidebar.
+        if (m_type != Preset::TYPE_MODEL && !wxGetApp().plater()->inside_snapshot_capture() && wxGetApp().mainframe->IsShown())
             wxGetApp().obj_list()->update_and_show_object_settings_item();
 
         wxGetApp().mainframe->on_config_changed(m_config);
@@ -6076,7 +6077,7 @@ if (is_marlin_flavor)
                                 // if value is differs from first nozzle diameter value
                                 if (fabs(cur_diam - frst_diam) > EPSILON) {
                                     const wxString msg_text = _(
-                                        L("Single Extruder Multi Material is selected,\n"
+                                        L("Single Extruder Multi Material is selected, "
                                           "and all extruders must have the same diameter.\n"
                                           "Do you want to change the diameter for all extruders to first extruder nozzle diameter value?"));
                                     MessageDialog dialog(parent(), msg_text, _(L("Nozzle diameter")), wxICON_WARNING | wxYES_NO);
@@ -6968,8 +6969,10 @@ void TabPrinter::toggle_options()
         double retract_after_wipe  = m_config->option<ConfigOptionPercents>("retract_after_wipe")->get_at(variant_index);
 
         toggle_option("retract_before_wipe", wipe && !is_approx(retract_after_wipe, 100.), i,
+            // xgettext:no-c-format, no-boost-format
             _L("Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."));
         toggle_option("retract_after_wipe", wipe && !is_approx(retract_before_wipe, 100.), i,
+            // xgettext:no-c-format, no-boost-format
             _L("Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."));
 
         if (use_firmware_retraction && wipe && retract_before_wipe < 100.0) {

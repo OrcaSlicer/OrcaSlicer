@@ -1031,6 +1031,13 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         for (size_t i = 0; i < n; ++i) fallback_order[i] = i;
         std::stable_sort(fallback_order.begin(), fallback_order.end(), by_object_index);
 
+        // Every instance of an object shares its object_index, so order by place in the list instead,
+        // which tells instances apart and keeps copies of one object in their list order.
+        std::vector<size_t> list_position(n);
+        for (size_t k = 0; k < n; ++k)
+            list_position[fallback_order[k]] = k;
+        auto by_list_position = [&list_position](size_t l, size_t r) { return list_position[l] < list_position[r]; };
+
         // Mirrors the inflation the vertical-clearance check below applies: only the
         // potentially-too-tall instance's footprint is shrunk before testing Y overlap.
         // A structured binding can't be captured by a lambda before C++20, so copy it first.
@@ -1078,13 +1085,13 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
             }
 
             if (!infeasible) {
-                // Kahn's algorithm; ties are broken by original object_index so the result is
+                // Kahn's algorithm; ties are broken by place in the list so the result is
                 // the minimal perturbation of the incoming order, not an arbitrary one.
                 std::vector<size_t> ready;
                 for (size_t i = 0; i < n; ++i)
                     if (i != last_idx && indegree[i] == 0)
                         ready.push_back(i);
-                std::sort(ready.begin(), ready.end(), by_object_index);
+                std::sort(ready.begin(), ready.end(), by_list_position);
 
                 std::vector<size_t> order;
                 order.reserve(n);
@@ -1094,7 +1101,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                     order.push_back(cur);
                     for (size_t nxt : adj[cur]) {
                         if (--indegree[nxt] == 0) {
-                            auto pos = std::upper_bound(ready.begin(), ready.end(), nxt, by_object_index);
+                            auto pos = std::upper_bound(ready.begin(), ready.end(), nxt, by_list_position);
                             ready.insert(pos, nxt);
                         }
                     }
@@ -1117,9 +1124,6 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         // differs from it, naming the instances held back to clear the rod: those printed later than
         // their place in the list. The first of them is the jump target.
         if (warning != nullptr && solved && solved_order != fallback_order) {
-            std::vector<size_t> list_position(n);
-            for (size_t k = 0; k < n; ++k)
-                list_position[fallback_order[k]] = k;
             for (size_t k = 0; k < n; ++k) {
                 if (k <= list_position[solved_order[k]])
                     continue;
@@ -2365,19 +2369,13 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         // A mixed (virtual) filament always resolves to multiple physical components, which
         // spiral vase cannot print.
         const auto &is_mixed = m_config.filament_is_mixed.values;
-        for (const PrintObject *object : m_objects)
-            for (unsigned int ext : object->object_extruders())
-                if (ext < is_mixed.size() && is_mixed[ext])
-                    return {L("Spiral (vase) mode does not work when an object contains more than one material."), nullptr, "spiral_mode"};
-        assert(m_objects.size() == 1);
-        const auto all_regions = m_objects.front()->all_regions();
-        if (all_regions.size() > 1) {
-            // Orca: make sure regions are not compatible
-            if (std::any_of(all_regions.begin() + 1, all_regions.end(), [this, ra = all_regions.front()](const auto rb) {
-                return !Layer::is_perimeter_compatible(*this, ra, rb);
-            })) {
+        for (const PrintObject *object : m_objects) {
+            const auto used_filament_ids = object->object_extruders();
+            if (used_filament_ids.size() > 1 ||
+                std::any_of(used_filament_ids.begin(), used_filament_ids.end(), [&is_mixed](unsigned int filament_id) {
+                    return filament_id < is_mixed.size() && is_mixed[filament_id];
+                }))
                 return {L("Spiral (vase) mode does not work when an object contains more than one material."), nullptr, "spiral_mode"};
-            }
         }
     }
 
@@ -2443,7 +2441,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 print_object.model_object(),
                 ""
             };
-        } else if (effective_max_z > this->config().printable_height + EPSILON) {
+        } else if (compensated_max_z > this->config().printable_height + EPSILON) {
             return StringObjectException{
                 last_layer_below_max ?
                 Slic3r::format(_u8L("While the object %1% itself fits the build volume, its last layer exceeds the maximum build volume height."), print_object.model_object()->name) +
@@ -3013,10 +3011,12 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                              "adaptive_pressure_advance_model");
                         break;
                     }
-                    if (!AdaptivePAProcessor::validate_adaptive_pa_model(pa_model).empty()) {
-                        warn(L("The Adaptive Pressure Advance model for one or more extruders may contain invalid values."),
+                    const std::string pa_error = AdaptivePAProcessor::validate_adaptive_pa_model(pa_model);
+                    if (!pa_error.empty()) {
+                        // TRN %1% is the filament number as shown in the filament list, starting from 1; %2% names the invalid line.
+                        // one warning per filament, the notifications stack
+                        warn(Slic3r::format(L("The Adaptive Pressure Advance model of filament %1% contains invalid values.\n%2%"), filament_id + 1, pa_error),
                              "adaptive_pressure_advance_model");
-                        break;
                     }
                 }
             }
