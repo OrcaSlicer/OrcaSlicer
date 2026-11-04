@@ -25,10 +25,18 @@ struct PluginPermissions
     std::vector<std::string> network_http;
     std::vector<std::string> network_socket;
     std::vector<std::string> process;
-    std::vector<std::string> threading;
+    // Thread creation is a yes/no grant. Newer sidecars store a boolean; older ones stored an
+    // array (empty when denied, nonempty when granted), and nonempty strings are accepted by the
+    // same migration rule. The reader never rewrites; the next normal write emits a boolean.
+    bool threading = false;
     // Grants for audit events that expose no target, keyed "<category>:<event>" (e.g.
     // "Socket:socket.__new__"). Matched verbatim; the filesystem wildcard does not apply.
     std::vector<std::string> events;
+    // Turns auditing off for the whole plugin: every audited event is allowed without a grant or
+    // prompt, except the unconditional denied paths (the install-state sidecar, the app config,
+    // the cloud refresh token), which stay blocked. Stored as a JSON boolean; a missing or
+    // non-boolean value reads as false. This is a Python audit-hook policy, not an OS sandbox.
+    bool full_access = false;
 };
 
 struct PluginInstallState {

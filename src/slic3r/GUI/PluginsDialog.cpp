@@ -4,6 +4,7 @@
 #include "GUI_App.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "I18N.hpp"
+#include "MsgDialog.hpp"
 #include "OrcaCloudServiceAgent.hpp"
 #include "slic3r/plugin/PluginConfig.hpp"
 #include "slic3r/plugin/PluginFsUtils.hpp"
@@ -174,6 +175,7 @@ nlohmann::json build_permissions_payload(const PluginPermissions& permissions)
     payload["process"]        = permissions.process;
     payload["threading"]      = permissions.threading;
     payload["events"]         = permissions.events;
+    payload["full_access"]    = permissions.full_access;
     return payload;
 }
 
@@ -441,6 +443,31 @@ bool take_plugin_operation_result(const std::shared_ptr<PluginOperationState>& s
     error = std::move(state->error);
     return state->succeeded;
 }
+
+// A full-access request carries an opaque correlation token that the webview ties to its pending
+// switch. Bound the shape so a malformed or oversized value cannot be echoed back: non-empty,
+// at most 128 bytes, printable ASCII only.
+bool is_valid_full_access_request_id(const std::string& request_id)
+{
+    constexpr size_t kMaxRequestIdLength = 128;
+    if (request_id.empty() || request_id.size() > kMaxRequestIdLength)
+        return false;
+    return std::all_of(request_id.begin(), request_id.end(), [](unsigned char c) {
+        return c >= 0x21 && c <= 0x7e;
+    });
+}
+
+// Reports the outcome of a set_plugin_full_access request to the webview, so it clears its
+// pending switch only on the matching plugin's result. Sent after every completion: success,
+// failure, cancelled confirmation, and invalid payload.
+void send_full_access_result(WebViewHostDialog& dialog, const std::string& plugin_key, const std::string& request_id)
+{
+    nlohmann::json payload;
+    payload["command"]    = "plugin_full_access_result";
+    payload["plugin_key"] = plugin_key;
+    payload["request_id"] = request_id;
+    dialog.call_web_handler(payload);
+}
 } // namespace
 
 // ── Dialog-independent plugin actions (also used by the speed dial) ───────────────────────────
@@ -698,14 +725,17 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"permissions_network_placeholder", _u8L("https://example.com")},
         {"permissions_process_help", _u8L("Enter the exact value recorded by the audit. It may be a Python representation of the command.")},
         {"permissions_process_placeholder", _u8L("Exact audited value")},
-        {"permissions_threading_help", _u8L("The only valid value is the literal thread.")},
-        {"permissions_threading_toggle", _u8L("Include thread in draft")},
-        {"permissions_threading_other_values", _u8L("Other values are shown below and remain in the draft unless you change or remove them.")},
+        {"permissions_threading_boolean_help", _u8L("Choose whether threading is included in this draft.")},
+        {"permissions_threading_boolean_toggle", _u8L("Include threading in draft")},
         {"permissions_events_help", _u8L("Enter a category and event separated by a colon, such as Socket:socket.__new__.")},
         {"permissions_events_placeholder", _u8L("Socket:socket.__new__")},
-        {"permissions_full_access_placeholder_label", _u8L("Full access (placeholder; does not grant access)")},
+        {"permissions_full_access_label", _u8L("Full access")},
+        {"permissions_full_access_help_live_v2", _u8L("Full access bypasses permission checks. Direct Python access to install-state files remains blocked, but subprocesses are not restricted.")},
+        {"permissions_full_access_editor_disabled", _u8L("Permission list editing is disabled while full access is on.")},
+        {"permissions_full_access_unavailable", _u8L("Full access status is unavailable.")},
+        {"permissions_full_access_updating", _u8L("Updating full access…")},
         {"permissions_draft_title", _u8L("Permission draft")},
-        {"permissions_draft_notice", _u8L("This draft starts with the stored permissions. Changes stay in this window, cannot be saved, and do not affect access.")},
+        {"permissions_list_draft_notice", _u8L("The permission list starts with the stored values. List edits stay in this window, cannot be saved, and do not affect access.")},
         {"permissions_draft_outdated", _u8L("Stored permissions have changed. Your draft is unchanged; reset it to see the latest stored values.")},
         {"permissions_save_changes_unavailable", _u8L("Save changes (not yet available)")},
         {"permissions_reset_draft", _u8L("Reset draft")},
@@ -844,6 +874,25 @@ void PluginsDialog::handle_web_command(const nlohmann::json& payload)
         // `config` is a JSON string from the default editor's textarea, or an already-structured
         // value from a capability's custom UI. Both land here; save_capability_config sorts it out.
         save_capability_config(id, payload.contains("config") ? payload.at("config") : nlohmann::json::object());
+    } else if (command == "set_plugin_full_access") {
+        // The webview is shared with plugin-provided UI, so validate the shape before acting:
+        // a non-string key, a non-boolean flag or a malformed correlation token is refused rather
+        // than coerced. The result still echoes the token so the sender can clear its pending state.
+        const std::string plugin_key = payload.contains("plugin_key") && payload.at("plugin_key").is_string()
+                                           ? payload.at("plugin_key").get<std::string>()
+                                           : std::string{};
+        const std::string request_id = payload.contains("request_id") && payload.at("request_id").is_string()
+                                           ? payload.at("request_id").get<std::string>()
+                                           : std::string{};
+        const bool request_id_valid = is_valid_full_access_request_id(request_id);
+        if (!request_id_valid || !payload.contains("plugin_key") || !payload.at("plugin_key").is_string() ||
+            !payload.contains("enabled") || !payload.at("enabled").is_boolean()) {
+            show_status(_L("Invalid full access request."), "error");
+            send_plugins();
+            send_full_access_result(*this, plugin_key, request_id_valid ? request_id : std::string{});
+            return;
+        }
+        set_plugin_full_access(plugin_key, payload.at("enabled").get<bool>(), request_id);
     } else if (command == "set_plugin_install_action") {
         const std::string action = payload.value("action", "");
         if (action == "explore" || action == "install-local")
@@ -932,6 +981,57 @@ void PluginsDialog::refresh_plugins()
     BOOST_LOG_TRIVIAL(info) << "Refreshing plugins from Plugins dialog";
 
     refresh_plugin_metadata_async(_L("Refreshing"), _L("Refreshing plugins data"), kFetchCloudMeta);
+}
+
+void PluginsDialog::set_plugin_full_access(const std::string& plugin_key, bool enabled, const std::string& request_id)
+{
+    if (plugin_key.empty()) {
+        show_status(_L("Invalid full access request."), "error");
+        send_plugins();
+        send_full_access_result(*this, plugin_key, request_id);
+        return;
+    }
+
+    const wxString plugin_name = plugin_display_name(plugin_key);
+
+    // Enabling is the dangerous direction, and this dialog can be driven by a sandboxed,
+    // plugin-authored iframe that sends native commands directly. Require an explicit Yes from
+    // the host UI; any other outcome cancels and refreshes, so a scripted dismissal grants nothing.
+    if (enabled) {
+        MessageDialog dialog(
+            this,
+            wxString::Format(
+                _L("Enable full access for \"%s\"?\n\n"
+                   "Full access turns off permission auditing for this plugin: its file system, network, "
+                   "process, thread and event permissions are no longer checked. Direct Python access to "
+                   "the install-state files remains blocked, but subprocesses are not restricted.\n\n"
+                   "Only enable this for a plugin you trust."),
+                plugin_name),
+            _L("Full access"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
+        // MsgDialog builds its own buttons in a fixed order and always gives Yes the initial focus;
+        // wxNO_DEFAULT does not change that. Focus No explicitly so Enter cannot grant full access.
+        dialog.SetButtonLabel(wxID_NO, _L("No"), /*set_focus=*/true);
+
+        const int rc = dialog.ShowModal();
+        restore_z_order();
+        if (rc != wxID_YES) {
+            send_plugins();
+            send_full_access_result(*this, plugin_key, request_id);
+            return;
+        }
+    }
+
+    if (!PluginManager::instance().set_plugin_full_access(plugin_key, enabled)) {
+        show_status(_L("Failed to update full access."), "error");
+        send_plugins();
+        send_full_access_result(*this, plugin_key, request_id);
+        return;
+    }
+
+    send_plugins();
+    send_full_access_result(*this, plugin_key, request_id);
+    show_status(wxString::Format(enabled ? _L("Full access enabled for \"%s\".") : _L("Full access disabled for \"%s\"."), plugin_name),
+                "success");
 }
 
 void PluginsDialog::toggle_plugin(const std::string& plugin_key, bool enabled)

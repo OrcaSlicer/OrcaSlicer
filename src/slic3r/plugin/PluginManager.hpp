@@ -181,6 +181,16 @@ public:
 
     bool get_install_state(const std::string& plugin_key, PluginInstallState& install_state);
 
+    // Turns full access on or off for an installed plugin. Read-modify-write of the sidecar under
+    // the same lock the other install-state writers use, so every other stored grant is preserved.
+    // Enabling requires a loadable (non-invalid) package; disabling accepts any known installed
+    // package, so a plugin whose manifest became invalid can still be switched off. Either way the
+    // sidecar must be readable, or there is nothing safe to modify and it returns false.
+    // The flag governs future top-level audited operations, which read the sidecar afresh. An
+    // operation already in flight may have recorded its root frame while full access was on and
+    // can still finish after it is revoked; that frame is not re-evaluated.
+    bool set_plugin_full_access(const std::string& plugin_key, bool enabled);
+
     void load_plugin(const std::string& plugin_key, bool skip_deps = false, std::vector<std::string> capabilities_to_enable = {});
     bool unload_plugin(const std::string& plugin_key);
     void unload_all_plugins();

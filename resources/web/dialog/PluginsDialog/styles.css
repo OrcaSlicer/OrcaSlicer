@@ -1167,7 +1167,12 @@ body.pane-resizing {
   margin-bottom: 10px;
 }
 
-.permission-placeholder {
+.permission-full-access-help {
+  margin: 0 0 4px 52px;
+  color: var(--muted);
+}
+
+.permissions-content label.permission-placeholder {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1177,19 +1182,66 @@ body.pane-resizing {
 }
 
 .permission-checkbox-inset {
+  position: relative;
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 32px;
+  width: 52px;
   height: 32px;
 }
 
-.permission-checkbox-inset input {
-  width: 16px;
-  height: 16px;
+.permission-checkbox-inset input[type="checkbox"] {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
   margin: 0;
-  accent-color: var(--main-color);
+  opacity: 0;
+  cursor: pointer;
+}
+
+.permission-switch-track {
+  position: relative;
+  box-sizing: border-box;
+  width: 42px;
+  height: 24px;
+  flex: 0 0 auto;
+  border: 2px solid var(--text);
+  border-radius: 999px;
+  background: var(--bg);
+  transition: background-color 120ms ease;
+  pointer-events: none;
+}
+
+.permission-switch-track::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text);
+  transition: transform 120ms ease, background-color 120ms ease;
+}
+
+.permission-checkbox-inset input[type="checkbox"]:checked + .permission-switch-track {
+  background: var(--text);
+}
+
+.permission-checkbox-inset input[type="checkbox"]:checked + .permission-switch-track::before {
+  transform: translateX(18px);
+  background: var(--bg);
+}
+
+.permission-checkbox-inset input[type="checkbox"]:disabled {
+  cursor: default;
+}
+
+.permission-checkbox-inset input[type="checkbox"]:disabled + .permission-switch-track {
+  opacity: 0.55;
 }
 
 .permission-editor {
@@ -1274,7 +1326,7 @@ body.pane-resizing {
   gap: 6px;
 }
 
-.permission-thread-toggle {
+.permissions-content label.permission-thread-toggle {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1316,8 +1368,7 @@ body.pane-resizing {
 }
 
 .permission-form :focus-visible,
-.permission-placeholder input:focus-visible,
-.permission-thread-toggle input:focus-visible {
+.permission-checkbox-inset input[type="checkbox"]:focus + .permission-switch-track {
   outline: 2px solid var(--main-color);
   outline-offset: 2px;
 }
@@ -1331,6 +1382,29 @@ body.pane-resizing {
   .permission-section {
     grid-template-columns: minmax(0, 1fr);
     gap: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .permission-switch-track,
+  .permission-switch-track::before {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .permission-switch-track {
+    border-color: CanvasText;
+    background: Canvas;
+  }
+  .permission-switch-track::before {
+    background: CanvasText;
+  }
+  .permission-checkbox-inset input[type="checkbox"]:checked + .permission-switch-track {
+    background: CanvasText;
+  }
+  .permission-checkbox-inset input[type="checkbox"]:checked + .permission-switch-track::before {
+    background: Canvas;
   }
 }
 

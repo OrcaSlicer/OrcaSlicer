@@ -688,6 +688,11 @@ def attempt(action):
     except PermissionError:
         return "denied"
 
+def start_and_join_thread():
+    worker = threading.Thread(target=lambda: None)
+    worker.start()
+    worker.join()
+
 def spawn_checked(argv):
     parent = os.getpid()
     try:
@@ -1584,6 +1589,195 @@ TEST_CASE("A relative wildcard permission request is shown and stored as an abso
     python.run_as(PLUGIN, "outcome = attempt(lambda: open(RESOLVED_FILE, 'w').close())");
     CHECK(python.str("outcome") == "ok");
     CHECK(describe(harness.prompts).empty());
+}
+
+TEST_CASE("A threading permission request is prompted once and saved as a boolean", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    PluginAuditManager& mgr = PluginAuditManager::instance();
+
+    PluginPermissions requested;
+    requested.threading = true;
+
+    std::string shown;
+    PluginAuditManager::set_permission_message_prompt_for_testing(
+        [&shown](const std::string& message) { shown = message; return true; });
+    const bool granted = mgr.request_permissions(PLUGIN, requested);
+    PluginAuditManager::set_permission_message_prompt_for_testing(nullptr);
+
+    REQUIRE(granted);
+    CHECK(shown.find("create a thread") != std::string::npos);
+    CHECK(harness.saved_permissions(PLUGIN).threading);
+
+    // The saved boolean grant covers a repeated declaration without asking again.
+    bool prompted_again = false;
+    PluginAuditManager::set_permission_message_prompt_for_testing(
+        [&prompted_again](const std::string&) {
+            prompted_again = true;
+            return false;
+        });
+    CHECK(mgr.request_permissions(PLUGIN, requested));
+    PluginAuditManager::set_permission_message_prompt_for_testing(nullptr);
+    CHECK_FALSE(prompted_again);
+}
+
+TEST_CASE("Thread creation is denied without a grant and remembered after approval", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    // The audit hook's thread event has no user-supplied target; the fixed sentinel is what the
+    // prompt and the persisted grant use. The helper joins the worker so no test thread outlives
+    // the test case.
+    python.run_as(PLUGIN, "thread_outcome = attempt(start_and_join_thread)");
+    CHECK(python.str("thread_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "_thread.start_new_thread: thread\n");
+    CHECK_FALSE(harness.saved_permissions(PLUGIN).threading);
+
+    harness.approve = [](const Prompt&) { return true; };
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "thread_outcome = attempt(start_and_join_thread)");
+    CHECK(python.str("thread_outcome") == "ok");
+    CHECK(describe(harness.prompts) == "_thread.start_new_thread: thread\n");
+    CHECK(harness.saved_permissions(PLUGIN).threading);
+
+    // The saved grant is effective for later events without another prompt.
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "thread_outcome = attempt(start_and_join_thread)");
+    CHECK(python.str("thread_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+}
+
+TEST_CASE("Full access allows an audited operation without a grant", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    PluginPermissions permissions;
+    permissions.full_access = true;
+    harness.save_permissions(PLUGIN, permissions);
+
+    // PRIVATE sits outside every allowed root, so without full access this read would prompt.
+    python.run_as(PLUGIN, "outcome = attempt(lambda: open(PRIVATE).read())");
+
+    CHECK(python.str("outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+}
+
+TEST_CASE("Without full access an audited operation still prompts", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    PluginPermissions permissions;
+    permissions.full_access = false;
+    harness.save_permissions(PLUGIN, permissions);
+
+    python.run_as(PLUGIN, "outcome = attempt(lambda: open(PRIVATE).read())");
+
+    CHECK(python.str("outcome") == "denied");
+    CHECK(describe(harness.prompts) == "open: " + python.str("PRIVATE") + "\n");
+}
+
+TEST_CASE("Full access does not bypass an unconditional denied path", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    seed_denied_names();
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    PluginPermissions permissions;
+    permissions.full_access = true;
+    harness.save_permissions(PLUGIN, permissions);
+
+    // The install-state sidecar stays host-managed: full access only switches off permission
+    // auditing, it does not make the plugin's own state file reachable.
+    python.globals["INSTALL_STATE"] = (harness.data.plugins_dir() / PLUGIN / ".install_state.json").string();
+    python.run_as(PLUGIN, "denied_outcome = attempt(lambda: open(INSTALL_STATE).read())");
+
+    CHECK(python.str("denied_outcome") == "denied");
+    CHECK(describe(harness.prompts).empty());
+    AuditViolation violation;
+    REQUIRE(PluginAuditManager::instance().last_violation(violation));
+    CHECK(violation.reason == "denied path");
+}
+
+TEST_CASE("A full access plugin's permission declaration is not prompted", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+
+    PluginPermissions stored;
+    stored.full_access = true;
+    stored.fs_read     = {"/previously/granted"};
+    harness.save_permissions(PLUGIN, stored);
+
+    bool prompted = false;
+    PluginAuditManager::set_permission_message_prompt_for_testing(
+        [&prompted](const std::string&) {
+            prompted = true;
+            return false;
+        });
+
+    PluginPermissions requested;
+    requested.fs_read = {"/new/target"};
+    const bool granted = PluginAuditManager::instance().request_permissions(PLUGIN, requested);
+
+    PluginAuditManager::set_permission_message_prompt_for_testing(nullptr);
+
+    // The declaration is accepted without a prompt and without adding a grant: full access already
+    // covers the event, and the stored list stays as it was.
+    CHECK(granted);
+    CHECK_FALSE(prompted);
+    CHECK(harness.saved_permissions(PLUGIN).fs_read == std::vector<std::string>{"/previously/granted"});
+}
+
+TEST_CASE("Toggling full access preserves the other stored grants", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+
+    PluginPermissions stored;
+    stored.fs_read        = {"/kept/read"};
+    stored.network_http   = {"https://kept.example"};
+    harness.save_permissions(PLUGIN, stored);
+
+    PluginManager& manager = PluginManager::instance();
+    REQUIRE(manager.set_plugin_full_access(PLUGIN, true));
+    PluginPermissions after_enable = harness.saved_permissions(PLUGIN);
+    CHECK(after_enable.full_access);
+    CHECK(after_enable.fs_read == std::vector<std::string>{"/kept/read"});
+    CHECK(after_enable.network_http == std::vector<std::string>{"https://kept.example"});
+
+    REQUIRE(manager.set_plugin_full_access(PLUGIN, false));
+    PluginPermissions after_disable = harness.saved_permissions(PLUGIN);
+    CHECK_FALSE(after_disable.full_access);
+    CHECK(after_disable.fs_read == std::vector<std::string>{"/kept/read"});
+
+    // An unknown package has no sidecar to modify: the toggle fails closed.
+    CHECK_FALSE(manager.set_plugin_full_access("NoSuchPlugin", true));
 }
 
 TEST_CASE("A filesystem wildcard keeps read and write grants separate", "[audit][Python]")

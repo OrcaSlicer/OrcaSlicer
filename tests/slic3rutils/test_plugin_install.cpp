@@ -19,8 +19,10 @@
 
 #include <fstream>
 #include <string>
+#include <vector>
 
 #include <libslic3r/Zipper.hpp>
+#include <nlohmann/json.hpp>
 
 using namespace Slic3r;
 namespace fs = boost::filesystem;
@@ -34,6 +36,15 @@ fs::path write_py_file(const fs::path& dir, const std::string& filename, const s
     std::ofstream out(p.string(), std::ios::binary);
     out << contents;
     return p;
+}
+
+// Write a sidecar verbatim so a test can exercise values the canonical writer never emits,
+// such as the legacy permission schema.
+void write_raw_install_state(const fs::path& plugin_dir, const nlohmann::json& state)
+{
+    fs::create_directories(plugin_dir);
+    std::ofstream out((plugin_dir / ".install_state.json").string(), std::ios::binary);
+    out << state.dump(2);
 }
 
 // The shared production helper: makes the path absolute and lexically normalized and, on
@@ -135,7 +146,7 @@ TEST_CASE("install-state sidecar is the source of truth for a cloud plugin's ins
     state.permissions.network_http  = {"https://api.example.com"};
     state.permissions.network_socket = {"192.168.45.6:443"};
     state.permissions.process        = {"/usr/bin/curl"};
-    state.permissions.threading      = {"thread"};
+    state.permissions.threading      = true;
     REQUIRE(write_install_state(plugin_dir, state));
 
     // Permission data is persisted in the same sidecar as the installation metadata.
@@ -156,6 +167,235 @@ TEST_CASE("install-state sidecar is the source of truth for a cloud plugin's ins
     scanned.version = "1.0.0"; // as parsed from the unchanged PEP723 header
     read_install_state(plugin_dir, scanned);
     CHECK(scanned.installed_version == "1.2.0");
+}
+
+TEST_CASE("install-state reads legacy threading values with nonempty meaning granted", "[PluginInstall]")
+{
+    ScopedDataDir data_dir_guard("threading-permission-read");
+    const fs::path plugin_dir = data_dir_guard.dir / "plugin";
+
+    const auto read_threading = [&plugin_dir]() {
+        PluginInstallState state;
+        REQUIRE(read_install_state(plugin_dir, state));
+        return state.permissions.threading;
+    };
+
+    SECTION("booleans are read directly")
+    {
+        write_raw_install_state(plugin_dir, {{"permissions", {{"threading", true}}}});
+        CHECK(read_threading());
+
+        write_raw_install_state(plugin_dir, {{"permissions", {{"threading", false}}}});
+        CHECK_FALSE(read_threading());
+    }
+
+    SECTION("a nonempty string grants and an empty string does not")
+    {
+        write_raw_install_state(plugin_dir, {{"permissions", {{"threading", "thread"}}}});
+        CHECK(read_threading());
+
+        write_raw_install_state(plugin_dir, {{"permissions", {{"threading", "other"}}}});
+        CHECK(read_threading());
+
+        write_raw_install_state(plugin_dir, {{"permissions", {{"threading", ""}}}});
+        CHECK_FALSE(read_threading());
+    }
+
+    SECTION("a nonempty array grants regardless of its contents")
+    {
+        const std::vector<nlohmann::json> arrays = {
+            nlohmann::json::array({"thread"}), nlohmann::json::array({"other"}),
+            nlohmann::json::array({1}),        nlohmann::json::array({true}),
+            nlohmann::json::array({"thread", 1})};
+        for (const nlohmann::json& value : arrays) {
+            write_raw_install_state(plugin_dir, {{"permissions", {{"threading", value}}}});
+            CHECK(read_threading());
+        }
+    }
+
+    SECTION("an empty array does not grant")
+    {
+        write_raw_install_state(plugin_dir, {{"permissions", {{"threading", nlohmann::json::array()}}}});
+        CHECK_FALSE(read_threading());
+    }
+
+    SECTION("numeric, object and null values do not grant")
+    {
+        const std::vector<nlohmann::json> malformed = {
+            0, 1, nlohmann::json::object({{"thread", true}}), nullptr};
+        for (const nlohmann::json& value : malformed) {
+            write_raw_install_state(plugin_dir, {{"permissions", {{"threading", value}}}});
+            CHECK_FALSE(read_threading());
+        }
+    }
+}
+
+TEST_CASE("install-state writes threading as a boolean and reads it back", "[PluginInstall]")
+{
+    ScopedDataDir data_dir_guard("threading-permission-write");
+    const fs::path plugin_dir = data_dir_guard.dir / "plugin";
+
+    PluginInstallState state;
+    state.permissions.threading = true;
+    REQUIRE(write_install_state(plugin_dir, state));
+
+    std::ifstream in((plugin_dir / ".install_state.json").string(), std::ios::binary);
+    const nlohmann::json written = nlohmann::json::parse(in);
+    REQUIRE(written["permissions"].contains("threading"));
+    CHECK(written["permissions"]["threading"].is_boolean());
+    CHECK(written["permissions"]["threading"].get<bool>());
+    in.close();
+
+    PluginInstallState read_back;
+    REQUIRE(read_install_state(plugin_dir, read_back));
+    CHECK(read_back.permissions.threading);
+
+    // The false grant is also written as a boolean and round-trips as false.
+    state.permissions.threading = false;
+    REQUIRE(write_install_state(plugin_dir, state));
+
+    {
+        std::ifstream false_in((plugin_dir / ".install_state.json").string(), std::ios::binary);
+        const nlohmann::json written_false = nlohmann::json::parse(false_in);
+        REQUIRE(written_false["permissions"].contains("threading"));
+        CHECK(written_false["permissions"]["threading"].is_boolean());
+        CHECK_FALSE(written_false["permissions"]["threading"].get<bool>());
+    }
+
+    REQUIRE(read_install_state(plugin_dir, read_back));
+    CHECK_FALSE(read_back.permissions.threading);
+}
+
+TEST_CASE("reading a legacy threading value does not rewrite the sidecar and a normal write migrates it",
+          "[PluginInstall]")
+{
+    ScopedDataDir data_dir_guard("threading-permission-migrate");
+    const fs::path plugin_dir = data_dir_guard.dir / "plugin";
+    const fs::path sidecar    = plugin_dir / ".install_state.json";
+
+    nlohmann::json capabilities = nlohmann::json::array();
+    capabilities.push_back({{"Script", true}});
+
+    const nlohmann::json legacy = {
+        {"installed_from", "local"},
+        {"installed_version", "1.0.0"},
+        {"plugin_name", "Migrating Plugin"},
+        {"cloud_uuid", "uuid-legacy"},
+        {"enabled", false},
+        {"permissions",
+         {{"fs_read", nlohmann::json::array({"/allowed/read"})},
+          {"fs_readwrite", nlohmann::json::array()},
+          {"network_http", nlohmann::json::array()},
+          {"network_socket", nlohmann::json::array()},
+          {"process", nlohmann::json::array()},
+          {"threading", nlohmann::json::array({"thread"})},
+          {"events", nlohmann::json::array({"FsRead:open"})}}},
+        {"capabilities", capabilities}};
+    write_raw_install_state(plugin_dir, legacy);
+
+    const auto read_raw = [&sidecar]() {
+        std::ifstream in(sidecar.string(), std::ios::binary);
+        return nlohmann::json::parse(in);
+    };
+
+    PluginInstallState state;
+    REQUIRE(read_install_state(plugin_dir, state));
+    CHECK(state.permissions.threading);
+    CHECK(state.permissions.fs_read == std::vector<std::string>{"/allowed/read"});
+    CHECK(state.permissions.events == std::vector<std::string>{"FsRead:open"});
+    // Reading only maps the value in memory: the file keeps its legacy form until a write.
+    CHECK(read_raw() == legacy);
+    CHECK(read_raw()["permissions"]["threading"].is_array());
+
+    REQUIRE(write_install_state(plugin_dir, state));
+    const nlohmann::json migrated = read_raw();
+    REQUIRE(migrated["permissions"].contains("threading"));
+    CHECK(migrated["permissions"]["threading"].is_boolean());
+    CHECK(migrated["permissions"]["threading"].get<bool>());
+    CHECK(migrated["installed_from"] == "local");
+    CHECK(migrated["installed_version"] == "1.0.0");
+    CHECK(migrated["plugin_name"] == "Migrating Plugin");
+    CHECK(migrated["cloud_uuid"] == "uuid-legacy");
+    CHECK_FALSE(migrated["enabled"].get<bool>());
+    CHECK(migrated["permissions"]["fs_read"] == legacy["permissions"]["fs_read"]);
+    CHECK(migrated["permissions"]["events"] == legacy["permissions"]["events"]);
+    CHECK(migrated["capabilities"] == legacy["capabilities"]);
+}
+
+TEST_CASE("install-state reads full access as a boolean and defaults to off", "[PluginInstall]")
+{
+    ScopedDataDir data_dir_guard("full-access-read");
+    const fs::path plugin_dir = data_dir_guard.dir / "plugin";
+
+    const auto read_full_access = [&plugin_dir]() {
+        PluginInstallState state;
+        REQUIRE(read_install_state(plugin_dir, state));
+        return state.permissions.full_access;
+    };
+
+    SECTION("a missing flag is off")
+    {
+        write_raw_install_state(plugin_dir, {{"permissions", nlohmann::json::object()}});
+        CHECK_FALSE(read_full_access());
+    }
+
+    SECTION("explicit booleans are read directly")
+    {
+        write_raw_install_state(plugin_dir, {{"permissions", {{"full_access", true}}}});
+        CHECK(read_full_access());
+
+        write_raw_install_state(plugin_dir, {{"permissions", {{"full_access", false}}}});
+        CHECK_FALSE(read_full_access());
+    }
+
+    SECTION("non-boolean values are off")
+    {
+        const std::vector<nlohmann::json> malformed = {
+            "true", 1, 0, nlohmann::json::array({true}), nlohmann::json::object({{"enabled", true}}), nullptr};
+        for (const nlohmann::json& value : malformed) {
+            write_raw_install_state(plugin_dir, {{"permissions", {{"full_access", value}}}});
+            CHECK_FALSE(read_full_access());
+        }
+    }
+}
+
+TEST_CASE("install-state writes full access as a boolean and reads it back", "[PluginInstall]")
+{
+    ScopedDataDir data_dir_guard("full-access-write");
+    const fs::path plugin_dir = data_dir_guard.dir / "plugin";
+
+    PluginInstallState state;
+    state.permissions.full_access = true;
+    state.permissions.fs_read     = {"/allowed/read"};
+    REQUIRE(write_install_state(plugin_dir, state));
+
+    std::ifstream in((plugin_dir / ".install_state.json").string(), std::ios::binary);
+    const nlohmann::json written = nlohmann::json::parse(in);
+    REQUIRE(written["permissions"].contains("full_access"));
+    CHECK(written["permissions"]["full_access"].is_boolean());
+    CHECK(written["permissions"]["full_access"].get<bool>());
+    CHECK(written["permissions"]["fs_read"] == nlohmann::json::array({"/allowed/read"}));
+    in.close();
+
+    PluginInstallState read_back;
+    REQUIRE(read_install_state(plugin_dir, read_back));
+    CHECK(read_back.permissions.full_access);
+    CHECK(read_back.permissions.fs_read == std::vector<std::string>{"/allowed/read"});
+
+    // Turning full access off is also written as a boolean and preserves the other grants.
+    state.permissions.full_access = false;
+    REQUIRE(write_install_state(plugin_dir, state));
+    {
+        std::ifstream false_in((plugin_dir / ".install_state.json").string(), std::ios::binary);
+        const nlohmann::json written_false = nlohmann::json::parse(false_in);
+        REQUIRE(written_false["permissions"].contains("full_access"));
+        CHECK(written_false["permissions"]["full_access"].is_boolean());
+        CHECK_FALSE(written_false["permissions"]["full_access"].get<bool>());
+        CHECK(written_false["permissions"]["fs_read"] == nlohmann::json::array({"/allowed/read"}));
+    }
+
+    REQUIRE(read_install_state(plugin_dir, read_back));
+    CHECK_FALSE(read_back.permissions.full_access);
 }
 
 TEST_CASE("a local plugin's installed version follows its entry file header", "[PluginInstall]")

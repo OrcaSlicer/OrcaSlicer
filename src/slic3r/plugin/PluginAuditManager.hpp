@@ -15,8 +15,9 @@ namespace Slic3r {
 
 struct PluginPermissions;
 
-// Thread creation exposes no user-supplied target, so both the runtime audit event and a
-// request_permissions(threading=True) declaration use this fixed target.
+// Thread creation exposes no user-supplied target, so the runtime audit event reports this fixed
+// target. Legacy sidecars also stored it as the sole entry of their threading target list; the
+// reader maps that form onto the boolean permission.
 inline constexpr const char* kThreadPermissionTarget = "thread";
 
 struct AuditDecision {
@@ -146,7 +147,8 @@ public:
     // load worker, so the implementation marshals the modal dialog to the wx main thread.
     // Targets already persisted for the plugin are not shown or asked for again. Returns true
     // only when every missing target was granted and persisted; denial aborts the plugin load
-    // without adding a permission.
+    // without adding a permission. A plugin with full access stored in its sidecar is never
+    // prompted: the declaration is accepted and no grant is added.
     //
     // A filesystem target may name a directory tree: a trailing "/*" (e.g. "/path/to/folder/*")
     // grants the folder itself and every path beneath it, at any depth. "*" is the only wildcard

@@ -1109,8 +1109,10 @@ std::vector<std::string>* permission_list_for(AuditEventCategory category, bool 
     case AuditEventCategory::Http:          return &permissions.network_http;
     case AuditEventCategory::Socket:        return &permissions.network_socket;
     case AuditEventCategory::ProcessCreate: return &permissions.process;
-    case AuditEventCategory::Threading:     return &permissions.threading;
     case AuditEventCategory::ProcessReplace: return &permissions.process;
+    // Threading is a boolean rather than a target list; decide_audited_event and persist_grant
+    // handle it directly.
+    case AuditEventCategory::Threading:     return nullptr;
     default:                                return nullptr;
     }
 }
@@ -1265,6 +1267,18 @@ bool persist_permission(const std::string&        plugin_key,
     return write_install_state(boost::filesystem::path(descriptor.plugin_root), state);
 }
 
+// Threading is a boolean grant, so it has no target list to append to.
+bool persist_threading_grant(const std::string& plugin_key, PluginInstallState& state)
+{
+    PluginDescriptor descriptor;
+    if (!PluginManager::instance().try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
+        return false;
+
+    seed_install_metadata(descriptor, state);
+    state.permissions.threading = true;
+    return write_install_state(boost::filesystem::path(descriptor.plugin_root), state);
+}
+
 int report_denied(PluginAuditManager&            mgr,
                   const std::string&             event_name,
                   const AuditDecision&           decision,
@@ -1366,6 +1380,11 @@ void persist_grant(const std::string& plugin_key, AuditEventCategory category, b
     if (!PluginManager::instance().get_install_state(plugin_key, state))
         return;
 
+    if (category == AuditEventCategory::Threading) {
+        persist_threading_grant(plugin_key, state);
+        return;
+    }
+
     std::vector<std::string>* permission_list = permission_list_for(category, by_event, state.permissions);
     if (!permission_list)
         return;
@@ -1449,22 +1468,38 @@ int decide_audited_event(PluginAuditManager&             mgr,
                          AuditEventCategory                category,
                          const std::vector<std::string>&   targets)
 {
+    // Full access turns permission auditing off for this plugin, so no grant or prompt applies.
+    // This is reached only after audit_plugin_event's unconditional denied-path loop: the
+    // install-state sidecar, the app config and the cloud refresh token stay blocked even here.
+    // It is a Python audit-hook policy only; the plugin still runs in the host process, so other
+    // processes are not restricted.
+    if (state.permissions.full_access)
+        return 0;
+
     const bool                     by_event = targets.empty();
     const std::vector<std::string> keys     = by_event ? std::vector<std::string>{event_grant_key(category, event_name)} : targets;
+    const bool                     threading_category = category == AuditEventCategory::Threading;
     std::vector<std::string>*      permission_list = permission_list_for(category, by_event, state.permissions);
 
     std::vector<std::string> unresolved = keys;
-    if (permission_list || is_network_category(category)) {
+    if (permission_list || is_network_category(category) || threading_category) {
         unresolved.clear();
-        for (const auto& key : keys) {
-            // A network grant authorizes a specific host, except for a targetless event such as
-            // http.client.send, which names no host: any network grant covers that.
-            const bool granted_network =
-                is_network_category(category) &&
-                (by_event ? has_any_network_permission(state.permissions)
-                          : has_network_permission(state.permissions, key));
-            if (!(permission_list && has_permission(category, by_event, *permission_list, key)) && !granted_network)
-                unresolved.push_back(key);
+        if (threading_category) {
+            // Threading is a boolean grant rather than a target list. The event still reports the
+            // fixed sentinel target so it is not treated as a targetless event grant.
+            if (!state.permissions.threading)
+                unresolved = keys;
+        } else {
+            for (const auto& key : keys) {
+                // A network grant authorizes a specific host, except for a targetless event such as
+                // http.client.send, which names no host: any network grant covers that.
+                const bool granted_network =
+                    is_network_category(category) &&
+                    (by_event ? has_any_network_permission(state.permissions)
+                              : has_network_permission(state.permissions, key));
+                if (!(permission_list && has_permission(category, by_event, *permission_list, key)) && !granted_network)
+                    unresolved.push_back(key);
+            }
         }
         if (unresolved.empty())
             return 0;
@@ -1478,9 +1513,12 @@ int decide_audited_event(PluginAuditManager&             mgr,
     if (!request_permission(category, plugin_key, plugin_name, event_name, by_event, unresolved))
         return report_denied(mgr, event_name, {false, "audit permission required"});
 
-    if (permission_list)
+    if (threading_category) {
+        persist_threading_grant(plugin_key, state);
+    } else if (permission_list) {
         for (const auto& key : unresolved)
             persist_permission(plugin_key, state, category, by_event, *permission_list, key);
+    }
     return 0;
 }
 
@@ -1552,7 +1590,13 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
         return false;
 
     PluginInstallState state;
-    read_install_state(boost::filesystem::path(descriptor.plugin_root), state);
+    const bool have_install_state = read_install_state(boost::filesystem::path(descriptor.plugin_root), state);
+
+    // Full access is an explicit opt-out of auditing: a declaration neither prompts nor adds a
+    // grant. Only a readable sidecar that stores the flag counts, so a missing or malformed file
+    // is never mistaken for an opt-out.
+    if (have_install_state && state.permissions.full_access)
+        return true;
 
     // Per bucket, keep only the targets that no earlier grant already covers. Dropping these
     // before prompting keeps a repeated declaration from asking again for what is on disk.
@@ -1601,7 +1645,10 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     collect_missing(AuditEventCategory::Http, requested.network_http, state.permissions.network_http);
     collect_missing(AuditEventCategory::Socket, requested.network_socket, state.permissions.network_socket);
     collect_missing(AuditEventCategory::ProcessCreate, requested.process, state.permissions.process);
-    collect_missing(AuditEventCategory::Threading, requested.threading, state.permissions.threading);
+    // Threading is a single boolean grant: ask once when requested and not yet granted. The fixed
+    // sentinel gives the prompt a target even though thread creation exposes none.
+    if (requested.threading && !state.permissions.threading)
+        missing_buckets.push_back({AuditEventCategory::Threading, {kThreadPermissionTarget}});
 
     if (missing_buckets.empty())
         return true;
@@ -1651,6 +1698,10 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     PluginAuditDetail::seed_install_metadata(descriptor, state);
 
     for (const MissingBucket& bucket : missing_buckets) {
+        if (bucket.category == AuditEventCategory::Threading) {
+            state.permissions.threading = true;
+            continue;
+        }
         std::vector<std::string>* permission_list =
             PluginAuditDetail::permission_list_for(bucket.category, /*by_event=*/false, state.permissions);
         if (!permission_list)

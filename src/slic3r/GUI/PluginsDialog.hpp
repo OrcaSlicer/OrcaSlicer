@@ -257,6 +257,7 @@ private:
     void prompt_for_missing_plugins();
     void refresh_plugins();
     void toggle_plugin(const std::string& plugin_key, bool enabled);
+    void set_plugin_full_access(const std::string& plugin_key, bool enabled, const std::string& request_id);
     void toggle_plugin_capability(const std::string& plugin_key, PluginCapabilityType type, const std::string& capability_name, bool enabled);
     void handle_plugin_menu_action(const std::string& plugin_key, const std::string& action);
 

@@ -807,8 +807,27 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstall
             read_string_list("network_http", parsed.permissions.network_http);
             read_string_list("network_socket", parsed.permissions.network_socket);
             read_string_list("process", parsed.permissions.process);
-            read_string_list("threading", parsed.permissions.threading);
             read_string_list("events", parsed.permissions.events);
+
+            // Threading is a boolean grant. Newer sidecars store the boolean directly; the older
+            // array form stored an empty list when denied and a nonempty one when granted. By
+            // explicit migration choice, any nonempty string or array therefore grants and an
+            // empty one denies; any other JSON type leaves the permission off. Reading never
+            // rewrites the sidecar; the next normal write stores the boolean form.
+            if (permissions.contains("threading")) {
+                const auto& threading = permissions["threading"];
+                if (threading.is_boolean())
+                    parsed.permissions.threading = threading.get<bool>();
+                else if (threading.is_string())
+                    parsed.permissions.threading = !threading.get<std::string>().empty();
+                else if (threading.is_array())
+                    parsed.permissions.threading = !threading.empty();
+            }
+
+            // Full access is a boolean grant. Only an explicit JSON boolean enables it: a missing
+            // key, a "true" string, a number or any other type leaves it off.
+            if (permissions.contains("full_access") && permissions["full_access"].is_boolean())
+                parsed.permissions.full_access = permissions["full_access"].get<bool>();
         }
 
         if (state.contains("enabled") && state["enabled"].is_boolean())
@@ -877,6 +896,7 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
         {"process", state.permissions.process},
         {"threading", state.permissions.threading},
         {"events", state.permissions.events},
+        {"full_access", state.permissions.full_access},
     };
 
     nlohmann::json capabilities = nlohmann::json::array();
