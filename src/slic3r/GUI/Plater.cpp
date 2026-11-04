@@ -5,6 +5,7 @@
 #include "CalibUtils.hpp"
 #include "Flashforge.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/Memory.hpp"
 #include "libslic3r_version.h"
 
 #include <boost/assert/source_location.hpp>
@@ -11416,6 +11417,7 @@ void Plater::priv::reset(bool apply_presets_change, bool reload_presets)
         keep("run_script", m_aui_mgr.GetPane("run_script").IsOk());
         wxGetApp().app_config->set("window_layout", layout.utf8_string());
     }
+    Slic3r::trim_process_memory();
 }
 
 void Plater::priv::center_selection()
@@ -14140,6 +14142,7 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         this->preview->reload_print(false);
         q->mark_plate_toolbar_image_dirty();
         q->SetDropTarget(new PlaterDropTarget(*main_frame, *q));
+        Slic3r::trim_process_memory();
     }
     else
     {
