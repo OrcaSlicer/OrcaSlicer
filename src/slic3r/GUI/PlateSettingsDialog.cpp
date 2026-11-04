@@ -563,12 +563,15 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     m_spiral_mode_choice->Append(_L("Disable"));
     m_spiral_mode_choice->SetSelection(0);
     m_spiral_mode_choice->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
-        if (e.GetSelection() != 1 || m_spiral_mode_selection == 1) {
+        // no prompt when already enabled through the global setting, like the sidebar
+        const bool inherited_enabled = m_spiral_mode_selection == 0 &&
+            wxGetApp().preset_bundle->prints.get_edited_preset().config.opt_bool("spiral_mode");
+        if (e.GetSelection() != 1 || m_spiral_mode_selection == 1 || inherited_enabled) {
             m_spiral_mode_selection = e.GetSelection();
             return;
         }
-        CallAfter([this] {
-            if (m_spiral_mode_choice->GetSelection() != 1)
+        CallAfter([this] { // after the list is closed
+            if (m_spiral_mode_choice->GetSelection() != 1 || m_spiral_mode_selection == 1)
                 return;
             if (static_cast<TabPrintPlate*>(wxGetApp().plate_tab)->show_spiral_mode_settings_dialog(false) != wxID_YES)
                 m_spiral_mode_choice->SetSelection(m_spiral_mode_selection);
