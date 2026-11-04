@@ -9,6 +9,7 @@
 #include <slic3r/plugin/PluginFsUtils.hpp>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include "catch2/catch_message.hpp"
@@ -19,6 +20,7 @@
 
 #include <fstream>
 #include <string>
+#include <vector>
 
 #include <libslic3r/Zipper.hpp>
 
@@ -105,6 +107,30 @@ TEST_CASE("install_plugin accepts a side-loaded .py with complete PEP 723 metada
     // Positive control: a complete side-loaded .py must still install (guards against over-rejection).
     REQUIRE(installed);
     CHECK(error.empty());
+}
+
+TEST_CASE("a .py plugin's PEP 723 dependencies split only at the commas between items", "[PluginInstall][PluginFsUtils]")
+{
+    // Each layout holds the same two items; the first has a comma inside its quotes, as a version
+    // range does, and the comments hold commas too.
+    const std::string array = GENERATE(std::string("[\"numpy>=1.20,<2\", 'pillow']\n"),
+                                       std::string("[\n#   \"numpy>=1.20,<2\",\n#   \"pillow\",\n# ]\n"),
+                                       std::string("[\n#   \"numpy>=1.20,<2\", \"pillow\",\n# ]\n"),
+                                       std::string("[\"numpy>=1.20,<2\",\n#   \"pillow\",\n# ]\n"),
+                                       std::string("[  # runtime, pinned\n"
+                                                   "#   \"numpy>=1.20,<2\",  # below 2, for now\n"
+                                                   "#   'pillow']\n"));
+    ScopedTemporaryDir dir("pep723-deps");
+    const fs::path py = write_py_file(dir.path(), "deps.py",
+                                      "# /// script\n# dependencies = " + array +
+                                          "#\n# [tool.orcaslicer.plugin]\n# name = \"Deps\"\n# ///\nprint('ok')\n");
+
+    PluginDescriptor descriptor;
+    std::string error;
+    REQUIRE(read_python_plugin_metadata(py, descriptor, error));
+    INFO(array);
+    CHECK(descriptor.dependencies == std::vector<std::string>{"numpy>=1.20,<2", "pillow"});
+    CHECK(descriptor.name == "Deps");
 }
 
 TEST_CASE("install-state sidecar is the source of truth for a cloud plugin's installed version", "[PluginInstall]")

@@ -21758,17 +21758,17 @@ msgstr "Naar binnen vegen"
 
 # AI Translated
 msgid ""
-"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
+"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward the inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
 "\n"
 "Especially useful at layer heights below 0.1 mm, where wipe marks are more visible.\n"
 "\n"
-"Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or Outer/Inner wall order), or if no supported inward path can be found, for example at tight corners or seam gaps."
+"Uses the regular wipe where the outer wall has no adjacent inner wall, such as in single-wall areas, or if no supported inward path can be found, for example at tight corners or seam gaps."
 msgstr ""
-"Geldt alleen voor buitenwanden, inclusief gatcontouren. Beweegt het hete mondstuk tijdens het vegen naar reeds geprinte binnenwanden, om het opnieuw opwarmen van vers geprint plastic en naadsporen te beperken.\n"
+"Geldt alleen voor buitenwanden, inclusief gatcontouren. Beweegt het hete mondstuk tijdens het vegen naar de binnenwanden, om het opnieuw opwarmen van vers geprint plastic en naadsporen te beperken.\n"
 "\n"
 "Vooral nuttig bij laaghoogtes onder 0,1 mm, waar veegsporen beter zichtbaar zijn.\n"
 "\n"
-"Gebruikt het gewone vegen als er nog geen aangrenzende binnenwand geprint is (gebieden met één wand of de wandvolgorde Buiten/Binnen), of als er geen ondersteund pad naar binnen gevonden kan worden, bijvoorbeeld bij krappe hoeken of onderbrekingen in de naad."
+"Gebruikt het gewone vegen waar de buitenwand geen aangrenzende binnenwand heeft, zoals in gebieden met één wand, of als er geen ondersteund pad naar binnen gevonden kan worden, bijvoorbeeld bij krappe hoeken of onderbrekingen in de naad."
 
 # AI Translated
 msgid "Wipe inward distance"
@@ -21779,11 +21779,15 @@ msgstr "Afstand voor naar binnen vegen"
 msgid ""
 "The distance the wipe path is shifted away from the external perimeter, specified in millimeters or as a percentage of the actual outer-wall extrusion width.\n"
 "\n"
-"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset."
+"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset.\n"
+"\n"
+"With Outer/Inner or Inner/Outer/Inner wall order, the offset is limited to 50% of the actual outer-wall width because the adjacent inner wall is printed after the outer wall. This also applies to equivalent distances specified in millimeters."
 msgstr ""
 "De afstand waarover het veegpad van de buitenste omtrek af wordt verschoven, opgegeven in millimeters of als percentage van de werkelijke extrusiebreedte van de buitenwand.\n"
 "\n"
-"Bijvoorbeeld: 50% verschuift het pad over de helft van de breedte van de buitenwand. De effectieve verschuiving wordt begrensd door zowel de werkelijke breedte van de buitenwand als de beschikbare ruimte tot de aangrenzende wand, dus waarden boven 100% of een gelijkwaardige absolute afstand hebben geen extra effect. Stel in op 0 om de verschuiving uit te schakelen."
+"Bijvoorbeeld: 50% verschuift het pad over de helft van de breedte van de buitenwand. De effectieve verschuiving wordt begrensd door zowel de werkelijke breedte van de buitenwand als de beschikbare ruimte tot de aangrenzende wand, dus waarden boven 100% of een gelijkwaardige absolute afstand hebben geen extra effect. Stel in op 0 om de verschuiving uit te schakelen.\n"
+"\n"
+"Bij de wandvolgorde Buiten/Binnen of Binnen/Buiten/Binnen is de verschuiving beperkt tot 50% van de werkelijke breedte van de buitenwand, omdat de aangrenzende binnenwand na de buitenwand wordt geprint. Dit geldt ook voor gelijkwaardige afstanden in millimeters."
 
 # AI Translated
 msgid "Wipe before external loop"
@@ -26444,10 +26448,10 @@ msgstr "Klipper-versie => 0.9.0"
 
 # AI Translated
 msgid ""
-"RepRap firmware version => 3.4.0\n"
+"RepRapFirmware version => 3.4.0\n"
 "Check your firmware documentation for supported shaper types."
 msgstr ""
-"RepRap-firmwareversie => 3.4.0\n"
+"RepRapFirmware-versie => 3.4.0\n"
 "Raadpleeg de documentatie van uw firmware voor de ondersteunde shapertypes."
 
 # AI Translated
@@ -26467,8 +26471,8 @@ msgid "Frequency settings"
 msgstr "Frequentie-instellingen"
 
 # AI Translated
-msgid "RepRap firmware uses the same frequency range for both axes."
-msgstr "RepRap-firmware gebruikt hetzelfde frequentiebereik voor beide assen."
+msgid "RepRapFirmware uses the same frequency range for both axes."
+msgstr "RepRapFirmware gebruikt hetzelfde frequentiebereik voor beide assen."
 
 # AI Translated
 msgid "Damp: "
@@ -26515,8 +26519,8 @@ msgid "Damp (Start / End): "
 msgstr "Demping (Start / Einde): "
 
 # AI Translated
-msgid "RepRap firmware uses the same frequency for both axes."
-msgstr "RepRap-firmware gebruikt dezelfde frequentie voor beide assen."
+msgid "RepRapFirmware uses the same frequency for both axes."
+msgstr "RepRapFirmware gebruikt dezelfde frequentie voor beide assen."
 
 # AI Translated
 msgid "Note: Use previously calculated frequencies."
