@@ -38,10 +38,12 @@ TEST_CASE("A sequence count without matching values gives no custom sequence", "
     CHECK(get_other_layers_print_sequence(0, placeholder).empty());
     // The count raised on its own, as a command line override does.
     CHECK(get_other_layers_print_sequence(1, placeholder).empty());
-    // A group with a layer range but no extruder.
+    // A group with a layer range but no extruder, alone and as two groups that divide evenly.
     CHECK(get_other_layers_print_sequence(1, std::vector<int>{1, 5}).empty());
+    CHECK(get_other_layers_print_sequence(2, std::vector<int>{1, 5, 6, 9}).empty());
     // A count that does not divide the values.
     CHECK(get_other_layers_print_sequence(2, std::vector<int>{1, 5, 2, 1, 6}).empty());
+    // A negative count, and no values at all.
     CHECK(get_other_layers_print_sequence(-1, std::vector<int>{1, 5, 2}).empty());
     CHECK(get_other_layers_print_sequence(1, {}).empty());
 }

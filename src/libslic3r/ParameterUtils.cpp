@@ -1,5 +1,6 @@
 #include "ParameterUtils.hpp"
 #include "PrintConfig.hpp"
+#include <boost/log/trivial.hpp>
 #include <cassert>
 #include <vector>
 #include <cstddef>
@@ -19,8 +20,11 @@ std::vector<LayerPrintSequence> get_other_layers_print_sequence(int sequence_num
     // values, or groups too short for a layer range and one extruder. Treat such a
     // pair as no custom sequence rather than reading past the groups.
     size_t item_nums = sequence.size() / size_t(sequence_nums);
-    if (sequence.size() % size_t(sequence_nums) != 0 || item_nums < 3)
+    if (sequence.size() % size_t(sequence_nums) != 0 || item_nums < 3) {
+        BOOST_LOG_TRIVIAL(warning) << "other_layers_print_sequence_nums " << sequence_nums << " does not fit the "
+                                   << sequence.size() << " values of other_layers_print_sequence, ignoring the custom sequence";
         return res;
+    }
 
     res.reserve(sequence_nums);
 
