@@ -42,6 +42,7 @@
 #ifdef __WXGTK__
 #include <gtk/gtk.h>
 #include <pango/pangocairo.h>
+#include <cstdlib>
 #endif 
 
 #include <wx/toplevel.h>
