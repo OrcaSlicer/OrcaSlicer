@@ -75,7 +75,7 @@
         "185"
     ],
     "enable_pressure_advance": [
-		"true"
+		"1"
     ],
     "pressure_advance": [
 		"0.2"
@@ -93,4 +93,3 @@
 		"0.4"
     ]
 }
-
