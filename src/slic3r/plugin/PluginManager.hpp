@@ -15,7 +15,6 @@
 #include <memory>
 #include <mutex>
 #include <optional>
-#include "pybind11/pytypes.h"
 #include "slic3r/plugin/PluginFsUtils.hpp"
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <string>
@@ -23,12 +22,14 @@
 #include <utility>
 #include <vector>
 
-#include <pybind11/embed.h>
-
 #include "CloudPluginService.hpp"
 #include "PluginDescriptor.hpp"
 #include "PluginLoader.hpp"
 #include "PluginConfig.hpp"
+
+struct _object;
+using PyObject = _object;
+namespace pybind11 { class object; }
 
 namespace Slic3r {
 
@@ -130,6 +131,7 @@ public:
 
     // Reject new plugin loads. Called early in app teardown, before shutdown() drains.
     void set_shutting_down();
+    bool is_shutting_down() const { return m_shutting_down.load(std::memory_order_acquire); }
 
     void discover_plugins(bool async = false, bool clear = false);
     // Manually trigger a manifest-only rescan. Blocks until discovery is complete.

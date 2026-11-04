@@ -394,31 +394,41 @@ std::string unquote_toml_string(const std::string& val)
     return val;
 }
 
-// Split a TOML inline array: ["a", "b"] → {"a", "b"}.
-// Handles trailing commas and single-line format.
-std::vector<std::string> parse_toml_inline_array(const std::string& val)
+// Append the string items of one line of a TOML array to `items`. A quoted item keeps its commas,
+// as a version range ("numpy>=1.20,<2") needs; '#' starts a comment and ']' closes the array.
+// Returns true when the array closes on this line.
+bool read_toml_array_items(const std::string& line, std::vector<std::string>& items)
 {
-    std::vector<std::string> result;
-    std::string inner = val;
-    // Strip outer brackets.
-    if (!inner.empty() && inner.front() == '[')
-        inner.erase(0, 1);
-    if (!inner.empty() && inner.back() == ']')
-        inner.pop_back();
-
-    // Simple split by comma, strip quotes and whitespace.
-    std::istringstream ss(inner);
-    std::string item;
-    while (std::getline(ss, item, ',')) {
-        // Trim whitespace.
-        size_t s = 0, e = item.size();
-        while (s < e && (item[s] == ' ' || item[s] == '\t')) ++s;
-        while (e > s && (item[e - 1] == ' ' || item[e - 1] == '\t')) --e;
-        item = item.substr(s, e - s);
+    size_t i = 0;
+    while (i < line.size()) {
+        const char c = line[i];
+        if (c == ']')
+            return true;
+        if (c == '#')
+            return false;
+        if (c == ' ' || c == '\t' || c == ',') {
+            ++i;
+            continue;
+        }
+        std::string item;
+        if (c == '"' || c == '\'') {
+            // A basic string ("...") takes backslash escapes; a literal string ('...') takes none.
+            for (++i; i < line.size() && line[i] != c; ++i) {
+                if (c == '"' && line[i] == '\\' && i + 1 < line.size())
+                    ++i;
+                item += line[i];
+            }
+            ++i;
+        } else {
+            // An unquoted item isn't TOML, but is kept as the requirement it names.
+            const size_t end = std::min(line.find_first_of(" \t,]#", i), line.size());
+            item = line.substr(i, end - i);
+            i = end;
+        }
         if (!item.empty())
-            result.push_back(unquote_toml_string(item));
+            items.push_back(item);
     }
-    return result;
+    return false;
 }
 
 // Parse PEP 723 TOML subset for dependencies, requires-python, and
@@ -485,16 +495,8 @@ bool parse_pep723_toml(const std::string& toml_content,
         }
 
         if (section == TomlSection::InDepsArray) {
-            if (trimmed == "]") {
+            if (read_toml_array_items(trimmed, out_deps))
                 section = TomlSection::Root;
-                continue;
-            }
-            std::string val = trimmed;
-            if (!val.empty() && val.back() == ',')
-                val.pop_back();
-            val = unquote_toml_string(val);
-            if (!val.empty())
-                out_deps.push_back(val);
             continue;
         }
 
@@ -518,12 +520,11 @@ bool parse_pep723_toml(const std::string& toml_content,
             if (key == "requires-python") {
                 out_requires_python = unquote_toml_string(val);
             } else if (key == "dependencies") {
-                if (val == "[") {
+                // The array may close on this line or run on over the following ones.
+                out_deps.clear();
+                const bool array = !val.empty() && val.front() == '[';
+                if (!read_toml_array_items(array ? val.substr(1) : val, out_deps) && array)
                     section = TomlSection::InDepsArray;
-                } else {
-                    // Inline array: dependencies = ["a", "b"]
-                    out_deps = parse_toml_inline_array(val);
-                }
             }
         } else if (section == TomlSection::OrcaPlugin) {
             if (key == "name")         out_name = unquote_toml_string(val);
@@ -833,6 +834,29 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstall
     }
 }
 
+namespace {
+
+// The single descriptor -> sidecar metadata mapping. Prefer installed_version (fetched at install
+// time and preserved across rewrites) over a possibly stale manifest version.
+void apply_install_metadata(PluginInstallState& state, const PluginDescriptor& entry)
+{
+    state.installed_from    = entry.is_cloud_plugin() ? "cloud" : "local";
+    state.installed_version = !entry.installed_version.empty() ? entry.installed_version : entry.version;
+    state.plugin_name       = entry.name;
+    state.cloud_uuid        = entry.cloud_uuid();
+}
+
+} // namespace
+
+void seed_install_metadata(PluginInstallState& state, const PluginDescriptor& entry)
+{
+    if (!state.plugin_name.empty())
+        return;
+
+    apply_install_metadata(state, entry);
+    state.enabled = true;
+}
+
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginInstallState& state)
 {
     namespace fs                = boost::filesystem;
@@ -876,16 +900,9 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
     // Loading a plugin updates its lifecycle/capability state, but must retain permissions granted
     // during register_capabilities() or by a previous runtime audit prompt.
     read_install_state(plugin_dir, state);
-    state.installed_from    = entry.is_cloud_plugin() ? "cloud" : "local";
-    // Prefer the descriptor's recorded installed_version (the version fetched from the cloud
-    // at install time, preserved across sidecar re-writes) so a stale manifest/PEP723 header
-    // never overwrites the source-of-truth version. Fall back to the manifest version for
-    // first-time/local installs where installed_version is not yet populated.
-    state.installed_version = !entry.installed_version.empty() ? entry.installed_version : entry.version;
-    state.plugin_name       = entry.name;
-    state.cloud_uuid        = entry.cloud_uuid();
-    state.enabled           = enabled;
-    state.capabilities      = capabilities;
+    apply_install_metadata(state, entry);
+    state.enabled      = enabled;
+    state.capabilities = capabilities;
     return write_install_state(plugin_dir, state);
 }
 
@@ -896,11 +913,7 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
     // permissions on a fresh install/reinstall. PluginManager writes the real per-capability flags
     // while preserving permissions once the package is loaded, via the overload above.
     PluginInstallState state;
-    state.installed_from    = entry.is_cloud_plugin() ? "cloud" : "local";
-    state.installed_version = !entry.installed_version.empty() ? entry.installed_version : entry.version;
-    state.plugin_name       = entry.name;
-    state.cloud_uuid        = entry.cloud_uuid();
-    state.enabled           = true;
+    seed_install_metadata(state, entry);
     return write_install_state(plugin_dir, state);
 }
 

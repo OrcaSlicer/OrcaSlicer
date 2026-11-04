@@ -23,6 +23,7 @@ public:
     bool is_kickstart;
     float x = 0, y = 0, z = 0, e = 0;
     float dx = 0, dy = 0, dz = 0, de = 0;
+    ExtrusionRole role = ExtrusionRole::erNone;
     BufferData(std::string line, float time = 0, int16_t fan_speed = 0, float is_kickstart = false) : raw(line), time(time), fan_speed(fan_speed), is_kickstart(is_kickstart){
         //avoid double \n
         if(!line.empty() && line.back() == '\n') line.pop_back();
@@ -39,6 +40,8 @@ private:
     const bool relative_e;
     const bool only_overhangs;
     const float kickstart;
+    // Export precision of the G-code, kept when a G1 is split.
+    const bool m_high_precision;
 
     GCodeReader m_parser{};
     const GCodeWriter& m_writer;
@@ -68,7 +71,8 @@ public:
         : regex_fan_speed("S[0-9]+"), 
         nb_seconds_delay(nb_seconds_delay>0 ? std::max(0.01f,nb_seconds_delay) : 0),
         with_D_option(with_D_option)
-        , relative_e(relative_e), only_overhangs(only_overhangs), kickstart(kickstart), m_writer(writer){
+        , relative_e(relative_e), only_overhangs(only_overhangs), kickstart(kickstart)
+        , m_high_precision(writer.config.high_precision_gcode.value), m_writer(writer){
         m_parser.apply_config(writer.config);
     }
 
@@ -88,6 +92,9 @@ private:
     // Processes the given gcode line
     void _process_gcode_line(GCodeReader& reader, const GCodeReader::GCodeLine& line);
     void _process_T(const std::string_view command);
+    // Whether a split G1 is written with high precision G-code. Supports keep the standard precision, see
+    // GCode::extrude_support().
+    bool high_precision(const BufferData &line) const { return m_high_precision && !is_support(line.role); }
     void _put_in_middle_G1(std::list<BufferData>::iterator item_to_split, float nb_sec, BufferData&& line_to_write);
     void _print_in_middle_G1(BufferData& line_to_split, float nb_sec, const std::string& line_to_write);
     void _remove_slow_fan(int16_t min_speed, float past_sec);

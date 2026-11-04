@@ -1263,7 +1263,7 @@ void CalibrationPresetPage::create_page(wxWindow* parent)
 
     if (m_cali_mode == CalibMode::Calib_PA_Line || m_cali_mode == CalibMode::Calib_PA_Pattern) {
         wxArrayString pa_cali_modes;
-        pa_cali_modes.push_back(_L("Line"));
+        pa_cali_modes.push_back(_L_CONTEXT("Line", "PA calibration method"));
         pa_cali_modes.push_back(_L("Pattern"));
         m_pa_cali_method_combox = new CaliComboBox(parent, _L("Method"), pa_cali_modes);
     }
@@ -1943,7 +1943,7 @@ void CalibrationPresetPage::show_status(CaliPresetPageStatus status)
         Enable_Send_Button(false);
     }
     else if (status == CaliPresetPageStatus::CaliPresetStatusNoSdcard) {
-        wxString msg_text = _L("Storage needs to be inserted before printing.");
+        wxString msg_text = _L("Insert storage or free up space before printing.");
         update_print_status_msg(msg_text, true);
         Enable_Send_Button(false);
     }

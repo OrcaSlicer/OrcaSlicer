@@ -2691,7 +2691,7 @@ int MachineObject::connect()
     std::string port;
     std::string input = get_dev_ip();
 
-    const bool use_ssl = input.rfind("https", 0) == 0;
+    bool use_ssl = input.rfind("https", 0) == 0;
 
     // This strips out the http/https prefix
     std::string host = Http::get_host_from_url(input, &port);
@@ -2708,6 +2708,7 @@ int MachineObject::connect()
         if (printer_agent_id == MOONRAKER_PRINTER_AGENT_ID && config.opt_string("printer_agent") == MOONRAKER_PRINTER_AGENT_ID &&
             !print_host.empty() && dev_id_from_address(print_host, config.opt_string("printhost_port")) == get_dev_id()) {
             password = config.opt_string("printhost_apikey");
+            use_ssl  = boost::istarts_with(print_host, "https://");
             if (password != get_access_code())
                 set_access_code(password);
         }

@@ -41,10 +41,6 @@
 #include <cstddef>
 #include <cstdlib>
 #include <cstdio>
-#include <boost/process/pipe.hpp>
-#include <boost/process/start_dir.hpp>
-#include <boost/process/io.hpp>
-#include <boost/process/handles.hpp>
 #include <exception>
 #include <slic3r/GUI/DeviceManager.hpp>
 #include <string>
@@ -63,10 +59,8 @@
 #include <wx/utils.h>
 #include <wx/uri.h>
 #undef pid_t
-#include <boost/process.hpp>
-#ifdef __WIN32__
-#include <boost/process/windows.hpp>
-#else
+#include <slic3r/Utils/BoostProcessCompat.hpp>
+#ifndef __WIN32__
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #endif

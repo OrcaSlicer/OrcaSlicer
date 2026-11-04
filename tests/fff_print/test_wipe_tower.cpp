@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include <catch2/catch_all.hpp>
 
 #include "libslic3r/Config.hpp"
@@ -10,6 +11,7 @@
 #include "libslic3r/Print.hpp"
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -23,6 +25,8 @@
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/GCodeReader.hpp"
+#include "libslic3r/GCode/ToolOrdering.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -572,4 +576,263 @@ TEST_CASE("Only a cone wall gives the tower a stabilization cone", "[WipeTower]"
         CHECK(unscaled(footprint.min.y()) > plate_max_y);
         CHECK_FALSE(print.get_conflict_result().has_value());
     }
+}
+
+TEST_CASE("Without sparse layers the filament change starts at the tallest printed layer", "[WipeTower]")
+{
+    // Filament 2 on top surfaces only, so the layers between the short cube's top and the tall
+    // cube's top have no toolchange and the tower skips them: at the tall cube's top it is still
+    // about 2 mm high. A custom change_filament_gcode may travel anywhere, and so may the firmware
+    // Tn of a switch to another physical extruder, so neither may start that low.
+    const std::string tower_type   = GENERATE("type1", "type2");
+    const bool        two_nozzles  = GENERATE(false, true);
+    const bool        custom_macro = GENERATE(true, false);
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "top_surface_filament_id",     2     },
+        { "enable_prime_tower",          true  },
+        { "wipe_tower_type",             tower_type },
+        { "wipe_tower_no_sparse_layers", true  },
+        { "wipe_tower_x",                30    },
+        { "wipe_tower_y",                30    },
+        { "layer_height",                0.2   },
+        { "change_filament_gcode",       custom_macro ? "; TOOLCHANGE_MARK\n" : "" },
+        { "gcode_comments",              true  },
+        { "timelapse_type",              "0"   },
+        { "enable_wrapping_detection",   false },
+        { "raft_layers",                 "0"   } });
+    if (two_nozzles) {
+        config.set_num_extruders(2);
+        config.set_deserialize_strict({
+            { "single_extruder_multi_material", false },
+            { "nozzle_diameter",                "0.4,0.4" },
+            { "printer_extruder_id",            "1,2" },
+            { "printer_extruder_variant",       "Direct Drive Standard,Direct Drive Standard" },
+            { "extruder_printable_height",      "0,0" },
+            { "filament_map_mode",              "Manual" },
+            { "filament_map",                   "1,2" } });
+        size_flush_to_nozzles(config);
+    }
+
+    const double short_height = 2., tall_height = 10.;
+    TriangleMesh tall = make_cube(10., 10., tall_height);
+    tall.translate(120.f, 120.f, 0.f);
+    TriangleMesh low = make_cube(10., 10., short_height);
+    low.translate(150.f, 120.f, 0.f);
+
+    Print print;
+    Model model;
+    init_print({ std::move(tall), std::move(low) }, print, model, config, nullptr, false);
+    print.apply(model, config);
+    const std::string gcode = Slic3r::Test::gcode(print);
+
+    // Z where each change_filament_gcode or Tn starts, next to the highest Z of the objects
+    // extruded before it; and the Z of each tower extrusion once the objects pass the short cube.
+    std::vector<std::pair<double, double>> changes;
+    std::vector<std::pair<double, double>> tower_extrusions;
+    double object_z = 0.;
+    bool   in_tower = false;
+    size_t lifts    = 0;
+    GCodeReader parser;
+    parser.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view raw = line.raw();
+        // Objects are tagged with the processor's ;TYPE:, the tower with its own ; FEATURE:.
+        if (raw.rfind(";TYPE:", 0) == 0 || raw.rfind("; FEATURE: ", 0) == 0)
+            in_tower = raw.find("Prime tower") != std::string_view::npos;
+        else if (line.extruding(self) && (line.has_x() || line.has_y())) { // not an unretract
+            if (!in_tower)
+                object_z = std::max(object_z, double(self.z()));
+            // Above the tall cube is the final unload, printed over the finished parts on purpose.
+            else if (object_z > short_height + EPSILON && self.z() <= tall_height + EPSILON)
+                tower_extrusions.emplace_back(self.z(), object_z);
+        } else if (raw.find("; TOOLCHANGE_MARK") != std::string_view::npos
+                   || (raw.size() > 1 && raw[0] == 'T' && raw[1] >= '0' && raw[1] <= '9'))
+            changes.emplace_back(self.z(), object_z);
+        if (raw.find("Restore layer Z before toolchange") != std::string_view::npos)
+            ++lifts;
+    });
+    INFO(tower_type << (two_nozzles ? ", two nozzles" : ", one nozzle") << (custom_macro ? ", custom macro" : ", empty macro"));
+
+    if (!custom_macro && !two_nozzles) {
+        // Nothing travels during the change, so the toolhead stays down at the tower.
+        CHECK(lifts == 0);
+    } else {
+        size_t above_short = 0;
+        for (const auto &[change_z, printed_z] : changes) {
+            if (printed_z <= short_height + EPSILON)
+                continue;
+            ++above_short;
+            INFO("toolchange at Z " << change_z << ", printed up to Z " << printed_z);
+            CHECK(change_z >= printed_z - EPSILON);
+        }
+        // The tall cube's top surface needs at least one change above the short cube.
+        CHECK(above_short > 0);
+    }
+
+    // Every lift has to come back down: the tower keeps printing at its compacted height.
+    REQUIRE_FALSE(tower_extrusions.empty());
+    for (const auto &[tower_z, printed_z] : tower_extrusions) {
+        INFO("tower extrusion at Z " << tower_z << ", printed up to Z " << printed_z);
+        CHECK(tower_z < printed_z - EPSILON);
+    }
+}
+
+// Two cubes at 0.2 mm layers with precise Z height on: the 20 mm cube stays on the 0.2 mm grid, and
+// precise Z height spreads the other's gap to `short_height` over its last five layers, moving them
+// off the grid. Slices and exports the plate; the emitter throws if it loses step with the tower.
+static std::string slice_precise_z_pair(DynamicPrintConfig config, const char *tower_type, double short_height, Print &print,
+                                        const std::vector<std::vector<ConfigBase::SetDeserializeItem>> *overrides = nullptr)
+{
+    // The default position puts the 50 mm tower plus its 3 mm brim past the 200 mm test bed.
+    config.set_deserialize_strict({ { "precise_z_height", "1" }, { "wipe_tower_type", tower_type },
+                                    { "wipe_tower_x", "130" }, { "wipe_tower_y", "140" } });
+    Model model;
+    init_print({ cube(20), make_cube(20, 20, short_height) }, print, model, config, overrides);
+    print.apply(model, config); // see slice_with_prime_tower
+    REQUIRE(print.has_wipe_tower());
+    std::string out;
+    REQUIRE_NOTHROW(out = gcode(print));
+    CHECK_FALSE(out.empty());
+    return out;
+}
+
+// Z of every extruding move under the tower's feature tag.
+static std::vector<double> tower_extrusion_z(const std::string &gcode)
+{
+    std::vector<double> zs;
+    bool                in_tower = false;
+    GCodeReader         parser;
+    parser.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view raw = line.raw();
+        if (raw.rfind(";TYPE:", 0) == 0 || raw.rfind("; FEATURE: ", 0) == 0)
+            in_tower = raw.find("Prime tower") != std::string_view::npos;
+        else if (in_tower && line.extruding(self) && (line.has_x() || line.has_y()))
+            zs.emplace_back(self.z());
+    });
+    return zs;
+}
+
+static size_t count_joined_layers(const Print &print)
+{
+    size_t joined = 0;
+    for (const LayerTools &lt : print.wipe_tower_data().tool_ordering.layer_tools())
+        joined += lt.joins_wipe_tower_layer_below() ? 1 : 0;
+    return joined;
+}
+
+TEST_CASE("A layer less than the minimum layer height above another prints its tool changes on the tower layer below", "[WipeTower]")
+{
+    // Both filaments print on every layer of both cubes, so every off-grid layer changes tools. At
+    // 10.004 mm the last five layers grow by 0.0008 mm each and sit 0.0008 to 0.004 mm above the 20 mm
+    // cube's; at 10.15 mm they shrink by 0.01 mm each, leaving the 20 mm cube's layers 0.01 to 0.05 mm
+    // above them. All of that is under the 0.07 mm minimum layer height. A purge sized for a 0.0008 mm
+    // layer is 100 / (0.0008 * 50) = 2500 mm deep, for a 0.05 mm one 40 mm; on a 0.19 mm layer it is
+    // about 10.5 mm, and a joined layer holds two.
+    const char  *tower_type   = GENERATE("type1", "type2");
+    const double short_height = GENERATE(10.004, 10.15);
+    DynamicPrintConfig config = tower_estimate_config("rectangle");
+    config.set_deserialize_strict({ { "min_layer_height", "0.07" } });
+
+    Print print;
+    const std::string out = slice_precise_z_pair(config, tower_type, short_height, print);
+
+    CHECK(count_joined_layers(print) > 0);
+    std::vector<double> tower_layer_z;
+    for (const LayerTools &lt : print.wipe_tower_data().tool_ordering.layer_tools())
+        if (lt.joins_wipe_tower_layer_below())
+            CHECK(lt.print_z - lt.wipe_tower_print_z < 0.07);
+        else if (lt.has_wipe_tower)
+            tower_layer_z.emplace_back(lt.print_z);
+    CHECK(print.wipe_tower_data().depth < 30.f);
+
+    // A joined layer's purges go down to the tower layer they join, so the tower is only ever
+    // extruded at its own layers' z, never up to 0.05 mm above one (G-code Z has 3 decimals).
+    const std::vector<double> zs = tower_extrusion_z(out);
+    REQUIRE_FALSE(zs.empty());
+    size_t off_layer = 0;
+    for (double z : zs)
+        if (std::none_of(tower_layer_z.begin(), tower_layer_z.end(), [z](double t) { return std::abs(z - t) < 0.002; }))
+            ++off_layer;
+    CHECK(off_layer == 0);
+
+    // The nozzle goes below the object layer only over the tower: descending anywhere else drags it
+    // through the layer just printed.
+    BoundingBox tower_box(print.first_layer_wipe_tower_corners());
+    tower_box.offset(scaled(5.));
+    size_t descents = 0, off_tower = 0;
+    double layer_z  = 0.;
+    GCodeReader parser;
+    parser.parse_buffer(out, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view raw = line.raw();
+        if (raw.rfind(";Z:", 0) == 0)
+            layer_z = std::stod(std::string(raw.substr(3)));
+        else if (line.has_z() && ! line.has_x() && ! line.has_y() && line.z() < layer_z - 1e-3) {
+            ++descents;
+            if (! tower_box.contains(Point(scaled(self.x()), scaled(self.y())))) {
+                INFO("descent to Z " << line.z() << " at X " << self.x() << " Y " << self.y() << ", layer Z " << layer_z);
+                ++off_tower;
+            }
+        }
+    });
+    CHECK(descents > 0);
+    CHECK(off_tower == 0);
+}
+
+TEST_CASE("Layers sliced at the printer's minimum layer height keep their own tower layers", "[WipeTower]")
+{
+    // 0.08 mm layers summed in floating point sit 0.0799999 mm apart now and then, just under the
+    // 0.08 mm minimum. Those are whole layers, not off-grid ones: none may join the layer below.
+    const char *tower_type = GENERATE("type1", "type2");
+    DynamicPrintConfig config = tower_estimate_config("rectangle");
+    config.set_deserialize_strict({ { "layer_height", "0.08" }, { "min_layer_height", "0.08" }, { "wipe_tower_type", tower_type },
+                                    { "wipe_tower_x", "130" }, { "wipe_tower_y", "140" } });
+
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+    print.apply(model, config); // see slice_with_prime_tower
+    REQUIRE(print.has_wipe_tower());
+    REQUIRE_NOTHROW(gcode(print));
+    CHECK(count_joined_layers(print) == 0);
+}
+
+TEST_CASE("A joined layer that keeps its filament leaves finishing the tower layer to the one that changed", "[WipeTower]")
+{
+    // The 20 mm cube prints both filaments on every layer, the short one only `filament`. Whenever the
+    // 20 mm cube's layer ends on that filament, the off-grid layer joined to it changes nothing, and the
+    // tower layer's results are all taken by the time it would finish the layer.
+    const char *tower_type = GENERATE("type1", "type2");
+    const int   filament   = GENERATE(1, 2);
+    // An unset feature filament reads as filament 1, so the short cube names its filament for each.
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides = {
+        {},
+        { { "extruder", filament }, { "outer_wall_filament_id", filament }, { "inner_wall_filament_id", filament },
+          { "sparse_infill_filament_id", filament }, { "internal_solid_filament_id", filament },
+          { "top_surface_filament_id", filament }, { "bottom_surface_filament_id", filament } } };
+    const DynamicPrintConfig config = tower_estimate_config("rectangle");
+
+    Print print;
+    slice_precise_z_pair(config, tower_type, 10.004, print, &overrides);
+
+    // At least one joined layer must change no tools, or this does not test the case.
+    size_t       keeps_filament = 0;
+    unsigned int last           = (unsigned int) -1;
+    for (const LayerTools &lt : print.wipe_tower_data().tool_ordering.layer_tools()) {
+        if (lt.joins_wipe_tower_layer_below() && lt.extruders.size() == 1 && lt.extruders.front() == last)
+            ++keeps_filament;
+        if (! lt.extruders.empty())
+            last = lt.extruders.back();
+    }
+    CHECK(keeps_filament > 0);
+}
+
+TEST_CASE("Smooth timelapse prints each tower layer's wall once when a layer joins it", "[WipeTower]")
+{
+    // Smooth timelapse prints a tower on every layer even with one filament, and the Type 1 tower opens
+    // each of its layers with the timelapse wall. A layer joined to the one below must not print it again.
+    DynamicPrintConfig config = tower_estimate_config("rectangle", 1);
+    config.set_deserialize_strict({ { "timelapse_type", "1" } });
+
+    Print print;
+    slice_precise_z_pair(config, "type1", 10.004, print);
+    CHECK(count_joined_layers(print) > 0);
 }

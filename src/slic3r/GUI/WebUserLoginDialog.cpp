@@ -1,6 +1,6 @@
 #include "WebUserLoginDialog.hpp"
 
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include "slic3r/GUI/HttpServer.hpp"
 #include <memory>
@@ -70,7 +70,7 @@ namespace {
 int reserve_loopback_port()
 {
     try {
-        boost::asio::io_service       io_service;
+        boost::asio::io_context       io_service;
         boost::asio::ip::tcp::acceptor acceptor(io_service, {boost::asio::ip::tcp::v4(), 0});
         return static_cast<int>(acceptor.local_endpoint().port());
     } catch (...) {

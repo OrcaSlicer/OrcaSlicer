@@ -142,7 +142,9 @@ public:
     }
 
     std::string prime(GCode &gcodegen);
-    void next_layer() { ++ m_layer_idx; m_tool_change_idx = 0; }
+    void next_layer() { ++ m_layer_idx; m_tool_change_idx = 0; m_layer_joined = false; }
+    // The next object layer joined the current tower layer, so its purges print down at that layer's z.
+    void join_layer() { m_layer_joined = true; }
     std::string tool_change(GCode &gcodegen, int extruder_id, bool finish_layer);
     bool is_empty_wipe_tower_gcode(GCode &gcodegen, int extruder_id, bool finish_layer);
     std::string finalize(GCode &gcodegen);
@@ -164,6 +166,8 @@ private:
     std::string append_tcr2(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
     std::string travel_to_tower_gap(GCode &gcodegen, const Point &route_start, const Point &start_wipe_pos) const;
     Vec2f transform_wt2_pt(const Vec2f &pt) const;
+    // The current tower layer's z in the G-code frame, where a joined layer prints its purges.
+    double joined_tower_z() const { return m_tool_changes[m_layer_idx].front().print_z + m_print_config->z_offset.value; }
     Polygons shared_printable_area(GCode &gcodegen) const;
 
     // Postprocesses gcode: rotates and moves G1 extrusions and returns result
@@ -183,6 +187,7 @@ private:
     int                                                          m_layer_idx;
     int                                                          m_tool_change_idx;
     double                                                       m_last_wipe_tower_print_z;
+    bool                                                         m_layer_joined = false;
 
     // BBS
     Vec3d                                                        m_plate_origin;
@@ -248,7 +253,6 @@ public:
 #endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
         m_brim_done(false),
         m_second_layer_things_done(false),
-        m_silent_time_estimator_enabled(false),
         m_last_obj_copy(nullptr, Point(std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max())),
         // BBS
         m_toolchange_count(0),
@@ -849,8 +853,8 @@ protected:
     float                               m_last_layer_z{ 0.0f };
     float                               m_max_layer_z{ 0.0f };
     float                               m_last_width{ 0.0f };
-    // Bedslinger mass model: cumulative printed mass at the previous layer, used to derive
-    // the current layer mass for the per-layer Y acceleration limit (curr_y_acceleration_limit).
+    // Bedslinger mass model: cumulative printed mass at the previous layer change, used to derive
+    // previous_layer_mass, the mass of the layer printed since then.
     double                              m_last_layer_accumulated_mass{ 0.0 };
 
     // Always check gcode placeholders when building in debug mode.
@@ -911,7 +915,6 @@ protected:
     int m_timelapse_warning_code = 0;
     bool m_support_traditional_timelapse = true;
 
-    bool m_silent_time_estimator_enabled;
 
     Print *m_print{nullptr};
 
@@ -964,6 +967,12 @@ protected:
 
     // The last extrusion segment was inside the belt's first-layer fan band (see _extrude()).
     bool m_belt_in_band{false};
+    // The path that the travel being emitted leads to, for the writer's first-layer test on a
+    // belt; null for any other travel.
+    const ExtrusionPath *m_belt_travel_target{nullptr};
+    // For a path cut at the edges of the bands above a belt (see _extrude()), the length, mm,
+    // of the uncut line each of its lines comes from; null for any other path.
+    const std::vector<double> *m_belt_uncut_line_lengths{nullptr};
 
     std::set<unsigned int>                  m_initial_layer_extruders;
     std::vector<std::vector<unsigned int>>  m_sorted_layer_filaments;
@@ -975,6 +984,9 @@ protected:
 
     double      calc_max_volumetric_speed(const double layer_height, const double line_width, const std::string co_str);
     std::string _extrude(const ExtrusionPath &path, const std::string &path_description = "", double speed = -1);
+    ExtrusionPaths belt_cut_at_band_edges(const ExtrusionPath &path, std::vector<std::vector<double>> &uncut_line_lengths) const;
+    // _extrude() of a path that stays in one band above the belt (see belt_cut_at_band_edges()).
+    std::string _extrude_piece(const ExtrusionPath &path, const std::string &path_description, double speed);
     bool _needSAFC(const ExtrusionPath &path);
     void print_machine_envelope(GCodeOutputStream& file, Print& print);
     void _print_first_layer_bed_temperature(GCodeOutputStream &file, Print &print, const std::string &gcode, unsigned int first_printing_extruder_id, bool wait);
@@ -985,10 +997,12 @@ protected:
     // Per-point first-layer test.  On a belt printer the result depends on the
     // supplied slicing-frame point (its height above the belt); otherwise we
     // delegate to the legacy per-layer test.  This is the entry point used by
-    // per-path call sites in _extrude.
-    bool on_first_layer(const Vec3d &point_slicing_mm) const {
+    // per-path call sites in _extrude and by travels, which pass the width of the
+    // extrusion they lead to (see belt_height_above_floor()).  _extrude_piece()
+    // judges a belt path by all of its points (see belt_path_height()).
+    bool on_first_layer(const Vec3d &point_slicing_mm, double width = 0.) const {
         double h;
-        if (this->belt_height_above_floor(point_slicing_mm, h))
+        if (this->belt_height_above_floor(point_slicing_mm, h, width))
             return h <= m_config.initial_layer_print_height.value + EPSILON;
         return on_first_layer();
     }
@@ -997,11 +1011,13 @@ protected:
     // first_layer_band_mm() units; otherwise it is the legacy slicing layer index.
     int effective_layer_index_for_point(const Vec3d &point_slicing_mm) const {
         double h;
-        if (this->belt_height_above_floor(point_slicing_mm, h)) {
-            const double lh = this->first_layer_band_mm();
-            return h <= 0. ? 0 : int(std::floor(h / lh));
-        }
+        if (this->belt_height_above_floor(point_slicing_mm, h))
+            return this->belt_band_index(h);
         return on_first_layer() ? 0 : layer_id();
+    }
+    // The effective layer index of a height above the belt.
+    int belt_band_index(double height_mm) const {
+        return height_mm <= 0. ? 0 : int(std::floor(height_mm / this->first_layer_band_mm()));
     }
 
     // Band thickness for the *effective layer index*: one first layer height, so
@@ -1018,7 +1034,17 @@ protected:
     // parameters (belt_floor_shear_factor / _from_axis / _z_shift) -- the same
     // description the support generator uses, independent of every remap and
     // back-transform.
-    bool belt_height_above_floor(const Vec3d &point_slicing_mm, double &height_mm) const;
+    //
+    // With `width`, the point is the nozzle over an extrusion that wide, and the height
+    // is taken above the highest belt under the bead: the belt rises across it, so the
+    // wall of a tilted layer that rests on the belt has its nozzle half a layer plus
+    // half its width x tan(tilt) up, more than one first layer at 45 degrees.
+    bool belt_height_above_floor(const Vec3d &point_slicing_mm, double &height_mm, double width = 0.) const;
+    // Height above the belt of a point of `path` on the layer being emitted, with the nozzle
+    // over the path's bead and the Z offset of a contoured path; false when this is not a belt
+    // print.  A brim line rests on the belt by construction, however narrow the spacing of the
+    // bands makes its bead, so it is at 0.
+    bool belt_path_height(const ExtrusionPath &path, const Point3 &p, double &height_mm) const;
     // 1 / 0 / -1: the object layer is entirely past the first-layer band above the
     // belt / reaches into it / the belt surface is not known for it.
     int  belt_layer_past_first_layer_band(const Layer *object_layer) const;
