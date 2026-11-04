@@ -1,18 +1,17 @@
 # The builds a pull request gets only when asked for. build_all.yml leaves them
-# out of pull requests and builds them on every push to main: the Flatpak is
-# the slowest Linux leg, a macOS x86_64 build holds one of the few hosted macOS
-# runners for an hour, and Windows arm64 doubles the Windows legs.
+# out of pull requests and builds them on every push to main: a macOS x86_64
+# build holds one of the few hosted macOS runners for an hour, and Windows
+# arm64 doubles the Windows legs.
 #
 # A label asks for one, from the moment it is added and on every later push to
-# the pull request: build-flatpak, build-macos-x86_64, build-windows-arm64, or
-# build-all for every one of them. Removing and adding a label again rebuilds
-# the same commit.
+# the pull request: build-macos-x86_64, build-windows-arm64, or build-all for
+# both. Removing and adding a label again rebuilds the same commit.
 #
 # A pull request that changes anything but sources, tests, profiles,
-# translations and docs builds the Flatpak and Windows arm64 without a label:
-# what breaks only those legs lives in deps/, cmake/, the build scripts and the
-# workflows, and a list of those places would go stale, so the safe places are
-# listed instead. The macOS build never starts on its own.
+# translations and docs builds Windows arm64 without a label: what breaks only
+# that leg lives in deps/, cmake/, the build scripts and the workflows, and a
+# list of those places would go stale, so the safe places are listed instead.
+# The macOS build never starts on its own.
 #
 # Each label added starts a run of its own, and the pull request's checks show
 # the newest run only, so every run builds everything the labels and the
@@ -27,9 +26,9 @@ on:
     branches:
      - main
      - release/*
-    # Build all's pull_request paths, plus the Flatpak packaging: a pull request
-    # that Build all skips has nothing for these builds to check either, and
-    # the filter applies to labeled too. Keep the two lists in step.
+    # Build all's pull_request paths: a pull request that Build all skips has
+    # nothing for these builds to check either, and the filter applies to
+    # labeled too. Keep the two lists in step.
     paths:
      - 'deps/**'
      - 'deps_src/**'
@@ -59,7 +58,6 @@ jobs:
     name: Select builds
     runs-on: ubuntu-24.04
     outputs:
-      flatpak: ${{ steps.select.outputs.flatpak }}
       macos-x86_64: ${{ steps.select.outputs.macos-x86_64 }}
       windows-arm64: ${{ steps.select.outputs.windows-arm64 }}
     steps:
@@ -92,20 +90,8 @@ jobs:
             echo "$build=$on" >> "$GITHUB_OUTPUT"
             echo "$build: $on"
           }
-          pick flatpak build-flatpak true
           pick macos-x86_64 build-macos-x86_64 false
           pick windows-arm64 build-windows-arm64 true
-
-  flatpak:
-    name: Flatpak
-    needs: select
-    # Skipped on self-hosted runners, as in build_all.yml.
-    if: ${{ needs.select.outputs.flatpak == 'true' && !vars.SELF_HOSTED }}
-    concurrency:
-      group: build-optional-flatpak-${{ github.event.pull_request.number }}
-      cancel-in-progress: true
-    uses: ./.github/workflows/build_flatpak.yml
-    secrets: inherit
 
   # Named like build_all.yml's job, so scripts/ci_macos_admission.py and
   # scripts/ci_deps_cache.sh find its jobs, and the pull request waits in the
@@ -159,8 +145,8 @@ jobs:
 
   publish_test_results:
     name: Publish Test Results
-    needs: [flatpak, unit_tests_windows_arm64]
-    if: ${{ !cancelled() && (needs.flatpak.result != 'skipped' || needs.unit_tests_windows_arm64.result != 'skipped') }}
+    needs: unit_tests_windows_arm64
+    if: ${{ !cancelled() && needs.unit_tests_windows_arm64.result != 'skipped' }}
     runs-on: ubuntu-latest
     steps:
       - name: Download Test Results
