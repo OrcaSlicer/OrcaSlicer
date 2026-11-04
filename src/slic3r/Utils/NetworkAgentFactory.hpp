@@ -109,6 +109,15 @@ public:
     static std::vector<PrinterAgentInfo> get_registered_printer_agents();
 
     /**
+     * The agent a printer preset uses: its stored printer_agent, or the vendor default (the Bambu
+     * agent on Bambu Lab printers, the Orca agent elsewhere) when none is stored. On a Bambu Lab
+     * printer a stored Orca agent also means the vendor default: that agent cannot reach Bambu
+     * printers, and releases before 2.5 ignored printer_agent on them, so older presets and
+     * projects can carry "orca" there.
+     */
+    static std::string resolve_printer_agent_id(const std::string& stored_id, bool bambu_printer);
+
+    /**
      * Create a printer agent by registry/config key
      *
      * Returns a cached instance if one exists for the given key, otherwise

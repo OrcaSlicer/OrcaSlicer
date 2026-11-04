@@ -101,17 +101,33 @@ namespace Slic3r
             const auto& m = it.second;
             if (localMachineList.count(m.dev_id))
                 continue;
+            // Orca: a Bambu Lab printer saved untagged (before records kept their agent) or under the
+            // Orca agent, which cannot drive it (as when a Bambu preset still named that agent), belongs
+            // to the Bambu agent. A printer saved under any other agent keeps it. Print-host entries use
+            // the host address as both id and IP, and a failed printer detection under the Orca agent
+            // saves an empty id: neither is a Bambu printer, whatever model it names. Manual Setup
+            // saves the typed serial.
+            const bool bambu_without_owner = (m.printer_agent_id.empty() || m.printer_agent_id == ORCA_PRINTER_AGENT_ID) &&
+                                             !m.dev_id.empty() && m.dev_id != m.dev_ip &&
+                                             !DevPrinterConfigUtil::get_printer_display_name(m.printer_type).empty();
             MachineObject* obj       = new MachineObject(this, m_agent, m.dev_name, m.dev_id, m.dev_ip);
             obj->printer_type        = m.printer_type;
-            obj->printer_agent_id    = m.printer_agent_id;
+            obj->printer_agent_id    = bambu_without_owner ? BBL_PRINTER_AGENT_ID : m.printer_agent_id;
             obj->dev_connection_type = "lan";
             obj->bind_state          = "free";
             obj->bind_sec_link       = "secure";
             obj->m_is_online         = true;
             obj->last_alive          = Slic3r::Utils::get_current_time_utc();
-            obj->set_access_code(get_access_code_with_legacy_fallback(config, m.dev_id, obj->printer_agent_id), false);
+            // A saved code matches the tag its record still has; the Bambu agent's legacy keys hold
+            // the code of a record saved before codes were kept in it.
+            std::string access_code = get_access_code_with_legacy_fallback(config, m.dev_id, m.printer_agent_id);
+            if (access_code.empty() && bambu_without_owner)
+                access_code = get_access_code_with_legacy_fallback(config, m.dev_id, BBL_PRINTER_AGENT_ID);
+            obj->set_access_code(access_code, false);
             if (obj->has_access_right()) {
                 localMachineList.insert(std::make_pair(m.dev_id, obj));
+                if (bambu_without_owner)
+                    update_local_machine(*obj, config);
             } else {
                 config->erase_local_machine(m.dev_id);
                 delete obj;

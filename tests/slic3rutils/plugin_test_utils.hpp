@@ -55,4 +55,15 @@ struct ScopedResourcesDir
     ScopedResourcesDir& operator=(const ScopedResourcesDir&) = delete;
 };
 
+// Point resources_dir() at the repository's own resources tree for the lifetime of a test and
+// restore the previous value afterwards. PROFILES_DIR is <repo>/resources/profiles.
+struct ScopedRepoResourcesDir
+{
+    std::string previous{resources_dir()};
+    ScopedRepoResourcesDir() { set_resources_dir(boost::filesystem::path(PROFILES_DIR).parent_path().string()); }
+    ~ScopedRepoResourcesDir() { set_resources_dir(previous); }
+    ScopedRepoResourcesDir(const ScopedRepoResourcesDir&)            = delete;
+    ScopedRepoResourcesDir& operator=(const ScopedRepoResourcesDir&) = delete;
+};
+
 } // namespace Slic3r

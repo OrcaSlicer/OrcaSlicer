@@ -58,6 +58,28 @@ TEST_CASE("unit: printer-agent registry register / lookup / duplicate-reject", "
 }
 
 // ===========================================================================
+// UNIT - the agent a printer preset uses.
+// An empty printer_agent takes the vendor default. On a Bambu Lab printer a stored
+// Orca agent does too, because that agent cannot reach Bambu printers; every other
+// stored id is kept, including one no agent registered.
+// ===========================================================================
+TEST_CASE("unit: printer-agent id resolved from a preset's printer_agent", "[registry][unit]")
+{
+    CHECK(NetworkAgentFactory::resolve_printer_agent_id("", true) == BBL_PRINTER_AGENT_ID);
+    CHECK(NetworkAgentFactory::resolve_printer_agent_id("", false) == ORCA_PRINTER_AGENT_ID);
+
+    CHECK(NetworkAgentFactory::resolve_printer_agent_id(ORCA_PRINTER_AGENT_ID, true) == BBL_PRINTER_AGENT_ID);
+    CHECK(NetworkAgentFactory::resolve_printer_agent_id(ORCA_PRINTER_AGENT_ID, false) == ORCA_PRINTER_AGENT_ID);
+
+    CHECK(NetworkAgentFactory::resolve_printer_agent_id(MOONRAKER_PRINTER_AGENT_ID, true) == MOONRAKER_PRINTER_AGENT_ID);
+    CHECK(NetworkAgentFactory::resolve_printer_agent_id(BBL_PRINTER_AGENT_ID, false) == BBL_PRINTER_AGENT_ID);
+
+    const std::string unregistered = "orca-test::not-registered-agent";
+    REQUIRE_FALSE(NetworkAgentFactory::is_printer_agent_registered(unregistered));
+    CHECK(NetworkAgentFactory::resolve_printer_agent_id(unregistered, true) == unregistered);
+}
+
+// ===========================================================================
 // INTEGRATION - the orca.printer_agent Python binding surface.
 // Boots the embedded interpreter and asserts the C++ to Python contract that
 // every printer-agent plugin subclasses. If a binding is renamed or removed,

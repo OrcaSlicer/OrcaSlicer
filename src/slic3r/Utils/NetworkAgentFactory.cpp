@@ -103,6 +103,13 @@ const PrinterAgentInfo* NetworkAgentFactory::get_printer_agent_info(const std::s
     return (it != agents.end()) ? &it->second : nullptr;
 }
 
+std::string NetworkAgentFactory::resolve_printer_agent_id(const std::string& stored_id, bool bambu_printer)
+{
+    if (!stored_id.empty() && !(bambu_printer && stored_id == ORCA_PRINTER_AGENT_ID))
+        return stored_id;
+    return bambu_printer ? BBL_PRINTER_AGENT_ID : ORCA_PRINTER_AGENT_ID;
+}
+
 std::string NetworkAgentFactory::get_printer_agent_plugin_identifier(const std::string& id)
 {
     std::lock_guard<std::mutex> lock(s_registry_mutex);

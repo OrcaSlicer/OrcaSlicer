@@ -105,7 +105,10 @@ Python printer-agent capabilities register dynamically and contribute an agent I
 
 The selected printer preset contains the printer-agent choice. If no explicit choice is stored, the
 application preserves the existing default behavior: Bambu presets select the Bambu agent and other
-presets select the native Orca agent. When a preset is changed, `GUI_App` resolves the effective agent
+presets select the native Orca agent. On a Bambu preset a stored Orca agent counts as no choice, and the
+Printer Agent list leaves it out there: the Orca agent cannot reach Bambu printers, and releases before
+2.5 ignored the stored agent on them, so older presets and projects can carry it without the user ever
+having picked it. When a preset is changed, `GUI_App` resolves the effective agent
 ID, obtains the corresponding cloud agent, creates the printer agent through the registry, and installs
 it in `NetworkAgent`.
 
@@ -157,7 +160,10 @@ the command ID.
 Printer-agent ownership is represented by `printer_agent_id` on device records and `MachineObject`
 instances. The active agent ID is attached when a device is discovered, returned by a cloud list, or
 reused after a preset switch. Local-machine configuration also persists the agent ID so a saved LAN
-device is not silently reused by an unrelated agent.
+device is not silently reused by an unrelated agent. One exception applies on load: a saved Bambu Lab
+printer (a Bambu model, with an ID of its own rather than the host address print-host entries use as
+both ID and IP) that is untagged (saved before records kept their agent) or tagged with the Orca
+agent, which cannot drive it, is given to the Bambu agent and saved that way.
 
 Cloud printer-list responses carry three pieces of request context added by `NetworkAgent`:
 

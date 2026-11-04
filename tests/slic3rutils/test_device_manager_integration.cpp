@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_all.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
@@ -11,6 +12,7 @@
 #include <slic3r/Utils/NetworkAgentFactory.hpp>
 #include <slic3r/Utils/OrcaCloudServiceAgent.hpp>
 #include <slic3r/Utils/OrcaPrinterAgent.hpp>
+#include "plugin_test_utils.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -177,6 +179,68 @@ TEST_CASE("Device manager filters and rehomes devices by printer-agent ownership
     CHECK(object->printer_agent_id == "integration-agent-b");
     CHECK(manager.get_my_machine_list("integration-agent-a").empty());
     CHECK(manager.get_my_machine_list("integration-agent-b").count(machine.dev_id) == 1);
+}
+
+TEST_CASE("Device manager gives saved Bambu printers without a working agent to the Bambu agent", "[DeviceManager][integration]")
+{
+    // Whether a saved printer type is a Bambu model is read from resources/printers.
+    ScopedRepoResourcesDir resources;
+    ScopedAppConfig        app_config;
+    AppConfig&             config = app_config.config;
+
+    auto save = [&config](const std::string& id, const std::string& ip, const std::string& type,
+                          const std::string& agent, const std::string& access_code) {
+        BBLocalMachine machine;
+        machine.dev_id           = id;
+        machine.dev_name         = id;
+        machine.dev_ip           = ip;
+        machine.printer_type     = type;
+        machine.printer_agent_id = agent;
+        machine.access_code      = access_code;
+        config.update_local_machine(machine);
+    };
+    // Bambu printers the Bambu agent takes over: one saved under the Orca agent, a P1P as Manual
+    // Setup saves it, one whose code is only in a legacy key, and two saved before records kept
+    // their agent, with the code in a legacy key or in the record.
+    save("bambu-under-orca", "192.0.2.20", "O1C2", ORCA_PRINTER_AGENT_ID, "code-a");
+    save("p1p-under-orca", "192.0.2.21", "C11", ORCA_PRINTER_AGENT_ID, "code-i");
+    save("bambu-legacy-code", "192.0.2.22", "N9", ORCA_PRINTER_AGENT_ID, "");
+    config.set("user_access_code", "bambu-legacy-code", "code-f");
+    save("bambu-untagged", "192.0.2.23", "N9", "", "");
+    config.set("access_code", "bambu-untagged", "code-g");
+    save("p1p-untagged", "192.0.2.24", "C11", "", "code-j");
+    // Entries that keep their agent: a print host (address as id), a non-Bambu model, a failed
+    // add-by-IP (empty id), a Bambu printer another agent was picked for, an untagged non-Bambu one.
+    save("192.0.2.30", "192.0.2.30", "C11", ORCA_PRINTER_AGENT_ID, "code-b");
+    save("prusa-under-orca", "192.0.2.31", "Prusa MK4", ORCA_PRINTER_AGENT_ID, "code-c");
+    save("", "192.0.2.32", "C11", ORCA_PRINTER_AGENT_ID, "code-e");
+    save("bambu-under-moonraker", "192.0.2.33", "O1C2", MOONRAKER_PRINTER_AGENT_ID, "code-d");
+    save("qidi-untagged", "192.0.2.34", "Qidi-XPlus-4", "", "code-h");
+
+    NetworkAgent  network(nullptr, std::make_shared<TestPrinterAgent>(BBL_PRINTER_AGENT_ID));
+    DeviceManager manager(&network, false, &config);
+
+    const auto  bambu_machines = manager.get_my_machine_list(BBL_PRINTER_AGENT_ID);
+    const auto& saved          = config.get_local_machines();
+    CHECK(bambu_machines.size() == 5);
+    const std::vector<std::pair<std::string, std::string>> taken_over{{"bambu-under-orca", "code-a"},
+                                                                      {"p1p-under-orca", "code-i"},
+                                                                      {"bambu-legacy-code", "code-f"},
+                                                                      {"bambu-untagged", "code-g"},
+                                                                      {"p1p-untagged", "code-j"}};
+    for (const auto& [id, access_code] : taken_over) {
+        CAPTURE(id);
+        REQUIRE(bambu_machines.count(id) == 1);
+        CHECK(bambu_machines.at(id)->get_access_code() == access_code);
+        CHECK(saved.at(id).printer_agent_id == BBL_PRINTER_AGENT_ID);
+        CHECK(saved.at(id).access_code == access_code);
+    }
+
+    CHECK(saved.at("192.0.2.30").printer_agent_id == ORCA_PRINTER_AGENT_ID);
+    CHECK(saved.at("prusa-under-orca").printer_agent_id == ORCA_PRINTER_AGENT_ID);
+    CHECK(saved.at("").printer_agent_id == ORCA_PRINTER_AGENT_ID);
+    CHECK(saved.at("bambu-under-moonraker").printer_agent_id == MOONRAKER_PRINTER_AGENT_ID);
+    CHECK(saved.at("qidi-untagged").printer_agent_id.empty());
 }
 
 TEST_CASE("Device manager remembers the last selected machine per printer agent", "[DeviceManager][integration]")

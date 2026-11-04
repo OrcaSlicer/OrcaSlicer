@@ -4349,9 +4349,7 @@ void GUI_App::set_live_printer_agent(std::shared_ptr<IPrinterAgent> agent)
 
 std::string GUI_App::resolve_printer_agent_id(const std::string& stored_id) const
 {
-    if (!stored_id.empty())
-        return stored_id;
-    return (preset_bundle && preset_bundle->is_bbl_vendor()) ? BBL_PRINTER_AGENT_ID : ORCA_PRINTER_AGENT_ID;
+    return NetworkAgentFactory::resolve_printer_agent_id(stored_id, preset_bundle && preset_bundle->is_bbl_vendor());
 }
 
 std::string GUI_App::canonical_printer_agent_id(const std::string& picked_id)

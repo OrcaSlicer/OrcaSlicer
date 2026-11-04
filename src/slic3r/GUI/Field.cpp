@@ -24,6 +24,7 @@
 #include "libslic3r/Config.hpp"
 #include <cstdlib>
 #include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include <limits>
 #include "libslic3r/enum_bitmask.hpp"
 #include <deque>
@@ -2089,12 +2090,17 @@ void PrinterAgentChoice::reload_rows()
     const bool has_plugin_agents = std::any_of(agents.begin(), agents.end(),
                                                [](const PrinterAgentInfo& a) { return a.is_plugin(); });
 
-    auto append_agent_rows = [combo](bool is_plugin)
+    // The Orca agent can't reach a Bambu Lab printer, which uses the Bambu agent in its place
+    // (NetworkAgentFactory::resolve_printer_agent_id), so it isn't offered there.
+    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    const bool    bambu_printer = preset_bundle && preset_bundle->is_bbl_vendor();
+
+    auto append_agent_rows = [combo, bambu_printer](bool is_plugin)
     {
         const auto agents = NetworkAgentFactory::get_registered_printer_agents();
         for (size_t i = 0; i < agents.size(); ++i)
         {
-            if (agents[i].is_plugin() != is_plugin)
+            if (agents[i].is_plugin() != is_plugin || (bambu_printer && agents[i].id == ORCA_PRINTER_AGENT_ID))
                 continue;
             const int item = combo->Append(_(agents[i].display_name));
             // why: carry the agent-id string on the row. alias is an owned wxString (auto-freed, never rendered)
@@ -2151,6 +2157,9 @@ void PrinterAgentChoice::set_value(const std::string& value, bool change_event)
     m_disable_change_event = !change_event;
 
     auto* field = dynamic_cast<choice_ctrl*>(window);
+
+    // The rows depend on the selected printer, and the tab sets the value on every preset switch.
+    reload_rows();
 
     // check if any row's corresponding id matches the agent id we are attempting to set
     const std::string effective_agent_id = wxGetApp().resolve_printer_agent_id(value);

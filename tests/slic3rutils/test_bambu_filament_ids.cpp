@@ -1,5 +1,4 @@
 #include <catch2/catch_all.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -8,25 +7,12 @@
 #include "libslic3r/Utils.hpp"
 #include "slic3r/Utils/BBLPrinterAgent.hpp"
 #include "slic3r/Utils/OrcaPrinterAgent.hpp"
+#include "plugin_test_utils.hpp"
 
 using json = nlohmann::json;
 using namespace Slic3r;
 
 namespace {
-
-// Point resources_dir() at the repo's own tree for the lifetime of a test and restore it
-// afterwards, mirroring ScopedResourcesDir (which only ever makes a throwaway directory).
-// PROFILES_DIR is <repo>/resources/profiles; the map lives in <repo>/resources/printers.
-struct ScopedRepoResourcesDir
-{
-    std::string previous{resources_dir()};
-
-    ScopedRepoResourcesDir() { set_resources_dir(boost::filesystem::path(PROFILES_DIR).parent_path().string()); }
-    ~ScopedRepoResourcesDir() { set_resources_dir(previous); }
-
-    ScopedRepoResourcesDir(const ScopedRepoResourcesDir&)            = delete;
-    ScopedRepoResourcesDir& operator=(const ScopedRepoResourcesDir&) = delete;
-};
 
 std::string orca_id_of(const std::string& bambu_id)
 {

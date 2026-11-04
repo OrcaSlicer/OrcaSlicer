@@ -8800,10 +8800,9 @@ void TabPrinter::refresh_printer_agent_dropdown() const
     if (agents.empty())
         return;
 
-    // why: rows live on PrinterAgentChoice now; rebuild them from the live registry and re-select the stored id.
+    // Setting the stored id rebuilds the rows from the live registry and re-selects it.
     const std::string selected_agent = wxGetApp().preset_bundle->printers.get_edited_preset()
                                                  .config.opt_string("printer_agent");
-    choice->reload_rows();
     choice->set_value(selected_agent, false);
     this->GetParent()->Layout();
 }
