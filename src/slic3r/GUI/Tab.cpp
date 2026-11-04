@@ -4191,10 +4191,8 @@ void TabPrintPlate::update_same_as_global_fields()
     // "Same as Global" text of the skirt start angle is not editable, "Custom" turns it into a number
     Field* angle_field = m_active_page->get_field("skirt_start_angle");
     auto angle = angle_field ? dynamic_cast<::ComboBox*>(angle_field->getWindow()) : nullptr;
-    if (angle && angle != m_skirt_angle_ctrl) {
-        m_skirt_angle_ctrl = angle;
-        PlateSettingsDialog::lock_entry(angle, 0);
-    }
+    if (angle)
+        PlateSettingsDialog::lock_first_entry(angle);
 }
 
 void TabPrintPlate::reload_config()
@@ -4347,7 +4345,11 @@ void TabPrintPlate::on_value_change(const std::string& opt_key, const boost::any
                 }
             }
             if (k == "spiral_mode_choice") {
-                plate->set_spiral_vase_mode(m_config->opt_enum<SpiralModeChoice>(k) == smcEnable, false);
+                bool enable = m_config->opt_enum<SpiralModeChoice>(k) == smcEnable;
+                if (enable && plate->get_spiral_vase_mode()) // inherited, set_spiral_vase_mode() would skip it
+                    plate->config()->set_key_value("spiral_mode", new ConfigOptionBool(true));
+                else
+                    plate->set_spiral_vase_mode(enable, false);
                 m_config->set_key_value("spiral_mode", new ConfigOptionBool(plate->get_spiral_vase_mode())); // may be declined
             }
         }

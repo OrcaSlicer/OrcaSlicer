@@ -116,15 +116,15 @@ public:
     );
 
     ~PlateSettingsDialog();
-    // Editable combo box: the entry at "index" can't be typed over, clicking it opens the list
-    static void lock_entry(ComboBox* combo, int index);
+    // Editable combo box: the first entry can't be typed over, clicking it opens the list
+    static void lock_first_entry(ComboBox* combo);
     void sync_bed_type(BedType type);
     void sync_print_seq(int print_seq = 0);
     void sync_first_layer_print_seq(int selection, const std::vector<int>& seq = std::vector<int>());
     void sync_other_layers_print_seq(int selection, const std::vector<LayerPrintSequence>& seq);
     void sync_spiral_mode(bool spiral_mode, bool as_global);
     void sync_skirt_start_angle(const ConfigOptionFloat* plate_angle, double global_angle);
-    // false: use global value
+    // false: "Same as Global" or invalid input, OK rejects invalid input
     bool get_skirt_start_angle(double& angle);
     wxString to_bed_type_name(BedType bed_type);
     wxString to_print_sequence_name(PrintSequence print_seq);
@@ -194,7 +194,7 @@ protected:
     TextInput *m_ti_plate_name;
     ComboBox *m_skirt_start_angle;
     double m_global_skirt_start_angle { 0. };
-    bool m_spiral_vase_confirmed { false };
+    int m_spiral_mode_selection { 0 };
 };
 
 class PlateNameEditDialog : public DPIDialog

@@ -67,20 +67,34 @@ static wxSizer* with_revert_icon(wxStaticText* label, wxWindow* ctrl, std::funct
     return sizer;
 }
 
-void PlateSettingsDialog::lock_entry(ComboBox* combo, int index)
+static void on_locked_entry_text(wxCommandEvent& e)
 {
-    combo->GetTextCtrl()->Bind(wxEVT_TEXT, [combo, index](wxCommandEvent& e) {
-        if (combo->GetSelection() == index)
-            combo->GetTextCtrl()->ChangeValue(combo->GetString(index));
-        else
-            e.Skip();
-    });
-    combo->GetTextCtrl()->Bind(wxEVT_LEFT_DOWN, [combo, index](wxMouseEvent& e) {
-        if (combo->GetSelection() == index)
-            combo->ForceDropdownOpen();
-        else
-            e.Skip();
-    });
+    auto ctrl  = static_cast<wxTextCtrl*>(e.GetEventObject());
+    auto combo = static_cast<ComboBox*>(ctrl->GetParent());
+    if (combo->GetSelection() == 0)
+        ctrl->ChangeValue(combo->GetString(0));
+    else
+        e.Skip();
+}
+
+static void on_locked_entry_click(wxMouseEvent& e)
+{
+    auto combo = static_cast<ComboBox*>(static_cast<wxWindow*>(e.GetEventObject())->GetParent());
+    if (combo->GetSelection() == 0)
+        combo->ForceDropdownOpen();
+    else
+        e.Skip();
+}
+
+void PlateSettingsDialog::lock_first_entry(ComboBox* combo)
+{
+    // Bound with the control id, so free_window() removes them when a pooled sidebar control is reused.
+    // Unbind first, safe to call again for the same control.
+    wxTextCtrl* ctrl = combo->GetTextCtrl();
+    ctrl->Unbind(wxEVT_TEXT, &on_locked_entry_text, ctrl->GetId());
+    ctrl->Unbind(wxEVT_LEFT_DOWN, &on_locked_entry_click, ctrl->GetId());
+    ctrl->Bind(wxEVT_TEXT, &on_locked_entry_text, ctrl->GetId());
+    ctrl->Bind(wxEVT_LEFT_DOWN, &on_locked_entry_click, ctrl->GetId());
 }
 
 bool LayerSeqInfo::operator<(const LayerSeqInfo& another) const
@@ -505,7 +519,7 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     m_skirt_start_angle->Append(_L("Custom"));
     m_skirt_start_angle->SetTextLabel(wxString::FromUTF8(u8"°"));
     m_skirt_start_angle->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
-    lock_entry(m_skirt_start_angle, 0);
+    lock_first_entry(m_skirt_start_angle);
     m_skirt_start_angle->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
         double angle;
         if (e.GetSelection() == 1 && !get_skirt_start_angle(angle)) // "Custom" starts from the global value
@@ -520,7 +534,7 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     skirt_start_angle_txt->SetFont(Label::Body_14);
     top_sizer->Add(skirt_start_angle_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT);
     top_sizer->Add(with_revert_icon(skirt_start_angle_txt, m_skirt_start_angle,
-                                    [this] { double angle; return get_skirt_start_angle(angle); },
+                                    [this] { return m_skirt_start_angle->GetSelection() != 0; },
                                     [this] { m_skirt_start_angle->SetSelection(0); }), 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT);
 
     // Print Sequence
@@ -543,13 +557,13 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     m_spiral_mode_choice->Append(_L("Disable"));
     m_spiral_mode_choice->SetSelection(0);
     m_spiral_mode_choice->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
-        // "Enable" asks for confirmation once, declined goes back to "Same as Global"
-        if (e.GetSelection() != 1 || m_spiral_vase_confirmed)
+        // "Enable" asks for confirmation, declined keeps the previous choice
+        if (e.GetSelection() == 1 && m_spiral_mode_selection != 1 &&
+            static_cast<TabPrintPlate*>(wxGetApp().plate_tab)->show_spiral_mode_settings_dialog(false) != wxID_YES) {
+            m_spiral_mode_choice->SetSelection(m_spiral_mode_selection); // keep the previous choice
             return;
-        if (static_cast<TabPrintPlate*>(wxGetApp().plate_tab)->show_spiral_mode_settings_dialog(false) == wxID_YES)
-            m_spiral_vase_confirmed = true;
-        else
-            m_spiral_mode_choice->SetSelection(0);
+        }
+        m_spiral_mode_selection = e.GetSelection();
     });
     wxStaticText* spiral_mode_txt = new wxStaticText(this, wxID_ANY, _L("Spiral vase"));
     spiral_mode_txt->SetFont(Label::Body_14);
@@ -628,10 +642,9 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     reset_btn->SetStyle(::ButtonStyle::Regular, ::ButtonType::Choice);
     reset_btn->Show(!only_layer_seq);
     reset_btn->Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& e) {
-        double angle;
         e.Enable(m_bed_type_choice->GetSelection() > 0 || m_print_seq_choice->GetSelection() > 0 ||
                  m_spiral_mode_choice->GetSelection() > 0 || m_first_layer_print_seq_choice->GetSelection() > 0 ||
-                 get_other_layers_print_seq_choice() > 0 || get_skirt_start_angle(angle));
+                 get_other_layers_print_seq_choice() > 0 || m_skirt_start_angle->GetSelection() != 0);
     });
     reset_btn->Bind(wxEVT_BUTTON, [this](auto& e) {
         sync_bed_type(btDefault);
@@ -643,6 +656,12 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     });
 
     dlg_btns->GetOK()->Bind(wxEVT_BUTTON, [this](auto& e) {
+        double angle;
+        if (m_skirt_start_angle->GetSelection() != 0 && !get_skirt_start_angle(angle)) {
+            MessageDialog msg_dlg(nullptr, _L("Please input a valid skirt start point."), wxEmptyString, wxICON_WARNING | wxOK);
+            msg_dlg.ShowModal();
+            return;
+        }
         wxCommandEvent evt(EVT_SET_BED_TYPE_CONFIRM, GetId());
         static_cast<wxEvtHandler*>(m_other_layers_seq_panel)->ProcessEvent(evt);
         GetEventHandler()->ProcessEvent(evt);
@@ -756,6 +775,7 @@ void PlateSettingsDialog::sync_spiral_mode(bool spiral_mode, bool as_global)
             else
                 m_spiral_mode_choice->SetSelection(2);
         }
+        m_spiral_mode_selection = m_spiral_mode_choice->GetSelection();
     }
 }
 
@@ -819,6 +839,8 @@ void PlateSettingsDialog::sync_skirt_start_angle(const ConfigOptionFloat* plate_
 
 bool PlateSettingsDialog::get_skirt_start_angle(double& angle)
 {
+    if (m_skirt_start_angle->GetSelection() == 0) // Same as Global
+        return false;
     wxString text = m_skirt_start_angle->GetTextCtrl()->GetValue();
     text.Replace(",", ".");
     if (!text.ToCDouble(&angle))
