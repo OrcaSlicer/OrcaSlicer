@@ -2195,6 +2195,23 @@ void TreeSupport::draw_circles()
         return;
     BOOST_LOG_TRIVIAL(info) << "draw_circles for object: " << m_object->model_object()->name;
 
+    // Top and bottom surfaces of each object layer, for the bottom contact search below. Every support layer
+    // searches all object layers under it, so they are collected once here instead of on every search.
+    std::vector<Polygons>    contact_surfaces;
+    std::vector<BoundingBox> contact_surfaces_bbox;
+    if (!on_buildplate_only && (bottom_gap_height > EPSILON || bottom_interface_layers > 0)) {
+        contact_surfaces.resize(m_object->layer_count());
+        contact_surfaces_bbox.resize(m_object->layer_count());
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, m_object->layer_count()), [&](const tbb::blocked_range<size_t> &range) {
+            for (size_t idx = range.begin(); idx < range.end(); ++idx) {
+                const Layer &layer = *m_object->get_layer(int(idx));
+                contact_surfaces[idx] = collect_region_slices_by_type(layer, stTop);
+                polygons_append(contact_surfaces[idx], collect_region_slices_by_type(layer, stBottom));
+                contact_surfaces_bbox[idx] = get_extents(contact_surfaces[idx]);
+            }
+        });
+    }
+
     tbb::parallel_for(tbb::blocked_range<size_t>(0, m_ts_data->layer_heights.size()),
         [&](const tbb::blocked_range<size_t>& range)
         {
@@ -2405,23 +2422,25 @@ void TreeSupport::draw_circles()
                 }
                 // ORCA:
                 // Bottom interface / bottom gap must be anchored to the *true* support-to-model contact surface.
-                // Do NOT window the contact search by gap or interface height.
-                // First find the real contact below, then enforce:
+                // Do NOT window the contact search by a layer count.
+                // First find the real contacts below, then enforce:
                 //   - an empty gap below (contact_z + gap)
                 //   - exactly N interface layers above that
-                if (!base_areas.empty() && !m_object_config->support_on_build_plate_only.value &&
-                    (bottom_gap_height > EPSILON || bottom_interface_layers > 0))
+                // A contact lower than the gap and the interface layers below this layer changes neither,
+                // so the search ends there.
+                if (!base_areas.empty() && !contact_surfaces.empty())
                 {
                     const coordf_t interface_height =
                         bottom_interface_layers > 0 ? coordf_t(bottom_interface_layers) * m_slicing_params.layer_height : 0.0;
 
                     const coordf_t layer_top_z = ts_layer->print_z;
                     const coordf_t layer_bottom_z = ts_layer->bottom_z();
+                    const coordf_t lowest_contact_z = layer_bottom_z - bottom_gap_height - interface_height - EPSILON;
                     ExPolygons new_base_areas;
                     ExPolygons new_floor_areas;
                     struct ContactBand {
-                        coordf_t z = 0.0;
-                        Polygons surfaces;
+                        coordf_t        z = 0.0;
+                        const Polygons *surfaces;
                     };
                     for (const ExPolygon& comp : base_areas) {
                         ExPolygons comp_poly { comp };
@@ -2429,18 +2448,19 @@ void TreeSupport::draw_circles()
                         std::vector<ContactBand> bands;
 
                         // Search downward for object layers whose TOP/BOTTOM surfaces intersect this component.
+                        const BoundingBox comp_bbox = get_extents(comp);
                         for (size_t idx = obj_layer_nr + 1; idx-- > 0;) {
-                            const Layer* below_layer = m_object->get_layer(idx);
-                            Polygons top_surfaces = collect_region_slices_by_type(*below_layer, stTop);
-                            Polygons bottom_surfaces = collect_region_slices_by_type(*below_layer, stBottom);
-                            Polygons surf_union = top_surfaces;
-                            polygons_append(surf_union, bottom_surfaces);
-                            if (surf_union.empty())
+                            if (m_object->get_layer(int(idx))->print_z < lowest_contact_z)
+                                break;
+                            const Polygons &surf_union = contact_surfaces[idx];
+                            if (surf_union.empty() || !contact_surfaces_bbox[idx].overlap(comp_bbox))
                                 continue;
 
-                            ExPolygons inter = intersection_ex(comp_poly, surf_union);
+                            // Only the surfaces inside the component's bounding box can intersect it.
+                            ExPolygons inter = intersection_ex(comp_poly,
+                                ClipperUtils::clip_clipper_polygons_with_subject_bbox(surf_union, comp_bbox.inflated(SCALED_EPSILON)));
                             if (!inter.empty()) {
-                                bands.push_back(ContactBand{ below_layer->print_z, std::move(surf_union) });
+                                bands.push_back(ContactBand{ m_object->get_layer(int(idx))->print_z, &surf_union });
                                 found_contact = true;
                             }
                         }
@@ -2470,7 +2490,7 @@ void TreeSupport::draw_circles()
                             // Inside the gap: remove only the part overlapping the contact surface, keep the rest.
                             if (bottom_gap_height > EPSILON && layer_bottom_z < band_gap_top - EPSILON) {
                                 any_gap_cleared = true;
-                                comp_poly = diff_ex(comp_poly, band.surfaces);
+                                comp_poly = diff_ex(comp_poly, *band.surfaces);
                             }
 
                             // Overlaps interface band
@@ -2495,7 +2515,7 @@ void TreeSupport::draw_circles()
                                     interface_id_set = true;
                                 }
 
-                                ExPolygons band_ex = union_ex(band.surfaces);
+                                ExPolygons band_ex = union_ex(*band.surfaces);
                                 if (!band_ex.empty()) {
                                     const coordf_t margin = scale_(m_support_params.support_extrusion_width);
                                     ExPolygons comp_margin = offset_ex(comp_poly, margin);
