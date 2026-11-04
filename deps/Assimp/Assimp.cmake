@@ -1,10 +1,3 @@
-if(CMAKE_VERSION VERSION_LESS 3.22)
-    set(_assimp_url "https://github.com/assimp/assimp/archive/refs/tags/v5.3.1.tar.gz")
-    set(_assimp_hash "SHA256=a07666be71afe1ad4bc008c2336b7c688aca391271188eb9108d0c6db1be53f1")
-else()
-    set(_assimp_url "https://github.com/assimp/assimp/archive/refs/tags/v5.4.3.tar.gz")
-    set(_assimp_hash "SHA256=66dfbaee288f2bc43172440a55d0235dfc7bf885dda6435c038e8000e79582cb")
-endif()
 
 # Assimp's bundled zlib (contrib/zlib) is too old to compile against the modern
 # macOS SDK: its zutil.h takes the classic-Mac branch under TARGET_OS_MAC and
@@ -18,8 +11,8 @@ else()
 endif()
 
 orcaslicer_add_cmake_project(Assimp
-    URL ${_assimp_url}
-    URL_HASH ${_assimp_hash}
+    URL https://github.com/assimp/assimp/archive/refs/tags/v6.0.5.zip
+    URL_HASH 89e477e89df739ecc7dd21874897ac2e70c8944eb1074fbdbbdbf4dd2de6a403
     CMAKE_ARGS
         # Assimp's ccache support sets the global RULE_LAUNCH_COMPILE, which breaks
         # the Ninja RC rule. The superbuild forwards CMAKE_<LANG>_COMPILER_LAUNCHER.
