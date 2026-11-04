@@ -3553,12 +3553,14 @@ int CLI::run(int argc, char **argv)
             for (int index = 0; index < project_defined_filament_count; index++)
                 filament_self_indice[index] = index + 1;
         }
-        // A filament loaded beyond the project's count gets one variant of its own, appended after
-        // the project's layout so the project's filaments keep their variant groups.
-        for (int index = project_defined_filament_count + 1; index <= filament_count; index++)
-            filament_self_index_opt->values.push_back(index);
 
         std::vector<int> old_self_indice= filament_self_index_opt->values;
+        // A filament loaded beyond the project's count gets one variant of its own, appended after
+        // the project's layout so the project's filaments keep their variant groups. Only this copy
+        // grows: normalize_filament_values_to_variants below lays the project's per-variant values
+        // out by its own filament_self_index, and the config's index is rebuilt after the loop.
+        for (int index = project_defined_filament_count + 1; index <= filament_count; index++)
+            old_self_indice.push_back(index);
         int old_self_indice_size = old_self_indice.size();
         int k = -1, current_filament = 0;
         for (size_t i = 0; i < old_self_indice_size; i++) {
