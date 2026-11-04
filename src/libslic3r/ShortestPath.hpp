@@ -16,6 +16,13 @@ namespace Slic3r { class Line; }
 
 namespace Slic3r {
 
+struct PathEndpoints {
+    Point first, last;
+    bool reversible { true };
+};
+// Order whole paths without changing their internal geometry or direction constraints.
+std::vector<std::pair<size_t, bool>> chain_path_endpoints(const std::vector<PathEndpoints> &paths, const Point *start_near = nullptr);
+
 std::vector<size_t> 				 chain_points(const Points &points, const Point *start_near = nullptr);
 // Variant with post-processing (crossing removal + 2-opt) for object ordering.
 std::vector<size_t> 				 chain_points_with_postprocessing(const Points &points, const Point *start_near = nullptr);

@@ -32,6 +32,8 @@
 #include "Utils.hpp"
 #include "Fill/FillAdaptive.hpp"
 #include "Fill/Fill.hpp"
+#include "Fill/VoronoiPointCloud.hpp"
+#include "Fill/VoronoiInfill.hpp"
 #include "Fill/FillLightning.hpp"
 #include "Fill/AdaptiveInfillField.hpp"
 #include "format.hpp"
@@ -78,6 +80,7 @@
 
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_invoke.h>
+#include <tbb/task_arena.h>
 #include <tbb/spin_mutex.h>
 #include <tbb/concurrent_unordered_set.h>
 
@@ -810,6 +813,22 @@ void PrintObject::prepare_infill()
     this->set_done(posPrepareInfill);
 }
 
+static bool uses_voronoi(const PrintObject &object)
+{
+    for (size_t i = 0; i < object.num_printing_regions(); ++i)
+        if (object.printing_region(i).config().sparse_infill_pattern == ipVoronoi)
+            return true;
+    return false;
+}
+
+static size_t infill_layer_grain_size(size_t count, bool reuse_network)
+{
+    // Balance network reuse against enough batches to occupy the available workers.
+    constexpr size_t maximum_batch = 16;
+    const size_t tasks = 2 * size_t(tbb::this_task_arena::max_concurrency());
+    return reuse_network ? std::min(maximum_batch, std::max(size_t(1), (count + tasks - 1) / tasks)) : 1;
+}
+
 void PrintObject::infill()
 {
     // prerequisites
@@ -818,13 +837,30 @@ void PrintObject::infill()
     if (this->set_started(posInfill)) {
         m_print->set_status(35, L("Generating infill toolpath"));
 
+        const bool has_voronoi = uses_voronoi(*this);
+
+        size_t completed_layers = 0;
+        std::mutex progress_mutex;
+        auto last_report = std::chrono::steady_clock::now();
+
+        const size_t layer_grain_size = infill_layer_grain_size(m_layers.size(), has_voronoi);
         BOOST_LOG_TRIVIAL(debug) << "Filling layers in parallel - start";
         tbb::parallel_for(
-            tbb::blocked_range<size_t>(0, m_layers.size()),
-            [this](const tbb::blocked_range<size_t>& range) {
+            tbb::blocked_range<size_t>(0, m_layers.size(), layer_grain_size),
+            [this, &completed_layers, &progress_mutex, &last_report](const tbb::blocked_range<size_t>& range) {
+                VoronoiEngineRegistry voronoi_engines;
                 for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++ layer_idx) {
                     m_print->throw_if_canceled();
-                    m_layers[layer_idx]->make_fills(&m_adaptive_fill_octrees, this->m_lightning_generator.get());
+                    m_layers[layer_idx]->make_fills(&m_adaptive_fill_octrees, this->m_lightning_generator.get(), &voronoi_engines);
+                    std::lock_guard<std::mutex> lock(progress_mutex);
+                    ++completed_layers;
+                    const auto now = std::chrono::steady_clock::now();
+                    if (completed_layers == m_layers.size() || now - last_report >= std::chrono::milliseconds(250)) {
+                        m_print->set_status(35 + int(5 * completed_layers / m_layers.size()),
+                            std::string(L("Generating infill toolpath")) + " (" + std::to_string(completed_layers) +
+                            " / " + std::to_string(m_layers.size()) + ")");
+                        last_report = now;
+                    }
                 }
             }
         );
@@ -1302,6 +1338,15 @@ AdaptiveInfillFields PrintObject::prepare_adaptive_infill_fields() const
     }
     return fields;
 }
+
+double PrintObject::voronoi_site_spacing(const PrintRegion &region) const
+{
+    const auto &config = region.config();
+    return Voronoi::PoissonPointCloud::nominal_spacing(
+        region.flow(*this, frInfill, m_config.layer_height.value).spacing() * config.fill_multiline.value,
+        m_config.layer_height.value, 0.01 * config.sparse_infill_density.value);
+}
+
 
 void PrintObject::clear_layers()
 {
@@ -3371,15 +3416,18 @@ void PrintObject::bridge_over_infill()
             layers_to_generate_infill.push_back(pair.first - 1);
         }
 
-        tbb::parallel_for(tbb::blocked_range<size_t>(0, layers_to_generate_infill.size()), [po = static_cast<const PrintObject *>(this),
+        const bool has_voronoi = uses_voronoi(*this);
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, layers_to_generate_infill.size(),
+            infill_layer_grain_size(layers_to_generate_infill.size(), has_voronoi)), [po = static_cast<const PrintObject *>(this),
                                                                                             &layers_to_generate_infill,
                                                                                             &infill_lines](tbb::blocked_range<size_t> r) {
             PRINT_OBJECT_TIME_LIMIT_MILLIS(PRINT_OBJECT_TIME_LIMIT_DEFAULT);
+            VoronoiEngineRegistry voronoi_engines;
             for (size_t job_idx = r.begin(); job_idx < r.end(); job_idx++) {
                 size_t lidx = layers_to_generate_infill[job_idx];
                 infill_lines.at(
                     lidx) = po->get_layer(lidx)->generate_sparse_infill_polylines_for_anchoring(&po->m_adaptive_fill_octrees,
-                                                                                                po->m_lightning_generator.get());
+                                                                                                po->m_lightning_generator.get(), &voronoi_engines);
             }
         });
 #ifdef DEBUG_BRIDGE_OVER_INFILL
