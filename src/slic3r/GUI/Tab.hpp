@@ -379,7 +379,11 @@ public:
 	void		compare_preset();
 	void		transfer_options(const std::string&name_from, const std::string&name_to, std::vector<std::string> options);
 	//BBS: add project embedded preset relate logic
-	void        save_preset(std::string name = std::string(), bool detach = false, bool save_to_project = false, bool from_input = false, std::string input_name = "");
+	// Returns false when the save was cancelled (the unresolved-plugin warning, the temperature
+	// safety check or the save-name dialog), so callers that were about to discard the edited
+	// preset can abort instead. `plugin_warning_confirmed` is set only by a caller that already ran
+	// the warning (UnsavedChangesDialog::save) and must not repeat it.
+	bool        save_preset(std::string name = std::string(), bool detach = false, bool save_to_project = false, bool from_input = false, std::string input_name = "", bool plugin_warning_confirmed = false);
 	//void		save_preset(std::string name = std::string(), bool detach = false);
 
 	void		delete_preset();
@@ -587,6 +591,9 @@ public:
 	void		update() override;
 	void		clear_pages() override;
 	bool 		supports_printer_technology(const PrinterTechnology tech) const override { return tech == ptFFF; }
+	// Column of the extruder's variant in the per-variant process vectors, as the extruder switch
+	// selects it; -1 when the printer has no such extruder variant.
+	int			extruder_variant_index(int extruder_id, NozzleVolumeType nozzle_type);
 
 private:
 	ogStaticText*	m_recommended_thin_wall_thickness_description_line = nullptr;

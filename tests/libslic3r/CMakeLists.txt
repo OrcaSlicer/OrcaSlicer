@@ -8,6 +8,8 @@ add_executable(${_TEST_NAME}_tests
     ${_TEST_NAME}_tests.cpp
     test_3mf.cpp
     test_amf.cpp
+    # Import naming policy is independent of the GUI and slicing pipeline.
+    test_import_names.cpp
     # Round-trip seam metadata and active/dormant volume settings in both formats.
     test_precise_seam_3mf.cpp
     # Pure perimeter extraction is independent of Print/Layer fixtures.
@@ -36,6 +38,7 @@ add_executable(${_TEST_NAME}_tests
     test_preset_bundle_loading.cpp
     test_preset_setting_id.cpp
     test_preset_diff.cpp
+    test_publish_settings.cpp
     test_vendor_cache.cpp
     test_preset_options.cpp
     test_edge_grid.cpp
@@ -47,6 +50,7 @@ add_executable(${_TEST_NAME}_tests
     test_adaptive_infill_field.cpp
     test_geometry.cpp
     test_kdtree.cpp
+    test_lightning.cpp
     test_imex_arrange.cpp
     test_imex_helpers.cpp
     test_imex_zones.cpp
@@ -61,6 +65,7 @@ add_executable(${_TEST_NAME}_tests
     test_obj.cpp
     test_step.cpp
     test_stl.cpp
+    test_triangle_mesh_deal.cpp
     test_triangle_selector.cpp
     test_meshboolean.cpp
     test_mesh_repair.cpp
