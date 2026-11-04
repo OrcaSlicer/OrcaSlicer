@@ -27,6 +27,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CLAUDE_CODE_SCRIPT_CAPS: '{"comment-on-duplicates.sh":1}'
+          # The action stops at Claude's first result, so a turn that ends while a background agent
+          # still works would drop the rest of the dedupe; keep agents in the foreground.
+          CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: "1"
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # Issues are opened by users without write access; the job's permissions and the
