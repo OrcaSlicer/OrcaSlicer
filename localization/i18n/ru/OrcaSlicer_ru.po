@@ -5253,7 +5253,7 @@ msgid "This setting is hidden because sparse infill density is zero."
 msgstr "Для отображения требуется положительная «Плотность заполнения»."
 
 msgid "Infill anchors require nonzero sparse infill density and a pattern other than Concentric or Spiral Inset."
-msgstr "Требуется ненулевая плотность заполнения и совместимый шаблон («Эквидистанты» и «Отступ по спирвали» несовместимы)."
+msgstr "Требуется ненулевая плотность заполнения и совместимый шаблон («Эквидистанты» и «Отступ по спирали» несовместимы)."
 
 # AI Translated
 msgid "Enable infill combination and use nonzero sparse infill density to show this setting."
@@ -7523,7 +7523,7 @@ msgid "Automatically switch between orthographic and perspective when changing f
 msgstr "Автоматическое переключение между ортогональной и перспективной проекцией при смене вида сверху/снизу/сбоку."
 
 msgid "Show &G-code Window"
-msgstr "&Панель просмота G-кода"
+msgstr "&Панель просмотра G-кода"
 
 msgid "Show G-code window in Preview scene."
 msgstr "Показать панель G-кода в окне предпросмотра."
@@ -11189,7 +11189,7 @@ msgid ""
 "\n"
 "Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."
 msgstr ""
-"Отключить все облачные функции, включая синзронизацию профилей с облаком Orca Cloud. Пригодится пользователям, отдающим предпочтение приватной работе без связи с интернетом.\n"
+"Отключить все облачные функции, включая синхронизацию профилей с облаком Orca Cloud. Пригодится пользователям, отдающим предпочтение приватной работе без связи с интернетом.\n"
 "\n"
 "Внимание: резервирование профилей в Orca Cloud будет недоступно."
 
@@ -14181,7 +14181,7 @@ msgid "Do you want to use the default filament?"
 msgstr "Выбрать материалы по умолчанию?"
 
 msgid "This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option."
-msgstr "Отключить все облачные функции, включая синзронизацию профилей с облаком Orca Cloud. Пригодится пользователям, отдающим предпочтение приватной работе без связи с интернетом."
+msgstr "Отключить все облачные функции, включая синхронизацию профилей с облаком Orca Cloud. Пригодится пользователям, отдающим предпочтение приватной работе без связи с интернетом."
 
 msgid "Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."
 msgstr "Внимание: резервирование профилей в Orca Cloud будет недоступно."
@@ -18619,7 +18619,7 @@ msgstr "Принудительное создание сплошных обол�
 msgid "Maximum width of a segmented region"
 msgstr "Толщина слоя покраски"
 
-# Переведено с фактическими ошибками, переписать с нуля (в оригинале тоже фактическая ошибка; разобрался и переписал)
+# Переведено с фактическими ошибками, переписать с нуля. В оригинале тоже фактическая ошибка. UPD: разобрался и переписал
 msgid "Maximum width of a segmented region. A value of 0 disables this feature."
 msgstr "Толщина основного слоя покраски, проникающего в модель.\n"
 "0 – определять автоматически.\n"
@@ -19295,9 +19295,9 @@ msgid ""
 "they are extruded after the other walls of their island, innermost first, whatever the wall order is.\n"
 "A loop that only the bridges of this layer can anchor waits until those bridges are printed, while a loop running alongside a supported wall keeps its place before the infill, which needs it as an anchor."
 msgstr ""
-"Печатать парящие контуры периметров только после создания боковой опоры для них, состоящей из:\n"
-"• прилегающих мостов (отверстия в мостах)\n"
-"• внутренних периметров (всенаправленные навесы).\n"
+"Печатать парящие контуры периметров только после создания боковой опоры для них. Примеры опор:\n"
+"• прилегающие мосты (отверстия в мостах)\n"
+"• внутренние периметры (всенаправленные навесы).\n"
 "\n"
 "Периметры с опорой на соседние печатаются до мостов, чтобы стать опорой для них."
 
@@ -25618,7 +25618,6 @@ msgstr "Ошибка печати"
 msgid "Printing Pause"
 msgstr "Пауза печати"
 
-# AI Translated
 msgctxt "Device status"
 msgid "Prepare"
 msgstr "Подготовка"
@@ -30921,7 +30920,7 @@ msgid "Horizontal slider - Move active thumb Left"
 msgstr "Горизонтальный ползунок - сдвинуть влево"
 
 msgid "Horizontal slider - Move active thumb Right"
-msgstr "Горизонтальный ползунок - сместить вправо"
+msgstr "Горизонтальный ползунок - сдвинуть вправо"
 
 msgid "Horizontal slider - Move to start position"
 msgstr "Горизонтальный ползунок - сдвинуть в начало"
