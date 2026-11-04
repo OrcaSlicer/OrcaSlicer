@@ -11,6 +11,7 @@
 #include "slic3r/plugin/PluginManager.hpp"
 
 #include <cctype>
+#include <cstddef>
 #include <exception>
 #include <atomic>
 #include <boost/filesystem/operations.hpp>
