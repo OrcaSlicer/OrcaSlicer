@@ -36,7 +36,9 @@ jobs:
           allowed_bots: "github-actions"
           prompt: "/dedupe ${{ github.repository }}/issues/${{ github.event.issue.number || inputs.issue_number }}"
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          claude_args: '--model claude-haiku-5-5 --disallowedTools "WebFetch,WebSearch,Write,Edit,MultiEdit,NotebookEdit"'
+          # The allowed-tools in .claude/commands/dedupe.md cover only the command's own turn, not the
+          # agents it starts, so the same two scripts are allowed for the whole session here.
+          claude_args: '--model claude-haiku-5-5 --allowedTools "Bash(./scripts/gh.sh:*),Bash(./scripts/comment-on-duplicates.sh:*)" --disallowedTools "WebFetch,WebSearch,Write,Edit,MultiEdit,NotebookEdit"'
 
       - name: Log duplicate comment event to Statsig
         if: always()
