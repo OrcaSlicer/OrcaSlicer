@@ -20,6 +20,8 @@
 #include <miniz.h>
 #include <iterator>
 #include <fstream>
+#include <exception>
+#include <ios>
 #include <ostream>
 #include <wx/string.h>
 #include <vector>
