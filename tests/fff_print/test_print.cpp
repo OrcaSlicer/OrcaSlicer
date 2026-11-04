@@ -1261,6 +1261,311 @@ TEST_CASE("Sequential printing still rejects two objects over the rod height tha
     CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("too tall"));
 }
 
+TEST_CASE("Sequential printing keeps copies of one object in their list order", "[Print]")
+{
+    // Every copy of an object shares its object index, so ordering by that alone leaves the copies to
+    // the sort, which shuffles them once there are enough. Nothing here comes near the rod: 200 copies
+    // of a part lower than the nozzle, on a grid, so nothing needs reordering.
+    std::vector<TriangleMesh> meshes;
+    meshes.push_back(make_cube(5, 5, 2));
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",     "by object" },
+        { "skirt_loops",        0 },
+        { "layer_change_gcode", "G92 E0\n" } // validate() relative-E reset
+    });
+    Print print;
+    Model model;
+    Test::init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false, /*instances=*/200);
+    const ModelInstancePtrs &instances = model.objects.front()->instances;
+    for (size_t k = 0; k < instances.size(); ++k)
+        instances[k]->set_offset(Vec3d(10. + 12. * double(k % 15), 10. + 12. * double(k / 15), instances[k]->get_offset().z()));
+    print.apply(model, config);
+
+    std::vector<StringObjectException> warnings;
+    const StringObjectException error = print.validate(&warnings);
+    INFO(error.string);
+    REQUIRE(error.string.empty());
+    CHECK(find_order_warning(warnings) == nullptr);
+    // validate() records the print order on the print's own copy of the model.
+    const ModelInstancePtrs &copies = print.model().objects.front()->instances;
+    CHECK(std::is_sorted(copies.begin(), copies.end(),
+                         [](const ModelInstance *l, const ModelInstance *r) { return l->arrange_order < r->arrange_order; }));
+}
+
+TEST_CASE("Sequential printing still lets objects below the rod use the rod height when the lid is lower", "[Print]")
+{
+    // Some stock profiles put the lid below the rod, such as the Creality Ender-3 V3 KE (lid 34 mm,
+    // rod 47 mm). An object that shares a Y band with a later one is checked against the rod height
+    // instead of the lid, so two 40 mm boxes side by side in X still slice.
+    std::vector<TriangleMesh> meshes;
+    for (size_t i = 0; i < 2; ++i) {
+        TriangleMesh box = make_cube(20, 20, 40);
+        box.translate(float(80 + 80 * i), 80.f, 0.f);
+        meshes.push_back(std::move(box));
+    }
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_height_to_lid", 34 },
+        { "extruder_clearance_height_to_rod", 47 },
+        { "skirt_loops",                      0 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    Print print;
+    Model model;
+    Test::init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false);
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    CHECK(error.empty());
+}
+
+TEST_CASE("Sequential printing counts only the part of an object above the rod height", "[Print]")
+{
+    // Each object is a 2 mm slab carrying one fin on its front (-Y) or back (+Y) edge, with the rod at
+    // 25 mm. The slabs share a Y band, but the rod can only hit the fins. Each fin is checked against
+    // the other slab's footprint widened by half of extruder_clearance_radius, not against the other
+    // fin: facing away from each other, neither fin is within that range; facing each other, both are,
+    // and no print order works. With one of each, only the first slab's fin is, so the second slab has to
+    // print first.
+    enum class Fins { FacingAway, FacingEachOther, OneOfEach };
+    const Fins fins = GENERATE(Fins::FacingAway, Fins::FacingEachOther, Fins::OneOfEach);
+    // A raised object (snap to the bed turned off) whose own height is below the rod but whose top is
+    // above it must get the same rule.
+    const bool raised = GENERATE(false, true);
+    // A per-object skirt that reaches the rod is a wall around the whole footprint, so the rod can hit
+    // all of it: the plate is refused whichever way the fins face, as it was before this rule. That is
+    // a draft shield (as tall as the object) or a skirt whose skirt_height reaches the rod.
+    enum class Skirt { None, DraftShield, Tall };
+    const Skirt skirt = GENERATE(Skirt::None, Skirt::DraftShield, Skirt::Tall);
+    CAPTURE(int(fins), raised, int(skirt));
+
+    const double fin_height = raised ? 20. : 29.5;
+    const double raise_by   = raised ? 10. : 0.;
+    auto slab_with_fin = [fin_height](bool fin_at_back, double x, double y) {
+        TriangleMesh slab = make_cube(40, 30, 2);
+        TriangleMesh fin  = make_cube(8, 2, fin_height);
+        fin.translate(16.f, fin_at_back ? 28.f : 0.f, 0.f);
+        slab.merge(fin);
+        slab.translate(float(x), float(y), 0.f);
+        return slab;
+    };
+    // The first slab sits further back (+Y), so its front fin faces the second slab.
+    std::vector<TriangleMesh> meshes;
+    meshes.push_back(slab_with_fin(fins == Fins::FacingAway, 40, 85));
+    meshes.push_back(slab_with_fin(fins == Fins::FacingEachOther, 170, 45));
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_height_to_rod", 25 },
+        // The rod reaches half of the default 40 mm radius; the fins are 18 mm clear when facing away.
+        { "extruder_clearance_dist_to_rod",   20 },
+        { "skirt_loops",                      0 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    if (skirt == Skirt::DraftShield)
+        config.set_deserialize_strict({
+            { "draft_shield", "enabled" },
+            { "skirt_type",   "perobject" },
+            { "skirt_loops",  1 }
+        });
+    else if (skirt == Skirt::Tall)
+        config.set_deserialize_strict({
+            { "skirt_type",   "perobject" },
+            { "skirt_loops",  1 },
+            { "skirt_height", 160 } // layers, well above the 25 mm rod at the default max layer height
+        });
+    Print print;
+    Model model;
+    Test::init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false);
+    if (raised) {
+        for (ModelObject *object : model.objects) {
+            ModelInstance *instance = object->instances.front();
+            instance->set_offset(instance->get_offset() + Vec3d(0., 0., raise_by));
+        }
+        print.apply(model, config);
+        REQUIRE(print.objects().front()->height() <= scale_(25.));
+        REQUIRE(print.objects().front()->max_z() > scale_(25.));
+    }
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    const bool refused = fins == Fins::FacingEachOther || skirt != Skirt::None;
+    CHECK((error.find("too tall") != std::string::npos) == refused);
+    if (fins == Fins::OneOfEach && !refused) {
+        // validate() records the print order on the print's own copy of the model.
+        const ModelObjectPtrs &objects = print.model().objects;
+        CHECK(objects[1]->instances.front()->arrange_order < objects[0]->instances.front()->arrange_order);
+    }
+}
+
+// Two 2 mm slabs side by side in X, each with one fin above the rod, the fins facing away from each
+// other so only the fins can meet the rod. Mesh coordinates, so the first slab sits further back (+Y).
+static std::vector<TriangleMesh> slabs_with_fins_facing_away(double fin_height, double low_fin_height)
+{
+    auto slab = [&](bool fin_at_back, double x, double y) {
+        TriangleMesh mesh = make_cube(40, 30, 2);
+        TriangleMesh fin  = make_cube(8, 2, fin_height);
+        fin.translate(16.f, fin_at_back ? 28.f : 0.f, 0.f);
+        mesh.merge(fin);
+        if (low_fin_height > 0.) {
+            // A second, lower fin on the opposite edge, facing the other slab.
+            TriangleMesh low_fin = make_cube(8, 2, low_fin_height);
+            low_fin.translate(16.f, fin_at_back ? 0.f : 28.f, 0.f);
+            mesh.merge(low_fin);
+        }
+        mesh.translate(float(x), float(y), 0.f);
+        return mesh;
+    };
+    std::vector<TriangleMesh> meshes;
+    meshes.push_back(slab(true, 40, 85));
+    meshes.push_back(slab(false, 170, 45));
+    return meshes;
+}
+
+TEST_CASE("Sequential printing checks the part above the rod against the rod's full reach", "[Print]")
+{
+    // Bambu Lab A1 mini values: half the toolhead radius is 36.5 mm, but the rod reaches 56.5 mm from the
+    // nozzle. The facing-away fins are farther apart than the first and closer than the second, so they only
+    // clear when the rod's reach is the smaller of the two.
+    const double dist_to_rod = GENERATE(0., 56.5);
+    CAPTURE(dist_to_rod);
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_radius",        73 },
+        { "extruder_clearance_height_to_rod", 25 },
+        { "extruder_clearance_dist_to_rod",   dist_to_rod },
+        { "skirt_loops",                      0 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    Print print;
+    Model model;
+    Test::init_print(slabs_with_fins_facing_away(29.5, 0.), print, model, config, nullptr, /*arrange=*/false);
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    CHECK((error.find("too tall") != std::string::npos) == (dist_to_rod > 36.5));
+}
+
+TEST_CASE("Sequential printing keeps the rod's reach within the object", "[Print]")
+{
+    // Snapmaker U1 values, which leave Distance to rod at its default. The boxes clear the radius in X and
+    // are 38 mm apart in Y, more than half the radius but less than Distance to rod. The reach past half
+    // the radius only widens the part above the rod up to the object's own footprint, so they still validate.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_radius",        72.5 },
+        { "extruder_clearance_height_to_rod", 27.5 },
+        { "skirt_loops",                      0 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    REQUIRE(config.opt_float("extruder_clearance_dist_to_rod") > 38.);
+
+    std::vector<TriangleMesh> meshes;
+    for (const Vec2f &position : { Vec2f(20.f, 40.f), Vec2f(130.f, 110.f) }) {
+        TriangleMesh box = make_cube(32, 32, 32);
+        box.translate(position.x(), position.y(), 0.f);
+        meshes.push_back(std::move(box));
+    }
+    Print print;
+    Model model;
+    Test::init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false);
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    CHECK(error.empty());
+}
+
+TEST_CASE("Sequential printing counts a raft toward what reaches the rod", "[Print]")
+{
+    // Each slab has a tall fin facing away from the other slab and a lower fin facing it. Without a raft
+    // the lower fin stays under the rod and the plate validates; a raft lifts it above the rod, and then
+    // the lower fins meet.
+    const bool raft = GENERATE(false, true);
+    CAPTURE(raft);
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_height_to_rod", 25 },
+        { "extruder_clearance_dist_to_rod",   20 },
+        { "skirt_loops",                      0 },
+        { "raft_layers",                      raft ? 3 : 0 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    Print print;
+    Model model;
+    Test::init_print(slabs_with_fins_facing_away(29.5, 24.8), print, model, config, nullptr, /*arrange=*/false);
+    if (raft)
+        REQUIRE(print.objects().front()->slicing_parameters().object_print_z_min > 0.2);
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    CHECK((error.find("too tall") != std::string::npos) == raft);
+}
+
+TEST_CASE("Sequential printing keeps the rod height for an object only its raft lifts above the rod", "[Print]")
+{
+    // With the lid below the rod, an object that shares a Y band with a later one is checked against the
+    // rod height instead of the lid. The fins face away from each other and stay below the rod on their
+    // own; only the raft lifts them above it. The too-tall check compares the top without the raft, so the
+    // slabs keep the footprint test and the rod height, and the plate still validates.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_height_to_lid", 20 },
+        { "extruder_clearance_height_to_rod", 25 },
+        { "extruder_clearance_dist_to_rod",   20 },
+        { "skirt_loops",                      0 },
+        { "raft_layers",                      3 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    Print print;
+    Model model;
+    Test::init_print(slabs_with_fins_facing_away(24.8, 0.), print, model, config, nullptr, /*arrange=*/false);
+    REQUIRE(24.8 + print.objects().front()->slicing_parameters().object_print_z_min > 25.);
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    CHECK(error.empty());
+}
+
+TEST_CASE("Sequential printing applies an instance's rotation to the part above the rod", "[Print]")
+{
+    // The fins face away from each other in the meshes, but each instance is turned 180 degrees about its
+    // own center, so on the bed they face each other and no print order works.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_height_to_rod", 25 },
+        { "extruder_clearance_dist_to_rod",   20 },
+        { "skirt_loops",                      0 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    Print print;
+    Model model;
+    Test::init_print(slabs_with_fins_facing_away(29.5, 0.), print, model, config, nullptr, /*arrange=*/false);
+    for (ModelObject *object : model.objects) {
+        ModelInstance *instance = object->instances.front();
+        const Vec3d    center   = object->instance_bounding_box(0).center();
+        const Vec3d    offset   = instance->get_offset();
+        instance->set_rotation(Vec3d(0., 0., PI));
+        // A half turn about the instance origin moves the object too; shift it back so it turns in place.
+        instance->set_offset(Vec3d(2. * center.x() - offset.x(), 2. * center.y() - offset.y(), offset.z()));
+        REQUIRE((object->instance_bounding_box(0).center() - center).norm() < EPSILON);
+    }
+    print.apply(model, config);
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    CHECK(error.find("too tall") != std::string::npos);
+}
+
 // A sequential (by-object) print must publish the print-level nozzle group result just
 // like a by-layer print, so custom g-code can index the per-nozzle placeholder tables
 // (e.g. nozzle_diameter_at_nozzle_id[]) instead of failing on an empty vector.

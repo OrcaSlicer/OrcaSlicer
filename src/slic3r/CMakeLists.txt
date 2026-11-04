@@ -509,6 +509,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/SceneRaycaster.hpp
     GUI/SceneCache.cpp
     GUI/SceneCache.hpp
+    GUI/SelectionOutline.cpp
+    GUI/SelectionOutline.hpp
     GUI/FrameProfiler.cpp
     GUI/FrameProfiler.hpp
     GUI/SceneBenchmark.cpp
@@ -547,6 +549,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/StatusPanel.hpp
     GUI/StepMeshDialog.cpp
     GUI/StepMeshDialog.hpp
+    GUI/GeometryImportDialog.cpp
+    GUI/GeometryImportDialog.hpp
     GUI/SurfaceDrag.cpp
     GUI/SurfaceDrag.hpp
     GUI/Tabbook.cpp

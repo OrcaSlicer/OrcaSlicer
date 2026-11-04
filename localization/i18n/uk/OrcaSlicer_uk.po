@@ -20601,17 +20601,17 @@ msgstr "Протирання всередину"
 
 # AI Translated
 msgid ""
-"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
+"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward the inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
 "\n"
 "Especially useful at layer heights below 0.1 mm, where wipe marks are more visible.\n"
 "\n"
-"Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or Outer/Inner wall order), or if no supported inward path can be found, for example at tight corners or seam gaps."
+"Uses the regular wipe where the outer wall has no adjacent inner wall, such as in single-wall areas, or if no supported inward path can be found, for example at tight corners or seam gaps."
 msgstr ""
-"Застосовується лише до зовнішніх стінок, зокрема до контурів отворів. Під час протирання переміщує гаряче сопло до вже надрукованих внутрішніх стінок, щоб зменшити повторне нагрівання щойно надрукованого пластику та сліди шва.\n"
+"Застосовується лише до зовнішніх стінок, зокрема до контурів отворів. Під час протирання переміщує гаряче сопло до внутрішніх стінок, щоб зменшити повторне нагрівання щойно надрукованого пластику та сліди шва.\n"
 "\n"
 "Особливо корисно за висоти шару менше 0,1 мм, де сліди протирання помітніші.\n"
 "\n"
-"Використовує звичайне протирання, якщо поруч немає вже надрукованої внутрішньої стінки (ділянки з однією стінкою або порядок стінок Зовнішня/Внутрішня) або якщо не вдається знайти опертий шлях усередину, наприклад у тісних кутах чи розривах шва."
+"Використовує звичайне протирання там, де зовнішня стінка не має сусідньої внутрішньої стінки, як-от на ділянках з однією стінкою, або якщо не вдається знайти опертий шлях усередину, наприклад у тісних кутах чи розривах шва."
 
 # AI Translated
 msgid "Wipe inward distance"
@@ -20622,11 +20622,15 @@ msgstr "Відстань протирання всередину"
 msgid ""
 "The distance the wipe path is shifted away from the external perimeter, specified in millimeters or as a percentage of the actual outer-wall extrusion width.\n"
 "\n"
-"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset."
+"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset.\n"
+"\n"
+"With Outer/Inner or Inner/Outer/Inner wall order, the offset is limited to 50% of the actual outer-wall width because the adjacent inner wall is printed after the outer wall. This also applies to equivalent distances specified in millimeters."
 msgstr ""
 "Відстань, на яку шлях протирання зміщується від зовнішнього контуру, задається в міліметрах або у відсотках від фактичної ширини екструзії зовнішньої стінки.\n"
 "\n"
-"Наприклад, 50% зміщує шлях на половину ширини зовнішньої стінки. Фактичне зміщення обмежується як реальною шириною зовнішньої стінки, так і доступним проміжком до сусідньої стінки, тому значення понад 100% або еквівалентна абсолютна відстань не дають додаткового ефекту. Задайте 0, щоб вимкнути зміщення."
+"Наприклад, 50% зміщує шлях на половину ширини зовнішньої стінки. Фактичне зміщення обмежується як реальною шириною зовнішньої стінки, так і доступним проміжком до сусідньої стінки, тому значення понад 100% або еквівалентна абсолютна відстань не дають додаткового ефекту. Задайте 0, щоб вимкнути зміщення.\n"
+"\n"
+"За порядку стінок Зовнішня/Внутрішня або Внутрішня/Зовнішня/Внутрішня зміщення обмежується 50% фактичної ширини зовнішньої стінки, оскільки сусідня внутрішня стінка друкується після зовнішньої. Це стосується й еквівалентних відстаней, заданих у міліметрах."
 
 msgid "Wipe before external loop"
 msgstr "Протирати перед зовнішнім контуром"
@@ -25023,10 +25027,10 @@ msgstr "Версія Klipper => 0.9.0"
 
 # AI Translated
 msgid ""
-"RepRap firmware version => 3.4.0\n"
+"RepRapFirmware version => 3.4.0\n"
 "Check your firmware documentation for supported shaper types."
 msgstr ""
-"Версія RepRap firmware => 3.4.0\n"
+"Версія RepRapFirmware => 3.4.0\n"
 "Перевірте в документації прошивки, які типи шейперів підтримуються."
 
 msgid "Frequency (Start / End): "
@@ -25044,8 +25048,8 @@ msgid "Frequency settings"
 msgstr "Налаштування частоти"
 
 # AI Translated
-msgid "RepRap firmware uses the same frequency range for both axes."
-msgstr "RepRap firmware використовує однаковий діапазон частот для обох осей."
+msgid "RepRapFirmware uses the same frequency range for both axes."
+msgstr "RepRapFirmware використовує однаковий діапазон частот для обох осей."
 
 # AI Translated
 msgid "Damp: "
@@ -25090,8 +25094,8 @@ msgid "Damp (Start / End): "
 msgstr "Демпфування (початок / кінець): "
 
 # AI Translated
-msgid "RepRap firmware uses the same frequency for both axes."
-msgstr "RepRap firmware використовує однакову частоту для обох осей."
+msgid "RepRapFirmware uses the same frequency for both axes."
+msgstr "RepRapFirmware використовує однакову частоту для обох осей."
 
 # AI Translated
 msgid "Note: Use previously calculated frequencies."

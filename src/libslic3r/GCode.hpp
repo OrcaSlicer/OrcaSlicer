@@ -142,7 +142,9 @@ public:
     }
 
     std::string prime(GCode &gcodegen);
-    void next_layer() { ++ m_layer_idx; m_tool_change_idx = 0; }
+    void next_layer() { ++ m_layer_idx; m_tool_change_idx = 0; m_layer_joined = false; }
+    // The next object layer joined the current tower layer, so its purges print down at that layer's z.
+    void join_layer() { m_layer_joined = true; }
     std::string tool_change(GCode &gcodegen, int extruder_id, bool finish_layer);
     bool is_empty_wipe_tower_gcode(GCode &gcodegen, int extruder_id, bool finish_layer);
     std::string finalize(GCode &gcodegen);
@@ -164,6 +166,8 @@ private:
     std::string append_tcr2(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
     std::string travel_to_tower_gap(GCode &gcodegen, const Point &route_start, const Point &start_wipe_pos) const;
     Vec2f transform_wt2_pt(const Vec2f &pt) const;
+    // The current tower layer's z in the G-code frame, where a joined layer prints its purges.
+    double joined_tower_z() const { return m_tool_changes[m_layer_idx].front().print_z + m_print_config->z_offset.value; }
     Polygons shared_printable_area(GCode &gcodegen) const;
 
     // Postprocesses gcode: rotates and moves G1 extrusions and returns result
@@ -183,6 +187,7 @@ private:
     int                                                          m_layer_idx;
     int                                                          m_tool_change_idx;
     double                                                       m_last_wipe_tower_print_z;
+    bool                                                         m_layer_joined = false;
 
     // BBS
     Vec3d                                                        m_plate_origin;

@@ -268,6 +268,10 @@ jobs:
         - /opt/ghc:/opt/ghc1
         - /usr/local/share/boost:/usr/local/share/boost1
         - /opt/hostedtoolcache:/opt/hostedtoolcache1
+        # Updating a runtime renames its old deployment, which fails with
+        # "Invalid cross-device link" on hosts whose Docker overlay cannot
+        # rename directories from an image layer. A volume is not overlay.
+        - /var/lib/flatpak
     strategy:
       fail-fast: false
       matrix:

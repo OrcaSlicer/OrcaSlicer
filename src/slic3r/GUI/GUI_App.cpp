@@ -4342,7 +4342,9 @@ void GUI_App::set_live_printer_agent(std::shared_ptr<IPrinterAgent> agent)
     }
 
     m_agent->set_printer_agent(agent);
-    sidebar().update_all_preset_comboboxes();
+    // Before mainframe is shown this runs from load_current_presets(), right after
+    // printer refilled the filament combos; no printer is connected yet, so they would not change
+    sidebar().update_all_preset_comboboxes(mainframe == nullptr || mainframe->IsShown());
 }
 
 std::string GUI_App::resolve_printer_agent_id(const std::string& stored_id) const
@@ -4517,8 +4519,10 @@ void GUI_App::select_machine(const std::string& agent_id)
         }
     }
 
-    // If machine doesn't exist, create it first
-    if (!existing) {
+    // If machine doesn't exist, create it first. The Orca agent never connects, so an entry saved
+    // under it holds no binding; re-insert it for the active agent, whose machine list can't see
+    // it otherwise. Entries bound by any other agent stay with that agent.
+    if (!existing || (existing->printer_agent_id == ORCA_PRINTER_AGENT_ID && agent_id != ORCA_PRINTER_AGENT_ID)) {
         BBLocalMachine machine;
         machine.dev_id = dev_id;
         // We use dev_id as dev_ip to store the address (host:port)
@@ -4533,7 +4537,7 @@ void GUI_App::select_machine(const std::string& agent_id)
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to create machine dev_id=" << dev_id;
             return;
         }
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": created new machine dev_id=" << dev_id;
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": created or adopted machine dev_id=" << dev_id;
     } else if (agent_id == MOONRAKER_PRINTER_AGENT_ID && existing->printer_agent_id == agent_id &&
                (!existing->has_access_right() || existing->get_access_code() != access_code)) {
         existing->set_access_code(access_code);
@@ -9613,6 +9617,11 @@ void GUI_App::MacOpenURL(const wxString& url)
 {
     if (url.empty())
         return;
+    // A cold launch delivers the URL before post_init, so open it there like a command-line URL.
+    if (!m_post_initialized) {
+        init_params->input_files = { into_u8(url) };
+        return;
+    }
     start_download(into_u8(url));
 }
 
