@@ -563,13 +563,18 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     m_spiral_mode_choice->Append(_L("Disable"));
     m_spiral_mode_choice->SetSelection(0);
     m_spiral_mode_choice->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
-        // "Enable" asks for confirmation, declined keeps the previous choice
-        if (e.GetSelection() == 1 && m_spiral_mode_selection != 1 &&
-            static_cast<TabPrintPlate*>(wxGetApp().plate_tab)->show_spiral_mode_settings_dialog(false) != wxID_YES) {
-            m_spiral_mode_choice->SetSelection(m_spiral_mode_selection); // keep the previous choice
+        if (e.GetSelection() != 1 || m_spiral_mode_selection == 1) {
+            m_spiral_mode_selection = e.GetSelection();
             return;
         }
-        m_spiral_mode_selection = e.GetSelection();
+        CallAfter([this] {
+            if (m_spiral_mode_choice->GetSelection() != 1)
+                return;
+            if (static_cast<TabPrintPlate*>(wxGetApp().plate_tab)->show_spiral_mode_settings_dialog(false) != wxID_YES)
+                m_spiral_mode_choice->SetSelection(m_spiral_mode_selection);
+            else
+                m_spiral_mode_selection = 1;
+        });
     });
     wxStaticText* spiral_mode_txt = new wxStaticText(this, wxID_ANY, _L("Spiral vase"));
     spiral_mode_txt->SetFont(Label::Body_14);
