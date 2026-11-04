@@ -650,7 +650,6 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     dlg_btns->SetAlertButton("none"); // keep Reset neutral
 
     auto reset_btn = dlg_btns->GetButtonFromID(wxID_RESET);
-    reset_btn->SetStyle(::ButtonStyle::Regular, ::ButtonType::Choice);
     reset_btn->Show(!only_layer_seq);
     reset_btn->Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& e) {
         e.Enable(m_bed_type_choice->GetSelection() > 0 || m_print_seq_choice->GetSelection() > 0 ||

@@ -131,6 +131,11 @@ void DialogButtons::SetAlertButton(wxString translated_label) {
     }else
         btn = GetButtonFromLabel(translated_label);
 
+    // restore the previous alert button, also when the new label matches nothing
+    Button* prev = m_alert.IsEmpty() ? PickFromList(m_alertIDs) : GetButtonFromLabel(m_alert);
+    if (prev && prev != btn)
+        prev->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
+
     m_alert = translated_label;
 
     if(btn == nullptr) return;
