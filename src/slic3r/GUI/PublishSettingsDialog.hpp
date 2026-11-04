@@ -179,7 +179,7 @@ private:
         int column{-1};
         // A filament slot's file columns, in preset order (empty without a variant layout).
         std::vector<size_t> columns;
-        // The Q1 notice: this printer needs a variant the filament does not define.
+        // The variant notice: this printer needs a variant the filament does not define.
         wxStaticText* variant_notice{nullptr};
 
         // Material identity, only for Section::Material categories.
@@ -290,7 +290,7 @@ private:
                               const PublishMaterialIdentity& identity = PublishMaterialIdentity(),
                               bool is_mixed                          = false);
     // Creates the slot's private Filament tab from `pending_filament` and hands it to the
-    // category's host (spec 7.4.2). Used once at build and again whenever the picker assigns
+    // category's host. Used once at build and again whenever the picker assigns
     // another preset; the previous tab is destroyed by the caller.
     void build_material_tab(Category& category);
     // Picker callback: assign `preset_name` to the physical slot at once, write the slot colour
@@ -367,9 +367,11 @@ private:
     // Where an edit of the row must be written, or a None target when the row has no writable
     // owner.
     Slic3r::PublishWriteLocation write_location_for(size_t row_index) const;
-    // Whether a row's value can be written to the project (spec 7.10): the slot must not have Full
-    // Publish, and the row must resolve to a real write target. Colour/Type rows have no key, so
-    // they are never writable; the flag rows do not gate a key row's edit.
+    // Whether a row's value can be written to the project: the slot must not have Full Publish, the
+    // row must resolve to a real write target, and a filament preset row's preset must be the one
+    // the collection has selected (the sidebar's Tab tracks edits only for that preset). The Colour
+    // and Type rows have no key, so they are never writable; the flag rows do not gate a key row's
+    // edit.
     bool row_writable(size_t row_index) const;
     // Enables the line's fields while the row it draws is checked and writable, and disables them
     // otherwise. A row of a column the tab does not show leaves the line alone.
@@ -380,7 +382,7 @@ private:
     // and forward each edit to the real preset or project.
     void bind_publish_tab(size_t category_index);
     // One edit from a hosted tab: the row the visible field draws, checked and writable, is
-    // written to its owner's real preset (or the project config) at once (spec 7.10), with the
+    // written to its owner's real preset (or the project config) at once, with the
     // other keys the tab's own handling of the edit rewrote. The value written is the tab's
     // post-handling one, so a correction the handling makes to the edited key itself sticks.
     // `before_handling` is the tab's private config as it stood before that handling started (the

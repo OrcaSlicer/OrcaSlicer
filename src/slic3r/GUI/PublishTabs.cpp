@@ -106,7 +106,7 @@ void PublishTabFilament::build()
     // row the dialog cannot check.
     prune_publish_pages(m_pages, is_action_option);
     // The model keys and free-text notes are not published settings: the dialog has no rows for
-    // them, so the pages would only show an empty or uncheckable section (spec 7.4.4).
+    // them, so the pages would only show an empty or uncheckable section.
     m_pages.erase(std::remove_if(m_pages.begin(), m_pages.end(), [](const PageShp &page) {
                       return page->title() == "Dependencies" || page->title() == "Notes";
                   }),

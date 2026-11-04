@@ -1019,6 +1019,11 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent,
 
     auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
 
+    // This dialog applies its edits as they are made, so the negative button only closes it and
+    // cannot discard anything: label it for what it does instead of implying a cancel.
+    if (Button* close_btn = dlg_btns->GetCANCEL())
+        close_btn->SetLabel(_L("Close"));
+
     dlg_btns->GetOK()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         // Publish is always allowed: no settings selected means no settings override. Warn only
         // when a publishing mixed filament would ship without the material of one of its
@@ -1033,10 +1038,11 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent,
         // Every edit reached the project as it was made.
         EndModal(wxID_OK);
     });
-    // Cancel closes without restoring anything: the edits are the project's now.
+    // Close ends the dialog without publishing and without restoring anything: the edits are the
+    // project's now. The id stays wxID_CANCEL so the close box and the caller's check keep working.
     dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
 
-    // Guide links, bottom-left, sharing the footer row with the OK/Cancel buttons (pushed right).
+    // Guide links, bottom-left, sharing the footer row with the OK/Close buttons (pushed right).
     wxBoxSizer* links_sizer = new wxBoxSizer(wxHORIZONTAL);
 
     auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
@@ -1159,8 +1165,8 @@ void PublishSettingsDialog::build_option_model()
 
     m_snapshot = uncompacted;
 
-    // --- Phase 1: the printer settings, drawn by one dialog-hosted Printer tab over a preset
-    // seeded from the edited printer preset (spec 7.4). Its own extruder switch selects the
+    // --- Printer settings: drawn by one dialog-hosted Printer tab over a preset
+    // seeded from the edited printer preset. Its own extruder switch selects the
     // variant, and its pages are pruned to the published-3MF allowlist, so the rows below are the
     // sidebar's Retraction and Z-Hop groups.
     if (bundle->printers.get_edited_preset().printer_technology() == ptFFF) {
@@ -1170,8 +1176,8 @@ void PublishSettingsDialog::build_option_model()
         bind_publish_tab(category_index);
     }
 
-    // --- Phase 2: per-material sections, one per used slot, each drawing the sidebar's own
-    // Filament tab (spec 7.4) over a preset seeded from that slot (Task 14).
+    // --- Per-material sections: one per used slot, each drawing the sidebar's own
+    // Filament tab over a preset seeded from that slot.
     {
         size_t g = section_group_for(Section::Material);
 
@@ -1230,7 +1236,7 @@ void PublishSettingsDialog::build_option_model()
             const std::vector<size_t>           slot_columns = publish_filament_columns(uncompacted, slot);
             m_categories[category_index].column  = resolved.file_column.has_value() ? int(*resolved.file_column) : -1;
             m_categories[category_index].columns = slot_columns;
-            // Q1: a slot whose printer variant its filament does not define publishes the
+            // A slot whose printer variant its filament does not define publishes the
             // values it prints with, and the owner is told before they publish.
             if (const std::string notice = publish_variant_notice(uncompacted, slot); !notice.empty()) {
                 if (wxStaticText* label = m_categories[category_index].variant_notice; label != nullptr) {
@@ -1248,8 +1254,8 @@ void PublishSettingsDialog::build_option_model()
         }
     }
 
-    // --- Phase 3: the process settings, drawn by one dialog-hosted Process tab over a preset
-    // seeded from the edited print preset (spec 7.4). The tab's own extruder switch and page strip
+    // --- Process settings: drawn by one dialog-hosted Process tab over a preset
+    // seeded from the edited print preset. The tab's own extruder switch and page strip
     // are the navigation, and its page set is kept whole.
     {
         size_t       g              = section_group_for(Section::Print);
@@ -1262,7 +1268,7 @@ void PublishSettingsDialog::build_option_model()
     // column of their own preset, which is the file column, so an exact match is right for them.
     // A filament preset's dirty keys carry its *local* variant index, and several slots routinely
     // share one preset: publish_dirty_material_keys resolves them to each sharing slot's own
-    // "base#file_column" (spec 7.5).
+    // "base#file_column".
     const std::vector<std::string> dirty = collect_dirty_settings_keys(*bundle);
     std::vector<bool>              slot_is_mixed(bundle->filament_presets.size(), false);
     if (const auto* mixed_flags = full.opt<ConfigOptionBools>("filament_is_mixed"))
@@ -1539,7 +1545,7 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
     }
 
     if (section == Section::Material && !is_mixed) {
-        // The Q1 notice, filled once the slot's resolved column is known.
+        // The variant notice, filled once the slot's resolved column is known.
         category.variant_notice = new wxStaticText(category.page, wxID_ANY, wxEmptyString);
         category.variant_notice->SetFont(Label::Body_13);
         category.variant_notice->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#C0392B")));
@@ -1547,14 +1553,14 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
         page_sizer->Add(category.variant_notice, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(6));
 
         // The slot's settings are the sidebar's own Filament tab, over a private preset seeded
-        // from this slot (spec 7.4). Its own pages and variant switch are the navigation.
+        // from this slot. Its own pages and variant switch are the navigation.
         auto* host = new PublishParamsPanel(category.page);
         category.publish_host = host;
         build_material_tab(category);
         page_sizer->Add(host, 1, wxEXPAND | wxTOP, FromDIP(4));
     } else if (section == Section::Printer) {
         // The printer settings are the sidebar's own Printer tab, over a private preset seeded
-        // from the edited printer preset (spec 7.4). Its own extruder switch selects the variant,
+        // from the edited printer preset. Its own extruder switch selects the variant,
         // and its pages are pruned to the publish allowlist.
         auto* host = new PublishParamsPanel(category.page);
         auto* tab  = new PublishTabPrinter(host);
@@ -1567,7 +1573,7 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
         page_sizer->Add(host, 1, wxEXPAND | wxTOP, FromDIP(4));
     } else if (section == Section::Print) {
         // The process settings are the sidebar's own Process tab, over a private preset seeded
-        // from the edited print preset (spec 7.4). Its own extruder switch and page strip are the
+        // from the edited print preset. Its own extruder switch and page strip are the
         // navigation; its page set is kept whole.
         auto* host = new PublishParamsPanel(category.page);
         auto* tab  = new PublishTabPrint(host);
@@ -2048,7 +2054,7 @@ void PublishSettingsDialog::on_filament_picked(size_t slot, const std::string& p
     for (const size_t r : category->rows)
         m_rows[r].category = title;
 
-    // Q1: the picked preset may not define the variant the printer needs.
+    // The picked preset may not define the variant the printer needs.
     if (category->variant_notice != nullptr) {
         const std::string notice = publish_variant_notice(m_snapshot, slot);
         category->variant_notice->SetLabel(from_u8(notice));
@@ -2835,7 +2841,19 @@ Slic3r::PublishWriteLocation PublishSettingsDialog::write_location_for(size_t ro
 
 bool PublishSettingsDialog::row_writable(size_t row_index) const
 {
-    return write_location_for(row_index).target != Slic3r::PublishWriteTarget::None;
+    const Slic3r::PublishWriteLocation location = write_location_for(row_index);
+    if (location.target == Slic3r::PublishWriteTarget::None)
+        return false;
+    if (location.target != Slic3r::PublishWriteTarget::FilamentPreset)
+        return true;
+    // A stored preset (another slot's, or a system one) has no edit tracking: a write into it is
+    // not marked, cannot be reverted, and the next preset selection makes it the saved baseline.
+    // Only the preset the collection has selected is editable: its edit goes through the sidebar's
+    // own Tab, which carries the dirty mark, the undo and the save prompt.
+    PresetBundle* bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr || location.owner < 0 || size_t(location.owner) >= bundle->filament_presets.size())
+        return false;
+    return bundle->filament_presets[size_t(location.owner)] == bundle->filaments.get_selected_preset_name();
 }
 
 void PublishSettingsDialog::apply_line_field_gating(size_t row_index)
@@ -2896,7 +2914,7 @@ void PublishSettingsDialog::bind_publish_tab(size_t category_index)
         apply_visibility();
         apply_row_label_colours();
     };
-    // Every edit reaches the project at once, through the row it is drawn by (spec 7.10).
+    // Every edit reaches the project at once, through the row it is drawn by.
     tab->m_on_publish_edit = [this, category_index](const std::string& opt_id, const boost::any& value,
                                                     const std::vector<std::string>& dependent_keys,
                                                     const DynamicPrintConfig& before_handling) {
@@ -2992,6 +3010,9 @@ void PublishSettingsDialog::on_publish_edit(size_t category_index, const std::st
     // they never leave the tab's preset, so the write location above covers them too.
     DynamicPrintConfig* dependent_target = nullptr;
     Tab*                dependent_tab    = nullptr;
+    // The filament preset this edit landed in, when one did: every other slot drawing the same
+    // preset has its own hosted tab to refresh.
+    std::string edited_preset_name;
     // The filament tab's edit already refreshed itself through load_key_value(), so it only needs
     // another pass when a copied key actually changed its preset, or when the staged element had to
     // replace the raw write below.
@@ -3006,46 +3027,37 @@ void PublishSettingsDialog::on_publish_edit(size_t category_index, const std::st
         if (location.owner < 0 || size_t(location.owner) >= bundle->filament_presets.size())
             break;
         const std::string& name = bundle->filament_presets[size_t(location.owner)];
-        bool handled = false;
-        // The preset the sidebar's Filament tab shows goes through the Tab, so its dirty state,
-        // validators and undo see the edit exactly as a sidebar edit.
-        if (name == bundle->filaments.get_selected_preset_name())
-            if (Tab* filament_tab = wxGetApp().get_tab(Preset::TYPE_FILAMENT)) {
-                filament_tab->load_key_value(published->key, value, false, int(index));
-                dependent_target = &bundle->filaments.get_edited_preset().config;
-                dependent_tab    = filament_tab;
-                dependent_tab_only_on_copy = true;
-                handled = true;
-                // load_key_value() can only take the value the field emitted, while the tab's own
-                // handling may have corrected the edited key itself (a clamp against its paired
-                // value). The staged element is what the preset must hold, so it replaces the raw
-                // write and the tab is refreshed below to show it.
-                const Slic3r::ConfigOption* written        = dependent_target->option(published->key);
-                const Slic3r::ConfigOption* staged         = tab->m_config->option(published->key);
-                const auto*                 written_values = dynamic_cast<const Slic3r::ConfigOptionVectorBase*>(written);
-                const auto*                 staged_values  = dynamic_cast<const Slic3r::ConfigOptionVectorBase*>(staged);
-                const bool                  restage =
-                    written != nullptr && staged != nullptr &&
-                    (written->is_scalar() ? *written != *staged
-                                          : written_values != nullptr && staged_values != nullptr &&
-                                                written_values->size() == staged_values->size() &&
-                                                index < written_values->size() && !element_equals(*written, *staged, index));
-                if (restage)
-                    edited_key_restaged = copy_option_element_at(*dependent_target, published->key, *tab->m_config, index);
-            }
-        if (!handled) {
-            // Any other slot's preset is its stored copy, which full_config() reads for that slot.
-            // It is written without being selected: the sidebar tab shows the value when that
-            // preset is selected.
-            Preset* target = bundle->filaments.find_preset(name, false);
-            if (target == nullptr ||
-                !copy_option_element_at(target->config, published->key, *tab->m_config, index))
-                break;
-            target->set_dirty(true);
-            dependent_target = &target->config;
-            // No Tab was refreshed for this preset: the scene re-reads the project itself.
-            plater_refresh = true;
-        }
+        // Only the preset the collection has selected is editable: row_writable() keeps every other
+        // slot's rows read-only, because writing a stored preset (a system one included) would
+        // change it with nothing marking, reverting or saving it, and the next preset selection
+        // would make the written value its baseline. The selected preset goes through the sidebar's
+        // own Tab, so its dirty state, validators and undo see the edit exactly as a sidebar edit.
+        if (name != bundle->filaments.get_selected_preset_name())
+            break;
+        Tab* filament_tab = wxGetApp().get_tab(Preset::TYPE_FILAMENT);
+        if (filament_tab == nullptr)
+            break;
+        edited_preset_name = name;
+        filament_tab->load_key_value(published->key, value, false, int(index));
+        dependent_target = &bundle->filaments.get_edited_preset().config;
+        dependent_tab    = filament_tab;
+        dependent_tab_only_on_copy = true;
+        // load_key_value() can only take the value the field emitted, while the tab's own handling
+        // may have corrected the edited key itself (a clamp against its paired value). The staged
+        // element is what the preset must hold, so it replaces the raw write and the tab is
+        // refreshed below to show it.
+        const Slic3r::ConfigOption* written        = dependent_target->option(published->key);
+        const Slic3r::ConfigOption* staged         = tab->m_config->option(published->key);
+        const auto*                 written_values = dynamic_cast<const Slic3r::ConfigOptionVectorBase*>(written);
+        const auto*                 staged_values  = dynamic_cast<const Slic3r::ConfigOptionVectorBase*>(staged);
+        const bool                  restage =
+            written != nullptr && staged != nullptr &&
+            (written->is_scalar() ? *written != *staged
+                                  : written_values != nullptr && staged_values != nullptr &&
+                                        written_values->size() == staged_values->size() &&
+                                        index < written_values->size() && !element_equals(*written, *staged, index));
+        if (restage)
+            edited_key_restaged = copy_option_element_at(*dependent_target, published->key, *tab->m_config, index);
         break;
     }
     case Slic3r::PublishWriteTarget::PrinterPreset:
@@ -3090,6 +3102,42 @@ void PublishSettingsDialog::on_publish_edit(size_t category_index, const std::st
             dependents_copied =
                 copy_option_whole(*dependent_target, key, *tab->m_config, before_handling) || dependents_copied;
         }
+    // Several slots can share one filament preset, and each has its own hosted tab over a private
+    // copy of it: copy this edit and the keys the tab's handling rewrote into every other slot's
+    // tab and repaint it, or the other slot's page would show the old value while the file, which
+    // reads the shared preset, carries the new one.
+    if (!edited_preset_name.empty()) {
+        for (size_t c = 0; c < m_categories.size(); ++c) {
+            Category& sibling = m_categories[c];
+            if (c == category_index || sibling.section != Section::Material || sibling.publish_tab == nullptr ||
+                sibling.publish_tab->m_config == nullptr || sibling.filament_slot >= bundle->filament_presets.size())
+                continue;
+            if (bundle->filament_presets[sibling.filament_slot] != edited_preset_name)
+                continue;
+            DynamicPrintConfig& sibling_config = *sibling.publish_tab->m_config;
+            bool changed = copy_option_element_at(sibling_config, published->key, *tab->m_config, index);
+            for (const std::string& key : dependent_keys) {
+                if (key == published->key || Slic3r::publish_structural_keys().count(key) != 0)
+                    continue;
+                if (tab->m_config->option(key) == nullptr)
+                    continue;
+                changed = copy_option_whole(sibling_config, key, *tab->m_config, before_handling) || changed;
+            }
+            if (!changed)
+                continue;
+            sibling.publish_tab->update_dirty();
+            sibling.publish_tab->reload_config();
+            sibling.publish_tab->update();
+            if (sibling.publish_tab->m_active_page != nullptr)
+                sibling.publish_tab->m_active_page->update_visibility(sibling.publish_tab->m_mode, true);
+            sibling.publish_tab->notify_rules_applied();
+            if (wxScrolledWindow* page_view = sibling.publish_tab->m_page_view) {
+                page_view->Layout();
+                if (wxWindow* view_host = page_view->GetParent())
+                    view_host->Layout();
+            }
+        }
+    }
     if (dependent_tab != nullptr && (!dependent_tab_only_on_copy || dependents_copied || edited_key_restaged)) {
         // The real preset changed behind the tab: repaint it. update() re-runs the rules and rewrites
         // each Line's toggle_visible, but only Page::update_visibility() turns that into shown and
@@ -3882,7 +3930,7 @@ void PublishSettingsDialog::apply_selection(const std::vector<std::string>& publ
             on_full_toggle(cat_idx);
         } else {
             // "key#col" names the row it was written from. A plain key from a file written before
-            // the keys carried their column maps to the column this slot prints with (spec 7.5).
+            // the keys carried their column maps to the column this slot prints with.
             const Slic3r::PublishResolvedColumn resolved = publish_resolved_column(m_snapshot, cat.filament_slot);
             const int                           column   = resolved.file_column.has_value() ? int(*resolved.file_column) : -1;
             auto has_key = [&](const Row& row, const std::string& needle) {

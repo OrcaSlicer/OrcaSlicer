@@ -285,6 +285,42 @@ void OptionsGroup::enable_field(const t_config_option_key& opt_key, bool enable)
     }
 }
 
+namespace {
+void set_sizer_windows_enabled(wxSizer* sizer, bool enabled)
+{
+    if (sizer == nullptr)
+        return;
+    for (wxSizerItem* item : sizer->GetChildren()) {
+        if (wxWindow* window = item->GetWindow())
+            window->Enable(enabled);
+        else if (wxSizer* child = item->GetSizer())
+            set_sizer_windows_enabled(child, enabled);
+    }
+}
+} // namespace
+
+bool OptionsGroup::set_widget_option_enabled(const std::string& opt_id, bool enabled)
+{
+    for (Line& line : m_lines) {
+        if (line.widget_sizer == nullptr)
+            continue;
+        const auto owns = std::any_of(line.get_options().begin(), line.get_options().end(),
+                                      [&opt_id](const Option& option) { return option.opt_id == opt_id; });
+        if (!owns)
+            continue;
+        set_sizer_windows_enabled(line.widget_sizer, enabled);
+        return true;
+    }
+    return false;
+}
+
+void OptionsGroup::set_widget_options_enabled(bool enabled)
+{
+    for (Line& line : m_lines)
+        if (line.widget_sizer != nullptr)
+            set_sizer_windows_enabled(line.widget_sizer, enabled);
+}
+
 void OptionsGroup::set_name(const wxString& new_name) { stb->SetLabel(new_name); }
 
 void OptionsGroup::append_line(const Line& line)
@@ -463,9 +499,10 @@ void OptionsGroup::activate_line(Line& line)
     // If there's a widget, build it and add the result to the sizer.
     if (line.widget != nullptr) {
         auto wgt = line.widget(this->ctrl_parent());
-        if (custom_ctrl)
-            line.widget_sizer = wgt;
-        else
+        // Kept for both host kinds: a widget row has no Field, so this is the only handle the
+        // publish host has to grey the control with its row.
+        line.widget_sizer = wgt;
+        if (!custom_ctrl)
             grid_sizer->Add(wgt, 0, wxEXPAND | wxBOTTOM | wxTOP, (wxOSX || line.label.IsEmpty()) ? 0 : 5);
         return;
     }

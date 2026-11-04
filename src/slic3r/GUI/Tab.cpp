@@ -26,6 +26,7 @@
 #include "slic3r/GUI/Field.hpp"
 #include <map>
 #include <set>
+#include <optional>
 #include <initializer_list>
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -832,11 +833,14 @@ void Tab::set_publish_fields_enabled(bool enabled)
 {
     m_publish_fields_enabled = enabled;
     for (const PageShp &page : m_pages)
-        for (const ConfigOptionsGroupShp &group : page->m_optgroups)
+        for (const ConfigOptionsGroupShp &group : page->m_optgroups) {
             if (enabled)
                 group->enable();
             else
                 group->disable();
+            // A widget row (the ramming parameters' Set button) has no Field: grey it with the row.
+            group->set_widget_options_enabled(enabled);
+        }
 }
 
 Tab::PublishHandlingSnapshot::PublishHandlingSnapshot(Tab &tab)
@@ -867,9 +871,11 @@ void Tab::set_publish_field_enabled(const std::string &opt_id, bool enabled)
                   m_option_state_registry.disabled_reason(base) == nullptr;
     }
     for (const PageShp &page : m_pages)
-        for (const ConfigOptionsGroupShp &group : page->m_optgroups)
+        for (const ConfigOptionsGroupShp &group : page->m_optgroups) {
             if (Field *field = group->get_field(opt_id))
                 field->toggle(enabled);
+            group->set_widget_option_enabled(opt_id, enabled);
+        }
 }
 
 // Whether `opt_id`'s value differs between the tab's private preset and its saved baseline.
@@ -2363,6 +2369,11 @@ Tab::SettingRowState Tab::setting_row_state(const std::string &opt_id) const
 // and value can be some random value because in this case it will not been used
 void Tab::load_key_value(const std::string& opt_key, const boost::any& value, bool saved_value /*= false*/, int opt_index /*= 0*/)
 {
+    // A key an editor writes outside a Field still has to reach the publish host's live path: the
+    // pre-edit config tells the host which other keys this tab's own handling rewrote alongside it.
+    std::optional<DynamicPrintConfig> publish_before;
+    if (!saved_value && m_publish_host && m_config != nullptr)
+        publish_before = *m_config;
     if (!saved_value) change_opt_value(*m_config, opt_key, value, opt_index);
     if (m_publish_host) {
         // A publish tab stages the value in its private preset: refresh its own rows and marks,
@@ -2374,6 +2385,11 @@ void Tab::load_key_value(const std::string& opt_key, const boost::any& value, bo
             m_active_page->update_visibility(m_mode, true);
         // toggle_options()/update_visibility() rewritten the lines: re-apply the host's filter.
         notify_rules_applied();
+        // No Field draws this value (the ramming parameters' Set button), so this is its only route
+        // into the live-edit path: forward it exactly as a field edit, with the keys this tab's own
+        // handling rewrote alongside it.
+        if (publish_before && m_on_publish_edit)
+            m_on_publish_edit(opt_key, value, publish_changed_keys(*publish_before, *m_config), *publish_before);
         return;
     }
     // Mark the print & filament enabled if they are compatible with the currently selected preset.
@@ -2522,7 +2538,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         update_dirty();
         // update()/update_visibility() rewrote the lines: re-apply the host's filter.
         notify_rules_applied();
-        // The host applies the edit to the real preset or project at once (spec 7.10); the keys this
+        // The host applies the edit to the real preset or project at once; the keys this
         // tab's own handling rewrote (a paired option, a validator's correction) go with it, and the
         // pre-edit config tells the host which of them another tab may have changed meanwhile.
         if (m_on_publish_edit && m_publish_handling_before)
@@ -10110,7 +10126,7 @@ ConfigOptionsGroupShp Page::new_optgroup(const wxString &title, const wxString &
 #endif*/
     auto tab = m_tab_owner;
     Tab *owner = static_cast<Tab*>(tab);
-    // A publish group never registers in the Speed Dial (spec 7.4.8).
+    // A publish group never registers in the Speed Dial.
     if (owner->is_publish_host())
         optgroup->index_in_search = false;
     optgroup->set_config_category_and_type(m_title, owner->type());

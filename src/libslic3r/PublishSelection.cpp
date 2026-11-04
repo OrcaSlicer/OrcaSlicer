@@ -260,7 +260,8 @@ PublishWriteLocation publish_write_location(const PublishRowId &row,
     if (row.section == PublishSection::Material) {
         size_t local = 0;
         if (row.column >= 0) {
-            // The 7.1.1 fallback column is the value the printer forces, not the author's choice.
+            // The fallback column is the value the printer forces (no variant matches), not the
+            // author's choice.
             const PublishResolvedColumn resolved_column = publish_resolved_column(uncompacted, size_t(row.owner));
             if (!resolved_column.exact && resolved_column.file_column == std::optional<size_t>(size_t(row.column)))
                 return location;
@@ -324,7 +325,7 @@ std::vector<MixedDependencyIssue> unpublished_mixed_components(const PublishSele
             const auto component_owner = owners.find(component_slot);
             if (component_owner == owners.end())
                 continue;
-            // A mixed slot is not a physical filament: the dialog this replaced skipped it too.
+            // A mixed slot is not a physical filament: its components are not reported missing.
             if (component_owner->second.mixed)
                 continue;
             // A component publishes its material through a Type row that carries a value, or its

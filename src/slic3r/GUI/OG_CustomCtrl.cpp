@@ -43,9 +43,9 @@ namespace Slic3r { namespace GUI {
 
 static bool is_point_in_rect(const wxPoint& pt, const wxRect& rect)
 {
-    // An empty rectangle is a slot that drew nothing: it answers no hit test, whatever the point.
-    return  rect.width > 0 && rect.height > 0 &&
-            rect.GetLeft() <= pt.x && pt.x <= rect.GetRight() &&
+    // wxRect's right and bottom are x+width-1, so an empty rect (width and height 0) already
+    // fails the range test below. Stale act-slot hit areas are cleared every paint in render().
+    return  rect.GetLeft() <= pt.x && pt.x <= rect.GetRight() &&
             rect.GetTop() <= pt.y && pt.y <= rect.GetBottom();
 }
 
@@ -203,7 +203,6 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
             const int blinking_button_width = m_bmp_blinking_sz.GetWidth() + m_h_gap;
             // A row toggle is drawn at the start of the row and keeps the act slot after the value:
             // a publish row shows the Tab's revert-to-saved icon there as any other row does.
-            const int act_slot_width = blinking_button_width;
             if (line.row_toggle)
                 h_pos += row_toggle_width() + m_h_gap + toggle_gap();
             // A per-extruder icon on a row that also carries a toggle sits after the toggle, not
@@ -242,7 +241,7 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
             }
 
             if (opt_group->option_label_at_right) // BBS: position buttons at right
-                add_buttons_width(act_slot_width);
+                add_buttons_width(blinking_button_width);
 
             // If we have a single option with no sidetext
             const std::vector<Option>& option_set = line.get_options();
@@ -286,7 +285,7 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
                 } else {
                     // BBS: new layout
                     h_pos += field->getWindow()->GetSize().x;
-                    add_buttons_width(act_slot_width);
+                    add_buttons_width(blinking_button_width);
                     if (option_set.size() == 1 && option_set.front().opt.full_width)
                         break;
 
@@ -965,10 +964,13 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
     };
 
     auto draw_buttons = [&h_pos, &dc, &v_pos, this](Field* field, size_t bmp_rect_id = 0) {
-        // A publish row draws its revert icon only while its value differs from the saved preset;
-        // the orange label is the marker otherwise. The slot keeps its width and gets no hit
-        // rectangle, so values and units stay in their column and the empty space is inert.
-        if (og_line.row_toggle && field != nullptr && !field->m_is_modified_value) {
+        // A publish row draws its revert icon only while its row is checked and its value differs
+        // from the saved preset: an unchecked row's value is not editable, and reverting it would
+        // change only the private preset while the real one keeps the edit. The slot keeps its
+        // width and gets no hit rectangle, so values and units stay in their column and the empty
+        // space is inert.
+        if (og_line.row_toggle && field != nullptr &&
+            (!og_line.row_toggle->checked || !field->m_is_modified_value)) {
             if (field->undo_bitmap() != nullptr)
                 h_pos += get_bitmap_size(field->undo_bitmap()->bmp()).GetWidth() + ctrl->m_h_gap;
             return;

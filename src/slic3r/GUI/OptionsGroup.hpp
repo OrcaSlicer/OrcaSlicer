@@ -247,6 +247,11 @@ public:
 
 	void enable_field(const t_config_option_key& opt_key, bool enable = true);
     void disable_field(const t_config_option_key& opt_key) { enable_field(opt_key, false); }
+    // Enables or disables the windows a widget row built, which has no Field to toggle. Returns
+    // false when no built widget row owns `opt_id`.
+    bool set_widget_option_enabled(const std::string& opt_id, bool enabled);
+    // Enables or disables the windows of every built widget row.
+    void set_widget_options_enabled(bool enabled);
 
 	void			set_name(const wxString& new_name);
 
