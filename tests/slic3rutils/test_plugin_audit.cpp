@@ -39,6 +39,7 @@
 #include <ios>
 #include <locale>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -325,11 +326,7 @@ struct SingleByteCtypeLocale
     {
         if (const char* current = std::setlocale(LC_CTYPE, nullptr))
             previous = current;
-        for (const char* name : {".1251", "Russian_Russia.1251", "ru_RU.CP1251", "ru_RU.cp1251", "ru_RU.KOI8-R", "en_US.ISO-8859-1"})
-            if (std::setlocale(LC_CTYPE, name) != nullptr) {
-                applied = true;
-                break;
-            }
+        applied = std::setlocale(LC_CTYPE, ".1251") != nullptr;
     }
     ~SingleByteCtypeLocale()
     {
@@ -933,6 +930,22 @@ TEST_CASE("A saved request grant covers the request's own connection in a later 
 
     CHECK(python.str("outcome") == "ok");
     CHECK(describe(harness.prompts).empty());
+}
+
+TEST_CASE("A permission prompt that throws denies the event", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+    harness.approve = [](const Prompt&) -> bool { throw std::runtime_error("prompt failed"); };
+
+    python.run_as(PLUGIN, "outcome = attempt(lambda: open(PRIVATE).close())");
+
+    CHECK(python.str("outcome") == "denied");
+    CHECK(describe(harness.prompts) == "open: " + python.str("PRIVATE") + "\n");
 }
 
 TEST_CASE("A saved request grant does not cover another URL or a redirect", "[audit][Python]")

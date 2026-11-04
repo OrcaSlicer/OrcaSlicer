@@ -176,10 +176,7 @@ static bool is_network_category(AuditEventCategory category)
 // Network permission identity
 // ---------------------------------------------------------------------------
 
-// Lowercases A-Z and leaves every other byte alone. A locale-aware lowercase follows the C or C++
-// locale, and in a single-byte one (Russian_Russia.1251, set by the UI language on Windows) it
-// rewrites bytes of UTF-8 sequences: a path component such as "Новая папка" is no longer valid
-// UTF-8, and turning it back into a path throws inside the audit hook.
+// Lowercases A-Z only. A locale-aware lowercase can break the UTF-8 of non-Latin names.
 static std::string ascii_lower(std::string value)
 {
     for (char& c : value)
@@ -631,8 +628,6 @@ bool PluginAuditManager::is_denied_filename(const boost::filesystem::path& candi
 // Denied path keywords
 // ---------------------------------------------------------------------------
 
-// The keywords are ASCII, so ascii_lower() is all a case-insensitive match needs, and it keeps
-// non-Latin path components valid UTF-8.
 void PluginAuditManager::add_denied_path_keyword(const std::string& keyword)
 {
     if (keyword.empty())
@@ -1787,33 +1782,30 @@ int PluginAuditManager::audit_hook(const char* event, PyObject* args, void* user
         return 0;
     }
 
-    // A C++ exception must not unwind through the interpreter that raised the event: the plugin
-    // call would never return, and the frames held for running operations would be left behind
-    // (a path check that threw on a non-Latin folder name hung a plugin page and then crashed the
-    // app). A check that fails denies the event instead, like an unanswered prompt.
-    std::vector<PyObject*> returned_frames;
-    try {
-        // the open function can take in different flags that determine if it is a read or readwrite.
-        const AuditEventCategory event_type =
-            event_name == "open" ? PluginAuditDetail::open_category(args) : event_category(event_name);
-        if (event_type == AuditEventCategory::None)
-            return 0;
+    // the open function can take in different flags that determine if it is a read or readwrite.
+    const AuditEventCategory event_type =
+        event_name == "open" ? PluginAuditDetail::open_category(args) : event_category(event_name);
+    if (event_type == AuditEventCategory::None)
+        return 0;
 
-        // Root frames whose operation has returned are let go once this event is decided, so that a
-        // finalizer they run re-enters a hook whose held frames are already consistent.
-        PluginAuditDetail::take_returned_frames(m_root_frames, returned_frames);
-        const int result = PluginAuditDetail::audit_plugin_event(*mgr, event_name, event_type, args);
-        mgr->release_frames(returned_frames);
-        return result;
+    // Root frames whose operation has returned are let go once this event is decided, so that a
+    // finalizer they run re-enters a hook whose held frames are already consistent.
+    std::vector<PyObject*> returned_frames;
+    PluginAuditDetail::take_returned_frames(m_root_frames, returned_frames);
+    int result = -1;
+    // A C++ exception must not unwind through the interpreter that raised the event, so a check
+    // that throws denies the event, like an unanswered prompt.
+    try {
+        result = PluginAuditDetail::audit_plugin_event(*mgr, event_name, event_type, args);
     } catch (const std::exception& error) {
         BOOST_LOG_TRIVIAL(error) << "[AUDIT] event=" << event_name << " denied, its check failed: " << error.what();
+        result = PluginAuditDetail::report_denied(*mgr, event_name, {false, "audit check failed"});
     } catch (...) {
         BOOST_LOG_TRIVIAL(error) << "[AUDIT] event=" << event_name << " denied, its check failed";
+        result = PluginAuditDetail::report_denied(*mgr, event_name, {false, "audit check failed"});
     }
-    // release_frames() takes the frames out of the vector first, so this is a no-op when the
-    // exception came from it.
     mgr->release_frames(returned_frames);
-    return PluginAuditDetail::report_denied(*mgr, event_name, {false, "audit check failed"});
+    return result;
 }
 
 void PluginAuditManager::install_hook()
