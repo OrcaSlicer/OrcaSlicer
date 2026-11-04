@@ -65,13 +65,23 @@ DynamicPrintConfig layer_config()
 }
 }
 
-TEST_CASE("Equal diameter extruders print their own layer heights", "[ExtruderLayerHeight]")
+TEST_CASE("Equal and mixed nozzle diameters print their own layer heights", "[ExtruderLayerHeight]")
 {
     const double scale = GENERATE(1., 1.5);
     auto config = layer_config();
     if (scale == 1.5)
         config.set_deserialize_strict({{"extruder_layer_height", "0.15,0.3"}, {"initial_layer_print_height", "0.15"}});
-    CAPTURE(scale);
+    const bool mixed_nozzles = GENERATE(false, true);
+    if (mixed_nozzles) {
+        // Exercise the reported 0.2 mm nozzle / 0.15 mm layer combination without
+        // changing the shipped printer profile's 0.14 mm maximum.
+        config.set_deserialize_strict({{"nozzle_diameter", "0.2,0.6"}, {"max_layer_height", "0.15,0.42"}});
+        for (const char *key : {"line_width", "outer_wall_line_width", "inner_wall_line_width",
+                               "sparse_infill_line_width", "internal_solid_infill_line_width",
+                               "top_surface_line_width", "initial_layer_line_width"})
+            config.set_deserialize_strict(key, "100%");
+    }
+    CAPTURE(scale, mixed_nozzles);
     config.set_deserialize_strict("wall_generator", GENERATE("classic", "arachne"));
     Print print;
     Model model;
