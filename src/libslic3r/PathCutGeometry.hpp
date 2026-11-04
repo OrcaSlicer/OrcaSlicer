@@ -1713,6 +1713,16 @@ public:
     }
     bool empty() const { return m_pos.empty(); }
 
+    // Whether the mesh has a vertex close to each picked point. On a coarse mesh (a box of a few large
+    // triangles) there are no edges near the points to follow, and the loop is cut through them as picked.
+    bool fine_enough(const std::vector<V3> &picked) const
+    {
+        if (m_pos.empty()) return false;
+        std::vector<int> pv(picked.size());
+        for (size_t i = 0; i < picked.size(); ++i) pv[i] = nearest(picked[i]);
+        return close_enough(picked, pv);
+    }
+
     // The closed loop through the picked points along the creases, thinned to about `spacing` [mm]. Where
     // no path is found the picked point is kept as it is.
     std::vector<V3> loop(const std::vector<V3> &picked, double pull = 0.85, double spacing = 1.0) const

@@ -374,6 +374,19 @@ TEST_CASE("A loop following the model's edges runs along a ridge between the pic
     REQUIRE(between > 10);
     CHECK(on_ridge == between);
     CHECK(count_on_ridge(0., between) == 0);
+    CHECK(graph.fine_enough(picked));
+}
+
+TEST_CASE("A mesh of a few large triangles is too coarse to follow its edges", "[PathCut]")
+{
+    // A 22 mm cube of 12 triangles, three points picked around one corner, far from any vertex: there are
+    // no edges near them to follow, and the loop is cut through them as picked.
+    const indexed_triangle_set     cube = its_make_cube(22., 22., 22.);
+    const PathCut::CreaseGraph     graph(cube);
+    const std::vector<PathCut::V3> picked{{21.27, 15.27, 22.}, {16.44, 0., 15.14}, {22., 3.998, 15.57}};
+    CHECK_FALSE(graph.fine_enough(picked));
+    CHECK(graph.loop(picked) == picked);
+    CHECK(graph.loop_vertices(picked).empty());
 }
 
 TEST_CASE("A cut along a loop of the mesh's own edges splits exactly there, the bore open in both pieces", "[PathCut]")

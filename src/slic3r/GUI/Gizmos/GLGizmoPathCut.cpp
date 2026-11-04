@@ -177,6 +177,7 @@ void GLGizmoPathCut::reset_path()
     clear_pending();
     m_points.clear();
     m_loop_pts.clear();
+    m_coarse_mesh   = false;
     m_object        = nullptr;
     m_preview_dirty = true;
 }
@@ -373,7 +374,10 @@ Vec3d GLGizmoPathCut::sweep_dir() const
 void GLGizmoPathCut::update_loop_points()
 {
     m_loop_pts.clear();
-    if (m_mode != Mode::Loop || !m_follow_creases || m_points.size() < 3)
+    m_coarse_mesh = false;
+    // The mesh is looked at to follow its edges, and to warn that a cut exactly along the loop comes out
+    // uneven on a mesh of a few large triangles.
+    if (m_mode != Mode::Loop || m_points.size() < 3 || (!m_follow_creases && m_flat_cap))
         return;
     const ModelObject *mo   = m_c->selection_info() ? m_c->selection_info()->model_object() : nullptr;
     const int          inst = m_parent.get_selection().get_instance_idx();
@@ -397,7 +401,9 @@ void GLGizmoPathCut::update_loop_points()
         m_creases_matrix = matrix;
     }
     const std::vector<PathCut::V3> picked(m_points.begin(), m_points.end());
-    for (const PathCut::V3 &p : m_creases->loop(picked)) m_loop_pts.push_back(p);
+    m_coarse_mesh = !m_creases->fine_enough(picked);
+    if (m_follow_creases)
+        for (const PathCut::V3 &p : m_creases->loop(picked)) m_loop_pts.push_back(p);
 }
 
 // The points the cut is built from: the loop along the creases, or the picked points.
@@ -760,6 +766,16 @@ void GLGizmoPathCut::on_render_input_window(float x, float y, float bottom_limit
                 settings_changed();
             }
         }
+    }
+    if (m_mode == Mode::Loop && m_coarse_mesh && (m_follow_creases || !m_flat_cap)) {
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 26.f);
+        if (m_follow_creases)
+            ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORANGE_LIGHT,
+                                       _u8L("The model has too few faces near the points to follow its edges: the cut goes through the points as placed."));
+        if (!m_flat_cap)
+            ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORANGE_LIGHT,
+                                       _u8L("On a model with so few faces a curved cut face can come out uneven. A flat cut face gives a clean cut."));
+        ImGui::PopTextWrapPos();
     }
     if (!m_message.empty()) {
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 26.f);
