@@ -405,7 +405,7 @@ public:
     }
 
     WipeTowerWriter2& switch_filament_monitoring(bool enable) {
-        flush_planner_queue();
+        m_gcode += flush_planner_queue_command(m_gcode_flavor);
         m_gcode += enable ? "M591 R\n" : "M591 S0\n";
         return *this;
     }
@@ -646,7 +646,7 @@ public:
 	// Set extruder temperature, don't wait by default.
 	WipeTowerWriter2& set_extruder_temp(int temperature, bool wait = false, const std::string& comment = std::string())
 	{
-        flush_planner_queue();
+        m_gcode += flush_planner_queue_command(m_gcode_flavor); // sync the temperature change with motion
         m_gcode += "M" + std::to_string(wait ? 109 : 104) + " S" + std::to_string(temperature);
         if (!comment.empty())
             m_gcode += " " + comment;
@@ -702,7 +702,9 @@ public:
 
 	WipeTowerWriter2& flush_planner_queue()
 	{
-		m_gcode += flush_planner_queue_command(m_gcode_flavor);
+		// Toolchange boundaries: on Klipper M400 here only stalls the toolhead over the tower.
+		if (m_gcode_flavor != gcfKlipper)
+			m_gcode += flush_planner_queue_command(m_gcode_flavor);
 		return *this;
 	}
 
@@ -1836,7 +1838,7 @@ void WipeTower2::toolchange_Change(
     if (wait_for_temp_here && !wait_beside_tower)
         writer.set_extruder_temp(wait_for_temp, true, wait_for_temp_tag());
 
-    writer.append("[deretraction_from_wipe_tower_generator]");
+    writer.append("[deretraction_from_wipe_tower_generator]\n");
 
     // The toolchange Tn command will be inserted later, only in case that the user does
     // not provide a custom toolchange gcode.

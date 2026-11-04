@@ -198,6 +198,16 @@ static std::string slice_with_prime_tower(const DynamicPrintConfig &config)
     return gcode(print);
 }
 
+// On Klipper the tower syncs motion only right before a temperature command; a bare M400 at a
+// toolchange boundary just stalls the toolhead over the tower.
+static bool every_m400_precedes_a_temperature_command(const std::string &gcode)
+{
+    for (size_t pos = gcode.find("M400\n"); pos != std::string::npos; pos = gcode.find("M400\n", pos + 1))
+        if (gcode.compare(pos + 5, 4, "M104") != 0 && gcode.compare(pos + 5, 4, "M109") != 0)
+            return false;
+    return true;
+}
+
 TEST_CASE("Tower consumption is classified separately for each printer kind", "[WipeTower][Regression]")
 {
     const auto [is_bbl, tower_type] = GENERATE(table<bool, std::string>({
@@ -233,14 +243,45 @@ TEST_CASE("Tower consumption is classified separately for each printer kind", "[
 
 TEST_CASE("The wipe tower's toolchange planner flush follows the gcode flavor", "[WipeTower]")
 {
-    auto [flavor, expected, unexpected] = GENERATE(table<std::string, std::string, std::string>({
-        { "klipper", "M400",  "G4 S0" },
-        { "marlin",  "G4 S0", "M400"  } }));
-    DYNAMIC_SECTION(flavor) {
-        const std::string tower = wipe_tower_regions(slice_with_prime_tower(wipe_tower_toolchange_config(flavor)));
+    SECTION("klipper") {
+        const std::string tower_type = GENERATE("type1", "type2");
+        CAPTURE(tower_type);
+        DynamicPrintConfig config = wipe_tower_toolchange_config("klipper");
+        config.set_deserialize_strict({ { "wipe_tower_type", tower_type } });
+        const std::string tower = wipe_tower_regions(slice_with_prime_tower(config));
         REQUIRE_FALSE(tower.empty());
-        CHECK_THAT(tower, Catch::Matchers::ContainsSubstring(expected));
-        CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring(unexpected));
+        CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring("G4 S0"));
+        CHECK(every_m400_precedes_a_temperature_command(tower));
+        // Post-processed tower moves start with "G1  " (two spaces). A bare "G1 Y" was glued to the
+        // deretraction placeholder line, skipped post_process_wipe_tower_moves and kept tower-local Y.
+        CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring("\nG1 Y"));
+    }
+    SECTION("marlin") {
+        const std::string tower = wipe_tower_regions(slice_with_prime_tower(wipe_tower_toolchange_config("marlin")));
+        REQUIRE_FALSE(tower.empty());
+        CHECK_THAT(tower, Catch::Matchers::ContainsSubstring("G4 S0"));
+        CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring("M400"));
+        CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring("\nG1 Y"));
+    }
+    SECTION("klipper, single extruder multi material") {
+        // The SEMM path changes the temperature inside the tower; the sync before M104 must stay.
+        DynamicPrintConfig config = wipe_tower_toolchange_config("klipper");
+        config.set_deserialize_strict({ { "single_extruder_multi_material", "1" } });
+        const std::string tower = wipe_tower_regions(slice_with_prime_tower(config));
+        REQUIRE_FALSE(tower.empty());
+        CHECK_THAT(tower, Catch::Matchers::ContainsSubstring("M400\nM104"));
+        CHECK(every_m400_precedes_a_temperature_command(tower));
+        CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring("\nG1 Y"));
+    }
+    SECTION("klipper, tower interface features") {
+        // The interface M109 is stripped from the tower by GCode.cpp; its sync line must go with it.
+        DynamicPrintConfig config = wipe_tower_toolchange_config("klipper");
+        config.set_deserialize_strict({ { "enable_tower_interface_features", "1" },
+                                        { "nozzle_temperature_range_high", "250,250" } });
+        const std::string tower = wipe_tower_regions(slice_with_prime_tower(config));
+        REQUIRE_FALSE(tower.empty());
+        CHECK(every_m400_precedes_a_temperature_command(tower));
+        CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring("\nG1 Y"));
     }
 }
 
