@@ -111,13 +111,13 @@ jobs:
       matrix:
         include:
           - arch: x64
-            os: self-hosted
+            os: windows-latest
             compiler: msvc
             preset: x64-msvc
             flags: --msvc --ninja
             script: ps1
           - arch: x64
-            os: self-hosted
+            os: windows-latest
             compiler: msvc
             preset: x64-msvc
             flags: --msvc --ninja
