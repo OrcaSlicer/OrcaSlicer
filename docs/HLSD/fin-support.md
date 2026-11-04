@@ -1,50 +1,114 @@
-# Fin support
+# Fin support — High Level Design
 
-This is the entry point for the implemented Fin support design. Mode-specific interpretation, physical generation and diagnostic references have separate owners in the documentation.
+## Purpose and scope
 
-| Document | Responsibility |
-| --- | --- |
-| [Simple](fin-support/simple.md) | Contour-based placement and candidate selection |
-| [Simulated](fin-support/simulated.md) | Directional demand, upward planning and generation feedback |
-| [Painted Shape](fin-support/painted-shape.md) | Painted geometry interpretation, correction, source anchoring and finite generation groups |
-| [Physical generation](fin-support/generation.md) | A1 and contact signals, body construction, continuation, taper, assembly and toolpaths, with mode differences stated explicitly |
-| [Intent input](fin-support/intent-input.md) | Producer-independent point/line records, source evidence and correction boundary |
-| [Diagnostics](fin-support/diagnostics.md) | Logging, SVG snapshots and result interpretation |
+Fin support stabilizes tall, narrow or leaning FFF models with sheets rising
+from the build plate and intermittent contacts along the model's sides.
+Users select the Fin support type and paint the model to supply placement
+input. Fin dimensions, outward expansion and contact-band spacing control
+its shape and attachment.
 
-## Current execution routes
+Fin follows the object's layers. It does not generate underside support or
+top interface layers, and it does not support rafts. Its output uses ordinary
+`SupportLayer` records, so preview and G-code export use the existing support
+pipeline.
 
-| Mode | Interpretation and planning | Generation and feedback |
+## Placement modes
+
+| Mode | Placement | Paint authorization |
 | --- | --- | --- |
-| Simple | Painted contour intervals -> selected sites -> a complete `FinCandidate` batch | `generate_candidate_fin_support()` realizes candidates, rejects invalid/overlapping fins and emits accepted output |
-| Simulated (default) | Printed-prefix shape analysis -> upward `FinPlan` histories -> candidate tops | The planner calls `realize_fin_candidate()`, evaluates placement and contact capacity, and repeats planning when required; output follows a successful batch |
-| Painted Shape | Painted islands/charts -> ordinary and crease interpretation -> intent publication -> correction snapshots -> candidate preparation -> separate height/root workspace -> resolved finite paths or point seeds | `generate_candidate_fin_support()` traces members, builds contacts, assembles components, clips common layer geometry and emits merged outlines |
+| Simple | Selects sites along painted model contours, respecting placement spacing. | Required at the seed and each lower contact. |
+| Simulated (default) | Plans upward from the model's printed shape and directional demand; revises plans when generated fins fail. | Required at the seed and each lower contact. |
+| Painted Shape | Interprets painted islands as points, finite paths or branches, with separate ordinary and crease handling. | Authorizes the initial intent; later contacts can follow unpainted walls. |
 
-The source entry point is [`generate_fin_support()` in FinSupport.cpp](../../src/libslic3r/Support/FinSupport.cpp). These routes describe the current implementation. The three modes do not currently publish one common pre-correction intent-graph interface.
+Simulated uses geometric heuristics derived from the printed portion of the
+object. It does not model material strength, nozzle forces or bed adhesion.
+Its replanning loop owns retries and responds to realized geometry and contact
+coverage. Simple selects a batch and omits candidates that cannot be generated.
 
-Graph junctions and generation groups have distinct responsibilities. A junction expresses connectivity; an ordered finite group defines activation, start-preserving clipping and member failure scope, and may contain interior junctions. See [generation units](fin-support/painted-shape.md#generation-units-and-connectivity).
+Painted Shape extracts source geometry, corrects directions and connectivity,
+and resolves source heights before physical generation. Point/line
+classification belongs to this preparation: a later collision or contact
+failure does not reinterpret a line as a point. Creases retain their original
+3D source for contact queries.
 
-## Purpose and support integration
+## Intent input
 
-Fin support is an FFF support type for resisting side-to-side motion of a tall, narrow object. It requires support painting to create every seed. As printed height rises, each active Simulated plan reduces remaining directional demand and may extend its seed along a painted wall. Simple and Simulated also require paint at every model contact. Painted Shape treats its painted region as a point, line or branch instruction; accepted point intents may follow the actual model wall to the bed, while line intents use their finite paths and do not trace beyond their endpoints. Actual contacts use the printed-wall physical boundary and the style's authorization policy. Simple and Simulated require their complete bead span; Painted Shape ordinary contacts use the half-sample physical-wall coverage criterion, with lower failures invoking continuation. Each layer retains all generated polygon regions: body thickness is controlled by `fin_support_thickness`, and the neck width along the model surface by `fin_support_contact_width`. Simple and Simulated retain their body and lower-taper clearance; their actual contact bridges are bed-clipped without a second nominal-model cut. Painted Shape first completes the body, first-layer foot, downward transitions and actual contacts, then clips the complete support with the contact-and-transition-exempted model-clearance mask. Its first-layer foot surrounds the expanded bottom fin path, including its line width and end caps, remains inside the bed, and is filled by the ordinary support infill generator.
+The implementation is in [FinSupport.cpp](../../src/libslic3r/Support/FinSupport.cpp),
+entered through `generate_fin_support()`. Painted Shape publishes
+`FinIntentInput`, which owns source regions, resolved points, line evidence
+and topology. Correction reads it without modifying the source and produces
+`FinCorrectionResult`; preparation and height/root resolution then produce
+`FinCandidateProposal`. Simple and Simulated use their own placement routes
+and do not publish this intent input.
 
-Fin support generation requires completed perimeters, including support preview. Perimeter invalidation also invalidates Fin support so changed wall placement or widths cannot leave stale contacts. Other support types do not gain this dependency. Debug-level `fin-wall-contact` records identify the source anchor, A1, actual query origin and inward direction, resolved contact axis, layer, hit status, distance from the query origin and signed distance along the inward query direction.
+Tracing and contact construction own their working geometry. Completed
+Painted Shape member contours are published before component assembly;
+assembly can remove unreachable contributions without modifying that result.
+Diagnostics observe these boundaries and do not supply generation inputs.
 
-The generated paths and their occupied areas are stored in ordinary `SupportLayer` records, so preview and G-code export use the existing support path pipeline. The type does not generate supports under overhangs and does not use the normal support interface or infill patterns.
+Graph junctions describe connectivity; generation groups define activation,
+clipping and failure scope. A finite group may contain interior junctions.
+Clipping must retain the group's original start and a connection to a surviving
+root. An interior junction cannot become a replacement root after a failure.
 
-## Mode boundaries and paint authorization
+## Physical generation
 
-All styles share candidate realization, contact authorization and final toolpath storage, but Painted Shape constructs its geometry in printable-center space. `select_simple_fin_candidates()` returns a complete candidate batch, while the feedback-driven Simulated planner calls `select_simulated_fin_candidate()` for one candidate at a time. Ordinary Painted Shape fixes its line/point classification during intent resolution before candidate generation; paired inputs first select ordinary-side or crease output by their two patch angles; crease outputs retain classification from their two-sided comparison. A point outcome creates only point-fin intent and retains its source island and edge for diagnostics; discarded line endpoints, attachment links and junctions do not participate in subsequent line assembly. A point neither owns downstream lines nor attaches back to a surviving line. Model clearance and contact failures after conversion do not change an intent's type.
+Geometry is sampled on the object's `slice_z`; physical layer tops and bottoms
+are used for vertical clearance. These coordinates remain distinct because
+slice sampling need not be at the center of a printed layer.
 
-**Required contact-authorization invariant:** Simple and Simulated require direct paint at the seed and every lower periodic contact. Painted Shape applies the common island-area gate and resolves its intent graph before generating candidates without further intent-eligibility checks. It then constructs actual contacts against printed wall coverage, the blocker mask and the selected contact rule without requiring the brush mask to cover the bead. Failed attempts below a band top use the common continuation rule, including attempts rejected by blockers. Paint therefore cannot create a Painted Shape seed on unrelated geometry, but it does not clip the contacts after the intent has been accepted. The seed's mathematical height is its highest relevant section, so geometry above that section is ignored. Periodic-band suppression belongs to the same contact-eligibility stage as support-blocker checks, before complete band geometry is constructed. A band suppressed by the seed contact or its taper is ignored and cannot reject its generating member through later contact construction. Suppression omits the band; blocker rejection remains a failed contact attempt governed by the band-top and lower-layer continuation rules.
+Side contacts use the physical coverage of generated perimeter paths and their
+actual widths, including variable-width walls. Fin generation therefore requires
+completed perimeters, including in support preview. Perimeter invalidation also
+invalidates Fin support. Source-model anchors remain separate from wall hits;
+a missing wall hit does not fall back to the nominal model contour.
 
-## Coordinate and sampling conventions
+Ordinary Painted Shape contacts query the nearby model wall with a bounded
+turn from the body direction and validate coverage across the contact span.
+Crease contacts intersect the source crease at the sampling height and query
+the wall along the section's exterior bisector. Crease lines use this rule
+throughout; crease points use ordinary contacts for their lower periodic bands.
+Configured penetration moves the contact front relative to the wall using the
+owning model region's external-perimeter width as its reference.
 
-Contour-based seed selection uses the layer's `slice_z`, matching the height of `layer.lslices` and final wall lookup. Simple retains the individual-facet side threshold and local non-upward contact rule. Painted Shape admits any facet with a nonzero XY cut; ordinary point selection applies its crease-aware macro-side rule. Simple and ordinary Painted Shape points clip complete painted cuts to the sliced contour before selecting a site. Accepted Painted Shape lines use their shared nodes instead of contour-site selection. Painting confined to the highest printed layer can therefore supply a candidate even when a cut at the physical layer top would collapse against the model's top edge.
+Each fin has a highest contact band and periodic lower bands. In Painted Shape,
+a failed highest band rejects its generating member; a failed periodic-band
+top omits that band. Below an established band top, a failed contact query can
+continue the last accepted front. A stopped band can retain its accepted upper
+part, with a downward taper below it. Contact and body construction share
+attachment endpoints so their contours join consistently.
 
-Painted facets are sampled at `slice_z` and just inside the physical top and bottom of each layer's vertical extent. The physical limits come from `print_z - object_print_z_min` and layer height; they are independent of `slice_z`, which Z anti-aliasing can move away from the layer center. Every style places seed XY on the `slice_z` section. A Simple or Simulated seed is the terminal painted contact at that mathematical height, so its highest layer checks the middle and bottom sections and ignores the physical top section above the seed. Their periodic bands remain painted across middle, bottom and top. Simple and Simulated sum only sampled normals with `z <= 0`; patches containing only upward-facing samples are rejected. Painted Shape points use the painted samples to select their seeds; ordinary lines retain their corrected nodes and source patch macro normals without a painted-contour seed search. Actual contacts are resolved against printed walls during geometry construction. Each new contact resolves its outward XY direction independently of macro smoothing. Painted Shape lower-layer failures, including blocker rejection, use saved-front continuation.
+## Clearance and assembly
 
-## Placement and expansion settings
+Bodies are clipped against model clearance and the printable bed. The upper
+model query uses physical layer bounds and the configured top gap, including
+model layers above the fin's seed. Upper-wall coverage can terminate a contact
+band without restoring body geometry already removed by clearance.
 
-`fin_support_max_spacing` is displayed as Fin placement distance. Simple uses it as the maximum contour travel distance when subtracting an unavailable range at the selected seed contour location or a lower wall projection location. Each subtraction stays on one island contour at its own layer. Line width and fin thickness do not determine candidate spacing. Simulated uses it as preferred same-facing spacing and to scale the capacity penalty for long contact necks. The calculation uses the whole PrintObject; Simulated does not track connected-component ownership.
+Painted Shape constructs body, contact and taper contours in printable-center
+space. Actual contacts and transitions have their own clearance exemptions;
+those exemptions do not authorize new contacts or revive rejected members.
+Completed contributions are assembled and jointly clipped before toolpaths are
+generated. Intersecting fins can merge, while finite groups retain their root
+reachability and lifetime rules.
 
-`fin_support_expansion_factor` is the dimensionless multiplier `k`, defaulting to 0.05. The seed normal selected by the candidate's surface-normal policy supplies an outward tilt along A: `beta = atan(-normal.z / norm(normal.xy) * max(0, B dot A))`. Lean perpendicular to the sheet does not attenuate its extra reach. Its expansion weight is `w = (1 - clamp(beta / 30 degrees, 0, 1))^2`: vertical surfaces have full weight, 15 degrees outward along A has 25% weight, and outward tilt of 30 degrees or more along A gives a vertical fin outer edge. This 30-degree threshold is a fixed initial heuristic. Each selected seed retains `tan(theta) = k * R * w` independently of remaining directional demand, with the selected risk factor R for Simulated and R = 1 for Simple and Painted Shape. Ordinary Painted Shape point fins instead use R = 1 and w = 1 regardless of surface tilt, including points converted from green lines. Crease outputs whose two source patches are at least 80 degrees from horizontal also use R = 1 and w = 1, for both point and line bodies. Other fins calculate the weight once around the seed; it does not change between layers. At height `z`, its outer endpoint is `seed + (D_top + (H - z) * k * R * w) * A`. For ray-generated fins, top depth is measured along A from the seed and wall clearance changes only the inner edge. Painted Shape root stems receive the outer extension specified in [root and stem preparation](fin-support/painted-shape.md#root-and-stem-preparation). The first-layer endpoint uses the actual first-layer height. Zero expansion factor gives a vertical outer edge. Model and bed collision checks still determine whether the sheet can be generated. Contact projection angle controls only contact necks, independently of this body expansion.
+Simple and Simulated instead validate individual fins and reject positive-area
+overlap above the bed. Simple omits a rejected candidate; Simulated can replan.
+All modes unite their first-layer feet.
+
+## Toolpaths and diagnostics
+
+Painted Shape's first outline follows the completed center contour directly.
+Additional walls are offset inside the physical envelope; inability to fit an
+optional inner wall retains the preceding walls. Failure to generate the
+required first outline is reported and skips the affected merged layer region.
+It does not reconstruct that region from individual source fins. Foot regions
+use the existing support fill machinery.
+
+Logs use the `Fin support` prefix and identify preparation, contact, assembly
+and output outcomes. Optional SVG diagnostics show intermediate intent and
+geometry. An accepted source or an intermediate drawing does not establish
+that printable support was emitted; final outlines and support layers are the
+output boundary. Regression cases are in
+[test_support_material.cpp](../../tests/fff_print/test_support_material.cpp).
