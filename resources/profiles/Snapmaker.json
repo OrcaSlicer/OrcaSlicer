@@ -1,6 +1,6 @@
 {
 	"name": "Snapmaker",
-	"version": "02.04.00.21",
+	"version": "02.04.00.22",
 	"force_update": "0",
 	"description": "Snapmaker configurations",
 	"machine_model_list": [
@@ -539,10 +539,6 @@
 			"sub_path": "process/0.20 Standard @Snapmaker U1 (0.4 nozzle).json"
 		},
 		{
-			"name": "0.20 Standard @Snapmaker U1 (0.4+0.6 nozzle)",
-			"sub_path": "process/0.20 Standard @Snapmaker U1 (0.4+0.6 nozzle).json"
-		},
-		{
 			"name": "0.20 Strength @Snapmaker U1 (0.4 nozzle)",
 			"sub_path": "process/0.20 Strength @Snapmaker U1 (0.4 nozzle).json"
 		},
@@ -553,6 +549,94 @@
 		{
 			"name": "0.20 Support W @Snapmaker U1 (0.4 nozzle)",
 			"sub_path": "process/0.20 Support W @Snapmaker U1 (0.4 nozzle).json"
+		},
+		{
+			"name": "Multi-height Balanced @Snapmaker U1 (0.2+0.4 nozzle)",
+			"sub_path": "process/Multi-height Balanced @Snapmaker U1 (0.2+0.4 nozzle).json"
+		},
+		{
+			"name": "Multi-height Balanced @Snapmaker U1 (0.2+0.4+0.6 nozzle)",
+			"sub_path": "process/Multi-height Balanced @Snapmaker U1 (0.2+0.4+0.6 nozzle).json"
+		},
+		{
+			"name": "Multi-height Balanced @Snapmaker U1 (0.2+0.6 nozzle)",
+			"sub_path": "process/Multi-height Balanced @Snapmaker U1 (0.2+0.6 nozzle).json"
+		},
+		{
+			"name": "Multi-height Balanced @Snapmaker U1 (0.4+0.6 nozzle)",
+			"sub_path": "process/Multi-height Balanced @Snapmaker U1 (0.4+0.6 nozzle).json"
+		},
+		{
+			"name": "Multi-height Balanced @Snapmaker U1 (0.4+0.6+0.8 nozzle)",
+			"sub_path": "process/Multi-height Balanced @Snapmaker U1 (0.4+0.6+0.8 nozzle).json"
+		},
+		{
+			"name": "Multi-height Balanced @Snapmaker U1 (0.4+0.8 nozzle)",
+			"sub_path": "process/Multi-height Balanced @Snapmaker U1 (0.4+0.8 nozzle).json"
+		},
+		{
+			"name": "Multi-height Balanced @Snapmaker U1 (0.6+0.8 nozzle)",
+			"sub_path": "process/Multi-height Balanced @Snapmaker U1 (0.6+0.8 nozzle).json"
+		},
+		{
+			"name": "Multi-height Draft @Snapmaker U1 (0.2+0.4 nozzle)",
+			"sub_path": "process/Multi-height Draft @Snapmaker U1 (0.2+0.4 nozzle).json"
+		},
+		{
+			"name": "Multi-height Draft @Snapmaker U1 (0.2+0.4+0.6 nozzle)",
+			"sub_path": "process/Multi-height Draft @Snapmaker U1 (0.2+0.4+0.6 nozzle).json"
+		},
+		{
+			"name": "Multi-height Draft @Snapmaker U1 (0.2+0.6 nozzle)",
+			"sub_path": "process/Multi-height Draft @Snapmaker U1 (0.2+0.6 nozzle).json"
+		},
+		{
+			"name": "Multi-height Draft @Snapmaker U1 (0.4+0.6 nozzle)",
+			"sub_path": "process/Multi-height Draft @Snapmaker U1 (0.4+0.6 nozzle).json"
+		},
+		{
+			"name": "Multi-height Draft @Snapmaker U1 (0.4+0.6+0.8 nozzle)",
+			"sub_path": "process/Multi-height Draft @Snapmaker U1 (0.4+0.6+0.8 nozzle).json"
+		},
+		{
+			"name": "Multi-height Draft @Snapmaker U1 (0.4+0.8 nozzle)",
+			"sub_path": "process/Multi-height Draft @Snapmaker U1 (0.4+0.8 nozzle).json"
+		},
+		{
+			"name": "Multi-height Draft @Snapmaker U1 (0.6+0.8 nozzle)",
+			"sub_path": "process/Multi-height Draft @Snapmaker U1 (0.6+0.8 nozzle).json"
+		},
+		{
+			"name": "Multi-height Quality @Snapmaker U1 (0.2+0.4 nozzle)",
+			"sub_path": "process/Multi-height Quality @Snapmaker U1 (0.2+0.4 nozzle).json"
+		},
+		{
+			"name": "Multi-height Quality @Snapmaker U1 (0.2+0.4+0.6 nozzle)",
+			"sub_path": "process/Multi-height Quality @Snapmaker U1 (0.2+0.4+0.6 nozzle).json"
+		},
+		{
+			"name": "Multi-height Quality @Snapmaker U1 (0.2+0.6 nozzle)",
+			"sub_path": "process/Multi-height Quality @Snapmaker U1 (0.2+0.6 nozzle).json"
+		},
+		{
+			"name": "Multi-height Quality @Snapmaker U1 (0.4+0.6 nozzle)",
+			"sub_path": "process/Multi-height Quality @Snapmaker U1 (0.4+0.6 nozzle).json"
+		},
+		{
+			"name": "Multi-height Quality @Snapmaker U1 (0.4+0.6+0.8 nozzle)",
+			"sub_path": "process/Multi-height Quality @Snapmaker U1 (0.4+0.6+0.8 nozzle).json"
+		},
+		{
+			"name": "Multi-height Quality @Snapmaker U1 (0.4+0.8 nozzle)",
+			"sub_path": "process/Multi-height Quality @Snapmaker U1 (0.4+0.8 nozzle).json"
+		},
+		{
+			"name": "Multi-height Quality @Snapmaker U1 (0.6+0.8 nozzle)",
+			"sub_path": "process/Multi-height Quality @Snapmaker U1 (0.6+0.8 nozzle).json"
+		},
+		{
+			"name": "Multi-height Standard @Snapmaker U1 (0.4+0.6 nozzle)",
+			"sub_path": "process/Multi-height Standard @Snapmaker U1 (0.4+0.6 nozzle).json"
 		},
 		{
 			"name": "0.24 Draft @Snapmaker U1 (0.4 nozzle)",
@@ -2357,6 +2441,30 @@
 		{
 			"name": "Snapmaker Artisan (0.8 nozzle)",
 			"sub_path": "machine/Snapmaker Artisan (0.8 nozzle).json"
+		},
+		{
+			"name": "Snapmaker U1 (0.2+0.4 nozzle)",
+			"sub_path": "machine/Snapmaker U1 (0.2+0.4 nozzle).json"
+		},
+		{
+			"name": "Snapmaker U1 (0.2+0.4+0.6 nozzle)",
+			"sub_path": "machine/Snapmaker U1 (0.2+0.4+0.6 nozzle).json"
+		},
+		{
+			"name": "Snapmaker U1 (0.2+0.6 nozzle)",
+			"sub_path": "machine/Snapmaker U1 (0.2+0.6 nozzle).json"
+		},
+		{
+			"name": "Snapmaker U1 (0.4+0.6+0.8 nozzle)",
+			"sub_path": "machine/Snapmaker U1 (0.4+0.6+0.8 nozzle).json"
+		},
+		{
+			"name": "Snapmaker U1 (0.4+0.8 nozzle)",
+			"sub_path": "machine/Snapmaker U1 (0.4+0.8 nozzle).json"
+		},
+		{
+			"name": "Snapmaker U1 (0.6+0.8 nozzle)",
+			"sub_path": "machine/Snapmaker U1 (0.6+0.8 nozzle).json"
 		},
 		{
 			"name": "Snapmaker A250 Dual BKit (0.2 nozzle)",
