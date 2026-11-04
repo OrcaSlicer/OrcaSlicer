@@ -1912,8 +1912,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 }
                 if (skip_line) {
                     // Also drop the planner sync WipeTower2 put right before the stripped M109.
-                    for (const std::string sync : { "M400\n", "G4 S0\n" })
-                        if (boost::ends_with(out, sync)) { out.resize(out.size() - sync.size()); break; }
+                    const std::string sync = flush_planner_queue_command(gcodegen.config().gcode_flavor.value);
+                    if (boost::ends_with(out, sync))
+                        out.resize(out.size() - sync.size());
                 } else {
                     out.append(line);
                     if (line_end < tcr_rotated_gcode.size())
