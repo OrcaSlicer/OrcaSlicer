@@ -855,12 +855,8 @@ bool PlateSettingsDialog::get_skirt_start_angle(double& angle)
         return false;
     wxString text = m_skirt_start_angle->GetTextCtrl()->GetValue();
     text.Replace(",", ".");
-    if (!text.ToCDouble(&angle))
-        return false;
-    angle = std::clamp(angle, -180., 180.);
-    return true;
+    return text.ToCDouble(&angle) && angle >= -180. && angle <= 180.;
 }
-
 
 //PlateNameEditDialog
 PlateNameEditDialog::PlateNameEditDialog(wxWindow *parent, wxWindowID id, const wxString &title, const wxPoint &pos, const wxSize &size, long style)
