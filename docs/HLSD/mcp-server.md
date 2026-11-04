@@ -63,9 +63,14 @@ application/json` (415) and the size cap (413). No CORS headers are sent, so bro
   list. Results carry `resultType: "complete"`, and list results carry `ttlMs` and `cacheScope`.
 
 A tool result is one compact JSON text block plus any image blocks; no tool declares an
-`outputSchema`, so no `structuredContent` is sent. Tool failures, invalid arguments included, are
-`isError` results the model can act on; an unknown tool is a JSON-RPC `-32602` error naming close
-matches. `validate_arguments()` checks arguments against the tool's schema first. Before it,
+`outputSchema`, so no `structuredContent` is sent. The descriptions say what each reply holds instead:
+Claude Code shows its model a tool's description and input schema but never its output schema, and
+fails a call whose structured content does not match that schema, so a schema would teach its agents
+nothing and could turn a call that already ran into an error. Clients that prefer structured content
+over the content blocks would also drop the images and `ui_snapshot`'s tree. Tool failures, invalid
+arguments included, are `isError` results the model can act on; an unknown tool is a JSON-RPC
+`-32602` error naming close matches. `validate_arguments()` checks arguments against the tool's
+schema first. Before it,
 `normalize_arguments()` reads what agents commonly send in place of the schema's form, for calls and
 script steps alike, so the journal records the schema's form. An argument under a name the tool does
 not take is read as one it does, when the call leaves that one out and the value fits it: `ref` as `target`, `key` as `keys`, `text`
