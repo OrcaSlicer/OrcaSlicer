@@ -1,8 +1,8 @@
 body
 {
-    background-color:var(--bg-color-secondary);
+    background-color:var(--bg-color-sidebar);
     color: var(--fg-color-text);
-    font-family: Arial, sans-serif;
+    font-family: "system-ui", "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -14,6 +14,6 @@ body
     text-align: center;
     padding: 30px;
     border-radius: 10px;
-    background-color: var(--bg-color);
+    background-color:var(--bg-color-secondary);
     box-shadow: 0 4px 6px var(--shadow-opacity);
 }
