@@ -1,6 +1,7 @@
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_approx.hpp>
 
 #include <cmath>
 #include <cstddef>
@@ -87,4 +88,39 @@ TEST_CASE("Painted top and bottom surfaces color their paint penetration layers"
 
     CHECK(layers_with_filament(object, 2) == expected_top);
     CHECK(layers_with_filament(object, 3) == expected_bottom);
+}
+
+TEST_CASE("Small painted feature options keep the previous behavior by default", "[MultiMaterialSegmentation]")
+{
+    const DynamicPrintConfig defaults = DynamicPrintConfig::full_print_config();
+    CHECK(defaults.opt_float("mmu_segmented_region_min_area") == Catch::Approx(0.01));
+    CHECK(defaults.opt_float("mmu_segmented_region_opening_threshold") == Catch::Approx(-1.));
+}
+
+TEST_CASE("Painted surfaces are still colored when small region filtering is disabled", "[MultiMaterialSegmentation]")
+{
+    // 0 disables both the area filter and the morphological opening; large painted faces must be unaffected.
+    DynamicPrintConfig config = Test::multifilament_config(3, {
+        {"layer_height", "0.2"},
+        {"initial_layer_print_height", "0.2"},
+        {"top_shell_layers", "5"},
+        {"bottom_shell_layers", "4"},
+        {"mmu_segmented_region_min_area", "0"},
+        {"mmu_segmented_region_opening_threshold", "0"},
+        {"gcode_comments", "1"},
+    });
+
+    Print print;
+    Model model;
+    Test::init_print({TriangleMesh(its_make_cube(20, 20, 4))}, print, model, config);
+    paint_top_and_bottom(*model.objects.front()->volumes.front());
+    print.apply(model, config);
+
+    REQUIRE(print.objects().size() == 1);
+    PrintObject &object = *print.get_object(0);
+    object.slice();
+    REQUIRE(object.layers().size() == 20);
+
+    CHECK(layers_with_filament(object, 2) == 5);
+    CHECK(layers_with_filament(object, 3) == 4);
 }
