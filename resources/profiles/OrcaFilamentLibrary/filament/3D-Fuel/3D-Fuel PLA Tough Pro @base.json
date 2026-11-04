@@ -1,36 +1,33 @@
 {
 	"type": "filament",
-	"name": "3D-Fuel Pro PETG @base",
-	"inherits": "fdm_filament_pet",
+	"name": "3D-Fuel PLA Tough Pro @base",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OFQkDZWR",
+	"filament_id": "OFD0J7HW",
 	"instantiation": "false",
 	"filament_vendor": [
 		"3D-Fuel"
 	],
 	"filament_type": [
-		"PETG"
+		"PLA"
 	],
-    "filament_diameter": [
-        "1.75"
-    ],
     "filament_density": [
-        "1.23"
+        "1.26"
     ],
     "filament_cost": [
-        "28.95"
+        "32.95"
     ],
     "nozzle_temperature": [
-        "255"
+        "240"
     ],
     "nozzle_temperature_initial_layer": [
-        "255"
+        "240"
     ],
     "nozzle_temperature_range_low": [
-        "230"
+        "220"
     ],
     "nozzle_temperature_range_high": [
-        "260"
+        "250"
     ],
     "cool_plate_temp": [
         "0"
@@ -45,22 +42,22 @@
         "60"
     ],
     "hot_plate_temp": [
-        "80"
+        "70"
     ],
     "hot_plate_temp_initial_layer": [
-        "80"
+        "70"
     ],
     "textured_plate_temp": [
-        "80"
+        "70"
     ],
     "textured_plate_temp_initial_layer": [
-        "80"
+        "70"
     ],
     "supertack_plate_temp": [
-        "80"
+        "70"
     ],
     "supertack_plate_temp_initial_layer": [
-        "80"
+        "70"
     ],
     "filament_flow_ratio": [
         "0.98"
@@ -72,10 +69,27 @@
         "10"
     ],
     "fan_max_speed": [
-        "80"
+        "100"
     ],
     "temperature_vitrification": [
         "185"
+    ],
+    "enable_pressure_advance": [
+		"true"
+    ],
+    "pressure_advance": [
+		"0.2"
+    ],
+    "fan_cooling_layer_time": [
+		"30"
+    ],
+    "slow_down_layer_time": [
+		"10"
+    ],
+    "filament_retraction_length": [
+		"0.2"
+    ],
+    "filament_z_hop": [
+		"0.4"
     ]
 }
-

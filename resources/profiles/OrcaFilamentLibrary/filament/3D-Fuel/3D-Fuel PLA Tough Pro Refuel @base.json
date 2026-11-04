@@ -1,9 +1,9 @@
 {
 	"type": "filament",
-	"name": "3D-Fuel Tough Pro Refuel @base",
+	"name": "3D-Fuel PLA Tough Pro Refuel @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OF61FBgV",
+	"filament_id": "OFhFpKeD",
 	"instantiation": "false",
 	"filament_vendor": [
 		"3D-Fuel"
@@ -73,6 +73,24 @@
     ],
     "temperature_vitrification": [
         "185"
+    ],
+    "enable_pressure_advance": [
+		"true"
+    ],
+    "pressure_advance": [
+		"0.2"
+    ],
+    "fan_cooling_layer_time": [
+		"30"
+    ],
+    "slow_down_layer_time": [
+		"10"
+    ],
+    "filament_retraction_length": [
+		"0.2"
+    ],
+    "filament_z_hop": [
+		"0.4"
     ]
 }
 

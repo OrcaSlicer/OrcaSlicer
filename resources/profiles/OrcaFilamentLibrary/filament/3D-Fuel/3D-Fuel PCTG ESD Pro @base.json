@@ -1,9 +1,9 @@
 {
 	"type": "filament",
-	"name": "Pro PCTG ESD @base",
+	"name": "3D-Fuel PCTG ESD Pro @base",
 	"inherits": "fdm_filament_pctg",
 	"from": "system",
-	"filament_id": "OFrALVKg",
+	"filament_id": "OF7IKqT3",
 	"instantiation": "false",
 	"filament_vendor": [
 		"3D-Fuel"
@@ -76,5 +76,23 @@
 	],
 	"temperature_vitrification": [
 		"185"
-	]
+	],
+	"enable_pressure_advance": [
+		"true"
+    ],
+    "pressure_advance": [
+		"0.7"
+    ],
+    "fan_cooling_layer_time": [
+		"20"
+    ],
+    "slow_down_layer_time": [
+		"18"
+    ],
+    "filament_retraction_length": [
+		"0.3"
+    ],
+    "filament_z_hop": [
+		"0.4"
+    ]
 }

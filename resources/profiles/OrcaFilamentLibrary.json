@@ -1,6 +1,6 @@
 {
 	"name": "OrcaFilamentLibrary",
-	"version": "02.04.00.25",
+	"version": "02.04.00.26",
 	"force_update": "0",
 	"description": "Orca Filament Library",
 	"filament_list": [
@@ -385,28 +385,28 @@
 			"sub_path": "filament/Generic PC @System.json"
 		},
 		{
-			"name": "3D-Fuel Pro PCTG @base",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG @base.json"
+			"name": "3D-Fuel PCTG CF Pro @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PCTG CF Pro @base.json"
 		},
 		{
-			"name": "3D-Fuel Pro PCTG ESD @base",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG ESD @base.json"
+			"name": "3D-Fuel PCTG ESD Pro @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PCTG ESD Pro @base.json"
 		},
 		{
-			"name": "3D-Fuel Pro PCTG Matte @base",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG Matte @base.json"
+			"name": "3D-Fuel PCTG GF Pro @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PCTG GF Pro @base.json"
 		},
 		{
-			"name": "3D-Fuel Pro PCTG Refuel @base",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG Refuel @base.json"
+			"name": "3D-Fuel PCTG Matte Black Pro @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PCTG Matte Black Pro @base.json"
 		},
 		{
-			"name": "3D-Fuel Pro PCTG-CF @base",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG-CF @base.json"
+			"name": "3D-Fuel PCTG Pro @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PCTG Pro @base.json"
 		},
 		{
-			"name": "3D-Fuel Pro PCTG-GF @base",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG-GF @base.json"
+			"name": "3D-Fuel PCTG Pro Refuel @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PCTG Pro Refuel @base.json"
 		},
 		{
 			"name": "COEX PCTG PRIME @base",
@@ -417,8 +417,8 @@
 			"sub_path": "filament/Generic PCTG @System.json"
 		},
 		{
-			"name": "Pro PCTG ESD @base",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG-ESD @base.json"
+			"name": "PCTG ESD Pro @base",
+			"sub_path": "filament/3D-Fuel/PCTG ESD Pro @base.json"
 		},
 		{
 			"name": "Generic PE @System",
@@ -433,12 +433,12 @@
 			"sub_path": "filament/3D-Fuel/3D-Fuel PET CF @base.json"
 		},
 		{
-			"name": "3D-Fuel Pro PETG @base",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PETG @base.json"
+			"name": "3D-Fuel PETG Pro @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PETG Pro @base.json"
 		},
 		{
-			"name": "3D-Fuel Pro PETG Refuel @base",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PETG Refuel @base.json"
+			"name": "3D-Fuel PETG Pro Refuel @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PETG Pro Refuel @base.json"
 		},
 		{
 			"name": "AliZ PETG @base",
@@ -653,20 +653,20 @@
 			"sub_path": "filament/Generic PHA @System.json"
 		},
 		{
+			"name": "3D-Fuel PLA Tough Pro @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PLA Tough Pro @base.json"
+		},
+		{
+			"name": "3D-Fuel PLA Tough Pro Refuel @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PLA Tough Pro Refuel @base.json"
+		},
+		{
 			"name": "3D-Fuel Standard PLA @base",
 			"sub_path": "filament/3D-Fuel/3D-Fuel Standard PLA @base.json"
 		},
 		{
 			"name": "3D-Fuel Standard PLA Refuel @base",
 			"sub_path": "filament/3D-Fuel/3D-Fuel Standard PLA Refuel @base.json"
-		},
-		{
-			"name": "3D-Fuel Tough Pro PLA @base",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Tough Pro PLA @base.json"
-		},
-		{
-			"name": "3D-Fuel Tough Pro Refuel @base",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Tough Pro Refuel @base.json"
 		},
 		{
 			"name": "AliZ PLA @base",
@@ -1797,28 +1797,28 @@
 			"sub_path": "filament/addnorth/BBL/addnorth PC BLend HT LCF.json"
 		},
 		{
-			"name": "3D-Fuel Pro PCTG @System",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG @System.json"
+			"name": "3D-Fuel PCTG CF Pro @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PCTG CF Pro @System.json"
 		},
 		{
-			"name": "3D-Fuel Pro PCTG ESD @System",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG ESD @System.json"
+			"name": "3D-Fuel PCTG ESD Pro @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PCTG ESD Pro @System.json"
 		},
 		{
-			"name": "3D-Fuel Pro PCTG Matte @System",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG Matte @System.json"
+			"name": "3D-Fuel PCTG GF Pro @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PCTG GF Pro @System.json"
 		},
 		{
-			"name": "3D-Fuel Pro PCTG Refuel @System",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG Refuel @System.json"
+			"name": "3D-Fuel PCTG Matte Black Pro @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PCTG Matte Black Pro @System.json"
 		},
 		{
-			"name": "3D-Fuel Pro PCTG-CF @System",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG-CF @System.json"
+			"name": "3D-Fuel PCTG Pro @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PCTG Pro @System.json"
 		},
 		{
-			"name": "3D-Fuel Pro PCTG-GF @System",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG-GF @System.json"
+			"name": "3D-Fuel PCTG Pro Refuel @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PCTG Pro Refuel @System.json"
 		},
 		{
 			"name": "COEX PCTG PRIME @BBL A1",
@@ -1849,8 +1849,8 @@
 			"sub_path": "filament/COEX/COEX PCTG PRIME @System.json"
 		},
 		{
-			"name": "Pro PCTG ESD @System",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG-ESD @System.json"
+			"name": "PCTG ESD Pro @System",
+			"sub_path": "filament/3D-Fuel/PCTG ESD Pro @System.json"
 		},
 		{
 			"name": "Goofoo PE @base",
@@ -1865,12 +1865,12 @@
 			"sub_path": "filament/3D-Fuel/3D-Fuel PET CF @System.json"
 		},
 		{
-			"name": "3D-Fuel Pro PETG @System",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PETG @System.json"
+			"name": "3D-Fuel PETG Pro @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PETG Pro @System.json"
 		},
 		{
-			"name": "3D-Fuel Pro PETG Refuel @System",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PETG Refuel @System.json"
+			"name": "3D-Fuel PETG Pro Refuel @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PETG Pro Refuel @System.json"
 		},
 		{
 			"name": "AliZ PETG @P1-X1",
@@ -2413,20 +2413,20 @@
 			"sub_path": "filament/Goofoo/Goofoo PHA @base.json"
 		},
 		{
+			"name": "3D-Fuel PLA Tough Pro @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PLA Tough Pro @System.json"
+		},
+		{
+			"name": "3D-Fuel PLA Tough Pro Refuel @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PLA Tough Pro Refuel @System.json"
+		},
+		{
 			"name": "3D-Fuel Standard PLA @System",
 			"sub_path": "filament/3D-Fuel/3D-Fuel Standard PLA @System.json"
 		},
 		{
 			"name": "3D-Fuel Standard PLA Refuel @System",
 			"sub_path": "filament/3D-Fuel/3D-Fuel Standard PLA Refuel @System.json"
-		},
-		{
-			"name": "3D-Fuel Tough Pro PLA @System",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Tough Pro PLA @System.json"
-		},
-		{
-			"name": "3D-Fuel Tough Pro Refuel @System",
-			"sub_path": "filament/3D-Fuel/3D-Fuel Tough Pro Refuel @System.json"
 		},
 		{
 			"name": "AliZ PLA @P1-X1",

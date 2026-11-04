@@ -1,9 +1,9 @@
 {
 	"type": "filament",
-	"name": "3D-Fuel Pro PCTG Matte @base",
+	"name": "3D-Fuel PCTG Matte Black Pro @base",
 	"inherits": "fdm_filament_pctg",
 	"from": "system",
-	"filament_id": "OFJBZl1d",
+	"filament_id": "OFanWxXY",
 	"instantiation": "false",
 	"filament_vendor": [
 		"3D-Fuel"
@@ -79,5 +79,23 @@
     ],
     "required_nozzle_HRC": [
         "60"
+    ],
+    "enable_pressure_advance": [
+		"true"
+    ],
+    "pressure_advance": [
+		"0.7"
+    ],
+    "fan_cooling_layer_time": [
+		"20"
+    ],
+    "slow_down_layer_time": [
+		"18"
+    ],
+    "filament_retraction_length": [
+		"0.3"
+    ],
+    "filament_z_hop": [
+		"0.4"
     ]
 }

@@ -1,15 +1,15 @@
 {
 	"type": "filament",
-	"name": "3D-Fuel Pro PETG Refuel @base",
-	"inherits": "fdm_filament_pet",
+	"name": "3D-Fuel PCTG CF Pro @base",
+	"inherits": "fdm_filament_pctg",
 	"from": "system",
-	"filament_id": "OFlxoq9c",
+	"filament_id": "OFVqSwWy",
 	"instantiation": "false",
 	"filament_vendor": [
 		"3D-Fuel"
 	],
 	"filament_type": [
-		"PETG"
+		"PCTG-CF"
 	],
     "filament_diameter": [
         "1.75"
@@ -18,19 +18,19 @@
         "1.23"
     ],
     "filament_cost": [
-        "28.95"
+        "54.95"
     ],
     "nozzle_temperature": [
-        "255"
+        "270"
     ],
     "nozzle_temperature_initial_layer": [
-        "255"
+        "270"
     ],
     "nozzle_temperature_range_low": [
-        "230"
+        "250"
     ],
     "nozzle_temperature_range_high": [
-        "260"
+        "280"
     ],
     "cool_plate_temp": [
         "0"
@@ -39,42 +39,63 @@
         "0"
     ],
     "eng_plate_temp": [
-        "60"
+        "70"
     ],
     "eng_plate_temp_initial_layer": [
-        "60"
+        "70"
     ],
     "hot_plate_temp": [
-        "80"
+        "70"
     ],
     "hot_plate_temp_initial_layer": [
-        "80"
+        "70"
     ],
     "textured_plate_temp": [
-        "80"
+        "70"
     ],
     "textured_plate_temp_initial_layer": [
-        "80"
+        "70"
     ],
     "supertack_plate_temp": [
-        "80"
+        "70"
     ],
     "supertack_plate_temp_initial_layer": [
-        "80"
+        "70"
     ],
     "filament_flow_ratio": [
         "0.98"
     ],
     "filament_max_volumetric_speed": [
-        "12"
-    ],
-    "fan_min_speed": [
         "10"
     ],
+    "fan_min_speed": [
+        "0"
+    ],
     "fan_max_speed": [
-        "80"
+        "40"
     ],
     "temperature_vitrification": [
         "185"
+    ],
+    "required_nozzle_HRC": [
+        "60"
+    ],
+	"enable_pressure_advance": [
+		"true"
+    ],
+    "pressure_advance": [
+		"0.7"
+    ],
+    "fan_cooling_layer_time": [
+		"20"
+    ],
+    "slow_down_layer_time": [
+		"18"
+    ],
+    "filament_retraction_length": [
+		"0.3"
+    ],
+    "filament_z_hop": [
+		"0.4"
     ]
 }
