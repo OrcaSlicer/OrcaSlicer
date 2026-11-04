@@ -520,10 +520,16 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     m_skirt_start_angle->SetTextLabel(wxString::FromUTF8(u8"°"));
     m_skirt_start_angle->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     lock_first_entry(m_skirt_start_angle);
-    m_skirt_start_angle->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
+    // picking an entry replaces the text, so remember the last valid angle for "Custom"
+    m_skirt_start_angle->GetTextCtrl()->Bind(wxEVT_TEXT, [this](wxCommandEvent& e) {
         double angle;
-        if (e.GetSelection() == 1 && !get_skirt_start_angle(angle)) // "Custom" starts from the global value
-            m_skirt_start_angle->GetTextCtrl()->SetValue(wxString::Format("%g", m_global_skirt_start_angle));
+        if (get_skirt_start_angle(angle))
+            m_custom_skirt_start_angle = angle;
+        e.Skip();
+    });
+    m_skirt_start_angle->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
+        if (e.GetSelection() == 1)
+            m_skirt_start_angle->GetTextCtrl()->SetValue(wxString::Format("%g", m_custom_skirt_start_angle));
     });
     {
         // same condition as the sidebar
@@ -831,7 +837,7 @@ std::vector<int> PlateSettingsDialog::get_first_layer_print_seq()
 
 void PlateSettingsDialog::sync_skirt_start_angle(const ConfigOptionFloat* plate_angle, double global_angle)
 {
-    m_global_skirt_start_angle = global_angle;
+    m_custom_skirt_start_angle = plate_angle ? plate_angle->value : global_angle;
     m_skirt_start_angle->SetSelection(plate_angle ? 1 : 0);
     if (plate_angle)
         m_skirt_start_angle->GetTextCtrl()->ChangeValue(wxString::Format("%g", plate_angle->value));

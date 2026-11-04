@@ -193,7 +193,7 @@ protected:
     OtherLayersSeqPanel* m_other_layers_seq_panel;
     TextInput *m_ti_plate_name;
     ComboBox *m_skirt_start_angle;
-    double m_global_skirt_start_angle { 0. };
+    double m_custom_skirt_start_angle { 0. }; // last valid "Custom" angle, starts from the plate or global value
     int m_spiral_mode_selection { 0 };
 };
 
