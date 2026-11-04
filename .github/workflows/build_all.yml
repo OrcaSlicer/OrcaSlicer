@@ -181,6 +181,8 @@ jobs:
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
   build_macos_arch:
+    # Disabled on fork: self-hosted macOS runner not available
+    if: ${{ github.repository == 'OrcaSlicer/OrcaSlicer' }}
     strategy:
       fail-fast: false
       matrix:
@@ -193,6 +195,8 @@ jobs:
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
   build_macos_universal:
+    # Disabled on fork: self-hosted macOS runner not available
+    if: ${{ github.repository == 'OrcaSlicer/OrcaSlicer' }}
     name: Build macOS Universal
     uses: ./.github/workflows/build_orca.yml
     with:
@@ -273,6 +277,8 @@ jobs:
       artifact: ${{ github.sha }}-tests-windows-arm64-arm64-clang
       test-dir: build-arm64/tests
   unit_tests_macos_arm64:
+    # Disabled on fork: self-hosted macOS runner not available
+    if: ${{ github.repository == 'OrcaSlicer/OrcaSlicer' }}
     name: macOS arm64
     uses: ./.github/workflows/unit_tests.yml
     with:
@@ -371,6 +377,8 @@ jobs:
             ctest_results.xml
           retention-days: 7
   flatpak:
+    # Disabled on fork: requires specific container setup
+    if: ${{ github.repository == 'OrcaSlicer/OrcaSlicer' }}
     name: "Flatpak"
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
