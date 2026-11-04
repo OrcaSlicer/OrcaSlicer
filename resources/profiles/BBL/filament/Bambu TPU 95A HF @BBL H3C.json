@@ -1,0 +1,19 @@
+{
+	"type": "filament",
+	"name": "Bambu TPU 95A HF @BBL H3C",
+	"inherits": "Bambu TPU 95A HF @BBL H3C base",
+	"from": "system",
+	"setting_id": "GFSU00_16",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"retraction_distances_when_ec": [
+		"0",
+		"0"
+	],
+	"compatible_printers": [
+		"Bambu Lab H3C 0.4 nozzle"
+	]
+}

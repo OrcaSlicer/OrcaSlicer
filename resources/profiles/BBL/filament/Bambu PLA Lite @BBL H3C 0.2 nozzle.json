@@ -1,0 +1,47 @@
+{
+	"type": "filament",
+	"name": "Bambu PLA Lite @BBL H3C 0.2 nozzle",
+	"inherits": "Bambu PLA Lite @BBL H3C base",
+	"from": "system",
+	"setting_id": "GFSA18_35",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_flow_ratio": [
+		"0.98",
+		"0.98"
+	],
+	"filament_flush_volumetric_speed": [
+		"3",
+		"3"
+	],
+	"filament_max_volumetric_speed": [
+		"2",
+		"2"
+	],
+	"filament_retraction_length": [
+		"nil",
+		"nil"
+	],
+	"filament_retraction_minimum_travel": [
+		"0.4",
+		"0.4"
+	],
+	"filament_wipe": [
+		"nil",
+		"nil"
+	],
+	"filament_wipe_distance": [
+		"nil",
+		"nil"
+	],
+	"filament_z_hop_types": [
+		"nil",
+		"nil"
+	],
+	"compatible_printers": [
+		"Bambu Lab H3C 0.2 nozzle"
+	]
+}

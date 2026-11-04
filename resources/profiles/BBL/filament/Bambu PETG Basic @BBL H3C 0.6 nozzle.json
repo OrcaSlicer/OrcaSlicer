@@ -1,0 +1,62 @@
+{
+	"type": "filament",
+	"name": "Bambu PETG Basic @BBL H3C 0.6 nozzle",
+	"inherits": "Bambu PETG Basic @BBL H3C base",
+	"from": "system",
+	"setting_id": "GFSG00_35",
+	"instantiation": "true",
+	"fan_max_speed": [
+		"60",
+		"60"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_flush_volumetric_speed": [
+		"0",
+		"0"
+	],
+	"filament_long_retractions_when_cut": [
+		"nil",
+		"nil"
+	],
+	"filament_max_volumetric_speed": [
+		"21",
+		"28"
+	],
+	"filament_retraction_distances_when_cut": [
+		"nil",
+		"nil"
+	],
+	"filament_retraction_length": [
+		"0.4",
+		"0.4"
+	],
+	"filament_wipe": [
+		"1",
+		"1"
+	],
+	"filament_wipe_distance": [
+		"2",
+		"2"
+	],
+	"filament_z_hop": [
+		"0.2",
+		"0.2"
+	],
+	"filament_z_hop_types": [
+		"Spiral Lift",
+		"Spiral Lift"
+	],
+	"filament_change_length": [
+		"5"
+	],
+	"overhang_fan_threshold": [
+		"10%"
+	],
+	"compatible_printers": [
+		"Bambu Lab H3C 0.6 nozzle",
+		"Bambu Lab H3C 0.8 nozzle"
+	]
+}

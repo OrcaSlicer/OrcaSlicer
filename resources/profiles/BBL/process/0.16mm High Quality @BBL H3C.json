@@ -1,0 +1,109 @@
+{
+	"type": "process",
+	"name": "0.16mm High Quality @BBL H3C",
+	"inherits": "fdm_h3c_process",
+	"from": "system",
+	"setting_id": "GP265",
+	"instantiation": "true",
+	"bottom_shell_layers": "4",
+	"bottom_color_penetration_layers": "4",
+	"bridge_speed": [
+		"50",
+		"50"
+	],
+	"default_acceleration": [
+		"8000",
+		"8000"
+	],
+	"gap_infill_speed": [
+		"250",
+		"250"
+	],
+	"initial_layer_line_width": "0.5",
+	"initial_layer_print_height": "0.2",
+	"initial_layer_speed": [
+		"50",
+		"50"
+	],
+	"inner_wall_line_width": "0.45",
+	"inner_wall_speed": [
+		"150",
+		"150"
+	],
+	"internal_solid_infill_line_width": "0.42",
+	"internal_solid_infill_speed": [
+		"200",
+		"200"
+	],
+	"ironing_flow": "24%",
+	"ironing_inset": "0.21",
+	"ironing_spacing": "0.19",
+	"ironing_speed": "40",
+	"layer_height": "0.16",
+	"line_width": "0.42",
+	"outer_wall_line_width": "0.42",
+	"outer_wall_speed": [
+		"60",
+		"60"
+	],
+	"prime_tower_brim_width": "-1",
+	"prime_tower_flat_ironing": "0",
+	"sparse_infill_line_width": "0.45",
+	"skin_infill_line_width": "0.45",
+	"skeleton_infill_line_width": "0.45",
+	"sparse_infill_pattern": "gyroid",
+	"sparse_infill_speed": [
+		"200",
+		"200"
+	],
+	"support_bottom_z_distance": "0.16",
+	"support_line_width": "0.42",
+	"support_threshold_angle": "25",
+	"support_top_z_distance": "0.16",
+	"top_shell_layers": "6",
+	"top_color_penetration_layers": "6",
+	"top_shell_thickness": "1.0",
+	"top_surface_line_width": "0.42",
+	"top_surface_pattern": "monotonicline",
+	"top_surface_speed": [
+		"150",
+		"150"
+	],
+	"wall_loops": "2",
+	"initial_layer_infill_speed": [
+		"105",
+		"105"
+	],
+	"inner_wall_acceleration": [
+		"0",
+		"0"
+	],
+	"outer_wall_acceleration": [
+		"4000",
+		"4000"
+	],
+	"overhang_1_4_speed": [
+		"60",
+		"60"
+	],
+	"overhang_2_4_speed": [
+		"30",
+		"30"
+	],
+	"overhang_3_4_speed": [
+		"10",
+		"10"
+	],
+	"print_extruder_id": [
+		"2",
+		"2"
+	],
+	"print_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"description": "High quality profile for 0.16mm layer height, prioritizing print quality and strength.",
+	"compatible_printers": [
+		"Bambu Lab H3C 0.4 nozzle"
+	]
+}

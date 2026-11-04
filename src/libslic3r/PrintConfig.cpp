@@ -3617,6 +3617,16 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInts{0});
 
     // BBS
+    // Bambu H3C firmware uses this per-filament threshold in its fin-extrusion commands.
+    def = this->add("fins_extrude_safe_temp", coInts);
+    def->label = L("Fin extrusion safe temperature");
+    def->tooltip = L("Safe hotend temperature for fin extrusion. Zero disables this firmware feature.");
+    def->sidetext = u8"?C";
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 350;
+    def->set_default_value(new ConfigOptionInts{0});
+
     def = this->add("temperature_vitrification", coInts);
     def->label = L("Softening temperature");
     def->tooltip = L("The material softens at this temperature, so when the bed temperature is equal to or greater than this, it\'s highly recommended to open the front door and/or remove the upper glass to avoid clogs.");

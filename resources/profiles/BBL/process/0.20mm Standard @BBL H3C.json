@@ -1,0 +1,110 @@
+{
+	"type": "process",
+	"name": "0.20mm Standard @BBL H3C",
+	"inherits": "fdm_h3c_process",
+	"from": "system",
+	"setting_id": "GP259",
+	"instantiation": "true",
+	"bottom_shell_layers": "3",
+	"bottom_color_penetration_layers": "3",
+	"bridge_speed": [
+		"50",
+		"50"
+	],
+	"default_acceleration": [
+		"20000",
+		"20000"
+	],
+	"gap_infill_speed": [
+		"250",
+		"150"
+	],
+	"initial_layer_line_width": "0.5",
+	"initial_layer_print_height": "0.2",
+	"initial_layer_speed": [
+		"50",
+		"50"
+	],
+	"inner_wall_line_width": "0.45",
+	"inner_wall_speed": [
+		"300",
+		"600"
+	],
+	"internal_solid_infill_line_width": "0.42",
+	"internal_solid_infill_speed": [
+		"250",
+		"600"
+	],
+	"ironing_flow": "24%",
+	"ironing_inset": "0.21",
+	"ironing_spacing": "0.19",
+	"ironing_speed": "40",
+	"layer_height": "0.2",
+	"line_width": "0.42",
+	"outer_wall_line_width": "0.42",
+	"outer_wall_speed": [
+		"200",
+		"500"
+	],
+	"prime_tower_brim_width": "3",
+	"prime_tower_flat_ironing": "0",
+	"sparse_infill_line_width": "0.45",
+	"skin_infill_line_width": "0.45",
+	"skeleton_infill_line_width": "0.45",
+	"sparse_infill_pattern": "grid",
+	"sparse_infill_speed": [
+		"350",
+		"600"
+	],
+	"support_bottom_z_distance": "0.2",
+	"support_line_width": "0.42",
+	"support_threshold_angle": "30",
+	"support_top_z_distance": "0.2",
+	"top_shell_layers": "5",
+	"top_color_penetration_layers": "5",
+	"top_shell_thickness": "1.0",
+	"top_surface_line_width": "0.42",
+	"top_surface_pattern": "monotonicline",
+	"top_surface_speed": [
+		"200",
+		"200"
+	],
+	"wall_loops": "2",
+	"initial_layer_infill_speed": [
+		"105",
+		"105"
+	],
+	"inner_wall_acceleration": [
+		"12000",
+		"12000"
+	],
+	"outer_wall_acceleration": [
+		"7000",
+		"7000"
+	],
+	"overhang_1_4_speed": [
+		"0",
+		"0"
+	],
+	"overhang_2_4_speed": [
+		"50",
+		"50"
+	],
+	"overhang_3_4_speed": [
+		"30",
+		"30"
+	],
+	"print_extruder_id": [
+		"1",
+		"1"
+	],
+	"print_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"description": "It has a general layer height, and results in general layer lines and printing quality. It is suitable for most general printing cases.",
+	"enable_mixed_color_sublayer": "1",
+	"compatible_printers": [
+		"Bambu Lab H3C 0.4 nozzle"
+	]
+}

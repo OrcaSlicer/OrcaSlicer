@@ -1,0 +1,39 @@
+{
+	"type": "filament",
+	"name": "Bambu ASA @BBL H3C",
+	"inherits": "Bambu ASA @BBL H3C base",
+	"from": "system",
+	"setting_id": "GFSB01_42",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_flush_volumetric_speed": [
+		"0",
+		"0"
+	],
+	"filament_max_volumetric_speed": [
+		"20",
+		"35"
+	],
+	"filament_retraction_length": [
+		"0.4",
+		"0.4"
+	],
+	"filament_wipe": [
+		"1",
+		"1"
+	],
+	"filament_wipe_distance": [
+		"1",
+		"1"
+	],
+	"filament_z_hop_types": [
+		"Spiral Lift",
+		"Spiral Lift"
+	],
+	"compatible_printers": [
+		"Bambu Lab H3C 0.4 nozzle"
+	]
+}

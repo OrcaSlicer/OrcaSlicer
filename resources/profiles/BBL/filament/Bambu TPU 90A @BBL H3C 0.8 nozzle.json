@@ -1,0 +1,46 @@
+{
+	"type": "filament",
+	"name": "Bambu TPU 90A @BBL H3C 0.8 nozzle",
+	"inherits": "Bambu TPU 90A @BBL H3C base",
+	"from": "system",
+	"setting_id": "GFSU03_19",
+	"instantiation": "true",
+	"filament_deretraction_speed": [
+		"5",
+		"5"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_retraction_length": [
+		"1",
+		"1"
+	],
+	"filament_retraction_speed": [
+		"5",
+		"5"
+	],
+	"nozzle_temperature": [
+		"225",
+		"225"
+	],
+	"nozzle_temperature_initial_layer": [
+		"225",
+		"225"
+	],
+	"slow_down_for_layer_cooling": [
+		"0"
+	],
+	"slow_down_min_speed": [
+		"10",
+		"10"
+	],
+	"volumetric_speed_coefficients": [
+		"48.0137 -0.3915 27.3862 -32.3779 -3.9738 5.2809",
+		"48.0137 -0.3915 27.3862 -32.3779 -3.9738 5.2809"
+	],
+	"compatible_printers": [
+		"Bambu Lab H3C 0.8 nozzle"
+	]
+}
