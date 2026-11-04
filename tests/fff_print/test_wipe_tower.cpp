@@ -208,6 +208,17 @@ static bool every_m400_precedes_a_temperature_command(const std::string &gcode)
     return true;
 }
 
+// The wipe tower regions of a slice under `config`. Post-processed tower moves start with "G1  "
+// (two spaces); a bare "G1 Y" is a move glued to a placeholder line, which skipped
+// post_process_wipe_tower_moves and kept tower-local coordinates.
+static std::string sliced_wipe_tower(const DynamicPrintConfig &config)
+{
+    const std::string tower = wipe_tower_regions(slice_with_prime_tower(config));
+    REQUIRE_FALSE(tower.empty());
+    CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring("\nG1 Y"));
+    return tower;
+}
+
 TEST_CASE("Tower consumption is classified separately for each printer kind", "[WipeTower][Regression]")
 {
     const auto [is_bbl, tower_type] = GENERATE(table<bool, std::string>({
@@ -248,40 +259,29 @@ TEST_CASE("The wipe tower's toolchange planner flush follows the gcode flavor", 
         CAPTURE(tower_type);
         DynamicPrintConfig config = wipe_tower_toolchange_config("klipper");
         config.set_deserialize_strict({ { "wipe_tower_type", tower_type } });
-        const std::string tower = wipe_tower_regions(slice_with_prime_tower(config));
-        REQUIRE_FALSE(tower.empty());
+        const std::string tower = sliced_wipe_tower(config);
         CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring("G4 S0"));
         CHECK(every_m400_precedes_a_temperature_command(tower));
-        // Post-processed tower moves start with "G1  " (two spaces). A bare "G1 Y" was glued to the
-        // deretraction placeholder line, skipped post_process_wipe_tower_moves and kept tower-local Y.
-        CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring("\nG1 Y"));
     }
     SECTION("marlin") {
-        const std::string tower = wipe_tower_regions(slice_with_prime_tower(wipe_tower_toolchange_config("marlin")));
-        REQUIRE_FALSE(tower.empty());
+        const std::string tower = sliced_wipe_tower(wipe_tower_toolchange_config("marlin"));
         CHECK_THAT(tower, Catch::Matchers::ContainsSubstring("G4 S0"));
         CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring("M400"));
-        CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring("\nG1 Y"));
     }
     SECTION("klipper, single extruder multi material") {
         // The SEMM path changes the temperature inside the tower; the sync before M104 must stay.
         DynamicPrintConfig config = wipe_tower_toolchange_config("klipper");
         config.set_deserialize_strict({ { "single_extruder_multi_material", "1" } });
-        const std::string tower = wipe_tower_regions(slice_with_prime_tower(config));
-        REQUIRE_FALSE(tower.empty());
+        const std::string tower = sliced_wipe_tower(config);
         CHECK_THAT(tower, Catch::Matchers::ContainsSubstring("M400\nM104"));
         CHECK(every_m400_precedes_a_temperature_command(tower));
-        CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring("\nG1 Y"));
     }
     SECTION("klipper, tower interface features") {
         // The interface M109 is stripped from the tower by GCode.cpp; its sync line must go with it.
         DynamicPrintConfig config = wipe_tower_toolchange_config("klipper");
         config.set_deserialize_strict({ { "enable_tower_interface_features", "1" },
                                         { "nozzle_temperature_range_high", "250,250" } });
-        const std::string tower = wipe_tower_regions(slice_with_prime_tower(config));
-        REQUIRE_FALSE(tower.empty());
-        CHECK(every_m400_precedes_a_temperature_command(tower));
-        CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring("\nG1 Y"));
+        CHECK(every_m400_precedes_a_temperature_command(sliced_wipe_tower(config)));
     }
 }
 
