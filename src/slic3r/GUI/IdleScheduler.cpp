@@ -10,6 +10,7 @@
 #include <wx/timer.h>
 
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/Memory.hpp"
 #include "slic3r/GUI/PrebuildQueue.hpp"
 
 #ifdef _WIN32
@@ -101,8 +102,10 @@ void IdleScheduler::tick()
         BOOST_LOG_TRIVIAL(info) << fn << ": task complete: " << slice.name << ", " << slice.units << " unit(s) in " << slice.ms << " ms this slice";
     else
         BOOST_LOG_TRIVIAL(debug) << fn << ": " << slice.name << ": " << slice.units << " unit(s) in " << slice.ms << " ms, yielding";
-    if (!slice.remaining)
+    if (!slice.remaining) {
         stop();
+        Slic3r::trim_process_memory();
+    }
     else if (input_pending())
         m_timer.Start(tick_ms);
     else

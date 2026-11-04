@@ -5,6 +5,7 @@
 #include "OrcaCloudServiceAgent.hpp"
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Platform.hpp"
+#include "libslic3r/Memory.hpp"
 #include "GUI_App.hpp"
 #include "BBLTopbar.hpp"
 #include "Shortcuts.hpp"
@@ -2918,6 +2919,7 @@ void GUI_App::init_single_instance_checker(const std::string &name, const std::s
 
 bool GUI_App::OnInit()
 {
+    Slic3r::initialize_memory_allocator();
     try {
         return on_init_inner();
     } catch (const std::exception& e) {
@@ -3880,6 +3882,17 @@ bool GUI_App::on_init_inner()
 
         if (m_post_initialized && app_config->dirty() && app_config->save_due())
             app_config->save();
+
+        if (m_post_initialized && this->input_idle_ms() >= 10000) {
+            static auto last_idle_trim = std::chrono::steady_clock::now();
+            auto now = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::seconds>(now - last_idle_trim).count() >= 30) {
+                last_idle_trim = now;
+                if (!plater_ || !plater_->is_background_process_slicing()) {
+                    Slic3r::trim_process_memory();
+                }
+            }
+        }
 
     });
 
