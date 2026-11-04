@@ -4,13 +4,12 @@
 
 using namespace Slic3r::GUI;
 
-// The dial hides only after a settle delay, and only if it is still shown and really lost the focus.
-// Hiding on the raw deactivation event makes the dial dismiss itself right after the first spacebar
-// open, because wxGTK can deliver wxEVT_ACTIVATE(false) to a window that still holds the focus.
+// The dial hides only after a settle delay, and only if it is still shown and really lost the focus,
+// so a focus bounce shorter than the delay does not dismiss it.
 
 TEST_CASE("Speed dial stays shown while it still holds the focus", "[SpeedDialDismiss][SpeedDial]")
 {
-    // The GTK stray-deactivation case: a deactivation arrives, but the dial is still active.
+    // A focus bounce: a deactivation arrived, but the dial is active again when the timer fires.
     REQUIRE_FALSE(speed_dial_should_hide(true, true));
 }
 

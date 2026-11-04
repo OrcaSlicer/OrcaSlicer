@@ -49,8 +49,9 @@ namespace {
 constexpr int kPopupWidth     = 540;
 constexpr int kPopupMinHeight = 60; // just above the bare search-bar height, so the dialog hugs content
 constexpr int kPopupMaxHeight = 282;
-// Delay between a deactivation and the auto-hide decision. A real focus change settles immediately, so
-// the check only has to outlive the wxEVT_ACTIVATE ordering, not a user's reaction.
+// Delay between a deactivation and the auto-hide decision, so that a focus bounce shorter than this (the
+// keyboard leaving and coming back within the interval) does not dismiss the dial. A window that really
+// takes the focus still hides it when the timer fires.
 constexpr int kHideSettleMs = 150;
 
 int json_int_or(const nlohmann::json& j, const char* key, int fallback)
@@ -166,11 +167,11 @@ SpeedDialWebDialog::SpeedDialWebDialog(wxWindow* parent)
     // keeps that position for every later Show(). position_over_parent() supplies the origin instead.
     gtk_window_set_position(GTK_WINDOW(GetHandle()), GTK_WIN_POS_NONE);
 #endif
-    // The dial dismisses itself when the focus leaves it, but a wxEVT_ACTIVATE(false) event is not proof
-    // that it did: wxGTK delivers it to the last activated toplevel whatever window lost the focus, and
-    // the first open is the only one that maps the window, moves it and resizes it while it is already
-    // focused. Deciding on the event alone dismissed the dial on its own moments after the spacebar
-    // opened it (GNOME and KDE, X11 and Wayland). Validate after kHideSettleMs instead.
+    // The dial dismisses itself when the focus leaves it. The hide is deferred by kHideSettleMs and
+    // re-checked, so a focus bounce shorter than that is not a dismissal. It does not protect against
+    // another window being activated: the first-open close on Linux was the main frame's tab handler
+    // calling SetFocus() while the Calibration page was built in the background, which on wxGTK presents
+    // the main window (fixed in MainFrame::init_tabpanel).
     m_hide_timer.SetOwner(this);
     Bind(wxEVT_TIMER, &SpeedDialWebDialog::on_hide_timer, this);
     Bind(wxEVT_ACTIVATE, [this](wxActivateEvent& event) {
@@ -288,8 +289,8 @@ void SpeedDialWebDialog::request_show()
         send_actions();
     // Grab focus now and again on wxEVT_ACTIVATE; grabbing directly on the WebKit widget is
     // what makes typing reach the search field immediately on open. Skipped while the page is still
-    // loading: on the first open the window has not been mapped yet (wxGTK defers the first show), so
-    // this grab lands on a window the WM has not activated - the ACTIVATE handler grabs it once it has.
+    // loading: on the first open the window is not mapped yet, so the grab would land on a window the
+    // WM has not activated - the ACTIVATE handler grabs it once it has.
     if (m_page_ready)
         focus_webview(browser(), true);
     repaint_webview();
