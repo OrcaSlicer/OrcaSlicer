@@ -260,6 +260,7 @@ TEST_CASE("A prime tower exports alongside unequal object layer heights", "[Extr
     auto config = layer_config();
     config.set_deserialize_strict({{"enable_prime_tower", "1"}, {"wipe_tower_type", "type2"},
         {"single_extruder_multi_material", "0"}, {"prime_tower_width", "30"},
+        {"wipe_tower_x", "120"}, {"wipe_tower_y", "120"},
         {"change_filament_gcode", "T[next_extruder]\n"}, {"gcode_comments", "1"}});
     Print print;
     Model model;
