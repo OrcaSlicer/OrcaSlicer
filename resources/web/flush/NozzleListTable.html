@@ -96,37 +96,38 @@
       }
 
       /* 暗黑模式样式 */
-      html.darkmode {
+      html[data-orca-theme="dark"],
+      html[data-orca-theme="dark"] body {
         background-color: #1a1a1a;
       }
 
-      html.darkmode table {
+      html[data-orca-theme="dark"] table {
         color: #e0e0e0;
         border-color: #555555; /* 表格外边框 */
       }
 
-      html.darkmode th,
-      html.darkmode td {
+      html[data-orca-theme="dark"] th,
+      html[data-orca-theme="dark"] td {
         border-color: #555555; /* 所有单元格边框 */
       }
 
-      html.darkmode thead th {
+      html[data-orca-theme="dark"] thead th {
         background-color: #2d2d2d;
       }
 
-      html.darkmode tbody tr {
+      html[data-orca-theme="dark"] tbody tr {
         background-color: #222222;
       }
       
-      html.darkmode tbody tr:nth-child(even) {
+      html[data-orca-theme="dark"] tbody tr:nth-child(even) {
         background-color: #282828;
       }
 
-      html.darkmode input[type="radio"] {
+      html[data-orca-theme="dark"] input[type="radio"] {
         border-color: #777777;
       }
 
-      html.darkmode label {
+      html[data-orca-theme="dark"] label {
         color: #e0e0e0;
       }
     </style>
@@ -215,10 +216,6 @@
 
       // 初始化表格
       function initTable(data) {
-        if(data.darkmode == true)
-          document.documentElement.classList.add('darkmode');
-        else
-          document.documentElement.classList.remove('darkmode');
         updateTable(data);
         // 监听单选按钮变化，通知C++
         document.getElementById('tableBody').addEventListener('change', function(e) {

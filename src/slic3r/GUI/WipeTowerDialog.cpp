@@ -44,6 +44,7 @@
 #include <nlohmann/json.hpp>
 #include "slic3r/GUI/Jobs/SendJob.hpp"
 #include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
+#include "slic3r/GUI/Widgets/WebView.hpp"
 #include <boost/filesystem.hpp>
 
 using json = nlohmann::json;
@@ -377,7 +378,6 @@ wxString WipingDialog::BuildTableObjStr()
     obj["max_flush_volumes"] = json::array();
     obj["min_flush_multiplier"] = g_min_flush_multiplier;
     obj["max_flush_multiplier"] = g_max_flush_multiplier;
-    obj["is_dark_mode"] = wxGetApp().dark_mode();
     obj["default_matrixs"]      = json::array();
 
     for (const auto& vec : flush_matrixs) {
@@ -505,6 +505,8 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
     };
     m_webview->AddUserScript(wxString::FromUTF8(WebViewHostDialog::localized_strings_script(page_strings)));
     m_webview->AddUserScript(wxString::FromUTF8(WebViewHostDialog::theme_user_script()));
+    // This view is not in g_webviews, so it is re-themed in place instead of reloaded on a theme change.
+    WebView::RegisterThemeTarget(m_webview, [] { return WebViewHostDialog::theme_apply_script(); });
     main_sizer->Add(m_webview, 1, wxEXPAND);
 
     fs::path filepath = fs::path(resources_dir()) / "web/flush/WipingDialog.html";

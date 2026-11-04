@@ -108,7 +108,7 @@ body {
   --icon-url: var(--icon-search);
 }
 .palette-search-button .icon-close {
-  --icon-url: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><g style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round"><line x1="3.5" y1="2.5" x2="13.5" y2="12.5"/><line x1="3.5" y1="12.5" x2="13.5" y2="2.5"/></g></svg>');;
+  --icon-url: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><g style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round"><line x1="3.5" y1="2.5" x2="13.5" y2="12.5"/><line x1="3.5" y1="12.5" x2="13.5" y2="2.5"/></g></svg>');
 }
 .palette-search-button .icon-close,
 .palette-search-button[aria-pressed="true"] .icon-search { display: none }

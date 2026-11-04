@@ -148,7 +148,7 @@
       input[type="number"].multiplier-input {
         width: 60px;
       }
-      body.dark-mode input[type="number"].multiplier-input {
+      html[data-orca-theme="dark"] body input[type="number"].multiplier-input {
         width: 60px;
         background-color: #4c4c55;
         color: white;
@@ -178,31 +178,31 @@
       }
 
       /* 暗色模式样式 */
-      body.dark-mode {
+      html[data-orca-theme="dark"] body {
         background-color: #2d2d31;
         color: #e0e0e0;
       }
 
-      body.dark-mode .container {
+      html[data-orca-theme="dark"] body .container {
         background: inherit;
         border-color: #2d2d31;
       }
 
-      body.dark-mode .tip-panel {
+      html[data-orca-theme="dark"] body .tip-panel {
         background: #4c4c55;
         color: #ccc;
       }
 
-      body.dark-mode .scroll-container {
+      html[data-orca-theme="dark"] body .scroll-container {
         border-color: #4c4c55;
       }
 
-      body.dark-mode table {
+      html[data-orca-theme="dark"] body table {
         background: inherit;
         border-color: #4c4c55;
       }
 
-      body.dark-mode input[type="number"].table-input {
+      html[data-orca-theme="dark"] body input[type="number"].table-input {
         width: 30px;
         height: 20px;
         text-align: center;
@@ -213,51 +213,50 @@
         background-color: inherit;
       }
 
-      body.dark-mode th, body.dark-mode td {
+      html[data-orca-theme="dark"] body th, html[data-orca-theme="dark"] body td {
         background: inherit;
         border-color: #555;
         color: #e0e0e0;
       }
 
-      body.dark-mode thead th{
+      html[data-orca-theme="dark"] body thead th{
         position: sticky;
         z-index: 10
       }
 
-      body.dark-mode tbody th{
+      html[data-orca-theme="dark"] body tbody th{
         position: sticky;
         z-index: 9
       }
 
-      body.dark-mode tbody tr:nth-child(even) {
+      html[data-orca-theme="dark"] body tbody tr:nth-child(even) {
         background: #2d2d31;
       }
 
-      body.dark-mode tbody tr:nth-child(odd) {
+      html[data-orca-theme="dark"] body tbody tr:nth-child(odd) {
         background: #4c4c55;
       }
 
-      body.dark-mode tbody td:first-child,
-      body.dark-mode thead th:first-child {
+      html[data-orca-theme="dark"] body tbody td:first-child,
+      html[data-orca-theme="dark"] body thead th:first-child {
         position: sticky;
         z-index: 11;
       }
 
-      body.dark-mode .warning-text {
+      html[data-orca-theme="dark"] body .warning-text {
         color: #f44336;
       }
 
-      body.dark-mode .normal-text {
+      html[data-orca-theme="dark"] body .normal-text {
         color: #e0e0e0;
       }
 
-      body.dark-mode .icon-button {
+      html[data-orca-theme="dark"] body .icon-button {
         background-color: #4c4c55;
       }
     </style>
+    <link rel="stylesheet" type="text/css" href="../include/global.css" />
   </head>
-
-  <link rel="stylesheet" type="text/css" href="../include/global.css" /> <!-- ORCA One for all-->
 
   <body>
     <div class="container">
@@ -505,9 +504,6 @@
         m_min_flush_volumes = data.min_flush_volumes
         m_min_flush_multiplier = data.min_flush_multiplier
         m_max_flush_multiplier = data.max_flush_multiplier
-
-        if(data.is_dark_mode == true)
-          document.body.classList.add('dark-mode');
 
         updateFlushMultiplier(m_curr_extruder_id)
 

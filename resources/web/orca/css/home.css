@@ -1,6 +1,7 @@
 body
 {
-    background-color:#eeeeee;
+    background-color:var(--bg-color-secondary);
+    color: var(--fg-color-text);
     font-family: Arial, sans-serif;
     display: flex;
     justify-content: center;
@@ -13,6 +14,6 @@ body
     text-align: center;
     padding: 30px;
     border-radius: 10px;
-    background-color: #ffffff;
-    box-shadow: 0 4px 6px rgba(39, 39, 39, 0.1);
+    background-color: var(--bg-color);
+    box-shadow: 0 4px 6px var(--shadow-opacity);
 }
