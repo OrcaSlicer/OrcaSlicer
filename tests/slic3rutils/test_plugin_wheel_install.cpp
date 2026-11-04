@@ -1,8 +1,11 @@
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/path.hpp>
 #include <catch2/catch_all.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include <cstddef>
 #include <libslic3r/Zipper.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
@@ -16,6 +19,8 @@
 #include <string>
 #include <vector>
 
+#include "catch2/catch_test_macros.hpp"
+#include "catch2/matchers/catch_matchers.hpp"
 #include "plugin_test_utils.hpp"
 #include "test_utils.hpp"
 

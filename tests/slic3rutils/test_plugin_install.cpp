@@ -1,3 +1,4 @@
+#include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>

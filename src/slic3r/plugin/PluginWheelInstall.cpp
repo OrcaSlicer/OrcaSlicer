@@ -5,10 +5,14 @@
 #include "PythonInterpreter.hpp"
 
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/file_status.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <boost/system/error_code.hpp>
+#include <ios>
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
@@ -18,6 +22,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <mutex>
+#include <slic3r/plugin/PluginDescriptor.hpp>
 #include <string>
 #include <utility>
 #include <vector>

@@ -10,6 +10,7 @@
 #include <string>
 #include <system_error>
 #include <thread>
+#include <vector>
 
 namespace Slic3r::plugin_uv {
 
