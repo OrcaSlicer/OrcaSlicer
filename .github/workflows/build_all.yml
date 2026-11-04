@@ -158,13 +158,13 @@ jobs:
             os: windows-latest
             compiler: clang
             preset: x64-clang-cache
-            flags: -l -x --ccache
+            flags: -l -x --cache ccache
             script: ps1
           - arch: x64
             os: windows-latest
             compiler: clang
             preset: x64-clang-cache
-            flags: -l -x --ccache
+            flags: -l -x --cache ccache
             script: bat
     needs: check_build_script
     if: ${{ !cancelled() && needs.check_build_script.result == 'success' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
