@@ -6029,6 +6029,10 @@ msgid "Enable converting holes to polyholes to use this setting."
 msgstr "この設定を使用するには、「穴をポリホールに変換」を有効にしてください。"
 
 # AI Translated
+msgid "Set overhang wall overlap to a value greater than 0 to use this setting."
+msgstr "この設定を使用するには、「オーバーハング壁面のオーバーラップ」を 0 より大きい値に設定してください。"
+
+# AI Translated
 msgid "Enable overhang wall detection to use this setting."
 msgstr "この設定を使用するには、「オーバーハングを検出」を有効にしてください。"
 

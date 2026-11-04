@@ -5221,6 +5221,9 @@ msgstr ""
 msgid "Enable converting holes to polyholes to use this setting."
 msgstr ""
 
+msgid "Set overhang wall overlap to a value greater than 0 to use this setting."
+msgstr ""
+
 msgid "Enable overhang wall detection to use this setting."
 msgstr ""
 

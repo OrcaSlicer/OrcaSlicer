@@ -6072,6 +6072,10 @@ msgid "Enable converting holes to polyholes to use this setting."
 msgstr "啟用「將圓孔轉換為多邊形孔」後，才能使用此設定。"
 
 # AI Translated
+msgid "Set overhang wall overlap to a value greater than 0 to use this setting."
+msgstr "將「懸空牆重疊」設為大於 0，才能使用此設定。"
+
+# AI Translated
 msgid "Enable overhang wall detection to use this setting."
 msgstr "啟用「偵測懸空牆」後，才能使用此設定。"
 
