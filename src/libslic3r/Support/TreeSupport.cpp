@@ -1,3 +1,4 @@
+#include "libslic3r/AdaptiveLayerMerge.hpp"
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <cassert>
@@ -1529,10 +1530,79 @@ static void make_perimeter_and_infill(ExtrusionEntitiesPtr& dst, const ExPolygon
     }
 }
 
+void TreeSupport::split_tool_layers()
+{
+    if (!m_slicing_params.use_extruder_layer_heights)
+        return;
+    const auto &config = m_object->config();
+    const double base_height = extruder_layer_height_for_filament(*m_print_config, config.support_filament.value, config.layer_height.value);
+    const double interface_height = extruder_layer_height_for_filament(*m_print_config, config.support_interface_filament.value, config.layer_height.value);
+    if (std::abs(base_height - interface_height) < EPSILON)
+        return;
+
+    struct Slab {
+        ExPolygon area;
+        SupportLayer::AreaGroup group;
+    };
+    std::map<double, std::vector<Slab>> slabs;
+    auto &layers = m_object->support_layers();
+    for (size_t i = m_raft_layers; i < layers.size(); ++i) {
+        const SupportLayer &layer = *layers[i];
+        for (const auto &group : layer.area_groups) {
+            const bool base = group.type == SupportLayer::BaseType || group.interface_as_base;
+            const unsigned int filament = base ? config.support_filament.value : config.support_interface_filament.value;
+            const double target = base ? base_height : interface_height;
+            const auto steps = layer.print_z <= m_slicing_params.first_print_layer_height + EPSILON ?
+                std::vector<double>{layer.height} :
+                extruder_support_layer_steps(layer.height, target, extruder_layer_height_range(*m_print_config, filament).min_height);
+            double z = layer.bottom_z();
+            for (double height : steps) {
+                z += height;
+                // Quantize only the map key, so coincident base/interface tops share one layer.
+                const double print_z = std::round(z * 1e6) / 1e6;
+                Slab slab{*group.area, group};
+                slab.group.extrusion_height = height;
+                slabs[print_z].push_back(std::move(slab));
+                if (base) {
+                    const auto lightning = printZ_to_lightninglayer.find(layer.print_z);
+                    if (lightning != printZ_to_lightninglayer.end())
+                        printZ_to_lightninglayer.emplace(print_z, lightning->second);
+                }
+            }
+        }
+    }
+    for (size_t i = m_raft_layers; i < layers.size(); ++i)
+        delete layers[i];
+    layers.resize(m_raft_layers);
+    for (auto &[z, groups] : slabs) {
+        double height = groups.front().group.extrusion_height;
+        for (const auto &slab : groups)
+            height = std::min(height, slab.group.extrusion_height);
+        auto *layer = m_object->add_tree_support_layer(int(layers.size()), height, z, z);
+        layer->base_areas.reserve(groups.size());
+        layer->roof_areas.reserve(groups.size());
+        layer->roof_1st_layer.reserve(groups.size());
+        layer->floor_areas.reserve(groups.size());
+        for (auto &slab : groups) {
+            auto &areas = slab.group.type == SupportLayer::BaseType ? layer->base_areas :
+                slab.group.type == SupportLayer::RoofType ? layer->roof_areas :
+                slab.group.type == SupportLayer::FloorType ? layer->floor_areas : layer->roof_1st_layer;
+            areas.push_back(std::move(slab.area));
+            slab.group.area = &areas.back();
+            layer->area_groups.push_back(slab.group);
+        }
+        if (layers.size() > 1) {
+            layer->lower_layer = layers[layers.size() - 2];
+            layer->lower_layer->upper_layer = layer;
+        }
+    }
+}
+
 void TreeSupport::generate_toolpaths()
 {
     const PrintObjectConfig &object_config = m_object->config();
-    coordf_t support_extrusion_width = m_support_params.support_extrusion_width;
+    coordf_t support_extrusion_width = m_slicing_params.use_extruder_layer_heights ?
+        m_support_params.support_material_flow.width() : m_support_params.support_extrusion_width;
     coordf_t nozzle_diameter = nozzle_diameter_for_filament(*m_print_config, object_config.support_filament, m_object->print()->is_BBL_printer());
     coordf_t layer_height = object_config.layer_height.value;
     const size_t wall_count = object_config.tree_support_wall_count.value;
@@ -1679,8 +1749,12 @@ void TreeSupport::generate_toolpaths()
                 //m_object->print()->set_status(70, (boost::format(_u8L("Support: generate toolpath at layer %d")) % layer_id).str());
 
                 SupportLayer* ts_layer = m_object->get_support_layer(layer_id);
-                Flow support_flow(support_extrusion_width, ts_layer->height, nozzle_diameter);
-                Flow interface_flow = support_material_interface_flow(m_object, ts_layer->height); // update flow using real support layer height
+                const double base_height = m_slicing_params.use_extruder_layer_heights ?
+                    std::min(ts_layer->height, double(m_support_params.support_material_flow.height())) : ts_layer->height;
+                const double interface_height = m_slicing_params.use_extruder_layer_heights ?
+                    std::min(ts_layer->height, double(m_support_params.support_material_interface_flow.height())) : ts_layer->height;
+                Flow support_flow(support_extrusion_width, base_height, nozzle_diameter);
+                Flow interface_flow = support_material_interface_flow(m_object, float(interface_height));
                 coordf_t support_spacing         = object_config.support_base_pattern_spacing.value + support_flow.spacing();
                 coordf_t support_density         = std::min(1., support_flow.spacing() / support_spacing);
                 ts_layer->support_fills.no_sort = false;
@@ -1691,6 +1765,16 @@ void TreeSupport::generate_toolpaths()
                 filler_Roof1stLayer->set_bounding_box(bbox_object);
 
                 for (auto& area_group : ts_layer->area_groups) {
+                    if (area_group.extrusion_height > 0.) {
+                        const float height = float(area_group.extrusion_height);
+                        if (area_group.type == SupportLayer::BaseType || area_group.interface_as_base) {
+                            support_flow = support_flow.with_height(height);
+                            support_spacing = object_config.support_base_pattern_spacing.value + support_flow.spacing();
+                            support_density = std::min(1., support_flow.spacing() / support_spacing);
+                        } else {
+                            interface_flow = interface_flow.with_height(height);
+                        }
+                    }
                     ExPolygon& poly = *area_group.area;
                     ExPolygons polys;
                     FillParams fill_params;
@@ -1948,6 +2032,7 @@ void TreeSupport::generate()
 
     profiler.stage_start(STAGE_GENERATE_TOOLPATHS);
     m_object->print()->set_status(70, _u8L("Generating support"));
+    split_tool_layers();
     generate_toolpaths();
     profiler.stage_finish(STAGE_GENERATE_TOOLPATHS);
 
@@ -2265,6 +2350,20 @@ void TreeSupport::draw_circles()
                         break;
 
                     const SupportNode& node = *p_node;
+                    int roof_layers_below = node.support_roof_layers_below;
+                    if (m_slicing_params.use_extruder_layer_heights) {
+                        // Other contact surfaces may subdivide this branch's Z schedule.
+                        // Keep the requested physical interface depth rather than counting
+                        // those incidental geometry layers as full interface layers.
+                        const double distance = std::max(0., node.dist_mm_to_top - top_z_distance);
+                        const double interface_step = m_support_params.support_material_interface_flow.height();
+                        const double base_step = m_support_params.support_material_flow.height();
+                        const double interface_depth = (top_interface_layers - top_base_interface_layers) * interface_step;
+                        const double total_depth = interface_depth + top_base_interface_layers * base_step;
+                        roof_layers_below = distance < interface_depth - EPSILON ?
+                            top_base_interface_layers + int(std::ceil((interface_depth - distance - EPSILON) / interface_step)) :
+                            distance < total_depth - EPSILON ? int(std::ceil((total_depth - distance - EPSILON) / base_step)) : 0;
+                    }
                     ExPolygons area;
                     // Generate directly from overhang polygon if one of the following is true:
                     // 1) node is a normal part of hybrid support
@@ -2314,7 +2413,7 @@ void TreeSupport::draw_circles()
 
                         // merge overhang to get a smoother interface surface
                         // Do not merge when buildplate_only is on, because some underneath nodes may have been deleted.
-                        if (top_interface_layers > 0 && node.support_roof_layers_below > 0 && !on_buildplate_only && !node.is_sharp_tail) {
+                        if (top_interface_layers > 0 && roof_layers_below > 0 && !on_buildplate_only && !node.is_sharp_tail) {
                             ExPolygons overhang_expanded;
                             if (node.overhang.contour.size() > 100 || node.overhang.holes.size()>1)
                                 overhang_expanded.emplace_back(node.overhang);
@@ -2331,16 +2430,16 @@ void TreeSupport::draw_circles()
 
                     if (obj_layer_nr>0 && node.distance_to_top < 0)
                         append(roof_gap_areas, area);
-                    else if (obj_layer_nr > 0 && node.support_roof_layers_below == 1 &&
+                    else if (obj_layer_nr > 0 && roof_layers_below == 1 &&
                              node.is_sharp_tail == false)
                     {
                         append(roof_1st_layer, area);
                         max_layers_above_roof1 = std::max(max_layers_above_roof1, node.dist_mm_to_top);
                     }
-                    else if (obj_layer_nr > 0 && node.support_roof_layers_below > 1 &&
+                    else if (obj_layer_nr > 0 && roof_layers_below > 1 &&
                              node.is_sharp_tail == false)
                     {
-                        append(node.support_roof_layers_below <= top_base_interface_layers ? roof_base_areas : roof_areas, area);
+                        append(roof_layers_below <= top_base_interface_layers ? roof_base_areas : roof_areas, area);
                         max_layers_above_roof = std::max(max_layers_above_roof, node.dist_mm_to_top);
                     }
                     else
@@ -2412,8 +2511,10 @@ void TreeSupport::draw_circles()
                 if (!base_areas.empty() && !m_object_config->support_on_build_plate_only.value &&
                     (bottom_gap_height > EPSILON || bottom_interface_layers > 0))
                 {
-                    const coordf_t interface_height =
-                        bottom_interface_layers > 0 ? coordf_t(bottom_interface_layers) * m_slicing_params.layer_height : 0.0;
+                    const coordf_t interface_height = m_slicing_params.use_extruder_layer_heights ?
+                        (bottom_interface_layers - m_support_params.num_bottom_base_interface_layers) * m_support_params.support_material_interface_flow.height() +
+                        m_support_params.num_bottom_base_interface_layers * m_support_params.support_material_flow.height() :
+                        bottom_interface_layers * m_slicing_params.layer_height;
 
                     const coordf_t layer_top_z = ts_layer->print_z;
                     const coordf_t layer_bottom_z = ts_layer->bottom_z();
@@ -2490,7 +2591,9 @@ void TreeSupport::draw_circles()
                                             std::max(0, int(layer_nr) - int(first_interface_layer));
                                         const int bottom_base_start_idx =
                                             std::max(0, int(bottom_interface_layers) - int(m_support_params.num_bottom_base_interface_layers));
-                                        floor_interface_as_base = bottom_interface_idx >= bottom_base_start_idx;
+                                        floor_interface_as_base = m_slicing_params.use_extruder_layer_heights ?
+                                            layer_bottom_z >= band_iface_start + bottom_base_start_idx * m_support_params.support_material_interface_flow.height() - EPSILON :
+                                            bottom_interface_idx >= bottom_base_start_idx;
                                     }
                                     interface_id_set = true;
                                 }
@@ -3549,6 +3652,16 @@ std::vector<LayerHeightData> TreeSupport::plan_layer_heights()
                 // insertion will fail if there is already a key of print_z, so no need to check
                 bounds.insert({print_z, height});
                 bounds.insert({std::max(min_print_z, print_z - height), 0}); // the bottom_z of the layer
+                if (m_slicing_params.use_extruder_layer_heights) {
+                    double z = print_z - height;
+                    const size_t count = m_support_params.num_top_interface_layers;
+                    for (size_t i = 0; i < count; ++i) {
+                        z -= i < count - m_support_params.num_top_base_interface_layers ?
+                            m_support_params.support_material_interface_flow.height() : m_support_params.support_material_flow.height();
+                        if (z > min_print_z + EPSILON)
+                            bounds.insert({z, 0.});
+                    }
+                }
             }
         }
 
@@ -3563,6 +3676,16 @@ std::vector<LayerHeightData> TreeSupport::plan_layer_heights()
             if (dist < min_layer_height - EPSILON) continue;
 
             BOOST_LOG_TRIVIAL(trace) << format("plan_layer_heights0 (%.2f,%.2f)->(%.2f,%.2f): ", z1, h1, z2, h2);
+
+            if (has_extruder_layer_heights(*m_object)) {
+                double z = z1;
+                for (double height : extruder_support_layer_steps(dist, max_layer_height, min_layer_height)) {
+                    z += height;
+                    z_heights[z] = height;
+                }
+                it1 = it2;
+                continue;
+            }
 
             // Insert intermediate layers.
             size_t   n_layers_extra = size_t(ceil(dist / max_layer_height));

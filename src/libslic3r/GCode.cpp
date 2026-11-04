@@ -1,3 +1,4 @@
+#include "AdaptiveLayerMerge.hpp"
 #include "ArcFitter.hpp"
 #include <tuple>
 #include "BoundingBox.hpp"
@@ -2409,7 +2410,8 @@ std::vector<GCode::LayerToPrint> GCode::collect_layers_to_print(const PrintObjec
                 extra_gap = std::max(extra_gap, object.config().raft_contact_distance.value);
             }
             double maximal_print_z = (last_extrusion_layer ? last_extrusion_layer->print_z() : 0.)
-                + layer_to_print.layer()->height
+                + (has_extruder_layer_heights(object) ?
+                   layer_to_print.layer()->effective_print_height() : layer_to_print.layer()->height)
                 + std::max(0., extra_gap);
             // Negative support_contact_z is not taken into account, it can result in false positives in cases
 

@@ -7,6 +7,7 @@
 #include <catch2/generators/catch_generators.hpp>
 #include "catch2/catch_approx.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/AdaptiveLayerMerge.hpp"
 #include "libslic3r/PrintConfigConstants.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 
@@ -1931,4 +1932,61 @@ TEST_CASE("An empty list applied by index replaces the target list", "[Config][R
 
     edited.apply_only(saved, {"filament_ids#0"});
     CHECK(edited.option<ConfigOptionStrings>("filament_ids")->values.empty());
+}
+TEST_CASE("Nozzle permutations carry distinct process heights through sync and manual edits", "[ExtruderLayerHeight][Config]")
+{
+    const bool manual = GENERATE(false, true);
+    const std::vector<double> original{0.4, 0.4, 0.6, 0.6};
+    const std::vector<double> heights{0.15, 0.2, 0.3, 0.35};
+    ExtruderLayerHeightRemapper remapper;
+    remapper.reset(original, {0.}); // The process can be edited after the printer is loaded.
+    if (manual) {
+        const auto pending = remapper.remap({0.6, 0.4, 0.6, 0.6}, heights);
+        REQUIRE(pending == heights);
+    }
+    const std::vector<double> moved{0.6, 0.4, 0.4, 0.6};
+    const auto mapped = remapper.remap(moved, heights);
+    REQUIRE(mapped == std::vector<double>{0.3, 0.2, 0.15, 0.35});
+    REQUIRE(remapper.remap(moved, mapped) == mapped); // Repeated telemetry is idempotent.
+    REQUIRE(remapper.remap(original, mapped) == heights);
+}
+
+TEST_CASE("Nozzle remapping preserves disabled and inherited layer heights", "[ExtruderLayerHeight][Config]")
+{
+    ExtruderLayerHeightRemapper remapper;
+    const std::vector<double> original{0.4, 0.4, 0.6, 0.6};
+    const std::vector<double> moved{0.6, 0.4, 0.4, 0.6};
+    const std::vector<double> heights = GENERATE(std::vector<double>{0.}, std::vector<double>{0.2});
+    remapper.reset(original, heights);
+    REQUIRE(remapper.remap(moved, heights) == heights);
+    remapper.reset(original, {0.15, 0.2, 0.});
+    REQUIRE(remapper.remap(moved, {0.15, 0.2, 0.}) == std::vector<double>{0., 0.2, 0.15, 0.15});
+}
+
+TEST_CASE("New nozzle sets and printer loads do not guess process heights", "[ExtruderLayerHeight][Config]")
+{
+    ExtruderLayerHeightRemapper remapper;
+    const std::vector<double> heights{0.15, 0.3};
+    remapper.reset({0.4, 0.6}, heights);
+    REQUIRE(remapper.remap({0.8, 0.6}, heights) == heights);
+    REQUIRE(remapper.remap({0.8, 0.6, 0.4}, heights) == heights);
+    remapper.reset({0.6, 0.4}, heights); // Loading a project or preset establishes its own associations.
+    REQUIRE(remapper.remap({0.6, 0.4}, heights) == heights);
+}
+
+TEST_CASE("Editing process heights during a manual nozzle swap establishes new associations", "[ExtruderLayerHeight][Config]")
+{
+    ExtruderLayerHeightRemapper remapper;
+    remapper.reset({0.4, 0.6}, {0.15, 0.3});
+    REQUIRE(remapper.remap({0.6, 0.6}, {0.15, 0.3}) == std::vector<double>{0.15, 0.3});
+    REQUIRE(remapper.remap({0.6, 0.6}, {0.25, 0.3}) == std::vector<double>{0.25, 0.3});
+    REQUIRE(remapper.remap({0.6, 0.4}, {0.25, 0.3}) == std::vector<double>{0.25, 0.3});
+}
+
+TEST_CASE("Nozzle permutations retain heights for inactive extruder slots", "[ExtruderLayerHeight][Config]")
+{
+    ExtruderLayerHeightRemapper remapper;
+    const std::vector<double> heights{0.15, 0.3, 0.2, 0.25};
+    remapper.reset({0.4, 0.6}, heights);
+    REQUIRE(remapper.remap({0.6, 0.4}, heights) == std::vector<double>{0.3, 0.15, 0.2, 0.25});
 }

@@ -16,6 +16,7 @@
 //	       - Single preset item: name, file is default or external.
 
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/AdaptiveLayerMerge.hpp"
 #include <cstddef>
 #include "libslic3r/Config.hpp"
 #include <functional>
@@ -743,6 +744,8 @@ private:
     std::vector<PageShp>			m_pages_fff;
     std::vector<PageShp>			m_pages_sla;
 
+    ExtruderLayerHeightRemapper m_layer_height_remapper;
+
     IMEXModesCtrl*      m_imex_modes_ctrl               {nullptr};
 public:
 	ScalableButton*	m_reset_to_filament_color = nullptr;
@@ -764,6 +767,7 @@ public:
 
 	void		build() override;
     void		build_fff();
+    void        remap_extruder_layer_heights(const std::vector<double> &diameters);
     void		build_sla();
 	void		reload_config() override;
 	void		activate_selected_page(std::function<void()> throw_if_canceled) override;

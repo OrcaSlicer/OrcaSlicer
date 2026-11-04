@@ -1,3 +1,4 @@
+#include "FilamentMixer.hpp"
 #ifdef _WIN32
 // Keep this first. A header below reaches boost/regex, whose w32_regex_traits
 // needs the Win32 types declared already.
@@ -58,6 +59,7 @@
 #include "IMEXHelpers.hpp"
 #include "IMEXZones.hpp"
 #include "Print.hpp"
+#include "AdaptiveLayerMerge.hpp"
 #include "BoundingBox.hpp"
 #include "Brim.hpp"
 #include "ClipperUtils.hpp"
@@ -485,6 +487,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
                opt_key == "slicing_pipeline_plugin"
             || opt_key == "print_plugin_config_overrides"
             || opt_key == "initial_layer_print_height"
+            || opt_key == "extruder_layer_height"
             || opt_key == "nozzle_diameter"
             || opt_key == "filament_shrink"
             || opt_key == "filament_shrinkage_compensation_z"
@@ -1906,6 +1909,14 @@ int Print::get_compatible_filament_type(const std::set<int>& filament_types)
     return HighLowCompatible;
 }
 
+std::vector<unsigned int> Print::layer_height_filaments() const
+{
+    auto filaments = expand_mixed_filaments(this->extruders(), m_config.filament_is_mixed.values,
+                                           m_config.filament_mixed_components.values);
+    sort_remove_duplicates(filaments);
+    return filaments;
+}
+
 //BBS: this function is used to check whether multi filament can be printed
 StringObjectException Print::check_multi_filament_valid(const Print& print)
 {
@@ -2063,6 +2074,51 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
 
     if (extruders.empty())
         return { L("No extrusions under current settings.") };
+
+    const auto layer_filaments = layer_height_filaments();
+    for (unsigned int filament : layer_filaments)
+        if (const double height = extruder_layer_height_for_filament(m_config, filament + 1, 0.); !std::isfinite(height) || height < 0.)
+            return {L("Extruder layer heights must be finite, non-negative values."), nullptr, "extruder_layer_height"};
+    // Automatic grouping has not chosen physical tools yet, so their height overrides cannot be resolved.
+    if (has_extruder_layer_heights(m_config) && is_BBL_printer() && is_auto_filament_map_mode(m_config.filament_map_mode.value))
+        return {L("Assign filaments to extruders manually before using per-extruder layer heights."), nullptr, "filament_map_mode"};
+    if (has_extruder_layer_heights(m_config, layer_filaments)) {
+        if (m_config.spiral_mode)
+            return {L("Per-extruder layer heights cannot be used with spiral vase mode."), nullptr, "extruder_layer_height"};
+        for (const PrintObject *object : m_objects) {
+            if (object->has_support_material() && is_tree(object->config().support_type.value) &&
+                (object->config().support_style.value == smsDefault || object->config().support_style.value == smsTreeOrganic))
+                return {L("Choose normal, slim, strong, or hybrid support when using per-extruder layer heights."), object, "support_style"};
+            if (object->has_support_material() &&
+                (object->config().support_filament.value == 0 || object->config().support_interface_filament.value == 0))
+                return {L("Select explicit support and support interface filaments when using per-extruder layer heights."), object, "support_filament"};
+            for (const auto &range : object->model_object()->layer_config_ranges)
+                if (range.second.has("layer_height"))
+                    return {L("Remove height-range layer height overrides before using per-extruder layer heights."), object, "extruder_layer_height"};
+            for (const PrintRegion &region : object->all_regions()) {
+                const PrintRegionConfig &config = region.config();
+                const auto height = [&](unsigned int filament) {
+                    return extruder_layer_height_for_filament(m_config, filament, object->config().layer_height.value);
+                };
+                if (config.wall_loops.value > 1 &&
+                    std::abs(height(config.outer_wall_filament_id.value) - height(config.inner_wall_filament_id.value)) > EPSILON)
+                    return {L("Inner and outer walls of one part must use matching extruder layer heights."), object, "inner_wall_filament_id"};
+                if ((config.top_shell_layers.value > 0 && std::abs(height(config.top_surface_filament_id.value) - height(config.internal_solid_filament_id.value)) > EPSILON) ||
+                    (config.bottom_shell_layers.value > 0 && std::abs(height(config.bottom_surface_filament_id.value) - height(config.internal_solid_filament_id.value)) > EPSILON))
+                    return {L("Solid infill and top and bottom surfaces of one part must use matching extruder layer heights."), object, "internal_solid_filament_id"};
+            }
+            if (extruder_layer_height_grid(m_config, object->config().layer_height.value, layer_filaments) < 0.01 - EPSILON)
+                return {L("Extruder layer heights must share a slicing step of at least 0.01 mm."), object, "extruder_layer_height"};
+            if (!object->model_object()->layer_height_profile.get().empty())
+                return {L("Clear variable layer heights before using per-extruder layer heights."), object, "extruder_layer_height"};
+            for (unsigned int filament : object->printing_extruders()) {
+                const double height = extruder_layer_height_for_filament(m_config, filament + 1, object->config().layer_height.value);
+                if (!extruder_layer_height_range(m_config, filament + 1).contains(height))
+                    return {L("An extruder layer height is outside that extruder's layer height limits."), object, "extruder_layer_height"};
+            }
+        }
+    }
+
 
     // A flow ratio of 0 would extrude nothing, and a nil one would write NaN extrusion lengths.
     {
@@ -2633,7 +2689,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
 		double min_nozzle_diameter = std::numeric_limits<double>::max();
 		double max_nozzle_diameter = 0;
 		for (unsigned int extruder_id : extruders) {
-			double dmr = m_config.nozzle_diameter.get_at(extruder_id);
+			double dmr = nozzle_diameter_for_filament(m_config, extruder_id + 1, is_BBL_printer());
 			min_nozzle_diameter = std::min(min_nozzle_diameter, dmr);
 			max_nozzle_diameter = std::max(max_nozzle_diameter, dmr);
 		}
@@ -2741,7 +2797,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                     : object->config().support_filament-1;
                 first_layer_min_nozzle_diameter = (first_layer_extruder == size_t(-1)) ?
                     min_nozzle_diameter :
-                    m_config.nozzle_diameter.get_at(first_layer_extruder);
+                    nozzle_diameter_for_filament(m_config, first_layer_extruder + 1, is_BBL_printer());
             } else {
                 // if we don't have raft layers, any nozzle diameter is potentially used in first layer
                 first_layer_min_nozzle_diameter = min_nozzle_diameter;
@@ -2750,7 +2806,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 return {L("Layer height cannot exceed nozzle diameter."), object, "initial_layer_print_height"};
 
             // validate layer_height
-            double layer_height = object->config().layer_height.value;
+            double layer_height = extruder_layer_height_grid(m_config, object->config().layer_height.value, layer_filaments);
             if (layer_height > min_nozzle_diameter)
                 return {L("Layer height cannot exceed nozzle diameter."), object, "layer_height"};
 

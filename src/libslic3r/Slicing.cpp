@@ -1,3 +1,4 @@
+#include "FilamentMixer.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -10,6 +11,7 @@
 #include "Point.hpp"
 #include "libslic3r.h"
 #include "Slicing.hpp"
+#include "AdaptiveLayerMerge.hpp"
 #include "SlicingAdaptive.hpp"
 #include "PrintConfig.hpp"
 #include "Model.hpp"
@@ -73,7 +75,8 @@ SlicingParameters SlicingParameters::create_from_config(
     const PrintObjectConfig         &object_config,
     coordf_t                         object_height,
     const std::vector<unsigned int> &object_extruders,
-    const Vec3d                     &object_shrinkage_compensation)
+    const Vec3d                     &object_shrinkage_compensation,
+    const std::vector<unsigned int> *print_filaments)
 {
     coordf_t initial_layer_print_height                      = (print_config.initial_layer_print_height.value <= 0) ? 
         object_config.layer_height.value : print_config.initial_layer_print_height.value;
@@ -112,9 +115,19 @@ SlicingParameters SlicingParameters::create_from_config(
     const bool zero_gap_interface_raft =
         raft_z_gap == 0.0 || zero_topZ_contact;
 
+    std::vector<unsigned int> used_filaments = print_filaments ? *print_filaments : object_extruders;
+    if (!print_filaments && (object_config.enable_support || object_config.raft_layers > 0 || object_config.enforce_support_layers > 0)) {
+        if (object_config.support_filament > 0)
+            used_filaments.push_back(object_config.support_filament.value - 1);
+        if (object_config.support_interface_filament > 0)
+            used_filaments.push_back(object_config.support_interface_filament.value - 1);
+    }
+    used_filaments = expand_mixed_filaments(used_filaments, print_config.filament_is_mixed.values,
+                                           print_config.filament_mixed_components.values);
     SlicingParameters params;
+    params.use_extruder_layer_heights = has_extruder_layer_heights(print_config, used_filaments);
 
-    params.layer_height               = object_config.layer_height.value;
+    params.layer_height               = extruder_layer_height_grid(print_config, object_config.layer_height.value, used_filaments);
     params.first_print_layer_height   = initial_layer_print_height;
     params.first_object_layer_height  = initial_layer_print_height;
     params.object_print_z_min         = 0.0;
@@ -152,6 +165,11 @@ SlicingParameters SlicingParameters::create_from_config(
         }
     }
 
+    if (params.use_extruder_layer_heights && object_config.support_filament.value > 0)
+        params.max_suport_layer_height = std::max(
+            extruder_layer_height_for_filament(print_config, object_config.support_filament.value, object_config.layer_height.value),
+            extruder_layer_height_for_filament(print_config, object_config.support_interface_filament.value, object_config.layer_height.value));
+
     params.min_layer_height = std::min(params.min_layer_height, params.layer_height);
     params.max_layer_height = std::max(params.max_layer_height, params.layer_height);
 
@@ -164,7 +182,7 @@ SlicingParameters SlicingParameters::create_from_config(
         params.gap_raft_object = 0.0;
     } else {
         params.gap_raft_object = raft_z_gap;
-        if (!print_config.independent_support_layer_height) {
+        if (!independent_support_layers(print_config, params)) {
             params.gap_raft_object =
                 std::round(params.gap_raft_object / object_config.layer_height + EPSILON)
                 * object_config.layer_height;
@@ -177,7 +195,7 @@ SlicingParameters SlicingParameters::create_from_config(
     } else {
         params.gap_object_support = support_bottom_z_gap;
 
-        if (!print_config.independent_support_layer_height) {
+        if (!independent_support_layers(print_config, params)) {
             params.gap_object_support =
                 std::round(params.gap_object_support / object_config.layer_height + EPSILON)
                 * object_config.layer_height;
@@ -190,7 +208,7 @@ SlicingParameters SlicingParameters::create_from_config(
     } else {
         params.gap_support_object = support_top_z_gap;
 
-        if (!print_config.independent_support_layer_height) {
+        if (!independent_support_layers(print_config, params)) {
             params.gap_support_object =
                 std::round(params.gap_support_object / object_config.layer_height + EPSILON)
                 * object_config.layer_height;

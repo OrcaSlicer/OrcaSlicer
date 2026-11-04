@@ -1,3 +1,4 @@
+#include "libslic3r/AdaptiveLayerMerge.hpp"
 #include "ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "ExtrusionEntity.hpp"
@@ -517,6 +518,27 @@ void PrintObjectSupportMaterial::generate(PrintObject &object)
 
     BOOST_LOG_TRIVIAL(info) << "Support generator - Creating interfaces";
 
+    if (m_slicing_params.use_extruder_layer_heights) {
+        // Interface counts describe deposited layers of their own tool. Put those
+        // boundaries into the geometry stack before classifying base/interface areas.
+        std::vector<double> boundaries;
+        const double interface_height = m_support_params.support_material_interface_flow.height();
+        const double base_height = m_support_params.support_material_flow.height();
+        const auto add_boundaries = [&](const SupportGeneratorLayersPtr &contacts, size_t count, size_t base_count, bool top) {
+            for (const auto *contact : contacts) {
+                double z = top ? contact->bottom_print_z() : contact->print_z;
+                for (size_t i = 1; i < count; ++i) {
+                    z += (top ? -1. : 1.) * (i < count - base_count ? interface_height : base_height);
+                    boundaries.push_back(z);
+                }
+            }
+        };
+        add_boundaries(top_contacts, m_support_params.num_top_interface_layers, m_support_params.num_top_base_interface_layers, true);
+        add_boundaries(bottom_contacts, m_support_params.num_bottom_interface_layers, m_support_params.num_bottom_base_interface_layers, false);
+        split_support_layers(intermediate_layers, layer_storage, m_slicing_params.max_suport_layer_height,
+                             m_support_params.support_layer_height_min, m_slicing_params.first_print_layer_height, boundaries);
+    }
+
     // Propagate top / bottom contact layers to generate interface layers 
     // and base interface layers (for soluble interface / non souble base only)
 	SupportGeneratorLayersPtr empty_layers;
@@ -563,6 +585,22 @@ void PrintObjectSupportMaterial::generate(PrintObject &object)
 //    top_contacts.clear();
 //    intermediate_layers.clear();
 //    interface_layers.clear();
+
+    if (m_slicing_params.use_extruder_layer_heights) {
+        const auto split = [&](SupportGeneratorLayersPtr &layers, unsigned int filament) {
+            split_support_layers(layers, layer_storage,
+                extruder_layer_height_for_filament(*m_print_config, filament, m_object_config->layer_height.value),
+                extruder_layer_height_range(*m_print_config, filament).min_height,
+                m_slicing_params.first_print_layer_height);
+        };
+        split(intermediate_layers, m_object_config->support_filament.value);
+        split(base_interface_layers, m_object_config->support_filament.value);
+        const unsigned int interface_filament = m_support_params.has_interfaces() ?
+            m_object_config->support_interface_filament.value : m_object_config->support_filament.value;
+        split(bottom_contacts, interface_filament);
+        split(top_contacts, interface_filament);
+        split(interface_layers, interface_filament);
+    }
 
 #ifdef SLIC3R_DEBUG
     SupportGeneratorLayersPtr layers_sorted =
@@ -1839,7 +1877,7 @@ static inline std::pair<SupportGeneratorLayer*, SupportGeneratorLayer*> new_cont
     }
     else {
         // BBS: need to consider adaptive layer heights
-        if (print_config.independent_support_layer_height) {
+        if (independent_support_layers(print_config, slicing_params)) {
             print_z = layer.bottom_z() - slicing_params.gap_support_object;
             height = 0;
         }
@@ -1872,13 +1910,13 @@ static inline std::pair<SupportGeneratorLayer*, SupportGeneratorLayer*> new_cont
 
         // Contact layer will be printed with a normal flow, but
         // it will support layers printed with a bridging flow.
-        if (object_config.thick_bridges && SupportMaterialInternal::has_bridging_extrusions(layer) && print_config.independent_support_layer_height) {
+        if (object_config.thick_bridges && SupportMaterialInternal::has_bridging_extrusions(layer) && independent_support_layers(print_config, slicing_params)) {
             coordf_t bridging_height = 0.;
             for (const LayerRegion* region : layer.regions())
                 bridging_height += region->region().bridging_height_avg(print_config);
             bridging_height /= coordf_t(layer.regions().size());
             // BBS: align bridging height
-            if (!print_config.independent_support_layer_height)
+            if (!independent_support_layers(print_config, slicing_params))
                 bridging_height = std::ceil(bridging_height / object_config.layer_height - EPSILON) * object_config.layer_height;
             coordf_t bridging_print_z = layer.print_z - bridging_height - slicing_params.gap_support_object;
             if (bridging_print_z >= min_print_z) {
@@ -1898,7 +1936,7 @@ static inline std::pair<SupportGeneratorLayer*, SupportGeneratorLayer*> new_cont
                     } else {
                         // BBS: if independent_support_layer_height is not enabled, the support layer_height should be the same as layer height.
                         // Note that for this case, adaptive layer height must be disabled.
-                        bridging_layer->height = print_config.independent_support_layer_height ? 0. : object_config.layer_height;
+                        bridging_layer->height = independent_support_layers(print_config, slicing_params) ? 0. : object_config.layer_height;
                         // Don't know the height yet.
                         bridging_layer->bottom_z = bridging_print_z - bridging_layer->height;
                     }
@@ -2510,7 +2548,7 @@ static inline SupportGeneratorLayer* detect_bottom_contacts(
     // with some spacing from object - it looks we don't need the actual
     // top shapes so this can be done here
     Layer* upper_layer = layer.upper_layer;
-    if (object.print()->config().independent_support_layer_height) {
+    if (independent_support_layers(object.print()->config(), object.slicing_parameters())) {
         // If the layer is extruded with no bridging flow, support just the normal extrusions.
         layer_new.height = slicing_params.zero_gap_interface_bottom ?
             // Align the interface layer with the object's layer height.
@@ -3109,10 +3147,25 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::raft_and_intermediate_supp
                 // This is a top interface layer, which does not have a height assigned yet. Do it now.
                 assert(extr2->height == 0.);
                 assert(extr1z > m_slicing_params.first_print_layer_height - EPSILON);
+                if (m_slicing_params.use_extruder_layer_heights)
+                    step = std::min(dist, double(m_support_params.support_material_interface_flow.height()));
                 extr2->height = step;
                 extr2->bottom_z = extr2z = extr2->print_z - step;
-                if (-- n_layers_extra == 0)
+                if (m_slicing_params.use_extruder_layer_heights ? extr2z <= extr1z + EPSILON : --n_layers_extra == 0)
                     continue;
+            }
+            if (m_slicing_params.use_extruder_layer_heights) {
+                const auto steps = extruder_support_layer_steps(extr2z - extr1z,
+                    m_slicing_params.max_suport_layer_height, m_support_params.support_layer_height_min);
+                double z = extr1z;
+                for (double height : steps) {
+                    SupportGeneratorLayer &layer_new = layer_storage.allocate(SupporLayerType::Intermediate);
+                    layer_new.bottom_z = z;
+                    layer_new.height = height;
+                    layer_new.print_z = z += height;
+                    intermediate_layers.push_back(&layer_new);
+                }
+                continue;
             }
             coordf_t extr2z_large_steps = extr2z;
             // Take the largest allowed step in the Z axis until extr2z_large_steps is reached.

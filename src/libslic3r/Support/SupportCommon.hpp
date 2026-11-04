@@ -39,6 +39,11 @@ std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interfa
     SupportGeneratorLayersPtr         &intermediate_layers,
     SupportGeneratorLayerStorage      &layer_storage);
 
+// Subdivide classified support slabs for the tool that actually extrudes them.
+// Geometry and contact Z boundaries stay fixed; base and interface can have different schedules.
+void split_support_layers(SupportGeneratorLayersPtr &layers, SupportGeneratorLayerStorage &storage,
+                          double height, double minimum, double first_layer_z, const std::vector<double> &boundaries = {});
+
 // Generate raft layers, also expand the 1st support layer
 // in case there is no raft layer to improve support adhesion.
 SupportGeneratorLayersPtr generate_raft_base(

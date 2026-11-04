@@ -1630,6 +1630,9 @@ void Tab::load_config(const DynamicPrintConfig& config)
         m_config->set_key_value(opt_key, config.option(opt_key)->clone());
         modified = 1;
     }
+    if (m_type == Preset::TYPE_PRINTER)
+        if (const auto *diameters = config.option<ConfigOptionFloats>("nozzle_diameter"))
+            static_cast<TabPrinter*>(this)->remap_extruder_layer_heights(diameters->values);
     if (modified) {
         update_dirty();
         //# Initialize UI components with the config values.
@@ -3018,6 +3021,12 @@ void TabPrint::build()
         auto optgroup = page->new_optgroup(L("Layer height"), L"param_layer_height");
         optgroup->append_single_option_line("layer_height","quality_settings_layer_height");
         optgroup->append_single_option_line("initial_layer_print_height","quality_settings_layer_height");
+        for (int extruder = 0; extruder < m_preset_bundle->get_printer_extruder_count(); ++extruder) {
+            Line line = optgroup->create_single_option_line("extruder_layer_height", std::string(), extruder);
+            // TRN %1% is the one-based physical extruder number.
+            line.label = format_wxstr(_L("Extruder %1% layer height"), extruder + 1);
+            optgroup->append_line(line);
+        }
         optgroup->append_single_option_line("enable_mixed_color_sublayer");
 
         optgroup = page->new_optgroup(L("Line width"), L"param_line_width");
@@ -3547,6 +3556,39 @@ void TabPrint::build()
 // Reload current config (aka presets->edited_preset->config) into the UI fields.
 void TabPrint::reload_config()
 {
+    // Printer changes can add tools after the process tab's metadata was built.
+    // Keep existing rows for undo/preset switching, and hide tools absent from this printer.
+    if (m_type == Preset::TYPE_PRINT) {
+        const int count = m_preset_bundle->get_printer_extruder_count();
+        for (const PageShp &page : m_pages) {
+            for (const ConfigOptionsGroupShp &group : page->m_optgroups) {
+                size_t existing = 0;
+                for (const Line &line : group->get_lines())
+                    for (const Option &option : line.get_options())
+                        if (option.opt_id.rfind("extruder_layer_height#", 0) == 0)
+                            ++existing;
+                if (existing == 0)
+                    continue;
+                const bool rebuild = existing < size_t(count) && group->is_activated();
+                if (rebuild)
+                    clear_pages();
+                for (int extruder = int(existing); extruder < count; ++extruder) {
+                    Line line = group->create_single_option_line("extruder_layer_height", std::string(), extruder);
+                    // TRN %1% is the one-based physical extruder number.
+                    line.label = format_wxstr(_L("Extruder %1% layer height"), extruder + 1);
+                    group->append_line(line);
+                }
+                for (int extruder = 0; extruder < int(std::max(existing, size_t(count))); ++extruder)
+                    if (Line *line = page->get_line("extruder_layer_height", extruder))
+                        line->toggle_visible = extruder < count;
+                if (existing < size_t(count))
+                    init_options_list();
+                if (rebuild)
+                    activate_selected_page([] {});
+            }
+        }
+    }
+
     this->compatible_widget_reload(m_compatible_printers);
     Tab::reload_config();
 }
@@ -5482,6 +5524,8 @@ void TabPrinter::build_fff()
 
     auto   *nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(m_config->option("nozzle_diameter"));
     m_initial_extruders_count = m_extruders_count = nozzle_diameter->values.size();
+    m_layer_height_remapper.reset(nozzle_diameter->values,
+        m_preset_bundle->prints.get_edited_preset().config.option<ConfigOptionFloats>("extruder_layer_height")->values);
     m_extruder_variant_list = m_config->option<ConfigOptionStrings>("printer_extruder_variant")->values;
     // BBS
     //wxGetApp().obj_list()->update_objects_list_filament_column(m_initial_extruders_count);
@@ -6434,6 +6478,9 @@ if (is_marlin_flavor)
 // this gets executed after preset is loaded and before GUI fields are updated
 void TabPrinter::on_preset_loaded()
 {
+    if (m_printer_technology == ptFFF)
+        m_layer_height_remapper.reset(m_config->option<ConfigOptionFloats>("nozzle_diameter")->values,
+            m_preset_bundle->prints.get_edited_preset().config.option<ConfigOptionFloats>("extruder_layer_height")->values);
     // R8: reset the belt-tilt transition tracking to reflect the freshly loaded preset WITHOUT
     // running update_fff()'s reset logic. on_preset_loaded() is called from Tab::load_current_preset()
     // on every printer preset load, right before update()->update_fff(). Seeding m_was_belt_printer
@@ -7081,10 +7128,27 @@ void TabPrinter::toggle_options()
 }
 
 // Orca:
+void TabPrinter::remap_extruder_layer_heights(const std::vector<double> &diameters)
+{
+    if (m_printer_technology != ptFFF)
+        return;
+    const DynamicPrintConfig &process = m_preset_bundle->prints.get_edited_preset().config;
+    const auto &heights = process.option<ConfigOptionFloats>("extruder_layer_height")->values;
+    const auto mapped = m_layer_height_remapper.remap(diameters, heights);
+    if (mapped != heights) {
+        DynamicPrintConfig changes;
+        changes.set_key_value("extruder_layer_height", new ConfigOptionFloats(mapped));
+        wxGetApp().get_tab(Preset::TYPE_PRINT)->load_config(changes);
+    }
+}
+
 void TabPrinter::on_value_change(const std::string& opt_key, const boost::any& value)
 {
     if (wxGetApp().plater() == nullptr || m_config_manipulation.is_applying())
         return;
+
+    if (opt_key == "nozzle_diameter" || boost::starts_with(opt_key, "nozzle_diameter#"))
+        remap_extruder_layer_heights(m_config->option<ConfigOptionFloats>("nozzle_diameter")->values);
 
     const int pos = opt_key.find("#");
     // Orca: fields of the single Extruder page keep index 0 but edit the selected extruder.
@@ -9349,6 +9413,13 @@ void Tab::switch_excluder(int extruder_id, bool reload)
         page->m_opt_id_map.clear();
         for (auto group : page->m_optgroups) {
             for (auto &opt : group->opt_map()) {
+                // These rows each name a physical tool. Unlike speed/flow variants,
+                // switching the selected tool must not retarget their array entries.
+                if (opt.second.first == "extruder_layer_height") {
+                    const_cast<int &>(opt.second.second) = std::stoi(opt.first.substr(opt.first.find('#') + 1));
+                    page->m_opt_id_map.insert({opt.first, opt.first});
+                    continue;
+                }
                 if (is_extruder && opt.second.second >= 0) {
                     // Per-variant options use the variant column, the others (nozzle_diameter,
                     // extruder_offset, ...) are sized by the extruder count and use the extruder.
@@ -9408,7 +9479,7 @@ void Tab::sync_excluder()
     for (int i = 0; i < dirty_options.size(); ++i) {
         auto &opt = dirty_options[i];
         auto n= opt.find('#');
-        if (n == std::string::npos)
+        if (n == std::string::npos || opt.substr(0, n) == "extruder_layer_height")
             continue;
         auto field = m_active_page->get_field(opt.substr(0, n), from_index + 256);
         auto line  = m_active_page->get_line(opt.substr(0, n), from_index + 256);

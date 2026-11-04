@@ -25,6 +25,7 @@
 #include <unordered_map>
 
 #include "SupportCommon.hpp"
+#include "../AdaptiveLayerMerge.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Slicing.hpp"
@@ -191,6 +192,52 @@ void trim_support_layers_by_exclusion_volumes(
 #define SUPPORT_SURFACES_OFFSET_PARAMETERS jtSquare, 0.
 
 // Convert some of the intermediate layers into top/bottom interface layers as well as base interface layers.
+void split_support_layers(SupportGeneratorLayersPtr &layers, SupportGeneratorLayerStorage &storage,
+                          double height, double minimum, double first_layer_z, const std::vector<double> &boundaries)
+{
+    SupportGeneratorLayersPtr split;
+    for (SupportGeneratorLayer *layer : layers) {
+        if ((boundaries.empty() && layer->height <= height + EPSILON) || layer->print_z <= first_layer_z + EPSILON) {
+            split.push_back(layer);
+            continue;
+        }
+        double bottom = layer->bottom_print_z();
+        std::vector<double> tops;
+        for (double z : boundaries)
+            if (z > bottom + EPSILON && z < layer->print_z - EPSILON)
+                tops.push_back(z);
+        tops.push_back(layer->print_z);
+        std::sort(tops.begin(), tops.end());
+        tops.erase(std::unique(tops.begin(), tops.end(), [](double a, double b) { return std::abs(a - b) < EPSILON; }), tops.end());
+        std::vector<double> steps;
+        double z = bottom;
+        for (double top : tops) {
+            const auto part_steps = extruder_support_layer_steps(top - z, height, minimum);
+            steps.insert(steps.end(), part_steps.begin(), part_steps.end());
+            z = top;
+        }
+        for (double step : steps) {
+            SupportGeneratorLayer &part = storage.allocate(layer->layer_type);
+            part.height = step;
+            part.bottom_z = bottom;
+            part.print_z = bottom + step;
+            part.polygons = layer->polygons;
+            part.idx_object_layer_above = layer->idx_object_layer_above;
+            part.idx_object_layer_below = layer->idx_object_layer_below;
+            // A split slab is deposited in ordinary layers, not one thick bridge.
+            part.bridging = false;
+            if (layer->contact_polygons)
+                part.contact_polygons = std::make_unique<Polygons>(*layer->contact_polygons);
+            if (layer->overhang_polygons)
+                part.overhang_polygons = std::make_unique<Polygons>(*layer->overhang_polygons);
+            split.push_back(&part);
+            bottom = part.print_z;
+        }
+    }
+    std::stable_sort(split.begin(), split.end(), [](const auto *a, const auto *b) { return *a < *b; });
+    layers = std::move(split);
+}
+
 std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interface_layers(
     const PrintObjectConfig           &config,
     const SupportParameters           &support_params,
@@ -284,7 +331,7 @@ std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interfa
             [&bottom_contacts, &top_contacts, &top_interface_layers, &top_base_interface_layers, &intermediate_layers, &insert_layer,
              num_top_interface_layers, num_bottom_interface_layers, num_top_base_interface_layers, num_bottom_base_interface_layers,
              num_top_interface_layers_only, num_bottom_interface_layers_only,
-             snug_supports, &interface_layers, &base_interface_layers](const tbb::blocked_range<int>& range) {
+             snug_supports, &interface_layers, &base_interface_layers, &support_params](const tbb::blocked_range<int>& range) {
                 // Gather the top / bottom contact layers intersecting with num_interface_layers resp. num_interface_layers_only intermediate layers above / below
                 // this intermediate layer.
                 // Index of the first top contact layer intersecting the current intermediate layer.
@@ -312,6 +359,13 @@ std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interfa
                                 // Only base interface layers to generate.
                                 - std::numeric_limits<coordf_t>::max() :
                                 intermediate_layers[std::min(num_intermediate - 1, idx_intermediate_layer + int(num_top_interface_layers_only) - 1)]->print_z;
+                        if (support_params.use_extruder_layer_heights) {
+                            top_z = intermediate_layer.bottom_print_z() +
+                                num_top_interface_layers_only * support_params.support_material_interface_flow.height() +
+                                num_top_base_interface_layers * support_params.support_material_flow.height();
+                            top_interface_z = num_top_interface_layers_only == 0 ? -std::numeric_limits<coordf_t>::max() :
+                                intermediate_layer.bottom_print_z() + num_top_interface_layers_only * support_params.support_material_interface_flow.height();
+                        }
                         // Move idx_top_contact_first up until above the current print_z.
                         idx_top_contact_first = idx_higher_or_equal(top_contacts, idx_top_contact_first, [&intermediate_layer](const SupportGeneratorLayer *layer){ return layer->print_z >= intermediate_layer.print_z; }); //  - EPSILON
                         // Collect the top contact areas above this intermediate layer, below top_z.
@@ -336,6 +390,13 @@ std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interfa
                                 // Only base interface layers to generate.
                                 std::numeric_limits<coordf_t>::max() :
                                 intermediate_layers[std::max(0, idx_intermediate_layer - int(num_bottom_interface_layers_only))]->bottom_z;
+                        if (support_params.use_extruder_layer_heights) {
+                            bottom_z = intermediate_layer.print_z -
+                                num_bottom_interface_layers_only * support_params.support_material_interface_flow.height() -
+                                num_bottom_base_interface_layers * support_params.support_material_flow.height();
+                            bottom_interface_z = num_bottom_interface_layers_only == 0 ? std::numeric_limits<coordf_t>::max() :
+                                intermediate_layer.print_z - num_bottom_interface_layers_only * support_params.support_material_interface_flow.height();
+                        }
                         // Move idx_bottom_contact_first up until touching bottom_z.
                         idx_bottom_contact_first = idx_higher_or_equal(bottom_contacts, idx_bottom_contact_first, [bottom_z](const SupportGeneratorLayer *layer){ return layer->print_z >= bottom_z - EPSILON; });
                         // Collect the top contact areas above this intermediate layer, below top_z.

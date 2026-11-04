@@ -1,3 +1,4 @@
+#include "AdaptiveLayerMerge.hpp"
 #include "Layer.hpp"
 #include "ClipperUtils.hpp"
 #include "Polygon.hpp"
@@ -204,6 +205,11 @@ bool Layer::is_perimeter_compatible(const Print& print, const PrintRegion& a, co
 // The resulting fill surface is split back among the originating regions.
 void Layer::make_perimeters()
 {
+    if (has_extruder_layer_heights(*this->object())) {
+        this->make_adaptive_perimeters();
+        return;
+    }
+
     BOOST_LOG_TRIVIAL(trace) << "Generating perimeters for layer " << this->id();
 
     const auto clear_generated_extrusions = [](LayerRegion *layer_region) {
@@ -513,3 +519,98 @@ BoundingBox get_extents(const LayerRegionPtrs &layer_regions)
 }
 
 }
+
+namespace Slic3r {
+void Layer::make_adaptive_perimeters()
+{
+    for (size_t region_id = 0; region_id < m_regions.size(); ++region_id) {
+        LayerRegion *region = m_regions[region_id];
+        region->perimeters.clear();
+        region->thin_fills.clear();
+        region->fills.clear();
+        region->fill_surfaces.clear();
+        region->fill_no_overlap_expolygons.clear();
+            auto generate_region_perimeters = [&](LayerRegion *lm, const SurfaceCollection &src,
+                                                  SurfaceCollection *out_fill, ExPolygons *out_no_overlap) {
+                if (lm->adaptive_merge_patches.empty()) {
+                    lm->make_perimeters(src, LayerRegionPtrs{lm}, out_fill, out_no_overlap);
+                    return;
+                }
+
+                const auto group_top_patch = std::find_if(
+                    lm->adaptive_merge_patches.begin(), lm->adaptive_merge_patches.end(),
+                    [](const AdaptiveMergePatch &patch) { return patch.group_top; });
+                if (group_top_patch == lm->adaptive_merge_patches.end()) {
+                    // Swallowed by the group top, so nothing is extruded here. The fill surfaces still have
+                    // to pass through shell discovery, otherwise a solid layer inside the band disappears
+                    // before combine_adaptive_infill() can promote it.
+                    lm->make_perimeters(src, LayerRegionPtrs{lm}, out_fill, out_no_overlap,
+                                        0., true, nullptr, nullptr, true);
+                    return;
+                }
+
+                // All local boundary pieces share this fixed group top, so their ceiling is identical.
+                ExPolygons upper_slices_storage;
+                const ExPolygons *upper_slices = nullptr;
+                const size_t top_idx = group_top_patch->top_idx;
+                if (top_idx + 1 < this->object()->layer_count()) {
+                    // The next physical layer may be swallowed by another adaptive band. Build the
+                    // footprint that band will actually extrude so top-only walls see the real ceiling.
+                    const Layer *upper_layer = this->object()->get_layer(int(top_idx + 1));
+                    Polygons upper_footprint;
+                    for (const LayerRegion *upper_region : upper_layer->regions()) {
+                        if (upper_region->adaptive_merge_patches.empty()) {
+                            polygons_append(upper_footprint, to_polygons(upper_region->slices.surfaces));
+                        } else {
+                            for (const AdaptiveMergePatch &upper_patch : upper_region->adaptive_merge_patches)
+                                polygons_append(upper_footprint, to_polygons(upper_patch.area()));
+                        }
+                    }
+                    upper_slices_storage = union_ex(upper_footprint);
+                    upper_slices = &upper_slices_storage;
+                }
+
+                bool generated = false;
+                for (const AdaptiveMergePatch &patch : lm->adaptive_merge_patches) {
+                    if (! patch.group_top || patch.area().empty())
+                        continue;
+
+                    SurfaceCollection core_slices;
+                    const SurfaceCollection &patch_source = patch.bottom_idx == 0 ?
+                        this->object()->get_layer(0)->get_region(region_id)->slices : src;
+                    for (const Surface &s : patch_source.surfaces)
+                        for (ExPolygon &e : intersection_ex(ExPolygons{ s.expolygon }, patch.area()))
+                            core_slices.surfaces.emplace_back(s, std::move(e));
+                    if (core_slices.surfaces.empty())
+                        continue;
+
+                    // Each local piece rests immediately above its own obstruction. A suppressed orphan there is
+                    // sliced but not extruded, so the walls over it overhang.
+                    const ExPolygons *lower_slices = nullptr;
+                    ExPolygons        lower_storage;
+                    if (patch.bottom_idx > 0) {
+                        const Layer     *lower   = this->object()->get_layer(int(patch.bottom_idx - 1));
+                        const ExPolygons dropped = adaptive_suppressed_orphan_area(*lower);
+                        if (dropped.empty())
+                            lower_slices = &lower->lslices;
+                        else {
+                            lower_storage = diff_ex(lower->lslices, dropped);
+                            lower_slices  = &lower_storage;
+                        }
+                    }
+                    lm->make_perimeters(core_slices, LayerRegionPtrs{lm}, out_fill, out_no_overlap,
+                                        patch.merged_height, ! generated,
+                                        lower_slices, upper_slices, false, patch.bottom_idx == 0);
+                    generated = true;
+                }
+                if (! generated) {
+                    lm->perimeters.clear();
+                    lm->thin_fills.clear();
+                }
+            };
+
+        generate_region_perimeters(region, region->slices, &region->fill_surfaces, &region->fill_no_overlap_expolygons);
+        region->fill_expolygons = to_expolygons(region->fill_surfaces.surfaces);
+    }
+}
+} // namespace Slic3r

@@ -107,10 +107,19 @@ void LayerRegion::slices_to_fill_surfaces_clipped()
     }
 }
 
-void LayerRegion::make_perimeters(const SurfaceCollection &slices, const LayerRegionPtrs &compatible_regions, SurfaceCollection* fill_surfaces, ExPolygons* fill_no_overlap)
+void LayerRegion::make_perimeters(const SurfaceCollection &slices, const LayerRegionPtrs &compatible_regions, SurfaceCollection* fill_surfaces, ExPolygons* fill_no_overlap, double perimeter_layer_height, bool clear_outputs, const ExPolygons *lower_slices_override, const ExPolygons *upper_slices_override, bool fill_only, bool starts_at_object_base)
 {
-    this->perimeters.clear();
-    this->thin_fills.clear();
+    if (clear_outputs) {
+        this->perimeters.clear();
+        this->thin_fills.clear();
+    }
+    ExtrusionEntityCollection discarded_perimeters;
+    ExtrusionEntityCollection discarded_thin_fills;
+    const double wall_layer_height = perimeter_layer_height > 0. ? perimeter_layer_height : this->layer()->height;
+    const bool first_object_layer = this->layer()->id() == 0 || starts_at_object_base;
+    auto wall_flow = [&](FlowRole role) {
+        return this->region().flow(*this->layer()->object(), role, wall_layer_height, first_object_layer);
+    };
 
     const PrintConfig       &print_config  = this->layer()->object()->print()->config();
     const PrintRegionConfig &region_config = this->region().config();
@@ -131,9 +140,9 @@ void LayerRegion::make_perimeters(const SurfaceCollection &slices, const LayerRe
         // input:
         &slices,
         &compatible_regions,
-        this->layer()->height,
+        wall_layer_height,
         this->layer()->slice_z,
-        this->flow(frPerimeter),
+        wall_flow(frPerimeter),
         &region_config,
         &this->layer()->object()->config(),
         &print_config,
@@ -141,8 +150,8 @@ void LayerRegion::make_perimeters(const SurfaceCollection &slices, const LayerRe
         model_rotation_rad,
         
         // output:
-        &this->perimeters,
-        &this->thin_fills,
+        fill_only ? &discarded_perimeters : &this->perimeters,
+        fill_only ? &discarded_thin_fills : &this->thin_fills,
         fill_surfaces,
         //BBS
         fill_no_overlap
@@ -155,17 +164,24 @@ void LayerRegion::make_perimeters(const SurfaceCollection &slices, const LayerRe
     if (this->layer()->upper_layer != NULL)
         g.upper_slices_same_region = &this->layer()->upper_layer->get_region(region_id)->slices;
 
-    g.layer_id              = (int)this->layer()->id();
-    g.ext_perimeter_flow    = this->flow(frExternalPerimeter);
+    g.layer_id              = first_object_layer ? 0 : (int)this->layer()->id();
+    g.ext_perimeter_flow    = wall_flow(frExternalPerimeter);
     g.overhang_flow         = this->bridging_flow(frPerimeter, object_config.thick_bridges);
-    g.solid_infill_flow     = this->flow(frSolidInfill);
+    g.solid_infill_flow     = wall_flow(frSolidInfill);
 
     // Cumulative sum of polygons over all the regions, less what the lower layer could not print.
     ExPolygons lower_slices;
-    if (this->layer()->lower_layer != nullptr) {
+    if (this->layer()->lower_layer != nullptr && !first_object_layer) {
         lower_slices   = g.printable_slices(this->layer()->lower_layer->lslices);
         g.lower_slices = &lower_slices;
     }
+
+    if (lower_slices_override != nullptr)
+        g.lower_slices = lower_slices_override;
+    if (upper_slices_override != nullptr)
+        g.upper_slices = upper_slices_override;
+    if (wall_layer_height > this->layer()->height + EPSILON)
+        g.overhang_flow = wall_flow(frPerimeter).with_flow_ratio(region_config.bridge_flow);
 
     if (this->layer()->object()->config().wall_generator.value == PerimeterGeneratorType::Arachne && !spiral_mode)
         g.process_arachne();
