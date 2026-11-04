@@ -18631,7 +18631,7 @@ msgstr "Глубина шипа на стыке"
 
 # Это независимая от верхней настройка: окрашенная часть структурно в сечении представляет из себя "гребёнку", и эта настройка управляет длиной её зубьев (отсчёт от поверхности). Если длина меньше толщины основной части окраса, то они врезаются уже не в тело модели, а наоборот, в окрас.
 msgid "Interlocking depth of a segmented region. On every other layer, the segmented region is limited to this depth. It will be ignored if \"interlocking_beam\" is enabled. Zero disables this feature."
-msgstr "Для улучшения сцепления двух материалов на их контактной поверхности формируется шиповой стык. Глубина задаёт общее расстояние проникновения шипа вглубь модели от внешней поверхности.\n"
+msgstr "Для улучшения сцепления двух материалов на их контактной поверхности формируется шиповой стык. Глубина задаёт общее расстояние проникновения каждого шипа вглубь модели от внешней поверхности.\n"
 "\n"
 "Несовместимо с «Перекрёстной сеткой»."
 
@@ -18642,7 +18642,7 @@ msgid "Generate interlocking beam structure at the locations where different fil
 msgstr "Создавать структуру в виде пространственной перекрёстной сетки в местах контакта двух материалов. Улучшает их адгезию и гарантирует сцепление даже несовместимых материалов."
 
 msgid "Interlocking beam width"
-msgstr "Ширина направляющих сетки"
+msgstr "Ширина полос сетки"
 
 msgid "The width of the interlocking structure beams."
 msgstr "Ширина ортогональных элементов сетки."
@@ -18654,7 +18654,7 @@ msgid "Orientation of interlock beams."
 msgstr "Направление структуры сетки."
 
 msgid "Interlocking beam layers"
-msgstr "Высота направляющих сетки"
+msgstr "Высота полос сетки"
 
 msgid "The height of the beams of the interlocking structure, measured in number of layers. Less layers is stronger, but more prone to defects."
 msgstr "Количество слоёв сетки перед сменой направления. Чем меньше, тем выше прочность сцепления и риск возникновения дефектов."
