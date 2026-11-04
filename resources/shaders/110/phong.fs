@@ -50,10 +50,6 @@ uniform vec4 uniform_color_clip_plane_1;
 uniform vec4 uniform_color_clip_plane_2;
 uniform SlopeDetection slope;
 
-//BBS: add outline_color
-uniform bool is_outline;
-uniform sampler2D depth_tex;
-uniform vec2 screen_size;
 
 #ifdef ENABLE_ENVIRONMENT_MAP
     uniform sampler2D environment_tex;
@@ -62,8 +58,6 @@ uniform vec2 screen_size;
 
 uniform PrintVolumeDetection print_volume;
 
-uniform float z_far;
-uniform float z_near;
 uniform bool enable_ssao;
 // 1 = the Design tab's studio lighting (studio_shade below); 0 = the two-light model above, which
 // every other canvas keeps. world_up_eye is world +Z in eye space, for the hemisphere ambient.
@@ -87,51 +81,6 @@ varying vec4 world_pos;
 varying float world_normal_z;
 varying vec3 eye_normal;
 varying vec3 eye_position;
-
-vec3 getBackfaceColor(vec3 fill) {
-    float brightness = 0.2126 * fill.r + 0.7152 * fill.g + 0.0722 * fill.b;
-    return (brightness > 0.75) ? vec3(0.11, 0.165, 0.208) : vec3(0.988, 0.988, 0.988);
-}
-
-// Silhouette edge detection & rendering algorithm by leoneruggiero
-// https://www.shadertoy.com/view/DslXz2
-#define INFLATE 1
-
-float GetTolerance(float d, float k)
-{
-    float A = -(z_far+z_near)/(z_far-z_near);
-    float B = -2.0*z_far*z_near /(z_far-z_near);
-
-    d = d*2.0-1.0;
-
-    return -k*(d+A)*(d+A)/B;
-}
-
-float DetectSilho(vec2 fragCoord, vec2 dir)
-{
-    float x0 = abs(texture2D(depth_tex, (fragCoord + dir*-2.0) / screen_size).r);
-    float x1 = abs(texture2D(depth_tex, (fragCoord + dir*-1.0) / screen_size).r);
-    float x2 = abs(texture2D(depth_tex, (fragCoord + dir* 0.0) / screen_size).r);
-    float x3 = abs(texture2D(depth_tex, (fragCoord + dir* 1.0) / screen_size).r);
-
-    float d0 = (x1-x0);
-    float d1 = (x2-x3);
-
-    float r0 = x1 + d0 - x2;
-    float r1 = x2 + d1 - x1;
-
-    float tol = GetTolerance(x2, 0.04);
-
-    return smoothstep(0.0, tol*tol, max( - r0*r1, 0.0));
-}
-
-float DetectSilho(vec2 fragCoord)
-{
-    return max(
-        DetectSilho(fragCoord, vec2(1,0)),
-        DetectSilho(fragCoord, vec2(0,1))
-        );
-}
 
 float compute_ssao_factor(vec3 normal, vec3 view_dir, vec3 eye_pos)
 {
@@ -295,24 +244,10 @@ void main()
     vec3 lit = (lighting_model == 1) ? studio_shade(color.rgb, normal, view_dir)
                                      : (vec3(specular) + window_reflection + color.rgb * diffuse) * PHONG_BRIGHTNESS;
 
-    if (is_outline) {
-        vec3 shaded_rgb = lit * shade;
-        vec4 shaded_color = vec4(clamp(shaded_rgb, vec3(0.0), vec3(1.0)), color.a);
-        vec2 fragCoord = gl_FragCoord.xy;
-        float s = DetectSilho(fragCoord);
-        for(int i=1;i<=INFLATE; i++)
-        {
-           s = max(s, DetectSilho(fragCoord.xy + vec2(i, 0)));
-           s = max(s, DetectSilho(fragCoord.xy + vec2(0, i)));
-        }
-        if (s < 0.01)
-            discard;
-        gl_FragColor = vec4(mix(shaded_color.rgb, getBackfaceColor(shaded_color.rgb), s), shaded_color.a);
-    }
 #ifdef ENABLE_ENVIRONMENT_MAP
-    else if (use_environment_tex)
+    if (use_environment_tex)
         gl_FragColor = vec4(clamp((0.45 * texture2D(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + window_reflection + 0.8 * color.rgb * diffuse) * PHONG_BRIGHTNESS * shade, vec3(0.0), vec3(1.0)), color.a);
-#endif
     else
+#endif
         gl_FragColor = vec4(clamp(lit * shade, vec3(0.0), vec3(1.0)), color.a);
 }
