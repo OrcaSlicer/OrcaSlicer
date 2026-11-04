@@ -1566,6 +1566,23 @@ TEST_CASE("handle_legacy maps the boolean arc fitting values to modes", "[Config
     CHECK(config.opt_enum<ArcFittingMode>("enable_arc_fitting") == mode);
 }
 
+TEST_CASE("handle_legacy maps BambuStudio vertical shell thickness values without substitution", "[Config]") {
+    const auto [value, level] = GENERATE(table<std::string, EnsureVerticalShellThickness>({
+        { "1",               evstAll },
+        { "0",               evstModerate },
+        { "enabled",         evstAll },
+        { "partial",         evstModerate },
+        { "disabled",        evstCriticalOnly },
+        { "ensure_moderate", evstModerate },
+    }));
+    INFO(value);
+    ConfigSubstitutionContext ctxt(ForwardCompatibilitySubstitutionRule::Enable);
+    DynamicPrintConfig config;
+    config.set_deserialize("ensure_vertical_shell_thickness", value, ctxt);
+    CHECK(config.opt_enum<EnsureVerticalShellThickness>("ensure_vertical_shell_thickness") == level);
+    CHECK(ctxt.substitutions.empty());
+}
+
 TEST_CASE("handle_legacy migrates the adaptive TPMS keys", "[Config]") {
     ConfigSubstitutionContext ctxt(ForwardCompatibilitySubstitutionRule::Enable);
     DynamicPrintConfig config;
