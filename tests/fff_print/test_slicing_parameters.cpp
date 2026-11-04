@@ -98,12 +98,13 @@ TEST_CASE("Automatic filament map modes keep the per-filament limit lookup", "[S
     TwoExtruderSlicingConfig cfg;
     cfg.print_config.filament_map_mode.value = GENERATE(fmmAutoForFlush, fmmAutoForMatch, fmmDefault);
     // The map is decided after slicing in these modes, so a map in the config is not read.
-    cfg.print_config.filament_map.values = {2, 2};
+    cfg.print_config.filament_map.values = {1, 1};
 
+    // Object filament ids are zero-based: 1 selects the second nozzle.
     const SlicingParameters params = cfg.create({1});
     CHECK(params.valid);
-    CHECK_THAT(params.min_layer_height, WithinAbs(0.04, EPS));
-    CHECK_THAT(params.max_layer_height, WithinAbs(0.14, EPS));
+    CHECK_THAT(params.min_layer_height, WithinAbs(0.08, EPS));
+    CHECK_THAT(params.max_layer_height, WithinAbs(0.28, EPS));
 }
 
 TEST_CASE("Changing the filament map or its mode re-slices the object", "[SlicingParameters]")
