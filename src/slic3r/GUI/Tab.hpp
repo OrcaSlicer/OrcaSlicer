@@ -659,6 +659,9 @@ protected:
 	virtual void    notify_changed(ObjectBase* object) override;
 	virtual void	update_custom_dirty(std::vector<std::string> &dirty_options, std::vector<std::string> &nonsys_options) override;
 	virtual void	reload_config() override;
+
+private:
+	bool m_spiral_enable_deferred { false };
 };
 
 class TabPrintObject : public TabPrintModel

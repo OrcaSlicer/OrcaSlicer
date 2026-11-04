@@ -4232,6 +4232,17 @@ void TabPrintPlate::on_value_change(const std::string& opt_key, const boost::any
     if (!has_key(k))
         return;
 
+    // "Enable" may ask for confirmation, let the dropdown close first like the dialog
+    if (k == "spiral_mode_choice" && m_config->opt_enum<SpiralModeChoice>(k) == smcEnable && !m_spiral_enable_deferred) {
+        m_spiral_enable_deferred = true;
+        CallAfter([this, opt_key, value] {
+            if (m_config->opt_enum<SpiralModeChoice>("spiral_mode_choice") == smcEnable) // not changed meanwhile
+                on_value_change(opt_key, value);
+            m_spiral_enable_deferred = false;
+        });
+        return;
+    }
+
     // "Same as Global" / "Auto" works like revert, keep the real global value in m_config
     if (k == "curr_bed_type" && m_config->opt_enum<BedType>(k) == btDefault) {
         m_back_to_sys = true;
