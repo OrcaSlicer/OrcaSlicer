@@ -24,7 +24,6 @@ jobs:
     strategy:
       matrix:
         build:
-          - flatpak
           - macos-x86_64
           - windows-arm64
     concurrency:

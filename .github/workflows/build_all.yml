@@ -34,7 +34,7 @@ on:
     branches:
      - main
      - release/*
-    # build_optional.yml keeps the same list, plus scripts/flatpak/**.
+    # build_optional.yml keeps the same list.
     paths:
      - 'deps/**'
      - 'deps_src/**'
@@ -53,6 +53,7 @@ on:
      - 'scripts/build_preset_cache.*'
      - 'scripts/prune_cached_presets.ps1'
      - 'scripts/test_prune_cached_presets.ps1'
+     - 'scripts/flatpak/**'
      - 'scripts/msix/**'
      - 'scripts/sign_windows.ps1'
      - 'tests/**'
@@ -302,10 +303,9 @@ jobs:
         with:
           name: test-results-*
           failOnError: false
-  # Pull requests build it on the build-flatpak label, from build_optional.yml.
   flatpak:
     name: Flatpak
     # Don't run scheduled builds on forks; skip entirely on self-hosted runners
-    if: ${{ !cancelled() && !vars.SELF_HOSTED && github.event_name != 'pull_request' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    if: ${{ !cancelled() && !vars.SELF_HOSTED && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_flatpak.yml
     secrets: inherit
