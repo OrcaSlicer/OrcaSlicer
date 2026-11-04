@@ -473,6 +473,18 @@ std::string install_dir(const std::string& plugin_root)
     return (fs::path(plugin_root) / INSTALL_DIR_NAME).string();
 }
 
+bool has_legacy_entry_extraction(const PluginDescriptor& descriptor)
+{
+    if (descriptor.entry_path.empty() || descriptor.entry_package.empty())
+        return false;
+
+    // The legacy loader extracted the entry wheel next to the stored wheel, under
+    // pkg_name == entry_package. The parent directory alone may exist for dependencies only.
+    const fs::path extract_dir =
+        fs::path(descriptor.entry_path).parent_path() / "__whl_extracted__" / descriptor.entry_package;
+    return fs::is_directory(extract_dir);
+}
+
 bool is_installed(const PluginDescriptor& descriptor, std::string* reason)
 {
     if (reason != nullptr)

@@ -48,6 +48,12 @@ std::string wheel_filename_tag(const std::vector<std::string>& tags);
 // Absolute-or-relative path of the installed target for a plugin root (does not touch the disk).
 std::string install_dir(const std::string& plugin_root);
 
+// True when the pre-uv extract-at-import path already produced the entry package directory
+// <plugin dir>/__whl_extracted__/<entry package>. Such a plugin keeps importing from that
+// extraction instead of being installed with uv; a __whl_extracted__ directory holding only
+// dependency wheels does not qualify.
+bool has_legacy_entry_extraction(const PluginDescriptor& descriptor);
+
 // True when the target exists and the marker proves it was installed from the current entry wheel
 // for this interpreter and entry package. An empty reason means "reusable".
 bool is_installed(const PluginDescriptor& descriptor, std::string* reason = nullptr);

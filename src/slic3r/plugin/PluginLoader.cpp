@@ -265,12 +265,13 @@ bool load(const PluginDescriptor&                          descriptor,
     plugin.descriptor  = descriptor;
     plugin.module_name = plugin_module_name(descriptor);
 
-    // A wheel entry is installed with the bundled uv into a private directory instead of being
-    // extracted at import time. The installation is reused while the stored wheel and interpreter
-    // are unchanged, so a normal startup does not run uv again. The stored wheel, plugin key and
-    // sidecar are untouched: only the import location changes.
+    // Preserve legacy entry extractions, including files plugins may have written there. The parent
+    // extraction directory alone may contain only dependencies. Otherwise, install the entry wheel
+    // with uv and reuse the private target while the wheel and interpreter remain unchanged.
     const bool has_entry_wheel = plugin_package_extension(descriptor.entry_path) == ".whl";
-    if (has_entry_wheel) {
+    const bool legacy_entry_extraction =
+        has_entry_wheel && plugin_wheel_install::has_legacy_entry_extraction(descriptor);
+    if (has_entry_wheel && !legacy_entry_extraction) {
         std::string wheel_install_error;
         if (!plugin_wheel_install::ensure_installed(descriptor, wheel_install_error)) {
             // Report the failure instead of silently falling back to the legacy extraction.
@@ -299,10 +300,14 @@ bool load(const PluginDescriptor&                          descriptor,
     }
 
     std::string load_error;
-    PyObject*   module = has_entry_wheel ? interpreter.load_module_from_directory(
-                                               plugin_wheel_install::install_dir(descriptor.plugin_root),
-                                               descriptor.entry_package, load_error, &plugin.plugin_sys_paths, &plugin.plugin_modules) :
-                                           import_plugin_module(descriptor, plugin.plugin_sys_paths, plugin.plugin_modules, load_error);
+    PyObject*   module = nullptr;
+    if (has_entry_wheel && !legacy_entry_extraction) {
+        module = interpreter.load_module_from_directory(plugin_wheel_install::install_dir(descriptor.plugin_root),
+                                                        descriptor.entry_package, load_error,
+                                                        &plugin.plugin_sys_paths, &plugin.plugin_modules);
+    } else {
+        module = import_plugin_module(descriptor, plugin.plugin_sys_paths, plugin.plugin_modules, load_error);
+    }
     if (module == nullptr) {
         bridge.cancel_plugin_capture(descriptor.entry_path);
         error = GUI::format(_u8L("Failed to load plugin module: %1%"), load_error);

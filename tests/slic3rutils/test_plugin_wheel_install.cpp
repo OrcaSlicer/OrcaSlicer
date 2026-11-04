@@ -188,6 +188,30 @@ TEST_CASE("a staged wheel filename uses the tags the wheel declares", "[PluginWh
           "cp312-cp312-linux_x86_64");
 }
 
+TEST_CASE("only an entry package extraction selects the legacy wheel path", "[PluginWheelInstall]")
+{
+    ScopedTemporaryDir dir("wheel-install-legacy");
+    const fs::path      plugin_root = dir.path() / "plugin";
+    fs::create_directories(plugin_root);
+    const fs::path wheel = plugin_root / "plugin.whl";
+    const PluginDescriptor descriptor = make_descriptor(plugin_root, wheel);
+
+    CHECK_FALSE(wheel_install::has_legacy_entry_extraction(descriptor));
+
+    // Dependency wheels extracted here do not make the entry itself legacy.
+    fs::create_directories(plugin_root / "__whl_extracted__" / "dep_pkg");
+    CHECK_FALSE(wheel_install::has_legacy_entry_extraction(descriptor));
+
+    // The entry package's own extraction does, even when a uv target exists next to it.
+    fs::create_directories(plugin_root / "__whl_extracted__" / "demo_pkg");
+    fs::create_directories(plugin_root / wheel_install::INSTALL_DIR_NAME / "demo_pkg");
+    CHECK(wheel_install::has_legacy_entry_extraction(descriptor));
+
+    PluginDescriptor no_package = descriptor;
+    no_package.entry_package.clear();
+    CHECK_FALSE(wheel_install::has_legacy_entry_extraction(no_package));
+}
+
 TEST_CASE("a wheel with an invalid stored name is staged under a valid name", "[PluginWheelInstall]")
 {
     ScopedTemporaryDir dir("wheel-install-stage");
