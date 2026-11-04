@@ -102,7 +102,7 @@ struct SyncPushResult {
 };
 
 struct SyncState {
-    long long last_sync_timestamp;
+    long long last_sync_timestamp = 0;
 };
 
 #endif // ORCA_SYNC_STRUCTS_DEFINED
