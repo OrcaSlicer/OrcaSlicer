@@ -14,6 +14,12 @@ class wxWindow;
 
 namespace Slic3r { namespace GUI {
 
+// Top-left origin of the dial: a `box_size` rectangle centred on the parent's current screen rect,
+// clamped so it stays inside the display work area (negative monitor origins are valid). Callers pass
+// the fixed-width, maximum-height box rather than the current client size, so the content-driven
+// resize in resize_to_content() never moves the window.
+wxPoint speed_dial_origin(const wxRect& parent_screen_rect, const wxRect& work_area, const wxSize& box_size);
+
 class SpeedDialWebDialog : public WebViewHostDialog
 {
 public:
@@ -25,6 +31,10 @@ private:
     nlohmann::json localized_strings() const override;
     void on_script_message(const nlohmann::json& payload) override;
     void handle_web_command(const nlohmann::json& payload);
+    // Re-derives the origin from the parent's current screen rect and moves the window there. Called
+    // on every open, since the dialog is a long-lived hidden window: without this the coordinates
+    // stay at the frame's position from the first open (frozen at the first map by the WM).
+    void position_over_parent();
     void resize_to_content(int height);
     void run_action(const std::string& id, const std::string& title, const std::string& param = "");
     void open_wiki(const std::string& id);

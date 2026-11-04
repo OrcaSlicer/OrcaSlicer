@@ -1682,6 +1682,7 @@ GLCanvas3D::~GLCanvas3D()
     if (_set_current()) {
         _release_pathtrace_gl_resources();
         m_scene_cache.reset();
+        m_selection_outline.reset();
         m_frame_profiler.reset();
         if (m_fxaa_texture_id != 0) {
             glsafe(::glDeleteTextures(1, &m_fxaa_texture_id));
@@ -2814,7 +2815,8 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
 {
     // Recorded by PartPlate::render_icons() below, when it runs.
     wxGetApp().plater()->get_partplate_list().clear_hover_tooltip();
-    glsafe(::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+    glsafe(::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT));
+    m_outlined_volumes.clear();
     // Invalidate the shadow map each frame; the View3D and Preview paths below rebuild it. This
     // keeps the Assemble canvas from sampling a stale map with an outdated light matrix.
     m_shadow_map_valid = false;
@@ -2868,28 +2870,36 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
             const bool has_wireframe = wxGetApp().plater() != nullptr && wxGetApp().plater()->is_show_wireframe();
             // Modifiers and unprintable parts are no part of the print: the path tracer leaves them
             // out, and they are drawn over its image as in the plain view.
-            // The outlines of the selection and the sinking contours show over its image too: a second
-            // depth pass draws them with the color writes on (ColorWritesOn in 3DScene.cpp), against the
-            // depth of all objects, which the rasterizer gets by drawing the objects over them.
+            // The depth pass also marks the selection for its outline. The sinking contours show over
+            // the image too: a second depth pass draws them with the color writes on (ColorWritesOn in
+            // 3DScene.cpp), against the depth of all objects, which the rasterizer gets by drawing the
+            // objects over them.
             bool has_overlays = false;
-            bool has_highlights = false;
+            bool has_outline = false;
+            bool has_sinking_contours = false;
             const bool show_outline = wxGetApp().show_outline();
             for (const GLVolume* volume : m_volumes.volumes) {
                 if (volume == nullptr || !volume->is_active)
                     continue;
                 has_overlays = has_overlays || volume->is_modifier || !volume->printable;
-                has_highlights = has_highlights || (volume->selected && show_outline) || (m_sinking_contours_enabled && volume->is_sinking());
+                has_outline = has_outline || (volume->selected && show_outline);
+                has_sinking_contours = has_sinking_contours || (m_sinking_contours_enabled && volume->is_sinking());
             }
             const bool has_gizmo = m_gizmos.get_current_type() != GLGizmosManager::Undefined;
-            if (has_overlays || has_highlights || has_wireframe || has_gizmo) {
+            if (has_overlays || has_outline || has_sinking_contours || has_wireframe || has_gizmo) {
                 glsafe(::glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE));
                 glsafe(::glEnable(GL_DEPTH_TEST));
                 glsafe(::glDepthMask(GL_TRUE));
-                m_volumes.set_show_highlights(false);
+                const bool sinking_contours_enabled = m_sinking_contours_enabled;
+                m_sinking_contours_enabled = false;
                 _render_objects(GLVolumeCollection::ERenderType::Opaque, false);
-                m_volumes.set_show_highlights(true);
-                if (has_highlights)
+                m_sinking_contours_enabled = sinking_contours_enabled;
+                if (has_sinking_contours) {
+                    // The first pass has collected the selection to outline already.
+                    const std::vector<GLVolume*> outlined_volumes = m_outlined_volumes;
                     _render_objects(GLVolumeCollection::ERenderType::Opaque, false);
+                    m_outlined_volumes = outlined_volumes;
+                }
                 glsafe(::glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
 
                 if (has_overlays)
@@ -2908,6 +2918,8 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
 
             _render_selection();
             m_frame_profiler.mark("path tracing");
+            _render_selection_outline();
+            m_frame_profiler.mark("outline");
         } else {
             //BBS: add outline logic
             // Depth pass for object-on-object and self shadows; consumed by the gouraud shader below.
@@ -2929,6 +2941,8 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
             _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running());
             _render_wireframe_overlay();
             m_frame_profiler.mark("transparent");
+            _render_selection_outline();
+            m_frame_profiler.mark("outline");
         }
     }
     /* preview render */
@@ -2959,7 +2973,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
                 if (has_unprinted_layers) {
                     const float min_z = float(layer_zs[layers_range[1]]);
                     m_gcode_viewer.m_shells.volumes.set_z_range(min_z, 1e6f);
-                    m_gcode_viewer.render_shells(cnv_size.get_width(), cnv_size.get_height());
+                    m_gcode_viewer.render_shells();
                     m_gcode_viewer.m_shells.volumes.set_z_range(-1e6f, 1e6f);
                 }
                 if (has_unprinted_moves)
@@ -2981,6 +2995,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
                 _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, true, hover_id);
                 m_frame_profiler.mark("plates");
             }
+            _render_selection_outline();
             // Realistic view: the print casts a shadow onto the plate here as it does in View3D.
             _render_shadows(camera.get_view_matrix(), camera.get_projection_matrix());
             m_frame_profiler.mark("shadows");
@@ -3005,6 +3020,8 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
         _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running());
         _render_wireframe_overlay();
         m_frame_profiler.mark("objects");
+        _render_selection_outline();
+        m_frame_profiler.mark("outline");
     }
 
     _render_sequential_clearance();
@@ -8946,7 +8963,18 @@ void GLCanvas3D::_render_ssao_pass(unsigned int width, unsigned int height)
     glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_color_texture_id));
     glsafe(::glActiveTexture(GL_TEXTURE1));
     glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_depth_texture_id));
+    // The selection outline sits on top of the surfaces, so it is not shaded by their occlusion.
+    const bool keep_outline = m_selection_outline.uses_stencil();
+    if (keep_outline) {
+        glsafe(::glEnable(GL_STENCIL_TEST));
+        glsafe(::glStencilMask(0x00));
+        glsafe(::glStencilFunc(GL_NOTEQUAL, SelectionOutline::DrawnBit, SelectionOutline::DrawnBit));
+    }
     m_background.render();
+    if (keep_outline) {
+        glsafe(::glDisable(GL_STENCIL_TEST));
+        glsafe(::glStencilMask(0xFF));
+    }
     glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
     glsafe(::glActiveTexture(GL_TEXTURE0));
     glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
@@ -9132,7 +9160,6 @@ void GLCanvas3D::_render_below_plate_volumes()
     shader->set_uniform("z_range", std::array<float, 2>{ -FLT_MAX, float(SINKING_Z_THRESHOLD) });
     shader->set_uniform("clipping_plane", m_volumes.get_clipping_plane());
     shader->set_uniform("use_color_clip_plane", false);
-    shader->set_uniform("is_outline", false);
     shader->set_uniform("slope.actived", false);
     shader->set_uniform("print_volume.type", -1);
     shader->set_uniform("extruder_printable_heights", std::array<float, 3>{ 0.0f, 0.0f, 0.0f });
@@ -9838,12 +9865,7 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
         if (static_light.has_value())
             shader->set_uniform("static_light_dir", *static_light);
 
-        const Size&   cvn_size = get_canvas_size();
-        {
-            const Camera& camera = wxGetApp().plater()->get_camera();
-            shader->set_uniform("z_far", camera.get_far_z());
-            shader->set_uniform("z_near", camera.get_near_z());
-        }
+        std::vector<GLVolume*>* outlined_volumes = wxGetApp().show_outline() ? &m_outlined_volumes : nullptr;
         switch (type)
         {
         default:
@@ -9855,10 +9877,10 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
                 if (m_picking_enabled && m_layers_editing.is_enabled() && (m_layers_editing.last_object_id != -1) && (m_layers_editing.object_max_z() > 0.0f)) {
                     int object_id = m_layers_editing.last_object_id;
                 const Camera& camera = wxGetApp().plater()->get_camera();
-                m_volumes.render(type, false, camera.get_view_matrix(), camera.get_projection_matrix(), cvn_size, [object_id](const GLVolume& volume) {
+                m_volumes.render(type, false, camera.get_view_matrix(), camera.get_projection_matrix(), [object_id](const GLVolume& volume) {
                     // Which volume to paint without the layer height profile shader?
                     return volume.is_active && (volume.is_modifier || volume.composite_id.object_id != object_id);
-                    });
+                    }, true, nullptr, outlined_volumes);
                     m_layers_editing.render_volumes(*this, m_volumes);
                 }
                 else {
@@ -9871,7 +9893,7 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
                     //BBS:add assemble view related logic
                     // do not cull backfaces to show broken geometry, if any
                 const Camera& camera = wxGetApp().plater()->get_camera();
-                    m_volumes.render(type, m_picking_enabled, camera.get_view_matrix(), camera.get_projection_matrix(), cvn_size, [this, canvas_type](const GLVolume& volume) {
+                    m_volumes.render(type, m_picking_enabled, camera.get_view_matrix(), camera.get_projection_matrix(), [this, canvas_type](const GLVolume& volume) {
                         if (canvas_type == ECanvasType::CanvasAssembleView) {
                             return !volume.is_modifier && !volume.is_wipe_tower;
                         }
@@ -9879,7 +9901,7 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
                             return (m_render_sla_auxiliaries || volume.composite_id.volume_id >= 0);
                         }
                         },
-                        partly_inside_enable, printable_heights);
+                        partly_inside_enable, printable_heights, outlined_volumes);
                 }
             }
             else {
@@ -9907,7 +9929,7 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
             }*/
             const Camera& camera = wxGetApp().plater()->get_camera();
             //BBS:add assemble view related logic
-            m_volumes.render(type, false, camera.get_view_matrix(), camera.get_projection_matrix(), cvn_size, [canvas_type, overlays_only](const GLVolume& volume) {
+            m_volumes.render(type, false, camera.get_view_matrix(), camera.get_projection_matrix(), [canvas_type, overlays_only](const GLVolume& volume) {
                 if (canvas_type == ECanvasType::CanvasAssembleView) {
                     return !volume.is_modifier;
                 }
@@ -9918,7 +9940,7 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
                     return true;
                 }
                 },
-                partly_inside_enable, printable_heights);
+                partly_inside_enable, printable_heights, outlined_volumes);
             // IMEX ghosts are transparent and share the same shader/camera state;
             // render them right after the main transparent pass while the shader is still bound.
             if (!overlays_only)
@@ -9942,6 +9964,14 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
     }
 
     m_camera_clipping_plane = ClippingPlane::ClipsNothing();
+}
+
+void GLCanvas3D::_render_selection_outline()
+{
+    // With the clipping the object passes left in m_volumes.
+    m_selection_outline.render(m_outlined_volumes, wxGetApp().plater()->get_camera(), m_volumes.get_z_range(),
+                               m_volumes.get_clipping_plane(), get_scale(), m_background);
+    m_outlined_volumes.clear();
 }
 
 void GLCanvas3D::_render_section_view_caps()
@@ -9975,7 +10005,10 @@ void GLCanvas3D::_render_section_view_caps()
         // No cut face below the plate.
         if (m_canvas_type != CanvasAssembleView)
             clipper.set_limiting_plane(ClippingPlane(Vec3d::UnitZ(), -SINKING_Z_THRESHOLD));
-        clipper.render_cut({ 0.25f, 0.25f, 0.25f, 1.0f });
+        // The part's own color, below the 30-85% of it its lit faces show, or above them on a dark part.
+        const ColorRGB color = to_rgb(volume->render_color);
+        const float    luma  = 0.299f * color.r() + 0.587f * color.g() + 0.114f * color.b();
+        clipper.render_cut(to_rgba(luma > 0.3f ? 0.35f * color : lerp(color, ColorRGB::WHITE(), 0.4f)));
     }
     m_section_view_caps = std::move(caps);
 }
@@ -10014,7 +10047,7 @@ void GLCanvas3D::_render_xray_volumes()
 
     shader->start_using();
     m_volumes.render(GLVolumeCollection::ERenderType::All, true, camera.get_view_matrix(), camera.get_projection_matrix(),
-        get_canvas_size(), [this, canvas_type](const GLVolume& volume) {
+        [this, canvas_type](const GLVolume& volume) {
             if (canvas_type == ECanvasType::CanvasAssembleView)
                 return !volume.is_modifier && !volume.is_wipe_tower;
             return m_render_sla_auxiliaries || volume.composite_id.volume_id >= 0;
@@ -10073,7 +10106,6 @@ void GLCanvas3D::_render_wireframe_overlay()
     const Camera&      camera      = wxGetApp().plater()->get_camera();
     const Transform3d& view_matrix = camera.get_view_matrix();
     const Transform3d& proj_matrix = camera.get_projection_matrix();
-    const Size         sz          = get_canvas_size();
 
     shader->start_using();
     shader->set_uniform("offset", OpenGLManager::get_gl_info().is_mesa() ? 0.0005 : 0.00001);
@@ -10087,7 +10119,7 @@ void GLCanvas3D::_render_wireframe_overlay()
     glsafe(::glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
 #endif
 
-    m_volumes.render(GLVolumeCollection::ERenderType::All, false, view_matrix, proj_matrix, sz, [](const GLVolume& volume) {
+    m_volumes.render(GLVolumeCollection::ERenderType::All, false, view_matrix, proj_matrix, [](const GLVolume& volume) {
         return !volume.render_color.is_transparent() || (volume.visible && !volume.is_modifier && volume.color.is_transparent());
     });
 

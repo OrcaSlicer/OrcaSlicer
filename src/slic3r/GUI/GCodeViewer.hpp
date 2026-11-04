@@ -514,7 +514,7 @@ public:
     void pop_combo_style();
 
     void invalidate_legend() { /*TODO: m_legend_resizer.reset();*/ }
-    void render_shells(int canvas_width, int canvas_height);
+    void render_shells();
     void render_toolpaths();
     // The sequential markers and the IDEX/IQEX toolhead boxes.
     void render_markers(int canvas_width, int canvas_height);

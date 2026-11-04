@@ -48,9 +48,6 @@ extern Slic3r::ColorRGBA              adjust_color_for_rendering(const Slic3r::C
 
 
 namespace Slic3r {
-namespace GUI {
-    class Size;
-}
 
 class SLAPrintObject;
 enum  SLAPrintObjectStep : unsigned int;
@@ -366,9 +363,6 @@ public:
 
     virtual void        render();
 
-    //BBS: add outline related logic and add virtual specifier
-    virtual void render_with_outline(const GUI::Size& cnv_size);
-
     //BBS: add simple render function for thumbnail
     void simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_objects, std::vector<ColorRGBA>& extruder_colors, bool ban_light =false, bool ban_color_volume = false);
 
@@ -400,7 +394,6 @@ class GLWipeTowerVolume : public GLVolume {
 public:
     GLWipeTowerVolume(const std::vector<ColorRGBA>& colors);
     void render() override;
-    void render_with_outline(const GUI::Size& cnv_size) override { render(); }
 
     std::vector<GUI::GLModel> model_per_colors;
     bool                              IsTransparent();
@@ -464,8 +457,6 @@ private:
 
     Slope m_slope;
     bool m_show_sinking_contours = false;
-    // The outlines of the selection and the sinking contours.
-    bool m_show_highlights = true;
 
 public:
     GLVolumePtrs volumes;
@@ -515,17 +506,17 @@ public:
 
     float get_selection_support_normal_z() const;
     // Render the volumes by OpenGL.
-    //BBS: add outline drawing logic
     void render(ERenderType                           type,
                 bool                                  disable_cullface,
                 const Transform3d &                   view_matrix,
                 const Transform3d&                    projection_matrix,
-                const GUI::Size&                      cnv_size,
                 std::function<bool(const GLVolume &)> filter_func   = std::function<bool(const GLVolume &)>(),
                 bool                                  partly_inside_enable =true,
                 // Per-extruder printable heights (extruder_printable_height); null / size<=1
                 // leaves the shader's extruder_printable_heights flag at 0.0 (single-extruder = inert).
-                std::vector<double> *                 printable_heights = nullptr
+                std::vector<double> *                 printable_heights = nullptr,
+                // Collects the selected volumes drawn, marked in the stencil for SelectionOutline.
+                std::vector<GLVolume*> *              outlined_volumes = nullptr
            ) const;
 
     // Clear the geometry
@@ -560,7 +551,6 @@ public:
     void set_slope_normal_z(float normal_z) { m_slope.normal_z = normal_z; }
     void set_default_slope_normal_z() { m_slope.normal_z = -::cos(Geometry::deg2rad(90.0f - 45.0f)); }
     void set_show_sinking_contours(bool show) { m_show_sinking_contours = show; }
-    void set_show_highlights(bool show) { m_show_highlights = show; }
 
     // returns true if all the volumes are completely contained in the print volume
     // returns the containment state in the given out_state, if non-null

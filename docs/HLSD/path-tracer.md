@@ -15,7 +15,7 @@ The path tracer draws the objects itself, and the rasterizer draws them afterwar
 
 - The painting gizmos, the variable layer height editor and X-Ray draw the objects through their own shaders, which is the point of these views: the path tracer is off while they are open (`_is_pathtrace_enabled`).
 - The overhang view, the darkening of the parts of an object outside the print volume and the band between the printable heights of two extruders are warnings that stay on while working, so the path tracer applies them as `gouraud.fs` does, on the surfaces the camera sees (`object_view_tint` in `pathtrace.comp`). The flags of an object, partly outside the print volume or a wipe tower, ride in its instance. `_update_volumes_state` computes the print volume and the outside state before the path tracer runs.
-- The outline of the selection and the sinking contours are drawn in a second depth pass with the color writes turned on for them (`ColorWritesOn` in `3DScene.cpp`). The rasterizer hides them where an object is in front by drawing the objects over them, which a depth only pass cannot; the second pass tests them against the depth of all objects instead.
+- The depth pass marks the selection in the stencil, so that `SelectionOutline` outlines it over the image as in the plain view. The sinking contours are drawn in a second depth pass with the color writes turned on for them (`ColorWritesOn` in `3DScene.cpp`). The rasterizer hides them where an object is in front by drawing the objects over them, which a depth only pass cannot; the second pass tests them against the depth of all objects instead.
 
 ## Acceleration structure (TLAS / BLAS)
 
