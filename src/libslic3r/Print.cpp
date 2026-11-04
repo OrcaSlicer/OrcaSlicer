@@ -5310,6 +5310,9 @@ bool Print::enable_timelapse_print() const
 
 void Print::_make_wipe_tower()
 {
+    // Use the printer's G-code tag format so the processor can classify wipe tower filament usage.
+    GCodeProcessor::s_IsBBLPrinter = is_BBL_printer();
+
     m_wipe_tower_data.clear();
 
     // BBS

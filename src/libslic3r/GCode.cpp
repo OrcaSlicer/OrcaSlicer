@@ -1070,27 +1070,6 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         return gcode;
     }
 
-    // A folded tower layer is thicker than the object layer it sits on, so the height process_layer
-    // emitted is not the tower's. Both writers declare one, but each hardcodes a tag dialect - Type 1
-    // forces s_IsBBLPrinter and writes "; LAYER_HEIGHT:", Type 2 writes ";HEIGHT:" - and the processor
-    // reads only its printer's, so a Type 1 tower on a non-BBL printer loses it and the merged layer
-    // is drawn and costed as a thin one. Declare it here, where the printer is known, unless the tower
-    // already wrote the right tag. _extrude puts the object's height back on the next object path,
-    // since process_layer forces the role to erWipeTower on any layer with a tower.
-    std::string WipeTowerIntegration::tower_height_tag(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr,
-                                                       const std::string &tcr_gcode) const
-    {
-        const std::string tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height);
-        if (! m_sparse_layers_combined || std::abs(gcodegen.m_last_height - tcr.layer_height) <= EPSILON ||
-            tcr_gcode.find(tag) != std::string::npos)
-            return {};
-        // Keep m_last_height what the G-code last declared, so a second visit does not repeat it.
-        gcodegen.m_last_height = tcr.layer_height;
-        char buf[64];
-        sprintf(buf, "%s%g\n", tag.c_str(), tcr.layer_height);
-        return buf;
-    }
-
     // FanMover consumes these markers (and drops them) to avoid splitting a G1 inside custom gcode.
     // Only written when FanMover runs, the same gate as its construction in GCode::process_layers.
     static std::string wrap_custom_gcode_for_fan_mover(const FullPrintConfig &config, const std::string &gcode)
@@ -1640,7 +1619,6 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         config.set_key_value("filament_start_gcode", new ConfigOptionString(start_filament_gcode_str));
         std::string tcr_gcode, tcr_escaped_gcode = gcodegen.placeholder_parser_process("tcr_rotated_gcode", tcr_rotated_gcode, new_filament_id, &config);
         unescape_string_cstyle(tcr_escaped_gcode, tcr_gcode);
-        gcode += tower_height_tag(gcodegen, tcr, tcr_gcode);
         gcode += tcr_gcode;
         // Count the toolchange only when the emitted block really changed the tool —
         // tower visits without a filament change must not advance the ordinal.
@@ -1955,7 +1933,6 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         std::string tcr_gcode,
             tcr_escaped_gcode = gcodegen.placeholder_parser_process("tcr_rotated_gcode", tcr_rotated_gcode, new_extruder_id, &config);
         unescape_string_cstyle(tcr_escaped_gcode, tcr_gcode);
-        gcode += tower_height_tag(gcodegen, tcr, tcr_gcode);
         gcode += tcr_gcode;
         check_add_eol(toolchange_gcode_str);
 
@@ -8089,7 +8066,7 @@ LayerResult GCode::process_layer(
                     m_nominal_z            = entry.sub_z;
                     // Use the same lazy-Z mechanism as change_layer(): set the flag so travel_to
                     // fires even when m_last_pos coincides with the first extrusion point,
-                    // ensuring Z reaches sub_z via the combined XY+Z move.
+                    // ensuring Z reaches sub_z on the travel to it.
                     m_need_change_layer_lift_z = true;
 
                     for (ObjectByExtruder::Island &island : instance_to_print.object_by_extruder.islands) {
@@ -10521,9 +10498,6 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
             result.append(to_local_point(gcode_point));
         return result;
     };
-    const auto nominal_writer_z = [this]() {
-        return m_writer.get_position().z() - m_writer.get_zhop();
-    };
     const auto route_around_exclusion_volumes = [&](
         Polyline &path,
         const std::optional<double> &start_z_override,
@@ -10532,7 +10506,8 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
             return false;
 
         const double target_z = z == DBL_MAX ? m_nominal_z : z;
-        double route_start_z = start_z_override.value_or(nominal_writer_z());
+        // A lifted nozzle travels at its lifted height, so the route is checked from there.
+        double route_start_z = start_z_override.value_or(m_writer.get_position().z());
         double route_end_z = target_z;
         if (include_planned_lift) {
             const Vec2d destination_xy = this->point_to_gcode(path.back());
@@ -10681,13 +10656,15 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
                 gcode += m_writer.travel_to_xy(this->point_to_gcode(travel.points[i]), comment);
             }
         } else {
-            if (travel.size() == 2) {
-                // No extra movements emitted by avoid_crossing_perimeters, simply move to the end point with z change
-                const auto& dest2d = this->point_to_gcode(travel.points.back());
-                Vec3d dest3d(dest2d(0), dest2d(1), z == DBL_MAX ? m_nominal_z : z);
-                gcode += m_writer.travel_to_xyz(dest3d, comment, m_need_change_layer_lift_z);
-                m_need_change_layer_lift_z = false;
-            } else if (exclusion_volume_travel_rerouted && z != DBL_MAX) {
+            const double target_z = z == DBL_MAX ? m_nominal_z : z;
+            // A lifted nozzle keeps its height over the whole detour and descends only at the last
+            // point, so it never sinks over the print.
+            const bool stay_lifted = m_writer.get_zhop() > EPSILON && m_writer.get_position().z() > target_z + EPSILON;
+            // A lift left pending by the retraction happens on the first leg, so that detour is lifted too.
+            const Vec2d first2d = this->point_to_gcode(travel.points[1]);
+            const bool lift_pending =
+                m_writer.planned_travel_z(Vec3d(first2d.x(), first2d.y(), target_z), m_need_change_layer_lift_z).second > target_z + EPSILON;
+            if (exclusion_volume_travel_rerouted && z != DBL_MAX && !stay_lifted && !lift_pending) {
                 // Preserve the original sloped-Z move over the longer detour.
                 // The router activates every volume touched by the complete Z
                 // range, so this interpolation remains conservative.
@@ -10706,23 +10683,19 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
                         m_need_change_layer_lift_z = false;
                 }
             } else {
-                // Extra movements emitted by avoid_crossing_perimeters, lift the z to normal height at the beginning, then apply the z
-                // ratio at the last point
+                // Extra movements emitted by avoid_crossing_perimeters move to the layer height at the first point,
+                // unless the nozzle stays lifted. The target Z is applied at the last point.
+                const bool layer_z_first = travel.size() > 2 && !stay_lifted;
                 for (size_t i = 1; i < travel.size(); ++i) {
-                    if (i == 1) {
-                        // Lift to normal z at beginning
-                        Vec2d dest2d = this->point_to_gcode(travel.points[i]);
-                        Vec3d dest3d(dest2d(0), dest2d(1), m_nominal_z);
-                        gcode += m_writer.travel_to_xyz(dest3d, comment, m_need_change_layer_lift_z);
+                    const Vec2d dest2d = this->point_to_gcode(travel.points[i]);
+                    if (i == 1 && layer_z_first) {
+                        gcode += m_writer.travel_to_xyz(Vec3d(dest2d.x(), dest2d.y(), m_nominal_z), comment, m_need_change_layer_lift_z);
                         m_need_change_layer_lift_z = false;
-                    } else if (z != DBL_MAX && i == travel.size() - 1) {
-                        // Apply z_ratio for the very last point
-                        Vec2d dest2d = this->point_to_gcode(travel.points[i]);
-                        Vec3d dest3d(dest2d(0), dest2d(1), z);
-                        gcode += m_writer.travel_to_xyz(dest3d, comment);
+                    } else if (i == travel.size() - 1 && (z != DBL_MAX || !layer_z_first)) {
+                        gcode += m_writer.travel_to_xyz(Vec3d(dest2d.x(), dest2d.y(), target_z), comment, m_need_change_layer_lift_z);
+                        m_need_change_layer_lift_z = false;
                     } else {
-                        // For all points in between, no z change
-                        gcode += m_writer.travel_to_xy(this->point_to_gcode(travel.points[i]), comment);
+                        gcode += m_writer.travel_to_xy(dest2d, comment);
                     }
                 }
             }
