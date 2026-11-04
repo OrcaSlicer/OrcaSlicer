@@ -82,6 +82,7 @@ jobs:
           Add-Content -LiteralPath $env:GITHUB_PATH -Value $dst
 
       - name: load cached deps
+        id: cache_deps
         if: ${{ !(runner.os == 'macOS' && inputs.macos-combine-only) }}
         uses: actions/cache@v6
         with:
@@ -514,8 +515,7 @@ jobs:
           key: nsis-${{ env.NSIS_VERSION }}
 
       - name: Download dep artifact (cold CI)
-        if: runner.os == 'Windows'
-        continue-on-error: true
+        if: runner.os == 'Windows' && steps.cache_deps.outputs.cache-hit != 'true'
         uses: actions/download-artifact@v8
         with:
           name: OrcaSlicer_dep_win_${{ inputs.arch || 'x64' }}_${{ env.date }}

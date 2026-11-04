@@ -194,19 +194,19 @@ jobs:
             if (-not $flags) {
               $flags = if ("${{ inputs.compiler }}" -eq "clang") { "-l", "-x" } else { "--msvc", "--msbuild" }
             }
+            # ccache is for the slicer build, not deps build
+            $depsFlags = $flags | Where-Object { $_ -ne '--ccache' }
             # Use build_win.ps1 by default; build_win.bat for baseline comparison
             if ("${{ inputs.script }}" -eq "bat") {
-              $batArgs = @("-d", "--arch", "${{ inputs.arch }}", "--deps-dir", $deps) + $flags
+              $batArgs = @("-d", "--arch", "${{ inputs.arch }}", "--deps-dir", $deps) + $depsFlags
               & "${{ github.workspace }}\build_win.bat" @batArgs
             } else {
-              $useClangCl = $flags -contains "-l"
-              $useNinja   = $flags -contains "-x"
-              $useMsvc    = $flags -contains "--msvc"
-              $useMsbuild = $flags -contains "--msbuild"
-              $useCache   = if ($flags -contains "--ccache") { "ccache" } else { $null }
-              # Bind the switch directly: splatting a string binds it positionally and breaks
-              # parameter binding on build_win.ps1.
-              & "${{ github.workspace }}\build_win.ps1" -Deps -Arch ${{ inputs.arch }} -DepsDir $deps -ClangCl:$useClangCl -Ninja:$useNinja -Msvc:$useMsvc -Msbuild:$useMsbuild -Cache:$useCache
+              $useClangCl = $depsFlags -contains "-l"
+              $useNinja   = $depsFlags -contains "-x"
+              $useMsvc    = $depsFlags -contains "--msvc"
+              $useMsbuild = $depsFlags -contains "--msbuild"
+              # ccache not used for deps build
+              & "${{ github.workspace }}\build_win.ps1" -Deps -Arch ${{ inputs.arch }} -DepsDir $deps -ClangCl:$useClangCl -Ninja:$useNinja -Msvc:$useMsvc -Msbuild:$useMsbuild
             }
         shell: powershell
 
