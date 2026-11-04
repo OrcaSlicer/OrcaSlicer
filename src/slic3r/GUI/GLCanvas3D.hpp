@@ -1689,6 +1689,9 @@ private:
     void _render_cad_grid(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     //BBS: add outline drawing logic
     // overlays_only draws only the modifiers and unprintable parts, which the path tracer leaves out.
+    // The layer editing object, the print volume and the outside state of the volumes, which the
+    // object shaders and the path tracer read.
+    void _update_volumes_state();
     void _render_objects(GLVolumeCollection::ERenderType type, bool with_outline = true, bool overlays_only = false);
     // IMEX ghost volumes owned by PartPlate, drawn through the shader the caller bound:
     // the shaded pass's transparent half, or the X-Ray pass below.

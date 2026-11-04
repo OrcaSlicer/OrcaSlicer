@@ -29,6 +29,7 @@
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Color.hpp"
+#include "libslic3r/Config.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PathTracer.hpp"
@@ -299,6 +300,13 @@ bool GLCanvas3D::_is_pathtrace_enabled() const
         gizmo == GLGizmosManager::FdmSupports ||
         gizmo == GLGizmosManager::FuzzySkin ||
         gizmo == GLGizmosManager::MmSegmentation)
+        return false;
+    // The layer height editor and X-Ray draw the objects through their own shaders, as the painting
+    // gizmos do.
+    if (m_picking_enabled && m_layers_editing.is_enabled() && m_layers_editing.last_object_id != -1 &&
+        m_layers_editing.object_max_z() > 0.0f)
+        return false;
+    if (_is_xray_view_active())
         return false;
     if (!_is_realistic_view_enabled())
         return false;
@@ -1019,14 +1027,25 @@ void GLCanvas3D::_extract_prepare_volumes_for_pathtrace(
 void GLCanvas3D::_update_pathtrace_instances_and_tlas(size_t transform_signature)
 {
     // The current trafo of each instance, the one its BLAS was built relative to, see
-    // _extract_prepare_volumes_for_pathtrace(). The first active volume of an instance gives it.
-    std::map<std::pair<bool, size_t>, Transform3d> instance_trafos;
+    // _extract_prepare_volumes_for_pathtrace(), which the first active volume of an instance gives,
+    // and the flags of the object views (pathtrace.comp, slope_active).
+    struct InstanceState {
+        Transform3d trafo;
+        uint32_t flags{0};
+    };
+    constexpr uint32_t INSTANCE_PARTLY_INSIDE = 1;
+    constexpr uint32_t INSTANCE_WIPE_TOWER = 2;
+    std::map<std::pair<bool, size_t>, InstanceState> instance_states;
     for (const GLVolume* v : m_volumes.volumes) {
         if (v == nullptr || !v->is_active)
             continue;
         const bool own_trafo = v->is_wipe_tower || v->object_idx() < 0;
-        instance_trafos.emplace(std::make_pair(v->is_wipe_tower, v->geometry_id.second),
-                                own_trafo ? v->world_matrix() : v->get_instance_transformation().get_matrix());
+        InstanceState& state = instance_states.try_emplace(std::make_pair(v->is_wipe_tower, v->geometry_id.second),
+            InstanceState{own_trafo ? v->world_matrix() : v->get_instance_transformation().get_matrix()}).first->second;
+        if (v->partly_inside && !v->is_modifier)
+            state.flags |= INSTANCE_PARTLY_INSIDE;
+        if (v->is_wipe_tower)
+            state.flags |= INSTANCE_WIPE_TOWER;
     }
 
     m_pathtrace_gpu_instances.clear();
@@ -1040,11 +1059,13 @@ void GLCanvas3D::_update_pathtrace_instances_and_tlas(size_t transform_signature
         inst.data[3] = blas.tri_count;
 
         Transform3d world_trafo = Transform3d::Identity();
+        uint32_t flags = 0;
         if (blas.instance_id != 0) {
-            const auto it = instance_trafos.find({blas.is_wipe_tower, blas.instance_id});
-            if (it == instance_trafos.end())
+            const auto it = instance_states.find({blas.is_wipe_tower, blas.instance_id});
+            if (it == instance_states.end())
                 continue;
-            world_trafo = it->second;
+            world_trafo = it->second.trafo;
+            flags = it->second.flags;
         }
         const Transform3d inv_trafo = world_trafo.inverse();
         const Eigen::Matrix4f m_inv = inv_trafo.matrix().cast<float>();
@@ -1061,6 +1082,7 @@ void GLCanvas3D::_update_pathtrace_instances_and_tlas(size_t transform_signature
                 inst.normal_to_world[col * 4 + row] = m_norm(row, col);
             }
         }
+        inst.normal_to_world[12] = float(flags);
         inst.normal_to_world[15] = 1.0f;
 
         Vec3f world_min = Vec3f::Constant(std::numeric_limits<float>::max());
@@ -1485,6 +1507,7 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
             if (volume == nullptr || !volume->is_active)
                 continue;
             hash_matrix_transform(volume->world_matrix());
+            combine_transform(size_t(volume->partly_inside));
         }
     }
     if (transform_signature == 0)
@@ -1717,6 +1740,30 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
         combine(std::hash<float>{}(z));
     combine(std::hash<float>{}(layer_shading.dim_brightness));
     combine(std::hash<int>{}(layer_shading.kept_vertex));
+    // The object views of Prepare, see slope_active in pathtrace.comp.
+    const bool object_views = m_canvas_type == ECanvasType::CanvasView3D;
+    const GLVolumeCollection::PrintVolume& print_volume = m_volumes.get_print_volume();
+    const bool slope_active = object_views && m_volumes.is_slope_GlobalActive();
+    const float slope_normal_z = slope_active ? m_volumes.get_selection_support_normal_z() : 0.0f;
+    const Vec3f slope_up = build_plate_tilt_up_direction().cast<float>();
+    std::array<float, 3> printable_heights{ 0.0f, 0.0f, 0.0f };
+    if (object_views) {
+        // As in GLVolumeCollection::render(): only with a printable height per extruder of two extruders.
+        const auto* heights = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloatsNullable>("extruder_printable_height");
+        if (heights != nullptr && heights->values.size() > 1)
+            printable_heights = { 2.0f, float(heights->values[0]), float(heights->values[1]) };
+    }
+    combine(size_t(slope_active));
+    combine(std::hash<float>{}(slope_normal_z));
+    for (int i = 0; i < 3; ++i)
+        combine(std::hash<float>{}(slope_up[i]));
+    combine(std::hash<int>{}(object_views ? print_volume.type : -1));
+    for (float v : print_volume.data)
+        combine(std::hash<float>{}(v));
+    for (float v : print_volume.zs)
+        combine(std::hash<float>{}(v));
+    for (float v : printable_heights)
+        combine(std::hash<float>{}(v));
     // The camera passing below the bed hides it, which no history may carry over.
     combine(size_t(!source_camera.is_looking_downward()));
     // Everything but the camera: the interactive history stays valid while only the camera moves.
@@ -1931,6 +1978,13 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
             compute_shader->set_uniform("grey_below_z", layer_shading_z[2]);
             compute_shader->set_uniform("layer_dim", layer_shading.dim_brightness);
             compute_shader->set_uniform("kept_vertex", layer_shading.kept_vertex);
+            compute_shader->set_uniform("slope_active", slope_active);
+            compute_shader->set_uniform("slope_normal_z", slope_normal_z);
+            compute_shader->set_uniform("slope_up", slope_up);
+            compute_shader->set_uniform("print_volume_type", object_views ? print_volume.type : -1);
+            compute_shader->set_uniform("print_volume_xy", print_volume.data);
+            compute_shader->set_uniform("print_volume_z", print_volume.zs);
+            compute_shader->set_uniform("extruder_printable_heights", printable_heights);
             compute_shader->set_uniform("instance_count", int(m_pathtrace_gpu_instances.size()));
             compute_shader->set_uniform("has_vertex_normals", m_pathtrace_gpu_scene.normals.size() == m_pathtrace_gpu_scene.triangles.size() &&
                                                               !m_pathtrace_gpu_scene.normals.empty());

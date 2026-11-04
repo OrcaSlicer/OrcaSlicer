@@ -111,6 +111,24 @@ float FULL_BLACK_THRESHOLD = 0.2f;
 // shadow/environment samplers when realistic view is disabled.
 static constexpr int OUTLINE_DEPTH_TEX_UNIT = 5;
 
+// The path traced view draws the objects for their depth only, with the color writes off; their
+// outlines and sinking contours still show over its image. Turns the color writes on for its scope.
+class ColorWritesOn
+{
+public:
+    ColorWritesOn()
+    {
+        glsafe(::glGetBooleanv(GL_COLOR_WRITEMASK, m_saved.data()));
+        glsafe(::glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
+    }
+    ~ColorWritesOn() { glsafe(::glColorMask(m_saved[0], m_saved[1], m_saved[2], m_saved[3])); }
+    ColorWritesOn(const ColorWritesOn&) = delete;
+    ColorWritesOn& operator=(const ColorWritesOn&) = delete;
+
+private:
+    std::array<GLboolean, 4> m_saved{};
+};
+
 Slic3r::ColorRGBA adjust_color_for_rendering(const Slic3r::ColorRGBA &colors)
 {
     // a clear color keeps its hue, at the least opacity that still shows it
@@ -581,6 +599,7 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
     // per-triangle MMU paint colors; the later is_outline passes only draw the flat silhouette
     // highlight and are fine using the single-color model.
     simple_render(shader, model_objects, colors);
+    const ColorWritesOn color_writes;
     glsafe(::glStencilFunc(GL_NOTEQUAL, 0xFF, 0xFF));
     glsafe(::glStencilMask(0x00));
     shader->set_uniform("is_outline", true);
@@ -832,6 +851,7 @@ void GLVolume::render_sinking_contours()
 {
     if (!is_active)
         return;
+    const ColorWritesOn color_writes;
     m_sinking_contours.render();
 }
 
@@ -1272,7 +1292,7 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         shader->stop_using();
         if (sink_shader != nullptr) {
             sink_shader->start_using();
-            if (m_show_sinking_contours) {
+            if (m_show_sinking_contours && m_show_highlights) {
                 if (volume.first->is_sinking() && !volume.first->is_below_printbed() &&
                     volume.first->hover == GLVolume::HS_None && !volume.first->force_sinking_contours) {
                     volume.first->render_sinking_contours();
@@ -1359,7 +1379,7 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
             glsafe(::glPolygonOffset(1.0f, 1.0f));
         }
 		//BBS: add outline related logic
-        if (volume.first->selected && shader_can_outline && GUI::wxGetApp().show_outline())
+        if (volume.first->selected && m_show_highlights && shader_can_outline && GUI::wxGetApp().show_outline())
             volume.first->render_with_outline(cnv_size);
         else
             volume.first->render();
@@ -1375,7 +1395,7 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         glsafe(::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
     }
 
-    if (m_show_sinking_contours) {
+    if (m_show_sinking_contours && m_show_highlights) {
         shader->stop_using();
         if (sink_shader != nullptr) {
             sink_shader->start_using();

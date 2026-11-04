@@ -111,6 +111,19 @@ uniform float grey_below_z;
 uniform float layer_dim;
 uniform int kept_vertex;
 uniform bool glossy_toolpaths;
+// The object views of the rasterizer in Prepare, which tint what the camera sees (gouraud.fs): the
+// overhangs below slope_normal_z and the bed contact, the parts of an object partly outside the print
+// volume (print_volume_type -1 off, 0 rectangle, 1 circle), and with two extruders (x >= 1) the band
+// between their printable heights y and z. The flags of an object are in its normal_to_world[3].x.
+uniform bool slope_active;
+uniform float slope_normal_z;
+uniform vec3 slope_up;
+uniform int print_volume_type;
+uniform vec4 print_volume_xy;
+uniform vec2 print_volume_z;
+uniform vec3 extruder_printable_heights;
+const uint INSTANCE_PARTLY_INSIDE = 1u;
+const uint INSTANCE_WIPE_TOWER = 2u;
 
 // Reprojection of the interactive passes: the previous interactive frame, its camera and size. While
 // orbiting, each frame blends its one sample per pixel with what the previous frame saw at the same
@@ -988,6 +1001,35 @@ float layer_shading(inout vec3 albedo, float layer_z, uint vertex)
     return 1.0;
 }
 
+// The tints of the object views, see slope_active. The rasterizer applies them in sRGB.
+vec3 object_view_tint(vec3 albedo, Hit hit)
+{
+    uint flags = uint(instances[hit.inst_index].normal_to_world[3].x + 0.5);
+    vec3 c = pow(albedo, vec3(1.0 / 2.2));
+    vec3 p = hit.position;
+    if (slope_active && (flags & INSTANCE_WIPE_TOWER) == 0u) {
+        vec3 outward = hit.front_face ? hit.shading_normal : -hit.shading_normal;
+        if (abs(p.z) < 0.1)
+            c = vec3(0.73, 1.0, 1.0);
+        else if (dot(outward, slope_up) < slope_normal_z - 0.0001)
+            c = 0.5 * c + 0.5 * vec3(0.78, 0.0, 0.0);
+    }
+    if ((flags & INSTANCE_PARTLY_INSIDE) != 0u && print_volume_type >= 0) {
+        bool outside;
+        if (print_volume_type == 0)
+            outside = any(lessThan(p, vec3(print_volume_xy.xy, print_volume_z.x))) ||
+                      any(greaterThan(p, vec3(print_volume_xy.zw, print_volume_z.y)));
+        else
+            outside = distance(p.xy, print_volume_xy.xy) > print_volume_xy.z || p.z < print_volume_z.x || p.z > print_volume_z.y;
+        if (outside)
+            c *= 2.0 / 3.0;
+    }
+    if (extruder_printable_heights.x >= 1.0 && all(greaterThan(p.xy, print_volume_xy.xy)) && all(lessThan(p.xy, print_volume_xy.zw)) &&
+        p.z > extruder_printable_heights.y && p.z < extruder_printable_heights.z)
+        c *= 0.3;
+    return pow(c, vec3(2.2));
+}
+
 // Rounded bead normal of a toolpath facet seen by the camera. The flat facets of the toolpath mesh
 // stand for round extrusions, so their shading normal is rebuilt from the facet kind and where the
 // hit lies on its bead. diffuse_scale and spec_scale darken the grooves between beads.
@@ -1291,6 +1333,8 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
             if (depth == 0 && trans == 0)
                 throughput *= dim;
         }
+        if (!is_preview_canvas && depth == 0 && trans == 0)
+            albedo = object_view_tint(albedo, hit);
         int sss = shading_sss_mode(sh);
         float roughness = clamp(sh.params.y - 2.0 * float(sss), 0.05, 1.0);
         float alpha = max(roughness * roughness, alpha_floor);

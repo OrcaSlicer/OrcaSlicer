@@ -464,6 +464,8 @@ private:
 
     Slope m_slope;
     bool m_show_sinking_contours = false;
+    // The outlines of the selection and the sinking contours.
+    bool m_show_highlights = true;
 
 public:
     GLVolumePtrs volumes;
@@ -533,6 +535,7 @@ public:
     void set_range(double low, double high) { for (GLVolume *vol : this->volumes) vol->set_range(low, high); }
 
     void set_print_volume(const PrintVolume& print_volume) { m_print_volume = print_volume; }
+    const PrintVolume& get_print_volume() const { return m_print_volume; }
 
     void set_z_range(float min_z, float max_z) { m_z_range[0] = min_z; m_z_range[1] = max_z; }
     void set_clipping_plane(const std::array<double, 4>& coeffs) { m_clipping_plane = coeffs; }
@@ -557,6 +560,7 @@ public:
     void set_slope_normal_z(float normal_z) { m_slope.normal_z = normal_z; }
     void set_default_slope_normal_z() { m_slope.normal_z = -::cos(Geometry::deg2rad(90.0f - 45.0f)); }
     void set_show_sinking_contours(bool show) { m_show_sinking_contours = show; }
+    void set_show_highlights(bool show) { m_show_highlights = show; }
 
     // returns true if all the volumes are completely contained in the print volume
     // returns the containment state in the given out_state, if non-null

@@ -2860,25 +2860,36 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
             // Design tab: replace the plate's corner-origin grid with the origin-centred CAD grid.
             _render_cad_grid(camera.get_view_matrix(), camera.get_projection_matrix());
         m_frame_profiler.mark("plates");
+        // Whether the layer editor is open, and the outside state the path tracer tints by.
+        _update_volumes_state();
         if (_is_pathtrace_enabled() && _render_pathtraced_view(camera, cnv_size)) {
             _render_section_view_caps();
 
             const bool has_wireframe = wxGetApp().plater() != nullptr && wxGetApp().plater()->is_show_wireframe();
             // Modifiers and unprintable parts are no part of the print: the path tracer leaves them
             // out, and they are drawn over its image as in the plain view.
+            // The outlines of the selection and the sinking contours show over its image too: a second
+            // depth pass draws them with the color writes on (ColorWritesOn in 3DScene.cpp), against the
+            // depth of all objects, which the rasterizer gets by drawing the objects over them.
             bool has_overlays = false;
+            bool has_highlights = false;
+            const bool show_outline = wxGetApp().show_outline();
             for (const GLVolume* volume : m_volumes.volumes) {
-                if (volume != nullptr && volume->is_active && (volume->is_modifier || !volume->printable)) {
-                    has_overlays = true;
-                    break;
-                }
+                if (volume == nullptr || !volume->is_active)
+                    continue;
+                has_overlays = has_overlays || volume->is_modifier || !volume->printable;
+                has_highlights = has_highlights || (volume->selected && show_outline) || (m_sinking_contours_enabled && volume->is_sinking());
             }
             const bool has_gizmo = m_gizmos.get_current_type() != GLGizmosManager::Undefined;
-            if (has_overlays || has_wireframe || has_gizmo) {
+            if (has_overlays || has_highlights || has_wireframe || has_gizmo) {
                 glsafe(::glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE));
                 glsafe(::glEnable(GL_DEPTH_TEST));
                 glsafe(::glDepthMask(GL_TRUE));
+                m_volumes.set_show_highlights(false);
                 _render_objects(GLVolumeCollection::ERenderType::Opaque, false);
+                m_volumes.set_show_highlights(true);
+                if (has_highlights)
+                    _render_objects(GLVolumeCollection::ERenderType::Opaque, false);
                 glsafe(::glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
 
                 if (has_overlays)
@@ -9706,17 +9717,9 @@ void GLCanvas3D::_render_plane() const
     ;//TODO render assemble plane
 }
 
-//BBS: add outline drawing logic
-void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with_outline, bool overlays_only)
+void GLCanvas3D::_update_volumes_state()
 {
-    if (m_volumes.empty())
-        return;
-
-    glsafe(::glEnable(GL_DEPTH_TEST));
-
-    m_camera_clipping_plane = _get_volumes_clipping_plane();
-
-    if (m_picking_enabled)
+    if (m_picking_enabled && m_model != nullptr)
         // Update the layer editing selection to the first object selected, update the current object maximum Z.
         m_layers_editing.select_object(*m_model, this->is_layers_editing_enabled() ? m_selection.get_object_idx() : -1);
 
@@ -9738,7 +9741,7 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
         default:
         case BuildVolume_Type::Convex:
         case BuildVolume_Type::Custom: {
-            m_volumes.set_print_volume({ static_cast<int>(type),
+            m_volumes.set_print_volume({ 0, // An unbounded rectangle: nothing is outside
                 { -FLT_MAX, -FLT_MAX, FLT_MAX, FLT_MAX },
                 { -FLT_MAX, FLT_MAX } }
             );
@@ -9749,6 +9752,18 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
             m_requires_check_outside_state = false;
         }
     }
+}
+
+//BBS: add outline drawing logic
+void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with_outline, bool overlays_only)
+{
+    if (m_volumes.empty())
+        return;
+
+    glsafe(::glEnable(GL_DEPTH_TEST));
+
+    m_camera_clipping_plane = _get_volumes_clipping_plane();
+    _update_volumes_state();
 
     const std::array<float, 2> z_range = volumes_z_range(*this);
     m_volumes.set_z_range(z_range[0], z_range[1]);
