@@ -81,6 +81,9 @@ Contents: [Rules](#rules) · [1. Choosing the window kind](#1-choosing-the-windo
     tooltip of a widget in that popup, or in a popup opened from it, is on screen: the tooltip has taken the
     keyboard while the user is still on the popup. `PopupWindow::topWindowActiavate` does it for every Orca popup;
     a popup outside `PopupWindow` with such a hook must do it itself. (§9)
+31. A dialog that hides on its own deactivation validates the event first: wxGTK sends `wxEVT_ACTIVATE(false)`
+    to the last activated toplevel, whatever window lost the focus. Re-check after one settle interval that the
+    window is still shown and no longer active. (§10)
 
 ## 1. Choosing the window kind
 
@@ -827,8 +830,9 @@ created with `wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT | wxF
 - `wxFRAME_NO_TASKBAR` gives no taskbar entry on MSW/GTK, on GTK only when the WM supports
   `_NET_WM_STATE_SKIP_TASKBAR` (`interface/wx/frame.h:97-103`).
 - `wxFRAME_FLOAT_ON_PARENT` requires a non-null parent (`interface/wx/frame.h:104-106`).
-- Its `wxEVT_ACTIVATE` handler hides on deactivation and `Skip()`s. On activation it focuses the web view, because
-  modeless focus is granted asynchronously and a focus request made right after `Show()` is dropped.
+- Its `wxEVT_ACTIVATE` handler focuses the web view on activation, because modeless focus is granted
+  asynchronously and a focus request made right after `Show()` is dropped. It hides on deactivation only
+  after validating the event (Pitfalls below), and it `Skip()`s.
 - On Linux `focus_webview` grabs focus on the WebKit native widget (`gtk_widget_grab_focus` on
   `GetNativeBackend()`). `browser()->SetFocus()` focuses only the container.
 - Display-only web content can stay in a transient popup (`MarkdownTip`).
@@ -847,13 +851,32 @@ created with `wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT | wxF
                           wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT | wxFRAME_SHAPED)
   {
       Bind(wxEVT_ACTIVATE, [this](wxActivateEvent& e) {
-          if (e.GetActive() && IsShown())       focus_webview(browser(), m_page_ready);
-          else if (!e.GetActive() && IsShown()) Hide();
+          if (!IsShown())    { e.Skip(); return; }
+          if (e.GetActive()) { m_hide_timer.Stop(); focus_webview(browser(), m_page_ready); }
+          else               schedule_hide();   // validated, see the next rule
           e.Skip();
       });
   }
   ```
   Cite: f142716e51, a86202b45b (`SpeedDialPopup.cpp` replaced by `SpeedDialDialog.{hpp,cpp}`; `GUI_App.cpp`).
+- **Rule:** Validate a deactivation before hiding a dialog that dismisses itself on deactivation.
+  **Why:** wxGTK does not deliver `wxEVT_ACTIVATE(false)` to the window that lost the focus; it sends it to
+  `g_activeFrame`, the toplevel that was activated last (`gtk_frame_focus_out_callback`,
+  `src/gtk/toplevel.cpp:192-205`). A deactivation belonging to another window, or the same one arriving while
+  the dialog is still taking the focus, therefore looks like a dismissal. The Speed Dial closed itself a moment
+  after the first Space on GNOME and KDE, X11 and Wayland, because the first open is the only open that maps the
+  window, moves it and resizes it to its content while it is already focused. Wait one settle interval, then ask
+  the window whether it is still active: on GTK `gtk_window_is_active()`, since `wxTopLevelWindow::IsActive()`
+  follows wx focus tracking and not the focus that WebKit's native widget takes.
+  ```cpp
+  // Wrong: every deactivation hides
+  if (!e.GetActive() && IsShown()) Hide();
+  // Right: a 150 ms one-shot, cancelled by any activation; hide only if the window is really inactive
+  void SpeedDialWebDialog::on_hide_timer(wxTimerEvent&) {
+      if (speed_dial_should_hide(IsShown(), is_active())) Hide();
+  }
+  ```
+  Cite: #17245.
 - **Rule:** When restoring the main frame after hiding a popup or overlay frame, call `Show()` only if
   `!IsShown()`, and `Raise()` unconditionally (top-level `Show`/`Raise` are owned by
   `references/windows-dialogs.md`).
