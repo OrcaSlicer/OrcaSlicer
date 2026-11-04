@@ -699,8 +699,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             // BBS
             double wipe_dist = scale_(gcodegen.config().wipe_distance.get_at(gcodegen.get_filament_config_index((int)gcodegen.writer().filament()->id())));
 
-            /*  Take the stored wipe path and replace first point with the current actual position
-                (they might be different, for example, in case of loop clipping).  */
+            // Replace the stored first point with the actual nozzle position,
+            // including any loop clipping or Wipe on loop move.
             Polyline wipe_path;
             wipe_path.append(gcodegen.last_pos());
             wipe_path.append(
@@ -8782,11 +8782,14 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
         paths.back().polyline.points.size() >= 2)
         wipe_on_loops_dest = wipe_on_loops_destination(paths, scale_(nozzle_diameter), is_ccw, is_hole);
 
-    bool wipe_inward_applied = false;
     // Orca: store loop paths in print order because inward offsets use this orientation.
     if (m_wipe.enable && FILAMENT_CONFIG(wipe)) {
         m_wipe.update_path(paths);
 
+        // A loop's role is its first path's role. An overhanging start must
+        // not hide ordinary external-wall segments elsewhere in the loop.
+        const auto external_path = std::find_if(paths.begin(), paths.end(),
+            [](const ExtrusionPath &path) { return is_external_perimeter(path.role()); });
         // Orca: loop wipe paths retain print direction. Their material side is
         // therefore left for CCW contours and right for CW contours, with the
         // result inverted for holes. Only external perimeters are eligible.
@@ -8794,18 +8797,19 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
         // context was created. Check the effective setting again at execution.
         if (m_config.wipe_inward && m_config.wipe_inward_distance.value > 0. &&
             wipe_support != nullptr && !wipe_support->inner_lines.empty() &&
-            // A loop's role is its first path's role. An overhanging start must
-            // not hide ordinary external-wall segments elsewhere in the loop.
-            std::any_of(paths.begin(), paths.end(),
-                [](const ExtrusionPath &path) { return is_external_perimeter(path.role()); }) &&
-            m_wipe.path.points.size() >= 2) {
-            // Orca: use the actual extrusion width from the path, not the config
+            external_path != paths.end() && m_wipe.path.points.size() >= 2) {
+            // Orca: use the actual extrusion width of the external wall, not the config
             // value — outer_wall_line_width=0 (Auto) would make get_abs_value
             // return 0 and silently disable the feature, and Arachne may produce
-            // a different width than the config default.
-            const double outer_wall_line_width = paths.front().width;
+            // a different width than the config default. An overhanging start
+            // may have another width, so it does not set the offset.
+            const double outer_wall_line_width = external_path->width;
             const double requested_offset = m_config.wipe_inward_distance.get_abs_value(outer_wall_line_width);
-            const double offset_dist = scale_(std::min(requested_offset, outer_wall_line_width));
+            // Outer/Inner and sandwich order print the adjacent inner wall after
+            // this one. Only the outer bead's own inner half is available for wiping now.
+            const double max_offset = outer_wall_line_width *
+                (m_config.wall_sequence == WallSequence::InnerOuter ? 1. : 0.5);
+            const double offset_dist = scale_(std::min(requested_offset, max_offset));
             if (offset_dist > SCALED_EPSILON) {
                 const Point seam_start = paths.front().first_point();
                 const Point seam_end   = paths.back().last_point();
@@ -8815,11 +8819,10 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
                 // from points[1]. The helper preserves that sentinel and atomically
                 // replaces the remaining points, or leaves the path untouched.
                 // Orca: a configured wall count does not guarantee that Arachne
-                // generated an adjacent wall for this particular loop. Only
-                // earlier entities are considered because later walls have
-                // not been printed yet (for example with Outer/Inner order).
-                // Inner walls determine the material side; every earlier wall
-                // remains available to validate the executable wipe path.
+                // generated an adjacent wall for this particular loop. Inner walls
+                // determine the material side; with Outer/Inner and sandwich order
+                // they include walls printed later. Only printed walls validate
+                // the executable wipe path.
                 const double support_distance = scale_(std::max(nozzle_diameter, outer_wall_line_width));
                 Polyline inward_path = m_wipe.path;
                 if (offset_wipe_path_toward_support(
@@ -8827,8 +8830,9 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
                         wipe_offset_direction(is_ccw, is_hole), offset_dist, max_wipe_length,
                         wipe_support->inner_lines, wipe_support->printed_lines,
                         m_wipe.path.lines(), support_distance)) {
+                    // Only the stored geometry changes. Like the regular wipe, the path
+                    // runs when travel planning retracts and is skipped on short travels.
                     m_wipe.path = std::move(inward_path);
-                    wipe_inward_applied = true;
                 }
             }
         }
@@ -8840,12 +8844,6 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
             this->point_to_gcode(*wipe_on_loops_dest), 0, "move inwards before travel", true);
         this->set_last_pos(*wipe_on_loops_dest);
     }
-
-    // Execute the accepted path before another extrusion replaces it. Wiping
-    // must not force retraction or Z-hop across a short travel to the next wall.
-    // Ordinary travel planning decides whether to retract from the new position.
-    if (wipe_inward_applied)
-        gcode += m_wipe.wipe(*this, 0.);
 
     return gcode;
 }
@@ -8952,6 +8950,18 @@ std::string GCode::extrude_perimeters(const Print &print, const std::vector<Obje
                 m_config.wipe_inward_distance.value > 0. &&
                 scale_(FILAMENT_CONFIG(wipe_distance)) > SCALED_EPSILON)
                 wipe_support.emplace();
+
+            // Outer/Inner and sandwich order print the adjacent inner wall after the
+            // external wall. Its geometry still identifies the inward side and whether
+            // the external wall has a neighbour, while the half-width limit in
+            // extrude_loop() keeps the wipe on the outer bead.
+            if (wipe_support && m_config.wall_sequence != WallSequence::InnerOuter) {
+                WipeInwardSupport all_walls;
+                for (const ExtrusionEntity* ee : region.perimeters)
+                    all_walls.append(*ee);
+                wipe_support->inner_lines = std::move(all_walls.inner_lines);
+                wipe_support->inner_lines_complete = true;
+            }
 
             // ORCA: loops flagged as extruded in mid air, out of reach of the layer below, are held back
             // for a second pass after the infill that anchors them. Infill already precedes infill first walls.
