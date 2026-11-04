@@ -17,7 +17,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/libslic3r.h"
 #include "FillTpmsD.hpp"
-#include "FillTpmsAdaptive.hpp"
+#include "AdaptiveInfillField.hpp"
 
 namespace Slic3r {
 
@@ -117,8 +117,8 @@ void FillTpmsD::_fill_surface_single(
     ExPolygon                        expolygon, 
     Polylines                       &polylines_out)
 {
-    if (params.tpms_adaptive == TpmsAdaptiveMode::SteppedShells && this->tpms_radial_field != nullptr) {
-        fill_tpms_shells(*this->tpms_radial_field, expolygon, this->z - 0.5 * params.layer_height, params, this->spacing,
+    if (params.adaptive_infill_mode == AdaptiveInfillMode::SteppedShells && this->adaptive_infill_field != nullptr) {
+        fill_adaptive_infill_shells(*this->adaptive_infill_field, expolygon, this->z - 0.5 * params.layer_height, params, this->spacing,
                          [&](const FillParams &shell_params, const ExPolygon &shell) {
                              this->_fill_surface_single(shell_params, thickness_layers, direction, shell, polylines_out);
                          });
@@ -130,13 +130,13 @@ void FillTpmsD::_fill_surface_single(
         expolygon.rotate(-infill_angle);
 
     Polylines polylines;
-    if (params.tpms_adaptive != TpmsAdaptiveMode::Disabled && this->tpms_radial_field != nullptr) {
+    if (params.adaptive_infill_mode != AdaptiveInfillMode::Disabled && this->adaptive_infill_field != nullptr) {
         // Radians per mm of the regular pattern at a density.
         auto frequency = [&params, this](double density) { return density * DensityAdjust / (params.multiline * this->spacing); };
         BoundingBox bbox = expolygon.contour.bounding_box();
         bbox.offset(scale_((params.multiline + 1) * this->spacing));
-        polylines = make_adaptive_tpms({schwarz_d, frequency(params.density), frequency(params.tpms_interior_density), params.tpms_adaptive_gradient},
-                                       *this->tpms_radial_field, bbox, this->z, params.layer_height, this->spacing, infill_angle);
+        polylines = make_adaptive_tpms({schwarz_d, frequency(params.density), frequency(params.adaptive_infill_interior_density), params.adaptive_infill_gradient},
+                                       *this->adaptive_infill_field, bbox, this->z, params.layer_height, this->spacing, infill_angle);
     } else {
         BoundingBox bb = expolygon.contour.bounding_box();
         // Density adjusted to have a good %of weight.

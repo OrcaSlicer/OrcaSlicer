@@ -267,6 +267,7 @@
 		"30",
 		"30"
 	],
+	"support_air_filtration": "1",
 	"support_chamber_temp_control": "1",
 	"support_cooling_filter": "1",
 	"support_object_skip_flush": "1",

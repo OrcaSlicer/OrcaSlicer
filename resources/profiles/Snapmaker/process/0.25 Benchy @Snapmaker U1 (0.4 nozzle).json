@@ -11,6 +11,7 @@
 	],
 	"elefant_foot_compensation": "0.15",
 	"top_shell_layers": "3",
+	"top_color_penetration_layers": "3",
 	"top_shell_thickness": "0.5",
 	"initial_layer_speed": [
 		"100",
@@ -155,6 +156,7 @@
 	"sparse_infill_line_width": "0.5",
 	"top_surface_line_width": "0.5",
 	"bottom_shell_layers": "2",
+	"bottom_color_penetration_layers": "2",
 	"initial_layer_travel_speed": [
 		"100%",
 		"100%",

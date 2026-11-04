@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "QIDI PPS-CF @Qidi X-Smart 5 0.6 nozzle",
+	"inherits": "QIDI PPS-CF@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "lv4n2qPGmYscvS9U",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.021"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"additional_cooling_fan_speed_unseal": [
+		"0"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.6 nozzle"
+	]
+}

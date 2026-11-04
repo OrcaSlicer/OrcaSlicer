@@ -748,7 +748,8 @@ void GizmoObjectManipulation::set_init_rotation(const Geometry::Transformation &
 void GizmoObjectManipulation::reset_align_state()
 {
     m_hovered_align_type = GLGizmoAlignment::AlignType::NONE;
-    m_align_to_parent    = !m_alignment_helper.can_align(GLGizmoAlignment::AlignType::X_MIN);
+    m_can_align_within   = m_alignment_helper.can_align(GLGizmoAlignment::AlignType::X_MIN);
+    m_align_to_parent    = !m_can_align_within;
 }
 
 void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper, std::string window_name, float x, float y, float bottom_limit)
@@ -924,7 +925,7 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     }
     if (!focued_on_text) m_glcanvas.handle_sidebar_focus_event("", false);
 
-    // Align and distribute along the world axes, within the selection or to the object or plate holding it.
+    // Align and distribute along the coordinate system of the panel, within the selection or to the object or plate holding it.
     using AlignType                = GLGizmoAlignment::AlignType;
     const bool old_align_to_parent = m_align_to_parent;
     AlignType  hovered_align_type  = AlignType::NONE;
@@ -932,6 +933,7 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
+        m_alignment_helper.set_object_cs(is_instance_coordinates());
 
         // Each row is row_height tall, separated by ItemSpacing.y. Every control is centered vertically in its row.
         const float       row_y         = ImGui::GetCursorPosY();
@@ -954,7 +956,13 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
             _u8L("Selection"),
             m_alignment_helper.is_parts_selection(true) ? _u8L("Object") : _u8L("Plate")
         };
-        if (!m_alignment_helper.can_align(AlignType::X_MIN)) {
+        // Selecting enough items to align within them makes that the default, as when the tool opens.
+        const bool can_align_within = m_alignment_helper.can_align(AlignType::X_MIN);
+        if (can_align_within != m_can_align_within) {
+            m_can_align_within = can_align_within;
+            m_align_to_parent  = !can_align_within;
+        }
+        if (!can_align_within) {
             align_modes.erase(align_modes.begin());
             m_align_to_parent = true;
         }

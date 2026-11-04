@@ -10,6 +10,7 @@
 #include <limits>
 #include <stdexcept>
 #include <sstream>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r
 {

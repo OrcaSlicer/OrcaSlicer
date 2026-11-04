@@ -49,11 +49,13 @@ Copying the cached `profile-fixtures/` into the new dir reuses the fixture archi
 `--work-dir`. Only a `.lock` with no `check_profile` process alive is a crash leftover; delete it by
 hand.
 
-## The five checks
+## The seven checks
 
 | Check | Command it runs | Catches |
 | --- | --- | --- |
 | `profile_tool` | `python3 scripts/orca_profile_tool.py check` | index coverage **both ways**, preset-name collisions, files `normalize` / `update-index` would still rewrite, duplicate JSON keys, filament `compatible_printers`, `filament_type` array, conflict keys, variant strings and array widths and layout keys, dangling `default_materials`, id length, **all `setting_id` and `filament_id` rules** ([below](#orca_profile_toolpy-check)) |
+| `version_bump` | `python3 scripts/orca_profile_tool.py version-check --base <ref>` | a bundle with a changed file (`<Vendor>.json` or anything under `<Vendor>/`, assets included) whose `version` is not newer than at the base, or not four numbers; CI's base is the branch the PR merges into, the script's is where the branch left `upstream/main` (else `origin/main`) unless `--base` says otherwise |
+| `legacy_compat` | `python3 scripts/orca_profile_tool.py legacy-compat --base <v2.4.2 profiles> --check` | `resources/info/legacy_compatible_printers.json` no longer matching what the tree implies against the 2.4.2 profiles, after a filament preset rename or a narrowed `compatible_printers` |
 | `validate_system` | `validator -p resources/profiles -l 2` | load errors, missing filament `compatible_printers`, dangling `inherits` / `compatible_*`, duplicate `filament_id` per printer (`Ambiguous AMS filament match`), printer defaults that name no compatible system filament |
 | `validate_slice` | `validator -p … -s -l 2` | custom G-code expansion and unresolvable printer defaults, by slicing |
 | `validate_filament_subtypes` | `validator -p … -l 2 -f` | nothing extra; see below |
@@ -67,8 +69,9 @@ flag is present") does not reflect that default.
 OrcaFilamentLibrary and nothing else, so every library tune whose `compatible_printers` names another
 vendor's printers fails `validate_system`, `validate_filament_subtypes` and each `validate_custom`
 fixture with thousands of `references unknown compatible_printers "Bambu Lab …"` lines. Under
-`--vendor`, `profile_tool` and `validate_slice` are the meaningful results; for the other three, filter
-the log for your vendor's files and treat only those lines as findings. The unscoped run is the CI
+`--vendor`, `profile_tool`, `version_bump`, `legacy_compat` and `validate_slice` are the meaningful
+results; for the other three, filter the log for your vendor's files and treat only those lines as
+findings. The unscoped run is the CI
 result; run it before the PR.
 
 ### `validate_custom`: the backward-compatibility gate
@@ -393,7 +396,7 @@ clean-install check; preserve the normal configuration and user presets.
 | `contains incorrect keys: <keys>, which were removed` | a key valid for a different preset type |
 | `defines invalid printer variant "<v>"` | not a token of the model's `nozzle_diameter` list |
 | `has printer_variant "<v>" that does not match its nozzle_diameter` | [the set comparison](machine-profiles.md#printer_model-and-printer_variant) |
-| `references unknown compatible_printers "<p>"` | the printer was renamed or deleted, or a `machine_model` name was used instead of a variant name: fix the reference. Under `--vendor`, usually another vendor's printer ([why](#the-five-checks)) |
+| `references unknown compatible_printers "<p>"` | the printer was renamed or deleted, or a `machine_model` name was used instead of a variant name: fix the reference. Under `--vendor`, usually another vendor's printer ([why](#the-seven-checks)) |
 | `references renamed compatible_printers "<old>" (now "<new>")` | in-tree references must name the current preset; `renamed_from` does not excuse them |
 | `Filament preset "<f>" is missing compatible_printers setting` | non-library filaments need a non-empty list in their **own** file; the resolved-vs-own-key trap is in [filament-profiles.md](filament-profiles.md#compatible_printers) |
 | `Ambiguous AMS filament match: N filament presets share filament_id "X" and are all compatible with printer "Y"` | make the lists disjoint by [specificity](filament-profiles.md#overlapping-coverage-one-variant-one-profile-per-product): the specialized profile keeps the variant, the general ones drop it; prefer this over deleting a profile. Or fix an `inherits` pointing at another product's `@base`. `orca_profile_tool.py check` does not catch this; only `validate_system` does |

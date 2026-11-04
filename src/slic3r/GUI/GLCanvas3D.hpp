@@ -39,6 +39,7 @@
 #include "Camera.hpp"
 #include "SceneRaycaster.hpp"
 #include "SceneCache.hpp"
+#include "SelectionOutline.hpp"
 #include "FrameProfiler.hpp"
 #include "IMToolbar.hpp"
 #include "slic3r/GUI/3DBed.hpp"
@@ -542,6 +543,10 @@ class GLCanvas3D
         // Shows the details of the marker under the mouse, else hides them; whether it hit one.
         bool on_left_down(GLCanvas3D& canvas, const Vec2d& mouse);
         void render_details(GLCanvas3D& canvas);
+        // Whether the mouse is over the details.
+        bool details_hovered() const;
+        // Whether there were details to hide.
+        bool hide_details(GLCanvas3D& canvas);
     };
 
     class Tooltip
@@ -926,6 +931,9 @@ public:
     std::array<unsigned int, 2> m_ssao_texture_size{ { 0, 0 } };
     // The last scene pass, for frames that only rebuild the overlay.
     SceneCache m_scene_cache;
+    SelectionOutline m_selection_outline;
+    // Selected volumes the object passes of this frame drew, outlined after them.
+    std::vector<GLVolume*> m_outlined_volumes;
     // Signature of the overlay on screen; empty after render(), a paint request or a frame drawn but
     // not shown, so the next frame is presented regardless.
     std::optional<size_t> m_presented_signature;
@@ -1275,6 +1283,8 @@ public:
     void on_idle(wxIdleEvent& evt);
     void on_char(wxKeyEvent& evt);
     void on_key(wxKeyEvent& evt);
+    // Sends a key-up for each modifier still held, whose own key-up is sent to the window that takes the focus.
+    void release_held_modifiers();
     // Runs the Plater/Preview shortcut bound to chord, swallowing auto-repeats of one-shot
     // shortcuts; false when nothing is bound.
     bool handle_shortcut(const KeyChord& chord);
@@ -1551,11 +1561,18 @@ private:
     // IMEX ghost hover tooltip: filament swatch + label drawn as an ImGui overlay.
     void _render_imex_ghost_tooltip();
     void _render_section_view_caps();
+    void _render_selection_outline();
     void _render_wireframe_overlay();
+    bool _is_below_plate_view_active() const;
+    void _render_below_plate_volumes();
     bool _is_xray_view_active() const;
     void _render_xray_volumes();
     //BBS: GUI refactor: add canvas size as parameters
     void _render_gcode(int canvas_width, int canvas_height);
+    // The translucent toolpaths, after the occlusion pass, which would shade them as the surface behind them.
+    void _render_gcode_translucent(int canvas_width, int canvas_height);
+    // Realistic view: binds, or unbinds, the shadow map the toolpaths read on texture unit 4. False without a map.
+    bool _bind_gcode_shadow_map(bool bind) const;
     void _render_gcode_overlay(int canvas_width, int canvas_height);
     //BBS: render a plane for assemble
     void _render_plane() const;
