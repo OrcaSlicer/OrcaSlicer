@@ -3424,6 +3424,15 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             return false;
         if (model_obj1->config.get() != model_obj2->config.get())
             return false;
+        // Height range modifiers give the layers in their range other regions, so an object whose ranges differ
+        // cannot take over the other object's layers.
+        const t_layer_config_ranges &ranges1 = model_obj1->layer_config_ranges;
+        const t_layer_config_ranges &ranges2 = model_obj2->layer_config_ranges;
+        if (ranges1.size() != ranges2.size()
+            || !std::equal(ranges1.begin(), ranges1.end(), ranges2.begin(), [](const auto &range1, const auto &range2) {
+                   return range1.first == range2.first && range1.second.get() == range2.second.get();
+               }))
+            return false;
         return true;
     };
     int object_count = m_objects.size();

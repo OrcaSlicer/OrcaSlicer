@@ -237,6 +237,61 @@ TEST_CASE("An object that starts sharing another object's slices keeps its own l
     CHECK(print_b->support_layers() == print_a->support_layers());
 }
 
+// A copy that shares the mesh of another object, but not its height ranges, must slice itself: a height range gives
+// the layers in its range other regions, which the other object's layers do not have.
+TEST_CASE("Objects whose height ranges differ do not share slices", "[Print][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "sparse_infill_density",      "20%" },
+    });
+
+    Print print;
+    Model model;
+    init_print({cube(20)}, print, model, config);
+    ModelObject *object_a = model.objects.front();
+    // add_object() gives the copy extruder 1, and objects only share slices when their configs match.
+    object_a->config.set_key_value("extruder", new ConfigOptionInt(1));
+    ModelObject *object_b = model.add_object(*object_a); // shares object_a's mesh
+    for (ModelInstance *instance : object_b->instances)
+        instance->set_offset(instance->get_offset() + Vec3d(40., 0., 0.));
+
+    // Only one of the two objects gets the height range, either the one that slices first or its copy.
+    const bool range_on_first = GENERATE(true, false);
+    INFO("height range on " << (range_on_first ? "the first object" : "the copy"));
+    DynamicPrintConfig range_config;
+    // Every layer range must carry a layer_height (see layer_height_profile_from_ranges).
+    range_config.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+    range_config.set_key_value("sparse_infill_density", new ConfigOptionPercent(40));
+    (range_on_first ? object_a : object_b)->layer_config_ranges[{ 10., 20. }].assign_config(std::move(range_config));
+
+    print.apply(model, config);
+    print.process();
+    REQUIRE(print.objects().size() == 2);
+    const PrintObject *print_a = print.objects()[0];
+    const PrintObject *print_b = print.objects()[1];
+    REQUIRE(print_b->model_object()->id() == object_b->id()); // Print slices its own copy of the model
+    CHECK(print_a->get_shared_object() == nullptr);
+    CHECK(print_b->get_shared_object() == nullptr);
+
+    // The infill density of each object at 15 mm is the one of its own height range, or the default without one.
+    // A height range has regions of its own, so the density is read from the region that has the slices there.
+    const auto density_at_15mm = [](const PrintObject *object) {
+        const Layer *layer = object->get_layer_at_printz(15., 0.1);
+        REQUIRE(layer != nullptr);
+        std::vector<double> densities;
+        for (const LayerRegion *region : layer->regions())
+            if (!region->slices.empty())
+                densities.push_back(region->region().config().sparse_infill_density.value);
+        REQUIRE(densities.size() == 1);
+        return densities.front();
+    };
+    CHECK(density_at_15mm(print_a) == (range_on_first ? 40. : 20.));
+    CHECK(density_at_15mm(print_b) == (range_on_first ? 20. : 40.));
+}
+
 // ---------------------------------------------------------------------------
 // Print::validate() warning collection
 //
