@@ -31,6 +31,7 @@
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/string.h>
+#include <wx/timer.h>
 #include <wx/utils.h>
 #include <wx/webview.h>
 
