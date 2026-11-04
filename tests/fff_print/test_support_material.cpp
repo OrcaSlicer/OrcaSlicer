@@ -7,6 +7,13 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/GCodeReader.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
 #include "libslic3r/Layer.hpp"
 
 #include <cmath>
@@ -117,6 +124,70 @@ static TriangleMesh support_capital()
     model.merge(stem);
     model.merge(cap);
     return model;
+}
+
+TEST_CASE("Top support interfaces cover an overhang with a synchronized variable layer gap", "[SupportMaterial][Regression]")
+{
+    const bool independent = GENERATE(false, true);
+    const bool variable = GENERATE(false, true);
+    CAPTURE(independent, variable);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "enable_support",                  1 },
+        { "support_type",                    "normal(auto)" },
+        { "layer_height",                    0.2 },
+        { "initial_layer_print_height",      0.2 },
+        { "independent_support_layer_height", independent },
+        { "support_on_build_plate_only",     0 },
+        { "support_top_z_distance",          0.2 },
+        { "support_bottom_z_distance",       0.2 },
+        { "support_object_xy_distance",      0.35 },
+        { "support_interface_spacing",       0.0 },
+        { "support_interface_top_layers",    2 },
+        { "support_interface_bottom_layers", 0 },
+        { "gcode_comments",                  true },
+    });
+    Print print;
+    Model model;
+    init_print({ support_capital() }, print, model, config);
+    if (variable) {
+        // Below the overhang at Z=12, 0.16 mm layers round the nominal 0.2 mm
+        // synchronized gap down. No material painting is involved.
+        model.objects.front()->layer_height_profile.set(std::vector<coordf_t>{
+            0.0, 0.2, 1.6, 0.2, 1.6, 0.16, 14.0, 0.16,
+        });
+        print.apply(model, config);
+    }
+    print.process();
+    const PrintObject &object = *print.objects().front();
+    REQUIRE(!object.support_layers().empty());
+    const SupportLayer &contact = *object.support_layers().back();
+    REQUIRE(contact.print_z < 12.0);
+    REQUIRE(contact.print_z > 11.5);
+    Polygons coverage;
+    Polygons footprint;
+    const ExtrusionEntityCollection fills = contact.support_fills.flatten();
+    for (const ExtrusionEntity *entity : fills.entities)
+        if (entity->role() == erSupportMaterialInterface) {
+            entity->polygons_covered_by_spacing(coverage, 0.f);
+            entity->polygons_covered_by_width(footprint, 0.f);
+        }
+    const auto &layers = object.layers();
+    const auto wall_layer = std::find_if(layers.begin(), layers.end(), [&contact](const Layer *layer) {
+        return layer->bottom_z() < contact.print_z - EPSILON && layer->print_z >= contact.print_z - EPSILON;
+    });
+    REQUIRE(wall_layer != layers.end());
+    REQUIRE(intersection(footprint, to_polygons((*wall_layer)->lslices)).empty());
+    // Check interior areas on both sides of the stem, away from the XY gap.
+    const BoundingBox bounds = get_extents(object.layers().back()->lslices);
+    const Point center = bounds.center();
+    for (double x : {-10.0, 10.0}) {
+        const Point lower = center + Point::new_scale(x - 2.0, -2.0);
+        const Point upper = center + Point::new_scale(x + 2.0, 2.0);
+        const Polygon target({lower, Point(upper.x(), lower.y()), upper, Point(lower.x(), upper.y())});
+        CAPTURE(x, contact.print_z);
+        REQUIRE(area(intersection(Polygons{target}, coverage)) > 0.9 * target.area());
+    }
 }
 
 TEST_CASE("Three raft layers are created", "[SupportMaterial]")
