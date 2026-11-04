@@ -137,6 +137,15 @@ nlohmann::json speed_dial_ui_strings()
 
 } // namespace
 
+wxPoint speed_dial_origin(const wxRect& parent_screen_rect, const wxRect& work_area, const wxSize& box_size)
+{
+    const int x = parent_screen_rect.x + (parent_screen_rect.width - box_size.GetWidth()) / 2;
+    const int y = parent_screen_rect.y + (parent_screen_rect.height - box_size.GetHeight()) / 2;
+    // std::max(0, ...) keeps the clamp bounds ordered when the work area is smaller than the box.
+    return {std::clamp(x, work_area.x, work_area.x + std::max(0, work_area.width - box_size.GetWidth())),
+            std::clamp(y, work_area.y, work_area.y + std::max(0, work_area.height - box_size.GetHeight()))};
+}
+
 SpeedDialWebDialog::SpeedDialWebDialog(wxWindow* parent)
     : WebViewHostDialog(parent,
                         wxID_ANY,
@@ -146,6 +155,11 @@ SpeedDialWebDialog::SpeedDialWebDialog(wxWindow* parent)
                         wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT | wxFRAME_SHAPED)
 {
     SetBackgroundColour(bg_color());
+#ifdef __WXGTK__
+    // wxGTK dialogs default to CENTER_ON_PARENT, which places the window at its first map and then
+    // keeps that position for every later Show(). position_over_parent() supplies the origin instead.
+    gtk_window_set_position(GTK_WINDOW(GetHandle()), GTK_WIN_POS_NONE);
+#endif
     Bind(wxEVT_ACTIVATE, [this](wxActivateEvent& event) {
         // Focus the WebKit widget exactly when the WM makes the popup the active window
         // (modeless focus is granted asynchronously, so a focus request made right after
@@ -174,14 +188,42 @@ SpeedDialWebDialog::SpeedDialWebDialog(wxWindow* parent)
         apply_rounded_shape();
     });
     apply_rounded_shape();
+    // Place the window before the first map; request_show() re-derives it on every later open.
+    position_over_parent();
 }
 
 SpeedDialWebDialog::~SpeedDialWebDialog() { m_alive->store(false, std::memory_order_release); }
 
 nlohmann::json SpeedDialWebDialog::localized_strings() const { return speed_dial_ui_strings(); }
 
+void SpeedDialWebDialog::position_over_parent()
+{
+    wxWindow* parent = GetParent();
+    if (!parent)
+        return;
+
+    int display_index = wxDisplay::GetFromWindow(parent);
+    if (display_index == wxNOT_FOUND)
+        display_index = 0;
+    const wxRect  work_area = wxDisplay(static_cast<unsigned int>(display_index)).GetClientArea();
+    const wxPoint origin    = speed_dial_origin(parent->GetScreenRect(), work_area, FromDIP(wxSize(kPopupWidth, kPopupMaxHeight)));
+
+    if (origin != GetPosition())
+        Move(origin);
+#ifdef __WXGTK__
+    // wxGTK caches requested coordinates: Move() can skip the native request even when the window
+    // manager ignored the previous one. Reapply at native level (same as ColorPickerDialog).
+    gtk_window_move(GTK_WINDOW(GetHandle()), origin.x, origin.y);
+#endif
+}
+
 void SpeedDialWebDialog::request_show()
 {
+    // Re-derived on every open: the dialog is a long-lived hidden window, so without this the
+    // coordinates stay at the frame's position from the first open and the dial stops following the
+    // frame when it is moved, resized, or dragged to another display.
+    position_over_parent();
+
     if (IsShown()) {
         Raise();
         focus_webview(browser(), m_page_ready);
@@ -198,6 +240,11 @@ void SpeedDialWebDialog::request_show()
     // what makes typing reach the search field immediately on open.
     focus_webview(browser(), m_page_ready);
     repaint_webview();
+    // A position requested before the window is mapped can be dropped, so reapply once it is up.
+    wxGetApp().CallAfter([this, alive = m_alive]() {
+        if (alive->load(std::memory_order_acquire))
+            position_over_parent();
+    });
 }
 
 void SpeedDialWebDialog::on_script_message(const nlohmann::json& payload)
@@ -351,6 +398,9 @@ void SpeedDialWebDialog::apply_rounded_shape()
 void SpeedDialWebDialog::on_dpi_changed(const wxRect&)
 {
     apply_rounded_shape();
+    // A monitor with a different scale factor re-anchors the window: MSW applies the rect the OS
+    // suggests (wxNonOwnedWindow::HandleDPIChange), so re-derive the origin from the parent instead.
+    position_over_parent();
     Refresh();
 }
 
