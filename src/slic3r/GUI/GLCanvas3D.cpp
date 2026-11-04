@@ -5013,9 +5013,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         return;
     }
 
-    // ORCA the toolbars above have already handled clicks on their buttons. Any other click inside the top toolbar
-    // strip (dividers, toolbar background, margins around icons) is swallowed, so it can't fall through to the 3D scene
-    // and deselect the current selection or close the active arrange/orient/layers editing popup.
+    // ORCA swallow clicks on toolbar empty areas so they don't reach the 3D scene
     if (!mouse_in_layer_editing && (evt.ButtonDown() || evt.ButtonUp() || evt.ButtonDClick()) &&
         !m_mouse.dragging && !m_rectangle_selection.is_dragging() && _is_mouse_over_top_toolbar(pos.cast<double>())) {
         if (evt.ButtonUp())
@@ -11475,16 +11473,14 @@ void GLCanvas3D::_render_separator_toolbar_left() const
     m_separator_toolbar.render(*this,GLToolbarItem::SeparatorLine);
 }
 
-// ORCA whether the mouse (canvas pixels, origin at top-left) is over the top toolbar strip:
-// main toolbar | divider | gizmos toolbar | divider | assemble view toolbar
-// In the assemble view only the gizmos toolbar is drawn there, placed right after the canvas center.
+// ORCA is mouse over the top toolbar area
 bool GLCanvas3D::_is_mouse_over_top_toolbar(const Vec2d& mouse_pos) const
 {
     float left, width, height;
     if (m_canvas_type == ECanvasType::CanvasAssembleView) {
         if (!m_gizmos.is_enabled() || m_gizmos.get_selectable_icons_cnt() == 0)
             return false;
-        // same left edge as GLGizmosManager::do_render_overlay()
+        // same as GLGizmosManager::do_render_overlay()
         left   = 0.5f * (float)get_canvas_size().get_width() + 0.5f * m_paint_toolbar_width;
         width  = m_gizmos.get_scaled_total_width();
         height = m_gizmos.get_scaled_total_height();
