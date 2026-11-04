@@ -104,6 +104,9 @@ class Filler : public Slic3r::Fill
 public:
     ~Filler() override {}
 
+    // This one implementation serves both ipAdaptiveCubic and ipSupportCubic. The factory registers
+    // both keys, each with its own display label and surfaces; see InfillFactory::register_all_infills().
+
 protected:
     Fill* clone() const override { return new Filler(*this); }
 	void _fill_surface_single(

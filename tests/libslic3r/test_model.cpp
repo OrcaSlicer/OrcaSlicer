@@ -1,5 +1,6 @@
 #include <catch2/catch_all.hpp>
 #include <algorithm>
+#include <libslic3r/Config.hpp>
 #include <utility>
 #include <vector>
 #include "libslic3r/TriangleMesh.hpp"
@@ -199,4 +200,21 @@ TEST_CASE("Repairing a part replaces its mesh only when the repair changes it", 
     REQUIRE(valid->repair(false, &stats));
     CHECK_FALSE(stats.modified);
     CHECK(valid->id() == valid_id);
+}
+
+TEST_CASE("The plugin config traversal covers objects, volumes and layer ranges", "[Model]")
+{
+    // Plugin-backed print settings can be overridden at any of these levels; a layer-range override in
+    // particular can be the only place a plugin pattern is selected.
+    Model model;
+    ModelObject *object = model.add_object();
+    object->add_volume(make_cube(10, 10, 10), ModelVolumeType::MODEL_PART, false);
+    object->layer_config_ranges.emplace(t_layer_height_range{ 0., 5. }, ModelConfig());
+
+    const std::vector<const ConfigBase*> configs = model.object_and_volume_configs();
+
+    REQUIRE(configs.size() == 3);
+    CHECK(configs[0] == &object->config.get());
+    CHECK(configs[1] == &object->volumes.front()->config.get());
+    CHECK(configs[2] == &object->layer_config_ranges.begin()->second.get());
 }

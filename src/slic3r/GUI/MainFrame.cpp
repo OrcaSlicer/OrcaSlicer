@@ -2541,7 +2541,7 @@ bool MainFrame::get_enable_slice_status()
         {
             enable = false;
         }*/
-        //always enable slice_all button
+        // Slice all does not depend on the current plate's ready state.
         enable = true;
     }
     else if (m_slice_select == eSlicePlate)
@@ -2555,6 +2555,11 @@ bool MainFrame::get_enable_slice_status()
             enable = false;
         }
     }
+
+    // The plugin requirement applies to both Slice plate and Slice all, even when a caller passes
+    // can_slice=false (which update_slice_print_status otherwise ignores for Slice all).
+    if (enable && m_plater->plugins_block_slicing())
+        enable = false;
 
     // A mixed filament whose components were deleted, or whose components disagree in type,
     // cannot be resolved at slicing time. Block the slice until the user fixes it.

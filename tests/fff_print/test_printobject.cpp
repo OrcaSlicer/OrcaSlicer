@@ -259,7 +259,7 @@ TEST_CASE("Turning infill does not replace the anchors of another region", "[Pri
         TriangleMesh right = internal_bridge_step();
         right.translate(50, 0, 0);
         ModelVolume *volume = model.objects.front()->add_volume(std::move(right));
-        volume->config.set_key_value("sparse_infill_pattern", new ConfigOptionEnum<InfillPattern>(ipRectilinear));
+        volume->config.set_key_value("sparse_infill_pattern", new ConfigOptionString("rectilinear"));
         volume->config.set_key_value("infill_direction", new ConfigOptionFloat(17.));
         print.apply(model, config);
         print.process();

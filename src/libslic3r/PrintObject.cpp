@@ -42,6 +42,7 @@
 #include <algorithm>
 #include <cmath>
 #include <chrono>
+#include <map>
 #include <Shiny/ShinyMacros.h>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
@@ -629,6 +630,11 @@ void PrintObject::prepare_infill()
     if (! this->set_started(posPrepareInfill))
         return;
     m_print->set_status(25, L("Generating infill regions"));
+
+    // Plugin providers are validated and pinned once for the whole job by Print::process(); this
+    // object must not acquire or release those job pins.
+    m_print->throw_if_canceled();
+
     if (m_typed_slices) {
         // To improve robustness of detect_surfaces_type() when reslicing (working with typed slices), see GH issue #7442.
         // The preceding step (perimeter generator) only modifies extra_perimeters and the extra perimeters are only used by discover_vertical_shells()
@@ -747,7 +753,7 @@ void PrintObject::prepare_infill()
     for (size_t i = 0; i < this->num_printing_regions(); ++ i) {
         const PrintRegionConfig &rc = this->printing_region(i).config();
         if (rc.separated_infills || rc.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model ||
-            (rc.sparse_infill_density > 0 && is_octree_infill_pattern(rc.sparse_infill_pattern))) {
+            (rc.sparse_infill_density > 0 && is_octree_infill_pattern(infill_pattern_from_key(rc.sparse_infill_pattern.value)))) {
             needs_separated_components = true;
             break;
         }
@@ -1178,7 +1184,8 @@ FillAdaptive::RegionOctrees PrintObject::prepare_adaptive_infill_data(
     octrees.region_set.assign(line_spacing.size(), -1);
     for (size_t region_id = 0; region_id < line_spacing.size(); ++ region_id)
         if (line_spacing[region_id] > 0.) {
-            const std::pair<double, bool> spacing(line_spacing[region_id], this->printing_region(region_id).config().sparse_infill_pattern == ipSupportCubic);
+            const std::pair<double, bool> spacing(line_spacing[region_id],
+                infill_pattern_from_key(this->printing_region(region_id).config().sparse_infill_pattern.value) == ipSupportCubic);
             const auto                    it = std::find(spacings.begin(), spacings.end(), spacing);
             octrees.region_set[region_id]    = int(it - spacings.begin());
             if (it == spacings.end())
@@ -1263,7 +1270,7 @@ FillLightning::GeneratorPtr PrintObject::prepare_lightning_infill_data()
 {
     bool has_lightning_infill = false;
     for (size_t region_id = 0; region_id < this->num_printing_regions(); ++region_id)
-        if (const PrintRegionConfig& config = this->printing_region(region_id).config(); config.sparse_infill_density > 0 && config.sparse_infill_pattern == ipLightning) {
+        if (const PrintRegionConfig& config = this->printing_region(region_id).config(); config.sparse_infill_density > 0 && infill_pattern_from_key(config.sparse_infill_pattern.value) == ipLightning) {
             has_lightning_infill = true;
             break;
         }
@@ -1277,7 +1284,7 @@ AdaptiveInfillFields PrintObject::prepare_adaptive_infill_fields() const
     std::array<bool, size_t(AdaptiveInfillMode::Count)> modes{};
     for (size_t region_id = 0; region_id < this->num_printing_regions(); ++region_id)
         if (const PrintRegionConfig &config = this->printing_region(region_id).config();
-            config.sparse_infill_density > 0 && config.sparse_infill_density < 100 && is_adaptive_infill_pattern(config.sparse_infill_pattern))
+            config.sparse_infill_density > 0 && config.sparse_infill_density < 100 && is_adaptive_infill_pattern(infill_pattern_from_key(config.sparse_infill_pattern.value)))
             modes[size_t(config.adaptive_infill_mode.value)] = true;
     modes[size_t(AdaptiveInfillMode::Disabled)] = false;
     if (std::find(modes.begin(), modes.end(), true) == modes.end() || m_layers.empty())
@@ -1875,6 +1882,10 @@ bool PrintObject::invalidate_state_by_config_options(
 bool PrintObject::invalidate_step(PrintObjectStep step)
 {
 	bool invalidated = Inherited::invalidate_step(step);
+
+    // Job-scoped plugin provider pins live on Print and are never dropped by a step invalidation:
+    // the worker may still be inside prepare_infill()/infill() and using them. Print::process()
+    // releases them when the job ends.
 
     // propagate to dependent steps
     if (step == posPerimeters) {
@@ -3113,7 +3124,7 @@ void PrintObject::bridge_over_infill()
     // Detect use of lightning infill. Moved earlier in the function to pass to the gather and filter surfaces threads.
     bool has_lightning_infill = false;
     for (size_t i = 0; i < this->num_printing_regions(); i++) {
-        if (this->printing_region(i).config().sparse_infill_pattern == ipLightning) {
+        if (infill_pattern_from_key(this->printing_region(i).config().sparse_infill_pattern.value) == ipLightning) {
             has_lightning_infill = true;
             break;
         }
@@ -3278,7 +3289,7 @@ void PrintObject::bridge_over_infill()
                 if (lower_layer == nullptr)
                     continue;
                 for (const LayerRegion *region : lower_layer->regions()) {
-                    if (region->region().config().sparse_infill_pattern == ipLightning
+                    if (infill_pattern_from_key(region->region().config().sparse_infill_pattern.value) == ipLightning
                         && ! region->fill_surfaces.filter_by_type(stInternal).empty()) {
                         needs_lightning_expansion[lidx] = 1;
                         break;
@@ -3825,7 +3836,7 @@ void PrintObject::bridge_over_infill()
                     expansion_area.insert(expansion_area.end(), internal_polys.begin(), internal_polys.end());
                     Polygons fill_polys = to_polygons(region->fill_expolygons);
                     total_fill_area.insert(total_fill_area.end(), fill_polys.begin(), fill_polys.end());
-                    if (region->region().config().sparse_infill_pattern == ipLightning) {
+                    if (infill_pattern_from_key(region->region().config().sparse_infill_pattern.value) == ipLightning) {
                         Polygons l = to_polygons(region->fill_surfaces.filter_by_type(stInternal));
                         lightning_area.insert(lightning_area.end(), l.begin(), l.end());
                     }
@@ -3863,8 +3874,10 @@ void PrintObject::bridge_over_infill()
                 };
                 for (const CandidateSurface &candidate : surfaces_by_layer[lidx]) {
                     const auto &region_config = candidate.region->region().config();
-                    const bool turning_pattern = region_config.sparse_infill_pattern == ipHilbertCurve ||
-                                                 region_config.sparse_infill_pattern == ipOctagramSpiral;
+                    const auto sparse_infill_pattern =
+                        infill_pattern_from_key(region_config.sparse_infill_pattern.value);
+                    const bool turning_pattern = sparse_infill_pattern == ipHilbertCurve ||
+                                                 sparse_infill_pattern == ipOctagramSpiral;
                     const Flow &flow              = candidate.region->bridging_flow(frSolidInfill, true);
                     const Polygons expanded_polys = expand(candidate.new_polys, flow.scaled_spacing());
                     // deep_infill_area and internal_unsupported_area cover the whole layer; only their part under
@@ -4975,8 +4988,9 @@ void PrintObject::combine_infill()
         // Support internal solid infill when sparse_infill_density is 100%
         const bool          use_solid_infill = fabs(region.config().sparse_infill_density.value - 100.) < EPSILON;
         const SurfaceType   surface_type     = use_solid_infill ? stInternalSolid : stInternal;
-        const InfillPattern infill_pattern   = use_solid_infill ? region.config().internal_solid_infill_pattern :
-                                                                  region.config().sparse_infill_pattern;
+        const auto          infill_pattern   = infill_pattern_from_key(
+            use_solid_infill ? region.config().internal_solid_infill_pattern.value
+                             : region.config().sparse_infill_pattern.value);
 
         // Limit the number of combined layers to the maximum height allowed by this regions' nozzle.
         //FIXME limit the layer height to max_layer_height

@@ -75,7 +75,9 @@ std::string resolve_recovery_url(const PluginCapabilityRef& ref);
 
 // The capabilities `preset`'s "plugins" manifest declares AND that one of its plugin-backed options
 // (ConfigOptionDef::is_plugin_backed) currently references: a manifest entry nobody points at is not
-// in use. Pure preset logic — the catalog and loader are not consulted. Empty for untracked types.
+// in use. Infill pattern IDs are mapped to their owning capability through the live registry or a
+// loaded capability's cached descriptors, so this needs the provider to have been loaded once in
+// this session. Empty for untracked types.
 std::vector<PluginCapabilityRef> referenced_capabilities(Preset::Type type, const Preset& preset);
 std::vector<PluginCapabilityId> capabilities_in_use(Preset::Type type, const Preset& preset);
 

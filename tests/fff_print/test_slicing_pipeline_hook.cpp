@@ -2,6 +2,7 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Model.hpp"
 #include <cstddef>
+#include <libslic3r/TriangleMesh.hpp>
 #include <string>
 #include "libslic3r/Surface.hpp"
 #include <utility>
@@ -583,4 +584,232 @@ TEST_CASE("Fuzzing slice contours at the Slice boundary cascades with bounded di
     //     no more than ~2*thickness (one thickness per side, plus rounding slack).
     CHECK(fz.width > base.width);
     CHECK(fz.width < base.width + 2.5 * scale_(kThickness));
+}
+
+// ── Infill provider lifecycle at the pipeline seams ─────────────────────────────────────────
+//
+// Print::process() pins every plugin provider the job will use before any object is sliced. The
+// pins must survive per-object steps, hooks and invalidation, and be released only when the whole
+// job ends: a retained pin is a provider lease, plugin unload waits for it, and dropping one while
+// a fill worker can still run would let unload tear the module down mid-job. These use a
+// registry-only stand-in for a plugin pattern; no Python is involved.
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
+#include "libslic3r/Fill/InfillFactory.hpp"
+#include "libslic3r/Fill/InfillPurpose.hpp"
+#include <memory>
+
+namespace {
+
+// A stand-in plugin fill: creates successfully and emits no paths, so the job reaches its fill seam
+// without pulling in any built-in geometry.
+class NoopFill final : public Slic3r::Fill
+{
+public:
+    Slic3r::Fill *clone() const override { return new NoopFill(*this); }
+    bool          is_self_crossing() override { return false; }
+};
+
+struct ScopedTestInfillPattern
+{
+    std::string plugin_key;
+    std::string capability;
+
+    ScopedTestInfillPattern(std::string id, std::string plugin_key_, std::string capability_)
+        : plugin_key(std::move(plugin_key_)), capability(std::move(capability_))
+    {
+        REQUIRE(Slic3r::InfillFactory::register_plugin_infill(
+            id, "Cleanup Test Pattern", plugin_key, capability,
+            {Slic3r::InfillSurfacePurpose::Sparse}, {},
+            []() -> std::unique_ptr<Slic3r::Fill> { return std::make_unique<NoopFill>(); }));
+    }
+    ~ScopedTestInfillPattern() { Slic3r::InfillFactory::unregister_plugin_infills(plugin_key, capability); }
+
+    ScopedTestInfillPattern(const ScopedTestInfillPattern&)            = delete;
+    ScopedTestInfillPattern& operator=(const ScopedTestInfillPattern&) = delete;
+};
+
+struct ScopedSlicingHook
+{
+    explicit ScopedSlicingHook(Slic3r::Print::SlicingPipelineHookFn fn) { Slic3r::Print::set_slicing_pipeline_hook_fn(std::move(fn)); }
+    ~ScopedSlicingHook() { Slic3r::Print::set_slicing_pipeline_hook_fn(nullptr); }
+
+    ScopedSlicingHook(const ScopedSlicingHook&)            = delete;
+    ScopedSlicingHook& operator=(const ScopedSlicingHook&) = delete;
+};
+
+Slic3r::DynamicPrintConfig cleanup_config(const std::string& plugin_key, const std::string& capability, const std::string& pattern_id)
+{
+    Slic3r::DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
+    config.set_key_value("slicing_pipeline_plugin", new Slic3r::ConfigOptionStrings({"cleanup-probe"}));
+    config.set_key_value("plugins", new Slic3r::ConfigOptionStrings({plugin_key + ";;" + capability}));
+    config.set_key_value("sparse_infill_pattern", new Slic3r::ConfigOptionString(pattern_id));
+    return config;
+}
+
+} // namespace
+
+TEST_CASE("A throwing PrepareInfill hook releases the job's pinned infill provider", "[slicing_pipeline]") {
+    ScopedTestInfillPattern pattern("cleanup-hook-pattern", "CleanupHookPlugin", "Cleanup Hook Infill");
+
+    bool pinned_at_seam = false;
+    ScopedSlicingHook hook([&](Slic3r::Print&, const Slic3r::PrintObject*, Slic3r::SlicingPipelineStepPlugin step) {
+        if (step != Slic3r::SlicingPipelineStepPlugin::posPrepareInfill)
+            return;
+        pinned_at_seam = Slic3r::InfillFactory::has_pinned_infills("CleanupHookPlugin", "Cleanup Hook Infill");
+        throw Slic3r::SlicingError("cleanup hook failure");
+    });
+
+    Slic3r::Print print;
+    Slic3r::Model model;
+    init_print({cube(20)}, print, model, cleanup_config("CleanupHookPlugin", "Cleanup Hook Infill", "cleanup-hook-pattern"));
+    CHECK_THROWS_AS(print.process(), Slic3r::SlicingError);
+
+    CHECK(pinned_at_seam);
+    CHECK_FALSE(Slic3r::InfillFactory::has_pinned_infills("CleanupHookPlugin", "Cleanup Hook Infill"));
+}
+
+TEST_CASE("Clearing layers during the job keeps the pinned infill provider", "[slicing_pipeline]") {
+    ScopedTestInfillPattern pattern("cleanup-clear-pattern", "CleanupClearPlugin", "Cleanup Clear Infill");
+
+    bool pinned_before = false;
+    bool pinned_after  = false;
+    ScopedSlicingHook hook([&](Slic3r::Print&, const Slic3r::PrintObject* object, Slic3r::SlicingPipelineStepPlugin step) {
+        if (step != Slic3r::SlicingPipelineStepPlugin::posPrepareInfill || object == nullptr)
+            return;
+        pinned_before = Slic3r::InfillFactory::has_pinned_infills("CleanupClearPlugin", "Cleanup Clear Infill");
+        // A step-local layer reset must not drop a job-wide pin: the provider is still needed by the
+        // fill workers of this and later objects. Only process() may release it.
+        const_cast<Slic3r::PrintObject*>(object)->clear_layers();
+        pinned_after = Slic3r::InfillFactory::has_pinned_infills("CleanupClearPlugin", "Cleanup Clear Infill");
+        throw Slic3r::SlicingError("cleanup hook failure after clearing layers");
+    });
+
+    Slic3r::Print print;
+    Slic3r::Model model;
+    init_print({cube(20)}, print, model, cleanup_config("CleanupClearPlugin", "Cleanup Clear Infill", "cleanup-clear-pattern"));
+    CHECK_THROWS_AS(print.process(), Slic3r::SlicingError);
+
+    CHECK(pinned_before);
+    CHECK(pinned_after);
+    CHECK_FALSE(Slic3r::InfillFactory::has_pinned_infills("CleanupClearPlugin", "Cleanup Clear Infill"));
+}
+
+TEST_CASE("Every object's infill provider is pinned for the whole job", "[slicing_pipeline]") {
+    // Each object selects a different capability. At the first object's Infill seam, the provider of
+    // the later object must already be pinned: per-object pinning would let an unload finish between
+    // the two objects and tear down the second provider before its object is reached.
+    ScopedTestInfillPattern first_pattern("cleanup-job-a-pattern", "CleanupJobPlugin", "Cleanup A Infill");
+    ScopedTestInfillPattern second_pattern("cleanup-job-b-pattern", "CleanupJobPlugin", "Cleanup B Infill");
+
+    bool sampled = false;
+    bool a_pinned = false;
+    bool b_pinned = false;
+    ScopedSlicingHook hook([&](Slic3r::Print&, const Slic3r::PrintObject*, Slic3r::SlicingPipelineStepPlugin step) {
+        if (sampled || step != Slic3r::SlicingPipelineStepPlugin::posInfill)
+            return;
+        sampled = true;
+        a_pinned = Slic3r::InfillFactory::has_pinned_infills("CleanupJobPlugin", "Cleanup A Infill");
+        b_pinned = Slic3r::InfillFactory::has_pinned_infills("CleanupJobPlugin", "Cleanup B Infill");
+        throw Slic3r::SlicingError("cleanup hook failure at the first infill seam");
+    });
+
+    std::vector<Slic3r::TriangleMesh> meshes;
+    meshes.push_back(cube(20));
+    meshes.push_back(cube(20));
+    std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> overrides(2);
+    overrides[0] = {{"sparse_infill_pattern", "cleanup-job-a-pattern"}};
+    overrides[1] = {{"sparse_infill_pattern", "cleanup-job-b-pattern"}};
+
+    Slic3r::DynamicPrintConfig config = cleanup_config("CleanupJobPlugin", "Cleanup A Infill", "cleanup-job-a-pattern");
+    config.set_key_value("plugins", new Slic3r::ConfigOptionStrings(
+        {"CleanupJobPlugin;;Cleanup A Infill", "CleanupJobPlugin;;Cleanup B Infill"}));
+
+    Slic3r::Print print;
+    Slic3r::Model model;
+    init_print(std::move(meshes), print, model, config, &overrides);
+    CHECK_THROWS_AS(print.process(), Slic3r::SlicingError);
+
+    CHECK(sampled);
+    CHECK(a_pinned);
+    CHECK(b_pinned);
+    CHECK_FALSE(Slic3r::InfillFactory::has_pinned_infills("CleanupJobPlugin", "Cleanup A Infill"));
+    CHECK_FALSE(Slic3r::InfillFactory::has_pinned_infills("CleanupJobPlugin", "Cleanup B Infill"));
+}
+
+TEST_CASE("Plugin infill identity follows the provider behind a selected pattern", "[slicing_pipeline]") {
+    const std::string id = "identity-change-pattern";
+    Slic3r::Print      print;
+    Slic3r::Model      model;
+
+    {
+        ScopedTestInfillPattern owner_a(id, "IdentityOwnerA", "Identity Infill");
+        init_print({cube(20)}, print, model, cleanup_config("IdentityOwnerA", "Identity Infill", id));
+
+        const std::vector<Slic3r::Print::PluginInfillDependency> dependencies = print.plugin_infill_dependencies();
+        REQUIRE(dependencies.size() == 1);
+        CHECK(dependencies.front().pattern_id == id);
+        CHECK(dependencies.front().plugin_key == "IdentityOwnerA");
+        CHECK(dependencies.front().capability_name == "Identity Infill");
+        CHECK(dependencies.front().available);
+
+        // Nothing has been filled yet, so there is no recorded identity that can go stale.
+        CHECK(print.sliced_plugin_infill_dependencies().empty());
+        CHECK_FALSE(print.plugin_infill_identity_changed());
+
+        print.process();
+        const std::vector<Slic3r::Print::PluginInfillDependency> sliced = print.sliced_plugin_infill_dependencies();
+        REQUIRE(sliced.size() == 1);
+        CHECK(sliced.front().plugin_key == "IdentityOwnerA");
+        CHECK_FALSE(print.plugin_infill_identity_changed());
+    }
+
+    // The same pattern ID, now unprovided: the selected setting still names it, but its identity is
+    // gone. This is what an unload/disable looks like to the cached slice.
+    {
+        const std::vector<Slic3r::Print::PluginInfillDependency> dependencies = print.plugin_infill_dependencies();
+        REQUIRE(dependencies.size() == 1);
+        CHECK_FALSE(dependencies.front().available);
+        CHECK(dependencies.front().plugin_key.empty());
+        CHECK(print.plugin_infill_identity_changed());
+    }
+
+    // A different provider registering the same ID is a different identity even though the stored
+    // pattern value did not change.
+    {
+        ScopedTestInfillPattern owner_b(id, "IdentityOwnerB", "Identity Infill");
+        const std::vector<Slic3r::Print::PluginInfillDependency> dependencies = print.plugin_infill_dependencies();
+        REQUIRE(dependencies.size() == 1);
+        CHECK(dependencies.front().plugin_key == "IdentityOwnerB");
+        CHECK(print.plugin_infill_identity_changed());
+    }
+}
+
+TEST_CASE("Plugin infill invalidation only invalidates objects using a plugin pattern", "[slicing_pipeline]") {
+    ScopedTestInfillPattern pattern("targeted-pattern", "TargetedPlugin", "Targeted Infill");
+
+    std::vector<Slic3r::TriangleMesh> meshes;
+    meshes.push_back(cube(20));
+    meshes.push_back(cube(20));
+    // Object 0 inherits the print-wide plugin pattern; object 1 keeps a built-in pattern.
+    std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> overrides(2);
+    overrides[1] = {{"sparse_infill_pattern", "rectilinear"}};
+
+    const Slic3r::DynamicPrintConfig config =
+        cleanup_config("TargetedPlugin", "Targeted Infill", "targeted-pattern");
+
+    Slic3r::Print print;
+    Slic3r::Model model;
+    init_print(std::move(meshes), print, model, config, &overrides);
+    print.process();
+
+    const auto objects = print.objects();
+    REQUIRE(objects.size() == 2);
+    REQUIRE(objects[0]->is_step_done(posInfill));
+    REQUIRE(objects[1]->is_step_done(posInfill));
+
+    CHECK(print.invalidate_plugin_infill());
+    CHECK_FALSE(objects[0]->is_step_done(posInfill));
+    CHECK(objects[1]->is_step_done(posInfill));
+    CHECK_FALSE(print.invalidate_plugin_infill());
 }

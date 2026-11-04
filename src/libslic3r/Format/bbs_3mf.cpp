@@ -75,6 +75,7 @@
 
 #include <boost/assign.hpp>
 #include <boost/bimap.hpp>
+#include <nlohmann/json.hpp>
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -106,7 +107,6 @@ namespace pt = boost::property_tree;
 #include <expat.h>
 #include <Eigen/Dense>
 #include "miniz_extension.hpp"
-#include "nlohmann/json.hpp"
 
 #include "TextConfiguration.hpp"
 #include "EmbossShape.hpp"
@@ -8212,7 +8212,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
     {
         const std::string& temp_path = model.get_backup_path();
         std::string temp_file = temp_path + std::string("/") + "_temp_1.config";
-        config.save_to_json(temp_file, std::string("project_settings"), std::string("project"), std::string(SLIC3R_VERSION));
+        // Plugin-backed settings may be overridden per object, volume or layer range, so their
+        // references are folded into the project manifest here, where the model is in scope.
+        config.save_to_json(temp_file, std::string("project_settings"), std::string("project"),
+                            std::string(SLIC3R_VERSION), model.object_and_volume_configs());
         return _add_file_to_archive(archive, BBS_PROJECT_CONFIG_FILE, temp_file);
     }
 

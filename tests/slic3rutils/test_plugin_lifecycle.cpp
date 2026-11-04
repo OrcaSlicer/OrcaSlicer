@@ -29,6 +29,7 @@
 #include <fstream>
 #include <mutex>
 #include "slic3r/plugin/PythonPluginInterface.hpp"
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <utility>
@@ -1168,3 +1169,130 @@ TEST_CASE("SSL_CERT_FILE still overrides the bundled Python's default CA certifi
     CHECK(default_context_ca_count() == 0);
 }
 #endif
+
+// ── Runtime diagnostics ────────────────────────────────────────────────────────────────────────
+// report_plugin_diagnostic() is called from an infill generation worker while it may still hold a
+// provider lease. It must not wait for discovery (an unload that follows discovery waits for that
+// exact lease), its diagnostic must outlive a manifest rescan, and a throwing subscriber must not
+// escape into the worker and replace the SlicingError it is about to raise.
+
+TEST_CASE("A runtime diagnostic survives a plugin rescan and is cleared by a reload", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("lifecycle-runtime-diagnostic");
+    write_plugin(data_dir_guard, "Echo_Plugin", ECHO_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "Echo_Plugin", error));
+    INFO("load error: " << error);
+
+    REQUIRE(manager.report_plugin_diagnostic("Echo_Plugin", "generate exploded"));
+
+    PluginDescriptor descriptor;
+    REQUIRE(manager.try_get_plugin_descriptor("Echo_Plugin", descriptor));
+    CHECK(descriptor.error.find("generate exploded") != std::string::npos);
+
+    // A manifest-only rescan replaces the descriptor. A runtime diagnostic is not scan state and has
+    // to be carried across the merge.
+    manager.discover_plugins(/*async=*/false, /*clear=*/false);
+    REQUIRE(manager.try_get_plugin_descriptor("Echo_Plugin", descriptor));
+    CHECK(descriptor.error.find("generate exploded") != std::string::npos);
+
+    // A reload is the documented end of a diagnostic's life.
+    REQUIRE(manager.unload_plugin("Echo_Plugin"));
+    REQUIRE(load_and_wait(manager, "Echo_Plugin", error));
+    REQUIRE(manager.try_get_plugin_descriptor("Echo_Plugin", descriptor));
+    CHECK(descriptor.error.empty());
+}
+
+TEST_CASE("A throwing runtime-error subscriber does not escape report_plugin_diagnostic", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("lifecycle-runtime-diagnostic-callback");
+    write_plugin(data_dir_guard, "Echo_Plugin", ECHO_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "Echo_Plugin", error));
+    INFO("load error: " << error);
+
+    manager.subscribe_on_runtime_error_callback([](const std::string&) {
+        throw std::runtime_error("subscriber boom");
+    });
+    CHECK_NOTHROW(manager.report_plugin_diagnostic("Echo_Plugin", "recorded despite subscriber"));
+
+    PluginDescriptor descriptor;
+    REQUIRE(manager.try_get_plugin_descriptor("Echo_Plugin", descriptor));
+    CHECK(descriptor.error.find("recorded despite subscriber") != std::string::npos);
+
+    manager.unload_plugin("Echo_Plugin");
+}
+
+TEST_CASE("A runtime diagnostic is recorded without waiting for an in-progress discovery scan", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("lifecycle-diagnostic-during-discovery");
+    write_plugin(data_dir_guard, "Echo_Plugin", ECHO_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    PluginDescriptor descriptor;
+    REQUIRE(manager.try_get_plugin_descriptor("Echo_Plugin", descriptor));
+
+    // A second package that is slow to scan keeps a rescan inside discover_plugin_packages() long
+    // enough for the report below to land while it runs. The metadata reader reads the file line by
+    // line, so a large comment-only file costs a deterministic amount of time without needing Python.
+    const fs::path slow_dir = data_dir_guard.plugins_dir() / "Slow_Plugin";
+    fs::create_directories(slow_dir);
+    {
+        std::ofstream out((slow_dir / "Slow_Plugin.py").string(), std::ios::binary);
+        const std::string filler(8 * 1000 * 1000, '\n');
+        out.write(filler.data(), static_cast<std::streamsize>(filler.size()));
+    }
+
+    bool reported_during_scan = false;
+    for (int attempt = 0; attempt < 5 && !reported_during_scan; ++attempt) {
+        std::string attempt_error;
+        REQUIRE(manager.wait_for_discovery(std::chrono::seconds(120), attempt_error));
+        manager.discover_plugins(/*async=*/true, /*clear=*/false);
+        if (!manager.is_discovery_in_progress())
+            continue; // the worker finished before this thread was scheduled; scan again
+
+        // A generation worker reports here while it still holds its provider lease. Recording the
+        // diagnostic takes only the registry lock, which discovery never holds while scanning, so the
+        // scan must still be running when the call returns: waiting for it would make a concurrent
+        // unload — which waits for the lease — wait for the whole scan.
+        if (!manager.report_plugin_diagnostic("Echo_Plugin", "boom while a scan runs"))
+            continue;
+        // A scan that ended between the report and this check did not exercise the interleaving.
+        // Retry instead of failing on thread scheduling.
+        if (!manager.is_discovery_in_progress())
+            continue;
+        reported_during_scan = true;
+    }
+    REQUIRE(reported_during_scan);
+
+    std::string wait_error;
+    REQUIRE(manager.wait_for_discovery(std::chrono::seconds(120), wait_error));
+    INFO("discovery error: " << wait_error);
+    CHECK(wait_error.empty());
+
+    // The scan's descriptor merge must carry the diagnostic recorded while it was in flight.
+    REQUIRE(manager.try_get_plugin_descriptor("Echo_Plugin", descriptor));
+    CHECK(descriptor.error.find("boom while a scan runs") != std::string::npos);
+}

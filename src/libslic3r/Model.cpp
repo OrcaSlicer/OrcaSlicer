@@ -1110,6 +1110,23 @@ std::string Model::get_auxiliary_file_temp_path()
     return get_backup_path("Auxiliaries");
 }
 
+std::vector<const ConfigBase*> Model::object_and_volume_configs() const
+{
+    std::vector<const ConfigBase*> configs;
+    for (const ModelObject* object : this->objects) {
+        if (object == nullptr)
+            continue;
+        configs.emplace_back(&object->config.get());
+        for (const ModelVolume* volume : object->volumes)
+            if (volume != nullptr)
+                configs.emplace_back(&volume->config.get());
+        // A layer-range override can be the only place a plugin-backed print setting is set.
+        for (const auto& range : object->layer_config_ranges)
+            configs.emplace_back(&range.second.get());
+    }
+    return configs;
+}
+
 // BBS: backup dir
 std::string Model::get_backup_path()
 {

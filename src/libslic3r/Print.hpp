@@ -2,9 +2,11 @@
 #define slic3r_Print_hpp_
 
 #include "Config.hpp"
+#include "Fill/InfillPurpose.hpp"
 #include "Model.hpp"
 #include "Polygon.hpp"
 #include "Fill/FillBase.hpp"
+#include "Fill/InfillFactory.hpp"
 #include "Polyline.hpp"
 #include "ExtrusionEntity.hpp"
 #include "Geometry.hpp"
@@ -1084,6 +1086,46 @@ public:
     ApplyStatus         apply(const Model &model, DynamicPrintConfig config, bool extruder_applied = false) override;
 
     void                process(long long *time_cost_with_cache = nullptr, bool use_cache = false) override;
+
+    // Identity of one plugin-backed infill pattern selected by this print, together with the
+    // provider that currently resolves it. The pattern ID alone is not an identity: after an unload
+    // the same ID can be registered by a different provider, and an unavailable ID has no owner.
+    struct PluginInfillDependency
+    {
+        std::string                       pattern_id;
+        std::string                       plugin_key;       // empty while the pattern is unavailable
+        std::string                       capability_name;
+        std::string                       display_name;
+        std::vector<InfillSurfacePurpose> supported_surfaces;
+        bool                              available = false;
+
+        bool operator==(const PluginInfillDependency &other) const;
+        bool operator!=(const PluginInfillDependency &other) const { return !(*this == other); }
+    };
+
+    // Every plugin pattern the current object/region settings select, sorted by pattern ID, with
+    // the provider identity that currently resolves it (available == false when the ID is no
+    // longer provided by a loaded plugin). Cheap; does not slice.
+    std::vector<PluginInfillDependency> plugin_infill_dependencies() const;
+    // The provider identity recorded for each still-selected plugin pattern by the most recent job
+    // that produced that pattern's fills (merged across partial jobs). Empty before any plugin
+    // fill. Safe to read while a job is running (the snapshot is synchronized).
+    std::vector<PluginInfillDependency> sliced_plugin_infill_dependencies() const;
+    // True when a currently selected plugin pattern resolves to a provider identity different from
+    // the one recorded for its fills: the provider was replaced, unloaded/disabled, or its
+    // descriptor metadata changed. Pattern selection changes are excluded; normal config apply
+    // already invalidates those. False before any plugin fill exists. Safe to read while a job is
+    // running.
+    bool plugin_infill_identity_changed() const;
+    // Invalidate fills for the objects that select plugin patterns, cascading to ironing,
+    // contouring, simplify, skirt/brim, wipe tower and G-code export. Returns true when any step
+    // actually changed; objects using only built-in patterns are untouched. On success the recorded
+    // provider identity is forgotten, because the fills it described no longer exist.
+    //
+    // Call only while no background slicing or export is running. This uses the normal
+    // invalidation path, which cancels a running job, and it is not a deferred request.
+    bool invalidate_plugin_infill();
+
     // Exports G-code into a file name based on the path_template, returns the file path of the generated G-code file.
     // If preview_data is not null, the preview_data is filled in for the G-code visualization (not used by the command line Slic3r).
     std::string         export_gcode(const std::string& path_template, GCodeProcessorResult* result, ThumbnailsGeneratorCallback thumbnail_cb = nullptr);
@@ -1499,8 +1541,33 @@ private:
     // Islands of objects and their supports extruded at the 1st layer.
     Polygons            first_layer_islands() const;
 
+    // Validate every plugin infill pattern the job will use and pin its provider for the whole
+    // process() run. Pinned once, before any slicing, so an unload between two objects cannot tear
+    // down a provider that a later object still needs. Throws SlicingError before the job starts
+    // when a pattern is unavailable, differently owned, or selected for an unsupported surface.
+    // Returns the identity of the pinned providers, which process() records once the job has run.
+    std::map<std::string, PluginInfillDependency>
+                        prepare_plugin_infills(const std::vector<PrintObject *> &objects);
+    // Release the pins taken by prepare_plugin_infills(). Only process() (and Print::clear() after
+    // slicing has stopped) may call this: an object step or a config invalidation must never drop a
+    // pin while a fill worker can still create Fills.
+    void                release_plugin_infills();
+    // Collect the plugin pattern IDs selected by `objects` with the union of the purposes that
+    // selected them. Shared by the job pinner and the dependency query.
+    std::map<std::string, std::vector<InfillSurfacePurpose>> selected_plugin_infill_patterns(
+        const std::vector<PrintObject *> &objects) const;
+    // Current provider identity for every selected plugin pattern, keyed by pattern ID.
+    std::map<std::string, PluginInfillDependency> current_plugin_infill_dependencies() const;
+
     static SlicingPipelineHookFn s_slicing_pipeline_hook_fn;
     bool m_pipeline_plugin_active { false };
+    // Job-scoped provider leases for every plugin pattern the running process() creates Fills
+    // for. Held from before slicing until process() returns; see release_plugin_infills().
+    std::map<std::string, InfillFactory::Selection> m_job_infill_selections;
+    // Provider identity that produced the fills currently held by this print, recorded by the job
+    // that produced them (merged across partial jobs). Used to tell a stale cached result from a
+    // still-current one; a job that throws or is cancelled records nothing.
+    std::map<std::string, PluginInfillDependency> m_sliced_plugin_infill_identity;
     void run_pipeline_hook(SlicingPipelineStepPlugin step, const PrintObject* object) {
         if (m_pipeline_plugin_active && s_slicing_pipeline_hook_fn)
             s_slicing_pipeline_hook_fn(*this, object, step);
