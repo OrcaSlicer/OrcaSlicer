@@ -20,7 +20,8 @@ Notes (be sure to tell this to your agents, too):
 
 - Use `./scripts/gh.sh` to interact with Github, rather than web fetch or raw `gh`. Examples:
   - `./scripts/gh.sh issue view 123` — view an issue
-  - `./scripts/gh.sh issue view 123 --comments` — view with comments
+  - `./scripts/gh.sh issue view 123 --comments` — view only the comments (prints nothing when there are none)
   - `./scripts/gh.sh issue list --state open --limit 20` — list issues
   - `./scripts/gh.sh search issues "query" --limit 10` — search for issues
+- Run each script call as a plain command like the examples, with no `cd`, environment variables, pipes, redirects or `;`/`&&` chains: anything else is refused
 - Do not use other tools, beyond `./scripts/gh.sh` and the comment script (eg. don't use other MCP servers, file edit, etc.)
