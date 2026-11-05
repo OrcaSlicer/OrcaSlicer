@@ -648,14 +648,14 @@ TEST_CASE("Moonraker discovery waits for a complete device identity", "[Moonrake
     REQUIRE(agent.fetch_count == 0);
 
     agent.device_info.dev_id = "127.0.0.1:7125";
-    agent.device_info.dev_ip = agent.device_info.dev_id;
+    agent.device_info.dev_ip = "127.0.0.1";
     agent.device_info.base_url = "http://127.0.0.1:7125";
     agent.device_info.model_name = "Test model";
     agent.start_discovery(true, false);
     REQUIRE(announcements == 1);
     REQUIRE(agent.fetch_count == 0);
     REQUIRE(announcement.at("dev_id") == agent.device_info.dev_id);
-    REQUIRE(announcement.at("dev_ip") == agent.device_info.dev_ip);
+    REQUIRE(announcement.at("dev_ip") == "127.0.0.1:7125");
     REQUIRE(announcement.at("dev_name") == "Test model");
 }
 

@@ -2682,6 +2682,13 @@ void MachineObject::update_print_progress(const json& value)
         curr_task->task_progress = mc_print_percent;
 }
 
+// Orca: the agents that inherit MoonrakerPrinterAgent's connection and discovery.
+static bool connects_through_moonraker_agent(const std::string& agent_id)
+{
+    return agent_id == MOONRAKER_PRINTER_AGENT_ID || agent_id == QIDI_PRINTER_AGENT_ID ||
+           agent_id == SNAPMAKER_PRINTER_AGENT_ID || agent_id == CREALITYPRINT_PRINTER_AGENT_ID;
+}
+
 int MachineObject::connect()
 {
     if (m_access_revoked || get_dev_ip().empty()) return -1;
@@ -2697,7 +2704,7 @@ int MachineObject::connect()
     std::string host = Http::get_host_from_url(input, &port);
     // Orca: a print host's dev_id is its host:port. Records saved by older builds can hold the
     // bare IP as dev_ip, so take the port from the dev_id rather than falling back to port 80.
-    if (port.empty() && printer_agent_id == MOONRAKER_PRINTER_AGENT_ID)
+    if (port.empty() && connects_through_moonraker_agent(printer_agent_id))
         Http::get_host_from_url(get_dev_id(), &port);
     std::string ca_file;
 
