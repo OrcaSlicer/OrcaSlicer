@@ -8,6 +8,7 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem/file_status.hpp>
 #include <boost/filesystem/path.hpp>
@@ -34,8 +35,14 @@
 #include <utility>
 #include <vector>
 #include <wx/app.h>
+#include <wx/colour.h>
 #include <wx/event.h>
+#include <wx/dcclient.h>
+#include <wx/gdicmn.h>
+#include <wx/html/htmlwin.h>
 #include <wx/msgdlg.h>
+#include <wx/settings.h>
+#include <wx/sizer.h>
 #include <wx/string.h>
 #include <wx/thread.h>
 #include "slic3r/GUI/I18N.hpp"
@@ -369,6 +376,94 @@ static const char* category_name(AuditEventCategory category)
 // ---------------------------------------------------------------------------
 
 namespace {
+
+struct PermissionMessage {
+    wxString text;
+    std::vector<std::pair<size_t, size_t>> targets;
+};
+
+class PermissionDialog : public GUI::MsgDialog
+{
+public:
+    PermissionDialog(const PermissionMessage& message, const wxString& title, bool show_tip)
+        : MsgDialog(nullptr, title, wxEmptyString, wxYES_NO | wxICON_WARNING)
+    {
+        auto* html = new wxHtmlWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHW_SCROLLBAR_AUTO);
+        const wxFont prose = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
+        const wxFont code = GUI::wxGetApp().code_font();
+        const int point_size = prose.GetPointSize();
+        int sizes[] = {point_size, code.GetPointSize(), point_size, point_size, point_size, point_size, point_size};
+        html->SetFonts(prose.GetFaceName(), code.GetFaceName(), sizes);
+        html->SetBorders(2);
+
+        auto escape = [](const wxString& text, bool fixed) {
+            std::string result = xml_escape(text.ToUTF8().data());
+            boost::replace_all(result, "\r\n", "\n");
+            boost::replace_all(result, "\n", "<br>");
+            if (fixed)
+                boost::replace_all(result, " ", "&nbsp;");
+            return wxString::FromUTF8(result.c_str());
+        };
+        wxString body;
+        size_t pos = 0;
+        for (const auto& range : message.targets) {
+            body += escape(message.text.Mid(pos, range.first - pos), false);
+            // Add visual separation without changing the translated message or target text.
+            // The target list already ends in a newline; surrounding messages may provide
+            // their own blank lines, so only add spacing where there isn't one already.
+            if (range.first > 0) {
+                if (message.text[range.first - 1] != '\n')
+                    body += "<br>";
+                if (range.first < 2 || message.text[range.first - 2] != '\n')
+                    body += "<br>";
+            }
+            body += "<font size=2><tt>" + escape(message.text.Mid(range.first, range.second), true) + "</tt></font>";
+            pos = range.first + range.second;
+            if (pos < message.text.length() && message.text[pos] != '\n')
+                body += "<br>";
+        }
+        body += escape(message.text.Mid(pos), false);
+        const wxColour foreground = GUI::wxGetApp().get_label_clr_default();
+        const wxColour background = GetBackgroundColour();
+
+        wxClientDC dc(this);
+        dc.SetFont(prose);
+        const int em = std::max(dc.GetTextExtent("m").x, FromDIP(10));
+        const wxSize extent = dc.GetMultiLineTextExtent(message.text);
+        const int width = std::min(std::max(extent.x + FromDIP(20), 35 * em), 68 * em);
+        // Lay out at the intended width before measuring. wxHtmlWindow computes its virtual
+        // size from the rendered cells, including wrapped prose and unbreakable target lines.
+        html->SetSize(wxSize(width, 4 * em));
+        html->SetPage(wxString::Format("<html><body bgcolor=\"#%02x%02x%02x\"><font color=\"#%02x%02x%02x\">",
+                                       background.Red(), background.Green(), background.Blue(),
+                                       foreground.Red(), foreground.Green(), foreground.Blue()) + body + "</font></body></html>");
+        const wxSize virtual_size = html->GetVirtualSize();
+        const int scrollbar = virtual_size.x > html->GetClientSize().x
+                                  ? wxSystemSettings::GetMetric(wxSYS_HSCROLL_Y, html) : 0;
+        const int height = std::min(std::max(virtual_size.y + scrollbar + FromDIP(4), 4 * em), 48 * em);
+        html->SetMinSize(wxSize(width, height));
+        m_html = html;
+        m_content_dip = ToDIP(wxSize(width, height));
+        content_sizer->Add(html, 1, wxEXPAND | wxRIGHT, 8);
+        GUI::wxGetApp().UpdateDarkUIWin(html);
+        if (show_tip)
+            show_dsa_button(_L("Don't show this tip again"));
+        finalize();
+    }
+
+    void on_dpi_changed(const wxRect& suggested_rect) override
+    {
+        GUI::MsgDialog::on_dpi_changed(suggested_rect);
+        m_html->SetMinSize(FromDIP(m_content_dip));
+        GetSizer()->SetSizeHints(this);
+        Layout();
+        Fit();
+    }
+
+private:
+    wxHtmlWindow* m_html = nullptr;
+    wxSize m_content_dip;
+};
 
 // Canonicalize a path for containment comparison.  weakly_canonical resolves symlinks but does
 // NOT require the path to exist — it canonicalizes the prefix that exists and appends the
@@ -795,18 +890,16 @@ void append_permission_dialog_tip(wxString& message)
 
 // The preference affects only the explanatory tip, never the permission decision.
 // Must run on the GUI thread.
-bool show_permission_dialog(wxString message, const wxString& title)
+bool show_permission_dialog(PermissionMessage message, const wxString& title)
 {
     auto* config = GUI::wxGetApp().app_config;
     const bool show_tip = config == nullptr || config->get("hide_plugin_permission_tip") != "1";
     if (show_tip)
-        append_permission_dialog_tip(message);
+        append_permission_dialog_tip(message.text);
 
-    GUI::RichMessageDialog dialog(nullptr, message, title, wxYES_NO | wxICON_WARNING);
-    if (show_tip)
-        dialog.ShowCheckBox(_L("Don't show this tip again"));
+    PermissionDialog dialog(message, title, show_tip);
     const int result = dialog.ShowModal();
-    if (show_tip && config != nullptr && (result == wxID_YES || result == wxID_NO) && dialog.IsCheckBoxChecked()) {
+    if (show_tip && config != nullptr && (result == wxID_YES || result == wxID_NO) && dialog.get_checkbox_state()) {
         config->set("hide_plugin_permission_tip", "1");
         config->save();
     }
@@ -1421,6 +1514,25 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
     }
 }
 
+// Format with a placeholder first so translated messages can put the target list anywhere.
+PermissionMessage formatted_audit_message(AuditEventCategory category, const wxString& plugin_name,
+                                          const wxString& event_name, const wxString& targets, size_t count)
+{
+    if (targets.empty())
+        return {audit_message(category, plugin_name, event_name, targets, count), {}};
+
+    wxString marker = "__ORCA_PERMISSION_TARGETS__";
+    while (plugin_name.Contains(marker) || event_name.Contains(marker) || targets.Contains(marker))
+        marker += "_";
+    PermissionMessage message{audit_message(category, plugin_name, event_name, marker, count), {}};
+    const size_t pos = message.text.find(marker);
+    if (pos != wxString::npos) {
+        message.text.replace(pos, marker.length(), targets);
+        message.targets.emplace_back(pos, targets.length());
+    }
+    return message;
+}
+
 // Builds and shows the modal permission prompt. Must run on the GUI thread.
 bool prompt_for_targets(AuditEventCategory category, const std::string& plugin_name, const std::string& event_name,
                         const std::vector<std::string>& unresolved)
@@ -1429,13 +1541,13 @@ bool prompt_for_targets(AuditEventCategory category, const std::string& plugin_n
     for (const auto& target : unresolved)
         target_list += wxString::FromUTF8(target.c_str()) + "\n";
 
-    wxString message = audit_message(category, wxString::FromUTF8(plugin_name.c_str()), wxString::FromUTF8(event_name.c_str()),
-                                     target_list, unresolved.size());
+    PermissionMessage message = formatted_audit_message(category, wxString::FromUTF8(plugin_name.c_str()),
+                                                         wxString::FromUTF8(event_name.c_str()), target_list, unresolved.size());
     return show_permission_dialog(message, _L("Plugin permission request"));
 }
 
 // Shows a prompt whose body may cover several permission buckets. Must run on the GUI thread.
-bool prompt_for_permission_message(const wxString& message)
+bool prompt_for_permission_message(const PermissionMessage& message)
 {
     return show_permission_dialog(message, _L("Plugin permissions"));
 }
@@ -1723,16 +1835,19 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
         return true;
 
     const auto build_message = [](const std::string& plugin_name, const std::vector<MissingBucket>& buckets) {
-        wxString message;
+        PermissionMessage message;
         for (const MissingBucket& bucket : buckets) {
             wxString targets;
             for (const std::string& target : bucket.targets)
                 targets += wxString::FromUTF8(target.c_str()) + "\n";
 
-            if (!message.IsEmpty())
-                message += "\n\n";
-            message += PluginAuditDetail::audit_message(bucket.category, wxString::FromUTF8(plugin_name.c_str()),
-                                                        wxEmptyString, targets, bucket.targets.size());
+            if (!message.text.IsEmpty())
+                message.text += "\n\n";
+            PermissionMessage part = PluginAuditDetail::formatted_audit_message(
+                bucket.category, wxString::FromUTF8(plugin_name.c_str()), wxEmptyString, targets, bucket.targets.size());
+            for (const auto& range : part.targets)
+                message.targets.emplace_back(message.text.length() + range.first, range.second);
+            message.text += part.text;
         }
         return message;
     };
@@ -1740,7 +1855,7 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     bool granted = false;
     if (PluginAuditDetail::s_permission_message_prompt_for_testing) {
         // Tests run without a wxApp to host the dialog: hand the seam the message it would show.
-        wxString message = build_message(descriptor.name, missing_buckets);
+        wxString message = build_message(descriptor.name, missing_buckets).text;
         append_permission_dialog_tip(message);
         granted = PluginAuditDetail::s_permission_message_prompt_for_testing(message.utf8_string());
     } else if (wxTheApp == nullptr || GUI::wxGetApp().is_closing()) {
