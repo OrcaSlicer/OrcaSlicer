@@ -43,10 +43,20 @@
 // asking for it: few sheets, little stopped. The backing is what hides the scene on a real print,
 // and it is drawn here only when the viewer asks for it.
 
-// How little of its own colour a filament still absorbs. Without a floor a pure red would pass red
-// untouched however thick it was, and a lithophane of it would have no picture in its own hue.
-// chromastack.fs uses the same number for the same reason.
-#define CHROMA_BACK_ABSORB_FLOOR 0.35
+// The hue a sheet lends to light passing through it: its linear colour with its own darkness divided
+// out, so the brightest channel comes out 1 and the others in proportion. chroma_palette()'s
+// backlit_tint(), and chromastack.fs's chroma_backlit_tint(), so all three agree on what a back-lit
+// stack looks like. How much light gets through at all is the density's business alone, which is why
+// the attenuation below is neutral and this is applied on top of it.
+//
+// This replaces running the absorption against the filament's own colour behind a floor, which was a
+// different function from the one the solve used: over a ten-layer band of white it passed about fifty
+// times more light than the palette predicted.
+vec3 chroma_backlit_tint(vec3 linear_color)
+{
+    float peak = max(max(linear_color.r, linear_color.g), linear_color.b);
+    return (peak > 1.0e-6) ? linear_color / peak : vec3(1.0);
+}
 
 // Which half of the light this draw is for.
 //
@@ -82,6 +92,8 @@ uniform float sheet_index;       // which layer this sheet is, counted from the 
 uniform int   stack_flipped;
 
 uniform vec3  sheet_color;
+// The same colour in linear light, uploaded through the srgb_to_linear() the palette uses.
+uniform vec3  sheet_color_lin;
 // What this sheet absorbs along the stacking axis: chroma_layer_density() for one layer, times as
 // many layers as the sheet stands for.
 uniform float sheet_density;
@@ -167,8 +179,9 @@ void main()
         // its own colour, which is what makes a lithophane of a red filament red where it is thick -
         // the same per-channel absorption the walk uses, with the same floor so a saturated filament
         // still carries a picture.
-        vec3 absorb = mix(vec3(CHROMA_BACK_ABSORB_FLOOR), vec3(1.0), 1.0 - sheet_color);
-        out_color    = vec4(exp(-sheet_density * path * cover * absorb), 1.0);
+        out_color = vec4(exp(-sheet_density * path * cover) *
+                       pow(chroma_backlit_tint(sheet_color_lin), vec3(path * cover)),
+                   1.0);
         return;
     }
 

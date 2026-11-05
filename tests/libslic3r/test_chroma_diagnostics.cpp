@@ -379,6 +379,29 @@ TEST_CASE("A translucent filament at the bottom of a front lit stack is reported
     REQUIRE(f->band_a == 0);
 }
 
+TEST_CASE("The band offered in exchange for a wasted bottom one is the most opaque in the stack",
+          "[ChromaDiagnostics]")
+{
+    // The bottom band is translucent enough to be wasted there, and it is not the most translucent
+    // band in the stack - the one above it is. The finding is still about the bottom band, because a
+    // translucent band further up has the bands below it to show and is doing its job, and the one it
+    // names as the swap is the most opaque band rather than whichever happens to come next.
+    const ChromaFilament bottom = filament(5, ColorRGB(0.9f, 0.9f, 0.9f), 5.f);
+    const ChromaFilament clear  = filament(6, ColorRGB(0.6f, 0.2f, 0.2f), 9.f);
+    const ChromaFilament opaque = filament(7, ColorRGB(0.f, 0.f, 0.f), 1.f);
+
+    const ChromaStack          stack = stack_of({ band(bottom, 6), band(clear, 6), band(opaque, 6) });
+    const std::vector<uint8_t> rgb   = picture_of_palette(stack);
+    const ChromaDiagnostics    d     = chroma_diagnose(histogram_of(rgb), stack);
+
+    const ChromaFinding *f = finding_of(d, ChromaFindingKind::TranslucentWasted);
+    REQUIRE(f != nullptr);
+    REQUIRE(f->band_a == 0);
+    // Band 3 is the opaque one, counted the way the text counts bands.
+    REQUIRE(f->text.find("Band 3") != std::string::npos);
+    REQUIRE(f->text.find("filament 7") != std::string::npos);
+}
+
 TEST_CASE("A stack with nothing wrong with it says so", "[ChromaDiagnostics]")
 {
     // One layer of white over a white base wastes nothing, eight layers of black over it is a gradient

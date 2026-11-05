@@ -479,10 +479,17 @@ cut back to the texels whose column reaches that height, tinted with its band's 
 
 So this is not an approximation of the walk. "Over" applied back to front with one sheet per layer is
 the recursion `chromastack.fs` runs per band, carried out by the blender over real geometry rather
-than in one fragment: the two agree on a column seen straight down, and where they differ is where
-the walk was assuming a column. What the sheets add is the parallax between layers at an angle, the
-relief's own silhouette, and terraces that stand apart instead of meeting in a shaded edge. What they
-give up is the shading, because a sheet has no shape to light.
+than in one fragment. What the sheets add is the parallax between layers at an angle, the relief's own
+silhouette, and terraces that stand apart instead of meeting in a shaded edge. What they give up is
+the shading, because a sheet has no shape to light.
+
+The two differ in one way that is not geometric, and it is the blender's. `chroma_palette()` and the
+surface pass both composite in linear light, because that is the quantity being attenuated; the sheets
+are accumulated by fixed-function blending in the frame buffer, which is not a linear space and cannot
+be made one per draw. So the sheet view's midtones sit a little off the colours the solve was chosen
+against, by the amount an "over" in sRGB differs from an "over" in light. Correcting it means giving
+the chroma passes an sRGB render target of their own rather than changing a shader, which is a change
+to how the canvas is composited and has not been made.
 
 Three things keep the two views in register. The quad is built from the *inverse* of the same closed
 form `picture_uv()` evaluates, so a sheet's texel is the surface pass's texel including the offset

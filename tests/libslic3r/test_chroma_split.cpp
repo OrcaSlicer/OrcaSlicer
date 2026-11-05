@@ -165,6 +165,16 @@ std::vector<int> relief_pattern(const std::string &shape, int width, int height,
                             : 1;
             else if (shape == "checkerboard")
                 value = ((x + y) % 2) ? relief_layers : 0;
+            else if (shape == "checkerboard_thin")
+                // The same checkerboard with one layer in the low cells instead of none, which is a
+                // different shape where it matters: a cell holding nothing is absent from every band,
+                // so only one diagonal of a corner can ever be pinched there. Give the low cells a
+                // layer and - once FlatStack has slid each column's sequence up against the face, so a
+                // cell's material starts at its own floor rather than at the piece's - the deep cells'
+                // first band sits at the far end of the piece while the shallow cells' sits against the
+                // face. Both diagonals of one corner are then pinched, at heights the other has
+                // nothing at.
+                value = ((x + y) % 2) ? relief_layers : 1;
             relief[size_t(y) * size_t(width) + size_t(x)] = std::clamp(value, 0, relief_layers);
         }
     return relief;
@@ -175,7 +185,8 @@ std::vector<int> relief_pattern(const std::string &shape, int width, int height,
 TEST_CASE("Every piece a split produces is a closed, outward-facing solid", "[ChromaSplit]")
 {
     const std::string shape = GENERATE(std::string("flat"), std::string("ramp"), std::string("ring"),
-                                       std::string("islands"), std::string("checkerboard"));
+                                       std::string("islands"), std::string("checkerboard"),
+                                       std::string("checkerboard_thin"));
     const int               width = 13, height = 11;
     const std::vector<int>  layers{ 3, 4, 5 };
     const ChromaStack       stack  = split_stack(layers, 3, 0.1f);
@@ -581,7 +592,7 @@ TEST_CASE("A fill behind the picture hangs the first band on the face the light 
 
 TEST_CASE("FlatStack slides every column's own sequence up against the flat face", "[ChromaSplit]")
 {
-    const std::string shape     = GENERATE("ramp", "ring", "islands", "checkerboard");
+    const std::string shape     = GENERATE("ramp", "ring", "islands", "checkerboard", "checkerboard_thin");
     const bool        face_down = GENERATE(false, true);
     CAPTURE(shape, face_down);
 

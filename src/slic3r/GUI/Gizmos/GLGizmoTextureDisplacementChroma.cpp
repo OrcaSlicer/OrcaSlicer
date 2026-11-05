@@ -206,7 +206,6 @@ bool GLGizmoTextureDisplacement::render_chroma_colors(const TextureDisplacementL
     const int count = std::min(int(layer.chroma.bands.size()), int(CHROMA_MAX_BANDS));
     shader->set_uniform("band_count", count);
     shader->set_uniform("total_layers", float(layer.chroma.total_layers()));
-    shader->set_uniform("relief_layers", float(layer.chroma.relief_layers()));
     // The layer the preview stops at. Held as a layer index rather than a fraction so it survives a
     // re-solve that changes the stack's depth, and sent as 0 - the whole print - whenever it is at or
     // past the top, which is also what an unset uniform gives.
@@ -225,6 +224,10 @@ bool GLGizmoTextureDisplacement::render_chroma_colors(const TextureDisplacementL
         const ChromaBand &band = layer.chroma.bands[size_t(i)];
         const std::string idx  = "[" + std::to_string(i) + "]";
         shader->set_uniform(("band_color" + idx).c_str(), band.filament.color);
+        // The same colour in linear light, which is the space the walk composites in and the space
+        // chroma_palette() composited this stack in: handed over rather than converted per fragment,
+        // and taken from the library so the shader cannot drift from the prediction it is previewing.
+        shader->set_uniform(("band_color_lin" + idx).c_str(), chroma_srgb_to_linear(band.filament.color));
         shader->set_uniform(("band_density" + idx).c_str(),
                             chroma_layer_density(band.filament.td_mm, layer.chroma.layer_height_mm));
         shader->set_uniform(("band_layers" + idx).c_str(),
@@ -562,6 +565,10 @@ bool GLGizmoTextureDisplacement::render_chroma_layers(const TextureDisplacementL
         shader->set_uniform("view_model_matrix", view_matrix * to_sheet);
         shader->set_uniform("volume_world_matrix", to_sheet);
         shader->set_uniform("sheet_color", color);
+        // In linear light for the transmitted pass, which tints the lamp by the filament's hue the way
+        // chroma_palette()'s walk_back() does. The reflected pass still uses the sRGB colour, because
+        // the blender accumulates the sheets in the frame buffer and that is not a linear space.
+        shader->set_uniform("sheet_color_lin", chroma_srgb_to_linear(color));
         shader->set_uniform("sheet_density", density);
         shader->set_uniform("sheet_index", index);
         shader->set_uniform("sheet_full", full ? 1 : 0);
@@ -1036,6 +1043,16 @@ void GLGizmoTextureDisplacement::chroma_apply_plate(int slot, ChromaPlateResult 
     mv->set_mesh(TriangleMesh(result.mesh.its));
     mv->set_new_unique_id();
     mv->calculate_convex_hull();
+
+    // Every slot's mask goes with the old triangle list, not just this one's. A paint mask means what
+    // it did only while the topology is unchanged, and this is a different mesh: a second layer's mask
+    // left behind selects whatever triangles happen to carry its old indices, which puts that layer's
+    // relief somewhere else on the plate. TriangleSelector::deserialize() refuses only an index past
+    // the end, so a rebuilt plate with at least as many triangles takes the stale mask in silence.
+    // The bake clears all of them for the same reason, and so does chroma_make_flat_tile(); this
+    // slot's own mask is written again from the result on the next line.
+    for (int i = 0; i < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++i)
+        mv->texture_displacement_facet(i).reset();
     chroma_paint_face(*mv, slot, result.mesh.picture_triangles);
     mo->invalidate_bounding_box();
 
@@ -1377,16 +1394,37 @@ uint64_t GLGizmoTextureDisplacement::chroma_solve_key(const TextureDisplacementL
     if (layer.chroma.lighting != ChromaLighting::FrontLit)
         mix(uint64_t(uint32_t(layer.chroma.base_layers)));
 
-    // The patch's geometry only enters through the tilt correction, which a level patch skips (see
-    // chroma_run_solve()). So a flat face - which every generated plate has - contributes nothing here,
-    // and resizing the plate or thickening its backing cannot invalidate a solve. A tilted one does
-    // contribute, through both its angle and where the picture sits on it.
-    if (const ChromaPatch patch = chroma_patch(layer); patch.valid && patch.tilt_deg > 0.5f) {
-        mix_f(patch.tilt_deg);
-        mix_f(layer.tiling_scale);
-        mix_f(layer.rotation_deg);
-        mix_f(layer.offset.x());
-        mix_f(layer.offset.y());
+    // How big the picture is on the print, and how fine a line the printer draws. Neither is part of
+    // the stack and both reach the solve through chroma_solve_input(): together they size the dither
+    // cell (ChromaStackJob derives dither_cell_px from picture_mm / width against line_width_mm), and
+    // the first also picks the grid the full-resolution solve runs on, through
+    // chroma_printable_solve_px(). Left out, dragging a plate from 100 mm to 250 mm kept a height map
+    // solved at two and a half times too few texels with a stipple that coarse in millimetres, and so
+    // did changing the nozzle or the line width in the print profile.
+    //
+    // Hashed whether or not the dither is on, because the resolution is not conditional and because a
+    // key that is right only for the current value of another setting is the kind of key this one
+    // already had.
+    const ChromaPrintScale scale = chroma_print_scale();
+    mix_f(scale.line_width_mm);
+    mix_f(scale.nozzle_mm);
+
+    const ChromaPatch patch = chroma_patch(layer);
+    if (patch.valid) {
+        const Vec2f extent = patch.planar_max - patch.planar_min;
+        mix_f(std::max(std::abs(extent.x()), std::abs(extent.y())));
+
+        // The patch's geometry otherwise enters only through the tilt correction, which a level patch
+        // skips (see chroma_run_solve()), so a flat face - which every generated plate has -
+        // contributes nothing more. A tilted one does, through both its angle and where the picture
+        // sits on it.
+        if (patch.tilt_deg > 0.5f) {
+            mix_f(patch.tilt_deg);
+            mix_f(layer.tiling_scale);
+            mix_f(layer.rotation_deg);
+            mix_f(layer.offset.x());
+            mix_f(layer.offset.y());
+        }
     }
     return h == 0 ? 1 : h; // 0 means "nothing solved yet", so never hand it back as a real key
 }
@@ -1639,11 +1677,18 @@ void GLGizmoTextureDisplacement::chroma_make_flat_tile(int slot)
     Plater      *plater = wxGetApp().plater();
     ModelObject *mo     = m_c->selection_info() ? m_c->selection_info()->model_object() : nullptr;
     ModelVolume *mv     = texture_volume();
-    if (plater == nullptr || mo == nullptr || mv == nullptr || slot < 0 ||
-        size_t(slot) >= mv->texture_displacement_layers.size())
+    if (plater == nullptr || mo == nullptr || mv == nullptr)
         return;
 
-    TextureDisplacementLayer &layer = mv->texture_displacement_layers[size_t(slot)];
+    // By slot, searched for rather than indexed with: a slot is a layer's name, not its place in the
+    // vector. remove_texture_layer() erases out of the middle and swap_layer_slots() renumbers without
+    // reordering, so after either of those the two disagree - indexing found the wrong layer's picture,
+    // or ran off the end and did nothing at all. chroma_layer_in_slot() is how every other deferred
+    // chroma entry point looks a layer up, and for the same reason.
+    TextureDisplacementLayer *found = chroma_layer_in_slot(slot);
+    if (found == nullptr)
+        return;
+    TextureDisplacementLayer &layer = *found;
     if (!layer.chroma.plate.generated || !layer.chroma_source || layer.chroma.bands.empty() ||
         layer.chroma.relief_layers() <= 0) {
         show_error(nullptr, _u8L("A flat tile is made from a picture that brought its own plate and a stack "

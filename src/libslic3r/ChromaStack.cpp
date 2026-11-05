@@ -136,6 +136,11 @@ static std::array<float, 3> backlit_tint(const ColorRGB &c)
     return lin;
 }
 
+ColorRGB chroma_srgb_to_linear(const ColorRGB &c)
+{
+    return ColorRGB(srgb_to_linear(c.r()), srgb_to_linear(c.g()), srgb_to_linear(c.b()));
+}
+
 std::vector<ColorRGB> chroma_palette(const ChromaStack &stack)
 {
     const int total = stack.total_layers();
@@ -442,14 +447,23 @@ void match_pixels_dithered(const uint8_t *rgb, int width, int height, int cell, 
             float     err    = 0.f;
             const int picked = pick_choice(choices, high_quality, cap_de, row[size_t(cx)][0], row[size_t(cx)][1],
                                            row[size_t(cx)][2], err);
-            // Every texel of the cell takes the cell's choice and the cell's error: the cell is the
-            // smallest thing the printer can give a height of its own to, so it is also the smallest
-            // thing an error can honestly be reported for.
+            // Every texel of the cell takes the cell's choice, because the cell is the smallest thing
+            // the printer can give a height of its own to.
+            //
+            // Its error is measured per texel against the picture, and not reused from the choice
+            // above: `err` there is the distance from `row[cx]`, which is the cell's mean *plus* every
+            // neighbour's diffused residual - a colour that exists nowhere in the picture. Reported as
+            // the error, it says the match is good exactly where the diffusion worked, which is
+            // backwards: a flat mid-grey over a black-and-white palette diffuses to a residual of
+            // almost nothing and would report a mean of 1 dE while every printed texel is 50 dE from
+            // the picture, and the same stack with dithering off would report the 50. ChromaSolve::delta
+            // documents one quantity - the difference between the picture and what will be printed -
+            // and this is the only writer of it that had another.
             for (int y = cy * cell; y < std::min((cy + 1) * cell, height); ++y)
                 for (int x = cx * cell; x < std::min((cx + 1) * cell, width); ++x) {
                     const size_t px = size_t(y) * size_t(width) + size_t(x);
                     choice[px]      = uint16_t(picked);
-                    errors[px]      = err;
+                    errors[px]      = error_for(choices, high_quality, rgb, px, picked);
                 }
 
             std::array<float, 3> residual{};

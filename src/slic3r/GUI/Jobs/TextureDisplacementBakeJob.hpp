@@ -53,16 +53,16 @@ struct TextureDisplacementBakeInput
     // colouring, in which case the bake also writes each part's mmu_segmentation_facets - the same
     // per-triangle filament assignment the MMU paint gizmo writes - alongside the displaced geometry.
     TextureColorSettings                       color;
-    // Whether this job pushes its own undo step when it commits. False when the caller has already
-    // taken one that is meant to cover the displacement as well - Standard mode's Bake, which remeshes
-    // and subdivides first and has to undo as a single action.
-    bool                                       take_snapshot = true;
 };
 
 // Bakes an object's painted texture-displacement layers into real mesh geometry in the background,
 // then commits the result on the main thread - mirrors EmbossJob's UpdateJob/update_volume()
 // bake-and-commit pattern (see EmbossJob.cpp). Every part is displaced in the one job and committed
-// under the one undo step, so a multibody object undoes as a single action.
+// in one go, so a multibody object undoes as a single action.
+//
+// The undo step belongs to the caller and is taken before the operation starts, not here: the caller
+// changes the model before queuing this job (see GLGizmoTextureDisplacement::bake()), and a snapshot
+// taken at commit time would record those changes as the state to go back to.
 class TextureDisplacementBakeJob : public Job
 {
 public:
@@ -94,8 +94,7 @@ private:
 // settles (success, failure, or cancellation), so the caller can clear its own "bake in progress" UI
 // state. Must be called from the main thread.
 void queue_texture_displacement_bake(std::vector<TextureDisplacementBakeVolume> volumes,
-                                     const TextureColorSettings &color,
-                                     std::function<void()> on_finished, bool take_snapshot = true);
+                                     const TextureColorSettings &color, std::function<void()> on_finished);
 
 // `volume`'s share of a bake, read off the live Model. `layers`, `options`, `texture_anchor` and
 // `resting_drop` are passed in rather than taken from `volume` because they belong to the object, not

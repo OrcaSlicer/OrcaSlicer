@@ -1107,6 +1107,46 @@ TEST_CASE("A dithered solve changes no region smaller than its cell", "[ChromaSt
     REQUIRE(*lo < *hi);
 }
 
+TEST_CASE("A dithered solve reports the error its texels really have", "[ChromaStack]")
+{
+    // ChromaSolve::delta and the two numbers beside it are documented as the difference between the
+    // picture and what will be printed. The dither matches each cell against the picture plus every
+    // neighbour's diffused leftover, and reporting the distance to *that* says the match is good
+    // exactly where the diffusion worked best - which is backwards, and it makes the number
+    // incomparable across the one checkbox.
+    //
+    // A black that covers in a single layer, so the stack prints white and black and nothing in
+    // between, against a flat mid-grey. Every printed texel is far from the picture whether the cells
+    // alternate or not, so turning the dither on must not change the verdict.
+    const ChromaFilament opaque_black = filament(3, ColorRGB(0.f, 0.f, 0.f), 0.05f);
+
+    ChromaStack stack;
+    stack.layer_height_mm = 0.08f;
+    stack.base_layers     = 2;
+    stack.bands           = { band(WHITE_OPAQUE, 2), band(opaque_black, 2) };
+
+    constexpr int              width = 32, height = 32;
+    const std::vector<uint8_t> picture = flat_picture(ColorRGB(0.5f, 0.5f, 0.5f), width, height);
+
+    const ChromaSolve plain = chroma_solve(picture.data(), width, height, stack);
+    ChromaStack       dithered = stack;
+    dithered.dither           = true;
+    const ChromaSolve spread  = chroma_solve(picture.data(), width, height, dithered);
+
+    REQUIRE_FALSE(plain.empty());
+    REQUIRE_FALSE(spread.empty());
+
+    // The fixture, stated so a palette that turned out to reach mid-grey fails here rather than
+    // letting the case below pass for the wrong reason.
+    REQUIRE(plain.mean_delta_e > 20.);
+    // The same question, so the same answer. Before this was fixed the dithered mean read near zero.
+    REQUIRE(spread.mean_delta_e > 0.5 * plain.mean_delta_e);
+
+    // And the error image says where it is bad rather than drawing the picture as reached: no texel of
+    // it was printed in a colour anywhere near mid-grey.
+    REQUIRE(*std::min_element(spread.delta.begin(), spread.delta.end()) > 0);
+}
+
 TEST_CASE("A high quality match reaches the same kind of answer as the fast one", "[ChromaStack]")
 {
     // CIE76 is here because the match used to run on the UI thread. It now runs on a worker, so the

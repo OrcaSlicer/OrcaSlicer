@@ -1472,6 +1472,27 @@ void GLGizmoTextureDisplacement::bake(bool own_snapshot)
                 return;
             }
 
+    // The undo step for the whole operation, taken here because everything below this line changes the
+    // model: the full-resolution re-solve replaces each picture's height map, the base is pinned just
+    // after it, and the job replaces the meshes when it lands. The job used to take the snapshot when
+    // it committed, which is after all of that, so the state it recorded already had the new height map
+    // and a pinned base - an undo gave back the unbaked mesh with the base no longer following the
+    // model, and from there every colour in the picture moved with the next scale or layer-height
+    // change for no reason the user could see.
+    //
+    // Not before update_model_object() above: flushing the active layer's strokes into the model is the
+    // user's paint arriving rather than part of what Bake does, and an undo of Bake should keep it.
+    //
+    // Scoped to this statement on purpose. TakeSnapshot suppresses further snapshots for its lifetime,
+    // and the job below settles on the event loop long after this function has returned, so an object
+    // held open would suppress every snapshot taken in between. `own_snapshot` is false when the caller
+    // has already taken one meant to cover the displacement too - Standard mode's Bake, which remeshes
+    // and subdivides first and has to undo as a single action.
+    if (own_snapshot) {
+        Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Bake texture displacement"),
+                                      UndoRedo::SnapshotType::GizmoAction);
+    }
+
     // The live path solves at CHROMA_SOLVE_PREVIEW_PX so the panel keeps up, which is far finer than
     // the mesh can carry but is not the picture itself. A bake is what gets printed, so it gets the
     // real thing - once, here, where a second or two is lost in an operation that already takes
@@ -1518,7 +1539,7 @@ void GLGizmoTextureDisplacement::bake(bool own_snapshot)
         if (m_state == On && m_c->selection_info() && m_c->selection_info()->model_object())
             update_from_model_object(false);
         m_parent.set_as_dirty();
-    }, own_snapshot);
+    });
 }
 
 // Standard mode's fixed recipe. These are both the values the hidden controls are pinned to and what

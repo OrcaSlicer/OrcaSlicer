@@ -592,6 +592,16 @@ float chroma_layer_density(float td_mm, float layer_height_mm);
 // height map's steps are layer boundaries and inverting it after the fact moves them off.
 std::vector<ColorRGB> chroma_palette(const ChromaStack &stack);
 
+// sRGB (0..1) to linear light: the space chroma_palette() composites a stack in, and the only space
+// where absorbing and adding light mean anything.
+//
+// Exposed because the previews composite the same stack per fragment, and they have to do it on the
+// same numbers. Given sRGB values to blend, a shader produces a different colour from the one the card
+// predicts for the same stack - tens of bytes different through the midtones - and the two previews
+// then disagree with the thing they are previews of. A caller hands these to the shader instead of
+// carrying a second copy of the curve.
+ColorRGB chroma_srgb_to_linear(const ColorRGB &c);
+
 // What chroma_solve() produced.
 struct ChromaSolve
 {

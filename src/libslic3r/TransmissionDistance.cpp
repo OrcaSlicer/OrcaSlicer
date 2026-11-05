@@ -16,6 +16,7 @@
 #include <utility>
 #include <vector>
 
+#include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/nowide/fstream.hpp>
@@ -510,28 +511,6 @@ const FilamentTd *filament_td_lookup(const std::vector<FilamentTd> &table, const
         return nullptr;
     const Lab want_lab = srgb_to_lab(color.r(), color.g(), color.b());
 
-    // The line first, then the colour within it. Scored rather than filtered, because a preset's name
-    // and a spool's name agree on most words but rarely on all of them.
-    const FilamentTd *best       = nullptr;
-    int             best_words = 0;
-    float           best_de    = 0.f;
-    for (const FilamentTd &entry : table) {
-        if (entry.brand != brand)
-            continue;
-        const std::vector<std::string> have = name_tokens(entry.name);
-        int                            words = 0;
-        for (const std::string &w : want)
-            if (std::find(have.begin(), have.end(), w) != have.end())
-                ++words;
-        if (words < 2)
-            continue; // one word in common is a coincidence, not a line
-        const float de = delta_e(want_lab, srgb_to_lab(entry.color.r(), entry.color.g(), entry.color.b()));
-        if (best == nullptr || words > best_words || (words == best_words && de < best_de)) {
-            best       = &entry;
-            best_words = words;
-            best_de    = de;
-        }
-    }
     // Near enough to be the same colour, and deliberately strict. Measured against the table itself:
     // inside one line the colours are well separated, so a filament set to the colour it really is
     // lands within a few dE of its own entry, while a near miss falls outside. At 12 the worst pair
@@ -541,7 +520,45 @@ const FilamentTd *filament_td_lookup(const std::vector<FilamentTd> &table, const
     // No match is the right answer when in doubt: the field has a working default, and a white
     // filament handed the number measured for a grey one is worse than a default - it is wrong, and
     // it looks measured.
-    return (best != nullptr && best_de < 6.f) ? best : nullptr;
+    constexpr float same_color_de = 6.f;
+
+    // The colour decides whether a row is this spool at all, so it gates every candidate rather than
+    // being applied to the winner at the end. Applied at the end, one row that shares more words of
+    // the name suppresses a correctly coloured row behind it and the lookup answers nothing: with a
+    // library holding both "PolyLite PLA Galaxy Black" and "PolyLite PLA White", a white filament
+    // matched the black row on the extra word, failed the colour gate, and never reached the white.
+    //
+    // The name then says which line, for the brands that sell several of them in one colour. A single
+    // word in common is enough, because a table whose rows are named "<material> <colour>" has only
+    // the material to share with a preset name - which is how the shipped Prusament table is written
+    // ("ASA Jet Black" against the preset's "Prusament ASA @CORE One"), and requiring two words left
+    // every one of its 67 rows unreachable, so every Prusament band silently kept the 4 mm default.
+    // What a shared word cannot establish, the colour gate above does.
+    const FilamentTd *best       = nullptr;
+    int               best_words = 0;
+    float             best_de    = 0.f;
+    for (const FilamentTd &entry : table) {
+        if (entry.brand != brand)
+            continue;
+        const std::vector<std::string> have  = name_tokens(entry.name);
+        int                            words = 0;
+        for (const std::string &w : want)
+            if (std::find(have.begin(), have.end(), w) != have.end())
+                ++words;
+        if (words < 1)
+            continue; // nothing of the name in common: another material, whatever the colour says
+        const float de = delta_e(want_lab, srgb_to_lab(entry.color.r(), entry.color.g(), entry.color.b()));
+        if (de >= same_color_de)
+            continue;
+        // A strict `<` on both, so an exact tie keeps the row that came first - which is the order the
+        // table was assembled in, and therefore the precedence of its sources.
+        if (best == nullptr || words > best_words || (words == best_words && de < best_de)) {
+            best       = &entry;
+            best_words = words;
+            best_de    = de;
+        }
+    }
+    return best;
 }
 
 namespace {

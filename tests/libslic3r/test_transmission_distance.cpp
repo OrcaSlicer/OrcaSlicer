@@ -68,9 +68,47 @@ TEST_CASE("A transmission distance is looked up by colour, or not at all", "[Chr
                                  ColorRGB(0.94f, 0.93f, 0.90f)) == nullptr);
     }
 
-    SECTION("one word in common is a coincidence, not a line")
+    SECTION("a material in common and nothing else is enough, because the colour is the rest of it")
     {
-        REQUIRE(filament_td_lookup(table, "Polymaker", "PLA", ColorRGB(0.94f, 0.93f, 0.90f)) == nullptr);
+        // The material is all a row named "<material> <colour>" can share with a preset name, and the
+        // shipped Prusament table is written that way throughout. What the name cannot establish the
+        // colour does: this is the brand's PLA in a colour the brand makes, within a few dE of it.
+        const FilamentTd *found = filament_td_lookup(table, "Polymaker", "PLA", ColorRGB(0.94f, 0.93f, 0.90f));
+        REQUIRE(found != nullptr);
+        REQUIRE_THAT(found->td_mm, WithinAbs(4.1f, 1e-4f));
+    }
+
+    SECTION("a row named for a different material is refused however well the colour fits")
+    {
+        REQUIRE(filament_td_lookup(table, "Polymaker", "ABS", ColorRGB(0.94f, 0.93f, 0.90f)) == nullptr);
+    }
+
+    SECTION("a spool whose row carries only its material and colour is found")
+    {
+        // The shape every row of the shipped Prusament table has, against the name its presets carry.
+        const std::vector<FilamentTd> prusament = {
+            { "prusament", "ASA Jet Black", "ASA", ColorRGB(0.16f, 0.16f, 0.14f), 0.4f },
+            { "prusament", "ASA Natural", "ASA", ColorRGB(0.90f, 0.88f, 0.82f), 3.6f },
+        };
+        const FilamentTd *found = filament_td_lookup(prusament, "Prusa Polymers", "Prusament ASA @CORE One 0.4",
+                                                     ColorRGB(0.16f, 0.16f, 0.14f));
+        REQUIRE(found != nullptr);
+        REQUIRE_THAT(found->td_mm, WithinAbs(0.4f, 1e-4f));
+    }
+
+    SECTION("a longer name in the wrong colour loses to the right colour instead of hiding it")
+    {
+        // Both rows are the line the preset names; one shares a word more of the name and is a colour
+        // this filament is not. Scored on the name alone it wins, is then refused on the colour, and
+        // the spool that was in the library is never reached.
+        const std::vector<FilamentTd> library = {
+            { "polymaker", "Polymaker PolyLite PLA Galaxy Black", "PLA", ColorRGB(0.11f, 0.11f, 0.13f), 0.3f },
+            { "polymaker", "PolyLite PLA White", "PLA", ColorRGB(0.95f, 0.95f, 0.94f), 1.2f },
+        };
+        const FilamentTd *found = filament_td_lookup(library, "Polymaker", "Polymaker PolyLite PLA @base",
+                                                     ColorRGB(0.95f, 0.95f, 0.94f));
+        REQUIRE(found != nullptr);
+        REQUIRE_THAT(found->td_mm, WithinAbs(1.2f, 1e-4f));
     }
 
     SECTION("the right line in a colour of another line of the same brand is still refused")

@@ -298,17 +298,15 @@ void TextureDisplacementBakeJob::finalize(bool canceled, std::exception_ptr &ept
         plater->changed_object(*object);
     };
 
-    // Standard mode's Bake is remesh -> subdivide -> displace under a single snapshot, and this job runs
-    // long after that snapshot's scope has closed. Adding one here would put an undo step *between* the
-    // subdivision and the displacement: the first Undo would land on a mesh carrying every added
-    // triangle and no relief at all, and pressing Bake again from there would subdivide that mesh a
-    // second time. So the caller says who owns the undo step.
-    if (m_input.take_snapshot) {
-        Plater::TakeSnapshot snapshot(plater, _u8L("Bake texture displacement"), UndoRedo::SnapshotType::GizmoAction);
-        commit();
-    } else {
-        commit();
-    }
+    // No undo step here, deliberately; the caller took one before the operation started.
+    //
+    // A snapshot records the state it is taken in, and by the time this runs the model has already
+    // been changed twice over: Standard mode's Bake remeshed and subdivided before queuing the job,
+    // and the gizmo's own Bake re-solves the picture at full resolution and pins the stack's base. A
+    // snapshot here would hand all of that back as the state to return to - an undo landing on a
+    // subdivided mesh with no relief on it, or on an unbaked plate whose base had stopped following
+    // the model.
+    commit();
 
     // The refinement went finer than the budget could keep: the simplification had to take detail back
     // out to fit, so what was baked carries less of the texture than the resolution asked for. Said
@@ -357,13 +355,11 @@ TextureDisplacementBakeVolume texture_displacement_bake_volume(const ModelVolume
 }
 
 void queue_texture_displacement_bake(std::vector<TextureDisplacementBakeVolume> volumes,
-                                     const TextureColorSettings &color,
-                                     std::function<void()> on_finished, bool take_snapshot)
+                                     const TextureColorSettings &color, std::function<void()> on_finished)
 {
     TextureDisplacementBakeInput input;
-    input.volumes       = std::move(volumes);
-    input.color         = color;
-    input.take_snapshot = take_snapshot;
+    input.volumes = std::move(volumes);
+    input.color   = color;
 
     auto &worker = wxGetApp().plater()->get_ui_job_worker();
     queue_job(worker, std::make_unique<TextureDisplacementBakeJob>(std::move(input), std::move(on_finished)));

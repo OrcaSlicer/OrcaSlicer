@@ -45,11 +45,12 @@ const vec3 LIGHT_FRONT_DIR = vec3(0.6985074, 0.1397015, 0.6985074);
 // two walks below and not a third walk of its own.
 #define CHROMA_LIT_BOTH  2
 
-// Back lit, a band is a filter rather than a layer of paint, and the channel a filament reflects is
-// the channel it passes - so its absorption runs against its own colour instead of being neutral.
-// The floor is what keeps a pale filament darkening with depth at all: with no floor a white band
-// would pass light as if it were not there, and depth is the only thing a lithophane draws with.
-#define CHROMA_BACK_ABSORB_FLOOR 0.35
+// Back lit, a band is a filter rather than a layer of paint: the light is attenuated neutrally by the
+// band's density and then tinted by the hue the filament lends it. Both halves are
+// chroma_palette()'s walk_back(), so a lithophane previewed here is the one the solve chose; see
+// chroma_backlit_tint() below. An earlier version of this shader ran the absorption against the
+// filament's own colour behind a floor instead, which is a different function from the one the solve
+// used - over a ten-layer band of white it passed a factor of about fifty more light.
 
 // The ramp the colour-difference image is drawn through. Its lightness falls the whole way up as well
 // as its hue turning, so it reads in a greyscale screenshot and to a colour-blind eye, and it starts
@@ -70,20 +71,47 @@ const vec3 ERROR_RAMP_WRONG = vec3(0.72, 0.02, 0.30);
 // be hidden by the light it happens to sit in.
 #define ERROR_SHADE_FLOOR 0.62
 
+// sRGB <-> linear light, the same transfer function chroma_palette() uses (srgb_to_linear() and
+// linear_to_srgb() in ChromaStack.cpp). The walk below runs in linear light because that is where
+// absorbing and adding light mean anything, and because that is where the solve ran it: composited in
+// sRGB instead, this shader and the card's prediction of the same stack came out tens of bytes apart -
+// a white base under one layer of black read 196 on the card and 140 here.
+vec3 chroma_to_linear(vec3 c)
+{
+    c = clamp(c, 0.0, 1.0);
+    return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(vec3(0.04045), c));
+}
+
+vec3 chroma_to_srgb(vec3 c)
+{
+    c = clamp(c, 0.0, 1.0);
+    return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(vec3(0.0031308), c));
+}
+
+// The hue a band lends to light passing through it: its linear colour with its own darkness divided
+// out, so the brightest channel comes out 1 and the others in proportion. chroma_palette()'s
+// backlit_tint(), and for the reason given there - how much light gets through at all is the
+// transmission distance's business, so the attenuation is neutral and this is applied on top of it.
+vec3 chroma_backlit_tint(vec3 linear_color)
+{
+    float peak = max(max(linear_color.r, linear_color.g), linear_color.b);
+    return (peak > 1.0e-6) ? linear_color / peak : vec3(1.0);
+}
+
 // The stack, bottom-up. Band 0 carries the solid base folded into it, since the base prints in its
 // filament and the model treats it as opaque anyway.
 uniform int   band_count;
 uniform vec3  band_color[CHROMA_MAX_BANDS];
+// The same colours in linear light, so the walk does not have to raise them per fragment. Uploaded
+// through the same srgb_to_linear() the palette uses, which is what keeps the two in step.
+uniform vec3  band_color_lin[CHROMA_MAX_BANDS];
 // The optical depth of ONE layer of that band: h / (CHROMA_TD_OPAQUE_FRACTION * TD / 3), so the layer
 // passes exp(-density) of what is behind it. Precomputed because TD, the layer height and the
 // constants that relate them belong to the model, not to a shader.
 uniform float band_density[CHROMA_MAX_BANDS];
 uniform float band_layers[CHROMA_MAX_BANDS];
+// How deep the whole stack is, base included: the budget the walk below spends, in both orientations.
 uniform float total_layers;
-// How much of that is the picture: the stack's own layers, without the opaque base under (or, face
-// down, over) them. It is the sum of band_layers above and is uploaded rather than summed here only
-// because the walk below would otherwise need a loop before it can start.
-uniform float relief_layers;
 // 1 when the plate prints picture down, 0 otherwise.
 //
 // Face down the picture's face is the plate's *bottom* and the opaque base is on top, so the filament
@@ -279,13 +307,18 @@ void main()
     // it, so every fragment of a quad takes the same branch and fwidth() below still has its
     // derivatives.
     //
-    // Against the relief rather than the whole stack, because the base is on the far side of the
-    // picture here: a column raised the full depth has the base directly against its face and is seen
-    // through nothing at all. Measuring against total_layers instead adds the base's own thickness to
-    // every column, which saturates the deepest fifth of the picture into one flat field and leaves
-    // the rest a band too dark.
+    // Against the whole stack, because the walk below is over the whole stack: band_layers[0] carries
+    // the base, and face down the base is printed last and sits at the far end of the light's path,
+    // which is exactly where the walk starts. Measured against the relief alone the budget cannot pay
+    // for it - band 0 then spent the base's thickness out of a budget that never held it, so every
+    // band above it started that much late and the picture came out as the bottom filament almost
+    // everywhere.
+    //
+    // At the two ends: a column still at the bed has the whole relief and the base over it, which is
+    // the whole stack; a column raised the full depth has only the base over it, which is what is
+    // left of the stack once the relief is taken off. Both read correctly off this.
     if (stack_flipped != 0)
-        layers = max(relief_layers - layers, 0.0);
+        layers = max(total_layers - layers, 0.0);
     // How much of a layer one pixel covers. Past half a layer the height is taken as continuous, so a
     // surface too far away to resolve its layers averages them instead of flickering between them.
     float px      = fwidth(layers);
@@ -327,16 +360,17 @@ void main()
         if (n <= 0.0)
             break;
         float t = exp(-band_density[i] * path * n);
-        stacked = (1.0 - t) * band_color[i] + t * stacked;
+        stacked = (1.0 - t) * band_color_lin[i] + t * stacked;
         clear  *= t;
         // Back lit, nothing is composited over anything: what leaves the band is what it passed, so
         // the transmittances multiply. The same density and the same lengthened path - a ray crossing
-        // the stack at an angle goes through more filament whichever side the light is on - with the
-        // absorption split per channel by the band's colour. Behind the one branch a uniform decides,
-        // so the front view pays nothing for it.
+        // the stack at an angle goes through more filament whichever side the light is on - attenuated
+        // neutrally and then tinted per layer by the filament's hue, which is chroma_palette()'s
+        // walk_back() exactly. Behind the one branch a uniform decides, so the front view pays nothing
+        // for it.
         if (lighting_mode != CHROMA_LIT_FRONT)
-            through *= exp(-band_density[i] * path * n *
-                           mix(vec3(CHROMA_BACK_ABSORB_FLOOR), vec3(1.0), 1.0 - band_color[i]));
+            through *= exp(-band_density[i] * path * n) *
+                       pow(chroma_backlit_tint(band_color_lin[i]), vec3(path * n));
         own       = band_color[i];
         band_hit  = float(i);
         consumed += band_layers[i];
@@ -354,8 +388,10 @@ void main()
     // nothing assumed behind it. That is the one to shade when the blender is about to put the scene
     // behind the plate back in: the colour has to be what the plate adds, not what it adds plus a
     // backing it has not got.
-    vec3 composite = (see_through != 0) ? stacked / max(1.0 - clear, 1.0e-4) :
-                                         stacked + clear * band_color[0];
+    // Back out of linear light here and not before: everything downstream - the shading, the scatter,
+    // the layer lines, the overlays - was written against an sRGB albedo and is left exactly as it was.
+    vec3 composite = chroma_to_srgb((see_through != 0) ? stacked / max(1.0 - clear, 1.0e-4) :
+                                                         stacked + clear * band_color_lin[0]);
 
     // A terrace is a column seen through; a wall is the layers seen edge on. Everything between is
     // between.
@@ -420,8 +456,16 @@ void main()
     // colour at the brightness the column lets past, and the layer lines stay: a groove is thinner
     // filament, and thinner is brighter here rather than merely shaded.
     if (lighting_mode != CHROMA_LIT_FRONT) {
-        vec3 lit    = mix(own * dot(through, vec3(0.2126, 0.7152, 0.0722)), through, smoothstep(0.35, 0.8, up));
-        vec3 behind = lit * lines * led_color * led_intensity;
+        // In linear light, and with the lamp taken into it there, because that is where
+        // chroma_palette()'s walk_back() does both: the light is the lamp's colour times its intensity,
+        // every band multiplies it by what that band passed, and only the result becomes an sRGB
+        // colour. Multiplying sRGB values instead is a different number for every stack but the
+        // trivial ones. `lines` stays outside, as the shading multiplier it is rather than light.
+        vec3 lamp   = chroma_to_linear(led_color) * max(led_intensity, 0.0);
+        vec3 passed = lamp * through;
+        vec3 wall   = chroma_to_linear(own) * dot(through, vec3(0.2126, 0.7152, 0.0722)) * lamp;
+        vec3 lit    = chroma_to_srgb(mix(wall, passed, smoothstep(0.35, 0.8, up)));
+        vec3 behind = lit * lines;
         // Both lit, the reflected light is still there and the transmitted light is added on top of it,
         // in the same proportion chroma_palette() blends the two palettes with - so the preview and the
         // colours the solve was chosen against stay the same picture.

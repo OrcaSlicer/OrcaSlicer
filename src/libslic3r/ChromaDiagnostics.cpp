@@ -381,16 +381,27 @@ ChromaDiagnostics chroma_diagnose(const ChromaHistogram &picture, const ChromaSt
     // front lit only.
     if (stack.lighting == ChromaLighting::FrontLit && stack.bands.size() >= 2 && stack.bands.front().layers >= 2) {
         const float bottom = stack.bands.front().filament.td_mm;
-        float       least  = bottom;
+        // The band to swap it with, named rather than described: "put the most opaque filament at the
+        // bottom" leaves the reader to work out which one that is. A strict `<` keeps the lowest band
+        // of several equally opaque ones, so the advice moves the filament the shortest distance.
+        //
+        // What this establishes is that some band is more opaque than the bottom one, which is all the
+        // advice needs - not that the bottom one is the most translucent in the stack, which it need
+        // not be. A band further up being translucent is not a fault: there the transmission has the
+        // bands below it to show, which is the whole mechanism.
+        size_t most_opaque = 0;
         for (size_t b = 1; b < stack.bands.size(); ++b)
-            least = std::min(least, stack.bands[b].filament.td_mm);
+            if (stack.bands[b].filament.td_mm < stack.bands[most_opaque].filament.td_mm)
+                most_opaque = b;
+        const float least = stack.bands[most_opaque].filament.td_mm;
         if (bottom - least >= CHROMA_DIAG_TD_GAP_MM)
             add(ChromaFindingKind::TranslucentWasted,
-                Slic3r::format(_u8L("Band 1 (%1%) is the most translucent filament in the stack and it is at the "
-                                    "bottom, where what is under it is the base printed in that same filament, so "
-                                    "its transmission distance of %2$.1f mm shows nothing. Put the most opaque "
-                                    "filament in the bottom band and move this one further up."),
-                               band_label(stack.bands.front()), bottom),
+                Slic3r::format(_u8L("Band 1 (%1%) is at the bottom, where what is under it is the base printed in "
+                                    "that same filament, so its transmission distance of %2$.1f mm shows nothing. "
+                                    "Band %3% (%4%) is more opaque at %5$.1f mm: swap the two, and this filament's "
+                                    "transmission will have something under it to show."),
+                               band_label(stack.bands.front()), bottom, most_opaque + 1,
+                               band_label(stack.bands[most_opaque]), least),
                 overall_cost, 0, -1);
     }
 

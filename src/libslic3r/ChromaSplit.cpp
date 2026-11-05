@@ -81,33 +81,6 @@ struct PieceSpec
     double mirror_z     = 0.;
 };
 
-// Where a corner's vertex at one level is pinched apart, and for whom.
-//
-// Two cells that meet only along a diagonal - the one above-left of a corner and the one
-// below-right, with the other two empty - are a real thing for a solved picture to contain: dither
-// scatters single texels of height, and a checkerboard of them touches corner to corner all over.
-// The surface of that solid is not a manifold along the line where they meet: four walls run up it
-// instead of two, so the edge belongs to four triangles and a boolean refuses the mesh.
-//
-// What is done about it is to give each of the two columns its own copy of the corner's vertices
-// over the stretch where the pinch lasts. The edges then belong to two triangles each, because the
-// two columns' walls no longer name the same vertex pair, and the two surfaces are separate sheets
-// that happen to touch. The alternative - nudging the corners apart so they do not touch at all -
-// would move the printed geometry to flatter a downstream algorithm, which is not this code's
-// decision to make.
-//
-// Only the levels *above* the bottom of the pinch are copied. At the bottom level the surface is
-// still one sheet (something fills at least one of the other two quadrants below there, or that
-// level is the band's floor), and the vertical edges leaving it are already distinct by their upper
-// end, so copying it would tear a seam that is not torn.
-struct CornerPinch
-{
-    int lo    = 0;  // the last level the two columns are still one solid at
-    int hi    = 0;  // the first level they are not pinched at any more
-    int owner[2] = { -1, -1 }; // the two cells, as indices into the grid, that get a copy each
-    bool valid = false;
-};
-
 class PieceBuilder
 {
 public:
@@ -136,14 +109,6 @@ private:
             lo = std::min(std::clamp(m_grid.base[at], m_spec.k_lo, m_spec.k_hi), hi);
     }
 
-    // The level the cell's material reaches, for everything that only asks how tall a column is.
-    int cell_top(int ix, int iy) const
-    {
-        int lo = 0, hi = 0;
-        cell_span(ix, iy, lo, hi);
-        return hi;
-    }
-
     // Face down the turn is taken here rather than on the finished vertices, so that a height is
     // rounded to a float once instead of twice. Mirroring a float that has already been rounded
     // leaves the plate's own surfaces a few nanometres off the numbers they are supposed to be at,
@@ -155,7 +120,9 @@ private:
         return float(m_spec.mirror ? m_spec.mirror_z - z : z);
     }
 
-    CornerPinch pinch_at(int i, int j) const;
+    // Which copy of the corner vertex at (i, j, level) the wall belonging to cell (ox, oy) must use:
+    // 0 for the one everybody shares, 1 and 2 for a corner the two cells only touch at.
+    uint32_t corner_side(int i, int j, int level, int ox, int oy) const;
 
     // The vertex at corner (i, j) and `level`, as the face belonging to cell (ox, oy) sees it.
     uint32_t vertex(int i, int j, int level, int ox, int oy);
@@ -173,49 +140,74 @@ private:
     std::unordered_map<uint64_t, uint32_t> m_vertices;
 };
 
-CornerPinch PieceBuilder::pinch_at(int i, int j) const
+// Where a corner's vertex at one level is pinched apart, and for whom.
+//
+// Two cells that meet only along a diagonal - the one above-left of a corner and the one
+// below-right, with the other two empty - are a real thing for a solved picture to contain: dither
+// scatters single texels of height, and a checkerboard of them touches corner to corner all over.
+// The surface of that solid is not a manifold along the line where they meet: four walls run up it
+// instead of two, so the edge belongs to four triangles and a boolean refuses the mesh.
+//
+// What is done about it is to give each of the two columns its own copy of the corner's vertices
+// over the stretch where the pinch lasts. The edges then belong to two triangles each, because the
+// two columns' walls no longer name the same vertex pair, and the two surfaces are separate sheets
+// that happen to touch. The alternative - nudging the corners apart so they do not touch at all -
+// would move the printed geometry to flatter a downstream algorithm, which is not this code's
+// decision to make.
+//
+// Only the levels *above* the bottom of the pinch are copied. At the bottom level the surface is
+// still one sheet (something fills at least one of the other two quadrants below there, or that
+// level is the band's floor), and the vertical edges leaving it are already distinct by their upper
+// end, so copying it would tear a seam that is not torn.
+//
+// Asked per level rather than once per corner, and from each cell's whole span rather than from how
+// tall it is.
+//
+// A corner is pinched at a level when exactly two cells diagonally opposite each other have material
+// there: the two solids meet along that one vertical edge, so each needs its own copy of the vertex or
+// the edge ends up in four wall triangles and the piece is not a manifold. At any one level only one
+// of the two diagonals can be in that position, since each needs the other absent - which is why the
+// loop below can return on the first it finds.
+//
+// Across levels, though, both diagonals can be pinched, at different heights. That is what made this a
+// per-level question: a cell's material runs from its own floor (GridField::base, which only FlatStack
+// fills) rather than from the piece's, so a cell can be absent low down and present higher up. Two
+// diagonals pinched over disjoint spans is an ordinary FlatStack checkerboard - the deep columns of one
+// band start well above the shallow ones - and computing one interval per corner from the tops alone
+// found whichever diagonal reached higher, left the other sharing its vertices, and the boolean then
+// refused the piece for non-manifold edges.
+uint32_t PieceBuilder::corner_side(int i, int j, int level, int ox, int oy) const
 {
-    // The four cells round the corner, in a cycle: the corner is at the top-left of the last of
-    // them, and the loop runs the other way round because row 0 of the grid is the top of the
-    // picture. Which way round does not matter here; that they are in a cycle does, since a pinch is
-    // two cells opposite each other in it.
+    // The four cells round the corner, in a cycle: the corner is at the top-left of the last of them,
+    // and the loop runs the other way round because row 0 of the grid is the top of the picture. Which
+    // way round does not matter here; that they are in a cycle does, since a pinch is two cells
+    // opposite each other in it.
     const int cx[4] = { i, i - 1, i - 1, i };
     const int cy[4] = { j - 1, j - 1, j, j };
 
-    int t[4];
-    for (int k = 0; k < 4; ++k)
-        t[k] = cell_top(cx[k], cy[k]);
-
-    CornerPinch out;
-    for (int d = 0; d < 2; ++d) {
-        // One diagonal is the pair that might be pinched, the other is the pair that has to be out
-        // of the way for it to be: the pinch lasts from the higher of those two up to the lower of
-        // the pair itself.
-        const int lo = std::max(t[d + 1], t[(d + 3) % 4]);
-        const int hi = std::min(t[d], t[d + 2]);
-        if (lo >= hi)
-            continue;
-        out.valid    = true;
-        out.lo       = lo;
-        out.hi       = hi;
-        out.owner[0] = cy[d] * m_grid.nx + cx[d];
-        out.owner[1] = cy[d + 2] * m_grid.nx + cx[d + 2];
-        break; // only one of the two diagonals can be the pinched one, since each needs the other down
+    bool present[4];
+    for (int k = 0; k < 4; ++k) {
+        int lo = 0, hi = 0;
+        cell_span(cx[k], cy[k], lo, hi);
+        present[size_t(k)] = level > lo && level <= hi;
     }
-    return out;
+
+    const int owner = oy * m_grid.nx + ox;
+    for (int d = 0; d < 2; ++d)
+        if (present[size_t(d)] && present[size_t(d + 2)] && !present[size_t(d + 1)] &&
+            !present[size_t((d + 3) % 4)]) {
+            if (owner == cy[d] * m_grid.nx + cx[d])
+                return 1;
+            if (owner == cy[d + 2] * m_grid.nx + cx[d + 2])
+                return 2;
+            return 0; // a wall of some other cell, which is not part of this pinch
+        }
+    return 0;
 }
 
 uint32_t PieceBuilder::vertex(int i, int j, int level, int ox, int oy)
 {
-    uint32_t          side  = 0;
-    const CornerPinch pinch = pinch_at(i, j);
-    if (pinch.valid && level > pinch.lo && level <= pinch.hi) {
-        const int owner = oy * m_grid.nx + ox;
-        if (owner == pinch.owner[0])
-            side = 1;
-        else if (owner == pinch.owner[1])
-            side = 2;
-    }
+    const uint32_t side = corner_side(i, j, level, ox, oy);
 
     const uint64_t corner = uint64_t(j) * uint64_t(m_grid.nx + 1) + uint64_t(i);
     const uint64_t key    = (uint64_t(uint32_t(level - m_spec.k_floor)) << 34) | (uint64_t(side) << 32) | corner;
