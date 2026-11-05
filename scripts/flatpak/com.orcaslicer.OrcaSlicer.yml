@@ -280,10 +280,10 @@ modules:
         sha256: 2130e8c2fb3b79d1086186f78e59e8bc8d1a6aedf17ab3907f4cb9ae20918c41
         dest: external-packages/OpenSSL
 
-      # CURL 7.75.0 (built from source to link against OpenSSL 1.1.x)
+      # CURL 8.17.0 (built from source to link against OpenSSL 1.1.x)
       - type: file
-        url: https://github.com/curl/curl/archive/refs/tags/curl-7_75_0.zip
-        sha256: a63ae025bb0a14f119e73250f2c923f4bf89aa93b8d4fafa4a9f5353a96a765a
+        url: https://github.com/curl/curl/archive/refs/tags/curl-8_17_0.zip
+        sha256: 0be15247c07422a0061fda4758c0182bb9c688e40ecf968d1a0b92742a32667e
         dest: external-packages/CURL
 
       # OCCT (OpenCASCADE) V8_0_1
