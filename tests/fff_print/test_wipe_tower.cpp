@@ -294,11 +294,14 @@ TEST_CASE("The wipe tower's toolchange planner flush follows the gcode flavor", 
     }
     SECTION("klipper, tower interface features") {
         // The interface M109 is stripped from the tower by GCode.cpp; its sync line must go with it.
+        // The cooldown back to the base temperature after the wipe isn't synced either.
         DynamicPrintConfig config = wipe_tower_toolchange_config("klipper");
         config.set_deserialize_strict({ { "enable_tower_interface_features", "1" },
                                         { "nozzle_temperature_range_high", "250,250" },
                                         { "change_filament_gcode", toolchange_mark } });
-        CHECK(m400_only_where_needed(sliced_wipe_tower(config), true));
+        const std::string tower = sliced_wipe_tower(config);
+        CHECK(m400_only_where_needed(tower, true));
+        CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring("M400\nM104"));
     }
 }
 
