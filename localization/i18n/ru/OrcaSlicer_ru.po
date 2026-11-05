@@ -5745,13 +5745,11 @@ msgstr "Отключите «Косой шов вдоль всего перим�
 msgid "Enable conditional scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
 msgstr "Включите «Ограничения косого шва» и отключите режим вазы, чтобы использовать этот параметр (недоступно для ленточных принтеров)."
 
-# AI Translated
 msgid "Enable beam interlocking to use this setting."
-msgstr "Включите «Создать взаимосвязанную структуру», чтобы использовать этот параметр."
+msgstr "Включите «Перекрёстную сетку», чтобы использовать этот параметр."
 
-# AI Translated
 msgid "Disable beam interlocking to edit segmented region interlocking depth."
-msgstr "Отключите «Создать взаимосвязанную структуру», чтобы изменить «Глубина переплетения окрашенной области»."
+msgstr "Отключите «Перекрёстную сетку», чтобы изменить глубину шипа на стыке."
 
 # AI Translated
 msgid "Select the Lateral Lattice sparse infill pattern to use this setting."
@@ -5803,16 +5801,13 @@ msgstr "Для печати в режиме вазы необходимы сле
 msgid " But machines with I3 structure will not generate timelapse videos."
 msgstr " Но принтеры с кинематикой I3 не будут писать таймлапс."
 
-# AI Translated
-# Needs human review: Added the Yes/No lines the English has under the person's question; check the wording.
+# Yes/No – избыточны, оптимальная постановка вопроса в русском делает их ненужными.
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings and enable spiral/vase mode automatically\n"
 "No  - Cancel enabling spiral mode"
 msgstr ""
-"Использовать эти настройки и режим вазы?\n"
-"Да – применить эти настройки и включить режим вазы\n"
-"Нет – не включать режим вазы"
+"Использовать эти настройки и режим вазы?"
 
 # Не знаю, как и почему, но это, похоже, исправляет "вопросики" вместо
 # символов
