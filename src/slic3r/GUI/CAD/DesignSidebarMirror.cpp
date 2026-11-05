@@ -21,6 +21,8 @@
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <algorithm>
+#include <cctype>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <wx/accel.h>
@@ -368,8 +370,29 @@ void draw_rows(DesignRowList* list, float em, SidebarCtx& cx)
     const bool selectable = list->selectable();
     const float row_h = std::max(20.f * em, ImGui::GetFrameHeight());
     const float isz   = 16.f * em;
+    std::string needle;
+    if (list->filterable) {   // the filter box: type "fillet" and only the fillets are listed
+        char fb[64];
+        std::snprintf(fb, sizeof(fb), "%s", list->filter.c_str());
+        ImGui::SetNextItemWidth(std::max(ImGui::GetContentRegionAvail().x - (list->filter.empty() ? 0.f : 24.f * em), 40.f * em));
+        if (ImGui::InputTextWithHint("##filter", _u8L("Filter features (e.g. fillet)").c_str(), fb, sizeof(fb))) list->filter = fb;
+        if (ImGui::IsItemActive()) wxGetApp().imgui()->set_requires_extra_frame();
+        if (!list->filter.empty()) {
+            ImGui::SameLine();
+            if (ImGui::SmallButton("x")) list->filter.clear();
+        }
+        needle = list->filter;
+        std::transform(needle.begin(), needle.end(), needle.begin(), [](unsigned char c) { return char(std::tolower(c)); });
+    }
+    int shown_rows = 0;
     for (int i = 0; i < int(rows.size()); ++i) {
         const DesignRowList::Row& r = rows[size_t(i)];
+        if (!needle.empty() && !(selectable && i == sel)) {
+            std::string l = u8(r.label);
+            std::transform(l.begin(), l.end(), l.begin(), [](unsigned char c) { return char(std::tolower(c)); });
+            if (l.find(needle) == std::string::npos) continue;
+        }
+        ++shown_rows;
         ImGui::PushID(i);
         const float avail = ImGui::GetContentRegionAvail().x;
         const float cell  = isz + 6.f * em;
@@ -415,6 +438,14 @@ void draw_rows(DesignRowList* list, float em, SidebarCtx& cx)
             continue;
         }
         float x = p0.x + 4.f * em;
+        if (list->swatch) {
+            const wxColour sc = list->swatch(i);
+            if (sc.IsOk()) {
+                const float s = isz * 0.75f;
+                dl->AddRectFilled(ImVec2(x, p0.y + (row_h - s) * 0.5f), ImVec2(x + s, p0.y + (row_h + s) * 0.5f), ImGui::GetColorU32(col_of(sc)), 2.f * em);
+                x += s + 6.f * em;
+            }
+        }
         if (!r.icon.empty()) {
             if (const ImTextureID tex = (ImTextureID) design_icon_texture(r.icon))
                 dl->AddImage(tex, ImVec2(x, p0.y + (row_h - isz) * 0.5f), ImVec2(x + isz, p0.y + (row_h + isz) * 0.5f));
@@ -450,6 +481,7 @@ void draw_rows(DesignRowList* list, float em, SidebarCtx& cx)
         ImGui::PopID();
     }
     if (rows.empty()) ImGui::Dummy(ImVec2(1.f, 4.f * em));
+    else if (!needle.empty() && shown_rows == 0) ImGui::TextDisabled("%s", _u8L("No feature matches").c_str());
     ImGui::PopID();
 }
 

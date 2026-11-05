@@ -4028,8 +4028,10 @@ void CadDocument::apply_transform(std::vector<CadBody>& bodies, const CadFeature
 
     if (f.xf_copy)
         bodies.push_back({moved, f.name.empty() ? _u8L("Transform") : f.name});
-    else
+    else {
         bodies[tgt].shape = moved;
+        m_rigid_log.emplace_back(tgt, trsf);
+    }
 }
 
 void CadDocument::apply_thicken(std::vector<CadBody>& bodies, const CadFeature& f) const
@@ -4630,6 +4632,7 @@ void CadDocument::apply_mate(std::vector<CadBody>& bodies, const CadFeature& f) 
     BRepBuilderAPI_Transform xform(bodies[tgt_body].shape, T, true /*copy*/);
     if (!xform.IsDone()) throw std::runtime_error(_u8L("mate: transform failed"));
     bodies[tgt_body].shape = xform.Shape();
+    m_rigid_log.emplace_back(tgt_body, T);
 }
 
 // Volume of a shape, 0 for anything that isn't a solid we can measure. Used to catch a
@@ -5639,13 +5642,34 @@ std::vector<std::pair<int, int>> CadDocument::faces_made_by(int index) const
             changed_bodies.push_back(after[j]);
         }
     const std::vector<FaceProbe> was = face_probes(before), now = face_probes(changed_bodies);
+    // A Mate or Transform after this feature placed the body whole: the faces of the finished model are then not where the feature
+    // made them. Replay the rest, collect those moves, and undo them on each probe point.
+    std::vector<gp_Trsf> moved(bodies.size());
+    bool any_move = false;
+    for (size_t fi = size_t(index) + 1; fi < features.size() && !any_move; ++fi)
+        any_move = features[fi].enabled && (features[fi].type == CadFeatureType::Mate || features[fi].type == CadFeatureType::Transform);
+    if (any_move) {
+        try {
+            tmp.m_rigid_log.clear();
+            std::vector<CadBody> fin = after;
+            for (size_t fi = size_t(index) + 1; fi < features.size(); ++fi)
+                tmp.replay_feature(fi, fin);
+            for (const auto& mv : tmp.m_rigid_log)
+                if (mv.first >= 0 && mv.first < int(moved.size())) moved[size_t(mv.first)] = mv.second * moved[size_t(mv.first)];
+        } catch (...) {   // the history does not replay to the end: probe the faces where they are
+            moved.assign(bodies.size(), gp_Trsf());
+        }
+    }
     for (int b = 0; b < int(bodies.size()); ++b) {
+        const gp_Trsf back = moved[size_t(b)].Inverted();
         int id = 0;
         for (TopExp_Explorer e(bodies[b].shape, TopAbs_FACE); e.More(); e.Next(), ++id) {
             gp_Pnt p;
             gp_Dir n;
             try {
-                if (interior_point(TopoDS::Face(e.Current()), p, n) && on_boundary(now, p, n) && !on_boundary(was, p, n))
+                if (!interior_point(TopoDS::Face(e.Current()), p, n)) continue;
+                if (any_move) { p.Transform(back); n.Transform(back); }
+                if (on_boundary(now, p, n) && !on_boundary(was, p, n))
                     out.emplace_back(b, id);
             } catch (const Standard_Failure&) {
                 // A face that cannot be sampled is left out, not the whole answer.

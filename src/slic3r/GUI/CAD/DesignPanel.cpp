@@ -3032,6 +3032,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_pinned = m_tree_box->make_rows(3, false);
         // Sized to its rows, so a short history wastes no block, and scrolling past 9 features.
         m_tree = m_tree_box->make_rows(9);
+        m_tree->filterable = true;
     }
 
     m_pinned->on_action = [this](int row, int) {
@@ -3194,6 +3195,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_parts_box->header_button("design_boolean", _L("Boolean — join, subtract or intersect with another body"), [this] { on_boolean_tool(); });
         m_parts_box->header_button("color_palette",  _L("Color"), [this] { on_set_body_color(); });
         m_parts = m_parts_box->make_rows(6);   // scrolls past 6
+        m_parts->swatch = [this](int b) {   // the body's colour in the view, so a row and its body match
+            if (m_viewport == nullptr) return wxColour();
+            const ColorRGBA c = m_viewport->body_color(b);
+            return wxColour(c.r_uchar(), c.g_uchar(), c.b_uchar());
+        };
         // Start hidden: a fresh document has no bodies, and refresh_parts() only runs on the first tree rebuild.
         m_parts_box->Show(false);
     }
@@ -3617,6 +3623,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_sel_solid_edges = (level == 3) ? m_viewport->selected_solid_edges() : std::vector<int>();
         m_sel_solid_vertex = (level == 4);
         if (m_tree) m_tree->owner = -1;
+        // The body that was picked is tinted in the Bodies list as the feature is in the tree (any level: a body, a face or an edge of it).
+        if (m_parts) m_parts->owner = (level >= 1 && m_active == Tool::None && body >= 0 && body < int(m_parts->GetItemCount())) ? body : -1;
         if (level == 2 && m_active == Tool::None && face >= 0) CallAfter([this] { find_pick_owner(); });
         // A card whose input is a FACE takes the face under the click even at the whole-body level: the first click on a body selects the
         // whole body and leaves m_sel_solid_face at -1, so the pick silently failed until a second click cycled to the face (the same
@@ -8386,7 +8394,8 @@ void DesignPanel::find_pick_owner()
         try {
             for (int f = int(m_doc.features.size()) - 1; f >= 0 && owner < 0; --f) {
                 const CadFeature& feat = m_doc.features[size_t(f)];
-                if (!feat.enabled || !CadDocument::produces_body(feat.type)) continue;
+                // A Mate or Transform places a body whole; the feature that made the face is an earlier one.
+                if (!feat.enabled || !CadDocument::produces_body(feat.type) || feat.type == CadFeatureType::Mate || feat.type == CadFeatureType::Transform) continue;
                 for (const auto& bf : m_doc.faces_made_by(f))
                     if (bf.first == body && bf.second == face) { owner = f; break; }
             }

@@ -8,6 +8,7 @@
 #include "libslic3r/Color.hpp"            // ColorRGBA (per-body display colour override)
 
 #include <TopoDS_Face.hxx>
+#include <gp_Trsf.hxx>
 #include <TopoDS_Shape.hxx>
 #include <TopoDS_Wire.hxx>
 #include <cereal/cereal.hpp>
@@ -1103,6 +1104,9 @@ private:
     // The bodies as they stood BEFORE each feature of the recompute in progress (index = feature index): a feature pattern
     // needs the state around the features it repeats. Filled and cleared by recompute().
     mutable std::vector<std::vector<CadBody>> m_pre_states;
+    // Every rigid move a replay applied (body index, the transform): a Mate or a Transform places a body whole, so a face of the
+    // finished model sits where it was only before them. faces_made_by undoes these to find where a face was made.
+    mutable std::vector<std::pair<int, gp_Trsf>> m_rigid_log;
     mutable bool m_in_replay{false};   // recompute() is running its feature loop (m_pre_states has an entry for the feature being applied)
     void apply_transform(std::vector<CadBody>& bodies, const CadFeature& f) const;
     void apply_thicken(std::vector<CadBody>& bodies, const CadFeature& f) const;

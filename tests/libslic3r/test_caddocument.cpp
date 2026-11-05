@@ -9492,6 +9492,24 @@ TEST_CASE("A fillet owns its round face, and the extrude keeps the faces it trim
     CHECK(doc.faces_made_by(fi).empty());
 }
 
+// An assembly places a body whole (Mate, Transform) after its features were made: the fillet's face must still be found where the body
+// ended up, not claimed by the move or lost.
+TEST_CASE("A fillet keeps its face after the body is moved and turned", "[CadDocument][highlight]")
+{
+    CadDocument doc;
+    const int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Sketch");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+    const int fi = doc.add_fillet(2.0, 0, "Fillet");
+    REQUIRE(doc.recompute());
+    doc.add_transform(0, Vec3d(40, 15, 5), Vec3d(1, 1, 0), Vec3d(0, 0, 0), 37.0, false, "Move");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+    const auto fillet = doc.faces_made_by(fi);
+    REQUIRE(fillet.size() == 1);
+    CHECK(made_face_type(doc, fillet[0]) == GeomAbs_Cylinder);
+}
+
 TEST_CASE("A chamfer owns its bevel", "[CadDocument][highlight]")
 {
     CadDocument doc;
