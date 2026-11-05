@@ -1,12 +1,14 @@
 #include "PluginAuditManager.hpp"
 
 #include "../Utils/OrcaCloudServiceAgent.hpp"
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/libslic3r.h" // GCODEVIEWER_APP_KEY, and SLIC3R_APP_KEY via libslic3r_version.h
 #include "libslic3r_version.h"
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem/file_status.hpp>
 #include <boost/filesystem/path.hpp>
@@ -19,12 +21,14 @@
 #include <cctype>
 #include <cstddef>
 #include <cstdlib>
+#include <exception>
 #include <future>
 #include <mutex>
 #include <memory>
 #include <optional>
 #include <slic3r/GUI/BindDialog.hpp>
 #include <slic3r/GUI/GUI_App.hpp>
+#include <slic3r/GUI/MsgDialog.hpp>
 #include <slic3r/plugin/PluginAuditPromptQueue.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
@@ -34,10 +38,18 @@
 #include <utility>
 #include <vector>
 #include <wx/app.h>
+#include <wx/colour.h>
+#include <wx/dcclient.h>
 #include <wx/event.h>
+#include <wx/font.h>
+#include <wx/gdicmn.h>
+#include <wx/html/htmlwin.h>
 #include <wx/msgdlg.h>
+#include <wx/settings.h>
+#include <wx/sizer.h>
 #include <wx/string.h>
 #include <wx/thread.h>
+#include <wx/window.h>
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/plugin/PluginDescriptor.hpp"
 #include <Python.h>
@@ -173,6 +185,13 @@ static bool is_fs_category(AuditEventCategory category)
 static bool is_network_category(AuditEventCategory category)
 {
     return category == AuditEventCategory::Http || category == AuditEventCategory::Socket;
+}
+
+// Create and delete have no persistent grant list. Off the main thread they are denied outright and
+// reported with an informational dialog rather than a Yes/No prompt that could not grant anything.
+static bool is_create_delete_category(AuditEventCategory category)
+{
+    return category == AuditEventCategory::FsCreate || category == AuditEventCategory::FsDelete;
 }
 
 // ---------------------------------------------------------------------------
@@ -369,6 +388,94 @@ static const char* category_name(AuditEventCategory category)
 // ---------------------------------------------------------------------------
 
 namespace {
+
+struct PermissionMessage {
+    wxString text;
+    std::vector<std::pair<size_t, size_t>> targets;
+};
+
+class PermissionDialog : public GUI::MsgDialog
+{
+public:
+    PermissionDialog(wxWindow* parent, const PermissionMessage& message, const wxString& title, bool show_tip)
+        : MsgDialog(parent, title, wxEmptyString, wxYES_NO | wxICON_WARNING)
+    {
+        auto* html = new wxHtmlWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHW_SCROLLBAR_AUTO);
+        const wxFont prose = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
+        const wxFont code = GUI::wxGetApp().code_font();
+        const int point_size = prose.GetPointSize();
+        int sizes[] = {point_size, code.GetPointSize(), point_size, point_size, point_size, point_size, point_size};
+        html->SetFonts(prose.GetFaceName(), code.GetFaceName(), sizes);
+        html->SetBorders(2);
+
+        auto escape = [](const wxString& text, bool fixed) {
+            std::string result = xml_escape(text.ToUTF8().data());
+            boost::replace_all(result, "\r\n", "\n");
+            boost::replace_all(result, "\n", "<br>");
+            if (fixed)
+                boost::replace_all(result, " ", "&nbsp;");
+            return wxString::FromUTF8(result.c_str());
+        };
+        wxString body;
+        size_t pos = 0;
+        for (const auto& range : message.targets) {
+            body += escape(message.text.Mid(pos, range.first - pos), false);
+            // Add visual separation without changing the translated message or target text.
+            // The target list already ends in a newline; surrounding messages may provide
+            // their own blank lines, so only add spacing where there isn't one already.
+            if (range.first > 0) {
+                if (message.text[range.first - 1] != '\n')
+                    body += "<br>";
+                if (range.first < 2 || message.text[range.first - 2] != '\n')
+                    body += "<br>";
+            }
+            body += "<font size=2><tt>" + escape(message.text.Mid(range.first, range.second), true) + "</tt></font>";
+            pos = range.first + range.second;
+            if (pos < message.text.length() && message.text[pos] != '\n')
+                body += "<br>";
+        }
+        body += escape(message.text.Mid(pos), false);
+        const wxColour foreground = GUI::wxGetApp().get_label_clr_default();
+        const wxColour background = GetBackgroundColour();
+
+        wxClientDC dc(this);
+        dc.SetFont(prose);
+        const int em = std::max(dc.GetTextExtent("m").x, FromDIP(10));
+        const wxSize extent = dc.GetMultiLineTextExtent(message.text);
+        const int width = std::min(std::max(extent.x + FromDIP(20), 35 * em), 68 * em);
+        // Lay out at the intended width before measuring. wxHtmlWindow computes its virtual
+        // size from the rendered cells, including wrapped prose and unbreakable target lines.
+        html->SetSize(wxSize(width, 4 * em));
+        html->SetPage(wxString::Format("<html><body bgcolor=\"#%02x%02x%02x\"><font color=\"#%02x%02x%02x\">",
+                                       background.Red(), background.Green(), background.Blue(),
+                                       foreground.Red(), foreground.Green(), foreground.Blue()) + body + "</font></body></html>");
+        const wxSize virtual_size = html->GetVirtualSize();
+        const int scrollbar = virtual_size.x > html->GetClientSize().x
+                                  ? wxSystemSettings::GetMetric(wxSYS_HSCROLL_Y, html) : 0;
+        const int height = std::min(std::max(virtual_size.y + scrollbar + FromDIP(4), 4 * em), 48 * em);
+        html->SetMinSize(wxSize(width, height));
+        m_html = html;
+        m_content_dip = ToDIP(wxSize(width, height));
+        content_sizer->Add(html, 1, wxEXPAND | wxRIGHT, 8);
+        GUI::wxGetApp().UpdateDarkUIWin(html);
+        if (show_tip)
+            show_dsa_button(_L("Don't show this tip again"));
+        finalize();
+    }
+
+    void on_dpi_changed(const wxRect& suggested_rect) override
+    {
+        GUI::MsgDialog::on_dpi_changed(suggested_rect);
+        m_html->SetMinSize(FromDIP(m_content_dip));
+        GetSizer()->SetSizeHints(this);
+        Layout();
+        Fit();
+    }
+
+private:
+    wxHtmlWindow* m_html = nullptr;
+    wxSize m_content_dip;
+};
 
 // Canonicalize a path for containment comparison.  weakly_canonical resolves symlinks but does
 // NOT require the path to exist — it canonicalizes the prefix that exists and appends the
@@ -785,12 +892,44 @@ AuditDecision PluginAuditManager::check_open(const std::string& path_str, const 
 
 namespace {
 
-// Builds and shows the modal confirmation. Must run on the GUI thread. The prompt helpers in
-// PluginAuditDetail below share it so every permission prompt is styled the same way.
-bool show_permission_dialog(wxWindow* parent, const wxString& message, const wxString& title)
+// A live top-level window keeps the audit dialog ordered with the app and lets wx tear it down
+// with its parent on shutdown. Null only before the main window exists or after it is gone; the
+// callers check is_closing() first.
+wxWindow* audit_prompt_parent()
 {
-    wxMessageDialog dialog(parent, message, title, wxYES_NO | wxICON_WARNING);
-    return dialog.ShowModal() == wxID_YES;
+    return wxTheApp != nullptr ? wxTheApp->GetTopWindow() : nullptr;
+}
+
+// A complete sentence of its own, so a translator can place it independently of the request
+// body. Informational only: a prompt never navigates to, or opens, the Plugins dialog.
+void append_permission_dialog_tip(wxString& message)
+{
+    message += "\n\n";
+    message += _L("Tip: Approve a permission only if you trust this plugin to use it.");
+}
+
+// The preference affects only the explanatory tip, never the permission decision.
+// Must run on the GUI thread.
+bool show_permission_dialog(PermissionMessage message, const wxString& title)
+{
+    auto* config = GUI::wxGetApp().app_config;
+    const bool show_tip = config == nullptr || config->get("hide_plugin_permission_tip") != "1";
+    if (show_tip)
+        append_permission_dialog_tip(message.text);
+
+    PermissionDialog dialog(audit_prompt_parent(), message, title, show_tip);
+    const int result = dialog.ShowModal();
+    if (show_tip && config != nullptr && (result == wxID_YES || result == wxID_NO) && dialog.get_checkbox_state()) {
+        try {
+            config->set("hide_plugin_permission_tip", "1");
+            config->save();
+        } catch (const std::exception& ex) {
+            BOOST_LOG_TRIVIAL(warning) << "[AUDIT PROMPT] Failed to save the permission-tip preference: " << ex.what();
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(warning) << "[AUDIT PROMPT] Failed to save the permission-tip preference: unknown exception";
+        }
+    }
+    return result == wxID_YES;
 }
 
 } // namespace
@@ -1307,12 +1446,16 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
                                           "Plugin \"%s\" is requesting to read/write the following files:\n%s", target_count),
                                 plugin_name, target_list);
     case AuditEventCategory::FsCreate:
-        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to create the following file:\n%s",
-                                          "Plugin \"%s\" is requesting to create the following files:\n%s", target_count),
+        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to create the following file:\n%s\n\n"
+                                          "This approval applies only to this operation and is not remembered.",
+                                          "Plugin \"%s\" is requesting to create the following files:\n%s\n\n"
+                                          "This approval applies only to this operation and is not remembered.", target_count),
                                 plugin_name, target_list);
     case AuditEventCategory::FsDelete:
-        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to delete the following file:\n%s",
-                                          "Plugin \"%s\" is requesting to delete the following files:\n%s", target_count),
+        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to delete the following file:\n%s\n\n"
+                                          "This approval applies only to this operation and is not remembered.",
+                                          "Plugin \"%s\" is requesting to delete the following files:\n%s\n\n"
+                                          "This approval applies only to this operation and is not remembered.", target_count),
                                 plugin_name, target_list);
     case AuditEventCategory::Http:
         return wxString::Format(
@@ -1339,12 +1482,23 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
     }
 }
 
-// A live top-level window keeps the audit dialog ordered with the app and lets wx tear it down
-// with its parent on shutdown. Null only before the main window exists or after it is gone; the
-// callers check is_closing() first.
-wxWindow* audit_prompt_parent()
+// Format with a placeholder first so translated messages can put the target list anywhere.
+PermissionMessage formatted_audit_message(AuditEventCategory category, const wxString& plugin_name,
+                                          const wxString& event_name, const wxString& targets, size_t count)
 {
-    return wxTheApp != nullptr ? wxTheApp->GetTopWindow() : nullptr;
+    if (targets.empty())
+        return {audit_message(category, plugin_name, event_name, targets, count), {}};
+
+    wxString marker = "__ORCA_PERMISSION_TARGETS__";
+    while (plugin_name.Contains(marker) || event_name.Contains(marker) || targets.Contains(marker))
+        marker += "_";
+    PermissionMessage message{audit_message(category, plugin_name, event_name, marker, count), {}};
+    const size_t pos = message.text.find(marker);
+    if (pos != wxString::npos) {
+        message.text.replace(pos, marker.length(), targets);
+        message.targets.emplace_back(pos, targets.length());
+    }
+    return message;
 }
 
 // Builds and shows the modal permission prompt. Must run on the GUI thread.
@@ -1355,18 +1509,82 @@ bool prompt_for_targets(AuditEventCategory category, const std::string& plugin_n
     for (const auto& target : unresolved)
         target_list += wxString::FromUTF8(target.c_str()) + "\n";
 
-    return show_permission_dialog(
-        audit_prompt_parent(),
-        audit_message(category, wxString::FromUTF8(plugin_name.c_str()), wxString::FromUTF8(event_name.c_str()),
-                      target_list, unresolved.size()),
-        _L("Plugin permission request"));
+    PermissionMessage message = formatted_audit_message(category, wxString::FromUTF8(plugin_name.c_str()),
+                                                         wxString::FromUTF8(event_name.c_str()), target_list, unresolved.size());
+    return show_permission_dialog(message, _L("Plugin permission request"));
 }
 
 // Shows a prompt whose body may cover several permission buckets. Must run on the GUI thread.
-bool prompt_for_permission_message(const wxString& message)
+bool prompt_for_permission_message(const PermissionMessage& message)
 {
-    wxMessageDialog dialog(audit_prompt_parent(), message, _L("Plugin permissions"), wxYES_NO | wxICON_WARNING);
-    return dialog.ShowModal() == wxID_YES;
+    return show_permission_dialog(message, _L("Plugin permissions"));
+}
+
+// Builds the combined body for a load-time declaration. Each bucket keeps its own formatted target
+// block, so a translated sentence can place its target list independently.
+PermissionMessage build_permission_message(const std::string& plugin_name, const std::vector<AuditPromptBucket>& buckets)
+{
+    PermissionMessage message;
+    for (const AuditPromptBucket& bucket : buckets) {
+        wxString targets;
+        for (const std::string& target : bucket.targets)
+            targets += wxString::FromUTF8(target.c_str()) + "\n";
+
+        if (!message.text.IsEmpty())
+            message.text += "\n\n";
+        PermissionMessage part = formatted_audit_message(bucket.category, wxString::FromUTF8(plugin_name.c_str()),
+                                                          wxEmptyString, targets, bucket.targets.size());
+        for (const auto& range : part.targets)
+            message.targets.emplace_back(message.text.length() + range.first, range.second);
+        message.text += part.text;
+    }
+    return message;
+}
+
+// Builds the informational message shown when a create/delete request has to be queued. There is
+// no Yes/No choice: that path cannot grant create/delete permission, so the dialog must not imply
+// that approving it would make a later attempt succeed.
+wxString permission_denied_message(AuditEventCategory category, const wxString& plugin_name,
+                                   const wxString& target_list, size_t target_count)
+{
+    if (target_list.IsEmpty())
+        return wxString::Format(
+            _L("Plugin \"%s\" tried to perform a file operation that requires permission.\n\n"
+               "The operation was denied. Use a location the plugin is already allowed to access."),
+            plugin_name);
+
+    switch (category) {
+    case AuditEventCategory::FsCreate:
+        return wxString::Format(_L_PLURAL("Plugin \"%s\" tried to create the following file:\n%s\n\n"
+                                          "The operation was denied. Use a location the plugin is already allowed to access.",
+                                          "Plugin \"%s\" tried to create the following files:\n%s\n\n"
+                                          "The operation was denied. Use a location the plugin is already allowed to access.", target_count),
+                                plugin_name, target_list);
+    case AuditEventCategory::FsDelete:
+        return wxString::Format(_L_PLURAL("Plugin \"%s\" tried to delete the following file:\n%s\n\n"
+                                          "The operation was denied. Use a location the plugin is already allowed to access.",
+                                          "Plugin \"%s\" tried to delete the following files:\n%s\n\n"
+                                          "The operation was denied. Use a location the plugin is already allowed to access.", target_count),
+                                plugin_name, target_list);
+    default:
+        return wxString::Format(_L("Plugin \"%s\" tried to perform a file operation that requires permission.\n\n"
+                                   "The operation was denied. Use a location the plugin is already allowed to access."),
+                                plugin_name);
+    }
+}
+
+// Shows the informational denial for a create/delete request that could not be answered inline.
+// Must run on the GUI thread.
+void show_permission_denied_dialog(AuditEventCategory category, const std::string& plugin_name,
+                                   const std::vector<std::string>& targets)
+{
+    wxString target_list;
+    for (const auto& target : targets)
+        target_list += wxString::FromUTF8(target.c_str()) + "\n";
+
+    const wxString message = permission_denied_message(category, wxString::FromUTF8(plugin_name.c_str()),
+                                                       target_list, targets.size());
+    GUI::MessageDialog(audit_prompt_parent(), message, _L("Plugin operation denied"), wxOK | wxICON_WARNING).ShowModal();
 }
 
 // Records a grant in the plugin's sidecar so it is not asked again. Reads the install state
@@ -1385,18 +1603,70 @@ void persist_grant(const std::string& plugin_key, AuditEventCategory category, b
         persist_permission(plugin_key, state, category, by_event, *permission_list, key);
 }
 
+// Persists every missing target of a declaration in one sidecar write. Re-reads the sidecar so a
+// grant saved while the queued dialog was open is kept. A caller snapshot covers an unreadable
+// sidecar; without one, an existing but unreadable file fails closed instead of being replaced.
+bool persist_declared_permissions(const std::string& plugin_key, const std::vector<AuditPromptBucket>& buckets,
+                                  const PluginInstallState* fallback = nullptr)
+{
+    PluginDescriptor descriptor;
+    if (!PluginManager::instance().try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
+        return false;
+
+    PluginInstallState state;
+    const boost::filesystem::path root(descriptor.plugin_root);
+    if (!read_install_state(root, state)) {
+        if (fallback != nullptr) {
+            state = *fallback;
+        } else {
+            boost::system::error_code ec;
+            const bool sidecar_exists = boost::filesystem::exists(root / INSTALL_STATE_FILE, ec);
+            // The sidecar exists but cannot be read, or its presence cannot be checked: refuse
+            // rather than replacing it with only the newly granted targets. A confirmed missing
+            // file is seeded fresh below.
+            if (ec || sidecar_exists)
+                return false;
+        }
+    }
+
+    seed_install_metadata(descriptor, state);
+    for (const AuditPromptBucket& bucket : buckets) {
+        std::vector<std::string>* permission_list =
+            permission_list_for(bucket.category, /*by_event=*/false, state.permissions);
+        if (!permission_list)
+            continue;
+        for (const std::string& target : bucket.targets)
+            if (std::find(permission_list->begin(), permission_list->end(), target) == permission_list->end())
+                permission_list->push_back(target);
+    }
+
+    return write_install_state(root, state);
+}
+
 static PluginAuditManager::PermissionPrompt s_permission_prompt_for_testing;
 static PluginAuditManager::PermissionMessagePrompt s_permission_message_prompt_for_testing;
 
 AuditPromptQueue& runtime_audit_prompts()
 {
-    static AuditPromptQueue queue;
-    return queue;
+    // Deliberately leaked. A worker can be waiting on a queued prompt while static destructors
+    // run; the queue itself must stay valid until process exit, and its destructor has no work
+    // that is safe to order against wx teardown.
+    static AuditPromptQueue* queue = new AuditPromptQueue();
+    return *queue;
 }
 
-bool show_runtime_prompt(const AuditPromptRequest& request)
+bool show_queued_prompt(const AuditPromptRequest& request)
 {
-    return prompt_for_targets(request.category, request.plugin_name, request.event_name, request.shown);
+    switch (request.kind) {
+    case AuditPromptKind::RuntimeEvent:
+        return prompt_for_targets(request.category, request.plugin_name, request.event_name, request.shown);
+    case AuditPromptKind::DeclaredPermissions:
+        return prompt_for_permission_message(build_permission_message(request.plugin_name, request.buckets));
+    case AuditPromptKind::DeniedOperation:
+        show_permission_denied_dialog(request.category, request.plugin_name, request.shown);
+        return false;
+    }
+    return false;
 }
 
 void drain_runtime_prompts();
@@ -1408,6 +1678,35 @@ void schedule_runtime_prompt_drain()
         return;
     }
     GUI::wxGetApp().CallAfter([]() { drain_runtime_prompts(); });
+}
+
+// Schedules the next prompt. A failure here cannot be allowed to strand queued workers: discard
+// everything still waiting and log why, so every completion is released with a denial.
+bool schedule_runtime_prompt_drain_checked()
+{
+    try {
+        schedule_runtime_prompt_drain();
+        return true;
+    } catch (const std::exception& ex) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Failed to schedule the next prompt: " << ex.what();
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Failed to schedule the next prompt: unknown exception";
+    }
+    runtime_audit_prompts().discard_all();
+    return false;
+}
+
+// Ends the active prompt exactly once, in queue order: complete first, then release the waiting
+// worker, then schedule the next prompt. Used from normal and exceptional paths alike.
+bool finish_audit_prompt(const std::shared_ptr<AuditPromptCompletion>& completion, bool satisfied)
+{
+    if (runtime_audit_prompts().complete())
+        satisfied = false;
+    if (completion)
+        completion->resolve(satisfied);
+    if (runtime_audit_prompts().has_pending())
+        schedule_runtime_prompt_drain_checked();
+    return satisfied;
 }
 
 // Shows the oldest queued prompt. The next one is scheduled only after this dialog has returned,
@@ -1427,16 +1726,51 @@ void drain_runtime_prompts()
     // requests were discarded. Keep requests raised during plugin loading valid as well: plugin
     // code can run before the manager commits it as loaded.
     PluginManager& manager = PluginManager::instance();
-    const bool plugin_exists = manager.is_plugin_loaded(request->plugin_key) ||
-                               manager.is_plugin_load_in_progress(request->plugin_key);
-    const bool granted = plugin_exists && show_runtime_prompt(*request);
-    if (granted)
-        persist_grant(request->plugin_key, request->category, request->by_event, request->keys);
+    const auto plugin_exists = [&manager](const std::string& key) {
+        return manager.is_plugin_loaded(key) || manager.is_plugin_load_in_progress(key);
+    };
 
-    runtime_audit_prompts().complete();
+    bool satisfied = false;
+    try {
+        const bool alive   = plugin_exists(request->plugin_key);
+        const bool granted = alive && show_queued_prompt(*request);
 
-    if (runtime_audit_prompts().has_pending())
-        schedule_runtime_prompt_drain();
+        // Decide under the still-active queue entry so a shutdown/unload that arrives before the
+        // sidecar write cancels this request. begin_commit() makes an accepted answer atomic
+        // against cancellation: if cancel wins, nothing is persisted; if commit wins, the answer is
+        // valid and complete() cannot report it as cancelled afterwards.
+        const bool alive_after_prompt = plugin_exists(request->plugin_key);
+        satisfied = granted && alive_after_prompt && !PluginManager::instance().is_shutting_down() &&
+                    runtime_audit_prompts().begin_commit();
+
+        if (satisfied) {
+            switch (request->kind) {
+            case AuditPromptKind::RuntimeEvent:
+                persist_grant(request->plugin_key, request->category, request->by_event, request->keys);
+                break;
+            case AuditPromptKind::DeclaredPermissions:
+                satisfied = persist_declared_permissions(request->plugin_key, request->buckets);
+                if (!satisfied)
+                    BOOST_LOG_TRIVIAL(warning) << "[AUDIT PROMPT] Failed to persist declared permissions for "
+                                               << request->plugin_key;
+                break;
+            case AuditPromptKind::DeniedOperation:
+                break;
+            }
+        }
+    } catch (const std::exception& ex) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Permission prompt failed for plugin=" << request->plugin_key
+                                 << ": " << ex.what();
+        satisfied = false;
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Permission prompt failed for plugin=" << request->plugin_key
+                                 << ": unknown exception";
+        satisfied = false;
+    }
+
+    // While a commit is active, discards above leave it alone; finish_audit_prompt() completes
+    // first, then resolves the worker, then schedules the next prompt.
+    finish_audit_prompt(request->completion, satisfied);
 }
 
 void discard_runtime_prompts()
@@ -1500,10 +1834,16 @@ bool request_permission(AuditEventCategory category, const std::string& plugin_k
     if (s_permission_prompt_for_testing)
         return s_permission_prompt_for_testing(event_name, shown);
 
-    if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
+    if (wxTheApp == nullptr || GUI::wxGetApp().is_closing() || PluginManager::instance().is_shutting_down())
         return false;
 
+    const bool on_gui_thread = wxIsMainThread() != 0;
+
+    // A queued create/delete prompt cannot grant anything: that path has no persistent permission.
+    // Show the inline Yes/No prompt only when it can be presented immediately on the GUI thread;
+    // any queued fallback is the OK-only informational denial, wherever the event originated.
     AuditPromptRequest request;
+    request.kind        = AuditPromptKind::RuntimeEvent;
     request.category    = category;
     request.plugin_key  = plugin_key;
     request.plugin_name = plugin_name;
@@ -1512,28 +1852,39 @@ bool request_permission(AuditEventCategory category, const std::string& plugin_k
     request.keys        = keys;
     request.shown       = shown;
 
-    const bool on_gui_thread = wxIsMainThread() != 0;
-    const AuditPromptQueue::Admission admission = runtime_audit_prompts().admit(request, on_gui_thread);
+    AuditPromptQueue::Admission admission;
+    if (is_create_delete_category(category)) {
+        AuditPromptRequest denied = request;
+        denied.kind               = AuditPromptKind::DeniedOperation;
+        admission = runtime_audit_prompts().admit_with_fallback(request, std::move(denied), on_gui_thread);
+    } else {
+        admission = runtime_audit_prompts().admit(request, on_gui_thread);
+    }
 
-    if (admission == AuditPromptQueue::Admission::Duplicate)
+    if (admission == AuditPromptQueue::Admission::Duplicate || admission == AuditPromptQueue::Admission::Rejected)
         return false;
 
     if (admission == AuditPromptQueue::Admission::Queued) {
         // A prompt is already active (this event arrived inside its modal loop) or an earlier one
         // is waiting. The current operation stays denied, as for an unanswered prompt; the
         // queued prompt is shown once the active dialog has fully closed.
-        schedule_runtime_prompt_drain();
+        schedule_runtime_prompt_drain_checked();
         return false;
     }
 
     // ShowNow: no other audit prompt is active, so present this one synchronously. The event is
-    // approved only when the user says Yes to it.
-    const bool granted = show_runtime_prompt(request);
-    runtime_audit_prompts().complete();
-
-    if (runtime_audit_prompts().has_pending())
-        schedule_runtime_prompt_drain();
-    return granted;
+    // approved only when the user says Yes to it and no unload cancelled it while it was up.
+    bool granted = false;
+    try {
+        granted = show_queued_prompt(request);
+    } catch (const std::exception& ex) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Failed to show permission prompt for plugin=" << plugin_key
+                                 << ": " << ex.what();
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Failed to show permission prompt for plugin=" << plugin_key
+                                 << ": unknown exception";
+    }
+    return finish_audit_prompt(request.completion, granted);
 }
 
 // Decides an event that no allowed root or running operation covers: a saved grant allows it,
@@ -1575,9 +1926,23 @@ int decide_audited_event(PluginAuditManager&             mgr,
     if (!request_permission(category, plugin_key, plugin_name, event_name, by_event, unresolved))
         return report_denied(mgr, event_name, {false, "audit permission required"});
 
-    if (permission_list)
-        for (const auto& key : unresolved)
-            persist_permission(plugin_key, state, category, by_event, *permission_list, key);
+    if (permission_list) {
+        PluginManager& manager = PluginManager::instance();
+        const bool     plugin_alive = manager.is_plugin_loaded(plugin_key) ||
+                                      manager.is_plugin_load_in_progress(plugin_key);
+        if (plugin_alive && !manager.is_shutting_down()) {
+            try {
+                for (const auto& key : unresolved)
+                    persist_permission(plugin_key, state, category, by_event, *permission_list, key);
+            } catch (const std::exception& ex) {
+                BOOST_LOG_TRIVIAL(warning) << "[AUDIT PROMPT] Failed to store permission for plugin=" << plugin_key
+                                           << ": " << ex.what();
+            } catch (...) {
+                BOOST_LOG_TRIVIAL(warning) << "[AUDIT PROMPT] Failed to store permission for plugin=" << plugin_key
+                                           << ": unknown exception";
+            }
+        }
+    }
     return 0;
 }
 
@@ -1653,11 +2018,7 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
 
     // Per bucket, keep only the targets that no earlier grant already covers. Dropping these
     // before prompting keeps a repeated declaration from asking again for what is on disk.
-    struct MissingBucket {
-        AuditEventCategory       category;
-        std::vector<std::string> targets;
-    };
-    std::vector<MissingBucket> missing_buckets;
+    std::vector<AuditPromptBucket> missing_buckets;
 
     // A network target counts as granted when either network list covers it, matched the same
     // way the audit hook matches it (canonical scheme://host, bare host, legacy address tuple),
@@ -1669,7 +2030,7 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
         // remaining buckets verbatim.
         const bool tree_grant_bucket =
             category == AuditEventCategory::FsRead || category == AuditEventCategory::FsReadWrite;
-        MissingBucket bucket{category, {}};
+        AuditPromptBucket bucket{category, {}};
         for (const std::string& requested_target : requested_targets) {
             if (requested_target.empty())
                 continue;
@@ -1703,67 +2064,100 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     if (missing_buckets.empty())
         return true;
 
-    const auto build_message = [](const std::string& plugin_name, const std::vector<MissingBucket>& buckets) {
-        wxString message;
-        for (const MissingBucket& bucket : buckets) {
-            wxString targets;
-            for (const std::string& target : bucket.targets)
-                targets += wxString::FromUTF8(target.c_str()) + "\n";
-
-            if (!message.IsEmpty())
-                message += "\n\n";
-            message += PluginAuditDetail::audit_message(bucket.category, wxString::FromUTF8(plugin_name.c_str()),
-                                                        wxEmptyString, targets, bucket.targets.size());
-        }
-        return message;
-    };
-
-    bool granted = false;
     if (PluginAuditDetail::s_permission_message_prompt_for_testing) {
         // Tests run without a wxApp to host the dialog: hand the seam the message it would show.
-        granted = PluginAuditDetail::s_permission_message_prompt_for_testing(
-            build_message(descriptor.name, missing_buckets).utf8_string());
-    } else if (wxTheApp == nullptr || GUI::wxGetApp().is_closing()) {
+        try {
+            PermissionMessage message = PluginAuditDetail::build_permission_message(descriptor.name, missing_buckets);
+            append_permission_dialog_tip(message.text);
+            if (!PluginAuditDetail::s_permission_message_prompt_for_testing(message.text.utf8_string()))
+                return false;
+            return PluginAuditDetail::persist_declared_permissions(plugin_key, missing_buckets, &state);
+        } catch (const std::exception& ex) {
+            BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Failed to handle permission test seam for plugin=" << plugin_key
+                                     << ": " << ex.what();
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Failed to handle permission test seam for plugin=" << plugin_key
+                                     << ": unknown exception";
+        }
         return false;
-    } else if (wxIsMainThread()) {
-        granted = PluginAuditDetail::prompt_for_permission_message(build_message(descriptor.name, missing_buckets));
+    }
+
+    if (wxTheApp == nullptr || GUI::wxGetApp().is_closing() || PluginManager::instance().is_shutting_down())
+        return false;
+
+    const bool on_gui_thread = wxIsMainThread() != 0;
+
+    AuditPromptRequest request;
+    request.kind        = AuditPromptKind::DeclaredPermissions;
+    request.plugin_key  = plugin_key;
+    request.plugin_name = descriptor.name;
+    request.buckets     = missing_buckets;
+
+    // A load worker blocks on this completion. A GUI-thread caller cannot wait inside another
+    // modal dialog, so it is admitted synchronously or rejected without leaving a deferred prompt
+    // that could later grant a permission for a load that already failed.
+    std::shared_ptr<AuditPromptCompletion> completion;
+    std::future<bool>                      future;
+    AuditPromptQueue::Admission            admission;
+    if (on_gui_thread) {
+        admission = PluginAuditDetail::runtime_audit_prompts().admit_synchronous(std::move(request));
     } else {
-        auto result = std::make_shared<std::promise<bool>>();
-        auto future = result->get_future();
-        GUI::wxGetApp().CallAfter([result, plugin_name = descriptor.name, missing_buckets, build_message]() {
-            // Never open a permission dialog once the GUI is closing; the load worker is waiting
-            // on this result and must be released with a denial.
-            if (wxTheApp == nullptr || GUI::wxGetApp().is_closing()) {
-                result->set_value(false);
-                return;
-            }
-            result->set_value(PluginAuditDetail::prompt_for_permission_message(build_message(plugin_name, missing_buckets)));
-        });
-        granted = future.get();
+        completion = std::make_shared<AuditPromptCompletion>();
+        future     = completion->get_future();
+        request.completion = completion;
+        admission = PluginAuditDetail::runtime_audit_prompts().admit(std::move(request), /*may_show_now=*/false);
     }
 
-    if (!granted)
+    if (admission == AuditPromptQueue::Admission::Duplicate || admission == AuditPromptQueue::Admission::Rejected)
         return false;
 
-    // The dialog can stay open while another grant is persisted; re-read before saving so this
-    // request adds to the current state instead of replacing it.
-    PluginInstallState latest_state;
-    if (read_install_state(boost::filesystem::path(descriptor.plugin_root), latest_state))
-        state = std::move(latest_state);
-
-    PluginAuditDetail::seed_install_metadata(descriptor, state);
-
-    for (const MissingBucket& bucket : missing_buckets) {
-        std::vector<std::string>* permission_list =
-            PluginAuditDetail::permission_list_for(bucket.category, /*by_event=*/false, state.permissions);
-        if (!permission_list)
-            continue;
-        for (const std::string& target : bucket.targets)
-            if (std::find(permission_list->begin(), permission_list->end(), target) == permission_list->end())
-                permission_list->push_back(target);
+    if (admission == AuditPromptQueue::Admission::ShowNow) {
+        bool satisfied = false;
+        try {
+            const bool granted = PluginAuditDetail::prompt_for_permission_message(
+                PluginAuditDetail::build_permission_message(descriptor.name, missing_buckets));
+            satisfied = granted && !PluginManager::instance().is_shutting_down() &&
+                        PluginAuditDetail::runtime_audit_prompts().begin_commit();
+            if (satisfied) {
+                satisfied = PluginAuditDetail::persist_declared_permissions(plugin_key, missing_buckets, &state);
+                if (!satisfied)
+                    BOOST_LOG_TRIVIAL(warning) << "[AUDIT PROMPT] Failed to store declared permissions for plugin="
+                                               << plugin_key;
+            }
+        } catch (const std::exception& ex) {
+            BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Failed to handle declared permissions for plugin=" << plugin_key
+                                     << ": " << ex.what();
+            satisfied = false;
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Failed to handle declared permissions for plugin=" << plugin_key
+                                     << ": unknown exception";
+            satisfied = false;
+        }
+        return PluginAuditDetail::finish_audit_prompt(nullptr, satisfied);
     }
 
-    return write_install_state(boost::filesystem::path(descriptor.plugin_root), state);
+    // Queued: only a load worker reaches this branch. The GUI callback will answer, persist, and
+    // release the worker.
+    if (!PluginAuditDetail::schedule_runtime_prompt_drain_checked())
+        return false;
+
+    // A load that began before shutdown must not wait forever on a prompt that will not open.
+    // Re-check after enqueue so a discard racing this admission cannot strand the worker.
+    if (PluginManager::instance().is_shutting_down()) {
+        PluginAuditDetail::discard_runtime_prompts_for(plugin_key);
+        return false;
+    }
+
+    try {
+        return future.get();
+    } catch (const std::exception& ex) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Permission wait failed for plugin=" << plugin_key << ": " << ex.what();
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Permission wait failed for plugin=" << plugin_key
+                                 << ": unknown exception";
+    }
+    PluginAuditDetail::discard_runtime_prompts_for(plugin_key);
+    return false;
 }
 
 void PluginAuditManager::record_root_frame()

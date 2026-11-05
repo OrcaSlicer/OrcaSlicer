@@ -143,10 +143,11 @@ public:
     AuditDecision check_open(const std::string& path, const std::string& mode);
 
     // Ask the user to grant the requested permissions. The request may originate on a plugin
-    // load worker, so the implementation marshals the modal dialog to the wx main thread.
-    // Targets already persisted for the plugin are not shown or asked for again. Returns true
-    // only when every missing target was granted and persisted; denial aborts the plugin load
-    // without adding a permission.
+    // load worker, so it goes through the same serialized prompt queue as runtime events; a worker
+    // waits for the answer, while a GUI-thread caller only shows it when no other prompt is active
+    // and is otherwise rejected without queueing a deferred declaration. Targets already persisted
+    // for the plugin are not shown or asked for again. Returns true only when every missing target
+    // was granted and persisted; denial aborts the plugin load without adding a permission.
     //
     // A filesystem target may name a directory tree: a trailing "/*" (e.g. "/path/to/folder/*")
     // grants the folder itself and every path beneath it, at any depth. "*" is the only wildcard
@@ -223,9 +224,10 @@ public:
     using PermissionMessagePrompt = std::function<bool(const std::string& message)>;
     static void set_permission_message_prompt_for_testing(PermissionMessagePrompt prompt);
 
-    // Drops runtime audit prompts that have not been shown yet. Called when the application shuts
-    // down so a queued prompt cannot open after the GUI is gone, and when a plugin is unloaded so
-    // its prompts cannot outlive it. An already displayed prompt is unaffected.
+    // Drops runtime audit prompts that have not been shown yet, and cancels any blocked worker
+    // waiting on one (including the prompt currently on screen: its late answer is ignored). Called
+    // when the application shuts down so a queued prompt cannot open after the GUI is gone, and
+    // when a plugin is unloaded so its prompts cannot outlive it.
     static void discard_pending_permission_prompts();
     static void discard_pending_permission_prompts_for(const std::string& plugin_key);
 
