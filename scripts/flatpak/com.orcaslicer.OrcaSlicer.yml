@@ -348,6 +348,17 @@ modules:
         sha256: 1b4c2cb6cba1ca5e53b9e85eeeab02154cab4b70894c96e97a9c747a26d19d63
         dest: external-packages/JPEG
 
+      # Expat R_2_10_0
+      # The commit is pinned because the entity-amplification guard is a security
+      # boundary, not because the tag is unstable. EXPAT.cmake consumes this
+      # checkout as SOURCE_DIR: the sandbox has no network, and the CMake project
+      # root is the expat/ subdirectory of the repository.
+      - type: git
+        url: https://github.com/libexpat/libexpat.git
+        tag: R_2_10_0
+        commit: a70841d9ffa64ddde29ab824ed6305035ebe4c47
+        dest: external-packages/EXPAT
+
       # ---------------------------------------------------------------
       # uv 0.11.21, pinned per arch (only the matching one is fetched).
       # Keep the version and hashes in sync with ORCA_UV_VERSION and

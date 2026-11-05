@@ -896,21 +896,10 @@ endif()
 
 ## OPTIONAL packages
 
-# Find expat or use bundled version
-# Always use the system libexpat on Linux.
-
-find_package(EXPAT)
-
-if (NOT EXPAT_FOUND)
-    add_library(expat STATIC
-        ${LIBDIR}/expat/xmlparse.c
-        ${LIBDIR}/expat/xmlrole.c
-        ${LIBDIR}/expat/xmltok.c
-    )
-    set(EXPAT_FOUND 1)
-    set(EXPAT_INCLUDE_DIRS ${LIBDIR}/expat/)
-    set(EXPAT_LIBRARIES expat)
-endif ()
+# Linux links the system libexpat; Windows and macOS link the pinned copy built
+# by the deps project. 2.4.0 is the first release guarding against entity
+# amplification, so an older distro package must fail at configure time.
+find_package(EXPAT 2.4.0 REQUIRED)
 
 find_package(PNG REQUIRED)
 
