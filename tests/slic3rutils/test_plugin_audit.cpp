@@ -1553,6 +1553,204 @@ inside_link_outcome = attempt(lambda: open(DANGLING_INSIDE_LINK, "w").close())
     CHECK_FALSE(fs::exists(inside_target));
 }
 
+TEST_CASE("A saved exact file grant covers an equivalent spelling of the same file", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    // The granted file, a file beside it, a lookalike name, the not-yet-existing target of a
+    // dangling link, and the not-yet-existing target of a write.
+    python.exec(R"PY(
+FILE = os.path.join(OUTSIDE, "approved-file.txt")
+OTHER = os.path.join(OUTSIDE, "other-file.txt")
+LOOKALIKE = os.path.join(OUTSIDE, "approved-file.txt.bak")
+NOT_CREATED = os.path.join(OUTSIDE, "not-created.txt")
+NEW_FILE = os.path.join(OUTSIDE, "new-file.txt")
+ESCAPE_PATH = os.path.join(OUTSIDE, "sub", "..", "other-file.txt")
+os.makedirs(os.path.join(OUTSIDE, "sub"))
+for path in (FILE, OTHER, LOOKALIKE):
+    with open(path, "w") as f:
+        f.write("x")
+)PY");
+
+    const fs::path            outside     = harness.outside.path();
+    const fs::path            file        = python.str("FILE");
+    const fs::path            alias       = outside / "alias.txt";
+    const fs::path            other_alias = outside / "other-alias.txt";
+    const fs::path            dangling    = outside / "dangling.txt";
+    boost::system::error_code ec;
+    // A link to the granted file, a link to a different file, and a link whose target does not
+    // exist yet.
+    fs::create_symlink(file, alias, ec);
+    if (ec)
+        SKIP("Cannot create a file symlink here: " + ec.message());
+    fs::create_symlink(outside / "other-file.txt", other_alias, ec);
+    if (ec)
+        SKIP("Cannot create a file symlink here: " + ec.message());
+    fs::create_symlink(outside / "not-created.txt", dangling, ec);
+    if (ec)
+        SKIP("Cannot create a file symlink here: " + ec.message());
+
+    python.globals["ALIAS"]      = alias.string();
+    python.globals["OTHER_LINK"] = other_alias.string();
+    python.globals["DANGLING"]   = dangling.string();
+
+    PluginPermissions permissions;
+    permissions.fs_read      = {python.str("FILE")};
+    permissions.fs_readwrite = {python.str("NOT_CREATED"), python.str("NEW_FILE")};
+    harness.save_permissions(PLUGIN, permissions);
+
+    // A relative target is resolved against the working directory the open resolves in, so the
+    // grant matches the file it names even though the audit target carries no directory.
+    const fs::path original_cwd = fs::current_path();
+    fs::current_path(outside, ec);
+    REQUIRE_FALSE(ec);
+    python.run_as(PLUGIN, R"PY(
+relative_read_outcome = attempt(lambda: open("approved-file.txt").read())
+relative_write_outcome = attempt(lambda: open("new-file.txt", "w").close())
+)PY");
+    fs::current_path(original_cwd, ec);
+    REQUIRE_FALSE(ec);
+
+    python.run_as(PLUGIN, R"PY(
+verbatim_outcome = attempt(lambda: open(FILE).read())
+dot_outcome = attempt(lambda: open(os.path.join(OUTSIDE, ".", "approved-file.txt")).read())
+updown_outcome = attempt(lambda: open(os.path.join(OUTSIDE, "sub", "..", "approved-file.txt")).read())
+alias_outcome = attempt(lambda: open(ALIAS).read())
+other_outcome = attempt(lambda: open(OTHER).read())
+escape_outcome = attempt(lambda: open(ESCAPE_PATH).read())
+other_link_outcome = attempt(lambda: open(OTHER_LINK).read())
+lookalike_outcome = attempt(lambda: open(LOOKALIKE).read())
+dangling_outcome = attempt(lambda: open(DANGLING, "w").close())
+)PY");
+
+    CHECK(python.str("verbatim_outcome") == "ok");
+    CHECK(python.str("relative_read_outcome") == "ok");
+    CHECK(python.str("relative_write_outcome") == "ok");
+    CHECK(python.str("dot_outcome") == "ok");
+    CHECK(python.str("updown_outcome") == "ok");
+    CHECK(python.str("alias_outcome") == "ok");
+
+    // Full path equality, not containment: a sibling, a lookalike name, a link to another file,
+    // and a ".." spelling that lands on another file are all asked about.
+    CHECK(python.str("other_outcome") == "denied");
+    CHECK(python.str("escape_outcome") == "denied");
+    CHECK(python.str("other_link_outcome") == "denied");
+    CHECK(python.str("lookalike_outcome") == "denied");
+    // Fail closed on a dangling final link: the write would create its target, not the path the
+    // grant names, even though that target itself carries a read/write grant.
+    CHECK(python.str("dangling_outcome") == "denied");
+    CHECK_FALSE(fs::exists(outside / "not-created.txt"));
+
+    const std::string open_prompt = "open: ";
+    const std::string expected_prompts =
+        open_prompt + python.str("OTHER") + "\n" + open_prompt + python.str("ESCAPE_PATH") + "\n" +
+        open_prompt + python.str("OTHER_LINK") + "\n" + open_prompt + python.str("LOOKALIKE") + "\n" +
+        open_prompt + python.str("DANGLING") + "\n";
+    CHECK(describe(harness.prompts) == expected_prompts);
+
+#ifdef _WIN32
+    // Windows compares path names case-insensitively and accepts either separator, so a different
+    // spelling of the granted file matches without another prompt.
+    std::string forward_slashes;
+    for (const char c : file.string())
+        forward_slashes += c == '\\' ? '/' : c;
+    python.globals["UPPERCASE_FILE"]     = (file.parent_path() / "APPROVED-FILE.TXT").string();
+    python.globals["FORWARD_SLASH_FILE"] = forward_slashes;
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+uppercase_outcome = attempt(lambda: open(UPPERCASE_FILE).read())
+forward_slash_outcome = attempt(lambda: open(FORWARD_SLASH_FILE).read())
+)PY");
+    CHECK(python.str("uppercase_outcome") == "ok");
+    CHECK(python.str("forward_slash_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+#endif
+
+    // A grant saved as a link applies to the file it points at, not just to the link's spelling.
+    permissions.fs_read      = {alias.string()};
+    permissions.fs_readwrite.clear();
+    harness.save_permissions(PLUGIN, permissions);
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "grant_via_link_outcome = attempt(lambda: open(FILE).read())");
+    CHECK(python.str("grant_via_link_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+
+    // An exact grant names one file: it does not become a tree grant, so it does not cover what
+    // lives inside the folder it names.
+    permissions.fs_read = {python.str("OUTSIDE")};
+    harness.save_permissions(PLUGIN, permissions);
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "inside_granted_folder_outcome = attempt(lambda: open(FILE).read())");
+    CHECK(python.str("inside_granted_folder_outcome") == "denied");
+    CHECK(describe(harness.prompts) == open_prompt + python.str("FILE") + "\n");
+
+    // A grant that names a dangling link also covers only its verbatim spelling: an equivalent
+    // spelling of the target the write would create is not matched by equivalence.
+    permissions.fs_read.clear();
+    permissions.fs_readwrite = {dangling.string()};
+    harness.save_permissions(PLUGIN, permissions);
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "through_dangling_grant_outcome = attempt(lambda: open(NOT_CREATED, 'w').close())");
+    CHECK(python.str("through_dangling_grant_outcome") == "denied");
+    CHECK(describe(harness.prompts) == open_prompt + python.str("NOT_CREATED") + "\n");
+    CHECK_FALSE(fs::exists(outside / "not-created.txt"));
+}
+
+TEST_CASE("A saved exact file grant covers an equivalent spelling in a permission request", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+
+    const fs::path file = harness.outside.path() / "requested-file.txt";
+    PluginPermissions stored;
+    stored.fs_read = {file.string()};
+    harness.save_permissions(PLUGIN, stored);
+
+    std::vector<std::string> prompted;
+    PluginAuditManager::set_permission_message_prompt_for_testing(
+        [&prompted](const std::string& message) {
+            prompted.push_back(message);
+            return false;
+        });
+    PluginAuditManager& mgr = PluginAuditManager::instance();
+
+    // An absolute declaration that is a different spelling of the granted path is already covered,
+    // so it is neither shown nor appended as a duplicate grant.
+    PluginPermissions dotted;
+    dotted.fs_read = {file.parent_path().string() + "/./" + file.filename().string()};
+    CHECK(mgr.request_permissions(PLUGIN, dotted));
+    CHECK(prompted.empty());
+    CHECK(harness.saved_permissions(PLUGIN).fs_read == std::vector<std::string>{file.string()});
+
+    // A relative declaration resolves against the directory the request is made in.
+    const fs::path            original_cwd = fs::current_path();
+    boost::system::error_code ec;
+    fs::current_path(harness.outside.path(), ec);
+    REQUIRE_FALSE(ec);
+    PluginPermissions relative;
+    relative.fs_read = {file.filename().string()};
+    const bool relative_granted = mgr.request_permissions(PLUGIN, relative);
+    fs::current_path(original_cwd, ec);
+    REQUIRE_FALSE(ec);
+    CHECK(relative_granted);
+    CHECK(prompted.empty());
+
+    // A different file still needs its own grant, so the equivalence above did not widen anything.
+    PluginPermissions different;
+    different.fs_read = {(harness.outside.path() / "different-file.txt").string()};
+    CHECK_FALSE(mgr.request_permissions(PLUGIN, different));
+    REQUIRE(prompted.size() == 1);
+    CHECK(prompted.front().find("different-file.txt") != std::string::npos);
+    PluginAuditManager::set_permission_message_prompt_for_testing(nullptr);
+}
+
 TEST_CASE("A relative wildcard permission request is shown and stored as an absolute grant", "[audit][Python]")
 {
     AuditHarness harness;

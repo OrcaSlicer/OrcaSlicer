@@ -526,6 +526,20 @@ bool same_path_component(const boost::filesystem::path& lhs, const boost::filesy
 #endif
 }
 
+// True when two canonical paths name the same location: every component must match, using the
+// platform's case rule. Unlike suffix_inside_root() this is full equality, so a lookalike that
+// merely shares a prefix -- or a file beside the granted one -- can never match.
+bool same_canonical_path(const boost::filesystem::path& lhs, const boost::filesystem::path& rhs)
+{
+    auto lhs_it = lhs.begin(), lhs_end = lhs.end();
+    auto rhs_it = rhs.begin(), rhs_end = rhs.end();
+    for (; lhs_it != lhs_end && rhs_it != rhs_end; ++lhs_it, ++rhs_it) {
+        if (!same_path_component(*lhs_it, *rhs_it))
+            return false;
+    }
+    return lhs_it == lhs_end && rhs_it == rhs_end;
+}
+
 // Component-wise containment: the whole of canonical_root must be a prefix of
 // canonical_candidate, and the remaining components must not traverse upward. Both arguments are
 // expected to come from canonical_for_comparison(). On a match, suffix receives the candidate's
@@ -1305,8 +1319,9 @@ bool tree_grant_root(const std::string& grant, boost::filesystem::path& root)
 // The grant to display and store for a permission request: a recognized tree grant is resolved
 // against the working directory when the request is made, so a relative "<dir>/*" names the
 // directory it actually covers. Grants that are already absolute, exact (non-tree) grants, and
-// the non-filesystem buckets are returned unchanged: they are matched verbatim, and re-rendering
-// them would change the string the user approved.
+// the non-filesystem buckets are returned unchanged: re-rendering them would change the string
+// the user approved, and an exact grant is matched by path equivalence (see exact_grant_covers)
+// rather than by that spelling alone.
 std::string absolute_tree_grant(const std::string& grant)
 {
     boost::filesystem::path root;
@@ -1321,13 +1336,66 @@ std::string absolute_tree_grant(const std::string& grant)
     return (absolute_root.lexically_normal() / "*").string();
 }
 
-// True when a filesystem grant covers a target: the exact string, or -- for a tree grant -- the
-// granted folder itself and every path beneath it, at any depth. Components are compared one by
-// one, so "/root/*" covers "/root/a/b" but not "/root-other/file". A tree grant's root must be
-// absolute; a relative root never authorizes, because the directory it names depends on the
-// process working directory. That applies to an exact spelling of the entry too: "foo/*" must
-// not match the relative target "foo/*", which is still a plugin-chosen path. A grant without a
-// wildcard keeps matching verbatim, so legacy exact entries behave as before.
+// True when an exact (non-tree) grant names the same file as `target`. A verbatim match is
+// accepted first, unchanged. Otherwise an absolute grant is compared with the target's canonical
+// path: "." / ".." and repeated separators are resolved, a relative target is resolved against
+// the current working directory, and symlinks are followed on both sides. The grant is therefore
+// treated as naming the file rather than the exact spelling the user approved, so another path or
+// a symlink alias reaching that file matches too; that is a deliberate slight broadening of an
+// exact grant. A link to a different file, a sibling, or a lookalike name still does not match:
+// the comparison is full path equality, not containment, so an exact grant never becomes a tree
+// grant.
+//
+// The grant must be absolute. A relative grant only matches verbatim: which directory it names
+// depends on the working directory at check time, which a plugin can steer with os.chdir().
+//
+// Canonicalization errors fail closed instead of falling back to lexical normalization, which
+// could equate different files across unresolved symlinks and "..". A target whose final
+// component is a dangling symlink is not matched by equivalence, and neither is a grant ending in
+// one. Windows compares case-insensitively and accepts either separator; POSIX stays
+// case-sensitive and treats "\" as an ordinary name character. Hardlinks, 8.3 short names and
+// extended-length paths remain distinct paths.
+bool exact_grant_covers(const std::string& grant, const std::string& target)
+{
+    if (grant == target)
+        return true;
+
+    namespace fs = boost::filesystem;
+
+    const fs::path grant_path(grant);
+    if (!grant_path.is_absolute())
+        return false;
+
+    boost::system::error_code ec;
+    const fs::path target_path(target);
+    const fs::path absolute_target = target_path.is_absolute() ? target_path : fs::absolute(target_path, ec);
+    if (ec || !absolute_target.is_absolute())
+        return false;
+
+    // Check the spelled path as well as its canonical form: a trailing separator can hide a
+    // dangling final link from the spelled form, and weakly_canonical() may either leave such a
+    // link as the path's tail or resolve it to the missing name.
+    if (ends_in_dangling_symlink(grant_path) || ends_in_dangling_symlink(absolute_target))
+        return false;
+
+    const fs::path canonical_grant = fs::weakly_canonical(grant_path, ec);
+    if (ec || !canonical_grant.is_absolute() || ends_in_dangling_symlink(canonical_grant))
+        return false;
+
+    const fs::path canonical_target = fs::weakly_canonical(absolute_target, ec);
+    if (ec || !canonical_target.is_absolute() || ends_in_dangling_symlink(canonical_target))
+        return false;
+
+    return same_canonical_path(canonical_grant, canonical_target);
+}
+
+// True when a filesystem grant covers a target: the exact string, an equivalent spelling of the
+// same file for an exact grant, or -- for a tree grant -- the granted folder itself and every path
+// beneath it, at any depth. Components are compared one by one, so "/root/*" covers "/root/a/b" but
+// not "/root-other/file". A tree grant's root must be absolute; a relative root never authorizes,
+// because the directory it names depends on the process working directory. That applies to an
+// exact spelling of the entry too: "foo/*" must not match the relative target "foo/*", which is
+// still a plugin-chosen path.
 //
 // A tree grant and its target are both canonicalized before the comparison, so a symlink inside
 // the granted folder cannot launder access to a path outside it, and a grant rooted at a symlink
@@ -1335,6 +1403,9 @@ std::string absolute_tree_grant(const std::string& grant)
 // exist yet matchable: it canonicalizes the existing prefix and appends the rest lexically. A
 // dangling final symlink is not covered at all: containment fails closed, because a write through
 // it would land at its target rather than at the granted path.
+//
+// An exact grant keeps its verbatim match -- legacy entries behave as before -- and additionally
+// matches an equivalent spelling of the one file it names; see exact_grant_covers().
 bool fs_grant_covers(const std::string& grant, const std::string& target)
 {
     if (target.empty())
@@ -1342,7 +1413,7 @@ bool fs_grant_covers(const std::string& grant, const std::string& target)
 
     boost::filesystem::path root;
     if (!tree_grant_root(grant, root))
-        return grant == target;
+        return exact_grant_covers(grant, target);
 
     // A relative root names whatever directory the process happens to be in, which differs
     // between runs and which a plugin could otherwise steer. Fail closed for the whole entry,
@@ -1353,9 +1424,10 @@ bool fs_grant_covers(const std::string& grant, const std::string& target)
     return grant == target || is_inside_allowed_root(boost::filesystem::path(target), root);
 }
 
-// True when `granted` already covers `target`. Only the filesystem buckets accept a tree grant:
-// an event grant ("FsRead:open") and the non-filesystem buckets (URLs, socket addresses,
-// commands) are matched verbatim, as before.
+// True when `granted` already covers `target`. Only the filesystem buckets accept a tree grant,
+// and their exact entries may name the target file by an equivalent path spelling: an event
+// grant ("FsRead:open") and the non-filesystem buckets (URLs, socket addresses, commands) are
+// matched verbatim, as before.
 bool has_permission(AuditEventCategory category, bool by_event, const std::vector<std::string>& granted,
                     const std::string& target)
 {

@@ -44,8 +44,12 @@ approved.
 
 ### Target matching
 
-- Filesystem entries match the audited path exactly, except for a tree grant
-  `<dir>/*`. A tree grant covers the named folder and every path below it. `*` is the only
+- Exact filesystem entries match the audited path verbatim. An absolute exact entry also
+  matches an equivalent canonical path, including a symlink alias or a relative target resolved
+  against the current working directory. Relative exact entries match only verbatim, so their
+  equivalence scope cannot move with the working directory. Canonical equivalence fails closed
+  for dangling final symlinks; verbatim matches retain their existing behavior.
+  A tree grant `<dir>/*` covers the named folder and every path below it. `*` is the only
   wildcard and is recognized only as the final path component. A read grant never
   authorizes a write, and the reverse. Tree matching canonicalizes both sides, so a
   symlink below the granted folder cannot extend the grant outside it. A tree grant's
