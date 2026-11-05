@@ -889,8 +889,16 @@ namespace {
 // The payload is written to a uniquely named temporary in the target's own directory, flushed,
 // closed, and then moved over the target with the platform replace primitive. Staying in the same
 // directory keeps the replacement on one filesystem, so POSIX rename(2) and Windows MoveFileExW
-// replace the target in one step. There is deliberately no in-place fallback: on any failure the
-// temporary is removed and the existing sidecar is left exactly as it was.
+// replace the target in one step: a reader sees the old sidecar or the new one, and the target is
+// never removed or moved aside first. There is deliberately no in-place fallback: on any failure
+// the temporary is removed and the existing sidecar is left exactly as it was. An in-place write
+// could expose a torn sidecar, which read_install_state() treats as no grants, and the next
+// read-modify-write would then persist that empty grant set.
+//
+// rename_file() is not used here: on POSIX it may remove the target before a second rename, and on
+// Windows it moves the target aside with DELETE_ON_CLOSE before renaming the source, so either path
+// can lose the previous sidecar on failure. The bounded Windows retry below keeps the same replace
+// primitive and retries only transient sharing or access errors.
 bool replace_install_state_file(const boost::filesystem::path& target, const std::string& contents, std::string& error)
 {
     namespace fs = boost::filesystem;
@@ -934,9 +942,21 @@ bool replace_install_state_file(const boost::filesystem::path& target, const std
 #ifdef _WIN32
     const std::wstring wide_tmp    = tmp_path.wstring();
     const std::wstring wide_target = target.wstring();
-    if (!::MoveFileExW(wide_tmp.c_str(), wide_target.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
-        return fail("MoveFileExW failed with error " +
-                    std::to_string(static_cast<unsigned long>(::GetLastError())));
+    // A scanner or a reader holding the target open makes MoveFileExW fail transiently with a
+    // sharing or access error. Retry the same replace primitive a bounded number of times; any
+    // other error, or the last attempt, reports the last error and removes the temporary.
+    constexpr unsigned max_attempts = 200;
+    for (unsigned attempt = 0;; ++attempt) {
+        if (::MoveFileExW(wide_tmp.c_str(), wide_target.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+            break;
+        const DWORD last_error = ::GetLastError();
+        const bool transient = last_error == ERROR_SHARING_VIOLATION || last_error == ERROR_LOCK_VIOLATION ||
+                               last_error == ERROR_ACCESS_DENIED;
+        if (!transient || attempt + 1 == max_attempts)
+            return fail("MoveFileExW failed with error " +
+                        std::to_string(static_cast<unsigned long>(last_error)));
+        ::Sleep(10);
+    }
 #else
     if (boost::nowide::rename(tmp_path.string().c_str(), target.string().c_str()) != 0)
         return fail(std::error_code(errno, std::generic_category()).message());
