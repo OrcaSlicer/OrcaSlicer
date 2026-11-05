@@ -6,6 +6,9 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
+#include <iterator>
+#include <limits>
+#include <utility>
 #include <vector>
 
 #include "ExtrusionLine.hpp"
@@ -292,6 +295,78 @@ double ExtrusionLine::area() const
 } // namespace Slic3r::Arachne
 
 namespace Slic3r {
+ClipperZUtils::ZPaths clip_extrusion(const ClipperZUtils::ZPath& subject, const ClipperZUtils::ZPaths& clip, ClipType clipType)
+{
+    auto zfill = [](const ClipperZUtils::ZPoint& e1bot, const ClipperZUtils::ZPoint& e1top, const ClipperZUtils::ZPoint& e2bot,
+        const ClipperZUtils::ZPoint& e2top, ClipperZUtils::ZPoint& pt) {
+            ClipperZUtils::ZPoint start = e1bot;
+            ClipperZUtils::ZPoint end = e1top;
+
+            if (start.z() <= 0 && end.z() <= 0) {
+                start = e2bot;
+                end = e2top;
+            }
+
+            assert(start.z() >= 0 && end.z() >= 0);
+
+            // Interpolate extrusion line width.
+            double length_sqr = (end - start).cast<double>().squaredNorm();
+            double dist_sqr = (pt - start).cast<double>().squaredNorm();
+            double t = std::sqrt(dist_sqr / length_sqr);
+
+            pt.z() = start.z() + coord_t((end.z() - start.z()) * t);
+        };
+
+    ClipperZUtils::ZPaths clipped_paths = ClipperZUtils::clip_zpaths(clipType, ClipperZUtils::ZPaths{ subject }, true, clip, zfill);
+
+    // Clipped path could contain vertices from the clip with a Z coordinate equal to zero.
+    // For those vertices, we must assign value based on the subject.
+    // This happens only in sporadic cases.
+    for (ClipperZUtils::ZPath& path : clipped_paths)
+        for (ClipperZUtils::ZPoint& c_pt : path)
+            if (c_pt.z() == 0) {
+                // Now we must find the corresponding line on with this point is located and compute line width (Z coordinate).
+                // Two junctions still define a segment with valid width metadata.
+                if (subject.size() < 2)
+                    continue;
+
+                const Point pt(c_pt.x(), c_pt.y());
+                Point       projected_pt_min;
+                auto        it_min = subject.begin();
+                auto        dist_sqr_min = std::numeric_limits<double>::max();
+                Point       prev(subject.front().x(), subject.front().y());
+                for (auto it = std::next(subject.begin()); it != subject.end(); ++it) {
+                    Point curr(it->x(), it->y());
+                    Point projected_pt = pt.projection_onto(Line(prev, curr));
+                    if (double dist_sqr = (projected_pt - pt).cast<double>().squaredNorm(); dist_sqr < dist_sqr_min) {
+                        dist_sqr_min = dist_sqr;
+                        projected_pt_min = projected_pt;
+                        it_min = std::prev(it);
+                    }
+                    prev = curr;
+                }
+
+                assert(dist_sqr_min <= SCALED_EPSILON);
+                assert(std::next(it_min) != subject.end());
+
+                const Point  pt_a(it_min->x(), it_min->y());
+                const Point  pt_b(std::next(it_min)->x(), std::next(it_min)->y());
+                const double line_len = (pt_b - pt_a).cast<double>().norm();
+                const double dist = (projected_pt_min - pt_a).cast<double>().norm();
+                c_pt.z() = coord_t(double(it_min->z()) + (dist / line_len) * double(std::next(it_min)->z() - it_min->z()));
+            }
+
+    assert([&clipped_paths = std::as_const(clipped_paths)]() -> bool {
+        for (const ClipperZUtils::ZPath& path : clipped_paths)
+            for (const ClipperZUtils::ZPoint& pt : path)
+                if (pt.z() <= 0)
+                    return false;
+        return true;
+    }());
+
+    return clipped_paths;
+}
+
 void extrusion_paths_append(ExtrusionPaths &dst, const ClipperZUtils::ZPaths &extrusion_paths, const ExtrusionRole role, const Flow &flow)
 {
     for (const ClipperZUtils::ZPath &extrusion_path : extrusion_paths) {
