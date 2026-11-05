@@ -94,9 +94,13 @@ ExternalProject_Add(dep_OpenSSL
         "--libdir=lib"
         ${_cross_comp_prefix_line}
         ${_openssl_extra_cflags}
+        # 3.x raises the default security level from 1 to 2. Keep 1, the level
+        # 1.1.1 shipped with: it still accepts the 1024-bit RSA and DH that old
+        # self-signed printer certificates and firmware TLS stacks use. TLS
+        # 1.0 and 1.1 need level 0 in 3.x and stay refused at either level.
+        -DOPENSSL_TLS_SECURITY_LEVEL=1
         no-shared
         no-asm
-        no-ssl3-method
         no-dynamic-engine
         no-tests
     BUILD_IN_SOURCE ON
@@ -109,13 +113,6 @@ if (CMAKE_GENERATOR MATCHES "Visual Studio")
     # environment, and ClangCL's puts clang's headers first. Use the default.
     set_target_properties(dep_OpenSSL PROPERTIES VS_PLATFORM_TOOLSET "$(DefaultPlatformToolset)")
 endif ()
-
-ExternalProject_Add_Step(dep_OpenSSL install_cmake_files
-    DEPENDEES install
-
-    COMMAND ${CMAKE_COMMAND} -E copy_directory openssl "${DESTDIR}${CMAKE_INSTALL_LIBDIR}/cmake/openssl"
-    WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
-)
 
 if (NOT WIN32)
     # OpenSSL's object rules do not depend on the configured flags or paths, so

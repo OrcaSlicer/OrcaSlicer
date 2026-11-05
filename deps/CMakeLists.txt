@@ -350,8 +350,11 @@ if(FLATPAK)
     find_package(PNG)
     find_package(CURL)
     find_package(JPEG)
-    find_package(OpenSSL 1.1...<3.2)
-    find_package(CURL)
+    # Not OpenSSL: the manifest stages the pinned tarball and the Flatpak must
+    # run the same build, with the same default security level, as the other
+    # platforms. The GNOME SDK's own OpenSSL would satisfy a probe here and,
+    # because dep_CURL is skipped once both are found, take the SDK's curl
+    # with it.
 endif()
 
 set(ZLIB_PKG "")
@@ -410,6 +413,8 @@ include(libnoise/libnoise.cmake)
 
 include(Draco/Draco.cmake)
 
+# TODO: utils.cpp, Format/bbs_3mf.cpp and GUI/Printer/PrinterFileSystem.cpp
+# still use the MD5_* functions that 3.0 deprecated; port them to EVP.
 set(OPENSSL_PKG "")
 if(NOT OPENSSL_FOUND)
     include(OpenSSL/OpenSSL.cmake)
