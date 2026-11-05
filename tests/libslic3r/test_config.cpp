@@ -2129,6 +2129,16 @@ TEST_CASE("Filaments are decoupled from tools on a multi-tool printer unless it 
     }
 }
 
+TEST_CASE("A native mapping protocol resolves the mapping without the flag", "[Config]") {
+    // A protocol printer already routes logical tools itself, so the printer-agnostic opt-in
+    // is redundant there (the Printer Settings line is hidden for exactly this reason).
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4}));
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
+    config.set_deserialize_strict({{"filament_mapping_protocol", "snapmaker"}, {"enable_filament_mapping", "0"}});
+    CHECK(decouples_filaments_from_tools(config));
+}
+
 TEST_CASE("A printer has viewable filaments with one per nozzle or a reported changer", "[Config]") {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));

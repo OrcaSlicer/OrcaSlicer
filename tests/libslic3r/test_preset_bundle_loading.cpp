@@ -1953,13 +1953,13 @@ TEST_CASE("Every printer variant has a compatible default material", "[Preset][V
 namespace {
 // A system printer with `nozzles` tools.
 Preset &add_mapped_printer(PresetCollection &printers, const std::string &name, size_t nozzles,
-                           bool mapped, bool semm = false)
+                           FilamentMappingProtocol protocol, bool semm = false)
 {
     Preset &printer   = add_inmemory_preset(printers, name);
     printer.is_system = true;
     printer.config.option<ConfigOptionFloats>("nozzle_diameter", true)->values.assign(nozzles, 0.4);
     printer.config.option<ConfigOptionBool>("single_extruder_multi_material", true)->value = semm;
-    printer.config.option<ConfigOptionBool>("enable_filament_mapping", true)->value = mapped;
+    printer.config.option<ConfigOptionEnum<FilamentMappingProtocol>>("filament_mapping_protocol", true)->value = protocol;
     return printer;
 }
 
@@ -1981,7 +1981,7 @@ TEST_CASE("Filament preset selections round-trip for a mapped multi-tool printer
     AppConfig    config;
     PresetBundle bundle;
 
-    const Preset &printer = add_mapped_printer(bundle.printers, "Test Mapped Printer", 4, true);
+    const Preset &printer = add_mapped_printer(bundle.printers, "Test Mapped Printer", 4, FilamentMappingProtocol::fmpSnapmaker);
     bundle.printers.select_preset_by_name("Test Mapped Printer", true);
     REQUIRE(decouples_filaments_from_tools(printer.config));
 
@@ -1992,7 +1992,7 @@ TEST_CASE("Filament preset selections round-trip for a mapped multi-tool printer
     bundle.export_selections(config);
 
     PresetBundle bundle2;
-    add_mapped_printer(bundle2.printers, "Test Mapped Printer", 4, true);
+    add_mapped_printer(bundle2.printers, "Test Mapped Printer", 4, FilamentMappingProtocol::fmpSnapmaker);
     add_filaments(bundle2, 5);
 
     bundle2.load_selections(config);
@@ -2022,7 +2022,7 @@ TEST_CASE("Switching to a printer that can take them keeps the project's filamen
 
         const std::vector<std::string> filament_names = add_filaments(bundle, 8);
         add_mapped_printer(bundle.printers, "Target Printer", c.mapped ? 4 : 1,
-                           c.mapped, c.semm);
+                           c.mapped ? FilamentMappingProtocol::fmpSnapmaker : FilamentMappingProtocol::fmpNone, c.semm);
         config.set_printer_setting("Target Printer", PRESET_FILAMENT_NAME, filament_names[0]);
         for (size_t i = 1; i < c.remembered; ++i)
             config.set_printer_setting("Target Printer", "filament_" + std::string(i < 10 ? "0" : "") + std::to_string(i), filament_names[i]);
@@ -2063,7 +2063,7 @@ TEST_CASE("Restoring a project with default-length mixed metadata still counts e
     PresetBundle bundle;
 
     const std::vector<std::string> filament_names = add_filaments(bundle, 6);
-    add_mapped_printer(bundle.printers, "Target Printer", 4, true);
+    add_mapped_printer(bundle.printers, "Target Printer", 4, FilamentMappingProtocol::fmpSnapmaker);
     config.set_printer_setting("Target Printer", PRESET_FILAMENT_NAME, filament_names[0]);
     for (size_t i = 1; i < 4; ++i)
         config.set_printer_setting("Target Printer", "filament_0" + std::to_string(i), filament_names[i]);
@@ -2089,7 +2089,7 @@ TEST_CASE("A damaged project's short filament_settings_id doesn't leave a blank 
 {
     PresetBundle bundle;
 
-    const Preset &printer = add_mapped_printer(bundle.printers, "Test Mapped Printer", 4, true);
+    const Preset &printer = add_mapped_printer(bundle.printers, "Test Mapped Printer", 4, FilamentMappingProtocol::fmpSnapmaker);
     bundle.printers.select_preset_by_name("Test Mapped Printer", true);
 
     const std::vector<std::string> filament_names = add_filaments(bundle, 4);
