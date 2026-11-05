@@ -889,15 +889,6 @@ function renderFav() {
             badge.title = T("sd_fav_slot", "Favorite %s (%s)", slot_num, shortcutAlt() + slot);
             tile.appendChild(badge);
         }
-        // Direct removal: a hover-revealed ✕ in the tile's corner. click() stops propagation so it
-        // unpins without activating the action.
-        var unpin = document.createElement("button");
-        unpin.className = "fav-unpin";
-        unpin.title = T("sd_remove_fav", "Remove from favorites");
-        unpin.setAttribute("aria-label", T("sd_remove_fav", "Remove from favorites"));
-        unpin.innerHTML = '<svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>';
-        unpin.onclick = function (ev) { ev.stopPropagation(); toggleFav(id); };
-        tile.appendChild(unpin);
         tile.oncontextmenu = function (ev) {
             ev.preventDefault();
             // why: selecting shows the eyebrow, which grows the launcher - resize so the popup
@@ -1025,13 +1016,11 @@ function renderActionRow(a, i) {
     var pin = document.createElement("button");
     pin.className = "pin";
     setPinState(pin, on);
+    // stopPropagation keeps the bookmark's click from launching the row.
     pin.onclick = function (ev) { ev.stopPropagation(); toggleFav(a.id); };
-    // why: two quick fav/unfav clicks must not dblclick-run the row
-    pin.ondblclick = function (ev) { ev.stopPropagation(); };
     shell.row.appendChild(pin);
 
-    shell.row.onclick = function () { sel = { zone: "list", i: i }; render({ resize: true }); };
-    shell.row.ondblclick = function () { sel = { zone: "list", i: i }; activateEntry(a); };
+    shell.row.onclick = function () { sel = { zone: "list", i: i }; activateEntry(a); };
     return shell.row;
 }
 
@@ -1196,8 +1185,7 @@ function renderTabRow(t, i) {
     var hint = tabAliasHint(t, query);
     if (hint)
         shell.line.appendChild(markedText("row-alias", hint.text, hint.ranges));
-    shell.row.onclick = function () { sel = { zone: "list", i: i }; render({ resize: true }); };
-    shell.row.ondblclick = function () { sel = { zone: "list", i: i }; jumpToTab(t); };
+    shell.row.onclick = function () { sel = { zone: "list", i: i }; jumpToTab(t); };
     return shell.row;
 }
 
