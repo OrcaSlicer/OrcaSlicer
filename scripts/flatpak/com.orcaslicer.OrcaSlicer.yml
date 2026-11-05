@@ -75,9 +75,6 @@ modules:
   # Config-opts mirror deps/wxWidgets/wxWidgets.cmake with FLATPAK=ON, DEP_WX_GTK3=ON
   - name: wxWidgets
     buildsystem: cmake-ninja
-    build-options:
-      env:
-        CMAKE_POLICY_VERSION_MINIMUM: "3.5"
     config-opts:
       - -DCMAKE_BUILD_TYPE=Release
       - -DwxBUILD_PRECOMP=ON
