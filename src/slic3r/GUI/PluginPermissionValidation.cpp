@@ -6,6 +6,7 @@
 #include <cctype>
 #include <cstddef>
 #include <string>
+#include <wx/string.h>
 
 // PluginAuditManager pulls in the Python headers, so it is included after the wx and standard
 // headers above.
