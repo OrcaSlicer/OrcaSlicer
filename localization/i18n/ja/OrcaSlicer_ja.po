@@ -21163,17 +21163,17 @@ msgstr "内側へ拭き上げ"
 
 # AI Translated
 msgid ""
-"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
+"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward the inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
 "\n"
 "Especially useful at layer heights below 0.1 mm, where wipe marks are more visible.\n"
 "\n"
-"Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or Outer/Inner wall order), or if no supported inward path can be found, for example at tight corners or seam gaps."
+"Uses the regular wipe where the outer wall has no adjacent inner wall, such as in single-wall areas, or if no supported inward path can be found, for example at tight corners or seam gaps."
 msgstr ""
-"穴の輪郭を含む外壁にのみ適用されます。拭き上げ中に高温のノズルを造形済みの内壁へ向かって動かし、造形したばかりの樹脂の再加熱と継ぎ目の跡を抑えます。\n"
+"穴の輪郭を含む外壁にのみ適用されます。拭き上げ中に高温のノズルを内壁へ向かって動かし、造形したばかりの樹脂の再加熱と継ぎ目の跡を抑えます。\n"
 "\n"
 "拭き上げの跡が目立ちやすい積層ピッチ0.1 mm未満で特に有効です。\n"
 "\n"
-"隣接する内壁がまだ造形されていない場合（壁が1本のみの領域や、壁の順序が外側/内側の場合）、または細かい角や継ぎ目の隙間などで支えのある内向きの経路が見つからない場合は、通常の拭き上げを使用します。"
+"壁が1本のみの領域など、外壁に隣接する内壁がない場所や、細かい角や継ぎ目の隙間などで支えのある内向きの経路が見つからない場合は、通常の拭き上げを使用します。"
 
 # AI Translated
 msgid "Wipe inward distance"
@@ -21184,11 +21184,15 @@ msgstr "内側への拭き上げ距離"
 msgid ""
 "The distance the wipe path is shifted away from the external perimeter, specified in millimeters or as a percentage of the actual outer-wall extrusion width.\n"
 "\n"
-"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset."
+"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset.\n"
+"\n"
+"With Outer/Inner or Inner/Outer/Inner wall order, the offset is limited to 50% of the actual outer-wall width because the adjacent inner wall is printed after the outer wall. This also applies to equivalent distances specified in millimeters."
 msgstr ""
 "拭き上げ経路を外周から離す距離で、ミリメートルまたは実際の外壁の押出線幅に対する割合で指定します。\n"
 "\n"
-"例えば50%では、経路を外壁幅の半分だけずらします。実効オフセットは実際の外壁幅と隣接する壁までの利用可能な間隔の両方で制限されるため、100%を超える値や同等の絶対距離を指定しても追加の効果はありません。0に設定するとオフセットは無効になります。"
+"例えば50%では、経路を外壁幅の半分だけずらします。実効オフセットは実際の外壁幅と隣接する壁までの利用可能な間隔の両方で制限されるため、100%を超える値や同等の絶対距離を指定しても追加の効果はありません。0に設定するとオフセットは無効になります。\n"
+"\n"
+"壁の順序が外側/内側または内側/外側/内側の場合、隣接する内壁は外壁の後に造形されるため、オフセットは実際の外壁幅の50%までに制限されます。ミリメートルで指定した同等の距離にも適用されます。"
 
 # AI Translated
 msgid "Wipe before external loop"
@@ -25828,7 +25832,7 @@ msgstr "Klipperバージョン => 0.9.0"
 
 # AI Translated
 msgid ""
-"RepRap firmware version => 3.4.0\n"
+"RepRapFirmware version => 3.4.0\n"
 "Check your firmware documentation for supported shaper types."
 msgstr ""
 "RepRapファームウェアバージョン => 3.4.0\n"
@@ -25849,7 +25853,7 @@ msgid "Frequency settings"
 msgstr "周波数設定"
 
 # AI Translated
-msgid "RepRap firmware uses the same frequency range for both axes."
+msgid "RepRapFirmware uses the same frequency range for both axes."
 msgstr "RepRapファームウェアは両軸に同じ周波数範囲を使用します。"
 
 # AI Translated
@@ -25898,7 +25902,7 @@ msgid "Damp (Start / End): "
 msgstr "減衰 (開始/終了): "
 
 # AI Translated
-msgid "RepRap firmware uses the same frequency for both axes."
+msgid "RepRapFirmware uses the same frequency for both axes."
 msgstr "RepRapファームウェアは両軸に同じ周波数を使用します。"
 
 # AI Translated

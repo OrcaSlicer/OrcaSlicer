@@ -313,25 +313,29 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMod
     cfg.set_key_value("printhost_apikey",            new ConfigOptionString(device_info.api_key));
     cfg.set_key_value("printhost_ssl_ignore_revoke", new ConfigOptionBool(false));
 
-    CrealityPrint host(&cfg);
+    CrealityPrint             host(&cfg);
+    const CrealityPrinterInfo info = host.read_printer_info();
 
     // Defer to base if this isn't a K-series board with CFS firmware support.
-    if (!host.supports_multi_color_print()) {
+    if (!info.multi_color) {
         BOOST_LOG_TRIVIAL(info)
-            << "CrealityPrintAgent: " << host.model_name()
+            << "CrealityPrintAgent: " << (info.reachable ? info.model_name : std::string("unreachable"))
             << " is not CFS-capable, deferring to base Moonraker agent";
         return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id));
     }
 
-    BOOST_LOG_TRIVIAL(info)
-        << "CrealityPrintAgent: querying CFS slots on " << host.model_name();
+    if (info.no_cfs) {
+        BOOST_LOG_TRIVIAL(info) << "CrealityPrintAgent: " << info.model_name << " reports no CFS connected, deferring to base agent";
+        return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id));
+    }
 
-    const std::string response = host.query_boxes_info();
+    BOOST_LOG_TRIVIAL(info)
+        << "CrealityPrintAgent: read CFS slots from " << info.model_name;
 
     std::vector<CFSSlot> slots;
     int                  box_count = 0;
     std::string          parse_err;
-    if (!parse_cfs_response(response, slots, box_count, parse_err)) {
+    if (!parse_cfs_response(info.boxes_json, slots, box_count, parse_err)) {
         BOOST_LOG_TRIVIAL(warning)
             << "CrealityPrintAgent: CFS query failed (" << parse_err << "), "
             << "falling back to base agent";
