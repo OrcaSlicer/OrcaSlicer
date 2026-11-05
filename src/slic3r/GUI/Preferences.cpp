@@ -2232,7 +2232,7 @@ void PreferencesDialog::create_items()
     auto outline_color_button = new Button(m_parent, from_u8(app_config->get(SETTING_OPENGL_OUTLINE_COLOR)));
     outline_color_button->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
     outline_color_button->SetToolTip(outline_color_tooltip);
-    outline_color_button->Bind(wxEVT_BUTTON, [this, outline_color_button, outline_color_sizer](wxCommandEvent& event) {
+    outline_color_button->Bind(wxEVT_BUTTON, [this, outline_color_button](wxCommandEvent& event) {
         event.Skip();
         ColorRGBA initial;
         if (!decode_color(app_config->get(SETTING_OPENGL_OUTLINE_COLOR), initial)) {
@@ -2246,7 +2246,9 @@ void PreferencesDialog::create_items()
             app_config->set(SETTING_OPENGL_OUTLINE_COLOR, value);
             app_config->save();
             outline_color_button->SetLabel(from_u8(value));
-            outline_color_sizer->Layout();
+            // The scrolled window applies the scroll offset to the entire layout.
+            m_parent->Layout();
+            m_parent->FitInside();
         }
     });
     outline_color_sizer->Add(outline_color_button, 0, wxALIGN_CENTER_VERTICAL);
