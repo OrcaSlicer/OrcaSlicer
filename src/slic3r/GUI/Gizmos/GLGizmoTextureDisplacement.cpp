@@ -3329,7 +3329,9 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             }
             } // picture_is_the_plate
 
-            // "More settings" / "Fewer settings", drawn as a link.
+            // "More settings" / "Fewer settings", drawn as a link. On a ChromaStack card it opens the
+            // plate, the light and the views instead of the texture displacement settings - see
+            // render_chroma_card() - but it is the same link and the same flag.
             {
                 const bool        expanded = m_layer_expanded[size_t(layer.slot)];
                 const std::string text     = expanded ? _u8L("Fewer settings") : _u8L("More settings");

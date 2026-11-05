@@ -2461,6 +2461,14 @@ std::vector<std::string> GLGizmoTextureDisplacement::chroma_problems(const Textu
                                          patch.spread_mm, drift));
     }
 
+    if (!layer.chroma.plate.generated && !layer.chroma.base_auto) {
+        const int measured = chroma_measured_base(layer);
+        if (measured > 0 && layer.chroma.base_layers > measured)
+            out.push_back(_u8L("The base is set by hand to more than this model has under the painted face. Every "
+                               "filament swap is then written above the top of the object, so none of them happens "
+                               "and the picture prints in one color. The padlock measures it again."));
+    }
+
     if (layer.chroma.relief_layers() > CHROMA_MAX_RELIEF_LAYERS)
         out.push_back(Slic3r::format(_u8L("The picture cannot be more than %1% layers tall. Give the bands fewer "
                                           "layers, or raise the layer height."),
@@ -2878,8 +2886,9 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                               _u8L("Stops the brush, so dragging turns the model again.") :
                               _u8L("Paint over the print to correct it: the area you paint moves to the color you "
                                    "choose here, and the rest of the picture is left exactly as the solve decided. "
-                                   "Turn on the error view, under Views, first - it shows you where correcting is "
-                                   "worth the trouble.\n\nHold Ctrl to turn the model while the brush is on."));
+                                   "Turn on the error view first, under Views in More settings - it shows you where "
+                                   "correcting is worth the trouble.\n\nHold Ctrl to turn the model while the brush "
+                                   "is on."));
 
         // The report, as the answer to the line above rather than as a button of its own further down
         // the card: the findings are the why behind the sentence. Disabled rather than absent when the
@@ -3033,6 +3042,14 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
         // with nothing wrong on it says nothing.
         std::vector<ChromaRetouchEdit> &edits = layer.chroma.retouch.edits;
         int                             drop  = -1;
+        // Four of them on screen and then a scrollbar. One correction is one stroke, so the list is as
+        // long as the retouching went, and a dozen of them pushed the picture they are about off the
+        // top of the panel - the one thing a correction has to be read against.
+        const bool scrolls = edits.size() > 4;
+        if (scrolls) {
+            push_slim_scrollbar_style(m_imgui->scaled(0.5f), wxGetApp().dark_mode());
+            ImGui::BeginChild("##hf_fix_list", ImVec2(0.f, 4.f * frame_h + 3.f * style.ItemSpacing.y), false);
+        }
         for (size_t ei = 0; ei < edits.size(); ++ei) {
             ChromaRetouchEdit &edit = edits[ei];
             ImGui::PushID(int(1000 + ei));
@@ -3062,6 +3079,10 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
             if (ImGui::IsItemHovered())
                 panel_tooltip(_u8L("Removes this correction."));
             ImGui::PopID();
+        }
+        if (scrolls) {
+            ImGui::EndChild();
+            pop_slim_scrollbar_style();
         }
         if (drop >= 0) {
             edits.erase(edits.begin() + drop);
@@ -3144,11 +3165,24 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
         {
             int remove    = -1;
             int drag_from = -1, drag_to = -1;
+            // The band under the cursor while a reorder drag is in flight. The same gesture as the
+            // layer list one level up, and the same three things on screen: the row picked up follows
+            // the cursor, the row it came from stays behind as a ghost, and a line shows the gap it
+            // would drop into. Before this it swapped with its neighbour silently, and a list that
+            // rearranges itself with nothing held reads as a misclick.
+            int dragging  = -1;
+            if (const ImGuiPayload *pl = ImGui::GetDragDropPayload(); pl != nullptr && pl->IsDataType("TD_BAND"))
+                dragging = *static_cast<const int *>(pl->Data);
             for (size_t bi = 0; bi < layer.chroma.bands.size(); ++bi) {
                 ChromaBand &band = layer.chroma.bands[bi];
                 ImGui::PushID(int(bi));
                 const float swatch_px = std::round(frame_h * 0.8f);
                 const float handle_w  = std::round(frame_h * 0.7f);
+                // The row as one item, so the whole of it is the drop target rather than whichever
+                // control happens to be last on it.
+                const ImVec2 row_min = ImGui::GetCursorScreenPos();
+                const float  row_w   = ImGui::GetContentRegionAvail().x;
+                ImGui::BeginGroup();
 
                 // ---- the handle ----
                 //
@@ -3158,18 +3192,20 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                 {
                     const ImVec2 hp = ImGui::GetCursorScreenPos();
                     ImGui::InvisibleButton("##hf_drag", ImVec2(handle_w, frame_h));
-                    if (ImGui::IsItemActive()) {
-                        const float step = frame_h + style.ItemSpacing.y;
-                        const float dy   = ImGui::GetMouseDragDelta(0).y;
-                        if (dy > 0.5f * step && bi + 1 < layer.chroma.bands.size()) {
-                            drag_from = int(bi);
-                            drag_to   = int(bi) + 1;
-                            ImGui::ResetMouseDragDelta();
-                        } else if (dy < -0.5f * step && bi > 0) {
-                            drag_from = int(bi);
-                            drag_to   = int(bi) - 1;
-                            ImGui::ResetMouseDragDelta();
-                        }
+                    if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceNoHoldToOpenOthers)) {
+                        const int idx = int(bi);
+                        ImGui::SetDragDropPayload("TD_BAND", &idx, sizeof(idx));
+                        // What is in the hand, under the cursor: the swatch and the name, which is what
+                        // tells one row of a stack from another without reading any of its figures.
+                        swatch(band.filament.color, swatch_px);
+                        ImGui::SameLine(0.f, gap_s);
+                        ImGui::AlignTextToFramePadding();
+                        ImGui::TextUnformatted((band.filament.name.empty() ?
+                                                    Slic3r::format(_u8L("Filament %1%"), band.filament.filament + 1) :
+                                                    Slic3r::format("%1%  %2%", band.filament.filament + 1,
+                                                                   band.filament.name))
+                                                   .c_str());
+                        ImGui::EndDragDropSource();
                     }
                     const bool  hot = ImGui::IsItemHovered() || ImGui::IsItemActive();
                     const ImU32 col = ImGui::GetColorU32(ImGuiCol_Text, hot ? 0.9f : 0.35f);
@@ -3352,7 +3388,19 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                                            "you this number, and every color on this card is computed from it."),
                                       { { "chroma_td.gif" } });
                 }
-        if (PanelPopup popup{"hf_measure_pop"}) {
+
+                // Beside the panel, not over it, for the same reason the suggestion list is: the wedge
+                // is set up by reading it against the row it belongs to - the filament, its current
+                // number and where that number came from - and a window over the card hides all three.
+                {
+                    const float  wedge_w = m_imgui->scaled(21.5f);
+                    const ImVec2 panel   = ImGui::GetWindowPos();
+                    ImGui::SetNextWindowPos(ImVec2(std::max(0.f, panel.x - wedge_w - m_imgui->scaled(0.5f)),
+                                                   ImGui::GetCursorScreenPos().y),
+                                            ImGuiCond_Always);
+                    ImGui::SetNextWindowSize(ImVec2(wedge_w, 0.f));
+                }
+                if (PanelPopup popup{"hf_measure_pop"}) {
                         ImGui::TextDisabled("%s", _u8L("Measure transmission distance").c_str());
                         ImGui::Dummy(ImVec2(1.f, gap_s));
 
@@ -3523,11 +3571,91 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                                           _u8L("A stack prints in at least one filament."));
                 }
 
+                // ---- where the dragged row would land ----
+                ImGui::EndGroup();
+                const ImVec2 row_max(row_min.x + row_w, ImGui::GetItemRectMax().y);
+                if (int(bi) == dragging)
+                    dl->AddRectFilled(row_min, row_max, ImGui::GetColorU32(ImGuiCol_WindowBg, 0.65f));
+                if (ImGui::BeginDragDropTarget()) {
+                    if (const ImGuiPayload *pl = ImGui::AcceptDragDropPayload("TD_BAND",
+                                                     ImGuiDragDropFlags_AcceptBeforeDelivery |
+                                                     ImGuiDragDropFlags_AcceptNoDrawDefaultRect)) {
+                        const int from = *static_cast<const int *>(pl->Data);
+                        if (from != int(bi)) {
+                            // Dropped on a row, the dragged band takes its place and the ones between
+                            // shift over by one, so it lands above the target coming up the list and
+                            // below it going down. The line is drawn on that side; ImGui's own
+                            // highlight says only "something is here", which is not where.
+                            const float y = from < int(bi) ? row_max.y + 2.f : row_min.y - 2.f;
+                            dl->AddLine(ImVec2(row_min.x, y), ImVec2(row_max.x, y),
+                                        ImGui::GetColorU32(ImGuiWrapper::COL_ORCA), 2.f);
+                            if (pl->IsDelivery()) {
+                                drag_from = from;
+                                drag_to   = int(bi);
+                            }
+                        }
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+
                 ImGui::PopID();
             }
 
-            if (drag_from >= 0 && drag_to >= 0 && drag_to < int(layer.chroma.bands.size())) {
-                std::swap(layer.chroma.bands[size_t(drag_from)], layer.chroma.bands[size_t(drag_to)]);
+            // ---- one more filament ----
+            //
+            // A plus at the end of the list, where the row it would add goes, rather than a button
+            // among the edits that act on the whole stack: adding a filament adds a row here, and a
+            // control that sits where its result appears needs no label to say so.
+            {
+                // A button, with the frame every other button on the card has: drawn as a bare glyph
+                // it read as a decoration of the list rather than as something to press. The label is
+                // the plus itself, so it is centred in the frame by the same code that centres every
+                // other button's text.
+                const float plus_w = std::round(frame_h * 0.7f) + gap_s + std::round(frame_h * 0.8f);
+                const bool  room   = !loaded.empty() && layer.chroma.bands.size() < CHROMA_MAX_BANDS;
+                m_imgui->disabled_begin(!room);
+                const bool add_one = ImGui::Button("+##hf_add_band", ImVec2(plus_w, frame_h));
+                m_imgui->disabled_end();
+                if (add_one && room)
+                    ImGui::OpenPopup("hf_add");
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+                    panel_tooltip(room       ? _u8L("Adds another filament change on top of the stack.") :
+                                  loaded.empty() ? _u8L("Load a filament into the project first.") :
+                                                   _u8L("The stack already prints in as many filaments as it can."),
+                                  room ? std::vector<TipMedia>{ { "chroma_order.gif" } } : std::vector<TipMedia>{});
+
+                if (PanelPopup popup{"hf_add"}) {
+                    // The whole row is the item, with the swatch and the name drawn over it rather than
+                    // beside it: an item sized to its own label highlights behind the word only, which
+                    // reads as nothing happening rather than as the row being picked. An empty label of
+                    // width zero is the way to say that - it carries no size of its own and fills the row.
+                    for (const ChromaFilament &f : loaded) {
+                        ImGui::PushID(f.filament);
+                        const bool picked = ImGui::Selectable("", false, 0, ImVec2(0.f, frame_h));
+                        ImGui::SameLine(0.f, 0.f);
+                        swatch(f.color, std::round(frame_h * 0.7f));
+                        ImGui::SameLine(0.f, gap_s);
+                        ImGui::AlignTextToFramePadding();
+                        ImGui::TextUnformatted((f.name.empty() ? Slic3r::format(_u8L("Filament %1%"), f.filament + 1) :
+                                                                 Slic3r::format("%1%  %2%", f.filament + 1, f.name))
+                                                   .c_str());
+                        if (picked) {
+                            ChromaBand band;
+                            band.filament = f;
+                            band.layers   = 4;
+                            layer.chroma.bands.push_back(band);
+                            chroma_touch(layer.slot);
+                        }
+                        ImGui::PopID();
+                    }
+                }
+            }
+
+            if (drag_from >= 0 && drag_to >= 0 && drag_from != drag_to &&
+                drag_from < int(layer.chroma.bands.size()) && drag_to < int(layer.chroma.bands.size())) {
+                const ChromaBand moved = layer.chroma.bands[size_t(drag_from)];
+                layer.chroma.bands.erase(layer.chroma.bands.begin() + drag_from);
+                layer.chroma.bands.insert(layer.chroma.bands.begin() + drag_to, moved);
                 chroma_touch(layer.slot);
             }
             if (remove >= 0) {
@@ -3542,7 +3670,7 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
             if (m_chroma_pick_count[slot] <= 0)
                 m_chroma_pick_count[slot] = std::max(2, int(layer.chroma.bands.size()));
             ImGui::AlignTextToFramePadding();
-            ImGui::TextDisabled("%s", _u8L("How many").c_str());
+            ImGui::TextDisabled("%s", _u8L("Number of colors").c_str());
             ImGui::SameLine(0.f, gap_s);
             // Five choices and one click, instead of a slider nobody drags to pick four.
             std::vector<int> counts;
@@ -3723,37 +3851,22 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                             chroma_touch(layer.slot);
                         }
                     }
-                    if (ImGui::IsItemHovered())
-                        panel_tooltip(_u8L("Builds the stack out of these colors themselves, with the transmission "
-                                           "distance each of them asks for, whether or not you own anything like "
-                                           "them. The card then predicts the print you would get if you did - which "
-                                           "is how to find out whether a spool is worth buying before buying it.\n\n"
-                                           "The filament slots stay the ones your printer has, because a band has to "
-                                           "be printed by something."));
-
                     ImGui::SameLine(0.f, gap_s);
                     m_imgui->disabled_begin(reachable == 0);
                     if (ImGui::Button(_u8L("Use my closest").c_str(), ImVec2(sug_half, frame_h)))
                         chroma_apply_suggestions(layer);
                     m_imgui->disabled_end();
-                    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-                        panel_tooltip(reachable == 0 ?
-                                          _u8L("None of these colors is anything you have loaded, so there is no stack to "
-                                               "build from them yet. Load something closer, or take the list shopping.") :
-                                          _u8L("Builds the stack from the filament of yours nearest each suggestion, in "
-                                               "this order and with these layer counts. It is the printable version of "
-                                               "this list, and the card's prediction updates to match it."));
 
                 }
             }
         }
 
-        // ---- The two edits to the stack as a whole ----
-        if (has_ramp) {
-            const float half = std::max(m_imgui->scaled(4.f),
-                                        0.5f * (ImGui::GetContentRegionAvail().x - std::max(card_pad, 1.f) - gap_s));
+        // ---- The one edit to the stack as a whole ----
+        if (has_ramp && m_layer_expanded[slot]) {
+            const float full = std::max(m_imgui->scaled(4.f),
+                                        ImGui::GetContentRegionAvail().x - std::max(card_pad, 1.f));
             m_imgui->disabled_begin(distinct >= relief);
-            if (ImGui::Button(_u8L("Trim wasted layers").c_str(), ImVec2(half, frame_h))) {
+            if (ImGui::Button(_u8L("Trim wasted layers").c_str(), ImVec2(full, frame_h))) {
                 chroma_trim_bands(layer.chroma);
                 chroma_touch(layer.slot);
             }
@@ -3763,40 +3876,21 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                                                   "color. %1% of %2% picture layers do."),
                                              distinct, relief),
                               { { "chroma_trim.png" } });
-            ImGui::SameLine(0.f, gap_s);
-            m_imgui->disabled_begin(loaded.empty() || layer.chroma.bands.size() >= CHROMA_MAX_BANDS);
-            if (ImGui::Button(_u8L("Add a filament").c_str(), ImVec2(half, frame_h)))
-                ImGui::OpenPopup("hf_add");
-            m_imgui->disabled_end();
-            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-                panel_tooltip(_u8L("Adds another filament change on top of the stack."), { { "chroma_order.gif" } });
-    if (PanelPopup popup{"hf_add"}) {
-                // The whole row is the item, with the swatch and the name drawn over it rather than
-                // beside it: an item sized to its own label highlights behind the word only, which reads
-                // as nothing happening rather than as the row being picked. An empty label of width zero
-                // is the way to say that - it carries no size of its own and fills the row.
-                for (const ChromaFilament &f : loaded) {
-                    ImGui::PushID(f.filament);
-                    const bool picked = ImGui::Selectable("", false, 0, ImVec2(0.f, frame_h));
-                    ImGui::SameLine(0.f, 0.f);
-                    swatch(f.color, std::round(frame_h * 0.7f));
-                    ImGui::SameLine(0.f, gap_s);
-                    ImGui::AlignTextToFramePadding();
-                    ImGui::TextUnformatted((f.name.empty() ? Slic3r::format(_u8L("Filament %1%"), f.filament + 1) :
-                                                             Slic3r::format("%1%  %2%", f.filament + 1, f.name))
-                                               .c_str());
-                    if (picked) {
-                        ChromaBand band;
-                        band.filament = f;
-                        band.layers   = 4;
-                        layer.chroma.bands.push_back(band);
-                        chroma_touch(layer.slot);
-                    }
-                    ImGui::PopID();
-                }
-            }
         }
     }
+
+    // ---- Everything past the stack itself waits behind "More settings" ----
+    //
+    // A closed card is the picture, what is wrong with it, and the filaments it prints in: the four
+    // things that are actually decided here. What follows - the plate's own dimensions, which way the
+    // light comes at it, and the overlays that take a solve apart - is either already decided by the
+    // picture or is a way of looking at it rather than a decision about it, and every one of them is a
+    // row a reader has to rule out before reaching the one they came for.
+    //
+    // The link that opens them is the layer card's own, drawn under this by the list, so a ChromaStack
+    // card discloses itself the same way every other layer does and shares the one flag.
+    if (!m_layer_expanded[slot])
+        return;
 
     // ---- The plate that comes out of the printer ----
     //
@@ -3896,16 +3990,22 @@ void GLGizmoTextureDisplacement::render_chroma_plate(TextureDisplacementLayer &l
         m_imgui->disabled_begin(layer.chroma.base_auto);
         ImGui::SetNextItemWidth(field_w);
         if (ImGui::InputInt("##hf_base", &base, 0, 0) && !layer.chroma.base_auto) {
-            layer.chroma.base_layers = std::clamp(base, 0, 20000);
+            // Never more than the model has under the painted face. Above that, chroma_ranges() writes
+            // every swap higher than the top of the object, so not one of them is reached and the whole
+            // picture prints in the bottom band's filament - which is also what the 3D view then shows,
+            // since it reads a fragment's height off the object's own bottom. Below it is the one
+            // reading that means something: a picture not meant to start at the painted face.
+            layer.chroma.base_layers = std::clamp(base, 0, measured > 0 ? measured : 20000);
             chroma_touch(layer.slot);
         }
         m_imgui->disabled_end();
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
             panel_tooltip(Slic3r::format(_u8L("The solid backing under the picture: %1$.2f mm, in layers.\n\n"
                                               "It is a measurement of the model - everything below the painted face - "
-                                              "and the colors are computed assuming no light gets through it. The "
-                                              "padlock stops it following the model, for a picture that is not meant "
-                                              "to start at the painted face."),
+                                              "and the colors are computed assuming no light gets through it. It does "
+                                              "not make the model any thicker: what it moves is the height each "
+                                              "filament swap is written at. The padlock stops it following the model, "
+                                              "for a picture that is not meant to start at the painted face."),
                                          double(layer.chroma.base_layers) * double(layer.chroma.layer_height_mm)));
         // Following the model or not, as a padlock rather than a pair of buttons and a sentence.
         ImGui::SameLine(0.f, gap_s);
@@ -4016,11 +4116,32 @@ void GLGizmoTextureDisplacement::render_chroma_plate(TextureDisplacementLayer &l
                                                         ImGui::GetStyleColorVec4(ImGuiCol_Text));
             const float pad  = std::round(frame_h * 0.18f);
             const float base_y = p0.y + frame_h - pad;
+            const float round = ImGui::GetStyle().FrameRounding;
+
+            // The button's own frame, and it is always drawn. A plate with no frame on it has no
+            // cross-section to draw, so without this the control was an empty gap at the end of the
+            // row: nothing to see, and nothing to aim at either.
+            if (hot)
+                dl->AddRectFilled(p0, ImVec2(p0.x + fw, p0.y + frame_h),
+                                  ImGui::GetColorU32(ImGuiCol_FrameBgHovered), round);
+            dl->AddRect(p0, ImVec2(p0.x + fw, p0.y + frame_h),
+                        ImGui::GetColorU32(hot ? ImGuiWrapper::COL_ORCA : ImGui::GetStyleColorVec4(ImGuiCol_Border)),
+                        round);
             dl->AddLine(ImVec2(p0.x, base_y), ImVec2(p0.x + fw, base_y), ImGui::GetColorU32(ImGuiCol_Separator));
 
             const std::vector<Vec2f> profile = frame.frame_id.empty() ? std::vector<Vec2f>() :
                                                                         chroma_frame_profile(frame, plate.base_mm);
-            if (profile.size() >= 2) {
+            if (profile.size() < 2) {
+                // Nothing on the plate yet, so the mark is what the gallery is for rather than what is
+                // in it: a picture inside a moulding, which is the one shape a frame has whatever its
+                // profile.
+                const ImU32  mark = ImGui::GetColorU32(ImGuiCol_Text, hot ? 0.9f : 0.45f);
+                const float  m    = std::round(frame_h * 0.26f);
+                const ImVec2 a(p0.x + m, p0.y + m), b(p0.x + fw - m, p0.y + frame_h - m);
+                const float  i    = std::max(1.5f, std::round(frame_h * 0.11f));
+                dl->AddRect(a, b, mark, 0.f, 0, std::max(1.4f, std::round(frame_h * 0.07f)));
+                dl->AddRect(ImVec2(a.x + i, a.y + i), ImVec2(b.x - i, b.y - i), mark, 0.f, 0, 1.f);
+            } else {
                 float top = plate.base_mm;
                 for (const Vec2f &v : profile)
                     top = std::max(top, v.y());
@@ -4090,24 +4211,6 @@ void GLGizmoTextureDisplacement::render_chroma_plate(TextureDisplacementLayer &l
                      "out, so the backing has to be thick enough to hold the whole stack above it.\n\n"
                      "Turn brim and raft off for this: both would print across the picture's face."));
 
-            // Face down the picture is on the plate's underside, so the 3D view - which looks down at
-            // the bed like every other view in the slicer - shows the opaque backing and nothing else.
-            // That is the honest picture of what sits on the bed, and it is useless for judging a
-            // photograph, so the one thing missing is a way to get round the other side.
-            if (down) {
-                ImGui::SameLine(0.f, m_imgui->scaled(0.4f));
-                const bool under = !wxGetApp().plater()->get_camera().is_looking_downward();
-                if (m_imgui->button(under ? _L("From above") : _L("From below"))) {
-                    wxGetApp().plater()->select_view(under ? "top" : "bottom");
-                    redraw();
-                }
-                if (ImGui::IsItemHovered())
-                    panel_tooltip(under ?
-                                      _u8L("Back to looking down at the bed.") :
-                                      _u8L("Looks at the plate from underneath, which is the side the picture "
-                                           "is printed on. From above, a plate that prints picture down shows "
-                                           "only its backing, because that is what is facing up on the bed."));
-            }
         }
 
     }
@@ -4285,46 +4388,6 @@ void GLGizmoTextureDisplacement::render_chroma_light(TextureDisplacementLayer &l
                                           .c_str());
         ImGui::PopTextWrapPos();
     }
-
-    if (m_imgui->bbl_checkbox(_L("Dither to break up banding"), layer.chroma.dither))
-        chroma_touch(layer.slot);
-    hover_tip(Slic3r::format(_u8L("Scatters the rounding error into neighbouring pixels instead of rounding each one on its "
-                            "own, trading the bands a photograph shows across a sky for fine stipple. Leave it off "
-                            "for flat-colored artwork.\n\n"
-                            "Solved for %1$.3f mm layers, from the print profile."),
-                       layer.chroma.layer_height_mm),
-        { { "chroma_dither.gif" } });
-
-    // Why that box is doing nothing on this picture. The solve already acts on it - flat artwork is
-    // never dithered and never resampled with blending - and a control that silently stops mattering
-    // is worse than one that says why, because the user's next move is to turn it on harder.
-    if (layer.slot >= 0 && size_t(layer.slot) < TEXTURE_DISPLACEMENT_MAX_LAYERS) {
-        const ChromaPaletteReport &pal = m_chroma_palette_report[size_t(layer.slot)];
-        if (pal.palette_exact) {
-            ImGui::PushTextWrapPos(0.f);
-            const wxString line = pal.more ?
-                                      _L_PLURAL("This is flat artwork: more than %1$d color.",
-                                                "This is flat artwork: more than %1$d colors.", pal.colors) :
-                                      _L_PLURAL("This is flat artwork: %1$d color.",
-                                                "This is flat artwork: %1$d colors.", pal.colors);
-            ImGui::TextDisabled("%s", (Slic3r::format(into_u8(line), pal.colors) + " " +
-                                       _u8L("Dithering is off and the picture is resampled without blending, "
-                                            "so its edges stay hard."))
-                                          .c_str());
-            ImGui::PopTextWrapPos();
-        }
-    }
-
-    // A one-texel column is a retraction, a string and a blob on any machine, and nothing on the plate
-    // is one texel wide anyway. Off by default, because it changes the solved height map and a solve
-    // that quietly differs from the one the user approved is not worth the strings it saves.
-    if (m_imgui->bbl_checkbox(_L("Pull down lone spikes"), m_chroma_despike))
-        chroma_touch(layer.slot);
-    hover_tip(Slic3r::format(_u8L("Pulls a single texel standing %1$d or more layers above everything around it down "
-                            "to its neighbours. Those columns cost a retraction each and print as strings and "
-                            "blobs, and they come from the dither rather than from the picture.\n\n"
-                            "A step several texels wide is left alone, so hard edges in flat artwork survive."),
-                       CHROMA_DESPIKE_LAYERS_RECOMMENDED));
 
 }
 
