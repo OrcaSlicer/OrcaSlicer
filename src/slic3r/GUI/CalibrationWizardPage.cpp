@@ -249,7 +249,7 @@ CaliPageButton::CaliPageButton(wxWindow* parent, CaliPageActionType type, wxStri
         this->SetLabel(_L("Finish"));
         break;
     default:
-        this->SetLabel("Unknown");
+        this->SetLabel(_L("Unknown"));
         break;
     }
 

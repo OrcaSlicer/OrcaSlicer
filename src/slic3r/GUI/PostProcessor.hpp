@@ -15,7 +15,9 @@ namespace Slic3r {
 // not depend on.
 // Returns true if a script or plugin was executed.
 // Returns false if neither a post-processing script nor plugin was defined.
-// Throws an exception on error.
+// A failure of the scripts or plugins, or of the file work around them, throws Slic3r::ExportError: it fails
+// this export or upload, not the slice. A cancel, a fatal error and running out of memory keep their own
+// exceptions.
 // host is one of "File", "PrusaLink", "Repetier", "SL1Host", "OctoPrint", "FlashAir", "Duet", "AstroBox" ...
 // If make_copy, then a temp file will be created for src_path by adding a ".pp" suffix and src_path will be updated.
 // In that case the caller is responsible to delete the temp file created. Scripts and plugins always

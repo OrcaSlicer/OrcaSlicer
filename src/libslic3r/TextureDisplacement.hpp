@@ -86,6 +86,17 @@ enum class TextureProjectionMethod : int
     // that is inherent to view projection and is the user's call, not a bug. The projector's two
     // in-plane axes live in TextureDisplacementLayer::view_project_right/up.
     ViewProjected = 4,
+    // The model's own texture coordinates, as the file it was imported from carried them (see
+    // ModelVolume::texture_uv). Nothing is unwrapped or projected: the artist's layout *is* the
+    // placement, so a texture authored against that layout - the model's own albedo map, say - lands
+    // exactly where it was painted. Automatically picked for a new layer on a volume that has a UV
+    // channel, since re-unwrapping a model that already carries one can only be worse than using it.
+    //
+    // The uv is already normalized, so unlike every method above it is not measured in millimetres:
+    // "Tile size" and the non-square aspect correction do not apply to it (the layer's rotation and
+    // offset still do). Falls back to Triplanar when the volume has no channel, exactly as LSCM falls
+    // back when a patch cannot be flattened.
+    ModelUV       = 5,
 };
 
 // Dihedral angle (degrees) above which an edge between two painted triangles becomes a chart seam
@@ -121,6 +132,11 @@ enum class TextureBlendMode : int
     Subtract = 1, // acc - value          (carve this layer's relief out of the layers below)
     Multiply = 2, // acc * (value / 1mm)  (mask/modulate the layers below by this layer)
     Divide   = 3, // acc / (value / 1mm)  (inverse mask; guarded against a zero/near-zero divisor)
+    // acc = value: this layer replaces what is under it instead of combining with it, so where it is
+    // painted only its own relief remains. The image editor's "Normal" mode, under the name the panel
+    // uses. Note the stack's *colour* already behaves this way - a higher slot's colour overwrites a
+    // lower one's where they overlap - so this is what makes the displacement agree with it.
+    Override = 4,
 };
 
 // Combines one layer's signed displacement `value` (mm) into `accumulated` (mm) per `mode`.
@@ -153,6 +169,38 @@ struct TextureIsland
 // Only meaningful after islands have been scaled by hand: compute_patch_unwrap() already sizes every
 // chart to its true mm area, so a freshly unwrapped patch has uniform texel density to begin with.
 void average_island_scales(std::vector<TextureIsland> &islands);
+
+// Photo-style adjustments to a layer's source image, as the gizmo's image-adjustment panel sets them.
+//
+// These are *not* layer parameters: nothing here is stored on TextureDisplacementLayer and nothing here is
+// re-applied at bake time. The panel applies them once, to the image, and the result becomes the layer's
+// image - so the adjusted pixels feed the colour and the displacement together, and a brightness change
+// really does change the relief. That is the intended behaviour: one image, one source of truth, rather
+// than a second set of knobs the bake would have to replay in the right order.
+//
+// Contrast with TextureDisplacementLayer::smoothing, which *is* a layer parameter applied on every decode:
+// `blur` here is a destructive edit of the image, `smoothing` is a live low-pass over whatever the image is.
+struct TextureAdjustments
+{
+    float brightness = 0.f; // [-1, 1]; 0 unchanged, -1 black, +1 white
+    float contrast   = 0.f; // [-1, 1]; 0 unchanged, -1 flat mid-grey, +1 hard threshold
+    float sharpness  = 0.f; // [0, 1];  0 unchanged. Unsharp-mask amount
+    float blur       = 0.f; // [0, 1];  0 unchanged. Fraction of SOURCE_BLUR_SPAN, as `smoothing` is
+    float hue_deg    = 0.f; // [-180, 180]; 0 unchanged. No effect on a grayscale image - grey has no hue
+
+    bool identity() const
+    {
+        return brightness == 0.f && contrast == 0.f && sharpness == 0.f && blur == 0.f && hue_deg == 0.f;
+    }
+    // Exact equality, which is what is wanted: these come straight off sliders, and the question asked of
+    // them is "is this still the value the preview on screen was computed from", not "are these close".
+    bool operator==(const TextureAdjustments &o) const
+    {
+        return brightness == o.brightness && contrast == o.contrast && sharpness == o.sharpness &&
+               blur == o.blur && hue_deg == o.hue_deg;
+    }
+    bool operator!=(const TextureAdjustments &o) const { return !(*this == o); }
+};
 
 // One texture asset plus its projection/displacement parameters. Several layers may be painted
 // onto overlapping areas of the same volume: their displacements are combined per vertex, in slot
@@ -277,6 +325,18 @@ struct TextureDisplacementLayer
     //  - zero or positive: a mesh vertex, every unwrapped copy of it (how edits were stored before).
     std::vector<std::pair<int, Vec2f>> lscm_uv_overrides;
 
+    // Live, unsaved image adjustments from the gizmo's image-adjustment panel, applied by
+    // decode_height_texture() on top of the decoded image - so while the panel is open the relief, the
+    // colour, the thumbnails and the bake all see the adjusted image, and moving a slider really does
+    // change the displacement. See TextureAdjustments.
+    //
+    // Deliberately *not* serialized, by either save()/load() here or the .3mf: it is the state of an open
+    // editor, not a property of the layer. The panel resets it when it closes, and "Save as copy" resolves
+    // it by writing a new image and pointing the layer at that - which is the only way an adjustment
+    // becomes permanent. A project saved mid-adjustment therefore stores the unadjusted image, which is
+    // the honest answer: nothing was committed.
+    TextureAdjustments preview_adjust;
+
     // How this layer folds into the displacement accumulated by the layers below it. Ignored for
     // the lowest-slot painted layer, which has nothing beneath it to combine with (the GUI shows
     // it as the "Base" layer and hides the control).
@@ -397,13 +457,40 @@ struct TextureDisplacementOptions
     // finer than the mesh leaves behind, without eating features that are genuinely a facet wide.
     int          color_despeckle   = 2;
 
+    // Where the panel was left, rather than anything the bake reads. It lives with the volume because
+    // that is what it describes: reopening a project should put the user back on the layer they were
+    // editing, in the mode they were editing it in, not on slot 0 in Standard.
+    int active_slot = 0;
+    int panel_mode  = 0; // 0 Standard, 1 Pro
+
     template<class Archive> void serialize(Archive &ar)
     {
         ar(displace_border, smooth_enabled, smooth_strength, smooth_iterations, smooth_skip_border,
            pipeline_v2, v2_refine_mm, v2_regularize, v2_max_triangles_k,
-           v2_relocate, color_mix_enabled, color_despeckle, color_mix_count);
+           v2_relocate, v2_flip_edges, color_mix_enabled, color_despeckle, color_mix_count,
+           active_slot, panel_mode);
     }
 };
+
+// Project persistence (see bbs_3mf.cpp). The layer stack and the per-volume options are written to the
+// .3mf as JSON rather than through the cereal save()/load() above: those two are positional and
+// unversioned, which is right for the undo/redo stack they serve (one session, one binary) but would
+// make every future field a project-breaking change. A JSON object tolerates both directions - an
+// unknown key is ignored, a missing one keeps the member's default - so old projects keep loading and
+// new ones degrade gracefully in older builds.
+//
+// The texture image itself is *not* in here. It is a binary blob that belongs in the archive as a file
+// of its own, exactly as EmbossShape stores its SVG; `path_in_3mf` names that file, and the caller is
+// responsible for writing it and for filling `image_data` back in on load.
+std::string texture_displacement_layers_to_json(const std::vector<TextureDisplacementLayer> &layers,
+                                                const TextureDisplacementOptions            &options);
+// Returns false and leaves both outputs untouched when the text is not a valid JSON object, a number in a
+// layer's vector, matrix, seam, island or UV-override array has the wrong type, or a layer's slot is
+// missing or outside [0, TEXTURE_DISPLACEMENT_MAX_LAYERS). Any other value of the wrong type or shape
+// keeps its default.
+bool texture_displacement_layers_from_json(const std::string                      &text,
+                                           std::vector<TextureDisplacementLayer>  &layers,
+                                           TextureDisplacementOptions             &options);
 
 // How much detail a height texture carries: central differences of the grey image, the mean gradient
 // and the share of texels steeper than 30 grey levels, mapped to how many texels one mesh edge may
@@ -477,13 +564,44 @@ struct DecodedHeightTexture
     bool texel_tap(const Vec2f &uv, bool tile_enabled, TextureTileMethod tile_method, TexelTap &out) const;
 };
 
+// Applies `adj` to `src` and returns the result; `src` is left alone. An empty `src`, or an identity
+// `adj`, gives back a copy.
+//
+// Order is tonal, then spatial: brightness, contrast and hue per texel first, then blur, then sharpness.
+// Sharpness last is what lets the two spatial knobs be used together - blur to kill speckle, then
+// sharpness to put the real edges back - instead of the blur simply undoing the sharpen.
+//
+// Grayscale in, grayscale out (`rgb` stays empty): promoting a grey image to RGB would hand the layer's
+// colour feature a row of identical greys to "colour" the model with, and triple the stored PNG for it.
+// For a colour image the height is recomputed as the luminance of the *adjusted* colour, with
+// decode_height_texture()'s own coefficients, so the relief and the colour can never drift apart.
+DecodedHeightTexture apply_texture_adjustments(const DecodedHeightTexture &src, const TextureAdjustments &adj);
+
+// Blur radius, in texels, that TextureAdjustments::blur == 1 means on a `min(width, height)`-sized image:
+// the same 5%-of-the-short-side span the Smoothing slider uses, under the same 48-texel cost cap, so the
+// two controls bite at the same rate and a user moving between them is not surprised.
+float adjustment_blur_radius(float blur, int width, int height);
+
+// Box-filters `src` down so neither side exceeds `max_px`, preserving aspect; never upscales, and
+// returns a copy when it already fits. Colour and height are filtered the same way, and the height
+// stays the height - it is not recomputed from the filtered colour, because a box filter is linear and
+// luminance is linear in the channels, so the two agree already.
+//
+// This is what lets the adjustment panel's live preview cost depend on the size of the box it is drawn
+// in rather than on the size of the image: adjusting a downscaled copy per slider frame, and the
+// full-size image only once, on commit. A box filter (rather than a plain decimation) is the point -
+// these textures are high-frequency by nature, and dropping texels would alias the preview into
+// showing detail the adjustment is not actually producing.
+DecodedHeightTexture downscale_height_texture(const DecodedHeightTexture &src, int max_px);
+
 // Decode a layer's raw image bytes into sampleable height data, plus colour when the source has any.
 // Both 8-bit grayscale PNGs (the shipped library, and anything imported before colour was kept) and
 // colour PNGs are accepted; for a colour source the height is its luminance, using the same
 // coefficients wxImage::ConvertToGreyscale() uses, so a texture imported as colour displaces exactly
 // as it did when the importer flattened it to grey on the way in. Returns an empty
-// DecodedHeightTexture if image_data is empty or is not a PNG at all.
-DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer);
+// DecodedHeightTexture if image_data is empty or is not a PNG at all. keep_decoded = false leaves the
+// result out of the decode cache, for one-off reads such as a picker thumbnail that must not hold full-size pixels.
+DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer, bool keep_decoded = true);
 
 // decode_height_texture(layer).has_color(), answered from the decode cache rather than from a copy of the
 // texture - cheap enough to ask every frame. Smoothing does not change it, so the raw decode is what is read.
@@ -524,11 +642,24 @@ struct TextureColorSettings
     bool empty() const { return palette.empty(); }
 };
 
+// The two world directions the box projection takes its u and v along on a face whose outward
+// normal is `normal`: the plane is the one that normal is closest to, and the pair is oriented as a
+// viewer standing outside the model sees it - u to their right, v *down* the image, which is the
+// direction v runs in the texture (v = 0 is the image's first pixel row, see
+// DecodedHeightTexture::sample()). So an image comes out the way it looks in a file manager rather
+// than upside down, and it is not mirrored on the three faces facing the other way.
+//
+// Exposed because the GUI needs the same basis for the on-canvas "adjust texture placement" gizmo
+// (its ring's zero angle and its offset handle's plane), and it must not be a second, drifting copy
+// of the table.
+void box_projection_axes(const Vec3f &normal, Vec3f &u_axis, Vec3f &v_axis);
+
 // Raw dominant-axis planar projection of `position` (in mm, not yet scaled/rotated/offset by any
-// layer), dropping the axis position that best aligns with `normal`. Exposed on its own (rather
-// than only inline inside project_texture_displacement_uv()) so GUI code - the on-canvas
-// "adjust texture placement" gizmo - can map a dragged 3D point into the exact same 2D space
-// tiling_scale/rotation_deg/offset operate in, without duplicating the axis-selection logic.
+// layer), dropping the axis position that best aligns with `normal`. Equivalent to projecting onto
+// box_projection_axes()' pair. Exposed on its own (rather than only inline inside
+// project_texture_displacement_uv()) so GUI code - the on-canvas "adjust texture placement" gizmo -
+// can map a dragged 3D point into the exact same 2D space tiling_scale/rotation_deg/offset operate
+// in, without duplicating the axis-selection logic.
 Vec2f project_planar(const Vec3f &position, const Vec3f &normal);
 
 // Applies a layer's tiling_scale/rotation_deg/offset to an already-projected planar coordinate
@@ -541,7 +672,13 @@ Vec2f project_planar(const Vec3f &position, const Vec3f &normal);
 // squeezed into a square tile: `tiling_scale` is the tile's size along u, and the tile is
 // `tiling_scale * height / width` mm along v, which keeps texels square. 1 (the default) is the
 // square case and leaves the coordinate exactly as it always was.
-Vec2f apply_uv_transform(const Vec2f &planar, const TextureDisplacementLayer &layer, float aspect = 1.f);
+//
+// `normalized_uv` says the coordinate is already a uv rather than a millimetre measurement on the
+// model - which is what TextureProjectionMethod::ModelUV hands in. Then neither the tiling scale (mm
+// per tile is meaningless for it) nor the aspect correction (the artist's layout already accounts for
+// the image's proportions) applies, and only the rotation and offset are left.
+Vec2f apply_uv_transform(const Vec2f &planar, const TextureDisplacementLayer &layer, float aspect = 1.f,
+                         bool normalized_uv = false);
 
 // Applies a row-major 3x4 projective matrix (see TextureDisplacementLayer::view_project_matrix) to a
 // local-space point, writing the resulting texture uv. Returns false - and leaves `uv` untouched -
@@ -577,6 +714,31 @@ bool sample_layer_color(const DecodedHeightTexture &texture, const TextureDispla
                         const Vec3f &position, const Vec3f &normal, Vec3f &out,
                         const Vec3f &patch_center = Vec3f::Zero(), const Vec3f &patch_axis = Vec3f::UnitZ(),
                         const Vec2f *lscm_uv = nullptr);
+
+// Carries a per-facet paint annotation - the colour paint above all - from a mesh onto the mesh a
+// bake produced from it: every triangle of `dst_mesh` takes the state painted at its own foot point on
+// `src_mesh`, i.e. on the nearest point of the surface it was built from. Returned as one
+// EnforcerBlockerType per `dst_mesh` triangle, 0 (NONE) where that foot point carried no paint.
+//
+// ModelVolume::restore_painting() cannot do this. Its remap pairs a source paint triangle with a
+// target triangle that *overlaps* it to within 0.01 mm, which is right for a remesh or a
+// simplification - they leave the surface where it was - and useless after a bake, which moves the
+// surface by the relief depth. Measured on a model displaced by a tenth of its own size, that remap
+// kept a quarter of the colour and left the rest unpainted; this keeps essentially all of it, because
+// a foot point is exactly as far away as the relief is deep and the lookup does not care how far that
+// is.
+//
+// The source's *sub*-triangles are what is looked up, not its triangles, so the part of a triangle a
+// brush stroke only clipped a corner off keeps its own state rather than rounding to the whole
+// triangle's. No distance limit is needed or wanted: the nearest point on the source surface is where
+// a baked triangle came from however far the relief carried it, and an unpainted origin reports NONE
+// on its own.
+//
+// Returns an empty vector when `src_paint` is empty or either mesh is - the caller then has nothing to
+// carry, which is not the same as "carry nothing".
+std::vector<uint8_t> transfer_facet_paint(const indexed_triangle_set                    &src_mesh,
+                                         const TriangleSelector::TriangleSplittingData &src_paint,
+                                         const indexed_triangle_set                    &dst_mesh);
 
 // Area-weighted centroid and average normal of a layer's currently painted patch, in mesh-local
 // coordinates - the same measurements build_texture_displacement() uses to pick its dominant
@@ -691,6 +853,55 @@ std::vector<Vec2f> compute_lscm_uvs(const indexed_triangle_set &patch, const Tex
 // Returns an empty vector if the patch has no triangles or the unwrap carries no source_face map.
 std::vector<Vec2f> compute_lscm_corner_uvs(const indexed_triangle_set &patch, const TextureDisplacementLayer &layer);
 
+// Three UVs per patch triangle, read out of the model's *own* UV channel - the
+// TextureProjectionMethod::ModelUV counterpart of compute_lscm_corner_uvs(), and laid out the same way
+// (corner k of triangle i at index 3i+k).
+//
+// `model_uv` is the volume's channel: three uvs per triangle of `base_mesh`, in its triangle order
+// (see ModelVolume::texture_uv). `patch_source` maps each patch triangle back to the base-mesh
+// triangle it was cut from - TriangleSelector::get_facets_strict()'s out_source. A patch triangle is
+// always a piece of exactly one base triangle, so each of its corners is interpolated barycentrically
+// inside that triangle's three uvs. That is what keeps a sub-triangle the brush split (whose corners
+// are not base-mesh vertices at all) on the texture, and what keeps the two sides of a UV seam
+// reading from their own island instead of from one averaged coordinate.
+//
+// Returns an empty vector when the channel does not match `base_mesh`, when `patch_source` does not
+// match `patch`, or when either is empty - the callers treat that as "no placement" and fall back,
+// exactly as they do for an unwrap that failed.
+std::vector<Vec2f> compute_model_corner_uvs(const indexed_triangle_set &base_mesh,
+                                            const std::vector<Vec2f>   &model_uv,
+                                            const indexed_triangle_set &patch,
+                                            const std::vector<int>     &patch_source);
+
+// One UV per patch vertex, collapsed from a per-corner array: the first corner to reach a vertex wins.
+// This is the per-corner/per-vertex split compute_lscm_uvs() documents, applied to any corner array -
+// displacement is per-vertex, so a vertex on a seam has to settle on one of its copies.
+// Returns an empty vector if `corner` is not three per patch triangle.
+std::vector<Vec2f> collapse_corner_uvs(const indexed_triangle_set &patch, const std::vector<Vec2f> &corner);
+
+// Resamples a per-corner UV channel from `src_mesh` onto `dst_mesh`, for when something replaces a
+// volume's mesh and the model's own UV channel has to come along: the colour import's painted mesh,
+// the gizmo's remesh/subdivide, the default bake pipeline's rebuild. Each destination corner takes the
+// uv of its closest point on the source surface, interpolated barycentrically inside the source
+// triangle it lands on - the same transfer LscmLookup does per point, run over every corner.
+//
+// Exact wherever the two meshes describe the same surface, which is the case for every caller here
+// (they subdivide, repair or displace it, they do not reshape it). A corner that lands nowhere near
+// the source - farther than `max_distance` (negative: no limit) - takes (0, 0).
+//
+// One thing a positional transfer cannot reproduce: a *seam* vertex, where one position carries a
+// different uv in each island that meets there. Position alone does not say which island a corner
+// belongs to, so corners on a seam all take whichever island the nearest-triangle lookup lands on,
+// and the texture can be off by up to one triangle in a band along the island borders. Doing better
+// needs a triangle-to-triangle correspondence, which only some of the stages that replace a mesh
+// have (a remesh has none at all).
+//
+// Returns an empty vector when `src_uv` is not three per source triangle, or when either mesh is empty.
+std::vector<Vec2f> transfer_uv_channel(const indexed_triangle_set &src_mesh,
+                                       const std::vector<Vec2f>   &src_uv,
+                                       const indexed_triangle_set &dst_mesh,
+                                       float                       max_distance = -1.f);
+
 // The TextureDisplacementLayer::lscm_uv_overrides key for one unwrapped vertex (an index into PatchUnwrap::uvs).
 inline int lscm_uv_override_key(int unwrapped_vertex) { return -(unwrapped_vertex + 1); }
 
@@ -749,6 +960,10 @@ using TextureDisplacementFacetsData = std::array<TriangleSelector::TriangleSplit
 //
 // `color`, when given, also reports which filament each triangle should print in - see
 // TextureColorRequest.
+//
+// `model_uv`, when given, is the volume's own UV channel (three uvs per base-mesh triangle, see
+// ModelVolume::texture_uv) and is what a TextureProjectionMethod::ModelUV layer maps through. A layer
+// set to ModelUV without it falls back to Triplanar.
 struct TextureColorRequest
 {
     // RGB -> palette index. Supplied by the GUI, which owns both the perceptual matching and the list
@@ -823,14 +1038,28 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
                                                  // stage, already brought back into `base_mesh`'s frame.
                                                  BakeStageRecorder                           *debug = nullptr,
                                                  // When given, receives what the bake spent.
-                                                 TextureBakeStats                            *stats = nullptr);
+                                                 TextureBakeStats                            *stats = nullptr,
+                                                 // The model's own UV channel; see above.
+                                                 const std::vector<Vec2f>                    *model_uv = nullptr,
+                                                 // The world point the texture is anchored at, null for
+                                                 // the volume's own origin. Every part of a multibody
+                                                 // object passes the same point, so the pattern runs on
+                                                 // across them. See texture_displacement_bake_frame().
+                                                 const Vec3d                                 *texture_anchor = nullptr,
+                                                 // How far the object's lowest point lies below this
+                                                 // volume's own, in mm. Relief is kept above the plane
+                                                 // the whole object rests on, so a part held off the
+                                                 // plate by another keeps the relief on its underside.
+                                                 float                                        resting_drop = 0.f);
 
 // `volume`'s mesh coordinates -> world millimetres: its first instance's transform times its own.
 // The mesh is shared by every instance, so a multi-instance object can only be baked for one of
 // them; the first is what the gizmo edits against. Identity when the volume has no object yet.
 Transform3d texture_displacement_volume_to_world(const ModelVolume &volume);
-// The frame the bake and the previews project the texture in: `volume_to_world` with its translation
-// removed, i.e. world orientation and scale about the volume's own origin. See build_texture_displacement().
+// The frame the bake and the previews project the texture in: world orientation and scale, with the
+// world point `anchor` as its origin. See build_texture_displacement().
+Transform3d texture_displacement_bake_frame(const Transform3d &volume_to_world, const Vec3d &anchor);
+// Anchored at the volume's own origin, which is where a single-part object's texture sits.
 Transform3d texture_displacement_bake_frame(const Transform3d &volume_to_world);
 
 // Area-weighted vertex normals of `its` - the directions the bake both projects and displaces along.
@@ -898,11 +1127,15 @@ ColorFieldSampler make_combined_color_sampler(const indexed_triangle_set        
                                               const std::vector<TextureDisplacementLayer> &layers,
                                               const TextureDisplacementFacetsData         &facets_data,
                                               ColorQuantizeFn                              quantize,
-                                              ColorQuantizeFn                              quantize_pure = nullptr);
+                                              ColorQuantizeFn                              quantize_pure = nullptr,
+                                              // The model's own UV channel, for ModelUV layers; see
+                                              // build_texture_displacement().
+                                              const std::vector<Vec2f>                    *model_uv = nullptr);
 
 HeightFieldSampler make_combined_displacement_sampler(const indexed_triangle_set                  &base_mesh,
                                                       const std::vector<TextureDisplacementLayer> &layers,
-                                                      const TextureDisplacementFacetsData         &facets_data);
+                                                      const TextureDisplacementFacetsData         &facets_data,
+                                                      const std::vector<Vec2f>                    *model_uv = nullptr);
 
 // Uniformly subdivides `mesh` (every triangle recursively split into 4 via edge midpoints, using a
 // shared cache so a midpoint is computed once and reused by both triangles on either side of that
@@ -1107,6 +1340,10 @@ struct TextureDisplacementPrepareResult
 {
     indexed_triangle_set          mesh;
     TextureDisplacementFacetsData masks;
+    // The model's own UV channel, resampled onto `mesh` (see transfer_uv_channel()). Empty when the
+    // volume had none. Like the masks it is handed back rather than left to the caller to recompute,
+    // because only the run itself knows which stages replaced the mesh.
+    std::vector<Vec2f>            uv;
     // The remesh landed but no layer's paint survived being carried onto it. Nothing is committed:
     // everything downstream is driven by that paint, so baking on would bake a flat mesh.
     bool                          paint_lost = false;

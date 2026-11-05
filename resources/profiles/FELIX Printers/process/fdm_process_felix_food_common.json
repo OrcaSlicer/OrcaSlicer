@@ -1,0 +1,14 @@
+{
+  "type": "process",
+  "name": "fdm_process_felix_food_common",
+  "inherits": "fdm_process_common",
+  "from": "system",
+  "instantiation": "false",
+  "enable_support": "0",
+  "enable_prime_tower": "0",
+  "wall_loops": "2",
+  "sparse_infill_density": "20%",
+  "is_infill_first": "1",
+  "travel_speed": "120",
+  "skirt_loops": "0"
+}

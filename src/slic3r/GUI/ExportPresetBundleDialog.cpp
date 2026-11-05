@@ -64,6 +64,20 @@ void ExportPresetBundleDialog::Init()
                    wxSize(820, 660), wxSize(640, 640));
 }
 
+nlohmann::json ExportPresetBundleDialog::localized_strings() const
+{
+    return {
+        {"printer", _u8L("Printer")},
+        {"filament", _u8L("Filament")},
+        {"process", _u8L("Process")},
+        {"all", _u8L("All")},
+        {"no_items", _u8L("No items")},
+        {"export_cloud", _u8L("Export to OrcaCloud")},
+        {"export_folder", _u8L("Export to folder")},
+        {"close", _u8L("Close")},
+    };
+}
+
 void ExportPresetBundleDialog::on_script_message(const nlohmann::json& j)
 {
     if (handle_common_script_command(j))

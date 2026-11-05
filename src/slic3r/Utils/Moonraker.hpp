@@ -27,9 +27,10 @@ class Http;
 //                                             plateindex)
 //   POST /printer/print/start (json)       -- {"filename":"<name>.gcode"} starts print
 //
-// Auth: X-Api-Key header if `printhost_apikey` is non-empty; Moonraker accepts
-// unauthenticated LAN access by default, so the key is optional. HTTP Basic /
-// Digest are not part of the Moonraker spec and are not sent.
+// Auth: Send X-Api-Key when `printhost_apikey` is non-empty. Without a key,
+// requests rely on Moonraker's `[authorization] trusted_clients`; `force_logins`
+// overrides trusted-client access when enabled and at least one user exists.
+// HTTP Basic / Digest credentials are not sent.
 class Moonraker : public PrintHost
 {
 public:

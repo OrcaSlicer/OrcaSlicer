@@ -108,10 +108,12 @@ public:
     // the command callback - the canvas has the selection and the view, the gizmo has the layer.
     // `value` carries the new setting for the Set* commands (an angle, a flag as 0/1, or an index into
     // SelectMode / Background) and is 0 otherwise.
+    // SelectionChanged is sent by the canvas itself when a click changes the island selection. It carries
+    // nothing: the owner reads selected_islands() back, and only needs telling that it should look.
     enum class Command {
         FrameAll, ToggleSnap, AverageScale, CutSelectedIsland, ProjectFromView, JoinSelected, UnjoinSelected,
         Unwrap, SetSeamAngle, SetConnectIslands, SetSelectMode, SetMarkSeams, SetSeamPath, ClearSeams, ClearUVEdits,
-        SetBackground, PickTexture, PaneClosed
+        SetBackground, PickTexture, PaneClosed, SelectionChanged
     };
     void run_command(Command cmd, float value = 0.f);
     using CommandFn = std::function<void(Command, float)>;

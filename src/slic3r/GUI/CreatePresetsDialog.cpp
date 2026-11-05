@@ -65,6 +65,7 @@
 #include <boost/nowide/cstdio.hpp>
 #include <wx/valtext.h>
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/PrinterBedAssets.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
@@ -73,6 +74,8 @@
 #include "MainFrame.hpp"
 #include "libslic3r_version.h"
 #include "Widgets/HyperLink.hpp" // ORCA
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include "Plater.hpp"
 
 #define NAME_OPTION_COMBOBOX_SIZE wxSize(FromDIP(200), FromDIP(24))
 #define FILAMENT_PRESET_COMBOBOX_SIZE wxSize(FromDIP(300), FromDIP(24))
@@ -304,7 +307,7 @@ static bool delete_filament_preset_by_name(std::string delete_preset_name, std::
         if (!need_delete_preset) BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" can't find delete preset and name: %1%") % delete_preset_name;
         if (!need_delete_preset->setting_id.empty()) {
             BOOST_LOG_TRIVIAL(info) << "delete preset = " << need_delete_preset->name << ", setting_id = " << need_delete_preset->setting_id;
-            wxGetApp().delete_preset_from_cloud(need_delete_preset->setting_id, need_delete_preset->file);
+            wxGetApp().delete_preset_from_cloud(*need_delete_preset);
         } else {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" can't preset setting id is empty and name: %1%") % delete_preset_name;
         }
@@ -2845,7 +2848,7 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
         // Confirm if the printer preset has a duplicate name
         if (!rewritten && preset_bundle->printers.find_preset(printer_preset_name)) {
             MessageDialog dlg(this,
-                              _L("The printer preset you created already has a preset with the same name. Do you want to overwrite it\?\n\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \nand filament and process presets without the same preset name will be reserved.\n\tCancel: Do not create a preset; return to the creation interface."),
+                              _L("The printer preset you created already has a preset with the same name. Do you want to overwrite it\?\n\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated and filament and process presets without the same preset name will be reserved.\n\tCancel: Do not create a preset; return to the creation interface."),
                               wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES | wxCANCEL | wxYES_DEFAULT | wxCENTRE);
             int           res = dlg.ShowModal();
             if (res == wxID_YES) {
@@ -3150,7 +3153,7 @@ void CreatePrinterPresetDialog::set_current_visible_printer()
     m_printer_name_to_preset.clear();
     for (const Preset &printer_preset : printer_presets) {
         if (!printer_preset.is_visible) continue;
-        if (preset_bundle->printers.get_preset_base(printer_preset)->name != printer_preset.name) continue;
+        if (preset_bundle->printers.get_preset_base(printer_preset) != &printer_preset) continue;
         if (auto printer_model = dynamic_cast<ConfigOptionString*>(const_cast<Preset&>(printer_preset).config.option("printer_model", false))) {
             if (m_printer_name_to_preset.find(printer_model->value) == m_printer_name_to_preset.end()) {
                 printer_choice.push_back(from_u8(printer_model->value));
@@ -3453,7 +3456,7 @@ bool CreatePrinterPresetDialog::validate_input_valid()
                 if (preset.config.opt_string("printer_model") == printer_model)
                     diameters += preset.config.opt_string("printer_variant") + "  ";
             }
-            MessageDialog dlg(this, _L("The system preset does not allow creation. \nPlease re-enter the printer model or nozzle diameter.")
+            MessageDialog dlg(this, _L("The system preset does not allow creation.\nPlease re-enter the printer model or nozzle diameter.")
                                   + _L("\n\nAvailable nozzle profiles for this printer:")
                                   + "\n" + diameters
                                   + _L("\n\nChoose YES to switch existing preset:")
@@ -3674,7 +3677,18 @@ ExportConfigsDialog::~ExportConfigsDialog()
 }
 
 void ExportConfigsDialog::on_dpi_changed(const wxRect &suggested_rect) {
+    if (m_include_bed_assets)
+        m_include_bed_assets->Rescale();
     Layout();
+}
+
+void ExportConfigsDialog::update_include_bed_assets_enabled()
+{
+    const bool on = get_curr_radio_type(m_export_type_btns) == m_exprot_type.preset_bundle;
+    if (m_include_bed_assets)
+        m_include_bed_assets->Enable(on);
+    if (m_include_bed_assets_label)
+        m_include_bed_assets_label->Enable(on);
 }
 
 void ExportConfigsDialog::show_export_result(const ExportCase &export_case)
@@ -3819,6 +3833,17 @@ wxBoxSizer *ExportConfigsDialog::create_export_config_item(wxWindow *parent)
     static_export_printer_preset_bundle_text->SetFont(Label::Body_12);
     static_export_printer_preset_bundle_text->SetForegroundColour(wxColour("#6B6B6B"));
     radioBoxSizer->Add(static_export_printer_preset_bundle_text, 0, wxEXPAND | wxLEFT, FromDIP(22));
+    wxBoxSizer *include_bed_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_include_bed_assets = new ::CheckBox(parent);
+    m_include_bed_assets->SetValue(true);
+    include_bed_sizer->Add(m_include_bed_assets, 0, wxALIGN_CENTER_VERTICAL, 0);
+    m_include_bed_assets_label = new wxStaticText(parent, wxID_ANY, _L("Include custom bed texture and model"));
+    m_include_bed_assets_label->SetFont(Label::Body_12);
+    m_include_bed_assets_label->SetForegroundColour(wxColour("#6B6B6B"));
+    include_bed_sizer->Add(m_include_bed_assets_label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
+    radioBoxSizer->Add(0, 0, 0, wxTOP, FromDIP(6));
+    radioBoxSizer->Add(include_bed_sizer, 0, wxEXPAND | wxLEFT, FromDIP(22));
+    update_include_bed_assets_enabled();
     radioBoxSizer->Add(create_radio_item(m_exprot_type.filament_bundle, parent, wxEmptyString, m_export_type_btns), 0, wxEXPAND | wxTOP, FromDIP(10));
     wxStaticText *static_export_filament_preset_bundle_text = new wxStaticText(parent, wxID_ANY, _L("User's filament preset set.\nCan be shared with others."),
                                                                                                     wxDefaultPosition, wxDefaultSize);
@@ -3952,7 +3977,7 @@ void ExportConfigsDialog::select_curr_radiobox(std::vector<std::pair<RadioBox *,
                     wxString filament_name = wxString::FromUTF8(filament_name_to_preset.first);
                     m_preset_sizer->Add(create_checkbox(m_presets_window, filament_name, m_printer_name), 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(5));
                 }
-                m_serial_text->SetLabel(_L("Only the filament names with user filament presets will be displayed, \nand all user filament presets in each filament name you select will be exported as a ZIP archive."));
+                m_serial_text->SetLabel(_L("Only the filament names with user filament presets will be displayed,\nand all user filament presets in each filament name you select will be exported as a ZIP archive."));
             } else if (export_type == m_exprot_type.process_preset) {
                 for (std::pair<std::string, std::vector<Preset *>> presets : m_process_presets) {
                     Preset *      printer_preset = preset_bundle->printers.find_preset(presets.first, false);
@@ -3968,7 +3993,7 @@ void ExportConfigsDialog::select_curr_radiobox(std::vector<std::pair<RadioBox *,
                     }
 
                 }
-                m_serial_text->SetLabel(_L("Only printer names with changed process presets will be displayed, \nand all user process presets in each printer name you select will be exported as a ZIP archive."));
+                m_serial_text->SetLabel(_L("Only printer names with changed process presets will be displayed,\nand all user process presets in each printer name you select will be exported as a ZIP archive."));
             }
             //m_presets_window->SetSizerAndFit(m_preset_sizer);
             m_presets_window->Layout();
@@ -3988,9 +4013,10 @@ void ExportConfigsDialog::select_curr_radiobox(std::vector<std::pair<RadioBox *,
             radiobox_list[i].first->SetValue(false);
         }
     }
+    update_include_bed_assets_enabled();
 }
 
-ExportConfigsDialog::ExportCase ExportConfigsDialog::archive_preset_bundle_to_file(const wxString &path)
+ExportConfigsDialog::ExportCase ExportConfigsDialog::archive_preset_bundle_to_file(const wxString &path, bool include_bed_assets)
 {
     std::string export_path = initial_file_path(path, "");
     if (export_path.empty() || "initial_failed" == export_path) return ExportCase::EXPORT_CANCEL;
@@ -4091,6 +4117,12 @@ ExportConfigsDialog::ExportCase ExportConfigsDialog::archive_preset_bundle_to_fi
             bundle_structure["printer_config"]  = printer_config;
             bundle_structure["filament_config"] = filament_configs;
             bundle_structure["process_config"]  = process_configs;
+
+            if (include_bed_assets &&
+                !append_printer_bed_assets(zip_archive, printer_preset->config, bundle_structure, printer_config_file_name, 0)) {
+                mz_zip_writer_end(&zip_archive);
+                return ExportCase::ADD_FILE_FAIL;
+            }
 
             std::string bundle_structure_str = bundle_structure.dump();
             status = mz_zip_writer_add_mem(&zip_archive, BUNDLE_STRUCTURE_JSON_NAME, bundle_structure_str.data(), bundle_structure_str.size(), MZ_DEFAULT_COMPRESSION);
@@ -4339,7 +4371,7 @@ wxWindow *ExportConfigsDialog::create_dialog_buttons(wxWindow* parent)
             const wxString curr_radio_type = get_curr_radio_type(m_export_type_btns);
 
             if (curr_radio_type == m_exprot_type.preset_bundle) {
-                export_case = archive_preset_bundle_to_file(path);
+                export_case = archive_preset_bundle_to_file(path, m_include_bed_assets->GetValue());
             } else if (curr_radio_type == m_exprot_type.filament_bundle) {
                 export_case = archive_filament_bundle_to_file(path);
             } else if (curr_radio_type == m_exprot_type.printer_preset) {
@@ -4660,7 +4692,7 @@ void EditFilamentPresetDialog::delete_preset()
             if (count > 0) {
                 msg = _L("Presets inherited by other presets cannot be deleted");
                 msg += "\n";
-                msg += _L_PLURAL("The following presets inherits this preset.", "The following preset inherits this preset.", count);
+                msg += _L_PLURAL("The following preset inherits this preset.", "The following presets inherit this preset.", count);
                 wxString title = _L("Delete Preset");
                 MessageDialog(this, msg + presets, title, wxOK | wxICON_ERROR).ShowModal();
                 m_selected_printer.clear();
@@ -4932,7 +4964,7 @@ void CreatePresetForPrinterDialog::get_visible_printer_and_compatible_filament_p
                     if (filament_preset.is_default || !filament_preset.is_compatible || filament_preset.is_project_embedded) continue;
                     ConfigOptionStrings *filament_types;
                     const Preset *       filament_preset_base = m_preset_bundle->filaments.get_preset_base(filament_preset);
-                    if (filament_preset_base == &filament_preset) {
+                    if (filament_preset_base == &filament_preset || filament_preset_base == nullptr) {
                         filament_types = dynamic_cast<ConfigOptionStrings *>(const_cast<Preset *>(&filament_preset)->config.option("filament_type"));
                     } else {
                         filament_types = dynamic_cast<ConfigOptionStrings *>(const_cast<Preset *>(filament_preset_base)->config.option("filament_type"));

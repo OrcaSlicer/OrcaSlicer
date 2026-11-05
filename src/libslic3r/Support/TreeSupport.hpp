@@ -135,7 +135,6 @@ struct SupportNode
     TreeNodeType   type            = eCircle;
     bool           is_corner       = false;
     bool           is_processed    = false;
-    bool           need_extra_wall = false;
     bool           is_sharp_tail   = false;
     bool           valid = true;
     ExPolygon      overhang; // when type==ePolygon, set this value to get original overhang area
@@ -536,9 +535,9 @@ private:
     coordf_t calc_branch_radius(coordf_t base_radius, coordf_t mm_to_top, double diameter_angle_scale_factor, bool use_min_distance=true);
     coordf_t   calc_radius(coordf_t mm_to_top);
     coordf_t get_radius(const SupportNode* node);
-    ExPolygons get_avoidance(coordf_t radius, size_t obj_layer_nr);
+    const ExPolygons& get_avoidance(coordf_t radius, size_t obj_layer_nr);
     // layer's expolygon expanded by radius+m_xy_distance
-    ExPolygons get_collision(coordf_t radius, size_t layer_nr);
+    const ExPolygons& get_collision(coordf_t radius, size_t layer_nr);
     // get Polygons instead of ExPolygons
     Polygons get_collision_polys(coordf_t radius, size_t layer_nr);
 

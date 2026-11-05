@@ -62,6 +62,10 @@ public:
 
     bool is_open() const { return m_open; }
 
+    // Lets a modeless window be maximized on X11; call before Show(). Modal ones stay dialogs so the
+    // window manager keeps routing focus from the parent to them.
+    void use_normal_window_type();
+
     // The payload submitted via window.orca.submit() (modal use), if any.
     const std::optional<nlohmann::json>& result() const { return m_result; }
 

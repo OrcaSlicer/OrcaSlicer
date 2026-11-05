@@ -8,6 +8,7 @@
 		"0.4"
 	],
 	"printer_variant": "0.4",
+	"use_3mf": "1",
 	"bed_exclude_area": [
 		"0x0",
 		"28x0",

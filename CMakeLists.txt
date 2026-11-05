@@ -130,6 +130,8 @@ set(ORCA_BUNDLED_UV_EXECUTABLE "" CACHE FILEPATH "Path to a uv executable to bun
 # be reproducible and the download verified. To upgrade, bump ORCA_UV_VERSION
 # and refresh every hash below from the release's .sha256 assets, e.g.:
 #   curl -sL https://github.com/astral-sh/uv/releases/download/<ver>/uv-<triple>.tar.gz.sha256
+# The Flatpak copy in scripts/flatpak/com.orcaslicer.OrcaSlicer.yml pins the
+# same version and hashes and must be bumped with them.
 set(ORCA_UV_VERSION "0.11.21")
 set(ORCA_UV_SHA256_aarch64-apple-darwin      "1f921d491ba5ffeea774eb04d6681ecee379101341cbb1500394993b541bf3f4")
 set(ORCA_UV_SHA256_x86_64-apple-darwin       "f3c8e5708a84b920c18b691214d54d2b0da6b984789caae95d47c95120cb7765")
@@ -150,6 +152,15 @@ endif()
 # (user-provided paths never live under .uv/).
 if(ORCA_BUNDLED_UV_EXECUTABLE MATCHES "/\\.uv/")
     set(ORCA_BUNDLED_UV_EXECUTABLE "" CACHE FILEPATH "Path to the auto-downloaded uv executable" FORCE)
+endif()
+
+# A Flatpak build has no network and cannot download below: the orca_deps module
+# in scripts/flatpak/com.orcaslicer.OrcaSlicer.yml fetches the same pinned uv and
+# installs it into the app resources, where the runtime looks for it.
+set(ORCA_UV_FLATPAK_BINARY "${CMAKE_INSTALL_FULL_DATAROOTDIR}/OrcaSlicer/tools/uv/uv")
+if(FLATPAK AND NOT ORCA_BUNDLED_UV_EXECUTABLE AND EXISTS "${ORCA_UV_FLATPAK_BINARY}")
+    message(STATUS "Using Flatpak-provided uv: ${ORCA_UV_FLATPAK_BINARY}")
+    set(ORCA_BUNDLED_UV_EXECUTABLE "${ORCA_UV_FLATPAK_BINARY}")
 endif()
 
 if(NOT ORCA_BUNDLED_UV_EXECUTABLE)
@@ -195,10 +206,8 @@ if(NOT ORCA_BUNDLED_UV_EXECUTABLE)
             list(GET ORCA_UV_DL_STATUS 0 ORCA_UV_DL_CODE)
             list(GET ORCA_UV_DL_STATUS 1 ORCA_UV_DL_MSG)
             if(NOT ORCA_UV_DL_CODE EQUAL 0)
-                # Network failure keeps the historical graceful degradation (uv is
-                # optional at build time) -- but a hash mismatch below is fatal.
-                message(WARNING "Failed to download uv: ${ORCA_UV_DL_MSG}")
                 file(REMOVE "${ORCA_UV_ARCHIVE}")
+                message(FATAL_ERROR "Failed to download uv: ${ORCA_UV_DL_MSG}")
             else()
                 file(SHA256 "${ORCA_UV_ARCHIVE}" _orca_uv_actual_sha256)
                 if(NOT _orca_uv_actual_sha256 STREQUAL "${ORCA_UV_SHA256_${ORCA_UV_ARCH}}")
@@ -288,6 +297,19 @@ if (APPLE)
     # Type"); Ninja/-Wall does not, and under -Werror it fails Xcode builds on code CI accepts.
     set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_64_TO_32_BIT_CONVERSION "NO")
 
+    # The Xcode generator ignores CMAKE_<LANG>_COMPILER_LAUNCHER, so hand the launcher to
+    # Xcode's own Compiler Launcher setting, which wraps every clang compile (C, C++,
+    # Objective-C++ and the precompiled header) with one program: the C++ launcher wins when
+    # both are set. The setting takes a single program path, not a CMake launcher list.
+    # Xcode versions without it ignore it and build uncached.
+    if (CMAKE_GENERATOR STREQUAL "Xcode")
+        if (CMAKE_CXX_COMPILER_LAUNCHER)
+            set(CMAKE_XCODE_ATTRIBUTE_C_COMPILER_LAUNCHER "${CMAKE_CXX_COMPILER_LAUNCHER}")
+        elseif (CMAKE_C_COMPILER_LAUNCHER)
+            set(CMAKE_XCODE_ATTRIBUTE_C_COMPILER_LAUNCHER "${CMAKE_C_COMPILER_LAUNCHER}")
+        endif ()
+    endif ()
+
     message(STATUS "Orca: IS_CROSS_COMPILE: ${IS_CROSS_COMPILE}")
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(CMAKE_INSTALL_RPATH "$ORIGIN")
@@ -306,6 +328,14 @@ endif ()
 if (IS_CROSS_COMPILE)
     message("Detected cross compilation setup. Tests and encoding checks will be forcedly disabled!")
     set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+endif ()
+
+# With a precompiled header, clang-cl can omit an exception type's copy constructor from its throw info,
+# so copies of the exception share and double-free their data: https://github.com/llvm/llvm-project/issues/53486
+if (MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    message(STATUS "clang-cl: building without the precompiled header (llvm/llvm-project#53486)")
+    set_property(CACHE SLIC3R_PCH PROPERTY HELPSTRING "Use precompiled headers (ignored with clang-cl, llvm/llvm-project#53486)")
+    set(SLIC3R_PCH OFF)
 endif ()
 
 # Print out the SLIC3R_* cache options
@@ -496,47 +526,6 @@ endif()
 # To be able to link libslic3r with the Perl XS module.
 # Once we get rid of Perl and libslic3r is linked statically, we can get rid of -fPIC
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-# WIN10SDK_PATH is used to point CMake to the WIN10 SDK installation directory.
-# We pick it from environment if it is not defined in another way
-# ORCA: Removed Netfabb STL fixing service support in favor of CGAL.
-# if(WIN32)
-#     if(NOT DEFINED WIN10SDK_PATH)
-#         if(DEFINED ENV{WIN10SDK_PATH})
-#                 set(WIN10SDK_PATH "$ENV{WIN10SDK_PATH}")
-#         endif()
-#     endif()
-#     if(DEFINED WIN10SDK_PATH)
-#         #BBS: modify win10sdk_path
-#         if (EXISTS "${WIN10SDK_PATH}/winrt/windows.graphics.printing3d.h")
-#             set(WIN10SDK_INCLUDE_PATH "${WIN10SDK_PATH}")
-#         else()
-#             message("WIN10SDK_PATH is invalid: ${WIN10SDK_PATH}")
-#             message("${WIN10SDK_PATH}/winrt/windows.graphics.printing3d.h was not found")
-#             message("STL fixing by the Netfabb service will not be compiled")
-#             unset(WIN10SDK_PATH)
-#         endif()
-#     else()
-#         # Try to use the default Windows 10 SDK path.
-#         if (DEFINED ENV{WindowsSdkDir} AND DEFINED ENV{WindowsSDKVersion})
-#             set(WIN10SDK_INCLUDE_PATH "$ENV{WindowsSdkDir}/Include/$ENV{WindowsSDKVersion}")
-#         else ()
-#             set(WIN10SDK_INCLUDE_PATH "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0")
-#         endif ()
-#         if (NOT EXISTS "${WIN10SDK_INCLUDE_PATH}/winrt/windows.graphics.printing3d.h")
-#             message("${WIN10SDK_INCLUDE_PATH}/winrt/windows.graphics.printing3d.h was not found")
-#             message("STL fixing by the Netfabb service will not be compiled")
-#             unset(WIN10SDK_INCLUDE_PATH)
-#         endif()
-#     endif()
-#     if(WIN10SDK_INCLUDE_PATH)
-#         message("Building with Win10 Netfabb STL fixing service support")
-#         add_definitions(-DHAS_WIN10SDK)
-#         include_directories(SYSTEM "${WIN10SDK_INCLUDE_PATH}")
-#     else()
-#         message("Building without Win10 Netfabb STL fixing service support")
-#     endif()
-# endif()
 
 if (APPLE)
     message("OS X SDK Path: ${CMAKE_OSX_SYSROOT}")
@@ -838,7 +827,6 @@ find_package(TBB REQUIRED)
 
 find_package(OpenSSL REQUIRED)
 find_package(CURL REQUIRED)
-find_package(Freetype REQUIRED)
 
 if (SLIC3R_GUI)
     # LibDataChannel's installed export references its bundled dependencies,
@@ -1151,7 +1139,6 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
             "SLIC3R_CAD setting as this project.")
     endif ()
     file(COPY ${_occt_dlls}
-            ${CMAKE_PREFIX_PATH}/bin/freetype.dll
             ${CMAKE_PREFIX_PATH}/bin/avformat-61.dll
             ${CMAKE_PREFIX_PATH}/bin/avcodec-61.dll
             ${CMAKE_PREFIX_PATH}/bin/swresample-5.dll
@@ -1164,7 +1151,6 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
         ${_out_dir}/libmpfr-4.dll
         ${_out_dir}/WebView2Loader.dll
 
-        ${_out_dir}/freetype.dll
         ${_out_dir}/avformat-61.dll
         ${_out_dir}/avcodec-61.dll
         ${_out_dir}/swresample-5.dll
@@ -1324,7 +1310,13 @@ elseif (SLIC3R_FHS)
         PATTERN "*/udev" EXCLUDE
     )
     if(ORCA_BUNDLED_UV_EXECUTABLE)
-        install(PROGRAMS "${ORCA_BUNDLED_UV_EXECUTABLE}" DESTINATION "${SLIC3R_FHS_RESOURCES}/tools/uv" RENAME "${ORCA_BUNDLED_UV_FILENAME}")
+        # A Flatpak build finds uv at this exact path, installed by the orca_deps
+        # module before this one configures (see ORCA_UV_FLATPAK_BINARY above).
+        # Installing it there again would copy the file onto itself.
+        set(_orca_uv_fhs_binary "${SLIC3R_FHS_RESOURCES}/tools/uv/${ORCA_BUNDLED_UV_FILENAME}")
+        if(NOT ORCA_BUNDLED_UV_EXECUTABLE_CONFIG STREQUAL _orca_uv_fhs_binary)
+            install(PROGRAMS "${ORCA_BUNDLED_UV_EXECUTABLE}" DESTINATION "${SLIC3R_FHS_RESOURCES}/tools/uv" RENAME "${ORCA_BUNDLED_UV_FILENAME}")
+        endif()
     endif()
     install(FILES src/dev-utils/platform/unix/com.orcaslicer.OrcaSlicer.desktop DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications)
     foreach(SIZE 32 128 192)
@@ -1386,7 +1378,8 @@ set (CPACK_PACKAGE_INSTALL_DIRECTORY ${CPACK_PACKAGE_NAME})
 set (CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/resources/images\\\\OrcaSlicer.ico")
 set (CPACK_NSIS_MUI_ICON "${CPACK_PACKAGE_ICON}")
 set (CPACK_NSIS_MUI_UNIICON "${CPACK_PACKAGE_ICON}")
-set (CPACK_NSIS_INSTALLED_ICON_NAME  "$INSTDIR\\\\orca-slicer.exe")
+# Relative to the install dir: CPack's NSIS template prefixes $INSTDIR itself.
+set (CPACK_NSIS_INSTALLED_ICON_NAME "orca-slicer.exe")
 set (CPACK_PACKAGE_CHECKSUM SHA256)
 set (CPACK_PACKAGE_INSTALL_REGISTRY_KEY "OrcaSlicer")
 set (CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)

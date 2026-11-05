@@ -1144,6 +1144,12 @@ void SyncAmsInfoDialog::reinit_dialog()
     m_ams_mapping_result.clear();
     m_preview_colors_in_thumbnail.clear();
 
+    // The dialog is reused across syncs, so the plate picked last time may no longer exist
+    // (plates deleted or another project loaded). update_show_status() reads its thumbnail.
+    PartPlateList &plate_list = wxGetApp().plater()->get_partplate_list();
+    if (m_specify_plate_idx < 0 || m_specify_plate_idx >= plate_list.get_plate_count())
+        m_specify_plate_idx = plate_list.get_curr_plate_index();
+
     show_status(PrintDialogStatus::PrintStatusInit);
     update_show_status();
 }
@@ -1829,7 +1835,7 @@ void SyncAmsInfoDialog::show_status(PrintDialogStatus status, std::vector<wxStri
         wxString msg_text = _L("Storage is not available or is in read-only mode.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusNoSdcard) {
-        wxString msg_text = _L("Storage needs to be inserted before printing.");
+        wxString msg_text = _L("Insert storage or free up space before printing.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusUnsupportedPrinter) {
         wxString msg_text;
@@ -2212,7 +2218,7 @@ void SyncAmsInfoDialog::update_user_printer()
             {
                 m_list.push_back(it->second);
                 wxString dev_name_text = from_u8(it->second->get_dev_name());
-                if (it->second->is_lan_mode_printer()) { dev_name_text += "(LAN)"; }
+                if (it->second->is_lan_mode_printer()) { dev_name_text += _L("(LAN)"); }
                 machine_list_name.Add(dev_name_text);
                 break;
             }

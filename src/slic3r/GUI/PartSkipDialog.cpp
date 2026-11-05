@@ -511,7 +511,7 @@ void PartSkipDialog::fetchUrl(boost::weak_ptr<PrinterFileSystem> wfs)
                         fs->SetUrl("3");
                     }
                 });
-            });
+            }, wxGetApp().get_printer_cloud_provider());
             break;
         }
         default: break;
@@ -676,6 +676,7 @@ void PartSkipDialog::UpdateCountLabel()
     }
     m_cnt_label->SetLabel(wxString::Format("%d", check_cnt));
     m_cnt_label->Fit();
+    // TRN Shown right after the number of selected objects, which is a separate label: "3/10 Selected". %d is the total number of objects.
     m_tot_label->SetLabel(wxString::Format(_L("/%d Selected"), tot_cnt));
     m_tot_label->Fit();
     m_dlg_btn_sizer->Layout();
@@ -922,7 +923,8 @@ void PartSkipDialog::OnApplyDialog(wxCommandEvent &event)
         confirm_dialog.SetMsgLabel(_L("Skipping all objects."));
         confirm_dialog.SetTipLabel(_L("The printing job will be stopped. Continue?"));
     } else {
-        confirm_dialog.SetMsgLabel(wxString::Format(_L("Skipping %d objects."), m_partskip_ids.size()));
+        const int skip_cnt = int(m_partskip_ids.size());
+        confirm_dialog.SetMsgLabel(wxString::Format(_L_PLURAL("Skipping %d object.", "Skipping %d objects.", skip_cnt), skip_cnt));
         confirm_dialog.SetTipLabel(_L("This action cannot be undone. Continue?"));
     }
 

@@ -5,6 +5,7 @@
 #include <ios>
 #include <libslic3r/LifecycleEvents.hpp>
 #include <memory>
+#include <slic3r/Utils/Http.hpp>
 #include <slic3r/Utils/NetworkAgentFactory.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
@@ -14,8 +15,13 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_message.hpp>
 #include "plugin_test_utils.hpp"
+#include "test_utils.hpp"
 
 #include <boost/filesystem.hpp>
+#include <pybind11/cast.h>
+#include <pybind11/gil.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
 
 #include <algorithm>
 #include <chrono>
@@ -35,16 +41,19 @@ namespace fs = boost::filesystem;
 // -> unload.
 //
 // Each Catch2 test case runs in its own process (catch_discover_tests), so the PluginManager and
-// interpreter singletons are brought up at most once per test.
+// interpreter singletons are brought up at most once per test. Running the binary directly runs
+// every case in one process: the interpreter is then initialized once and finalized after the
+// last case (see PythonInterpreterRunEnd in slic3rutils_tests_main.cpp).
 
 namespace {
 
-// Brings the plugin system up, and tears it down explicitly at the end of the test.
+// Brings the plugin system up, and tears the manager down at the end of the test.
 //
-// Shutting the interpreter down here, rather than leaving it to PythonInterpreter's static
-// destructor, mirrors what the app does (GUI_App finalizes it before exit). Left to static
-// destruction, shutdown()'s logging runs after boost::log has torn down its thread-local storage
-// and throws, aborting the process after the tests have already passed.
+// The interpreter itself is not finalized here: it is process-wide. CPython cannot be
+// reinitialized after Py_Finalize (a second init aborts inside _datetime), and the app likewise
+// finalizes it only at exit (GUI_App). slic3rutils_tests_main.cpp finalizes it once, after the
+// last test case and before static destruction, where shutdown()'s logging is still ahead of
+// boost::log's teardown.
 //
 // Declare this FIRST in a test so it is destroyed last.
 struct ScopedPluginManager
@@ -55,11 +64,7 @@ struct ScopedPluginManager
     bool initialized = false;
 
     ScopedPluginManager() { initialized = PluginManager::instance().initialize(); }
-    ~ScopedPluginManager()
-    {
-        PluginManager::instance().shutdown();
-        PythonInterpreter::instance().shutdown();
-    }
+    ~ScopedPluginManager() { PluginManager::instance().shutdown(); }
 };
 
 // A minimal script plugin exposing exactly one capability, "Echo".
@@ -615,8 +620,22 @@ TEST_CASE("Python module release removes package submodules and owned sys.path",
 
     // Ensure the next import executes the new submodule rather than reusing a stale package child.
     write_package("'new'");
-    boost::system::error_code ec;
-    fs::remove_all(package_root / "__pycache__", ec);
+    {
+        // The rewrite can keep the old mtime and size, so drop the bytecode wherever the
+        // interpreter caches it.
+        PythonGILState gil;
+        REQUIRE(gil);
+        PyObjectPtr util(PyImport_ImportModule("importlib.util"));
+        REQUIRE(util);
+        for (const char* file : {"__init__.py", "sub.py"}) {
+            PyObjectPtr source(PyUnicode_DecodeFSDefault((package_root / file).string().c_str()));
+            REQUIRE(source);
+            PyObjectPtr cached(PyObject_CallMethod(util.get(), "cache_from_source", "O", source.get()));
+            REQUIRE(cached);
+            boost::system::error_code ec;
+            fs::remove(fs::path(PyUnicode_AsUTF8(cached.get())), ec);
+        }
+    }
 
     paths.clear();
     modules.clear();
@@ -1054,3 +1073,98 @@ TEST_CASE("Unloading a plugin that is not loaded is a no-op", "[PluginLifecycle]
     CHECK(manager.unload_plugin("No_Such_Plugin"));
     CHECK_FALSE(manager.is_plugin_loaded("No_Such_Plugin"));
 }
+
+namespace {
+
+// CA certificates in the default client context, as a plugin's urllib or http.client request would
+// verify against.
+int default_context_ca_count()
+{
+    pybind11::gil_scoped_acquire gil;
+    const pybind11::dict stats = pybind11::module_::import("ssl").attr("create_default_context")().attr("cert_store_stats")();
+    return stats["x509_ca"].cast<int>();
+}
+
+} // namespace
+
+TEST_CASE("The bundled Python trusts the system CA certificates", "[PluginLifecycle][Python]")
+{
+    // The app runs this before plugins load; on Linux it is what points OpenSSL at the distro bundle.
+    Http::tls_global_init();
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    CHECK(default_context_ca_count() > 0);
+}
+
+TEST_CASE("Waiting for Python threads at shutdown gives up on a thread that does not end", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    pybind11::gil_scoped_acquire gil;
+
+    const pybind11::module_ threading = pybind11::module_::import("threading");
+    const pybind11::object  release   = threading.attr("Event")();
+    pybind11::object worker = threading.attr("Thread")(pybind11::arg("target") = release.attr("wait"), pybind11::arg("daemon") = false);
+    worker.attr("start")();
+
+    const auto start = std::chrono::steady_clock::now();
+    CHECK(PythonInterpreter::join_non_daemon_threads(std::chrono::milliseconds(200)) == 1);
+    CHECK(std::chrono::steady_clock::now() - start < std::chrono::seconds(5));
+
+    release.attr("set")();
+    CHECK(PythonInterpreter::join_non_daemon_threads(std::chrono::seconds(5)) == 0);
+}
+
+TEST_CASE("Waiting for Python threads at shutdown ends idle concurrent.futures workers", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    pybind11::gil_scoped_acquire gil;
+
+    const pybind11::module_ threading = pybind11::module_::import("threading");
+    const pybind11::module_ futures   = pybind11::module_::import("concurrent.futures");
+    const pybind11::module_ workers   = pybind11::module_::import("concurrent.futures.thread");
+    // The hooks that end the workers also refuse new tasks for the rest of the process; the
+    // interpreter outlives this test case.
+    const auto allow_new_tasks = [&workers] { workers.attr("_shutdown") = false; };
+
+    // An idle worker waits for its queue until the hooks tell it to end; the wait must not run out.
+    pybind11::object executor = futures.attr("ThreadPoolExecutor")(pybind11::arg("max_workers") = 1);
+    executor.attr("submit")(pybind11::module_::import("builtins").attr("int")).attr("result")();
+    auto start = std::chrono::steady_clock::now();
+    CHECK(PythonInterpreter::join_non_daemon_threads(std::chrono::seconds(5)) == 0);
+    CHECK(std::chrono::steady_clock::now() - start < std::chrono::seconds(2));
+    allow_new_tasks();
+
+    // A worker still in a task blocks the hooks; both are given up at the deadline.
+    const pybind11::object release = threading.attr("Event")();
+    executor                       = futures.attr("ThreadPoolExecutor")(pybind11::arg("max_workers") = 1);
+    executor.attr("submit")(release.attr("wait"));
+    start = std::chrono::steady_clock::now();
+    CHECK(PythonInterpreter::join_non_daemon_threads(std::chrono::milliseconds(200)) == 1);
+    CHECK(std::chrono::steady_clock::now() - start < std::chrono::seconds(5));
+
+    release.attr("set")();
+    CHECK(PythonInterpreter::join_non_daemon_threads(std::chrono::seconds(5)) == 0);
+    allow_new_tasks();
+}
+
+#ifndef _WIN32 // Windows adds its system store whatever SSL_CERT_FILE names.
+TEST_CASE("SSL_CERT_FILE still overrides the bundled Python's default CA certificates", "[PluginLifecycle][Python]")
+{
+    // Existing but empty: Linux's CurlGlobalInit replaces an SSL_CERT_FILE that names a missing file.
+    ScopedTemporaryFile empty_bundle(".pem");
+    std::ofstream(empty_bundle.string()).close();
+    ScopedEnvVar ssl_cert_file{"SSL_CERT_FILE", empty_bundle.string()};
+
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    CHECK(default_context_ca_count() == 0);
+}
+#endif

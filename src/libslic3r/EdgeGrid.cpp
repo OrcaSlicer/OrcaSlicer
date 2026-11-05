@@ -616,7 +616,7 @@ struct PropagateDanielssonSingleStep {
 		if ((signs[addr] & 2) == 0) {
 			float  *v = &L[addr << 1];
 			float   l = v[0] * v[0] + v[1] * v[1];
-			float  *v2s = v + (addr_delta << 1);
+			float  *v2s = v + 2 * addr_delta;
 			float	v2[2] = {
 				v2s[0] + INCX * resolution,
 				v2s[1] + INCY * resolution

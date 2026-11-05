@@ -303,7 +303,9 @@ void PresetUpdater::priv::set_download_prefs(AppConfig *app_config)
 	version_check_url = app_config->version_check_url();
 
 	auto profile_update_url = app_config->profile_update_url();
-	if (!profile_update_url.empty() && app_config->get_bool("enable_ota"))
+	// Dev builds keep the profiles from their own source tree; an over-the-air bundle would replace them.
+	const bool dev_build = boost::algorithm::icontains(std::string(SoftFever_VERSION), "dev");
+	if (!profile_update_url.empty() && !dev_build)
 		enabled_config_update = true;
 	else
 		enabled_config_update = false;
@@ -1383,6 +1385,9 @@ void PresetUpdater::check_vendor_update(const std::string& vendor_id)
 {
     if (!p->enabled_config_update) return;
     if (vendor_id.empty()) return;
+    // Stealth mode can be switched off mid-session, so it is checked before the vendor is marked
+    // as checked: the next printer change after that still queries the server.
+    if (GUI::wxGetApp().app_config->get_stealth_mode()) return;
 
     if (!p->checked_vendors.insert(vendor_id).second)
         return;
@@ -1530,8 +1535,10 @@ void PresetUpdater::priv::check_new_vendors(const std::set<std::string>& system_
                         vendor_list += ", ";
                     vendor_list += candidate.vendor_id;
                 }
-                GUI::wxGetApp().plater()->get_notification_manager()->push_notification(
-                    _u8L("Downloading new vendor profile(s): ") + vendor_list + _u8L("..."));
+                GUI::wxGetApp().plater()->get_notification_manager()->push_notification(GUI::format(
+                    // TRN %1% is a comma-separated list of vendor names.
+                    _L_PLURAL("Downloading new vendor profile: %1%...", "Downloading new vendor profiles: %1%...", candidates.size()),
+                    vendor_list));
             }
 
             vendor_check_threads.emplace_back([this, candidates, callback]() {
@@ -1678,8 +1685,10 @@ void PresetUpdater::priv::check_new_vendors(const std::set<std::string>& system_
                                 vendor_list += ", ";
                             vendor_list += vendor_id;
                         }
-                        GUI::wxGetApp().plater()->get_notification_manager()->push_notification(
-                            _u8L("Failed to download vendor profile(s): ") + vendor_list);
+                        GUI::wxGetApp().plater()->get_notification_manager()->push_notification(GUI::format(
+                            // TRN %1% is a comma-separated list of vendor names.
+                            _L_PLURAL("Failed to download vendor profile: %1%", "Failed to download vendor profiles: %1%", failed_vendor_ids.size()),
+                            vendor_list));
                     });
                 }
 

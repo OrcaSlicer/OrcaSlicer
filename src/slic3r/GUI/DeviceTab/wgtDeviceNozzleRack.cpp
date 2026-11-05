@@ -389,8 +389,8 @@ static void s_update_title(const std::shared_ptr<DevNozzleRack> rack, wgtDeviceN
     wxString title = _L("Induction Hotend Rack");
     if (rack && (rack->GetReadingCount() > 0))
     {
-        wxString pending = ": " + _L("Reading") + wxString::Format(" %d/%d", rack->GetReadingIdx(), rack->GetReadingCount());
-        title += pending;
+        // TRN %d/%d is the hotend being read and the number of hotends to read.
+        title = wxString::Format(_L("Induction Hotend Rack: Reading %d/%d"), rack->GetReadingIdx(), rack->GetReadingCount());
     }
 
     title_label->SetLabel(title);

@@ -57,6 +57,7 @@ public:
     // ORCA: a companion widget shown right after the tab buttons (before any side_tools), e.g.
     // an overflow indicator. Pass nullptr to remove it; ownership stays with the caller.
     void SetOverflowButton(wxWindow* button);
+    wxWindow* GetOverflowButton() const { return m_overflow_button; }
 
 private:
     wxFlexGridSizer*                m_buttons_sizer;

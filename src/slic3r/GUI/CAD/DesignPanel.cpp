@@ -931,7 +931,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         });
 
         feat_dropdown("plane", "design_plane", _L("Datum / Curve (plane / axis / coord sys / helix / project)"), {
-            {"design_plane", _L("Plane"), _L("Reference plane (offset / tilt / midplane / tangent / two edges / coincident)"),
+            {"design_plane", _L_CONTEXT("Plane", "Design"), _L("Reference plane (offset / tilt / midplane / tangent / two edges / coincident)"),
              [this] {
                  populate_plane_choices(m_plane_base);
                  reset_plane_refs();
@@ -1011,7 +1011,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 }
                 open_tool(Tool::Transform);
              }, SHIFT('Y')},
-            {"design_mirror", _L("Mirror"), _L("Reflect a body about a plane"),
+            {"design_mirror", _L_CONTEXT("Mirror", "Design"), _L("Reflect a body about a plane"),
              [this] {
                 if (m_doc.bodies.empty()) {
                     set_status(StatusKind::Error, _L("Mirror needs a body — add or import one first"));
@@ -1143,7 +1143,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
         // Hole / Thread — drilling into a solid (both face-aware)
         feat_dropdown("hole", "design_hole", _L("Hole / thread"), {
-            {"design_hole", _L("Hole"), _L("Drill a hole, centered on a picked face or placed on a plane"),
+            {"design_hole", _L_CONTEXT("Hole", "Design"), _L("Drill a hole, centered on a picked face or placed on a plane"),
              [this] {
                 // #2: drill on the picked solid face, centred on it (origin = face centroid,
                 // normal = inward). Otherwise fall back to the plane dropdown. m_hole_x/y then
@@ -1344,7 +1344,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
               _L("Click 2 points or a line / circle / arc to place a dimension"));
         // (separator dropped: the group it divided is now reached from the offer)
         dropdown("design_line", _L("Line / polyline"), {
-            {"design_line",     DesignSketchTool::Mode::Line,     _L("Line"),     _L("Click start, then end — then set the exact length")},
+            {"design_line",     DesignSketchTool::Mode::Line,     _L_CONTEXT("Line", "Design"),     _L("Click start, then end — then set the exact length")},
             {"design_polyline", DesignSketchTool::Mode::Polyline, _L("Polyline"), _L("Click points; click the first point to close the loop, right-click or Enter to end the chain")} });
         dropdown("design_rect", _L("Rectangle"), {
             {"design_rect",         DesignSketchTool::Mode::CornerRect,  _L("Corner rectangle"),  _L("Click two opposite corners")},
@@ -1407,7 +1407,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
             {"design_chamfer",    DesignSketchTool::Mode::Chamfer, _L("Chamfer"), _L("Pick two lines, then drag the arrow or click the distance to set it")} });
         skbtn("design_offset", DesignSketchTool::Mode::Offset, _L("Offset"),
               _L("Pick an entity, then drag the arrow or click the distance; click empty to apply"));
-        skbtn("design_mirror", DesignSketchTool::Mode::Mirror, _L("Mirror"),
+        skbtn("design_mirror", DesignSketchTool::Mode::Mirror, _L_CONTEXT("Mirror", "Design"),
               _L("Pick a mirror-axis line, then the entities to mirror; click empty to apply"));
         // Trim / Extend scissors — standalone sketch tools (NOT inside Constrain): click a
         // segment to cut it back to / out to its nearest intersection. One cut per click.
@@ -1438,9 +1438,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
         auto arm_polygon = [this, select_tool] {
             push_polygon_params();
             select_tool(DesignSketchTool::Mode::Polygon,
-                        wxString::Format(_L("Click center then a vertex — %d sides, %s"),
-                                         m_poly_sides,
-                                         m_poly_circumscribed ? _L("circumscribed") : _L("inscribed")));
+                        wxString::Format(m_poly_circumscribed
+                                             ? _L_PLURAL("Click center then a vertex — %d side, circumscribed",
+                                                         "Click center then a vertex — %d sides, circumscribed", m_poly_sides)
+                                             : _L_PLURAL("Click center then a vertex — %d side, inscribed",
+                                                         "Click center then a vertex — %d sides, inscribed", m_poly_sides),
+                                         m_poly_sides));
         };
         for (int n : {3, 4, 5, 6, 8, 12})
             m_verb_actions["btn:poly#" + std::to_string(n)] =
@@ -1998,7 +2001,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     hform->Add(m_hole_target_label, 0, wxALIGN_CENTER_VERTICAL);
 
     m_box_hole = new wxBoxSizer(wxVERTICAL);
-    m_box_hole->Add(card_header(m_cards, "design_hole", _L("Hole"), m_hdr_hole), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_hole->Add(card_header(m_cards, "design_hole", _L_CONTEXT("Hole", "Design"), m_hdr_hole), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_hole->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
     m_box_hole->Add(hform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     cards->Add(m_box_hole, 0, wxEXPAND);
@@ -2022,7 +2025,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_thread_std->Append(s.name);
     m_thread_std->SetSelection(0);
     m_thread_std->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { apply_thread_standard(); });
-    tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Standard")), 0, wxALIGN_CENTER_VERTICAL);
+    tform->Add(new wxStaticText(m_cards, wxID_ANY, _L_CONTEXT("Standard", "Thread standard")), 0, wxALIGN_CENTER_VERTICAL);
     tform->Add(m_thread_std, 0, wxEXPAND);
 
     // Threads are specified by DIAMETER (M6 = Ø6); the value is derived from the picked cylindrical
@@ -2233,7 +2236,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
         m_cut_plane = make_combo(m_cards);
         m_cut_plane->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
-        cform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Plane")), 0, wxALIGN_CENTER_VERTICAL);
+        cform->Add(new wxStaticText(m_cards, wxID_ANY, _L_CONTEXT("Plane", "Design")), 0, wxALIGN_CENTER_VERTICAL);
         cform->Add(m_cut_plane, 0, wxEXPAND);
 
         m_cut_offset = make_spin(m_cards, 0.0, -10000.0, 10000.0);
@@ -2258,7 +2261,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     // --- Plane (datum/reference plane: offset + tilt from a base plane; no solid) ---
     m_box_plane = new wxBoxSizer(wxVERTICAL);
-    m_box_plane->Add(card_header(m_cards, "design_plane", _L("Plane"), m_hdr_plane), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_plane->Add(card_header(m_cards, "design_plane", _L_CONTEXT("Plane", "Design"), m_hdr_plane), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_plane->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
     {
         // Plane type chooses which inputs matter (Onshape/Fusion parity):
@@ -2570,7 +2573,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     // --- Mirror (reflect a body about a plane) ---
     m_box_mirror = new wxBoxSizer(wxVERTICAL);
-    m_box_mirror->Add(card_header(m_cards, "design_mirror", _L("Mirror"), m_hdr_mirror), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_mirror->Add(card_header(m_cards, "design_mirror", _L_CONTEXT("Mirror", "Design"), m_hdr_mirror), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_mirror->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
     {
         auto* mform = two_col_form();
@@ -2748,7 +2751,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_helix_plane = make_combo(m_cards);
         populate_plane_choices(m_helix_plane);
         m_helix_plane->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
-        hform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Plane")), 0, wxALIGN_CENTER_VERTICAL);
+        hform->Add(new wxStaticText(m_cards, wxID_ANY, _L_CONTEXT("Plane", "Design")), 0, wxALIGN_CENTER_VERTICAL);
         hform->Add(m_helix_plane, 0, wxEXPAND);
         m_helix_radius = make_spin(m_cards, 10.0, 0.01, 10000.0);
         m_helix_radius->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
@@ -3556,7 +3559,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
             m_doc.recompute();
             set_status(StatusKind::Info, cons.empty()
                 ? _L("Sketch created — select it, then right-click to Extrude")
-                : wxString::Format(_L("Sketch created (%zu driving dims) — select it, then right-click to Extrude"),
+                : wxString::Format(_L_PLURAL("Sketch created (%zu driving dim) — select it, then right-click to Extrude",
+                                             "Sketch created (%zu driving dims) — select it, then right-click to Extrude",
+                                             unsigned(cons.size())),
                                    cons.size()));
             refresh_tree();
             sync_sketch_display();   // keep the just-committed sketch visible as a face
@@ -4585,8 +4590,8 @@ void DesignPanel::on_shape_changed()
 
 void DesignPanel::set_status_ok()
 {
-    set_status(wxString::Format(_L("OK — %zu triangles"),
-                                        m_doc.display_mesh.its.indices.size()));
+    const size_t n_tris = m_doc.display_mesh.its.indices.size();
+    set_status(wxString::Format(_L_PLURAL("OK — %zu triangle", "OK — %zu triangles", unsigned(n_tris)), n_tris));
     if (m_viewport != nullptr) {
         // A recompute invalidates the gizmo's body centroid; a Move ends with it, keeping its pose.
         if (body_move_pending()) end_body_move(true);
@@ -5035,11 +5040,15 @@ void DesignPanel::on_import_mesh()
     // A dense organic scan has few coplanar neighbours to merge away and stays heavy afterwards;
     // warn rather than silently freezing the CAD kernel on every subsequent recompute.
     if (mesh.its.indices.size() > MESH_IMPORT_TRIANGLE_WARN) {
+        const int n_tris = int(mesh.its.indices.size());
         const wxString q = wxString::Format(
-            _L("This mesh has %d triangles. Every triangle becomes a B-rep face before coplanar "
-               "merging, so importing it may take a long time and leave a body that is slow to "
-               "edit. Decimating the mesh first is usually better.\n\nImport anyway?"),
-            int(mesh.its.indices.size()));
+            _L_PLURAL("This mesh has %d triangle. Every triangle becomes a B-rep face before coplanar "
+                      "merging, so importing it may take a long time and leave a body that is slow to "
+                      "edit. Decimating the mesh first is usually better.\n\nImport anyway?",
+                      "This mesh has %d triangles. Every triangle becomes a B-rep face before coplanar "
+                      "merging, so importing it may take a long time and leave a body that is slow to "
+                      "edit. Decimating the mesh first is usually better.\n\nImport anyway?", n_tris),
+            n_tris);
         MessageDialog dlg(this, q, _L("Large mesh"), wxYES_NO | wxICON_WARNING);
         if (dlg.ShowModal() != wxID_YES)
             return;
@@ -5080,7 +5089,7 @@ void DesignPanel::on_import_mesh()
     // source mesh the user needs to know about before they start cutting features into it.
     if (stats.is_solid) {
         set_status(StatusKind::Info, wxString::Format(
-            _L("Imported solid — %d triangles → %d faces, volume %.2f mm³. Pick a face or edge, "
+            _L("Imported solid — triangles: %d → faces: %d, volume %.2f mm³. Pick a face or edge, "
                "then Fillet / Cut / Shell to modify"),
             stats.kept_tris, stats.faces_final, stats.volume));
     } else {
@@ -5171,7 +5180,8 @@ void DesignPanel::open_insert_card(const wxString& base_name)
     update_cards_frame(); m_form->Layout();
     m_form->FitInside();
     update_action_bar();   // surface the unified ✓/✗
-    set_status(StatusKind::Info, base_name + _L(" — drag to place/size, then Confirm"));
+    // TRN Design tab status; %s is the inserted item, such as "Text" or "SVG".
+    set_status(StatusKind::Info, wxString::Format(_L("%s — drag to place/size, then Confirm"), base_name));
 }
 
 // Confirm: keep the placed art and leave the placement gizmo. The feature is already in
@@ -5255,7 +5265,7 @@ void DesignPanel::on_add_extrude()
 {
     BooleanMode mode = static_cast<BooleanMode>(m_mode->GetSelection());  // New/Add/Cut/Intersect
     m_feature_counter++;
-    const std::string name = feature_name(_L("Extrude"));
+    const std::string name = feature_name(_L_CONTEXT("Extrude", "Design"));
     int idx = -1;
     if (m_extrude_face_src >= 0) {
         // Onshape face-extrude: the picked solid face is the profile (no sketch wire).
@@ -5383,7 +5393,7 @@ void DesignPanel::on_add_hole()
 
     m_feature_counter++;
     const int hidx = m_doc.add_hole(dia, depth, through, px, py, plane,
-                                    feature_name(_L("Hole")));
+                                    feature_name(_L_CONTEXT("Hole", "Design")));
     // On-face holes drill the body the face belongs to (even after the pick was cleared).
     if (m_hole_on_face && hidx >= 0 && hidx < int(m_doc.features.size()))
         m_doc.features[hidx].target_body = m_hole_face_body;
@@ -5770,7 +5780,7 @@ void DesignPanel::on_add_mirror()
     const BooleanMode mode = m_mirror_keep->GetValue() ? BooleanMode::New : BooleanMode::Add;
     m_feature_counter++;
     m_doc.add_mirror(plane_from_choice(m_mirror_plane->GetSelection()), target, mode,
-                     feature_name(_L("Mirror")));
+                     feature_name(_L_CONTEXT("Mirror", "Design")));
     if (!recompute_guarded(_L("Rebuilding model…")))
         set_status(StatusKind::Error, wxString::Format(_L("The model could not be rebuilt: %s"), kernel_error_text(m_doc.error)));
     else
@@ -5817,7 +5827,7 @@ void DesignPanel::on_add_rib()
     }
     m_feature_counter++;
     m_doc.add_rib(sketch_ref, m_rib_entity->GetValue(), m_rib_thickness->GetValue(),
-                  m_rib_depth->GetValue(), target, feature_name(_L("Rib")));
+                  m_rib_depth->GetValue(), target, feature_name(_L_CONTEXT("Rib", "Design")));
     if (!recompute_guarded(_L("Rebuilding model…")))
         set_status(StatusKind::Error, wxString::Format(_L("The model could not be rebuilt: %s"), kernel_error_text(m_doc.error)));
     else
@@ -5837,7 +5847,7 @@ void DesignPanel::on_add_project()
     m_feature_counter++;
     m_doc.add_project_edges(src_body, {}, face,
                             plane_from_choice(m_proj_plane->GetSelection()),
-                            feature_name(_L("Project")));
+                            feature_name(_L_CONTEXT("Project", "Design")));
     if (!recompute_guarded(_L("Rebuilding model…")))
         set_status(StatusKind::Error, wxString::Format(_L("The model could not be rebuilt: %s"), kernel_error_text(m_doc.error)));
     else
@@ -6024,7 +6034,7 @@ void DesignPanel::on_add_pattern()
     m_doc.add_pattern(circular, int(m_pattern_count->GetValue()),
                       m_pattern_spacing->GetValue(), m_pattern_dir->GetSelection(),
                       m_pattern_angle->GetValue(), target,
-                      feature_name(_L("Pattern")));
+                      feature_name(_L_CONTEXT("Pattern", "Design")));
 
     if (!recompute_guarded(_L("Rebuilding model…")))
         set_status(StatusKind::Error, wxString::Format(_L("The model could not be rebuilt: %s"), kernel_error_text(m_doc.error)));
@@ -6126,7 +6136,7 @@ void DesignPanel::on_add_cut()
     m_feature_counter++;
     m_doc.add_cut(plane_from_choice(m_cut_plane->GetSelection()), m_cut_offset->GetValue(),
                   /*flip*/ false, /*keep_upper*/ true, /*keep_lower*/ true,
-                  m_cut_target->GetSelection(), feature_name(_L("Cut")));
+                  m_cut_target->GetSelection(), feature_name(_L_CONTEXT("Cut", "Design")));
     if (!recompute_guarded(_L("Rebuilding model…")))
         set_status(StatusKind::Error, wxString::Format(_L("The model could not be rebuilt: %s"), kernel_error_text(m_doc.error)));
     else
@@ -6429,7 +6439,8 @@ static wxString sketch_step_prompt(DesignSketchTool::Mode m, int step, int picks
     using Mode = DesignSketchTool::Mode;
     auto pick_more = [](const wxString& lead, int n) {
         return n <= 0 ? lead
-                      : lead + wxString::Format(_L("  ·  %d picked"), n);
+                      // TRN Appended to a sketch tool prompt; %d is the number of picked entities.
+                      : lead + wxString::Format(_L_PLURAL("  ·  %d picked", "  ·  %d picked", n), n);
     };
     switch (m) {
     case Mode::Select:
@@ -6442,8 +6453,10 @@ static wxString sketch_step_prompt(DesignSketchTool::Mode m, int step, int picks
                  "Shift-click adds  ·  Del removes");
     case Mode::Constrain:
         return picks > 0
-            ? wxString::Format(_L("%d picked  ·  now choose a constraint (Horizontal, Parallel, "
-                                  "Tangent, Equal…)"), picks)
+            ? wxString::Format(_L_PLURAL("%d picked  ·  now choose a constraint (Horizontal, Parallel, "
+                                         "Tangent, Equal…)",
+                                         "%d picked  ·  now choose a constraint (Horizontal, Parallel, "
+                                         "Tangent, Equal…)", picks), picks)
             : _L("Constrain — click one or two entities, then choose a constraint");
     case Mode::Dimension:
         return step == 0 ? _L("Dimension — click an entity, or the first of two points")
@@ -6544,8 +6557,10 @@ static wxString sketch_step_prompt(DesignSketchTool::Mode m, int step, int picks
             ? _L("Mirror — first click the LINE to mirror about (a construction line works)")
             : picks == 0
                 ? _L("Mirror — axis set  ·  now click the entities to mirror  ·  Esc cancels")
-                : wxString::Format(_L("Mirror — axis set  ·  %d to mirror  ·  click another to add or "
-                                      "remove it  ·  Enter applies"), picks);
+                : wxString::Format(_L_PLURAL("Mirror — axis set  ·  %d to mirror  ·  click another to add or "
+                                             "remove it  ·  Enter applies",
+                                             "Mirror — axis set  ·  %d to mirror  ·  click another to add or "
+                                             "remove it  ·  Enter applies", picks), picks);
     case Mode::Move:
         return step == 0 ? _L("Move — click the entities to move")
                          : pick_more(_L("Move — drag the handle, or click the number to type the "
@@ -6653,7 +6668,7 @@ wxString DesignPanel::offer_header(int kind) const
     case OfferSel::SkPoint:    return _L("Sketch point");
     case OfferSel::Sk2Ent: {
         const int n = m_viewport ? m_viewport->sketch_selection_count() : 0;
-        return wxString::Format(_L("%d sketch entities"), n);
+        return wxString::Format(_L_PLURAL("%d sketch entity", "%d sketch entities", n), n);
     }
     default:                   return wxString();
     }
@@ -6698,6 +6713,10 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
     // either way.
     auto tr = [](const char* s) {
         return wxGetTranslation(wxString::FromUTF8(s), SLIC3R_APP_KEY);
+    };
+    // Row and family names share words with other menus ("Modify", "Line"), hence the context.
+    auto tr_design = [](const char* s) {
+        return wxGetTranslation(wxString::FromUTF8(s), SLIC3R_APP_KEY, "Design");
     };
     auto label = [&](const OfferVerb& v) {
         wxString s = I18N::translate(v.name, "Design");
@@ -6753,7 +6772,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
                 } else {
                     offer_trace("row=%d %s DISABLED (%s)", row, kOfferRowNames[row],
                                 v->refusal ? v->refusal : "blocked");
-                    wxString s = tr(v->name);
+                    wxString s = I18N::translate(v->name, "Design");
                     if (v->refusal) s += wxString::FromUTF8("   —   ") + tr(v->refusal);
                     append_offer_item(&menu, id, s, *v)->Enable(false);
                     bound.push_back(nullptr);
@@ -6766,7 +6785,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
             menu.AppendSeparator();                     // between the flat items and the families
             flat_items = false;
         }
-        const wxString fam = tr(kOfferRowNames[row]);
+        const wxString fam = tr_design(kOfferRowNames[row]);
 
         if (live.empty()) {
             // DISABLED IN PLACE, with the reason. This is the row that makes the list worth
@@ -6820,7 +6839,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
                     if (it == groups.end()) {
                         auto* g = new wxMenu();
                         groups.emplace_back(v->family, g);
-                        sub->AppendSubMenu(g, tr(v->family));
+                        sub->AppendSubMenu(g, tr_design(v->family));
                         target = g;
                     } else {
                         target = it->second;
@@ -6828,7 +6847,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
                 }
                 if (!ok) {
                     offer_trace("row=%d %s ~ %s BLOCKED", row, kOfferRowNames[row], v->id);
-                    wxString s = tr(v->name);
+                    wxString s = I18N::translate(v->name, "Design");
                     if (v->refusal) s += wxString::FromUTF8("   —   ") + tr(v->refusal);
                     append_offer_item(target, base + int(bound.size()), s, *v)->Enable(false);
                     bound.push_back(nullptr);
@@ -6935,8 +6954,8 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
             if (i < 0 || i >= int(opts.size()) || !opts[i].viable) return;
             drop_ghost();         // the real bodies are about to become the ghost's pose
             m_doc.checkpoint();   // undo boundary: committing a mate from the offer
-            int idx = m_doc.add_mate(opts[i].kind, cs_a, cs_b, 0.0, 0.0, false,
-                                     "Mate" + std::to_string(++m_feature_counter));
+            ++m_feature_counter;
+            int idx = m_doc.add_mate(opts[i].kind, cs_a, cs_b, 0.0, 0.0, false, feature_name(_L("Mate")));
             if (idx < 0) {
                 set_status(StatusKind::Error, _L("Mate rejected"));
                 return;
@@ -7165,7 +7184,7 @@ bool DesignPanel::on_add_plane()
     m_feature_counter++;
     int idx = m_doc.add_plane(m_plane_base->GetSelection(), m_plane_offset->GetValue(),
                     m_plane_tilt->GetValue(), m_plane_tilt_axis->GetSelection(),
-                    feature_name(_L("Plane")));
+                    feature_name(_L_CONTEXT("Plane", "Design")));
     if (idx >= 0 && idx < int(m_doc.features.size())) apply_plane_refs(m_doc.features[idx]);
     m_doc.recompute();   // datum-only docs yield no body; that is expected/benign
     set_status(StatusKind::Info, _L("Plane added — pick it as a sketch plane"));
@@ -7206,7 +7225,7 @@ void DesignPanel::on_add_shell()
 
     m_feature_counter++;
     m_doc.add_shell(m_shell_thickness->GetValue(), face, m_sel_solid_body,
-                    feature_name(_L("Shell")));
+                    feature_name(_L_CONTEXT("Shell", "Design")));
 
     if (!recompute_guarded(_L("Rebuilding model…")))
         set_status(StatusKind::Error, wxString::Format(_L("The model could not be rebuilt: %s"), kernel_error_text(m_doc.error)));
@@ -9500,7 +9519,8 @@ void DesignPanel::request_value(const wxString& label, double def, double mn, do
     m_form->FitInside();
     m_value_input->SetFocus();
     m_value_input->SetSelection(-1, -1);   // select all so typing replaces the value
-    set_status(StatusKind::Info, label + _L(" — type a value, press Enter (or Confirm)"));
+    // TRN Design tab status; %s is the value being asked for, such as "Fillet radius".
+    set_status(StatusKind::Info, wxString::Format(_L("%s — type a value, press Enter (or Confirm)"), label));
 }
 
 void DesignPanel::confirm_value()
@@ -10228,19 +10248,19 @@ void DesignPanel::on_commit()
         for (size_t b = 0; b < m_disp_body_meshes.size(); ++b) {
             if (b < m_body_visible.size() && !m_body_visible[b]) continue;   // skip hidden
             if (m_disp_body_meshes[b].its.indices.empty()) continue;
-            parts.emplace_back(&m_disp_body_meshes[b], wxString::FromUTF8("Design Body " + std::to_string(b + 1)));
+            parts.emplace_back(&m_disp_body_meshes[b], wxString::Format(_L("Design Body %d"), int(b + 1)));
         }
         if (parts.empty()) {   // every body hidden — nothing to ship
             set_status(_L("All bodies hidden — show one before committing"));
             return;
         }
         if (m_commit_mode == CommitMode::Assembly && parts.size() > 1)
-            obj_list->load_mesh_object(parts, "Design Assembly");
+            obj_list->load_mesh_object(parts, _L("Design Assembly"));
         else
             for (const auto& [mesh, name] : parts)
                 obj_list->load_mesh_object(*mesh, name);
     } else {
-        obj_list->load_mesh_object(m_disp_pick_mesh, "Design Body");
+        obj_list->load_mesh_object(m_disp_pick_mesh, _L("Design Body"));
     }
 
     // Persist the editable parametric recipe alongside the committed meshes so the
@@ -11478,7 +11498,8 @@ void DesignPanel::refresh_preview()
 
     if (ok) {
         m_viewport->set_preview_mesh(mesh);
-        set_status(StatusKind::Ok, wxString::Format(_L("Preview — %zu triangles"), mesh.its.indices.size()));
+        const size_t n_tris = mesh.its.indices.size();
+        set_status(StatusKind::Ok, wxString::Format(_L_PLURAL("Preview — %zu triangle", "Preview — %zu triangles", unsigned(n_tris)), n_tris));
     } else {
         m_viewport->clear_preview();
         set_status(StatusKind::Error, wxString::Format(_L("Invalid: %s"), kernel_error_text(err)));
@@ -11789,13 +11810,13 @@ void DesignPanel::open_tool(Tool t)
     case Tool::Extrude: m_hdr_extrude->SetLabel(title(_L_CONTEXT("Extrude", "Design"))); break;
     case Tool::Dressup: m_hdr_dressup->SetLabel(title(
                             m_dressup_type->GetSelection() == 0 ? _L("Fillet") : _L("Chamfer"))); break;
-    case Tool::Hole:    m_hdr_hole->SetLabel(title(_L("Hole")));       break;
+    case Tool::Hole:    m_hdr_hole->SetLabel(title(_L_CONTEXT("Hole", "Design")));       break;
     case Tool::Thread:  m_hdr_thread->SetLabel(title(_L("Thread")));   break;
     case Tool::Shell:   m_hdr_shell->SetLabel(title(_L_CONTEXT("Shell", "Design")));     break;
     case Tool::Revolve: m_hdr_revolve->SetLabel(title(_L("Revolve"))); break;
     case Tool::Sweep:   m_hdr_sweep->SetLabel(title(_L("Sweep")));     break;
     case Tool::Pattern: m_hdr_pattern->SetLabel(title(_L_CONTEXT("Pattern", "Design"))); break;
-    case Tool::Plane:   m_hdr_plane->SetLabel(title(_L("Plane")));     break;
+    case Tool::Plane:   m_hdr_plane->SetLabel(title(_L_CONTEXT("Plane", "Design")));     break;
     case Tool::Loft:    m_hdr_loft->SetLabel(title(_L("Loft")));       break;
     case Tool::Draft:   m_hdr_draft->SetLabel(title(_L("Draft")));     break;
     case Tool::Boolean: m_hdr_boolean->SetLabel(title(_L("Boolean"))); break;
@@ -11809,7 +11830,7 @@ void DesignPanel::open_tool(Tool t)
     case Tool::SurfaceOffset:   m_hdr_surf_offset->SetLabel(title(_L("Surface Offset")));   break;
     case Tool::ThickenSurface:  m_hdr_surf_thicken->SetLabel(title(_L("Thicken Surface")));   break;
     case Tool::Transform:   m_hdr_transform->SetLabel(title(_L("Transform")));   break;
-    case Tool::Mirror:      m_hdr_mirror->SetLabel(title(_L("Mirror")));         break;
+    case Tool::Mirror:      m_hdr_mirror->SetLabel(title(_L_CONTEXT("Mirror", "Design")));         break;
     case Tool::Thicken:     m_hdr_thicken->SetLabel(title(_L("Thicken")));       break;
     case Tool::Rib:         m_hdr_rib->SetLabel(title(_L_CONTEXT("Rib", "Design")));               break;
     case Tool::Project:     m_hdr_project->SetLabel(title(_L_CONTEXT("Project", "Design")));       break;

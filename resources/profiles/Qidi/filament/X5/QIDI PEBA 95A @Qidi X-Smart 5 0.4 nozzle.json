@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "QIDI PEBA 95A @Qidi X-Smart 5 0.4 nozzle",
+	"inherits": "QIDI PEBA 95A@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "oR0Zr1X1Xj9ECdSV",
+	"instantiation": "true",
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"additional_cooling_fan_speed_unseal": [
+		"0"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.4 nozzle"
+	]
+}

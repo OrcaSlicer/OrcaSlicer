@@ -4,6 +4,7 @@
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
+#include "format.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Utils.hpp"
@@ -340,8 +341,9 @@ bool prepare_decompose_mixed_result(
         missing_comp.component_idx = out_result.components.size();
         missing_comp.official_component = official_component;
         missing_comp.preset_name = preset_name;
-        missing_comp.display_name = decompose_base_color_display(comp.base_color) +
-            wxString::FromUTF8(" ") + wxString::FromUTF8(basic_type);
+        // TRN %1% is a color name such as "Cyan", %2% is a filament type such as "PLA Basic"
+        missing_comp.display_name = format_wxstr(_L_CONTEXT("%1% %2%", "Color and filament type"),
+                                                 decompose_base_color_display(comp.base_color), wxString::FromUTF8(basic_type));
         missing.push_back(std::move(missing_comp));
         out_result.components.push_back(0);
     }
@@ -407,8 +409,11 @@ bool confirm_create_decompose_missing_components(wxWindow* parent, const std::ve
         missing_text += missing[i].display_name;
     }
 
-    wxString message = wxString::Format(_L("The current filament list does not contain %s. A project filament required by "
-                                           "the mixed filament will be created automatically after decomposition."),
+    wxString message = wxString::Format(_L_PLURAL("The current filament list does not contain %s. A project filament required by "
+                                                  "the mixed filament will be created automatically after decomposition.",
+                                                  "The current filament list does not contain %s. Project filaments required by "
+                                                  "the mixed filament will be created automatically after decomposition.",
+                                                  missing.size()),
                                         missing_text);
 
     MessageDialog dlg(parent, message, _L("Tip"), wxOK | wxCANCEL | wxICON_INFORMATION);
