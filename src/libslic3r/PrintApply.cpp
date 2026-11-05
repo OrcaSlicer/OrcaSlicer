@@ -813,6 +813,38 @@ PrintObjectRegions::BoundingBox find_modifier_volume_extents(const PrintObjectRe
 
 PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &default_or_parent_region_config, const DynamicPrintConfig *layer_range_config, const ModelVolume &volume, size_t num_extruders, std::vector<int>& variant_index);
 
+// Whether the sparse infill filament of a region was chosen explicitly (> 0) rather than left at "Default".
+// The resolved region config cannot tell: it clamps "Default" to filament 1. This follows the override precedence of
+// region_config_from_model_volume(): print default, object, part, material, layer range; "Default" (0) clears an
+// earlier choice. A modifier inherits the choice of its parent region unless it sets its own.
+static bool has_explicit_sparse_infill_filament(const PrintObjectRegions::LayerRangeRegions &layer_range, int region_id,
+                                               const PrintRegionConfig &default_region_config)
+{
+    static constexpr const char *key = "sparse_infill_filament_id";
+    while (region_id >= 0) {
+        const PrintObjectRegions::VolumeRegion &region = layer_range.volume_regions[region_id];
+        const ModelVolume &volume = *region.model_volume;
+        if (volume.is_model_part()) {
+            bool explicit_choice = default_region_config.sparse_infill_filament_id.value > 0;
+            const auto apply = [&explicit_choice](const DynamicPrintConfig *config) {
+                if (config != nullptr)
+                    if (const auto *choice = config->opt<ConfigOptionInt>(key))
+                        explicit_choice = choice->value > 0;
+            };
+            apply(&volume.get_object()->config.get());
+            apply(&volume.config.get());
+            if (! volume.material_id().empty())
+                apply(&volume.material()->config.get());
+            apply(layer_range.config);
+            return explicit_choice;
+        }
+        if (const auto *choice = volume.config.get().opt<ConfigOptionInt>(key))
+            return choice->value > 0;
+        region_id = region.parent;
+    }
+    return false;
+}
+
 void print_region_ref_inc(PrintRegion &r) { ++ r.m_ref_cnt; }
 void print_region_ref_reset(PrintRegion &r) { r.m_ref_cnt = 0; }
 int  print_region_ref_cnt(const PrintRegion &r) { return r.m_ref_cnt; }
@@ -908,7 +940,9 @@ bool verify_update_print_object_regions(
             cfg.internal_solid_filament_id.value = region.extruder_id;
             cfg.top_surface_filament_id.value = region.extruder_id;
             cfg.bottom_surface_filament_id.value = region.extruder_id;
-            cfg.sparse_infill_filament_id.value       = region.extruder_id;
+            // An explicitly chosen sparse infill filament is kept; painting then only colors the surfaces.
+            if (! has_explicit_sparse_infill_filament(layer_range, region.parent, default_region_config))
+                cfg.sparse_infill_filament_id.value = region.extruder_id;
             if (cfg != region.region->config()) {
                 // Region configuration changed.
                 if (print_region_ref_cnt(*region.region) == 0) {
@@ -1225,7 +1259,8 @@ static PrintObjectRegions* generate_print_object_regions(
                     cfg.internal_solid_filament_id.value = painted_extruder_id;
                     cfg.top_surface_filament_id.value = painted_extruder_id;
                     cfg.bottom_surface_filament_id.value = painted_extruder_id;
-                    cfg.sparse_infill_filament_id.value       = painted_extruder_id;
+                    if (! has_explicit_sparse_infill_filament(layer_range, parent_region_id, default_region_config))
+                        cfg.sparse_infill_filament_id.value = painted_extruder_id;
                     layer_range.painted_regions.push_back({ painted_extruder_id, parent_region_id, get_create_region(std::move(cfg))});
                 }
         // Sort the regions by parent region::print_object_region_id() and extruder_id to help the slicing algorithm when applying MM segmentation.
