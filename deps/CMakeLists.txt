@@ -372,7 +372,9 @@ if (WIN32 OR APPLE)
     include(EXPAT/EXPAT.cmake)
     set(EXPAT_PKG dep_EXPAT)
 else ()
-    find_package(EXPAT 2.4.0)
+    # Anything older than the pinned version is built by the EXPAT dep, so every
+    # platform links the same parser.
+    find_package(EXPAT 2.10.0)
     if (NOT EXPAT_FOUND)
         include(EXPAT/EXPAT.cmake)
         set(EXPAT_PKG dep_EXPAT)
