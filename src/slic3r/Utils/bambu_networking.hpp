@@ -428,8 +428,11 @@ struct NetworkLibraryVersion {
 // host-side ABI for it. Series with no generation - 02.08.01 (whose PrintParams lacks the
 // queue_plate_id that 02.08.02 appended, and whose malformed bind table macOS 27 refuses to
 // load), 02.01.01, 02.00.02 and older - must stay out; is_supported_network_version() is the
-// gate that keeps them from loading.
+// gate that keeps them from loading. 02.09.01 is append-only over 02.08.04 (minors query and
+// error codes only, no struct layout change), so it shares the Current generation;
+// 02.08.04 stays the download/update default until the shipped plug-in moves with it.
 static const NetworkLibraryVersion AVAILABLE_NETWORK_VERSIONS[] = {
+    {"02.09.01", "02.09.01", nullptr, false, nullptr, NetworkAbi::Current},
     {"02.08.04", "02.08.04", nullptr, true, nullptr, NetworkAbi::Current},
     {"02.07.01", "02.07.01", nullptr, false, nullptr, NetworkAbi::Current},
     {"02.03.00", "02.03.00", nullptr, false,

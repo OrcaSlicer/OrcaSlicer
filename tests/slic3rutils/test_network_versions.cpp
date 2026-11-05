@@ -99,30 +99,34 @@ TEST_CASE_METHOD(PluginFolderFixture, "Managed builds fold into the series; cust
 
     // Newest series first, its customs nested under it (suffix sort: "" < ".52-dev" < "_custom"),
     // then older series (02.07.01 exists as its own whitelisted row), legacy last.
-    REQUIRE(versions[0].version == "02.08.04");
-    REQUIRE(versions[1].version == "02.08.04.52-dev");
-    REQUIRE(versions[2].version == "02.08.04_custom");
-    REQUIRE(versions[3].version == "02.07.01");
-    REQUIRE(versions[4].version == "02.03.00");
+    REQUIRE(versions[0].version == "02.09.01");
+    REQUIRE(versions[1].version == "02.08.04");
+    REQUIRE(versions[2].version == "02.08.04.52-dev");
+    REQUIRE(versions[3].version == "02.08.04_custom");
+    REQUIRE(versions[4].version == "02.07.01");
+    REQUIRE(versions[5].version == "02.03.00");
     REQUIRE(versions.back().version == BAMBU_NETWORK_AGENT_VERSION_LEGACY);
 
     // An older whitelisted series is a flat row of its own, and never holds "(Latest)".
-    REQUIRE(versions[4].suffix.empty());
-    REQUIRE_FALSE(versions[4].is_latest);
+    REQUIRE(versions[5].suffix.empty());
+    REQUIRE_FALSE(versions[5].is_latest);
 
     // Customs sort/render nested under their series (non-empty suffix, base = the series).
-    REQUIRE(versions[1].base_version == "02.08.04");
-    REQUIRE_FALSE(versions[1].suffix.empty());
     REQUIRE(versions[2].base_version == "02.08.04");
     REQUIRE_FALSE(versions[2].suffix.empty());
+    REQUIRE(versions[3].base_version == "02.08.04");
+    REQUIRE_FALSE(versions[3].suffix.empty());
 
-    // "(Latest)" is the series row, never a nested custom build.
+    // "(Latest)" is the newest series row, never a nested custom build, and it sits on
+    // 02.09.01 even though the download default below has not moved yet.
     REQUIRE(versions[0].suffix.empty());
     REQUIRE(versions[0].is_latest);
     REQUIRE_FALSE(versions[1].is_latest);
     REQUIRE_FALSE(versions[2].is_latest);
+    REQUIRE_FALSE(versions[3].is_latest);
 
-    // The stored default that drives download and update-check decisions is now the series.
+    // The stored default that drives download and update-check decisions stays the shipped
+    // plug-in series (02.08.04) until the shipped default moves to 02.09.01.
     REQUIRE(std::string(get_latest_network_version()) == "02.08.04");
 }
 
@@ -167,6 +171,10 @@ TEST_CASE_METHOD(PluginFolderFixture, "Only the loaded series is marked installe
 TEST_CASE("Only whitelisted series pass the load gate", "[NetworkVersions]")
 {
     // Each whitelisted series, its builds, and custom-named builds of that series.
+    REQUIRE(is_supported_network_version("02.09.01"));
+    REQUIRE(is_supported_network_version("02.09.01.55"));
+    REQUIRE(is_supported_network_version("02.09.01.70"));
+    REQUIRE(is_supported_network_version("02.09.01_custom"));
     REQUIRE(is_supported_network_version("02.08.04"));
     REQUIRE(is_supported_network_version("02.08.04.52"));
     REQUIRE(is_supported_network_version("02.08.04.60"));
@@ -208,6 +216,9 @@ TEST_CASE("Each version resolves to the ABI generation that can call it", "[Netw
 {
     // The generation is keyed on the series, so every build of a series - including the
     // custom-named ones - resolves to the same one.
+    CHECK(network_plugin_abi("02.09.01")        == NetworkAbi::Current);
+    CHECK(network_plugin_abi("02.09.01.70")     == NetworkAbi::Current);
+    CHECK(network_plugin_abi("02.09.01_custom") == NetworkAbi::Current);
     CHECK(network_plugin_abi("02.08.04")        == NetworkAbi::Current);
     CHECK(network_plugin_abi("02.08.04.60")     == NetworkAbi::Current);
     CHECK(network_plugin_abi("02.08.04.52-dev") == NetworkAbi::Current);
@@ -244,10 +255,10 @@ TEST_CASE_METHOD(PluginFolderFixture, "Legacy series never adopts discovered bui
     REQUIRE(count_version(versions, legacy_sibling) == 0);
     REQUIRE(count_version(versions, legacy) == 1);
 
-    // With nothing else on disk, the series holds "(Latest)" even though its library is
-    // not installed.
+    // With nothing else on disk, the newest series row holds "(Latest)" even though its
+    // library is not installed.
     for (const auto& info : versions) {
-        if (info.version == "02.08.04") {
+        if (info.version == "02.09.01") {
             REQUIRE(info.is_latest);
             REQUIRE_FALSE(info.is_loaded);
         }
