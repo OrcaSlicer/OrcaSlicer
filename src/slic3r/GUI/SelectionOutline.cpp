@@ -8,6 +8,7 @@
 #include "GUI_App.hpp"
 #include "OpenGLManager.hpp"
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Color.hpp"
 #include "libslic3r/Point.hpp"
 
@@ -34,14 +35,17 @@ static constexpr float LINE_OPACITY    = 0.75f;
 // The farthest the outline shaders search.
 static constexpr int MAX_REACH = 15;
 
-static const ColorRGB OUTLINE_COLOR = ColorRGB::WHITE();
-
 void SelectionOutline::render(const std::vector<GLVolume*>& volumes, const Camera& camera, const std::array<float, 2>& z_range,
                               const std::array<double, 4>& clipping_plane, float scale, GLModel& quad)
 {
     // The targets take 16 bytes a pixel, so they are kept only while something is outlined.
     if (volumes.empty()) {
         reset();
+        return;
+    }
+    ColorRGB outline_color;
+    if (!decode_color(wxGetApp().app_config->get(SETTING_OPENGL_OUTLINE_COLOR), outline_color)) {
+        BOOST_LOG_TRIVIAL(error) << "Invalid configured outline color";
         return;
     }
     if (OpenGLManager::get_framebuffers_type() != OpenGLManager::EFramebufferType::Arb)
@@ -199,7 +203,7 @@ void SelectionOutline::render(const std::vector<GLVolume*>& volumes, const Camer
     shader->set_uniform("line_width", std::array<float, 3>{ LINE_HALF_WIDTH_PX[0] * scale, line_width, LINE_HALF_WIDTH_MM });
     shader->set_uniform("line_reach", line_reach);
     shader->set_uniform("line_opacity", LINE_OPACITY);
-    shader->set_uniform("outline_color", OUTLINE_COLOR);
+    shader->set_uniform("outline_color", outline_color);
     shader->set_uniform("depth_coef", std::array<float, 4>{ float(projection(2, 2)), float(projection(2, 3)),
                                                             float(projection(3, 2)), float(projection(3, 3)) });
     shader->set_uniform("pixel_size_coef", pixel_size_coef);

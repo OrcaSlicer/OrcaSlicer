@@ -48,6 +48,8 @@
 #define SETTING_OPENGL_PHONG_SMOOTH_NORMALS "opengl_phong_smooth_normals"
 #define SETTING_OPENGL_REALISTIC_PREVIEW "opengl_realistic_preview"
 #define SETTING_OPENGL_REALISTIC_GLOSS "opengl_realistic_gloss"
+#define SETTING_OPENGL_OUTLINE_PERSISTENT "opengl_outline_persistent"
+#define SETTING_OPENGL_OUTLINE_COLOR "opengl_outline_color"
 
 #define SETTING_PLUGIN_PAGES_VISIBLE_COUNT "plugin_pages_visible_count"
 #define PLUGIN_PAGES_VISIBLE_COUNT_MIN 1

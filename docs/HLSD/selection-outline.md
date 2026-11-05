@@ -8,13 +8,20 @@ between faces, the contours where one part of the selection hides another, and t
 neighboring parts. It is a view setting. It changes nothing in the model or the project, and it reaches
 neither the picking pass nor thumbnails.
 
-`SelectionOutline` draws it once per frame for the whole selection, after the object passes of
-`GLCanvas3D::_render_scene()`. Its cost depends on the screen area of the selection, not on its triangle
-count, apart from one extra draw of the selected volumes.
+Preferences > Graphics > Outline provides a Persistent option, off by default, which outlines all
+visible, active volumes except the wipe tower even without selection. It operates independently of
+the Outline view option, which continues to control selection-only outlining when persistence is off.
+Both modes use the same configurable color, white by default. These application preferences are saved
+immediately and redraw the current canvas when Preferences closes; they do not require a restart.
+
+`SelectionOutline` draws it once per frame for all collected volumes, after the object passes of
+`GLCanvas3D::_render_scene()`. Its cost depends on their screen area, not on their triangle
+count, apart from one extra draw of the outlined volumes.
 
 ## Passes
 
-`GLVolumeCollection::render()` collects the selected volumes it draws, when the canvas passes it a list,
+`GLVolumeCollection::render()` collects the selected volumes it draws (all eligible volumes in persistent
+mode), when the canvas passes it a list,
 and sets bit `SelectionOutline::StencilBit` of the canvas stencil wherever one of them passes the depth
 test. The stencil is cleared with the depth buffer at the start of the frame. `SelectionOutline::render()`
 then runs three passes, restricted by the scissor to the screen box of the selection, padded by how far
@@ -87,7 +94,8 @@ marks.
 
 ## Colors and sizes
 
-The outline is white. Its lines have a width on the model, 0.35 mm for the ring and 0.18 mm for the inner
+The outline uses the solid RGB color selected in Preferences, without theme remapping. Its lines have a
+width on the model, 0.35 mm for the ring and 0.18 mm for the inner
 lines, so they grow as the camera closes in, kept between 2.5 and 5 pixels for the ring and 1.2 and 2.4 for
 the inner lines, scaled by the canvas scale. An inner line that would be thinner than 1.2 pixels fades
 instead, down to 40%, so that a far selection does not turn into lines. Inner lines are drawn at 75%

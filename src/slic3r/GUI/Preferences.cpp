@@ -1,5 +1,6 @@
 #include "Preferences.hpp"
 #include "CloudProvider.hpp"
+#include "ColorPickerDialog.hpp"
 #include "OptionsGroup.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
@@ -9,6 +10,7 @@
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Color.hpp"
 #include "libslic3r/Format/DRC.hpp"
 #include <wx/gdicmn.h>
 #include <wx/arrstr.h>
@@ -20,6 +22,8 @@
 #include <tuple>
 #include <string>
 #include <vector>
+#include <variant>
+#include <optional>
 #include <functional>
 #include <cstdlib>
 #include <cassert>
@@ -2214,6 +2218,40 @@ void PreferencesDialog::create_items()
         SETTING_OPENGL_REALISTIC_GLOSS
     );
     g_sizer->Add(item_realistic_gloss);
+
+    //// GRAPHICS > Outline
+    g_sizer->Add(create_item_title(_L("Outline")), 1, wxEXPAND);
+
+    g_sizer->Add(create_item_checkbox(
+        _L("Persistent"),
+        _L("Always outlines visible objects, even when they are not selected.\n"
+           "Independent of the Outline view option for selected objects."),
+        SETTING_OPENGL_OUTLINE_PERSISTENT));
+
+    const wxString outline_color_tooltip = _L("Choose the color of the object outlines.");
+    auto outline_color_sizer = create_item_label(_L("Color"), outline_color_tooltip);
+    auto outline_color_button = new Button(m_parent, from_u8(app_config->get(SETTING_OPENGL_OUTLINE_COLOR)));
+    outline_color_button->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+    outline_color_button->SetToolTip(outline_color_tooltip);
+    outline_color_button->Bind(wxEVT_BUTTON, [this, outline_color_button, outline_color_sizer](wxCommandEvent& event) {
+        event.Skip();
+        ColorRGBA initial;
+        if (!decode_color(app_config->get(SETTING_OPENGL_OUTLINE_COLOR), initial)) {
+            show_error(this, _L("The configured outline color is invalid."));
+            return;
+        }
+        ColorPickerDialog dialog(this, initial, {}, false, outline_color_button);
+        if (dialog.ShowModal() == wxID_OK && dialog.selection()) {
+            const ColorRGBA& color = std::get<ColorRGBA>(*dialog.selection());
+            const std::string value = encode_color(ColorRGB(color.r(), color.g(), color.b()));
+            app_config->set(SETTING_OPENGL_OUTLINE_COLOR, value);
+            app_config->save();
+            outline_color_button->SetLabel(from_u8(value));
+            outline_color_sizer->Layout();
+        }
+    });
+    outline_color_sizer->Add(outline_color_button, 0, wxALIGN_CENTER_VERTICAL);
+    g_sizer->Add(outline_color_sizer);
 
     //// GRAPHICS > Anti-aliasing
     g_sizer->Add(create_item_title(_L("Anti-aliasing")), 1, wxEXPAND);

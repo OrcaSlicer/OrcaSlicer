@@ -9762,7 +9762,9 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
         if (static_light.has_value())
             shader->set_uniform("static_light_dir", *static_light);
 
-        std::vector<GLVolume*>* outlined_volumes = wxGetApp().show_outline() ? &m_outlined_volumes : nullptr;
+        std::vector<GLVolume*>* outlined_volumes =
+            (wxGetApp().show_outline() || wxGetApp().app_config->get_bool(SETTING_OPENGL_OUTLINE_PERSISTENT)) ?
+                &m_outlined_volumes : nullptr;
         switch (type)
         {
         default:
