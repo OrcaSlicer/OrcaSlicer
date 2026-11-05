@@ -1059,6 +1059,7 @@ public:
     std::set<std::string> hover_variable_names(const std::set<std::string>& known) const;
 private:
     std::string dim_text(const DimAnnot& a) const;                          // rendered label string
+    double px_unit(const Camera& cam) const;   // world units per screen pixel on the sketch plane
     void render_dimensions(double unit_per_px);                            // quote lines + labels
     void render_dim_draft(double unit_per_px);
     // Draw ONE dimension's quote (extension/dimension lines, arrowheads, label) and
@@ -1183,11 +1184,10 @@ private:
     int region_at(const Vec2d& p) const;
 
     void draw_quad_strip(GLModel& model, const std::vector<Vec2d>& pts, bool closed, const ColorRGBA& color);
-    // half_size is the square marker half-extent in PLANE units. Callers pass a
-    // zoom-scaled value (k / zoom) for screen-constant handles; the default keeps
-    // legacy point markers exactly as before.
+    // half_size is the square marker half-extent in PLANE units; callers pass N * px_unit() for a handle of N px. <= 0 (the default)
+    // is a ~3.5 px marker.
     void draw_vertices(GLModel& model, const std::vector<Vec2d>& pts, const ColorRGBA& color,
-                       double half_size = 1.3);
+                       double half_size = -1.0);
     void draw_fill(GLModel& model, const std::vector<Vec2d>& poly, const ColorRGBA& color);
     // Same, with the region's holes cut out, so a selected plate-with-a-hole is drawn as an
     // ANNULUS instead of a filled rectangle painted straight across its own bore.
