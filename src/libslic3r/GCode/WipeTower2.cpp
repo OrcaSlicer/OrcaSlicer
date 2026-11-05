@@ -1714,8 +1714,9 @@ void WipeTower2::toolchange_Unload(
             cleaning_box.ld.y() + m_depth_traversed + wipe_start_offset_after_ram(0.f, is_first_layer()) + m_perimeter_width));
     }
 
+    // Sync even on Klipper: [change_filament_gcode] and Tn must not run while the unload is still queued.
     writer.resume_preview()
-          .flush_planner_queue();
+          .append(flush_planner_queue_command(m_gcode_flavor));
 }
 
 // Change the tool, set a speed override for soluble and flex materials.
