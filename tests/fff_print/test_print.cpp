@@ -1299,8 +1299,12 @@ TEST_CASE("Sequential printing keeps rotated copies of one object in their list 
     // Copies of one object that differ in rotation get one PrintObject each, and print.objects() lists
     // those groups by transformation. Ordering by the object index alone therefore follows that
     // grouping instead of the object list, and every second copy here prints out of place.
+    // The mesh is centred on the object origin, so the rotation turns the footprint in place instead
+    // of moving it, and the grid spacing below stays clear of the clearance radius.
+    TriangleMesh cube = make_cube(5, 5, 2);
+    cube.translate(-2.5f, -2.5f, 0.f);
     std::vector<TriangleMesh> meshes;
-    meshes.push_back(make_cube(5, 5, 2));
+    meshes.push_back(std::move(cube));
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
         { "print_sequence",     "by object" },
