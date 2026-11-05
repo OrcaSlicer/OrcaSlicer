@@ -16,10 +16,6 @@
 
 #include "slic3r/GUI/Widgets/StateHandler.hpp"
 
-#ifdef __WXGTK__
-#include <gtk/gtk.h>
-#endif
-
 class wxDC;
 class wxWindow;
 
@@ -62,8 +58,8 @@ public:
 
 private:
     void PickDC(wxDC& dc);
-#ifdef __WXGTK__
-    static gboolean GtkDrawCallback(GtkWidget* widget, cairo_t* cr, gpointer data);
+#ifdef __WXGTK3__
+    void UpdateGtkPadding();
 #endif
 
 protected:
