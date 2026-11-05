@@ -509,6 +509,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/SceneRaycaster.hpp
     GUI/SceneCache.cpp
     GUI/SceneCache.hpp
+    GUI/SelectionOutline.cpp
+    GUI/SelectionOutline.hpp
     GUI/FrameProfiler.cpp
     GUI/FrameProfiler.hpp
     GUI/SceneBenchmark.cpp
