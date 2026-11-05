@@ -182,6 +182,13 @@ static bool is_network_category(AuditEventCategory category)
     return category == AuditEventCategory::Http || category == AuditEventCategory::Socket;
 }
 
+// Create and delete have no persistent grant list. Off the main thread they are denied outright and
+// reported with an informational dialog rather than a Yes/No prompt that could not grant anything.
+static bool is_create_delete_category(AuditEventCategory category)
+{
+    return category == AuditEventCategory::FsCreate || category == AuditEventCategory::FsDelete;
+}
+
 // ---------------------------------------------------------------------------
 // Network permission identity
 // ---------------------------------------------------------------------------
@@ -1474,9 +1481,10 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
         return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to read/write the following file:\n%s",
                                           "Plugin \"%s\" is requesting to read/write the following files:\n%s", target_count),
                                 plugin_name, target_list);
-    // Creating and deleting have no persistent grant list, so the prompt says outright that a
-    // Yes covers this operation only. The sentence is part of each msgid rather than appended:
-    // a translator must be able to reorder it inside the message.
+    // Creating and deleting have no persistent grant list, so the inline prompt says a Yes covers
+    // this operation only. Off the main thread they use the informational denial instead. The
+    // sentence is part of each msgid rather than appended: a translator must be able to reorder
+    // it inside the message.
     case AuditEventCategory::FsCreate:
         return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to create the following file:\n%s\n\n"
                                           "This approval applies only to this operation and is not remembered.",
@@ -1552,6 +1560,52 @@ bool prompt_for_permission_message(const PermissionMessage& message)
     return show_permission_dialog(message, _L("Plugin permissions"));
 }
 
+// Builds the informational message shown when an off-main-thread create/delete event is denied.
+// There is no Yes/No choice: that path cannot grant create/delete permission, so the dialog must
+// not imply that approving it would make a later attempt succeed.
+wxString permission_denied_message(AuditEventCategory category, const wxString& plugin_name,
+                                   const wxString& target_list, size_t target_count)
+{
+    if (target_list.IsEmpty())
+        return wxString::Format(
+            _L("Plugin \"%s\" tried to perform a file operation that requires permission.\n\n"
+               "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it."),
+            plugin_name);
+
+    switch (category) {
+    case AuditEventCategory::FsCreate:
+        return wxString::Format(_L_PLURAL("Plugin \"%s\" tried to create the following file:\n%s\n\n"
+                                          "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it.",
+                                          "Plugin \"%s\" tried to create the following files:\n%s\n\n"
+                                          "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it.", target_count),
+                                plugin_name, target_list);
+    case AuditEventCategory::FsDelete:
+        return wxString::Format(_L_PLURAL("Plugin \"%s\" tried to delete the following file:\n%s\n\n"
+                                          "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it.",
+                                          "Plugin \"%s\" tried to delete the following files:\n%s\n\n"
+                                          "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it.", target_count),
+                                plugin_name, target_list);
+    default:
+        return wxString::Format(_L("Plugin \"%s\" tried to perform a file operation that requires permission.\n\n"
+                                   "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it."),
+                                plugin_name);
+    }
+}
+
+// Shows the informational denial for a create/delete event whose prompt had to be handled off the
+// main thread. Must run on the GUI thread.
+void show_permission_denied_dialog(AuditEventCategory category, const std::string& plugin_name,
+                                   const std::vector<std::string>& targets)
+{
+    wxString target_list;
+    for (const auto& target : targets)
+        target_list += wxString::FromUTF8(target.c_str()) + "\n";
+
+    const wxString message = permission_denied_message(category, wxString::FromUTF8(plugin_name.c_str()),
+                                                       target_list, targets.size());
+    GUI::MessageDialog(nullptr, message, _L("Plugin operation denied"), wxOK | wxICON_WARNING).ShowModal();
+}
+
 // Records a grant in the plugin's sidecar so it is not asked again. Each persist helper re-reads
 // the sidecar under the shared lock, because the async prompt outlives the caller's copy of it.
 // Returns true when at least one write succeeded, and only then notifies an existing Plugins
@@ -1605,6 +1659,10 @@ static const char* audit_category_name(AuditEventCategory category)
 // is therefore posted asynchronously and the current event denied (fail closed, like an unanswered
 // prompt); the grant is persisted once the user accepts, so a later attempt succeeds without
 // re-prompting.
+//
+// Create and delete are the exception: they have no persistent grant to save, so an off-main-
+// thread request is denied and only an informational denial is shown. Showing a Yes/No prompt
+// would falsely imply that accepting it could authorize the operation or a later retry.
 bool request_permission(AuditEventCategory category, const std::string& plugin_key, const std::string& plugin_name,
                         const std::string& event_name, bool by_event, const std::vector<std::string>& keys)
 {
@@ -1629,6 +1687,15 @@ bool request_permission(AuditEventCategory category, const std::string& plugin_k
     if (wxIsMainThread())
         return prompt_for_targets(category, plugin_name, event_name, shown);
 
+    if (is_create_delete_category(category)) {
+        GUI::wxGetApp().CallAfter([category, plugin_name, shown]() {
+            if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
+                return;
+            show_permission_denied_dialog(category, plugin_name, shown);
+        });
+        return false;
+    }
+
     GUI::wxGetApp().CallAfter([category, plugin_key, plugin_name, event_name, by_event, keys, shown]() {
         if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
             return;
@@ -1639,7 +1706,8 @@ bool request_permission(AuditEventCategory category, const std::string& plugin_k
 }
 
 // Decides an event that no allowed root or running operation covers: a saved grant allows it,
-// otherwise the user is asked and a Yes is saved.
+// otherwise the user is asked. A Yes is saved when the category has a persistent grant list;
+// create/delete has none and off the main thread only reports the denial.
 int decide_audited_event(PluginAuditManager&             mgr,
                          PluginInstallState&              state,
                          const std::string&                plugin_key,

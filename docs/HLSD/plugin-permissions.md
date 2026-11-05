@@ -33,11 +33,14 @@ Permissions are stored per plugin key. A plugin can hold:
 | `full_access` | boolean | Turns off the permission decision for the plugin. See "Full access". |
 
 Filesystem create and delete events (`os.mkdir`, `os.symlink`, `tempfile.mkstemp`,
-`os.remove`, `shutil.rmtree`, and similar) are audited and prompted for, but they have no
-persistent grant list. A `fs_read` or `fs_readwrite` grant does not cover them, because a
-write grant governs modifying an existing path, not creating or removing one. Without full
-access, each such event outside an allowed root is prompted again: a Yes applies only to
-the operation that raised it and is not saved to `fs_read`, `fs_readwrite`, or `events`.
+`os.remove`, `shutil.rmtree`, and similar) are audited, but they have no persistent grant
+list. A `fs_read` or `fs_readwrite` grant does not cover them, because a write grant governs
+modifying an existing path, not creating or removing one. Without full access, each such
+event outside an allowed root is prompted only when it can be answered inline. On the wx
+main thread a Yes applies only to the operation that raised it and is not saved. Off the
+main thread the event is denied immediately and an informational denial is shown instead;
+there is no Yes/No prompt, no saved grant, and no promise that a later attempt will be
+approved.
 
 ### Target matching
 
@@ -130,16 +133,17 @@ sidecar show the absolute scope it covers.
 
 ### Runtime prompts
 
-An event that is not covered by a saved grant or an implicit rule is prompted with the
-targets it reports. If the caller is on the wx main thread, the modal runs inline. If it
-is not, as on the Script workflow, the plugin-load worker, or the slicing worker, the
-prompt is posted to the main thread with `CallAfter` and the current event is denied. If
-the user accepts and the category supports persistent grants, the grant is saved and a
-later matching attempt can succeed without another prompt. A create or delete acceptance
-is not saved: it applies only to the operation that raised the event, and the next create
-or delete prompts again.
-Blocking a worker on a marshalled modal is avoided because the UI thread can itself be
-parked on the slicing worker.
+An event that is not covered by a saved grant or an implicit rule is either put to the
+user or denied. If the caller is on the wx main thread, the modal runs inline. If it is
+not, as on the Script workflow, the plugin-load worker, or the slicing worker, the current
+event is denied and the outcome is reported asynchronously. For a category with a persistent
+grant list, a Yes/No prompt is posted to the main thread with `CallAfter`; if the user
+accepts, the grant is saved and a later matching attempt can succeed without another prompt.
+Create and delete do not support persistent grants: on the main thread they use the inline
+prompt described above, while off the main thread they are denied and only an informational
+denial is posted. That path offers no Yes/No choice and does not claim that the operation can
+be approved on a retry. Blocking a worker on a marshalled modal is avoided because the UI
+thread can itself be parked on the slicing worker.
 
 Runtime approvals store the target observed by the audit hook. A URL with a path, port or
 query is therefore an exact grant; a bare host remains usable for raw sockets. The
@@ -281,7 +285,9 @@ never treated as an opt-out.
   be re-entered as an absolute path to take effect.
 - **An off-main-thread prompt denies the current event.** A persistable grant is saved
   only if the user later accepts, so the first attempt from a worker fails with
-  `PermissionError`.
+  `PermissionError`. Create and delete have no persistable grant and no retryable approval:
+  off the main thread they are denied and only an informational denial is shown, while the
+  inline main-thread prompt covers only the operation that raised it.
 - **A running root operation is not re-evaluated.** Revoking full access or changing a
   grant affects later top-level operations, not an operation whose root frame already
   recorded coverage.

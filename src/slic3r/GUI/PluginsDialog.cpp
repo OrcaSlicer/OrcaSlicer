@@ -724,7 +724,7 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"permissions_process", _u8L("Processes")},
         {"permissions_threading", _u8L("Threading")},
         {"permissions_events", _u8L_CONTEXT("Events", "Permission category")},
-        {"permissions_filesystem_help", _u8L("Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. These read and read/write grants do not cover creating or deleting files: each such operation asks for approval separately and the answer is not remembered.")},
+        {"permissions_filesystem_help", _u8L("Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. These read and read/write grants do not cover creating or deleting files: each such operation needs its own approval, and that approval is never saved. If the operation cannot be approved in time, it is denied.")},
 #ifdef _WIN32
         {"permissions_filesystem_placeholder", _u8L("C:\\path\\to\\directory\\*")},
 #else
