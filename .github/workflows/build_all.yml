@@ -93,14 +93,17 @@ jobs:
       # Windows PowerShell rather than pwsh: the suite drives build_win.bat
       # through cmd, and the two differ in how they quote native arguments.
       - name: Run the build script test suite
+        timeout-minutes: 15
         shell: powershell
         run: .\scripts\test_build_win.ps1
 
       - name: Run the exception throw info check tests
+        timeout-minutes: 5
         shell: powershell
         run: .\scripts\test_check_exception_throw_info.ps1
 
       - name: Run the preset prune tests
+        timeout-minutes: 5
         shell: powershell
         run: .\scripts\test_prune_cached_presets.ps1
 
