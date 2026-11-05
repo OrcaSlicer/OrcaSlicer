@@ -373,7 +373,8 @@ TEST_CASE("The tower is sized for the thinnest layer any object on the plate is 
 // 5 mm, thinning to 0.1 mm at 10 mm and staying there. `fit` says whether the lower box gets the
 // profile cut to its own height, or the tall box's profile as it is. Each box prints with its own
 // filament, which is what makes the tower real.
-static std::string validate_two_heights_with_variable_layers(bool fit, bool precise_z_height = false)
+static std::string validate_two_heights_with_variable_layers(bool fit, bool precise_z_height = false,
+                                                             std::vector<StringObjectException> *warnings = nullptr)
 {
     const DynamicPrintConfig config = multifilament_config(2, {
         { "enable_prime_tower",         "1"         },
@@ -394,9 +395,12 @@ static std::string validate_two_heights_with_variable_layers(bool fit, bool prec
     model.objects[1]->layer_height_profile.set(fit ? layer_height_profile_fit_to_height(profile, 10.) : profile);
     print.apply(model, config);
     REQUIRE(print.has_wipe_tower());
-    // Precise Z height would fit the last layers of each box to its own height.
-    REQUIRE(print.precise_z_height_overridden());
-    return print.validate().string;
+    // Precise Z height would fit the last layers of each box to its own height, so it is left out when it is on.
+    REQUIRE(print.precise_z_height_overridden() == precise_z_height);
+    // Leaving it out slices the boxes again, which must not leave them without slicing parameters.
+    for (const PrintObject *object : print.objects())
+        REQUIRE(object->slicing_parameters().valid);
+    return print.validate(warnings).string;
 }
 
 TEST_CASE("Objects of different heights keep the prime tower when they share a variable layer height profile", "[WipeTower]")
@@ -407,6 +411,56 @@ TEST_CASE("Objects of different heights keep the prime tower when they share a v
 TEST_CASE("Precise Z height is left out when objects of different heights share their layers under the prime tower", "[WipeTower]")
 {
     CHECK_THAT(validate_two_heights_with_variable_layers(true, true), !Catch::Matchers::ContainsSubstring("layer height"));
+}
+
+TEST_CASE("Leaving precise Z height out is reported only when it is on", "[WipeTower]")
+{
+    const auto reported = [](bool precise_z_height) {
+        std::vector<StringObjectException> warnings;
+        validate_two_heights_with_variable_layers(true, precise_z_height, &warnings);
+        return std::any_of(warnings.begin(), warnings.end(), [](const StringObjectException &warning) {
+            return warning.string.find("Precise Z height is not applied") != std::string::npos;
+        });
+    };
+    CHECK(reported(true));
+    CHECK_FALSE(reported(false));
+}
+
+TEST_CASE("Precise Z height applies again once the prime tower is turned off", "[WipeTower]")
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "enable_prime_tower",         "1"         },
+        { "wipe_tower_x",               "50"        },
+        { "wipe_tower_y",               "50"        },
+        { "layer_change_gcode",         "G92 E0\n" },
+        { "layer_height",               "0.2"       },
+        { "initial_layer_print_height", "0.2"       },
+        { "precise_z_height",           "1"         },
+        { "raft_layers",                "0"         } });
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{ { { "extruder", "1" } }, { { "extruder", "2" } } };
+    const std::vector<coordf_t> profile = { 0., 0.2, 5., 0.2, 10., 0.1, 20., 0.1 };
+
+    Print print;
+    Model model;
+    init_print(std::vector<TriangleMesh>{ make_cube(20, 20, 20), make_cube(20, 20, 10.05) }, print, model, config, &overrides);
+    model.objects[0]->layer_height_profile.set(profile);
+    model.objects[1]->layer_height_profile.set(layer_height_profile_fit_to_height(profile, 10.05));
+    print.apply(model, config);
+    REQUIRE(print.precise_z_height_overridden());
+    REQUIRE(print.objects().size() == 2);
+    CHECK_FALSE(print.get_object(1)->precise_z_height());
+
+    config.set_deserialize_strict({ { "enable_prime_tower", "0" } });
+    print.apply(model, config);
+    REQUIRE_FALSE(print.has_wipe_tower());
+    CHECK_FALSE(print.precise_z_height_overridden());
+    REQUIRE(print.objects().size() == 2);
+    PrintObject &lower = *print.get_object(1);
+    CHECK(lower.precise_z_height());
+    REQUIRE(lower.slicing_parameters().valid);
+    lower.slice();
+    REQUIRE(lower.layer_count() > 50);
+    CHECK_THAT(lower.get_layer(int(lower.layer_count()) - 1)->print_z, Catch::Matchers::WithinAbs(10.05, 1e-4));
 }
 
 TEST_CASE("A variable layer height profile that does not end at the object's top is rejected with the prime tower", "[WipeTower]")

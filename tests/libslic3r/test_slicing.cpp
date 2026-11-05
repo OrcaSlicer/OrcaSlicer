@@ -28,6 +28,18 @@ TEST_CASE("A layer height profile fitted to a lower object is cut at its top", "
     check_profile(layer_height_profile_fit_to_height(profile, 7.5), { 0., 0.2, 5., 0.2, 7.5, 0.15 });
 }
 
+TEST_CASE("A layer height profile fitted just above one of its entries does not run past it", "[Slicing]")
+{
+    // The entry at 9.99999 mm lies within EPSILON under the top, so the cut falls between it and the one
+    // below and must take its layer height, not run on past it to below 0.1 mm.
+    const std::vector<coordf_t> profile = { 0., 0.2, 9.9, 0.2, 9.99999, 0.1, 20., 0.1 };
+    const std::vector<coordf_t> fitted  = layer_height_profile_fit_to_height(profile, 10.);
+    REQUIRE(fitted.size() == 6);
+    CHECK_THAT(fitted[4], Catch::Matchers::WithinAbs(10., 1e-12));
+    CHECK(fitted[5] >= 0.1);
+    CHECK(fitted[5] <= 0.2);
+}
+
 TEST_CASE("A layer height profile fitted to a taller object carries its last layer height up", "[Slicing]")
 {
     const std::vector<coordf_t> profile = { 0., 0.2, 5., 0.2, 10., 0.1 };

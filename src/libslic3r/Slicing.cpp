@@ -835,10 +835,11 @@ std::vector<coordf_t> layer_height_profile_fit_to_height(
 
     // The last entry has to sit exactly at the top of the object, see PrintObject::update_layer_height_profile().
     coordf_t height = layer_height_profile.back();
-    if (i < layer_height_profile.size()) {
+    if (i < layer_height_profile.size() && i >= 2) {
         const coordf_t z1 = layer_height_profile[i - 2];
         const coordf_t z2 = layer_height_profile[i];
-        height = lerp(layer_height_profile[i - 1], layer_height_profile[i + 1], (object_height - z1) / (z2 - z1));
+        // The next entry can lie a hair under the top, within the EPSILON the loop above allows.
+        height = lerp(layer_height_profile[i - 1], layer_height_profile[i + 1], std::clamp((object_height - z1) / (z2 - z1), 0., 1.));
     }
     out.push_back(object_height);
     out.push_back(height);

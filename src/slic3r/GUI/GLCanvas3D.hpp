@@ -371,9 +371,10 @@ class GLCanvas3D
         void select_object(const Model& model, int object_id);
         void set_other_objects(std::vector<int> object_ids) { m_other_object_ids = std::move(object_ids); }
         // Orca: lays out the bars for the selected objects (tallest first) and returns the object to
-        // show and edit: the one whose bar the mouse is on, or else the one shown so far. Called while
-        // rendering, it also frees the textures of the objects that are no longer selected.
+        // show and edit: the one whose bar the mouse is on, or else the one shown so far.
         int choose_shown_object(const GLCanvas3D& canvas, const Model& model, const std::vector<int>& object_ids);
+        // Orca: frees the textures of the objects that are no longer selected. Needs the GL context.
+        void release_unselected_textures(const Model& model, const std::vector<int>& object_ids);
         // Orca: whether the tool paints this object with its layer heights.
         bool is_edited_object(int object_id) const;
 
@@ -414,9 +415,13 @@ class GLCanvas3D
         void bind_shown_texture();
         // Orca: whether the object is drawn with the texture of the object shown.
         bool shares_shown_layers(ObjectTexture& object) const;
+        // Orca: whether an object with these slicing parameters takes the profile of the object shown when
+        // they share one. It has to start its layers where that profile does.
+        bool follows_shown_object(const SlicingParameters& slicing_parameters) const;
         static unsigned int create_texture();
         static void load_texture(const LayersTexture& texture, unsigned int texture_id);
         void release_object_texture(ObjectTexture& object);
+        void reset_bar_models(size_t bars);
         // Index into m_bar_object_ids of the bar of the object shown.
         size_t active_bar() const;
         bool bar_in_focus(const GLCanvas3D& canvas) const;
@@ -1546,6 +1551,9 @@ public:
     void apply_retina_scale(Vec2d &screen_coordinate) const;
 
     void _perform_layer_editing_action(wxMouseEvent* evt = nullptr);
+    // Orca: hands the variable layer height tool the selected objects and the one to show. While
+    // rendering, it also frees the textures of the objects no longer selected.
+    void _update_layers_editing_objects(bool rendering);
 
     // Convert the screen space coordinate to an object space coordinate.
     // If the Z screen space coordinate is not provided, a depth buffer value is substituted.
