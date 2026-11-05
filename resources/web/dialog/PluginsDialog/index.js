@@ -1199,8 +1199,9 @@ function RenderPermissions(plugin) {
   checkbox.setAttribute("role", "switch");
   const fullAccessAvailable = typeof plugin.permissions?.full_access === "boolean";
   const fullAccess = draft.fullAccess === true;
+  const installed = IsPluginInstalled(plugin) && !!pluginKey;
   checkbox.checked = fullAccess;
-  const fullAccessLocked = !fullAccessAvailable || !IsPluginInstalled(plugin) || !pluginKey || permissionsLocked || !!pendingFullAccess || !!pendingPermissionSave;
+  const fullAccessLocked = !fullAccessAvailable || !installed || permissionsLocked || !!pendingFullAccess || !!pendingPermissionSave;
   checkbox.dataset.locked = String(fullAccessLocked);
   checkbox.disabled = fullAccessLocked || (!fullAccess && !ValidPendingPermissions(draft));
   const checkboxInset = document.createElement("span");
@@ -1224,6 +1225,8 @@ function RenderPermissions(plugin) {
   accessCard.className = "permission-access-card";
   if (fullAccess)
     accessCard.classList.add("is-active");
+  if (fullAccessLocked)
+    accessCard.classList.add("is-disabled");
   accessCard.appendChild(placeholder);
   overview.appendChild(accessCard);
   const fullAccessHelp = document.createElement("p");
@@ -1238,7 +1241,7 @@ function RenderPermissions(plugin) {
   invalidFullAccessNotice.textContent = T("permissions_full_access_invalid_pending", "Correct or remove unfinished text before turning on full access.");
   invalidFullAccessNotice.hidden = fullAccess || ValidPendingPermissions(draft);
   checkbox.setAttribute("aria-describedby", `${fullAccessHelp.id} ${invalidFullAccessNotice.id}`);
-  accessCard.appendChild(invalidFullAccessNotice);
+  overview.insertBefore(invalidFullAccessNotice, accessCard);
   if (!fullAccessAvailable || pendingFullAccess?.pluginKey === pluginKey) {
     const status = document.createElement("p");
     status.className = "permission-full-access-help";
@@ -1246,12 +1249,12 @@ function RenderPermissions(plugin) {
     status.textContent = !fullAccessAvailable
       ? T("permissions_full_access_unavailable", "Full access status is unavailable.")
       : T("permissions_full_access_updating", "Updating full access…");
-    accessCard.appendChild(status);
+    overview.insertBefore(status, accessCard);
   }
 
   const editor = document.createElement("fieldset");
   editor.className = "permission-editor";
-  editor.disabled = !fullAccessAvailable || fullAccess || permissionsLocked || !!pendingFullAccess || !!pendingPermissionSave;
+  editor.disabled = !installed || !fullAccessAvailable || fullAccess || permissionsLocked || !!pendingFullAccess || !!pendingPermissionSave;
   checkbox.addEventListener("change", () => {
     const enabled = checkbox.checked;
     // Enabling requires native confirmation, but neither direction is saved until Save changes.
@@ -1273,7 +1276,7 @@ function RenderPermissions(plugin) {
     const notice = document.createElement("p");
     notice.className = "permission-draft-notice permission-access-notice";
     notice.textContent = T("permissions_full_access_editor_disabled", "Permission list editing is disabled while full access is on.");
-    content.appendChild(notice);
+    overview.insertBefore(notice, accessCard);
   }
   content.appendChild(editor);
 
@@ -1297,28 +1300,27 @@ function RenderPermissions(plugin) {
     document.getElementById("permissionResetDraft")?.focus();
   });
   actions.append(saveChanges, reset);
-  overview.insertBefore(actions, accessCard);
+  overview.insertBefore(actions, draftNotice.nextSibling);
   const unapplied = document.createElement("p");
   unapplied.id = "permissionUnappliedNotice";
   unapplied.className = "permission-draft-notice";
   unapplied.setAttribute("role", "status");
   unapplied.textContent = T("permissions_invalid_pending", "Enter a value or remove the unfinished text before saving.");
   unapplied.hidden = ValidPendingPermissions(draft);
-  editor.appendChild(unapplied);
+  overview.insertBefore(unapplied, accessCard);
 
-  const installed = IsPluginInstalled(plugin) && !!pluginKey;
   if (!installed) {
     const notice = document.createElement("p");
     notice.className = "permission-notice";
     notice.textContent = T("permissions_install_to_edit", "Install this plugin to edit its permissions.");
-    editor.appendChild(notice);
+    overview.insertBefore(notice, accessCard);
   } else if (permissionsLocked) {
     const notice = document.createElement("p");
     notice.className = "permission-notice";
     notice.textContent = IsPluginLoading(plugin)
       ? T("permissions_loading_cannot_edit", "Permissions cannot be edited while this plugin is loading.")
       : T("permissions_running_cannot_edit", "Permissions cannot be edited while this plugin is running. Deactivate it to make changes.");
-    editor.appendChild(notice);
+    overview.insertBefore(notice, accessCard);
   }
 
   const rows = document.createElement("div");

@@ -1226,6 +1226,15 @@ body.pane-resizing {
   border-color: var(--plugin-status-warn);
 }
 
+.permission-access-card.is-disabled,
+.permission-editor:disabled {
+  opacity: 0.55;
+}
+
+.permission-access-card.is-disabled .permission-checkbox-inset input[type="checkbox"]:disabled + .permission-switch-track {
+  opacity: 1;
+}
+
 .permission-checkbox-inset {
   position: relative;
   display: inline-flex;
