@@ -23,6 +23,7 @@
 
 #include <chrono>
 #include <filesystem>
+#include <mutex>
 #include <string>
 #include "slic3r/plugin/PluginDescriptor.hpp"
 #include <utility>
@@ -37,6 +38,13 @@
 namespace Slic3r {
 
 const char* const INSTALL_STATE_FILE = ".install_state.json";
+
+std::mutex& install_state_mutex()
+{
+    // Function-local static: safe to use from any writer regardless of static initialization order.
+    static std::mutex mutex;
+    return mutex;
+}
 
 std::string get_orca_plugins_dir()
 {

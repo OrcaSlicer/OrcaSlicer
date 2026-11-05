@@ -46,6 +46,8 @@ finalization cannot run underneath it. `ScopedPluginAuditContext`
 (`src/slic3r/plugin/PluginAuditManager.hpp`) stores the previous thread-local plugin/capability pair
 and scoped filesystem roots, sets this call's, and restores them on destruction; the audit hook then
 attributes every filesystem/socket/process event to the plugin currently executing on that thread.
+The policy those events are judged against is described in
+[plugin-permissions.md](plugin-permissions.md).
 
 ### The Script capability
 

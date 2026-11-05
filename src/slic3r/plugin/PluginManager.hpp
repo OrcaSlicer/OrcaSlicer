@@ -193,13 +193,16 @@ public:
     bool set_plugin_full_access(const std::string& plugin_key, bool enabled);
 
     // Replaces the permission list (fs_read, fs_readwrite, network_http, network_socket, process,
-    // threading, events) of an installed plugin. Read-modify-write of the sidecar under the same
-    // lock the other install-state writers use, so full_access and every unrelated stored field
-    // (install metadata, enabled flag, capabilities) are preserved. Requires a known installed
-    // package and a readable sidecar; a plugin with no local package cannot be saved to. Full
-    // access must be off: the check runs under the same lock as the read-modify-write, and the
-    // call is refused while the stored flag is set. Refused while the plugin is loaded or its load
-    // is in progress.
+    // threading, events) and the full-access flag of an installed plugin in one locked
+    // read-modify-write, so the two cannot be stored out of step. Every unrelated stored field
+    // (install metadata, enabled flag, capabilities) is preserved. Requires a known installed
+    // package and a readable sidecar; a plugin with no local package cannot be saved to.
+    //
+    // A save is accepted whether the stored full-access flag is on or off, including a replacement
+    // of the list while it stays on. That covers editing the list with the draft flag off and then
+    // toggling it back on before saving. The caller is responsible for confirming the additions
+    // natively first; the grants are inert while full access is on and take effect when it is
+    // cleared. Refused while the plugin is loaded or its load is in progress.
     bool set_plugin_permissions(const std::string& plugin_key, const PluginPermissions& permissions);
 
     void load_plugin(const std::string& plugin_key, bool skip_deps = false, std::vector<std::string> capabilities_to_enable = {});
@@ -350,8 +353,8 @@ private:
     std::map<std::string, std::string> m_load_errors;
     mutable std::condition_variable m_load_cv;
 
-    // Serialize sidecar snapshots so concurrent capability toggles cannot write stale state out of order.
-    mutable std::mutex m_install_state_mutex;
+    // Sidecar writers serialize on Slic3r::install_state_mutex() (PluginFsUtils), shared with the
+    // audit grant writers. Taken before m_mutex, never after it.
 
     std::map<CallbackType, std::vector<PluginLifecycleCompleteFn>> m_callbacks;
     std::map<CallbackType, std::vector<CapabilityLifecycleFn>> m_capability_callbacks;

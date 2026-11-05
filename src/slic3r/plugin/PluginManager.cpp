@@ -129,6 +129,7 @@ bool PluginManager::initialize()
     subscribe_on_unload_callback([this](const std::string& key) {
         if (m_shutting_down.load(std::memory_order_acquire))
             return;
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
         PluginDescriptor descriptor;
         if (!try_get_plugin_descriptor(key, descriptor) || descriptor.plugin_root.empty())
             return;
@@ -1188,7 +1189,7 @@ void PluginManager::set_capability_enabled(const PluginCapabilityId& id, bool en
 
 void PluginManager::write_loaded_plugin_install_state(const std::string& plugin_key)
 {
-    std::lock_guard<std::mutex> state_lock(m_install_state_mutex);
+    std::lock_guard<std::mutex> state_lock(install_state_mutex());
 
     PluginDescriptor descriptor;
     std::vector<std::pair<std::string, bool>> capabilities;
@@ -1213,7 +1214,7 @@ void PluginManager::write_loaded_plugin_install_state(const std::string& plugin_
 
 void PluginManager::mark_plugin_install_state_disabled(const std::string& plugin_key)
 {
-    std::lock_guard<std::mutex> state_lock(m_install_state_mutex);
+    std::lock_guard<std::mutex> state_lock(install_state_mutex());
 
     PluginDescriptor descriptor;
     if (!try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
@@ -1234,7 +1235,7 @@ void PluginManager::mark_plugin_install_state_disabled(const std::string& plugin
 
 bool PluginManager::set_plugin_full_access(const std::string& plugin_key, bool enabled)
 {
-    std::lock_guard<std::mutex> state_lock(m_install_state_mutex);
+    std::lock_guard<std::mutex> state_lock(install_state_mutex());
 
     PluginDescriptor descriptor;
     if (plugin_key.empty()) {
@@ -1279,7 +1280,7 @@ bool PluginManager::set_plugin_full_access(const std::string& plugin_key, bool e
 
 bool PluginManager::set_plugin_permissions(const std::string& plugin_key, const PluginPermissions& permissions)
 {
-    std::lock_guard<std::mutex> state_lock(m_install_state_mutex);
+    std::lock_guard<std::mutex> state_lock(install_state_mutex());
 
     if (plugin_key.empty()) {
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": No plugin key supplied";
@@ -1307,16 +1308,11 @@ bool PluginManager::set_plugin_permissions(const std::string& plugin_key, const 
         return false;
     }
 
-    // Refused inside the same locked read-modify-write the write uses: while full access is on the
-    // list is inert, and storing new grants would arm them the moment full access is turned off.
-    if (state.permissions.full_access) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Full access is enabled; refusing to replace permissions for "
-                                   << plugin_key;
-        return false;
-    }
-
-    // Read-modify-write: replace only the editable grant list and carry full access plus every
-    // unrelated install-state field across unchanged.
+    // Read-modify-write: replace the editable grant list and the full-access flag together, and
+    // carry every unrelated install-state field across unchanged. This stays valid when the stored
+    // flag is already on: the user may have edited the list with the draft flag off and then
+    // toggled it back on, and the caller has already confirmed the additions natively. A stored
+    // grant is inert while full access is on and takes effect only once it is cleared.
     state.permissions.fs_read        = permissions.fs_read;
     state.permissions.fs_readwrite   = permissions.fs_readwrite;
     state.permissions.network_http   = permissions.network_http;
@@ -1324,6 +1320,7 @@ bool PluginManager::set_plugin_permissions(const std::string& plugin_key, const 
     state.permissions.process        = permissions.process;
     state.permissions.threading      = permissions.threading;
     state.permissions.events         = permissions.events;
+    state.permissions.full_access    = permissions.full_access;
 
     if (!write_install_state(root, state)) {
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to write install state for " << plugin_key;
@@ -1336,7 +1333,7 @@ bool PluginManager::set_plugin_permissions(const std::string& plugin_key, const 
 
 void PluginManager::revoke_plugin_permissions(const std::string& plugin_key)
 {
-    std::lock_guard<std::mutex> state_lock(m_install_state_mutex);
+    std::lock_guard<std::mutex> state_lock(install_state_mutex());
 
     PluginDescriptor descriptor;
     if (!try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
@@ -2077,6 +2074,9 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
     // capabilities' audit key must follow, since it is what identifies their owning package.
     std::vector<PluginCapabilityId> rekeyed;
     {
+        // Sidecar read-modify-write first, then the registry lock: that is the lock order every
+        // install-state writer uses (install_state_mutex -> m_mutex).
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
         std::lock_guard<std::mutex> lock(m_mutex);
 
         Plugin* entry = find_plugin_locked(old_key);

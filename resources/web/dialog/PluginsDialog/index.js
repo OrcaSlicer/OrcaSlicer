@@ -379,8 +379,11 @@ function HandleStudio(value) {
   } else if (payload.command === "plugin_full_access_result" && pendingFullAccess &&
              payload.plugin_key === pendingFullAccess.pluginKey &&
              payload.request_id === pendingFullAccess.requestId) {
-    // The result follows the refreshed list, including on rejection; unrelated lists are not a confirmation.
+    const draft = permissionDrafts.get(pendingFullAccess.pluginKey);
+    if (payload.accepted === true && draft)
+      draft.fullAccess = true;
     pendingFullAccess = null;
+    renderedPermissionsSignature = null;
     RenderDetails();
   }
 }
@@ -392,17 +395,36 @@ function HasUnappliedPermissions(draft) {
 }
 
 function PermissionDraftDirty(draft) {
-  return !!draft && (HasUnappliedPermissions(draft) || JSON.stringify(draft.values) !== draft.savedValues);
+  return !!draft && (HasUnappliedPermissions(draft) || JSON.stringify(draft.values) !== draft.savedValues ||
+    draft.fullAccess !== draft.savedFullAccess);
+}
+
+function ValidPendingPermissions(draft) {
+  return Object.values(draft.additions).every((value) => value === "" || !!value.trim()) &&
+    Object.entries(draft.pending).every(([key, entries]) =>
+      entries.every((value, index) => value === draft.values[key][index] || !!value.trim()));
+}
+
+function ApplyPendingPermissions(draft) {
+  for (const [key, entries] of Object.entries(draft.pending)) {
+    draft.values[key] = entries.slice();
+    const addition = draft.additions[key];
+    if (addition) {
+      draft.values[key].push(addition);
+      entries.push(addition);
+      delete draft.additions[key];
+    }
+  }
 }
 
 function CanSavePermissions(plugin, draft) {
   return !!plugin && !!draft && IsPluginInstalled(plugin) && !!plugin.plugin_key &&
     !PermissionsEditingLocked(plugin) &&
-    plugin.permissions?.full_access === false && !pendingFullAccess && !pendingPermissionSave &&
+    typeof plugin.permissions?.full_access === "boolean" && !pendingFullAccess && !pendingPermissionSave &&
     permissionKeys.every((key) => key === "threading"
       ? typeof draft.values[key] === "boolean" && typeof plugin.permissions?.[key] === "boolean"
       : Array.isArray(draft.values[key]) && Array.isArray(plugin.permissions?.[key])) &&
-    !HasUnappliedPermissions(draft) && JSON.stringify(draft.values) !== draft.savedValues;
+    ValidPendingPermissions(draft) && PermissionDraftDirty(draft);
 }
 
 function UpdatePermissionActions(pluginKey) {
@@ -410,19 +432,34 @@ function UpdatePermissionActions(pluginKey) {
   const draft = permissionDrafts.get(pluginKey);
   const save = document.getElementById("permissionSaveDraft");
   const notice = document.getElementById("permissionUnappliedNotice");
+  const fullAccess = document.getElementById("permissionFullAccess");
+  const fullAccessNotice = document.getElementById("permissionFullAccessInvalidNotice");
+  const invalidPending = !!draft && !ValidPendingPermissions(draft);
   if (save)
     save.disabled = !CanSavePermissions(plugin, draft);
   if (notice)
-    notice.hidden = !draft || !HasUnappliedPermissions(draft);
+    notice.hidden = !invalidPending;
+  if (fullAccess)
+    fullAccess.disabled = fullAccess.dataset.locked === "true" || (!draft?.fullAccess && invalidPending);
+  if (fullAccessNotice)
+    fullAccessNotice.hidden = !invalidPending || !!draft?.fullAccess;
 }
 
 function SavePermissionDraft(pluginKey, afterSave = null) {
   const draft = permissionDrafts.get(pluginKey);
   if (!CanSavePermissions(pluginsById.get(pluginKey), draft))
     return;
+  ApplyPendingPermissions(draft);
+  if (!PermissionDraftDirty(draft)) {
+    renderedPermissionsSignature = null;
+    if (afterSave) afterSave();
+    else RenderDetails();
+    return;
+  }
   const requestId = `${fullAccessRequestPrefix}-${++fullAccessRequestNumber}`;
   pendingPermissionSave = { pluginKey, requestId, afterSave };
   const permissions = Object.fromEntries(permissionKeys.map((key) => [key, draft.values[key]]));
+  permissions.full_access = draft.fullAccess;
   SendMessage("save_plugin_permissions", { plugin_key: pluginKey, permissions, request_id: requestId });
   renderedPermissionsSignature = null;
   RenderDetails();
@@ -464,8 +501,8 @@ function GuardPermissionNavigation(proceed, closing = false) {
   title.textContent = T("permissions_unsaved_title", "Unsaved permission changes");
   const description = document.createElement("p");
   description.id = "permissionConfirmDescription";
-  description.textContent = HasUnappliedPermissions(draft)
-    ? T("permissions_unsaved_unapplied", "Apply or remove the text you entered before saving.")
+  description.textContent = !ValidPendingPermissions(draft)
+    ? T("permissions_invalid_pending", "Enter a value or remove the unfinished text before saving.")
     : T("permissions_unsaved_description", "Save or discard your changes before leaving.");
   const actions = document.createElement("div");
   actions.className = "permission-confirm-actions permission-form";
@@ -1097,9 +1134,7 @@ function RenderPermissions(plugin) {
   }
 
   const pluginKey = String(plugin.plugin_key || "");
-  const sourcePermissions = plugin.permissions && typeof plugin.permissions === "object"
-    ? Object.fromEntries(Object.entries(plugin.permissions).filter(([key]) => key !== "full_access"))
-    : null;
+  const sourcePermissions = plugin.permissions && typeof plugin.permissions === "object" ? plugin.permissions : null;
   const sourceSignature = JSON.stringify(sourcePermissions);
   let draft = permissionDrafts.get(pluginKey);
   if (!draft || (!PermissionDraftDirty(draft) && draft.sourceSignature !== sourceSignature)) {
@@ -1113,7 +1148,8 @@ function RenderPermissions(plugin) {
         pending[key] = entries.map(String);
       }
     }
-    draft = { sourceSignature, values, pending, additions: {}, savedValues: JSON.stringify(values) };
+    draft = { sourceSignature, values, pending, additions: {}, savedValues: JSON.stringify(values),
+      fullAccess: plugin.permissions?.full_access, savedFullAccess: plugin.permissions?.full_access };
     permissionDrafts.set(pluginKey, draft);
   }
 
@@ -1121,7 +1157,7 @@ function RenderPermissions(plugin) {
   // part of the signature so a load or unload re-renders the editors without discarding the draft.
   const permissionsLocked = PermissionsEditingLocked(plugin);
   const signature = JSON.stringify([pluginKey, plugin.label, plugin.name, plugin.plugin_id, plugin.installed, sourceSignature, draft.sourceSignature,
-    plugin.permissions?.full_access, permissionsLocked, IsPluginLoading(plugin), pendingFullAccess, pendingPermissionSave?.requestId]);
+    draft.fullAccess, permissionsLocked, IsPluginLoading(plugin), pendingFullAccess, pendingPermissionSave?.requestId]);
   if (signature === renderedPermissionsSignature)
     return;
   renderedPermissionsSignature = signature;
@@ -1147,8 +1183,8 @@ function RenderPermissions(plugin) {
     ["events", "permissions_events", "Events"]
   ];
   const categoryGuidance = {
-    fs_read: [T("permissions_filesystem_help", "Enter an absolute path. Add /* at the end to include its subtree."), T("permissions_filesystem_placeholder", "/path/to/directory/*")],
-    fs_readwrite: [T("permissions_filesystem_help", "Enter an absolute path. Add /* at the end to include its subtree."), T("permissions_filesystem_placeholder", "/path/to/directory/*")],
+    fs_read: [T("permissions_filesystem_help", "Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. These read and read/write grants do not cover creating or deleting files: each such operation asks for approval separately and the answer is not remembered."), T("permissions_filesystem_placeholder", "/path/to/directory/*")],
+    fs_readwrite: [T("permissions_filesystem_help", "Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. These read and read/write grants do not cover creating or deleting files: each such operation asks for approval separately and the answer is not remembered."), T("permissions_filesystem_placeholder", "/path/to/directory/*")],
     network_http: [null, T("permissions_network_placeholder", "https://example.com")],
     network_socket: [null, T("permissions_network_placeholder", "https://example.com")],
     process: [T("permissions_process_help", "Enter the exact value recorded by the audit. It may be a Python representation of the command."), T("permissions_process_placeholder", "Exact audited value")],
@@ -1159,11 +1195,14 @@ function RenderPermissions(plugin) {
   placeholder.className = "permission-placeholder";
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
+  checkbox.id = "permissionFullAccess";
   checkbox.setAttribute("role", "switch");
   const fullAccessAvailable = typeof plugin.permissions?.full_access === "boolean";
-  const fullAccess = plugin.permissions?.full_access === true;
+  const fullAccess = draft.fullAccess === true;
   checkbox.checked = fullAccess;
-  checkbox.disabled = !fullAccessAvailable || !IsPluginInstalled(plugin) || !pluginKey || permissionsLocked || !!pendingFullAccess || !!pendingPermissionSave;
+  const fullAccessLocked = !fullAccessAvailable || !IsPluginInstalled(plugin) || !pluginKey || permissionsLocked || !!pendingFullAccess || !!pendingPermissionSave;
+  checkbox.dataset.locked = String(fullAccessLocked);
+  checkbox.disabled = fullAccessLocked || (!fullAccess && !ValidPendingPermissions(draft));
   const checkboxInset = document.createElement("span");
   checkboxInset.className = "permission-checkbox-inset";
   const checkboxTrack = document.createElement("span");
@@ -1179,7 +1218,7 @@ function RenderPermissions(plugin) {
 
   const draftNotice = document.createElement("p");
   draftNotice.className = "permission-draft-notice";
-  draftNotice.textContent = T("permissions_save_notice", "Permission changes take effect after saving. Full access is saved separately.");
+  draftNotice.textContent = T("permissions_draft_save_notice", "Permission changes take effect after saving.");
   overview.appendChild(draftNotice);
   const accessCard = document.createElement("div");
   accessCard.className = "permission-access-card";
@@ -1190,9 +1229,16 @@ function RenderPermissions(plugin) {
   const fullAccessHelp = document.createElement("p");
   fullAccessHelp.id = "permissionFullAccessHelp";
   fullAccessHelp.className = "permission-full-access-help";
-  fullAccessHelp.textContent = T("permissions_full_access_help", "Full access bypasses permission checks. The plugin can read and write most files your user account can access; modifying startup or application files can run code outside these checks. Direct Python access to OrcaSlicer's configuration, secret, certificate and install-state paths stays blocked, but subprocesses are not restricted. Full access is not a sandbox.");
-  checkbox.setAttribute("aria-describedby", fullAccessHelp.id);
+  fullAccessHelp.textContent = T("permissions_full_access_help", "Full access bypasses permission checks. The plugin can read and write most files you can access; modifying startup or application files can let code run outside these checks. Direct Python access to OrcaSlicer's configuration, secret, certificate and install-state paths stays blocked, but subprocesses are not restricted.");
   accessCard.appendChild(fullAccessHelp);
+  const invalidFullAccessNotice = document.createElement("p");
+  invalidFullAccessNotice.id = "permissionFullAccessInvalidNotice";
+  invalidFullAccessNotice.className = "permission-full-access-help";
+  invalidFullAccessNotice.setAttribute("role", "status");
+  invalidFullAccessNotice.textContent = T("permissions_full_access_invalid_pending", "Correct or remove unfinished text before turning on full access.");
+  invalidFullAccessNotice.hidden = fullAccess || ValidPendingPermissions(draft);
+  checkbox.setAttribute("aria-describedby", `${fullAccessHelp.id} ${invalidFullAccessNotice.id}`);
+  accessCard.appendChild(invalidFullAccessNotice);
   if (!fullAccessAvailable || pendingFullAccess?.pluginKey === pluginKey) {
     const status = document.createElement("p");
     status.className = "permission-full-access-help";
@@ -1208,12 +1254,18 @@ function RenderPermissions(plugin) {
   editor.disabled = !fullAccessAvailable || fullAccess || permissionsLocked || !!pendingFullAccess || !!pendingPermissionSave;
   checkbox.addEventListener("change", () => {
     const enabled = checkbox.checked;
-    // Keep displaying the last confirmed value until the native side sends a fresh list.
+    // Enabling requires native confirmation, but neither direction is saved until Save changes.
     checkbox.checked = fullAccess;
+    if (!enabled) {
+      draft.fullAccess = false;
+      renderedPermissionsSignature = null;
+      RenderPermissions(pluginsById.get(pluginKey));
+      return;
+    }
     const requestId = `${fullAccessRequestPrefix}-${++fullAccessRequestNumber}`;
     pendingFullAccess = { pluginKey, requestId };
     checkbox.disabled = true;
-    SendMessage("set_plugin_full_access", { plugin_key: pluginKey, enabled, request_id: requestId });
+    SendMessage("confirm_plugin_full_access", { plugin_key: pluginKey, request_id: requestId });
     renderedPermissionsSignature = null;
     RenderPermissions(pluginsById.get(pluginKey));
   });
@@ -1236,6 +1288,7 @@ function RenderPermissions(plugin) {
   const reset = document.createElement("button");
   reset.type = "button";
   reset.id = "permissionResetDraft";
+  reset.disabled = !!pendingFullAccess || !!pendingPermissionSave;
   reset.textContent = T("permissions_reset_changes", "Reset changes");
   reset.addEventListener("click", () => {
     permissionDrafts.delete(pluginKey);
@@ -1244,12 +1297,13 @@ function RenderPermissions(plugin) {
     document.getElementById("permissionResetDraft")?.focus();
   });
   actions.append(saveChanges, reset);
+  overview.insertBefore(actions, accessCard);
   const unapplied = document.createElement("p");
   unapplied.id = "permissionUnappliedNotice";
   unapplied.className = "permission-draft-notice";
   unapplied.setAttribute("role", "status");
-  unapplied.textContent = T("permissions_unapplied_notice", "Apply or remove the text you entered before saving.");
-  unapplied.hidden = !HasUnappliedPermissions(draft);
+  unapplied.textContent = T("permissions_invalid_pending", "Enter a value or remove the unfinished text before saving.");
+  unapplied.hidden = ValidPendingPermissions(draft);
   editor.appendChild(unapplied);
 
   const installed = IsPluginInstalled(plugin) && !!pluginKey;
@@ -1273,7 +1327,7 @@ function RenderPermissions(plugin) {
   const groups = [
     { keys: ["fs_read", "fs_readwrite"], title: T("permissions_group_filesystem", "File system") },
     { keys: ["network_http", "network_socket"], title: T("permissions_network_access_title", "Network access"),
-      guidance: T("permissions_network_access_guidance", "Enter an HTTP or HTTPS URL using a domain name or IP address. Access applies to the entire host; ports, paths, and queries are not used to limit it. Grants in either list are checked for HTTP and socket access.") },
+      guidance: T("permissions_network_access_guidance", "Enter a full http:// or https:// URL. Only the scheme and host are saved, so the grant covers every port, path, and query on that host. Bare domain names and other schemes are not accepted. Grants in either list are checked for HTTP and socket access.") },
     { keys: ["process", "threading"], title: T("permissions_group_execution", "Execution") },
     { keys: ["events"], title: T("permissions_group_events", "Audit events") }
   ];
@@ -1388,7 +1442,6 @@ function RenderPermissions(plugin) {
     controls.appendChild(PermissionForm(pluginKey, key, heading.textContent, null, categoryEnabled, categoryGuidance[key][1], guidanceId, draft));
     groupBodies.get(key).appendChild(section);
   }
-  editor.appendChild(actions);
 }
 
 function RenderFilesystemSection(plugin, pluginKey, draft, editable, guidanceText) {

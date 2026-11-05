@@ -16,6 +16,7 @@
 #include <string>
 #include <thread>
 #include <type_traits>
+#include <unordered_set>
 #include <utility>
 #include <wx/event.h>
 #include <wx/chartype.h>
@@ -243,6 +244,9 @@ private:
     // unsaved. The page then sends `close_plugins_dialog`, which sets m_allow_close and closes.
     void on_window_close(wxCloseEvent& event);
     void on_char_hook(wxKeyEvent& event);
+    // The dialog is modeless and Close() only hides it; clear the per-open negotiation state so a
+    // reopen through GUI_App::open_plugins_dialog() asks the page again on every close.
+    void on_show(wxShowEvent& event);
     void request_permission_dialog_close();
     // Runs one web command on a clean main-loop stack; see on_script_message.
     void handle_web_command(const nlohmann::json& payload);
@@ -262,9 +266,17 @@ private:
     void prompt_for_missing_plugins();
     void refresh_plugins();
     void toggle_plugin(const std::string& plugin_key, bool enabled);
-    void set_plugin_full_access(const std::string& plugin_key, bool enabled, const std::string& request_id);
-    // Replaces the permission list of an installed plugin, preserving full_access and unrelated
-    // install state. Confirms added or broadened grants; removals save without a prompt.
+    // The page asks before staging an enable, so the warning appears at the switch, not at Save.
+    // Never persists: replies with `accepted` and leaves the change to save_plugin_permissions().
+    void confirm_plugin_full_access(const std::string& plugin_key, const std::string& request_id);
+    // Shared native warning for enabling full access. Returns true only on an explicit Yes.
+    bool prompt_enable_full_access(const std::string& plugin_key);
+    // Replaces the permission list and full-access flag of an installed plugin in one write,
+    // preserving unrelated install state. Newly added or edited filesystem targets must be absolute;
+    // new or edited network targets are reduced to the matcher's canonical scheme://host. Unchanged
+    // entries are carried across verbatim so a legacy grant is not rejected or rewritten. Confirms
+    // added or broadened grants; removals save without a prompt. Enabling full access additionally
+    // requires a native confirmation.
     void save_plugin_permissions(const std::string& plugin_key, const PluginPermissions& permissions, const std::string& request_id);
     void toggle_plugin_capability(const std::string& plugin_key, PluginCapabilityType type, const std::string& capability_name, bool enabled);
     void handle_plugin_menu_action(const std::string& plugin_key, const std::string& action);
@@ -330,6 +342,10 @@ private:
     // Guards the synchronous RunScript below: wx pumps events while it runs, so a close event
     // raised inside it must not start a second request.
     bool m_close_request_in_flight = false;
+    // Plugin keys whose enable-full-access was approved through the native warning during this
+    // showing. Save consumes the approval; reopening the dialog clears it, so a stale or forged
+    // save cannot enable full access without asking again.
+    std::unordered_set<std::string> m_full_access_confirmed;
     PluginSortKey m_plugin_sort_key       = PluginSortKey::None;
     PluginSortOrder m_plugin_sort_order   = PluginSortOrder::Asc;
 

@@ -743,9 +743,11 @@ bool install_plugin(const boost::filesystem::path& filepath,
     plugin_descriptor.set_metadata_valid(true);
     plugin_descriptor.clear_error();
 
-    // Write install state sidecar before removing the backup.
+    // Write install state sidecar before removing the backup. The write takes the shared
+    // install-state mutex so it cannot interleave with an in-process read-modify-write writer.
     {
-        PluginDescriptor installed_entry = plugin_descriptor;
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        PluginDescriptor            installed_entry = plugin_descriptor;
         if (is_cloud_install)
             installed_entry.cloud = CloudPluginState{cloud_uuid, true, false, false, plugin_descriptor.cloud->is_mine};
         if (!write_install_state(final_dir, installed_entry)) {

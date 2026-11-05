@@ -52,6 +52,10 @@
 #include <wx/utils.h>
 #include <nlohmann/json.hpp>
 
+// Keep this after the wx and standard headers: it pulls in the Python headers, which define
+// macros that some platform headers do not tolerate being set before them.
+#include "slic3r/plugin/PluginAuditManager.hpp"
+
 namespace Slic3r { namespace GUI {
 namespace {
 
@@ -180,9 +184,9 @@ nlohmann::json build_permissions_payload(const PluginPermissions& permissions)
     return payload;
 }
 
-// Basic shape check for a save_plugin_permissions payload: every editable category present and of
-// the expected type. No target normalization or content rules here; the writer stores what the
-// webview sent. full_access is not part of the payload and is preserved by the writer.
+// Basic shape check for a save_plugin_permissions payload: every permission field present and of
+// the expected type, including the full-access flag, which is saved with the lists. Target
+// normalization and validation happen in save_plugin_permissions, where the stored list is known.
 bool read_permission_list(const nlohmann::json& permissions, const char* key, std::vector<std::string>& out)
 {
     if (!permissions.contains(key) || !permissions.at(key).is_array())
@@ -209,6 +213,257 @@ bool parse_permissions_payload(const nlohmann::json& payload, PluginPermissions&
     if (!payload.contains("threading") || !payload.at("threading").is_boolean())
         return false;
     out.threading = payload.at("threading").get<bool>();
+    if (!payload.contains("full_access") || !payload.at("full_access").is_boolean())
+        return false;
+    out.full_access = payload.at("full_access").get<bool>();
+    return true;
+}
+
+std::string trim_permission_target(const std::string& value)
+{
+    const size_t first = value.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos)
+        return {};
+    const size_t last = value.find_last_not_of(" \t\r\n");
+    return value.substr(first, last - first + 1);
+}
+
+bool is_path_separator(char c)
+{
+#ifdef _WIN32
+    return c == '/' || c == '\\';
+#else
+    return c == '/';
+#endif
+}
+
+// Absolute on the platform that will match the grant. A POSIX path must start at the root; a
+// Windows path must name a drive and a root directory or be a UNC path. A Windows-style path is
+// deliberately not accepted on POSIX: it is relative there, so the grant would follow the
+// plugin's working directory instead of naming the folder the user selected.
+bool is_absolute_permission_path(const std::string& value)
+{
+#ifdef _WIN32
+    if (value.size() >= 3 && std::isalpha(static_cast<unsigned char>(value[0])) && value[1] == ':' &&
+        is_path_separator(value[2]))
+        return true;
+
+    // A UNC path needs both a server and a share. "\\server" and "\\server\" are not absolute.
+    if (value.size() > 2 && is_path_separator(value[0]) && is_path_separator(value[1])) {
+        size_t server_end = 2;
+        while (server_end < value.size() && !is_path_separator(value[server_end]))
+            ++server_end;
+        const size_t share_start = server_end + 1;
+        if (server_end == value.size() || share_start == value.size())
+            return false;
+        size_t share_end = share_start;
+        while (share_end < value.size() && !is_path_separator(value[share_end]))
+            ++share_end;
+        return share_end > share_start;
+    }
+    return false;
+#else
+    return !value.empty() && value.front() == '/';
+#endif
+}
+
+bool has_parent_path_component(const std::string& value)
+{
+    size_t start = 0;
+    while (start <= value.size()) {
+        size_t end = start;
+        while (end < value.size() && !is_path_separator(value[end]))
+            ++end;
+        if (end - start == 2 && value[start] == '.' && value[start + 1] == '.')
+            return true;
+        if (end == value.size())
+            return false;
+        start = end + 1;
+    }
+    return false;
+}
+
+// A tree wildcard may only be the final "/*"; "*" anywhere else is a literal character to the
+// matcher, so accepting it here would promise a scope the grant does not have. Relative roots and
+// ".." are refused for the same reason: they move the effective scope to the process working
+// directory at match time.
+bool normalize_filesystem_permission(const std::string& raw, std::string& normalized, wxString& error)
+{
+    normalized = trim_permission_target(raw);
+    if (normalized.empty()) {
+        error = _L("A file system permission cannot be empty.");
+        return false;
+    }
+    if (normalized.find('\0') != std::string::npos) {
+        error = _L("A file system permission cannot contain a null character.");
+        return false;
+    }
+
+    const size_t wildcard = normalized.find('*');
+    if (wildcard != std::string::npos) {
+        if (wildcard == 0 || wildcard != normalized.size() - 1 || !is_path_separator(normalized[wildcard - 1])) {
+            error = _L("A file system permission may use \"*\" only as the final \"/*\" of a folder tree.");
+            return false;
+        }
+    }
+    if (has_parent_path_component(normalized)) {
+        error = _L("A file system permission cannot contain a \"..\" path component.");
+        return false;
+    }
+    if (!is_absolute_permission_path(normalized)) {
+        error = _L("A file system permission must be an absolute path on this computer.");
+        return false;
+    }
+    return true;
+}
+
+// Validates the authority before handing the URL to the shared matcher normalizer. This catches
+// malformed ports, unbracketed IPv6, userinfo and backslashes, which host_from_authority would
+// otherwise silently turn into a different host. The canonical result drops port, path, query and
+// fragment and lowercases scheme and host, exactly as the audit matcher stores and compares
+// network grants.
+bool normalize_network_permission(const std::string& raw, std::string& normalized, wxString& error)
+{
+    const std::string value = trim_permission_target(raw);
+    if (value.empty()) {
+        error = _L("A network permission cannot be empty.");
+        return false;
+    }
+    for (const unsigned char c : value) {
+        if (c < 0x20 || c == 0x7f) {
+            error = _L("A network permission cannot contain control characters.");
+            return false;
+        }
+    }
+    if (value.find('*') != std::string::npos) {
+        error = _L("Network permissions do not support wildcards. Enter one full http:// or https:// URL.");
+        return false;
+    }
+
+    const size_t scheme_end = value.find("://");
+    if (scheme_end == std::string::npos || scheme_end == 0) {
+        error = _L("Enter a full http:// or https:// URL with a host name or IP address. Bare domain names are not accepted.");
+        return false;
+    }
+
+    std::string scheme = value.substr(0, scheme_end);
+    std::transform(scheme.begin(), scheme.end(), scheme.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
+    if (scheme != "http" && scheme != "https") {
+        error = _L("Only http:// and https:// URLs are supported for network permissions.");
+        return false;
+    }
+
+    const size_t      authority_start = scheme_end + 3;
+    const size_t      authority_end   = value.find_first_of("/?#", authority_start);
+    const std::string authority       = value.substr(authority_start,
+                                                     authority_end == std::string::npos ? std::string::npos : authority_end - authority_start);
+    if (authority.empty()) {
+        error = _L("Enter a full http:// or https:// URL with a host name or IP address.");
+        return false;
+    }
+
+    if (authority.find('@') != std::string::npos) {
+        error = _L("Network permissions cannot include a username or password. Enter a URL with only a scheme and host.");
+        return false;
+    }
+    if (authority.find('\\') != std::string::npos) {
+        error = _L("Enter a full http:// or https:// URL with a host name or IP address.");
+        return false;
+    }
+
+    const auto is_port = [](const std::string& port) {
+        return !port.empty() && std::all_of(port.begin(), port.end(), [](unsigned char c) { return std::isdigit(c) != 0; });
+    };
+    if (authority.front() == '[') {
+        const size_t close = authority.find(']');
+        if (close == std::string::npos || close == 1) {
+            error = _L("Enter a valid bracketed IPv6 address.");
+            return false;
+        }
+        const std::string rest = authority.substr(close + 1);
+        if (!rest.empty() && (rest.front() != ':' || !is_port(rest.substr(1)))) {
+            error = _L("Enter a full http:// or https:// URL with a host name or IP address.");
+            return false;
+        }
+    } else {
+        if (authority.find_first_of("[]") != std::string::npos) {
+            error = _L("Enter a full http:// or https:// URL with a host name or IP address.");
+            return false;
+        }
+        const size_t colon = authority.find(':');
+        if (colon != std::string::npos) {
+            if (colon == 0 || authority.find(':', colon + 1) != std::string::npos || !is_port(authority.substr(colon + 1))) {
+                error = _L("Enter a full http:// or https:// URL with a host name or IP address.");
+                return false;
+            }
+        }
+    }
+
+    normalized = PluginAuditManager::normalize_network_url(value);
+    if (normalized.empty()) {
+        error = _L("Enter a full http:// or https:// URL with a host name or IP address.");
+        return false;
+    }
+    return true;
+}
+
+// Only targets the draft adds or edits are validated. An entry that is byte-identical to a stored
+// grant is preserved verbatim, so opening the dialog and saving an unrelated change cannot reject
+// or rewrite a legacy grant stored by an older release. New values are trimmed and, for network
+// lists, reduced to the canonical scheme://host the matcher treats as host-wide.
+bool normalize_permission_list(const std::vector<std::string>& stored,
+                               const std::vector<std::string>& requested,
+                               bool                          network,
+                               std::vector<std::string>&     out,
+                               wxString&                     error)
+{
+    out.clear();
+    out.reserve(requested.size());
+    for (const std::string& entry : requested) {
+        // An unchanged entry is carried across exactly as stored. A duplicate is collapsed only
+        // when the same string is already in the result; the granted scope does not change.
+        if (std::find(stored.begin(), stored.end(), entry) != stored.end()) {
+            if (std::find(out.begin(), out.end(), entry) == out.end())
+                out.push_back(entry);
+            continue;
+        }
+
+        std::string normalized;
+        wxString    reason;
+        const bool  valid = network ? normalize_network_permission(entry, normalized, reason)
+                                    : normalize_filesystem_permission(entry, normalized, reason);
+        if (!valid) {
+            error = format_wxstr(_L("Cannot save \"%1%\": %2%"), from_u8(entry), reason);
+            return false;
+        }
+
+        // The normalized value may equal an unchanged grant (for example when the user edits a
+        // stored URL to a different spelling of the same host). Keep that scope in the result
+        // rather than dropping it, and avoid storing the same grant twice.
+        if (std::find(out.begin(), out.end(), normalized) == out.end())
+            out.push_back(std::move(normalized));
+    }
+    return true;
+}
+
+bool normalize_permission_targets(const PluginPermissions& stored, PluginPermissions& requested, wxString& error)
+{
+    std::vector<std::string> fs_read;
+    std::vector<std::string> fs_readwrite;
+    std::vector<std::string> network_http;
+    std::vector<std::string> network_socket;
+    if (!normalize_permission_list(stored.fs_read, requested.fs_read, /*network=*/false, fs_read, error) ||
+        !normalize_permission_list(stored.fs_readwrite, requested.fs_readwrite, /*network=*/false, fs_readwrite, error) ||
+        !normalize_permission_list(stored.network_http, requested.network_http, /*network=*/true, network_http, error) ||
+        !normalize_permission_list(stored.network_socket, requested.network_socket, /*network=*/true, network_socket, error))
+        return false;
+
+    requested.fs_read        = std::move(fs_read);
+    requested.fs_readwrite   = std::move(fs_readwrite);
+    requested.network_http   = std::move(network_http);
+    requested.network_socket = std::move(network_socket);
     return true;
 }
 
@@ -217,11 +472,13 @@ struct PermissionAddition
     wxString label;
     std::vector<std::string> entries;
     bool boolean_grant = false;
+    bool network_scope = false;
 };
 
-// The exact entries the draft adds, grouped for the confirmation message. Comparison is exact
-// string addition, which is enough here: a target re-added in a different form is a new grant,
-// and removals never need confirmation. full_access is preserved separately and ignored.
+// The entries the draft adds, grouped for the confirmation message. Comparison is exact against
+// the requested list, which save_plugin_permissions has already normalized: an added network URL
+// with a path therefore appears as the broader scheme://host that will actually be stored, not as
+// the string the user typed. Removals never need confirmation. full_access is confirmed separately.
 std::vector<PermissionAddition> collect_permission_additions(const PluginPermissions& stored,
                                                              const PluginPermissions& requested)
 {
@@ -229,9 +486,11 @@ std::vector<PermissionAddition> collect_permission_additions(const PluginPermiss
 
     auto collect = [&additions](const wxString& label,
                                 const std::vector<std::string>& stored_entries,
-                                const std::vector<std::string>& requested_entries) {
+                                const std::vector<std::string>& requested_entries,
+                                bool network_scope = false) {
         PermissionAddition addition;
-        addition.label = label;
+        addition.label         = label;
+        addition.network_scope = network_scope;
         for (const std::string& entry : requested_entries)
             if (std::find(stored_entries.begin(), stored_entries.end(), entry) == stored_entries.end())
                 addition.entries.push_back(entry);
@@ -241,8 +500,8 @@ std::vector<PermissionAddition> collect_permission_additions(const PluginPermiss
 
     collect(_L("File system read"), stored.fs_read, requested.fs_read);
     collect(_L("File system read and write"), stored.fs_readwrite, requested.fs_readwrite);
-    collect(_L("HTTP network"), stored.network_http, requested.network_http);
-    collect(_L("Network sockets"), stored.network_socket, requested.network_socket);
+    collect(_L("HTTP network"), stored.network_http, requested.network_http, /*network_scope=*/true);
+    collect(_L("Network sockets"), stored.network_socket, requested.network_socket, /*network_scope=*/true);
     collect(_L("Processes"), stored.process, requested.process);
     collect(_L("Events"), stored.events, requested.events);
 
@@ -534,15 +793,16 @@ bool is_valid_bridge_request_id(const std::string& request_id)
     });
 }
 
-// Reports the outcome of a set_plugin_full_access request to the webview, so it clears its
-// pending switch only on the matching plugin's result. Sent after every completion: success,
-// failure, cancelled confirmation, and invalid payload.
-void send_full_access_result(WebViewHostDialog& dialog, const std::string& plugin_key, const std::string& request_id)
+// Reports the outcome of a confirm_plugin_full_access request to the webview so it can clear its
+// pending switch and, on `accepted`, stage the change in its draft. Sent for success, refusal,
+// cancelled confirmation and invalid payload; never implies the change was persisted.
+void send_full_access_result(WebViewHostDialog& dialog, const std::string& plugin_key, const std::string& request_id, bool accepted)
 {
     nlohmann::json payload;
     payload["command"]    = "plugin_full_access_result";
     payload["plugin_key"] = plugin_key;
     payload["request_id"] = request_id;
+    payload["accepted"]   = accepted;
     dialog.call_web_handler(payload);
 }
 
@@ -754,7 +1014,22 @@ PluginsDialog::PluginsDialog(wxWindow* parent, wxWindowID id, const wxString&, c
 {
     Bind(wxEVT_CLOSE_WINDOW, &PluginsDialog::on_window_close, this);
     Bind(wxEVT_CHAR_HOOK, &PluginsDialog::on_char_hook, this);
+    Bind(wxEVT_SHOW, &PluginsDialog::on_show, this);
     create_webview("web/dialog/PluginsDialog/index.html", _L("Plugins"), wxSize(900, 820), wxSize(760, 715));
+}
+
+void PluginsDialog::on_show(wxShowEvent& event)
+{
+    // The page keeps its permission draft while hidden, so every reopen must be able to ask again.
+    if (event.IsShown()) {
+        m_allow_close             = false;
+        m_esc_close_request_sent  = false;
+        m_close_request_in_flight = false;
+    }
+    // A hidden page must not keep an enable-full-access approval: the webview stays loaded while
+    // the dialog is hidden, and the approval may only cover the showing the user answered in.
+    m_full_access_confirmed.clear();
+    event.Skip();
 }
 
 void PluginsDialog::on_window_close(wxCloseEvent& event)
@@ -891,9 +1166,13 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"permissions_process", _u8L("Processes")},
         {"permissions_threading", _u8L("Threading")},
         {"permissions_events", _u8L_CONTEXT("Events", "Permission category")},
-        {"permissions_filesystem_help", _u8L("Enter an absolute path. Add /* at the end to include its subtree.")},
+        {"permissions_filesystem_help", _u8L("Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. These read and read/write grants do not cover creating or deleting files: each such operation asks for approval separately and the answer is not remembered.")},
+#ifdef _WIN32
+        {"permissions_filesystem_placeholder", _u8L("C:\\path\\to\\directory\\*")},
+#else
         {"permissions_filesystem_placeholder", _u8L("/path/to/directory/*")},
-        {"permissions_network_access_guidance", _u8L("Enter an HTTP or HTTPS URL using a domain name or IP address. Access applies to the entire host; ports, paths, and queries are not used to limit it. Grants in either list are checked for HTTP and socket access.")},
+#endif
+        {"permissions_network_access_guidance", _u8L("Enter a full http:// or https:// URL. Only the scheme and host are saved, so the grant covers every port, path, and query on that host. Bare domain names and other schemes are not accepted. Grants in either list are checked for HTTP and socket access.")},
         {"permissions_network_placeholder", _u8L("https://example.com")},
         {"permissions_process_help", _u8L("Enter the exact value recorded by the audit. It may be a Python representation of the command.")},
         {"permissions_process_placeholder", _u8L("Exact audited value")},
@@ -913,15 +1192,15 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"permissions_filesystem_access_label", _u8L("Access for new path")},
         {"permissions_filesystem_read_name", _u8L("File system: Read")},
         {"permissions_filesystem_readwrite_name", _u8L("File system: Read and write")},
-        {"permissions_full_access_help", _u8L("Full access bypasses permission checks. The plugin can read and write most files your user account can access; modifying startup or application files can run code outside these checks. Direct Python access to OrcaSlicer's configuration, secret, certificate and install-state paths stays blocked, but subprocesses are not restricted. Full access is not a sandbox.")},
+        {"permissions_full_access_help", _u8L("Full access bypasses permission checks. The plugin can read and write most files you can access; modifying startup or application files can let code run outside these checks. Direct Python access to OrcaSlicer's configuration, secret, certificate and install-state paths stays blocked, but subprocesses are not restricted.")},
         {"permissions_full_access_editor_disabled", _u8L("Permission list editing is disabled while full access is on.")},
         {"permissions_full_access_unavailable", _u8L("Full access status is unavailable.")},
         {"permissions_full_access_updating", _u8L("Updating full access…")},
         {"permissions_save_changes", _u8L("Save changes")},
-        {"permissions_save_notice", _u8L("Permission changes take effect after saving. Full access is saved separately.")},
-        {"permissions_unapplied_notice", _u8L("Apply or remove the text you entered before saving.")},
+        {"permissions_draft_save_notice", _u8L("Permission changes take effect after saving.")},
+        {"permissions_invalid_pending", _u8L("Enter a value or remove the unfinished text before saving.")},
+        {"permissions_full_access_invalid_pending", _u8L("Correct or remove unfinished text before turning on full access.")},
         {"permissions_unsaved_title", _u8L("Unsaved permission changes")},
-        {"permissions_unsaved_unapplied", _u8L("Apply or remove the text you entered before saving.")},
         {"permissions_unsaved_description", _u8L("Save or discard your changes before leaving.")},
         {"permissions_save_close", _u8L("Save and close")},
         {"permissions_save_switch", _u8L("Save and switch")},
@@ -1064,10 +1343,10 @@ void PluginsDialog::handle_web_command(const nlohmann::json& payload)
         // `config` is a JSON string from the default editor's textarea, or an already-structured
         // value from a capability's custom UI. Both land here; save_capability_config sorts it out.
         save_capability_config(id, payload.contains("config") ? payload.at("config") : nlohmann::json::object());
-    } else if (command == "set_plugin_full_access") {
-        // The webview is shared with plugin-provided UI, so validate the shape before acting:
-        // a non-string key, a non-boolean flag or a malformed correlation token is refused rather
-        // than coerced. The result still echoes the token so the sender can clear its pending state.
+    } else if (command == "confirm_plugin_full_access") {
+        // The webview is shared with plugin-provided UI, so validate the shape before acting: a
+        // non-string key or a malformed correlation token is refused rather than coerced. The
+        // approval and the warning are native, and nothing is persisted here.
         const std::string plugin_key = payload.contains("plugin_key") && payload.at("plugin_key").is_string()
                                            ? payload.at("plugin_key").get<std::string>()
                                            : std::string{};
@@ -1075,14 +1354,13 @@ void PluginsDialog::handle_web_command(const nlohmann::json& payload)
                                            ? payload.at("request_id").get<std::string>()
                                            : std::string{};
         const bool request_id_valid = is_valid_bridge_request_id(request_id);
-        if (!request_id_valid || !payload.contains("plugin_key") || !payload.at("plugin_key").is_string() ||
-            !payload.contains("enabled") || !payload.at("enabled").is_boolean()) {
+        if (!request_id_valid || !payload.contains("plugin_key") || !payload.at("plugin_key").is_string()) {
             show_status(_L("Invalid full access request."), "error");
             send_plugins();
-            send_full_access_result(*this, plugin_key, request_id_valid ? request_id : std::string{});
+            send_full_access_result(*this, plugin_key, request_id_valid ? request_id : std::string{}, /*accepted=*/false);
             return;
         }
-        set_plugin_full_access(plugin_key, payload.at("enabled").get<bool>(), request_id);
+        confirm_plugin_full_access(plugin_key, request_id);
     } else if (command == "save_plugin_permissions") {
         // Same shape guard as full access: the webview is shared with plugin-authored UI, so a
         // non-string key, malformed token or wrongly typed category list is refused, not coerced.
@@ -1110,6 +1388,8 @@ void PluginsDialog::handle_web_command(const nlohmann::json& payload)
             return;
         m_allow_close = true;
         m_esc_close_request_sent = false;
+        // No approval outlives the close command; the dialog is about to hide.
+        m_full_access_confirmed.clear();
         wxGetApp().CallAfter([this, alive = m_alive]() {
             if (alive->load(std::memory_order_acquire) && !IsBeingDeleted())
                 Close();
@@ -1204,16 +1484,40 @@ void PluginsDialog::refresh_plugins()
     refresh_plugin_metadata_async(_L("Refreshing"), _L("Refreshing plugins data"), kFetchCloudMeta);
 }
 
-void PluginsDialog::set_plugin_full_access(const std::string& plugin_key, bool enabled, const std::string& request_id)
+bool PluginsDialog::prompt_enable_full_access(const std::string& plugin_key)
+{
+    const wxString plugin_name = plugin_display_name(plugin_key);
+    MessageDialog dialog(
+        this,
+        wxString::Format(
+            _L("Enable full access for \"%s\"?\n\n"
+               "Full access turns off permission auditing for this plugin: its file system, network, "
+               "process, thread and event permissions are no longer checked. The plugin can read and "
+               "write most files your user account can access, including startup scripts, SSH keys "
+               "and a writable OrcaSlicer installation. Modifying startup or application files can "
+               "let code run outside these checks. Direct Python access to OrcaSlicer's "
+               "configuration, secret, certificate and install-state paths stays blocked, but "
+               "subprocesses are not restricted. Full access is not a sandbox.\n\n"
+               "Only enable this for a plugin you trust."),
+            plugin_name),
+        _L("Full access"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
+    // MsgDialog builds its own buttons in a fixed order and always gives Yes the initial focus;
+    // wxNO_DEFAULT does not change that. Focus No explicitly so Enter cannot grant full access.
+    dialog.SetButtonLabel(wxID_NO, _L("No"), /*set_focus=*/true);
+
+    const int rc = dialog.ShowModal();
+    restore_z_order();
+    return rc == wxID_YES;
+}
+
+void PluginsDialog::confirm_plugin_full_access(const std::string& plugin_key, const std::string& request_id)
 {
     if (plugin_key.empty()) {
         show_status(_L("Invalid full access request."), "error");
         send_plugins();
-        send_full_access_result(*this, plugin_key, request_id);
+        send_full_access_result(*this, plugin_key, request_id, /*accepted=*/false);
         return;
     }
-
-    const wxString plugin_name = plugin_display_name(plugin_key);
 
     // Full access is a permission edit, so it follows the same rule as the list: locked while the
     // plugin is live or loading. Check before the confirmation so the user is not asked to approve
@@ -1222,52 +1526,37 @@ void PluginsDialog::set_plugin_full_access(const std::string& plugin_key, bool e
     if (plugin_permission_editing_blocked(plugin_key, locked_reason)) {
         show_status(locked_reason, "warn");
         send_plugins();
-        send_full_access_result(*this, plugin_key, request_id);
+        send_full_access_result(*this, plugin_key, request_id, /*accepted=*/false);
         return;
     }
 
-    // Enabling is the dangerous direction, and this dialog can be driven by a sandboxed,
-    // plugin-authored iframe that sends native commands directly. Require an explicit Yes from
-    // the host UI; any other outcome cancels and refreshes, so a scripted dismissal grants nothing.
-    if (enabled) {
-        MessageDialog dialog(
-            this,
-            wxString::Format(
-                _L("Enable full access for \"%s\"?\n\n"
-                   "Full access turns off permission auditing for this plugin: its file system, network, "
-                   "process, thread and event permissions are no longer checked. The plugin can read and "
-                   "write most files your user account can access, including startup scripts, SSH keys "
-                   "and a writable OrcaSlicer installation. Modifying startup or application files can "
-                   "let code run outside these checks. Direct Python access to OrcaSlicer's "
-                   "configuration, secret, certificate and install-state paths stays blocked, but "
-                   "subprocesses are not restricted. Full access is not a sandbox.\n\n"
-                   "Only enable this for a plugin you trust."),
-                plugin_name),
-            _L("Full access"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
-        // MsgDialog builds its own buttons in a fixed order and always gives Yes the initial focus;
-        // wxNO_DEFAULT does not change that. Focus No explicitly so Enter cannot grant full access.
-        dialog.SetButtonLabel(wxID_NO, _L("No"), /*set_focus=*/true);
-
-        const int rc = dialog.ShowModal();
-        restore_z_order();
-        if (rc != wxID_YES) {
-            send_plugins();
-            send_full_access_result(*this, plugin_key, request_id);
-            return;
-        }
-    }
-
-    if (!PluginManager::instance().set_plugin_full_access(plugin_key, enabled)) {
-        show_status(_L("Failed to update full access."), "error");
+    PluginInstallState stored;
+    if (!PluginManager::instance().get_install_state(plugin_key, stored)) {
+        show_status(_L("Install this plugin to edit its permissions."), "warn");
         send_plugins();
-        send_full_access_result(*this, plugin_key, request_id);
+        send_full_access_result(*this, plugin_key, request_id, /*accepted=*/false);
         return;
     }
 
-    send_plugins();
-    send_full_access_result(*this, plugin_key, request_id);
-    show_status(wxString::Format(enabled ? _L("Full access enabled for \"%s\".") : _L("Full access disabled for \"%s\"."), plugin_name),
-                "success");
+    // Ask on every toggle-on, even when the stored flag is already on: the user may have toggled
+    // it off and back on, and the switch must warn on each enable attempt. Enabling is the
+    // dangerous direction, and this dialog can be driven by a sandboxed, plugin-authored iframe
+    // that sends native commands directly. Require an explicit Yes from the host UI; any other
+    // outcome cancels, so a scripted dismissal grants nothing.
+    if (!prompt_enable_full_access(plugin_key)) {
+        m_full_access_confirmed.erase(plugin_key);
+        send_full_access_result(*this, plugin_key, request_id, /*accepted=*/false);
+        return;
+    }
+
+    // Only an approved off-to-on transition needs a remembered approval; when the flag is already
+    // on there is no transition for Save to consume, and keeping a stale approval would let a later
+    // forged save reuse a consent that was not about raising the flag.
+    if (stored.permissions.full_access)
+        m_full_access_confirmed.erase(plugin_key);
+    else
+        m_full_access_confirmed.insert(plugin_key);
+    send_full_access_result(*this, plugin_key, request_id, /*accepted=*/true);
 }
 
 void PluginsDialog::save_plugin_permissions(const std::string& plugin_key, const PluginPermissions& permissions, const std::string& request_id)
@@ -1301,27 +1590,54 @@ void PluginsDialog::save_plugin_permissions(const std::string& plugin_key, const
 
     const wxString plugin_name = plugin_display_name(plugin_key);
 
-    // Reject before any confirmation: while full access is on the permission list is inert, so a
-    // save would silently store grants that take effect only after full access is turned off.
-    if (stored.permissions.full_access) {
-        show_status(_L("Permission list editing is disabled while full access is on."), "warn");
+    // Validate and normalize only the targets this save adds or edits. Unchanged entries, including
+    // legacy grants stored by older releases, are carried across verbatim so an unrelated edit
+    // cannot reject or rewrite them. Network additions are reduced to the matcher's canonical
+    // scheme://host before they are confirmed or written.
+    PluginPermissions normalized_permissions = permissions;
+    wxString          target_error;
+    if (!normalize_permission_targets(stored.permissions, normalized_permissions, target_error)) {
+        BOOST_LOG_TRIVIAL(warning) << "Refusing invalid permission target for " << plugin_key << ": " << into_u8(target_error);
+        show_status(target_error, "error");
         send_plugins();
         send_permissions_result(*this, plugin_key, request_id, /*success=*/false);
         return;
     }
 
+    // An explicit disable spends any enable approval still held for this plugin, so it cannot be
+    // replayed by a later command in the same showing.
+    if (!normalized_permissions.full_access)
+        m_full_access_confirmed.erase(plugin_key);
+
+    // Enabling full access is the dangerous direction. The page asks for native approval when the
+    // switch is staged (confirm_plugin_full_access); accept that approval here without asking
+    // twice. A save that arrives without one - a forged frame, or a draft whose approval was
+    // cleared by reopening the dialog - must still pass the native warning before the flag can be
+    // raised. Disabling needs no confirmation.
+    const bool enabling_full_access = normalized_permissions.full_access && !stored.permissions.full_access;
+    if (enabling_full_access && m_full_access_confirmed.count(plugin_key) == 0) {
+        if (!prompt_enable_full_access(plugin_key)) {
+            send_plugins();
+            send_permissions_result(*this, plugin_key, request_id, /*success=*/false);
+            return;
+        }
+        m_full_access_confirmed.insert(plugin_key);
+    }
+
     // A saved list is a replacement, so removals need no confirmation. Added or broadened grants
     // do: this dialog can be driven by a sandboxed, plugin-authored iframe that sends native
     // commands directly. Any outcome other than an explicit Yes cancels, and the draft survives.
-    const std::vector<PermissionAddition> additions = collect_permission_additions(stored.permissions, permissions);
+    const std::vector<PermissionAddition> additions = collect_permission_additions(stored.permissions, normalized_permissions);
     if (!additions.empty()) {
         wxString details;
+        bool     has_network_addition = false;
         for (const PermissionAddition& addition : additions) {
             if (!details.empty())
                 details += "\n\n";
             if (addition.boolean_grant) {
                 details += format_wxstr(_L("%1%: enabled"), addition.label);
             } else {
+                has_network_addition = has_network_addition || addition.network_scope;
                 wxString entries;
                 for (const std::string& entry : addition.entries) {
                     if (!entries.empty())
@@ -1330,6 +1646,12 @@ void PluginsDialog::save_plugin_permissions(const std::string& plugin_key, const
                 }
                 details += format_wxstr(_L("%1%:\n%2%"), addition.label, entries);
             }
+        }
+        // The normalized canonical form is the grant that will be stored, so say that its scope is
+        // wider than a pasted URL with a path, port, or query.
+        if (has_network_addition) {
+            details += "\n\n";
+            details += _L("Network grants are saved as lowercase scheme://host, so a URL entered with a path, port, or query grants every path, port, and query on that host.");
         }
 
         MessageDialog dialog(
@@ -1352,16 +1674,23 @@ void PluginsDialog::save_plugin_permissions(const std::string& plugin_key, const
         }
     }
 
-    if (!PluginManager::instance().set_plugin_permissions(plugin_key, permissions)) {
+    if (!PluginManager::instance().set_plugin_permissions(plugin_key, normalized_permissions)) {
         show_status(_L("Failed to save permissions."), "error");
         send_plugins();
         send_permissions_result(*this, plugin_key, request_id, /*success=*/false);
         return;
     }
 
+    // A successful write makes the stored flag authoritative; the approval cannot be replayed.
+    m_full_access_confirmed.erase(plugin_key);
+
     send_plugins();
     send_permissions_result(*this, plugin_key, request_id, /*success=*/true);
-    show_status(wxString::Format(_L("Permissions saved for \"%s\"."), plugin_name), "success");
+    if (normalized_permissions.full_access != stored.permissions.full_access)
+        show_status(wxString::Format(normalized_permissions.full_access ? _L("Full access enabled for \"%s\".") : _L("Full access disabled for \"%s\"."), plugin_name),
+                    "success");
+    else
+        show_status(wxString::Format(_L("Permissions saved for \"%s\"."), plugin_name), "success");
 }
 
 void PluginsDialog::toggle_plugin(const std::string& plugin_key, bool enabled)

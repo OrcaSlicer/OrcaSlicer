@@ -4,6 +4,7 @@
 
 #include <boost/filesystem/path.hpp>
 
+#include <mutex>
 #include <string>
 #include <utility>
 #include <vector>
@@ -115,10 +116,21 @@ std::vector<std::string> collect_resource_texture_files(const std::string& dir,
                                                         const std::string& plugin_root,
                                                         std::string& error);
 
+// Process-wide mutex serializing in-process read-modify-write cycles on a plugin's
+// .install_state.json sidecar. Hold it from the read through the write so two writers cannot
+// overwrite each other's grants. It is not a file lock: another OrcaSlicer process writing the
+// same sidecar is not serialized.
+//
+// Lock order: install-state mutex -> PluginManager::m_mutex. Code that already holds the manager
+// lock must not acquire this one.
+std::mutex& install_state_mutex();
+
 // Canonical writer: emits the .install_state.json schema for the given state.
+// A full read-modify-write caller must hold install_state_mutex() across its read and this write.
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginInstallState& state);
 
-// Builds a PluginInstallState from the descriptor and delegates to the canonical writer.
+// Builds a PluginInstallState from the descriptor and delegates to the canonical writer. This
+// overload reads the sidecar itself, so callers must hold install_state_mutex().
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginDescriptor& entry, bool enabled,
                          const std::vector<std::pair<std::string, bool>>& capabilities);
 // Convenience overload: write(dir, entry, /*enabled=*/true, /*capabilities=*/{}).
