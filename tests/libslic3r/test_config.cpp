@@ -11,6 +11,7 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PrintConfigConstants.hpp"
+#include "libslic3r/Preset.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 
 #include "test_utils.hpp"
@@ -22,6 +23,7 @@
 
 #include <boost/nowide/fstream.hpp>
 #include "libslic3r/Config.hpp"
+#include <algorithm>
 #include <cstddef>
 #include <initializer_list>
 #include <memory>
@@ -2026,4 +2028,103 @@ TEST_CASE("The print speed table keeps a bed outline when the extruders share no
     const BoundingBox outline(Model::getBedPolygon().points);
     CHECK(outline.min == Point(0, 0));
     CHECK(outline.max == Point(scaled(350.), scaled(350.)));
+}
+
+TEST_CASE("normalize_plate_filament_map preserves empty-means-global-fallback semantics", "[Config]") {
+    std::vector<int> values;
+    normalize_plate_filament_map(values, 4, 2);
+    REQUIRE(values.empty());
+}
+
+TEST_CASE("normalize_plate_filament_map pads a short map with 1", "[Config]") {
+    std::vector<int> values = {2, 1};
+    normalize_plate_filament_map(values, 4, 2);
+    REQUIRE(values == std::vector<int>{2, 1, 1, 1});
+}
+
+TEST_CASE("normalize_plate_filament_map clamps out-of-range entries into [1, nozzle_count]", "[Config]") {
+    // Per-plate maps are bounded by the project's own nozzle count.
+    std::vector<int> values = {2, 0, -5, 99};
+    normalize_plate_filament_map(values, 4, 1);
+    REQUIRE(values == std::vector<int>{1, 1, 1, 1});
+}
+
+TEST_CASE("normalize_plate_filament_map leaves a well-formed map unchanged", "[Config]") {
+    // BBL dual-nozzle no-op case: already the right length, already in range.
+    std::vector<int> values = {1, 2, 1, 2};
+    normalize_plate_filament_map(values, 4, 2);
+    REQUIRE(values == std::vector<int>{1, 2, 1, 2});
+}
+
+TEST_CASE("normalize_plate_filament_map never truncates a longer map", "[Config]") {
+    std::vector<int> values = {1, 2, 1, 2, 1};
+    normalize_plate_filament_map(values, 4, 2);
+    REQUIRE(values == std::vector<int>{1, 2, 1, 2, 1});
+}
+
+TEST_CASE("Preset::normalize keeps per-filament options at filament count when filaments exceed extruders", "[Config]") {
+    // Extruder options follow nozzle_diameter, per-filament options the filament count: a lost 5th
+    // filament_settings_id would surface as a "(project)" embedded preset on load.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
+    config.set_key_value("enable_filament_mapping", new ConfigOptionBool(true));
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4, 0.4, 0.4}));
+    config.set_key_value("filament_diameter", new ConfigOptionFloats({1.75, 1.75, 1.75, 1.75, 1.75}));
+    config.set_key_value("filament_settings_id",
+                         new ConfigOptionStrings({"F1", "F2", "F3", "F4", "F5"}));
+    config.set_key_value("filament_type",
+                         new ConfigOptionStrings({"PLA", "PLA", "PLA", "PLA", "PLA"}));
+
+    Preset::normalize(config);
+
+    const auto& ids = config.option<ConfigOptionStrings>("filament_settings_id")->values;
+    REQUIRE(ids.size() == 5);
+    CHECK(ids[4] == "F5");
+    REQUIRE(config.option<ConfigOptionStrings>("filament_type")->values.size() == 5);
+}
+
+TEST_CASE("Preset::normalize sizes per-filament options by the extruder count when filaments are not decoupled", "[Config]") {
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
+    config.set_key_value("enable_filament_mapping", new ConfigOptionBool(false));
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4, 0.4, 0.4}));
+    config.set_key_value("filament_diameter", new ConfigOptionFloats({1.75, 1.75, 1.75, 1.75, 1.75}));
+    config.set_key_value("filament_type", new ConfigOptionStrings({"PLA", "PLA", "PLA", "PLA", "PLA"}));
+    REQUIRE_FALSE(decouples_filaments_from_tools(config));
+
+    Preset::normalize(config);
+
+    CHECK(config.option<ConfigOptionStrings>("filament_type")->values.size() == 4);
+}
+
+TEST_CASE("enable_filament_mapping defaults to on and is a printer option", "[Config]") {
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    REQUIRE(config.opt_bool("enable_filament_mapping"));
+    const auto& printer_opts = Preset::printer_options();
+    CHECK(std::find(printer_opts.begin(), printer_opts.end(), "enable_filament_mapping") != printer_opts.end());
+}
+
+TEST_CASE("Filaments are decoupled from tools on a multi-tool printer unless it is switched off", "[Config]") {
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4}));
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
+    REQUIRE(decouples_filaments_from_tools(config));
+
+    SECTION("the option is off") {
+        config.set_deserialize_strict({{"enable_filament_mapping", "0"}});
+        CHECK_FALSE(decouples_filaments_from_tools(config));
+    }
+    SECTION("a single tool") {
+        config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4}));
+        CHECK_FALSE(decouples_filaments_from_tools(config));
+    }
+    SECTION("single extruder multi material") {
+        config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(true));
+        CHECK_FALSE(decouples_filaments_from_tools(config));
+    }
+    // Bambu printers assign filaments to nozzles through filament_map.
+    SECTION("a Bambu printer") {
+        config.set_key_value("printer_model", new ConfigOptionString("Bambu Lab H2D"));
+        CHECK_FALSE(decouples_filaments_from_tools(config));
+    }
 }

@@ -2573,13 +2573,16 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         const size_t num_extruder = boost::any_cast<size_t>(value);
         auto        *bundle       = wxGetApp().preset_bundle;
         Sidebar     &sidebar      = wxGetApp().plater()->sidebar();
+        // Orca: mapped printers own their filament count; shrinking the tool count must not
+        // delete project filaments.
+        const bool keep = decouples_filaments_from_tools(*m_config) && num_extruder <= bundle->num_physical_filaments();
         // A tool changer feeds filament N from nozzle N, so the extruder count sizes the physical
         // run only; mixed slots are virtual and keep the tail. Go one slot at a time through the
         // sidebar's own +/- calls: they insert ahead of the mixed tail and renumber filament ids,
         // painted facets, custom g-code and mixed components, which a bulk resize clamps away.
         // Both also refresh the print tab and export the selections, so nothing to do afterwards.
         size_t physical = bundle->num_physical_filaments();
-        while (physical != num_extruder) {
+        while (!keep && physical != num_extruder) {
             if (physical < num_extruder)
                 sidebar.add_custom_filament(Plater::get_next_color_for_filament());
             else
@@ -2589,6 +2592,8 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                 break;   // the call declined, e.g. the total slot limit - do not spin
             physical = updated;
         }
+        if (keep)
+            wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
     }
 
     //Orca: disable purge_in_prime_tower if single_extruder_multi_material is disabled
@@ -6137,6 +6142,7 @@ if (is_marlin_flavor)
             });
         };
         optgroup->append_single_option_line("manual_filament_change", "printer_multimaterial_setup#manual-filament-change");
+        optgroup->append_single_option_line("enable_filament_mapping", "printer_multimaterial_setup");
         optgroup->append_single_option_line("bed_temperature_formula", "printer_basic_information_advanced#bed-temperature-type");
 
         optgroup = page->new_optgroup(L("Wipe tower"), "param_tower");
@@ -6931,6 +6937,8 @@ void TabPrinter::toggle_options()
         const wxString tool_change_tower_reason = _L("Use multiple extruders with wipe tower Type 2 on a non-Bambu printer and disable single extruder multimaterial mode.");
         toggle_option("tool_change_on_wipe_tower", !bSEMM && supports_wipe_tower_2 && extruders_count > 1, -1, tool_change_tower_reason);
         toggle_option("wait_for_temp_on_wipe_tower", !bSEMM && supports_wipe_tower_2 && extruders_count > 1, -1, tool_change_tower_reason);
+
+        toggle_line("enable_filament_mapping", !is_BBL_printer && extruders_count > 1 && !bSEMM);
     }
     if (m_active_page->title() == L("Extruder") && m_extruders_count > 0)
     {

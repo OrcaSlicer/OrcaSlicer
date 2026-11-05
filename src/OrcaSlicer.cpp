@@ -6747,7 +6747,8 @@ int CLI::run(int argc, char **argv)
                                 }
                             }
 
-                            if (new_extruder_count > 1) {
+                            // The printer routes logical tools itself; normalize_fdm_1 pins the maps.
+                            if (new_extruder_count > 1 && !decouples_filaments_from_tools(m_print_config)) {
                                 std::vector<std::vector<int>> unprintable_filament_vec;
                                 for (const std::set<int>& filamnt_ids : unprintable_filament_ids) {
                                     unprintable_filament_vec.emplace_back(std::vector<int>(filamnt_ids.begin(), filamnt_ids.end()));

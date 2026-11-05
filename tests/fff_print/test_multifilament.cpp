@@ -1792,6 +1792,8 @@ static DynamicPrintConfig two_extruder_pressure_advance_config(const std::string
         { "printer_extruder_variant",       "Direct Drive Standard;Direct Drive High Flow" },
         { "extruder_variant_list",          "Direct Drive Standard;Direct Drive High Flow" },
         { "filament_map",                   filament_map },
+        // the map is set by hand, as on a Bambu; with filaments decoupled from tools it is derived
+        { "enable_filament_mapping",        0 },
         { "filament_extruder_variant",      "Direct Drive Standard;Direct Drive High Flow;Direct Drive Standard;Direct Drive High Flow" },
         { "filament_self_index",            "1,1,2,2" },
         { "enable_pressure_advance",        "1,1,1,1" },
@@ -2389,4 +2391,85 @@ TEST_CASE("Custom M104 in filament start G-code wins on a T0-only print", "[Mult
     REQUIRE(temps_after_t0.size() >= 2);
     CHECK(temps_after_t0.front() == slicer_temp);
     CHECK(temps_after_t0.back() == custom_temp);
+}
+
+namespace {
+// Tools named by a tool change ("T3") or a temperature ("M104 S200 T3").
+std::set<int> commanded_tools(const std::string &gcode, int up_to)
+{
+    std::set<int> tools;
+    std::istringstream lines(gcode);
+    for (std::string line; std::getline(lines, line);) {
+        size_t at = std::string::npos;
+        if (line.size() > 1 && line[0] == 'T' && std::isdigit((unsigned char) line[1]))
+            at = 1;
+        else if (line.rfind("M104", 0) == 0 || line.rfind("M109", 0) == 0)
+            if (const size_t t = line.find(" T"); t != std::string::npos && t + 2 < line.size() && std::isdigit((unsigned char) line[t + 2]))
+                at = t + 2;
+        if (at != std::string::npos)
+            if (const int tool = std::stoi(line.substr(at)); tool < up_to)
+                tools.insert(tool);
+    }
+    return tools;
+}
+} // namespace
+
+TEST_CASE("A decoupled printer slices logically despite stray manual maps", "[MultiFilament]") {
+    DynamicPrintConfig config = multifilament_config(3, {
+        { "nozzle_diameter",                "0.4,0.4,0.4" },
+        { "single_extruder_multi_material", "0" },
+        { "enable_filament_mapping",        "1" },
+        { "filament_map_mode",              "Manual" },
+        { "filament_map",                   "3,1,2" },
+        { "wall_filament",                  "1" },
+        { "sparse_infill_filament",         "2" },
+        { "solid_infill_filament",          "3" },
+        { "enable_prime_tower",             "1" },
+    });
+    // Filament i prints as T(i-1).
+    CHECK(commanded_tools(Slic3r::Test::slice({ TestMesh::cube_with_hole }, config), 3) == std::set<int>{ 0, 1, 2 });
+}
+
+// Print::update_filament_maps_to_config() writes derived maps back after slicing; with more
+// filaments than extruders, normalize_fdm_1 must produce the same values or every reapply diffs.
+TEST_CASE("Reapplying an unchanged device-mapped config after slicing does not report a diff", "[MultiFilament]") {
+    struct Case { const char* name; std::vector<Slic3r::ConfigBase::SetDeserializeItem> config; };
+    const Case c = GENERATE(
+        // Stray manual map, as a migrated project would carry.
+        Case{ "stray manual map", { { "enable_filament_mapping", "1" }, { "filament_map_mode", "Manual" },
+                                    { "filament_map", "3,1,2,4,2" }, { "solid_infill_filament", "4" } } },
+        Case{ "enable_filament_mapping", { { "enable_filament_mapping", "1" }, { "solid_infill_filament", "4" } } });
+
+    DYNAMIC_SECTION(c.name) {
+        DynamicPrintConfig config = multifilament_config(5, {
+            { "nozzle_diameter",                "0.4,0.4,0.4,0.4" },
+            { "single_extruder_multi_material", "0" },
+            { "wall_filament",                  "1" },
+            { "sparse_infill_filament",         "2" },
+            { "enable_prime_tower",             "1" },
+            { "gcode_comments",                 "1" },
+        });
+        for (const auto &item : c.config)
+            config.set_deserialize_strict(item.opt_key, item.opt_value);
+        Model model;
+        Print print;
+        Slic3r::Test::init_print({ TestMesh::cube_with_hole }, print, model, config);
+        print.process();
+        CHECK((int) print.apply(model, config) == (int) PrintBase::APPLY_STATUS_UNCHANGED);
+    }
+}
+
+// The namespace is the nozzle count.
+TEST_CASE("More filaments than tools slice to logical tool indices when the device resolves mapping", "[MultiFilament]") {
+    DynamicPrintConfig config = multifilament_config(5, {
+        { "nozzle_diameter",                "0.4,0.4,0.4,0.4" },
+        { "single_extruder_multi_material", "0" },
+        { "enable_filament_mapping",        "1" },
+        { "wall_filament",                  "1" },
+        { "sparse_infill_filament",         "2" },
+        { "solid_infill_filament",          "4" },
+        { "enable_prime_tower",             "1" },
+        { "gcode_comments",                 "1" },
+    });
+    CHECK(commanded_tools(Slic3r::Test::slice({ TestMesh::cube_with_hole }, config), 5) == std::set<int>{ 0, 1, 3 });
 }
