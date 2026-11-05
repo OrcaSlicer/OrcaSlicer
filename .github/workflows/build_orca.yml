@@ -653,6 +653,12 @@ jobs:
           chmod +x "$appimage"
           "$appimage" --appimage-extract
           ./scripts/build_preset_cache.sh -b build build/package/resources/profiles squashfs-root/resources/profiles
+          # The extracted tree (and the caches written into it) come back mode
+          # 0700 on some runners and current appimagetool treats that as a hard
+          # error ("found 1 ERROR(S) in the AppDir, nothing was changed"),
+          # refusing to repack - this is its own suggested fix, applied to the
+          # whole AppDir.
+          chmod -R a+rX squashfs-root
           appimagetool=$(find build -name "appimagetool.AppImage" | head -1)
           ARCH=$(uname -m) "$appimagetool" --appimage-extract-and-run squashfs-root "$appimage"
           rm -rf squashfs-root

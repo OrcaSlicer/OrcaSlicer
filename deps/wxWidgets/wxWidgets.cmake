@@ -21,14 +21,11 @@ else ()
     set(_wx_edge "-DwxUSE_WEBVIEW_EDGE=OFF")
 endif ()
 
+# No patch step on macOS: the sRGB colour conversion this used to apply
+# (0001-macos-use-srgb-colour-components.patch) is upstream in
+# SoftFever/Orca-deps-wxWidgets v3.3.2 as of 2026-10-29, so re-applying it
+# fails the deps build with "src/osx/cocoa/colour.mm: patch does not apply".
 set(_wx_patch_command "")
-if (APPLE)
-    set(_wx_patch_command
-        ${GIT_EXECUTABLE} checkout -f -- src/osx/cocoa/colour.mm
-        COMMAND ${GIT_EXECUTABLE} apply --verbose
-                ${CMAKE_CURRENT_LIST_DIR}/0001-macos-use-srgb-colour-components.patch
-    )
-endif ()
 
 orcaslicer_add_cmake_project(
     wxWidgets
