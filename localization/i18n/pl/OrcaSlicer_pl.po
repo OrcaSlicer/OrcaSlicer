@@ -20633,17 +20633,17 @@ msgstr "Wycieranie do wewnątrz"
 
 # AI Translated
 msgid ""
-"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
+"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward the inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
 "\n"
 "Especially useful at layer heights below 0.1 mm, where wipe marks are more visible.\n"
 "\n"
-"Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or Outer/Inner wall order), or if no supported inward path can be found, for example at tight corners or seam gaps."
+"Uses the regular wipe where the outer wall has no adjacent inner wall, such as in single-wall areas, or if no supported inward path can be found, for example at tight corners or seam gaps."
 msgstr ""
-"Dotyczy wyłącznie ścian zewnętrznych, w tym obrysów otworów. Podczas wycierania przesuwa gorącą dyszę w stronę wydrukowanych już ścian wewnętrznych, aby ograniczyć ponowne nagrzewanie świeżo wydrukowanego tworzywa i ślady szwu.\n"
+"Dotyczy wyłącznie ścian zewnętrznych, w tym obrysów otworów. Podczas wycierania przesuwa gorącą dyszę w stronę ścian wewnętrznych, aby ograniczyć ponowne nagrzewanie świeżo wydrukowanego tworzywa i ślady szwu.\n"
 "\n"
 "Szczególnie przydatne przy wysokościach warstwy poniżej 0,1 mm, gdzie ślady wycierania są bardziej widoczne.\n"
 "\n"
-"Używa zwykłego wycierania, jeśli żadna sąsiednia ściana wewnętrzna nie została jeszcze wydrukowana (obszary o pojedynczej ścianie lub kolejność ścian Zewnętrzna/wewnętrzna) albo jeśli nie można znaleźć podpartej ścieżki do wewnątrz, na przykład w ciasnych narożnikach lub przerwach szwu."
+"Używa zwykłego wycierania tam, gdzie ściana zewnętrzna nie ma sąsiedniej ściany wewnętrznej, jak w obszarach o pojedynczej ścianie, albo jeśli nie można znaleźć podpartej ścieżki do wewnątrz, na przykład w ciasnych narożnikach lub przerwach szwu."
 
 # AI Translated
 msgid "Wipe inward distance"
@@ -20654,11 +20654,15 @@ msgstr "Odległość wycierania do wewnątrz"
 msgid ""
 "The distance the wipe path is shifted away from the external perimeter, specified in millimeters or as a percentage of the actual outer-wall extrusion width.\n"
 "\n"
-"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset."
+"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset.\n"
+"\n"
+"With Outer/Inner or Inner/Outer/Inner wall order, the offset is limited to 50% of the actual outer-wall width because the adjacent inner wall is printed after the outer wall. This also applies to equivalent distances specified in millimeters."
 msgstr ""
 "Odległość, o jaką ścieżka wycierania zostaje przesunięta od zewnętrznego obrysu, podana w milimetrach lub jako procent rzeczywistej szerokości ekstruzji zewnętrznej ściany.\n"
 "\n"
-"Na przykład 50% przesuwa ścieżkę o połowę szerokości zewnętrznej ściany. Skuteczne przesunięcie jest ograniczone zarówno rzeczywistą szerokością zewnętrznej ściany, jak i dostępnym odstępem do sąsiedniej ściany, więc wartości powyżej 100% lub równoważna odległość bezwzględna nie dają dodatkowego efektu. Ustaw 0, aby wyłączyć przesunięcie."
+"Na przykład 50% przesuwa ścieżkę o połowę szerokości zewnętrznej ściany. Skuteczne przesunięcie jest ograniczone zarówno rzeczywistą szerokością zewnętrznej ściany, jak i dostępnym odstępem do sąsiedniej ściany, więc wartości powyżej 100% lub równoważna odległość bezwzględna nie dają dodatkowego efektu. Ustaw 0, aby wyłączyć przesunięcie.\n"
+"\n"
+"Przy kolejności ścian Zewnętrzna/wewnętrzna lub Wewnętrzna/zewnętrzna/wewnętrzna przesunięcie jest ograniczone do 50% rzeczywistej szerokości zewnętrznej ściany, ponieważ sąsiednia ściana wewnętrzna jest drukowana po ścianie zewnętrznej. Dotyczy to również równoważnych odległości podanych w milimetrach."
 
 msgid "Wipe before external loop"
 msgstr "Wycieranie przed zewnętrzną pętlą"
@@ -25009,10 +25013,10 @@ msgstr "Klipper w wersji => 0.9.0"
 
 # AI Translated
 msgid ""
-"RepRap firmware version => 3.4.0\n"
+"RepRapFirmware version => 3.4.0\n"
 "Check your firmware documentation for supported shaper types."
 msgstr ""
-"RepRap firmware w wersji => 3.4.0\n"
+"RepRapFirmware w wersji => 3.4.0\n"
 "Sprawdź w dokumentacji oprogramowania sprzętowego, które typy kształtowników są obsługiwane."
 
 # AI Translated
@@ -25032,8 +25036,8 @@ msgid "Frequency settings"
 msgstr "Ustawienia częstotliwości"
 
 # AI Translated
-msgid "RepRap firmware uses the same frequency range for both axes."
-msgstr "RepRap firmware używa tego samego zakresu częstotliwości dla obu osi."
+msgid "RepRapFirmware uses the same frequency range for both axes."
+msgstr "RepRapFirmware używa tego samego zakresu częstotliwości dla obu osi."
 
 # AI Translated
 msgid "Damp: "
@@ -25080,8 +25084,8 @@ msgid "Damp (Start / End): "
 msgstr "Tłumienie (początek / koniec): "
 
 # AI Translated
-msgid "RepRap firmware uses the same frequency for both axes."
-msgstr "RepRap firmware używa tej samej częstotliwości dla obu osi."
+msgid "RepRapFirmware uses the same frequency for both axes."
+msgstr "RepRapFirmware używa tej samej częstotliwości dla obu osi."
 
 # AI Translated
 msgid "Note: Use previously calculated frequencies."

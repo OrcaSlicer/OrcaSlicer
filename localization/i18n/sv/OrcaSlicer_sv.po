@@ -21990,17 +21990,17 @@ msgstr "Torka inåt"
 
 # AI Translated
 msgid ""
-"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
+"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward the inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
 "\n"
 "Especially useful at layer heights below 0.1 mm, where wipe marks are more visible.\n"
 "\n"
-"Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or Outer/Inner wall order), or if no supported inward path can be found, for example at tight corners or seam gaps."
+"Uses the regular wipe where the outer wall has no adjacent inner wall, such as in single-wall areas, or if no supported inward path can be found, for example at tight corners or seam gaps."
 msgstr ""
-"Gäller endast yttre väggar, inklusive hålkonturer. Flyttar den heta nozzeln mot redan utskrivna inre väggar under avtorkningen, för att minska återuppvärmningen av nyss utskriven plast och sömmärken.\n"
+"Gäller endast yttre väggar, inklusive hålkonturer. Flyttar den heta nozzeln mot de inre väggarna under avtorkningen, för att minska återuppvärmningen av nyss utskriven plast och sömmärken.\n"
 "\n"
 "Särskilt användbart vid lagerhöjder under 0,1 mm, där avtorkningsmärken syns tydligare.\n"
 "\n"
-"Använder vanlig avtorkning om ingen angränsande inre vägg redan är utskriven (områden med en enda vägg eller väggordningen Yttre/Inre), eller om ingen understödd väg inåt kan hittas, till exempel i trånga hörn eller vid sömglapp."
+"Använder vanlig avtorkning där den yttre väggen saknar angränsande inre vägg, som i områden med en enda vägg, eller om ingen understödd väg inåt kan hittas, till exempel i trånga hörn eller vid sömglapp."
 
 # AI Translated
 msgid "Wipe inward distance"
@@ -22011,11 +22011,15 @@ msgstr "Avstånd för torka inåt"
 msgid ""
 "The distance the wipe path is shifted away from the external perimeter, specified in millimeters or as a percentage of the actual outer-wall extrusion width.\n"
 "\n"
-"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset."
+"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset.\n"
+"\n"
+"With Outer/Inner or Inner/Outer/Inner wall order, the offset is limited to 50% of the actual outer-wall width because the adjacent inner wall is printed after the outer wall. This also applies to equivalent distances specified in millimeters."
 msgstr ""
 "Avståndet som avtorkningsvägen förskjuts bort från den yttre perimetern, angivet i millimeter eller som procent av den yttre väggens faktiska extruderingsbredd.\n"
 "\n"
-"Till exempel förskjuter 50% vägen med halva den yttre väggens bredd. Den verkliga förskjutningen begränsas både av den yttre väggens faktiska bredd och av det tillgängliga utrymmet till den angränsande väggen, så värden över 100% eller ett motsvarande absolut avstånd har ingen ytterligare effekt. Ange 0 för att stänga av förskjutningen."
+"Till exempel förskjuter 50% vägen med halva den yttre väggens bredd. Den verkliga förskjutningen begränsas både av den yttre väggens faktiska bredd och av det tillgängliga utrymmet till den angränsande väggen, så värden över 100% eller ett motsvarande absolut avstånd har ingen ytterligare effekt. Ange 0 för att stänga av förskjutningen.\n"
+"\n"
+"Med väggordningen Yttre/Inre eller Inre/Yttre/Inre begränsas förskjutningen till 50% av den yttre väggens faktiska bredd, eftersom den angränsande inre väggen skrivs ut efter den yttre väggen. Detta gäller även motsvarande avstånd angivna i millimeter."
 
 # AI Translated
 msgid "Wipe before external loop"
@@ -26621,10 +26625,10 @@ msgstr "Klipper-version => 0.9.0"
 
 # AI Translated
 msgid ""
-"RepRap firmware version => 3.4.0\n"
+"RepRapFirmware version => 3.4.0\n"
 "Check your firmware documentation for supported shaper types."
 msgstr ""
-"RepRap firmware-version => 3.4.0\n"
+"RepRapFirmware-version => 3.4.0\n"
 "Kontrollera dokumentationen för din fasta programvara för att se vilka shaper-typer som stöds."
 
 # AI Translated
@@ -26644,8 +26648,8 @@ msgid "Frequency settings"
 msgstr "Frekvensinställningar"
 
 # AI Translated
-msgid "RepRap firmware uses the same frequency range for both axes."
-msgstr "RepRap firmware använder samma frekvensintervall för båda axlarna."
+msgid "RepRapFirmware uses the same frequency range for both axes."
+msgstr "RepRapFirmware använder samma frekvensintervall för båda axlarna."
 
 # AI Translated
 msgid "Damp: "
@@ -26692,8 +26696,8 @@ msgid "Damp (Start / End): "
 msgstr "Dämpning (start / slut): "
 
 # AI Translated
-msgid "RepRap firmware uses the same frequency for both axes."
-msgstr "RepRap firmware använder samma frekvens för båda axlarna."
+msgid "RepRapFirmware uses the same frequency for both axes."
+msgstr "RepRapFirmware använder samma frekvens för båda axlarna."
 
 # AI Translated
 msgid "Note: Use previously calculated frequencies."

@@ -6670,12 +6670,11 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wipe_inward", coBool);
     def->label = L("Wipe inward");
     def->category = L("Quality");
-    def->tooltip = L("Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed "
+    def->tooltip = L("Applies only to external walls, including hole boundaries. Moves the hot nozzle toward the "
                      "inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n\n"
                      "Especially useful at layer heights below 0.1 mm, where wipe marks are more visible.\n\n"
-                     "Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or "
-                     "Outer/Inner wall order), or if no supported inward path can be found, for example at tight "
-                     "corners or seam gaps.");
+                     "Uses the regular wipe where the outer wall has no adjacent inner wall, such as in single-wall "
+                     "areas, or if no supported inward path can be found, for example at tight corners or seam gaps.");
     def->mode = comExpert;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -6688,7 +6687,10 @@ void PrintConfigDef::init_fff_params()
                      "For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited "
                      "by both the actual outer-wall width and the available spacing to the adjacent wall, so values "
                      "above 100% or an equivalent absolute distance have no additional effect. "
-                     "Set to 0 to disable the offset.");
+                     "Set to 0 to disable the offset.\n\n"
+                     "With Outer/Inner or Inner/Outer/Inner wall order, the offset is limited to 50% of the actual "
+                     "outer-wall width because the adjacent inner wall is printed after the outer wall. "
+                     "This also applies to equivalent distances specified in millimeters.");
     def->sidetext = L("mm or %");
     def->ratio_over = "outer_wall_line_width";
     def->min = 0;

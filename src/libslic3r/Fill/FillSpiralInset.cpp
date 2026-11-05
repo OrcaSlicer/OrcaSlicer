@@ -17,6 +17,7 @@
 #include <cmath>
 #include <cstddef>
 #include <functional>
+#include <limits>
 #include <math.h>
 #include <utility>
 #include <vector>
@@ -352,16 +353,6 @@ void FillSpiralInset::_fill_surface_single(const FillParams& params,
     assert(params.use_arachne);
     assert(this->print_config != nullptr && this->print_object_config != nullptr);
 
-    // Internal solid infill must not add Arachne's standalone thin walls: one of those walls can
-    // become the extra centre point after the spiral has finished. Top and bottom surfaces keep
-    // Arachne, including the centre plug handled by generate_spiral_insets().
-    if (params.extrusion_role == erSolidInfill) {
-        Polylines polylines;
-        this->_fill_surface_single(params, thickness_layers, direction, expolygon, polylines);
-        append(thick_polylines_out, to_thick_polylines(std::move(polylines), scaled<coord_t>(this->spacing)));
-        return;
-    }
-
     // Only a solid surface is worth the variable width walls; a sparse one falls back to plain loops.
     if (params.density <= 0.9999f || params.dont_adjust) {
         Polylines polylines;
@@ -440,11 +431,65 @@ void FillSpiralInset::_fill_surface_single(const FillParams& params,
         if (parent[i] < 0)
             descend(int(i));
 
-    ThickPolylines spiral_result =
+    ThickPolylines spirals =
         generate_spiral_insets<Arachne::ExtrusionLine, ThickPolyline>(params, ordered, outlines, min_spacing, expolygon);
+    if (spirals.empty()) {
+        append(thick_polylines_out, std::move(open_walls));
+        return;
+    }
 
-    append(thick_polylines_out, std::move(spiral_result));
-    append(thick_polylines_out, std::move(open_walls));
+    // The open walls lie mostly down the middle of an island, so each one prints at the centre end
+    // of the nearest spiral, before an outward spiral and after an inward one, rather than after
+    // every spiral, which brought the nozzle back across the surface for them.
+    const bool outward = params.fill_order != SurfaceFillOrder::Inward;
+    auto centre = [outward](const ThickPolyline& spiral) { return outward ? spiral.first_point() : spiral.last_point(); };
+    auto dist2  = [](const Point& a, const Point& b) { return (a - b).cast<double>().squaredNorm(); };
+    std::vector<ThickPolylines> beside(spirals.size());
+    for (ThickPolyline& wall : open_walls) {
+        size_t nearest = 0;
+        double best    = std::numeric_limits<double>::max();
+        for (size_t k = 0; k < spirals.size(); ++k) {
+            const Point c = centre(spirals[k]);
+            if (const double d = std::min(dist2(wall.first_point(), c), dist2(wall.last_point(), c)); d < best) {
+                best    = d;
+                nearest = k;
+            }
+        }
+        beside[nearest].emplace_back(std::move(wall));
+    }
+
+    for (size_t k = 0; k < spirals.size(); ++k) {
+        // Chain the walls away from the centre end, nearest end first.
+        ThickPolylines& walls = beside[k];
+        Point           pos   = centre(spirals[k]);
+        for (size_t i = 0; i < walls.size(); ++i) {
+            size_t next = i;
+            bool   flip = false;
+            double best = std::numeric_limits<double>::max();
+            for (size_t j = i; j < walls.size(); ++j)
+                for (const bool f : {false, true})
+                    if (const double d = dist2(f ? walls[j].last_point() : walls[j].first_point(), pos); d < best) {
+                        best = d;
+                        next = j;
+                        flip = f;
+                    }
+            std::swap(walls[i], walls[next]);
+            if (flip)
+                walls[i].reverse();
+            pos = walls[i].last_point();
+        }
+        if (outward) {
+            // Printed backwards, the chain ends at the centre, where the spiral starts.
+            std::reverse(walls.begin(), walls.end());
+            for (ThickPolyline& wall : walls)
+                wall.reverse();
+            append(thick_polylines_out, std::move(walls));
+            thick_polylines_out.emplace_back(std::move(spirals[k]));
+        } else {
+            thick_polylines_out.emplace_back(std::move(spirals[k]));
+            append(thick_polylines_out, std::move(walls));
+        }
+    }
 }
 
 } // namespace Slic3r
