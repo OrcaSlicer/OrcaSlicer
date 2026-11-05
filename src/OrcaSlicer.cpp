@@ -1756,6 +1756,13 @@ int CLI::run(int argc, char **argv)
                 //LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig|LoadStrategy::AddDefaultInstances;
                 //if (load_aux) strategy = strategy | LoadStrategy::LoadAuxiliary;
                 model = Model::read_from_file(file, &config, &config_substitutions, strategy, &plate_data_src, &project_presets, &is_bbl_3mf, &file_version, nullptr, nullptr, nullptr, plate_to_slice);
+                if (boost::algorithm::iends_with(file, ".amf")) {
+                    // For an AMF this flag means "the file is in inches", not "Bambu 3MF". Convert the units
+                    // and clear it, otherwise the project settings that an AMF does not have would be read.
+                    if (is_bbl_3mf)
+                        model.convert_from_imperial_units(false);
+                    is_bbl_3mf = false;
+                }
                 if (is_bbl_3mf)
                 {
                     if (!first_file)
