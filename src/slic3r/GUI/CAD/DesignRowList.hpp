@@ -50,6 +50,12 @@ public:
     void set_rows(std::vector<Row> rows) { m_rows = std::move(rows); m_sel = -1; owner = -1; }
     // The row whose feature made the face picked in the viewport: drawn tinted, never selected. Cleared by set_rows and any selection.
     int  owner{-1};
+    // A list that can be narrowed by typing (the Feature tree): rows whose label lacks `filter` (case-insensitive) are not drawn, the selected
+    // row always is. The rows and their indices are untouched, so every callback still gets the real row.
+    bool        filterable{false};
+    // A colour chip drawn before each row's label, asked at draw time so it follows a recolour (the Bodies list: the colour the body has in the view).
+    std::function<wxColour(int row)> swatch;
+    std::string filter;
     int  selection() const { return m_sel; }
     const std::vector<Row>& rows() const { return m_rows; }
     unsigned GetItemCount() const { return unsigned(m_rows.size()); }

@@ -8532,24 +8532,17 @@ void GLCanvas3D::_render_cad_grid(const Transform3d& view_matrix, const Transfor
     shader->set_uniform("view_model_matrix", view_matrix);
     shader->set_uniform("projection_matrix", projection_matrix);
 
-    // White every 5 cm, grey every 1 cm — the SAME in both themes, deliberately. There is no
-    // "white bed" to vanish against: the plate is dark grey either way, DEFAULT_MODEL_COLOR
-    // {0.326,0.337,0.337} on light and DEFAULT_MODEL_COLOR_DARK {0.255,0.255,0.283} on dark
-    // (3DBed.cpp:185-186), a difference of 0.07. A per-theme palette here would be a branch
-    // that buys nothing and one more thing to keep in step.
-    //
-    // For contrast with what this replaces: the plate's own grid uses LINE_TOP_DARK_COLOR, a
-    // 0.43 grey, for BOTH its thin and its bold family — which is most of why the stock grid
-    // reads as a flat mesh with no scale to it.
-    const ColorRGBA minor_color(0.40f, 0.40f, 0.42f, 1.0f);
-    const ColorRGBA major_color(0.90f, 0.90f, 0.90f, 1.0f);
+    // The Prepare tab's colours, so the two tabs read the same: one colour per theme for both the 1 cm and the 5 cm family (the
+    // 5 cm lines are told apart by their width, as there), not the dimmer grey this used to draw for the 1 cm lines.
+    const ColorRGBA color = GUI_App::dark_mode() ? PartPlate::LINE_TOP_DARK_COLOR : PartPlate::LINE_TOP_COLOR;
+    const float scale = 1.0f;   // PartPlate::m_scale_factor, never set to anything else
 
-    glsafe(::glLineWidth(1.0f));
-    m_cad_grid_minor.set_color(minor_color);
+    glsafe(::glLineWidth(1.0f * scale));
+    m_cad_grid_minor.set_color(color);
     m_cad_grid_minor.render();
 
-    glsafe(::glLineWidth(2.0f));
-    m_cad_grid_major.set_color(major_color);
+    glsafe(::glLineWidth(2.0f * scale));
+    m_cad_grid_major.set_color(color);
     m_cad_grid_major.render();
 
     glsafe(::glDisable(GL_BLEND));
