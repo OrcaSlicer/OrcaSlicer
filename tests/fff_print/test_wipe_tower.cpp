@@ -223,6 +223,24 @@ static bool m400_only_where_needed(const std::string &gcode, bool sync_before_ch
     return true;
 }
 
+// The cooldown back to the base temperature after an interface wipe closes the toolchange, so a
+// wipe tower region ends right after it. Returns how many there are, or 0 if any of them is synced.
+static size_t unsynced_interface_cooldowns(const std::string &tower)
+{
+    const std::string next_region = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Tower_Start);
+    size_t cooldowns = 0;
+    for (size_t pos = tower.find("\nM104 "); pos != std::string::npos; pos = tower.find("\nM104 ", pos + 1)) {
+        const size_t eol = tower.find('\n', pos + 1);
+        if (eol == std::string::npos
+            || (tower.compare(eol + 1, std::string::npos, ";") != 0 && tower.compare(eol + 1, next_region.size(), next_region) != 0))
+            continue; // not the last line of its region
+        if (pos >= 4 && tower.compare(pos - 4, 4, "M400") == 0)
+            return 0;
+        ++cooldowns;
+    }
+    return cooldowns;
+}
+
 // The wipe tower regions of a slice under `config`. Post-processed tower moves start with "G1  "
 // (two spaces); a bare "G1 Y" is a move glued to a placeholder line, which skipped
 // post_process_wipe_tower_moves and kept tower-local coordinates.
@@ -294,14 +312,15 @@ TEST_CASE("The wipe tower's toolchange planner flush follows the gcode flavor", 
     }
     SECTION("klipper, tower interface features") {
         // The interface M109 is stripped from the tower by GCode.cpp; its sync line must go with it.
-        // The cooldown back to the base temperature after the wipe isn't synced either.
+        // The cooldown back to the base temperature after the wipe isn't synced either; other M104s
+        // (the single extruder multi material path of this config) still are.
         DynamicPrintConfig config = wipe_tower_toolchange_config("klipper");
         config.set_deserialize_strict({ { "enable_tower_interface_features", "1" },
                                         { "nozzle_temperature_range_high", "250,250" },
                                         { "change_filament_gcode", toolchange_mark } });
         const std::string tower = sliced_wipe_tower(config);
         CHECK(m400_only_where_needed(tower, true));
-        CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring("M400\nM104"));
+        CHECK(unsynced_interface_cooldowns(tower) > 0);
     }
 }
 
