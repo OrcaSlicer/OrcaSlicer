@@ -107,6 +107,29 @@ static double ray_axis_proj(const Linef3& ray, const Vec3d& anchor, const Vec3d&
     return wxPoint(int(sx + 0.5), int(sy + 0.5));
 }
 
+// World units per device pixel on the sketch plane, measured through the camera that draws it. Every screen-constant size here (handles,
+// ribbons, labels, pick tolerances) is "N px" times this. It used to be 1 / camera.get_zoom(), which is only right for an orthographic camera
+// or a perspective one that zooms by its frustum: where zooming moves the camera, get_zoom() stays put, so those sizes stayed fixed in world
+// units and grew with every zoom-in. Measured over a 100-unit baseline so the pixel rounding does not matter.
+double DesignSketchTool::px_unit(const Camera& cam) const
+{
+    const Eigen::Matrix4d m = cam.get_projection_matrix().matrix() * cam.get_view_matrix().matrix();
+    const std::array<int, 4>& vp = cam.get_viewport();
+    auto to_px = [&](const Vec3d& w, Vec2d& out) {
+        const Eigen::Vector4d c = m * w.homogeneous();
+        if (c.w() < 1e-9) return false;
+        out = Vec2d((c.x() / c.w() * 0.5) * vp[2], (c.y() / c.w() * 0.5) * vp[3]);
+        return true;
+    };
+    constexpr double base = 100.0;
+    Vec2d a, b;
+    if (to_px(m_plane.to_world(Vec2d(0, 0)), a) && to_px(m_plane.to_world(Vec2d(base, 0)), b)) {
+        const double px = (b - a).norm();
+        if (px > 1e-6) return base / px;
+    }
+    return 1.0 / std::max(cam.get_zoom(), 1e-6);   // the plane edge-on or behind the camera: the old estimate
+}
+
 void DesignSketchTool::begin(const SketchPlane& plane, Mode mode)
 {
     reset_undo();
@@ -4359,7 +4382,7 @@ void DesignSketchTool::render_body_edges()
         return;
     const Camera& cam = wxGetApp().plater()->get_camera();
     const Vec3d vd = cam.get_dir_forward();
-    const double px = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double px = px_unit(cam);
     const double hw = 1.0 * px;      // ~2 px wide: at 1.5 the lines read as hairlines
     const Vec3d pull = -vd * (3.0 * px);
     // Two passes: the edges of a body faded by body focus are fainter, like the body itself.
@@ -4635,7 +4658,7 @@ void DesignSketchTool::render_face_outline(const FaceHighlight& h, bool quiet)
     // View-facing ribbons like the body edges, pulled a pixel further toward the eye so they win
     // over the dark body edges along the same curves.
     const Vec3d  vd   = cam.get_dir_forward();
-    const double px   = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double px   = px_unit(cam);
     const Vec3d  pull = -vd * (4.0 * px);
     auto draw = [&](double hw_px, const ColorRGBA& colour) {
         GLModel::Geometry g;
@@ -5140,7 +5163,7 @@ void DesignSketchTool::render_solid_sel(SolidSel kind, const std::vector<Vec3d>&
     if (kind == SolidSel::Edge && edge_pts.size() >= 2) {
         const Camera& cam = wxGetApp().plater()->get_camera();
         const Vec3d vd = cam.get_dir_forward();
-        const double hw = 2.0 / std::max(cam.get_zoom(), 1e-6);   // ~2 px ribbon half-width
+        const double hw = 2.0 * px_unit(cam);   // ~2 px ribbon half-width
         GLModel::Geometry g; g.format = { EPT::Triangles, EVL::P3 };
         unsigned int base = 0;
         for (size_t s = 1; s < edge_pts.size(); ++s) {
@@ -5171,7 +5194,7 @@ void DesignSketchTool::render_solid_sel(SolidSel kind, const std::vector<Vec3d>&
         // for this rather than shipping without a highlight.
         const Camera& cam = wxGetApp().plater()->get_camera();
         Vec3d right = cam.get_dir_right(), up = cam.get_dir_up();
-        const double h = 4.5 / std::max(cam.get_zoom(), 1e-6);   // ~4.5 px half-size
+        const double h = 4.5 * px_unit(cam);   // ~4.5 px half-size
         right *= h; up *= h;
         const Vec3d c = vertex_pt;
         GLModel::Geometry g; g.format = { EPT::Triangles, EVL::P3 };
@@ -5242,7 +5265,7 @@ void DesignSketchTool::render_view_helpers()
     using EVL = GLModel::Geometry::EVertexLayout;
     const Camera& cam = wxGetApp().plater()->get_camera();
     const Vec3d vd = cam.get_dir_forward();
-    const double hw = 1.5 / std::max(cam.get_zoom(), 1e-6);   // billboard ribbon half-width (px)
+    const double hw = 1.5 * px_unit(cam);   // billboard ribbon half-width (px)
 
     glsafe(::glDisable(GL_DEPTH_TEST));
     glsafe(::glEnable(GL_BLEND));
@@ -5344,7 +5367,7 @@ void DesignSketchTool::render_sketch_plane_frame()
     using EVL = GLModel::Geometry::EVertexLayout;
     const Camera& cam = wxGetApp().plater()->get_camera();
     const Vec3d vd = cam.get_dir_forward();
-    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp = px_unit(cam);
 
     double hu = 40.0, hv = 40.0;
     sketch_plane_extent(hu, hv);
@@ -5397,7 +5420,7 @@ void DesignSketchTool::render_datum_planes()
     const double H = 40.0;   // default half-extent when no per-plane size is given (mm)
     const Camera& cam = wxGetApp().plater()->get_camera();
     const Vec3d vd = cam.get_dir_forward();
-    const double hw = 1.5 / std::max(cam.get_zoom(), 1e-6);   // ~1.5 px border ribbon
+    const double hw = 1.5 * px_unit(cam);   // ~1.5 px border ribbon
 
     GLModel::Geometry fill;   fill.format   = { EPT::Triangles, EVL::P3 };
     GLModel::Geometry border; border.format = { EPT::Triangles, EVL::P3 };
@@ -5488,7 +5511,7 @@ void DesignSketchTool::render_snap_markers()
 {
     if (m_snap_markers.empty()) return;
     const Camera& cam = wxGetApp().plater()->get_camera();
-    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp = px_unit(cam);
     const Vec3d right = cam.get_dir_right().normalized();
     glsafe(::glDisable(GL_DEPTH_TEST));   // a point on a back face is still listed; the cursor decides
     for (int i = 0; i < int(m_snap_markers.size()); ++i) {
@@ -5520,7 +5543,7 @@ void DesignSketchTool::render_mate_connectors()
     const Camera& cam = wxGetApp().plater()->get_camera();
     const Vec3d right = cam.get_dir_right().normalized();
     const Vec3d up    = cam.get_dir_up().normalized();
-    const double upp  = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp  = px_unit(cam);
     const double R    = 22.0 * upp;                     // disc radius, ~22 px
     const double lw   = std::max(0.9 * upp, 1e-4);
 
@@ -5889,7 +5912,7 @@ void DesignSketchTool::render_extrude_gizmo()
     const Vec3d fwd   = cam.get_dir_forward().normalized();
     const Vec3d base  = m_ex_plane.to_world(m_ex_centroid);
     const Vec3d ndir  = (m_ex_flip ? -1.0 : 1.0) * m_ex_plane.normal.normalized();
-    const double upp  = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp  = px_unit(cam);
     const double th   = std::max(15.0 * upp, 1e-4);
 
     // Express everything in the billboard frame (origin=base) so it always faces the camera.
@@ -5930,7 +5953,7 @@ bool DesignSketchTool::hit_test_extrude_arrow(GLCanvas3D& canvas, const wxMouseE
     const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
     const Vec3d ro = r.a, rd = r.b - r.a;
     const Camera& cam = wxGetApp().plater()->get_camera();
-    const double tol = 7.0 / std::max(cam.get_zoom(), 1e-6);    // ~7 px in world units
+    const double tol = 7.0 * px_unit(cam);    // ~7 px in world units
     const Vec3d ndir = (m_ex_flip ? -1.0 : 1.0) * m_ex_plane.normal.normalized();
     const Vec3d base = m_ex_plane.to_world(m_ex_centroid);
     double dA = 1e30, dB = 1e30;
@@ -6010,7 +6033,7 @@ void DesignSketchTool::render_datum_gizmo()
     const Vec3d right = cam.get_dir_right().normalized();
     const Vec3d up    = cam.get_dir_up().normalized();
     const Vec3d vd    = cam.get_dir_forward();
-    const double upp  = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp  = px_unit(cam);
     const double hs   = 6.0 * upp;                       // handle half-size (~6 px)
     const double hw   = 1.5 * upp;                       // outline ribbon half-width
     const double hu   = m_dz_usize * 0.5, hv = m_dz_vsize * 0.5;
@@ -6094,7 +6117,7 @@ bool DesignSketchTool::hit_test_datum_handle(GLCanvas3D& canvas, const wxMouseEv
     const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
     const Vec3d ro = r.a, rd = r.b - r.a;
     const Camera& cam = wxGetApp().plater()->get_camera();
-    const double tol = 9.0 / std::max(cam.get_zoom(), 1e-6);   // ~9 px in world units
+    const double tol = 9.0 * px_unit(cam);   // ~9 px in world units
     const double hu = m_dz_usize * 0.5, hv = m_dz_vsize * 0.5;
     const Vec2d hpos[4] = { Vec2d(hu, 0), Vec2d(-hu, 0), Vec2d(0, hv), Vec2d(0, -hv) };
     double best = tol; which = -1;
@@ -6198,7 +6221,7 @@ void DesignSketchTool::render_helix_gizmo()
     const Vec3d right = cam.get_dir_right().normalized();
     const Vec3d up    = cam.get_dir_up().normalized();
     const Vec3d vd    = cam.get_dir_forward();
-    const double upp  = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp  = px_unit(cam);
     const double hs   = 6.0 * upp;                       // handle half-size (~6 px)
     const double hw   = 1.5 * upp;                       // ribbon half-width
     const Vec3d O     = m_hx_plane.origin;
@@ -6280,7 +6303,7 @@ bool DesignSketchTool::hit_test_helix_handle(GLCanvas3D& canvas, const wxMouseEv
     const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
     const Vec3d ro = r.a, rd = r.b - r.a;
     const Camera& cam = wxGetApp().plater()->get_camera();
-    const double tol = 9.0 / std::max(cam.get_zoom(), 1e-6);   // ~9 px in world units
+    const double tol = 9.0 * px_unit(cam);   // ~9 px in world units
     const Vec3d O = m_hx_plane.origin;
     const Vec3d n = m_hx_plane.normal.normalized();
     const double turns = m_hx_pitch > 1e-9 ? m_hx_height / m_hx_pitch : 0.0;
@@ -6368,7 +6391,7 @@ void DesignSketchTool::render_rib_gizmo()
     const Vec3d right = cam.get_dir_right().normalized();
     const Vec3d up    = cam.get_dir_up().normalized();
     const Vec3d vd    = cam.get_dir_forward();
-    const double upp  = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp  = px_unit(cam);
     const double hs   = 6.0 * upp;                       // handle half-size (~6 px)
     const double hw   = 1.5 * upp;                       // ribbon half-width
 
@@ -6424,7 +6447,7 @@ bool DesignSketchTool::hit_test_rib_handle(GLCanvas3D& canvas, const wxMouseEven
     const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
     const Vec3d ro = r.a, rd = r.b - r.a;
     const Camera& cam = wxGetApp().plater()->get_camera();
-    const double tol = 9.0 / std::max(cam.get_zoom(), 1e-6);   // ~9 px in world units
+    const double tol = 9.0 * px_unit(cam);   // ~9 px in world units
     const Vec3d hpts[2] = { m_rb_plane.to_world(mid + perp * half),
                             m_rb_plane.to_world(mid - perp * half) };
     double best = tol; which = -1;
@@ -6645,7 +6668,7 @@ void DesignSketchTool::render_reference_axes(const Vec3d& origin, double half)
     using EVL = GLModel::Geometry::EVertexLayout;
     const Camera& cam = wxGetApp().plater()->get_camera();
     const Vec3d   vd  = cam.get_dir_forward();
-    const double  upp = 1.0 / std::max(cam.get_zoom(), 1e-6);   // world units per screen pixel
+    const double  upp = px_unit(cam);   // world units per screen pixel
     const double  len = 1.2 * (reference_square_gap(half) + 2.0 * half);
     // A dash, then a dot, every kPeriod of the axis.
     constexpr double kDash = 0.07, kDotFrom = 0.10, kDotTo = 0.115, kPeriod = 0.145;
@@ -6962,7 +6985,7 @@ void DesignSketchTool::render_sketch3d()
 {
     if (!m_s3_active) return;
     const Camera& cam = wxGetApp().plater()->get_camera();
-    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp = px_unit(cam);
     const Vec3d right = cam.get_dir_right().normalized();
     const Vec3d up    = cam.get_dir_up().normalized();
     const ColorRGBA cols[3] = { ColorRGBA(0.92f, 0.28f, 0.28f, 1.0f), ColorRGBA(0.30f, 0.80f, 0.34f, 1.0f),
@@ -7034,7 +7057,7 @@ void DesignSketchTool::set_move_gizmo(int body, const Vec3d& pivot, const Transf
 // screen-space floor so the gizmo stays grabbable on a tiny body or when zoomed far out.
 double DesignSketchTool::move_gizmo_arm(const Camera& cam) const
 {
-    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp = px_unit(cam);
     const double screen_min = 70.0 * upp;              // never smaller than the old fixed size
     return std::max(screen_min, m_mv_radius * 1.25);   // 25% clear of the body surface
 }
@@ -7079,7 +7102,7 @@ void DesignSketchTool::render_move_gizmo()
     const Vec3d up    = cam.get_dir_up().normalized();
     const Vec3d fwd   = cam.get_dir_forward().normalized();
     const Vec3d anchor = m_mv_base + m_mv_offset;
-    const double upp  = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp  = px_unit(cam);
     const double th   = std::max(15.0 * upp, 1e-4);
     const double L    = move_gizmo_arm(cam);        // scales with the body (see move_gizmo_arm)
 
@@ -7141,7 +7164,7 @@ bool DesignSketchTool::hit_test_move_arrow(GLCanvas3D& canvas, const wxMouseEven
     const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
     const Vec3d ro = r.a, rd = r.b - r.a;
     const Camera& cam = wxGetApp().plater()->get_camera();
-    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp = px_unit(cam);
     const double L   = move_gizmo_arm(cam);         // must match render_move_gizmo
     const Vec3d anchor = m_mv_base + m_mv_offset;
     const Vec3d axes[3] = { Vec3d::UnitX(), Vec3d::UnitY(), Vec3d::UnitZ() };
@@ -7192,7 +7215,7 @@ bool DesignSketchTool::hit_test_move_arc(GLCanvas3D& canvas, const wxMouseEvent&
     const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
     const Vec3d ro = r.a, rd = r.b - r.a;
     const Camera& cam = wxGetApp().plater()->get_camera();
-    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp = px_unit(cam);
     const double R = 0.83 * move_gizmo_arm(cam);   // rings just inside the arrow tips
     const Vec3d anchor = m_mv_base + m_mv_offset;
     int best = -1; double bestd = 7.0 * upp;
@@ -7293,7 +7316,7 @@ void DesignSketchTool::render_fillet_gizmo()
     const Camera& cam = wxGetApp().plater()->get_camera();
     const Vec3d right = cam.get_dir_right().normalized();
     const Vec3d up    = cam.get_dir_up().normalized();
-    const double upp  = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp  = px_unit(cam);
     const double th   = std::max(15.0 * upp, 1e-4);
     const double L    = std::max(m_fl_radius, 40.0 * upp);   // WYSIWYG, floored to a comfortable handle
     const Vec3d tipw  = m_fl_anchor + m_fl_dir * L;
@@ -7328,7 +7351,7 @@ bool DesignSketchTool::hit_test_fillet_arrow(GLCanvas3D& canvas, const wxMouseEv
     const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
     const Vec3d ro = r.a, rd = r.b - r.a;
     const Camera& cam = wxGetApp().plater()->get_camera();
-    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp = px_unit(cam);
     const double L   = std::max(m_fl_radius, 40.0 * upp);
     return ray_segment_dist3(ro, rd, m_fl_anchor, m_fl_anchor + m_fl_dir * L) <= 12.0 * upp;
 }
@@ -7415,7 +7438,7 @@ void DesignSketchTool::render_hole_gizmo()
     const Camera& cam = wxGetApp().plater()->get_camera();
     const Vec3d right = cam.get_dir_right().normalized();
     const Vec3d up    = cam.get_dir_up().normalized();
-    const double upp  = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp  = px_unit(cam);
     const double th   = std::max(15.0 * upp, 1e-4);
 
     const Vec3d centre = m_hl_plane.to_world(Vec2d(m_hl_x, m_hl_y));
@@ -7515,7 +7538,7 @@ int DesignSketchTool::hit_test_hole_handle(GLCanvas3D& canvas, const wxMouseEven
     const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
     const Vec3d ro = r.a, rd = r.b - r.a;
     const Camera& cam = wxGetApp().plater()->get_camera();
-    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp = px_unit(cam);
 
     const Vec3d centre = m_hl_plane.to_world(Vec2d(m_hl_x, m_hl_y));
     const Vec3d nrm    = m_hl_plane.normal.normalized();
@@ -7651,7 +7674,7 @@ void DesignSketchTool::render_thread_gizmo()
     const Camera& cam = wxGetApp().plater()->get_camera();
     const Vec3d right = cam.get_dir_right().normalized();
     const Vec3d up    = cam.get_dir_up().normalized();
-    const double upp  = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp  = px_unit(cam);
     const double th   = std::max(15.0 * upp, 1e-4);
 
     const Vec3d centre = m_th_plane.to_world(Vec2d(m_th_x, m_th_y));
@@ -7728,7 +7751,7 @@ int DesignSketchTool::hit_test_thread_handle(GLCanvas3D& canvas, const wxMouseEv
     const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
     const Vec3d ro = r.a, rd = r.b - r.a;
     const Camera& cam = wxGetApp().plater()->get_camera();
-    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp = px_unit(cam);
 
     const Vec3d centre = m_th_plane.to_world(Vec2d(m_th_x, m_th_y));
     const Vec3d nrm    = m_th_plane.normal.normalized();
@@ -7830,7 +7853,7 @@ void DesignSketchTool::render_shell_gizmo()
     const Camera& cam = wxGetApp().plater()->get_camera();
     const Vec3d right = cam.get_dir_right().normalized();
     const Vec3d up    = cam.get_dir_up().normalized();
-    const double upp  = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp  = px_unit(cam);
     const double th   = std::max(15.0 * upp, 1e-4);
     const double L    = std::max(m_sh_thickness, 40.0 * upp);   // WYSIWYG, floored to a handle
     const Vec3d tipw  = m_sh_anchor + m_sh_dir * L;
@@ -7864,7 +7887,7 @@ bool DesignSketchTool::hit_test_shell_arrow(GLCanvas3D& canvas, const wxMouseEve
     const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
     const Vec3d ro = r.a, rd = r.b - r.a;
     const Camera& cam = wxGetApp().plater()->get_camera();
-    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp = px_unit(cam);
     const double L   = std::max(m_sh_thickness, 40.0 * upp);
     return ray_segment_dist3(ro, rd, m_sh_anchor, m_sh_anchor + m_sh_dir * L) <= 12.0 * upp;
 }
@@ -7944,7 +7967,7 @@ void DesignSketchTool::render_draft_gizmo()
 {
     if (!m_dr_active) return;
     const Camera& cam = wxGetApp().plater()->get_camera();
-    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp = px_unit(cam);
     const double th  = std::max(15.0 * upp, 1e-4);
     const Vec3d yax  = dr_yaxis(m_dr_axis, m_dr_ref);
 
@@ -7993,7 +8016,7 @@ bool DesignSketchTool::hit_test_draft_handle(GLCanvas3D& canvas, const wxMouseEv
     const Linef3 ray = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
     const Vec3d ro = ray.a, rd = ray.b - ray.a;
     const Camera& cam = wxGetApp().plater()->get_camera();
-    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp = px_unit(cam);
     const Vec3d yax = dr_yaxis(m_dr_axis, m_dr_ref);
     const double a  = m_dr_angle * M_PI / 180.0;
     const double tol = 16.0 * upp;
@@ -8062,7 +8085,7 @@ void DesignSketchTool::render_cut_gizmo()
     const Camera& cam = wxGetApp().plater()->get_camera();
     const Vec3d right = cam.get_dir_right().normalized();
     const Vec3d up    = cam.get_dir_up().normalized();
-    const double upp  = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp  = px_unit(cam);
     const double th   = std::max(15.0 * upp, 1e-4);
     const ColorRGBA teal(0.20f, 0.80f, 0.75f, 1.0f);
 
@@ -8120,7 +8143,7 @@ bool DesignSketchTool::hit_test_cut_arrow(GLCanvas3D& canvas, const wxMouseEvent
     const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
     const Vec3d ro = r.a, rd = r.b - r.a;
     const Camera& cam = wxGetApp().plater()->get_camera();
-    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp = px_unit(cam);
     const double L_sign = (std::abs(m_ct_offset) < 40.0 * upp)
         ? std::copysign(40.0 * upp, (m_ct_offset == 0.0 ? 1.0 : m_ct_offset))
         : m_ct_offset;
@@ -8173,7 +8196,7 @@ void DesignSketchTool::render_revolve_gizmo()
 {
     if (!m_rv_active) return;
     const Camera& cam = wxGetApp().plater()->get_camera();
-    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp = px_unit(cam);
     const double th  = std::max(15.0 * upp, 1e-4);
     const Vec3d yax  = rv_yaxis(m_rv_axis, m_rv_ref, m_rv_flip);
 
@@ -8236,7 +8259,7 @@ bool DesignSketchTool::hit_test_revolve_handle(GLCanvas3D& canvas, const wxMouse
     const Linef3 ray = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
     const Vec3d ro = ray.a, rd = ray.b - ray.a;
     const Camera& cam = wxGetApp().plater()->get_camera();
-    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp = px_unit(cam);
     const Vec3d yax = rv_yaxis(m_rv_axis, m_rv_ref, m_rv_flip);
     const double a  = m_rv_angle * M_PI / 180.0;
     const double tol = 16.0 * upp;
@@ -8333,7 +8356,7 @@ void DesignSketchTool::render_pattern_gizmo()
 {
     if (!m_pt_active) return;
     const Camera& cam = wxGetApp().plater()->get_camera();
-    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp = px_unit(cam);
     const double th  = std::max(15.0 * upp, 1e-4);
     const ColorRGBA col(0.15f, 0.92f, 1.0f, 1.0f);   // vivid cyan, matches the gizmo family
     const SketchPlane saved = m_plane;
@@ -8410,7 +8433,7 @@ bool DesignSketchTool::hit_test_pattern_handle(GLCanvas3D& canvas, const wxMouse
     const Linef3 ray = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
     const Vec3d ro = ray.a, rd = ray.b - ray.a;
     const Camera& cam = wxGetApp().plater()->get_camera();
-    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double upp = px_unit(cam);
     auto ray_pt = [&](const Vec3d& p) {
         const double t = (p - ro).dot(rd) / std::max(rd.dot(rd), 1e-12);
         return (p - (ro + t * rd)).norm();
@@ -8759,12 +8782,11 @@ void DesignSketchTool::draw_quad_strip(GLModel& model, const std::vector<Vec2d>&
     if (pts.size() < 2)
         return;
 
-    // Half-width in WORLD units, so a stroke is 2*hw mm wide on the plane. Halved from 0.6 on
-    // user report 2026-08-23: at 1.2 mm the orange under-constrained line was heavy enough to
-    // swallow a short segment and to hide which of two near-parallel lines the cursor was on.
-    // Every one of this function's call sites is a sketch stroke (entities, previews, rubber
-    // bands), which is why the constant is here and not a parameter at twenty call sites.
-    const double hw = 0.3;
+    // Half-width: ~1.2 px, whatever the zoom. It was a fixed 0.3 mm, so a stroke grew with every zoom-in until a line was a fat bar
+    // (user report 2026-11-05) and vanished when zoomed out. 0.3 mm was already the 2026-08-23 'not too heavy' size at the usual zoom.
+    // Every one of this function's call sites is a sketch stroke (entities, previews, rubber bands), which is why it is here and not a
+    // parameter at twenty call sites.
+    const double hw = std::max(1.2 * px_unit(wxGetApp().plater()->get_camera()), 1e-4);
     GLModel::Geometry g;
     g.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
     unsigned int base = 0;
@@ -8951,7 +8973,8 @@ void DesignSketchTool::draw_vertices(GLModel& model, const std::vector<Vec2d>& p
     if (pts.empty())
         return;
 
-    const double hs = half_size;
+    // No size given: a ~3.5 px marker at any zoom (the old default was a fixed 1.3 mm, which grew with every zoom-in).
+    const double hs = half_size > 0 ? half_size : std::max(3.5 * px_unit(wxGetApp().plater()->get_camera()), 1e-4);
     GLModel::Geometry g;
     g.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
     unsigned int base = 0;
@@ -9971,7 +9994,7 @@ void DesignSketchTool::render_xform_gizmo()
     for (int i = 0; i < 4; ++i) segs.emplace_back(c[i], c[(i + 1) % 4]);
     draw_strokes(m_highlight_model, segs, 0.6, box);
     const Camera& cam = wxGetApp().plater()->get_camera();
-    const double hs = 7.0 / std::max(cam.get_zoom(), 1e-6);   // screen-constant half-size
+    const double hs = 7.0 * px_unit(cam);   // screen-constant half-size
     const ColorRGBA hcol(0.30f, 0.88f, 0.66f, 1.0f);
     const ColorRGBA hhot(1.0f, 0.85f, 0.2f, 1.0f);
     auto square = [&](const Vec2d& q, const ColorRGBA& col) {
@@ -11074,7 +11097,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
                 draw_vertices(m_vertex_model, markers, orange);
             // Constraint badges (C3.4b): iconic glyphs near each constraint's entity.
             {
-                const double upp = 1.0 / std::max(camera.get_zoom(), 1e-6);
+                const double upp = px_unit(camera);
                 std::vector<std::pair<Vec2d, Vec2d>> glyphs;
                 build_constraint_glyphs(upp, m_constrain_cons, glyphs);
                 if (!glyphs.empty()) {
@@ -11132,7 +11155,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
             glsafe(::glDisable(GL_BLEND));
             if (!defects.empty())   // and the place it goes wrong gets a screen-constant red marker
                 draw_vertices(m_vertex_model, defects, ColorRGBA(1.0f, 0.22f, 0.22f, 1.0f),
-                              5.0 / std::max(camera.get_zoom(), 1e-6));
+                              5.0 * px_unit(camera));
         }
     }
 
@@ -11150,7 +11173,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     const ColorRGBA under(0.25f, 0.55f, 1.0f, 1.0f);          // under-constrained: blue
     const ColorRGBA constrained(0.04f, 0.04f, 0.04f, 1.0f);   // fully constrained: black
     const ColorRGBA opref(0.80f, 0.45f, 1.0f, 1.0f);     // violet: the edit-op's reference pick
-    const double    upp_dash = 1.0 / std::max(camera.get_zoom(), 1e-6);   // world units per pixel
+    const double    upp_dash = px_unit(camera);   // world units per pixel
     const ColorRGBA editing(1.0f, 0.78f, 0.10f, 1.0f);   // amber: entity whose dim is being typed
     const bool fully = (m_dof == 0 && m_solve_ok);
     // Snap grid: a patch of dots around the cursor, wide enough to read where a click will land.
@@ -11288,13 +11311,13 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
             }
         }
         if (!mids.empty())
-            draw_vertices(m_vertex_model, mids, ColorRGBA(0.85f, 0.85f, 0.88f, 1.0f), 0.9);   // neutral: not the selection hue
+            draw_vertices(m_vertex_model, mids, ColorRGBA(0.85f, 0.85f, 0.88f, 1.0f), std::max(2.5 * px_unit(camera), 1e-4));   // neutral: not the selection hue
 
         // Derived feature handles (A3): the circle RadiusHandle is not a SketchPointRole,
         // so the per-point pass above doesn't draw it. Render it (cyan) + the hovered
         // handle (white, larger) at a screen-constant size so they stay grabbable at any
         // zoom. A4 makes these draggable; later phases add slot/rect/polygon handles.
-        const double upp = 1.0 / std::max(camera.get_zoom(), 1e-6);
+        const double upp = px_unit(camera);
         std::vector<Vec2d> radius_h;
         for (const Handle& h : build_handles())
             if (h.role == HandleRole::RadiusHandle || h.role == HandleRole::MajorAxis ||
@@ -11310,7 +11333,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
 
     // A bare axis the cursor is on lights up: a click picks it for a relation or a dimension.
     if (m_hover_axis && (m_mode == Mode::Select || m_mode == Mode::Dimension)) {
-        const double L = 4000.0 / std::max(camera.get_zoom(), 1e-6);
+        const double L = 4000.0 * px_unit(camera);
         draw_quad_strip(m_highlight_model, m_hover_axis == 1 ? std::vector<Vec2d>{ Vec2d(-L, 0), Vec2d(L, 0) }
                                                               : std::vector<Vec2d>{ Vec2d(0, -L), Vec2d(0, L) },
                         false, ColorRGBA(1.0f, 0.55f, 0.1f, 1.0f));
@@ -11318,9 +11341,9 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
 
     // Placed dimension quotes (drawn in every mode so they persist while sketching).
     // Pass plane-units-per-pixel so labels keep a constant on-screen size.
-    render_dimensions(1.0 / std::max(camera.get_zoom(), 1e-6));
-    render_dim_draft(1.0 / std::max(camera.get_zoom(), 1e-6));
-    render_live_quotes(1.0 / std::max(camera.get_zoom(), 1e-6));
+    render_dimensions(px_unit(camera));
+    render_dim_draft(px_unit(camera));
+    render_live_quotes(px_unit(camera));
     // Draw-then-edit: the selection's live quotes now exist. Open the primary value editor on
     // the next event-loop tick (NOT here inside the paint) so the floating field grabs focus
     // cleanly — the same context the Line path opens from. m_live_quotes persists until the
@@ -11331,9 +11354,9 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         wxGetApp().CallAfter([this] { open_primary_autoedit(); });
     }
     if (is_edit_op_mode())
-        render_op_gizmo(1.0 / std::max(camera.get_zoom(), 1e-6));
+        render_op_gizmo(px_unit(camera));
     if (is_transform_mode())
-        render_tf_gizmo(1.0 / std::max(camera.get_zoom(), 1e-6));
+        render_tf_gizmo(px_unit(camera));
 
     // In-progress entity preview for the active tool.
     const ColorRGBA preview = m_construction ? grey : orange;
@@ -11575,7 +11598,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         // in red, recomputed from the cursor every frame (never persisted). The pick tolerance
         // matches on_mouse: ~8 px projected to plane units, x3 (here via zoom -> units/px).
         if (m_has_cursor) {
-            const double upp = 1.0 / std::max(camera.get_zoom(), 1e-6);
+            const double upp = px_unit(camera);
             int subj = -1;
             std::vector<Vec2d> removed;
             const ColorRGBA cut(1.0f, 0.2f, 0.2f, 1.0f);
@@ -11589,7 +11612,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         if (m_has_cursor) {                       // mark the cut a click would make
             int bi = -1;
             std::vector<SketchEngine::TrimPiece> pcs;
-            const double upp = 1.0 / std::max(camera.get_zoom(), 1e-6);
+            const double upp = px_unit(camera);
             if (split_preview(m_cursor, 24.0 * upp, bi, pcs))
                 draw_vertices(m_highlight_model, { pcs[0].ent.p1 }, ColorRGBA(1.0f, 0.2f, 0.2f, 1.0f));
         }
@@ -12221,7 +12244,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
         // the marker nearest the cursor, measured as the distance from the mouse ray to the point, within ~9 px
         const Linef3 ray = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
         const Vec3d ro = ray.a, rd = (ray.b - ray.a).normalized();
-        const double tol = 9.0 / std::max(wxGetApp().plater()->get_camera().get_zoom(), 1e-6);
+        const double tol = 9.0 * px_unit(wxGetApp().plater()->get_camera());
         int best = -1; double bd = tol;
         for (int i = 0; i < int(m_snap_markers.size()); ++i) {
             const double d = (m_snap_markers[i] - ro).cross(rd).norm();
