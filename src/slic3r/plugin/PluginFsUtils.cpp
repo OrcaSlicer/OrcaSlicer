@@ -12,6 +12,7 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <boost/system/error_code.hpp>
+#include <boost/system/errc.hpp>
 
 #include "PluginAuditManager.hpp"
 #include "PythonInterpreter.hpp"
@@ -1655,7 +1656,12 @@ bool has_legacy_entry_extraction(const PluginDescriptor& descriptor)
         return false;
 
     ec.clear();
-    if (fs::exists(target / MARKER_FILE_NAME, ec) || ec)
+    const bool marker_present = fs::exists(target / MARKER_FILE_NAME, ec);
+    // Boost's exists() reports an absent path through ec as not-found; that is marker absence.
+    // Only a different error means the marker's presence could not be determined.
+    if (ec && ec != boost::system::errc::no_such_file_or_directory)
+        return false;
+    if (marker_present)
         return false;
 
     return entry_package_present(target, descriptor.entry_package);
@@ -2265,7 +2271,9 @@ bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, co
     const fs::path previous = plugin_root / (std::string(PREVIOUS_DIR_PREFIX) + unique);
     ec.clear();
     const bool had_target = fs::exists(target, ec);
-    if (ec)
+    // Boost's exists() reports an absent path through ec as not-found; a fresh install legitimately
+    // has no target. Only a different error means the probe itself failed.
+    if (ec && ec != boost::system::errc::no_such_file_or_directory)
         return fail("Failed to inspect the existing wheel installation target: " + ec.message());
     if (had_target) {
         fs::rename(target, previous, ec);
