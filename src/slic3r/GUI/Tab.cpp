@@ -3388,13 +3388,11 @@ void TabPrint::build()
         optgroup->append_single_option_line("tree_support_brim_width", "support_settings_tree#tree-support-brim-width");
 
     page = add_options_page(L("Multimaterial"), "custom-gcode_multi_material"); // ORCA: icon only visible on placeholders
-        optgroup = page->new_optgroup(L("Color Painting"), L"objlist_color_painting");
-        optgroup->append_single_option_line("top_color_penetration_layers", "multimaterial_settings_color_painting#paint-penetration-layers");
-        optgroup->append_single_option_line("bottom_color_penetration_layers", "multimaterial_settings_color_painting#paint-penetration-layers");
-        optgroup->append_single_option_line("mmu_segmented_region_max_width", "multimaterial_settings_color_painting#maximum-width-of-segmented-region");
-
-        optgroup = page->new_optgroup(L("Mixed Filament"), L"param_mixed_color");
-        optgroup->append_single_option_line("enable_mixed_color_sublayer", "multimaterial_settings_mixed_filament#mixed-color-sublayer");
+        optgroup = page->new_optgroup(L("Multicolor"), L"param_mixed_color");
+        optgroup->append_single_option_line("top_color_penetration_layers", "multimaterial_settings_multicolor#paint-penetration-layers");
+        optgroup->append_single_option_line("bottom_color_penetration_layers", "multimaterial_settings_multicolor#paint-penetration-layers");
+        optgroup->append_single_option_line("mmu_segmented_region_max_width", "multimaterial_settings_multicolor#maximum-width-of-segmented-region");
+        optgroup->append_single_option_line("enable_mixed_color_sublayer", "multimaterial_settings_multicolor#mixed-color-sublayer");
 
         optgroup = page->new_optgroup(L("Filament for Features"), L"param_filament_for_features");
         optgroup->append_single_option_line("outer_wall_filament_id", "multimaterial_settings_filament_for_features#outer-walls");
