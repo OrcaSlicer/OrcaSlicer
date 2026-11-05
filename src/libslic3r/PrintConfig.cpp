@@ -5086,8 +5086,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBool(false));
 
     def           = this->add("mmu_segmented_region_max_width", coFloat);
-    def->label    = L("Maximum width of a segmented region");
-    def->tooltip  = L("Maximum width of a segmented region. A value of 0 disables this feature.");
+    def->label    = L("Horizontal paint penetration");
+    def->tooltip  = L("How far the color painted on a side surface reaches into the model, measured from the outer surface. "
+                      "Set to 0 to let the color reach the middle of the model.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 0;
     def->category = L("Advanced");
