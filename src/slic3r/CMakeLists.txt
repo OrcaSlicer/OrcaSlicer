@@ -219,6 +219,12 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoSVG.hpp
     GUI/Gizmos/GLGizmoTextureDisplacement.cpp
     GUI/Gizmos/GLGizmoTextureDisplacement.hpp
+    GUI/Gizmos/GLGizmoTextureDisplacementChroma.cpp
+    GUI/Gizmos/GLGizmoTextureDisplacementInternal.hpp
+    GUI/Gizmos/GLGizmoTextureDisplacementLibrary.cpp
+    GUI/Gizmos/GLGizmoTextureDisplacementMesh.cpp
+    GUI/Gizmos/GLGizmoTextureDisplacementPreview.cpp
+    GUI/Gizmos/GLGizmoTextureDisplacementUV.cpp
     GUI/Gizmos/GLGizmoUtils.cpp
     GUI/Gizmos/GLGizmoUtils.hpp
     GUI/GLCanvas3D.cpp
