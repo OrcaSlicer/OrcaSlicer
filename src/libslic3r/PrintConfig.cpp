@@ -12485,11 +12485,6 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
         cfg.gcode_flavor.value != gcfRepetier)
         error_message.emplace("use_firmware_retraction","--use-firmware-retraction is only supported by Klipper, Marlin, Smoothie, RepRapFirmware, Repetier and Machinekit firmware");
 
-    if (cfg.use_firmware_retraction.value)
-        for (unsigned char wipe : cfg.wipe.values)
-             if (wipe)
-                error_message.emplace("use_firmware_retraction", "--use-firmware-retraction is not compatible with --wipe");
-                
     // --gcode-flavor
     if (! print_config_def.get("gcode_flavor")->has_enum_value(cfg.gcode_flavor.serialize())) {
         error_message.emplace("gcode_flavor", _u8L("invalid value ") + cfg.gcode_flavor.serialize());

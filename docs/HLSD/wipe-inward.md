@@ -175,6 +175,11 @@ travel planning or an explicit layer/tool-change retraction calls for a retract.
 A travel that needs no retraction does not execute either wipe geometry,
 irrespective of the configured retraction percentages.
 
+With firmware retraction, the whole retraction is a single G10 before the wipe,
+and the wipe moves no filament, whatever the percentages are set to. The firmware
+owns the retraction length, and its G11 restores only what G10 retracted, so any
+filament retracted during the wipe would never be restored.
+
 ## Implementation and verification
 
 - [GCode.cpp](../../src/libslic3r/GCode.cpp) integrates path selection, nozzle
