@@ -3391,7 +3391,7 @@ void TabPrint::build()
         optgroup = page->new_optgroup(L("Color Painting"), L"objlist_color_painting");
         optgroup->append_single_option_line("top_color_penetration_layers", "multimaterial_settings_color_painting#paint-penetration-layers");
         optgroup->append_single_option_line("bottom_color_penetration_layers", "multimaterial_settings_color_painting#paint-penetration-layers");
-        optgroup->append_single_option_line("mmu_segmented_region_max_width", "multimaterial_settings_color_painting#horizontal-paint-penetration");
+        optgroup->append_single_option_line("mmu_segmented_region_max_width", "multimaterial_settings_color_painting#maximum-width-of-segmented-region");
 
         optgroup = page->new_optgroup(L("Mixed Filament"), L"param_mixed_color");
         optgroup->append_single_option_line("enable_mixed_color_sublayer", "multimaterial_settings_mixed_filament#mixed-color-sublayer");

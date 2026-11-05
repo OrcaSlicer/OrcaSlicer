@@ -108,7 +108,7 @@ TEST_CASE("Painted top and bottom surfaces color their paint penetration layers"
     CHECK(layers_with_filament(object, 3) == expected_bottom);
 }
 
-TEST_CASE("Horizontal paint penetration limits how deep side paint reaches into the model", "[MultiMaterialSegmentation]")
+TEST_CASE("The maximum width of a segmented region limits how deep side paint reaches into the model", "[MultiMaterialSegmentation]")
 {
     // 0 lets the paint meet the rest of the layer halfway across the 20 mm wide cube.
     const auto [penetration, expected_depth] = GENERATE(table<double, double>({{0., 10.}, {2., 2.}, {5., 5.}}));

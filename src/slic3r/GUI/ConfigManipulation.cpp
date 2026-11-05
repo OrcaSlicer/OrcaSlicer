@@ -1338,7 +1338,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     bool use_beam_interlocking = config->opt_bool("interlocking_beam");
     const wxString beam_interlocking_reason = _L("Enable beam interlocking to use this setting.");
-    toggle_line("mmu_segmented_region_max_width", !use_beam_interlocking, -1, _L("Disable beam interlocking to edit horizontal paint penetration."));
+    toggle_line("mmu_segmented_region_max_width", !use_beam_interlocking, -1, _L("Disable beam interlocking to edit the maximum width of a segmented region."));
     toggle_line("mmu_segmented_region_interlocking_depth", !use_beam_interlocking, -1, _L("Disable beam interlocking to edit segmented region interlocking depth."));
     toggle_line("interlocking_beam_width", use_beam_interlocking, -1, beam_interlocking_reason);
     toggle_line("interlocking_orientation", use_beam_interlocking, -1, beam_interlocking_reason);
