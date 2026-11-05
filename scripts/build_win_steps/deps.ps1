@@ -22,7 +22,7 @@ function Get-DepsManifestHash {
 }
 
 function Check-Dependencies {
-    param([string]$Cmake, [string]$Compiler, [string]$Config, [switch]$ForceRebuild, [string]$DepsBuildDir)
+    param([string]$Cmake, [string]$Compiler, [string]$Config, [switch]$ForceRebuild, [string]$DepsBuildDir, [int]$MaxJobs = 0)
     if (-not $DepsBuildDir) { $DepsBuildDir = "deps/build-clang" }
     $depsPrefix   = "$DepsBuildDir/OrcaSlicer_dep/usr/local"
     # Keep the manifest inside OrcaSlicer_dep so it travels with the CI cache and
@@ -51,24 +51,31 @@ function Check-Dependencies {
     }
 
     if ($needsRebuild) {
+        # Match build_win.bat: set CMAKE_POLICY_VERSION_MINIMUM for deps CMake
+        $env:CMAKE_POLICY_VERSION_MINIMUM = "3.5"
+        # Match build_win.bat: set parallel level for ninja
+        if ($MaxJobs -gt 0) {
+            $env:CMAKE_BUILD_PARALLEL_LEVEL = $MaxJobs.ToString()
+        }
+
         $depsConfigureArgs = @("-S", "deps", "-B", $DepsBuildDir, "-G", "Ninja Multi-Config")
         if ($Compiler) {
             # Pass as separate array elements so paths with spaces (e.g.
             # "C:\Program Files\LLVM\bin\clang-cl.exe") survive intact.
             $depsConfigureArgs += "-DCMAKE_C_COMPILER=$Compiler"
             $depsConfigureArgs += "-DCMAKE_CXX_COMPILER=$Compiler"
-            # Ensure MASM assembler is findable for Boost.build. cmake's
-            # auto-detection can find a stale/wrong ml64.exe path; pass the
-            # one from the active VS environment explicitly.
-            $ml64 = Get-Command ml64.exe -ErrorAction SilentlyContinue
-            if ($ml64) {
-                $depsConfigureArgs += "-DCMAKE_ASM_MASM_COMPILER=$($ml64.Source)"
-            }
+            # Do NOT explicitly pass MASM compiler; let cmake auto-detect from VS env
+            # (build_win.bat does not pass it either)
         }
         Write-Host "  [deps] Building dependencies..."
         Invoke-BuildStep -Label "Dependency configuration" -Command $Cmake -Arguments $depsConfigureArgs -LogPath (New-BuildLogPath "deps-configure")
-        Invoke-BuildStep -Label "Dependency build" -Command $Cmake -Arguments @(
-            "--build", $DepsBuildDir, "--config", $Config, "--target", "deps", "--", "--verbose") -LogPath (New-BuildLogPath "deps-build")
+        $buildArgs = @("--build", $DepsBuildDir, "--config", $Config, "--target", "deps")
+        if ($MaxJobs -gt 0) {
+            $buildArgs += "--parallel"
+            $buildArgs += $MaxJobs.ToString()
+        }
+        $buildArgs += "--verbose"
+        Invoke-BuildStep -Label "Dependency build" -Command $Cmake -Arguments $buildArgs -LogPath (New-BuildLogPath "deps-build")
         $currentHash | Set-Content $depsManifest -Encoding ASCII
         Write-Host "  [deps] Dependencies built successfully" -ForegroundColor Green
     } else {

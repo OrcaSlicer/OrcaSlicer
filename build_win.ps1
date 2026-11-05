@@ -546,7 +546,7 @@ try {
         $depTreeName = $depName
         $depsBuildDir = Join-Path "deps" $depTreeName
         $depsCompiler = if ($ClangCl) { $clangClExe } else { $clExe }
-        Check-Dependencies -Cmake $cmake -Compiler $depsCompiler -Config $Config -DepsBuildDir $depsBuildDir
+        Check-Dependencies -Cmake $cmake -Compiler $depsCompiler -Config $Config -DepsBuildDir $depsBuildDir -MaxJobs $MaxJobs
 
         if ($PackDeps) {
             Write-Step "[5.1/7] Packing dependencies..."
@@ -589,6 +589,8 @@ try {
         if (-not $Ninja -and $ClangCl) {
             $cmakeArgs += "-T", "ClangCL"
         }
+        # For MSBuild generator, don't pass compiler explicitly; use toolset instead
+        $configureCompiler = if ($Msbuild) { $null } else { $compiler }
         # Point CMake at the deps install dir so find_package(JPEG) etc. find
         # libjpeg-turbo (with JCS_EXT_RGBA) from deps instead of system libjpeg.
         # Strawberry Perl's c\include is added to the compiler include path and
@@ -627,7 +629,7 @@ try {
         }
         $timing = Configure-Build -Cmake $cmake -BuildDir $buildDir -Config $Config -Target $Target `
                                   -UnityTest:$UnityTestLibslic3r -MaxJobs $MaxJobs `
-                                  -Generator $generator -Compiler $compiler -CMakeArgs $cmakeArgs
+                                  -Generator $generator -Compiler $configureCompiler -CMakeArgs $cmakeArgs
 
         # --- 7. Build summary ---
         Write-Host ""
