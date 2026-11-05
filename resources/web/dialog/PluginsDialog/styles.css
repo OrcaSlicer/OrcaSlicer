@@ -1116,6 +1116,12 @@ body.pane-resizing {
   display: none;
 }
 
+/* Keep the same content width when permission groups expand, including on WebViews
+   that do not support scrollbar-gutter. Overlay scrollbars remain platform-controlled. */
+#permissionsPanel {
+  overflow-y: scroll;
+}
+
 .plugin-info-layout {
   min-height: 100%;
   display: grid;
@@ -1172,6 +1178,11 @@ body.pane-resizing {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
+  --permission-surface: #f6f6f6;
+}
+
+:root[data-orca-theme="dark"] .permissions-content {
+  --permission-surface: #333333;
 }
 
 .permission-console-header {
@@ -1192,6 +1203,13 @@ body.pane-resizing {
   overflow-wrap: anywhere;
 }
 
+.permission-console-title {
+  margin: 4px 0 0;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 600;
+}
+
 .permission-overview {
   display: grid;
   gap: 12px;
@@ -1206,7 +1224,7 @@ body.pane-resizing {
 .permissions-content label.permission-placeholder {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
   gap: 12px;
   padding: 0;
   margin: 0;
@@ -1219,7 +1237,7 @@ body.pane-resizing {
   padding: 12px 16px;
   border: 1px solid var(--border-soft);
   border-radius: 4px;
-  background: var(--row-hover);
+  background: var(--permission-surface);
 }
 
 .permission-access-card.is-active {
@@ -1307,8 +1325,8 @@ body.pane-resizing {
 
 .permission-section {
   display: grid;
-  grid-template-columns: minmax(220px, 0.85fr) minmax(0, 2fr);
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
   align-items: start;
   min-width: 0;
   padding: 14px 0;
@@ -1324,15 +1342,31 @@ body.pane-resizing {
   min-width: 0;
   border: 1px solid var(--border-soft);
   border-radius: 4px;
-  background: var(--row-hover);
+  background: var(--permission-surface);
 }
 
 .permission-group-header {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 16px 4px;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
 }
+
+.permission-group-header::-webkit-details-marker { display: none; }
+.permission-group-header:focus-visible { outline: 2px solid var(--main-color); outline-offset: -2px; }
+
+.permission-group-chevron {
+  width: 7px;
+  height: 7px;
+  margin-left: auto;
+  border-right: 1.5px solid var(--muted);
+  border-bottom: 1.5px solid var(--muted);
+  transform: rotate(-45deg);
+}
+
+.permission-group[open] .permission-group-chevron { transform: rotate(45deg); }
 
 .permission-group-title {
   margin: 0;
@@ -1342,7 +1376,7 @@ body.pane-resizing {
 }
 
 .permission-group-body {
-  padding: 0 16px 2px;
+  padding: 0 16px 16px;
 }
 
 .permission-group-body .permission-section:first-child,
@@ -1386,7 +1420,7 @@ body.pane-resizing {
   border: 1px solid var(--border-soft);
   border-left: 3px solid var(--plugin-status-warn);
   border-radius: 6px;
-  background: var(--row-hover);
+  background: var(--permission-surface);
   color: var(--text);
 }
 
@@ -1423,29 +1457,7 @@ body.pane-resizing {
   white-space: nowrap;
 }
 
-.permission-filesystem-list .permission-form {
-  align-items: center;
-}
-
-.permission-access-badge {
-  padding: 3px 8px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  color: var(--text);
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.permission-filesystem-add select {
-  min-height: 34px;
-  max-width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--border-strong);
-  border-radius: 6px;
-  background: var(--bg);
-  color: var(--text);
-  font: inherit;
-}
+.permission-filesystem-bucket + .permission-filesystem-bucket { margin-top: 17px; }
 
 .permissions-content label.permission-thread-toggle {
   display: inline-flex;

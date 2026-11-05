@@ -85,7 +85,7 @@ function OnInit() {
   document.getElementById("configRestoreBtn")?.addEventListener("click", RestoreCapabilityConfig);
   // Keep native keyboard behavior for permission controls despite the document-level shortcut guard.
   document.getElementById("permissionsContent")?.addEventListener("keydown", (event) => {
-    if (event.target.closest("input, select, button"))
+    if (event.target.closest("input, select, button, summary"))
       event.stopPropagation();
   });
 
@@ -1014,6 +1014,10 @@ function RenderPermissions(plugin) {
   const scrollPositions = [];
   for (let element = content; element; element = element.parentElement)
     scrollPositions.push([element, element.scrollLeft, element.scrollTop]);
+  if (content.dataset.pluginKey === pluginKey) {
+    for (const group of content.querySelectorAll("details.permission-group"))
+      (draft.openGroups ||= {})[group.dataset.group] = group.open;
+  }
   renderedPermissionsSignature = signature;
   content.replaceChildren();
   content.dataset.pluginKey = pluginKey;
@@ -1025,6 +1029,10 @@ function RenderPermissions(plugin) {
   pluginName.className = "permission-console-plugin";
   pluginName.textContent = String(plugin.label || plugin.name || plugin.plugin_id || pluginKey);
   headerText.appendChild(pluginName);
+  const title = document.createElement("h2");
+  title.className = "permission-console-title";
+  title.textContent = T("permissions_tab", "Permissions");
+  headerText.appendChild(title);
   consoleHeader.appendChild(headerText);
   content.appendChild(consoleHeader);
 
@@ -1128,16 +1136,26 @@ function RenderPermissions(plugin) {
   ];
   const groupBodies = new Map();
   groups.forEach((group, index) => {
-    const card = document.createElement("section");
+    const card = document.createElement("details");
     card.className = "permission-group";
-    const header = document.createElement("div");
+    card.dataset.group = group.keys[0];
+    card.open = draft.openGroups?.[card.dataset.group] ?? false;
+    card.addEventListener("toggle", () => {
+      if (card.isConnected && content.dataset.pluginKey === pluginKey)
+        (draft.openGroups ||= {})[card.dataset.group] = card.open;
+    });
+    const header = document.createElement("summary");
     header.className = "permission-group-header";
-    const title = document.createElement("h3");
+    const title = document.createElement("span");
     title.className = "permission-group-title";
     title.id = `permission-group-${index}`;
     title.textContent = group.title;
     card.setAttribute("aria-labelledby", title.id);
     header.appendChild(title);
+    const chevron = document.createElement("span");
+    chevron.className = "permission-group-chevron";
+    chevron.setAttribute("aria-hidden", "true");
+    header.appendChild(chevron);
     const body = document.createElement("div");
     body.className = "permission-group-body";
     if (group.guidance) {
@@ -1273,72 +1291,46 @@ function RenderFilesystemSection(plugin, pluginKey, draft, editable, guidanceTex
     { key: "fs_read", label: T("permissions_access_read", "Read"), name: T("permissions_filesystem_read_name", "File system: Read"), unavailable: T("permissions_read_unavailable", "Read permissions are unavailable.") },
     { key: "fs_readwrite", label: T("permissions_access_readwrite", "Read and write"), name: T("permissions_filesystem_readwrite_name", "File system: Read and write"), unavailable: T("permissions_readwrite_unavailable", "Read and write permissions are unavailable.") }
   ];
-  const list = document.createElement("ul");
-  list.className = "permission-list permission-filesystem-list";
-  let total = 0;
   for (const type of types) {
+    const bucket = document.createElement("section");
+    bucket.className = "permission-filesystem-bucket";
+    const typeHeading = document.createElement("h4");
+    typeHeading.className = "permission-heading";
+    typeHeading.textContent = type.label;
+    bucket.appendChild(typeHeading);
     const entries = draft.values[type.key];
     type.available = Array.isArray(entries) && Array.isArray(plugin.permissions?.[type.key]);
     type.enabled = editable && type.available;
-    if (!Array.isArray(entries) || !Array.isArray(plugin.permissions?.[type.key])) {
+    if (!type.available) {
       const notice = document.createElement("p");
       notice.className = "permission-notice";
       notice.textContent = type.unavailable;
-      controls.appendChild(notice);
+      bucket.appendChild(notice);
     }
-    if (!Array.isArray(entries))
-      continue;
-    for (let index = 0; index < entries.length; index++) {
-      const item = document.createElement("li");
-      item.appendChild(PermissionForm(pluginKey, type.key, type.name, index, type.enabled, guidanceText[1], guidance.id, draft, type.label));
-      list.appendChild(item);
-      total++;
-    }
-  }
-  if (!total && types.every((type) => Array.isArray(draft.values[type.key]))) {
-    const empty = document.createElement("p");
-    empty.className = "permission-notice";
-    empty.textContent = T("permissions_values_empty", "No values added.");
-    controls.appendChild(empty);
-  }
-  controls.appendChild(list);
-
-  // Keep separate pending inputs for each permission type, even when the selector changes.
-  const availableTypes = types.filter((type) => type.available);
-  if (availableTypes.length) {
-    if (!availableTypes.some((type) => type.key === draft.fsAddCategory))
-      draft.fsAddCategory = availableTypes[0].key;
-    const forms = new Map();
-    for (const type of availableTypes) {
-      const form = PermissionForm(pluginKey, type.key, type.name, null, type.enabled, guidanceText[1], guidance.id, draft);
-      form.classList.add("permission-filesystem-add");
-      form.hidden = type.key !== draft.fsAddCategory;
-      const select = document.createElement("select");
-      select.disabled = !editable;
-      select.setAttribute("aria-label", T("permissions_filesystem_access_label", "Access for new path"));
-      for (const optionType of types) {
-        const option = document.createElement("option");
-        option.value = optionType.key;
-        option.textContent = optionType.label;
-        option.disabled = !optionType.available;
-        select.appendChild(option);
+    if (Array.isArray(entries)) {
+      if (!entries.length && type.available) {
+        const empty = document.createElement("p");
+        empty.className = "permission-notice";
+        empty.textContent = T("permissions_values_empty", "No values added.");
+        bucket.appendChild(empty);
       }
-      select.value = type.key;
-      select.addEventListener("change", () => {
-        draft.fsAddCategory = select.value;
-        for (const [key, candidate] of forms)
-          candidate.hidden = key !== draft.fsAddCategory;
-        forms.get(draft.fsAddCategory)?.querySelector("select")?.focus();
-      });
-      form.insertBefore(select, form.querySelector("button"));
-      forms.set(type.key, form);
-      controls.appendChild(form);
+      const list = document.createElement("ul");
+      list.className = "permission-list";
+      for (let index = 0; index < entries.length; index++) {
+        const item = document.createElement("li");
+        item.appendChild(PermissionForm(pluginKey, type.key, type.name, index, type.enabled, guidanceText[1], guidance.id, draft));
+        list.appendChild(item);
+      }
+      bucket.appendChild(list);
+      if (type.available)
+        bucket.appendChild(PermissionForm(pluginKey, type.key, type.name, null, type.enabled, guidanceText[1], guidance.id, draft));
     }
+    controls.appendChild(bucket);
   }
   return section;
 }
 
-function PermissionForm(pluginKey, category, categoryName, index, enabled, placeholder, guidanceId, draft, accessLabel = "") {
+function PermissionForm(pluginKey, category, categoryName, index, enabled, placeholder, guidanceId, draft) {
   const isAdd = index === null;
   const oldValue = isAdd ? null : draft.values[category][index];
   const form = document.createElement("form");
@@ -1388,12 +1380,6 @@ function PermissionForm(pluginKey, category, categoryName, index, enabled, place
     ? T("permissions_add_label", "Add value to %s", categoryName)
     : T("permissions_apply_value_label", "Apply value for %s", categoryName));
   form.appendChild(input);
-  if (accessLabel) {
-    const badge = document.createElement("span");
-    badge.className = "permission-access-badge";
-    badge.textContent = accessLabel;
-    form.appendChild(badge);
-  }
   form.appendChild(submit);
   form.addEventListener("submit", (event) => {
     event.preventDefault();
