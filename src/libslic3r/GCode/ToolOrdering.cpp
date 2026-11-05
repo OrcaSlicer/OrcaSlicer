@@ -3359,7 +3359,7 @@ void ToolOrdering::assign_custom_gcodes(const Print &print)
                 // BBS
 				(color_change ? 
 					mode == CustomGCode::SingleExtruder || 
-						(custom_gcode.extruder <= int(num_filaments) && extruder_printing_above[unsigned(custom_gcode.extruder - 1)]) :
+						(custom_gcode.extruder > 0 && custom_gcode.extruder <= int(num_filaments) && extruder_printing_above[unsigned(custom_gcode.extruder - 1)]) :
 				 	tool_change && tool_changes_as_color_changes);
 			if (pause_or_custom_gcode || apply_color_change)
         		lt.custom_gcode = &custom_gcode;
