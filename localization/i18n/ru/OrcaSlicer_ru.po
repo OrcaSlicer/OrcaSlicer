@@ -17687,9 +17687,8 @@ msgstr "ТПМП Фишера-Коха S"
 msgid "Gyroid"
 msgstr "Гироид"
 
-# AI Translated
 msgid "Sparse infill smooth factor"
-msgstr "Коэффициент сглаживания заполнения"
+msgstr "Сглаживание заполнения"
 
 # AI Translated
 msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original sharp path, while 100% produces the largest possible curves between adjacent infill lines."
@@ -18639,7 +18638,7 @@ msgid "Use beam interlocking"
 msgstr "Перекрёстная сетка"
 
 msgid "Generate interlocking beam structure at the locations where different filaments touch. This improves the adhesion between filaments, especially models printed in different materials."
-msgstr "Создавать структуру в виде пространственной перекрёстной сетки в местах контакта двух материалов. Улучшает их адгезию и гарантирует сцепление даже несовместимых материалов."
+msgstr "Создавать структуру в виде пространственной перекрёстной сетки в местах контакта двух материалов. Улучшает их адгезию и обеспечивает сцепление даже несовместимых материалов."
 
 msgid "Interlocking beam width"
 msgstr "Ширина полос сетки"
@@ -18665,13 +18664,13 @@ msgstr "Расширение сетки"
 msgid "The distance from the boundary between filaments to generate interlocking structure, measured in cells. Too few cells will result in poor adhesion."
 msgstr "Количество дополнительных боковых ячеек сетки. Позволяет мелким вкраплениям материала лучше заглубляться под поверхность модели."
 
-# Это буквально функциональный дубликат толщины покраски, просто гении на бамбуках не смогли объединить 2 параметра двух алгоритмов в одну.
+# Это функциональный дубликат толщины покраски, просто гении на бамбуках задают одно и то же двумя разными путями.
 msgid "Interlocking boundary avoidance"
-msgstr "Толщина слоя покраски"
+msgstr "Отступ от поверхности"
 
-# Это буквально функциональный дубликат толщины покраски, просто гении на бамбуках не смогли объединить 2 параметра двух алгоритмов в одну.
+# Это функциональный дубликат толщины покраски, просто гении на бамбуках задают одно и то же двумя разными путями.
 msgid "The distance from the outside of a model where interlocking structures will not be generated, measured in cells."
-msgstr "Толщина основного слоя покраски (в ячейках), проникающего в модель."
+msgstr "Заглубление начала сетки в поверхности детали. По сути, толщина основного слоя покраски (в ячейках)."
 
 msgid "Ironing type"
 msgstr "Тип разглаживания"
@@ -20985,7 +20984,7 @@ msgid "Mixed color sublayer"
 msgstr "Смешивание внутри слоя"
 
 msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
-msgstr "Чередовать материалы в составе смешанного цвета внутри каждого слоя. Позволяет значительно лучше передавать промежуточные оттенки."
+msgstr "Чередовать материалы в составе смешанного цвета внутри каждого слоя. Позволяет лучше передавать промежуточные оттенки."
 
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Черновая башня – специальная структура, которая используется для прочистки сопла от остатков материала и стабилизации давления внутри сопла при смене экструдера, чтобы избежать дефектов на поверхности печатаемой модели."
