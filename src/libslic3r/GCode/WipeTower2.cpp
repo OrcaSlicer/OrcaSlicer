@@ -1416,7 +1416,7 @@ WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool)
             if (interface_temp > 0 && interface_temp != base_temp && !m_wait_for_temp_on_wipe_tower)
                 writer.set_extruder_temp(interface_temp, true);
             if (m_enable_tower_interface_cooldown_during_tower && interface_temp > 0 && interface_temp != base_temp)
-                writer.set_extruder_temp(base_temp, false, {}, false); // a cooldown back to base isn't timing-critical
+                writer.set_extruder_temp(base_temp, false, {}, m_gcode_flavor != gcfKlipper); // a cooldown back to base isn't timing-critical
             float pre_dist = m_filpar[tool].tower_interface_pre_extrusion_dist;
             float pre_len = m_filpar[tool].tower_interface_pre_extrusion_length;
             if (pre_dist > 0.f && pre_len > 0.f) {
@@ -1429,7 +1429,7 @@ WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool)
         if (interface_layer) {
             int interface_temp = m_filpar[tool].interface_print_temperature;
             if (!m_enable_tower_interface_cooldown_during_tower && interface_temp > 0 && interface_temp != base_temp)
-                writer.set_extruder_temp(base_temp, false, {}, false); // no sync: it would stall the head over the tower
+                writer.set_extruder_temp(base_temp, false, {}, m_gcode_flavor != gcfKlipper); // on Klipper M400 would stall the head over the tower
         }
         writer.append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Tower_End) + "\n");
         ++ m_num_tool_changes;
