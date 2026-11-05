@@ -95,7 +95,8 @@ marks.
 
 ## Colors and sizes
 
-The outline uses the solid RGB color selected in Preferences, without theme remapping. Its lines have a
+The outline uses the solid RGB color selected in Preferences, without theme remapping. A square color
+swatch button displays that color and opens the color picker. Its lines have a
 width on the model, 0.35 mm for the ring and 0.18 mm for the inner
 lines, so they grow as the camera closes in, kept between 2.5 and 5 pixels for the ring and 1.2 and 2.4 for
 the inner lines, scaled by the canvas scale. An inner line that would be thinner than 1.2 pixels fades

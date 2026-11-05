@@ -13,6 +13,10 @@
 #include "libslic3r/Color.hpp"
 #include "libslic3r/Format/DRC.hpp"
 #include <wx/gdicmn.h>
+#include <wx/brush.h>
+#include <wx/colour.h>
+#include <wx/dc.h>
+#include <wx/pen.h>
 #include <wx/arrstr.h>
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include <wx/event.h>
@@ -70,6 +74,7 @@
 #include "NetworkTestDialog.hpp"
 #include "SceneBenchmark.hpp"
 #include "Widgets/StaticLine.hpp"
+#include "Widgets/StaticBox.hpp"
 #include "Widgets/RadioGroup.hpp"
 #include "Shortcuts.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
@@ -84,6 +89,41 @@
 #endif //__WINDOWS__
 
 namespace Slic3r { namespace GUI {
+
+class ColorSwatchButton : public Button
+{
+public:
+    ColorSwatchButton(wxWindow* parent, const wxString& color) : Button(parent, wxEmptyString)
+    {
+        SetStyle(ButtonStyle::Regular, ButtonType::Icon);
+        set_color(color);
+    }
+
+    void set_color(const wxString& color)
+    {
+        m_color = wxColour(color);
+        if (!m_color.IsOk())
+            BOOST_LOG_TRIVIAL(error) << "Invalid configured outline color";
+        Refresh();
+    }
+
+protected:
+    void doRender(wxDC& dc) override
+    {
+        StaticBox::doRender(dc);
+        if (!m_color.IsOk())
+            return;
+        wxRect swatch(GetClientRect());
+        swatch.Deflate(FromDIP(4));
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        // A color sample must not be remapped by the application theme.
+        dc.SetBrush(wxBrush(m_color));
+        dc.DrawRectangle(swatch);
+    }
+
+private:
+    wxColour m_color;
+};
 
 class MyscrolledWindow : public wxScrolledWindow {
 public:
@@ -2229,8 +2269,7 @@ void PreferencesDialog::create_items()
 
     const wxString outline_color_tooltip = _L("Choose the color of the object outlines.");
     auto outline_color_sizer = create_item_label(_L("Color"), outline_color_tooltip);
-    auto outline_color_button = new Button(m_parent, from_u8(app_config->get(SETTING_OPENGL_OUTLINE_COLOR)));
-    outline_color_button->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+    auto outline_color_button = new ColorSwatchButton(m_parent, from_u8(app_config->get(SETTING_OPENGL_OUTLINE_COLOR)));
     outline_color_button->SetToolTip(outline_color_tooltip);
     outline_color_button->Bind(wxEVT_BUTTON, [this, outline_color_button](wxCommandEvent& event) {
         event.Skip();
@@ -2245,7 +2284,7 @@ void PreferencesDialog::create_items()
             const std::string value = encode_color(ColorRGB(color.r(), color.g(), color.b()));
             app_config->set(SETTING_OPENGL_OUTLINE_COLOR, value);
             app_config->save();
-            outline_color_button->SetLabel(from_u8(value));
+            outline_color_button->set_color(from_u8(value));
             // The scrolled window applies the scroll offset to the entire layout.
             m_parent->Layout();
             m_parent->FitInside();
