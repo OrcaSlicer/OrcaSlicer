@@ -3981,6 +3981,7 @@ void GLCanvas3D::bind_event_handlers()
                         down = false;
                 }
                 m_navigator_dragging = false;
+                m_mouse.down_on_toolbar = false;
                 render();
             });
         m_event_handlers_bound = true;
@@ -4781,6 +4782,12 @@ void GLCanvas3D::on_gesture(wxGestureEvent &evt)
     m_dirty = true;
 }
 
+// ORCA true when the pressed button is the only one held, so no other drag is in progress
+static bool is_only_one_button_down(const wxMouseEvent& evt)
+{
+    return int(evt.LeftIsDown()) + int(evt.MiddleIsDown()) + int(evt.RightIsDown()) + int(evt.Aux1IsDown()) + int(evt.Aux2IsDown()) == 1;
+}
+
 void GLCanvas3D::on_mouse(wxMouseEvent& evt)
 {
     if (!m_initialized || !_set_current())
@@ -4953,6 +4960,28 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         m_dirty = true;
     };
 
+    // ORCA a press on toolbar empty areas must not reach the 3D scene (selection, camera, painting...).
+    // Swallow it with the drags and the release that follow, wherever the mouse goes.
+    if (m_mouse.down_on_toolbar) {
+        const bool button_event = evt.ButtonDown() || evt.ButtonUp() || evt.ButtonDClick();
+        // all buttons released, also covers a release outside the canvas
+        if (!evt.ButtonIsDown(wxMOUSE_BTN_ANY) && !evt.ButtonDown() && !evt.ButtonDClick()) {
+            m_mouse.down_on_toolbar = false;
+            mouse_up_cleanup();
+        }
+        if (button_event || evt.Dragging())
+            return;
+    }
+    else if (!mouse_in_layer_editing && (evt.ButtonDown() || evt.ButtonDClick()) && is_only_one_button_down(evt) &&
+             !m_gizmos.is_mouse_over_toolbar_icon(pos.cast<double>()) && _is_mouse_over_top_toolbar(pos.cast<double>())) {
+        m_mouse.down_on_toolbar = true;
+        m_mouse.set_start_position_2D_as_invalid();
+        m_mouse.set_start_position_3D_as_invalid();
+        if (!has_mouse_capture()) // keep getting the release when it happens outside the canvas
+            m_canvas->CaptureMouse();
+        return;
+    }
+
     if (!mouse_in_layer_editing && m_gizmos.on_mouse(evt)) {
         if (m_gizmos.is_running()) {
             _deactivate_arrange_menu();
@@ -5010,15 +5039,6 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         // A gizmo that acts on a click or a drag may not request a frame itself.
         if (!evt.Moving())
             m_dirty = true;
-        return;
-    }
-
-    // ORCA swallow clicks on toolbar empty areas so they don't reach the 3D scene
-    if (!mouse_in_layer_editing && (evt.ButtonDown() || evt.ButtonUp() || evt.ButtonDClick()) &&
-        !m_mouse.dragging && !m_rectangle_selection.is_dragging() && _is_mouse_over_top_toolbar(pos.cast<double>())) {
-        if (evt.ButtonUp())
-            mouse_up_cleanup();
-        m_mouse.set_start_position_3D_as_invalid();
         return;
     }
 
