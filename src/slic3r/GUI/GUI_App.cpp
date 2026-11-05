@@ -3701,9 +3701,10 @@ bool GUI_App::on_init_inner()
 
     if (m_agent && m_agent->is_user_login()) {
         enable_user_preset_folder(true);
-        plugin_mgr.set_cloud_user(m_agent->get_user_id());
+        const std::string cloud_user_id = m_agent->get_user_id();
+        plugin_mgr.set_cloud_user(cloud_user_id);
         // Sync cloud plugin metadata off the UI thread; the network round trips took ~2 s of startup.
-        m_startup_cloud_plugin_fetch_thread = Slic3r::create_thread([this] {
+        m_startup_cloud_plugin_fetch_thread = Slic3r::create_thread([this, cloud_user_id] {
             std::vector<std::string> not_found, unauthorized;
             try {
                 PluginManager::instance().fetch_plugins_from_cloud(&not_found, &unauthorized);
@@ -3714,14 +3715,15 @@ bool GUI_App::on_init_inner()
                 BOOST_LOG_TRIVIAL(error) << "Startup cloud plugin fetch failed";
                 return;
             }
-            auto report = [this, not_found = std::move(not_found), unauthorized = std::move(unauthorized)] {
+            auto report = [this, cloud_user_id, not_found = std::move(not_found), unauthorized = std::move(unauthorized)] {
                 if (is_closing())
                     return;
                 if (m_plugins_dlg)
                     m_plugins_dlg->update_plugin_dialog_ui();
                 Plater* plater = this->plater();
-                if (plater == nullptr || m_agent == nullptr || !m_agent->is_user_login())
-                    return; // logged out meanwhile
+                if (plater == nullptr || m_agent == nullptr || !m_agent->is_user_login() ||
+                    m_agent->get_user_id() != cloud_user_id)
+                    return; // logged out or switched account meanwhile
                 for (const auto& uuid : not_found) {
                     plater->get_notification_manager()->push_notification(
                         NotificationType::CustomNotification,
@@ -3733,6 +3735,20 @@ bool GUI_App::on_init_inner()
                         NotificationType::CustomNotification,
                         NotificationManager::NotificationLevel::RegularNotificationLevel,
                         format(_L("Plugin %s access is unauthorized."), uuid));
+                }
+
+                // If the fetch finished before the plater existed, PluginManager could not deliver
+                // its update notice. Deliver it here from post_init(). update_available is only set
+                // by a successful fetch, so this remains success-only, and reading it now keeps the
+                // notice fresh if updates were installed while the report was deferred.
+                NotificationManager* notifications = plater->get_notification_manager();
+                if (notifications != nullptr &&
+                    !notifications->has_notification_of_type(NotificationType::OrcaCloudPluginUpdateAvailable)) {
+                    const std::vector<PluginDescriptor> descriptors = PluginManager::instance().get_plugin_descriptors();
+                    const bool has_update = std::any_of(descriptors.begin(), descriptors.end(),
+                                                        [](const PluginDescriptor& descriptor) { return descriptor.has_update_available(); });
+                    if (has_update)
+                        notifications->push_notification(NotificationType::OrcaCloudPluginUpdateAvailable);
                 }
             };
             // This can run in a splash wxYield() before the main window exists.

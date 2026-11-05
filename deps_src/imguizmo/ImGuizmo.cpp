@@ -3073,6 +3073,19 @@ namespace IMGUIZMO_NAMESPACE
       }
       isInside = gContext.mbMouseOver && ImRect(position, position + size).Contains(io.MousePos);
 
+      // The navigator is drawn into the NoInputs "gizmo" window, so ImGui never owns the press
+      // (mouse_avail_to_imgui is false) and WantCaptureMouse only reflects what the previous frame asked
+      // for. Hold the capture for the whole gesture, otherwise a still frame drops it and the next motion
+      // event reaches the canvas, which adopts it as a camera drag.
+      if ((isClicking || isDraging) && io.MouseDown[0])
+      {
+#if IMGUI_VERSION_NUM >= 18723
+         ImGui::SetNextFrameWantCaptureMouse(true);
+#else
+         ImGui::CaptureMouseFromApp();
+#endif
+      }
+
       if (io.MouseDown[0] && (fabsf(io.MouseDelta[0]) || fabsf(io.MouseDelta[1])) && isClicking)
       {
          isClicking = false;

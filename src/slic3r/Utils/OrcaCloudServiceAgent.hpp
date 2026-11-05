@@ -81,28 +81,28 @@ struct ProfileUpsert {
     std::string id;
     std::string name;
     nlohmann::json content;
-    long long updated_time;
-    long long created_time;
+    long long updated_time = 0;
+    long long created_time = 0;
 };
 
 struct SyncPullResponse {
-    long long next_cursor;
+    long long next_cursor = 0;
     std::vector<ProfileUpsert> upserts;
     std::vector<std::string> deletes;
 };
 
 struct SyncPushResult {
-    bool success;
-    int http_code;
-    int conflict_code;
-    long long new_updated_time;
+    bool success = false;
+    int http_code = 0;
+    int conflict_code = 0;
+    long long new_updated_time = 0;
     ProfileUpsert server_version;
-    bool server_deleted;
+    bool server_deleted = false;
     std::string error_message;
 };
 
 struct SyncState {
-    long long last_sync_timestamp;
+    long long last_sync_timestamp = 0;
 };
 
 #endif // ORCA_SYNC_STRUCTS_DEFINED
