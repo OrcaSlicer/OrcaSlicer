@@ -303,7 +303,9 @@ void PresetUpdater::priv::set_download_prefs(AppConfig *app_config)
 	version_check_url = app_config->version_check_url();
 
 	auto profile_update_url = app_config->profile_update_url();
-	if (!profile_update_url.empty())
+	// Dev builds keep the profiles from their own source tree; an over-the-air bundle would replace them.
+	const bool dev_build = boost::algorithm::icontains(std::string(SoftFever_VERSION), "dev");
+	if (!profile_update_url.empty() && !dev_build)
 		enabled_config_update = true;
 	else
 		enabled_config_update = false;
