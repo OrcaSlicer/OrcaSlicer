@@ -1,4 +1,4 @@
-This library is based on miniz 2.1.0 - amalgamated version.
+This library is based on miniz 3.1.2 - amalgamated version.
 
 ----------------------------------------------------------------
 
