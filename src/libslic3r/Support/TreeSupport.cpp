@@ -2,6 +2,7 @@
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <cassert>
 #include <chrono>
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -38,6 +39,10 @@
 #include "TreeSupportCommon.hpp"
 #include "TreeSupport.hpp"
 #include "TreeSupport3D.hpp"
+#ifdef SLIC3R_GPU_ENABLED
+#include "Gpu/TreeContourCandidates.hpp"
+#include "Gpu/VulkanSlicer.hpp"
+#endif
 #include "BeltFloorContext.hpp"
 #include "libslic3r/libslic3r.h"
 #include <libnest2d/backends/libslic3r/geometries.hpp>
@@ -3042,6 +3047,59 @@ void TreeSupport::drop_nodes()
             spanning_trees.emplace_back(points_to_buildplate);
         }
         profiler.stage_add(STAGE_MinimumSpanningTree);
+
+#ifdef SLIC3R_GPU_ENABLED
+        // A zero may seed this layer's cache only after the common backend
+        // proves disjointness from every WHOLE contour box. Positive candidates
+        // and every unsupported/failed batch retain exact CPU polygon clipping.
+        const auto seed_gpu_tree_cache = [&] {
+            const auto preference = Gpu::VulkanSlicerBackend::backend_preference();
+            if (!Gpu::VulkanSlicerBackend::compute_enabled() ||
+                (preference != Gpu::ComputeBackendPreference::Vulkan && preference != Gpu::ComputeBackendPreference::Auto))
+                return;
+            std::vector<Gpu::Segment> contour_boxes;
+            if (!Gpu::visit_filled_contour_boxes(true, layer_contours,
+                    [&](coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y) {
+                        contour_boxes.push_back({{int64_t(min_x), int64_t(min_y)}, {int64_t(max_x), int64_t(max_y)}});
+                    }) || contour_boxes.empty())
+                return;
+            // Bound host packing as well as the shared API's device staging.
+            const size_t maximum_lines = std::min(size_t(128 * 1024), size_t(16 * 1024 * 1024) / contour_boxes.size());
+            std::vector<Line> lines;
+            for (size_t group = 0; group < nodes_per_part.size(); ++group) {
+                const MinimumSpanningTree& mst = spanning_trees[group];
+                for (const auto& entry : nodes_per_part[group]) {
+                    const Point& point = entry.first;
+                    for (const Point& neighbour : mst.adjacent_nodes(point)) {
+                        // MST adjacency is symmetric; preserve one request and
+                        // its exact line key for each undirected branch.
+                        if (point.x() > neighbour.x() || (point.x() == neighbour.x() && point.y() >= neighbour.y()))
+                            continue;
+                        if (lines.size() == maximum_lines)
+                            return;
+                        lines.emplace_back(point, neighbour);
+                    }
+                }
+            }
+            if (lines.empty())
+                return;
+            std::vector<Gpu::VulkanTreeContourRequest> requests;
+            requests.reserve(lines.size());
+            for (const Line& line : lines)
+                requests.push_back({{{int64_t(line.a.x()), int64_t(line.a.y())},
+                                     {int64_t(line.b.x()), int64_t(line.b.y())}}, uint64_t(requests.size())});
+            // Tree support may be the first GPU stage in this process.
+            static std::once_flag shader_directory;
+            std::call_once(shader_directory, [] {
+                Gpu::VulkanSlicerBackend::set_shader_directory(resources_dir() + "/vulkan");
+            });
+            const auto batch = Gpu::VulkanSlicerBackend::dispatch_tree_contour_candidates(requests, contour_boxes);
+            Gpu::consume_tree_negatives(batch, lines, [&](const Point& a, const Point& b) {
+                mst_line_x_layer_contour_cache.insert({Line(a, b), false});
+            });
+        };
+        seed_gpu_tree_cache();
+#endif
 
 #ifdef SUPPORT_TREE_DEBUG_TO_SVG
         coordf_t branch_radius_temp = 0;

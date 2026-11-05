@@ -122,3 +122,24 @@ set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 orcaslicer_copy_test_dlls()
 
 orcaslicer_discover_tests(${_TEST_NAME}_tests)
+
+add_executable(gpu_rectilinear_candidates_tests test_gpu_rectilinear_candidates.cpp)
+target_compile_features(gpu_rectilinear_candidates_tests PRIVATE cxx_std_17)
+add_test(NAME gpu_rectilinear_candidates_tests COMMAND gpu_rectilinear_candidates_tests)
+if(SLIC3R_ENABLE_CUDA_SLICER OR SLIC3R_ENABLE_VULKAN_SLICER)
+    target_sources(${_TEST_NAME}_tests PRIVATE test_gpu_rectilinear_equivalence.cpp)
+endif()
+
+add_executable(gpu_tree_candidates_tests test_gpu_tree_candidates.cpp)
+target_compile_features(gpu_tree_candidates_tests PRIVATE cxx_std_17)
+add_test(NAME gpu_tree_candidates_tests COMMAND gpu_tree_candidates_tests)
+if(SLIC3R_ENABLE_CUDA_SLICER OR SLIC3R_ENABLE_VULKAN_SLICER)
+    target_sources(${_TEST_NAME}_tests PRIVATE test_gpu_tree_contours.cpp)
+endif()
+
+# The same production gate suite also runs with the product's native Catch
+# version when GPU support is built; standalone tests/gpu_safety covers OFF.
+if(SLIC3R_ENABLE_CUDA_SLICER OR SLIC3R_ENABLE_VULKAN_SLICER)
+    target_sources(${_TEST_NAME}_tests PRIVATE
+        test_gpu_exact_geometry.cpp test_gpu_batch_preflight.cpp)
+endif()
