@@ -87,7 +87,7 @@ The [wiki](https://www.orcaslicer.com/wiki) aims to provide a detailed explanati
 
 📥 **[Download the Latest Stable Release](https://github.com/OrcaSlicer/OrcaSlicer/releases/latest)**  
 Visit our GitHub Releases page for the latest stable version of OrcaSlicer, recommended for most users.  
-Windows release and nightly binaries are code signed; see our [Code signing policy](#code-signing-policy).
+Windows and macOS release and nightly builds are code signed.
 
 ## Nightly Builds
 
@@ -244,14 +244,6 @@ Open-source slicing has always been built on a tradition of collaboration and at
 OrcaSlicer began in that same spirit, drawing from BambuStudio, PrusaSlicer, and ideas inspired by CuraSlicer and SuperSlicer. But it has since grown far beyond its origins. Through relentless innovation — introducing advanced calibration tools, precise wall and seam control, tree supports, adaptive slicing, and hundreds of other features — OrcaSlicer has become the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry.
 
 The OrcaSlicer logo was designed by community member [Justin Levine](https://github.com/jal-co).
-
-# Code Signing Policy
-
-Windows release and nightly binaries are signed by ORCASLICER PTE. LTD. with an OV code signing certificate issued by Sectigo. GitHub Actions signs them while it builds the `main` and `release/*` branches of this repository; pull requests and forks are never signed. The signing key is held in a hardware security module in Google Cloud KMS and cannot be exported, and the workflow reaches it only through short-lived credentials issued to those builds. Every signature is timestamped.
-
-**Team roles:** [SoftFever](https://github.com/SoftFever) is the committer, reviewer and approver for all signed releases.
-
-**Privacy policy:** See the [OrcaSlicer privacy policy](https://www.orcaslicer.com/privacy-policy/).
 
 # License
 
