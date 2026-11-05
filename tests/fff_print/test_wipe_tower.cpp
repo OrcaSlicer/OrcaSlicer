@@ -198,18 +198,29 @@ static std::string slice_with_prime_tower(const DynamicPrintConfig &config)
     return gcode(print);
 }
 
-// On Klipper the tower syncs motion only right before a temperature command and once per tool change,
-// at the end of the unload; any other bare M400 at a toolchange boundary just stalls the toolhead.
-static bool m400_only_before_temperature_and_tool_changes(const std::string &gcode)
+// change_filament_gcode for the Klipper sections: a marker comment, so no slicer output changes.
+static const char *const toolchange_mark = "; TOOLCHANGE_MARK\n";
+
+// On Klipper the tower syncs motion only right before a temperature command and, with
+// `sync_before_change`, once per toolchange at the end of the unload, so change_filament_gcode
+// can't run while the unload is still queued. Any other M400 just stalls the toolhead.
+static bool m400_only_where_needed(const std::string &gcode, bool sync_before_change)
 {
-    size_t bare_m400 = 0, tool_changes = 0;
-    for (size_t pos = gcode.find("M400\n"); pos != std::string::npos; pos = gcode.find("M400\n", pos + 1))
-        if (gcode.compare(pos + 5, 4, "M104") != 0 && gcode.compare(pos + 5, 4, "M109") != 0)
-            ++bare_m400;
-    for (size_t pos = gcode.find("\nT"); pos != std::string::npos; pos = gcode.find("\nT", pos + 1))
-        if (pos + 2 < gcode.size() && gcode[pos + 2] >= '0' && gcode[pos + 2] <= '9')
-            ++tool_changes;
-    return bare_m400 <= tool_changes;
+    bool synced = false; // a bare M400 since the last change_filament_gcode
+    std::istringstream lines(gcode);
+    for (std::string line, prev; std::getline(lines, line); prev = line) {
+        if (prev == "M400" && line.rfind("M104", 0) != 0 && line.rfind("M109", 0) != 0) {
+            if (!sync_before_change || synced)
+                return false;
+            synced = true;
+        }
+        if (line.find("; TOOLCHANGE_MARK") != std::string::npos) {
+            if (sync_before_change && !synced)
+                return false;
+            synced = false;
+        }
+    }
+    return true;
 }
 
 // The wipe tower regions of a slice under `config`. Post-processed tower moves start with "G1  "
@@ -262,10 +273,11 @@ TEST_CASE("The wipe tower's toolchange planner flush follows the gcode flavor", 
         const std::string tower_type = GENERATE("type1", "type2");
         CAPTURE(tower_type);
         DynamicPrintConfig config = wipe_tower_toolchange_config("klipper");
-        config.set_deserialize_strict({ { "wipe_tower_type", tower_type } });
+        config.set_deserialize_strict({ { "wipe_tower_type", tower_type }, { "change_filament_gcode", toolchange_mark } });
         const std::string tower = sliced_wipe_tower(config);
         CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring("G4 S0"));
-        CHECK(m400_only_before_temperature_and_tool_changes(tower));
+        // Only type2 syncs at the end of the unload; type1's toolchange_Unload is compiled out.
+        CHECK(m400_only_where_needed(tower, tower_type == std::string("type2")));
     }
     SECTION("marlin") {
         const std::string tower = sliced_wipe_tower(wipe_tower_toolchange_config("marlin"));
@@ -275,17 +287,18 @@ TEST_CASE("The wipe tower's toolchange planner flush follows the gcode flavor", 
     SECTION("klipper, single extruder multi material") {
         // The SEMM path changes the temperature inside the tower; the sync before M104 must stay.
         DynamicPrintConfig config = wipe_tower_toolchange_config("klipper");
-        config.set_deserialize_strict({ { "single_extruder_multi_material", "1" } });
+        config.set_deserialize_strict({ { "single_extruder_multi_material", "1" }, { "change_filament_gcode", toolchange_mark } });
         const std::string tower = sliced_wipe_tower(config);
         CHECK_THAT(tower, Catch::Matchers::ContainsSubstring("M400\nM104"));
-        CHECK(m400_only_before_temperature_and_tool_changes(tower));
+        CHECK(m400_only_where_needed(tower, true));
     }
     SECTION("klipper, tower interface features") {
         // The interface M109 is stripped from the tower by GCode.cpp; its sync line must go with it.
         DynamicPrintConfig config = wipe_tower_toolchange_config("klipper");
         config.set_deserialize_strict({ { "enable_tower_interface_features", "1" },
-                                        { "nozzle_temperature_range_high", "250,250" } });
-        CHECK(m400_only_before_temperature_and_tool_changes(sliced_wipe_tower(config)));
+                                        { "nozzle_temperature_range_high", "250,250" },
+                                        { "change_filament_gcode", toolchange_mark } });
+        CHECK(m400_only_where_needed(sliced_wipe_tower(config), true));
     }
 }
 
