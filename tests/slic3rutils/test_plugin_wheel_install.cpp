@@ -188,28 +188,192 @@ TEST_CASE("a staged wheel filename uses the tags the wheel declares", "[PluginWh
           "cp312-cp312-linux_x86_64");
 }
 
-TEST_CASE("only an entry package extraction selects the legacy wheel path", "[PluginWheelInstall]")
+TEST_CASE("the uv wheel target reuses the legacy entry extraction path", "[PluginWheelInstall]")
 {
-    ScopedTemporaryDir dir("wheel-install-legacy");
+    ScopedTemporaryDir dir("wheel-install-target");
+    const fs::path      plugin_root = dir.path() / "plugin";
+    fs::create_directories(plugin_root);
+
+    // One cache location: the directory the pre-uv loader extracted the entry wheel into.
+    const fs::path expected = plugin_root / "__whl_extracted__" / "demo_pkg";
+    CHECK(fs::path(wheel_install::install_dir(plugin_root.string(), "demo_pkg")) == expected);
+    CHECK(fs::path(wheel_install::install_dir(plugin_root.string(), "pkg.sub")) ==
+          plugin_root / "__whl_extracted__" / "pkg.sub");
+
+    // The entry package becomes a path component, so path syntax and traversal are refused.
+    CHECK(wheel_install::install_dir(plugin_root.string(), "").empty());
+    CHECK(wheel_install::install_dir(plugin_root.string(), "../escape").empty());
+    CHECK(wheel_install::install_dir(plugin_root.string(), "pkg/sub").empty());
+    CHECK(wheel_install::install_dir(plugin_root.string(), "pkg\\sub").empty());
+    CHECK(wheel_install::install_dir(plugin_root.string(), ".hidden").empty());
+    CHECK(wheel_install::install_dir(plugin_root.string(), "pkg..sub").empty());
+}
+
+TEST_CASE("a markerless legacy extraction is replaced without touching dependency extractions", "[PluginWheelInstall]")
+{
+    ScopedTemporaryDir dir("wheel-install-legacy-replace");
     const fs::path      plugin_root = dir.path() / "plugin";
     fs::create_directories(plugin_root);
     const fs::path wheel = plugin_root / "plugin.whl";
+    write_wheel(wheel, "py3-none-any", "VALUE = 1\n");
+
     const PluginDescriptor descriptor = make_descriptor(plugin_root, wheel);
 
-    CHECK_FALSE(wheel_install::has_legacy_entry_extraction(descriptor));
+    // A pre-uv extraction, plus a separate dependency extraction that must survive.
+    const fs::path legacy_target = plugin_root / wheel_install::EXTRACTED_DIR_NAME / "demo_pkg";
+    const fs::path dep_dir       = plugin_root / wheel_install::EXTRACTED_DIR_NAME / "dep_pkg";
+    fs::create_directories(legacy_target);
+    fs::create_directories(dep_dir);
+    {
+        std::ofstream legacy_file((legacy_target / "written_by_plugin.txt").string());
+        legacy_file << "old cache contents\n";
+        std::ofstream dep_file((dep_dir / "sentinel.txt").string());
+        dep_file << "dependency extraction\n";
+    }
 
-    // Dependency wheels extracted here do not make the entry itself legacy.
-    fs::create_directories(plugin_root / "__whl_extracted__" / "dep_pkg");
-    CHECK_FALSE(wheel_install::has_legacy_entry_extraction(descriptor));
+    int         calls = 0;
+    std::string error;
+    REQUIRE(wheel_install::ensure_installed(descriptor, error, fake_uv(nullptr, &calls, "")));
+    CHECK(calls == 1);
 
-    // The entry package's own extraction does, even when a uv target exists next to it.
-    fs::create_directories(plugin_root / "__whl_extracted__" / "demo_pkg");
-    fs::create_directories(plugin_root / wheel_install::INSTALL_DIR_NAME / "demo_pkg");
-    CHECK(wheel_install::has_legacy_entry_extraction(descriptor));
+    // The markerless entry directory was cache, not plugin data: uv replaced it.
+    CHECK_FALSE(fs::exists(legacy_target / "written_by_plugin.txt"));
+    CHECK(fs::is_regular_file(legacy_target / "demo_pkg" / "__init__.py"));
+    CHECK(fs::is_regular_file(legacy_target / wheel_install::MARKER_FILE_NAME));
 
-    PluginDescriptor no_package = descriptor;
-    no_package.entry_package.clear();
-    CHECK_FALSE(wheel_install::has_legacy_entry_extraction(no_package));
+    // Dependency extractions under the same parent are untouched.
+    CHECK(fs::is_regular_file(dep_dir / "sentinel.txt"));
+    CHECK_FALSE(has_staging_leftovers(plugin_root));
+}
+
+TEST_CASE("a dependency extraction at the entry target is not replaced", "[PluginWheelInstall]")
+{
+    ScopedTemporaryDir dir("wheel-install-collision");
+    const fs::path      plugin_root = dir.path() / "plugin";
+    fs::create_directories(plugin_root);
+    const fs::path wheel = plugin_root / "plugin.whl";
+    write_wheel(wheel, "py3-none-any", "VALUE = 1\n");
+    // A dependency wheel whose stem is the entry package maps to the same extraction directory.
+    write_wheel(plugin_root / "demo_pkg.whl", "py3-none-any", "DEPENDENCY = 1\n");
+
+    const PluginDescriptor descriptor = make_descriptor(plugin_root, wheel);
+
+    const fs::path target = plugin_root / wheel_install::EXTRACTED_DIR_NAME / "demo_pkg";
+    fs::create_directories(target);
+    {
+        std::ofstream sentinel((target / "sentinel.txt").string());
+        sentinel << "dependency extraction\n";
+    }
+
+    int         calls = 0;
+    std::string error;
+    CHECK_FALSE(wheel_install::ensure_installed(descriptor, error, fake_uv(nullptr, &calls, "should not run")));
+    CHECK(calls == 0);
+    CHECK_THAT(error, Catch::Matchers::ContainsSubstring("collides"));
+
+    // The dependency extraction is left exactly as it was.
+    CHECK(fs::is_regular_file(target / "sentinel.txt"));
+    CHECK_FALSE(fs::exists(target / "demo_pkg"));
+}
+
+TEST_CASE("the entry wheel itself is not treated as a dependency collision", "[PluginWheelInstall]")
+{
+    ScopedTemporaryDir dir("wheel-install-entry-stem");
+    const fs::path      plugin_root = dir.path() / "plugin";
+    fs::create_directories(plugin_root);
+    // A stored wheel renamed to exactly the entry package: its stem matches the target directory,
+    // but it is the entry and must not be mistaken for a dependency extraction.
+    const fs::path wheel = plugin_root / "demo_pkg.whl";
+    write_wheel(wheel, "py3-none-any", "VALUE = 1\n");
+
+    const PluginDescriptor descriptor = make_descriptor(plugin_root, wheel);
+
+    int         calls = 0;
+    std::string error;
+    REQUIRE(wheel_install::ensure_installed(descriptor, error, fake_uv(nullptr, &calls, "")));
+    CHECK(calls == 1);
+    CHECK(fs::is_directory(plugin_root / wheel_install::EXTRACTED_DIR_NAME / "demo_pkg"));
+}
+
+TEST_CASE("an uppercase dependency wheel extension is not treated as a collision", "[PluginWheelInstall]")
+{
+    ScopedTemporaryDir dir("wheel-install-uppercase-dependency");
+    const fs::path      plugin_root = dir.path() / "plugin";
+    fs::create_directories(plugin_root);
+    const fs::path wheel = plugin_root / "plugin.whl";
+    write_wheel(wheel, "py3-none-any", "VALUE = 1\n");
+    // The dependency loader extracts only lowercase ".whl" files, so this one is ignored and the
+    // entry may use the same directory stem.
+    write_wheel(plugin_root / "demo_pkg.WHL", "py3-none-any", "DEPENDENCY = 1\n");
+
+    const PluginDescriptor descriptor = make_descriptor(plugin_root, wheel);
+
+    int         calls = 0;
+    std::string error;
+    REQUIRE(wheel_install::ensure_installed(descriptor, error, fake_uv(nullptr, &calls, "")));
+    CHECK(calls == 1);
+    CHECK(fs::is_directory(plugin_root / wheel_install::EXTRACTED_DIR_NAME / "demo_pkg"));
+}
+
+TEST_CASE("non-ASCII entry package names are accepted", "[PluginWheelInstall]")
+{
+    ScopedTemporaryDir dir("wheel-install-unicode-package");
+    const fs::path      plugin_root = dir.path() / "plugin";
+    fs::create_directories(plugin_root);
+
+    // "pkg_ü" in UTF-8. A Unicode Python identifier must remain a safe path component.
+    const std::string unicode_package = "pkg_\xC3\xBC";
+    CHECK(wheel_install::is_valid_entry_package(unicode_package));
+    CHECK(fs::path(wheel_install::install_dir(plugin_root.string(), unicode_package)) ==
+          plugin_root / wheel_install::EXTRACTED_DIR_NAME / unicode_package);
+}
+
+TEST_CASE("an unsafe entry package is rejected before touching the disk", "[PluginWheelInstall]")
+{
+    ScopedTemporaryDir dir("wheel-install-unsafe-package");
+    const fs::path      plugin_root = dir.path() / "plugin";
+    fs::create_directories(plugin_root);
+    const fs::path wheel = plugin_root / "plugin.whl";
+    write_wheel(wheel, "py3-none-any", "VALUE = 1\n");
+
+    for (const std::string& entry_package :
+         {"../escape", "pkg/sub", "pkg\\sub", "pkg..sub", ".hidden", "pkg*sub", "pkg:sub", "pkg\x01sub"}) {
+        PluginDescriptor descriptor = make_descriptor(plugin_root, wheel);
+        descriptor.entry_package    = entry_package;
+
+        int         calls = 0;
+        std::string error;
+        CHECK_FALSE(wheel_install::ensure_installed(descriptor, error, fake_uv(nullptr, &calls, "should not run")));
+        CHECK(calls == 0);
+        CHECK_FALSE(fs::exists(plugin_root / wheel_install::EXTRACTED_DIR_NAME));
+    }
+}
+
+TEST_CASE("a failed uv install leaves the previous extraction in place", "[PluginWheelInstall]")
+{
+    ScopedTemporaryDir dir("wheel-install-legacy-fail");
+    const fs::path      plugin_root = dir.path() / "plugin";
+    fs::create_directories(plugin_root);
+    const fs::path wheel = plugin_root / "plugin.whl";
+    write_wheel(wheel, "py3-none-any", "VALUE = 1\n");
+
+    const PluginDescriptor descriptor = make_descriptor(plugin_root, wheel);
+
+    const fs::path target = plugin_root / wheel_install::EXTRACTED_DIR_NAME / "demo_pkg";
+    fs::create_directories(target);
+    {
+        std::ofstream sentinel((target / "sentinel.txt").string());
+        sentinel << "previous contents\n";
+    }
+
+    std::string error;
+    CHECK_FALSE(wheel_install::ensure_installed(descriptor, error, fake_uv(nullptr, nullptr, "simulated uv failure")));
+    CHECK_THAT(error, Catch::Matchers::ContainsSubstring("simulated uv failure"));
+
+    // uv failed before promotion, so the previous directory is still the only cache copy.
+    CHECK(fs::is_regular_file(target / "sentinel.txt"));
+    CHECK_FALSE(fs::exists(target / "demo_pkg"));
+    CHECK_FALSE(has_staging_leftovers(plugin_root));
 }
 
 TEST_CASE("a wheel with an invalid stored name is staged under a valid name", "[PluginWheelInstall]")
@@ -237,13 +401,15 @@ TEST_CASE("a wheel with an invalid stored name is staged under a valid name", "[
     const fs::path uv_target(arg_after(captured, "--target"));
     CHECK(uv_target.filename().string() == "target");
     CHECK(uv_target.parent_path().filename().string().rfind(wheel_install::STAGING_DIR_PREFIX, 0) == 0);
-    CHECK(uv_target != fs::path(wheel_install::install_dir(plugin_root.string())));
+    const std::string installed_dir = wheel_install::install_dir(plugin_root.string(), "demo_pkg");
+    CHECK(uv_target != fs::path(installed_dir));
     CHECK(std::find(captured.begin(), captured.end(), "--no-deps") != captured.end());
     CHECK(std::find(captured.begin(), captured.end(), "--no-index") != captured.end());
     CHECK(std::find(captured.begin(), captured.end(), "--no-python-downloads") != captured.end());
 
-    CHECK(fs::is_directory(wheel_install::install_dir(plugin_root.string())));
-    CHECK(fs::is_regular_file(fs::path(wheel_install::install_dir(plugin_root.string())) / wheel_install::MARKER_FILE_NAME));
+    CHECK(fs::is_directory(installed_dir));
+    CHECK(fs::path(installed_dir) == plugin_root / "__whl_extracted__" / "demo_pkg");
+    CHECK(fs::is_regular_file(fs::path(installed_dir) / wheel_install::MARKER_FILE_NAME));
     CHECK_FALSE(has_staging_leftovers(plugin_root));
 }
 
@@ -340,7 +506,7 @@ TEST_CASE("a failed uv install leaves no importable target behind", "[PluginWhee
     CHECK_FALSE(wheel_install::ensure_installed(descriptor, error, fake_uv(nullptr, nullptr, "simulated uv failure")));
     CHECK_THAT(error, Catch::Matchers::ContainsSubstring("simulated uv failure"));
 
-    CHECK_FALSE(fs::exists(wheel_install::install_dir(plugin_root.string())));
+    CHECK_FALSE(fs::exists(wheel_install::install_dir(plugin_root.string(), "demo_pkg")));
     CHECK_FALSE(has_staging_leftovers(plugin_root));
 }
 

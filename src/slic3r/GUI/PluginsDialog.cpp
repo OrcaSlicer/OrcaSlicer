@@ -1392,9 +1392,11 @@ void PluginsDialog::reload_local_plugin(const std::string& plugin_key, bool clea
                     return {false, _u8L("Failed to unload plugin.")};
 
                 if (clear_cache) {
-                    // The extracted and uv-installed copies are both caches; the stored wheel and
-                    // the plugin data directory are left untouched.
-                    for (const char* cache_name : {"__whl_extracted__", plugin_wheel_install::INSTALL_DIR_NAME}) {
+                    // __whl_extracted__ now holds both dependency extractions and the uv-installed
+                    // entry wheel. The old private uv target is removed too when upgrading from a
+                    // build that still used it. The stored wheel and plugin data are left untouched.
+                    for (const char* cache_name : {plugin_wheel_install::EXTRACTED_DIR_NAME,
+                                                   plugin_wheel_install::LEGACY_INSTALL_DIR_NAME}) {
                         boost::system::error_code ec;
                         boost::filesystem::remove_all(plugin_root / cache_name, ec);
                         if (ec)

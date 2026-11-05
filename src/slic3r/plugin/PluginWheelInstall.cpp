@@ -1,7 +1,6 @@
 #include "PluginWheelInstall.hpp"
 
 #include "PluginFsUtils.hpp"
-#include "PluginUv.hpp"
 #include "PythonInterpreter.hpp"
 
 #include <boost/algorithm/string/case_conv.hpp>
@@ -135,9 +134,76 @@ bool looks_like_wheel_tags(const std::string& python_tag, const std::string& abi
     return looks_like_python_tag(python_tag) && looks_like_abi_tag(abi) && looks_like_platform_tag(platform);
 }
 
+bool names_equal_case_insensitive(const std::string& lhs, const std::string& rhs)
+{
+    return lhs.size() == rhs.size() &&
+           std::equal(lhs.begin(), lhs.end(), rhs.begin(), [](unsigned char a, unsigned char b) {
+               return std::tolower(a) == std::tolower(b);
+           });
+}
+
+// Path-component safety for a metadata-derived package name. Bytes >= 0x80 are left alone so
+// non-ASCII (Unicode) import names are not rejected. ASCII path separators, control characters and
+// characters Windows forbids in filenames are refused. This is deliberately not a Python
+// identifier check: the import step reports a name that cannot be imported.
+bool is_safe_package_path_char(unsigned char ch)
+{
+    if (ch >= 0x80)
+        return true;
+    if (ch < 0x20 || ch == 0x7F)
+        return false;
+
+    switch (ch) {
+    case '/':
+    case '\\':
+    case ':':
+    case '<':
+    case '>':
+    case '"':
+    case '|':
+    case '?':
+    case '*':
+        return false;
+    default:
+        return true;
+    }
+}
+
+// A dependency wheel <dep>.whl is extracted to __whl_extracted__/<dep>/. If that stem equals the
+// entry package, the entry target and the dependency extraction are the same directory. Compare
+// case-insensitively so a case-insensitive filesystem cannot hide the collision.
+bool dependency_extraction_collides(const fs::path& entry_path, const std::string& entry_package)
+{
+    if (!is_valid_entry_package(entry_package))
+        return false;
+
+    // Mirror add_wheel_dependencies_to_sys_path(): it scans the entry's parent directory (or the
+    // entry path itself when it has no extension) and recognizes only lowercase ".whl" files.
+    // Keep the same rules here so this guard protects exactly the directories that loader uses.
+    const fs::path           plugin_dir = entry_path.has_extension() ? entry_path.parent_path() : entry_path;
+    boost::system::error_code ec;
+    if (!fs::is_directory(plugin_dir, ec))
+        return false;
+
+    for (fs::directory_iterator it(plugin_dir, ec); !ec && it != fs::directory_iterator(); ++it) {
+        if (!fs::is_regular_file(it->status()))
+            continue;
+
+        const fs::path candidate = it->path();
+        if (candidate == entry_path)
+            continue;
+        if (candidate.extension() != ".whl")
+            continue;
+
+        if (names_equal_case_insensitive(candidate.stem().string(), entry_package))
+            return true;
+    }
+    return false;
+}
+
 bool entry_package_present(const fs::path& target, const std::string& entry_package)
 {
-    if (entry_package.empty())
+    if (!is_valid_entry_package(entry_package))
         return false;
 
     // Dotted import names ("pkg.sub") map onto nested components; the wheel installs
@@ -247,7 +313,7 @@ void remove_stale_scratch_dirs(const fs::path& plugin_root)
 
 bool default_uv_runner(const std::vector<std::string>& args, std::chrono::seconds timeout, std::string& error)
 {
-    return plugin_uv::run(args, timeout, error);
+    return PythonInterpreter::run_uv(args, timeout, error);
 }
 
 } // namespace
@@ -468,21 +534,32 @@ std::string wheel_filename_tag(const std::vector<std::string>& tags)
     return first.python + "-" + first.abi + "-" + platform;
 }
 
-std::string install_dir(const std::string& plugin_root)
+bool is_valid_entry_package(const std::string& entry_package)
 {
-    return (fs::path(plugin_root) / INSTALL_DIR_NAME).string();
-}
-
-bool has_legacy_entry_extraction(const PluginDescriptor& descriptor)
-{
-    if (descriptor.entry_path.empty() || descriptor.entry_package.empty())
+    if (entry_package.empty())
         return false;
 
-    // The legacy loader extracted the entry wheel next to the stored wheel, under
-    // pkg_name == entry_package. The parent directory alone may exist for dependencies only.
-    const fs::path extract_dir =
-        fs::path(descriptor.entry_path).parent_path() / "__whl_extracted__" / descriptor.entry_package;
-    return fs::is_directory(extract_dir);
+    bool component_has_char = false;
+    for (unsigned char ch : entry_package) {
+        if (ch == '.') {
+            // Dotted names need non-empty components; this also rejects "." and "..".
+            if (!component_has_char)
+                return false;
+            component_has_char = false;
+        } else {
+            if (!is_safe_package_path_char(ch))
+                return false;
+            component_has_char = true;
+        }
+    }
+    return component_has_char;
+}
+
+std::string install_dir(const std::string& plugin_root, const std::string& entry_package)
+{
+    if (!is_valid_entry_package(entry_package))
+        return {};
+    return (fs::path(plugin_root) / EXTRACTED_DIR_NAME / entry_package).string();
 }
 
 bool is_installed(const PluginDescriptor& descriptor, std::string* reason)
@@ -502,8 +579,10 @@ bool is_installed(const PluginDescriptor& descriptor, std::string* reason)
         return fail("plugin has no entry file");
     if (descriptor.entry_package.empty())
         return fail("plugin has no entry package");
+    if (!is_valid_entry_package(descriptor.entry_package))
+        return fail("entry package is not a safe package path");
 
-    const fs::path target = fs::path(descriptor.plugin_root) / INSTALL_DIR_NAME;
+    const fs::path target = fs::path(install_dir(descriptor.plugin_root, descriptor.entry_package));
     if (!fs::is_directory(target))
         return fail("no installed wheel target");
 
@@ -592,11 +671,29 @@ bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, co
         error = "Wheel does not identify an importable entry package.";
         return false;
     }
+    if (!is_valid_entry_package(descriptor.entry_package)) {
+        error = "Wheel entry package '" + descriptor.entry_package + "' is not a safe package path.";
+        return false;
+    }
+
+    const fs::path plugin_root = fs::path(descriptor.plugin_root);
+    const fs::path entry       = fs::path(descriptor.entry_path);
+
+    // __whl_extracted__/ is shared with dependency extractions. Never take over a directory that
+    // belongs to a dependency wheel: the two would fight over the same directory and import name.
+    // Checked before reuse so a marker in a coincidentally named dependency directory cannot make
+    // the entry look installed.
+    if (dependency_extraction_collides(entry, descriptor.entry_package)) {
+        error = "Wheel entry package '" + descriptor.entry_package +
+                "' collides with the extraction directory of a dependency wheel next to the entry; "
+                "rename the dependency wheel so its extraction uses a different directory.";
+        return false;
+    }
 
     std::string reuse_reason;
     if (is_installed(descriptor, &reuse_reason)) {
         BOOST_LOG_TRIVIAL(info) << "[plugin_wheel_install] reusing installation for " << descriptor.plugin_key << " ("
-                                << install_dir(descriptor.plugin_root) << ")";
+                                << install_dir(descriptor.plugin_root, descriptor.entry_package) << ")";
         return true;
     }
 
@@ -608,13 +705,11 @@ bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, co
     // Another caller may have completed the same install while this one waited.
     if (is_installed(descriptor, &reuse_reason)) {
         BOOST_LOG_TRIVIAL(info) << "[plugin_wheel_install] reusing installation for " << descriptor.plugin_key << " ("
-                                << install_dir(descriptor.plugin_root) << ")";
+                                << install_dir(descriptor.plugin_root, descriptor.entry_package) << ")";
         return true;
     }
 
-    const fs::path plugin_root = fs::path(descriptor.plugin_root);
-    const fs::path entry       = fs::path(descriptor.entry_path);
-    const fs::path target      = plugin_root / INSTALL_DIR_NAME;
+    const fs::path target = fs::path(install_dir(plugin_root.string(), descriptor.entry_package));
 
     std::string staged_name = entry.filename().string();
     if (!is_valid_wheel_filename(staged_name)) {
@@ -731,8 +826,19 @@ bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, co
 
     // Promote only a complete target. The previous target is retired under a name discovery
     // ignores and is restored if promotion fails; it is never deleted before the new one is live.
+    // The target's parent (__whl_extracted__) also holds dependency extractions, so creating it is
+    // safe; only the entry package's own subdirectory is replaced.
+    ec.clear();
+    fs::create_directories(target.parent_path(), ec);
+    if (ec)
+        return fail("Failed to create the plugin wheel extraction directory " + target.parent_path().string() +
+                    ": " + ec.message());
+
     const fs::path previous = plugin_root / (std::string(PREVIOUS_DIR_PREFIX) + unique);
-    const bool     had_target = fs::is_directory(target, ec);
+    ec.clear();
+    const bool had_target = fs::exists(target, ec);
+    if (ec)
+        return fail("Failed to inspect the existing wheel installation target: " + ec.message());
     if (had_target) {
         fs::rename(target, previous, ec);
         if (ec) {

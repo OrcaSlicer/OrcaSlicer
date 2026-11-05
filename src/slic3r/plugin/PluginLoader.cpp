@@ -7,7 +7,6 @@
 
 #include "PluginConfig.hpp"
 #include "PluginFsUtils.hpp"
-#include "PluginUv.hpp"
 #include "PluginWheelInstall.hpp"
 #include "PythonInterpreter.hpp"
 #include "PythonPluginBridge.hpp"
@@ -168,7 +167,7 @@ bool add_wheel_dependencies_to_sys_path(const PluginDescriptor& descriptor,
         if (it->path() == entry_path)
             continue;
 
-        const fs::path dep_dir = plugin_dir / "__whl_extracted__" / it->path().stem().string();
+        const fs::path dep_dir = plugin_dir / plugin_wheel_install::EXTRACTED_DIR_NAME / it->path().stem().string();
         if (!fs::exists(dep_dir)) {
             std::string extract_error;
             if (!extract_zip_to_directory(it->path(), dep_dir, extract_error)) {
@@ -198,10 +197,6 @@ PyObject* import_plugin_module(const PluginDescriptor& descriptor,
 
     if (descriptor.entry_package.empty())
         return interpreter.load_module_from_file(descriptor.entry_path, error, &plugin_paths, &plugin_modules);
-
-    if (boost::filesystem::path(descriptor.entry_path).extension() == ".whl")
-        return interpreter.load_module_from_whl(
-            descriptor.entry_path, descriptor.entry_package, error, &plugin_paths, &plugin_modules);
 
     return interpreter.load_module_from_directory(
         descriptor.entry_path, descriptor.entry_package, error, &plugin_paths, &plugin_modules);
@@ -265,16 +260,15 @@ bool load(const PluginDescriptor&                          descriptor,
     plugin.descriptor  = descriptor;
     plugin.module_name = plugin_module_name(descriptor);
 
-    // Preserve legacy entry extractions, including files plugins may have written there. The parent
-    // extraction directory alone may contain only dependencies. Otherwise, install the entry wheel
-    // with uv and reuse the private target while the wheel and interpreter remain unchanged.
+    // Wheel entries have one installation and one loading path: uv installs the entry wheel into
+    // the legacy extraction path, then the entry package is imported from there. An existing
+    // markerless extraction at that path is a pre-uv cache and is replaced. Dependency wheels are
+    // extracted alongside it under __whl_extracted__/ and are not touched.
     const bool has_entry_wheel = plugin_package_extension(descriptor.entry_path) == ".whl";
-    const bool legacy_entry_extraction =
-        has_entry_wheel && plugin_wheel_install::has_legacy_entry_extraction(descriptor);
-    if (has_entry_wheel && !legacy_entry_extraction) {
+    if (has_entry_wheel) {
         std::string wheel_install_error;
         if (!plugin_wheel_install::ensure_installed(descriptor, wheel_install_error)) {
-            // Report the failure instead of silently falling back to the legacy extraction.
+            // Report the failure instead of silently falling back to extraction.
             // TRN %1% is the uv/installation error detail.
             error = GUI::format(_u8L("Failed to install plugin wheel: %1%"), wheel_install_error);
             return false;
@@ -301,10 +295,10 @@ bool load(const PluginDescriptor&                          descriptor,
 
     std::string load_error;
     PyObject*   module = nullptr;
-    if (has_entry_wheel && !legacy_entry_extraction) {
-        module = interpreter.load_module_from_directory(plugin_wheel_install::install_dir(descriptor.plugin_root),
-                                                        descriptor.entry_package, load_error,
-                                                        &plugin.plugin_sys_paths, &plugin.plugin_modules);
+    if (has_entry_wheel) {
+        module = interpreter.load_module_from_directory(
+            plugin_wheel_install::install_dir(descriptor.plugin_root, descriptor.entry_package), descriptor.entry_package,
+            load_error, &plugin.plugin_sys_paths, &plugin.plugin_modules);
     } else {
         module = import_plugin_module(descriptor, plugin.plugin_sys_paths, plugin.plugin_modules, load_error);
     }
@@ -525,7 +519,7 @@ bool install_packages(const std::vector<std::string>& pkgs, std::string& error)
     BOOST_LOG_TRIVIAL(info) << "Installing Python packages via uv for " << python_executable << ": "
                             << boost::algorithm::join(pkgs, ", ");
 
-    return plugin_uv::run(args, std::chrono::seconds(120), error);
+    return PythonInterpreter::run_uv(args, std::chrono::seconds(120), error);
 }
 
 bool inspect_local_plugin_package(const boost::filesystem::path& filepath,
