@@ -303,7 +303,7 @@ void PresetUpdater::priv::set_download_prefs(AppConfig *app_config)
 	version_check_url = app_config->version_check_url();
 
 	auto profile_update_url = app_config->profile_update_url();
-	if (!profile_update_url.empty() && app_config->get_bool("enable_ota"))
+	if (!profile_update_url.empty())
 		enabled_config_update = true;
 	else
 		enabled_config_update = false;
