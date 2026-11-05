@@ -6189,6 +6189,7 @@ if (is_marlin_flavor)
         };
         optgroup->append_single_option_line("manual_filament_change", "printer_multimaterial_setup#manual-filament-change");
         optgroup->append_single_option_line("enable_filament_mapping", "printer_multimaterial_setup");
+        optgroup->append_single_option_line("filament_mapping_protocol", "printer_multimaterial_setup");
         optgroup->append_single_option_line("bed_temperature_formula", "printer_basic_information_advanced#bed-temperature-type");
 
         optgroup = page->new_optgroup(L("Wipe tower"), "param_tower");
@@ -6984,7 +6985,10 @@ void TabPrinter::toggle_options()
         toggle_option("tool_change_on_wipe_tower", !bSEMM && supports_wipe_tower_2 && extruders_count > 1, -1, tool_change_tower_reason);
         toggle_option("wait_for_temp_on_wipe_tower", !bSEMM && supports_wipe_tower_2 && extruders_count > 1, -1, tool_change_tower_reason);
 
-        toggle_line("enable_filament_mapping", !is_BBL_printer && extruders_count > 1 && !bSEMM);
+        // Orca: a native mapping protocol or a reported changer already maps filaments.
+        toggle_line("enable_filament_mapping", !is_BBL_printer && extruders_count > 1 && !bSEMM &&
+                                               filament_mapping_protocol_of(*m_config) == FilamentMappingProtocol::fmpNone &&
+                                               reported_changer_of(*m_config).empty());
     }
     if (m_active_page->title() == L("Extruder") && m_extruders_count > 0)
     {

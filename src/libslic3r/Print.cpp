@@ -429,7 +429,9 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "filament_notes",
         "process_notes",
         "printer_notes",
-        "use_3mf"
+        "use_3mf",
+        // Bounds the plate in validate() only; the toolpaths are unaffected.
+        "device_tool_count"
     };
 
     static std::unordered_set<std::string> steps_ignore;

@@ -116,6 +116,14 @@ enum class WipeTowerType {
     Type2,
 };
 
+// Orca: how a printer that maps filaments natively receives the map. A changer reported at sync
+// (reported_changer_of) overrides this for delivery.
+enum class FilamentMappingProtocol {
+    fmpNone = 0,
+    fmpSnapmaker,
+    fmpWonderMaker,
+};
+
 enum PrintHostType {
     htPrusaLink, htPrusaConnect, htOctoPrint, htDuet, htUltiMaker, htFlashAir, htAstroBox, htRepetier, htMKS, htESP3D, htCrealityPrint, htObico, htFlashforge, htSimplyPrint, htElegooLink, ht3DPrinterOS, htMoonraker
 };
@@ -802,6 +810,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(TopSurfaceExpansionDirection)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerType)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FilamentMappingProtocol)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(NoiseType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(IroningType)
@@ -1836,6 +1845,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionStrings,             imex_mode_active_tools))
     ((ConfigOptionStrings,             imex_mode_gcodes))
     ((ConfigOptionBool,                enable_filament_mapping))
+    ((ConfigOptionInt,                 device_tool_count))
     ((ConfigOptionBool,                single_extruder_multi_material_priming))
     ((ConfigOptionEnum<ToolChangeOrderingType>, toolchange_ordering))
     ((ConfigOptionString,              toolchange_cyclic_order))
@@ -2776,17 +2786,27 @@ size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id);
 
 double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, bool is_bbl_printer);
 
+// fmpNone if the option is absent.
+FilamentMappingProtocol filament_mapping_protocol_of(const ConfigBase& printer_config);
+
 // True when the printer's loaded filaments are worth viewing and editing: one filament per nozzle
 // (>= 2 nozzles, not single_extruder_multi_material), or reported_changer names a filament changer.
 bool printer_has_viewable_filaments(const ConfigBase& printer_config, const std::string& reported_changer);
 
-// True when the project's filaments are decoupled from the printer's tools: enable_filament_mapping
-// on a non-Bambu printer with one filament per nozzle (>= 2 nozzles, not
-// single_extruder_multi_material).
+// The Klipper filament changer reported at the last sync ("afc", "happy_hare", "openace"), or "".
+std::string reported_changer_of(const ConfigBase& printer_config);
+
+// Orca: cache the reported changer and T<n> count. An empty changer or a tool count of 0 leaves the
+// cached value. Returns true when the config changed.
+bool seed_printer_from_report(DynamicPrintConfig& printer_config, const std::string& reported_dialect, int reported_tool_count);
+
+// True when the project's filaments are decoupled from the printer's tools: a vendor protocol, a
+// reported changer, or enable_filament_mapping on a non-Bambu printer with one filament per nozzle
+// (>= 2 nozzles, not single_extruder_multi_material).
 bool decouples_filaments_from_tools(const ConfigBase& printer_config);
 
-// The size of the printer's T<n> namespace: the nozzle count. Only meaningful when
-// decouples_filaments_from_tools() is true.
+// The size of the printer's T<n> namespace: device_tool_count, else the vendor's constant, else the
+// nozzle count. Only meaningful when decouples_filaments_from_tools() is true.
 size_t filament_namespace_size(const ConfigBase& printer_config, size_t nozzle_count);
 
 // Filament i -> extruder i up to extruder_count, the rest -> master_extruder_id_0based (clamped to

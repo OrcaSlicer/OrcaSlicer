@@ -193,13 +193,52 @@ static bool mapping_option_enabled(const ConfigBase& printer_config, const char*
     return opt != nullptr && opt->getBool() && one_filament_per_nozzle(printer_config) && !is_bambu_printer_model(printer_config);
 }
 
-bool decouples_filaments_from_tools(const ConfigBase& printer_config)
+FilamentMappingProtocol filament_mapping_protocol_of(const ConfigBase& printer_config)
 {
-    return mapping_option_enabled(printer_config, "enable_filament_mapping");
+    const ConfigOption* opt = printer_config.option("filament_mapping_protocol");
+    return opt == nullptr ? FilamentMappingProtocol::fmpNone : (FilamentMappingProtocol) opt->getInt();
 }
 
-size_t filament_namespace_size(const ConfigBase& /*printer_config*/, size_t nozzle_count)
+std::string reported_changer_of(const ConfigBase& printer_config)
 {
+    const ConfigOption* opt = printer_config.option("device_changer");
+    return opt != nullptr ? opt->serialize() : std::string();
+}
+
+bool seed_printer_from_report(DynamicPrintConfig& printer_config, const std::string& reported_dialect, int reported_tool_count)
+{
+    bool changed = false;
+    if (!reported_dialect.empty() && reported_changer_of(printer_config) != reported_dialect) {
+        printer_config.set_key_value("device_changer", new ConfigOptionString(reported_dialect));
+        changed = true;
+    }
+    if (reported_tool_count > 0 && printer_config.opt_int("device_tool_count") != reported_tool_count) {
+        printer_config.set_key_value("device_tool_count", new ConfigOptionInt(reported_tool_count));
+        changed = true;
+    }
+    return changed;
+}
+
+bool decouples_filaments_from_tools(const ConfigBase& printer_config)
+{
+    return filament_mapping_protocol_of(printer_config) != FilamentMappingProtocol::fmpNone ||
+           !reported_changer_of(printer_config).empty() ||
+           mapping_option_enabled(printer_config, "enable_filament_mapping");
+}
+
+size_t filament_namespace_size(const ConfigBase& printer_config, size_t nozzle_count)
+{
+    if (const ConfigOption* probed = printer_config.option("device_tool_count"); probed != nullptr && probed->getInt() > 0)
+        return size_t(probed->getInt());
+    switch (filament_mapping_protocol_of(printer_config)) {
+    case FilamentMappingProtocol::fmpSnapmaker:
+        // extruder_map_table is 32 logical entries wide; the firmware merges them onto the heads.
+        return 32;
+    case FilamentMappingProtocol::fmpWonderMaker:
+        // Stock firmware only permutes its tools: no macro past T(tool_count-1).
+    case FilamentMappingProtocol::fmpNone:
+        break;
+    }
     return nozzle_count;
 }
 
@@ -367,6 +406,12 @@ static t_config_enum_values s_keys_map_WipeTowerType {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WipeTowerType)
 
+static t_config_enum_values s_keys_map_FilamentMappingProtocol {
+    { "none",       int(FilamentMappingProtocol::fmpNone) },
+    { "snapmaker",  int(FilamentMappingProtocol::fmpSnapmaker) },
+    { "wondermaker", int(FilamentMappingProtocol::fmpWonderMaker) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(FilamentMappingProtocol)
 
 static t_config_enum_values s_keys_map_FuzzySkinMode {
     { "displacement",   int(FuzzySkinMode::Displacement) },
@@ -7244,6 +7289,38 @@ void PrintConfigDef::init_fff_params()
                      "the plate. Only for multi-tool printers without single-extruder multi-material.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
+
+    def = this->add("filament_mapping_protocol", coEnum);
+    def->label = L("Filament mapping protocol");
+    def->tooltip = L("The printer's native filament-to-tool mapping protocol. When set, OrcaSlicer "
+                     "slices in logical tool space and sends the mapping to the printer at print time "
+                     "instead of baking it into the G-code. This must match what the printer's firmware "
+                     "actually implements; the vendor profile normally sets this.");
+    def->enum_keys_map = &ConfigOptionEnum<FilamentMappingProtocol>::get_enum_values();
+    def->enum_values.emplace_back("none");
+    def->enum_values.emplace_back("snapmaker");
+    def->enum_values.emplace_back("wondermaker");
+    def->enum_labels.emplace_back(L("None"));
+    def->enum_labels.emplace_back(L("Snapmaker"));
+    def->enum_labels.emplace_back(L("WonderMaker"));
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionEnum<FilamentMappingProtocol>(FilamentMappingProtocol::fmpNone));
+
+    // Orca: written by the materials sync (highest registered T<n> + 1), not by the user.
+    def = this->add("device_tool_count", coInt);
+    def->label = L("Logical tools reported by the printer");
+    def->tooltip = L("How many logical tools (T0..Tn) the printer's firmware registers, as read from the printer "
+                     "by the materials sync. 0 until the printer has been synced. Bounds how many filaments one "
+                     "plate may address; the printer is re-read before every print.");
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionInt(0));
+
+    def = this->add("device_changer", coString);
+    def->label = L("Filament changer reported by the printer");
+    def->tooltip = L("The Klipper filament changer the materials sync found on the printer (AFC, Happy Hare, openACE). "
+                     "Written by the sync, not by hand; it chooses how the filament map is sent at print time.");
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionString(""));
 
     def = this->add("wipe_tower_type", coEnum);
     def->label = L("Wipe tower type");
