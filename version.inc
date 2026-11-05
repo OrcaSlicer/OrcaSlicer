@@ -16,6 +16,10 @@ set(ORCA_VERSION_PATCH ${CMAKE_MATCH_3})
 
 set(SLIC3R_VERSION "02.08.01.55")
 
+# RC-compatible version: comma-separated integers without leading zeros
+# (llvm-rc doesn't accept dot-separated FILEVERSION/PRODUCTVERSION)
+string(REGEX REPLACE "^0*([0-9]+)\\.0*([0-9]+)\\.0*([0-9]+)\\.0*([0-9]+)$" "\\1,\\2,\\3,\\4" SLIC3R_VERSION_RC "${SLIC3R_VERSION}")
+
 if (NOT DEFINED ORCA_UPDATER_SIG_KEY)
     set(ORCA_UPDATER_SIG_KEY "" CACHE STRING "Base64url encoded updater signature key")
 endif()

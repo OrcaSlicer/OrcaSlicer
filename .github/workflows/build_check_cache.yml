@@ -13,12 +13,26 @@ on:
         required: false
         type: string
         default: msvc
+      preset:
+        required: false
+        type: string
+      flags:
+        required: false
+        type: string
       build-deps-only:
         required: false
         type: boolean
       force-build:
         required: false
         type: boolean
+      script:
+        required: false
+        type: string
+        default: ps1
+      clean:
+        required: false
+        type: boolean
+        default: false
   
 # Read by scripts/ci_deps_cache.sh.
 env:
@@ -33,6 +47,7 @@ jobs:
     runs-on: ${{ startsWith(inputs.os, 'macos-') && 'ubuntu-24.04' || inputs.os }}
     outputs:
       cache-key: ${{ steps.set_outputs.outputs.cache-key }}
+      cache-prefix: ${{ steps.set_outputs.outputs.cache-prefix }}
       cache-path: ${{ steps.set_outputs.outputs.cache-path }}
       valid-cache: ${{ steps.cache_deps.outputs.cache-hit }}
       macos-path: ${{ steps.macos_path.outputs.path }}
@@ -41,7 +56,7 @@ jobs:
       wait-since: ${{ steps.wait_check.outputs.wait-since }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
         with:
           lfs: 'false'
           # The wait check compares the merge commit with its first parent.
@@ -64,7 +79,18 @@ jobs:
           dep-folder-name: ${{ (runner.os == 'macOS' || startsWith(inputs.os, 'macos-')) && format('/{0}', inputs.arch) || (runner.os == 'Windows' && inputs.arch == 'arm64') && '-arm64/OrcaSlicer_dep' || '/OrcaSlicer_dep' }}
           output-cmd: ${{ runner.os == 'Windows' && '$env:GITHUB_OUTPUT' || '"$GITHUB_OUTPUT"'}}
         run: |
-          echo cache-key=${{ env.cache-os }}-cache-orcaslicer_deps-build-${{ hashFiles('deps/**') }} >> ${{ env.output-cmd }}
+          # Cache key intentionally does NOT hash deps/** so that a PR branch
+          # can restore the base branch's deps cache. Restore-keys in
+          # build_deps.yml handle finer-grained fallback within the same prefix.
+          #
+          # -v2: earlier caches hold a Boost whose Boost.Locale was built with the
+          # iconv backend enabled (Boost enables it whenever Iconv is found at
+          # build time). Consuming such a tree requires find_package(Iconv), which
+          # this runner cannot satisfy, so the slicer configure fails before any
+          # compilation. A Boost built here reports "Boost.Locale: iconv OFF" and
+          # carries no Iconv dependency.
+          echo cache-key=${{ env.cache-os }}-cache-orcaslicer_deps-build-v2 >> ${{ env.output-cmd }}
+          echo cache-prefix=${{ env.cache-os }}-cache-orcaslicer_deps-build-v2- >> ${{ env.output-cmd }}
           # Relative to the workspace, which differs from the build's when this job runs on Linux.
           echo cache-path=deps/build${{ env.dep-folder-name }} >> ${{ env.output-cmd }}
             
@@ -188,11 +214,16 @@ jobs:
     uses: ./.github/workflows/build_deps.yml
     with:
       cache-key: ${{ needs.check_cache.outputs.cache-key }}
+      cache-prefix: ${{ needs.check_cache.outputs.cache-prefix }}
       cache-path: ${{ needs.check_cache.outputs.cache-path }}
       valid-cache: ${{ needs.check_cache.outputs.valid-cache == 'true' || needs.wait_for_deps.outputs.hit == 'true' }}
       os: ${{ inputs.os }}
       arch: ${{ inputs.arch }}
       compiler: ${{ inputs.compiler }}
+      preset: ${{ inputs.preset }}
+      flags: ${{ inputs.flags }}
       build-deps-only: ${{ inputs.build-deps-only }}
       force-build: ${{ inputs.force-build }}
+      script: ${{ inputs.script }}
+      clean: ${{ inputs.clean }}
     secrets: inherit
