@@ -8,6 +8,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/file_status.hpp>
+#include <boost/system/error_code.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/nowide/cstdio.hpp>
@@ -796,22 +797,37 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginDescrip
     return true;
 }
 
-bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstallState& out)
+InstallStateReadStatus read_install_state_status(const boost::filesystem::path& plugin_dir, PluginInstallState& out)
 {
     namespace fs                = boost::filesystem;
     const fs::path sidecar_path = plugin_dir / ".install_state.json";
 
-    if (!fs::exists(sidecar_path) || !fs::is_regular_file(sidecar_path))
-        return false;
+    // Report the entry itself, not its target: symlink_status lets a dangling symlink or an
+    // unreadable parent be told apart from a genuinely missing sidecar. Only "no entry" means a
+    // new plugin whose metadata may be seeded; anything else that cannot be read must be
+    // preserved.
+    boost::system::error_code ec;
+    const fs::file_status     link_status = fs::symlink_status(sidecar_path, ec);
+    if (ec) {
+        if (ec == boost::system::errc::no_such_file_or_directory)
+            return InstallStateReadStatus::Absent;
+        return InstallStateReadStatus::Unreadable;
+    }
+    if (!fs::exists(link_status))
+        return InstallStateReadStatus::Absent;
+
+    const fs::file_status status = fs::status(sidecar_path, ec);
+    if (ec || !fs::is_regular_file(status))
+        return InstallStateReadStatus::Unreadable;
 
     boost::nowide::ifstream f(sidecar_path.string());
     if (!f)
-        return false;
+        return InstallStateReadStatus::Unreadable;
 
     try {
         nlohmann::json state = nlohmann::json::parse(f, nullptr, false, true);
         if (state.is_discarded() || !state.is_object())
-            return false;
+            return InstallStateReadStatus::Unreadable;
 
         PluginInstallState parsed;
         if (state.contains("installed_from") && state["installed_from"].is_string())
@@ -876,10 +892,15 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstall
         }
 
         out = std::move(parsed);
-        return true;
+        return InstallStateReadStatus::Readable;
     } catch (...) {
-        return false;
+        return InstallStateReadStatus::Unreadable;
     }
+}
+
+bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstallState& out)
+{
+    return read_install_state_status(plugin_dir, out) == InstallStateReadStatus::Readable;
 }
 
 namespace {
@@ -1030,8 +1051,11 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
 {
     PluginInstallState state;
     // Loading a plugin updates its lifecycle/capability state, but must retain permissions granted
-    // during register_capabilities() or by a previous runtime audit prompt.
-    read_install_state(plugin_dir, state);
+    // during register_capabilities() or by a previous runtime audit prompt. A missing sidecar is a
+    // new plugin and gets fresh metadata; an existing sidecar that cannot be read is never
+    // replaced, because its permissions and capability choices would be lost.
+    if (read_install_state_status(plugin_dir, state) == InstallStateReadStatus::Unreadable)
+        return false;
     apply_install_metadata(state, entry);
     state.enabled      = enabled;
     state.capabilities = capabilities;

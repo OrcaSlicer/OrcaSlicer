@@ -35,6 +35,7 @@
 #include <fstream>
 #include <functional>
 #include <ios>
+#include <iterator>
 #include <memory>
 #include <string>
 #include <utility>
@@ -65,6 +66,12 @@ void seed_denied_keywords()
     PluginAuditManager& mgr = PluginAuditManager::instance();
     for (const auto& keyword : PluginAuditManager::default_denied_path_keywords())
         mgr.add_denied_path_keyword(keyword);
+}
+
+std::string read_text_file(const fs::path& path)
+{
+    std::ifstream in(path.string(), std::ios::binary);
+    return std::string(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
 }
 
 } // namespace
@@ -1622,6 +1629,154 @@ TEST_CASE("A threading permission request is prompted once and saved as a boolea
     CHECK(mgr.request_permissions(PLUGIN, requested));
     PluginAuditManager::set_permission_message_prompt_for_testing(nullptr);
     CHECK_FALSE(prompted_again);
+}
+
+TEST_CASE("A permission request creates a sidecar for a discovered plugin that has none", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+
+    // A sandbox plugin may be discovered without ever having been given a sidecar. An approval
+    // must still be saved, so the next session does not ask again.
+    const fs::path sidecar = harness.data.plugins_dir() / PLUGIN / INSTALL_STATE_FILE;
+    boost::system::error_code ec;
+    fs::remove(sidecar, ec);
+    REQUIRE_FALSE(ec);
+
+    PluginPermissions requested;
+    requested.fs_read = {"/newly/granted"};
+
+    PluginAuditManager::set_permission_message_prompt_for_testing(
+        [](const std::string&) { return true; });
+    const bool granted = PluginAuditManager::instance().request_permissions(PLUGIN, requested);
+    PluginAuditManager::set_permission_message_prompt_for_testing(nullptr);
+
+    REQUIRE(granted);
+    CHECK(fs::exists(sidecar));
+    CHECK(harness.saved_permissions(PLUGIN).fs_read == std::vector<std::string>{"/newly/granted"});
+}
+
+TEST_CASE("A permission request does not recreate a sidecar that disappears while prompting", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+
+    const fs::path sidecar = harness.data.plugins_dir() / PLUGIN / INSTALL_STATE_FILE;
+    REQUIRE(fs::exists(sidecar));
+
+    bool removed = false;
+    PluginAuditManager::set_permission_message_prompt_for_testing(
+        [&sidecar, &removed](const std::string&) {
+            boost::system::error_code ec;
+            removed = fs::remove(sidecar, ec);
+            return true;
+        });
+
+    PluginPermissions requested;
+    requested.fs_read = {"/new/grant"};
+    const bool granted = PluginAuditManager::instance().request_permissions(PLUGIN, requested);
+    PluginAuditManager::set_permission_message_prompt_for_testing(nullptr);
+
+    // Readable at the first read, absent at the second: that is lost state, not a new install, so
+    // the approval must not create a fresh sidecar.
+    REQUIRE(removed);
+    CHECK_FALSE(granted);
+    CHECK_FALSE(fs::exists(sidecar));
+}
+
+TEST_CASE("A permission request leaves an unreadable install-state sidecar untouched", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+
+    const fs::path    sidecar   = harness.data.plugins_dir() / PLUGIN / INSTALL_STATE_FILE;
+    const std::string malformed = "{ \"permissions\": {";
+    {
+        std::ofstream out(sidecar.string(), std::ios::binary | std::ios::trunc);
+        out << malformed;
+    }
+
+    bool prompted = false;
+    PluginAuditManager::set_permission_message_prompt_for_testing(
+        [&prompted](const std::string&) {
+            prompted = true;
+            return true;
+        });
+
+    PluginPermissions requested;
+    requested.fs_read = {"/new/grant"};
+    const bool granted = PluginAuditManager::instance().request_permissions(PLUGIN, requested);
+    PluginAuditManager::set_permission_message_prompt_for_testing(nullptr);
+
+    // The file cannot be read, so no grant can be saved safely: fail closed instead of replacing
+    // whatever it holds.
+    CHECK_FALSE(granted);
+    CHECK_FALSE(prompted);
+    CHECK(read_text_file(sidecar) == malformed);
+}
+
+TEST_CASE("An approved audited operation creates a missing install-state sidecar", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+    harness.approve = [](const Prompt&) { return true; };
+
+    const fs::path sidecar = harness.data.plugins_dir() / PLUGIN / INSTALL_STATE_FILE;
+    boost::system::error_code ec;
+    fs::remove(sidecar, ec);
+    REQUIRE_FALSE(ec);
+
+    // An event grant seeds a sidecar when none exists.
+    python.run_as(PLUGIN, "read_outcome = attempt(lambda: open(PRIVATE).read())");
+    CHECK(python.str("read_outcome") == "ok");
+    REQUIRE(fs::exists(sidecar));
+    CHECK_FALSE(harness.saved_permissions(PLUGIN).fs_read.empty());
+
+    // The threading helper does the same when the sidecar disappears again.
+    fs::remove(sidecar, ec);
+    REQUIRE_FALSE(ec);
+    python.run_as(PLUGIN, "thread_outcome = attempt(start_and_join_thread)");
+    CHECK(python.str("thread_outcome") == "ok");
+    CHECK(fs::exists(sidecar));
+    CHECK(harness.saved_permissions(PLUGIN).threading);
+}
+
+TEST_CASE("An approved audited operation does not replace an unreadable install-state sidecar", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+    harness.approve = [](const Prompt&) { return true; };
+
+    // Both the event-grant path (persist_permission) and the boolean threading path
+    // (persist_threading_grant) must preserve a sidecar they cannot read.
+    const fs::path    sidecar   = harness.data.plugins_dir() / PLUGIN / INSTALL_STATE_FILE;
+    const std::string malformed = "not an install state";
+    {
+        std::ofstream out(sidecar.string(), std::ios::binary | std::ios::trunc);
+        out << malformed;
+    }
+
+    // The operation itself is approved for this call; only the persistence is refused.
+    python.run_as(PLUGIN, "read_outcome = attempt(lambda: open(PRIVATE).read())");
+    python.run_as(PLUGIN, "thread_outcome = attempt(start_and_join_thread)");
+
+    CHECK(python.str("read_outcome") == "ok");
+    CHECK(python.str("thread_outcome") == "ok");
+    CHECK(read_text_file(sidecar) == malformed);
 }
 
 TEST_CASE("Thread creation is denied without a grant and remembered after approval", "[audit][Python]")

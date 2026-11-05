@@ -19,6 +19,7 @@
 #include <boost/filesystem.hpp>
 
 #include <fstream>
+#include <iterator>
 #include <string>
 #include <vector>
 
@@ -46,6 +47,20 @@ void write_raw_install_state(const fs::path& plugin_dir, const nlohmann::json& s
     fs::create_directories(plugin_dir);
     std::ofstream out((plugin_dir / ".install_state.json").string(), std::ios::binary);
     out << state.dump(2);
+}
+
+// Write bytes the canonical writer could never produce, including text that is not valid JSON.
+void write_raw_sidecar_text(const fs::path& plugin_dir, const std::string& contents)
+{
+    fs::create_directories(plugin_dir);
+    std::ofstream out((plugin_dir / ".install_state.json").string(), std::ios::binary | std::ios::trunc);
+    out << contents;
+}
+
+std::string read_sidecar_text(const fs::path& plugin_dir)
+{
+    std::ifstream in((plugin_dir / ".install_state.json").string(), std::ios::binary);
+    return std::string(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
 }
 
 // The shared production helper: makes the path absolute and lexically normalized and, on
@@ -192,6 +207,69 @@ TEST_CASE("install-state sidecar is the source of truth for a cloud plugin's ins
     scanned.version = "1.0.0"; // as parsed from the unchanged PEP723 header
     read_install_state(plugin_dir, scanned);
     CHECK(scanned.installed_version == "1.2.0");
+}
+
+TEST_CASE("install-state metadata read-modify-write leaves an unreadable sidecar untouched", "[PluginInstall][PluginFsUtils]")
+{
+    ScopedDataDir data_dir_guard("unreadable-install-state");
+    const fs::path plugin_dir = data_dir_guard.dir / "plugin";
+    const std::string malformed = "{ \"permissions\": {";
+    write_raw_sidecar_text(plugin_dir, malformed);
+
+    PluginInstallState state;
+    REQUIRE(read_install_state_status(plugin_dir, state) == InstallStateReadStatus::Unreadable);
+
+    PluginDescriptor descriptor;
+    descriptor.name    = "Broken Plugin";
+    descriptor.version = "2.0";
+
+    // The metadata writer that preserves a readable sidecar must refuse to seed a fresh one over
+    // an unreadable file: its permissions and capability choices may still be recoverable.
+    CHECK_FALSE(write_install_state(plugin_dir, descriptor, /*enabled=*/true, {}));
+
+    CHECK(read_sidecar_text(plugin_dir) == malformed);
+}
+
+TEST_CASE("a non-regular install-state path is unreadable and is left untouched", "[PluginInstall][PluginFsUtils]")
+{
+    ScopedDataDir data_dir_guard("non-regular-install-state");
+    const fs::path plugin_dir = data_dir_guard.dir / "plugin";
+    fs::create_directories(plugin_dir / ".install_state.json");
+
+    // A filesystem object that cannot be a sidecar must fail closed rather than be treated as an
+    // absent sidecar and replaced.
+    PluginInstallState state;
+    REQUIRE(read_install_state_status(plugin_dir, state) == InstallStateReadStatus::Unreadable);
+
+    PluginDescriptor descriptor;
+    descriptor.name = "Broken Plugin";
+    CHECK_FALSE(write_install_state(plugin_dir, descriptor, /*enabled=*/true, {}));
+
+    CHECK(fs::is_directory(plugin_dir / ".install_state.json"));
+}
+
+TEST_CASE("install-state metadata read-modify-write creates a sidecar for a plugin that has none", "[PluginInstall][PluginFsUtils]")
+{
+    ScopedDataDir data_dir_guard("missing-install-state");
+    const fs::path plugin_dir = data_dir_guard.dir / "plugin";
+    fs::create_directories(plugin_dir);
+
+    PluginInstallState absent;
+    REQUIRE(read_install_state_status(plugin_dir, absent) == InstallStateReadStatus::Absent);
+
+    PluginDescriptor descriptor;
+    descriptor.name    = "New Plugin";
+    descriptor.version = "1.0";
+    REQUIRE(write_install_state(plugin_dir, descriptor, /*enabled=*/false, {{"Echo", true}}));
+
+    PluginInstallState written;
+    REQUIRE(read_install_state(plugin_dir, written));
+    CHECK(written.plugin_name == "New Plugin");
+    CHECK(written.installed_version == "1.0");
+    CHECK_FALSE(written.enabled);
+    REQUIRE(written.capabilities.size() == 1);
+    CHECK(written.capabilities[0].first == "Echo");
+    CHECK(written.capabilities[0].second);
 }
 
 TEST_CASE("install-state reads legacy threading values with nonempty meaning granted", "[PluginInstall]")

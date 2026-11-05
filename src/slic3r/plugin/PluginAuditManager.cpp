@@ -1413,7 +1413,10 @@ bool persist_permission(const std::string& plugin_key, AuditEventCategory catego
 
     const boost::filesystem::path root(descriptor.plugin_root);
     PluginInstallState          state;
-    read_install_state(root, state);
+    // A missing sidecar is a discovered plugin that has not been given one yet: seed it below. An
+    // existing sidecar that cannot be read must not be replaced, or its grants would be lost.
+    if (read_install_state_status(root, state) == InstallStateReadStatus::Unreadable)
+        return false;
     seed_install_metadata(descriptor, state);
 
     std::vector<std::string>* permission_list = permission_list_for(category, by_event, state.permissions);
@@ -1436,7 +1439,9 @@ bool persist_threading_grant(const std::string& plugin_key)
 
     const boost::filesystem::path root(descriptor.plugin_root);
     PluginInstallState          state;
-    read_install_state(root, state);
+    // Same rule as persist_permission: seed a missing sidecar, never replace an unreadable one.
+    if (read_install_state_status(root, state) == InstallStateReadStatus::Unreadable)
+        return false;
     seed_install_metadata(descriptor, state);
     state.permissions.threading = true;
     return write_install_state(root, state);
@@ -1834,17 +1839,23 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     if (!PluginManager::instance().try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
         return false;
 
-    PluginInstallState state;
-    bool have_install_state;
+    PluginInstallState     state;
+    InstallStateReadStatus state_status;
     {
         std::lock_guard<std::mutex> state_lock(install_state_mutex());
-        have_install_state = read_install_state(boost::filesystem::path(descriptor.plugin_root), state);
+        state_status = read_install_state_status(boost::filesystem::path(descriptor.plugin_root), state);
     }
 
+    // An existing sidecar that cannot be read is never replaced: its grants and capability choices
+    // would be lost, and the flag below cannot be trusted either. A missing sidecar is a plugin
+    // that has not been given one yet and is seeded when the grant is saved.
+    if (state_status == InstallStateReadStatus::Unreadable)
+        return false;
+
     // Full access is an explicit opt-out of auditing: a declaration neither prompts nor adds a
-    // grant. Only a readable sidecar that stores the flag counts, so a missing or malformed file
-    // is never mistaken for an opt-out.
-    if (have_install_state && state.permissions.full_access)
+    // grant. Only a readable sidecar that stores the flag counts, so a missing file is never
+    // mistaken for an opt-out.
+    if (state.permissions.full_access)
         return true;
 
     // Per bucket, keep only the targets that no earlier grant already covers. Dropping these
@@ -1947,8 +1958,15 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     bool persisted = false;
     {
         std::lock_guard<std::mutex> state_lock(install_state_mutex());
-        PluginInstallState          latest_state;
-        if (!read_install_state(boost::filesystem::path(descriptor.plugin_root), latest_state) && have_install_state)
+        PluginInstallState     latest_state;
+        InstallStateReadStatus latest_status =
+            read_install_state_status(boost::filesystem::path(descriptor.plugin_root), latest_state);
+        // A malformed file is never replaced. A sidecar that was readable when prompting started
+        // must not be recreated if it disappears meanwhile: that is lost state, not a new install.
+        // Only a sidecar absent at both reads is seeded.
+        if (latest_status == InstallStateReadStatus::Unreadable)
+            return false;
+        if (latest_status == InstallStateReadStatus::Absent && state_status == InstallStateReadStatus::Readable)
             return false;
         state = std::move(latest_state);
 

@@ -136,7 +136,9 @@ std::mutex& install_state_mutex();
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginInstallState& state);
 
 // Builds a PluginInstallState from the descriptor and delegates to the canonical writer. This
-// overload reads the sidecar itself, so callers must hold install_state_mutex().
+// overload reads the sidecar itself, so callers must hold install_state_mutex(). An existing
+// sidecar that cannot be read is never replaced: the write fails and leaves it untouched. A
+// missing sidecar is a new plugin, so the metadata is seeded and written.
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginDescriptor& entry, bool enabled,
                          const std::vector<std::pair<std::string, bool>>& capabilities);
 // Convenience overload: write(dir, entry, /*enabled=*/true, /*capabilities=*/{}).
@@ -147,6 +149,20 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
 // Single source for the metadata mapping used by the install writer and by the audit prompt path
 // that creates a sidecar on demand.
 void seed_install_metadata(PluginInstallState& state, const PluginDescriptor& entry);
+
+// Outcome of a sidecar read. Callers that may write a sidecar must distinguish Absent from
+// Unreadable: a missing file is a new install whose metadata may be seeded, while an existing file
+// that cannot be parsed -- or that cannot be examined because of a filesystem error -- holds state
+// that must not be replaced. Only Absent and Readable are safe to overwrite.
+enum class InstallStateReadStatus {
+    Absent,    // no entry at the sidecar path
+    Readable,  // parsed successfully into `out`
+    Unreadable // the path exists but is not a regular readable file, or its contents are malformed
+};
+
+// Reads the sidecar and reports why it failed. `out` is only assigned on Readable.
+// Caller must hold install_state_mutex(); see the note on read_install_state below.
+InstallStateReadStatus read_install_state_status(const boost::filesystem::path& plugin_dir, PluginInstallState& out);
 
 // Reads install state back into the descriptor; plugin_key is always derived. Returns whether the
 // sidecar was present and valid.
