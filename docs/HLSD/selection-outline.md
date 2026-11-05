@@ -9,8 +9,9 @@ neighboring parts. It is a view setting. It changes nothing in the model or the 
 neither the picking pass nor thumbnails.
 
 Preferences > Graphics > Outline provides a Persistent option, off by default, which outlines all
-visible, active volumes except the wipe tower even without selection. It operates independently of
-the Outline view option, which continues to control selection-only outlining when persistence is off.
+visible, active volumes except the wipe tower even without selection. The Outline view option in
+the 3D canvas menu controls visibility in both modes: when it is off, no outlines are drawn.
+When it is on, Persistent chooses between all eligible volumes and selected volumes only.
 Both modes use the same configurable color, white by default. These application preferences are saved
 immediately and redraw the current canvas when Preferences closes; they do not require a restart.
 

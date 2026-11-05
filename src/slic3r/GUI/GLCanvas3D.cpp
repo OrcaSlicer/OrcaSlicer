@@ -9762,9 +9762,7 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
         if (static_light.has_value())
             shader->set_uniform("static_light_dir", *static_light);
 
-        std::vector<GLVolume*>* outlined_volumes =
-            (wxGetApp().show_outline() || wxGetApp().app_config->get_bool(SETTING_OPENGL_OUTLINE_PERSISTENT)) ?
-                &m_outlined_volumes : nullptr;
+        std::vector<GLVolume*>* outlined_volumes = wxGetApp().show_outline() ? &m_outlined_volumes : nullptr;
         switch (type)
         {
         default:
@@ -11300,7 +11298,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         create_menu_item( _utf8(L("Outline")),
             m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
             wxGetApp().show_outline(),
-            []{wxGetApp().toggle_show_outline();}
+            [this]{wxGetApp().toggle_show_outline(); m_dirty = true;}
         );
 
         create_menu_item( _utf8(L("Wireframe")),

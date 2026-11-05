@@ -2224,8 +2224,7 @@ void PreferencesDialog::create_items()
 
     g_sizer->Add(create_item_checkbox(
         _L("Persistent"),
-        _L("Always outlines visible objects, even when they are not selected.\n"
-           "Independent of the Outline view option for selected objects."),
+        _L("When Outline is enabled in the 3D canvas menu, outlines visible objects even when they are not selected."),
         SETTING_OPENGL_OUTLINE_PERSISTENT));
 
     const wxString outline_color_tooltip = _L("Choose the color of the object outlines.");
