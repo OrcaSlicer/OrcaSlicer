@@ -2,11 +2,14 @@
 #include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
+#include <chrono>
 #include <ios>
 #include <libslic3r/Utils.hpp>
 #include <slic3r/plugin/PluginLoader.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
+#include <slic3r/plugin/PluginManager.hpp>
+#include <slic3r/plugin/PythonInterpreter.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
@@ -70,6 +73,36 @@ fs::path to_extended_path(const fs::path& p)
 {
     return Slic3r::extended_path(p);
 }
+
+// Brings the plugin system up for a case that drives a real plugin load, and tears it down
+// afterwards. Declare it first in the test so it is destroyed last; the interpreter itself is
+// process-wide and finalized once by the suite's run-end handler.
+struct ScopedPluginManager
+{
+    // Before initialize(): the interpreter creates {data_dir}/python/packages and {data_dir}/log.
+    ScopedDataDir python_data_dir{"plugin-install-state"};
+    bool          initialized = PluginManager::instance().initialize();
+
+    ~ScopedPluginManager() { PluginManager::instance().shutdown(); }
+};
+
+// A plugin that imports cleanly but whose own registration step raises, so the manager takes the
+// "registration failed" path and marks the package's install state disabled.
+const char* const FAILING_REGISTRATION_PLUGIN_SOURCE = R"PY(# /// script
+# requires-python = ">=3.12"
+#
+# [tool.orcaslicer.plugin]
+# name = "Failing Registration Plugin"
+# type = "script"
+# version = "1.0"
+# ///
+import orca
+
+@orca.plugin
+class FailingPackage(orca.base):
+    def register_capabilities(self):
+        raise RuntimeError("registration rejected by the plugin")
+)PY";
 
 } // namespace
 
@@ -246,6 +279,70 @@ TEST_CASE("a non-regular install-state path is unreadable and is left untouched"
     CHECK_FALSE(write_install_state(plugin_dir, descriptor, /*enabled=*/true, {}));
 
     CHECK(fs::is_directory(plugin_dir / ".install_state.json"));
+}
+
+TEST_CASE("a failed plugin registration leaves an unreadable install-state sidecar untouched", "[PluginInstall][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("failed-registration-unreadable");
+    const fs::path plugin_dir = data_dir_guard.plugins_dir() / "Failing_Plugin";
+    write_py_file(plugin_dir, "Failing_Plugin.py", FAILING_REGISTRATION_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    // A sidecar the manager cannot parse. It may still hold permissions and capability choices,
+    // so a failed load must not replace it with a fresh, empty one.
+    const std::string malformed = "{ \"permissions\": { \"fs_read\": [\"/granted\"";
+    write_raw_sidecar_text(plugin_dir, malformed);
+
+    std::string error;
+    manager.load_plugin("Failing_Plugin", /*skip_deps=*/true);
+    CHECK_FALSE(manager.wait_for_plugin_load("Failing_Plugin", std::chrono::seconds(120), error));
+
+    CHECK_FALSE(error.empty());
+    CHECK(read_sidecar_text(plugin_dir) == malformed);
+}
+
+TEST_CASE("a failed plugin registration disables a readable install-state sidecar and keeps its grants",
+          "[PluginInstall][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("failed-registration-readable");
+    const fs::path plugin_dir = data_dir_guard.plugins_dir() / "Failing_Plugin";
+    write_py_file(plugin_dir, "Failing_Plugin.py", FAILING_REGISTRATION_PLUGIN_SOURCE);
+
+    PluginInstallState initial;
+    initial.installed_from      = "local";
+    initial.installed_version   = "1.0";
+    initial.plugin_name         = "Failing Registration Plugin";
+    initial.enabled             = true;
+    initial.permissions.fs_read = {"/kept/read"};
+    initial.capabilities        = {{"Echo", false}};
+    REQUIRE(write_install_state(plugin_dir, initial));
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    manager.load_plugin("Failing_Plugin", /*skip_deps=*/true);
+    CHECK_FALSE(manager.wait_for_plugin_load("Failing_Plugin", std::chrono::seconds(120), error));
+
+    // A readable sidecar is updated in place: auto-load turns off, and the stored grants and
+    // capability choices survive, because a failed load is not a reinstall.
+    PluginInstallState stored;
+    REQUIRE(read_install_state(plugin_dir, stored));
+    CHECK_FALSE(stored.enabled);
+    CHECK(stored.permissions.fs_read == std::vector<std::string>{"/kept/read"});
+    REQUIRE(stored.capabilities.size() == 1);
+    CHECK(stored.capabilities[0].first == "Echo");
+    CHECK_FALSE(stored.capabilities[0].second);
 }
 
 TEST_CASE("install-state metadata read-modify-write creates a sidecar for a plugin that has none", "[PluginInstall][PluginFsUtils]")

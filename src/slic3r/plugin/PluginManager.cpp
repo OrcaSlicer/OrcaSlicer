@@ -1240,7 +1240,16 @@ void PluginManager::mark_plugin_install_state_disabled(const std::string& plugin
 
     const boost::filesystem::path root(descriptor.plugin_root);
     PluginInstallState state;
-    if (!read_install_state(root, state))
+    // Only a missing sidecar may be seeded. One that exists but cannot be read may still hold
+    // permissions and capability choices that are recoverable, so it must not be replaced by a
+    // fresh one. Report the skip and leave the descriptor alone, exactly as for a failed write.
+    const InstallStateReadStatus status = read_install_state_status(root, state);
+    if (status == InstallStateReadStatus::Unreadable) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Cannot read install state for " << plugin_key
+                                   << "; leaving the sidecar untouched";
+        return;
+    }
+    if (status == InstallStateReadStatus::Absent)
         seed_install_metadata(state, descriptor);
     state.enabled = false;
     if (!write_install_state(root, state))
@@ -2078,8 +2087,18 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
 
         // Preserve the sidecar's package and capability choices while changing only its origin.
         // Re-keying an installed plugin must not silently re-enable capabilities.
-        PluginInstallState install_state;
-        if (!read_install_state(resolved_root, install_state)) {
+        PluginInstallState           install_state;
+        const InstallStateReadStatus install_state_status = read_install_state_status(resolved_root, install_state);
+        if (install_state_status == InstallStateReadStatus::Unreadable) {
+            // The sidecar exists but cannot be read, so its permissions and capability choices may
+            // still be recoverable: fail without replacing it and without re-keying the registry
+            // entry, leaving the plugin exactly as it was.
+            error = GUI::format(_u8L("Failed to read plugin install state: %1%"),
+                                (resolved_root / INSTALL_STATE_FILE).string());
+            BOOST_LOG_TRIVIAL(warning) << error;
+            return false;
+        }
+        if (install_state_status == InstallStateReadStatus::Absent) {
             install_state.installed_version = !local_descriptor.installed_version.empty()
                                                   ? local_descriptor.installed_version
                                                   : local_descriptor.version;

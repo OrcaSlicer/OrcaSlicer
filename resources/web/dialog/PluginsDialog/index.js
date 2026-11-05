@@ -1125,7 +1125,7 @@ function RenderPermissions(plugin) {
   const groups = [
     { keys: ["fs_read", "fs_readwrite"], title: T("permissions_group_filesystem", "File system") },
     { keys: ["network_http", "network_socket"], title: T("permissions_network_access_title", "Network access"),
-      guidance: T("permissions_network_access_guidance", "Enter a full http:// or https:// URL. Only the scheme and host are saved, so the grant covers every port, path, and query on that host. Bare domain names and other schemes are not accepted. Grants in either list are checked for HTTP and socket access.") },
+      guidance: T("permissions_network_access_guidance", "Enter a full http:// or https:// URL; only its scheme and host are saved, so the grant covers every port, path, and query on that host. A network socket grant also accepts a bare host name or IP address, with or without a port, and covers every port on that host. Other schemes are not accepted. Grants in either list are checked for HTTP and socket access.") },
     { keys: ["process", "threading"], title: T("permissions_group_execution", "Execution") },
     { keys: ["events"], title: T("permissions_group_events", "Audit events") }
   ];

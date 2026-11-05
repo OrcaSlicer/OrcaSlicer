@@ -32,4 +32,12 @@ bool normalize_filesystem_permission(const std::string& raw, std::string& normal
 // network grants.
 bool normalize_network_permission(const std::string& raw, std::string& normalized, wxString& error);
 
+// Validates a grant for the network_socket list. The audit matcher compares socket grants by host,
+// and earlier releases saved either a bare address ("host", "host:443", "[::1]:443", a bare IPv6
+// literal) or a Python address tuple such as "('host', 443)". Those saved shapes stay valid and are
+// kept verbatim, because rewriting a bare address into an http(s) URL would add an HTTP grant the
+// plugin never had. A full http:// or https:// URL is still validated and canonicalized exactly like
+// normalize_network_permission, so the URL rules are unchanged.
+bool normalize_socket_permission(const std::string& raw, std::string& normalized, wxString& error);
+
 }} // namespace Slic3r::GUI

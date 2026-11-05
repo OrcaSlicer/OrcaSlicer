@@ -730,7 +730,7 @@ nlohmann::json PluginsDialog::localized_strings() const
 #else
         {"permissions_filesystem_placeholder", _u8L("/path/to/directory/*")},
 #endif
-        {"permissions_network_access_guidance", _u8L("Enter a full http:// or https:// URL. Only the scheme and host are saved, so the grant covers every port, path, and query on that host. Bare domain names and other schemes are not accepted. Grants in either list are checked for HTTP and socket access.")},
+        {"permissions_network_access_guidance", _u8L("Enter a full http:// or https:// URL; only its scheme and host are saved, so the grant covers every port, path, and query on that host. A network socket grant also accepts a bare host name or IP address, with or without a port, and covers every port on that host. Other schemes are not accepted. Grants in either list are checked for HTTP and socket access.")},
         {"permissions_network_placeholder", _u8L("https://example.com")},
         {"permissions_process_help", _u8L("Enter the exact value recorded by the audit. It may be a Python representation of the command.")},
         {"permissions_process_placeholder", _u8L("Exact audited value")},
@@ -1040,7 +1040,6 @@ void PluginsDialog::mutate_plugin_permission(const nlohmann::json& payload)
 
     PluginPermissionMutation mutation;
     const wxString plugin_name = plugin_display_name(plugin_key);
-    bool network = false;
     PluginPermissionCategory bucket = PluginPermissionCategory::FsRead;
     const std::vector<std::string>* entries = nullptr;
     if (category == "fs_read") {
@@ -1048,9 +1047,9 @@ void PluginsDialog::mutate_plugin_permission(const nlohmann::json& payload)
     } else if (category == "fs_readwrite") {
         bucket = PluginPermissionCategory::FsReadWrite; entries = &stored.permissions.fs_readwrite;
     } else if (category == "network_http") {
-        bucket = PluginPermissionCategory::NetworkHttp; entries = &stored.permissions.network_http; network = true;
+        bucket = PluginPermissionCategory::NetworkHttp; entries = &stored.permissions.network_http;
     } else if (category == "network_socket") {
-        bucket = PluginPermissionCategory::NetworkSocket; entries = &stored.permissions.network_socket; network = true;
+        bucket = PluginPermissionCategory::NetworkSocket; entries = &stored.permissions.network_socket;
     } else if (category == "process") {
         bucket = PluginPermissionCategory::Process; entries = &stored.permissions.process;
     } else if (category == "events") {
@@ -1095,8 +1094,10 @@ void PluginsDialog::mutate_plugin_permission(const nlohmann::json& payload)
             bool valid = !value.empty() && value.find('\0') == std::string::npos;
             if (valid && (category == "fs_read" || category == "fs_readwrite"))
                 valid = normalize_filesystem_permission(value, normalized, reason);
-            else if (valid && network)
+            else if (valid && category == "network_http")
                 valid = normalize_network_permission(value, normalized, reason);
+            else if (valid && category == "network_socket")
+                valid = normalize_socket_permission(value, normalized, reason);
             if (!valid) {
                 if (!reason.empty())
                     show_status(format_wxstr(_L("Cannot save \"%1%\": %2%"), from_u8(raw), reason), "error");

@@ -10,6 +10,7 @@
 
 using Slic3r::GUI::normalize_filesystem_permission;
 using Slic3r::GUI::normalize_network_permission;
+using Slic3r::GUI::normalize_socket_permission;
 using Slic3r::GUI::PermissionPathStyle;
 
 namespace {
@@ -33,6 +34,14 @@ ValidationResult validate_network(const std::string& raw)
     std::string normalized;
     wxString    error;
     const bool  valid = normalize_network_permission(raw, normalized, error);
+    return {valid, normalized};
+}
+
+ValidationResult validate_socket(const std::string& raw)
+{
+    std::string normalized;
+    wxString    error;
+    const bool  valid = normalize_socket_permission(raw, normalized, error);
     return {valid, normalized};
 }
 
@@ -205,6 +214,99 @@ TEST_CASE("network permission refuses userinfo, bad ports, malformed brackets an
     CHECK_FALSE(validate_network(invalid).valid);
 }
 
+TEST_CASE("socket permission keeps the saved socket grant syntax", "[PluginPermissions]")
+{
+    // The audit matcher compares socket grants by host, so these saved shapes stay valid and are
+    // stored unchanged rather than rewritten as an http(s) URL that would grant HTTP access too.
+    const std::string saved = GENERATE(
+        std::string("api.example.com"),
+        std::string("192.168.45.6:443"),
+        std::string("[::1]"),
+        std::string("[2001:db8::1]:443"),
+        std::string("2001:db8::1"),
+        std::string("('api.example.com', 443)"),
+        std::string("(\"api.example.com\", 443, 0, 0)"),
+        std::string("('2001:db8::1', 443)"));
+
+    const ValidationResult result = validate_socket(saved);
+    CHECK(result.valid);
+    CHECK(result.normalized == saved);
+
+    const ValidationResult trimmed = validate_socket("  api.example.com:8080  ");
+    CHECK(trimmed.valid);
+    CHECK(trimmed.normalized == "api.example.com:8080");
+}
+
+TEST_CASE("socket permission accepts an edited socket address", "[PluginPermissions]")
+{
+    // Changing the host or port of a saved grant must not force the grant into URL form.
+    ValidationResult result = validate_socket("('api.example.com', 8443)");
+    CHECK(result.valid);
+    CHECK(result.normalized == "('api.example.com', 8443)");
+
+    result = validate_socket("api.example.com:8443");
+    CHECK(result.valid);
+    CHECK(result.normalized == "api.example.com:8443");
+
+    result = validate_socket("other.example.com");
+    CHECK(result.valid);
+    CHECK(result.normalized == "other.example.com");
+}
+
+TEST_CASE("socket permission still validates an http URL like the HTTP list", "[PluginPermissions]")
+{
+    ValidationResult result = validate_socket("HTTPS://Example.COM:8443/a/b?q=1#frag");
+    CHECK(result.valid);
+    CHECK(result.normalized == "https://example.com");
+
+    result = validate_socket("http://[2001:db8::1]:8080/path");
+    CHECK(result.valid);
+    CHECK(result.normalized == "http://[2001:db8::1]");
+
+    const std::string invalid = GENERATE(
+        std::string("http://user@example.com"),
+        std::string("http://example.com:"),
+        std::string("http://example.com:65536"),
+        std::string("http://[::1"),
+        std::string("ftp://example.com"),
+        std::string("file:///tmp/plugin.py"));
+    CHECK_FALSE(validate_socket(invalid).valid);
+}
+
+TEST_CASE("socket permission refuses a malformed address", "[PluginPermissions]")
+{
+    const std::string invalid = GENERATE(
+        std::string(""),
+        std::string("   "),
+        std::string("api\n.example.com"),
+        std::string("api.example.com/path"),
+        std::string("api.example.com?query"),
+        std::string("api.example.com#fragment"),
+        std::string("user@api.example.com"),
+        std::string("api.example.com:"),
+        std::string("api.example.com:abc"),
+        std::string("api.example.com:65536"),
+        std::string("api.example.com:80:90"),
+        std::string(":"),
+        std::string("2001:db8:::1"),
+        std::string("2001:db8:1"),
+        std::string("[]"),
+        std::string("[api.example.com]"),
+        std::string("[::1"),
+        std::string("[::1]x"),
+        std::string("[::1]:"),
+        std::string("[::1]:abc"),
+        std::string("('api.example.com')"),
+        std::string("('api.example.com', )"),
+        std::string("('api.example.com', 443"),
+        std::string("('api.example.com', abc)"),
+        std::string("('', 443)"),
+        std::string("api.example.com\\path"),
+        std::string("*.example.com"),
+        std::string("(api.example.com)"));
+    CHECK_FALSE(validate_socket(invalid).valid);
+}
+
 TEST_CASE("permission rejections report a reason", "[PluginPermissions]")
 {
     std::string normalized;
@@ -215,5 +317,9 @@ TEST_CASE("permission rejections report a reason", "[PluginPermissions]")
 
     error.clear();
     CHECK_FALSE(normalize_network_permission("ftp://example.com", normalized, error));
+    CHECK_FALSE(error.empty());
+
+    error.clear();
+    CHECK_FALSE(normalize_socket_permission("api.example.com/path", normalized, error));
     CHECK_FALSE(error.empty());
 }
