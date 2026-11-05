@@ -24,7 +24,7 @@ Permissions are stored per plugin key. A plugin can hold:
 | Field | Kind | Governs |
 | --- | --- | --- |
 | `fs_read` | target list | Read-shaped filesystem events. Targets are exact paths or `<dir>/*` trees. |
-| `fs_readwrite` | target list | Write-shaped and read/write filesystem events mapped to `FsReadWrite`: a write-mode `open`, rename, chmod, utime, copy, move, archive extraction, and similar. Same target matching as `fs_read`. It does not authorize creating or deleting paths. Those events map to `FsCreate` and `FsDelete`, which have no persistent grant list and are prompted per operation. |
+| `fs_readwrite` | target list | Write-shaped and read/write filesystem events mapped to `FsReadWrite`: a write-mode `open`, rename, chmod, utime, copy, move, archive extraction, and similar. Same target matching as `fs_read`. A write-mode `open` can create a file, but this grant does not cover events mapped to `FsCreate` or `FsDelete`, which have no persistent grant list. |
 | `network_http` | target list | Network targets, consulted together with `network_socket` for both HTTP and socket events. A canonical `scheme://host` entry is host-wide and covers both layers; a URL with a path, port, query or trailing slash is exact; a bare host or legacy address tuple covers raw sockets. |
 | `network_socket` | target list | The same network matching, kept as a separate list so a plugin can declare socket access without an HTTP URL. |
 | `process` | target list | Process creation and process replacement: `os.system`, `subprocess.Popen`, `os.spawn*`, `os.exec*`, `pty.spawn`, `_winapi.CreateProcess`, and similar. Targets match the audited value verbatim. |
@@ -34,8 +34,8 @@ Permissions are stored per plugin key. A plugin can hold:
 
 Filesystem create and delete events (`os.mkdir`, `os.symlink`, `tempfile.mkstemp`,
 `os.remove`, `shutil.rmtree`, and similar) are audited, but they have no persistent grant
-list. A `fs_read` or `fs_readwrite` grant does not cover them, because a write grant governs
-modifying an existing path, not creating or removing one. Without full access, each such
+list. A `fs_read` or `fs_readwrite` grant does not cover these events, although a write grant
+can create a file through `open()`. Without full access, each such
 event outside an allowed root is prompted only when it can be answered inline. On the wx
 main thread a Yes applies only to the operation that raised it and is not saved. Off the
 main thread the event is denied immediately and an informational denial is shown instead;

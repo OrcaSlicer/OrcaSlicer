@@ -30,7 +30,7 @@
 #include <wx/toplevel.h>
 
 class wxWindow;
-namespace Slic3r { struct PluginDescriptor; struct PluginPermissions; }
+namespace Slic3r { struct PluginDescriptor; }
 
 
 namespace Slic3r {

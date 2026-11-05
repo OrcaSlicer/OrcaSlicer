@@ -724,7 +724,7 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"permissions_process", _u8L("Processes")},
         {"permissions_threading", _u8L("Threading")},
         {"permissions_events", _u8L_CONTEXT("Events", "Permission category")},
-        {"permissions_filesystem_help", _u8L("Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. These read and read/write grants do not cover creating or deleting files: each such operation needs its own approval, and that approval is never saved. If the operation cannot be approved in time, it is denied.")},
+        {"permissions_filesystem_help", _u8L("Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. A read/write grant can create files through open(), but it does not cover create or delete events such as os.mkdir and os.remove. Without Full access, each such event outside allowed folders needs its own approval, which is never saved. When a plugin runs in the background, these events are denied without asking.")},
 #ifdef _WIN32
         {"permissions_filesystem_placeholder", _u8L("C:\\path\\to\\directory\\*")},
 #else
