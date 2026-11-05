@@ -18,8 +18,6 @@
 #include <vector>
 #include "libslic3r/AppConfig.hpp"
 
-using json = nlohmann::json;
-
 namespace Slic3r {
 
 

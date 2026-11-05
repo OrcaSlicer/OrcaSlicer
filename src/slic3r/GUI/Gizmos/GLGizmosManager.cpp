@@ -50,10 +50,6 @@
 #include <wx/event.h>
 #include <optional>
 #include "libslic3r/AppConfig.hpp"
-#ifdef SLIC3R_CAD
-#include "slic3r/GUI/Gizmos/GLGizmoPrimitive.hpp"
-#include "slic3r/GUI/Gizmos/GLGizmoSketch.hpp"
-#endif
 
 #include "libslic3r/Model.hpp"
 
@@ -217,14 +213,6 @@ void GLGizmosManager::switch_gizmos_icon_filename()
         case (EType::BrimEars):
             gizmo->set_icon_filename(m_is_dark ? "toolbar_brimears_dark.svg" : "toolbar_brimears.svg");
             break;
-#ifdef SLIC3R_CAD
-        case (EType::Primitive):
-            gizmo->set_icon_filename(m_is_dark ? "toolbar_modifier_cube_dark.svg" : "toolbar_modifier_cube.svg");
-            break;
-        case (EType::Sketch):
-            gizmo->set_icon_filename(m_is_dark ? "toolbar_sketch_dark.svg" : "toolbar_sketch.svg");
-            break;
-#endif
         }
 
     }
@@ -270,14 +258,6 @@ bool GLGizmosManager::init()
     m_gizmos.emplace_back(new GLGizmoAssembly(m_parent, m_is_dark ? "toolbar_assembly_dark.svg" : "toolbar_assembly.svg", EType::Assembly));
     m_gizmos.emplace_back(new GLGizmoSimplify(m_parent, "reduce_triangles.svg", EType::Simplify));
     m_gizmos.emplace_back(new GLGizmoBrimEars(m_parent, m_is_dark ? "toolbar_brimears_dark.svg" : "toolbar_brimears.svg", EType::BrimEars));
-#ifdef SLIC3R_CAD
-    // Registered last: Primitive and Sketch are the final entries before Undefined, so
-    // omitting them leaves every preceding m_gizmos index (indexed by EType) untouched.
-    if (wxGetApp().is_enable_cad_feature()) {
-        m_gizmos.emplace_back(new GLGizmoPrimitive(m_parent, m_is_dark ? "toolbar_modifier_cube_dark.svg" : "toolbar_modifier_cube.svg", static_cast<unsigned int>(Primitive)));
-        m_gizmos.emplace_back(new GLGizmoSketch(m_parent, m_is_dark ? "toolbar_sketch_dark.svg" : "toolbar_sketch.svg", static_cast<unsigned int>(Sketch)));
-    }
-#endif
     //m_gizmos.emplace_back(new GLGizmoSlaSupports(m_parent, "sla_supports.svg", sprite_id++));
     //m_gizmos.emplace_back(new GLGizmoFaceDetector(m_parent, "face recognition.svg", sprite_id++));
     //m_gizmos.emplace_back(new GLGizmoHollow(m_parent, "hollow.svg", sprite_id++));
@@ -328,13 +308,18 @@ bool GLGizmosManager::init_icon_textures()
     else
         return false;
 
-    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/toolbar_tooltip.svg", 25, 25, texture_id)) // ORCA: Use same resolution with gizmos to prevent blur on icon
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/toolbar_tooltip.svg", 15, 15, texture_id)) // ORCA: Use same resolution with gizmos to prevent blur on icon
         icon_list.insert(std::make_pair((int)IC_TOOLBAR_TOOLTIP, texture_id));
     else
         return false;
 
-    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/toolbar_tooltip_hover.svg", 25, 25, texture_id)) // ORCA: Use same resolution with gizmos to prevent blur on icon
-        icon_list.insert(std::make_pair((int)IC_TOOLBAR_TOOLTIP_HOVER, texture_id));
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/toolbar_wiki.svg", 15, 15, texture_id))
+        icon_list.insert(std::make_pair((int)IC_TOOLBAR_WIKI_GUIDE, texture_id));
+    else
+        return false;
+
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/toolbar_video_guide.svg", 15, 15, texture_id))
+        icon_list.insert(std::make_pair((int)IC_TOOLBAR_VIDEO_GUIDE, texture_id));
     else
         return false;
 
@@ -388,6 +373,25 @@ bool GLGizmosManager::init_icon_textures()
         icon_list.insert(std::make_pair((int) icon, texture_id));
     }
 
+    for (const auto& [icon, name] : std::initializer_list<std::pair<MENU_ICON_NAME, const char*>>{
+        { IC_ALIGN_X_MIN   , "align_x_min"    }, { IC_ALIGN_X_MIN_DARK   , "align_x_min_dark"    },
+        { IC_ALIGN_X_CENTER, "align_x_center" }, { IC_ALIGN_X_CENTER_DARK, "align_x_center_dark" },
+        { IC_ALIGN_X_MAX   , "align_x_max"    }, { IC_ALIGN_X_MAX_DARK   , "align_x_max_dark"    },
+        { IC_ALIGN_Y_MIN   , "align_y_min"    }, { IC_ALIGN_Y_MIN_DARK   , "align_y_min_dark"    },
+        { IC_ALIGN_Y_CENTER, "align_y_center" }, { IC_ALIGN_Y_CENTER_DARK, "align_y_center_dark" },
+        { IC_ALIGN_Y_MAX   , "align_y_max"    }, { IC_ALIGN_Y_MAX_DARK   , "align_y_max_dark"    },
+        { IC_ALIGN_Z_MIN   , "align_z_min"    }, { IC_ALIGN_Z_MIN_DARK   , "align_z_min_dark"    },
+        { IC_ALIGN_Z_CENTER, "align_z_center" }, { IC_ALIGN_Z_CENTER_DARK, "align_z_center_dark" },
+        { IC_ALIGN_Z_MAX   , "align_z_max"    }, { IC_ALIGN_Z_MAX_DARK   , "align_z_max_dark"    },
+        { IC_DISTRIBUTE_X  , "distribute_x"   }, { IC_DISTRIBUTE_X_DARK  , "distribute_x_dark"   },
+        { IC_DISTRIBUTE_Y  , "distribute_y"   }, { IC_DISTRIBUTE_Y_DARK  , "distribute_y_dark"   },
+        { IC_DISTRIBUTE_Z  , "distribute_z"   }, { IC_DISTRIBUTE_Z_DARK  , "distribute_z_dark"   }
+    }) {
+        if (!IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/" + name + ".svg", 16, 16, texture_id))
+            return false;
+        icon_list.insert(std::make_pair((int) icon, texture_id));
+    }
+
     return true;
 }
 
@@ -435,7 +439,10 @@ void GLGizmosManager::refresh_on_off_state()
 
 void GLGizmosManager::reset_all_states()
 {
-    if (! m_enabled || m_serializing)
+    // The restore/new-project event can run before deferred OpenGL resource
+    // loading has populated the gizmo list.  There is nothing to reset until
+    // initialization completes.
+    if (! m_enabled || m_serializing || m_gizmos.empty())
         return;
 
     const EType current = get_current_type();
@@ -450,6 +457,9 @@ void GLGizmosManager::reset_all_states()
 
 bool GLGizmosManager::open_gizmo(EType type)
 {
+    if (m_gizmos.empty())
+        return false;
+
     int idx = static_cast<int>(type);
 
     // re-open same type cause closing
@@ -537,7 +547,7 @@ bool GLGizmosManager::is_running() const
 
 bool GLGizmosManager::open_gizmo_by_shortcut(Shortcut shortcut)
 {
-    if (!m_enabled)
+    if (!m_enabled || m_gizmos.empty())
         return false;
 
     // The text tool opens without a selection because it creates its own object.
@@ -624,6 +634,13 @@ bool GLGizmosManager::is_allow_select_all() {
         return true;
     }
     return false;
+}
+
+// Ctrl+click and Alt+click grow the selection only where that serves the gizmo: the Move gizmo aligns and distributes
+// several objects or parts, while Scale uses Ctrl for single sided scaling.
+bool GLGizmosManager::is_allow_multi_select_parts_or_objects() const
+{
+    return m_current == Undefined || m_current == EType::Move;
 }
 
 std::optional<ClippingPlane> GLGizmosManager::get_clipping_plane() const
@@ -1375,8 +1392,7 @@ GLGizmoBase* GLGizmosManager::get_current() const
 
 GLGizmoBase* GLGizmosManager::get_gizmo(GLGizmosManager::EType type) const
 {
-    // m_gizmos ends before the enum does when the CAD gizmos are not registered.
-    return type < m_gizmos.size() ? m_gizmos[type].get() : nullptr;
+    return ((type == Undefined) || m_gizmos.empty()) ? nullptr : m_gizmos[type].get();
 }
 
 GLGizmosManager::EType GLGizmosManager::get_gizmo_from_name(const std::string& gizmo_name) const
@@ -1443,10 +1459,12 @@ void GLGizmosManager::update_hover_state(const EType &type)
 
 bool GLGizmosManager::activate_gizmo(EType type)
 {
-    assert(!m_gizmos.empty());
-
     // already activated
-    if (m_current == type) return true;
+    if (m_current == type)
+        return true;
+
+    if (m_gizmos.empty())
+        return false;
 
     if (m_current != Undefined) {
         // clean up previous gizmo

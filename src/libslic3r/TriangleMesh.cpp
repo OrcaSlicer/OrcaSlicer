@@ -15,6 +15,9 @@
 #include <cstdint>
 #include <functional>
 #include <iterator>
+#include <numeric>
+#include <tbb/blocked_range.h>
+#include <tbb/parallel_for.h>
 #include <Eigen/Geometry>
 #include <libqhull_r/libqhull_r.h>
 #include <cstdio>
@@ -1020,16 +1023,16 @@ indexed_triangle_set its_make_frustum(double r, double h, double fa)
 // Generate the mesh for a torus
 // r: major radius (distance from center of tube to center of torus)
 // h: minor radius (radius of the tube)
-// fa: angular step in radians (smaller = more segments)
-indexed_triangle_set its_make_torus(double r, double h, double fa)
+// fa_major, fa_minor: angular steps in radians around the main ring and the tube (smaller = more segments)
+indexed_triangle_set its_make_torus(double r, double h, double fa_major, double fa_minor)
 {
     indexed_triangle_set mesh;
     auto& vertices = mesh.vertices;
     auto& facets = mesh.indices;
 
     // Number of segments around the main ring and the tube
-    size_t n_major = (size_t)ceil(2. * PI / fa);
-    size_t n_minor = (size_t)ceil(2. * PI / fa);
+    size_t n_major = (size_t)ceil(2. * PI / fa_major);
+    size_t n_minor = (size_t)ceil(2. * PI / fa_minor);
 
     double major_step = 2. * PI / n_major;
     double minor_step = 2. * PI / n_minor;
@@ -1495,6 +1498,40 @@ float its_volume(const indexed_triangle_set &its)
     return volume;
 }
 
+MassProperties MassProperties::transformed(const Transform3d &trafo) const
+{
+    const Matrix3d linear = trafo.linear();
+    const double   scale  = std::abs(linear.determinant());
+    return { mass * scale, volume * scale, trafo * center, linear * spread * linear.transpose() };
+}
+
+MassProperties its_mass_properties(const indexed_triangle_set &its)
+{
+    if (its.indices.empty())
+        return {};
+
+    // Signed tetrahedra fanned from a mesh vertex, not the origin, to keep the sums precise far from it.
+    const Vec3d p0        = its.vertices.front().cast<double>();
+    double      volume6   = 0.;
+    Vec3d       moment24  = Vec3d::Zero();
+    Matrix3d    second120 = Matrix3d::Zero();
+    for (const stl_triangle_vertex_indices &face : its.indices) {
+        const Vec3d  a = its.vertices[face(0)].cast<double>() - p0;
+        const Vec3d  b = its.vertices[face(1)].cast<double>() - p0;
+        const Vec3d  c = its.vertices[face(2)].cast<double>() - p0;
+        const Vec3d  s = a + b + c;
+        const double v = a.dot(b.cross(c));
+        volume6 += v;
+        moment24 += v * s;
+        second120 += v * (a * a.transpose() + b * b.transpose() + c * c.transpose() + s * s.transpose());
+    }
+    if (volume6 == 0.)
+        return {};
+    const Vec3d  center = moment24 / (4. * volume6);
+    const double volume = std::abs(volume6) / 6.;
+    return { volume, volume, p0 + center, second120 / (20. * volume6) - center * center.transpose() };
+}
+
 float its_average_edge_length(const indexed_triangle_set &its)
 {
     if (its.indices.empty())
@@ -1591,6 +1628,126 @@ std::vector<Vec3f> its_face_normals(const indexed_triangle_set &its)
     normals.reserve(its.indices.size());
     for (stl_triangle_vertex_indices face : its.indices)
         normals.push_back(its_face_normal(its, face));
+    return normals;
+}
+
+std::vector<Vec3f> its_smooth_corner_normals(const indexed_triangle_set &its, double threshold_degrees)
+{
+    const size_t       num_faces = its.indices.size();
+    std::vector<Vec3f> normals(3 * num_faces, Vec3f::Zero());
+    const int          num_vertices = int(its.vertices.size());
+    if (std::any_of(its.indices.begin(), its.indices.end(), [num_vertices](const stl_triangle_vertex_indices &face) {
+            return face.minCoeff() < 0 || face.maxCoeff() >= num_vertices;
+        }))
+        return normals;
+
+    // A face normal's length is twice the face area, so summing them weights by area.
+    std::vector<Vec3d> area_normals(num_faces);
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, num_faces), [&](const tbb::blocked_range<size_t> &range) {
+        for (size_t f = range.begin(); f < range.end(); ++f) {
+            const stl_triangle_vertex_indices &face = its.indices[f];
+            const Vec3d                        v0   = its.vertices[face[0]].cast<double>();
+            area_normals[f] = (its.vertices[face[1]].cast<double>() - v0).cross(its.vertices[face[2]].cast<double>() - v0);
+        }
+    });
+    const VertexFaceIndex vertex_faces(its);
+
+    // Faces within merge_degrees of a group's first face join it; two groups whose first faces differ by an angle within
+    // twice merge_degrees (plus slack_degrees for rounding) of the threshold compare face by face, so merging never
+    // changes the result.
+    constexpr double merge_degrees  = 0.25;
+    constexpr double slack_degrees  = 1e-6;
+    const auto       cos_of_degrees = [](double degrees) { return std::cos(std::clamp(degrees, 0., 180.) * PI / 180.); };
+    const double     cos_threshold  = std::cos(threshold_degrees * PI / 180.);
+    const double     cos_merge      = cos_of_degrees(merge_degrees);
+    const double     cos_all_in     = cos_of_degrees(threshold_degrees - 2. * merge_degrees - slack_degrees);
+    const double     cos_all_out    = cos_of_degrees(threshold_degrees + 2. * merge_degrees + slack_degrees);
+    const auto       corner_id      = [&its](size_t face_id, size_t vertex_id) {
+        const stl_triangle_vertex_indices &face = its.indices[face_id];
+        return 3 * face_id + (size_t(face[0]) == vertex_id ? 0 : size_t(face[1]) == vertex_id ? 1 : 2);
+    };
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, its.vertices.size()), [&](const tbb::blocked_range<size_t> &range) {
+        struct Group
+        {
+            Vec3d  unit_normal;
+            Vec3d  area_normal_sum;
+            size_t num_faces;
+        };
+        std::vector<size_t> faces;
+        std::vector<Vec3d>  unit_normals;
+        std::vector<size_t> group_of_face;
+        std::vector<Group>  groups;
+        std::vector<size_t> group_start;
+        std::vector<size_t> group_members;
+        std::vector<size_t> group_next;
+        std::vector<size_t> near_groups;
+        for (size_t v = range.begin(); v < range.end(); ++v) {
+            faces.clear();
+            unit_normals.clear();
+            group_of_face.clear();
+            groups.clear();
+            // Checked before scanning the groups in order, so the faces of a large plane find their group at once
+            // whatever groups were opened before it.
+            size_t previous_group = 0;
+            size_t largest_group  = 0;
+            for (const size_t f : vertex_faces[v]) {
+                // Degenerate faces and faces with NaN or infinite coordinates are left out of every comparison, as in igl.
+                if (const double area_squared = area_normals[f].squaredNorm(); !(area_squared > 0. && std::isfinite(area_squared)))
+                    continue;
+                const Vec3d unit     = area_normals[f].normalized();
+                const auto  joins    = [&](size_t g) { return g < groups.size() && groups[g].unit_normal.dot(unit) > cos_merge; };
+                size_t      g        = joins(previous_group) ? previous_group : largest_group;
+                if (!joins(g)) {
+                    g = 0;
+                    while (g < groups.size() && !joins(g))
+                        ++g;
+                    if (g == groups.size())
+                        groups.push_back({unit, Vec3d::Zero(), 0});
+                }
+                groups[g].area_normal_sum += area_normals[f];
+                if (++groups[g].num_faces > groups[largest_group].num_faces)
+                    largest_group = g;
+                previous_group = g;
+                faces.push_back(f);
+                unit_normals.push_back(unit);
+                group_of_face.push_back(g);
+            }
+            // group_members[group_start[g], group_start[g + 1]) lists the faces of group g by their index in faces.
+            group_start.assign(groups.size() + 1, 0);
+            for (const size_t g : group_of_face)
+                ++group_start[g + 1];
+            std::partial_sum(group_start.begin(), group_start.end(), group_start.begin());
+            group_members.resize(faces.size());
+            group_next.assign(group_start.begin(), group_start.end() - 1);
+            for (size_t i = 0; i < faces.size(); ++i)
+                group_members[group_next[group_of_face[i]]++] = i;
+            for (size_t g = 0; g < groups.size(); ++g) {
+                Vec3d whole_groups_sum = Vec3d::Zero();
+                near_groups.clear();
+                for (size_t h = 0; h < groups.size(); ++h) {
+                    const double cos_between = groups[g].unit_normal.dot(groups[h].unit_normal);
+                    if (cos_between > cos_all_in)
+                        whole_groups_sum += groups[h].area_normal_sum;
+                    else if (cos_between >= cos_all_out)
+                        near_groups.push_back(h);
+                }
+                const Vec3f group_normal = whole_groups_sum.normalized().cast<float>();
+                for (size_t k = group_start[g]; k < group_start[g + 1]; ++k) {
+                    const size_t i      = group_members[k];
+                    Vec3f        normal = group_normal;
+                    if (!near_groups.empty()) {
+                        Vec3d sum = whole_groups_sum;
+                        for (const size_t h : near_groups)
+                            for (size_t l = group_start[h]; l < group_start[h + 1]; ++l)
+                                if (unit_normals[i].dot(unit_normals[group_members[l]]) > cos_threshold)
+                                    sum += area_normals[faces[group_members[l]]];
+                        normal = sum.normalized().cast<float>();
+                    }
+                    normals[corner_id(faces[i], v)] = normal;
+                }
+            }
+        }
+    });
     return normals;
 }
 

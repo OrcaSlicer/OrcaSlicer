@@ -18,8 +18,6 @@ class wxMouseCaptureLostEvent;
 class wxMouseEvent;
 class wxWindow;
 
-using namespace Slic3r::GUI;
-
 class CenteredTitle : public wxControl
 {
 public:

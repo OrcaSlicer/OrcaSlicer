@@ -24,7 +24,7 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # orcacad-deps, NOT snapmaker-deps: this fork is mainline-based and needs Eigen 5.0.1,
-# CGAL 5.6.3, wx 3.3.2 and Python 3.12 Development.Embed, none of which snapmaker-deps has.
+# CGAL 6.2.1, wx 3.3.2 and Python 3.12 Development.Embed, none of which snapmaker-deps has.
 # With the wrong image CMake dies at configure, which is exactly why this fork went
 # M1-M8 without ever compiling (see commit 1633005bba).
 IMAGE="${IMAGE:-orcacad-deps}"

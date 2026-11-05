@@ -63,7 +63,6 @@
 #define END_SEQ_ID              30000
 #define SUBSCRIBE_RETRY_COUNT   5
 
-using namespace nlohmann;
 namespace Slic3r {
 
 namespace GUI
@@ -120,6 +119,7 @@ private:
     std::string dev_name;
     std::string dev_ip;
     std::string access_code;
+    bool m_access_revoked = false;
 
     // type, time stamp, delay
     std::vector<std::tuple<std::string, uint64_t, uint64_t>> message_delay;
@@ -230,7 +230,8 @@ public:
     std::string dev_connection_name;    /* lan | eth */
 
     /*access code*/
-    bool has_access_right() const { return !get_access_code().empty(); }
+    bool has_access_right() const;
+    void revoke_access();
     std::string get_access_code() const;
     void set_access_code(std::string code, bool only_refresh = true);
 
@@ -404,7 +405,7 @@ public:
     bool upgrade_force_upgrade { false };
     bool upgrade_new_version { false };
     bool upgrade_consistency_request { false };
-    DevFirmwareUpgradingState upgrade_display_state;
+    DevFirmwareUpgradingState upgrade_display_state { DevFirmwareUpgradingState::UpgradingUnavaliable };
     int upgrade_display_hold_count = 0;
     PrinterFirmwareType       firmware_type; // engineer|production
     PrinterFirmwareType       lifecycle { PrinterFirmwareType::FIRMWARE_TYPE_PRODUCTION };
@@ -467,7 +468,7 @@ public:
     std::string get_print_error_str() const { return MachineObject::get_error_code_str(this->print_error); }
 
     std::unordered_set<GUI::DeviceErrorDialog*> m_command_error_code_dlgs;
-    void  add_command_error_code_dlg(int command_err, json action_json=json{});
+    void  add_command_error_code_dlg(int command_err, nlohmann::json action_json=nlohmann::json{});
 
     int     curr_layer = 0;
     int     total_layers = 0;
@@ -673,6 +674,7 @@ public:
     bool is_support_remote_dry = false;
     bool is_support_check_track_switch_match_slice_printer{false};
     bool is_support_pa_mode{false};
+    bool is_support_filament_manual_multi_color{false};
     std::optional<bool> m_firmware_support_print_tpu_left;
 
     bool installed_upgrade_kit{false};
@@ -759,9 +761,9 @@ public:
     int command_set_printer_nozzle2(int id, std::string nozzle_type, float diameter);
     int command_get_access_code();
     int command_start_camera();
-    int command_ack_proceed(json& proceed);
+    int command_ack_proceed(nlohmann::json& proceed);
     int command_purification_disable();
-    int command_dont_remind_next_time(json& mqtt_guard_json);
+    int command_dont_remind_next_time(nlohmann::json& mqtt_guard_json);
 
     /* command upgrade */
     int command_upgrade_confirm();
@@ -803,7 +805,7 @@ public:
     int command_ams_switch_filament(bool switch_filament);
     int command_ams_air_print_detect(bool air_print_detect);
     int command_ams_calibrate(int ams_id);
-    int command_ams_filament_settings(int ams_id, int slot_id, std::string filament_id, std::string setting_id, std::string tray_color, std::string tray_type, int nozzle_temp_min, int nozzle_temp_max);
+    int command_ams_filament_settings(int ams_id, int slot_id, std::string filament_id, std::string setting_id, std::string tray_color, std::string tray_type, int nozzle_temp_min, int nozzle_temp_max, const std::vector<std::string>& tray_colors = {}, int tray_ctype = 2);
     int command_ams_select_tray(std::string tray_id);
     int command_ams_refresh_rfid(int ams_id, int slot_id);
     int command_ams_control(std::string action);
@@ -887,7 +889,7 @@ public:
     static bool is_in_printing_status(std::string status);
 
     void set_print_state(std::string status);
-    void update_print_progress(const json& value);
+    void update_print_progress(const nlohmann::json& value);
 
     bool is_connected();
     bool is_connecting();
@@ -903,7 +905,7 @@ public:
 
     /* Msg for display MsgFn */
     typedef std::function<void(std::string topic, std::string payload)> MsgFn;
-    int publish_json(const json& json_item, int qos = 0, int flag = 0) ;
+    int publish_json(const nlohmann::json& json_item, int qos = 0, int flag = 0) ;
     int publish_json(const std::string& json_str, int qos = 0, int flag = 0) = delete;
     int cloud_publish_json(std::string json_str, int qos = 0, int flag = 0);
     int local_publish_json(std::string json_str, int qos = 0, int flag = 0);
@@ -947,16 +949,16 @@ public:
      * or scenarios where users want to bypass the AMS.
      */
     std::vector<DevAmsTray> vt_slot;
-    DevAmsTray parse_vt_tray(json vtray);
+    DevAmsTray parse_vt_tray(nlohmann::json vtray);
 
     /*get ams slot info*/
     bool    contains_tray(const std::string &ams_id, const std::string &tray_id) const;
     DevAmsTray get_tray(const std::string &ams_id, const std::string &tray_id) const;/*use contains_tray() check first*/
 
     /*for parse new info*/
-    bool check_enable_np(const json& print) const;
-    void parse_new_info(json print);
-    void parse_new_info2(const json& info);
+    bool check_enable_np(const nlohmann::json& print) const;
+    void parse_new_info(nlohmann::json print);
+    void parse_new_info2(const nlohmann::json& info);
     int  get_flag_bits(std::string str, int start, int count = 1) const;
     uint32_t get_flag_bits_no_border(std::string str, int start_idx, int count = 1) const;
     int get_flag_bits(int num, int start, int count = 1, int base = 10) const;

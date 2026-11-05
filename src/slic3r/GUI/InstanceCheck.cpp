@@ -35,6 +35,8 @@
 #include <errno.h>
 #include <optional>
 #include <cstdint>
+#include <cwchar>
+#include <memory>
 
 #ifdef _WIN32
 #include <strsafe.h>

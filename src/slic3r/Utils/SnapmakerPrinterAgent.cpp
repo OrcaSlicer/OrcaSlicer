@@ -13,8 +13,6 @@
 #include <cstddef>
 #include <utility>
 
-using json = nlohmann::json;
-
 namespace Slic3r {
 
 namespace {

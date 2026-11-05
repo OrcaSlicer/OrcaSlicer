@@ -61,7 +61,8 @@ available; GTK2/WebKit1 is an opt-out configuration the GUI does not support.
 11. A web host that re-themes in place handles `EVT_WEBVIEW_RECREATED` without `Skip()`; one that
     needs a reload lets it through. §[Orca wrapper](#orca-webview-wrapper-widgetswebview)
 12. Keep `WebViewWebKit`'s destructor removing the `"wx"` handler. §[Orca wrapper](#orca-webview-wrapper-widgetswebview)
-13. Do not widen `WEBKIT_DISABLE_COMPOSITING_MODE` beyond Orca's default-path XWayland case, and never
+13. Do not widen `WEBKIT_DISABLE_COMPOSITING_MODE` beyond the no-EGL default path where Orca forces
+    `GDK_BACKEND=x11`, for WebKitGTK older than 2.42, and never
     make a page's progress depend only on a C++→JS callback. §[WebKitGTK on Linux](#webkitgtk-on-linux-sessions)
 14. GL attribute lists: legacy `int[]` lists end with `0` and spell out `WX_GL_RGBA` and
     `WX_GL_DOUBLEBUFFER`; `wxGLAttributes`/`wxGLContextAttrs` end with `EndList()`; MSAA is requested
@@ -567,33 +568,80 @@ vue-resize workaround script and sets a persistent SQLite cookie store on the vi
 ## WebKitGTK on Linux sessions
 
 **Mechanism.** `CLI::run` (`src/OrcaSlicer.cpp`, under `#ifdef __WXGTK__`, before GTK initialises)
-branches on `GDK_BACKEND`:
+sets the DMABUF workarounds and then branches on `GDK_BACKEND`:
+- **Both paths**, before the split: when `/proc/driver/nvidia/version` exists and the linked WebKitGTK
+  honours the switch (>= 2.44, `WebView::SupportsForceSharedMemory()`), it sets
+  `WEBKIT_DMABUF_RENDERER_FORCE_SHM=1` and `WEBKIT_FORCE_DMABUF_RENDERER=1` non-replacing. The
+  proprietary driver cannot back WebKit's hardware DMABUF renderer, so the shared-memory transport keeps
+  accelerated compositing instead of dropping it; `WEBKIT_FORCE_DMABUF_RENDERER` clears the
+  Debian/Ubuntu/openSUSE `isNVIDIA()` early return, which otherwise returns before the FORCE_SHM check.
+- **Hypervisor guests**, same position: when `is_hypervisor_guest()` (the `hypervisor` flag in
+  `/proc/cpuinfo`) and WebKitGTK >= 2.44, it sets `WEBKIT_DMABUF_RENDERER_FORCE_SHM=1` non-replacing.
+  Virtual GPUs (VirtualBox VMSVGA, VMware, QEMU) cannot back the hardware DMABUF path either, and
+  FORCE_SHM alone was confirmed to fix web views in VirtualBox; the `WEBKIT_FORCE_DMABUF_RENDERER` pair
+  is not needed without the Debian `isNVIDIA()` patch. The flag is x86-only, so ARM guests are not covered.
 - **Default path** (`GDK_BACKEND` unset or not starting with `x11`): if wx lacks EGL (`!wxHAS_EGL`) and
-  `WAYLAND_DISPLAY` is set, it forces `GDK_BACKEND=x11`; it sets `WEBKIT_DISABLE_COMPOSITING_MODE=1`
-  non-replacing **only** when both `DISPLAY` and `WAYLAND_DISPLAY` are non-empty (a Wayland session with
-  XWayland available — the session, not the backend GTK will pick); `XInitThreads()` runs only when
-  `DISPLAY` is set.
-- **`GDK_BACKEND=x11…` opt-in path**: sets `DRI_PRIME=1` (and the NVIDIA PRIME variables when
-  `/proc/driver/nvidia/version` exists), calls `XInitThreads()`, and deliberately does **not** disable
-  compositing (the comment: the WebKit2GTK XWayland bug appears fixed in WebKit2GTK ≥ 2.42, and leaving
-  compositing on keeps hardware acceleration for Device / Setup Wizard / login pages).
+  `WAYLAND_DISPLAY` is set, it forces `GDK_BACKEND=x11`, and in that same branch it sets
+  `WEBKIT_DISABLE_COMPOSITING_MODE=1` non-replacing when the linked WebKitGTK predates 2.42
+  (`WebView::NeedsCompositingWorkaround()`). That forced X11 backend in a Wayland session is the only
+  default-path case that really runs through XWayland; `DISPLAY` and `WAYLAND_DISPLAY` alone do not
+  identify it, because a native Wayland app inherits both. `XInitThreads()` runs only when `DISPLAY` is
+  set.
+- **`GDK_BACKEND=x11…` opt-in path**: calls `XInitThreads()` and deliberately does **not** disable
+  compositing, which keeps hardware acceleration for Device / Setup Wizard / login pages.
+- **GPU selection** is independent of the backend. The Linux preference `prefer_discrete_gpu` ("Render on
+  the discrete GPU", default off) makes `apply_discrete_gpu_preference()` export `DRI_PRIME=1` and, when
+  `/proc/driver/nvidia/version` exists, the NVIDIA render-offload variables before GTK opens the display;
+  it reads the saved configuration through `AppConfig::peek_bool` because no `AppConfig` exists yet. The
+  desktop entries carry no `PrefersNonDefaultGPU` hint, so a menu launch renders on the display GPU like
+  a terminal launch; the hint made hybrid laptops on Wayland render through zink on the other GPU with
+  an empty 3D view.
 
 Runtime backend detection elsewhere uses Orca's `is_running_on_wayland()` / `is_running_on_x11()`
 (see `references/platforms.md`), not these environment variables.
 
 **Pitfall.**
-- **Rule:** Set `WEBKIT_DISABLE_COMPOSITING_MODE` only on the default path in Wayland sessions,
-  non-replacing (`setenv(..., false)`, so a value the user already exported wins), before GTK
-  initialises; never unconditionally. Keep JS-side fallbacks so a page never
+- **Rule:** On NVIDIA and hypervisor guests reach for `WEBKIT_DMABUF_RENDERER_FORCE_SHM` before
+  `WEBKIT_DISABLE_COMPOSITING_MODE`. **Why:** the proprietary driver and virtual GPUs cannot back WebKit's
+  hardware DMABUF renderer, leaving web views blank or slow; FORCE_SHM keeps accelerated compositing and only
+  skips the hardware path, while disabling compositing drops it. Threaded scrolling is a separate,
+  release-dependent default (off in 2.44/2.45, on from 2.46). `WEBKIT_DISABLE_DMABUF_RENDERER` is not a
+  substitute — it is read first, leaves the transport set empty (no compositing from 2.44 on, where the
+  X11/Wayland fallback renderers were removed) and has a reported crash path. On Debian/Ubuntu and
+  openSUSE the `isNVIDIA()` patch returns before the FORCE_SHM check, so `WEBKIT_FORCE_DMABUF_RENDERER=1`
+  must clear it first; that variable exists only in those patches. WebKit reads all of these once per
+  process, before the first WebView.
+  The test is `/proc/driver/nvidia/version`, so a hybrid laptop that renders on its iGPU also takes the
+  shared-memory path, which is a per-frame GPU readback rather than zero-copy; exporting
+  `WEBKIT_DMABUF_RENDERER_FORCE_SHM=0` in the environment restores the hardware path.
+  ```cpp
+  // Wrong: kills compositing and threaded scrolling (and can crash on modern WebKit)
+  ::setenv("WEBKIT_DISABLE_DMABUF_RENDERER", "1", false);
+  // Right: keep compositing, skip only the hardware DMABUF path
+  if (::access("/proc/driver/nvidia/version", F_OK) == 0 && WebView::SupportsForceSharedMemory()) {
+      ::setenv("WEBKIT_DMABUF_RENDERER_FORCE_SHM", "1", /*replace*/ false);
+      ::setenv("WEBKIT_FORCE_DMABUF_RENDERER", "1", /*replace*/ false);
+  }
+  ```
+  Cite: WebKit 2.52.6 `Source/WebKit/UIProcess/gtk/AcceleratedBackingStore.cpp`
+  (`rendererBufferTransportMode()`), Debian `disable-nvidia-dmabuf.patch`, WebKit bug 262607.
+- **Rule:** Set `WEBKIT_DISABLE_COMPOSITING_MODE` only on the default path, in the branch where wx
+  lacks EGL and Orca forces `GDK_BACKEND=x11`, non-replacing (`setenv(..., false)`, so a value the user
+  already exported wins), before GTK
+  initialises; never unconditionally, and only for the WebKitGTK releases that need it (older than
+  2.42, `WebView::NeedsCompositingWorkaround()`). Keep JS-side fallbacks so a page never
   waits forever for a C++→JS call.
-  **Why:** WebKit2GTK accelerated compositing could fail silently under XWayland, leaving web views
-  blank (Setup Wizard stuck on "Loading..."); disabling it everywhere needlessly drops hardware
-  acceleration; without the JS timeout the user is stuck when the signal is lost.
+  **Why:** WebKit2GTK accelerated compositing could fail silently under XWayland before 2.42, leaving
+  web views blank (Setup Wizard stuck on "Loading..."); the variable also turns off threaded scrolling,
+  so applying it on a newer WebKit needlessly drops both GPU compositing and async scrolling (the
+  Device tab loses its smoothness); without the JS timeout the user is stuck when the signal is lost.
   ```cpp
   // Wrong: unconditional, kills HW acceleration everywhere
   ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", false);
-  // Right (default path only): non-replacing, before GTK init, Wayland session with XWayland
-  if (display && *display && wayland && *wayland)
+  // Right (default path only): non-replacing, before GTK init, WebKitGTK < 2.42,
+  // and only in the branch that forces GDK_BACKEND=x11 (wx without EGL), the
+  // case that runs through XWayland
+  if (WebView::NeedsCompositingWorkaround() && wayland && *wayland)
       ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /*replace*/ false);
   ```
   Cite: c12912e0df (`src/OrcaSlicer.cpp`; `resources/web/guide/0/load.js` `OnInit`

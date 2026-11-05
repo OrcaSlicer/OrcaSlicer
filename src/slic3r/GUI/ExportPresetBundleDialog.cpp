@@ -64,6 +64,20 @@ void ExportPresetBundleDialog::Init()
                    wxSize(820, 660), wxSize(640, 640));
 }
 
+nlohmann::json ExportPresetBundleDialog::localized_strings() const
+{
+    return {
+        {"printer", _u8L("Printer")},
+        {"filament", _u8L("Filament")},
+        {"process", _u8L("Process")},
+        {"all", _u8L("All")},
+        {"no_items", _u8L("No items")},
+        {"export_cloud", _u8L("Export to OrcaCloud")},
+        {"export_folder", _u8L("Export to folder")},
+        {"close", _u8L("Close")},
+    };
+}
+
 void ExportPresetBundleDialog::on_script_message(const nlohmann::json& j)
 {
     if (handle_common_script_command(j))
@@ -477,27 +491,27 @@ void ExportPresetBundleDialog::show_export_result(const ExportCase& export_case)
     switch (export_case) {
     case ExportCase::INITIALIZE_FAIL:
         msg_dlg = new MessageDialog(this, _L("initialize fail"), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
-                                    wxYES | wxYES_DEFAULT | wxCENTRE);
+                                    wxOK | wxCENTRE);
         break;
     case ExportCase::ADD_FILE_FAIL:
         msg_dlg = new MessageDialog(this, _L("add file fail"), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
-                                    wxYES | wxYES_DEFAULT | wxCENTRE);
+                                    wxOK | wxCENTRE);
         break;
     case ExportCase::ADD_BUNDLE_STRUCTURE_FAIL:
         msg_dlg = new MessageDialog(this, _L("add bundle structure file fail"), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
-                                    wxYES | wxYES_DEFAULT | wxCENTRE);
+                                    wxOK | wxCENTRE);
         break;
     case ExportCase::FINALIZE_FAIL:
         msg_dlg = new MessageDialog(this, _L("finalize fail"), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
-                                    wxYES | wxYES_DEFAULT | wxCENTRE);
+                                    wxOK | wxCENTRE);
         break;
     case ExportCase::OPEN_ZIP_WRITTEN_FILE:
         msg_dlg = new MessageDialog(this, _L("open zip written fail"), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
-                                    wxYES | wxYES_DEFAULT | wxCENTRE);
+                                    wxOK | wxCENTRE);
         break;
     case ExportCase::EXPORT_SUCCESS:
         msg_dlg = new MessageDialog(this, _L("Export successful"), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
-                                    wxYES | wxYES_DEFAULT | wxCENTRE);
+                                    wxOK | wxCENTRE);
         break;
     }
 

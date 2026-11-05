@@ -20,7 +20,6 @@
 #include <vector>
 #include <map>
 #include <utility>
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 
 using namespace nlohmann;
 
@@ -172,6 +171,11 @@ TaskManager::TaskManager(NetworkAgent* agent)
     ;
 }
 
+void TaskManager::set_agent(NetworkAgent* agent)
+{
+    m_agent = agent;
+}
+
 
 int TaskManager::start_print(const std::vector<PrintParams>& params, TaskSettings* settings)
 {
@@ -241,17 +245,18 @@ int TaskManager::schedule(TaskStateInfo* task)
             fire_lifecycle_event(LifecycleEvent::PrintJobStarted, start_ctx);
 
             int result = -1;
-            if (!m_agent) {
+            NetworkAgent* agent = m_agent;
+            if (!agent) {
                 BOOST_LOG_TRIVIAL(trace) << "task_manager: NetworkAgent is nullptr";
             }
             else {
-                assert(m_agent);
+                assert(agent);
                 try {
 // DEBUG FOR TEST
 #if 0
                     result = start_print_test(task->get_params(), task->update_status_fn, task->cancel_fn, task->wait_fn);
 #else
-                    result = m_agent->start_print(task->get_params(), task->update_status_fn, task->cancel_fn, task->wait_fn);
+                    result = agent->start_print(task->get_params(), task->update_status_fn, task->cancel_fn, task->wait_fn);
 #endif
                 } catch (const std::exception& ex) {
                     BOOST_LOG_TRIVIAL(error) << "task_manager: start_print threw: " << ex.what();
@@ -364,12 +369,13 @@ std::map<int, TaskStateInfo*> TaskManager::get_local_task_list()
 std::map<std::string, TaskStateInfo> TaskManager::get_task_list(int curr_page, int page_count, int& total)
 {
     std::map<std::string, TaskStateInfo> out;
-    if (m_agent) {
+    NetworkAgent* agent = m_agent;
+    if (agent) {
         TaskQueryParams task_query_params;
         task_query_params.limit = page_count;
         task_query_params.offset = curr_page * page_count;
         std::string task_info;
-        int result = m_agent->get_user_tasks(task_query_params, &task_info);
+        int result = agent->get_user_tasks(task_query_params, &task_info, GUI::wxGetApp().get_printer_cloud_provider());
         BOOST_LOG_TRIVIAL(trace) << "task_manager: get_task_list task_info=" << task_info;
         if (result == 0) {
             try {

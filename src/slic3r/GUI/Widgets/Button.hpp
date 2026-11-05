@@ -12,6 +12,7 @@
 #include <wx/dc.h>
 #include <wx/tipwin.h>
 #include <wx/colour.h>
+#include <wx/setup.h>
 
 class ButtonProps
 {
@@ -34,6 +35,7 @@ enum class ButtonType {
     Parameter, // Font14  Semi-Rounded  For buttons that near parameter boxes
     Icon,      // ------  Semi-Rounded  For buttons that only has icons. icons should be 16x16 and iconSize has to be defined as 16 while
                // creation of button
+    Circle,    // ------  FullyRounded  Same as icon
     Expanded,  // Font14  Semi-Rounded  For full length buttons. ex. buttons in static box
 };
 
@@ -112,9 +114,24 @@ public:
 
     void Rescale();
 
+    // Programmatically activate the button, as if it had been clicked. Used by the
+    // accessibility layer to trigger the button from a screen reader.
+    void Click();
+
+#if wxUSE_ACCESSIBILITY
+    // Return the accessible object that exposes this button's accessible name, role
+    // and state to screen readers. See ButtonAccessible in Button.cpp.
+    wxAccessible* CreateAccessible() override;
+#endif
+
 protected:
 #ifdef __WIN32__
     WXLRESULT MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam) override;
+#endif
+
+#ifdef __WXOSX__
+    void DoSetToolTipText(const wxString& tip) override;
+    void DoEnable(bool enable) override;
 #endif
 
     bool AcceptsFocus() const override;
@@ -138,6 +155,11 @@ private:
 
     //
     void sendButtonEvent();
+
+#ifdef __WXOSX__
+    // (Re)expose this button to VoiceOver using its current label as the accessible name.
+    void applyAccessibility();
+#endif
 
     // parent motion
     void OnParentMotion(wxMouseEvent& event);

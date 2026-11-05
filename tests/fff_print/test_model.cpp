@@ -19,7 +19,6 @@
 #include "libslic3r/Print.hpp"
 
 using namespace Slic3r;
-using namespace Slic3r::Test;
 
 SCENARIO("Model construction", "[Model]") {
     GIVEN("A Slic3r Model") {

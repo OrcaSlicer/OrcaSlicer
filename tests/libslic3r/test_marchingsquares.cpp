@@ -377,7 +377,6 @@ TEST_CASE("10x10 raster with two rings", "[MarchingSquares]")
 
 TEST_CASE("Square with hole in the middle", "[MarchingSquares]")
 {
-    using namespace Slic3r;
 
     ExPolygons inp = {square_with_hole(50.)};
 
@@ -434,7 +433,6 @@ TEST_CASE("Square with hole in the middle", "[MarchingSquares]")
 
 TEST_CASE("Circle with hole in the middle", "[MarchingSquares]")
 {
-    using namespace Slic3r;
 
     test_expolys(create_raster({1000, 1000}), circle_with_hole(25.), W1x1, "circle_with_hole");
 }

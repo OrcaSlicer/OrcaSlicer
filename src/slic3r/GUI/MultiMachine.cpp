@@ -144,7 +144,7 @@ wxString DeviceItem::get_state_device()
     str_state_device.push_back(_L("Printing Failed"));
     str_state_device.push_back(_L("Printing"));
     str_state_device.push_back(_L("Printing Pause"));
-    str_state_device.push_back(_L("Prepare"));
+    str_state_device.push_back(_L_CONTEXT("Prepare", "Device status"));
     str_state_device.push_back(_L("Slicing"));
     str_state_device.push_back(_L("Syncing"));
 

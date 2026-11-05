@@ -8,6 +8,7 @@
 
 #include <unordered_set>
 #include <mutex>
+#include <cwchar>
 
 enum IMMERSIVE_HC_CACHE_MODE
 {

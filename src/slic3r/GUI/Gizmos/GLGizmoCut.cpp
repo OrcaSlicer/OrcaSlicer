@@ -281,7 +281,6 @@ GLGizmoCut3D::GLGizmoCut3D(GLCanvas3D& parent, const std::string& icon_filename,
         {"Flap Angle"   , _u8L("Flap Angle")},
         {"Groove Angle" , _u8L("Groove Angle")},
         {"Cut position" , _u8L("Cut position")}, // ORCA
-        {"Build Volume" , _u8L("Build Volume")}, // ORCA
         {"Multiple"     , _u8L("Multiple")}, // ORCA
         {"Count"        , _u8L("Count")}, // ORCA
         {"Gap"          , _u8L("Gap")}, // ORCA
@@ -2531,7 +2530,7 @@ void GLGizmoCut3D::render_build_size()
     Vec3d    tbb_sz   = m_transformed_bounding_box.size() * koef; // ORCA 
 
     ImGui::AlignTextToFramePadding();
-    m_imgui->text(_L("Build Volume"));
+    m_imgui->text(_L("Size"));
     ImGui::SameLine(m_label_width);
     ImGui::Text("%.2f x %.2f x %.2f %s", tbb_sz.x(), tbb_sz.y(), tbb_sz.z(), unit_str.ToUTF8().data()); // ORCA use regular text color and simplify format
 }
@@ -2763,11 +2762,16 @@ void GLGizmoCut3D::render_groove_int_input(const std::string& label, int& in_val
     ImGui::AlignTextToFramePadding();
     ImGui::SameLine(m_label_width);
     ImGui::PushItemWidth(m_control_width);
-    if (ImGui::InputInt("##int_input", &in_val, 1, 5)) {
-        in_val = std::clamp(in_val, min_val, max_val);
-
-        is_changed = true;
+    int val = in_val;
+    if (ImGui::InputInt("##int_input", &val, 1, 5)) {
+        val = std::clamp(val, min_val, max_val);
+        // ORCA Holding +/- at the limit clamps back to the same value, don't rebuild for that.
+        if (val != in_val) {
+            in_val     = val;
+            is_changed = true;
+        }
     }
+    m_imgui->request_frames_while_held(); // ORCA auto-repeat of the +/- buttons
     
     ImGui::SameLine();
     m_imgui->disabled_begin(in_val == init_val);
@@ -3555,10 +3559,14 @@ static void check_objects_after_cut(const ModelObjectPtrs& objects)
     wxString names = from_u8(err_objects_names[0]);
     for (size_t i = 1; i < err_objects_names.size(); i++)
         names += ", " + from_u8(err_objects_names[i]);
-    WarningDialog(wxGetApp().plater(), format_wxstr(_L("Objects(%1%) have duplicated connectors. "
+    WarningDialog(wxGetApp().plater(), format_wxstr(_L_PLURAL("Object (%1%) has duplicated connectors. "
                                 "Some connectors may be missing in slicing result.\n"
                                 "Please report to the OrcaSlicer team in which scenario this issue happened.\n"
-                                "Thank you."), names)).ShowModal();
+                                "Thank you.",
+                                "Objects (%1%) have duplicated connectors. "
+                                "Some connectors may be missing in slicing result.\n"
+                                "Please report to the OrcaSlicer team in which scenario this issue happened.\n"
+                                "Thank you.", unsigned(err_objects_names.size())), names)).ShowModal();
 }
 
 void synchronize_model_after_cut(Model& model, const CutObjectBase& cut_id)
@@ -3651,7 +3659,7 @@ void GLGizmoCut3D::perform_cut(const Selection& selection)
                         // model_name     failing reason
                         std::vector<std::pair<std::string, std::string>> failed_models;
                         auto                                             plater = wxGetApp().plater();
-                        auto fix_and_update_progress = [keep_painting](ModelObject *model_object, const int vol_idx, const string &model_name, ProgressDialog &progress_dlg,
+                        auto fix_and_update_progress = [keep_painting](ModelObject *model_object, const int vol_idx, const std::string &model_name, ProgressDialog &progress_dlg,
                                                                       std::vector<std::string> &succes_models, std::vector<std::pair<std::string, std::string>> &failed_models) {
                             wxString msg = _L("Repairing model object");
                             msg += ": " + from_u8(model_name) + "\n";
@@ -4097,8 +4105,6 @@ void GLGizmoCut3D::apply_cut_connectors(ModelObject* mo, const std::string& conn
 {
     if (mo->cut_connectors.empty())
         return;
-
-    using namespace Geometry;
 
     size_t connector_id = mo->cut_id.connectors_cnt();
     for (const CutConnector& connector : mo->cut_connectors) {

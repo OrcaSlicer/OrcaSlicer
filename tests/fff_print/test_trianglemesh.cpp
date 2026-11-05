@@ -21,7 +21,6 @@
 //#include "test_options.hpp"
 
 using namespace Slic3r;
-using namespace std;
 
 static inline TriangleMesh make_cube() { return make_cube(20., 20, 20); }
 

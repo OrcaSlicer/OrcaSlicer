@@ -2,7 +2,6 @@
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <string>
-#include "slic3r/Utils/json_diff.hpp"
 
 namespace Slic3r {
 
@@ -22,7 +21,7 @@ public:
     bool IsArchCoreXY() const;
 
 public:
-    void ParseAxis(const json &print_json);
+    void ParseAxis(const nlohmann::json &print_json);
 
     int Ctrl_GoHome();
     int Ctrl_Axis(std::string axis, double unit = 1.0f, double input_val = 1.0f, int speed = 3000); // xyz e

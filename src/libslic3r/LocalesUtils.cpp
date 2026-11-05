@@ -12,6 +12,7 @@
 #include <system_error>
 
 #include <fast_float/fast_float.h>
+#include <clocale>
 
 // Defined where the floating point std::to_chars can be called, which with Apple's libc++ runtime is from macOS 13.3.
 #if defined(_LIBCPP_VERSION)

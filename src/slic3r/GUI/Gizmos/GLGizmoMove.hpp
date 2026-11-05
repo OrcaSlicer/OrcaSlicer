@@ -34,6 +34,8 @@ class GLGizmoMove3D : public GLGizmoBase
         Vec3d old_center{ Vec3d::Zero() };
     };
     std::array<GrabberConnection, 3> m_grabber_connections;
+    // Unit square previewing the target plane of the hovered align or distribute icon.
+    GLModel m_align_plane;
 
     //BBS: add size adjust related
     GizmoObjectManipulation* m_object_manipulation;
@@ -76,9 +78,11 @@ protected:
 
 private:
     double calc_projection(const UpdateData& data) const;
+    void   render_align_preview();
     void   change_cs_by_selection(); //cs mean Coordinate System
 private:
-    int m_last_selected_obejct_idx, m_last_selected_volume_idx;
+    // -1 is a selection without a single volume; -2 is no selection seen yet.
+    int m_last_selected_obejct_idx{-2}, m_last_selected_volume_idx{-2};
 };
 
 

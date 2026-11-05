@@ -23,7 +23,7 @@
 #include <unordered_set>
 #include "slic3r/GUI/wxMediaCtrl3.h"
 #include "slic3r/GUI/Widgets/StaticBox.hpp"
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <map>
 #include "libslic3r/calib.hpp"
@@ -171,7 +171,7 @@ public:
     std::string current_nozzle_loc = "";
     wxColour m_colour;
 
-    string m_file_name;
+    std::string m_file_name;
     bool   m_ams_loading{false};
     void   doRender(wxDC &dc);
     ExtruderImage(wxWindow *parent, wxWindowID id, int nozzle_num, const wxPoint &pos = wxDefaultPosition, const wxSize &size = wxDefaultSize);
@@ -244,7 +244,7 @@ protected:
     {
         wxString          local_image_url; //local image path
         std::string       img_url_paths; // oss url path
-        vector<wxPanel *> image_broad;
+        std::vector<wxPanel *> image_broad;
         bool              is_selected;
         bool              is_uploaded; // load
         wxBoxSizer *      image_tb_broad = nullptr;
@@ -689,7 +689,7 @@ protected:
     int          m_last_vcamera   = -1;
     int          m_model_mall_request_count = 0;
     bool         m_is_load_with_temp = false;
-    json         m_rating_result;
+    nlohmann::json m_rating_result;
 
     wxWebRequest web_request;
     bool bed_temp_input    = false;

@@ -5,6 +5,9 @@
 	"from": "system",
 	"setting_id": "JEatvybG9xIkrPk3",
 	"instantiation": "true",
+	"include": [
+		"fdm_filament_template_indx"
+	],
 	"filament_cost": [
 		"34.65"
 	],

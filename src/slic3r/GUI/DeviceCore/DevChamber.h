@@ -1,7 +1,6 @@
 #pragma once
 #include <memory>
 #include <nlohmann/json.hpp>
-#include "slic3r/Utils/json_diff.hpp"
 
 namespace Slic3r {
 
@@ -25,10 +24,10 @@ public: // getter
 
 public:
     // setter
-    void ParseChamber(const json &print_json);
+    void ParseChamber(const nlohmann::json &print_json);
 
-    void ParseChamberV1_0(const json& print_json);
-    void ParseChamberV2_0(const json& print_json);
+    void ParseChamberV1_0(const nlohmann::json& print_json);
+    void ParseChamberV2_0(const nlohmann::json& print_json);
 
     // control
     int CtrlSetChamberTemp(int temp);

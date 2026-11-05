@@ -34,6 +34,7 @@
 #include <wx/app.h>
 #include <wx/busycursor.h>
 #include <wx/utils.h>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r {
 
@@ -337,11 +338,11 @@ bool parse_plugin_overrides(const std::string& raw, CapabilityConfigDocument& do
 
     const nlohmann::json parsed = nlohmann::json::parse(raw, nullptr, /* allow_exceptions */ false);
     if (parsed.is_discarded()) {
-        error = "The preset stores invalid plugin capability configuration JSON.";
+        error = _u8L("The preset stores invalid plugin capability configuration JSON.");
         return false;
     }
     if (!parsed.is_array()) {
-        error = "The preset's plugin capability configuration is not an array and cannot be edited.";
+        error = _u8L("The preset's plugin capability configuration is not an array and cannot be edited.");
         return false;
     }
 
@@ -371,7 +372,7 @@ bool prune_stale_plugin_overrides(DynamicConfig& config, const std::string& over
 
     // Capability names currently referenced by a plugin-backed option's value(s) — e.g.
     // slicing_pipeline_plugin's ConfigOptionStrings entries name SlicingPipeline capabilities
-    // directly, the same raw values save_plugin_collection() resolves into the "plugins" manifest.
+    // directly, the same raw values ConfigBase::collect_plugin_manifest() resolves into the manifest.
     std::set<std::pair<PluginCapabilityType, std::string>> referenced;
     const ConfigDef* def = config.def();
     for (const std::string& opt_key : config.keys()) {
@@ -518,6 +519,22 @@ bool capability_save_config(const PluginCapabilityInterface& capability, const n
     return PluginManager::instance().get_config().store_capability_config(capability_identity(capability, "save_config"), config);
 }
 
+std::string PluginConfig::capability_type_label(PluginCapabilityType type)
+{
+    switch (type) {
+    case PluginCapabilityType::PrinterConnection: return _u8L("Printer connection");
+    case PluginCapabilityType::Pages: return _u8L("Pages");
+    case PluginCapabilityType::Analysis: return _u8L("Analysis");
+    case PluginCapabilityType::Importer: return _u8L("Importer");
+    case PluginCapabilityType::Exporter: return _u8L("Exporter");
+    case PluginCapabilityType::Visualization: return _u8L("Visualization");
+    case PluginCapabilityType::Script: return _u8L("Script");
+    case PluginCapabilityType::SlicingPipeline: return _u8L("Slicing Pipeline");
+    case PluginCapabilityType::ResourceTexture: return _u8L("Resource Texture");
+    default: return _u8L("Unknown");
+    }
+}
+
 nlohmann::json PluginConfig::capabilities_payload(const std::vector<PluginCapabilityId>& caps)
 {
     nlohmann::json payload = nlohmann::json::array();
@@ -530,7 +547,7 @@ nlohmann::json PluginConfig::capabilities_payload(const std::vector<PluginCapabi
         nlohmann::json entry;
         entry["plugin_key"]    = id.plugin_key;
         entry["name"]          = id.name;
-        entry["type"]          = plugin_capability_type_display_name(id.type);
+        entry["type"]          = capability_type_label(id.type);
         entry["type_key"]      = plugin_capability_type_to_string(id.type);
         entry["has_config_ui"] = capability->config_ui_available();
         payload.push_back(std::move(entry));
@@ -577,7 +594,7 @@ nlohmann::json PluginConfig::get_config_response(const PluginCapabilityId& id)
             } catch (const std::exception& ex) {
                 error = ex.what();
             } catch (...) {
-                error = "Unknown error";
+                error = _u8L("Unknown error");
             }
         }
 
@@ -673,7 +690,7 @@ nlohmann::json PluginConfig::restore_config_response(const PluginCapabilityId& i
         } catch (const std::exception& ex) {
             error = ex.what();
         } catch (...) {
-            error = "Unknown error";
+            error = _u8L("Unknown error");
         }
     }
 

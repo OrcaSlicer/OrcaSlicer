@@ -62,6 +62,7 @@
 #include <TopoDS_Face.hxx>
 #include <TopAbs.hxx>
 #include <TopoDS_Shell.hxx>
+#include <TopoDS_Solid.hxx>
 #include <TopoDS_Compound.hxx>      // multi-body: compound of bodies for display/compat
 #include <BRep_Builder.hxx>
 #include <TopAbs_Orientation.hxx>   // outward-normal orientation for face-extrude
@@ -83,7 +84,6 @@
 #include <cmath>
 #include <cctype>
 #include <cstdio>
-#include <functional>
 #include <gp_XY.hxx>
 #include <initializer_list>
 #include <math.h>
@@ -1807,7 +1807,8 @@ std::vector<std::pair<std::string, SketchPlane>> CadDocument::resolve_datum_plan
 
         }
 
-        out.emplace_back(base_missing ? f.name + " (base plane missing)" : f.name, result);
+        // TRN Datum plane entry in the reference plane list. %1% is the plane name.
+        out.emplace_back(base_missing ? format(_u8L("%1% (base plane missing)"), f.name) : f.name, result);
     }
     return out;
 }
@@ -2090,8 +2091,8 @@ static int pick_body(int ref, int nb)
 {
     if (ref == -1) return nb - 1;
     if (ref < 0 || ref >= nb)
-        throw std::runtime_error("a feature works on body " + std::to_string(ref + 1)
-                                 + ", which does not exist at that point in the history");
+        throw std::runtime_error(format(_u8L("a feature works on body %1%, which does not exist at that point in the history"),
+                                        ref + 1));
     return ref;
 }
 
@@ -2154,11 +2155,11 @@ static void settle_body_refs(CadFeature& f, const std::vector<CadBody>& v, bool 
         CadFeature::BodyId& id = f.body_ref_ids[k++];
         if (kind != running) return;
         if (ref == kBodyGone)
-            throw std::runtime_error("\"" + f.name + "\" works on a body made by a feature that was deleted or hidden");
+            throw std::runtime_error(format(_u8L("\"%1%\" works on a body made by a feature that was deleted or hidden"), f.name));
         if (f.body_refs_pending && id.src >= 0) {
             const int i = find_body(v, id);
             if (i < 0)
-                throw std::runtime_error("\"" + f.name + "\" works on a body that does not exist at that point in the history");
+                throw std::runtime_error(format(_u8L("\"%1%\" works on a body that does not exist at that point in the history"), f.name));
             ref = i;
         }
         id = ref >= 0 ? body_id_of(v, ref) : CadFeature::BodyId{};
@@ -2384,7 +2385,8 @@ bool CadDocument::move_feature(int index, int delta)
         check(f.sketch_ref); check(f.sweep_path_ref); check(f.pattern_curve_sketch); check(f.rib_sketch_ref);
         for (int& r : f.loft_profile_refs) check(r);
         if (!bad.empty()) {
-            error = "\"" + f.name + "\" uses \"" + bad + "\", so it cannot come before it";
+            // TRN Feature reorder error. %1% is the moved feature, %2% the feature it depends on.
+            error = format(_u8L("\"%1%\" uses \"%2%\", so it cannot come before it"), f.name, bad);
             features.swap(snapshot);
             return false;
         }
@@ -2463,7 +2465,8 @@ static std::string open_loop_message(const CadFeature& sketch,
         for (size_t i = 0; i < shown; ++i)
             msg += "\n  " + format(_u8L("Open at (%.3f, %.3f)"), open[i].x(), open[i].y());
         if (open.size() > shown)
-            msg += "\n  " + format(_u8L("...and %1% more open end(s)"), open.size() - shown);
+            // TRN Follows a list of open sketch ends. %1% is how many more were not listed.
+            msg += "\n  " + format(_u8L("Open ends not shown: %1%"), open.size() - shown);
     }
     return msg;
 }
@@ -2475,11 +2478,11 @@ static gp_Ax1 revolve_axis_of(const CadFeature& f, const CadFeature& sk)
     if (f.revolve_axis_entity >= 0) {
         if (f.revolve_axis_entity >= int(sk.entities.size())
             || sk.entities[f.revolve_axis_entity].type != SketchEntity::Type::Line)
-            throw std::runtime_error("revolve: the axis line is no longer in the sketch — pick the axis again");
+            throw std::runtime_error(_u8L("revolve: the axis line is no longer in the sketch — pick the axis again"));
         const SketchEntity& e = sk.entities[f.revolve_axis_entity];
         const Vec3d a = sk.plane.to_world(e.p0), b = sk.plane.to_world(e.p1);
         if ((b - a).norm() < 1e-9)
-            throw std::runtime_error("revolve: the axis line has no length");
+            throw std::runtime_error(_u8L("revolve: the axis line has no length"));
         const Vec3d d = (b - a).normalized();
         return gp_Ax1(gp_Pnt(a.x(), a.y(), a.z()), gp_Dir(d.x(), d.y(), d.z()));
     }
@@ -3024,17 +3027,17 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
             // ISO external thread depth is ~0.61*P, so allow up to 0.7*P (0.49 wrongly rejected
             // every real thread -> nothing rendered). Still bound it well under a full pitch.
             // R >= 0.5 (not >): M1, the smallest size in the standards table, is exactly 0.5.
-            const char* why = R < 0.5                   ? "thread: the diameter must be at least 1 mm"
-                            : P <= 0.1                  ? "thread: the pitch must be more than 0.1 mm"
-                            : (D <= 1e-3 || D >= 0.7 * P) ? "thread: the depth must be between 0 and 0.7 x the pitch"
-                            : D >= 0.45 * R             ? "thread: the depth is too large for this diameter"
-                            : H <= 0.5 * P              ? "thread: the length must be more than half a pitch"
-                            : H / P >= 400.0            ? "thread: too many turns (length / pitch must stay under 400)"
+            const char* why = R < 0.5                   ? L("thread: the diameter must be at least 1 mm")
+                            : P <= 0.1                  ? L("thread: the pitch must be more than 0.1 mm")
+                            : (D <= 1e-3 || D >= 0.7 * P) ? L("thread: the depth must be between 0 and 0.7 x the pitch")
+                            : D >= 0.45 * R             ? L("thread: the depth is too large for this diameter")
+                            : H <= 0.5 * P              ? L("thread: the length must be more than half a pitch")
+                            : H / P >= 400.0            ? L("thread: too many turns (length / pitch must stay under 400)")
                                                         : nullptr;
             // Legacy recipes keep their old outcome (the body left as it was) so a project that
             // opened before still opens; every thread made now reports the reason instead.
             if (why != nullptr) {
-                if (f.thread_major_nominal) throw std::runtime_error(why);
+                if (f.thread_major_nominal) throw std::runtime_error(Slic3r::I18N::translate(why));
                 break;
             }
         }
@@ -3078,7 +3081,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
                 // Tapped hole: bore to the minor radius R - D, then cut the groove out to the
                 // major radius R. The bore sits 10 um inside the minor radius so that, threading
                 // an existing tap-drill hole, it does not coincide with that hole's wall.
-                if (!have_body) throw std::runtime_error("internal thread needs a body");
+                if (!have_body) throw std::runtime_error(_u8L("internal thread needs a body"));
                 const double bore_r = R - D - 0.01;
                 cut_from(result, BRepPrimAPI_MakeCylinder(ax2, bore_r, f.thread_height).Shape());
                 TopoDS_Shape groove;
@@ -3241,12 +3244,12 @@ void CadDocument::apply_boolean(std::vector<CadBody>& bodies, const CadFeature& 
     const int tool = f.bool_tool_body == -1 ? -1 : pick_body(f.bool_tool_body, nb);
     // Same rule as Cut, Mirror and Transform: an operation that cannot run says why, rather
     // than leaving the bodies as they were and reporting success.
-    if (tgt < 0)     throw std::runtime_error("boolean: no target body");
-    if (tool < 0)    throw std::runtime_error("boolean: no tool body — pick a second body");
-    if (tgt == tool) throw std::runtime_error("boolean: the target and the tool are the same body");
+    if (tgt < 0)     throw std::runtime_error(_u8L("boolean: no target body"));
+    if (tool < 0)    throw std::runtime_error(_u8L("boolean: no tool body — pick a second body"));
+    if (tgt == tool) throw std::runtime_error(_u8L("boolean: the target and the tool are the same body"));
     const TopoDS_Shape A = bodies[tgt].shape;          // target survives
     const TopoDS_Shape B = bodies[tool].shape;         // tool, consumed unless kept
-    if (A.IsNull() || B.IsNull()) throw std::runtime_error("boolean: a body has no geometry");
+    if (A.IsNull() || B.IsNull()) throw std::runtime_error(_u8L("boolean: a body has no geometry"));
 
     NCollection_List<TopoDS_Shape> args, tools;
     args.Append(A);
@@ -3554,7 +3557,7 @@ void CadDocument::apply_thicken_surface(std::vector<CadBody>& bodies, const CadF
         if (props.Mass() < 0.0) solid.Reverse();
     }
 
-    bodies.push_back({solid, f.name.empty() ? std::string("ThickenSurface") : f.name});
+    bodies.push_back({solid, f.name.empty() ? _u8L("Thicken Surface") : f.name});
 }
 
 void CadDocument::apply_surface_offset(std::vector<CadBody>& bodies, const CadFeature& f) const
@@ -3573,7 +3576,7 @@ void CadDocument::apply_surface_offset(std::vector<CadBody>& bodies, const CadFe
     TopoDS_Shape off_shape = mos.Shape();
     if (off_shape.IsNull()) throw std::runtime_error(_u8L("surface-offset: produced no geometry"));
 
-    bodies.push_back({off_shape, f.name.empty() ? std::string("SurfaceOffset") : f.name});
+    bodies.push_back({off_shape, f.name.empty() ? _u8L("Surface Offset") : f.name});
 }
 
 // Project `edges` of a shape onto `plane`, appending the resulting 2D entities to `out`.

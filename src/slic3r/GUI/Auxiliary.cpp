@@ -65,8 +65,12 @@
 #include "Widgets/Label.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include <wx/dcgraph.h>
+#include <wx/dcmemory.h>
+#include <nlohmann/json.hpp>
 
 namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 namespace Slic3r { namespace GUI {
 
@@ -206,7 +210,7 @@ void AuFile::enter_rename_mode()
     m_file_exit_rename->Show();
     m_text_name->Hide();
     auto name = m_file_name.SubString(0, (m_file_name.Find(".") - 1));
-    m_input_name->GetTextCtrl()->SetLabelText(name);
+    m_input_name->GetTextCtrl()->ChangeValue(name);
     Layout();
 }
 
@@ -853,14 +857,14 @@ void AuxiliaryPanel::Split(const std::string &src, const std::string &separator,
     dest.clear();
     index = str.find_first_of(separator, start);
     do {
-        if (index != string::npos) {
+        if (index != std::string::npos) {
             substring = str.substr(start, index - start);
             dest.push_back(substring);
             start = index + separator.size();
             index = str.find(separator, start);
-            if (start == string::npos) break;
+            if (start == std::string::npos) break;
         }
-    } while (index != string::npos);
+    } while (index != std::string::npos);
 
     // the last part
     substring = str.substr(start);
@@ -971,12 +975,12 @@ void AuxiliaryPanel::on_import_file(wxCommandEvent &event)
 
     if (file_model == s_default_folders[MODEL_PICTURE]) {
         //wildcard = wxT("JPEG files (*.jpeg)|*.jpeg|BMP files (*.bmp)|*.bmp|GIF files (*.gif)|*.gif|PNG files (*.png)|*.png|JPG files (*.jpg)|*.jpg");
-        wildcard = wxT("files (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp");
+        wildcard = _L("Image files") + " (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp";
     } 
 
-    if (file_model == s_default_folders[OTHERS]) {  wildcard = wxT("TXT files (*.txt)|*.txt"); }
-    if (file_model == s_default_folders[BILL_OF_MATERIALS]){ wildcard = wxT("EXCEL files (*.xls)|*.xls|EXCEL files (*.xlsx)|*.xlsx|PDF files (*.pdf)|*.pdf"); }
-    if (file_model == s_default_folders[ASSEMBLY_GUIDE]) { wildcard = wxT("PDF files (*.pdf)|*.pdf"); }
+    if (file_model == s_default_folders[OTHERS]) {  wildcard = _L("TXT files") + " (*.txt)|*.txt"; }
+    if (file_model == s_default_folders[BILL_OF_MATERIALS]){ wildcard = _L("EXCEL files") + " (*.xls)|*.xls|" + _L("EXCEL files") + " (*.xlsx)|*.xlsx|" + _L("PDF files") + " (*.pdf)|*.pdf"; }
+    if (file_model == s_default_folders[ASSEMBLY_GUIDE]) { wildcard = _L("PDF files") + " (*.pdf)|*.pdf"; }
 
     wxFileDialog dialog(this, _L("Choose files"), wxEmptyString, wxEmptyString, wildcard, wxFD_OPEN | wxFD_FILE_MUST_EXIST | wxFD_MULTIPLE);
     if (dialog.ShowModal() == wxID_OK) {

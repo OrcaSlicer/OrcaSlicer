@@ -73,6 +73,9 @@
 
 #include <atomic>
 #include <thread>
+#include "slic3r/GUI/GUI.hpp"
+#include <cstdlib>
+#include <iomanip>
 
 class wxWindow;
 

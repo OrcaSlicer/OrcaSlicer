@@ -1,6 +1,6 @@
 #include <algorithm>
 #include <boost/log/trivial.hpp>
-#include "json_diff.hpp"
+#include <nlohmann/json.hpp>
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
@@ -21,6 +21,8 @@
 #include "DevDefs.h"
 #include "DevFilaSystem.h"
 #include "DevConfig.h"
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 

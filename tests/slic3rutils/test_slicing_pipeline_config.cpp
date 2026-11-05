@@ -53,11 +53,9 @@ struct ScopedPluginManager
     bool initialized = false;
 
     ScopedPluginManager() { initialized = PluginManager::instance().initialize(); }
-    ~ScopedPluginManager()
-    {
-        PluginManager::instance().shutdown();
-        PythonInterpreter::instance().shutdown();
-    }
+    // The interpreter is process-wide; PythonInterpreterRunEnd in slic3rutils_tests_main.cpp
+    // finalizes it once, after the last test case.
+    ~ScopedPluginManager() { PluginManager::instance().shutdown(); }
 };
 
 const char* const CONFIG_PROBE_SOURCE = R"PY(# /// script

@@ -19,9 +19,6 @@
 #include <wx/window.h>
 #include "wxExtensions.hpp"
 
-using namespace Slic3r;
-using namespace Slic3r::GUI;
-
 namespace Slic3r { namespace GUI {
 #define ANIMATION_REFRESH_INTERVAL 20
 ImageDPIFrame::ImageDPIFrame()

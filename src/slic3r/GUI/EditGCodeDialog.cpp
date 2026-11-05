@@ -294,8 +294,8 @@ wxDataViewItem EditGCodeDialog::add_presets_placeholders()
 
 
     // Orca: create subgroups from the pages of the tabs
-    auto init_from_tab = [this, full_config](wxDataViewItem parent, Tab* tab, const set<string>& preset_keys){
-        set extra_keys(preset_keys);
+    auto init_from_tab = [this, full_config](wxDataViewItem parent, Tab* tab, const std::set<std::string>& preset_keys){
+        std::set extra_keys(preset_keys);
         for (const auto& page : tab->m_pages) {
             // ORCA: Pull icons from tabs for subgroups, icons are hidden on tabs
             std::string icon_name = "empty"; // use empty icon if not defined
@@ -385,7 +385,8 @@ void EditGCodeDialog::selection_changed(wxDataViewEvent& evt)
         // Orca: move below checking for def in custom defined G-code placeholders
         // This allows custom placeholders to override the default ones for this dialog
         // Override custom def if selection is within the preset category
-        if (!def || m_params_list->GetSelectedTopLevelCategory() == "Presets") {
+        // The group label is translated, so compare against the translated label.
+        if (!def || m_params_list->GetSelectedTopLevelCategory() == _L("Presets").ToStdString()) {
             const auto& full_config = wxGetApp().preset_bundle->full_config();
             if (const ConfigDef* config_def = full_config.def(); config_def && config_def->has(opt_key)) {
                 def = config_def->get(opt_key);
@@ -549,7 +550,7 @@ void ParamsNode::RefreshSearch(const wxString& search_text)
 
     if (GetEnabledChildren().empty())
         if (auto pos = text.find(search_text); IsParamNode() && pos != wxString::npos) {
-            m_highlight_index = make_unique<pair<int, int>>(pos, search_text.Len());
+            m_highlight_index = make_unique<std::pair<int, int>>(pos, search_text.Len());
             Enable();
         } else {
             Disable();

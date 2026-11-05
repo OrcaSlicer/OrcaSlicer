@@ -2,26 +2,32 @@
 #define slic3r_DesignSketchTool_hpp_
 
 #include "libslic3r/Point.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Line.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"
 #include "libslic3r/CAD/CadDocument.hpp"   // CadBody for per-body solid picking
+#include <TopoDS_Shape.hxx>
 #include "libslic3r/CAD/SketchInference.hpp"
 #include "slic3r/GUI/GLModel.hpp"
 #include "slic3r/GUI/GLSelectionRectangle.hpp"   // left-drag rubber band over the committed bodies
 #include <Eigen/Core>
+#include <array>
 #include <cstddef>
+#include <wx/event.h>
 #include <functional>
+#include <optional>
 #include "libslic3r/Color.hpp"
 #include <math.h>
 #include <vector>
 #include <string>
 #include <utility>
 
-class wxMouseEvent;
 class wxPoint;
 
 namespace Slic3r {
 
 class TriangleMesh;   // fwd (libslic3r) — solid-pick mesh, non-owning pointer
+class GLVolumeCollection;
 
 namespace GUI {
 
@@ -50,6 +56,36 @@ inline ColorRGBA design_idle_face_color()
 {
     return ColorRGBA(0.72f, 0.76f, 0.80f, 0.14f);
 }
+
+// A convex piece of the square drawn on planes[plane].
+struct PlanePiece
+{
+    int                plane;
+    std::vector<Vec3d> corners;
+};
+// The squares of half-extent `half` centred on `planes`' origins, cut where they cross one another
+// and ordered back to front for an eye at `eye` (perspective) or looking along `forward`
+// (orthographic). Translucent planes that cross cannot be drawn in any per-plane order: each is
+// partly in front of and partly behind the others. Drawn piece by piece in this order, each one
+// tints only what is behind it.
+std::vector<PlanePiece> planes_back_to_front(const std::vector<SketchPlane>& planes, double half,
+                                             const Vec3d& eye, const Vec3d& forward, bool perspective);
+
+// The square a reference plane is drawn as, given as the frame at its centre, half-extent `half`.
+// The base planes XY, XZ and YZ (`base` 0, 1, 2) sit in the octant (+X, -Y, +Z), the one all three
+// names face, reference_square_gap(half) clear of the two axes bounding each, so the three never cross
+// and the axes run between them. Any other base (a datum) stays centred on its own origin. The frame is the same
+// plane moved within itself, so planes_back_to_front and pick_reference_square take it unchanged.
+SketchPlane reference_square(const SketchPlane& plane, int base, double half);
+inline double reference_square_gap(double half) { return 0.25 * half; }
+// The corners of the box around a base square's label, in the square: inset from its (+x, +y) corner and
+// written along the square's x axis with its y axis up, so it turns with the plane. The box the hit
+// test takes for the label: round the strokes render_base_pick draws, from the same layout, with a
+// margin to aim at.
+std::array<Vec3d, 4> reference_label_box(const SketchPlane& square, double half, const std::string& text);
+// The nearest of `squares` (half-extent `half`) the ray from `from` along `dir` crosses, or -1.
+int pick_reference_square(const std::vector<SketchPlane>& squares, double half, const Vec3d& from, const Vec3d& dir);
+
 class DesignSketchTool {
 public:
     enum class Mode { Select, Dimension, Polyline, Line, CornerRect, CenterRect, ObliqueRect,
@@ -137,7 +173,6 @@ public:
     // Returns false when no session is live, so the caller can fall back to a new feature.
     bool add_imported_regions(const std::vector<std::vector<std::vector<Vec2d>>>& regions);
     void set_tool(Mode mode);                 // switch tool, keep accumulated entities
-    void set_plane(const SketchPlane& plane) { m_plane = plane; }  // re-plane a live sketch (a reference plane was clicked mid-session); entities are 2D, re-lifted through the new plane
     void set_construction(bool c) { m_construction = c; }
     void set_polygon_sides(int n) { m_polygon_sides = (n < 3 ? 3 : n); }
     void set_polygon_circumscribed(bool c) { m_polygon_circumscribed = c; }
@@ -149,10 +184,10 @@ public:
     // Right-click on a draw tool: true when an in-progress anchor was abandoned, false when
     // there was nothing to abandon — and false is what lets the offer menu open. ghcz.
     bool right_abandon();
-    // True if the LAST right-press was consumed as a gesture terminator (end a polyline chain,
-    // abandon an anchor, exit a tool). Read-and-clear: the canvas asks on the matching release to
-    // decide whether that right-click was the user's, in which case it opens the offer.
-    bool take_right_consumed() { const bool b = m_right_consumed; m_right_consumed = false; return b; }
+    // Replays and clears the right press on_mouse kept for the camera: true if the tool used it as
+    // a gesture terminator (end a polyline chain, abandon an anchor), so no offer opens.
+    bool take_right_click(GLCanvas3D& canvas);
+    void drop_right_click() { m_right_press.reset(); }
     void render(GLCanvas3D& canvas);
     // The in-canvas value field, drawn by render() before any early return. Owned by
     // DesignCanvas; null until it sets it. Not a window — see SketchInlineEditor.hpp.
@@ -207,6 +242,9 @@ public:
     // their edges do not float over the preview.
     void set_body_edges_hidden(bool h) { m_body_edges_hidden = h; }
     void clear_solid_selection();
+    // Resample the edges of each body whose shape changed and drop those of bodies that are gone.
+    // Also expires a pick or hover on a rebuilt body. The canvas calls it whenever it gets the bodies.
+    void refresh_body_edges();
     bool has_solid_selection() const { return m_solid_sel != SolidSel::None; }
     // Every picked edge when the selection is an edge set (Shift/Ctrl+click adds and removes
     // edges of the same body): the earlier picks first, the last-clicked edge at the end.
@@ -221,6 +259,20 @@ public:
     void set_highlight_faces(const std::vector<std::pair<int, int>>& faces);
     // Every face drawn as selected, sorted: the committed pick's and the still-valid ones above.
     std::vector<std::pair<int, int>> selected_faces() const;
+    // What the canvas's Fit button frames: the selection — faces (the Feature tree's included), a
+    // body, edges, a vertex, a sketch region, the live sketch's picked entities — else everything
+    // on show: the visible bodies, the preview of the feature being edited and every sketch.
+    // Undefined when the tab shows none of it. `volumes` are the canvas's: bodies and preview.
+    BoundingBoxf3 fit_box(const GLVolumeCollection& volumes) const;
+    // The selection fit_box frames, with no fallback: undefined when nothing is selected.
+    BoundingBoxf3 selection_box() const;
+    // World box of (body, face id) faces on the pick mesh, hidden bodies included.
+    BoundingBoxf3 faces_box(std::vector<std::pair<int, int>> faces) const;
+    // World box of sketch entities drawn on `plane`.
+    static BoundingBoxf3 sketch_box(const std::vector<SketchEntity>& entities, const SketchPlane& plane);
+    // Grow a box the camera is to frame to at least a small extent on every axis: a vertex has no
+    // size, nor has a sketch along its normal.
+    static void pad_box(BoundingBoxf3& box);
 
     // Move-body gizmo (M5): translate a whole body with three world-axis drag arrows
     // (X red / Y green / Z blue) anchored at the body centroid. Display-only — the host
@@ -230,8 +282,10 @@ public:
     void set_move_gizmo(int body, const Vec3d& pivot, const Transform3d& base_xform,
                         double body_radius = 0.0);
     void clear_move_gizmo();
-    bool moving_body() const { return m_mv_active; }
     int  move_body_index() const { return m_mv_body; }
+    // Press, then drag, translate arrow `axis` (0..2 = X/Y/Z) with the mouse ray under the cursor.
+    void grab_move_arrow(int axis, const Linef3& ray);
+    void drag_move_arrow(const Linef3& ray);
     std::function<void(int body, const Transform3d& xform)> on_body_move_changed;
     // Fired on each cycle change: (level 0=None/1=Whole/2=Face/3=Edge, body index, face id, edge id).
     std::function<void(int level, int body, int face, int edge)> on_solid_selection_changed;
@@ -316,6 +370,12 @@ public:
                        std::vector<std::string> labels = {});
     void clear_base_pick();
     std::function<void(int base)> on_datum_base_picked;
+    // The base drawn as selected, or -1. Asked once a frame rather than set, because what decides it
+    // (the panel's chosen sketch plane, a picked face, the Plane card's base) changes in many places.
+    std::function<int()> selected_base;
+    // The reference planes are drawn this frame, with their own half-axes and origin mark: the canvas
+    // leaves out the bed's axes triad, which would sit on top of them.
+    bool draws_reference_axes() const { return m_dbp_active && !m_active; }
 
     // Visual Fillet/Chamfer gizmo. The Dressup tool is a DesignPanel docked card, so the sketch
     // tool is NOT active during it; when a solid EDGE is picked the panel passes the body centroid
@@ -971,7 +1031,7 @@ private:
     bool op_ready() const;                      // required entities picked -> arrow/ghost live
 
     // Sample an entity into a 2D polyline for the overlay renderer.
-    std::vector<Vec2d> entity_polyline(const SketchEntity& e, bool& closed) const;
+    static std::vector<Vec2d> entity_polyline(const SketchEntity& e, bool& closed);
 
     // Closed regions formed by the current (non-construction) entities: each a CCW-
     // ordered boundary polygon on the plane. A circle is its own region; line/arc
@@ -1225,19 +1285,20 @@ private:
     Vec3d body_xform_pt(int body, const Vec3d& p) const;     // map an OCCT-shape point through the body xform
     // The bodies' B-rep edges, drawn as dark lines over the solids so faces and features read
     // apart. One polyline set per body in its own shape coordinates, resampled only for a body
-    // whose shape changed (keyed by the TShape), since set_solid_pick runs on every recompute.
+    // whose shape changed (see is_current_shape).
     std::vector<std::vector<std::vector<Vec3d>>> m_body_edges;
-    std::vector<const void*>                     m_body_edges_key;
+    std::vector<TopoDS_Shape>                    m_body_edges_shape;   // the shape each set was sampled from
     std::vector<double>                          m_body_edges_tol;   // the chord tolerance they were sampled at
     bool                                         m_body_edges_hidden{false};
-    void refresh_body_edges();
     void render_body_edges();
-    const void* body_key(int body) const;   // the body's TShape, nullptr when there is none
+    const TopoDS_Shape* body_shape(int body) const;   // nullptr when there is no such body or it has no shape
+    bool is_current_shape(int body, const TopoDS_Shape& sampled) const;   // `sampled` is still the body's shape
     void append_ribbons(GLModel::Geometry& g, int body, const std::vector<std::vector<Vec3d>>& polylines,
                         const Vec3d& vd, const Vec3d& pull, double hw) const;
     bool body_pickable(int b) const;                    // false when the body is explicitly hidden
     SolidSel                m_solid_sel{SolidSel::None};
     int                     m_sel_body{-1};   // which body the face/edge selection is on
+    TopoDS_Shape            m_sel_shape;      // that body's shape when picked: the ids index into it
     int                     m_sel_face{-1};
     int                     m_sel_edge{-1};
     std::vector<Vec3d>      m_sel_edge_pts;
@@ -1274,7 +1335,7 @@ private:
     void hit_display_sketch(const DisplaySketch& d, const Vec2d& p, double tol,
                             int& edge_feat, int& edge_reg, int& edge_ent,
                             double& edge_d, int& face_feat, int& face_reg) const;
-    bool m_right_consumed{false};          // last RightDown was a gesture terminator, not a menu
+    std::optional<wxMouseEvent> m_right_press;   // right press not yet known to be a click
     bool m_escalate_repick{true};          // re-picking the same sub-element takes the whole body
     void render_solid_highlight();
     // The above's edge and vertex highlight, from explicit arguments, so the committed selection
@@ -1282,11 +1343,11 @@ private:
     void render_solid_sel(SolidSel kind, const std::vector<Vec3d>& edge_pts, const Vec3d& vertex_pt,
                           const ColorRGBA& rgb);
     // A set of selected faces of one body, with their edges sampled once, keyed by the body's
-    // TShape so a recompute that rebuilt the body retires it.
+    // shape so a recompute that rebuilt the body retires it.
     struct FaceHighlight {
         int                             body{-1};
         std::vector<int>                faces;   // sorted
-        const void*                     key{nullptr};
+        TopoDS_Shape                    shape;
         std::vector<std::vector<Vec3d>> edges;   // in the body's shape coordinates
     };
     FaceHighlight make_face_highlight(int body, std::vector<int> faces) const;
@@ -1385,7 +1446,9 @@ private:
     std::vector<int>          m_dbp_base;
     std::vector<std::string>  m_dbp_labels;
     int         m_dbp_hover{-1};
-    double      dbp_half_extent() const;   // bed-derived: reference planes are larger than the bed
+    double      dbp_half_extent() const;   // bed-derived square size
+    std::vector<SketchPlane> dbp_squares(double half) const;   // reference_square of each entry
+    void render_reference_axes(const Vec3d& origin, double half);
     void render_base_pick();
     int  hit_test_base_pick(GLCanvas3D& canvas, const wxMouseEvent& evt) const;
 
@@ -1403,6 +1466,7 @@ private:
     int         m_mv_drag{-1};                 // 0..2 = X/Y/Z arrow, 3..5 = X/Y/Z ring, -1 none
     double      m_mv_radius{0.0};              // body bounding-sphere radius (mm); 0 = unknown
     int         m_mv_press_x{0}, m_mv_press_y{0};
+    double      m_mv_grab_along{0.0};          // arrow grab point's distance from the anchor; NaN = unknown
     Transform3d compose_move_xform() const;    // T(offset)*T(pivot)*rot*T(-pivot)*base_xform
     void  ring_basis(int axis, Vec3d& e, Vec3d& u, Vec3d& v) const;  // world axis + in-plane basis
     void  render_move_gizmo();
@@ -1410,7 +1474,6 @@ private:
     double move_gizmo_arm(const Camera& cam) const;
     bool  hit_test_move_arrow(GLCanvas3D& canvas, const wxMouseEvent& evt, int& axis) const;
     bool  hit_test_move_arc(GLCanvas3D& canvas, const wxMouseEvent& evt, int& axis) const;
-    void  drag_move_arrow(GLCanvas3D& canvas, const wxMouseEvent& evt, int axis);
     void  drag_move_arc(GLCanvas3D& canvas, const wxMouseEvent& evt, int axis);
     bool  arc_mouse_angle(GLCanvas3D& canvas, const wxMouseEvent& evt, int axis, double& ang) const;
     void  open_move_editor(int axis);

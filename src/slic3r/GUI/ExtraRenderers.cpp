@@ -22,6 +22,7 @@
 #include <wx/event.h>
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Widgets/DropDown.hpp"
+#include <wx/dvrenderers.h>
 #ifdef wxHAS_GENERIC_DATAVIEWCTRL
 #include "wx/generic/private/markuptext.h"
 #include "wx/generic/private/rowheightcache.h"
@@ -36,9 +37,6 @@
 #if wxUSE_ACCESSIBILITY
 #include "wx/private/markupparser.h"
 #endif // wxUSE_ACCESSIBILITY
-
-using Slic3r::GUI::from_u8;
-using Slic3r::GUI::into_u8;
 
 
 //-----------------------------------------------------------------------------

@@ -13,6 +13,7 @@
 #include <wx/peninfobase.h>
 #include <algorithm>
 #include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/dcgraph.h>
 
 LabeledStaticBox::LabeledStaticBox()
     : state_handler(this)

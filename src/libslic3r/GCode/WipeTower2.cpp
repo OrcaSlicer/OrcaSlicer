@@ -353,9 +353,6 @@ public:
         m_gcode_flavor(flavor), m_filpar(filament_parameters)
         //m_enable_arc_fitting(enable_arc_fitting)
     {
-            // ORCA: This class is only used by non BBL printers, so set the parameter appropriately.
-            // This fixes an issue where the wipe tower was using BBL tags resulting in statistics for purging in the purge tower not being displayed.
-            GCodeProcessor::s_IsBBLPrinter = false;
             // adds tag for analyzer:
             std::ostringstream str;
             str << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height) << m_layer_height << "\n"; // don't rely on GCodeAnalyzer knowing the layer height - it knows nothing at priming
@@ -1062,7 +1059,7 @@ WipeTower2::WipeTower2(const PrintConfig& config, const PrintRegionConfig& defau
     m_perimeter_speed(default_region_config.inner_wall_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool))),
     m_current_tool(initial_tool),
     wipe_volumes(wiping_matrix), m_wipe_tower_max_purge_speed(float(config.wipe_tower_max_purge_speed)),
-    m_enable_arc_fitting(config.enable_arc_fitting), 
+    m_enable_arc_fitting(config.enable_arc_fitting.value == ArcFittingMode::Enabled), 
     m_used_fillet(config.wipe_tower_fillet_wall), 
     m_rib_width(config.wipe_tower_rib_width), 
     m_extra_rib_length(config.wipe_tower_extra_rib_length),
@@ -1734,6 +1731,8 @@ void WipeTower2::toolchange_Change(
     // This is where we want to place the custom gcodes. We will use placeholders for this.
     // These will be substituted by the actual gcodes when the gcode is generated.
     //writer.append("[end_filament_gcode]\n");
+    // Lift to the layer Z so change_filament_gcode can't hit taller printed parts.
+    writer.append("[restore_layer_z_before_toolchange]\n");
     writer.append("[change_filament_gcode]\n");
 
     if (m_is_mk4mmu3)

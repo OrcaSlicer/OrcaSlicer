@@ -4,7 +4,6 @@
 #include "DevCtrl.h"
 
 // TODO: remove this include
-#include "json_diff.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
 
 using namespace nlohmann;

@@ -16,6 +16,7 @@
 
 #include <cctype>
 #include <wx/string.h>
+#include <nlohmann/json.hpp>
 
 class wxWindow;
 
@@ -66,6 +67,16 @@ TerminalDialog::TerminalDialog(wxWindow* parent, wxWindowID id, const wxString& 
 
     create_webview("web/dialog/TerminalDialog/index.html", _L("Terminal"),
                    wxSize(820, 600), wxSize(640, 480));
+}
+
+nlohmann::json TerminalDialog::localized_strings() const
+{
+    return {
+        {"command_hint", _u8L("python ... or uv ...")},
+        {"run", _u8L("Run")},
+        {"ready", _u8L("Plugin terminal ready.")},
+        {"exit_code", _u8L("Process exited with code: %s")},
+    };
 }
 
 TerminalDialog::~TerminalDialog()

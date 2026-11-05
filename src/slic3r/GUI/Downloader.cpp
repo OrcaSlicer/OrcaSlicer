@@ -22,6 +22,7 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include <wx/arrstr.h>
+#include <wx/string.h>
 
 namespace Slic3r {
 namespace GUI {

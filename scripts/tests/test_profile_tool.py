@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Tests for the tree-maintenance half of scripts/orca_profile_tool.py: the
-normalize, trim, update-index, fix-variant and check commands, and the subcommand
-dispatch that reaches them (stdlib unittest, no external deps).
+normalize, trim, update-index, fix-variant, check, gcode-diff and version-check commands, and the
+subcommand dispatch that reaches them (stdlib unittest, no external deps).
 
 The id halves are covered by test_filament_id.py and test_setting_id.py.
 
@@ -14,9 +14,12 @@ import json
 import os
 import re
 import shutil
+import stat
+import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -41,7 +44,24 @@ class Tree:
         os.makedirs(self.profiles)
 
     def cleanup(self):
-        shutil.rmtree(self.dir, ignore_errors=True)
+        root = os.path.abspath(self.dir)
+
+        def writable_retry(func, path, _exc):
+            # Windows refuses to delete read-only files such as git's objects, and POSIX
+            # refuses to delete the entries of a read-only directory.
+            if not os.path.lexists(path):  # already removed, as on a second cleanup
+                return
+            parent = os.path.dirname(os.path.abspath(path))
+            try:
+                if os.path.commonpath([parent, root]) == root:  # never the temp dir itself
+                    os.chmod(parent, stat.S_IRWXU)
+                if not os.path.islink(path):  # chmod would follow it out of the tree
+                    os.chmod(path, stat.S_IRWXU)
+                func(path)
+            except (OSError, ValueError):  # commonpath raises ValueError across drives
+                pass
+        hook = "onexc" if sys.version_info >= (3, 12) else "onerror"
+        shutil.rmtree(self.dir, **{hook: writable_retry})
 
     def index_path(self, vendor):
         return os.path.join(self.profiles, vendor + ".json")
@@ -1258,6 +1278,118 @@ class TestVariantNames(TreeCase):
         self.assertIn('holds the legacy variant "Direct Drive Normal"', out)
 
 
+# ---------------------------------------------------------------------------
+# legacy-compat
+# ---------------------------------------------------------------------------
+
+class TestLegacyCompat(unittest.TestCase):
+    """A base release and the current tree, each with one vendor."""
+
+    def setUp(self):
+        self.base, self.cur = Tree(), Tree()
+        self.addCleanup(self.base.cleanup)
+        self.addCleanup(self.cur.cleanup)
+
+    @staticmethod
+    def printer(tree, name, **extra):
+        tree.write("V", f"machine/{name}.json",
+                   {"type": "machine", "name": name, "instantiation": "true", **extra})
+        tree.index("V", "machine", name, f"machine/{name}.json")
+
+    @staticmethod
+    def filament(tree, name, printers, filament_id="OFpetg01", **extra):
+        tree.write("V", f"filament/{name}.json",
+                   {"type": "filament", "name": name, "instantiation": "true",
+                    "filament_id": filament_id, "compatible_printers": printers, **extra})
+        tree.index("V", "filament", name, f"filament/{name}.json")
+
+    def generate(self):
+        return apt.legacy_compatible_printers(self.base.profiles, self.cur.profiles)
+
+    def test_renamed_and_narrowed_preset_keeps_printers_a_same_id_sibling_covers(self):
+        for tree in (self.base, self.cur):
+            for p in ("A 0.4", "A 0.6", "B 0.4"):
+                self.printer(tree, p)
+        self.filament(self.base, "PETG @A-all", ["A 0.4", "A 0.6", "B 0.4"])
+        self.filament(self.cur, "PETG @V A-all", ["A 0.6"], renamed_from="PETG @A-all;PETG A-all")
+        self.filament(self.cur, "PETG @A 0.4", ["A 0.4"])
+        self.assertEqual(self.generate(), {"PETG @A-all": ["A 0.4"]})
+
+    def test_each_old_name_gets_back_only_its_own_list(self):
+        # The current "PC @0.4" existed in the base and also replaces the split "PC".
+        for tree in (self.base, self.cur):
+            for p in ("A 0.4", "A 0.8"):
+                self.printer(tree, p)
+        self.filament(self.base, "PC", ["A 0.4", "A 0.8"])
+        self.filament(self.base, "PC @0.4", ["A 0.4"])
+        self.filament(self.cur, "PC @0.4", ["A 0.4"], renamed_from="PC")
+        self.filament(self.cur, "PC @0.8", ["A 0.8"])
+        self.assertEqual(self.generate(), {"PC": ["A 0.8"]})
+
+    def test_old_name_now_a_base_preset_resolves_through_renamed_from(self):
+        for tree in (self.base, self.cur):
+            for p in ("I 0.4", "Plus 0.4"):
+                self.printer(tree, p)
+        self.filament(self.base, "PLA @base", ["I 0.4", "Plus 0.4"])
+        self.filament(self.cur, "PLA @base", [], instantiation="false")
+        self.filament(self.cur, "PLA @I 0.4", ["I 0.4"], renamed_from="PLA @base")
+        self.filament(self.cur, "PLA @Plus 0.4", ["Plus 0.4"])
+        self.assertEqual(self.generate(), {"PLA @base": ["Plus 0.4"]})
+
+    def test_printer_without_a_successor_is_left_out(self):
+        for tree in (self.base, self.cur):
+            for p in ("A 0.4", "A 0.6"):
+                self.printer(tree, p)
+        self.filament(self.base, "PETG @A", ["A 0.4", "A 0.6"])
+        self.filament(self.cur, "PETG @A", ["A 0.6"])
+        self.filament(self.cur, "Other @A", ["A 0.4"], filament_id="OFother1")
+        self.assertEqual(self.generate(), {})
+
+    def test_printer_names_follow_printer_renames(self):
+        self.printer(self.base, "Old 0.4")
+        self.printer(self.base, "A 0.6")
+        self.printer(self.cur, "New 0.4", renamed_from="Old 0.4")
+        self.printer(self.cur, "A 0.6")
+        self.filament(self.base, "PETG @A", ["Old 0.4", "A 0.6"])
+        self.filament(self.cur, "PETG @A", ["A 0.6"])
+        self.filament(self.cur, "PETG @New", ["New 0.4"])
+        self.assertEqual(self.generate(), {"PETG @A": ["New 0.4"]})
+
+    def test_printer_without_a_shared_extruder_variant_is_left_out(self):
+        for tree in (self.base, self.cur):
+            self.printer(tree, "Direct 0.4", printer_extruder_variant=["Direct Drive Standard"])
+            self.printer(tree, "Bowden 0.4", printer_extruder_variant=["Bowden Standard"])
+        self.filament(self.base, "PETG @all", ["Direct 0.4", "Bowden 0.4"])
+        self.filament(self.cur, "PETG @all", ["Direct 0.4"],
+                      filament_extruder_variant=["Direct Drive Standard"])
+        self.filament(self.cur, "PETG @Bowden", ["Bowden 0.4"])
+        self.assertEqual(self.generate(), {})
+
+    def test_preset_now_listing_no_printer_is_skipped(self):
+        for tree in (self.base, self.cur):
+            self.printer(tree, "A 0.4")
+        self.filament(self.base, "PETG @A", ["A 0.4"])
+        self.filament(self.cur, "PETG @A", [])
+        self.assertEqual(self.generate(), {})
+
+    def test_check_passes_on_a_current_map_and_fails_on_a_stale_one(self):
+        for tree in (self.base, self.cur):
+            for p in ("A 0.4", "A 0.6"):
+                self.printer(tree, p)
+        self.filament(self.base, "PETG @A", ["A 0.4", "A 0.6"])
+        self.filament(self.cur, "PETG @A", ["A 0.6"])
+        self.filament(self.cur, "PETG @A 0.4", ["A 0.4"])
+        output = os.path.join(self.cur.dir, "map.json")
+        argv = ["legacy-compat", "--base", self.base.profiles, "--profiles", self.cur.profiles,
+                "--output", output]
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(apt.main(argv), 0)
+            self.assertEqual(apt.main(argv + ["--check"]), 0)
+            with open(output, "w", encoding="utf-8") as f:
+                json.dump({"presets": {}}, f)
+            self.assertEqual(apt.main(argv + ["--check"]), 1)
+
+
 class TestDispatch(TreeCase):
     def test_each_command_reaches_its_own_writer(self):
         self.t.write("V", "filament/A.json", {"type": "filament", "name": "A"})
@@ -1295,6 +1427,473 @@ class TestDispatch(TreeCase):
         rc, out = self.run_command("normalize", "--vendor", "")
         self.assertEqual(rc, 0, out)
         self.assertEqual(self.t.read("V", "filament/A.json")["type"], "filament")
+
+
+# ---------------------------------------------------------------------------
+# gcode-diff
+# ---------------------------------------------------------------------------
+
+@unittest.skipUnless(shutil.which("git"), "git not installed")
+class GitTreeCase(TreeCase):
+    """A tree that is a git repository, for the commands that diff two revisions."""
+
+    def git(self, *args):
+        subprocess.run(["git", "-C", self.t.dir, "-c", "user.name=t", "-c", "user.email=t@t",
+                        "-c", "commit.gpgsign=false", *args], check=True, capture_output=True)
+
+    def commit(self):
+        self.git("add", "-A")
+        self.git("commit", "-q", "--allow-empty", "-m", "x")
+
+    @classmethod
+    def setUpClass(cls):
+        # git's list of the variables that tie a process to a repository, asked with no
+        # GIT_* set since a stray GIT_DIR fails the query.
+        clean = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+        cls.repo_env_vars = set(subprocess.run(
+            ["git", "rev-parse", "--local-env-vars"], env=clean, check=True,
+            capture_output=True, text=True).stdout.split())
+
+    def setUp(self):
+        super().setUp()
+        # A git hook's GIT_DIR or GIT_INDEX_FILE would point every git call here, the
+        # tool's included, at the real repository instead of the temp tree.
+        env = {k: v for k, v in os.environ.items() if k not in self.repo_env_vars}
+        patcher = mock.patch.dict(os.environ, env, clear=True)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.git("init", "-q")
+
+
+class TestGcodeDiff(GitTreeCase):
+    START = "G28\nM104 S200\nG1 Z5"
+
+    def printer(self, name, **extra):
+        self.t.write("V", f"machine/{name}.json", {"type": "machine", "name": name, **extra})
+
+    def setUp(self):
+        super().setUp()
+        for name in ("A", "B", "C"):
+            self.printer(name, machine_start_gcode=self.START, nozzle_diameter=["0.4"])
+        self.printer("Gone", machine_end_gcode="M84")
+        self.commit()
+
+    def diff(self):
+        rc, out = self.run_command("gcode-diff", "--base", "HEAD")
+        self.assertEqual(rc, 0, out)
+        return out
+
+    def test_identical_edits_share_one_section(self):
+        for name in ("A", "B"):
+            self.printer(name, machine_start_gcode="G28\nM104 S210  \nG1 Z5")
+        self.printer("C", machine_start_gcode="G28\nM104 S220\nG1 Z5")
+        out = self.diff()
+        self.assertEqual(out.count("<details>"), 2)
+        self.assertIn("<code>V/machine/A.json</code>, <code>V/machine/B.json</code> - "
+                      "<code>machine_start_gcode</code>", out)
+        self.assertIn("<code>V/machine/C.json</code> - <code>machine_start_gcode</code>", out)
+        # Trailing spaces are removed.
+        self.assertIn("\n-M104 S200\n+M104 S210\n", out)
+        self.assertIn("\n\n```diff\n@@ ", out)
+        self.assertIn("\n```\n\n</details>", out)
+
+    def test_nothing_is_printed_without_a_text_change(self):
+        self.printer("A", machine_start_gcode=self.START, nozzle_diameter=["0.6"])
+        self.assertEqual(self.diff(), "")
+
+    def test_added_and_deleted_files_show_the_whole_value(self):
+        # An untracked file counts as added; the validator's user dir is not a profile.
+        self.printer("New", machine_start_gcode="G28\nG29")
+        self.t.write("user", "default/machine/U.json", {"machine_start_gcode": "G28"})
+        os.remove(self.t.path("V", "machine/Gone.json"))
+        out = self.diff()
+        self.assertIn("@@ -0,0 +1,2 @@\n+G28\n+G29\n", out)
+        self.assertIn("<code>V/machine/Gone.json</code> - <code>machine_end_gcode</code>", out)
+        self.assertIn("@@ -1 +0,0 @@\n-M84\n", out)
+        self.assertNotIn("U.json", out)
+
+    def test_a_multi_line_value_counts_whatever_its_key(self):
+        self.printer("A", machine_start_gcode=self.START, custom_note="one\ntwo")
+        self.assertIn("<code>V/machine/A.json</code> - <code>custom_note</code>", self.diff())
+
+    def test_a_file_name_cannot_mention_a_user(self):
+        self.t.write("V", "filament/PLA @BBL A1.json", {"filament_start_gcode": ["M106"]})
+        self.assertIn("<code>V/filament/PLA @BBL A1.json</code>", self.diff())
+
+    def test_head_compares_two_commits(self):
+        self.printer("A", machine_start_gcode="G28")
+        self.commit()
+        rc, out = self.run_command("gcode-diff", "--base", "HEAD~1", "--head", "HEAD")
+        self.assertEqual(rc, 0, out)
+        self.assertIn("<code>V/machine/A.json</code> - <code>machine_start_gcode</code>", out)
+
+    def test_a_renamed_file_diffs_against_its_old_self(self):
+        os.rename(self.t.path("V", "machine/A.json"), self.t.path("V", "machine/A2.json"))
+        self.printer("A2", machine_start_gcode="G28\nM104 S210\nG1 Z5", nozzle_diameter=["0.4"])
+        self.commit()
+        rc, out = self.run_command("gcode-diff", "--base", "HEAD~1", "--head", "HEAD")
+        self.assertEqual(rc, 0, out)
+        self.assertIn("<code>V/machine/A2.json</code> - <code>machine_start_gcode</code>", out)
+        self.assertIn("\n G28\n-M104 S200\n+M104 S210\n G1 Z5\n", out)
+
+    def test_a_file_renamed_off_json_loses_its_values(self):
+        os.rename(self.t.path("V", "machine/Gone.json"), self.t.path("V", "machine/Gone.json.bak"))
+        self.commit()
+        rc, out = self.run_command("gcode-diff", "--base", "HEAD~1", "--head", "HEAD")
+        self.assertEqual(rc, 0, out)
+        self.assertIn("<code>V/machine/Gone.json</code> - <code>machine_end_gcode</code>", out)
+        self.assertIn("@@ -1 +0,0 @@\n-M84\n", out)
+
+    def test_a_file_renamed_onto_json_is_new(self):
+        with open(self.t.path("V", "machine/Draft.txt"), "w", encoding="utf-8") as f:
+            json.dump({"type": "machine", "machine_start_gcode": self.START}, f)
+        self.commit()
+        os.rename(self.t.path("V", "machine/Draft.txt"), self.t.path("V", "machine/Draft.json"))
+        self.commit()
+        rc, out = self.run_command("gcode-diff", "--base", "HEAD~1", "--head", "HEAD")
+        self.assertEqual(rc, 0, out)
+        self.assertIn("@@ -0,0 +1,3 @@\n+G28\n+M104 S200\n+G1 Z5\n", out)
+
+    def test_a_batch_read_survives_paths_that_are_not_files(self):
+        blobs = apt._blobs_at(self.t.profiles, [("HEAD", "V/machine"), ("HEAD", "V/no such.json"),
+                                                ("HEAD", "V/machine/Gone.json")])
+        self.assertIsNone(blobs[("HEAD", "V/machine")])
+        self.assertIsNone(blobs[("HEAD", "V/no such.json")])
+        self.assertEqual(json.loads(blobs[("HEAD", "V/machine/Gone.json")])["machine_end_gcode"],
+                         "M84")
+
+    def test_each_value_of_a_vector_option_is_its_own_setting(self):
+        self.t.write("V", "filament/F.json", {"filament_start_gcode": ["M106", "M107"]})
+        self.commit()
+        self.t.write("V", "filament/F.json", {"filament_start_gcode": ["M106", "M106 S0"]})
+        out = self.diff()
+        self.assertEqual(out.count("<details>"), 1)
+        self.assertIn("<code>filament_start_gcode[1]</code>", out)
+
+    def test_vendor_limits_the_files(self):
+        self.printer("A", machine_start_gcode="G28")
+        self.t.write("W", "machine/X.json", {"machine_start_gcode": "G28"})
+        rc, out = self.run_command("gcode-diff", "--base", "HEAD", "--vendor", "V")
+        self.assertEqual(rc, 0, out)
+        self.assertIn("V/machine/A.json", out)
+        self.assertNotIn("W/machine/X.json", out)
+
+    def test_vendor_includes_files_moved_out_of_it(self):
+        self.t.add_vendor("W")
+        os.rename(self.t.path("V", "machine/A.json"), self.t.path("W", "machine/A.json"))
+        data = self.t.read("W", "machine/A.json")
+        self.t.write("W", "machine/A.json", {**data, "machine_start_gcode": "G28\nM104 S210\nG1 Z5"})
+        self.commit()
+        rc, out = self.run_command("gcode-diff", "--base", "HEAD~1", "--head", "HEAD",
+                                   "--vendor", "V")
+        self.assertEqual(rc, 0, out)
+        self.assertIn("<code>W/machine/A.json</code> - <code>machine_start_gcode</code>", out)
+
+    def same_edit(self, names):
+        """The diff after one start G-code edit to each of names; returns (summary, output)."""
+        for name in names:
+            self.printer(name, machine_start_gcode=self.START, nozzle_diameter=["0.4"])
+        self.commit()
+        for name in names:
+            self.printer(name, machine_start_gcode="G28")
+        out = self.diff()
+        return re.search(r"<summary>(.*)</summary>", out).group(1), out
+
+    def test_a_long_file_list_moves_into_the_section(self):
+        summary, out = self.same_edit("ABCDE")
+        self.assertIn("<code>V/machine/C.json</code> and 2 more - ", summary)
+        self.assertNotIn("D.json", summary)
+        self.assertIn("<code>V/machine/D.json</code>, <code>V/machine/E.json</code></p>\n\n```diff",
+                      out)
+
+    def test_four_files_are_all_named_in_the_summary(self):
+        summary, _out = self.same_edit("ABCD")
+        self.assertIn("<code>V/machine/D.json</code> - ", summary)
+        self.assertNotIn("more", summary)
+
+    def test_an_error_goes_to_stderr_only(self):
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rc, out = self.run_command("gcode-diff", "--base", "no-such-ref")
+        self.assertEqual(rc, 1)
+        self.assertEqual(out, "")
+        self.assertIn("no-such-ref", err.getvalue())
+
+    def test_a_file_name_that_is_not_utf8_is_an_error(self):
+        bad = UnicodeDecodeError("utf-8", b"\xe9.json", 0, 1, "invalid continuation byte")
+        err = io.StringIO()
+        with mock.patch.object(apt, "_changed_profiles", side_effect=bad), \
+                contextlib.redirect_stderr(err):
+            rc, out = self.run_command("gcode-diff", "--base", "HEAD")
+        self.assertEqual((rc, out), (1, ""))
+        self.assertIn("invalid continuation byte", err.getvalue())
+
+    def test_output_is_cut_to_whole_sections(self):
+        for name in ("A", "B", "C"):
+            self.printer(name, machine_start_gcode=name * 300)
+        size = len(apt.gcode_diff(self.t.profiles, "HEAD").encode("utf-8"))
+        with mock.patch.object(apt, "GCODE_DIFF_BUDGET", size - 1):
+            out = self.diff()
+        self.assertEqual(out.count("<details>"), 2)
+        self.assertEqual(out.count("</details>"), 2)
+        self.assertIn("\n1 of 3 sections is not shown", out)
+        with mock.patch.object(apt, "GCODE_DIFF_BUDGET", 1):
+            self.assertIn("\n3 of 3 sections are not shown", self.diff())
+
+    def test_cleanup_removes_the_repo(self):
+        # setUp's commit leaves read-only git objects, and a read-only directory blocks
+        # deletion on POSIX.
+        os.chmod(self.t.path("V", "machine"), stat.S_IRUSR | stat.S_IXUSR)
+        self.t.cleanup()
+        self.assertFalse(os.path.exists(self.t.dir))
+        with mock.patch.object(os, "chmod") as chmod:
+            self.t.cleanup()  # a second cleanup, as addCleanup runs, must not touch the temp dir
+        chmod.assert_not_called()
+
+    def test_only_repository_variables_are_stripped(self):
+        self.assertTrue({"GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"} <= self.repo_env_vars)
+        self.assertFalse({"GIT_SSH", "GIT_EXEC_PATH", "GIT_EDITOR"} & self.repo_env_vars)
+
+    def test_cleanup_leaves_symlink_targets_alone(self):
+        outside = tempfile.mkdtemp(prefix="profile_tool_outside_")
+        self.addCleanup(shutil.rmtree, outside, True)
+        target = os.path.join(outside, "f")
+        open(target, "w").close()
+        os.chmod(target, stat.S_IRUSR)
+        self.addCleanup(os.chmod, target, stat.S_IRWXU)  # runs before the rmtree above
+        machine = self.t.path("V", "machine")
+        try:
+            os.symlink(target, os.path.join(machine, "link"))
+        except (OSError, NotImplementedError):
+            self.skipTest("cannot create symlinks here")
+        os.chmod(machine, stat.S_IRUSR | stat.S_IXUSR)  # so removing the link fails at first
+        self.t.cleanup()
+        self.assertFalse(os.path.exists(self.t.dir))
+        self.assertEqual(stat.S_IMODE(os.stat(target).st_mode) & stat.S_IWUSR, 0)
+
+    def test_a_git_hook_environment_is_ignored(self):
+        scripts = os.path.join(REPO_ROOT, "scripts")
+        result = subprocess.run(
+            [sys.executable, "-m", "unittest",
+             "tests.test_profile_tool.TestGcodeDiff.test_head_compares_two_commits"],
+            cwd=scripts, capture_output=True, text=True,
+            env={**os.environ, "GIT_DIR": os.path.join(self.t.dir, "nowhere")})
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_the_options_are_read_from_the_engine(self):
+        keys = apt._text_option_keys()
+        self.assertTrue({"machine_start_gcode", "filament_start_gcode", "printing_by_object_gcode",
+                         "notes", "post_process"} <= keys)
+        self.assertNotIn("emit_machine_limits_to_gcode", keys)  # a coBool
+
+    START_DEF = 'def = this->add("machine_start_gcode", coString);\n'
+
+    def keys_from(self, print_config, tab=None):
+        """_text_option_keys read from these sources; no tab means no Tab.cpp."""
+        paths = [os.path.join(self.t.dir, "PrintConfig.cpp"), os.path.join(self.t.dir, "Tab.cpp")]
+        for path, text in zip(paths, (print_config, tab)):
+            if text is not None:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(text)
+        apt._text_option_keys.cache_clear()
+        self.addCleanup(apt._text_option_keys.cache_clear)
+        with mock.patch.object(apt, "PRINT_CONFIG_CPP", paths[0]), \
+                mock.patch.object(apt, "TAB_CPP", paths[1]):
+            return apt._text_option_keys()
+
+    def test_multiline_is_read_whatever_its_spacing(self):
+        keys = self.keys_from(self.START_DEF + 'def = this->add("printer_notes", coString);\n'
+                                               '    def->multiline  = true;\n')
+        self.assertIn("printer_notes", keys)
+
+    def test_the_code_options_of_tab_cpp_are_read(self):
+        keys = self.keys_from(self.START_DEF, 'option = optgroup->get_option("filename_format");\n'
+                                              'option.opt.is_code = true;\n'
+                                              'option = optgroup->get_option("layer_height");\n')
+        self.assertIn("filename_format", keys)
+        self.assertNotIn("layer_height", keys)
+
+    def test_a_missing_tab_cpp_is_not_an_error(self):
+        self.assertIn("machine_start_gcode", self.keys_from(self.START_DEF))
+
+    def test_markdown_in_a_file_name_stays_literal(self):
+        section = apt._gcode_diff_section(["V/a *b*.json", "V/c.json", "V/d.json", "V/e.json",
+                                           "V/f.json"], "machine_start_gcode", "@@ -1 +1 @@")
+        self.assertIn("\n<p><code>V/a *b*.json</code>, ", section)
+
+
+# ---------------------------------------------------------------------------
+# version-check
+# ---------------------------------------------------------------------------
+
+class TestVersionCheck(GitTreeCase):
+    def index(self, vendor, version, **extra):
+        self.t.write_index(vendor, {"name": vendor, "version": version, **extra})
+
+    def setUp(self):
+        super().setUp()
+        for vendor in ("V", "W"):
+            self.t.add_vendor(vendor)
+            self.t.write(vendor, "machine/A.json", {"type": "machine", "name": "A"})
+        self.commit()
+
+    def check(self, *args):
+        return self.run_command("version-check", "--base", "HEAD", *args)
+
+    def test_a_changed_file_needs_a_bump(self):
+        self.t.write("V", "machine/A.json", {"type": "machine", "name": "A", "x": "1"})
+        rc, out = self.check()
+        self.assertEqual(rc, 1)
+        self.assertIn("V.json: version 01.00.00.00 was not bumped, but 1 file of the bundle "
+                      "changed (V/machine/A.json); bump it to 01.00.00.01", out)
+
+    def test_a_bumped_bundle_passes(self):
+        self.t.write("V", "machine/A.json", {"type": "machine", "name": "A", "x": "1"})
+        self.index("V", "01.00.00.01")
+        rc, out = self.check()
+        self.assertEqual((rc, out), (0, "V: 01.00.00.00 -> 01.00.00.01, 2 files changed\n"))
+
+    def test_an_index_only_change_needs_a_bump(self):
+        self.index("V", "01.00.00.00", machine_list=[])
+        rc, out = self.check()
+        self.assertEqual(rc, 1)
+        self.assertIn("V.json: version 01.00.00.00 was not bumped, but 1 file", out)
+
+    def test_an_added_and_a_deleted_file_count(self):
+        self.t.write("V", "machine/B.json", {"type": "machine", "name": "B"})  # untracked
+        os.remove(self.t.path("W", "machine/A.json"))
+        rc, out = self.check()
+        self.assertEqual(rc, 1)
+        self.assertIn("V.json: version 01.00.00.00 was not bumped", out)
+        self.assertIn("W.json: version 01.00.00.00 was not bumped, but 1 file of the bundle "
+                      "changed (W/machine/A.json)", out)
+
+    def test_a_file_moved_between_bundles_changes_both(self):
+        os.rename(self.t.path("V", "machine/A.json"), self.t.path("W", "machine/B.json"))
+        self.index("W", "01.00.00.01")
+        self.commit()
+        rc, out = self.run_command("version-check", "--base", "HEAD~1", "--head", "HEAD")
+        self.assertEqual(rc, 1)
+        self.assertIn("W: 01.00.00.00 -> 01.00.00.01, 2 files changed", out)
+        self.assertIn("V.json: version 01.00.00.00 was not bumped, but 1 file of the bundle "
+                      "changed (V/machine/A.json)", out)
+
+    def test_a_deleted_index_with_files_left_is_an_error(self):
+        os.remove(self.t.index_path("V"))
+        rc, out = self.check()
+        self.assertEqual(rc, 1)
+        self.assertIn("V.json is missing in the working tree while V/ still has files", out)
+        shutil.rmtree(self.t.path("V", ""))
+        rc, out = self.check()
+        self.assertEqual((rc, out), (0, "no profile bundle changed since HEAD\n"))
+
+    def test_a_base_without_a_usable_version_is_named(self):
+        self.t.write_index("V", {"name": "V"})
+        self.commit()
+        self.index("V", "01.00.00.00")
+        rc, out = self.check()
+        self.assertEqual((rc, out), (0, "V: no version -> 01.00.00.00, 1 file changed\n"))
+        self.index("V", "garbage")
+        self.commit()
+        self.index("V", "01.00.00.00")
+        rc, out = self.check()
+        self.assertEqual((rc, out), (0, "V: garbage -> 01.00.00.00, 1 file changed\n"))
+
+    def test_a_new_bundle_passes(self):
+        self.t.add_vendor("N")
+        self.t.write("N", "machine/A.json", {"type": "machine", "name": "A"})
+        rc, out = self.check()
+        self.assertEqual((rc, out), (0, "N: new bundle -> 01.00.00.00, 2 files changed\n"))
+
+    def test_nothing_changed(self):
+        self.t.write("user", "default/machine/U.json", {"inherits": "A"})
+        with open(os.path.join(self.t.profiles, "blacklist.json"), "w", encoding="utf-8") as f:
+            f.write("{}\n")
+        rc, out = self.check()
+        self.assertEqual((rc, out), (0, "no profile bundle changed since HEAD\n"))
+
+    def test_a_lower_version_is_not_newer(self):
+        self.index("V", "00.09.00.00")
+        rc, out = self.check()
+        self.assertEqual(rc, 1)
+        self.assertIn("V.json: version 00.09.00.00 is not newer than 01.00.00.00 at HEAD, but "
+                      "1 file of the bundle changed (V.json); bump it to 01.00.00.01", out)
+
+    def test_the_fourth_component_folds_into_the_third(self):
+        # The app reads both as 1.0.100, so this is not a bump.
+        self.index("V", "01.00.01.00")
+        self.commit()
+        self.index("V", "01.00.00.100")
+        rc, out = self.check()
+        self.assertEqual(rc, 1)
+        self.assertIn("version 01.00.00.100 is not newer than 01.00.01.00", out)
+
+    def test_a_version_needs_four_numbers(self):
+        for version in ("1.0.1", "01.00.00.01-beta", "x"):
+            self.index("V", version)
+            rc, out = self.check()
+            self.assertEqual(rc, 1, version)
+            self.assertIn(f'V.json: version "{version}" in the working tree is not four '
+                          "numbers (MM.mm.pp.bb)", out)
+
+    def test_a_three_part_base_version_is_still_compared(self):
+        self.index("V", "1.0.0")
+        self.commit()
+        self.index("V", "1.0.0.01")
+        rc, out = self.check()
+        self.assertEqual((rc, out), (0, "V: 1.0.0 -> 1.0.0.01, 1 file changed\n"))
+        self.index("V", "1.0.0.00")
+        rc, out = self.check()
+        self.assertEqual(rc, 1)
+        self.assertIn("bump it to 1.0.0.01", out)
+
+    def test_a_missing_version_is_an_error_only_with_a_bundle(self):
+        self.t.write_index("V", {"name": "V"})
+        rc, out = self.check()
+        self.assertEqual(rc, 1)
+        self.assertIn("V.json has no version in the working tree", out)
+        self.index("V", "01.00.00.00")
+        with open(os.path.join(self.t.profiles, "notes.json"), "w", encoding="utf-8") as f:
+            f.write("{}\n")  # a top-level file that is not a bundle
+        rc, out = self.check()
+        self.assertEqual((rc, out), (0, "no profile bundle changed since HEAD\n"))
+
+    def test_vendor_narrows(self):
+        for vendor in ("V", "W"):
+            self.t.write(vendor, "machine/A.json", {"type": "machine", "name": "A", "x": "1"})
+        rc, out = self.check("--vendor", "W")
+        self.assertEqual(rc, 1)
+        self.assertNotIn("V.json", out)
+        self.assertIn("W.json: version 01.00.00.00 was not bumped", out)
+
+    def test_head_compares_two_commits(self):
+        self.t.write("V", "machine/A.json", {"type": "machine", "name": "A", "x": "1"})
+        self.commit()
+        rc, out = self.run_command("version-check", "--base", "HEAD~1", "--head", "HEAD")
+        self.assertEqual(rc, 1)
+        self.assertIn("V.json: version 01.00.00.00 was not bumped", out)
+        self.index("V", "01.00.00.01")
+        self.commit()
+        rc, out = self.run_command("version-check", "--base", "HEAD~2", "--head", "HEAD")
+        self.assertEqual((rc, out), (0, "V: 01.00.00.00 -> 01.00.00.01, 2 files changed\n"))
+
+    def test_a_bad_ref_is_an_error(self):
+        rc, out = self.run_command("version-check", "--base", "no-such-ref")
+        self.assertEqual(rc, 1)
+        self.assertIn("no-such-ref", out)
+
+    def test_next_version(self):
+        for version, after in (("02.04.00.16", "02.04.00.17"), ("02.03.02.99", "02.03.03.00"),
+                               ("01.00.00.9", "01.00.00.10"), ("2.4.0.05", "2.4.0.06"),
+                               ("1.0.0", "1.0.0.01")):
+            self.assertEqual(apt.next_version(version), after)
+
+    def test_version_key(self):
+        self.assertEqual(apt._version_key("02.04.00.100"), apt._version_key("02.04.01.00"))
+        self.assertLess(apt._version_key("02.04.00.99"), apt._version_key("02.04.01.00"))
+        self.assertEqual(apt._version_key("1.0.0"), (1, 0, 0))
+        for bad in ("1.0.0.0.0", "a.b.c", "1.0", "", None):
+            self.assertIsNone(apt._version_key(bad), bad)
 
 
 # ---------------------------------------------------------------------------

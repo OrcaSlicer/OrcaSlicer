@@ -71,9 +71,11 @@
 #include <windows.h>
 #include <VersionHelpers.h>
 #include <sysinfoapi.h>
+#include <winternl.h>
 #endif
 
 #ifdef __LINUX__
+#include "LinuxDisplayBackend.hpp"
 #include <wx/textfile.h>
 #include <wx/tokenzr.h>
 #include <cstdlib>
@@ -97,6 +99,8 @@
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/HyperLink.hpp"
 #include "Widgets/Button.hpp"
+#include "Plater.hpp"
+#include "MsgDialog.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -201,7 +205,11 @@ TroubleshootDialog::TroubleshootDialog()
             return std::vector<wxString>{GetOStype()};
         return std::vector<wxString>{
             GetOSinfo(),
+#ifdef __LINUX__
+            GetPackageType() + GetAppDisplayBackend(),
+#else
             GetPackageType(),
+#endif
             GetCPUinfo(),
             GetRAMinfo() + " RAM",
             GetGPUinfo(),
@@ -236,7 +244,19 @@ TroubleshootDialog::TroubleshootDialog()
         Fit();
     });
 
-    auto link_wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/troubleshoot_center");
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/troubleshoot_center";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    auto video_btn = new Button(this, "", "toolbar_video_guide", 0, 15);
+    auto video_url = "https://www.youtube.com/watch?v=CFzt8W7OCx0";
+    video_btn->SetToolTip(_L("Video Guide") + "\n" + video_url);
+    video_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    video_btn->SetCanFocus(false);
+    video_btn->Bind(wxEVT_LEFT_DOWN, ([video_url](auto& e) {wxLaunchDefaultBrowser(video_url);}));
 
     // RIGHT SIZER //////////////////////
 
@@ -367,6 +387,10 @@ TroubleshootDialog::TroubleshootDialog()
     sys_btn_sizer->AddStretchSpacer();
     sys_btn_sizer->Add(sys_copy_btn, 0, wxLEFT | wxRIGHT, FromDIP(5));
 
+    wxBoxSizer *link_btn_sizer = new wxBoxSizer(wxHORIZONTAL);
+    link_btn_sizer->Add(wiki_btn);
+    link_btn_sizer->Add(video_btn, 0, wxLEFT, FromDIP(10));
+
     left_sizer->Add(m_header_logo     , 0, wxEXPAND | wxALIGN_CENTER);
     left_sizer->Add(logo_line         , 0, wxEXPAND       | wxTOP, FromDIP(12));
     left_sizer->Add(version           , 0, wxEXPAND       | wxTOP, FromDIP(6));
@@ -374,8 +398,7 @@ TroubleshootDialog::TroubleshootDialog()
     left_sizer->Add(sys_panel         , 0, wxEXPAND       | wxTOP, FromDIP(15));
     left_sizer->AddStretchSpacer();
     left_sizer->Add(sys_btn_sizer     , 0, wxEXPAND       | wxTOP, FromDIP(15));
-    left_sizer->Add(link_wiki         , 0, wxALIGN_CENTER | wxTOP, FromDIP(15));
-    left_sizer->AddSpacer(FromDIP(5));
+    left_sizer->Add(link_btn_sizer    , 0, wxALIGN_CENTER | wxTOP, FromDIP(15));
     
     wxBoxSizer *right_sizer  = new wxBoxSizer(wxVERTICAL);
 
@@ -419,10 +442,15 @@ wxString TroubleshootDialog::GetTimestamp()
 
 wxString TroubleshootDialog::GetSysInfoAll()
 {
+    wxString package = GetPackageType();
+#ifdef __LINUX__
+    package += GetAppDisplayBackend();
+#endif
+
     wxString info;
     info += "Version   :  " + wxString(SoftFever_VERSION) + "\n"
           + "Build     :  " + wxString(build_commit_label) + "\n"
-          + "Package   :  " + GetPackageType() + "\n"
+          + "Package   :  " + package + "\n"
           + "Platform  :  " + GetOSinfo()      + "\n"
           + "Processor :  " + GetCPUinfo() + "\n"
           + "Memory    :  " + GetRAMinfo() + "RAM" + "\n"
@@ -736,6 +764,18 @@ wxString TroubleshootDialog::GetLinuxDisplayServer()
 
     return "";
 }
+
+wxString TroubleshootDialog::GetAppDisplayBackend()
+{
+    // Display backend actually used by the app (GDK), not the session type
+    wxString display;
+    switch (get_linux_display_backend()) {
+        case LinuxDisplayBackend::X11:     display = "X11";     break;
+        case LinuxDisplayBackend::Wayland: display = "Wayland"; break;
+        default: break;
+    }
+    return display.IsEmpty() ? "" : (" (" + display + ")"); // spacing included here to prevent non centered text
+}
 #endif
 
 wxString TroubleshootDialog::GetPackageType()
@@ -979,9 +1019,10 @@ void TroubleshootDialog::PackAll()
                 _L("Select NO to close dialog and review project."),
                 wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Save"), wxYES_NO | wxCANCEL | wxYES_DEFAULT | wxCENTRE
             ).ShowModal();
-            if (res == wxID_YES)
-                wxGetApp().plater()->save_project();
-            else {
+            if (res == wxID_YES) {
+                if (wxGetApp().plater()->save_project() != wxID_YES)
+                    return; // do not package as if the project had been saved
+            } else {
                 if (res == wxID_NO)
                     EndModal(wxID_CLOSE);
                 return;
@@ -1008,9 +1049,10 @@ void TroubleshootDialog::RebuildSystemProfiles()
             _L("Select NO to close dialog and review project."),
             wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Save"), wxYES_NO | wxCANCEL | wxYES_DEFAULT | wxCENTRE
         ).ShowModal();
-        if (res == wxID_YES)
-            wxGetApp().plater()->save_project();
-        else {
+        if (res == wxID_YES) {
+            if (wxGetApp().plater()->save_project() != wxID_YES)
+                return; // do not rebuild profiles as if the project had been saved
+        } else {
             if (res == wxID_NO)
                 EndModal(wxID_CLOSE);
             return;
@@ -1169,7 +1211,8 @@ void TroubleshootDialog::UpdateLogsStorage()
     }
 
     bool is_mb = total_bytes >= 1024 * 1024;
-    wxString label = total_bytes > 0 ? wxString::Format("%d %s (%.2f %s)", file_count, _L("log(s)"), total_bytes / (1024.0 * (is_mb ? 1024.0 : 1.0)), is_mb ? "MB" : "KB") : "";
+    // TRN Number of log files, then their total size and its unit (KB or MB).
+    wxString label = total_bytes > 0 ? wxString::Format(_L_PLURAL("%d log (%.2f %s)", "%d logs (%.2f %s)", file_count), file_count, total_bytes / (1024.0 * (is_mb ? 1024.0 : 1.0)), is_mb ? "MB" : "KB") : "";
     m_logs_storage->SetLabel(label);
 }
 

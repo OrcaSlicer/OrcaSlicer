@@ -18,12 +18,9 @@
 #include <wx/string.h>
 #include <wx/toplevel.h>
 #include <wx/timer.h>
-#include "Widgets/Button.hpp"
 #include "CapsuleButton.hpp"
 
 namespace Slic3r::GUI { struct IntEvent; }
-using namespace Slic3r;
-using namespace Slic3r::GUI;
 
 namespace Slic3r { namespace GUI {
 #define ANIMATION_REFRESH_INTERVAL 20

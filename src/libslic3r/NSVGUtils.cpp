@@ -263,7 +263,6 @@ size_t get_shapes_count(const NSVGimage &image)
 } // namespace Slic3r
 
 namespace {
-using namespace Slic3r; // Polygon + Vec2f
 
 Point::coord_type to_coor(float val, double scale) { return static_cast<Point::coord_type>(std::round(val * scale)); }
 

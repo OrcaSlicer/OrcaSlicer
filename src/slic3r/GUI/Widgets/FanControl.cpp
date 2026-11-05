@@ -3,7 +3,7 @@
 #include "../I18N.hpp"
 #include "../GUI_App.hpp"
 #include "../MsgDialog.hpp"
-#include "json_diff.hpp"
+#include <nlohmann/json.hpp>
 
 #include <wx/anybutton.h>
 #include <wx/event.h>
@@ -27,6 +27,8 @@
 #include <wx/string.h>
 #include <wx/stattext.h>
 #include <wx/sizer.h>
+
+using json = nlohmann::json;
 
 namespace Slic3r { namespace GUI {
 
@@ -800,7 +802,7 @@ void FanControlPopupNew::UpdatePartSubMode()
     // Submode for cooling filter
     if (AIR_DUCT(m_data.curren_mode) == AIR_DUCT::AIR_DUCT_COOLING_FILT && m_data.IsSupportCoolingFilter()) {
         if (!m_cooling_filter_switch_panel) {
-            m_cooling_filter_switch_panel = new FanControlNewSwitchPanel(m_sub_mode_panel, _L("Filter"), _L("Enabling filtration redirects the right fan to filter gas, which may reduce cooling performance."));
+            m_cooling_filter_switch_panel = new FanControlNewSwitchPanel(m_sub_mode_panel, _L_CONTEXT("Filter", "air_duct"), _L("Enabling filtration redirects the right fan to filter gas, which may reduce cooling performance."));
             m_cooling_filter_switch_panel->Bind(EVT_FANCTRL_SWITCH, [this] (wxCommandEvent& evt) 
                 {
                   if (m_obj && m_obj->is_in_printing()) {

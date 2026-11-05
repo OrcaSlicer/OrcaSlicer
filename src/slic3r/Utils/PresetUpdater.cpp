@@ -38,7 +38,7 @@
 #include <wx/event.h>
 #include <wx/msgdlg.h>
 
-#include "json_diff.hpp"
+#include <nlohmann/json.hpp>
 #include "libslic3r/format.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -48,7 +48,6 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/UpdateDialogs.hpp"
-#include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/format.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
@@ -58,14 +57,14 @@
 #include "slic3r/GUI/MarkdownTip.hpp"
 #include "libslic3r/miniz_extension.hpp"
 
+using json = nlohmann::json;
+
 namespace Slic3r::GUI::Config { class Snapshot; }
 namespace Slic3r::GUI::Config { class SnapshotDB; }
 
 namespace fs = boost::filesystem;
 using Slic3r::GUI::Config::Index;
 using Slic3r::GUI::Config::Version;
-using Slic3r::GUI::Config::Snapshot;
-using Slic3r::GUI::Config::SnapshotDB;
 
 
 // FIXME: Incompat bundle resolution doesn't deal with inherited user presets
@@ -1531,8 +1530,10 @@ void PresetUpdater::priv::check_new_vendors(const std::set<std::string>& system_
                         vendor_list += ", ";
                     vendor_list += candidate.vendor_id;
                 }
-                GUI::wxGetApp().plater()->get_notification_manager()->push_notification(
-                    _u8L("Downloading new vendor profile(s): ") + vendor_list + _u8L("..."));
+                GUI::wxGetApp().plater()->get_notification_manager()->push_notification(GUI::format(
+                    // TRN %1% is a comma-separated list of vendor names.
+                    _L_PLURAL("Downloading new vendor profile: %1%...", "Downloading new vendor profiles: %1%...", candidates.size()),
+                    vendor_list));
             }
 
             vendor_check_threads.emplace_back([this, candidates, callback]() {
@@ -1679,8 +1680,10 @@ void PresetUpdater::priv::check_new_vendors(const std::set<std::string>& system_
                                 vendor_list += ", ";
                             vendor_list += vendor_id;
                         }
-                        GUI::wxGetApp().plater()->get_notification_manager()->push_notification(
-                            _u8L("Failed to download vendor profile(s): ") + vendor_list);
+                        GUI::wxGetApp().plater()->get_notification_manager()->push_notification(GUI::format(
+                            // TRN %1% is a comma-separated list of vendor names.
+                            _L_PLURAL("Failed to download vendor profile: %1%", "Failed to download vendor profiles: %1%", failed_vendor_ids.size()),
+                            vendor_list));
                     });
                 }
 

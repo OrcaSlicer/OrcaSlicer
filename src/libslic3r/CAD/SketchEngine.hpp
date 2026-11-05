@@ -3,7 +3,6 @@
 
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Point.hpp"
-#include "libslic3r/CAD/GeometryEngine.hpp"
 
 #include <gp_Pln.hxx>
 #include <gp_Ax1.hxx>
@@ -210,30 +209,6 @@ ConstraintPlan plan_entity_constraint(const std::vector<SketchEntity>& ents,
 // convergence; an empty constraint list is a no-op that returns true.
 bool solve_sketch_entities(std::vector<SketchEntity>& entities,
                            const std::vector<SketchEntityConstraintDef>& constraints);
-
-struct SketchParams {
-    // Extrude/Revolve
-    double extrude_len{10}; bool extrude_sym{false}; double extrude_taper{0};
-    double revolve_deg{360};
-    bool   is_pocket{false}; // cut into selected object instead of new
-
-    // Dress-up
-    bool        dressup_enabled{false};
-    DressUpType dressup_type{DressUpType::Fillet};
-    FaceGroup   dressup_faces{FaceGroup::All};
-    double      dressup_radius{1.0};
-    double      dressup_chamfer_dist{1.0};
-
-    // Mesh
-    double linear_deflection{0.01};
-
-    template<class Archive>
-    void serialize(Archive& ar) {
-        ar(extrude_len, extrude_sym, extrude_taper, revolve_deg, is_pocket,
-           dressup_enabled, dressup_type, dressup_faces, dressup_radius, dressup_chamfer_dist,
-           linear_deflection);
-    }
-};
 
 class SketchEngine
 {

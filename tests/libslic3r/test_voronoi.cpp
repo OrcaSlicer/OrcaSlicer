@@ -29,10 +29,6 @@
 #include <libslic3r/VoronoiVisualUtils.hpp>
 #endif
 
-using boost::polygon::voronoi_builder;
-using boost::polygon::voronoi_diagram;
-using boost::polygon::construct_voronoi;
-
 using namespace Slic3r;
 
 using VD = Geometry::VoronoiDiagram;

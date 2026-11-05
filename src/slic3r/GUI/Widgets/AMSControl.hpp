@@ -63,7 +63,7 @@ protected:
 
     std::string                      m_dev_id;
     std::vector<std::vector<std::string>> m_item_ids{ {}, {} };
-    std::vector<std::pair<string, string>> pair_id;
+    std::vector<std::pair<std::string, std::string>> pair_id;
 
     int         m_total_ext_count = 1;
     AMSextruder *m_extruder{nullptr};
@@ -181,7 +181,7 @@ public:
     std::tuple<bool, bool> isFilaSwitchReady();
     void show_switcher_status(bool show);
 
-    void UpdatePassRoad(string ams_id, AMSPassRoadType type, AMSPassRoadSTEP step);
+    void UpdatePassRoad(std::string ams_id, AMSPassRoadType type, AMSPassRoadSTEP step);
     void CreateAms();
     void CreateAmsDoubleNozzle(const std::string &series_name, const std::string& printer_type);
     void CreateAmsSingleNozzle(const std::string &series_name, const std::string &printer_type);

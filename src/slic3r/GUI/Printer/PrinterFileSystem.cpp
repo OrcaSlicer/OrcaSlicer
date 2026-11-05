@@ -58,6 +58,8 @@
 //#define PRINTER_FILE_SYSTEM_TEST
 #endif
 
+using json = nlohmann::json;
+
 std::string last_system_error() {
     return Slic3r::decode_path(std::error_code(
 #ifdef _WIN32
@@ -1310,9 +1312,9 @@ void PrinterFileSystem::RequestUploadFile()
             if (result != SUCCESS && result != CONTINUE && result != FILE_EXIST) {
                 std::string error_msg = "";
                 if (result == ERROR_CANCEL) {
-                    error_msg = _L("User cancels task.").ToStdString();
+                    error_msg = _u8L("User cancels task.");
                 } else if (result == FILE_READ_WRITE_ERR || result == FILE_OPEN_ERR) {
-                    error_msg = _L("Failed to read file, please try again.").ToStdString();
+                    error_msg = _u8L("Failed to read file, please try again.");
                 }
                 wxLogWarning("PrinterFileSystem::UploadFile error: %d\n", result);
                 SendChangedEvent(EVT_UPLOAD_CHANGED, FF_UPLOADCANCEL, error_msg, result);

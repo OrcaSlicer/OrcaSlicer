@@ -992,7 +992,6 @@ TEST_CASE("tessellate tracks per-triangle face id", "[CadDocument]")
 
 TEST_CASE("extrude two-sided + through-all + intersect", "[CadDocument]")
 {
-    using namespace Slic3r;
     SketchPlane xy = SketchPlane::XY();
     // a 10x10 square wire centred on origin
     SketchProfile sp;
@@ -1013,7 +1012,6 @@ TEST_CASE("extrude two-sided + through-all + intersect", "[CadDocument]")
 
 TEST_CASE("extrude taper + up-to-face distance", "[CadDocument]")
 {
-    using namespace Slic3r;
     SketchPlane xy = SketchPlane::XY();
     SketchProfile sp; sp.points = { Vec2d(-5,-5),Vec2d(5,-5),Vec2d(5,5),Vec2d(-5,5) }; sp.closed = true;
     TopoDS_Wire w = sp.to_occt_wire(xy);
@@ -1047,7 +1045,6 @@ TEST_CASE("extrude taper + up-to-face distance", "[CadDocument]")
 // asserting, because that is what "the thread actually cuts" means.
 TEST_CASE("internal thread cuts a visible groove into the bore wall", "[CadDocument][thread]")
 {
-    using namespace Slic3r;
     SketchPlane xy = SketchPlane::XY();
 
     // 40x40x20 box centred on the origin, extruded +Z.
@@ -1093,7 +1090,6 @@ TEST_CASE("internal thread cuts a visible groove into the bore wall", "[CadDocum
 
 TEST_CASE("revolve builds a solid of revolution about an in-plane axis", "[CadDocument]")
 {
-    using namespace Slic3r;
     SketchPlane xy = SketchPlane::XY();
 
     // Rectangle profile (10 wide x 10 tall, area 100) offset to +v so it lies entirely
@@ -1136,7 +1132,6 @@ TEST_CASE("revolve builds a solid of revolution about an in-plane axis", "[CadDo
 
 TEST_CASE("sweep builds a solid by sweeping a profile along a path", "[CadDocument]")
 {
-    using namespace Slic3r;
     CadDocument doc;
 
     // Profile: circle r=5 on the XY plane at the origin (area = 25*pi).
@@ -1172,7 +1167,6 @@ TEST_CASE("sweep builds a solid by sweeping a profile along a path", "[CadDocume
 
 TEST_CASE("pattern replicates a body linearly and circularly", "[CadDocument]")
 {
-    using namespace Slic3r;
 
     // Linear: a 10x10x10 box (V=1000) repeated 3x at 20mm spacing along plane X.
     // 20 > 10 so the copies are disjoint -> total V = 3*1000 = 3000.
@@ -1221,8 +1215,6 @@ TEST_CASE("pattern replicates a body linearly and circularly", "[CadDocument]")
 TEST_CASE("pattern-on-curve: copies land on a line and bbox spans the curve length", "[CadDocument][pattern]")
 {
     using Catch::Matchers::WithinAbs;
-    using Catch::Matchers::WithinRel;
-    using namespace Slic3r;
 
     CadDocument doc;
 
@@ -1250,7 +1242,6 @@ TEST_CASE("pattern-on-curve: copies land on a line and bbox spans the curve leng
 
 TEST_CASE("pattern-on-curve: bad refs are safe", "[CadDocument][pattern]")
 {
-    using namespace Slic3r;
 
     CadDocument doc;
     int s0 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 4, 4, 0, "Seed");
@@ -1266,7 +1257,6 @@ TEST_CASE("pattern-on-curve: bad refs are safe", "[CadDocument][pattern]")
 TEST_CASE("pattern-on-curve: round-trip through serialize/deserialize", "[CadDocument][pattern]")
 {
     using Catch::Matchers::WithinRel;
-    using namespace Slic3r;
 
     CadDocument doc;
     int s0 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 4, 4, 0, "Seed");
@@ -1312,7 +1302,6 @@ TEST_CASE("pattern-on-curve: round-trip through serialize/deserialize", "[CadDoc
 
 TEST_CASE("thread standards table carries correct ISO/UTS measures", "[CadDocument]")
 {
-    using namespace Slic3r;
 
     // Table is non-empty and every entry is self-consistent.
     const auto& table = thread_standards();
@@ -1459,7 +1448,6 @@ TEST_CASE("loft builds a solid skinning two profiles on parallel planes", "[CadD
 
 TEST_CASE("draft tapers a solid face about the body base", "[CadDocument]")
 {
-    using namespace Slic3r;
 
     // 10x10x10 box from z=0..10 (V=1000). Drafting a vertical side face by +10deg about
     // the bottom (neutral) plane tilts its top edge inward, removing material so V<1000.
@@ -1740,7 +1728,6 @@ TEST_CASE("split by face keep upper only", "[CadDocument][cut]")
 
 TEST_CASE("split by face round-trip serialization", "[CadDocument][cut]")
 {
-    using Catch::Matchers::WithinRel;
     using Catch::Matchers::WithinAbs;
 
     CadDocument doc;
@@ -1808,7 +1795,6 @@ TEST_CASE("split by face round-trip serialization", "[CadDocument][cut]")
 TEST_CASE("mirror reflects a body about a plane", "[CadDocument]")
 {
     using Catch::Matchers::WithinRel;
-    using Catch::Matchers::WithinAbs;
 
     auto make_box = [](CadDocument& doc, double w, double h, double d) {
         int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), w, h, 0, "Box");
@@ -1939,7 +1925,6 @@ TEST_CASE("mirror reflects a body about a plane", "[CadDocument]")
 
 TEST_CASE("mirror serialization round-trip", "[CadDocument]")
 {
-    using Catch::Matchers::WithinRel;
 
     CadDocument doc;
     int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Box");
@@ -2453,7 +2438,6 @@ TEST_CASE("a v3 recipe is refused with a message naming the version", "[CadDocum
 
 TEST_CASE("re-edit: editing a mid-timeline feature rebuilds downstream", "[CadDocument]")
 {
-    using Catch::Matchers::WithinRel;
     CadDocument doc;
 
     int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(),
@@ -2486,7 +2470,6 @@ TEST_CASE("re-edit: editing a mid-timeline feature rebuilds downstream", "[CadDo
 
 TEST_CASE("re-edit survives serialize -> deserialize", "[CadDocument]")
 {
-    using Catch::Matchers::WithinRel;
     CadDocument doc;
 
     int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(),
@@ -2519,7 +2502,6 @@ TEST_CASE("re-edit survives serialize -> deserialize", "[CadDocument]")
 
 TEST_CASE("re-edit: multi-type timeline replays all downstream features", "[CadDocument]")
 {
-    using Catch::Matchers::WithinRel;
     CadDocument doc;
 
     int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(),
@@ -2994,7 +2976,6 @@ TEST_CASE("datum coordinate system: point_world gives world axes", "[CadDocument
 TEST_CASE("helix curve: arc length, bounding box, left-handed, conical", "[CadDocument]")
 {
     using Catch::Matchers::WithinRel;
-    using Catch::Matchers::WithinAbs;
 
     // --- Cylindrical helix r=5, pitch=2, height=10 (5 turns) ---
     // One turn arc length = sqrt((2*pi*r)^2 + pitch^2) = sqrt((10*pi)^2 + 4).
@@ -3386,7 +3367,6 @@ TEST_CASE("transform degenerate axis errors", "[CadDocument]")
 
 TEST_CASE("transform moved body participates in later boolean at its new position", "[CadDocument]")
 {
-    using Catch::Matchers::WithinAbs;
 
     CadDocument doc;
     // Two boxes that do NOT overlap
@@ -3516,7 +3496,6 @@ TEST_CASE("thicken a planar face to a plate", "[CadDocument]")
 
 TEST_CASE("thicken flip offsets against face normal", "[CadDocument]")
 {
-    using Catch::Matchers::WithinAbs;
 
     CadDocument doc;
     int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxSketch");
@@ -3615,7 +3594,6 @@ TEST_CASE("thicken zero thickness returns error", "[CadDocument]")
 
 TEST_CASE("thickened plate fuses with source", "[CadDocument]")
 {
-    using Catch::Matchers::WithinRel;
 
     CadDocument doc;
     int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Box");
@@ -3649,7 +3627,6 @@ TEST_CASE("thickened plate fuses with source", "[CadDocument]")
 TEST_CASE("thicken round-trip serialization", "[CadDocument]")
 {
     using Catch::Matchers::WithinAbs;
-    using Catch::Matchers::WithinRel;
 
     CadDocument doc;
     int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Box");
@@ -3833,7 +3810,6 @@ TEST_CASE("project bad face id returns error", "[CadDocument][project]")
 TEST_CASE("project round-trip serialization", "[CadDocument][project]")
 {
     using Catch::Matchers::WithinAbs;
-    using Catch::Matchers::WithinRel;
 
     CadDocument doc;
     int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
@@ -4609,8 +4585,6 @@ TEST_CASE("golden recipe v1 still deserialises", "[CadDocument]")
 
 TEST_CASE("rib adds material to a box", "[CadDocument][rib]")
 {
-    using Catch::Matchers::WithinRel;
-    using Catch::Matchers::WithinAbs;
 
     CadDocument doc;
 
@@ -4763,7 +4737,6 @@ TEST_CASE("bridge two collinear lines", "[CadDocument][bridge]")
 
 TEST_CASE("bridge closes a C profile and extrudes", "[CadDocument][bridge]")
 {
-    using Catch::Matchers::WithinAbs;
     using Catch::Matchers::WithinRel;
 
     CadDocument doc;
@@ -4861,8 +4834,6 @@ TEST_CASE("bridge round-trip serialization", "[CadDocument][bridge]")
 
 TEST_CASE("delete_face removes a fillet face and restores volume", "[CadDocument][deleteface]")
 {
-    using Catch::Matchers::WithinRel;
-    using Catch::Matchers::WithinAbs;
 
     CadDocument doc;
     int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
@@ -4912,7 +4883,6 @@ TEST_CASE("delete_face with bad face index fails safely", "[CadDocument][deletef
 
 TEST_CASE("delete_face round-trip serialization", "[CadDocument][deleteface]")
 {
-    using Catch::Matchers::WithinRel;
     using Catch::Matchers::WithinAbs;
 
     CadDocument doc;
@@ -4970,7 +4940,6 @@ TEST_CASE("delete_face round-trip serialization", "[CadDocument][deleteface]")
 
 TEST_CASE("hole: counterbore removes more material than a simple bore", "[CadDocument][hole]")
 {
-    using Catch::Matchers::WithinAbs;
     auto make_box_hole = [](int style, double cbore_d, double cbore_depth,
                              double csink_d, double csink_angle, const std::string& desig) {
         CadDocument doc;
@@ -4998,7 +4967,6 @@ TEST_CASE("hole: counterbore removes more material than a simple bore", "[CadDoc
 
 TEST_CASE("hole: countersink removes more material than a simple bore", "[CadDocument][hole]")
 {
-    using Catch::Matchers::WithinAbs;
     auto make_box = []() {
         CadDocument doc;
         int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 30, 30, 0, "Box");
@@ -5301,7 +5269,6 @@ TEST_CASE("parametric recipe round-trips through serialize/deserialize", "[CadDo
 
 TEST_CASE("surface-extrude makes an open shell", "[CadDocument][surface]")
 {
-    using Catch::Matchers::WithinRel;
 
     CadDocument doc;
     int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Rect");
@@ -5324,7 +5291,6 @@ TEST_CASE("surface-extrude makes an open shell", "[CadDocument][surface]")
 
 TEST_CASE("surface-revolve makes an open shell", "[CadDocument][surface]")
 {
-    using Catch::Matchers::WithinRel;
 
     CadDocument doc;
     // A small rectangle offset from the axis: u=10..15, v=0..5.
@@ -5395,7 +5361,6 @@ TEST_CASE("surface round-trip serialize/deserialize", "[CadDocument][surface]")
 
 TEST_CASE("thicken-surface makes a solid from a sheet", "[CadDocument][surface]")
 {
-    using Catch::Matchers::WithinRel;
     using Catch::Matchers::WithinAbs;
 
     CadDocument doc;
@@ -5519,7 +5484,6 @@ TEST_CASE("thicken surface fills the corners of a closed-loop wall", "[CadDocume
 
 TEST_CASE("surface-offset creates another sheet shifted outward", "[CadDocument][surface]")
 {
-    using Catch::Matchers::WithinAbs;
 
     CadDocument doc;
     int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Rect");
@@ -5568,7 +5532,6 @@ TEST_CASE("thicken-surface on non-sheet fails", "[CadDocument][surface]")
 TEST_CASE("thicken-surface round-trip serialize/deserialize", "[CadDocument][surface]")
 {
     using Catch::Matchers::WithinAbs;
-    using Catch::Matchers::WithinRel;
 
     CadDocument doc;
     int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Rect");
@@ -5608,7 +5571,6 @@ TEST_CASE("thicken-surface round-trip serialize/deserialize", "[CadDocument][sur
 
 TEST_CASE("surface-loft makes an open shell", "[CadDocument][surface]")
 {
-    using Catch::Matchers::WithinAbs;
 
     CadDocument doc;
     SketchProfile bot;
@@ -6315,7 +6277,6 @@ TEST_CASE("mate conflicts: a broken mate is left to apply_mate", "[CadDocument][
 
 TEST_CASE("ordering: fillet after mate resolves face ids", "[CadDocument][mate]")
 {
-    using Catch::Matchers::WithinAbs;
 
     CadDocument doc;
     int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "BoxA");
@@ -7846,7 +7807,6 @@ TEST_CASE("plane_of_face gives a sketchable plane for a planar face only", "[Cad
 // that asserts a state the code cannot reach is exactly what the contract forbids.
 TEST_CASE("recompute on a healthy box + fillet leaves no body null and no error (positive contract)", "[CadDocument]")
 {
-    using namespace Slic3r;
     CadDocument doc;
     SketchProfile sp;
     sp.points.push_back(Vec2d(0,  0));
@@ -8758,7 +8718,6 @@ TEST_CASE("a body carries its own name, through recompute and the recipe", "[Cad
 TEST_CASE("deleting a feature remaps the references of every consumer, not just Extrude",
           "[CadDocument]")
 {
-    using namespace Slic3r;
     const SketchPlane xy = SketchPlane::XY();
 
     // A rectangle 10x10 centred at v = 15, revolved 360 deg about the plane X axis.
@@ -9098,7 +9057,6 @@ namespace {
 // centerline x = 0 from (0,0) to (0,20): the half-profile of a tube, drawn the usual way.
 Slic3r::CadFeature tube_half_profile()
 {
-    using namespace Slic3r;
     CadFeature sk;
     sk.type  = CadFeatureType::Sketch;
     sk.plane = SketchPlane::XY();
@@ -9113,7 +9071,6 @@ Slic3r::CadFeature tube_half_profile()
 
 TEST_CASE("revolve about a line of the sketch", "[CadDocument][revolve]")
 {
-    using namespace Slic3r;
 
     SECTION("a construction centerline: the profile sweeps into a tube around it") {
         CadDocument doc;

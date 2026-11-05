@@ -30,7 +30,6 @@
 #include <wx/timer.h>
 
 #include "nlohmann/json.hpp"
-#include "slic3r/Utils/json_diff.hpp"
 
 #include <atomic>
 #include <map>
@@ -109,7 +108,7 @@ public:
     void OnScriptMessage(wxWebViewEvent& evt);
     void RunScript(std::string content);
 
-    std::map<std::string, std::vector<json>> Reload(wxString aux_path);
+    std::map<std::string, std::vector<nlohmann::json>> Reload(wxString aux_path);
     std::string formatBytes(unsigned long bytes);
     wxString to_base64(std::string path);
 };

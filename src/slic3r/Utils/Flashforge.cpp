@@ -25,8 +25,6 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/asio.hpp>
 #include <boost/algorithm/string.hpp>
 
@@ -55,7 +53,6 @@
 #include "SerialMessageType.hpp"
 
 namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 using json = nlohmann::json;
 
 namespace Slic3r {
@@ -190,9 +187,10 @@ bool validate_local_api_response(const std::string& response_body, wxString& err
             message = parsed["msg"].get<std::string>();
 
         if (message.empty())
-            message = "Request failed";
+            message = _u8L("Request failed");
 
-        error_msg = GUI::from_u8((boost::format("Flashforge local API error %1%: %2%") % result_code % message).str());
+        // TRN %1% is the error code returned by the printer, %2% its error message.
+        error_msg = GUI::from_u8((boost::format(_u8L("Flashforge local API error %1%: %2%")) % result_code % message).str());
         return false;
     }
 

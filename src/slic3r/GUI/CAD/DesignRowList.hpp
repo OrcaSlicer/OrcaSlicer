@@ -29,12 +29,16 @@ namespace Slic3r { namespace GUI {
 // Selection follows wxTreeCtrl's contract, which DesignPanel's mutual exclusion between the two
 // lists relies on: on_select runs on every change, whether the user or select() made it, and
 // selecting the row that is already selected changes nothing and notifies nobody.
+//
+// A list built non-selectable is a row of switches, not of objects: a click never selects a row,
+// the pointer highlights only the action icon under it, and the list never takes the focus. Its
+// action icons and its context menu are the only things that answer.
 class DesignRowList : public wxVListBox
 {
 public:
     struct Action {
         int         id;     // the owner's code for it, handed back to on_action
-        std::string icon;   // icon name, e.g. "design_eye"
+        std::string icon;   // icon name, e.g. "design_eye"; empty for a blank cell that only holds a column
         wxString    tip;
     };
     struct Row {
@@ -50,7 +54,8 @@ public:
     static constexpr const char* hover_chip = "#D4D4D4";
 
     // The list is as tall as its rows, at least one and at most `max_visible`; past that it scrolls.
-    DesignRowList(wxWindow* parent, int max_visible);
+    // `style` is its frame: wxBORDER_NONE for a list that sits unframed on its card.
+    DesignRowList(wxWindow* parent, int max_visible, bool selectable = true, long style = wxBORDER_SIMPLE);
 
     // Replace every row. Clears the selection without notifying and cancels a rename in progress;
     // the owner re-selects the row it keeps, which notifies.
@@ -67,14 +72,19 @@ public:
 
     std::function<void()>                              on_select;    // the selection changed
     std::function<void()>                              on_activate;  // the selected row was double-clicked
-    // A row's action icon was clicked. Runs after the click has finished dispatching, and only
-    // while that row is still the selected one; the click itself selected it.
+    // A row's action icon was clicked. Runs after the click has finished dispatching, while the
+    // row still exists and — in a selectable list, where the click itself selected it — is still
+    // the selected one.
     std::function<void(int row, int id)>              on_action;
-    // Context menu on a row, at a screen position; the row under the pointer is selected first.
+    // Context menu on a row, at a screen position; the row under the pointer is selected first,
+    // unless the list is non-selectable. Pop the menu from inside the call: wxGTK sends it on the
+    // right press, and a menu deferred past that event closes on the button's release.
     std::function<void(int row, const wxPoint& screen)> on_menu;
     // The editor committed `name` for `row`, trimmed and never empty (an empty commit cancels).
     // Runs after the editor's own events have finished, so the owner may rebuild the rows here.
     std::function<void(int row, const wxString& name)> on_rename;
+
+    bool AcceptsFocus() const override { return m_selectable && wxVListBox::AcceptsFocus(); }
 
 protected:
     void    OnDrawItem(wxDC& dc, const wxRect& rect, size_t n) const override;
@@ -103,6 +113,7 @@ private:
     std::vector<Row>                      m_rows;
     std::map<std::string, ScalableBitmap> m_icons;
     int                                   m_max_visible;
+    bool                                  m_selectable;
     int                                   m_row_h{0};          // every row's height, from measure_row()
     Hit                                   m_hover;
     Hit                                   m_pressed;           // action cell under the last left press

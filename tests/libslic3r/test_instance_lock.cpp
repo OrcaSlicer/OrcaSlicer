@@ -10,6 +10,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include "libslic3r/InstanceLock.hpp"
 #include "test_utils.hpp"
+#include <ios>
 
 #ifdef _WIN32
 #include <boost/interprocess/sync/file_lock.hpp>

@@ -466,8 +466,6 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
             edge.from->incident_edge = &edge;
 }
 
-using NodeSet = SkeletalTrapezoidation::NodeSet;
-
 void SkeletalTrapezoidation::separatePointyQuadEndNodes()
 {
     NodeSet visited_nodes;

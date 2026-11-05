@@ -20,7 +20,6 @@ struct IMGUI_API ImRect;
 
 namespace Slic3r {
 
-using namespace CustomGCode;
 class PrintObject;
 class Layer;
 
@@ -89,8 +88,8 @@ public:
     void SetSliderValues(const std::vector<double> &values);
     void SetSliderAlternateValues(const std::vector<double> &values) { m_alternate_values = values; }
 
-    Info GetTicksValues() const;
-    void SetTicksValues(const Info &custom_gcode_per_print_z);
+    CustomGCode::Info GetTicksValues() const;
+    void SetTicksValues(const CustomGCode::Info &custom_gcode_per_print_z);
     void SetLayersTimes(const std::vector<float> &layers_times, float total_time);
     void SetLayersTimes(const std::vector<double> &layers_times);
 
@@ -98,8 +97,8 @@ public:
     void SetDrawMode(DrawMode mode) { m_draw_mode = mode; }
     //BBS
     void SetExtraStyle(long style) { m_extra_style = style; }
-    void SetManipulationMode(Mode mode) { m_mode = mode; }
-    Mode GetManipulationMode() const { return m_mode; }
+    void SetManipulationMode(CustomGCode::Mode mode) { m_mode = mode; }
+    CustomGCode::Mode GetManipulationMode() const { return m_mode; }
     void SetModeAndOnlyExtruder(const bool is_one_extruder_printed_model, const int only_extruder, bool can_change_color);
     void SetExtruderColors(const std::vector<std::string> &extruder_colors);
 
@@ -117,8 +116,8 @@ public:
     void UseDefaultColors(bool def_colors_on) { m_ticks.set_default_colors(def_colors_on); }
 
     void on_mouse_wheel(wxMouseEvent& evt);
-    void post_ticks_changed_event(Type type = Unknown);
-    bool check_ticks_changed_event(Type type);
+    void post_ticks_changed_event(CustomGCode::Type type = CustomGCode::Unknown);
+    bool check_ticks_changed_event(CustomGCode::Type type);
     bool switch_one_layer_mode();
     void show_go_to_layer(bool show) { m_show_go_to_layer_dialog = show; }
 
@@ -130,9 +129,9 @@ public:
     bool is_need_post_tick_event() { return m_is_need_post_tick_changed_event; }
     void reset_post_tick_event(bool val = false) {
         m_is_need_post_tick_changed_event = val;
-        m_tick_change_event_type = Type::Unknown;
+        m_tick_change_event_type = CustomGCode::Type::Unknown;
     }
-    Type get_post_tick_event_type() { return m_tick_change_event_type; }
+    CustomGCode::Type get_post_tick_event_type() { return m_tick_change_event_type; }
 
     float m_scale = 1.0;
     void set_scale(float scale = 1.0);
@@ -143,7 +142,7 @@ public:
 
 protected:
     void add_custom_gcode(std::string custom_gcode);
-    void add_code_as_tick(Type type, int selected_extruder = -1);
+    void add_code_as_tick(CustomGCode::Type type, int selected_extruder = -1);
     void delete_tick(const TickCode& tick);
     void do_go_to_layer(size_t layer_number); //menu
     void correct_lower_value();
@@ -156,7 +155,7 @@ protected:
     void render_edit_menu(const TickCode& tick); //menu
     void draw_background_and_groove(const ImRect& bg_rect, const ImRect& groove);
     void draw_colored_band(const ImRect& groove, const ImRect& slideable_region);
-    void draw_custom_label_block(const ImVec2 anchor, Type type);
+    void draw_custom_label_block(const ImVec2 anchor, CustomGCode::Type type);
     void draw_ticks(const ImRect& slideable_region);
     void draw_tick_on_mouse_position(const ImRect& slideable_region);
     void show_tooltip(const TickCode& tick); //menu
@@ -217,7 +216,7 @@ private:
     void *m_delete_icon_id;
 
     DrawMode            m_draw_mode = dmRegular;
-    Mode                m_mode          = SingleExtruder;
+    CustomGCode::Mode   m_mode          = CustomGCode::SingleExtruder;
     int                 m_only_extruder = -1;
 
     long                m_style;
@@ -232,7 +231,7 @@ private:
     bool                     m_can_change_color;
     std::string              m_print_obj_idxs;
     bool                     m_is_need_post_tick_changed_event { false };
-    Type                     m_tick_change_event_type;
+    CustomGCode::Type        m_tick_change_event_type;
 
     std::vector<double> m_alternate_values;
 

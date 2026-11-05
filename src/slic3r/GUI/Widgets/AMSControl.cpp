@@ -1052,7 +1052,7 @@ void AMSControl::UpdateAms(const std::string   &series_name,
     /*update humidity popup*/
     if (m_percent_humidity_dry_popup->IsShown())
     {
-        string target_id = m_percent_humidity_dry_popup->get_owner_ams_id();
+        std::string target_id = m_percent_humidity_dry_popup->get_owner_ams_id();
         for (const auto& the_info : ams_info)
         {
             if (target_id == the_info.ams_id)

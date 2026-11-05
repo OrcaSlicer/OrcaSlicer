@@ -12,8 +12,6 @@
 
 class wxWindow;
 
-namespace fs = boost::filesystem;
-
 namespace Slic3r {
 namespace GUI {
 

@@ -33,7 +33,6 @@
 #include <NCollection_IndexedMap.hxx>
 #include <NCollection_List.hxx>
 #include <Poly_Triangulation.hxx>
-#include <gp_Ax2.hxx>
 #include <gp_Dir.hxx>
 #include <gp_Pnt.hxx>
 #include <BRepGProp.hxx>
@@ -53,6 +52,7 @@
 #include <BRepBuilderAPI_MakeSolid.hxx>
 #include <BRep_Builder.hxx>
 #include <TopoDS_Shell.hxx>
+#include <TopoDS_Solid.hxx>
 #include <TopoDS_Vertex.hxx>
 #include <ShapeUpgrade_UnifySameDomain.hxx>
 #include <array>
@@ -244,30 +244,6 @@ TopoDS_Shape GeometryEngine::mesh_to_brep(const indexed_triangle_set& its,
     return shape;
 }
 
-// ---- Primitive creation ----
-
-TopoDS_Solid GeometryEngine::make_primitive(const PrimitiveParams& params)
-{
-    switch (params.type) {
-    case PrimitiveType::Box:
-        return BRepPrimAPI_MakeBox(gp_Pnt(-params.box_w/2, -params.box_d/2, 0),
-                                   params.box_w, params.box_d, params.box_h).Solid();
-    case PrimitiveType::Cylinder:
-        return BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0,0,0), gp_Dir(0,0,1)),
-                                        params.cyl_radius, params.cyl_height).Solid();
-    case PrimitiveType::Sphere:
-        return BRepPrimAPI_MakeSphere(gp_Pnt(0,0,params.sph_radius), params.sph_radius).Solid();
-    case PrimitiveType::Cone:
-        return BRepPrimAPI_MakeCone(gp_Ax2(gp_Pnt(0,0,0), gp_Dir(0,0,1)),
-                                    params.cone_r1, params.cone_r2, params.cone_height).Solid();
-    case PrimitiveType::Torus:
-        return BRepPrimAPI_MakeTorus(gp_Ax2(gp_Pnt(0,0,params.torus_r2), gp_Dir(0,0,1)),
-                                     params.torus_r1, params.torus_r2).Solid();
-    default:
-        return BRepPrimAPI_MakeBox(gp_Pnt(-10,-10,0), 20,20,20).Solid();
-    }
-}
-
 // ---- Face classification ----
 
 FaceGroup GeometryEngine::classify_face(const TopoDS_Face& face, const TopoDS_Shape& /*solid*/)
@@ -349,10 +325,10 @@ std::vector<TopoDS_Edge> GeometryEngine::collect_edges(const TopoDS_Shape& solid
 // handing the solid back unchanged, which recompute then reported as a success.
 TopoDS_Shape GeometryEngine::apply_fillet(const TopoDS_Shape& solid, double radius, FaceGroup faces)
 {
-    if (radius <= 0.001) throw std::runtime_error("the fillet radius must be greater than 0");
+    if (radius <= 0.001) throw std::runtime_error(_u8L("the fillet radius must be greater than 0"));
 
     std::vector<TopoDS_Edge> edges = collect_edges(solid, faces);
-    if (edges.empty()) throw std::runtime_error("no edges to fillet in that group");
+    if (edges.empty()) throw std::runtime_error(_u8L("no edges to fillet in that group"));
 
     BRepFilletAPI_MakeFillet fillet(solid);
     for (const auto& edge : edges)
@@ -368,10 +344,10 @@ TopoDS_Shape GeometryEngine::apply_fillet(const TopoDS_Shape& solid, double radi
 
 TopoDS_Shape GeometryEngine::apply_chamfer(const TopoDS_Shape& solid, double distance, FaceGroup faces)
 {
-    if (distance <= 0.001) throw std::runtime_error("the chamfer distance must be greater than 0");
+    if (distance <= 0.001) throw std::runtime_error(_u8L("the chamfer distance must be greater than 0"));
 
     std::vector<TopoDS_Edge> edges = collect_edges(solid, faces);
-    if (edges.empty()) throw std::runtime_error("no edges to chamfer in that group");
+    if (edges.empty()) throw std::runtime_error(_u8L("no edges to chamfer in that group"));
 
     BRepFilletAPI_MakeChamfer chamfer(solid);
     for (const auto& edge : edges)
@@ -394,7 +370,7 @@ TopoDS_Shape GeometryEngine::apply_chamfer(const TopoDS_Shape& solid, double dis
 
 TopoDS_Shape GeometryEngine::apply_fillet(const TopoDS_Shape& solid, double radius, const std::vector<int>& edge_ids)
 {
-    if (radius <= 0.001) throw std::runtime_error("the fillet radius must be greater than 0");
+    if (radius <= 0.001) throw std::runtime_error(_u8L("the fillet radius must be greater than 0"));
     if (edge_ids.empty()) throw std::runtime_error("apply_fillet: no edge picked");
 
     BRepFilletAPI_MakeFillet mk(solid);
@@ -411,7 +387,7 @@ TopoDS_Shape GeometryEngine::apply_fillet(const TopoDS_Shape& solid, double radi
 
 TopoDS_Shape GeometryEngine::apply_chamfer(const TopoDS_Shape& solid, double distance, const std::vector<int>& edge_ids)
 {
-    if (distance <= 0.001) throw std::runtime_error("the chamfer distance must be greater than 0");
+    if (distance <= 0.001) throw std::runtime_error(_u8L("the chamfer distance must be greater than 0"));
     if (edge_ids.empty()) throw std::runtime_error("apply_chamfer: no edge picked");
 
     BRepFilletAPI_MakeChamfer mk(solid);
@@ -543,19 +519,6 @@ GeometryEngine::MassProps GeometryEngine::mass_properties(const TopoDS_Shape& sh
         // leave valid = false
     }
     return p;
-}
-
-std::string GeometryEngine::primitive_name(PrimitiveType type)
-{
-    switch (type) {
-    // TRN Default name of an object created from the box primitive shape.
-    case PrimitiveType::Box:      return _u8L("Box");
-    case PrimitiveType::Cylinder: return _u8L("Cylinder");
-    case PrimitiveType::Sphere:   return _u8L("Sphere");
-    case PrimitiveType::Cone:     return _u8L("Cone");
-    case PrimitiveType::Torus:    return _u8L("Torus");
-    default:                      return _u8L("Unknown");
-    }
 }
 
 // ---- Topology accessors ----
