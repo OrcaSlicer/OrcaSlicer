@@ -274,16 +274,17 @@ modules:
         sha256: 66dfbaee288f2bc43172440a55d0235dfc7bf885dda6435c038e8000e79582cb
         dest: external-packages/Assimp
 
-      # OpenSSL 1.1.1w (GNOME SDK has 3.x; OrcaSlicer requires 1.1.x)
+      # OpenSSL 3.5.9 (pinned so every platform ships the same OpenSSL; the
+      # bundled CPython's _ssl is built against it)
       - type: file
-        url: https://github.com/openssl/openssl/archive/OpenSSL_1_1_1w.tar.gz
-        sha256: 2130e8c2fb3b79d1086186f78e59e8bc8d1a6aedf17ab3907f4cb9ae20918c41
+        url: https://github.com/openssl/openssl/releases/download/openssl-3.5.9/openssl-3.5.9.tar.gz
+        sha256: 603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a
         dest: external-packages/OpenSSL
 
-      # CURL 8.17.0 (built from source to link against OpenSSL 1.1.x)
+      # CURL 8.23.0 (built from source to link against the bundled OpenSSL)
       - type: file
-        url: https://github.com/curl/curl/archive/refs/tags/curl-8_17_0.zip
-        sha256: 0be15247c07422a0061fda4758c0182bb9c688e40ecf968d1a0b92742a32667e
+        url: https://github.com/curl/curl/archive/refs/tags/curl-8_23_0.zip
+        sha256: 4f443969ea4ea6ccb5ac984488683bb92384bc4df0affa3938ce77f20b30d853
         dest: external-packages/CURL
 
       # OCCT (OpenCASCADE) V8_0_1

@@ -64,8 +64,8 @@ else()
 endif()
 
 orcaslicer_add_cmake_project(CURL
-  URL                 https://github.com/curl/curl/archive/refs/tags/curl-8_17_0.zip
-  URL_HASH            SHA256=0be15247c07422a0061fda4758c0182bb9c688e40ecf968d1a0b92742a32667e
+  URL                 https://github.com/curl/curl/archive/refs/tags/curl-8_23_0.zip
+  URL_HASH            SHA256=4f443969ea4ea6ccb5ac984488683bb92384bc4df0affa3938ce77f20b30d853
   DEPENDS             ${ZLIB_PKG}
   CMAKE_ARGS
     -DBUILD_TESTING:BOOL=OFF

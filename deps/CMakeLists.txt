@@ -402,10 +402,6 @@ include(libnoise/libnoise.cmake)
 
 include(Draco/Draco.cmake)
 
-# I *think* 1.1 is used for *just* md5 hashing?
-# 3.1 has everything in the right place, but the md5 funcs used are deprecated
-# a grep across the repo shows it is used for other things
-# TODO: update openssl and everything that uses <openssl/md5.h>
 set(OPENSSL_PKG "")
 if(NOT OPENSSL_FOUND)
     include(OpenSSL/OpenSSL.cmake)
