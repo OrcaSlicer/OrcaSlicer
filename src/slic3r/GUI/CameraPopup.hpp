@@ -24,12 +24,15 @@
 #include "Widgets/SwitchButton.hpp"
 #include "Widgets/RadioBox.hpp"
 #include "Widgets/PopupWindow.hpp"
+#include "Widgets/Button.hpp"
+#include "Widgets/TextInput.hpp"
 
 namespace Slic3r {
 namespace GUI {
 
 wxDECLARE_EVENT(EVT_VCAMERA_SWITCH, wxMouseEvent);
 wxDECLARE_EVENT(EVT_SDCARD_ABSENT_HINT, wxCommandEvent);
+wxDECLARE_EVENT(EVT_CAM_SOURCE_CHANGE, wxCommandEvent);
 
 class CameraPopup : public PopupWindow
 {
@@ -60,6 +63,8 @@ protected:
     void on_switch_recording(wxCommandEvent& event);
     void on_set_resolution();
     void sdcard_absent_hint();
+    void on_camera_source_changed(wxCommandEvent& event);
+    void set_custom_cam_button_state(bool state);
 
     wxWindow *  create_item_radiobox(wxString title, wxWindow *parent, wxString tooltip, int padding_left);
     void select_curr_radiobox(int btn_idx);
@@ -80,10 +85,10 @@ private:
     wxStaticText* m_text_liveview_retry;
     SwitchButton* m_switch_liveview_retry;
 #endif //BBL_RELEASE_TO_PUBLIC
-    // wxStaticText* m_custom_camera_hint;
-    // TextInput* m_custom_camera_input;
-    // Button* m_custom_camera_input_confirm;
-    // bool m_custom_camera_enabled{ false };
+    wxStaticText* m_custom_camera_hint;
+    TextInput* m_custom_camera_input;
+    Button* m_custom_camera_input_confirm;
+    bool m_custom_camera_enabled{ false };
     wxStaticText* m_text_resolution;
     wxWindow* m_resolution_options[RESOLUTION_OPTIONS_NUM];
     wxScrolledWindow *m_panel;

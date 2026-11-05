@@ -467,7 +467,7 @@ protected:
     wxStaticBitmap *m_bitmap_sdcard_img;
     wxStaticBitmap *m_bitmap_static_use_time;
     wxStaticBitmap *m_bitmap_static_use_weight;
-    // wxStaticBitmap* m_camera_switch_button;
+    wxStaticBitmap* m_camera_switch_button;
 
 
     wxMediaCtrl3 *  m_media_ctrl;
@@ -640,11 +640,14 @@ public:
     void           show_ams_group(bool show = true);
     void show_filament_load_group(bool show = true);
     MediaPlayCtrl* get_media_play_ctrl() {return m_media_play_ctrl;};
+    void apply_custom_camera_source();
 
     void jump_to_Rack();
 
 private:
     void on_ams_rack_switch(wxCommandEvent& event);
+    void show_custom_camera(bool show);
+    void on_camera_switch_toggled(wxMouseEvent& event);
 };
 
 
@@ -776,6 +779,7 @@ protected:
     void on_switch_vcamera(wxMouseEvent &event);
     void on_camera_enter(wxMouseEvent &event);
     void on_camera_leave(wxMouseEvent& event);
+    void on_camera_source_change(wxCommandEvent& event);
     void on_auto_leveling(wxCommandEvent &event);
     void on_xyz_abs(wxCommandEvent &event);
 
