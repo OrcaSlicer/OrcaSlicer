@@ -1442,6 +1442,149 @@ int close_cut_faces(indexed_triangle_set &its, std::vector<std::pair<int, int>> 
     }
     return 0;
 }
+
+// Closest point to p on triangle abc (Ericson, Real-Time Collision Detection, 5.1.5).
+inline V3 closest_on_triangle(const V3 &p, const V3 &a, const V3 &b, const V3 &c)
+{
+    const V3 ab = b - a, ac = c - a, ap = p - a;
+    const double d1 = ab.dot(ap), d2 = ac.dot(ap);
+    if (d1 <= 0. && d2 <= 0.) return a;
+    const V3 bp = p - b;
+    const double d3 = ab.dot(bp), d4 = ac.dot(bp);
+    if (d3 >= 0. && d4 <= d3) return b;
+    const double vc = d1 * d4 - d3 * d2;
+    if (vc <= 0. && d1 >= 0. && d3 <= 0.) return a + ab * (d1 / (d1 - d3));
+    const V3 cp = p - c;
+    const double d5 = ab.dot(cp), d6 = ac.dot(cp);
+    if (d6 >= 0. && d5 <= d6) return c;
+    const double vb = d5 * d2 - d1 * d6;
+    if (vb <= 0. && d2 >= 0. && d6 <= 0.) return a + ac * (d2 / (d2 - d6));
+    const double va = d3 * d6 - d5 * d4;
+    if (va <= 0. && (d4 - d3) >= 0. && (d5 - d6) >= 0.) return b + (c - b) * ((d4 - d3) / ((d4 - d3) + (d5 - d6)));
+    const double den = 1. / (va + vb + vc);
+    return a + ab * (vb * den) + ac * (vc * den);
+}
+
+// A cut never adds material: a curved cut face may leave the part where the loop turns sharply (around the
+// corner of a box of a few large triangles), so the faces of both pieces would stick out of the original
+// surface. The cap vertices found outside `original` (the mesh before the cut) are pulled back just inside
+// it along `axis`, the direction the cap is a height field along: each keeps its place in the cap's chart,
+// so the face cannot fold, and both faces of the cut are held under the same surface, so they cannot cross.
+// Returns false if some of the cut face is still outside: the cut must not be used then.
+//  first_cap: index of the first cap triangle in its.indices; reach: how far outside a cap point may be [mm].
+inline bool keep_caps_inside(indexed_triangle_set &its, size_t first_cap, const indexed_triangle_set &original, const V3 &axis,
+                             double reach)
+{
+    constexpr double out_tol = 0.01; // [mm] outside by less is on the surface (float noise along the rim)
+    constexpr double inset   = 0.02; // [mm] how far inside a pulled vertex goes
+    auto vpos = [&](int v) -> V3 { return its.vertices[size_t(v)].template cast<double>(); };
+    auto opos = [&](int v) -> V3 { return original.vertices[size_t(v)].template cast<double>(); };
+    std::vector<int> cap_verts;
+    {
+        std::unordered_set<int> seen;
+        for (size_t ti = first_cap; ti < its.indices.size(); ++ti)
+            for (int v : its.indices[ti]) if (seen.insert(v).second) cap_verts.push_back(v);
+    }
+    if (cap_verts.empty()) return true;
+    V3 bmin = vpos(cap_verts.front()), bmax = bmin;
+    for (int v : cap_verts) { bmin = bmin.cwiseMin(vpos(v)); bmax = bmax.cwiseMax(vpos(v)); }
+    bmin.array() -= reach; bmax.array() += reach;
+
+    // The original triangles near the caps, in a grid of cells of `reach`.
+    const double cell = std::max(reach, 0.5);
+    auto key = [&](long x, long y, long z) { return (uint64_t(uint32_t(x)) * 73856093ull) ^ (uint64_t(uint32_t(y)) * 19349663ull) ^ (uint64_t(uint32_t(z)) * 83492791ull); };
+    auto cell_of = [&](double c, double lo) { return long(std::floor((c - lo) / cell)); };
+    std::unordered_map<uint64_t, std::vector<uint32_t>> grid;
+    for (size_t ti = 0; ti < original.indices.size(); ++ti) {
+        const auto &t = original.indices[ti];
+        V3 tmin = opos(t[0]).cwiseMin(opos(t[1])).cwiseMin(opos(t[2]));
+        V3 tmax = opos(t[0]).cwiseMax(opos(t[1])).cwiseMax(opos(t[2]));
+        if ((tmax.array() < bmin.array()).any() || (tmin.array() > bmax.array()).any()) continue;
+        tmin = tmin.cwiseMax(bmin); tmax = tmax.cwiseMin(bmax);
+        for (long x = cell_of(tmin.x(), bmin.x()); x <= cell_of(tmax.x(), bmin.x()); ++x)
+            for (long y = cell_of(tmin.y(), bmin.y()); y <= cell_of(tmax.y(), bmin.y()); ++y)
+                for (long z = cell_of(tmin.z(), bmin.z()); z <= cell_of(tmax.z(), bmin.z()); ++z)
+                    grid[key(x, y, z)].push_back(uint32_t(ti));
+    }
+    auto normal = [&](uint32_t ti) {
+        const auto &t = original.indices[ti];
+        return V3((opos(t[1]) - opos(t[0])).cross(opos(t[2]) - opos(t[0])));
+    };
+    // Signed distance to the original surface within reach (> 0 outside), and the nearest surface point.
+    // The sign comes from the normals of the triangles sharing the nearest point (its edge or corner).
+    auto signed_dist = [&](const V3 &p, V3 &nearest) -> double {
+        double best = std::numeric_limits<double>::max();
+        V3     nsum = V3::Zero();
+        const long cx = cell_of(p.x(), bmin.x()), cy = cell_of(p.y(), bmin.y()), cz = cell_of(p.z(), bmin.z());
+        std::unordered_set<uint32_t> done;
+        for (long x = cx - 1; x <= cx + 1; ++x)
+            for (long y = cy - 1; y <= cy + 1; ++y)
+                for (long z = cz - 1; z <= cz + 1; ++z) {
+                    auto it = grid.find(key(x, y, z));
+                    if (it == grid.end()) continue;
+                    for (uint32_t ti : it->second) {
+                        if (!done.insert(ti).second) continue;
+                        const V3 n = normal(ti);
+                        if (n.squaredNorm() < 1e-24) continue; // degenerate: no side
+                        const auto  &t = original.indices[ti];
+                        const V3     q = closest_on_triangle(p, opos(t[0]), opos(t[1]), opos(t[2]));
+                        const double d = (q - p).norm();
+                        if (d < best - 1e-9) { best = d; nearest = q; nsum = n.normalized(); }
+                        else if (d < best + 1e-9) nsum += n.normalized();
+                    }
+                }
+        if (best > reach) return -reach; // far from the surface: deep inside (the caps span the part's inside)
+        return nsum.dot(p - nearest) > 0. ? best : -best;
+    };
+
+    // Cap triangle normals before, to make sure pulling does not fold the face.
+    std::vector<V3> before;
+    before.reserve(its.indices.size() - first_cap);
+    for (size_t ti = first_cap; ti < its.indices.size(); ++ti) {
+        const auto &t = its.indices[ti];
+        before.push_back((vpos(t[1]) - vpos(t[0])).cross(vpos(t[2]) - vpos(t[0])));
+    }
+    bool moved = false;
+    for (int v : cap_verts) {
+        V3 q;
+        const V3 p = vpos(v);
+        if (signed_dist(p, q) <= out_tol) continue;
+        // The shortest move along the axis, either way, that brings it inside: marched, then bisected.
+        constexpr double step = 0.05;
+        double best_s = std::numeric_limits<double>::max();
+        V3     best_p = p;
+        for (double dir : {1., -1.}) {
+            double lo = 0., hi = -1.;
+            for (double t = step; t <= reach && t < best_s; t += step)
+                if (signed_dist(p + axis * (dir * t), q) <= -inset) { hi = t; break; }
+                else lo = t;
+            if (hi < 0.) continue;
+            for (int it = 0; it < 12; ++it) {
+                const double mid = 0.5 * (lo + hi);
+                if (signed_dist(p + axis * (dir * mid), q) <= -inset) hi = mid; else lo = mid;
+            }
+            if (hi < best_s) { best_s = hi; best_p = p + axis * (dir * hi); }
+        }
+        if (best_s == std::numeric_limits<double>::max()) return false;
+        its.vertices[size_t(v)] = best_p.template cast<float>();
+        moved = true;
+    }
+    if (!moved) return true;
+    for (size_t ti = first_cap; ti < its.indices.size(); ++ti) {
+        const auto &t = its.indices[ti];
+        const V3    a = vpos(t[0]), b = vpos(t[1]), c = vpos(t[2]);
+        // Folded: turned over as seen along the axis (moving along it keeps a triangle's shadow).
+        const double was = before[ti - first_cap].dot(axis), now = (b - a).cross(c - a).dot(axis);
+        // (Edge-on slivers and specks of no area turn over with float noise alone.)
+        if (before[ti - first_cap].norm() > 1e-6 && std::abs(was) > 1e-3 * before[ti - first_cap].norm() && (was > 0.) != (now > 0.))
+            return false;
+        V3 q;
+        if (signed_dist((a + b + c) / 3., q) > 2. * out_tol + inset)
+            return false;
+    }
+    return true;
+}
+
 } // namespace detail
 
 // Removes the slab |field| < kerf / 2 from a closed mesh and closes the openings.
@@ -1879,6 +2022,7 @@ inline CutResult cut_along_loop(indexed_triangle_set its, const LoopCutter &lc, 
     auto stop = [&]() { return canceled && canceled(); };
     auto pos  = [&](int v) -> V3 { return its.vertices[size_t(v)].template cast<double>(); };
     const size_t nv0 = its.vertices.size();
+    const indexed_triangle_set original = its; // to keep the cut faces inside it
 
     // Field per vertex, never exactly zero (a tiny shift, not a move) so every crossing is inside its edge.
     std::vector<double> g(nv0);
@@ -2133,6 +2277,11 @@ inline CutResult cut_along_loop(indexed_triangle_set its, const LoopCutter &lc, 
     case 2: return {};
     default: break;
     }
+    if (!detail::keep_caps_inside(its, res.first_cap, original, lc.frame.n, std::max(tmax, 5.))) {
+        res.error = L("The curved cut face would come out of the part here. Use a flat cut face, or place more points, "
+                      "closer together.");
+        return res;
+    }
     res.level.resize(its.vertices.size(), 0);
     for (uint64_t k : chain_edges) { res.level[size_t(xv[k][0])] = 1; res.level[size_t(xv[k][1])] = -1; }
     for (int li = 0; li < 2; ++li)
@@ -2210,6 +2359,7 @@ inline CutResult cut_along_edge_loop(indexed_triangle_set its, const std::vector
     auto stop = [&]() { return canceled && canceled(); };
     auto pos  = [&](int v) -> V3 { return its.vertices[size_t(v)].template cast<double>(); };
     const size_t nv0 = its.vertices.size(), nt0 = its.indices.size();
+    const indexed_triangle_set original = its; // to keep the cut faces inside it
     if (chain_in.size() < 3) {
         res.error = L("The loop needs at least three points.");
         return res;
@@ -2451,6 +2601,11 @@ inline CutResult cut_along_edge_loop(indexed_triangle_set its, const std::vector
     case 1: return res;
     case 2: return {};
     default: break;
+    }
+    if (!detail::keep_caps_inside(its, res.first_cap, original, mc.frame.n, 5.)) {
+        res.error = L("The curved cut face would come out of the part here. Use a flat cut face, or place more points, "
+                      "closer together.");
+        return res;
     }
     res.level.resize(its.vertices.size(), 0);
     const signed char left_level = left_li == 0 ? 1 : -1;

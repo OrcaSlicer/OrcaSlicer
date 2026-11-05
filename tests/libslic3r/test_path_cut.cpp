@@ -377,6 +377,34 @@ TEST_CASE("A loop following the model's edges runs along a ridge between the pic
     CHECK(graph.fine_enough(picked));
 }
 
+TEST_CASE("A curved cut face around a corner stays inside the part", "[PathCut]")
+{
+    // A loop around a corner of a 22 mm cube of 12 triangles turns sharply at its edges: the curved cut face
+    // spanning it used to leave the cube by up to 1.6 mm, so both pieces stuck out of it.
+    const indexed_triangle_set cube = its_make_cube(22., 22., 22.);
+    auto on_cube = [](const PathCut::V3 &q) {
+        PathCut::V3 c = q.cwiseMax(PathCut::V3::Zero()).cwiseMin(PathCut::V3::Constant(22.));
+        int         axis = 0;
+        for (int i = 1; i < 3; ++i)
+            if (std::min(c[i], 22. - c[i]) < std::min(c[axis], 22. - c[axis])) axis = i;
+        c[axis] = c[axis] < 11. ? 0. : 22.;
+        return c;
+    };
+    const std::vector<PathCut::V3> picked{{14.455, 9.613, 22.}, {14.698, 0., 12.221}, {22., 14.791, 10.819}};
+    const PathCut::LoopCutter lc = PathCut::make_loop_cutter(picked, 0.2, 3., on_cube, false);
+    REQUIRE(lc.valid());
+
+    const PathCut::CutResult res = PathCut::cut_along_loop(cube, lc, 3.);
+    REQUIRE(res.error.empty());
+    const auto parts = its_split(res.mesh);
+    REQUIRE(parts.size() == 2);
+    require_closed_parts(parts);
+    float outside = 0.f; // how far the pieces reach out of the cube
+    for (const Vec3f &v : res.mesh.vertices)
+        outside = std::max({outside, -v.x(), -v.y(), -v.z(), v.x() - 22.f, v.y() - 22.f, v.z() - 22.f});
+    CHECK(outside < 0.02f);
+}
+
 TEST_CASE("A mesh of a few large triangles is too coarse to follow its edges", "[PathCut]")
 {
     // A 22 mm cube of 12 triangles, three points picked around one corner, far from any vertex: there are
