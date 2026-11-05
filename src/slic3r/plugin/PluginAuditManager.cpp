@@ -2,6 +2,7 @@
 
 #include "../Utils/OrcaCloudServiceAgent.hpp"
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/libslic3r.h" // GCODEVIEWER_APP_KEY, and SLIC3R_APP_KEY via libslic3r_version.h
 #include "libslic3r_version.h"
 
@@ -24,6 +25,7 @@
 #include <memory>
 #include <slic3r/GUI/BindDialog.hpp>
 #include <slic3r/GUI/GUI_App.hpp>
+#include <slic3r/GUI/MsgDialog.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <string>
@@ -783,20 +785,32 @@ AuditDecision PluginAuditManager::check_open(const std::string& path_str, const 
 
 namespace {
 
-// Builds and shows the modal confirmation. Must run on the GUI thread. The prompt helpers in
-// PluginAuditDetail below share it so every permission prompt is styled the same way.
-bool show_permission_dialog(const wxString& message, const wxString& title)
-{
-    wxMessageDialog dialog(nullptr, message, title, wxYES_NO | wxICON_WARNING);
-    return dialog.ShowModal() == wxID_YES;
-}
-
 // A complete sentence of its own, so a translator can place it independently of the request
 // body. Informational only: a prompt never navigates to, or opens, the Plugins dialog.
 void append_permission_dialog_tip(wxString& message)
 {
     message += "\n\n";
     message += _L("Tip: You can review and change this plugin's saved permissions in the Plugins dialog, on the Permissions tab.");
+}
+
+// The preference affects only the explanatory tip, never the permission decision.
+// Must run on the GUI thread.
+bool show_permission_dialog(wxString message, const wxString& title)
+{
+    auto* config = GUI::wxGetApp().app_config;
+    const bool show_tip = config == nullptr || config->get("hide_plugin_permission_tip") != "1";
+    if (show_tip)
+        append_permission_dialog_tip(message);
+
+    GUI::RichMessageDialog dialog(nullptr, message, title, wxYES_NO | wxICON_WARNING);
+    if (show_tip)
+        dialog.ShowCheckBox(_L("Don't show this tip again"));
+    const int result = dialog.ShowModal();
+    if (show_tip && config != nullptr && (result == wxID_YES || result == wxID_NO) && dialog.IsCheckBoxChecked()) {
+        config->set("hide_plugin_permission_tip", "1");
+        config->save();
+    }
+    return result == wxID_YES;
 }
 
 } // namespace
@@ -1417,16 +1431,13 @@ bool prompt_for_targets(AuditEventCategory category, const std::string& plugin_n
 
     wxString message = audit_message(category, wxString::FromUTF8(plugin_name.c_str()), wxString::FromUTF8(event_name.c_str()),
                                      target_list, unresolved.size());
-    append_permission_dialog_tip(message);
-
     return show_permission_dialog(message, _L("Plugin permission request"));
 }
 
 // Shows a prompt whose body may cover several permission buckets. Must run on the GUI thread.
 bool prompt_for_permission_message(const wxString& message)
 {
-    wxMessageDialog dialog(nullptr, message, _L("Plugin permissions"), wxYES_NO | wxICON_WARNING);
-    return dialog.ShowModal() == wxID_YES;
+    return show_permission_dialog(message, _L("Plugin permissions"));
 }
 
 // Records a grant in the plugin's sidecar so it is not asked again. Each persist helper re-reads
@@ -1723,15 +1734,15 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
             message += PluginAuditDetail::audit_message(bucket.category, wxString::FromUTF8(plugin_name.c_str()),
                                                         wxEmptyString, targets, bucket.targets.size());
         }
-        append_permission_dialog_tip(message);
         return message;
     };
 
     bool granted = false;
     if (PluginAuditDetail::s_permission_message_prompt_for_testing) {
         // Tests run without a wxApp to host the dialog: hand the seam the message it would show.
-        granted = PluginAuditDetail::s_permission_message_prompt_for_testing(
-            build_message(descriptor.name, missing_buckets).utf8_string());
+        wxString message = build_message(descriptor.name, missing_buckets);
+        append_permission_dialog_tip(message);
+        granted = PluginAuditDetail::s_permission_message_prompt_for_testing(message.utf8_string());
     } else if (wxTheApp == nullptr || GUI::wxGetApp().is_closing()) {
         return false;
     } else if (wxIsMainThread()) {
