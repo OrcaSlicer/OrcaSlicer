@@ -8,7 +8,13 @@
 
 cmake_minimum_required(VERSION 3.13)
 
-if(NOT HMS_DIR OR NOT IS_DIRECTORY "${HMS_DIR}")
+if(NOT HMS_DIR)
+    message(FATAL_ERROR "PackHmsResources: HMS_DIR is not set")
+endif()
+# file(GLOB ... RELATIVE) finds nothing when the base is relative, as with the AppImage's APPDIR="package".
+# In script mode a relative path resolves against the current directory.
+get_filename_component(HMS_DIR "${HMS_DIR}" ABSOLUTE)
+if(NOT IS_DIRECTORY "${HMS_DIR}")
     message(FATAL_ERROR "PackHmsResources: HMS_DIR '${HMS_DIR}' is not a directory")
 endif()
 
@@ -27,7 +33,11 @@ endif()
 
 file(GLOB _hms_files LIST_DIRECTORIES false RELATIVE "${HMS_DIR}" "${HMS_DIR}/hms_*.json")
 if(NOT _hms_files)
-    message(STATUS "PackHmsResources: no HMS files to zip in ${HMS_DIR}")
+    if(EXISTS "${HMS_DIR}/hms.zip")
+        message(STATUS "PackHmsResources: ${HMS_DIR} is already zipped")
+    else()
+        message(WARNING "PackHmsResources: no HMS files to zip in ${HMS_DIR}")
+    endif()
     return()
 endif()
 list(SORT _hms_files) # stable entry order across platforms and file systems

@@ -13,6 +13,7 @@
 #include <boost/filesystem/directory.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/system/error_code.hpp>
 #include <unordered_set>
 #include <string>
 #include "libslic3r/Utils.hpp"
@@ -182,16 +183,15 @@ static bool read_file(const fs::path& file_path, std::string& content)
 
 // Orca: release packages ship the resources/hms/hms_*.json files inside resources/hms/hms.zip
 // (cmake/modules/PackHmsResources.cmake), while builds run from the source tree read the plain JSON.
-// Either way only the requested file is read.
+// When hms.zip exists it is the only source: plain files next to it can only be left over from an
+// older version, e.g. a portable zip extracted over an older folder. Only the requested file is read.
 static bool read_bundled_hms_file(const std::string& filename, std::string& content)
 {
-    const fs::path hms_dir = fs::path(Slic3r::resources_dir()) / HMS_PATH;
-    if (read_file(hms_dir / filename, content))
-        return true;
-
+    const fs::path hms_dir  = fs::path(Slic3r::resources_dir()) / HMS_PATH;
     const fs::path zip_path = hms_dir / HMS_ZIP_FILE;
-    if (!fs::exists(zip_path))
-        return false;
+    boost::system::error_code ec;
+    if (!fs::exists(zip_path, ec))
+        return read_file(hms_dir / filename, content);
 
     mz_zip_archive zip;
     mz_zip_zero_struct(&zip);
@@ -676,8 +676,8 @@ void HMSQuery::init_hms_info(const std::string& dev_type_id)
             std::string load_version;
             load_from_local(QUERY_HMS_INFO, dev_type_id, &m_hms_info_jsons[dev_type_id], load_version);/*load from local first*/
             if (load_version.empty() || load_version == "0") {
-                // Orca: only English catalogs are bundled; other languages are downloaded on demand below.
-                // Until then the English catalog is used from memory only, so the download still asks for the full file (v=0).
+                // Orca: a language without a bundled catalog (e.g. th, vi) uses the English one from memory only,
+                // so the download below still asks for the full file in that language (v=0).
                 if (copy_bundled_file_to_local(get_hms_file(QUERY_HMS_INFO, hms_language_code(), dev_type_id)))
                     load_from_local(QUERY_HMS_INFO, dev_type_id, &m_hms_info_jsons[dev_type_id], load_version);
                 else
