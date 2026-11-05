@@ -40,6 +40,7 @@
 #include <vector>
 
 #include <wx/busycursor.h>
+#include <wx/chartype.h>
 #include <wx/dialog.h>
 #include <wx/event.h>
 #include <wx/filedlg.h>
