@@ -31,6 +31,7 @@
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/string.h>
+#include <wx/timer.h>
 #include <wx/utils.h>
 #include <wx/webview.h>
 
@@ -48,6 +49,10 @@ namespace {
 constexpr int kPopupWidth     = 540;
 constexpr int kPopupMinHeight = 60; // just above the bare search-bar height, so the dialog hugs content
 constexpr int kPopupMaxHeight = 282;
+// Delay between a deactivation and the auto-hide decision, so that a focus bounce shorter than this (the
+// keyboard leaving and coming back within the interval) does not dismiss the dial. A window that really
+// takes the focus still hides it when the timer fires.
+constexpr int kHideSettleMs = 150;
 
 int json_int_or(const nlohmann::json& j, const char* key, int fallback)
 {
@@ -146,6 +151,8 @@ wxPoint speed_dial_origin(const wxRect& parent_screen_rect, const wxRect& work_a
             std::clamp(y, work_area.y, work_area.y + std::max(0, work_area.height - box_size.GetHeight()))};
 }
 
+bool speed_dial_should_hide(bool shown, bool active) { return shown && !active; }
+
 SpeedDialWebDialog::SpeedDialWebDialog(wxWindow* parent)
     : WebViewHostDialog(parent,
                         wxID_ANY,
@@ -160,14 +167,26 @@ SpeedDialWebDialog::SpeedDialWebDialog(wxWindow* parent)
     // keeps that position for every later Show(). position_over_parent() supplies the origin instead.
     gtk_window_set_position(GTK_WINDOW(GetHandle()), GTK_WIN_POS_NONE);
 #endif
+    // The dial dismisses itself when the focus leaves it. The hide is deferred by kHideSettleMs and
+    // re-checked, so a focus bounce shorter than that is not a dismissal. It does not protect against
+    // another window being activated: the first-open close on Linux was the main frame's tab handler
+    // calling SetFocus() while the Calibration page was built in the background, which on wxGTK presents
+    // the main window (fixed in MainFrame::init_tabpanel).
+    m_hide_timer.SetOwner(this);
+    Bind(wxEVT_TIMER, &SpeedDialWebDialog::on_hide_timer, this);
     Bind(wxEVT_ACTIVATE, [this](wxActivateEvent& event) {
         // Focus the WebKit widget exactly when the WM makes the popup the active window
         // (modeless focus is granted asynchronously, so a focus request made right after
         // Show() is dropped). Also re-corrects focus on every re-open.
-        if (event.GetActive() && IsShown())
+        if (!IsShown()) {
+            event.Skip();
+            return;
+        }
+        if (event.GetActive()) {
+            m_hide_timer.Stop();
             focus_webview(browser(), m_page_ready);
-        else if (!event.GetActive() && IsShown())
-            Hide();
+        } else
+            schedule_hide();
         event.Skip();
     });
     if (!create_webview("web/dialog/SpeedDial/index.html", wxEmptyString, wxSize(kPopupWidth, kPopupMaxHeight),
@@ -192,7 +211,11 @@ SpeedDialWebDialog::SpeedDialWebDialog(wxWindow* parent)
     position_over_parent();
 }
 
-SpeedDialWebDialog::~SpeedDialWebDialog() { m_alive->store(false, std::memory_order_release); }
+SpeedDialWebDialog::~SpeedDialWebDialog()
+{
+    m_hide_timer.Stop();
+    m_alive->store(false, std::memory_order_release);
+}
 
 nlohmann::json SpeedDialWebDialog::localized_strings() const { return speed_dial_ui_strings(); }
 
@@ -217,8 +240,36 @@ void SpeedDialWebDialog::position_over_parent()
 #endif
 }
 
+void SpeedDialWebDialog::schedule_hide()
+{
+    if (IsShown())
+        m_hide_timer.StartOnce(kHideSettleMs);
+}
+
+bool SpeedDialWebDialog::is_active()
+{
+#ifdef __WXGTK__
+    GtkWindow* const window = GTK_WINDOW(GetHandle());
+    return window && gtk_window_is_active(window);
+#else
+    return IsActive();
+#endif
+}
+
+void SpeedDialWebDialog::on_hide_timer(wxTimerEvent&)
+{
+    if (!m_alive->load(std::memory_order_acquire))
+        return;
+    if (!speed_dial_should_hide(IsShown(), is_active()))
+        return;
+    Hide();
+}
+
 void SpeedDialWebDialog::request_show()
 {
+    // A pending auto-hide belongs to the previous open.
+    m_hide_timer.Stop();
+
     // Re-derived on every open: the dialog is a long-lived hidden window, so without this the
     // coordinates stay at the frame's position from the first open and the dial stops following the
     // frame when it is moved, resized, or dragged to another display.
@@ -237,8 +288,11 @@ void SpeedDialWebDialog::request_show()
     if (m_page_ready)
         send_actions();
     // Grab focus now and again on wxEVT_ACTIVATE; grabbing directly on the WebKit widget is
-    // what makes typing reach the search field immediately on open.
-    focus_webview(browser(), m_page_ready);
+    // what makes typing reach the search field immediately on open. Skipped while the page is still
+    // loading: on the first open the window is not mapped yet, so the grab would land on a window the
+    // WM has not activated - the ACTIVATE handler grabs it once it has.
+    if (m_page_ready)
+        focus_webview(browser(), true);
     repaint_webview();
     // A position requested before the window is mapped can be dropped, so reapply once it is up.
     wxGetApp().CallAfter([this, alive = m_alive]() {
