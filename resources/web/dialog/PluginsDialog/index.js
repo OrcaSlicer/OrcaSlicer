@@ -406,11 +406,6 @@ function CommitPermission(pluginKey, mutation) {
   RenderDetails();
 }
 
-function RequestPermissionDialogClose() {
-  SendMessage("close_plugins_dialog");
-}
-
-
 // Footer status bar for the latest operation result; the native side already localizes the text.
 function ShowStatusMessage(message, level) {
   const bar = document.getElementById("statusBar");
@@ -1925,20 +1920,18 @@ function OnPluginListClick(event) {
       return;
 
     const pluginKey = String(block.dataset.pluginKey || "");
-    const wasExpanded = block.classList.contains("expanded");
-    const selectAndToggle = () => {
-      selectedPluginId = pluginKey;
-      // Search expansion is transient and must not change the saved expansion state.
-      if (typeof PluginSearchActive === "function" && PluginSearchActive())
-        searchExpandOverride.set(pluginKey, !wasExpanded);
-      else if (expandedPluginIds.has(pluginKey))
-        expandedPluginIds.delete(pluginKey);
-      else
-        expandedPluginIds.add(pluginKey);
-      RenderPlugins();
-      RenderDetails();
-    };
-    selectAndToggle();
+    selectedPluginId = pluginKey;
+    // why: during a search the triangle writes to the transient override (read from the on-screen
+    //      open state), so an auto-expanded row collapses without touching the saved layout.
+    if (typeof PluginSearchActive === "function" && PluginSearchActive())
+      searchExpandOverride.set(pluginKey, !block.classList.contains("expanded"));
+    else if (expandedPluginIds.has(pluginKey))
+      expandedPluginIds.delete(pluginKey);
+    else
+      expandedPluginIds.add(pluginKey);
+
+    RenderPlugins();
+    RenderDetails();
     return;
   }
 
@@ -1952,8 +1945,10 @@ function OnPluginListClick(event) {
       return;
 
     const pluginKey = String(block.dataset.pluginKey || "");
-    const open = () => { selectedPluginId = pluginKey; RenderPlugins(); RenderDetails(); sendOpenPluginOnCloud(pluginKey); };
-    open();
+    selectedPluginId = pluginKey;
+    RenderPlugins();
+    RenderDetails();
+    sendOpenPluginOnCloud(pluginKey);
     return;
   }
 
@@ -1969,8 +1964,9 @@ function OnPluginListClick(event) {
     return;
 
   const pluginKey = String(block.dataset.pluginKey || "");
-  const select = () => { selectedPluginId = pluginKey; RenderPlugins(); RenderDetails(); };
-  select();
+  selectedPluginId = pluginKey;
+  RenderPlugins();
+  RenderDetails();
 }
 
 function OnPluginListChange(event) {
@@ -1979,20 +1975,6 @@ function OnPluginListChange(event) {
     return;
 
   const pluginKey = String(checkbox.dataset.pluginKey || "");
-  if (pluginKey !== selectedPluginId) {
-    const enabled = checkbox.checked;
-    const capability = checkbox.dataset.capabilityToggle === "true";
-    const capabilityType = String(checkbox.dataset.capabilityType || "");
-    const capabilityName = String(checkbox.dataset.capabilityName || "");
-    checkbox.checked = !enabled;
-    selectedPluginId = pluginKey;
-    RenderPlugins();
-    RenderDetails();
-    SendMessage(capability ? "toggle_plugin_capability" : "toggle_plugin", capability
-      ? { plugin_key: pluginKey, capability_type: capabilityType, capability_name: capabilityName, enabled }
-      : { plugin_key: pluginKey, enabled });
-    return;
-  }
   if (checkbox.dataset.capabilityToggle === "true") {
     const capabilityName = String(checkbox.dataset.capabilityName || "");
     selectedPluginId = pluginKey;
@@ -2053,16 +2035,11 @@ function OnPluginContextMenu(event) {
     return;
 
   event.preventDefault();
-  const pluginKey = String(block.dataset.pluginKey || "");
-  const x = event.clientX, y = event.clientY;
-  const show = () => {
-    selectedPluginId = pluginKey;
-    contextPluginId = pluginKey;
-    RenderPlugins();
-    RenderDetails();
-    ShowContextMenu(x, y);
-  };
-  show();
+  selectedPluginId = String(block.dataset.pluginKey || "");
+  contextPluginId = selectedPluginId;
+  RenderPlugins();
+  RenderDetails();
+  ShowContextMenu(event.clientX, event.clientY);
 }
 
 function ShowContextMenu(x, y) {

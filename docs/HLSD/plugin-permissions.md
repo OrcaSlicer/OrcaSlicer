@@ -13,8 +13,8 @@ runs in the host process with the user's filesystem and network rights. The limi
 follow from that are listed under "Security limitations".
 
 The Plugins dialog exposes the stored grants and the full-access switch, but the
-enforcement lives in libslic3r and applies whenever a capability call runs, whether or
-not the dialog is open. The Script execution path that opens the audit scope is described
+enforcement lives in `src/slic3r/plugin` (built into `libslic3r_gui`) and applies whenever
+a capability call runs, whether or not the dialog is open. The Script execution path that opens the audit scope is described
 in [python-plugin-async-bridge.md](python-plugin-async-bridge.md).
 
 ## Permission model
@@ -300,10 +300,10 @@ never treated as an opt-out.
   `ORCA_PY_AUDIT_SCOPE`, `invoke_script_execute`.
 - `src/slic3r/plugin/pluginTypes/slicingPipeline/SlicingPipelinePluginCapabilityTrampoline.hpp`
   provides the scoped G-code folder root.
-- `src/slic3r/plugin/PluginManager.hpp` / `.cpp` - `set_plugin_full_access`,
-  `set_plugin_permissions`, `revoke_plugin_permissions`, `get_install_state`.
+- `src/slic3r/plugin/PluginManager.hpp` / `.cpp` - `mutate_plugin_permissions`,
+  `revoke_plugin_permissions`, `get_install_state`.
 - `src/slic3r/GUI/PluginsDialog.cpp` - permission editor payloads, native confirmations,
   and the full-access request path.
 - `tests/slic3rutils/test_plugin_audit.cpp`, `tests/slic3rutils/test_plugin_install.cpp`,
-  `tests/slic3rutils/test_plugin_lifecycle.cpp` - audit decision, sidecar, and edit-lock
-  coverage.
+  `tests/slic3rutils/test_plugin_lifecycle.cpp` - audit decision, sidecar, and permission
+  mutation coverage.

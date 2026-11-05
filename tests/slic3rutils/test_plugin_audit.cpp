@@ -1765,19 +1765,23 @@ TEST_CASE("Toggling full access preserves the other stored grants", "[audit]")
     harness.save_permissions(PLUGIN, stored);
 
     PluginManager& manager = PluginManager::instance();
-    REQUIRE(manager.set_plugin_full_access(PLUGIN, true));
+    PluginPermissionMutation toggle;
+    toggle.full_access = true;
+    REQUIRE(manager.mutate_plugin_permissions(PLUGIN, toggle));
     PluginPermissions after_enable = harness.saved_permissions(PLUGIN);
     CHECK(after_enable.full_access);
     CHECK(after_enable.fs_read == std::vector<std::string>{"/kept/read"});
     CHECK(after_enable.network_http == std::vector<std::string>{"https://kept.example"});
 
-    REQUIRE(manager.set_plugin_full_access(PLUGIN, false));
+    toggle.full_access = false;
+    REQUIRE(manager.mutate_plugin_permissions(PLUGIN, toggle));
     PluginPermissions after_disable = harness.saved_permissions(PLUGIN);
     CHECK_FALSE(after_disable.full_access);
     CHECK(after_disable.fs_read == std::vector<std::string>{"/kept/read"});
 
     // An unknown package has no sidecar to modify: the toggle fails closed.
-    CHECK_FALSE(manager.set_plugin_full_access("NoSuchPlugin", true));
+    toggle.full_access = true;
+    CHECK_FALSE(manager.mutate_plugin_permissions("NoSuchPlugin", toggle));
 }
 
 TEST_CASE("A permission mutation changes only the named entries and preserves the rest", "[audit]")

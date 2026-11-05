@@ -1251,90 +1251,6 @@ void PluginManager::mark_plugin_install_state_disabled(const std::string& plugin
         plugin->descriptor.enabled = false;
 }
 
-bool PluginManager::set_plugin_full_access(const std::string& plugin_key, bool enabled)
-{
-    std::lock_guard<std::mutex> state_lock(install_state_mutex());
-
-    PluginDescriptor descriptor;
-    if (plugin_key.empty()) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": No plugin key supplied";
-        return false;
-    }
-
-    // Enabling must target a loadable package. Disabling accepts any known installed package,
-    // including one whose manifest is currently invalid, so the user can always turn full access
-    // off. Either way the package must have a sidecar to modify.
-    const bool known = enabled ? try_get_valid_plugin_descriptor(plugin_key, descriptor)
-                               : try_get_plugin_descriptor(plugin_key, descriptor);
-    if (!known || !descriptor.has_local_package() || descriptor.plugin_root.empty()) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": No installed plugin to update: " << plugin_key;
-        return false;
-    }
-
-    const boost::filesystem::path root(descriptor.plugin_root);
-    PluginInstallState state;
-    if (!read_install_state(root, state)) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to read install state for " << plugin_key;
-        return false;
-    }
-
-    // Read-modify-write: every other grant in the sidecar is left untouched.
-    state.permissions.full_access = enabled;
-    if (!write_install_state(root, state)) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to write install state for " << plugin_key;
-        return false;
-    }
-
-    BOOST_LOG_TRIVIAL(info) << "Set full access " << (enabled ? "on" : "off") << " for plugin " << plugin_key;
-    return true;
-}
-
-bool PluginManager::set_plugin_permissions(const std::string& plugin_key, const PluginPermissions& permissions)
-{
-    std::lock_guard<std::mutex> state_lock(install_state_mutex());
-
-    if (plugin_key.empty()) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": No plugin key supplied";
-        return false;
-    }
-
-    PluginDescriptor descriptor;
-    if (!try_get_plugin_descriptor(plugin_key, descriptor) || !descriptor.has_local_package() ||
-        descriptor.plugin_root.empty()) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": No installed plugin to update: " << plugin_key;
-        return false;
-    }
-
-    const boost::filesystem::path root(descriptor.plugin_root);
-    PluginInstallState state;
-    if (!read_install_state(root, state)) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to read install state for " << plugin_key;
-        return false;
-    }
-
-    // Read-modify-write: replace the editable grant list and the full-access flag together, and
-    // carry every unrelated install-state field across unchanged. This stays valid when the stored
-    // flag is already on: the user may have edited the list with the draft flag off and then
-    // toggled it back on, and the caller has already confirmed the additions natively. A stored
-    // grant is inert while full access is on and takes effect only once it is cleared.
-    state.permissions.fs_read        = permissions.fs_read;
-    state.permissions.fs_readwrite   = permissions.fs_readwrite;
-    state.permissions.network_http   = permissions.network_http;
-    state.permissions.network_socket = permissions.network_socket;
-    state.permissions.process        = permissions.process;
-    state.permissions.threading      = permissions.threading;
-    state.permissions.events         = permissions.events;
-    state.permissions.full_access    = permissions.full_access;
-
-    if (!write_install_state(root, state)) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to write install state for " << plugin_key;
-        return false;
-    }
-
-    BOOST_LOG_TRIVIAL(info) << "Saved plugin permissions for plugin " << plugin_key;
-    return true;
-}
-
 bool PluginManager::mutate_plugin_permissions(const std::string& plugin_key, const PluginPermissionMutation& mutation,
                                               PluginPermissions* applied)
 {
@@ -1346,8 +1262,7 @@ bool PluginManager::mutate_plugin_permissions(const std::string& plugin_key, con
     }
 
     // Enabling full access is the dangerous direction and must target a loadable (non-invalid)
-    // package, exactly like set_plugin_full_access(). Disabling and plain list edits accept any
-    // known installed package.
+    // package. Disabling and plain list edits accept any known installed package.
     PluginDescriptor descriptor;
     const bool       enabling_full_access = mutation.full_access && *mutation.full_access;
     const bool       known = enabling_full_access ? try_get_valid_plugin_descriptor(plugin_key, descriptor)

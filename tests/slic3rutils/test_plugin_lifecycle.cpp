@@ -352,19 +352,19 @@ TEST_CASE("Permissions can be edited while a plugin is loaded", "[PluginLifecycl
     REQUIRE(manager.is_plugin_loaded("Echo_Plugin"));
 
     // A running plugin no longer locks its own permissions: the next audited operation re-reads
-    // the sidecar, so a replacement and the full-access toggle both take effect without a reload.
-    PluginPermissions changed;
-    changed.fs_read = {"/while/loaded"};
-    REQUIRE(manager.set_plugin_permissions("Echo_Plugin", changed));
-    REQUIRE(manager.set_plugin_full_access("Echo_Plugin", true));
+    // the sidecar, so an edit and the full-access toggle both take effect without a reload.
+    PluginPermissionMutation while_loaded;
+    while_loaded.add         = {{PluginPermissionCategory::FsRead, "/while/loaded"}};
+    while_loaded.full_access = true;
+    REQUIRE(manager.mutate_plugin_permissions("Echo_Plugin", while_loaded));
 
     PluginInstallState stored;
     REQUIRE(manager.get_install_state("Echo_Plugin", stored));
-    CHECK(stored.permissions.fs_read == changed.fs_read);
+    CHECK(stored.permissions.fs_read == std::vector<std::string>{"/while/loaded"});
     CHECK(stored.permissions.full_access);
 
-    // A granular mutation also applies while the plugin stays loaded, and leaves the replacement
-    // API's other grants alone.
+    // A second granular mutation also applies while the plugin stays loaded, and leaves the
+    // earlier edit's other grants alone.
     PluginPermissionMutation mutation;
     mutation.add       = {{PluginPermissionCategory::NetworkHttp, "https://while-loaded.example"}};
     mutation.remove    = {{PluginPermissionCategory::FsRead, "/while/loaded"}};

@@ -841,79 +841,7 @@ bool install_local_plugin_package(const boost::filesystem::path& package_file, w
 PluginsDialog::PluginsDialog(wxWindow* parent, wxWindowID id, const wxString&, const wxPoint& pos, const wxSize& size, long style)
     : WebViewHostDialog(parent, id, _L("Plugins"), pos, size, style)
 {
-    Bind(wxEVT_CLOSE_WINDOW, &PluginsDialog::on_window_close, this);
-    Bind(wxEVT_CHAR_HOOK, &PluginsDialog::on_char_hook, this);
-    Bind(wxEVT_SHOW, &PluginsDialog::on_show, this);
     create_webview("web/dialog/PluginsDialog/index.html", _L("Plugins"), wxSize(900, 820), wxSize(760, 715));
-}
-
-void PluginsDialog::on_show(wxShowEvent& event)
-{
-    if (event.IsShown()) {
-        m_allow_close             = false;
-        m_esc_close_request_sent  = false;
-        m_close_request_in_flight = false;
-    }
-    event.Skip();
-}
-
-void PluginsDialog::on_window_close(wxCloseEvent& event)
-{
-    if (m_allow_close || wxGetApp().is_closing()) {
-        event.Skip();
-        return;
-    }
-
-    // A forced close (session end) cannot be delayed for the page.
-    if (!event.CanVeto()) {
-        event.Skip();
-        return;
-    }
-
-    event.Veto();
-    // The ESC char hook already asked the page; do not ask twice when wx's default ESC handling
-    // turns into a close event for this same key press.
-    if (!m_esc_close_request_sent && !m_close_request_in_flight)
-        request_permission_dialog_close();
-}
-
-void PluginsDialog::on_char_hook(wxKeyEvent& event)
-{
-    if (event.GetKeyCode() != WXK_ESCAPE || m_allow_close) {
-        event.Skip();
-        return;
-    }
-
-    // Ask the page exactly once per ESC; Skip allows normal event handling to continue.
-    if (!m_esc_close_request_sent) {
-        m_esc_close_request_sent = true;
-        request_permission_dialog_close();
-        wxGetApp().CallAfter([this, alive = m_alive]() {
-            if (alive->load(std::memory_order_acquire))
-                m_esc_close_request_sent = false;
-        });
-    }
-    event.Skip();
-}
-
-void PluginsDialog::request_permission_dialog_close()
-{
-    if (m_close_request_in_flight)
-        return;
-
-    // The page answers with close_plugins_dialog.
-    m_close_request_in_flight = true;
-    const bool asked = run_script(wxT("RequestPermissionDialogClose();"));
-    m_close_request_in_flight = false;
-    if (asked)
-        return;
-
-    // No loaded page to ask: close instead of trapping the user.
-    m_allow_close = true;
-    wxGetApp().CallAfter([this, alive = m_alive]() {
-        if (alive->load(std::memory_order_acquire) && !IsBeingDeleted())
-            Close();
-    });
 }
 
 nlohmann::json PluginsDialog::localized_strings() const
@@ -1012,7 +940,6 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"permissions_access_readwrite", _u8L_CONTEXT("Read and write", "Permission access")},
         {"permissions_read_unavailable", _u8L("Read permissions are unavailable.")},
         {"permissions_readwrite_unavailable", _u8L("Read and write permissions are unavailable.")},
-        {"permissions_filesystem_access_label", _u8L("Access for new path")},
         {"permissions_filesystem_read_name", _u8L("File system: Read")},
         {"permissions_filesystem_readwrite_name", _u8L("File system: Read and write")},
         {"permissions_full_access_help", _u8L("Full access bypasses permission checks. The plugin can read and write most files you can access; modifying startup or application files can let code run outside these checks. Direct Python access to OrcaSlicer's configuration, secret, certificate and install-state paths stays blocked, but subprocesses are not restricted.")},
@@ -1159,17 +1086,6 @@ void PluginsDialog::handle_web_command(const nlohmann::json& payload)
         save_capability_config(id, payload.contains("config") ? payload.at("config") : nlohmann::json::object());
     } else if (command == "mutate_plugin_permission") {
         mutate_plugin_permission(payload);
-    } else if (command == "close_plugins_dialog") {
-        // Ignore a duplicate command and authorize the close
-        // first so the close event it raises cannot be intercepted again.
-        if (m_allow_close)
-            return;
-        m_allow_close = true;
-        m_esc_close_request_sent = false;
-        wxGetApp().CallAfter([this, alive = m_alive]() {
-            if (alive->load(std::memory_order_acquire) && !IsBeingDeleted())
-                Close();
-        });
     } else if (command == "set_plugin_install_action") {
         const std::string action = payload.value("action", "");
         if (action == "explore" || action == "install-local")
@@ -1366,13 +1282,14 @@ void PluginsDialog::mutate_plugin_permission(const nlohmann::json& payload)
         }
         if (operation != "remove") {
             const std::string raw = string_field("value");
-            std::string normalized = raw;
+            const std::string value = trim_permission_target(raw);
+            std::string normalized = value;
             wxString reason;
-            bool valid = !trim_permission_target(raw).empty() && raw.find('\0') == std::string::npos;
+            bool valid = !value.empty() && value.find('\0') == std::string::npos;
             if (valid && (category == "fs_read" || category == "fs_readwrite"))
-                valid = normalize_filesystem_permission(raw, normalized, reason);
+                valid = normalize_filesystem_permission(value, normalized, reason);
             else if (valid && network)
-                valid = normalize_network_permission(raw, normalized, reason);
+                valid = normalize_network_permission(value, normalized, reason);
             if (!valid) {
                 if (!reason.empty())
                     show_status(format_wxstr(_L("Cannot save \"%1%\": %2%"), from_u8(raw), reason), "error");
