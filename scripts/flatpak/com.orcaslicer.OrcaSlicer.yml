@@ -205,7 +205,7 @@ modules:
       # GLFW 3.5.1
       - type: file
         url: https://github.com/glfw/glfw/archive/refs/tags/3.5.1.zip
-        sha256: ea79bc5feffc254c87291980c2d0bce9acebb68c4983b79f961dcd2cb8a611a0
+        sha256: e9a80355e8a0c59b15ae8576c2c3aeae792c2b1082ec426dc93bde70d5017fda
         dest: external-packages/GLFW
 
       # SolveSpace libslvs (2D sketch constraint solver, Design tab)
