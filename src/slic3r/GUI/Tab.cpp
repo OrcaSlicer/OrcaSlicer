@@ -6933,7 +6933,7 @@ void TabPrinter::toggle_options()
 
         // when using firmware retraction, firmware decides retraction length
         bool use_firmware_retraction = m_config->opt_bool("use_firmware_retraction");
-        toggle_option("retract_length", !use_firmware_retraction, i, _L("Retraction length is controlled by the firmware while firmware retraction is enabled."));
+        toggle_option("retraction_length", !use_firmware_retraction, i, _L("Retraction length is controlled by the firmware while firmware retraction is enabled."));
 
         // user can customize travel length if we have retraction length or we"re using
         // firmware retraction
@@ -6957,7 +6957,7 @@ void TabPrinter::toggle_options()
         const wxString firmware_retraction_reason =
             _L("Set retraction length above zero and disable firmware retraction to edit this setting.");
         vec.resize(0);
-        vec = {"retraction_speed", "deretraction_speed", "retract_length", "retract_restart_extra", "wipe_distance"};
+        vec = {"retraction_speed", "deretraction_speed", "retract_restart_extra", "wipe_distance"};
         for (auto el : vec)
             //BBS
             toggle_option(el, retraction && !use_firmware_retraction, i, firmware_retraction_reason);
