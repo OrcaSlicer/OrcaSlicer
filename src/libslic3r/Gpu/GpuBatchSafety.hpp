@@ -10,6 +10,7 @@
 #include <atomic>
 #include <chrono>
 #include <exception>
+#include <ratio>
 #include <unordered_set>
 #include <utility>
 
