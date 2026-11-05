@@ -1242,6 +1242,13 @@ bool PluginManager::set_plugin_full_access(const std::string& plugin_key, bool e
         return false;
     }
 
+    // Refuse permission edits while the plugin is loaded or an asynchronous load is in progress.
+    if (is_plugin_loaded(plugin_key) || is_plugin_load_in_progress(plugin_key)) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Refusing to change full access while the plugin is loaded or loading: "
+                                   << plugin_key;
+        return false;
+    }
+
     // Enabling must target a loadable package. Disabling accepts any known installed package,
     // including one whose manifest is currently invalid, so the user can always turn full access
     // off. Either way the package must have a sidecar to modify.
@@ -1276,6 +1283,13 @@ bool PluginManager::set_plugin_permissions(const std::string& plugin_key, const 
 
     if (plugin_key.empty()) {
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": No plugin key supplied";
+        return false;
+    }
+
+    // Refuse permission-list edits while the plugin is loaded or its load is in progress.
+    if (is_plugin_loaded(plugin_key) || is_plugin_load_in_progress(plugin_key)) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Refusing to replace permissions while the plugin is loaded or loading: "
+                                   << plugin_key;
         return false;
     }
 

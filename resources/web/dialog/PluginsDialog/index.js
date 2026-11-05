@@ -85,6 +85,11 @@ function OnInit() {
   document.getElementById("configSidebar")?.addEventListener("click", OnConfigSidebarClick);
   document.getElementById("configSaveBtn")?.addEventListener("click", SaveCapabilityConfig);
   document.getElementById("configRestoreBtn")?.addEventListener("click", RestoreCapabilityConfig);
+  // Keep native keyboard behavior for permission controls despite the document-level shortcut guard.
+  document.getElementById("permissionsContent")?.addEventListener("keydown", (event) => {
+    if (event.target.closest("input, select, button"))
+      event.stopPropagation();
+  });
 
   const configText = document.getElementById("configText");
   // why: common.js cancels every key at the document level (returnValue=false) to block webview
@@ -392,6 +397,7 @@ function PermissionDraftDirty(draft) {
 
 function CanSavePermissions(plugin, draft) {
   return !!plugin && !!draft && IsPluginInstalled(plugin) && !!plugin.plugin_key &&
+    !PermissionsEditingLocked(plugin) &&
     plugin.permissions?.full_access === false && !pendingFullAccess && !pendingPermissionSave &&
     permissionKeys.every((key) => key === "threading"
       ? typeof draft.values[key] === "boolean" && typeof plugin.permissions?.[key] === "boolean"
@@ -452,17 +458,29 @@ function GuardPermissionNavigation(proceed, closing = false) {
   dialog.setAttribute("role", "dialog");
   dialog.setAttribute("aria-modal", "true");
   dialog.setAttribute("aria-labelledby", "permissionConfirmTitle");
+  dialog.setAttribute("aria-describedby", "permissionConfirmDescription");
   const title = document.createElement("h2");
   title.id = "permissionConfirmTitle";
   title.textContent = T("permissions_unsaved_title", "Unsaved permission changes");
   const description = document.createElement("p");
+  description.id = "permissionConfirmDescription";
   description.textContent = HasUnappliedPermissions(draft)
     ? T("permissions_unsaved_unapplied", "Apply or remove the text you entered before saving.")
     : T("permissions_unsaved_description", "Save or discard your changes before leaving.");
   const actions = document.createElement("div");
   actions.className = "permission-confirm-actions permission-form";
   const previousFocus = document.activeElement;
-  const dismiss = () => { overlay.remove(); previousFocus?.focus(); };
+  const background = Array.from(document.body.children);
+  const backgroundState = background.map((element) => ({ element, inert: element.hasAttribute("inert"), ariaHidden: element.getAttribute("aria-hidden") }));
+  const dismiss = () => {
+    overlay.remove();
+    backgroundState.forEach(({ element, inert, ariaHidden }) => {
+      if (!inert) element.removeAttribute("inert");
+      if (ariaHidden === null) element.removeAttribute("aria-hidden");
+      else element.setAttribute("aria-hidden", ariaHidden);
+    });
+    previousFocus?.focus();
+  };
   const save = document.createElement("button");
   save.type = "button";
   save.textContent = closing ? T("permissions_save_close", "Save and close") : T("permissions_save_switch", "Save and switch");
@@ -491,6 +509,10 @@ function GuardPermissionNavigation(proceed, closing = false) {
   });
   document.body.appendChild(overlay);
   cancel.focus();
+  background.forEach((element) => {
+    element.setAttribute("inert", "");
+    element.setAttribute("aria-hidden", "true");
+  });
 }
 
 // Footer status bar for the latest operation result; the native side already localizes the text.
@@ -743,6 +765,12 @@ function HasMixedCapabilityState(plugin) {
 
 function IsPluginLoading(plugin) {
   return GetStatus(plugin) === "Loading";
+}
+
+// Permission editing is locked while the module is live or being loaded. Viewing the stored grants
+// stays available; only the editors and save/full-access actions lock.
+function PermissionsEditingLocked(plugin) {
+  return plugin?.is_loaded === true || IsPluginLoading(plugin);
 }
 
 function SourceLabel(source) {
@@ -1089,9 +1117,11 @@ function RenderPermissions(plugin) {
     permissionDrafts.set(pluginKey, draft);
   }
 
-  // Keep focused inputs intact when a refresh does not affect the displayed state.
+  // Keep focused inputs intact when a refresh does not affect the displayed state. The lock state is
+  // part of the signature so a load or unload re-renders the editors without discarding the draft.
+  const permissionsLocked = PermissionsEditingLocked(plugin);
   const signature = JSON.stringify([pluginKey, plugin.label, plugin.name, plugin.plugin_id, plugin.installed, sourceSignature, draft.sourceSignature,
-    plugin.permissions?.full_access, pendingFullAccess, pendingPermissionSave?.requestId]);
+    plugin.permissions?.full_access, permissionsLocked, IsPluginLoading(plugin), pendingFullAccess, pendingPermissionSave?.requestId]);
   if (signature === renderedPermissionsSignature)
     return;
   renderedPermissionsSignature = signature;
@@ -1100,13 +1130,10 @@ function RenderPermissions(plugin) {
   const consoleHeader = document.createElement("header");
   consoleHeader.className = "permission-console-header";
   const headerText = document.createElement("div");
-  const consoleTitle = document.createElement("h2");
-  consoleTitle.className = "permission-console-title";
-  consoleTitle.textContent = T("permissions_tab", "Permissions");
   const pluginName = document.createElement("p");
   pluginName.className = "permission-console-plugin";
   pluginName.textContent = String(plugin.label || plugin.name || plugin.plugin_id || pluginKey);
-  headerText.append(consoleTitle, pluginName);
+  headerText.appendChild(pluginName);
   consoleHeader.appendChild(headerText);
   content.appendChild(consoleHeader);
 
@@ -1136,7 +1163,7 @@ function RenderPermissions(plugin) {
   const fullAccessAvailable = typeof plugin.permissions?.full_access === "boolean";
   const fullAccess = plugin.permissions?.full_access === true;
   checkbox.checked = fullAccess;
-  checkbox.disabled = !fullAccessAvailable || !IsPluginInstalled(plugin) || !pluginKey || !!pendingFullAccess || !!pendingPermissionSave;
+  checkbox.disabled = !fullAccessAvailable || !IsPluginInstalled(plugin) || !pluginKey || permissionsLocked || !!pendingFullAccess || !!pendingPermissionSave;
   const checkboxInset = document.createElement("span");
   checkboxInset.className = "permission-checkbox-inset";
   const checkboxTrack = document.createElement("span");
@@ -1163,7 +1190,7 @@ function RenderPermissions(plugin) {
   const fullAccessHelp = document.createElement("p");
   fullAccessHelp.id = "permissionFullAccessHelp";
   fullAccessHelp.className = "permission-full-access-help";
-  fullAccessHelp.textContent = T("permissions_full_access_help_live_v2", "Full access bypasses permission checks. Direct Python access to install-state files remains blocked, but subprocesses are not restricted.");
+  fullAccessHelp.textContent = T("permissions_full_access_help", "Full access bypasses permission checks. The plugin can read and write most files your user account can access; modifying startup or application files can run code outside these checks. Direct Python access to OrcaSlicer's configuration, secret, certificate and install-state paths stays blocked, but subprocesses are not restricted. Full access is not a sandbox.");
   checkbox.setAttribute("aria-describedby", fullAccessHelp.id);
   accessCard.appendChild(fullAccessHelp);
   if (!fullAccessAvailable || pendingFullAccess?.pluginKey === pluginKey) {
@@ -1178,7 +1205,7 @@ function RenderPermissions(plugin) {
 
   const editor = document.createElement("fieldset");
   editor.className = "permission-editor";
-  editor.disabled = !fullAccessAvailable || fullAccess || !!pendingFullAccess || !!pendingPermissionSave;
+  editor.disabled = !fullAccessAvailable || fullAccess || permissionsLocked || !!pendingFullAccess || !!pendingPermissionSave;
   checkbox.addEventListener("change", () => {
     const enabled = checkbox.checked;
     // Keep displaying the last confirmed value until the native side sends a fresh list.
@@ -1217,7 +1244,6 @@ function RenderPermissions(plugin) {
     document.getElementById("permissionResetDraft")?.focus();
   });
   actions.append(saveChanges, reset);
-  editor.appendChild(actions);
   const unapplied = document.createElement("p");
   unapplied.id = "permissionUnappliedNotice";
   unapplied.className = "permission-draft-notice";
@@ -1231,6 +1257,13 @@ function RenderPermissions(plugin) {
     const notice = document.createElement("p");
     notice.className = "permission-notice";
     notice.textContent = T("permissions_install_to_edit", "Install this plugin to edit its permissions.");
+    editor.appendChild(notice);
+  } else if (permissionsLocked) {
+    const notice = document.createElement("p");
+    notice.className = "permission-notice";
+    notice.textContent = IsPluginLoading(plugin)
+      ? T("permissions_loading_cannot_edit", "Permissions cannot be edited while this plugin is loading.")
+      : T("permissions_running_cannot_edit", "Permissions cannot be edited while this plugin is running. Deactivate it to make changes.");
     editor.appendChild(notice);
   }
 
@@ -1250,16 +1283,12 @@ function RenderPermissions(plugin) {
     card.className = "permission-group";
     const header = document.createElement("div");
     header.className = "permission-group-header";
-    const marker = document.createElement("span");
-    marker.className = "permission-group-marker";
-    marker.setAttribute("aria-hidden", "true");
-    marker.textContent = String(index + 1).padStart(2, "0");
     const title = document.createElement("h3");
     title.className = "permission-group-title";
     title.id = `permission-group-${index}`;
     title.textContent = group.title;
     card.setAttribute("aria-labelledby", title.id);
-    header.append(marker, title);
+    header.appendChild(title);
     const body = document.createElement("div");
     body.className = "permission-group-body";
     if (group.guidance) {
@@ -1275,7 +1304,7 @@ function RenderPermissions(plugin) {
   });
   for (const [key, translation, fallback] of categories) {
     if (key === "fs_read") {
-      groupBodies.get(key).appendChild(RenderFilesystemSection(plugin, pluginKey, draft, installed, categoryGuidance.fs_read));
+      groupBodies.get(key).appendChild(RenderFilesystemSection(plugin, pluginKey, draft, installed && !permissionsLocked, categoryGuidance.fs_read));
       continue;
     }
     if (key === "fs_readwrite")
@@ -1312,7 +1341,7 @@ function RenderPermissions(plugin) {
       continue;
     }
 
-    const categoryEnabled = installed && (key === "threading"
+    const categoryEnabled = installed && !permissionsLocked && (key === "threading"
       ? typeof plugin.permissions?.[key] === "boolean"
       : Array.isArray(plugin.permissions?.[key]));
     if (key === "threading") {
@@ -1359,11 +1388,17 @@ function RenderPermissions(plugin) {
     controls.appendChild(PermissionForm(pluginKey, key, heading.textContent, null, categoryEnabled, categoryGuidance[key][1], guidanceId, draft));
     groupBodies.get(key).appendChild(section);
   }
+  editor.appendChild(actions);
 }
 
-function RenderFilesystemSection(plugin, pluginKey, draft, installed, guidanceText) {
+function RenderFilesystemSection(plugin, pluginKey, draft, editable, guidanceText) {
   const section = document.createElement("section");
-  section.className = "permission-filesystem";
+  section.className = "permission-section permission-filesystem";
+  const description = document.createElement("div");
+  description.className = "permission-description";
+  const controls = document.createElement("div");
+  controls.className = "permission-controls";
+  section.append(description, controls);
   const heading = document.createElement("h4");
   heading.className = "permission-heading";
   heading.textContent = T("permissions_files_folders", "Files and folders");
@@ -1371,11 +1406,11 @@ function RenderFilesystemSection(plugin, pluginKey, draft, installed, guidanceTe
   guidance.className = "permission-guidance";
   guidance.id = "permission-guidance-filesystem";
   guidance.textContent = guidanceText[0];
-  section.append(heading, guidance);
+  description.append(heading, guidance);
 
   const types = [
-    { key: "fs_read", label: T("permissions_access_read", "Read"), unavailable: T("permissions_read_unavailable", "Read permissions are unavailable.") },
-    { key: "fs_readwrite", label: T("permissions_access_readwrite", "Read and write"), unavailable: T("permissions_readwrite_unavailable", "Read and write permissions are unavailable.") }
+    { key: "fs_read", label: T("permissions_access_read", "Read"), name: T("permissions_filesystem_read_name", "File system: Read"), unavailable: T("permissions_read_unavailable", "Read permissions are unavailable.") },
+    { key: "fs_readwrite", label: T("permissions_access_readwrite", "Read and write"), name: T("permissions_filesystem_readwrite_name", "File system: Read and write"), unavailable: T("permissions_readwrite_unavailable", "Read and write permissions are unavailable.") }
   ];
   const list = document.createElement("ul");
   list.className = "permission-list permission-filesystem-list";
@@ -1383,18 +1418,18 @@ function RenderFilesystemSection(plugin, pluginKey, draft, installed, guidanceTe
   for (const type of types) {
     const entries = draft.values[type.key];
     type.available = Array.isArray(entries) && Array.isArray(plugin.permissions?.[type.key]);
-    type.enabled = installed && type.available;
+    type.enabled = editable && type.available;
     if (!Array.isArray(entries) || !Array.isArray(plugin.permissions?.[type.key])) {
       const notice = document.createElement("p");
       notice.className = "permission-notice";
       notice.textContent = type.unavailable;
-      section.appendChild(notice);
+      controls.appendChild(notice);
     }
     if (!Array.isArray(entries))
       continue;
     for (let index = 0; index < entries.length; index++) {
       const item = document.createElement("li");
-      item.appendChild(PermissionForm(pluginKey, type.key, T("permissions_filesystem_access_name", "File system: %s", type.label), index, type.enabled, guidanceText[1], guidance.id, draft, type.label));
+      item.appendChild(PermissionForm(pluginKey, type.key, type.name, index, type.enabled, guidanceText[1], guidance.id, draft, type.label));
       list.appendChild(item);
       total++;
     }
@@ -1403,9 +1438,9 @@ function RenderFilesystemSection(plugin, pluginKey, draft, installed, guidanceTe
     const empty = document.createElement("p");
     empty.className = "permission-notice";
     empty.textContent = T("permissions_values_empty", "No values added.");
-    section.appendChild(empty);
+    controls.appendChild(empty);
   }
-  section.appendChild(list);
+  controls.appendChild(list);
 
   // Keep separate pending inputs for each permission type, even when the selector changes.
   const availableTypes = types.filter((type) => type.available);
@@ -1414,11 +1449,11 @@ function RenderFilesystemSection(plugin, pluginKey, draft, installed, guidanceTe
       draft.fsAddCategory = availableTypes[0].key;
     const forms = new Map();
     for (const type of availableTypes) {
-      const form = PermissionForm(pluginKey, type.key, T("permissions_filesystem_access_name", "File system: %s", type.label), null, type.enabled, guidanceText[1], guidance.id, draft);
+      const form = PermissionForm(pluginKey, type.key, type.name, null, type.enabled, guidanceText[1], guidance.id, draft);
       form.classList.add("permission-filesystem-add");
       form.hidden = type.key !== draft.fsAddCategory;
       const select = document.createElement("select");
-      select.disabled = !installed;
+      select.disabled = !editable;
       select.setAttribute("aria-label", T("permissions_filesystem_access_label", "Access for new path"));
       for (const optionType of types) {
         const option = document.createElement("option");
@@ -1436,7 +1471,7 @@ function RenderFilesystemSection(plugin, pluginKey, draft, installed, guidanceTe
       });
       form.insertBefore(select, form.querySelector("button"));
       forms.set(type.key, form);
-      section.appendChild(form);
+      controls.appendChild(form);
     }
   }
   return section;
@@ -1447,6 +1482,7 @@ function PermissionForm(pluginKey, category, categoryName, index, enabled, place
   const oldValue = isAdd ? null : draft.values[category][index];
   const form = document.createElement("form");
   form.className = "permission-form";
+  form.noValidate = true;
   const input = document.createElement("input");
   input.type = "text";
   input.id = `permission-input-${category}-${isAdd ? "add" : index}`;
@@ -1457,6 +1493,14 @@ function PermissionForm(pluginKey, category, categoryName, index, enabled, place
   input.setAttribute("aria-label", isAdd
     ? T("permissions_add_value_label", "New value for %s", categoryName)
     : T("permissions_edit_value_label", "Edit value for %s", categoryName));
+  if (!isAdd) {
+    const valueDescription = document.createElement("span");
+    valueDescription.id = `${input.id}-original`;
+    valueDescription.className = "permission-sr-only";
+    valueDescription.textContent = oldValue;
+    form.appendChild(valueDescription);
+    input.setAttribute("aria-describedby", `${guidanceId} ${valueDescription.id}`);
+  }
   input.placeholder = isAdd ? placeholder : "";
   // common.js handles document keydown globally; keep text editing native.
   input.addEventListener("keydown", (event) => event.stopPropagation());
@@ -1465,11 +1509,12 @@ function PermissionForm(pluginKey, category, categoryName, index, enabled, place
       draft.additions[category] = input.value;
     else
       draft.pending[category][index] = input.value;
+    submit.disabled = !enabled || !input.value.trim();
     UpdatePermissionActions(pluginKey);
   });
   const submit = document.createElement("button");
   submit.type = "submit";
-  submit.disabled = !enabled;
+  submit.disabled = !enabled || !input.value.trim();
   submit.textContent = isAdd ? T("permissions_add", "Add") : T("permissions_apply", "Apply");
   submit.setAttribute("aria-label", isAdd
     ? T("permissions_add_label", "Add value to %s", categoryName)

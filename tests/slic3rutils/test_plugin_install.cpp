@@ -259,6 +259,7 @@ TEST_CASE("install-state writes threading as a boolean and reads it back", "[Plu
 {
     ScopedDataDir data_dir_guard("threading-permission-write");
     const fs::path plugin_dir = data_dir_guard.dir / "plugin";
+    fs::create_directories(plugin_dir);
 
     PluginInstallState state;
     state.permissions.threading = true;
@@ -388,6 +389,7 @@ TEST_CASE("install-state writes full access as a boolean and reads it back", "[P
 {
     ScopedDataDir data_dir_guard("full-access-write");
     const fs::path plugin_dir = data_dir_guard.dir / "plugin";
+    fs::create_directories(plugin_dir);
 
     PluginInstallState state;
     state.permissions.full_access = true;

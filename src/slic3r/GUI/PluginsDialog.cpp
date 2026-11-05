@@ -561,6 +561,22 @@ void send_permissions_result(WebViewHostDialog& dialog,
     payload["success"]    = success;
     dialog.call_web_handler(payload);
 }
+
+// Permission edits, including the full-access switch, are refused while the plugin is loaded or
+// loading. Returns false when editing is allowed.
+bool plugin_permission_editing_blocked(const std::string& plugin_key, wxString& reason)
+{
+    PluginManager& manager = PluginManager::instance();
+    if (manager.is_plugin_loaded(plugin_key)) {
+        reason = _L("Permissions cannot be edited while this plugin is running. Deactivate it to make changes.");
+        return true;
+    }
+    if (manager.is_plugin_load_in_progress(plugin_key)) {
+        reason = _L("Permissions cannot be edited while this plugin is loading.");
+        return true;
+    }
+    return false;
+}
 } // namespace
 
 // ── Dialog-independent plugin actions (also used by the speed dial) ───────────────────────────
@@ -867,16 +883,14 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"capability_count", _u8L("Capabilities: %s")},
         {"capabilities", _u8L_CONTEXT("Capabilities", "Plugin")},
         {"permissions_tab", _u8L("Permissions")},
-        {"permissions_granted", _u8L("Granted permissions")},
         {"permissions_unavailable", _u8L("Permissions are unavailable.")},
-        {"permissions_empty", _u8L("No permissions granted.")},
         {"permissions_fs_read", _u8L("File system read")},
         {"permissions_fs_readwrite", _u8L("File system read and write")},
         {"permissions_network_http", _u8L("HTTP network")},
         {"permissions_network_socket", _u8L("Network sockets")},
         {"permissions_process", _u8L("Processes")},
         {"permissions_threading", _u8L("Threading")},
-        {"permissions_events", _u8L("Events")},
+        {"permissions_events", _u8L_CONTEXT("Events", "Permission category")},
         {"permissions_filesystem_help", _u8L("Enter an absolute path. Add /* at the end to include its subtree.")},
         {"permissions_filesystem_placeholder", _u8L("/path/to/directory/*")},
         {"permissions_network_access_guidance", _u8L("Enter an HTTP or HTTPS URL using a domain name or IP address. Access applies to the entire host; ports, paths, and queries are not used to limit it. Grants in either list are checked for HTTP and socket access.")},
@@ -892,19 +906,17 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"permissions_group_execution", _u8L("Execution")},
         {"permissions_group_events", _u8L("Audit events")},
         {"permissions_files_folders", _u8L("Files and folders")},
-        {"permissions_access_read", _u8L("Read")},
-        {"permissions_access_readwrite", _u8L("Read and write")},
+        {"permissions_access_read", _u8L_CONTEXT("Read", "Permission access")},
+        {"permissions_access_readwrite", _u8L_CONTEXT("Read and write", "Permission access")},
         {"permissions_read_unavailable", _u8L("Read permissions are unavailable.")},
         {"permissions_readwrite_unavailable", _u8L("Read and write permissions are unavailable.")},
         {"permissions_filesystem_access_label", _u8L("Access for new path")},
-        {"permissions_filesystem_access_name", _u8L("File system: %s")},
-        {"permissions_full_access_help_live_v2", _u8L("Full access bypasses permission checks. Direct Python access to install-state files remains blocked, but subprocesses are not restricted.")},
+        {"permissions_filesystem_read_name", _u8L("File system: Read")},
+        {"permissions_filesystem_readwrite_name", _u8L("File system: Read and write")},
+        {"permissions_full_access_help", _u8L("Full access bypasses permission checks. The plugin can read and write most files your user account can access; modifying startup or application files can run code outside these checks. Direct Python access to OrcaSlicer's configuration, secret, certificate and install-state paths stays blocked, but subprocesses are not restricted. Full access is not a sandbox.")},
         {"permissions_full_access_editor_disabled", _u8L("Permission list editing is disabled while full access is on.")},
         {"permissions_full_access_unavailable", _u8L("Full access status is unavailable.")},
         {"permissions_full_access_updating", _u8L("Updating full access…")},
-        {"permissions_saving_unavailable_notice", _u8L("Permission list changes do not affect access and cannot be saved yet. Full access is saved separately.")},
-        {"permissions_changes_outdated", _u8L("Stored permissions have changed. Reset changes to see the latest values.")},
-        {"permissions_save_changes_unavailable", _u8L("Save changes (not yet available)")},
         {"permissions_save_changes", _u8L("Save changes")},
         {"permissions_save_notice", _u8L("Permission changes take effect after saving. Full access is saved separately.")},
         {"permissions_unapplied_notice", _u8L("Apply or remove the text you entered before saving.")},
@@ -918,16 +930,16 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"permissions_continue_editing", _u8L("Continue editing")},
         {"permissions_reset_changes", _u8L("Reset changes")},
         {"permissions_values_empty", _u8L("No values added.")},
-        {"permissions_apply", _u8L("Apply")},
+        {"permissions_apply", _u8L_CONTEXT("Apply", "Permission value")},
         {"permissions_apply_value_label", _u8L("Apply value for %s")},
         {"permissions_install_to_edit", _u8L("Install this plugin to edit its permissions.")},
+        {"permissions_running_cannot_edit", _u8L("Permissions cannot be edited while this plugin is running. Deactivate it to make changes.")},
+        {"permissions_loading_cannot_edit", _u8L("Permissions cannot be edited while this plugin is loading.")},
         {"permissions_add_value_label", _u8L("New value for %s")},
         {"permissions_edit_value_label", _u8L("Edit value for %s")},
-        {"permissions_add", _u8L("Add")},
-        {"permissions_save", _u8L("Save")},
+        {"permissions_add", _u8L_CONTEXT("Add", "Permission value")},
         {"permissions_add_label", _u8L("Add value to %s")},
-        {"permissions_save_label", _u8L("Save value for %s")},
-        {"permissions_remove", _u8L("Remove")},
+        {"permissions_remove", _u8L_CONTEXT("Remove", "Permission value")},
         {"permissions_remove_label", _u8L("Remove %s")},
         {"run_named", _u8L("Run \"%s\"")},
         {"enable_named", _u8L("Enable %s")},
@@ -1203,6 +1215,17 @@ void PluginsDialog::set_plugin_full_access(const std::string& plugin_key, bool e
 
     const wxString plugin_name = plugin_display_name(plugin_key);
 
+    // Full access is a permission edit, so it follows the same rule as the list: locked while the
+    // plugin is live or loading. Check before the confirmation so the user is not asked to approve
+    // a change that will be refused.
+    wxString locked_reason;
+    if (plugin_permission_editing_blocked(plugin_key, locked_reason)) {
+        show_status(locked_reason, "warn");
+        send_plugins();
+        send_full_access_result(*this, plugin_key, request_id);
+        return;
+    }
+
     // Enabling is the dangerous direction, and this dialog can be driven by a sandboxed,
     // plugin-authored iframe that sends native commands directly. Require an explicit Yes from
     // the host UI; any other outcome cancels and refreshes, so a scripted dismissal grants nothing.
@@ -1212,8 +1235,12 @@ void PluginsDialog::set_plugin_full_access(const std::string& plugin_key, bool e
             wxString::Format(
                 _L("Enable full access for \"%s\"?\n\n"
                    "Full access turns off permission auditing for this plugin: its file system, network, "
-                   "process, thread and event permissions are no longer checked. Direct Python access to "
-                   "the install-state files remains blocked, but subprocesses are not restricted.\n\n"
+                   "process, thread and event permissions are no longer checked. The plugin can read and "
+                   "write most files your user account can access, including startup scripts, SSH keys "
+                   "and a writable OrcaSlicer installation. Modifying startup or application files can "
+                   "let code run outside these checks. Direct Python access to OrcaSlicer's "
+                   "configuration, secret, certificate and install-state paths stays blocked, but "
+                   "subprocesses are not restricted. Full access is not a sandbox.\n\n"
                    "Only enable this for a plugin you trust."),
                 plugin_name),
             _L("Full access"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
@@ -1247,6 +1274,16 @@ void PluginsDialog::save_plugin_permissions(const std::string& plugin_key, const
 {
     if (plugin_key.empty()) {
         show_status(_L("Invalid permission save request."), "error");
+        send_plugins();
+        send_permissions_result(*this, plugin_key, request_id, /*success=*/false);
+        return;
+    }
+
+    // Refuse while the plugin is loaded or loading. The webview disables Save in this state, but
+    // the command can arrive from a plugin-authored iframe.
+    wxString locked_reason;
+    if (plugin_permission_editing_blocked(plugin_key, locked_reason)) {
+        show_status(locked_reason, "warn");
         send_plugins();
         send_permissions_result(*this, plugin_key, request_id, /*success=*/false);
         return;

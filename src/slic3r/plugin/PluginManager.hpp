@@ -185,7 +185,8 @@ public:
     // the same lock the other install-state writers use, so every other stored grant is preserved.
     // Enabling requires a loadable (non-invalid) package; disabling accepts any known installed
     // package, so a plugin whose manifest became invalid can still be switched off. Either way the
-    // sidecar must be readable, or there is nothing safe to modify and it returns false.
+    // sidecar must be readable, or there is nothing safe to modify and it returns false. Refused
+    // while the plugin is loaded or its load is in progress.
     // The flag governs future top-level audited operations, which read the sidecar afresh. An
     // operation already in flight may have recorded its root frame while full access was on and
     // can still finish after it is revoked; that frame is not re-evaluated.
@@ -197,7 +198,8 @@ public:
     // (install metadata, enabled flag, capabilities) are preserved. Requires a known installed
     // package and a readable sidecar; a plugin with no local package cannot be saved to. Full
     // access must be off: the check runs under the same lock as the read-modify-write, and the
-    // call is refused while the stored flag is set.
+    // call is refused while the stored flag is set. Refused while the plugin is loaded or its load
+    // is in progress.
     bool set_plugin_permissions(const std::string& plugin_key, const PluginPermissions& permissions);
 
     void load_plugin(const std::string& plugin_key, bool skip_deps = false, std::vector<std::string> capabilities_to_enable = {});

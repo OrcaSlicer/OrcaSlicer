@@ -328,6 +328,47 @@ TEST_CASE("A discovered script plugin loads and materializes its capability", "[
     manager.unload_plugin("Echo_Plugin");
 }
 
+TEST_CASE("Permissions cannot be edited while a plugin is loaded", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("permission-edit-lock");
+    const fs::path plugin_dir = write_plugin(data_dir_guard, "Echo_Plugin", ECHO_PLUGIN_SOURCE);
+
+    PluginInstallState initial;
+    initial.installed_from    = "local";
+    initial.installed_version = "1.0";
+    initial.plugin_name       = "Echo Plugin";
+    REQUIRE(write_install_state(plugin_dir, initial));
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "Echo_Plugin", error));
+    INFO("load error: " << error);
+    REQUIRE(manager.is_plugin_loaded("Echo_Plugin"));
+
+    PluginPermissions changed;
+    changed.fs_read = {"/while/loaded"};
+    CHECK_FALSE(manager.set_plugin_permissions("Echo_Plugin", changed));
+    CHECK_FALSE(manager.set_plugin_full_access("Echo_Plugin", true));
+
+    PluginInstallState stored;
+    REQUIRE(read_install_state(plugin_dir, stored));
+    CHECK(stored.permissions.fs_read.empty());
+    CHECK_FALSE(stored.permissions.full_access);
+
+    // Editing works again after the plugin is unloaded.
+    REQUIRE(manager.unload_plugin("Echo_Plugin"));
+    REQUIRE(manager.set_plugin_permissions("Echo_Plugin", changed));
+    REQUIRE(read_install_state(plugin_dir, stored));
+    CHECK(stored.permissions.fs_read == changed.fs_read);
+    REQUIRE(manager.set_plugin_full_access("Echo_Plugin", true));
+}
+
 TEST_CASE("A printer-agent plugin registers and deregisters with its lifecycle", "[PluginLifecycle][Python]")
 {
     ScopedPluginManager plugin_system;
