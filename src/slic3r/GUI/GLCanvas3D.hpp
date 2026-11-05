@@ -301,19 +301,48 @@ class GLCanvas3D
             size_t              cells{ 0 };
             // Does it need to be refreshed?
             bool                valid{ false };
+            // Orca: whether the GPU has the data as it is now.
+            bool                uploaded{ false };
         };
         LayersTexture   m_layers_texture;
-        // Orca: the layer height textures of the other selected objects, each with the profile and
-        // the height it was generated from. Keyed by the index into m_model->objects.
+        // Orca: counts the times m_layers_texture was generated, so that the other objects can tell
+        // whether they still are on the layers it shows.
+        size_t          m_layers_texture_version{ 0 };
+        // Orca: counts the calls to set_config(), after which the other objects check their slicing
+        // parameters and their profiles again.
+        size_t          m_config_version{ 0 };
+        // Orca: the layer heights of the other selected objects, keyed by ModelObject ID. The texture is
+        // generated and sent to the GPU only when the object is drawn with it, and only again when the
+        // profile or the slicing parameters it shows change.
         struct ObjectTexture
         {
             LayersTexture       texture;
-            std::vector<double> model_profile;
-            // The profile the object is sliced with, which is model_profile or the default one.
-            std::vector<double> profile;
+            unsigned int        texture_id{ 0 };
+            // What the profile was read from: the object's own profile, its height and the configuration.
+            ObjectWithTimestamp::Timestamp model_profile_timestamp{ 0 };
             double              max_z{ 0. };
+            size_t              config_version{ size_t(-1) };
+            SlicingParameters   slicing_parameters;
+            // The profile the object is sliced with: its own, or the one of its height ranges.
+            std::vector<double> profile;
+            // Whether it is on the layers of m_layers_texture, as of shares_version.
+            bool                shares{ false };
+            size_t              shares_version{ size_t(-1) };
         };
-        std::map<int, ObjectTexture> m_other_textures;
+        std::map<size_t, ObjectTexture> m_other_textures;
+        // Orca: the bars and the lines over them are rebuilt only when what they show changes.
+        struct BarModels
+        {
+            GLModel             background;
+            std::vector<float>  background_layout;
+            GLModel             profile;
+            std::vector<float>  profile_layout;
+            std::vector<double> profile_source;
+        };
+        std::vector<BarModels> m_bar_models;
+        GLModel             m_bar_lines;
+        GLModel             m_bar_frame;
+        std::vector<float>  m_bar_lines_layout;
         // Orca: the objects that have a bar of their own, the rightmost bar first. With one profile
         // shared between the selected objects that is the tallest object alone; with a profile each,
         // the tallest ones, up to MAX_BARS. The object shown (last_object_id) is one of them.
@@ -342,7 +371,8 @@ class GLCanvas3D
         void select_object(const Model& model, int object_id);
         void set_other_objects(std::vector<int> object_ids) { m_other_object_ids = std::move(object_ids); }
         // Orca: lays out the bars for the selected objects (tallest first) and returns the object to
-        // show and edit: the one whose bar the mouse is on, or else the one shown so far.
+        // show and edit: the one whose bar the mouse is on, or else the one shown so far. Called while
+        // rendering, it also frees the textures of the objects that are no longer selected.
         int choose_shown_object(const GLCanvas3D& canvas, const Model& model, const std::vector<int>& object_ids);
         // Orca: whether the tool paints this object with its layer heights.
         bool is_edited_object(int object_id) const;
@@ -376,14 +406,24 @@ class GLCanvas3D
     private:
         bool is_initialized() const;
         void generate_layer_height_texture();
-        const ObjectTexture& other_object_texture(int object_id);
-        void load_texture(const LayersTexture& texture);
+        // Orca: the layer heights of another selected object, read again when they may have changed.
+        ObjectTexture& other_object(int object_id);
+        // Orca: its texture, generated and sent to the GPU if needed, and bound.
+        const LayersTexture& bind_object_texture(ObjectTexture& object);
+        // Orca: the texture of the object shown, sent to the GPU if needed, and bound.
+        void bind_shown_texture();
+        // Orca: whether the object is drawn with the texture of the object shown.
+        bool shares_shown_layers(ObjectTexture& object) const;
+        static unsigned int create_texture();
+        static void load_texture(const LayersTexture& texture, unsigned int texture_id);
+        void release_object_texture(ObjectTexture& object);
         // Index into m_bar_object_ids of the bar of the object shown.
         size_t active_bar() const;
         bool bar_in_focus(const GLCanvas3D& canvas) const;
         float bar_fraction(size_t bar) const { return bar < m_bar_fractions.size() ? m_bar_fractions[bar] : 1.0f; }
         // Index of the bar under the given point, or -1.
         static int bar_at(const GLCanvas3D& canvas, float x, float y);
+        // Draws the object with the texture that is bound.
         void render_object_volumes(const GLVolumeCollection& volumes, GLShaderProgram& shader, int object_id, const LayersTexture& texture, double object_max_z, float z_cursor, float dimming);
         void render_active_object_annotations(const GLCanvas3D& canvas);
         void render_profile(const GLCanvas3D& canvas);

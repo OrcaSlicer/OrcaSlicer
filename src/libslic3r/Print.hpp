@@ -1193,8 +1193,12 @@ public:
     // Belt purge prism (belt-mode replacement for the wipe tower).
     bool                        has_belt_purge_tower() const;
     // Orca: precise Z height fits the last layers of each object to its own height. With a prime tower
-    // and variable layer height on objects of different heights that would put the objects on
-    // different layers, so it is left out of the whole print.
+    // and variable layer height on objects of different heights, that puts the last layers of a lower
+    // object between the layers of the others. The tower can still print them, each joined to the tower
+    // layer below (ToolOrdering::fill_wipe_tower_partitions()), but a joined layer holds the purges of
+    // both, which makes the tower deeper. So precise Z height is left out of the whole print instead:
+    // the objects stay on the same layers, and the last layer of a lower object ends where the shared
+    // layers do, a fraction of a layer off its own top.
     bool                        precise_z_height_overridden() const { return m_precise_z_height_overridden; }
     const WipeTowerData&        wipe_tower_data(size_t filaments_cnt = 0) const;
     const ToolOrdering& 		tool_ordering() const { return m_tool_ordering; }
