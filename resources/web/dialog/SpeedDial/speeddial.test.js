@@ -400,6 +400,31 @@ assert.equal(
     "favourites stay runnable with an empty query - the fav bar is always visible"
 );
 
+// detailActionId: the footer describes the hovered row while the pointer rests on it, and falls back
+// to the keyboard selection otherwise (a single click launches, so hover is the only preview).
+assert.equal(
+    ctx.detailActionId("fedcba9876543210", { zone: "list", i: 0 }, duplicateActions, []),
+    "fedcba9876543210",
+    "hovering a row describes it instead of the selection"
+);
+assert.equal(
+    ctx.detailActionId(null, { zone: "list", i: 0 }, duplicateActions, []),
+    "0123456789abcdef",
+    "with no hover the footer follows the keyboard selection"
+);
+assert.equal(
+    ctx.detailActionId(null, { zone: "fav", i: 0 }, duplicateActions, ["fedcba9876543210"]),
+    "fedcba9876543210",
+    "with no hover the footer follows the fav bar selection"
+);
+
+// phaseClickIgnored: the click that lands right after a phase switch is the tail of a double-click
+// on the command that opened it, so the fresh tab list ignores it; later clicks activate normally.
+assert.equal(ctx.phaseClickIgnored(1000, 900), true, "a click inside the grace window is ignored");
+assert.equal(ctx.phaseClickIgnored(1000, 1000 - ctx.PHASE_CLICK_GRACE_MS), false,
+    "a click at the end of the grace window activates");
+assert.equal(ctx.phaseClickIgnored(1000, 0), false, "an unset phase timestamp never suppresses a click");
+
 // Fav quick-launch slots: digit 1..9 -> index 0..8, digit 0 -> index 9 (the 10th), else -1.
 assert.equal(ctx.favIndexForDigit("1"), 0, "digit 1 maps to the 1st favourite slot");
 assert.equal(ctx.favIndexForDigit("9"), 8, "digit 9 maps to the 9th favourite slot");
