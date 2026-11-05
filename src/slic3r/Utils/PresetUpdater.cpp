@@ -1383,6 +1383,9 @@ void PresetUpdater::check_vendor_update(const std::string& vendor_id)
 {
     if (!p->enabled_config_update) return;
     if (vendor_id.empty()) return;
+    // Stealth mode can be switched off mid-session, so it is checked before the vendor is marked
+    // as checked: the next printer change after that still queries the server.
+    if (GUI::wxGetApp().app_config->get_stealth_mode()) return;
 
     if (!p->checked_vendors.insert(vendor_id).second)
         return;
