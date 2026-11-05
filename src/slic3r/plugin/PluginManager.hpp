@@ -191,6 +191,15 @@ public:
     // can still finish after it is revoked; that frame is not re-evaluated.
     bool set_plugin_full_access(const std::string& plugin_key, bool enabled);
 
+    // Replaces the permission list (fs_read, fs_readwrite, network_http, network_socket, process,
+    // threading, events) of an installed plugin. Read-modify-write of the sidecar under the same
+    // lock the other install-state writers use, so full_access and every unrelated stored field
+    // (install metadata, enabled flag, capabilities) are preserved. Requires a known installed
+    // package and a readable sidecar; a plugin with no local package cannot be saved to. Full
+    // access must be off: the check runs under the same lock as the read-modify-write, and the
+    // call is refused while the stored flag is set.
+    bool set_plugin_permissions(const std::string& plugin_key, const PluginPermissions& permissions);
+
     void load_plugin(const std::string& plugin_key, bool skip_deps = false, std::vector<std::string> capabilities_to_enable = {});
     bool unload_plugin(const std::string& plugin_key);
     void unload_all_plugins();

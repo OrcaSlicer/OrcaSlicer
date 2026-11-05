@@ -1270,6 +1270,56 @@ bool PluginManager::set_plugin_full_access(const std::string& plugin_key, bool e
     return true;
 }
 
+bool PluginManager::set_plugin_permissions(const std::string& plugin_key, const PluginPermissions& permissions)
+{
+    std::lock_guard<std::mutex> state_lock(m_install_state_mutex);
+
+    if (plugin_key.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": No plugin key supplied";
+        return false;
+    }
+
+    PluginDescriptor descriptor;
+    if (!try_get_plugin_descriptor(plugin_key, descriptor) || !descriptor.has_local_package() ||
+        descriptor.plugin_root.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": No installed plugin to update: " << plugin_key;
+        return false;
+    }
+
+    const boost::filesystem::path root(descriptor.plugin_root);
+    PluginInstallState state;
+    if (!read_install_state(root, state)) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to read install state for " << plugin_key;
+        return false;
+    }
+
+    // Refused inside the same locked read-modify-write the write uses: while full access is on the
+    // list is inert, and storing new grants would arm them the moment full access is turned off.
+    if (state.permissions.full_access) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Full access is enabled; refusing to replace permissions for "
+                                   << plugin_key;
+        return false;
+    }
+
+    // Read-modify-write: replace only the editable grant list and carry full access plus every
+    // unrelated install-state field across unchanged.
+    state.permissions.fs_read        = permissions.fs_read;
+    state.permissions.fs_readwrite   = permissions.fs_readwrite;
+    state.permissions.network_http   = permissions.network_http;
+    state.permissions.network_socket = permissions.network_socket;
+    state.permissions.process        = permissions.process;
+    state.permissions.threading      = permissions.threading;
+    state.permissions.events         = permissions.events;
+
+    if (!write_install_state(root, state)) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to write install state for " << plugin_key;
+        return false;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "Saved plugin permissions for plugin " << plugin_key;
+    return true;
+}
+
 void PluginManager::revoke_plugin_permissions(const std::string& plugin_key)
 {
     std::lock_guard<std::mutex> state_lock(m_install_state_mutex);

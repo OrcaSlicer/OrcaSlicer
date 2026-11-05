@@ -30,7 +30,7 @@
 #include <wx/toplevel.h>
 
 class wxWindow;
-namespace Slic3r { struct PluginDescriptor; }
+namespace Slic3r { struct PluginDescriptor; struct PluginPermissions; }
 
 
 namespace Slic3r {
@@ -239,6 +239,11 @@ private:
     void open_plugin_hub();
     void on_script_message(const nlohmann::json& payload) override;
     nlohmann::json localized_strings() const override;
+    // Native close requests (close box, ESC) first ask the page: its permission draft may be
+    // unsaved. The page then sends `close_plugins_dialog`, which sets m_allow_close and closes.
+    void on_window_close(wxCloseEvent& event);
+    void on_char_hook(wxKeyEvent& event);
+    void request_permission_dialog_close();
     // Runs one web command on a clean main-loop stack; see on_script_message.
     void handle_web_command(const nlohmann::json& payload);
     // Re-raises this dialog after a transient modal it opened (file dialog, message box,
@@ -258,6 +263,9 @@ private:
     void refresh_plugins();
     void toggle_plugin(const std::string& plugin_key, bool enabled);
     void set_plugin_full_access(const std::string& plugin_key, bool enabled, const std::string& request_id);
+    // Replaces the permission list of an installed plugin, preserving full_access and unrelated
+    // install state. Confirms added or broadened grants; removals save without a prompt.
+    void save_plugin_permissions(const std::string& plugin_key, const PluginPermissions& permissions, const std::string& request_id);
     void toggle_plugin_capability(const std::string& plugin_key, PluginCapabilityType type, const std::string& capability_name, bool enabled);
     void handle_plugin_menu_action(const std::string& plugin_key, const std::string& action);
 
@@ -313,6 +321,15 @@ private:
 
     std::function<void()> m_open_terminal_dlg_fn;
     std::shared_ptr<std::atomic<bool>> m_alive = std::make_shared<std::atomic<bool>>(true);
+    // Set only by the page's close_plugins_dialog command, so the resulting native close event is
+    // not intercepted and asked again.
+    bool m_allow_close = false;
+    // True for the ESC that already asked the page, so the close event it may raise from the
+    // default handler does not send a second close request.
+    bool m_esc_close_request_sent = false;
+    // Guards the synchronous RunScript below: wx pumps events while it runs, so a close event
+    // raised inside it must not start a second request.
+    bool m_close_request_in_flight = false;
     PluginSortKey m_plugin_sort_key       = PluginSortKey::None;
     PluginSortOrder m_plugin_sort_order   = PluginSortOrder::Asc;
 

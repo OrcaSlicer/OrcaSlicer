@@ -35,7 +35,6 @@
 #include <algorithm>
 #include <memory>
 #include <mutex>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -178,6 +177,82 @@ nlohmann::json build_permissions_payload(const PluginPermissions& permissions)
     payload["events"]         = permissions.events;
     payload["full_access"]    = permissions.full_access;
     return payload;
+}
+
+// Basic shape check for a save_plugin_permissions payload: every editable category present and of
+// the expected type. No target normalization or content rules here; the writer stores what the
+// webview sent. full_access is not part of the payload and is preserved by the writer.
+bool read_permission_list(const nlohmann::json& permissions, const char* key, std::vector<std::string>& out)
+{
+    if (!permissions.contains(key) || !permissions.at(key).is_array())
+        return false;
+    for (const auto& entry : permissions.at(key)) {
+        if (!entry.is_string())
+            return false;
+        out.push_back(entry.get<std::string>());
+    }
+    return true;
+}
+
+bool parse_permissions_payload(const nlohmann::json& payload, PluginPermissions& out)
+{
+    if (!payload.is_object())
+        return false;
+    if (!read_permission_list(payload, "fs_read", out.fs_read) ||
+        !read_permission_list(payload, "fs_readwrite", out.fs_readwrite) ||
+        !read_permission_list(payload, "network_http", out.network_http) ||
+        !read_permission_list(payload, "network_socket", out.network_socket) ||
+        !read_permission_list(payload, "process", out.process) ||
+        !read_permission_list(payload, "events", out.events))
+        return false;
+    if (!payload.contains("threading") || !payload.at("threading").is_boolean())
+        return false;
+    out.threading = payload.at("threading").get<bool>();
+    return true;
+}
+
+struct PermissionAddition
+{
+    wxString label;
+    std::vector<std::string> entries;
+    bool boolean_grant = false;
+};
+
+// The exact entries the draft adds, grouped for the confirmation message. Comparison is exact
+// string addition, which is enough here: a target re-added in a different form is a new grant,
+// and removals never need confirmation. full_access is preserved separately and ignored.
+std::vector<PermissionAddition> collect_permission_additions(const PluginPermissions& stored,
+                                                             const PluginPermissions& requested)
+{
+    std::vector<PermissionAddition> additions;
+
+    auto collect = [&additions](const wxString& label,
+                                const std::vector<std::string>& stored_entries,
+                                const std::vector<std::string>& requested_entries) {
+        PermissionAddition addition;
+        addition.label = label;
+        for (const std::string& entry : requested_entries)
+            if (std::find(stored_entries.begin(), stored_entries.end(), entry) == stored_entries.end())
+                addition.entries.push_back(entry);
+        if (!addition.entries.empty())
+            additions.push_back(std::move(addition));
+    };
+
+    collect(_L("File system read"), stored.fs_read, requested.fs_read);
+    collect(_L("File system read and write"), stored.fs_readwrite, requested.fs_readwrite);
+    collect(_L("HTTP network"), stored.network_http, requested.network_http);
+    collect(_L("Network sockets"), stored.network_socket, requested.network_socket);
+    collect(_L("Processes"), stored.process, requested.process);
+    collect(_L("Events"), stored.events, requested.events);
+
+    if (requested.threading && !stored.threading) {
+        PermissionAddition addition;
+        addition.label         = _L("Threading");
+        addition.boolean_grant = true;
+        additions.push_back(std::move(addition));
+    }
+
+    return additions;
 }
 
 nlohmann::json build_plugin_payload_item(const PluginDialogItem& dialog_item)
@@ -445,10 +520,10 @@ bool take_plugin_operation_result(const std::shared_ptr<PluginOperationState>& s
     return state->succeeded;
 }
 
-// A full-access request carries an opaque correlation token that the webview ties to its pending
-// switch. Bound the shape so a malformed or oversized value cannot be echoed back: non-empty,
-// at most 128 bytes, printable ASCII only.
-bool is_valid_full_access_request_id(const std::string& request_id)
+// A full-access or permission-save request carries an opaque correlation token that the webview
+// ties to its pending operation. Bound the shape so a malformed or oversized value cannot be
+// echoed back: non-empty, at most 128 bytes, printable ASCII only.
+bool is_valid_bridge_request_id(const std::string& request_id)
 {
     constexpr size_t kMaxRequestIdLength = 128;
     if (request_id.empty() || request_id.size() > kMaxRequestIdLength)
@@ -467,6 +542,22 @@ void send_full_access_result(WebViewHostDialog& dialog, const std::string& plugi
     payload["command"]    = "plugin_full_access_result";
     payload["plugin_key"] = plugin_key;
     payload["request_id"] = request_id;
+    dialog.call_web_handler(payload);
+}
+
+// Reports the outcome of a save_plugin_permissions request. Sent after every completion: success,
+// failure, cancelled confirmation and invalid payload. The webview keeps its draft unless
+// success is true.
+void send_permissions_result(WebViewHostDialog& dialog,
+                             const std::string& plugin_key,
+                             const std::string& request_id,
+                             bool success)
+{
+    nlohmann::json payload;
+    payload["command"]    = "plugin_permissions_result";
+    payload["plugin_key"] = plugin_key;
+    payload["request_id"] = request_id;
+    payload["success"]    = success;
     dialog.call_web_handler(payload);
 }
 } // namespace
@@ -643,7 +734,72 @@ bool install_local_plugin_package(const boost::filesystem::path& package_file, w
 
 PluginsDialog::PluginsDialog(wxWindow* parent, wxWindowID id, const wxString&, const wxPoint& pos, const wxSize& size, long style)
     : WebViewHostDialog(parent, id, _L("Plugins"), pos, size, style)
-{ create_webview("web/dialog/PluginsDialog/index.html", _L("Plugins"), wxSize(900, 820), wxSize(760, 715)); }
+{
+    Bind(wxEVT_CLOSE_WINDOW, &PluginsDialog::on_window_close, this);
+    Bind(wxEVT_CHAR_HOOK, &PluginsDialog::on_char_hook, this);
+    create_webview("web/dialog/PluginsDialog/index.html", _L("Plugins"), wxSize(900, 820), wxSize(760, 715));
+}
+
+void PluginsDialog::on_window_close(wxCloseEvent& event)
+{
+    if (m_allow_close || wxGetApp().is_closing()) {
+        event.Skip();
+        return;
+    }
+
+    // A forced close (session end) cannot be delayed for the page's draft prompt.
+    if (!event.CanVeto()) {
+        event.Skip();
+        return;
+    }
+
+    event.Veto();
+    // The ESC char hook already asked the page; do not ask twice when wx's default ESC handling
+    // turns into a close event for this same key press.
+    if (!m_esc_close_request_sent && !m_close_request_in_flight)
+        request_permission_dialog_close();
+}
+
+void PluginsDialog::on_char_hook(wxKeyEvent& event)
+{
+    if (event.GetKeyCode() != WXK_ESCAPE || m_allow_close) {
+        event.Skip();
+        return;
+    }
+
+    // Ask the page exactly once per ESC. The page's guard is a no-op while its confirmation
+    // overlay is visible; Skip lets that overlay receive ESC and dismiss itself. Either way the
+    // page decides whether close_plugins_dialog follows.
+    if (!m_esc_close_request_sent) {
+        m_esc_close_request_sent = true;
+        request_permission_dialog_close();
+        wxGetApp().CallAfter([this, alive = m_alive]() {
+            if (alive->load(std::memory_order_acquire))
+                m_esc_close_request_sent = false;
+        });
+    }
+    event.Skip();
+}
+
+void PluginsDialog::request_permission_dialog_close()
+{
+    if (m_close_request_in_flight)
+        return;
+
+    // The page owns the unsaved-draft prompt and answers with close_plugins_dialog.
+    m_close_request_in_flight = true;
+    const bool asked = run_script(wxT("RequestPermissionDialogClose();"));
+    m_close_request_in_flight = false;
+    if (asked)
+        return;
+
+    // No loaded page to ask: close instead of trapping the user.
+    m_allow_close = true;
+    wxGetApp().CallAfter([this, alive = m_alive]() {
+        if (alive->load(std::memory_order_acquire) && !IsBeingDeleted())
+            Close();
+    });
+}
 
 nlohmann::json PluginsDialog::localized_strings() const
 {
@@ -722,27 +878,47 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"permissions_events", _u8L("Events")},
         {"permissions_filesystem_help", _u8L("Enter an absolute path. Add /* at the end to include its subtree.")},
         {"permissions_filesystem_placeholder", _u8L("/path/to/directory/*")},
-        {"permissions_network_help", _u8L("Enter an HTTP or HTTPS URL. Only the scheme and host are saved; the path, port, and query are discarded. The grant covers the whole host for the chosen HTTP scheme and for socket access.")},
+        {"permissions_network_access_guidance", _u8L("Enter an HTTP or HTTPS URL using a domain name or IP address. Access applies to the entire host; ports, paths, and queries are not used to limit it. Grants in either list are checked for HTTP and socket access.")},
         {"permissions_network_placeholder", _u8L("https://example.com")},
         {"permissions_process_help", _u8L("Enter the exact value recorded by the audit. It may be a Python representation of the command.")},
         {"permissions_process_placeholder", _u8L("Exact audited value")},
-        {"permissions_threading_boolean_help", _u8L("Choose whether threading is included in this draft.")},
-        {"permissions_threading_boolean_toggle", _u8L("Include threading in draft")},
+        {"permissions_threading_help_short", _u8L("Allow this plugin to create threads.")},
         {"permissions_events_help", _u8L("Enter a category and event separated by a colon, such as Socket:socket.__new__.")},
         {"permissions_events_placeholder", _u8L("Socket:socket.__new__")},
         {"permissions_full_access_label", _u8L("Full access")},
+        {"permissions_group_filesystem", _u8L("File system")},
+        {"permissions_network_access_title", _u8L("Network access")},
+        {"permissions_group_execution", _u8L("Execution")},
+        {"permissions_group_events", _u8L("Audit events")},
+        {"permissions_files_folders", _u8L("Files and folders")},
+        {"permissions_access_read", _u8L("Read")},
+        {"permissions_access_readwrite", _u8L("Read and write")},
+        {"permissions_read_unavailable", _u8L("Read permissions are unavailable.")},
+        {"permissions_readwrite_unavailable", _u8L("Read and write permissions are unavailable.")},
+        {"permissions_filesystem_access_label", _u8L("Access for new path")},
+        {"permissions_filesystem_access_name", _u8L("File system: %s")},
         {"permissions_full_access_help_live_v2", _u8L("Full access bypasses permission checks. Direct Python access to install-state files remains blocked, but subprocesses are not restricted.")},
         {"permissions_full_access_editor_disabled", _u8L("Permission list editing is disabled while full access is on.")},
         {"permissions_full_access_unavailable", _u8L("Full access status is unavailable.")},
         {"permissions_full_access_updating", _u8L("Updating full access…")},
-        {"permissions_draft_title", _u8L("Permission draft")},
-        {"permissions_list_draft_notice", _u8L("The permission list starts with the stored values. List edits stay in this window, cannot be saved, and do not affect access.")},
-        {"permissions_draft_outdated", _u8L("Stored permissions have changed. Your draft is unchanged; reset it to see the latest stored values.")},
+        {"permissions_saving_unavailable_notice", _u8L("Permission list changes do not affect access and cannot be saved yet. Full access is saved separately.")},
+        {"permissions_changes_outdated", _u8L("Stored permissions have changed. Reset changes to see the latest values.")},
         {"permissions_save_changes_unavailable", _u8L("Save changes (not yet available)")},
-        {"permissions_reset_draft", _u8L("Reset draft")},
-        {"permissions_draft_empty", _u8L("No values in this draft.")},
-        {"permissions_apply_draft", _u8L("Apply to draft")},
-        {"permissions_apply_draft_label", _u8L("Apply value to draft for %s")},
+        {"permissions_save_changes", _u8L("Save changes")},
+        {"permissions_save_notice", _u8L("Permission changes take effect after saving. Full access is saved separately.")},
+        {"permissions_unapplied_notice", _u8L("Apply or remove the text you entered before saving.")},
+        {"permissions_unsaved_title", _u8L("Unsaved permission changes")},
+        {"permissions_unsaved_unapplied", _u8L("Apply or remove the text you entered before saving.")},
+        {"permissions_unsaved_description", _u8L("Save or discard your changes before leaving.")},
+        {"permissions_save_close", _u8L("Save and close")},
+        {"permissions_save_switch", _u8L("Save and switch")},
+        {"permissions_discard_close", _u8L("Discard and close")},
+        {"permissions_discard_switch", _u8L("Discard and switch")},
+        {"permissions_continue_editing", _u8L("Continue editing")},
+        {"permissions_reset_changes", _u8L("Reset changes")},
+        {"permissions_values_empty", _u8L("No values added.")},
+        {"permissions_apply", _u8L("Apply")},
+        {"permissions_apply_value_label", _u8L("Apply value for %s")},
         {"permissions_install_to_edit", _u8L("Install this plugin to edit its permissions.")},
         {"permissions_add_value_label", _u8L("New value for %s")},
         {"permissions_edit_value_label", _u8L("Edit value for %s")},
@@ -885,7 +1061,7 @@ void PluginsDialog::handle_web_command(const nlohmann::json& payload)
         const std::string request_id = payload.contains("request_id") && payload.at("request_id").is_string()
                                            ? payload.at("request_id").get<std::string>()
                                            : std::string{};
-        const bool request_id_valid = is_valid_full_access_request_id(request_id);
+        const bool request_id_valid = is_valid_bridge_request_id(request_id);
         if (!request_id_valid || !payload.contains("plugin_key") || !payload.at("plugin_key").is_string() ||
             !payload.contains("enabled") || !payload.at("enabled").is_boolean()) {
             show_status(_L("Invalid full access request."), "error");
@@ -894,6 +1070,37 @@ void PluginsDialog::handle_web_command(const nlohmann::json& payload)
             return;
         }
         set_plugin_full_access(plugin_key, payload.at("enabled").get<bool>(), request_id);
+    } else if (command == "save_plugin_permissions") {
+        // Same shape guard as full access: the webview is shared with plugin-authored UI, so a
+        // non-string key, malformed token or wrongly typed category list is refused, not coerced.
+        const std::string plugin_key = payload.contains("plugin_key") && payload.at("plugin_key").is_string()
+                                           ? payload.at("plugin_key").get<std::string>()
+                                           : std::string{};
+        const std::string request_id = payload.contains("request_id") && payload.at("request_id").is_string()
+                                           ? payload.at("request_id").get<std::string>()
+                                           : std::string{};
+        const bool request_id_valid = is_valid_bridge_request_id(request_id);
+        PluginPermissions permissions;
+        const bool valid = request_id_valid && !plugin_key.empty() &&
+                           payload.contains("permissions") && parse_permissions_payload(payload.at("permissions"), permissions);
+        if (!valid) {
+            show_status(_L("Invalid permission save request."), "error");
+            send_plugins();
+            send_permissions_result(*this, plugin_key, request_id_valid ? request_id : std::string{}, /*success=*/false);
+            return;
+        }
+        save_plugin_permissions(plugin_key, permissions, request_id);
+    } else if (command == "close_plugins_dialog") {
+        // The page handled any unsaved draft. Ignore a duplicate command and authorize the close
+        // first so the close event it raises cannot be intercepted again.
+        if (m_allow_close)
+            return;
+        m_allow_close = true;
+        m_esc_close_request_sent = false;
+        wxGetApp().CallAfter([this, alive = m_alive]() {
+            if (alive->load(std::memory_order_acquire) && !IsBeingDeleted())
+                Close();
+        });
     } else if (command == "set_plugin_install_action") {
         const std::string action = payload.value("action", "");
         if (action == "explore" || action == "install-local")
@@ -1033,6 +1240,90 @@ void PluginsDialog::set_plugin_full_access(const std::string& plugin_key, bool e
     send_full_access_result(*this, plugin_key, request_id);
     show_status(wxString::Format(enabled ? _L("Full access enabled for \"%s\".") : _L("Full access disabled for \"%s\"."), plugin_name),
                 "success");
+}
+
+void PluginsDialog::save_plugin_permissions(const std::string& plugin_key, const PluginPermissions& permissions, const std::string& request_id)
+{
+    if (plugin_key.empty()) {
+        show_status(_L("Invalid permission save request."), "error");
+        send_plugins();
+        send_permissions_result(*this, plugin_key, request_id, /*success=*/false);
+        return;
+    }
+
+    // An uninstalled or unreadable plugin has no sidecar to replace. The webview should not have
+    // offered Save for it, but the command can arrive from a plugin-authored iframe, so refuse.
+    PluginInstallState stored;
+    if (!PluginManager::instance().get_install_state(plugin_key, stored)) {
+        show_status(_L("Install this plugin to edit its permissions."), "warn");
+        send_plugins();
+        send_permissions_result(*this, plugin_key, request_id, /*success=*/false);
+        return;
+    }
+
+    const wxString plugin_name = plugin_display_name(plugin_key);
+
+    // Reject before any confirmation: while full access is on the permission list is inert, so a
+    // save would silently store grants that take effect only after full access is turned off.
+    if (stored.permissions.full_access) {
+        show_status(_L("Permission list editing is disabled while full access is on."), "warn");
+        send_plugins();
+        send_permissions_result(*this, plugin_key, request_id, /*success=*/false);
+        return;
+    }
+
+    // A saved list is a replacement, so removals need no confirmation. Added or broadened grants
+    // do: this dialog can be driven by a sandboxed, plugin-authored iframe that sends native
+    // commands directly. Any outcome other than an explicit Yes cancels, and the draft survives.
+    const std::vector<PermissionAddition> additions = collect_permission_additions(stored.permissions, permissions);
+    if (!additions.empty()) {
+        wxString details;
+        for (const PermissionAddition& addition : additions) {
+            if (!details.empty())
+                details += "\n\n";
+            if (addition.boolean_grant) {
+                details += format_wxstr(_L("%1%: enabled"), addition.label);
+            } else {
+                wxString entries;
+                for (const std::string& entry : addition.entries) {
+                    if (!entries.empty())
+                        entries += "\n";
+                    entries += from_u8(entry);
+                }
+                details += format_wxstr(_L("%1%:\n%2%"), addition.label, entries);
+            }
+        }
+
+        MessageDialog dialog(
+            this,
+            wxString::Format(
+                _L("Save these permissions for \"%s\"?\n\n"
+                   "The following permissions will be added and take effect immediately:\n\n%s\n\n"
+                   "Only save this for a plugin you trust."),
+                plugin_name, details),
+            _L("Save Permissions"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
+        // MsgDialog always gives Yes the initial focus; focus No so Enter cannot grant access.
+        dialog.SetButtonLabel(wxID_NO, _L("No"), /*set_focus=*/true);
+
+        const int rc = dialog.ShowModal();
+        restore_z_order();
+        if (rc != wxID_YES) {
+            send_plugins();
+            send_permissions_result(*this, plugin_key, request_id, /*success=*/false);
+            return;
+        }
+    }
+
+    if (!PluginManager::instance().set_plugin_permissions(plugin_key, permissions)) {
+        show_status(_L("Failed to save permissions."), "error");
+        send_plugins();
+        send_permissions_result(*this, plugin_key, request_id, /*success=*/false);
+        return;
+    }
+
+    send_plugins();
+    send_permissions_result(*this, plugin_key, request_id, /*success=*/true);
+    show_status(wxString::Format(_L("Permissions saved for \"%s\"."), plugin_name), "success");
 }
 
 void PluginsDialog::toggle_plugin(const std::string& plugin_key, bool enabled)
