@@ -155,13 +155,11 @@ bool GLGizmoTextureDisplacement::on_init()
     const wxString alt   = GUI::shortkey_alt_prefix();
     const wxString shift = GUI::shortkey_shift_prefix();
 
-
     m_desc["cursor_size"]   = _L("Brush size");
     m_desc["circle"]        = _L("Circle");
     m_desc["sphere"]        = _L("Sphere");
     m_desc["remove_layer"]  = _L("Remove");
     m_desc["bake"]          = _L_CONTEXT("Bake", "Texture Displacement");
-
 
     m_desc["paint"]            = _L("Paint");
     m_desc["erase"]            = _L("Erase");
@@ -1902,6 +1900,235 @@ void GLGizmoTextureDisplacement::render_paint_cursor_hint()
     dl->AddText(ImGui::GetFont(), fs, at, color, glyph);
 }
 
+// ---- The rows the panel is built from ----
+//
+// The header says why these are members and not lambdas inside on_render_input_window.
+
+// One end of a range, through the slider's own format, so the bounds in the tooltip read exactly like
+// the value in the track. A parenthesised note in the format - "(auto)" - is dropped: it describes the
+// current state, not the bound.
+template<class T> static std::string fmt_bound(const char *format, T v)
+{
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), format, v);
+    std::string  out(buf);
+    const size_t paren = out.find('(');
+    if (paren != std::string::npos)
+        out.erase(paren);
+    while (!out.empty() && out.back() == ' ')
+        out.pop_back();
+    return out;
+}
+
+static std::string range_text(const std::string &lo, const std::string &hi)
+{
+    return Slic3r::format(_u8L("Range: %1% to %2%"), lo, hi);
+}
+
+static std::string edit_icon_tip(const std::string &range)
+{
+    return _u8L("Type a value instead of dragging. Ctrl+click on the slider does the same.") + "\n\n" + range;
+}
+
+float GLGizmoTextureDisplacement::panel_gap() const { return std::round(m_imgui->scaled(0.4f)); }
+float GLGizmoTextureDisplacement::panel_label_w() const { return m_imgui->scaled(4.8f); }
+// Exactly as tall as the slider it sits beside, so it lines up with the track without the row having
+// to be re-centred around it; icon_button() pads the glyph itself down to about 0.7 of this.
+float GLGizmoTextureDisplacement::panel_edit_icon_w() const { return ImGui::GetFrameHeight(); }
+float GLGizmoTextureDisplacement::panel_edit_icon_room() const { return panel_edit_icon_w() + panel_gap(); }
+
+void GLGizmoTextureDisplacement::hover_tip(const std::string &text, const std::vector<TipMedia> &media)
+{
+    if (ImGui::IsItemHovered())
+        panel_tooltip(text, media);
+}
+
+void GLGizmoTextureDisplacement::hover_tip(const wxString &text, const std::vector<TipMedia> &media)
+{
+    if (ImGui::IsItemHovered())
+        panel_tooltip(text, media);
+}
+
+bool GLGizmoTextureDisplacement::icon_toggle(int uid, const std::string &iconfile, bool active, float sz,
+                                             const wxString &label, const wxString &tip_text,
+                                             const std::vector<TipMedia> &media, const wxString &unavailable)
+{
+    const ImGuiStyle &style     = ImGui::GetStyle();
+    const ImVec4      orca      = ImGuiWrapper::COL_ORCA;
+    const ImVec4      col_frame = ImGui::GetStyleColorVec4(ImGuiCol_Separator);
+    const bool        na        = !unavailable.empty();
+    const auto        it        = m_panel_icon_map.find(iconfile);
+    const float       pad       = std::max(1.f, std::round(sz * 0.14f));
+    const int         variant   = active ? 1 : 0;
+    bool              clicked   = false;
+    ImGui::PushID(uid);
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, na ? style.Alpha * 0.32f : style.Alpha);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.f);
+    ImGui::PushStyleColor(ImGuiCol_Button, active ? ImVec4(orca.x, orca.y, orca.z, 0.22f) : ImVec4(0.f, 0.f, 0.f, 0.f));
+    if (na) {
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.f, 0.f, 0.f, 0.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.f, 0.f, 0.f));
+    }
+    if (it != m_panel_icon_map.end() && int(it->second.size()) > variant && it->second[size_t(variant)]->is_valid()) {
+        const IconManager::Icon &ic = *it->second[size_t(variant)];
+        clicked = m_imgui->image_button((ImTextureID) (intptr_t) ic.tex_id, ImVec2(sz - 2.f * pad, sz - 2.f * pad), ic.tl, ic.br,
+                                        int(pad));
+    } else {
+        clicked = ImGui::Button(label.ToUTF8().data(), ImVec2(0.f, sz)); // the control is never lost to a missing icon
+    }
+    ImGui::GetWindowDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(),
+                                        ImGui::GetColorU32(active ? orca : col_frame), style.FrameRounding);
+    ImGui::PopStyleColor(na ? 3 : 1);
+    ImGui::PopStyleVar(2);
+    ImGui::PopID();
+    if (ImGui::IsItemHovered())
+        panel_tooltip(na ? tip_text + "\n\n" + unavailable : tip_text, media);
+    return clicked && !na;
+}
+
+bool GLGizmoTextureDisplacement::icon_button(int uid, const std::string &iconfile, float sz, const wxString &label,
+                                             const wxString &tip_text, const std::vector<TipMedia> &media)
+{
+    const auto  it      = m_panel_icon_map.find(iconfile);
+    const float pad     = std::max(1.f, std::round(sz * 0.14f));
+    bool        clicked = false;
+    ImGui::PushID(uid);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.f);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
+    if (it != m_panel_icon_map.end() && !it->second.empty() && it->second[0]->is_valid()) {
+        const IconManager::Icon &ic = *it->second[0];
+        clicked = m_imgui->image_button((ImTextureID) (intptr_t) ic.tex_id, ImVec2(sz - 2.f * pad, sz - 2.f * pad), ic.tl, ic.br,
+                                        int(pad));
+    } else {
+        clicked = ImGui::Button(label.ToUTF8().data(), ImVec2(0.f, sz));
+    }
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar();
+    ImGui::PopID();
+    if (!tip_text.empty() && ImGui::IsItemHovered())
+        panel_tooltip(tip_text, media);
+    return clicked;
+}
+
+void GLGizmoTextureDisplacement::vsep(float h)
+{
+    const float gap = panel_gap();
+    ImGui::SameLine(0.f, gap);
+    const ImVec2 p = ImGui::GetCursorScreenPos();
+    ImGui::GetWindowDrawList()->AddLine(ImVec2(p.x, p.y + h * 0.2f), ImVec2(p.x, p.y + h * 0.8f),
+                                        ImGui::GetColorU32(ImGuiCol_Separator));
+    ImGui::Dummy(ImVec2(1.f, h));
+    ImGui::SameLine(0.f, gap);
+}
+
+void GLGizmoTextureDisplacement::heading(const wxString &text)
+{
+    m_imgui->push_bold_font();
+    m_imgui->text(text);
+    m_imgui->pop_bold_font();
+}
+
+void GLGizmoTextureDisplacement::slider_label(const wxString &label)
+{
+    const float x0 = ImGui::GetCursorPosX();
+    ImGui::AlignTextToFramePadding();
+    m_imgui->text(label);
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + panel_label_w()));
+}
+
+// ---- Typed values on sliders ----
+// Every slider in the panel goes through typed_slider(), so all of them take a number the same two
+// ways: Ctrl+click on the track, or the edit icon at the right end for the same box without the
+// modifier. Both end up in ImGui's own "temp input" mode - the icon only asks ImGui to focus the
+// slider, which is what turns it into an input box (see SliderScalar) - so the parsing, the clamping
+// and the Enter/click-away behaviour are ImGui's, not a second implementation.
+bool GLGizmoTextureDisplacement::typed_row(const char *id, float item_w, const wxString &tip,
+                                           const std::vector<TipMedia> &media, const std::string &range,
+                                           const std::function<bool()> &slider)
+{
+    // Deferred from the click a frame ago: SetKeyboardFocusHere() is a request for the *next* frame,
+    // so it has to be issued before the slider it names, not from the icon beside it.
+    if (m_slider_type_request == id) {
+        ImGui::SetKeyboardFocusHere();
+        m_slider_type_request.clear();
+        m_parent.set_as_dirty(); // the focus only lands on a frame that actually gets drawn
+    }
+    ImGui::SetNextItemWidth(item_w);
+    const bool changed = slider();
+    // AllowWhenDisabled: several of these rows are drawn inside disabled_begin(), and a greyed slider
+    // is exactly when the user needs to be told what it is and why it is not moving.
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+        wxString full = tip;
+        if (!full.IsEmpty())
+            full += "\n\n";
+        panel_tooltip(full + from_u8(range), media);
+    }
+    // SameLine() puts the cursor back at the slider's own top (ItemSize records the Y the item was
+    // drawn at), so an icon of the same height lands on the track wherever the row placed it.
+    ImGui::SameLine(0.f, panel_gap());
+    if (icon_button(int(ImGui::GetID(id)), "edit.svg", panel_edit_icon_w(), _L("Edit"), from_u8(edit_icon_tip(range)))) {
+        m_slider_type_request       = id;
+        m_slider_type_request_frame = ImGui::GetFrameCount();
+        m_parent.set_as_dirty(); // the next frame is where the request above is turned into focus
+    }
+    return changed;
+}
+
+bool GLGizmoTextureDisplacement::typed_slider(const char *id, float item_w, float *v, float v_min, float v_max,
+                                              const char *format, bool log, const wxString &tip,
+                                              const std::vector<TipMedia> &media)
+{
+    return typed_row(id, item_w, tip, media, range_text(fmt_bound(format, v_min), fmt_bound(format, v_max)), [&] {
+        return ImGui::SliderFloat(id, v, v_min, v_max, format,
+                                  ImGuiSliderFlags_AlwaysClamp | (log ? ImGuiSliderFlags_Logarithmic : 0));
+    });
+}
+
+bool GLGizmoTextureDisplacement::typed_slider_int(const char *id, float item_w, int *v, int v_min, int v_max,
+                                                  const char *format, bool log, const wxString &tip,
+                                                  const std::vector<TipMedia> &media)
+{
+    return typed_row(id, item_w, tip, media, range_text(fmt_bound(format, v_min), fmt_bound(format, v_max)), [&] {
+        return ImGui::SliderInt(id, v, v_min, v_max, format,
+                                ImGuiSliderFlags_AlwaysClamp | (log ? ImGuiSliderFlags_Logarithmic : 0));
+    });
+}
+
+bool GLGizmoTextureDisplacement::float_row(const char *id, const wxString &label, float *v, float v_min, float v_max,
+                                           const char *format, bool log, float right_inset, const wxString &tip,
+                                           const std::vector<TipMedia> &media)
+{
+    slider_label(label);
+    return typed_slider(id, -(std::max(right_inset, 1.f) + panel_edit_icon_room()), v, v_min, v_max, format, log, tip,
+                        media);
+}
+
+bool GLGizmoTextureDisplacement::int_row(const char *id, const wxString &label, int *v, int v_min, int v_max,
+                                         const char *format, float right_inset, const wxString &tip,
+                                         const std::vector<TipMedia> &media)
+{
+    slider_label(label);
+    return typed_slider_int(id, -(std::max(right_inset, 1.f) + panel_edit_icon_room()), v, v_min, v_max, format, false,
+                            tip, media);
+}
+
+std::string GLGizmoTextureDisplacement::layer_name(const TextureDisplacementLayer &l)
+{
+    return l.name.empty() ? Slic3r::format(_u8L("Layer %1%"), l.slot + 1) : l.name;
+}
+
+bool GLGizmoTextureDisplacement::slot_painted(int slot) const
+{
+    const ModelObject *mo = m_c->selection_info()->model_object();
+    if (mo == nullptr)
+        return false;
+    for (const ModelVolume *v : mo->volumes)
+        if (v->is_model_part() && !v->texture_displacement_facet(slot).empty())
+            return true;
+    return false;
+}
+
 void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float bottom_limit)
 {
     // Every frame, so only the slow ones are reported: see ChromaProfileScope's min_ms.
@@ -1978,8 +2205,8 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
     const float       frame_h  = ImGui::GetFrameHeight();
     const float       icon_md  = std::round(frame_h * 1.25f); // tool and view buttons
     const float       icon_sm  = std::round(frame_h * 1.05f); // buttons sitting in a row of text
-    const float       gap_s    = std::round(m_imgui->scaled(0.4f));
-    const float       label_w  = m_imgui->scaled(4.8f); // label column of a label + slider row
+    const float       gap_s    = panel_gap();
+    const float       label_w  = panel_label_w(); // label column of a label + slider row
     const float       card_pad = std::round(m_imgui->scaled(0.55f));
     const ImVec4      orca     = ImGuiWrapper::COL_ORCA;
     const ImVec4      col_link = ImGuiWrapper::COL_ORCA;
@@ -1994,92 +2221,6 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         pop_panel_combo_style();
         return changed;
     };
-    const auto hover_tip = [&](const auto &text, const std::vector<TipMedia> &media = {}) {
-        if (ImGui::IsItemHovered())
-            panel_tooltip(text, media);
-    };
-
-    // Framed icon toggle: a 1 px frame, and when on a teal frame over a teal tint with the icon in its
-    // original colours (IconManager's color_wite_gray variant [1]); off, the theme's grey variant [0].
-    // `unavailable`, when not empty, draws it faded but still hoverable, so the tooltip can say why it
-    // cannot be used - a disabled ImGui item would swallow the hover and leave the user guessing.
-    const auto icon_toggle = [&](int uid, const std::string &iconfile, bool active, float sz, const wxString &label,
-                                 const wxString &tip_text, const std::vector<TipMedia> &media = {},
-                                 const wxString &unavailable = wxString()) -> bool {
-        const bool  na      = !unavailable.empty();
-        const auto  it      = m_panel_icon_map.find(iconfile);
-        const float pad     = std::max(1.f, std::round(sz * 0.14f));
-        const int   variant = active ? 1 : 0;
-        bool        clicked = false;
-        ImGui::PushID(uid);
-        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, na ? style.Alpha * 0.32f : style.Alpha);
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.f);
-        ImGui::PushStyleColor(ImGuiCol_Button, active ? ImVec4(orca.x, orca.y, orca.z, 0.22f) : ImVec4(0.f, 0.f, 0.f, 0.f));
-        if (na) {
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.f, 0.f, 0.f, 0.f));
-            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.f, 0.f, 0.f));
-        }
-        if (it != m_panel_icon_map.end() && int(it->second.size()) > variant && it->second[size_t(variant)]->is_valid()) {
-            const IconManager::Icon &ic = *it->second[size_t(variant)];
-            clicked = m_imgui->image_button((ImTextureID) (intptr_t) ic.tex_id, ImVec2(sz - 2.f * pad, sz - 2.f * pad), ic.tl, ic.br,
-                                            int(pad));
-        } else {
-            clicked = ImGui::Button(label.ToUTF8().data(), ImVec2(0.f, sz)); // the control is never lost to a missing icon
-        }
-        ImGui::GetWindowDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(),
-                                            ImGui::GetColorU32(active ? orca : col_frame), style.FrameRounding);
-        ImGui::PopStyleColor(na ? 3 : 1);
-        ImGui::PopStyleVar(2);
-        ImGui::PopID();
-        if (ImGui::IsItemHovered())
-            panel_tooltip(na ? tip_text + "\n\n" + unavailable : tip_text, media);
-        return clicked && !na;
-    };
-    // Borderless icon button (non-toggle): always the grey monochrome variant.
-    const auto icon_button = [&](int uid, const std::string &iconfile, float sz, const wxString &label,
-                                 const wxString &tip_text, const std::vector<TipMedia> &media = {}) -> bool {
-        const auto  it      = m_panel_icon_map.find(iconfile);
-        const float pad     = std::max(1.f, std::round(sz * 0.14f));
-        bool        clicked = false;
-        ImGui::PushID(uid);
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.f);
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
-        if (it != m_panel_icon_map.end() && !it->second.empty() && it->second[0]->is_valid()) {
-            const IconManager::Icon &ic = *it->second[0];
-            clicked = m_imgui->image_button((ImTextureID) (intptr_t) ic.tex_id, ImVec2(sz - 2.f * pad, sz - 2.f * pad), ic.tl, ic.br,
-                                            int(pad));
-        } else {
-            clicked = ImGui::Button(label.ToUTF8().data(), ImVec2(0.f, sz));
-        }
-        ImGui::PopStyleColor();
-        ImGui::PopStyleVar();
-        ImGui::PopID();
-        if (!tip_text.empty() && ImGui::IsItemHovered())
-            panel_tooltip(tip_text, media);
-        return clicked;
-    };
-    // A short vertical rule between groups of buttons on one row; call it right after an item.
-    const auto vsep = [&](float h) {
-        ImGui::SameLine(0.f, gap_s);
-        const ImVec2 p = ImGui::GetCursorScreenPos();
-        ImGui::GetWindowDrawList()->AddLine(ImVec2(p.x, p.y + h * 0.2f), ImVec2(p.x, p.y + h * 0.8f), col_sep);
-        ImGui::Dummy(ImVec2(1.f, h));
-        ImGui::SameLine(0.f, gap_s);
-    };
-    const auto heading = [&](const wxString &text) {
-        m_imgui->push_bold_font();
-        m_imgui->text(text);
-        m_imgui->pop_bold_font();
-    };
-    // Label column + a slider filling the rest of the row, value printed inside the track.
-    // `right_inset` keeps a layer card's inner padding.
-    const auto slider_label = [&](const wxString &label) {
-        const float x0 = ImGui::GetCursorPosX();
-        ImGui::AlignTextToFramePadding();
-        m_imgui->text(label);
-        ImGui::SameLine();
-        ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
-    };
 
     // ---- Typed values on sliders ----
     // Every slider in the panel goes through typed_slider(), so all of them take a number the same
@@ -2092,106 +2233,6 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
     // it cannot fire later when that row comes back. Before any row is drawn, so a live one still wins.
     if (!m_slider_type_request.empty() && ImGui::GetFrameCount() > m_slider_type_request_frame + 1)
         m_slider_type_request.clear();
-
-    // Exactly as tall as the slider it sits beside, so it lines up with the track without the row
-    // having to be re-centred around it; icon_button() pads the glyph itself down to about 0.7 of this.
-    const float edit_icon_w = frame_h;
-    // What the slider's own width has to give up for the icon beside it.
-    const float edit_icon_room = edit_icon_w + gap_s;
-
-    // One end of a range, through the slider's own format, so the bounds in the tooltip read exactly
-    // like the value in the track. A parenthesised note in the format - "(auto)" - is dropped: it
-    // describes the current state, not the bound.
-    const auto fmt_bound = [](const char *format, auto v) {
-        char buf[64];
-        std::snprintf(buf, sizeof(buf), format, v);
-        std::string out(buf);
-        const size_t paren = out.find('(');
-        if (paren != std::string::npos)
-            out.erase(paren);
-        while (!out.empty() && out.back() == ' ')
-            out.pop_back();
-        return out;
-    };
-    const auto range_text = [](const std::string &lo, const std::string &hi) {
-        return Slic3r::format(_u8L("Range: %1% to %2%"), lo, hi);
-    };
-    const auto edit_icon_tip = [&](const std::string &range) {
-        return _u8L("Type a value instead of dragging. Ctrl+click on the slider does the same.") + "\n\n" + range;
-    };
-
-    // Draws `slider` at `item_w` (SetNextItemWidth's convention: negative measures back from the right
-    // edge, and the caller has already left edit_icon_room in it), then the edit icon. The range goes on
-    // both tooltips; `tip` and its illustrations `media` on the slider's. Returns whatever the slider returned.
-    const auto typed_row = [&](const char *id, float item_w, const wxString &tip, const std::vector<TipMedia> &media,
-                               const std::string &range, const std::function<bool()> &slider) -> bool {
-        // Deferred from the click a frame ago: SetKeyboardFocusHere() is a request for the *next*
-        // frame, so it has to be issued before the slider it names, not from the icon beside it.
-        if (m_slider_type_request == id) {
-            ImGui::SetKeyboardFocusHere();
-            m_slider_type_request.clear();
-            m_parent.set_as_dirty(); // the focus only lands on a frame that actually gets drawn
-        }
-        ImGui::SetNextItemWidth(item_w);
-        const bool changed = slider();
-        // AllowWhenDisabled: several of these rows are drawn inside disabled_begin(), and a greyed
-        // slider is exactly when the user needs to be told what it is and why it is not moving.
-        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-            wxString full = tip;
-            if (!full.IsEmpty())
-                full += "\n\n";
-            panel_tooltip(full + from_u8(range), media);
-        }
-        // SameLine() puts the cursor back at the slider's own top (ItemSize records the Y the item was
-        // drawn at), so an icon of the same height lands on the track wherever the row placed it.
-        ImGui::SameLine(0.f, gap_s);
-        if (icon_button(int(ImGui::GetID(id)), "edit.svg", edit_icon_w, _L("Edit"), from_u8(edit_icon_tip(range)))) {
-            m_slider_type_request       = id;
-            m_slider_type_request_frame = ImGui::GetFrameCount();
-            m_parent.set_as_dirty(); // the next frame is where the request above is turned into focus
-        }
-        return changed;
-    };
-
-    // The two forms every slider in the panel is one of. They derive the range from the bounds they are
-    // already given, so no row states its bounds or its format twice and the tooltip cannot drift from
-    // the track. `item_w` is as typed_row() takes it.
-    const auto typed_slider = [&](const char *id, float item_w, float *v, float v_min, float v_max, const char *format,
-                                  bool log, const wxString &tip, const std::vector<TipMedia> &media = {}) -> bool {
-        return typed_row(id, item_w, tip, media, range_text(fmt_bound(format, v_min), fmt_bound(format, v_max)), [&] {
-            return ImGui::SliderFloat(id, v, v_min, v_max, format,
-                                      ImGuiSliderFlags_AlwaysClamp | (log ? ImGuiSliderFlags_Logarithmic : 0));
-        });
-    };
-    const auto typed_slider_int = [&](const char *id, float item_w, int *v, int v_min, int v_max, const char *format,
-                                      bool log, const wxString &tip, const std::vector<TipMedia> &media = {}) -> bool {
-        return typed_row(id, item_w, tip, media, range_text(fmt_bound(format, v_min), fmt_bound(format, v_max)), [&] {
-            return ImGui::SliderInt(id, v, v_min, v_max, format,
-                                    ImGuiSliderFlags_AlwaysClamp | (log ? ImGuiSliderFlags_Logarithmic : 0));
-        });
-    };
-
-    // Label column + the slider filling the rest of the row.
-    const auto float_row = [&](const char *id, const wxString &label, float *v, float v_min, float v_max, const char *format,
-                               bool log, float right_inset, const wxString &tip, const std::vector<TipMedia> &media = {}) -> bool {
-        slider_label(label);
-        return typed_slider(id, -(std::max(right_inset, 1.f) + edit_icon_room), v, v_min, v_max, format, log, tip, media);
-    };
-    const auto int_row = [&](const char *id, const wxString &label, int *v, int v_min, int v_max, const char *format,
-                             float right_inset, const wxString &tip, const std::vector<TipMedia> &media = {}) -> bool {
-        slider_label(label);
-        return typed_slider_int(id, -(std::max(right_inset, 1.f) + edit_icon_room), v, v_min, v_max, format, false, tip, media);
-    };
-    const auto layer_name = [](const TextureDisplacementLayer &l) {
-        return l.name.empty() ? Slic3r::format(_u8L("Layer %1%"), l.slot + 1) : l.name;
-    };
-    // Painted on any model part. The selectors flush into the model at the end of every stroke.
-    const auto slot_painted = [mo](int slot) {
-        for (const ModelVolume *v : mo->volumes)
-            if (v->is_model_part() && !v->texture_displacement_facet(slot).empty())
-                return true;
-        return false;
-    };
 
     // ---- Header: title, Standard / Pro, dock toggle. Pinned above the body. ----
     {
@@ -2378,7 +2419,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         if (is_brush_mode) {
             centre_on_row(frame_h);
             typed_slider("##cursor_radius",
-                         std::max(1.f, row_end - ImGui::GetCursorPosX() - (3.f * gap_s + 1.f + 2.f * icon_sm) - edit_icon_room),
+                         std::max(1.f, row_end - ImGui::GetCursorPosX() - (3.f * gap_s + 1.f + 2.f * icon_sm) - panel_edit_icon_room()),
                          &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f mm", false, m_desc.at("cursor_size"),
                          { { "cursor_size.gif" } });
             vsep(icon_sm);
@@ -2394,7 +2435,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                 m_cursor_type = TriangleSelector::CursorType::SPHERE;
         } else if (is_area_mode) {
             centre_on_row(frame_h);
-            typed_slider("##smart_fill_angle", std::max(1.f, row_end - ImGui::GetCursorPosX() - edit_icon_room),
+            typed_slider("##smart_fill_angle", std::max(1.f, row_end - ImGui::GetCursorPosX() - panel_edit_icon_room()),
                          &m_smart_fill_angle, SmartFillAngleMin, SmartFillAngleMax, "%.0f°", false,
                          _L("Angle threshold - the fill stops at edges sharper than this"),
                          { { "smart_fill_angle_low.png", _L("Low") }, { "smart_fill_angle_high.png", _L("High") } });
@@ -2833,7 +2874,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                 // predicts, what is wrong, how many colours, and the filaments. The solve and the swaps
                 // are not decisions - they follow the stack by themselves (see chroma_settle()).
                 chroma_settle(layer);
-                render_chroma_card(layer, card_pad, label_w, card_content_w);
+                render_chroma_card(layer, card_pad, card_content_w);
             } else {
             // The three controls nearly every layer needs; everything else waits behind "More settings".
             // Depth and tile size are logarithmic, so both ends of their wide ranges stay usable.
@@ -2906,7 +2947,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                               { { "edge_fade_off.png", _L("Off") }, { "edge_fade_on.png", _L("On") } });
                     ImGui::SameLine();
                     m_imgui->disabled_begin(!layer.edge_smoothing);
-                    m_preview_params_dirty |= typed_slider("##edge_amount", -(card_pad + edit_icon_room),
+                    m_preview_params_dirty |= typed_slider("##edge_amount", -(card_pad + panel_edit_icon_room()),
                                                            &layer.edge_smoothing_amount, 0.02f, 1.f, "%.2f", false,
                                                            _L("How far in the fade reaches, as a share of the painted area. Small "
                                                               "values soften a narrow band at the edge; 1 flattens almost all of it."));
@@ -3583,7 +3624,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                   { { "preserve_edges_off.png", _L("Off") }, { "preserve_edges_on.png", _L("On") } });
         ImGui::SameLine();
         m_imgui->disabled_begin(!m_remesh_keep_sharp_edges);
-        typed_slider("##remesh_sharp_angle", -(1.f + edit_icon_room), &m_remesh_sharp_angle_deg, 5.f, 90.f, "%.0f°", false,
+        typed_slider("##remesh_sharp_angle", -(1.f + panel_edit_icon_room()), &m_remesh_sharp_angle_deg, 5.f, 90.f, "%.0f°", false,
                      _L("How sharp a fold has to be, in degrees, before the remesher treats it as an edge worth "
                         "keeping. Lower protects more of the model's shape; higher rebuilds more of it evenly."));
         m_imgui->disabled_end();
@@ -3839,7 +3880,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                                "four times as many, and once they no longer fit the budget the bake simplifies "
                                "back down and the detail goes with it.");
                     m_imgui->disabled_begin(busy || auto_res);
-                    if (typed_slider("##v2edge", x0 + panel_w - ImGui::GetCursorPosX() - edit_icon_room, &shown, 0.02f, 2.f,
+                    if (typed_slider("##v2edge", x0 + panel_w - ImGui::GetCursorPosX() - panel_edit_icon_room(), &shown, 0.02f, 2.f,
                                      v2edge_format.c_str(), true, v2edge_tip,
                                      v2edge_chosen ? std::vector<TipMedia>{} : std::vector<TipMedia>{ { "subdivide.gif" } })) {
                         opts.v2_refine_mm      = shown;
@@ -3879,7 +3920,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                     ImGui::SameLine();
                     ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
                     m_imgui->disabled_begin(busy);
-                    if (typed_slider_int("##subdivbudget", x0 + panel_w - ImGui::GetCursorPosX() - edit_icon_room,
+                    if (typed_slider_int("##subdivbudget", x0 + panel_w - ImGui::GetCursorPosX() - panel_edit_icon_room(),
                                          &m_subdivide_budget_k, 10, 2000, "+%d k", true,
                                          _L("How many thousand triangles the refinement may add to the model. The triangle "
                                             "that fits worst is always split first, so even a run that spends the lot has "

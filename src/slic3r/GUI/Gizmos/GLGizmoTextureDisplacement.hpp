@@ -4,6 +4,7 @@
 #include "GLGizmoPainterBase.hpp"
 #include "libslic3r/TextureBake/TextureBakeDebug.hpp"
 #include "libslic3r/ChromaDiagnostics.hpp"
+#include "libslic3r/ChromaStack.hpp"
 #include "libslic3r/TextureDisplacement.hpp"
 #include "slic3r/GUI/AnimatedTexture.hpp"
 #include "slic3r/GUI/GLModel.hpp"
@@ -794,16 +795,16 @@ private:
     // is predicted to print, the colours it is printed in, the plate that comes out of the printer,
     // and the two settings that are chosen once. The blocks below are its sections rather than
     // separate cards, and are called only from here.
-    void render_chroma_card(TextureDisplacementLayer &layer, float card_pad, float label_w, float content_w);
+    void render_chroma_card(TextureDisplacementLayer &layer, float card_pad, float content_w);
     // The plate's own dimensions: every row here is a measurement of the thing that comes off the bed,
     // which is why the base and which way up it prints are among them.
-    void render_chroma_plate(TextureDisplacementLayer &layer, float card_pad, float label_w, bool has_ramp);
+    void render_chroma_plate(TextureDisplacementLayer &layer, float card_pad, bool has_ramp);
     // Where the light is and how the rounding error is spread. Both are chosen once for a picture and
     // neither is touched on a normal pass, so the section is closed until it is wanted.
-    void render_chroma_light(TextureDisplacementLayer &layer, float label_w);
+    void render_chroma_light(TextureDisplacementLayer &layer);
     // How the picture is drawn rather than what is printed: the overlays over the model, the softening
     // the preview applies, the layer slider and the debug views. Nothing in it reaches the project.
-    void render_chroma_views(TextureDisplacementLayer &layer, float label_w);
+    void render_chroma_views(TextureDisplacementLayer &layer);
     // The before and after at the size of the canvas, for a judgement a 190 px thumbnail cannot carry.
     // Drawn over the 3D view rather than in the panel, and closed by anything that dismisses a modal.
     void render_chroma_zoom();
@@ -1748,6 +1749,66 @@ private:
     void panel_tooltip(const std::string &text, const std::vector<TipMedia> &media = {});
     void panel_tooltip(const wxString &text, const std::vector<TipMedia> &media = {});
     void render_tip_media(const std::vector<TipMedia> &media, float width);
+
+    // ---- The rows the panel is built from ----
+    //
+    // One heading, one label-plus-slider row, one icon button, one separator, and every part of the
+    // panel draws itself out of those. They are members and not lambdas inside on_render_input_window
+    // because the picture card is drawn from another function: while they were local to that one, the
+    // card had to grow a second set of its own, and that is why the two halves of the panel did not
+    // look or behave alike - the card's rows had no label column, no range in the tooltip and no way
+    // to type a value.
+    //
+    // The metrics are taken from the ImGui style in force rather than passed in, so a row measures the
+    // same wherever it is called from.
+    float panel_gap() const;            // between two items sharing a row
+    float panel_label_w() const;        // the label column of a label + slider row
+    float panel_edit_icon_w() const;    // the type-a-value icon beside a slider, as tall as the slider
+    float panel_edit_icon_room() const; // what the slider's own width gives up for that icon
+
+    // The tooltip for the item just drawn.
+    void hover_tip(const std::string &text, const std::vector<TipMedia> &media = {});
+    void hover_tip(const wxString &text, const std::vector<TipMedia> &media = {});
+
+    // Framed icon toggle: a 1 px frame, and when on a teal frame over a teal tint with the icon in its
+    // original colours (IconManager's color_wite_gray variant [1]); off, the theme's grey variant [0].
+    // `unavailable`, when not empty, draws it faded but still hoverable, so the tooltip can say why it
+    // cannot be used - a disabled ImGui item would swallow the hover and leave the user guessing.
+    bool icon_toggle(int uid, const std::string &iconfile, bool active, float sz, const wxString &label,
+                     const wxString &tip_text, const std::vector<TipMedia> &media = {},
+                     const wxString &unavailable = wxString());
+    // Borderless icon button (non-toggle): always the grey monochrome variant.
+    bool icon_button(int uid, const std::string &iconfile, float sz, const wxString &label,
+                     const wxString &tip_text, const std::vector<TipMedia> &media = {});
+    // A short vertical rule between groups of buttons on one row; call it right after an item.
+    void vsep(float h);
+    void heading(const wxString &text);
+    // The label column of a row, clamped to one width so every field starts at the same x.
+    void slider_label(const wxString &label);
+
+    // Draws `slider` at `item_w` (SetNextItemWidth's convention: negative measures back from the right
+    // edge, and the caller has already left panel_edit_icon_room() in it), then the edit icon. The
+    // range goes on both tooltips; `tip` and its illustrations `media` on the slider's own. Returns
+    // whatever the slider returned.
+    bool typed_row(const char *id, float item_w, const wxString &tip, const std::vector<TipMedia> &media,
+                   const std::string &range, const std::function<bool()> &slider);
+    // The two forms every slider in the panel is one of. They derive the range from the bounds they are
+    // already given, so no row states its bounds or its format twice and the tooltip cannot drift from
+    // the track. `item_w` is as typed_row() takes it.
+    bool typed_slider(const char *id, float item_w, float *v, float v_min, float v_max, const char *format,
+                      bool log, const wxString &tip, const std::vector<TipMedia> &media = {});
+    bool typed_slider_int(const char *id, float item_w, int *v, int v_min, int v_max, const char *format,
+                          bool log, const wxString &tip, const std::vector<TipMedia> &media = {});
+    // Label column + the slider filling the rest of the row. `right_inset` keeps a card's inner padding.
+    bool float_row(const char *id, const wxString &label, float *v, float v_min, float v_max, const char *format,
+                   bool log, float right_inset, const wxString &tip, const std::vector<TipMedia> &media = {});
+    bool int_row(const char *id, const wxString &label, int *v, int v_min, int v_max, const char *format,
+                 float right_inset, const wxString &tip, const std::vector<TipMedia> &media = {});
+
+    // A layer's name as the panel shows it: its own, or its slot number when it has none.
+    static std::string layer_name(const TextureDisplacementLayer &l);
+    // Painted on any model part. The selectors flush into the model at the end of every stroke.
+    bool slot_painted(int slot) const;
 
     // Screen rectangle a tooltip places itself beside: the panel window, or - while the texture picker
     // is up and tooltips are coming from inside it - the picker popup, which already sits beside the

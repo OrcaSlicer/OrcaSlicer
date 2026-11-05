@@ -24,6 +24,10 @@
 #include "libslic3r/FilamentMixer.hpp"
 #include "libslic3r/ChromaSplit.hpp"
 #include "libslic3r/ChromaStack.hpp"
+#include "libslic3r/ChromaDiagnostics.hpp"
+#include "libslic3r/EmbossShape.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/TransmissionDistance.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/PresetBundle.hpp"
@@ -57,6 +61,7 @@
 #include "slic3r/GUI/Jobs/TextureDisplacementPrepareJob.hpp"
 #include "slic3r/GUI/Jobs/TextureDisplacementDebugJob.hpp"
 #include "slic3r/GUI/Jobs/TextureDisplacementPreviewJob.hpp"
+#include "slic3r/GUI/Jobs/ChromaStackJob.hpp"
 #include "libslic3r/ChromaProfile.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
@@ -68,6 +73,7 @@
 #include <chrono>
 #include <future>
 #include <cstdio>
+#include <cstring>
 #include <glad/gl.h>
 #include <imgui.h>
 #include "libslic3r/Point.hpp"
@@ -2512,7 +2518,7 @@ GLGizmoTextureDisplacement::chroma_readiness(const TextureDisplacementLayer &lay
     return out;
 }
 
-void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &layer, float card_pad, float label_w,
+void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &layer, float card_pad,
                                                     float content_w)
 {
     ChromaProfileScope prof("chroma_card_frame", {}, 8.0);
@@ -2522,10 +2528,6 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
     const size_t      slot    = size_t(layer.slot);
     ImDrawList       *dl      = ImGui::GetWindowDrawList();
 
-    const auto tip = [&](const std::string &text, const std::vector<TipMedia> &media = {}) {
-        if (ImGui::IsItemHovered())
-            panel_tooltip(text, media);
-    };
     // The current window's draw list, not the panel's captured one: a swatch is also drawn from inside
     // the popups below, and the panel's list is clipped to the panel and drawn under them.
     const auto swatch = [&](const ColorRGB &c, float size) {
@@ -2645,7 +2647,7 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
     if (!layer.chroma_source) {
         if (m_imgui->button(_L("Choose a picture")))
             chroma_pick_picture(layer);
-        tip(_u8L("The color picture to reproduce. The height map is computed from it, and recomputed whenever the "
+        hover_tip(_u8L("The color picture to reproduce. The height map is computed from it, and recomputed whenever the "
                  "stack changes."));
         return;
     }
@@ -2949,14 +2951,12 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                     panel_tooltip(_u8L("Which band the painted area is taken up to. The base is the picture at its "
                                        "thinnest, showing the backing alone."));
             } else {
-                if (ImGui::SliderFloat("##hf_fix_weight", &m_chroma_importance_weight, 1.f, 10.f, "%.0fx",
-                                       ImGuiSliderFlags_AlwaysClamp))
+                if (typed_slider("##hf_fix_weight", field_w, &m_chroma_importance_weight, 1.f, 10.f, "%.0fx", false,
+                                 _L("How much more the marked area counts than its size says it should. The "
+                                    "filaments are chosen for the whole picture, and the background of a "
+                                    "photograph is most of its area - so without this the one thing the picture "
+                                    "is of gets outvoted by the wall behind it.")))
                     m_chroma_importance_weight = std::max(1.f, m_chroma_importance_weight);
-                if (ImGui::IsItemHovered())
-                    panel_tooltip(_u8L("How much more the marked area counts than its size says it should. The "
-                                       "filaments are chosen for the whole picture, and the background of a "
-                                       "photograph is most of its area - so without this the one thing the picture "
-                                       "is of gets outvoted by the wall behind it."));
             }
 
             // On the row in every mode, so the row is the same shape in all three. There is only one
@@ -2978,13 +2978,10 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
             ImGui::TextDisabled("%s", _u8L("Brush").c_str());
             ImGui::SameLine();
             ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
-            ImGui::SetNextItemWidth(field_w);
-            if (ImGui::SliderFloat("##hf_fix_radius", &m_chroma_retouch_radius_mm, 0.5f, 25.f, "%.1f mm",
-                                   ImGuiSliderFlags_AlwaysClamp))
+            if (typed_slider("##hf_fix_radius", field_w, &m_chroma_retouch_radius_mm, 0.5f, 25.f, "%.1f mm", false,
+                             _L("How wide the brush is, measured on the print rather than on the screen, so it "
+                                "covers the same amount of the picture however far you have zoomed in.")))
                 m_parent.set_as_dirty();
-            if (ImGui::IsItemHovered())
-                panel_tooltip(_u8L("How wide the brush is, measured on the print rather than on the screen, so it "
-                                   "covers the same amount of the picture however far you have zoomed in."));
         }
 
         // The edits themselves, newest last, each one a stroke. Shown only when there are any: a card
@@ -3224,7 +3221,7 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                     ImGui::EndCombo();
                 }
                 pop_panel_combo_style();
-                tip(_u8L("Which of the loaded filaments this band prints in. Its color and its transmission distance come "
+                hover_tip(_u8L("Which of the loaded filaments this band prints in. Its color and its transmission distance come "
                          "from that filament's preset."));
 
                 // ---- how many layers of it ----
@@ -3238,7 +3235,7 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                     band.layers = std::clamp(band.layers, 1, CHROMA_MAX_RELIEF_LAYERS);
                     chroma_touch(layer.slot);
                 }
-                tip(_u8L("How many printed layers this filament gets, counting up the stack."));
+                hover_tip(_u8L("How many printed layers this filament gets, counting up the stack."));
 
                 // ---- how deep light gets into it ----
                 ImGui::SameLine(0.f, gap_s);
@@ -3269,7 +3266,7 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                     if (drift.any())
                         said += "\n\n" + _u8L("This is not the filament it was solved with. Click the swatch to take "
                                                "the one the project has now.");
-                    tip(said, { { "chroma_td.gif" } });
+                    hover_tip(said, { { "chroma_td.gif" } });
                 }
 
                 // ---- measure it, rather than guess it ----
@@ -3508,7 +3505,7 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                 if (n <= int(CHROMA_MAX_BANDS))
                     counts.push_back(n);
             segmented("##hf_count", counts, m_chroma_pick_count[slot], m_imgui->scaled(7.f));
-            tip(_u8L("How many filaments the picture is printed in. Fewer is fewer changes to stand over; more is a "
+            hover_tip(_u8L("How many filaments the picture is printed in. Fewer is fewer changes to stand over; more is a "
                      "better match, never a worse one."),
                 { { "chroma_colors.gif" } });
 
@@ -3518,7 +3515,7 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                                         0.5f * (ImGui::GetContentRegionAvail().x - std::max(card_pad, 1.f) - gap_s));
             if (ImGui::Button(_u8L("Pick from mine").c_str(), ImVec2(half, frame_h)))
                 chroma_pick_colors(layer, m_chroma_pick_count[slot]);
-            tip(_u8L("Builds the stack from that many of your loaded filaments: the ones that come closest to this "
+            hover_tip(_u8L("Builds the stack from that many of your loaded filaments: the ones that come closest to this "
                      "picture, in the order that reaches the most colors."),
                 { { "chroma_colors.gif" }, { "chroma_order.gif" } });
 
@@ -3527,7 +3524,7 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                 chroma_suggest(layer, m_chroma_pick_count[slot]);
                 ImGui::OpenPopup("hf_suggest");
             }
-            tip(_u8L("Works out the colors this picture would most like to be printed in, whether or not you own "
+            hover_tip(_u8L("Works out the colors this picture would most like to be printed in, whether or not you own "
                      "them - so you know what to go and get.\n\n"
                      "A transmission distance matters as much as the color: the same red at TD 1 and at TD 6 are "
                      "different filaments for this. Click a color in the list to put your nearest into that band."),
@@ -3768,13 +3765,13 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                                                   plate.base_mm + layer.chroma.depth_mm());
         if (closable("##hf_sec_plate", _L("The plate"), size, m_chroma_open_plate[slot])) {
             ImGui::Dummy(ImVec2(1.f, gap_s));
-            render_chroma_plate(layer, card_pad, label_w, has_ramp);
+            render_chroma_plate(layer, card_pad, has_ramp);
         }
     } else {
         // Not a section. For a picture painted onto somebody else's model the whole of it is one row -
         // how much of the model is under the picture - and a fold that hides one row is a click that
         // buys nothing and a heading that says nothing.
-        render_chroma_plate(layer, card_pad, label_w, has_ramp);
+        render_chroma_plate(layer, card_pad, has_ramp);
     }
 
     // ---- Chosen once, and then not again ----
@@ -3786,7 +3783,7 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                                                                                    _u8L("lit from the front");
         if (closable("##hf_sec_light", _L("Light and detail"), lit, m_chroma_open_light[slot])) {
             ImGui::Dummy(ImVec2(1.f, gap_s));
-            render_chroma_light(layer, label_w);
+            render_chroma_light(layer);
         }
     }
 
@@ -3804,7 +3801,7 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                                                       _u8L("none on");
         if (closable("##hf_sec_views", _L("Views"), on, m_chroma_open_views[slot])) {
             ImGui::Dummy(ImVec2(1.f, gap_s));
-            render_chroma_views(layer, label_w);
+            render_chroma_views(layer);
         }
     }
 }
@@ -3812,24 +3809,13 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
 // The plate's own dimensions. Every row is a measurement of the thing that comes off the bed, which is
 // why the base it measures for itself and which way up it prints are both here: a base is layers of
 // plastic under the picture, and which way up is a fact about how the slab is laid on the bed.
-void GLGizmoTextureDisplacement::render_chroma_plate(TextureDisplacementLayer &layer, float card_pad, float label_w,
+void GLGizmoTextureDisplacement::render_chroma_plate(TextureDisplacementLayer &layer, float card_pad,
                                                      bool has_ramp)
 {
     const float frame_h = ImGui::GetFrameHeight();
     const float gap_s   = std::round(m_imgui->scaled(0.4f));
     ImDrawList *dl      = ImGui::GetWindowDrawList();
 
-    const auto tip = [&](const std::string &text, const std::vector<TipMedia> &media = {}) {
-        if (ImGui::IsItemHovered())
-            panel_tooltip(text, media);
-    };
-    const auto row_label = [&](const wxString &text) {
-        const float x0 = ImGui::GetCursorPosX();
-        ImGui::AlignTextToFramePadding();
-        m_imgui->text(text);
-        ImGui::SameLine();
-        ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
-    };
     // One width for every field in the section. They start at one x already; starting at one x and
     // ending at four different ones is what made the column look like no column at all.
     const float field_w = m_imgui->scaled(4.6f);
@@ -3860,7 +3846,7 @@ void GLGizmoTextureDisplacement::render_chroma_plate(TextureDisplacementLayer &l
             layer.chroma.base_layers = measured;
             chroma_touch(layer.slot);
         }
-        row_label(_L("Layers below it"));
+        slider_label(_L("Layers below it"));
         int base = layer.chroma.base_layers;
         m_imgui->disabled_begin(layer.chroma.base_auto);
         ImGui::SetNextItemWidth(field_w);
@@ -3927,7 +3913,7 @@ void GLGizmoTextureDisplacement::render_chroma_plate(TextureDisplacementLayer &l
         const float aspect  = wide ? plate.width_mm / std::max(0.1f, plate.height_mm) :
                                      plate.height_mm / std::max(0.1f, plate.width_mm);
         float       longest = std::max(plate.width_mm, plate.height_mm);
-        row_label(_L("Picture is"));
+        slider_label(_L("Picture is"));
         ImGui::SetNextItemWidth(field_w);
         if (ImGui::InputFloat("##hf_plate_size", &longest, 0.f, 0.f, "%.0f mm")) {
             longest = std::clamp(longest, 10.f, 1000.f);
@@ -3940,16 +3926,16 @@ void GLGizmoTextureDisplacement::render_chroma_plate(TextureDisplacementLayer &l
         ImGui::TextDisabled("%s", Slic3r::format(_u8L("wide, so %1$.0f x %2$.0f"), plate.width_mm,
                                                  plate.height_mm)
                                       .c_str());
-        tip(_u8L("The longer side of the picture on the plate. The other side follows the picture's own "
+        hover_tip(_u8L("The longer side of the picture on the plate. The other side follows the picture's own "
                  "proportions, and the frame is added outside both."));
 
-        row_label(_L("Solid backing"));
+        slider_label(_L("Solid backing"));
         ImGui::SetNextItemWidth(field_w);
         if (ImGui::InputFloat("##hf_plate_base", &plate.base_mm, 0.f, 0.f, "%.1f mm")) {
             plate.base_mm = std::clamp(plate.base_mm, 0.2f, 20.f);
             redraw();
         }
-        tip(_u8L("How solid the plate is under the picture. The colors are computed assuming no light gets "
+        hover_tip(_u8L("How solid the plate is under the picture. The colors are computed assuming no light gets "
                  "through it, so this has to be thick enough to be opaque in the first filament - about a "
                  "tenth of its transmission distance."),
             { { "chroma_td.gif" } });
@@ -4030,7 +4016,7 @@ void GLGizmoTextureDisplacement::render_chroma_plate(TextureDisplacementLayer &l
         //
         // Face down is the one way to get a picture with no layer lines in it at all: the picture's own
         // face is printed against the build plate, so it comes out as smooth as that plate is.
-        row_label(_L("Which way up"));
+        slider_label(_L("Which way up"));
         {
             const bool  down    = plate.orientation == ChromaOrientation::FaceDown;
             ImGui::SetNextItemWidth(m_imgui->scaled(7.f));
@@ -4053,7 +4039,7 @@ void GLGizmoTextureDisplacement::render_chroma_plate(TextureDisplacementLayer &l
                 ImGui::EndCombo();
             }
             pop_panel_combo_style();
-            tip(_u8L("Which way up the plate prints. Picture up is the ordinary way, and the picture carries "
+            hover_tip(_u8L("Which way up the plate prints. Picture up is the ordinary way, and the picture carries "
                      "the layer lines of its own terraces. Picture down prints the picture's face against the "
                      "build plate, which comes out as smooth as the plate is - and turns the relief inside "
                      "out, so the backing has to be thick enough to hold the whole stack above it.\n\n"
@@ -4091,7 +4077,7 @@ void GLGizmoTextureDisplacement::render_chroma_plate(TextureDisplacementLayer &l
         // Which of the three flat tiles it builds. They all end up the same slab; what differs is
         // where the bands sit inside it, and that decides what the fill prints in and the order the
         // light crosses the colours in.
-        row_label(_L("Flat tile"));
+        slider_label(_L("Flat tile"));
         {
             const auto name_of = [](int m) {
                 switch (m) {
@@ -4109,7 +4095,7 @@ void GLGizmoTextureDisplacement::render_chroma_plate(TextureDisplacementLayer &l
                 ImGui::EndCombo();
             }
             pop_panel_combo_style();
-            tip(_u8L("FlatStack slides each column's own sequence up against the flat face, so the light crosses "
+            hover_tip(_u8L("FlatStack slides each column's own sequence up against the flat face, so the light crosses "
                      "the same filaments in the same order it would on the plate, and the colors are the ones the "
                      "solve chose. The cost is the printing: a layer no longer holds one band, so the printer "
                      "swaps filament inside almost every layer.\n\n"
@@ -4126,21 +4112,10 @@ void GLGizmoTextureDisplacement::render_chroma_plate(TextureDisplacementLayer &l
 
 // Where the light is, and how the rounding error is spread. Both are chosen once for a picture and
 // neither is touched on a normal pass.
-void GLGizmoTextureDisplacement::render_chroma_light(TextureDisplacementLayer &layer, float label_w)
+void GLGizmoTextureDisplacement::render_chroma_light(TextureDisplacementLayer &layer)
 {
     const float gap_s = std::round(m_imgui->scaled(0.4f));
 
-    const auto tip = [&](const std::string &text, const std::vector<TipMedia> &media = {}) {
-        if (ImGui::IsItemHovered())
-            panel_tooltip(text, media);
-    };
-    const auto row_label = [&](const wxString &text) {
-        const float x0 = ImGui::GetCursorPosX();
-        ImGui::AlignTextToFramePadding();
-        m_imgui->text(text);
-        ImGui::SameLine();
-        ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
-    };
 
     // ---- Which side the light comes from ----
     //
@@ -4150,7 +4125,7 @@ void GLGizmoTextureDisplacement::render_chroma_light(TextureDisplacementLayer &l
     // print of the same picture, which is why it is a mode here and not a view. Both at once is the
     // third, and is where most back-lit prints end up: a lamp behind and a room in front, the two
     // adding rather than one replacing the other.
-    row_label(_L("Light comes from"));
+    slider_label(_L("Light comes from"));
     {
         const ChromaLighting mode    = layer.chroma.lighting;
         const bool           back    = mode == ChromaLighting::BackLit;
@@ -4179,7 +4154,7 @@ void GLGizmoTextureDisplacement::render_chroma_light(TextureDisplacementLayer &l
             ImGui::EndCombo();
         }
         pop_panel_combo_style();
-        tip(_u8L("Where the light is when the print is looked at. In front is a filament painting. Behind is "
+        hover_tip(_u8L("Where the light is when the print is looked at. In front is a filament painting. Behind is "
                  "a lithophane: the light comes through the whole stack, so thicker is darker, the darkest "
                  "filaments belong at the bottom, and the backing has to be a layer or two rather than solid "
                  "- a picture on a thick base is black from behind.\n\n"
@@ -4190,41 +4165,41 @@ void GLGizmoTextureDisplacement::render_chroma_light(TextureDisplacementLayer &l
         // How much of the picture the lamp accounts for. Both lit only: in the other two modes it would
         // be a second way to say what the mode has already said.
         if (both) {
-            row_label(_L("Balance"));
-            ImGui::SetNextItemWidth(m_imgui->scaled(7.f));
+            slider_label(_L("Balance"));
             // Shown as a percentage because that is how a mix reads, and kept as a fraction because
             // that is what the palette multiplies by.
             float percent = layer.chroma.lighting_balance * 100.f;
-            if (ImGui::SliderFloat("##hf_balance", &percent, 0.f, 100.f, "%.0f%%", ImGuiSliderFlags_AlwaysClamp)) {
+            if (typed_slider("##hf_balance", m_imgui->scaled(7.f) - panel_edit_icon_room(), &percent, 0.f, 100.f,
+                             "%.0f%%", false,
+                             _L("How much of what the eye gets came through the plate rather than off its face. None of "
+                                "it is the front-lit print exactly, all of it is the back-lit one, and the middle is a "
+                                "plate on a window sill. Set it by eye against the preview and the room the print will "
+                                "hang in - there is no number to measure here, only the balance you can see."))) {
                 layer.chroma.lighting_balance = std::clamp(percent / 100.f, 0.f, 1.f);
                 chroma_touch(layer.slot);
             }
-            tip(_u8L("How much of what the eye gets came through the plate rather than off its face. None of "
-                     "it is the front-lit print exactly, all of it is the back-lit one, and the middle is a "
-                     "plate on a window sill. Set it by eye against the preview and the room the print will "
-                     "hang in - there is no number to measure here, only the balance you can see."));
         }
 
         if (back || both) {
-            row_label(_L("Lamp"));
+            slider_label(_L("Lamp"));
             ImVec4 led(layer.chroma.led_color.r(), layer.chroma.led_color.g(), layer.chroma.led_color.b(), 1.f);
             if (ImGui::ColorEdit3("##hf_led", &led.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel)) {
                 layer.chroma.led_color = ColorRGB(led.x, led.y, led.z);
                 chroma_touch(layer.slot);
             }
-            tip(_u8L("The colour of the light behind the print. A warm white lamp and a cold white one show the "
+            hover_tip(_u8L("The colour of the light behind the print. A warm white lamp and a cold white one show the "
                      "same filaments as different colours, and this is where that is accounted for."));
 
             ImGui::SameLine(0.f, m_imgui->scaled(0.6f));
-            ImGui::SetNextItemWidth(m_imgui->scaled(6.f));
             float lumens = layer.chroma.led_intensity;
-            if (ImGui::SliderFloat("##hf_led_i", &lumens, 0.2f, 8.f, "%.1fx", ImGuiSliderFlags_AlwaysClamp)) {
+            if (typed_slider("##hf_led_i", m_imgui->scaled(6.f) - panel_edit_icon_room(), &lumens, 0.2f, 8.f, "%.1fx",
+                             false,
+                             _L("How bright that light is, as a multiple of a plain white lamp. A deep stack passes very "
+                                "little, so more than one is normal here and is what a bright panel behind the print "
+                                "actually does."))) {
                 layer.chroma.led_intensity = std::max(0.f, lumens);
                 chroma_touch(layer.slot);
             }
-            tip(_u8L("How bright that light is, as a multiple of a plain white lamp. A deep stack passes very "
-                     "little, so more than one is normal here and is what a bright panel behind the print "
-                     "actually does."));
         }
     }
 
@@ -4236,22 +4211,23 @@ void GLGizmoTextureDisplacement::render_chroma_light(TextureDisplacementLayer &l
     // which prints that region as a tonal relief of itself: honest about what the drawer cannot do,
     // and the mean error goes UP as this goes up, because the solve stops pretending.
     ImGui::Dummy(ImVec2(0.f, gap_s));
-    row_label(_L("Match strictness"));
+    slider_label(_L("Match strictness"));
     {
-        ImGui::SetNextItemWidth(m_imgui->scaled(9.f));
         int strictness = std::clamp(layer.chroma.match_strictness, 0, 100);
-        if (ImGui::SliderInt("##hf_strictness", &strictness, 0, 100, "%d%%", ImGuiSliderFlags_AlwaysClamp)) {
+        if (typed_slider_int("##hf_strictness", m_imgui->scaled(9.f) - panel_edit_icon_room(), &strictness, 0, 100,
+                             "%d%%", false,
+                             from_u8(Slic3r::format(
+                                 _u8L("How far off a color is allowed to be before the stack refuses to stand in for "
+                                      "it. All the way down, any printable color may stand in for any color in the "
+                                      "picture, which is what every version before this did.\n\n"
+                                      "Raising it makes the reported error worse and the print better: the areas it "
+                                      "refuses are the ones the filaments cannot reach, and printing those in tone "
+                                      "alone looks like shading rather than like the wrong color. %1$d%% is the "
+                                      "setting to try first."),
+                                 CHROMA_MATCH_STRICTNESS_RECOMMENDED)))) {
             layer.chroma.match_strictness = strictness;
             chroma_touch(layer.slot);
         }
-        tip(Slic3r::format(_u8L("How far off a color is allowed to be before the stack refuses to stand in for "
-                                "it. All the way down, any printable color may stand in for any color in the "
-                                "picture, which is what every version before this did.\n\n"
-                                "Raising it makes the reported error worse and the print better: the areas it "
-                                "refuses are the ones the filaments cannot reach, and printing those in tone "
-                                "alone looks like shading rather than like the wrong color. %1$d%% is the "
-                                "setting to try first."),
-                           CHROMA_MATCH_STRICTNESS_RECOMMENDED));
         // The number in the units the rest of the card talks about, since a percentage of a scale
         // nobody has seen means nothing on its own.
         ImGui::PushTextWrapPos(0.f);
@@ -4267,7 +4243,7 @@ void GLGizmoTextureDisplacement::render_chroma_light(TextureDisplacementLayer &l
 
     if (m_imgui->bbl_checkbox(_L("Dither to break up banding"), layer.chroma.dither))
         chroma_touch(layer.slot);
-    tip(Slic3r::format(_u8L("Scatters the rounding error into neighbouring pixels instead of rounding each one on its "
+    hover_tip(Slic3r::format(_u8L("Scatters the rounding error into neighbouring pixels instead of rounding each one on its "
                             "own, trading the bands a photograph shows across a sky for fine stipple. Leave it off "
                             "for flat-colored artwork.\n\n"
                             "Solved for %1$.3f mm layers, from the print profile."),
@@ -4299,7 +4275,7 @@ void GLGizmoTextureDisplacement::render_chroma_light(TextureDisplacementLayer &l
     // that quietly differs from the one the user approved is not worth the strings it saves.
     if (m_imgui->bbl_checkbox(_L("Pull down lone spikes"), m_chroma_despike))
         chroma_touch(layer.slot);
-    tip(Slic3r::format(_u8L("Pulls a single texel standing %1$d or more layers above everything around it down "
+    hover_tip(Slic3r::format(_u8L("Pulls a single texel standing %1$d or more layers above everything around it down "
                             "to its neighbours. Those columns cost a retraction each and print as strings and "
                             "blobs, and they come from the dither rather than from the picture.\n\n"
                             "A step several texels wide is left alone, so hard edges in flat artwork survive."),
@@ -4323,21 +4299,10 @@ void GLGizmoTextureDisplacement::render_chroma_light(TextureDisplacementLayer &l
 // detail. Every one of them draws the preview differently and writes nothing into the project, while
 // everything left in that section is a dimension of the print. Two of them said so in their own
 // comments.
-void GLGizmoTextureDisplacement::render_chroma_views(TextureDisplacementLayer &layer, float label_w)
+void GLGizmoTextureDisplacement::render_chroma_views(TextureDisplacementLayer &layer)
 {
     const float gap_s = std::round(m_imgui->scaled(0.4f));
 
-    const auto tip = [&](const std::string &text, const std::vector<TipMedia> &media = {}) {
-        if (ImGui::IsItemHovered())
-            panel_tooltip(text, media);
-    };
-    const auto row_label = [&](const wxString &text) {
-        const float x0 = ImGui::GetCursorPosX();
-        ImGui::AlignTextToFramePadding();
-        m_imgui->text(text);
-        ImGui::SameLine();
-        ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
-    };
 
     // ---- What is drawn over the model ----
     //
@@ -4428,7 +4393,7 @@ void GLGizmoTextureDisplacement::render_chroma_views(TextureDisplacementLayer &l
         ImGui::SameLine(0.f, 2.f * gap_s);
         if (m_imgui->bbl_checkbox(_L("Backing"), m_chroma_layers_backing))
             m_parent.set_as_dirty();
-        tip(_u8L("Draws the solid backing behind the sheets, the way the print has it. At any real thickness it is "
+        hover_tip(_u8L("Draws the solid backing behind the sheets, the way the print has it. At any real thickness it is "
                  "opaque, so with it on the picture sits against a wall and nothing of the scene behind the plate "
                  "comes through."));
     }
@@ -4470,7 +4435,7 @@ void GLGizmoTextureDisplacement::render_chroma_views(TextureDisplacementLayer &l
     // the material cannot hold. Worth turning off to see the solve's own steps.
     if (m_imgui->bbl_checkbox(_L("Soften it the way the plastic does"), m_show_chroma_scatter))
         m_parent.set_as_dirty();
-    tip(_u8L("Filament scatters light sideways, so a print is softer than the stack it was solved from and "
+    hover_tip(_u8L("Filament scatters light sideways, so a print is softer than the stack it was solved from and "
              "detail finer than about a nozzle width never survives the plastic. With this on, the preview "
              "shows that softening; with it off, it shows the solve's own terraces, which no print has.\n\n"
              "Lit from behind it is much stronger, because the light crosses the whole plate rather than "
@@ -4490,11 +4455,11 @@ void GLGizmoTextureDisplacement::render_chroma_views(TextureDisplacementLayer &l
             m_parent.set_as_dirty();
         m_imgui->disabled_end();
         if (back_lit)
-            tip(_u8L("Only with the light in front. Lit from behind, the plate stands in front of its own "
+            hover_tip(_u8L("Only with the light in front. Lit from behind, the plate stands in front of its own "
                      "lamp and what you see is already the light that came through it, so there is nothing "
                      "behind it left to show."));
         else
-            tip(_u8L("Draws the plate as the translucent thing it is: the stack's own transmittance becomes "
+            hover_tip(_u8L("Draws the plate as the translucent thing it is: the stack's own transmittance becomes "
                      "how solid each pixel is, so whatever stands behind the print shows through wherever "
                      "the filament does not stop the light.\n\n"
                      "A finished plate is nearly opaque, and that is not a shortcoming of the preview - it "
@@ -4518,19 +4483,22 @@ void GLGizmoTextureDisplacement::render_chroma_views(TextureDisplacementLayer &l
         // there rather than being a mode that has to be switched off.
         int shown = (m_chroma_layer_limit > 0 && m_chroma_layer_limit < total) ? m_chroma_layer_limit : total;
         ImGui::Dummy(ImVec2(0.f, gap_s));
-        row_label(_L("Show up to layer"));
-        ImGui::SetNextItemWidth(m_imgui->scaled(9.f));
+        slider_label(_L("Show up to layer"));
         // The height in millimetres rides along in the slider's own text: a layer number means nothing
         // on a stack whose layer height the user set somewhere else.
         const std::string fmt = (shown >= total) ?
                                     Slic3r::format(_u8L("%1$d of %2$d - all of it"), shown, total) :
                                     Slic3r::format(_u8L("%1$d of %2$d - %3$.2f mm"), shown, total,
                                                    float(shown) * layer.chroma.layer_height_mm);
+        // The one slider in the gizmo that is not a typed_slider_int(): that one puts the bounds in the
+        // tooltip by running the format over them, and this format takes three arguments rather than the
+        // one a bound would supply.
+        ImGui::SetNextItemWidth(m_imgui->scaled(9.f));
         if (ImGui::SliderInt("##hf_layer_limit", &shown, 1, total, fmt.c_str(), ImGuiSliderFlags_AlwaysClamp)) {
             m_chroma_layer_limit = (shown >= total) ? 0 : shown;
             m_parent.set_as_dirty();
         }
-        tip(_u8L("Draws the print as it stood at that layer, so the stack can be walked up one band at a "
+        hover_tip(_u8L("Draws the print as it stood at that layer, so the stack can be walked up one band at a "
                  "time. Everything already finished below the line keeps its color; everything above it "
                  "shows the color the stack had reached by then.\n\n"
                  "This is how to find a band that is paying for a filament swap and changing nothing: stop "
@@ -4544,7 +4512,7 @@ void GLGizmoTextureDisplacement::render_chroma_views(TextureDisplacementLayer &l
     // wash. Each of these draws one of the quantities the shader works from instead of the colour it
     // predicts, which is the only way to tell those three apart by looking.
     ImGui::Dummy(ImVec2(0.f, gap_s));
-    row_label(_L("Debug view"));
+    slider_label(_L("Debug view"));
     {
         // The order is the order to try them in, which is also the order they rule things out in, and
         // the index is what the shader switches on - see CHROMA_DBG_* in chromastack.fs.
@@ -4570,7 +4538,7 @@ void GLGizmoTextureDisplacement::render_chroma_views(TextureDisplacementLayer &l
             ImGui::EndCombo();
         }
         pop_panel_combo_style();
-        tip(_u8L("Draws one of the things the shader works from instead of the colour it predicts. Off is the "
+        hover_tip(_u8L("Draws one of the things the shader works from instead of the colour it predicts. Off is the "
                  "normal preview.\n\n"
                  "Height in the stack: how far up the stack each point sits, dark blue at the base to pale "
                  "yellow at the top. A plate whose relief never reached the mesh is one flat colour here, and "

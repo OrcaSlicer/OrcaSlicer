@@ -18,6 +18,7 @@
 #include <limits>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Slic3r::GUI::gizmo_td {

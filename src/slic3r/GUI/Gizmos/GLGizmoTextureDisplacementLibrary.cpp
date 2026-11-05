@@ -1085,6 +1085,16 @@ void GLGizmoTextureDisplacement::render_image_adjust_window(const ImVec2 &panel_
         return;
     }
 
+    // Its sliders are the panel's rows, so their tooltips go through panel_tooltip() - which places a
+    // tooltip beside the anchor rectangle rather than under the mouse. Beside this window while it is
+    // up, as the texture picker does, or the tooltip would be placed beside the panel and land on top
+    // of the window it is explaining. Restored before End() below; this function has no other exit.
+    const ImVec2 prev_anchor_min = m_tooltip_anchor_min;
+    const ImVec2 prev_anchor_max = m_tooltip_anchor_max;
+    m_tooltip_anchor_min         = ImGui::GetWindowPos();
+    m_tooltip_anchor_max         = ImVec2(m_tooltip_anchor_min.x + ImGui::GetWindowSize().x,
+                                          m_tooltip_anchor_min.y + ImGui::GetWindowSize().y);
+
     // Collect a finished pass and start one for the current slider values before the image is drawn, so
     // the newest available result is what lands on screen this frame.
     update_image_adjust_preview();
@@ -1172,6 +1182,10 @@ void GLGizmoTextureDisplacement::render_image_adjust_window(const ImVec2 &panel_
     // on itself. The image above sets the content width, and the sliders match it.
     const float slider_w = std::max(m_imgui->scaled(4.f), img_w - label_w);
 
+    // The panel's own row (typed_slider()), with this window's label column rather than the panel's: the
+    // labels here are measured above, and the track is sized to the image. Everything else - taking a
+    // typed value, the range in the tooltip, a tooltip on a greyed row - is the panel's behaviour, so an
+    // adjustment slider works exactly like a setting slider.
     const auto row = [&](const char *id, const wxString &label, float *v, float v_min, float v_max,
                          const char *format, bool enabled, const std::string &tip) {
         const float x0 = ImGui::GetCursorPosX();
@@ -1179,14 +1193,10 @@ void GLGizmoTextureDisplacement::render_image_adjust_window(const ImVec2 &panel_
         m_imgui->text(label);
         ImGui::SameLine();
         ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
-        ImGui::SetNextItemWidth(slider_w);
         m_imgui->disabled_begin(!enabled);
-        ImGui::SliderFloat(id, v, v_min, v_max, format, ImGuiSliderFlags_AlwaysClamp);
+        typed_slider(id, std::max(m_imgui->scaled(2.f), slider_w - panel_edit_icon_room()), v, v_min, v_max, format,
+                     false, from_u8(tip));
         m_imgui->disabled_end();
-        // Only on an enabled row: a disabled item does not report hover, so a tooltip on one would never
-        // be shown. What has to be said about a disabled slider is written out below it instead.
-        if (enabled && !tip.empty() && ImGui::IsItemHovered())
-            m_imgui->tooltip(tip, ImGui::GetFontSize() * 20.f);
     };
 
     row("##adj_brightness", _L("Brightness"), &m_adjust.brightness, -1.f, 1.f, "%.2f", true, {});
@@ -1276,6 +1286,8 @@ void GLGizmoTextureDisplacement::render_image_adjust_window(const ImVec2 &panel_
     const bool as_copy = m_imgui->button(_L("Save as copy"));
     m_imgui->disabled_end();
 
+    m_tooltip_anchor_min = prev_anchor_min;
+    m_tooltip_anchor_max = prev_anchor_max;
     ImGui::End();
 
     if (cancel || !keep_open)
