@@ -13,7 +13,7 @@ endif()
 
 orcaslicer_add_cmake_project(GLFW
     URL https://github.com/glfw/glfw/archive/refs/tags/3.5.1.zip
-    URL_HASH SHA256=ea79bc5feffc254c87291980c2d0bce9acebb68c4983b79f961dcd2cb8a611a0
+    URL_HASH SHA256=e9a80355e8a0c59b15ae8576c2c3aeae792c2b1082ec426dc93bde70d5017fda
     CMAKE_ARGS
         -DBUILD_SHARED_LIBS=${_build_shared}
         -DGLFW_BUILD_DOCS=OFF
