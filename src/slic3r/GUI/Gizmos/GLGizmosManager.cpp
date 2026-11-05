@@ -1482,12 +1482,16 @@ bool GLGizmosManager::activate_gizmo(EType type)
                          UndoRedo::SnapshotType::LeavingGizmoWithAction);
     }
 
+    // Turn realistic view back on if a paint gizmo switched it off.
+    auto restore_realistic_view = [this]() {
+        if (m_restore_realistic_view_after_paint && wxGetApp().app_config != nullptr)
+            wxGetApp().app_config->set_bool(SETTING_OPENGL_REALISTIC_MODE, true);
+        m_restore_realistic_view_after_paint = false;
+    };
+
     if (type == Undefined) {
         // it is deactivation of gizmo
-        if (m_restore_realistic_view_after_paint && wxGetApp().app_config != nullptr) {
-            wxGetApp().app_config->set_bool(SETTING_OPENGL_REALISTIC_MODE, true);
-            m_restore_realistic_view_after_paint = false;
-        }
+        restore_realistic_view();
         m_current = Undefined;
         return true;
     }
@@ -1501,10 +1505,8 @@ bool GLGizmosManager::activate_gizmo(EType type)
             m_restore_realistic_view_after_paint = true;
             wxGetApp().app_config->set_bool(SETTING_OPENGL_REALISTIC_MODE, false);
         }
-    } else if (m_restore_realistic_view_after_paint) {
-        if (wxGetApp().app_config != nullptr)
-            wxGetApp().app_config->set_bool(SETTING_OPENGL_REALISTIC_MODE, true);
-        m_restore_realistic_view_after_paint = false;
+    } else {
+        restore_realistic_view();
     }
 
     if (!m_serializing && new_gizmo.wants_enter_leave_snapshots())
@@ -1516,6 +1518,8 @@ bool GLGizmosManager::activate_gizmo(EType type)
     new_gizmo.set_state(GLGizmoBase::On);
     if (new_gizmo.get_state() != GLGizmoBase::On) {
         m_current = Undefined;
+        // No gizmo is active now, so a later deactivation would not restore it.
+        restore_realistic_view();
         return false; // gizmo refused to be turned on.
     }
 
