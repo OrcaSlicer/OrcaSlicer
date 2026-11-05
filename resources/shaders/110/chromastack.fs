@@ -363,14 +363,19 @@ void main()
         stacked = (1.0 - t) * band_color_lin[i] + t * stacked;
         clear  *= t;
         // Back lit, nothing is composited over anything: what leaves the band is what it passed, so
-        // the transmittances multiply. The same density and the same lengthened path - a ray crossing
-        // the stack at an angle goes through more filament whichever side the light is on - attenuated
-        // neutrally and then tinted per layer by the filament's hue, which is chroma_palette()'s
-        // walk_back() exactly. Behind the one branch a uniform decides, so the front view pays nothing
-        // for it.
+        // the transmittances multiply - attenuated neutrally and then tinted per layer by the
+        // filament's hue, which is chroma_palette()'s walk_back() exactly.
+        //
+        // Straight down the stack, and deliberately: no `path`. A ray crossing at an angle does go
+        // through more filament, and front lit that lengthening shifts a mix that is bounded either
+        // way. Here it is an exponent on a number that is already near zero - a stack is opaque by
+        // design, that is what makes a picture - so at the angle a plate is actually looked at from,
+        // 1.4 layers' worth per layer, it takes the whole image to black. The solve chose these
+        // filaments against walk_back(), and a preview that disagrees with it by three orders of
+        // magnitude is not showing the print at a grazing angle, it is showing a different print.
         if (lighting_mode != CHROMA_LIT_FRONT)
-            through *= exp(-band_density[i] * path * n) *
-                       pow(chroma_backlit_tint(band_color_lin[i]), vec3(path * n));
+            through *= exp(-band_density[i] * n) *
+                       pow(chroma_backlit_tint(band_color_lin[i]), vec3(n));
         own       = band_color[i];
         band_hit  = float(i);
         consumed += band_layers[i];

@@ -174,11 +174,15 @@ void main()
 
     if (pass_mode == CHROMA_PASS_TRANSMIT) {
         // Multiplied into the lamp's light rather than composited over it. A filament absorbs least in
-        // its own colour, which is what makes a lithophane of a red filament red where it is thick -
-        // the same per-channel absorption the walk uses, with the same floor so a saturated filament
-        // still carries a picture.
-        gl_FragColor = vec4(exp(-sheet_density * path * cover) *
-                       pow(chroma_backlit_tint(sheet_color_lin), vec3(path * cover)),
+        // its own colour, which is what makes a lithophane of a red filament red where it is thick: a
+        // neutral attenuation by the density, tinted by the filament's own hue with its darkness
+        // divided out, which is chroma_palette()'s walk_back() per layer.
+        //
+        // Straight through, like the surface pass and for the same reason. These sheets multiply, so a
+        // lengthened path here is the same exponent on the whole stack's transmittance, and a stack is
+        // opaque by design: at the angle a plate is looked at from it would take the picture to black.
+        gl_FragColor = vec4(exp(-sheet_density * cover) *
+                       pow(chroma_backlit_tint(sheet_color_lin), vec3(cover)),
                    1.0);
         return;
     }
