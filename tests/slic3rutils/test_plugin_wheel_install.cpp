@@ -8,7 +8,7 @@
 #include <cstddef>
 #include <libslic3r/Zipper.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
-#include <slic3r/plugin/PluginWheelInstall.hpp>
+#include <slic3r/plugin/PluginFsUtils.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -209,9 +209,9 @@ TEST_CASE("the uv wheel target reuses the legacy entry extraction path", "[Plugi
     CHECK(wheel_install::install_dir(plugin_root.string(), "pkg..sub").empty());
 }
 
-TEST_CASE("a markerless legacy extraction is replaced without touching dependency extractions", "[PluginWheelInstall]")
+TEST_CASE("a markerless legacy extraction is used directly without running uv", "[PluginWheelInstall]")
 {
-    ScopedTemporaryDir dir("wheel-install-legacy-replace");
+    ScopedTemporaryDir dir("wheel-install-legacy-accept");
     const fs::path      plugin_root = dir.path() / "plugin";
     fs::create_directories(plugin_root);
     const fs::path wheel = plugin_root / "plugin.whl";
@@ -222,13 +222,47 @@ TEST_CASE("a markerless legacy extraction is replaced without touching dependenc
     // A pre-uv extraction, plus a separate dependency extraction that must survive.
     const fs::path legacy_target = plugin_root / wheel_install::EXTRACTED_DIR_NAME / "demo_pkg";
     const fs::path dep_dir       = plugin_root / wheel_install::EXTRACTED_DIR_NAME / "dep_pkg";
-    fs::create_directories(legacy_target);
+    fs::create_directories(legacy_target / "demo_pkg");
     fs::create_directories(dep_dir);
     {
         std::ofstream legacy_file((legacy_target / "written_by_plugin.txt").string());
         legacy_file << "old cache contents\n";
+        std::ofstream init_file((legacy_target / "demo_pkg" / "__init__.py").string());
+        init_file << "VALUE = 1\n";
         std::ofstream dep_file((dep_dir / "sentinel.txt").string());
         dep_file << "dependency extraction\n";
+    }
+
+    int         calls = 0;
+    std::string error;
+    REQUIRE(wheel_install::ensure_installed(descriptor, error, fake_uv(nullptr, &calls, "should not run")));
+    CHECK(calls == 0);
+
+    // The legacy extraction is importable as-is, so it is used without being rewritten.
+    CHECK(fs::is_regular_file(legacy_target / "written_by_plugin.txt"));
+    CHECK(fs::is_regular_file(legacy_target / "demo_pkg" / "__init__.py"));
+    CHECK_FALSE(fs::exists(legacy_target / wheel_install::MARKER_FILE_NAME));
+
+    // Dependency extractions under the same parent are untouched.
+    CHECK(fs::is_regular_file(dep_dir / "sentinel.txt"));
+    CHECK_FALSE(has_staging_leftovers(plugin_root));
+}
+
+TEST_CASE("a markerless entry target without the entry package is replaced", "[PluginWheelInstall]")
+{
+    ScopedTemporaryDir dir("wheel-install-legacy-incomplete");
+    const fs::path      plugin_root = dir.path() / "plugin";
+    fs::create_directories(plugin_root);
+    const fs::path wheel = plugin_root / "plugin.whl";
+    write_wheel(wheel, "py3-none-any", "VALUE = 1\n");
+
+    const PluginDescriptor descriptor = make_descriptor(plugin_root, wheel);
+
+    const fs::path target = plugin_root / wheel_install::EXTRACTED_DIR_NAME / "demo_pkg";
+    fs::create_directories(target);
+    {
+        std::ofstream sentinel((target / "sentinel.txt").string());
+        sentinel << "incomplete extraction\n";
     }
 
     int         calls = 0;
@@ -236,14 +270,66 @@ TEST_CASE("a markerless legacy extraction is replaced without touching dependenc
     REQUIRE(wheel_install::ensure_installed(descriptor, error, fake_uv(nullptr, &calls, "")));
     CHECK(calls == 1);
 
-    // The markerless entry directory was cache, not plugin data: uv replaced it.
-    CHECK_FALSE(fs::exists(legacy_target / "written_by_plugin.txt"));
-    CHECK(fs::is_regular_file(legacy_target / "demo_pkg" / "__init__.py"));
-    CHECK(fs::is_regular_file(legacy_target / wheel_install::MARKER_FILE_NAME));
+    CHECK_FALSE(fs::exists(target / "sentinel.txt"));
+    CHECK(fs::is_regular_file(target / "demo_pkg" / "__init__.py"));
+    CHECK(fs::is_regular_file(target / wheel_install::MARKER_FILE_NAME));
+}
 
-    // Dependency extractions under the same parent are untouched.
-    CHECK(fs::is_regular_file(dep_dir / "sentinel.txt"));
-    CHECK_FALSE(has_staging_leftovers(plugin_root));
+TEST_CASE("an invalid marker still triggers reinstallation", "[PluginWheelInstall]")
+{
+    ScopedTemporaryDir dir("wheel-install-invalid-marker");
+    const fs::path      plugin_root = dir.path() / "plugin";
+    fs::create_directories(plugin_root);
+    const fs::path wheel = plugin_root / "plugin.whl";
+    write_wheel(wheel, "py3-none-any", "VALUE = 1\n");
+
+    const PluginDescriptor descriptor = make_descriptor(plugin_root, wheel);
+
+    // A marker makes the target uv-managed even when it is unreadable, so the entry package that
+    // is present does not turn it into an accepted legacy extraction.
+    const fs::path target = plugin_root / wheel_install::EXTRACTED_DIR_NAME / "demo_pkg";
+    fs::create_directories(target / "demo_pkg");
+    {
+        std::ofstream sentinel((target / "sentinel.txt").string());
+        sentinel << "stale uv installation\n";
+        std::ofstream marker((target / wheel_install::MARKER_FILE_NAME).string());
+        marker << "not json\n";
+    }
+
+    int         calls = 0;
+    std::string error;
+    REQUIRE(wheel_install::ensure_installed(descriptor, error, fake_uv(nullptr, &calls, "")));
+    CHECK(calls == 1);
+
+    CHECK_FALSE(fs::exists(target / "sentinel.txt"));
+    CHECK(fs::is_regular_file(target / "demo_pkg" / "__init__.py"));
+}
+
+TEST_CASE("the shared extraction parent alone is not a legacy entry extraction", "[PluginWheelInstall]")
+{
+    ScopedTemporaryDir dir("wheel-install-parent-only");
+    const fs::path      plugin_root = dir.path() / "plugin";
+    fs::create_directories(plugin_root);
+    const fs::path wheel = plugin_root / "plugin.whl";
+    write_wheel(wheel, "py3-none-any", "VALUE = 1\n");
+
+    const PluginDescriptor descriptor = make_descriptor(plugin_root, wheel);
+
+    // Dependency extractions under __whl_extracted__/ do not make the entry look installed.
+    const fs::path dep_dir = plugin_root / wheel_install::EXTRACTED_DIR_NAME / "dep_pkg";
+    fs::create_directories(dep_dir);
+    {
+        std::ofstream dep_file((dep_dir / "__init__.py").string());
+        dep_file << "DEPENDENCY = 1\n";
+    }
+
+    int         calls = 0;
+    std::string error;
+    REQUIRE(wheel_install::ensure_installed(descriptor, error, fake_uv(nullptr, &calls, "")));
+    CHECK(calls == 1);
+
+    CHECK(fs::is_directory(plugin_root / wheel_install::EXTRACTED_DIR_NAME / "demo_pkg"));
+    CHECK(fs::is_regular_file(dep_dir / "__init__.py"));
 }
 
 TEST_CASE("a dependency extraction at the entry target is not replaced", "[PluginWheelInstall]")

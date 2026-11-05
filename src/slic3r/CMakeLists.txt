@@ -710,8 +710,6 @@ set(SLIC3R_GUI_SOURCES
     plugin/PluginConfig.hpp
     plugin/PluginLoader.cpp
     plugin/PluginLoader.hpp
-    plugin/PluginWheelInstall.cpp
-    plugin/PluginWheelInstall.hpp
     plugin/PluginDescriptor.hpp
     plugin/PluginHooks.cpp
     plugin/PluginHooks.hpp

@@ -7,7 +7,6 @@
 
 #include "PluginConfig.hpp"
 #include "PluginFsUtils.hpp"
-#include "PluginWheelInstall.hpp"
 #include "PythonInterpreter.hpp"
 #include "PythonPluginBridge.hpp"
 #include "pluginTypes/resourceTexture/ResourceTexturePluginCapability.hpp"
@@ -262,8 +261,9 @@ bool load(const PluginDescriptor&                          descriptor,
 
     // Wheel entries have one installation and one loading path: uv installs the entry wheel into
     // the legacy extraction path, then the entry package is imported from there. An existing
-    // markerless extraction at that path is a pre-uv cache and is replaced. Dependency wheels are
-    // extracted alongside it under __whl_extracted__/ and are not touched.
+    // markerless extraction at that path is a pre-uv cache and is used directly when it contains
+    // the entry package. Dependency wheels are extracted alongside it under __whl_extracted__/
+    // and are not touched.
     const bool has_entry_wheel = plugin_package_extension(descriptor.entry_path) == ".whl";
     if (has_entry_wheel) {
         std::string wheel_install_error;

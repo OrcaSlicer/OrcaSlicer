@@ -8,7 +8,6 @@
 #include "slic3r/plugin/PluginConfig.hpp"
 #include "slic3r/plugin/PluginFsUtils.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
-#include "slic3r/plugin/PluginWheelInstall.hpp"
 
 #include <cctype>
 #include <exception>
