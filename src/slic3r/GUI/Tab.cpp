@@ -1160,10 +1160,6 @@ void add_correct_opts_to_options_list(const std::string &opt_key, std::map<std::
 
 std::string Tab::options_list_storage_key(const std::string& opt_key) const
 {
-    if (opt_key == "printable_area" || opt_key == "bed_exclude_area" || opt_key == "compatible_prints" ||
-        opt_key == "compatible_printers" || opt_key == "thumbnails" || opt_key == "wrapping_exclude_area")
-        return opt_key;
-
     if (m_config == nullptr || !m_config->has(opt_key))
         return opt_key;
 
@@ -1171,13 +1167,7 @@ std::string Tab::options_list_storage_key(const std::string& opt_key) const
     if (option == nullptr || !option->is_vector())
         return opt_key;
 
-    const ConfigOptionDef* def = m_config->def()->get(opt_key);
-    if (def == nullptr)
-        return opt_key;
-
-    const bool serialized = def->gui_flags == "serialized";
-    const bool is_plugin_field = def->gui_type == ConfigOptionDef::GUIType::plugin_picker;
-    return (serialized || is_plugin_field) ? opt_key : opt_key + "#0";
+    return is_edited_as_whole_list(m_config->def(), opt_key) ? opt_key : opt_key + "#0";
 }
 
 // Orca: deep_diff() flags every vector entry at or past the reference vector's length as changed,
@@ -2447,7 +2437,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                 msg_text += "\n\n" + _L("Change these settings automatically\?\nYes - Change these settings automatically.\nNo  - Do not change these settings for me.");
             } else {
                 msg_text = _L("When using soluble material for the support interface, we recommend the following settings:\n"
-                              "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
+                              "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height "
                               "and use soluble materials for both support interface and support base.");
                 msg_text += "\n\n" + _L("Change these settings automatically\?\nYes - Change these settings automatically.\nNo  - Do not change these settings for me.");
             }
@@ -2659,7 +2649,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
 
 void Tab::show_timelapse_warning_dialog() {
     if (!m_is_timelapse_wipe_tower_already_prompted) {
-        wxString      msg_text = _(L("When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
+        wxString      msg_text = _(L("When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" "
                                 "by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."));
         msg_text += "\n";
         MessageDialog dialog(nullptr, msg_text, "", wxICON_WARNING | wxOK);
@@ -3709,11 +3699,21 @@ void TabPrint::update()
             toggle_options();
         // update() could be called during undo/redo execution
         // Update of objectList can cause a crash in this case (because m_objects doesn't match ObjectList)
-        if (m_type != Preset::TYPE_MODEL && !wxGetApp().plater()->inside_snapshot_capture())
+        // Before the main window is shown no object can be selected, and the refresh would only lay out the sidebar.
+        if (m_type != Preset::TYPE_MODEL && !wxGetApp().plater()->inside_snapshot_capture() && wxGetApp().mainframe->IsShown())
             wxGetApp().obj_list()->update_and_show_object_settings_item();
 
         wxGetApp().mainframe->on_config_changed(m_config);
     }
+}
+
+int TabPrint::extruder_variant_index(int extruder_id, NozzleVolumeType nozzle_type)
+{
+    const auto *extruders = m_preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnumsGeneric>("extruder_type");
+    if (extruders == nullptr || extruder_id < 0 || extruder_id >= int(extruders->size()))
+        return -1;
+    return m_config->get_index_for_extruder(extruder_id + 1, "print_extruder_id", ExtruderType(extruders->values[extruder_id]), nozzle_type,
+                                            "print_extruder_variant");
 }
 
 void TabPrint::clear_pages()
@@ -4821,7 +4821,7 @@ void TabFilament::build()
 
             update_dirty();
             if (opt_key.substr(0, opt_key.find('#')) == "adaptive_pressure_advance_model")
-                m_config_manipulation.check_adaptive_pressure_advance_model(&filament_config);
+                m_config_manipulation.check_adaptive_pressure_advance_model(&filament_config, selected_variant_index());
 
             on_value_change(opt_key, value);
         };
@@ -6077,7 +6077,7 @@ if (is_marlin_flavor)
                                 // if value is differs from first nozzle diameter value
                                 if (fabs(cur_diam - frst_diam) > EPSILON) {
                                     const wxString msg_text = _(
-                                        L("Single Extruder Multi Material is selected,\n"
+                                        L("Single Extruder Multi Material is selected, "
                                           "and all extruders must have the same diameter.\n"
                                           "Do you want to change the diameter for all extruders to first extruder nozzle diameter value?"));
                                     MessageDialog dialog(parent(), msg_text, _(L("Nozzle diameter")), wxICON_WARNING | wxYES_NO);
@@ -6969,8 +6969,10 @@ void TabPrinter::toggle_options()
         double retract_after_wipe  = m_config->option<ConfigOptionPercents>("retract_after_wipe")->get_at(variant_index);
 
         toggle_option("retract_before_wipe", wipe && !is_approx(retract_after_wipe, 100.), i,
+            // xgettext:no-c-format, no-boost-format
             _L("Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."));
         toggle_option("retract_after_wipe", wipe && !is_approx(retract_before_wipe, 100.), i,
+            // xgettext:no-c-format, no-boost-format
             _L("Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."));
 
         if (use_firmware_retraction && wipe && retract_before_wipe < 100.0) {
@@ -7828,9 +7830,16 @@ bool Tab::may_discard_current_dirty_preset(PresetCollection *presets /*= nullptr
         if (m_type == presets->type()) // save changes for the current preset from this tab
         {
             // revert unselected options to the old values
+            DynamicPrintConfig config_before_revert = presets->get_edited_preset().config;
             presets->get_edited_preset().config.apply_only(presets->get_selected_preset().config, unselected_options);
             //BBS: add project embedded preset relate logic
-            save_preset(name, false, save_to_project);
+            // A cancelled save (no name, unresolved-plugin warning, temperature check) must leave the
+            // edited preset and the pending switch untouched. UnsavedChangesDialog::save already ran
+            // the plugin warning for the selected presets, so do not ask again.
+            if (!save_preset(name, false, save_to_project, false, "", true)) {
+                presets->get_edited_preset().config = std::move(config_before_revert);
+                return false;
+            }
             //save_preset(name);
         }
         else
@@ -8213,11 +8222,19 @@ void Tab::transfer_options(const std::string &name_from, const std::string &name
 // Wizard calls save_preset with a name "My Settings", otherwise no name is provided and this method
 // opens a Slic3r::GUI::SavePresetDialog dialog.
 //BBS: add project embedded preset relate logic
-void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_project, bool from_input, std::string input_name )
+bool Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_project, bool from_input, std::string input_name, bool plugin_warning_confirmed )
 {
     // ORCA: Validate before opening any save-name UI for filament presets.
     if (!validate_filament_temperature_pairs())
-        return;
+        return false;
+
+    // A plugin-backed setting whose plugin is unavailable here loses its "name;uuid;capability"
+    // reference when the preset is written. Ask before any save-name UI: accepting that dialog can
+    // already delete an overwritten preset, so a Cancel here must happen before it. A caller that
+    // came through UnsavedChangesDialog (which already warned for the selected presets) skips it.
+    if (!plugin_warning_confirmed &&
+        !confirm_save_with_unresolved_plugins(parent(), m_presets->get_edited_preset().config, SaveSubject::Preset))
+        return false;
 
     // since buttons(and choices too) don't get focus on Mac, we set focus manually
     // to the treectrl so that the EVT_* events are fired for the input field having
@@ -8238,7 +8255,7 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
         SavePresetDialog dlg(m_parent, m_type, m_mode, detach ? _u8L("Detached") : "");
         if (!m_just_edit) {
             if (dlg.ShowModal() != wxID_OK)
-                return;
+                return false;
         }
         name = dlg.get_name();
         //BBS: add project embedded preset relate logic
@@ -8267,6 +8284,7 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
         if (nullptr != _curr_printer && compatible_printers && compatible_printers->values.empty())
             compatible_printers->values.push_back(_curr_printer->name);
     }
+
     // Save the preset into Slic3r::data_dir / presets / section_name / preset_name.json
     m_presets->save_current_preset(name, detach, save_to_project, nullptr);
 
@@ -8275,7 +8293,7 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
     //Preset* preset = &m_presets.preset(it - m_presets.begin(), true);
     if (!new_preset) {
         BOOST_LOG_TRIVIAL(info) << "create new preset failed";
-        return;
+        return false;
     }
 
     // set sync_info for sync service
@@ -8352,6 +8370,8 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
     DiffPresetDialog* diff_dialog = DiffPresetDialog::if_built();
     if (diff_dialog != nullptr && diff_dialog->IsShown())
         diff_dialog->update_presets(m_type);
+
+    return true;
 }
 
 // Called for a currently selected preset.

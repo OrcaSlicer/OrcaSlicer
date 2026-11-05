@@ -58,6 +58,7 @@
 #include "slic3r/GUI/Widgets/HyperLink.hpp"
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include <wx/busycursor.h>
+#include <boost/lexical_cast.hpp>
 #include <boost/log/trivial.hpp>
 #include <cstdio>
 #include <cstddef>
@@ -184,7 +185,7 @@ std::string get_nozzle_volume_type_cloud_string(NozzleVolumeType nozzle_volume_t
 static int s_nozzle_mapping_last_request_time = 0;
 
 // Printer agents name a printer after its model, so two printers of one model are told apart by their address.
-static wxString get_shown_printer_name(const MachineObject* obj)
+wxString get_shown_printer_name(const MachineObject* obj)
 {
     const wxString name = wxString::FromUTF8(obj->get_dev_name());
     if (!obj->printer_agent_id.empty() && obj->printer_agent_id != BBL_PRINTER_AGENT_ID && !obj->get_dev_ip().empty() &&
@@ -4455,7 +4456,7 @@ static std::unordered_multimap<int, NozzleDef> s_get_slicing_extuder_nozzles()
             const auto& used_nozzles = nozzle_group_res->get_used_nozzles_in_extruder();
             for (const auto& used_nozzle : used_nozzles) {
                 NozzleDef nozzle_data;
-                nozzle_data.nozzle_diameter = std::stof(used_nozzle.diameter);
+                nozzle_data.nozzle_diameter = boost::lexical_cast<float>(used_nozzle.diameter);
                 nozzle_data.nozzle_flow_type = DevNozzle::ToNozzleFlowType(used_nozzle.volume_type);
                 if (used_nozzle.extruder_id == 0) {
                     used_extuder_nozzles.insert({ DEPUTY_EXTRUDER_ID, nozzle_data });
@@ -4563,7 +4564,7 @@ void SelectMachineDialog::CheckWarningRackStatus(MachineObject* obj_)
     for (const auto& slicing_nozzle : nozzle_vec) {
         try {
             NozzleDef data;
-            data.nozzle_diameter = std::stof(slicing_nozzle.diameter);
+            data.nozzle_diameter = boost::lexical_cast<float>(slicing_nozzle.diameter);
             data.nozzle_flow_type = DevNozzle::ToNozzleFlowType(slicing_nozzle.volume_type);
             need_nozzle_map[data]++;
         } catch (const std::exception& e) {
