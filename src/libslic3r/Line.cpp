@@ -1,9 +1,14 @@
 #include "Geometry.hpp"
 #include "Line.hpp"
-#include "Polyline.hpp"
+#include "Point.hpp"
+#include <Eigen/Core>
+#include "libslic3r.h"
 #include <algorithm>
 #include <cmath>
+#include <cstring>
+#include <limits>
 #include <sstream>
+#include "BoundingBox.hpp"
 
 namespace Slic3r {
 
@@ -30,8 +35,8 @@ bool Line::intersection_infinite(const Line &other, Point* point) const
         return false;
     double t1 = cross2(v12, v2) / denom;
     Vec2d result = (a1 + t1 * v1);
-    if (result.x() > std::numeric_limits<coord_t>::max() || result.x() < std::numeric_limits<coord_t>::lowest() ||
-        result.y() > std::numeric_limits<coord_t>::max() || result.y() < std::numeric_limits<coord_t>::lowest()) {
+    if (result.x() > double(std::numeric_limits<coord_t>::max()) || result.x() < double(std::numeric_limits<coord_t>::lowest()) ||
+        result.y() > double(std::numeric_limits<coord_t>::max()) || result.y() < double(std::numeric_limits<coord_t>::lowest())) {
         // Intersection has at least one of the coordinates much bigger (or smaller) than coord_t maximum value (or minimum).
         // So it can not be stored into the Point without integer overflows. That could mean that input lines are parallel or near parallel.
         return false;

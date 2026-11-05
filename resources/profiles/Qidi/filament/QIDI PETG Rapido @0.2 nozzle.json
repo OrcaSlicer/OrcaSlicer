@@ -4,7 +4,7 @@
 	"inherits": "QIDI PETG Rapido",
 	"from": "system",
 	"setting_id": "17nQzSvxOhC8RqMv",
-	"filament_id": "GFG99",
+	"filament_id": "OF4S3To3",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.04"
@@ -15,7 +15,6 @@
 	"compatible_printers": [
 		"Qidi X-Smart 3 0.2 nozzle",
 		"Qidi X-Plus 3 0.2 nozzle",
-		"Qidi X-Max 3 0.2 nozzle",
-		"Qidi Q1 Pro 0.2 nozzle"
+		"Qidi X-Max 3 0.2 nozzle"
 	]
 }

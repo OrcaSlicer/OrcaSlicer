@@ -4,8 +4,16 @@
 #include "Widgets/WebViewHostDialog.hpp"
 
 #include <memory>
+#include <nlohmann/json_fwd.hpp>
 #include <string>
 #include <vector>
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/chartype.h>
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 
@@ -25,6 +33,7 @@ public:
 
 private:
     void on_script_message(const nlohmann::json& payload) override;
+    nlohmann::json localized_strings() const override;
 
     void resolve_and_run(const std::string& cmd);
 

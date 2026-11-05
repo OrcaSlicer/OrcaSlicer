@@ -465,6 +465,57 @@ static void stb_textedit_click(STB_TEXTEDIT_STRING *str, STB_TexteditState *stat
       STB_TEXTEDIT_LAYOUTROW(&r, str, 0);
       y = r.ymin;
    }
+   else
+   {
+      // In multi-line mode, clamp y to stay within the text vertical bounds.
+      // This lets the click still land at a valid location if the mouse is slightly
+      // above or below the text.
+      StbTexteditRow r;
+      int n = STB_TEXTEDIT_STRINGLEN(str);
+      int i = 0;
+      float base_y = 0, y_min, y_max;
+
+      // Get the first row to establish y_min and start the iteration
+      STB_TEXTEDIT_LAYOUTROW(&r, str, 0);
+      if (r.num_chars <= 0)
+      {
+         state->cursor = 0;
+         state->select_start = state->cursor;
+         state->select_end = state->cursor;
+         state->has_preferred_x = 0;
+         return;
+      }
+      y_min = r.ymin;
+      y_max = base_y + r.ymax;
+      i = r.num_chars;
+      base_y += r.baseline_y_delta;
+
+      // Walk the remaining rows to find the bottom of the last row
+      while (i < n)
+      {
+         STB_TEXTEDIT_LAYOUTROW(&r, str, i);
+         if (r.num_chars <= 0)
+            break;
+         y_max = base_y + r.ymax;
+         i += r.num_chars;
+         base_y += r.baseline_y_delta;
+      }
+
+      // If the text ends with a newline, account for the empty trailing line
+      // so the cursor can be placed on it
+      if (n > 0 && STB_TEXTEDIT_GETCHAR(str, n - 1) == STB_TEXTEDIT_NEWLINE)
+      {
+         STB_TEXTEDIT_LAYOUTROW(&r, str, n);
+         y_max = base_y + r.ymax;
+      }
+
+      // Subtract half the last line height to avoid rounding issues when the mouse
+      // is just barely below the last line (keep cursor on the last line, not after the text)
+      y_max -= (r.ymax - r.ymin) * 0.5f;
+
+      if (y < y_min) y = y_min;
+      if (y > y_max) y = y_max;
+   }
 
    state->cursor = stb_text_locate_coord(str, x, y);
    state->select_start = state->cursor;
@@ -484,6 +535,50 @@ static void stb_textedit_drag(STB_TEXTEDIT_STRING *str, STB_TexteditState *state
       StbTexteditRow r;
       STB_TEXTEDIT_LAYOUTROW(&r, str, 0);
       y = r.ymin;
+   }
+   else
+   {
+      // In multi-line mode, clamp y to stay within the text vertical bounds.
+      // This lets the drag keep working if the mouse goes off the top or bottom of the text.
+      StbTexteditRow r;
+      int n = STB_TEXTEDIT_STRINGLEN(str);
+      int i = 0;
+      float base_y = 0, y_min, y_max;
+
+      // Get the first row to establish y_min and start the iteration
+      STB_TEXTEDIT_LAYOUTROW(&r, str, 0);
+      if (r.num_chars <= 0)
+         return;
+      y_min = r.ymin;
+      y_max = base_y + r.ymax;
+      i = r.num_chars;
+      base_y += r.baseline_y_delta;
+
+      // Walk the remaining rows to find the bottom of the last row
+      while (i < n)
+      {
+         STB_TEXTEDIT_LAYOUTROW(&r, str, i);
+         if (r.num_chars <= 0)
+            break;
+         y_max = base_y + r.ymax;
+         i += r.num_chars;
+         base_y += r.baseline_y_delta;
+      }
+
+      // If the text ends with a newline, account for the empty trailing line
+      // so the cursor can be placed on it
+      if (n > 0 && STB_TEXTEDIT_GETCHAR(str, n - 1) == STB_TEXTEDIT_NEWLINE)
+      {
+         STB_TEXTEDIT_LAYOUTROW(&r, str, n);
+         y_max = base_y + r.ymax;
+      }
+
+      // Subtract half the last line height to avoid rounding issues when the mouse
+      // is just barely below the last line (keep cursor on the last line, not after the text)
+      y_max -= (r.ymax - r.ymin) * 0.5f;
+
+      if (y < y_min) y = y_min;
+      if (y > y_max) y = y_max;
    }
 
    if (state->select_start == state->select_end)

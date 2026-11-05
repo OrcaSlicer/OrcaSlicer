@@ -3,9 +3,11 @@
 
 #include "DailyTips.hpp"
 #include "NotificationManager.hpp"
-
-#include <chrono>
+#include <wx/event.h>
+#include <functional>
+#include <string>
 #include <cstdint>
+#include <imgui.h>
 
 namespace Slic3r { namespace GUI {
 
@@ -56,19 +58,16 @@ protected:
     void        init() override;
     void        render(GLCanvas3D& canvas, float initial_y, bool move_from_overlay, float overlay_width, float right_margin) override;
     /* PARAMS: pos is relative to screen */
-    void	    render_text(const ImVec2& pos);
+    void	    render_progress_text(const ImVec2& pos);
     void		render_bar(const ImVec2& pos, const ImVec2& size);
     void		render_cancel_button(const ImVec2& pos, const ImVec2& size);
-    void		render_close_button(const ImVec2& pos, const ImVec2& size);
+    void		render_progress_close_button(const ImVec2& pos, const ImVec2& size);
     void        render_dailytips_panel(const ImVec2& pos, const ImVec2& size);
     void        render_show_dailytips(const ImVec2& pos);
-    void        render_resource_usage(const ImVec2& pos);
 
     void        on_show_dailytips();
     void        on_cancel_button();
     int		    get_duration() override;
-    void        reset_resource_usage();
-    void        update_resource_usage();
 
 protected:
     ImVec2                  m_window_pos;
@@ -86,17 +85,6 @@ protected:
     bool				    m_has_print_info{ false };
     std::string             m_print_info;
     bool					m_is_fff{ true };
-
-    // CPU is this slicer process. GPU figures are exact Vulkan compute work
-    // submitted by the slicer, never an unrelated system-wide utilization.
-    std::chrono::steady_clock::time_point m_last_resource_sample{};
-    uint64_t                m_last_process_cpu_time_100ns{ 0 };
-    uint32_t                m_logical_processor_count{ 0 };
-    bool                    m_resource_monitor_initialized{ false };
-    std::string             m_cpu_resource_text;
-    std::string             m_gpu_resource_text;
-    std::string             m_gpu_activity_text;
-    std::string             m_memory_resource_text;
 };
 
 }}

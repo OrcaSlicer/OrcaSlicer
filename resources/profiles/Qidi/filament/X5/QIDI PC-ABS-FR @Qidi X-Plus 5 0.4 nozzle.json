@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "QIDI PC/ABS-FR @Qidi X-Plus 5 0.4 nozzle",
+	"inherits": "QIDI PC/ABS-FR@X-Plus 5-Series",
+	"from": "system",
+	"setting_id": "uYwbMiemSo7LxiqR",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.042"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.4 nozzle"
+	]
+}

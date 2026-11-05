@@ -3,7 +3,6 @@
 	"name": "fdm_filament_pa11cf",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"filament_id": "GFN98",
 	"instantiation": "false",
 	"cool_plate_temp": [
 		"0"

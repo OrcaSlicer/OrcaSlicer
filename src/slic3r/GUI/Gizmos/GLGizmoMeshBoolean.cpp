@@ -1,5 +1,6 @@
 #include "GLGizmoMeshBoolean.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "libslic3r/MeshBoolean.hpp"
@@ -7,10 +8,36 @@
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
+#include "libslic3r/Point.hpp"
+#include <vector>
+#include "slic3r/GUI/GUI_App.hpp"
+#include <cstddef>
+#include <limits>
+#include "libslic3r/BoundingBox.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "libslic3r/Color.hpp"
+#include <optional>
+#include "libslic3r/TriangleSelector.hpp"
+#include <algorithm>
+#include <imgui.h>
+#include <cereal/archives/binary.hpp>
+#include <utility>
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include <wx/dataview.h>
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 #include <imgui/imgui_internal.h>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "slic3r/GUI/Selection.hpp"
 namespace Slic3r {
 namespace GUI {
 
@@ -104,7 +131,7 @@ bool GLGizmoMeshBoolean::on_mouse(const wxMouseEvent &mouse_event)
 
 bool GLGizmoMeshBoolean::on_init()
 {
-    m_shortcut_key = WXK_CONTROL_B;
+    m_shortcut = Shortcut::GizmoMeshBoolean;
     return true;
 }
 
@@ -221,9 +248,9 @@ void GLGizmoMeshBoolean::on_render_input_window(float x, float y, float bottom_l
                                          ImGui::CalcTextSize(_u8L("Subtract from").c_str()).x,
                                          ImGui::CalcTextSize(_u8L("Subtract with").c_str()).x});
 
-    const int select_btn_length = 2 * ImGui::GetStyle().FramePadding.x + std::max(ImGui::CalcTextSize(("1 " + _u8L("selected")).c_str()).x, ImGui::CalcTextSize(_u8L("Select").c_str()).x);
+    const int select_btn_length = 2 * ImGui::GetStyle().FramePadding.x + std::max(ImGui::CalcTextSize(_u8L("1 selected").c_str()).x, ImGui::CalcTextSize(_u8L("Select").c_str()).x);
 
-    auto selectable = [this](const std::string& label, bool selected, const ImVec2& size_arg) {
+    auto selectable = [](const std::string& label, bool selected, const ImVec2& size_arg) {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0,0 });
 
         ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -296,7 +323,8 @@ void GLGizmoMeshBoolean::on_render_input_window(float x, float y, float bottom_l
     std::string cap_str1 = m_operation_mode != MeshBooleanOperation::Difference ? _u8L("Part 1") : _u8L("Subtract from");
     m_imgui->text(cap_str1);
     ImGui::SameLine(max_cap_length);
-    std::string select_src_str = m_src.mv ? "1 " + _u8L("selected") : _u8L("Select");
+    // TRN Mesh Boolean button label once one volume is picked.
+    std::string select_src_str = m_src.mv ? _u8L("1 selected") : _u8L("Select");
     select_src_str += "##select_source_volume";
     ImGui::PushItemWidth(select_btn_length);
     if (selectable(select_src_str, m_selecting_state == MeshBooleanSelectingState::SelectSource, ImVec2(select_btn_length, 0)))
@@ -324,7 +352,7 @@ void GLGizmoMeshBoolean::on_render_input_window(float x, float y, float bottom_l
     std::string cap_str2 = m_operation_mode != MeshBooleanOperation::Difference ? _u8L("Part 2") : _u8L("Subtract with");
     m_imgui->text(cap_str2);
     ImGui::SameLine(max_cap_length);
-    std::string select_tool_str = m_tool.mv ? "1 " + _u8L("selected") : _u8L("Select");
+    std::string select_tool_str = m_tool.mv ? _u8L("1 selected") : _u8L("Select");
     select_tool_str += "##select_tool_volume";
     ImGui::PushItemWidth(select_btn_length);
     if (selectable(select_tool_str, m_selecting_state == MeshBooleanSelectingState::SelectTool, ImVec2(select_btn_length, 0)))

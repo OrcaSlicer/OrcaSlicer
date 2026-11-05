@@ -1,11 +1,52 @@
 #include "CustomGCode.hpp"
-#include "Config.hpp"
-#include "GCode.hpp"
-#include "GCodeWriter.hpp"
+#include <vector>
+#include <utility>
+#include <cstddef>
+#include <cassert>
+#include <map>
+#include <string>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r {
 
 namespace CustomGCode {
+
+void Item::from_json(const nlohmann::json& j) {
+    std::string type_str;
+    j.at("type").get_to(type_str);
+    std::map<std::string,Type> str2type = { {"ColorChange", ColorChange },
+        {"PausePrint",PausePrint},
+        {"ToolChange",ToolChange},
+        {"Template",Template},
+        {"Custom",Custom},
+        {"Unknown",Unknown} };
+    type = Unknown;
+    if (str2type.find(type_str) != str2type.end())
+        type = str2type[type_str];
+    j.at("print_z").get_to(print_z);
+    j.at("color").get_to(color);
+    j.at("extruder").get_to(extruder);
+    if(j.contains("extra"))
+        j.at("extra").get_to(extra);
+}
+
+void Info::from_json(const nlohmann::json& j) {
+    std::string mode_str;
+    if (j.contains("mode"))
+        j.at("mode").get_to(mode_str);
+    if (mode_str == "SingleExtruder") mode = SingleExtruder;
+    else if (mode_str == "MultiAsSingle") mode = MultiAsSingle;
+    else if (mode_str == "MultiExtruder") mode = MultiExtruder;
+    else mode = Undef;
+
+    auto j_gcodes = j.at("gcodes");
+    gcodes.reserve(j_gcodes.size());
+    for (auto& jj : j_gcodes) {
+        Item item;
+        item.from_json(jj);
+        gcodes.push_back(item);
+    }
+}
 
 //BBS: useless config and function
 #if 0

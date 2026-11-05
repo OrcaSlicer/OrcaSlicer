@@ -4,8 +4,27 @@
 #include "MainFrame.hpp"
 #include "format.hpp"
 
+#include <cstddef>
+#include <exception>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include <cstdint>
+#include <functional>
 #include <libslic3r/Exception.hpp>
+#include <utility>
+#include <string>
+#include <vector>
+#include <new>
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Zipper.hpp"
+#include <mutex>
+#include "libslic3r/PrintBase.hpp"
+#include <ostream>
+#include <memory>
+#include "libslic3r/Polygon.hpp"
 #include <wx/app.h>
+#include <wx/event.h>
 #include <wx/panel.h>
 #include <wx/stdpaths.h>
 
@@ -22,7 +41,6 @@
 #include "libslic3r/Utils.hpp"
 #include "PostProcessor.hpp"
 #include "libslic3r/Format/SL1.hpp"
-#include "libslic3r/Gpu/VulkanSlicer.hpp"
 #include "libslic3r/Thread.hpp"
 #include "libslic3r/libslic3r.h"
 
@@ -34,28 +52,21 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/cstdio.hpp>
-#include <tbb/scalable_allocator.h>
 #include "I18N.hpp"
 // #include "RemovableDriveManager.hpp"
 
+#include "libslic3r_version.h"
 #include "slic3r/GUI/Plater.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/GCode/GCodeStatistics.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/Utils/PrintHost.hpp"
+#ifdef _WIN32
+#include <excpt.h>
+#endif
 
 namespace Slic3r {
-
-namespace {
-
-void release_slicing_allocator_caches()
-{
-    // Print::process() joins its worker tasks before returning. At this point
-    // tbbmalloc may return unused per-thread geometry buffers without touching
-    // the live Print/G-code data that the preview consumes afterwards.
-    Gpu::VulkanSlicerBackend::release_unused_staging_memory();
-    const int result = scalable_allocation_command(TBBMALLOC_CLEAN_ALL_BUFFERS, nullptr);
-    BOOST_LOG_TRIVIAL(info) << "[Memory] released unused Vulkan staging and TBB slicing allocator buffers"
-                            << " (result=" << result << ")" << log_memory_info();
-}
-
-} // namespace
 
 bool SlicingProcessCompletedEvent::critical_error() const
 {
@@ -72,15 +83,18 @@ bool SlicingProcessCompletedEvent::critical_error() const
 
 bool SlicingProcessCompletedEvent::invalidate_plater() const
 {
-    if (critical_error()) {
-        try {
-            this->rethrow_exception();
-        } catch (const Slic3r::ExportError&) {
-            // Exception thrown by copying file does not ivalidate plater
-            return false;
-        } catch (...) {}
+    return error() && critical_error() && !export_failed();
+}
+
+bool SlicingProcessCompletedEvent::export_failed() const
+{
+    if (!error())
+        return false;
+    try {
+        this->rethrow_exception();
+    } catch (const Slic3r::ExportError&) {
         return true;
-    }
+    } catch (...) {}
     return false;
 }
 
@@ -113,7 +127,7 @@ std::pair<std::string, std::vector<size_t>> SlicingProcessCompletedEvent::format
     } catch (std::exception& ex) {
         error = ex.what();
     } catch (...) {
-        error = "Unknown C++ exception.";
+        error = _u8L("Unknown C++ exception.");
     }
     return std::make_pair(std::move(error), std::vector<size_t>{monospace});
 }
@@ -209,12 +223,12 @@ std::string BackgroundSlicingProcess::output_filepath_for_project(const boost::f
 void BackgroundSlicingProcess::process_fff()
 {
     assert(m_print == m_fff_print);
-    PresetBundle& preset_bundle   = *wxGetApp().preset_bundle;
+    PresetBundle& preset_bundle   = *GUI::wxGetApp().preset_bundle;
     m_fff_print->is_BBL_printer() = preset_bundle.is_bbl_vendor();
     // BBS: add the logic to process from an existed gcode file
     if (m_print->finished()) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: skip slicing, to process previous gcode file") % __LINE__;
-        m_fff_print->set_status(80, _utf8(L("Processing G-Code from previous file\u2026")));
+        m_fff_print->set_status(80, _utf8(L("Processing G-code from previous file\u2026" /* \u2026 -> ... */)));
         wxCommandEvent evt(m_event_slicing_completed_id);
         // Post the Slicing Finished message for the G-code viewer to update.
         // Passing the timestamp
@@ -242,50 +256,9 @@ void BackgroundSlicingProcess::process_fff()
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__
                                 << boost::format(" %1%: will start slicing, reset gcode_result %2% firstly") % __LINE__ % m_gcode_result;
         m_gcode_result->reset();
-        Gpu::VulkanSlicerBackend::begin_slicing_session();
-
-        // Read the persisted preference on the worker before touching Vulkan.
-        // Disabling it avoids device initialization entirely and leaves the
-        // exact CPU pipeline as the only active slicing path.
-        const bool cuda_compute_enabled = wxGetApp().app_config->get_bool("cuda_slicer_compute");
-        const bool vulkan_compute_enabled = wxGetApp().app_config->get_bool("vulkan_slicer_compute");
-        const bool vulkan_gpu_priority = wxGetApp().app_config->get_bool("vulkan_slicer_gpu_priority");
-        const bool strict_validation = wxGetApp().app_config->get_bool("slicer_compute_strict_validation");
-        uint32_t batch_size = 64;
-        try {
-            batch_size = uint32_t(std::stoul(wxGetApp().app_config->get("slicer_compute_batch_size")));
-        } catch (...) {
-            batch_size = 64;
-        }
-        const std::string mode = wxGetApp().app_config->get("slicer_compute_mode");
-        const Gpu::ComputeBackendPreference backend_mode =
-            mode == "vulkan" ? Gpu::ComputeBackendPreference::Vulkan :
-            mode == "cpu" ? Gpu::ComputeBackendPreference::Cpu :
-            Gpu::ComputeBackendPreference::Cuda;
-        Gpu::VulkanSlicerBackend::set_cuda_enabled(cuda_compute_enabled);
-        Gpu::VulkanSlicerBackend::set_compute_enabled(vulkan_compute_enabled);
-        Gpu::VulkanSlicerBackend::set_gpu_priority_enabled(vulkan_gpu_priority);
-        Gpu::VulkanSlicerBackend::set_backend_preference(backend_mode);
-        Gpu::VulkanSlicerBackend::set_batch_size(batch_size);
-        Gpu::VulkanSlicerBackend::set_strict_validation(strict_validation);
-
-        // Initialize on the slicing worker, not the UI thread. This makes
-        // device selection, autotuning and exact qualification visible before
-        // the first infill batch without delaying the progress window.
-        if ((cuda_compute_enabled || vulkan_compute_enabled) && backend_mode != Gpu::ComputeBackendPreference::Cpu &&
-            !Gpu::VulkanSlicerBackend::prepare_for_slicing()) {
-            BOOST_LOG_TRIVIAL(warning) << "[GPU compute] "
-                << Gpu::VulkanSlicerBackend::query_runtime_stats().last_diagnostic;
-        }
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: gcode_result reseted, will start print::process") % __LINE__;
-        try {
-            m_print->process();
-        } catch (...) {
-            release_slicing_allocator_caches();
-            throw;
-        }
-        release_slicing_allocator_caches();
+        m_print->process();
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__
                                 << boost::format(" %1%: after print::process, send slicing complete event to gui...") % __LINE__;
         if (m_current_plate->get_real_filament_map_mode(preset_bundle.project_config) < FilamentMapMode::fmmManual) {
@@ -315,11 +288,19 @@ void BackgroundSlicingProcess::process_fff()
         m_temp_output_path = this->get_current_plate()->get_tmp_gcode_path();
         m_fff_print->export_gcode(m_temp_output_path, m_gcode_result,
                                   [this](const ThumbnailsParams& params) { return this->render_thumbnails(params); });
-        // Orca: BBL printers post-process the g-code in place here and never re-parse it into a fresh
-        // GCodeProcessorResult, so m_gcode_result->nozzle_group_result (consumed by the H2C print-dispatch
-        // nozzle mapping) survives post-processing. No preservation guard is needed on this path.
+        // Orca: BBL printers post-process the g-code in place here, in the file the G-code viewer maps, so
+        // the preview re-reads its moves and line offsets from the edited file. The rest of m_gcode_result,
+        // including nozzle_group_result (consumed by the H2C print-dispatch nozzle mapping), is kept.
         if (m_fff_print->is_BBL_printer()) {
-            run_post_process_scripts(m_temp_output_path, false, "File", m_temp_output_path, m_fff_print->full_print_config());
+            try {
+                if (run_post_process_scripts(m_temp_output_path, false, "File", m_temp_output_path, m_fff_print->full_print_config()))
+                    m_fff_print->reload_gcode_moves(m_gcode_result);
+            } catch (...) {
+                // A failed script or plugin may have left the G-code half edited, so the next run exports
+                // it again instead of reusing it.
+                m_fff_print->invalidate_gcode_export_from_worker();
+                throw;
+            }
         }
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": export gcode finished");
@@ -759,7 +740,7 @@ StringObjectException BackgroundSlicingProcess::validate(std::vector<StringObjec
     assert(m_print != nullptr);
     assert(m_print == m_fff_print);
 
-    m_fff_print->is_BBL_printer() = wxGetApp().preset_bundle->is_bbl_vendor();
+    m_fff_print->is_BBL_printer() = GUI::wxGetApp().preset_bundle->is_bbl_vendor();
     return m_print->validate(warnings, collison_polygons, height_polygons);
 }
 
@@ -776,7 +757,9 @@ Print::ApplyStatus BackgroundSlicingProcess::apply(const Model& model, const Dyn
 
     // Orca: prevent resetting under gcode viewer mode
     if (invalidated != PrintBase::APPLY_STATUS_UNCHANGED) {
-        const auto plater = GUI::wxGetApp().mainframe->m_plater;
+        // Use the app’s plater accessor instead of going through mainframe, otherwise anything during startup that reaches apply() 
+        // (loading presets, config or input files, e.g. from the CLI) therefore dereferences a null `mainframe` and crashes.
+        const auto plater = GUI::wxGetApp().plater();
         if (plater && plater->only_gcode_mode()) {
             invalidated = PrintBase::APPLY_STATUS_UNCHANGED;
         }
@@ -812,6 +795,7 @@ void BackgroundSlicingProcess::schedule_export(const std::string& path, bool exp
     this->invalidate_step(bspsGCodeFinalize);
     m_export_path                    = path;
     m_export_path_on_removable_media = export_path_on_removable_media;
+    m_export_statistics              = GUI::wxGetApp().app_config->get_bool("export_statistics");
 }
 
 void BackgroundSlicingProcess::schedule_upload(Slic3r::PrintHostJob upload_job)
@@ -833,6 +817,10 @@ void BackgroundSlicingProcess::reset_export()
     if (!this->running()) {
         m_export_path.clear();
         m_export_path_on_removable_media = false;
+        // A scheduled upload only leaves m_upload_job when prepare_upload() hands it to the print host
+        // job queue. If the run ended before that (a post-processing script or plugin failure, or a
+        // cancel), the job must not survive into the next plain slice, which would upload again.
+        m_upload_job = PrintHostJob();
         // invalidate_step expects the mutex to be locked.
         std::scoped_lock<std::mutex> lock(m_print->state_mutex());
         this->invalidate_step(bspsGCodeFinalize);
@@ -906,7 +894,9 @@ void BackgroundSlicingProcess::finalize_gcode()
     case CopyFileResult::SUCCESS: break; // no error
     case CopyFileResult::FAIL_COPY_FILE:
         throw Slic3r::ExportError(GUI::format(
-            _L("Copying of the temporary G-code to the output G-code failed. Maybe the SD card is write locked?\nError message: %1%"),
+            m_export_path_on_removable_media ?
+                _L("Copying of the temporary G-code to the output G-code failed. Maybe the SD card is write locked?\nError message: %1%") :
+                _L("Copying of the temporary G-code to the output G-code failed.\nError message: %1%"),
             error_message));
         break;
     case CopyFileResult::FAIL_FILES_DIFFERENT:
@@ -935,6 +925,8 @@ void BackgroundSlicingProcess::finalize_gcode()
         BOOST_LOG_TRIVIAL(error) << "Unexpected fail code(" << (int) copy_ret_val << ") durring copy_file() to " << export_path << ".";
         break;
     }
+    if (m_export_statistics)
+        export_gcode_statistics(*m_gcode_result, gcode_statistics_path(export_path));
 
     m_print->set_status(100, GUI::format(_L("G-code file exported to %1%"), export_path));
 }
@@ -982,6 +974,8 @@ void BackgroundSlicingProcess::export_gcode()
         // throw Slic3r::ExportError(_utf8(L("Unknown error when exporting G-code.")));
         break;
     }
+    if (m_export_statistics)
+        export_gcode_statistics(*m_gcode_result, gcode_statistics_path(export_path));
 
     // BBS
     auto evt                  = new wxCommandEvent(m_event_export_finished_id, GUI::wxGetApp().mainframe->m_plater->GetId());
@@ -1007,7 +1001,7 @@ void BackgroundSlicingProcess::prepare_upload()
             m_print->set_status(95, _utf8(L("Running post-processing scripts")));
             std::string error_message;
             if (copy_file(m_temp_output_path, source_path.string(), error_message) != SUCCESS)
-                throw Slic3r::RuntimeError(_utf8(L("Copying of the temporary G-code to the output G-code failed.")));
+                throw Slic3r::ExportError(_utf8(L("Copying of the temporary G-code to the output G-code failed.")));
             m_upload_job.upload_data.upload_path = m_fff_print->print_statistics().finalize_output_path(
                 m_upload_job.upload_data.upload_path.string());
             // Orca: skip post-processing scripts for BBL printers as we have run them already in finalize_gcode()

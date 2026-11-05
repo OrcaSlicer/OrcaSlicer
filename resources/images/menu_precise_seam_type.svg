@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- Рамка -->
+  <path d="M0.5,13.5L0.5,1.5C0.5,0.951,0.951,0.5,1.5,0.5L13.5,0.5C14.049,0.5,14.5,0.951,14.5,1.5L14.5,13.5C14.5,14.049,14.049,14.5,13.5,14.5L1.5,14.5C0.951,14.5,0.5,14.049,0.5,13.5Z" style="fill:none;stroke:#949494;stroke-width:1px"/>
+
+  <!-- Левые пунктирные линии -->
+  <rect x="2" y="1" width="1" height="1" style="fill:#009688"/>
+  <rect x="2" y="3" width="1" height="1" style="fill:#009688"/>
+  <rect x="2" y="5" width="1" height="1" style="fill:#009688"/>
+  <rect x="2" y="7" width="1" height="1" style="fill:#009688"/>
+  <rect x="2" y="9" width="1" height="1" style="fill:#009688"/>
+  <rect x="2" y="11" width="1" height="1" style="fill:#009688"/>
+  <rect x="2" y="13" width="1" height="1" style="fill:#009688"/>
+
+  <!-- Правые пунктирные линии -->
+  <rect x="12" y="1" width="1" height="1" style="fill:#009688"/>
+  <rect x="12" y="3" width="1" height="1" style="fill:#009688"/>
+  <rect x="12" y="5" width="1" height="1" style="fill:#009688"/>
+  <rect x="12" y="7" width="1" height="1" style="fill:#009688"/>
+  <rect x="12" y="9" width="1" height="1" style="fill:#009688"/>
+  <rect x="12" y="11" width="1" height="1" style="fill:#009688"/>
+  <rect x="12" y="13" width="1" height="1" style="fill:#009688"/>
+
+  <!-- Галочка (checkmark) -->
+  <path d="M5.086213,7.556L6.953213,9.867L10.420213,4.444" style="fill:none;stroke:#949494;stroke-width:1.41px;stroke-linecap:round;stroke-linejoin:round"/>
+</svg>

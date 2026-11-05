@@ -1,0 +1,11 @@
+{
+  "type": "filament",
+  "name": "Generic PLA @UltiMaker 2+ 0.4 nozzle",
+  "inherits": "Generic PLA @UltiMaker 2 0.4 nozzle",
+  "from": "system",
+  "setting_id": "lwzg1neqQdELxzHx",
+  "instantiation": "true",
+  "compatible_printers": [
+    "UltiMaker 2+ 0.4 nozzle"
+  ]
+}

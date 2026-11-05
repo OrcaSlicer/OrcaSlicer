@@ -1,25 +1,40 @@
 #include "PluginConfig.hpp"
 
 #include <algorithm>
+#include <boost/filesystem/operations.hpp>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
 
+#include <exception>
 #include <libslic3r/Config.hpp>
+#include "libslic3r/Preset.hpp"
 #include <libslic3r/PresetBundle.hpp>
 #include <libslic3r/PrintConfig.hpp>
+#include <optional>
+#include <set>
+#include <mutex>
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/libslic3r.h"
 #include <slic3r/GUI/GUI.hpp>
 #include <slic3r/GUI/GUI_App.hpp>
 #include <slic3r/GUI/I18N.hpp>
 #include <slic3r/GUI/format.hpp>
+#include "slic3r/plugin/PluginDescriptor.hpp"
 #include <slic3r/plugin/PluginLoader.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <stdexcept>
 
+#include <string>
+#include <utility>
+#include <system_error>
+#include <vector>
 #include <wx/app.h>
+#include <wx/busycursor.h>
 #include <wx/utils.h>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r {
 
@@ -249,21 +264,10 @@ bool PluginConfig::save()
         return false;
     }
 
-    // Write to a PID-suffixed file and rename it into place, so a crash mid-write cannot truncate an
-    // existing config. Same approach as AppConfig::save().
-    const std::string path_pid = (boost::format("%1%.%2%") % path % get_current_pid()).str();
-
-    boost::nowide::ofstream file;
-    file.open(path_pid, std::ios::out | std::ios::trunc);
-    file << root.dump(1, '\t') << std::endl;
-    file.close();
-    if (file.fail()) {
-        BOOST_LOG_TRIVIAL(error) << "PluginConfig: failed to write " << path_pid << "; keeping the existing config";
-        return false;
-    }
-
-    if (const std::error_code rename_ec = rename_file(path_pid, path)) {
-        BOOST_LOG_TRIVIAL(error) << "PluginConfig: failed to move " << path_pid << " onto " << path << ": " << rename_ec.message();
+    // Written beside the target and moved into place, so a crash mid-write cannot truncate an
+    // existing config.
+    if (const std::error_code ec = write_file_atomically(path, root.dump(1, '\t') + "\n")) {
+        BOOST_LOG_TRIVIAL(error) << "PluginConfig: failed to write " << path << ": " << ec.message() << "; keeping the existing config";
         return false;
     }
 
@@ -324,12 +328,6 @@ bool PluginConfig::dirty() const
     return m_dirty;
 }
 
-std::string plugin_overrides_of(const Preset& preset)
-{
-    const auto* opt = dynamic_cast<const ConfigOptionString*>(preset.config.option(PLUGIN_OVERRIDES_OPTION_KEY));
-    return opt == nullptr ? std::string() : opt->value;
-}
-
 bool parse_plugin_overrides(const std::string& raw, CapabilityConfigDocument& document, std::string& error)
 {
     document = CapabilityConfigDocument();
@@ -340,11 +338,11 @@ bool parse_plugin_overrides(const std::string& raw, CapabilityConfigDocument& do
 
     const nlohmann::json parsed = nlohmann::json::parse(raw, nullptr, /* allow_exceptions */ false);
     if (parsed.is_discarded()) {
-        error = "The preset stores invalid plugin capability configuration JSON.";
+        error = _u8L("The preset stores invalid plugin capability configuration JSON.");
         return false;
     }
     if (!parsed.is_array()) {
-        error = "The preset's plugin capability configuration is not an array and cannot be edited.";
+        error = _u8L("The preset's plugin capability configuration is not an array and cannot be edited.");
         return false;
     }
 
@@ -357,9 +355,9 @@ std::string serialize_plugin_overrides(const CapabilityConfigDocument& document)
     return document.empty() ? std::string() : document.serialize_entries().dump();
 }
 
-bool prune_stale_plugin_overrides(DynamicConfig& config)
+bool prune_stale_plugin_overrides(DynamicConfig& config, const std::string& overrides_key)
 {
-    const auto* overrides_opt = dynamic_cast<const ConfigOptionString*>(config.option(PLUGIN_OVERRIDES_OPTION_KEY));
+    const auto* overrides_opt = dynamic_cast<const ConfigOptionString*>(config.option(overrides_key));
     if (overrides_opt == nullptr || overrides_opt->value.empty())
         return false;
 
@@ -374,7 +372,7 @@ bool prune_stale_plugin_overrides(DynamicConfig& config)
 
     // Capability names currently referenced by a plugin-backed option's value(s) — e.g.
     // slicing_pipeline_plugin's ConfigOptionStrings entries name SlicingPipeline capabilities
-    // directly, the same raw values save_plugin_collection() resolves into the "plugins" manifest.
+    // directly, the same raw values ConfigBase::collect_plugin_manifest() resolves into the manifest.
     std::set<std::pair<PluginCapabilityType, std::string>> referenced;
     const ConfigDef* def = config.def();
     for (const std::string& opt_key : config.keys()) {
@@ -397,7 +395,7 @@ bool prune_stale_plugin_overrides(DynamicConfig& config)
     if (!overrides.prune_unreferenced(referenced))
         return false;
 
-    config.set_key_value(PLUGIN_OVERRIDES_OPTION_KEY, new ConfigOptionString(serialize_plugin_overrides(overrides)));
+    config.set_key_value(overrides_key, new ConfigOptionString(serialize_plugin_overrides(overrides)));
     return true;
 }
 
@@ -470,27 +468,29 @@ EffectiveCapabilityConfig active_capability_config(const PluginCapabilityId& id)
 
     if (bundle != nullptr) {
         const std::string type_key = plugin_capability_type_to_string(id.type);
+        // The edited preset of each type that can hold plugin-backed options, keyed by its option list.
+        const std::pair<const std::vector<std::string>*, const Preset*> scopes[] = {
+            {&Preset::print_options(),    &bundle->prints.get_edited_preset()},
+            {&Preset::printer_options(),  &bundle->printers.get_edited_preset()},
+            {&Preset::filament_options(), &bundle->filaments.get_edited_preset()},
+        };
         for (const auto& [key, def] : print_config_def.options) {
             if (def.plugin_type != type_key)
                 continue;
-
-            const auto& print_options = Preset::print_options();
-            if (std::find(print_options.begin(), print_options.end(), key) != print_options.end()) {
-                preset = &bundle->prints.get_edited_preset();
+            for (const auto& [options, edited] : scopes)
+                if (contains(*options, key)) {
+                    preset = edited;
+                    break;
+                }
+            if (preset != nullptr)
                 break;
-            }
-
-            const auto& printer_options = Preset::printer_options();
-            if (std::find(printer_options.begin(), printer_options.end(), key) != printer_options.end()) {
-                preset = &bundle->printers.get_edited_preset();
-                break;
-            }
         }
     }
 
     if (preset != nullptr) {
+        const auto* stored = dynamic_cast<const ConfigOptionString*>(preset->config.option(Preset::plugin_overrides_key(preset->type)));
         std::string error;
-        if (!parse_plugin_overrides(plugin_overrides_of(*preset), overrides, error)) {
+        if (!parse_plugin_overrides(stored == nullptr ? std::string() : stored->value, overrides, error)) {
             // Text we cannot read is not an override: log it and resolve against the base config.
             BOOST_LOG_TRIVIAL(error) << "Preset \"" << preset->name << "\": " << error;
             overrides = CapabilityConfigDocument();
@@ -519,6 +519,22 @@ bool capability_save_config(const PluginCapabilityInterface& capability, const n
     return PluginManager::instance().get_config().store_capability_config(capability_identity(capability, "save_config"), config);
 }
 
+std::string PluginConfig::capability_type_label(PluginCapabilityType type)
+{
+    switch (type) {
+    case PluginCapabilityType::PrinterConnection: return _u8L("Printer connection");
+    case PluginCapabilityType::Pages: return _u8L("Pages");
+    case PluginCapabilityType::Analysis: return _u8L("Analysis");
+    case PluginCapabilityType::Importer: return _u8L("Importer");
+    case PluginCapabilityType::Exporter: return _u8L("Exporter");
+    case PluginCapabilityType::Visualization: return _u8L("Visualization");
+    case PluginCapabilityType::Script: return _u8L("Script");
+    case PluginCapabilityType::SlicingPipeline: return _u8L("Slicing Pipeline");
+    case PluginCapabilityType::ResourceTexture: return _u8L("Resource Texture");
+    default: return _u8L("Unknown");
+    }
+}
+
 nlohmann::json PluginConfig::capabilities_payload(const std::vector<PluginCapabilityId>& caps)
 {
     nlohmann::json payload = nlohmann::json::array();
@@ -531,7 +547,7 @@ nlohmann::json PluginConfig::capabilities_payload(const std::vector<PluginCapabi
         nlohmann::json entry;
         entry["plugin_key"]    = id.plugin_key;
         entry["name"]          = id.name;
-        entry["type"]          = plugin_capability_type_display_name(id.type);
+        entry["type"]          = capability_type_label(id.type);
         entry["type_key"]      = plugin_capability_type_to_string(id.type);
         entry["has_config_ui"] = capability->config_ui_available();
         payload.push_back(std::move(entry));
@@ -578,7 +594,7 @@ nlohmann::json PluginConfig::get_config_response(const PluginCapabilityId& id)
             } catch (const std::exception& ex) {
                 error = ex.what();
             } catch (...) {
-                error = "Unknown error";
+                error = _u8L("Unknown error");
             }
         }
 
@@ -674,7 +690,7 @@ nlohmann::json PluginConfig::restore_config_response(const PluginCapabilityId& i
         } catch (const std::exception& ex) {
             error = ex.what();
         } catch (...) {
-            error = "Unknown error";
+            error = _u8L("Unknown error");
         }
     }
 

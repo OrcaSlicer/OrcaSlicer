@@ -3,7 +3,7 @@
 	"name": "Arena PLA Silk @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFA05",
+	"filament_id": "OFmfizbq",
 	"instantiation": "false",
 	"filament_vendor": [
 		"Orca Arena"

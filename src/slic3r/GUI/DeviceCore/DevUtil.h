@@ -7,12 +7,16 @@
  */
 
 #pragma once
+#include <cstdint>
+#include <cassert>
+#include <ctime>
 #include <string>
 #include <sstream>
 #include <stdexcept>
 
 #include <boost/log/trivial.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/format.hpp>
 
 #include "nlohmann/json.hpp"
 

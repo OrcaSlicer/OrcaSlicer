@@ -1,6 +1,10 @@
 #pragma once
 
-#include "VulkanSlicer.hpp"
+#include "GpuExactGeometry.hpp"
+
+#include <cstdint>
+#include <string>
+#include <vector>
 
 namespace Slic3r::Gpu {
 
@@ -20,8 +24,8 @@ class CudaSlicerBackend {
 public:
     static CudaSlicerCapabilities query_capabilities();
     static bool prepare_for_slicing();
-    static VulkanVerticalIntersectionBatch dispatch_vertical_intersections(
-        const std::vector<VulkanVerticalIntersectionRequest>& requests);
+    static VerticalIntersectionBatch dispatch_vertical_intersections(
+        const std::vector<VerticalIntersectionRequest>& requests);
     static void release_resources();
 };
 

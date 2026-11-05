@@ -4,8 +4,13 @@
 #ifndef UTILS_VOXEL_UTILS_H
 #define UTILS_VOXEL_UTILS_H
 
+#include <cstddef>
+#include <cassert>
 #include <functional>
+#include <vector>
 
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/ExPolygon.hpp"
 

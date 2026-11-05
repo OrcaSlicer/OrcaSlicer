@@ -1,9 +1,23 @@
 #include "ToolOrderUtils.hpp"
+#include "libslic3r/MultiNozzleUtils.hpp"
 #include <queue>
+#include <algorithm>
+#include <cassert>
+#include <cstddef>
+#include <optional>
+#include <memory>
+#include <limits>
+#include <functional>
+#include <boost/multiprecision/fwd.hpp>
+#include <iterator>
 #include <set>
 #include <map>
 #include <cmath>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <vector>
+#include <unordered_map>
+#include <utility>
+#include <unordered_set>
 
 namespace Slic3r
 {
@@ -910,7 +924,7 @@ namespace Slic3r
 
         unsigned int iterations = (1 << all_extruders.size());
         unsigned int final_state = iterations - 1;
-        std::vector<std::vector<float>>cache(iterations, std::vector<float>(all_extruders.size(), 0x7fffffff));
+        std::vector<std::vector<float>>cache(iterations, std::vector<float>(all_extruders.size(), std::numeric_limits<float>::max()));
         std::vector<std::vector<int>>prev(iterations, std::vector<int>(all_extruders.size(), -1));
         cache[1][0] = 0.;
         for (unsigned int state = 0; state < iterations; ++state) {

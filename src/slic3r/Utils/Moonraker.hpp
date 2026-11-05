@@ -6,7 +6,8 @@
 #include <wx/arrstr.h>
 
 #include "PrintHost.hpp"
-#include "libslic3r/PrintConfig.hpp"
+
+class wxArrayString;
 
 
 namespace Slic3r {
@@ -17,16 +18,19 @@ class Http;
 // Moonraker is the JSON / WebSocket gateway that ships in front of Klipper
 // (and on Klipper-API-compatible firmwares like the Prusa-Firmware-Buddy
 // Buddy-Klipper fork). REST shape differs from OctoPrint: distinct paths,
-// JSON body for print/start, {"result":...}/{"error":...} envelope.
+// JSON body for print/start, {"result":...}/{"error":...} envelope (except the
+// upload reply, which is a bare object).
 //
 // Endpoints used:
 //   GET  /server/info                      -- connection test, reads klippy_state
-//   POST /server/files/upload (multipart)  -- upload gcode (form fields: file, root)
+//   POST /server/files/upload (multipart)  -- upload gcode (form fields: file, root, print,
+//                                             plateindex)
 //   POST /printer/print/start (json)       -- {"filename":"<name>.gcode"} starts print
 //
-// Auth: X-Api-Key header if `printhost_apikey` is non-empty; Moonraker accepts
-// unauthenticated LAN access by default, so the key is optional. HTTP Basic /
-// Digest are not part of the Moonraker spec and are not sent.
+// Auth: Send X-Api-Key when `printhost_apikey` is non-empty. Without a key,
+// requests rely on Moonraker's `[authorization] trusted_clients`; `force_logins`
+// overrides trusted-client access when enabled and at least one user exists.
+// HTTP Basic / Digest credentials are not sent.
 class Moonraker : public PrintHost
 {
 public:

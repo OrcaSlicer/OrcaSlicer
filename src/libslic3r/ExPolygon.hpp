@@ -1,10 +1,17 @@
 #ifndef slic3r_ExPolygon_hpp_
 #define slic3r_ExPolygon_hpp_
 
+#include "Line.hpp"
 #include "Point.hpp"
 #include "libslic3r.h"
 #include "Polygon.hpp"
 #include "Polyline.hpp"
+#include <utility>
+#include <initializer_list>
+#include <cstddef>
+#include <cstdint>
+#include <cassert>
+#include <iterator>
 #include <vector>
 
 namespace Slic3r {
@@ -394,6 +401,11 @@ inline Points to_points(const ExPolygon &expoly)
 inline void translate(ExPolygons &expolys, const Point &p) {
     for (ExPolygon &expoly : expolys)
         expoly.translate(p);
+}
+
+inline void translate(Polygons &polys, const Point &p) {
+    for (Polygon &poly : polys)
+        poly.translate(p);
 }
 
 inline void polygons_append(Polygons &dst, const ExPolygon &src) 

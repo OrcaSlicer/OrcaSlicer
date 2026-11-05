@@ -15,6 +15,21 @@
 #include "I18N.hpp"
 #include "ConfigManipulation.hpp"
 
+#include <wx/arrstr.h>
+#include <wx/event.h>
+#include <memory>
+#include <cstddef>
+#include <wx/string.h>
+#include <wx/stattext.h>
+#include "libslic3r/Config.hpp"
+#include <map>
+#include <vector>
+#include <boost/log/trivial.hpp>
+#include <ostream>
+#include "slic3r/GUI/Field.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include <boost/any.hpp>
+#include <wx/sizer.h>
 #include <wx/wupdlock.h>
 
 namespace Slic3r
@@ -83,6 +98,7 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
 
     m_settings_list_sizer->Clear(true);
     m_og_settings.resize(0);
+    m_option_state_registry.clear();
     Show(true);
 
     if (!config || is_multiple_selection || !object)
@@ -184,7 +200,7 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
             btn->Bind(EVT_LOCK_ENABLE, [this, btn](auto &e) { btn->SetBitmap(m_bmp_reset_focus.bmp()); });
             #endif
 
-            btn->Bind(wxEVT_BUTTON, [btn, opt_key, this, is_object, object, config, group_category](wxEvent &event) {
+            btn->Bind(wxEVT_BUTTON, [opt_key, this, is_object, object, config, group_category](wxEvent &event) {
                 //wxGetApp().plater()->take_snapshot(from_u8((boost::format(_utf8(L("Reset Option %s"))) % opt_key).str()));
                 config->erase(opt_key);
                 //btn->Hide();
@@ -204,10 +220,13 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
                 this->m_parent->Thaw();
 
                 #ifdef __WXOSX_MAC__
-                if (!btn->IsEnabled()) {
-                    btn->SetBitmap(m_bmp_reset_disable.bmp());
-                } else {
-                    btn->SetBitmap(m_bmp_reset_focus.bmp());
+                // The handler is bound on the button, so the event source is that button.
+                if (auto *btn = dynamic_cast<ScalableButton *>(event.GetEventObject())) {
+                    if (!btn->IsEnabled()) {
+                        btn->SetBitmap(m_bmp_reset_disable.bmp());
+                    } else {
+                        btn->SetBitmap(m_bmp_reset_focus.bmp());
+                    }
                 }
                 #endif
             });
@@ -223,7 +242,7 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
         std::weak_ptr<ConfigOptionsGroup> weak_optgroup(optgroup);
         optgroup->m_on_change = [this, is_object, object, config, group_category](const t_config_option_key &opt_id, const boost::any &value) {
                                     this->m_parent->Freeze();
-                                    this->update_config_values(is_object, object, config, group_category);
+                                    this->update_config_values(is_object, object, config, group_category, opt_id);
                                     wxGetApp().obj_list()->changed_object();
                                     this->m_parent->Thaw();
                                     //update_extra_column_visible_status(optgroup.get(), cat.second, config);
@@ -284,14 +303,16 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
         m_settings_list_sizer->Add(optgroup->sizer, 0, wxEXPAND | wxALL, 0);
         m_og_settings.push_back(optgroup);
 
-        auto toggle_field = [this, optgroup](const t_config_option_key & opt_key, bool toggle, int opt_index)
+        auto toggle_field = [this, optgroup](const t_config_option_key & opt_key, bool toggle, int opt_index, const wxString& reason)
         {
-            Field* field = optgroup->get_fieldc(opt_key, opt_index);;
+            m_option_state_registry.set_enabled(opt_key, toggle, reason);
+            Field* field = optgroup->get_fieldc(opt_key, opt_index);
             if (field)
                 field->toggle(toggle);
         };
-        auto toggle_line = [this, optgroup](const t_config_option_key &opt_key, bool toggle, int opt_index)
+        auto toggle_line = [this, optgroup](const t_config_option_key &opt_key, bool toggle, int opt_index, const wxString& reason)
         {
+            m_option_state_registry.set_visible(opt_key, toggle, reason);
             Line* line = optgroup->get_line(opt_key);
             if (line) line->toggle_visible = toggle;
         };
@@ -302,6 +323,7 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
 
         printer_technology == ptFFF  ?  config_manipulation.toggle_print_fff_options(&m_current_config, 0) :
                                         config_manipulation.toggle_print_sla_options(&m_current_config) ;
+        update_option_tooltips(*optgroup);
         optgroup->update_visibility(wxGetApp().get_mode());
     }
 
@@ -369,7 +391,23 @@ int ObjectTableSettings::update_extra_column_visible_status(ConfigOptionsGroup* 
     return count;
 }
 
-void ObjectTableSettings::update_config_values(bool is_object, ModelObject* object, ModelConfig* config, const std::string& category)
+void ObjectTableSettings::update_option_tooltips(ConfigOptionsGroup& group)
+{
+    // Object-table settings have one option per row and use native text labels.
+    for (const Line& line : group.get_lines()) {
+        if (line.get_options().empty())
+            continue;
+        const Option& option = line.get_options().front();
+        const wxString availability = m_option_state_registry.description(option.opt_id);
+        const wxString prefix = availability.empty() ? wxString() : availability + "\n\n";
+        if (line.label_widget)
+            line.label_widget->SetToolTip(prefix + line.label_tooltip);
+        if (Field* field = group.get_field(option.opt_id); field && field->getWindow())
+            field->getWindow()->SetToolTip(prefix + field->get_tooltip_text(wxEmptyString));
+    }
+}
+
+void ObjectTableSettings::update_config_values(bool is_object, ModelObject* object, ModelConfig* config, const std::string& category, const std::string& changed_opt_key)
 {
     int different_count = 0;
     const auto printer_technology   = wxGetApp().plater()->printer_technology();
@@ -377,12 +415,15 @@ void ObjectTableSettings::update_config_values(bool is_object, ModelObject* obje
     if (!object || !config)
         return;
 
+    m_option_state_registry.clear();
+
     // update config values according to configuration hierarchy
     DynamicPrintConfig  &main_config   = m_current_config;
 
 
-    auto toggle_field = [this](const t_config_option_key & opt_key, bool toggle, int opt_index)
+    auto toggle_field = [this](const t_config_option_key & opt_key, bool toggle, int opt_index, const wxString& reason)
     {
+        m_option_state_registry.set_enabled(opt_key, toggle, reason);
         Field* field = nullptr;
         for (auto og : m_og_settings) {
             field = og->get_fieldc(opt_key, opt_index);
@@ -392,7 +433,8 @@ void ObjectTableSettings::update_config_values(bool is_object, ModelObject* obje
         if (field)
             field->toggle(toggle);
     };
-    auto toggle_line = [this](const t_config_option_key &opt_key, bool toggle, int opt_index) {
+    auto toggle_line = [this](const t_config_option_key &opt_key, bool toggle, int opt_index, const wxString& reason) {
+        m_option_state_registry.set_visible(opt_key, toggle, reason);
         for (auto og : m_og_settings) {
             Line *line = og->get_line(opt_key);
             if (line) { line->toggle_visible = toggle; break; }
@@ -403,12 +445,16 @@ void ObjectTableSettings::update_config_values(bool is_object, ModelObject* obje
 
     config_manipulation.set_is_BBL_Printer(wxGetApp().preset_bundle->is_bbl_vendor());
 
+    if (printer_technology == ptFFF && changed_opt_key == "layer_height")
+        config_manipulation.check_layer_height(&main_config);
+
     printer_technology == ptFFF  ?  config_manipulation.update_print_fff_config(&main_config) :
                                     config_manipulation.update_print_sla_config(&main_config) ;
 
     printer_technology == ptFFF  ?  config_manipulation.toggle_print_fff_options(&main_config, 0) :
                                     config_manipulation.toggle_print_sla_options(&main_config) ;
     for (auto og : m_og_settings) {
+        update_option_tooltips(*og);
         og->update_visibility(wxGetApp().get_mode());
     }
     m_parent->Layout();
@@ -457,7 +503,7 @@ void ObjectTableSettings::update_config_values(bool is_object, ModelObject* obje
     m_table->reload_cell_data(m_current_row, category);
 }
 
-void ObjectTableSettings::UpdateAndShow(int row, const bool show, bool is_object, bool is_multiple_selection, ModelObject* object, ModelConfig* config, const std::string& category)
+void ObjectTableSettings::UpdateAndShowRow(int row, const bool show, bool is_object, bool is_multiple_selection, ModelObject* object, ModelConfig* config, const std::string& category)
 {
     m_current_row = row;
     m_current_category = category;

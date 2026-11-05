@@ -1,6 +1,8 @@
 #ifndef slic3r_Parameter_Utils_hpp_
 #define slic3r_Parameter_Utils_hpp_
 
+#include <utility>
+#include <string>
 #include <vector>
 #include <map>
 #include "PrintConfig.hpp"

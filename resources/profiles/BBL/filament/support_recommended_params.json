@@ -1,0 +1,263 @@
+{
+	"type": "filament",
+	"description": "Recommended support parameters for specific material combinations. support_material_type/model_material_type can be 'name' or 'type'",
+	"combinations": [
+		{
+			"model_material": "PLA",
+			"model_material_type": "type",
+			"support_material_list": [
+				"Bambu Support For PLA/PETG",
+				"Bambu Support For PLA"
+			],
+			"support_material_type": "name",
+			"priority": 3,
+			"recommended_params": {
+				"enable_support": true,
+				"support_type": "tree(auto)",
+				"support_style": "tree_hybrid",
+				"support_threshold_angle": 35,
+				"support_on_build_plate_only": false,
+				"raft_first_layer_expansion": 5.0,
+				"support_top_z_distance": 0.0,
+				"support_interface_pattern": "rectilinear_interlaced",
+				"support_interface_spacing": 0.0,
+				"tree_support_branch_diameter": 3.0,
+				"tree_support_branch_diameter_angle": 7.0,
+				"support_interface_speed": [
+					50.0,
+					50.0,
+					50.0,
+					50.0
+				]
+			}
+		},
+		{
+			"model_material": "PLA",
+			"model_material_type": "type",
+			"support_material_list": [
+				"PETG"
+			],
+			"support_material_type": "type",
+			"priority": 1,
+			"recommended_params": {
+				"enable_support": true,
+				"support_type": "tree(auto)",
+				"support_style": "tree_hybrid",
+				"support_threshold_angle": 35,
+				"support_on_build_plate_only": false,
+				"raft_first_layer_expansion": 5.0,
+				"support_top_z_distance": 0.0,
+				"support_interface_pattern": "rectilinear_interlaced",
+				"support_interface_spacing": 0.0,
+				"tree_support_branch_diameter": 3.0,
+				"tree_support_branch_diameter_angle": 7.0,
+				"support_interface_speed": [
+					50.0,
+					50.0,
+					50.0,
+					50.0
+				]
+			}
+		},
+		{
+			"model_material": "PLA",
+			"model_material_type": "type",
+			"support_material_list": [
+				"PVA"
+			],
+			"support_material_type": "type",
+			"priority": 2,
+			"recommended_params": {
+				"enable_support": true,
+				"support_type": "tree(auto)",
+				"support_on_build_plate_only": false,
+				"support_top_z_distance": 0.0,
+				"support_bottom_z_distance": 0.0,
+				"support_interface_pattern": "rectilinear_interlaced",
+				"support_interface_spacing": 0.0,
+				"support_object_xy_distance": 0.0
+			}
+		},
+		{
+			"model_material": "PETG",
+			"model_material_type": "type",
+			"support_material_list": [
+				"Bambu Support For PLA/PETG"
+			],
+			"support_material_type": "name",
+			"priority": 3,
+			"recommended_params": {
+				"enable_support": true,
+				"support_type": "tree(auto)",
+				"support_style": "tree_hybrid",
+				"support_threshold_angle": 35,
+				"support_on_build_plate_only": false,
+				"raft_first_layer_expansion": 5.0,
+				"support_top_z_distance": 0.0,
+				"support_interface_pattern": "rectilinear_interlaced",
+				"support_interface_spacing": 0.0,
+				"tree_support_branch_diameter": 3.0,
+				"tree_support_branch_diameter_angle": 7.0,
+				"support_interface_speed": [
+					50.0,
+					50.0,
+					50.0,
+					50.0
+				]
+			}
+		},
+		{
+			"model_material": "PETG",
+			"model_material_type": "type",
+			"support_material_list": [
+				"PLA"
+			],
+			"support_material_type": "type",
+			"priority": 1,
+			"recommended_params": {
+				"enable_support": true,
+				"support_type": "tree(auto)",
+				"support_style": "tree_hybrid",
+				"support_threshold_angle": 35,
+				"support_on_build_plate_only": false,
+				"raft_first_layer_expansion": 5.0,
+				"support_top_z_distance": 0.0,
+				"support_interface_pattern": "rectilinear_interlaced",
+				"support_interface_spacing": 0.0,
+				"tree_support_branch_diameter": 3.0,
+				"tree_support_branch_diameter_angle": 7.0,
+				"support_interface_speed": [
+					50.0,
+					50.0,
+					50.0,
+					50.0
+				]
+			}
+		},
+		{
+			"model_material": "ABS",
+			"model_material_type": "type",
+			"support_material_list": [
+				"Bambu Support for ABS"
+			],
+			"support_material_type": "name",
+			"priority": 3,
+			"recommended_params": {
+				"enable_support": true,
+				"support_type": "tree(auto)",
+				"support_on_build_plate_only": false,
+				"support_top_z_distance": 0.0,
+				"support_interface_pattern": "rectilinear_interlaced",
+				"support_interface_spacing": 0.0
+			}
+		},
+		{
+			"model_material": "PA",
+			"model_material_type": "type",
+			"support_material_list": [
+				"Bambu Support For PA/PET",
+				"Bambu ASA",
+				"Bambu ABS"
+			],
+			"support_material_type": "name",
+			"priority": 3,
+			"recommended_params": {
+				"enable_support": true,
+				"support_type": "tree(auto)",
+				"support_style": "tree_hybrid",
+				"support_on_build_plate_only": false,
+				"support_top_z_distance": 0.0,
+				"support_interface_pattern": "rectilinear_interlaced",
+				"support_interface_spacing": 0.0
+			}
+		},
+		{
+			"model_material": "TPU",
+			"model_material_type": "type",
+			"support_material_list": [
+				"PLA"
+			],
+			"support_material_type": "type",
+			"priority": 2,
+			"recommended_params": {
+				"enable_support": true,
+				"support_type": "tree(auto)",
+				"support_on_build_plate_only": false,
+				"support_top_z_distance": 0.0,
+				"support_interface_pattern": "rectilinear_interlaced",
+				"support_interface_spacing": 0.0,
+				"support_object_xy_distance": 0.0
+			}
+		},
+		{
+			"model_material": "Bambu PA6-GF",
+			"model_material_type": "name",
+			"support_material_list": [
+				"ABS"
+			],
+			"support_material_type": "type",
+			"priority": 2,
+			"recommended_params": {
+				"support_top_z_distance": 0.0,
+				"support_interface_pattern": "rectilinear_interlaced",
+				"support_interface_spacing": 0.0
+			}
+		},
+		{
+			"model_material": "Bambu PET-CF",
+			"model_material_type": "name",
+			"support_material_list": [
+				"ASA"
+			],
+			"support_material_type": "type",
+			"priority": 2,
+			"recommended_params": {
+				"support_top_z_distance": 0.0,
+				"support_interface_pattern": "rectilinear_interlaced",
+				"support_interface_spacing": 0.0
+			}
+		},
+		{
+			"model_material": "Bambu PPA-CF",
+			"model_material_type": "name",
+			"support_material_list": [
+				"ASA"
+			],
+			"support_material_type": "type",
+			"priority": 2,
+			"recommended_params": {
+				"support_top_z_distance": 0.0,
+				"support_interface_pattern": "rectilinear_interlaced",
+				"support_interface_spacing": 0.0
+			}
+		},
+		{
+			"model_material": "Bambu PAHT-CF",
+			"model_material_type": "name",
+			"support_material_list": [
+				"ASA"
+			],
+			"support_material_type": "type",
+			"priority": 2,
+			"recommended_params": {
+				"support_top_z_distance": 0.0,
+				"support_interface_pattern": "rectilinear_interlaced",
+				"support_interface_spacing": 0.0
+			}
+		},
+		{
+			"model_material": "Bambu PA6-CF",
+			"model_material_type": "name",
+			"support_material_list": [
+				"ASA"
+			],
+			"support_material_type": "type",
+			"priority": 2,
+			"recommended_params": {
+				"support_top_z_distance": 0.0,
+				"support_interface_pattern": "rectilinear_interlaced",
+				"support_interface_spacing": 0.0
+			}
+		}
+	]
+}

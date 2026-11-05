@@ -1,0 +1,69 @@
+{
+	"type": "machine",
+	"name": "fdm_machine_meltingplot_mbl",
+	"inherits": "fdm_machine_common",
+	"from": "system",
+	"instantiation": "false",
+	"fan_kickstart": "0.5",
+	"fan_speedup_time": "0.5",
+	"machine_max_acceleration_e": [
+		"2500"
+	],
+	"machine_max_acceleration_extruding": [
+		"800"
+	],
+	"machine_max_acceleration_retracting": [
+		"1250"
+	],
+	"machine_max_acceleration_travel": [
+		"1500"
+	],
+	"machine_max_acceleration_x": [
+		"1500"
+	],
+	"machine_max_acceleration_y": [
+		"1500"
+	],
+	"machine_max_acceleration_z": [
+		"72"
+	],
+	"machine_max_jerk_e": [
+		"3"
+	],
+	"machine_max_jerk_x": [
+		"9"
+	],
+	"machine_max_jerk_y": [
+		"9"
+	],
+	"machine_max_jerk_z": [
+		"0.3"
+	],
+	"machine_max_speed_x": [
+		"240"
+	],
+	"machine_max_speed_y": [
+		"240"
+	],
+	"machine_max_speed_z": [
+		"12"
+	],
+	"extruder_clearance_radius": "75",
+	"extruder_clearance_height_to_rod": "30",
+	"extruder_clearance_height_to_lid": "30",
+	"retraction_minimum_travel": [
+		"4"
+	],
+	"retraction_speed": [
+		"35"
+	],
+	"deretraction_speed": [
+		"0"
+	],
+	"thumbnails": [
+		"64x64",
+		"400x300"
+	],
+	"thumbnails_format": "PNG",
+	"machine_start_gcode": "M140 P0 S{first_layer_bed_temperature[0]} ; set bed temp\nG10 P0 R{first_layer_temperature[0] + standby_temperature_delta} S{first_layer_temperature[0]}\n\nM83 ; use relative distances for extrusion\nG90 ; use absolute coordinates\n\nM98 P\"0:/sys/meltingplot/print_start\""
+}

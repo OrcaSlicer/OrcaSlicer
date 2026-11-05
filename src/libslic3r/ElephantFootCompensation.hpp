@@ -1,7 +1,6 @@
 #ifndef slic3r_ElephantFootCompensation_hpp_
 #define slic3r_ElephantFootCompensation_hpp_
 
-#include "libslic3r.h"
 #include "ExPolygon.hpp"
 #include <vector>
 

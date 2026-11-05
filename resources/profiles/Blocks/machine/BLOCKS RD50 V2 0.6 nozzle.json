@@ -35,5 +35,8 @@
 	"deretraction_speed": [
 		"80"
 	],
-	"printer_variant": "0.6"
+	"printer_variant": "0.6",
+	"default_filament_profile": [
+		"Blocks PLA @Blocks_RD50_V2"
+	]
 }

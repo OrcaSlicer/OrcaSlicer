@@ -6,9 +6,15 @@
 #include "libslic3r.h"
 #include "libslic3r/AABBTreeIndirect.hpp"
 #include "libslic3r/Line.hpp"
+#include <Eigen/Core>
 #include <algorithm>
+#include <cassert>
 #include <cmath>
+#include <cstddef>
+#include <tuple>
+#include <limits>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace Slic3r {
@@ -31,8 +37,9 @@ namespace AABBTreeLines {
             inline VectorType closest_point_to_origin(size_t primitive_index, ScalarType& squared_distance) const
             {
                 Vec<LineType::Dim, typename LineType::Scalar> nearest_point;
+                Vec<LineType::Dim, typename LineType::Scalar> cast_origin = origin.template cast<typename LineType::Scalar>();
                 const LineType& line = lines[primitive_index];
-                squared_distance = line_alg::distance_to_squared(line, origin.template cast<typename LineType::Scalar>(), &nearest_point);
+                squared_distance = line_alg::distance_to_squared(line, cast_origin, &nearest_point);
                 return nearest_point.template cast<ScalarType>();
             }
         };
@@ -351,7 +358,7 @@ namespace AABBTreeLines {
             return dist;
         }
 
-        std::vector<size_t> all_lines_in_radius(const Vec<LineType::Dim, Scalar>& point, Floating radius)
+        std::vector<size_t> all_lines_in_radius(const Vec<LineType::Dim, Scalar>& point, Floating radius) const
         {
             return AABBTreeLines::all_lines_in_radius(this->lines, this->tree, point.template cast<Floating>(), radius * radius);
         }

@@ -3,6 +3,9 @@
 //#undef SLIC3R_DEBUG
 //#define NDEBUG
 
+#include <boost/geometry/core/cs.hpp>
+#include <algorithm>
+#include <boost/multi_array/base.hpp>
 #include <cmath>
 #include <cassert>
 
@@ -12,9 +15,17 @@
 #include <boost/geometry/geometries/point_xy.hpp>
 
 #include <boost/multi_array.hpp>
+#include <cstring>
+#include <vector>
+#include <cstddef>
+#include <utility>
 
+#include "Point.hpp"
+#include "BoundingBox.hpp"
+#include "ExtrusionEntity.hpp"
 #include "libslic3r.h"
 #include "ExtrusionSimulator.hpp"
+#include "Polyline.hpp"
 
 #ifndef M_PI
 #define M_PI 3.1415926535897932384626433832795

@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "QIDI ABS Rapido @Qidi X-Plus 5 0.2 nozzle",
+	"inherits": "QIDI ABS Rapido@X-Plus 5-Series",
+	"from": "system",
+	"setting_id": "bTwNiMSHwex0gxrd",
+	"instantiation": "true",
+	"chamber_temperatures": [
+		"0"
+	],
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"pressure_advance": [
+		"0.03"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.2 nozzle"
+	]
+}

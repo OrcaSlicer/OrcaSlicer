@@ -4,7 +4,13 @@
 #include "libslic3r/Point.hpp"
 #include "Bicubic.hpp"
 
+#include <Eigen/Core>
+#include <cstddef>
+#include <cassert>
+#include <algorithm>
 #include <iostream>
+#include <vector>
+#include <utility>
 
 //#define LSQR_DEBUG
 

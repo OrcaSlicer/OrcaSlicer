@@ -5,6 +5,7 @@
 #include "SegmentTemplate.hpp"
 #include "OpenGLUtils.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <array>
 
@@ -15,7 +16,16 @@ namespace libvgcode {
 //|   2--0-------5--7   |
 //|    \ |       | /    |
 //|      3-------4      | 
-static constexpr const std::array<uint8_t, 24> VERTEX_DATA = {
+// The eight corners the vertex shader knows how to place. Each is sent once and
+// referenced by INDEX_DATA below, so the post-transform cache can reuse it across
+// the triangles that share it: the shader runs 8 times per segment instead of 24.
+// ORCA: 32-bit, as Metal takes only vertex strides that are a multiple of 4 bytes, and
+// the OpenGL driver Parallels Desktop builds on it draws no segment from packed uint8 ones.
+static constexpr const std::array<uint32_t, 8> VERTEX_DATA = { 0, 1, 2, 3, 4, 5, 6, 7 };
+
+// 16-bit indices: GCN 1/2 GPUs have no 8-bit index support, and some of their drivers
+// emulate it wrongly in instanced draws.
+static constexpr const std::array<uint16_t, 24> INDEX_DATA = {
     0, 1, 2, // front spike
     0, 2, 3, // front spike
     0, 3, 4, // right/bottom body 
@@ -31,7 +41,7 @@ void SegmentTemplate::init()
     if (m_vao_id != 0)
         return;
 
-    m_size_in_bytes_gpu += VERTEX_DATA.size() * sizeof(uint8_t);
+    m_size_in_bytes_gpu += VERTEX_DATA.size() * sizeof(uint32_t) + INDEX_DATA.size() * sizeof(uint16_t);
 
     int curr_vertex_array;
     glsafe(glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &curr_vertex_array));
@@ -43,13 +53,19 @@ void SegmentTemplate::init()
 
     glsafe(glGenBuffers(1, &m_vbo_id));
     glsafe(glBindBuffer(GL_ARRAY_BUFFER, m_vbo_id));
-    glsafe(glBufferData(GL_ARRAY_BUFFER, VERTEX_DATA.size() * sizeof(uint8_t), VERTEX_DATA.data(), GL_STATIC_DRAW));
+    glsafe(glBufferData(GL_ARRAY_BUFFER, VERTEX_DATA.size() * sizeof(uint32_t), VERTEX_DATA.data(), GL_STATIC_DRAW));
     glsafe(glEnableVertexAttribArray(0));
 #ifdef ENABLE_OPENGL_ES
-    glsafe(glVertexAttribPointer(0, 1, GL_UNSIGNED_BYTE, GL_FALSE, 0, (const void*)0));
+    glsafe(glVertexAttribPointer(0, 1, GL_UNSIGNED_INT, GL_FALSE, 0, (const void*)0));
 #else
-    glsafe(glVertexAttribIPointer(0, 1, GL_UNSIGNED_BYTE, 0, (const void*)0));
+    glsafe(glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 0, (const void*)0));
 #endif // ENABLE_OPENGL_ES
+
+    // The element buffer binding is part of the vao state, so it is left bound here
+    // and restored together with the vao.
+    glsafe(glGenBuffers(1, &m_ibo_id));
+    glsafe(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo_id));
+    glsafe(glBufferData(GL_ELEMENT_ARRAY_BUFFER, INDEX_DATA.size() * sizeof(uint16_t), INDEX_DATA.data(), GL_STATIC_DRAW));
 
     glsafe(glBindBuffer(GL_ARRAY_BUFFER, curr_array_buffer));
     glsafe(glBindVertexArray(curr_vertex_array));
@@ -57,6 +73,10 @@ void SegmentTemplate::init()
 
 void SegmentTemplate::shutdown()
 {
+    if (m_ibo_id != 0) {
+        glsafe(glDeleteBuffers(1, &m_ibo_id));
+        m_ibo_id = 0;
+    }
     if (m_vbo_id != 0) {
         glsafe(glDeleteBuffers(1, &m_vbo_id));
         m_vbo_id = 0;
@@ -71,14 +91,15 @@ void SegmentTemplate::shutdown()
 
 void SegmentTemplate::render(size_t count)
 {
-    if (m_vao_id == 0 || m_vbo_id == 0 || count == 0)
+    if (m_vao_id == 0 || m_vbo_id == 0 || m_ibo_id == 0 || count == 0)
         return;
 
     int curr_vertex_array;
     glsafe(glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &curr_vertex_array));
 
     glsafe(glBindVertexArray(m_vao_id));
-    glsafe(glDrawArraysInstanced(GL_TRIANGLES, 0, static_cast<GLsizei>(VERTEX_DATA.size()), static_cast<GLsizei>(count)));
+    glsafe(glDrawElementsInstanced(GL_TRIANGLES, static_cast<GLsizei>(INDEX_DATA.size()), GL_UNSIGNED_SHORT,
+                                   nullptr, static_cast<GLsizei>(count)));
     glsafe(glBindVertexArray(curr_vertex_array));
 }
 

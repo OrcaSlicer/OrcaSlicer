@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"from": "system",
-	"instantiation": "true",
 	"name": "PolyTerra PLA @0.2 nozzle",
-	"setting_id": "6W1ygT08NordBdIW",
 	"inherits": "PolyTerra PLA @base",
+	"from": "system",
+	"setting_id": "6W1ygT08NordBdIW",
+	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker A250 (0.2 nozzle)",
 		"Snapmaker A250 BKit (0.2 nozzle)",

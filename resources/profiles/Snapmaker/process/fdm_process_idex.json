@@ -5,7 +5,7 @@
 	"from": "system",
 	"instantiation": "false",
 	"initial_layer_print_height": "0.2",
-	"enable_arc_fitting": "1",
+	"enable_arc_fitting": "0",
 	"initial_layer_infill_speed": "75",
 	"outer_wall_speed": "120",
 	"inner_wall_speed": "250",
@@ -38,5 +38,7 @@
 	"preheat_time": "90",
 	"filename_format": "{input_filename_base}_{layer_height}mm_{print_time}_J1.gcode",
 	"small_perimeter_threshold": "0",
-	"support_material_synchronize_layers": "1"
+	"support_material_synchronize_layers": "1",
+	"top_color_penetration_layers": "4",
+	"bottom_color_penetration_layers": "3"
 }

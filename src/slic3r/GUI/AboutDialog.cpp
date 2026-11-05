@@ -3,13 +3,33 @@
 
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Color.hpp"
+#include "BuildCommit.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 #include "format.hpp"
 #include "Widgets/Button.hpp"
+#include "libslic3r_version.h"
 
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <vector>
 #include <wx/clipbrd.h>
+#include <wx/panel.h>
+#include <wx/wx.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/dcclient.h>
+#include <wx/dialog.h>
+#include <wx/toplevel.h>
+#include <wx/sizer.h>
+#include <wx/html/htmlwin.h>
+#include <wx/string.h>
+#include <wx/colour.h>
+#include <wx/dataobj.h>
+#include <wx/statline.h>
 
 namespace Slic3r {
 namespace GUI {
@@ -18,7 +38,7 @@ AboutDialogLogo::AboutDialogLogo(wxWindow* parent)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
 {
     this->SetBackgroundColour(*wxWHITE);
-    this->logo = ScalableBitmap(this, "ExtremeSlicer_about", 192);
+    this->logo = ScalableBitmap(this, Slic3r::var("OrcaSlicer_192px.png"), wxBITMAP_TYPE_PNG);
     this->SetMinSize(this->logo.GetBmpSize());
 
     this->Bind(wxEVT_PAINT, &AboutDialogLogo::onRepaint, this);
@@ -147,9 +167,9 @@ wxString CopyrightsDialog::get_html_text()
                 "<font size=\"3\">",
          bgr_clr_str, text_clr_str, text_clr_str,
         _L("License"),
-        _L("Extreme Slicer is licensed under "),
+        _L("Orca Slicer is licensed under "),
         "https://www.gnu.org/licenses/agpl-3.0.html",_L("GNU Affero General Public License, version 3"),
-        _L("Extreme Slicer is based on PrusaSlicer, Bambu Studio and the OrcaSlicer project"),
+        _L("Orca Slicer is based on PrusaSlicer and BambuStudio"),
         _L("Libraries"),
         _L("This software uses open source components whose copyright and other proprietary rights belong to their respective owners"));
 
@@ -230,7 +250,7 @@ AboutDialog::AboutDialog()
 	bool is_dark = wxGetApp().app_config->get("dark_color_mode") == "1";
 
     // logo
-    m_logo_bitmap = ScalableBitmap(this, is_dark ? "ExtremeSlicer_about_dark" : "ExtremeSlicer_about", 125);
+    m_logo_bitmap = ScalableBitmap(this, is_dark ? "OrcaSlicer_about_dark" : "OrcaSlicer_about", 125);
     m_logo = new wxStaticBitmap(this, wxID_ANY, m_logo_bitmap.bmp(), wxDefaultPosition,wxDefaultSize, 0);
     m_logo->SetSizer(vesizer);
 
@@ -245,7 +265,8 @@ AboutDialog::AboutDialog()
         vesizer->Add(0, 0, 1, wxEXPAND, FromDIP(5));
         auto          version_string = std::string(SoftFever_VERSION); // _L("Orca Slicer ") + " " + std::string(SoftFever_VERSION);
         wxStaticText* version = new wxStaticText(this, wxID_ANY, version_string.c_str(), wxDefaultPosition, wxDefaultSize);
-        wxStaticText* credits_string = new wxStaticText(this, wxID_ANY, wxString::Format("Build %s", std::string(GIT_COMMIT_HASH)), wxDefaultPosition, wxDefaultSize);
+        // TRN %s is the commit the application was built from
+        wxStaticText* credits_string = new wxStaticText(this, wxID_ANY, wxString::Format(_L("Build %s"), build_commit_label), wxDefaultPosition, wxDefaultSize);
         credits_string->SetFont(_build_string_font);
         wxFont version_font = GetFont();
         version_font = version_font.Scaled(1.85f); // SetPointSize(20) not works on macOS because it uses a 72 PPI reference
@@ -267,8 +288,8 @@ AboutDialog::AboutDialog()
 
     std::vector<wxString> text_list;
     text_list.push_back(_L("Open-source slicing stands on a tradition of collaboration and attribution. Slic3r, created by Alessandro Ranellucci and the RepRap community, laid the foundation. PrusaSlicer by Prusa Research built on that work, Bambu Studio forked from PrusaSlicer, and SuperSlicer extended it with community-driven enhancements. Each project carried the work of its predecessors forward, crediting those who came before."));
-    text_list.push_back(_L("Extreme Slicer continues that open-source tradition with GPU-assisted slicing, CUDA/Vulkan backends and exact CPU fallbacks for topology-sensitive operations."));
-    text_list.push_back(_L("This fork preserves the upstream Slic3r, PrusaSlicer, Bambu Studio and OrcaSlicer attributions while providing an independent Extreme Slicer user interface."));
+    text_list.push_back(_L("OrcaSlicer began in that same spirit, drawing from PrusaSlicer, BambuStudio, SuperSlicer, and CuraSlicer. But it has since grown far beyond its origins — introducing advanced calibration tools, precise wall and seam control and hundreds of other features."));
+    text_list.push_back(_L("Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."));
 
     text_sizer->Add( 0, 0, 0, wxTOP, FromDIP(33));
     bool is_zh = wxGetApp().app_config->get("language") == "zh_CN";
@@ -311,7 +332,7 @@ AboutDialog::AboutDialog()
 
     copyright_hor_sizer->Add(copyright_ver_sizer, 0, wxLEFT, FromDIP(20));
 
-    wxStaticText *html_text = new wxStaticText(this, wxID_ANY, "Copyright(C) 2026 Extreme Slicer contributors", wxDefaultPosition, wxDefaultSize);
+    wxStaticText *html_text = new wxStaticText(this, wxID_ANY, _L("Copyright(C) 2026 OrcaSlicer Pte Ltd All Rights Reserved"), wxDefaultPosition, wxDefaultSize);
     html_text->SetForegroundColour(wxColour(107, 107, 107));
 
     copyright_ver_sizer->Add(html_text, 0, wxALL , 0);
@@ -330,7 +351,7 @@ AboutDialog::AboutDialog()
               (boost::format(
               "<html>"
               "<body bgcolor= \"" + bgr_clr_str + "\" >"
-              "<p style=\"text-align:left\"><a style=\"color:#009789\" href=\"https://github.com/mk0000001/Extreme-Slicer\">github.com/mk0000001/Extreme-Slicer</a></p>"
+              "<p style=\"text-align:left\"><a style=\"color:#009789\" href=\"https://www.orcaslicer.com\">https://www.orcaslicer.com</ a></p>"
               "</body>"
               "</html>")
             ).str());

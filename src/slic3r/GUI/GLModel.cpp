@@ -11,47 +11,34 @@
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/Geometry/ConvexHull.hpp"
 
+#include <Eigen/Core>
+#include <algorithm>
+#include <Eigen/Geometry>
 #include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string/predicate.hpp>
-
-#if defined(L)
-#undef L
-#endif
-
-#include <igl/per_face_normals.h>
-#include <igl/per_corner_normals.h>
-#include <igl/per_vertex_normals.h>
-
+#include <vector>
+#include "libslic3r/Point.hpp"
+#include <cstddef>
+#include <cassert>
+#include <cfloat>
+#include <utility>
+#include "libslic3r/AppConfig.hpp"
+#include <cstdint>
+#include <string>
+#include <exception>
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include <limits>
+#include "libslic3r/Geometry/Circle.hpp"
+#include <cmath>
+#include <math.h>
+#include <cstdlib>
+#include "libslic3r/Geometry.hpp"
 
 #include <glad/gl.h>
 
 namespace Slic3r {
 namespace GUI {
-
-static void smooth_normals_corner(const TriangleMesh& mesh, std::vector<stl_normal>& normals)
-{
-    using MapMatrixXfUnaligned = Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor | Eigen::DontAlign>>;
-    using MapMatrixXiUnaligned = Eigen::Map<const Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor | Eigen::DontAlign>>;
-
-    std::vector<Vec3f> face_normals = its_face_normals(mesh.its);
-
-    Eigen::MatrixXd vertices = MapMatrixXfUnaligned(mesh.its.vertices.front().data(),
-        Eigen::Index(mesh.its.vertices.size()), 3).cast<double>();
-    Eigen::MatrixXi indices = MapMatrixXiUnaligned(mesh.its.indices.front().data(),
-        Eigen::Index(mesh.its.indices.size()), 3);
-    Eigen::MatrixXd in_normals = MapMatrixXfUnaligned(face_normals.front().data(),
-        Eigen::Index(face_normals.size()), 3).cast<double>();
-    Eigen::MatrixXd out_normals;
-
-    igl::per_corner_normals(vertices, indices, 1.0, out_normals);
-
-    normals = std::vector<stl_normal>(mesh.its.vertices.size());
-    for (size_t i = 0; i < mesh.its.indices.size(); ++i) {
-        for (size_t j = 0; j < 3; ++j) {
-            normals[mesh.its.indices[i][j]] = out_normals.row(i * 3 + j).cast<float>();
-        }
-    }
-}
 
 void GLModel::Geometry::add_vertex(const Vec2f& position)
 {
@@ -456,25 +443,18 @@ void GLModel::init_from(const indexed_triangle_set& its)
     data.reserve_vertices(3 * its.indices.size());
     data.reserve_indices(3 * its.indices.size());
 
-    // Read user preference: smooth normals enabled
-    const bool smooth_normals_enabled = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_SMOOTH_NORMALS);
+    // CLI thumbnail generation can initialize models without a wx application.
+    const bool smooth_normals_enabled = wxApp::GetInstance() != nullptr && wxGetApp().app_config != nullptr &&
+                                        wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_SMOOTH_NORMALS);
 
     if (smooth_normals_enabled) {
-        // Use per-corner smooth normals (via IGL)
-        using MapMatrixXfUnaligned = Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor | Eigen::DontAlign>>;
-        using MapMatrixXiUnaligned = Eigen::Map<const Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor | Eigen::DontAlign>>;
-        Eigen::MatrixXd vertices = MapMatrixXfUnaligned(its.vertices.front().data(), Eigen::Index(its.vertices.size()), 3).cast<double>();
-        Eigen::MatrixXi indices = MapMatrixXiUnaligned(its.indices.front().data(), Eigen::Index(its.indices.size()), 3);
-        Eigen::MatrixXd corner_normals;
-        igl::per_corner_normals(vertices, indices, 5.0, corner_normals);
+        const std::vector<Vec3f> corner_normals = its_smooth_corner_normals(its, 5.0);
 
         unsigned int vertices_counter = 0;
         for (uint32_t i = 0; i < its.indices.size(); ++i) {
             const stl_triangle_vertex_indices face = its.indices[i];
-            for (size_t j = 0; j < 3; ++j) {
-                const Vec3f normal = corner_normals.row(Eigen::Index(i * 3 + j)).cast<float>();
-                data.add_vertex(its.vertices[face[j]], normal);
-            }
+            for (size_t j = 0; j < 3; ++j)
+                data.add_vertex(its.vertices[face[j]], corner_normals[3 * i + j]);
             data.add_triangle(vertices_counter, vertices_counter + 1, vertices_counter + 2);
             vertices_counter += 3;
         }

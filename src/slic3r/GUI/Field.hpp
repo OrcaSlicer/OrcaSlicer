@@ -1,6 +1,16 @@
 #ifndef SLIC3R_GUI_FIELD_HPP
 #define SLIC3R_GUI_FIELD_HPP
 
+#include <string>
+#include <wx/string.h>
+#include "libslic3r/Point.hpp"
+#include <vector>
+#include <wx/colour.h>
+#include <wx/sizer.h>
+#include <wx/event.h>
+#include <climits>
+#include <wx/arrstr.h>
+#include <cstddef>
 #include <wx/wxprec.h>
 #ifndef WX_PRECOMP
     #include <wx/wx.h>
@@ -12,19 +22,24 @@
 #include <boost/any.hpp>
 #include "I18N.hpp"
 
-#include <wx/colourdata.h>
+#include <wx/colour.h>
 #include <wx/spinctrl.h>
 #include <wx/bmpcbox.h>
-#include <wx/clrpicker.h>
+#include <optional>
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Config.hpp"
-#include "libslic3r/Utils.hpp"
 
-#include "GUI.hpp"
 #include "wxExtensions.hpp"
 #include "Widgets/SpinInput.hpp"
-#include "Widgets/TextInput.hpp"
+
+class ComboBox;
+class TextInput;
+class wxBitmap;
+class wxBoxSizer;
+class wxCommandEvent;
+class wxEvent;
+class wxSizer;
 
 #ifdef __WXMSW__
 #define wxMSW true
@@ -385,7 +400,7 @@ public:
 	wxWindow*		window{ nullptr };
 	void			BUILD() override;
     /// Propagate value from field to the OptionGroupe and Config after kill_focus/ENTER
-    void	        propagate_value() ;
+    void	        propagate_value() override;
 
     void			set_value(const std::string& value, bool change_event = false) {
 		m_disable_change_event = !change_event;
@@ -440,7 +455,7 @@ public:
 	wxWindow*		window{ nullptr };
 	void			BUILD() override;
 	// Propagate value from field to the OptionGroupe and Config after kill_focus/ENTER
-	void			propagate_value();
+	void			propagate_value() override;
 
     /* Under OSX: wxBitmapComboBox->GetWindowStyle() returns some weard value, 
      * so let use a flag, which has TRUE value for a control without wxCB_READONLY style
@@ -469,6 +484,44 @@ public:
     void            suppress_scroll();
 };
 
+// printer_agent is a coString whose choices come from the live agent registry.
+// PrinterAgentChoice uses a ComboBox directly because Choice expects static config enums.
+// Real rows carry the stored agent id in the row alias (SetItemAlias/GetItemAlias).
+class PrinterAgentChoice : public Field
+{
+	using Field::Field;
+
+public:
+	PrinterAgentChoice(const ConfigOptionDef& opt, const t_config_option_key& id) : Field(opt, id)
+	{
+	}
+
+	PrinterAgentChoice(wxWindow* parent, const ConfigOptionDef& opt, const t_config_option_key& id) : Field(
+		parent, opt, id)
+	{
+	}
+
+	~PrinterAgentChoice()
+	{
+	}
+
+	wxWindow* window{nullptr};
+
+	void BUILD() override;
+	// Clear and repopulate rows from the live registry (grouped System agents / Plugins).
+	// Does not change selection; the caller follows with set_value(stored id).
+	void reload_rows();
+
+	void set_value(const std::string& value, bool change_event = false);
+	void set_value(const boost::any& value, bool change_event = false) override;
+	boost::any& get_value() override;
+
+	void enable() override;
+	void disable() override;
+	void msw_rescale() override;
+	wxWindow* getWindow() override { return window; }
+};
+
 class PluginField : public Field {
     using Field::Field;
 public:
@@ -494,10 +547,8 @@ public:
 
 private:
     struct PluginRow {
-        ScalableButton* select_btn { nullptr };
-        wxTextCtrl*     display { nullptr };
+        ComboBox*       display { nullptr };
         ScalableButton* remove_btn { nullptr };
-        ScalableButton* add_btn { nullptr };
         wxBoxSizer*     sizer { nullptr };
     };
 
@@ -515,7 +566,7 @@ private:
     wxBoxSizer*             m_main_sizer { nullptr };
     std::vector<PluginRow>  m_rows;
     std::vector<std::string> m_values;
-    ScalableButton*         m_standalone_add_btn { nullptr };
+    Button*                  m_standalone_add_btn { nullptr };
     std::function<std::string()> m_selector;
 };
 
@@ -559,39 +610,27 @@ private:
 };
 
 class ColourPicker : public Field {
-	using Field::Field;
-
-    void            set_undef_value(wxColourPickerCtrl* field);
-    void            draw_bmp_btn(wxColourPickerCtrl* field, wxColour color);
 public:
 	ColourPicker(const ConfigOptionDef& opt, const t_config_option_key& id) : Field(opt, id) {}
 	ColourPicker(wxWindow* parent, const ConfigOptionDef& opt, const t_config_option_key& id) : Field(parent, opt, id) {}
-	~ColourPicker() {}
 
 	wxWindow*		window{ nullptr };
 	void			BUILD()  override;
-
-	void			set_value(const std::string& value, bool change_event = false) {
-		m_disable_change_event = !change_event;
-		dynamic_cast<wxColourPickerCtrl*>(window)->SetColour(value);
-		m_disable_change_event = false;
-	 	}
+	void			set_value(const std::string& value, bool change_event = false);
 	void			set_value(const boost::any& value, bool change_event = false) override;
 	boost::any&		get_value() override;
     void            msw_rescale() override;
     void            sys_color_changed() override;
-
-    void			enable() override { dynamic_cast<wxColourPickerCtrl*>(window)->Enable(); }
-    void			disable() override{ dynamic_cast<wxColourPickerCtrl*>(window)->Disable(); }
+    void			enable() override { if (window) window->Enable(); }
+    void			disable() override{ if (window) window->Disable(); }
 	wxWindow*		getWindow() override { return window; }
 
 private:
-    void convert_to_picker_widget(wxColourPickerCtrl *widget);
-    void on_button_click(wxCommandEvent &WXUNUSED(ev));
-    void save_colors_to_config();
-private:
-    wxColourData*  m_clrData{nullptr};
-    wxColourPickerWidget* m_picker_widget{nullptr};
+    // An absent result is cancellation; transparent color is the undefined field.
+    void apply_user_color(const std::optional<wxColour>& color);
+    void draw_bmp_btn();
+    void on_button_click(wxCommandEvent& event);
+    wxColour m_colour = wxTransparentColour;
 };
 
 class PointCtrl : public Field {
@@ -611,7 +650,7 @@ public:
 	void			BUILD()  override;
 	bool			value_was_changed(wxTextCtrl* win);
     // Propagate value from field to the OptionGroupe and Config after kill_focus/ENTER
-    void            propagate_value(wxTextCtrl* win);
+	void			propagate_input_value(wxTextCtrl* win);
 	void			set_value(const Vec2d& value, bool change_event = false);
 	void			set_value(const boost::any& value, bool change_event = false) override;
 	boost::any&		get_value() override;

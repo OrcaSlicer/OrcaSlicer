@@ -2,15 +2,44 @@
 #include "I18N.hpp"
 
 #include "libslic3r/Utils.hpp"
-#include "libslic3r/Thread.hpp"
 #include "slic3r/Utils/WxFontUtils.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "DeviceCore/DevConfigUtil.h"
 #include "GUI_Preview.hpp"
 #include "MainFrame.hpp"
-#include "format.hpp"
 #include "Widgets/ProgressDialog.hpp"
+#include <wx/event.h>
+#include <wx/colour.h>
+#include <string>
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
+#include <vector>
+#include <boost/log/trivial.hpp>
+#include <wx/dcclient.h>
+#include <cstddef>
+#include <wx/arrstr.h>
+#include "slic3r/GUI/DeviceManager.hpp"
+#include <math.h>
+#include <cmath>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/peninfobase.h>
+#include <wx/string.h>
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include <wx/popupwin.h>
+#include <wx/anybutton.h>
+#include <wx/sizer.h>
+#include <map>
+#include "slic3r/GUI/DeviceCore/DevUtil.h"
+#include <cstdlib>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Widgets/SwitchButton.hpp"
+#include <utility>
+#include "slic3r/GUI/Widgets/AMSItem.hpp"
+#include <unordered_map>
+#include <wx/tooltip.h>
 #include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/StaticBox.hpp"
 
@@ -22,8 +51,10 @@
 #include <miniz.h>
 #include <algorithm>
 #include <optional>
+#include <wx/wx.h>
+#include <wx/toplevel.h>
+#include <wx/wrapsizer.h>
 #include "Plater.hpp"
-#include "BitmapCache.hpp"
 #include "BindDialog.hpp"
 #include "FilamentBitmapUtils.hpp"
 
@@ -34,6 +65,11 @@
 
 #include "DeviceTab/wgtDeviceNozzleSelect.h"
 #include "DeviceTab/wgtMsgPanel.h"
+#include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
+#include "slic3r/GUI/DeviceCore/DevNozzleSystem.h"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
 
 namespace Slic3r { namespace GUI {
 #define MATERIAL_ITEM_SIZE wxSize(FromDIP(65), FromDIP(50))
@@ -818,7 +854,7 @@ AmsMapingPopup::AmsMapingPopup(wxWindow *parent, bool use_in_sync_dialog) :
 
      m_scrolled_window = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL | wxHSCROLL);
      m_scrolled_window->SetBackgroundColour(*wxWHITE);
-     m_scrolled_window->SetScrollRate(0, FromDIP(10));
+     m_scrolled_window->SetScrollRate(0, FromDIP(20));
 
      wxBoxSizer *title_sizer_h= new wxBoxSizer(wxHORIZONTAL);
      wxBoxSizer *title_sizer_v = new wxBoxSizer(wxVERTICAL);
@@ -999,13 +1035,13 @@ AmsMapingPopup::AmsMapingPopup(wxWindow *parent, bool use_in_sync_dialog) :
                   show_pos.x = screen_size.GetLeft();
                   m_scrolled_window->SetMaxSize(wxSize(screen_size.GetWidth(), popup_height));
                   m_scrolled_window->SetMinSize(wxSize(screen_size.GetWidth(), popup_height));
-                  m_scrolled_window->SetScrollRate(FromDIP(10), FromDIP(10));
+                  m_scrolled_window->SetScrollRate(FromDIP(10), FromDIP(20));
               }
               else
               {
                   m_scrolled_window->SetMaxSize(wxSize(popup_width, popup_height));
                   m_scrolled_window->SetMinSize(wxSize(popup_width, popup_height));
-                  m_scrolled_window->SetScrollRate(0, FromDIP(10));
+                  m_scrolled_window->SetScrollRate(0, FromDIP(20));
               }
 
               //Vertical Direction Processing
@@ -2092,7 +2128,7 @@ void AmsReplaceMaterialDialog::create()
     SetMaxSize(wxSize(FromDIP(445), -1));
 
     // set icon for dialog
-     std::string icon_path = (boost::format("%1%/images/ExtremeSlicer.ico") % resources_dir()).str();
+    std::string icon_path = (boost::format("%1%/images/OrcaSlicerTitle.ico") % resources_dir()).str();
     SetIcon(wxIcon(encode_path(icon_path.c_str()), wxBITMAP_TYPE_ICO));
 
     m_main_sizer = new wxBoxSizer(wxVERTICAL);
@@ -2100,7 +2136,7 @@ void AmsReplaceMaterialDialog::create()
     m_top_line->SetBackgroundColour(wxColour(166, 169, 170));
     m_main_sizer->Add(m_top_line, 0, wxEXPAND, 0);
 
-    m_nozzle_btn_panel = new SwitchBoard(this, _L("Left"), _L("Right"), wxSize(FromDIP(126), FromDIP(26)));
+    m_nozzle_btn_panel = new SwitchBoard(this, _L_CONTEXT("Left", "Nozzle position"), _L_CONTEXT("Right", "Nozzle position"), wxSize(FromDIP(126), FromDIP(26)));
     m_nozzle_btn_panel->Hide();
     m_nozzle_btn_panel->Connect(wxCUSTOMEVT_SWITCH_POS, wxCommandEventHandler(AmsReplaceMaterialDialog::on_nozzle_selected), NULL, this);
 
@@ -2116,7 +2152,7 @@ void AmsReplaceMaterialDialog::create()
     identical_filament->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#009688"))); // Orca: accent teal (not brand green)
 
     m_scrollview_groups = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHSCROLL | wxVSCROLL);
-    m_scrollview_groups->SetScrollRate(5, 5);
+    m_scrollview_groups->SetScrollRate(5, FromDIP(20));
     //m_scrollview_groups->SetMinSize(wxSize(400, 400));
     //m_scrollview_groups->SetMaxSize(wxSize(400, 400));
     m_scrollview_sizer = new wxBoxSizer(wxVERTICAL);

@@ -1,0 +1,12 @@
+{
+	"type": "machine_model",
+	"name": "Prusa MK4 MMU3 HF",
+	"model_id": "MK4ISMMU3",
+	"nozzle_diameter": "0.4",
+	"machine_tech": "FFF",
+	"family": "Prusa",
+	"bed_model": "mk4_bed.stl",
+	"bed_texture": "mk4is.svg",
+	"hotend_model": "",
+	"default_materials": "Generic PLA @Prusa MK4 MMU3;Generic PETG @Prusa MK4 MMU3;Generic ABS @Prusa MK4 MMU3"
+}

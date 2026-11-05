@@ -23,7 +23,7 @@
 	"cooling_tube_length": "0",
 	"cooling_tube_retraction": "0",
 	"default_filament_profile": [
-		"Cubicon PLA @Cubicon xCeler-I"
+		"Cubicon PLA @Cubicon xCeler-I 0.4 nozzle"
 	],
 	"default_print_profile": "cubicon default @base",
 	"deretraction_speed": [
@@ -213,7 +213,6 @@
 		"30"
 	],
 	"scan_first_layer": "0",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"support_air_filtration": "0",
 	"support_chamber_temp_control": "0",

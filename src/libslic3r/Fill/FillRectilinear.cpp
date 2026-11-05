@@ -1,27 +1,51 @@
+#include <numeric>
+#include <math.h>
+#include <initializer_list>
+#include <array>
+#include <map>
 #include <stdlib.h>
 #include <stdint.h>
 
 #include <algorithm>
 #include <cmath>
-#include <cstdlib>
 #include <limits>
 #include <random>
-#include <string>
 
 #include <boost/container/small_vector.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/static_assert.hpp>
 #include <boost/math/constants/constants.hpp>
+#include <vector>
+#include <utility>
+#include <string>
 
 #include "../ClipperUtils.hpp"
 #include "../ExPolygon.hpp"
 #include "../Geometry.hpp"
-#include "../Gpu/VulkanSlicer.hpp"
 #include "../Surface.hpp"
 #include "../ShortestPath.hpp"
-#include "../VariableWidth.hpp"
 
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "FillCornerSmoothing.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Flow.hpp"
 #include "FillRectilinear.hpp"
+#ifdef SLIC3R_GPU_ENABLED
+#include "../Gpu/VerticalIntersectionCandidates.hpp"
+#include "../Gpu/VulkanSlicer.hpp"
+#include "../Utils.hpp"
+#include <mutex>
+#include <cstdint>
+#include <limits>
+#endif
+
 
 // #define SLIC3R_DEBUG
 // #define INFILL_DEBUG_OUTPUT
@@ -419,9 +443,9 @@ public:
 //        bool sticks_removed = 
         remove_sticks(polygons_src);
 //        if (sticks_removed) BOOST_LOG_TRIVIAL(error) << "Sticks removed!";
-        polygons_outer = aoffset1 == 0 ? to_polygons(polygons_src) : offset(polygons_src, float(aoffset1), ClipperLib::jtMiter, miterLimit);
+        polygons_outer = aoffset1 == 0 ? to_polygons(polygons_src) : offset(polygons_src, float(aoffset1), jtMiter, miterLimit);
         if (aoffset2 < 0)
-            polygons_inner = shrink(polygons_outer, float(aoffset1 - aoffset2), ClipperLib::jtMiter, miterLimit);
+            polygons_inner = shrink(polygons_outer, float(aoffset1 - aoffset2), jtMiter, miterLimit);
 		// Filter out contours with zero area or small area, contours with 2 points only.
         const double min_area_threshold = 0.01 * aoffset2 * aoffset2;
         remove_small(polygons_outer, min_area_threshold);
@@ -759,93 +783,46 @@ enum DirectionMask
     DIR_BACKWARD = 2
 };
 
-static bool vulkan_slice_diagnostics_enabled()
+#ifdef SLIC3R_GPU_ENABLED
+// Dispatch only strict-interior arithmetic. A dispatched batch has already been
+// checked in full by the common backend before any topology can consume it.
+static Gpu::VulkanVerticalIntersectionBatch prepare_gpu_vertical_intersections(
+    const ExPolygonWithOffset &region, size_t n_vlines, coord_t x0, coord_t line_spacing)
 {
-    static const bool enabled = [] {
-        const char* value = std::getenv("ORCA_VULKAN_SLICER_DIAGNOSTICS");
-        return value != nullptr && *value != '\0' && std::string(value) != "0";
-    }();
-    return enabled;
-}
-
-// Build the strict-interior portion of the scanline workload in exactly the
-// same stable order as slice_region_by_vertical_lines(). Vertex and tangent
-// cases intentionally remain on the CPU: their outcome depends on adjacent
-// contour edges, not just on the segment being dispatched.
-static Gpu::VulkanVerticalIntersectionBatch prepare_vulkan_vertical_intersections(
-    const ExPolygonWithOffset &poly_with_offset, size_t n_vlines, coord_t x0, coord_t line_spacing)
-{
-    // This must agree with the backend's persistent staging guard.  Refuse a
-    // single giant region before materialising a second, GPU-specific copy of
-    // all its candidates; the existing CPU path remains exact and bounded.
-    constexpr size_t maximum_gpu_candidate_requests = 256 * 1024;
-    constexpr size_t initial_request_reserve = 32 * 1024;
-
-    // Most tiny islands cannot reach the calibrated CPU/GPU crossover. Avoid
-    // materialising a second, GPU-only copy of their scanline requests just
-    // to discover that the CPU path is faster. This upper bound is safe: if it
-    // is below the crossover, the exact candidate count is below it as well.
-    size_t contour_edge_count = 0;
-    for (size_t iContour = 0; iContour < poly_with_offset.n_contours; ++iContour) {
-        const Points &contour = poly_with_offset.contour(iContour).points;
-        if (contour.size() >= 2)
-            contour_edge_count += contour.size();
-    }
-    if (contour_edge_count == 0 || n_vlines == 0)
+    if ((!Gpu::VulkanSlicerBackend::compute_enabled() && !Gpu::VulkanSlicerBackend::cuda_enabled()) || n_vlines == 0)
         return {};
-    const size_t upper_bound = contour_edge_count > maximum_gpu_candidate_requests / n_vlines ?
-        maximum_gpu_candidate_requests : contour_edge_count * n_vlines;
-    if (!Gpu::VulkanSlicerBackend::should_dispatch_vertical_intersections(upper_bound)) {
-        Gpu::VulkanSlicerBackend::note_skipped_vertical_intersection_workload(upper_bound);
-        return {};
+
+    constexpr size_t maximum_requests = 256 * 1024;
+    size_t edge_count = 0;
+    for (size_t c = 0; c < region.n_contours; ++c) {
+        const size_t size = region.contour(c).points.size();
+        if (size >= 2)
+            edge_count += std::min(size, maximum_requests - edge_count);
     }
+    const size_t upper_bound = edge_count > maximum_requests / n_vlines ?
+        maximum_requests : edge_count * n_vlines;
+    if (!Gpu::VulkanSlicerBackend::should_dispatch_vertical_intersections(upper_bound))
+        return {};
 
     std::vector<Gpu::VulkanVerticalIntersectionRequest> requests;
-    requests.reserve(std::min(upper_bound, initial_request_reserve));
-    for (size_t iContour = 0; iContour < poly_with_offset.n_contours; ++iContour) {
-        const Points &contour = poly_with_offset.contour(iContour).points;
-        if (contour.size() < 2)
-            continue;
-        for (size_t iSegment = 0; iSegment < contour.size(); ++iSegment) {
-            const size_t iPrev = ((iSegment == 0) ? contour.size() : iSegment) - 1;
-            const Point &p1 = contour[iPrev];
-            const Point &p2 = contour[iSegment];
-            coord_t left = p1.x();
-            coord_t right = p2.x();
-            if (left > right)
-                std::swap(left, right);
-            int il = (left - x0) / line_spacing;
-            while (il * line_spacing + x0 < left)
-                ++il;
-            il = std::max(0, il);
-            int ir = (right - x0 + line_spacing) / line_spacing;
-            while (ir * line_spacing + x0 > right)
-                --ir;
-            ir = std::min(int(n_vlines) - 1, ir);
-            for (int i = il; i <= ir; ++i) {
-                const coord_t scan_x = x0 + i * line_spacing;
-                if (p1.x() == scan_x || p2.x() == scan_x)
-                    continue;
-                if (requests.size() == maximum_gpu_candidate_requests) {
-                    Gpu::VulkanSlicerBackend::note_skipped_vertical_intersection_workload(requests.size());
-                    return {};
-                }
-                requests.push_back({
-                    { { int64_t(p1.x()), int64_t(p1.y()) }, { int64_t(p2.x()), int64_t(p2.y()) } },
-                    int64_t(scan_x), uint64_t(requests.size())
-                });
-            }
-        }
-    }
-
-    // This dispatch synchronizes before topology is committed. Its crossover
-    // is calibrated from the active CPU and Vulkan device at slice startup.
-    if (!Gpu::VulkanSlicerBackend::should_dispatch_vertical_intersections(requests.size())) {
-        Gpu::VulkanSlicerBackend::note_skipped_vertical_intersection_workload(requests.size());
+    requests.reserve(std::min(upper_bound, size_t(32 * 1024)));
+    const bool complete = Gpu::visit_rectilinear_candidates(true, region, n_vlines, x0, line_spacing,
+        [&](const Point &a, const Point &b, coord_t scan_x) {
+            requests.push_back({{{int64_t(a.x()), int64_t(a.y())}, {int64_t(b.x()), int64_t(b.y())}},
+                                int64_t(scan_x), uint64_t(requests.size())});
+        });
+    if (!complete || !Gpu::VulkanSlicerBackend::should_dispatch_vertical_intersections(requests.size()))
         return {};
-    }
+
+    // Supply installed shader resources before initialization. The common core
+    // remains independent of product utilities and parses the runtime opt-in.
+    static std::once_flag shader_directory;
+    std::call_once(shader_directory, [] {
+        Gpu::VulkanSlicerBackend::set_shader_directory(resources_dir() + "/vulkan");
+    });
     return Gpu::VulkanSlicerBackend::dispatch_vertical_intersections(requests);
 }
+#endif
 
 static std::vector<SegmentedIntersectionLine> slice_region_by_vertical_lines(const ExPolygonWithOffset &poly_with_offset, size_t n_vlines, coord_t x0, coord_t line_spacing)
 {
@@ -855,13 +832,10 @@ static std::vector<SegmentedIntersectionLine> slice_region_by_vertical_lines(con
         segs[i].idx = i;
         segs[i].pos = x0 + i * line_spacing;
     }
-    Gpu::VulkanVerticalIntersectionBatch gpu_intersections =
-        prepare_vulkan_vertical_intersections(poly_with_offset, n_vlines, x0, line_spacing);
+#ifdef SLIC3R_GPU_ENABLED
+    const auto gpu_intersections = prepare_gpu_vertical_intersections(poly_with_offset, n_vlines, x0, line_spacing);
     size_t gpu_intersection_index = 0;
-    size_t accepted_gpu_intersections = 0;
-    size_t cpu_validation_checks = 0;
-    bool gpu_validation_failed = false;
-    bool gpu_results_match_cpu = gpu_intersections.dispatched;
+#endif
     // For each contour
     for (size_t iContour = 0; iContour < poly_with_offset.n_contours; ++ iContour) {
         const Points &contour = poly_with_offset.contour(iContour).points;
@@ -921,67 +895,31 @@ static std::vector<SegmentedIntersectionLine> slice_region_by_vertical_lines(con
                     is.pos_p = p2.y();
                     is.pos_q = 1;
                 } else {
-                    // The qualified GPU shader owns this fixed-point
-                    // multiply/add. In sampled mode the CPU computes only
-                    // boundary and periodic references; strict mode keeps a
-                    // reference for every result when auditing a new driver.
-                    int64_t cpu_numerator = 0;
-                    int64_t cpu_denominator = 1;
-                    const auto calculate_cpu_reference = [&] {
+#ifdef SLIC3R_GPU_ENABLED
+                    if (gpu_intersections.dispatched) {
+                        assert(gpu_intersection_index < gpu_intersections.intersections.size());
+                        const auto &result = gpu_intersections.intersections[gpu_intersection_index++];
+                        assert(result.valid && result.stable_id == gpu_intersection_index - 1);
+                        assert(result.denominator > 0 && uint64_t(result.denominator) <= std::numeric_limits<uint32_t>::max());
+                        is.pos_p = result.numerator;
+                        is.pos_q = uint32_t(result.denominator);
+                    } else
+#endif
+                    {
+                        // First calculate the intersection parameter 't' as a rational number with non negative denominator.
                         if (p2.x() > p1.x()) {
-                            cpu_numerator = this_x - p1.x();
-                            cpu_denominator = p2.x() - p1.x();
+                            is.pos_p = this_x - p1.x();
+                            is.pos_q = p2.x() - p1.x();
                         } else {
-                            cpu_numerator = p1.x() - this_x;
-                            cpu_denominator = p1.x() - p2.x();
+                            is.pos_p = p1.x() - this_x;
+                            is.pos_q = p1.x() - p2.x();
                         }
-                        assert(cpu_denominator > 1);
-                        assert(cpu_numerator > 0 && cpu_numerator < cpu_denominator);
-                        cpu_numerator *= int64_t(p2.y() - p1.y());
-                        cpu_numerator += p1.y() * cpu_denominator;
-                    };
-
-                    const bool has_gpu_result = gpu_results_match_cpu &&
-                        gpu_intersection_index < gpu_intersections.intersections.size();
-                    if (has_gpu_result) {
-                        const Gpu::VulkanVerticalIntersection &gpu_result =
-                            gpu_intersections.intersections[gpu_intersection_index];
-                        if (!gpu_result.valid || gpu_result.stable_id != gpu_intersection_index) {
-                            gpu_results_match_cpu = false;
-                            gpu_validation_failed = true;
-                            calculate_cpu_reference();
-                            is.pos_p = cpu_numerator;
-                            is.pos_q = cpu_denominator;
-                        } else if (Gpu::VulkanSlicerBackend::should_validate_vertical_intersection(
-                                       gpu_intersection_index, gpu_intersections.intersections.size())) {
-                            calculate_cpu_reference();
-                            ++cpu_validation_checks;
-                            if (gpu_result.numerator == cpu_numerator &&
-                                gpu_result.denominator == cpu_denominator) {
-                                is.pos_p = gpu_result.numerator;
-                                is.pos_q = gpu_result.denominator;
-                                ++accepted_gpu_intersections;
-                            } else {
-                                gpu_results_match_cpu = false;
-                                gpu_validation_failed = true;
-                                is.pos_p = cpu_numerator;
-                                is.pos_q = cpu_denominator;
-                            }
-                        } else {
-                            is.pos_p = gpu_result.numerator;
-                            is.pos_q = gpu_result.denominator;
-                            ++accepted_gpu_intersections;
-                        }
-                    } else {
-                        if (gpu_results_match_cpu && gpu_intersections.dispatched) {
-                            gpu_results_match_cpu = false;
-                            gpu_validation_failed = true;
-                        }
-                        calculate_cpu_reference();
-                        is.pos_p = cpu_numerator;
-                        is.pos_q = cpu_denominator;
+                        assert(is.pos_q > 1);
+                        assert(is.pos_p > 0 && is.pos_p < is.pos_q);
+                        // Make an intersection point from the 't'.
+                        is.pos_p *= int64_t(p2.y() - p1.y());
+                        is.pos_p += p1.y() * int64_t(is.pos_q);
                     }
-                    ++gpu_intersection_index;
                 }
                 // +-1 to take rounding into account.
                 assert(is.pos() + 1 >= std::min(p1.y(), p2.y()));
@@ -991,23 +929,12 @@ static std::vector<SegmentedIntersectionLine> slice_region_by_vertical_lines(con
         }
     }
 
-    if (gpu_intersections.dispatched) {
-        const std::string diagnostic = gpu_validation_failed ?
-            "GPU result validation failed; remaining scanline intersections fell back to the CPU." :
-            "GPU scanline intersections accepted.";
+#ifdef SLIC3R_GPU_ENABLED
+    assert(!gpu_intersections.dispatched || gpu_intersection_index == gpu_intersections.intersections.size());
+    if (gpu_intersections.dispatched)
         Gpu::VulkanSlicerBackend::note_vertical_intersection_usage(
-            accepted_gpu_intersections, cpu_validation_checks, gpu_validation_failed, diagnostic);
-        if (vulkan_slice_diagnostics_enabled()) {
-            BOOST_LOG_TRIVIAL(info) << "[Vulkan slicer] " << diagnostic
-                << " requests=" << gpu_intersections.intersections.size()
-                << " gpu_accepted=" << accepted_gpu_intersections
-                << " cpu_checks=" << cpu_validation_checks
-                << " gpu_ms=" << gpu_intersections.gpu_elapsed_ms
-                << " host_ms=" << gpu_intersections.host_elapsed_ms
-                << " profile=" << Gpu::VulkanSlicerBackend::query_runtime_stats().execution_profile;
-        }
-    }
-
+            gpu_intersection_index, gpu_intersection_index, false, "Exact GPU scanline batch accepted.");
+#endif
     // Sort the intersections along their segments, specify the intersection types.
     for (size_t i_seg = 0; i_seg < segs.size(); ++ i_seg) {
         SegmentedIntersectionLine &sil = segs[i_seg];
@@ -2557,12 +2484,7 @@ static std::vector<MonotonicRegionLink> chain_monotonic_regions(
     }
 
     // Probability (unnormalized) of traversing a link between two monotonic regions.
-	auto path_probability = [
-#ifndef __APPLE__
-        // clang complains when capturing constexpr constants.
-        pheromone_alpha, pheromone_beta
-#endif // __APPLE__
-        ](AntPath &path) {
+	auto path_probability = [](AntPath &path) {
 		return pow(path.pheromone, pheromone_alpha) * pow(path.visibility, pheromone_beta);
 	};
 
@@ -2900,23 +2822,6 @@ static void polylines_from_paths(const std::vector<MonotonicRegionLink> &path, c
     }
 }
 
-// The extended bounding box of the whole object that covers any rotation of every layer.
-BoundingBox FillRectilinear::extended_object_bounding_box() const {
-    // Build the extension around the box center. The transpose merge and the sqrt(2.) scaling
-    // (which covers any possible rotation) are both defined about the origin, so a box that is not
-    // origin-centered — e.g. a separated-infill box re-centered on a single assembly part — would be
-    // distorted. Shift to the origin first and back afterwards; for the default origin-centered box
-    // the two translations cancel and this is identical to the original behavior.
-    const Point c   = this->bounding_box.center();
-    BoundingBox out = this->bounding_box;
-    out.translate(-c.x(), -c.y());
-    out.merge(Point(out.min.y(), out.min.x()));
-    out.merge(Point(out.max.y(), out.max.x()));
-    out = out.scaled(sqrt(2.));
-    out.translate(c.x(), c.y());
-    return out;
-}
-
 bool FillRectilinear::fill_surface_by_lines(const Surface *surface, const FillParams &params, float angleBase, float pattern_shift, Polylines &polylines_out)
 {
     // At the end, only the new polylines will be rotated back.
@@ -2951,7 +2856,13 @@ bool FillRectilinear::fill_surface_by_lines(const Surface *surface, const FillPa
     // For infill that needs to be consistent between layers (like Zig Zag),
     // we use bounding box of whole object to match vertical lines between layers.
     BoundingBox bounding_box_src = poly_with_offset.bounding_box_src();
-    BoundingBox bounding_box     = this->has_consistent_pattern() ? this->extended_object_bounding_box() : bounding_box_src;
+    BoundingBox bounding_box     = bounding_box_src;
+    if (this->has_consistent_pattern()) {
+        // Orca: The polygons are rotated about the origin, so follow the box center to where it was rotated.
+        const Point c = this->bounding_box.center();
+        bounding_box  = this->extended_object_bounding_box();
+        bounding_box.translate(c.rotated(- rotate_vector.first) - c);
+    }
 
     // define flow spacing according to requested density
     if (params.full_infill() && !params.dont_adjust) {
@@ -3214,12 +3125,55 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
     return true;
 }
 
+// Upper level of a cubic band [0, h] over one period, from the crossing at (0, tau) to the one at (period, tau).
+// See docs/HLSD/multiline-infill.md.
+static std::vector<Vec2d> cubic_upper_level(double tau, double h, double period, double d1)
+{
+    const double s3     = std::sqrt(3.);
+    const double y_cut  = std::clamp(tau - 0.5 * d1, 0., h - d1) + d1;
+    const double y_flat = std::min(h, h + y_cut - 2. * d1);
+    const double x2     = (h - tau) / s3 + d1;
+    const double x3     = (h + tau) / s3 - d1;
+    // (slope, intercept) of the rising line, its chamfer, the horizontal line, the falling chamfer and line.
+    const std::array<Vec2d, 5> lines{ Vec2d(s3, tau), Vec2d(1. / s3, h - x2 / s3), Vec2d(0., y_flat),
+                                      Vec2d(-1. / s3, h + x3 / s3), Vec2d(-s3, tau + s3 * period) };
+    auto y_at = [&lines, y_cut](double x) {
+        double y = std::numeric_limits<double>::max();
+        for (const Vec2d &l : lines)
+            y = std::min(y, l.x() * x + l.y());
+        return std::max(y, y_cut);
+    };
+
+    std::vector<double> xs;
+    for (size_t i = 0; i < lines.size(); ++i) {
+        if (lines[i].x() != 0.)
+            xs.emplace_back((y_cut - lines[i].y()) / lines[i].x());
+        for (size_t j = i + 1; j < lines.size(); ++j)
+            xs.emplace_back((lines[j].y() - lines[i].y()) / (lines[i].x() - lines[j].x()));
+    }
+    xs.erase(std::remove_if(xs.begin(), xs.end(), [period](double x) { return x <= 1. || x >= period - 1.; }), xs.end());
+    xs.insert(xs.end(), { 0., period });
+    std::sort(xs.begin(), xs.end());
+    xs.erase(std::unique(xs.begin(), xs.end(), [](double a, double b) { return b - a < 1.; }), xs.end());
+
+    std::vector<Vec2d> pts;
+    for (double x : xs) {
+        const Vec2d p(x, y_at(x));
+        if (pts.size() >= 2) {
+            const Vec2d &a = pts[pts.size() - 2], &b = pts.back();
+            if (std::abs((b.y() - a.y()) / (b.x() - a.x()) - (p.y() - b.y()) / (p.x() - b.x())) < EPSILON)
+                pts.pop_back();
+        }
+        pts.emplace_back(p);
+    }
+    return pts;
+}
+
 bool FillRectilinear::fill_surface_trapezoidal(
     const Surface*                            surface,
     FillParams                                params,
-    const std::initializer_list<SweepParams>& sweep_params,
     Polylines&                                polylines_out,
-    int                                       Pattern_type) // 0=grid, 1=triangular, 2=stars
+    int                                       Pattern_type) // 0=grid, 1=triangular, 2=stars, 3=cubic
 {
     assert(params.multiline > 1);
 
@@ -3249,18 +3203,30 @@ bool FillRectilinear::fill_surface_trapezoidal(
         expolygon.rotate(-base_angle, rotate_vector.second);
     }
 
-    // Use extended object bounding box for consistent pattern across layers
-    BoundingBox bb = this->extended_object_bounding_box();
     const size_t infill_layer_id = (surface->thickness_layers > 0) ? this->layer_id / surface->thickness_layers : this->layer_id;
+    // The triangular family turns by 120 degrees every layer, about the origin of the frame it is built in.
+    const size_t layer_mod = infill_layer_id % 3;
+    const double angle     = layer_mod * 2.0 * M_PI / 3.0;
+
+    // Only build the rows over the surface, seen in the frame they are built in.
+    Polygon local = expolygon.contour;
+    if (Pattern_type != 0) {
+        local.translate(-rotate_vector.second.x(), -rotate_vector.second.y());
+        if (layer_mod)
+            local.rotate(-angle);
+    }
+    BoundingBox cover = get_extents(local);
+    cover.offset(period);
 
     switch (Pattern_type) {
     case 0: // Grid / Trapezoidal
     {
         // Generate a non-crossing trapezoidal pattern to avoid overextrusion at intersections when `multiline > 1`.
-        //         P2--P3
-        //        /      \
-        //  P0_P1/        \P4_
-        //
+        /*
+         *         P2--P3
+         *        /      \
+         *  P0_P1/        \P4_
+         */
         // P0xP1x=P4xP0x=d1/2
         // P2xP3x=d1
         // P1yP2y=P2yP3y=d2
@@ -3270,21 +3236,31 @@ bool FillRectilinear::fill_surface_trapezoidal(
         //  Align bounding box to the grid, phased through the box center so separated infills align
         //  each part on itself (grid_center is the origin for a standalone object / feature off).
         //  Captured before the merge, which grows bb and would otherwise shift its center.
+        BoundingBox bb = this->extended_object_bounding_box();
         const Point grid_center = bb.center();
         bb.merge(align_to_grid(bb.min, Point(period, period), grid_center));
         const coord_t xmin = bb.min.x();
-        const coord_t xmax = bb.max.x();
         const coord_t ymin = bb.min.y();
-        const coord_t ymax = bb.max.y();
+
+        auto transpose = [&grid_center](const Point &p) {
+            return Point(grid_center.x() + p.y() - grid_center.y(), grid_center.y() + p.x() - grid_center.x());
+        };
+        if (infill_layer_id % 2 == 1)
+            cover = BoundingBox(transpose(cover.min), transpose(cover.max));
+        const coord_t row_spacing = period / 2;
+        const coord_t first_x = xmin + (coord_t(std::floor(double(cover.min.x() - xmin) / period)) - 1) * period;
+        const coord_t last_x  = xmin + (coord_t(std::ceil(double(cover.max.x() - xmin) / period)) + 1) * period;
+        const coord_t first_row = coord_t(std::floor(double(cover.min.y() - ymin) / row_spacing)) - 1;
+        const coord_t last_row  = coord_t(std::ceil(double(cover.max.y() - ymin) / row_spacing)) + 1;
 
         // Create the two base row patterns once
         Polyline base_row_normal;
-        base_row_normal.points.reserve(((xmax - xmin) / period + 1) * 5); // 5 points per trapezoid
+        base_row_normal.points.reserve(((last_x - first_x) / period + 1) * 5); // 5 points per trapezoid
         Polyline base_row_flipped;
-        base_row_flipped.points.reserve(((xmax - xmin) / period + 1) * 5); // 5 points per trapezoid
+        base_row_flipped.points.reserve(((last_x - first_x) / period + 1) * 5); // 5 points per trapezoid
 
-        // Build complete rows from xmin to xmax
-        for (coord_t x = xmin; x < xmax; x += period) {
+        // Build rows on the same global period grid, limited to the surface cover.
+        for (coord_t x = first_x; x < last_x; x += period) {
             // Normal row
             base_row_normal.points.emplace_back(Point(x, d1 / 2));                             // P0
             base_row_normal.points.emplace_back(Point(x + d1 / 2, d1 / 2));                    // P1
@@ -3300,13 +3276,14 @@ bool FillRectilinear::fill_surface_trapezoidal(
         }
         
         // Pre-allocate polylines
-        const size_t estimated_rows = ((ymax - ymin) / (period / 2) + 1);
+        const size_t estimated_rows = size_t(last_row - first_row + 1);
         polylines.reserve(estimated_rows);
 
-        bool flip_vertical = false;
+        bool flip_vertical = (first_row % 2) != 0;
 
-        // Now just copy and translate vertically
-        for (coord_t y = ymin; y < ymax; y += period / 2) {
+        // Copy and translate only rows intersecting the surface cover.
+        for (coord_t row = first_row; row <= last_row; ++row) {
+            const coord_t y = ymin + row * row_spacing;
             Polyline pl_row = flip_vertical ? base_row_flipped : base_row_normal;
 
             // Translate all points vertically
@@ -3322,26 +3299,22 @@ bool FillRectilinear::fill_surface_trapezoidal(
         // Orca: mirror across the diagonal through grid_center (not the origin), so the swapped
         // layers stay aligned with the center-phased grid. For a standalone object / feature off,
         // grid_center is the origin and this is a plain x/y swap.
-        if (infill_layer_id % 2 == 1) {
-            for (Polyline& pl : polylines) {
-                for (Point& p : pl.points) {
-                    const coord_t dx = p.x() - grid_center.x();
-                    const coord_t dy = p.y() - grid_center.y();
-                    p.x() = grid_center.x() + dy;
-                    p.y() = grid_center.y() + dx;
-                }
-            }
-        }
+        if (infill_layer_id % 2 == 1)
+            for (Polyline& pl : polylines)
+                for (Point& p : pl.points)
+                    p = transpose(p);
         break;
     }
 
     case 1: // Triangular
     {
         // Generate a non-crossing trapezoidal pattern with a base line below.
-        //      P1-P2
-        //     /     \
-        //  P0/       \P3_P4
-        //  ----------------
+        /*
+         *      P1-P2
+         *     /     \
+         *  P0/       \P3_P4
+         *  ----------------
+         */
         // P1xP2x=P3xP4x=d2
         // P0yP1y=P2yP3y=h-2d1
         //
@@ -3350,40 +3323,24 @@ bool FillRectilinear::fill_surface_trapezoidal(
         const coord_t d2_tri = coord_t(2.0 / std::sqrt(3.0) * d1);
         const coord_t h      = coord_t(0.5 * std::sqrt(3.0) * period); // height of triangle
 
-        //  Align bounding box to the grid
-        bb.merge(align_to_grid(bb.center(), Point(period,h)));
-        const size_t layer_mod = infill_layer_id % 3;
-        const double angle     = layer_mod * 2.0 * M_PI / 3.0;
-
-        const Point rotation_center = bb.center();
-        const coord_t half_w = bb.size().x() / 2;
-        const coord_t half_h = bb.size().y() / 2;
-        
-        // Compute how many full periods fit in each direction
-        const coord_t num_periods_x = coord_t(std::ceil(half_w / double(period)));
-        coord_t num_periods_y =coord_t(std::ceil(half_h / double(h)));        
-        // Ensure an even number of rows so the pattern stays centered
-        if ((num_periods_y % 2) != 0)
-            ++num_periods_y;
-        
-        // Compute aligned limits (symmetric around the origin)
-        const coord_t x_min_aligned = -num_periods_x * period;
-        const coord_t x_max_aligned =  num_periods_x * period;   
-        const coord_t y_min_aligned = -num_periods_y * h;
-        const coord_t y_max_aligned =  num_periods_y * h;
+        // Keep the existing origin-anchored lattice, but generate only nearby tiles.
+        const coord_t x_min_aligned = (coord_t(std::floor(double(cover.min.x()) / period)) - 1) * period;
+        const coord_t x_max_aligned = (coord_t(std::ceil(double(cover.max.x()) / period)) + 1) * period;
+        const coord_t first_row = coord_t(std::floor(double(cover.min.y()) / h)) - 1;
+        const coord_t last_row  = coord_t(std::ceil(double(cover.max.y()) / h)) + 1;
 
         // Pre-allocate estimated number of polylines
-        const size_t estimated_rows = (y_max_aligned - y_min_aligned) / h + 2;
-        const size_t estimated_polylines = (estimated_rows + 1) * 2; // base line + trapezoid line per row
+        const size_t estimated_rows = size_t(last_row - first_row + 1);
+        const size_t estimated_polylines = estimated_rows * 2; // base line + trapezoid line per row
         polylines.reserve(estimated_polylines);
 
         // Create the two base row templates once
         Polyline base_line_template;
         base_line_template.points.reserve(2); // 2 points for base line
         Polyline trapezoid_row_normal;
-        trapezoid_row_normal.points.reserve(((x_max_aligned - x_min_aligned) / period + 1) * 5); // 5 points per trapezoid
+        trapezoid_row_normal.points.reserve(((x_max_aligned - x_min_aligned) / period) * 5); // 5 points per trapezoid
         Polyline trapezoid_row_shifted;
-        trapezoid_row_shifted.points.reserve(((x_max_aligned - x_min_aligned) / period + 1) * 5); // 5 points per trapezoid
+        trapezoid_row_shifted.points.reserve(((x_max_aligned - x_min_aligned) / period) * 5); // 5 points per trapezoid
         // Build base line template (from x_min_aligned to x_max_aligned)
         base_line_template.points.emplace_back(Point(x_min_aligned, 0));
         base_line_template.points.emplace_back(Point(x_max_aligned, 0));
@@ -3403,10 +3360,10 @@ bool FillRectilinear::fill_surface_trapezoidal(
         for (auto& p : trapezoid_row_shifted.points)
             p.y() = h - p.y();
 
-        bool shift_row = false;
-
         // Generate pattern by copying and translating templates vertically
-        for (coord_t y = y_min_aligned; y < y_max_aligned; y += h) {
+        bool shift_row = (first_row % 2) != 0;
+        for (coord_t row = first_row; row <= last_row; ++row) {
+            const coord_t y = row * h;
             // Base line - copy and translate
             Polyline base_line = base_line_template;
             for (Point& p : base_line.points) {
@@ -3426,12 +3383,6 @@ bool FillRectilinear::fill_surface_trapezoidal(
 
             shift_row = !shift_row;
         }
-
-        //  Rotate around origin (0,0)
-        if (layer_mod)
-            for (auto& pl : polylines)
-                pl.rotate(angle, Point(0,0));
-
         break;
     }
 
@@ -3445,36 +3396,25 @@ bool FillRectilinear::fill_surface_trapezoidal(
         const coord_t d1_half_base   = d1_half / std::sqrt(3.0);
         const coord_t half_period    = period / 2;
         const coord_t quarter_period = period / 4;
+        const coord_t row_y_offset   = tri_height - (2 * tri_height) / 3;
 
-        bb.merge(align_to_grid(bb.center(), Point(period, tri_height)));
-        const size_t layer_mod = infill_layer_id % 3;
-        const double angle     = layer_mod * 2.0 * M_PI / 3.0;
+        // Keep the lattice anchored at the origin while generating only tiles around this surface.
+        const int64_t first_tile = int64_t(std::floor(double(cover.min.x()) / period)) - 1;
+        const int64_t last_tile  = int64_t(std::ceil(double(cover.max.x()) / period)) + 1;
+        const int64_t first_row  = int64_t(std::floor(double(cover.min.y() - row_y_offset) / hex_height)) - 1;
+        const int64_t last_row   = int64_t(std::ceil(double(cover.max.y() - row_y_offset) / hex_height)) + 1;
 
-        const coord_t half_w = bb.size().x() / 2;
-        const coord_t half_h = bb.size().y() / 2;
-
-        const coord_t num_periods_x = coord_t(std::ceil(half_w / double(period)));
-        coord_t num_periods_y       = coord_t(std::ceil(half_h / double(hex_height)));
-        if ((num_periods_y % 2) != 0)
-            ++num_periods_y;
-
-        const coord_t x_alignment_shift = half_period;
-        const coord_t y_alignment_shift = (2 * tri_height) / 3;
-        const coord_t x_min_aligned     = -num_periods_x * period - x_alignment_shift;
-        const coord_t x_max_aligned     = num_periods_x * period - x_alignment_shift;
-        const coord_t y_min_aligned     = -num_periods_y * hex_height - y_alignment_shift;
-        const coord_t y_max_aligned     = num_periods_y * hex_height - y_alignment_shift;
-
-        const size_t estimated_rows      = (y_max_aligned - y_min_aligned) / hex_height + 2;
-        const size_t estimated_polylines = (estimated_rows + 1) * 2;
+        const size_t estimated_rows      = size_t(last_row - first_row + 1);
+        const size_t estimated_polylines = estimated_rows * 2;
         polylines.reserve(estimated_polylines);
 
         Polyline star_row_normal;
-        star_row_normal.points.reserve(((x_max_aligned - x_min_aligned) / period + 1) * 7);
+        star_row_normal.points.reserve(size_t(last_tile - first_tile) * 7);
         Polyline star_row_mirrored;
-        star_row_mirrored.points.reserve(((x_max_aligned - x_min_aligned) / period + 1) * 7);
+        star_row_mirrored.points.reserve(size_t(last_tile - first_tile) * 7);
 
-        for (coord_t x = x_min_aligned; x < x_max_aligned; x += period) {
+        for (int64_t tile = first_tile; tile < last_tile; ++tile) {
+            const coord_t x = coord_t(tile * period) - half_period;
             star_row_normal.points.emplace_back(Point(x, hex_height));                                               // P0
             star_row_normal.points.emplace_back(Point(x + quarter_period - d1, hex_height));                         // P1
             star_row_normal.points.emplace_back(Point(x + quarter_period + d1_half, hex_height - chamfer_height));   // P2
@@ -3488,9 +3428,7 @@ bool FillRectilinear::fill_surface_trapezoidal(
         for (auto& p : star_row_mirrored.points)
             p.y() = hex_height - p.y();
 
-        size_t pair_idx              = 0;
         const coord_t global_x_shift = half_period;
-        const coord_t global_y_shift = tri_height;
         auto append_row_with_shift   = [&polylines](const Polyline& row_template, coord_t x_shift, coord_t y_shift) {
             Polyline row = row_template;
             for (Point& p : row.points) {
@@ -3501,16 +3439,46 @@ bool FillRectilinear::fill_surface_trapezoidal(
                 polylines.emplace_back(std::move(row));
         };
 
-        for (coord_t y = y_min_aligned; y < y_max_aligned; y += hex_height, ++pair_idx) {
-            const coord_t x_shift = (pair_idx % 2 == 0) ? 0 : half_period;
-            append_row_with_shift(star_row_normal, x_shift + global_x_shift, y + global_y_shift);
-            append_row_with_shift(star_row_mirrored, x_shift + global_x_shift, y + global_y_shift);
+        for (int64_t row = first_row; row <= last_row; ++row) {
+            const coord_t y = coord_t(row * hex_height) + row_y_offset;
+            const coord_t x_shift = (row % 2 == 0) ? 0 : half_period;
+            append_row_with_shift(star_row_normal, x_shift + global_x_shift, y);
+            append_row_with_shift(star_row_mirrored, x_shift + global_x_shift, y);
         }
+        break;
+    }
 
-        if (layer_mod)
-            for (auto& pl : polylines)
-                pl.rotate(angle, Point(0, 0));
+    case 3: // Cubic
+    {
+        // Same z shifted lines as the single-line cubic; the slanted ones cross tau above the horizontal ones.
+        auto pos_mod = [](double a, double m) { const double r = std::fmod(a, m); return r < 0. ? r + m : r; };
+        const double h     = 0.5 * std::sqrt(3.0) * period;
+        const double shift = scale_(std::sqrt(0.5) * this->z);
+        const double tau   = pos_mod(-3. * shift, h);
+        const double y0    = pos_mod(-2. * shift, 2. * h);
 
+        std::array<std::vector<Vec2d>, 2> levels{ cubic_upper_level(h - tau, h, period, d1), cubic_upper_level(tau, h, period, d1) };
+        for (Vec2d &p : levels.front())
+            p.y() = h - p.y();
+
+        const int64_t n_min = int64_t(std::floor((cover.min.y() - y0) / h)) - 1;
+        const int64_t n_max = int64_t(std::ceil((cover.max.y() - y0) / h)) + 1;
+        polylines.reserve(size_t(n_max - n_min + 1) * levels.size());
+        for (int64_t n = n_min; n <= n_max; ++n) {
+            const double  x_off = (n & 1) ? 0.5 * period : 0.;
+            const double  base  = y0 + double(n) * h - tau;
+            const int64_t j_min = int64_t(std::floor((cover.min.x() - x_off) / period)) - 1;
+            const int64_t j_max = int64_t(std::ceil((cover.max.x() - x_off) / period));
+            for (const std::vector<Vec2d> &level : levels) {
+                Polyline row;
+                row.points.reserve(size_t(j_max - j_min + 1) * level.size());
+                for (int64_t j = j_min; j <= j_max; ++j)
+                    for (size_t i = (j == j_min) ? 0 : 1; i < level.size(); ++i)
+                        row.points.emplace_back(coord_t(std::round(x_off + double(j * period) + level[i].x())),
+                                                coord_t(std::round(base + level[i].y())));
+                polylines.emplace_back(std::move(row));
+            }
+        }
         break;
     }
 
@@ -3519,16 +3487,37 @@ bool FillRectilinear::fill_surface_trapezoidal(
         break;
     }
 
-    // Orca: cases 1 & 2 build the pattern symmetrically around the origin, so on their own they
-    // phase to the global origin and every part shares one grid. Shift the pattern onto the box
-    // center this->bounding_box carries, so separated infills align each part on itself. The center
-    // is the origin for a standalone object (or when the feature is off), making this a no-op there.
+    // Orca: cases 1 to 3 anchor the pattern at the origin, so on their own they phase to the global
+    // origin and every part shares one grid. Shift the pattern onto the box center
+    // this->bounding_box carries, so separated infills align each part on itself. The center is the
+    // origin for a standalone object (or when the feature is off), making the shift a no-op there.
     if (Pattern_type != 0)
-        for (Polyline &pl : polylines)
+        for (Polyline &pl : polylines) {
+            if (layer_mod)
+                pl.rotate(angle, Point(0, 0));
             pl.translate(rotate_vector.second);
+        }
+
+    // Orca: round the corners of the trapezoids. The straight base lines of the triangular family
+    // have no corner to round.
+    smooth_polylines_corners(polylines, params.corner_smoothing());
+
+    // Only the centerlines within d1 / 2 of the surface have outlines reaching it.
+    polylines = intersection_pl(std::move(polylines), offset(expolygon, float(d1 / 2)));
 
     // Apply multiline fill
     multiline_fill(polylines, params, spacing);
+
+    // Start each outline on the cap at the first end of its path, outside the surface, so clipping splits it only there.
+    const Vec2d row_dir = Pattern_type != 0 ? Vec2d(std::cos(angle), std::sin(angle)) : infill_layer_id % 2 ? Vec2d::UnitY() : Vec2d::UnitX();
+    for (Polyline &pl : polylines)
+        if (pl.size() > 3 && pl.first_point() == pl.last_point()) {
+            pl.points.pop_back();
+            std::rotate(pl.points.begin(), std::min_element(pl.points.begin(), pl.points.end(), [&row_dir](const Point &a, const Point &b) {
+                return row_dir.dot(a.cast<double>()) < row_dir.dot(b.cast<double>());
+            }), pl.points.end());
+            pl.points.emplace_back(pl.points.front());
+        }
 
     // Contract surface polygon by half line width to avoid excesive overlap with perimeter
     ExPolygons contracted = offset_ex(expolygon, -float(scale_(0.5 * this->spacing)));
@@ -3612,9 +3601,7 @@ Polylines FillGrid::fill_surface(const Surface *surface, const FillParams &param
     if (params.multiline > 1) {
         // Experimental trapezoidal grid
         if (!this->fill_surface_trapezoidal(
-                 surface, params,
-                 { { 0.f, 0.f }, { float(M_PI / 2.), 0.f } },
-                polylines_out,0))
+                 surface, params, polylines_out, 0))
             BOOST_LOG_TRIVIAL(error) << "FillGrid::fill_surface_trapezoidal() failed.";
 
     } else {
@@ -3654,9 +3641,7 @@ Polylines FillTriangles::fill_surface(const Surface *surface, const FillParams &
         if (params.multiline > 1) {
         // Experimental trapezoidal grid
         if (!this->fill_surface_trapezoidal(
-                 surface, params,
-                 { { 0.f, 0.f }, { float(M_PI / 2.), 0.f } },
-                polylines_out,1))
+                 surface, params, polylines_out, 1))
             BOOST_LOG_TRIVIAL(error) << "FillGrid::fill_surface_trapezoidal() failed.";
 
     } else {
@@ -3675,9 +3660,7 @@ Polylines FillStars::fill_surface(const Surface *surface, const FillParams &para
     Polylines polylines_out;
     if (params.multiline > 1) {
         if (!this->fill_surface_trapezoidal(
-                 surface, params,
-                 {{0.f, 0.f}, {float(M_PI / 3.), 0.f}, {float(2. * M_PI / 3.), float((3. / 2.) * this->spacing * params.multiline / params.density)}},
-                 polylines_out, 2))
+                 surface, params, polylines_out, 2))
             BOOST_LOG_TRIVIAL(error) << "FillStars::fill_surface_trapezoidal() failed.";
     } else {
         if (! this->fill_surface_by_multilines(
@@ -3692,6 +3675,11 @@ Polylines FillStars::fill_surface(const Surface *surface, const FillParams &para
 Polylines FillCubic::fill_surface(const Surface *surface, const FillParams &params)
 {
     Polylines polylines_out;
+    if (params.multiline > 1) {
+        if (!this->fill_surface_trapezoidal(surface, params, polylines_out, 3))
+            BOOST_LOG_TRIVIAL(error) << "FillCubic::fill_surface_trapezoidal() failed.";
+        return polylines_out;
+    }
     coordf_t dx = sqrt(0.5) * z;
     if (! this->fill_surface_by_multilines(
             surface, params, 
@@ -3739,7 +3727,7 @@ Polylines FillLateralHoneycomb::fill_surface(const Surface *surface, const FillP
     //     |
     //     |
     // 0 --+--
-    //    / \
+    //    ⟋ ⟍
     // why inverted?
     // it makes determining some of the properties easier
     // and the two angled legs provide additional horizontal stiffness

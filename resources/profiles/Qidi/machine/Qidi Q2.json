@@ -8,5 +8,5 @@
 	"bed_model": "qidi_q2_buildplate_model.stl",
 	"bed_texture": "qidi_q2_buildplate_texture.svg",
 	"hotend_model": "X-Series_gen3_hotend.stl",
-	"default_materials": "QIDI PLA Rapido;QIDI ABS Rapido;QIDI PETG Tough;QIDI PLA Rapido Matte;QIDI ASA;QIDI PET-CF"
+	"default_materials": "QIDI PLA Rapido;QIDI ABS Rapido;QIDI PETG Tough;QIDI PLA Rapido Matte;QIDI ASA;QIDI PET-CF;QIDI PLA Rapido @Qidi Q2 0.2 nozzle;QIDI PLA Rapido @Qidi Q2 0.4 nozzle;QIDI PLA Rapido @Qidi Q2 0.6 nozzle;QIDI PLA Rapido @Qidi Q2 0.8 nozzle"
 }

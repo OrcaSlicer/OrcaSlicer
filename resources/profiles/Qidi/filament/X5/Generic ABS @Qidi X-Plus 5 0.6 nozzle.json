@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Generic ABS @Qidi X-Plus 5 0.6 nozzle",
+	"inherits": "Generic ABS@X-Plus 5-Series",
+	"from": "system",
+	"setting_id": "BIiPt2AExUkASm2F",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"24.5"
+	],
+	"pressure_advance": [
+		"0.014"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.6 nozzle"
+	]
+}

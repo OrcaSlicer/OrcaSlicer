@@ -3,7 +3,7 @@
 	"name": "Snapmaker PLA Silk @U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "11813638720",
+	"filament_id": "OFWgFOjn",
 	"instantiation": "false",
 	"filament_end_gcode": [
 		""
@@ -35,12 +35,6 @@
 	"filament_unloading_speed": [
 		"35"
 	],
-	"filament_load_time": [
-		"2"
-	],
-	"filament_unload_time": [
-		"2"
-	],
 	"filament_cooling_moves": [
 		"2"
 	],
@@ -55,8 +49,5 @@
 	],
 	"nozzle_temperature": [
 		"230"
-	],
-	"default_filament_colour": [
-		""
 	]
 }

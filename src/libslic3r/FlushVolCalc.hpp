@@ -15,7 +15,7 @@ extern const int g_max_flush_volume;
 class FlushVolCalculator
 {
 public:
-    FlushVolCalculator(int min, int max, int flush_dataset, float multiplier = 1.0f);
+    FlushVolCalculator(int min, int max, int flush_dataset);
     ~FlushVolCalculator()
     {
     }
@@ -32,7 +32,6 @@ public:
 private:
     int m_min_flush_vol;
     int m_max_flush_vol;
-    float m_multiplier;
     int m_flush_dataset;
 };
 

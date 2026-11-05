@@ -11,7 +11,7 @@
 	"printer_model": "Qidi X-Smart 3",
 	"printer_variant": "0.2",
 	"default_filament_profile": [
-		"Qidi Generic PLA @Qidi X-Smart 3 0.2 nozzle"
+		"Generic PLA @Qidi X-Smart 3 0.2 nozzle"
 	],
 	"default_print_profile": "0.10mm Standard @Qidi XSmart3 0.2 nozzle",
 	"max_layer_height": [

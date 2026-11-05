@@ -2,9 +2,8 @@
 	"type": "filament",
 	"name": "Generic PA @Z-Bolt Base",
 	"inherits": "fdm_filament_pa",
-	"renamed_from": "Z-Bolt PA;Generic PA @Z-Bolt",
 	"from": "system",
-	"filament_id": "GFL400",
+	"filament_id": "OFg8ndtj",
 	"instantiation": "false",
 	"filament_max_volumetric_speed": [
 		"8"

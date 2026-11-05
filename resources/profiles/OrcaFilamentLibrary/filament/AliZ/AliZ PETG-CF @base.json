@@ -3,7 +3,7 @@
 	"name": "AliZ PETG-CF @base",
 	"inherits": "AliZ PETG @base",
 	"from": "system",
-	"filament_id": "AZ01-1",
+	"filament_id": "OFJOFnOZ",
 	"instantiation": "false",
 	"fan_cooling_layer_time": [
 		"30"

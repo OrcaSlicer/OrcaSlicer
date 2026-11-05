@@ -1,6 +1,12 @@
 #ifndef NLOPTOPTIMIZER_HPP
 #define NLOPTOPTIMIZER_HPP
 
+#include <type_traits>
+#include <tuple>
+#include <cstddef>
+#include <cassert>
+#include <array>
+#include <cmath>
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable: 4244)

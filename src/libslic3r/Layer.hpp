@@ -1,12 +1,24 @@
 #ifndef slic3r_Layer_hpp_
 #define slic3r_Layer_hpp_
 
+#include "Polyline.hpp"
+#include "Polygon.hpp"
+#include "Line.hpp"
 #include "libslic3r.h"
 #include "BoundingBox.hpp"
 #include "Flow.hpp"
 #include "SurfaceCollection.hpp"
 #include "ExtrusionEntityCollection.hpp"
-#include "BoundingBox.hpp"
+#include <vector>
+#include <cstddef>
+#include <algorithm>
+#include <string>
+#include <functional>
+#include "ExPolygon.hpp"
+
+namespace Slic3r { class ExtrusionLoop; }
+namespace Slic3r { class ExtrusionMultiPath; }
+namespace Slic3r { class ExtrusionPath; }
 namespace Slic3r {
 
 class ExPolygon;
@@ -16,11 +28,12 @@ using LayerPtrs = std::vector<Layer*>;
 class LayerRegion;
 using LayerRegionPtrs = std::vector<LayerRegion*>;
 class PrintRegion;
+class PrintRegionConfig;
 class PrintObject;
 class Print;
 
 namespace FillAdaptive {
-    struct Octree;
+    struct RegionOctrees;
 };
 
 namespace FillLightning {
@@ -157,10 +170,10 @@ public:
     ExPolygons 				 lslices;
     ExPolygons 				 lslices_extrudable;  // BBS: the extrudable part of lslices used for tree support
     std::vector<BoundingBox> lslices_bboxes;
-    // Orca: for separated infills / per-model centering. Aligned with lslices: for each island, the
-    // full bounding box of the 3D connected body (across all layers) it belongs to. Populated by
-    // PrintObject::infill() only when the feature is used; empty otherwise.
-    std::vector<BoundingBox> lslices_separated_component_bboxes;
+    // Orca: for separated infills / per-model centering / octree infills. Aligned with lslices: for each
+    // island, the 3D connected body (across all layers) it belongs to, indexing
+    // PrintObject::separated_body_bboxes(). Populated by PrintObject::prepare_infill() only when needed.
+    std::vector<size_t>      lslices_separated_component_ids;
 
     // BBS
     ExPolygons              loverhangs;
@@ -194,12 +207,16 @@ public:
     static bool             is_perimeter_compatible(const Print& print, const PrintRegion& a, const PrintRegion& b);
     void                    make_perimeters();
     // Phony version of make_fills() without parameters for Perl integration only.
-    void                    make_fills() { this->make_fills(nullptr, nullptr); }
-    void                    make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive::Octree* support_fill_octree, FillLightning::Generator* lightning_generator = nullptr);
-    Polylines               generate_sparse_infill_polylines_for_anchoring(FillAdaptive::Octree *adaptive_fill_octree,
-                                                                           FillAdaptive::Octree *support_fill_octree,
+    void                    make_fills() { this->make_fills(nullptr); }
+    void                    make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLightning::Generator* lightning_generator = nullptr);
+    Polylines               generate_sparse_infill_polylines_for_anchoring(const FillAdaptive::RegionOctrees *fill_octrees,
                                                                            FillLightning::Generator* lightning_generator) const;
     void 					make_ironing();
+    // Returns the filament id (1-based) the region is ironed with, or -1 when the
+    // region is not ironed.
+    static int              choose_ironing_extruder(const PrintRegionConfig &cfg,
+                                                    bool spiral_mode,
+                                                    bool is_topmost_layer);
     void                    make_contour_z(const sla::IndexedMesh &mesh);
 
     void                    export_region_slices_to_svg(const char *path) const;

@@ -1,8 +1,10 @@
 {
 	"type": "machine",
-	"from": "system",
-	"instantiation": "true",
+	"name": "Creality K2 0.4 nozzle",
 	"inherits": "fdm_creality_common",
+	"from": "system",
+	"setting_id": "XiWyoJJ90uesQMGs",
+	"instantiation": "true",
 	"printer_model": "Creality K2",
 	"printer_settings_id": "Creality",
 	"auxiliary_fan": "1",
@@ -104,7 +106,6 @@
 	"printhost_authorization_type": "key",
 	"purge_in_prime_tower": "1",
 	"scan_first_layer": "0",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"support_air_filtration": "1",
 	"support_chamber_temp_control": "0",
@@ -118,7 +119,7 @@
 	"use_relative_e_distances": "1",
 	"z_offset": "0",
 	"default_filament_profile": [
-		"Creality Generic PLA @K2-all"
+		"Generic PLA @Creality K2-all"
 	],
 	"deretraction_speed": [
 		"40"
@@ -177,7 +178,6 @@
 	"z_hop": [
 		"0.4"
 	],
-	"name": "Creality K2 0.4 nozzle",
 	"bbl_use_printhost": "0",
 	"bed_exclude_area": "0x0",
 	"bed_mesh_max": "99999,99999",
@@ -201,6 +201,5 @@
 	"long_retractions_when_cut": "1",
 	"retract_lift_enforce": "All Surfaces",
 	"retraction_distances_when_cut": "30",
-	"z_hop_types": "Auto Lift",
-	"setting_id": "XiWyoJJ90uesQMGs"
+	"z_hop_types": "Auto Lift"
 }

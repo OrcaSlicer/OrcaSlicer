@@ -9,9 +9,17 @@
 #include "Jobs/ProgressIndicator.hpp"
 #include "Downloader.hpp"
 
+#include <cstdint>
+#include <cstddef>
+#include <imgui.h>
 #include <libslic3r/ObjectID.hpp>
+#include "libslic3r/PrintBase.hpp"
 #include <libslic3r/Technologies.hpp>
 
+#include <wx/event.h>
+#include <wx/app.h>
+#include <limits>
+#include <memory>
 #include <wx/time.h>
 
 #include <string>
@@ -22,6 +30,7 @@
 #include <unordered_set>
 
 #include <libslic3r/Preset.hpp>
+#include <wx/utils.h>
 
 namespace Slic3r {
 namespace GUI {
@@ -162,6 +171,8 @@ enum class NotificationType
 	//BBL: plugin install hint
 	BBLPluginInstallHint,
     BBLFlushingVolumeZero,
+    // A mixed-color filament references a deleted component, or its components disagree in type.
+    BBLMixedFilamentBroken,
 	BBLPluginUpdateAvailable,
 	BBLPreviewOnlyMode,
     BBLPrinterConfigUpdateAvailable,
@@ -172,6 +183,8 @@ enum class NotificationType
 	BBLBedFilamentIncompatible,
     BBLMixUsePLAAndPETG,
 	BBLNozzleFilamentIncompatible,
+    // A mixed-color filament is printed on a single-nozzle printer (frequent changes and purging).
+    BBLSingleExtruderMixedFilamentRisk,
     OrcaSharedProfilesAvailable,
 	OrcaCloudAPIError,
     OrcaSyncConflict,
@@ -185,6 +198,9 @@ enum class NotificationType
     // Active preset references a capability the installed+loaded plugin does not provide (outdated
     // plugin). Informational; cannot be auto-resolved; persistent, blocks slicing.
     OrcaPluginCapabilityUnavailableError,
+    // One aggregate notice that installed OrcaCloud plugins have updates. "More" opens the
+    // Plugins dialog, where the updates can be installed.
+    OrcaCloudPluginUpdateAvailable,
     NotificationTypeCount
 
 };
@@ -353,6 +369,8 @@ public:
     void render_notifications(GLCanvas3D &canvas, float overlay_width, float bottom_margin, float right_margin);
 	// finds and closes all notifications of given type
 	void close_notification_of_type(const NotificationType type);
+	// True while a notification of this type is on screen (not closed or finished).
+	bool has_notification_of_type(const NotificationType type) const;
     void remove_notification_of_type(const NotificationType type);
     void clear_all();
 	// Hides warnings in G-code preview. Should be called from plater only when 3d view/ preview is changed
@@ -374,7 +392,9 @@ public:
     void bbl_close_plateinfo_notification();
 
     //BBS-- 3mf warning
-    void bbl_show_3mf_warn_notification(const std::string &text);
+    // level defaults to the historical error styling; callers reporting informational
+    // 3MF load notices (published settings) pass WarningNotificationLevel instead.
+    void bbl_show_3mf_warn_notification(const std::string &text, NotificationLevel level = NotificationLevel::ErrorNotificationLevel);
     void bbl_close_3mf_warn_notification();
 
     //BBS--preview only mode
@@ -617,8 +637,8 @@ private:
 		// Aditional text after hypertext - currently not used
 		std::string      m_text2;
 		// mark for render operation
-		size_t           pos_start = string::npos;
-		size_t	         pos_end = string::npos;
+		size_t           pos_start = std::string::npos;
+		size_t	         pos_end = std::string::npos;
 		std::string      error_start = "<Error>";
 		std::string      error_end = "</Error>";
 
@@ -1048,6 +1068,11 @@ private:
 	bool m_is_dark = false;
 	// set by init(), until false notifications are only added not updated and frame is not requested after push
 	bool m_initialized{ false };
+	// set by render_notifications() on the first rendered frame. m_initialized only proves the
+	// manager exists, not that the ImGui context can measure text: the font atlas is built lazily
+	// in ImGuiWrapper::new_frame() on the first GL render, so updating a notification before that
+	// (PopNotification::init -> count_spaces -> ImGui::CalcTextSize) dereferences a null font.
+	bool m_imgui_ready{ false };
 	// Target for wxWidgets events sent by clicking on the hyperlink available at some notifications.
 	wxEvtHandler*                m_evt_handler;
 	// Cache of IDs to identify and reuse ImGUI windows.
@@ -1072,7 +1097,10 @@ private:
 		NotificationType::ProgressBar,
 		NotificationType::PrintHostUpload,
         NotificationType::SimplifySuggestion,
-        NotificationType::ValidateWarning
+        NotificationType::ValidateWarning,
+        // A published file load can produce several distinct 3MF warnings (invalid values,
+        // skipped settings, changed slots); let them stack rather than clobber each other.
+        NotificationType::BBL3MFInfo
 	};
 	//prepared (basic) notifications
 	// non-static so its not loaded too early. If static, the translations wont load correctly.
@@ -1105,6 +1133,20 @@ private:
 				 wxQueueEvent(wxGetApp().plater(), evt);
 				 return true;
              }},
+
+        // One notice for all OrcaCloud plugin updates found by a successful metadata fetch.
+        NotificationData{NotificationType::OrcaCloudPluginUpdateAvailable, NotificationLevel::ImportantNotificationLevel, BBL_NOTICE_MAX_INTERVAL,
+                         _u8L("Updates are available for your OrcaCloud plugins."), _u8L("More"),
+                         [](wxEvtHandler*) {
+                             // Defer past the notification's render frame: the Plugins dialog is a
+                             // webview window and must not be created from inside an ImGui pass.
+                             if (wxTheApp != nullptr)
+                                 wxGetApp().CallAfter([] {
+                                     if (wxTheApp != nullptr && !wxGetApp().is_closing())
+                                         wxGetApp().open_plugins_dialog();
+                                 });
+                             return true;
+                         }},
 
         NotificationData{NotificationType::BBLPrinterConfigUpdateAvailable, NotificationLevel::ImportantNotificationLevel, BBL_NOTICE_MAX_INTERVAL,
                          _u8L("New printer config available."), _u8L("Details"),

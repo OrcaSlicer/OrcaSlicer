@@ -22,7 +22,7 @@
 		"60"
 	],
 	"overhang_fan_threshold": [
-		"95%"
+		"25%"
 	],
 	"overhang_fan_speed": [
 		"100"
@@ -40,15 +40,18 @@
 		"1"
 	],
 	"reduce_fan_stop_start_freq": [
-		"0"
+		"1"
 	],
 	"fan_cooling_layer_time": [
-		"15"
+		"20"
 	],
 	"filament_cost": [
 		"0"
 	],
 	"filament_density": [
+		"0"
+	],
+	"filament_change_length": [
 		"0"
 	],
 	"filament_deretraction_speed": [
@@ -61,7 +64,7 @@
 		"10"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
-		"40"
+		"50"
 	],
 	"filament_retraction_minimum_travel": [
 		"nil"
@@ -115,13 +118,13 @@
 		"100"
 	],
 	"fan_min_speed": [
-		"10"
+		"20"
 	],
 	"slow_down_min_speed": [
-		"10"
+		"20"
 	],
 	"slow_down_layer_time": [
-		"3"
+		"7"
 	],
 	"filament_start_gcode": [
 		"; Filament gcode\n"

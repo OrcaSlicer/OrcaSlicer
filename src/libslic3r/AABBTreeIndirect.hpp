@@ -6,15 +6,20 @@
 #ifndef slic3r_AABBTreeIndirect_hpp_
 #define slic3r_AABBTreeIndirect_hpp_
 
+#include <Eigen/Core>
 #include <algorithm>
+#include <cstddef>
+#include <cassert>
 #include <limits>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <Eigen/Geometry>
 
 #include "BoundingBox.hpp"
 #include "Utils.hpp" // for next_highest_power_of_2()
+#include "libslic3r.h"
 
 // Definition of the ray intersection hit structure.
 #include <igl/Hit.h>
@@ -229,7 +234,7 @@ public:
         m_bbox(bbox.min - Point(SCALED_EPSILON, SCALED_EPSILON), bbox.max + Point(SCALED_EPSILON, SCALED_EPSILON)) {}
     size_t             idx() const { return m_idx; }
     const BoundingBox& bbox() const { return m_bbox; }
-    Point              centroid() const { return (m_bbox.min() + m_bbox.max() / 2); }
+    Point              centroid() const { return (m_bbox.min() + m_bbox.max()) / 2; }
 private:
     size_t             m_idx;
     BoundingBox		   m_bbox;

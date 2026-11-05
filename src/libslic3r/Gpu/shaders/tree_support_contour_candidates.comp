@@ -2,8 +2,9 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
 // A conservative broad phase for tree-support branches. Each workgroup owns
-// one branch and checks its axis-aligned box against every model contour edge.
-// A zero result proves no intersection is possible; any overlap remains on
+// one branch and checks its axis-aligned box against every whole model contour box.
+// Edge boxes alone cannot reject lines inside filled contours. A zero result
+// proves no region intersection is possible; any overlap remains on
 // the CPU for the exact Clipper test, preserving existing topology rules.
 layout(local_size_x = 128) in;
 
@@ -15,7 +16,7 @@ struct Branch {
     uint64_t stable_id;
 };
 
-struct ContourEdge {
+struct ContourBox {
     int64_t ax;
     int64_t ay;
     int64_t bx;
@@ -23,12 +24,12 @@ struct ContourEdge {
 };
 
 layout(std430, binding = 0) readonly buffer Branches { Branch branches[]; };
-layout(std430, binding = 1) readonly buffer Contours { ContourEdge contours[]; };
+layout(std430, binding = 1) readonly buffer Contours { ContourBox contours[]; };
 layout(std430, binding = 2) writeonly buffer Results { uint may_intersect[]; };
 
 shared uint any_overlap;
 
-bool boxes_overlap(const Branch branch, const ContourEdge edge)
+bool boxes_overlap(const Branch branch, const ContourBox edge)
 {
     const int64_t branch_min_x = min(branch.ax, branch.bx);
     const int64_t branch_max_x = max(branch.ax, branch.bx);

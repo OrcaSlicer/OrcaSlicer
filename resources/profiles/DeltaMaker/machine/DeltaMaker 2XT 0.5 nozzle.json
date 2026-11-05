@@ -22,6 +22,6 @@
 	],
 	"default_filament_profile": [
 		"DeltaMaker Brand PLA",
-		"DeltaMaker Generic PLA"
+		"Generic PLA @DeltaMaker"
 	]
 }

@@ -1,6 +1,9 @@
 #ifndef slic3r_GUI_LabeledStaticBox_hpp_
 #define slic3r_GUI_LabeledStaticBox_hpp_
 
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <wx/window.h>
 #include <wx/dc.h>
 #include <wx/dcgraph.h>
@@ -10,10 +13,11 @@
 #include <wx/statbox.h>
 #include <wx/pen.h>
 
-#include "libslic3r/Utils.hpp"
 
-#include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/Widgets/StateHandler.hpp"
+
+class wxDC;
+class wxWindow;
 
 class LabeledStaticBox : public wxStaticBox
 {
@@ -42,9 +46,15 @@ public:
 
     void SetBorderColor(StateColor const &color);
 
-    void SetFont(wxFont set_font);
+    bool SetFont(const wxFont &set_font) override;
 
     bool Enable(bool enable) override;
+
+    // Only meant to be used by inspector, not public API
+    int        GetCornerRadius() const { return m_radius; }
+    int        GetBorderWidth() const  { return m_border_width; }
+    StateColor GetBorderColor() const  { return border_color; }
+    float      GetScale() const        { return m_scale; }
 
 private:
     void PickDC(wxDC& dc);

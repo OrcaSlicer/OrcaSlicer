@@ -4,20 +4,90 @@
 	"inherits": "fdm_process_common",
 	"from": "system",
 	"instantiation": "false",
-	"default_acceleration": "5000",
-	"top_surface_acceleration": "3000",
-	"travel_acceleration": "7000",
-	"inner_wall_acceleration": "5000",
-	"outer_wall_acceleration": "3000",
-	"initial_layer_acceleration": "500",
-	"initial_layer_speed": "50",
-	"initial_layer_infill_speed": "105",
-	"outer_wall_speed": "120",
-	"inner_wall_speed": "200",
-	"internal_solid_infill_speed": "200",
-	"top_surface_speed": "100",
-	"gap_infill_speed": "100",
-	"sparse_infill_speed": "200",
-	"travel_speed": "350",
+	"print_extruder_id": [
+		"1",
+		"1",
+		"1"
+	],
+	"print_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow"
+	],
+	"default_acceleration": [
+		"5000",
+		"5000",
+		"5000"
+	],
+	"top_surface_acceleration": [
+		"3000",
+		"3000",
+		"3000"
+	],
+	"travel_acceleration": [
+		"7000",
+		"7000",
+		"7000"
+	],
+	"inner_wall_acceleration": [
+		"5000",
+		"5000",
+		"5000"
+	],
+	"outer_wall_acceleration": [
+		"3000",
+		"3000",
+		"3000"
+	],
+	"initial_layer_acceleration": [
+		"500",
+		"500",
+		"500"
+	],
+	"initial_layer_speed": [
+		"50",
+		"50",
+		"50"
+	],
+	"initial_layer_infill_speed": [
+		"105",
+		"105",
+		"105"
+	],
+	"outer_wall_speed": [
+		"120",
+		"120",
+		"120"
+	],
+	"inner_wall_speed": [
+		"200",
+		"200",
+		"200"
+	],
+	"internal_solid_infill_speed": [
+		"200",
+		"200",
+		"200"
+	],
+	"top_surface_speed": [
+		"100",
+		"100",
+		"100"
+	],
+	"gap_infill_speed": [
+		"100",
+		"100",
+		"100"
+	],
+	"sparse_infill_speed": [
+		"200",
+		"200",
+		"200"
+	],
+	"travel_speed": [
+		"350",
+		"350",
+		"350"
+	],
 	"exclude_object": "1"
 }

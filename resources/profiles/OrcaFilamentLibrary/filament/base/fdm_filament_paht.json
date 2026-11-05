@@ -7,6 +7,9 @@
 	"filament_max_volumetric_speed": [
 		"12"
 	],
+	"filament_multitool_ramming_flow": [
+		"12"
+	],
 	"filament_type": [
 		"PAHT"
 	],

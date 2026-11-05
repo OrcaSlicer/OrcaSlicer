@@ -1,4 +1,5 @@
 #pragma once
+#include <cstddef>
 
 #include <cstdint>
 #include <string>
@@ -29,49 +30,13 @@ struct VulkanSlicerCapabilities {
     std::vector<VulkanDeviceInfo> devices;
 };
 
-// One request represents the exact rational intersection of a polygon edge
-// and a vertical infill scanline.  The caller only submits strict interior
-// intersections; contour-vertex rules stay on the CPU because they depend on
-// neighbouring edges and exact winding rules.
-struct VulkanVerticalIntersectionRequest {
-    Segment  segment;
-    Coord    scan_x { 0 };
-    uint64_t stable_id { 0 };
-};
-
-struct VulkanVerticalIntersection {
-    Coord    numerator { 0 };
-    Coord    denominator { 1 };
-    uint64_t stable_id { 0 };
-    bool     valid { false };
-};
-
-struct VulkanVerticalIntersectionBatch {
-    bool                                    dispatched { false };
-    std::string                             diagnostic;
-    // GPU timestamp-query time, excluding host-side request packing and the
-    // synchronization wait. A negative value means the selected driver does
-    // not expose compute timestamps.
-    double                                  gpu_elapsed_ms { -1.0 };
-    double                                  host_elapsed_ms { 0.0 };
-    uint32_t                                queue_submissions { 0 };
-    std::vector<VulkanVerticalIntersection> intersections;
-};
-
-// Tree-support branch movement asks whether many candidate branch segments
-// can cross a layer contour. Vulkan performs only a conservative bounding-box
-// broad phase: a false result proves that no contour segment can intersect;
-// a true result stays on the established CPU Clipper path for the exact test.
-struct VulkanTreeContourRequest {
-    Segment  segment;
-    uint64_t stable_id { 0 };
-};
-
-struct VulkanTreeContourBatch {
-    bool                 dispatched { false };
-    std::string          diagnostic;
-    std::vector<uint8_t> may_intersect;
-};
+// Compatibility aliases for the existing integration; geometry contracts are
+// backend neutral and shared by CUDA, Vulkan and the independent host oracle.
+using VulkanVerticalIntersectionRequest = VerticalIntersectionRequest;
+using VulkanVerticalIntersection = VerticalIntersection;
+using VulkanVerticalIntersectionBatch = VerticalIntersectionBatch;
+using VulkanTreeContourRequest = TreeContourRequest;
+using VulkanTreeContourBatch = TreeContourBatch;
 
 // The accelerated scan-conversion path must remain observable while it is
 // experimental. These counters are process-local and deliberately do not
@@ -111,15 +76,16 @@ struct VulkanSlicerRuntimeStats {
 enum class ComputeBackendPreference {
     Cuda,
     Vulkan,
-    Cpu
+    Cpu,
+    Auto
 };
 
 enum class VulkanIntersectionValidationMode {
     // Compare every GPU result to the CPU reference. This is the audit mode
     // for a new driver or a correctness investigation.
     Strict,
-    // The default performance mode after the in-process qualification test:
-    // check the first, last, and periodic results of every batch.
+    // Legacy enum value retained for source compatibility. Production accepts
+    // only full exact validation; selecting sampled mode has no effect.
     Sampled
 };
 
@@ -129,10 +95,14 @@ enum class VulkanIntersectionValidationMode {
 class VulkanSlicerBackend {
 public:
     static VulkanSlicerCapabilities query_capabilities();
+    // Set before first Vulkan initialization. CPU mode does not load shaders.
+    // A changed directory after initialization is rejected.
+    static bool set_shader_directory(const std::string& directory);
 
-    // User-facing preference. Disabling this prevents both initialization and
-    // dispatch of the experimental compute path; the established CPU geometry
-    // pipeline remains fully available.
+    // Vulkan switch; CUDA has its own independent switch. Both default OFF.
+    // Explicit SLIC3R_GPU_BACKEND=cpu|cuda|vulkan|auto overrides preferences.
+    // Unknown environment values select CPU. Getters also check compilation
+    // and process-lifetime quarantine. CPU mode never initializes a GPU.
     static void set_compute_enabled(bool enabled);
     static bool compute_enabled();
 
@@ -147,9 +117,8 @@ public:
     static void set_strict_validation(bool enabled);
     static bool strict_validation();
 
-    // GPU-priority mode is the default. It submits all but extremely small
-    // intersection batches to a qualified Vulkan device. Disabling it restores
-    // the conservative calibrated CPU/GPU crossover policy.
+    // Legacy tuning preference retained for compatibility. GPU batch size
+    // bounds eligibility; complete exact host validation is always required.
     static void set_gpu_priority_enabled(bool enabled);
     static bool gpu_priority_enabled();
 
@@ -158,9 +127,9 @@ public:
     // instead of carrying a stale job label into a later CPU-only stage.
     static void begin_slicing_session();
 
-    // Creates, autotunes and exact-qualifies the compute context before the
-    // first infill workload. Call this from the slicing worker so the progress
-    // UI can distinguish "ready but idle" from an initialization failure.
+    // Optional explicit preparation on the slicing worker. Normal adapters
+    // let the first eligible geometry dispatch initialize and qualify lazily.
+    // Returns false without initialization in CPU/disabled/uncompiled mode.
     static bool prepare_for_slicing();
 
     // Releases the reusable host-visible Vulkan staging buffers after a slice.
@@ -169,8 +138,10 @@ public:
 
     // Executes the high-cardinality, fixed-point portion of rectilinear and
     // support-infill scan conversion. Results are returned in input order;
-    // startup qualification and the selected live validation policy protect
-    // every intersection before it is committed to a toolpath.
+    // every raw-coordinate intermediate/destination is checked before GPU use.
+    // Dispatched means count, order, IDs, validity and ALL exact rational values
+    // passed the independent wide oracle before any result was consumed.
+    // Failure returns no intersections and quarantines the failed backend.
     static VulkanVerticalIntersectionBatch dispatch_vertical_intersections(
         const std::vector<VulkanVerticalIntersectionRequest>& requests);
 
@@ -178,15 +149,14 @@ public:
     // request order. Empty output means that the CPU must retain all queries.
     static VulkanTreeContourBatch dispatch_tree_contour_candidates(
         const std::vector<VulkanTreeContourRequest>& requests,
-        const std::vector<Segment>& contour_edges);
+        const std::vector<Segment>& contour_boxes);
 
-    // Calibrated at Vulkan initialization from this CPU's fixed-point
-    // throughput and the selected GPU's real submission latency.
+    // Cheap eligibility only: checks opt-in, compiled availability/quarantine
+    // and bounded request count, without initializing/querying a GPU.
     static bool should_dispatch_vertical_intersections(size_t request_count);
 
-    // GPU output is exact signed-integer arithmetic. Sampled validation keeps
-    // the normal path inexpensive while strict mode is available through
-    // ORCA_VULKAN_SLICER_VALIDATION=strict.
+    // Compatibility accessors always select full exact validation. Legacy
+    // sampled settings/environment cannot weaken batch acceptance.
     static VulkanIntersectionValidationMode vertical_intersection_validation_mode();
     static bool should_validate_vertical_intersection(size_t index, size_t count);
 

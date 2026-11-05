@@ -3,7 +3,10 @@
 #ifndef RAMMING_CHART_H_
 #define RAMMING_CHART_H_
 
+#include <utility>
 #include <vector>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/wxprec.h>
 #ifndef WX_PRECOMP
     #include <wx/wx.h>

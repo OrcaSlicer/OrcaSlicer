@@ -3,6 +3,9 @@
 
 #include "libslic3r/Point.hpp"
 #include "GLModel.hpp"
+#include <vector>
+#include <cstdlib>
+#include <algorithm>
 
 namespace Slic3r {
 namespace GUI {

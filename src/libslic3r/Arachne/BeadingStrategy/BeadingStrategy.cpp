@@ -2,7 +2,9 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "BeadingStrategy.hpp"
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Point.hpp"
+#include <vector>
 
 namespace Slic3r::Arachne
 {

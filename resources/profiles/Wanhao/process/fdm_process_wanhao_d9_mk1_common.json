@@ -1,0 +1,15 @@
+{
+	"type": "process",
+	"name": "fdm_process_wanhao_d9_mk1_common",
+	"inherits": "fdm_process_wanhao_d9_common",
+	"from": "system",
+	"instantiation": "false",
+	"default_acceleration": "500",
+	"outer_wall_acceleration": "500",
+	"inner_wall_acceleration": "500",
+	"top_surface_acceleration": "500",
+	"sparse_infill_acceleration": "500",
+	"initial_layer_acceleration": "500",
+	"bridge_acceleration": "500",
+	"travel_acceleration": "500"
+}
