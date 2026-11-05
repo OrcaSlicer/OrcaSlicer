@@ -116,16 +116,22 @@ std::vector<std::string> collect_resource_texture_files(const std::string& dir,
                                                         const std::string& plugin_root,
                                                         std::string& error);
 
-// Process-wide mutex serializing in-process read-modify-write cycles on a plugin's
-// .install_state.json sidecar. Hold it from the read through the write so two writers cannot
-// overwrite each other's grants. It is not a file lock: another OrcaSlicer process writing the
-// same sidecar is not serialized.
+// Process-wide mutex serializing every in-process read and read-modify-write of a plugin's
+// .install_state.json sidecar. Hold it across the read and the matching write so two writers
+// cannot overwrite each other's grants, and around standalone reads so a reader cannot observe a
+// state while another thread is replacing it. It is not a file lock: another OrcaSlicer process
+// writing the same sidecar is not serialized.
 //
 // Lock order: install-state mutex -> PluginManager::m_mutex. Code that already holds the manager
 // lock must not acquire this one.
 std::mutex& install_state_mutex();
 
 // Canonical writer: emits the .install_state.json schema for the given state.
+// The file is replaced strictly atomically: the payload is written to a uniquely named temporary
+// in the sidecar's own directory, flushed and closed with the stream state checked, then moved
+// over the target with the platform replace primitive (POSIX rename(2), Windows MoveFileExW with
+// MOVEFILE_REPLACE_EXISTING). There is no in-place fallback. On any failure the temporary is
+// removed and the original sidecar is left untouched; the function returns false.
 // A full read-modify-write caller must hold install_state_mutex() across its read and this write.
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginInstallState& state);
 
@@ -144,8 +150,11 @@ void seed_install_metadata(PluginInstallState& state, const PluginDescriptor& en
 
 // Reads install state back into the descriptor; plugin_key is always derived. Returns whether the
 // sidecar was present and valid.
+// Caller must hold install_state_mutex(); it is not recursive, so a caller already holding the
+// lock must call this raw overload, not PluginManager::get_install_state().
 bool read_install_state(const boost::filesystem::path& plugin_dir, PluginDescriptor& entry);
 // Full read of the sidecar; returns false if there is no/invalid sidecar.
+// Caller must hold install_state_mutex(); see the note above.
 bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstallState& out);
 
 } // namespace Slic3r

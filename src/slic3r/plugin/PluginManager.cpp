@@ -40,6 +40,7 @@
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <slic3r/plugin/pluginTypes/script/ScriptPluginCapability.hpp>
 #include <stdexcept>
+#include <string>
 #include <thread>
 #include <unordered_set>
 #include <utility>
@@ -56,6 +57,19 @@ namespace {
 // Sentinel error returned by the registry pre-check when the load was cancelled while it ran.
 // A cancelled load records no error and fires no failure path — it just unwinds.
 const char* const LOAD_CANCELLED = "__plugin_load_cancelled__";
+
+std::vector<std::string>* permission_bucket(PluginPermissions& permissions, PluginPermissionCategory category)
+{
+    switch (category) {
+    case PluginPermissionCategory::FsRead: return &permissions.fs_read;
+    case PluginPermissionCategory::FsReadWrite: return &permissions.fs_readwrite;
+    case PluginPermissionCategory::NetworkHttp: return &permissions.network_http;
+    case PluginPermissionCategory::NetworkSocket: return &permissions.network_socket;
+    case PluginPermissionCategory::Process: return &permissions.process;
+    case PluginPermissionCategory::Events: return &permissions.events;
+    }
+    return nullptr;
+}
 
 } // namespace
 
@@ -658,8 +672,12 @@ std::shared_ptr<PluginCapabilityInterface> PluginManager::get_plugin_capability(
 
 bool PluginManager::get_install_state(const std::string& plugin_key, PluginInstallState& install_state)
 {
+    // Serialize the read against every in-process sidecar writer. Lock order stays
+    // install-state -> m_mutex, matching the writers.
+    std::lock_guard<std::mutex> state_lock(install_state_mutex());
+
     PluginDescriptor descriptor;
-    if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
+    if (!try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty()) {
         return false;
     }
 
@@ -1243,13 +1261,6 @@ bool PluginManager::set_plugin_full_access(const std::string& plugin_key, bool e
         return false;
     }
 
-    // Refuse permission edits while the plugin is loaded or an asynchronous load is in progress.
-    if (is_plugin_loaded(plugin_key) || is_plugin_load_in_progress(plugin_key)) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Refusing to change full access while the plugin is loaded or loading: "
-                                   << plugin_key;
-        return false;
-    }
-
     // Enabling must target a loadable package. Disabling accepts any known installed package,
     // including one whose manifest is currently invalid, so the user can always turn full access
     // off. Either way the package must have a sidecar to modify.
@@ -1287,13 +1298,6 @@ bool PluginManager::set_plugin_permissions(const std::string& plugin_key, const 
         return false;
     }
 
-    // Refuse permission-list edits while the plugin is loaded or its load is in progress.
-    if (is_plugin_loaded(plugin_key) || is_plugin_load_in_progress(plugin_key)) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Refusing to replace permissions while the plugin is loaded or loading: "
-                                   << plugin_key;
-        return false;
-    }
-
     PluginDescriptor descriptor;
     if (!try_get_plugin_descriptor(plugin_key, descriptor) || !descriptor.has_local_package() ||
         descriptor.plugin_root.empty()) {
@@ -1328,6 +1332,72 @@ bool PluginManager::set_plugin_permissions(const std::string& plugin_key, const 
     }
 
     BOOST_LOG_TRIVIAL(info) << "Saved plugin permissions for plugin " << plugin_key;
+    return true;
+}
+
+bool PluginManager::mutate_plugin_permissions(const std::string& plugin_key, const PluginPermissionMutation& mutation,
+                                              PluginPermissions* applied)
+{
+    std::lock_guard<std::mutex> state_lock(install_state_mutex());
+
+    if (plugin_key.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": No plugin key supplied";
+        return false;
+    }
+
+    // Enabling full access is the dangerous direction and must target a loadable (non-invalid)
+    // package, exactly like set_plugin_full_access(). Disabling and plain list edits accept any
+    // known installed package.
+    PluginDescriptor descriptor;
+    const bool       enabling_full_access = mutation.full_access && *mutation.full_access;
+    const bool       known = enabling_full_access ? try_get_valid_plugin_descriptor(plugin_key, descriptor)
+                                                  : try_get_plugin_descriptor(plugin_key, descriptor);
+    if (!known || !descriptor.has_local_package() || descriptor.plugin_root.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": No installed plugin to update: " << plugin_key;
+        return false;
+    }
+
+    const boost::filesystem::path root(descriptor.plugin_root);
+    PluginInstallState state;
+    if (!read_install_state(root, state)) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to read install state for " << plugin_key;
+        return false;
+    }
+
+    // Apply against the latest state read under the lock, so a grant another writer added since
+    // the caller last looked is kept. Removals run first: a value named in both lists ends present.
+    for (const PluginPermissionMutation::Entry& entry : mutation.remove) {
+        if (entry.value.empty())
+            continue;
+        std::vector<std::string>* bucket = permission_bucket(state.permissions, entry.category);
+        if (bucket == nullptr)
+            continue;
+        bucket->erase(std::remove(bucket->begin(), bucket->end(), entry.value), bucket->end());
+    }
+    for (const PluginPermissionMutation::Entry& entry : mutation.add) {
+        if (entry.value.empty())
+            continue;
+        std::vector<std::string>* bucket = permission_bucket(state.permissions, entry.category);
+        if (bucket == nullptr)
+            continue;
+        if (std::find(bucket->begin(), bucket->end(), entry.value) == bucket->end())
+            bucket->push_back(entry.value);
+    }
+
+    if (mutation.threading)
+        state.permissions.threading = *mutation.threading;
+    if (mutation.full_access)
+        state.permissions.full_access = *mutation.full_access;
+
+    if (!write_install_state(root, state)) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to write install state for " << plugin_key;
+        return false;
+    }
+
+    if (applied != nullptr)
+        *applied = state.permissions;
+
+    BOOST_LOG_TRIVIAL(info) << "Applied permission changes for plugin " << plugin_key;
     return true;
 }
 

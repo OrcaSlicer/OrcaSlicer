@@ -1780,6 +1780,183 @@ TEST_CASE("Toggling full access preserves the other stored grants", "[audit]")
     CHECK_FALSE(manager.set_plugin_full_access("NoSuchPlugin", true));
 }
 
+TEST_CASE("A permission mutation changes only the named entries and preserves the rest", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+
+    const fs::path plugin_dir = harness.data.plugins_dir() / PLUGIN;
+    PluginInstallState initial;
+    initial.installed_from    = "local";
+    initial.installed_version = "1.2.3";
+    initial.plugin_name       = "Audit Plugin";
+    initial.enabled           = false;
+    initial.capabilities      = {{"Echo", false}, {"Other", true}};
+    initial.permissions.fs_read      = {"/kept/read", "/removed/read"};
+    initial.permissions.fs_readwrite = {"/kept/write"};
+    initial.permissions.network_http = {"https://kept.example"};
+    REQUIRE(write_install_state(plugin_dir, initial));
+
+    PluginPermissionMutation mutation;
+    mutation.add = {
+        {PluginPermissionCategory::FsRead, "/added/read"},
+        {PluginPermissionCategory::FsRead, "/added/read"}, // duplicate is collapsed
+        {PluginPermissionCategory::FsRead, ""},            // empty values are skipped
+        {PluginPermissionCategory::FsRead, "/removed/read"},
+        {PluginPermissionCategory::NetworkSocket, "127.0.0.1:8080"},
+    };
+    mutation.remove = {
+        {PluginPermissionCategory::FsRead, "/removed/read"},
+        {PluginPermissionCategory::FsRead, "/never/granted"},
+        {PluginPermissionCategory::FsRead, ""},
+        {PluginPermissionCategory::Process, "/never/granted"},
+    };
+
+    PluginPermissions applied;
+    REQUIRE(PluginManager::instance().mutate_plugin_permissions(PLUGIN, mutation, &applied));
+    // Removals run first, so a value named in both lists ends present; absent removals are ignored.
+    const std::vector<std::string> expected_fs_read{"/kept/read", "/added/read", "/removed/read"};
+    const std::vector<std::string> expected_sockets{"127.0.0.1:8080"};
+    CHECK(applied.fs_read == expected_fs_read);
+    CHECK(applied.network_socket == expected_sockets);
+
+    PluginInstallState stored;
+    REQUIRE(read_install_state(plugin_dir, stored));
+    CHECK(stored.permissions.fs_read == expected_fs_read);
+    CHECK(stored.permissions.network_socket == expected_sockets);
+
+    // Every grant the mutation did not name stays as it was.
+    CHECK(stored.permissions.fs_readwrite == initial.permissions.fs_readwrite);
+    CHECK(stored.permissions.network_http == initial.permissions.network_http);
+    CHECK(stored.permissions.process.empty());
+    CHECK_FALSE(stored.permissions.threading);
+    CHECK_FALSE(stored.permissions.full_access);
+
+    // The install metadata, enabled flag and capability flags are unrelated state and survive too.
+    CHECK(stored.installed_from == initial.installed_from);
+    CHECK(stored.installed_version == initial.installed_version);
+    CHECK(stored.plugin_name == initial.plugin_name);
+    CHECK_FALSE(stored.enabled);
+    REQUIRE(stored.capabilities.size() == 2);
+    CHECK(stored.capabilities[0].first == "Echo");
+    CHECK_FALSE(stored.capabilities[0].second);
+    CHECK(stored.capabilities[1].first == "Other");
+    CHECK(stored.capabilities[1].second);
+}
+
+TEST_CASE("A permission mutation applies to the latest stored contents", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+
+    PluginPermissions initial;
+    initial.fs_read = {"/caller/saw"};
+    harness.save_permissions(PLUGIN, initial);
+
+    PluginManager& manager = PluginManager::instance();
+    PluginInstallState observed;
+    REQUIRE(manager.get_install_state(PLUGIN, observed));
+    CHECK(observed.permissions.fs_read == std::vector<std::string>{"/caller/saw"});
+
+    // Another writer grants a target after the caller read the state.
+    PluginPermissionMutation concurrent;
+    concurrent.add = {{PluginPermissionCategory::FsRead, "/other/writer"}};
+    REQUIRE(manager.mutate_plugin_permissions(PLUGIN, concurrent));
+
+    // The caller's edit is applied against the sidecar as it stands now, not against `observed`,
+    // so the concurrent grant is not dropped.
+    PluginPermissionMutation mine;
+    mine.add = {{PluginPermissionCategory::FsRead, "/caller/adds"}};
+    REQUIRE(manager.mutate_plugin_permissions(PLUGIN, mine));
+
+    PluginInstallState stored;
+    REQUIRE(read_install_state(harness.data.plugins_dir() / PLUGIN, stored));
+    const std::vector<std::string> expected_fs_read{"/caller/saw", "/other/writer", "/caller/adds"};
+    CHECK(stored.permissions.fs_read == expected_fs_read);
+}
+
+TEST_CASE("A permission mutation changes boolean grants only when asked", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+
+    PluginPermissions initial;
+    initial.fs_read     = {"/kept"};
+    initial.full_access = true;
+    harness.save_permissions(PLUGIN, initial);
+
+    PluginManager& manager = PluginManager::instance();
+
+    // A mutation that names no booleans leaves both flags alone.
+    PluginPermissions applied;
+    REQUIRE(manager.mutate_plugin_permissions(PLUGIN, PluginPermissionMutation{}, &applied));
+    CHECK_FALSE(applied.threading);
+    CHECK(applied.full_access);
+    CHECK(applied.fs_read == std::vector<std::string>{"/kept"});
+
+    PluginPermissionMutation booleans;
+    booleans.threading   = true;
+    booleans.full_access = false;
+    REQUIRE(manager.mutate_plugin_permissions(PLUGIN, booleans, &applied));
+    CHECK(applied.threading);
+    CHECK_FALSE(applied.full_access);
+    CHECK(applied.fs_read == std::vector<std::string>{"/kept"});
+
+    const PluginPermissions stored = harness.saved_permissions(PLUGIN);
+    CHECK(stored.threading);
+    CHECK_FALSE(stored.full_access);
+    CHECK(stored.fs_read == std::vector<std::string>{"/kept"});
+}
+
+TEST_CASE("A permission mutation fails closed for a plugin it cannot update", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+
+    PluginPermissionMutation mutation;
+    mutation.add = {{PluginPermissionCategory::FsRead, "/new"}};
+    PluginManager& manager = PluginManager::instance();
+
+    CHECK_FALSE(manager.mutate_plugin_permissions("", mutation));
+    CHECK_FALSE(manager.mutate_plugin_permissions("NoSuchPlugin", mutation));
+
+    // A discovered package whose sidecar is gone has nothing safe to update.
+    const fs::path sidecar = harness.data.plugins_dir() / PLUGIN / INSTALL_STATE_FILE;
+    fs::remove(sidecar);
+    CHECK_FALSE(manager.mutate_plugin_permissions(PLUGIN, mutation));
+}
+
+TEST_CASE("A permission edit applies to the next audited operation without a reload", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.run_as(PLUGIN, "first_outcome = attempt(lambda: open(PRIVATE).read())");
+    CHECK(python.str("first_outcome") == "denied");
+    harness.prompts.clear();
+
+    PluginPermissionMutation mutation;
+    mutation.full_access = true;
+    REQUIRE(PluginManager::instance().mutate_plugin_permissions(PLUGIN, mutation));
+
+    // The running audit re-reads the sidecar, so the edit covers the next operation.
+    python.run_as(PLUGIN, "second_outcome = attempt(lambda: open(PRIVATE).read())");
+    CHECK(python.str("second_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+}
+
 TEST_CASE("A filesystem wildcard keeps read and write grants separate", "[audit][Python]")
 {
     AuditHarness harness;

@@ -328,13 +328,13 @@ TEST_CASE("A discovered script plugin loads and materializes its capability", "[
     manager.unload_plugin("Echo_Plugin");
 }
 
-TEST_CASE("Permissions cannot be edited while a plugin is loaded", "[PluginLifecycle][Python]")
+TEST_CASE("Permissions can be edited while a plugin is loaded", "[PluginLifecycle][Python]")
 {
     ScopedPluginManager plugin_system;
     if (!plugin_system.initialized)
         SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
 
-    ScopedDataDir data_dir_guard("permission-edit-lock");
+    ScopedDataDir data_dir_guard("permission-edit-while-loaded");
     const fs::path plugin_dir = write_plugin(data_dir_guard, "Echo_Plugin", ECHO_PLUGIN_SOURCE);
 
     PluginInstallState initial;
@@ -351,22 +351,39 @@ TEST_CASE("Permissions cannot be edited while a plugin is loaded", "[PluginLifec
     INFO("load error: " << error);
     REQUIRE(manager.is_plugin_loaded("Echo_Plugin"));
 
+    // A running plugin no longer locks its own permissions: the next audited operation re-reads
+    // the sidecar, so a replacement and the full-access toggle both take effect without a reload.
     PluginPermissions changed;
     changed.fs_read = {"/while/loaded"};
-    CHECK_FALSE(manager.set_plugin_permissions("Echo_Plugin", changed));
-    CHECK_FALSE(manager.set_plugin_full_access("Echo_Plugin", true));
+    REQUIRE(manager.set_plugin_permissions("Echo_Plugin", changed));
+    REQUIRE(manager.set_plugin_full_access("Echo_Plugin", true));
 
     PluginInstallState stored;
-    REQUIRE(read_install_state(plugin_dir, stored));
-    CHECK(stored.permissions.fs_read.empty());
-    CHECK_FALSE(stored.permissions.full_access);
-
-    // Editing works again after the plugin is unloaded.
-    REQUIRE(manager.unload_plugin("Echo_Plugin"));
-    REQUIRE(manager.set_plugin_permissions("Echo_Plugin", changed));
-    REQUIRE(read_install_state(plugin_dir, stored));
+    REQUIRE(manager.get_install_state("Echo_Plugin", stored));
     CHECK(stored.permissions.fs_read == changed.fs_read);
-    REQUIRE(manager.set_plugin_full_access("Echo_Plugin", true));
+    CHECK(stored.permissions.full_access);
+
+    // A granular mutation also applies while the plugin stays loaded, and leaves the replacement
+    // API's other grants alone.
+    PluginPermissionMutation mutation;
+    mutation.add       = {{PluginPermissionCategory::NetworkHttp, "https://while-loaded.example"}};
+    mutation.remove    = {{PluginPermissionCategory::FsRead, "/while/loaded"}};
+    mutation.threading = true;
+    PluginPermissions applied;
+    REQUIRE(manager.mutate_plugin_permissions("Echo_Plugin", mutation, &applied));
+    CHECK(applied.fs_read.empty());
+    CHECK(applied.network_http == std::vector<std::string>{"https://while-loaded.example"});
+    CHECK(applied.threading);
+    CHECK(applied.full_access);
+
+    REQUIRE(manager.get_install_state("Echo_Plugin", stored));
+    CHECK(stored.permissions.fs_read.empty());
+    CHECK(stored.permissions.network_http == applied.network_http);
+    CHECK(stored.permissions.threading);
+    CHECK(stored.permissions.full_access);
+    CHECK(manager.is_plugin_loaded("Echo_Plugin"));
+
+    manager.unload_plugin("Echo_Plugin");
 }
 
 TEST_CASE("A printer-agent plugin registers and deregisters with its lifecycle", "[PluginLifecycle][Python]")

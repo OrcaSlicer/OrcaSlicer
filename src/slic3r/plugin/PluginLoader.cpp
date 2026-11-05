@@ -317,8 +317,12 @@ bool load(const PluginDescriptor&                          descriptor,
     // The user's per-capability enable choices live in the sidecar — the only durable record, since
     // a capability has no state (and no existence) while the package is not loaded.
     PluginInstallState install_state;
-    const bool         have_install_state = !descriptor.plugin_root.empty() &&
-                                    read_install_state(boost::filesystem::path(descriptor.plugin_root), install_state);
+    bool have_install_state = false;
+    {
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        have_install_state = !descriptor.plugin_root.empty() &&
+                             read_install_state(boost::filesystem::path(descriptor.plugin_root), install_state);
+    }
 
     // get_name()/get_type() are read exactly once — here, under the GIL this block already holds —
     // and cached on the capability, which is the only place capability state lives.

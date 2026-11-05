@@ -10,7 +10,16 @@
 #include <boost/filesystem/file_status.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/nowide/cstdio.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <ios>
+
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 
 #include "PluginAuditManager.hpp"
 #include "PythonInterpreter.hpp"
@@ -21,10 +30,13 @@
 #include <miniz.h>
 #include <nlohmann/json.hpp>
 
+#include <atomic>
+#include <cerrno>
 #include <chrono>
 #include <filesystem>
 #include <mutex>
 #include <string>
+#include <system_error>
 #include "slic3r/plugin/PluginDescriptor.hpp"
 #include <utility>
 #include <algorithm>
@@ -187,7 +199,10 @@ void scan_plugin_directory(const std::string& dir_path, std::vector<PluginDescri
             // its error, rather than dropping it silently.
             if (entry_path.empty()) {
                 descriptor.set_error(entry_error);
-                descriptor.install_state_valid = read_install_state(plugin_dir, descriptor);
+                {
+                    std::lock_guard<std::mutex> state_lock(install_state_mutex());
+                    descriptor.install_state_valid = read_install_state(plugin_dir, descriptor);
+                }
                 assign_discovered_plugin_key(descriptor, plugin_dir);
                 out.push_back(std::move(descriptor));
                 BOOST_LOG_TRIVIAL(warning) << "Invalid plugin package: " << plugin_dir.string() << " - " << out.back().error;
@@ -200,7 +215,10 @@ void scan_plugin_directory(const std::string& dir_path, std::vector<PluginDescri
                                               read_python_plugin_metadata(entry_path, descriptor, meta_error);
             if (!parsed) {
                 descriptor.set_error(meta_error);
-                descriptor.install_state_valid = read_install_state(plugin_dir, descriptor);
+                {
+                    std::lock_guard<std::mutex> state_lock(install_state_mutex());
+                    descriptor.install_state_valid = read_install_state(plugin_dir, descriptor);
+                }
                 assign_discovered_plugin_key(descriptor, entry_path);
                 out.push_back(std::move(descriptor));
                 BOOST_LOG_TRIVIAL(warning) << (is_wheel ? "Invalid wheel plugin: " : "Invalid .py plugin: ")
@@ -214,7 +232,10 @@ void scan_plugin_directory(const std::string& dir_path, std::vector<PluginDescri
 
             // Cloud identity and the package-level auto-load flag. plugin_key is always derived
             // below, never read from the sidecar.
-            descriptor.install_state_valid = read_install_state(plugin_dir, descriptor);
+            {
+                std::lock_guard<std::mutex> state_lock(install_state_mutex());
+                descriptor.install_state_valid = read_install_state(plugin_dir, descriptor);
+            }
             assign_discovered_plugin_key(descriptor, entry_path);
 
             out.push_back(std::move(descriptor));
@@ -863,6 +884,67 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstall
 
 namespace {
 
+// Strictly atomic replacement for the install-state sidecar.
+//
+// The payload is written to a uniquely named temporary in the target's own directory, flushed,
+// closed, and then moved over the target with the platform replace primitive. Staying in the same
+// directory keeps the replacement on one filesystem, so POSIX rename(2) and Windows MoveFileExW
+// replace the target in one step. There is deliberately no in-place fallback: on any failure the
+// temporary is removed and the existing sidecar is left exactly as it was.
+bool replace_install_state_file(const boost::filesystem::path& target, const std::string& contents, std::string& error)
+{
+    namespace fs = boost::filesystem;
+
+    static std::atomic<unsigned> counter{0};
+    const fs::path tmp_path = target.parent_path() /
+        (target.filename().string() + "." + std::to_string(get_current_pid()) + "." +
+         std::to_string(counter.fetch_add(1, std::memory_order_relaxed)) + ".tmp");
+
+    const auto fail = [&tmp_path, &error](const std::string& reason) {
+        boost::system::error_code remove_ec;
+        fs::remove(tmp_path, remove_ec);
+        error = reason;
+        return false;
+    };
+
+    boost::nowide::ofstream out(tmp_path.string(), std::ios::out | std::ios::trunc);
+    if (!out)
+        return fail("cannot open temporary for writing");
+
+    out.write(contents.data(), static_cast<std::streamsize>(contents.size()));
+    out.flush();
+    if (!out) {
+        out.close();
+        return fail("write or flush failed");
+    }
+
+    out.close();
+    if (!out)
+        return fail("close failed");
+
+#ifndef _WIN32
+    // Keep the replaced file's mode where the platform has one. Best effort, matching the previous
+    // writer; a failure here does not turn a successful replace into a failed one.
+    boost::system::error_code perm_ec;
+    const fs::file_status   target_status = fs::status(target, perm_ec);
+    if (!perm_ec && fs::exists(target_status))
+        fs::permissions(tmp_path, target_status.permissions(), perm_ec);
+#endif
+
+#ifdef _WIN32
+    const std::wstring wide_tmp    = tmp_path.wstring();
+    const std::wstring wide_target = target.wstring();
+    if (!::MoveFileExW(wide_tmp.c_str(), wide_target.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+        return fail("MoveFileExW failed with error " +
+                    std::to_string(static_cast<unsigned long>(::GetLastError())));
+#else
+    if (boost::nowide::rename(tmp_path.string().c_str(), target.string().c_str()) != 0)
+        return fail(std::error_code(errno, std::generic_category()).message());
+#endif
+
+    return true;
+}
+
 // The single descriptor -> sidecar metadata mapping. Prefer installed_version (fetched at install
 // time and preserved across rewrites) over a possibly stale manifest version.
 void apply_install_metadata(PluginInstallState& state, const PluginDescriptor& entry)
@@ -913,12 +995,14 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
         capabilities.push_back(nlohmann::json{{name, enabled}});
     json["capabilities"] = std::move(capabilities);
 
-    boost::nowide::ofstream f(sidecar_path.string());
-    if (!f)
+    // Replace the sidecar atomically: a reader sees the old or the new contents, and a failed
+    // write leaves the previous file in place instead of truncating it.
+    std::string error;
+    if (!replace_install_state_file(sidecar_path, json.dump(2), error)) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Failed to replace " << sidecar_path.string() << ": " << error;
         return false;
-
-    f << json.dump(2);
-    return static_cast<bool>(f);
+    }
+    return true;
 }
 
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginDescriptor& entry, bool enabled,

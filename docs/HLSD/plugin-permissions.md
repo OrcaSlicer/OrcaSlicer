@@ -177,7 +177,10 @@ The following are denied before any allowed root or full-access check:
 Grants and install state live in `.install_state.json` in the plugin root. The
 `permissions` object stores `fs_read`, `fs_readwrite`, `network_http`,
 `network_socket`, `process`, `threading`, `events`, and `full_access`. The file is
-written by `write_install_state`, the single writer for the sidecar schema.
+written by `write_install_state`, the single writer for the sidecar schema. In-process
+reads and read-modify-write operations are synchronized. Writes prepare a complete
+replacement in the plugin directory and replace the sidecar only after the write succeeds.
+The lock does not coordinate separate OrcaSlicer processes sharing a data directory.
 
 Reading is deliberately fail-closed:
 
@@ -198,26 +201,25 @@ Installing or reinstalling a package resets its permissions, then
 access again. Loading an already installed package preserves the existing sidecar
 grants while updating install metadata, the enabled flag, and capability flags.
 
-The Plugins dialog edits the same sidecar. Saving a permission list replaces the editable
-lists and stores the requested `full_access` value in the same write, preserving install
-metadata, the enabled flag, and capability flags. The dialog validates targets the draft
-adds or changes; unchanged entries, including grants written by an older release, are
-carried across byte-for-byte. New filesystem targets must be absolute on the current
+The Plugins dialog edits the same sidecar, including while the plugin is loaded or loading.
+Each committed edit is applied immediately to the latest stored state, preserving unrelated
+permissions, install metadata, the enabled flag, and capability flags. Concurrent changes to
+the same permission take effect in write order. The dialog validates added or changed
+targets; unchanged entries, including grants written by an older release, are carried across
+byte-for-byte. New filesystem targets must be absolute on the current
 platform: a POSIX path starts at `/`, and a Windows path names a drive plus root or a UNC
 share. A `*` is accepted only as the final `/*` of a folder tree, and `..` components are
 refused. The matcher also refuses to widen a relative tree root, so a relative tree entry
 saved by hand or carried over from an older release never authorizes. New network targets
 must be a full `http://` or `https://` URL; the writer stores `normalize_network_url`'s canonical
 lowercase `scheme://host`, dropping port, path, query and fragment. Bare hosts, other
-schemes, wildcards and URLs carrying userinfo are refused rather than guessed. The native
-additions confirmation shows the canonical network entries and states that they cover
-every port, path and query on the host.
+schemes, wildcards and URLs carrying userinfo are refused rather than guessed. Network
+entries cover every port, path and query on the host.
 
-The manager refuses list or full-access edits while the plugin is loaded or a load is in
-progress. It accepts a list replacement while full access is on, including a save that
-keeps it on; the dialog confirms any added grants natively before saving. Grants stored
-while full access is on are inert and apply again when full access is off. Turning full
-access on does not delete the stored lists.
+The dialog warns before enabling full access. Grants stored
+while full access is on are inert and apply again when full access is off. Turning full access
+on does not delete the stored lists. A permission change affects subsequent audit decisions,
+not operations already authorized.
 
 ## Full access
 

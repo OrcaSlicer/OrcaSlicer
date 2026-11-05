@@ -791,6 +791,14 @@ bool show_permission_dialog(const wxString& message, const wxString& title)
     return dialog.ShowModal() == wxID_YES;
 }
 
+// A complete sentence of its own, so a translator can place it independently of the request
+// body. Informational only: a prompt never navigates to, or opens, the Plugins dialog.
+void append_permission_dialog_tip(wxString& message)
+{
+    message += "\n\n";
+    message += _L("Tip: You can review and change this plugin's saved permissions in the Plugins dialog, on the Permissions tab.");
+}
+
 } // namespace
 
 bool PluginAuditManager::request_network_permissions(const std::string&              plugin_key,
@@ -815,6 +823,27 @@ bool PluginAuditManager::request_network_permissions(const std::string&         
     // network_permission_matches() also applies the recorded host grant to raw socket events, so
     // one HTTP grant covers both event layers without prompting for each list separately.
     return request_permissions(plugin_key, requested);
+}
+
+// A grant stored by an audit prompt can change what an existing Plugins dialog shows. Post a
+// refresh to the GUI thread: the grant may be persisted by a plugin-load or slicing worker, and
+// neither the notification manager nor the webview is thread safe. Never creates, shows or raises
+// the dialog; GUI_App checks the live pointer on the GUI thread, and the dialog clears that
+// pointer from its destroy handler.
+void post_permission_changed_notification(const std::string& plugin_key)
+{
+    if (wxTheApp == nullptr)
+        return;
+
+    GUI::GUI_App* app = &GUI::wxGetApp();
+    if (app->is_closing())
+        return;
+
+    app->CallAfter([app, plugin_key]() {
+        if (wxTheApp == nullptr || app->is_closing())
+            return;
+        app->notify_plugin_permissions_changed(plugin_key);
+    });
 }
 
 void PluginAuditManager::report_violation(const AuditViolation& violation)
@@ -1386,10 +1415,11 @@ bool prompt_for_targets(AuditEventCategory category, const std::string& plugin_n
     for (const auto& target : unresolved)
         target_list += wxString::FromUTF8(target.c_str()) + "\n";
 
-    return show_permission_dialog(
-        audit_message(category, wxString::FromUTF8(plugin_name.c_str()), wxString::FromUTF8(event_name.c_str()),
-                      target_list, unresolved.size()),
-        _L("Plugin permission request"));
+    wxString message = audit_message(category, wxString::FromUTF8(plugin_name.c_str()), wxString::FromUTF8(event_name.c_str()),
+                                     target_list, unresolved.size());
+    append_permission_dialog_tip(message);
+
+    return show_permission_dialog(message, _L("Plugin permission request"));
 }
 
 // Shows a prompt whose body may cover several permission buckets. Must run on the GUI thread.
@@ -1401,15 +1431,23 @@ bool prompt_for_permission_message(const wxString& message)
 
 // Records a grant in the plugin's sidecar so it is not asked again. Each persist helper re-reads
 // the sidecar under the shared lock, because the async prompt outlives the caller's copy of it.
-void persist_grant(const std::string& plugin_key, AuditEventCategory category, bool by_event, const std::vector<std::string>& keys)
+// Returns true when at least one write succeeded, and only then notifies an existing Plugins
+// dialog: a failed write leaves its Permissions tab accurate as it stands.
+bool persist_grant(const std::string& plugin_key, AuditEventCategory category, bool by_event, const std::vector<std::string>& keys)
 {
+    bool persisted = false;
     if (category == AuditEventCategory::Threading) {
-        persist_threading_grant(plugin_key);
-        return;
+        persisted = persist_threading_grant(plugin_key);
+    } else {
+        for (const auto& key : keys) {
+            if (persist_permission(plugin_key, category, by_event, key))
+                persisted = true;
+        }
     }
 
-    for (const auto& key : keys)
-        persist_permission(plugin_key, category, by_event, key);
+    if (persisted)
+        post_permission_changed_notification(plugin_key);
+    return persisted;
 }
 
 static PluginAuditManager::PermissionPrompt s_permission_prompt_for_testing;
@@ -1532,11 +1570,8 @@ int decide_audited_event(PluginAuditManager&             mgr,
     if (!request_permission(category, plugin_key, plugin_name, event_name, by_event, unresolved))
         return report_denied(mgr, event_name, {false, "audit permission required"});
 
-    if (threading_category) {
-        persist_threading_grant(plugin_key);
-    } else if (permission_list) {
-        for (const auto& key : unresolved)
-            persist_permission(plugin_key, category, by_event, key);
+    if (threading_category || permission_list) {
+        persist_grant(plugin_key, category, by_event, unresolved);
     }
     return 0;
 }
@@ -1609,7 +1644,11 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
         return false;
 
     PluginInstallState state;
-    const bool have_install_state = read_install_state(boost::filesystem::path(descriptor.plugin_root), state);
+    bool have_install_state;
+    {
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        have_install_state = read_install_state(boost::filesystem::path(descriptor.plugin_root), state);
+    }
 
     // Full access is an explicit opt-out of auditing: a declaration neither prompts nor adds a
     // grant. Only a readable sidecar that stores the flag counts, so a missing or malformed file
@@ -1684,6 +1723,7 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
             message += PluginAuditDetail::audit_message(bucket.category, wxString::FromUTF8(plugin_name.c_str()),
                                                         wxEmptyString, targets, bucket.targets.size());
         }
+        append_permission_dialog_tip(message);
         return message;
     };
 
@@ -1710,28 +1750,37 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
 
     // The dialog can stay open while another grant is persisted; take the shared lock and re-read
     // before saving so this request adds to the current state instead of replacing it.
-    std::lock_guard<std::mutex> state_lock(install_state_mutex());
-    PluginInstallState          latest_state;
-    if (read_install_state(boost::filesystem::path(descriptor.plugin_root), latest_state))
+    bool persisted = false;
+    {
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        PluginInstallState          latest_state;
+        if (!read_install_state(boost::filesystem::path(descriptor.plugin_root), latest_state) && have_install_state)
+            return false;
         state = std::move(latest_state);
 
-    PluginAuditDetail::seed_install_metadata(descriptor, state);
+        PluginAuditDetail::seed_install_metadata(descriptor, state);
 
-    for (const MissingBucket& bucket : missing_buckets) {
-        if (bucket.category == AuditEventCategory::Threading) {
-            state.permissions.threading = true;
-            continue;
+        for (const MissingBucket& bucket : missing_buckets) {
+            if (bucket.category == AuditEventCategory::Threading) {
+                state.permissions.threading = true;
+                continue;
+            }
+            std::vector<std::string>* permission_list =
+                PluginAuditDetail::permission_list_for(bucket.category, /*by_event=*/false, state.permissions);
+            if (!permission_list)
+                continue;
+            for (const std::string& target : bucket.targets)
+                if (std::find(permission_list->begin(), permission_list->end(), target) == permission_list->end())
+                    permission_list->push_back(target);
         }
-        std::vector<std::string>* permission_list =
-            PluginAuditDetail::permission_list_for(bucket.category, /*by_event=*/false, state.permissions);
-        if (!permission_list)
-            continue;
-        for (const std::string& target : bucket.targets)
-            if (std::find(permission_list->begin(), permission_list->end(), target) == permission_list->end())
-                permission_list->push_back(target);
+
+        persisted = write_install_state(boost::filesystem::path(descriptor.plugin_root), state);
     }
 
-    return write_install_state(boost::filesystem::path(descriptor.plugin_root), state);
+    // Only a stored grant changes what the dialog would read back; a failed write changed nothing.
+    if (persisted)
+        post_permission_changed_notification(plugin_key);
+    return persisted;
 }
 
 void PluginAuditManager::record_root_frame()

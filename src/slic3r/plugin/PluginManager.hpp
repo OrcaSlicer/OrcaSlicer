@@ -113,6 +113,33 @@ struct ScriptCompletion
     bool            cancelled = false;
 };
 
+// One string bucket of PluginPermissions. Used by PluginPermissionMutation.
+enum class PluginPermissionCategory {
+    FsRead,
+    FsReadWrite,
+    NetworkHttp,
+    NetworkSocket,
+    Process,
+    Events,
+};
+
+// A granular edit of a plugin's stored permissions, applied to the latest sidecar contents.
+// Entries are matched verbatim. An empty add/remove list means "change nothing"; the boolean
+// grants change only when the corresponding optional is engaged.
+struct PluginPermissionMutation
+{
+    struct Entry
+    {
+        PluginPermissionCategory category = PluginPermissionCategory::FsRead;
+        std::string              value;
+    };
+
+    std::vector<Entry>  add;
+    std::vector<Entry>  remove;
+    std::optional<bool> threading;
+    std::optional<bool> full_access;
+};
+
 class PluginManager
 {
 public:
@@ -179,18 +206,33 @@ public:
                                                                      PluginCapabilityType type = PluginCapabilityType::Unknown,
                                                                      bool only_enabled         = true) const;
 
+    // Reads the sidecar under install_state_mutex(), so the result is not interleaved with a
+    // permission write. Returns false when the plugin is unknown or has no readable sidecar.
+    // Must not be called while already holding install_state_mutex(); the lock is not recursive.
     bool get_install_state(const std::string& plugin_key, PluginInstallState& install_state);
 
     // Turns full access on or off for an installed plugin. Read-modify-write of the sidecar under
     // the same lock the other install-state writers use, so every other stored grant is preserved.
     // Enabling requires a loadable (non-invalid) package; disabling accepts any known installed
     // package, so a plugin whose manifest became invalid can still be switched off. Either way the
-    // sidecar must be readable, or there is nothing safe to modify and it returns false. Refused
-    // while the plugin is loaded or its load is in progress.
-    // The flag governs future top-level audited operations, which read the sidecar afresh. An
-    // operation already in flight may have recorded its root frame while full access was on and
-    // can still finish after it is revoked; that frame is not re-evaluated.
+    // sidecar must be readable, or there is nothing safe to modify and it returns false.
+    // Accepted while the plugin is loaded or loading: future top-level audited operations read the
+    // sidecar afresh, so the new flag applies to the next one. An operation already in flight may
+    // have recorded its root frame under the previous flag and can still finish after it is
+    // revoked; that frame is not re-evaluated.
     bool set_plugin_full_access(const std::string& plugin_key, bool enabled);
+
+    // Applies a granular edit to the plugin's latest sidecar contents in one locked read-modify-
+    // write. Only the named entries and engaged boolean grants change; every other stored grant,
+    // including one another writer added after the caller last read the state, is preserved.
+    // Additions are deduplicated, removals of absent entries are ignored, and empty values are
+    // skipped. Requires a known installed package with a readable sidecar; enabling full access
+    // additionally requires a loadable (non-invalid) package, matching set_plugin_full_access().
+    // Accepted while the plugin is loaded or loading; the running audit re-reads the sidecar, so
+    // the edit applies to its next audited operation. On success `applied`, when non-null,
+    // receives the permissions as written.
+    bool mutate_plugin_permissions(const std::string& plugin_key, const PluginPermissionMutation& mutation,
+                                   PluginPermissions* applied = nullptr);
 
     // Replaces the permission list (fs_read, fs_readwrite, network_http, network_socket, process,
     // threading, events) and the full-access flag of an installed plugin in one locked
@@ -198,11 +240,15 @@ public:
     // (install metadata, enabled flag, capabilities) is preserved. Requires a known installed
     // package and a readable sidecar; a plugin with no local package cannot be saved to.
     //
+    // Prefer mutate_plugin_permissions() for GUI edits: this replacement also drops a grant that
+    // another writer added after the caller read the state. Kept for callers that already own a
+    // complete list.
+    //
     // A save is accepted whether the stored full-access flag is on or off, including a replacement
     // of the list while it stays on. That covers editing the list with the draft flag off and then
     // toggling it back on before saving. The caller is responsible for confirming the additions
     // natively first; the grants are inert while full access is on and take effect when it is
-    // cleared. Refused while the plugin is loaded or its load is in progress.
+    // cleared. Accepted while the plugin is loaded or loading.
     bool set_plugin_permissions(const std::string& plugin_key, const PluginPermissions& permissions);
 
     void load_plugin(const std::string& plugin_key, bool skip_deps = false, std::vector<std::string> capabilities_to_enable = {});
@@ -353,8 +399,8 @@ private:
     std::map<std::string, std::string> m_load_errors;
     mutable std::condition_variable m_load_cv;
 
-    // Sidecar writers serialize on Slic3r::install_state_mutex() (PluginFsUtils), shared with the
-    // audit grant writers. Taken before m_mutex, never after it.
+    // Sidecar readers and writers serialize on Slic3r::install_state_mutex() (PluginFsUtils),
+    // shared with the audit grant writers. Taken before m_mutex, never after it.
 
     std::map<CallbackType, std::vector<PluginLifecycleCompleteFn>> m_callbacks;
     std::map<CallbackType, std::vector<CapabilityLifecycleFn>> m_capability_callbacks;

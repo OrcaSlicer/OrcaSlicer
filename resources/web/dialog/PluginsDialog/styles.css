@@ -1380,56 +1380,14 @@ body.pane-resizing {
   color: var(--muted);
 }
 
-.permission-draft-notice {
-  margin: 0;
+.permission-access-notice {
+  margin: 0 0 12px;
   padding: 10px 12px;
   border: 1px solid var(--border-soft);
-  border-left: 3px solid var(--main-color);
+  border-left: 3px solid var(--plugin-status-warn);
   border-radius: 6px;
   background: var(--row-hover);
   color: var(--text);
-}
-
-.permission-confirm-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.55);
-}
-
-.permission-confirm {
-  box-sizing: border-box;
-  width: min(100%, 460px);
-  padding: 24px;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  background: var(--panel);
-  color: var(--text);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
-}
-
-.permission-confirm h2 { margin: 0 0 12px; font-size: 13px; }
-.permission-confirm p { margin: 0 0 20px; line-height: 1.5; }
-.permission-confirm-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-
-.permission-draft-notice[role="status"] {
-  margin: 0 0 10px;
-  padding: 8px 10px;
-  border-left: 3px solid var(--main-color);
-  background: var(--row-hover);
-}
-
-.permission-access-notice {
-  margin-bottom: 12px;
-  border-left-color: var(--plugin-status-warn);
-}
-
-.permission-draft-actions {
-  justify-content: flex-end;
 }
 
 .permission-guidance {
@@ -1520,6 +1478,10 @@ body.pane-resizing {
   color: var(--text);
   font: inherit;
   cursor: pointer;
+}
+
+.permission-form button[hidden] {
+  display: none;
 }
 
 .permission-form button:hover:not(:disabled) {
