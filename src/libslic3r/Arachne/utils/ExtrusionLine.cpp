@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "ExtrusionLine.hpp"
+#include "../../ClipperUtils.hpp"
 #include "../../VariableWidth.hpp"
 #include "libslic3r/ClipperZUtils.hpp"
 #include "libslic3r/libslic3r.h"
