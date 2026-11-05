@@ -172,6 +172,7 @@
 #include "slic3r/GUI/KeyChord.hpp"
 #include "slic3r/GUI/ObjectDataViewModel.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/2DBed.hpp"
 #include "slic3r/GUI/SceneCache.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 
@@ -9081,10 +9082,14 @@ void GLCanvas3D::_render_cad_grid(const Transform3d& view_matrix, const Transfor
             model.init_from(std::move(data));
         };
 
+        // The step follows the bed size exactly as Prepare's grid does (Bed_2D::calculate_grid_step: 10 mm up to a 600 mm bed, then 20, 50,
+        // 100), and the bold family is every 5th step.
+        const BoundingBox scaled_bb(Point(scale_(bb.min.x()), scale_(bb.min.y())), Point(scale_(bb.max.x()), scale_(bb.max.y())));
+        const double step = double(Bed_2D::calculate_grid_step(scaled_bb, scale_(1.0)));
         m_cad_grid_minor.reset();
         m_cad_grid_major.reset();
-        build_grid(10.0, m_cad_grid_minor);
-        build_grid(50.0, m_cad_grid_major);
+        build_grid(step, m_cad_grid_minor);
+        build_grid(5.0 * step, m_cad_grid_major);
     }
 
     if (!m_cad_grid_minor.is_initialized() || !m_cad_grid_major.is_initialized())
@@ -9105,14 +9110,28 @@ void GLCanvas3D::_render_cad_grid(const Transform3d& view_matrix, const Transfor
     const ColorRGBA color = GUI_App::dark_mode() ? PartPlate::LINE_TOP_DARK_COLOR : PartPlate::LINE_TOP_COLOR;
     const float scale = 1.0f;   // PartPlate::m_scale_factor, never set to anything else
 
+    // Thin lines for the minor family, thicker for the major one, the way Prepare draws them: glLineWidth where the profile honours it,
+    // the thick-line shader (a width in viewport units) where it does not (core profile ignores glLineWidth, which made both look alike).
     glsafe(::glLineWidth(1.0f * scale));
     m_cad_grid_minor.set_color(color);
     m_cad_grid_minor.render();
+    shader->stop_using();
 
-    glsafe(::glLineWidth(2.0f * scale));
+    const bool core = OpenGLManager::get_gl_info().is_core_profile();
+    GLShaderProgram* bold = core ? wxGetApp().get_shader("dashed_thick_lines") : shader;
+    if (bold == nullptr) { glsafe(::glDisable(GL_BLEND)); return; }
+    bold->start_using();
+    bold->set_uniform("view_model_matrix", view_matrix);
+    bold->set_uniform("projection_matrix", projection_matrix);
+    if (core) {
+        const std::array<int, 4>& vp = wxGetApp().plater()->get_camera().get_viewport();
+        bold->set_uniform("viewport_size", Vec2d(double(vp[2]), double(vp[3])));
+        bold->set_uniform("width", 0.25f);
+    } else
+        glsafe(::glLineWidth(2.0f * scale));
     m_cad_grid_major.set_color(color);
     m_cad_grid_major.render();
-
+    bold->stop_using();
     glsafe(::glDisable(GL_BLEND));
 }
 
