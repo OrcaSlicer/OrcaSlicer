@@ -1609,12 +1609,13 @@ vec2 pixel_filter_offset(vec2 u)
     return r * vec2(cos(phi), sin(phi));
 }
 
-// What the previous interactive frame saw at the surface point p, of normal n, or at the background:
-// its average radiance and coverage, and its bed term, from the nearest pixel if it saw the same
-// surface. Returns their sample count, 0 where the point was hidden or off screen. Nearest, not
-// bilinear: interpolating again every frame would blur the image even with the camera still, and
-// across translucent surfaces would blend what lies behind them in neighboring pixels.
-float fetch_history(vec3 p, vec3 n, float surface_class, bool background, out vec4 color, out vec3 bed)
+// What the previous interactive frame saw at the surface point p, of normal n and the given albedo
+// and class, or at the background: its average radiance and coverage, and its bed term, from the
+// nearest pixel if it saw the same surface. Returns their sample count, 0 where the point was hidden
+// or off screen. Nearest, not bilinear: interpolating again every frame would blur the image even
+// with the camera still, and across translucent surfaces would blend what lies behind them in
+// neighboring pixels.
+float fetch_history(vec3 p, vec3 n, vec4 albedo_class, bool background, out vec4 color, out vec3 bed)
 {
     color = vec4(0.0);
     bed = vec3(0.0);
@@ -1635,11 +1636,23 @@ float fetch_history(vec3 p, vec3 n, float surface_class, bool background, out ve
     if (background != (nd.w > 0.5 * BACKGROUND_DEPTH))
         return 0.0;
     float expected = history_camera_orthographic ? z : length(d);
-    if (!background && (abs(nd.w - expected) > 0.02 * expected + 0.05 || dot(nd.xyz, n) < 0.7 * length(nd.xyz)))
-        return 0.0;
-    // A pixel of another class of surface, a part where the bed is now: on the edges of the parts,
-    // the depth and normal tests let some through, and the bed took the color of the part for frames.
-    if (abs(texelFetch(history_albedo_tex, q, 0).a - surface_class) > 0.17)
+    if (!background) {
+        // How far the depth of one surface moves within the jittered reach of a pixel: the pixel's
+        // footprint, stretched where the surface turns away. A tolerance relative to the distance
+        // would span many extrusions, and the shading of a neighboring one would smear along the
+        // motion of the camera.
+        float pixel_size = (history_camera_orthographic ? history_camera_orthographic_height : 2.0 * history_camera_half_fov * z) / float(history_size.y);
+        vec3 view = history_camera_orthographic ? history_camera_forward : d / max(expected, 1e-4);
+        float tolerance = 2.0 * pixel_size / max(abs(dot(n, view)), 0.05) + 0.01;
+        if (abs(nd.w - expected) > tolerance || dot(nd.xyz, n) < 0.7 * length(nd.xyz))
+            return 0.0;
+    }
+    // A pixel of another class of surface or another filament: on the edges of the parts and between
+    // the walls and infill of a print, the depth and normal tests let some through, and the surface
+    // took the color of the other one for frames.
+    vec4 history_albedo = texelFetch(history_albedo_tex, q, 0);
+    vec3 albedo_difference = history_albedo.rgb - albedo_class.rgb;
+    if (abs(history_albedo.a - albedo_class.a) > 0.17 || dot(albedo_difference, albedo_difference) > 0.01)
         return 0.0;
     vec4 bed_acc = texelFetch(history_bed_tex, q, 0);
     if (bed_acc.a < 0.5)
@@ -1708,7 +1721,7 @@ void main()
             vec3 p = ray.origin + ray.direction * (background ? 1e5 : sample_normal_depth.w);
             vec4 history_color;
             vec3 history_bed;
-            float history_count = fetch_history(p, sample_normal_depth.xyz, sample_albedo.a, background, history_color, history_bed);
+            float history_count = fetch_history(p, sample_normal_depth.xyz, sample_albedo, background, history_color, history_bed);
             float count = history_count + 1.0;
             sum = (history_color + (sample_color - history_color) / count) * count;
             bed_sum = vec4((history_bed + (sample_bed - history_bed) / count) * count, count);
