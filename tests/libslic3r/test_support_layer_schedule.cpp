@@ -15,6 +15,40 @@
 using namespace Slic3r;
 using Catch::Matchers::WithinAbs;
 
+TEST_CASE("Narrow support fringes retain their original slabs", "[SupportMaterial][ExtruderLayerHeight]")
+{
+    const Polygon fringe = Polygon::new_scale({{0., 0.}, {10., 0.}, {10., 0.1}, {0., 0.1}});
+    const Polygon column = Polygon::new_scale({{20., 0.}, {25., 0.}, {25., 5.}, {20., 5.}});
+    SupportGeneratorLayerStorage storage;
+    SupportGeneratorLayersPtr layers;
+    for (int i = 0; i < 6; ++i) {
+        auto &layer = storage.allocate(SupporLayerType::Base);
+        layer.bottom_z = 0.15 + i * 0.05;
+        layer.print_z = layer.bottom_z + 0.05;
+        layer.height = 0.05;
+        layer.polygons = {fringe, column};
+        layers.push_back(&layer);
+    }
+    combine_support_layers(layers, storage, 0.3, 0.15, 0.6);
+    size_t fringes = 0, columns = 0;
+    for (const auto *layer : layers) {
+        if (layer->height < 0.1) {
+            REQUIRE_THAT(layer->height, WithinAbs(0.05, 1e-6));
+            REQUIRE_THAT(layer->bottom_print_z(), WithinAbs(0.15 + fringes * 0.05, 1e-6));
+            REQUIRE(diff(layer->polygons, Polygons{fringe}).empty());
+            REQUIRE(diff(Polygons{fringe}, layer->polygons).empty());
+            ++fringes;
+        } else {
+            REQUIRE_THAT(layer->height, WithinAbs(0.3, 1e-6));
+            REQUIRE(diff(layer->polygons, Polygons{column}).empty());
+            REQUIRE(diff(Polygons{column}, layer->polygons).empty());
+            ++columns;
+        }
+    }
+    REQUIRE(fringes == 6);
+    REQUIRE(columns == 1);
+}
+
 TEST_CASE("Support columns combine without changing occupied volume", "[SupportMaterial][ExtruderLayerHeight]")
 {
     const Polygon left = Polygon::new_scale({{0., 0.}, {5., 0.}, {5., 5.}, {0., 5.}});
@@ -40,7 +74,7 @@ TEST_CASE("Support columns combine without changing occupied volume", "[SupportM
         layer.polygons = slab.polygons;
         layers.push_back(&layer);
     }
-    combine_support_layers(layers, storage, 0.3, 0.15);
+    combine_support_layers(layers, storage, 0.3, 0.15, 0.6);
     REQUIRE(std::count_if(layers.begin(), layers.end(), [](const auto *layer) {
         return std::abs(layer->height - 0.3) < 1e-6;
     }) >= 3);

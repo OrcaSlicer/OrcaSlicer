@@ -1577,7 +1577,8 @@ void TreeSupport::split_tool_layers()
         split_support_layers(column, storage, target,
             extruder_layer_height_range(*m_print_config, filament).min_height,
             m_slicing_params.first_print_layer_height);
-        combine_support_layers(column, storage, target, m_slicing_params.first_print_layer_height);
+        combine_support_layers(column, storage, target, m_slicing_params.first_print_layer_height,
+            base ? m_support_params.support_material_flow.width() : m_support_params.support_material_interface_flow.width());
         for (const auto *part : column) {
             const double print_z = std::round(part->print_z * 1e6) / 1e6;
             auto group = prototypes[part->idx_object_layer_above];

@@ -2524,7 +2524,10 @@ void WipeTower2::generate_tool_columns(std::vector<std::vector<WipeTower::ToolCh
     }
     m_used_filament_length.assign(m_filpar.size(), 0.f);
     m_num_tool_changes = 0;
-    float column_y = 0.f, width = 0.f, tower_height = 0.f;
+    const size_t column_count = std::count_if(visits.begin(), visits.end(), [](const auto &column) { return !column.empty(); });
+    const size_t columns_per_row = size_t(std::ceil(std::sqrt(double(column_count))));
+    size_t column_index = 0;
+    float column_x = 0.f, column_y = 0.f, row_height = 0.f, width = 0.f, tower_height = 0.f;
     const float first_z = m_plan.front().z;
     const float first_height = m_plan.front().height;
     for (size_t tool = 0; tool < visits.size(); ++tool) {
@@ -2579,9 +2582,14 @@ void WipeTower2::generate_tool_columns(std::vector<std::vector<WipeTower::ToolCh
         std::vector<std::vector<Result>> generated;
         column.generate(generated);
         const BoundingBoxf bbox = column.get_bbx();
-        const Vec2f offset(float(-bbox.min.x()), column_y - float(bbox.min.y()));
-        column_y += float(bbox.size().y());
-        width = std::max(width, float(bbox.size().x()));
+        const Vec2f offset(column_x - float(bbox.min.x()), column_y - float(bbox.min.y()));
+        column_x += float(bbox.size().x());
+        row_height = std::max(row_height, float(bbox.size().y()));
+        width = std::max(width, column_x);
+        if (++column_index % columns_per_row == 0) {
+            column_y += row_height;
+            column_x = row_height = 0.f;
+        }
         tower_height = std::max(tower_height, column.get_wipe_tower_height());
         for (size_t band = 0; band < generated.size(); ++band)
             for (size_t change = 0; change < generated[band].size(); ++change) {
@@ -2626,10 +2634,10 @@ void WipeTower2::generate_tool_columns(std::vector<std::vector<WipeTower::ToolCh
             }
         }
     m_wipe_tower_width = width;
-    m_wipe_tower_depth = column_y;
+    m_wipe_tower_depth = column_y + row_height;
     m_wipe_tower_height = tower_height;
     m_wipe_tower_brim_width_real = 0.f; // Already included in each column's bounds.
-    m_first_layer_bbx = BoundingBoxf(Vec2d::Zero(), Vec2d(width, column_y));
+    m_first_layer_bbx = BoundingBoxf(Vec2d::Zero(), Vec2d(width, m_wipe_tower_depth));
     m_rib_offset = Vec2f::Zero();
     m_rib_width = m_rib_length = 0.f;
     m_current_layer_finished = true;

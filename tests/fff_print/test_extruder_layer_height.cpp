@@ -331,6 +331,33 @@ TEST_CASE("Prime tower columns use their tool heights on a fine object grid", "[
     REQUIRE(coarse_moves > 0);
 }
 
+TEST_CASE("Three tool-height tower columns fit in the bed corner", "[ExtruderLayerHeight][WipeTower]")
+{
+    auto config = layer_config(3);
+    config.set_deserialize_strict({
+        {"enable_prime_tower", "1"}, {"wipe_tower_type", "type2"}, {"single_extruder_multi_material", "0"},
+        {"nozzle_diameter", "0.2,0.2,0.6"}, {"extruder_layer_height", "0.05,0.1,0.3"},
+        {"max_layer_height", "0.14,0.14,0.42"}, {"prime_tower_width", "30"},
+        {"filament_multitool_ramming", "1,1,1"}, {"filament_multitool_ramming_volume", "5,5,5"},
+        {"wipe_tower_wall_type", "rib"}, {"wipe_tower_x", "185"}, {"wipe_tower_y", "181"},
+        {"printable_area", "0x0,270x0,270x270,0x270"}});
+    Print print;
+    Model model;
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{
+        {{"extruder", "1"}}, {{"extruder", "2"}}, {{"extruder", "3"}}
+    };
+    init_print({make_cube(8., 8., 1.3), make_cube(8., 8., 1.3), make_cube(8., 8., 1.3)}, print, model, config, &overrides);
+    print.set_status_silent();
+    REQUIRE_NOTHROW(print.process());
+    REQUIRE(print.has_wipe_tower());
+    std::set<unsigned int> tools;
+    for (const auto &layer : print.wipe_tower_data().tool_changes)
+        for (const auto &visit : layer)
+            for (const auto &part : visit.segments)
+                tools.insert(part.new_tool);
+    REQUIRE(tools.size() == 3);
+}
+
 TEST_CASE("Unused configured tool heights do not activate tower columns", "[ExtruderLayerHeight][WipeTower]")
 {
     auto config = layer_config(3);

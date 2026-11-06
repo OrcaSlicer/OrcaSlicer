@@ -241,10 +241,19 @@ void split_support_layers(SupportGeneratorLayersPtr &layers, SupportGeneratorLay
 // support column. Recombine only the footprint present throughout a tool's
 // complete layer; the remaining fringes keep their original geometry and gaps.
 void combine_support_layers(SupportGeneratorLayersPtr &layers, SupportGeneratorLayerStorage &storage,
-                            double height, double first_layer_z)
+                            double height, double first_layer_z, double minimum_width)
 {
     if (layers.empty() || height <= EPSILON)
         return;
+    const auto printable_components = [minimum_width](const Polygons &polygons) {
+        if (minimum_width <= 0.)
+            return polygons;
+        Polygons printable;
+        for (const auto &area : union_ex(polygons))
+            if (!offset(area, -scaled(0.5 * minimum_width)).empty())
+                polygons_append(printable, to_polygons(area));
+        return printable;
+    };
     SupportGeneratorLayersPtr combined;
     for (size_t begin = 0; begin < layers.size(); ++begin) {
         auto *first = layers[begin];
@@ -253,19 +262,33 @@ void combine_support_layers(SupportGeneratorLayersPtr &layers, SupportGeneratorL
         const double bottom = first->bottom_print_z();
         const double top = bottom + height;
         double covered_z = bottom;
-        Polygons common;
         size_t end = begin;
+        // Check the complete vertical span before doing polygon operations: a
+        // gap anywhere in it makes all earlier intersections unnecessary.
         for (; end < layers.size(); ++end) {
             const auto &layer = *layers[end];
             if (std::abs(layer.bottom_print_z() - covered_z) > EPSILON || layer.bridging ||
-                layer.layer_type != first->layer_type)
+                layer.layer_type != first->layer_type || layer.polygons.empty())
                 break;
-            common = end == begin ? layer.polygons : intersection(common, layer.polygons);
             covered_z = layer.print_z;
-            if (common.empty() || covered_z >= top - EPSILON)
+            if (covered_z >= top - EPSILON)
                 break;
         }
-        if (end == layers.size() || covered_z < top - EPSILON || common.empty())
+        if (end == layers.size() || covered_z < top - EPSILON)
+            continue;
+        // Thin boundary fringes cannot carry a bead at the tool's full width.
+        // Keep their original slabs instead of repeatedly clipping slivers out
+        // of neighboring layers to form unprintable tall fragments.
+        Polygons common = printable_components(first->polygons);
+        if (common.empty())
+            continue;
+        for (size_t i = begin + 1; i <= end && !common.empty(); ++i)
+            if (common != layers[i]->polygons)
+                common = intersection(common, layers[i]->polygons);
+        if (common.empty())
+            continue;
+        common = printable_components(common);
+        if (common.empty())
             continue;
         // Split only after finding a continuous footprint. Unrelated contacts and
         // already-correct layers must not acquire extra grid boundaries.
@@ -290,7 +313,10 @@ void combine_support_layers(SupportGeneratorLayersPtr &layers, SupportGeneratorL
         layer.idx_object_layer_above = last->idx_object_layer_above;
         layer.idx_object_layer_below = first->idx_object_layer_below;
         for (size_t i = begin; i <= end; ++i)
-            layers[i]->polygons = diff(layers[i]->polygons, layer.polygons);
+            if (layers[i]->polygons == layer.polygons)
+                layers[i]->polygons.clear();
+            else
+                layers[i]->polygons = diff(layers[i]->polygons, layer.polygons);
         combined.push_back(&layer);
     }
     layers.erase(std::remove_if(layers.begin(), layers.end(), [](const auto *layer) {
