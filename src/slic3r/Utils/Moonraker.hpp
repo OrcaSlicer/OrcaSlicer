@@ -50,6 +50,8 @@ public:
     bool get_storage(wxArrayString &storage_path, wxArrayString &storage_name) const override;
     const std::string& get_apikey() const { return m_apikey; }
     const std::string& get_cafile() const { return m_cafile; }
+    // Whether Klipper registers `object` (GET /printer/objects/list); false when unreachable.
+    bool has_klipper_object(const std::string& object) const;
 
 protected:
     std::string m_host;
@@ -60,6 +62,11 @@ protected:
     void set_auth(Http &http) const;
     std::string make_url(const std::string &path) const;
     bool start_print(wxString &error_msg, const std::string &filename) const;
+    // Orca: starts the print by running a caller-rendered gcode script instead of /printer/print/start.
+    bool start_print_with_script(wxString &error_msg, const std::string &script) const;
+    // Orca: POSTs {"key": value} to a printer endpoint; `action` names the request in logs.
+    bool post_json(wxString &error_msg, const std::string &path, const std::string &key, const std::string &value,
+                   const std::string &action) const;
 };
 
 }

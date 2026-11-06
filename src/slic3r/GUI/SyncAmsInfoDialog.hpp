@@ -40,6 +40,7 @@ class Button;
 class CheckBox;
 class Label;
 namespace Slic3r { namespace GUI {
+class SlotPickPopup;
 class CapsuleButton;
 class SyncAmsInfoDialog : public DPIDialog
 {
@@ -84,6 +85,12 @@ class SyncAmsInfoDialog : public DPIDialog
 protected:
     PrintFromType     m_print_type{FROM_NORMAL};
     AmsMapingPopup    m_mapping_popup{nullptr};
+    // Orca: toolchanger slot picker; BBL printers use m_mapping_popup.
+    SlotPickPopup *   m_slot_picker{nullptr};
+    void              open_slot_picker(wxWindow *anchor, int filament_id);
+    // Orca: Clear/Automatic, shown for toolchangers only.
+    Button *          m_clear_btn{nullptr};
+    Button *          m_auto_btn{nullptr};
     AmsMapingTipPopup m_mapping_tip_popup{nullptr};
     AmsTutorialPopup  m_mapping_tutorial_popup{nullptr};
     MaterialHash      m_materialList;
@@ -191,6 +198,7 @@ public:
     void     update_user_printer();
     void     reset_ams_material();
     void     reset_all_ams_info();
+    void     clear_all_ams_info();
     void     reset_one_ams_material(const std::string & index_str,bool reset_to_first =false);
     void     update_show_status();
     void     update_printer_combobox(wxCommandEvent &event);

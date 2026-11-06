@@ -62,6 +62,8 @@ enum DevAmsType : int
     N3F = 3,            // N3F, AMS 2PRO
     N3S = 4,            // N3S, AMS HT
     AMS_LITE_MIXED = 5, // AMS-Lite for N9
+    // Orca: Moonraker toolchanger, one 1-slot unit per physical tool.
+    TOOLCHANGER = 6,
 };
 
 enum DevFilamentStep

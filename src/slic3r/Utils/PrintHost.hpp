@@ -6,6 +6,7 @@
 #include <set>
 #include <string>
 #include <functional>
+#include <vector>
 #include <boost/filesystem/path.hpp>
 
 #include <utility>
@@ -19,6 +20,7 @@ class wxArrayString;
 namespace Slic3r {
 
 class DynamicPrintConfig;
+enum class FilamentMappingProtocol;
 
 enum class PrintHostPostUploadAction {
     None,
@@ -28,6 +30,69 @@ enum class PrintHostPostUploadAction {
 };
 using PrintHostPostUploadActions = enum_bitmask<PrintHostPostUploadAction>;
 ENABLE_ENUM_BITMASK_OPERATORS(PrintHostPostUploadAction);
+
+// Orca: stands for the uploaded file's name in a "start_script"; the host replaces it with the
+// server-confirmed path, which can differ on a filename collision.
+constexpr const char* PRINT_HOST_UPLOADED_FILENAME_PLACEHOLDER = "{{uploaded_filename}}";
+
+// Orca: print-start options a printer's firmware supports, declared as data and rendered by
+// DevicePrintOptionsDialog. Keyed on the profile's protocol since the print-host path has no agent.
+// Every option is a checkbox whose value is "1" or "0".
+struct DevicePrintOption
+{
+    std::string key;     ///< wire + persistence key, e.g. "bed_leveling"
+    std::string label;   ///< L()-marked msgid, translated at render time
+    std::string tooltip; ///< L()-marked msgid, may be empty
+    std::string default_value{"0"}; ///< used when nothing was remembered for this printer
+};
+
+struct DevicePrintSpec
+{
+    bool supports_filament_mapping{false};
+    std::vector<DevicePrintOption> options;
+
+    bool empty() const { return !supports_filament_mapping && options.empty(); }
+};
+
+// Orca: how the filament->tool map reaches the printer; a reported Klipper changer overrides the vendor's.
+enum class MapDelivery { none, snapmaker, wondermaker, afc, happy_hare, openace };
+MapDelivery effective_map_delivery(FilamentMappingProtocol vendor, const std::string& reported_changer);
+// openACE reports AFC's lane_data, so a sync reads it as AFC; at print time a printer that registers
+// an "openace" Klipper object takes the map on the SD start instead of through SET_MAP.
+MapDelivery print_time_map_delivery(MapDelivery sliced, bool printer_has_openace);
+
+/// Options come from the vendor regardless of delivery. An empty spec means the stock send dialog.
+DevicePrintSpec device_print_spec(FilamentMappingProtocol vendor, MapDelivery delivery);
+
+/// Arrays are per logical filament except those marked physical, which are per physical tool.
+struct DevicePrintJobInfo
+{
+    std::vector<int>         filament_map_1based; ///< logical filament -> 1-based physical tool
+    std::vector<std::string> filament_type;       ///< logical
+    std::vector<double>      nozzle_temp;         ///< logical
+    std::vector<double>      flow_ratio;          ///< logical
+    std::vector<double>      filament_diameter;   ///< logical
+    std::vector<double>      used_g;              ///< logical
+    std::vector<double>      used_mm;             ///< logical
+    std::vector<double>      nozzle_diameter;     ///< physical
+    std::vector<int>         used_physical_tools; ///< physical, deduped, first-use order
+    std::vector<std::string> slot_names;          ///< physical, "" = none
+    double                   line_width{0.};
+    double                   layer_height{0.};
+    double                   outer_wall_speed{0.};
+    /// Keyed by DevicePrintOption::key.
+    std::map<std::string, std::string> options;
+
+    bool option_on(const std::string& key) const
+    {
+        auto it = options.find(key);
+        return it != options.end() && it->second == "1";
+    }
+};
+
+
+/// Vendor prelude, map, then SD start. "" when there is no delivery or the map cannot be rendered.
+std::string build_device_start_script(FilamentMappingProtocol vendor, MapDelivery delivery, const std::string& filename, const DevicePrintJobInfo& job);
 
 struct PrintHostUpload
 {
