@@ -12,8 +12,6 @@
 #include <wx/gdicmn.h>
 
 #include "RammingChart.hpp"
-#include "GUI.hpp"
-#include "GUI_App.hpp"
 #include "I18N.hpp"
 #include "Widgets/StateColor.hpp"
 

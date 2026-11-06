@@ -1,5 +1,4 @@
 #include "MutablePolygon.hpp"
-#include "Line.hpp"
 #include "Point.hpp"
 #include "libslic3r.h"
 #include <cmath>

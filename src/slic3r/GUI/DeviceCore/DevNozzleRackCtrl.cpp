@@ -1,8 +1,7 @@
 #include "DevNozzleRack.h"
-#include "DevUtil.h"
 #include "DevExtruderSystem.h"
 
-#include "json_diff.hpp"
+#include <nlohmann/json.hpp>
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/MsgDialog.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -11,7 +10,11 @@
 #include <wx/string.h>
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include <wx/thread.h>
+#include "slic3r/GUI/DeviceCore/DevFirmware.h"
+#include "slic3r/GUI/DeviceCore/DevNozzleSystem.h"
 
+
+using json = nlohmann::json;
 
 namespace Slic3r
 {

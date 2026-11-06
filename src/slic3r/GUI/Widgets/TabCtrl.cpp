@@ -12,6 +12,9 @@
 #include <wx/gdicmn.h>
 #include <wx/sizer.h>
 #include <wx/string.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
 
 wxDEFINE_EVENT(wxEVT_TAB_SEL_CHANGING, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_TAB_SEL_CHANGED, wxCommandEvent);
@@ -29,7 +32,7 @@ END_EVENT_TABLE()
  */
 
 #define TAB_BUTTON_SPACE 2
-#define TAB_BUTTON_PADDING_X 2
+#define TAB_BUTTON_PADDING_X 3
 #define TAB_BUTTON_PADDING_Y 2
 #define TAB_BUTTON_PADDING TAB_BUTTON_PADDING_X, TAB_BUTTON_PADDING_Y
 

@@ -11,6 +11,8 @@
 #include <wx/font.h>
 #include "libslic3r/Emboss.hpp"
 
+class wxDC;
+
 namespace Slic3r::GUI {
 
 // Help class to  work with wx widget font object( wxFont )

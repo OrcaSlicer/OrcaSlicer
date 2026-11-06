@@ -14,6 +14,10 @@
 #include <wx/gdicmn.h>
 #include <wx/string.h>
 #include <wx/event.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+
+class wxWindow;
 
 BEGIN_EVENT_TABLE(ImageSwitchButton, StaticBox)
 

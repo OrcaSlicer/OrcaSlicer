@@ -34,6 +34,9 @@
 #include "libslic3r/SLA/ConcaveHull.hpp"
 #include "libslic3r/SLA/RasterBase.hpp"
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Line.hpp"
+
+using namespace Slic3r;
 
 void test_support_model_collision(const std::string          &obj_filename,
                                   const sla::SupportTreeConfig   &input_supportcfg,

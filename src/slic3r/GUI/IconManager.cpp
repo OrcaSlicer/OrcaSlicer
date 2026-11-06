@@ -367,6 +367,7 @@ void priv::draw_transparent_icon(const IconManager::Icon &icon)
 }
 
 #include "imgui/imgui_internal.h" //ImGuiWindow
+#include "slic3r/GUI/GLTexture.hpp"
 namespace Slic3r::GUI {
 
 void draw(const IconManager::Icon &icon, const ImVec2 &size, const ImVec4 &tint_col, const ImVec4 &border_col)

@@ -4,6 +4,7 @@
 #include <math.h>
 #include <slvs.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <functional>
@@ -11,6 +12,7 @@
 #include <unordered_map>
 #include <vector>
 #include <utility>
+#include "libslic3r/Point.hpp"
 
 namespace Slic3r {
 
@@ -45,12 +47,15 @@ struct Build {
         { return E(Slvs_MakePoint2d(++eh, g, wp, P(g, u), P(g, v))); }
 
     // Generic constraint (entityC unused by Slvs_MakeConstraint — set it manually below).
+    // `other` / `other2` pick the END point (point[2]) of entity A / B instead of its start
+    // (point[1]) for the constraints that read an arc's endpoint (the tangencies).
     void C(int type, double val, Slvs_hEntity ptA, Slvs_hEntity ptB,
-           Slvs_hEntity eA, Slvs_hEntity eB, Slvs_hEntity eC = 0, int other = 0)
+           Slvs_hEntity eA, Slvs_hEntity eB, Slvs_hEntity eC = 0, int other = 0, int other2 = 0)
     {
         Slvs_Constraint c = Slvs_MakeConstraint(++ch, G_SK, type, wp, val, ptA, ptB, eA, eB);
         c.entityC = eC;
         c.other   = other;
+        c.other2  = other2;
         cons.push_back(c);
     }
 };
@@ -112,9 +117,15 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
         case SketchEntity::Type::Circle: {
             s.center = b.pt2d(G_SK, e.center.x(), e.center.y());
             s.p0     = s.center;                          // p0 mirrors centre for circles
-            s.rparam = b.P(G_SK, e.radius > 1e-9 ? e.radius : 1.0);
-            Slvs_hEntity dist = b.E(Slvs_MakeDistance(++b.eh, G_SK, b.wp, s.rparam));
-            s.prim   = b.E(Slvs_MakeCircle(++b.eh, G_SK, b.wp, s.center, b.normal, dist));
+            // A zero-radius circle is degenerate everywhere else (the wire builder, offset and
+            // inference all reject it). It used to be seeded with radius 1 here and written
+            // back, so any unrelated solve silently turned it into a 1 mm circle. It gets no
+            // primitive: its centre still solves, anything needing the rim is skipped.
+            if (e.radius > 1e-9) {
+                s.rparam = b.P(G_SK, e.radius);
+                Slvs_hEntity dist = b.E(Slvs_MakeDistance(++b.eh, G_SK, b.wp, s.rparam));
+                s.prim   = b.E(Slvs_MakeCircle(++b.eh, G_SK, b.wp, s.center, b.normal, dist));
+            }
             break;
         }
         case SketchEntity::Type::Arc:
@@ -174,6 +185,20 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
         switch (r) { case Role::P0: return e.p0; case Role::P1: return e.p1; case Role::Center: return e.center; }
         return e.p0;
     };
+    // Which side of line `li` the point (ei, r) is on, in slvs' sign convention for the
+    // in-workplane PT_LINE_DISTANCE: with d = point[0] - point[1] and a = point[0], the signed
+    // distance has the sign of d x (p - a) (pinned by the tests "a point below the line stays
+    // below it" and "tangent line to circle, line below it"). +1 when on the line.
+    auto side_of = [&](int ei, Role r, int li) -> double {
+        Vec2d a, bb;
+        if (li == kSketchRefAxisX)      { a = Vec2d(1, 0); bb = Vec2d(0, 0); }
+        else if (li == kSketchRefAxisY) { a = Vec2d(0, 1); bb = Vec2d(0, 0); }
+        else if (valid(li))             { a = entities[li].p0; bb = entities[li].p1; }
+        else return 1.0;
+        const Vec2d d = a - bb, ap = coordOf(ei, r) - a;
+        const double cr = d.x() * ap.y() - d.y() * ap.x();
+        return cr < 0.0 ? -1.0 : 1.0;
+    };
     // A fixed reference point at (x,y) — used to pin coordinates (Fix / LockX / LockY).
     auto fixedRef = [&](double x, double y) -> Slvs_hEntity { return b.pt2d(G_FIXED, x, y); };
 
@@ -211,7 +236,7 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
         case CT::Collinear:
             ref_ok = primOf(c.ea) && primOf(c.eb); break;
         }
-        if (!ref_ok) continue;
+        if (!ref_ok) { out.skipped.push_back(int(&c - constraints.data())); continue; }
         switch (c.type) {
         case CT::Coincident:
             b.C(SLVS_C_POINTS_COINCIDENT, 0, ptOf(c.ea, c.ra), ptOf(c.eb, c.rb), 0, 0);
@@ -286,9 +311,36 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
         case CT::Tangent: {
             const bool aCurve = valid(c.ea) && entities[c.ea].type != SketchEntity::Type::Line;
             const bool bCurve = valid(c.eb) && entities[c.eb].type != SketchEntity::Type::Line;
-            if (aCurve && bCurve)
-                b.C(SLVS_C_CURVE_CURVE_TANGENT, 0, 0, 0, primOf(c.ea), primOf(c.eb));
-            else {
+            const bool aCircle = aCurve && entities[c.ea].type == SketchEntity::Type::Circle;
+            const bool bCircle = bCurve && entities[c.eb].type == SketchEntity::Type::Circle;
+            if (aCurve && bCurve && (aCircle || bCircle)) {
+                // CURVE_CURVE_TANGENT reads each curve's ENDPOINT, which a full circle does not
+                // have: slvs asserts and takes the process down (the same trap the circle-line
+                // case below documents). Two round curves are tangent exactly when their
+                // centres are r1 + r2 apart (outside each other) or |r1 - r2| apart (one inside
+                // the other); keep whichever the sketch is closer to now. Radii are captured as
+                // constants, with the same caveat as the circle-line case.
+                const SketchEntity& A = entities[c.ea];
+                const SketchEntity& B = entities[c.eb];
+                const double d   = (A.center - B.center).norm();
+                const double ext = A.radius + B.radius;
+                const double in  = std::abs(A.radius - B.radius);
+                b.C(SLVS_C_PT_PT_DISTANCE, std::abs(d - ext) <= std::abs(d - in) ? ext : in,
+                    ptOf(c.ea, Role::Center), ptOf(c.eb, Role::Center), 0, 0);
+            } else if (aCurve && bCurve) {
+                // Tangent where the two arcs MEET: pick, for each arc, the endpoint closest to
+                // the other arc's nearest endpoint. Always binding the start point (the old
+                // behaviour) made a tangency at an arc's end act on its start instead.
+                const SketchEntity& A = entities[c.ea];
+                const SketchEntity& B = entities[c.eb];
+                int oa = 0, ob = 0; double best = 1e300;
+                for (int i = 0; i < 2; ++i)
+                    for (int j = 0; j < 2; ++j) {
+                        const double dd = ((i ? A.p1 : A.p0) - (j ? B.p1 : B.p0)).squaredNorm();
+                        if (dd < best) { best = dd; oa = i; ob = j; }
+                    }
+                b.C(SLVS_C_CURVE_CURVE_TANGENT, 0, 0, 0, primOf(c.ea), primOf(c.eb), 0, oa, ob);
+            } else {
                 const int ci = aCurve ? c.ea : c.eb;   // the curve
                 const int li = aCurve ? c.eb : c.ea;   // the line
                 if (valid(ci) && entities[ci].type == SketchEntity::Type::Circle) {
@@ -309,24 +361,47 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
                     // not being changed by another constraint in the same solve; if some other
                     // constraint drives the radius, re-solving restores tangency. Tying them
                     // would need an auxiliary point constrained onto both circle and line.
-                    b.C(SLVS_C_PT_LINE_DISTANCE, entities[ci].radius,
+                    b.C(SLVS_C_PT_LINE_DISTANCE, side_of(ci, Role::Center, li) * entities[ci].radius,
                         ptOf(ci, Role::Center), 0, primOf(li), 0);
                 } else {
-                    b.C(SLVS_C_ARC_LINE_TANGENT, 0, 0, 0, primOf(ci), primOf(li));
+                    // The arc endpoint that touches the line is the one the tangency is at. The
+                    // constraint used to bind the START point always, so a fillet — its start on
+                    // one leg, its end on the other — forced both legs parallel.
+                    int other = 0;
+                    if (valid(ci) && valid(li)) {
+                        const SketchEntity& A = entities[ci];
+                        const SketchEntity& L = entities[li];
+                        auto seg_dist = [&](const Vec2d& p) {
+                            const Vec2d d = L.p1 - L.p0;
+                            const double t = d.squaredNorm() > 1e-18
+                                ? std::clamp((p - L.p0).dot(d) / d.squaredNorm(), 0.0, 1.0) : 0.0;
+                            return (L.p0 + t * d - p).norm();
+                        };
+                        other = seg_dist(A.p1) < seg_dist(A.p0) ? 1 : 0;
+                    }
+                    b.C(SLVS_C_ARC_LINE_TANGENT, 0, 0, 0, primOf(ci), primOf(li), 0, other);
                 }
             }
             break;
         }
         case CT::PointOnLine:
+            // slvs' in-workplane point-line distance is SIGNED. A negative stored value is an
+            // explicit side; a positive one (what the UI stores) keeps the side the point is on
+            // now. Passing |value| forced every point to the positive side, flipping any that
+            // sat on the other one across the line.
             if (std::abs(c.value) < 1e-9)
                 b.C(SLVS_C_PT_ON_LINE, 0, ptOf(c.ea, c.ra), 0, primOf(c.eb), 0);
             else
-                b.C(SLVS_C_PT_LINE_DISTANCE, std::abs(c.value), ptOf(c.ea, c.ra), 0, primOf(c.eb), 0);
+                b.C(SLVS_C_PT_LINE_DISTANCE,
+                    c.value < 0.0 ? c.value : side_of(c.ea, c.ra, c.eb) * c.value,
+                    ptOf(c.ea, c.ra), 0, primOf(c.eb), 0);
             break;
         case CT::PointOnObject:
-            // Point (ea,ra) lies on entity edge eb: a circle rim -> PT_ON_CIRCLE,
-            // otherwise the segment line -> PT_ON_LINE.
-            if (valid(c.eb) && entities[c.eb].type == SketchEntity::Type::Circle)
+            // Point (ea,ra) lies on entity edge eb: a circle or arc rim -> PT_ON_CIRCLE (slvs
+            // takes both), otherwise the segment line -> PT_ON_LINE. An arc used to fall to
+            // PT_ON_LINE, which is not an equation about an arc at all.
+            if (valid(c.eb) && (entities[c.eb].type == SketchEntity::Type::Circle ||
+                                entities[c.eb].type == SketchEntity::Type::Arc))
                 b.C(SLVS_C_PT_ON_CIRCLE, 0, ptOf(c.ea, c.ra), 0, primOf(c.eb), 0);
             else
                 b.C(SLVS_C_PT_ON_LINE, 0, ptOf(c.ea, c.ra), 0, primOf(c.eb), 0);
@@ -437,6 +512,29 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
             e.start_angle = ns;
             e.end_angle   = ns + sweep;
             e.radius = 0.5 * ((e.p0 - e.center).norm() + (e.p1 - e.center).norm());
+        } else if (e.type == SketchEntity::Type::EllipseArc && s.center && e.radius > 1e-9 && e.rminor > 1e-9) {
+            // The solver moves the centre and the two ends as free points (it has no conic), so
+            // after a solve they need not agree with the stored angles, and the wire builder then
+            // finds the arc's ends away from its vertices and drops the whole sketch. Re-derive
+            // the parametric angles from the solved ends and put the ends back ON the ellipse.
+            const double cr = std::cos(e.rotation), sr = std::sin(e.rotation);
+            auto param = [&](const Vec2d& p) {
+                const Vec2d d = p - e.center;
+                const double x =  d.x() * cr + d.y() * sr, y = -d.x() * sr + d.y() * cr;
+                return std::atan2(y / e.rminor, x / e.radius);
+            };
+            auto at = [&](double t) {
+                const double x = e.radius * std::cos(t), y = e.rminor * std::sin(t);
+                return Vec2d(e.center.x() + x * cr - y * sr, e.center.y() + x * sr + y * cr);
+            };
+            const double old_sweep = e.end_angle - e.start_angle;
+            double t0 = param(e.p0), t1 = param(e.p1);
+            if (old_sweep >= 0.0) { while (t1 <= t0) t1 += 2.0 * M_PI; }
+            else                  { while (t1 >= t0) t1 -= 2.0 * M_PI; }
+            e.start_angle = t0;
+            e.end_angle   = t1;
+            e.p0 = at(t0);
+            e.p1 = at(t1);
         }
     }
 
@@ -464,6 +562,21 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
 // that fits today keeps its exact current behaviour, including its reported degrees of freedom.
 // A genuinely over-constrained sketch still fails: the conflict lives inside one component and
 // that component still rejects it.
+// Degrees of freedom an entity has on its own, as the whole-system solve counts them.
+static int natural_dof(const SketchEntity& e)
+{
+    switch (e.type) {
+    case SketchEntity::Type::Line:       return 4;
+    case SketchEntity::Type::Point:      return 2;
+    case SketchEntity::Type::Circle:     return e.radius > 1e-9 ? 3 : 2;
+    case SketchEntity::Type::Arc:        return 5;   // centre + two ends, ends equidistant
+    case SketchEntity::Type::Ellipse:    return 2;   // only the centre is a solver point
+    case SketchEntity::Type::EllipseArc: return 6;   // centre + two ends
+    case SketchEntity::Type::BSpline:    return 2 * int(e.ctrl.size());
+    }
+    return 0;
+}
+
 static SketchSolveResult solve_partitioned(std::vector<SketchEntity>& entities,
                                            const std::vector<SketchEntityConstraintDef>& constraints,
                                            int dragged_ei, Role dragged_role)
@@ -482,12 +595,18 @@ static SketchSolveResult solve_partitioned(std::vector<SketchEntity>& entities,
     };
     for (const auto& c : constraints) { unite(c.ea, c.eb); unite(c.ea, c.ec); }
 
-    // Group the constraints by the component they belong to.
+    // Group the constraints by the component they belong to: that of the first ENTITY they
+    // reference. ea can be a sketch reference (origin / axis, negative) while eb is the entity,
+    // and such a constraint was dropped outright.
     std::map<int, std::vector<int>> groups;
+    std::vector<bool> constrained(n, false);
     for (size_t i = 0; i < constraints.size(); ++i) {
-        const int a = constraints[i].ea;
-        if (a < 0 || a >= n) continue;
+        const SketchEntityConstraintDef& c = constraints[i];
+        const int a = (c.ea >= 0 && c.ea < n) ? c.ea : (c.eb >= 0 && c.eb < n) ? c.eb
+                    : (c.ec >= 0 && c.ec < n) ? c.ec : -1;
+        if (a < 0) continue;
         groups[find(a)].push_back(int(i));
+        for (int e : { c.ea, c.eb, c.ec }) if (e >= 0 && e < n) constrained[e] = true;
     }
 
     SketchSolveResult out;
@@ -513,7 +632,8 @@ static SketchSolveResult solve_partitioned(std::vector<SketchEntity>& entities,
         subc.reserve(cidx.size());
         for (int ci : cidx) {
             SketchEntityConstraintDef d = constraints[ci];
-            auto map1 = [&](int& e) { e = (e >= 0 && local.count(e)) ? local[e] : -1; };
+            // Sketch references (origin, axes: negative sentinels) are global and pass through.
+            auto map1 = [&](int& e) { if (e >= 0) e = local.count(e) ? local[e] : -1; };
             map1(d.ea); map1(d.eb); map1(d.ec);
             subc.push_back(d);
         }
@@ -526,8 +646,14 @@ static SketchSolveResult solve_partitioned(std::vector<SketchEntity>& entities,
                 if (bi >= 0 && bi < int(cidx.size())) out.bad.push_back(cidx[bi]);
         }
         if (r.dof > 0) out.dof += r.dof;
+        for (int si : r.skipped)
+            if (si >= 0 && si < int(cidx.size())) out.skipped.push_back(cidx[si]);
         solved.emplace_back(std::move(ents), std::move(sub));
     }
+    // Entities no constraint touches are in no group but still have their freedoms; the
+    // whole-system solve counts them, so this path must too or the two report different dof.
+    for (int i = 0; i < n; ++i)
+        if (!constrained[i]) out.dof += natural_dof(entities[i]);
     if (!out.ok) return out;
     for (auto& [ents, sub] : solved)
         for (size_t k = 0; k < ents.size(); ++k) entities[ents[k]] = sub[k];

@@ -18,12 +18,14 @@
 
 #include <boost/container/small_vector.hpp>
 #include <vector>
-#include "../FilamentGroup.hpp"
 #include "../FilamentMixer.hpp"
 #include "../MultiNozzleUtils.hpp"
-#include "../ExtrusionEntity.hpp"
 #include "../ObjectID.hpp"
 #include "../PrintConfig.hpp"
+
+namespace Slic3r { class ExtrusionEntity; }
+namespace Slic3r { class ExtrusionEntityCollection; }
+namespace Slic3r { enum ExtrusionRole : uint8_t; }
 
 namespace Slic3r {
 
@@ -82,7 +84,17 @@ public:
 
     void set_layer_tools_ptr(const LayerTools* lt) { m_layer_tools = lt; }
 
+    // Returns true if entity is not printed with its usual extruder for a given
+    // copy -- i.e. it was claimed as a wiping/purge extrusion. Public because the
+    // belt purge prism uses it to tell which of its fills actually carry purge
+    // from the ones that are unclaimed waste (Print::_plan_belt_purge()).
+    bool is_entity_overridden(const ExtrusionEntity* entity, const PrintObject *object, size_t copy_id) const {
+        auto it = entity_map.find(std::make_tuple(entity, object));
+        return it != entity_map.end() && copy_id < it->second.size() && it->second[copy_id] != -1;
+    }
+
 private:
+
     int first_nonsoluble_extruder_on_layer(const PrintConfig& print_config) const;
     int last_nonsoluble_extruder_on_layer(const PrintConfig& print_config) const;
 
@@ -91,12 +103,6 @@ private:
     // BBS
     void set_support_extruder_override(const PrintObject* object, size_t copy_id, int extruder, size_t num_of_copies);
     void set_support_interface_extruder_override(const PrintObject* object, size_t copy_id, int extruder, size_t num_of_copies);
-
-    // Returns true in case that entity is not printed with its usual extruder for a given copy:
-    bool is_entity_overridden(const ExtrusionEntity* entity, const PrintObject *object, size_t copy_id) const {
-        auto it = entity_map.find(std::make_tuple(entity, object));
-        return it == entity_map.end() ? false : it->second[copy_id] != -1;
-    }
 
     std::map<std::tuple<const ExtrusionEntity*, const PrintObject *>, ExtruderPerCopy> entity_map;  // to keep track of who prints what
     // BBS
@@ -181,6 +187,13 @@ public:
     // and to support the wipe tower partitions above this one.
     size_t                      wipe_tower_partitions = 0;
     coordf_t 					wipe_tower_layer_height = 0.;
+    // print_z of the wipe tower layer this layer's tool changes print on. A layer too thin to be
+    // its own tower layer joins the one below, keeping that layer's z and height.
+    coordf_t                    wipe_tower_print_z = 0.;
+    // Whether this layer finishes its wipe tower layer. Of a tower layer and the layers joined to
+    // it, that is the last one changing tools, or the last one when none does.
+    bool                        wipe_tower_layer_ends = true;
+    bool                        joins_wipe_tower_layer_below() const { return has_wipe_tower && wipe_tower_print_z != print_z; }
     // Custom G-code (color change, extruder switch, pause) to be performed before this layer starts to print.
     const CustomGCode::Item    *custom_gcode = nullptr;
 
@@ -364,6 +377,7 @@ public:
                                                   std::vector<int> & initial_filaments);
 
     bool                has_non_support_filament(const PrintConfig &config);
+    bool                is_last_extrusion_layer(coordf_t print_z, unsigned int extruder_id) const;
 
 private:
     void				initialize_layers(std::vector<coordf_t> &zs);
@@ -407,6 +421,8 @@ private:
     // which keeps every legacy per-object code path bit-identical (loops over an empty map are
     // no-ops; downstream emission falls through to the per-object branch).
     std::map<unsigned int, std::map<LayerTools::MixedSubLayerGroup::VolumeKey, std::vector<size_t>>> m_gradient_volume_layers;
+    // Map: extruder_id -> print_z (z coordinate) of the last layer it is used on
+    std::map<unsigned int, coordf_t> m_last_layer_per_extruder;
     const PrintObject*         m_print_object_ptr = nullptr;
     Print*                     m_print;
     bool                       m_sorted = false;

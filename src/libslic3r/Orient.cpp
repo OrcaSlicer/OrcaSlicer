@@ -15,7 +15,6 @@
 #include "Model.hpp"
 #include "PrintConfig.hpp"
 #include <numeric>
-#include <ClipperUtils.hpp>
 #include <boost/geometry/index/rtree.hpp>
 #include <boost/log/trivial.hpp>
 #include <string>
@@ -32,6 +31,7 @@
 
 #include <boost/multiprecision/integer.hpp>
 #include <boost/rational.hpp>
+#include "BoundingBox.hpp"
 
 #undef MAX3
 #define MAX3(a,b,c) std::max(std::max(a,b),c)

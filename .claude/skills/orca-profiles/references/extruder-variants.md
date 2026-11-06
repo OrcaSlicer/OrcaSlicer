@@ -105,11 +105,12 @@ Rules:
    `single_extruder_multi_material` off, and in the app when the printer tab loads a printer with a
    different number of extruders, the pair is rebuilt from `extruder_variant_list` (one
    `Direct Drive Standard` per extruder when the list is absent) and the variant arrays are resized to
-   the rebuilt pair, padded with their first value or cut. The resize skips the `machine_max_*` limits
-   and `hotend_heating_rate` / `hotend_cooling_rate`: they keep their width, and an extruder beyond it
-   reads their first value, so extruder 2 and up of a list-less printer take extruder 1's normal limit
-   as their silent one too. With the three in agreement that changes nothing; a pair written without
-   the list is replaced. A listed variant the pair lacks is a menu choice that reads variant index 0.
+   the rebuilt pair, padded with their first value or cut. The `machine_max_*` limits are padded the
+   same way, so extruder 2 and up of a list-less printer take extruder 1's normal limit as their
+   silent one too. The resize skips `hotend_heating_rate` / `hotend_cooling_rate`: they keep their
+   width, and an extruder beyond it reads their first value. With the three in agreement that changes
+   nothing; a pair written without the list is replaced. A listed variant the pair lacks is a menu
+   choice that reads variant index 0.
    - The pair without `extruder_variant_list` slices, but the sidebar offers no variant switch and
      the app cannot add variants to a list-less process: nothing is lost while every extruder
      has exactly one variant, and every further variant is unreachable.

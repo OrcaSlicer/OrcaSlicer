@@ -23,6 +23,7 @@
 #include <atomic>
 #include <utility>
 #include <vector>
+#include "libslic3r/Model.hpp"
 
 namespace Slic3r {
 

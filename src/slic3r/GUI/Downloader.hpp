@@ -1,7 +1,6 @@
 #ifndef slic3r_Downloader_hpp_
 #define slic3r_Downloader_hpp_
 
-#include "DownloaderFileGet.hpp"
 #include <boost/filesystem/path.hpp>
 #include <string>
 #include <wx/event.h>
@@ -9,6 +8,8 @@
 #include <vector>
 #include <cstddef>
 #include <wx/wx.h>
+
+namespace Slic3r::GUI { class FileGet; }
 
 namespace Slic3r {
 namespace GUI {

@@ -1,5 +1,5 @@
 #include "SendJob.hpp"
-#include "json_diff.hpp"
+#include <nlohmann/json.hpp>
 #include "bambu_networking.hpp"
 #include "libslic3r/LifecycleEvents.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -23,6 +23,7 @@
 #include <boost/filesystem.hpp>
 
 namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {
@@ -351,7 +352,7 @@ void SendJob::process(Ctl &ctl)
     } else {
           switch(this->sdcard_state) {
                 case DevStorage::SdcardState::NO_SDCARD:
-                    ctl.update_status(curr_percent, _u8L("Storage needs to be inserted before sending to printer."));
+                    ctl.update_status(curr_percent, _u8L("Insert storage or free up space before sending to the printer."));
                     return;
                 case DevStorage::SdcardState::HAS_SDCARD_ABNORMAL:
                     if(this->has_sdcard) {

@@ -21,6 +21,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include "libnest2d_test_utils.hpp"
 #include "printer_parts.hpp"
+#include "libnest2d/nester.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
 
 using namespace libnest2d;
 

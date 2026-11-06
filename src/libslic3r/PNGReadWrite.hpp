@@ -50,6 +50,9 @@ struct ReadBuf { const void *buf = nullptr; const size_t sz = 0; };
 
 bool is_png(const ReadBuf &pngbuf);
 
+// True if decode_png() or decode_colored_png() would accept these bytes, judged from the header alone.
+bool is_decodable_8bit_png(const ReadBuf &pngbuf);
+
 struct ReadBufStream: public IStream {
     const ReadBuf &rbuf_ref;
     size_t pos = 0;

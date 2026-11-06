@@ -2,11 +2,7 @@
 #define slic3r_PluginsDialog_hpp_
 
 #include "Widgets/WebViewHostDialog.hpp"
-#include "Widgets/ProgressDialog.hpp"
-#include "PluginSource.hpp"
-#include "PluginStatus.hpp"
 #include "PluginSort.hpp"
-#include "slic3r/plugin/PluginDescriptor.hpp"
 
 #include <atomic>
 #include <boost/filesystem/path.hpp>
@@ -15,6 +11,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <nlohmann/json_fwd.hpp>
 #include <optional>
 #include <string>
 #include <thread>
@@ -32,7 +29,9 @@
 #include <boost/filesystem.hpp>
 #include <wx/toplevel.h>
 
-class wxTimer;
+class wxWindow;
+namespace Slic3r { struct PluginDescriptor; }
+
 
 namespace Slic3r {
 
@@ -234,11 +233,15 @@ public:
 
     void set_open_terminal_dlg_fn();
     void update_plugin_dialog_ui();
+    // Main thread only. Refresh visible permissions after an external grant; hidden dialogs
+    // are refreshed by the normal open path instead.
+    void refresh_permissions_if_visible();
 
 private:
     void open_plugin_on_cloud(const std::string& sharing_token);
     void open_plugin_hub();
     void on_script_message(const nlohmann::json& payload) override;
+    nlohmann::json localized_strings() const override;
     // Runs one web command on a clean main-loop stack; see on_script_message.
     void handle_web_command(const nlohmann::json& payload);
     // Re-raises this dialog after a transient modal it opened (file dialog, message box,
@@ -257,6 +260,9 @@ private:
     void prompt_for_missing_plugins();
     void refresh_plugins();
     void toggle_plugin(const std::string& plugin_key, bool enabled);
+    // Shared native warning for enabling full access. Returns true only on an explicit Yes.
+    bool prompt_enable_full_access(const std::string& plugin_key);
+    void mutate_plugin_permission(const nlohmann::json& payload);
     void toggle_plugin_capability(const std::string& plugin_key, PluginCapabilityType type, const std::string& capability_name, bool enabled);
     void handle_plugin_menu_action(const std::string& plugin_key, const std::string& action);
 

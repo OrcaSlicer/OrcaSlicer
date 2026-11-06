@@ -18,6 +18,7 @@
 #include <wx/window.h>
 #include <wx/tglbtn.h>
 #include <wx/wxcrtvararg.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
 
 wxString CustomWidgetsPlugin::GetName() const
 {

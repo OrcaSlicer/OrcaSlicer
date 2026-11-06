@@ -7,8 +7,6 @@
 
 #include <libslic3r/SLAPrint.hpp>
 
-#include <libslic3r/SLA/Hollowing.hpp>
-#include <libslic3r/SLA/SupportTree.hpp>
 #include <string>
 
 namespace Slic3r {

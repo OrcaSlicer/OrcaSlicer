@@ -12,6 +12,7 @@
 #include <string>
 #include <ostream>
 #include <wx/string.h>
+#include <wx/buffer.h>
 
 namespace Slic3r { 
 namespace GUI { 

@@ -1,10 +1,24 @@
 #include <catch2/catch_all.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/GCode/PreciseSeam.hpp"
 #include "libslic3r/GCode/PreciseSeamInternal.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
+#include <utility>
+#include <cstddef>
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Model.hpp"
+#include <vector>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polyline.hpp"
 
 using namespace Slic3r;
 

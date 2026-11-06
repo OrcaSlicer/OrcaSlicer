@@ -55,6 +55,12 @@
 #include <memory>
 #include <numeric>
 #include <sstream>
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/GCodeViewer.hpp"
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+
+class wxWindow;
 
 namespace Slic3r {
 namespace GUI {

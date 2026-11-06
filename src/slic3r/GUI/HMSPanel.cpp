@@ -3,8 +3,6 @@
 #include "slic3r/GUI/DeviceCore/DevHMS.h"
 #include <boost/log/trivial.hpp>
 #include <slic3r/GUI/Widgets/SideTools.hpp>
-#include <slic3r/GUI/Widgets/Label.hpp>
-#include <slic3r/GUI/I18N.hpp>
 #include <wx/event.h>
 #include <string>
 #include <wx/panel.h>
@@ -19,6 +17,8 @@
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 #include "Monitor.hpp"
+
+class wxWindow;
 
 namespace Slic3r {
 namespace GUI {

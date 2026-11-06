@@ -30,6 +30,8 @@
 // Not self-contained: its inline constructor uses PrintObject, PrintRegion, SlicingParameters and
 // Geometry, so it must follow the headers (pulled in via test_helpers.hpp) that define them.
 #include "libslic3r/Support/SupportParameters.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Print.hpp"
 
 using namespace Slic3r::Test;
 using namespace Slic3r;

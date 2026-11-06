@@ -20,6 +20,7 @@
 #include <vector>
 #include <utility>
 #include <optional>
+#include "libslic3r/ArcFitter.hpp"
 
 using namespace Slic3r;
 using Slic3r::AABBTreeLines::LinesDistancer;
@@ -713,6 +714,90 @@ TEST_CASE("Stored wipe path follows the incoming wall when a corner gap truncate
     REQUIRE(path.points.size() >= 3);
     CHECK(path.points[1].x() < seam_end.x());
     CHECK(path.points[1].y() < seam_end.y());
+}
+
+TEST_CASE("Stored wipe path preserves the requested offset beside an inner wall corner",
+          "[WipePath][InwardCornerRegression][Regression]")
+{
+    const double inner_corner = GENERATE(12.448, 12.45, 12.452, 12.47);
+    const int mirror = GENERATE(1, -1);
+    const int rotation = GENERATE(0, 1, 2, 3);
+    CAPTURE(inner_corner, mirror, rotation);
+    const auto point = [mirror, rotation](double x, double y) {
+        x *= mirror;
+        for (int i = 0; i < rotation; ++i) {
+            const double old_x = x;
+            x = -y;
+            y = old_x;
+        }
+        return Point::new_scale(x, y);
+    };
+    // A 0.42 mm outer wall and the already printed sandwich-order inner wall
+    // put the 0.84 mm support sample beside that inner wall's corner. Moving
+    // the corner across the sample must not reduce a 0.21 mm offset to noise.
+    const double corner = 13.29;
+    const double offset = 0.21;
+    const Polyline original{
+        point(corner, corner), point(-corner, corner), point(-corner, -corner),
+        point(corner, -corner), point(corner, corner - 0.04),
+    };
+    const Polyline inner{
+        point(inner_corner, inner_corner), point(-inner_corner, inner_corner),
+        point(-inner_corner, -inner_corner), point(inner_corner, -inner_corner),
+        point(inner_corner, inner_corner),
+    };
+    Polyline path = original;
+    REQUIRE(offset_wipe_path_toward_support(
+        path, original.first_point(), original.last_point(), original.last_point(),
+        mirror, scale_(offset), scale_(2.), inner.lines(), inner.lines(), original.lines(), scale_(0.42)));
+    REQUIRE(path.points.size() >= 2);
+    // The fully supported forward offset keeps its inward miter and full length.
+    const Point expected = point(corner - offset, corner - offset);
+    CHECK_THAT((path.points[1] - expected).cast<double>().norm(),
+               Catch::Matchers::WithinAbs(0., 4. * SCALED_EPSILON));
+    const Vec2d first_move = (path.points[1] - original.last_point()).cast<double>();
+    CHECK(first_move.dot((point(0., 0.) - original.last_point()).cast<double>()) > 0.);
+    path.points.front() = original.last_point();
+    CHECK_THAT(path.length(), Catch::Matchers::WithinAbs(scale_(2.), 4. * SCALED_EPSILON));
+}
+
+TEST_CASE("Stored wipe path checks every candidate from the nozzle after a loop pre-move",
+          "[WipePath][InwardCornerRegression][Regression]")
+{
+    const double gap = GENERATE(0., 0.04);
+    const int mirror = GENERATE(1, -1);
+    const int rotation = GENERATE(0, 1, 2, 3);
+    CAPTURE(gap, mirror, rotation);
+    const auto point = [mirror, rotation](double x, double y) {
+        x *= mirror;
+        for (int i = 0; i < rotation; ++i) {
+            const double old_x = x;
+            x = -y;
+            y = old_x;
+        }
+        return Point::new_scale(x, y);
+    };
+    const Polyline original{
+        point(13.29, 13.29), point(-13.29, 13.29), point(-13.29, -13.29),
+        point(13.29, -13.29), point(13.29, 13.29 - gap),
+    };
+    const Polyline inner{
+        point(12.448, 12.448), point(-12.448, 12.448), point(-12.448, -12.448),
+        point(12.448, -12.448), point(12.448, 12.448),
+    };
+    // The nozzle is already farther inward than the requested 0.02 mm offset.
+    // Neither a forward nor a reverse candidate may move it back toward the wall.
+    const Point wipe_start = point(13.21, 13.21);
+    Polyline path = original;
+    if (offset_wipe_path_toward_support(
+            path, original.first_point(), original.last_point(), wipe_start,
+            mirror, scale_(0.02), scale_(2.), inner.lines(), inner.lines(), original.lines(), scale_(0.42))) {
+        REQUIRE(path.points.size() >= 2);
+        const Vec2d first_move = (path.points[1] - wipe_start).cast<double>();
+        CHECK(first_move.dot((point(0., 0.) - wipe_start).cast<double>()) > 0.);
+    } else {
+        CHECK(path.points == original.points);
+    }
 }
 
 TEST_CASE("Stored wipe path prefers support on the material side of a seam gap", "[WipePath][Regression]")

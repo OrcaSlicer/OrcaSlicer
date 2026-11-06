@@ -84,7 +84,7 @@ public:
     indexed_triangle_set        bounding_mesh(bool scale=true) const;
 
     // Center of the print bed, unscaled.
-    Vec2d                       bed_center()        const { return to_2d(m_bboxf.center()); }
+    Vec2d                       bed_center()        const { return get_extents(m_bed_shape).center(); }
     // Convex hull of polygon(), scaled.
     const Polygon&              convex_hull()       const { return m_convex_hull; }
     // Smallest enclosing circle of polygon(), scaled.

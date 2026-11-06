@@ -20,7 +20,6 @@
 #include <wx/dataview.h>
 #include <wx/artprov.h>
 #include <wx/xrc/xmlres.h>
-#include <wx/dataview.h>
 #include <wx/gdicmn.h>
 #include <wx/font.h>
 #include <wx/colour.h>
@@ -33,7 +32,6 @@
 #include <wx/dialog.h>
 #include <wx/popupwin.h>
 #include <wx/spinctrl.h>
-#include <wx/artprov.h>
 #include <wx/wrapsizer.h>
 #include <wx/srchctrl.h>
 
@@ -220,7 +218,6 @@ public:
     std::string get_storage_selected();
 
     wxString format_text(wxString& m_msg);
-    std::vector<std::string> sort_string(std::vector<std::string> strArray);
     void GetConnection();
 
 private:

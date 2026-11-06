@@ -1,14 +1,10 @@
 #pragma once
 
 #include "PluginDescriptor.hpp"
-#include <pybind11/pytypes.h>
-
-#include <nlohmann/json.hpp>
-#include <pybind11/pybind11.h>
 
 #include <boost/filesystem/path.hpp>
 
-#include <cstdint>
+#include <mutex>
 #include <string>
 #include <utility>
 #include <vector>
@@ -20,77 +16,28 @@ namespace Slic3r {
 
 extern const char* const INSTALL_STATE_FILE;
 
-// JSON <-> Python conversion shared by the plugin bindings. The caller must hold the GIL.
-// Plugin config and orca.host.ui payloads both cross the boundary as plain JSON-compatible
-// values, so both go through these.
-
-inline pybind11::object json_to_py(const nlohmann::json& j)
-{
-    namespace py = pybind11;
-    using json   = nlohmann::json;
-
-    switch (j.type()) {
-    case json::value_t::null:            return py::none();
-    case json::value_t::boolean:         return py::bool_(j.get<bool>());
-    case json::value_t::number_integer:  return py::int_(j.get<std::int64_t>());
-    case json::value_t::number_unsigned: return py::int_(j.get<std::uint64_t>());
-    case json::value_t::number_float:    return py::float_(j.get<double>());
-    case json::value_t::string:          return py::str(j.get<std::string>());
-    case json::value_t::array: {
-        py::list lst;
-        for (const auto& e : j)
-            lst.append(json_to_py(e));
-        return lst;
-    }
-    case json::value_t::object: {
-        py::dict d;
-        for (auto it = j.begin(); it != j.end(); ++it)
-            d[py::str(it.key())] = json_to_py(it.value());
-        return d;
-    }
-    default: return py::none();
-    }
-}
-
-inline nlohmann::json py_to_json(const pybind11::handle& o)
-{
-    namespace py = pybind11;
-    using json   = nlohmann::json;
-
-    if (o.is_none())
-        return json(nullptr);
-    if (py::isinstance<py::bool_>(o)) // bool before int (bool subclasses int in Python)
-        return o.cast<bool>();
-    if (py::isinstance<py::int_>(o))
-        return o.cast<std::int64_t>();
-    if (py::isinstance<py::float_>(o))
-        return o.cast<double>();
-    if (py::isinstance<py::str>(o))
-        return o.cast<std::string>();
-    if (py::isinstance<py::bytes>(o))
-        return o.cast<std::string>();
-    if (py::isinstance<py::dict>(o)) {
-        json obj = json::object();
-        for (auto item : py::reinterpret_borrow<py::dict>(o))
-            obj[py::str(item.first).cast<std::string>()] = py_to_json(item.second);
-        return obj;
-    }
-    if (py::isinstance<py::list>(o) || py::isinstance<py::tuple>(o)) {
-        json arr = json::array();
-        for (auto e : o)
-            arr.push_back(py_to_json(e));
-        return arr;
-    }
-    return py::str(o).cast<std::string>(); // fallback: str()
-}
-
 struct PluginPermissions
 {
+    // Filesystem targets. A target ending in "/*" (e.g. "/path/to/folder/*") grants the folder
+    // and its whole subtree, at any depth; "*" is the only wildcard and only as the final path
+    // component. Reads and writes stay separate buckets: a wildcard in one never grants the other.
     std::vector<std::string> fs_read;
     std::vector<std::string> fs_readwrite;
     std::vector<std::string> network_http;
     std::vector<std::string> network_socket;
     std::vector<std::string> process;
+    // Thread creation is a yes/no grant. Newer sidecars store a boolean; older ones stored an
+    // array (empty when denied, nonempty when granted), and nonempty strings are accepted by the
+    // same migration rule. The reader never rewrites; the next normal write emits a boolean.
+    bool threading = false;
+    // Grants for audit events that expose no target, keyed "<category>:<event>" (e.g.
+    // "Socket:socket.__new__"). Matched verbatim; the filesystem wildcard does not apply.
+    std::vector<std::string> events;
+    // Turns auditing off for the whole plugin: every audited event is allowed without a grant or
+    // prompt, except the unconditional denied paths (the install-state sidecar, the app config,
+    // the cloud refresh token), which stay blocked. Stored as a JSON boolean; a missing or
+    // non-boolean value reads as false. This is a Python audit-hook policy, not an OS sandbox.
+    bool full_access = false;
 };
 
 struct PluginInstallState {
@@ -163,18 +110,72 @@ bool read_wheel_plugin_metadata(const boost::filesystem::path& whl_path, PluginD
 // Returns the path to the entry file, or an empty path with error set if zero or multiple candidates.
 boost::filesystem::path find_installed_plugin_entry(const boost::filesystem::path& plugin_dir, std::string& error);
 
+// Validated non-recursive .png/.jpg/.jpeg/.bmp files directly inside `dir`, every one contained in
+// `plugin_root`. Empty with `error` set on failure.
+std::vector<std::string> collect_resource_texture_files(const std::string& dir,
+                                                        const std::string& plugin_root,
+                                                        std::string& error);
+
+// Process-wide mutex serializing every in-process read and read-modify-write of a plugin's
+// .install_state.json sidecar. Hold it across the read and the matching write so two writers
+// cannot overwrite each other's grants, and around standalone reads so a reader cannot observe a
+// state while another thread is replacing it. It is not a file lock: another OrcaSlicer process
+// writing the same sidecar is not serialized.
+//
+// Lock order: install-state mutex -> PluginManager::m_mutex. Code that already holds the manager
+// lock must not acquire this one.
+std::mutex& install_state_mutex();
+
 // Canonical writer: emits the .install_state.json schema for the given state.
+// The file is replaced strictly atomically: the payload is written to a uniquely named temporary
+// in the sidecar's own directory, flushed and closed with the stream state checked, then moved
+// over the target with the platform replace primitive (POSIX rename(2), Windows MoveFileExW with
+// MOVEFILE_REPLACE_EXISTING). There is no in-place fallback. On any failure the temporary is
+// removed and the original sidecar is left untouched; the function returns false.
+// A full read-modify-write caller must hold install_state_mutex() across its read and this write.
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginInstallState& state);
-// Builds a PluginInstallState from the descriptor and delegates to the canonical writer.
+
+// Builds a PluginInstallState from the descriptor and delegates to the canonical writer. This
+// overload reads the sidecar itself, so callers must hold install_state_mutex(). An existing
+// sidecar that cannot be read is never replaced: the write fails and leaves it untouched. A
+// missing sidecar is a new plugin, so the metadata is seeded and written.
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginDescriptor& entry, bool enabled,
                          const std::vector<std::pair<std::string, bool>>& capabilities);
 // Convenience overload: write(dir, entry, /*enabled=*/true, /*capabilities=*/{}).
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginDescriptor& entry);
 
+// Fill the descriptor-derived install metadata into a sidecar state that does not describe an
+// installed plugin yet, and mark it enabled. Leaves permissions and capabilities untouched.
+// Single source for the metadata mapping used by the install writer and by the audit prompt path
+// that creates a sidecar on demand.
+void seed_install_metadata(PluginInstallState& state, const PluginDescriptor& entry);
+
+// Outcome of a sidecar read. Callers that may write a sidecar must distinguish Absent from
+// Unreadable: a missing file is a new install whose metadata may be seeded, while an existing file
+// that cannot be parsed -- or that cannot be examined because of a filesystem error -- holds state
+// that must not be replaced. Only Absent and Readable are safe to overwrite.
+enum class InstallStateReadStatus {
+    Absent,    // no entry at the sidecar path
+    Readable,  // parsed successfully into `out`
+    Unreadable // the path exists but is not a regular readable file, or its contents are malformed
+};
+
+// Reads the sidecar and reports why it failed. `out` is only assigned on Readable. When `malformed`
+// is given, it is set to whether the result is Unreadable because the sidecar is a regular file
+// (not a link) that reads in full but does not parse as a JSON object, as opposed to a path that
+// cannot be examined, opened or read in full. Reading such a file again cannot recover it, so a
+// plugin load sets it aside (see plugin_loader::load); every other caller treats it as Unreadable.
+// Caller must hold install_state_mutex(); see the note on read_install_state below.
+InstallStateReadStatus read_install_state_status(const boost::filesystem::path& plugin_dir, PluginInstallState& out,
+                                                 bool* malformed = nullptr);
+
 // Reads install state back into the descriptor; plugin_key is always derived. Returns whether the
 // sidecar was present and valid.
+// Caller must hold install_state_mutex(); it is not recursive, so a caller already holding the
+// lock must call this raw overload, not PluginManager::get_install_state().
 bool read_install_state(const boost::filesystem::path& plugin_dir, PluginDescriptor& entry);
 // Full read of the sidecar; returns false if there is no/invalid sidecar.
+// Caller must hold install_state_mutex(); see the note above.
 bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstallState& out);
 
 } // namespace Slic3r

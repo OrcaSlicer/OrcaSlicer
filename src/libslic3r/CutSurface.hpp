@@ -6,7 +6,9 @@
 #include <vector>
 #include <admesh/stl.h> // indexed_triangle_set
 #include "ExPolygon.hpp"
-#include "Emboss.hpp" // IProjection
+
+namespace Slic3r::Emboss { class IProject3d; }
+namespace Slic3r::Emboss { class IProjection; }
 
 namespace Slic3r{
 

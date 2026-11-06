@@ -1,4 +1,3 @@
-#include "libslic3r/libslic3r.h"
 #include "FrameProfiler.hpp"
 
 #include "3DScene.hpp"

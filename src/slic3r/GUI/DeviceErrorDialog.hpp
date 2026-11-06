@@ -19,6 +19,13 @@
 #include "Widgets/StateColor.hpp"
 #include <nlohmann/json.hpp>
 
+class wxBoxSizer;
+class wxScrolledWindow;
+class wxStaticBitmap;
+class wxTimer;
+class wxTimerEvent;
+class wxWindow;
+
 class Label;
 class Button;
 

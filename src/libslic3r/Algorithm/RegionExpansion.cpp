@@ -20,6 +20,7 @@
 #include <numeric>
 #include <vector>
 #include <utility>
+#include "libslic3r/BoundingBox.hpp"
 
 namespace Slic3r {
 namespace Algorithm {

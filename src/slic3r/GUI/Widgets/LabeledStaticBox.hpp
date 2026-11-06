@@ -13,10 +13,11 @@
 #include <wx/statbox.h>
 #include <wx/pen.h>
 
-#include "libslic3r/Utils.hpp"
 
-#include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/Widgets/StateHandler.hpp"
+
+class wxDC;
+class wxWindow;
 
 class LabeledStaticBox : public wxStaticBox
 {

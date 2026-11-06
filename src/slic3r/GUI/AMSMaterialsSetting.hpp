@@ -2,6 +2,7 @@
 #define slic3r_AMSMaterialsSetting_hpp_
 
 #include "libslic3r/Preset.hpp"
+#include "ColorPickerDialog.hpp"
 #include "wxExtensions.hpp"
 #include "GUI_Utils.hpp"
 #include "DeviceManager.hpp"
@@ -14,10 +15,10 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/TextInput.hpp"
-#include "Widgets/HyperLink.hpp"
 #include "slic3r/Utils/CalibUtils.hpp"
 #include <wx/anybutton.h>
 #include <wx/colour.h>
+#include <cstddef>
 #include <vector>
 #include <wx/checklst.h>
 #include <wx/gdicmn.h>
@@ -32,6 +33,8 @@
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <wx/panel.h>
 #include <map>
+#include <set>
+#include <optional>
 
 #define AMS_MATERIALS_SETTING_DEF_COLOUR wxColour(255, 255, 255)
 #define AMS_MATERIALS_SETTING_GREY900 wxColour(38, 46, 48)
@@ -60,7 +63,7 @@ public:
     bool            m_selected{false};
     bool            m_show_full{false};
     bool            m_is_empty{false};
-    int             ctype;
+    int             ctype = 2;
 
     bool            transparent_changed{false};
 
@@ -82,15 +85,28 @@ public:
 class ColorPickerPopup : public PopupWindow
 {
 public:
+    // Manual AMS color writes support at most four components.
+    static constexpr std::size_t MAX_EDITABLE_COLORS = 4;
+
+    struct ColorItem
+    {
+        std::vector<wxColour> colors;
+        int                   ctype = 2;
+        wxString              name;
+
+        std::optional<ColorSelection> picker_selection(bool allow_gradient) const;
+        static ColorItem from_picker_selection(const ColorSelection& selection);
+    };
+
     ScalableBitmap m_ts_bitmap_custom;
     wxStaticBitmap* m_ts_stbitmap_custom;
     StaticBox* m_custom_cp;
-    wxColourData* m_clrData;
     StaticBox* m_def_color_box;
     wxFlexGridSizer* m_ams_fg_sizer;
+    wxFlexGridSizer* m_other_fg_sizer;
     wxColour m_def_col;
     std::vector<wxColour> m_def_colors;
-    std::vector<wxColour> m_ams_colors;
+    std::vector<ColorItem> m_ams_color_items;
     std::vector<ColorPicker*> m_color_pickers;
     std::vector<ColorPicker*> m_ams_color_pickers;
 
@@ -98,13 +114,22 @@ public:
     ColorPickerPopup(wxWindow* parent);
     ~ColorPickerPopup() {};
     void on_custom_clr_picker(wxMouseEvent& event);
-    void set_ams_colours(std::vector<wxColour> ams);
-    void set_def_colour(wxColour col);
+    void set_allow_multi_color(bool allow) { m_allow_multi_color = allow; }
+    void set_ams_colours(const std::vector<ColorItem>& ams);
+    void set_preset_colours(const std::vector<ColorItem>& preset_colors);
+    void set_def_colour(wxColour col, std::vector<wxColour> cols = {}, int ctype = 2);
+    const std::vector<wxColour>& get_selected_colours() const { return m_def_cols; }
+    int get_selected_ctype() const { return m_def_ctype; }
     void paintEvent(wxPaintEvent& evt);
     virtual void OnDismiss() wxOVERRIDE;
     virtual bool ProcessLeftDown(wxMouseEvent& event) wxOVERRIDE;
 
-public:
+private:
+    std::vector<ColorPicker*> m_default_color_pickers;
+    std::vector<ColorPicker*> m_preset_color_pickers;
+    std::vector<wxColour> m_def_cols;
+    int m_def_ctype = 2;
+    bool m_allow_multi_color = false;
 };
 
 
@@ -157,6 +182,7 @@ protected:
     void create_panel_kn(wxWindow* parent);
     void on_dpi_changed(const wxRect &suggested_rect) override;
     void on_select_filament(wxCommandEvent& evt);
+    void on_toggle_favorite_filament(wxCommandEvent& evt);
     void on_select_cali_result(wxCommandEvent &evt);
     void on_select_ok(wxCommandEvent &event);
     void on_select_reset(wxCommandEvent &event);
@@ -164,6 +190,11 @@ protected:
     void on_clr_picker(wxMouseEvent &event);
     bool is_virtual_tray();
     void update_widgets();
+    void rebuild_filament_dropdown_items(const std::string& selected_filament_id);
+    void update_favorite_stars();
+    std::set<std::string> load_favorite_filament_ids() const;
+    void save_favorite_filament_ids(const std::set<std::string>& favorite_ids);
+    void toggle_favorite_filament(const std::string& filament_id);
 
     void update_filament_editing(bool is_printing);
     // Orca: the variant index of the filament's per-variant options on the nozzle this tray feeds
@@ -194,7 +225,7 @@ protected:
 
     wxPanel *           m_panel_kn;
     wxStaticText*       m_ratio_text;
-    HyperLink *         m_wiki_ctrl;
+    Button *            m_wiki_ctrl;
     wxStaticText*       m_k_param;
     TextInput*          m_input_k_val;
     wxStaticText*       m_n_param;
@@ -203,12 +234,7 @@ protected:
 
     int m_pa_cali_select_id = 0;
 
-// Orca: native wxComboBox on macOS (the custom ComboBox mis-renders the filament dropdown there)
-#ifdef __APPLE__
-    wxComboBox *m_comboBox_filament;
-#else
     ComboBox *m_comboBox_filament;
-#endif
     ComboBox * m_comboBox_cali_result;
     TextInput*       m_readonly_filament;
 
@@ -216,7 +242,20 @@ protected:
         std::string filament_id;
         std::string setting_id;
     };
-    std::map<std::string, FilamentInfos> map_filament_items;
+    struct FilamentListItem {
+        FilamentInfos filament;
+        bool          is_filament{false};
+    };
+    const FilamentInfos* selected_filament_info() const;
+
+    // Keyed by the same wxString the dropdown shows, so a row's name never has to be converted back.
+    std::map<wxString, FilamentInfos>    map_filament_items;
+    std::vector<wxString>                m_sorted_filament_items;
+    std::vector<FilamentListItem>        m_filament_list_items;
+    ScalableBitmap                       m_star_filled;
+    ScalableBitmap                       m_star_empty;
+    // Favorites changed while the list was open; their rows are regrouped before it opens again.
+    bool                                 m_favorites_regroup{false};
 };
 
 wxDECLARE_EVENT(EVT_SELECTED_COLOR, wxCommandEvent);

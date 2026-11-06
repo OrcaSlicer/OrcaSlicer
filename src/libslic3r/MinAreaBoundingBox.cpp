@@ -23,6 +23,7 @@
 
 #include <libnest2d/backends/libslic3r/geometries.hpp>
 #include <libnest2d/utils/rotcalipers.hpp>
+#include "Polygon.hpp"
 
 namespace Slic3r {
 

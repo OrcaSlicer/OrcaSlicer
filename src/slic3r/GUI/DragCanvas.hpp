@@ -11,6 +11,12 @@
 #include <wx/event.h>
 #include <wx/colour.h>
 
+class wxDC;
+class wxEraseEvent;
+class wxMouseEvent;
+class wxPaintEvent;
+class wxWindow;
+
 namespace Slic3r { namespace GUI {
 
 class DragShape : public wxObject

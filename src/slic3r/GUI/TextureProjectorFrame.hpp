@@ -25,6 +25,9 @@
 #include <wx/frame.h>
 #include <wx/gdicmn.h>
 
+class wxPaintEvent;
+class wxWindow;
+
 namespace Slic3r { namespace GUI {
 
 class TextureProjectorFrame : public wxFrame

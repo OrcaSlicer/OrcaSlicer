@@ -24,6 +24,8 @@
 #include <cmath>
 #include <algorithm>
 #include <utility>
+#include <atomic>
+#include <set>
 
 #include <nlohmann/json.hpp>
 #include <boost/log/trivial.hpp>
@@ -161,15 +163,15 @@ json describe_tools()
                      json{{"name", "profile"}, {"type", "array"}, {"default", json::array()}, {"description", "optional closed contour [[x,y],...] in plane mm; overrides width/height"}},
                      json{{"name", "boolean"}, {"type", "string"}, {"enum", json::array({"new", "union", "subtract", "intersect"})}, {"default", "new"}},
                  })}},
-            json{{"name", "fillet"}, {"summary", "Round a measured edge of a body (edge id from query_topology on that body)."},
+            json{{"name", "fillet"}, {"summary", "Round measured edges of a body (edge ids from query_topology on that body)."},
                  {"params", json::array({
-                     json{{"name", "edge"},   {"type", "integer"}},
+                     json{{"name", "edge"},   {"type", "integer|array"}, {"description", "one edge id, or an array of ids rounded together in one feature"}},
                      json{{"name", "radius"}, {"type", "number"}, {"unit", "mm"}, {"default", 1}, {"min", 0.01}},
                      json{{"name", "body"},   {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body. edge id is resolved against THIS body."}},
                  })}},
-            json{{"name", "chamfer"}, {"summary", "Chamfer a measured edge of a body (edge id from query_topology on that body)."},
+            json{{"name", "chamfer"}, {"summary", "Chamfer measured edges of a body (edge ids from query_topology on that body)."},
                  {"params", json::array({
-                     json{{"name", "edge"},     {"type", "integer"}},
+                     json{{"name", "edge"},     {"type", "integer|array"}, {"description", "one edge id, or an array of ids chamfered together in one feature"}},
                      json{{"name", "distance"}, {"type", "number"}, {"unit", "mm"}, {"default", 1}, {"min", 0.01}},
                      json{{"name", "body"},     {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body. edge id is resolved against THIS body."}},
                  })}},
@@ -872,16 +874,30 @@ int target_body_arg(const json& params, const CadDocument& doc)
     return bi;   // <0 -> kernel uses the last body
 }
 
+// `edge` is one id or an array of ids; an array becomes ONE feature, every id resolved
+// against the same body (a chain of single-edge features would see the ids drift).
+std::vector<int> edge_ids_arg(const json& params, const char* verb)
+{
+    if (!params.contains("edge"))
+        throw std::runtime_error(std::string(verb) + " needs 'edge' (id or array of ids from query_topology)");
+    const json& e = params["edge"];
+    std::vector<int> ids;
+    if (e.is_array()) for (const json& v : e) ids.push_back(v.get<int>());
+    else              ids.push_back(e.get<int>());
+    if (ids.empty()) throw std::runtime_error(std::string(verb) + ": 'edge' is an empty array");
+    return ids;
+}
+
 json action_fillet(DesignPanel* panel, const json& params)
 {
-    if (!params.contains("edge")) throw std::runtime_error("fillet needs 'edge' (id from query_topology)");
+    const std::vector<int> edges = edge_ids_arg(params, "fillet");
     const double radius = params.value("radius", 1.0);
     if (radius <= 0) throw std::runtime_error("radius must be > 0");
     CadDocument& doc = panel->mcp_doc();
     if (doc.bodies.empty()) throw std::runtime_error("no body to fillet");
     int bi = target_body_arg(params, doc);
     doc.checkpoint();
-    int f = doc.add_fillet(radius, params["edge"].get<int>(), "Fillet");
+    int f = doc.add_fillet(radius, edges, "Fillet");
     if (bi >= 0) doc.features[f].target_body = bi;   // edge id resolved against THIS body's shape
     bool ok = doc.recompute();
     if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
@@ -892,14 +908,14 @@ json action_fillet(DesignPanel* panel, const json& params)
 
 json action_chamfer(DesignPanel* panel, const json& params)
 {
-    if (!params.contains("edge")) throw std::runtime_error("chamfer needs 'edge' (id from query_topology)");
+    const std::vector<int> edges = edge_ids_arg(params, "chamfer");
     const double dist = params.value("distance", 1.0);
     if (dist <= 0) throw std::runtime_error("distance must be > 0");
     CadDocument& doc = panel->mcp_doc();
     if (doc.bodies.empty()) throw std::runtime_error("no body to chamfer");
     int bi = target_body_arg(params, doc);
     doc.checkpoint();
-    int c = doc.add_chamfer(dist, params["edge"].get<int>(), "Chamfer");
+    int c = doc.add_chamfer(dist, edges, "Chamfer");
     if (bi >= 0) doc.features[c].target_body = bi;   // edge id resolved against THIS body's shape
     bool ok = doc.recompute();
     if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
@@ -1491,9 +1507,13 @@ json sketch_report(DesignSketchTool& t)
     }
     json open_ends = json::array();
     for (const Vec2d& p : rep.open_ends) open_ends.push_back(json::array({p.x(), p.y()}));
-    // A profile is buildable when at least one loop closed and nothing is left dangling.
-    const bool buildable = !rep.loops.empty() && rep.open_ends.empty();
-    return json{{"closed_loops", loops}, {"open_ends", open_ends}, {"buildable", buildable}};
+    // A profile is buildable when at least one loop closed, nothing is left dangling and no loop
+    // crosses or folds back on itself.
+    json defects = json::array();
+    for (const auto& l : rep.loops)
+        if (l.defect) defects.push_back(json::array({l.defect_at.x(), l.defect_at.y()}));
+    const bool buildable = !rep.loops.empty() && rep.open_ends.empty() && defects.empty();
+    return json{{"closed_loops", loops}, {"open_ends", open_ends}, {"defects", defects}, {"buildable", buildable}};
 }
 
 json action_sketch_describe(DesignPanel* panel, const json& params)
@@ -2002,6 +2022,22 @@ std::string handle_on_main(const std::string& method, const json& params, const 
     DesignPanel* panel = DesignPanel::ensure();
     if (!panel)
         return rpc_error(id, -32001, "Design panel not ready");
+    // A project opened without ever showing the Design tab has its recipe only in the Model;
+    // load it, as showing the tab would, before anything reads or writes the document.
+    panel->hydrate_from_model();
+
+    // Methods that only LOOK. Everything else changes the document or the live sketch, and
+    // must not do it under a GUI editor, a sketch session it does not own, or a rebuild in
+    // progress (the GUI's worker thread holds the document then).
+    static const std::set<std::string> kReadOnly = {
+        "describe_tools", "describe_scene", "query_topology", "measure", "mass_properties",
+        "slice_body", "validate_against", "list_verbs", "sketch_describe", "sketch_validate",
+        "check_interference" };
+    if (kReadOnly.count(method) == 0) {
+        std::string why;
+        if (panel->mcp_busy(method.rfind("sketch_", 0) == 0, why))
+            return rpc_error(id, -32002, "Design tab busy: " + why);
+    }
 
     // Stale-id guard, checked here rather than in each handler.
     //
@@ -2116,11 +2152,16 @@ std::string dispatch_request(const std::string& line)
 
     auto prom = std::make_shared<std::promise<std::string>>();
     auto fut  = prom->get_future();
+    // 0 = queued, 1 = running, 2 = abandoned. A request that timed out while still QUEUED must
+    // never run: the client has been told it failed, and a retry would otherwise apply it twice.
+    auto state = std::make_shared<std::atomic<int>>(0);
     // Nothing may escape this lambda. It is invoked by the wx event loop, which has no
     // handler of its own, so an escaping exception is std::terminate — the socket would
     // become a way for any client to kill the application. handle_on_main() catches what
     // it knows about; this catches what it does not, and still answers the caller.
-    wxGetApp().CallAfter([prom, method, params, id]() {
+    wxGetApp().CallAfter([prom, state, method, params, id]() {
+        int queued = 0;
+        if (!state->compare_exchange_strong(queued, 1)) return;   // abandoned by a timeout
         try {
             prom->set_value(handle_on_main(method, params, id));
         } catch (const std::exception& ex) {
@@ -2129,20 +2170,33 @@ std::string dispatch_request(const std::string& line)
             prom->set_value(rpc_error(id, -32000, "internal error: unknown exception"));
         }
     });
-    if (fut.wait_for(std::chrono::seconds(15)) != std::future_status::ready)
-        return rpc_error(id, -32000, "main-thread timeout");
+    if (fut.wait_for(std::chrono::seconds(15)) != std::future_status::ready) {
+        int queued = 0;
+        if (state->compare_exchange_strong(queued, 2))
+            return rpc_error(id, -32000, "main-thread timeout: the command was NOT run");
+        // Already running: it will finish, so wait for its real answer rather than report a
+        // failure for a command that is in fact being applied.
+        fut.wait();
+    }
     return fut.get();
 }
 
-// Read newline-delimited requests off one client connection until EOF.
+// Read newline-delimited requests off one client connection until EOF. A line may not grow
+// past kMaxLine: a client that never sends a newline would otherwise grow this buffer until the
+// process runs out of memory.
 void serve_client(int cfd)
 {
+    constexpr size_t kMaxLine = 16u << 20;   // 16 MB — far above any real request
     std::string buf;
     char chunk[4096];
     for (;;) {
         ssize_t n = ::read(cfd, chunk, sizeof(chunk));
         if (n <= 0) break;
         buf.append(chunk, size_t(n));
+        if (buf.size() > kMaxLine && buf.find('\n') == std::string::npos) {
+            BOOST_LOG_TRIVIAL(error) << "MCP: request line over " << kMaxLine << " bytes; closing the connection";
+            return;
+        }
         size_t nl;
         while ((nl = buf.find('\n')) != std::string::npos) {
             std::string line = buf.substr(0, nl);
@@ -2162,9 +2216,30 @@ void serve_client(int cfd)
     }
 }
 
+// Where the socket lives, for the exit handler.
+std::string g_sock_path;
+
+void remove_socket_at_exit()
+{
+    struct stat st{};
+    if (!g_sock_path.empty() && ::lstat(g_sock_path.c_str(), &st) == 0 && S_ISSOCK(st.st_mode))
+        ::unlink(g_sock_path.c_str());
+}
+
 void server_thread(std::string sock_path)
 {
-    ::unlink(sock_path.c_str());
+    // Clear a stale socket from an earlier run — and ONLY a socket. ORCA_CAD_MCP names a path,
+    // and unlinking it unconditionally deleted whatever file that path happened to be.
+    {
+        struct stat st{};
+        if (::lstat(sock_path.c_str(), &st) == 0) {
+            if (!S_ISSOCK(st.st_mode)) {
+                BOOST_LOG_TRIVIAL(error) << "MCP: " << sock_path << " exists and is not a socket; refusing to replace it";
+                return;
+            }
+            ::unlink(sock_path.c_str());
+        }
+    }
     int sfd = ::socket(AF_UNIX, SOCK_STREAM, 0);
     if (sfd < 0) { BOOST_LOG_TRIVIAL(error) << "MCP: socket() failed"; return; }
 
@@ -2189,6 +2264,8 @@ void server_thread(std::string sock_path)
         ::close(sfd); ::unlink(sock_path.c_str()); return;
     }
     if (::listen(sfd, 1) < 0) { BOOST_LOG_TRIVIAL(error) << "MCP: listen() failed"; ::close(sfd); return; }
+    g_sock_path = sock_path;
+    std::atexit(remove_socket_at_exit);   // do not leave the socket file behind
     BOOST_LOG_TRIVIAL(info) << "MCP control listening on " << sock_path;
 
     for (;;) {

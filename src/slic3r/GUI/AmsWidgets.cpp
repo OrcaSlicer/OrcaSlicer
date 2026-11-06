@@ -4,16 +4,13 @@
 #include <wx/button.h>
 #include <wx/sizer.h>
 #include <wx/dataview.h>
+#include <wx/string.h>
 #include <wx/variant.h>
 
-#include "GUI_App.hpp"
-#include "GUI_ObjectList.hpp"
-#include "Plater.hpp"
-#include "MainFrame.hpp"
-#include "Widgets/Label.hpp"
-#include "format.hpp"
 
 #include "DeviceCore/DevFilaSystem.h"
+#include "slic3r/GUI/DeviceCore/DevUtil.h"
+#include "slic3r/GUI/DeviceManager.hpp"
 
 
 namespace Slic3r {

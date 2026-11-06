@@ -1,6 +1,7 @@
 #include "GLGizmoSVG.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
 #include "slic3r/GUI/MainFrame.hpp" // to update title when add text
@@ -77,7 +78,6 @@
 #include <fstream>
 
 using namespace Slic3r;
-using namespace Slic3r::Emboss;
 using namespace Slic3r::GUI;
 using namespace Slic3r::GUI::Emboss;
 
@@ -1351,25 +1351,25 @@ void GLGizmoSVG::draw_window()
     assert(m_volume_id.valid());
     if (m_volume == nullptr ||
         m_volume_id.invalid()) {
-        ImGui::Text("Not valid state please report reproduction steps on github");
+        ImGui::Text("%s", _u8L("Not valid state please report reproduction steps on GitHub").c_str());
         return;
     }
 
     assert(m_volume->emboss_shape.has_value());
     if (!m_volume->emboss_shape.has_value()) {
-        ImGui::Text("No embossed file");
+        ImGui::Text("%s", _u8L("No embossed file").c_str());
         return;
     }
 
     assert(m_volume->emboss_shape->svg_file.has_value());
     if (!m_volume->emboss_shape->svg_file.has_value()){
-        ImGui::Text("Missing svg file in embossed shape");
+        ImGui::Text("%s", _u8L("Missing SVG file in embossed shape").c_str());
         return;
     }
 
     assert(m_volume->emboss_shape->svg_file->file_data != nullptr);
     if (m_volume->emboss_shape->svg_file->file_data == nullptr){
-        ImGui::Text("Missing data of svg file");
+        ImGui::Text("%s", _u8L("Missing data of SVG file").c_str());
         return;
     }
 
@@ -1690,7 +1690,9 @@ void GLGizmoSVG::draw_depth()
         result_scale = 1. / (*m_scale_depth);
     }
     
-    if (ImGui::InputDouble("##depth", &input, step, step_fast, size_format)) {
+    const bool input_changed = ImGui::InputDouble("##depth", &input, step, step_fast, size_format);
+    m_imgui->request_frames_while_held(); // ORCA auto-repeat of the +/- buttons
+    if (input_changed) {
         if (result_scale.has_value())
             input *= (*result_scale);
         apply(input, limits.depth);
@@ -2143,7 +2145,7 @@ std::string volume_name(const EmbossShape &shape)
     std::string file_name = get_file_name(shape.svg_file->path);
     if (!file_name.empty())
         return file_name;
-    return "SVG shape";
+    return _u8L("SVG shape");
 }
 
 CreateVolumeParams create_input(GLCanvas3D &canvas, RaycastManager& raycaster, ModelVolumeType volume_type)

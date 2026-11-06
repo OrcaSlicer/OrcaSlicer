@@ -18,6 +18,7 @@
 #include "libslic3r/GCode/WipeTower2.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
 
 using namespace Slic3r;
 using Catch::Matchers::WithinAbs;

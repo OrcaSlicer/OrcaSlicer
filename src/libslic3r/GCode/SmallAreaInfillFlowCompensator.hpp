@@ -1,12 +1,13 @@
 #ifndef slic3r_GCode_SmallAreaInfillFlowCompensator_hpp_
 #define slic3r_GCode_SmallAreaInfillFlowCompensator_hpp_
 
-#include "../libslic3r.h"
 #include "../PrintConfig.hpp"
-#include "../ExtrusionEntity.hpp"
-#include "PchipInterpolatorHelper.hpp"
 #include <memory>
 #include <vector>
+#include <cstdint>
+
+class PchipInterpolatorHelper;
+namespace Slic3r { enum ExtrusionRole : uint8_t; }
 
 namespace Slic3r {
 

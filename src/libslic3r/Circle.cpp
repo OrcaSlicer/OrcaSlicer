@@ -5,10 +5,8 @@
 #include <cstddef>
 #include <utility>
 #include <math.h>
-#include "Geometry.hpp"
 #include "Point.hpp"
 #include "Line.hpp"
-#include "Polygon.hpp"
 #include "libslic3r.h"
 
 

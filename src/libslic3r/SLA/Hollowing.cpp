@@ -28,10 +28,11 @@
 
 #include <boost/log/trivial.hpp>
 
-#include <libslic3r/MTUtils.hpp>
 #include <libslic3r/I18N.hpp>
 #include <utility>
 #include <vector>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/SLA/Pad.hpp"
 
 //! macro used to mark string used at localization,
 //! return same string

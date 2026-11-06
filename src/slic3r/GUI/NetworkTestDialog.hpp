@@ -6,8 +6,6 @@
 #include <boost/thread.hpp>
 
 #include "GUI_Utils.hpp"
-#include "wxExtensions.hpp"
-#include <slic3r/GUI/Widgets/Button.hpp>
 #include <wx/artprov.h>
 #include <wx/xrc/xmlres.h>
 #include <wx/button.h>
@@ -30,6 +28,14 @@
 #include <time.h>
 #include <vector>
 #include <algorithm>
+
+class Button;
+class wxBoxSizer;
+class wxCloseEvent;
+class wxStaticText;
+class wxTextCtrl;
+class wxWindow;
+namespace boost { class thread; }
 
 namespace Slic3r { 
 namespace GUI {

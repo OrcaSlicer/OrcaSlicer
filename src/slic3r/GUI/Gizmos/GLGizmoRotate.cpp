@@ -4,7 +4,6 @@
 
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Shortcuts.hpp"
-#include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Jobs/RotoptimizeJob.hpp"
 
@@ -32,6 +31,16 @@
 #include <imgui.h>
 #include "slic3r/GUI/Jobs/Worker.hpp"
 #include <memory>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Selection.hpp"
 
 namespace Slic3r {
 namespace GUI {

@@ -1,7 +1,6 @@
 #include "Geometry.hpp"
 #include "Line.hpp"
 #include "Point.hpp"
-#include "Polyline.hpp"
 #include <Eigen/Core>
 #include "libslic3r.h"
 #include <algorithm>
@@ -9,6 +8,7 @@
 #include <cstring>
 #include <limits>
 #include <sstream>
+#include "BoundingBox.hpp"
 
 namespace Slic3r {
 

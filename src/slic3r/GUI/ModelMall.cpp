@@ -13,17 +13,19 @@
 #include "slic3r/GUI/Widgets/WebView.hpp"
 #include <wx/log.h>
 #include <wx/webview.h>
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include <exception>
 #include <wx/wx.h>
 #include <wx/sizer.h>
 #include <wx/statbox.h>
 #include "wx/evtloop.h"
 
-#include "libslic3r/Model.hpp"
 #include "MainFrame.hpp"
-#include "GUI_App.hpp"
 #include "Plater.hpp"
+
+using json = nlohmann::json;
+
+namespace Slic3r::GUI { class Plater; }
 
 namespace Slic3r {
 namespace GUI {

@@ -1,11 +1,9 @@
 #include <catch2/catch_all.hpp>
 #include <catch2/catch_test_macros.hpp>
-#include "test_utils.hpp"
 
 #include <cstdlib>
 #include <libslic3r/Optimize/BruteforceOptimizer.hpp>
 
-#include <libslic3r/Optimize/NLoptOptimizer.hpp>
 #include "libslic3r/Optimize/Optimizer.hpp"
 #include "libslic3r/libslic3r.h"
 

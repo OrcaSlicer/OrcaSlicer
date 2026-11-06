@@ -1,5 +1,4 @@
 #include "TextInput.hpp"
-#include "Label.hpp"
 #include "TextCtrl.h"
 #include "slic3r/GUI/Widgets/Label.hpp"
 
@@ -16,6 +15,8 @@
 #include <wx/gdicmn.h>
 #include <wx/textctrl.h>
 #include <wx/event.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
 
 #ifdef __WXGTK__
 #include "../GUI_Utils.hpp"

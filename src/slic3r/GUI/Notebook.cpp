@@ -7,7 +7,6 @@
 #include "Widgets/Button.hpp"
 
 //BBS set font size
-#include "Widgets/Label.hpp"
 
 #include <wx/bookctrl.h>
 #include <cmath>

@@ -24,9 +24,6 @@
 #include <system_error>
 #include <initializer_list>
 #include <string_view>
-#include <regex>
-#include <string_view>
-#include <algorithm>
 
 #include <boost/system/error_code.hpp>
 #include <boost/algorithm/string.hpp>
@@ -68,6 +65,7 @@
 #define CLI_OBJECT_ORIENT_FAILED       -22
 #define CLI_MODIFIED_PARAMS_TO_PRINTER -23
 #define CLI_FILE_VERSION_NOT_SUPPORTED -24
+#define CLI_EXPORT_STATISTICS_ERROR    -25
 
 
 #define CLI_NO_SUITABLE_OBJECTS     -50
@@ -111,7 +109,6 @@ extern std::string format_memsize_MB(size_t n);
 extern std::string format_memsize(size_t bytes, unsigned int decimals = 1);
 // Return string to be added to the boost::log output to inform about the current process memory allocation.
 // The string is non-empty if the loglevel >= info (3) or ignore_loglevel==true.
-// Latter is used to get the memory info from SysInfoDialog.
 extern std::string log_memory_info(bool ignore_loglevel = false);
 extern void disable_multi_threading();
 // Returns the size of physical memory (RAM) in bytes.
@@ -208,6 +205,16 @@ const std::string& custom_gcodes_dir();
 void set_data_dir(const std::string &path);
 // Return a full path to the GUI resource files.
 const std::string& data_dir();
+#ifndef _WIN32
+// The per-user configuration directory an application gets when no --datadir is given:
+// $XDG_CONFIG_HOME/<app_name>, or ~/.config/<app_name> when XDG_CONFIG_HOME is unset or empty.
+std::string xdg_config_dir(const std::string &app_name);
+#endif
+#ifdef __linux__
+// The data directory a start without --datadir uses: a data_dir folder next to the executable
+// when one exists, otherwise xdg_config_dir(SLIC3R_APP_KEY). Does not throw.
+std::string default_data_dir();
+#endif
 
 // BBL: true: succeed create or dir exists; false: fail to create
 bool makedir(const std::string path);
@@ -318,24 +325,12 @@ inline bool is_prusaslicer_open(const std::string& url) { return boost::starts_w
 inline bool is_bambustudio_open(const std::string& url) { return boost::starts_with(url, "bambustudio://open") || boost::starts_with(url, "bambustudioopen://"); }
 inline bool is_cura_open(const std::string& url) { return boost::starts_with(url, "cura://open"); }
 inline bool is_supported_open_protocol(const std::string& url) { return is_orca_open(url) || is_prusaslicer_open(url) || is_bambustudio_open(url) || is_cura_open(url); }
-inline bool is_printables_link(const std::string& url) {
-    const std::regex url_regex("(http|https)://printables.com", std::regex_constants::icase);
-    return std::regex_match(url, url_regex);
-}
-inline bool is_makerworld_link(const std::string& url) {
-    const std::regex url_regex("(http|https)://makerworld.com", std::regex_constants::icase);
-    return std::regex_match(url, url_regex);
-}
-inline bool is_thingiverse_link(const std::string& url) {
-    const std::regex url_regex("(http|https)://www.thingiverse.com", std::regex_constants::icase);
-    return std::regex_match(url, url_regex);
-}
+bool is_printables_link(const std::string& url);
+bool is_makerworld_link(const std::string& url);
+bool is_thingiverse_link(const std::string& url);
 
 // sanitize a string to be used as a filename
-inline std::string sanitize_filename(const std::string &filename){
-    const std::regex special_chars("[/\\\\:*?\"<>|]");
-    return std::regex_replace(filename, special_chars, "_");
-}
+std::string sanitize_filename(const std::string &filename);
 // Reduce an untrusted, possibly path-qualified name to a single sanitized file name.
 // Returns an empty string when nothing usable remains.
 inline std::string sanitize_file_basename(const std::string &name){
@@ -843,6 +838,13 @@ void save_string_file(const boost::filesystem::path& p, const std::string& str);
 void load_string_file(const boost::filesystem::path& p, std::string& str);
 
 bool check_layer_id_pattern(const std::string& pattern, int layer_id);
+
+// On Windows, return an equivalent path carrying the extended-length ("\\?\" / "\\?\UNC\")
+// prefix so the Win32 APIs accept it past MAX_PATH even when LongPathsEnabled is off. The path
+// is made absolute and lexically normalized first, because the prefix disables normalisation.
+// A path that is already extended (or a device path) is returned unchanged; on other platforms,
+// or when an absolute path cannot be formed, the input is returned unchanged.
+boost::filesystem::path extended_path(const boost::filesystem::path& path);
 
 } // namespace Slic3r
 

@@ -24,6 +24,7 @@
 #include "libslic3r/TriangleSelector.hpp"
 
 #include "test_helpers.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Test;

@@ -14,6 +14,8 @@
 
 #include "slic3r/GUI/3DScene.hpp" // GLVolume
 #include "libslic3r/Geometry/ConvexHull.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Geometry.hpp"
 
 using namespace Slic3r;
 using namespace GUI;

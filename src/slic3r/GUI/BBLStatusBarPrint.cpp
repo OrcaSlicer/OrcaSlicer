@@ -17,7 +17,6 @@
 #include <wx/frame.h>
 #include "wx/evtloop.h"
 #include <wx/gdicmn.h>
-#include "GUI_App.hpp"
 
 #include "I18N.hpp"
 

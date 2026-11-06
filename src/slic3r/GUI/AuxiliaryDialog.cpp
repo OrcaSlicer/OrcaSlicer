@@ -2,7 +2,6 @@
 #include "I18N.hpp"
 #include "GUI_AuxiliaryList.hpp"
 
-#include "libslic3r/Utils.hpp"
 
 #include <boost/property_tree/ptree.hpp>
 #include "slic3r/GUI/GUI_Utils.hpp"
@@ -10,6 +9,8 @@
 #include <wx/gdicmn.h>
 #include <wx/dialog.h>
 #include <wx/toplevel.h>
+
+class wxWindow;
 
 namespace pt = boost::property_tree;
 typedef pt::ptree JSON;
@@ -19,7 +20,7 @@ namespace GUI {
 
 
 AuxiliaryDialog::AuxiliaryDialog(wxWindow * parent)
-	: DPIDialog(parent, wxID_ANY,  _L("Auxiliaryies"), wxDefaultPosition,
+	: DPIDialog(parent, wxID_ANY,  _L("Auxiliaries"), wxDefaultPosition,
 		wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
 	m_aux_list = new AuxiliaryList(this);

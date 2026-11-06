@@ -8,6 +8,10 @@
 #include <string>
 #include <wx/string.h>
 
+class wxHyperlinkCtrl;
+class wxHyperlinkEvent;
+class wxWindow;
+
 class Label;
 
 namespace Slic3r

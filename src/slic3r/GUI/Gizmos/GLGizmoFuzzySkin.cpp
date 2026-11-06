@@ -32,6 +32,13 @@
 #include "libslic3r/Color.hpp"
 #include "slic3r/GUI/3DScene.hpp"
 #include <memory>
+#include "libslic3r/CutUtils.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/TriangleSelector.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
 
 namespace Slic3r::GUI {
 
@@ -390,7 +397,8 @@ void GLGizmoFuzzySkin::update_from_model_object(bool first_update)
         const TriangleMesh* mesh = &mv->mesh();
         m_triangle_selectors.emplace_back(std::make_unique<TriangleSelectorPatch>(*mesh, ebt_colors));
         // Reset of TriangleSelector is done inside TriangleSelectorGUI's constructor, so we don't need it to perform it again in deserialize().
-        m_triangle_selectors.back()->deserialize(mv->fuzzy_skin_facets.get_data(), false);
+        // Fuzzy skin paints a single state (FUZZY_SKIN): a higher state in the file is reset to NONE.
+        m_triangle_selectors.back()->deserialize(mv->fuzzy_skin_facets.get_data(), false, EnforcerBlockerType::FUZZY_SKIN);
         m_triangle_selectors.back()->request_update_render_data();
     }
 }

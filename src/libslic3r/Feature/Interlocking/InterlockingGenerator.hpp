@@ -6,14 +6,15 @@
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Point.hpp"
-#include "libslic3r/ExPolygon.hpp"
-#include "libslic3r/Print.hpp"
 #include "VoxelUtils.hpp"
 #include <functional>
 #include <cstddef>
 #include <utility>
 #include <unordered_set>
 #include <vector>
+#include "libslic3r/MultiMaterialSegmentation.hpp"
+
+namespace Slic3r { class PrintObject; }
 
 namespace Slic3r {
 

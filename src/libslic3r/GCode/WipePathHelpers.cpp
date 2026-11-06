@@ -1,6 +1,7 @@
 #include "WipePathHelpers.hpp"
 
 #include "../AABBTreeLines.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Line.hpp"
 #include "libslic3r/Point.hpp"
@@ -14,6 +15,7 @@
 #include <optional>
 #include <tuple>
 #include <utility>
+#include "libslic3r/Polyline.hpp"
 
 namespace Slic3r {
 
@@ -32,7 +34,7 @@ void WipeInwardSupport::append(const ExtrusionEntity &entity)
         is_internal_perimeter(entity.role());
     const Lines lines = entity.as_polyline().lines();
     printed_lines.insert(printed_lines.end(), lines.begin(), lines.end());
-    if (is_inner)
+    if (is_inner && ! inner_lines_complete)
         inner_lines.insert(inner_lines.end(), lines.begin(), lines.end());
 }
 
@@ -512,7 +514,11 @@ static std::optional<Vec2d> support_offset_at_start(
         const Vec2d support_edge = (nearest_line.b - nearest_line.a).cast<double>();
         if (support_edge.norm() > SCALED_EPSILON) {
             const Vec2d support_tangent = support_edge.normalized();
-            sampled_offset -= support_tangent * sampled_offset.dot(support_tangent);
+            const Vec2d normal_offset = sampled_offset - support_tangent * sampled_offset.dot(support_tangent);
+            // At a shared endpoint the selected edge may erase the entire
+            // direction to the inner wall. Keep the endpoint vector in that case.
+            if (normal_offset.norm() > SCALED_EPSILON)
+                sampled_offset = normal_offset;
         }
     }
     if (sampled_offset.norm() <= SCALED_EPSILON)
@@ -525,10 +531,20 @@ static std::optional<Vec2d> support_offset_at_start(
     // sampled point itself would add the distance already travelled along the
     // perimeter and turn a normal transition into a long diagonal move.
     const Vec2d sampled_direction = sampled_offset.normalized();
-    Vec2d local_offset = sampled_offset;
+    // Use the same corner reach as support validation. A displacement measured
+    // at the sample is not an available offset at the actual wall endpoint.
+    const double max_local_distance = miter_limit * max_support_distance + 4. * SCALED_EPSILON;
+    Point local_support;
+    nearest_line.distance_to_squared(local_origin, &local_support);
+    const Vec2d branch_offset = (local_support - local_origin).cast<double>();
+    const double branch_distance = branch_offset.norm();
+    std::optional<Vec2d> local_offset;
+    // The sampled branch may end before the seam. Its local endpoint remains
+    // usable even when the direction there differs from the sampled normal.
+    if (branch_distance > SCALED_EPSILON && branch_distance <= max_local_distance)
+        local_offset = branch_offset;
     double best_local_score = std::numeric_limits<double>::infinity();
-    for (size_t line_index : support_distancer.all_lines_in_radius(
-             local_origin, 2. * max_support_distance + 4. * SCALED_EPSILON)) {
+    for (size_t line_index : support_distancer.all_lines_in_radius(local_origin, max_local_distance)) {
         Point local_support;
         const Line &line = support_distancer.get_line(line_index);
         const double distance_squared = line.distance_to_squared(local_origin, &local_support);
@@ -685,14 +701,34 @@ bool offset_wipe_path_toward_support(Polyline &polyline, Point seam_start, Point
         max_wipe_length <= SCALED_EPSILON || max_support_distance <= SCALED_EPSILON)
         return false;
 
+    // Orca: the executable path stays within the wipe length of its start, and
+    // support and side queries reach at most twice the corner reach beyond it.
+    // Keep only the printed walls in that area, so an island with many holes
+    // does not build trees of its whole printed prefix for every external loop.
+    BoundingBox seam_area(Points{seam_start, seam_end, wipe_start});
+    seam_area.offset(max_wipe_length + 2. * miter_limit * max_support_distance);
+    const auto lines_near_seam = [&seam_area](const Lines &lines) {
+        Lines result;
+        for (const Line &line : lines)
+            if (std::max(line.a.x(), line.b.x()) >= seam_area.min.x() &&
+                std::min(line.a.x(), line.b.x()) <= seam_area.max.x() &&
+                std::max(line.a.y(), line.b.y()) >= seam_area.min.y() &&
+                std::min(line.a.y(), line.b.y()) <= seam_area.max.y())
+                result.push_back(line);
+        return result;
+    };
+    const Lines target_lines = lines_near_seam(target_perimeter_lines);
+    if (target_lines.empty())
+        return false;
+
     Lines material_support_lines;
-    const Lines *candidate_support_lines = &target_perimeter_lines;
+    const Lines *candidate_support_lines = &target_lines;
     if (seam_start == seam_end) {
         // Orca: another contour may have a geometrically closer inner wall on
         // this loop's air side. Restrict zero-gap support using the local seam
         // normals before choosing the nearest wall.
         material_support_lines = material_side_support_lines(
-            polyline, seam_start, preferred_dir, target_perimeter_lines);
+            polyline, seam_start, preferred_dir, target_lines);
         if (material_support_lines.empty())
             return false;
         candidate_support_lines = &material_support_lines;
@@ -714,7 +750,7 @@ bool offset_wipe_path_toward_support(Polyline &polyline, Point seam_start, Point
     // Orca: every candidate is validated against the same generated geometry.
     // Build these AABB trees once per loop instead of rebuilding them for each
     // preferred, alternate, translated, direct, or reversed candidate.
-    Lines all_support_lines = printed_perimeter_lines;
+    Lines all_support_lines = lines_near_seam(printed_perimeter_lines);
     all_support_lines.insert(all_support_lines.end(), current_perimeter_lines.begin(), current_perimeter_lines.end());
     AABBTreeLines::LinesDistancer<Line> all_support_distancer(std::move(all_support_lines));
     AABBTreeLines::LinesDistancer<Line> current_perimeter_distancer(current_perimeter_lines);
@@ -732,10 +768,9 @@ bool offset_wipe_path_toward_support(Polyline &polyline, Point seam_start, Point
         double path_length;
     };
 
-    // Direction and wall contact have different origins after a loop pre-move.
-    // Keep the construction's wall endpoint for intersection checks even when
-    // the candidate's direction must be checked from the current nozzle position.
-    const auto validate_candidate = [&](Polyline path, Point path_start, Point direction_start,
+    // Check direction from the actual nozzle position, while retaining the
+    // construction's wall endpoint for connector intersection checks.
+    const auto validate_candidate = [&](Polyline path, Point path_start,
                                         double path_contact_tolerance,
                                         const Vec2d &candidate_support_direction,
                                         double candidate_offset,
@@ -748,7 +783,7 @@ bool offset_wipe_path_toward_support(Polyline &polyline, Point seam_start, Point
         // than the requested offset. Preserve the zero-gap clearance rule, but
         // check direction and local material side independently for every gap.
         const bool material_side = wipe_path_stays_on_material_side(
-            path, direction_start, candidate_support_direction,
+            path, wipe_start, candidate_support_direction,
             support_distancer, current_perimeter_distancer, candidate_offset,
             require_clearance && seam_start == seam_end);
         const bool connector_clear = initial_connector_is_clear(
@@ -768,7 +803,7 @@ bool offset_wipe_path_toward_support(Polyline &polyline, Point seam_start, Point
         if (! offset_wipe_path(path, seam_start, seam_end, wipe_start, dir,
                                effective_offset, max_wipe_length))
             return std::nullopt;
-        return validate_candidate(std::move(path), seam_start, seam_start,
+        return validate_candidate(std::move(path), seam_start,
                                   contact_tolerance, support_direction, effective_offset);
     };
 
@@ -789,7 +824,7 @@ bool offset_wipe_path_toward_support(Polyline &polyline, Point seam_start, Point
                                    candidate_translation, max_wipe_length))
             return std::nullopt;
         const double candidate_tolerance = wipe_tolerance(candidate_offset);
-        return validate_candidate(std::move(source), source_start, source_start, candidate_tolerance,
+        return validate_candidate(std::move(source), source_start, candidate_tolerance,
                                   candidate_support_offset / support_distance, candidate_offset);
     };
 
@@ -814,7 +849,7 @@ bool offset_wipe_path_toward_support(Polyline &polyline, Point seam_start, Point
         const double candidate_tolerance = wipe_tolerance(candidate_offset);
         // Check the executed direction from the nozzle after any loop pre-move,
         // but retain the wall origin for the connector's intersection checks.
-        return validate_candidate(std::move(path), origin, wipe_start,
+        return validate_candidate(std::move(path), origin,
                                   candidate_tolerance, direction, candidate_offset, false);
     };
     std::optional<Candidate> direct = direct_candidate(seam_end, toward_support);
@@ -841,7 +876,7 @@ bool offset_wipe_path_toward_support(Polyline &polyline, Point seam_start, Point
                     offset_wipe_path(reversed_source, seam_end, seam_start, wipe_start,
                                      -preferred_dir, reverse_offset, max_wipe_length)) {
                     reversed_source.points.front() = seam_start;
-                    auto candidate = validate_candidate(std::move(reversed_source), seam_end, seam_end,
+                    auto candidate = validate_candidate(std::move(reversed_source), seam_end,
                         wipe_tolerance(reverse_offset), reversed_support_offset->normalized(), reverse_offset);
                     if (candidate && (! reversed ||
                         (candidate->path_length > reversed->path_length + length_margin &&

@@ -28,7 +28,6 @@
 #define CEREAL_FUTURE_EXPERIMENTAL
 #include <cereal/archives/adapters.hpp>
 
-#include <libslic3r/PrintConfig.hpp>
 #include <libslic3r/ObjectID.hpp>
 #include <libslic3r/Utils.hpp>
 
@@ -816,11 +815,11 @@ namespace cereal
 }
 
 #include <libslic3r/Model.hpp>
-#include <libslic3r/TriangleMesh.hpp>
 #include <slic3r/GUI/Selection.hpp>
 #include <slic3r/GUI/Gizmos/GLGizmosManager.hpp>
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/Plater.hpp"
 
 namespace Slic3r {
 namespace UndoRedo {

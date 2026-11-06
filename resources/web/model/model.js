@@ -221,15 +221,15 @@ function ShowModelInfo( pModel )
 	switch(UploadType)
 	{
 		case 'remix':
-			$('#ModelAuthorType').attr('tid','t93');
+			$('#ModelAuthorType').text(T('remixed_by', 'Remixed by'));
 			break;
 		case 'shared':
-			$('#ModelAuthorType').attr('tid','t94');
+			$('#ModelAuthorType').text(T('shared_by', 'Shared by'));
 			break;			
 		case 'origin':
 		case 'profile':
 		default:
-			$('#ModelAuthorType').attr('tid','t92');
+			$('#ModelAuthorType').text(T('created_by', 'Created by'));
 			break;			
 	}
 	

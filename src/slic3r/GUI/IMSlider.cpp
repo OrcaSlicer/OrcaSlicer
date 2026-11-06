@@ -1,5 +1,4 @@
 #include "IMSlider.hpp"
-#include "libslic3r/GCode.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
 #include "NotificationManager.hpp"
@@ -24,7 +23,6 @@
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include <set>
 #include <wx/string.h>
-#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include <cstring>
 #include <cctype>
 #include <cstdlib>
@@ -36,8 +34,19 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 #include <imgui/imgui_internal.h>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Layer.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Plater.hpp"
 
 namespace Slic3r {
+
+using namespace CustomGCode;
 
 namespace GUI {
 
@@ -1398,7 +1407,7 @@ void IMSlider::render_input_custom_gcode(std::string custom_gcode)
 }
 
 void IMSlider::do_go_to_layer(size_t layer_number) {
-    layer_number = clamp((int)layer_number, m_min_value, m_max_value);
+    layer_number = std::clamp((int)layer_number, m_min_value, m_max_value);
     GetSelection() == ssLower ? SetLowerValue(layer_number) : SetHigherValue(layer_number);
 }
 
@@ -1517,7 +1526,7 @@ void IMSlider::render_add_menu()
         ImGui::OpenPopup("slider_add_menu_popup");
         m_show_menu = false;
     }
-    if (ImGui::BeginPopup("slider_add_menu_popup")) {
+    if (ImGui::BeginPopup("slider_add_menu_popup", ImGuiWindowFlags_NoMove)) {
         bool menu_item_enable = m_draw_mode != dmSequentialFffPrint;
         bool hovered = false;
         {
@@ -1555,7 +1564,7 @@ void IMSlider::render_add_menu()
                     ImU32                icon_clr = ImGuiWrapper::to_ImU32(rgba);
                     if (rgba.a() == 0)
                         icon_clr = 0;
-                    if (menu_item_with_icon((_u8L("Filament ") + std::to_string(i + 1)).c_str(), "", ImVec2(14, 14) * m_scale, icon_clr, false, true, &hovered)) add_code_as_tick(ToolChange, i + 1);
+                    if (menu_item_with_icon(into_u8(wxString::Format(_L("Filament %d"), i + 1)).c_str(), "", ImVec2(14, 14) * m_scale, icon_clr, false, true, &hovered)) add_code_as_tick(ToolChange, i + 1);
                     if (hovered) { show_tooltip(_u8L("Change filament at the beginning of this layer.")); }
                 }
                 end_menu();
@@ -1572,7 +1581,7 @@ void IMSlider::render_edit_menu(const TickCode& tick)
         ImGui::OpenPopup("slider_edit_menu_popup");
         m_show_menu = false;
     }
-    if (ImGui::BeginPopup("slider_edit_menu_popup")) {
+    if (ImGui::BeginPopup("slider_edit_menu_popup", ImGuiWindowFlags_NoMove)) {
         switch (tick.type)
         {
         case CustomGCode::PausePrint:
@@ -1605,7 +1614,7 @@ void IMSlider::render_edit_menu(const TickCode& tick)
                     for (int i = 0; i < extruder_num; i++) {
                         ColorRGBA rgba = decode_color_to_float_array(m_extruder_colors[i]);
                         ImU32     icon_clr = ImGuiWrapper::to_ImU32(rgba);
-                        if (menu_item_with_icon((_u8L("Filament ") + std::to_string(i + 1)).c_str(), "", ImVec2(14, 14) * m_scale, icon_clr)) add_code_as_tick(ToolChange, i + 1);
+                        if (menu_item_with_icon(into_u8(wxString::Format(_L("Filament %d"), i + 1)).c_str(), "", ImVec2(14, 14) * m_scale, icon_clr)) add_code_as_tick(ToolChange, i + 1);
                     }
                     end_menu();
                 }

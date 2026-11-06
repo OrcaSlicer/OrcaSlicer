@@ -11,8 +11,6 @@
 #include "Job.hpp"
 #include "PrintJob.hpp"
 
-namespace fs = boost::filesystem;
-
 namespace Slic3r {
 namespace GUI {
 

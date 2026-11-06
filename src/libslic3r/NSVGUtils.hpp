@@ -8,7 +8,6 @@
 #include <sstream>
 #include "Point.hpp"
 #include "Polygon.hpp"
-#include "ExPolygon.hpp"
 #include "EmbossShape.hpp" // ExPolygonsWithIds
 #include "libslic3r.h"
 #include "nanosvg/nanosvg.h"    // load SVG file

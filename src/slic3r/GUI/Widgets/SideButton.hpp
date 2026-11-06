@@ -14,6 +14,8 @@
 #include "../wxExtensions.hpp"
 #include "StateHandler.hpp"
 
+class wxDC;
+
 
 class SideButton : public wxWindow
 {
@@ -92,6 +94,7 @@ private:
 
     void mouseDown(wxMouseEvent& event);
     void mouseReleased(wxMouseEvent& event);
+    void mouseCaptureLost(wxMouseCaptureLostEvent& event);
 
     void sendButtonEvent();
 

@@ -11,6 +11,9 @@
 #include <wx/gdicmn.h>
 #include <wx/peninfobase.h>
 #include <wx/event.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
 
 BEGIN_EVENT_TABLE(StaticBox, wxWindow)
 

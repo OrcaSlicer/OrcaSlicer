@@ -4,6 +4,7 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/Notebook.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
@@ -382,6 +383,7 @@ void PluginPages::relayout()
             m_parent->SelectPageByName(id_to_reselect);
     }
 
+    const bool overflow_changed = need_overflow != (m_overflow_button != nullptr);
     if (need_overflow) {
         if (m_overflow_button == nullptr) {
             auto* btn = new Button(m_parent->GetBtnsListCtrl(), wxString(L"\u25BE"), wxString(), wxNO_BORDER);
@@ -398,6 +400,22 @@ void PluginPages::relayout()
         m_overflow_button->Destroy();
         m_overflow_button = nullptr;
     }
+
+    // The tab strip changed width; compact the labels again so the side tools stay visible.
+    if ((!up_to_date || overflow_changed) && !GUI::wxGetApp().is_closing())
+        if (GUI::MainFrame* mainframe = GUI::wxGetApp().mainframe)
+            mainframe->fit_tab_labels();
+}
+
+void PluginPages::select_page(const PluginCapabilityId& id)
+{
+    if (m_parent == nullptr || m_pages.find(id) == m_pages.end())
+        return;
+
+    // Swap the page into the visible slot first when it lives behind the overflow menu.
+    m_swapped_in_id = id;
+    relayout();
+    m_parent->SelectPageByName(page_tab_id(id));
 }
 
 void PluginPages::show_overflow_menu()

@@ -11,9 +11,10 @@
 
 #include <wx/filename.h>
 #include <fontconfig/fontconfig.h>
+#include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/system/error_code.hpp>
 #include "libslic3r/Utils.hpp"
-
-using namespace Slic3r::GUI;
 
 
 // @Vojta suggest to make static variable global
@@ -24,11 +25,26 @@ static std::optional<Slic3r::ScopeGuard> finalize_guard;
 // cache for Loading of the default configuration file and building information about the available fonts.
 static FcConfig *fc = nullptr;
 
+// The bundled fonts can be registered only in wx's own font configuration (Label::initSysFont),
+// so add them here too, to find the files of the faces wx offers. They are added file by file:
+// adding the directory writes a font cache for its path, which in an AppImage differs on every start.
+static FcConfig *load_font_config()
+{
+    FcConfig *config = FcInitLoadConfigAndFonts();
+    if (config == nullptr)
+        return nullptr;
+    boost::system::error_code ec;
+    for (const auto &entry : boost::filesystem::directory_iterator(Slic3r::resources_dir() + "/fonts", ec))
+        if (entry.path().extension() == ".ttf")
+            FcConfigAppFontAddFile(config, (const FcChar8 *) entry.path().string().c_str());
+    return config;
+}
+
 std::string Slic3r::GUI::get_font_path(const wxFont &font, bool reload_fonts)
 {
     if (!finalize_guard.has_value()) {
         FcInit();
-        fc = FcInitLoadConfigAndFonts();
+        fc = load_font_config();
         finalize_guard.emplace([]() {
             // Some internal problem of Font config or other library use FC too(like wxWidget)
             // fccache.c:795: FcCacheFini: Assertion `fcCacheChains[i] == NULL' failed. 
@@ -37,7 +53,7 @@ std::string Slic3r::GUI::get_font_path(const wxFont &font, bool reload_fonts)
         });
     } else if (reload_fonts) {
         FcConfigDestroy(fc);
-        fc = FcInitLoadConfigAndFonts();
+        fc = load_font_config();
     }
 
     if (fc == nullptr) return "";
@@ -105,10 +121,10 @@ std::string Slic3r::GUI::get_font_path(const wxFont &font, bool reload_fonts)
     FcPatternAddInteger(matchPattern, FC_WEIGHT, weight);
     FcPatternAddInteger(matchPattern, FC_WIDTH, width);
 
-    FcConfigSubstitute(NULL, matchPattern, FcMatchPattern);
+    FcConfigSubstitute(fc, matchPattern, FcMatchPattern);
     FcDefaultSubstitute(matchPattern);
 
-    FcPattern *resultPattern = FcFontMatch(NULL, matchPattern, &res);
+    FcPattern *resultPattern = FcFontMatch(fc, matchPattern, &res);
     if (resultPattern == nullptr) return "";
     ScopeGuard sg_rp([resultPattern]() { FcPatternDestroy(resultPattern); });
 

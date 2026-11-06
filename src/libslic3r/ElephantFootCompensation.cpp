@@ -8,7 +8,6 @@
 #include "ElephantFootCompensation.hpp"
 #include "Flow.hpp"
 #include "Geometry.hpp"
-#include "SVG.hpp"
 #include "Utils.hpp"
 
 #include <algorithm>
@@ -19,6 +18,7 @@
 #include <utility>
 #include <math.h>
 #include <limits>
+#include "ExtrusionEntity.hpp"
 
 // #define CONTOUR_DISTANCE_DEBUG_SVG
 

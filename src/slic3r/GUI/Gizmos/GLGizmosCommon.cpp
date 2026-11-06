@@ -4,15 +4,9 @@
 #include <cassert>
 
 #include "slic3r/GUI/GLCanvas3D.hpp"
-#include "libslic3r/SLAPrint.hpp"
-#include "slic3r/GUI/GUI_App.hpp"
-#include "slic3r/GUI/Camera.hpp"
-#include "slic3r/GUI/Plater.hpp"
 
-#include "libslic3r/PresetBundle.hpp"
 
 #include <cstddef>
-#include <glad/gl.h>
 #include "slic3r/GUI/Selection.hpp"
 #include <limits>
 #include "libslic3r/Model.hpp"
@@ -23,6 +17,10 @@
 #include <wx/busycursor.h>
 #include <memory>
 #include <utility>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -175,6 +173,9 @@ void InstancesHider::on_update()
                 m_clippers.emplace_back(new MeshClipper);
                 m_clippers.back()->set_plane(ClippingPlane(-Vec3d::UnitZ(), z_min));
                 m_clippers.back()->set_mesh(mesh->its);
+                // Outline only: a filled cap would read as a surface the object does not have, and it
+                // covers the model below it. 0.4 mm matches the cut gizmo's contour width.
+                m_clippers.back()->set_behaviour(false, 0.4);
             }
             m_old_meshes = meshes;
         }
@@ -215,10 +216,7 @@ void InstancesHider::render_cut() const
         else
             clipper->set_limiting_plane(ClippingPlane::ClipsNothing());
 
-        glsafe(::glPushAttrib(GL_DEPTH_TEST));
-        glsafe(::glDisable(GL_DEPTH_TEST));
-        clipper->render_cut(mv->is_model_part() ? ColorRGBA(0.8f, 0.3f, 0.0f, 1.0f) : color_from_model_volume(*mv));
-        glsafe(::glPopAttrib());
+        clipper->render_contour(mv->is_model_part() ? ColorRGBA(0.8f, 0.3f, 0.0f, 1.0f) : color_from_model_volume(*mv));
 
         ++clipper_id;
     }

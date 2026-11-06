@@ -3,11 +3,11 @@
 
 #include "libslic3r/TextConfiguration.hpp"
 #include <vector>
-#include <libslic3r/Polygon.hpp>
 #include <libslic3r/Point.hpp>
 #include <libslic3r/Emboss.hpp>
 #include "slic3r/GUI/GLModel.hpp"
-#include "slic3r/Utils/EmbossStyleManager.hpp"
+
+namespace Slic3r::GUI::Emboss { class StyleManager; }
 
 namespace Slic3r {
 class ModelVolume;

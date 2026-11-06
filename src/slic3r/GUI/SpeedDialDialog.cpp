@@ -3,6 +3,7 @@
 #include "ActionRegistry.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
+#include "I18N.hpp"
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
 #include "NotificationManager.hpp"
@@ -30,12 +31,14 @@
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/string.h>
+#include <wx/timer.h>
 #include <wx/utils.h>
 #include <wx/webview.h>
 
 #ifdef __linux__
 #include <gtk/gtk.h>
 #endif
+#include <nlohmann/json.hpp>
 
 namespace Slic3r { namespace GUI {
 
@@ -46,6 +49,10 @@ namespace {
 constexpr int kPopupWidth     = 540;
 constexpr int kPopupMinHeight = 60; // just above the bare search-bar height, so the dialog hugs content
 constexpr int kPopupMaxHeight = 282;
+// Delay between a deactivation and the auto-hide decision, so that a focus bounce shorter than this (the
+// keyboard leaving and coming back within the interval) does not dismiss the dial. A window that really
+// takes the focus still hides it when the timer fires.
+constexpr int kHideSettleMs = 150;
 
 int json_int_or(const nlohmann::json& j, const char* key, int fallback)
 {
@@ -57,10 +64,10 @@ int json_int_or(const nlohmann::json& j, const char* key, int fallback)
 wxString mode_label(ConfigOptionMode mode)
 {
     switch (mode) {
-    case comAdvanced: return _L("Advanced");
-    case comExpert: return _L("Expert");
-    case comDevelop: return _L("Developer");
-    default: return _L("Simple");
+    case comAdvanced: return _L_CONTEXT("Advanced", "Settings Mode");
+    case comExpert: return _L_CONTEXT("Expert", "Settings Mode");
+    case comDevelop: return _L_CONTEXT("Developer", "Settings Mode");
+    default: return _L_CONTEXT("Simple", "Settings Mode");
     }
 }
 
@@ -84,9 +91,8 @@ void focus_webview(wxWebView* browser, bool page_ready)
         browser->RunScript("focusInput();");
 }
 
-// Localized strings for the Speed Dial page, injected as a document-start user script. The page's
-// T() reads window.ORCA_UI_STRINGS, so these flow through the same .po pipeline as the rest of the
-// UI (the JS literals are only a fallback before the script runs / in the node vm test).
+// Localized strings for the Speed Dial page (see WebViewHostDialog::localized_strings). The page's own T()
+// reads them; its JS literals are only a fallback before the script runs / in the node vm test.
 // %% is a literal '%': T() collapses it after substituting %s. Keep the shortcut tokens out of the
 // translated text so the platform prefix (Alt+/⌥+, Ctrl+/⌘+) stays correct.
 nlohmann::json speed_dial_ui_strings()
@@ -94,6 +100,8 @@ nlohmann::json speed_dial_ui_strings()
     const std::string alt  = GUI::shortkey_alt_prefix();
     const std::string ctrl = GUI::shortkey_ctrl_prefix();
     return {
+        // TRN Screen-reader label of a Speed Dial action: the first %s is the action name, the second where it comes from (a menu, tab or settings group). Keep the two %s in this order.
+        {"sd_action_from", _u8L("%s from %s")},
         {"shortcut_alt", alt},
         {"shortcut_ctrl", ctrl},
 
@@ -106,25 +114,24 @@ nlohmann::json speed_dial_ui_strings()
         {"sd_no_actions", _u8L("No actions yet")},
         {"sd_no_tabs_match", _u8L("No tabs match")},
         {"sd_no_tabs", _u8L("No tabs")},
-        {"sd_result_count", _u8L("Showing %s actions")},
-        {"sd_result_count_all", _u8L("%s actions")},
-        {"sd_tab_count", _u8L("%s tabs")},
-        {"sd_tab_match_count", _u8L("%s matches")},
-        {"sd_favs_full", _u8L("Favourites are full (%s max)")},
+        {"sd_result_count", _u8L("Matching actions: %s")},
+        {"sd_result_count_all", _u8L("Actions: %s")},
+        {"sd_tab_count", _u8L("Tabs: %s")},
+        {"sd_tab_match_count", _u8L("Matching tabs: %s")},
+        {"sd_favs_full", _u8L("Favorites are full (%s max)")},
         {"sd_go_to_pct", _u8L("Go to %s%% of the layer range")},
         {"sd_enter_pct", _u8L("Enter a layer percentage (0-100)")},
         {"sd_go_layer_ph", _u8L("Go to layer %% (0-100)")},
         {"sd_go_tab_ph", _u8L("Go to tab")},
-        {"sd_fav_slot", _u8L("Favourite %s (%s)")},
-        {"sd_pin_fav", _u8L("Pin to favourites (%s)")},
-        {"sd_unpin_fav", _u8L("Unpin from favourites (%s)")},
-        {"sd_remove_fav", _u8L("Remove from favourites")},
+        {"sd_fav_slot", _u8L("Favorite %s (%s)")},
+        {"sd_pin_fav", _u8L("Pin to favorites (%s)")},
+        {"sd_unpin_fav", _u8L("Unpin from favorites (%s)")},
         {"sd_move_left", _u8L("Move left")},
         {"sd_move_right", _u8L("Move right")},
         {"sd_unpin", _u8L("Unpin")},
-        {"sd_mode_advanced", _u8L("Advanced")},
-        {"sd_mode_expert", _u8L("Expert")},
-        {"sd_mode_develop", _u8L("Developer")},
+        {"sd_mode_advanced", _u8L_CONTEXT("Advanced", "Settings Mode")},
+        {"sd_mode_expert", _u8L_CONTEXT("Expert", "Settings Mode")},
+        {"sd_mode_develop", _u8L_CONTEXT("Developer", "Settings Mode")},
         {"sd_wiki_f1", _u8L("Wiki (F1)")},
         {"sd_no_wiki", _u8L("No wiki page for this action")},
         {"sd_show_details", _u8L("Show details")},
@@ -133,6 +140,17 @@ nlohmann::json speed_dial_ui_strings()
 }
 
 } // namespace
+
+wxPoint speed_dial_origin(const wxRect& parent_screen_rect, const wxRect& work_area, const wxSize& box_size)
+{
+    const int x = parent_screen_rect.x + (parent_screen_rect.width - box_size.GetWidth()) / 2;
+    const int y = parent_screen_rect.y + (parent_screen_rect.height - box_size.GetHeight()) / 2;
+    // std::max(0, ...) keeps the clamp bounds ordered when the work area is smaller than the box.
+    return {std::clamp(x, work_area.x, work_area.x + std::max(0, work_area.width - box_size.GetWidth())),
+            std::clamp(y, work_area.y, work_area.y + std::max(0, work_area.height - box_size.GetHeight()))};
+}
+
+bool speed_dial_should_hide(bool shown, bool active) { return shown && !active; }
 
 SpeedDialWebDialog::SpeedDialWebDialog(wxWindow* parent)
     : WebViewHostDialog(parent,
@@ -143,20 +161,37 @@ SpeedDialWebDialog::SpeedDialWebDialog(wxWindow* parent)
                         wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT | wxFRAME_SHAPED)
 {
     SetBackgroundColour(bg_color());
+#ifdef __WXGTK__
+    // wxGTK dialogs default to CENTER_ON_PARENT, which places the window at its first map and then
+    // keeps that position for every later Show(). position_over_parent() supplies the origin instead.
+    gtk_window_set_position(GTK_WINDOW(GetHandle()), GTK_WIN_POS_NONE);
+#endif
+    // The dial dismisses itself when the focus leaves it. The hide is deferred by kHideSettleMs and
+    // re-checked, so a focus bounce shorter than that is not a dismissal. It does not protect against
+    // another window being activated: the first-open close on Linux was the main frame's tab handler
+    // calling SetFocus() while the Calibration page was built in the background, which on wxGTK presents
+    // the main window (fixed in MainFrame::init_tabpanel).
+    m_hide_timer.SetOwner(this);
+    Bind(wxEVT_TIMER, &SpeedDialWebDialog::on_hide_timer, this);
     Bind(wxEVT_ACTIVATE, [this](wxActivateEvent& event) {
         // Focus the WebKit widget exactly when the WM makes the popup the active window
         // (modeless focus is granted asynchronously, so a focus request made right after
         // Show() is dropped). Also re-corrects focus on every re-open.
-        if (event.GetActive() && IsShown())
+        if (!IsShown()) {
+            event.Skip();
+            return;
+        }
+        if (event.GetActive()) {
+            m_hide_timer.Stop();
             focus_webview(browser(), m_page_ready);
-        else if (!event.GetActive() && IsShown())
-            Hide();
+        } else
+            schedule_hide();
         event.Skip();
     });
     if (!create_webview("web/dialog/SpeedDial/index.html", wxEmptyString, wxSize(kPopupWidth, kPopupMaxHeight),
                         wxSize(kPopupWidth, kPopupMinHeight))) {
         auto* sizer = new wxBoxSizer(wxVERTICAL);
-        sizer->Add(new wxStaticText(this, wxID_ANY, wxS("wxWebView unavailable")), wxSizerFlags().Border(wxALL, 20));
+        sizer->Add(new wxStaticText(this, wxID_ANY, _L("Web view is unavailable.")), wxSizerFlags().Border(wxALL, 20));
         SetSizer(sizer);
         SetClientSize(FromDIP(wxSize(kPopupWidth, kPopupMinHeight)));
     }
@@ -171,24 +206,74 @@ SpeedDialWebDialog::SpeedDialWebDialog(wxWindow* parent)
         apply_rounded_shape();
     });
     apply_rounded_shape();
+    // Place the window before the first map; request_show() re-derives it on every later open.
+    position_over_parent();
 }
 
-SpeedDialWebDialog::~SpeedDialWebDialog() { m_alive->store(false, std::memory_order_release); }
-
-// Document-start hook: hand the page its translated strings before speeddial.js runs, so the first
-// paint is already localized. The table is built when the dialog is created; a live language switch
-// rebuilds the GUI (and with it this dialog), so the next open re-injects the new locale.
-void SpeedDialWebDialog::add_user_scripts()
+SpeedDialWebDialog::~SpeedDialWebDialog()
 {
-    if (wxWebView* wv = browser()) {
-        const std::string js = "window.ORCA_UI_STRINGS = " +
-                               speed_dial_ui_strings().dump(-1, ' ', false, nlohmann::json::error_handler_t::ignore) + ";";
-        wv->AddUserScript(wxString::FromUTF8(js));
-    }
+    m_hide_timer.Stop();
+    m_alive->store(false, std::memory_order_release);
+}
+
+nlohmann::json SpeedDialWebDialog::localized_strings() const { return speed_dial_ui_strings(); }
+
+void SpeedDialWebDialog::position_over_parent()
+{
+    wxWindow* parent = GetParent();
+    if (!parent)
+        return;
+
+    int display_index = wxDisplay::GetFromWindow(parent);
+    if (display_index == wxNOT_FOUND)
+        display_index = 0;
+    const wxRect  work_area = wxDisplay(static_cast<unsigned int>(display_index)).GetClientArea();
+    const wxPoint origin    = speed_dial_origin(parent->GetScreenRect(), work_area, FromDIP(wxSize(kPopupWidth, kPopupMaxHeight)));
+
+    if (origin != GetPosition())
+        Move(origin);
+#ifdef __WXGTK__
+    // wxGTK caches requested coordinates: Move() can skip the native request even when the window
+    // manager ignored the previous one. Reapply at native level (same as ColorPickerDialog).
+    gtk_window_move(GTK_WINDOW(GetHandle()), origin.x, origin.y);
+#endif
+}
+
+void SpeedDialWebDialog::schedule_hide()
+{
+    if (IsShown())
+        m_hide_timer.StartOnce(kHideSettleMs);
+}
+
+bool SpeedDialWebDialog::is_active()
+{
+#ifdef __WXGTK__
+    GtkWindow* const window = GTK_WINDOW(GetHandle());
+    return window && gtk_window_is_active(window);
+#else
+    return IsActive();
+#endif
+}
+
+void SpeedDialWebDialog::on_hide_timer(wxTimerEvent&)
+{
+    if (!m_alive->load(std::memory_order_acquire))
+        return;
+    if (!speed_dial_should_hide(IsShown(), is_active()))
+        return;
+    Hide();
 }
 
 void SpeedDialWebDialog::request_show()
 {
+    // A pending auto-hide belongs to the previous open.
+    m_hide_timer.Stop();
+
+    // Re-derived on every open: the dialog is a long-lived hidden window, so without this the
+    // coordinates stay at the frame's position from the first open and the dial stops following the
+    // frame when it is moved, resized, or dragged to another display.
+    position_over_parent();
+
     if (IsShown()) {
         Raise();
         focus_webview(browser(), m_page_ready);
@@ -202,9 +287,17 @@ void SpeedDialWebDialog::request_show()
     if (m_page_ready)
         send_actions();
     // Grab focus now and again on wxEVT_ACTIVATE; grabbing directly on the WebKit widget is
-    // what makes typing reach the search field immediately on open.
-    focus_webview(browser(), m_page_ready);
+    // what makes typing reach the search field immediately on open. Skipped while the page is still
+    // loading: on the first open the window is not mapped yet, so the grab would land on a window the
+    // WM has not activated - the ACTIVATE handler grabs it once it has.
+    if (m_page_ready)
+        focus_webview(browser(), true);
     repaint_webview();
+    // A position requested before the window is mapped can be dropped, so reapply once it is up.
+    wxGetApp().CallAfter([this, alive = m_alive]() {
+        if (alive->load(std::memory_order_acquire))
+            position_over_parent();
+    });
 }
 
 void SpeedDialWebDialog::on_script_message(const nlohmann::json& payload)
@@ -358,6 +451,9 @@ void SpeedDialWebDialog::apply_rounded_shape()
 void SpeedDialWebDialog::on_dpi_changed(const wxRect&)
 {
     apply_rounded_shape();
+    // A monitor with a different scale factor re-anchors the window: MSW applies the rect the OS
+    // suggests (wxNonOwnedWindow::HandleDPIChange), so re-derive the origin from the parent instead.
+    position_over_parent();
     Refresh();
 }
 

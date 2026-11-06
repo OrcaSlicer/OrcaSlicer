@@ -25,6 +25,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "libslic3r/Point.hpp"
 
 using namespace Slic3r;
 

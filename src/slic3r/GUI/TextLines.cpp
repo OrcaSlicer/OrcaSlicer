@@ -24,19 +24,19 @@
 
 #include "libslic3r/Emboss.hpp"
 #include "libslic3r/TriangleMeshSlicer.hpp"
-#include "libslic3r/Tesselate.hpp"
 
 #include "libslic3r/AABBTreeLines.hpp"
 #include "libslic3r/ExPolygonsIndex.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 
-#include "slic3r/GUI/Selection.hpp"
-#include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GLModel.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/3DScene.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/GUI_ObjectList.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Emboss;

@@ -13,7 +13,7 @@ namespace Slic3r { namespace csg {
 // A CSGPartT should be an object that can provide at least a mesh + trafo and an
 // associated csg operation. A collection of CSGPartT objects can then
 // be interpreted as one model and used in various contexts. It can be assembled
-// with CGAL or OpenVDB, rendered with OpenCSG or provided to a ray-tracer to
+// with CGAL or OpenVDB or provided to a ray-tracer to
 // deal with various parts of it according to the supported CSG types...
 //
 // A few simple templated interface functions are provided here and a default

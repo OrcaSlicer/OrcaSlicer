@@ -8,7 +8,6 @@
 
 #pragma once
 #include "DevDefs.h"
-#include "DevNozzleSystem.h"
 #include "DevFilaSystem.h"
 
 #include "libslic3r/MultiNozzleUtils.hpp"
@@ -16,6 +15,8 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+
+namespace Slic3r { struct DevNozzle; }
 
  // Forward declarations
 namespace Slic3r

@@ -1,5 +1,6 @@
 #include "MultiMachineManagerPage.hpp"
 #include "GUI_App.hpp"
+#include "I18N.hpp"
 #include "MainFrame.hpp"
 
 #include "DeviceCore/DevManager.h"
@@ -31,6 +32,7 @@
 #include <algorithm>
 #include <cmath>
 #include <vector>
+#include <wx/dcgraph.h>
 
 namespace Slic3r {
 namespace GUI {
@@ -252,7 +254,7 @@ void MultiMachineItem::doRender(wxDC& dc)
         dc.DrawRoundedRectangle(left, (size.y - FromDIP(38)) / 2, FromDIP(90), FromDIP(38), 6);
         dc.SetFont(Label::Body_14);
         dc.SetTextForeground(*wxBLACK);
-        dc.DrawText(_L("View"),left + FromDIP(90) / 2 - dc.GetTextExtent(_L("View")).x / 2, (size.y -dc.GetTextExtent(_L("View")).y) / 2);
+        dc.DrawText(_L_CONTEXT("View", "Verb"),left + FromDIP(90) / 2 - dc.GetTextExtent(_L_CONTEXT("View", "Verb")).x / 2, (size.y -dc.GetTextExtent(_L_CONTEXT("View", "Verb")).y) / 2);
 
     }
 
@@ -493,7 +495,8 @@ MultiMachineManagerPage::MultiMachineManagerPage(wxWindow* parent)
         page_num_enter_evt();
     });
 
-    m_page_num_enter = new Button(m_flipping_panel, _("Go"));
+    // TRN Button that jumps to the page number typed next to it
+    m_page_num_enter = new Button(m_flipping_panel, _L("Go"));
     m_page_num_enter->SetMinSize(wxSize(FromDIP(25), FromDIP(25)));
     m_page_num_enter->SetMaxSize(wxSize(FromDIP(25), FromDIP(25)));
     m_page_num_enter->SetBackgroundColor(ctrl_bg);

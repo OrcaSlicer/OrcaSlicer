@@ -14,6 +14,11 @@
 #include <wx/event.h>
 #include <wx/webview.h>
 
+class wxCloseEvent;
+class wxSize;
+class wxWebViewEvent;
+class wxWindow;
+
 namespace Slic3r { namespace GUI {
 
 // A host-owned webview window that renders plugin-supplied raw HTML and bridges
@@ -56,6 +61,10 @@ public:
     void push_message(const nlohmann::json& data);
 
     bool is_open() const { return m_open; }
+
+    // Lets a modeless window be maximized on X11; call before Show(). Modal ones stay dialogs so the
+    // window manager keeps routing focus from the parent to them.
+    void use_normal_window_type();
 
     // The payload submitted via window.orca.submit() (modal use), if any.
     const std::optional<nlohmann::json>& result() const { return m_result; }

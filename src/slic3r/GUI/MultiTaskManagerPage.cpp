@@ -44,6 +44,7 @@
 #include <wx/timer.h>
 
 #include "DeviceCore/DevManager.h"
+#include <wx/dcgraph.h>
 
 namespace Slic3r {
 namespace GUI {
@@ -100,7 +101,7 @@ MultiTaskItem::MultiTaskItem(wxWindow* parent, MachineObject* obj, int type)
     m_button_cancel->SetCornerRadius(6);
     m_button_cancel->SetMinSize(wxSize(FromDIP(70), FromDIP(35)));
 
-    m_button_pause = new Button(this, _L("Pause"));
+    m_button_pause = new Button(this, _L_CONTEXT("Pause", "Verb"));
     m_button_pause->SetBackgroundColor(clean_bg);
     m_button_pause->SetBorderColor(clean_bd);
     m_button_pause->SetTextColor(clean_text);
@@ -1166,7 +1167,7 @@ CloudTaskManagerPage::CloudTaskManagerPage(wxWindow* parent)
         page_num_enter_evt();
     });
 
-    m_page_num_enter = new Button(m_flipping_panel, _("Go"));
+    m_page_num_enter = new Button(m_flipping_panel, _L("Go"));
     m_page_num_enter->SetMinSize(wxSize(FromDIP(25), FromDIP(25)));
     m_page_num_enter->SetMaxSize(wxSize(FromDIP(25), FromDIP(25)));
     m_page_num_enter->SetBackgroundColor(ctrl_bg);
@@ -1192,7 +1193,7 @@ CloudTaskManagerPage::CloudTaskManagerPage(wxWindow* parent)
     m_ctrl_btn_panel->SetMinSize(wxSize(FromDIP(CLOUD_TASK_ITEM_MAX_WIDTH), -1));
     m_ctrl_btn_panel->SetMaxSize(wxSize(FromDIP(CLOUD_TASK_ITEM_MAX_WIDTH), -1));
     m_btn_sizer = new wxBoxSizer(wxHORIZONTAL);
-    btn_pause_all = new Button(m_ctrl_btn_panel, _L("Pause"));
+    btn_pause_all = new Button(m_ctrl_btn_panel, _L_CONTEXT("Pause", "Verb"));
     btn_pause_all->SetBackgroundColor(ctrl_bg);
     btn_pause_all->SetCornerRadius(FromDIP(5));
     btn_continue_all = new Button(m_ctrl_btn_panel, _L("Resume"));

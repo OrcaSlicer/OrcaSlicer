@@ -15,7 +15,15 @@
 #include <wx/window.h>
 #include <wx/string.h>
 
-#include "AuxiliaryDataViewModel.hpp"
+class AuxiliaryModel;
+class AuxiliaryModelNode;
+class wxButton;
+class wxCommandEvent;
+class wxKeyEvent;
+class wxMouseEvent;
+class wxSizer;
+class wxWindow;
+
 
 class AuxiliaryList : public wxDataViewCtrl
 {

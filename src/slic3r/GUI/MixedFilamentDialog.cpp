@@ -1676,7 +1676,7 @@ void MixedFilamentDialog::update_ok_button_state()
             wxString parts;
             for (auto it = type_groups.begin(); it != type_groups.end(); ++it) {
                 if (!parts.empty())
-                    parts += _L(" and ");
+                    parts += "; ";
                 wxString slots;
                 for (size_t j = 0; j < it->second.size(); ++j) {
                     if (!slots.empty()) slots += ", ";
@@ -1684,7 +1684,7 @@ void MixedFilamentDialog::update_ok_button_state()
                 }
                 parts += wxString::Format(_L("Slot %s (%s)"), slots, wxString::FromUTF8(it->first));
             }
-            m_type_mismatch_msg = parts + " " + _L("cannot be mixed. Please select the same filament type.");
+            m_type_mismatch_msg = wxString::Format(_L("Different filament types cannot be mixed: %s. Please select the same filament type."), parts);
         } else {
             m_type_mismatch_msg.clear();
         }

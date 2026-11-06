@@ -9,10 +9,10 @@
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include <cstdint>
 #include <cstddef>
-#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include <memory>
 #include "slic3r/GUI/HintNotification.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -161,7 +161,7 @@ void DailyTipsDataRenderer::render_img(const ImVec2& start_pos, const ImVec2& si
 
 bool has_cjk(const std::string &text)
 {
-    for (size_t i = 0; i < text.size() - 2; ++i) {
+    for (size_t i = 0; i + 2 < text.size(); ++i) {
         unsigned char c1 = text[i];
         unsigned char c2 = text[i + 1];
         unsigned char c3 = text[i + 2];

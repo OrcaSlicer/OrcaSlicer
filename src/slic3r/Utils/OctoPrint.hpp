@@ -9,6 +9,7 @@
 
 #include "PrintHost.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/enum_bitmask.hpp"
 
 
 namespace Slic3r {

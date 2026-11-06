@@ -14,7 +14,6 @@
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 
 #include "DevFilaBlackList.h"
-#include "json_diff.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "DevFilaSystem.h"

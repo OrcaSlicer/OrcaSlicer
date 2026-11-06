@@ -1,7 +1,6 @@
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polyline.hpp"
-#include "libslic3r.h"
 #include "ConvexHull.hpp"
 #include "BoundingBox.hpp"
 #include "../Geometry.hpp"
@@ -14,6 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <vector>
+#include "libslic3r/ExPolygon.hpp"
 
 namespace Slic3r { namespace Geometry {
 

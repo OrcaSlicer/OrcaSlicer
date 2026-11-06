@@ -11,7 +11,6 @@ export REQUIRED_DEV_PACKAGES=(
     file
     gettext
     git
-    glew
     gst-plugins-good
     gstreamer
     gtk3

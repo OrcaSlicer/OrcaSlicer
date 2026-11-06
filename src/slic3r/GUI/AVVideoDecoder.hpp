@@ -13,6 +13,9 @@ extern "C" {
 #include <wx/gdicmn.h>
 #include <wx/image.h>
 
+class wxImage;
+struct SwsContext;
+
 class wxBitmap;
 
 class AVVideoDecoder

@@ -16,6 +16,8 @@
 #include "slic3r/GUI/OpenGLManager.hpp"
 #include <utility>
 #include "libslic3r/Color.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include "slic3r/GUI/GLShader.hpp"
 
 namespace Slic3r {
 namespace GUI {

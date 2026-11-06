@@ -1,7 +1,5 @@
 #include "../ClipperUtils.hpp"
 #include "../ExPolygon.hpp"
-#include "../Surface.hpp"
-#include "../VariableWidth.hpp"
 #include "Arachne/WallToolPaths.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Point.hpp"
@@ -19,9 +17,13 @@
 #include <cmath>
 #include <cstddef>
 #include <functional>
+#include <limits>
 #include <math.h>
 #include <utility>
 #include <vector>
+#include "libslic3r/Arachne/utils/ExtrusionJunction.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Line.hpp"
 
 namespace Slic3r {
 
@@ -429,11 +431,65 @@ void FillSpiralInset::_fill_surface_single(const FillParams& params,
         if (parent[i] < 0)
             descend(int(i));
 
-    ThickPolylines spiral_result =
+    ThickPolylines spirals =
         generate_spiral_insets<Arachne::ExtrusionLine, ThickPolyline>(params, ordered, outlines, min_spacing, expolygon);
+    if (spirals.empty()) {
+        append(thick_polylines_out, std::move(open_walls));
+        return;
+    }
 
-    append(thick_polylines_out, std::move(spiral_result));
-    append(thick_polylines_out, std::move(open_walls));
+    // The open walls lie mostly down the middle of an island, so each one prints at the centre end
+    // of the nearest spiral, before an outward spiral and after an inward one, rather than after
+    // every spiral, which brought the nozzle back across the surface for them.
+    const bool outward = params.fill_order != SurfaceFillOrder::Inward;
+    auto centre = [outward](const ThickPolyline& spiral) { return outward ? spiral.first_point() : spiral.last_point(); };
+    auto dist2  = [](const Point& a, const Point& b) { return (a - b).cast<double>().squaredNorm(); };
+    std::vector<ThickPolylines> beside(spirals.size());
+    for (ThickPolyline& wall : open_walls) {
+        size_t nearest = 0;
+        double best    = std::numeric_limits<double>::max();
+        for (size_t k = 0; k < spirals.size(); ++k) {
+            const Point c = centre(spirals[k]);
+            if (const double d = std::min(dist2(wall.first_point(), c), dist2(wall.last_point(), c)); d < best) {
+                best    = d;
+                nearest = k;
+            }
+        }
+        beside[nearest].emplace_back(std::move(wall));
+    }
+
+    for (size_t k = 0; k < spirals.size(); ++k) {
+        // Chain the walls away from the centre end, nearest end first.
+        ThickPolylines& walls = beside[k];
+        Point           pos   = centre(spirals[k]);
+        for (size_t i = 0; i < walls.size(); ++i) {
+            size_t next = i;
+            bool   flip = false;
+            double best = std::numeric_limits<double>::max();
+            for (size_t j = i; j < walls.size(); ++j)
+                for (const bool f : {false, true})
+                    if (const double d = dist2(f ? walls[j].last_point() : walls[j].first_point(), pos); d < best) {
+                        best = d;
+                        next = j;
+                        flip = f;
+                    }
+            std::swap(walls[i], walls[next]);
+            if (flip)
+                walls[i].reverse();
+            pos = walls[i].last_point();
+        }
+        if (outward) {
+            // Printed backwards, the chain ends at the centre, where the spiral starts.
+            std::reverse(walls.begin(), walls.end());
+            for (ThickPolyline& wall : walls)
+                wall.reverse();
+            append(thick_polylines_out, std::move(walls));
+            thick_polylines_out.emplace_back(std::move(spirals[k]));
+        } else {
+            thick_polylines_out.emplace_back(std::move(spirals[k]));
+            append(thick_polylines_out, std::move(walls));
+        }
+    }
 }
 
 } // namespace Slic3r

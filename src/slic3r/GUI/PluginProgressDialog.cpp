@@ -6,6 +6,8 @@
 #include <wx/string.h>
 #include <wx/timer.h>
 
+class wxWindow;
+
 namespace Slic3r { namespace GUI {
 
 PluginProgressDialog::PluginProgressDialog(wxWindow*       parent,

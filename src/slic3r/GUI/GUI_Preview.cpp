@@ -4,7 +4,6 @@
 #include "IMSlider.hpp"
 #include "GUI_Preview.hpp"
 #include "GUI_App.hpp"
-#include "GUI.hpp"
 #include <wx/slider.h>
 #include <wx/gdicmn.h>
 #include <string>
@@ -21,19 +20,16 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include <cmath>
-#include "libvgcode/include/Types.hpp"
+#include <cstdint>
 #if ENABLE_OPENGL_AUTO_AA_SAMPLES
 #include "GUI_Init.hpp"
 #endif // ENABLE_OPENGL_AUTO_AA_SAMPLES
 #include "I18N.hpp"
-#include "3DScene.hpp"
 #include "BackgroundSlicingProcess.hpp"
 #include "OpenGLManager.hpp"
 #include "GLCanvas3D.hpp"
-#include "libslic3r/PresetBundle.hpp"
 #include "Plater.hpp"
 #include "MainFrame.hpp"
-#include "format.hpp"
 
 #include <wx/listbook.h>
 #include <wx/notebook.h>
@@ -47,8 +43,15 @@
 
 // this include must follow the wxWidgets ones or it won't compile on Windows -> see http://trac.wxwidgets.org/ticket/2421
 #include "libslic3r/Print.hpp"
-#include "libslic3r/SLAPrint.hpp"
 #include "NotificationManager.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
+#include "slic3r/GUI/GCodeViewer.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/Selection.hpp"
+
+class wxDropTarget;
+namespace libvgcode { enum class EViewType : uint8_t; }
 
 #ifdef _WIN32
 #include "BitmapComboBox.hpp"
@@ -366,6 +369,25 @@ void Preview::reload_print(bool only_gcode)
     m_only_gcode = only_gcode;
 }
 
+void Preview::refresh_belt_view()
+{
+    // Re-run the G-code preview conversion so the belt "designed view" toggle takes effect
+    // (the back-transform is baked into the toolpath geometry in GCodeViewer::load_as_gcode,
+    // whose same-result cache also keys on the view state, so the re-convert runs).
+    // Reset m_loaded_print to bypass the "already loaded" guard the way reload_print does, but
+    // keep the current layer range and only-gcode mode so the view doesn't jump on toggle.
+    // The layer Z values differ between the designed and the raw view (the raw view's are
+    // machine-frame heights), so keep_z_range alone cannot find the old span: carry the
+    // slider over by layer index instead.
+    IMSlider *layers_slider = m_canvas->get_gcode_viewer().get_layers_slider();
+    const int lower  = layers_slider->GetLowerValue();
+    const int higher = layers_slider->GetHigherValue();
+    m_loaded_print = nullptr;
+    load_print(true /*keep_z_range*/, m_only_gcode);
+    if (higher <= layers_slider->GetMaxValue())
+        layers_slider->SetSelectionSpan(lower, higher);
+}
+
 //BBS: always load shell at preview
 void Preview::load_shells(const Print& print, bool force_previewing)
 {
@@ -393,7 +415,7 @@ void Preview::sys_color_changed()
     // m_layers_slider->sys_color_changed();
 }
 
-void Preview::on_tick_changed(Type type)
+void Preview::on_tick_changed(CustomGCode::Type type)
 {
     //if (type == Type::PausePrint) {
     //    m_schedule_background_process();

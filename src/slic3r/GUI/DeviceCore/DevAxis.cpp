@@ -1,9 +1,11 @@
 #include "DevAxis.h"
 #include "DevUtil.h"
 
-#include "json_diff.hpp"
+#include <nlohmann/json.hpp>
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
+
+using json = nlohmann::json;
 
 namespace Slic3r
 {

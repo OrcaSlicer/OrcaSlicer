@@ -6,7 +6,7 @@
 	"filament_id": "OFvgE0Zh",
 	"instantiation": "false",
 	"fan_cooling_layer_time": [
-		"85"
+		"80"
 	],
 	"fan_min_speed": [
 		"50"
@@ -39,7 +39,7 @@
 		"60"
 	],
 	"filament_start_gcode": [
-		"; Elegoo PLA filament start gcode\n"
+		"; filament start gcode\n"
 	],
 	"filament_end_gcode": [
 		"; filament end gcode \n"

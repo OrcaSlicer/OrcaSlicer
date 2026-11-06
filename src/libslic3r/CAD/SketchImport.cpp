@@ -75,12 +75,18 @@ ImportRegions text_to_regions(const std::string& utf8, double size_mm,
         return {};
 
     const std::string path = font_path.empty() ? default_font_path() : font_path;
-    std::unique_ptr<Emboss::FontFile> ff = Emboss::create_font_file(path.c_str());
-    if (!ff)
+    return text_to_regions(utf8, size_mm,
+                           std::shared_ptr<const Emboss::FontFile>(Emboss::create_font_file(path.c_str())));
+}
+
+ImportRegions text_to_regions(const std::string& utf8, double size_mm,
+                              const std::shared_ptr<const Emboss::FontFile>& ff)
+{
+    if (utf8.empty() || size_mm <= 0.0 || !ff)
         return {};
-    Emboss::FontFileWithCache fwc(std::move(ff));
-    if (!fwc.has_value())
-        return {};
+    Emboss::FontFileWithCache fwc;
+    fwc.font_file = ff;
+    fwc.cache     = std::make_shared<Emboss::Glyphs>();
 
     FontProp prop(static_cast<float>(size_mm));   // per_glyph=false
     HealedExPolygons healed = Emboss::text2shapes(fwc, utf8.c_str(), prop);

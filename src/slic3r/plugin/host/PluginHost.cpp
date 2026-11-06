@@ -7,6 +7,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <pybind11/detail/descr.h>
 
 namespace Slic3r {
 
