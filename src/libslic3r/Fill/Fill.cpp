@@ -1375,6 +1375,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                     params.shift       = complex.shift.cast<coord_t>();
                     params.density     = complex.density;
                     params.multiline   = complex.multiline;
+                    params.fixed_angle = false;
 
                     // Orca: the smoothing factor only applies to the sparse infill patterns that
                     // implement it. The fills clamp and validate the value themselves.
@@ -1399,6 +1400,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                                                                             region_config.internal_solid_infill_line_width.value));
                         params.angle = complex.angle;
                         params.shift = complex.shift.cast<coord_t>();
+                        params.fixed_angle = false;
                     }
                 }
                 params.bridge_angle = float(surface.bridge_angle);
