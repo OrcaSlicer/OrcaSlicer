@@ -156,8 +156,11 @@ struct ArrangeParams {
     float object_skirt_offset = 0;
     float nozzle_height = 0;
     float printable_height = 256.0;
-    // Orca: how far (scaled) the polygon of a prime tower compacted by "No sparse layers" was grown
-    // past the tower itself, or negative when the tower is not compacted.
+    // Orca: whether the prime tower stays low because "No sparse layers" drops its sparse layers, on a
+    // plate printed by layer: the condition the slicer's clearance check applies.
+    bool    compacted_tower        = false;
+    // Orca: how far (scaled) the polygon of such a tower was grown past the tower itself, or negative
+    // when no tower was grown.
     coord_t compacted_tower_growth = -1;
     float   clearance_dist_to_rod  = 0;
     Vec2d align_center{ 0.5,0.5 };
@@ -202,6 +205,7 @@ struct ArrangeParams {
         ret += "\"clearance_height_to_rod\":" + std::to_string(clearance_height_to_rod) + ",";
         ret += "\"clearance_height_to_lid\":" + std::to_string(clearance_height_to_lid) + ",";
         ret += "\"clearance_radius\":" + std::to_string(clearance_radius) + ",";
+        ret += "\"compacted_tower_growth\":" + std::to_string(compacted_tower_growth) + ",";
         ret += "\"printable_height\":" + std::to_string(printable_height) + ",";
         return ret;
     }

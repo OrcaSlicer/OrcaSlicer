@@ -730,16 +730,23 @@ TEST_CASE("Objects taller than the rod clearance stay out of the Y span of a com
     params.clearance_dist_to_rod   = 40.f;
     params.compacted_tower_growth  = 0;
 
-    // The pile gathers around the tower, so without the rule the objects end up beside it.
-    ArrangePolygons items = squares(4, 40., 50.);
-    arrange(items, {tower}, bed(250, 250), params);
+    // The pile gathers around the tower, so without the rule the objects end up beside it. A
+    // best_object_pos away from the bed centre, as some printer profiles set, must not carry the
+    // pile back into the span either.
+    for (const Vec2d &align_center : {Vec2d(0.5, 0.5), Vec2d(0.3, 0.5), Vec2d(0.7, 0.5), Vec2d(0.5, 0.7)}) {
+        INFO("best_object_pos " << align_center.x() << "x" << align_center.y());
+        params.align_center   = align_center;
+        ArrangePolygons items = squares(4, 40., 50.);
+        arrange(items, {tower}, bed(250, 250), params);
 
-    for (const ArrangePolygon &ap : items) {
-        REQUIRE(ap.bed_idx == 0);
-        CHECK(ap.transformed_poly().contour.bounding_box().max.y() <= scaled(180. - 40.));
+        for (const ArrangePolygon &ap : items) {
+            REQUIRE(ap.bed_idx == 0);
+            CHECK(ap.transformed_poly().contour.bounding_box().max.y() <= scaled(180. - 40.));
+        }
     }
 
     // Objects that stay under the rod may share the span.
+    params.align_center = Vec2d(0.5, 0.5);
     ArrangePolygons low = squares(4, 40., 10.);
     arrange(low, {tower}, bed(250, 250), params);
     CHECK(std::any_of(low.begin(), low.end(), [](const ArrangePolygon &ap) {

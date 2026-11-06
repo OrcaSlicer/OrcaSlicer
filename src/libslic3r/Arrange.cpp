@@ -1175,11 +1175,15 @@ void _arrange(
     //sl::offset(corrected_bin, md);
     ArrangeParams mod_params = params;
     mod_params.min_obj_distance = 0;  // items are already inflated
-    // Orca: centring the finished pile would carry objects taller than the rod clearance back into
-    // the Y span of a compacted prime tower, which objfunc() has just kept them out of.
+    // Orca: aligning the finished pile would carry objects taller than the rod clearance back into
+    // the Y span of a compacted prime tower, which objfunc() has just kept them out of. A
+    // best_object_pos away from the bed centre makes the AutoArranger align the pile to it whatever
+    // do_final_align says, so that point goes back to the centre as well.
     if (params.compacted_tower_growth >= 0 &&
-        std::any_of(shapes.begin(), shapes.end(), [&params](const Item &itm) { return itm.height > params.clearance_height_to_rod; }))
+        std::any_of(shapes.begin(), shapes.end(), [&params](const Item &itm) { return itm.height > params.clearance_height_to_rod; })) {
         mod_params.do_final_align = false;
+        mod_params.align_center   = Vec2d(0.5, 0.5);
+    }
 
     AutoArranger<BinT> arranger{corrected_bin, mod_params, progressfn, stopfn};
 

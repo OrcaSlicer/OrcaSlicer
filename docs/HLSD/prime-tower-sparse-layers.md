@@ -115,7 +115,9 @@ near it, tiered by the nozzle cone, the head body, the rod and the lid. The same
 rule serves the precise check on real extrusions, the pre-slice estimate that
 feeds the plater, and the outlines the plater draws while an object is dragged,
 so that the ring the user sees touches the object's outline exactly when the
-check trips.
+check trips. Arrange and Fill bed follow it too: they keep objects the toolhead
+radius away from the tower, and keep those taller than the rod clearance out of
+its Y span.
 
 ## Merging sparse layers
 
@@ -206,6 +208,10 @@ read as off rather than compacting or merging in one place and not another.
 - [GLCanvas3D.cpp](../../src/slic3r/GUI/GLCanvas3D.cpp) and
   [PartPlate.cpp](../../src/slic3r/GUI/PartPlate.cpp) draw the compacted tower's
   keep-out outlines live while the user drags.
+- [ArrangeJob.cpp](../../src/slic3r/GUI/Jobs/ArrangeJob.cpp) grows the tower's
+  arrange polygon by the toolhead radius, and
+  [Arrange.cpp](../../src/libslic3r/Arrange.cpp) keeps objects taller than the
+  rod clearance out of its Y span.
 - [Rule tests](../../tests/libslic3r/test_wipe_tower.cpp) cover the gating of
   both settings, the per-layer predicates, the compacted z, the merge rule's run
   flushing, height conservation, the nozzle cap and the first-layer exemption,
