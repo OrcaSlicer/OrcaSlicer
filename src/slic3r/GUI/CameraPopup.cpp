@@ -34,6 +34,7 @@
 #include <slic3r/GUI/StatusPanel.hpp>
 #include "slic3r/Utils/IPrinterAgent.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include <boost/algorithm/string/trim.hpp>
 
 #include "DeviceCore/DevManager.h"
@@ -238,8 +239,9 @@ void CameraPopup::on_camera_source_changed(wxCommandEvent& event)
 
 bool CameraPopup::custom_source_supported()
 {
-    auto agent = wxGetApp().getAgent();
-    return agent && agent->get_camera_stream_mode() == CameraStreamMode::none;
+    auto agent         = wxGetApp().getAgent();
+    auto printer_agent = agent ? agent->get_printer_agent() : nullptr;
+    return printer_agent && printer_agent->get_agent_info().id == BBL_PRINTER_AGENT_ID;
 }
 
 std::string CameraPopup::custom_source_url()
