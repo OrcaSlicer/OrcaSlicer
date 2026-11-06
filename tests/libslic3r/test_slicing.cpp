@@ -85,3 +85,45 @@ TEST_CASE("Merged layer height profiles take the finest layer height up to the t
             CHECK_THAT(merged[i + 1], Catch::Matchers::WithinAbs(0.2, 1e-9));
     }
 }
+
+TEST_CASE("The layer height texture is filled up to the top of an object whose last layer ends under it", "[Slicing]")
+{
+    // A 10 mm object with 0.15 mm layers: the last one ends at 9.9 mm, as generate_object_layers() leaves it
+    // when one more layer would end too far above the top. The top face is drawn with the cells above 9.9 mm.
+    SlicingParameters params;
+    params.object_print_z_min = 0.;
+    params.object_print_z_max = 10.;
+    params.layer_height       = 0.2;
+    params.min_layer_height   = 0.07;
+    params.max_layer_height   = 0.28;
+    std::vector<coordf_t> layers;
+    for (int i = 0; i < 66; ++i) {
+        layers.push_back(0.15 * i);
+        layers.push_back(0.15 * (i + 1));
+    }
+    REQUIRE_THAT(layers.back(), Catch::Matchers::WithinAbs(9.9, 1e-9));
+
+    // The buffer starts out black and transparent, as the texture of an object is made the first time.
+    const int                  rows = 256;
+    const int                  cols = 256;
+    std::vector<unsigned char> data(size_t(rows) * size_t(cols) * 5, 0);
+    const int                  ncells = generate_layer_height_texture(params, layers, data.data(), rows, cols, true);
+    REQUIRE(ncells > 0);
+    // Each cell, up to the last, is written: opaque.
+    for (int cell = 0; cell < ncells; ++cell) {
+        const int row = cell / (cols - 1);
+        const int col = cell - row * (cols - 1);
+        INFO("cell " << cell << " of " << ncells);
+        CHECK(int(data[(size_t(row) * cols + col) * 4 + 3]) == 255);
+    }
+    // And so in the second level of detail, half as many cells in a texture half as wide.
+    const unsigned char *data1  = data.data() + size_t(rows) * cols * 4;
+    const int            cols1  = cols / 2;
+    const int            ncells1 = ncells / 2;
+    for (int cell = 0; cell < ncells1; ++cell) {
+        const int row = cell / (cols1 - 1);
+        const int col = cell - row * (cols1 - 1);
+        INFO("second level cell " << cell << " of " << ncells1);
+        CHECK(int(data1[(size_t(row) * cols1 + col) * 4 + 3]) == 255);
+    }
+}

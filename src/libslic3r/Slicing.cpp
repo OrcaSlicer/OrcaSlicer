@@ -1041,8 +1041,12 @@ int generate_layer_height_texture(
 		assert(mid <= slicing_params.object_print_z_height());
 		coordf_t h = hi - lo;
 		hi = std::min(hi, slicing_params.object_print_z_height());
+        // Orca: the last layer can end under the top of the object, by up to half a layer, and the top face is
+        // drawn with the cells there. The last layer fills them, which no layer did: they kept what the buffer
+        // held before, black or the colours of another object.
+        const bool last_layer = idx_layer + 2 >= layers.size();
         int cell_first = std::clamp(int(ceil(lo * z_to_cell)), 0, ncells-1);
-        int cell_last  = std::clamp(int(floor(hi * z_to_cell)), 0, ncells-1);
+        int cell_last  = last_layer ? ncells - 1 : std::clamp(int(floor(hi * z_to_cell)), 0, ncells-1);
         for (int cell = cell_first; cell <= cell_last; ++ cell) {
             coordf_t idxf = (0.5 * hscale + (h - slicing_params.layer_height)) * coordf_t(palette_raw.size()-1) / hscale;
             int idx1 = std::clamp(int(floor(idxf)), 0, int(palette_raw.size() - 1));
@@ -1050,7 +1054,8 @@ int generate_layer_height_texture(
 			coordf_t t = idxf - coordf_t(idx1);
             const Vec3crd &color1 = palette_raw[idx1];
             const Vec3crd &color2 = palette_raw[idx2];
-            coordf_t z = cell_to_z * coordf_t(cell);
+            // Above the last layer, the shade of its top.
+            coordf_t z = std::min(cell_to_z * coordf_t(cell), hi);
             assert(lo - EPSILON <= z && z <= hi + EPSILON);
             // Intensity profile to visualize the layers.
             coordf_t intensity = cos(M_PI * 0.7 * (mid - z) / h);
@@ -1078,7 +1083,7 @@ int generate_layer_height_texture(
         }
         if (level_of_detail_2nd_level) {
             cell_first = std::clamp(int(ceil(lo * z_to_cell1)), 0, ncells1-1);
-            cell_last  = std::clamp(int(floor(hi * z_to_cell1)), 0, ncells1-1);
+            cell_last  = last_layer ? ncells1 - 1 : std::clamp(int(floor(hi * z_to_cell1)), 0, ncells1-1);
             for (int cell = cell_first; cell <= cell_last; ++ cell) {
                 coordf_t idxf = (0.5 * hscale + (h - slicing_params.layer_height)) * coordf_t(palette_raw.size()-1) / hscale;
                 int idx1 = std::clamp(int(floor(idxf)), 0, int(palette_raw.size() - 1));
