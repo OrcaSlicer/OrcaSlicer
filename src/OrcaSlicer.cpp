@@ -7165,7 +7165,8 @@ int CLI::run(int argc, char **argv)
                                                     if (!no_check) {
                                                         //only following message will be reported under import mode
                                                         if (status.message_type == PrintStateBase::SlicingEmptyGcodeLayers
-                                                            || status.message_type == PrintStateBase::SlicingGcodeOverlap)
+                                                            || status.message_type == PrintStateBase::SlicingGcodeOverlap
+                                                            || status.message_type == PrintStateBase::SlicingGcodePositionError)
                                                         {
                                                             sliced_info.sliced_plates.push_back(sliced_plate_info);
                                                             record_exit_reson(outfile_dir, CLI_SLICING_ERROR, index+1, cli_errors[CLI_SLICING_ERROR], sliced_info);
