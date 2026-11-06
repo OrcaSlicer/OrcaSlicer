@@ -105,6 +105,8 @@ struct TreeSupportMeshGroupSettings {
         this->support_tree_angle_slow     = std::clamp<double>(config.tree_support_angle_slow * M_PI / 180., 0., this->support_tree_angle - EPSILON);
         this->support_tree_branch_diameter = scaled<coord_t>(config.tree_support_branch_diameter_organic.value);
         this->support_tree_branch_diameter_angle  = std::clamp<double>(config.tree_support_branch_diameter_angle * M_PI / 180., 0., 0.5 * M_PI - EPSILON);
+        this->support_tree_bp_diameter    = scaled<coord_t>(config.tree_support_initial_layer_diameter.value);
+        this->support_tree_max_diameter   = scaled<coord_t>(config.tree_support_trunk_diameter.value);
         this->support_tree_top_rate       = config.tree_support_top_rate.value; // percent
     //    this->support_tree_tip_diameter = this->support_line_width;
         this->support_tree_tip_diameter = std::clamp(scaled<coord_t>(config.tree_support_tip_diameter.value), (coord_t)0, this->support_tree_branch_diameter);
@@ -256,6 +258,10 @@ struct TreeSupportMeshGroupSettings {
     // Diameter every branch tries to achieve when reaching the buildplate. Improves bed adhesion.
     // minimum: 0, maximum warning: 20
     coord_t                         support_tree_bp_diameter                { scaled<coord_t>(7.5) };
+    // Tree Support Trunk Diameter
+    // The diameter of the widest branches of tree support. A thicker trunk is more sturdy; a thinner trunk takes up less space on the build plate.
+    // minimum: support_tree_branch_diameter; Orca: 0 for no limit
+    coord_t                         support_tree_max_diameter               { 0 };
     // Tree Support Branch Density
     // Adjusts the density of the support structure used to generate the tips of the branches. A higher value results in better overhangs,
     // but the supports are harder to remove. Use Support Roof for very high values or ensure support density is similarly high at the top.
@@ -287,6 +293,8 @@ public:
           layer_height(mesh_group_settings.layer_height),
           branch_radius(mesh_group_settings.support_tree_branch_diameter / 2),
           min_radius(mesh_group_settings.support_tree_tip_diameter / 2), // The actual radius is 50 microns larger as the resulting branches will be increased by 50 microns to avoid rounding errors effectively increasing the xydistance
+          // A trunk is never narrower than a branch.
+          max_radius(mesh_group_settings.support_tree_max_diameter > 0 ? std::max(mesh_group_settings.support_tree_max_diameter / 2, branch_radius) : std::numeric_limits<coord_t>::max()),
           maximum_move_distance((mesh_group_settings.support_tree_angle < M_PI / 2.) ? (coord_t)(tan(mesh_group_settings.support_tree_angle) * layer_height) : std::numeric_limits<coord_t>::max()),
           maximum_move_distance_slow((mesh_group_settings.support_tree_angle_slow < M_PI / 2.) ? (coord_t)(tan(mesh_group_settings.support_tree_angle_slow) * layer_height) : std::numeric_limits<coord_t>::max()),
           support_bottom_layers(mesh_group_settings.support_bottom_enable ? (mesh_group_settings.support_bottom_height + layer_height / 2) / layer_height : 0),
@@ -390,6 +398,10 @@ public:
      * \brief smallest allowed radius, required to ensure that even at DTT 0 every circle will still be printed
      */
     coord_t min_radius;
+    /*!
+     * \brief The largest allowed radius, no limit unless set.
+     */
+    coord_t max_radius { std::numeric_limits<coord_t>::max() };
     /*!
      * \brief How far an influence area may move outward every layer at most.
      */
@@ -520,7 +532,7 @@ public:
 public:
     bool operator==(const TreeSupportSettings& other) const
     {
-        return branch_radius == other.branch_radius && tip_layers == other.tip_layers && branch_radius_increase_per_layer == other.branch_radius_increase_per_layer && layer_start_bp_radius == other.layer_start_bp_radius && bp_radius == other.bp_radius && 
+        return branch_radius == other.branch_radius && tip_layers == other.tip_layers && branch_radius_increase_per_layer == other.branch_radius_increase_per_layer && layer_start_bp_radius == other.layer_start_bp_radius && bp_radius == other.bp_radius && max_radius == other.max_radius &&
                // as a recalculation of the collision areas is required to set a new min_radius.
                bp_radius_increase_per_layer == other.bp_radius_increase_per_layer && min_radius == other.min_radius && xy_min_distance == other.xy_min_distance &&
                xy_distance - xy_min_distance == other.xy_distance - other.xy_min_distance && // if the delta of xy_min_distance and xy_distance is different the collision areas have to be recalculated.
@@ -562,11 +574,13 @@ public:
      */
     [[nodiscard]] inline coord_t getRadius(size_t distance_to_top, const double elephant_foot_increases = 0) const
     {
-        return (distance_to_top <= tip_layers ? min_radius + (branch_radius - min_radius) * distance_to_top / tip_layers : // tip
-                       branch_radius + // base
-                       (distance_to_top - tip_layers) * branch_radius_increase_per_layer)
-               + // gradual increase
-               elephant_foot_increases * (std::max(bp_radius_increase_per_layer - branch_radius_increase_per_layer, 0.0));
+        const auto uncapped_radius = coord_t(
+            (distance_to_top <= tip_layers ? min_radius + (branch_radius - min_radius) * distance_to_top / tip_layers : // tip
+                    branch_radius + // base
+                    (distance_to_top - tip_layers) * branch_radius_increase_per_layer)
+            + // gradual increase
+            elephant_foot_increases * (std::max(bp_radius_increase_per_layer - branch_radius_increase_per_layer, 0.0)));
+        return std::min(uncapped_radius, max_radius);
     }
 
     /*!
@@ -577,7 +591,7 @@ public:
     [[nodiscard]] inline coord_t recommendedMinRadius(LayerIndex layer_idx) const
     {
         double num_layers_widened = layer_start_bp_radius - layer_idx;
-        return num_layers_widened > 0 ? branch_radius + num_layers_widened * bp_radius_increase_per_layer : 0;
+        return num_layers_widened > 0 ? std::min(coord_t(branch_radius + num_layers_widened * bp_radius_increase_per_layer), max_radius) : 0;
     }
 
 #if 0
