@@ -71,7 +71,7 @@ public:
     Point           _offset;
 
 public:
-    LinesBucket(ExtrusionLayers &&paths, const void* id, Point offset) : _piles(paths), _id(id), _offset(offset) {}
+    LinesBucket(ExtrusionLayers &&paths, const void* id, Point offset) : _piles(std::move(paths)), _id(id), _offset(offset) {}
     LinesBucket(LinesBucket &&) = default;
 
     std::pair<int, int> curRange() const

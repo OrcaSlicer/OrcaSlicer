@@ -5,6 +5,7 @@ add_executable(${_TEST_NAME}_tests
 	test_helpers.hpp
 	test_adaptive_pressure_advance.cpp
 	test_calib.cpp
+	test_conflict_checker.cpp
 	test_cooling.cpp
 	test_extrusion_entity.cpp
 	test_extrusion_processor.cpp
