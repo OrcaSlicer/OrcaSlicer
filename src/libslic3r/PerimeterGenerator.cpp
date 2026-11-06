@@ -858,8 +858,6 @@ void PerimeterGenerator::split_top_surfaces(const ExPolygons &orig_polygons, ExP
     } else
         upper_polygons_series_clipped = ClipperUtils::clip_clipper_polygons_with_subject_bbox(*this->upper_slices, last_box);
 
-    upper_polygons_series_clipped          = offset(upper_polygons_series_clipped, min_width_top_surface);
-
     // set the clip to a virtual "second perimeter"
     fill_clip = offset_ex(orig_polygons, -double(ext_perimeter_spacing));
     // get the real top surface
@@ -880,15 +878,22 @@ void PerimeterGenerator::split_top_surfaces(const ExPolygons &orig_polygons, ExP
     }
     ExPolygons delete_bridge = diff_ex(orig_polygons, bridge_checker, ApplySafetyOffset::Yes);
 
-    ExPolygons top_polygons = diff_ex(delete_bridge, upper_polygons_series_clipped, ApplySafetyOffset::Yes);
+    ExPolygons top_polygons = diff_ex(delete_bridge, offset(upper_polygons_series_clipped, min_width_top_surface), ApplySafetyOffset::Yes);
 
     // get the not-top surface, from the "real top" but enlarged by external_infill_margin (and the
     // min_width_top_surface we removed a bit before)
     ExPolygons temp_gap = diff_ex(top_polygons, fill_clip);
+    ExPolygons grown_top_polygons = offset_ex(top_polygons, offset_top_surface + min_width_top_surface - double(ext_perimeter_spacing / 2.));
+    if (config->top_surface_density.value > 0 && !top_polygons.empty()) {
+        const ExPolygons interior = offset_ex(orig_polygons, -double(SCALED_EPSILON));
+        for (const ExPolygon &top : diff_ex(delete_bridge, upper_polygons_series_clipped, ApplySafetyOffset::Yes)) {
+            // Eroding and regrowing an enclosed face loses narrow corners, introducing walls across engraved floors.
+            if (diff_ex(top, interior).empty() && !intersection_ex(top_polygons, top).empty())
+                append(grown_top_polygons, offset_ex(top, offset_top_surface - double(ext_perimeter_spacing / 2.)));
+        }
+    }
     ExPolygons inner_polygons =
-        diff_ex(orig_polygons,
-                offset_ex(top_polygons, offset_top_surface + min_width_top_surface - double(ext_perimeter_spacing / 2.)),
-                ApplySafetyOffset::Yes);
+        diff_ex(orig_polygons, union_ex(grown_top_polygons), ApplySafetyOffset::Yes);
     // get the enlarged top surface, by using inner_polygons instead of upper_slices, and clip it for it to be exactly
     // the polygons to fill.
     top_polygons = diff_ex(fill_clip, inner_polygons, ApplySafetyOffset::Yes);
