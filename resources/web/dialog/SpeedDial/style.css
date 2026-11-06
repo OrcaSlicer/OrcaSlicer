@@ -483,8 +483,8 @@ body {
     text-align: center;
 }
 
-/* Footer detail strip: the selected action's description, its wiki link and the expand/collapse
-   arrow. Auto-sizes to the content; the description is clamped to 6 lines. */
+/* Footer detail strip: the highlighted (or hovered) action's description, its wiki link and the
+   expand/collapse arrow. Auto-sizes to the content; the description is clamped to 6 lines. */
 .dial-detail {
     flex: 0 0 auto;
     display: flex;
