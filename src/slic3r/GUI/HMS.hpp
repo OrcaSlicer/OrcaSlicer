@@ -65,7 +65,10 @@ public:
 private:
     // load hms
     void init_hms_info(const std::string& dev_type_id);
-    void copy_from_data_dir_to_local();
+    // Orca: copy a single bundled HMS file into data_dir/hms instead of the whole folder
+    bool copy_bundled_file_to_local(const std::string& filename);
+    // Orca: load a bundled HMS file straight from resources_dir/hms (no copy, no version)
+    int  load_bundled(const std::string& hms_type, const std::string& dev_id_type, const std::string& lang, nlohmann::json* receive_json);
     int  download_hms_related(const std::string& hms_type, const std::string& dev_id_type, nlohmann::json* receive_json);
     int  load_from_local(const std::string& hms_type, const std::string& dev_id_type, nlohmann::json* receive_json, std::string& version_info);
     int  save_to_local(std::string lang, std::string hms_type, std::string dev_id_type, nlohmann::json save_json);
