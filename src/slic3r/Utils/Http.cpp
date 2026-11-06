@@ -464,7 +464,7 @@ void Http::priv::http_perform()
 	(void)xfercb_legacy;   // prevent unused function warning
 #endif
 #else
-	::curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, xfercb);
+	::curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, xfercb_legacy);
 	::curl_easy_setopt(curl, CURLOPT_PROGRESSDATA, static_cast<void*>(this));
 #endif
 
