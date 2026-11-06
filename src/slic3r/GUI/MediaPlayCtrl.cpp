@@ -584,6 +584,8 @@ void MediaPlayCtrl::StopPlayback()
 {
     m_failed_code = 0;
     Stop();
+    m_failed_retry = 0;
+    m_next_retry   = wxDateTime();
 }
 
 void MediaPlayCtrl::Stop(wxString const &msg, wxString const &msg2)

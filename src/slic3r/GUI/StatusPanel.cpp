@@ -1634,33 +1634,34 @@ wxBoxSizer *StatusBasePanel::create_monitoring_page()
 //    sizer->Add(media_ctrl_panel, 1, wxEXPAND | wxALL, 1);
 
     if (custom_camera_source_enabled())
-        apply_custom_camera_source();
+        apply_custom_camera_source(true);
 
     return sizer;
 }
 
-void StatusBasePanel::apply_custom_camera_source()
+void StatusBasePanel::apply_custom_camera_source(bool enabled)
 {
-    const std::string url = CameraPopup::custom_source_url();
-    const bool enabled = !url.empty();
-    m_custom_camera_view->LoadURL(enabled ? wxString::FromUTF8(url) : wxString("about:blank"));
     show_custom_camera(enabled);
+    m_custom_camera_applied = enabled;
     m_camera_switch_button->Show(enabled);
     m_panel_monitoring_title->Layout();
 }
 
 // The agent's camera mode can change under a stored source (another printer selected), so
-// reapply whenever the stored state and the applied one, tracked by the switch button, differ.
-void StatusBasePanel::sync_custom_camera_source()
+// reapply whenever the stored state and the applied one differ.
+void StatusBasePanel::sync_custom_camera_source(bool enabled)
 {
-    if (custom_camera_source_enabled() != m_camera_switch_button->IsShown())
-        apply_custom_camera_source();
+    if (enabled != m_custom_camera_applied)
+        apply_custom_camera_source(enabled);
 }
 
+// The custom page is only loaded while it is on screen, so a hidden view pulls no stream.
 void StatusBasePanel::show_custom_camera(bool show)
 {
+    const std::string url = show ? CameraPopup::custom_source_url() : std::string();
     if (show)
         m_media_play_ctrl->StopPlayback();
+    m_custom_camera_view->LoadURL(url.empty() ? wxString("about:blank") : wxString::FromUTF8(url));
     m_custom_camera_view->Show(show);
     m_media_ctrl->Show(!show);
     m_media_play_ctrl->Show(!show);
@@ -2429,8 +2430,9 @@ void StatusPanel::update_camera_state(MachineObject* obj)
     auto agent = wxGetApp().getAgent();
     const auto camera_mode = agent ? agent->get_camera_stream_mode() : CameraStreamMode::none;
     const bool use_webview = camera_mode == CameraStreamMode::http_snapshot;
-    sync_custom_camera_source();
-    if (custom_camera_source_enabled()) {
+    const bool custom_source = custom_camera_source_enabled();
+    sync_custom_camera_source(custom_source);
+    if (custom_source) {
         // The WebView shows the user's own camera; apply_custom_camera_source() and the switch button own it.
     } else if (use_webview) {
         if (!m_custom_camera_view->IsShown()) {
@@ -5159,7 +5161,7 @@ void StatusPanel::on_camera_leave(wxMouseEvent& event)
 
 void StatusPanel::on_camera_source_change(wxCommandEvent& event)
 {
-    apply_custom_camera_source();
+    apply_custom_camera_source(custom_camera_source_enabled());
 }
 
 void StatusPanel::on_auto_leveling(wxCommandEvent &event)
@@ -5290,8 +5292,9 @@ bool StatusPanel::is_stage_list_info_changed(MachineObject *obj)
 void StatusPanel::set_default()
 {
     BOOST_LOG_TRIVIAL(trace) << "status_panel: set_default";
-    sync_custom_camera_source();
-    if (m_custom_camera_view->IsShown() && !custom_camera_source_enabled()) {
+    const bool custom_source = custom_camera_source_enabled();
+    sync_custom_camera_source(custom_source);
+    if (m_custom_camera_view->IsShown() && !custom_source) {
         m_custom_camera_view->Hide();
         m_media_ctrl->Show();
         m_media_play_ctrl->StopWebStream();

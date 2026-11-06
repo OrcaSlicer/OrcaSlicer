@@ -55,7 +55,8 @@ public:
 
     void StopWebStream();
 
-    // Stops playback for a view switch: not a stream failure, so no back-off or LAN dialog.
+    // Stops playback for a view switch: not a stream failure, so it leaves no retry count,
+    // back-off or LAN dialog behind.
     void StopPlayback();
 
     bool IsStreaming() const;

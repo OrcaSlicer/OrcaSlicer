@@ -490,6 +490,7 @@ protected:
     Button *        m_button_clean;
     wxWebView *     m_custom_camera_view{nullptr};
     std::unique_ptr<WebMediaController> m_web_media_controller;
+    bool            m_custom_camera_applied{false};
 
     wxSimplebook*   m_extruder_book;
     std::vector<ExtruderImage *> m_extruderImage;
@@ -640,8 +641,8 @@ public:
     void           show_ams_group(bool show = true);
     void show_filament_load_group(bool show = true);
     MediaPlayCtrl* get_media_play_ctrl() {return m_media_play_ctrl;};
-    void apply_custom_camera_source();
-    void sync_custom_camera_source();
+    void apply_custom_camera_source(bool enabled);
+    void sync_custom_camera_source(bool enabled);
 
     void jump_to_Rack();
 

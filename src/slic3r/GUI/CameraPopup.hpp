@@ -50,8 +50,9 @@ public:
     void check_func_supported(MachineObject* obj);
     void update(bool vcamera_streaming);
 
-    // The custom source replaces the printer's own stream in the Device tab, so it is only
-    // offered while the active agent plays nothing itself (CameraStreamMode::none).
+    // Every agent camera mode other than none plays through the Device tab's WebView, the
+    // view the custom source takes over; mode none is the Bambu native stream in its own
+    // control, so the source is only offered there.
     static bool custom_source_supported();
     // The URL to show, normalised; empty when the source is disabled, blank or unsupported.
     static std::string custom_source_url();
