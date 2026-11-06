@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/Surface.hpp"
@@ -721,6 +722,39 @@ TEST_CASE("Ironing with the Archimedean Chords pattern produces ironing extrusio
     const std::vector<int> ironing = angles_per_layer(print, ironing_role);
     const auto             ironed  = std::count_if(ironing.begin(), ironing.end(), [](int angle) { return angle != -1; });
     CHECK(ironed > 0);
+}
+
+TEST_CASE("Archimedean Chords ironing starts in the center and works outwards", "[Fill]")
+{
+    Print print;
+    Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
+                                        {{"ironing_type", "topmost"},
+                                         {"ironing_pattern", "archimedeanchords"},
+                                         {"ironing_spacing", 0.15},
+                                         {"layer_height", 0.2}});
+
+    // Start points of the ironing paths of the topmost layer, in the order they are printed.
+    std::vector<Vec2d> starts;
+    BoundingBoxf       extents;
+    const Layer       *top_layer = print.objects().front()->layers().back();
+    for (const LayerRegion *region : top_layer->regions())
+        for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+            if (const auto *path = dynamic_cast<const ExtrusionPath *>(entity); path != nullptr && ironing_role(path->role())) {
+                REQUIRE_FALSE(path->polyline.points.empty());
+                starts.push_back(unscale(path->polyline.points.front()).head<2>());
+                for (const auto &pt : path->polyline.points)
+                    extents.merge(Vec2d(unscale(pt).head<2>()));
+            }
+    REQUIRE_FALSE(starts.empty());
+
+    const Vec2d center = extents.center();
+    // The spiral is connected to the surface center, then goes around it.
+    CHECK_THAT((starts.front() - center).norm(), Catch::Matchers::WithinAbs(0., 1.));
+    // Rings follow one another outwards. A ring is about 0.15 mm wide, the tolerance covers the clipped fragments.
+    for (size_t i = 1; i < starts.size(); ++i) {
+        CAPTURE(i);
+        CHECK((starts[i] - center).norm() + 0.5 >= (starts[i - 1] - center).norm());
+    }
 }
 
 
