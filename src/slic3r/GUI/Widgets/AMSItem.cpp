@@ -126,7 +126,7 @@ bool AMSinfo::parse_ams_info(MachineObject *obj, DevAms *ams, bool remain_flag, 
                     info.material_state = AMSCanType::AMS_CAN_TYPE_THIRDBRAND;
                 }
 
-                if (!DevFilaSystem::IsBBL_Filament(it->second->tag_uid) || !remain_flag) {
+                if (!DevFilaSystem::IsRemainReliable(obj, it->second->tag_uid) || !remain_flag) {
                     info.material_remain = 100;
                 } else {
                     if(it->second->remain < 0 || it->second->remain > 100) {
@@ -235,6 +235,12 @@ int AMSinfo::get_humidity_display_idx() const
         if (ams_humidity > 0 && ams_humidity < 6)
         {
             return ams_humidity;
+        }
+
+        // A printer with no humidity reading sends -1, which draws no badge
+        if (ams_humidity < 0)
+        {
+            return -1;
         }
     }
     else if (ams_type == AMSModel::N3F_AMS || ams_type == AMSModel::N3S_AMS)
