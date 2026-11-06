@@ -225,11 +225,13 @@ jobs:
         find "$d/build_flatpak/tests" -type f -perm -u+x -exec strip --strip-unneeded {} + 2>/dev/null || true
         # At runtime the tests read tests/ (TEST_DATA_DIR), scripts/, and under
         # resources/ the shipped profiles (PROFILES_DIR), the printers/ maps,
-        # the icon SVGs (NativeCommands icon names are checked against them), and
-        # the MCP server's page agent (web/mcp).
+        # info/ nozzle data used by real slices, the icon SVGs (NativeCommands
+        # icon names are checked against them), and the MCP server's page agent
+        # (web/mcp).
         find "$d" -mindepth 1 -maxdepth 1 -type d \
           ! -name tests ! -name build_flatpak ! -name scripts ! -name resources -exec rm -rf {} +
-        find "$d/resources" -mindepth 1 -maxdepth 1 ! -name profiles ! -name printers ! -name images ! -name web -exec rm -rf {} +
+        find "$d/resources" -mindepth 1 -maxdepth 1 ! -name profiles ! -name printers ! -name info ! -name images ! -name web -exec rm -rf {} +
+        test -f "$d/resources/info/nozzle_info.json"
         find "$d/resources/web" -mindepth 1 -maxdepth 1 ! -name mcp -exec rm -rf {} +
         # Only the SVGs are read; the png/ico/icns/gif assets are ~35MB of dead weight.
         find "$d/resources/images" -mindepth 1 -maxdepth 1 ! -name '*.svg' -exec rm -rf {} + 2>/dev/null || true
