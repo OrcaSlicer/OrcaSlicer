@@ -77,7 +77,9 @@
 #include "DeviceCore/DevStorage.h"
 #include "libslic3r_version.h"
 #include "slic3r/Utils/FileTransferUtils.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include <boost/filesystem.hpp>
+#include <nlohmann/json.hpp>
 
 namespace fs = boost::filesystem;
 
@@ -1130,17 +1132,6 @@ void SendToPrinterDialog::on_print_job_cancel(wxCommandEvent &evt)
     prepare_mode();
 }
 
-std::vector<std::string> SendToPrinterDialog::sort_string(std::vector<std::string> strArray)
-{
-    std::vector<std::string> outputArray;
-    std::sort(strArray.begin(), strArray.end());
-    std::vector<std::string>::iterator st;
-    for (st = strArray.begin(); st != strArray.end(); st++) { outputArray.push_back(*st); }
-
-    return outputArray;
-}
-
-
 bool  SendToPrinterDialog::is_timeout()
 {
     if (timeout_count > 15 * 1000 / LIST_REFRESH_INTERVAL) {
@@ -1168,32 +1159,21 @@ void SendToPrinterDialog::update_user_printer()
     // clear machine list
     m_list.clear();
     m_comboBox_printer->Clear();
-    std::vector<std::string>              machine_list;
     wxArrayString                         machine_list_name;
     std::map<std::string, MachineObject*> option_list;
 
     option_list = dev->get_my_machine_list(dev->get_current_printer_agent_id());
 
-    // same machine only appear once
     for (auto it = option_list.begin(); it != option_list.end(); it++) {
         if (it->second && (it->second->is_online() || it->second->is_connected())) {
-            machine_list.push_back(it->second->get_dev_name());
+            m_list.push_back(it->second);
         }
     }
-    machine_list = sort_string(machine_list);
-    for (auto tt = machine_list.begin(); tt != machine_list.end(); tt++) {
-        for (auto it = option_list.begin(); it != option_list.end(); it++) {
-            if (it->second->get_dev_name() == *tt) {
-                m_list.push_back(it->second);
-                wxString dev_name_text = from_u8(it->second->get_dev_name());
-                if (it->second->is_lan_mode_printer()) {
-                    dev_name_text += _L("(LAN)");
-                }
-                machine_list_name.Add(dev_name_text);
-                break;
-            }
-        }
-    }
+    // Printers that share a name keep separate entries, ordered by device id.
+    std::stable_sort(m_list.begin(), m_list.end(),
+                     [](const MachineObject* a, const MachineObject* b) { return a->get_dev_name() < b->get_dev_name(); });
+    for (const MachineObject* obj : m_list)
+        machine_list_name.Add(get_shown_printer_name(obj));
 
     m_comboBox_printer->Set(machine_list_name);
 
@@ -1507,7 +1487,7 @@ void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxSt
 		Enable_Send_Button(true);
 		Enable_Refresh_Button(true);
 	} else if (status == PrintDialogStatus::PrintStatusNoSdcard) {
-		wxString msg_text = _L("Storage needs to be inserted before send to printer.");
+		wxString msg_text = _L("Insert storage or free up space before sending to the printer.");
 		update_print_status_msg(msg_text, true, true);
 		Enable_Send_Button(false);
 		Enable_Refresh_Button(true);
@@ -1831,7 +1811,7 @@ what();
                     }
                     BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " : Tutk url error: ress = " << res;
                 }
-            });
+            }, wxGetApp().get_printer_cloud_provider());
         }
     }
 }

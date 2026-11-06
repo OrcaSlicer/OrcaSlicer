@@ -5,11 +5,14 @@ Standard library only. Edits a catalog in place, rewriting just the entries it
 changes in the layout `msgmerge --no-wrap` writes, so every other byte stays put.
 
     status     [--lang L ...]                  per-catalog counts
-    pending    --lang L [--offset N --limit N] [--out FILE] [--no-include-fuzzy]   (adds similar earlier translations)
+    pending    --lang L [--offset N --limit N] [--out FILE] [--no-include-fuzzy]   (adds similar earlier
+               translations, where the source uses each msgid, and the translated labels near it)
     apply      --lang L --input FILE [--overwrite] [--dry-run]    adds "# AI Translated"
     check      [--lang L ...] [--scope ai|all] [--warnings]
-    lookup     --lang L PATTERN [--msgstr]     existing translations with ids, obsolete ones included
-    glossary   --lang L [TERM]                 the language's glossary column and notes
+    lookup     --lang L PATTERN [--msgstr] [--code] [--file RX]   existing translations with ids, obsolete
+               ones included; --file keeps those used in matching source files
+    purge-obsolete [--lang L ...]              drop the obsolete (#~) entries, every catalog by default
+    glossary   --lang L [TERM]               the language's glossary column and notes
     candidates [--min-count N] [--limit N]     recurring untranslated phrases not in the glossary
     glossary-set --term T [--description D] --set L=VALUE ... [--replace]
 
@@ -23,6 +26,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -74,7 +78,7 @@ class Entry:
         self.lines = lines
         self.first_line = first_line  # 0-based index in the file
         self.obsolete = all(l.startswith("#~") for l in lines if not l.startswith("#") or l.startswith("#~"))
-        self.tcomments, self.xcomments, self.flags = [], [], []
+        self.tcomments, self.xcomments, self.flags, self.refs = [], [], [], []
         self.fields = {}  # keyword -> [value, start, end)
         self.order = []
         current = None
@@ -91,6 +95,8 @@ class Entry:
                     self.xcomments.append(line[2:].strip())
                 elif line.startswith("#,"):
                     self.flags += [f.strip() for f in line[2:].split(",") if f.strip()]
+                elif line.startswith("#:"):
+                    self.refs += [(f, int(n)) for f, n in re.findall(r"(\S+):(\d+)", line[2:])]
                 elif line == "#" or line.startswith("# "):
                     self.tcomments.append(line[2:])
                 continue
@@ -177,6 +183,11 @@ class Entry:
         while pos < len(lines) and (lines[pos] == "#" or lines[pos].startswith("# ")):
             pos += 1
         add = []
+        if not ai:  # a person's words: drop a stale AI mark
+            lines = [l for l in lines if l != "# " + AI_TAG]
+            pos = 0
+            while pos < len(lines) and (lines[pos] == "#" or lines[pos].startswith("# ")):
+                pos += 1
         if review is not None:  # "" clears an earlier note, a reason replaces it
             lines = [l for l in lines if not l.startswith("# " + REVIEW_TAG)]
             pos = 0
@@ -246,6 +257,77 @@ def catalog_path(lang):
 
 def all_langs():
     return sorted(d.name for d in I18N.iterdir() if (d / f"OrcaSlicer_{d.name}.po").exists() and d.name not in SKIP_LANGS)
+
+
+# ---------------------------------------------------------------------------
+# Source locations
+
+class Sources:
+    """Where the source uses each msgid. The catalogs are extracted with --no-location, so this runs
+    xgettext again over localization/i18n/list.txt with the keywords scripts/run_gettext.sh passes."""
+
+    def __init__(self):
+        self.refs = {}   # (msgctxt, msgid) -> [(file, line)]
+        self.keys = {}   # file -> [(line, key)]
+        self._lines = {}
+        xgettext = shutil.which("xgettext") or next((str(t) for t in [REPO / "tools" / "xgettext.exe"] if t.exists()), None)
+        keywords = sorted(set(re.findall(r"--keyword=\S+", (REPO / "scripts" / "run_gettext.sh").read_text(encoding="utf-8"))))
+        if not xgettext or not keywords:
+            print("note: xgettext not found; entries carry no source context", file=sys.stderr)
+            return
+        listed = (REPO / "localization" / "i18n" / "list.txt").read_text(encoding="utf-8").splitlines()
+        files = [f.strip() for f in listed if f.strip() and not f.startswith("#") and (REPO / f.strip()).is_file()]
+        with tempfile.TemporaryDirectory() as d:
+            lst, pot = Path(d) / "list.txt", Path(d) / "located.pot"
+            lst.write_text("\n".join(files) + "\n", encoding="utf-8")
+            r = subprocess.run([xgettext, *keywords, "--from-code=UTF-8", "--boost", "--no-wrap", "-f", str(lst), "-o", str(pot)],
+                               cwd=REPO, capture_output=True, text=True)
+            if r.returncode or not pot.exists():
+                print(f"note: xgettext failed; entries carry no source context\n{r.stderr.strip()}", file=sys.stderr)
+                return
+            for e in Catalog(pot).active():
+                self.refs[e.key()] = e.refs
+                for f, n in e.refs:
+                    self.keys.setdefault(f, []).append((n, e.key()))
+
+    def lines(self, f):
+        if f not in self._lines:
+            self._lines[f] = (REPO / f).read_text(encoding="utf-8", errors="replace").splitlines()
+        return self._lines[f]
+
+    def spread(self, key, n):
+        """Up to n uses, from as many different places as possible, so a msgid that a gizmo and a
+        menu share shows both."""
+        picked = []
+        for place in (lambda f: f.rsplit("/", 1)[0], lambda f: f):
+            for f, line in self.refs.get(key, []):
+                if len(picked) < n and place(f) not in {place(p) for p, _ in picked}:
+                    picked.append((f, line))
+        return picked
+
+    def code(self, key, n=3):
+        """The lines around a msgid's uses: the widget or option it belongs to, and what fills its
+        placeholders."""
+        out = []
+        for f, line in self.spread(key, n):
+            lines = self.lines(f)
+            end = line  # through the end of the statement, where the placeholder arguments are
+            while end < min(len(lines), line + 8) and ";" not in lines[end - 1]:
+                end += 1
+            around = [l.strip()[:160] for l in lines[max(line - 3, 0):end] if l.strip()]
+            out.append({"at": f"{f}:{line}", "code": "\n".join(around)})
+        return out
+
+    def nearby(self, key, translated, span=6, limit=4):
+        """Translated short msgids used within a few lines of this one: the label a tooltip describes,
+        the other items of a menu or a choice. Their wording is what this one must agree with."""
+        dist = {}
+        for f, line in self.refs.get(key, []):
+            for n, k in self.keys.get(f, []):
+                if k != key and k in translated and len(k[1]) <= 80 and abs(n - line) <= span:
+                    dist[k] = min(dist.get(k, span), abs(n - line))
+        return [dict({"msgctxt": k[0]} if k[0] else {}, msgid=k[1], msgstr=translated[k])
+                for k in sorted(dist, key=dist.get)[:limit]]
 
 
 # ---------------------------------------------------------------------------
@@ -402,9 +484,9 @@ def validate(e, msgstrs, nplurals, glossary=None, lang=None):
         b1, c1 = _placeholders(src, flags)
         b2, c2 = _placeholders(s, flags)
         positional = any("$" in p for p in c1)
-        c_bad = sorted(c1) != sorted(c2) if positional else c1 != c2
+        c_bad = set(c1) != set(c2) if positional else c1 != c2
         bad = []
-        if sorted(b1) != sorted(b2):
+        if set(b1) != set(b2):
             bad.append(f"boost placeholders {b1} -> {b2}")
         if c_bad:
             bad.append(f"printf placeholders {c1} -> {c2}" + ("" if positional else " (order must match)"))
@@ -504,15 +586,44 @@ def similar_entries(c, e, pool, cutoff=0.72):
     sm = difflib.SequenceMatcher(autojunk=False)
     sm.set_seq2(e.msgid)
     best = []
-    for other, msgstr, obsolete in pool:
+    for other, msgstr, obsolete, human in pool:
         sm.set_seq1(other)
         if sm.real_quick_ratio() < cutoff or sm.quick_ratio() < cutoff:
             continue
         r = sm.ratio()
         if r >= cutoff and other != e.msgid:
-            best.append((r, other, msgstr, obsolete))
+            best.append((r, other, msgstr, obsolete, human))
     best.sort(key=lambda t: -t[0])
-    return [{"msgid": o, "msgstr": s, "obsolete": ob, "similarity": round(r, 2)} for r, o, s, ob in best[:2]]
+    return [dict({"msgid": o, "msgstr": s, "obsolete": ob, "similarity": round(r, 2)}, **({"human": True} if h else {}))
+            for r, o, s, ob, h in best[:2]]
+
+
+def similar_pool(c):
+    return [(x.msgid, x.msgstrs()[0], x.obsolete, not x.ai) for x in c.entries
+            if not x.is_header and x.msgstrs() and x.msgstrs()[0] and not x.fuzzy and 8 < len(x.msgid) < 600]
+
+
+def human_drift(e, strs, pool):
+    """Why a translation strays from a person's text more than the English change explains, or None."""
+    import difflib
+    alike = lambda x, y: difflib.SequenceMatcher(None, x, y, autojunk=False).ratio()
+    new, old = "\n".join(strs), "\n".join(e.msgstrs())
+    if old.strip() and not e.ai:
+        r = alike(old, new)
+        if r < 0.85:
+            return (f"replaces a person's translation with text only {r:.0%} like it: keep their words and change "
+                    f"only what the fix needs, or give \"rewrite\": \"<reason>\"")
+        return None
+    if old.strip() or len(e.msgid) <= 8:
+        return None
+    for s in similar_entries(None, e, pool, cutoff=0.85):
+        if s.get("human"):
+            r = alike(s["msgstr"], new)
+            if r < s["similarity"] - 0.1:
+                return (f"the English is {s['similarity']:.0%} like a string a person translated, but this translation is "
+                        f"only {r:.0%} like theirs: patch their translation, or give \"rewrite\": \"<reason>\"")
+            break
+    return None
 
 
 def cmd_pending(a):
@@ -520,8 +631,9 @@ def cmd_pending(a):
     g = Glossary(a.wiki, langs=[a.lang])
     todo = [e for e in c.active() if needs_translation(e, c.nplurals, a.include_fuzzy)]
     batch = todo[a.offset:a.offset + a.limit] if a.limit else todo[a.offset:]
-    pool = [(x.msgid, x.msgstrs()[0], x.obsolete) for x in c.entries
-            if not x.is_header and x.msgstrs() and x.msgstrs()[0] and not x.fuzzy and 8 < len(x.msgid) < 600]
+    pool = similar_pool(c)
+    src = Sources()
+    translated = {e.key(): e.msgstrs()[0] for e in c.active() if e.msgstrs() and e.msgstrs()[0] and not e.fuzzy}
     items = []
     for e in batch:
         item = {"id": e.id(), "msgctxt": e.msgctxt, "msgid": e.msgid}
@@ -539,6 +651,13 @@ def cmd_pending(a):
             item["fuzzy"] = True
             if e.msgstrs()[0]:
                 item["previous_translation"] = e.msgstrs()[0]
+        refs = src.refs.get(e.key(), [])
+        if refs:
+            item["refs"] = [f"{f}:{n}" for f, n in refs[:4]] + ([f"+{len(refs) - 4} more"] if len(refs) > 4 else [])
+        # Code only where it settles the meaning: short labels, and what fills the placeholders.
+        if len(e.msgid.split()) <= 8 or {"c-format", "boost-format"} & set(flags):
+            item["code"] = src.code(e.key()) or None
+        item["nearby"] = src.nearby(e.key(), translated) or None
         if len(e.msgid) > 8:
             sim = similar_entries(c, e, pool)
             if sim:
@@ -561,6 +680,7 @@ def cmd_apply(a):
     items = data["entries"] if isinstance(data, dict) else data
     idx = c.index()
     by_id = {c.entries[i].id(): i for i in idx.values()}
+    pool = similar_pool(c)
     applied, skipped, rejected, warned = 0, 0, [], []
     for it in items:
         if "msgid" in it:
@@ -588,9 +708,16 @@ def cmd_apply(a):
         if errors:
             rejected.append((label, errors))
             continue
+        drift = None if it.get("rewrite") else human_drift(e, strs, pool)
+        if drift:
+            rejected.append((label, [drift]))
+            continue
         if warnings:
             warned.append((label, warnings))
-        c.changes[i] = e.rewrite(strs, ai=not a.human, review=it.get("review"))
+        review = it.get("review")
+        if it.get("rewrite") and not review:
+            review = "Rewrote a person's translation: " + it["rewrite"]
+        c.changes[i] = e.rewrite(strs, ai=not a.human, review=review)
         applied += 1
     if not a.dry_run and c.changes:
         c.save()
@@ -636,7 +763,7 @@ def cmd_check(a):
         if msgfmt:
             fd, mo = tempfile.mkstemp(suffix=".mo")  # Windows msgfmt cannot write to "nul"
             os.close(fd)
-            r = subprocess.run([msgfmt, "--check-format", "-o", mo, str(c.path)], capture_output=True, text=True)
+            r = subprocess.run([msgfmt, "--check-format", "--check-header", "-o", mo, str(c.path)], capture_output=True, text=True)
             os.unlink(mo)
             if r.returncode:
                 print(f"{lang}: msgfmt --check-format failed\n{r.stderr.strip()}")
@@ -648,9 +775,29 @@ def cmd_check(a):
     return status
 
 
+def cmd_purge_obsolete(a):
+    """Drop the obsolete (#~) entries, with their comments and the blank line before each."""
+    for lang in a.lang or sorted(set(all_langs()) | SKIP_LANGS):
+        c = Catalog(catalog_path(lang))
+        # a block of comments alone also parses as obsolete, so require a #~ line
+        gone = [e for e in c.entries if e.obsolete and any(l.startswith("#~") for l in e.lines)]
+        drop = set()
+        for e in gone:
+            start = e.first_line
+            while start > 0 and c.lines[start - 1].strip() == "":
+                start -= 1
+            drop.update(range(start, e.first_line + len(e.lines)))
+        if drop:
+            c.lines = [l for i, l in enumerate(c.lines) if i not in drop]
+            c.save()
+        print(f"{lang}: {len(gone)} obsolete entries removed")
+
+
 def cmd_lookup(a):
     c = Catalog(catalog_path(a.lang))
     rx = re.compile(a.pattern, re.I)
+    src = Sources() if a.code or a.file else None
+    in_files = re.compile(a.file) if a.file else None
     n = 0
     for e in c.entries:
         strs = [s for s in e.msgstrs() if s]
@@ -659,11 +806,19 @@ def cmd_lookup(a):
         texts = strs if a.msgstr else [e.msgid, e.msgid_plural or ""]
         if not any(rx.search(t) for t in texts):
             continue
+        if in_files and (e.obsolete or not any(in_files.search(f) for f, _ in src.refs.get(e.key(), []))):
+            continue
         mark = "obsolete " if e.obsolete else f"{e.id()} " + ("AI " if e.ai else "")
         ctx = f"[{e.msgctxt}] " if e.msgctxt else ""
         print(f"{mark}{ctx}{json.dumps(e.msgid, ensure_ascii=False)}\n    -> {json.dumps(strs[0] if len(strs) == 1 else strs, ensure_ascii=False)}")
+        if a.code and not e.obsolete:
+            refs, uses = src.refs.get(e.key(), []), src.code(e.key())
+            if len(refs) > len(uses):
+                print("    used in " + " ".join(f"{f}:{l}" for f, l in refs))
+            for use in uses:
+                print(f"    {use['at']}\n" + "\n".join("      | " + l for l in use["code"].splitlines()))
         n += 1
-        if n >= a.limit:
+        if a.limit and n >= a.limit:
             print("... (limit reached)")
             break
 
@@ -881,11 +1036,17 @@ def main():
     s.add_argument("--no-glossary", action="store_true")
     s.set_defaults(func=cmd_check)
 
+    s = sub.add_parser("purge-obsolete")
+    s.add_argument("--lang", action="append", help="default: every catalog")
+    s.set_defaults(func=cmd_purge_obsolete)
+
     s = sub.add_parser("lookup")
     s.add_argument("--lang", required=True)
     s.add_argument("pattern")
     s.add_argument("--msgstr", action="store_true", help="search the translations instead of the English")
-    s.add_argument("--limit", type=int, default=40)
+    s.add_argument("--code", action="store_true", help="show where the source uses each hit")
+    s.add_argument("--file", help="only entries used in source files matching this regex (e.g. 'Gizmos/')")
+    s.add_argument("--limit", type=int, default=40, help="0 for no limit")
     s.set_defaults(func=cmd_lookup)
 
     s = sub.add_parser("glossary")

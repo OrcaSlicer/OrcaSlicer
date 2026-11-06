@@ -17,6 +17,7 @@
 
 #include "libslic3r/libslic3r.h"
 #include "LibVGCodeWrapper.hpp"
+#include "slic3r/GUI/3DScene.hpp"
 
 #include <limits>
 #include "libslic3r/Print.hpp"
@@ -73,10 +74,28 @@ Color convert(const Slic3r::ColorRGBA& c)
     return { safe_val(c.r()), safe_val(c.g()), safe_val(c.b()) };
 }
 
-Color convert(const std::string& color_str)
+Slic3r::ColorRGBA convert(const ColorWithAlpha& c)
 {
-    Slic3r::ColorRGBA color_rgba;
-    return decode_color(color_str, color_rgba) ? convert(color_rgba) : DUMMY_COLOR;
+    static const float inv_255 = 1.0f / 255.0f;
+    return { c[0] * inv_255, c[1] * inv_255, c[2] * inv_255, c[3] * inv_255 };
+}
+
+PaletteWithAlpha convert_filament_colors(const std::vector<std::string>& colors_str)
+{
+    PaletteWithAlpha ret;
+    ret.reserve(colors_str.size());
+    for (const std::string& color_str : colors_str) {
+        Slic3r::ColorRGBA color_rgba;
+        if (!decode_color(color_str, color_rgba)) {
+            ret.push_back({ DUMMY_COLOR[0], DUMMY_COLOR[1], DUMMY_COLOR[2], 255 });
+            continue;
+        }
+        // as the 3D view draws it: a clear color kept at the least opacity, black lifted
+        color_rgba = adjust_color_for_rendering(color_rgba);
+        const Color color = convert(color_rgba);
+        ret.push_back({ color[0], color[1], color[2], static_cast<uint8_t>(std::lround(255.0f * color_rgba.a())) });
+    }
+    return ret;
 }
 
 Slic3r::ExtrusionRole convert(EGCodeExtrusionRole role)
@@ -233,18 +252,8 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
         return convert(v);
     };
 
-    // collect tool colors
-    ret.tools_colors.reserve(str_tool_colors.size());
-    for (const std::string& color : str_tool_colors) {
-        ret.tools_colors.emplace_back(convert(color));
-    }
-
-    // collect color print colors
-    const std::vector<std::string>& str_colors = str_color_print_colors.empty() ? str_tool_colors : str_color_print_colors;
-    ret.color_print_colors.reserve(str_colors.size());
-    for (const std::string& color : str_colors) {
-        ret.color_print_colors.emplace_back(convert(color));
-    }
+    ret.tools_colors = convert_filament_colors(str_tool_colors);
+    ret.color_print_colors = convert_filament_colors(str_color_print_colors.empty() ? str_tool_colors : str_color_print_colors);
 
     const std::vector<Slic3r::GCodeProcessorResult::MoveVertex>& moves = result.moves;
     // One vertex per move after the first, plus a phantom in front of every path start. Reserving
@@ -874,18 +883,8 @@ GCodeInputData convert(const Slic3r::Print& print, const std::vector<std::string
     }
 
 
-    // collect tool colors
-    ret.tools_colors.reserve(str_tool_colors.size());
-    for (const std::string& color : str_tool_colors) {
-        ret.tools_colors.emplace_back(convert(color));
-    }
-
-    // collect color print colors
-    const std::vector<std::string>& str_colors = str_color_print_colors.empty() ? str_tool_colors : str_color_print_colors;
-    ret.color_print_colors.reserve(str_colors.size());
-    for (const std::string& color : str_colors) {
-        ret.color_print_colors.emplace_back(convert(color));
-    }
+    ret.tools_colors = convert_filament_colors(str_tool_colors);
+    ret.color_print_colors = convert_filament_colors(str_color_print_colors.empty() ? str_tool_colors : str_color_print_colors);
 
     return ret;
 }

@@ -33,5 +33,7 @@
 	"ironing_speed": "30",
 	"overhang_1_4_speed": "40",
 	"overhang_2_4_speed": "20",
-	"overhang_3_4_speed": "10"
+	"overhang_3_4_speed": "10",
+	"top_color_penetration_layers": "4",
+	"bottom_color_penetration_layers": "3"
 }

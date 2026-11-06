@@ -69,8 +69,10 @@ namespace fs = boost::filesystem;
 
 namespace {
 
-// Brings the plugin system up, and tears it down explicitly at the end of the test, as
-// test_plugin_lifecycle.cpp does. Declare this FIRST in a test so it is destroyed last.
+// Brings the plugin system up for the duration of one test and tears the manager down at the end,
+// as test_plugin_lifecycle.cpp does. The interpreter is process-wide and finalized once by
+// PythonInterpreterRunEnd in slic3rutils_tests_main.cpp; CPython cannot be reinitialized after
+// Py_Finalize. Declare this FIRST in a test so it is destroyed last.
 struct ScopedPluginManager
 {
     // Before initialize(): the interpreter creates {data_dir}/python/packages and {data_dir}/log.
@@ -78,11 +80,7 @@ struct ScopedPluginManager
     bool          initialized = false;
 
     ScopedPluginManager() { initialized = PluginManager::instance().initialize(); }
-    ~ScopedPluginManager()
-    {
-        PluginManager::instance().shutdown();
-        PythonInterpreter::instance().shutdown();
-    }
+    ~ScopedPluginManager() { PluginManager::instance().shutdown(); }
 };
 
 // The app installs these in GUI_App::init_plugin_gui_wiring. Without an app the callbacks run inline
