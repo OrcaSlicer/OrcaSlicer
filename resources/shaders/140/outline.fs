@@ -9,6 +9,8 @@ uniform sampler2D edges_tex;
 uniform bool inner;
 // The stencil keeps the ring off the samples of the selection, without it the ring stays off covered pixels.
 uniform bool use_stencil;
+// The ring drawn over the other outlined volumes, which stays off this one.
+uniform bool over_others;
 // Widths in pixels: x at least, y at most, z the width on the model in view space units.
 uniform vec3 ring_width;
 uniform int ring_reach;
@@ -133,7 +135,7 @@ void render_ring(ivec2 p)
     if (covered(m)) {
         // Only the silhouette of the mask may hold samples off the selection. Inside, a face the mask has and the
         // scene culled, say, would get no stencil bit and fill with the ring.
-        if (!use_stencil || inside_mask(p))
+        if (over_others || !use_stencil || inside_mask(p))
             discard;
         depth = surface_depth(p);
     }

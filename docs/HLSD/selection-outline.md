@@ -17,9 +17,17 @@ color, both configurable and white by default. The Persistent color button is di
 is off, as it has no effect then. These application preferences are saved
 immediately and redraw the current canvas when Preferences closes; they do not require a restart.
 
-`SelectionOutline` draws it once per frame for all collected volumes, after the object passes of
-`GLCanvas3D::_render_scene()`. Its cost depends on their screen area, not on their triangle
-count, apart from one extra draw of the outlined volumes.
+`SelectionOutline` draws it after the object passes of `GLCanvas3D::_render_scene()`. Its cost
+depends on their screen area, not on their triangle count, apart from one extra draw of the outlined
+volumes.
+
+Without Persistent, all selected volumes share one outline, drawn once per frame. With Persistent, each
+object instance gets an outline of its own, drawn from back to front by the view depth of its bounding box
+center, so an object in front of another keeps its full ring over it instead of the thin line that marks
+two parts meeting. The passes below then run once per instance, each within the screen box of that
+instance, so their cost grows with the number of outlined objects and the screen area of their boxes. A
+third composite draw puts the ring of each instance over the outlined volumes around it as well, where the
+depth test lets a nearer volume hide it.
 
 ## Passes
 
