@@ -1,0 +1,38 @@
+{
+	"type": "process",
+	"name": "Multi-height Quality @Snapmaker U1 (0.6+0.8 nozzle)",
+	"inherits": "fdm_process_U1_0.20",
+	"from": "system",
+	"setting_id": "T34ZapLstgDGDtLp",
+	"instantiation": "true",
+	"description": "Per-extruder layer heights for Snapmaker U1 (0.6+0.8 nozzle). Each tool uses its own process layer height; line widths follow its nozzle diameter.",
+	"compatible_printers": [
+		"Snapmaker U1 (0.6+0.8 nozzle)"
+	],
+	"line_width": "105%",
+	"outer_wall_line_width": "105%",
+	"inner_wall_line_width": "112%",
+	"initial_layer_line_width": "125%",
+	"sparse_infill_line_width": "105%",
+	"internal_solid_infill_line_width": "105%",
+	"support_line_width": "105%",
+	"top_surface_line_width": "105%",
+	"ooze_prevention": "1",
+	"prime_tower_width": "30",
+	"slowdown_for_curled_perimeters": "0",
+	"standby_temperature_delta": "-150",
+	"wipe_tower_filament": "0",
+	"preheat_time": "30",
+	"wipe_tower_cone_angle": "15",
+	"prime_tower_brim_width": "5",
+	"initial_layer_print_height": "0.16",
+	"top_shell_layers": "5",
+	"bottom_shell_layers": "3",
+	"layer_height": "0.18",
+	"extruder_layer_height": [
+		"0.18",
+		"0.18",
+		"0.24",
+		"0.24"
+	]
+}

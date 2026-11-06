@@ -7,7 +7,7 @@
 	"instantiation": "true",
 	"printer_model": "Snapmaker U1",
 	"printer_variant": "0.4+0.6",
-	"default_print_profile": "0.20 Standard @Snapmaker U1 (0.4+0.6 nozzle)",
+	"default_print_profile": "Multi-height Balanced @Snapmaker U1 (0.4+0.6 nozzle)",
 	"max_layer_height": [
 		"0.32",
 		"0.32",
@@ -35,5 +35,8 @@
 		"stainless_steel",
 		"stainless_steel",
 		"stainless_steel"
+	],
+	"default_filament_profile": [
+		"Generic PLA @U1 0.4 nozzle"
 	]
 }

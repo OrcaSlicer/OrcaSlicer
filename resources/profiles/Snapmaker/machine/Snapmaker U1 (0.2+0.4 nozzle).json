@@ -1,0 +1,31 @@
+{
+	"type": "machine",
+	"name": "Snapmaker U1 (0.2+0.4 nozzle)",
+	"inherits": "Snapmaker U1 (0.4 nozzle)",
+	"from": "system",
+	"setting_id": "tIrH4Zpgx1eCUTLg",
+	"instantiation": "true",
+	"printer_variant": "0.2+0.4",
+	"default_print_profile": "Multi-height Balanced @Snapmaker U1 (0.2+0.4 nozzle)",
+	"nozzle_diameter": [
+		"0.2",
+		"0.2",
+		"0.4",
+		"0.4"
+	],
+	"min_layer_height": [
+		"0.04",
+		"0.04",
+		"0.08",
+		"0.08"
+	],
+	"max_layer_height": [
+		"0.14",
+		"0.14",
+		"0.32",
+		"0.32"
+	],
+	"default_filament_profile": [
+		"Generic PLA @U1 0.2 nozzle"
+	]
+}
