@@ -5926,7 +5926,7 @@ bool texture_displacement_layers_from_json(const std::string                    
                 read_enum(j, "projection_method", projection);
                 read_enum(j, "blend_mode", blend);
                 l.tile_method       = TextureTileMethod(tile_method);
-                l.projection_method = TextureProjectionMethod(std::clamp(projection, 0, 4));
+                l.projection_method = TextureProjectionMethod(std::clamp(projection, 0, int(TextureProjectionMethod::ModelUV)));
                 l.blend_mode        = TextureBlendMode(blend);
 
                 read(j, "lscm_seam_angle_deg", l.lscm_seam_angle_deg);
