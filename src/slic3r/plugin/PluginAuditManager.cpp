@@ -6,7 +6,6 @@
 #include "libslic3r/libslic3r.h" // GCODEVIEWER_APP_KEY, and SLIC3R_APP_KEY via libslic3r_version.h
 #include "libslic3r_version.h"
 
-#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -18,9 +17,9 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cctype>
 #include <cstddef>
 #include <cstdlib>
+#include <exception>
 #include <future>
 #include <mutex>
 #include <memory>
@@ -193,9 +192,12 @@ static bool is_create_delete_category(AuditEventCategory category)
 // Network permission identity
 // ---------------------------------------------------------------------------
 
+// Lowercases A-Z only. A locale-aware lowercase can break the UTF-8 of non-Latin names.
 static std::string ascii_lower(std::string value)
 {
-    boost::algorithm::to_lower(value);
+    for (char& c : value)
+        if (c >= 'A' && c <= 'Z')
+            c = static_cast<char>(c - 'A' + 'a');
     return value;
 }
 
@@ -749,8 +751,7 @@ void PluginAuditManager::add_denied_path_keyword(const std::string& keyword)
     if (keyword.empty())
         return;
 
-    std::string lower = keyword;
-    std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return std::tolower(c); });
+    const std::string lower = ascii_lower(keyword);
 
     std::lock_guard<std::mutex> lock(m_mutex);
     m_denied_path_keywords.push_back(lower);
@@ -807,10 +808,9 @@ bool PluginAuditManager::is_denied_path_keyword(const boost::filesystem::path& c
         return false;
 
     for (const auto& component : scope) {
-        std::string name = component.string();
+        const std::string name = ascii_lower(component.string());
         if (name.empty())
             continue;
-        std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return std::tolower(c); });
         for (const auto& keyword : m_denied_path_keywords) {
             if (name == keyword || (keyword == "conf" && has_denied_config_extension(name)))
                 return true;
@@ -2196,7 +2196,18 @@ int PluginAuditManager::audit_hook(const char* event, PyObject* args, void* user
     // finalizer they run re-enters a hook whose held frames are already consistent.
     std::vector<PyObject*> returned_frames;
     PluginAuditDetail::take_returned_frames(m_root_frames, returned_frames);
-    const int result = PluginAuditDetail::audit_plugin_event(*mgr, event_name, event_type, args);
+    int result = -1;
+    // A C++ exception must not unwind through the interpreter that raised the event, so a check
+    // that throws denies the event, like an unanswered prompt.
+    try {
+        result = PluginAuditDetail::audit_plugin_event(*mgr, event_name, event_type, args);
+    } catch (const std::exception& error) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT] event=" << event_name << " denied, its check failed: " << error.what();
+        result = PluginAuditDetail::report_denied(*mgr, event_name, {false, "audit check failed"});
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT] event=" << event_name << " denied, its check failed";
+        result = PluginAuditDetail::report_denied(*mgr, event_name, {false, "audit check failed"});
+    }
     mgr->release_frames(returned_frames);
     return result;
 }
