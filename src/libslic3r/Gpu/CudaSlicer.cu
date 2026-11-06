@@ -1,5 +1,6 @@
 #include "CudaSlicer.hpp"
 #include "GpuBatchSafety.hpp"
+#include "CudaDispatchBuffers.hpp"
 
 #include <cuda_runtime.h>
 
@@ -45,6 +46,8 @@ int g_device = -1;
 bool g_qualified = false;
 uint32_t g_maximum_grid_x = 0;
 constexpr uint32_t block_size = 128;
+CudaDispatchBuffers g_dispatch_buffers(maximum_intersection_requests * sizeof(CudaRequest),
+                                      maximum_intersection_requests * sizeof(CudaResult));
 
 bool check(cudaError_t error, std::string& diagnostic, const char* operation)
 {
@@ -54,8 +57,26 @@ bool check(cudaError_t error, std::string& diagnostic, const char* operation)
     return false;
 }
 
+struct CudaBufferMemory {
+    std::string& diagnostic;
+
+    bool allocate(void*& buffer, size_t bytes)
+    {
+        return check(cudaMalloc(&buffer, bytes), diagnostic, "cudaMalloc(dispatch buffer)");
+    }
+
+    bool release(void* buffer)
+    {
+        return check(cudaFree(buffer), diagnostic, "cudaFree(dispatch buffer)");
+    }
+};
+
 bool query_locked(CudaSlicerCapabilities& capabilities)
 {
+    if (g_dispatch_buffers.cleanup_failed()) {
+        capabilities.diagnostic = "CUDA buffer cleanup failed; restart the application before reusing CUDA.";
+        return false;
+    }
     int count = 0;
     if (!check(cudaGetDeviceCount(&count), capabilities.diagnostic, "cudaGetDeviceCount") || count == 0) {
         if (capabilities.diagnostic.empty())
@@ -97,31 +118,23 @@ bool dispatch_locked(const std::vector<VerticalIntersectionRequest>& requests,
     // maximum_intersection_requests bounds these byte and grid calculations.
     const size_t request_bytes = host_requests.size() * sizeof(CudaRequest);
     const size_t result_bytes = host_results.size() * sizeof(CudaResult);
-    CudaRequest* device_requests = nullptr;
-    CudaResult* device_results = nullptr;
-    if (!check(cudaMalloc(&device_requests, request_bytes), diagnostic, "cudaMalloc(requests)"))
-        return false;
-    if (!check(cudaMalloc(&device_results, result_bytes), diagnostic, "cudaMalloc(results)")) {
-        cudaFree(device_requests);
-        return false;
-    }
-    bool success = check(cudaMemcpy(device_requests, host_requests.data(), request_bytes, cudaMemcpyHostToDevice),
-                         diagnostic, "cudaMemcpy(requests)");
-    if (success) {
-        const auto start = std::chrono::steady_clock::now();
-        vertical_intersection_kernel<<<uint32_t(grid_size), block_size>>>(device_requests, device_results, requests.size());
-        success = check(cudaGetLastError(), diagnostic, "CUDA kernel launch") &&
-                  check(cudaDeviceSynchronize(), diagnostic, "CUDA kernel synchronization");
-        elapsed_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
-    }
-    if (success)
-        success = check(cudaMemcpy(host_results.data(), device_results, result_bytes, cudaMemcpyDeviceToHost),
-                        diagnostic, "cudaMemcpy(results)");
-    const cudaError_t free_results = cudaFree(device_results);
-    const cudaError_t free_requests = cudaFree(device_requests);
-    if (success)
-        success = check(free_results, diagnostic, "cudaFree(results)") &&
-                  check(free_requests, diagnostic, "cudaFree(requests)");
+    CudaBufferMemory memory {diagnostic};
+    const bool success = g_dispatch_buffers.dispatch(request_bytes, result_bytes, memory,
+        [&](void* request_storage, void* result_storage) {
+            auto* device_requests = static_cast<CudaRequest*>(request_storage);
+            auto* device_results = static_cast<CudaResult*>(result_storage);
+            bool copied = check(cudaMemcpy(device_requests, host_requests.data(), request_bytes, cudaMemcpyHostToDevice),
+                                diagnostic, "cudaMemcpy(requests)");
+            if (copied) {
+                const auto start = std::chrono::steady_clock::now();
+                vertical_intersection_kernel<<<uint32_t(grid_size), block_size>>>(device_requests, device_results, requests.size());
+                copied = check(cudaGetLastError(), diagnostic, "CUDA kernel launch") &&
+                         check(cudaDeviceSynchronize(), diagnostic, "CUDA kernel synchronization");
+                elapsed_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+            }
+            return copied && check(cudaMemcpy(host_results.data(), device_results, result_bytes, cudaMemcpyDeviceToHost),
+                                   diagnostic, "cudaMemcpy(results)");
+        });
     if (!success)
         return false;
     intersections.reserve(host_results.size());
@@ -133,6 +146,10 @@ bool dispatch_locked(const std::vector<VerticalIntersectionRequest>& requests,
 
 bool prepare_locked(std::string& diagnostic)
 {
+    if (g_dispatch_buffers.cleanup_failed()) {
+        diagnostic = "CUDA buffer cleanup failed; restart the application before reusing CUDA.";
+        return false;
+    }
     if (g_qualified)
         return check(cudaSetDevice(g_device), diagnostic, "cudaSetDevice");
     CudaSlicerCapabilities capabilities;
@@ -198,11 +215,21 @@ bool cuda_runtime_dispatch(const std::vector<VerticalIntersectionRequest>& reque
 
 void cuda_runtime_release()
 {
-    // All per-dispatch buffers are already freed. Never reset a device-wide
-    // CUDA context: the process may have other independent users of it.
+    // Release only our buffers on their owning device. Never reset a context
+    // that may have independent CUDA users in this process.
     std::lock_guard<std::mutex> lock(g_cuda_mutex);
+    if (g_dispatch_buffers.owns_storage()) {
+        std::string diagnostic;
+        if (g_device >= 0 && check(cudaSetDevice(g_device), diagnostic, "cudaSetDevice(release)")) {
+            CudaBufferMemory memory {diagnostic};
+            g_dispatch_buffers.release(memory);
+        } else {
+            g_dispatch_buffers.poison_cleanup();
+        }
+    }
     g_qualified = false;
-    g_device = -1;
+    if (!g_dispatch_buffers.owns_storage())
+        g_device = -1;
 }
 
 } // namespace Slic3r::Gpu
