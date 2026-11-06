@@ -20995,17 +20995,17 @@ msgstr "Lau vào trong"
 
 # AI Translated
 msgid ""
-"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
+"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward the inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
 "\n"
 "Especially useful at layer heights below 0.1 mm, where wipe marks are more visible.\n"
 "\n"
-"Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or Outer/Inner wall order), or if no supported inward path can be found, for example at tight corners or seam gaps."
+"Uses the regular wipe where the outer wall has no adjacent inner wall, such as in single-wall areas, or if no supported inward path can be found, for example at tight corners or seam gaps."
 msgstr ""
-"Chỉ áp dụng cho các thành ngoài, kể cả biên của lỗ. Trong lúc lau, đầu phun nóng được đưa về phía các thành trong đã in để giảm việc nung lại phần nhựa vừa in và giảm vết đường nối.\n"
+"Chỉ áp dụng cho các thành ngoài, kể cả biên của lỗ. Trong lúc lau, đầu phun nóng được đưa về phía các thành trong để giảm việc nung lại phần nhựa vừa in và giảm vết đường nối.\n"
 "\n"
 "Đặc biệt hữu ích ở chiều cao lớp dưới 0,1 mm, nơi vết lau dễ thấy hơn.\n"
 "\n"
-"Dùng cách lau thông thường nếu chưa có thành trong liền kề nào được in (vùng chỉ có một thành hoặc thứ tự thành Ngoài/Trong), hoặc nếu không tìm được đường đi vào trong có điểm tựa, ví dụ ở các góc hẹp hay khe hở đường nối."
+"Dùng cách lau thông thường ở những nơi thành ngoài không có thành trong liền kề, như vùng chỉ có một thành, hoặc nếu không tìm được đường đi vào trong có điểm tựa, ví dụ ở các góc hẹp hay khe hở đường nối."
 
 # AI Translated
 msgid "Wipe inward distance"
@@ -21016,11 +21016,15 @@ msgstr "Khoảng cách lau vào trong"
 msgid ""
 "The distance the wipe path is shifted away from the external perimeter, specified in millimeters or as a percentage of the actual outer-wall extrusion width.\n"
 "\n"
-"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset."
+"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset.\n"
+"\n"
+"With Outer/Inner or Inner/Outer/Inner wall order, the offset is limited to 50% of the actual outer-wall width because the adjacent inner wall is printed after the outer wall. This also applies to equivalent distances specified in millimeters."
 msgstr ""
 "Khoảng cách mà đường lau được dịch ra xa khỏi chu vi ngoài, tính bằng milimét hoặc theo phần trăm độ rộng đùn thực tế của thành ngoài.\n"
 "\n"
-"Ví dụ, 50% dịch đường đi một nửa độ rộng thành ngoài. Độ dịch thực tế bị giới hạn bởi cả độ rộng thật của thành ngoài lẫn khoảng trống còn lại tới thành liền kề, nên các giá trị trên 100% hoặc khoảng cách tuyệt đối tương đương sẽ không có thêm tác dụng. Đặt 0 để tắt việc dịch chuyển."
+"Ví dụ, 50% dịch đường đi một nửa độ rộng thành ngoài. Độ dịch thực tế bị giới hạn bởi cả độ rộng thật của thành ngoài lẫn khoảng trống còn lại tới thành liền kề, nên các giá trị trên 100% hoặc khoảng cách tuyệt đối tương đương sẽ không có thêm tác dụng. Đặt 0 để tắt việc dịch chuyển.\n"
+"\n"
+"Với thứ tự thành Ngoài/Trong hoặc Trong/Ngoài/Trong, độ dịch bị giới hạn ở 50% độ rộng thực tế của thành ngoài, vì thành trong liền kề được in sau thành ngoài. Điều này cũng áp dụng cho các khoảng cách tương đương tính bằng milimét."
 
 msgid "Wipe before external loop"
 msgstr "Lau trước vòng ngoài"
@@ -25376,10 +25380,10 @@ msgstr "Phiên bản Klipper => 0.9.0"
 
 # AI Translated
 msgid ""
-"RepRap firmware version => 3.4.0\n"
+"RepRapFirmware version => 3.4.0\n"
 "Check your firmware documentation for supported shaper types."
 msgstr ""
-"Phiên bản RepRap firmware => 3.4.0\n"
+"Phiên bản RepRapFirmware => 3.4.0\n"
 "Hãy xem tài liệu firmware của bạn để biết các loại shaper được hỗ trợ."
 
 # AI Translated
@@ -25398,8 +25402,8 @@ msgid "Frequency settings"
 msgstr "Cài đặt tần số"
 
 # AI Translated
-msgid "RepRap firmware uses the same frequency range for both axes."
-msgstr "RepRap firmware dùng cùng một dải tần số cho cả hai trục."
+msgid "RepRapFirmware uses the same frequency range for both axes."
+msgstr "RepRapFirmware dùng cùng một dải tần số cho cả hai trục."
 
 msgid "Damp: "
 msgstr "Giảm chấn: "
@@ -25442,8 +25446,8 @@ msgid "Damp (Start / End): "
 msgstr "Giảm chấn (Bắt đầu / Kết thúc): "
 
 # AI Translated
-msgid "RepRap firmware uses the same frequency for both axes."
-msgstr "RepRap firmware dùng cùng một tần số cho cả hai trục."
+msgid "RepRapFirmware uses the same frequency for both axes."
+msgstr "RepRapFirmware dùng cùng một tần số cho cả hai trục."
 
 msgid "Note: Use previously calculated frequencies."
 msgstr "Lưu ý: Sử dụng tần số đã tính trước đó."
