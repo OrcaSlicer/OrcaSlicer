@@ -10,7 +10,9 @@
 #include <vector>
 #include <string>
 #include "libslic3r/Preset.hpp"
+#include <charconv>
 #include <cstddef>
+#include <system_error>
 #include <utility>
 
 namespace Slic3r {
@@ -109,6 +111,26 @@ std::string SnapmakerPrinterAgent::combine_filament_type(const std::string& type
     return base;
 }
 
+void SnapmakerPrinterAgent::apply_lane_data(const nlohmann::json& lanes, int slot, std::string& filament_id, std::string& vendor)
+{
+    for (const auto& lane : lanes) {
+        const std::string lane_str = safe_json_string(lane, "lane");
+        int lane_index = -1;
+        const auto parsed = std::from_chars(lane_str.data(), lane_str.data() + lane_str.size(), lane_index);
+        if (parsed.ec != std::errc{} || parsed.ptr != lane_str.data() + lane_str.size() || lane_index != slot)
+            continue;
+
+        // Numeric ids are Spoolman record ids, not Orca filament ids.
+        filament_id = safe_json_string(lane, "filament_id");
+        const std::string normalized_vendor = trim_and_upper(vendor);
+        const std::string lane_vendor = safe_json_string(lane, "vendor_name");
+        if ((normalized_vendor.empty() || normalized_vendor == "GENERIC" || normalized_vendor == "NONE") &&
+            !lane_vendor.empty())
+            vendor = lane_vendor;
+        break;
+    }
+}
+
 bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
 {
     std::string url = join_url(device_info.base_url, "/printer/objects/query?print_task_config&filament_detect");
@@ -172,6 +194,10 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
         return false;
     }
 
+    // Missing or invalid lane_data is optional; the printer's own slot data remains authoritative.
+    nlohmann::json lanes;
+    fetch_lane_data(lanes);
+
     // Read NFC filament_detect data for temperature info (optional)
     nlohmann::json nfc_info;
     if (json["result"]["status"].contains("filament_detect") &&
@@ -195,12 +221,14 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
                                                        safe_at(filament_sub_type, i, empty_str));
             tray.tray_color    = safe_at(filament_color, i, default_color);
 
+            std::string printer_vendor = safe_at(filament_vendor, i, empty_str);
+            apply_lane_data(lanes, i, tray.tray_info_idx, printer_vendor);
+
             auto* bundle = GUI::wxGetApp().preset_bundle;
-            // Try to find a matching preset for this filament based on vendor, type and color.
+            // Without a lane id, try a matching preset based on vendor, type and color.
             // If not found, default to traditional search by type only or generic type mapping.
-            if (bundle) {
-                std::string vendor      = safe_at(filament_vendor, i, empty_str);
-                std::string filament_id = find_closest_color_preset_by_vendor_and_type(bundle->filaments, vendor, tray.tray_type,
+            if (tray.tray_info_idx.empty() && bundle) {
+                std::string filament_id = find_closest_color_preset_by_vendor_and_type(bundle->filaments, printer_vendor, tray.tray_type,
                                                                                        tray.tray_color);
 
                 if (!filament_id.empty()) {
@@ -210,7 +238,7 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
                 } else {
                     tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
                 }
-            } else {
+            } else if (tray.tray_info_idx.empty()) {
                 tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
             }
 
