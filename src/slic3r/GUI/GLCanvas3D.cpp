@@ -376,9 +376,11 @@ bool GLCanvas3D::LayersEditing::is_allowed() const
 float GLCanvas3D::LayersEditing::s_overlay_window_width;
 
 // Orca: on a bar shared by several objects, the height at which lower ones end: a line across the
-// bar, and an arrow pointing at it from the names of the objects. The label is kept on the canvas
-// and below min_label_top, the bottom of the label above it. Returns the bottom of this label.
-static float render_object_top_mark(const std::string& label, float bar_left, float bar_right, float y, float min_label_top, float canvas_height)
+// bar, and an arrow pointing at it from the names of the objects. The label is kept on the canvas,
+// below min_label_top, the bottom of the label above it, and below the toolbar row when it would reach
+// into that row: toolbar_end is the bottom right corner of the row. Returns the bottom of this label.
+static float render_object_top_mark(const std::string& label, float bar_left, float bar_right, float y, float min_label_top, float canvas_height,
+                                    const ImVec2& toolbar_end)
 {
     ImDrawList*  draw_list = ImGui::GetBackgroundDrawList();
     const ImU32  color     = ImGui::GetColorU32(ImGuiWrapper::COL_ORCA);
@@ -389,10 +391,12 @@ static float render_object_top_mark(const std::string& label, float bar_left, fl
     const ImVec2 text_size = ImGui::CalcTextSize(label.c_str());
     const ImVec2 padding   = { 0.4f * ImGui::GetFontSize(), 0.2f * ImGui::GetFontSize() };
     const float  half_box  = 0.5f * text_size.y + padding.y;
-    const float  label_y   = std::min(std::max(y, std::max(min_label_top, 0.0f) + half_box), canvas_height - half_box);
+    const float  text_x    = tip - arrow - 2.0f * padding.x - text_size.x;
+    const float  min_top   = text_x - padding.x < toolbar_end.x ? std::max(min_label_top, toolbar_end.y) : min_label_top;
+    const float  label_y   = std::min(std::max(y, std::max(min_top, 0.0f) + half_box), canvas_height - half_box);
     draw_list->AddTriangleFilled({ tip, y }, { tip - arrow, label_y - 0.6f * arrow }, { tip - arrow, label_y + 0.6f * arrow }, color);
 
-    const ImVec2 text_pos  = { tip - arrow - 2.0f * padding.x - text_size.x, label_y - 0.5f * text_size.y };
+    const ImVec2 text_pos  = { text_x, label_y - 0.5f * text_size.y };
     draw_list->AddRectFilled({ text_pos.x - padding.x, text_pos.y - padding.y }, { text_pos.x + text_size.x + padding.x, text_pos.y + text_size.y + padding.y },
         color, padding.y);
     draw_list->AddText(text_pos, IM_COL32_WHITE, label.c_str());
@@ -600,9 +604,15 @@ void GLCanvas3D::LayersEditing::render_variable_layer_height_dialog(GLCanvas3D& 
         const float cnv_width    = float(cnv_size.get_width());
         const float cnv_height   = float(cnv_size.get_height());
         float       label_bottom = 0.0f;
+        // The toolbar row can end next to the bar, where the labels near its top would cover its last buttons.
+        ImVec2 toolbar_end(0.0f, 0.0f);
+        if (canvas.m_main_toolbar.is_enabled())
+            toolbar_end = ImVec2(float(canvas.get_main_toolbar_offset()) + canvas.m_main_toolbar.get_width() + canvas.m_separator_toolbar.get_width() +
+                                     canvas.m_gizmos.get_scaled_total_width() + canvas.m_assemble_view_toolbar.get_width(),
+                                 std::max(canvas.m_main_toolbar.get_height(), canvas.m_gizmos.get_scaled_total_height()));
         for (const TopMark& mark : marks)
             label_bottom = render_object_top_mark(object_top_mark_label(mark.names), cnv_width - thickness_bar_width(canvas), cnv_width,
-                cnv_height * (1.0f - float(mark.z) / m_object_max_z), label_bottom, cnv_height);
+                cnv_height * (1.0f - float(mark.z) / m_object_max_z), label_bottom, cnv_height, toolbar_end);
     }
 }
 
