@@ -249,8 +249,15 @@ void Layer::make_perimeters()
                     }
 		        }
 
+	        // The perimeter generator appends to the regions' fill areas, and the merged regions below only get
+	        // new ones where it leaves some infill. Start from none, as a first slice does: perimeters made again
+	        // (other walls) must not keep the fill areas of the previous ones.
+	        for (LayerRegion *l : layerms) {
+	            l->fill_surfaces.surfaces.clear();
+	            l->fill_expolygons.clear();
+	            l->fill_no_overlap_expolygons.clear();
+	        }
 	        if (layerms.size() == 1) {  // optimization
-	            (*layerm)->fill_surfaces.surfaces.clear();
                 (*layerm)->make_perimeters((*layerm)->slices, {*layerm}, &(*layerm)->fill_surfaces, &(*layerm)->fill_no_overlap_expolygons);
 	            (*layerm)->fill_expolygons = to_expolygons((*layerm)->fill_surfaces.surfaces);
 	        } else {
