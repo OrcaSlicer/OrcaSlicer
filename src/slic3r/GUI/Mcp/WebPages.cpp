@@ -667,10 +667,16 @@ private:
     {
         wxDialog* dialog = m_dialog.get();
         if (m_fallback != wxID_NONE && dialog != nullptr && m_tracker.top() == dialog) {
-            m_tracker.count_use(m_layer, m_pattern, m_label);
-            BOOST_LOG_TRIVIAL(info) << "MCP: auto-answer rule \"" << m_pattern << "\": the page of \"" << title() << "\" " << why
-                                    << " for \"" << m_label << "\"; ended the dialog with " << m_label;
-            press_dialog_button(dialog, m_fallback);
+            const std::string dialog_title = title();
+            if (const DialogPress press = press_dialog_button(dialog, m_fallback); press == DialogPress::Disabled || press == DialogPress::Hidden)
+                BOOST_LOG_TRIVIAL(info) << "MCP: auto-answer rule \"" << m_pattern << "\": the page of \"" << dialog_title << "\" " << why
+                                        << " for \"" << m_label << "\", and its " << m_label << " button is "
+                                        << (press == DialogPress::Hidden ? "not shown" : "disabled") << "; gave up";
+            else {
+                m_tracker.count_use(m_layer, m_pattern, m_label);
+                BOOST_LOG_TRIVIAL(info) << "MCP: auto-answer rule \"" << m_pattern << "\": the page of \"" << dialog_title << "\" " << why
+                                        << " for \"" << m_label << "\"; ended the dialog with " << m_label;
+            }
         } else
             BOOST_LOG_TRIVIAL(info) << "MCP: auto-answer rule \"" << m_pattern << "\": the page of \"" << title() << "\" " << why
                                     << " for \"" << m_label << "\"; gave up";

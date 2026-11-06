@@ -10,6 +10,7 @@
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include "slic3r/GUI/Widgets/HyperLink.hpp"
 #include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Mcp/McpTypes.hpp"
 #include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/event.h>
@@ -153,6 +154,7 @@ PingCodeBindDialog::PingCodeBindDialog(Plater* plater /*= nullptr*/)
         m_text_input_single_code[i]->GetTextCtrl()->SetDefaultStyle(textAttr);
         m_text_input_single_code[i]->SetFont(Label::Body_16);
         m_text_input_single_code[i]->GetTextCtrl()->SetMaxLength(1);
+        m_text_input_single_code[i]->SetName(Mcp::kSecretField);
         m_text_input_single_code[i]->GetTextCtrl()->Bind(wxEVT_TEXT, &PingCodeBindDialog::on_text_changed, this);
         m_text_input_single_code[i]->GetTextCtrl()->Bind(wxEVT_KEY_DOWN, &PingCodeBindDialog::on_key_backspace, this);
         m_text_input_single_code[i]->GetTextCtrl()->Bind(wxEVT_CHAR, &PingCodeBindDialog::on_key_input, this);

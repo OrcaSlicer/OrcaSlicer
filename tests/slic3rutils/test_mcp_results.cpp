@@ -54,23 +54,40 @@
 
 #include <wx/app.h>
 #include <wx/arrstr.h>
+#include <wx/bitmap.h>
 #include <wx/button.h>
+#include <wx/checkbox.h>
 #include <wx/checklst.h>
+#include <wx/choice.h>
 #include <wx/dataview.h>
 #include <wx/defs.h>
 #include <wx/dialog.h>
 #include <wx/event.h>
 #include <wx/evtloop.h>
 #include <wx/frame.h>
+#include <wx/gauge.h>
 #include <wx/gdicmn.h>
 #include <wx/grid.h>
 #include <wx/init.h>
+#include <wx/listbase.h>
+#include <wx/listbox.h>
+#include <wx/listctrl.h>
 #include <wx/menu.h>
 #include <wx/modalhook.h>
 #include <wx/msgdlg.h>
+#include <wx/notebook.h>
 #include <wx/panel.h>
 #include <wx/popupwin.h>
+#include <wx/radiobut.h>
+#include <wx/simplebook.h>
+#include <wx/sizer.h>
+#include <wx/spinctrl.h>
+#include <wx/statbox.h>
+#include <wx/stattext.h>
+#include <wx/textctrl.h>
+#include <wx/tglbtn.h>
 #include <wx/utils.h>
+#include <wx/validate.h>
 #include <wx/variant.h>
 #include <wx/vector.h>
 
@@ -80,9 +97,11 @@
 #include <cstdint>
 #include <cstdlib>
 #include <functional>
+#include <initializer_list>
 #include <memory>
 #include <optional>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <tuple>
@@ -960,6 +979,13 @@ TEST_CASE("snapshot text shows a row's value, check state and note", "[Mcp]")
                                                            "  [r2] row \"Cube\" = \"1\" [object 0, selected]\n"
                                                            "    [r3] row \"Cylinder\" [checked] [object 0 part 1, modifier]\n"
                                                            "    [r4] row \"Brim\" [checked] [disabled]\n");
+    // A checkbox that shows neither state.
+    UiNode mixed;
+    mixed.ref     = "w5";
+    mixed.kind    = "toggle";
+    mixed.label   = "Detach";
+    mixed.checked = 2;
+    CHECK(format_snapshot({mixed}, 0) == "[w5] toggle \"Detach\" [mixed]\n");
 }
 
 namespace {
@@ -1217,6 +1243,785 @@ TEST_CASE("a click on a row selects it as a person's does and tells its owner on
         CHECK(selects == 1);
         CHECK_THROWS_AS(input_row(*table, row_of(*table, {"Cylinder"}), "", true), ToolFailure);
         CHECK_THROWS_AS(click_row(*table, row_of(*table, {"Cylinder"}), "", right), ToolFailure);
+    }
+}
+
+TEST_CASE("a list control's rows are listed with their columns and picked as a click picks them", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    GuiApp app;
+    REQUIRE(app.init.IsOk());
+    {
+        wxFrame frame(nullptr, wxID_ANY, "hosts", wxDefaultPosition, wxSize(640, 520));
+        auto*   hosts = new wxListView(&frame, wxID_ANY, wxPoint(0, 0), wxSize(400, 300));
+        hosts->AppendColumn("Address");
+        hosts->AppendColumn("Hostname");
+        hosts->InsertItem(0, "192.168.1.10");
+        hosts->SetItem(0, 1, "x1c");
+        hosts->InsertItem(1, "192.168.1.11");
+        hosts->SetItem(1, 1, "p1s");
+        frame.Show();
+
+        CHECK(kind_of(hosts) == "list");
+        CHECK(is_row_list(hosts));
+        CHECK(list_columns(hosts) == std::vector<std::string>{"Address", "Hostname"});
+        const std::vector<ListRow> rows = list_rows(hosts);
+        REQUIRE(rows.size() == 2);
+        CHECK(rows[1].path == std::vector<std::string>{"192.168.1.11"});
+        CHECK(rows[1].value == "p1s");
+        CHECK_FALSE(rows[1].selected);
+        CHECK(list_rows(hosts, 1).size() == 1);
+
+        // The list tells its owner of the pick, as a person's click makes it do.
+        long selected = -1, activated = -1;
+        hosts->Bind(wxEVT_LIST_ITEM_SELECTED, [&selected](wxListEvent& e) { selected = e.GetIndex(); });
+        hosts->Bind(wxEVT_LIST_ITEM_ACTIVATED, [&activated](wxListEvent& e) { activated = e.GetIndex(); });
+        const nlohmann::json out = click_row(*hosts, row_of(*hosts, {"192.168.1.11"}), "", ClickOptions{});
+        CHECK(out["selected"] == nlohmann::json{"192.168.1.11"});
+        CHECK(selected == 1);
+        CHECK(activated == -1);
+        ClickOptions twice;
+        twice.double_click = true;
+        click_row(*hosts, row_of(*hosts, {"192.168.1.10"}), "", twice);
+        CHECK(selected == 0);
+        CHECK(activated == 0);
+        CHECK(hosts->GetSelectedItemCount() == 1);
+        CHECK_THROWS_AS(input_row(*hosts, row_of(*hosts, {"192.168.1.10"}), "", true), ToolFailure);
+    }
+}
+
+namespace {
+
+bool has(const std::string& text, const std::string& part) { return text.find(part) != std::string::npos; }
+
+} // namespace
+
+TEST_CASE("a modal dialog's message reads its fields, choices, toggles and lists as they show", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    GuiApp app;
+    REQUIRE(app.init.IsOk());
+    {
+        wxDialog dialog(nullptr, wxID_ANY, "Save preset");
+        auto*    top = new wxBoxSizer(wxVERTICAL);
+        auto     row = [&](std::initializer_list<wxWindow*> windows) {
+            auto* line = new wxBoxSizer(wxHORIZONTAL);
+            for (wxWindow* w : windows)
+                line->Add(w, 0, wxALL, 4);
+            top->Add(line);
+        };
+        auto stacked = [&](wxWindow* w) {
+            top->Add(w, 0, wxALL, 4);
+            return w;
+        };
+
+        // A field beside its label, and one created before the label above it.
+        row({new wxStaticText(&dialog, wxID_ANY, "Name"), new wxTextCtrl(&dialog, wxID_ANY, "Generic PLA", wxDefaultPosition, wxSize(160, -1))});
+        auto* diameter = new wxTextCtrl(&dialog, wxID_ANY, "0.4");
+        stacked(new wxStaticText(&dialog, wxID_ANY, "Nozzle diameter"));
+        stacked(diameter);
+        stacked(new wxTextCtrl(&dialog, wxID_ANY, "line one\nline two", wxDefaultPosition, wxSize(200, 60), wxTE_MULTILINE | wxTE_READONLY));
+
+        // Secrets: by style, by the dialog's name for the field, by the setting the field edits.
+        stacked(new wxTextCtrl(&dialog, wxID_ANY, "hunter2", wxDefaultPosition, wxDefaultSize, wxTE_PASSWORD));
+        stacked(new wxTextCtrl(&dialog, wxID_ANY, "12345678"))->SetName(kSecretField);
+        stacked(new wxTextCtrl(&dialog, wxID_ANY, "abcdef"))->SetToolTip("parameter name: printhost_apikey");
+        stacked(new wxTextCtrl(&dialog, wxID_ANY, "user:pw@printer.local"))->SetToolTip("parameter name: print_host");
+        stacked(new wxTextCtrl(&dialog, wxID_ANY, "http://me:pw@host/api?token=x"));
+        stacked(new wxTextCtrl(&dialog, wxID_ANY, "http://bob:pw2@host "));
+        stacked(new wxTextCtrl(&dialog, wxID_ANY, " carol:pw3@printer.local"))->SetToolTip("parameter name: print_host_webui");
+
+        auto* remember = new wxCheckBox(&dialog, wxID_ANY, "Don't show again");
+        remember->SetValue(true);
+        stacked(remember);
+        auto* detach = new wxCheckBox(&dialog, wxID_ANY, "Detach", wxDefaultPosition, wxDefaultSize, wxCHK_3STATE);
+        detach->Set3StateValue(wxCHK_UNDETERMINED);
+        stacked(detach);
+        // Toggles with no label of their own, as Orca's CheckBox and RadioBox are; two of them made
+        // before their labels.
+        const wxBitmap mark(16, 16);
+        auto*          choice_toggle = new wxBitmapToggleButton(&dialog, wxID_ANY, mark);
+        choice_toggle->SetValue(true);
+        row({choice_toggle, new wxStaticText(&dialog, wxID_ANY, "Remember my choice")});
+        auto* plate_a = new wxBitmapToggleButton(&dialog, wxID_ANY, mark);
+        auto* plate_b = new wxBitmapToggleButton(&dialog, wxID_ANY, mark);
+        plate_b->SetValue(true);
+        auto* label_a = new wxStaticText(&dialog, wxID_ANY, "Plate A");
+        auto* label_b = new wxStaticText(&dialog, wxID_ANY, "Plate B");
+        row({plate_a, label_a});
+        row({plate_b, label_b});
+
+        auto* user    = new wxRadioButton(&dialog, wxID_ANY, "User preset", wxDefaultPosition, wxDefaultSize, wxRB_GROUP);
+        auto* project = new wxRadioButton(&dialog, wxID_ANY, "Project preset");
+        project->SetValue(true);
+        row({user, project});
+        const wxString choices[] = {"A", "B"};
+        auto*          choice    = new wxChoice(&dialog, wxID_ANY, wxDefaultPosition, wxDefaultSize, 2, choices);
+        choice->SetSelection(1);
+        stacked(choice);
+        auto* copies = new wxSpinCtrl(&dialog, wxID_ANY);
+        copies->SetValue(3);
+        stacked(copies);
+        auto* progress = new wxGauge(&dialog, wxID_ANY, 200);
+        progress->SetValue(90);
+        stacked(progress);
+        auto* disabled = new wxTextCtrl(&dialog, wxID_ANY, "0.000");
+        disabled->Disable();
+        stacked(disabled);
+
+        auto* box   = new wxStaticBox(&dialog, wxID_ANY, "Settings");
+        auto* boxed = new wxStaticBoxSizer(box, wxVERTICAL);
+        boxed->Add(new wxStaticText(box, wxID_ANY, "Inside the box"));
+        top->Add(boxed);
+
+        auto* book    = new wxNotebook(&dialog, wxID_ANY);
+        auto* general = new wxPanel(book);
+        new wxStaticText(general, wxID_ANY, "General page");
+        auto* advanced = new wxPanel(book);
+        new wxStaticText(advanced, wxID_ANY, "Advanced page");
+        book->AddPage(general, "General");
+        book->AddPage(advanced, "Advanced", true);
+        stacked(book);
+
+        const wxString filaments[] = {"PLA", "PETG"};
+        auto*          checks      = new wxCheckListBox(&dialog, wxID_ANY, wxDefaultPosition, wxDefaultSize, 2, filaments);
+        checks->Check(0);
+        stacked(checks);
+        auto* hosts = new wxListView(&dialog, wxID_ANY, wxDefaultPosition, wxSize(300, 150));
+        hosts->AppendColumn("Address");
+        hosts->AppendColumn("Hostname");
+        for (int i = 0; i < 30; ++i) {
+            hosts->InsertItem(i, "192.168.1." + std::to_string(i));
+            hosts->SetItem(i, 1, "printer" + std::to_string(i));
+        }
+        stacked(hosts);
+
+        auto* ok = new wxButton(&dialog, wxID_OK, "OK");
+        ok->Disable();
+        row({ok, new wxButton(&dialog, wxID_CANCEL, "Cancel")});
+        dialog.SetSizerAndFit(top);
+
+        // A dialog of its own is described on its own.
+        wxDialog nested(&dialog, wxID_ANY, "Nested");
+        new wxStaticText(&nested, wxID_ANY, "Nested text");
+        nested.Show();
+
+        const nlohmann::json        described = describe_dialog(&dialog);
+        const std::string message   = described["message"].get<std::string>();
+        INFO(message);
+        CHECK(has(message, "Name | [Generic PLA]"));
+        CHECK(has(message, "Nozzle diameter\n[0.4]"));
+        CHECK(has(message, "line one\nline two"));
+        CHECK(has(message, "[******]"));
+        CHECK_FALSE(has(message, "hunter2"));
+        CHECK_FALSE(has(message, "12345678"));
+        CHECK_FALSE(has(message, "abcdef"));
+        CHECK(has(message, "[REDACTED:REDACTED@printer.local]"));
+        CHECK_FALSE(has(message, ":pw@"));
+        CHECK_FALSE(has(message, "token=x"));
+        CHECK_FALSE(has(message, "pw2"));
+        CHECK_FALSE(has(message, "pw3"));
+        CHECK(has(message, "[http://REDACTED:REDACTED@host ]"));
+        CHECK(has(message, "[x] Don't show again"));
+        CHECK(has(message, "[-] Detach"));
+        CHECK(has(message, "[x] Remember my choice"));
+        CHECK(has(message, "[ ] Plate A"));
+        CHECK(has(message, "[x] Plate B"));
+        CHECK(has(message, "( ) User preset | (*) Project preset"));
+        CHECK(has(message, "[B ▾]"));
+        CHECK(has(message, "[3]"));
+        CHECK(has(message, "[45%]"));
+        CHECK(has(message, "[0.000] (disabled)"));
+        CHECK_FALSE(has(message, "[Generic PLA] (disabled)"));
+        CHECK(has(message, "Settings\nInside the box"));
+        CHECK(has(message, "( ) General | (*) Advanced\nAdvanced page"));
+        CHECK_FALSE(has(message, "General page"));
+        CHECK(has(message, "- [x] PLA\n- [ ] PETG"));
+        CHECK(has(message, "- 192.168.1.0 | printer0"));
+        CHECK(has(message, "- 192.168.1.24 | printer24\n- … more rows"));
+        CHECK_FALSE(has(message, "printer25"));
+        CHECK_FALSE(has(message, "Nested text"));
+        CHECK(described["buttons"] ==
+              nlohmann::json::array({{{"id", wxID_OK}, {"label", "OK"}, {"enabled", false}}, {{"id", wxID_CANCEL}, {"label", "Cancel"}}}));
+
+        // Under another modal the dialog is disabled as a whole, which leaves its controls as they read.
+        dialog.Disable();
+        const std::string under = describe_dialog(&dialog)["message"].get<std::string>();
+        CHECK(has(under, "Name | [Generic PLA]"));
+        CHECK_FALSE(has(under, "[Generic PLA] (disabled)"));
+        dialog.Enable();
+        nested.Hide();
+    }
+}
+
+TEST_CASE("a dialog's cells read in rows, and the cells side by side in a row join", "[Mcp]")
+{
+    auto cell = [](int x, int y, int w, int h, const std::string& text, bool toggle = false) {
+        MessageCell c;
+        c.rect   = wxRect(x, y, w, h);
+        c.text   = text;
+        c.toggle = toggle;
+        return c;
+    };
+    // Radio boxes made before their labels each take the label on their row.
+    std::vector<MessageCell> out = layout_cells({cell(0, 0, 16, 16, "(*)", true), cell(0, 30, 16, 16, "( )", true),
+                                                 cell(20, 0, 100, 16, "Textured PEI"), cell(20, 30, 100, 16, "Smooth PEI")});
+    REQUIRE(out.size() == 2);
+    CHECK(out[0].text == "(*) Textured PEI");
+    CHECK_FALSE(out[0].toggle);
+    CHECK(out[1].text == "( ) Smooth PEI");
+    // A table's header and rows, each cell in a panel of its own, read a row to a line.
+    out = layout_cells({cell(0, 0, 100, 20, "Settings"), cell(100, 0, 60, 20, "Old Value"), cell(160, 0, 60, 20, "New Value"),
+                        cell(0, 20, 100, 20, "Layer height"), cell(100, 20, 60, 20, "0.2"), cell(160, 20, 60, 20, "0.28")});
+    REQUIRE(out.size() == 2);
+    CHECK(out[0].text == "Settings | Old Value | New Value");
+    CHECK(out[1].text == "Layer height | 0.2 | 0.28");
+    // A label's trailing spaces don't widen the separator.
+    out = layout_cells({cell(0, 0, 80, 20, "Start PA: "), cell(100, 0, 60, 20, "[0]")});
+    REQUIRE(out.size() == 1);
+    CHECK(out[0].text == "Start PA: | [0]");
+    // A label above its field reads first, whichever was made first.
+    out = layout_cells({cell(0, 20, 80, 20, "[0.4]"), cell(0, 0, 80, 16, "Nozzle diameter")});
+    REQUIRE(out.size() == 2);
+    CHECK(out[0].text == "Nozzle diameter");
+    CHECK(out[1].text == "[0.4]");
+    // A toggle takes a label of several lines; such a label joins nothing else.
+    out = layout_cells({cell(0, 0, 16, 16, "[x]", true), cell(20, 0, 200, 40, "Long\nlabel"), cell(230, 0, 50, 16, "after")});
+    REQUIRE(out.size() == 2);
+    CHECK(out[0].text == "[x] Long\nlabel");
+    CHECK(out[1].text == "after");
+    // A toggle's suffix follows its label; two toggles side by side don't take each other.
+    MessageCell disabled = cell(0, 0, 16, 16, "[ ]", true);
+    disabled.suffix      = " (disabled)";
+    out = layout_cells({disabled, cell(20, 0, 16, 16, "[x]", true), cell(40, 0, 80, 16, "Time-lapse")});
+    REQUIRE(out.size() == 2);
+    CHECK(out[0].toggle);
+    CHECK(out[1].text == "[x] Time-lapse");
+    // A tall block beside a column of label and field rows leaves those rows as they are.
+    out = layout_cells({cell(0, 0, 100, 200, "About\nthese"), cell(120, 10, 60, 20, "Width"), cell(200, 10, 60, 20, "[200]"),
+                        cell(120, 40, 60, 20, "Depth"), cell(200, 40, 60, 20, "[250]")});
+    REQUIRE(out.size() == 3);
+    CHECK(out[0].text == "About\nthese");
+    CHECK(out[1].text == "Width | [200]");
+    CHECK(out[2].text == "Depth | [250]");
+    // A checkbox with its own label is no label for the unlabelled one before it.
+    MessageCell detach = cell(20, 0, 100, 16, "[x] Detach");
+    detach.marked      = true;
+    out = layout_cells({cell(0, 0, 16, 16, "[ ]", true), detach});
+    REQUIRE(out.size() == 2);
+    CHECK(out[0].toggle);
+    CHECK(out[1].text == "[x] Detach");
+    // A checkbox and its label, once joined, are no label for a second checkbox after them.
+    out = layout_cells({cell(0, 0, 16, 16, "[ ]", true), cell(20, 0, 60, 16, "Detach"), cell(90, 0, 16, 16, "[x]", true)});
+    REQUIRE(out.size() == 2);
+    CHECK(out[0].text == "[ ] Detach");
+    CHECK(out[0].marked);
+    CHECK(out[1].toggle);
+    // Beside a one-line tall cell, the band is the shorter cell's height: a field at its top shares
+    // its row, one a field's height lower does not.
+    out = layout_cells({cell(160, 10, 80, 20, "[5]"), cell(0, 0, 150, 200, "Preview")});
+    REQUIRE(out.size() == 1);
+    CHECK(out[0].text == "Preview | [5]");
+    out = layout_cells({cell(160, 20, 80, 20, "[5]"), cell(0, 0, 150, 200, "Preview")});
+    REQUIRE(out.size() == 2);
+    out = layout_cells({cell(160, 30, 80, 20, "[5]"), cell(0, 0, 150, 200, "Preview")});
+    REQUIRE(out.size() == 2);
+    // A field below a ten-line block's first line keeps its own row, however tall the field.
+    out = layout_cells({cell(0, 0, 150, 200, "1\n2\n3\n4\n5\n6\n7\n8\n9\n10"), cell(160, 20, 80, 40, "[5]")});
+    REQUIRE(out.size() == 2);
+    CHECK(out[1].text == "[5]");
+    // Rows closer together than the tall block's first lines stay rows of their own too.
+    out = layout_cells({cell(0, 0, 100, 200, "About\nthese"), cell(120, 0, 60, 20, "Width"), cell(200, 0, 60, 20, "[200]"),
+                        cell(120, 25, 60, 20, "Depth"), cell(200, 25, 60, 20, "[250]")});
+    REQUIRE(out.size() == 3);
+    CHECK(out[1].text == "Width | [200]");
+    CHECK(out[2].text == "Depth | [250]");
+    // A field beside a wrapped label's first line shares its row, so the two read left to right, also
+    // with a top margin of up to half its own height.
+    out = layout_cells({cell(160, 10, 80, 20, "[5]"), cell(0, 0, 150, 60, "Long\nwrapped label")});
+    REQUIRE(out.size() == 2);
+    CHECK(out[0].text == "Long\nwrapped label");
+    CHECK(out[1].text == "[5]");
+    out = layout_cells({cell(160, 0, 80, 20, "[5]"), cell(0, 0, 150, 60, "Long\nwrapped label")});
+    REQUIRE(out.size() == 2);
+    CHECK(out[0].text == "Long\nwrapped label");
+    CHECK(out[1].text == "[5]");
+    // A checkbox at a wrapped label's first line, or centred on it, takes it; one at its third line doesn't.
+    out = layout_cells({cell(0, 0, 16, 16, "[x]", true), cell(20, 0, 200, 60, "A label\nwrapped over\nthree lines")});
+    REQUIRE(out.size() == 1);
+    CHECK(out[0].text == "[x] A label\nwrapped over\nthree lines");
+    out = layout_cells({cell(0, 22, 16, 16, "[x]", true), cell(20, 0, 200, 60, "A label\nwrapped over\nthree lines")});
+    REQUIRE(out.size() == 1);
+    out = layout_cells({cell(0, 42, 16, 16, "[x]", true), cell(20, 0, 200, 60, "A label\nwrapped over\nthree lines")});
+    REQUIRE(out.size() == 2);
+    CHECK(out[1].toggle);
+    // A switch centred on a title and its hint takes the title, as RecordingDialog lays them out.
+    out = layout_cells({cell(0, 0, 200, 19, "Highlight the pointer"), cell(0, 21, 300, 16, "A ring follows the pointer."),
+                        cell(400, 8, 40, 22, "[ ]", true)});
+    REQUIRE(out.size() == 2);
+    CHECK(out[0].text == "Highlight the pointer | [ ]");
+    CHECK(out[1].text == "A ring follows the pointer.");
+    // A toggle with nothing to its right takes the label to its left, as Preferences lays out its rows.
+    out = layout_cells({cell(0, 0, 150, 20, "Show splash screen"), cell(200, 2, 16, 16, "[x]", true)});
+    REQUIRE(out.size() == 1);
+    CHECK(out[0].text == "Show splash screen | [x]");
+    CHECK_FALSE(out[0].toggle);
+    // Cells not laid out yet overlap at the origin: they keep their order, and none joins another.
+    out = layout_cells({cell(0, 0, 80, 20, "one"), cell(0, 0, 80, 20, "two"), cell(0, 0, 16, 16, "[x]", true)});
+    REQUIRE(out.size() == 3);
+    CHECK(out[0].text == "one");
+    CHECK(out[1].text == "two");
+    CHECK(out[2].toggle);
+
+    CHECK(selector_line({"Open as project", "Import geometry only"}, 1) == "( ) Open as project | (*) Import geometry only");
+    CHECK(selector_line({"Left Nozzle", "Right Nozzle"}, -1) == "( ) Left Nozzle | ( ) Right Nozzle");
+    CHECK(is_secret_key("printhost_password"));
+    CHECK(is_secret_key("printhost_apikey"));
+    CHECK_FALSE(is_secret_key("print_host"));
+    CHECK_FALSE(is_secret_key("layer_height"));
+}
+
+TEST_CASE("a disabled or hidden button is neither pressed nor ends its dialog, and a rule naming it is not counted", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    GuiApp app;
+    REQUIRE(app.init.IsOk());
+    {
+        wxDialog dialog(nullptr, wxID_ANY, "Save preset");
+        int      presses = 0;
+        auto*    ok      = new wxButton(&dialog, wxID_OK, "OK");
+        ok->Bind(wxEVT_BUTTON, [&presses](wxCommandEvent&) { ++presses; });
+        ok->Disable();
+        CHECK(refused_press(&dialog, wxID_OK) == DialogPress::Disabled);
+        CHECK_FALSE(has_dialog_button(&dialog, wxID_OK));
+        CHECK(press_dialog_button(&dialog, wxID_OK) == DialogPress::Disabled);
+        CHECK(presses == 0);
+        CHECK(dialog.GetReturnCode() != wxID_OK);
+
+        // Named by a rule, it is not pressed once the dialog's loop runs, and the rule is not counted.
+        {
+            ModalTracker tracker;
+            tracker.push_rules({make_rule("Save preset", "ok")});
+            CHECK(wxModalDialogHook::CallEnter(&dialog) == wxID_NONE);
+            wxTheApp->ProcessPendingEvents();
+            CHECK(presses == 0);
+            CHECK(tracker.rules_json()[0]["uses"] == 0);
+            wxModalDialogHook::CallExit(&dialog);
+        }
+
+        ok->Enable();
+        CHECK_FALSE(refused_press(&dialog, wxID_OK).has_value());
+        CHECK(press_dialog_button(&dialog, wxID_OK) == DialogPress::Pressed);
+        CHECK(presses == 1);
+
+        // A wizard's Finish on a page it does not show yet is not pressed, nor found by its label; its
+        // Cancel there ends the dialog as a dialog without one ends.
+        wxDialog wizard(nullptr, wxID_ANY, "Wizard");
+        auto*    pages = new wxSimplebook(&wizard);
+        auto*    first = new wxPanel(pages);
+        new wxStaticText(first, wxID_ANY, "Step 1");
+        auto* last     = new wxPanel(pages);
+        int   finishes = 0;
+        auto* finish   = new wxButton(last, wxID_OK, "Finish");
+        finish->Bind(wxEVT_BUTTON, [&finishes](wxCommandEvent&) { ++finishes; });
+        new wxButton(last, wxID_CANCEL, "Cancel");
+        pages->AddPage(first, "");
+        pages->AddPage(last, "");
+        pages->SetSelection(0);
+        CHECK(refused_press(&wizard, wxID_OK) == DialogPress::Hidden);
+        CHECK(dialog_button_by_label(&wizard, "Finish") == wxID_NONE);
+        CHECK(press_dialog_button(&wizard, wxID_OK) == DialogPress::Hidden);
+        CHECK(finishes == 0);
+        CHECK_FALSE(refused_press(&wizard, wxID_CANCEL).has_value());
+        CHECK(describe_dialog(&wizard)["buttons"].empty());
+        pages->SetSelection(1);
+        CHECK(dialog_button_by_label(&wizard, "Finish") == wxID_OK);
+        CHECK(press_dialog_button(&wizard, wxID_OK) == DialogPress::Pressed);
+        CHECK(finishes == 1);
+        pages->SetSelection(0);
+        CHECK(press_dialog_button(&wizard, wxID_CANCEL) == DialogPress::Ended);
+        CHECK(wizard.GetReturnCode() == wxID_CANCEL);
+
+        // A popup's or a nested dialog's buttons are not the dialog's.
+        wxDialog host(nullptr, wxID_ANY, "Host");
+        auto*    popup  = new wxPopupWindow(&host);
+        int      popped = 0;
+        auto*    popup_cancel = new wxButton(popup, wxID_CANCEL, "Cancel");
+        popup_cancel->Bind(wxEVT_BUTTON, [&popped](wxCommandEvent&) { ++popped; });
+        popup->Show();
+        wxDialog nested(&host, wxID_ANY, "Nested");
+        new wxButton(&nested, wxID_APPLY, "Nested apply");
+        nested.Show();
+        CHECK(dialog_button_by_label(&host, "Cancel") == wxID_NONE);
+        CHECK(dialog_button_by_label(&host, "Nested apply") == wxID_NONE);
+        CHECK_FALSE(has_dialog_button(&host, wxID_CANCEL));
+        CHECK_FALSE(refused_press(&host, wxID_APPLY).has_value());
+        CHECK(describe_dialog(&host)["buttons"].empty());
+        CHECK(popped == 0);
+        popup->Hide();
+        nested.Hide();
+
+        // A message box that is not shown can't be pressed.
+        wxMessageDialog box(nullptr, "Continue?", "Question", wxOK | wxCANCEL);
+        CHECK_FALSE(refused_press(&box, wxID_OK).has_value());
+#if defined(_WIN32) || defined(__WXGTK__)
+        CHECK(press_dialog_button(&box, wxID_OK) == DialogPress::Failed);
+#endif
+    }
+}
+
+TEST_CASE("a childless window is a control by the label it shows, not by a default name", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    GuiApp app;
+    REQUIRE(app.init.IsOk());
+    {
+        wxDialog dialog(nullptr, wxID_ANY, "Kinds");
+        // Windows shows a bare panel's name as its text.
+        auto* bare = new wxPanel(&dialog);
+        bare->SetLabel("panel");
+        CHECK(kind_of(bare).empty());
+        auto* titled = new wxWindow(&dialog, wxID_ANY);
+        titled->SetLabel("Settings");
+        CHECK(kind_of(titled) == "control");
+        // A label the window is also named after is still its label.
+        auto* named = new wxWindow(&dialog, wxID_ANY);
+        named->SetName("Advanced");
+        named->SetLabel("Advanced");
+        CHECK(kind_of(named) == "control");
+        CHECK(meaningful_name(named) == "Advanced");
+        CHECK(meaningful_name(bare).empty());
+        // Every class's default name, a gauge's and a tree's too.
+        auto* gauge = new wxGauge(&dialog, wxID_ANY, 100);
+        CHECK(kind_of(gauge) != "control");
+        auto* tree_named = new wxWindow(&dialog, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0, "treeCtrl");
+        tree_named->SetLabel("treeCtrl");
+        CHECK(kind_of(tree_named).empty());
+        // A section title that happens to be another class's default name is still a title.
+        auto* section = new wxWindow(&dialog, wxID_ANY);
+        section->SetLabel("Text");
+        CHECK(kind_of(section) == "control");
+    }
+}
+
+TEST_CASE("a rule answers a message box only with a button the box has", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    GuiApp app;
+    REQUIRE(app.init.IsOk());
+    {
+        ModalTracker tracker;
+        tracker.push_rules({make_rule("Discard", "ok")});
+        wxMessageDialog yes_no(nullptr, "Discard the changes?", "Changes", wxYES_NO);
+        // A Yes/No box has no OK: it opens for an answer instead.
+        CHECK(wxModalDialogHook::CallEnter(&yes_no) == wxID_NONE);
+        CHECK(tracker.top() == &yes_no);
+        CHECK(tracker.rules_json()[0]["uses"] == 0);
+        wxModalDialogHook::CallExit(&yes_no);
+        tracker.push_rules({make_rule("Discard", "no")});
+        CHECK(wxModalDialogHook::CallEnter(&yes_no) == wxID_NO);
+        CHECK(tracker.top() == nullptr);
+        // Cancel answers a box with a Cancel button, not an OK-only one.
+        tracker.push_rules({make_rule("Saved", "cancel")});
+        wxMessageDialog ok_only(nullptr, "Saved.", "Info", wxOK);
+        CHECK(wxModalDialogHook::CallEnter(&ok_only) == wxID_NONE);
+        wxModalDialogHook::CallExit(&ok_only);
+        wxMessageDialog ok_cancel(nullptr, "Saved. Open it?", "Info", wxOK | wxCANCEL);
+        CHECK(wxModalDialogHook::CallEnter(&ok_cancel) == wxID_CANCEL);
+    }
+}
+
+TEST_CASE("a long label is cut where a character starts, and a toggle's tooltip name stays whole", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    GuiApp app;
+    REQUIRE(app.init.IsOk());
+    {
+        std::string tip;
+        for (int i = 0; i < 31; ++i)
+            tip += "\xF0\x9F\x98\x80";
+        wxDialog dialog(nullptr, wxID_ANY, "Overlay");
+        auto*    toggle = new wxBitmapToggleButton(&dialog, wxID_ANY, wxBitmap(16, 16));
+        toggle->SetToolTip(wxString::FromUTF8(tip));
+        // ui_snapshot's label is cut at 120 bytes, where a character starts.
+        const std::string label = label_of(toggle);
+        CHECK(label.size() < tip.size());
+        CHECK(label.substr(label.size() - 3) == "...");
+        CHECK((label.size() - 3) % 4 == 0);
+        CHECK_NOTHROW(nlohmann::json(label).dump());
+        // The message names the toggle by its whole tooltip.
+        const nlohmann::json described = describe_dialog(&dialog);
+        CHECK_NOTHROW(described.dump());
+        CHECK(has(described["message"].get<std::string>(), "[ ] " + tip));
+    }
+}
+
+namespace {
+
+// A label that can't be read, as a widget in a bad state might fail.
+class FailingLabel final : public wxStaticText
+{
+public:
+    explicit FailingLabel(wxWindow* parent) : wxStaticText(parent, wxID_ANY, "label") {}
+    wxString GetLabel() const override { throw std::runtime_error("unreadable"); }
+};
+
+} // namespace
+
+TEST_CASE("a toggle left without a label is named by its own tooltip, not by its neighbour's label", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    GuiApp app;
+    REQUIRE(app.init.IsOk());
+    {
+        // Two switches and one label: the first takes it, the second its tooltip.
+        wxDialog dialog(nullptr, wxID_ANY, "Switches");
+        auto*    row    = new wxBoxSizer(wxHORIZONTAL);
+        auto*    first  = new wxBitmapToggleButton(&dialog, wxID_ANY, wxBitmap(16, 16));
+        auto*    label  = new wxStaticText(&dialog, wxID_ANY, "Detach");
+        auto*    second = new wxBitmapToggleButton(&dialog, wxID_ANY, wxBitmap(16, 16));
+        second->SetToolTip("Keep the original");
+        row->Add(first, 0, wxALL, 4);
+        row->Add(label, 0, wxALL, 4);
+        row->Add(second, 0, wxALL, 4);
+        dialog.SetSizerAndFit(row);
+        const std::string message = describe_dialog(&dialog)["message"].get<std::string>();
+        INFO(message);
+        CHECK(has(message, "[ ] Detach"));
+        CHECK(has(message, "[ ] Keep the original"));
+        CHECK(message.find("Detach") == message.rfind("Detach"));
+
+        // A setting's toggle whose setting has no label beside a wrapped label it can't take: named by
+        // its window name, not by that label.
+        wxDialog setting(nullptr, wxID_ANY, "Setting");
+        auto*    line   = new wxBoxSizer(wxHORIZONTAL);
+        auto*    text   = new wxStaticText(&setting, wxID_ANY, "Wrapped\nneighbour");
+        auto*    toggle = new wxBitmapToggleButton(&setting, wxID_ANY, wxBitmap(16, 16), wxDefaultPosition, wxDefaultSize, 0,
+                                                   wxDefaultValidator, "unlisted_toggle");
+        toggle->SetToolTip("parameter name: not_a_setting");
+        line->Add(text, 0, wxALL, 4);
+        line->Add(toggle, 0, wxALL, 4);
+        setting.SetSizerAndFit(line);
+        const std::string read = describe_dialog(&setting)["message"].get<std::string>();
+        INFO(read);
+        CHECK(has(read, "[ ] (unlisted_toggle)"));
+        CHECK(read.find("neighbour") == read.rfind("neighbour"));
+    }
+}
+
+TEST_CASE("a button is found by the label its dialog's description shows", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    GuiApp app;
+    REQUIRE(app.init.IsOk());
+    {
+        // "&&" is a literal "&": the description shows "Save & close", and that label finds it.
+        wxDialog dialog(nullptr, wxID_ANY, "Labels");
+        new wxButton(&dialog, 5200, "Save && close");
+        new wxButton(&dialog, 5201, "&Discard");
+        const nlohmann::json buttons = describe_dialog(&dialog)["buttons"];
+        REQUIRE(buttons.size() == 2);
+        CHECK(buttons[0]["label"] == "Save & close");
+        CHECK(buttons[1]["label"] == "Discard");
+        CHECK(dialog_button_by_label(&dialog, "Save & close") == 5200);
+        CHECK(dialog_button_by_label(&dialog, "discard") == 5201);
+    }
+}
+
+TEST_CASE("a notebook's tabs are no label for a toggle beside them", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    GuiApp app;
+    REQUIRE(app.init.IsOk());
+    {
+        wxDialog dialog(nullptr, wxID_ANY, "Tabs");
+        auto*    row    = new wxBoxSizer(wxHORIZONTAL);
+        auto*    toggle = new wxBitmapToggleButton(&dialog, wxID_ANY, wxBitmap(16, 16));
+        auto*    book   = new wxNotebook(&dialog, wxID_ANY);
+        book->AddPage(new wxPanel(book), "General");
+        book->AddPage(new wxPanel(book), "Advanced", true);
+        row->Add(toggle, 0, wxALL, 4);
+        row->Add(book, 0, wxALL, 4);
+        dialog.SetSizerAndFit(row);
+        const std::string message = describe_dialog(&dialog)["message"].get<std::string>();
+        INFO(message);
+        CHECK(has(message, "( ) General | (*) Advanced"));
+        CHECK_FALSE(has(message, "[ ] ( ) General"));
+    }
+}
+
+TEST_CASE("a dialog that can't be described is still listed, by its title", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    GuiApp app;
+    REQUIRE(app.init.IsOk());
+    {
+        ModalTracker tracker;
+        tracker.push_rules({make_rule("^Broken$", "cancel")});
+        wxDialog dialog(nullptr, wxID_ANY, "Broken");
+        new FailingLabel(&dialog);
+        int cancels = 0;
+        auto* cancel = new wxButton(&dialog, wxID_CANCEL, "Cancel");
+        cancel->Bind(wxEVT_BUTTON, [&cancels](wxCommandEvent&) { ++cancels; });
+        CHECK_THROWS(describe_dialog(&dialog));
+        CHECK(wxModalDialogHook::CallEnter(&dialog) == wxID_NONE);
+        CHECK(tracker.any_open());
+        const nlohmann::json snap = tracker.snapshot();
+        REQUIRE(snap.size() == 1);
+        CHECK(snap[0]["title"] == "Broken");
+        // Its rule matches it by its title alone, and presses its button.
+        wxTheApp->ProcessPendingEvents();
+        CHECK(cancels == 1);
+        wxModalDialogHook::CallExit(&dialog);
+        CHECK_FALSE(tracker.any_open());
+    }
+}
+
+TEST_CASE("ui_input false is refused on a selected radio button, which selecting another unselects", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    GuiApp app;
+    REQUIRE(app.init.IsOk());
+    {
+        McpServicePtr service(new McpService());
+        UiInspector   inspector(*service);
+        wxFrame       frame(nullptr, wxID_ANY, "radios");
+        auto*         first  = new wxRadioButton(&frame, wxID_ANY, "First", wxPoint(0, 0), wxDefaultSize, wxRB_GROUP);
+        auto*         second = new wxRadioButton(&frame, wxID_ANY, "Second", wxPoint(0, 30));
+        first->SetValue(true);
+        UiTarget target;
+        target.kind   = UiTarget::Kind::Window;
+        target.window = first;
+        CHECK_THROWS_AS(inspector.input(target, false, false), ToolFailure);
+        CHECK(first->GetValue());
+        // One already unselected stays so.
+        target.window = second;
+        CHECK(inspector.input(target, false, false)["checked"] == false);
+        CHECK(inspector.input(target, true, false)["checked"] == true);
+        CHECK(second->GetValue());
+    }
+}
+
+TEST_CASE("a dialog's message is cut where a character starts", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    GuiApp app;
+    REQUIRE(app.init.IsOk());
+    {
+        // 3000 bytes of a 3-byte character: the 2000-byte cut falls inside one.
+        std::string long_text;
+        for (int i = 0; i < 1000; ++i)
+            long_text += "\xE4\xB8\xAD";
+        wxDialog dialog(nullptr, wxID_ANY, "Long");
+        new wxStaticText(&dialog, wxID_ANY, wxString::FromUTF8(long_text));
+        std::string       text;
+        const nlohmann::json        described = describe_dialog(&dialog, &text);
+        const std::string message   = described["message"].get<std::string>();
+        REQUIRE(message.size() > 3);
+        CHECK(message.substr(message.size() - 3) == "...");
+        CHECK((message.size() - 3) % 3 == 0);
+        CHECK_NOTHROW(described.dump());
+        CHECK((text.size() - 3) % 3 == 0);
+        CHECK_NOTHROW(nlohmann::json(text).dump());
+    }
+}
+
+TEST_CASE("the snapshot read on the UI thread shows a dialog as it is now", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    GuiApp app;
+    REQUIRE(app.init.IsOk());
+    {
+        ModalTracker tracker;
+        wxDialog     dialog(nullptr, wxID_ANY, "Bind printer");
+        auto*        name = new wxStaticText(&dialog, wxID_ANY, "");
+        CHECK(wxModalDialogHook::CallEnter(&dialog) == wxID_NONE);
+        // What a dialog fills in once it shows.
+        name->SetLabel("Bambu Lab X1C");
+        CHECK(tracker.snapshot()[0]["message"] == "Bambu Lab X1C");
+        wxModalDialogHook::CallExit(&dialog);
+        CHECK(tracker.snapshot().empty());
+    }
+}
+
+TEST_CASE("a rule finds the dialog's own text past what its message holds", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    GuiApp app;
+    REQUIRE(app.init.IsOk());
+    {
+        // A long G-code and a long list before the label fill the message; the label is still the
+        // dialog's text, as it always was.
+        wxDialog dialog(nullptr, wxID_ANY, "Edit Custom G-code");
+        auto*    sizer = new wxBoxSizer(wxVERTICAL);
+        sizer->Add(new wxTextCtrl(&dialog, wxID_ANY, std::string(3000, 'G'), wxDefaultPosition, wxSize(300, 100), wxTE_MULTILINE));
+        wxArrayString placeholders;
+        for (int i = 0; i < 100; ++i)
+            placeholders.Add("placeholder_" + std::to_string(i));
+        sizer->Add(new wxListBox(&dialog, wxID_ANY, wxDefaultPosition, wxSize(300, 100), placeholders));
+        sizer->Add(new wxStaticText(&dialog, wxID_ANY, "Select placeholder"));
+        int   cancels = 0;
+        auto* cancel  = new wxButton(&dialog, wxID_CANCEL, "Cancel");
+        cancel->Bind(wxEVT_BUTTON, [&cancels](wxCommandEvent&) { ++cancels; });
+        sizer->Add(cancel);
+        dialog.SetSizerAndFit(sizer);
+
+        std::string text;
+        const nlohmann::json  described = describe_dialog(&dialog, &text);
+        CHECK_FALSE(has(described["message"].get<std::string>(), "Select placeholder"));
+        CHECK(has(text, "Select placeholder"));
+        // Its buttons are listed all the same.
+        CHECK(described["buttons"] == nlohmann::json::array({{{"id", wxID_CANCEL}, {"label", "Cancel"}}}));
+
+        ModalTracker tracker;
+        tracker.push_rules({make_rule("Select placeholder", "cancel")});
+        CHECK(wxModalDialogHook::CallEnter(&dialog) == wxID_NONE);
+        wxTheApp->ProcessPendingEvents();
+        CHECK(cancels == 1);
+        CHECK(tracker.rules_json()[0]["uses"] == 1);
+        wxModalDialogHook::CallExit(&dialog);
     }
 }
 

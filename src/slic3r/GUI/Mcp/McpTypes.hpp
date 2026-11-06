@@ -23,6 +23,11 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 // window that changes the Python scripts setting, so no agent or script can turn it on.
 inline constexpr char kHiddenFromAutomation[] = "OrcaHiddenFromMcp";
 
+// The name of a text field that holds a secret its dialog shows in plain text, such as a printer's
+// access code: a modal dialog's description writes its value as [******] (describe_dialog()). A field
+// with password style, or a setting field for a password or key, needs no name.
+inline constexpr char kSecretField[] = "OrcaSecretForMcp";
+
 // What a tool may do while the app is inside another call's nested event loop or behind a modal
 // dialog. Inspect tools only read; Recover tools act on the topmost modal dialog to unblock the
 // app; everything else is Mutate and is refused in both situations.

@@ -1430,7 +1430,11 @@ never reused and carry the UI generation and a liveness check, so a
 ref to a destroyed or rebuilt widget is reported stale. A field is named by the setting it edits:
 its option key is read from the "parameter name" line of its tooltip, and its label comes from the
 option's definition. Failing that, the label to its left on the same row names it, then its
-tooltip.
+tooltip. A control's state reads `[checked]` or `[unchecked]`, or `[mixed]` for a checkbox that shows
+neither (a three-state one undetermined, Orca's `CheckBox` half-checked for an unset nullable
+setting). An option of a selector Orca builds of buttons (`RadioGroup`, `TabCtrl`, `MultiSwitchButton`)
+is a button that reads checked while it is the selected one (`selector_option()`), so `ui_input true`
+selects it, and a `SwitchButton` with a label at each end has the one it is on as its value.
 
 Input tools take a `target`: a ref (also read written as `{ref: "w12"}`), or a locator, which is
 stable across runs and is what the journal stores. A locator is one of:
@@ -1560,11 +1564,15 @@ on the main frame, but under ids `wxNewId()` never hands out again, so they neve
 ### Rows and popups
 
 The rows of `wxDataViewCtrl`s (the object list, Compare presets, the upload queue and other data
-views), of `wxListBox` and `wxCheckListBox` (the Add Settings checklist), of Orca's `DropDown` lists,
-of `wxGrid` tables (the object settings table) and of the Design tab's `DesignRowList`s are listed
-under their list as `row` nodes (`list_rows()`): the first text cell is the label, the other text
-cells the value joined with ` | `, a checkbox cell its checked state. A data view is walked through
-its model from the root, collapsed branches included. An object list row also says what it stands
+views), of `wxListBox` and `wxCheckListBox` (the Add Settings checklist), of `wxListCtrl`s (the
+printers a Bonjour or Creality scan finds), of Orca's `DropDown` lists, of `wxGrid` tables (the object
+settings table) and of the Design tab's `DesignRowList`s are listed under their list as `row` nodes
+(`list_rows()`): the first text cell is the label, the other text cells the value joined with ` | `, a
+checkbox cell its checked state. A data view is walked through its model from the root, collapsed
+branches included; a modal dialog's message reads its lists through a bounded `list_rows()`, which reads
+only shown rows, up to its limit. A click on a list control's row selects it with `SetItemState()`, for
+which the control sends `wxEVT_LIST_ITEM_SELECTED`, natively on Windows and from the generic control's
+highlighting elsewhere; a double click sends `wxEVT_LIST_ITEM_ACTIVATED`. An object list row also says what it stands
 for by the indices `list_objects` uses (`plate 1`, `object 0 part 1, modifier`, `object 0 layer
 range 0-2`). A table's rows are named by their `Name` cell (the object settings table's part rows
 by the part), else by their row label; a sort indicator after a column title is left out, and a
@@ -1749,38 +1757,149 @@ point picking and the painters to their Shift and Alt modes.
 ### Dialogs and web views
 
 `ModalTracker`, a `wxModalDialogHook`, sees every `ShowModal()`, native dialogs included, and
-publishes the snapshot `[{title, message, class, native, buttons}]`. Message boxes and file and folder
-pickers are native; a picker's message is its prompt, such as "Choose Download Directory", since its
-title is often empty. Colour and font choosers are not classified as native, because on GTK they are
-wx dialogs that `dialog_respond` ends; on macOS and Windows they are OS choosers, best answered ahead
-with a `dialog_auto_answer` rule. `dialog_respond` presses the
-topmost wx dialog's button, so the dialog's own handler runs, or ends the dialog with that id when
-no such button exists. On Windows and Linux it also presses an open native message box: the tracker
-lists the buttons wx gives the box for its style (Yes and No or OK, and Cancel; not Help, which on
-Windows shows help without closing the box), and a press goes to the OS's box by message
-(`press_dialog_button()`). On Windows that is a `WM_COMMAND` to a message box, or a `TDM_CLICK_BUTTON`
-to the task dialog wx shows where Windows has one, found among the UI thread's windows by class and
-caption, the active one first; on GTK, `gtk_dialog_response()` on the dialog's widget. The box closes once its own loop runs
-again, which `dialog_respond` waits up to 1 s for, so its reply says `closed`. This is how a plugin's
-permission prompt is answered. On macOS a message box lists no
-buttons, since no call reaches one (above). A picker, and on macOS any native dialog, can only be
-answered ahead with a `dialog_auto_answer` rule: a regex searched in the title and message joined by a newline, and also in the title alone for a
-dialog with no message (so `^Title$` matches a web dialog), and a button. `Enter()` then returns that button's id without
-showing the dialog, and logs it; a file or folder picker can only be cancelled, since any other
-answer would return without a path. A wx dialog that matches a rule opens, and the tracker presses
-the button once the dialog's modal loop runs (`press_dialog_button()`, queued on the dialog), as
-`dialog_respond` does: its buttons do the dialog's work in their handlers (`UnsavedChangesDialog`'s
-Transfer and Discard, `CloneDialog`'s Fill), which a returned id would skip. A modal opened above it
-before then leaves it to `dialog_respond`. A new rule also answers a
-matching dialog that is already open, as `dialog_respond` would, a message box included where it can
-be pressed. A prompt posted around the same time, such as the restore
-prompt after startup, is handled whether it opens before or after the rule. A script's rules end
-with the script, a client's call replaces its earlier rules, and `get_state` lists the rules in
-force.
+publishes the snapshot `[{title, message, class, native, buttons}]`, which other threads read. Read on
+the UI thread, as `get_state`, the `blocked_by_dialog` probe, the guards' refusals and the input tools'
+`dialogs` read it, the snapshot describes the open dialogs again first. So it shows a dialog as it is
+now: text the dialog filled in once it showed (a printer's name, a list from a scan), a field typed in,
+a page switched. Should describing fail, the last description stands. Only a native dialog that holds
+the UI thread (macOS) leaves readers with the description published before it; its content does not
+change. A dialog that can't be described is listed by its title, class, `native` and `web` flags, with no
+message or buttons, so the guards still see it and a rule matches it by its title. Message boxes and file and folder pickers are native; a box's message is its text, and a
+picker's is its prompt, such as "Choose Download Directory", since its title is often empty. Colour and
+font choosers are not classified as native, because on GTK they are wx dialogs that `dialog_respond`
+ends; on macOS and Windows they are OS choosers, best answered ahead with a `dialog_auto_answer` rule.
+
+A wx dialog's message reads it as a person does, so an agent can tell what the dialog asks and what
+each button will do without a screenshot (`DialogReader`). Each shown child becomes a cell. Nested
+dialogs, popups, web views and canvases are left out; a nested dialog is described on its own.
+Controls are read through the readers `ui_snapshot` uses (`kind_of`, `value_of`, `checked_of`,
+`selector_choices`, `list_rows`), so the two say the same about each one:
+
+- Static text, html and custom widgets that show a label (`StaticLine` titles) read as their text, and
+  a static box as its title, then its contents. A label that is the window's own name, when that is a
+  name wx gives every window of a class, is no label: Windows shows the name a window was created with
+  as its text, so a bare panel reads "panel".
+- An editable field, spin or slider reads `[value]`. A read-only field reads as its text.
+- A choice reads `[value ▾]`. Orca's `ComboBox` shows its placeholder, such as "Select Vendor", until
+  something is picked.
+- A checkbox or switch reads `[x] label`, `[ ] label`, or `[-] label` when it shows neither state (an
+  unset nullable setting). A radio button reads `(*) label` or `( ) label`.
+- A selector Orca builds of buttons (`RadioGroup`, `TabCtrl`, `MultiSwitchButton`), a `SwitchButton`
+  with a label at each end, and a notebook's tabs read as one line, `(*) A | ( ) B`; an icon option
+  reads as its tooltip. A notebook's tabs are followed by the page shown.
+- A list reads one line per shown row, up to 25, then a line saying `ui_snapshot` lists the rest.
+- A gauge reads `[45%]`.
+- A disabled control adds ` (disabled)`. Disabled is judged between the control and its dialog, so a
+  dialog under another modal does not read as all disabled.
+
+Of the cells a toggle could take as its label, a control with its own mark (a labelled checkbox, a
+selector) is never one.
+
+A secret never shows: a field with password style, a setting field for a password, API key or token
+(by the `parameter name` of its tooltip, as `printhost_password` and `printhost_apikey`), or one its
+dialog names `kSecretField` (a printer's access code and pin, which those dialogs show in plain text)
+reads `[******]`. A URL in a field loses its credentials (`redact_url()`), each word of the value on
+its own, as does a print host's value without a scheme, `user:password@host`, which the hosts prefix
+with `http://`.
+
+A parent's cells are put in reading order by their rectangles: rows top to bottom, then left to right.
+Two cells are on one row when either one's vertical centre lies within the other's span. A cell over
+twice as tall as the other, such as a wrapped label or a column of text, shares its row only with a
+cell beside its first line (its centre within the shorter cell's height of the taller one's top) or
+centred on it. So a checkbox or a field at a wrapped label's first line shares its row, while a column
+of text never pulls the label and field rows below that line into one. So the order the dialog made its widgets in does not
+matter: a field made before the label above it reads after it, and PrintHostSend's radio boxes, made
+before their labels, each meet their own label. In a row:
+
+- A toggle with no label of its own (Orca's `CheckBox` and `RadioBox`) takes the cell to its right as
+  its label: `[x] Remember my choice.`. With nothing there, it takes the topmost single-line cell to
+  its left, as Preferences and CloneDialog lay their switches out: `Show splash screen | [x]`. Of a
+  title and its hint stacked beside a switch (RecordingDialog), that is the title.
+- Single-line cells side by side join with ` | `. A container whose children make one line counts as
+  one cell, so `UnsavedChangesDialog`'s rows, each cell in a panel of its own, read
+  `Sparse infill density | 15% | 20%`.
+- A toggle nothing completes is named by what is its own: the setting it edits, its tooltip, else its
+  window name in parentheses. The text beside it is not used, since the layout gave that to what it
+  labels.
+
+Widgets that overlap, as in a dialog not laid out yet, join nothing and keep their order.
+
+The message is at most 2000 bytes; a longer one is cut there, where a character starts, and ends in
+`...`. Once the
+cells read pass that, only buttons are looked for: lists are read through a bounded `list_rows()`, which
+reads only shown rows and stops at the cap. So describing a dialog costs its window count, plus each
+bounded list's own enumeration of the level it reads (a flat data view's model lists all its children,
+a pointer each), not the size of the text, values or rows it holds. The dialog's own text, which only
+rule matching reads, is walked only for that. Text no wx control holds is not read: what custom widgets paint themselves (`SwitchBoard`, the
+AMS mapping items, `RecenterDialog`'s explanation, Preferences' row labels) and icon buttons with no
+label. Web dialogs are read through their page (below).
+
+`buttons` lists the wx buttons a dialog shows, with `enabled: false` for a disabled one. The options of
+a selector made of buttons (`RadioGroup`, `TabCtrl`, `MultiSwitchButton`) are not listed, since pressing
+one only selects it. `dialog_respond`, and a rule, still find such an option by its label (its tooltip
+for an icon option, in full even where a message cut at its cap shows only its start) and select it, and
+`ui_snapshot` shows the selected option checked, under the same full label. `ui_input false` on the
+selected one, or on a selected radio button or radio box, is refused, since an option is unselected by
+selecting another. Other radio buttons and switches are set
+with `ui_click` or `ui_input true`, and notebook tabs with `ui_click` on the tab.
+
+`dialog_respond` presses the topmost wx dialog's button, so the dialog's own handler runs.
+`press_dialog_button()` tells what it did:
+
+- **Pressed:** the button was pressed.
+- **Ended:** the dialog has no button with that id, so it ended with it, and `cancel` closes a dialog
+  without a Cancel button. One whose Cancel or Close is on a page it does not show ends the same way.
+- **Disabled:** the button is shown but disabled, so nothing is pressed or stood in for. The dialog
+  disabled it on purpose: OK while a name is invalid, Send until a box is ticked, Cancel while a
+  cancel is under way. `dialog_respond` refuses a disabled button, its message showing what the dialog
+  still needs.
+- **Hidden:** the button is only on a page the dialog does not show, such as a wizard's Finish, so
+  nothing is pressed or stood in for, and `dialog_respond` refuses it. Buttons are looked up among the
+  dialog's own windows, not a popup's or a nested dialog's.
+- **Failed:** a native message box could not be pressed.
+
+On Windows and Linux `dialog_respond` also presses an open native message box. The tracker lists the
+buttons wx gives the box for its style (Yes and No or OK, and Cancel; not Help, which on Windows shows
+help without closing the box), and a press goes to the OS's box by message. On Windows that is a
+`WM_COMMAND` to a message box, or a `TDM_CLICK_BUTTON` to the task dialog wx shows where Windows has
+one, found among the UI thread's windows by class and caption, the active one first. On GTK it is
+`gtk_dialog_response()` on the dialog's widget. The box closes once its own loop runs again, which
+`dialog_respond` waits up to 1 s for, so its reply says `closed`. A box that is no longer shown is
+refused. This is how a plugin's permission prompt is answered. On macOS a message box lists no buttons,
+since no call reaches one (above).
+
+A picker, and on macOS any native dialog, can only be answered ahead with a `dialog_auto_answer` rule:
+a regex and a button. The regex is searched in three places:
+
+- the title and message joined by a newline
+- the title and the dialog's own text joined the same way. The own text is its static text and html,
+  one per line in child order, cut and trimmed as the message is. It leaves the controls out, and
+  `describe_dialog()` reads it in a walk of its own that the message's budget does not stop.
+- the title alone, for a dialog with no own text (so `^Title$` matches a web dialog)
+
+A rule written against a dialog's wording therefore matches however its controls read, and long values
+or lists before that wording do not push it out. `Enter()` then returns that button's id without
+showing the dialog, and logs it; a file or folder picker can only be cancelled, since any other answer
+would return without a path.
+
+A wx dialog that matches a rule opens, and the tracker presses the button once the dialog's modal loop
+runs (`press_dialog_button()`, queued on the dialog), as `dialog_respond` does. Its buttons do the
+dialog's work in their handlers (`UnsavedChangesDialog`'s Transfer and Discard, `CloneDialog`'s Fill),
+which a returned id would skip. The rule counts as used once the press pressed the button or ended the
+dialog. A button disabled by then leaves the dialog open, logged, and a modal opened above it before
+then leaves it to `dialog_respond`.
+
+A new rule also answers a matching dialog that is already open, as `dialog_respond` would, a message
+box included where it can be pressed. The first rule that names one of its buttons decides: if that
+button is disabled or hidden, the dialog stays open and the reply says `disabled: true` or
+`hidden: true` (a hidden Cancel or Close ends the dialog, as above). A prompt posted around
+the same time, such as the restore prompt after startup, is handled whether it opens before or after
+the rule. A script's rules end with the script, a client's call replaces its earlier rules, and
+`get_state` lists the rules in force.
 
 A dialog that hosts a web view is described with `web: true`; its controls are on its page, which
-`ui_snapshot root=dialog` lists and the input tools drive like any widget (see Web pages below). Its
-message is empty, so a rule matches it by title. Its page is the one its shown web view holds; a web
+`ui_snapshot root=dialog` lists and the input tools drive like any widget (see Web pages below). It
+has no text of its own, so a rule matches it by title. Its page is the one its shown web view holds; a web
 view the dialog keeps hidden has no page to press on. `dialog_respond` looks a name or label up as a
 wx button label first, then among the page's buttons and links, waiting up to 3 s for one to show
 (each ask expires with those 3 s, so the page never presses one later), and clicks it there, hit

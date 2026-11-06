@@ -30,6 +30,10 @@ public:
 public:
 	void SetLabels(wxString const & lbl_on, wxString const & lbl_off);
 
+	// The label shown at the left (0) or right (1) end; the thumb sits on the right one while the switch
+	// is on. Empty for a switch without labels.
+	const wxString& GetLabelAt(int index) const { return labels[index == 0 ? 0 : 1]; }
+
 	void SetTextColor(StateColor const &color);
 
 	void SetTextColor2(StateColor const &color);

@@ -79,7 +79,7 @@ std::string format_snapshot(const std::vector<UiNode>& nodes, std::size_t omitte
         if (!n.window.empty())
             out += " in \"" + n.window + "\"";
         if (n.checked >= 0)
-            out += n.checked ? " [checked]" : " [unchecked]";
+            out += n.checked == 2 ? " [mixed]" : n.checked ? " [checked]" : " [unchecked]";
         if (!n.enabled)
             out += " [disabled]";
         if (n.focused)

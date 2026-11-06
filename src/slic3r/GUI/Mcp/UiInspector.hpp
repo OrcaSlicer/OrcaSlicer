@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <deque>
 #include <functional>
+#include <limits>
 #include <map>
 #include <optional>
 #include <string>
@@ -284,10 +285,58 @@ std::string within_of(wxWindow* w);
 // The shown popups that opened from `top` or from its widgets, which ui_snapshot lists after it.
 std::vector<wxWindow*> popups_of(wxWindow* top);
 
+// How an agent reads a widget. ui_snapshot and a modal dialog's description (describe_dialog()) both
+// read controls through these, so they say the same about each one. UI thread only.
+
+// The role a window plays for an agent: button, checkbox, toggle, radio, combo, choice, spin, text,
+// slider, list, tabs, label, control (a custom-drawn widget that shows a label), canvas, webview,
+// dialog, window or popup. Empty for plain containers.
+std::string kind_of(wxWindow* w);
+// What a control shows: a field's text, a choice's selection, a spin's or slider's number, the end a
+// labelled SwitchButton is on, a web view's URL (redacted). Empty for other windows.
+std::string value_of(wxWindow* w);
+// 1 checked, 0 not, 2 neither (a three-state wxCheckBox undetermined, Orca's CheckBox half-checked for
+// an unset setting), -1 for a window with no check state. A selector's option button is checked
+// while it is the selected one (selector_option()).
+int checked_of(wxWindow* w);
+// The name an agent knows a window by: a top-level window's title; for an input field, the setting it
+// edits or the label left of it on its row; else its own label, or an icon button's tooltip.
+std::string label_of(wxWindow* w);
+// The option key a setting field edits, from the "parameter name" line of its tooltip, or empty.
+std::string option_key_of(wxWindow* w);
+// The label of the setting `key` from its definition, in the UI language; empty for an unknown key or one
+// without a label.
+std::string option_label(const std::string& key);
+// A window's name when it says more than the name wx gives every window of its class, else empty.
+std::string meaningful_name(wxWindow* w);
+
+// An option of a selector Orca builds of ::Button options: RadioGroup, TabCtrl and MultiSwitchButton.
+// Pressing the option only selects it.
+struct SelectorOption
+{
+    wxWindow* selector = nullptr; // null when the window is no selector's option
+    int       index    = -1;
+    bool      selected = false;
+};
+SelectorOption selector_option(wxWindow* w);
+// The text a selector shows for its option `button`: its label, or for an icon option its tooltip.
+// Both the message and label lookup (dialog_button_by_label()) name the option by it.
+std::string selector_option_label(wxWindow* button);
+// The options a selector window offers and the selected one (-1 for none): RadioGroup, TabCtrl,
+// MultiSwitchButton, a SwitchButton with a label at each end, and a notebook whose pages have titles.
+// nullopt for any other window.
+struct SelectorChoices
+{
+    std::vector<std::string> options;
+    int                      selected = -1;
+};
+std::optional<SelectorChoices> selector_choices(wxWindow* w);
+
 // Rows of the lists ui_snapshot reads: wxDataViewCtrl (every row, collapsed branches too), wxListBox and
-// wxCheckListBox, Orca's DropDown, wxGrid (read-only) and the Design tab's DesignRowList. Empty for
-// other windows.
-std::vector<ListRow> list_rows(wxWindow* list);
+// wxCheckListBox, wxListCtrl, Orca's DropDown, wxGrid (read-only) and the Design tab's DesignRowList.
+// Empty for other windows. With a `limit`, only shown rows are read (a tree's collapsed branches are
+// skipped), and at most `limit` of them: what a summary of the list costs, whatever its size.
+std::vector<ListRow> list_rows(wxWindow* list, std::size_t limit = std::numeric_limits<std::size_t>::max());
 bool                 is_row_list(wxWindow* w);
 // The names a row's cell is picked by (`column`): header text, "#n" for a column without one, and for
 // the object list, which shows no header, fixed English names. Empty for lists without columns.

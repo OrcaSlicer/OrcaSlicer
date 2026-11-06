@@ -11,6 +11,7 @@
 #include <wx/gdicmn.h>
 #include <wx/sizer.h>
 #include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Mcp/McpTypes.hpp"
 #include <wx/event.h>
 #include <string>
 #include "slic3r/GUI/wxExtensions.hpp"
@@ -50,6 +51,7 @@ ConnectPrinterDialog::ConnectPrinterDialog(wxWindow *parent, wxWindowID id, cons
     // OrcaSonar uses a 12-character base32 access code. Keep this field long
     // enough for it while retaining the existing validation for LAN codes.
     m_textCtrl_code->GetTextCtrl()->SetMaxLength(12);
+    m_textCtrl_code->SetName(Mcp::kSecretField);
     m_textCtrl_code->SetFont(Label::Body_14);
     m_textCtrl_code->SetCornerRadius(FromDIP(5));
     m_textCtrl_code->SetSize(wxSize(FromDIP(330), FromDIP(40)));

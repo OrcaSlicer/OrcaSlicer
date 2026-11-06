@@ -610,6 +610,14 @@ json web_locator(McpService& service, ToolContext& ctx, const WebTarget& t, cons
     return loc;
 }
 
+// Why dialog_respond does not press a button refused_press() refuses.
+std::string refused_button(const std::string& button, DialogPress refused)
+{
+    if (refused == DialogPress::Hidden)
+        return "The dialog's \"" + button + "\" button is on a page it does not show; its message shows what it shows now";
+    return "The dialog's \"" + button + "\" button is disabled; its message shows what the dialog still needs";
+}
+
 // `closed: true`, with the dialogs still open under the one that closed (the filament picker under the
 // colour picker it opened), whose answer is still to give. Any thread.
 json closed_reply(McpService& service)
@@ -1235,7 +1243,10 @@ void register_ui_tools(McpService& service)
         "ui_input", L("Set a control's value"),
         "Set a control's value and send the events a person's edit would. Widgets: text fields (submit, the default, also "
         "presses Enter and leaves the field, which is when Orca's setting fields commit), spin controls, sliders, choice, "
-        "combo and list boxes (by option text or index), and checkboxes, toggles and a row's checkbox (true or false). "
+        "combo and list boxes (by option text or index), checkboxes, toggles and a row's checkbox (true or false), and a "
+        "radio button (an Orca radio box too) or a selector's option, as the dialog message shows them (*) / ( ) (true "
+        "selects it; false on the "
+        "selected one is refused, as only selecting another unselects it). "
         "ImGui items, by their kind, with the value read back: a field is typed into (a slider through the number field "
         "beside it, multiline text with \\n), a combo's option is picked by its text or 0-based index, and a checkbox, radio "
         "or toggle is clicked when it differs. A web page's fields, as typing would leave them: text, number, range, colour "
@@ -1475,6 +1486,11 @@ void register_ui_tools(McpService& service)
     reg.add(recover_input_tool(
         "dialog_respond", L("Answer a dialog"),
         "Press a button of the topmost modal dialog: yes, no, ok, cancel, close, apply, a button's label, or a numeric id. "
+        "A disabled button (enabled: false) is refused, the dialog's message showing what it still needs, and so is one on "
+        "a page the dialog does not show, except a hidden cancel or close, which ends the dialog. The label of an option of a "
+        "selector made of buttons (Orca's radio groups, tab bars and multi-switches, shown as (*) / ( ) in the message) "
+        "selects that option and leaves the dialog open; set other radio buttons and switches with ui_click or ui_input "
+        "true, and notebook tabs with ui_click. "
         "dialog.title, text the dialog's title contains, makes sure which dialog that is; it must be the topmost. Reply: "
         "closed: true when it closed, and dialogs, those still open. A native message box (native: true) is pressed through "
         "the OS, by one of the buttons get_state.dialogs lists for it; a file or folder picker can't be answered here, nor "
@@ -1542,11 +1558,13 @@ void register_ui_tools(McpService& service)
                 native = is_native_dialog(dialog);
                 if (id == wxID_NONE || (native && !has_dialog_button(dialog, id)))
                     throw ToolFailure("The dialog has no button \"" + button + "\"", {{"dialog", describe_dialog(dialog)}});
-                const bool pressed = press_dialog_button(dialog, id);
-                if (native && !pressed)
+                if (const std::optional<DialogPress> refused = refused_press(dialog, id))
+                    throw ToolFailure(refused_button(button, *refused), {{"dialog", describe_dialog(dialog)}});
+                const DialogPress press = press_dialog_button(dialog, id);
+                if (press == DialogPress::Failed)
                     throw ToolFailure("The message box is not shown, so its button could not be pressed; take a new ui_snapshot",
                                       {{"dialog", describe_dialog(dialog)}});
-                return {{"dialog", dialog_title}, {"button", button}, {"id", id}, {"pressed", pressed}};
+                return {{"dialog", dialog_title}, {"button", button}, {"id", id}, {"pressed", press == DialogPress::Pressed}};
             });
             if (!out.is_null()) {
                 settle(ctx);
@@ -1618,8 +1636,13 @@ void register_ui_tools(McpService& service)
             out = ctx.run_ui([&]() -> json {
                 wxDialog* dialog = find_dialog();
                 const int id     = standard;
+                if (const std::optional<DialogPress> refused = id != wxID_NONE ? refused_press(dialog, id) : std::nullopt)
+                    throw ToolFailure(refused_button(button, *refused), {{"dialog", describe_dialog(dialog)}});
                 if (id != wxID_NONE && (ends_dialog || has_dialog_button(dialog, id)))
-                    return {{"dialog", dialog_title}, {"button", button}, {"id", id}, {"pressed", press_dialog_button(dialog, id)}};
+                    return {{"dialog", dialog_title},
+                            {"button", button},
+                            {"id", id},
+                            {"pressed", press_dialog_button(dialog, id) == DialogPress::Pressed}};
                 throw ToolFailure("The dialog's page has no button \"" + button + "\"",
                                   {{"dialog", describe_dialog(dialog)}, {"page_buttons", page_buttons}});
             });
@@ -1646,7 +1669,7 @@ void register_ui_tools(McpService& service)
             "label, standard name or id) is pressed as for a wx dialog, any other on its page once it shows there, for up to "
             "10 s after the page loads; past that, cancel and close end the dialog and any other button gives up.",
             object_schema({{"rules", array_prop({{"type", "object"},
-                                                 {"properties", {{"match", prop("string", "Regex searched in \"title\\nmessage\", and also in the title alone for a dialog with no message (a web dialog), so ^Title$ matches it.")},
+                                                 {"properties", {{"match", prop("string", "Regex searched in \"title\\nmessage\", in \"title\\ntext\" (the dialog's own static text, one line each, without its controls), and in the title alone for a dialog with no text (a web dialog), so ^Title$ matches it.")},
                                                                  {"button", prop("string", "yes | no | ok | cancel | close | apply | label | id")}}},
                                                  {"required", {"match", "button"}},
                                                  {"additionalProperties", false}},
@@ -1665,9 +1688,10 @@ void register_ui_tools(McpService& service)
                     const bool native = top != nullptr && is_native_dialog(top);
                     if (top == nullptr || (native && message_box_buttons(top).empty()))
                         return json();
-                    const json info = describe_dialog(top);
+                    std::string text;
+                    const json  info = describe_dialog(top, &text);
                     for (const AutoAnswerRule& rule : registered)
-                        if (rule_matches(rule, info["title"].get<std::string>(), info["message"].get<std::string>())) {
+                        if (rule_matches(rule, info["title"].get<std::string>(), info["message"].get<std::string>(), text)) {
                             // A web dialog is answered on its page, as ModalTracker::Enter() does.
                             if (info.value("web", false) && native_dialog_button(top, rule.button) == wxID_NONE) {
                                 const int standard = standard_dialog_button(rule.button);
@@ -1678,9 +1702,13 @@ void register_ui_tools(McpService& service)
                             const int id = resolve_dialog_button(top, rule.button);
                             if (id == wxID_NONE || (native && !has_dialog_button(top, id)))
                                 continue;
+                            // The first rule that names a button decides; a disabled or hidden one leaves the
+                            // dialog open.
+                            if (const std::optional<DialogPress> refused = refused_press(top, id))
+                                return {{"dialog", info["title"]}, {"button", rule.button}, {*refused == DialogPress::Hidden ? "hidden" : "disabled", true}};
                             // As before any other press, the presses ui_mouse downs left on pages end first.
                             service.modals().before_press();
-                            if (press_dialog_button(top, id) || !native) {
+                            if (press_dialog_button(top, id) != DialogPress::Failed) {
                                 service.modals().count_use(0, rule.pattern, rule.button);
                                 return {{"dialog", info["title"]}, {"button", rule.button}};
                             }

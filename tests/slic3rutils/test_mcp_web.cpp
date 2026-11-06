@@ -27,8 +27,10 @@
 #include <wx/dialog.h>
 #include <wx/gdicmn.h>
 #include <wx/init.h>
+#include <wx/modalhook.h>
 #include <wx/msgdlg.h>
 #include <wx/sharedptr.h>
+#include <wx/stattext.h>
 #include <wx/string.h>
 #include <wx/vector.h>
 #include <wx/webview.h>
@@ -38,6 +40,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -266,19 +269,32 @@ TEST_CASE("a request script asks the page's agent, and installs it only when tol
 
 TEST_CASE("an auto-answer rule is searched in title and message, or in a lone title", "[Mcp]")
 {
-    // A web dialog has no message, so a rule anchored to its title matches it; one written for the
+    // A web dialog has no text, so a rule anchored to its title matches it; one written for the
     // "title\n" it was searched in before matches as it did.
-    CHECK(rule_matches(make_rule("^MCP web fixture$", "Submit"), "MCP web fixture", ""));
-    CHECK(rule_matches(make_rule("^MCP web fixture\\n$", "Submit"), "MCP web fixture", ""));
-    CHECK_FALSE(rule_matches(make_rule("^MCP web fixture$", "Submit"), "MCP web fixture window", ""));
+    CHECK(rule_matches(make_rule("^MCP web fixture$", "Submit"), "MCP web fixture", "", ""));
+    CHECK(rule_matches(make_rule("^MCP web fixture\\n$", "Submit"), "MCP web fixture", "", ""));
+    CHECK_FALSE(rule_matches(make_rule("^MCP web fixture$", "Submit"), "MCP web fixture window", "", ""));
     // Case aside.
-    CHECK(rule_matches(make_rule("^mcp WEB", "Submit"), "MCP web fixture", ""));
+    CHECK(rule_matches(make_rule("^mcp WEB", "Submit"), "MCP web fixture", "", ""));
     // With a message, the text is "title\nmessage" as it always was: a pattern anchored to the
-    // message's start finds nothing there, so which of two rules answers a dialog stays the same.
-    CHECK(rule_matches(make_rule("preset\\nThis", "ok"), "Delete preset", "This cannot be undone"));
-    CHECK(rule_matches(make_rule("^Warning", "no"), "Warning", "Delete all cached files?"));
-    CHECK_FALSE(rule_matches(make_rule("^Delete", "yes"), "Warning", "Delete all cached files?"));
-    CHECK_FALSE(rule_matches(make_rule("Export", "ok"), "Delete preset", "This cannot be undone"));
+    // message's start finds nothing there, so which of two rules answers a dialog stays the same. A
+    // message box's text is its message.
+    CHECK(rule_matches(make_rule("preset\\nThis", "ok"), "Delete preset", "This cannot be undone", "This cannot be undone"));
+    CHECK(rule_matches(make_rule("^Warning", "no"), "Warning", "Delete all cached files?", "Delete all cached files?"));
+    CHECK_FALSE(rule_matches(make_rule("^Delete", "yes"), "Warning", "Delete all cached files?", "Delete all cached files?"));
+    CHECK_FALSE(rule_matches(make_rule("Export", "ok"), "Delete preset", "This cannot be undone", "This cannot be undone"));
+}
+
+TEST_CASE("an auto-answer rule finds a dialog's own text however its controls read", "[Mcp]")
+{
+    // Fragments a dialog's message joins on one row are lines of its text, as rules have known them.
+    CHECK(rule_matches(make_rule("accept\\nTerms", "ok"), "Bind", "Read and accept | Terms and Conditions",
+                       "Read and accept\nTerms and Conditions"));
+    // A dialog whose only content is a field still matches by its lone title: it has no text.
+    CHECK(rule_matches(make_rule("^Rename$", "ok"), "Rename", "[Cube]", ""));
+    CHECK_FALSE(rule_matches(make_rule("^Rename$", "ok"), "Rename", "New name\n[Cube]", "New name"));
+    // What the message adds can be matched too.
+    CHECK(rule_matches(make_rule("\\[x\\] Remember", "ok"), "Unsaved changes", "[x] Remember my choice.", "Remember my choice."));
 }
 
 TEST_CASE("the journal's index counts every candidate page's matches, and only when all were heard from", "[Mcp]")
@@ -339,6 +355,38 @@ TEST_CASE("a dialog with a web view is described as a web dialog", "[Mcp]")
         // Hidden, the dialog's web view is found only when hidden ones are asked for.
         CHECK(web_view_in(&web_dialog, true) == nullptr);
         CHECK(web_view_in(&web_dialog, false) != nullptr);
+    }
+}
+
+namespace {
+
+// A label that can't be read, as a widget in a bad state might fail.
+class FailingLabel final : public wxStaticText
+{
+public:
+    explicit FailingLabel(wxWindow* parent) : wxStaticText(parent, wxID_ANY, "label") {}
+    wxString GetLabel() const override { throw std::runtime_error("unreadable"); }
+};
+
+} // namespace
+
+TEST_CASE("a web dialog that can't be described is still listed as a web dialog", "[Mcp]")
+{
+    if (!have_display())
+        SKIP("This test needs a display (for example, xvfb-run).");
+    wxInitializer init;
+    REQUIRE(init.IsOk());
+    {
+        ModalTracker tracker;
+        wxDialog     dialog(nullptr, wxID_ANY, "Color Picker");
+        new StubWebView(&dialog);
+        new FailingLabel(&dialog);
+        CHECK(wxModalDialogHook::CallEnter(&dialog) == wxID_NONE);
+        const json snap = tracker.snapshot();
+        REQUIRE(snap.size() == 1);
+        CHECK(snap[0]["title"] == "Color Picker");
+        CHECK(snap[0].value("web", false));
+        wxModalDialogHook::CallExit(&dialog);
     }
 }
 

@@ -31,10 +31,15 @@
 #include "slic3r/GUI/Selection.hpp"
 #include "slic3r/GUI/SyntheticInput.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
 #include "slic3r/GUI/Widgets/SideButton.hpp"
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include "slic3r/GUI/Widgets/DropDown.hpp"
+#include "slic3r/GUI/Widgets/RadioBox.hpp"
+#include "slic3r/GUI/Widgets/RadioGroup.hpp"
 #include "slic3r/GUI/Widgets/SpinInput.hpp"
+#include "slic3r/GUI/Widgets/SwitchButton.hpp"
+#include "slic3r/GUI/Widgets/TabCtrl.hpp"
 #include "slic3r/GUI/Widgets/TextInput.hpp"
 #include "libslic3r/AABBMesh.hpp"
 #include "libslic3r/BoundingBox.hpp"
@@ -72,13 +77,16 @@
 #include <wx/glcanvas.h>
 #include <wx/grid.h>
 #include <wx/kbdstate.h>
+#include <wx/listbase.h>
 #include <wx/listbox.h>
+#include <wx/listctrl.h>
 #include <wx/menu.h>
 #include <wx/mousestate.h>
 #include <wx/notebook.h>
 #include <wx/popupwin.h>
 #include <wx/radiobut.h>
 #include <wx/scrolwin.h>
+#include <wx/simplebook.h>
 #include <wx/slider.h>
 #include <wx/spinbutt.h>
 #include <wx/spinctrl.h>
@@ -87,6 +95,7 @@
 #include <wx/tglbtn.h>
 #include <wx/toplevel.h>
 #include <wx/arrstr.h>
+#include <wx/bookctrl.h>
 #include <wx/tracker.h>
 #include <wx/utils.h>
 #include <wx/variant.h>
@@ -110,6 +119,7 @@
 #include <cstdlib>
 #include <functional>
 #include <iterator>
+#include <limits>
 #include <map>
 #include <memory>
 #include <optional>
@@ -141,7 +151,24 @@ std::string short_class(const wxWindow* w)
     return c;
 }
 
-// The role a window plays for an agent; empty for plain containers.
+// A name wx gives every window of a class, or the window's class itself: it says nothing.
+bool is_default_name(const std::string& name, const wxWindow* w)
+{
+    // wx's *NameStr defaults (wxPanelNameStr, wxGaugeNameStr, wxStaticBoxNameStr...) and Orca's own.
+    static const std::set<std::string> defaults{
+        "panel",        "frame",         "dialog",         "button",      "text",          "staticText",  "checkbox",     "check",
+        "radioButton",  "radioBox",      "comboBox",       "choice",      "listBox",       "GLCanvas",    "notebook",     "wxSpinCtrl",
+        "wxSpinCtrlDouble", "wxSpinButton", "slider",      "scrollBar",   "scrolledWindow", "bitmapButton", "toggle",     "staticBitmap",
+        "staticBox",    "groupBox",      "gauge",          "hyperlink",   "dataviewCtrl",  "listCtrl",    "treeCtrl",     "grid",
+        "htmlWindow",   "richText",      "searchCtrl",     "filepicker",  "dirpicker",     "colourpicker", "fontpicker",  "calendar",
+        "datectrl",     "timectrl",      "webView",        "wxWebView",   "staticLine",    "splitter",    "toolbar",      "statusBar",
+        "control",      "auiToolBar",    "simplebook",     "book",        "listbook",      "choicebook",  "treebook",     "toolbook",
+        "collapsiblePane", "animationctrl", "activityindicator", "wxHeaderCtrl", "mediaCtrl", ""};
+    return defaults.count(name) != 0 || name == short_class(w);
+}
+
+} // namespace
+
 std::string kind_of(wxWindow* w)
 {
     if (dynamic_cast<wxPopupWindow*>(w) != nullptr)
@@ -172,7 +199,8 @@ std::string kind_of(wxWindow* w)
         return "text";
     if (dynamic_cast<wxSlider*>(w) != nullptr)
         return "slider";
-    if (dynamic_cast<wxListBox*>(w) != nullptr || dynamic_cast<wxDataViewCtrl*>(w) != nullptr || dynamic_cast<wxGrid*>(w) != nullptr)
+    if (dynamic_cast<wxListBox*>(w) != nullptr || dynamic_cast<wxDataViewCtrl*>(w) != nullptr || dynamic_cast<wxGrid*>(w) != nullptr ||
+        dynamic_cast<wxListCtrl*>(w) != nullptr)
         return "list";
 #ifdef SLIC3R_CAD
     if (dynamic_cast<DesignRowList*>(w) != nullptr)
@@ -183,11 +211,15 @@ std::string kind_of(wxWindow* w)
     if (dynamic_cast<wxStaticText*>(w) != nullptr)
         return "label";
     // Custom-drawn controls (Orca's StaticBox family and the like) show a label but have no
-    // class of their own here.
-    if (w->GetChildren().empty() && !w->GetLabel().empty())
+    // class of their own here. Windows gives a window created without a label its name as its text,
+    // so a label that is the window's own default name (a bare panel's "panel") is none.
+    const wxString label = w->GetLabel();
+    if (w->GetChildren().empty() && !label.empty() && !(label == w->GetName() && is_default_name(into_u8(label), w)))
         return "control";
     return {};
 }
+
+namespace {
 
 wxTextEntry* text_entry(wxWindow* w)
 {
@@ -198,10 +230,95 @@ wxTextEntry* text_entry(wxWindow* w)
     return dynamic_cast<wxTextEntry*>(w);
 }
 
+// A wxBookCtrlBase whose pages a person picks by their titles; a wxSimplebook shows none.
+bool has_page_titles(const wxBookCtrlBase& book)
+{
+    if (dynamic_cast<const wxSimplebook*>(&book) != nullptr)
+        return false;
+    for (size_t i = 0; i < book.GetPageCount(); ++i)
+        if (!book.GetPageText(i).empty())
+            return true;
+    return false;
+}
+
+} // namespace
+
+SelectorOption selector_option(wxWindow* w)
+{
+    if (dynamic_cast<::Button*>(w) == nullptr || w->GetParent() == nullptr)
+        return {};
+    wxWindow* parent = w->GetParent();
+    if (auto* group = dynamic_cast<::RadioGroup*>(parent)) {
+        // Its options' labels are its buttons, in order, each beside its radio icon.
+        int index = 0;
+        for (wxWindow* child : group->GetChildren()) {
+            if (child == w)
+                return {group, index, group->GetSelection() == index};
+            if (dynamic_cast<::Button*>(child) != nullptr)
+                ++index;
+        }
+        return {};
+    }
+    if (auto* tabs = dynamic_cast<::TabCtrl*>(parent)) {
+        for (unsigned int i = 0; i < tabs->GetCount(); ++i)
+            if (tabs->GetItemButton(i) == w)
+                return {tabs, int(i), tabs->GetSelection() == int(i)};
+        return {};
+    }
+    // A MultiSwitchButton keeps its option buttons in a scrolled window of its own.
+    if (auto* multi = dynamic_cast<::MultiSwitchButton*>(parent->GetParent())) {
+        for (unsigned int i = 0; i < multi->GetCount(); ++i)
+            if (multi->GetButton(i) == w)
+                return {multi, int(i), multi->GetSelection() == int(i)};
+    }
+    return {};
+}
+
+std::string selector_option_label(wxWindow* button)
+{
+    wxString label = wxStripMenuCodes(button->GetLabel());
+    if (label.Trim().Trim(false).empty())
+        label = button->GetToolTipText().BeforeFirst('\n');
+    label.Replace("\n", " ");
+    return into_u8(label);
+}
+
+std::optional<SelectorChoices> selector_choices(wxWindow* w)
+{
+    SelectorChoices out;
+    auto option = [](wxWindow* button) { return button != nullptr ? selector_option_label(button) : std::string(); };
+    if (auto* group = dynamic_cast<::RadioGroup*>(w)) {
+        for (wxWindow* child : group->GetChildren())
+            if (dynamic_cast<::Button*>(child) != nullptr)
+                out.options.push_back(option(child));
+        out.selected = group->GetSelection();
+    } else if (auto* tabs = dynamic_cast<::TabCtrl*>(w)) {
+        for (unsigned int i = 0; i < tabs->GetCount(); ++i)
+            out.options.push_back(option(tabs->GetItemButton(i)));
+        out.selected = tabs->GetSelection();
+    } else if (auto* multi = dynamic_cast<::MultiSwitchButton*>(w)) {
+        for (unsigned int i = 0; i < multi->GetCount(); ++i)
+            out.options.push_back(option(multi->GetButton(i)));
+        out.selected = multi->GetSelection();
+    } else if (auto* sw = dynamic_cast<::SwitchButton*>(w); sw != nullptr && !sw->GetLabelAt(0).empty()) {
+        out.options  = {into_u8(sw->GetLabelAt(0)), into_u8(sw->GetLabelAt(1))};
+        out.selected = sw->GetValue() ? 1 : 0;
+    } else if (auto* book = dynamic_cast<wxBookCtrlBase*>(w); book != nullptr && has_page_titles(*book)) {
+        for (size_t i = 0; i < book->GetPageCount(); ++i)
+            out.options.push_back(into_u8(book->GetPageText(i)));
+        out.selected = book->GetSelection();
+    } else
+        return std::nullopt;
+    return out;
+}
+
 std::string value_of(wxWindow* w)
 {
     if (auto* web = dynamic_cast<wxWebView*>(w))
         return redact_url(into_u8(web->GetCurrentURL()));
+    // A switch with a label at each end shows which one it is on.
+    if (auto* sw = dynamic_cast<::SwitchButton*>(w); sw != nullptr && !sw->GetLabelAt(0).empty())
+        return into_u8(sw->GetLabelAt(sw->GetValue() ? 1 : 0));
     if (auto* spin = dynamic_cast<::SpinInput*>(w))
         return std::to_string(spin->GetValue());
     if (auto* spin = dynamic_cast<wxSpinCtrl*>(w))
@@ -222,8 +339,16 @@ std::string value_of(wxWindow* w)
 
 int checked_of(wxWindow* w)
 {
-    if (auto* c = dynamic_cast<wxCheckBox*>(w))
+    if (const SelectorOption option = selector_option(w); option.selector != nullptr)
+        return option.selected ? 1 : 0;
+    if (auto* c = dynamic_cast<wxCheckBox*>(w)) {
+        if (c->Is3State() && c->Get3StateValue() == wxCHK_UNDETERMINED)
+            return 2;
         return c->GetValue() ? 1 : 0;
+    }
+    // A setting's checkbox shows neither state while the setting is unset (a nullable bool).
+    if (auto* c = dynamic_cast<::CheckBox*>(w); c != nullptr && c->IsHalfChecked())
+        return 2;
     if (auto* t = dynamic_cast<wxBitmapToggleButton*>(w))
         return t->GetValue() ? 1 : 0;
     if (auto* t = dynamic_cast<wxToggleButton*>(w))
@@ -233,7 +358,7 @@ int checked_of(wxWindow* w)
     return -1;
 }
 
-std::string option_key_of(wxWindow* w);
+namespace {
 
 // The text left of a control on its row: how Orca's forms label their fields.
 std::string row_label(wxWindow* w)
@@ -265,7 +390,8 @@ std::string row_label(wxWindow* w)
     return into_u8(label.Trim().Trim(false));
 }
 
-// The label of a setting from its definition, in the UI language.
+} // namespace
+
 std::string option_label(const std::string& key)
 {
     const ConfigOptionDef* def = print_config_def.get(key.substr(0, key.find('[')));
@@ -277,6 +403,9 @@ std::string label_of(wxWindow* w)
     // A popup has no title, and a drop-down list's tooltip is the hovered item's.
     if (dynamic_cast<wxPopupWindow*>(w) != nullptr)
         return {};
+    // A selector's option by the name the dialog message and label lookup give it, in full.
+    if (selector_option(w).selector != nullptr)
+        return selector_option_label(w);
     if (auto* tlw = dynamic_cast<wxTopLevelWindow*>(w))
         return into_u8(tlw->GetTitle());
     // Input fields are named by the setting they edit or the label on their row; their own label is
@@ -299,8 +428,13 @@ std::string label_of(wxWindow* w)
     }
     label.Replace("\n", " ");
     std::string out = into_u8(wxStripMenuCodes(label));
-    if (out.size() > 120)
-        out = out.substr(0, 117) + "...";
+    if (out.size() > 120) {
+        // Cut where a character starts, so the label stays UTF-8.
+        std::size_t cut = 117;
+        while (cut > 0 && (static_cast<unsigned char>(out[cut]) & 0xC0) == 0x80)
+            --cut;
+        out = out.substr(0, cut) + "...";
+    }
     return out;
 }
 
@@ -330,17 +464,13 @@ std::string option_key_of(wxWindow* w)
     return {};
 }
 
-// wx gives every window a default name for its class; those say nothing.
 std::string meaningful_name(wxWindow* w)
 {
-    static const std::set<std::string> defaults{"panel", "frame", "dialog", "button", "text", "staticText", "checkbox", "radioButton",
-                                                "comboBox", "choice", "listBox", "GLCanvas", "notebook", "wxSpinCtrl", "wxSpinCtrlDouble",
-                                                "slider", "scrolledWindow", "bitmapButton", "toggle", "staticBitmap", "staticBox",
-                                                "hyperlink", "dataviewCtrl", "listCtrl", "webView", "staticLine", "splitter", "toolbar",
-                                                "statusBar", "control", "wxWebView", "auiToolBar", "simplebook", "book", "check", ""};
     const std::string name = into_u8(w->GetName());
-    return defaults.count(name) != 0 || name == short_class(w) ? std::string() : name;
+    return is_default_name(name, w) ? std::string() : name;
 }
+
+namespace {
 
 wxPoint client_pos_in_tlw(wxWindow* w)
 {
@@ -1268,19 +1398,22 @@ std::string object_row_note(ObjectDataViewModel& model, const wxDataViewItem& it
     }
 }
 
-void data_view_rows(wxDataViewCtrl& ctrl, std::vector<ListRow>& out)
+void data_view_rows(wxDataViewCtrl& ctrl, std::vector<ListRow>& out, std::size_t limit)
 {
     wxDataViewModel* model = ctrl.GetModel();
     if (model == nullptr)
         return;
     const std::vector<wxDataViewColumn*> cols    = shown_columns(ctrl);
     auto*                                objects = dynamic_cast<ObjectDataViewModel*>(model);
-    // Collapsed branches too: acting on a row expands the branches above it.
+    // Collapsed branches too, unless the rows are limited: acting on a row expands the branches above it.
+    const bool limited = limit != std::numeric_limits<std::size_t>::max();
     std::function<void(const wxDataViewItem&, const std::vector<std::string>&, int, bool)> add =
         [&](const wxDataViewItem& parent, const std::vector<std::string>& above, int depth, bool shown) {
             wxDataViewItemArray children;
             model->GetChildren(parent, children);
             for (const wxDataViewItem& item : children) {
+                if (out.size() >= limit)
+                    return;
                 ListRow row;
                 row.path = above;
                 bool labelled = false;
@@ -1304,17 +1437,17 @@ void data_view_rows(wxDataViewCtrl& ctrl, std::vector<ListRow>& out)
                 row.item     = item;
                 const std::vector<std::string> path = row.path;
                 out.push_back(std::move(row));
-                if (model->IsContainer(item))
+                if (model->IsContainer(item) && (!limited || (shown && ctrl.IsExpanded(item))))
                     add(item, path, depth + 1, shown && ctrl.IsExpanded(item));
             }
         };
     add(wxDataViewItem(nullptr), {}, 0, true);
 }
 
-void list_box_rows(wxListBox& box, std::vector<ListRow>& out)
+void list_box_rows(wxListBox& box, std::vector<ListRow>& out, std::size_t limit)
 {
     auto* checks = dynamic_cast<wxCheckListBox*>(&box);
-    for (unsigned i = 0; i < box.GetCount(); ++i) {
+    for (unsigned i = 0; i < box.GetCount() && out.size() < limit; ++i) {
         ListRow row;
         row.path     = {into_u8(box.GetString(i))};
         row.checked  = checks == nullptr ? -1 : checks->IsChecked(i) ? 1 : 0;
@@ -1326,12 +1459,12 @@ void list_box_rows(wxListBox& box, std::vector<ListRow>& out)
 
 // A drop-down list's items; one of a group, which shows in a sublist, has the group's label above it.
 // The picked item is the checked one.
-void drop_down_rows(DropDown& drop, std::vector<ListRow>& out)
+void drop_down_rows(DropDown& drop, std::vector<ListRow>& out, std::size_t limit)
 {
     if (drop.IsSubList())
         return; // its main list has the same items
     const std::vector<DropDown::Item>& items = drop.GetItems();
-    for (std::size_t i = 0; i < items.size(); ++i) {
+    for (std::size_t i = 0; i < items.size() && out.size() < limit; ++i) {
         const DropDown::Item& item = items[i];
         if ((item.style & DD_ITEM_STYLE_SPLIT_ITEM) != 0)
             continue;
@@ -1389,14 +1522,14 @@ int grid_name_column(const std::vector<std::string>& titles)
 
 // A table's rows, read-only: named by their "Name" cell, else by their row label where the table
 // shows one, else by their first titled cell, with every titled cell as the value.
-void grid_rows(wxGrid& grid, std::vector<ListRow>& out)
+void grid_rows(wxGrid& grid, std::vector<ListRow>& out, std::size_t limit)
 {
     if (grid.GetTable() == nullptr)
         return;
     const std::vector<std::string> titles = grid_titles(grid);
     const bool                     named  = std::find(titles.begin(), titles.end(), "Name") != titles.end();
     const int                      name   = grid_name_column(titles);
-    for (int r = grid.GetColLabelSize() == 0 ? 1 : 0; r < grid.GetNumberRows(); ++r) {
+    for (int r = grid.GetColLabelSize() == 0 ? 1 : 0; r < grid.GetNumberRows() && out.size() < limit; ++r) {
         if (!grid.IsRowShown(r))
             continue;
         ListRow                  row;
@@ -1408,6 +1541,41 @@ void grid_rows(wxGrid& grid, std::vector<ListRow>& out)
         row.value    = joined(cells, " | ");
         row.selected = grid.GetGridCursorRow() == r;
         row.index    = r;
+        out.push_back(std::move(row));
+    }
+}
+
+// A report list's column titles, "#n" for an untitled one; nothing for the other list modes, whose
+// items have only their text.
+std::vector<std::string> list_ctrl_columns(wxListCtrl& list)
+{
+    std::vector<std::string> out;
+    if (!list.InReportView())
+        return out;
+    for (int c = 0; c < list.GetColumnCount(); ++c) {
+        wxListItem column;
+        column.SetMask(wxLIST_MASK_TEXT);
+        list.GetColumn(c, column);
+        wxString title = column.GetText();
+        title.Trim().Trim(false);
+        out.push_back(title.empty() ? "#" + std::to_string(c + 1) : into_u8(title));
+    }
+    return out;
+}
+
+// A list control's items: named by their first column, with the other columns as the value.
+void list_ctrl_rows(wxListCtrl& list, std::vector<ListRow>& out, std::size_t limit)
+{
+    const int columns = list.InReportView() ? list.GetColumnCount() : 1;
+    for (long i = 0; i < list.GetItemCount() && out.size() < limit; ++i) {
+        ListRow                  row;
+        std::vector<std::string> cells;
+        for (int c = 1; c < columns; ++c)
+            cells.push_back(into_u8(list.GetItemText(i, c)));
+        row.path     = {into_u8(list.GetItemText(i, 0))};
+        row.value    = joined(cells, " | ");
+        row.selected = list.GetItemState(i, wxLIST_STATE_SELECTED) != 0;
+        row.index    = int(i);
         out.push_back(std::move(row));
     }
 }
@@ -1534,6 +1702,37 @@ json click_data_view_row(wxDataViewCtrl& ctrl, const ListRow& row, const std::st
     return {{"clicked", joined(row.path, ">")}, {"selected", selected_rows(ctrl)}};
 }
 
+// Selects a list control's item as a click does: the list control sends wxEVT_LIST_ITEM_SELECTED for
+// it (natively on Windows, from the generic control's highlighting elsewhere).
+json click_list_ctrl_row(wxListCtrl& list, const ListRow& row, const ClickOptions& o)
+{
+    const bool right = o.button == "right";
+    const long n     = row.index;
+    const int  mods  = parse_modifiers(o.modifiers);
+    const long state = wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED;
+    if (!right || list.GetItemState(n, wxLIST_STATE_SELECTED) == 0) {
+        if (!list.HasFlag(wxLC_SINGLE_SEL) && !right && (mods & (wxMOD_CONTROL | wxMOD_SHIFT)) != 0)
+            list.SetItemState(n, list.GetItemState(n, wxLIST_STATE_SELECTED) != 0 ? 0 : state, state);
+        else {
+            for (long i = 0; i < list.GetItemCount(); ++i)
+                if (i != n && list.GetItemState(i, wxLIST_STATE_SELECTED) != 0)
+                    list.SetItemState(i, 0, wxLIST_STATE_SELECTED);
+            list.SetItemState(n, state, state);
+        }
+        list.EnsureVisible(n);
+    }
+    auto item_event = [&](wxEventType type) {
+        wxListEvent evt(type, list.GetId());
+        evt.m_itemIndex = n;
+        send(&list, evt);
+    };
+    if (o.double_click && !right)
+        item_event(wxEVT_LIST_ITEM_ACTIVATED);
+    if (right)
+        item_event(wxEVT_LIST_ITEM_RIGHT_CLICK);
+    return {{"clicked", joined(row.path, ">")}, {"selected", selected_rows(list)}};
+}
+
 json click_list_box_row(wxListBox& box, const ListRow& row, const ClickOptions& o)
 {
     const bool     right = o.button == "right";
@@ -1612,17 +1811,19 @@ json click_design_row(DesignRowList& list, const ListRow& row, const std::string
 
 } // namespace
 
-std::vector<ListRow> list_rows(wxWindow* list)
+std::vector<ListRow> list_rows(wxWindow* list, std::size_t limit)
 {
     std::vector<ListRow> out;
     if (auto* view = dynamic_cast<wxDataViewCtrl*>(list))
-        data_view_rows(*view, out);
+        data_view_rows(*view, out, limit);
     else if (auto* box = dynamic_cast<wxListBox*>(list))
-        list_box_rows(*box, out);
+        list_box_rows(*box, out, limit);
     else if (auto* drop = dynamic_cast<DropDown*>(list))
-        drop_down_rows(*drop, out);
+        drop_down_rows(*drop, out, limit);
     else if (auto* grid = dynamic_cast<wxGrid*>(list))
-        grid_rows(*grid, out);
+        grid_rows(*grid, out, limit);
+    else if (auto* items = dynamic_cast<wxListCtrl*>(list))
+        list_ctrl_rows(*items, out, limit);
 #ifdef SLIC3R_CAD
     else if (auto* design = dynamic_cast<DesignRowList*>(list))
         design_rows(*design, out);
@@ -1641,7 +1842,7 @@ bool is_row_list(wxWindow* w)
         return true;
 #endif
     return dynamic_cast<wxDataViewCtrl*>(w) != nullptr || dynamic_cast<wxListBox*>(w) != nullptr || dynamic_cast<DropDown*>(w) != nullptr ||
-           dynamic_cast<wxGrid*>(w) != nullptr;
+           dynamic_cast<wxGrid*>(w) != nullptr || dynamic_cast<wxListCtrl*>(w) != nullptr;
 }
 
 std::vector<std::string> list_columns(wxWindow* list)
@@ -1655,7 +1856,8 @@ std::vector<std::string> list_columns(wxWindow* list)
         for (const std::string& title : grid_titles(*grid))
             if (!title.empty())
                 out.push_back(title);
-    }
+    } else if (auto* items = dynamic_cast<wxListCtrl*>(list))
+        out = list_ctrl_columns(*items);
     return out;
 }
 
@@ -1703,9 +1905,11 @@ json click_row(wxWindow& list, const ListRow& row, const std::string& column, co
         return click_design_row(*design, row, column, o);
 #endif
     if (!column.empty())
-        throw ToolFailure("This list has no columns; leave out column");
+        throw ToolFailure("This list's rows are clicked whole; leave out column");
     if (auto* box = dynamic_cast<wxListBox*>(&list))
         return click_list_box_row(*box, row, o);
+    if (auto* items = dynamic_cast<wxListCtrl*>(&list))
+        return click_list_ctrl_row(*items, row, o);
     if (auto* drop = dynamic_cast<DropDown*>(&list)) {
         if (o.button != "left" || o.double_click || !o.modifiers.empty())
             throw ToolFailure("A drop-down list's row takes a plain left click, which picks it");
@@ -2997,6 +3201,10 @@ json UiInspector::input(const UiTarget& t, const json& value, bool submit)
 
     if (checked_of(w) >= 0) {
         const bool want = value.is_boolean() ? value.get<bool>() : (text == "1" || lower(text) == "true");
+        // An option, as a radio button, is unselected by selecting another; a click would only select it again.
+        if (!want && checked_of(w) == 1 && (selector_option(w).selector != nullptr || dynamic_cast<wxRadioButton*>(w) != nullptr ||
+                      dynamic_cast<Slic3r::GUI::RadioBox*>(w) != nullptr))
+            throw ToolFailure("An option is unselected by selecting another one; ui_input true on that one");
         if ((checked_of(w) == 1) != want)
             click(t, ClickOptions{});
         return {{"checked", checked_of(w) == 1}};

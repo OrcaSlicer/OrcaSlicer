@@ -232,7 +232,10 @@ void register_app_tools(McpService& service)
         "volumes [[object, part]], in the indices select takes; wipe_tower when a prime tower is selected; canvas is the 3D "
         "view it belongs to), slicing state, and "
         "the Preview's view type, time mode and layer range (1-based, with their Z). What is going on: open modal "
-        "dialogs, menus closed unseen (a menu a call opened that no reply listed), dialog_auto_answer rules in force, "
+        "dialogs, each with its title, buttons (enabled: false when disabled) and a message that reads it as shown: its "
+        "text and its controls row by row, fields [value], choices [value ▾], checkboxes [x] / [ ] / [-], radio and "
+        "selector options (*) / ( ), list rows \"- row | cells\", secrets [******], \" (disabled)\" after a disabled "
+        "control; menus closed unseen (a menu a call opened that no reply listed), dialog_auto_answer rules in force, "
         "notifications, print host uploads (state, progress, error), the open gizmo, running jobs and a running "
         "recording.",
         object_schema({}), [&service](const json&, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&service] { return app_state(service); })); }));

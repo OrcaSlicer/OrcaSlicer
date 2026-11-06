@@ -38,7 +38,7 @@ struct UiNode
     std::string note;    // anything else worth saying, e.g. "clipped"
     bool        enabled = true;
     bool        focused = false;
-    int         checked = -1; // -1 not checkable, 0/1 state
+    int         checked = -1; // -1 not checkable, 0/1 state, 2 neither (checked_of())
     int         depth   = 0;
     int         x = 0, y = 0, w = 0, h = 0; // client coordinates in the parent window / canvas
 };
