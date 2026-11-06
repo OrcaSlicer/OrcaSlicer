@@ -909,6 +909,11 @@ void IMSlider::draw_tick_on_mouse_position(const ImRect& slideable_region) {
     
     // draw layer time
     std::string label = get_label(tick, ltEstimatedTime);
+    // and the filament used up to it, when the G-code has it
+    if (m_draw_mode != dmSequentialGCodeView) {
+        if (const std::string filament = get_label(tick, ltFilament); !filament.empty())
+            label += (label.empty() ? "" : "\n") + filament;
+    }
     show_tooltip(label);
 }
 
@@ -1744,7 +1749,7 @@ std::string IMSlider::get_label(int tick, LabelType label_type)
     if (value >= m_values.size()) return "error";
 
     auto get_layer_number = [this](int value, LabelType label_type) {
-        if (label_type == ltEstimatedTime && m_layers_times.empty()) return size_t(-1);
+        if ((label_type == ltEstimatedTime && m_layers_times.empty()) || (label_type == ltFilament && m_layers_filament.empty())) return size_t(-1);
         double layer_print_z = m_values[is_wipe_tower_layer(value) ? std::max<int>(value - 1, 0) : value];
         auto   it            = std::lower_bound(m_layers_values.begin(), m_layers_values.end(), layer_print_z - epsilon());
         if (it == m_layers_values.end()) {
@@ -1765,6 +1770,11 @@ std::string IMSlider::get_label(int tick, LabelType label_type)
                 return (layer_number == size_t(-1) || layer_number == m_layers_times.size()) ? "" : short_and_splitted_time(get_time_dhms(m_layers_times[layer_number]));
             }
             return value < m_layers_times.size() ? short_and_splitted_time(get_time_dhms(m_layers_times[value])) : "";
+        }
+
+        if (label_type == ltFilament) {
+            const size_t layer_number = m_is_wipe_tower ? get_layer_number(value, label_type) : value;
+            return layer_number < m_layers_filament.size() ? m_layers_filament[layer_number] : "";
         }
 
         char layer_height[64];

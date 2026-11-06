@@ -24,10 +24,13 @@
 #include "test_utils.hpp"
 
 #include <algorithm>
+#include <cmath>
+#include <map>
 #include <cstddef>
 #include <cstdint>
 #include <fstream>
 #include <initializer_list>
+#include <optional>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Point.hpp"
 #include <set>
@@ -657,6 +660,143 @@ TEST_CASE("Each extrusion weighs its filament's density", "[GCodeProcessor]")
     const Vec3d light = center_of(masses[0]->total());
     const Vec3d dense = center_of(masses[1]->total());
     CHECK_THAT((plate - light).dot(dense - light) / (dense - light).squaredNorm(), Catch::Matchers::WithinAbs(0.75, 0.01));
+}
+
+TEST_CASE("Cumulative model usage per layer matches the extrusions of each layer", "[GCodeProcessor]")
+{
+    // Two cubes, one per filament, so the second filament's series has to line up with the first's.
+    DynamicPrintConfig config = Test::multifilament_config(2, { { "skirt_loops", 0 }, { "brim_type", "no_brim" }, { "wipe_tower_x", "150" }, { "wipe_tower_y", "150" } }); // prime tower inside the 200x200 bed
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{ { { "extruder", 1 } }, { { "extruder", 2 } } };
+    Print print;
+    Model model;
+    Test::init_print({ Test::cube(20), Test::cube(20) }, print, model, config, &overrides);
+    GCodeProcessorResult result;
+    Test::gcode(print, &result);
+
+    const PrintEstimatedStatistics &stats = result.print_statistics;
+    REQUIRE(stats.model_volumes_per_extruder.size() == 2);
+    REQUIRE(stats.layer_volumes_per_extruder.size() == 2);
+
+    // The filament pushed out by the model's moves in every layer, as the legend's Usage column counts it:
+    // what is not support or wipe tower.
+    std::map<size_t, std::map<unsigned int, double>> extruded;
+    for (const GCodeProcessorResult::MoveVertex &move : result.moves) {
+        if (move.type != EMoveType::Extrude || move.extrusion_role == erSupportMaterial || move.extrusion_role == erSupportMaterialInterface ||
+            move.extrusion_role == erSupportTransition || move.extrusion_role == erWipeTower)
+            continue;
+        extruded[move.extruder_id][move.layer_id] += double(move.delta_extruder);
+    }
+
+    for (const auto &[filament_id, total] : stats.model_volumes_per_extruder) {
+        DYNAMIC_SECTION("filament " << filament_id)
+        {
+            const auto series = stats.layer_volumes_per_extruder.find(filament_id);
+            REQUIRE(series != stats.layer_volumes_per_extruder.end());
+            const std::vector<double> &cumulative = series->second;
+            // Entry 0 is what was extruded before the first layer, so there is one more than there are layers.
+            REQUIRE(cumulative.size() > 2);
+            CHECK(std::is_sorted(cumulative.begin(), cumulative.end()));
+            CHECK_THAT(cumulative.back(), Catch::Matchers::WithinRel(total, 1e-9));
+            CHECK(cumulative.size() == stats.layer_volumes_per_extruder.begin()->second.size());
+
+            // Layers are given by MoveVertex::layer_id. A layer holds model volume of the filament exactly when
+            // some of its moves extrude it. The moves are only used to tell which layers those are: the volume
+            // is compared through the series, which add up to the filament's total below.
+            const size_t layers = cumulative.size() - 1;
+            for (size_t layer_id = 0; layer_id < layers; ++layer_id) {
+                const auto layer = extruded[filament_id].find(unsigned(layer_id));
+                const bool has_moves = layer != extruded[filament_id].end() && layer->second > 0.0;
+                const std::optional<double> volume = stats.layers_volume(filament_id, layer_id, layer_id);
+                REQUIRE(volume.has_value());
+                CHECK(has_moves == (*volume > 1e-6));
+            }
+
+            // All the layers add up to the filament's total, apart from what came before the first layer, and
+            // splitting them anywhere gives two parts that add up to the same.
+            const std::optional<double> all = stats.layers_volume(filament_id, 0, layers - 1);
+            REQUIRE(all.has_value());
+            CHECK_THAT(*all, Catch::Matchers::WithinRel(total - cumulative.front(), 1e-9));
+            const size_t middle = (layers - 1) / 2;
+            const std::optional<double> lower = stats.layers_volume(filament_id, 0, middle);
+            const std::optional<double> upper = stats.layers_volume(filament_id, middle + 1, layers - 1);
+            REQUIRE(lower.has_value());
+            REQUIRE(upper.has_value());
+            CHECK_THAT(*lower + *upper, Catch::Matchers::WithinRel(*all, 1e-9));
+
+            // No series covers a layer past the last one or a range that runs backwards.
+            CHECK_FALSE(stats.layers_volume(filament_id, 0, layers).has_value());
+            CHECK_FALSE(stats.layers_volume(filament_id, middle + 1, middle).has_value());
+        }
+    }
+    CHECK_FALSE(stats.layers_volume(99, 0, 0).has_value());
+}
+
+TEST_CASE("Cumulative support and wipe tower usage per layer match the extrusions of each layer", "[GCodeProcessor]")
+{
+    // An overhang that needs support and a cube in the other filament, with a prime tower between them.
+    DynamicPrintConfig config = Test::multifilament_config(2, { { "enable_support", 1 }, { "enable_prime_tower", 1 }, { "wipe_tower_x", "150" }, { "wipe_tower_y", "150" }, { "skirt_loops", 0 }, { "brim_type", "no_brim" } }); // prime tower inside the 200x200 bed
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{ { { "extruder", 1 } }, { { "extruder", 2 } } };
+    Print print;
+    Model model;
+    Test::init_print({ Test::mesh(Test::TestMesh::overhang), Test::cube(20) }, print, model, config, &overrides);
+    GCodeProcessorResult result;
+    Test::gcode(print, &result);
+
+    const PrintEstimatedStatistics &stats = result.print_statistics;
+    REQUIRE_FALSE(stats.layer_support_volumes_per_extruder.empty());
+
+    using Kind = PrintEstimatedStatistics::LayerVolumeKind;
+    const auto is_support = [](ExtrusionRole role) {
+        return role == erSupportMaterial || role == erSupportMaterialInterface || role == erSupportTransition;
+    };
+    const auto check = [&](Kind kind, const std::map<size_t, std::vector<double>> &all_series, const std::map<size_t, double> &totals) {
+        for (const auto &[filament_id, cumulative] : all_series) {
+            DYNAMIC_SECTION("filament " << filament_id)
+            {
+                REQUIRE(cumulative.size() > 2);
+                CHECK(std::is_sorted(cumulative.begin(), cumulative.end()));
+                CHECK(cumulative.size() == stats.layer_volumes_per_extruder.begin()->second.size());
+                const auto total = totals.find(filament_id);
+                REQUIRE(total != totals.end());
+                CHECK_THAT(cumulative.back(), Catch::Matchers::WithinRel(total->second, 1e-6));
+
+                std::map<unsigned int, double> extruded;
+                for (const GCodeProcessorResult::MoveVertex &move : result.moves) {
+                    if (move.type != EMoveType::Extrude || move.extruder_id != filament_id)
+                        continue;
+                    const bool wanted = kind == Kind::Support ? is_support(move.extrusion_role) : move.extrusion_role == erWipeTower;
+                    if (wanted)
+                        extruded[move.layer_id] += double(move.delta_extruder);
+                }
+                // A layer holds volume of this kind exactly when some of its moves extrude it.
+                const size_t layers = cumulative.size() - 1;
+                for (size_t layer_id = 0; layer_id < layers; ++layer_id) {
+                    const auto layer = extruded.find(unsigned(layer_id));
+                    const bool has_moves = layer != extruded.end() && layer->second > 0.0;
+                    const std::optional<double> volume = stats.layers_volume(filament_id, layer_id, layer_id, kind);
+                    REQUIRE(volume.has_value());
+                    CHECK(has_moves == (*volume > 1e-6));
+                }
+            }
+        }
+    };
+    check(Kind::Support, stats.layer_support_volumes_per_extruder, stats.support_volumes_per_extruder);
+    check(Kind::WipeTower, stats.layer_wipe_tower_volumes_per_extruder, stats.wipe_tower_volumes_per_extruder);
+
+    // The flush has no moves of its own to tell the layers by, so only its series are checked. This plate
+    // may not purge anything, then there is no series, just as there is no flush total.
+    CHECK(stats.layer_flush_volumes_per_extruder.size() == stats.flush_per_filament.size());
+    for (const auto &[filament_id, cumulative] : stats.layer_flush_volumes_per_extruder) {
+        DYNAMIC_SECTION("flush of filament " << filament_id)
+        {
+            CHECK(std::is_sorted(cumulative.begin(), cumulative.end()));
+            CHECK(cumulative.size() == stats.layer_volumes_per_extruder.begin()->second.size());
+            const auto total = stats.flush_per_filament.find(filament_id);
+            REQUIRE(total != stats.flush_per_filament.end());
+            CHECK_THAT(cumulative.back(), Catch::Matchers::WithinRel(total->second, 1e-6));
+            CHECK(stats.layers_volume(filament_id, 0, cumulative.size() - 2, Kind::Flush).has_value());
+        }
+    }
 }
 
 namespace {

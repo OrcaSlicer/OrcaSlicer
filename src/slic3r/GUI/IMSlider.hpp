@@ -57,6 +57,7 @@ enum LabelType
     ltHeightWithLayer,
     ltHeight,
     ltEstimatedTime,
+    ltFilament,
 };
 
 class IMSlider
@@ -92,6 +93,8 @@ public:
     void SetTicksValues(const CustomGCode::Info &custom_gcode_per_print_z);
     void SetLayersTimes(const std::vector<float> &layers_times, float total_time);
     void SetLayersTimes(const std::vector<double> &layers_times);
+    // Texts of the filament used up to the end of every layer, shown with the time when hovering the slider
+    void SetLayersFilament(const std::vector<std::string> &layers_filament) { m_layers_filament = layers_filament; }
 
     void SetDrawMode(bool is_sequential_print);
     void SetDrawMode(DrawMode mode) { m_draw_mode = mode; }
@@ -226,6 +229,7 @@ private:
     std::vector<double>      m_values;
     TickCodeInfo             m_ticks;
     std::vector<double>      m_layers_times;
+    std::vector<std::string> m_layers_filament;
     std::vector<double>      m_layers_values;
     std::vector<std::string> m_extruder_colors;
     bool                     m_can_change_color;

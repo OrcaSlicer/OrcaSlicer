@@ -31,6 +31,7 @@
 #include <float.h>
 #include <set>
 #include "slic3r/GUI/MeshUtils.hpp"
+#include <optional>
 #include <string>
 #include <tuple>
 #include <unordered_set>
@@ -213,6 +214,18 @@ private:
     bool m_last_belt_show_designed{ true };
     // Belt printers: the print Z of each viewer layer, in the viewer's layer numbering.
     std::vector<double> m_belt_layer_zs;
+    // The G-code layer id (GCodeProcessorResult::MoveVertex::layer_id) of each viewer layer, in the
+    // viewer's layer numbering; empty when the two numberings could not be matched.
+    std::vector<unsigned int> m_layer_gcode_ids;
+    // Running sums of the viewer layers' estimated times for the time mode in m_layers_time_sums_mode,
+    // rebuilt when the mode changes; filled by visible_layers_time().
+    mutable std::vector<float> m_layers_time_sums;
+    mutable int                m_layers_time_sums_mode{ -1 };
+    // Volume of an extruder (model, support or wipe tower) within the layers shown on the vertical
+    // slider, from the cumulative per-layer series; nullopt when there is none.
+    std::optional<double> visible_layers_volume(size_t extruder_id, PrintEstimatedStatistics::LayerVolumeKind kind) const;
+    // Estimated time of the layers shown on the vertical slider
+    std::optional<float> visible_layers_time() const;
     //BBS: save m_gcode_result as well
     const GCodeProcessorResult* m_gcode_result;
     std::array<unsigned int, static_cast<size_t>(EMoveType::Count)> m_move_type_counts{};
@@ -224,6 +237,8 @@ private:
     //BBS: extruder dispensing filament
     std::vector<ExtruderFilament> m_left_extruder_filament;
     std::vector<ExtruderFilament> m_right_extruder_filament;
+    // filament_type of each filament in the printed preset, for the legend labels
+    std::vector<std::string> m_filament_types;
     size_t m_nozzle_nums;
 
     // bounding box of toolpaths
@@ -421,6 +436,8 @@ public:
         return ret;
     }
     std::vector<float> get_layers_times() const { return m_viewer.get_layers_estimated_times(); }
+    // "Filament: 12.34 g (1.23 m)": all the filament used up to the end of every layer, empty without per-layer data
+    std::vector<std::string> get_layers_filament_labels() const;
 
     const std::array<size_t,2> &get_layers_z_range() const { return m_viewer.get_layers_view_range(); }
     const GCodeProcessorResult::ObjectMass&              get_plate_mass() const { return m_plate_mass; }
