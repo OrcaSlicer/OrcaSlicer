@@ -414,6 +414,11 @@ std::vector<float> Viewer::get_layers_estimated_times() const
     return m_impl->get_layers_estimated_times();
 }
 
+std::vector<double> Viewer::get_layers_extrusion_volumes() const
+{
+    return m_impl->get_layers_extrusion_volumes();
+}
+
 AABox Viewer::get_bounding_box(const std::vector<EMoveType>& types) const
 {
     return m_impl->get_bounding_box(types);

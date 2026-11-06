@@ -92,6 +92,10 @@ public:
     void SetTicksValues(const CustomGCode::Info &custom_gcode_per_print_z);
     void SetLayersTimes(const std::vector<float> &layers_times, float total_time);
     void SetLayersTimes(const std::vector<double> &layers_times);
+    void SetLayersFilament(const std::vector<double>& layers_filament_mm, const std::vector<double>& layers_filament_g) {
+        m_layers_filament = layers_filament_mm;
+        m_layers_filament_g = layers_filament_g;
+    }
 
     void SetDrawMode(bool is_sequential_print);
     void SetDrawMode(DrawMode mode) { m_draw_mode = mode; }
@@ -168,6 +172,7 @@ protected:
 
 private:
     std::string get_label(int tick, LabelType label_type = ltHeightWithLayer);
+    std::string get_filament_label(int tick) const;
     double get_double_value(const SelectedSlider& selection);
     int    get_tick_from_value(double value, bool force_lower_bound = false);
     float get_pos_from_value(int v_min, int v_max, int value, const ImRect& rect);
@@ -226,6 +231,8 @@ private:
     std::vector<double>      m_values;
     TickCodeInfo             m_ticks;
     std::vector<double>      m_layers_times;
+    std::vector<double>      m_layers_filament;   // cumulative filament length (mm) to reach each layer
+    std::vector<double>      m_layers_filament_g; // cumulative filament weight (g) to reach each layer
     std::vector<double>      m_layers_values;
     std::vector<std::string> m_extruder_colors;
     bool                     m_can_change_color;
