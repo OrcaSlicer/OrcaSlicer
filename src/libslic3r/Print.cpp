@@ -79,6 +79,7 @@
 #include "GCode/WipeTowerEstimate.hpp"
 #include "Utils.hpp"
 #include "PrintConfig.hpp"
+#include "Support/FinSupport.hpp"
 #include "MaterialType.hpp"
 #include "Model.hpp"
 #include "format.hpp"
@@ -2693,6 +2694,25 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
 		};
         for (PrintObject *object : m_objects) {
             if (object->has_support_material()) {
+                if (object->config().support_type.value == stFin) {
+                    const PrintObjectConfig &cfg = object->config();
+                    if (object->has_raft())
+                        return { L("Fin supports require raft layers to be disabled."), object, "raft_layers" };
+                    if (cfg.fin_support_contact_height >= cfg.fin_support_contact_spacing)
+                        return { L("Fin contact height must be smaller than contact spacing."), object, "fin_support_contact_height" };
+                    if (cfg.support_object_xy_distance <= 0)
+                        return { L("Fin supports require a positive support/object XY distance."), object, "support_object_xy_distance" };
+                    const double minimum_outline_width = 2 * support_material_flow(object).width();
+                    const FinSupportDimensions dimensions = fin_support_dimensions(*object);
+                    if (dimensions.thickness < minimum_outline_width)
+                        return { L("Fin thickness must fit two extrusion lines for a closed outline."), object, "fin_support_thickness" };
+                    if (dimensions.contact_width < 0)
+                        return { L("Fin contact length must not be negative."), object, "fin_support_contact_width" };
+                    if (dimensions.contact_width > dimensions.thickness)
+                        return { L("Fin contact length must not exceed fin thickness."), object, "fin_support_contact_width" };
+                    if (cfg.fin_support_depth <= cfg.support_object_xy_distance + 2 * support_material_flow(object).width())
+                        return { L("Top layer depth is too small for the selected XY distance and line width."), object, "fin_support_depth" };
+                }
                 // BBS: remove useless logics and L()
 #if 0
 				if ((object->config().support_filament == 0 || object->config().support_interface_filament == 0) && max_nozzle_diameter - min_nozzle_diameter > EPSILON) {

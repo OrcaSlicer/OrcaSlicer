@@ -22,6 +22,7 @@
 #include "PrintConfig.hpp"
 #include "SLA/IndexedMesh.hpp"
 #include "Support/SupportMaterial.hpp"
+#include "Support/FinSupport.hpp"
 #include "Support/SupportCommon.hpp"
 #include "Support/SupportSpotsGenerator.hpp"
 #include "Support/TreeSupport.hpp"
@@ -961,6 +962,9 @@ void PrintObject::detect_overhangs_for_lift()
 
 void PrintObject::generate_support_material(bool with_belt_brim)
 {
+    // Fin contacts intersect generated wall beads, including in support preview.
+    if (m_config.support_type.value == stFin && this->has_support())
+        this->make_perimeters();
     if (this->set_started(posSupportMaterial)) {
         this->clear_support_layers();
 
@@ -1601,6 +1605,18 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "support_bottom_interface_spacing" //BBS
             || opt_key == "support_base_pattern"
             || opt_key == "support_style"
+            || opt_key == "fin_support_style"
+            || opt_key == "fin_support_contact_height"
+            || opt_key == "fin_support_contact_start_height"
+            || opt_key == "fin_support_contact_width"
+            || opt_key == "fin_support_contact_penetration"
+            || opt_key == "fin_support_thickness"
+            || opt_key == "fin_support_contact_spacing"
+            || opt_key == "fin_support_contact_projection_angle"
+            || opt_key == "fin_support_painted_shape_line_angle"
+            || opt_key == "fin_support_depth"
+            || opt_key == "fin_support_expansion_factor"
+            || opt_key == "fin_support_max_spacing"
             || opt_key == "support_object_xy_distance"
             || opt_key == "support_object_first_layer_gap"
             || opt_key == "support_base_pattern_spacing"
@@ -1878,6 +1894,8 @@ bool PrintObject::invalidate_step(PrintObjectStep step)
 
     // propagate to dependent steps
     if (step == posPerimeters) {
+        if (m_config.support_type.value == stFin)
+            invalidated |= this->invalidate_step(posSupportMaterial);
 		invalidated |= this->invalidate_steps({ posPrepareInfill, posInfill, posIroning, posContouring, posSimplifyPath, posSimplifyInfill });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
     } else if (step == posPrepareInfill) {
@@ -5087,7 +5105,10 @@ void PrintObject::combine_infill()
 
 void PrintObject::_generate_support_material()
 {
-    if (is_tree(m_config.support_type.value)) {
+    if (m_config.support_type.value == stFin) {
+        generate_fin_support(*this);
+    }
+    else if (is_tree(m_config.support_type.value)) {
         TreeSupport tree_support(*this, m_slicing_params);
         tree_support.throw_on_cancel = [this]() { this->throw_if_canceled(); };
         tree_support.generate();

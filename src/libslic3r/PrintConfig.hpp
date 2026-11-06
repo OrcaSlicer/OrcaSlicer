@@ -364,6 +364,12 @@ enum SupportMaterialStyle {
     smsDefault, smsGrid, smsSnug, smsTreeOrganic, smsTreeSlim, smsTreeStrong, smsTreeHybrid,
 };
 
+enum FinSupportStyle {
+    fssSimple = 0,
+    fssSimulated = 1,
+    fssPaintedShape = 2
+};
+
 enum LongRectrationLevel
 {
     Disabled=0,
@@ -377,7 +383,7 @@ enum SupportMaterialInterfacePattern {
 
 // BBS
 enum SupportType {
-    stNormalAuto, stTreeAuto, stNormal, stTree
+    stNormalAuto, stTreeAuto, stNormal, stTree, stFin
 };
 inline bool is_tree(SupportType stype)
 {
@@ -809,6 +815,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(BeltRotationAxis)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(RemapAxis)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialStyle)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FinSupportStyle)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialInterfacePattern)
 // BBS
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportType)
@@ -1341,6 +1348,18 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,               support_expansion))
     ((ConfigOptionFloatsNullable,      support_speed))
     ((ConfigOptionEnum<SupportMaterialStyle>, support_style))
+    ((ConfigOptionEnum<FinSupportStyle>, fin_support_style))
+    ((ConfigOptionFloat,               fin_support_contact_height))
+    ((ConfigOptionFloat,               fin_support_contact_start_height))
+    ((ConfigOptionFloatOrPercent,      fin_support_contact_width))
+    ((ConfigOptionPercent,             fin_support_contact_penetration))
+    ((ConfigOptionFloatOrPercent,      fin_support_thickness))
+    ((ConfigOptionFloat,               fin_support_contact_spacing))
+    ((ConfigOptionFloat,               fin_support_contact_projection_angle))
+    ((ConfigOptionFloat,               fin_support_painted_shape_line_angle))
+    ((ConfigOptionFloat,               fin_support_depth))
+    ((ConfigOptionFloat,               fin_support_expansion_factor))
+    ((ConfigOptionFloat,               fin_support_max_spacing))
 
     // Orca: a flag enabling the ability to override flow ratios
     ((ConfigOptionBool,     set_other_flow_ratios))

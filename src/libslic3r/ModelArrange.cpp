@@ -17,6 +17,8 @@
 #include "ExPolygon.hpp"
 #include "Polygon.hpp"
 
+#include <algorithm>
+
 namespace Slic3r {
 
 arrangement::ArrangePolygons get_arrange_polys(const Model &model, ModelInstancePtrs &instances)
@@ -185,7 +187,9 @@ ArrangePolygon get_instance_arrange_poly(ModelInstance* instance, const Slic3r::
     auto enable_support = supp_type_ptr->getBool();
     int support_int = support_type_ptr->getInt();
 
-    if (enable_support && (support_type == stNormalAuto || support_type == stNormal))
+    if (enable_support && support_type == stFin)
+        ap.brim_width = std::max(6.0, obj->get_config_value<ConfigOptionFloat>(config, "fin_support_depth")->value + 1.0);
+    else if (enable_support && (support_type == stNormalAuto || support_type == stNormal))
         ap.brim_width = 6.0;
     else if (enable_support) {
         ap.brim_width = 24.0; // 2*MAX_BRANCH_RADIUS_FIRST_LAYER

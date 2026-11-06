@@ -26,6 +26,14 @@ namespace Slic3r {
 
 namespace Geometry {
 
+// Intersect a finite query segment with a round-ended thick segment.
+// All coordinates and radius use scaled units. The output interval contains
+// distances from line_a along line_a -> line_b, clipped to that query segment.
+bool line_rounded_thick_segment_collision(
+    const Vec2d &line_a, const Vec2d &line_b,
+    const Vec2d &segment_a, const Vec2d &segment_b, double radius,
+    std::pair<double, double> &out_interval);
+
 // Generic result of an orientation predicate.
 enum Orientation
 {
