@@ -3384,6 +3384,8 @@ void TabPrint::build()
         optgroup->append_single_option_line("tree_support_branch_diameter", "support_settings_tree#branch-diameter");
         optgroup->append_single_option_line("tree_support_branch_diameter_organic", "support_settings_tree#branch-diameter");
         optgroup->append_single_option_line("tree_support_branch_diameter_angle", "support_settings_tree#branch-diameter-angle");
+        optgroup->append_single_option_line("tree_support_initial_layer_diameter", "support_settings_tree#initial-layer-diameter");
+        optgroup->append_single_option_line("tree_support_trunk_diameter", "support_settings_tree#trunk-diameter");
         optgroup->append_single_option_line("tree_support_branch_angle", "support_settings_tree#branch-angle");
         optgroup->append_single_option_line("tree_support_branch_angle_organic", "support_settings_tree#branch-angle");
         optgroup->append_single_option_line("tree_support_angle_slow", "support_settings_tree#preferred-branch-angle");
