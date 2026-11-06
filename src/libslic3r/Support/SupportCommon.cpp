@@ -25,6 +25,8 @@
 #include <unordered_map>
 
 #include "SupportCommon.hpp"
+#include "OrganicToolpaths.hpp"
+#include "../Geometry/MedialAxis.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Slicing.hpp"
@@ -34,6 +36,7 @@
 #include "SupportParameters.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Surface.hpp"
+#include "libslic3r/VariableWidth.hpp"
 #include "libslic3r/Utils.hpp"
 
 // #define SLIC3R_DEBUG
@@ -172,6 +175,8 @@ void trim_support_layers_by_exclusion_volumes(
         for (size_t idx = 0; idx < selected.size(); ++idx) {
             SupportGeneratorLayer &layer = *selected[idx];
             trim_polygons(layer.polygons, excluded[idx]);
+            if (! layer.inner_trees.empty())
+                trim_polygons(layer.inner_trees, excluded[idx]);
             if (layer.contact_polygons)
                 trim_polygons(*layer.contact_polygons, excluded[idx]);
             if (layer.overhang_polygons)
@@ -205,7 +210,7 @@ std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interfa
     // Input / output, will be merged with output. Only provided for Organic supports.
     SupportGeneratorLayersPtr         &top_interface_layers,
     SupportGeneratorLayersPtr         &top_base_interface_layers,
-    // Input, will be trimmed with the newly created interface layers.
+    // Input/output: trimmed except for Organic bodies, partitioned at toolpath generation.
     SupportGeneratorLayersPtr         &intermediate_layers,
     SupportGeneratorLayerStorage      &layer_storage)
 {
@@ -240,7 +245,7 @@ std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interfa
         const auto closing_distance      = smoothing_distance; // scaled<float>(config.support_material_closing_radius.value);
         // Insert a new layer into base_interface_layers, if intersection with base exists.
         // ORCA: regularize top and bottom interfaces with separate minimum island radii.
-        auto insert_layer = [&layer_storage, smooth_supports, closing_distance, smoothing_distance, minimum_island_radius_top, minimum_island_radius_bottom](
+        auto insert_layer = [&layer_storage, organic_tree, smooth_supports, closing_distance, smoothing_distance, minimum_island_radius_top, minimum_island_radius_bottom](
                 SupportGeneratorLayer &intermediate_layer, Polygons &bottom, Polygons &&top, SupportGeneratorLayer *top_interface_layer,
                 const Polygons *subtract, SupporLayerType type) -> SupportGeneratorLayer* {
             bool has_top_interface = top_interface_layer && ! top_interface_layer->polygons.empty();
@@ -255,6 +260,8 @@ std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interfa
             };
             // ORCA: apply independent smoothing to bottom vs top.
             Polygons bottom_polys = regularize(std::move(bottom), minimum_island_radius_bottom);
+            const Polygons bottom_regions = organic_tree && type != SupporLayerType::Base ?
+                intersection(bottom_polys, intermediate_layer.polygons) : Polygons();
             Polygons top_polys = regularize(std::move(top), minimum_island_radius_top);
             append(bottom_polys, std::move(top_polys));
             bottom = intersection(std::move(bottom_polys), intermediate_layer.polygons);
@@ -274,8 +281,12 @@ std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interfa
                     layer_new.bottom_z   = intermediate_layer.bottom_z;
                     layer_new.height     = intermediate_layer.height;
                     layer_new.bridging   = intermediate_layer.bridging;
-                    // Subtract the interface from the base regions.
-                    intermediate_layer.polygons = diff(intermediate_layer.polygons, layer_new.polygons);
+                    if (organic_tree && ! bottom_regions.empty())
+                        layer_new.bottom_interface_polygons = union_(layer_new.bottom_interface_polygons, bottom_regions);
+                    // Organic shell geometry must survive interface ownership.
+                    // Partition its material after offsetting the original body.
+                    if (!organic_tree)
+                        intermediate_layer.polygons = diff(intermediate_layer.polygons, layer_new.polygons);
                     if (subtract)
                         // Trim the base interface layer with the interface layer.
                         layer_new.polygons = diff(std::move(layer_new.polygons), *subtract);
@@ -462,6 +473,12 @@ SupportGeneratorLayersPtr generate_raft_base(
     const bool  belt_floor_active        = std::abs(slicing_params.belt_floor_shear_factor) > EPSILON;
     const float inflate_factor_1st_layer = belt_floor_active ? 0.f :
         std::max(0.f, float(scale_(object.config().raft_first_layer_expansion)) - inflate_factor_fine);
+    // Organic: the bodies have sharp corners where they meet or are cut by the model, and a mitered step of the
+    // inflation moves a corner of 50 degrees 2.4 times as far as an edge, so the inflation in steps grows it into a
+    // spike millimetres long. Round corners widen as far as the edges.
+    const bool     round_inflation  = support_params.support_style == smsTreeOrganic;
+    const JoinType inflate_join     = round_inflation ? jtRound : DefaultJoinType;
+    const double   inflate_join_arg = round_inflation ? scale_(0.01) : DefaultMiterLimit;
     SupportGeneratorLayer       *contacts         = top_contacts         .empty() ? nullptr : top_contacts         .front();
     SupportGeneratorLayer       *interfaces       = interface_layers     .empty() ? nullptr : interface_layers     .front();
     SupportGeneratorLayer       *base_interfaces  = base_interface_layers.empty() ? nullptr : base_interface_layers.front();
@@ -521,7 +538,10 @@ SupportGeneratorLayersPtr generate_raft_base(
             new_layer.height  = slicing_params.first_print_layer_height;
             new_layer.bottom_z = 0.;
             first_layer = union_(std::move(first_layer), base);
-            new_layer.polygons = inflate_factor_1st_layer > 0 ? expand(first_layer, inflate_factor_1st_layer) : first_layer;
+            new_layer.polygons = inflate_factor_1st_layer > 0 ? expand(first_layer, inflate_factor_1st_layer, inflate_join, inflate_join_arg) :
+                                                                first_layer;
+            if (support_params.support_style == smsTreeOrganic && columns_base != nullptr)
+                new_layer.inner_trees = columns_base->inner_trees;
         }
         // Insert the base layers.
         for (size_t i = 1; i < slicing_params.base_raft_layers; ++ i) {
@@ -558,7 +578,7 @@ SupportGeneratorLayersPtr generate_raft_base(
                 auto  nsteps = std::max(5, int(ceil(inflate_factor_1st_layer / support_params.first_layer_flow.scaled_width())));
                 float step   = inflate_factor_1st_layer / nsteps;
                 for (int i = 0; i < nsteps; ++ i)
-                    raft = diff(expand(raft, step), trimming);
+                    raft = diff(expand(raft, step, inflate_join, inflate_join_arg), trimming);
             } else
                 raft = diff(raft, trimming);
             if (! interface_polygons.empty())
@@ -629,7 +649,7 @@ static inline void fill_expolygons_generate_paths(
     fill_expolygons_generate_paths(dst, std::move(expolygons), filler, fill_params, density, role, flow);
 }
 
-static Polylines draw_perimeters(const ExPolygon &expoly, double clip_length)
+Polylines draw_perimeters(const ExPolygon &expoly, double clip_length)
 {
     // Draw the perimeters.
     Polylines polylines;
@@ -651,7 +671,8 @@ void tree_supports_generate_paths(
     ExtrusionEntitiesPtr    &dst,
     const Polygons          &polygons,
     const Flow              &flow,
-    const SupportParameters &support_params)
+    const SupportParameters &support_params,
+    const Polygons          *double_walls)
 {
     // Offset expolygon inside, returns number of expolygons collected (0 or 1).
     // Vertices of output paths are marked with Z = source contour index of the expoly.
@@ -717,13 +738,58 @@ void tree_supports_generate_paths(
     const double spacing = flow.scaled_spacing();
     // Clip the sheath path to avoid the extruder to get exactly on the first point of the loop.
     const double clip_length = spacing * 0.15;
-    const double anchor_length = spacing * 6.;
+    // The seam anchor turns in off the innermost wall along a second loop a line inside it, on the infill of a body. Organic
+    // prints nothing inside its walls but trees, so that the anchor would be a hook hanging in the air.
+    const double anchor_length = support_params.support_style == smsTreeOrganic ? 0. : spacing * 6.;
     ClipperZUtils::ZPaths anchor_candidates;
-    for (ExPolygon& expoly : closing_ex(polygons, float(SCALED_EPSILON), float(SCALED_EPSILON + 0.5 * flow.scaled_width()))) {
+    // The regions the first walls go round, half a line inside the bodies.
+    ExPolygons axis_regions = closing_ex(polygons, float(SCALED_EPSILON), float(SCALED_EPSILON + 0.5 * flow.scaled_width()));
+    if (support_params.support_style == smsTreeOrganic) {
+        // Organic: a wall cannot go round a part of a body narrower than two lines, as the neck of a small branch merging
+        // into it, without running back over its own bead, and does so on every layer the branches take to merge at fine
+        // layer heights. The walls go round the parts at least two lines wide, and the rest prints as one bead along its
+        // middle, as wide as it is.
+        const float    half = float(0.5 * flow.scaled_width());
+        ExPolygons     looped;
+        ThickPolylines middles;
+        for (ExPolygon &region : axis_regions) {
+            // Clipped to the region: regrown to sharp corners, the sides of a part too narrow to keep are carried on to where
+            // they meet, past its end, and the wall round them would print out of the body.
+            ExPolygons wide = intersection_ex(opening_ex({ region }, half - float(SCALED_EPSILON)), ExPolygons{ region });
+            // A body narrower than two lines all over, a speck or the tip of a branch, keeps its loop.
+            if (wide.empty()) {
+                looped.emplace_back(std::move(region));
+                continue;
+            }
+            // The parts of the body the walls round its wide parts do not cover, without the slivers along those walls. The
+            // Voronoi paths are taken unpruned: the ExPolygon wrapper drops the ones shorter than twice the widest section,
+            // the whole of a small branch.
+            for (const ExPolygon &thin : opening_ex(diff_ex(offset_ex(region, half), offset_ex(wide, half + ClipperSafetyOffset)),
+                                                    0.5f * half))
+                Geometry::MedialAxis(half, 2. * flow.scaled_width(), thin).build(&middles);
+            append(looped, std::move(wide));
+        }
+        for (ThickPolyline &middle : middles)
+            // Not a dot, which carries far less than its round footprint suggests.
+            if (middle.length() >= 0.5 * half) {
+                // Nor a bead narrower than a line, as where a neck narrows to one: it carries less than the layer above
+                // stands on and may miss the bead below, which a loop a line wide would have covered.
+                for (coordf_t &width : middle.width)
+                    width = std::max(width, coordf_t(flow.scaled_width()));
+                if (ExtrusionMultiPath bead = thick_polyline_to_multi_path(middle, ExtrusionRole::erSupportMaterial, flow,
+                        scaled<float>(0.05), float(SCALED_EPSILON)); ! bead.paths.empty())
+                    dst.emplace_back(new ExtrusionMultiPath(std::move(bead)));
+            }
+        axis_regions = std::move(looped);
+    }
+    for (ExPolygon& expoly : axis_regions) {
         std::unique_ptr<ExtrusionEntityCollection> eec;
         ExPolygons                                 regions_to_draw_inner_wall{expoly};
+        // Organic marks the bodies with a second wall going up, see organic_mark_double_walls(); else the area decides.
         if (support_params.tree_branch_diameter_double_wall_area_scaled > 0)
-            if (double area = expoly.area(); area > support_params.tree_branch_diameter_double_wall_area_scaled) {
+            if (double area = expoly.area(); double_walls != nullptr ?
+                    2. * Slic3r::area(intersection(to_polygons(expoly), *double_walls)) > area :
+                    area > support_params.tree_branch_diameter_double_wall_area_scaled) {
                 BOOST_LOG_TRIVIAL(debug)<< "TreeSupports: double wall area: " << area<< " > " << support_params.tree_branch_diameter_double_wall_area_scaled;
                 eec = std::make_unique<ExtrusionEntityCollection>();
                 // Don't reorder internal / external loops of the same island, always start with the internal loop.
@@ -744,7 +810,8 @@ void tree_supports_generate_paths(
             // First genrate a 2nd perimeter loop as a source for anchor candidates.
             // The anchor candidate points are annotated with an index of the source contour or with -1 if on intersection.
             anchor_candidates.clear();
-            shrink_expolygon_with_contour_idx(expoly, flow.scaled_width(), jtMiter, 1.2, anchor_candidates);
+            if (anchor_length > 0.)
+                shrink_expolygon_with_contour_idx(expoly, flow.scaled_width(), jtMiter, 1.2, anchor_candidates);
             // Orient all contours CW.
             for (auto &path : anchor_candidates)
                 if (ClipperZUtils::area(path) > 0) std::reverse(path.begin(), path.end());
@@ -1566,6 +1633,8 @@ void generate_support_toolpaths(
     const SupportGeneratorLayersPtr     &interface_layers,
     const SupportGeneratorLayersPtr     &base_interface_layers)
 {
+    const auto organic_bottom_layers = support_params.support_style == smsTreeOrganic ?
+        organic_bottom_interface_layers(interface_layers) : std::vector<SupportGeneratorLayer>();
     // loop_interface_processor with a given circle radius.
     LoopInterfaceProcessor loop_interface_processor(1.5 * support_params.support_material_interface_flow.scaled_width());
     loop_interface_processor.n_contact_loops = config.support_interface_loop_pattern.value ? 1 : 0;
@@ -1581,10 +1650,12 @@ void generate_support_toolpaths(
 
     // Insert the raft base layers.
     auto n_raft_layers = std::min<size_t>(support_layers.size(), std::max(0, int(slicing_params.raft_layers()) - 1));
+    const bool organic_hollow = support_params.support_style == smsTreeOrganic &&
+        (config.support_base_pattern == smpNone || config.support_base_pattern == smpDefault);
 
     tbb::parallel_for(tbb::blocked_range<size_t>(0, n_raft_layers),
         [&support_layers, &raft_layers, &intermediate_layers, &config, &support_params, &slicing_params,
-            &bbox_object, link_max_length_factor]
+            &bbox_object, link_max_length_factor, organic_hollow]
             (const tbb::blocked_range<size_t>& range) {
         for (size_t support_layer_id = range.begin(); support_layer_id < range.end(); ++ support_layer_id)
         {
@@ -1601,10 +1672,13 @@ void generate_support_toolpaths(
             // Print the tree supports cutting through the raft with the exception of the 1st layer, where a full support layer will be printed below
             // both the raft and the trees.
             // Trim the raft layers with the tree polygons.
-            const Polygons &tree_polygons =
-                support_layer_id > 0 && support_layer_id < intermediate_layers.size() && is_approx(intermediate_layers[support_layer_id]->print_z, support_layer.print_z) ?
-                intermediate_layers[support_layer_id]->polygons : Polygons();
+            const SupportGeneratorLayer *tree_layer =
+                support_layer_id > 0 && support_layer_id < intermediate_layers.size() && intermediate_layers[support_layer_id] != nullptr &&
+                is_approx(intermediate_layers[support_layer_id]->print_z, support_layer.print_z) ? intermediate_layers[support_layer_id] : nullptr;
+            const Polygons &tree_polygons = tree_layer != nullptr ? tree_layer->polygons : Polygons();
 
+            // What the trees print, which inner tree loops are spliced into, unlike the raft lines.
+            ExtrusionEntitiesPtr tree_paths;
             // Print the support base below the support columns, or the support base for the support columns plus the contacts.
             if (support_layer_id > 0) {
                 const Polygons &to_infill_polygons = (support_layer_id < slicing_params.base_raft_layers) ?
@@ -1630,40 +1704,57 @@ void generate_support_toolpaths(
                         ExtrusionRole::erSupportMaterial, flow,
                         support_params, support_params.with_sheath, false);
                 }
-                if (! tree_polygons.empty())
-                    tree_supports_generate_paths(support_layer.support_fills.entities, tree_polygons, flow, support_params);
+                if (! tree_polygons.empty()) {
+                    ExtrusionEntitiesPtr &dst = support_layer.support_fills.entities;
+                    const size_t first = dst.size();
+                    // Organic prints the solid parts of its bodies solid, as above the raft.
+                    tree_supports_generate_paths(dst, organic_hollow ? organic_extrude_solid_islands(dst, tree_polygons,
+                        tree_layer->solid_polygons, flow, support_layer.object()->print()->config(), config) : tree_polygons,
+                        flow, support_params);
+                    tree_paths.assign(dst.begin() + first, dst.end());
+                }
             }
 
-            Fill *filler = filler_interface.get();
-            Flow  flow = support_params.first_layer_flow;
-            float density = 0.f;
-            if (support_layer_id == 0) {
-                // Base flange.
-                filler->angle = support_params.raft_angle_1st_layer;
-                filler->spacing = support_params.first_layer_flow.spacing();
-                density       = float(config.raft_first_layer_density.value * 0.01);
-            } else if (support_layer_id >= slicing_params.base_raft_layers) {
-                filler->angle = support_params.raft_interface_angle(support_layer.interface_id());
-                // We don't use $base_flow->spacing because we need a constant spacing
-                // value that guarantees that all layers are correctly aligned.
-                filler->spacing = support_params.support_material_flow.spacing();
-                assert(! raft_layer.bridging);
-                flow          = Flow(float(support_params.raft_interface_flow.width()), float(raft_layer.height), support_params.raft_interface_flow.nozzle_diameter());
-                density       = float(support_params.raft_interface_density);
-            } else
-                continue;
-            filler->link_max_length = coord_t(scale_(filler->spacing * link_max_length_factor / density));
-            fill_expolygons_with_sheath_generate_paths(
-                // Destination
-                support_layer.support_fills.entities,
-                // Regions to fill
-                tree_polygons.empty() ? raft_layer.polygons : diff(raft_layer.polygons, tree_polygons),
-                // Filler and its parameters
-                filler, density,
-                // Extrusion parameters
-                (support_layer_id < slicing_params.base_raft_layers) ? ExtrusionRole::erSupportMaterial : ExtrusionRole::erSupportMaterialInterface, flow,
-                // sheath at first layer
-                support_params, support_layer_id == 0, support_layer_id == 0);
+            if (support_layer_id == 0 || support_layer_id >= slicing_params.base_raft_layers) {
+                Fill *filler = filler_interface.get();
+                Flow flow = support_params.first_layer_flow;
+                float density;
+                if (support_layer_id == 0) {
+                    // Base flange.
+                    filler->angle = support_params.raft_angle_1st_layer;
+                    filler->spacing = support_params.first_layer_flow.spacing();
+                    density       = float(config.raft_first_layer_density.value * 0.01);
+                } else {
+                    filler->angle = support_params.raft_interface_angle(support_layer.interface_id());
+                    // Keep a constant spacing so all layers align.
+                    filler->spacing = support_params.support_material_flow.spacing();
+                    assert(! raft_layer.bridging);
+                    flow = Flow(float(support_params.raft_interface_flow.width()), float(raft_layer.height), support_params.raft_interface_flow.nozzle_diameter());
+                    density = float(support_params.raft_interface_density);
+                }
+                filler->link_max_length = coord_t(scale_(filler->spacing * link_max_length_factor / density));
+                const ExtrusionRole role = support_layer_id < slicing_params.base_raft_layers ? erSupportMaterial : erSupportMaterialInterface;
+                if (organic_hollow && support_layer_id == 0)
+                    organic_fill_first_layer(support_layer.support_fills.entities, raft_layer.polygons, raft_layer.inner_trees,
+                        filler, density, role, flow, support_params);
+                else
+                    fill_expolygons_with_sheath_generate_paths(support_layer.support_fills.entities,
+                        tree_polygons.empty() ? raft_layer.polygons : diff(raft_layer.polygons, tree_polygons),
+                        filler, density, role, flow, support_params, support_layer_id == 0, support_layer_id == 0);
+            }
+            if (organic_hollow && tree_layer != nullptr && ! tree_layer->inner_trees.empty()) {
+                Polygons trees = tree_layer->inner_trees;
+                if (support_layer_id >= slicing_params.base_raft_layers && support_params.zero_gap_interface_top &&
+                    ! support_params.can_merge_support_regions)
+                    trees = diff(trees, offset(diff(raft_layer.polygons, tree_polygons), std::max(
+                        support_params.support_material_flow.scaled_width(), support_params.support_material_interface_flow.scaled_width())));
+                Polygons printed;
+                for_each_extrusion_path(support_layer.support_fills, [&](const ExtrusionPath &path) {
+                    polygons_append(printed, organic_bead(path.as_polyline(), scale_(path.width)));
+                });
+                organic_generate_inner_tree_paths(support_layer.support_fills.entities, trees, printed,
+                    support_params.support_material_flow.with_height(float(raft_layer.height)), &tree_paths);
+            }
         }
     });
 
@@ -1693,9 +1784,15 @@ void generate_support_toolpaths(
     };
     std::vector<LayerCache>             layer_caches(support_layers.size());
 
+    // Organic with a hollow base: the second walls are chosen going up, each standing on the walls below.
+    const bool organic_double_walls = support_params.support_style == smsTreeOrganic &&
+        (config.support_base_pattern == smpNone || config.support_base_pattern == smpDefault) && config.tree_support_wall_count.value == 0;
+    if (organic_double_walls)
+        organic_mark_double_walls(intermediate_layers, support_params);
+
     tbb::parallel_for(tbb::blocked_range<size_t>(n_raft_layers, support_layers.size()),
         [&config, &slicing_params, &support_params, &support_layers, &bottom_contacts, &top_contacts, &intermediate_layers, &interface_layers, &base_interface_layers, &layer_caches, &loop_interface_processor,
-            &bbox_object, &angles, n_raft_layers, link_max_length_factor]
+            &bbox_object, &angles, n_raft_layers, link_max_length_factor, organic_double_walls]
             (const tbb::blocked_range<size_t>& range) {
         // Indices of the 1st layer in their respective container at the support layer height.
         size_t idx_layer_bottom_contact   = size_t(-1);
@@ -1825,6 +1922,7 @@ void generate_support_toolpaths(
             // expanded wall polygons. With zero top Z gap and separate interface material,
             // that expansion can overlap same-layer interface-material regions, so trim
             // the support-material regions from those interface footprints here.
+            Polygons interface_keepout;
             if (organic_tree && support_params.zero_gap_interface_top && !support_params.can_merge_support_regions &&
                 (!base_layer.empty() || !base_interface_layer.empty())) {
                 Polygons interface_polygons;
@@ -1836,7 +1934,7 @@ void generate_support_toolpaths(
                     const coord_t trim_margin = std::max(
                         support_params.support_material_flow.scaled_width(),
                         support_params.support_material_interface_flow.scaled_width());
-                    Polygons interface_keepout = offset(interface_polygons, trim_margin);
+                    interface_keepout = offset(interface_polygons, trim_margin);
                     if (!base_layer.empty())
                         base_layer.set_polygons_to_extrude(diff(base_layer.polygons_to_extrude(), interface_keepout));
                     if (!base_interface_layer.empty())
@@ -1855,6 +1953,126 @@ void generate_support_toolpaths(
                 base_layer.layer->polygons = diff(base_layer.layer->polygons, islands);
             }
 #endif
+
+            // Offset the Organic body before assigning its paths to base and
+            // interface. Offsetting the two regions separately leaves a notch at
+            // every intersection of their boundary with the outside contour.
+            // Only dense regions with equal, non-bridging flows on the same
+            // physical slab can share a shell. Sparse interfaces must retain
+            // their gaps instead of acquiring a dense wall from the base.
+            const bool hollow_tree = organic_tree &&
+                (config.support_base_pattern == smpNone || config.support_base_pattern == smpDefault);
+            bool common_shell = organic_tree && (hollow_tree || support_params.with_sheath) && !raft_layer && !base_layer.empty() &&
+                base_layer.layer->bottom_z > EPSILON && !base_layer.layer->bridging &&
+                support_params.can_merge_support_regions && !config.support_interface_loop_pattern.value &&
+                is_approx(support_params.support_material_flow.width(), support_params.support_material_interface_flow.width());
+            boost::container::static_vector<SupportGeneratorLayerExtruded*, 3> shell_interfaces;
+            Polygons interface_regions;
+            Polygons separate_regions;
+            Polygons shell_coverage;
+            for (SupportGeneratorLayerExtruded *item : {&top_contact_layer, &interface_layer, &base_interface_layer}) {
+                if (organic_tree && !item->empty()) {
+                    polygons_append(interface_regions, item->layer->polygons);
+                    const double density = item == &base_interface_layer ? base_interface_density :
+                        item->layer->layer_type == SupporLayerType::BottomInterface ?
+                            support_params.bottom_interface_density : support_params.top_interface_density;
+                    if (common_shell && base_layer.could_merge(*item) && !item->layer->bridging && density >= 1.)
+                        shell_interfaces.push_back(item);
+                    else
+                        polygons_append(separate_regions, item->polygons_to_extrude());
+                }
+            }
+            common_shell = common_shell && !shell_interfaces.empty();
+            if (common_shell) {
+                const Flow flow = support_params.support_material_flow.with_height(float(base_layer.layer->height));
+                Polygons shell_region = diff(base_layer.polygons_to_extrude(), union_(separate_regions));
+                if (hollow_tree)
+                    shell_region = organic_extrude_solid_islands(base_layer.extrusions, shell_region, base_layer.layer->solid_polygons, flow,
+                        support_layer.object()->print()->config(), config);
+                ExtrusionEntityCollection shell;
+                if (hollow_tree)
+                    tree_supports_generate_paths(shell.entities, shell_region, flow, support_params,
+                        organic_double_walls ? &base_layer.layer->double_walls : nullptr);
+                else
+                    for (const ExPolygon &body : closing_ex(shell_region, float(SCALED_EPSILON),
+                                                           float(SCALED_EPSILON + 0.5 * flow.scaled_width())))
+                        extrusion_entities_append_paths(shell.entities, draw_perimeters(body, 0.15 * flow.scaled_spacing()),
+                            ExtrusionRole::erSupportMaterial, flow.mm3_per_mm(), flow.width(), flow.height());
+                shell_coverage = union_(shell.polygons_covered_by_spacing());
+                for_each_extrusion_path(shell, [&](const ExtrusionPath &path) {
+                    Polylines unassigned{path.as_polyline()};
+                    for (auto *item : shell_interfaces) {
+                        const bool interface_material = item != &base_interface_layer &&
+                            (item->layer->layer_type == SupporLayerType::BottomInterface ? bottom_interfaces : top_interfaces);
+                        Polylines inside, outside;
+                        for (const Polyline &axis : unassigned) {
+                            auto [axis_inside, axis_outside] = organic_split_wall_axis(axis, item->polygons_to_extrude(), flow.scaled_width());
+                            append(inside, std::move(axis_inside));
+                            append(outside, std::move(axis_outside));
+                        }
+                        // Each piece keeps the bead of the path it comes from, as wide as a neck where it is one.
+                        extrusion_entities_append_paths(item->extrusions, std::move(inside),
+                            interface_material ? ExtrusionRole::erSupportMaterialInterface : ExtrusionRole::erSupportMaterial,
+                            path.mm3_per_mm, path.width, path.height, false);
+                        unassigned = std::move(outside);
+                    }
+                    extrusion_entities_append_paths(base_layer.extrusions, std::move(unassigned),
+                        ExtrusionRole::erSupportMaterial, path.mm3_per_mm, path.width, path.height, false);
+                });
+                base_layer.set_polygons_to_extrude(diff(base_layer.polygons_to_extrude(), shell_coverage));
+            }
+            // The body remains independent of interface masks through geometry
+            // preparation. Each material owns its interior exactly once here.
+            if (organic_tree && !base_layer.empty()) {
+                base_layer.set_polygons_to_extrude(diff(base_layer.polygons_to_extrude(), union_(interface_regions)));
+            }
+
+            auto fill_interface = [&](SupportGeneratorLayerExtruded &layer_ex, Fill *filler, float density,
+                                      ExtrusionRole role, const Flow &flow) {
+                const bool shared = common_shell &&
+                    std::find(shell_interfaces.begin(), shell_interfaces.end(), &layer_ex) != shell_interfaces.end();
+                ExtrusionEntityCollection filling;
+                const bool complete_thin = organic_tree && !raft_layer && density >= 1.f && role == erSupportMaterialInterface &&
+                    !layer_ex.layer->bridging && (layer_ex.layer->layer_type == SupporLayerType::TopContact ||
+                                                 layer_ex.layer->layer_type == SupporLayerType::TopInterface);
+                fill_expolygons_generate_paths(shared || complete_thin ? filling.entities : layer_ex.extrusions,
+                    union_safety_offset_ex(layer_ex.polygons_to_extrude()), filler, density, role, flow);
+                if (complete_thin) {
+                    Polygons material;
+                    for (const ExtrusionEntitiesPtr *entities : {&layer_ex.extrusions, &filling.entities})
+                        for (const ExtrusionEntity *entity : *entities)
+                            for_each_extrusion_path(*entity, [&](const ExtrusionPath &path) {
+                                polygons_append(material, organic_bead(path.as_polyline(), scale_(path.width)));
+                            });
+                    material = union_(material);
+                    for (const ExPolygon &region : union_safety_offset_ex(layer_ex.polygons_to_extrude()))
+                        extrusion_entities_append_paths(filling.entities,
+                            organic_interface_gap_paths(region, material, flow.scaled_width()), role,
+                            flow.mm3_per_mm(), flow.width(), flow.height());
+                }
+                if (shared) {
+                    // Dense fill owns its complete footprint. A shell axis is
+                    // printed only outside the fill beads: inside them the
+                    // wall would pass over the fill again, and outside them
+                    // the fill does not reach the axis.
+                    Polygons fill_coverage;
+                    for_each_extrusion_path(filling, [&](const ExtrusionPath &path) {
+                        polygons_append(fill_coverage, organic_bead(path.as_polyline(), scale_(path.width)));
+                    });
+                    fill_coverage = union_(fill_coverage);
+                    ExtrusionEntityCollection assigned_shell;
+                    assigned_shell.entities.swap(layer_ex.extrusions);
+                    for_each_extrusion_path(assigned_shell, [&](const ExtrusionPath &path) {
+                        for (Polyline &part : organic_uncovered_wall_parts(path.as_polyline(), fill_coverage, scale_(path.width)))
+                            layer_ex.extrusions.push_back(new ExtrusionPath(Polyline3(std::move(part)), path));
+                    });
+                    append(layer_ex.extrusions, std::move(filling.entities));
+                    filling.entities.clear();
+                } else if (complete_thin) {
+                    append(layer_ex.extrusions, std::move(filling.entities));
+                    filling.entities.clear();
+                }
+            };
 
             // Top and bottom contacts, interface layers.
             enum class InterfaceLayerType { TopContact, BottomContact, RaftContact, Interface, InterfaceAsBase };
@@ -1887,14 +2105,7 @@ void generate_support_toolpaths(
                     filler->spacing = raft_contact ? support_params.raft_interface_flow.spacing() :
                         interface_as_base ? support_params.support_material_flow.spacing() : support_params.support_material_interface_flow.spacing();
                     filler->link_max_length = coord_t(scale_(filler->spacing * link_max_length_factor / density));
-                    fill_expolygons_generate_paths(
-                        // Destination
-                        layer_ex.extrusions,
-                        // Regions to fill
-                        union_safety_offset_ex(layer_ex.polygons_to_extrude()),
-                        // Filler and its parameters
-                        filler, float(density),
-                        // Extrusion parameters
+                    fill_interface(layer_ex, filler, float(density),
                         interface_as_base ? ExtrusionRole::erSupportMaterial : ExtrusionRole::erSupportMaterialInterface, interface_flow);
                 }
             };
@@ -1914,20 +2125,12 @@ void generate_support_toolpaths(
                 filler->angle   = support_interface_angle;
                 filler->spacing = support_params.support_material_interface_flow.spacing();
                 filler->link_max_length = coord_t(scale_(filler->spacing * link_max_length_factor / base_interface_density));
-                fill_expolygons_generate_paths(
-                    // Destination
-                    base_interface_layer.extrusions,
-                    //base_layer_interface.extrusions,
-                    // Regions to fill
-                    union_safety_offset_ex(base_interface_layer.polygons_to_extrude()),
-                    // Filler and its parameters
-                    filler, float(base_interface_density),
-                    // Extrusion parameters
-                    ExtrusionRole::erSupportMaterial, interface_flow);
+                fill_interface(base_interface_layer, filler, float(base_interface_density), ExtrusionRole::erSupportMaterial, interface_flow);
             }
 
-            // Base support or flange.
-            if (! base_layer.empty() && ! base_layer.polygons_to_extrude().empty()) {
+            // Base support or flange, and the trees inside an Organic body: the interfaces of a layer may take all of a body
+            // and leave the trees in its holes.
+            if (! base_layer.empty() && (! base_layer.polygons_to_extrude().empty() || ! base_layer.layer->inner_trees.empty())) {
                 Fill             *filler          = filler_support.get();
                 filler->angle = angles[support_layer_id % angles.size()];
                 // We don't use $base_flow->spacing because we need a constant spacing
@@ -1960,22 +2163,50 @@ void generate_support_toolpaths(
                     filler->link_max_length = coord_t(scale_(filler->spacing * link_max_length_factor / density));
                     sheath  = true;
                     no_sort = true;
-                } else if (support_params.support_style == SupportMaterialStyle::smsTreeOrganic &&
-                           (config.support_base_pattern == smpNone || config.support_base_pattern == smpDefault)) {
-                    tree_supports_generate_paths(base_layer.extrusions, base_layer.polygons_to_extrude(), flow, support_params);
+                } else if (hollow_tree) {
+                    if (!common_shell)
+                        tree_supports_generate_paths(base_layer.extrusions, organic_extrude_solid_islands(base_layer.extrusions,
+                            base_layer.polygons_to_extrude(), base_layer.layer->solid_polygons, flow, support_layer.object()->print()->config(), config),
+                            flow, support_params, organic_double_walls ? &base_layer.layer->double_walls : nullptr);
+                    // The trees under the roofs over the inside of the body, as loops going inward, see
+                    // organic_generate_inner_tree_paths(): a loop shorter than a line is a dot. They fuse
+                    // by a quarter of a line with what this layer prints beside them, its walls and interfaces, and keep
+                    // off the rest of it, which the outline the trees were grown in may miss: a nozzle passing over a bead
+                    // of its own layer ploughs it.
+                    if (! base_layer.layer->inner_trees.empty()) {
+                        Polygons printed;
+                        for (const SupportGeneratorLayerExtruded *item : { &base_layer, &top_contact_layer, &interface_layer, &base_interface_layer })
+                            for (const ExtrusionEntity *entity : item->extrusions)
+                                for_each_extrusion_path(*entity, [&printed](const ExtrusionPath &path) {
+                                    polygons_append(printed, organic_bead(path.as_polyline(), scale_(path.width)));
+                                });
+                        // A tree grows in a hole of the body as in its inside, see organic_grow_trees_inside_hollow_bodies(),
+                        // unless an interface of this layer lies there, or within the margin the base keeps off an
+                        // interface of another material.
+                        Polygons outline;
+                        for (const ExPolygon &part : union_ex(base_layer.layer->polygons))
+                            outline.push_back(part.contour);
+                        Polygons tree_space = diff(outline, union_(base_layer.layer->polygons, union_(interface_regions, interface_keepout)));
+                        append(tree_space, base_layer.polygons_to_extrude());
+                        // A shell shared with an interface takes the band of its walls off the area of the base, see above. A
+                        // tree fuses with those walls all the same, as with walls of its own: cut short of them, one a line
+                        // across beside a wall prints nothing, and what it was grown to hold hangs.
+                        append(tree_space, diff(shell_coverage, interface_regions));
+                        organic_generate_inner_tree_paths(base_layer.extrusions,
+                            intersection(base_layer.layer->inner_trees, union_(tree_space)), printed, flow);
+                    }
                     done = true;
+                } else if (common_shell) {
+                    sheath = false;
                 }
-                if (! done)
-                    fill_expolygons_with_sheath_generate_paths(
-                        // Destination
-                        base_layer.extrusions,
-                        // Regions to fill
-                        base_layer.polygons_to_extrude(),
-                        // Filler and its parameters
-                        filler, density,
-                        // Extrusion parameters
-                        ExtrusionRole::erSupportMaterial, flow,
-                        support_params, sheath, no_sort);
+                if (! done) {
+                    if (hollow_tree && ! is_belt_printer && base_layer.layer->bottom_z < EPSILON)
+                        organic_fill_first_layer(base_layer.extrusions, base_layer.polygons_to_extrude(), base_layer.layer->inner_trees,
+                            filler, density, ExtrusionRole::erSupportMaterial, flow, support_params);
+                    else
+                        fill_expolygons_with_sheath_generate_paths(base_layer.extrusions, base_layer.polygons_to_extrude(),
+                            filler, density, ExtrusionRole::erSupportMaterial, flow, support_params, sheath, no_sort);
+                }
             }
 
             // Merge base_interface_layers to base_layers to avoid unneccessary retractions
@@ -2040,6 +2271,8 @@ void generate_support_toolpaths(
                 modulate_extrusion_by_overlapping_layers(layer_cache_item.layer_extruded->extrusions, *layer_cache_item.layer_extruded->layer, layer_cache_item.overlapping);
                 support_layer.support_fills.append(std::move(layer_cache_item.layer_extruded->extrusions));
             }
+            if (support_params.support_style == smsTreeOrganic)
+                organic_remove_dots(support_layer.support_fills, support_params.support_material_flow.scaled_width());
 
             // Orca: Generate iron toolpath for contact layer
             if (!layer_cache.polys_to_iron.empty()) {
@@ -2075,6 +2308,9 @@ void generate_support_toolpaths(
             }
         }
     });
+
+    if (support_params.support_style == smsTreeOrganic)
+        organic_anchor_bottom_interfaces(support_layers, organic_bottom_layers, support_params);
 
 #ifndef NDEBUG
     struct Test {

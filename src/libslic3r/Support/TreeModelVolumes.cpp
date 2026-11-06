@@ -724,17 +724,14 @@ void TreeModelVolumes::calculateAvoidance(const std::vector<RadiusLayerPair> &ke
             // Limiting the offset step so that unioning the shrunk latest_avoidance with the current layer collisions
             // will not create gaps in the resulting avoidance region letting a tree support branch tunneling through an object wall.
             float move_step      = 1.9 * std::max(task.radius, m_current_min_xy_dist);
-            if (move_step < EPSILON) return;
-            int   move_steps     = round_up_divide<int>(max_move, move_step);
-            assert(move_steps > 0);
+            // Take at least one step: at a zero branch angle the avoidance does not shrink,
+            // but the collisions of the current layer still have to be added to it.
+            int   move_steps     = max_move > 0.f && move_step > 0.f ? std::max(1, round_up_divide<int>(max_move, move_step)) : 1;
             float last_move_step = max_move - (move_steps - 1) * move_step;
-            if (last_move_step < scaled<float>(0.05)) {
-                assert(move_steps > 1);
-                if (move_steps > 1) {
-                    // Avoid taking a very short last step, stretch the other steps a bit instead.
-                    move_step = max_move / (-- move_steps);
-                    last_move_step = move_step;
-                }
+            if (move_steps > 1 && last_move_step < scaled<float>(0.05)) {
+                // Avoid taking a very short last step, stretch the other steps a bit instead.
+                move_step = max_move / (-- move_steps);
+                last_move_step = move_step;
             }
             // minDist as the delta was already added, also avoidance for layer 0 will return the collision.
             Polygons    latest_avoidance   = getAvoidance(task.radius, task.start_layer - 1, task.type, task.to_model, true);
