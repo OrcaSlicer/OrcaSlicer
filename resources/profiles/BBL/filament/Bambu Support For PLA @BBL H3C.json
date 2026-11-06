@@ -1,0 +1,33 @@
+{
+	"type": "filament",
+	"name": "Bambu Support For PLA @BBL H3C",
+	"inherits": "Bambu Support For PLA @BBL H3C base",
+	"from": "system",
+	"setting_id": "GFSS02_26",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_flush_volumetric_speed": [
+		"0",
+		"0"
+	],
+	"filament_max_volumetric_speed": [
+		"6",
+		"6"
+	],
+	"nozzle_temperature": [
+		"220",
+		"220"
+	],
+	"nozzle_temperature_initial_layer": [
+		"220",
+		"220"
+	],
+	"compatible_printers": [
+		"Bambu Lab H3C 0.4 nozzle",
+		"Bambu Lab H3C 0.6 nozzle",
+		"Bambu Lab H3C 0.8 nozzle"
+	]
+}

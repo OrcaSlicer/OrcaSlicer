@@ -221,7 +221,8 @@ jobs:
   # branches not taken included) - catches slicing regressions the static
   # profile checks and unit tests can't see.
   # Profile-only PRs are covered by check_profiles.yml's nightly binary; this
-  # covers src/engine PRs with the PR-built binary.
+  # covers src/engine PRs with the PR-built binary, including system loading,
+  # filament identity and compatibility with released custom presets.
   slice_check_linux:
     name: Slice check (Linux ${{ vars.SELF_HOSTED && 'x86_64' || 'aarch64' }})
     needs: build_linux
@@ -236,11 +237,21 @@ jobs:
         with:
           name: ${{ github.sha }}-profile-validator-linux-${{ vars.SELF_HOSTED && 'x86_64' || 'aarch64' }}
           path: validator-bin
-      - name: Validate slice (expand custom g-code)
+      - name: Validate profiles and slice (PR-built engine)
         timeout-minutes: 60
         run: |
           chmod +x validator-bin/OrcaSlicer_profile_validator
-          ./validator-bin/OrcaSlicer_profile_validator -p "${{ github.workspace }}/resources/profiles" -s -l 2
+          bash scripts/check_profile.sh \
+            --validator "${{ github.workspace }}/validator-bin/OrcaSlicer_profile_validator" \
+            --work-dir "${{ runner.temp }}/pr-profile-check" \
+            validate_system validate_slice validate_filament_subtypes validate_custom
+      - name: Upload profile validation logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr-profile-validation
+          path: ${{ runner.temp }}/pr-profile-check/logs/
+          if-no-files-found: ignore
   publish_test_results:
     name: Publish Test Results
     needs: [unit_tests_linux_x86_64, unit_tests_linux_aarch64, unit_tests_windows_x64, unit_tests_windows_arm64, unit_tests_macos_arm64, unit_tests_flatpak_x86_64, unit_tests_flatpak_aarch64]

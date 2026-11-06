@@ -1,0 +1,47 @@
+{
+	"type": "filament",
+	"name": "Generic ABS @BBL H3C 0.2 nozzle",
+	"inherits": "Generic ABS @BBL H3C base",
+	"from": "system",
+	"setting_id": "GFSB99_23",
+	"instantiation": "true",
+	"fan_max_speed": [
+		"60",
+		"60"
+	],
+	"fan_min_speed": [
+		"40",
+		"40"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_flush_volumetric_speed": [
+		"3",
+		"3"
+	],
+	"filament_max_volumetric_speed": [
+		"2",
+		"2"
+	],
+	"filament_retraction_length": [
+		"nil",
+		"nil"
+	],
+	"filament_wipe": [
+		"nil",
+		"nil"
+	],
+	"filament_wipe_distance": [
+		"nil",
+		"nil"
+	],
+	"filament_z_hop_types": [
+		"nil",
+		"nil"
+	],
+	"compatible_printers": [
+		"Bambu Lab H3C 0.2 nozzle"
+	]
+}
