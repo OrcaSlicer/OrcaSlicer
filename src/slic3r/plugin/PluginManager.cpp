@@ -145,7 +145,13 @@ bool PluginManager::initialize()
     return true;
 }
 
-void PluginManager::set_shutting_down() { m_shutting_down.store(true, std::memory_order_release); }
+void PluginManager::set_shutting_down()
+{
+    m_shutting_down.store(true, std::memory_order_release);
+    // The GUI may already be closing: drop audit prompts that have not been shown yet rather than
+    // letting a queued dialog open after shutdown has begun.
+    PluginAuditManager::discard_pending_permission_prompts();
+}
 
 void PluginManager::shutdown()
 {
@@ -157,15 +163,17 @@ void PluginManager::shutdown()
             return;
     }
 
+    // Set the shutdown flag before releasing any blocked permission prompt: a worker that fails
+    // because of that release must see the cancellation and not record a spurious load error or
+    // disable the package.
+    set_shutting_down();
+
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": PluginManager shutdown enter";
 
     // Detach the libslic3r hooks first so nothing dispatches into Python while (or after) plugins
     // unload. The lifecycle-event hook also drains callbacks already in progress before returning;
     // the remaining hook seams retain their existing shutdown requirements.
     plugin_hooks::uninstall();
-
-    // Reject new plugin loads before we drain.
-    set_shutting_down();
 
     std::string wait_error;
     if (!wait_for_discovery(std::chrono::milliseconds::max(), wait_error) && !wait_error.empty())
@@ -982,8 +990,18 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
     std::string error;
     bool registration_failed = false;
     if (!plugin_loader::load(descriptor, skip_deps, capabilities_to_enable, registry_precheck, plugin, error, &registration_failed)) {
-        if (error == LOAD_CANCELLED)
+        // A permission prompt denied because the load was cancelled (unload or shutdown) surfaces
+        // here as an ordinary registration/permission failure. Do not disable the package or record
+        // an error for that: a genuine denial still follows the normal failure path below.
+        bool load_cancelled = m_shutting_down.load(std::memory_order_acquire);
+        if (!load_cancelled) {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            load_cancelled = is_plugin_load_cancelled_locked(plugin_key);
+        }
+        if (error == LOAD_CANCELLED || load_cancelled) {
+            BOOST_LOG_TRIVIAL(info) << "[load_plugin_impl] CANCELLED plugin=" << plugin_key;
             return; // cancelled: nothing materialized survives, and no error is recorded
+        }
         if (registration_failed)
             mark_plugin_install_state_disabled(plugin_key);
         fail(std::move(error));
@@ -1076,6 +1094,11 @@ bool PluginManager::unload_plugin(const std::string& plugin_key)
         }
     }
 
+    // Queued audit prompts belong to a plugin that is going away: cancel any blocked load worker
+    // and keep a late answer from persisting. Do this after marking the load cancelled so a worker
+    // released by the cancellation cannot take it as approval.
+    PluginAuditManager::discard_pending_permission_prompts_for(plugin_key);
+
     if (!found) {
         notify_plugin_load_state_changed(cancelled);
         return true;
@@ -1121,8 +1144,10 @@ void PluginManager::unload_all_plugins()
 
     // Bulk shutdown intentionally skips the normal unload notification path, but resources owned
     // by GUI subscribers still need to be torn down before the interpreter is finalized.
-    for (const std::string& key : removed_keys)
+    for (const std::string& key : removed_keys) {
+        PluginAuditManager::discard_pending_permission_prompts_for(key);
         run_on_unload_callbacks(key);
+    }
 
     // Broadcast cancellation to every plugin before waiting. This keeps bulk unload from
     // starving a later plugin while an earlier plugin uses the full cancellation grace period.
