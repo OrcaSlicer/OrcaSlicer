@@ -5087,7 +5087,8 @@ void PrintConfigDef::init_fff_params()
 
     def           = this->add("mmu_segmented_region_max_width", coFloat);
     def->label    = L("Maximum width of a segmented region");
-    def->tooltip  = L("Maximum width of a segmented region. A value of 0 disables this feature.");
+    def->tooltip  = L("How far the color painted on a side surface reaches into the model, measured from the outer surface. "
+                      "Set to 0 to let the color reach the middle of the model.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 0;
     def->category = L("Advanced");
@@ -8248,7 +8249,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Mixed color sublayer");
     def->tooltip = L("Enable mixed color sublayer splitting. When enabled, layers containing mixed color "
                      "filaments will be split into sub-layers to achieve color mixing effects.");
-    def->category = L("Quality");
+    def->category = L("Multimaterial");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(false));
 
