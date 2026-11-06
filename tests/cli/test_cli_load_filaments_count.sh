@@ -5,11 +5,12 @@
 #
 # A one-filament project is exported from the shipped Bambu Lab H2D presets, where a filament has one
 # value per extruder variant. Its per-variant filament_max_volumetric_speed is changed and listed as
-# different, and the printer's name is put in its slot of inherits_group, the last one. The project is
+# different, and the printer's name and a compatibility condition are put in the printer's slot of
+# inherits_group and compatible_machine_expression_group, the last one. The project is
 # sliced with as many filaments as it has variant entries, the one empty slot per project filament
 # refreshing it and every slot beyond it a loaded preset: the kept values must survive at their variant
 # positions (a loaded count that equals the variant count used to be mistaken for one value per
-# filament), and the printer must still hold the last slot, after the new filaments. The same count
+# filament), and the printer must still hold the last slot of both lists, after the new filaments. The same count
 # with an empty slot beyond the project's filament has nothing to keep in that slot: the run must fail
 # with CLI_INVALID_PARAMS, unless --load-defaultfila fills the slot with the first loaded preset.
 #
@@ -92,7 +93,8 @@ with zipfile.ZipFile(src) as zin, zipfile.ZipFile(dst, "w", zipfile.ZIP_DEFLATED
             # One entry for the process, one per filament, one for the printer.
             config["different_settings_to_system"][1] = "filament_max_volumetric_speed"
             config["inherits_group"][-1] = config["printer_settings_id"]
-            expected = {key: config[key] for key in ("filament_max_volumetric_speed", "filament_self_index", "inherits_group")}
+            config["compatible_machine_expression_group"][-1] = "printer_notes=~/.*/"
+            expected = {key: config[key] for key in ("filament_max_volumetric_speed", "filament_self_index", "inherits_group", "compatible_machine_expression_group")}
             with open(dst + ".expected.json", "w") as f:
                 json.dump(expected, f)
             print(variants)
@@ -128,6 +130,9 @@ if len(ids) != loaded or ids[1:] != ["Bambu PLA Matte @BBL H2D"] * (loaded - 1):
 inherits = config.get("inherits_group", [])
 if len(inherits) != loaded + 2 or inherits[-1] != expected["inherits_group"][-1]:
     errors.append("inherits_group is %r, want %d entries with the printer %r last" % (inherits, loaded + 2, expected["inherits_group"][-1]))
+expressions = config.get("compatible_machine_expression_group", [])
+if len(expressions) != loaded + 2 or expressions[-1] != expected["compatible_machine_expression_group"][-1]:
+    errors.append("compatible_machine_expression_group is %r, want %d entries with the printer's condition %r last" % (expressions, loaded + 2, expected["compatible_machine_expression_group"][-1]))
 different = config.get("different_settings_to_system", [])
 if len(different) != loaded + 2 or "filament_max_volumetric_speed" not in different[1].split(";"):
     errors.append("different_settings_to_system is %r, want %d entries with the kept key in the first filament's" % (different, loaded + 2))

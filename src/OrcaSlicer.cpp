@@ -3204,8 +3204,9 @@ int CLI::run(int argc, char **argv)
     inherits_group.resize(filament_count + 2, std::string());
     different_settings.resize(filament_count + 2, std::string());
     // More filaments loaded than the project defines: the project grows to the loaded count, so
-    // every per-filament table from here on covers the loaded slots. The two slot lists above
-    // keep the printer in their last slot, so the new filament slots go in before it.
+    // every per-filament table from here on covers the loaded slots. The two slot lists above and
+    // compatible_machine_expression_group keep the printer in their last slot, so the new filament
+    // slots go in before it.
     const int project_defined_filament_count = filament_count;
     if (filament_count < load_filament_count) {
         // An empty --load-filaments entry keeps the project's filament in that slot, so past the project's count
@@ -3220,6 +3221,9 @@ int CLI::run(int argc, char **argv)
         BOOST_LOG_TRIVIAL(info) << boost::format("%1% filaments loaded on a project with %2%, growing the project to %1%") % load_filament_count % filament_count;
         inherits_group.insert(inherits_group.begin() + filament_count + 1, load_filament_count - filament_count, std::string());
         different_settings.insert(different_settings.begin() + filament_count + 1, load_filament_count - filament_count, std::string());
+        if (auto *machine_expressions = m_print_config.option<ConfigOptionStrings>("compatible_machine_expression_group");
+            machine_expressions != nullptr && machine_expressions->values.size() == size_t(filament_count + 2))
+            machine_expressions->values.insert(machine_expressions->values.begin() + filament_count + 1, load_filament_count - filament_count, std::string());
         filament_count = load_filament_count;
     }
     if (!is_bbl_3mf && !different_process_setting.empty()) {
