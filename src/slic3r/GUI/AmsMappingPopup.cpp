@@ -35,6 +35,9 @@
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
+#ifdef __linux__
+#include "slic3r/GUI/LinuxDisplayBackend.hpp"
+#endif
 #include "slic3r/GUI/Widgets/SwitchButton.hpp"
 #include <utility>
 #include "slic3r/GUI/Widgets/AMSItem.hpp"
@@ -1023,26 +1026,24 @@ AmsMapingPopup::AmsMapingPopup(wxWindow *parent, bool use_in_sync_dialog) :
              int    popup_height = content_size.y;
              wxSize popup_size(popup_width, popup_height);
 
-              // Horizontal Direction Processing
-              if (show_pos.x + popup_size.x > screen_size.GetRight())
-              {
-                  show_pos.x = screen_size.GetRight() - popup_size.x;
-              }
+              // Horizontal overflow is a content-size concern, not an anchor-position concern.
+               const int popup_width_limit = std::max(1, screen_size.GetWidth() - FromDIP(28));
+               const bool content_overflows_horizontally = popup_width > screen_size.GetWidth();
+               const int viewport_width = content_overflows_horizontally
+                   ? popup_width_limit
+                   : popup_width;
+               m_scrolled_window->SetMaxSize(wxSize(viewport_width, popup_height));
+               m_scrolled_window->SetMinSize(wxSize(viewport_width, popup_height));
+               m_scrolled_window->SetScrollRate(content_overflows_horizontally ? FromDIP(10) : 0, FromDIP(20));
 
-              //if popup size bigger than screen
-              if (show_pos.x < screen_size.GetLeft())
-              {
-                  show_pos.x = screen_size.GetLeft();
-                  m_scrolled_window->SetMaxSize(wxSize(screen_size.GetWidth(), popup_height));
-                  m_scrolled_window->SetMinSize(wxSize(screen_size.GetWidth(), popup_height));
-                  m_scrolled_window->SetScrollRate(FromDIP(10), FromDIP(20));
-              }
-              else
-              {
-                  m_scrolled_window->SetMaxSize(wxSize(popup_width, popup_height));
-                  m_scrolled_window->SetMinSize(wxSize(popup_width, popup_height));
-                  m_scrolled_window->SetScrollRate(0, FromDIP(20));
-              }
+               // Positioning top-level windows is unsupported on Wayland; let the compositor place it.
+#ifdef __linux__
+               if (!is_running_on_wayland())
+#endif
+               {
+                   const int max_x = std::max(screen_size.GetLeft(), screen_size.GetRight() - popup_width + 1);
+                   show_pos.x = std::clamp(show_pos.x, screen_size.GetLeft(), max_x);
+               }
 
               //Vertical Direction Processing
               int available_height_below = screen_size.GetBottom() - (show_pos.y + parent_size.height);
@@ -1075,6 +1076,9 @@ AmsMapingPopup::AmsMapingPopup(wxWindow *parent, bool use_in_sync_dialog) :
               }
               Layout();
               Fit();
+#ifdef __linux__
+              if (!is_running_on_wayland())
+#endif
               this->Move(show_pos);
          }
      });
