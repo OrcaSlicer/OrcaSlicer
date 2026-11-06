@@ -349,13 +349,13 @@ if(FLATPAK)
     find_package(ZLIB)
     find_package(PNG)
     find_package(EXPAT)
-    find_package(CURL)
     find_package(JPEG)
-    # Not OpenSSL: the manifest stages the pinned tarball and the Flatpak must
-    # run the same build, with the same default security level, as the other
-    # platforms. The GNOME SDK's own OpenSSL would satisfy a probe here and,
-    # because dep_CURL is skipped once both are found, take the SDK's curl
-    # with it.
+    # Not OpenSSL or CURL: the manifest stages the pinned tarballs, and the
+    # Flatpak must run the same OpenSSL build, with the same default security
+    # level, as the other platforms, with a curl linked against it. The GNOME
+    # SDK ships both, and its CURLConfig.cmake finds OpenSSL as a dependency
+    # (find_dependency leaves OPENSSL_FOUND set here), so probing either one
+    # skips dep_OpenSSL and dep_CURL and builds against the SDK's copies.
 endif()
 
 set(ZLIB_PKG "")
