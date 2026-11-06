@@ -19,6 +19,7 @@ add_executable(${_TEST_NAME}_tests
     test_aabbindirect.cpp
     test_appconfig.cpp
     test_arachne_walls.cpp
+    test_arachne_extrusion_clipping.cpp
     test_arrange.cpp
     test_assemble_list.cpp
     test_bambu_networking.cpp
