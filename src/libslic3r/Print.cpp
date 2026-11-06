@@ -1578,18 +1578,24 @@ StringObjectException Print::compacted_wipe_tower_clearance_valid(const Print &p
 // against it.
 void Print::validate_compacted_wipe_tower_clearance() const
 {
-    // Nothing to check when the tower is not compacted: it then follows the object as usual and the
-    // regular by-layer clearance check already covers it. Asking wipe_tower_sparse_layers_skipped()
-    // rather than the raw option keeps this from rejecting plates whose tower is in fact full height.
-    if (! wipe_tower_sparse_layers_skipped(m_config) || m_config.print_sequence != PrintSequence::ByLayer)
+    const auto &tool_changes = m_wipe_tower_data.tool_changes;
+    if (tool_changes.empty() || m_objects.empty() || m_config.print_sequence != PrintSequence::ByLayer)
         return;
-
-    const std::vector<std::vector<WipeTower::ToolChangeResult>> &tool_changes = m_wipe_tower_data.tool_changes;
-    if (tool_changes.empty() || m_objects.empty())
+    const bool independent_columns = std::any_of(tool_changes.begin(), tool_changes.end(), [](const auto &layer) {
+        return std::any_of(layer.begin(), layer.end(), [](const auto &change) { return !change.segments.empty(); });
+    });
+    if (!independent_columns && !wipe_tower_sparse_layers_skipped(m_config))
         return;
-
-    // Same accumulation the G-code emitter runs, so validation and output cannot disagree.
-    const std::vector<float> tower_z = compute_compacted_wipe_tower_z(tool_changes, float(m_config.z_offset.value));
+    // A tool first used high on the model must fill its column's foundation.
+    // Check that descent just like a visit to a compacted tower.
+    std::vector<float> tower_z = compute_compacted_wipe_tower_z(tool_changes, float(m_config.z_offset.value));
+    if (independent_columns)
+        for (size_t layer = 0; layer < tool_changes.size(); ++layer) {
+            tower_z[layer] = std::numeric_limits<float>::max();
+            for (const auto &change : tool_changes[layer])
+                for (const auto &segment : change.segments)
+                    tower_z[layer] = std::min(tower_z[layer], segment.print_z + float(m_config.z_offset.value));
+        }
 
     // Wipe tower footprint: build it from the ACTUAL tool-change extrusions rather than the nominal
     // width x depth rectangle returned by first_layer_wipe_tower_corners(). With a rib wall the printed
@@ -5672,7 +5678,7 @@ void Print::_make_wipe_tower()
 
         // Set the extruder & material properties at the wipe tower object.
         for (size_t i = 0; i < number_of_extruders; ++i)
-            wipe_tower.set_extruder(i, m_config);
+            wipe_tower.set_extruder(i, m_config, m_default_object_config.layer_height.value);
 
         m_wipe_tower_data.priming = Slic3r::make_unique<std::vector<WipeTower::ToolChangeResult>>(
             wipe_tower.prime((float)this->skirt_first_layer_height(), m_wipe_tower_data.tool_ordering.all_extruders(), false));
@@ -5730,8 +5736,9 @@ void Print::_make_wipe_tower()
 
         // Unload the current filament over the purge tower.
         coordf_t layer_height = m_objects.front()->config().layer_height.value;
-        bool generate_final_purge = true;
-        if (m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions > 0) {
+        const bool independent_columns = wipe_tower.has_independent_tool_layers();
+        bool generate_final_purge = !independent_columns;
+        if (!independent_columns && m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions > 0) {
             // The wipe tower goes up to the last layer of the print.
             if (wipe_tower.layer_finished()) {
                 // The wipe tower is printed to the top of the print and it has no space left for the final extruder purge.
@@ -5741,7 +5748,7 @@ void Print::_make_wipe_tower()
             } else {
                 // There is yet enough space at this layer of the wipe tower for the final purge.
             }
-        } else {
+        } else if (!independent_columns) {
             // The wipe tower does not reach the last print layer.
             // Skip final purge to avoid generating purge lines in mid-air.
             assert(m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions == 0);
@@ -5754,13 +5761,13 @@ void Print::_make_wipe_tower()
         m_wipe_tower_data.used_filament         = wipe_tower.get_used_filament();
         m_wipe_tower_data.number_of_toolchanges = wipe_tower.get_number_of_toolchanges();
         // Only a cone wall prints the stabilization cone, whatever cone angle the config holds.
-        const float cone_angle = config().wipe_tower_wall_type.value == WipeTowerWallType::wtwCone ?
+        const float cone_angle = !independent_columns && config().wipe_tower_wall_type.value == WipeTowerWallType::wtwCone ?
                                      static_cast<float>(config().wipe_tower_cone_angle.value) : 0.f;
         m_wipe_tower_data.construct_mesh(wipe_tower.width(), wipe_tower.get_depth(),
                                          wipe_tower.get_wipe_tower_height(), wipe_tower.get_brim_width(),
-                                         config().wipe_tower_wall_type.value == WipeTowerWallType::wtwRib,
+                                         !independent_columns && config().wipe_tower_wall_type.value == WipeTowerWallType::wtwRib,
                                          wipe_tower.get_rib_width(), wipe_tower.get_rib_length(),
-                                         config().wipe_tower_fillet_wall.value, cone_angle);
+                                         !independent_columns && config().wipe_tower_fillet_wall.value, cone_angle);
         const Vec3d origin                      = Vec3d::Zero();
         // FakeWipeTower::pos is a bed-frame translation applied after rotation
         // (getFakeExtrusionPathsFromWipeTower2 rotates about the local origin), so the

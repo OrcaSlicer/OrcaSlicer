@@ -67,6 +67,8 @@ entries would silently shift every later layer onto the wrong tower geometry. La
 therefore still planned and still generated; they are marked, and the emitter
 drops them.
 
+Type 2 towers with per-extruder heights on independent tools use separate material columns instead of this shared-layer scheme. Their foundation and purge segments retain the original result-table indexing; see [Per-extruder layer heights](multi-extruder-layer-heights.md#type-2-prime-towers).
+
 ## Shared rules
 
 Tower planning, G-code emission and the plate validation all have to agree about

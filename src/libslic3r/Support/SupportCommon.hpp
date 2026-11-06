@@ -87,6 +87,10 @@ void trim_support_layers_by_exclusion_volumes(
     const SupportGeneratorLayersPtr       &interface_layers,
     const SupportGeneratorLayersPtr       &base_interface_layers);
 
+// Recombine continuous support columns without filling contact gaps or excluded regions.
+void combine_support_layers(SupportGeneratorLayersPtr &layers, SupportGeneratorLayerStorage &storage,
+                            double height, double first_layer_z);
+
 // returns sorted layers
 SupportGeneratorLayersPtr generate_support_layers(
 	PrintObject							&object,

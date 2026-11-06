@@ -36,6 +36,7 @@
 #include "Print.hpp"
 #include "ShortestPath.hpp"
 #include "SupportCommon.hpp"
+#include "SupportLayer.hpp"
 #include "TreeSupportCommon.hpp"
 #include "TreeSupport.hpp"
 #include "TreeSupport3D.hpp"
@@ -1537,8 +1538,6 @@ void TreeSupport::split_tool_layers()
     const auto &config = m_object->config();
     const double base_height = extruder_layer_height_for_filament(*m_print_config, config.support_filament.value, config.layer_height.value);
     const double interface_height = extruder_layer_height_for_filament(*m_print_config, config.support_interface_filament.value, config.layer_height.value);
-    if (std::abs(base_height - interface_height) < EPSILON)
-        return;
 
     struct Slab {
         ExPolygon area;
@@ -1546,28 +1545,49 @@ void TreeSupport::split_tool_layers()
     };
     std::map<double, std::vector<Slab>> slabs;
     auto &layers = m_object->support_layers();
+    // Keep path-generation attributes separate while combining continuous
+    // columns. Moving branches retain their original boundary geometry.
+    using GroupKey = std::tuple<int, bool, bool, bool>;
+    std::map<GroupKey, SupportGeneratorLayersPtr> columns;
+    std::vector<SupportLayer::AreaGroup> prototypes;
+    SupportGeneratorLayerStorage storage;
     for (size_t i = m_raft_layers; i < layers.size(); ++i) {
         const SupportLayer &layer = *layers[i];
         for (const auto &group : layer.area_groups) {
-            const bool base = group.type == SupportLayer::BaseType || group.interface_as_base;
-            const unsigned int filament = base ? config.support_filament.value : config.support_interface_filament.value;
-            const double target = base ? base_height : interface_height;
-            const auto steps = layer.print_z <= m_slicing_params.first_print_layer_height + EPSILON ?
-                std::vector<double>{layer.height} :
-                extruder_support_layer_steps(layer.height, target, extruder_layer_height_range(*m_print_config, filament).min_height);
-            double z = layer.bottom_z();
-            for (double height : steps) {
-                z += height;
-                // Quantize only the map key, so coincident base/interface tops share one layer.
-                const double print_z = std::round(z * 1e6) / 1e6;
-                Slab slab{*group.area, group};
-                slab.group.extrusion_height = height;
-                slabs[print_z].push_back(std::move(slab));
-                if (base) {
-                    const auto lightning = printZ_to_lightninglayer.find(layer.print_z);
-                    if (lightning != printZ_to_lightninglayer.end())
-                        printZ_to_lightninglayer.emplace(print_z, lightning->second);
-                }
+            auto &column = columns[{group.type, group.interface_as_base, group.need_infill, group.need_extra_wall}];
+            if (column.empty() || std::abs(column.back()->print_z - layer.print_z) > EPSILON) {
+                auto &part = storage.allocate(SupporLayerType::Base);
+                part.height = layer.height;
+                part.bottom_z = layer.bottom_z();
+                part.print_z = layer.print_z;
+                part.idx_object_layer_above = prototypes.size();
+                part.idx_object_layer_below = i;
+                prototypes.push_back(group);
+                column.push_back(&part);
+            }
+            polygons_append(column.back()->polygons, to_polygons(*group.area));
+        }
+    }
+    for (auto &[key, column] : columns) {
+        const bool base = std::get<0>(key) == SupportLayer::BaseType || std::get<1>(key);
+        const unsigned int filament = base ? config.support_filament.value : config.support_interface_filament.value;
+        const double target = base ? base_height : interface_height;
+        for (auto *part : column)
+            part->polygons = union_(part->polygons);
+        split_support_layers(column, storage, target,
+            extruder_layer_height_range(*m_print_config, filament).min_height,
+            m_slicing_params.first_print_layer_height);
+        combine_support_layers(column, storage, target, m_slicing_params.first_print_layer_height);
+        for (const auto *part : column) {
+            const double print_z = std::round(part->print_z * 1e6) / 1e6;
+            auto group = prototypes[part->idx_object_layer_above];
+            group.extrusion_height = part->height;
+            for (auto &area : union_ex(part->polygons))
+                slabs[print_z].push_back({std::move(area), group});
+            if (base) {
+                const auto lightning = printZ_to_lightninglayer.find(layers[part->idx_object_layer_below]->print_z);
+                if (lightning != printZ_to_lightninglayer.end())
+                    printZ_to_lightninglayer.emplace(print_z, lightning->second);
             }
         }
     }
@@ -3753,7 +3773,14 @@ std::vector<LayerHeightData> TreeSupport::plan_layer_heights()
                                  << ", object_layer_zs[" << layer_heights[layer_nr].obj_layer_nr << "]=" << m_object->get_layer(layer_heights[layer_nr].obj_layer_nr)->print_z;
         coordf_t new_height = layer_heights[layer_nr].height;
         if (std::abs(node1->height - new_height) < EPSILON) continue;
-        if (top_z_distance < EPSILON && node1->height < EPSILON) continue; // top_z_distance==0, this is soluable interface
+        if (top_z_distance < EPSILON && node1->height < EPSILON) {
+            // With no gap this node deposits a real interface layer. Its children
+            // must advance by that layer's thickness when measuring roof depth.
+            if (m_slicing_params.use_extruder_layer_heights)
+                for (SupportNode *node : contact_nodes[layer_nr])
+                    node->height = new_height;
+            continue;
+        }
         coordf_t              accum_height = 0;
         int                   num_layers   = 0;
         for (int i=layer_nr;i>=0;i--){

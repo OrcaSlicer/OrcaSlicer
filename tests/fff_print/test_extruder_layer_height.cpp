@@ -22,6 +22,9 @@
 #include <string>
 #include <utility>
 #include "libslic3r/Flow.hpp"
+#include "libslic3r/GCode/WipeTower.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include <set>
 
 using namespace Slic3r;
 using namespace Slic3r::Test;
@@ -267,13 +270,76 @@ TEST_CASE("Supports use the selected extruder's process height", "[ExtruderLayer
     REQUIRE(has_requested_height);
 }
 
-TEST_CASE("A prime tower exports alongside unequal object layer heights", "[ExtruderLayerHeight]")
+TEST_CASE("Prime tower columns use their tool heights on a fine object grid", "[ExtruderLayerHeight][WipeTower]")
 {
+    const bool mixed_nozzles = GENERATE(false, true);
+    const bool ramming = GENERATE(false, true);
+    const auto wall = GENERATE("rectangle", "rib");
+    CAPTURE(mixed_nozzles, ramming, wall);
     auto config = layer_config();
     config.set_deserialize_strict({{"enable_prime_tower", "1"}, {"wipe_tower_type", "type2"},
         {"single_extruder_multi_material", "0"}, {"prime_tower_width", "30"},
-        {"wipe_tower_x", "120"}, {"wipe_tower_y", "120"},
+        {"nozzle_diameter", mixed_nozzles ? "0.2,0.6" : "0.4,0.4"},
+        {"extruder_layer_height", "0.05,0.3"}, {"max_layer_height", "0.14,0.42"},
+        {"filament_multitool_ramming", ramming ? "1,1" : "0,0"},
+        {"wipe_tower_filament", "2"}, {"wipe_tower_x", "60"}, {"wipe_tower_y", "60"},
+        {"wipe_tower_wall_type", wall}, {"wipe_tower_rotation_angle", "30"},
         {"change_filament_gcode", "T[next_extruder]\n"}, {"gcode_comments", "1"}});
+    Print print;
+    Model model;
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{
+        {{"extruder", "1"}}, {{"extruder", "2"}}
+    };
+    init_print({make_cube(8., 8., 1.3), make_cube(8., 8., 1.3)}, print, model, config, &overrides);
+    print.set_status_silent();
+    GCodeProcessorResult processed;
+    const std::string output = gcode(print, &processed);
+    REQUIRE(output.find("T0") != std::string::npos);
+    REQUIRE(output.find("T1") != std::string::npos);
+    REQUIRE(output.find("Clear independent tower columns") != std::string::npos);
+    REQUIRE(print.has_wipe_tower());
+    std::set<int> coarse_tops;
+    size_t coarse_visits = 0;
+    for (const auto &layer : print.wipe_tower_data().tool_changes)
+        for (const auto &visit : layer) {
+            if (visit.combined_away)
+                continue;
+            REQUIRE_FALSE(visit.segments.empty());
+            for (const auto &part : visit.segments) {
+                REQUIRE(part.independent_column);
+                const double requested = part.new_tool == 0 ? 0.05 : 0.3;
+                REQUIRE_THAT(part.layer_height, WithinAbs(part.print_z < 0.10001 ? 0.1 : requested, 1e-5));
+                if (part.new_tool == 1 && part.print_z > 0.10001) {
+                    ++coarse_visits;
+                    coarse_tops.insert(int(std::lround(part.print_z * 1000000)));
+                }
+            }
+        }
+    REQUIRE(coarse_tops.size() >= 3);
+    // Fine-grid revisits must share the reserved purge space in a thick layer,
+    // rather than depositing another thick layer on the same footprint.
+    REQUIRE(coarse_visits > coarse_tops.size());
+    size_t coarse_moves = 0;
+    for (const auto &move : processed.moves)
+        if (move.type == EMoveType::Extrude && move.extrusion_role == erWipeTower && move.position.z() > 0.10001) {
+            const double requested = move.extruder_id == 0 ? 0.05 : 0.3;
+            CHECK_THAT(move.height, WithinAbs(requested, 1e-5));
+            const double band = (move.position.z() - 0.1) / requested;
+            CHECK_THAT(band, WithinAbs(std::round(band), 1e-4));
+            coarse_moves += move.extruder_id == 1;
+        }
+    REQUIRE(coarse_moves > 0);
+}
+
+TEST_CASE("Unused configured tool heights do not activate tower columns", "[ExtruderLayerHeight][WipeTower]")
+{
+    auto config = layer_config(3);
+    config.set_deserialize_strict({{"enable_prime_tower", "1"}, {"wipe_tower_type", "type2"},
+        {"single_extruder_multi_material", "0"}, {"prime_tower_width", "30"},
+        {"nozzle_diameter", "0.4,0.4,0.8"}, {"extruder_layer_height", "0,0,0.3"},
+        {"max_layer_height", "0.3,0.3,0.6"}, {"filament_map", "1,2,3"},
+        {"wipe_tower_x", "60"}, {"wipe_tower_y", "60"},
+        {"change_filament_gcode", "T[next_extruder]\n"}});
     Print print;
     Model model;
     const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{
@@ -281,10 +347,10 @@ TEST_CASE("A prime tower exports alongside unequal object layer heights", "[Extr
     };
     init_print({make_cube(8., 8., 1.1), make_cube(8., 8., 1.1)}, print, model, config, &overrides);
     print.set_status_silent();
-    const std::string output = gcode(print);
-    REQUIRE(output.find("T0") != std::string::npos);
-    REQUIRE(output.find("T1") != std::string::npos);
-    REQUIRE(print.has_wipe_tower());
+    REQUIRE_FALSE(gcode(print).empty());
+    for (const auto &layer : print.wipe_tower_data().tool_changes)
+        for (const auto &change : layer)
+            REQUIRE(change.segments.empty());
 }
 
 TEST_CASE("Unsupported layer schedules are rejected before slicing", "[ExtruderLayerHeight]")
@@ -361,22 +427,24 @@ TEST_CASE("Changes in used tools invalidate the shared slicing grid", "[Extruder
 
 TEST_CASE("Support bodies and interfaces use independent tool heights", "[ExtruderLayerHeight][SupportMaterial]")
 {
-    const auto style = GENERATE("normal", "tree_slim", "tree_strong", "tree_hybrid");
+    const auto style = GENERATE("normal", "snug", "tree_slim", "tree_strong", "tree_hybrid");
+    const bool zero_gap = GENERATE(false, true);
+    const bool normal = std::string(style) == "normal" || std::string(style) == "snug";
     const bool coarse_interface = GENERATE(false, true);
     const bool mapped = GENERATE(false, true);
     const double fine_height = GENERATE(0.1, 0.15);
     const int interface_count = GENERATE(1, 3);
     const bool staggered = GENERATE(false, true);
-    CAPTURE(style, coarse_interface, mapped, fine_height, interface_count, staggered);
+    CAPTURE(style, zero_gap, coarse_interface, mapped, fine_height, interface_count, staggered);
     auto config = layer_config(3);
     config.set_deserialize_strict({
         {"nozzle_diameter", coarse_interface ? "0.2,0.6,0.2" : "0.6,0.2,0.2"},
         {"extruder_layer_height", coarse_interface ? "0.1,0.3,0.1" : "0.3,0.1,0.1"},
         {"min_layer_height", "0.04,0.04,0.04"}, {"max_layer_height", "0.42,0.42,0.16"},
         {"filament_map", "1,2,3"}, {"enable_support", "1"}, {"support_filament", "1"},
-        {"support_interface_filament", "2"}, {"support_type", std::string(style) == "normal" ? "normal(auto)" : "tree(auto)"},
+        {"support_interface_filament", "2"}, {"support_type", normal ? "normal(auto)" : "tree(auto)"},
         {"support_style", std::string(style) == "normal" ? "grid" : style},
-        {"support_top_z_distance", "0.2"}, {"support_bottom_z_distance", "0.2"},
+        {"support_top_z_distance", zero_gap ? "0" : "0.2"}, {"support_bottom_z_distance", "0.2"},
         {"support_interface_top_layers", "3"}, {"support_interface_bottom_layers", "3"},
         {"independent_support_layer_height", "0"}, {"thick_bridges", "0"},
         {"layer_change_gcode", "G92 E0\n"}});
@@ -441,7 +509,7 @@ TEST_CASE("Support bodies and interfaces use independent tool heights", "[Extrud
         if (print_z > 0.1 + 1e-5)
             collect(layer->support_fills);
     }
-    const auto check = [staggered](const std::vector<double> &heights, double requested) {
+    const auto check = [](const std::vector<double> &heights, double requested) {
         REQUIRE_FALSE(heights.empty());
         bool has_requested = false;
         for (double height : heights) {
@@ -449,8 +517,7 @@ TEST_CASE("Support bodies and interfaces use independent tool heights", "[Extrud
             CHECK(height <= requested + 1e-5);
             has_requested |= std::abs(height - requested) < 1e-5;
         }
-        if (!staggered)
-            CHECK(has_requested);
+        CHECK(has_requested);
     };
     check(base_heights, coarse_interface ? fine_height : 0.3);
     check(interface_heights, coarse_interface ? 0.3 : fine_height);

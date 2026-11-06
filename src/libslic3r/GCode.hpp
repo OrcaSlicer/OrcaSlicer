@@ -186,6 +186,7 @@ private:
     int                                                          m_tool_change_idx;
     double                                                       m_last_wipe_tower_print_z;
     bool                                                         m_layer_joined = false;
+    mutable double m_highest_tool_column_z = 0.;
 
     // BBS
     Vec3d                                                        m_plate_origin;

@@ -72,7 +72,7 @@ public:
 
 
 	// Set the extruder properties.
-    void set_extruder(size_t idx, const PrintConfig& config);
+    void set_extruder(size_t idx, const PrintConfig& config, double default_layer_height = 0.2);
 
 	// Appends into internal structure m_plan containing info about the future wipe tower
 	// to be used before building begins. The entries must be added ordered in z.
@@ -80,6 +80,8 @@ public:
 
 	// Iterates through prepared m_plan, generates ToolChangeResults and appends them to "result"
 	void generate(std::vector<std::vector<WipeTower::ToolChangeResult>> &result);
+
+    bool has_independent_tool_layers() const { return m_independent_tool_layers; }
 
     float get_depth() const { return m_wipe_tower_depth; }
 	std::vector<std::pair<float, float>> get_z_and_depth_pairs() const;
@@ -118,6 +120,7 @@ public:
 		m_layer_height			= layer_height;
 		m_depth_traversed  = 0.f;
         m_current_layer_finished = false;
+        m_toolchange_index = 0;
         m_prev_layer_had_interface = m_current_layer_has_interface;
 
 		
@@ -209,6 +212,8 @@ public:
         float               tower_interface_purge_length = 0.f;
         // Tallest layer this filament's nozzle can lay down; caps the sparse layer combination.
         float               max_layer_height = 0.f;
+        float               layer_height = 0.f;
+        bool                has_custom_layer_height = false;
     };
 
 private:
@@ -277,6 +282,12 @@ private:
     float           m_bridging                  = 0.f;
     bool            m_sparse_layers_skipped     = false;
     bool            m_sparse_layers_combined    = false;
+    bool m_independent_tool_layers = false;
+    bool m_is_tool_column = false;
+    bool m_skip_ramming = false;
+    size_t m_toolchange_index = 0;
+    void generate_tool_columns(std::vector<std::vector<WipeTower::ToolChangeResult>> &result);
+
     bool            m_set_extruder_trimpot      = false;
     bool            m_adhesion                  = true;
     GCodeFlavor     m_gcode_flavor;
@@ -320,7 +331,7 @@ private:
     float wipe_line_width() const { return m_perimeter_width * m_extra_flow; }
 
     // Whether toolchange_Unload() rams this (old) tool out.
-    bool tool_ramming_enabled(size_t tool) const { return (m_semm && m_enable_filament_ramming) || m_filpar[tool].multitool_ramming; }
+    bool tool_ramming_enabled(size_t tool) const { return !m_skip_ramming && ((m_semm && m_enable_filament_ramming) || m_filpar[tool].multitool_ramming); }
     // Whether the wipe restarts at the box boundary on a fresh row below the quantized
     // ram band after ramming this (old) tool out (multi-tool gap wall; SEMM keeps the
     // stock continue-from-ram-end behavior).
@@ -378,6 +389,8 @@ private:
 		struct ToolChange {
             size_t old_tool;
             size_t new_tool;
+            bool ramming_only = false;
+            bool skip_ramming = false;
 			float required_depth;
             float ramming_depth;
             float first_wipe_line;
@@ -463,7 +476,7 @@ private:
 
     // Computes the depth reserved for a toolchange (shared by plan_toolchange() and the
     // rib-wall square-tower replanning in generate()).
-    WipeTowerInfo::ToolChange set_toolchange(size_t old_tool, size_t new_tool, float layer_height, float wipe_volume, bool first_layer_plan);
+    WipeTowerInfo::ToolChange set_toolchange(size_t old_tool, size_t new_tool, float layer_height, float wipe_volume, bool first_layer_plan, bool skip_ramming = false, bool ramming_only = false);
 };
 
 

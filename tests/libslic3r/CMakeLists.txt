@@ -79,6 +79,7 @@ add_executable(${_TEST_NAME}_tests
     test_semver.cpp
     test_voronoi.cpp
     test_wipe_tower_estimate.cpp
+    test_support_layer_schedule.cpp
     test_wipe_tower.cpp
     test_wipe_path.cpp
     test_optimizers.cpp

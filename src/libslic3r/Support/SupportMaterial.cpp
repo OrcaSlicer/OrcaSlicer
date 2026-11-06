@@ -600,6 +600,14 @@ void PrintObjectSupportMaterial::generate(PrintObject &object)
         split(bottom_contacts, interface_filament);
         split(top_contacts, interface_filament);
         split(interface_layers, interface_filament);
+        const auto combine = [&](SupportGeneratorLayersPtr &layers, unsigned int filament) {
+            combine_support_layers(layers, layer_storage,
+                extruder_layer_height_for_filament(*m_print_config, filament, m_object_config->layer_height.value),
+                m_slicing_params.first_print_layer_height);
+        };
+        combine(intermediate_layers, m_object_config->support_filament.value);
+        combine(base_interface_layers, m_object_config->support_filament.value);
+        combine(interface_layers, interface_filament);
     }
 
 #ifdef SLIC3R_DEBUG
@@ -1874,6 +1882,13 @@ static inline std::pair<SupportGeneratorLayer*, SupportGeneratorLayer*> new_cont
         print_z  = layer.bottom_z();
         height   = layer.lower_layer->height;
         bottom_z = (layer_id == 1) ? slicing_params.object_print_z_min : layer.lower_layer->lower_layer->print_z;
+        if (slicing_params.use_extruder_layer_heights && layer_id > 1) {
+            const unsigned int filament = object_config.support_interface_top_layers.value > 0 ?
+                object_config.support_interface_filament.value : object_config.support_filament.value;
+            height = std::min(print_z - slicing_params.first_print_layer_height,
+                extruder_layer_height_for_filament(print_config, filament, object_config.layer_height.value));
+            bottom_z = print_z - height;
+        }
     }
     else {
         // BBS: need to consider adaptive layer heights
