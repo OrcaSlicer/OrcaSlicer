@@ -2393,38 +2393,75 @@ TEST_CASE("Adaptive TPMS infill of a region matches the infill of a larger regio
     }
 }
 
-TEST_CASE("TPMS infill lines do not end where the rings of the pattern start", "[Fill][Regression]")
+TEST_CASE("Infill lines do not end where the rings of the pattern start", "[Fill][Regression]")
 {
-    // Marching squares patterns are closed rings, starting anywhere along their lines.
-    const auto [pattern, mode, optimized] = GENERATE(table<InfillPattern, AdaptiveInfillMode, bool>(
-        {{ipGyroid, AdaptiveInfillMode::DistanceWarp, false},
-         {ipTpmsD, AdaptiveInfillMode::DistanceWarp, false},
-         {ipTpmsFK, AdaptiveInfillMode::DistanceWarp, false},
-         {ipTpmsFK, AdaptiveInfillMode::Disabled, false},
-         {ipGyroid, AdaptiveInfillMode::Disabled, true}}));
-    const int multiline = GENERATE(1, 2);
-    CAPTURE(pattern, mode, optimized, multiline);
+    // Marching squares patterns and multiline outlines are closed rings, starting anywhere along their lines.
+    const auto [pattern, mode, optimized, first_multiline] = GENERATE(table<InfillPattern, AdaptiveInfillMode, bool, int>(
+        {{ipGyroid, AdaptiveInfillMode::DistanceWarp, false, 1},
+         {ipTpmsD, AdaptiveInfillMode::DistanceWarp, false, 1},
+         {ipTpmsFK, AdaptiveInfillMode::DistanceWarp, false, 1},
+         {ipTpmsFK, AdaptiveInfillMode::Disabled, false, 1},
+         {ipGyroid, AdaptiveInfillMode::Disabled, true, 1},
+         {ipGyroid, AdaptiveInfillMode::Disabled, false, 2},
+         {ipTpmsD, AdaptiveInfillMode::Disabled, false, 2},
+         {ipHoneycomb, AdaptiveInfillMode::Disabled, false, 2},
+         {ipQuarterCubic, AdaptiveInfillMode::Disabled, false, 2},
+         {ipLateralLattice, AdaptiveInfillMode::Disabled, false, 2},
+         {ipLateralHoneycomb, AdaptiveInfillMode::Disabled, false, 2},
+         {ipRectilinear, AdaptiveInfillMode::Disabled, false, 2},
+         {ipAlignedRectilinear, AdaptiveInfillMode::Disabled, false, 2},
+         {ipGrid, AdaptiveInfillMode::Disabled, false, 2},
+         {ipTriangles, AdaptiveInfillMode::Disabled, false, 2},
+         {ipStars, AdaptiveInfillMode::Disabled, false, 2},
+         {ipCubic, AdaptiveInfillMode::Disabled, false, 2},
+         {ipCrossHatch, AdaptiveInfillMode::Disabled, false, 2},
+         {ipHilbertCurve, AdaptiveInfillMode::Disabled, false, 2}}));
+    const int   multiline = GENERATE(1, 2, 3);
+    const float density   = GENERATE(0.1f, 0.3f);
+    const bool  with_hole = GENERATE(false, true);
+    // A single line of the other patterns is not a ring, and the center line of these two may stop short of the boundary.
+    if (multiline < first_multiline || (multiline == 3 && (pattern == ipCrossHatch || pattern == ipHilbertCurve)))
+        return;
+    CAPTURE(pattern, mode, optimized, multiline, density, with_hole);
 
     // A 60 mm cube, filled with lines connected along the boundary of its 0.45 mm narrower section.
     const double     spacing = 0.45;
     const ExPolygons box{ExPolygon(Points{Point::new_scale(0., 0.), Point::new_scale(60., 0.), Point::new_scale(60., 60.), Point::new_scale(0., 60.)})};
-    std::vector<AdaptiveInfillField::Slice> slices;
-    for (int i = 0; i < 300; ++i)
-        slices.push_back({0.2 * i, 0.2 * (i + 1), &box});
-    const AdaptiveInfillField field(slices, get_extents(box), AdaptiveInfillMode::DistanceWarp, [] {});
-    const AABBTreeLines::LinesDistancer<Line> walls(to_lines(offset_ex(box, -float(scale_(0.5 * spacing)))));
+    ExPolygon        region = box.front();
+    if (with_hole) {
+        Polygon hole = make_circle_num_segments(scale_(10.), 60);
+        hole.translate(Point::new_scale(30., 30.));
+        hole.reverse();
+        region.holes.emplace_back(std::move(hole));
+    }
+    std::unique_ptr<AdaptiveInfillField> field;
+    if (mode != AdaptiveInfillMode::Disabled) {
+        std::vector<AdaptiveInfillField::Slice> slices;
+        for (int i = 0; i < 300; ++i)
+            slices.push_back({0.2 * i, 0.2 * (i + 1), &box});
+        field = std::make_unique<AdaptiveInfillField>(slices, get_extents(box), AdaptiveInfillMode::DistanceWarp, [] {});
+    }
+    const AABBTreeLines::LinesDistancer<Line> walls(to_lines(offset_ex(region, -float(scale_(0.5 * spacing)))));
     auto on_wall = [&walls](const Point &point) { return walls.distance_from_lines<false>(point) < scale_(0.01); };
+    auto runs_between_walls = [&on_wall](const Polyline &path) {
+        for (size_t i = 1; i < path.size(); ++i)
+            if (path.points[i - 1].distance_to(path.points[i]) > scale_(0.1) && on_wall(path.points[i - 1]) && on_wall(path.points[i]))
+                return true;
+        return false;
+    };
 
     for (const double z : {5.1, 12.3, 20.1, 25.3, 28.7, 34.7, 40.1, 47.9, 54.9}) {
         CAPTURE(z);
         std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
-        filler->spacing = spacing;
-        filler->angle   = float(M_PI / 4.);
-        filler->z       = z;
-        filler->adaptive_infill_field = mode == AdaptiveInfillMode::Disabled ? nullptr : &field;
+        filler->spacing  = spacing;
+        filler->angle    = float(M_PI / 4.);
+        filler->z        = z;
+        filler->layer_id = size_t(std::lround(z / 0.2));
+        filler->adaptive_infill_field = field.get();
 
         FillParams params;
-        params.density                          = 0.3f;
+        params.pattern                          = pattern;
+        params.density                          = density;
         params.multiline                        = multiline;
         params.gyroid_optimized                 = optimized;
         params.adaptive_infill_mode             = mode;
@@ -2432,14 +2469,18 @@ TEST_CASE("TPMS infill lines do not end where the rings of the pattern start", "
         params.adaptive_infill_gradient         = AdaptiveInfillGradient::Linear;
         params.layer_height                     = 0.2;
         params.dont_adjust                      = true;
-        Surface surface(stInternal, box.front());
+        Surface surface(stInternal, region);
         const Polylines paths = filler->fill_surface(&surface, params);
         REQUIRE_FALSE(paths.empty());
 
         for (const Polyline &path : paths)
             if (path.first_point() == path.last_point()) {
-                // An island of the pattern, away from the boundary. Running along it means a ring cut at its start.
-                CHECK(std::none_of(path.points.begin(), path.points.end(), on_wall));
+                // Not a line joined with its duplicate.
+                CHECK(path.size() > 3);
+                // The anchors of a line may meet on the boundary. Away from it this is an island of the pattern, unless
+                // it runs along the boundary, which means a ring cut at its start.
+                if (!on_wall(path.first_point()))
+                    CHECK_FALSE(runs_between_walls(path));
             } else {
                 CHECK(on_wall(path.first_point()));
                 CHECK(on_wall(path.last_point()));
