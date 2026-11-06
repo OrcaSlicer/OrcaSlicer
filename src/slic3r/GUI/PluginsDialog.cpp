@@ -1374,29 +1374,33 @@ void PluginsDialog::reload_local_plugin(const std::string& plugin_key, bool clea
             [plugin_key, was_loaded, clear_cache]() -> std::pair<bool, std::string> {
                 PluginManager& manager = PluginManager::instance();
 
-                boost::filesystem::path cache_dir;
+                boost::filesystem::path plugin_root;
                 if (clear_cache) {
                     PluginDescriptor descriptor;
                     if (!manager.try_get_plugin_descriptor(plugin_key, descriptor))
                         return {false, _u8L("Plugin not found.")};
 
-                    boost::filesystem::path resolved_root;
-                    std::string                  resolve_error;
+                    std::string resolve_error;
                     if (!resolve_allowed_plugin_root(descriptor, {get_orca_plugins_dir()},
                                                      _u8L("Refusing to clear a plugin cache outside the local plugin directory."),
-                                                     resolved_root, resolve_error))
+                                                     plugin_root, resolve_error))
                         return {false, resolve_error};
-                    cache_dir = resolved_root / "__whl_extracted__";
                 }
 
                 if (!manager.unload_plugin(plugin_key))
                     return {false, _u8L("Failed to unload plugin.")};
 
                 if (clear_cache) {
-                    boost::system::error_code ec;
-                    boost::filesystem::remove_all(cache_dir, ec);
-                    if (ec)
-                        return {false, GUI::format(_u8L("Failed to clear plugin cache: %1%"), ec.message())};
+                    // __whl_extracted__ now holds both dependency extractions and the uv-installed
+                    // entry wheel. The old private uv target is removed too when upgrading from a
+                    // build that still used it. The stored wheel and plugin data are left untouched.
+                    for (const char* cache_name : {plugin_wheel_install::EXTRACTED_DIR_NAME,
+                                                   plugin_wheel_install::LEGACY_INSTALL_DIR_NAME}) {
+                        boost::system::error_code ec;
+                        boost::filesystem::remove_all(plugin_root / cache_name, ec);
+                        if (ec)
+                            return {false, GUI::format(_u8L("Failed to clear plugin cache: %1%"), ec.message())};
+                    }
                 }
 
                 manager.load_plugin(plugin_key, false);

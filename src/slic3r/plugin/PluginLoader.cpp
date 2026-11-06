@@ -23,7 +23,6 @@
 #include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/file_status.hpp>
 #include <boost/log/trivial.hpp>
-#include <slic3r/Utils/BoostProcessCompat.hpp>
 #include "slic3r/plugin/PluginDescriptor.hpp"
 #include <optional>
 #include <vector>
@@ -31,7 +30,6 @@
 #include "slic3r/plugin/PythonPluginInterface.hpp"
 #include <cstddef>
 #include <functional>
-#include <system_error>
 
 #include <algorithm>
 #include <chrono>
@@ -168,7 +166,7 @@ bool add_wheel_dependencies_to_sys_path(const PluginDescriptor& descriptor,
         if (it->path() == entry_path)
             continue;
 
-        const fs::path dep_dir = plugin_dir / "__whl_extracted__" / it->path().stem().string();
+        const fs::path dep_dir = plugin_dir / plugin_wheel_install::EXTRACTED_DIR_NAME / it->path().stem().string();
         if (!fs::exists(dep_dir)) {
             std::string extract_error;
             if (!extract_zip_to_directory(it->path(), dep_dir, extract_error)) {
@@ -198,10 +196,6 @@ PyObject* import_plugin_module(const PluginDescriptor& descriptor,
 
     if (descriptor.entry_package.empty())
         return interpreter.load_module_from_file(descriptor.entry_path, error, &plugin_paths, &plugin_modules);
-
-    if (boost::filesystem::path(descriptor.entry_path).extension() == ".whl")
-        return interpreter.load_module_from_whl(
-            descriptor.entry_path, descriptor.entry_package, error, &plugin_paths, &plugin_modules);
 
     return interpreter.load_module_from_directory(
         descriptor.entry_path, descriptor.entry_package, error, &plugin_paths, &plugin_modules);
@@ -265,6 +259,22 @@ bool load(const PluginDescriptor&                          descriptor,
     plugin.descriptor  = descriptor;
     plugin.module_name = plugin_module_name(descriptor);
 
+    // Wheel entries have one installation and one loading path: uv installs the entry wheel into
+    // the legacy extraction path, then the entry package is imported from there. An existing
+    // markerless extraction at that path is a pre-uv cache and is used directly when it contains
+    // the entry package. Dependency wheels are extracted alongside it under __whl_extracted__/
+    // and are not touched.
+    const bool has_entry_wheel = plugin_package_extension(descriptor.entry_path) == ".whl";
+    if (has_entry_wheel) {
+        std::string wheel_install_error;
+        if (!plugin_wheel_install::ensure_installed(descriptor, wheel_install_error)) {
+            // Report the failure instead of silently falling back to extraction.
+            // TRN %1% is the uv/installation error detail.
+            error = GUI::format(_u8L("Failed to install plugin wheel: %1%"), wheel_install_error);
+            return false;
+        }
+    }
+
     if (!skip_deps) {
         std::string pkg_install_error;
         if (!install_packages(descriptor.dependencies, pkg_install_error)) {
@@ -284,7 +294,14 @@ bool load(const PluginDescriptor&                          descriptor,
     }
 
     std::string load_error;
-    PyObject*   module = import_plugin_module(descriptor, plugin.plugin_sys_paths, plugin.plugin_modules, load_error);
+    PyObject*   module = nullptr;
+    if (has_entry_wheel) {
+        module = interpreter.load_module_from_directory(
+            plugin_wheel_install::install_dir(descriptor.plugin_root, descriptor.entry_package), descriptor.entry_package,
+            load_error, &plugin.plugin_sys_paths, &plugin.plugin_modules);
+    } else {
+        module = import_plugin_module(descriptor, plugin.plugin_sys_paths, plugin.plugin_modules, load_error);
+    }
     if (module == nullptr) {
         bridge.cancel_plugin_capture(descriptor.entry_path);
         error = GUI::format(_u8L("Failed to load plugin module: %1%"), load_error);
@@ -480,12 +497,6 @@ bool install_packages(const std::vector<std::string>& pkgs, std::string& error)
     if (pkgs.empty())
         return true;
 
-    const std::string uv_path = PythonInterpreter::bundled_uv_path();
-    if (uv_path.empty()) {
-        error = "Bundled uv executable not found. Python package installation is unavailable.";
-        return false;
-    }
-
     const std::string python_executable = PythonInterpreter::bundled_python_executable();
     if (python_executable.empty()) {
         error = "Bundled Python executable not found. Python package installation is unavailable.";
@@ -508,81 +519,7 @@ bool install_packages(const std::vector<std::string>& pkgs, std::string& error)
     BOOST_LOG_TRIVIAL(info) << "Installing Python packages via uv for " << python_executable << ": "
                             << boost::algorithm::join(pkgs, ", ");
 
-    try {
-        namespace process = boost::process;
-
-        process::ipstream std_err;
-        process::child    child(uv_path, process::args(args),
-#ifdef _WIN32
-                                // uv.exe (and the python.exe it spawns) are console-subsystem programs.
-                                // OrcaSlicer is a GUI app with no console of its own, so without this flag
-                                // Windows allocates a fresh console window for the child that flashes on
-                                // screen during startup plugin loading. Matches ProcessRunner/MediaPlayCtrl.
-                                process::windows::create_no_window,
-#endif
-                                process::std_err > std_err);
-
-        std::string err_output;
-        std::thread stderr_reader([&std_err, &err_output]() {
-            std::string line;
-            while (std::getline(std_err, line)) {
-                err_output += line + '\n';
-            }
-        });
-
-        // Wait up to 120 seconds for package install to complete.
-        //
-        // NOTE: we poll child.running() instead of calling child.wait_for().
-        // On macOS (which lacks sigtimedwait) boost.process v1 implements the
-        // timed waits with a sigwait()-based fallback that deadlocks inside a
-        // multi-threaded process: SIGCHLD is delivered to an arbitrary thread
-        // and consumed by an async handler, so the worker thread's sigwait()
-        // never returns and the timeout never fires — the plugin load hangs
-        // forever (the "Loading" status never clears). child.running() uses
-        // waitpid(WNOHANG), which behaves correctly on every platform.
-        // (boost.process v2, in Boost >= 1.86, implements timed waits via Asio
-        // and is unaffected — revisit this when the bundled Boost is upgraded.)
-        constexpr auto kInstallTimeout = std::chrono::seconds(120);
-        const auto     deadline        = std::chrono::steady_clock::now() + kInstallTimeout;
-
-        std::error_code run_ec;
-        while (child.running(run_ec)) {
-            if (run_ec) {
-                stderr_reader.join();
-                error = "Failed to query uv process status: " + run_ec.message();
-                BOOST_LOG_TRIVIAL(error) << error;
-                return false;
-            }
-            if (std::chrono::steady_clock::now() >= deadline) {
-                std::error_code term_ec;
-                child.terminate(term_ec);
-                child.wait(term_ec);
-                stderr_reader.join();
-                error = "uv pip install timed out after 120s";
-                BOOST_LOG_TRIVIAL(error) << error;
-                return false;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-        stderr_reader.join();
-
-        const int exit_code = child.exit_code();
-        if (exit_code != 0) {
-            if (!err_output.empty())
-                error = "uv pip install failed (exit code " + std::to_string(exit_code) + "): " + err_output;
-            else
-                error = "uv pip install failed with exit code " + std::to_string(exit_code);
-            BOOST_LOG_TRIVIAL(error) << error;
-            return false;
-        }
-
-        BOOST_LOG_TRIVIAL(info) << "Python packages installed successfully";
-        return true;
-    } catch (const std::exception& ex) {
-        error = std::string("Failed to run uv: ") + ex.what();
-        BOOST_LOG_TRIVIAL(error) << error;
-        return false;
-    }
+    return PythonInterpreter::run_uv(args, std::chrono::seconds(120), error);
 }
 
 bool inspect_local_plugin_package(const boost::filesystem::path& filepath,
