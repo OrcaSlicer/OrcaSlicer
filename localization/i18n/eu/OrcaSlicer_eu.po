@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:06-0600\n"
+"POT-Creation-Date: 2026-11-06 11:31-0600\n"
 "PO-Revision-Date: 2026-10-19 18:56+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -3248,9 +3248,8 @@ msgstr "Klonatu"
 msgid "Simplify Model"
 msgstr "Modeloa sinplifikatu"
 
-# AI Translated
-msgid "Subdivision mesh"
-msgstr "Sare-azpizatiketa"
+msgid "Subdivision mesh (Lost color)"
+msgstr "Azpibanaketa-sarea (Kolorea galdu da)"
 
 msgid "Center"
 msgstr "Zentratu"
@@ -3467,11 +3466,11 @@ msgstr "Ezin da azken pieza solidoa ezabatu."
 msgid "Delete part"
 msgstr "Ezabatu pieza"
 
-msgid "Split to parts"
-msgstr "Piezetan zatitu"
-
 msgid "The target object contains only one part and can not be split."
 msgstr "Helburuko objektuak pieza bakarra du eta ezin da zatitu."
+
+msgid "Split to parts"
+msgstr "Piezetan zatitu"
 
 msgid "Assembly"
 msgstr "Multzoa"
@@ -8878,10 +8877,6 @@ msgstr "Sareko plug-in berria erabilgarri dago."
 msgid "Details"
 msgstr "Xehetasunak"
 
-# AI Translated
-msgid "Updates are available for your OrcaCloud plugins."
-msgstr "Eguneraketak daude erabilgarri zure OrcaCloud pluginetarako."
-
 msgid "New printer config available."
 msgstr "Inprimagailuaren konfigurazio berria erabilgarri dago."
 
@@ -9671,6 +9666,10 @@ msgstr "Filamentu motari eta koloreari buruzko informazioa sinkronizatu da, bain
 msgid "Do you want to save changes to \"%1%\"?"
 msgstr "\"%1%\"(e)n egindako aldaketak gorde nahi dituzu?"
 
+# AI Translated
+msgid "UV Editor"
+msgstr "UV editorea"
+
 #, c-format, boost-format
 msgid "Successfully unmounted. The device %s (%s) can now be safely removed from the computer."
 msgstr "Behar bezala desmuntatu da. %s (%s) gailua segurtasunez ken daiteke ordenagailutik."
@@ -9706,17 +9705,6 @@ msgstr "Tolestu alboko barra"
 #, c-format, boost-format
 msgid "Loading file: %s"
 msgstr "%s fitxategia kargatzen"
-
-# AI Translated
-msgid "Some imported objects contain modifiers or parts with individual settings. They are shown as assemblies so that these settings remain visible."
-msgstr "Inportatutako objektu batzuek aldatzaileak edo ezarpen indibidualak dituzten piezak dituzte. Multzo gisa erakusten dira, ezarpen horiek ikusgai egon daitezen."
-
-# AI Translated
-msgid "Geometry import"
-msgstr "Geometria inportatzea"
-
-msgid "The file does not contain any geometry data."
-msgstr "Fitxategiak ez du geometria-daturik."
 
 msgid "Load 3MF"
 msgstr "Kargatu 3MF"
@@ -9854,6 +9842,9 @@ msgstr "Inprimagailuaren informazioa sinkronizatu eta aurrezarpena automatikoki 
 # AI Translated
 msgid "This project contains a model made in the Design tab and no other geometry. Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; it is kept when the project is saved."
 msgstr "Proiektu honek Diseinua fitxan sortutako modelo bat dauka, eta ez du beste geometriarik. Gaitu \"CAD eginbidea (esperimentala)\" Hobespenetan eta berrabiarazi hura ikusi eta editatzeko; proiektua gordetzean mantendu egiten da."
+
+msgid "The file does not contain any geometry data."
+msgstr "Fitxategiak ez du geometria-daturik."
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "Zure objektua handiegia dela dirudi; automatikoki txikitu nahi duzu inprimatze-ohean kabitzeko?"
@@ -10048,10 +10039,6 @@ msgid ""
 msgstr ""
 "IDEX/IQEX modu paraleloaren arazo hauek hauteman dira:\n"
 "\n"
-
-# AI Translated
-msgid "UV Editor"
-msgstr "UV editorea"
 
 msgid "Network plug-in switched successfully."
 msgstr "Sareko plugina behar bezala aldatu da."
@@ -10718,50 +10705,11 @@ msgstr "Errendatu GPU dedikatuan"
 msgid "On a computer with two GPUs, run OrcaSlicer on the discrete GPU instead of the one that drives the display. Some Wayland systems cannot show frames rendered on the other GPU, or fail to open the window at all. Turn this off if the 3D view stays empty; if OrcaSlicer no longer starts, start it once with DRI_PRIME=0 in the environment to get back here."
 msgstr "Bi GPU dituen ordenagailu batean, exekutatu OrcaSlicer GPU dedikatuan, pantaila kudeatzen duenaren ordez. Wayland sistema batzuek ezin dituzte beste GPUan errendatutako fotogramak erakutsi, edo ez dute leihoa irekitzen ere. Desgaitu aukera hau 3D ikuspegia hutsik geratzen bada; OrcaSlicer jada abiarazten ez bada, abiarazi behin DRI_PRIME=0 ingurunean ezarrita hona itzultzeko."
 
-msgid "Features"
-msgstr "Ezaugarriak"
+msgid "Downloads folder"
+msgstr "Deskargen karpeta"
 
-msgid "Multi device management"
-msgstr "Gailu anitzen kudeaketa"
-
-msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
-msgstr "Aukera hau gaituta, zeregin bat hainbat gailutara bidali eta hainbat gailu kudea ditzakezu aldi berean."
-
-# AI Translated
-msgid "CAD feature (experimental)"
-msgstr "CAD eginbidea (esperimentala)"
-
-# AI Translated
-msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
-msgstr "Aukera hau gaituta dagoenean, Diseinua fitxa erakusten da; bertan modeloak modu parametrikoan sortu eta edita daitezke. Eginbide hau esperimentala da eta oraindik garatzen ari da."
-
-msgid "Pop up to select filament grouping mode"
-msgstr "Erakutsi filamentuak taldekatzeko modua hautatzeko leihoa"
-
-msgid "Clear my choice on..."
-msgstr "Garbitu nire aukera hemen..."
-
-msgid "Unsaved projects"
-msgstr "Gorde gabeko proiektuak"
-
-msgid "Clear my choice on the unsaved projects."
-msgstr "Garbitu gorde gabeko proiektuetarako nire aukera."
-
-msgid "Unsaved presets"
-msgstr "Gorde gabeko aurrezarpenak"
-
-msgid "Clear my choice on the unsaved presets."
-msgstr "Garbitu gorde gabeko aurrezarpenetarako nire aukera."
-
-msgid "Synchronizing printer preset"
-msgstr "Inprimagailuaren aurrezarpena sinkronizatzen"
-
-msgid "Clear my choice for synchronizing printer preset after loading the file."
-msgstr "Garbitu fitxategia kargatu ondoren inprimagailuaren aurrezarpena sinkronizatzeko nire hautapena."
-
-# AI Translated
-msgid "Files"
-msgstr "Fitxategiak"
+msgid "Target folder for downloaded items"
+msgstr "Deskargatutako elementuen helburuko karpeta"
 
 msgid "Load All"
 msgstr "Kargatu dena"
@@ -10787,12 +10735,6 @@ msgstr "Babeskopia automatikoa"
 msgid "Backup your project periodically to help with restoring from an occasional crash."
 msgstr "Egin proiektuaren babeskopia aldizka, noizbehinkako hutsegite baten ondoren leheneratzen laguntzeko."
 
-msgid "Store full source file paths in projects"
-msgstr "Gorde jatorrizko fitxategien bide osoak proiektuetan"
-
-msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
-msgstr "Gaituta badago, gordetako proiektuek inportatutako jatorrizko fitxategien (STEP/STL/...) bide absolutua gordetzen dute; horrela, \"Birkargatu diskotik\" aukerak funtzionatzen jarraitzen du jatorrizko fitxategia proiektuaren karpeta ez den beste batean dagoenean. Desgaituta badago, fitxategi-izena soilik gordetzen da; horrek proiektuak eramangarri mantentzen ditu eta bide absolutuak txertatzea saihesten du."
-
 msgid "Maximum recent files"
 msgstr "Azken fitxategien gehieneko kopurua"
 
@@ -10802,61 +10744,17 @@ msgstr "Azken fitxategien gehieneko kopurua"
 msgid "Add STL/STEP files to recent files list"
 msgstr "Gehitu STL/STEP fitxategiak azken fitxategien zerrendara"
 
-# AI Translated
-msgid "Folder paths"
-msgstr "Karpeten bideak"
-
-msgid "Downloads folder"
-msgstr "Deskargen karpeta"
-
-msgid "Target folder for downloaded items"
-msgstr "Deskargatutako elementuen helburuko karpeta"
-
-# AI Translated
-msgid "File import"
-msgstr "Fitxategiak inportatzea"
-
-# AI Translated
-msgid "Ask how to handle unsupported characters in imported names"
-msgstr "Galdetu nola kudeatu inportatutako izenetako onartzen ez diren karaktereak"
-
-# AI Translated
-msgid "Show the removal or replacement choices when original names contain unsupported characters."
-msgstr "Erakutsi kentzeko edo ordezteko aukerak jatorrizko izenek onartzen ez diren karaktereak dituztenean."
-
-# AI Translated
-msgid "3MF import"
-msgstr "3MF inportatzea"
-
-# AI Translated
-msgid "Show options when importing"
-msgstr "Erakutsi aukerak inportatzean"
-
-# AI Translated
-msgid "Show original-name and sorting options when importing a 3MF without project settings into the current project."
-msgstr "Erakutsi jatorrizko izenen eta ordenatzearen aukerak proiektu-ezarpenik gabeko 3MF bat uneko proiektuan inportatzean."
-
-# AI Translated
-msgid "Keep original names"
-msgstr "Mantendu jatorrizko izenak"
-
-# AI Translated
-msgid "Use the body names stored in the imported file when it contains them."
-msgstr "Erabili inportatutako fitxategian gordetako gorputz-izenak, baldin badauzka."
-
 msgid "Don't warn when loading 3MF with modified G-code"
 msgstr "Ez abisatu aldatutako G-codea duen 3MF bat kargatzean"
 
-# AI Translated
-msgid "STEP import"
-msgstr "STEP inportatzea"
+msgid "Show options when importing STEP file"
+msgstr "Erakutsi aukerak STEP fitxategia inportatzean"
 
 msgid "If enabled, a parameter settings dialog will appear during STEP file import."
 msgstr "Gaituta badago, parametro-ezarpenen elkarrizketa-koadro bat agertuko da STEP fitxategia inportatzean."
 
-# AI Translated
-msgid "Linear deflection"
-msgstr "Desbideratze lineala"
+msgid "STEP importing: linear deflection"
+msgstr "STEP inportazioa: desbideratze lineala"
 
 msgid ""
 "Linear deflection used when meshing imported STEP files.\n"
@@ -10869,9 +10767,8 @@ msgstr ""
 "Inportazio-elkarrizketa-koadroko balio lehenetsi gisa erabiltzen da, edo zuzenean elkarrizketa-koadroa desgaituta dagoenean.\n"
 "Lehenetsia: 0,003 mm."
 
-# AI Translated
-msgid "Angle deflection"
-msgstr "Angelu-desbideratzea"
+msgid "STEP importing: angle deflection"
+msgstr "STEP inportazioa: angelu-desbideratzea"
 
 msgid ""
 "Angle deflection used when meshing imported STEP files.\n"
@@ -10884,31 +10781,17 @@ msgstr ""
 "Inportazio-elkarrizketa-koadroko balio lehenetsi gisa erabiltzen da, edo zuzenean elkarrizketa-koadroa desgaituta dagoenean.\n"
 "Lehenetsia: 0,5."
 
-# AI Translated
-msgid "Split into multiple objects"
-msgstr "Banatu hainbat objektutan"
+msgid "STEP importing: Split into multiple objects"
+msgstr "STEP inportatzea: banatu hainbat objektutan"
 
-# AI Translated
 msgid ""
 "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
 "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
-"Default: enabled."
+"Default: disabled."
 msgstr ""
 "Gaituta badago, inportatutako STEP fitxategietako forma konposatuak eta compsolid formak hainbat objektutan banatzen dira.\n"
 "Inportazio-elkarrizketa-koadroko balio lehenetsi gisa erabiltzen da, edo zuzenean elkarrizketa-koadroa desgaituta dagoenean.\n"
-"Lehenetsia: gaituta."
-
-# AI Translated
-msgid "AMF import"
-msgstr "AMF inportatzea"
-
-# AI Translated
-msgid "Show body grouping, original-name and sorting options when importing geometry into the current project."
-msgstr "Erakutsi gorputzak taldekatzeko, jatorrizko izenen eta ordenatzearen aukerak geometria uneko proiektuan inportatzean."
-
-# AI Translated
-msgid "DRC export"
-msgstr "DRC esportatzea"
+"Lehenetsia: desgaituta."
 
 msgid "Quality level for Draco export"
 msgstr "Draco esportaziorako kalitate-maila"
@@ -10925,123 +10808,11 @@ msgstr ""
 "0 = galerarik gabeko konpresioa (geometria doitasun osoz mantentzen da). Galeradun balio baliodunak 8tik 30era bitartekoak dira.\n"
 "Balio txikiagoek fitxategi txikiagoak sortzen dituzte, baina xehetasun geometriko gehiago galtzen dute; balio handiagoek xehetasun gehiago mantentzen dute, fitxategi handiagoen truke."
 
-msgid "Associate files to OrcaSlicer"
-msgstr "Esleitu fitxategiak OrcaSlicerri"
+msgid "Store full source file paths in projects"
+msgstr "Gorde jatorrizko fitxategien bide osoak proiektuetan"
 
-msgid "File associations for the Microsoft Store version are managed by Windows Settings."
-msgstr "Microsoft Store bertsioko fitxategi-elkarteak Windows ezarpenen bidez kudeatzen dira."
-
-msgid "Open Windows Default Apps Settings"
-msgstr "Ireki Windows-en aplikazio lehenetsien ezarpenak"
-
-msgid "Associate 3MF files to OrcaSlicer"
-msgstr "Lotu 3MF fitxategiak OrcaSlicer-ekin"
-
-msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
-msgstr "Gaituta badago, OrcaSlicer ezarriko da 3MF fitxategiak irekitzeko aplikazio lehenetsi gisa."
-
-msgid "Associate DRC files to OrcaSlicer"
-msgstr "Lotu DRC fitxategiak OrcaSlicer-ekin"
-
-msgid "If enabled, sets OrcaSlicer as default application to open DRC files."
-msgstr "Gaituta badago, OrcaSlicer ezarriko da DRC fitxategiak irekitzeko aplikazio lehenetsi gisa."
-
-msgid "Associate STL files to OrcaSlicer"
-msgstr "Lotu STL fitxategiak OrcaSlicer-ekin"
-
-msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
-msgstr "Gaituta badago, OrcaSlicer ezarriko da STL fitxategiak irekitzeko aplikazio lehenetsi gisa."
-
-msgid "Associate STEP files to OrcaSlicer"
-msgstr "Lotu STEP fitxategiak OrcaSlicer-ekin"
-
-msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
-msgstr "Gaituta badago, OrcaSlicer ezarriko da STEP fitxategiak irekitzeko aplikazio lehenetsi gisa."
-
-msgid "Associate web links to OrcaSlicer"
-msgstr "Esleitu web-estekak OrcaSlicerri"
-
-# AI Translated
-msgid "Behaviour"
-msgstr "Portaera"
-
-msgid "Auto flush after changing..."
-msgstr "Purgatu automatikoki aldatu ondoren..."
-
-msgid "Auto calculate flushing volumes when selected values changed"
-msgstr "Kalkulatu automatikoki purgatze-bolumenak hautatutako balioak aldatzean"
-
-msgid "Auto arrange plate after cloning"
-msgstr "Antolatu plaka automatikoki klonatu ondoren"
-
-msgid "Auto slice after changes"
-msgstr "Xerratu automatikoki aldaketen ondoren"
-
-msgid "If enabled, OrcaSlicer will re-slice automatically whenever slicing-related settings change."
-msgstr "Gaituta badago, OrcaSlicer-ek automatikoki berriro xerratuko du xerratzearekin lotutako ezarpenak aldatzen diren bakoitzean."
-
-msgid "Delay in seconds before auto slicing starts, allowing multiple edits to be grouped. Use 0 to slice immediately."
-msgstr "Xerratze automatikoa hasi aurreko atzerapena segundotan, hainbat aldaketa multzokatzeko. Erabili 0 berehala xerratzeko."
-
-# AI Translated
-msgid "Show options when adding a primitive"
-msgstr "Erakutsi aukerak oinarrizko geometria bat gehitzean"
-
-# AI Translated
-msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
-msgstr "Gaituta badago, elkarrizketa-koadro batek oinarrizko geometria baten neurriak eskatzen ditu hura gehitu aurretik."
-
-msgid "Remove mixed temperature restriction"
-msgstr "Kendu tenperatura nahasien murrizketa"
-
-msgid "With this option enabled, you can print materials with a large temperature difference together."
-msgstr "Aukera hau gaituta, tenperatura-alde handia duten materialak batera inprima ditzakezu."
-
-# AI Translated
-msgid "Remember last print action"
-msgstr "Gogoratu azken inprimatze-ekintza"
-
-# AI Translated
-msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
-msgstr "Gaituta badago, OrcaSlicerrek inprimatze-botoiaren goitibeherako zerrendan hautatutako azken aukera gogoratuko du (adib. Inprimatu, Esportatu plakan xerratutako objektuak fitxategi batera, Esportatu G-code fitxategia) eta lehenetsi gisa erabiliko du hurrengo abiaraztean."
-
-# AI Translated
-msgid "Default view type"
-msgstr "Ikuspegi mota lehenetsia"
-
-# AI Translated
-msgid ""
-"The color scheme the sliced preview opens with.\n"
-"Automatic: Filament for multi material prints, Line Type for single material ones.\n"
-"Last used: the view type you selected last.\n"
-"Any other value always opens that view type.\n"
-"You can still switch the view type in the preview afterwards."
-msgstr ""
-"Xerratutako aurrebista irekitzean erabiltzen den kolore-eskema.\n"
-"Automatikoa: Filamentua material anitzeko inprimaketetan, Lerro-mota material bakarrekoetan.\n"
-"Azken erabilitakoa: azkena hautatu zenuen ikuspegi mota.\n"
-"Beste edozein balio: ikuspegi mota hori irekitzen da beti.\n"
-"Geroago ere alda dezakezu ikuspegi mota aurrebistan."
-
-# AI Translated
-msgid "Dim lower layers"
-msgstr "Ilundu beheko geruzak"
-
-# AI Translated
-msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
-msgstr "Xerratutako aurrebistan geruza-graduatzailea mugitzean, unekoaren azpiko geruzak ilunduta erakusten ditu, ikusten ari den geruza soilik distira osoz ager dadin."
-
-# AI Translated
-msgid "Dimmed layer brightness"
-msgstr "Ilundutako geruzen distira"
-
-# AI Translated
-msgid ""
-"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
-"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
-msgstr ""
-"\"Ilundu beheko geruzak\" gaituta dagoenean ilundutako geruzak zein distiratsu marrazten diren.\n"
-"%99 balioak ozta-ozta iluntzen ditu, %0 balioak beltz bihurtzen ditu. Gehienez %99 onartzen da, %100 balioak aukera desgaitzearen gauza bera egingo bailuke."
+msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
+msgstr "Gaituta badago, gordetako proiektuek inportatutako jatorrizko fitxategien (STEP/STL/...) bide absolutua gordetzen dute; horrela, \"Birkargatu diskotik\" aukerak funtzionatzen jarraitzen du jatorrizko fitxategia proiektuaren karpeta ez den beste batean dagoenean. Desgaituta badago, fitxategi-izena soilik gordetzen da; horrek proiektuak eramangarri mantentzen ditu eta bide absolutuak txertatzea saihesten du."
 
 msgid "Preset"
 msgstr "Aurrezarpena"
@@ -11079,37 +10850,14 @@ msgstr "Erakutsi partekatutako profilen jakinarazpena"
 msgid "Show a notification with a link to browse shared profiles when the selected printer is changed."
 msgstr "Hautatutako inprimagailua aldatzen denean, erakutsi partekatutako profilak arakatzeko esteka duen jakinarazpen bat."
 
-# AI Translated
-msgid "Visible plugin pages"
-msgstr "Ikusgai dauden plugin-orriak"
+msgid "Features"
+msgstr "Ezaugarriak"
 
-# AI Translated
-msgid "pages"
-msgstr "orri"
+msgid "Multi device management"
+msgstr "Gailu anitzen kudeaketa"
 
-# AI Translated
-msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
-msgstr "Fitxa finko gisa erakusten diren plugin-orrien kopurua; gainerako orriak azken fitxako goitibeherako zerrendan bilduko dira."
-
-# AI Translated
-msgid "Draw mate connectors as a face"
-msgstr "Marraztu akoplamendu-konektoreak aurpegi gisa"
-
-# AI Translated
-msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
-msgstr "Diseinua fitxan, akoplamendu-konektorea aurpegi txiki gisa marrazten du, biraketa-koadrantea duen disko konbentzionalaren ordez. Aurpegi batek begirada batean erakusten du bere orientazioa, diskoaren konbentzioa ikasi beharrik gabe. Desaktibatu hau CAD irudikapen konbentzionala erabiltzeko."
-
-# AI Translated
-msgid "Auto-close sketch loops"
-msgstr "Itxi automatikoki krokisen begiztak"
-
-# AI Translated
-msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
-msgstr "Elkarrengandik 0,001 mm-ra dauden krokis-muturrak lotune bakartzat hartzen ditu eta begizta soldatuz ixten du. Desaktibatuta: zehazki bat datozen muturrak soilik lotzen dira; beraz, tarte txiki bat duen begizta irekita erakusten da, automatikoki itxi beharrean. Diseinu bakoitzarekin gordetzen da; aldaketaren ondoren hasitako diseinuei aplikatzen zaie."
-
-# AI Translated
-msgid "Speed dial"
-msgstr "Abiarazle azkarra"
+msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
+msgstr "Aukera hau gaituta, zeregin bat hainbat gailutara bidali eta hainbat gailu kudea ditzakezu aldi berean."
 
 # AI Translated
 msgid "Open the Speed Dial from the keyboard"
@@ -11131,6 +10879,72 @@ msgstr "ekintza"
 # AI Translated
 msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
 msgstr "Abiarazle azkarraren goiko aldean erakutsiko diren azken ekintzen kopurua. Ezarri 0 azken ekintzak ezkutatzeko."
+
+# AI Translated
+msgid "CAD feature (experimental)"
+msgstr "CAD eginbidea (esperimentala)"
+
+# AI Translated
+msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
+msgstr "Aukera hau gaituta dagoenean, Diseinua fitxa erakusten da; bertan modeloak modu parametrikoan sortu eta edita daitezke. Eginbide hau esperimentala da eta oraindik garatzen ari da."
+
+msgid "Pop up to select filament grouping mode"
+msgstr "Erakutsi filamentuak taldekatzeko modua hautatzeko leihoa"
+
+# AI Translated
+msgid "Visible plugin pages"
+msgstr "Ikusgai dauden plugin-orriak"
+
+# AI Translated
+msgid "pages"
+msgstr "orri"
+
+# AI Translated
+msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
+msgstr "Fitxa finko gisa erakusten diren plugin-orrien kopurua; gainerako orriak azken fitxako goitibeherako zerrendan bilduko dira."
+
+msgid "Behavior"
+msgstr "Jokabidea"
+
+msgid "Auto flush after changing..."
+msgstr "Purgatu automatikoki aldatu ondoren..."
+
+msgid "Auto calculate flushing volumes when selected values changed"
+msgstr "Kalkulatu automatikoki purgatze-bolumenak hautatutako balioak aldatzean"
+
+msgid "Auto arrange plate after cloning"
+msgstr "Antolatu plaka automatikoki klonatu ondoren"
+
+# AI Translated
+msgid "Show options when adding a primitive"
+msgstr "Erakutsi aukerak oinarrizko geometria bat gehitzean"
+
+# AI Translated
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr "Gaituta badago, elkarrizketa-koadro batek oinarrizko geometria baten neurriak eskatzen ditu hura gehitu aurretik."
+
+msgid "Auto slice after changes"
+msgstr "Xerratu automatikoki aldaketen ondoren"
+
+msgid "If enabled, OrcaSlicer will re-slice automatically whenever slicing-related settings change."
+msgstr "Gaituta badago, OrcaSlicer-ek automatikoki berriro xerratuko du xerratzearekin lotutako ezarpenak aldatzen diren bakoitzean."
+
+msgid "Delay in seconds before auto slicing starts, allowing multiple edits to be grouped. Use 0 to slice immediately."
+msgstr "Xerratze automatikoa hasi aurreko atzerapena segundotan, hainbat aldaketa multzokatzeko. Erabili 0 berehala xerratzeko."
+
+msgid "Remove mixed temperature restriction"
+msgstr "Kendu tenperatura nahasien murrizketa"
+
+msgid "With this option enabled, you can print materials with a large temperature difference together."
+msgstr "Aukera hau gaituta, tenperatura-alde handia duten materialak batera inprima ditzakezu."
+
+# AI Translated
+msgid "Remember last print action"
+msgstr "Gogoratu azken inprimatze-ekintza"
+
+# AI Translated
+msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
+msgstr "Gaituta badago, OrcaSlicerrek inprimatze-botoiaren goitibeherako zerrendan hautatutako azken aukera gogoratuko du (adib. Inprimatu, Esportatu plakan xerratutako objektuak fitxategi batera, Esportatu G-code fitxategia) eta lehenetsi gisa erabiliko du hurrengo abiaraztean."
 
 msgid "Camera"
 msgstr "Kamera"
@@ -11174,6 +10988,22 @@ msgstr "Alderantzikatu saguaren zooma"
 msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr "Gaituta badago, saguaren gurpilarekin zoomaren norabidea alderantzikatzen du."
 
+# AI Translated
+msgid "Draw mate connectors as a face"
+msgstr "Marraztu akoplamendu-konektoreak aurpegi gisa"
+
+# AI Translated
+msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
+msgstr "Diseinua fitxan, akoplamendu-konektorea aurpegi txiki gisa marrazten du, biraketa-koadrantea duen disko konbentzionalaren ordez. Aurpegi batek begirada batean erakusten du bere orientazioa, diskoaren konbentzioa ikasi beharrik gabe. Desaktibatu hau CAD irudikapen konbentzionala erabiltzeko."
+
+# AI Translated
+msgid "Auto-close sketch loops"
+msgstr "Itxi automatikoki krokisen begiztak"
+
+# AI Translated
+msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
+msgstr "Elkarrengandik 0,001 mm-ra dauden krokis-muturrak lotune bakartzat hartzen ditu eta begizta soldatuz ixten du. Desaktibatuta: zehazki bat datozen muturrak soilik lotzen dira; beraz, tarte txiki bat duen begizta irekita erakusten da, automatikoki itxi beharrean. Diseinu bakoitzarekin gordetzen da; aldaketaren ondoren hasitako diseinuei aplikatzen zaie."
+
 msgid "Pan"
 msgstr "Desplazatu"
 
@@ -11207,6 +11037,27 @@ msgstr "Teklatuko lasterbideak"
 msgid "Choose the key for each action."
 msgstr "Aukeratu ekintza bakoitzaren tekla."
 
+msgid "Clear my choice on..."
+msgstr "Garbitu nire aukera hemen..."
+
+msgid "Unsaved projects"
+msgstr "Gorde gabeko proiektuak"
+
+msgid "Clear my choice on the unsaved projects."
+msgstr "Garbitu gorde gabeko proiektuetarako nire aukera."
+
+msgid "Unsaved presets"
+msgstr "Gorde gabeko aurrezarpenak"
+
+msgid "Clear my choice on the unsaved presets."
+msgstr "Garbitu gorde gabeko aurrezarpenetarako nire aukera."
+
+msgid "Synchronizing printer preset"
+msgstr "Inprimagailuaren aurrezarpena sinkronizatzen"
+
+msgid "Clear my choice for synchronizing printer preset after loading the file."
+msgstr "Garbitu fitxategia kargatu ondoren inprimagailuaren aurrezarpena sinkronizatzeko nire hautapena."
+
 msgid "Graphics"
 msgstr "Grafikoak"
 
@@ -11221,15 +11072,6 @@ msgstr ""
 "Normal leunak aplikatzen dizkio modeloari.\n"
 "\n"
 "Eskuz berriro kargatu behar da eszena eragina izan dezan (egin eskuin-klik 3D ikuspegian → \"Birkargatu dena\")."
-
-# AI Translated
-# Needs human review: Preview option; 'translucent' rendered 'zeharrargi' (the catalog's older entries use 'garden' for transparent). Check the term.
-msgid "Translucent filaments"
-msgstr "Filamentu zeharrargiak"
-
-# AI Translated
-msgid "Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."
-msgstr "Marraztu kolore partzialki gardena duten filamentuen inprimatze-ibilbideak zeharrargi gisa, 3D ikuspegiak haien objektuak marrazten dituen bezala. Desaktibatu filamentu guztiak opako marrazteko."
 
 msgid "Phong shading"
 msgstr "Phong itzaldura"
@@ -11427,6 +11269,57 @@ msgstr "Exekutatu"
 msgid "Replaces the current project with the OrcaSliced Combo, then measures the frame rate and render timings while the camera turns around it in Prepare and Preview, and while the layer slider moves through the sliced layers."
 msgstr "Uneko proiektua OrcaSliced Combo modeloarekin ordezten du, eta ondoren fotograma-tasa eta errendatze-denborak neurtzen ditu kamerak haren inguruan biratzen duen bitartean Prestatu eta Aurrebista fitxetan, baita geruza-graduatzailea xerratutako geruzetan zehar mugitzen den bitartean ere."
 
+# AI Translated
+msgid "G-code Preview"
+msgstr "G-code aurrebista"
+
+# AI Translated
+msgid "Default view type"
+msgstr "Ikuspegi mota lehenetsia"
+
+# AI Translated
+msgid ""
+"The color scheme the sliced preview opens with.\n"
+"Automatic: Filament for multi material prints, Line Type for single material ones.\n"
+"Last used: the view type you selected last.\n"
+"Any other value always opens that view type.\n"
+"You can still switch the view type in the preview afterwards."
+msgstr ""
+"Xerratutako aurrebista irekitzean erabiltzen den kolore-eskema.\n"
+"Automatikoa: Filamentua material anitzeko inprimaketetan, Lerro-mota material bakarrekoetan.\n"
+"Azken erabilitakoa: azkena hautatu zenuen ikuspegi mota.\n"
+"Beste edozein balio: ikuspegi mota hori irekitzen da beti.\n"
+"Geroago ere alda dezakezu ikuspegi mota aurrebistan."
+
+# AI Translated
+msgid "Dim lower layers"
+msgstr "Ilundu beheko geruzak"
+
+# AI Translated
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr "Xerratutako aurrebistan geruza-graduatzailea mugitzean, unekoaren azpiko geruzak ilunduta erakusten ditu, ikusten ari den geruza soilik distira osoz ager dadin."
+
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "Ilundutako geruzen distira"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"\"Ilundu beheko geruzak\" gaituta dagoenean ilundutako geruzak zein distiratsu marrazten diren.\n"
+"%99 balioak ozta-ozta iluntzen ditu, %0 balioak beltz bihurtzen ditu. Gehienez %99 onartzen da, %100 balioak aukera desgaitzearen gauza bera egingo bailuke."
+
+# AI Translated
+# Needs human review: Preview option; 'translucent' rendered 'zeharrargi' (the catalog's older entries use 'garden' for transparent). Check the term.
+msgid "Translucent filaments"
+msgstr "Filamentu zeharrargiak"
+
+# AI Translated
+msgid "Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."
+msgstr "Marraztu kolore partzialki gardena duten filamentuen inprimatze-ibilbideak zeharrargi gisa, 3D ikuspegiak haien objektuak marrazten dituen bezala. Desaktibatu filamentu guztiak opako marrazteko."
+
 msgid "Login region"
 msgstr "Saio-hasierako eskualdea"
 
@@ -11504,6 +11397,45 @@ msgstr "Sareko pluginaren bertsioa"
 
 msgid "Select the network plug-in version to use"
 msgstr "Hautatu erabili beharreko sareko pluginaren bertsioa"
+
+msgid "Associate"
+msgstr "Elkartu"
+
+msgid "Associate files to OrcaSlicer"
+msgstr "Esleitu fitxategiak OrcaSlicerri"
+
+msgid "File associations for the Microsoft Store version are managed by Windows Settings."
+msgstr "Microsoft Store bertsioko fitxategi-elkarteak Windows ezarpenen bidez kudeatzen dira."
+
+msgid "Open Windows Default Apps Settings"
+msgstr "Ireki Windows-en aplikazio lehenetsien ezarpenak"
+
+msgid "Associate 3MF files to OrcaSlicer"
+msgstr "Lotu 3MF fitxategiak OrcaSlicer-ekin"
+
+msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
+msgstr "Gaituta badago, OrcaSlicer ezarriko da 3MF fitxategiak irekitzeko aplikazio lehenetsi gisa."
+
+msgid "Associate DRC files to OrcaSlicer"
+msgstr "Lotu DRC fitxategiak OrcaSlicer-ekin"
+
+msgid "If enabled, sets OrcaSlicer as default application to open DRC files."
+msgstr "Gaituta badago, OrcaSlicer ezarriko da DRC fitxategiak irekitzeko aplikazio lehenetsi gisa."
+
+msgid "Associate STL files to OrcaSlicer"
+msgstr "Lotu STL fitxategiak OrcaSlicer-ekin"
+
+msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
+msgstr "Gaituta badago, OrcaSlicer ezarriko da STL fitxategiak irekitzeko aplikazio lehenetsi gisa."
+
+msgid "Associate STEP files to OrcaSlicer"
+msgstr "Lotu STEP fitxategiak OrcaSlicer-ekin"
+
+msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
+msgstr "Gaituta badago, OrcaSlicer ezarriko da STEP fitxategiak irekitzeko aplikazio lehenetsi gisa."
+
+msgid "Associate web links to OrcaSlicer"
+msgstr "Esleitu web-estekak OrcaSlicerri"
 
 msgid "Developer"
 msgstr "Garatzailea"
@@ -15261,11 +15193,6 @@ msgstr "%1% %2% estrusorearen talka-bolumen batekin gurutzatzen da."
 msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% besteetatik gertuegi dago, eta talkak sor daitezke."
 
-# AI Translated
-#, boost-format
-msgid "%1% is printed later than its place in the object list, to avoid a collision."
-msgstr "%1% objektu-zerrendan duen lekua baino beranduago inprimatzen da, talka bat saihesteko."
-
 #, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% altuegia da, eta talkak sortuko dira."
@@ -15406,12 +15333,6 @@ msgstr "Hautatu \"Objektuka\" inprimatze-sekuentzia hainbat objektu espiral form
 
 msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "Espiral formako (loreontzi) moduak ez du funtzionatzen objektu batek material bat baino gehiago dituenean."
-
-# AI Translated
-#. TRN %1% is the object name.
-#, boost-format
-msgid "Spiral vase mode needs no sparse infill, one wall loop and no top shell layers, but the object %1% uses other values, so it will not print as a continuous spiral."
-msgstr "Espiral formako loreontzi moduak hormako begizta bakarra behar du, dentsitate baxuko betegarririk eta goiko oskolaren geruzarik gabe, baina %1% objektuak beste balio batzuk erabiltzen ditu; beraz, ez da espiral jarrai gisa inprimatuko."
 
 #, boost-format
 msgid "While the object %1% itself fits the build volume, it exceeds the maximum build volume height because of material shrinkage compensation."
@@ -15581,16 +15502,8 @@ msgstr "Horma zehatza aukera ezikusi egingo da kanpo-barru edo barru-kanpo-barru
 msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
 msgstr "Pressure Advance egokigarria gaituta dago estrusore batean edo gehiagotan, baina ez da neurketarik sartu haien Pressure Advance egokigarriaren modeloan."
 
-# AI Translated
-#. TRN %1% is the filament number as shown in the filament list, starting from 1; %2% names the invalid line.
-#. one warning per filament, the notifications stack
-#, boost-format
-msgid ""
-"The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
-"%2%"
-msgstr ""
-"%1% filamentuaren Pressure Advance egokigarriaren modeloak balio baliogabeak ditu.\n"
-"%2%"
+msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
+msgstr "Estrusore baten edo gehiagoren Pressure Advance egokigarriaren modeloak balio baliogabeak izan ditzake."
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "Filamentuaren uzkurdura ez da erabiliko, erabilitako filamentuen uzkurdura-balioak ez datozelako bat."
@@ -22109,14 +22022,6 @@ msgstr "Modu normalean inprimatzean kalkulatutako inprimatze-denbora (hau da, mo
 msgid "Estimated print time when printed in normal mode (i.e. not in silent mode). Same as normal_print_time."
 msgstr "Modu normalean inprimatzean kalkulatutako inprimatze-denbora (hau da, modu isilean ez). normal_print_time parametroaren berdina."
 
-# AI Translated
-msgid "Used filament types"
-msgstr "Erabilitako filamentu motak"
-
-# AI Translated
-msgid "Underscore-separated list of all filament types used during the print."
-msgstr "Inprimaketan erabilitako filamentu mota guztien zerrenda, azpimarraz bereizita."
-
 msgid "Print time (silent mode)"
 msgstr "Inprimatze-denbora (modu isila)"
 
@@ -26183,34 +26088,6 @@ msgstr "Sartu balio balioduna (0.01 < angelu-desbideratzea < 1.0)"
 msgid "Split compound and compsolid into multiple objects"
 msgstr "Banatu compound eta compsolid hainbat objektutan"
 
-# AI Translated
-msgid "Loads each body of a multi-body part separately. Needed to keep the bodies' original names."
-msgstr "Hainbat gorputz dituen pieza baten gorputz bakoitza bereizita kargatzen du. Beharrezkoa da gorputzen jatorrizko izenak mantentzeko."
-
-# AI Translated
-msgid "Load as an assembly"
-msgstr "Kargatu multzo gisa"
-
-# AI Translated
-msgid "Load as a single object (can be split later)"
-msgstr "Kargatu objektu bakar gisa (geroago bana daiteke)"
-
-# AI Translated
-msgid "The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."
-msgstr "Jatorrizko gorputzak eta izenak objektuaren barruan mantentzen dira. Erabili \"Piezetan zatitu\" pieza bereizi gisa erakusteko."
-
-# AI Translated
-msgid "Use the body names stored in the file, when there are any. Needs Split compound for parts with several bodies."
-msgstr "Erabili fitxategian gordetako gorputz-izenak, baldin badaude. Hainbat gorputz dituzten piezetarako \"Banatu compound\" behar da."
-
-# AI Translated
-msgid "Sort parts by name"
-msgstr "Ordenatu piezak izenaren arabera"
-
-# AI Translated
-msgid "Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."
-msgstr "Ordenatu inportatutako multzo bakoitzeko piezak objektuen zerrendan. Honek ez du xerratzeko erabiltzen den ordena aldatzen. Erabilgarri \"Mantendu jatorrizko izenak\" gaituta dagoenean."
-
 msgid "Number of triangular facets"
 msgstr "Aurpegi triangeluarren kopurua"
 
@@ -26219,96 +26096,6 @@ msgstr "Kalkulatzen, itxaron..."
 
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
 msgstr "Gaituz gero, goiko balioak etorkizuneko STEP inportazioetan erabiliko diren lehenetsi gisa gordeko dira (eta Hobespenetan erakutsiko dira)."
-
-# AI Translated
-msgid "Don't ask again"
-msgstr "Ez galdetu berriro"
-
-# AI Translated
-msgid "Save these choices and apply them without asking next time. You can show this dialog again in Preferences."
-msgstr "Gorde aukera hauek eta aplikatu galdetu gabe hurrengoan. Elkarrizketa-koadro hau berriro erakuts dezakezu Hobespenetan."
-
-# AI Translated
-msgid "3MF geometry import options"
-msgstr "3MF geometria inportatzeko aukerak"
-
-# AI Translated
-msgid "AMF geometry import options"
-msgstr "AMF geometria inportatzeko aukerak"
-
-# AI Translated
-msgid "Choose how to name and order the parts of this file."
-msgstr "Aukeratu nola izendatu eta ordenatu fitxategi honetako piezak."
-
-# AI Translated
-msgid "Choose how to load the bodies in this file."
-msgstr "Aukeratu nola kargatu fitxategi honetako gorputzak."
-
-# AI Translated
-msgid "Load as separate objects"
-msgstr "Kargatu objektu bereizi gisa"
-
-# AI Translated
-msgid "Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."
-msgstr "Fitxategiko objektu bakoitza bere aldetik kargatzen da, OrcaSlicer-ek AMF fitxategiak beti kargatu izan dituen bezala."
-
-# AI Translated
-msgid "The bodies of each group in the file become parts of one object, in their relative positions."
-msgstr "Fitxategiko talde bakoitzeko gorputzak objektu bakar baten pieza bihurtzen dira, beren posizio erlatiboetan."
-
-# AI Translated
-msgid "Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."
-msgstr "Erabili fitxategian gordetako gorputz-izenak, baldin badaude. Desgaituta dagoenean, OrcaSlicer-en ohiko izenak erabiltzen dira; dauden proiektu-izenak mantendu egiten dira."
-
-# AI Translated
-msgid "Use these choices as defaults next time. The dialog still opens."
-msgstr "Erabili aukera hauek lehenetsi gisa hurrengoan. Hala ere, elkarrizketa-koadroa irekiko da."
-
-# AI Translated
-msgid "A name in the file is not valid Unicode. The geometry was not imported."
-msgstr "Fitxategiko izen bat ez da baliozko Unicode. Geometria ez da inportatu."
-
-# AI Translated
-msgid "Invalid name"
-msgstr "Izen baliogabea"
-
-# AI Translated
-msgid "Unsupported characters in names"
-msgstr "Onartzen ez diren karaktereak izenetan"
-
-# AI Translated
-msgid "Some original names contain characters that OrcaSlicer cannot use. Choose how to change them before importing."
-msgstr "Jatorrizko izen batzuek OrcaSlicer-ek erabili ezin dituen karaktereak dituzte. Aukeratu nola aldatu inportatu aurretik."
-
-# AI Translated
-msgid "Remove unsupported characters"
-msgstr "Kendu onartzen ez diren karaktereak"
-
-# AI Translated
-msgid "Replace with:"
-msgstr "Ordeztu honekin:"
-
-# AI Translated
-msgid "Each unsupported character is replaced with this text. It may be longer than one character."
-msgstr "Onartzen ez den karaktere bakoitza testu honekin ordezten da. Karaktere bat baino luzeagoa izan daiteke."
-
-# AI Translated
-msgid "Use this rule as the default next time. The dialog still opens."
-msgstr "Erabili arau hau lehenetsi gisa hurrengoan. Hala ere, elkarrizketa-koadroa irekiko da."
-
-# AI Translated
-msgid "Save this rule and apply it without asking next time. You can show this dialog again in Preferences."
-msgstr "Gorde arau hau eta aplikatu galdetu gabe hurrengoan. Elkarrizketa-koadro hau berriro erakuts dezakezu Hobespenetan."
-
-# AI Translated
-msgid "Enter a non-empty replacement containing only supported characters, or choose removal."
-msgstr "Sartu hutsik ez dagoen ordezko testu bat, onartutako karaktereekin soilik, edo aukeratu kentzea."
-
-# AI Translated
-#. TRN The placeholders are the original name and its imported replacement.
-#, boost-format
-msgid "%1% → %2%"
-msgstr "%1% → %2%"
 
 msgid "PresetBundle"
 msgstr "Aurrezarpen-paketea"
@@ -34121,71 +33908,6 @@ msgid "Note:"
 msgstr "Oharra:"
 
 # AI Translated
-#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
-#, boost-format
-msgid "• %1%: %2%"
-msgstr "• %1%: %2%"
-
-# AI Translated
-#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
-#, boost-format
-msgid "• %1% — %2%: %3%"
-msgstr "• %1% — %2%: %3%"
-
-# AI Translated
-#, boost-format
-msgid ""
-"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-"\n"
-"%1%\n"
-"\n"
-"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-msgstr ""
-"Ondorengo ezarpenek Orca Slicer-ek ordenagailu honetan identifikatu ezin dituen pluginak aipatzen dituzte:\n"
-"\n"
-"%1%\n"
-"\n"
-"Hala ere gordetzen baduzu, aurrezarpenak ez ditu ezarpen hauen plugin-erreferentziak gordeko. Beste ordenagailu batean, Orca Slicer-ek ez du jakingo zein plugin eskaini, eta baliteke ezarpenek han ez funtzionatzea."
-
-# AI Translated
-#, boost-format
-msgid ""
-"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-"\n"
-"%1%\n"
-"\n"
-"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-msgstr ""
-"Ondorengo ezarpenek Orca Slicer-ek ordenagailu honetan identifikatu ezin dituen pluginak aipatzen dituzte:\n"
-"\n"
-"%1%\n"
-"\n"
-"Hala ere gordetzen baduzu, proiektuak ez ditu ezarpen hauen plugin-erreferentziak gordeko. Beste ordenagailu batean, Orca Slicer-ek ez du jakingo zein plugin eskaini, eta baliteke ezarpenek han ez funtzionatzea."
-
-# AI Translated
-msgid "Plugin Not Identified"
-msgstr "Plugina ez da identifikatu"
-
-# AI Translated
-msgid "Save anyway"
-msgstr "Gorde hala ere"
-
-# AI Translated
-#, boost-format
-msgid ""
-"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
-"\n"
-"%1%\n"
-"\n"
-"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-msgstr ""
-"Gordetzen ari diren aurrezarpenek Orca Slicer-ek ordenagailu honetan identifikatu ezin dituen pluginak aipatzen dituzte:\n"
-"\n"
-"%1%\n"
-"\n"
-"Hala ere gordetzen baduzu, aurrezarpenek ez dituzte ezarpen hauen plugin-erreferentziak gordeko. Beste ordenagailu batean, Orca Slicer-ek ez du jakingo zein plugin eskaini, eta baliteke ezarpenek han ez funtzionatzea."
-
-# AI Translated
 msgctxt "Texture Displacement"
 msgid "Bake"
 msgstr "Finkatu"
@@ -38540,36 +38262,314 @@ msgstr ""
 "Saihestu okertzea\n"
 "Ba al zenekien ABS bezalako okertzeko joera duten materialak inprimatzean ohe beroaren tenperatura egoki igotzeak okertzeko probabilitatea murriztu dezakeela?"
 
-#~ msgid "Show options when importing STEP file"
-#~ msgstr "Erakutsi aukerak STEP fitxategia inportatzean"
+# AI Translated
+#~ msgid "Subdivision mesh"
+#~ msgstr "Sare-azpizatiketa"
 
-#~ msgid "STEP importing: linear deflection"
-#~ msgstr "STEP inportazioa: desbideratze lineala"
+# AI Translated
+#~ msgid "Updates are available for your OrcaCloud plugins."
+#~ msgstr "Eguneraketak daude erabilgarri zure OrcaCloud pluginetarako."
 
-#~ msgid "STEP importing: angle deflection"
-#~ msgstr "STEP inportazioa: angelu-desbideratzea"
+# AI Translated
+#~ msgid "Some imported objects contain modifiers or parts with individual settings. They are shown as assemblies so that these settings remain visible."
+#~ msgstr "Inportatutako objektu batzuek aldatzaileak edo ezarpen indibidualak dituzten piezak dituzte. Multzo gisa erakusten dira, ezarpen horiek ikusgai egon daitezen."
 
-#~ msgid "STEP importing: Split into multiple objects"
-#~ msgstr "STEP inportatzea: banatu hainbat objektutan"
+# AI Translated
+#~ msgid "Geometry import"
+#~ msgstr "Geometria inportatzea"
 
+# AI Translated
+#~ msgid "Files"
+#~ msgstr "Fitxategiak"
+
+# AI Translated
+#~ msgid "Folder paths"
+#~ msgstr "Karpeten bideak"
+
+# AI Translated
+#~ msgid "File import"
+#~ msgstr "Fitxategiak inportatzea"
+
+# AI Translated
+#~ msgid "Ask how to handle unsupported characters in imported names"
+#~ msgstr "Galdetu nola kudeatu inportatutako izenetako onartzen ez diren karaktereak"
+
+# AI Translated
+#~ msgid "Show the removal or replacement choices when original names contain unsupported characters."
+#~ msgstr "Erakutsi kentzeko edo ordezteko aukerak jatorrizko izenek onartzen ez diren karaktereak dituztenean."
+
+# AI Translated
+#~ msgid "3MF import"
+#~ msgstr "3MF inportatzea"
+
+# AI Translated
+#~ msgid "Show options when importing"
+#~ msgstr "Erakutsi aukerak inportatzean"
+
+# AI Translated
+#~ msgid "Show original-name and sorting options when importing a 3MF without project settings into the current project."
+#~ msgstr "Erakutsi jatorrizko izenen eta ordenatzearen aukerak proiektu-ezarpenik gabeko 3MF bat uneko proiektuan inportatzean."
+
+# AI Translated
+#~ msgid "Keep original names"
+#~ msgstr "Mantendu jatorrizko izenak"
+
+# AI Translated
+#~ msgid "Use the body names stored in the imported file when it contains them."
+#~ msgstr "Erabili inportatutako fitxategian gordetako gorputz-izenak, baldin badauzka."
+
+# AI Translated
+#~ msgid "STEP import"
+#~ msgstr "STEP inportatzea"
+
+# AI Translated
+#~ msgid "Linear deflection"
+#~ msgstr "Desbideratze lineala"
+
+# AI Translated
+#~ msgid "Angle deflection"
+#~ msgstr "Angelu-desbideratzea"
+
+# AI Translated
+#~ msgid "Split into multiple objects"
+#~ msgstr "Banatu hainbat objektutan"
+
+# AI Translated
 #~ msgid ""
 #~ "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
 #~ "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
-#~ "Default: disabled."
+#~ "Default: enabled."
 #~ msgstr ""
 #~ "Gaituta badago, inportatutako STEP fitxategietako forma konposatuak eta compsolid formak hainbat objektutan banatzen dira.\n"
 #~ "Inportazio-elkarrizketa-koadroko balio lehenetsi gisa erabiltzen da, edo zuzenean elkarrizketa-koadroa desgaituta dagoenean.\n"
-#~ "Lehenetsia: desgaituta."
-
-#~ msgid "Behavior"
-#~ msgstr "Jokabidea"
+#~ "Lehenetsia: gaituta."
 
 # AI Translated
-#~ msgid "G-code Preview"
-#~ msgstr "G-code aurrebista"
+#~ msgid "AMF import"
+#~ msgstr "AMF inportatzea"
 
-#~ msgid "Associate"
-#~ msgstr "Elkartu"
+# AI Translated
+#~ msgid "Show body grouping, original-name and sorting options when importing geometry into the current project."
+#~ msgstr "Erakutsi gorputzak taldekatzeko, jatorrizko izenen eta ordenatzearen aukerak geometria uneko proiektuan inportatzean."
+
+# AI Translated
+#~ msgid "DRC export"
+#~ msgstr "DRC esportatzea"
+
+# AI Translated
+#~ msgid "Behaviour"
+#~ msgstr "Portaera"
+
+# AI Translated
+#~ msgid "Speed dial"
+#~ msgstr "Abiarazle azkarra"
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% is printed later than its place in the object list, to avoid a collision."
+#~ msgstr "%1% objektu-zerrendan duen lekua baino beranduago inprimatzen da, talka bat saihesteko."
+
+# AI Translated
+#, boost-format
+#~ msgid "Spiral vase mode needs no sparse infill, one wall loop and no top shell layers, but the object %1% uses other values, so it will not print as a continuous spiral."
+#~ msgstr "Espiral formako loreontzi moduak hormako begizta bakarra behar du, dentsitate baxuko betegarririk eta goiko oskolaren geruzarik gabe, baina %1% objektuak beste balio batzuk erabiltzen ditu; beraz, ez da espiral jarrai gisa inprimatuko."
+
+# AI Translated
+#, boost-format
+#~ msgid ""
+#~ "The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
+#~ "%2%"
+#~ msgstr ""
+#~ "%1% filamentuaren Pressure Advance egokigarriaren modeloak balio baliogabeak ditu.\n"
+#~ "%2%"
+
+# AI Translated
+#~ msgid "Used filament types"
+#~ msgstr "Erabilitako filamentu motak"
+
+# AI Translated
+#~ msgid "Underscore-separated list of all filament types used during the print."
+#~ msgstr "Inprimaketan erabilitako filamentu mota guztien zerrenda, azpimarraz bereizita."
+
+# AI Translated
+#~ msgid "Loads each body of a multi-body part separately. Needed to keep the bodies' original names."
+#~ msgstr "Hainbat gorputz dituen pieza baten gorputz bakoitza bereizita kargatzen du. Beharrezkoa da gorputzen jatorrizko izenak mantentzeko."
+
+# AI Translated
+#~ msgid "Load as an assembly"
+#~ msgstr "Kargatu multzo gisa"
+
+# AI Translated
+#~ msgid "Load as a single object (can be split later)"
+#~ msgstr "Kargatu objektu bakar gisa (geroago bana daiteke)"
+
+# AI Translated
+#~ msgid "The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."
+#~ msgstr "Jatorrizko gorputzak eta izenak objektuaren barruan mantentzen dira. Erabili \"Piezetan zatitu\" pieza bereizi gisa erakusteko."
+
+# AI Translated
+#~ msgid "Use the body names stored in the file, when there are any. Needs Split compound for parts with several bodies."
+#~ msgstr "Erabili fitxategian gordetako gorputz-izenak, baldin badaude. Hainbat gorputz dituzten piezetarako \"Banatu compound\" behar da."
+
+# AI Translated
+#~ msgid "Sort parts by name"
+#~ msgstr "Ordenatu piezak izenaren arabera"
+
+# AI Translated
+#~ msgid "Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."
+#~ msgstr "Ordenatu inportatutako multzo bakoitzeko piezak objektuen zerrendan. Honek ez du xerratzeko erabiltzen den ordena aldatzen. Erabilgarri \"Mantendu jatorrizko izenak\" gaituta dagoenean."
+
+# AI Translated
+#~ msgid "Don't ask again"
+#~ msgstr "Ez galdetu berriro"
+
+# AI Translated
+#~ msgid "Save these choices and apply them without asking next time. You can show this dialog again in Preferences."
+#~ msgstr "Gorde aukera hauek eta aplikatu galdetu gabe hurrengoan. Elkarrizketa-koadro hau berriro erakuts dezakezu Hobespenetan."
+
+# AI Translated
+#~ msgid "3MF geometry import options"
+#~ msgstr "3MF geometria inportatzeko aukerak"
+
+# AI Translated
+#~ msgid "AMF geometry import options"
+#~ msgstr "AMF geometria inportatzeko aukerak"
+
+# AI Translated
+#~ msgid "Choose how to name and order the parts of this file."
+#~ msgstr "Aukeratu nola izendatu eta ordenatu fitxategi honetako piezak."
+
+# AI Translated
+#~ msgid "Choose how to load the bodies in this file."
+#~ msgstr "Aukeratu nola kargatu fitxategi honetako gorputzak."
+
+# AI Translated
+#~ msgid "Load as separate objects"
+#~ msgstr "Kargatu objektu bereizi gisa"
+
+# AI Translated
+#~ msgid "Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."
+#~ msgstr "Fitxategiko objektu bakoitza bere aldetik kargatzen da, OrcaSlicer-ek AMF fitxategiak beti kargatu izan dituen bezala."
+
+# AI Translated
+#~ msgid "The bodies of each group in the file become parts of one object, in their relative positions."
+#~ msgstr "Fitxategiko talde bakoitzeko gorputzak objektu bakar baten pieza bihurtzen dira, beren posizio erlatiboetan."
+
+# AI Translated
+#~ msgid "Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."
+#~ msgstr "Erabili fitxategian gordetako gorputz-izenak, baldin badaude. Desgaituta dagoenean, OrcaSlicer-en ohiko izenak erabiltzen dira; dauden proiektu-izenak mantendu egiten dira."
+
+# AI Translated
+#~ msgid "Use these choices as defaults next time. The dialog still opens."
+#~ msgstr "Erabili aukera hauek lehenetsi gisa hurrengoan. Hala ere, elkarrizketa-koadroa irekiko da."
+
+# AI Translated
+#~ msgid "A name in the file is not valid Unicode. The geometry was not imported."
+#~ msgstr "Fitxategiko izen bat ez da baliozko Unicode. Geometria ez da inportatu."
+
+# AI Translated
+#~ msgid "Invalid name"
+#~ msgstr "Izen baliogabea"
+
+# AI Translated
+#~ msgid "Unsupported characters in names"
+#~ msgstr "Onartzen ez diren karaktereak izenetan"
+
+# AI Translated
+#~ msgid "Some original names contain characters that OrcaSlicer cannot use. Choose how to change them before importing."
+#~ msgstr "Jatorrizko izen batzuek OrcaSlicer-ek erabili ezin dituen karaktereak dituzte. Aukeratu nola aldatu inportatu aurretik."
+
+# AI Translated
+#~ msgid "Remove unsupported characters"
+#~ msgstr "Kendu onartzen ez diren karaktereak"
+
+# AI Translated
+#~ msgid "Replace with:"
+#~ msgstr "Ordeztu honekin:"
+
+# AI Translated
+#~ msgid "Each unsupported character is replaced with this text. It may be longer than one character."
+#~ msgstr "Onartzen ez den karaktere bakoitza testu honekin ordezten da. Karaktere bat baino luzeagoa izan daiteke."
+
+# AI Translated
+#~ msgid "Use this rule as the default next time. The dialog still opens."
+#~ msgstr "Erabili arau hau lehenetsi gisa hurrengoan. Hala ere, elkarrizketa-koadroa irekiko da."
+
+# AI Translated
+#~ msgid "Save this rule and apply it without asking next time. You can show this dialog again in Preferences."
+#~ msgstr "Gorde arau hau eta aplikatu galdetu gabe hurrengoan. Elkarrizketa-koadro hau berriro erakuts dezakezu Hobespenetan."
+
+# AI Translated
+#~ msgid "Enter a non-empty replacement containing only supported characters, or choose removal."
+#~ msgstr "Sartu hutsik ez dagoen ordezko testu bat, onartutako karaktereekin soilik, edo aukeratu kentzea."
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% → %2%"
+#~ msgstr "%1% → %2%"
+
+# AI Translated
+#, boost-format
+#~ msgid "• %1%: %2%"
+#~ msgstr "• %1%: %2%"
+
+# AI Translated
+#, boost-format
+#~ msgid "• %1% — %2%: %3%"
+#~ msgstr "• %1% — %2%: %3%"
+
+# AI Translated
+#, boost-format
+#~ msgid ""
+#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+#~ msgstr ""
+#~ "Ondorengo ezarpenek Orca Slicer-ek ordenagailu honetan identifikatu ezin dituen pluginak aipatzen dituzte:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "Hala ere gordetzen baduzu, aurrezarpenak ez ditu ezarpen hauen plugin-erreferentziak gordeko. Beste ordenagailu batean, Orca Slicer-ek ez du jakingo zein plugin eskaini, eta baliteke ezarpenek han ez funtzionatzea."
+
+# AI Translated
+#, boost-format
+#~ msgid ""
+#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+#~ msgstr ""
+#~ "Ondorengo ezarpenek Orca Slicer-ek ordenagailu honetan identifikatu ezin dituen pluginak aipatzen dituzte:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "Hala ere gordetzen baduzu, proiektuak ez ditu ezarpen hauen plugin-erreferentziak gordeko. Beste ordenagailu batean, Orca Slicer-ek ez du jakingo zein plugin eskaini, eta baliteke ezarpenek han ez funtzionatzea."
+
+# AI Translated
+#~ msgid "Plugin Not Identified"
+#~ msgstr "Plugina ez da identifikatu"
+
+# AI Translated
+#~ msgid "Save anyway"
+#~ msgstr "Gorde hala ere"
+
+# AI Translated
+#, boost-format
+#~ msgid ""
+#~ "The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+#~ msgstr ""
+#~ "Gordetzen ari diren aurrezarpenek Orca Slicer-ek ordenagailu honetan identifikatu ezin dituen pluginak aipatzen dituzte:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "Hala ere gordetzen baduzu, aurrezarpenek ez dituzte ezarpen hauen plugin-erreferentziak gordeko. Beste ordenagailu batean, Orca Slicer-ek ez du jakingo zein plugin eskaini, eta baliteke ezarpenek han ez funtzionatzea."
 
 # AI Translated
 #~ msgid "Remove from favorites"
