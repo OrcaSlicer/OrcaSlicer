@@ -408,7 +408,7 @@ public:
     }
 
     WipeTowerWriter2& switch_filament_monitoring(bool enable) {
-        flush_planner_queue();
+        m_gcode += flush_planner_queue_command(m_gcode_flavor);
         m_gcode += enable ? "M591 R\n" : "M591 S0\n";
         return *this;
     }
@@ -647,9 +647,10 @@ public:
 	}
 
 	// Set extruder temperature, don't wait by default.
-	WipeTowerWriter2& set_extruder_temp(int temperature, bool wait = false, const std::string& comment = std::string())
+	WipeTowerWriter2& set_extruder_temp(int temperature, bool wait = false, const std::string& comment = std::string(), bool sync = true)
 	{
-        flush_planner_queue();
+        if (sync) // sync the temperature change with motion
+            m_gcode += flush_planner_queue_command(m_gcode_flavor);
         m_gcode += "M" + std::to_string(wait ? 109 : 104) + " S" + std::to_string(temperature);
         if (!comment.empty())
             m_gcode += " " + comment;
@@ -705,7 +706,9 @@ public:
 
 	WipeTowerWriter2& flush_planner_queue()
 	{
-		m_gcode += flush_planner_queue_command(m_gcode_flavor);
+		// Toolchange boundaries: on Klipper M400 here only stalls the toolhead over the tower.
+		if (m_gcode_flavor != gcfKlipper)
+			m_gcode += flush_planner_queue_command(m_gcode_flavor);
 		return *this;
 	}
 
@@ -1416,7 +1419,7 @@ WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool)
             if (interface_temp > 0 && interface_temp != base_temp && !m_wait_for_temp_on_wipe_tower)
                 writer.set_extruder_temp(interface_temp, true);
             if (m_enable_tower_interface_cooldown_during_tower && interface_temp > 0 && interface_temp != base_temp)
-                writer.set_extruder_temp(base_temp, false);
+                writer.set_extruder_temp(base_temp, false, {}, m_gcode_flavor != gcfKlipper); // a cooldown back to base isn't timing-critical
             float pre_dist = m_filpar[tool].tower_interface_pre_extrusion_dist;
             float pre_len = m_filpar[tool].tower_interface_pre_extrusion_length;
             if (pre_dist > 0.f && pre_len > 0.f) {
@@ -1429,7 +1432,7 @@ WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool)
         if (interface_layer) {
             int interface_temp = m_filpar[tool].interface_print_temperature;
             if (!m_enable_tower_interface_cooldown_during_tower && interface_temp > 0 && interface_temp != base_temp)
-                writer.set_extruder_temp(base_temp, false);
+                writer.set_extruder_temp(base_temp, false, {}, m_gcode_flavor != gcfKlipper); // on Klipper M400 would stall the head over the tower
         }
         writer.append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Tower_End) + "\n");
         ++ m_num_tool_changes;
@@ -1715,8 +1718,9 @@ void WipeTower2::toolchange_Unload(
             cleaning_box.ld.y() + m_depth_traversed + wipe_start_offset_after_ram(0.f, is_first_layer()) + m_perimeter_width));
     }
 
+    // Sync even on Klipper: [change_filament_gcode] and Tn must not run while the unload is still queued.
     writer.resume_preview()
-          .flush_planner_queue();
+          .append(flush_planner_queue_command(m_gcode_flavor));
 }
 
 // Change the tool, set a speed override for soluble and flex materials.
@@ -1839,7 +1843,7 @@ void WipeTower2::toolchange_Change(
     if (wait_for_temp_here && !wait_beside_tower)
         writer.set_extruder_temp(wait_for_temp, true, wait_for_temp_tag());
 
-    writer.append("[deretraction_from_wipe_tower_generator]");
+    writer.append("[deretraction_from_wipe_tower_generator]\n");
 
     // The toolchange Tn command will be inserted later, only in case that the user does
     // not provide a custom toolchange gcode.
