@@ -31,6 +31,7 @@
 #include "libslic3r/Support/TreeModelVolumes.hpp"
 #include "libslic3r/Support/SupportParameters.hpp"
 #include "libslic3r/Support/SupportLayer.hpp"
+#include "OrganicToolpaths.hpp"
 #include "SupportCommon.hpp"
 #include "libslic3r/Surface.hpp"
 #include "TriangleMesh.hpp"
@@ -49,6 +50,7 @@
 #include <functional>
 #include <cstdlib>
 #include <cmath>
+#include <map>
 #include <limits>
 #include <memory>
 #include <math.h>
@@ -159,18 +161,6 @@ static inline void check_self_intersections(const ExPolygon &expoly, const std::
 static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_meshes(const Print &print, const std::vector<size_t> &print_object_ids)
 {
     std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> grouped_meshes;
-
-    // Orca: Recompute static mesh-group state for this support generation pass.
-    TreeSupportSettings::zero_top_z_gap = false;
-
-    //FIXME this is ugly, it does not belong here.
-    for (size_t object_id : print_object_ids) {
-        const PrintObject       &print_object  = *print.get_object(object_id);
-        const PrintObjectConfig &object_config = print_object.config();
-        if (object_config.support_top_z_distance < EPSILON)
-            // || min_feature_size < scaled<coord_t>(0.1) that is the minimum line width
-            TreeSupportSettings::zero_top_z_gap = true;
-    }
 
     size_t largest_printed_mesh_idx = 0;
 
@@ -596,7 +586,7 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
  * \param min_points[in] The amount of points that have to be placed. If not enough can be placed the distance will be reduced to place this many points.
  * \return A Polygons object containing the evenly spaced points. Does not represent an area, more a collection of points on lines.
  */
-[[nodiscard]] static Polylines ensure_maximum_distance_polyline(const Polylines &input, double distance, size_t min_points)
+Polylines ensure_maximum_distance_polyline(const Polylines &input, double distance, size_t min_points)
 {
     Polylines result;
     for (Polyline part : input) {
@@ -637,6 +627,14 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
                 part[part.size() - 1] = part[0]; // restore that property that this polyline ends where it started.
                 optimal_end_index = (part.size() + optimal_end_index - optimal_start_index - 1) % (part.size() - 1);
             }
+            // The walk below keeps its points the distance at least from those placed, the far end among them, so its
+            // last step before the far end would be anything up to twice the distance: a tip short of an end of an
+            // overhang. Shortened to divide the way to the far end evenly, the distance keeps every step within it.
+            double way = 0.;
+            for (size_t i = 0; i < optimal_end_index; ++ i)
+                way += (part[i + 1] - part[i]).cast<double>().norm();
+            if (way > current_distance)
+                current_distance = std::max(scaled<double>(0.1), way / std::ceil(way / current_distance));
 
             while (line.size() < min_points && current_distance >= scaled<double>(0.1))
             {
@@ -657,7 +655,9 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
                     double min_distance_to_existing_point = std::numeric_limits<double>::max();
                     for (Point p : line)
                         min_distance_to_existing_point = std::min(min_distance_to_existing_point, (p - next_point->first).cast<double>().norm());
-                    if (min_distance_to_existing_point >= current_distance) {
+                    // The steps are taken straight, while the distance divides the way along the line, which a jog of the
+                    // line lengthens, so the last point before the far end may lie a little closer to it.
+                    if (min_distance_to_existing_point >= 0.95 * current_distance) {
                         // viable point was found. Add to possible result.
                         line.points.emplace_back(next_point->first);
                         current_point = next_point->first;
@@ -697,6 +697,8 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
  * \param roof[in] Whether the roofing or regular support settings should be used.
  * \param layer_idx[in] The current layer index.
  * \param support_infill_distance[in] The distance that should be between the infill lines.
+ * \param phase[in] The phase of an interlaced interface pattern, as the interface IDs are assigned only after all roofs are collected.
+ * \param base_interface[in] Whether the roof is a base interface.
  *
  * \return A Polygons object that represents the resulting infill lines.
  */
@@ -704,7 +706,7 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
     // Polygon to fill in with a zig-zag pattern supporting an overhang.
     const Polygons          &polygon,
     const SupportParameters &support_params,
-    bool roof, LayerIndex layer_idx, coord_t support_infill_distance)
+    bool roof, LayerIndex layer_idx, coord_t support_infill_distance, size_t phase = 0, bool base_interface = false)
 {
 #if 0
     Polygons gaps;
@@ -745,16 +747,24 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
 //    const bool connected_zigzags = roof ? false : config.connect_zigzags;
 //    const int support_shift = roof ? 0 : support_infill_distance / 2;
 
-    const Flow            &flow   = roof ? support_params.support_material_interface_flow : support_params.support_material_flow;
-    std::unique_ptr<Fill>  filler = std::unique_ptr<Fill>(Fill::new_from_type(roof ? support_params.interface_fill_pattern : support_params.base_fill_pattern));
+    // Base-interface paths also use interface spacing; only their eventual
+    // extrusion flow belongs to the base filament.
+    const Flow &flow = roof ? support_params.support_material_interface_flow : support_params.support_material_flow;
+    const InfillPattern pattern = base_interface ?
+        (support_params.top_interface_density > 0.95 || support_params.with_sheath ? ipRectilinear : ipSupportBase) :
+        roof ? support_params.contact_fill_pattern : support_params.base_fill_pattern;
+    std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
     FillParams             fill_params;
 
     filler->layer_id = layer_idx;
     filler->spacing  = flow.spacing();
-    filler->angle = roof ?
-        //fixme support_layer.interface_id() instead of layer_idx
-        (support_params.interface_angle + ((layer_idx & 1) ? float(- M_PI_4) : float(+ M_PI_4))) :
-        support_params.base_angle;
+    filler->angle    = support_params.base_angle;
+    if (roof) {
+        // Match the final support filler: fixed world origin and no implicit layer alternation.
+        filler->set_bounding_box(BoundingBox(Point(-scale_(1.), -scale_(1.)), Point(scale_(1.), scale_(1.))));
+        filler->fixed_angle = true;
+        filler->angle = support_params.support_interface_angle(phase);
+    }
 
     // ORCA: use top-specific interface density after separating top/bottom settings.
     fill_params.density     = float(roof ? support_params.top_interface_density : scaled<float>(filler->spacing) / (scaled<float>(filler->spacing) + float(support_infill_distance)));
@@ -773,6 +783,12 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
         Surface surface(stInternal, std::move(expoly));
         try {
             Polylines pl = filler->fill_surface(&surface, fill_params);
+            if (roof && !base_interface && support_params.top_interface_density >= 1.) {
+                Polygons material;
+                for (const Polyline &line : pl)
+                    append(material, organic_bead(line, flow.scaled_width()));
+                append(pl, organic_interface_gap_paths(surface.expolygon, union_(material), flow.scaled_width()));
+            }
             assert(pl.empty() || get_extents(surface.expolygon).inflated(SCALED_EPSILON).contains(get_extents(pl)));
 #ifdef TREE_SUPPORT_SHOW_ERRORS_WIN32
             if (! pl.empty() && ! get_extents(surface.expolygon).inflated(SCALED_EPSILON).contains(get_extents(pl)))
@@ -857,6 +873,11 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
         return do_final_difference ? diff(ret, collision_trimmed()) : union_(ret);
     }
 
+    // At fine layer heights a branch moves only a few microns per layer. Scale the arc and
+    // simplification tolerances with the offset, so that rounding removes at most a fraction
+    // of the movement. Offsets of 0.16 and 0.12 mm reach the fixed 10 and 15 micron tolerances.
+    const float  arc_tolerance      = std::clamp(float(distance) / 16.f, scaled<float>(0.0005), scaled<float>(0.01));
+    const double simplify_tolerance = std::min(scaled<double>(0.015), double(distance) / 8.);
     coord_t step_size = safe_step_size;
     int     steps = distance > last_step_offset_without_check ? (distance - last_step_offset_without_check) / step_size : 0;
     if (distance - steps * step_size > last_step_offset_without_check) {
@@ -869,26 +890,23 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
     if (steps + (distance < last_step_offset_without_check || (distance % step_size) != 0) < int(min_amount_offset) && min_amount_offset > 1) {
         // yes one can add a bool as the standard specifies that a result from compare operators has to be 0 or 1
         // reduce the stepsize to ensure it is offset the required amount of times
-        step_size = distance / min_amount_offset;
-        if (step_size >= safe_step_size) {
-            // effectivly reduce last_step_offset_without_check
-            step_size = safe_step_size;
-            steps = min_amount_offset;
-        } else
-            steps = distance / step_size;
+        // Substeps cannot be smaller than one scaled-coordinate unit. Derive
+        // their count from that representable step without exceeding distance.
+        step_size = std::min(safe_step_size, std::max<coord_t>(1, distance / min_amount_offset));
+        steps = distance / step_size;
     }
     // offset in steps
     for (int i = 0; i < steps; ++ i) {
-        ret = diff(offset(ret, step_size, jtRound, scaled<float>(0.01)), collision_trimmed());
+        ret = diff(offset(ret, step_size, jtRound, arc_tolerance), collision_trimmed());
         // ensure that if many offsets are done the performance does not suffer extremely by the new vertices of jtRound.
         if (i % 10 == 7)
-            ret = polygons_simplify(ret, scaled<double>(0.015));
+            ret = polygons_simplify(ret, simplify_tolerance);
     }
     // offset the remainder
     float last_offset = distance - steps * step_size;
     if (last_offset > SCALED_EPSILON)
-        ret = offset(ret, distance - steps * step_size, jtRound, scaled<float>(0.01));
-    ret = polygons_simplify(ret, scaled<double>(0.015));
+        ret = offset(ret, distance - steps * step_size, jtRound, arc_tolerance);
+    ret = polygons_simplify(ret, simplify_tolerance);
 
     if (do_final_difference)
         ret = diff(ret, collision_trimmed());
@@ -1160,6 +1178,186 @@ void finalize_raft_contact(
     }
 }
 
+Polylines organic_roof_tips(const Polygons &area, const coord_t line_width, const coord_t tip_radius, const coord_t connect_length)
+{
+    // A corner this sharp or sharper gets a tip of its own.
+    static constexpr double max_corner_angle = 0.75 * M_PI;
+    // Tips stand at least their diameter and a line apart, so their discs and the beads around them stay apart.
+    const coord_t min_distance = 2 * tip_radius + line_width;
+    const coord_t spacing      = std::max(connect_length, min_distance);
+    // Inside a hexagonal lattice no point lies farther than spacing / sqrt(3) from a node. Elsewhere a tip is added
+    // farther than cover from all others, and so never closer to them than min_distance.
+    const double cover = std::max(0.7 * double(spacing), double(min_distance));
+    // The distance to the nearest tip, up to 1.5 spacing.
+    struct PointAccessor {
+        const Point *operator()(const Point &pt) const { return &pt; }
+    };
+    ClosestPointInRadiusLookup<Point, PointAccessor> tips_placed(coord_t(1.5 * double(spacing)));
+    auto nearest = [&tips_placed](const Point &p) {
+        const auto [tip, distance2] = tips_placed.find(p);
+        return tip == nullptr ? std::numeric_limits<double>::max() : std::sqrt(distance2);
+    };
+    Polylines out;
+    // Add p to line unless it lies closer than min_distance to a tip.
+    auto place = [&](Polyline &line, const Point &p) {
+        if (nearest(p) < double(min_distance))
+            return;
+        tips_placed.insert(p);
+        line.points.push_back(p);
+    };
+
+    const Polygons inner = offset(area, -0.5f * float(line_width), jtMiter, 3.);
+    // An area whose inset outline lies within two lines of the disc of one tip in its middle gets just that tip. A larger
+    // one gets several, between which the interface bridges, rather than one it would overhang far.
+    if (! inner.empty()) {
+        double     weight = 0.;
+        Vec2d      centre = Vec2d::Zero();
+        for (const ExPolygon &part : union_ex(inner)) {
+            const double a = part.area();
+            centre += a * part.contour.centroid().cast<double>();
+            weight += a;
+        }
+        if (weight > 0.) {
+            const Point middle = (centre / weight).cast<coord_t>();
+            bool        covers = contains(inner, middle);
+            for (const Polygon &ring : inner)
+                for (const Point &p : ring.points)
+                    covers &= (p - middle).cast<double>().norm() <= double(tip_radius + 2 * line_width);
+            if (covers)
+                return { Polyline(Points{ middle }) };
+        }
+    }
+    // Tips of the outline moved to the middle of two of its points.
+    Points merged;
+    // Along the outline, a point closer than min_distance to a tip, across a part of the area narrower than that or on
+    // an edge shorter than that, moves the tip to the middle of the two, from where it reaches both. So a strip too
+    // narrow for two rows of tips gets one row along its middle rather than one along an edge. A tip moves once, and
+    // not to a middle outside the area or closer than min_distance to another tip. Returns whether p got a tip.
+    auto place_on_outline = [&](Polyline &line, const Point &p) {
+        const auto [tip, distance2] = tips_placed.find(p);
+        if (tip == nullptr || distance2 >= sqr(double(min_distance))) {
+            place(line, p);
+            return true;
+        }
+        const Point other   = *tip;
+        const Point between = (p + other) / 2;
+        if (std::find(merged.begin(), merged.end(), other) != merged.end() || ! contains(inner, between))
+            return false;
+        tips_placed.erase(other);
+        if (nearest(between) < double(min_distance)) {
+            tips_placed.insert(other);
+            return false;
+        }
+        tips_placed.insert(between);
+        merged.push_back(between);
+        auto move = [&other, &between](Polyline &tips) {
+            const auto it = std::find(tips.points.begin(), tips.points.end(), other);
+            if (it != tips.points.end())
+                *it = between;
+            return it != tips.points.end();
+        };
+        if (! move(line))
+            for (Polyline &tips : out)
+                if (move(tips))
+                    break;
+        return true;
+    };
+    for (const Polygon &ring : inner) {
+        const size_t n = ring.size();
+        if (n < 3)
+            continue;
+        std::vector<double> arc(n + 1, 0.);
+        for (size_t i = 0; i < n; ++ i)
+            arc[i + 1] = arc[i] + (ring[(i + 1) % n] - ring[i]).cast<double>().norm();
+        const double length = arc[n];
+        auto point_at = [&](double s) {
+            s = std::fmod(s, length);
+            const size_t i = std::min<size_t>(n - 1, std::upper_bound(arc.begin(), arc.end(), s) - arc.begin() - 1);
+            const double t = arc[i + 1] > arc[i] ? (s - arc[i]) / (arc[i + 1] - arc[i]) : 0.;
+            return Point(ring[i] + ((ring[(i + 1) % n] - ring[i]).cast<double>() * t).cast<coord_t>());
+        };
+        // Tips at the sharp convex corners, then evenly between them, at most spacing and at least min_distance apart.
+        // The offset leaves the area on the left of both its contours and its holes, so it is convex where they turn left.
+        std::vector<double> stops;
+        Polyline            line;
+        for (size_t i = 0; i < n; ++ i) {
+            const Vec2d a = (ring[i] - ring[(i + n - 1) % n]).cast<double>();
+            const Vec2d b = (ring[(i + 1) % n] - ring[i]).cast<double>();
+            if (M_PI - std::atan2(cross2(a, b), a.dot(b)) <= max_corner_angle && place_on_outline(line, ring[i]))
+                stops.push_back(arc[i]);
+        }
+        if (stops.empty()) {
+            stops.push_back(0.);
+            place_on_outline(line, ring.front());
+        }
+        for (size_t i = 0; i < stops.size(); ++ i) {
+            const double from = stops[i], to = i + 1 < stops.size() ? stops[i + 1] : stops.front() + length;
+            const size_t steps = std::max(size_t(std::ceil((to - from) / double(spacing))), size_t(1));
+            const size_t fit   = std::max(size_t(std::floor((to - from) / double(min_distance))), size_t(1));
+            const size_t parts = std::min(steps, fit);
+            for (size_t k = 1; k < parts; ++ k)
+                place_on_outline(line, point_at(from + (to - from) * double(k) / double(parts)));
+        }
+        if (! line.empty())
+            out.push_back(std::move(line));
+    }
+    if (out.empty())
+        return out;
+
+    // Points of a horizontal line through the parts of polygons, step apart and on a grid of step shifted by shift.
+    auto row_points = [](const Polygons &polygons, const BoundingBox &bbox, const coord_t y, const double step, const double shift) {
+        Points points;
+        for (const Polyline &span : intersection_pl(Polylines{ Polyline(Point(bbox.min.x() - 1, y), Point(bbox.max.x() + 1, y)) }, polygons)) {
+            const coord_t x0 = std::min(span.front().x(), span.back().x()), x1 = std::max(span.front().x(), span.back().x());
+            for (double x = std::ceil((x0 - shift) / step) * step + shift; x <= x1; x += step)
+                points.emplace_back(coord_t(std::llround(x)), y);
+        }
+        return points;
+    };
+    // A hexagonal lattice in the object's coordinates, so that the tips of flat overhangs stacked above each other
+    // line up, at least half the spacing inside the outline.
+    const Polygons core = offset(inner, -0.5f * float(spacing));
+    if (! core.empty()) {
+        const BoundingBox bbox = get_extents(core);
+        const double      row  = double(spacing) * std::sqrt(3.) / 2.;
+        for (long r = long(std::floor(bbox.min.y() / row)); r <= long(std::ceil(bbox.max.y() / row)); ++ r) {
+            Polyline line;
+            for (const Point &p : row_points(core, bbox, coord_t(std::llround(r * row)), double(spacing), (r & 1) ? 0.5 * double(spacing) : 0.))
+                place(line, p);
+            if (! line.empty())
+                out.push_back(std::move(line));
+        }
+    }
+
+    // Fill the gaps between the outline and the lattice: while a point of the area lies farther than cover from all
+    // tips, put a tip at the farthest one. A point more than the spacing inside the lattice lies within spacing / sqrt(3)
+    // of a node, so only the band along the outline is tested, at points an eighth of the spacing apart. Tips are looked
+    // for up to 1.5 spacing away, farther than the outline tips leave a point of the band; a point with none that close
+    // counts as the farthest.
+    const Polygons   band = diff(inner, offset(core, -float(spacing)));
+    struct Gap { Point position; double distance; };
+    std::vector<Gap> gaps;
+    if (! band.empty()) {
+        const BoundingBox bbox = get_extents(band);
+        const double      step = double(spacing) / 8.;
+        for (long r = long(std::floor(bbox.min.y() / step)); r <= long(std::ceil(bbox.max.y() / step)); ++ r)
+            for (const Point &p : row_points(band, bbox, coord_t(std::llround(r * step)), step, 0.))
+                if (const double distance = nearest(p); distance > cover)
+                    gaps.push_back({ p, distance });
+    }
+    Polyline fill;
+    while (! gaps.empty()) {
+        const Point tip = std::max_element(gaps.begin(), gaps.end(), [](const Gap &l, const Gap &r) { return l.distance < r.distance; })->position;
+        place(fill, tip);
+        for (Gap &gap : gaps)
+            gap.distance = std::min(gap.distance, (gap.position - tip).cast<double>().norm());
+        gaps.erase(std::remove_if(gaps.begin(), gaps.end(), [cover](const Gap &gap) { return gap.distance <= cover; }), gaps.end());
+    }
+    if (! fill.points.empty())
+        out.push_back(std::move(fill));
+    return out;
+}
+
 // Called by generate_initial_areas(), used in parallel by multiple layers.
 // Produce
 // 1) Maximum num_support_roof_layers roof (top interface & contact) layers.
@@ -1185,7 +1383,7 @@ void sample_overhang_area(
     // Configuration
     RichInterfacePlacer& interface_placer,
     // Output
-    RichInterfacePlacer::Placement& placement)
+    RichInterfacePlacer::Placement& placement, const Polygons *roof_target = nullptr)
 {
     // Assumption is that roof will support roof further up to avoid a lot of unnecessary branches. Each layer down it is checked whether the roof area
     // is still large enough to be a roof and aborted as soon as it is not. This part was already reworked a few times, and there could be an argument
@@ -1194,8 +1392,21 @@ void sample_overhang_area(
     // as the pattern may be different one layer below. Same with calculating which points are now no longer being generated as result from
     // a decreasing roof, as there is no guarantee that a line will be above these points. Implementing a separate roof support behavior
     // for each pattern harms maintainability as it very well could be >100 LOC
-    auto generate_roof_lines = [&interface_placer, &mesh_group_settings](const Polygons &area, LayerIndex layer_idx) -> Polylines {
-        return generate_support_infill_lines(area, interface_placer.support_parameters, true, layer_idx, mesh_group_settings.support_roof_line_distance);
+    auto roof_tips = [&interface_placer, connect_length](const Polygons &area) {
+        return organic_roof_tips(area, interface_placer.config.support_line_width, interface_placer.config.min_radius, connect_length);
+    };
+    // The final interface ID is assigned after all roofs have been collected.
+    // Validate both possible interlaced phases instead of guessing from model Z.
+    const size_t contact_phases = interface_placer.support_parameters.support_interface_pattern == smipRectilinearInterlaced ? 2 : 1;
+    // The lines of the interface layer depth layers below the overhang.
+    auto roof_lines = [&](const Polygons &area, size_t depth, size_t phase) {
+        return generate_support_infill_lines(area, interface_placer.support_parameters, true, LayerIndex(layer_idx - depth),
+            mesh_group_settings.support_roof_line_distance, phase, interface_placer.is_top_base_interface(depth));
+    };
+    auto roof_printable = [&](const Polygons &area, size_t depth) {
+        for (size_t phase = 0; phase < contact_phases; ++phase)
+            if (roof_lines(area, depth, phase).empty()) return false;
+        return true;
     };
 
     LineInformations        overhang_lines;
@@ -1208,6 +1419,7 @@ void sample_overhang_area(
         // Sometimes roofs could be empty as the pattern does not generate lines if the area is narrow enough (i am looking at you, concentric infill).
         // To catch these cases the added roofs are saved to be evaluated later.
         std::vector<Polygons>   added_roofs(num_support_roof_layers);
+        std::vector<Polygons>   routing_roofs(num_support_roof_layers);
         Polygons                last_overhang = overhang_area;
         for (dtt_roof = 0; dtt_roof < num_support_roof_layers && layer_idx - dtt_roof >= 1; ++ dtt_roof) {
             // here the roof is handled. If roof can not be added the branches will try to not move instead
@@ -1226,27 +1438,129 @@ void sample_overhang_area(
                 // Next layer down the roof area would be to small so we have to insert our roof support here.
                 if (dtt_roof > 0) {
                     size_t dtt_before = dtt_roof - 1;
-                    // Produce support head points supporting an interface layer: First produce the interface lines, then sample them.
+                    // Produce support head points supporting an interface layer.
                     overhang_lines = split_lines(
                         convert_lines_to_internal(interface_placer.volumes, interface_placer.config,
-                            ensure_maximum_distance_polyline(generate_roof_lines(last_overhang, layer_idx - dtt_before), connect_length, 1), layer_idx - dtt_before),
+                            roof_tips(last_overhang), layer_idx - dtt_before),
                         [&interface_placer, layer_idx, dtt_before](const std::pair<Point, LineStatus> &p)
                             { return evaluate_point_for_next_layer_function(interface_placer.volumes, interface_placer.config, layer_idx - dtt_before, p); })
                         .first;
                 }
                 break;
             }
+            routing_roofs[dtt_roof] = overhang_area;
             added_roofs[dtt_roof] = overhang_area;
+            if (roof_target != nullptr && dtt_roof == 0) {
+                // Only the top contact follows the physical overhang. Lower
+                // interface layers may reach real anchors within the routing roof.
+                Polygons target = intersection(overhang_area, *roof_target);
+                const ExPolygons source_parts = union_ex(target);
+                const coord_t width = interface_placer.support_parameters.support_material_interface_flow.scaled_width();
+                const bool dense = interface_placer.support_parameters.top_interface_density >= 1.;
+                // A dense contact covers the core of each part and the axes of its parts too thin for a core.
+                std::vector<std::pair<Polygons, Polylines>> obligations(dense ? source_parts.size() : 0);
+                for (size_t i = 0; i < obligations.size(); ++i)
+                    obligations[i] = { offset(to_polygons(source_parts[i]), -double(width)), organic_contact_axes(source_parts[i], width) };
+                std::vector<size_t> all_parts(source_parts.size());
+                std::iota(all_parts.begin(), all_parts.end(), size_t(0));
+                const bool loop_pattern = interface_placer.support_parameters.contact_fill_pattern == ipSpiralInset ||
+                    interface_placer.support_parameters.contact_fill_pattern == ipConcentric;
+                // The material the contact lines of each phase lay over a candidate, none if a phase lays no line.
+                auto contact_material = [&](const Polygons &candidate) -> std::optional<std::vector<Polygons>> {
+                    std::vector<Polygons> materials;
+                    for (size_t phase = 0; phase < contact_phases; ++phase) {
+                        const Polylines lines = roof_lines(candidate, 0, phase);
+                        if (lines.empty()) return std::nullopt;
+                        Polygons material;
+                        for (const Polyline &line : lines)
+                            append(material, organic_bead(line, width));
+                        materials.push_back(union_(material));
+                    }
+                    return materials;
+                };
+                // Fixed-width loops can leave intrinsic interior pores. Validate
+                // the entire core boundary and thin requests against the final
+                // union: merging expanded islands changes a loop pattern's path.
+                auto contact_deficit = [&](const std::vector<Polygons> &materials, const std::vector<size_t> &parts) -> std::optional<double> {
+                    Polygons core;
+                    Polylines thin_core;
+                    if (dense)
+                        for (size_t i : parts) {
+                            if (obligations[i].first.empty() && obligations[i].second.empty()) return std::nullopt;
+                            append(core, obligations[i].first);
+                            append(thin_core, obligations[i].second);
+                        }
+                    double deficit = 0.;
+                    for (const Polygons &material : materials) {
+                        if (!dense) {
+                            // A broad island must not hide an empty neighbour.
+                            // Preserve sparse gaps, but require physical contact
+                            // with each original solid component.
+                            for (size_t i : parts)
+                                if (area(intersection(to_polygons(source_parts[i]), material)) <= 0.) return std::nullopt;
+                            continue;
+                        }
+                        if (!diff_pl(thin_core, material).empty()) return std::nullopt;
+                        const Polygons missing = diff(core, material);
+                        if (loop_pattern) {
+                            if (!diff_pl(to_polylines(core), material).empty()) return std::nullopt;
+                        } else if (!missing.empty()) return std::nullopt;
+                        deficit = std::max(deficit, area(missing));
+                    }
+                    return deficit;
+                };
+                auto candidate_deficit = [&](const Polygons &candidate, const std::vector<size_t> &parts) -> std::optional<double> {
+                    const std::optional<std::vector<Polygons>> materials = contact_material(candidate);
+                    return materials ? contact_deficit(*materials, parts) : std::nullopt;
+                };
+                std::optional<double> deficit = candidate_deficit(target, all_parts);
+                if (!deficit || *deficit > 0.) {
+                    // Bound any pattern clearance by the bead radius and the
+                    // existing legal roof. Never trade a lost contact boundary
+                    // for a smaller total missing area in the interior.
+                    Polygons bounded = intersection(overhang_area,
+                        offset(target, 0.5 * width, jtRound, SCALED_EPSILON));
+                    const std::optional<double> bounded_deficit = candidate_deficit(bounded, all_parts);
+                    if (bounded_deficit && (!deficit || *bounded_deficit < *deficit)) {
+                        target = std::move(bounded);
+                        deficit = bounded_deficit;
+                    }
+                }
+                // A part the contact cannot hold, such as a speck beside a broad overhang, loses its own contact rather
+                // than the roof of the others, and rests on the interface below, as an overhang that the lines of a
+                // sparse interface miss does.
+                std::vector<size_t> held;
+                if (const std::optional<std::vector<Polygons>> materials = !deficit && source_parts.size() > 1 ?
+                        contact_material(target) : std::nullopt)
+                    for (size_t i : all_parts)
+                        if (contact_deficit(*materials, { i }))
+                            held.push_back(i);
+                if (!held.empty() && held.size() < source_parts.size()) {
+                    Polygons kept;
+                    for (size_t i : held)
+                        append(kept, to_polygons(source_parts[i]));
+                    if (const std::optional<double> kept_deficit = candidate_deficit(kept, held)) {
+                        target  = std::move(kept);
+                        deficit = kept_deficit;
+                    }
+                }
+                // Do not consume a depth for a non-covering roof. The original
+                // routing snapshot is restored before pending tips are inserted.
+                added_roofs[dtt_roof] = deficit ? std::move(target) : Polygons{};
+            }
             last_overhang   = std::move(overhang_area);
             overhang_area = std::move(overhang_area_next);
         }
 
         layer_generation_dtt = std::max(dtt_roof, size_t(1)) - 1; // 1 inside max and -1 outside to avoid underflow. layer_generation_dtt=dtt_roof-1 if dtt_roof!=0;
         // if the roof should be valid, check that the area does generate lines. This is NOT guaranteed.
-        if (overhang_lines.empty() && dtt_roof != 0 && generate_roof_lines(overhang_area, layer_idx - layer_generation_dtt).empty())
+        if (dtt_roof != 0)
             for (size_t idx = 0; idx < dtt_roof; idx++) {
                 // check for every roof area that it has resulting lines. Remember idx 1 means the 2. layer of roof => higher idx == lower layer
-                if (generate_roof_lines(added_roofs[idx], layer_idx - idx).empty()) {
+                // The lines of a contact over a roof target were checked above, which left it empty where they failed.
+                if (idx == 0 && roof_target != nullptr ? added_roofs[0].empty() : !roof_printable(added_roofs[idx], idx)) {
+                    overhang_lines.clear();
+                    overhang_area = std::move(routing_roofs[idx]);
                     dtt_roof = idx;
                     layer_generation_dtt = std::max(dtt_roof, size_t(1)) - 1;
                     break;
@@ -1264,15 +1578,20 @@ void sample_overhang_area(
         // This is not doen when a roof is above as the roof will support the model and the trees only need to support the roof
         bool supports_roof = dtt_roof > 0;
         bool continuous_tips = !supports_roof && large_horizontal_roof;
-        Polylines polylines = ensure_maximum_distance_polyline(
-            generate_support_infill_lines(overhang_area, interface_placer.support_parameters, supports_roof, layer_idx - layer_generation_dtt,
-                supports_roof ? mesh_group_settings.support_roof_line_distance : mesh_group_settings.support_tree_branch_distance),
-            continuous_tips ? interface_placer.config.min_radius / 2 : connect_length, 1);
+        // Orca: Tips under an interface follow its outline and a lattice inside, rather than the interface lines sampled
+        // along each line, which leave corners and every other row end at an edge without a tip.
+        Polylines polylines = supports_roof ? roof_tips(overhang_area) :
+            ensure_maximum_distance_polyline(
+                generate_support_infill_lines(overhang_area, interface_placer.support_parameters, false, layer_idx - layer_generation_dtt,
+                    mesh_group_settings.support_tree_branch_distance),
+                continuous_tips ? interface_placer.config.min_radius / 2 : connect_length, 1);
         size_t point_count = 0;
         for (const Polyline &poly : polylines)
             point_count += poly.size();
         const size_t min_support_points = std::max(coord_t(1), std::min(coord_t(3), coord_t(total_length(overhang_area) / connect_length)));
-        if (point_count <= min_support_points) {
+        // Orca: organic_roof_tips() places the tips of a small interface itself, so under one the outline is sampled only
+        // where it places none, in an area narrower than a line.
+        if (supports_roof ? point_count == 0 : point_count <= min_support_points) {
             // add the outer wall (of the overhang) to ensure it is correct supported instead. Try placing the support points in a way that they fully support the outer wall, instead of just the with half of the support line width.
             // I assume that even small overhangs are over one line width wide, so lets try to place the support points in a way that the full support area generated from them
             // will support the overhang (if this is not done it may only be half). This WILL NOT be the case when supporting an angle of about < 60 degrees so there is a fallback,
@@ -1311,6 +1630,55 @@ void sample_overhang_area(
     }
 }
 
+struct InitialOverhangAreas {
+    Polygons forbidden;
+    Polygons regular;
+};
+
+// Calculate the contact regions for one candidate layer.
+static InitialOverhangAreas calculate_initial_overhang_areas(
+    const Polygons &overhang_raw, size_t layer_idx, const TreeModelVolumes &volumes,
+    const TreeSupportSettings &config, coord_t support_offset, coord_t extra_outset,
+    coord_t circle_length_to_half_linewidth_change)
+{
+    using AvoidanceType = TreeModelVolumes::AvoidanceType;
+    const bool min_xy_dist = config.xy_distance > config.xy_min_distance;
+    InitialOverhangAreas areas;
+    const Polygons &relevant_forbidden_raw = config.support_rests_on_model ?
+        volumes.getCollision(config.getRadius(0), layer_idx, min_xy_dist) :
+        volumes.getAvoidance(config.getRadius(0), layer_idx, AvoidanceType::Fast, false, min_xy_dist);
+    // Keep placed points away from rounding at the forbidden boundary.
+    areas.forbidden = offset(union_ex(relevant_forbidden_raw), scaled<float>(0.005), jtMiter, 1.2);
+
+    areas.regular = safe_offset_inc(overhang_raw, support_offset, areas.forbidden, config.min_radius * 1.75 + config.xy_min_distance, 0, 1);
+
+    // Do not grow portions already within half a line of the admissible region.
+    Polygons remaining_overhang = intersection(
+        diff(support_offset == 0 ?
+                overhang_raw :
+                offset(union_ex(overhang_raw), support_offset, jtMiter, 1.2),
+             offset(union_ex(areas.regular), config.support_line_width * 0.5, jtMiter, 1.2)),
+        areas.forbidden);
+
+    // Compensate for the tip radius in steps while retaining collision clearance.
+    for (coord_t extra_total_offset_acc = 0; ! remaining_overhang.empty() && extra_total_offset_acc + config.support_line_width / 8 < extra_outset; ) {
+        const coord_t offset_current_step = std::min(
+            extra_total_offset_acc + 2 * config.support_line_width > config.min_radius ?
+                config.support_line_width / 8 :
+                circle_length_to_half_linewidth_change,
+            extra_outset - extra_total_offset_acc);
+        extra_total_offset_acc += offset_current_step;
+        const Polygons &raw_collision = volumes.getCollision(0, layer_idx, true);
+        const coord_t   offset_step   = config.xy_min_distance + config.support_line_width;
+        // Reducing the remaining overhang by the areas already supported.
+        //FIXME 1.5 * extra_total_offset_acc seems to be too much, it may remove some remaining overhang without being supported at all.
+        remaining_overhang = diff(remaining_overhang, safe_offset_inc(areas.regular, 1.5 * extra_total_offset_acc, raw_collision, offset_step, 0, 1));
+        // Extending the overhangs by the inflated remaining overhangs.
+        areas.regular = union_(areas.regular, diff(safe_offset_inc(remaining_overhang, extra_total_offset_acc, raw_collision, offset_step, 0, 1), areas.forbidden));
+    }
+    return areas;
+}
+
 /*!
  * \brief Creates the initial influence areas (that can later be propagated down) by placing them below the overhang.
  *
@@ -1324,12 +1692,11 @@ static void generate_initial_areas(
     const PrintObject               &print_object,
     const TreeModelVolumes          &volumes,
     const TreeSupportSettings       &config,
-    const std::vector<Polygons>     &overhangs,
+    const std::vector<Polygons>     &overhangs, const std::vector<Polygons> &roof_targets,
     std::vector<SupportElements>    &move_bounds,
     InterfacePlacer                 &interface_placer,
     std::function<void()>            throw_on_cancel)
 {
-    using                           AvoidanceType = TreeModelVolumes::AvoidanceType;
     TreeSupportMeshGroupSettings    mesh_group_settings(print_object);
 
     // To ensure z_distance_top_layers are left empty between the overhang (zeroth empty layer), the support has to be added z_distance_top_layers+1 layers below
@@ -1360,25 +1727,10 @@ static void generate_initial_areas(
         ;
     const size_t  num_support_roof_layers = mesh_group_settings.support_roof_layers;
     const bool    roof_enabled        = num_support_roof_layers > 0;
-    const bool    force_tip_to_roof   = roof_enabled && (interface_placer.support_parameters.zero_gap_interface_top || sqr<double>(config.min_radius) * M_PI > mesh_group_settings.minimum_roof_area);
-    // cap for how much layer below the overhang a new support point may be added, as other than with regular support every new inserted point
-    // may cause extra material and time cost.  Could also be an user setting or differently calculated. Idea is that if an overhang
-    // does not turn valid in double the amount of layers a slope of support angle would take to travel xy_distance, nothing reasonable will come from it.
-    // The 2*z_distance_delta is only a catch for when the support angle is very high.
-    // Used only if not min_xy_dist.
-    coord_t max_overhang_insert_lag = 0;
-    if (config.z_distance_top_layers > 0) {
-        max_overhang_insert_lag = 2 * config.z_distance_top_layers;
-
-    //FIXME
-        if (mesh_group_settings.support_angle > EPSILON && mesh_group_settings.support_angle < 0.5 * M_PI - EPSILON) {
-            //FIXME mesh_group_settings.support_angle does not apply to enforcers and also it does not apply to automatic support angle (by half the external perimeter width).
-            //used by max_overhang_insert_lag, only if not min_xy_dist.
-            const auto max_overhang_speed  = coord_t(tan(mesh_group_settings.support_angle) * config.layer_height);
-            max_overhang_insert_lag = std::max(max_overhang_insert_lag, round_up_divide(config.xy_distance, max_overhang_speed / 2));
-        }
-    }
-
+    // Every tip carries a roof. CuraEngine gives a tip smaller than the minimum roof area none, but a gentle slope
+    // overhangs every layer by slivers too thin for a roof of their own, at fine layer heights thinner than an
+    // interface line, so only its tips, a single one per layer under the tip of a horn, can carry its interface.
+    const bool    force_tip_to_roof   = roof_enabled;
     size_t                                          num_support_layers;
     int                                             raft_contact_layer_idx;
     // Layers with their overhang regions.
@@ -1397,142 +1749,109 @@ static void generate_initial_areas(
     }
 
     RichInterfacePlacer rich_interface_placer{ interface_placer, volumes, force_tip_to_roof, num_support_layers, move_bounds };
-    std::vector<RichInterfacePlacer::Placement> placements(raw_overhangs.size());
-
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, raw_overhangs.size()),
-        [&volumes, &config, &raw_overhangs, &mesh_group_settings,
-         min_xy_dist, roof_enabled, num_support_roof_layers, extra_outset, circle_length_to_half_linewidth_change, connect_length,
-         &rich_interface_placer, &placements, &throw_on_cancel](const tbb::blocked_range<size_t> &range) {
-        for (size_t raw_overhang_idx = range.begin(); raw_overhang_idx < range.end(); ++ raw_overhang_idx) {
-            size_t           layer_idx    = raw_overhangs[raw_overhang_idx].first;
-            const Polygons  &overhang_raw = *raw_overhangs[raw_overhang_idx].second;
-            RichInterfacePlacer::Placement &placement = placements[raw_overhang_idx];
-
-            // take the least restrictive avoidance possible
-            Polygons relevant_forbidden;
-            {
-                const Polygons &relevant_forbidden_raw = config.support_rests_on_model ?
-                    volumes.getCollision(config.getRadius(0), layer_idx, min_xy_dist) :
-                    volumes.getAvoidance(config.getRadius(0), layer_idx, AvoidanceType::Fast, false, min_xy_dist);
-                // prevent rounding errors down the line, points placed directly on the line of the forbidden area may not be added otherwise.
-                relevant_forbidden = offset(union_ex(relevant_forbidden_raw), scaled<float>(0.005), jtMiter, 1.2);
-            }
-
-            // every overhang has saved if a roof should be generated for it. This can NOT be done in the for loop as an area may NOT have a roof
-            // even if it is larger than the minimum_roof_area when it is only larger because of the support horizontal expansion and
-            // it would not have a roof if the overhang is offset by support roof horizontal expansion instead. (At least this is the current behavior of the regular support)
-            Polygons overhang_regular;
-            {
-                // When support_offset = 0 safe_offset_inc will only be the difference between overhang_raw and relevant_forbidden, that has to be calculated anyway.
-                overhang_regular = safe_offset_inc(overhang_raw, mesh_group_settings.support_offset, relevant_forbidden, config.min_radius * 1.75 + config.xy_min_distance, 0, 1);
-                //check_self_intersections(overhang_regular, "overhang_regular1");
-
-                // offset ensures that areas that could be supported by a part of a support line, are not considered unsupported overhang
-                Polygons remaining_overhang = intersection(
-                    diff(mesh_group_settings.support_offset == 0 ?
-                            overhang_raw :
-                            offset(union_ex(overhang_raw), mesh_group_settings.support_offset, jtMiter, 1.2),
-                         offset(union_ex(overhang_regular), config.support_line_width * 0.5, jtMiter, 1.2)),
-                    relevant_forbidden);
-
-                // Offset the area to compensate for large tip radiis. Offset happens in multiple steps to ensure the tip is as close to the original overhang as possible.
-                //+config.support_line_width / 80  to avoid calculating very small (useless) offsets because of rounding errors.
-                //FIXME likely a better approach would be to find correspondences between the full overhang and the trimmed overhang
-                // and if there is no correspondence, project the missing points to the clipping curve.
-                for (coord_t extra_total_offset_acc = 0; ! remaining_overhang.empty() && extra_total_offset_acc + config.support_line_width / 8 < extra_outset; ) {
-                    const coord_t offset_current_step = std::min(
-                        extra_total_offset_acc + 2 * config.support_line_width > config.min_radius ?
-                            config.support_line_width / 8 :
-                            circle_length_to_half_linewidth_change,
-                        extra_outset - extra_total_offset_acc);
-                    extra_total_offset_acc += offset_current_step;
-                    const Polygons &raw_collision = volumes.getCollision(0, layer_idx, true);
-                    const coord_t   offset_step   = config.xy_min_distance + config.support_line_width;
-                    // Reducing the remaining overhang by the areas already supported.
-                    //FIXME 1.5 * extra_total_offset_acc seems to be too much, it may remove some remaining overhang without being supported at all.
-                    remaining_overhang = diff(remaining_overhang, safe_offset_inc(overhang_regular, 1.5 * extra_total_offset_acc, raw_collision, offset_step, 0, 1));
-                    // Extending the overhangs by the inflated remaining overhangs.
-                    overhang_regular   = union_(overhang_regular, diff(safe_offset_inc(remaining_overhang, extra_total_offset_acc, raw_collision, offset_step, 0, 1), relevant_forbidden));
-                    //check_self_intersections(overhang_regular, "overhang_regular2");
+    // A fine-layer slope can lose every contact to XY clearance at a small top Z gap, each layer overhanging the one below
+    // by a sliver within its clearance. Such an overhang is retried on lower layers, each part of it on its own, unless the
+    // ordinary placement put a tip near that part, which a retried one would merge into at once: within twice the XY
+    // distance and a branch radius around it, down to the layers a retry goes to, or above it, whose branch comes down past
+    // it, clear of the model in between: one standing over the model there comes down elsewhere, if at all. Recovering
+    // every blocked sliver beside existing contacts adds redundant tips and swells branches, while a tip near one part of
+    // an overhang keeps no other part of it, far from it, from its contacts.
+    const size_t max_overhang_insert_lag = size_t(std::min({50., scaled<double>(3.) / double(config.layer_height),
+        std::max(2., std::ceil(2. * double(config.xy_distance) /
+            std::max(1., std::tan(mesh_group_settings.support_angle) * double(config.layer_height))))}));
+    // The overhangs with no room for a contact on their own layer.
+    std::vector<Polygons> blocked(raw_overhangs.size());
+    const auto tip_near = [&](const Polygons &part, const size_t layer_idx) {
+        const Polygons    around = offset(part, float(2 * config.xy_distance + config.branch_radius));
+        const BoundingBox box    = get_extents(around);
+        for (size_t i = layer_idx > max_overhang_insert_lag ? layer_idx - max_overhang_insert_lag : 0; i < move_bounds.size(); ++ i)
+            for (const SupportElement &tip : move_bounds[i])
+                if (const Point &at = tip.state.target_position; box.contains(at) && contains(around, at)) {
+                    bool clear = true;
+                    for (size_t below = layer_idx; clear && below < i; ++ below)
+                        clear = ! contains(volumes.getCollision(0, LayerIndex(below), true), at);
+                    if (clear)
+                        return true;
                 }
-#if 0
-                // If the xy distance overrides the z distance, some support needs to be inserted further down.
-                //=> Analyze which support points do not fit on this layer and check if they will fit a few layers down (while adding them an infinite amount of layers down would technically be closer the setting description, it would not produce reasonable results. )
-                if (! min_xy_dist) {
-                    LineInformations overhang_lines;
-                    {
-                        //Vojtech: Generate support heads at support_tree_branch_distance spacing by producing a zig-zag infill at support_tree_branch_distance spacing,
-                        // which is then resmapled
-                        // support_line_width to form a line here as otherwise most will be unsupported. Technically this violates branch distance,
-                        // mbut not only is this the only reasonable choice, but it ensures consistent behavior as some infill patterns generate
-                        // each line segment as its own polyline part causing a similar line forming behavior. Also it is assumed that
-                        // the area that is valid a layer below is to small for support roof.
-                        Polylines polylines = ensure_maximum_distance_polyline(
-                            generate_support_infill_lines(remaining_overhang, support_params, false, layer_idx, mesh_group_settings.support_tree_branch_distance),
-                            config.min_radius, 1);
-                        if (polylines.size() <= 3)
-                            // add the outer wall to ensure it is correct supported instead
-                            polylines = ensure_maximum_distance_polyline(to_polylines(remaining_overhang), connect_length, 3);
-                        for (const auto &line : polylines) {
-                            LineInformation res_line;
-                            for (Point p : line)
-                                res_line.emplace_back(p, LineStatus::INVALID);
-                            overhang_lines.emplace_back(res_line);
-                        }
-                        validate_range(overhang_lines);
-                    }
-                    for (size_t lag_ctr = 1; lag_ctr <= max_overhang_insert_lag && !overhang_lines.empty() && layer_idx - coord_t(lag_ctr) >= 1; lag_ctr++) {
-                        // get least restricted avoidance for layer_idx-lag_ctr
-                        const Polygons &relevant_forbidden_below = config.support_rests_on_model ?
-                            volumes.getCollision(config.getRadius(0), layer_idx - lag_ctr, min_xy_dist) :
-                            volumes.getAvoidance(config.getRadius(0), layer_idx - lag_ctr, AvoidanceType::Fast, false, min_xy_dist);
-                        // it is not required to offset the forbidden area here as the points wont change: If points here are not inside the forbidden area neither will they be later when placing these points, as these are the same points.
-                        auto evaluatePoint = [&](std::pair<Point, LineStatus> p) { return contains(relevant_forbidden_below, p.first); };
+        return false;
+    };
 
-                        std::pair<LineInformations, LineInformations> split = split_lines(overhang_lines, evaluatePoint); // keep all lines that are invalid
-                        overhang_lines = split.first;
-                        // Set all now valid lines to their correct LineStatus. Easiest way is to just discard Avoidance information for each point and evaluate them again.
-                        LineInformations fresh_valid_points = convert_lines_to_internal(volumes, config, convert_internal_to_lines(split.second), layer_idx - lag_ctr);
-                        validate_range(fresh_valid_points);
-
-                        rich_interface_placer.add_points_along_lines(placement, fresh_valid_points, (force_tip_to_roof && lag_ctr <= num_support_roof_layers) ? num_support_roof_layers : 0, layer_idx - lag_ctr, false, roof_enabled ? num_support_roof_layers : 0);
-                    }
-                }
-#endif
-            }
-
-            throw_on_cancel();
-
-            if (roof_enabled) {
-                // Try to support the overhangs by dense interfaces for num_support_roof_layers, cover the bottom most interface with tree tips.
-                static constexpr const coord_t support_roof_offset = 0;
-                Polygons overhang_roofs = safe_offset_inc(overhang_raw, support_roof_offset, relevant_forbidden, config.min_radius * 2 + config.xy_min_distance, 0, 1);
-                if (mesh_group_settings.minimum_support_area > 0)
-                    remove_small(overhang_roofs, mesh_group_settings.minimum_roof_area);
-                overhang_regular = diff(overhang_regular, overhang_roofs, ApplySafetyOffset::Yes);
-                //check_self_intersections(overhang_regular, "overhang_regular3");
-                for (ExPolygon &roof_part : union_ex(overhang_roofs)) {
-                    sample_overhang_area(to_polygons(std::move(roof_part)), true, layer_idx, num_support_roof_layers, connect_length,
-                        mesh_group_settings, rich_interface_placer, placement);
-                    throw_on_cancel();
-                }
-            }
-            // Either the roof is not enabled, then these are all the overhangs to be supported,
-            // or roof is enabled and these are the thin overhangs at object slopes (not horizontal overhangs).
-            if (mesh_group_settings.minimum_support_area > 0)
-                remove_small(overhang_regular, mesh_group_settings.minimum_support_area);
-
-            for (ExPolygon &support_part : union_ex(overhang_regular)) {
-                sample_overhang_area(to_polygons(std::move(support_part)),
-                    false, layer_idx, num_support_roof_layers, connect_length,
-                    mesh_group_settings, rich_interface_placer, placement);
-                throw_on_cancel();
-            }
+    for (const bool recover_contacts : {false, true}) {
+        // The blocked parts of the overhangs to retry lower.
+        std::vector<std::vector<Polygons>> retries(raw_overhangs.size());
+        if (recover_contacts) {
+            tbb::parallel_for(tbb::blocked_range<size_t>(0, raw_overhangs.size()), [&](const tbb::blocked_range<size_t> &range) {
+                for (size_t raw_overhang_idx = range.begin(); raw_overhang_idx < range.end(); ++ raw_overhang_idx)
+                    for (ExPolygon &part : union_ex(blocked[raw_overhang_idx]))
+                        if (Polygons polygons = to_polygons(std::move(part)); ! tip_near(polygons, raw_overhangs[raw_overhang_idx].first))
+                            retries[raw_overhang_idx].push_back(std::move(polygons));
+            });
+            if (std::all_of(retries.begin(), retries.end(), [](const std::vector<Polygons> &parts) { return parts.empty(); }))
+                break;
         }
-    });
+        std::vector<RichInterfacePlacer::Placement> placements(raw_overhangs.size());
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, raw_overhangs.size()),
+            [&volumes, &config, &raw_overhangs, &mesh_group_settings, &roof_targets, z_distance_delta,
+             roof_enabled, num_support_roof_layers, extra_outset, circle_length_to_half_linewidth_change, connect_length,
+             &rich_interface_placer, &placements, max_overhang_insert_lag, recover_contacts, &blocked, &retries, &throw_on_cancel](const tbb::blocked_range<size_t> &range) {
+            for (size_t raw_overhang_idx = range.begin(); raw_overhang_idx < range.end(); ++ raw_overhang_idx) {
+                const size_t source_layer = raw_overhangs[raw_overhang_idx].first;
+                RichInterfacePlacer::Placement &placement = placements[raw_overhang_idx];
+                const auto place = [&](const Polygons &overhang_raw) {
+                    size_t               layer_idx = source_layer;
+                    InitialOverhangAreas areas;
+                    for (size_t lag = 0;; ++lag) {
+                        areas = calculate_initial_overhang_areas(overhang_raw, layer_idx, volumes, config,
+                            mesh_group_settings.support_offset, extra_outset, circle_length_to_half_linewidth_change);
+                        if (!recover_contacts || !areas.regular.empty() || lag >= max_overhang_insert_lag || layer_idx <= 1 ||
+                            !diff(overhang_raw, areas.forbidden).empty())
+                            break;
+                        --layer_idx;
+                    }
+                    if (! recover_contacts && areas.regular.empty() && diff(overhang_raw, areas.forbidden).empty())
+                        blocked[raw_overhang_idx] = overhang_raw;
+                    const Polygons &relevant_forbidden = areas.forbidden;
+                    Polygons &overhang_regular = areas.regular;
 
-    for (RichInterfacePlacer::Placement &placement : placements)
-        rich_interface_placer.commit(std::move(placement));
+                    throw_on_cancel();
+
+                    if (roof_enabled) {
+                        // Try to support the overhangs by dense interfaces for num_support_roof_layers, cover the bottom most interface with tree tips.
+                        static constexpr const coord_t support_roof_offset = 0;
+                        Polygons overhang_roofs = safe_offset_inc(overhang_raw, support_roof_offset, relevant_forbidden, config.min_radius * 2 + config.xy_min_distance, 0, 1);
+                        if (mesh_group_settings.minimum_support_area > 0)
+                            remove_small(overhang_roofs, mesh_group_settings.minimum_roof_area);
+                        overhang_regular = diff(overhang_regular, overhang_roofs, ApplySafetyOffset::Yes);
+                        //check_self_intersections(overhang_regular, "overhang_regular3");
+                        for (ExPolygon &roof_part : union_ex(overhang_roofs)) {
+                            sample_overhang_area(to_polygons(std::move(roof_part)), true, layer_idx, num_support_roof_layers, connect_length,
+                                mesh_group_settings, rich_interface_placer, placement, &roof_targets[source_layer + z_distance_delta]);
+                            throw_on_cancel();
+                        }
+                    }
+                    // Either the roof is not enabled, then these are all the overhangs to be supported,
+                    // or roof is enabled and these are the thin overhangs at object slopes (not horizontal overhangs).
+                    if (mesh_group_settings.minimum_support_area > 0)
+                        remove_small(overhang_regular, mesh_group_settings.minimum_support_area);
+
+                    for (ExPolygon &support_part : union_ex(overhang_regular)) {
+                        sample_overhang_area(to_polygons(std::move(support_part)),
+                            false, layer_idx, num_support_roof_layers, connect_length,
+                            mesh_group_settings, rich_interface_placer, placement);
+                        throw_on_cancel();
+                    }
+                };
+                if (! recover_contacts)
+                    place(*raw_overhangs[raw_overhang_idx].second);
+                else
+                    for (const Polygons &part : retries[raw_overhang_idx])
+                        place(part);
+            }
+        });
+        // The tips and roofs of a pass are committed before the next one looks at them.
+        for (RichInterfacePlacer::Placement &placement : placements)
+            rich_interface_placer.commit(std::move(placement));
+    }
 
     finalize_raft_contact(print_object, raft_contact_layer_idx, interface_placer.top_contacts_mutable(), move_bounds);
 }
@@ -1667,7 +1986,7 @@ static Point move_inside_if_outside(const Polygons &polygons, Point from, int di
  * \param mergelayer[in] Will the merge method be called on this layer. This information is required as some calculation can be avoided if they are not required for merging.
  * \return A valid support element for the next layer regarding the calculated influence areas. Empty if no influence are can be created using the supplied influence area and settings.
  */
-[[nodiscard]] static std::optional<SupportElementState> increase_single_area(
+std::optional<SupportElementState> increase_single_area(
     const TreeModelVolumes      &volumes,
     const TreeSupportSettings   &config,
     const AreaIncreaseSettings  &settings,
@@ -1774,7 +2093,7 @@ static Point move_inside_if_outside(const Polygons &polygons, Point from, int di
         const coord_t foot_radius_increase = std::max(config.bp_radius_increase_per_layer - config.branch_radius_increase_per_layer, 0.0);
         // Is nearly all of the time 1, but sometimes an increase of 1 could cause the radius to become bigger than recommendedMinRadius,
         // which could cause the radius to become bigger than precalculated.
-        double planned_foot_increase = std::min(1.0, double(config.recommendedMinRadius(layer_idx - 1) - support_element_radius(config, current_elem)) / foot_radius_increase);
+        double planned_foot_increase = std::min(1.0, double(config.recommendedMinRadius(layer_idx - 1, current_elem.distance_to_top) - support_element_radius(config, current_elem)) / foot_radius_increase);
 //FIXME
         bool increase_bp_foot = planned_foot_increase > 0 && current_elem.to_buildplate;
 //        bool increase_bp_foot = false;
@@ -1927,7 +2246,7 @@ static void increase_areas_one_layer(
                 extra_slow_speed += std::min(projected_radius_delta, (config.maximum_move_distance + extra_speed) - (config.maximum_move_distance_slow + extra_slow_speed));
 
             if (config.layer_start_bp_radius > layer_idx &&
-                config.recommendedMinRadius(layer_idx - 1) < config.getRadius(elem.effective_radius_height + 1, elem.elephant_foot_increases)) {
+                config.recommendedMinRadius(layer_idx - 1, elem.distance_to_top) < config.getRadius(elem.effective_radius_height + 1, elem.elephant_foot_increases)) {
                 // can guarantee elephant foot radius increase
                 if (ceiled_parent_radius == volumes.ceilRadius(config.getRadius(parent.state.effective_radius_height + 1, parent.state.elephant_foot_increases + 1), parent.state.use_min_xy_dist))
                     extra_speed += config.bp_radius_increase_per_layer;
@@ -2536,8 +2855,8 @@ static void create_layer_pathing(const TreeModelVolumes &volumes, const TreeSupp
     bool new_element = false;
     const auto _tiny_area_threshold = tiny_area_threshold();
 
-    // Ensures at least one merge operation per 3mm height, 50 layers, 1 mm movement of slow speed or 5mm movement of fast speed (whatever is lowest). Values were guessed.
-    size_t max_merge_every_x_layers = std::min(std::min(5000 / (std::max(config.maximum_move_distance, coord_t(100))), 1000 / std::max(config.maximum_move_distance_slow, coord_t(20))), 3000 / config.layer_height);
+    // Overlapping influence areas are merged on every layer.
+    static constexpr size_t max_merge_every_x_layers = 1;
     size_t merge_every_x_layers = 1;
     // Calculate the influence areas for each layer below (Top down)
     // This is done by first increasing the influence area by the allowed movement distance, and merging them with other influence areas if possible
@@ -3550,6 +3869,948 @@ static void organic_smooth_branches_avoid_collisions(
 }
 #endif // TREE_SUPPORT_ORGANIC_NUDGE_NEW
 
+// Tips are placed in the overhang widened by the tip radius, beside the model. A branch on its way
+// down from higher tips can pass there and cover such a tip, so the tip's roof lies inside the branch.
+// A roof inside the body of its layer, over which the body of the layer above continues as base rather
+// than as roof, is inside the support and becomes branch body. A roof in a hole of the body, at the
+// bottom of a cavity between branches, stays. Walking down from the top removes a stack of such roofs.
+// The bottom interfaces, which rise from the bottom contacts inside the body by design, stay.
+void organic_remove_roofs_inside_branches(const SupportGeneratorLayersPtr &bottom_contacts,
+    SupportGeneratorLayersPtr &top_contacts, SupportGeneratorLayersPtr &interface_layers,
+    SupportGeneratorLayersPtr &base_interface_layers, const SupportGeneratorLayersPtr &intermediate_layers, coord_t line_width)
+{
+    struct Level {
+        coordf_t                            bottom_z { 0. };
+        const SupportGeneratorLayer        *body { nullptr };
+        const SupportGeneratorLayer        *bottom_contact { nullptr };
+        std::vector<SupportGeneratorLayer*> roofs;
+        // The roof parts that a stack of roofs rising from a bottom contact reaches.
+        Polygons                            bottom_interfaces;
+    };
+    std::map<coord_t, Level> levels;
+    for (const SupportGeneratorLayer *layer : intermediate_layers)
+        if (layer != nullptr) {
+            Level &level   = levels[scaled<coord_t>(layer->print_z)];
+            level.bottom_z = layer->bottom_z;
+            level.body     = layer;
+        }
+    for (const SupportGeneratorLayer *layer : bottom_contacts)
+        if (layer != nullptr && ! layer->polygons.empty()) {
+            Level &level         = levels[scaled<coord_t>(layer->print_z)];
+            level.bottom_z       = layer->bottom_z;
+            level.bottom_contact = layer;
+        }
+    for (const SupportGeneratorLayersPtr *roofs : { &top_contacts, &interface_layers, &base_interface_layers })
+        for (SupportGeneratorLayer *layer : *roofs)
+            if (layer != nullptr && ! layer->polygons.empty()) {
+                Level &level   = levels[scaled<coord_t>(layer->print_z)];
+                level.bottom_z = layer->bottom_z;
+                level.roofs.push_back(layer);
+                append(level.bottom_interfaces, layer->bottom_interface_polygons);
+            }
+    // Walk up from the bottom contacts through the roof parts each layer reaches.
+    Polygons reach;
+    for (auto below = levels.end(), level = levels.begin(); level != levels.end(); below = level ++) {
+        if (below == levels.end() || std::abs(level->second.bottom_z - unscaled(below->first)) > EPSILON)
+            reach.clear();
+        if (! reach.empty() && ! level->second.roofs.empty()) {
+            Polygons roofs_here;
+            for (const SupportGeneratorLayer *roof : level->second.roofs)
+                append(roofs_here, roof->polygons);
+            for (ExPolygon &part : union_ex(roofs_here))
+                if (Polygons polygons = to_polygons(std::move(part)); ! intersection(polygons, reach).empty())
+                    append(level->second.bottom_interfaces, std::move(polygons));
+        }
+        reach = level->second.bottom_interfaces;
+        if (level->second.bottom_contact != nullptr)
+            append(reach, level->second.bottom_contact->polygons);
+    }
+    for (auto above = levels.rbegin(), level = levels.empty() ? levels.rend() : std::next(above); level != levels.rend(); above = level ++) {
+        if (level->second.roofs.empty() || level->second.body == nullptr || above->second.body == nullptr ||
+            std::abs(above->second.bottom_z - unscaled(level->first)) > EPSILON)
+            continue;
+        Polygons roofs_above;
+        for (const SupportGeneratorLayer *roof : above->second.roofs)
+            append(roofs_above, roof->polygons);
+        const Polygons inside_branch = offset(intersection(level->second.body->polygons,
+            diff(above->second.body->polygons, roofs_above)), float(SCALED_EPSILON));
+        if (inside_branch.empty())
+            continue;
+        // Only fully covered roof parts go, allowing the clipping tolerance. Even a thin outside tail may print
+        // a long interface line; opening it by a line's radius would erase that load-bearing part.
+        // Cutting a roof that the branch covers in part would break it into unprintable shreds.
+        // The walls of the layer above run along the outline of its body. A roof part also stays where
+        // such a wall has no outline of this layer's body below, as the roof is all that carries it.
+        Polygons roofs_here;
+        for (const SupportGeneratorLayer *roof : level->second.roofs)
+            append(roofs_here, roof->polygons);
+        const Polygons &body_here = level->second.body->polygons;
+        Polygons walls_here;
+        Polygons inside;
+        for (ExPolygon &part : union_ex(roofs_here)) {
+            Polygons polygons = to_polygons(std::move(part));
+            if (! diff(polygons, inside_branch).empty() ||
+                ! intersection(polygons, level->second.bottom_interfaces).empty())
+                continue;
+            if (walls_here.empty())
+                walls_here = diff(offset(body_here, float(line_width)), offset(body_here, - float(line_width)));
+            const Polylines walls_above = intersection_pl(above->second.body->polygons, offset(polygons, -0.5f * float(line_width)));
+            if (total_length(diff_pl(walls_above, walls_here)) > double(line_width))
+                continue;
+            append(inside, std::move(polygons));
+        }
+        if (inside.empty())
+            continue;
+        for (SupportGeneratorLayer *roof : level->second.roofs)
+            roof->polygons = diff(roof->polygons, inside);
+    }
+    for (SupportGeneratorLayersPtr *roofs : { &top_contacts, &interface_layers, &base_interface_layers })
+        roofs->erase(std::remove_if(roofs->begin(), roofs->end(), [](const SupportGeneratorLayer *layer) { return layer == nullptr || layer->polygons.empty(); }), roofs->end());
+}
+
+// A branch that merges into a trunk from inside stands in a hole of the trunk's body under the body of the
+// layer above. In a hollow trunk the walls of the hole and of the branch carry nothing, and they break up
+// the fill of a filled base. So a hole is filled where the body of the layer above covers it, together with
+// everything inside: a hole that goes on up keeps the part under the hole above where it is wider than a
+// line, and the walls above then stand on its walls. A hole that the model passes through stays. A gap
+// narrower than two lines, a slit that opens to the outside or between two bodies, is filled where the body
+// above covers it, but not elsewhere, as it may be the notch where two branches meet. Where two branches merge
+// going down, such a notch closes into a hole, which may go on down for a few layers before it closes over a solid
+// body, and the wall of its lowest layer stands on nothing in a hollow trunk. So a pocket of holes narrower than
+// two lines, whose top does not go on above as a hole, is filled over its whole height where it closes over a
+// solid body. Walking down from the top fills a hole over its whole height.
+void organic_fill_covered_holes(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &model, coord_t line_width)
+{
+    assert(bodies.size() == model.size());
+    const SupportGeneratorLayer *above = nullptr;
+    for (size_t i = bodies.size(); i -- > 0;) {
+        SupportGeneratorLayer *layer = bodies[i];
+        if (layer == nullptr)
+            continue;
+        if (above != nullptr && std::abs(above->bottom_z - layer->print_z) < EPSILON) {
+            const Polygons closed = closing(layer->polygons, float(line_width));
+            Polygons covered = diff(intersection(diff(closed, layer->polygons), above->polygons), model[i]);
+            for (const ExPolygon &part : union_ex(closed))
+                for (const Polygon &hole : part.holes) {
+                    Polygons area{ hole };
+                    area.front().make_counter_clockwise();
+                    if (intersection(area, model[i]).empty())
+                        append(covered, diff(area, opening(diff(area, above->polygons), 0.5f * float(line_width))));
+                }
+            if (! covered.empty())
+                layer->polygons = union_(layer->polygons, covered);
+            // The closed bottom of a notch: a pocket of holes narrower than two lines, not going on above as a hole,
+            // that closes going down over a solid body.
+            Polygons pockets;
+            Polygons above_holes;
+            for (ExPolygon &part : union_ex(above->polygons))
+                for (Polygon &hole : part.holes) {
+                    hole.make_counter_clockwise();
+                    above_holes.push_back(std::move(hole));
+                }
+            // The parts of the bodies below, kept until a pocket filled into them changes them.
+            std::map<size_t, ExPolygons> parts_below;
+            const auto parts_of = [&parts_below, &bodies](size_t j) -> const ExPolygons & {
+                auto it = parts_below.find(j);
+                if (it == parts_below.end())
+                    it = parts_below.emplace(j, union_ex(bodies[j]->polygons)).first;
+                return it->second;
+            };
+            // The holes of a body under the open part of a pocket, if they are all narrower than two lines.
+            const auto narrow_holes = [line_width](const ExPolygons &parts, const Polygons &solid, const Polygons &open, bool &narrow) {
+                const BoundingBox where = get_extents(open);
+                Polygons          result;
+                for (const ExPolygon &part : parts)
+                    if (get_extents(part.contour).overlap(where))
+                        for (const Polygon &hole : part.holes) {
+                            if (! get_extents(hole).overlap(where))
+                                continue;
+                            Polygons area{ hole };
+                            area.front().make_counter_clockwise();
+                            if (intersection(area, open).empty())
+                                continue;
+                            narrow &= opening(area, float(line_width)).empty() && intersection(area, solid).empty();
+                            append(result, std::move(area));
+                        }
+                return result;
+            };
+            for (const ExPolygon &part : union_ex(layer->polygons))
+                for (const Polygon &hole : part.holes) {
+                    Polygons area{ hole };
+                    area.front().make_counter_clockwise();
+                    if (! opening(area, float(line_width)).empty() || ! intersection(area, model[i]).empty() ||
+                        ! intersection(diff(area, above->polygons), above_holes).empty())
+                        continue;
+                    std::vector<std::pair<size_t, Polygons>> pocket{ { i, std::move(area) } };
+                    bool closes = false;
+                    for (size_t j = i; j -- > 0 && bodies[j] != nullptr && std::abs(bodies[j]->print_z - bodies[j + 1]->bottom_z) < EPSILON;) {
+                        const Polygons open = opening(diff(pocket.back().second, bodies[j]->polygons), 0.5f * float(line_width));
+                        if (open.empty()) {
+                            closes = true;
+                            break;
+                        }
+                        bool narrow = true;
+                        Polygons next = narrow_holes(parts_of(j), model[j], open, narrow);
+                        if (! narrow || ! opening(diff(open, next), 0.5f * float(line_width)).empty())
+                            break;
+                        pocket.emplace_back(j, std::move(next));
+                    }
+                    if (closes) {
+                        append(pockets, std::move(pocket.front().second));
+                        for (size_t k = 1; k < pocket.size(); ++ k) {
+                            bodies[pocket[k].first]->polygons = union_(bodies[pocket[k].first]->polygons, pocket[k].second);
+                            parts_below.erase(pocket[k].first);
+                        }
+                    }
+                }
+            if (! pockets.empty())
+                layer->polygons = union_(layer->polygons, pockets);
+        }
+        above = layer;
+    }
+}
+
+// Branches merging going up into a body and splitting again going down, trees whose tops merge while their trunks stand
+// apart, leave the walls of the trunks below the body, and with a hollow base the gaps between them open, where the
+// body above prints walls of its own; trees inside the body would stand on the trunks. So a body that splits going down
+// is kept whole below, the trunks going inside it, narrowing by the branch angle into them rather than going straight
+// down, which would stand the trees up as pillars; a gap between the trunks opens from its mouth as the body narrows.
+// It keeps away from the model on its layer and below it, which the body stands beside rather than on.
+void organic_keep_merged_bodies_whole(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &model, const coord_t move)
+{
+    assert(bodies.size() == model.size());
+    std::vector<Polygons> model_below(model.size());
+    for (size_t i = 0; i < model.size(); ++ i)
+        model_below[i] = i == 0 ? model[i] : union_(model_below[i - 1], model[i]);
+    // The bodies kept whole on the layer above, which go on down narrowing whatever the bodies below them do.
+    Polygons whole;
+    for (size_t above = bodies.size(); above -- > 1;) {
+        const SupportGeneratorLayer *layer = bodies[above];
+        SupportGeneratorLayer       *below = bodies[above - 1];
+        if (layer == nullptr || below == nullptr || std::abs(layer->bottom_z - below->print_z) > EPSILON) {
+            whole.clear();
+            continue;
+        }
+        const ExPolygons parts = union_ex(below->polygons);
+        for (ExPolygon &body : union_ex(layer->polygons)) {
+            const BoundingBox box   = get_extents(body.contour);
+            Polygons          shape = to_polygons(std::move(body));
+            size_t            split = 0;
+            for (const ExPolygon &part : parts)
+                if (get_extents(part.contour).overlap(box) && ! intersection(shape, to_polygons(part)).empty() && ++ split > 1)
+                    break;
+            if (split > 1)
+                append(whole, std::move(shape));
+        }
+        if (whole.empty())
+            continue;
+        whole           = diff(offset(union_(whole), - float(move)), model_below[above - 1]);
+        below->polygons = union_(below->polygons, whole);
+    }
+}
+
+// A wall prints over the wall below it by half a line at most, as a wall leaning more curls up at fine layers, and a
+// branch moves by the branch angle. The bodies keep their distance from the model on each layer alone, so where the model
+// narrows going up, a body would move into the room it leaves at once, by any distance, its walls standing on nothing
+// over the model or the gap around it. Going up, each body standing on the layer below keeps within a step of what it
+// stands on there, which the walls then reach a step a layer. A part of a body narrower than a line prints no wall, and
+// holds nothing up. Half a line a layer is 80 degrees from the vertical at 0.02 mm layers, where walls so stacked lean
+// out over nothing: over the room the model leaves, where the support may not rest on it, a body widens by the branch
+// angle only, as the trees lean. Elsewhere it keeps half a line, as the branches of a tree splitting going up move apart
+// by more than the branch angle, and cut, would leave their tops in the air.
+void organic_limit_body_growth(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &roofs,
+    const std::vector<Polygons> &model, const bool on_model, const coord_t line_width, const coord_t move)
+{
+    assert(bodies.size() == roofs.size() && bodies.size() == model.size());
+    const coord_t step = std::max(line_width / 2, move);
+    // The model of the layers below, the room it leaves going up.
+    Polygons shadow;
+    for (size_t i = 1; i < bodies.size(); ++ i) {
+        if (! on_model && move < step && ! model[i - 1].empty())
+            shadow = union_(shadow, model[i - 1]);
+        SupportGeneratorLayer       *layer = bodies[i];
+        const SupportGeneratorLayer *below = bodies[i - 1];
+        if (layer == nullptr || below == nullptr || std::abs(layer->bottom_z - below->print_z) > EPSILON)
+            continue;
+        Polygons footing = opening(below->polygons, 0.5f * float(line_width));
+        append(footing, roofs[i - 1]);
+        if (on_model)
+            append(footing, model[i - 1]);
+        NearPolygons near;
+        near.append(union_(footing));
+        Polygons standing, apart;
+        for (ExPolygon &body : union_ex(layer->polygons)) {
+            Polygons shape = to_polygons(std::move(body));
+            append(near.touch(shape) ? standing : apart, std::move(shape));
+        }
+        if (standing.empty())
+            continue;
+        // Round: a mitered corner would reach out by up to three steps.
+        Polygons reach = offset(near.polygons, float(step), jtRound, scaled<double>(0.005));
+        if (const Polygons room = ClipperUtils::clip_clipper_polygons_with_subject_bbox(shadow, get_extents(standing)); ! room.empty())
+            reach = diff(reach, diff(room, offset(near.polygons, float(move), jtRound, scaled<double>(0.005))));
+        Polygons limited = intersection(standing, reach);
+        append(limited, std::move(apart));
+        layer->polygons = std::move(limited);
+    }
+}
+
+// A hollow body is walls only, and a wall going in by more than half a line prints over its inside. Where branches split
+// going up, the walls between them would start over the inside of the trunk, and where a body narrows, over the inside of
+// the body below. So going up, a hollow body that goes on over a body below keeps all of it but a band of step along its
+// outline: a gap between branches opens from its mouth, a step a layer, and a body narrows a step a layer, but where the
+// model or a roof of its own layer comes in, which the body keeps away from or which stands for it.
+void organic_limit_body_shrink(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &roofs,
+    const std::vector<Polygons> &model, const coord_t step)
+{
+    assert(bodies.size() == roofs.size() && bodies.size() == model.size());
+    for (size_t i = 1; i < bodies.size(); ++ i) {
+        SupportGeneratorLayer       *layer = bodies[i];
+        const SupportGeneratorLayer *below = bodies[i - 1];
+        if (layer == nullptr || below == nullptr || std::abs(layer->bottom_z - below->print_z) > EPSILON)
+            continue;
+        const BoundingBox box = get_extents(layer->polygons);
+        Polygons          kept;
+        for (ExPolygon &part : union_ex(offset(below->polygons, - float(step))))
+            if (Polygons shape = to_polygons(std::move(part)); get_extents(shape).overlap(box) && ! intersection(shape, layer->polygons).empty())
+                append(kept, std::move(shape));
+        if (kept.empty())
+            continue;
+        if (kept = diff(kept, union_(model[i], roofs[i])); ! kept.empty())
+            layer->polygons = union_(layer->polygons, kept);
+    }
+}
+
+// The tips under an interface stand apart by Branch Density, and its lowest layer bridges the gaps between them and
+// the bodies they merge into, which at fine layers does not print. So the top layers of the bodies near the parts of the
+// interface farther than reach from the material below widen going up by the branch angle, by half a line a layer at
+// most, the overhang a wall prints over the wall below it, as a wall leaning more curls up at fine layers; over as many
+// layers as they need, up to two and a half lines in all, until no part of it hangs. A body widens all around
+// under the interface, away from the model and a line and a half away from the other bodies, so that bodies do not
+// merge, not even where their beads squish: a hollow body merged over a gap would leave the gap hanging over its inside.
+// A tip ends in a flare printed solid, and a wider body in a band printed solid around it. The flares of tips merge with
+// each other, being solid: kept apart, tips a lattice pitch apart would leave the middle of each triangle of them hanging.
+// A stretch of a line of a roof that hangs, with the point a tip holding it stands on.
+struct RoofStretch
+{
+    Vec2d at;
+    Line  along;
+};
+
+// A roof line bridges between what it passes over, not between what lies within reach of it: a line between two bodies
+// running along the gap between them passes over neither. The stretches of the lines of a roof in the directions angles,
+// sampled pitch apart, outside touched, that are longer than bridge between two points of touched, or than end where they
+// end in the air, with the point a tip holding each stands on: its middle, or tip_radius in from its end in the air.
+static std::vector<RoofStretch> organic_hanging_roof_stretches(const Polygons &roof, const Polygons &touched,
+    const std::vector<double> &angles, const double pitch, const double bridge, const double end, const double tip_radius)
+{
+    std::vector<RoofStretch> result;
+    for (const double angle : angles) {
+        Polygons part = roof, beside = touched;
+        for (Polygon &polygon : part)
+            polygon.rotate(- angle);
+        for (Polygon &polygon : beside)
+            polygon.rotate(- angle);
+        const Polygons    bearing = offset(beside, float(SCALED_EPSILON));
+        const BoundingBox box     = get_extents(part);
+        Polylines         lines;
+        for (auto k = std::ceil(double(box.min.y()) / pitch); k * pitch <= double(box.max.y()); ++ k)
+            lines.emplace_back(Point(box.min.x() - 1, coord_t(k * pitch)), Point(box.max.x() + 1, coord_t(k * pitch)));
+        const Eigen::Rotation2Dd back(angle);
+        for (const Polyline &stretch : diff_pl(intersection_pl(lines, part), beside)) {
+            const bool   first  = contains(bearing, stretch.first_point());
+            const bool   last   = contains(bearing, stretch.last_point());
+            const double length = stretch.length();
+            if (length <= (first && last ? bridge : end))
+                continue;
+            const Vec2d  a = stretch.first_point().cast<double>(), b = stretch.last_point().cast<double>();
+            const Vec2d  along = (b - a) / length;
+            const double in    = std::min(tip_radius, 0.5 * length);
+            const Vec2d  at    = first == last ? Vec2d(0.5 * (a + b)) : first ? Vec2d(b - along * in) : Vec2d(a + along * in);
+            result.push_back({ back * at, Line(Point((back * a).cast<coord_t>()), Point((back * b).cast<coord_t>())) });
+        }
+    }
+    return result;
+}
+
+void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &roofs,
+    const std::vector<Polygons> &model, const coord_t line_width, const coord_t tip_radius, const coord_t move, const coord_t reach,
+    const std::vector<double> &roof_angles)
+{
+    assert(bodies.size() == roofs.size() && bodies.size() == model.size());
+    const float  half      = 0.5f * float(line_width);
+    const float  step      = std::min(half, float(move));
+    // A branch angle of 0 lets no body widen.
+    if (step <= 0.f)
+        return;
+    const float  widest    = 5.f * half;
+    const size_t max_steps = size_t(std::ceil(widest / step - EPSILON));
+    const float  margin    = float(reach) + widest + float(line_width);
+    // The roof lines are sampled a quarter of a line apart, so a line between two of them touches what both touch within
+    // half a line less half that pitch, and a stretch is to hang no farther than the span between two lines of the base
+    // less that much on both sides, so that a point midway still lies within reach, or than a line where it ends in the air.
+    const double pitch  = 0.25 * double(line_width);
+    const double touch  = 0.5 * (double(line_width) - pitch);
+    const double bridge = 2. * (double(reach) - touch);
+    const double end    = std::min(double(line_width), double(reach) - touch);
+    for (size_t above = bodies.size(); above -- > 1;) {
+        const Polygons        &roof  = roofs[above];
+        const size_t           below = above - 1;
+        SupportGeneratorLayer *layer = bodies[below];
+        if (roof.empty() || layer == nullptr)
+            continue;
+        BoundingBox where = get_extents(roof);
+        where.offset(coord_t(margin));
+        const Polygons roofs_below = ClipperUtils::clip_clipper_polygons_with_subject_bbox(roofs[below], where);
+        // What hangs of the roof over the bodies and the roofs below it, held: the stretches of its lines along them, see
+        // organic_hanging_roof_stretches(), or with no lines known, the points of it farther than reach from them.
+        const auto hanging_over = [&](const Polygons &held) {
+            if (roof_angles.empty())
+                return diff(roof, offset(held, float(reach)));
+            Polylines stretches;
+            for (const RoofStretch &stretch : organic_hanging_roof_stretches(roof, offset(held, float(touch)), roof_angles, pitch,
+                     bridge, end, double(tip_radius)))
+                stretches.emplace_back(stretch.along.a, stretch.along.b);
+            return offset(stretches, float(touch));
+        };
+        Polygons hanging = hanging_over(union_(ClipperUtils::clip_clipper_polygons_with_subject_bbox(layer->polygons, where), roofs_below));
+        if (hanging.empty())
+            continue;
+        // The bodies near the hanging interface widen, the others stay as they are.
+        const Polygons        near = offset(hanging, margin);
+        std::vector<Polygons> shapes;
+        std::vector<bool>     tip;
+        Polygons              fixed;
+        for (ExPolygon &island : union_ex(layer->polygons))
+            if (get_extents(island.contour).overlap(where)) {
+                Polygons polygons = to_polygons(std::move(island));
+                if (intersection(polygons, near).empty()) {
+                    append(fixed, std::move(polygons));
+                } else {
+                    // A tip is no wider than a tip and half a line.
+                    tip.push_back(offset(polygons, - float(tip_radius) - half).empty());
+                    shapes.emplace_back(std::move(polygons));
+                }
+            }
+        if (shapes.empty())
+            continue;
+        const float    apart = float(line_width) + half;
+        const Polygons room  = diff(offset(roof, half), union_(model[below], offset(fixed, apart)));
+        std::vector<std::vector<Polygons>> steps{ shapes };
+        while (steps.size() <= max_steps && ! hanging.empty()) {
+            bool wider = false;
+            for (size_t i = 0; i < shapes.size(); ++ i) {
+                // Each body keeps away from the others as they are now, so they widen in turn.
+                const BoundingBox box = get_extents(shapes[i]).inflated(coord_t(step + apart));
+                Polygons          others;
+                for (size_t j = 0; j < shapes.size(); ++ j)
+                    if (j != i && ! (tip[i] && tip[j]) && get_extents(shapes[j]).overlap(box))
+                        append(others, shapes[j]);
+                // A body widens all around, so that its band is as wide as a step everywhere, not a sliver no bead prints.
+                const Polygons grown = diff(intersection(offset(shapes[i], step), room), offset(others, apart));
+                if (diff(grown, offset(shapes[i], float(SCALED_EPSILON))).empty())
+                    continue;
+                shapes[i] = union_(shapes[i], grown);
+                wider     = true;
+            }
+            if (! wider)
+                break;
+            Polygons all;
+            for (const Polygons &shape : shapes)
+                append(all, shape);
+            // A sliver narrower than a line holds nothing: no bead prints it.
+            hanging = roof_angles.empty() ? diff(hanging, offset(opening(all, half, jtRound, scaled<double>(0.005)), float(reach))) :
+                hanging_over(union_(opening(all, half, jtRound, scaled<double>(0.005)), roofs_below));
+            steps.push_back(shapes);
+        }
+        // The layer m layers below the interface takes the bodies m steps narrower, each standing on the one below it, and
+        // no farther from the bodies of that layer than its steps, as a leaning body moves away from under them.
+        const size_t num_steps = steps.size() - 1;
+        BoundingBox  flared;
+        for (const Polygons &shape : steps.back())
+            flared.merge(get_extents(shape));
+        flared.offset(coord_t(widest + float(line_width)));
+        for (size_t m = 0; m < num_steps && m <= below; ++ m) {
+            SupportGeneratorLayer *target = bodies[below - m];
+            if (target == nullptr || (m > 0 && std::abs(target->print_z - bodies[below - m + 1]->bottom_z) > EPSILON))
+                break;
+            const Polygons own    = ClipperUtils::clip_clipper_polygons_with_subject_bbox(target->polygons, flared);
+            const Polygons within = offset(own, float(num_steps - m) * step + float(SCALED_EPSILON));
+            Polygons added;
+            Polygons solid;
+            for (size_t i = 0; i < shapes.size(); ++ i) {
+                Polygons shape;
+                // A piece the cut leaves apart from the bodies of that layer would stand on nothing.
+                for (ExPolygon &part : intersection_ex(diff(steps[num_steps - m][i], model[below - m]), within))
+                    if (! intersection(to_polygons(part), own).empty())
+                        append(shape, to_polygons(std::move(part)));
+                append(solid, tip[i] ? shape : diff(shape, target->polygons));
+                append(added, std::move(shape));
+            }
+            target->polygons       = union_(target->polygons, added);
+            target->solid_polygons = union_(target->solid_polygons, solid);
+        }
+    }
+}
+
+// A hollow base leaves the inside of a body open, and what the layer above prints over it bridges it, which at fine
+// layers does not print: the lowest layer of a roof, a part printed solid, the flare of a tip merged into the body, the
+// walls of branches merging into it going down, or a tree cut short below. So under the parts of a roof farther than
+// reach from the material below, the reach a roof line bridges between the lines of the base, and under the beads of the
+// rest not touching it, trees grow inside the body, a tree inside a tree: tips on a hexagonal lattice, and more where a
+// point of them is still unheld, each a ring narrow enough to hold what is over its middle. Going down, a tree that
+// reaches the wall before the bed leans toward it by the branch angle, a wall leaning more curls up at fine layers,
+// until it goes into the wall; the others go straight down to the bed or onto the material below, merging by the
+// preferred angle. A tree ends once it stands on the material below, each bead of it half on it at least. A tree
+// going straight down out of the body, where the body splits under it, becomes a part of it. The trees inside a body
+// are printed with walls of their own beside its walls, not over them.
+void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &roofs,
+    const std::vector<Polygons> &model, const TreeSupportSettings &config, const coord_t reach, const coord_t first_layer_width,
+    const std::vector<double> &roof_angles)
+{
+    assert(bodies.size() == roofs.size() && bodies.size() == model.size());
+    const coord_t width      = config.support_line_width;
+    const float   half       = 0.5f * float(width);
+    const double  move       = double(std::min(config.maximum_move_distance, width / 2));
+    const double  merge_move = std::min(move, double(config.maximum_move_distance_slow));
+    // A tip at least two lines across whatever the tip diameter: one not much wider than a line prints no loop and grows no
+    // tree, see prints_loop.
+    const double  tip_radius = std::min(std::max(double(config.min_radius), double(width)), double(width + reach));
+    const double  pitch      = std::sqrt(3.) * (tip_radius + double(reach));
+    const double  tolerance  = scaled<double>(0.005);
+    // A tree is printed as a loop half a line inside it, and a loop shorter than a line once its seam is clipped by 0.15
+    // of a line is a dot, which is left out, see generate_support_toolpaths(): a part of a tree that would print one
+    // holds nothing up.
+    const auto prints_loop = [](const ExPolygon &part, const coord_t line) {
+        const Polygons loops = offset(part, - 0.5f * float(line));
+        return std::any_of(loops.begin(), loops.end(), [line](const Polygon &loop) { return loop.length() >= 1.15 * double(line); });
+    };
+    // The lowest layer of the layers each one stands on, which a tree going straight down reaches.
+    std::vector<size_t> floor(bodies.size(), 0);
+    for (size_t i = 1; i < bodies.size(); ++ i)
+        floor[i] = bodies[i] != nullptr && bodies[i - 1] != nullptr && std::abs(bodies[i]->bottom_z - bodies[i - 1]->print_z) < EPSILON ?
+            floor[i - 1] : i;
+    struct Tree
+    {
+        Vec2d    center;
+        double   radius;
+        bool     lean;
+        Vec2d    direction;
+        // What it prints on the layer above, or on this one once placed.
+        Polygons shape;
+        // How far the model inside a body reaches into its disc.
+        double   cut;
+    };
+    // What each layer prints, the walls of its bodies, their solid parts and its roofs: the
+    // material the trees stand on and keep out of, and carry on the layer below; and the inside of its bodies, where the
+    // trees grow, their walls fusing with the wall of the body by a quarter of a line, as in a corner a part of a tree
+    // narrower than a line, which prints nothing, leaves it a few hundredths off the wall. The wall is printed half a
+    // line inside the outline, but not where the body is narrower than a line. See tree_supports_generate_paths().
+    struct Printed
+    {
+        ExPolygons islands;
+        // The walls and the solid parts, and with the roofs the material.
+        Polygons   beads;
+        Polygons   material;
+        Polygons   inside;
+    };
+    std::vector<Printed>     printed(bodies.size());
+    std::vector<BoundingBox> model_extents(model.size());
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, bodies.size()), [&](const tbb::blocked_range<size_t> &range) {
+        for (size_t l = range.begin(); l < range.end(); ++ l) {
+            model_extents[l] = get_extents(model[l]);
+            if (const SupportGeneratorLayer *layer = bodies[l]; layer != nullptr) {
+                Printed   &out   = printed[l];
+                const bool first = layer->bottom_z < EPSILON;
+                for (ExPolygon &island : union_ex(layer->polygons))
+                    if (! offset(island, - half).empty()) {
+                        if (first) {
+                            // Loads can start on the very next layer, without a tree coming down from above. The
+                            // interior beyond the flange perimeter and its holes need feet under such loads too.
+                            Polygons inside = offset(island, - float(first_layer_width));
+                            for (Polygon hole : island.holes) {
+                                hole.reverse();
+                                inside.push_back(std::move(hole));
+                            }
+                            append(out.inside, union_(inside));
+                        }
+                        bool     walled = ! first;
+                        Polygons solid  = first ? Polygons() : organic_solid_fill(island, layer->solid_polygons, width, walled);
+                        if (walled) {
+                            // A sliver of a solid part narrower than a line prints nothing, see
+                            // organic_extrude_solid_islands(), and holds nothing up: the trees grow under what lies over it.
+                            solid = opening(solid, half);
+                            // A body wide enough for one gets a second wall too, but the paths decide on it by the outline
+                            // they print, whose area may fall on the other side of the threshold: the trees grow up to the
+                            // first wall, and the paths cut them against the second one where they print it. See
+                            // generate_support_toolpaths().
+                            Polygons in = offset(island, - 0.75f * float(width));
+                            append(out.beads, diff(opening(to_polygons(island), half), in));
+                            // A hole in a body is as open as its inside: the trees grow in it too, beside its walls.
+                            Polygons holes;
+                            for (Polygon hole : island.holes) {
+                                hole.reverse();
+                                holes.push_back(std::move(hole));
+                            }
+                            append(out.inside, diff(union_(in, offset(holes, 0.25f * float(width))), solid));
+                            append(out.beads, std::move(solid));
+                        } else if (! first)
+                            append(out.beads, to_polygons(island));
+                        out.islands.emplace_back(std::move(island));
+                    }
+                out.material = out.beads;
+                // Interface contours are planning envelopes. Sparse bottom interfaces receive local footing under
+                // the actual base/tree paths in organic_anchor_bottom_interfaces() after their pattern is printed.
+                append(out.material, roofs[l]);
+            }
+        }
+    });
+    // The part of a hole of a body that opens to the outside going down, as where two branches merge going up around the
+    // gap between them: a tree in it would go on in the body only and leave what it printed over the hole on nothing.
+    // Trees keep out of it, and a tree leaning into its wall ends in the wall.
+    {
+        Polygons open;
+        for (size_t l = 0; l < bodies.size(); ++ l) {
+            Polygons holes;
+            for (const ExPolygon &island : printed[l].islands)
+                for (Polygon hole : island.holes) {
+                    hole.reverse();
+                    holes.push_back(std::move(hole));
+                }
+            Polygons open_here;
+            if (! holes.empty() && l > 0 && floor[l] == floor[l - 1]) {
+                Polygons enclosed;
+                for (const ExPolygon &island : printed[l - 1].islands)
+                    enclosed.push_back(island.contour);
+                open_here = diff(holes, diff(enclosed, open));
+                if (! open_here.empty())
+                    printed[l].inside = diff(printed[l].inside, offset(open_here, 0.25f * float(width)));
+            }
+            open = std::move(open_here);
+        }
+    }
+    std::vector<Tree> trees;
+    for (size_t l = bodies.size(); l -- > 0;) {
+        SupportGeneratorLayer *layer   = bodies[l];
+        const bool             stacked = l + 1 < bodies.size() && floor[l + 1] == floor[l];
+        if (layer == nullptr || ! stacked || printed[l].islands.empty())
+            trees.clear();
+        if (layer == nullptr || printed[l].islands.empty())
+            continue;
+        const Printed &here = printed[l];
+        // The roofs over this layer and the beads the layer above prints, its walls, its solid parts and its trees, over
+        // the inside of the bodies: the loads the trees carry.
+        const Polygons roof_load = l + 1 < roofs.size() ? intersection(roofs[l + 1], here.inside) : Polygons();
+        const Polygons bead_load = stacked ? intersection(printed[l + 1].beads, here.inside) : Polygons();
+        const Polygons tree_load = stacked ? intersection(bodies[l + 1]->inner_trees, here.inside) : Polygons();
+        if (trees.empty() && roof_load.empty() && bead_load.empty() && tree_load.empty())
+            continue;
+        BoundingBox where = get_extents(roof_load);
+        where.merge(get_extents(bead_load));
+        where.merge(get_extents(tree_load));
+        for (const Tree &tree : trees)
+            where.merge(get_extents(tree.shape));
+        where.offset(coord_t(2. * pitch));
+        ExPolygons islands;
+        for (const ExPolygon &island : here.islands)
+            if (get_extents(island.contour).overlap(where))
+                islands.push_back(island);
+        const Polygons material = ClipperUtils::clip_clipper_polygons_with_subject_bbox(here.material, where);
+        const Polygons blocked  = union_(ClipperUtils::clip_clipper_polygons_with_subject_bbox(model[l], where),
+                                         ClipperUtils::clip_clipper_polygons_with_subject_bbox(roofs[l], where));
+        const Polygons inside   = ClipperUtils::clip_clipper_polygons_with_subject_bbox(here.inside, where);
+        const Polygons free_in  = diff(inside, blocked);
+        // The outline of the model inside the bodies, made when needed.
+        AABBTreeLines::LinesDistancer<Line> model_lines;
+        BoundingBox                         model_box;
+        bool                                model_made = false;
+        const auto                          model_in   = [&]() -> const BoundingBox & {
+            if (! model_made) {
+                const Polygons in_bodies = intersection(ClipperUtils::clip_clipper_polygons_with_subject_bbox(model[l], where), inside);
+                model_box   = get_extents(in_bodies);
+                model_lines = AABBTreeLines::LinesDistancer<Line>{ to_lines(in_bodies) };
+                model_made  = true;
+            }
+            return model_box;
+        };
+        const bool first = layer->bottom_z < EPSILON;
+        // A sparse first layer need not have a bead under a tree. Reserve its foot even inside the body; the first
+        // layer filler prints these feet separately from the remaining flange so they cannot fall between its lines.
+        const Polygons free_out = diff(Polygons{ where.polygon() }, first ? blocked : union_(to_polygons(islands), blocked));
+        // Where a bead of a tree stands on the material, half on it at least.
+        const Polygons stands   = offset(material, half);
+        const AABBTreeLines::LinesDistancer<Line> walls{ to_lines(islands) };
+        // What a tree prints on this layer: inside the body beside its walls, or out of it where it went out of it, and
+        // on the first layer, in the body or its holes, in the flange that prints its foot.
+        // The first layer prints lines of its own, wider than those of the base as a rule: a tree is two of them across
+        // there at least, or with no expansion of the first layer it prints neither a loop nor a fill.
+        const coord_t line = first ? std::max(width, first_layer_width) : width;
+        // What a tree prints in space, clipped to its disc first: a layer holds many trees, and its free area is as large as
+        // the layer.
+        const auto shape_in = [&](const Tree &tree, const Polygons &space) {
+            Polygon disc = make_circle(std::max(tree.radius, double(line)), tolerance);
+            disc.translate(Point(tree.center.cast<coord_t>()));
+            const BoundingBox box = get_extents(disc).inflated(SCALED_EPSILON);
+            ExPolygons parts = union_ex(opening(intersection(Polygons{ std::move(disc) },
+                ClipperUtils::clip_clipper_polygons_with_subject_bbox(space, box)), 0.5f * float(line), jtRound, tolerance));
+            parts.erase(std::remove_if(parts.begin(), parts.end(), [&prints_loop, line](const ExPolygon &part) { return ! prints_loop(part, line); }), parts.end());
+            return to_polygons(std::move(parts));
+        };
+        // How far the model inside a body reaches into the disc of a tree, and the way out of it.
+        const auto model_depth = [&](const Tree &tree) -> std::pair<double, Vec2d> {
+            const double radius = std::max(tree.radius, double(line));
+            const Point  center(tree.center.cast<coord_t>());
+            if (const BoundingBox &box = model_in(); box.defined && box.overlap(BoundingBox(center, center).inflated(coord_t(radius))))
+                if (const auto [distance, index, nearest] = model_lines.distance_from_lines_extra<true>(center); distance < radius) {
+                    const Vec2d away = distance < 0. ? Vec2d(nearest - tree.center) : Vec2d(tree.center - nearest);
+                    if (const double norm = away.norm(); norm > EPSILON)
+                        return { radius - distance, away / norm };
+                }
+            return { 0., Vec2d::Zero() };
+        };
+        const auto place = [&](Tree &tree) {
+            const Point center(tree.center.cast<coord_t>());
+            const bool  in = ! first && (tree.lean ||
+                std::any_of(islands.begin(), islands.end(), [&center](const ExPolygon &island) { return island.contour.contains(center); }));
+            tree.shape = shape_in(tree, in ? free_in : free_out);
+            return in;
+        };
+        // Going down from the layer above: a tree that stands on the material of this layer ends on it; a leaning one
+        // moves toward the nearest wall, and on through it once it reaches it, until it is too thin to print.
+        std::vector<Tree>   next;
+        std::vector<Vec2d>  shifts;
+        std::vector<double> remaining;
+        for (Tree &tree : trees) {
+            if (diff(tree.shape, ClipperUtils::clip_clipper_polygons_with_subject_bbox(stands, get_extents(tree.shape).inflated(SCALED_EPSILON))).empty())
+                continue;
+            // The layers it goes on for, to the bottom, or to the wall.
+            double layers = double(l - floor[l]);
+            Vec2d  shift  = Vec2d::Zero();
+            if (tree.lean) {
+                const Point center(tree.center.cast<coord_t>());
+                const auto [distance, line, nearest] = walls.distance_from_lines_extra<false>(center);
+                if (distance > move && contains(free_in, center))
+                    tree.direction = (nearest - tree.center) / distance;
+                shift  = move * tree.direction;
+                layers = std::min(layers, distance / move);
+            }
+            // No wider than the trunk diameter allows, but never narrower than the tip the tree started from, which a
+            // trunk diameter below it would leave unprintable: two nozzles allow a trunk narrower than a base line.
+            tree.radius = std::min(tree.radius + config.branch_radius_increase_per_layer, std::max(double(config.max_radius), tip_radius));
+            next.push_back(std::move(tree));
+            shifts.push_back(shift);
+            remaining.push_back(layers);
+        }
+        // The trees pair up, the nearest first, each with a tree going the same way that it touches before either ends,
+        // and is printed with as one; the two move toward each other by the preferred angle, a leaning one by the branch
+        // angle at most in all, and become one where they meet. Each moving toward its nearest one instead, the trees
+        // of a lattice pull apart as much as together.
+        std::vector<std::tuple<double, size_t, size_t>> pairs;
+        for (size_t i = 0; i < next.size(); ++ i)
+            for (size_t j = i + 1; j < next.size(); ++ j)
+                if (const double distance = (next[j].center - next[i].center).norm(); next[i].lean == next[j].lean &&
+                    distance - next[i].radius - next[j].radius <= 2. * merge_move * std::min(remaining[i], remaining[j]))
+                    pairs.emplace_back(distance, i, j);
+        std::sort(pairs.begin(), pairs.end());
+        std::vector<bool> paired(next.size(), false);
+        for (const auto &[distance, i, j] : pairs)
+            if (! paired[i] && ! paired[j]) {
+                paired[i] = paired[j] = true;
+                if (distance <= 2. * merge_move) {
+                    next[i].center = 0.5 * (next[i].center + next[j].center);
+                    next[i].radius = std::max(next[i].radius, next[j].radius);
+                    shifts[i]      = 0.5 * (shifts[i] + shifts[j]);
+                    next[i].cut    = std::max(next[i].cut, next[j].cut);
+                    next[j].radius = 0.;
+                    // The one it became goes on from what both printed on the layer above.
+                    append(next[i].shape, std::move(next[j].shape));
+                } else {
+                    const Vec2d toward = (next[j].center - next[i].center) * (merge_move / distance);
+                    shifts[i] += toward;
+                    shifts[j] -= toward;
+                }
+            }
+        for (size_t i = 0; i < next.size(); ++ i)
+            if (const double norm = shifts[i].norm(); norm > move)
+                next[i].center += shifts[i] * (move / norm);
+            else
+                next[i].center += shifts[i];
+        trees.clear();
+        Polygons grown_in;
+        Polygons grown_out;
+        for (size_t i = 0; i < next.size(); ++ i)
+            if (Tree &tree = next[i]; tree.radius > 0.) {
+                // The model inside a body takes a part of the disc of a tree that runs into it, or that it widens under going
+                // down: the tree moves away from it as far as it went into it farther than on the layer above, rather than
+                // shrinking until it ends beside it, its last bead over nothing, with a tree under it that the model would cut
+                // in turn, and so on down, a stack of short tubes along the model. It keeps out of its disc what the model took
+                // where it started, which lies under what it holds up, and what a step of the model took, farther in than half
+                // a line, which no move of a layer gets it out of.
+                if (const auto [depth, away] = model_depth(tree); depth > tree.cut && depth - tree.cut <= 0.5 * double(line))
+                    tree.center += (depth - tree.cut) * away;
+                else
+                    tree.cut = depth;
+                // A tree goes on from what it printed on the layer above: a part of its disc beyond the model or a roof is
+                // no part of it, but the start of a tube holding nothing up.
+                const Polygons above = std::move(tree.shape);
+                const auto     place_under = [&]() {
+                    const bool in = place(tree);
+                    ExPolygons parts = union_ex(tree.shape);
+                    parts.erase(std::remove_if(parts.begin(), parts.end(), [&above](const ExPolygon &part) {
+                        return intersection(to_polygons(part), ClipperUtils::clip_clipper_polygons_with_subject_bbox(above,
+                            get_extents(part.contour).inflated(SCALED_EPSILON))).empty(); }), parts.end());
+                    tree.shape = to_polygons(std::move(parts));
+                    return in;
+                };
+                if (const bool in = place_under(); ! tree.shape.empty()) {
+                    append(in ? grown_in : grown_out, tree.shape);
+                    trees.push_back(std::move(tree));
+                }
+            }
+        // A tip placed at center, its shape empty where it prints nothing.
+        const auto new_tip = [&](const Vec2d &center) {
+            const auto [distance, line, nearest] = walls.distance_from_lines_extra<false>(Point(center.cast<coord_t>()));
+            Tree tip{ center, tip_radius, true, distance > 0. ? Vec2d((nearest - center) / distance) : Vec2d(1., 0.), {}, 0. };
+            tip.cut = model_depth(tip).first;
+            // It leans until what is left of it inside the wall is too thin to print, unless it reaches the bottom first, or
+            // would stand on the model going straight down.
+            if (distance + tip_radius - 1.75 * double(width) > move * double(l - floor[l])) {
+                tip.lean = false;
+                Polygon disc = make_circle(tip_radius, tolerance);
+                disc.translate(Point(center.cast<coord_t>()));
+                const BoundingBox box = get_extents(disc);
+                for (size_t k = floor[l]; k < l && ! tip.lean; ++ k)
+                    tip.lean = model_extents[k].overlap(box) &&
+                        ! intersection(Polygons{ disc }, ClipperUtils::clip_clipper_polygons_with_subject_bbox(model[k], box)).empty();
+            }
+            place(tip);
+            return tip;
+        };
+        // Tips under the parts of a load farther than cover from what holds it: on every point of a hexagonal lattice
+        // fixed in the object's coordinates inside a part, and one more where a point of it is still farther from them.
+        const auto grow_tips = [&](const Polygons &hanging, const float cover) {
+            const double tip_pitch = std::sqrt(3.) * (tip_radius + double(cover));
+            for (const ExPolygon &part : union_ex(hanging)) {
+                std::vector<Tree> tips;
+                const auto add_tip = [&](const Vec2d &center) {
+                    if (std::any_of(tips.begin(), tips.end(), [&](const Tree &tip) { return (tip.center - center).norm() < 0.5 * tip_radius; }))
+                        return;
+                    if (Tree tip = new_tip(center); ! tip.shape.empty())
+                        tips.push_back(std::move(tip));
+                };
+                const double      row = 0.5 * std::sqrt(3.) * tip_pitch;
+                const BoundingBox box = get_extents(part.contour);
+                for (auto j = std::floor(double(box.min.y()) / row); j * row <= double(box.max.y()); ++ j)
+                    for (auto i = std::floor(double(box.min.x()) / tip_pitch) - 1.; i * tip_pitch <= double(box.max.x()); ++ i)
+                        if (const Vec2d center(i * tip_pitch + (int64_t(j) % 2 == 0 ? 0. : 0.5 * tip_pitch), j * row);
+                            part.contains(Point(center.cast<coord_t>())))
+                            add_tip(center);
+                for (int round = 0; round < 4; ++ round) {
+                    Polygons covered;
+                    for (const Tree &tip : tips)
+                        append(covered, tip.shape);
+                    ExPolygons rest = diff_ex(to_polygons(part), offset(covered, cover));
+                    rest.erase(std::remove_if(rest.begin(), rest.end(), [tolerance](const ExPolygon &piece) { return offset(piece, - float(tolerance)).empty(); }), rest.end());
+                    if (rest.empty())
+                        break;
+                    for (const ExPolygon &piece : rest) {
+                        Point center = piece.contour.centroid();
+                        if (! piece.contains(center))
+                            center = *std::min_element(piece.contour.points.begin(), piece.contour.points.end(),
+                                [&center](const Point &a, const Point &b) { return (a - center).cast<double>().squaredNorm() < (b - center).cast<double>().squaredNorm(); });
+                        add_tip(center.cast<double>());
+                    }
+                }
+                for (Tree &tip : tips) {
+                    append(grown_in, tip.shape);
+                    trees.push_back(std::move(tip));
+                }
+            }
+        };
+        // A roof line bridges between the lines of the base within reach of them; a bead of a wall or a solid part touches
+        // what is below it at least, as the first layer of a second wall lies beside the first; and so does one of a
+        // tree, as a tree going into a wall ends in a bead beside it, as deep as a line and the move of a layer at most.
+        if (! roof_load.empty() || ! bead_load.empty() || ! tree_load.empty()) {
+            Polygons held = material;
+            append(held, grown_out);
+            // A roof line bridges between what it passes over, not between what lies within reach of it: a line between two
+            // rows of tips passes over none of them. Along lines in the directions of the lowest roof layer a quarter of a
+            // line apart, the stretches of the load farther from what holds it than half a line less half that pitch, which
+            // a bead of a line between two of them touches, get tips until none is longer than the span between two lines
+            // of the base less that much on both sides, so that a point midway still lies within reach, or than a line
+            // where it ends in the air: in their middle, or a tip radius in from the end in the air. A tip placed in a round
+            // in the way of another stretch splits it, and the next round sees what is left of it.
+            const auto hold_roof_lines = [&](const Polygons &load) {
+                const double      pitch  = 0.25 * double(width);
+                const double      touch  = 0.5 * (double(width) - pitch);
+                const double      bridge = 2. * (double(reach) - touch);
+                const double      end    = std::min(double(width), double(reach) - touch);
+                const BoundingBox near   = get_extents(load).inflated(coord_t(DefaultMiterLimit * touch) + SCALED_EPSILON);
+                for (int round = 0; round < 16; ++ round) {
+                    Polygons holding = ClipperUtils::clip_clipper_polygons_with_subject_bbox(held, near);
+                    append(holding, ClipperUtils::clip_clipper_polygons_with_subject_bbox(grown_in, near));
+                    std::vector<Tree> placed;
+                    for (const RoofStretch &stretch : organic_hanging_roof_stretches(load, offset(union_(holding), float(touch)),
+                             roof_angles, pitch, bridge, end, tip_radius)) {
+                        if (std::any_of(placed.begin(), placed.end(), [&stretch, &tip_radius, touch](const Tree &tip) {
+                                return stretch.along.distance_to(Point(tip.center.cast<coord_t>())) < tip_radius + touch; }))
+                            continue;
+                        if (Tree tip = new_tip(stretch.at); ! tip.shape.empty())
+                            placed.push_back(std::move(tip));
+                    }
+                    if (placed.empty())
+                        break;
+                    for (Tree &tip : placed) {
+                        append(grown_in, tip.shape);
+                        trees.push_back(std::move(tip));
+                    }
+                }
+            };
+            // The parts of a load farther than cover from what holds them, the material and the trees of this layer. The
+            // material of a layer is as large as the layer, so only what lies within reach of a load part is grown, a
+            // mitered corner reaching DefaultMiterLimit times cover.
+            const auto unheld = [&held, &grown_in](const Polygons &load, const float cover) {
+                NearPolygons holding;
+                holding.append(held);
+                holding.append(grown_in);
+                std::vector<BoundingBox> near;
+                for (const ExPolygon &part : union_ex(load))
+                    near.emplace_back(get_extents(part.contour).inflated(coord_t(DefaultMiterLimit * cover) + SCALED_EPSILON));
+                return diff(load, offset(union_(holding.around(near)), cover));
+            };
+            if (! roof_load.empty()) {
+                hold_roof_lines(roof_load);
+                grow_tips(unheld(roof_load, float(reach)), float(reach));
+            }
+            if (! bead_load.empty())
+                grow_tips(unheld(bead_load, float(width)), float(width));
+            if (! tree_load.empty()) {
+                // A part of a tree touching nothing that holds it stands on nothing, however near it lies: a tree going into
+                // a wall whose way the model or a roof bars ends short of the wall, its last bead beside nothing. The paths
+                // print a tree a quarter of a line into a wall beside it, and a wall that far beyond the material of its
+                // body, see Printed: the end of a tree going into the wall touches it within that much, as where the wall
+                // below lies a little farther out. The loops of two trees beside each other do not fuse: a tree touches
+                // another where they meet.
+                NearPolygons walls_held;
+                walls_held.append(held);
+                walls_held.grow = 0.25f * float(width);
+                NearPolygons trees_held;
+                trees_held.append(grown_in);
+                trees_held.grow = float(SCALED_EPSILON);
+                Polygons hanging = unheld(tree_load, float(double(width) + move));
+                for (const ExPolygon &part : union_ex(tree_load))
+                    if (Polygons shape = to_polygons(part); ! walls_held.touch(shape) && ! trees_held.touch(shape))
+                        append(hanging, std::move(shape));
+                grow_tips(union_(hanging), float(double(width) + move));
+            }
+        }
+        layer->inner_trees = first ? union_(grown_in, grown_out) : union_(grown_in);
+        const Polygons &added = first ? layer->inner_trees : grown_out;
+        if (! added.empty())
+            layer->polygons = union_(layer->polygons, added);
+    }
+}
+
 /*!
  * \brief Create the areas that need support.
  *
@@ -3635,6 +4896,7 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
         //FIXME generating overhangs just for the first mesh of the group.
         assert(processing.second.size() == 1);
 
+        std::vector<Polygons> roof_targets;
 #if 1
         // use smart overhang detection
         std::vector<Polygons>        overhangs;
@@ -3642,9 +4904,13 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
         const int       num_raft_layers = int(config.raft_layers.size());
         const int       num_layers = int(print_object.layer_count()) + num_raft_layers;
         overhangs.resize(num_layers);
+        roof_targets.resize(num_layers);
         for (size_t i = 0; i < print_object.layer_count(); i++) {
             for (ExPolygon& expoly : print_object.get_layer(i)->loverhangs) {
                 Polygons polys = to_polygons(expoly);
+                // Sharp-tail growth is a routing allowance. Preserve the real
+                // overhang separately for the top contact material domain.
+                append(roof_targets[i + num_raft_layers], polys);
                 if (tree_support->overhang_types[&expoly] == TreeSupport::SharpTail) { polys = offset(polys, scale_(0.2));
                 }
                 append(overhangs[i + num_raft_layers], polys);
@@ -3662,12 +4928,14 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
                 if (layer_nr > 0 && layer_nr < print_object.layer_count()) {
                     Polygon circle = base_circle;
                     circle.translate(to_2d(pt).cast<coord_t>());
+                    roof_targets[layer_nr + num_raft_layers].push_back(circle);
                     overhangs[layer_nr + num_raft_layers].emplace_back(std::move(circle));
                 }
             }
         }
 #else
         std::vector<Polygons>        overhangs = generate_overhangs(config, *print.get_object(processing.second.front()), throw_on_cancel);
+        roof_targets = overhangs;
 #endif
         // ### Precalculate avoidances, collision etc.
         size_t num_support_layers = precalculate(print, overhangs, processing.first, processing.second, volumes, throw_on_cancel);
@@ -3724,7 +4992,7 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
 
             // ### Place tips of the support tree
             for (size_t mesh_idx : processing.second)
-                generate_initial_areas(*print.get_object(mesh_idx), volumes, config, overhangs, 
+                generate_initial_areas(*print.get_object(mesh_idx), volumes, config, overhangs, roof_targets,
                     move_bounds, interface_placer, throw_on_cancel);
             auto t_gen = std::chrono::high_resolution_clock::now();
 
@@ -3751,6 +5019,72 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
 
             std::tie(interface_layers, base_interface_layers) = generate_interface_layers(print_object.config(), support_params,
                 bottom_contacts, top_contacts, interface_layers, base_interface_layers, intermediate_layers, layer_storage);
+            organic_remove_roofs_inside_branches(bottom_contacts, top_contacts, interface_layers, base_interface_layers, intermediate_layers,
+                config.support_line_width);
+            {
+                // The model with the gaps above and below it, which cut the bodies out where they pass it.
+                std::vector<Polygons> model(intermediate_layers.size());
+                const SlicingParameters &slicing_params = print_object.slicing_parameters();
+                for (size_t i = 0; i < intermediate_layers.size(); ++ i)
+                    if (const SupportGeneratorLayer *body = intermediate_layers[i]; body != nullptr)
+                        model[i] = volumes.getCollision(0, layer_idx_floor(slicing_params, config, body->print_z + EPSILON), false);
+                organic_fill_covered_holes(intermediate_layers, model, config.support_line_width);
+                // The bodies, the roofs printed on them and the model by layer, up to the layer above the top body.
+                SupportGeneratorLayersPtr bodies(num_support_layers + 1, nullptr);
+                std::vector<Polygons>     roofs(bodies.size());
+                std::vector<Polygons>     model_of(bodies.size());
+                const auto layer_of = [&slicing_params, &config](coordf_t z) {
+                    return size_t(std::max(0, int(layer_idx_floor(slicing_params, config, z + EPSILON))));
+                };
+                for (size_t i = 0; i < intermediate_layers.size(); ++ i)
+                    if (SupportGeneratorLayer *body = intermediate_layers[i]; body != nullptr)
+                        if (const size_t idx = layer_of(body->print_z); idx < bodies.size()) {
+                            bodies[idx]   = body;
+                            model_of[idx] = std::move(model[i]);
+                        }
+                for (const SupportGeneratorLayersPtr *layers : { &top_contacts, &interface_layers, &base_interface_layers })
+                    for (const SupportGeneratorLayer *roof : *layers)
+                        if (roof != nullptr)
+                            if (const size_t idx = layer_of(roof->print_z); idx < roofs.size())
+                                append(roofs[idx], roof->polygons);
+                // A roof is to lie no farther from the material below than a line between two lines of the base.
+                const coord_t reach = coord_t(0.5 * (scaled<double>(print_object.config().support_base_pattern_spacing.value) +
+                    double(config.support_line_width)));
+                // A hollow base leaves the inside of a body open, under a roof and over the gaps between trunks merging
+                // into it going up.
+                const SupportMaterialPattern base   = print_object.config().support_base_pattern.value;
+                const bool                   hollow = base == smpDefault || base == smpNone;
+                // On a belt the floor slopes, and a body kept whole straight down would stand over it.
+                if (hollow && volumes.m_belt_floor.empty())
+                    organic_keep_merged_bodies_whole(bodies, model_of, std::min(config.maximum_move_distance, config.support_line_width / 2));
+                // A branch angle steeper than half a line a layer moves the walls by more, as it is set to. An angle of 90
+                // degrees moves them by any distance.
+                if (volumes.m_belt_floor.empty() && config.maximum_move_distance < std::numeric_limits<coord_t>::max()) {
+                    organic_limit_body_growth(bodies, roofs, model_of, config.support_rests_on_model, config.support_line_width,
+                        config.maximum_move_distance);
+                    // A hollow body narrows by the step a layer at most as well.
+                    if (hollow)
+                        organic_limit_body_shrink(bodies, roofs, model_of,
+                            std::max(config.support_line_width / 2, config.maximum_move_distance));
+                }
+                // The directions of the lines of the lowest roof layers: an interlaced pattern turns them from layer to layer,
+                // and the contact layer of a grid crosses them; a concentric or spiral roof prints no lines.
+                std::vector<double> roof_angles;
+                switch (print_object.config().support_interface_pattern.value) {
+                case smipConcentric:
+                case smipSpiralInset: break;
+                case smipGrid: roof_angles = { support_params.base_angle, support_params.base_angle + 0.5 * M_PI }; break;
+                case smipRectilinearInterlaced:
+                    roof_angles = { support_params.support_interface_angle(0), support_params.support_interface_angle(1) };
+                    break;
+                default: roof_angles = { support_params.support_interface_angle(0) };
+                }
+                organic_widen_bodies_under_roofs(bodies, roofs, model_of, config.support_line_width, config.min_radius,
+                    config.maximum_move_distance, reach, roof_angles);
+                if (hollow)
+                    organic_grow_trees_inside_hollow_bodies(bodies, roofs, model_of, config, reach,
+                        support_params.first_layer_flow.scaled_width(), roof_angles);
+            }
 
             auto t_draw = std::chrono::high_resolution_clock::now();
             auto dur_pre_gen = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_precalc - t_start).count();
@@ -3785,7 +5119,11 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
 
         // BBS: This is a hack to avoid the support being generated outside the bed area. See #4769.
         tbb::parallel_for_each(layers_sorted.begin(), layers_sorted.end(), [&](SupportGeneratorLayer *layer) {
-            if (layer) layer->polygons = intersection(layer->polygons, volumes.m_bed_area);
+            if (layer) {
+                layer->polygons = intersection(layer->polygons, volumes.m_bed_area);
+                if (! layer->inner_trees.empty())
+                    layer->inner_trees = intersection(layer->inner_trees, volumes.m_bed_area);
+            }
         });
 
         // Belt floor: clip ALL organic support layers (including intermediate/base
@@ -3801,9 +5139,11 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
             ctx.init_local(sp, pcfg, print_object.belt_global_z_offset());
             if (ctx.is_active()) {
                 tbb::parallel_for_each(layers_sorted.begin(), layers_sorted.end(), [&](SupportGeneratorLayer *layer) {
-                    if (!layer || layer->polygons.empty())
+                    if (!layer)
                         return;
                     layer->polygons = diff(layer->polygons, ctx.surface_polygon(layer->print_z));
+                    if (! layer->inner_trees.empty())
+                        layer->inner_trees = diff(layer->inner_trees, ctx.surface_polygon(layer->print_z));
                 });
             }
         }
@@ -3811,6 +5151,16 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
         print.set_status(69, _L("Generating support"));
         generate_support_toolpaths(print_object.support_layers(), print_object.config(), support_params, print_object.slicing_parameters(),
             raft_layers, bottom_contacts, top_contacts, intermediate_layers, interface_layers, base_interface_layers);
+        // A crumb of support standing on nothing, left where a loop or a wall is cut short, is dropped. A hollow base
+        // leaves the inside of the trunks empty: should a larger part still stand on nothing, a filled base may carry it.
+        // The heights of the first few such parts tell where to look.
+        const bool hollow = print_object.config().support_base_pattern == smpDefault ||
+            print_object.config().support_base_pattern == smpNone;
+        std::vector<coordf_t> floating;
+        remove_floating_support_crumbs(print_object, scaled<double>(1.) * support_params.support_material_flow.scaled_width(),
+            hollow ? &floating : nullptr);
+        if (hollow)
+            organic_update_support_warning(print_object, std::move(floating));
 
         auto t_end = std::chrono::high_resolution_clock::now();
         BOOST_LOG_TRIVIAL(info) << "Total time of organic tree support: " << 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_start).count() << " ms";
@@ -3850,7 +5200,7 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
 //   storage.support.generated = true;
 }
 
-static void recover_pending_branch_roofs(
+void recover_pending_branch_roofs(
     InterfacePlacer        &interface_placer,
     const std::vector<const SupportElement*> &branch_path,
     const LayerIndex        layer_begin,
@@ -3872,7 +5222,19 @@ static void recover_pending_branch_roofs(
         if (el.state.roof_recovery_dtt > interface_placer.support_parameters.num_top_interface_layers)
             continue;
 
-        interface_placer.add_roof(std::move(slices[size_t(slice_idx)]), el.state.layer_idx, el.state.roof_recovery_dtt);
+        // The slices of a path leaving a junction sideways also hold the round end of the junction,
+        // up to the tip for a wide trunk. Only the part swept by this element since the layer below
+        // becomes roof, the rest stays branch body. The first element of a path is the junction.
+        const auto below = std::next(it);
+        const bool sweep = below != branch_path.rend() && std::next(below) != branch_path.rend();
+        const Polyline axis{ sweep ? (*below)->state.result_on_layer : el.state.result_on_layer, el.state.result_on_layer };
+        Polygons &slice = slices[size_t(slice_idx)];
+        Polygons roof = intersection(slice,
+            offset(axis, float(support_element_radius(interface_placer.config, el)), jtRound, SCALED_EPSILON, etOpenRound));
+        if (roof.empty())
+            continue;
+        slice = diff(slice, roof);
+        interface_placer.add_roof(std::move(roof), el.state.layer_idx, el.state.roof_recovery_dtt);
     }
 }
 
@@ -4383,7 +5745,7 @@ void organic_draw_branches(
         }
 
     tbb::parallel_for(tbb::blocked_range<size_t>(0, std::min(move_bounds.size(), slices.size()), 1),
-        [&print_object, &config, &slices, &bottom_contacts, &top_contacts, &intermediate_layers, &layer_storage, &throw_on_cancel](const tbb::blocked_range<size_t> &range) {
+        [&volumes, &print_object, &config, &slices, &bottom_contacts, &top_contacts, &intermediate_layers, &layer_storage, &throw_on_cancel](const tbb::blocked_range<size_t> &range) {
         for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++layer_idx) {
             Slice &slice = slices[layer_idx];
             assert(intermediate_layers[layer_idx] == nullptr);
@@ -4399,12 +5761,18 @@ void organic_draw_branches(
                 //smooth_outward(closing(std::move(bottom), closing_distance + minimum_island_radius, closing_distance, SUPPORT_SURFACES_OFFSET_PARAMETERS), smoothing_distance) :
                 // simplify a bit, to ensure the output does not contain outrageous amounts of vertices. Should not be necessary, just a precaution.
                 base_layer_polygons = polygons_simplify(base_layer_polygons, std::min(scaled<double>(0.03), double(config.resolution)));
+                // Outward smoothing must preserve the feasible domain used for
+                // the branch slices, including model, bed and belt constraints.
+                base_layer_polygons = diff_clipped(base_layer_polygons, volumes.getCollision(0, layer_idx, true), ApplySafetyOffset::Yes);
+                base_layer_polygons = intersection_clipped(base_layer_polygons, Polygons{volumes.m_bed_area}, ApplySafetyOffset::Yes);
+                if (layer_idx < volumes.m_belt_floor.size() && !volumes.m_belt_floor[layer_idx].empty())
+                    base_layer_polygons = diff(base_layer_polygons, volumes.m_belt_floor[layer_idx]);
             }
 
-            // Subtract top contact layer polygons from support base.
+            // Keep the branch body intact until its shell paths are offset.
+            // Interface ownership is applied in generate_support_toolpaths().
             SupportGeneratorLayer *top_contact_layer = top_contacts.empty() ? nullptr : top_contacts[layer_idx];
             if (top_contact_layer && ! top_contact_layer->polygons.empty() && ! base_layer_polygons.empty()) {
-                base_layer_polygons = diff(base_layer_polygons, top_contact_layer->polygons);
                 if (! bottom_contact_polygons.empty())
                     //FIXME it may be better to clip bottom contacts with top contacts first after they are propagated to produce interface layers.
                     bottom_contact_polygons = diff(bottom_contact_polygons, top_contact_layer->polygons);

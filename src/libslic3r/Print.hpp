@@ -1379,6 +1379,10 @@ public:
     //SoftFever
     bool &is_BBL_printer() { return m_isBBLPrinter; }
     const bool is_BBL_printer() const { return m_isBBLPrinter; }
+    // Whether the custom G-codes of the plate switch the tool by layer for objects printing with one, as apply() found
+    // them. The steps read this rather than the custom G-codes, which apply() replaces without stopping them unless the
+    // tool changes change.
+    bool has_custom_tool_overrides() const { return m_custom_tool_overrides; }
     WipeTowerType wipe_tower_type() const { return is_BBL_printer() ? WipeTowerType::Type1 : m_config.wipe_tower_type.value; }
     CalibMode& calib_mode() { return m_calib_params.mode; }
     const CalibMode calib_mode() const { return m_calib_params.mode; }
@@ -1546,6 +1550,7 @@ private:
     
     //SoftFever
     bool m_isBBLPrinter = false;
+    bool m_custom_tool_overrides = false;
 
     // Ordered collections of extrusion paths to build skirt loops and brim.
     ExtrusionEntityCollection               m_skirt;

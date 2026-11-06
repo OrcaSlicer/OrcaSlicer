@@ -2615,14 +2615,14 @@ TEST_CASE("Organic tree supports place a support blocker at its own height above
 // feature: this is the generator every printer uses.
 TEST_CASE("Organic tree supports keep their distance from the part", "[Print][Support]")
 {
-    // A 20 mm cube carrying a 60 x 60 mm plate: a 20 mm wide ceiling all around the
-    // cube, 16 mm above the bed, with the cube's four corners in the way of the branches
-    // that drop from it.  The plate reaches into the cube so the two shells overlap
-    // instead of sharing a face.
-    indexed_triangle_set its   = its_make_cube(20., 20., 20.);
-    indexed_triangle_set plate = its_make_cube(60., 60., 4.);
-    its_translate(its, Vec3f(20.f, 20.f, 0.f));
-    its_translate(plate, Vec3f(0.f, 0.f, 16.f));
+    // An 8 mm cube carrying a 24 x 24 mm plate, 6 mm above the bed. The cube's
+    // four corners obstruct branches below the surrounding 8 mm overhang. Keep
+    // this clearance fixture small: a broad, tall canopy also exercises expensive
+    // hollow-trunk reconstruction. Overlapping shells avoid a coplanar join.
+    indexed_triangle_set its   = its_make_cube(8., 8., 8.);
+    indexed_triangle_set plate = its_make_cube(24., 24., 2.);
+    its_translate(its, Vec3f(8.f, 8.f, 0.f));
+    its_translate(plate, Vec3f(0.f, 0.f, 6.f));
     its_merge(its, plate);
     TriangleMesh mesh(std::move(its));
 
@@ -2635,6 +2635,8 @@ TEST_CASE("Organic tree supports keep their distance from the part", "[Print][Su
         { "support_type",               "tree(auto)" },
         { "support_style",              "organic" },
         { "support_threshold_angle",    30 },
+        { "support_object_xy_distance", 0.35 },
+        { "support_line_width",         0.4 },
     });
     Print print;
     Model model;

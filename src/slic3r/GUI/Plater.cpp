@@ -40,6 +40,7 @@
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/PrintBase.hpp"
+#include "libslic3r/Support/OrganicToolpaths.hpp"
 #include "libslic3r/Preset.hpp"
 #include <fstream>
 #include "libslic3r/calib.hpp"
@@ -7645,6 +7646,7 @@ struct Plater::priv
     void on_slicing_began();
 
     void clear_warnings();
+    void restore_organic_support_warnings();
     void add_warning(const Slic3r::PrintStateBase::Warning &warning, size_t oid);
     // Update notification manager with the current state of warnings produced by the background process (slicing).
     void actualize_slicing_warnings(const PrintBase &print);
@@ -13498,6 +13500,15 @@ void Plater::priv::on_slicing_update(SlicingStatusEvent &evt)
                 this->background_process.m_sla_print->step_state_with_warnings(static_cast<SLAPrintStep>(warning_step));
         } else if (this->printer_technology == ptFFF) {
             const PrintObject *print_object = this->background_process.m_fff_print->get_object(object_id);
+            // A queued warning may belong to the previous plate in Slice All.
+            if (print_object == nullptr && evt.status.message_type == PrintStateBase::SlicingOrganicSupportWarning)
+                for (PartPlate *plate : partplate_list.get_plate_list()) {
+                    if (!m_slice_all && plate != partplate_list.get_curr_plate())
+                        continue;
+                    if (Print *print = plate->fff_print(); print != nullptr)
+                        if ((print_object = print->get_object(object_id)) != nullptr)
+                            break;
+                }
             if (print_object) {
                 state = print_object->step_state_with_warnings(static_cast<PrintObjectStep>(warning_step));
                 model_object = print_object->model_object();
@@ -13509,8 +13520,22 @@ void Plater::priv::on_slicing_update(SlicingStatusEvent &evt)
                 model_object = print_object->model_object();
             }
         }
+        // The final Organic check can clear a conservative warning without regenerating support.
+        const int organic_warning = PrintStateBase::SlicingOrganicSupportWarning;
+        if (evt.status.message_type == organic_warning &&
+            std::none_of(state.warnings.begin(), state.warnings.end(), [organic_warning](const auto &warning) {
+                return warning.current && warning.message_id == organic_warning;
+            })) {
+            notification_manager->close_slicing_warning_notification(object_id, organic_warning);
+            current_warnings.erase(std::remove_if(current_warnings.begin(), current_warnings.end(),
+                [object_id, organic_warning](const auto &warning) {
+                    return warning.second == object_id.id && warning.first.message_id == organic_warning;
+                }), current_warnings.end());
+        }
         // Now process state.warnings.
         for (auto const& warning : state.warnings) {
+            if (evt.status.message_type == organic_warning && warning.message_id != organic_warning)
+                continue;
             if (warning.current) {
                 NotificationManager::NotificationLevel notif_level = NotificationManager::NotificationLevel::WarningNotificationLevel;
                 if (evt.status.message_type == PrintStateBase::SlicingNotificationType::SlicingReplaceInitEmptyLayers || evt.status.message_type == PrintStateBase::SlicingNotificationType::SlicingEmptyGcodeLayers) {
@@ -13569,6 +13594,7 @@ void Plater::priv::on_export_finished(wxCommandEvent& evt)
 void Plater::priv::on_slicing_began()
 {
     clear_warnings();
+    restore_organic_support_warnings();
     notification_manager->close_notification_of_type(NotificationType::SignDetected);
     notification_manager->close_notification_of_type(NotificationType::ExportFinished);
     bool is_first_plate = m_cur_slice_plate == 0;
@@ -13581,6 +13607,8 @@ void Plater::priv::add_warning(const Slic3r::PrintStateBase::Warning& warning, s
 {
     for (auto& it : current_warnings) {
         if (warning.message_id == it.first.message_id) {
+            if (warning.message_id == PrintStateBase::SlicingOrganicSupportWarning && oid != it.second)
+                continue;
             if (warning.message_id != 0 || (warning.message_id == 0 && warning.message == it.first.message))
             {
                 if (warning.message_id != 0)
@@ -13596,12 +13624,14 @@ void Plater::priv::actualize_slicing_warnings(const PrintBase &print)
     std::vector<ObjectID> ids = print.print_object_ids();
     if (ids.empty()) {
         clear_warnings();
+        restore_organic_support_warnings();
         return;
     }
     ids.emplace_back(print.id());
     std::sort(ids.begin(), ids.end());
     notification_manager->remove_slicing_warnings_of_released_objects(ids);
     notification_manager->set_all_slicing_warnings_gray(true);
+    restore_organic_support_warnings();
 }
 void Plater::priv::actualize_object_warnings(const PrintBase& print)
 {
@@ -13613,6 +13643,35 @@ void Plater::priv::actualize_object_warnings(const PrintBase& print)
     std::sort(ids.begin(), ids.end());
     notification_manager->remove_simplify_suggestion_of_released_objects(ids);
 }
+void Plater::priv::restore_organic_support_warnings()
+{
+    if (printer_technology != ptFFF)
+        return;
+    // Slice All clears the notification centre between plates. Cached support
+    // steps do not emit warning events again, so replay their saved diagnostics.
+    std::vector<PrintBase::SlicingStatus> statuses;
+    for (PartPlate *plate : partplate_list.get_plate_list()) {
+        if (!plate->is_slice_result_valid() || (!m_slice_all && plate != partplate_list.get_curr_plate()))
+            continue;
+        if (const Print *print = plate->fff_print(); print != nullptr)
+            append(statuses, organic_support_warning_statuses(*print));
+    }
+    for (auto it = current_warnings.begin(); it != current_warnings.end();) {
+        if (it->first.message_id == PrintStateBase::SlicingOrganicSupportWarning &&
+            std::none_of(statuses.begin(), statuses.end(), [oid = it->second](const auto &status) {
+                return status.warning_object_id.id == oid;
+            })) {
+            notification_manager->close_slicing_warning_notification(ObjectID(it->second), PrintStateBase::SlicingOrganicSupportWarning);
+            it = current_warnings.erase(it);
+        } else
+            ++it;
+    }
+    for (const auto &status : statuses) {
+        SlicingStatusEvent event(EVT_SLICING_UPDATE, 0, status);
+        on_slicing_update(event);
+    }
+}
+
 void Plater::priv::clear_warnings()
 {
     notification_manager->close_slicing_errors_and_warnings();
@@ -13742,6 +13801,7 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
                                  (evt.export_failed() && printer_technology == ptFFF && this->background_process.finished());
         this->background_process.get_current_plate()->update_slice_result_valid_state(slice_valid);
     }
+    restore_organic_support_warnings();
 
     //BBS: update the action button according to the current plate's status
     bool ready_to_slice = !this->partplate_list.get_curr_plate()->is_slice_result_valid();
@@ -18695,6 +18755,8 @@ void Plater::reload_gcode_from_disk()
 void Plater::reload_print()
 {
     p->preview->reload_print();
+    // Selecting a cached plate reloads its preview without any slicing events.
+    p->restore_organic_support_warnings();
 }
 
 void Plater::refresh_belt_view()
@@ -21355,6 +21417,7 @@ void Plater::reslice()
 
     p->preview->reload_print();
 
+    p->restore_organic_support_warnings();
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": finished, started slicing for plate %1%") % p->partplate_list.get_curr_plate_index();
 }
 
