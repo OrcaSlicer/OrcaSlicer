@@ -1,6 +1,6 @@
 {
 	"name": "Vivedino",
-	"version": "02.04.00.02",
+	"version": "02.04.00.13",
 	"force_update": "0",
 	"description": "Vivedino configurations",
 	"machine_model_list": [
@@ -11,6 +11,22 @@
 		{
 			"name": "Troodon 2.0 - RRF",
 			"sub_path": "machine/Troodon2RRF.json"
+		},
+		{
+			"name": "Xplorer Dual Gantry",
+			"sub_path": "machine/XplorerDualGantry.json"
+		},
+		{
+			"name": "Xplorer IDEX",
+			"sub_path": "machine/XplorerIDEX.json"
+		},
+		{
+			"name": "Xplorer IQEX",
+			"sub_path": "machine/XplorerIQEX.json"
+		},
+		{
+			"name": "Xplorer Single",
+			"sub_path": "machine/XplorerSingle.json"
 		}
 	],
 	"process_list": [
@@ -45,6 +61,86 @@
 		{
 			"name": "0.28mm Extra Draft @Troodon2",
 			"sub_path": "process/0.28mm Extra Draft @Troodon2.json"
+		},
+		{
+			"name": "fdm_process_xplorer_common",
+			"sub_path": "process/fdm_process_xplorer_common.json"
+		},
+		{
+			"name": "0.04mm Ultra Fine @Xplorer 0.4",
+			"sub_path": "process/0.04mm Ultra Fine @Xplorer 0.4.json"
+		},
+		{
+			"name": "0.08mm Extra Fine @Xplorer 0.4",
+			"sub_path": "process/0.08mm Extra Fine @Xplorer 0.4.json"
+		},
+		{
+			"name": "0.12mm Fine @Xplorer 0.4",
+			"sub_path": "process/0.12mm Fine @Xplorer 0.4.json"
+		},
+		{
+			"name": "0.16mm Optimal @Xplorer 0.4",
+			"sub_path": "process/0.16mm Optimal @Xplorer 0.4.json"
+		},
+		{
+			"name": "0.20mm Standard @Xplorer 0.4",
+			"sub_path": "process/0.20mm Standard @Xplorer 0.4.json"
+		},
+		{
+			"name": "0.28mm Draft @Xplorer 0.4",
+			"sub_path": "process/0.28mm Draft @Xplorer 0.4.json"
+		},
+		{
+			"name": "0.32mm Extra Draft @Xplorer 0.4",
+			"sub_path": "process/0.32mm Extra Draft @Xplorer 0.4.json"
+		},
+		{
+			"name": "fdm_process_xplorer_common_0_6",
+			"sub_path": "process/fdm_process_xplorer_common_0_6.json"
+		},
+		{
+			"name": "fdm_process_xplorer_common_0_8",
+			"sub_path": "process/fdm_process_xplorer_common_0_8.json"
+		},
+		{
+			"name": "0.18mm Fine @Xplorer 0.6",
+			"sub_path": "process/0.18mm Fine @Xplorer 0.6.json"
+		},
+		{
+			"name": "0.24mm Optimal @Xplorer 0.6",
+			"sub_path": "process/0.24mm Optimal @Xplorer 0.6.json"
+		},
+		{
+			"name": "0.30mm Standard @Xplorer 0.6",
+			"sub_path": "process/0.30mm Standard @Xplorer 0.6.json"
+		},
+		{
+			"name": "0.36mm Draft @Xplorer 0.6",
+			"sub_path": "process/0.36mm Draft @Xplorer 0.6.json"
+		},
+		{
+			"name": "0.42mm Extra Draft @Xplorer 0.6",
+			"sub_path": "process/0.42mm Extra Draft @Xplorer 0.6.json"
+		},
+		{
+			"name": "0.24mm Fine @Xplorer 0.8",
+			"sub_path": "process/0.24mm Fine @Xplorer 0.8.json"
+		},
+		{
+			"name": "0.32mm Optimal @Xplorer 0.8",
+			"sub_path": "process/0.32mm Optimal @Xplorer 0.8.json"
+		},
+		{
+			"name": "0.40mm Standard @Xplorer 0.8",
+			"sub_path": "process/0.40mm Standard @Xplorer 0.8.json"
+		},
+		{
+			"name": "0.48mm Draft @Xplorer 0.8",
+			"sub_path": "process/0.48mm Draft @Xplorer 0.8.json"
+		},
+		{
+			"name": "0.56mm Extra Draft @Xplorer 0.8",
+			"sub_path": "process/0.56mm Extra Draft @Xplorer 0.8.json"
 		}
 	],
 	"filament_list": [],
@@ -66,8 +162,60 @@
 			"sub_path": "machine/Troodon 2.0 Klipper 0.4 nozzle.json"
 		},
 		{
+			"name": "Xplorer common",
+			"sub_path": "machine/Xplorer common.json"
+		},
+		{
 			"name": "Troodon 2.0 RRF 0.4 nozzle",
 			"sub_path": "machine/Troodon 2.0 RRF 0.4 nozzle.json"
+		},
+		{
+			"name": "Xplorer Dual Gantry 0.4 nozzle",
+			"sub_path": "machine/Xplorer Dual Gantry 0.4 nozzle.json"
+		},
+		{
+			"name": "Xplorer Dual Gantry 0.6 nozzle",
+			"sub_path": "machine/Xplorer Dual Gantry 0.6 nozzle.json"
+		},
+		{
+			"name": "Xplorer Dual Gantry 0.8 nozzle",
+			"sub_path": "machine/Xplorer Dual Gantry 0.8 nozzle.json"
+		},
+		{
+			"name": "Xplorer IDEX 0.4 nozzle",
+			"sub_path": "machine/Xplorer IDEX 0.4 nozzle.json"
+		},
+		{
+			"name": "Xplorer IDEX 0.6 nozzle",
+			"sub_path": "machine/Xplorer IDEX 0.6 nozzle.json"
+		},
+		{
+			"name": "Xplorer IDEX 0.8 nozzle",
+			"sub_path": "machine/Xplorer IDEX 0.8 nozzle.json"
+		},
+		{
+			"name": "Xplorer IQEX 0.4 nozzle",
+			"sub_path": "machine/Xplorer IQEX 0.4 nozzle.json"
+		},
+		{
+			"name": "Xplorer IQEX 0.6 nozzle",
+			"sub_path": "machine/Xplorer IQEX 0.6 nozzle.json"
+		},
+		{
+			"name": "Xplorer IQEX 0.8 nozzle",
+			"sub_path": "machine/Xplorer IQEX 0.8 nozzle.json"
+		},
+		{
+			"name": "Xplorer Single 0.4 nozzle",
+			"sub_path": "machine/Xplorer Single 0.4 nozzle.json"
+		},
+		{
+			"name": "Xplorer Single 0.6 nozzle",
+			"sub_path": "machine/Xplorer Single 0.6 nozzle.json"
+		},
+		{
+			"name": "Xplorer Single 0.8 nozzle",
+			"sub_path": "machine/Xplorer Single 0.8 nozzle.json"
 		}
 	]
 }

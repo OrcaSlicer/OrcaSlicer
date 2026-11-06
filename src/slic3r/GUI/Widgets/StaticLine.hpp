@@ -3,6 +3,9 @@
 
 #include "../wxExtensions.hpp"
 #include "wx/window.h"
+#include <wx/string.h>
+#include <wx/colour.h>
+#include <wx/event.h>
 
 class StaticLine : public wxWindow
 {

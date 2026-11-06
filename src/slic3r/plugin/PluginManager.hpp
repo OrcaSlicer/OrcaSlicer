@@ -1,9 +1,11 @@
 #ifndef slic3r_PluginManager_hpp_
 #define slic3r_PluginManager_hpp_
 
+#include <atomic>
 #include <boost/filesystem/path.hpp>
 
 #include <algorithm>
+#include <boost/log/trivial.hpp>
 #include <chrono>
 #include <condition_variable>
 #include <functional>
@@ -13,17 +15,21 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include "slic3r/plugin/PluginFsUtils.hpp"
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
-
-#include <pybind11/embed.h>
 
 #include "CloudPluginService.hpp"
 #include "PluginDescriptor.hpp"
 #include "PluginLoader.hpp"
 #include "PluginConfig.hpp"
+
+struct _object;
+using PyObject = _object;
+namespace pybind11 { class object; }
 
 namespace Slic3r {
 
@@ -94,6 +100,19 @@ struct Plugin
     void release_module();
 };
 
+// Outcome of one Script invocation, delivered to a script completion callback.
+//
+// `cancelled` marks a run terminated by PluginManager's own cancellation (plugin unload / shutdown):
+// expected termination, not a failure. Callers must not surface it as an error nor as a normal
+// success. `error` carries only genuine user/plugin exceptions; `result` is meaningful when neither
+// `cancelled` nor a non-empty `error` is set.
+struct ScriptCompletion
+{
+    ExecutionResult result;
+    std::string     error;
+    bool            cancelled = false;
+};
+
 class PluginManager
 {
 public:
@@ -112,6 +131,7 @@ public:
 
     // Reject new plugin loads. Called early in app teardown, before shutdown() drains.
     void set_shutting_down();
+    bool is_shutting_down() const { return m_shutting_down.load(std::memory_order_acquire); }
 
     void discover_plugins(bool async = false, bool clear = false);
     // Manually trigger a manifest-only rescan. Blocks until discovery is complete.
@@ -210,6 +230,25 @@ public:
 
     ExecutionResult run_script_capability(const std::string& plugin_key, const std::string& capability_name, std::string& error);
 
+    // Outcome of launching a Script capability.
+    struct ScriptLaunchResult
+    {
+        bool             launched_async = false; // true => a run started off-thread; wait for on_done
+        ScriptCompletion outcome;                // meaningful when !launched_async (start failure only)
+    };
+    // Invoked on the GUI thread when a Script invocation finishes (or inline, on the calling thread,
+    // when the run could not be started at all).
+    using ScriptCompletionFn = std::function<void(const ScriptCompletion&)>;
+
+    // Starts a Script capability off the caller's thread. Both a synchronous `def execute` and an
+    // `async def execute` run on a ScriptAsyncRuntime worker, so this never blocks the UI thread and
+    // no invocation runs before returning. `launched_async` is true exactly when a run started; the
+    // caller then waits for on_done instead of a returned result. When it is false, `outcome.error`
+    // explains why (the caller's guarded UI normally prevents this).
+    ScriptLaunchResult launch_script_capability(const std::string& plugin_key,
+                                                const std::string& capability_name,
+                                                ScriptCompletionFn on_done = {});
+
     void dispatch_lifecycle_event(LifecycleEvent evt, const LifecycleEventContext& ctx);
 
 private:
@@ -303,6 +342,74 @@ private:
 
     std::string m_cloud_user_id;
     std::atomic<bool> m_shutting_down{false};
+};
+
+// ── Async Script execution ──────────────────────────────────────────────────────────────────
+//
+// A Script capability whose Python `execute` is an `async def` (or otherwise returns a
+// coroutine) must not run on the UI thread, and cannot use the synchronous trampoline path,
+// which casts the return value to ExecutionResult and would reject a coroutine.
+//
+// ScriptAsyncRuntime drives such executions off the calling (UI) thread. Each invocation gets its
+// own worker thread and, for an `async def`, its own asyncio event loop. Every invocation body —
+// detection, a synchronous `def execute`, or an `async def` coroutine — runs on that worker, so no
+// Script invocation ever blocks the UI thread and no invocation is queued behind another plugin's.
+// For the whole invocation the worker holds:
+//   * a shared_ptr to the capability, so the capability and its module stay alive across awaits;
+//   * a PythonRuntimeLease plus the GIL, so the interpreter cannot finalize underneath it;
+//   * the capability's audit scope (ScopedPluginAuditContext),
+// which keeps plugin unload and interpreter shutdown from tearing the module out from under a
+// suspended run. Unload cancels the run and drains it (it never force-unloads after a timeout).
+//
+// Interface for host awaitables (see plugin/host/): a host awaitable is constructed inside the
+// Script coroutine, i.e. on the worker thread with that invocation's loop running, so it can
+// read that loop with asyncio.get_running_loop() or ScriptAsyncRuntime::current_loop(). To
+// resume from another thread (typically the UI thread) it must resolve its future with
+// loop.call_soon_threadsafe(...) and must never touch plugin Python objects, or the loop,
+// directly from that other thread. The loop only runs while the coroutine is suspended inside
+// run_until_complete; once Script execute returns the loop is closed and the module may unload.
+class ScriptAsyncRuntime
+{
+public:
+    static ScriptAsyncRuntime& instance();
+
+    ~ScriptAsyncRuntime();
+    ScriptAsyncRuntime(const ScriptAsyncRuntime&)            = delete;
+    ScriptAsyncRuntime& operator=(const ScriptAsyncRuntime&) = delete;
+
+    // Starts one Script invocation on its own worker thread. The invocation body (Python `execute`,
+    // whether `def` or `async def`) and its detection both run on that worker, never on the calling
+    // thread. `on_done` is invoked on the GUI thread (or inline when there is no wx app) when the
+    // invocation finishes; a `cancelled` completion is expected termination from cancel_plugin().
+    // Returns false when the runtime is shutting down.
+    bool start(const std::string& plugin_key,
+               const std::string& capability_name,
+               std::shared_ptr<PluginCapabilityInterface> capability,
+               std::function<void(const ScriptCompletion&)> on_done);
+
+    // Requests cancellation of every active run owned by plugin_key: marks the run and cancels
+    // its asyncio task via loop.call_soon_threadsafe (a synchronous invocation has no loop).
+    void cancel_plugin(const std::string& plugin_key);
+
+    // True while a run for `capability` is active.
+    bool has_active_run(const PluginCapabilityInterface* capability) const;
+
+    // Stops accepting runs and waits for every in-flight invocation worker. Nothing is torn down
+    // by force.
+    void shutdown();
+
+    // Re-arms the runtime after a shutdown() so a later initialize() in the same process can
+    // start runs again.
+    void reset();
+
+    // The asyncio loop of the Script invocation running on the calling thread, or an empty
+    // object when the calling thread is not running one. Must be called with the GIL held.
+    static pybind11::object current_loop();
+
+private:
+    ScriptAsyncRuntime();
+    struct Impl;
+    std::unique_ptr<Impl> m_impl;
 };
 
 // Resolve each configured capability reference to a loaded capability of type T and run `execute`.

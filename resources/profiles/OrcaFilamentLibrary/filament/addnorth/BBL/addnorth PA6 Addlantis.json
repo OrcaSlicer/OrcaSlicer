@@ -11,6 +11,7 @@
 		"1"
 	],
 	"additional_cooling_fan_speed": [
+		"0",
 		"0"
 	],
 	"chamber_temperatures": [
@@ -111,6 +112,7 @@
 		"1"
 	],
 	"enable_pressure_advance": [
+		"0",
 		"0"
 	],
 	"eng_plate_temp": [
@@ -123,9 +125,11 @@
 		"5"
 	],
 	"fan_max_speed": [
+		"30",
 		"30"
 	],
 	"fan_min_speed": [
+		"10",
 		"10"
 	],
 	"filament_adhesiveness_category": [
@@ -170,6 +174,7 @@
 		"11"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
+		"15",
 		"15"
 	],
 	"filament_notes": "File Version:2.62 - V.Pack:18_05_2026",
@@ -298,9 +303,11 @@
 		"275"
 	],
 	"nozzle_temperature_range_high": [
+		"285",
 		"285"
 	],
 	"nozzle_temperature_range_low": [
+		"265",
 		"265"
 	],
 	"overhang_fan_speed": [
@@ -316,6 +323,7 @@
 		"2"
 	],
 	"pressure_advance": [
+		"0.02",
 		"0.02"
 	],
 	"reduce_fan_stop_start_freq": [

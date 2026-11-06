@@ -18,6 +18,7 @@
 		"20"
 	],
 	"fan_min_speed": [
+		"20",
 		"20"
 	],
 	"filament_deretraction_speed": [
@@ -109,6 +110,7 @@
 		"0"
 	],
 	"fan_max_speed": [
+		"30",
 		"30"
 	],
 	"hole_coef_2": [

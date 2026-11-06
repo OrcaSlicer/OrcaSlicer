@@ -1,0 +1,31 @@
+{
+	"type": "filament",
+	"name": "Generic PLA @U1 0.2 nozzle",
+	"inherits": "Generic PLA @System",
+	"from": "system",
+	"setting_id": "8pb3tert1D4w0SKP",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.2 nozzle)"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_max_volumetric_speed": [
+		"12",
+		"1.6"
+	],
+	"fan_min_speed": [
+		"100",
+		"100"
+	],
+	"fan_max_speed": [
+		"100",
+		"100"
+	],
+	"additional_cooling_fan_speed": [
+		"70",
+		"70"
+	]
+}

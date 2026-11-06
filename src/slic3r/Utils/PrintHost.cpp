@@ -1,13 +1,27 @@
 #include "PrintHost.hpp"
 
+#include "libslic3r/Config.hpp"
+#include <string>
+#include <boost/algorithm/string/predicate.hpp>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <cstddef>
+#include <boost/filesystem/path.hpp>
+#include <utility>
+#include <memory>
+#include <boost/filesystem/operations.hpp>
+#include "libslic3r/LifecycleEvents.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
 #include <vector>
 #include <thread>
 #include <exception>
-#include <boost/optional.hpp>
+#include <sstream>
 #include <boost/log/trivial.hpp>
 #include <boost/filesystem.hpp>
 #include <nlohmann/json.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
+#include <wx/event.h>
 #include <wx/string.h>
 #include <wx/app.h>
 #include <wx/arrstr.h>
@@ -34,7 +48,6 @@
 #include "Moonraker.hpp"
 
 namespace fs = boost::filesystem;
-using boost::optional;
 using Slic3r::GUI::PrintHostQueueDialog;
 
 namespace Slic3r {
@@ -172,6 +185,20 @@ std::string moonraker_error_reason(const std::string &body)
 
 } // namespace
 
+int PrintHost::get_err_code_from_body(const std::string &body)
+{
+    boost::property_tree::ptree root;
+    std::istringstream iss(body);
+    try {
+        boost::property_tree::read_json(iss, root);
+    } catch (const std::exception &ex) {
+        BOOST_LOG_TRIVIAL(error) << "PrintHost: response is not valid JSON: " << ex.what();
+        return -1;
+    }
+
+    return root.get<int>("err", 0);
+}
+
 wxString PrintHost::format_error(const std::string &body, const std::string &error, unsigned status) const
 {
     if (status != 0) {
@@ -180,7 +207,7 @@ wxString PrintHost::format_error(const std::string &body, const std::string &err
         return wxString::Format("HTTP %u: %s", status, wxbody);
     } else {
         if (error.find("curl:Timeout was reached") != std::string::npos) {
-            return _L("Connection timed out. Please check if the printer and computer network are functioning properly, and confirm that they are on the same network.");
+            return timed_out_message();
         }else if(error.find("curl:Couldn't resolve host name")!= std::string::npos){
             return _L("The Hostname/IP/URL could not be parsed, please check it and try again.");
         } else if (error.find("Connection was reset") != std::string::npos){
@@ -190,6 +217,11 @@ wxString PrintHost::format_error(const std::string &body, const std::string &err
             return wxString::FromUTF8(error.data());
         }
     }
+}
+
+wxString PrintHost::timed_out_message()
+{
+    return _L("Connection timed out. Please check if the printer and computer network are functioning properly, and confirm that they are on the same network.");
 }
 
 
@@ -415,12 +447,10 @@ void PrintHostJobQueue::priv::remove_source()
     source_to_remove.clear();
 }
 
-void PrintHostJobQueue::priv::perform_job(PrintHostJob the_job)
+bool PrintHostJobQueue::upload_job(PrintHostJob &job, PrintHost::ProgressFn progress_fn, PrintHost::ErrorFn error_fn, PrintHost::InfoFn info_fn)
 {
-    emit_progress(0);   // Indicate the upload is starting
-
     // Captured before upload_data is moved into upload() below.
-    const std::string upload_filename = the_job.upload_data.source_path.filename().string();
+    const std::string upload_filename = job.upload_data.source_path.filename().string();
 
     {
         LifecycleEventContext ctx;
@@ -429,18 +459,36 @@ void PrintHostJobQueue::priv::perform_job(PrintHostJob the_job)
         fire_lifecycle_event(LifecycleEvent::UploadStarted, ctx);
     }
 
-    bool success = the_job.printhost->upload(std::move(the_job.upload_data),
-        [this](Http::Progress progress, bool &cancel)   { this->progress_fn(std::move(progress), cancel); },
-        [this](wxString error)                          { this->error_fn(std::move(error)); },
-        [this](wxString tag, wxString host)             { this->info_fn(std::move(tag), std::move(host)); }
-    );
+    bool success = false;
+    std::string error;
+    // A throwing upload must not stop the worker, or later jobs would stay queued forever.
+    try {
+        success = job.printhost->upload(std::move(job.upload_data), std::move(progress_fn), error_fn, std::move(info_fn));
+    } catch (const std::exception &e) {
+        error = e.what();
+        error_fn(error);
+    }
 
     {
         LifecycleEventContext ctx;
         ctx.name  = upload_filename;
         ctx.code  = success ? LifecycleEvtCode::Ok : LifecycleEvtCode::Error;
+        ctx.msg   = error;
         fire_lifecycle_event(LifecycleEvent::UploadFinished, ctx);
     }
+
+    return success;
+}
+
+void PrintHostJobQueue::priv::perform_job(PrintHostJob the_job)
+{
+    emit_progress(0);   // Indicate the upload is starting
+
+    bool success = PrintHostJobQueue::upload_job(the_job,
+        [this](Http::Progress progress, bool &cancel)   { this->progress_fn(std::move(progress), cancel); },
+        [this](wxString error)                          { this->error_fn(std::move(error)); },
+        [this](wxString tag, wxString host)             { this->info_fn(std::move(tag), std::move(host)); }
+    );
 
     if (success) {
         emit_progress(100);

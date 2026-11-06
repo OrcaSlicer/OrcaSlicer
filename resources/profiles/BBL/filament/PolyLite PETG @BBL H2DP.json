@@ -29,6 +29,7 @@
         "255"
     ],
     "nozzle_temperature_range_high": [
+        "270",
         "270"
     ],
     "slow_down_min_speed": [

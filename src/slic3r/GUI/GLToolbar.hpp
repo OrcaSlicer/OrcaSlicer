@@ -1,9 +1,11 @@
 #ifndef slic3r_GLToolbar_hpp_
 #define slic3r_GLToolbar_hpp_
 
+#include <cstddef>
 #include <functional>
 #include <string>
 #include <vector>
+#include <wx/event.h>
 
 #include "GLTexture.hpp"
 #include "Event.hpp"
@@ -454,6 +456,14 @@ private:
     // returns true if any item changed its state
     bool update_items_enabled_state();
 };
+
+// The canvas edge a sidebar collapse button sits on: the side its sidebar is docked on, or none
+// while that sidebar floats.
+enum class CollapseSide { None, Left, Right };
+
+// Lays `toolbar` out as a sidebar collapse button that runs `toggle`: Prepare's, and those of
+// other sidebars (GLCanvas3D::set_collapse_toolbar()).
+bool setup_collapse_toolbar(GLToolbar& toolbar, std::function<void()> toggle);
 
 } // namespace GUI
 } // namespace Slic3r

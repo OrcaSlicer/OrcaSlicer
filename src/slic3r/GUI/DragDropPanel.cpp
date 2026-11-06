@@ -3,7 +3,29 @@
 #include "I18N.hpp"
 #include "Widgets/Label.hpp"
 #include "Widgets/StateColor.hpp"
+#include <ios>
+#include <cstring>
+#include <cstddef>
+#include "slic3r/GUI/BitmapCache.hpp"
+#include <algorithm>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include <slic3r/GUI/wxExtensions.hpp>
+#include <wx/event.h>
+#include <string>
+#include <stdexcept>
+#include <sstream>
+#include <wx/dataobj.h>
+#include <wx/colour.h>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/dcclient.h>
+#include <wx/chartype.h>
+#include <wx/dnd.h>
+#include <wx/types.h>
+#include <wx/sizer.h>
+#include <vector>
 
 namespace Slic3r { namespace GUI {
 

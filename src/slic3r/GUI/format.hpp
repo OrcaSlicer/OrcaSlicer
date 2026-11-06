@@ -9,7 +9,10 @@
 
 #include <libslic3r/format.hpp>
 
+#include <string>
+#include <ostream>
 #include <wx/string.h>
+#include <wx/buffer.h>
 
 namespace Slic3r { 
 namespace GUI { 

@@ -15,8 +15,9 @@ Outlines of centerlines that cross each other overlap at every crossing, which
 over-extrudes the wall intersections. The line-crossing patterns Grid,
 Triangles, Tri-hexagon and Cubic therefore build centerlines that never cross
 (`FillRectilinear::fill_surface_trapezoidal()`), and so do Adaptive Cubic and
-Support Cubic (`FillAdaptive`); the other patterns outline their usual
-centerlines.
+Support Cubic (`FillAdaptive`). 3D Honeycomb skips `multiline_fill()` and draws
+its N lines itself as parallel copies of each wave, which never cross
+(`Fill3DHoneycomb`). The other patterns outline their usual centerlines.
 
 ## Non-crossing centerlines
 

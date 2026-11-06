@@ -2,16 +2,23 @@
 #define WipeTower_
 
 #include <cmath>
+#include <map>
+#include <cstddef>
+#include <math.h>
+#include <limits>
 #include <string>
 #include <sstream>
+#include <unordered_map>
 #include <utility>
 #include <algorithm>
 
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include <unordered_set>
+#include <vector>
 #include "libslic3r/MultiNozzleUtils.hpp"
 namespace Slic3r
 {

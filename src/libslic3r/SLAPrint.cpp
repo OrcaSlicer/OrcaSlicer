@@ -1,17 +1,40 @@
 #include "SLAPrint.hpp"
+#include "PrintConfig.hpp"
+#include "SLA/SupportTree.hpp"
+#include "SLA/Pad.hpp"
+#include "Point.hpp"
+#include "Model.hpp"
+#include "ObjectID.hpp"
+#include "Config.hpp"
+#include "PrintBase.hpp"
+#include "SLA/SupportPoint.hpp"
+#include "ExPolygon.hpp"
+#include "SLA/Hollowing.hpp"
 #include "SLAPrintSteps.hpp"
 
-#include "ClipperUtils.hpp"
 #include "Geometry.hpp"
 #include "MTUtils.hpp"
 #include "Thread.hpp"
+#include "libslic3r.h"
+#include "Utils.hpp"
 
+#include <mutex>
+#include <Eigen/Geometry>
+#include <cassert>
+#include <algorithm>
+#include <set>
+#include <cstddef>
+#include <array>
+#include <cmath>
+#include <exception>
 #include <unordered_set>
 #include <numeric>
 
 #include <tbb/parallel_for.h>
 #include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
+#include <vector>
+#include <utility>
 
 // #define SLAPRINT_DO_BENCHMARK
 
@@ -20,6 +43,9 @@
 #endif
 
 #include "I18N.hpp"
+#include "PlaceholderParser.hpp"
+
+namespace Slic3r { class Polygon; }
 
 //! macro used to mark string used at localization,
 //! return same string
@@ -1184,8 +1210,8 @@ sla::DrainHoles SLAPrintObject::transformed_drainhole_points() const
 {
     assert(m_model_object != nullptr);
     auto pts = m_model_object->sla_drain_holes;
-    auto tr = trafo().cast<float>();
-    auto sc = m_model_object->instances.front()->get_scaling_factor().cast<float>();
+    const Transform3f tr = trafo().cast<float>();
+    const Vec3f sc = m_model_object->instances.front()->get_scaling_factor().cast<float>();
     for (sla::DrainHole &hl : pts) {
         hl.pos = tr * hl.pos;
         hl.normal = tr * hl.normal - tr.translation();

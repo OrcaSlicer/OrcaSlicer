@@ -1,7 +1,12 @@
 #include "MinimumSpanningTree.hpp"
 
+#include <cstddef>
 #include <iterator>
 #include <algorithm>
+#include "Point.hpp"
+#include <vector>
+#include <unordered_map>
+#include <utility>
 #include "libslic3r.h"
 
 namespace Slic3r

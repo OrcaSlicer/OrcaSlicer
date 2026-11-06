@@ -3,22 +3,30 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
-#include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
-#include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
 
-#include "libslic3r/PresetBundle.hpp"
-#include "libslic3r/MeasureUtils.hpp"
 
+#include <cstdlib>
+#include <imgui.h>
+#include <algorithm>
 #include <imgui/imgui_internal.h>
 
+#include "libslic3r/Measure.hpp"
 #include <numeric>
 
 #include <glad/gl.h>
 
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoMeasure.hpp"
+#include <optional>
 #include <tbb/parallel_for.h>
 #include <future>
+#include <vector>
 #include <wx/clipbrd.h>
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -164,7 +172,7 @@ void GLGizmoAssembly::render_input_window_warning(bool same_model_object)
     if (not_assembled_warning) {
         m_imgui->warning_text(
             _L("Warning") + ": " +
-            _L("It is recommended to assemble objects first,\nbecause they are restricted to the bed \nand only parts can be lifted.")
+            _L("It is recommended to assemble objects first,\nbecause they are restricted to the bed\nand only parts can be lifted.")
         );
     }
 }

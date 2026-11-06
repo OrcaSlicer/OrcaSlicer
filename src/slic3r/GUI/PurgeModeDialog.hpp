@@ -1,7 +1,10 @@
 #pragma once
 
+#include <string>
 #include <wx/dialog.h>
+#include <wx/event.h>
 #include <wx/panel.h>
+#include <wx/string.h>
 
 #include "GUI_Utils.hpp"
 #include "libslic3r/PrintConfig.hpp"

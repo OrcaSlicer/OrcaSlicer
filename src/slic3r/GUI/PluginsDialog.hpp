@@ -2,32 +2,36 @@
 #define slic3r_PluginsDialog_hpp_
 
 #include "Widgets/WebViewHostDialog.hpp"
-#include "Widgets/ProgressDialog.hpp"
-#include "PluginSource.hpp"
-#include "PluginStatus.hpp"
 #include "PluginSort.hpp"
-#include "slic3r/plugin/PluginDescriptor.hpp"
 
 #include <atomic>
+#include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
 #include <exception>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <nlohmann/json_fwd.hpp>
 #include <optional>
 #include <string>
 #include <thread>
 #include <type_traits>
 #include <utility>
+#include <wx/event.h>
+#include <wx/chartype.h>
 #include <wx/evtloop.h>
 #include <wx/app.h>
+#include <wx/gdicmn.h>
 #include <wx/progdlg.h>
 #include <wx/string.h>
 #include <wx/timer.h>
 
 #include <boost/filesystem.hpp>
+#include <wx/toplevel.h>
 
-class wxTimer;
+class wxWindow;
+namespace Slic3r { struct PluginDescriptor; }
+
 
 namespace Slic3r {
 
@@ -234,6 +238,7 @@ private:
     void open_plugin_on_cloud(const std::string& sharing_token);
     void open_plugin_hub();
     void on_script_message(const nlohmann::json& payload) override;
+    nlohmann::json localized_strings() const override;
     // Runs one web command on a clean main-loop stack; see on_script_message.
     void handle_web_command(const nlohmann::json& payload);
     // Re-raises this dialog after a transient modal it opened (file dialog, message box,

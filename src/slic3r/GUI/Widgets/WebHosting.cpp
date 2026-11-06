@@ -6,6 +6,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include <wx/string.h>
 #include <wx/uri.h>
 
 namespace Slic3r { namespace GUI { namespace web_hosting {
@@ -48,20 +49,19 @@ constexpr char ORCA_BRIDGE_JS[] = R"JS(
 
 wxString bootstrap_url()
 {
-    return wxString("file://") + from_u8((boost::filesystem::path(resources_dir()) / BOOTSTRAP_PAGE).make_preferred().string());
+    return file_url_from_path(boost::filesystem::path(resources_dir()) / BOOTSTRAP_PAGE);
 }
 
 wxString content_base_url()
 {
-    const std::string dir = (boost::filesystem::path(resources_dir()) / "web").make_preferred().string();
-    return wxString("file://") + from_u8(dir) + "/";
+    return file_url_from_path(boost::filesystem::path(resources_dir()) / "web") + "/";
 }
 
 bool is_content_url(const wxString& url)
 {
-    // The web view reports the URL it parsed, which escapes anything the resources path holds
-    // (a space, a non-ASCII character), while content_base_url() is the raw path.
-    return wxURI::Unescape(url.BeforeFirst('#')) == content_base_url();
+    // The web view reports the URL it parsed, which may escape the resources path differently
+    // from content_base_url().
+    return wxURI::Unescape(url.BeforeFirst('#')) == wxURI::Unescape(content_base_url());
 }
 
 const char* orca_bridge_script() { return ORCA_BRIDGE_JS; }

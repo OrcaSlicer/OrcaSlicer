@@ -4,10 +4,14 @@
 #include "Plater.hpp"
 #include "Widgets/WebHosting.hpp"
 
+#include <string>
+#include "slic3r/GUI/WebPanel.hpp"
 #include <wx/weakref.h>
 
 #include <algorithm>
 #include <utility>
+#include <wx/webview.h>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r { namespace GUI {
 

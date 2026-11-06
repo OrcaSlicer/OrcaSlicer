@@ -12,12 +12,25 @@
 		"Prusa CORE One HF 0.6 nozzle"
 	],
 	"filament_max_volumetric_speed": [
+		"9",
+		"9",
+		"9",
+		"9",
+		"9",
 		"9"
 	],
 	"nozzle_temperature": [
+		"215",
+		"215",
+		"215",
+		"215",
+		"215",
 		"215"
 	],
 	"slow_down_layer_time": [
 		"15"
+	],
+	"filament_cooling_final_speed": [
+		"1.5"
 	]
 }

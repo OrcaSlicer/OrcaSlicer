@@ -6,6 +6,7 @@
     "setting_id": "GFSB00",
     "instantiation": "true",
     "fan_max_speed": [
+        "60",
         "60"
     ],
     "filament_deretraction_speed": [

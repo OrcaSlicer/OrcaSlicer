@@ -1,6 +1,7 @@
 #ifndef slic3r_GUI_ColorDecomposeSupport_hpp_
 #define slic3r_GUI_ColorDecomposeSupport_hpp_
 
+#include <cstddef>
 #include <string>
 #include <vector>
 #include <wx/string.h>

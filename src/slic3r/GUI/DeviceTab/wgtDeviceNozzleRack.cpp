@@ -22,7 +22,27 @@
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
 
+#include <string>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <memory>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include "slic3r/GUI/Widgets/AnimaController.hpp"
+#include <unordered_map>
+#include <cassert>
+#include "slic3r/GUI/Monitor.hpp"
 #include <unordered_set>
+#include <wx/colour.h>
+#include <vector>
+#include <wx/event.h>
+#include <wx/image.h>
+#include <utility>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <wx/simplebook.h>
+#include <wx/anybutton.h>
 
 #define WX_DIP_SIZE_18 wxSize(FromDIP(18), FromDIP(18))
 #define WX_DIP_SIZE_46 wxSize(FromDIP(46), FromDIP(46))
@@ -369,8 +389,8 @@ static void s_update_title(const std::shared_ptr<DevNozzleRack> rack, wgtDeviceN
     wxString title = _L("Induction Hotend Rack");
     if (rack && (rack->GetReadingCount() > 0))
     {
-        wxString pending = ": " + _L("Reading") + wxString::Format(" %d/%d", rack->GetReadingIdx(), rack->GetReadingCount());
-        title += pending;
+        // TRN %d/%d is the hotend being read and the number of hotends to read.
+        title = wxString::Format(_L("Induction Hotend Rack: Reading %d/%d"), rack->GetReadingIdx(), rack->GetReadingCount());
     }
 
     title_label->SetLabel(title);

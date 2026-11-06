@@ -1,13 +1,16 @@
 #ifndef slic3r_PlaceholderParser_hpp_
 #define slic3r_PlaceholderParser_hpp_
 
-#include "libslic3r.h"
+#include "Config.hpp"
 #include <map>
+#include <memory>
 #include <random>
+#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
-#include "PrintConfig.hpp"
+
+namespace Slic3r { class DynamicPrintConfig; }
 
 namespace Slic3r {
 
@@ -24,7 +27,14 @@ public:
         // If defined, then this dictionary is used by the scripts to define user variables and persist them
         // between PlaceholderParser evaluations.
         std::unique_ptr<DynamicConfig>  global_config;
+        // Global variables declared in {if} branches that were not taken, see check_inactive_branches.
+        std::set<std::string>           inactive_global_variables;
     };
+
+    // Orca: when set, variable names inside {if} branches that are not taken must resolve too, so a single
+    // expansion checks every branch of a template. Only the profile validator's slice sweep sets it.
+    // It does not apply to evaluate_boolean_expression(), where an error reads as "compatible".
+    static inline bool check_inactive_branches = false;
 
     PlaceholderParser(const DynamicConfig *external_config = nullptr);
     
@@ -50,6 +60,9 @@ public:
     void set(const std::string &key, double value)              { this->set(key, new ConfigOptionFloat(value)); }
     void set(const std::string &key, const std::vector<std::string> &values) { this->set(key, new ConfigOptionStrings(values)); }
     void set(const std::string &key, ConfigOption *opt)         { m_config.set_key_value(key, opt); }
+    // Orca: sets a value known only after the G-code is generated, as a tag that post-processing replaces.
+    // A template may print it or join it to text, and a calculation or a comparison on it throws.
+    void set_deferred(const std::string &key, const std::string &tag) { this->set(key, tag); m_deferred_tags.insert(tag); }
 	DynamicConfig&			config_writable()					{ return m_config; }
 	const DynamicConfig&    config() const                      { return m_config; }
     const ConfigOption*     option(const std::string &key) const { return m_config.option(key); }
@@ -78,6 +91,7 @@ private:
 	// config has a higher priority than external_config when looking up a symbol.
     DynamicConfig 			 m_config;
     const DynamicConfig 	*m_external_config;
+    std::set<std::string>    m_deferred_tags;
 };
 
 }

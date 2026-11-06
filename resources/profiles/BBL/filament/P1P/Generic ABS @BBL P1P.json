@@ -6,6 +6,7 @@
     "setting_id": "GFSB99_01",
     "instantiation": "true",
     "fan_max_speed": [
+        "20",
         "20"
     ],
     "filament_max_volumetric_speed": [

@@ -8,7 +8,38 @@
 #include "MsgDialog.hpp"
 #include "slic3r/Utils/CalibUtils.hpp"
 #include "Widgets/DialogButtons.hpp"
+#include "libslic3r/Config.hpp"
+#include <boost/log/trivial.hpp>
+#include <string>
+#include <vector>
+#include "libslic3r/calib.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/event.h>
+#include <wx/dialog.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/SwitchButton.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <array>
+#include <cstdlib>
+#include <cassert>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <algorithm>
+#include <wx/arrstr.h>
+#include <set>
+#include <sstream>
+#include <ios>
+#include <iomanip>
+#include <cstddef>
+#include <cstdint>
 #include <wx/gbsizer.h>
+#include <wx/gdicmn.h>
+#include <wx/tglbtn.h>
+#include <wx/panel.h>
+#include <wx/timer.h>
+#include <wx/sizer.h>
+#include <wx/string.h>
 
 #include "Plater.hpp"
 #include "DeviceCore/DevExtruderSystem.h"
@@ -528,7 +559,7 @@ int HistoryWindow::get_extruder_id()
 void HistoryWindow::on_click_new_button(wxCommandEvent& event)
 {
     if (curr_obj && curr_obj->get_printer_series() == PrinterSeries::SERIES_P1P && m_calib_results_history.size() >= 16) {
-        MessageDialog msg_dlg(nullptr, wxString::Format(_L("This machine type can only hold %d historical results per nozzle."), 16), wxEmptyString, wxICON_WARNING | wxOK);
+        MessageDialog msg_dlg(nullptr, wxString::Format(_L_PLURAL("This machine type can only hold %d historical result per nozzle.", "This machine type can only hold %d historical results per nozzle.", 16), 16), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }

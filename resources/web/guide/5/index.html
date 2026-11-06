@@ -8,22 +8,22 @@
 <link rel="stylesheet" type="text/css" href="../css/common.css" />	
 <link rel="stylesheet" type="text/css" href="../css/dark.css" />		
 <link rel="stylesheet" type="text/css" href="5.css" />
-<script type="text/javascript" src="../js/jquery-2.1.1.min.js"></script>
+<script type="text/javascript" src="../../include/jquery-3.6.0.min.js"></script>
 <script type="text/javascript" src="../js/json2.js"></script>	
-<script type="text/javascript" src="../../data/text.js"></script>	
+<script type="text/javascript" src="../../include/i18n.js"></script>	
 <script type="text/javascript" src="../js/globalapi.js"></script>	
 <script type="text/javascript" src="../js/common.js"></script>
 <script type="text/javascript" src="5.js"></script>	
 </head>
 <body onLoad="OnInit()">
 <div id="Title">
-	<div class="trans" tid="t64">Proprietary Plugins</div>
+	<div data-i18n="proprietary_plugins">Proprietary Plugins</div>
 </div>
 <div id="Content">
 
     <div id="FeatureText">
-		<div><a tid="t75" class="trans TextS1">Some printer vendors require proprietary plugins for communication with their printers. Please select the corresponding plugin if you use such printers.</a></div>
-		<div><a tid="t65" class="trans TextS1">Please be aware that these plugins are not developed or maintained by OrcaSlicer. They should be used at your own discretion and risk.</a></div>
+		<div><a class="TextS1" data-i18n="proprietary_plugins_desc">Some printer vendors require proprietary plugins for communication with their printers. Please select the corresponding plugin if you use such printers.</a></div>
+		<div><a class="TextS1" data-i18n="proprietary_plugins_risk">Please be aware that these plugins are not developed or maintained by OrcaSlicer. They should be used at your own discretion and risk.</a></div>
 
 		<!-- <div><span class="TextPoint">●</span>&nbsp;&nbsp;<a tid="t65" class="trans" ></a></div>
 	    <div><span class="TextPoint">●</span>&nbsp;&nbsp;<a tid="t66" class="trans" ></a></div>
@@ -33,13 +33,13 @@
 	
 	
 	<!-- ORCA use label tag to allow checkbox to toggle when user clicked to text -->
-	<label id="CheckArea"><input id="InstallCheck" onClick="SendInstallPluginCheck()" type="checkbox"><a tid="t69" class="trans TextS1">Install Bambu Network Plug-in. </a></label>
-	<div id="RestartText" tid="t70" class="trans" ></div>
+	<label id="CheckArea"><input id="InstallCheck" onClick="SendInstallPluginCheck()" type="checkbox"><a class="TextS1" data-i18n="install_bambu_plugin">Install Bambu Network plug-in</a></label>
+	<div id="RestartText"></div>
 	
 </div>
 <div id="AcceptArea">
-	<div class="ButtonStyleRegular ButtonTypeChoice trans" tid="t8" id="PreBtn"  onclick="window.history.back()">Back</div>
-	<div class="ButtonStyleConfirm ButtonTypeChoice trans" tid="t25" id="AcceptBtn"  onclick="FinishGuide()">Finish</div>
+	<div class="ButtonStyleRegular ButtonTypeChoice" id="PreBtn" onclick="window.history.back()" data-i18n="back">Back</div>
+	<div class="ButtonStyleConfirm ButtonTypeChoice" id="AcceptBtn" onclick="FinishGuide()" data-i18n="finish">Finish</div>
 </div>	
 </body>
 </html>

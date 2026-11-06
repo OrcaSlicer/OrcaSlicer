@@ -2,9 +2,10 @@
 	"type": "filament",
 	"name": "Generic PETG HF @Prusa MINIIS 0.6",
 	"renamed_from": "Prusa Generic PETG HF @MINIIS 0.6;Prusa Generic PETG HF MINIIS 0.6",
-	"inherits": "Generic PETG HF @Prusa base",
+	"inherits": "Generic PETG @Prusa base",
 	"from": "system",
 	"setting_id": "nF8YzRMvaT4D8LBD",
+	"filament_id": "OF7lOgYF",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [
 		"1"

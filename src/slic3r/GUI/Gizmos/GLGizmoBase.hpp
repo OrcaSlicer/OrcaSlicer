@@ -10,9 +10,16 @@
 #include "slic3r/GUI/SceneRaycaster.hpp"
 #include "slic3r/GUI/3DScene.hpp"
 
+#include <array>
+#include <cassert>
 #include <cereal/archives/binary.hpp>
+#include <cstdint>
+#include <memory>
+#include <cstddef>
 #include <optional>
 
+#include <string>
+#include <vector>
 #include <wx/event.h>
 
 #define ENABLE_FIXED_GRABBER 1

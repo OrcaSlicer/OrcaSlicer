@@ -1,6 +1,13 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_message.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/benchmark/catch_benchmark.hpp>
 #include "libslic3r/AABBTreeLines.hpp"
+#include "libslic3r/GCode.hpp"
 #include "libslic3r/GCode/ExtrusionProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -9,8 +16,24 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <cstring>
+#include <functional>
+#include <limits>
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Point.hpp"
+#include <cstddef>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Layer.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 #include <string>
+#include <string_view>
 #include <vector>
+#include <catch2/interfaces/catch_interfaces_capture.hpp>
 
 using namespace Slic3r;
 using namespace Slic3r::Test;
@@ -103,6 +126,44 @@ template<typename KeepLine> std::vector<double> outer_wall_feed_rates(const std:
             feed_rates.push_back(line.new_F(self));
     });
 
+    return feed_rates;
+}
+
+std::vector<double> bridge_center_feed_rates(const std::string& gcode)
+{
+    struct BridgeMove { double start_x, end_x, speed; };
+    std::vector<BridgeMove> bridge_moves;
+    bool bridge = false;
+    GCodeReader parser;
+    parser.parse_buffer(gcode, [&bridge_moves, &bridge](GCodeReader& self, const GCodeReader::GCodeLine& line) {
+        const std::string_view comment = line.comment();
+        if (comment.find("FEATURE:") != std::string_view::npos || comment.find("TYPE:") != std::string_view::npos)
+            bridge = comment.find("Bridge") != std::string_view::npos && comment.find("Internal Bridge") == std::string_view::npos;
+
+        const double start_x = self.x();
+        const double end_x   = line.new_X(self);
+        if (bridge && line.extruding(self) && std::abs(line.new_Z(self) - 5.2) < 0.01 &&
+            std::abs(end_x - start_x) > 1.0)
+            bridge_moves.push_back({start_x, end_x, line.new_F(self) / MM_PER_MIN});
+    });
+
+    if (bridge_moves.empty())
+        return {};
+
+    double min_x = std::numeric_limits<double>::max();
+    double max_x = std::numeric_limits<double>::lowest();
+    for (const BridgeMove& move : bridge_moves) {
+        min_x = std::min({min_x, move.start_x, move.end_x});
+        max_x = std::max({max_x, move.start_x, move.end_x});
+    }
+
+    const double center_margin = 0.25 * (max_x - min_x);
+    std::vector<double> feed_rates;
+    for (const BridgeMove& move : bridge_moves) {
+        const double mid_x = 0.5 * (move.start_x + move.end_x);
+        if (mid_x > min_x + center_margin && mid_x < max_x - center_margin)
+            feed_rates.push_back(move.speed);
+    }
     return feed_rates;
 }
 
@@ -522,6 +583,265 @@ TEST_CASE("A wall is left whole where neither its speed nor its cooling changes"
                                                                          fan_overlap_threshold);
 
     REQUIRE(points.size() == 3);
+}
+
+namespace {
+
+// The caged overhang box, sliced, and a layer on its slope.
+struct SlicedCage
+{
+    Print              print;
+    Model              model;
+    const PrintObject *object{nullptr};
+    const Layer       *layer{nullptr};
+
+    explicit SlicedCage(const DynamicPrintConfig &config = caged_overhang_config("classic"))
+    {
+        init_print(std::vector<TriangleMesh>{caged_overhang_mesh()}, print, model, config, nullptr, false);
+        print.process();
+        object = print.objects().front();
+        layer  = object->get_layer(int(std::lround((caged_slope_z_min + caged_slope_z_max) / 2. / caged_layer_height)));
+    }
+};
+
+using Walls = std::vector<std::vector<ProcessedPoint>>;
+
+bool has_curled_lines(const PrintObject &object)
+{
+    const auto layers = object.layers();
+    return std::any_of(layers.begin(), layers.end(), [](const Layer *layer) { return !layer->curled_lines.empty(); });
+}
+
+// Estimates every wall of `layer` against whatever layer `estimator` was last prepared with before it.
+Walls estimate_walls(ExtrusionQualityEstimator &estimator, const PrintObject *object, const Layer &layer)
+{
+    const ConfigOptionPercents         overlaps({90, 75, 50, 25, 13, 0});
+    const ConfigOptionFloatsOrPercents speeds({FloatOrPercent{100, true}, FloatOrPercent{50, true}, FloatOrPercent{30, true},
+                                               FloatOrPercent{20, true}, FloatOrPercent{10, true}, FloatOrPercent{5, true}});
+    Walls walls;
+    estimator.set_current_object(object);
+    for (const LayerRegion *region : layer.regions())
+        for_each_extrusion_path(region->perimeters, [&](const ExtrusionPath &path) {
+            if (is_perimeter(path.role()))
+                walls.push_back(estimator.estimate_extrusion_quality(path, overlaps, speeds, caged_outer_wall_speed, caged_outer_wall_speed,
+                                                                     true, 0.5f));
+        });
+    return walls;
+}
+
+uint32_t float_bits(float value)
+{
+    uint32_t bits;
+    std::memcpy(&bits, &value, sizeof(bits));
+    return bits;
+}
+
+bool same_point(const ProcessedPoint &a, const ProcessedPoint &b)
+{
+    return a.p == b.p && float_bits(a.speed) == float_bits(b.speed) && float_bits(a.overlap) == float_bits(b.overlap);
+}
+
+// Requires the walls to match point for point, bit for bit.
+void check_identical(const Walls &actual, const Walls &expected)
+{
+    REQUIRE(actual.size() == expected.size());
+    for (size_t wall = 0; wall < actual.size(); ++wall) {
+        INFO("wall " << wall);
+        REQUIRE(actual[wall].size() == expected[wall].size());
+        for (size_t i = 0; i < actual[wall].size(); ++i) {
+            const ProcessedPoint &a = actual[wall][i];
+            const ProcessedPoint &e = expected[wall][i];
+            INFO("point " << i << ": speed " << a.speed << " vs " << e.speed << ", overlap " << a.overlap << " vs " << e.overlap);
+            CHECK(a.p == e.p);
+            CHECK(float_bits(a.speed) == float_bits(e.speed));
+            CHECK(float_bits(a.overlap) == float_bits(e.overlap));
+        }
+    }
+}
+
+bool any_difference(const Walls &a, const Walls &b)
+{
+    return !std::equal(a.begin(), a.end(), b.begin(), b.end(), [](const std::vector<ProcessedPoint> &wa, const std::vector<ProcessedPoint> &wb) {
+        return std::equal(wa.begin(), wa.end(), wb.begin(), wb.end(), same_point);
+    });
+}
+
+bool any_slowed(const Walls &walls)
+{
+    return std::any_of(walls.begin(), walls.end(), [](const std::vector<ProcessedPoint> &wall) {
+        return std::any_of(wall.begin(), wall.end(), [](const ProcessedPoint &point) { return point.speed < caged_outer_wall_speed; });
+    });
+}
+
+} // namespace
+
+TEST_CASE("Overhang data computed ahead of the generator gives the same wall speeds", "[ExtrusionProcessor]")
+{
+    const SlicedCage cage;
+    REQUIRE(cage.layer->lower_layer != nullptr);
+
+    ExtrusionQualityEstimator queried;
+    queried.prepare_for_new_layer(cage.object, cage.layer->lower_layer);
+    queried.prepare_for_new_layer(cage.object, cage.layer);
+    const Walls expected = estimate_walls(queried, cage.object, *cage.layer);
+    REQUIRE(any_slowed(expected));
+
+    ExtrusionQualityEstimator precomputed;
+    precomputed.prepare_for_new_layer(cage.object, cage.layer->lower_layer);
+    precomputed.set_precomputed_layers({precompute_overhang_layer(cage.object, *cage.layer)});
+    precomputed.prepare_for_new_layer(cage.object, cage.layer);
+    check_identical(estimate_walls(precomputed, cage.object, *cage.layer), expected);
+}
+
+TEST_CASE("Overhang distances measured against another layer than the previous one are not used", "[ExtrusionProcessor]")
+{
+    const SlicedCage cage;
+    const Layer     *two_below = cage.layer->lower_layer->lower_layer;
+    REQUIRE(two_below != nullptr);
+
+    ExtrusionQualityEstimator queried;
+    queried.prepare_for_new_layer(cage.object, two_below);
+    queried.prepare_for_new_layer(cage.object, cage.layer);
+    const Walls expected = estimate_walls(queried, cage.object, *cage.layer);
+    ExtrusionQualityEstimator one_below;
+    one_below.prepare_for_new_layer(cage.object, cage.layer->lower_layer);
+    one_below.prepare_for_new_layer(cage.object, cage.layer);
+    REQUIRE(any_difference(estimate_walls(one_below, cage.object, *cage.layer), expected));
+
+    ExtrusionQualityEstimator precomputed;
+    precomputed.prepare_for_new_layer(cage.object, two_below);
+    precomputed.set_precomputed_layers({precompute_overhang_layer(cage.object, *cage.layer)});
+    precomputed.prepare_for_new_layer(cage.object, cage.layer);
+    check_identical(estimate_walls(precomputed, cage.object, *cage.layer), expected);
+}
+
+TEST_CASE("Overhang data computed for another layer is not used", "[ExtrusionProcessor]")
+{
+    const SlicedCage cage;
+    const Layer     *one_below = cage.layer->lower_layer;
+    REQUIRE(one_below != nullptr);
+    REQUIRE(one_below->lower_layer != nullptr);
+
+    ExtrusionQualityEstimator queried;
+    queried.prepare_for_new_layer(cage.object, one_below);
+    queried.prepare_for_new_layer(cage.object, cage.layer);
+    const Walls expected = estimate_walls(queried, cage.object, *cage.layer);
+    ExtrusionQualityEstimator two_below;
+    two_below.prepare_for_new_layer(cage.object, one_below->lower_layer);
+    two_below.prepare_for_new_layer(cage.object, cage.layer);
+    REQUIRE(any_difference(estimate_walls(two_below, cage.object, *cage.layer), expected));
+
+    ExtrusionQualityEstimator precomputed;
+    precomputed.set_precomputed_layers({precompute_overhang_layer(cage.object, *one_below)});
+    precomputed.prepare_for_new_layer(cage.object, one_below);
+    precomputed.prepare_for_new_layer(cage.object, cage.layer);
+    check_identical(estimate_walls(precomputed, cage.object, *cage.layer), expected);
+}
+
+TEST_CASE("Precomputed overhang data has the curled-line tree exactly when a region slows down for curled perimeters", "[ExtrusionProcessor]")
+{
+    const bool         slowdown = GENERATE(false, true);
+    DynamicPrintConfig config   = caged_overhang_config("classic");
+    config.set_deserialize_strict("slowdown_for_curled_perimeters", slowdown ? "1" : "0");
+    const SlicedCage cage(config);
+
+    GCode::LayerToPrint layer;
+    layer.object_layer    = cage.layer;
+    layer.original_object = cage.object;
+    const std::vector<PrecomputedOverhangLayer> precomputed = precompute_overhang_layers({layer}, false);
+    REQUIRE(precomputed.size() == 1);
+    CHECK((precomputed.front().lower_curled_lines != nullptr) == slowdown);
+}
+
+TEST_CASE("Curled walls are estimated only when overhang speed and the slowdown for curled perimeters are both on", "[ExtrusionProcessor]")
+{
+    const auto [overhang_speed, slowdown, estimated] = GENERATE(table<bool, bool, bool>({
+        {true, true, true},
+        {true, false, false},
+        {false, true, false},
+    }));
+    DynamicPrintConfig config = caged_overhang_config("classic");
+    config.set_deserialize_strict({{"enable_overhang_speed", overhang_speed ? "1" : "0"},
+                                   {"slowdown_for_curled_perimeters", slowdown ? "1" : "0"}});
+    const SlicedCage cage(config);
+
+    CHECK(has_curled_lines(*cage.object) == estimated);
+}
+
+TEST_CASE("Bridge infill keeps bridge speed with curled perimeter slowdown", "[ExtrusionProcessor][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"initial_layer_print_height", "0.2"},
+        {"layer_height", "0.2"},
+        {"enable_overhang_speed", "1"},
+        {"slowdown_for_curled_perimeters", "1"},
+        {"overhang_1_4_speed", "0"},
+        {"overhang_2_4_speed", "50"},
+        {"overhang_3_4_speed", "30"},
+        {"overhang_4_4_speed", "10"},
+        {"bridge_speed", "45"},
+        {"filament_max_volumetric_speed", "1000"},
+        {"slow_down_for_layer_cooling", "0"},
+        {"slow_down_layers", "0"},
+    });
+
+    const std::vector<double> feed_rates = bridge_center_feed_rates(slice({TestMesh::bridge}, config));
+
+    REQUIRE_FALSE(feed_rates.empty());
+    for (const double feed_rate : feed_rates)
+        CHECK_THAT(feed_rate, Catch::Matchers::WithinAbs(45.0, 0.5));
+}
+
+TEST_CASE("Curled walls are estimated when overhang speed and the slowdown for curled perimeters are on in different objects", "[ExtrusionProcessor]")
+{
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{
+        {{"enable_overhang_speed", "1"}, {"slowdown_for_curled_perimeters", "0"}},
+        {{"enable_overhang_speed", "0"}, {"slowdown_for_curled_perimeters", "1"}},
+    };
+    Print print;
+    Model model;
+    init_print(std::vector<TriangleMesh>{caged_overhang_mesh(), caged_overhang_mesh()}, print, model, caged_overhang_config("classic"),
+               &overrides);
+    print.process();
+
+    REQUIRE(print.objects().size() == 2);
+    for (const PrintObject *object : print.objects())
+        CHECK(has_curled_lines(*object));
+}
+
+TEST_CASE("Curled walls from an earlier slice are dropped once overhang speed is off", "[ExtrusionProcessor]")
+{
+    DynamicPrintConfig config = caged_overhang_config("classic");
+    config.set_deserialize_strict("slowdown_for_curled_perimeters", "1");
+    SlicedCage cage(config);
+    const Layer *first_layer = cage.print.objects().front()->layers().front();
+    REQUIRE(has_curled_lines(*cage.print.objects().front()));
+
+    config.set_deserialize_strict("enable_overhang_speed", "0");
+    cage.print.apply(cage.model, config);
+    cage.print.process();
+    REQUIRE(cage.print.objects().front()->layers().front() == first_layer);
+    CHECK_FALSE(has_curled_lines(*cage.print.objects().front()));
+}
+
+TEST_CASE("Caged external overhangs are slowed when printed by object or through the pressure equalizer", "[ExtrusionProcessor]")
+{
+    const auto [key, value] = GENERATE(table<const char *, const char *>({
+        {"print_sequence", "by object"},
+        {"max_volumetric_extrusion_rate_slope", "10"},
+    }));
+    INFO(key << " = " << value);
+    DynamicPrintConfig config = caged_overhang_config("classic");
+    config.set_deserialize_strict(key, value);
+    Print print;
+    Model model;
+    init_print(std::vector<TriangleMesh>{caged_overhang_mesh()}, print, model, config, nullptr, false);
+
+    const std::vector<double> feed_rates = caged_slope_feed_rates(gcode(print));
+    info_feed_rates("caged slope", feed_rates);
+    REQUIRE_FALSE(feed_rates.empty());
+    REQUIRE(*std::max_element(feed_rates.begin(), feed_rates.end()) < caged_slow_speed * MM_PER_MIN);
 }
 
 TEST_CASE("Benchmark caged overhang interior sampling", "[ExtrusionProcessor][!benchmark]"){

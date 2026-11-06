@@ -59,9 +59,13 @@ else ()
         set(_cross_compile_arg --host=${TOOLCHAIN_PREFIX})
     endif ()
 
+    # 6.3.0 is the first release whose arm64 assembly avoids x18, which macOS
+    # reserves and zeroes on every return to user space; 6.2.1 crashes on Apple
+    # silicon whenever CGAL falls back to exact arithmetic.
     ExternalProject_Add(dep_GMP
-        URL https://github.com/SoftFever/OrcaSlicer_deps/releases/download/gmp-6.2.1/gmp-6.2.1.tar.bz2
-        URL_HASH SHA256=eae9326beb4158c386e39a356818031bd28f3124cf915f8c5b1dc4c7a36b4d7c
+        URL https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz
+            https://github.com/SoftFever/OrcaSlicer_deps/releases/download/gmp-6.3.0/gmp-6.3.0.tar.xz
+        URL_HASH SHA256=a3c2b80201b89e68616f4ad30bc66aee4927c3ce50e33929ca819d5c43538898
         DOWNLOAD_DIR ${DEP_DOWNLOAD_DIR}/GMP
         PATCH_COMMAND git apply ${GMP_DIRECTORY_FLAG} --verbose ${CMAKE_CURRENT_LIST_DIR}/0001-GMP_GCC15.patch
         BUILD_IN_SOURCE ON

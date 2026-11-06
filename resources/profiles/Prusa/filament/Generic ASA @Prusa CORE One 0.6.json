@@ -11,6 +11,11 @@
 		"Prusa CORE One 0.6 nozzle"
 	],
 	"nozzle_temperature": [
+		"255",
+		"255",
+		"255",
+		"255",
+		"255",
 		"255"
 	],
 	"slow_down_layer_time": [

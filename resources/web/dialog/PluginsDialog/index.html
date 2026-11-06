@@ -10,15 +10,15 @@
   <link rel="stylesheet" type="text/css" href="../../include/global.css" />
   <link rel="stylesheet" type="text/css" href="../css/common.css" />
   <link rel="stylesheet" type="text/css" href="../css/theme.css" />
-  <script type="text/javascript" src="../js/jquery-3.6.0.min.js"></script>
+  <script type="text/javascript" src="../../include/jquery-3.6.0.min.js"></script>
   <script type="text/javascript" src="../js/json2.js"></script>
-  <script type="text/javascript" src="../../data/text.js"></script>
+  <script type="text/javascript" src="../../include/i18n.js"></script>
   <script type="text/javascript" src="../js/globalapi.js"></script>
   <script type="text/javascript" src="../js/common.js"></script>
   <script src="../js/plugin-config-ui.js"></script>
   <script src="./index.js"></script>
   <script src="./plugin-sort.js"></script>
-  <script src="../js/fuzzy-search.js"></script>
+  <script src="../../js/fuzzy-search.js"></script>
   <script src="./plugin-search.js"></script>
 </head>
 <body onLoad="OnInit()">
@@ -32,8 +32,10 @@
           </svg>
         </span>
         <input id="plugin_search_input" class="plugin-search-input" type="text"
-          placeholder="Search plugins" autocomplete="off" spellcheck="false" aria-label="Search plugins" />
-        <button id="plugin_search_clear" class="plugin-search-clear" type="button" title="Clear" aria-label="Clear search">
+          placeholder="Search plugins" autocomplete="off" spellcheck="false" aria-label="Search plugins"
+          data-i18n-placeholder="search_plugins" data-i18n-aria-label="search_plugins" />
+        <button id="plugin_search_clear" class="plugin-search-clear" type="button" title="Clear" aria-label="Clear search"
+          data-i18n-title="clear" data-i18n-aria-label="clear_search">
           <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor"
             stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
             <line x1="5" y1="5" x2="11" y2="11" />
@@ -41,27 +43,28 @@
           </svg>
         </button>
         <button id="plugin_search_cc" class="plugin-search-toggle" type="button"
-          aria-pressed="false" title="Match case">Aa</button>
+          aria-pressed="false" title="Match case" data-i18n-title="match_case">Aa</button>
         <button id="plugin_search_w" class="plugin-search-toggle" type="button"
-          aria-pressed="false" title="Match whole word"><span class="plugin-search-underline">ab</span></button>
+          aria-pressed="false" title="Match whole word" data-i18n-title="match_whole_word"><span class="plugin-search-underline">ab</span></button>
       </div>
 <!--        <button id="open_terminal" class="ButtonStyleRegular ButtonTypeChoice left-btn">-->
 <!--            Open Terminal-->
 <!--        </button>-->
-      <button id="refresh_btn" class="ButtonStyleRegular ButtonTypeChoice">
+      <button id="refresh_btn" class="ButtonStyleRegular ButtonTypeChoice" data-i18n="refresh">
         Refresh
       </button>
       <div id="exploreDropdown" class="explore-dropdown">
         <button id="explore_menu_btn" class="ButtonStyleConfirm ButtonTypeChoice explore-menu-btn" type="button"
-          aria-haspopup="true" aria-expanded="false" aria-controls="exploreMenu" title="More plugin install options">
+          aria-haspopup="true" aria-expanded="false" aria-controls="exploreMenu" title="More plugin install options"
+          data-i18n-title="install_options">
           <span class="explore-menu-icon" aria-hidden="true"></span>
         </button>
         <button id="explore_btn" class="ButtonStyleConfirm ButtonTypeChoice explore-main-btn" type="button">
           Install plugin
         </button>
         <div id="exploreMenu" class="explore-menu" role="menu" hidden>
-          <button type="button" class="explore-menu-item" role="menuitem" data-install-action="explore">Install plugin</button>
-          <button type="button" class="explore-menu-item" role="menuitem" data-install-action="install-local">Install local plugin</button>
+          <button type="button" class="explore-menu-item" role="menuitem" data-install-action="explore" data-i18n="install_plugin">Install plugin</button>
+          <button type="button" class="explore-menu-item" role="menuitem" data-install-action="install-local" data-i18n="install_local_plugin">Install local plugin</button>
         </div>
       </div>
     </div>
@@ -69,15 +72,15 @@
     <main class="content">
       <section class="pane plugin-list-pane">
         <div class="hdr plugin-cols">
-          <span>Activate</span>
+          <span data-i18n="activate">Activate</span>
           <span class="sort-th" data-sort-field="name" role="button" tabindex="0"
-            title="Sort by name">Name<span class="sort-tri" aria-hidden="true"></span></span>
+            title="Sort by name" data-i18n-title="sort_by_name" data-i18n="name">Name<span class="sort-tri" aria-hidden="true"></span></span>
           <span class="sort-th" data-sort-field="version" role="button" tabindex="0"
-            title="Sort by version">Plugin Version<span class="sort-tri" aria-hidden="true"></span></span>
+            title="Sort by version" data-i18n-title="sort_by_version" data-i18n="plugin_version">Plugin Version<span class="sort-tri" aria-hidden="true"></span></span>
           <span class="sort-th" data-sort-field="source" role="button" tabindex="0"
-            title="Sort by source">Source<span class="sort-tri" aria-hidden="true"></span></span>
+            title="Sort by source" data-i18n-title="sort_by_source" data-i18n="source">Source<span class="sort-tri" aria-hidden="true"></span></span>
           <span class="sort-th" data-sort-field="status" role="button" tabindex="0"
-            title="Sort by status">Status<span class="sort-tri" aria-hidden="true"></span></span>
+            title="Sort by status" data-i18n-title="sort_by_status" data-i18n="status">Status<span class="sort-tri" aria-hidden="true"></span></span>
         </div>
         <div id="pluginList" class="body thin-scroll"></div>
       </section>
@@ -85,20 +88,21 @@
       <!-- Drag to redistribute the dialog's height between the list and the details pane; the hit
            area is the whole strip, the visible divider is the line drawn inside it. -->
       <div id="paneSplitter" class="pane-splitter" role="separator" aria-orientation="horizontal"
-        aria-label="Resize the plugin list" title="Drag to resize; double-click to reset"></div>
+        aria-label="Resize the plugin list" title="Drag to resize; double-click to reset"
+        data-i18n-aria-label="resize_list" data-i18n-title="resize_hint"></div>
 
       <section class="pane details-pane">
-        <div class="detail-tabs" role="tablist" aria-label="Plugin details">
+        <div class="detail-tabs" role="tablist" aria-label="Plugin details" data-i18n-aria-label="details_label">
           <button id="pluginInfoTab" class="detail-tab active" type="button" role="tab"
-            aria-selected="true" aria-controls="pluginInfoPanel" data-tab="plugin-info">Plugin Info</button>
+            aria-selected="true" aria-controls="pluginInfoPanel" data-tab="plugin-info" data-i18n="tab_info">Plugin Info</button>
           <button id="descriptionTab" class="detail-tab" type="button" role="tab" tabindex="-1"
-            aria-selected="false" aria-controls="descriptionPanel" data-tab="description">Description</button>
+            aria-selected="false" aria-controls="descriptionPanel" data-tab="description" data-i18n="description">Description</button>
           <button id="configTab" class="detail-tab" type="button" role="tab" tabindex="-1"
-            aria-selected="false" aria-controls="configPanel" data-tab="config">Config</button>
+            aria-selected="false" aria-controls="configPanel" data-tab="config" data-i18n="tab_config">Config</button>
           <button id="changelogTab" class="detail-tab" type="button" role="tab" tabindex="-1"
-            aria-selected="false" aria-controls="changelogPanel" data-tab="changelog">Changelog</button>
+            aria-selected="false" aria-controls="changelogPanel" data-tab="changelog" data-i18n="tab_changelog">Changelog</button>
           <button id="diagnosticsTab" class="detail-tab" type="button" role="tab" tabindex="-1"
-            aria-selected="false" aria-controls="diagnosticsPanel" data-tab="diagnostics">Diagnostics</button>
+            aria-selected="false" aria-controls="diagnosticsPanel" data-tab="diagnostics" data-i18n="tab_diagnostics">Diagnostics</button>
         </div>
 
         <div class="detail-tab-panels">
@@ -110,31 +114,32 @@
               </div>
               <div class="detail-fields">
                 <div class="detail-field-row">
-                  <div class="detail-label">Source</div>
+                  <div class="detail-label" data-i18n="source">Source</div>
                   <div id="detailSource" class="detail-value">-</div>
                 </div>
                 <div class="detail-field-row">
-                  <div class="detail-label">Types</div>
+                  <div class="detail-label" data-i18n="types">Types</div>
                   <div id="detailTypes" class="detail-value">-</div>
                 </div>
                 <div class="detail-field-row">
-                  <div class="detail-label">Author</div>
+                  <div class="detail-label" data-i18n="author">Author</div>
                   <div id="detailAuthor" class="detail-value">-</div>
                 </div>
                 <div class="detail-field-row">
-                  <div class="detail-label">Installed Version</div>
+                  <div class="detail-label" data-i18n="installed_version">Installed Version</div>
                   <div class="detail-value">
                     <span id="detailInstalledVersion">-</span>
                   </div>
                 </div>
                 <div class="detail-field-row">
-                  <div class="detail-label">Latest Version</div>
+                  <div class="detail-label" data-i18n="latest_version">Latest Version</div>
                   <div class="detail-value detail-version-row">
                     <span id="detailLatestVersion">-</span>
                     <span id="detailUpdateBadge" class="version-update-badge" hidden
-                      aria-label="Update available" title="Update available"></span>
+                      aria-label="Update available" title="Update available"
+                      data-i18n-aria-label="update_available" data-i18n-title="update_available"></span>
                     <button id="detailUpdateBtn" type="button" class="plugin-update-btn" hidden
-                      title="Update to the latest version">Update</button>
+                      title="Update to the latest version" data-i18n-title="update_title" data-i18n="update">Update</button>
                   </div>
                 </div>
               </div>
@@ -143,26 +148,27 @@
 
           <section id="descriptionPanel" class="detail-tab-panel thin-scroll" role="tabpanel" tabindex="0"
             aria-labelledby="descriptionTab" data-panel="description" hidden>
-            <h2 class="detail-section-title">Description</h2>
-            <div id="detailDescription" class="detail-description">No description available</div>
+            <h2 class="detail-section-title" data-i18n="description">Description</h2>
+            <div id="detailDescription" class="detail-description" data-i18n="no_description">No description available</div>
           </section>
 
           <section id="configPanel" class="detail-tab-panel" role="tabpanel" tabindex="0"
             aria-labelledby="configTab" data-panel="config" hidden>
-            <div id="configEmpty" class="detail-empty">Select a plugin to configure its capabilities</div>
+            <div id="configEmpty" class="detail-empty" data-i18n="config_select_plugin">Select a plugin to configure its capabilities</div>
             <div id="configLayout" class="config-layout" hidden>
               <div id="configSidebar" class="config-sidebar thin-scroll" role="listbox"
-                aria-label="Configurable capabilities"></div>
+                aria-label="Configurable capabilities" data-i18n-aria-label="configurable_capabilities"></div>
               <div class="config-view">
                 <div id="configError" class="config-error" role="status" aria-live="polite" hidden></div>
                 <div id="configEditor" class="config-editor" hidden>
                   <textarea id="configText" class="config-textarea thin-scroll" spellcheck="false"
-                    autocomplete="off" autocapitalize="off" aria-label="Capability configuration (JSON)"></textarea>
+                    autocomplete="off" autocapitalize="off" aria-label="Capability configuration (JSON)"
+                    data-i18n-aria-label="config_json_label"></textarea>
                 </div>
                 <!-- Custom capability UI. Sandboxed without allow-same-origin, so the plugin's HTML
                      runs in an opaque origin and reaches the host only through the injected
                      window.orca bridge. -->
-                <iframe id="configCustom" class="config-custom" title="Plugin configuration"
+                <iframe id="configCustom" class="config-custom" title="Plugin configuration" data-i18n-title="config_frame_title"
                   sandbox="allow-scripts" referrerpolicy="no-referrer" hidden></iframe>
                 <!-- JSON-editor chrome only: a custom UI renders its own save/restore controls and
                      drives them through the window.orca bridge. -->
@@ -170,10 +176,11 @@
                   <span id="configValidation" class="config-validation" role="status" aria-live="polite"></span>
                   <div class="config-actions">
                     <button id="configRestoreBtn" class="ButtonStyleRegular ButtonTypeChoice" type="button"
-                      title="Discard the settings saved for this capability and restore the plugin's defaults">
+                      title="Discard the settings saved for this capability and restore the plugin's defaults"
+                      data-i18n-title="restore_title" data-i18n="restore_defaults">
                       Restore defaults
                     </button>
-                    <button id="configSaveBtn" class="ButtonStyleConfirm ButtonTypeChoice" type="button">Save</button>
+                    <button id="configSaveBtn" class="ButtonStyleConfirm ButtonTypeChoice" type="button" data-i18n="save">Save</button>
                   </div>
                 </div>
               </div>
@@ -182,22 +189,22 @@
 
           <section id="changelogPanel" class="detail-tab-panel thin-scroll" role="tabpanel" tabindex="0"
             aria-labelledby="changelogTab" data-panel="changelog" hidden>
-            <table id="changelogTable" class="detail-table changelog-table" aria-label="Plugin changelog">
+            <table id="changelogTable" class="detail-table changelog-table" aria-label="Plugin changelog" data-i18n-aria-label="changelog_label">
               <thead>
                 <tr>
-                  <th scope="col">Version</th>
-                  <th scope="col">Date</th>
-                  <th scope="col">Changes</th>
+                  <th scope="col" data-i18n="version">Version</th>
+                  <th scope="col" data-i18n="date">Date</th>
+                  <th scope="col" data-i18n="changes">Changes</th>
                 </tr>
               </thead>
               <tbody id="changelogBody"></tbody>
             </table>
-            <div id="changelogEmpty" class="detail-empty" hidden>No changelog available</div>
+            <div id="changelogEmpty" class="detail-empty" data-i18n="no_changelog" hidden>No changelog available</div>
           </section>
 
           <section id="diagnosticsPanel" class="detail-tab-panel thin-scroll" role="tabpanel" tabindex="0"
             aria-labelledby="diagnosticsTab" data-panel="diagnostics" hidden>
-            <div id="detailStatusBody" class="detail-status-body">No issues detected</div>
+            <div id="detailStatusBody" class="detail-status-body" data-i18n="no_issues">No issues detected</div>
           </section>
         </div>
       </section>

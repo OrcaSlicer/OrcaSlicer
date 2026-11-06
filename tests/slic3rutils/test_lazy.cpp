@@ -2,9 +2,12 @@
 
 #include <functional>
 #include <memory>
+#include "slic3r/GUI/StagedBuild.hpp"
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
+#include <catch2/catch_test_macros.hpp>
 #include "slic3r/GUI/Lazy.hpp"
 
 using Slic3r::GUI::Lazy;

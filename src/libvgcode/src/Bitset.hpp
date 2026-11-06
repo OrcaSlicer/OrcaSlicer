@@ -6,6 +6,9 @@
 #define VGCODE_BITSET_HPP
 
 #include <atomic>
+#include <cstddef>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace libvgcode {

@@ -3,11 +3,18 @@
 #include "Geometry.hpp"
 #include "Geometry/ConvexHull.hpp"
 #include "Model.hpp"
+#include "Point.hpp"
 #include "TriangleMesh.hpp"
+#include "libslic3r.h"
 
+#include <Eigen/Geometry>
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <numeric>
+#include <vector>
+#include <utility>
+#include "BoundingBox.hpp"
 
 namespace Slic3r {
 
@@ -206,13 +213,29 @@ int find_plane_at_point(const std::vector<LayOnFacePlane> &planes, const Transfo
     return -1;
 }
 
+Transform3d lay_on_face_rotation(const Vec3d &normal, const Transform3d &instance_matrix_no_offset)
+{
+    // Normal in instance coordinates: a normal transforms by the inverse transpose.
+    const Vec3d tnormal = (instance_matrix_no_offset.matrix().block(0, 0, 3, 3).inverse().transpose() * normal).normalized();
+    const Vec3d down    = -Vec3d::UnitZ();
+
+    // A face already pointing straight up needs a half turn, and every horizontal axis does
+    // that equally well. setFromTwoVectors() resolves the choice through an SVD whose null
+    // space is the whole XY plane, so the axis follows rounding noise and the object lands at
+    // an arbitrary angle in the plate plane. Turn it over about X instead, which keeps the
+    // footprint the object already had.
+    if (tnormal.dot(down) < -1. + 1e-9)
+        return Transform3d(Eigen::AngleAxisd(PI, Vec3d::UnitX()));
+
+    return Transform3d(Eigen::Quaterniond().setFromTwoVectors(tnormal, down));
+}
+
 void lay_on_face(ModelObject &object, size_t instance_idx, const Vec3d &normal)
 {
     ModelInstance                  &instance = *object.instances[instance_idx];
     const Geometry::Transformation &trafo    = instance.get_transformation();
-    // Same rotation as Selection::flattening_rotate(): turn the transformed normal to point down.
-    const Vec3d       tnormal  = trafo.get_matrix().matrix().block(0, 0, 3, 3).inverse().transpose() * normal;
-    const Transform3d rotation = Transform3d(Eigen::Quaterniond().setFromTwoVectors(tnormal, -Vec3d::UnitZ()));
+    // Same rotation as Selection::flattening_rotate(), which the gizmo uses.
+    const Transform3d rotation = lay_on_face_rotation(normal, trafo.get_matrix_no_offset());
     instance.set_transformation(Geometry::Transformation(trafo.get_offset_matrix() * rotation * trafo.get_matrix_no_offset()));
     // Drop this instance only: ensure_on_bed() skips instances without auto_drop and measures the first instance.
     object.translate_instance(instance_idx, -object.instance_bounding_box(instance_idx).min.z() * Vec3d::UnitZ());

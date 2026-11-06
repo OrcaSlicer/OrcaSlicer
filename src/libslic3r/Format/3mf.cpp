@@ -3,17 +3,42 @@
 #include "../Model.hpp"
 #include "../Utils.hpp"
 #include "../LocalesUtils.hpp"
-#include "../GCode.hpp"
 #include "../Geometry.hpp"
 #include "../GCode/ThumbnailData.hpp"
 #include "../Semver.hpp"
-#include "../Time.hpp"
 
 #include "../I18N.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/Slicing.hpp"
+#include "libslic3r/SLA/SupportPoint.hpp"
+#include "libslic3r/SLA/Hollowing.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r_version.h"
+#include "libslic3r/PrintConfig.hpp"
 
 #include "3mf.hpp"
 
+#include <cstring>
+#include <boost/spirit/home/qi/parse.hpp>
+#include <boost/spirit/home/qi/numeric/int.hpp>
+#include <cstdlib>
+#include <boost/algorithm/string/constants.hpp>
+#include <cstddef>
+#include <boost/optional/optional.hpp>
+#include <cassert>
+#include <algorithm>
+#include <exception>
+#include <cstdio>
+#include <iomanip>
+#include <cstdint>
+#include <boost/spirit/home/karma/generate.hpp>
+#include <boost/spirit/home/support/common_terminals.hpp>
+#include <boost/spirit/home/karma.hpp>
 #include <limits>
+#include <miniz.h>
+#include <map>
+#include <sstream>
 #include <stdexcept>
 
 #include <boost/algorithm/string/classification.hpp>
@@ -28,6 +53,9 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/foreach.hpp>
+#include <string>
+#include <vector>
+#include <utility>
 namespace pt = boost::property_tree;
 
 #include <expat.h>
@@ -311,14 +339,17 @@ bool PrusaFileParser::check_3mf_from_prusa(const std::string filename)
 
             mz_zip_archive_file_stat stat;
             if (!mz_zip_reader_file_stat(&archive, model_file_index, &stat)) goto EXIT;
+            // expat sizes its buffer with an int, so a larger entry cannot be parsed in one piece.
+            if (stat.m_uncomp_size > static_cast<mz_uint64>(std::numeric_limits<int>::max())) goto EXIT;
 
-            void *parser_buffer = XML_GetBuffer(m_parser, (int) stat.m_uncomp_size);
+            const int xml_size = static_cast<int>(stat.m_uncomp_size);
+            void *parser_buffer = XML_GetBuffer(m_parser, xml_size);
             if (parser_buffer == nullptr) goto EXIT;
 
-            mz_bool res = mz_zip_reader_extract_file_to_mem(&archive, stat.m_filename, parser_buffer, (size_t) stat.m_uncomp_size, 0);
+            mz_bool res = mz_zip_reader_extract_file_to_mem(&archive, stat.m_filename, parser_buffer, static_cast<size_t>(xml_size), 0);
             if (res == 0) goto EXIT;
 
-            XML_ParseBuffer(m_parser, (int) stat.m_uncomp_size, 1);
+            XML_ParseBuffer(m_parser, xml_size, 1);
         }
     }
 
@@ -1357,19 +1388,26 @@ ModelVolumeType type_from_string(const std::string &s)
         XML_SetUserData(m_xml_parser, (void*)this);
         XML_SetElementHandler(m_xml_parser, _3MF_Importer::_handle_start_config_xml_element, _3MF_Importer::_handle_end_config_xml_element);
 
-        void* parser_buffer = XML_GetBuffer(m_xml_parser, (int)stat.m_uncomp_size);
+        // expat sizes its buffer with an int, so a larger entry cannot be parsed in one piece.
+        if (stat.m_uncomp_size > static_cast<mz_uint64>(std::numeric_limits<int>::max())) {
+            add_error("Found invalid size");
+            return false;
+        }
+        const int xml_size = static_cast<int>(stat.m_uncomp_size);
+
+        void* parser_buffer = XML_GetBuffer(m_xml_parser, xml_size);
         if (parser_buffer == nullptr) {
             add_error("Unable to create buffer");
             return false;
         }
 
-        mz_bool res = mz_zip_reader_extract_file_to_mem(&archive, stat.m_filename, parser_buffer, (size_t)stat.m_uncomp_size, 0);
+        mz_bool res = mz_zip_reader_extract_file_to_mem(&archive, stat.m_filename, parser_buffer, static_cast<size_t>(xml_size), 0);
         if (res == 0) {
             add_error("Error while reading config data to buffer");
             return false;
         }
 
-        if (!XML_ParseBuffer(m_xml_parser, (int)stat.m_uncomp_size, 1)) {
+        if (!XML_ParseBuffer(m_xml_parser, xml_size, 1)) {
             char error_buf[1024];
             ::sprintf(error_buf, "Error (%s) while parsing xml file at line %d", XML_ErrorString(XML_GetErrorCode(m_xml_parser)), (int)XML_GetCurrentLineNumber(m_xml_parser));
             add_error(error_buf);
@@ -1933,12 +1971,12 @@ ModelVolumeType type_from_string(const std::string &s)
 
     void _3MF_Importer::_apply_transform(ModelInstance& instance, const Transform3d& transform)
     {
-        Slic3r::Geometry::Transformation t(transform);
-        // invalid scale value, return
-        if (!t.get_scaling_factor().all())
+        // Validate the affine matrix directly. Decomposing a valid mirrored transform to
+        // rotation and scale is not stable across Eigen versions and may yield a zero diagonal.
+        if (!transform.matrix().allFinite() || !transform.linear().fullPivLu().isInvertible())
             return;
 
-        instance.set_transformation(t);
+        instance.set_transformation(Slic3r::Geometry::Transformation(transform));
     }
 
     bool _3MF_Importer::_handle_start_config(const char** attributes, unsigned int num_attributes)

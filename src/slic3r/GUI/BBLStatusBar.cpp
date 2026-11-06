@@ -1,5 +1,11 @@
 #include "BBLStatusBar.hpp"
 
+#include <wx/panel.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/sizer.h>
+#include <wx/stattext.h>
+#include <string>
 #include <wx/timer.h>
 #include <wx/gauge.h>
 #include <wx/button.h>
@@ -7,7 +13,6 @@
 #include <wx/frame.h>
 #include <wx/statline.h>
 
-#include "GUI_App.hpp"
 
 #include "I18N.hpp"
 

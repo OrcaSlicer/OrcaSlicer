@@ -2,10 +2,36 @@
 #include "GUI_Utils.hpp"
 #include "GUI_App.hpp"
 #include "I18N.hpp"
+#include "MsgDialog.hpp"
+#include "format.hpp"
+#include "libslic3r/Config.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 
 #include <algorithm>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
+#include "libslic3r/Utils.hpp"
+#include <boost/log/trivial.hpp>
+#include <string>
+#include <functional>
+#include <wx/event.h>
+#include <wx/settings.h>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <boost/optional/optional.hpp>
+#include <vector>
+#include <boost/none.hpp>
+#include <cstddef>
+#include <boost/lexical_cast/bad_lexical_cast.hpp>
+#include <ostream>
+#include <chrono>
+#include <cstdio>
+#include <wx/image.h>
+#include <cstring>
+#include <deque>
+#include <fstream>
 
 #ifdef _WIN32
     #include <Windows.h>
@@ -25,8 +51,6 @@
 #include <wx/fontutil.h>
 #include <wx/display.h>
 #include <wx/utils.h>
-
-#include "libslic3r/Config.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -207,6 +231,122 @@ void open_ms_store_product_page()
     family_name.resize(length > 0 ? length - 1 : 0); // drop the terminating null
     wxLaunchDefaultBrowser(wxString(L"ms-windows-store://pdp/?PFN=") + family_name.c_str());
 #endif
+}
+
+namespace {
+
+// True when this unresolved value is worth warning about. printer_agent also stores ids of
+// built-in agents (Orca, Bambu Lab, Qidi, ...): those are not plugin capabilities, so the resolver
+// cannot map them and they need no manifest reference. Only a plugin-provided agent that is
+// unavailable is reportable.
+bool is_reportable_unresolved_plugin(const UnresolvedPluginCapability& item)
+{
+    if (item.opt_key != "printer_agent")
+        return true;
+    const PrinterAgentInfo* agent = NetworkAgentFactory::get_printer_agent_info(item.capability_name);
+    return agent == nullptr || agent->is_plugin();
+}
+
+} // namespace
+
+bool has_unresolved_plugin_capabilities(const ConfigBase& config)
+{
+    for (const UnresolvedPluginCapability& item : config.unresolved_plugin_capabilities())
+        if (is_reportable_unresolved_plugin(item))
+            return true;
+    return false;
+}
+
+namespace {
+
+// Appends one row per unresolved plugin-backed value. `preset_name` is empty for a single-preset
+// or project warning and set when several presets are reported together. Returns true if any row
+// was appended, so a batch whose entries are all built-in printer agents stays silent.
+bool append_unresolved_plugin_rows(const ConfigBase& config, const wxString& preset_name, wxString& rows)
+{
+    const std::vector<UnresolvedPluginCapability> unresolved = config.unresolved_plugin_capabilities();
+    if (unresolved.empty())
+        return false;
+
+    const ConfigDef* def      = config.def();
+    bool             appended = false;
+    for (const UnresolvedPluginCapability& item : unresolved) {
+        if (!is_reportable_unresolved_plugin(item))
+            continue;
+
+        const ConfigOptionDef* opt_def = def != nullptr ? def->get(item.opt_key) : nullptr;
+        wxString label = opt_def != nullptr && !opt_def->label.empty() ? _L(opt_def->label) : from_u8(item.opt_key);
+        wxString value = from_u8(item.capability_name);
+        // The message is rendered as a Label, where '&' introduces a mnemonic. Escape both the
+        // translated label and the stored value.
+        label.Replace("&", "&&");
+        value.Replace("&", "&&");
+        if (!rows.IsEmpty())
+            rows += "\n";
+        if (preset_name.IsEmpty()) {
+            // TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
+            rows += format_wxstr(_L("• %1%: %2%"), label, value);
+        } else {
+            wxString escaped_name = preset_name;
+            escaped_name.Replace("&", "&&");
+            // TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
+            rows += format_wxstr(_L("• %1% — %2%: %3%"), escaped_name, label, value);
+        }
+
+        BOOST_LOG_TRIVIAL(warning) << "Unresolved plugin capability on save: " << item.opt_key
+                                   << " = " << item.capability_name;
+        appended = true;
+    }
+    return appended;
+}
+
+} // namespace
+
+bool confirm_save_with_unresolved_plugins(wxWindow* parent, const ConfigBase& config, SaveSubject subject)
+{
+    wxString rows;
+    if (!append_unresolved_plugin_rows(config, wxString(), rows))
+        return true;
+
+    // TRN %1% is the list of affected settings built above, one "label: value" per line.
+    const wxString message =
+        subject == SaveSubject::Preset
+            ? format_wxstr(_L("The following settings refer to plugins Orca Slicer can't identify on this computer:\n\n%1%\n\n"
+                              "If you save anyway, the preset won't keep the plugin references for these settings. On another computer, "
+                              "Orca Slicer won't know which plugins to offer, and the settings may not work there."),
+                           rows)
+            : format_wxstr(_L("The following settings refer to plugins Orca Slicer can't identify on this computer:\n\n%1%\n\n"
+                              "If you save anyway, the project won't keep the plugin references for these settings. On another computer, "
+                              "Orca Slicer won't know which plugins to offer, and the settings may not work there."),
+                           rows);
+
+    MessageDialog dlg(parent, message, _L("Plugin Not Identified"), wxOK | wxCANCEL | wxICON_WARNING);
+    dlg.SetButtonLabel(wxID_OK, _L("Save anyway"));
+    dlg.SetButtonLabel(wxID_CANCEL, _L("Cancel"), true); // the safe choice gets the focus
+    return dlg.ShowModal() == wxID_OK;
+}
+
+bool confirm_save_presets_with_unresolved_plugins(wxWindow* parent, const std::vector<SaveConfigToCheck>& configs)
+{
+    wxString rows;
+    bool     any = false;
+    for (const SaveConfigToCheck& entry : configs)
+        if (entry.config != nullptr && append_unresolved_plugin_rows(*entry.config, entry.name, rows))
+            any = true;
+    if (!any)
+        return true;
+
+    // TRN %1% is the list of affected presets and settings built above, one "preset — setting: value" per line.
+    const wxString message = format_wxstr(
+        _L("The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n\n%1%\n\n"
+           "If you save anyway, the presets won't keep the plugin references for these settings. On another computer, "
+           "Orca Slicer won't know which plugins to offer, and the settings may not work there."),
+        rows);
+
+    MessageDialog dlg(parent, message, _L("Plugin Not Identified"), wxOK | wxCANCEL | wxICON_WARNING);
+    dlg.SetButtonLabel(wxID_OK, _L("Save anyway"));
+    dlg.SetButtonLabel(wxID_CANCEL, _L("Cancel"), true); // the safe choice gets the focus
+    return dlg.ShowModal() == wxID_OK;
 }
 
 // If called with nullptr, a DPI for the primary monitor is returned.
@@ -644,6 +784,42 @@ void RemoveInputBorder(wxWindow* win)
     );
 #endif
 }
+
+void SetGaugeColor(wxGauge* gauge, const wxString& barColor, const wxString& troughColor)
+{
+    GtkWidget* widget = gauge->GetHandle(); // native GtkWidget*
+    if (!widget) return;
+
+#if GTK_CHECK_VERSION(3, 0, 0)
+    // GTK3+: use CSS provider
+    GtkCssProvider* provider = gtk_css_provider_new();
+    wxString css = wxString::Format(
+        "progressbar trough { background-color: %s; }"
+        "progressbar progress { background-color: %s; background-image: none; }",
+        troughColor,
+        barColor
+    );
+
+#if GTK_CHECK_VERSION(4, 0, 0)
+    // GTK4
+    gtk_css_provider_load_from_data(provider, css.utf8_str(), -1);
+#else
+    // GTK3
+    gtk_css_provider_load_from_data(provider, css.utf8_str(), -1, nullptr);
+#endif
+
+    GtkStyleContext* ctx = gtk_widget_get_style_context(widget);
+    gtk_style_context_add_provider(
+        ctx,
+        GTK_STYLE_PROVIDER(provider),
+        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+    );
+
+    g_object_unref(provider);
+
+#endif
+}
+
 #endif // __WXGTK__
 
 #ifdef __linux__

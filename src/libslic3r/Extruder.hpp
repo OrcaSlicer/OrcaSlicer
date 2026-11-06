@@ -2,7 +2,7 @@
 #define slic3r_Extruder_hpp_
 
 #include "libslic3r.h"
-#include "Point.hpp"
+#include <vector>
 
 namespace Slic3r {
 
@@ -25,6 +25,7 @@ public:
         }
         m_restart_extra = 0;
         m_absolute_E    = 0;
+        m_E_rounding_carry = 0;
     }
 
     unsigned int id() const { return m_id; }
@@ -41,6 +42,9 @@ public:
     double retract(double length, double restart_extra);
     double unretract();
     double E() const { return m_share_extruder ? m_share_E[extruder_id()] : m_E; }
+    // E() plus extra, as written to the G-code for the current move. high_precision is the precision of that move,
+    // see GCodeWriter::high_precision().
+    double E_to_emit(bool high_precision, double extra = 0.);
     void   reset_E() { m_E = 0.; m_share_E[extruder_id()] = 0.; }
     // e_per_mm is extrusion_per_mm = geometric volume * (filament flow ratio / cross-sectional area)  [Doesn't account for print_flow_ratio, or modifiers like bridge flow ratio etc.]
     double e_per_mm(double mm3_per_mm) const { return mm3_per_mm * m_e_per_mm3; }
@@ -105,6 +109,8 @@ private:
     double       m_retracted;
     // When retracted, this value stores the extra amount of priming on deretraction.
     double       m_restart_extra;
+    // Rounding error of the relative E written so far, carried into the next move by E_to_emit().
+    double       m_E_rounding_carry{ 0. };
     double       m_e_per_mm3;
 
     // BBS.
