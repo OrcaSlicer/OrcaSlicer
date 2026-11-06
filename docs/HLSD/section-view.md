@@ -8,9 +8,10 @@ setting: it changes nothing in the model, the slice or the project file, and it 
 plate thumbnails.
 
 The user controls it from the section button of the canvas toolbar in the bottom left corner of
-the 3D view. The button opens a panel above it with a slider for the depth of the cut, a "Set
-viewing angle" button that turns the plane to face the camera at the same depth, and a button that
-resets the depth to zero. The panel is an ordinary overlay window, not a popup, so the scene keeps
+the 3D view. The button opens a panel above it with a slider for the depth of the cut in percent,
+a "Set viewing angle" button that turns the plane to face the camera at the same depth, and a
+button that resets the depth to zero. Opening the panel while the section is off switches it on at
+50%. The panel is an ordinary overlay window, not a popup, so the scene keeps
 taking clicks and drags while it is open; the button or Esc closes it again. Esc closes the panel
 before it closes a gizmo or clears the selection. The button is highlighted
 while a section cuts the scene and has shortcuts of its own: the mouse wheel over it moves the

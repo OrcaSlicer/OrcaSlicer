@@ -2019,6 +2019,8 @@ ModelInstanceEPrintVolumeState GLCanvas3D::check_volumes_outside_state(ObjectFil
     return state;
 }
 
+static constexpr double SECTION_VIEW_START_RATIO = 0.5;
+
 void GLCanvas3D::set_section_view_ratio(double ratio)
 {
     ratio = std::clamp(ratio, 0., 1.);
@@ -2038,7 +2040,7 @@ void GLCanvas3D::set_section_view_ratio(double ratio)
 void GLCanvas3D::toggle_section_view()
 {
     const double last_ratio = m_section_view->last_ratio;
-    set_section_view_ratio(is_section_view_active() ? 0. : last_ratio > 0. ? last_ratio : 0.5);
+    set_section_view_ratio(is_section_view_active() ? 0. : last_ratio > 0. ? last_ratio : SECTION_VIEW_START_RATIO);
 }
 
 void GLCanvas3D::align_section_view_to_camera()
@@ -11172,9 +11174,11 @@ void GLCanvas3D::_render_canvas_toolbar()
         (m_is_dark ? GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_SECTION_ACTIVE_DARK_HOVER : GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_SECTION_ACTIVE_HOVER) :
         (m_is_dark ? GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_SECTION_DARK_HOVER        : GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_SECTION_HOVER));
 
-    if (ImGui::ImageButton3(s_normal_id, s_hover_id, btn_size))
+    if (ImGui::ImageButton3(s_normal_id, s_hover_id, btn_size)) {
         m_section_view->panel_open = !m_section_view->panel_open;
-    else if (ImGui::IsItemHovered()) {
+        if (m_section_view->panel_open && !section_view)
+            set_section_view_ratio(SECTION_VIEW_START_RATIO);
+    } else if (ImGui::IsItemHovered()) {
         if (const float wheel = ImGui::GetIO().MouseWheel; wheel != 0.f)
             set_section_view_ratio(get_section_view_ratio() + (wheel < 0.f ? -0.01 : 0.01));
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
@@ -11436,15 +11440,15 @@ void GLCanvas3D::_render_section_view_panel(const ImVec2& bottom_left)
     ImGui::AlignTextToFramePadding();
     imgui.text(_L("Section view"));
 
-    float ratio = float(get_section_view_ratio());
+    float percent = float(get_section_view_ratio() * 100.);
     ImGui::SameLine();
     ImGui::SetNextItemWidth(imgui.scaled(7.f));
-    bool changed = imgui.bbl_slider_float_style("##section_view", &ratio, 0.f, 1.f, "%.2f", 1.0f, true);
+    bool changed = imgui.bbl_slider_float_style("##section_view", &percent, 0.f, 100.f, "%.0f%%", 1.0f, true);
     ImGui::SameLine();
-    ImGui::SetNextItemWidth(1.5f * imgui.get_slider_icon_size().x);
-    changed |= ImGui::BBLDragFloat("##section_view_input", &ratio, 0.05f, 0.0f, 0.0f, "%.2f");
+    ImGui::SetNextItemWidth(ImGui::CalcTextSize("100%").x + 2.f * style.FramePadding.x);
+    changed |= ImGui::BBLDragFloat("##section_view_input", &percent, 1.f, 0.0f, 0.0f, "%.0f%%");
     if (changed)
-        set_section_view_ratio(ratio);
+        set_section_view_ratio(percent / 100.);
 
     ImGui::SameLine();
     if (imgui.button(_L("Set viewing angle")))
