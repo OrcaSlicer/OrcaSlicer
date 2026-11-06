@@ -1580,7 +1580,9 @@ void MoonrakerPrinterAgent::announce_printhost_device()
     nlohmann::json payload;
     payload["dev_name"]     = dev_name;
     payload["dev_id"]       = device_info.dev_id;
-    payload["dev_ip"]       = device_info.dev_ip;
+    // With its port: the saved device record takes its dev_ip from here and the next connection
+    // reads the port back from it, so a bare IP would mean port 80.
+    payload["dev_ip"]       = Http::get_host_header_value(device_info.base_url);
     payload["dev_type"]     = model_id.empty() ? dev_name : model_id;
     payload["dev_signal"]   = "0";
     payload["connect_type"] = "lan";
