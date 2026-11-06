@@ -7,7 +7,7 @@
 #include "libslic3r/Execution/ExecutionTBB.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/ExPolygon.hpp"
-#include "FillTpmsFK.hpp"
+#include "FillTpms.hpp"
 #include "AdaptiveInfillField.hpp"
 #include <cmath>
 #include <algorithm>
@@ -29,6 +29,17 @@ static float fischer_koch(float x, float y, float z)
     return cosf(2 * x) * sinf(y) * cosf(z) + cosf(2 * y) * sinf(z) * cosf(x) + cosf(2 * z) * sinf(x) * cosf(y);
 }
 
+// Schwarz P equation with its cells elongated 1.5 times along z and the level set offset by -0.3:
+// cos(x) + cos(y) + cos(z / 1.5) = -0.3. The taller cells and thicker vertical tubes raise the
+// compressive and shear strength of the printed lattice at the same filament use.
+static float schwarz_p(float x, float y, float z) { return cosf(x) + cosf(y) + cosf(z * (1.f / 1.5f)) + 0.3f; }
+
+// Schoen I-WP equation: 2 (cos(x)cos(y) + cos(y)cos(z) + cos(z)cos(x)) - (cos(2x) + cos(2y) + cos(2z)) = 0
+static float schoen_iwp(float x, float y, float z)
+{
+    return 2 * (cosf(x) * cosf(y) + cosf(y) * cosf(z) + cosf(z) * cosf(x)) - (cosf(2 * x) + cosf(2 * y) + cosf(2 * z));
+}
+
 } // namespace Slic3r
 
 namespace marchsq {
@@ -40,7 +51,7 @@ using Pointf = Vec2d; // (x, y) field point in coordf_t.
 
 struct ScalarField
 {
-    static constexpr float gsizef = 0.40;                        // grid cell size in mm (roughly line segment length).
+    const float            gsizef;                               // grid cell size in mm (roughly line segment length).
     static constexpr float rsizef = 0.004;                       // raster pixel size in mm (roughly point accuracy).
     const coord_t          rsize  = scaled(rsizef);              // raster pixel size in coord_t.
     const coordr_t         gsize  = std::round(gsizef / rsizef); // grid cell size in coordr_t.
@@ -49,13 +60,14 @@ struct ScalarField
     coordf_t               z;                                    // z offset as a float.
     float                  freq;                                 // field frequency in cycles per mm.
     float                  isoval = 0.0;                         // iso value threshold to use.
+    float (*equation)(float, float, float);                      // implicit surface equation with a period of 2 PI.
 
-    explicit ScalarField(const BoundingBox bb, const coordf_t z = 0.0, const float period = 10.0)
-        : size{bb.size()}, offs{bb.min}, z{z}, freq{float(2 * PI) / period}
+    explicit ScalarField(const BoundingBox bb, const coordf_t z, const float period, float (*equation)(float, float, float), float gsizef)
+        : gsizef{gsizef}, size{bb.size()}, offs{bb.min}, z{z}, freq{float(2 * PI) / period}, equation{equation}
     {}
 
     // Get the scalar field value at x,y,z in coordf_t coordinates.
-    float get_scalar(coordf_t x, coordf_t y, coordf_t z) const { return fischer_koch(freq * x, freq * y, freq * z); }
+    float get_scalar(coordf_t x, coordf_t y, coordf_t z) const { return equation(freq * x, freq * y, freq * z); }
 
     // Get the scalar field value at a Coord for the current z value.
     float get_scalar(Coord p) const
@@ -126,6 +138,10 @@ Polylines get_polylines(const ScalarField& sf, const double tolerance = SCALED_E
 
 namespace Slic3r {
 
+FillTpmsFK::Equation FillTpmsFK::equation() const { return fischer_koch; }
+FillTpmsFK::Equation FillTpmsP::equation() const { return schwarz_p; }
+FillTpmsFK::Equation FillTpmsIWP::equation() const { return schoen_iwp; }
+
 void FillTpmsFK::_fill_surface_single(const FillParams&              params,
                                       unsigned int                   thickness_layers,
                                       const std::pair<float, Point>& direction,
@@ -145,20 +161,22 @@ void FillTpmsFK::_fill_surface_single(const FillParams&              params,
         expolygon.rotate(-infill_angle);
 
     // Density (field period) adjusted to have a good %of weight.
-    auto period = [&params, this](float density) { return 4.18f * spacing * params.multiline / std::min(0.9f, density); };
+    auto period = [&params, this](float density) { return period_factor() * spacing * params.multiline / std::min(0.9f, density); };
 
     BoundingBox bbox = expolygon.contour.bounding_box();
     // Enlarge the bounding box by the multi-line width to avoid artifacts at the edges.
     bbox.offset(scale_((params.multiline + 1) * spacing));
     Polylines polylines;
     if (params.adaptive_infill_mode != AdaptiveInfillMode::Disabled && this->adaptive_infill_field != nullptr) {
-        polylines = make_adaptive_tpms({fischer_koch, 2. * PI / period(params.density), 2. * PI / period(params.adaptive_infill_interior_density),
+        polylines = make_adaptive_tpms({equation(), 2. * PI / period(params.density), 2. * PI / period(params.adaptive_infill_interior_density),
                                         params.adaptive_infill_gradient},
                                        *this->adaptive_infill_field, bbox, this->z, params.layer_height, spacing, infill_angle);
     } else {
-        marchsq::ScalarField sf = marchsq::ScalarField(bbox, this->z, period(params.density));
-        // Get simplified lines using coarse tolerance of 0.1mm (this is infill).
-        polylines = marchsq::get_polylines(sf, SCALED_SPARSE_INFILL_RESOLUTION);
+        const float field_period = period(params.density);
+        const float cell         = trace_cell(field_period);
+        marchsq::ScalarField sf  = marchsq::ScalarField(bbox, this->z, field_period, equation(), cell);
+        // Simplify within an eighth of the grid cell, at most the sparse infill resolution.
+        polylines = marchsq::get_polylines(sf, scaled(std::min(SPARSE_INFILL_RESOLUTION, cell / 8.)));
     }
 
     // Apply multiline offset if needed
