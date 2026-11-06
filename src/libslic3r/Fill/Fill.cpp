@@ -1814,6 +1814,7 @@ void Layer::make_ironing()
     FillParams 			fill_params;
     fill_params.density 	 = 1.;
     fill_params.monotonic    = true;
+    fill_params.ironing      = true;
     InfillPattern         f_pattern = ipRectilinear;
     std::unique_ptr<Fill> f         = std::unique_ptr<Fill>(Fill::new_from_type(f_pattern));
     f->set_bounding_box(this->object()->bounding_box());
@@ -1834,6 +1835,9 @@ void Layer::make_ironing()
             f->z        = this->print_z;
             f->overlap  = 0;
 		}
+		// Orca: the Archimedean spiral is ironed from its center outwards, one ring after the other,
+		// instead of hopping between the chords by nearest distance.
+		fill_params.fill_order = f_pattern == ipArchimedeanChords ? SurfaceFillOrder::Outward : SurfaceFillOrder::Default;
 
 		size_t j = i;
 		for (++ j; j < by_extruder.size() && ironing_params == by_extruder[j]; ++ j) ;
