@@ -82,6 +82,9 @@ public:
     explicit DesignPanel(wxWindow* parent);
     void on_tab_shown();        // re-sync bed to the active printer when the Design tab is activated
     void on_tab_hidden();       // another tab took over: take the viewport status line down with us
+    // Prepare -> Design: each mesh becomes its own editable B-rep body (Import feature), the group centred on the bed.
+    // Same path as the Import mesh button on a 3MF, without the file in between.
+    void import_mesh_parts(const std::vector<TriangleMesh>& parts, const wxString& label);
     // From MainFrame, like the other pages: re-rasterise the icons at the new scale, and on a theme
     // switch also move every token colour onto the new theme.
     void msw_rescale();

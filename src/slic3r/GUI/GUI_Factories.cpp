@@ -41,6 +41,8 @@
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/Event.hpp"
+#include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/CAD/DesignPanel.hpp"
 #include <cassert>
 #include "libslic3r/Point.hpp"
 #include <cstdlib>
@@ -1061,6 +1063,35 @@ void MenuFactory::append_menu_item_export_stl(wxMenu* menu, bool is_mulity_menu)
         }, m_parent);
 }
 
+// Prepare -> Design without exporting a file: the selected objects' meshes (placed as on the plate) go into the Design tab as editable bodies.
+void MenuFactory::append_menu_item_edit_in_design(wxMenu* menu)
+{
+    if (!wxGetApp().is_enable_cad_feature() || !wxGetApp().is_editor())
+        return;   // hidden, not greyed: the tab does not exist with the experimental feature off (needs a restart to change)
+    append_menu_item(menu, wxID_ANY, _L("Edit in Design tab"), _L("Convert the selected objects to editable solids in the Design tab"),
+        [](wxCommandEvent&) {
+            const Selection& sel = plater()->canvas3D()->get_selection();
+            const Model*     model = sel.get_model();
+            std::vector<TriangleMesh> parts;
+            for (const auto& [obj_idx, inst_idxs] : sel.get_content()) {
+                if (model == nullptr || obj_idx < 0 || size_t(obj_idx) >= model->objects.size()) continue;
+                const ModelObject* o = model->objects[size_t(obj_idx)];
+                if (o->instances.empty()) continue;
+                TriangleMesh m = o->mesh();
+                m.transform(o->instances.front()->get_transformation().get_matrix());
+                for (TriangleMesh& piece : m.split()) parts.push_back(std::move(piece));
+            }
+            if (parts.empty()) return;
+            wxGetApp().mainframe->select_tab(wxString(TAB_ID_DESIGN));
+            DesignPanel::ensure()->import_mesh_parts(parts, _L("Prepare"));
+        }, "", nullptr,
+        []() {
+            const Selection& selection = plater()->canvas3D()->get_selection();
+            return selection.is_single_full_instance() || selection.is_single_full_object()
+                || selection.is_multiple_full_instance() || selection.is_multiple_full_object();
+        }, m_parent);
+}
+
 void MenuFactory::append_menu_item_export_drc(wxMenu* menu, bool is_mulity_menu)
 {
     append_menu_item(menu, wxID_ANY, _L("Export as one DRC") + dots, "",
@@ -1618,6 +1649,7 @@ void MenuFactory::create_common_object_menu(wxMenu* menu)
     append_menu_item_reload_from_disk(menu);
     append_menu_item_export_stl(menu);
     append_menu_item_export_drc(menu);
+    append_menu_item_edit_in_design(menu);
     // "Scale to print volume" makes a sense just for whole object
     append_menu_item_scale_selection_to_fit_print_volume(menu);
 
@@ -1710,6 +1742,7 @@ void MenuFactory::create_extra_object_menu()
     append_menu_item_replace_all_with_stl(&m_object_menu);
     append_menu_item_export_stl(&m_object_menu);
     append_menu_item_export_drc(&m_object_menu);
+    append_menu_item_edit_in_design(&m_object_menu);
 }
 
 void MenuFactory::create_bbl_assemble_object_menu()
@@ -2145,6 +2178,7 @@ wxMenu* MenuFactory::multi_selection_menu()
         menu->AppendSeparator();
         append_menu_item_export_stl(menu, true);
         append_menu_item_export_drc(menu, true);
+        append_menu_item_edit_in_design(menu);
     }
     else {
         append_menu_item_center(menu);
