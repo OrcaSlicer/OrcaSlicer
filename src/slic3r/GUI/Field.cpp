@@ -749,9 +749,14 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                 v    = "";
 
                 // split into separate commands
-                std::string ps = (m_opt.opt_key == "sparse_infill_rotate_template") ?
-                                  u8"[BT][!]?|[#][\\d.]+[!]?|(?:[A]?[+\\-_]?[\\d.]+(?:[:]?[\\d.]+)?[%]?[;]?|[Dd][+\\-]?[\\d.]+(?:[:][\\d.]*|[%])?[;]?|(?:[X][_]?[Y]?|[x][_]?[y]?|[Yy])[+\\-_]?[\\d.]+(?:[:]?[\\d.]+)?(?:[&@%\'\"c]?[m]{0,2})?[;]?)+(?:[!]?(?:[*][\\d]+)?|[*][\\d]+[!]?)?[\\^~/NnZz$LlUuQq#JjCc|]?[+\\-]?[\\d.]*(?:[:]?[\\d.]+)?[@&%#\'\"c]?[m]{0,2}[BT]?(?:[!]?(?:[*][\\d]+)?|[*][\\d]+[!]?)?" :
-                                  u8"[#][\\d.]+[!]?|(?:[A]?[+\\-_]?[\\d.]+(?:[:]?[\\d.]+)?[%]?[;]?|(?:[X][_]?[Y]?|[x][_]?[y]?|[Yy])[+\\-_]?[\\d.]+(?:[:]?[\\d.]+)?(?:[&@%\'\"c]?[m]{0,2})?[;]?)+(?:[!]?(?:[*][\\d]+)?|[*][\\d]+[!]?)?[\\^~/NnZz$LlUuQq#JjCc|]?[+\\-]?[\\d.]*(?:[:]?[\\d.]+)?[@&%#\'\"c]?[m]{0,2}(?:[!]?(?:[*][\\d]+)?|[*][\\d]+[!]?)?";
+                std::string const a_zone    = u8"[A]?[+\\-_]?[\\d.]+(?:[:]?[\\d.]+)?[%]?[;]?";
+                std::string const d_zone    = u8"[Dd][+\\-]?[\\d.]+(?:[:][\\d.]*|[%])?[;]?";
+                std::string const xy_zone   = u8"(?:[X][_]?[Y]?|[x][_]?[y]?|[Yy])[+\\-_]?[\\d.]+(?:[:]?[\\d.]+)?(?:[&@%\'\"c]?[m]{0,2})?[;]?";
+                std::string const z_zone    = u8"[\\^~/NnZz$LlUuQq#JjCc|]?[+\\-]?[\\d.]*(?:[:]?[\\d.]+)?[@&%#\'\"c]?[m]{0,2}";
+                std::string const r_zone    = u8"(?:[!*]?|(?:[!]?[*][\\d]+)?|[*][\\d]+[!]?)?";
+                std::string const ps_sparse = u8"[BT][!]?|[#][\\d.]+[!]?|(?:" + a_zone + "|" + d_zone + "|" + xy_zone + ")+" + r_zone + z_zone + "[BT]?" + r_zone;
+                std::string const ps_solid  = u8"[#][\\d.]+[!]?|(?:" + a_zone + "|" + xy_zone + ")+" + r_zone + z_zone + r_zone;
+                std::string ps = (m_opt.opt_key == "sparse_infill_rotate_template") ? ps_sparse : ps_solid;
 
                 while (std::regex_search(ustr, match, std::regex(ps))) {
                     for (std::ssub_match const &x : match) v += x.str() + ", ";

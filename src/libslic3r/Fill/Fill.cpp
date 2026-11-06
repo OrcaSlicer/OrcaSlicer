@@ -117,8 +117,11 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
         while (it != end) {
             tk.push_back(*it++);
         }
-        size_t t               = tk.size();             // metacommand index
-        size_t repeats         = 0;                     // metacommand repeats counter
+        
+        int t{0};                                       // metacommand index
+        size_t const tk_size{tk.size()};
+        
+        int    repeats         = 0;                     // metacommand repeats counter
         double divider_steps   = 1;                     // the number of steps of the divisor
         
         double angle_start     = 0.;                    // the initial position of the angle for the current range
@@ -131,7 +134,7 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
         double density_start   = (fixed_infill_density / 100.) / fixed_multiline; // the initial position of the density in internal scale 0...1 without multiline factor
         double density_add     = 0.;                    // additive for the density step
         double density_lin     = 0.;                    // additive for the linear density step
-        size_t density_adapt   = 0;                     // flag for restoring the normal density representation when miltiline changing
+        int density_adapt      = 0;                     // flag for restoring the normal density representation when miltiline changing
         
         double multiline_start = fixed_multiline;       // the initial position of the miltiline for the current range
         double multiline_add   = 0.;                    // additive for the miltiline step
@@ -139,19 +142,19 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
         double start_fill_z    = object->get_layer(0)->print_z;
         double limit_fill_z    = start_fill_z;
         // The raft height, or 0 without a raft.
-        const double print_z_offset = object->slicing_parameters().object_print_z_min + EPSILON;
+        const double print_z_offset = object->slicing_parameters().object_print_z_min;
         size_t fill_form       = std::string::npos;
         bool is_negative       = false;
         // Vector of stop marks. "1" is the one-time running command, "2" is the dumb command
         // If the all values entire vector is unequal to 0, then stop the parsing from repeating.
-        std::vector<size_t> stop(tk.size(), 0);
+        std::vector<int> stop(tk_size, 0);
 
         line_width = line_width ? line_width : object->config().line_width;
 
-        for (size_t i = 0; i <= layer_id; i++) {
+        for (int i = 0; i <= layer_id; i++) {
             double fill_z = object->get_layer(i)->print_z;
             
-            if (limit_fill_z <= object->get_layer(i)->print_z + print_z_offset) {
+            if (limit_fill_z <= object->get_layer(i)->print_z + EPSILON) {
 
                 if (repeats-- > 0) { // if repeats >0 then restore parameters for new iteration
                     double next_fill_z = limit_fill_z - start_fill_z;
@@ -161,35 +164,31 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
                     start_fill_z = limit_fill_z;
                     fill_form    = std::string::npos;
                     
-                    bool is_dumb = false; // dumb metacommand flag
+                    bool more_loop = false; // dumb metacommand flag
                     do {
-                        if (t >= tk.size()) // reset index
+                        if (t >= tk_size) // reset index
                             t = 0;
 
-                        if (stop[t] < 2) {  // validate only dumb commands
+                        char* cs = &tk[t][0];           // current metacommand
+
+                        angle_start += angle_add;
+                        angle_add   = 0.;
+                        
+                        shift_start += rotate_point_CW(fixed_infill_angle, shift_add) + rotate_point_CW(fixed_infill_angle + angle_start, shift_dir);
+                        shift_add   = Vec2d(0., 0.);
+                        shift_dir   = Vec2d(0., 0.);
+
+                        density_start += density_add;
+                        density_add   = 0.;
+                        density_lin   = 0.;
+                            
+                        multiline_start += multiline_add;
+                        multiline_add  = 0.;
+
+                        if (stop[t] < 2) {  // validate only non-dumb commands
                             is_negative   = false;
 
-                            angle_start += angle_add;
-                            angle_add   = 0.;
-                            shift_start += rotate_point_CW(fixed_infill_angle, shift_add) + rotate_point_CW(fixed_infill_angle + angle_start, shift_dir);
-                            shift_add   = Vec2d(0., 0.);
-                            shift_dir   = Vec2d(0., 0.);
-
-                            density_start += density_add;
-                            density_lin   = 0.;
-                            density_add   = 0.;
                             density_adapt = 0;
-                            
-                            multiline_start += multiline_add;
-                            multiline_add  = 0.;
-                            
-                            divider_steps = 0.;
-                            repeats       = 1;
-
-                            if (tk[t].find('!') != std::string::npos) // [R-zone] one-time running command
-                                stop[t] = 2;
-
-                            char* cs = &tk[t][0];           // current metacommand
 
                             Vec2d shift_abs(0., 0.);        // absolute XY-position accumulator
                             Vec2d shift_abs2(0., 0.);       // absolute XY-position accumulator for infill vector
@@ -201,7 +200,6 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
                                 bool is_abs_shift = false;
                                 char zone_mark = cs[0];
                                 double shift_value(0.);
-                                is_dumb = false;
 
                                 if (coord_string.find(zone_mark) != std::string::npos) { // [XxYy-zone]
                                     cs++;
@@ -239,11 +237,10 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
                                         shift_value *= line_width;
                                         cs++;
                                     } else if (cs[0] == '@') { // value in number of standard lines counted with infill density
-                                        shift_value *= line_width / density_start -
-                                                       line_width * (1 - 1 / multiline_start);
+                                        shift_value *= line_width / density_start - line_width * (1 - 1 / multiline_start);
                                         cs++;
                                     } else if (cs[0] == '%') { // value in the percents of model height
-                                        shift_value *= object->height() * 1e-8;
+                                        shift_value *= (object->height() - print_z_offset) * 1e-8;
                                         cs++;
                                     } else if (cs[0] == '\'') { // value in the feet
                                         shift_value *= 12 * 25.4;
@@ -392,6 +389,9 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
                             shift_add += shift_rel;
                             shift_dir += rotate_point_CW(angle_start, shift_rel2);
 
+                            repeats       = 1;
+                            divider_steps = 0.;
+
                             if (cs[0] == '*') { // [R-zone] overall cycles - pre [Z-zone]
                                 cs++;
                                 repeats = strtol(cs, &cs, 0);
@@ -422,7 +422,7 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
                                 }
                                 if (height_value && cs[0] != '\0' && cs[0] != '!') {
                                     if (cs[0] == '%') { // value in the percents of fill_z
-                                        limit_fill_z = (height_value * object->height() + object->get_layer(0)->height / 2) * 1e-8;
+                                        limit_fill_z = height_value * (object->height() - print_z_offset) * 1e-8;
                                         cs++;
                                     } else if (cs[0] == '#') { // value in the feet
                                         limit_fill_z = height_value * object->get_layer(i)->height;
@@ -462,7 +462,7 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
 
                             if (cs[0] == '*') { // [R-zone] overall cycles - post [Z-zone]
                                 cs++;
-                                repeats = strtol(cs, &cs, 0);
+                                repeats += strtol(cs, &cs, 0);
                             }
 
                             // Calculate the altitude when specifying the exact number of layers.
@@ -477,14 +477,15 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
 
                             if (!repeats) {                  // if overall cycles = 0
                                 stop[t]      = 1;            // set stop mark on the dumb command
-                                is_dumb      = true;
                                 limit_fill_z = start_fill_z; // disable guard range
                             } else
-                                repeats--; // reduce one step because it has already been completed
-
+                                repeats--; // reduce one step because it step has already been completed
                         }
+                        more_loop = stop[t];
+                        if (tk[t].find('!') != std::string::npos) // [R-zone] one-time running command
+                            stop[t] = 2;
                         t++;
-                    } while (is_dumb && ((t < tk.size()) || std::any_of(stop.begin(), stop.end(), [](int v) { return v == 0; }))); // if this is a set of dumb or one-time running instruction which never reaprated twice
+                    } while (((t < tk_size) || std::any_of(stop.begin(), stop.end(), [](int v) { return v == 0; })) && more_loop); // if this is a set of dumb or one-time running instruction which never reaprated twice
                 }
             }
 
@@ -656,6 +657,8 @@ struct SurfaceFillParams
 		RETURN_COMPARE_NON_EQUAL(spacing);
 		RETURN_COMPARE_NON_EQUAL(overlap);
 		RETURN_COMPARE_NON_EQUAL(angle);
+        RETURN_COMPARE_NON_EQUAL(shift.x());
+        RETURN_COMPARE_NON_EQUAL(shift.y());
 		RETURN_COMPARE_NON_EQUAL(fixed_angle);
 		RETURN_COMPARE_NON_EQUAL(density);
 		RETURN_COMPARE_NON_EQUAL(multiline);
@@ -694,6 +697,7 @@ struct SurfaceFillParams
 				this->spacing 			      == rhs.spacing                 &&
 				this->overlap 			      == rhs.overlap                 &&
 				this->angle   			      == rhs.angle                   &&
+                this->shift   			      == rhs.shift                   &&
 				this->fixed_angle             == rhs.fixed_angle             &&
 				this->bridge                  == rhs.bridge                  &&
 				this->bridge_angle            == rhs.bridge_angle            &&
@@ -1363,7 +1367,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                         params.pattern_mode = 3;
                     InfillParams complex(calculate_infill_position_rad(layer.object(), layer.id(),
                                                                         align_offset + (params.fixed_angle ?
-                                                                          0. : Geometry::deg2rad(region_config.infill_direction.value)),
+                                                                            0. : Geometry::deg2rad(region_config.infill_direction.value)),
                                                                         region_config.sparse_infill_rotate_template.value,
                                                                         params.density, params.multiline,
                                                                         region_config.sparse_infill_line_width.value));
@@ -1380,7 +1384,9 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                     const bool top_layer_direction_set    = surface.is_top() && region_config.top_layer_direction.value >= 0.;
                     const bool bottom_layer_direction_set = surface.is_bottom() && region_config.bottom_layer_direction.value >= 0.;
                     if (top_layer_direction_set || bottom_layer_direction_set) {
-                        params.angle = Geometry::deg2rad(top_layer_direction_set ? region_config.top_layer_direction.value : region_config.bottom_layer_direction.value);
+                        params.angle       = align_offset + Geometry::deg2rad(top_layer_direction_set ?
+                                                                                  region_config.top_layer_direction.value :
+                                                                                  region_config.bottom_layer_direction.value);
                         params.fixed_angle = true;
                     } else {
                         params.fixed_angle = !region_config.solid_infill_rotate_template.value.empty();
