@@ -32,13 +32,16 @@
 // Logs (and rethrows) a Python exception from a pybind11 override call, preserving the
 // traceback. Internal helper shared by the public macros below and by trampolines that
 // manage their own audit scope (e.g. the G-code plugin).
+//
+// The audit-denial flag can be sticky: a plugin may catch a PermissionError and then raise a
+// different exception. Do not clear the current plugin just because the flag is set -- that would
+// format the new exception's __str__ outside the plugin context. log_python_exception_keep()
+// formats under the retained owner and suppresses any permission prompt it might otherwise raise.
 #define ORCA_PY_LOGGED_OVERRIDE_BODY(override_call) \
     try { \
         override_call; \
     } catch (pybind11::error_already_set & err) { \
         const bool _orca_audit_denial = ::Slic3r::PluginAuditManager::instance().audit_denial_pending(); \
-        if (_orca_audit_denial) \
-            ::Slic3r::PluginAuditManager::instance().clear_current_plugin(); \
         ::Slic3r::log_python_exception_keep(err); \
         if (_orca_audit_denial) \
             ::Slic3r::PluginAuditManager::instance().clear_audit_denial(); \
@@ -125,10 +128,21 @@ inline ScriptExecuteInvocation invoke_script_execute(const std::shared_ptr<Plugi
         invocation.result = returned.cast<ExecutionResult>();
     } catch (pybind11::error_already_set& err) {
         const bool audit_denial = PluginAuditManager::instance().audit_denial_pending();
-        if (audit_denial)
-            PluginAuditManager::instance().clear_current_plugin();
-        invocation.error = err.what();
-        log_python_exception_keep(err);
+
+        {
+            PythonGILState gil;
+            if (gil) {
+                // The audited scope that raised is gone by now. Re-open the capability's owner so
+                // err.what() and traceback formatting are judged as the plugin. A sticky denial
+                // flag from an earlier, caught PermissionError must not suppress this context.
+                ScopedPluginAuditContext format_scope(capability->audit_plugin_key(), capability->name());
+                invocation.error = python_exception_text(err, capability->audit_plugin_key(), capability->name());
+                log_python_exception_keep(err);
+            } else {
+                invocation.error = "Python exception (interpreter unavailable)";
+            }
+        }
+
         if (audit_denial)
             PluginAuditManager::instance().clear_audit_denial();
     } catch (const std::exception& ex) {

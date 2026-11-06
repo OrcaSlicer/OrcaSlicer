@@ -103,29 +103,42 @@ void log_python_exception_keep(pybind11::error_already_set& err)
     if (!gil)
         return;
 
-    // Traceback output is host-owned work.  In particular, the stderr tee opens the Python log
-    // file on every write.  Keep that open outside the plugin audit context, otherwise an ordinary
-    // exception raised by a plugin can recursively trigger the filesystem permission dialog while
-    // its original exception is being reported.
-    ScopedPluginAuditContext audit_suppression("");
+    // pybind11's C++ formatter is the trusted renderer: it does not import `traceback` (which a
+    // plugin can shadow) and it does not touch `sys.stderr` (which a plugin can replace).
+    // python_exception_text() runs it under the current owner so plugin-authored __str__/__repr__
+    // and __notes__ access stay audited, and it preserves the denial state across formatting.
+    const std::string plugin_key = PluginAuditManager::instance().current_plugin();
+    const std::string capability = PluginAuditManager::instance().current_capability();
+    const std::string text       = python_exception_text(err, plugin_key, capability);
 
-    // Non-destructive: print the traceback to sys.stderr (tee'd to the session log)
-    // WITHOUT consuming err, so the caller can rethrow it intact. For example, downstream C++
-    // catchers can still read err.what() for the user-facing dialog. We must NOT use
-    // restore()+PyErr_Print() here as those empty err.
-    try {
-        namespace py    = pybind11;
-        py::module_ tb  = py::module_::import("traceback");
-        py::module_ sys = py::module_::import("sys");
-        tb.attr("print_exception")(err.type(), err.value(), err.trace(), py::none(), sys.attr("stderr"));
-    } catch (...) {
-        // Fallback: at least get the formatted message out. err.what() includes the
-        // traceback in recent pybind11 and does not consume err.
-        try {
-            pybind11::module_::import("sys").attr("stderr").attr("write")(std::string(err.what()) + "\n");
-        } catch (...) {
-        }
+    // Native C++ logging is the trusted sink. It is the session log, not a Python object the
+    // plugin can replace. It keeps the rendered type, message, notes, and frame locations, but
+    // pybind's formatter does not render chained exceptions or source-code lines.
+    if (!text.empty())
+        BOOST_LOG_TRIVIAL(error) << text;
+}
+
+std::string python_exception_text(pybind11::error_already_set& err,
+                                  const std::string&            plugin_key,
+                                  const std::string&            capability_name)
+{
+    PythonGILState gil;
+    if (!gil)
+        return "Python exception (interpreter unavailable)";
+
+    // err.what() is pybind11's C++ formatter: it is not a Python module or stream the plugin can
+    // shadow. Run it under the owner, preserve the denial state across a denied __str__, and deny
+    // any un-granted audited operation without prompting while formatting.
+    ScopedPluginAuditPromptSuppression no_prompts;
+    ScopedPluginAuditDenialState        preserve_denial;
+
+    std::string text;
+    {
+        ScopedPluginAuditContext audit_scope(plugin_key, capability_name);
+        text = err.what();
     }
+
+    return text;
 }
 
 namespace {
@@ -138,18 +151,32 @@ std::string format_python_error(PyObject* ptype, PyObject* pvalue, PyObject* ptr
         PyObject* type_name = PyObject_GetAttrString(ptype, "__name__");
         if (type_name) {
             const char* s = PyUnicode_AsUTF8(type_name);
-            if (s) result += s;
+            if (s)
+                result += s;
+            else
+                PyErr_Clear();
             Py_DECREF(type_name);
+        } else {
+            PyErr_Clear();
         }
     }
 
     if (pvalue) {
-        if (!result.empty()) result += ": ";
+        if (!result.empty())
+            result += ": ";
         PyObject* s = PyObject_Str(pvalue);
         if (s) {
             const char* cstr = PyUnicode_AsUTF8(s);
-            if (cstr) result += cstr;
+            if (cstr)
+                result += cstr;
+            else
+                PyErr_Clear();
             Py_DECREF(s);
+        } else {
+            // Formatting the exception value is plugin-authored when the plugin raises its own
+            // exception type; a failure here must not leave an error indicator behind on the
+            // import-failure path.
+            PyErr_Clear();
         }
     }
 
@@ -158,18 +185,22 @@ std::string format_python_error(PyObject* ptype, PyObject* pvalue, PyObject* ptr
         PyTracebackObject* tb = reinterpret_cast<PyTracebackObject*>(ptraceback);
         while (tb) {
             PyFrameObject* frame = tb->tb_frame;
-            int line = PyFrame_GetLineNumber(frame);
-            PyCodeObject* code = PyFrame_GetCode(frame); // returns a NEW strong reference; must be released
-            const char* filename = code ? PyUnicode_AsUTF8(code->co_filename) : nullptr;
-            const char* funcname = code ? PyUnicode_AsUTF8(code->co_name) : nullptr;
-            result += "\n  File \"" + std::string(filename ? filename : "?") +
-                      "\", line " + std::to_string(line) +
+            int            line  = PyFrame_GetLineNumber(frame);
+            PyCodeObject*  code  = PyFrame_GetCode(frame); // returns a NEW strong reference; must be released
+            const char*    filename = code ? PyUnicode_AsUTF8(code->co_filename) : nullptr;
+            const char*    funcname = code ? PyUnicode_AsUTF8(code->co_name) : nullptr;
+            if (!filename || !funcname)
+                PyErr_Clear();
+            result += "\n  File \"" + std::string(filename ? filename : "?") + "\", line " + std::to_string(line) +
                       ", in " + std::string(funcname ? funcname : "?");
             Py_XDECREF(code);
             tb = tb->tb_next;
         }
     }
 
+    // The caller has already fetched the original exception, so any error raised while rendering
+    // this text belongs to the formatter, not to the import that is about to report its failure.
+    PyErr_Clear();
     return result;
 }
 

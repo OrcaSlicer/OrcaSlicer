@@ -23,16 +23,26 @@ namespace Slic3r {
 
 class PythonRuntimeLease;
 
-// Print a Python exception's full traceback to sys.stderr (tee'd to the session
-// log) WITHOUT consuming err.
+// Render a Python exception through pybind11's C++ formatter and log it through native C++
+// logging, WITHOUT consuming err. Deliberately avoids importing `traceback` and writing to
+// `sys.stderr`: a plugin can shadow the module or replace the stream, which would execute
+// plugin code outside the audit context. The rendered text includes the type, message, notes, and
+// frame locations, but not chained exceptions or source-code lines.
 //
-// Used by the ORCA_PY_OVERRIDE_AUDITED trampoline macro: the
-// traceback is logged centrally at the C++<->Python boundary, then the original
-// error_already_set is rethrown intact so downstream C++ catchers can still build
-// the user-facing dialog from err.what(). Because it is non-destructive it does
-// NOT call restore()/PyErr_Print() (those will empty err); it prints via Python's
-// traceback module instead.
+// Used by the ORCA_PY_OVERRIDE_AUDITED trampoline macro: the traceback is logged centrally at the
+// C++<->Python boundary, then the original error_already_set is rethrown intact so downstream C++
+// catchers can still build the user-facing dialog from err.what(). Because it is non-destructive
+// it does NOT call restore()/PyErr_Print() (those will empty err).
 void log_python_exception_keep(pybind11::error_already_set& err);
+
+// Formats `err` for a log line or user-facing error while attributing the formatting work to the
+// plugin that raised it. err.what() calls the exception value's __str__/__repr__ and __notes__,
+// which is plugin-authored code, so the formatting runs under `plugin_key`'s audit scope. The GIL
+// is acquired for the call; when the interpreter is already shutting down this returns a fixed
+// placeholder instead of touching Python without the GIL. Does not consume err.
+std::string python_exception_text(pybind11::error_already_set& err,
+                                  const std::string&            plugin_key,
+                                  const std::string&            capability_name = {});
 
 
 // RAII wrapper for Python interpreter initialization/finalization

@@ -58,6 +58,12 @@ struct PluginInstanceHandle
     std::shared_ptr<PluginCapabilityInterface> plugin;
     py::object keep_alive;
 
+    // The owner recorded at capture time. The handle can outlive the Plugin's capability vector
+    // (dispatch copies, an async run, the GC), so its destructor opens the audit context itself
+    // rather than relying on the site that happens to drop the last reference.
+    std::string plugin_key;
+    std::string capability_name;
+
     ~PluginInstanceHandle()
     {
         if (keep_alive) {
@@ -65,6 +71,18 @@ struct PluginInstanceHandle
             // the GIL. If shutdown has already won the lease, intentionally abandon the wrapper.
             PythonGILState gil;
             if (gil) {
+                // Read the live identity when it is available: keep_installed_plugin_as_local()
+                // can rekey a loaded capability, and the captured strings are only a fallback for
+                // a capability that failed before its resolved identity was cached.
+                const std::string& key  = (plugin && !plugin->audit_plugin_key().empty())
+                                              ? plugin->audit_plugin_key()
+                                              : plugin_key;
+                const std::string& name = (plugin && !plugin->name().empty()) ? plugin->name() : capability_name;
+
+                // Deterministic destruction may run a plugin finalizer. Keep it attributed but
+                // fail un-granted operations closed instead of prompting from the destructor.
+                ScopedPluginAuditPromptSuppression no_prompts;
+                ScopedPluginAuditContext         audit_scope(key, name);
                 keep_alive = py::object();
             } else {
                 (void) keep_alive.release();
@@ -171,9 +189,14 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
 
             // The package instance is only a registration coordinator. It is not returned
             // to the rest of the plugin system; only the capability classes it registers
-            // are kept.
-            py::object package = package_cls();
-            package.attr("register_capabilities")();
+            // are kept. Constructing it and running register_capabilities() executes
+            // plugin-authored code, so attribute both to the plugin. The scope ends before
+            // the permission prompt below, which is host setup and releases the GIL.
+            {
+                ScopedPluginAuditContext audit_scope(plugin_key);
+                py::object               package = package_cls();
+                package.attr("register_capabilities")();
+            }
 
             // Permission declarations are collected while register_capabilities() runs so the
             // plugin can describe its needs without touching wx from the Python load worker. Ask
@@ -206,8 +229,12 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
                 }
             }
         } catch (py::error_already_set& err) {
+            // The registration scope is gone by the time the catch runs. Re-open it for the
+            // exception formatting so a plugin-authored __str__ or __notes__ is judged as the
+            // plugin, not as host work.
+            ScopedPluginAuditContext format_scope(plugin_key);
             log_python_exception_keep(err);
-            error = err.what();
+            error = python_exception_text(err, plugin_key);
             BOOST_LOG_TRIVIAL(error) << "Plugin register_capabilities raised Python exception for key " << plugin_key
                                      << " error=" << error;
             discard_pending_for_key();
@@ -242,71 +269,86 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
 
     BOOST_LOG_TRIVIAL(info) << "Collected " << classes.size() << " registered capability class(es) for key " << capture_key;
 
-    std::vector<CapturedCapability> capabilities;
-    capabilities.reserve(classes.size());
-
     // Phase 3: instantiate each registered capability class and convert it to the common
-    // C++ interface used by the rest of OrcaSlicer.
-    for (auto& cls : classes) {
-        try {
-            py::object instance = cls();
-            if (!py::isinstance<PluginCapabilityInterface>(instance)) {
-                error = "Registered capability must inherit from a PluginCapability base";
-                BOOST_LOG_TRIVIAL(error) << "Python plugin capture failed type check for key " << capture_key
+    // C++ interface used by the rest of OrcaSlicer. Constructing the class and calling get_name()
+    // executes plugin-authored code before the capability's audit key is cached on it, so the
+    // whole loop runs under the plugin's audit scope. Declaring the vector after the scope also
+    // makes a failure return destroy the partially built list while that scope is still current,
+    // so constructor/get_name finalizers are judged as the plugin. The GIL is held in both cases.
+    {
+        ScopedPluginAuditContext         audit_scope(plugin_key);
+        std::vector<CapturedCapability> capabilities;
+        capabilities.reserve(classes.size());
+
+        for (auto& cls : classes) {
+            try {
+                py::object instance = cls();
+                if (!py::isinstance<PluginCapabilityInterface>(instance)) {
+                    error = "Registered capability must inherit from a PluginCapability base";
+                    BOOST_LOG_TRIVIAL(error) << "Python plugin capture failed type check for key " << capture_key
+                                             << " error=" << error;
+                    return {};
+                }
+
+                auto capability_iface = instance.cast<std::shared_ptr<PluginCapabilityInterface>>();
+                if (!capability_iface) {
+                    error = "Failed to cast Python capability to PluginCapabilityInterface";
+                    BOOST_LOG_TRIVIAL(error) << "Python plugin capture failed cast for key " << capture_key
+                                             << " error=" << error;
+                    return {};
+                }
+
+                // Publish the owner before the first trampoline call. ORCA_PY_AUDIT_SCOPE() then
+                // opens (and, on a denial, clears) its own inner scope instead of clearing the
+                // capture scope that still owns this instance's cleanup.
+                capability_iface->set_audit_plugin_key(plugin_key);
+
+                // This is a registered capability, not the transient orca.base package.
+                // get_name() is required on capabilities and is cached for preset lookup.
+                std::string name = capability_iface->get_name();
+
+                // Capability names feed ';'-delimited config/preset serialization and drive
+                // dispatch, so unlike display names they cannot be silently rewritten — a ';'
+                // here is a hard error that rejects the whole plugin capture.
+                if (name.find(';') != std::string::npos) {
+                    error = "Capability name must not contain ';': " + name;
+                    BOOST_LOG_TRIVIAL(error) << "Python plugin capture rejected capability for key " << capture_key
+                                             << " error=" << error;
+                    return {};
+                }
+
+                auto handle             = std::make_shared<PluginInstanceHandle>();
+                handle->keep_alive      = instance;
+                handle->plugin          = std::move(capability_iface);
+                handle->plugin_key      = plugin_key;
+                handle->capability_name = name;
+
+                CapturedCapability captured;
+                // Return a shared_ptr<PluginCapabilityInterface> while keeping PluginInstanceHandle
+                // as the owner, so the Python instance stays alive as long as the C++ interface does.
+                captured.instance = std::shared_ptr<PluginCapabilityInterface>(handle, handle->plugin.get());
+                captured.name     = std::move(name);
+                capabilities.emplace_back(std::move(captured));
+            } catch (py::error_already_set& err) {
+                // Direct Python call (cls() / get_name() above), not a trampoline override —
+                // log the traceback here. GIL is held for the duration of finalize_plugin_capture.
+                log_python_exception_keep(err);
+                error = python_exception_text(err, plugin_key);
+                BOOST_LOG_TRIVIAL(error) << "Python plugin capture raised Python exception for key " << capture_key
+                                         << " error=" << error;
+                return {};
+            } catch (const std::exception& ex) {
+                error = ex.what();
+                BOOST_LOG_TRIVIAL(error) << "Python plugin capture raised exception for key " << capture_key
                                          << " error=" << error;
                 return {};
             }
-
-            auto capability_iface = instance.cast<std::shared_ptr<PluginCapabilityInterface>>();
-            if (!capability_iface) {
-                error = "Failed to cast Python capability to PluginCapabilityInterface";
-                BOOST_LOG_TRIVIAL(error) << "Python plugin capture failed cast for key " << capture_key
-                                         << " error=" << error;
-                return {};
-            }
-
-            // This is a registered capability, not the transient orca.base package.
-            // get_name() is required on capabilities and is cached for preset lookup.
-            std::string name = capability_iface->get_name();
-
-            // Capability names feed ';'-delimited config/preset serialization and drive
-            // dispatch, so unlike display names they cannot be silently rewritten — a ';'
-            // here is a hard error that rejects the whole plugin capture.
-            if (name.find(';') != std::string::npos) {
-                error = "Capability name must not contain ';': " + name;
-                BOOST_LOG_TRIVIAL(error) << "Python plugin capture rejected capability for key " << capture_key
-                                         << " error=" << error;
-                return {};
-            }
-
-            auto handle        = std::make_shared<PluginInstanceHandle>();
-            handle->keep_alive = instance;
-            handle->plugin     = std::move(capability_iface);
-
-            CapturedCapability captured;
-            // Return a shared_ptr<PluginCapabilityInterface> while keeping PluginInstanceHandle
-            // as the owner, so the Python instance stays alive as long as the C++ interface does.
-            captured.instance = std::shared_ptr<PluginCapabilityInterface>(handle, handle->plugin.get());
-            captured.name     = std::move(name);
-            capabilities.emplace_back(std::move(captured));
-        } catch (py::error_already_set& err) {
-            // Direct Python call (cls() / get_name() above), not a trampoline override —
-            // log the traceback here. GIL is held for the duration of finalize_plugin_capture.
-            log_python_exception_keep(err);
-            error = err.what();
-            BOOST_LOG_TRIVIAL(error) << "Python plugin capture raised Python exception for key " << capture_key
-                                     << " error=" << error;
-            return {};
-        } catch (const std::exception& ex) {
-            error = ex.what();
-            BOOST_LOG_TRIVIAL(error) << "Python plugin capture raised exception for key " << capture_key
-                                     << " error=" << error;
-            return {};
         }
-    }
 
-    BOOST_LOG_TRIVIAL(info) << "Instantiated " << capabilities.size() << " Python capability instance(s) for key " << plugin_key;
-    return capabilities;
+        BOOST_LOG_TRIVIAL(info) << "Instantiated " << capabilities.size()
+                                << " Python capability instance(s) for key " << plugin_key;
+        return capabilities;
+    }
 }
 
 void PythonPluginBridge::cancel_plugin_capture(const std::string& plugin_key)

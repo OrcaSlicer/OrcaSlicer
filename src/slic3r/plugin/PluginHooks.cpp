@@ -14,6 +14,7 @@
 #include "slic3r/GUI/format.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <pybind11/pytypes.h>
 
 #include <exception>
 #include <cstddef>
@@ -111,6 +112,13 @@ void install_slicing_pipeline_hook()
                         r = cap->execute(ctx);
                     } catch (const CanceledException&) {
                         throw; // cancellation must reach process(), never become a slicing error
+                    } catch (pybind11::error_already_set& err) {
+                        // A Python raise reaches here as pybind11::error_already_set; surface it as a
+                        // (non-critical) slicing error instead of a crash. Format it under the
+                        // capability's audit scope and with the GIL, which the trampoline released.
+                        throw SlicingError(GUI::format(_u8L("Slicing pipeline plugin '%1%' error: %2%"),
+                                                       ref.capability_name,
+                                                       python_exception_text(err, cap->audit_plugin_key(), cap->name())));
                     } catch (const std::exception& ex) {
                         // A Python raise reaches here as pybind11::error_already_set; surface it as a
                         // (non-critical) slicing error instead of a crash.

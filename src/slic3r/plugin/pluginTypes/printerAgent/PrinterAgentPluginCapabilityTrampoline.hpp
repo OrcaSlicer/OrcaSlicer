@@ -32,6 +32,9 @@
 // the plugin does may leave the trampoline as an exception: a Python raise, a missing override or a
 // wrongly typed return is logged and answered with what NetworkAgent returns when no agent is set.
 #define ORCA_PY_AGENT_CATCH(name) \
+    catch (pybind11::error_already_set& err) { \
+        this->log_failure(#name, ::Slic3r::python_exception_text(err, this->audit_plugin_key(), this->name()).c_str()); \
+    } \
     catch (const std::exception& ex) { this->log_failure(#name, ex.what()); } \
     catch (...) { this->log_failure(#name, "unknown error"); }
 

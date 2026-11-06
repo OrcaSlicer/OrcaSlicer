@@ -5,6 +5,7 @@
 // service header stays free of the manager.
 #include "PluginManager.hpp"
 
+#include "PluginAuditManager.hpp"
 #include "PluginConfig.hpp"
 #include "PluginFsUtils.hpp"
 #include "PythonInterpreter.hpp"
@@ -23,6 +24,7 @@
 #include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/file_status.hpp>
 #include <boost/log/trivial.hpp>
+#include <pybind11/pytypes.h>
 #include <slic3r/Utils/BoostProcessCompat.hpp>
 #include "slic3r/plugin/PluginDescriptor.hpp"
 #include <optional>
@@ -116,7 +118,9 @@ bool read_local_plugin_package_metadata(const boost::filesystem::path& source_pa
 // on_unload() the first `lifecycle_count` capabilities — the ones that actually got on_load() —
 // then drop them all.
 //
-void teardown_capabilities(std::vector<std::shared_ptr<PluginCapabilityInterface>>& capabilities, std::size_t lifecycle_count)
+void teardown_capabilities(std::vector<std::shared_ptr<PluginCapabilityInterface>>& capabilities,
+                           std::size_t                                              lifecycle_count,
+                           const std::string&                                       plugin_key)
 {
     if (capabilities.empty())
         return;
@@ -139,13 +143,19 @@ void teardown_capabilities(std::vector<std::shared_ptr<PluginCapabilityInterface
             continue;
         try {
             capability->on_unload();
+        } catch (pybind11::error_already_set& err) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Plugin on_unload failed: "
+                                       << python_exception_text(err, capability->audit_plugin_key(), capability->name());
         } catch (const std::exception& ex) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Plugin on_unload failed: " << ex.what();
         } catch (...) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Plugin on_unload failed";
         }
     }
-    capabilities.clear();
+
+    // Capability finalizers run as the owning plugin. The GIL is already held here, and each
+    // handle still sees its module alive because release_module() runs afterwards.
+    release_capabilities_under_audit(capabilities, plugin_key);
 }
 
 // Add every .whl sitting next to the plugin entry file to sys.path, extracting it first.
@@ -220,7 +230,7 @@ void unload(Plugin& plugin)
 {
     // Dropping the capabilities drops their state with them; the user's enable choices survive in
     // the .install_state.json sidecar, which the next load seeds from.
-    teardown_capabilities(plugin.capabilities, plugin.capabilities.size());
+    teardown_capabilities(plugin.capabilities, plugin.capabilities.size(), plugin.descriptor.plugin_key);
     plugin.release_module();
 }
 
@@ -284,7 +294,21 @@ bool load(const PluginDescriptor&                          descriptor,
     }
 
     std::string load_error;
-    PyObject*   module = import_plugin_module(descriptor, plugin.plugin_sys_paths, plugin.plugin_modules, load_error);
+    PyObject*   module = nullptr;
+    {
+        // The import runs the plugin's module-level code, so its audited operations belong to
+        // the plugin. The GIL is held here (the interpreter call reacquires it reentrantly),
+        // which lets the scope release any operation root frames it recorded before it ends.
+        PythonGILState gil;
+        if (!gil) {
+            bridge.cancel_plugin_capture(descriptor.entry_path);
+            error = _u8L("Python interpreter is shutting down");
+            return false;
+        }
+
+        ScopedPluginAuditContext audit_scope(descriptor.plugin_key);
+        module = import_plugin_module(descriptor, plugin.plugin_sys_paths, plugin.plugin_modules, load_error);
+    }
     if (module == nullptr) {
         bridge.cancel_plugin_capture(descriptor.entry_path);
         error = GUI::format(_u8L("Failed to load plugin module: %1%"), load_error);
@@ -332,6 +356,10 @@ bool load(const PluginDescriptor&                          descriptor,
         if (!gil) {
             materialization_error = "Python interpreter is shutting down";
         } else {
+            // The whole materialization pass runs plugin-authored code (get_type and the optional
+            // config-UI/texture hooks) and owns the partially materialized capability list. One
+            // scope covers both those calls and the destruction of anything left on failure.
+            ScopedPluginAuditContext materialization_scope(descriptor.plugin_key);
             try {
                 for (auto& found : capabilities_found) {
                     if (!found.instance) {
@@ -340,7 +368,15 @@ bool load(const PluginDescriptor&                          descriptor,
                     }
 
                     std::shared_ptr<PluginCapabilityInterface> instance = std::move(found.instance);
-                    const PluginCapabilityType                 type     = instance->get_type();
+
+                    // Publish the owner before get_type(): the trampoline then opens (and, on a
+                    // denial, clears) its own inner scope, leaving the materialization scope that
+                    // still owns this instance's cleanup intact.
+                    instance->set_audit_plugin_key(descriptor.plugin_key);
+
+                    // get_type() is plugin-authored and is called before the capability's identity
+                    // is resolved below.
+                    PluginCapabilityType type = instance->get_type();
 
                     // An empty request restores the sidecar state (or enables capabilities by
                     // default). An explicit request overrides the sidecar for that capability;
@@ -365,7 +401,6 @@ bool load(const PluginDescriptor&                          descriptor,
                         break;
                     }
 
-                    instance->set_audit_plugin_key(descriptor.plugin_key);
                     instance->set_resolved_identity(found.name, type);
                     instance->set_enabled(enabled);
 
@@ -375,6 +410,13 @@ bool load(const PluginDescriptor&                          descriptor,
                     // capability its custom UI, so it is caught locally rather than failing the load.
                     try {
                         instance->set_config_ui_available(instance->has_config_ui());
+                    } catch (pybind11::error_already_set& err) {
+                        BOOST_LOG_TRIVIAL(warning)
+                            << "Plugin capability '" << found.name << "' of plugin '" << descriptor.plugin_key
+                            << "': has_config_ui() failed ("
+                            << python_exception_text(err, instance->audit_plugin_key(), instance->name())
+                            << "); falling back to the default JSON editor";
+                        instance->set_config_ui_available(false);
                     } catch (const std::exception& ex) {
                         BOOST_LOG_TRIVIAL(warning)
                             << "Plugin capability '" << found.name << "' of plugin '" << descriptor.plugin_key
@@ -404,6 +446,13 @@ bool load(const PluginDescriptor&                          descriptor,
                                     resource_texture->set_texture_dir({});
                                 }
                             }
+                        } catch (pybind11::error_already_set& err) {
+                            BOOST_LOG_TRIVIAL(warning)
+                                << "Plugin capability '" << found.name << "' of plugin '" << descriptor.plugin_key
+                                << "': get_texture_dir() failed ("
+                                << python_exception_text(err, instance->audit_plugin_key(), instance->name())
+                                << "); the capability will provide no textures";
+                            resource_texture->set_texture_dir({});
                         } catch (const std::exception& ex) {
                             BOOST_LOG_TRIVIAL(warning)
                                 << "Plugin capability '" << found.name << "' of plugin '" << descriptor.plugin_key
@@ -415,6 +464,9 @@ bool load(const PluginDescriptor&                          descriptor,
 
                     capabilities.push_back(std::move(instance));
                 }
+            } catch (pybind11::error_already_set& err) {
+                materialization_error = GUI::format(_u8L("Plugin capability materialization failed: %1%"),
+                                                    python_exception_text(err, descriptor.plugin_key));
             } catch (const std::exception& ex) {
                 materialization_error = GUI::format(_u8L("Plugin capability materialization failed: %1%"), ex.what());
             } catch (...) {
@@ -423,8 +475,18 @@ bool load(const PluginDescriptor&                          descriptor,
         }
 
         if (!materialization_error.empty()) {
-            capabilities.clear();
-            capabilities_found.clear();
+            // Re-establish the owner explicitly: a denial in get_type() clears the current key
+            // before the exception unwinds, and the partially built lists still need to run their
+            // finalizers as the plugin. Without the GIL there is no audit context to enter, so
+            // leave the wrappers to their existing no-GIL fallback.
+            if (gil) {
+                ScopedPluginAuditContext cleanup_scope(descriptor.plugin_key);
+                capabilities.clear();
+                capabilities_found.clear();
+            } else {
+                capabilities.clear();
+                capabilities_found.clear();
+            }
         }
     }
     if (!materialization_error.empty()) {
@@ -440,7 +502,7 @@ bool load(const PluginDescriptor&                          descriptor,
     if (registry_precheck) {
         std::string precheck_error = registry_precheck(plugin);
         if (!precheck_error.empty()) {
-            teardown_capabilities(plugin.capabilities, 0);
+            teardown_capabilities(plugin.capabilities, 0, descriptor.plugin_key);
             error = std::move(precheck_error);
             return false;
         }
@@ -457,13 +519,19 @@ bool load(const PluginDescriptor&                          descriptor,
             ++lifecycle_count;
             capability->on_load();
         }
+    } catch (pybind11::error_already_set& err) {
+        teardown_capabilities(plugin.capabilities, lifecycle_count, descriptor.plugin_key);
+        // TRN on_load is the name of the plugin's startup function; keep it untranslated.
+        error = GUI::format(_u8L("Plugin on_load failed: %1%"),
+                            python_exception_text(err, descriptor.plugin_key));
+        return false;
     } catch (const std::exception& ex) {
-        teardown_capabilities(plugin.capabilities, lifecycle_count);
+        teardown_capabilities(plugin.capabilities, lifecycle_count, descriptor.plugin_key);
         // TRN on_load is the name of the plugin's startup function; keep it untranslated.
         error = GUI::format(_u8L("Plugin on_load failed: %1%"), ex.what());
         return false;
     } catch (...) {
-        teardown_capabilities(plugin.capabilities, lifecycle_count);
+        teardown_capabilities(plugin.capabilities, lifecycle_count, descriptor.plugin_key);
         error = _u8L("Plugin on_load failed");
         return false;
     }

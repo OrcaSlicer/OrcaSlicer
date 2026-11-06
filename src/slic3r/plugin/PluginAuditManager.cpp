@@ -484,6 +484,7 @@ thread_local std::string PluginAuditManager::m_current_capability_name = "";
 thread_local std::vector<AllowedRoot> PluginAuditManager::m_scoped_allowed_roots;
 thread_local std::vector<PyObject*> PluginAuditManager::m_root_frames;
 thread_local int PluginAuditManager::m_releasing_frames = 0;
+thread_local int PluginAuditManager::m_prompt_suppression_depth = 0;
 thread_local bool PluginAuditManager::m_audit_denial_pending = false;
 thread_local bool PluginAuditManager::m_has_last_violation = false;
 thread_local AuditViolation PluginAuditManager::m_last_violation;
@@ -508,9 +509,8 @@ ScopedPluginAuditContext::~ScopedPluginAuditContext()
     PluginAuditManager& mgr = PluginAuditManager::instance();
 
     // Let this scope's root frames go while it is still the current context, and as its own
-    // plugin: the trampoline's denial path clears the key before the scope ends, and a finalizer
-    // must never be judged as the outer plugin, or bypass the audit when there is none. A
-    // finalizer may record a new root frame, so repeat until none is held.
+    // plugin: a finalizer must never be judged as an outer plugin, or bypass the audit when there
+    // is none. A finalizer may record a new root frame, so repeat until none is held.
     if (!PluginAuditManager::m_root_frames.empty()) {
         assert(PyGILState_Check());
         mgr.set_current_plugin(m_plugin_key);
@@ -526,6 +526,35 @@ ScopedPluginAuditContext::~ScopedPluginAuditContext()
     mgr.set_current_capability(m_previous_capability);
     PluginAuditManager::m_scoped_allowed_roots = std::move(m_previous_scoped_roots);
     PluginAuditManager::m_root_frames          = std::move(m_previous_root_frames);
+}
+
+bool PluginAuditManager::prompts_suppressed() const
+{
+    return m_prompt_suppression_depth > 0;
+}
+
+ScopedPluginAuditPromptSuppression::ScopedPluginAuditPromptSuppression()
+{
+    ++PluginAuditManager::m_prompt_suppression_depth;
+}
+
+ScopedPluginAuditPromptSuppression::~ScopedPluginAuditPromptSuppression()
+{
+    --PluginAuditManager::m_prompt_suppression_depth;
+}
+
+ScopedPluginAuditDenialState::ScopedPluginAuditDenialState()
+    : m_pending(PluginAuditManager::m_audit_denial_pending)
+    , m_has_violation(PluginAuditManager::m_has_last_violation)
+    , m_violation(PluginAuditManager::m_last_violation)
+{
+}
+
+ScopedPluginAuditDenialState::~ScopedPluginAuditDenialState()
+{
+    PluginAuditManager::m_audit_denial_pending = m_pending;
+    PluginAuditManager::m_has_last_violation   = m_has_violation;
+    PluginAuditManager::m_last_violation       = m_violation;
 }
 
 // ---------------------------------------------------------------------------
@@ -1375,6 +1404,7 @@ void persist_grant(const std::string& plugin_key, AuditEventCategory category, b
 }
 
 static PluginAuditManager::PermissionPrompt s_permission_prompt_for_testing;
+static PluginAuditManager::PermissionPromptDispatch s_permission_prompt_dispatch_for_testing;
 static PluginAuditManager::PermissionMessagePrompt s_permission_message_prompt_for_testing;
 
 static const char* audit_category_name(AuditEventCategory category)
@@ -1421,6 +1451,23 @@ bool request_permission(AuditEventCategory category, const std::string& plugin_k
                             << " category=" << audit_category_name(category) << " targets=[" << targets_text << "]"
                             << (by_event && !keys.empty() ? " grant=" + keys.front() : std::string{});
 
+    // The same ask-and-persist body production posts to the GUI thread. The dispatch seam below
+    // hands tests this callback so they can run it later, after the denied event has returned.
+    auto ask_and_persist = [category, plugin_key, plugin_name, event_name, by_event, keys, shown]() {
+        bool granted = false;
+        if (s_permission_prompt_for_testing)
+            granted = s_permission_prompt_for_testing(event_name, shown);
+        else if (wxTheApp != nullptr && !GUI::wxGetApp().is_closing())
+            granted = prompt_for_targets(category, plugin_name, event_name, shown);
+        if (granted)
+            persist_grant(plugin_key, category, by_event, keys);
+    };
+
+    if (s_permission_prompt_dispatch_for_testing) {
+        s_permission_prompt_dispatch_for_testing(ask_and_persist);
+        return false;
+    }
+
     if (s_permission_prompt_for_testing)
         return s_permission_prompt_for_testing(event_name, shown);
 
@@ -1430,12 +1477,7 @@ bool request_permission(AuditEventCategory category, const std::string& plugin_k
     if (wxIsMainThread())
         return prompt_for_targets(category, plugin_name, event_name, shown);
 
-    GUI::wxGetApp().CallAfter([category, plugin_key, plugin_name, event_name, by_event, keys, shown]() {
-        if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
-            return;
-        if (prompt_for_targets(category, plugin_name, event_name, shown))
-            persist_grant(plugin_key, category, by_event, keys);
-    });
+    GUI::wxGetApp().CallAfter(ask_and_persist);
     return false;
 }
 
@@ -1471,8 +1513,10 @@ int decide_audited_event(PluginAuditManager&             mgr,
     }
 
     // Letting a root frame go runs finalizers inside a scope destructor or another event's hook,
-    // where no dialog may open: what they do must already be granted.
-    if (mgr.releasing_frames())
+    // where no dialog may open: what they do must already be granted. The same fail-closed rule
+    // applies while deterministic cleanup releases plugin-owned objects or formats a plugin
+    // exception: saved grants still allow the operation, but nothing may prompt recursively.
+    if (mgr.releasing_frames() || mgr.prompts_suppressed())
         return report_denied(mgr, event_name, {false, "audit permission required"});
 
     if (!request_permission(category, plugin_key, plugin_name, event_name, by_event, unresolved))
@@ -1754,6 +1798,11 @@ void PluginAuditManager::release_frames(std::vector<PyObject*>& frames)
 void PluginAuditManager::set_permission_prompt_for_testing(PermissionPrompt prompt)
 {
     PluginAuditDetail::s_permission_prompt_for_testing = std::move(prompt);
+}
+
+void PluginAuditManager::set_permission_prompt_dispatch_for_testing(PermissionPromptDispatch dispatch)
+{
+    PluginAuditDetail::s_permission_prompt_dispatch_for_testing = std::move(dispatch);
 }
 
 void PluginAuditManager::set_permission_message_prompt_for_testing(PermissionMessagePrompt prompt)

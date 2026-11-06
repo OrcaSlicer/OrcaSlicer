@@ -40,6 +40,7 @@
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <slic3r/plugin/pluginTypes/script/ScriptPluginCapability.hpp>
 #include <stdexcept>
+#include <string>
 #include <thread>
 #include <unordered_set>
 #include <utility>
@@ -59,12 +60,54 @@ const char* const LOAD_CANCELLED = "__plugin_load_cancelled__";
 
 } // namespace
 
+void release_capabilities_under_audit(std::vector<std::shared_ptr<PluginCapabilityInterface>>& capabilities,
+                                      const std::string&                                     plugin_key)
+{
+    if (capabilities.empty())
+        return;
+
+    PythonGILState gil;
+    if (!gil) {
+        // No safe way to DECREF the Python wrappers. Clearing the vector still degrades exactly as
+        // PluginInstanceHandle does: the handle abandons its Python reference when it cannot take
+        // the GIL.
+        capabilities.clear();
+        return;
+    }
+
+    ScopedPluginAuditPromptSuppression no_prompts;
+    ScopedPluginAuditContext         audit_scope(plugin_key);
+    capabilities.clear();
+}
+
+void Plugin::release_capabilities()
+{
+    try {
+        release_capabilities_under_audit(capabilities, descriptor.plugin_key);
+    } catch (...) {
+        // Destructors must not throw. A failure to open the audit context is not a reason to
+        // terminate; the handles still abandon their Python references if the GIL is gone.
+        capabilities.clear();
+    }
+}
+
 void Plugin::release_module()
 {
     if (module == nullptr && plugin_sys_paths.empty() && plugin_modules.empty())
         return;
 
-    PythonInterpreter::instance().unload_module(module, module_name, plugin_sys_paths, plugin_modules);
+    {
+        PythonGILState gil;
+        if (gil) {
+            // Tearing down the module namespace can run module-level finalizers. Judge that work
+            // as the package rather than letting it escape the audit context, but never prompt
+            // from a deterministic finalizer release.
+            ScopedPluginAuditPromptSuppression no_prompts;
+            ScopedPluginAuditContext         audit_scope(descriptor.plugin_key);
+            PythonInterpreter::instance().unload_module(module, module_name, plugin_sys_paths, plugin_modules);
+        }
+    }
+
     module = nullptr;
     module_name.clear();
     plugin_sys_paths.clear();
@@ -779,6 +822,10 @@ void PluginManager::cancel_and_wait_for_capabilities(
 
         try {
             capability->on_cancelled();
+        } catch (pybind11::error_already_set& err) {
+            BOOST_LOG_TRIVIAL(warning) << "Plugin on_cancelled failed for '" << capability->audit_plugin_key() << "/"
+                                       << capability->name() << "': "
+                                       << python_exception_text(err, capability->audit_plugin_key(), capability->name());
         } catch (const std::exception& ex) {
             BOOST_LOG_TRIVIAL(warning) << "Plugin on_cancelled failed for '" << capability->audit_plugin_key() << "/"
                                        << capability->name() << "': " << ex.what();
@@ -935,6 +982,9 @@ void PluginManager::load_plugin(const std::string& plugin_key, bool skip_deps, s
 
         try {
             load_plugin_impl(plugin_id, skip_deps, capabilities_to_enable);
+        } catch (pybind11::error_already_set& err) {
+            fail_unexpected(GUI::format(_u8L("Unexpected plugin load failure: %1%"),
+                                        python_exception_text(err, plugin_id)));
         } catch (const std::exception& ex) {
             fail_unexpected(GUI::format(_u8L("Unexpected plugin load failure: %1%"), ex.what()));
         } catch (...) {
@@ -1127,6 +1177,10 @@ void PluginManager::unload_all_plugins()
     // Broadcast cancellation to every plugin before waiting. This keeps bulk unload from
     // starving a later plugin while an earlier plugin uses the full cancellation grace period.
     cancel_and_wait_for_capabilities(capabilities);
+
+    // These are extra references only: each Plugin still owns its capabilities, so dropping them
+    // here runs no Python finalizer and avoids a later release that has no owner context.
+    capabilities.clear();
 
     for (Plugin& plugin : removed)
         plugin_loader::unload(plugin);
@@ -2548,6 +2602,12 @@ void PluginManager::dispatch_lifecycle_event(LifecycleEvent evt, const Lifecycle
             break;
         try {
             cap->on_lifecycle_event(evt, ctx);
+        } catch (pybind11::error_already_set& err) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": plugin '" << cap->audit_plugin_key() << "/" << cap->name()
+                                       << "' on_lifecycle_event(" << lifecycle_event_to_string(evt) << ") threw: "
+                                       << python_exception_text(err, cap->audit_plugin_key(), cap->name())
+                                       << " [ctx name='" << ctx.name << "', code=" << lifecycle_evt_code_to_string(ctx.code)
+                                       << ", msg='" << ctx.msg << "']";
         } catch (const std::exception& ex) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": plugin '" << cap->audit_plugin_key() << "/" << cap->name()
                                        << "' on_lifecycle_event(" << lifecycle_event_to_string(evt) << ") threw: " << ex.what()

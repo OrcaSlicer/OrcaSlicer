@@ -209,6 +209,11 @@ public:
     bool covered_by_root_frame() const;
     bool releasing_frames() const;
 
+    // True while deterministic cleanup is releasing plugin-owned objects or formatting a plugin
+    // exception. Audited operations still run and saved grants still apply, but an un-granted one
+    // is denied without opening a permission prompt.
+    bool prompts_suppressed() const;
+
     // True when code from `filename` (a code object's co_filename) is the interpreter's own
     // stdlib: the only code a root frame's coverage passes through. Valid after install_hook().
     static bool is_stdlib_file(const std::string& filename);
@@ -216,6 +221,15 @@ public:
     // Answers permission prompts in place of the dialog, for tests. Production never sets it.
     using PermissionPrompt = std::function<bool(const std::string& event_name, const std::vector<std::string>& targets)>;
     static void set_permission_prompt_for_testing(PermissionPrompt prompt);
+
+    // Test-only dispatch for audited-event prompts. When set, request_permission() hands it the
+    // same ask-and-persist callback production would post to the GUI thread, then returns false
+    // (the event is denied now, as on production's worker path). The test runs the callback when
+    // it wants to simulate the user answering later; the callback uses the synchronous
+    // PermissionPrompt above when one is installed, otherwise it asks through the normal dialog
+    // path. Leave unset in production. Setting nullptr restores the synchronous behavior.
+    using PermissionPromptDispatch = std::function<void(std::function<void()> prompt_and_persist)>;
+    static void set_permission_prompt_dispatch_for_testing(PermissionPromptDispatch dispatch);
 
     // Answers the combined permission-request prompt in place of the dialog, receiving the message
     // it would show. Tests run without a wxApp, so this seam also stands in for the app check.
@@ -227,6 +241,8 @@ public:
 
 private:
     friend class ScopedPluginAuditContext;
+    friend class ScopedPluginAuditPromptSuppression;
+    friend class ScopedPluginAuditDenialState;
 
     PluginAuditManager() = default;
 
@@ -245,6 +261,7 @@ private:
     static thread_local std::vector<AllowedRoot>       m_scoped_allowed_roots;
     static thread_local std::vector<PyObject*>         m_root_frames; // strong references
     static thread_local int                            m_releasing_frames;
+    static thread_local int                            m_prompt_suppression_depth;
     static thread_local bool                           m_audit_denial_pending;
     static thread_local bool                           m_has_last_violation;
     static thread_local AuditViolation                 m_last_violation;
@@ -283,6 +300,38 @@ private:
     std::string                   m_previous_capability;
     std::vector<AllowedRoot>      m_previous_scoped_roots;
     std::vector<PyObject*>        m_previous_root_frames;
+};
+
+// RAII guard for deterministic host cleanup that may execute plugin finalizers or plugin-authored
+// exception formatting. While active, audited operations still run as the current plugin and
+// saved grants still apply, but an un-granted operation is denied fail-closed without opening a
+// permission prompt. Nesting is supported and does not require the GIL.
+class ScopedPluginAuditPromptSuppression
+{
+public:
+    ScopedPluginAuditPromptSuppression();
+    ~ScopedPluginAuditPromptSuppression();
+
+    ScopedPluginAuditPromptSuppression(const ScopedPluginAuditPromptSuppression&)            = delete;
+    ScopedPluginAuditPromptSuppression& operator=(const ScopedPluginAuditPromptSuppression&) = delete;
+};
+
+// RAII snapshot of the pending-denial flag and last violation. Formatting a plugin exception may
+// itself trigger a denied operation; that violation is reported and denied, but must not replace
+// the state of the error being reported. Restores the snapshot on scope exit.
+class ScopedPluginAuditDenialState
+{
+public:
+    ScopedPluginAuditDenialState();
+    ~ScopedPluginAuditDenialState();
+
+    ScopedPluginAuditDenialState(const ScopedPluginAuditDenialState&)            = delete;
+    ScopedPluginAuditDenialState& operator=(const ScopedPluginAuditDenialState&) = delete;
+
+private:
+    bool           m_pending;
+    bool           m_has_violation;
+    AuditViolation m_violation;
 };
 
 } // namespace Slic3r

@@ -32,6 +32,8 @@
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 
+#include <chrono>
+#include <cstddef>
 #include <fstream>
 #include <functional>
 #include <ios>
@@ -755,18 +757,29 @@ struct AuditHarness
 
     ~AuditHarness()
     {
+        PluginAuditManager::set_permission_prompt_dispatch_for_testing(nullptr);
         PluginAuditManager::set_permission_prompt_for_testing(nullptr);
         PluginManager::instance().shutdown();
     }
 
-    // Call before taking the GIL: discovery is not Python work.
-    void add_plugin(const std::string& key)
+    // Call before taking the GIL: discovery is not Python work. Returns the plugin root so the
+    // caller can add fixture files the plugin reads while it loads.
+    fs::path add_plugin(const std::string& key, const std::string& source = AUDIT_PLUGIN_SOURCE)
     {
         const fs::path root = data.plugins_dir() / key;
         fs::create_directories(root);
-        std::ofstream((root / (key + ".py")).string(), std::ios::binary) << AUDIT_PLUGIN_SOURCE;
+        std::ofstream((root / (key + ".py")).string(), std::ios::binary) << source;
         save_permissions(key, {});
         PluginManager::instance().discover_plugins(/*async=*/false, /*clear=*/true);
+        return root;
+    }
+
+    // Loads a plugin through the manager's normal worker path, which is where the load-time
+    // audit context under test lives. Blocks until the worker is done.
+    bool load(const std::string& key, std::string& error)
+    {
+        PluginManager::instance().load_plugin(key, /*skip_deps=*/true, {});
+        return PluginManager::instance().wait_for_plugin_load(key, std::chrono::seconds(120), error);
     }
 
     // Grants as if saved in an earlier session.
@@ -846,6 +859,142 @@ PluginPermissions http_grants(std::vector<std::string> urls)
     permissions.network_http = std::move(urls);
     return permissions;
 }
+
+// A quoted Python string literal. json::dump escapes backslashes and quotes, and Python accepts
+// the resulting JSON string, so a Windows path survives the trip through plugin source.
+std::string python_literal(const std::string& value) { return nlohmann::json(value).dump(); }
+
+// A loadable single-capability plugin with `module_body` appended to the module top level. The
+// body runs during module import, before the package registers any capability.
+std::string load_audit_plugin_source(const std::string& display_name, const std::string& module_body)
+{
+    return "# /// script\n"
+           "# requires-python = \">=3.12\"\n"
+           "#\n"
+           "# [tool.orcaslicer.plugin]\n"
+           "# name = \"" + display_name + "\"\n"
+           "# description = \"Plugin load-time audit fixture\"\n"
+           "# author = \"tests\"\n"
+           "# version = \"1.0\"\n"
+           "# type = \"script\"\n"
+           "# ///\n"
+           "import orca\n" + module_body;
+}
+
+// The capability class and package marker a loadable fixture needs. Appended after the per-test
+// module body.
+const std::string LOAD_AUDIT_CAPABILITY = R"PY(
+class Capability(orca.script.ScriptPluginCapabilityBase):
+    def get_name(self):
+        return "LoadAuditCapability"
+
+    def execute(self, ctx):
+        return orca.ExecutionResult.success()
+
+@orca.plugin
+class Package(orca.base):
+    def register_capabilities(self):
+        orca.register_capability(Capability)
+)PY";
+
+// Whether `name` is still in sys.modules. Used to pin the cleanup of a failed or unloaded load.
+bool python_module_present(const std::string& name)
+{
+    PythonGILState gil;
+    if (!gil)
+        return false;
+
+    PyObject* modules = PyImport_GetModuleDict();
+    return modules != nullptr && PyDict_GetItemString(modules, name.c_str()) != nullptr;
+}
+
+// Whether the exact path is still on sys.path.
+bool python_sys_path_contains(const std::string& path)
+{
+    PythonGILState gil;
+    if (!gil)
+        return false;
+
+    PyObject* sys_path = PySys_GetObject("path");
+    if (sys_path == nullptr)
+        return false;
+
+    PyObjectPtr entry(PyUnicode_DecodeFSDefault(path.c_str()));
+    return entry && PySequence_Contains(sys_path, entry.get()) == 1;
+}
+
+// A list stored on the builtins module is visible to plugin finalizers after their own module
+// globals start being cleared, so it is the stable place for them to record what their audited
+// access actually did.
+void reset_python_builtin_list(const char* name)
+{
+    PythonGILState gil;
+    if (!gil)
+        return;
+
+    py::module_ builtins = py::module_::import("builtins");
+    builtins.attr(name) = py::list();
+}
+
+void clear_python_builtin_list(const char* name)
+{
+    PythonGILState gil;
+    if (!gil)
+        return;
+
+    py::module_ builtins = py::module_::import("builtins");
+    py::object  value    = builtins.attr(name);
+    if (value && !value.is_none())
+        value.attr("clear")();
+}
+
+std::vector<std::string> python_builtin_strings(const char* name)
+{
+    PythonGILState gil;
+    if (!gil)
+        return {};
+
+    py::module_ builtins = py::module_::import("builtins");
+    py::object value     = builtins.attr(name);
+    if (!value || value.is_none())
+        return {};
+    return value.cast<std::vector<std::string>>();
+}
+
+// Restores sys.stderr even when the test aborts on a failed REQUIRE. Plugin exception reporting
+// writes through whatever object sys.stderr currently holds, so a plugin-authored replacement
+// must be removed before the manager shuts down.
+struct ScopedPythonStderr
+{
+    py::object original;
+
+    ScopedPythonStderr()
+    {
+        PythonGILState gil;
+        if (!gil)
+            return;
+        original = py::module_::import("sys").attr("stderr");
+    }
+
+    ~ScopedPythonStderr()
+    {
+        PythonGILState gil;
+        if (!gil) {
+            (void) original.release();
+            return;
+        }
+
+        try {
+            if (original)
+                py::module_::import("sys").attr("stderr") = original;
+        } catch (...) {
+        }
+        original = py::object();
+    }
+
+    ScopedPythonStderr(const ScopedPythonStderr&)            = delete;
+    ScopedPythonStderr& operator=(const ScopedPythonStderr&) = delete;
+};
 
 const char* const PLUGIN = "AuditPlugin";
 
@@ -1659,4 +1808,1013 @@ with open(os.path.join(DENIED_DIR, "token.txt"), "w") as f:
     AuditViolation violation;
     REQUIRE(mgr.last_violation(violation));
     CHECK(violation.reason == "denied path");
+}
+
+TEST_CASE("A plugin load is denied an audited read during module import", "[PluginAudit][audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string plugin_key = "DeniedImportPlugin";
+
+    // The app config lives inside data_dir(), a global allowed root, and is denied by name. A
+    // read of it during import must be judged as the plugin, not bypassed because the import
+    // happens before any capability exists.
+    const fs::path config = harness.data.dir / (SLIC3R_APP_KEY ".conf");
+    {
+        std::ofstream out(config.string(), std::ios::binary);
+        out << "secret";
+    }
+
+    harness.add_plugin(plugin_key, load_audit_plugin_source(
+        "Denied Import Plugin",
+        "open(" + python_literal(config.string()) + ").read()\n" + LOAD_AUDIT_CAPABILITY));
+
+    std::string error;
+    const bool loaded = harness.load(plugin_key, error);
+
+    INFO(error);
+    CHECK_FALSE(loaded);
+    CHECK(error.find("PermissionError") != std::string::npos);
+    CHECK(error.find("denied path") != std::string::npos);
+    CHECK_FALSE(PluginManager::instance().is_plugin_loaded(plugin_key));
+    // A denied path is refused outright; it never reaches the permission prompt.
+    CHECK(harness.prompts.empty());
+}
+
+TEST_CASE("A saved grant covers a load-time read while an ungranted one is still asked for", "[PluginAudit][audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string plugin_key = "GrantedImportPlugin";
+
+    const fs::path granted   = harness.outside.path() / "granted.txt";
+    const fs::path ungranted = harness.outside.path() / "ungranted.txt";
+    {
+        std::ofstream(granted.string(), std::ios::binary) << "x";
+        std::ofstream(ungranted.string(), std::ios::binary) << "x";
+    }
+
+    harness.add_plugin(plugin_key, load_audit_plugin_source(
+        "Granted Import Plugin",
+        "open(" + python_literal(granted.string()) + ").read()\n"
+        "open(" + python_literal(ungranted.string()) + ").read()\n" + LOAD_AUDIT_CAPABILITY));
+
+    PluginPermissions permissions;
+    permissions.fs_read = {granted.string()};
+    harness.save_permissions(plugin_key, permissions);
+
+    // Approve only the read the saved grant does not cover. If the load-time context is missing,
+    // no prompt is raised at all; if the saved grant were ignored, the first read would ask too.
+    harness.approve = [&ungranted](const Prompt& prompt) {
+        return prompt.event == "open" && prompt.targets == std::vector<std::string>{ungranted.string()};
+    };
+
+    std::string error;
+    const bool loaded = harness.load(plugin_key, error);
+
+    INFO(error);
+    CHECK(loaded);
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().plugin == plugin_key);
+    CHECK(harness.prompts.front().event == "open");
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{ungranted.string()});
+    CHECK(PluginManager::instance().is_plugin_loaded(plugin_key));
+
+    PluginManager::instance().unload_plugin(plugin_key);
+}
+
+TEST_CASE("An audited read during capability registration is attributed to the loading plugin", "[PluginAudit][audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string plugin_key = "RegistrationAuditPlugin";
+    const fs::path    target     = harness.outside.path() / "registration.txt";
+    std::ofstream(target.string(), std::ios::binary) << "x";
+
+    // register_capabilities() runs after the module is imported, while finalizing the capture.
+    // The read must still be attributed to this plugin and denied when the user does not approve.
+    const std::string package =
+        "class Capability(orca.script.ScriptPluginCapabilityBase):\n"
+        "    def get_name(self):\n"
+        "        return \"RegistrationAuditCapability\"\n"
+        "\n"
+        "    def execute(self, ctx):\n"
+        "        return orca.ExecutionResult.success()\n"
+        "\n"
+        "@orca.plugin\n"
+        "class Package(orca.base):\n"
+        "    def register_capabilities(self):\n"
+        "        open(" + python_literal(target.string()) + ").read()\n"
+        "        orca.register_capability(Capability)\n";
+
+    harness.add_plugin(plugin_key, load_audit_plugin_source("Registration Audit Plugin", package));
+
+    std::string error;
+    const bool loaded = harness.load(plugin_key, error);
+
+    INFO(error);
+    CHECK_FALSE(loaded);
+    CHECK(error.find("PermissionError") != std::string::npos);
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().plugin == plugin_key);
+    CHECK(harness.prompts.front().event == "open");
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{target.string()});
+    CHECK_FALSE(PluginManager::instance().is_plugin_loaded(plugin_key));
+}
+
+TEST_CASE("An audited read in a capability constructor is attributed to the loading plugin", "[PluginAudit][audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string plugin_key = "ConstructorAuditPlugin";
+    const fs::path    target     = harness.outside.path() / "constructor.txt";
+    std::ofstream(target.string(), std::ios::binary) << "x";
+
+    // Capabilities are instantiated while the capture is finalized, after registration returns.
+    // A constructor that reads an unpermitted path must be judged as the loading plugin.
+    const std::string package =
+        "class Capability(orca.script.ScriptPluginCapabilityBase):\n"
+        "    def __init__(self):\n"
+        "        super().__init__()\n"
+        "        open(" + python_literal(target.string()) + ").read()\n"
+        "\n"
+        "    def get_name(self):\n"
+        "        return \"ConstructorAuditCapability\"\n"
+        "\n"
+        "    def execute(self, ctx):\n"
+        "        return orca.ExecutionResult.success()\n"
+        "\n"
+        "@orca.plugin\n"
+        "class Package(orca.base):\n"
+        "    def register_capabilities(self):\n"
+        "        orca.register_capability(Capability)\n";
+
+    harness.add_plugin(plugin_key, load_audit_plugin_source("Constructor Audit Plugin", package));
+
+    std::string error;
+    const bool loaded = harness.load(plugin_key, error);
+
+    INFO(error);
+    CHECK_FALSE(loaded);
+    CHECK(error.find("PermissionError") != std::string::npos);
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().plugin == plugin_key);
+    CHECK(harness.prompts.front().event == "open");
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{target.string()});
+    CHECK_FALSE(PluginManager::instance().is_plugin_loaded(plugin_key));
+}
+
+TEST_CASE("A normal plugin import completes without a permission prompt", "[PluginAudit][audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string plugin_key = "NormalImportPlugin";
+
+    // Importing the plugin's own module, the stdlib, and a file next to it stays silent: the
+    // load-time context must not turn ordinary imports into permission requests.
+    const fs::path root = harness.add_plugin(plugin_key, load_audit_plugin_source(
+        "Normal Import Plugin",
+        "import json\n"
+        "import os\n"
+        "open(os.path.join(os.path.dirname(__file__), 'payload.txt')).read()\n" + LOAD_AUDIT_CAPABILITY));
+    std::ofstream((root / "payload.txt").string(), std::ios::binary) << "x";
+
+    std::string error;
+    const bool loaded = harness.load(plugin_key, error);
+
+    INFO(error);
+    CHECK(loaded);
+    CHECK(harness.prompts.empty());
+    CHECK(PluginManager::instance().is_plugin_loaded(plugin_key));
+
+    PluginManager::instance().unload_plugin(plugin_key);
+}
+
+TEST_CASE("An audited get_name during capability materialization is attributed to the loading plugin", "[PluginAudit][audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string plugin_key = "GetNameAuditPlugin";
+    const fs::path    target     = harness.outside.path() / "get_name.txt";
+    std::ofstream(target.string(), std::ios::binary) << "x";
+
+    // get_name() is called while the capability is materialized, before its audit key is cached.
+    // It must still run under the loading plugin's context.
+    const std::string package =
+        "class Capability(orca.script.ScriptPluginCapabilityBase):\n"
+        "    def get_name(self):\n"
+        "        open(" + python_literal(target.string()) + ").read()\n"
+        "        return \"GetNameAuditCapability\"\n"
+        "\n"
+        "    def execute(self, ctx):\n"
+        "        return orca.ExecutionResult.success()\n"
+        "\n"
+        "@orca.plugin\n"
+        "class Package(orca.base):\n"
+        "    def register_capabilities(self):\n"
+        "        orca.register_capability(Capability)\n";
+
+    harness.add_plugin(plugin_key, load_audit_plugin_source("Get Name Audit Plugin", package));
+
+    std::string error;
+    const bool loaded = harness.load(plugin_key, error);
+
+    INFO(error);
+    CHECK_FALSE(loaded);
+    CHECK(error.find("PermissionError") != std::string::npos);
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().plugin == plugin_key);
+    CHECK(harness.prompts.front().event == "open");
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{target.string()});
+    CHECK_FALSE(PluginManager::instance().is_plugin_loaded(plugin_key));
+}
+
+TEST_CASE("An audited get_type during capability materialization is attributed to the loading plugin", "[PluginAudit][audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string plugin_key = "GetTypeAuditPlugin";
+    const fs::path    target     = harness.outside.path() / "get_type.txt";
+    std::ofstream(target.string(), std::ios::binary) << "x";
+
+    // The untyped PythonPluginBase routes get_type() to Python. The loader resolves it before
+    // caching the capability identity, so the read must be attributed to the loading plugin.
+    const std::string package =
+        "class Capability(orca.PythonPluginBase):\n"
+        "    def get_name(self):\n"
+        "        return \"GetTypeAuditCapability\"\n"
+        "\n"
+        "    def get_type(self):\n"
+        "        open(" + python_literal(target.string()) + ").read()\n"
+        "        return orca.PluginType.Script\n"
+        "\n"
+        "@orca.plugin\n"
+        "class Package(orca.base):\n"
+        "    def register_capabilities(self):\n"
+        "        orca.register_capability(Capability)\n";
+
+    harness.add_plugin(plugin_key, load_audit_plugin_source("Get Type Audit Plugin", package));
+
+    std::string error;
+    const bool loaded = harness.load(plugin_key, error);
+
+    INFO(error);
+    CHECK_FALSE(loaded);
+    CHECK(error.find("PermissionError") != std::string::npos);
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().plugin == plugin_key);
+    CHECK(harness.prompts.front().event == "open");
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{target.string()});
+    CHECK_FALSE(PluginManager::instance().is_plugin_loaded(plugin_key));
+}
+
+TEST_CASE("A plugin may import a module from the shared packages directory during load", "[PluginAudit][audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string plugin_key = "SharedPackageImportPlugin";
+
+    // A real importable module in the interpreter's shared packages directory -- the same location
+    // uv installs plugin dependencies into, and already on sys.path. Importing it at module load
+    // must stay ordinary plugin work, not a permission prompt.
+    const fs::path shared_dir = PythonInterpreter::shared_packages_dir();
+    fs::create_directories(shared_dir);
+    {
+        std::ofstream out((shared_dir / "orca_shared_import_probe.py").string(), std::ios::binary);
+        out << "VALUE = 'shared'\n";
+    }
+    {
+        // The package directory was added to sys.path during interpreter initialization, before
+        // the probe file existed, so clear the import caches to make the new module discoverable.
+        py::gil_scoped_acquire gil;
+        py::module_::import("importlib").attr("invalidate_caches")();
+    }
+
+    harness.add_plugin(plugin_key, load_audit_plugin_source(
+        "Shared Package Import Plugin",
+        "import orca_shared_import_probe\n"
+        "assert orca_shared_import_probe.VALUE == 'shared'\n" + LOAD_AUDIT_CAPABILITY));
+
+    std::string error;
+    const bool loaded = harness.load(plugin_key, error);
+
+    INFO(error);
+    CHECK(loaded);
+    CHECK(harness.prompts.empty());
+    CHECK(PluginManager::instance().is_plugin_loaded(plugin_key));
+
+    PluginManager::instance().unload_plugin(plugin_key);
+}
+
+TEST_CASE("A plugin may attempt a missing optional import during load", "[PluginAudit][audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string plugin_key = "MissingOptionalImportPlugin";
+
+    // A failed import is a normal ImportError, not an audited denial. The plugin catches it and
+    // continues loading without a prompt; an audit context that turned the probe into a
+    // PermissionError would fail the whole load.
+    harness.add_plugin(plugin_key, load_audit_plugin_source(
+        "Missing Optional Import Plugin",
+        "try:\n"
+        "    import orca_missing_optional_dependency_for_import_audit_test\n"
+        "except ImportError:\n"
+        "    pass\n"
+        "else:\n"
+        "    raise RuntimeError('missing optional module unexpectedly importable')\n" + LOAD_AUDIT_CAPABILITY));
+
+    std::string error;
+    const bool loaded = harness.load(plugin_key, error);
+
+    INFO(error);
+    CHECK(loaded);
+    CHECK(harness.prompts.empty());
+    CHECK(PluginManager::instance().is_plugin_loaded(plugin_key));
+
+    PluginManager::instance().unload_plugin(plugin_key);
+}
+
+TEST_CASE("A denied load-time read fails and a retry after the test prompt approves succeeds", "[PluginAudit][audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string plugin_key = "RetryImportApprovalPlugin";
+    const fs::path    target     = harness.outside.path() / "retry-approved.txt";
+    std::ofstream(target.string(), std::ios::binary) << "x";
+
+    harness.add_plugin(plugin_key, load_audit_plugin_source(
+        "Retry Import Approval Plugin",
+        "open(" + python_literal(target.string()) + ").read()\n" + LOAD_AUDIT_CAPABILITY));
+
+    // The test prompt answers synchronously on the load worker: this exercises the real decision
+    // and persistence path, but NOT production's asynchronous GUI approval path. The first answer
+    // is No and must fail the load without persisting a grant; the retried load sees the same
+    // prompt again, answers Yes, and proceeds once the grant is saved.
+    std::size_t answers = 0;
+    harness.approve = [&answers, &target](const Prompt& prompt) {
+        return ++answers >= 2 && prompt.event == "open" && prompt.targets == std::vector<std::string>{target.string()};
+    };
+
+    std::string first_error;
+    const bool  first_loaded = harness.load(plugin_key, first_error);
+
+    INFO(first_error);
+    CHECK_FALSE(first_loaded);
+    CHECK(first_error.find("PermissionError") != std::string::npos);
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().plugin == plugin_key);
+    CHECK(harness.prompts.front().event == "open");
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{target.string()});
+    CHECK(harness.saved_permissions(plugin_key).fs_read.empty());
+    CHECK_FALSE(PluginManager::instance().is_plugin_loaded(plugin_key));
+    CHECK_FALSE(python_module_present(plugin_key));
+    CHECK_FALSE(python_sys_path_contains((harness.data.plugins_dir() / plugin_key).string()));
+
+    std::string second_error;
+    const bool  second_loaded = harness.load(plugin_key, second_error);
+
+    INFO(second_error);
+    CHECK(second_loaded);
+    REQUIRE(harness.prompts.size() == 2);
+    CHECK(harness.prompts.back().plugin == plugin_key);
+    CHECK(harness.prompts.back().event == "open");
+    CHECK(harness.prompts.back().targets == std::vector<std::string>{target.string()});
+    CHECK(harness.saved_permissions(plugin_key).fs_read == std::vector<std::string>{target.string()});
+    CHECK(PluginManager::instance().is_plugin_loaded(plugin_key));
+    CHECK(python_module_present(plugin_key));
+    CHECK(PluginManager::instance().get_plugin_capability(
+              {PluginCapabilityType::Unknown, "LoadAuditCapability", plugin_key}, /*only_enabled=*/false) != nullptr);
+
+    PluginManager::instance().unload_plugin(plugin_key);
+    CHECK_FALSE(python_module_present(plugin_key));
+    CHECK_FALSE(python_sys_path_contains((harness.data.plugins_dir() / plugin_key).string()));
+}
+
+TEST_CASE("A denied registration leaves no capabilities, modules, or sys.path entries behind", "[PluginAudit][PluginLifecycle][audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string plugin_key = "CleanupAfterDeniedRegistrationPlugin";
+    const fs::path    target     = harness.outside.path() / "cleanup-denied.txt";
+    std::ofstream(target.string(), std::ios::binary) << "x";
+
+    // The module imports successfully, including a sibling helper, then registration is denied.
+    // The whole failed load must be unwound deterministically: no manager capability, no module
+    // namespace (root or helper), and no plugin-owned sys.path entry may survive.
+    const std::string package =
+        "import cleanup_helper\n"
+        "\n"
+        "class Capability(orca.script.ScriptPluginCapabilityBase):\n"
+        "    def get_name(self):\n"
+        "        return \"CleanupAfterDeniedRegistration\"\n"
+        "\n"
+        "    def execute(self, ctx):\n"
+        "        return orca.ExecutionResult.success()\n"
+        "\n"
+        "@orca.plugin\n"
+        "class Package(orca.base):\n"
+        "    def register_capabilities(self):\n"
+        "        open(" + python_literal(target.string()) + ").read()\n"
+        "        orca.register_capability(Capability)\n";
+
+    const fs::path plugin_root = harness.add_plugin(
+        plugin_key, load_audit_plugin_source("Cleanup After Denied Registration Plugin", package));
+    std::ofstream((plugin_root / "cleanup_helper.py").string(), std::ios::binary) << "VALUE = 'helper'\n";
+
+    std::string error;
+    const bool loaded = harness.load(plugin_key, error);
+
+    INFO(error);
+    CHECK_FALSE(loaded);
+    CHECK(error.find("PermissionError") != std::string::npos);
+    CHECK_FALSE(PluginManager::instance().is_plugin_loaded(plugin_key));
+    CHECK(PluginManager::instance().get_plugin_capabilities(
+              plugin_key, PluginCapabilityType::Unknown, /*only_enabled=*/false).empty());
+    CHECK_FALSE(python_module_present(plugin_key));
+    CHECK_FALSE(python_module_present("cleanup_helper"));
+    CHECK_FALSE(python_sys_path_contains(plugin_root.string()));
+}
+
+TEST_CASE("A plugin exception during registration keeps its message and raises no audit prompt", "[PluginAudit][PluginLifecycle][audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string plugin_key = "RegistrationExceptionFormattingPlugin";
+
+    // Reporting a plugin's own exception is host-owned work. The traceback and exception text must
+    // survive into the load error, and formatting them must not open a permission prompt.
+    const std::string package =
+        "class Package(orca.base):\n"
+        "    def register_capabilities(self):\n"
+        "        raise RuntimeError('registration boom')\n";
+
+    harness.add_plugin(plugin_key, load_audit_plugin_source("Registration Exception Formatting Plugin", package));
+
+    std::string error;
+    const bool loaded = harness.load(plugin_key, error);
+
+    INFO(error);
+    CHECK_FALSE(loaded);
+    CHECK(error.find("Plugin registration failed") != std::string::npos);
+    CHECK(error.find("RuntimeError") != std::string::npos);
+    CHECK(error.find("registration boom") != std::string::npos);
+    CHECK(harness.prompts.empty());
+    CHECK_FALSE(PluginManager::instance().is_plugin_loaded(plugin_key));
+    CHECK_FALSE(python_module_present(plugin_key));
+}
+
+TEST_CASE("A capability __del__ during unload is audited as the plugin", "[PluginAudit][PluginLifecycle][audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string plugin_key = "CapabilityDelAuditPlugin";
+    const fs::path    denied     = harness.data.dir / (SLIC3R_APP_KEY ".conf");
+    {
+        std::ofstream out(denied.string(), std::ios::binary);
+        out << "secret";
+    }
+
+    // The capability records the real result of its audited attempt from inside __del__, using a
+    // builtins list that survives the module teardown. Dropping the capability during unload must
+    // still judge that attempt as the plugin: a denied path must be denied, not silently allowed.
+    reset_python_builtin_list("ORCA_CAPABILITY_DEL_OUTCOMES");
+    const std::string package =
+        "import builtins\n"
+        "PATH = " + python_literal(denied.string()) + "\n"
+        "OUTCOMES = builtins.ORCA_CAPABILITY_DEL_OUTCOMES\n"
+        "\n"
+        "class Capability(orca.script.ScriptPluginCapabilityBase):\n"
+        "    def __init__(self):\n"
+        "        super().__init__()\n"
+        "        self.path = PATH\n"
+        "        self.outcomes = OUTCOMES\n"
+        "\n"
+        "    def __del__(self):\n"
+        "        try:\n"
+        "            open(self.path).read()\n"
+        "            self.outcomes.append('allowed')\n"
+        "        except PermissionError:\n"
+        "            self.outcomes.append('denied')\n"
+        "        except Exception:\n"
+        "            self.outcomes.append('error')\n"
+        "\n"
+        "    def get_name(self):\n"
+        "        return \"CapabilityDelAudit\"\n"
+        "\n"
+        "    def execute(self, ctx):\n"
+        "        return orca.ExecutionResult.success()\n"
+        "\n"
+        "@orca.plugin\n"
+        "class Package(orca.base):\n"
+        "    def register_capabilities(self):\n"
+        "        orca.register_capability(Capability)\n";
+
+    harness.add_plugin(plugin_key, load_audit_plugin_source("Capability Del Audit Plugin", package));
+
+    std::string error;
+    const bool  loaded = harness.load(plugin_key, error);
+    INFO(error);
+    REQUIRE(loaded);
+    clear_python_builtin_list("ORCA_CAPABILITY_DEL_OUTCOMES");
+
+    REQUIRE(PluginManager::instance().unload_plugin(plugin_key));
+
+    const std::vector<std::string> outcomes = python_builtin_strings("ORCA_CAPABILITY_DEL_OUTCOMES");
+    REQUIRE(outcomes.size() == 1);
+    CHECK(outcomes.front() == "denied");
+    CHECK(harness.prompts.empty());
+}
+
+TEST_CASE("A module-owned object's __del__ during unload is audited as the plugin", "[PluginAudit][PluginLifecycle][audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string plugin_key = "ModuleDelAuditPlugin";
+    const fs::path    denied     = harness.data.dir / (SLIC3R_APP_KEY ".conf");
+    {
+        std::ofstream out(denied.string(), std::ios::binary);
+        out << "secret";
+    }
+
+    // Module objects have no __del__; the finalizer that runs during module teardown is an object
+    // owned by the module. The loader holds the only module-object reference outside sys.modules:
+    // neither the test nor the manager keeps the module, its finalizer class, or its instances
+    // alive. unload_module() drops the sys.modules entry and then the loader's reference, so
+    // module deallocation clears the namespace and runs this finalizer before unload returns.
+    // Its attempt must still be judged as the plugin.
+    reset_python_builtin_list("ORCA_MODULE_DEL_OUTCOMES");
+    const std::string package =
+        "import builtins\n"
+        "PATH = " + python_literal(denied.string()) + "\n"
+        "OUTCOMES = builtins.ORCA_MODULE_DEL_OUTCOMES\n"
+        "\n"
+        "class ModuleFinalizer:\n"
+        "    def __init__(self):\n"
+        "        self.path = PATH\n"
+        "        self.outcomes = OUTCOMES\n"
+        "\n"
+        "    def __del__(self):\n"
+        "        try:\n"
+        "            open(self.path).read()\n"
+        "            self.outcomes.append('allowed')\n"
+        "        except PermissionError:\n"
+        "            self.outcomes.append('denied')\n"
+        "        except Exception:\n"
+        "            self.outcomes.append('error')\n"
+        "\n"
+        "MODULE_FINALIZER = ModuleFinalizer()\n"
+        "\n"
+        "class Capability(orca.script.ScriptPluginCapabilityBase):\n"
+        "    def get_name(self):\n"
+        "        return \"ModuleDelAudit\"\n"
+        "\n"
+        "    def execute(self, ctx):\n"
+        "        return orca.ExecutionResult.success()\n"
+        "\n"
+        "@orca.plugin\n"
+        "class Package(orca.base):\n"
+        "    def register_capabilities(self):\n"
+        "        orca.register_capability(Capability)\n";
+
+    harness.add_plugin(plugin_key, load_audit_plugin_source("Module Del Audit Plugin", package));
+
+    std::string error;
+    const bool  loaded = harness.load(plugin_key, error);
+    INFO(error);
+    REQUIRE(loaded);
+    clear_python_builtin_list("ORCA_MODULE_DEL_OUTCOMES");
+
+    REQUIRE(PluginManager::instance().unload_plugin(plugin_key));
+
+    CHECK_FALSE(python_module_present(plugin_key));
+    const std::vector<std::string> outcomes = python_builtin_strings("ORCA_MODULE_DEL_OUTCOMES");
+    REQUIRE(outcomes.size() == 1);
+    CHECK(outcomes.front() == "denied");
+    CHECK(harness.prompts.empty());
+}
+
+TEST_CASE("A plugin exception __str__ attempting denied access is denied while formatting", "[PluginAudit][audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string plugin_key = "ExceptionStrAuditPlugin";
+    const fs::path    denied     = harness.data.dir / (SLIC3R_APP_KEY ".conf");
+    {
+        std::ofstream out(denied.string(), std::ios::binary);
+        out << "secret";
+    }
+
+    // Formatting a plugin exception is still plugin code running: __str__ must not be able to
+    // read a denied path just because the host is building an error message. Record the real
+    // result inside __str__ so the assertion is about the access, not just the prompt.
+    reset_python_builtin_list("ORCA_EXCEPTION_STR_OUTCOMES");
+    const std::string package =
+        "import builtins\n"
+        "PATH = " + python_literal(denied.string()) + "\n"
+        "OUTCOMES = builtins.ORCA_EXCEPTION_STR_OUTCOMES\n"
+        "\n"
+        "class FormatProbeError(Exception):\n"
+        "    outcomes = OUTCOMES\n"
+        "\n"
+        "    def __str__(self):\n"
+        "        try:\n"
+        "            open(PATH).read()\n"
+        "            self.outcomes.append('allowed')\n"
+        "        except PermissionError:\n"
+        "            self.outcomes.append('denied')\n"
+        "        except Exception:\n"
+        "            self.outcomes.append('error')\n"
+        "        return 'format probe'\n"
+        "\n"
+        "@orca.plugin\n"
+        "class Package(orca.base):\n"
+        "    def register_capabilities(self):\n"
+        "        raise FormatProbeError()\n";
+
+    harness.add_plugin(plugin_key, load_audit_plugin_source("Exception Str Audit Plugin", package));
+
+    std::string error;
+    const bool loaded = harness.load(plugin_key, error);
+
+    INFO(error);
+    CHECK_FALSE(loaded);
+    CHECK(error.find("Plugin registration failed") != std::string::npos);
+    CHECK(error.find("FormatProbeError") != std::string::npos);
+    CHECK(error.find("format probe") != std::string::npos);
+
+    const std::vector<std::string> outcomes = python_builtin_strings("ORCA_EXCEPTION_STR_OUTCOMES");
+    REQUIRE_FALSE(outcomes.empty());
+    for (const std::string& outcome : outcomes)
+        CHECK(outcome == "denied");
+    CHECK(harness.prompts.empty());
+    CHECK_FALSE(PluginManager::instance().is_plugin_loaded(plugin_key));
+}
+
+TEST_CASE("A deferred worker prompt grants a retry that loads without prompting", "[PluginAudit][audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string plugin_key = "DeferredPromptRetryPlugin";
+    const fs::path    target     = harness.outside.path() / "deferred-approved.txt";
+    std::ofstream(target.string(), std::ios::binary) << "x";
+
+    harness.add_plugin(plugin_key, load_audit_plugin_source(
+        "Deferred Prompt Retry Plugin",
+        "open(" + python_literal(target.string()) + ").read()\n" + LOAD_AUDIT_CAPABILITY));
+
+    // The dispatch seam receives the same ask-and-persist callback production posts through
+    // GUI::wxGetApp().CallAfter. This test does not exercise wx CallAfter itself: the worker sees
+    // the prompt deferred, is denied immediately, and the callback is run later from the test.
+    std::vector<std::function<void()>> deferred;
+    PluginAuditManager::set_permission_prompt_dispatch_for_testing(
+        [&deferred](std::function<void()> prompt_and_persist) {
+            deferred.push_back(std::move(prompt_and_persist));
+        });
+
+    std::string first_error;
+    const bool  first_loaded = harness.load(plugin_key, first_error);
+
+    INFO(first_error);
+    CHECK_FALSE(first_loaded);
+    CHECK(first_error.find("PermissionError") != std::string::npos);
+    // The callback is queued before any user answer: the synchronous prompt hook has not run.
+    REQUIRE(deferred.size() == 1);
+    CHECK(harness.prompts.empty());
+    CHECK(harness.saved_permissions(plugin_key).fs_read.empty());
+    CHECK_FALSE(PluginManager::instance().is_plugin_loaded(plugin_key));
+
+    // Answer the deferred prompt. The callback uses the harness's existing prompt hook, then
+    // persists the grant before returning.
+    harness.approve = [](const Prompt&) { return true; };
+    deferred.front()();
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().event == "open");
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{target.string()});
+    CHECK(harness.saved_permissions(plugin_key).fs_read == std::vector<std::string>{target.string()});
+
+    // The saved grant covers the retried load, so no second prompt is queued or answered.
+    std::string second_error;
+    const bool  second_loaded = harness.load(plugin_key, second_error);
+
+    INFO(second_error);
+    CHECK(second_loaded);
+    CHECK(deferred.size() == 1);
+    CHECK(harness.prompts.size() == 1);
+    CHECK(PluginManager::instance().is_plugin_loaded(plugin_key));
+    CHECK(PluginManager::instance().get_plugin_capability(
+              {PluginCapabilityType::Unknown, "LoadAuditCapability", plugin_key}, /*only_enabled=*/false) != nullptr);
+
+    PluginManager::instance().unload_plugin(plugin_key);
+}
+
+TEST_CASE("A caught audit denial does not let a replacement exception __str__ bypass the audit", "[PluginAudit][audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string plugin_key = "StickyDenialFormattingPlugin";
+    const fs::path    denied     = harness.data.dir / (SLIC3R_APP_KEY ".conf");
+    {
+        std::ofstream out(denied.string(), std::ios::binary);
+        out << "secret";
+    }
+
+    // on_load() catches an audited PermissionError and raises a different exception. The first
+    // denial leaves the manager's thread-local pending flag set even though the plugin handled it.
+    // The trampoline must not treat that stale flag as proof that the new exception is the denial
+    // and drop the plugin context while formatting it: the denied read attempted by __str__ must
+    // still be denied. Record every attempt because both traceback logging and the reported load
+    // error can call __str__.
+    reset_python_builtin_list("ORCA_STICKY_DENIAL_OUTCOMES");
+    const std::string package =
+        "import builtins\n"
+        "PATH = " + python_literal(denied.string()) + "\n"
+        "OUTCOMES = builtins.ORCA_STICKY_DENIAL_OUTCOMES\n"
+        "\n"
+        "class StickyDenialError(Exception):\n"
+        "    outcomes = OUTCOMES\n"
+        "\n"
+        "    def __str__(self):\n"
+        "        try:\n"
+        "            open(PATH).read()\n"
+        "            self.outcomes.append('allowed')\n"
+        "            return 'format allowed'\n"
+        "        except PermissionError:\n"
+        "            self.outcomes.append('denied')\n"
+        "            return 'format denied'\n"
+        "        except Exception:\n"
+        "            self.outcomes.append('error')\n"
+        "            return 'format error'\n"
+        "\n"
+        "class Capability(orca.script.ScriptPluginCapabilityBase):\n"
+        "    def get_name(self):\n"
+        "        return \"StickyDenialFormatting\"\n"
+        "\n"
+        "    def on_load(self):\n"
+        "        try:\n"
+        "            open(PATH).read()\n"
+        "        except PermissionError:\n"
+        "            raise StickyDenialError()\n"
+        "\n"
+        "    def execute(self, ctx):\n"
+        "        return orca.ExecutionResult.success()\n"
+        "\n"
+        "@orca.plugin\n"
+        "class Package(orca.base):\n"
+        "    def register_capabilities(self):\n"
+        "        orca.register_capability(Capability)\n";
+
+    harness.add_plugin(plugin_key, load_audit_plugin_source("Sticky Denial Formatting Plugin", package));
+
+    std::string error;
+    const bool loaded = harness.load(plugin_key, error);
+
+    INFO(error);
+    CHECK_FALSE(loaded);
+    CHECK(error.find("Plugin on_load failed") != std::string::npos);
+    CHECK(error.find("StickyDenialError") != std::string::npos);
+
+    const std::vector<std::string> outcomes = python_builtin_strings("ORCA_STICKY_DENIAL_OUTCOMES");
+    REQUIRE_FALSE(outcomes.empty());
+    for (const std::string& outcome : outcomes)
+        CHECK(outcome == "denied");
+    CHECK(harness.prompts.empty());
+    CHECK_FALSE(PluginManager::instance().is_plugin_loaded(plugin_key));
+}
+
+TEST_CASE("A plugin sys.stderr replacement cannot perform denied access while reporting an exception", "[PluginAudit][audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    // Declared after AuditHarness (destroyed before its shutdown) so the replacement is removed
+    // before the manager tears down, even if an assertion aborts this test.
+    ScopedPythonStderr stderr_guard;
+
+    const std::string plugin_key = "StderrWriteAuditPlugin";
+    const fs::path    denied     = harness.data.dir / (SLIC3R_APP_KEY ".conf");
+    {
+        std::ofstream out(denied.string(), std::ios::binary);
+        out << "secret";
+    }
+
+    // Exception reporting writes its rendered traceback through sys.stderr. A plugin can replace
+    // sys.stderr before raising, so that write must not execute plugin code outside the audit
+    // scope. Record the real result of the attempted read. An implementation that routes logging
+    // to a native sink may never call write(); no calls is valid, any call must be denied.
+    reset_python_builtin_list("ORCA_STDERR_WRITE_OUTCOMES");
+    const std::string package =
+        "import builtins, sys\n"
+        "PATH = " + python_literal(denied.string()) + "\n"
+        "OUTCOMES = builtins.ORCA_STDERR_WRITE_OUTCOMES\n"
+        "\n"
+        "class DenyingStderr:\n"
+        "    def write(self, text):\n"
+        "        try:\n"
+        "            open(PATH).read()\n"
+        "            OUTCOMES.append('allowed')\n"
+        "        except PermissionError:\n"
+        "            OUTCOMES.append('denied')\n"
+        "        except Exception:\n"
+        "            OUTCOMES.append('error')\n"
+        "        return len(text)\n"
+        "\n"
+        "    def flush(self):\n"
+        "        pass\n"
+        "\n"
+        "sys.stderr = DenyingStderr()\n"
+        "\n"
+        "@orca.plugin\n"
+        "class Package(orca.base):\n"
+        "    def register_capabilities(self):\n"
+        "        raise RuntimeError('stderr write probe')\n";
+
+    harness.add_plugin(plugin_key, load_audit_plugin_source("Stderr Write Audit Plugin", package));
+
+    std::string error;
+    const bool loaded = harness.load(plugin_key, error);
+
+    INFO(error);
+    CHECK_FALSE(loaded);
+    CHECK(error.find("stderr write probe") != std::string::npos);
+
+    const std::vector<std::string> outcomes = python_builtin_strings("ORCA_STDERR_WRITE_OUTCOMES");
+    // Empty is valid when logging does not call the Python stderr object at all.
+    for (const std::string& outcome : outcomes)
+        CHECK(outcome == "denied");
+    CHECK(harness.prompts.empty());
+    CHECK_FALSE(PluginManager::instance().is_plugin_loaded(plugin_key));
+}
+
+TEST_CASE("Cleanup finalizers denied an ungranted outside path without prompting", "[PluginAudit][PluginLifecycle][audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string plugin_key = "OutsideFinalizerAuditPlugin";
+    const fs::path    ungranted  = harness.outside.path() / "ungranted-finalizer.txt";
+    std::ofstream(ungranted.string(), std::ios::binary) << "x";
+
+    // Unlike the permanently denied config path, this file is merely outside every allowed root.
+    // If teardown finalizers run with an active plugin context but no prompt-suppression guard,
+    // the audit hook would ask the user; without any context the read would succeed. The cleanup
+    // path must instead deny it without prompting.
+    reset_python_builtin_list("ORCA_INSIDE_CAP_DEL_OUTCOMES");
+    reset_python_builtin_list("ORCA_INSIDE_MODULE_DEL_OUTCOMES");
+    const std::string package =
+        "import builtins\n"
+        "PATH = " + python_literal(ungranted.string()) + "\n"
+        "CAP_OUTCOMES = builtins.ORCA_INSIDE_CAP_DEL_OUTCOMES\n"
+        "MODULE_OUTCOMES = builtins.ORCA_INSIDE_MODULE_DEL_OUTCOMES\n"
+        "\n"
+        "class ModuleFinalizer:\n"
+        "    def __init__(self):\n"
+        "        self.path = PATH\n"
+        "        self.outcomes = MODULE_OUTCOMES\n"
+        "\n"
+        "    def __del__(self):\n"
+        "        try:\n"
+        "            open(self.path).read()\n"
+        "            self.outcomes.append('allowed')\n"
+        "        except PermissionError:\n"
+        "            self.outcomes.append('denied')\n"
+        "        except Exception:\n"
+        "            self.outcomes.append('error')\n"
+        "\n"
+        "MODULE_FINALIZER = ModuleFinalizer()\n"
+        "\n"
+        "class Capability(orca.script.ScriptPluginCapabilityBase):\n"
+        "    def __init__(self):\n"
+        "        super().__init__()\n"
+        "        self.path = PATH\n"
+        "        self.outcomes = CAP_OUTCOMES\n"
+        "\n"
+        "    def __del__(self):\n"
+        "        try:\n"
+        "            open(self.path).read()\n"
+        "            self.outcomes.append('allowed')\n"
+        "        except PermissionError:\n"
+        "            self.outcomes.append('denied')\n"
+        "        except Exception:\n"
+        "            self.outcomes.append('error')\n"
+        "\n"
+        "    def get_name(self):\n"
+        "        return \"OutsideFinalizerAudit\"\n"
+        "\n"
+        "    def execute(self, ctx):\n"
+        "        return orca.ExecutionResult.success()\n"
+        "\n"
+        "@orca.plugin\n"
+        "class Package(orca.base):\n"
+        "    def register_capabilities(self):\n"
+        "        orca.register_capability(Capability)\n";
+
+    harness.add_plugin(plugin_key, load_audit_plugin_source("Outside Finalizer Audit Plugin", package));
+
+    std::string error;
+    const bool  loaded = harness.load(plugin_key, error);
+    INFO(error);
+    REQUIRE(loaded);
+    clear_python_builtin_list("ORCA_INSIDE_CAP_DEL_OUTCOMES");
+    clear_python_builtin_list("ORCA_INSIDE_MODULE_DEL_OUTCOMES");
+
+    REQUIRE(PluginManager::instance().unload_plugin(plugin_key));
+
+    const std::vector<std::string> capability_outcomes = python_builtin_strings("ORCA_INSIDE_CAP_DEL_OUTCOMES");
+    const std::vector<std::string> module_outcomes     = python_builtin_strings("ORCA_INSIDE_MODULE_DEL_OUTCOMES");
+    REQUIRE(capability_outcomes.size() == 1);
+    REQUIRE(module_outcomes.size() == 1);
+    CHECK(capability_outcomes.front() == "denied");
+    CHECK(module_outcomes.front() == "denied");
+    CHECK(harness.prompts.empty());
+}
+
+TEST_CASE("Exception formatting denies an ungranted outside path without prompting", "[PluginAudit][audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string plugin_key = "OutsideFormattingAuditPlugin";
+    const fs::path    ungranted  = harness.outside.path() / "ungranted-formatting.txt";
+    std::ofstream(ungranted.string(), std::ios::binary) << "x";
+
+    // Formatting a plugin exception is plugin code running. An ungranted file outside every
+    // allowed root must be denied, but the formatting path must not open a permission prompt.
+    reset_python_builtin_list("ORCA_INSIDE_FORMAT_OUTCOMES");
+    const std::string package =
+        "import builtins\n"
+        "PATH = " + python_literal(ungranted.string()) + "\n"
+        "OUTCOMES = builtins.ORCA_INSIDE_FORMAT_OUTCOMES\n"
+        "\n"
+        "class OutsideFormatError(Exception):\n"
+        "    outcomes = OUTCOMES\n"
+        "\n"
+        "    def __str__(self):\n"
+        "        try:\n"
+        "            open(PATH).read()\n"
+        "            self.outcomes.append('allowed')\n"
+        "        except PermissionError:\n"
+        "            self.outcomes.append('denied')\n"
+        "        except Exception:\n"
+        "            self.outcomes.append('error')\n"
+        "        return 'outside format probe'\n"
+        "\n"
+        "@orca.plugin\n"
+        "class Package(orca.base):\n"
+        "    def register_capabilities(self):\n"
+        "        raise OutsideFormatError()\n";
+
+    harness.add_plugin(plugin_key, load_audit_plugin_source("Outside Formatting Audit Plugin", package));
+
+    std::string error;
+    const bool loaded = harness.load(plugin_key, error);
+
+    INFO(error);
+    CHECK_FALSE(loaded);
+    CHECK(error.find("OutsideFormatError") != std::string::npos);
+    CHECK(error.find("outside format probe") != std::string::npos);
+
+    const std::vector<std::string> outcomes = python_builtin_strings("ORCA_INSIDE_FORMAT_OUTCOMES");
+    REQUIRE_FALSE(outcomes.empty());
+    for (const std::string& outcome : outcomes)
+        CHECK(outcome == "denied");
+    CHECK(harness.prompts.empty());
+    CHECK_FALSE(PluginManager::instance().is_plugin_loaded(plugin_key));
 }

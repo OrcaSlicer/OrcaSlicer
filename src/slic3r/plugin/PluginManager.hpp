@@ -78,6 +78,9 @@ struct Plugin
     Plugin& operator=(Plugin&& other) noexcept
     {
         if (this != &other) {
+            // Registry compaction only move-assigns into entries that were unloaded first, so the
+            // target's capability list is empty here and this does not take the GIL under m_mutex.
+            release_capabilities();
             release_module();
             descriptor        = std::move(other.descriptor);
             module            = other.module;
@@ -90,7 +93,14 @@ struct Plugin
         return *this;
     }
 
-    ~Plugin() { release_module(); }
+    ~Plugin()
+    {
+        // Capabilities first: their Python wrappers may reference the module's namespace, so the
+        // module must still be alive when they are released. Both run under the package's audit
+        // context so a plugin finalizer is judged as the plugin.
+        release_capabilities();
+        release_module();
+    }
 
     bool is_loaded() const { return module != nullptr; }
 
@@ -98,7 +108,18 @@ struct Plugin
     // reference. If the interpreter is already finalized, PythonInterpreter deliberately leaves
     // the raw reference untouched because there is no safe way to DECREF it.
     void release_module();
+
+    // Drops every capability reference under the package's audit context, keeping Python wrapper
+    // destruction on the GIL. Must run before release_module(). Do not call while holding the
+    // plugin registry lock: it can execute Python finalizers.
+    void release_capabilities();
 };
+
+// Drops every capability reference in `capabilities` under `plugin_key`'s audit context. The GIL
+// is acquired once for the whole release; if it is unavailable, the wrappers abandon their Python
+// references exactly as PluginInstanceHandle does. Callers must not hold the plugin registry lock.
+void release_capabilities_under_audit(std::vector<std::shared_ptr<PluginCapabilityInterface>>& capabilities,
+                                      const std::string&                                     plugin_key);
 
 // Outcome of one Script invocation, delivered to a script completion callback.
 //
