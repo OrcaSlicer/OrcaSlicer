@@ -2220,19 +2220,16 @@ msgstr "Неверный пароль"
 
 #, c-format, boost-format
 msgid "Connect %s failed! [SN:%s, code=%s]"
-msgstr "Сбой подключения к %s! [SN:%s, код=%s]"
+msgstr "Сбой подключения к %s. [SN:%s, код=%s]"
 
-# AI Translated
 msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
-msgstr "Убедитесь, что принтер находится в одной сети с этим компьютером и что его IP-адрес указан верно."
+msgstr "Проверьте корректность IP-адреса принтера и наличие подключения к общей сети."
 
-# AI Translated
 msgid "If the connection still fails, try a different network plug-in version in Preferences."
-msgstr "Если подключиться всё равно не удаётся, попробуйте другую версию сетевого плагина в настройках."
+msgstr "Если проблема осталась, попробуйте другую версию сетевого плагина в настройках."
 
-# AI Translated
 msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
-msgstr "Эта ошибка также может возникать из-за отсутствующего или повреждённого сертификата TLS/CA в файле printer.cer."
+msgstr "Также возможная причина в повреждении/отсутствии сертификата TLS/CA в файле \"printer.cer\"."
 
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\n"
@@ -3248,7 +3245,7 @@ msgid "Change Filament"
 msgstr "Сменить материал"
 
 msgid "Set Filament for selected items"
-msgstr "Задать материал для выбранных элементов"
+msgstr "Сменить материал выбранного"
 
 msgid "Automatically snaps the selected object to the build plate."
 msgstr "Автоматически притягивать выбранную модель к поверхности стола."
@@ -3386,16 +3383,13 @@ msgstr "X"
 msgid "Y"
 msgstr "Y"
 
-# AI Translated
 msgid "Z"
 msgstr "Z"
 
-# AI Translated
 #. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
 msgid "Inner diameter"
-msgstr "Внутренний диаметр"
+msgstr "Диаметр отверстия"
 
-# AI Translated
 msgid "Tube diameter"
 msgstr "Диаметр сечения"
 
@@ -5238,8 +5232,6 @@ msgstr ""
 msgid "Both [Extrusion] and [Combined] modes of Fuzzy Skin require the Arachne Wall Generator to be enabled."
 msgstr "Режимы нечёткой оболочки «Экструзия» и «Совместный» основаны на генераторе периметров Arachne и требуют его включения."
 
-# AI Translated
-# Needs human review: Added the Yes/No lines the English has under the person's question; check the wording.
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Enable Arachne Wall Generator\n"
@@ -5247,25 +5239,21 @@ msgid ""
 msgstr ""
 "Использовать нечёткую оболочку с движком Arachne?"
 
-# AI Translated
 msgid "Set the maximum volumetric extrusion rate slope above zero to use extrusion rate smoothing."
-msgstr "Задайте для «Сглаживание расхода» значение больше нуля, чтобы включить сглаживание расхода."
+msgstr "Для отображения настройки протяжённости сглаживания укажите ненулевое «Сглаживание расхода»."
 
-# AI Translated
 msgid "Arc fitting is unavailable for belt printers and when extrusion rate smoothing is enabled."
 msgstr "Аппроксимация дугами недоступна для ленточных принтеров и при включённом сглаживании расхода."
 
-# AI Translated
+# Подставляется в %s
 msgid "Set wall loops above zero to use this setting."
-msgstr "Задайте для «Периметры» значение больше нуля, чтобы использовать этот параметр."
+msgstr "Для её использования требуется включить периметры."
 
-# AI Translated
 msgid "This setting is hidden because sparse infill density is zero."
-msgstr "Этот параметр скрыт, так как «Плотность заполнения» равна нулю."
+msgstr "Для отображения требуется положительная «Плотность заполнения»."
 
-# AI Translated
 msgid "Infill anchors require nonzero sparse infill density and a pattern other than Concentric or Spiral Inset."
-msgstr "Для привязок заполнения требуются ненулевая плотность заполнения и шаблон, отличный от «Эквидистанты» и «Спиральный отступ»."
+msgstr "Требуется ненулевая плотность заполнения и совместимый шаблон («Эквидистанты» и «Отступ по спирали» несовместимы)."
 
 # AI Translated
 msgid "Enable infill combination and use nonzero sparse infill density to show this setting."
@@ -5283,9 +5271,8 @@ msgstr "Включите адаптивную плотность для шабл
 msgid "Select Gyroid infill with nonzero sparse infill density and disable adaptive density to use this setting."
 msgstr "Выберите шаблон заполнения «Гироид» с ненулевой плотностью заполнения и отключите адаптивную плотность, чтобы использовать этот параметр."
 
-# AI Translated
 msgid "The selected sparse infill pattern does not support multiline infill."
-msgstr "Выбранный шаблон заполнения не поддерживает многолинейное заполнение."
+msgstr "Выбранный шаблон заполнения не поддерживает множитель линий."
 
 # AI Translated
 msgid "The Line infill pattern does not support infill anchors."
@@ -5349,11 +5336,11 @@ msgstr "Выбранный шаблон заполнения не поддерж
 
 # AI Translated
 msgid "Use a top shell with nonzero surface density and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
-msgstr "Используйте оболочку сверху с ненулевой плотностью поверхности и шаблоном поверхности «Эквидистанты», «Спиральный отступ», «Спираль Архимеда» или «Спиральная октаграмма»."
+msgstr "Используйте оболочку сверху с ненулевой плотностью поверхности и шаблоном поверхности «Эквидистанты», «Отступ по спирали», «Спираль Архимеда» или «Спиральная октаграмма»."
 
 # AI Translated
 msgid "Use bottom shell layers and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
-msgstr "Используйте сплошные слои снизу и шаблон поверхности «Эквидистанты», «Спиральный отступ», «Спираль Архимеда» или «Спиральная октаграмма»."
+msgstr "Используйте сплошные слои снизу и шаблон поверхности «Эквидистанты», «Отступ по спирали», «Спираль Архимеда» или «Спиральная октаграмма»."
 
 # AI Translated
 msgid "Use nonzero sparse infill density or top or bottom shell layers to edit this setting."
@@ -5367,7 +5354,6 @@ msgstr "Отключите режим вазы и задайте для «Спл
 msgid "Disable spiral vase mode and set bottom shell layers above zero to edit bottom shell thickness."
 msgstr "Отключите режим вазы и задайте для «Сплошных слоёв снизу» значение больше нуля, чтобы изменить толщину оболочки снизу."
 
-# AI Translated
 msgid "Set default acceleration above zero to edit acceleration for individual extrusion roles."
 msgstr "Задайте для ускорения «По умолчанию» значение больше нуля, чтобы изменить ускорения для отдельных типов линий."
 
@@ -5759,13 +5745,11 @@ msgstr "Отключите «Косой шов вдоль всего перим�
 msgid "Enable conditional scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
 msgstr "Включите «Ограничения косого шва» и отключите режим вазы, чтобы использовать этот параметр (недоступно для ленточных принтеров)."
 
-# AI Translated
 msgid "Enable beam interlocking to use this setting."
-msgstr "Включите «Создать взаимосвязанную структуру», чтобы использовать этот параметр."
+msgstr "Включите «Перекрёстную сетку», чтобы использовать этот параметр."
 
-# AI Translated
 msgid "Disable beam interlocking to edit segmented region interlocking depth."
-msgstr "Отключите «Создать взаимосвязанную структуру», чтобы изменить «Глубина переплетения окрашенной области»."
+msgstr "Отключите «Перекрёстную сетку», чтобы изменить глубину шипа на стыке."
 
 # AI Translated
 msgid "Select the Lateral Lattice sparse infill pattern to use this setting."
@@ -5817,16 +5801,13 @@ msgstr "Для печати в режиме вазы необходимы сле
 msgid " But machines with I3 structure will not generate timelapse videos."
 msgstr " Но принтеры с кинематикой I3 не будут писать таймлапс."
 
-# AI Translated
-# Needs human review: Added the Yes/No lines the English has under the person's question; check the wording.
+# Yes/No – избыточны, оптимальная постановка вопроса в русском делает их ненужными.
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings and enable spiral/vase mode automatically\n"
 "No  - Cancel enabling spiral mode"
 msgstr ""
-"Использовать эти настройки и режим вазы?\n"
-"Да – применить эти настройки и включить режим вазы\n"
-"Нет – не включать режим вазы"
+"Использовать эти настройки и режим вазы?"
 
 # Не знаю, как и почему, но это, похоже, исправляет "вопросики" вместо
 # символов
@@ -7269,10 +7250,10 @@ msgid "Print plate"
 msgstr "Распечатать стол"
 
 msgid "Export plate sliced file"
-msgstr "Экспорт стола в файл проекта"
+msgstr "Экспорт в сжатый G-код"
 
 msgid "Export all sliced file"
-msgstr "Экспорт всех столов в файл проекта"
+msgstr "Экспорт всего в сжатый G-код"
 
 msgid "Export G-code file"
 msgstr "Экспорт в G-код"
@@ -7537,25 +7518,25 @@ msgid "Automatically switch between orthographic and perspective when changing f
 msgstr "Автоматическое переключение между ортогональной и перспективной проекцией при смене вида сверху/снизу/сбоку."
 
 msgid "Show &G-code Window"
-msgstr "&Показать панель G-кода"
+msgstr "&Панель просмотра G-кода"
 
 msgid "Show G-code window in Preview scene."
 msgstr "Показать панель G-кода в окне предпросмотра."
 
 msgid "Show 3D Navigator"
-msgstr "Показать навигационный куб"
+msgstr "Навигационный куб"
 
 msgid "Show 3D navigator in Prepare and Preview scene."
 msgstr "Показать навигационный куб в режиме подготовки и предварительного просмотра."
 
 msgid "Show Gridlines"
-msgstr "Показать разметку"
+msgstr "Разметка стола"
 
 msgid "Show Gridlines on plate"
 msgstr "Показать разметку стола"
 
 msgid "Show IDEX/IQEX Toolhead"
-msgstr "Показать габарит голов IMEX"
+msgstr "Габарит голов IMEX"
 
 msgid "Show the IDEX/IQEX toolhead representation around each active nozzle in the G-code preview."
 msgstr "Показывать при просмотре G-кода габарит каждой активной головы в режиме IMEX."
@@ -7567,33 +7548,31 @@ msgid "Reset to default window layout"
 msgstr "Восстановить стандартное расположение элементов интерфейса"
 
 msgid "Show 3Dconnexion Settings"
-msgstr "Показать настройки 3Dconnexion"
+msgstr "Настройки 3Dconnexion"
 
 msgid "Show/Hide 3Dconnexion devices settings dialog"
-msgstr "Показать/скрыть диалоговое окно настроек и устройств 3Dconnexion"
+msgstr "Переключить диалоговое окно настроек и устройств 3Dconnexion"
 
 msgid "Show &Labels"
-msgstr "Показать &имена файлов"
+msgstr "&Имена моделей"
 
 msgid "Show object labels in 3D scene."
-msgstr "Показать имена моделей в рабочей области."
+msgstr "Показать имена моделей в рабочей области"
 
-# AI Translated
 msgid "Show all collision volumes"
-msgstr "Показать все объёмы столкновения"
+msgstr "Области исключения целиком"
 
-# AI Translated
 msgid "Show the full height of every configured collision volume, including on an empty bed."
-msgstr "Показывать полную высоту каждого настроенного объёма столкновения, в том числе на пустом столе."
+msgstr "Показывать полную высоту каждой настроенной области исключения, в том числе на пустом столе."
 
 msgid "Show &Overhang"
-msgstr "Подсветить &нависания"
+msgstr "Подсветка &нависаний"
 
 msgid "Show object overhang highlight in 3D scene."
 msgstr "Подсвечивать нависания у модели в окне подготовки."
 
 msgid "Show Selected Outline (beta)"
-msgstr "Показать контур выбранного"
+msgstr "Контур выбранного"
 
 msgid "Show outline around selected object in 3D scene."
 msgstr "Отображение контура вокруг выбранных моделей в окне подготовки."
@@ -8990,23 +8969,21 @@ msgstr ""
 "Плагины с требуемым функционалом отсутствуют для этого типа.\n"
 "Включите или установите их для использования."
 
-# AI Translated
 msgid "Hidden by the current configuration."
 msgstr "Скрыто из-за текущих настроек."
 
-# AI Translated
+# Подставляются предложения с заглавной буквы; новые сообщения автоматически переводятся как автономные предложения, так что проще разделить точкой.
 #, boost-format
 msgid "Hidden: %1%"
-msgstr "Скрыто: %1%"
+msgstr "Настройка скрыта. %1%"
 
-# AI Translated
 msgid "Disabled by the current configuration."
 msgstr "Отключено из-за текущих настроек."
 
-# AI Translated
+# Подставляются предложения с заглавной буквы; новые сообщения автоматически переводятся как автономные предложения, так что проще разделить точкой.
 #, boost-format
 msgid "Disabled: %1%"
-msgstr "Отключено: %1%"
+msgstr "Настройка отключена. %1%"
 
 msgid "There is stringing-prone filament in the current print job. Enabling nozzle clumping detection now may degrade print quality. Are you sure you want to enable it?"
 msgstr "В текущем проекте есть материал, склонный к образованию паутины. Работа проверки налипаний на сопле сейчас может ухудшить качество печати. Вы действительно хотите включить её?"
@@ -9654,9 +9631,8 @@ msgstr "Во избежание повреждения принтера убед
 msgid "Customized Preset"
 msgstr "Пользовательский профиль"
 
-# AI Translated
 msgid "Some published settings could not be applied:"
-msgstr "Некоторые опубликованные настройки не удалось применить:"
+msgstr "Не удалось применить некоторые опубликованные настройки:"
 
 # AI Translated
 msgid "Some filament slots were changed:"
@@ -9727,9 +9703,8 @@ msgstr "Подключённый принтер – %s. Для печати он
 msgid "Do you want to sync the printer information and automatically switch the preset?"
 msgstr "Синхронизировать информацию о принтере и переключить профиль?"
 
-# AI Translated
 msgid "This project contains a model made in the Design tab and no other geometry. Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; it is kept when the project is saved."
-msgstr "Этот проект содержит модель, созданную на вкладке «Моделирование», и никакой другой геометрии. Включите «CAD-моделирование (экспериментально)» в настройках и перезапустите программу, чтобы увидеть и изменить её; при сохранении проекта она не теряется."
+msgstr "Этот проект не содержит ничего кроме модели, созданной в OrcaSlicer. Включите «Вкладка создания моделей (бета)» в настройках и перезапустите программу, чтобы увидеть и изменить её; при сохранении проекта она не теряется."
 
 msgid "The file does not contain any geometry data."
 msgstr "Файл не содержит никаких геометрических данных."
@@ -10800,13 +10775,11 @@ msgstr "Автоматически пересчитывать объём про�
 msgid "Auto arrange plate after cloning"
 msgstr "Авторасстановка копий на столе"
 
-# AI Translated
 msgid "Show options when adding a primitive"
-msgstr "Показывать параметры при добавлении фигуры"
+msgstr "Размеры фигур при их добавлении"
 
-# AI Translated
 msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
-msgstr "Если включено, перед добавлением фигуры открывается диалоговое окно для ввода её размеров."
+msgstr "Отображать окно настроек размера при добавлении фигуры."
 
 msgid "Auto slice after changes"
 msgstr "Повторная нарезка после изменения настроек"
@@ -10823,13 +10796,11 @@ msgstr "Игнорировать перепад температур"
 msgid "With this option enabled, you can print materials with a large temperature difference together."
 msgstr "Активировать возможность совместной печати разными материалами с большим перепадом температур."
 
-# AI Translated
 msgid "Remember last print action"
-msgstr "Запоминать последнее действие печати"
+msgstr "Запоминать вариант печати"
 
-# AI Translated
 msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
-msgstr "Если включено, OrcaSlicer запоминает последний выбранный вариант в выпадающем меню кнопки печати (например, «Печать», «Экспорт стола в файл проекта», «Экспорт в G-код») и использует его по умолчанию при следующем запуске."
+msgstr "Запоминать последний выбранный вариант в выпадающем меню кнопки печати («Печать», «Экспорт в G-код», «Экспорт в сжатый G-код» и т.д.) и использовать его по умолчанию при следующем запуске."
 
 msgid "Camera"
 msgstr "Камера"
@@ -10881,7 +10852,7 @@ msgstr "Отображать соединители сопряжений гра�
 
 # AI Translated
 msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
-msgstr "На вкладке «Моделирование» отображать соединитель сопряжения в виде небольшой грани вместо традиционного диска с сектором поворота. Ориентация грани понятна с первого взгляда, без изучения условных обозначений диска. Выключите для традиционного отображения, принятого в CAD."
+msgstr "Отображать сопряжения в виде небольшой грани вместо традиционного диска с сектором поворота на вкладке «Создание». Ориентация грани понятна с первого взгляда, без изучения условных обозначений диска. Выключите для традиционного отображения, принятого в САПР."
 
 # AI Translated
 msgid "Auto-close sketch loops"
@@ -11213,7 +11184,7 @@ msgid ""
 "\n"
 "Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."
 msgstr ""
-"Отключить все облачные функции, включая синзронизацию профилей с облаком Orca Cloud. Пригодится пользователям, отдающим предпочтение приватной работе без связи с интернетом.\n"
+"Отключить все облачные функции, включая синхронизацию профилей с облаком Orca Cloud. Пригодится пользователям, отдающим предпочтение приватной работе без связи с интернетом.\n"
 "\n"
 "Внимание: резервирование профилей в Orca Cloud будет недоступно."
 
@@ -11331,13 +11302,11 @@ msgstr "Показывать несовместимые профили"
 msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
 msgstr "Отображать в списке выбора профили материалов, несовместимые с текущим принтером. Примечание: профили остаются недоступными для выбора."
 
-# AI Translated
 msgid "Export statistics with G-code"
-msgstr "Экспортировать статистику вместе с G-кодом"
+msgstr "Экспорт статистики с G-кодом"
 
-# AI Translated
 msgid "If enabled, exporting a G-code file also writes its statistics as JSON next to it, as <name>.statistics.json, and an exported sliced 3MF file holds them inside: print time, filament and feature totals, and the same per layer and per object."
-msgstr "Если включено, при экспорте файла G-кода рядом с ним записывается его статистика в формате JSON (<name>.statistics.json), а экспортируемый нарезанный файл 3MF содержит её внутри: время печати, итоги по материалу и типам линий, а также те же данные по слоям и по объектам."
+msgstr "Сохранять статистику печати в формате JSON (<name>.statistics.json) рядом с файлом печати и внутри него (только в сжатый G-код). Содержит сводку сведений о моделях, времени печати, материалах, слоях и типах линий."
 
 msgid "Experimental Features"
 msgstr "Экспериментальные настройки"
@@ -12683,9 +12652,8 @@ msgstr "[Экспериментальная функция] Втягивание
 msgid "When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
 msgstr "При записи таймлапса со скрытием головы рекомендуется добавить черновую башню таймлапса. Нажмите по столу правой кнопкой мыши и выберите «Добавить фигуру» → «Черновая башня таймлапса»."
 
-# AI Translated
 msgid "Setting unavailable"
-msgstr "Параметр недоступен"
+msgstr "Настройка недоступна"
 
 msgid "A copy of the current system preset will be created, which will be detached from the system preset."
 msgstr "Будет создана независимая копия текущего системного профиля."
@@ -13341,23 +13309,18 @@ msgstr "Включите «Общий экструдер», чтобы испо�
 msgid "Enable single extruder multimaterial mode with wipe tower Type 2 on a non-Bambu printer to use this setting."
 msgstr "Включите «Общий экструдер» и выберите тип черновой башни «Тип 2», чтобы использовать этот параметр (недоступно для принтеров Bambu Lab)."
 
-# AI Translated
 msgid "Enable IDEX/IQEX printer mode to use this setting."
-msgstr "Включите «Принтер IDEX/IQEX», чтобы использовать этот параметр."
+msgstr "Включите «Принтер IMEX», чтобы использовать этот параметр."
 
-# AI Translated
 msgid "Front-left"
 msgstr "Спереди слева"
 
-# AI Translated
 msgid "Front-right"
 msgstr "Спереди справа"
 
-# AI Translated
 msgid "Rear-left"
 msgstr "Сзади слева"
 
-# AI Translated
 msgid "Rear-right"
 msgstr "Сзади справа"
 
@@ -13529,7 +13492,6 @@ msgstr ""
 "Вы действительно хотите удалить выбранный профиль?\n"
 "Если вы используете его в принтере, сбросьте информацию о нём у соответствующего слота."
 
-# AI Translated
 msgid "Are you sure you want to delete the selected preset?"
 msgstr "Вы действительно хотите удалить выбранный профиль?"
 
@@ -14143,34 +14105,28 @@ msgstr "Выбор принтера"
 msgid "Vendors"
 msgstr "Производители"
 
-# AI Translated
 msgid "Custom Printer"
-msgstr "Пользовательский принтер"
+msgstr "Собственный принтер"
 
 msgid "Create"
 msgstr "Создать"
 
-# AI Translated
 msgid "Check for new printers"
-msgstr "Проверить наличие новых принтеров"
+msgstr "Проверить обновления принтеров"
 
 msgid "At least one printer must be selected."
 msgstr "Должен быть выбран хотя бы один принтер."
 
-# AI Translated
 msgid "New printers found"
 msgstr "Найдены новые принтеры"
 
-# AI Translated
 #, c-format, boost-format
 msgid "New printer vendors installed: %s"
-msgstr "Установлены новые производители принтеров: %s"
+msgstr "Установлены принтеры новых производителей: %s"
 
-# AI Translated
 msgid "New printer vendors were found, but installation was cancelled."
-msgstr "Найдены новые производители принтеров, но установка была отменена."
+msgstr "Установка принтеров новых производителей отменена."
 
-# AI Translated
 msgid "No new printers found."
 msgstr "Новых принтеров не найдено."
 
@@ -14192,13 +14148,11 @@ msgstr "Тип материала"
 msgid "Vendor"
 msgstr "Производитель"
 
-# AI Translated
 msgid "No items"
-msgstr "Нет элементов"
+msgstr "Не найдено"
 
-# AI Translated
 msgid "Filter items"
-msgstr "Фильтр элементов"
+msgstr "Поиск"
 
 # AI Translated
 msgid "Checked"
@@ -14221,18 +14175,15 @@ msgstr "Должен быть выбран хотя бы один материа
 msgid "Do you want to use the default filament?"
 msgstr "Выбрать материалы по умолчанию?"
 
-# AI Translated
 msgid "This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option."
-msgstr "Отключает все облачные функции, включая синхронизацию профилей с Orca Cloud. Пользователи, предпочитающие работать полностью без подключения к интернету, могут включить этот параметр."
+msgstr "Отключить все облачные функции, включая синхронизацию профилей с облаком Orca Cloud. Пригодится пользователям, отдающим предпочтение приватной работе без связи с интернетом."
 
-# AI Translated
 msgid "Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."
-msgstr "Примечание: при включённом режиме приватности ваши пользовательские профили не будут резервироваться в Orca Cloud."
+msgstr "Внимание: резервирование профилей в Orca Cloud будет недоступно."
 
 msgid "Enable Stealth Mode."
 msgstr "Включить режим конфиденциальности"
 
-# AI Translated
 msgid "Proprietary Plugins"
 msgstr "Проприетарные плагины"
 
@@ -14251,11 +14202,9 @@ msgstr "[Требуется действие] "
 msgid "[Action Required]"
 msgstr "[Требуется действие]"
 
-# AI Translated
 msgid "Printer update service is unavailable."
-msgstr "Служба обновления принтеров недоступна."
+msgstr "Служба обновления профилей недоступна."
 
-# AI Translated
 msgid "Failed to check for new printers."
 msgstr "Не удалось проверить наличие новых принтеров."
 
@@ -14276,24 +14225,19 @@ msgstr "Вращение камеры"
 msgid "Use %s or %s, or a key that does not type a character."
 msgstr "Используйте %s или %s либо клавишу, которая не вводит символ."
 
-# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Key"
 msgstr "Клавиша"
 
-# AI Translated
 msgid "Left mouse"
 msgstr "ЛКМ"
 
-# AI Translated
 msgid "Available anywhere in the window."
-msgstr "Доступно в любом месте окна."
+msgstr "Глобальные горячие клавиши."
 
-# AI Translated
 msgid "Run favorite 1 to 10"
 msgstr "Запустить избранное действие 1–10"
 
-# AI Translated
 msgid "Pin or unpin the selected action"
 msgstr "Закрепить или открепить выбранное действие"
 
@@ -14301,13 +14245,11 @@ msgctxt "Keyboard Shortcut"
 msgid "Tab"
 msgstr "Tab"
 
-# AI Translated
 msgid "Switch to the next main tab"
-msgstr "Перейти на следующую основную вкладку"
+msgstr "Перейти на следующую вкладку слайсера"
 
-# AI Translated
 msgid "Available while the 3D view on the Prepare tab has focus."
-msgstr "Доступно, когда в фокусе 3D-вид на вкладке «Подготовка»."
+msgstr "Горячие клавиши рабочей области вкладки «Подготовка»."
 
 msgid "Select a part"
 msgstr "Выбор части модели"
@@ -14315,8 +14257,9 @@ msgstr "Выбор части модели"
 msgid "Select objects by rectangle"
 msgstr "Выбор прямоугольником"
 
+# сразу после добавляется 1-9
 msgid "Keyboard 1-9: set filament for object/part"
-msgstr "Клавиши 1-9: задать материал для модели/части модели"
+msgstr "Задать материал для модели/части"
 
 msgid "Movement step set to 1mm"
 msgstr "Зафиксировать шаг перемещения на 1 мм"
@@ -14324,38 +14267,32 @@ msgstr "Зафиксировать шаг перемещения на 1 мм"
 msgid "Movement in camera space"
 msgstr "Перемещение выбранного по отношению к камере"
 
-# AI Translated
 msgid "Middle mouse"
 msgstr "СКМ"
 
-# AI Translated
 msgid "Right mouse"
 msgstr "ПКМ"
 
 msgid "Zoom View"
 msgstr "Масштабирование вида"
 
-# AI Translated
 msgid "Painting"
 msgstr "Рисование"
 
-# AI Translated
 msgid "Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."
-msgstr "Доступно, когда открыт инструмент рисования: поддержек, шва, нечёткой оболочки или покраски."
+msgstr "Горячие клавиши инструментов покраски/рисования поддержек, шва и нечёткой оболочки."
 
 msgid "Move: press to snap by 1mm"
-msgstr "Перемещение: Фиксация перемещения на 1 мм"
+msgstr "Перемещение: сместить с шагом в 1 мм"
 
-# AI Translated
 msgid "Support/Color Painting: adjust pen radius"
-msgstr "Рисование поддержек/Шва/Покраски: регулировка радиуса кисти"
+msgstr "Радиус кисти рисования поддержек/шва и покраски"
 
 msgid "Objects list"
 msgstr "Список моделей"
 
-# AI Translated
 msgid "Available while the object list has focus."
-msgstr "Доступно, когда в фокусе список моделей."
+msgstr "Горячие клавиши списка моделей."
 
 msgid "Set extruder number for the objects and parts"
 msgstr "Задать номер экструдера для моделей/частей"
@@ -14373,9 +14310,8 @@ msgstr "Левая кнопка мыши"
 msgid "Select the object/part and mouse click to change the name"
 msgstr "Выберите модель/часть и нажмите левую клавишу мыши, чтобы изменить имя"
 
-# AI Translated
 msgid "Available while the 3D view on the Preview tab has focus."
-msgstr "Доступно, когда в фокусе 3D-вид на вкладке «Просмотр нарезки»."
+msgstr "Горячие клавиши рабочей области вкладки «Просмотр нарезки»."
 
 msgid "Move slider 5x faster"
 msgstr "Перемещение ползунка быстрее в 5 раз"
@@ -14384,9 +14320,8 @@ msgstr "Перемещение ползунка быстрее в 5 раз"
 msgid "Scroll slider 5x faster"
 msgstr "Прокрутка ползунка быстрее в 5 раз"
 
-# AI Translated
 msgid "Not customizable"
-msgstr "Не настраивается"
+msgstr "Системная клавиша"
 
 # AI Translated
 #, c-format, boost-format
@@ -14402,9 +14337,8 @@ msgstr "Сочетание по умолчанию %s уже назначено 
 msgid "A key that types a character cannot be a global shortcut."
 msgstr "Клавиша, вводящая символ, не может быть глобальным сочетанием."
 
-# AI Translated
 msgid "Esc cancels, Enter confirms."
-msgstr "Esc – отмена, Enter – подтверждение."
+msgstr "Enter – подтвердить, Esc – отмена."
 
 # AI Translated
 #, c-format, boost-format
@@ -14639,7 +14573,6 @@ msgstr "Восстановление завершено"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Не удалось скопировать файл %1% в %2%: %3%"
 
-# AI Translated
 #. TRN %1% is a comma-separated list of vendor names.
 #, boost-format
 msgid "Downloading new vendor profile: %1%..."
@@ -14648,10 +14581,9 @@ msgstr[0] "Загрузка нового профиля производител
 msgstr[1] "Загрузка новых профилей производителей: %1%..."
 msgstr[2] "Загрузка новых профилей производителей: %1%..."
 
-# AI Translated
 #, boost-format
 msgid "Configuration package: %1% updated to %2%"
-msgstr "Пакет профилей: %1% обновлён до %2%"
+msgstr "Пакет профилей %1% обновлён до %2%"
 
 # AI Translated
 #. TRN %1% is a comma-separated list of vendor names.
@@ -15154,7 +15086,7 @@ msgstr "Кайма «Только передний край» предназна
 
 # AI Translated
 msgid "A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."
-msgstr "Используется смешанный цвет с градиентом, но параметр «Подслой смешанного цвета» отключён. Градиент не будет напечатан."
+msgstr "Используется смешанный цвет с градиентом, но параметр «Смешивание внутри слоя» отключён. Градиент не будет напечатан."
 
 msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is enabled."
 msgstr "Плавный режим таймлапса не поддерживается, когда включена последовательность печати моделей по очереди."
@@ -16694,7 +16626,7 @@ msgstr "Эквидистанты"
 
 # AI Translated
 msgid "Spiral Inset"
-msgstr "Спиральный отступ"
+msgstr "Отступ по спирали"
 
 msgid "Hilbert Curve"
 msgstr "Кривая Гильберта"
@@ -16784,7 +16716,7 @@ msgid ""
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Направление заполнения верхних поверхностей при использовании шаблона, идущего от центра (Эквидистанты, Спиральный отступ, Спираль Архимеда, Спиральная октаграмма).\n"
+"Направление заполнения верхних поверхностей при использовании шаблона, идущего от центра (Эквидистанты, Отступ по спирали, Спираль Архимеда, Спиральная октаграмма).\n"
 "Наружу начинает от центра поверхности, поэтому излишек материала вытесняется к краю, где он менее заметен. Внутрь начинает от края и заканчивается тесными изгибами в центре.\n"
 "По умолчанию используется порядок по кратчайшему пути, который может идти в любом направлении."
 
@@ -16797,7 +16729,7 @@ msgid ""
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Направление заполнения нижних поверхностей при использовании шаблона, идущего от центра (Эквидистанты, Спиральный отступ, Спираль Архимеда, Спиральная октаграмма).\n"
+"Направление заполнения нижних поверхностей при использовании шаблона, идущего от центра (Эквидистанты, Отступ по спирали, Спираль Архимеда, Спиральная октаграмма).\n"
 "Внутрь начинает каждую поверхность с более широких внешних изгибов, что улучшает адгезию первого слоя на столах, к которым тесные изгибы в центре могут не прилипать. Наружу начинает от центра, вытесняя излишек материала к краю.\n"
 "По умолчанию используется порядок по кратчайшему пути, который может идти в любом направлении."
 
@@ -17750,9 +17682,8 @@ msgstr "ТПМП Фишера-Коха S"
 msgid "Gyroid"
 msgstr "Гироид"
 
-# AI Translated
 msgid "Sparse infill smooth factor"
-msgstr "Коэффициент сглаживания заполнения"
+msgstr "Сглаживание заполнения"
 
 # AI Translated
 msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original sharp path, while 100% produces the largest possible curves between adjacent infill lines."
@@ -18680,54 +18611,61 @@ msgid "Force the generation of solid shells between adjacent materials/volumes. 
 msgstr "Принудительное создание сплошных оболочек между смежными материалами/объёмами. Полезно для многоэкструдерной печати полупрозрачными материалами или растворимой поддержкой."
 
 msgid "Maximum width of a segmented region"
-msgstr "Глубина проникновения окрашенной области"
+msgstr "Толщина слоя покраски"
 
-# Переведено с фактическими ошибками, переписать с нуля
+# Переведено с фактическими ошибками, переписать с нуля. В оригинале тоже фактическая ошибка. UPD: разобрался и переписал
 msgid "Maximum width of a segmented region. A value of 0 disables this feature."
-msgstr "Толщина той части модели, которая была окрашена инструментом мультиматериальная покраска. Фактически это глубина проникновения окрашенной области в модель. Установите 0 для отключения работы этой функции."
+msgstr "Толщина основного слоя покраски, проникающего в модель.\n"
+"0 – не ограничивать толщину.\n"
+"\n"
+"Несовместимо с «перекрёстной сеткой» (параметр игнорируется)."
 
 msgid "Interlocking depth of a segmented region"
-msgstr "Глубина переплетения окрашенной области"
+msgstr "Глубина шипа на стыке"
 
-# AI Translated
+# Это независимая от верхней настройка: окрашенная часть структурно в сечении представляет из себя "гребёнку", и эта настройка управляет длиной её зубьев (отсчёт от поверхности). Если длина меньше толщины основной части окраса, то они врезаются уже не в тело модели, а наоборот, в окрас.
 msgid "Interlocking depth of a segmented region. On every other layer, the segmented region is limited to this depth. It will be ignored if \"interlocking_beam\" is enabled. Zero disables this feature."
-msgstr "Глубина переплетения окрашенной области. На каждом втором слое окрашенная область ограничивается этой глубиной. Игнорируется, если включён «interlocking_beam». Значение 0 отключает эту функцию."
+msgstr "Для улучшения сцепления двух материалов на их контактной поверхности формируется шиповой стык. Глубина задаёт общее расстояние проникновения каждого шипа вглубь модели от внешней поверхности.\n"
+"\n"
+"Несовместимо с «Перекрёстной сеткой»."
 
 msgid "Use beam interlocking"
-msgstr "Создать взаимосвязанную структуру"
+msgstr "Перекрёстная сетка"
 
 msgid "Generate interlocking beam structure at the locations where different filaments touch. This improves the adhesion between filaments, especially models printed in different materials."
-msgstr "Создать систему взаимосвязанных балок в местах, где модели соприкасаются друг с другом. Это позволит улучшить сцепление между моделями, особенно между моделями из разных материалов."
+msgstr "Создавать структуру в виде пространственной перекрёстной сетки в местах контакта двух материалов. Улучшает их адгезию и обеспечивает сцепление даже несовместимых материалов."
 
 msgid "Interlocking beam width"
-msgstr "Ширина взаимосвязанных балок"
+msgstr "Ширина полос сетки"
 
 msgid "The width of the interlocking structure beams."
-msgstr "Ширина балок взаимосвязанной конструкции."
+msgstr "Ширина ортогональных элементов сетки."
 
 msgid "Interlocking direction"
-msgstr "Направление взаимосвязанных балок"
+msgstr "Поворот сетки"
 
 msgid "Orientation of interlock beams."
-msgstr "Направление балок взаимосвязанной конструкции."
+msgstr "Направление структуры сетки."
 
 msgid "Interlocking beam layers"
-msgstr "Количество слоёв взаимосвязанных балок"
+msgstr "Высота полос сетки"
 
 msgid "The height of the beams of the interlocking structure, measured in number of layers. Less layers is stronger, but more prone to defects."
-msgstr "Высота балок взаимосвязанной структуры, измеряемая в количестве слоёв. Чем меньше слоёв, тем она будет прочнее, но более подвержена дефектам."
+msgstr "Количество слоёв сетки перед сменой направления. Чем меньше, тем выше прочность сцепления и риск возникновения дефектов."
 
 msgid "Interlocking depth"
-msgstr "Глубина взаимосвязанной структуры"
+msgstr "Расширение сетки"
 
 msgid "The distance from the boundary between filaments to generate interlocking structure, measured in cells. Too few cells will result in poor adhesion."
-msgstr "Расстояние от границы между моделями для создания взаимосвязанной структуры, измеряемое в ячейках. Слишком малое количество ячеек приведет к плохой адгезии."
+msgstr "Количество дополнительных боковых ячеек сетки. Позволяет мелким вкраплениям материала лучше заглубляться под поверхность модели."
 
+# Это функциональный дубликат толщины покраски, просто гении на бамбуках задают одно и то же двумя разными путями.
 msgid "Interlocking boundary avoidance"
-msgstr "Избегание границ взаимосвязанной структуры"
+msgstr "Отступ от поверхности"
 
+# Это функциональный дубликат толщины покраски, просто гении на бамбуках задают одно и то же двумя разными путями.
 msgid "The distance from the outside of a model where interlocking structures will not be generated, measured in cells."
-msgstr "Расстояние от внешней стороны модели, где взаимосвязанные структуры не будут создаваться, измеряемое в ячейках."
+msgstr "Заглубление начала сетки в поверхности детали. По сути, толщина основного слоя покраски (в ячейках)."
 
 msgid "Ironing type"
 msgstr "Тип разглаживания"
@@ -19342,19 +19280,20 @@ msgstr "Обнаруживать нависающие периметры"
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100% overhang, bridging speed is used."
 msgstr "Использовать разную скорость печати в зависимости от выноса линии относительно её опоры. Для нависаний без опоры используется скорость печати мостов."
 
-# AI Translated
 msgid "Print unsupported walls last"
-msgstr "Печатать неподдерживаемые периметры последними"
+msgstr "Парящие периметры в конце"
 
-# AI Translated
+# Последняя строчка очень криво сформулирована; речь идёт про мосты: https://github.com/OrcaSlicer/OrcaSlicer/pull/15411
 msgid ""
 "Wall loops that lie entirely in mid air are printed once something can hold them:\n"
 "they are extruded after the other walls of their island, innermost first, whatever the wall order is.\n"
 "A loop that only the bridges of this layer can anchor waits until those bridges are printed, while a loop running alongside a supported wall keeps its place before the infill, which needs it as an anchor."
 msgstr ""
-"Контуры периметров, полностью висящие в воздухе, печатаются только тогда, когда их есть чему удержать:\n"
-"они выдавливаются после остальных периметров своего острова, начиная с самого внутреннего, независимо от порядка периметров.\n"
-"Контур, который могут закрепить только мосты этого слоя, ждёт, пока эти мосты будут напечатаны, а контур, идущий вдоль опирающегося периметра, сохраняет своё место перед заполнением, которому он нужен как якорь."
+"Печатать парящие контуры периметров только после создания боковой опоры для них. Примеры опор:\n"
+"• прилегающие мосты (отверстия в мостах)\n"
+"• внутренние периметры (всенаправленные навесы).\n"
+"\n"
+"Периметры с опорой на соседние печатаются до мостов, чтобы стать опорой для них."
 
 # В секции "Материал для линий"
 msgid "Outer walls"
@@ -20958,29 +20897,28 @@ msgstr "Количество сплошных слоёв при печати в�
 msgid "Top shell thickness"
 msgstr "Толщина оболочки сверху"
 
+# AI Translated
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Минимальная толщина оболочки сверху в мм. Если толщина оболочки, рассчитанная по количеству сплошных слоёв сверху, меньше этого значения, количество сплошных слоёв сверху будет автоматически увеличено при нарезке, для удовлетворения минимальной толщины оболочки. Это позволяет избежать слишком тонкой оболочки при небольшой высоте слоя. 0 означает, что этот параметр отключён, а толщина оболочки сверху задаётся количеством сплошных слоёв сверху."
 
-# AI Translated
-# Needs human review: Setting label: how many layers behind a painted top surface take the painted color. 'paint' follows Color Painting ('Покраска'). Check it reads clearly next to 'Сплошных слоёв сверху'.
 msgid "Top paint penetration layers"
-msgstr "Слои проникновения покраски сверху"
+msgstr "Глубина слоя покраски"
 
-# AI Translated
 msgid "The number of layers, including the top surface layer, that take the color painted on a top surface. Set to 0 to use the top shell layers. A value larger than the top shell also colors the sparse infill below the painted area."
-msgstr "Количество слоёв, включая слой верхней поверхности, которые принимают цвет, нанесённый на верхнюю поверхность. 0 – использовать сплошные слои сверху. Если значение больше числа сплошных слоёв сверху, цвет распространяется и на заполнение под окрашенной областью."
+msgstr "Глубина основного слоя покраски, проникающего в модель (в слоях). Окрашивает заполнение, если глубина превышает количество сплошных слоёв.\n"
+"0 – определять автоматически."
 
 msgid "Separated infills"
 msgstr "Независимые шаблоны"
 
-# AI Translated
 msgid ""
 "Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts (or distinct 3D objects) each get their own.\n"
 "Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
 "Adaptive Cubic and Support Cubic always center each part on itself, and Lightning infill is generated for the whole object and is unaffected."
 msgstr ""
 "Разделить шаблоны заполнения у независимых частей модели/сборки. Это позволяет получать симметричное расположение шаблона в случаях, когда отдельные части вызывают его смещение относительно центра модели.\n"
-"Примечание: не влияет на части с прямым контактом между собой и не затрагивает «Динамический куб», «Кубическую поддержку» и «Молнию» (всегда независимые)."
+"\n"
+"Примечание: не влияет на части с прямым контактом между собой. Не отключает независимость «Динамического куба», «Кубической поддержки» и «Молнии»."
 
 msgid "Center surface pattern on"
 msgstr "Центровать шаблон по"
@@ -21041,13 +20979,11 @@ msgstr ""
 "\n"
 "Внимание: процент первичного отката будет увеличен, если длины очистки окажется недостаточно при текущей скорости отката (или из-за иных ограничений)."
 
-# AI Translated
 msgid "Mixed color sublayer"
-msgstr "Подслой смешанного цвета"
+msgstr "Смешивание внутри слоя"
 
-# AI Translated
 msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
-msgstr "Включает разбиение на подслои смешанного цвета. При включении слои, содержащие материалы смешанного цвета, разбиваются на подслои для получения эффекта смешивания цветов."
+msgstr "Чередовать материалы в составе смешанного цвета внутри каждого слоя. Позволяет лучше передавать промежуточные оттенки."
 
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Черновая башня – специальная структура, которая используется для прочистки сопла от остатков материала и стабилизации давления внутри сопла при смене экструдера, чтобы избежать дефектов на поверхности печатаемой модели."
@@ -21097,7 +21033,7 @@ msgid "This is the width of prime towers."
 msgstr "Размер черновой башни по оси X. Размер по оси Y будет автоматически вычислен исходя из необходимого объёма прочистки и ширины башни. Таким образом, увеличивая ширину башни вы уменьшаете её длину и наоборот."
 
 msgid "Wipe tower rotation angle"
-msgstr "Угол поворота черновой башни"
+msgstr "Поворот черновой башни"
 
 msgid "Wipe tower rotation angle with respect to X axis."
 msgstr "Угол поворота черновой башни относительно оси X."
@@ -25131,7 +25067,6 @@ msgstr "Недействительная сессия. Выполнить вхо
 msgid "Success!"
 msgstr "Успешно!"
 
-# AI Translated
 msgid "Generate API Key"
 msgstr "Создать API-ключ"
 
@@ -25139,7 +25074,6 @@ msgstr "Создать API-ключ"
 msgid "API Key created. Go to the physical printer and hit \"authorize\" on the screen, then run \"Test\" again."
 msgstr "API-ключ создан. Подойдите к принтеру, нажмите «authorize» на его экране, затем снова запустите «Тест»."
 
-# AI Translated
 msgid "API Key created."
 msgstr "API-ключ создан."
 
@@ -25682,7 +25616,6 @@ msgstr "Ошибка печати"
 msgid "Printing Pause"
 msgstr "Пауза печати"
 
-# AI Translated
 msgctxt "Device status"
 msgid "Prepare"
 msgstr "Подготовка"
@@ -29337,14 +29270,12 @@ msgstr ""
 msgid "No solid yet — select a sketch and right-click it to Extrude."
 msgstr "Твёрдых тел пока нет — выберите эскиз и нажмите на нём ПКМ, чтобы выдавить."
 
-# AI Translated
 msgid "Could not restore the CAD model from this project"
-msgstr "Не удалось восстановить CAD-модель из этого проекта"
+msgstr "Не удалось восстановить модель из САПР этого проекта"
 
-# AI Translated
 #, c-format, boost-format
 msgid "Could not restore the CAD model: %s"
-msgstr "Не удалось восстановить CAD-модель: %s"
+msgstr "Не удалось восстановить модель из САПР: %s"
 
 # AI Translated
 #, c-format
@@ -29355,7 +29286,6 @@ msgstr "Тело %zu — %s"
 msgid "Section view on — hides half the model to see inside; PageUp / PageDown move the plane, Flip shows the other half"
 msgstr "Сечение включено — половина модели скрыта, чтобы заглянуть внутрь; PageUp / PageDown перемещают плоскость, «Перевернуть сечение» показывает другую половину"
 
-# AI Translated
 msgid "Section view off"
 msgstr "Сечение выключено"
 
@@ -29859,7 +29789,7 @@ msgid "Nothing to commit — add a feature first"
 msgstr "Нечего передавать — сначала добавьте элемент"
 
 # AI Translated
-# Needs human review: Default name of an object committed from the Design tab; 'Design' rendered as 'моделирования' (the tab is Моделирование). Check it reads right in the object list.
+# Needs human review: Default name of an object committed from the Design tab; 'Design' rendered as 'моделирования' (the tab is Создание). Check it reads right in the object list.
 #, c-format, boost-format
 msgid "Design Body %d"
 msgstr "Тело моделирования %d"
@@ -29869,12 +29799,12 @@ msgid "All bodies hidden — show one before committing"
 msgstr "Все тела скрыты — покажите хотя бы одно перед передачей"
 
 # AI Translated
-# Needs human review: Default name of an object committed from the Design tab; 'Design' rendered as 'моделирования' (the tab is Моделирование). Check it reads right in the object list.
+# Needs human review: Default name of an object committed from the Design tab; 'Design' rendered as 'моделирования' (the tab is Создание). Check it reads right in the object list.
 msgid "Design Assembly"
 msgstr "Сборка моделирования"
 
 # AI Translated
-# Needs human review: Default name of an object committed from the Design tab; 'Design' rendered as 'моделирования' (the tab is Моделирование). Check it reads right in the object list.
+# Needs human review: Default name of an object committed from the Design tab; 'Design' rendered as 'моделирования' (the tab is Создание). Check it reads right in the object list.
 msgid "Design Body"
 msgstr "Тело моделирования"
 
@@ -30831,7 +30761,7 @@ msgstr "Ввести радиус этой дуги или диаметр это
 # AI Translated
 msgctxt "Design"
 msgid "Angle / distance…"
-msgstr "Угол / расстояние…"
+msgstr "Угол/расстояние…"
 
 # AI Translated
 msgid "Type the angle between two lines, or the distance between the two picks"
@@ -30841,11 +30771,9 @@ msgstr "Ввести угол между двумя линиями или рас
 msgid "Type the text to insert"
 msgstr "Введите вставляемый текст"
 
-# AI Translated
 msgid "Bold"
 msgstr "Полужирный"
 
-# AI Translated
 msgid "Italic"
 msgstr "Курсив"
 
@@ -30853,20 +30781,16 @@ msgstr "Курсив"
 msgid "This font cannot be used for text — pick another one"
 msgstr "Этот шрифт нельзя использовать для текста — выберите другой"
 
-# AI Translated
 msgid "Type the text to see its size"
 msgstr "Введите текст, чтобы увидеть его размер"
 
-# AI Translated
 msgid "This font has no outline for this text"
-msgstr "В этом шрифте нет контуров символов этого текста"
+msgstr "Шрифт не содержит контуров для этого текста"
 
-# AI Translated
 #, c-format, boost-format
 msgid "Size: %.1f × %.1f mm"
 msgstr "Размер: %.1f × %.1f мм"
 
-# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Ins"
 msgstr "Ins"
@@ -30879,12 +30803,10 @@ msgctxt "Keyboard Shortcut"
 msgid "End"
 msgstr "End"
 
-# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "PgUp"
 msgstr "PgUp"
 
-# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "PgDn"
 msgstr "PgDn"
@@ -30906,7 +30828,7 @@ msgid "Arrow Down"
 msgstr "Стрелка вниз"
 
 msgid "Import geometry data from STL/STEP/3MF/OBJ/AMF files"
-msgstr "Импорт геометрических данных из STL/STEP/3MF/OBJ/AMF файлов"
+msgstr "Импорт данных геометрии из файлов STL/STEP/3MF/OBJ/AMF"
 
 msgid "Select all objects"
 msgstr "Выбрать все модели"
@@ -30987,22 +30909,22 @@ msgid "Gizmo texture displacement painting"
 msgstr "Инструмент рисования рельефной текстуры"
 
 msgid "Vertical slider - Move active thumb Up"
-msgstr "Вертикальный ползунок - Сдвинуть активный ползунок вверх"
+msgstr "Вертикальный ползунок - сдвинуть вверх"
 
 msgid "Vertical slider - Move active thumb Down"
-msgstr "Вертикальный ползунок - Сдвинуть активный ползунок вниз"
+msgstr "Вертикальный ползунок - сдвинуть вниз"
 
 msgid "Horizontal slider - Move active thumb Left"
-msgstr "Горизонтальный ползунок - Сдвинуть активный ползунок влево"
+msgstr "Горизонтальный ползунок - сдвинуть влево"
 
 msgid "Horizontal slider - Move active thumb Right"
-msgstr "Горизонтальный ползунок - Сдвинуть активный ползунок вправо"
+msgstr "Горизонтальный ползунок - сдвинуть вправо"
 
 msgid "Horizontal slider - Move to start position"
-msgstr "Горизонтальный ползунок - перемещение в начальную позицию"
+msgstr "Горизонтальный ползунок - сдвинуть в начало"
 
 msgid "Horizontal slider - Move to last position"
-msgstr "Горизонтальный ползунок - перемещение в конечную позицию"
+msgstr "Горизонтальный ползунок - сдвинуть в конец"
 
 msgid "Camera view - Default"
 msgstr "Камера по умолчанию"
@@ -31035,21 +30957,20 @@ msgstr "Приблизить"
 msgid "Zoom out"
 msgstr "Отдалить"
 
-# AI Translated
 msgid "Show/Hide wireframe"
-msgstr "Показать/скрыть сетку"
+msgstr "Переключить сетку"
 
 msgid "On/Off G-code window"
-msgstr "Показать/скрыть окно отображения G-кода"
+msgstr "Переключить окно просмотра G-кода"
 
 msgid "On/Off one layer mode of the vertical slider"
-msgstr "Включение/отключение функции «Режим одного слоя» у вертикального ползунка"
+msgstr "Переключить «Режим одного слоя» в просмотре нарезки"
 
 msgid "Switch between Prepare/Preview"
-msgstr "Переключение между подготовкой и просмотром нарезки"
+msgstr "Переключить подготовку и просмотр нарезки"
 
 msgid "Collapse/Expand the sidebar"
-msgstr "Свернуть/развернуть боковую панель"
+msgstr "Переключить боковую панель"
 
 # Желательно сменить название; не очень хорошо отражает суть.
 msgid "Go to the Home tab"
@@ -31091,7 +31012,6 @@ msgstr "Показать список сочетаний клавиш"
 msgid "Open the Speed Dial"
 msgstr "Открыть быстрые действия"
 
-# AI Translated
 msgid "Slicing and printing"
 msgstr "Нарезка и печать"
 
@@ -31818,21 +31738,21 @@ msgstr "предпросмотр дал пустую сетку"
 # AI Translated
 #, boost-format
 msgid "saved with a newer version of the Design tab (format v%1%, this build reads up to v%2%)"
-msgstr "сохранено в более новой версии вкладки «Моделирование» (формат v%1%, эта сборка читает до v%2%)"
+msgstr "сохранено в более новой версии вкладки «Создание» (формат v%1%, эта сборка читает до v%2%)"
 
 # AI Translated
 #, boost-format
 msgid "saved with an older version of the Design tab (format v%1%); this project cannot be opened by this build"
-msgstr "сохранено в более старой версии вкладки «Моделирование» (формат v%1%); эта сборка не может открыть этот проект"
+msgstr "сохранено в более старой версии вкладки «Создание» (формат v%1%); эта сборка не может открыть этот проект"
 
 # AI Translated
 #, boost-format
 msgid "CAD data could not be read: %1%"
-msgstr "Не удалось прочитать данные CAD: %1%"
+msgstr "Не удалось прочитать данные САПР: %1%"
 
 # AI Translated
 msgid "CAD data could not be read"
-msgstr "Не удалось прочитать данные CAD"
+msgstr "Не удалось прочитать данные САПР"
 
 # AI Translated
 msgid "nothing to export"
@@ -35345,19 +35265,16 @@ msgstr "Захват этапов запекания"
 msgid "Preparing mesh for texture displacement"
 msgstr "Подготовка сетки для рельефной текстуры"
 
-# AI Translated
 msgid "Click to edit ratio"
-msgstr "Нажмите, чтобы изменить соотношение"
+msgstr "Изменить соотношение"
 
 # AI Translated
 msgid "Edit Mixed Filament"
 msgstr "Изменить смешанный цвет"
 
-# AI Translated
 msgid "Effect Preview"
 msgstr "Предпросмотр эффекта"
 
-# AI Translated
 msgid "Select Mixed Materials"
 msgstr "Выберите материалы для смешивания"
 
@@ -35367,22 +35284,18 @@ msgstr "+ Добавить"
 msgid "- Delete Material"
 msgstr "- Удалить"
 
-# AI Translated
 msgid "Gradient Effect"
 msgstr "Градиент"
 
-# AI Translated
 msgid "Enable per-part gradient effect"
-msgstr "Включить эффект градиента для каждой части"
+msgstr "Градиент для каждой части"
 
 msgid "Mixing Recommendations"
 msgstr "Рекомендованные сочетания"
 
-# AI Translated
 msgid "-- Select --"
-msgstr "-- Выберите --"
+msgstr "-- Выбрать --"
 
-# AI Translated
 #, c-format, boost-format
 msgid "Slot %s (%s)"
 msgstr "Слот %s (%s)"
@@ -35396,7 +35309,6 @@ msgstr "Нельзя смешивать материалы разных типо
 msgid "Please select a filament for all components"
 msgstr "Выберите материал для всех компонентов"
 
-# AI Translated
 msgid "Cannot mix different filament types"
 msgstr "Нельзя смешивать материалы разных типов"
 
@@ -35656,7 +35568,6 @@ msgstr "Сведения о плагине"
 msgid "Plugin Info"
 msgstr "Информация о плагине"
 
-# AI Translated
 msgid "Description"
 msgstr "Описание"
 
@@ -35676,11 +35587,9 @@ msgstr "Диагностика"
 msgid "Types"
 msgstr "Типы"
 
-# AI Translated
 msgid "Installed Version"
 msgstr "Установленная версия"
 
-# AI Translated
 msgid "Latest Version"
 msgstr "Последняя версия"
 
@@ -35708,11 +35617,9 @@ msgstr "Отменить сохранённые настройки этой во
 msgid "Plugin changelog"
 msgstr "Список изменений плагина"
 
-# AI Translated
 msgid "Date"
 msgstr "Дата"
 
-# AI Translated
 msgid "Changes"
 msgstr "Изменения"
 
@@ -35747,7 +35654,6 @@ msgstr "По подписке"
 msgid "Orphaned"
 msgstr "Осиротевший"
 
-# AI Translated
 msgctxt "Plugin"
 msgid "Local"
 msgstr "Локальный"
