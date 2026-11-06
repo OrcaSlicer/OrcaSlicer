@@ -125,6 +125,10 @@ struct FillParams
     // (Concentric, Archimedean Chords, Octagram Spiral). Default keeps shortest-path ordering.
     SurfaceFillOrder fill_order { SurfaceFillOrder::Default };
 
+    // Set by Layer::make_ironing(): the fill is an ironing pass. The Archimedean Chords filler then trims the
+    // spiral's dense center and drops the tangency slivers it leaves along the surface boundary.
+    bool            ironing { false };
+
     float           horiz_move{0.0}; //move infill to get cross zag pattern
     bool            symmetric_infill_y_axis{false};
     bool            infill_complete_top{false};

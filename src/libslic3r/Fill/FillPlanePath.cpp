@@ -18,6 +18,7 @@
 #include <type_traits>
 #include "FillPlanePath.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/EdgeGrid.hpp"
 
 namespace Slic3r {
 
@@ -88,6 +89,8 @@ void FillPlanePath::_fill_surface_single(
     ExPolygon                        expolygon,
     Polylines                       &polylines_out)
 {
+    // Ironing with the Archimedean Chords pattern gets a trimmed center and no boundary slivers.
+    const bool archimedean_ironing = params.ironing && dynamic_cast<FillArchimedeanChords *>(this) != nullptr;
     expolygon.rotate(-direction.first);
 
     //FIXME Vojtech: We are not sure whether the user expects the fill patterns on visible surfaces to be aligned across all the islands of a single layer.
@@ -139,6 +142,20 @@ void FillPlanePath::_fill_surface_single(
         }
     }
 
+    if (archimedean_ironing && polyline.points.size() > 1) {
+        // Keep the geometric center, skip the inner spiral up to the requested radius, then connect the center
+        // directly to the first retained arc. The center area stays mostly un-ironed, where the turns of the
+        // spiral would otherwise overlap.
+        constexpr double start_radius_in_spacings = 3.;
+        const double distance_between_lines = scaled<double>(this->spacing) * params.multiline / params.density;
+        const double start_radius_sq        = sqr(start_radius_in_spacings * distance_between_lines);
+        auto first = std::find_if(polyline.points.begin(), polyline.points.end(), [start_radius_sq](const Point &p) {
+            return double(p.x()) * double(p.x()) + double(p.y()) * double(p.y()) >= start_radius_sq;
+        });
+        if (first != polyline.points.end())
+            polyline.points.erase(polyline.points.begin() + 1, first);
+    }
+
     Polylines polylines = {polyline};
 
     // Apply multiline offset if needed
@@ -146,6 +163,38 @@ void FillPlanePath::_fill_surface_single(
 
     if (polyline.size() >= 2) {
         polylines = intersection_pl(std::move(polylines), expolygon);
+        if (archimedean_ironing && polylines.size() > 1) {
+            // Drop the tiny tangency slivers the spiral leaves along the rim. A clipped piece is a sliver when
+            // its representative midpoint hugs the boundary; a piece that dives inside has a deep midpoint.
+            const double  max_sliver_depth = scaled<double>(this->spacing) * 0.1;
+            const coord_t search_radius    = coord_t(std::ceil(max_sliver_depth));
+            constexpr size_t min_protected_vertex_count = 5;
+
+            EdgeGrid::Grid boundary_grid;
+            boundary_grid.create(expolygon, std::max<coord_t>(1, coord_t(scaled<double>(this->spacing))));
+
+            Polylines kept;
+            kept.reserve(polylines.size());
+            for (Polyline &pl : polylines) {
+                const size_t n = pl.points.size();
+                Point        mid;
+                if (n == 3)
+                    mid = ((pl.points.front() + pl.points.back()) / 2 + pl.points[1]) / 2;
+                else if (n % 2 == 0)
+                    mid = (pl.points[n / 2 - 1] + pl.points[n / 2]) / 2;
+                else
+                    mid = pl.points[n / 2];
+                coordf_t dist = 0.;
+                const bool is_sliver = n < min_protected_vertex_count &&
+                                       boundary_grid.signed_distance_edges(mid, search_radius, dist) &&
+                                       std::abs(dist) < max_sliver_depth;
+                if (! is_sliver)
+                    kept.push_back(std::move(pl));
+            }
+            // Never drop the whole surface.
+            if (! kept.empty())
+                polylines = std::move(kept);
+        }
         if (!polylines.empty()) {
             Polylines chained;
             if (params.dont_connect() || params.density > 0.5) {

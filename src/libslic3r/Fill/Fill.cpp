@@ -1814,6 +1814,7 @@ void Layer::make_ironing()
     FillParams 			fill_params;
     fill_params.density 	 = 1.;
     fill_params.monotonic    = true;
+    fill_params.ironing      = true;
     InfillPattern         f_pattern = ipRectilinear;
     std::unique_ptr<Fill> f         = std::unique_ptr<Fill>(Fill::new_from_type(f_pattern));
     f->set_bounding_box(this->object()->bounding_box());
