@@ -39203,6 +39203,30 @@ msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor az asztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
 
+# AI Translated
+#. TRN %1% is the object name; %2% lists the heights of the first unsupported islands in millimetres.
+#, boost-format
+msgid "It seems the organic supports of object %1% have parts printed with nothing under them, starting on the layers at Z (mm): %2%. Consider a filled base pattern, such as Rectilinear, instead of a hollow one."
+msgstr "Úgy tűnik, a(z) %1% objektum „Organikus” típusú támaszainak egyes részei alátámasztás nélkül nyomtatódnak, az alábbi Z-magasságú (mm) rétegektől kezdve: %2%. Fontold meg, hogy üreges alapmintázat helyett kitöltöttet, például „Vonalak” mintázatot használj."
+
+# AI Translated
+msgid "Initial Layer Diameter"
+msgstr "Kezdőréteg átmérője"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Initial Layer Diameter"
+msgid "The diameter every branch of organic supports tries to reach on the build plate. Branches widen towards it near the bed, which improves bed adhesion but takes more space on the bed. A tree widens towards it only until its base is as wide as the tree is tall. A value not larger than the branch diameter turns this widening off. For small models, 2 to 3 mm is recommended."
+msgstr "Az organikus támaszok minden ága ezt az átmérőt igyekszik elérni az asztalon. Az asztal közelében az ágak ehhez az átmérőhöz közelítve vastagodnak, ami javítja az asztalhoz való tapadást, de több helyet foglal az asztalon. A fatámasz csak addig szélesedik így, amíg az alapja olyan széles nem lesz, mint amilyen magas a támasz. Az ág átmérőjénél nem nagyobb érték kikapcsolja ezt a kiszélesedést. Kis modellekhez 2–3 mm ajánlott."
+
+# AI Translated
+msgid "Trunk Diameter"
+msgstr "Törzs átmérője"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Trunk Diameter"
+msgid "The diameter of the widest branches of organic supports, their bases on the build plate included. A thicker trunk is sturdier, a thinner trunk takes up less space on the bed. A value smaller than the branch diameter keeps every branch at the branch diameter. 0 means no limit."
+msgstr "Az organikus támaszok legvastagabb ágainak átmérője, beleértve az asztalon lévő alapjukat is. A vastagabb törzs stabilabb, a vékonyabb kevesebb helyet foglal az asztalon. Az ág átmérőjénél kisebb érték esetén minden ág a beállított ágátmérőn marad. A 0 azt jelenti, hogy nincs korlát."
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "Beállítások megjelenítése STEP fájl importálásakor"
 

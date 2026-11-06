@@ -38998,6 +38998,30 @@ msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
 
+# AI Translated
+#. TRN %1% is the object name; %2% lists the heights of the first unsupported islands in millimetres.
+#, boost-format
+msgid "It seems the organic supports of object %1% have parts printed with nothing under them, starting on the layers at Z (mm): %2%. Consider a filled base pattern, such as Rectilinear, instead of a hollow one."
+msgstr "ดูเหมือนว่าส่วนรองรับแบบออร์แกนิกของวัตถุ %1% มีส่วนที่พิมพ์โดยไม่มีสิ่งใดอยู่ด้านล่าง โดยเริ่มจากเลเยอร์ที่ Z (mm): %2%. พิจารณาใช้รูปแบบฐานที่เติมเนื้อด้านใน เช่น “เป็นเส้นตรง” แทนแบบกลวง."
+
+# AI Translated
+msgid "Initial Layer Diameter"
+msgstr "เส้นผ่านศูนย์กลางเลเยอร์แรก"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Initial Layer Diameter"
+msgid "The diameter every branch of organic supports tries to reach on the build plate. Branches widen towards it near the bed, which improves bed adhesion but takes more space on the bed. A tree widens towards it only until its base is as wide as the tree is tall. A value not larger than the branch diameter turns this widening off. For small models, 2 to 3 mm is recommended."
+msgstr "เส้นผ่านศูนย์กลางที่กิ่งแต่ละกิ่งของส่วนรองรับแบบออร์แกนิกพยายามขยายให้ได้บนฐานพิมพ์ กิ่งจะขยายให้เข้าใกล้เส้นผ่านศูนย์กลางนี้บริเวณใกล้ฐานพิมพ์ ทำให้ยึดเกาะฐานพิมพ์ได้ดีขึ้น แต่ใช้พื้นที่บนฐานพิมพ์มากขึ้น ส่วนรองรับแบบต้นไม้จะขยายได้จนฐานกว้างเท่ากับความสูงของต้นเท่านั้น หากตั้งค่าไม่เกินเส้นผ่านศูนย์กลางกิ่ง การขยายนี้จะถูกปิด แนะนำให้ใช้ค่า 2 ถึง 3 mm สำหรับโมเดลขนาดเล็ก."
+
+# AI Translated
+msgid "Trunk Diameter"
+msgstr "เส้นผ่านศูนย์กลางลำต้น"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Trunk Diameter"
+msgid "The diameter of the widest branches of organic supports, their bases on the build plate included. A thicker trunk is sturdier, a thinner trunk takes up less space on the bed. A value smaller than the branch diameter keeps every branch at the branch diameter. 0 means no limit."
+msgstr "เส้นผ่านศูนย์กลางของกิ่งที่กว้างที่สุดในส่วนรองรับแบบออร์แกนิก รวมถึงฐานของกิ่งบนฐานพิมพ์ ลำต้นที่หนาจะแข็งแรงกว่า ส่วนลำต้นที่บางจะใช้พื้นที่บนฐานพิมพ์น้อยกว่า หากตั้งค่าน้อยกว่าเส้นผ่านศูนย์กลางกิ่ง กิ่งทุกกิ่งจะคงเส้นผ่านศูนย์กลางไว้เท่ากับค่าเส้นผ่านศูนย์กลางกิ่ง 0 หมายถึงไม่จำกัด."
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "แสดงตัวเลือกเมื่อนำเข้าไฟล์ STEP"
 

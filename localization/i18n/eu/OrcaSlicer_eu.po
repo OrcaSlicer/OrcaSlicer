@@ -38546,6 +38546,32 @@ msgstr ""
 "Saihestu okertzea\n"
 "Ba al zenekien ABS bezalako okertzeko joera duten materialak inprimatzean ohe beroaren tenperatura egoki igotzeak okertzeko probabilitatea murriztu dezakeela?"
 
+# AI Translated
+# Needs human review: Check the Basque phrasing for support portions that begin at the listed Z heights without material below them.
+#. TRN %1% is the object name; %2% lists the heights of the first unsupported islands in millimetres.
+#, boost-format
+msgid "It seems the organic supports of object %1% have parts printed with nothing under them, starting on the layers at Z (mm): %2%. Consider a filled base pattern, such as Rectilinear, instead of a hollow one."
+msgstr "Badirudi %1% objektuaren euskarri organikoek azpian ezer gabe inprimatzen diren zatiak dituztela, Z (mm) balio hauetako geruzetatik hasita: %2%. Kontuan hartu oinarri-patroi bete bat erabiltzea, hala nola Lerrozuzena, patroi huts baten ordez."
+
+# AI Translated
+msgid "Initial Layer Diameter"
+msgstr "Lehen geruzaren diametroa"
+
+# AI Translated
+# Needs human review: Check that the Basque description of widening toward the target diameter until base width equals tree height reads naturally.
+#. TRN PrintSettings: "Organic supports" > "Initial Layer Diameter"
+msgid "The diameter every branch of organic supports tries to reach on the build plate. Branches widen towards it near the bed, which improves bed adhesion but takes more space on the bed. A tree widens towards it only until its base is as wide as the tree is tall. A value not larger than the branch diameter turns this widening off. For small models, 2 to 3 mm is recommended."
+msgstr "Euskarri organikoen adar bakoitzak ohean lortu nahi duen diametroa. Ohetik gertu, adarrak zabaldu egiten dira diametro horretara hurbiltzeko; horrek ohearekiko itsaspena hobetzen du, baina leku gehiago hartzen du ohean. Zuhaitza diametro horretarantz zabaltzen da soilik bere oinarriaren zabalera zuhaitzaren altueraren berdina izan arte. Adar-diametroa baino handiagoa ez den balio batek zabaltze hori desaktibatzen du. Modelo txikietarako, 2 eta 3 mm arteko balioa gomendatzen da."
+
+# AI Translated
+msgid "Trunk Diameter"
+msgstr "Enborraren diametroa"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Trunk Diameter"
+msgid "The diameter of the widest branches of organic supports, their bases on the build plate included. A thicker trunk is sturdier, a thinner trunk takes up less space on the bed. A value smaller than the branch diameter keeps every branch at the branch diameter. 0 means no limit."
+msgstr "Euskarri organikoen adarrik lodienen diametroa, oheko oinarriak barne. Enbor lodiagoa sendoagoa da; meheagoak leku gutxiago hartzen du ohean. Adar-diametroa baino txikiagoa den balio batek adar guztiak adar-diametroan mantentzen ditu. 0 balioak mugarik ez dagoela adierazten du."
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "Erakutsi aukerak STEP fitxategia inportatzean"
 

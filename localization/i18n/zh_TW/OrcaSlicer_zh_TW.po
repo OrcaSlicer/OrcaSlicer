@@ -40415,3 +40415,27 @@ msgid ""
 msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度可以降低翹曲的機率。"
+
+# AI Translated
+#. TRN %1% is the object name; %2% lists the heights of the first unsupported islands in millimetres.
+#, boost-format
+msgid "It seems the organic supports of object %1% have parts printed with nothing under them, starting on the layers at Z (mm): %2%. Consider a filled base pattern, such as Rectilinear, instead of a hollow one."
+msgstr "物件 %1% 的有機樹支撐似乎有部分區域下方完全懸空，這些區域從以下 Z 高度（mm）的層開始列印：%2%。請考慮使用內部有填充的支撐主體圖案，例如「直線」，取代空心圖案。"
+
+# AI Translated
+msgid "Initial Layer Diameter"
+msgstr "首層直徑"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Initial Layer Diameter"
+msgid "The diameter every branch of organic supports tries to reach on the build plate. Branches widen towards it near the bed, which improves bed adhesion but takes more space on the bed. A tree widens towards it only until its base is as wide as the tree is tall. A value not larger than the branch diameter turns this widening off. For small models, 2 to 3 mm is recommended."
+msgstr "有機樹支撐的各個分支在列印板上的目標直徑。分支會在列印板附近朝這個直徑加寬，可提升對列印板的附著力，但也會占用更多列印板空間。支撐樹會朝這個直徑加寬，直到底部寬度與樹的高度相同為止。設定值若小於或等於分支直徑，就會停用這種加寬。小型模型建議使用 2 到 3 mm。"
+
+# AI Translated
+msgid "Trunk Diameter"
+msgstr "樹幹直徑"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Trunk Diameter"
+msgid "The diameter of the widest branches of organic supports, their bases on the build plate included. A thicker trunk is sturdier, a thinner trunk takes up less space on the bed. A value smaller than the branch diameter keeps every branch at the branch diameter. 0 means no limit."
+msgstr "有機樹支撐中最粗分支的直徑，包含分支在列印板上的底部。樹幹較粗時更穩固，較細時則占用較少的列印板空間。若設定值小於分支直徑，所有分支都會維持設定的分支直徑。0 表示不設限。"
