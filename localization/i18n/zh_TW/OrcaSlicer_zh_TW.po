@@ -7653,7 +7653,7 @@ msgid "Resolution"
 msgstr "解析度"
 
 msgid "Custom camera source"
-msgstr "自訂相機來源"
+msgstr "自訂攝影機來源"
 
 # AI Translated
 msgid "Camera stream URL"
@@ -8746,7 +8746,7 @@ msgid "Camera Setting"
 msgstr "攝影機設定"
 
 msgid "Switch Camera View"
-msgstr "切換相機視角"
+msgstr "切換攝影機畫面"
 
 msgid "Control"
 msgstr "控制"
