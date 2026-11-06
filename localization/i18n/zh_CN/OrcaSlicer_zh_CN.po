@@ -7466,9 +7466,8 @@ msgstr "实时预览重试"
 msgid "Resolution"
 msgstr "分辨率"
 
-# AI Translated
 msgid "Custom camera source"
-msgstr "自定义摄像头源"
+msgstr "自定义摄像机源"
 
 # AI Translated
 msgid "Camera stream URL"
@@ -8540,9 +8539,8 @@ msgstr "存储"
 msgid "Camera Setting"
 msgstr "摄像头设置"
 
-# AI Translated
 msgid "Switch Camera View"
-msgstr "切换摄像头画面"
+msgstr "切换相机视图"
 
 msgid "Control"
 msgstr "控制"
@@ -11396,7 +11394,6 @@ msgstr "启用后，将 OrcaSlicer 设置为打开 STEP 文件的默认应用程
 msgid "Associate web links to OrcaSlicer"
 msgstr "将网页链接关联到OrcaSlicer"
 
-# AI Translated
 msgid "Behaviour"
 msgstr "行为"
 

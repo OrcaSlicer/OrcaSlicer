@@ -7652,9 +7652,8 @@ msgstr "重新嘗試 Liveview"
 msgid "Resolution"
 msgstr "解析度"
 
-# AI Translated
 msgid "Custom camera source"
-msgstr "自訂攝影機來源"
+msgstr "自訂相機來源"
 
 # AI Translated
 msgid "Camera stream URL"
@@ -8746,9 +8745,8 @@ msgstr "儲存空間"
 msgid "Camera Setting"
 msgstr "攝影機設定"
 
-# AI Translated
 msgid "Switch Camera View"
-msgstr "切換攝影機畫面"
+msgstr "切換相機視角"
 
 msgid "Control"
 msgstr "控制"
@@ -11634,7 +11632,6 @@ msgstr "啟用後，將 OrcaSlicer 設定為開啟 STEP 檔案的預設應用程
 msgid "Associate web links to OrcaSlicer"
 msgstr "將網頁連結關聯到 OrcaSlicer"
 
-# AI Translated
 msgid "Behaviour"
 msgstr "行為"
 
