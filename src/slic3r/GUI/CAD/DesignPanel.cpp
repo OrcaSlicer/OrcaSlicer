@@ -4998,10 +4998,46 @@ void DesignPanel::on_import_step()
 // shared topology, then coplanar neighbours are merged so the result has pickable CAD faces
 // rather than one face per triangle. Lands in the same CadFeatureType::Import as a STEP, so
 // every downstream feature tool (fillet / cut / shell / face-extrude) works on it unchanged.
+void DesignPanel::import_mesh_parts(const std::vector<TriangleMesh>& parts, const wxString& label)
+{
+    auto fail = [this](const wxString& msg) { set_status(StatusKind::Error, msg); };
+    std::vector<TopoDS_Shape> shapes;
+    wxBusyCursor busy3;
+    try {
+        for (const TriangleMesh& m : parts) {
+            if (m.its.indices.empty()) continue;
+            GeometryEngine::MeshBrepStats st;
+            TopoDS_Shape sh = GeometryEngine::mesh_to_brep(m.its, MESH_IMPORT_TOLERANCE, MESH_IMPORT_MERGE_ANGLE_DEG, st);
+            if (!sh.IsNull()) shapes.push_back(sh);
+        }
+    } catch (const std::exception& e) {
+        fail(wxString::Format(_L("Mesh conversion failed: %s"), kernel_error_text(e.what())));
+        return;
+    }
+    if (shapes.empty()) { fail(_L("No usable geometry in the mesh")); return; }
+    m_doc.place_on_bed(shapes);
+    m_doc.checkpoint();
+    for (const TopoDS_Shape& sh : shapes) {
+        m_feature_counter++;
+        CadFeature f;
+        f.type = CadFeatureType::Import; f.name = feature_name(label); f.imported_solid = sh; f.mode = BooleanMode::New;
+        m_doc.append_feature(f);
+    }
+    if (!recompute_guarded(_L("Rebuilding model…"))) {
+        fail(wxString::Format(_L("Import failed: %s"), kernel_error_text(m_doc.error)));
+        return;
+    }
+    set_ui_mode(UiMode::Feature);
+    refresh_tree();
+    set_tree_selection(m_doc.last_added);
+    set_status_ok();
+    set_status(StatusKind::Info, wxString::Format(_L("Imported %d bodies, centred on the bed"), int(shapes.size())));
+}
+
 void DesignPanel::on_import_mesh()
 {
     wxFileDialog dlg(this, _L("Import mesh"), wxEmptyString, wxEmptyString,
-                     _L("Mesh files (*.stl;*.obj)|*.stl;*.obj|All files|*.*"),
+                     _L("Mesh files (*.stl;*.obj;*.3mf)|*.stl;*.obj;*.3mf|All files|*.*"),
                      wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     if (dlg.ShowModal() != wxID_OK)
         return;
@@ -5015,6 +5051,26 @@ void DesignPanel::on_import_mesh()
     TriangleMesh mesh;
     const std::string ext = boost::algorithm::to_lower_copy(
         boost::filesystem::path(path).extension().string());
+    // Several separate pieces (a 3MF assembly, or an STL/OBJ holding more than one shell) are separate bodies:
+    // each connected piece becomes its own B-rep body, the whole group is then centred on the bed together so
+    // the relative layout survives. Without this, mesh_to_brep fuses them into ONE body and Boolean sees one.
+    auto import_parts = [this](const std::vector<TriangleMesh>& parts, const wxString& label) { import_mesh_parts(parts, label); };
+    if (ext == ".3mf") {
+        std::vector<TriangleMesh> parts;
+        try {
+            Model model = Model::read_from_file(path);
+            for (const ModelObject* o : model.objects) {
+                TriangleMesh m = o->mesh();
+                if (!o->instances.empty()) m.transform(o->instances.front()->get_transformation().get_matrix());
+                for (TriangleMesh& piece : m.split()) parts.push_back(std::move(piece));
+            }
+        } catch (const std::exception& e) {
+            fail(wxString::Format(_L("Could not read the 3MF file: %s"), wxString::FromUTF8(e.what())));
+            return;
+        }
+        import_parts(parts, _L("3MF"));
+        return;
+    }
     if (ext == ".stl") {
         if (!mesh.ReadSTLFile(path.c_str())) { fail(_L("Could not read the STL file")); return; }
     } else if (ext == ".obj") {
@@ -5029,6 +5085,7 @@ void DesignPanel::on_import_mesh()
         return;
     }
     if (mesh.its.indices.empty()) { fail(_L("The mesh contains no triangles")); return; }
+    if (std::vector<TriangleMesh> pieces = mesh.split(); pieces.size() > 1) { import_parts(pieces, _L("Mesh")); return; }
 
     // One planar face per triangle before merging, so the cost is driven by the triangle count.
     // A dense organic scan has few coplanar neighbours to merge away and stays heavy afterwards;
@@ -5060,6 +5117,7 @@ void DesignPanel::on_import_mesh()
     }
     if (shape.IsNull()) { fail(_L("Mesh conversion produced no geometry")); return; }
 
+    { std::vector<TopoDS_Shape> one{shape}; m_doc.place_on_bed(one); shape = one[0]; }
     m_doc.checkpoint();   // undo boundary: importing a mesh as a B-rep body
     m_feature_counter++;
     CadFeature f;
