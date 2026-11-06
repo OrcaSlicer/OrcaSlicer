@@ -2014,6 +2014,42 @@ void WipeTower2::toolchange_Wipe(
 
 
 
+Polygon WipeTower2::generate_region_wall(WipeTowerWriter2 &writer, float feedrate, bool first_layer)
+{
+    Polygon outline = m_wall_type == int(wtwCone) ?
+        cone_base_polygon(m_wipe_tower_width, m_shared_depth,
+            std::max(0.f, m_shared_height - (first_layer ? 0.f : m_z_pos)), m_wipe_tower_cone_angle) : m_shared_outline;
+    const BoundingBox bounds = get_extents(outline);
+    // At a stepped boundary, touching wall endpoints would put a later fine
+    // bead inside the end cap of an already printed coarse bead. Leave room for
+    // both the bead and the neighboring nozzle. The common first layer is flat.
+    const float inset = !first_layer && m_region_wall_clearance > 0.f ?
+        m_region_wall_clearance + 0.5f * m_perimeter_width : 0.f;
+    const coord_t lower = m_region_y <= WT_EPSILON ? bounds.min.y() - 1 : scaled(m_region_y + inset);
+    const coord_t upper = m_region_y + m_wipe_tower_depth >= m_shared_depth - WT_EPSILON ?
+        bounds.max.y() + 1 : scaled(m_region_y + m_wipe_tower_depth - inset);
+    Polygon region(Points{{bounds.min.x() - 1, lower}, {bounds.max.x() + 1, lower},
+                                {bounds.max.x() + 1, upper}, {bounds.min.x() - 1, upper}});
+    const Point shift(0, -scaled(m_region_y));
+    region.translate(shift);
+    outline.translate(shift);
+    Polylines wall{to_polyline(outline)};
+    if (m_use_gap_wall) {
+        const size_t layer_id = size_t(m_layer_info - m_plan.begin());
+        if (layer_id < m_wall_skip_points.size()) {
+            Polygon unused_outline;
+            wall = construct_gap_for_skip_points(outline, m_wall_skip_points[layer_id], m_wipe_tower_width,
+                2.5 * m_perimeter_width, unused_outline);
+        }
+    }
+    wall = intersection_pl(wall, region);
+    writer.append("; SHARED_TOWER_WALL_START\n");
+    writer.generate_path(wall, feedrate, m_filpar[m_current_tool].retract_length,
+        m_filpar[m_current_tool].retract_speed * 60.f, m_used_fillet);
+    writer.append("; SHARED_TOWER_WALL_END\n");
+    return outline;
+}
+
 WipeTower::ToolChangeResult WipeTower2::finish_layer()
 {
 	assert(! this->layer_finished());
@@ -2046,7 +2082,7 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
     bool toolchanges_on_layer = m_layer_info->toolchanges_depth() > WT_EPSILON;
 
     // inner perimeter of the sparse section, if there is space for it:
-    if (fill_box.ru.y() - fill_box.rd.y() > m_perimeter_width - WT_EPSILON)
+    if (!m_is_tool_region && fill_box.ru.y() - fill_box.rd.y() > m_perimeter_width - WT_EPSILON)
         writer.rectangle(fill_box.ld, fill_box.rd.x()-fill_box.ld.x(), fill_box.ru.y()-fill_box.rd.y(), feedrate);
 
     // we are in one of the corners, travel to ld along the perimeter:
@@ -2114,7 +2150,9 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
     feedrate = first_layer ? m_first_layer_speed * 60.f : std::min(m_wipe_tower_max_purge_speed * 60.f, m_perimeter_speed * 60.f);
 
     Polygon poly;
-    if (m_wall_type == (int)wtwCone) {
+    if (m_is_tool_region) {
+        poly = generate_region_wall(writer, feedrate, first_layer);
+    } else if (m_wall_type == (int)wtwCone) {
          WipeTower::box_coordinates wt_box(Vec2f(0.f, (m_current_shape == SHAPE_REVERSED ? m_layer_info->toolchanges_depth() : 0.f)),
                                            m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
         // outer contour (always)
@@ -2125,8 +2163,8 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
         poly = generate_support_rib_wall(writer, wt_box, feedrate, first_layer, m_wall_type == (int)wtwRib, true);
     }
 
-    // brim (first layer only)
-    if (first_layer) {
+    // One brim surrounds the shared footprint, emitted by its first visiting tool.
+    if (first_layer && (!m_is_tool_region || m_shared_brim)) {
         writer.append("; WIPE_TOWER_BRIM_START\n");
             float brim_width = m_wipe_tower_brim_width;
         if (brim_width < 0.f)
@@ -2160,7 +2198,8 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
     // Now prepare future wipe.
     int i = poly.closest_point_index(Point::new_scale(writer.x(), writer.y()));
     writer.add_wipe_point(writer.pos());
-    writer.add_wipe_point(unscale(poly.points[i==0 ? int(poly.points.size())-1 : i-1]).cast<float>());
+    if (!m_is_tool_region)
+        writer.add_wipe_point(unscale(poly.points[i==0 ? int(poly.points.size())-1 : i-1]).cast<float>());
 
     // Ask our writer about how much material was consumed.
     // Skip this in case the layer is sparse and config option to not print sparse layers is enabled.
@@ -2369,6 +2408,9 @@ void WipeTower2::plan_tower()
 				m_plan[i].depth = this_layer_depth;
 		}
 	}
+    if (m_is_tool_region)
+        for (auto &layer : m_plan)
+            layer.depth = m_wipe_tower_depth - m_perimeter_width;
 }
 
 void WipeTower2::save_on_last_wipe()
@@ -2438,7 +2480,7 @@ int WipeTower2::first_toolchange_to_nonsoluble_nonsupport(
 {
     if (tool_changes.empty())
         return -1;
-    if (m_is_tool_column)
+    if (m_is_tool_region)
         return 0;
 
     // If a specific wipe tower filament is forced, use it to decide where to finish the layer.
@@ -2502,14 +2544,19 @@ void WipeTower2::compute_wall_skip_points()
     }
 }
 
-// Give each physical deposition schedule a disjoint footprint. Combining a
-// shared layer would otherwise force a fine nozzle to print the coarse tool's
-// height, or make the coarse tool over-extrude over already deposited material.
-void WipeTower2::generate_tool_columns(std::vector<std::vector<WipeTower::ToolChangeResult>> &result)
+// Reserve adjacent purge regions inside one common shell. Each region owns its
+// XY space through all of its deposition bands; repeated visits in a band consume
+// different purge rows. The common outline is partitioned at the same boundaries,
+// so no tool extrudes over another tool's already completed material.
+void WipeTower2::generate_tool_regions(std::vector<std::vector<WipeTower::ToolChangeResult>> &result)
 {
     using Result = WipeTower::ToolChangeResult;
     using Address = std::pair<size_t, size_t>;
-    std::vector<std::vector<Address>> visits(m_filpar.size());
+    struct Visit {
+        Address address;
+        bool ramming;
+    };
+    std::vector<std::vector<Visit>> visits(m_filpar.size());
     result.resize(m_plan.size());
     for (size_t layer = 0; layer < m_plan.size(); ++layer) {
         result[layer].resize(std::max(size_t(1), m_plan[layer].tool_changes.size()));
@@ -2518,92 +2565,149 @@ void WipeTower2::generate_tool_columns(std::vector<std::vector<WipeTower::ToolCh
         for (size_t change = 0; change < m_plan[layer].tool_changes.size(); ++change) {
             const auto &toolchange = m_plan[layer].tool_changes[change];
             if (m_filpar[toolchange.old_tool].multitool_ramming)
-                visits[toolchange.old_tool].emplace_back(layer, change);
-            visits[toolchange.new_tool].emplace_back(layer, change);
+                visits[toolchange.old_tool].push_back({{layer, change}, true});
+            visits[toolchange.new_tool].push_back({{layer, change}, false});
         }
     }
     m_used_filament_length.assign(m_filpar.size(), 0.f);
     m_num_tool_changes = 0;
-    const size_t column_count = std::count_if(visits.begin(), visits.end(), [](const auto &column) { return !column.empty(); });
-    const size_t columns_per_row = size_t(std::ceil(std::sqrt(double(column_count))));
-    size_t column_index = 0;
-    float column_x = 0.f, column_y = 0.f, row_height = 0.f, width = 0.f, tower_height = 0.f;
+    struct Region {
+        std::unique_ptr<WipeTower2> tower;
+        std::vector<std::vector<Address>> destinations;
+    };
+    std::vector<Region> regions;
+    float depth = 0.f, tower_height = 0.f;
     const float first_z = m_plan.front().z;
     const float first_height = m_plan.front().height;
     for (size_t tool = 0; tool < visits.size(); ++tool) {
         if (visits[tool].empty())
             continue;
-        WipeTower2 column(*this);
-        column.m_is_tool_column = true;
-        column.m_independent_tool_layers = false;
-        column.m_sparse_layers_combined = false;
-        column.m_sparse_layers_skipped = false;
-        column.m_plan.clear();
-        column.m_first_layer_idx = 0;
-        column.m_used_filament_length_until_layer.clear();
-        column.apply_perimeter_width_for(tool);
+        auto region = std::make_unique<WipeTower2>(*this);
+        WipeTower2 &planner = *region;
+        planner.m_is_tool_region = true;
+        planner.m_independent_tool_layers = false;
+        planner.m_sparse_layers_combined = false;
+        planner.m_sparse_layers_skipped = false;
+        planner.m_plan.clear();
+        planner.m_first_layer_idx = 0;
+        planner.m_used_filament_length_until_layer.clear();
+        planner.apply_perimeter_width_for(tool);
         const float height = m_filpar[tool].layer_height;
         const auto band_for = [&](float z) {
             return z <= first_z + WT_EPSILON ? size_t(0) :
                 size_t(std::ceil((z - first_z - WT_EPSILON) / height));
         };
-        const size_t last_band = band_for(m_plan[visits[tool].back().first].z);
+        const size_t last_band = band_for(m_plan[visits[tool].back().address.first].z);
         std::vector<std::vector<Address>> destinations(last_band + 1);
         size_t visit = 0;
         for (size_t band = 0; band <= last_band; ++band) {
-            column.m_plan.emplace_back(first_z + band * height, band == 0 ? first_height : height);
-            auto &plan = column.m_plan.back();
-            while (visit < visits[tool].size() && band_for(m_plan[visits[tool][visit].first].z) == band) {
-                const Address address = visits[tool][visit++];
+            planner.m_plan.emplace_back(first_z + band * height, band == 0 ? first_height : height);
+            auto &plan = planner.m_plan.back();
+            while (visit < visits[tool].size() && band_for(m_plan[visits[tool][visit].address.first].z) == band) {
+                const auto &entry = visits[tool][visit++];
+                const Address address = entry.address;
                 const auto &change = m_plan[address.first].tool_changes[address.second];
-                const bool ram = change.old_tool == tool;
-                plan.tool_changes.push_back(column.set_toolchange(change.old_tool, tool, plan.height,
+                const bool ram = entry.ramming;
+                plan.tool_changes.push_back(planner.set_toolchange(change.old_tool, tool, plan.height,
                     ram ? 0.f : change.wipe_volume_total, band == 0, !ram, ram));
                 destinations[band].push_back(address);
             }
             if (plan.tool_changes.empty()) {
                 // Fill missing foundation layers on this tool's next visit. A real
                 // tool change precedes the first foundation; later segments keep it.
-                const Address address = visits[tool][visit];
+                const Address address = visits[tool][visit].address;
                 const size_t old_tool = m_plan[address.first].tool_changes[address.second].old_tool;
-                plan.tool_changes.push_back(column.set_toolchange(old_tool, tool, plan.height, 0.f, band == 0, true));
+                plan.tool_changes.push_back(planner.set_toolchange(old_tool, tool, plan.height, 0.f, band == 0, true));
                 destinations[band].push_back(address);
             }
         }
         // Segments belonging to the same visit are consecutive, even when that
         // visit fills several missing foundation layers before its purge.
         Address previous{size_t(-1), size_t(-1)};
-        for (size_t band = 0; band < column.m_plan.size(); ++band)
-            for (size_t change = 0; change < column.m_plan[band].tool_changes.size(); ++change) {
+        for (size_t band = 0; band < planner.m_plan.size(); ++band)
+            for (size_t change = 0; change < planner.m_plan[band].tool_changes.size(); ++change) {
                 if (destinations[band][change] == previous)
-                    column.m_plan[band].tool_changes[change].old_tool = tool;
+                    planner.m_plan[band].tool_changes[change].old_tool = tool;
                 previous = destinations[band][change];
             }
-        std::vector<std::vector<Result>> generated;
-        column.generate(generated);
-        const BoundingBoxf bbox = column.get_bbx();
-        const Vec2f offset(column_x - float(bbox.min.x()), column_y - float(bbox.min.y()));
-        column_x += float(bbox.size().x());
-        row_height = std::max(row_height, float(bbox.size().y()));
-        width = std::max(width, column_x);
-        if (++column_index % columns_per_row == 0) {
-            column_y += row_height;
-            column_x = row_height = 0.f;
+        planner.plan_tower();
+        depth += planner.m_wipe_tower_depth;
+        tower_height = std::max(tower_height, planner.get_wipe_tower_height());
+        regions.push_back({std::move(region), std::move(destinations)});
+    }
+    // Rib towers use one square body, not one square for every tool.
+    if (m_wall_type == int(wtwRib)) {
+        m_wipe_tower_width = std::sqrt(m_wipe_tower_width * depth);
+        depth = 0.f;
+        for (auto &region : regions) {
+            auto &planner = *region.tower;
+            planner.m_wipe_tower_width = m_wipe_tower_width;
+            for (size_t band = 0; band < planner.m_plan.size(); ++band)
+                for (auto &change : planner.m_plan[band].tool_changes)
+                    change = planner.set_toolchange(change.old_tool, change.new_tool, planner.m_plan[band].height,
+                        change.wipe_volume_total, band == 0, change.skip_ramming, change.ramming_only);
+            planner.plan_tower();
+            depth += planner.m_wipe_tower_depth;
         }
-        tower_height = std::max(tower_height, column.get_wipe_tower_height());
+    }
+    m_wipe_tower_depth = depth;
+    m_wipe_tower_height = tower_height;
+    const float diagonal = std::hypot(m_wipe_tower_width, depth);
+    m_rib_length = std::max(diagonal, WipeTower::get_limit_depth_by_height(tower_height) * float(std::sqrt(2.)));
+    m_rib_length = std::max(diagonal, m_rib_length + m_extra_rib_length);
+    m_rib_width = std::min(m_rib_width, std::min(m_wipe_tower_width, depth) / 2.f);
+    const WipeTower::box_coordinates box(Vec2f::Zero(), m_wipe_tower_width, depth);
+    Polygon outline = m_wall_type == int(wtwRib) ? generate_rib_polygon(box) : generate_rectange_polygon(box.ld, box.ru);
+    if (m_wall_type == int(wtwRib) && m_used_fillet)
+        outline = union_({rounding_polygon(outline), generate_rectange_polygon(box.ld, box.ru)}).front();
+    const auto first_visit = std::find_if(m_plan.begin(), m_plan.end(), [](const auto &layer) {
+        return !layer.tool_changes.empty();
+    });
+    size_t brim_tool = first_visit->tool_changes.front().old_tool;
+    if (!m_filpar[brim_tool].multitool_ramming)
+        brim_tool = first_visit->tool_changes.front().new_tool;
+    float region_y = 0.f;
+    float region_height = 0.f, largest_nozzle = 0.f;
+    bool different_heights = false;
+    for (size_t tool = 0; tool < visits.size(); ++tool) {
+        if (visits[tool].empty())
+            continue;
+        if (region_height > 0.f && std::abs(region_height - m_filpar[tool].layer_height) > WT_EPSILON)
+            different_heights = true;
+        region_height = m_filpar[tool].layer_height;
+        largest_nozzle = std::max(largest_nozzle, m_filpar[tool].nozzle_diameter);
+    }
+    for (auto &region : regions) {
+        auto &planner = *region.tower;
+        planner.m_region_y = region_y;
+        planner.m_shared_depth = depth;
+        planner.m_shared_height = tower_height;
+        planner.m_region_wall_clearance = different_heights ? 0.5f * largest_nozzle : 0.f;
+        planner.m_shared_outline = outline;
+        planner.m_shared_brim = size_t(planner.m_plan.front().tool_changes.front().new_tool) == brim_tool;
+        planner.m_internal_rotation = 0.f;
+        std::vector<std::vector<Result>> generated;
+        planner.generate(generated);
+        const Vec2f offset(0.f, region_y);
+        region_y += planner.m_wipe_tower_depth;
         for (size_t band = 0; band < generated.size(); ++band)
             for (size_t change = 0; change < generated[band].size(); ++change) {
-                const auto [layer, index] = destinations[band][change];
+                const auto [layer, index] = region.destinations[band][change];
                 auto &segment = generated[band][change];
                 segment.column_offset = offset;
                 segment.independent_column = true;
                 result[layer][index].segments.push_back(std::move(segment));
             }
+        if (planner.m_shared_brim) {
+            m_first_layer_bbx = planner.m_first_layer_bbx;
+            m_first_layer_bbx.translate(offset.cast<double>());
+            m_wipe_tower_brim_width_real = planner.m_wipe_tower_brim_width_real;
+        }
         for (size_t filament = 0; filament < m_filpar.size(); ++filament)
-            m_used_filament_length[filament] += column.m_used_filament_length[filament];
-        for (const auto &[layer, index] : visits[tool])
-            m_num_tool_changes += m_plan[layer].tool_changes[index].new_tool == tool;
+            m_used_filament_length[filament] += planner.m_used_filament_length[filament];
     }
+    for (const auto &layer : m_plan)
+        m_num_tool_changes += layer.tool_changes.size();
     for (size_t layer = 0; layer < result.size(); ++layer)
         for (size_t index = 0; index < result[layer].size(); ++index) {
             auto &change = result[layer][index];
@@ -2612,7 +2716,7 @@ void WipeTower2::generate_tool_columns(std::vector<std::vector<WipeTower::ToolCh
                 const size_t old_tool = m_plan[layer].tool_changes[index].old_tool;
                 std::stable_sort(segments.begin(), segments.end(), [old_tool](const auto &a, const auto &b) {
                     // Ram the outgoing tool before switching, including any
-                    // foundation layers its column still needs.
+                    // foundation layers its region still needs.
                     if ((a.new_tool == old_tool) != (b.new_tool == old_tool))
                         return a.new_tool == old_tool;
                     return a.print_z < b.print_z;
@@ -2633,13 +2737,11 @@ void WipeTower2::generate_tool_columns(std::vector<std::vector<WipeTower::ToolCh
                 change.segments = std::move(segments);
             }
         }
-    m_wipe_tower_width = width;
-    m_wipe_tower_depth = column_y + row_height;
-    m_wipe_tower_height = tower_height;
-    m_wipe_tower_brim_width_real = 0.f; // Already included in each column's bounds.
-    m_first_layer_bbx = BoundingBoxf(Vec2d::Zero(), Vec2d(width, m_wipe_tower_depth));
+    // Ribs and brim belong to the single shared outline. Preserve its actual
+    // bounds rather than adding the bounds of separate tool-sized towers.
     m_rib_offset = Vec2f::Zero();
-    m_rib_width = m_rib_length = 0.f;
+    if (m_wall_type == int(wtwRib))
+        m_rib_offset = -m_first_layer_bbx.min.cast<float>();
     m_current_layer_finished = true;
     m_used_filament_length_until_layer = {{tower_height, m_used_filament_length}};
 }
@@ -2656,8 +2758,8 @@ void WipeTower2::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> 
             return m_filpar[change.old_tool].has_custom_layer_height || m_filpar[change.new_tool].has_custom_layer_height;
         });
     });
-    if (m_independent_tool_layers && !m_is_tool_column && used_custom_height) {
-        generate_tool_columns(result);
+    if (m_independent_tool_layers && !m_is_tool_region && used_custom_height) {
+        generate_tool_regions(result);
         return;
     }
     m_independent_tool_layers = false;
@@ -2668,13 +2770,13 @@ void WipeTower2::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> 
 
 	plan_tower();
 #if 1
-    for (int i=0;i<5;++i) {
+    for (int i=0; !m_is_tool_region && i<5; ++i) {
         save_on_last_wipe();
         plan_tower();
     }
 #endif
 
-    if (m_wall_type == (int)wtwRib) {
+    if (!m_is_tool_region && m_wall_type == (int)wtwRib) {
         // Rib wall: force a square tower like WipeTower::plan_tower_new(), ignoring the
         // configured prime_tower_width (the GUI greys it out in rib mode). The planned depths
         // already include the extra-spacing factors, so sqrt(depth * width) preserves the
@@ -2730,7 +2832,8 @@ void WipeTower2::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> 
 	{
         std::vector<WipeTower::ToolChangeResult> layer_result;
         set_layer(layer.z, layer.height, 0, false/*layer.z == m_plan.front().z*/, layer.z == m_plan.back().z);
-        m_internal_rotation += 180.f;
+        if (!m_is_tool_region)
+            m_internal_rotation += 180.f;
 
         if (m_layer_info->depth < m_wipe_tower_depth - m_perimeter_width)
 			m_y_shift = (m_wipe_tower_depth-m_layer_info->depth-m_perimeter_width)/2.f;

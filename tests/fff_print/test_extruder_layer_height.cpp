@@ -24,6 +24,7 @@
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/GCodeReader.hpp"
 #include <set>
 
 using namespace Slic3r;
@@ -270,11 +271,11 @@ TEST_CASE("Supports use the selected extruder's process height", "[ExtruderLayer
     REQUIRE(has_requested_height);
 }
 
-TEST_CASE("Prime tower columns use their tool heights on a fine object grid", "[ExtruderLayerHeight][WipeTower]")
+TEST_CASE("One prime tower uses per-tool heights on a fine object grid", "[ExtruderLayerHeight][WipeTower]")
 {
     const bool mixed_nozzles = GENERATE(false, true);
     const bool ramming = GENERATE(false, true);
-    const auto wall = GENERATE("rectangle", "rib");
+    const auto wall = GENERATE("rectangle", "rib", "cone");
     CAPTURE(mixed_nozzles, ramming, wall);
     auto config = layer_config();
     config.set_deserialize_strict({{"enable_prime_tower", "1"}, {"wipe_tower_type", "type2"},
@@ -283,7 +284,7 @@ TEST_CASE("Prime tower columns use their tool heights on a fine object grid", "[
         {"extruder_layer_height", "0.05,0.3"}, {"max_layer_height", "0.14,0.42"},
         {"filament_multitool_ramming", ramming ? "1,1" : "0,0"},
         {"wipe_tower_filament", "2"}, {"wipe_tower_x", "60"}, {"wipe_tower_y", "60"},
-        {"wipe_tower_wall_type", wall}, {"wipe_tower_rotation_angle", "30"},
+        {"wipe_tower_wall_type", wall}, {"wipe_tower_cone_angle", "30"}, {"wipe_tower_rotation_angle", "30"},
         {"change_filament_gcode", "T[next_extruder]\n"}, {"gcode_comments", "1"}});
     Print print;
     Model model;
@@ -296,8 +297,12 @@ TEST_CASE("Prime tower columns use their tool heights on a fine object grid", "[
     const std::string output = gcode(print, &processed);
     REQUIRE(output.find("T0") != std::string::npos);
     REQUIRE(output.find("T1") != std::string::npos);
-    REQUIRE(output.find("Clear independent tower columns") != std::string::npos);
+    REQUIRE(output.find("Clear stepped tower surface") != std::string::npos);
     REQUIRE(print.has_wipe_tower());
+    size_t brim_count = 0;
+    for (size_t pos = 0; (pos = output.find("; WIPE_TOWER_BRIM_START", pos)) != std::string::npos; ++pos)
+        ++brim_count;
+    REQUIRE(brim_count == 1);
     std::set<int> coarse_tops;
     size_t coarse_visits = 0;
     for (const auto &layer : print.wipe_tower_data().tool_changes)
@@ -307,6 +312,9 @@ TEST_CASE("Prime tower columns use their tool heights on a fine object grid", "[
             REQUIRE_FALSE(visit.segments.empty());
             for (const auto &part : visit.segments) {
                 REQUIRE(part.independent_column);
+                // All tools share the same body width. Their adjacent purge
+                // regions have no separate surrounding brim or rib structure.
+                REQUIRE_THAT(part.column_offset.x(), WithinAbs(0., 1e-6));
                 const double requested = part.new_tool == 0 ? 0.05 : 0.3;
                 REQUIRE_THAT(part.layer_height, WithinAbs(part.print_z < 0.10001 ? 0.1 : requested, 1e-5));
                 if (part.new_tool == 1 && part.print_z > 0.10001) {
@@ -331,7 +339,7 @@ TEST_CASE("Prime tower columns use their tool heights on a fine object grid", "[
     REQUIRE(coarse_moves > 0);
 }
 
-TEST_CASE("Three tool-height tower columns fit in the bed corner", "[ExtruderLayerHeight][WipeTower]")
+TEST_CASE("A shared three-tool tower fits in the bed corner", "[ExtruderLayerHeight][WipeTower]")
 {
     auto config = layer_config(3);
     config.set_deserialize_strict({
@@ -358,7 +366,7 @@ TEST_CASE("Three tool-height tower columns fit in the bed corner", "[ExtruderLay
     REQUIRE(tools.size() == 3);
 }
 
-TEST_CASE("Unused configured tool heights do not activate tower columns", "[ExtruderLayerHeight][WipeTower]")
+TEST_CASE("Unused configured tool heights do not activate regional tower scheduling", "[ExtruderLayerHeight][WipeTower]")
 {
     auto config = layer_config(3);
     config.set_deserialize_strict({{"enable_prime_tower", "1"}, {"wipe_tower_type", "type2"},
@@ -378,6 +386,64 @@ TEST_CASE("Unused configured tool heights do not activate tower columns", "[Extr
     for (const auto &layer : print.wipe_tower_data().tool_changes)
         for (const auto &change : layer)
             REQUIRE(change.segments.empty());
+}
+
+TEST_CASE("Type 2 keeps one outer wall with ordinary or per-tool heights", "[ExtruderLayerHeight][WipeTower]")
+{
+    const auto heights = GENERATE("0,0", "0.15,0.15", "0.15,0.3");
+    CAPTURE(heights);
+    auto config = layer_config();
+    config.set_deserialize_strict({{"enable_prime_tower", "1"}, {"wipe_tower_type", "type2"},
+        {"single_extruder_multi_material", "0"}, {"prime_tower_width", "30"},
+        {"extruder_layer_height", heights}, {"initial_layer_print_height", "0.15"},
+        {"filament_multitool_ramming", "0,0"}, {"wipe_tower_wall_type", "rectangle"},
+        {"prime_tower_skip_points", "0"},
+        {"wipe_tower_x", "60"}, {"wipe_tower_y", "60"}, {"wipe_tower_no_sparse_layers", "0"},
+        {"gcode_comments", "1"}});
+    Print print;
+    Model model;
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{
+        {{"extruder", "1"}}, {{"extruder", "2"}}
+    };
+    init_print({make_cube(8., 8., 1.35), make_cube(8., 8., 1.35)}, print, model, config, &overrides);
+    print.set_status_silent();
+    REQUIRE_FALSE(gcode(print).empty());
+    const auto &tower = print.wipe_tower_data();
+    if (std::string(heights) == "0,0") {
+        for (const auto &layer : tower.tool_changes)
+            for (const auto &visit : layer)
+                REQUIRE(visit.segments.empty());
+        return;
+    }
+    double wall_length = 0.;
+    size_t first_layer_parts = 0;
+    for (const auto &layer : tower.tool_changes)
+        for (const auto &visit : layer)
+            for (const auto &part : visit.segments) {
+                if (part.print_z > 0.15001)
+                    continue;
+                ++first_layer_parts;
+                bool wall = false;
+                GCodeReader reader;
+                reader.parse_buffer(part.gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+                    if (line.raw().find("SHARED_TOWER_WALL_START") != std::string::npos)
+                        wall = true;
+                    else if (line.raw().find("SHARED_TOWER_WALL_END") != std::string::npos)
+                        wall = false;
+                    else if (wall && line.has_e() && line.e() > 0.f && (line.has_x() || line.has_y())) {
+                        const double x = 0.5 * (self.x() + line.new_X(self));
+                        const double y = 0.5 * (self.y() + line.new_Y(self)) + part.column_offset.y();
+                        // Only the combined outline is a wall: no enclosing
+                        // rectangles at the internal purge-region boundaries.
+                        const double edge_distance = std::min({std::abs(x), std::abs(x - tower.width),
+                            std::abs(y), std::abs(y - tower.depth)});
+                        CHECK(edge_distance < 0.002);
+                        wall_length += std::hypot(line.dist_X(self), line.dist_Y(self));
+                    }
+                });
+            }
+    REQUIRE(first_layer_parts >= 2);
+    CHECK_THAT(wall_length, WithinAbs(2. * (tower.width + tower.depth), 0.02));
 }
 
 TEST_CASE("Unsupported layer schedules are rejected before slicing", "[ExtruderLayerHeight]")

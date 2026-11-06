@@ -283,10 +283,17 @@ private:
     bool            m_sparse_layers_skipped     = false;
     bool            m_sparse_layers_combined    = false;
     bool m_independent_tool_layers = false;
-    bool m_is_tool_column = false;
+    bool m_is_tool_region = false;
+    float m_region_y = 0.f;
+    float m_shared_depth = 0.f;
+    float m_shared_height = 0.f;
+    float m_region_wall_clearance = 0.f;
+    bool m_shared_brim = false;
+    Polygon m_shared_outline;
     bool m_skip_ramming = false;
     size_t m_toolchange_index = 0;
-    void generate_tool_columns(std::vector<std::vector<WipeTower::ToolChangeResult>> &result);
+    void generate_tool_regions(std::vector<std::vector<WipeTower::ToolChangeResult>> &result);
+    Polygon generate_region_wall(WipeTowerWriter2 &writer, float feedrate, bool first_layer);
 
     bool            m_set_extruder_trimpot      = false;
     bool            m_adhesion                  = true;

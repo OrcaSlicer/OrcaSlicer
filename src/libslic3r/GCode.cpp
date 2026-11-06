@@ -1710,7 +1710,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             m_highest_tool_column_z = std::max(m_highest_tool_column_z, z);
             column_clearance_z = std::max(current_z, m_highest_tool_column_z) + 0.2;
             gcode += gcodegen.retract();
-            gcode += gcodegen.writer().travel_to_z(column_clearance_z, "Clear independent tower columns");
+            gcode += gcodegen.writer().travel_to_z(column_clearance_z, "Clear stepped tower surface");
         }
 
         const bool needs_toolchange = gcodegen.writer().need_toolchange(new_extruder_id);
@@ -1970,7 +1970,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         if (tcr.independent_column) {
             gcodegen.m_wipe.reset_path();
             gcode += gcodegen.retract();
-            gcode += gcodegen.writer().travel_to_z(column_clearance_z, "Clear independent tower columns");
+            gcode += gcodegen.writer().travel_to_z(column_clearance_z, "Clear stepped tower surface");
             gcodegen.m_avoid_crossing_perimeters.use_external_mp_once();
             gcode += gcodegen.travel_to(column_return_pos, erMixed, "Return from independent tower column");
             gcode += gcodegen.writer().unlift();
