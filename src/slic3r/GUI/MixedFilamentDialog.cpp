@@ -734,6 +734,12 @@ wxBoxSizer* MixedFilamentDialog::create_preview_panel()
     label->SetFont(::Label::Body_13);
     sizer->Add(label, 0, wxALIGN_CENTER | wxTOP, FromDIP(4));
 
+    // The color of the mix, as in the Decompose Color dialog. Empty text keeps the line's height.
+    m_preview_rgb = new wxStaticText(this, wxID_ANY, " ");
+    m_preview_rgb->SetForegroundColour(StateColor::darkModeColorFor(COLOR_LABEL_MUTED));
+    m_preview_rgb->SetFont(::Label::Body_12);
+    sizer->Add(m_preview_rgb, 0, wxALIGN_CENTER | wxTOP, FromDIP(2));
+
     return sizer;
 }
 
@@ -1592,6 +1598,22 @@ void MixedFilamentDialog::on_recommendation_clicked_triple(unsigned int a, unsig
 
 void MixedFilamentDialog::update_preview()
 {
+    if (m_preview_rgb) {
+        // A gradient has no single color, so only the plain mix is described.
+        const size_t n = num_components();
+        wxString     text(" ");
+        if (n > 0 && !(m_result.gradient_enabled && n == 2)) {
+            std::vector<wxColour> cols;
+            std::vector<double>   weights;
+            for (size_t i = 0; i < n; ++i) {
+                cols.push_back(comp_colour(i));
+                weights.push_back(ratio(i) / 100.0);
+            }
+            const wxColour mixed = blend_n_colors(cols, weights);
+            text = wxString::Format("RGB: %d, %d, %d", mixed.Red(), mixed.Green(), mixed.Blue());
+        }
+        m_preview_rgb->SetLabel(text);
+    }
     if (m_preview_canvas)  m_preview_canvas->Refresh();
     if (m_summary_panel)   m_summary_panel->Refresh();
     if (m_ratio_bar)       m_ratio_bar->Refresh();
