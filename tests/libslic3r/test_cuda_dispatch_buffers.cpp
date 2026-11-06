@@ -3,10 +3,12 @@
 #include "libslic3r/Gpu/CudaDispatchBuffers.hpp"
 
 #include <array>
+#include <cstddef>
 #include <map>
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 using Slic3r::Gpu::CudaDispatchBuffers;
 
