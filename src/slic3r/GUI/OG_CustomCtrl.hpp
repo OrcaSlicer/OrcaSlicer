@@ -56,6 +56,26 @@ class OG_CustomCtrl :public wxPanel
     wxSize  m_bmp_blinking_sz;
 
     ScalableBitmap m_bmp_multi_extruder; // ORCA multi extruder icon drawn on left margin for variant options
+    // Breathing room between the row toggle and the neighbour it shares a row with, derived from
+    // the same em unit as every other gap here.
+    int     toggle_gap() const { return m_em_unit * 3 / 5; }
+    // Row toggle bitmaps, the same ones ::CheckBox paints; built on first use.
+    ScalableBitmap m_bmp_check_on;
+    ScalableBitmap m_bmp_check_off;
+    ScalableBitmap m_bmp_check_on_focused;
+    ScalableBitmap m_bmp_check_off_focused;
+    ScalableBitmap m_bmp_check_on_disabled;
+    ScalableBitmap m_bmp_check_off_disabled;
+    // Set once the six above have been constructed: every paint path calls
+    // init_row_toggle_bitmaps(), and msw_rescale() rescales the loaded ones in place.
+    bool m_row_toggle_bitmaps_ready{false};
+
+    // Whether the row draws the per-extruder icon: it is keyed by a variant column and the group
+    // shows more than one. Same rule render() and get_pos() must agree on.
+    bool line_has_multi_extruder_icon(const Line& line) const;
+    // The icon's logical width, resolved on first use (0 when the asset is missing).
+    wxCoord multi_extruder_width();
+    void    init_multi_extruder_bitmap();
 
     int     m_max_win_width{0};
 
@@ -88,14 +108,23 @@ class OG_CustomCtrl :public wxPanel
         wxCoord draw_text      (wxDC& dc, wxPoint pos, const wxString& text, const wxColour* color, int width, bool is_url = false, bool is_main = false);
         wxPoint draw_blinking_bmp(wxDC& dc, wxPoint pos, bool is_blinking);
         wxPoint draw_act_bmps(wxDC& dc, wxPoint pos, const wxBitmap& bmp_undo_to_sys, const wxBitmap& bmp_undo, bool is_blinking, size_t rect_id = 0, bool is_main = false);
+        // Draws the line's opt-in row toggle in the left-hand column, before the label. Returns
+        // the x the following columns continue from.
+        wxPoint draw_row_toggle(wxDC& dc, wxPoint pos);
         wxCoord draw_edit_bmp(wxDC& dc, wxPoint pos, const wxBitmap& bmp_edit);
         bool    launch_browser() const;
         bool    is_separator() const { return og_line.is_separator(); }
+        // Mutable view of the line's toggle; the control holds the line by reference.
+        RowToggle* row_toggle() const {
+            return og_line.row_toggle ? &const_cast<RowToggle&>(*og_line.row_toggle) : nullptr;
+        }
 
         std::vector<wxRect> rects_undo_icon;
         std::vector<wxRect> rects_undo_to_sys_icon;
         std::vector<wxRect> rects_edit_icon;
         wxRect              rect_label;
+        wxRect              rect_row_toggle;
+        bool                is_row_toggle_hover{ false };
     };
 
     std::vector<CtrlLine> ctrl_lines;
@@ -122,6 +151,10 @@ public:
     void    correct_window_position(wxWindow* win, const Line& line, Field* field = nullptr);
     void    correct_widgets_position(wxSizer* widget, const Line& line, Field* field = nullptr);
     void    init_max_win_width();
+    // Builds the row-toggle bitmaps on first use; they are the bitmaps ::CheckBox paints.
+    void    init_row_toggle_bitmaps();
+    // The toggle box's width, reserved by get_pos() and advanced by draw_row_toggle().
+    wxCoord row_toggle_width();
     void    set_max_win_width(int max_win_width);
     int     get_max_win_width() { return m_max_win_width; }
 

@@ -1,4 +1,8 @@
 #pragma once
+
+#include "Config.hpp"
+#include "PrintConfig.hpp"
+
 #include <cstddef>
 #include <optional>
 #include <set>
@@ -17,6 +21,15 @@ std::string publish_base_key(const std::string &key);
 // '#' separator or its suffix is malformed.
 int publish_key_index(const std::string &key);
 
+// A filament key whose vector holds one element per (slot, variant) instead of one per slot.
+// The suffix of a "#col" key is ignored, so this answers for a plain base key too.
+bool publish_is_variant_bearing(const std::string &key);
+
+// A control that performs an action rather than holding a value (a colour picker, a plugin dialog
+// or picker, a device picker). It has no value to publish per key, so the dialog drops both its row
+// and its option from the hosted tabs.
+bool publish_is_action_control(const ConfigOptionDef &def);
+
 // Structural keys that are never applied onto the receiver's presets when loading a published
 // 3MF (single source of truth for the denylist); applying them would rewrite the user's preset
 // inheritance/structure. filament_ids is still exported via the identity list (3MF validation
@@ -26,6 +39,10 @@ const std::set<std::string>& publish_structural_keys();
 // The mixed-color filament project keys (parallel per-slot arrays, see PresetBundle's
 // s_project_options). Import applies them into project_config, not a filament preset.
 const std::set<std::string>& publish_mixed_keys();
+
+// Keys whose value differs between `before` and `after`, including a key only one of the two holds
+// (a manifest the handling added or dropped). Sorted and unique.
+std::vector<std::string> publish_changed_keys(const DynamicPrintConfig &before, const DynamicPrintConfig &after);
 
 // One row of the printer tab's "Retraction" / "Z-Hop" optgroups (config key + tab icon id).
 struct PublishablePrinterOption {
@@ -44,6 +61,21 @@ const std::set<std::string>& publishable_printer_keys();
 // Union of setting keys differing from the base/system preset across the current print,
 // printer and filament presets (feeds the Publish dialog's pre-check).
 std::vector<std::string> collect_dirty_settings_keys(const PresetBundle& bundle);
+
+// Publish keys of the material rows a dirty filament edit should pre-check. `slot_presets` is one
+// preset name per filament slot (bundle->filament_presets), `slot_is_mixed` one flag per slot
+// (project filament_is_mixed). Only slots whose preset equals `edited_preset_name` and are not mixed
+// contribute. A variant-bearing key maps to `base#file_column` for every sharing slot at its own
+// base offset; any other filament key maps to its plain base key. A variant-bearing key with no
+// local index, or whose index is out of that slot's range, contributes nothing, and a key that is
+// neither variant-bearing nor present in `uncompacted` is skipped. Returns the keys sorted and
+// without duplicates.
+std::vector<std::string> publish_dirty_material_keys(
+    const DynamicPrintConfig &uncompacted,
+    const std::vector<std::string> &slot_presets,
+    const std::vector<bool> &slot_is_mixed,
+    const std::string &edited_preset_name,
+    const std::vector<std::string> &dirty_keys);
 
 // Per-slot published material keys, applied positionally (author slot N -> receiver slot N).
 // The identity fields drive the created copy's naming and grouping on Full entries, the
@@ -86,6 +118,15 @@ struct PublishedMaterialEntry {
     bool mixed_placeholder{false};
 };
 
+// One unmet dependency of a publishing mixed-filament slot: the component filament the mix uses
+// would ship without its material, because its Type row is off, or its type value is empty, and it
+// is not Full-Published. Slots are 0-based.
+struct MixedDependencyIssue
+{
+    size_t mixed_slot{0};
+    size_t component_slot{0};
+};
+
 // The author's printer_extruder_id and printer_extruder_variant, one entry per per-variant index
 // of a published printer key. Ids are 1-based extruder numbers.
 struct PublishedExtruderLayout
@@ -126,6 +167,29 @@ struct PublishResolvedColumn
     std::string           used_variant;     // the variant file_column belongs to
 };
 PublishResolvedColumn publish_resolved_column(const DynamicPrintConfig &uncompacted, size_t slot);
+
+// One column an extruder shows in the Publish dialog: the nozzle type the column belongs to and
+// its index in the target preset's per-variant vectors.
+struct PublishExtruderEntry
+{
+    int    nozzle_type{nvtStandard}; // NozzleVolumeType
+    size_t column{0};
+};
+
+// The columns one extruder shows. `split_hybrid` asks for one entry per sub-nozzle type (the
+// process section, where a hybrid extruder has two); false asks for the single active type (the
+// printer section). Returns no entry for a combination the preset does not define - never a
+// fallback column.
+std::vector<PublishExtruderEntry> publish_extruder_rule(const DynamicPrintConfig &target,
+                                                        const DynamicPrintConfig &printer,
+                                                        const DynamicPrintConfig &project,
+                                                        size_t extruder, bool split_hybrid,
+                                                        std::string_view id_key,
+                                                        std::string_view variant_key);
+
+// The owner notice for a slot whose printer variant its filament does not define, naming the
+// variant the printer needs and the one the file will carry. Empty when the column is exact.
+std::string publish_variant_notice(const DynamicPrintConfig &uncompacted, size_t slot);
 
 // Rewrite variant-bearing material keys to "base#file_column" for the column the slot prints with,
 // so a receiver can address the variant. Full entries keep their base keys (they carry every

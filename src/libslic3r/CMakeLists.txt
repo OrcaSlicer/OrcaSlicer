@@ -425,6 +425,8 @@ set(lisbslic3r_sources
     Preset.hpp
     PrincipalComponents2D.cpp
     PrincipalComponents2D.hpp
+    PublishSelection.cpp
+    PublishSelection.hpp
     PublishSettings.cpp
     PublishSettings.hpp
     PrintApply.cpp

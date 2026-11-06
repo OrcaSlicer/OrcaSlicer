@@ -21,6 +21,7 @@
 #include "slic3r/plugin/PluginDescriptor.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include <map>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <string>
 #include <utility>
@@ -111,37 +112,30 @@ const t_field& OptionsGroup::build_field(const t_config_option_key& id, const Co
     field->m_on_change   = [this](const std::string& opt_id, const boost::any& value) {
         //! This function will be called from Field.
         //! Call OptionGroup._on_change(...)
-        if (!m_disabled)
-            this->on_change_OG(opt_id, value);
+        this->on_change_OG(opt_id, value);
     };
     field->m_on_kill_focus = [this](const std::string& opt_id) {
         //! This function will be called from Field.
-        if (!m_disabled)
-            this->on_kill_focus(opt_id);
+        this->on_kill_focus(opt_id);
     };
     field->m_parent = parent();
 
     if (edit_custom_gcode && opt.is_code) {
         field->m_fn_edit_value = [this](std::string opt_id) {
-            if (!m_disabled)
-                this->edit_custom_gcode(opt_id);
+            this->edit_custom_gcode(opt_id);
         };
         field->set_edit_tooltip(_L("Edit Custom G-code"));
     }
 
     field->m_back_to_initial_value = [this](std::string opt_id) {
-        if (!m_disabled)
-            this->back_to_initial_value(opt_id);
+        this->back_to_initial_value(opt_id);
     };
     field->m_back_to_sys_value = [this](std::string opt_id) {
-        if (!this->m_disabled)
-            this->back_to_sys_value(opt_id);
+        this->back_to_sys_value(opt_id);
     };
 
     if (auto plugin_field = dynamic_cast<PluginField*>(field.get())) {
         plugin_field->set_selector([this, plugin_field]() -> std::string {
-            if (m_disabled)
-                return {};
             return this->pick_plugin(plugin_field->m_opt);
         });
     }
@@ -197,12 +191,49 @@ void OptionsGroup::remove_option_if(std::function<bool(std::string const&)> cons
         opts.erase(std::remove_if(opts.begin(), opts.end(), [&comp](Option& o) { return comp(o.opt.opt_key); }), opts.end());
         l.undo_to_sys = true;
     }
-    for (int i = m_lines.size() - 1; i >= 0; --i) {
-        if (m_lines[i].get_options().empty())
-            m_options_mode.erase(m_options_mode.begin() + i);
+    // m_options_mode has one entry per line that draws a grid row, not per element of m_lines: a
+    // full_width widget line (and a separator) has none. Rebuild it, and the option map, in the
+    // order the lines were appended, so removing options cannot leave a pruned key behind in either.
+    std::vector<ConfigOptionMode>         modes;
+    std::map<t_config_option_key, Option> options;
+    modes.reserve(m_options_mode.size());
+    for (const Line& line : m_lines) {
+        if (line.get_options().empty())
+            continue;
+        if (line.full_width && (line.widget != nullptr || !line.get_extra_widgets().empty()))
+            continue;
+        modes.push_back(line.get_options().front().opt.mode);
+        for (const Option& opt : line.get_options())
+            options.emplace(opt.opt_id, opt);
     }
+    m_options_mode = std::move(modes);
+    m_options      = std::move(options);
+    // This erase takes every option-less line, not only the ones pruning emptied: separators and
+    // full-width widget rows go too, so a pruned page loses them as it always has. Keeping them
+    // would also keep a group whose options were all pruned, which the callers drop today.
     m_lines.erase(std::remove_if(m_lines.begin(), m_lines.end(), [](auto& l) { return l.get_options().empty(); }), m_lines.end());
-    // TODO: remove items from g->m_options;
+}
+
+void ConfigOptionsGroup::remove_option_if(std::function<bool(std::string const&)> const& comp)
+{
+    OptionsGroup::remove_option_if(comp);
+    // m_opt_map is filled by get_option() while the lines are created, so it still names the pruned
+    // options. Tab reads it for the dirty/modified flags and builds its option-id map from it, so it
+    // has to drop them as well. A surviving line is the test, not m_options: append_line() returns
+    // before filling m_options for a full-width widget line, so its keys are in m_opt_map and its
+    // line is still there while m_options never held them.
+    for (auto it = m_opt_map.begin(); it != m_opt_map.end();) {
+        if (this->get_line(it->first) != nullptr)
+            ++it;
+        else
+            it = m_opt_map.erase(it);
+    }
+}
+
+void OptionsGroup::clear_undo_to_sys()
+{
+    for (Line& line : m_lines)
+        line.undo_to_sys = false;
 }
 
 void OptionsGroup::show_field(const t_config_option_key& opt_key, bool show /* = true*/)
@@ -254,6 +285,42 @@ void OptionsGroup::enable_field(const t_config_option_key& opt_key, bool enable)
     }
 }
 
+namespace {
+void set_sizer_windows_enabled(wxSizer* sizer, bool enabled)
+{
+    if (sizer == nullptr)
+        return;
+    for (wxSizerItem* item : sizer->GetChildren()) {
+        if (wxWindow* window = item->GetWindow())
+            window->Enable(enabled);
+        else if (wxSizer* child = item->GetSizer())
+            set_sizer_windows_enabled(child, enabled);
+    }
+}
+} // namespace
+
+bool OptionsGroup::set_widget_option_enabled(const std::string& opt_id, bool enabled)
+{
+    for (Line& line : m_lines) {
+        if (line.widget_sizer == nullptr)
+            continue;
+        const auto owns = std::any_of(line.get_options().begin(), line.get_options().end(),
+                                      [&opt_id](const Option& option) { return option.opt_id == opt_id; });
+        if (!owns)
+            continue;
+        set_sizer_windows_enabled(line.widget_sizer, enabled);
+        return true;
+    }
+    return false;
+}
+
+void OptionsGroup::set_widget_options_enabled(bool enabled)
+{
+    for (Line& line : m_lines)
+        if (line.widget_sizer != nullptr)
+            set_sizer_windows_enabled(line.widget_sizer, enabled);
+}
+
 void OptionsGroup::set_name(const wxString& new_name) { stb->SetLabel(new_name); }
 
 void OptionsGroup::append_line(const Line& line)
@@ -262,7 +329,7 @@ void OptionsGroup::append_line(const Line& line)
 
     // Feed the searcher the row's wiki path (Line::label_path, for the Speed Dial's "open wiki"
     // affordance) and the label the row actually draws, so a setting action is named like the page.
-    if (m_use_custom_ctrl) {
+    if (m_use_custom_ctrl && index_in_search) {
         Search::SettingsIndex& index = wxGetApp().sidebar().settings_index();
         const Preset::Type      type  = static_cast<Preset::Type>(config_type());
         const bool              multi = line.get_options().size() > 1;
@@ -432,9 +499,10 @@ void OptionsGroup::activate_line(Line& line)
     // If there's a widget, build it and add the result to the sizer.
     if (line.widget != nullptr) {
         auto wgt = line.widget(this->ctrl_parent());
-        if (custom_ctrl)
-            line.widget_sizer = wgt;
-        else
+        // Kept for both host kinds: a widget row has no Field, so this is the only handle the
+        // publish host has to grey the control with its row.
+        line.widget_sizer = wgt;
+        if (!custom_ctrl)
             grid_sizer->Add(wgt, 0, wxEXPAND | wxBOTTOM | wxTOP, (wxOSX || line.label.IsEmpty()) ? 0 : 5);
         return;
     }
@@ -685,7 +753,7 @@ Option ConfigOptionsGroup::get_option(const std::string& opt_key, int opt_index 
     std::pair<std::string, int> pair(opt_key, opt_index);
     m_opt_map.emplace(opt_id, pair);
 
-    if (m_use_custom_ctrl) // fill group and category values just for options from Settings Tab
+    if (m_use_custom_ctrl && index_in_search) // fill group and category values just for options from Settings Tab
         wxGetApp().sidebar().settings_index().add_key(opt_id, static_cast<Preset::Type>(this->config_type()), title, this->config_category(), this->icon);
 
     return Option(*m_config->def()->get(opt_key), opt_id);
