@@ -28,8 +28,15 @@ var hover = null;
 // A preview commits only after the pointer rests this long: reaching the footer means crossing the
 // rows below the hovered one, and the footer must stay on the row the pointer came from.
 var HOVER_SETTLE_MS = 150;
+// ...but never longer than this on one row, so a pointer that keeps drifting still previews it.
+var HOVER_MAX_WAIT_MS = 1000;
+// A move shorter than this between mousemoves is hand jitter, not a move off the row, so it must
+// not push the settle timer back (rows are 44px tall: style.css --row-h).
+var HOVER_JITTER_PX = 6;
 var hoverTimer = 0;      // pending setHover(id) commit, 0 when none
 var hoverPending = null; // the id that timer will commit
+var hoverSince = 0;      // Date.now() when the pointer landed on hoverPending's row
+var hoverX = 0, hoverY = 0; // last pointer position that counted as a move
 
 // Global tooltip expansion, seeded from C++ (persisted in the speed_dial config section). Collapsing
 // hides the footer description + wiki link for every action; the arrow remains to expand again.
@@ -909,7 +916,7 @@ function renderFav() {
         // Resting the pointer on a tile previews it in the footer (a click launches it). Movement only:
         // mouseenter also fires when rows/tiles move under a resting pointer (scroll, rebuild), which
         // would move the footer while Enter still runs the highlighted row.
-        tile.addEventListener("mousemove", function () { setHover(id); });
+        tile.addEventListener("mousemove", function (e) { setHover(id, e); });
         // Numbered quick-launch badge (Alt/Option+digit), drawn on the corner.
         var slot = favSlotForIndex(i);
         if (slot) {
@@ -1056,7 +1063,7 @@ function renderActionRow(a, i) {
     // Hovering previews the row in the footer: a click launches the action right away, so resting
     // the pointer on the row is the only way to read its description without running it. Movement
     // only, for the same reason as the tiles: a row scrolling under a resting pointer is not a hover.
-    shell.row.addEventListener("mousemove", function () { setHover(a.id); });
+    shell.row.addEventListener("mousemove", function (e) { setHover(a.id, e); });
     return shell.row;
 }
 
@@ -1279,11 +1286,20 @@ function currentDetailAction() {
 // Footer preview follows the pointer. Only the detail strip re-renders, so hovering never touches
 // the selection or the list; the resize keeps the popup fitted to the new description height.
 // The commit waits for the pointer to rest, so crossing the rows below a hovered row on the way to
-// the footer keeps the footer on the row the pointer came from.
-function setHover(id) {
-    // Resting on the same row must not push the commit back for a hand that never stops jittering.
-    if (hoverPending === id || (!hoverTimer && hover === id)) return;
+// the footer keeps the footer on the row the pointer came from. Every real move restarts the wait,
+// so a row crossed over is never committed; HOVER_MAX_WAIT_MS caps it so a pointer that never rests
+// still previews the row it stays on.
+function setHover(id, ev) {
+    var sameRow = hoverPending === id;
+    // Jitter on the row already waiting is not a move: keep the running timer, so an unsteady hand
+    // still previews what it rests on.
+    if (sameRow && Math.hypot(ev.clientX - hoverX, ev.clientY - hoverY) < HOVER_JITTER_PX) return;
     cancelHover();
+    if (hover === id) return;
+    var now = Date.now();
+    if (!sameRow) hoverSince = now;
+    hoverX = ev.clientX;
+    hoverY = ev.clientY;
     hoverPending = id;
     hoverTimer = setTimeout(function () {
         hoverTimer = 0;
@@ -1292,7 +1308,7 @@ function setHover(id) {
         hover = id;
         renderDetail();
         requestResize();
-    }, HOVER_SETTLE_MS);
+    }, Math.max(0, Math.min(HOVER_SETTLE_MS, hoverSince + HOVER_MAX_WAIT_MS - now)));
 }
 
 // Drop a scheduled preview without touching the committed one.
