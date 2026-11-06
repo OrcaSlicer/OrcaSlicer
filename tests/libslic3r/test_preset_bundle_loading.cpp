@@ -7997,6 +7997,66 @@ TEST_CASE("A multi-toolhead project saved without filament self indices loads ev
     CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values == colors);
 }
 
+TEST_CASE("A project with fewer filaments than tools fills every filament slot", "[Preset][Bundle][Regression]")
+{
+    const size_t tool_count = 4;
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.opt<ConfigOptionStrings>("filament_colour")->values = { "#FF0000", "#00FF00" };
+    config.opt<ConfigOptionFloats>("nozzle_diameter")->values = std::vector<double>(tool_count, 0.4);
+    config.option<ConfigOptionBool>("single_extruder_multi_material")->value = false;
+    Preset::normalize(config);
+
+    PresetBundle bundle;
+    bundle.load_config_model("test.3mf", std::move(config));
+
+    const auto &colors = bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values;
+    REQUIRE(bundle.filament_presets.size() == tool_count);
+    REQUIRE(colors.size() == tool_count);
+    CHECK(colors[0] == "#FF0000");
+    CHECK(colors[1] == "#00FF00");
+    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour_type")->values.size() == tool_count);
+    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_multi_colour")->values.size() == tool_count);
+    CHECK(bundle.project_config.opt<ConfigOptionInts>("filament_map")->values.size() == tool_count);
+
+    const size_t head_count = bundle.project_config.opt<ConfigOptionFloats>("flush_multiplier")->values.size();
+    CHECK(bundle.project_config.opt<ConfigOptionFloats>("flush_volumes_matrix")->values.size() == colors.size() * colors.size() * head_count);
+
+    SECTION("an overwriting sync with two empty tools keeps those slots") {
+        Preset &filament = add_inmemory_preset(bundle.filaments, "Test PLA");
+        filament.filament_id = "GFSL00";
+        filament.config.option<ConfigOptionStrings>("filament_type", true)->values = { "PLA" };
+
+        auto tray = [](const std::string &filament_id, const std::string &color, const std::string &slot_id, bool placeholder) {
+            DynamicPrintConfig tray_config;
+            tray_config.set_key_value("filament_id", new ConfigOptionStrings{ filament_id });
+            tray_config.set_key_value("filament_colour", new ConfigOptionStrings{ color });
+            tray_config.set_key_value("filament_colour_type", new ConfigOptionStrings{ "1" });
+            tray_config.set_key_value("filament_multi_colour", new ConfigOptionStrings{ color });
+            tray_config.set_key_value("filament_type", new ConfigOptionStrings{ "PLA" });
+            tray_config.set_key_value("ams_id", new ConfigOptionStrings{ "0" });
+            tray_config.set_key_value("slot_id", new ConfigOptionStrings{ slot_id });
+            tray_config.set_key_value("filament_slot_placeholder", new ConfigOptionBools{ placeholder });
+            return tray_config;
+        };
+        bundle.filament_ams_list.emplace(0, tray(filament.filament_id, "#123456", "0", false));
+        bundle.filament_ams_list.emplace(1, tray(filament.filament_id, "#654321", "1", false));
+        bundle.filament_ams_list.emplace(2, tray("", "", "2", true));
+        bundle.filament_ams_list.emplace(3, tray("", "", "3", true));
+
+        std::vector<std::pair<DynamicPrintConfig *, std::string>> unknowns;
+        std::map<int, AMSMapInfo> maps;
+        MergeFilamentInfo merge_info;
+        const std::string kept_color = colors[2];
+        CHECK(bundle.sync_ams_list(unknowns, false, maps, false, merge_info) == tool_count);
+
+        REQUIRE(colors.size() == tool_count);
+        CHECK(colors[0] == "#123456");
+        CHECK(colors[1] == "#654321");
+        CHECK(colors[2] == kept_color);
+        CHECK(colors[3] == kept_color);
+    }
+}
+
 TEST_CASE("A system preset resolves by name from the bundled profiles", "[Preset][Bundle]")
 {
     ScopedTemporaryDir temp_dir;
