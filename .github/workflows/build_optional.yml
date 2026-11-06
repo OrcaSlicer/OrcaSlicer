@@ -4,15 +4,18 @@
 # runners for an hour, and Windows arm64 doubles the Windows legs.
 #
 # A label asks for one, from the moment it is added and on every later push to
-# the pull request: build-flatpak, build-macos-x86_64, build-windows-arm64, or
-# build-all for every one of them. Removing and adding a label again rebuilds
-# the same commit.
+# the pull request: build-flatpak, build-macos-x86_64, build-windows-arm64,
+# build-windows-msvc. build-all asks for the first three, the builds every pull
+# request once got; the MSVC build is another compiler's, never a build a pull
+# request got, and the first one builds the deps too, so it stays label-only.
+# Removing and adding a label again rebuilds the same commit.
 #
 # A pull request that changes anything but sources, tests, profiles,
 # translations and docs builds the Flatpak and Windows arm64 without a label:
 # what breaks only those legs lives in deps/, cmake/, the build scripts and the
 # workflows, and a list of those places would go stale, so the safe places are
-# listed instead. The macOS build never starts on its own.
+# listed instead. The macOS and the cl.exe builds never start on their own:
+# what breaks only cl comes from source changes, which no path rule can see.
 #
 # Each label added starts a run of its own, and the pull request's checks show
 # the newest run only, so every run builds everything the labels and the
@@ -62,6 +65,7 @@ jobs:
       flatpak: ${{ steps.select.outputs.flatpak }}
       macos-x86_64: ${{ steps.select.outputs.macos-x86_64 }}
       windows-arm64: ${{ steps.select.outputs.windows-arm64 }}
+      windows-msvc: ${{ steps.select.outputs.windows-msvc }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -84,9 +88,11 @@ jobs:
             echo "$changed" | head -20
             infra=true
           fi
+          # pick <output> <label> <on an infra change> [<part of build-all>]
           pick() {
-            local build=$1 label=$2 auto=$3 on=false
-            if has_label "$label" || has_label build-all || { [ "$auto" = true ] && [ "$infra" = true ]; }; then
+            local build=$1 label=$2 auto=$3 all=${4:-true} on=false
+            if has_label "$label" || { [ "$all" = true ] && has_label build-all; } \
+               || { [ "$auto" = true ] && [ "$infra" = true ]; }; then
               on=true
             fi
             echo "$build=$on" >> "$GITHUB_OUTPUT"
@@ -95,6 +101,7 @@ jobs:
           pick flatpak build-flatpak true
           pick macos-x86_64 build-macos-x86_64 false
           pick windows-arm64 build-windows-arm64 true
+          pick windows-msvc build-windows-msvc false false
 
   flatpak:
     name: Flatpak
@@ -156,6 +163,25 @@ jobs:
       os: windows-11-vs2026-arm
       artifact: ${{ github.sha }}-tests-windows-arm64
       test-dir: build-arm64/tests
+
+  # A cl.exe build of x64, for what clang-cl, the compiler that ships, does
+  # not catch. Its portable build, installer and PDB upload under _msvc names;
+  # nothing deploys. No push build saves a cl deps cache, so the first build
+  # on a pull request builds the deps too; later builds on the same pull
+  # request restore them.
+  build_windows_msvc:
+    name: Build Windows x64 MSVC
+    needs: select
+    if: ${{ needs.select.outputs.windows-msvc == 'true' && !vars.SELF_HOSTED }}
+    concurrency:
+      group: build-optional-windows-msvc-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    uses: ./.github/workflows/build_check_cache.yml
+    with:
+      os: windows-latest
+      arch: x64
+      compiler: msvc
+    secrets: inherit
 
   publish_test_results:
     name: Publish Test Results
