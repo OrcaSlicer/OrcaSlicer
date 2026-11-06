@@ -33,7 +33,7 @@ orcaslicer_add_cmake_project(
     wxWidgets
     GIT_REPOSITORY "https://github.com/OrcaSlicer/Orca-deps-wxWidgets"
     GIT_TAG 5b7e8c0cde6b975d63613188d2ac6c1ab8769fbc
-    GIT_SHALLOW ON
+    GIT_SHALLOW OFF
     GIT_SUBMODULES 3rdparty/catch 3rdparty/pcre 3rdparty/libwebp
     DEPENDS ${PNG_PKG} ${ZLIB_PKG} ${EXPAT_PKG} ${JPEG_PKG}
     CMAKE_ARGS
