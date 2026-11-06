@@ -19,6 +19,7 @@ uniform vec3 line_width;
 uniform int line_reach;
 uniform float line_opacity;
 uniform vec3 outline_color;
+uniform vec3 selection_outline_color;
 // The projection on view z: window depth is (x * z + y) / (z * z + w), remapped from [-1, 1].
 uniform vec4 depth_coef;
 // View space size of a pixel at view depth z: x * -z + y.
@@ -42,6 +43,12 @@ vec4 fetch_edges(ivec2 p)
 bool covered(vec4 m)
 {
     return m.g > 0.0;
+}
+
+// SelectionOutline::render() gives selected volumes the part ids above 32768.
+vec3 color_of(vec4 m)
+{
+    return m.g * 65535.0 > 32768.5 ? selection_outline_color : outline_color;
 }
 
 // The texel and its eight neighbors are covered.
@@ -164,7 +171,7 @@ void render_ring(ivec2 p)
         // Brought forward with the distance, so that it shows over what the selection stands on.
         depth = window_depth(z + 3.0 * (dist + 2.0) * pixel_size(z));
     }
-    gl_FragColor = vec4(outline_color, alpha);
+    gl_FragColor = vec4(color_of(m), alpha);
     gl_FragDepth = depth;
 }
 
@@ -205,7 +212,7 @@ void render_lines(ivec2 p)
     float alpha = line_opacity * fade * max(sx, sy) * edge_alpha(width_at(line_width, z), d);
     if (alpha <= 0.0)
         discard;
-    gl_FragColor = vec4(outline_color, alpha);
+    gl_FragColor = vec4(color_of(m), alpha);
     gl_FragDepth = surface_depth(p);
 }
 

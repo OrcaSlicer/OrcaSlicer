@@ -2267,31 +2267,36 @@ void PreferencesDialog::create_items()
         _L("When Outline is enabled in the 3D canvas menu, outlines visible objects even when they are not selected."),
         SETTING_OPENGL_OUTLINE_PERSISTENT));
 
-    const wxString outline_color_tooltip = _L("Choose the color of the object outlines.");
-    auto outline_color_sizer = create_item_label(_L("Color"), outline_color_tooltip);
-    auto outline_color_button = new ColorSwatchButton(m_parent, from_u8(app_config->get(SETTING_OPENGL_OUTLINE_COLOR)));
-    outline_color_button->SetToolTip(outline_color_tooltip);
-    outline_color_button->Bind(wxEVT_BUTTON, [this, outline_color_button](wxCommandEvent& event) {
-        event.Skip();
-        ColorRGBA initial;
-        if (!decode_color(app_config->get(SETTING_OPENGL_OUTLINE_COLOR), initial)) {
-            show_error(this, _L("The configured outline color is invalid."));
-            return;
-        }
-        ColorPickerDialog dialog(this, initial, {}, false, outline_color_button);
-        if (dialog.ShowModal() == wxID_OK && dialog.selection()) {
-            const ColorRGBA& color = std::get<ColorRGBA>(*dialog.selection());
-            const std::string value = encode_color(ColorRGB(color.r(), color.g(), color.b()));
-            app_config->set(SETTING_OPENGL_OUTLINE_COLOR, value);
-            app_config->save();
-            outline_color_button->set_color(from_u8(value));
-            // The scrolled window applies the scroll offset to the entire layout.
-            m_parent->Layout();
-            m_parent->FitInside();
-        }
-    });
-    outline_color_sizer->Add(outline_color_button, 0, wxALIGN_CENTER_VERTICAL);
-    g_sizer->Add(outline_color_sizer);
+    auto add_outline_color_item = [this, g_sizer](const wxString& label, const wxString& tooltip, const std::string& key) {
+        auto sizer  = create_item_label(label, tooltip);
+        auto button = new ColorSwatchButton(m_parent, from_u8(app_config->get(key)));
+        button->SetToolTip(tooltip);
+        button->Bind(wxEVT_BUTTON, [this, button, key](wxCommandEvent& event) {
+            event.Skip();
+            ColorRGBA initial;
+            if (!decode_color(app_config->get(key), initial)) {
+                show_error(this, _L("The configured outline color is invalid."));
+                return;
+            }
+            ColorPickerDialog dialog(this, initial, {}, false, button);
+            if (dialog.ShowModal() == wxID_OK && dialog.selection()) {
+                const ColorRGBA& color = std::get<ColorRGBA>(*dialog.selection());
+                const std::string value = encode_color(ColorRGB(color.r(), color.g(), color.b()));
+                app_config->set(key, value);
+                app_config->save();
+                button->set_color(from_u8(value));
+                // The scrolled window applies the scroll offset to the entire layout.
+                m_parent->Layout();
+                m_parent->FitInside();
+            }
+        });
+        sizer->Add(button, 0, wxALIGN_CENTER_VERTICAL);
+        g_sizer->Add(sizer);
+    };
+    add_outline_color_item(_L("Color"), _L("Choose the color of the persistent outlines of unselected objects."),
+                           SETTING_OPENGL_OUTLINE_COLOR);
+    add_outline_color_item(_L("Selection color"), _L("Choose the color of the outlines of selected objects."),
+                           SETTING_OPENGL_SELECTION_OUTLINE_COLOR);
 
     //// GRAPHICS > Anti-aliasing
     g_sizer->Add(create_item_title(_L("Anti-aliasing")), 1, wxEXPAND);

@@ -44,7 +44,9 @@ void SelectionOutline::render(const std::vector<GLVolume*>& volumes, const Camer
         return;
     }
     ColorRGB outline_color;
-    if (!decode_color(wxGetApp().app_config->get(SETTING_OPENGL_OUTLINE_COLOR), outline_color)) {
+    ColorRGB selection_outline_color;
+    if (!decode_color(wxGetApp().app_config->get(SETTING_OPENGL_OUTLINE_COLOR), outline_color) ||
+        !decode_color(wxGetApp().app_config->get(SETTING_OPENGL_SELECTION_OUTLINE_COLOR), selection_outline_color)) {
         BOOST_LOG_TRIVIAL(error) << "Invalid configured outline color";
         return;
     }
@@ -146,7 +148,8 @@ void SelectionOutline::render(const std::vector<GLVolume*>& volumes, const Camer
         mask_shader->set_uniform("view_model_matrix", view_matrix * model_matrix);
         mask_shader->set_uniform("view_normal_matrix", Matrix3d(view_matrix.matrix().block(0, 0, 3, 3) *
                                                                 model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose()));
-        mask_shader->set_uniform("part_id", float(i % 65535 + 1));
+        // Selected volumes take the upper half of the ids, which picks their outline color in outline.fs.
+        mask_shader->set_uniform("part_id", float(i % 32767 + 1 + (volume.selected ? 32768 : 0)));
         if (volume.tverts_range == std::make_pair<size_t, size_t>(0, -1))
             volume.model.render(mask_shader);
         else
@@ -204,6 +207,7 @@ void SelectionOutline::render(const std::vector<GLVolume*>& volumes, const Camer
     shader->set_uniform("line_reach", line_reach);
     shader->set_uniform("line_opacity", LINE_OPACITY);
     shader->set_uniform("outline_color", outline_color);
+    shader->set_uniform("selection_outline_color", selection_outline_color);
     shader->set_uniform("depth_coef", std::array<float, 4>{ float(projection(2, 2)), float(projection(2, 3)),
                                                             float(projection(3, 2)), float(projection(3, 3)) });
     shader->set_uniform("pixel_size_coef", pixel_size_coef);
