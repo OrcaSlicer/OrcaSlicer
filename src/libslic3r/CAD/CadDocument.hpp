@@ -700,6 +700,10 @@ public:
     // planes while datum planes add it when they are resolved, so a project reopened on another
     // printer must keep the origin it was made with or its datums move and its sketches do not.
     Vec3d modeling_origin{Vec3d::Zero()};
+    // Imported geometry (STEP / mesh / 3MF) is moved as one rigid group so its footprint is centred on the
+    // modeling origin (the bed centre) with its underside on z = 0: relative positions inside an
+    // assembly are kept, the file's own coordinates are not.
+    void place_on_bed(std::vector<TopoDS_Shape>& shapes) const;
     bool  origin_from_recipe{false};   // modeling_origin came from the loaded project
     // Weld sketch endpoints within kSketchJoinTol (the "Auto-close sketch loops" preference, taken
     // when the document is started). A property of the DOCUMENT, saved with it: as a machine-wide
