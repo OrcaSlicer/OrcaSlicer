@@ -107,6 +107,13 @@ public:
         Refresh();
     }
 
+    bool Enable(bool enable = true) override
+    {
+        const bool changed = Button::Enable(enable);
+        Refresh();
+        return changed;
+    }
+
 protected:
     void doRender(wxDC& dc) override
     {
@@ -117,7 +124,10 @@ protected:
         swatch.Deflate(FromDIP(4));
         dc.SetPen(*wxTRANSPARENT_PEN);
         // A color sample must not be remapped by the application theme.
-        dc.SetBrush(wxBrush(m_color));
+        wxColour color = m_color;
+        if (!IsEnabled())
+            color.MakeDisabled();
+        dc.SetBrush(wxBrush(color));
         dc.DrawRectangle(swatch);
     }
 
@@ -1142,6 +1152,9 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
         }
         else if (param == SETTING_OPENGL_SCENE_CACHE) {
             if (m_skip_identical_frames_checkbox) m_skip_identical_frames_checkbox->Enable(checkbox->GetValue());
+        }
+        else if (param == SETTING_OPENGL_OUTLINE_PERSISTENT) {
+            if (m_persistent_outline_color_button) m_persistent_outline_color_button->Enable(checkbox->GetValue());
         }
         else if (param == "stealth_mode") {
             bool enabled = app_config->get_stealth_mode();
@@ -2292,9 +2305,12 @@ void PreferencesDialog::create_items()
         });
         sizer->Add(button, 0, wxALIGN_CENTER_VERTICAL);
         g_sizer->Add(sizer);
+        return button;
     };
-    add_outline_color_item(_L("Color"), _L("Choose the color of the persistent outlines of unselected objects."),
-                           SETTING_OPENGL_OUTLINE_COLOR);
+    m_persistent_outline_color_button = add_outline_color_item(
+        _L("Persistent color"), _L("Choose the color of the persistent outlines of unselected objects."),
+        SETTING_OPENGL_OUTLINE_COLOR);
+    m_persistent_outline_color_button->Enable(app_config->get_bool(SETTING_OPENGL_OUTLINE_PERSISTENT));
     add_outline_color_item(_L("Selection color"), _L("Choose the color of the outlines of selected objects."),
                            SETTING_OPENGL_SELECTION_OUTLINE_COLOR);
 

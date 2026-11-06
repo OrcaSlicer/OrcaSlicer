@@ -12,8 +12,9 @@ Preferences > Graphics > Outline provides a Persistent option, off by default, w
 visible, active volumes except the wipe tower even without selection. The Outline view option in
 the 3D canvas menu controls visibility in both modes: when it is off, no outlines are drawn.
 When it is on, Persistent chooses between all eligible volumes and selected volumes only.
-Selected volumes use the Selection color and persistent outlines of unselected volumes use the Color
-option, both configurable and white by default. These application preferences are saved
+Selected volumes use the Selection color and persistent outlines of unselected volumes use the Persistent
+color, both configurable and white by default. The Persistent color button is disabled while Persistent
+is off, as it has no effect then. These application preferences are saved
 immediately and redraw the current canvas when Preferences closes; they do not require a restart.
 
 `SelectionOutline` draws it once per frame for all collected volumes, after the object passes of
@@ -98,10 +99,10 @@ marks.
 ## Colors and sizes
 
 The outline uses the solid RGB colors selected in Preferences, without theme remapping: the Selection
-color for selected volumes and the Color option for the other persistent outlines. Each pixel takes the
+color for selected volumes and the Persistent color for the other persistent outlines. Each pixel takes the
 color of the volume its ring or line belongs to: the covered texel under it, or for the ring outside the
 silhouette, the nearest covered texel. Square color swatch buttons display both colors and open the color
-picker. The lines have a
+picker; a disabled one shows its color grayed. The lines have a
 width on the model, 0.35 mm for the ring and 0.18 mm for the inner
 lines, so they grow as the camera closes in, kept between 2.5 and 5 pixels for the ring and 1.2 and 2.4 for
 the inner lines, scaled by the canvas scale. An inner line that would be thinner than 1.2 pixels fades
