@@ -15,6 +15,10 @@
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <wx/dcgraph.h>
 
+#ifdef __WXGTK3__
+#include <gtk/gtk.h>
+#endif
+
 LabeledStaticBox::LabeledStaticBox()
     : state_handler(this)
 {
@@ -72,10 +76,32 @@ bool LabeledStaticBox::Create(
     m_label_height = tH - externalLeading;
     m_label_width  = tW;
 
+#ifdef __WXGTK3__
+    // GTK never sends EVT_PAINT for wxStaticBox, so hook "draw" directly
+    GtkWidget* frame = GetHandle();
+    gtk_widget_set_app_paintable(frame, TRUE);
+    g_signal_connect(frame, "draw", G_CALLBACK(+[](GtkWidget* widget, cairo_t* cr, LabeledStaticBox* self) -> gboolean {
+        if (wxGraphicsContext* gc = wxGraphicsContext::CreateFromNative(cr)) {
+            gc->SetContentScaleFactor(self->GetContentScaleFactor()); // keeps 1px borders sharp
+            wxGCDC dc(gc); // takes ownership of gc
+            self->DrawBorderAndLabel(dc);
+        }
+        // Draw the child ourselves since GtkFrame's drawing is skipped
+        if (GtkWidget* child = gtk_bin_get_child(GTK_BIN(widget)))
+            gtk_container_propagate_draw(GTK_CONTAINER(widget), child, cr);
+        return TRUE; // skip the native GtkFrame drawing
+    }), this);
+
+    // Hide the native label so GtkFrame reserves no space for it
+    if (GtkWidget* label = gtk_frame_get_label_widget(GTK_FRAME(frame)))
+        gtk_widget_hide(label);
+    UpdateGtkPadding();
+#else
     Bind(wxEVT_PAINT,([this](wxPaintEvent e) {
         wxPaintDC dc(this);
         PickDC(dc);
     }));
+#endif
 
     state_handler.attach({&text_color, &background_color, &border_color});
     state_handler.update_binds();
@@ -119,6 +145,9 @@ bool LabeledStaticBox::SetFont(const wxFont &set_font)
     m_label_height = tH - externalLeading;
     m_label_width  = tW;
 
+#ifdef __WXGTK3__
+    UpdateGtkPadding();
+#endif
     Refresh();
     return true;
 }
@@ -192,9 +221,36 @@ void LabeledStaticBox::DrawBorderAndLabel(wxDC& dc)
     }
 }
 
+#ifdef __WXGTK3__
+// Controls parented to the box are placed by GtkFrame, so pad it to match GetBordersForSizer
+void LabeledStaticBox::UpdateGtkPadding()
+{
+    int top, other;
+    GetBordersForSizer(&top, &other);
+    const wxString css = wxString::Format(
+        "frame { margin: 0; padding: 0; border-width: 0; }"
+        "frame > border { margin: 0; border-width: 0; padding: %dpx %dpx %dpx; }",
+        top, other, other);
+
+    GtkWidget* frame    = GetHandle();
+    auto*      provider = static_cast<GtkCssProvider*>(g_object_get_data(G_OBJECT(frame), "orca-css"));
+    if (!provider) {
+        provider = gtk_css_provider_new();
+        gtk_style_context_add_provider(gtk_widget_get_style_context(frame), GTK_STYLE_PROVIDER(provider),
+                                       GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+        g_object_set_data_full(G_OBJECT(frame), "orca-css", provider, g_object_unref);
+    }
+    gtk_css_provider_load_from_data(provider, css.utf8_str().data(), -1, nullptr);
+}
+#endif
+
 void LabeledStaticBox::GetBordersForSizer(int* borderTop, int* borderOther) const {
     wxStaticBox::GetBordersForSizer(borderTop, borderOther);
 #ifdef __WXOSX__
     *borderOther = 5; // Make sure macOS uses the same border padding as other platforms
+#endif
+#ifdef __WXGTK3__
+    *borderOther = 5;
+    *borderTop = m_label.IsEmpty() ? m_label_height / 2 + 5 : m_label_height + 2;
 #endif
 }

@@ -58,6 +58,9 @@ public:
 
 private:
     void PickDC(wxDC& dc);
+#ifdef __WXGTK3__
+    void UpdateGtkPadding();
+#endif
 
 protected:
     StateHandler state_handler;
