@@ -13,6 +13,8 @@
 #include <algorithm>
 #include <cstdlib>
 #include <wx/textctrl.h>
+#include <wx/toplevel.h>
+#include <wx/anybutton.h>
 #include <string>
 #include <wx/panel.h>
 #include "slic3r/GUI/wxExtensions.hpp"
@@ -765,6 +767,137 @@ void PlateNameEditDialog::set_plate_name(const wxString &name) {
     m_ti_plate_name->GetTextCtrl()->SetInsertionPointEnd();
 }
 
+// PlateMoveDialog
+namespace {
+constexpr int move_dialog_icon_px = 32;
+}
+
+PlateMoveDialog::PlateMoveDialog(wxWindow *parent, int plate_count, int current_index)
+    : DPIDialog(parent, wxID_ANY, _L("Move Plate"), wxDefaultPosition, wxDefaultSize, wxCLOSE_BOX | wxCAPTION)
+    , m_plate_count(plate_count)
+    , m_current_index(current_index)
+    , m_target_index(current_index)
+{
+    SetBackgroundColour(*wxWHITE);
+    wxBoxSizer *m_sizer_main = new wxBoxSizer(wxVERTICAL);
+    auto        m_line_top   = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(400), -1));
+    m_line_top->SetBackgroundColour(wxColour(166, 169, 170));
+    m_sizer_main->Add(m_line_top, 0, wxEXPAND, 0);
+    m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(5));
+
+    auto label = new wxStaticText(this, wxID_ANY, _L("Move the selected plate to position"));
+    label->SetFont(Label::Body_14);
+
+    m_combobox_plate = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1), 0, NULL, wxCB_READONLY);
+    for (int i = 0; i < m_plate_count; ++i)
+        m_combobox_plate->Append(wxString::Format("%d", i + 1));
+    m_combobox_plate->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent &) {
+        const int selection = m_combobox_plate->GetSelection();
+        if (selection >= 0)
+            set_target_index(selection);
+    });
+
+    wxBoxSizer *step_sizer = new wxBoxSizer(wxHORIZONTAL);
+    step_sizer->Add(create_step_button("frontmost", _L("Move to the front"), 0), 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
+    step_sizer->Add(create_step_button("previous", _L("Move one position forward"), 1), 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
+    step_sizer->Add(m_combobox_plate, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
+    step_sizer->Add(create_step_button("next", _L("Move one position back"), 2), 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
+    step_sizer->Add(create_step_button("backmost", _L("Move to the back"), 3), 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
+
+    wxBoxSizer *content_sizer = new wxBoxSizer(wxVERTICAL);
+    content_sizer->Add(label, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, FromDIP(5));
+    content_sizer->Add(step_sizer, 0, wxALIGN_CENTER_HORIZONTAL);
+    m_sizer_main->Add(content_sizer, 0, wxEXPAND | wxALL, FromDIP(30));
+
+    auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
+    m_button_ok   = dlg_btns->GetOK();
+
+    m_button_ok->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
+        if (this->IsModal())
+            EndModal(wxID_YES);
+        else
+            this->Close();
+    });
+
+    dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
+        if (this->IsModal())
+            EndModal(wxID_NO);
+        else
+            this->Close();
+    });
+
+    m_sizer_main->Add(dlg_btns, 0, wxEXPAND, FromDIP(20));
+
+    SetSizer(m_sizer_main);
+    set_target_index(m_current_index);
+    Layout();
+    m_sizer_main->Fit(this);
+
+    CenterOnParent();
+
+    wxGetApp().UpdateDarkUI(this);
+}
+
+PlateMoveDialog::~PlateMoveDialog() {}
+
+void PlateMoveDialog::on_dpi_changed(const wxRect &suggested_rect)
+{
+    for (StepButton &step : m_step_buttons)
+        step.button->msw_rescale();
+    Fit();
+    Refresh();
+}
+
+ScalableButton *PlateMoveDialog::create_step_button(const std::string &icon, const wxString &tooltip, size_t slot)
+{
+    const std::string suffix = wxGetApp().dark_mode() ? "_dark" : "";
+    auto *button = new ScalableButton(this, wxID_ANY, icon + "_normal" + suffix, wxEmptyString, wxDefaultSize, wxDefaultPosition,
+                                      wxBU_EXACTFIT | wxNO_BORDER, false, move_dialog_icon_px);
+    button->SetToolTip(tooltip);
+    button->SetBitmapDisabled_(ScalableBitmap(this, icon + "_disable" + suffix, move_dialog_icon_px));
+    button->Bind(wxEVT_ENTER_WINDOW, [button, icon, suffix](wxMouseEvent &e) {
+        if (button->IsEnabled())
+            button->SetBitmap_(icon + "_hover" + suffix);
+        e.Skip();
+    });
+    button->Bind(wxEVT_LEAVE_WINDOW, [button, icon, suffix](wxMouseEvent &e) {
+        button->SetBitmap_(icon + "_normal" + suffix);
+        e.Skip();
+    });
+    button->Bind(wxEVT_BUTTON, [this, slot](wxCommandEvent &) {
+        if (m_step_buttons[slot].target >= 0)
+            set_target_index(m_step_buttons[slot].target);
+    });
+    m_step_buttons[slot].button = button;
+    m_step_buttons[slot].icon   = icon;
+    return button;
+}
+
+void PlateMoveDialog::set_target_index(int index)
+{
+    m_target_index = std::clamp(index, 0, std::max(m_plate_count - 1, 0));
+    m_combobox_plate->SetSelection(m_target_index);
+    update_state();
+}
+
+void PlateMoveDialog::update_state()
+{
+    // Targets of the step buttons; -1 when the choice is already at that end of the list.
+    const int last = m_plate_count - 1;
+    m_step_buttons[0].target = m_target_index > 0 ? 0 : -1;
+    m_step_buttons[1].target = m_target_index > 0 ? m_target_index - 1 : -1;
+    m_step_buttons[2].target = m_target_index < last ? m_target_index + 1 : -1;
+    m_step_buttons[3].target = m_target_index < last ? last : -1;
+
+    const std::string suffix = wxGetApp().dark_mode() ? "_dark" : "";
+    for (StepButton &step : m_step_buttons) {
+        step.button->Enable(step.target >= 0);
+        step.button->SetBitmap_(step.icon + "_normal" + suffix); // drop a stale hover image
+    }
+
+    // Nothing to do until a different position than the current one is chosen.
+    m_button_ok->Enable(m_target_index != m_current_index);
+}
 
 }
 } // namespace Slic3r::GUI
