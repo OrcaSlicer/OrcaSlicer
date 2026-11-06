@@ -4,6 +4,7 @@ project(slicer_gpu_safety_tests LANGUAGES CXX)
 option(SLIC3R_ENABLE_CUDA_SLICER "Build CUDA geometry backend" OFF)
 option(SLIC3R_ENABLE_VULKAN_SLICER "Build Vulkan geometry backend" OFF)
 option(SLIC3R_BUILD_GPU_CONTRACT_TESTS "Build the hardware-independent Catch tests" ON)
+option(SLIC3R_BUILD_VULKAN_FAULT_TESTS "Build host-only Vulkan fault tests (headers only, no loader)" OFF)
 find_package(Boost REQUIRED)
 find_package(Threads REQUIRED)
 set(GPU_SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/../../src/libslic3r/Gpu")
@@ -13,6 +14,24 @@ target_compile_features(slicer_gpu_core PUBLIC cxx_std_17)
 target_include_directories(slicer_gpu_core PUBLIC "../../src" "${GPU_SOURCE_DIR}" ${Boost_INCLUDE_DIRS})
 target_link_libraries(slicer_gpu_core PRIVATE Threads::Threads)
 
+if(SLIC3R_BUILD_VULKAN_FAULT_TESTS)
+    find_path(SLIC3R_VULKAN_TEST_INCLUDE_DIR vulkan/vulkan.h
+        HINTS ${Vulkan_INCLUDE_DIRS} "$ENV{VULKAN_SDK}/Include" REQUIRED)
+    # The fixture includes the actual Vulkan implementation and supplies every
+    # Vulkan entry point. Never link this target to slicer_gpu_core or a loader.
+    add_executable(gpu_vulkan_autotune_failure test_vulkan_autotune_failure.cpp
+        "${GPU_SOURCE_DIR}/CudaSlicer.cpp")
+    target_compile_features(gpu_vulkan_autotune_failure PRIVATE cxx_std_17)
+    target_compile_definitions(gpu_vulkan_autotune_failure PRIVATE SLIC3R_ENABLE_VULKAN_SLICER=1)
+    target_include_directories(gpu_vulkan_autotune_failure PRIVATE
+        "${GPU_SOURCE_DIR}" ${Boost_INCLUDE_DIRS} "${SLIC3R_VULKAN_TEST_INCLUDE_DIR}")
+    target_link_libraries(gpu_vulkan_autotune_failure PRIVATE Threads::Threads)
+    enable_testing()
+    foreach(SCENARIO warmup timed completed create partial-create reset submit fence-reset initialize preflight success capacity-candidate)
+        add_test(NAME "gpu_vulkan_fault_${SCENARIO}" COMMAND gpu_vulkan_autotune_failure
+            "${SCENARIO}" "${CMAKE_CURRENT_BINARY_DIR}/fake-vulkan-shaders/${SCENARIO}")
+    endforeach()
+endif()
 if(SLIC3R_ENABLE_CUDA_SLICER)
     if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
         set(CMAKE_CUDA_ARCHITECTURES 61 CACHE STRING "CUDA architectures; Pascal needs CUDA12.x")

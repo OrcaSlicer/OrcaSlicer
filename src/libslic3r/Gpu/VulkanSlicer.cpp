@@ -37,8 +37,8 @@ constexpr uint32_t kDefaultWorkgroupSize = 128;
 constexpr size_t   kNvidiaPascalStagingRequestCapacity = 16 * 1024;
 constexpr size_t   kNvidiaRtxStagingRequestCapacity = 64 * 1024;
 constexpr size_t   kGenericStagingRequestCapacity = 4 * 1024;
-// Host-visible input/output staging stays resident only during a slice and is
-// then returned to Vulkan. Keeping the per-dispatch maximum bounded prevents
+// Host-visible input/output staging is reusable and may be explicitly released.
+// Keeping the per-dispatch maximum bounded prevents
 // one unusually dense region from needing a multi-gigabyte allocation.
 constexpr size_t   kMaximumReusableStagingRequestCapacity = 256 * 1024;
 
@@ -548,7 +548,12 @@ public:
     ~VulkanIntersectionContext()
     {
         if (m_device != VK_NULL_HANDLE) {
-            vkDeviceWaitIdle(m_device);
+            // A failed wait does not establish completion. The process-resident
+            // context must keep potentially referenced objects alive in that case.
+            if (vkDeviceWaitIdle(m_device) != VK_SUCCESS)
+                return;
+            m_submission_pending = false;
+            discard_autotune_pipelines();
             destroy_tree_staging_buffers();
             destroy_staging_buffers();
             if (m_tree_descriptor_pool != VK_NULL_HANDLE)
@@ -656,6 +661,45 @@ public:
     }
 
 private:
+    bool backend_failure(const std::string& diagnostic)
+    {
+        m_backend_failed = true;
+        m_ready = false;
+        m_diagnostic = diagnostic;
+        vulkan_safety_state().quarantine();
+        return false;
+    }
+
+    bool submit_and_wait(VkCommandBuffer command_buffer)
+    {
+        if (vkResetFences(m_device, 1, &m_dispatch_fence) != VK_SUCCESS)
+            return false;
+        const VkSubmitInfo submit_info {
+            VK_STRUCTURE_TYPE_SUBMIT_INFO, nullptr, 0, nullptr, nullptr, 1, &command_buffer, 0, nullptr };
+        // Conservatively retain resources even if submission itself fails: do
+        // not infer that a driver error proves there is no outstanding work.
+        m_submission_pending = true;
+        if (vkQueueSubmit(m_queue, 1, &submit_info, m_dispatch_fence) != VK_SUCCESS ||
+            vkWaitForFences(m_device, 1, &m_dispatch_fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS)
+            return false;
+        m_submission_pending = false;
+        return true;
+    }
+
+    void discard_autotune_pipelines(VkPipeline keep = VK_NULL_HANDLE)
+    {
+        if (m_submission_pending)
+            return;
+        for (const auto& candidate : m_autotune_pipelines) {
+            if (candidate.second != keep) {
+                vkDestroyPipeline(m_device, candidate.second, nullptr);
+                if (m_pipeline == candidate.second)
+                    m_pipeline = VK_NULL_HANDLE;
+            }
+        }
+        m_autotune_pipelines.clear();
+    }
+
     void initialize()
     {
         VkApplicationInfo application_info { VK_STRUCTURE_TYPE_APPLICATION_INFO };
@@ -668,18 +712,22 @@ private:
         VkInstanceCreateInfo instance_info { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
         instance_info.pApplicationInfo = &application_info;
         if (vkCreateInstance(&instance_info, nullptr, &m_instance) != VK_SUCCESS) {
-            m_diagnostic = "Vulkan instance creation failed for infill compute.";
+            backend_failure("Vulkan instance creation failed for infill compute.");
             return;
         }
 
         uint32_t device_count = 0;
-        if (vkEnumeratePhysicalDevices(m_instance, &device_count, nullptr) != VK_SUCCESS || device_count == 0) {
+        if (vkEnumeratePhysicalDevices(m_instance, &device_count, nullptr) != VK_SUCCESS) {
+            backend_failure("Vulkan physical-device enumeration failed for infill compute.");
+            return;
+        }
+        if (device_count == 0) {
             m_diagnostic = "No Vulkan physical device is available for infill compute.";
             return;
         }
         std::vector<VkPhysicalDevice> devices(device_count);
         if (vkEnumeratePhysicalDevices(m_instance, &device_count, devices.data()) != VK_SUCCESS) {
-            m_diagnostic = "Vulkan physical-device enumeration failed for infill compute.";
+            backend_failure("Vulkan physical-device enumeration failed for infill compute.");
             return;
         }
 
@@ -763,7 +811,7 @@ private:
         device_info.pQueueCreateInfos = &queue_info;
         device_info.pEnabledFeatures = &enabled_features;
         if (vkCreateDevice(m_physical_device, &device_info, nullptr, &m_device) != VK_SUCCESS) {
-            m_diagnostic = "Vulkan logical-device creation failed for infill compute.";
+            backend_failure("Vulkan logical-device creation failed for infill compute.");
             return;
         }
         vkGetDeviceQueue(m_device, m_queue_family, 0, &m_queue);
@@ -776,7 +824,7 @@ private:
         layout_info.bindingCount = uint32_t(std::size(bindings));
         layout_info.pBindings = bindings;
         if (vkCreateDescriptorSetLayout(m_device, &layout_info, nullptr, &m_descriptor_set_layout) != VK_SUCCESS) {
-            m_diagnostic = "Vulkan descriptor-layout creation failed for infill compute.";
+            backend_failure("Vulkan descriptor-layout creation failed for infill compute.");
             return;
         }
 
@@ -784,7 +832,7 @@ private:
         pipeline_layout_info.setLayoutCount = 1;
         pipeline_layout_info.pSetLayouts = &m_descriptor_set_layout;
         if (vkCreatePipelineLayout(m_device, &pipeline_layout_info, nullptr, &m_pipeline_layout) != VK_SUCCESS) {
-            m_diagnostic = "Vulkan pipeline-layout creation failed for infill compute.";
+            backend_failure("Vulkan pipeline-layout creation failed for infill compute.");
             return;
         }
 
@@ -792,7 +840,7 @@ private:
         command_pool_info.queueFamilyIndex = m_queue_family;
         command_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         if (vkCreateCommandPool(m_device, &command_pool_info, nullptr, &m_command_pool) != VK_SUCCESS) {
-            m_diagnostic = "Vulkan command-pool creation failed for infill compute.";
+            backend_failure("Vulkan command-pool creation failed for infill compute.");
             return;
         }
         const VkDescriptorPoolSize pool_size { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2 };
@@ -801,7 +849,7 @@ private:
         pool_info.poolSizeCount = 1;
         pool_info.pPoolSizes = &pool_size;
         if (vkCreateDescriptorPool(m_device, &pool_info, nullptr, &m_descriptor_pool) != VK_SUCCESS) {
-            m_diagnostic = "Vulkan descriptor-pool creation failed for infill compute.";
+            backend_failure("Vulkan descriptor-pool creation failed for infill compute.");
             return;
         }
 
@@ -810,7 +858,7 @@ private:
         descriptor_allocation_info.descriptorSetCount = 1;
         descriptor_allocation_info.pSetLayouts = &m_descriptor_set_layout;
         if (vkAllocateDescriptorSets(m_device, &descriptor_allocation_info, &m_descriptor_set) != VK_SUCCESS) {
-            m_diagnostic = "Vulkan could not allocate the reusable infill descriptor set.";
+            backend_failure("Vulkan could not allocate the reusable infill descriptor set.");
             return;
         }
 
@@ -819,7 +867,7 @@ private:
         command_allocation_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         command_allocation_info.commandBufferCount = 1;
         if (vkAllocateCommandBuffers(m_device, &command_allocation_info, &m_command_buffer) != VK_SUCCESS) {
-            m_diagnostic = "Vulkan could not allocate the reusable infill command buffer.";
+            backend_failure("Vulkan could not allocate the reusable infill command buffer.");
             return;
         }
 
@@ -829,7 +877,7 @@ private:
         // adds avoidable driver latency to dense infill/wall batches.
         VkFenceCreateInfo dispatch_fence_info { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
         if (vkCreateFence(m_device, &dispatch_fence_info, nullptr, &m_dispatch_fence) != VK_SUCCESS) {
-            m_diagnostic = "Vulkan could not allocate the reusable compute dispatch fence.";
+            backend_failure("Vulkan could not allocate the reusable compute dispatch fence.");
             return;
         }
 
@@ -894,7 +942,7 @@ private:
         shader_info.pCode = shader_words.data();
         VkShaderModule shader = VK_NULL_HANDLE;
         if (vkCreateShaderModule(m_device, &shader_info, nullptr, &shader) != VK_SUCCESS)
-            return false;
+            return backend_failure("Vulkan autotune shader-module creation failed.");
         VkPipelineShaderStageCreateInfo stage_info { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
         stage_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
         stage_info.module = shader;
@@ -904,11 +952,20 @@ private:
         pipeline_info.layout = m_pipeline_layout;
         const VkResult result = vkCreateComputePipelines(m_device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &pipeline);
         vkDestroyShaderModule(m_device, shader, nullptr);
-        return result == VK_SUCCESS;
+        if (result != VK_SUCCESS) {
+            if (pipeline != VK_NULL_HANDLE) {
+                vkDestroyPipeline(m_device, pipeline, nullptr);
+                pipeline = VK_NULL_HANDLE;
+            }
+            return backend_failure("Vulkan autotune pipeline creation failed.");
+        }
+        return true;
     }
 
     bool autotune_workgroup_size()
     {
+        if (m_backend_failed)
+            return false;
         // Measure the actual hardware instead of assuming that an RTX name or
         // the API's 1024-thread limit is optimal. Integer intersection work is
         // latency-sensitive; several resident 64-256-thread groups usually
@@ -921,12 +978,18 @@ private:
         std::sort(candidates.begin(), candidates.end());
         candidates.erase(std::unique(candidates.begin(), candidates.end()), candidates.end());
 
-        std::vector<std::pair<uint32_t, VkPipeline>> pipelines;
+        // Own the bounded original candidate set beyond this call if an API
+        // error leaves submission completion unknown.
+        auto& pipelines = m_autotune_pipelines;
         pipelines.reserve(candidates.size());
         for (const uint32_t candidate : candidates) {
             VkPipeline pipeline = VK_NULL_HANDLE;
             if (create_compute_pipeline(candidate, pipeline))
                 pipelines.emplace_back(candidate, pipeline);
+            if (m_backend_failed) {
+                discard_autotune_pipelines();
+                return false;
+            }
         }
         if (pipelines.empty()) {
             m_diagnostic = "Vulkan could not create any specialized infill compute pipeline.";
@@ -958,13 +1021,22 @@ private:
             update_submission_request_limit();
             // One warm-up run lets shader/power state settle before the three
             // timestamped trials that decide the live group size.
-            if (!dispatch_locked(probe_requests).dispatched)
+            if (!dispatch_locked(probe_requests).dispatched) {
+                if (m_backend_failed) {
+                    discard_autotune_pipelines();
+                    return false;
+                }
                 continue;
+            }
             double candidate_elapsed_ms = std::numeric_limits<double>::infinity();
             bool succeeded = true;
             for (int trial = 0; trial < 3; ++trial) {
                 const VulkanVerticalIntersectionBatch batch = dispatch_locked(probe_requests);
                 if (!batch.dispatched) {
+                    if (m_backend_failed) {
+                        discard_autotune_pipelines();
+                        return false;
+                    }
                     succeeded = false;
                     break;
                 }
@@ -980,16 +1052,12 @@ private:
         }
 
         if (selected_pipeline == VK_NULL_HANDLE) {
-            for (const auto& candidate : pipelines)
-                vkDestroyPipeline(m_device, candidate.second, nullptr);
+            discard_autotune_pipelines();
             m_pipeline = VK_NULL_HANDLE;
             m_diagnostic = "Vulkan workgroup autotuning could not complete a compute dispatch.";
             return false;
         }
-        for (const auto& candidate : pipelines) {
-            if (candidate.second != selected_pipeline)
-                vkDestroyPipeline(m_device, candidate.second, nullptr);
-        }
+        discard_autotune_pipelines(selected_pipeline);
         m_pipeline = selected_pipeline;
         m_workgroup_size = selected_workgroup_size;
         update_submission_request_limit();
@@ -1203,9 +1271,12 @@ private:
     {
         VulkanTreeContourBatch batch;
         auto fail = [&](const std::string& diagnostic) {
+            backend_failure(diagnostic);
             batch.diagnostic = diagnostic;
             return batch;
         };
+        if (m_backend_failed)
+            return fail(m_diagnostic);
         if (!ensure_tree_pipeline())
             return fail("Vulkan tree contour pipeline is unavailable.");
         if (!ensure_tree_staging_buffers(requests.size(), contour_boxes.size()))
@@ -1247,11 +1318,7 @@ private:
         vkCmdDispatch(m_tree_command_buffer, uint32_t(requests.size()), 1, 1);
         if (end_compute_readback(m_tree_command_buffer, vkCmdPipelineBarrier, vkEndCommandBuffer) != VK_SUCCESS)
             return fail("Vulkan could not end the tree contour command buffer.");
-        const VkSubmitInfo submit_info {
-            VK_STRUCTURE_TYPE_SUBMIT_INFO, nullptr, 0, nullptr, nullptr, 1, &m_tree_command_buffer, 0, nullptr };
-        if (vkResetFences(m_device, 1, &m_dispatch_fence) != VK_SUCCESS ||
-            vkQueueSubmit(m_queue, 1, &submit_info, m_dispatch_fence) != VK_SUCCESS ||
-            vkWaitForFences(m_device, 1, &m_dispatch_fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS)
+        if (!submit_and_wait(m_tree_command_buffer))
             return fail("Vulkan could not complete the tree contour dispatch.");
 
         const auto* result = static_cast<const uint32_t*>(m_tree_result_mapping);
@@ -1278,6 +1345,14 @@ private:
             batch.diagnostic = message;
             return finish();
         };
+        auto fail_backend = [&](const std::string& message) {
+            backend_failure(message);
+            return fail(message);
+        };
+        // Callers may already have passed the outer gate while another thread
+        // fails. This check runs under the existing context lock, before writes.
+        if (m_backend_failed)
+            return fail(m_diagnostic);
         if (!preflight_vertical_batch(requests))
             return fail("Vulkan request arithmetic or batch contract is unsafe.");
         if (requests.size() > m_max_requests_per_submission) {
@@ -1288,7 +1363,7 @@ private:
             return fail(message.str());
         }
         if (!ensure_staging_buffers(requests.size()))
-            return fail("Vulkan could not prepare reusable host-visible infill-intersection buffers.");
+            return fail_backend("Vulkan could not prepare reusable host-visible infill-intersection buffers.");
 
         auto* input = static_cast<PackedVerticalIntersectionRequest*>(m_input_mapping);
         for (size_t index = 0; index < requests.size(); ++index) {
@@ -1308,11 +1383,11 @@ private:
         vkUpdateDescriptorSets(m_device, uint32_t(std::size(writes)), writes, 0, nullptr);
 
         if (vkResetCommandBuffer(m_command_buffer, 0) != VK_SUCCESS)
-            return fail("Vulkan could not reset the reusable infill command buffer.");
+            return fail_backend("Vulkan could not reset the reusable infill command buffer.");
         VkCommandBufferBeginInfo begin_info { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
         begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         if (vkBeginCommandBuffer(m_command_buffer, &begin_info) != VK_SUCCESS)
-            return fail("Vulkan could not begin the reusable infill command buffer.");
+            return fail_backend("Vulkan could not begin the reusable infill command buffer.");
         if (m_compute_timestamps_available)
             vkCmdResetQueryPool(m_command_buffer, m_timestamp_query_pool, 0, 2);
         vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline);
@@ -1323,12 +1398,9 @@ private:
         if (m_compute_timestamps_available)
             vkCmdWriteTimestamp(m_command_buffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, m_timestamp_query_pool, 1);
         if (end_compute_readback(m_command_buffer, vkCmdPipelineBarrier, vkEndCommandBuffer) != VK_SUCCESS)
-            return fail("Vulkan could not end the reusable infill command buffer.");
-        const VkSubmitInfo submit_info { VK_STRUCTURE_TYPE_SUBMIT_INFO, nullptr, 0, nullptr, nullptr, 1, &m_command_buffer, 0, nullptr };
-        if (vkResetFences(m_device, 1, &m_dispatch_fence) != VK_SUCCESS ||
-            vkQueueSubmit(m_queue, 1, &submit_info, m_dispatch_fence) != VK_SUCCESS ||
-            vkWaitForFences(m_device, 1, &m_dispatch_fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS)
-            return fail("Vulkan could not complete the infill-intersection dispatch.");
+            return fail_backend("Vulkan could not end the reusable infill command buffer.");
+        if (!submit_and_wait(m_command_buffer))
+            return fail_backend("Vulkan could not complete the infill-intersection dispatch.");
 
         if (m_compute_timestamps_available) {
             uint64_t timestamps[2] {};
@@ -1358,6 +1430,7 @@ private:
     VkDescriptorSetLayout m_descriptor_set_layout { VK_NULL_HANDLE };
     VkPipelineLayout m_pipeline_layout { VK_NULL_HANDLE };
     VkPipeline     m_pipeline { VK_NULL_HANDLE };
+    std::vector<std::pair<uint32_t, VkPipeline>> m_autotune_pipelines;
     VkCommandPool  m_command_pool { VK_NULL_HANDLE };
     VkDescriptorPool m_descriptor_pool { VK_NULL_HANDLE };
     VkDescriptorSet m_descriptor_set { VK_NULL_HANDLE };
@@ -1401,6 +1474,8 @@ private:
     bool            m_is_nvidia_rtx { false };
     bool            m_compute_timestamps_available { false };
     bool           m_ready { false };
+    bool           m_backend_failed { false };
+    bool           m_submission_pending { false };
     std::string    m_diagnostic;
 
 };
@@ -1410,8 +1485,8 @@ VulkanIntersectionContext& vulkan_intersection_context()
     // The Vulkan loader may already be torn down when C++ function-static
     // destructors run during wx/driver shutdown. Keep this small context alive
     // until Windows reclaims it with the process, instead of calling Vulkan
-    // after the loader has unloaded. Runtime staging buffers are explicitly
-    // released after every slice, so this is not a growing allocation.
+    // after the loader has unloaded. Reusable staging and autotune candidates
+    // are bounded; callers can explicitly release unused staging buffers.
     static auto* context = new VulkanIntersectionContext;
     return *context;
 }
