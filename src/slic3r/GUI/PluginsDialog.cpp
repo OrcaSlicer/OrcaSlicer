@@ -731,7 +731,6 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"permissions_filesystem_placeholder", _u8L("/path/to/directory/*")},
 #endif
         {"permissions_network_access_guidance", _u8L("Enter a full http:// or https:// URL; only its scheme and host are saved, so the grant covers every port, path, and query on that host. A network socket grant also accepts a bare host name or IP address, with or without a port, and covers every port on that host. Other schemes are not accepted. Grants in either list are checked for HTTP and socket access.")},
-        {"permissions_network_placeholder", _u8L("https://example.com")},
         {"permissions_process_help", _u8L("Enter the exact value recorded by the audit. It may be a Python representation of the command.")},
         {"permissions_process_placeholder", _u8L("Exact audited value")},
         {"permissions_threading_help_short", _u8L("Allow this plugin to create threads.")},
