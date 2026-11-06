@@ -55,7 +55,8 @@ public:
 
     void StopWebStream();
 
-    void Stop(wxString const &msg = {}, wxString const &msg2 = {});
+    // Stops playback for a view switch: not a stream failure, so no back-off or LAN dialog.
+    void StopPlayback();
 
     bool IsStreaming() const;
 
@@ -69,6 +70,8 @@ protected:
     void onStateChanged(wxMediaEvent & event);
 
     void Play();
+
+    void Stop(wxString const &msg = {}, wxString const &msg2 = {});
 
     void TogglePlay();
 

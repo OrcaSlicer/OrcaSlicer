@@ -641,6 +641,7 @@ public:
     void show_filament_load_group(bool show = true);
     MediaPlayCtrl* get_media_play_ctrl() {return m_media_play_ctrl;};
     void apply_custom_camera_source();
+    void sync_custom_camera_source();
 
     void jump_to_Rack();
 

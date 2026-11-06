@@ -1649,10 +1649,18 @@ void StatusBasePanel::apply_custom_camera_source()
     m_panel_monitoring_title->Layout();
 }
 
+// The agent's camera mode can change under a stored source (another printer selected), so
+// reapply whenever the stored state and the applied one, tracked by the switch button, differ.
+void StatusBasePanel::sync_custom_camera_source()
+{
+    if (custom_camera_source_enabled() != m_camera_switch_button->IsShown())
+        apply_custom_camera_source();
+}
+
 void StatusBasePanel::show_custom_camera(bool show)
 {
     if (show)
-        m_media_play_ctrl->Stop();
+        m_media_play_ctrl->StopPlayback();
     m_custom_camera_view->Show(show);
     m_media_ctrl->Show(!show);
     m_media_play_ctrl->Show(!show);
@@ -2421,6 +2429,7 @@ void StatusPanel::update_camera_state(MachineObject* obj)
     auto agent = wxGetApp().getAgent();
     const auto camera_mode = agent ? agent->get_camera_stream_mode() : CameraStreamMode::none;
     const bool use_webview = camera_mode == CameraStreamMode::http_snapshot;
+    sync_custom_camera_source();
     if (custom_camera_source_enabled()) {
         // The WebView shows the user's own camera; apply_custom_camera_source() and the switch button own it.
     } else if (use_webview) {
@@ -5281,6 +5290,7 @@ bool StatusPanel::is_stage_list_info_changed(MachineObject *obj)
 void StatusPanel::set_default()
 {
     BOOST_LOG_TRIVIAL(trace) << "status_panel: set_default";
+    sync_custom_camera_source();
     if (m_custom_camera_view->IsShown() && !custom_camera_source_enabled()) {
         m_custom_camera_view->Hide();
         m_media_ctrl->Show();

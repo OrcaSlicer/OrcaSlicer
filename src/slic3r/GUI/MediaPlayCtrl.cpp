@@ -580,6 +580,12 @@ void MediaPlayCtrl::StopWebStream()
     SetStatus(_L("Video Stopped."), false);
 }
 
+void MediaPlayCtrl::StopPlayback()
+{
+    m_failed_code = 0;
+    Stop();
+}
+
 void MediaPlayCtrl::Stop(wxString const &msg, wxString const &msg2)
 {
     const bool webrtc_active = m_last_mode == CameraStreamMode::webrtc &&

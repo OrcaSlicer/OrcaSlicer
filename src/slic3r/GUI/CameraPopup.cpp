@@ -225,7 +225,10 @@ void CameraPopup::on_camera_source_changed(wxCommandEvent& event)
         return;
 
     set_custom_cam_button_state(!m_custom_camera_enabled);
-    wxGetApp().app_config->set("camera", "custom_source", url);
+    if (m_custom_camera_enabled) {
+        m_custom_camera_input->GetTextCtrl()->SetValue(wxString::FromUTF8(url));
+        wxGetApp().app_config->set("camera", "custom_source", url);
+    }
     wxGetApp().app_config->set("camera", "enable_custom_source", m_custom_camera_enabled);
 
     wxCommandEvent evt(EVT_CAM_SOURCE_CHANGE);
@@ -241,7 +244,7 @@ bool CameraPopup::custom_source_supported()
 
 std::string CameraPopup::custom_source_url()
 {
-    if (!custom_source_supported() || wxGetApp().app_config->get("camera", "enable_custom_source") != "true")
+    if (wxGetApp().app_config->get("camera", "enable_custom_source") != "true" || !custom_source_supported())
         return {};
     std::string url = boost::algorithm::trim_copy(wxGetApp().app_config->get("camera", "custom_source"));
     if (!url.empty() && url.find("://") == std::string::npos)
