@@ -49,7 +49,10 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_cloud_metadata.cpp
     test_plugin_audit.cpp
     test_plugin_json_depth.cpp
+    test_plugin_permission_validation.cpp
     test_shortcuts.cpp
+    test_speed_dial_dismiss.cpp
+    test_speed_dial_position.cpp
     test_texture_color_palette.cpp
     test_texture_island_view.cpp
     test_timelapse_codecs.cpp
