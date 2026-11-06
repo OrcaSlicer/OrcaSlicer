@@ -1,54 +1,58 @@
 {
 	"type": "filament",
-	"name": "Printalot ABS @base",
+	"name": "Recycling Fabrik rABS @base",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"filament_id": "OFgq39c2",
+	"filament_id": "OFjqOQYr",
 	"instantiation": "false",
+	"description": "100 % recycled ABS, made in Germany.",
 	"filament_vendor": [
-		"Printalot"
+		"Recycling Fabrik"
 	],
-	"filament_type": [
-		"ABS"
-	],
-	"filament_notes": "Printalot ABS. Product page: https://printalot.com.ar/productos/filamentos/abs/abs-1-kg/ Community-contributed profile; not affiliated with or endorsed by Printalot.",
-	"filament_diameter": [
-		"1.75"
+	"filament_cost": [
+		"27"
 	],
 	"filament_density": [
-		"1.05"
+		"1.04"
 	],
 	"filament_flow_ratio": [
-		"0.94"
+		"0.95"
 	],
 	"filament_max_volumetric_speed": [
-		"18"
-	],
-	"filament_retraction_length": [
-		"0.2"
+		"15"
 	],
 	"nozzle_temperature": [
-		"250"
+		"260"
 	],
 	"nozzle_temperature_initial_layer": [
-		"250"
+		"260"
 	],
 	"nozzle_temperature_range_low": [
 		"240"
 	],
 	"nozzle_temperature_range_high": [
-		"270"
+		"280"
 	],
 	"hot_plate_temp": [
-		"100"
+		"90"
 	],
 	"hot_plate_temp_initial_layer": [
-		"100"
+		"90"
 	],
 	"textured_plate_temp": [
-		"100"
+		"90"
 	],
 	"textured_plate_temp_initial_layer": [
-		"100"
-	]
+		"90"
+	],
+	"fan_min_speed": [
+		"10"
+	],
+	"fan_max_speed": [
+		"80"
+	],
+	"close_fan_the_first_x_layers": [
+		"5"
+	],
+	"compatible_printers": []
 }

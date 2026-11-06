@@ -18,6 +18,7 @@
 #include "nlohmann/json.hpp"
 
 #include <algorithm>
+#include <initializer_list>
 #include <string>
 #include <exception>
 #include <boost/none.hpp>
@@ -703,8 +704,29 @@ void AppConfig::set_defaults()
         set("angle_deflection", "0.5");
     }
     if (get("is_split_compound").empty()) {
-        set_bool("is_split_compound", false);
+        // Splitting keeps the bodies of a multi-body part, and with them their original names.
+        set_bool("is_split_compound", true);
     }
+    // Geometry-import choices are editor preferences, never project print settings.
+    for (const std::string format : {"step", "amf", "3mf"}) {
+        const std::string prefix = "import_names_" + format + "_";
+        if (get(prefix + "keep").empty())
+            set_bool(prefix + "keep", true);
+        if (get(prefix + "sort").empty())
+            set_bool(prefix + "sort", false);
+        if (format != "3mf" && get(prefix + "assembly").empty())
+            set_bool(prefix + "assembly", true);
+        if (format == "amf" && get(prefix + "separate").empty())
+            set_bool(prefix + "separate", true);
+        if (format != "step" && get(prefix + "show_dialog").empty())
+            set_bool(prefix + "show_dialog", true);
+    }
+    if (get("import_names_cleanup_show_dialog").empty())
+        set_bool("import_names_cleanup_show_dialog", true);
+    if (get("import_names_cleanup_remove").empty())
+        set_bool("import_names_cleanup_remove", false);
+    if (get("import_names_cleanup_replacement").empty())
+        set("import_names_cleanup_replacement", "_");
     if (get("enable_primitive_size_dialog").empty()) {
         set_bool("enable_primitive_size_dialog", true);
     }
@@ -725,11 +747,6 @@ void AppConfig::set_defaults()
     {
         // false = legacy behavior using print hosts
         set_bool("use_printer_agents", false);
-    }
-
-    if (get("enable_ota").empty())
-    {
-        set_bool("enable_ota", false);
     }
 
     // Remove legacy window positions/sizes
@@ -761,6 +778,22 @@ static std::string appconfig_md5_hash_line(const std::string_view data)
     assert(md5_digest_str.size() == 32);
     // This line will be emited at the end of the file.
     return "# MD5 checksum " + md5_digest_str + "\n";
+}
+
+// write_config_file() saves the JSON configuration followed by a newline and the MD5 checksum line of the JSON.
+// Returns the JSON part of the file text and whether that checksum line follows it and matches. A person or a tool
+// editing the file may drop the checksum line, and the newline after the closing brace with it.
+static std::pair<std::string, bool> split_json_config_checksum(const std::string &file_text)
+{
+    const size_t json_end = file_text.find_last_of('}');
+    // Without a closing brace there is no JSON object, and parsing the empty text fails.
+    if (json_end == std::string::npos)
+        return {};
+    std::string json_text = file_text.substr(0, json_end + 1);
+    // Skip the newline after the closing brace.
+    const size_t checksum_pos = std::min(json_end + 2, file_text.size());
+    const bool   checksum_ok  = file_text.compare(checksum_pos, std::string::npos, appconfig_md5_hash_line(json_text)) == 0;
+    return { std::move(json_text), checksum_ok };
 }
 
 // Assume that the last line with the comment inside the config file contains a checksum and that the user didn't modify the config file.
@@ -811,18 +844,12 @@ std::string AppConfig::load(bool read_only)
 #ifdef WIN32
         std::stringstream input_stream;
         input_stream << ifs.rdbuf();
-        std::string total_string = input_stream.str();
-        size_t last_pos = total_string.find_last_of('}');
-        std::string left_string = total_string.substr(0, last_pos+1);
-        //skip the "\n"
-        std::string right_string = total_string.substr(last_pos+2);
-
-        std::string md5_str = appconfig_md5_hash_line({left_string.data()});
+        const auto [json_text, checksum_ok] = split_json_config_checksum(input_stream.str());
         // Verify the checksum of the config file without taking just for debugging purpose.
-        if (md5_str != right_string)
+        if (!checksum_ok)
             BOOST_LOG_TRIVIAL(info) << "The configuration file " << AppConfig::loading_path() <<
             " has a wrong MD5 checksum or the checksum is missing. This may indicate a file corruption or a harmless user edit.";
-        j = json::parse(left_string);
+        j = json::parse(json_text);
 #else
         ifs >> j;
 #endif
@@ -837,14 +864,8 @@ std::string AppConfig::load(bool read_only)
             boost::nowide::ifstream backup_ifs(backup_path);
             std::stringstream back_input_stream;
             back_input_stream << backup_ifs.rdbuf();
-            std::string back_total_string = back_input_stream.str();
-            size_t back_last_pos = back_total_string.find_last_of('}');
-            std::string back_left_string = back_total_string.substr(0, back_last_pos+1);
-            std::string back_right_string = back_total_string.substr(back_last_pos+2);
-
-            std::string back_md5_str = appconfig_md5_hash_line({back_left_string.data()});
-            // Verify the checksum of the config file without taking just for debugging purpose.
-            if (back_md5_str != back_right_string) {
+            const auto [back_json_text, back_checksum_ok] = split_json_config_checksum(back_input_stream.str());
+            if (!back_checksum_ok) {
                 BOOST_LOG_TRIVIAL(error) << format("Both \"%1%\" and \"%2%\" are corrupted. It isn't possible to restore configuration from the backup.", AppConfig::loading_path(), backup_path);
                 backup_ifs.close();
                 boost::filesystem::remove(backup_path);
@@ -857,7 +878,7 @@ std::string AppConfig::load(bool read_only)
             else {
                 BOOST_LOG_TRIVIAL(info) << format("Configuration file \"%1%\" was corrupted. It has been succesfully restored from the backup \"%2%\".", AppConfig::loading_path(), backup_path);
                 // Try parse configuration file after restore from backup.
-                j = json::parse(back_left_string);
+                j = json::parse(back_json_text);
                 recovered = true;
             }
         }

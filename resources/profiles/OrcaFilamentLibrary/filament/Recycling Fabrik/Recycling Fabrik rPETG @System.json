@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Recycling Fabrik rPETG @System",
+	"inherits": "Recycling Fabrik rPETG @base",
+	"from": "system",
+	"setting_id": "bc0fVy70FRWmvdmX",
+	"instantiation": "true",
+	"compatible_printers": []
+}

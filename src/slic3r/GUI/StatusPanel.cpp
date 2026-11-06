@@ -960,7 +960,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     m_request_failed_panel    = new wxPanel(parent, wxID_ANY);
     m_request_failed_panel->SetBackgroundColour(*wxWHITE);
     wxBoxSizer *static_request_failed_panel_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_request_failed_info = new wxStaticText(m_request_failed_panel, wxID_ANY, _L("You have completed printing the mall model, \nbut synchronizing rating information has failed."), wxDefaultPosition, wxDefaultSize, 0);
+    m_request_failed_info = new wxStaticText(m_request_failed_panel, wxID_ANY, _L("You have completed printing the mall model,\nbut synchronizing rating information has failed."), wxDefaultPosition, wxDefaultSize, 0);
     m_request_failed_info->Wrap(-1);
     m_request_failed_info->SetForegroundColour(*wxRED);
     m_request_failed_info->SetFont(::Label::Body_10);
@@ -1579,26 +1579,20 @@ wxBoxSizer *StatusBasePanel::create_monitoring_page()
     m_setting_button->SetMinSize(wxSize(FromDIP(38), FromDIP(24)));
     m_setting_button->SetBackgroundColour(STATUS_TITLE_BG);
 
-    // m_camera_switch_button = new wxStaticBitmap(m_panel_monitoring_title, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxSize(FromDIP(38), FromDIP(24)), 0);
-    // m_camera_switch_button->SetMinSize(wxSize(FromDIP(38), FromDIP(24)));
-    // m_camera_switch_button->SetBackgroundColour(STATUS_TITLE_BG);
-    // m_camera_switch_button->SetBitmap(m_bitmap_switch_camera.bmp());
-    // m_camera_switch_button->Bind(wxEVT_RIGHT_DOWN, [this](auto& e) {
-    //     const std::string js_request_pip = R"(
-    //         document.querySelector('video').requestPictureInPicture();
-    //     )";
-    //     m_custom_camera_view->RunScript(js_request_pip);
-    // });
-    // m_camera_switch_button->Hide();
+    m_camera_switch_button = new wxStaticBitmap(m_panel_monitoring_title, wxID_ANY, m_bitmap_switch_camera.bmp(), wxDefaultPosition, wxSize(FromDIP(38), FromDIP(24)), 0);
+    m_camera_switch_button->SetMinSize(wxSize(FromDIP(38), FromDIP(24)));
+    m_camera_switch_button->SetBackgroundColour(STATUS_TITLE_BG);
+    m_camera_switch_button->Bind(wxEVT_LEFT_DOWN, &StatusBasePanel::on_camera_switch_toggled, this);
+    m_camera_switch_button->Hide();
 
     m_bitmap_sdcard_img->SetToolTip(_L("Storage"));
     m_bitmap_timelapse_img->SetToolTip(_L("Timelapse"));
     m_bitmap_recording_img->SetToolTip(_L("Video"));
     m_bitmap_vcamera_img->SetToolTip(_L("Go Live"));
     m_setting_button->SetToolTip(_L("Camera Setting"));
-    // m_camera_switch_button->SetToolTip(_L("Switch Camera View"));
+    m_camera_switch_button->SetToolTip(_L("Switch Camera View"));
 
-    // bSizer_monitoring_title->Add(m_camera_switch_button, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
+    bSizer_monitoring_title->Add(m_camera_switch_button, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
     bSizer_monitoring_title->Add(m_bitmap_sdcard_img, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
     bSizer_monitoring_title->Add(m_bitmap_timelapse_img, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
     bSizer_monitoring_title->Add(m_bitmap_recording_img, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
@@ -1634,7 +1628,45 @@ wxBoxSizer *StatusBasePanel::create_monitoring_page()
 //
 //    sizer->Add(media_ctrl_panel, 1, wxEXPAND | wxALL, 1);
 
+    if (const std::string url = CameraPopup::custom_source_url(); !url.empty())
+        apply_custom_camera_source(url);
+
     return sizer;
+}
+
+// An empty URL means no custom source: the printer's own stream is shown again.
+void StatusBasePanel::apply_custom_camera_source(const std::string& url)
+{
+    show_custom_camera(url);
+    m_custom_camera_applied = !url.empty();
+    m_camera_switch_button->Show(m_custom_camera_applied);
+    m_panel_monitoring_title->Layout();
+}
+
+// The agent's camera mode can change under a stored source (another printer selected), so
+// reapply whenever the stored state and the applied one differ.
+void StatusBasePanel::sync_custom_camera_source(const std::string& url)
+{
+    if (!url.empty() != m_custom_camera_applied)
+        apply_custom_camera_source(url);
+}
+
+// The custom page is only loaded while it is on screen, so a hidden view pulls no stream.
+void StatusBasePanel::show_custom_camera(const std::string& url)
+{
+    const bool show = !url.empty();
+    if (show)
+        m_media_play_ctrl->StopPlayback();
+    m_custom_camera_view->LoadURL(url.empty() ? wxString("about:blank") : wxString::FromUTF8(url));
+    m_custom_camera_view->Show(show);
+    m_media_ctrl->Show(!show);
+    m_media_play_ctrl->Show(!show);
+    Layout();
+}
+
+void StatusBasePanel::on_camera_switch_toggled(wxMouseEvent& event)
+{
+    show_custom_camera(m_custom_camera_view->IsShown() ? std::string() : CameraPopup::custom_source_url());
 }
 
 wxBoxSizer *StatusBasePanel::create_machine_control_page(wxWindow *parent)
@@ -2394,22 +2426,26 @@ void StatusPanel::update_camera_state(MachineObject* obj)
     auto agent = wxGetApp().getAgent();
     const auto camera_mode = agent ? agent->get_camera_stream_mode() : CameraStreamMode::none;
     const bool use_webview = camera_mode == CameraStreamMode::http_snapshot;
-    if (use_webview) {
-        //m_camera_switch_button->Hide();
-        if (!m_custom_camera_view->IsShown()) {
-            // why: do not reload the WebView URL per tick, or redirects can cause a reload loop.
-            // MediaPlayCtrl (via its WebMediaController) owns loading/playing the stream itself.
-            m_custom_camera_view->Show();
-            m_media_ctrl->Hide();
+    const std::string custom_url = CameraPopup::custom_source_url();
+    sync_custom_camera_source(custom_url);
+    // With a custom source applied, the WebView shows the user's camera and the switch button owns the view.
+    if (custom_url.empty()) {
+        if (use_webview) {
+            if (!m_custom_camera_view->IsShown()) {
+                // why: do not reload the WebView URL per tick, or redirects can cause a reload loop.
+                // MediaPlayCtrl (via its WebMediaController) owns loading/playing the stream itself.
+                m_custom_camera_view->Show();
+                m_media_ctrl->Hide();
+            }
+        } else {
+            if (m_custom_camera_view->IsShown()) {
+                m_custom_camera_view->Hide();
+                // Stop the snapshot WebView before switching to native playback
+                // or leaving the camera mode.
+                m_media_play_ctrl->StopWebStream();
+            }
+            m_media_ctrl->Show();
         }
-    } else {
-        if (m_custom_camera_view->IsShown()) {
-            m_custom_camera_view->Hide();
-            // Stop the snapshot WebView before switching to native playback
-            // or leaving the camera mode.
-            m_media_play_ctrl->StopWebStream();
-        }
-        m_media_ctrl->Show();
     }
 
     //sdcard
@@ -5088,8 +5124,10 @@ void StatusPanel::on_switch_vcamera(wxMouseEvent &event)
 void StatusPanel::on_camera_enter(wxMouseEvent& event)
 {
     if (obj) {
-        if (m_camera_popup == nullptr)
+        if (m_camera_popup == nullptr) {
             m_camera_popup = std::make_shared<CameraPopup>(this);
+            m_camera_popup->Bind(EVT_CAM_SOURCE_CHANGE, &StatusPanel::on_camera_source_change, this);
+        }
         m_camera_popup->check_func_supported(obj);
         m_camera_popup->sync_vcamera_state(show_vcamera);
         m_camera_popup->Bind(EVT_VCAMERA_SWITCH, &StatusPanel::on_switch_vcamera, this);
@@ -5116,6 +5154,11 @@ void StatusPanel::on_camera_leave(wxMouseEvent& event)
     if (obj && m_camera_popup) {
         m_camera_popup->Dismiss();
     }
+}
+
+void StatusPanel::on_camera_source_change(wxCommandEvent& event)
+{
+    apply_custom_camera_source(CameraPopup::custom_source_url());
 }
 
 void StatusPanel::on_auto_leveling(wxCommandEvent &event)
@@ -5246,7 +5289,9 @@ bool StatusPanel::is_stage_list_info_changed(MachineObject *obj)
 void StatusPanel::set_default()
 {
     BOOST_LOG_TRIVIAL(trace) << "status_panel: set_default";
-    if (m_custom_camera_view->IsShown()) {
+    const std::string custom_url = CameraPopup::custom_source_url();
+    sync_custom_camera_source(custom_url);
+    if (m_custom_camera_view->IsShown() && custom_url.empty()) {
         m_custom_camera_view->Hide();
         m_media_ctrl->Show();
         m_media_play_ctrl->StopWebStream();
@@ -5350,6 +5395,8 @@ void StatusPanel::rescale_camera_icons()
     m_bitmap_timelapse_off = ScalableBitmap(this, wxGetApp().dark_mode()?"monitor_timelapse_off_dark":"monitor_timelapse_off", 20);
     m_bitmap_vcamera_on = ScalableBitmap(this, wxGetApp().dark_mode()?"monitor_vcamera_on_dark":"monitor_vcamera_on", 20);
     m_bitmap_vcamera_off = ScalableBitmap(this, wxGetApp().dark_mode()?"monitor_vcamera_off_dark":"monitor_vcamera_off", 20);
+    m_bitmap_switch_camera = ScalableBitmap(this, wxGetApp().dark_mode() ? "camera_switch_dark" : "camera_switch", 20);
+    m_camera_switch_button->SetBitmap(m_bitmap_switch_camera.bmp());
 
     if (m_media_play_ctrl->IsStreaming()) {
         m_bitmap_vcamera_img->SetBitmap(m_bitmap_vcamera_on.bmp());
@@ -6200,7 +6247,7 @@ wxBoxSizer *ScoreDialog::get_main_sizer(const std::vector<std::pair<wxString, st
     m_main_sizer->Add(m_line_top, 0, wxEXPAND, 0);
     m_main_sizer->Add(0, 0, 0, wxTOP, FromDIP(32));
 
-    warning_text = new wxStaticText(this, wxID_ANY, _L("At least one successful print record of this print profile is required \nto give a positive rating (4 or 5 stars)."));
+    warning_text = new wxStaticText(this, wxID_ANY, _L("At least one successful print record of this print profile is required\nto give a positive rating (4 or 5 stars)."));
     warning_text->SetForegroundColour(*wxRED);
     warning_text->SetFont(::Label::Body_13);
 
