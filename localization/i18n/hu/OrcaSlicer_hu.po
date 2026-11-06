@@ -36362,6 +36362,12 @@ msgid "Network sockets"
 msgstr "Hálózati socketek"
 
 # AI Translated
+#. TRN Operating system processes a plugin may start, not print process presets.
+msgctxt "Permission category"
+msgid "Processes"
+msgstr "Folyamatok"
+
+# AI Translated
 msgid "Threading"
 msgstr "Szálak"
 

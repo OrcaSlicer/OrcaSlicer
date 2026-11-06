@@ -30579,6 +30579,11 @@ msgstr ""
 msgid "Network sockets"
 msgstr ""
 
+#. TRN Operating system processes a plugin may start, not print process presets.
+msgctxt "Permission category"
+msgid "Processes"
+msgstr ""
+
 msgid "Threading"
 msgstr ""
 

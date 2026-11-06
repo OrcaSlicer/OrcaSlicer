@@ -721,7 +721,8 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"permissions_fs_readwrite", _u8L("File system read and write")},
         {"permissions_network_http", _u8L("HTTP network")},
         {"permissions_network_socket", _u8L("Network sockets")},
-        {"permissions_process", _u8L("Processes")},
+        // TRN Operating system processes a plugin may start, not print process presets.
+        {"permissions_process", _u8L_CONTEXT("Processes", "Permission category")},
         {"permissions_threading", _u8L("Threading")},
         {"permissions_events", _u8L_CONTEXT("Events", "Permission category")},
         {"permissions_filesystem_help", _u8L("Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. A read/write grant can create files through open(), but it does not cover create or delete events such as os.mkdir and os.remove. Without Full access, each such event outside allowed folders needs its own approval, which is never saved. When a plugin runs in the background, these events are denied without asking.")},
