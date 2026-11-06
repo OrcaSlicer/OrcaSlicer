@@ -5515,6 +5515,7 @@ void TabPrinter::build_fff()
 
         optgroup = page->new_optgroup(L("Advanced"), L"param_advanced");
 
+        optgroup->append_single_option_line("allow_different_nozzles");
         optgroup->append_single_option_line("printer_structure", "printer_basic_information_advanced#printer-structure");
         optgroup->append_single_option_line("gcode_flavor", "printer_basic_information_advanced#g-code-flavor");
         optgroup->append_single_option_line("gcode_skip_config_block", "printer_basic_information_advanced#skip-g-code-config-block");
@@ -6466,7 +6467,7 @@ void TabPrinter::on_preset_loaded()
         bool use_default_nozzle_volume_type = true;
         m_base_preset_name = base_name;
         std::string prev_nozzle_volume_type = wxGetApp().app_config->get_nozzle_volume_types_from_config(base_name);
-        if (!prev_nozzle_volume_type.empty()) {
+        if (m_config->opt_bool("allow_different_nozzles") && !prev_nozzle_volume_type.empty()) {
             ConfigOptionEnumsGeneric* nozzle_volume_type_option = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
             if (nozzle_volume_type_option->deserialize(prev_nozzle_volume_type)) {
                 use_default_nozzle_volume_type = false;
@@ -7086,6 +7087,20 @@ void TabPrinter::on_value_change(const std::string& opt_key, const boost::any& v
     if (wxGetApp().plater() == nullptr || m_config_manipulation.is_applying())
         return;
 
+    if (opt_key == "allow_different_nozzles") {
+        m_presets->get_edited_preset().set_num_extruders(m_extruders_count);
+        if (!m_config->opt_bool("allow_different_nozzles")) {
+            // Hidden selectors must not leave a previously selected flow override active.
+            auto *volumes = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+            const auto *defaults = m_config->option<ConfigOptionEnumsGeneric>("default_nozzle_volume_type");
+            for (size_t i = 0; i < volumes->values.size(); ++i) {
+                const auto type = NozzleVolumeType(defaults->get_at(i));
+                volumes->values[i] = type;
+                onNozzleVolumeTypeSwitch(m_preset_bundle, int(i), type);
+            }
+        }
+    }
+
     const int pos = opt_key.find("#");
     // Orca: fields of the single Extruder page keep index 0 but edit the selected extruder.
     const int data_idx = pos > 0 ? extruder_page_data_index(opt_key) : -1;
@@ -7137,6 +7152,15 @@ void TabPrinter::on_value_change(const std::string& opt_key, const boost::any& v
         Tab::on_value_change(opt_key.substr(0, pos) + "#" + std::to_string(get_current_active_extruder()), value);
     else
         Tab::on_value_change(opt_key, value);
+
+    if (opt_key == "allow_different_nozzles") {
+        update_dirty();
+        update_extruder_variants();
+        wxGetApp().sidebar().update_presets(Preset::TYPE_PRINTER);
+        for (auto *tab : wxGetApp().tabs_list)
+            if (tab != this)
+                tab->update_extruder_variants();
+    }
 }
 
 void TabPrinter::update()
