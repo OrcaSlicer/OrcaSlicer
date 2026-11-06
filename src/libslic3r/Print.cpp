@@ -2432,6 +2432,11 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         }
     }
 
+    // Must run before the checks below that generate the layers: a zero layer height never reaches the top.
+    for (const PrintObject *object : m_objects)
+        if (object->config().layer_height.value < EPSILON)
+            return {L("Layer height must be greater than zero."), object, "layer_height"};
+
     // Cache of layer height profiles for checking:
     // 1) Whether all layers are synchronized if printing with wipe tower and / or unsynchronized supports.
     // 2) Whether layer height is constant for Organic supports.
@@ -2768,8 +2773,6 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
 
             // validate layer_height
             double layer_height = object->config().layer_height.value;
-            if (layer_height < EPSILON)
-                return {L("Layer height must be greater than zero."), object, "layer_height"};
             if (layer_height > min_nozzle_diameter)
                 return {L("Layer height cannot exceed nozzle diameter."), object, "layer_height"};
 
