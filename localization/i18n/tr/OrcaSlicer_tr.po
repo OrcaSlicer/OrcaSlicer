@@ -36547,6 +36547,12 @@ msgid "Network sockets"
 msgstr "Ağ soketleri"
 
 # AI Translated
+#. TRN Operating system processes a plugin may start, not print process presets.
+msgctxt "Permission category"
+msgid "Processes"
+msgstr "İşlemler"
+
+# AI Translated
 msgid "Threading"
 msgstr "İş parçacıkları"
 
