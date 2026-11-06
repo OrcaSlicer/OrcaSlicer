@@ -223,6 +223,12 @@ TEST_CASE("Retract after outer wall retracts on a travel shorter than the thresh
     REQUIRE(transitions == 5);
 }
 
+TEST_CASE("Retract after outer wall is on by default", "[GCode]")
+{
+    const DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    CHECK(config.opt_bool("retract_after_outer_wall"));
+}
+
 // Firmwares read the compatibility header lines (Anycubic's GoKlipper heats the bed with
 // first_layer_bed_temperature), so they must describe the filament the plate prints, not filament 1.
 TEST_CASE("The G-code header names the first layer temperatures of the filament the plate prints", "[GCode]")

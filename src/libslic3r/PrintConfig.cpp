@@ -6715,8 +6715,9 @@ void PrintConfigDef::init_fff_params()
                      "travel distance threshold.\n\n"
                      "Without a retraction, a very short travel, for example to gap infill inside a thin wall, can drag "
                      "the end of the outer wall inward and leave a visible dent at the seam.");
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(false));
+    // Orca: on for everyone, hidden from the regular UI until long-term tests settle it.
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionBool(true));
 
     def = this->add("wipe_speed", coFloatOrPercent);
     def->label = L("Wipe speed");
