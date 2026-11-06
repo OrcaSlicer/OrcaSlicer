@@ -46,6 +46,7 @@
 
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
 #include <wx/base64.h>
 #include <wx/mstream.h>
 #include <tuple>

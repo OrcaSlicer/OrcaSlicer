@@ -8,6 +8,9 @@
 #include "libslic3r/CAD/SheetMetal.hpp"
 #include "libslic3r/CAD/SketchConstraints.hpp"
 #include "libslic3r/CAD/SketchSolver.hpp"
+#include <BRepBndLib.hxx>
+#include <Bnd_Box.hxx>
+#include <BRepBuilderAPI_Transform.hxx>
 #include "libslic3r/CAD/SketchImport.hpp"   // transform_regions for imported art
 
 #include <boost/log/trivial.hpp>
@@ -6113,6 +6116,21 @@ std::vector<CadDocument::Interference> CadDocument::check_interference(double mi
 bool CadDocument::is_sheet_shape(const TopoDS_Shape& s)
 {
     return !TopExp_Explorer(s, TopAbs_SOLID).More();
+}
+
+// Imported geometry is moved as one rigid group: footprint centred on the modeling origin (bed centre), underside on z = 0.
+void CadDocument::place_on_bed(std::vector<TopoDS_Shape>& shapes) const
+{
+    Bnd_Box box;
+    for (const TopoDS_Shape& s : shapes)
+        if (!s.IsNull()) BRepBndLib::Add(s, box);
+    if (box.IsVoid()) return;
+    double x0, y0, z0, x1, y1, z1;
+    box.Get(x0, y0, z0, x1, y1, z1);
+    gp_Trsf t;
+    t.SetTranslation(gp_Vec(modeling_origin.x() - 0.5 * (x0 + x1), modeling_origin.y() - 0.5 * (y0 + y1), modeling_origin.z() - z0));
+    for (TopoDS_Shape& s : shapes)
+        if (!s.IsNull()) s = BRepBuilderAPI_Transform(s, t, true).Shape();   // copy=true: the source may be shared
 }
 
 } // namespace Slic3r
