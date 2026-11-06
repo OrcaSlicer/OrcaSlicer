@@ -1926,21 +1926,18 @@ int decide_audited_event(PluginAuditManager&             mgr,
     if (!request_permission(category, plugin_key, plugin_name, event_name, by_event, unresolved))
         return report_denied(mgr, event_name, {false, "audit permission required"});
 
-    if (permission_list) {
-        PluginManager& manager = PluginManager::instance();
-        const bool     plugin_alive = manager.is_plugin_loaded(plugin_key) ||
-                                      manager.is_plugin_load_in_progress(plugin_key);
-        if (plugin_alive && !manager.is_shutting_down()) {
-            try {
-                for (const auto& key : unresolved)
-                    persist_permission(plugin_key, state, category, by_event, *permission_list, key);
-            } catch (const std::exception& ex) {
-                BOOST_LOG_TRIVIAL(warning) << "[AUDIT PROMPT] Failed to store permission for plugin=" << plugin_key
-                                           << ": " << ex.what();
-            } catch (...) {
-                BOOST_LOG_TRIVIAL(warning) << "[AUDIT PROMPT] Failed to store permission for plugin=" << plugin_key
-                                           << ": unknown exception";
-            }
+    // Audit scopes may run for a discovered plugin that is not marked as loaded. An approved
+    // operation must retain its grant for later and nested events in that case too.
+    if (permission_list && !PluginManager::instance().is_shutting_down()) {
+        try {
+            for (const auto& key : unresolved)
+                persist_permission(plugin_key, state, category, by_event, *permission_list, key);
+        } catch (const std::exception& ex) {
+            BOOST_LOG_TRIVIAL(warning) << "[AUDIT PROMPT] Failed to store permission for plugin=" << plugin_key
+                                       << ": " << ex.what();
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(warning) << "[AUDIT PROMPT] Failed to store permission for plugin=" << plugin_key
+                                       << ": unknown exception";
         }
     }
     return 0;
