@@ -74,7 +74,10 @@ struct TreeSupportMeshGroupSettings {
         this->layer_height              = scaled<coord_t>(config.layer_height.value);
         this->resolution                = scaled<coord_t>(print_config.resolution.value);
         // Arache feature
-        this->min_feature_size          = scaled<coord_t>(config.min_feature_size.value);
+        // Use the same nozzle reference as Orca's Arachne wall generator.
+        const double min_nozzle_diameter = *std::min_element(print_config.nozzle_diameter.values.begin(),
+                                                             print_config.nozzle_diameter.values.end());
+        this->min_feature_size           = scaled<coord_t>(config.min_feature_size.get_abs_value(min_nozzle_diameter));
         // +1 makes the threshold inclusive
         this->support_angle             = 0.5 * M_PI - std::clamp<double>((config.support_threshold_angle + 1) * M_PI / 180., 0., 0.5 * M_PI);
         this->support_line_width        = support_material_flow(&print_object, config.layer_height).scaled_width();
@@ -90,6 +93,7 @@ struct TreeSupportMeshGroupSettings {
         // Separation of interfaces, it is likely smaller than support_xy_distance.
         this->support_xy_distance_overhang = std::min(this->support_xy_distance, scaled<coord_t>(0.5 * external_perimeter_width));
         this->support_top_distance      = scaled<coord_t>(slicing_params.gap_support_object);
+        this->zero_top_z_gap            = config.support_top_z_distance < EPSILON;
         this->support_bottom_distance   = scaled<coord_t>(slicing_params.gap_object_support);
         this->support_roof_enable       = config.support_interface_top_layers.value > 0;
         this->support_roof_layers       = config.support_interface_top_layers.value;
@@ -102,7 +106,8 @@ struct TreeSupportMeshGroupSettings {
         this->support_roof_line_distance = scaled<coord_t>(config.support_interface_spacing.value) + this->support_roof_line_width;
         this->support_tree_branch_distance = scaled<coord_t>(config.tree_support_branch_distance_organic.value);
         this->support_tree_angle          = std::clamp<double>(config.tree_support_branch_angle_organic * M_PI / 180., 0., 0.5 * M_PI - EPSILON);
-        this->support_tree_angle_slow     = std::clamp<double>(config.tree_support_angle_slow * M_PI / 180., 0., this->support_tree_angle - EPSILON);
+        // A zero branch angle would put the upper bound below zero, which std::clamp does not allow.
+        this->support_tree_angle_slow     = std::clamp<double>(config.tree_support_angle_slow * M_PI / 180., 0., std::max(0., this->support_tree_angle - EPSILON));
         this->support_tree_branch_diameter = scaled<coord_t>(config.tree_support_branch_diameter_organic.value);
         this->support_tree_branch_diameter_angle  = std::clamp<double>(config.tree_support_branch_diameter_angle * M_PI / 180., 0., 0.5 * M_PI - EPSILON);
         this->support_tree_bp_diameter    = scaled<coord_t>(config.tree_support_initial_layer_diameter.value);
@@ -157,6 +162,8 @@ struct TreeSupportMeshGroupSettings {
     // Support Top Distance
     // Distance from the top of the support to the print.
     coord_t                         support_top_distance                    { scaled<coord_t>(0.1) };
+    // The support touches the print from below without a gap.
+    bool                            zero_top_z_gap                          { false };
     // Support Bottom Distance
     // Distance from the print to the bottom of the support.
     coord_t                         support_bottom_distance                 { scaled<coord_t>(0.1) };
@@ -269,7 +276,7 @@ struct TreeSupportMeshGroupSettings {
     // Adjusts the density of the support structure used to generate the tips of the branches.
     // A higher value results in better overhangs but the supports are harder to remove, thus it is recommended to enable top support interfaces
     // instead of a high branch density value if dense interfaces are needed.
-    // 5%-35%
+    // 5%-100%: above 100% the tips would stand closer than their diameter. CuraEngine only warns above 35%.
     double                          support_tree_top_rate                   { 15. };
     // Tree Support Tip Diameter
     // The diameter of the top of the tip of the branches of tree support.
@@ -331,7 +338,7 @@ public:
     
         layer_start_bp_radius = (bp_radius - branch_radius) / bp_radius_increase_per_layer;
     
-        if (TreeSupportSettings::zero_top_z_gap) {
+        if (mesh_group_settings.zero_top_z_gap) {
             // safeOffsetInc can only work in steps of the size xy_min_distance in the worst case => xy_min_distance has to be a bit larger than 0 in this worst case and should be large enough for performance to not suffer extremely
             // When for all meshes the z bottom and top distance is more than one layer though the worst case is xy_min_distance + min_feature_size
             // This is not the best solution, but the only one to ensure areas can not lag though walls at high maximum_move_distance.
@@ -379,9 +386,6 @@ public:
         }
     }
 
-    // some static variables dependent on other meshes that are not currently processed.
-    // Has to be static because TreeSupportConfig will be used in TreeModelVolumes as this reduces redundancy.
-    inline static bool zero_top_z_gap = false;
     /*!
      * \brief Width of a single line of support.
      */
@@ -594,6 +598,24 @@ public:
         return num_layers_widened > 0 ? std::min(coord_t(branch_radius + num_layers_widened * bp_radius_increase_per_layer), max_radius) : 0;
     }
 
+    // Ported from PrusaSlicer: the base of a low tree is not wider than the tree is tall.
+    [[nodiscard]] inline coord_t recommendedMinRadius(LayerIndex layer_idx, LayerIndex dtt) const
+    {
+        assert(dtt >= 0);
+        if (dtt <= 0 || layer_idx >= layer_start_bp_radius)
+            return 0;
+
+        // Height of the highest tip of this branch from the build plate along Z axis.
+        double h = (layer_idx + dtt) * this->layer_height;
+        static constexpr const double recommended_base2height_ratio = 0.5;
+        coord_t recommended_base_radius = coord_t(h * recommended_base2height_ratio + 0.5);
+        // Ideal base radius at the build plate.
+        coord_t r = std::min(recommended_base_radius, this->bp_radius);
+        // Reduce the ideal base radius to correspond to the radius at layer_idx
+        r -= layer_idx * bp_radius_increase_per_layer;
+        return std::min(std::max<coord_t>(r, 0), max_radius);
+    }
+
 #if 0
     /*!
      * \brief Return on which z in microns the layer will be printed. Used only for support infill line generation.
@@ -757,19 +779,25 @@ public:
         add_roof_unguarded(std::move(new_roof), insert_layer_idx, dtt_tip);
     }
 
-    void add_roof_unguarded(Polygons &&new_roofs, const size_t insert_layer_idx, const size_t dtt_roof)
+    // Whether the interface layer dtt_roof layers below the top contact is a base interface layer.
+    bool is_top_base_interface(const size_t dtt_roof) const
     {
-        assert(support_parameters.has_top_contacts);
-        assert(dtt_roof <= support_parameters.num_top_interface_layers);
         // ORCA: Reserve one top interface layer but only when top base-interface layers exist.
         // This prevents all interface layers from being classified as base-interface layers
         // and preserves correct top contact and interface behavior.
         size_t interface_threshold = support_parameters.num_top_interface_layers_only();
         if (interface_threshold > 0 && support_parameters.num_top_base_interface_layers > 0)
             --interface_threshold;
+        return dtt_roof > interface_threshold;
+    }
+
+    void add_roof_unguarded(Polygons &&new_roofs, const size_t insert_layer_idx, const size_t dtt_roof)
+    {
+        assert(support_parameters.has_top_contacts);
+        assert(dtt_roof <= support_parameters.num_top_interface_layers);
         SupportGeneratorLayersPtr &layers =
             dtt_roof == 0 ? this->top_contacts :
-            dtt_roof <= interface_threshold ? this->top_interfaces : this->top_base_interfaces;
+            this->is_top_base_interface(dtt_roof) ? this->top_base_interfaces : this->top_interfaces;
         SupportGeneratorLayer*& l = layers[insert_layer_idx];
         if (l == nullptr)
             l = &layer_allocate_unguarded(layer_storage, dtt_roof == 0 ? SupporLayerType::TopContact : SupporLayerType::TopInterface, 
