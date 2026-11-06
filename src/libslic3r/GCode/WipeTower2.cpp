@@ -2171,9 +2171,13 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
             brim_width = WipeTower::get_auto_brim_by_height(m_wipe_tower_height);
 
         size_t loops_num = (brim_width + spacing / 2.f) / spacing;
+        // A shared brim may be printed by a finer nozzle than part of its wall.
+        // Start outside the widest wall bead, then use the brim tool's spacing.
+        const float first_loop_extra = m_is_tool_region ?
+            std::max(0.f, m_region_wall_clearance * Width_To_Nozzle_Ratio - 0.5f * m_perimeter_width) : 0.f;
         
         for (size_t i = 0; i < loops_num; ++ i) {
-            poly = offset(poly, scale_(spacing)).front();
+            poly = offset(poly, scale_(spacing + (i == 0 ? first_loop_extra : 0.f))).front();
             int cp = poly.closest_point_index(Point::new_scale(writer.x(), writer.y()));
             writer.travel(unscale(poly.points[cp]).cast<float>());
             for (int i=cp+1; true; ++i ) {
@@ -2187,7 +2191,7 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
         writer.append("; WIPE_TOWER_BRIM_END\n");
         // Save actual brim width to be later passed to the Print object, which will use it
         // for skirt calculation and pass it to GLCanvas for precise preview box
-        m_wipe_tower_brim_width_real = loops_num * spacing;
+        m_wipe_tower_brim_width_real = loops_num * spacing + (loops_num > 0 ? first_loop_extra : 0.f);
 
         // Compute actual first-layer bounding box from the outermost brim polygon,
         // matching how WipeTower::get_bbx() uses m_outer_wall extents.
@@ -2753,12 +2757,21 @@ void WipeTower2::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> 
 	if (m_plan.empty())
         return;
 
-    const bool used_custom_height = std::any_of(m_plan.begin(), m_plan.end(), [&](const auto &layer) {
-        return std::any_of(layer.tool_changes.begin(), layer.tool_changes.end(), [&](const auto &change) {
-            return m_filpar[change.old_tool].has_custom_layer_height || m_filpar[change.new_tool].has_custom_layer_height;
-        });
-    });
-    if (m_independent_tool_layers && !m_is_tool_region && used_custom_height) {
+    float minimum_height = std::numeric_limits<float>::max(), maximum_height = 0.f;
+    bool used_custom_height = false;
+    const auto use_tool = [&](size_t tool) {
+        minimum_height = std::min(minimum_height, m_filpar[tool].layer_height);
+        maximum_height = std::max(maximum_height, m_filpar[tool].layer_height);
+        used_custom_height |= m_filpar[tool].has_custom_layer_height;
+    };
+    for (const auto &layer : m_plan)
+        for (const auto &change : layer.tool_changes) {
+            use_tool(change.new_tool);
+            if (m_filpar[change.old_tool].multitool_ramming)
+                use_tool(change.old_tool);
+        }
+    if (m_independent_tool_layers && !m_is_tool_region && used_custom_height &&
+        maximum_height - minimum_height > WT_EPSILON) {
         generate_tool_regions(result);
         return;
     }

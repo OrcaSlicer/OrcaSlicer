@@ -409,7 +409,7 @@ TEST_CASE("Type 2 keeps one outer wall with ordinary or per-tool heights", "[Ext
     print.set_status_silent();
     REQUIRE_FALSE(gcode(print).empty());
     const auto &tower = print.wipe_tower_data();
-    if (std::string(heights) == "0,0") {
+    if (std::string(heights) != "0.15,0.3") {
         for (const auto &layer : tower.tool_changes)
             for (const auto &visit : layer)
                 REQUIRE(visit.segments.empty());
@@ -417,12 +417,19 @@ TEST_CASE("Type 2 keeps one outer wall with ordinary or per-tool heights", "[Ext
     }
     double wall_length = 0.;
     size_t first_layer_parts = 0;
+    double region_boundary = 0.;
+    for (const auto &layer : tower.tool_changes)
+        for (const auto &visit : layer)
+            for (const auto &part : visit.segments)
+                if (part.new_tool == 1)
+                    region_boundary = part.column_offset.y();
+    REQUIRE(region_boundary > 0.);
     for (const auto &layer : tower.tool_changes)
         for (const auto &visit : layer)
             for (const auto &part : visit.segments) {
-                if (part.print_z > 0.15001)
-                    continue;
-                ++first_layer_parts;
+                const bool first_layer = part.print_z <= 0.15001;
+                if (first_layer)
+                    ++first_layer_parts;
                 bool wall = false;
                 GCodeReader reader;
                 reader.parse_buffer(part.gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
@@ -438,7 +445,19 @@ TEST_CASE("Type 2 keeps one outer wall with ordinary or per-tool heights", "[Ext
                         const double edge_distance = std::min({std::abs(x), std::abs(x - tower.width),
                             std::abs(y), std::abs(y - tower.depth)});
                         CHECK(edge_distance < 0.002);
-                        wall_length += std::hypot(line.dist_X(self), line.dist_Y(self));
+                        if (first_layer)
+                            wall_length += std::hypot(line.dist_X(self), line.dist_Y(self));
+                        else {
+                            // A fine nozzle must not descend into the end cap of
+                            // the neighboring coarse wall at the shared seam.
+                            const double radius = 0.5 * config.opt_float("nozzle_diameter", part.new_tool);
+                            const double start_y = self.y() + part.column_offset.y();
+                            const double end_y = line.new_Y(self) + part.column_offset.y();
+                            if (part.new_tool == 0)
+                                CHECK(std::max(start_y, end_y) <= region_boundary - radius + 0.002);
+                            else
+                                CHECK(std::min(start_y, end_y) >= region_boundary + radius - 0.002);
+                        }
                     }
                 });
             }
