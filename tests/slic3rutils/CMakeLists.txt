@@ -66,6 +66,7 @@ add_executable(${_TEST_NAME}_tests
     test_python_script_runner.cpp
     test_plugin_operations.cpp
     test_plugin_json_depth.cpp
+    test_plugin_permission_validation.cpp
     test_shortcuts.cpp
     test_speed_dial_dismiss.cpp
     test_speed_dial_position.cpp

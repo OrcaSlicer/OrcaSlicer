@@ -203,7 +203,7 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
             const bool has_permission_request =
                 !requested_permissions.fs_read.empty() || !requested_permissions.fs_readwrite.empty() ||
                 !requested_permissions.network_http.empty() || !requested_permissions.network_socket.empty() ||
-                !requested_permissions.process.empty() || !requested_permissions.threading.empty();
+                !requested_permissions.process.empty() || requested_permissions.threading;
             if (has_permission_request) {
                 bool granted = false;
                 {
@@ -820,9 +820,8 @@ and permissions, and returns a JSON value. changes=False marks an operation that
             add_targets(requested.network_socket, network_socket);
             add_targets(requested.process, process);
 
-            if (threading && std::find(requested.threading.begin(), requested.threading.end(),
-                                       kThreadPermissionTarget) == requested.threading.end())
-                requested.threading.emplace_back(kThreadPermissionTarget);
+            if (threading && !requested.threading)
+                requested.threading = true;
             requested.tools = requested.tools || tools;
         },
         py::arg("fs_read") = std::vector<std::string>{},
