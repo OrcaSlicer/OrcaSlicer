@@ -22360,6 +22360,8 @@ void Plater::changed_objects(const std::vector<size_t>& object_idxs)
         p->view3D->get_canvas3d()->update_instance_printable_state_for_objects(object_idxs);
     }
 
+    mark_plate_toolbar_image_dirty();
+
     // update print
     this->p->schedule_background_process();
 
