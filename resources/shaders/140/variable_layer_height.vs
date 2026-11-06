@@ -29,6 +29,10 @@ out vec2 intensity;
 
 out float object_z;
 
+// Orca: 1 on a horizontal face, which lies at one height: the stripes of the layers cannot show on it,
+// only the shade they have there, which changes whenever a layer under it moves.
+out float horizontal;
+
 void main()
 {
 	// =====================================================
@@ -55,6 +59,7 @@ void main()
 
     // Scaled to widths of the Z texture.
     object_z = (object_max_z > 0.0) ? object_max_z * v_tex_coord.y : (volume_world_matrix * vec4(v_position, 1.0)).z;
+    horizontal = (object_max_z > 0.0) ? 0.0 : step(0.999, abs(normalize((volume_world_matrix * vec4(v_normal, 0.0)).xyz).z));
         
     gl_Position = projection_matrix * position;
 }
