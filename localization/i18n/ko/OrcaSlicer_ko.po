@@ -39526,6 +39526,29 @@ msgstr ""
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
 
 # AI Translated
+#. TRN %1% is the object name; %2% lists the heights of the first unsupported islands in millimetres.
+#, boost-format
+msgid "It seems the organic supports of object %1% have parts printed with nothing under them, starting on the layers at Z (mm): %2%. Consider a filled base pattern, such as Rectilinear, instead of a hollow one."
+msgstr "객체 %1%의 유기체 서포트에 아래에 아무것도 없는 상태로 출력되는 부분이 있는 것 같습니다. 이 부분들은 Z 높이(mm)가 %2%인 레이어에서 시작합니다. 속이 빈 패턴 대신 ‘직선’과 같이 내부를 채우는 기본 패턴을 사용해 보세요."
+
+# AI Translated
+msgid "Initial Layer Diameter"
+msgstr "초기 레이어 직경"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Initial Layer Diameter"
+msgid "The diameter every branch of organic supports tries to reach on the build plate. Branches widen towards it near the bed, which improves bed adhesion but takes more space on the bed. A tree widens towards it only until its base is as wide as the tree is tall. A value not larger than the branch diameter turns this widening off. For small models, 2 to 3 mm is recommended."
+msgstr "유기체 서포트의 각 가지가 베드에서 도달하려는 직경입니다. 가지는 베드 근처에서 이 직경을 향해 넓어지므로 베드 접착력이 좋아지지만 베드에서 더 많은 공간을 차지합니다. 트리는 밑동의 너비가 트리의 높이와 같아질 때까지만 넓어집니다. 가지 직경 이하의 값을 설정하면 이렇게 넓어지는 동작이 꺼집니다. 작은 모델에는 2~3 mm를 권장합니다."
+
+# AI Translated
+msgid "Trunk Diameter"
+msgstr "줄기 직경"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Trunk Diameter"
+msgid "The diameter of the widest branches of organic supports, their bases on the build plate included. A thicker trunk is sturdier, a thinner trunk takes up less space on the bed. A value smaller than the branch diameter keeps every branch at the branch diameter. 0 means no limit."
+msgstr "베드 위의 밑동을 포함하여 유기체 서포트에서 가장 굵은 가지의 직경입니다. 줄기가 굵을수록 더 튼튼하고, 가늘수록 베드에서 차지하는 공간이 줄어듭니다. 가지 직경보다 작은 값을 설정하면 모든 가지의 직경이 설정된 가지 직경으로 유지됩니다. 0은 제한이 없음을 의미합니다."
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "STEP 파일 가져오기 시 옵션 표시"
 

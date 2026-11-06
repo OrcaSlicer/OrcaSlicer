@@ -39097,6 +39097,30 @@ msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
 
+# AI Translated
+#. TRN %1% is the object name; %2% lists the heights of the first unsupported islands in millimetres.
+#, boost-format
+msgid "It seems the organic supports of object %1% have parts printed with nothing under them, starting on the layers at Z (mm): %2%. Consider a filled base pattern, such as Rectilinear, instead of a hollow one."
+msgstr "Görünüşe göre %1% nesnesinin Organik desteklerinde, Z yükseklikleri (mm) %2% olan katmanlardan başlayan ve altında hiçbir şey olmadan yazdırılan kısımlar var. İçi boş bir desen yerine Doğrusal gibi içi dolu bir destek deseni kullanmayı düşünün."
+
+# AI Translated
+msgid "Initial Layer Diameter"
+msgstr "İlk katman çapı"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Initial Layer Diameter"
+msgid "The diameter every branch of organic supports tries to reach on the build plate. Branches widen towards it near the bed, which improves bed adhesion but takes more space on the bed. A tree widens towards it only until its base is as wide as the tree is tall. A value not larger than the branch diameter turns this widening off. For small models, 2 to 3 mm is recommended."
+msgstr "Organik desteklerin her dalının yatak üzerinde ulaşmaya çalıştığı çap. Dallar, yatağa yakın bölgede bu çapa doğru genişler; bu da yatağa yapışmayı iyileştirir ancak yatakta daha fazla yer kaplar. Bir destek ağacı, tabanının genişliği ağacın yüksekliğine eşit olana kadar bu çapa doğru genişler. Dal çapına eşit veya daha küçük bir değer bu genişlemeyi kapatır. Küçük modeller için 2 ila 3 mm önerilir."
+
+# AI Translated
+msgid "Trunk Diameter"
+msgstr "Gövde çapı"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Trunk Diameter"
+msgid "The diameter of the widest branches of organic supports, their bases on the build plate included. A thicker trunk is sturdier, a thinner trunk takes up less space on the bed. A value smaller than the branch diameter keeps every branch at the branch diameter. 0 means no limit."
+msgstr "Organik desteklerin en kalın dallarının çapı; yatak üzerindeki tabanları da buna dahildir. Daha kalın bir gövde daha sağlamdır, daha ince bir gövde ise yatakta daha az yer kaplar. Dal çapından küçük bir değer, tüm dalların dal çapında kalmasını sağlar. 0, sınır olmadığı anlamına gelir."
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "STEP dosyasını içe aktarırken seçenekleri göster"
 
