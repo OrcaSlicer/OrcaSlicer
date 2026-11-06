@@ -3109,3 +3109,15 @@ TEST_CASE("A changed AMS filament inventory invalidates the grouping steps", "[P
     CHECK(print.apply(model, config) != PrintBase::APPLY_STATUS_INVALIDATED);
     CHECK(print.get_extruder_filament_info().empty());
 }
+
+TEST_CASE("Print validation rejects a zero layer height", "[Print]")
+{
+    Print print;
+    Model model;
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({ { "layer_height", 0. } });
+    Slic3r::Test::init_print({ Slic3r::Test::cube(20.) }, print, model, config);
+    const StringObjectException result = print.validate();
+    CHECK_FALSE(result.string.empty());
+    CHECK(result.opt_key == "layer_height");
+}
