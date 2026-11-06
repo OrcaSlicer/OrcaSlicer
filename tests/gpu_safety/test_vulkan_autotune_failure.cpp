@@ -27,6 +27,9 @@
 #include <utility>
 #include <iostream>
 #include <set>
+#include <vector>
+#include <vulkan/vulkan_core.h>
+#include <vulkan/vk_platform.h>
 #define private public
 #include "../../src/libslic3r/Gpu/VulkanSlicer.cpp"
 #undef private
