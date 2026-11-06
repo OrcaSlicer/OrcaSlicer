@@ -2144,7 +2144,7 @@ void GLCanvas3D::toggle_model_objects_visibility(bool visible, const ModelObject
                     auto gizmo_type = gm.get_current_type();
                     if (  (gizmo_type == GLGizmosManager::FdmSupports
                         || gizmo_type == GLGizmosManager::Seam
-                        || gizmo_type == GLGizmosManager::Cut
+                        || (gizmo_type == GLGizmosManager::Cut && gm.active_path_cut() == nullptr) // Curve mode: as before cutting
                         || gizmo_type == GLGizmosManager::FuzzySkin)
                         && !vol->is_modifier) {
                         vol->force_neutral_color = true;
@@ -5478,7 +5478,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                 wxGetApp().plater()->select_plate_by_hover_id(hover_idx);
                 //wxGetApp().plater()->get_partplate_list().select_plate_view();
                 //deselect all the objects
-                if (m_gizmos.get_current_type() != GLGizmosManager::MeshBoolean && m_hover_volume_idxs.empty())
+                if (m_gizmos.get_current_type() != GLGizmosManager::MeshBoolean && m_gizmos.active_path_cut() == nullptr && m_hover_volume_idxs.empty())
                     deselect_all();
         }
         else if (evt.RightUp() && !is_layers_editing_enabled()) {
