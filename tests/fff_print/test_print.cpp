@@ -237,10 +237,30 @@ TEST_CASE("An object that starts sharing another object's slices keeps its own l
     CHECK(print_b->support_layers() == print_a->support_layers());
 }
 
-// A copy that shares the mesh of another object, but not its height ranges, must slice itself: a height range gives
-// the layers in its range other regions, which the other object's layers do not have.
-TEST_CASE("Objects whose height ranges differ do not share slices", "[Print][Regression]")
+// A copy that shares the mesh of another object shares its slices only when its height ranges are the same: a height
+// range gives the layers in its range other regions, which the other object's layers do not have.
+TEST_CASE("Objects share slices only when their height ranges are the same", "[Print][Regression]")
 {
+    struct HeightRange {
+        t_layer_height_range range;
+        double               density;
+    };
+    struct RangesCase {
+        std::string              name;
+        std::vector<HeightRange> ranges_a; // on the object that slices first
+        std::vector<HeightRange> ranges_b; // on its copy
+        bool                     shared;
+    };
+    // The first two differ in the number of ranges, the next two in the heights or the settings of one range.
+    const RangesCase ranges_case = GENERATE(from_range(std::vector<RangesCase>{
+        { "a range on the first object only", { { { 10., 20. }, 40. } }, {},                         false },
+        { "a range on the copy only",         {},                         { { { 10., 20. }, 40. } }, false },
+        { "same heights, other settings",     { { { 10., 20. }, 40. } }, { { { 10., 20. }, 30. } }, false },
+        { "other heights, same settings",     { { { 10., 20. }, 40. } }, { { { 12., 20. }, 40. } }, false },
+        { "the same range on both",           { { { 10., 20. }, 40. } }, { { { 10., 20. }, 40. } }, true },
+    }));
+    INFO("height ranges: " << ranges_case.name);
+
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
         { "layer_height",               0.2 },
@@ -258,14 +278,17 @@ TEST_CASE("Objects whose height ranges differ do not share slices", "[Print][Reg
     for (ModelInstance *instance : object_b->instances)
         instance->set_offset(instance->get_offset() + Vec3d(40., 0., 0.));
 
-    // Only one of the two objects gets the height range, either the one that slices first or its copy.
-    const bool range_on_first = GENERATE(true, false);
-    INFO("height range on " << (range_on_first ? "the first object" : "the copy"));
-    DynamicPrintConfig range_config;
-    // Every layer range must carry a layer_height (see layer_height_profile_from_ranges).
-    range_config.set_key_value("layer_height", new ConfigOptionFloat(0.2));
-    range_config.set_key_value("sparse_infill_density", new ConfigOptionPercent(40));
-    (range_on_first ? object_a : object_b)->layer_config_ranges[{ 10., 20. }].assign_config(std::move(range_config));
+    const auto add_ranges = [](ModelObject *object, const std::vector<HeightRange> &ranges) {
+        for (const HeightRange &height_range : ranges) {
+            DynamicPrintConfig range_config;
+            // Every layer range must carry a layer_height (see layer_height_profile_from_ranges).
+            range_config.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+            range_config.set_key_value("sparse_infill_density", new ConfigOptionPercent(height_range.density));
+            object->layer_config_ranges[height_range.range].assign_config(std::move(range_config));
+        }
+    };
+    add_ranges(object_a, ranges_case.ranges_a);
+    add_ranges(object_b, ranges_case.ranges_b);
 
     print.apply(model, config);
     print.process();
@@ -274,12 +297,12 @@ TEST_CASE("Objects whose height ranges differ do not share slices", "[Print][Reg
     const PrintObject *print_b = print.objects()[1];
     REQUIRE(print_b->model_object()->id() == object_b->id()); // Print slices its own copy of the model
     CHECK(print_a->get_shared_object() == nullptr);
-    CHECK(print_b->get_shared_object() == nullptr);
+    CHECK(print_b->get_shared_object() == (ranges_case.shared ? print_a : nullptr));
 
-    // The infill density of each object at 15 mm is the one of its own height range, or the default without one.
-    // A height range has regions of its own, so the density is read from the region that has the slices there.
-    const auto density_at_15mm = [](const PrintObject *object) {
-        const Layer *layer = object->get_layer_at_printz(15., 0.1);
+    // The infill density of each object at a height is the one of its own height range there, or the default without
+    // one. A height range has regions of its own, so the density is read from the region that has the slices there.
+    const auto density_at = [](const PrintObject *object, double print_z) {
+        const Layer *layer = object->get_layer_at_printz(print_z, 0.1);
         REQUIRE(layer != nullptr);
         std::vector<double> densities;
         for (const LayerRegion *region : layer->regions())
@@ -288,8 +311,18 @@ TEST_CASE("Objects whose height ranges differ do not share slices", "[Print][Reg
         REQUIRE(densities.size() == 1);
         return densities.front();
     };
-    CHECK(density_at_15mm(print_a) == (range_on_first ? 40. : 20.));
-    CHECK(density_at_15mm(print_b) == (range_on_first ? 20. : 40.));
+    const auto expected_density = [](const std::vector<HeightRange> &ranges, double print_z) {
+        for (const HeightRange &height_range : ranges)
+            if (height_range.range.first < print_z && print_z <= height_range.range.second)
+                return height_range.density;
+        return 20.;
+    };
+    // 11 mm is in the ranges that start at 10 mm, and not in the one that starts at 12 mm.
+    for (const double print_z : { 11., 15. }) {
+        INFO("at " << print_z << " mm");
+        CHECK(density_at(print_a, print_z) == expected_density(ranges_case.ranges_a, print_z));
+        CHECK(density_at(print_b, print_z) == expected_density(ranges_case.ranges_b, print_z));
+    }
 }
 
 // ---------------------------------------------------------------------------
