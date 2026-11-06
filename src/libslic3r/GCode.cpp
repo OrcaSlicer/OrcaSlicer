@@ -556,6 +556,11 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         if (retraction_length_remaining <= EPSILON)
             return { 0.f, 0.f, 0.f };
         
+        // Orca: the firmware owns the length of a firmware retraction, and its unretract restores only
+        // what it retracted, so the whole retraction happens before the wipe and the wipe moves no filament.
+        if (config.use_firmware_retraction)
+            return { retraction_length_remaining, 0., 0. };
+
         // Calculate retraction before and after wipe distances from the user setting. 
         // Keep adding to the for retraction before wipe variable any excess retraction 
         // needed to be performed before the wipe.
