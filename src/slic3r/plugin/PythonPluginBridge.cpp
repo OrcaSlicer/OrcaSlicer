@@ -443,7 +443,9 @@ void bind_python_api(pybind11::module_& m)
         .def_readonly("device_id", &LifecycleEventContext::device_id)
         .def_readonly("job_id", &LifecycleEventContext::job_id)
         .def_readonly("source", &LifecycleEventContext::source)
-        .def_readonly("index", &LifecycleEventContext::index)
+        .def_readonly("index", &LifecycleEventContext::index,
+                      "Event-specific zero-based index. PrintJobStarted/Finished identify the resolved local project plate; "
+                      "-1 means that no local project plate can be identified, such as an external or calibration job.")
         .def_readonly("dirty", &LifecycleEventContext::dirty);
 
     py::class_<PluginContext>(m, "PluginContext", "Context shared with plugin entry points")
