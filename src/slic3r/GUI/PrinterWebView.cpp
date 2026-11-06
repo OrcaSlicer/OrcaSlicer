@@ -126,6 +126,8 @@ static void add_page_strings(wxWebView *webView)
         {"printer_connection_setup", _u8L("Please set up your printer connection to view the device.")},
     };
     webView->AddUserScript(wxString::FromUTF8(WebViewHostDialog::localized_strings_script(strings)));
+    // Stamps data-orca-theme before first paint; the view is in g_webviews, so a theme change reloads it.
+    webView->AddUserScript(wxString::FromUTF8(WebViewHostDialog::theme_user_script()));
 }
 
 PrinterWebView::PrinterWebView(wxWindow *parent)

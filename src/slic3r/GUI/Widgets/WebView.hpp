@@ -1,6 +1,9 @@
 #ifndef slic3r_GUI_WebView_hpp_
 #define slic3r_GUI_WebView_hpp_
 
+#include <functional>
+#include <string>
+
 #include <wx/string.h>
 #include <wx/setup.h>
 #include <wx/webview.h>
@@ -45,6 +48,10 @@ public:
     static bool SupportsForceSharedMemory();
 
     static void RecreateAll();
+
+    // Views created outside CreateWebView() (raw wxWebView) are not reachable by RecreateAll(),
+    // which reloads. Registering one here re-themes it in place on a theme change instead.
+    static void RegisterThemeTarget(wxWebView * webView, std::function<std::string()> apply_script);
 };
 
 #endif // !slic3r_GUI_WebView_hpp_
