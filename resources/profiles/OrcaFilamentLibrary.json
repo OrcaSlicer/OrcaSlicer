@@ -1,6 +1,6 @@
 {
 	"name": "OrcaFilamentLibrary",
-	"version": "02.04.00.25",
+	"version": "02.04.00.26",
 	"force_update": "0",
 	"description": "Orca Filament Library",
 	"filament_list": [
@@ -633,10 +633,12 @@
 			"sub_path": "filament/Polymaker/PolyLite PETG @base.json"
 		},
 		{
-			"name": "Recycling Fabrik rPETG @base",
-			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rPETG @base.json"
 			"name": "PrintaLot PETG @base",
 			"sub_path": "filament/Printalot/PrintaLot PETG @base.json"
+		},
+		{
+			"name": "Recycling Fabrik rPETG @base",
+			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rPETG @base.json"
 		},
 		{
 			"name": "SUNLU PETG @base",
@@ -2415,8 +2417,6 @@
 			"sub_path": "filament/Polymaker/PolyLite PETG @System.json"
 		},
 		{
-			"name": "Recycling Fabrik rPETG @System",
-			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rPETG @System.json"
 			"name": "PrintaLot PETG @BBL A1",
 			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A1.json"
 		},
@@ -2511,6 +2511,10 @@
 		{
 			"name": "PrintaLot PETG @BBL X2D 0.4 nozzle",
 			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "Recycling Fabrik rPETG @System",
+			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rPETG @System.json"
 		},
 		{
 			"name": "SUNLU PETG @System",
