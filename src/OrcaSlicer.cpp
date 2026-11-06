@@ -23,6 +23,7 @@
 #include <map>
 #include <vector>
 #include "libslic3r/PrintBase.hpp"
+#include "libslic3r/Memory.hpp"
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #include <cerrno>
 #include <utility>
@@ -1198,6 +1199,7 @@ static void apply_discrete_gpu_preference()
 
 int CLI::run(int argc, char **argv)
 {
+    Slic3r::initialize_memory_allocator();
     // Mark the main thread for the debugger and for runtime checks.
     set_current_thread_name("orcaslicer_main");
     // Save the thread ID of the main thread.

@@ -3137,13 +3137,10 @@ void PrintObject::bridge_over_infill()
                 // apart from the unchanged rule for what counts as a solid to expand.
                 bool       dense_below = true;
                 for (const LayerRegion *region : layer->lower_layer->regions()) {
-                    Polygons fill_polys = to_polygons(region->fill_expolygons);
-                    // initially consider the whole layer unsupported, but also gather solid layers to later cut off supported parts
-                    unsupported_area.insert(unsupported_area.end(), fill_polys.begin(), fill_polys.end());
+                    polygons_append(unsupported_area, region->fill_expolygons);
                     for (const Surface &surface : region->fill_surfaces) {
                         if (surface.surface_type != stInternal || region->region().config().sparse_infill_density.value == 100) {
-                            Polygons p = to_polygons(surface.expolygon);
-                            lower_layer_solids.insert(lower_layer_solids.end(), p.begin(), p.end());
+                            polygons_append(lower_layer_solids, surface.expolygon);
                         }
                         dense_below = dense_below && prints_dense(surface, region->region().config(), po->config(), layer->lower_layer->id());
                     }
@@ -4041,18 +4038,18 @@ void PrintObject::bridge_over_infill()
             Layer *layer = po->get_layer(lidx);
 
             Polygons cut_from_infill{};
-            if (surfaces_by_layer.find(lidx) != surfaces_by_layer.end()) {
-                for (const auto &surface : surfaces_by_layer.at(lidx)) {
-                    cut_from_infill.insert(cut_from_infill.end(), surface.new_polys.begin(), surface.new_polys.end());
+            if (auto it = surfaces_by_layer.find(lidx); it != surfaces_by_layer.end()) {
+                for (const auto &surface : it->second) {
+                    append(cut_from_infill, surface.new_polys);
                 }
             }
 
             Polygons additional_ensuring_areas{};
-            if (surfaces_by_layer.find(lidx + 1) != surfaces_by_layer.end()) {
-                for (const auto &surface : surfaces_by_layer.at(lidx + 1)) {
+            if (auto it = surfaces_by_layer.find(lidx + 1); it != surfaces_by_layer.end()) {
+                for (const auto &surface : it->second) {
                     auto additional_area = diff(surface.new_polys,
                                                 shrink(surface.new_polys, surface.region->flow(frSolidInfill).scaled_spacing()));
-                    additional_ensuring_areas.insert(additional_ensuring_areas.end(), additional_area.begin(), additional_area.end());
+                    append(additional_ensuring_areas, std::move(additional_area));
                 }
             }
 
