@@ -6,6 +6,7 @@
 #include <ios>
 #include <libslic3r/Utils.hpp>
 #include <slic3r/plugin/PluginLoader.hpp>
+#include <slic3r/plugin/PluginAuditManager.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
@@ -20,6 +21,7 @@
 #include "test_utils.hpp"
 
 #include <boost/filesystem.hpp>
+#include <boost/system/error_code.hpp>
 
 #include <fstream>
 #include <iterator>
@@ -60,9 +62,9 @@ void write_raw_sidecar_text(const fs::path& plugin_dir, const std::string& conte
     out << contents;
 }
 
-std::string read_sidecar_text(const fs::path& plugin_dir)
+std::string read_sidecar_text(const fs::path& plugin_dir, const std::string& filename = ".install_state.json")
 {
-    std::ifstream in((plugin_dir / ".install_state.json").string(), std::ios::binary);
+    std::ifstream in((plugin_dir / filename).string(), std::ios::binary);
     return std::string(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
 }
 
@@ -102,6 +104,32 @@ import orca
 class FailingPackage(orca.base):
     def register_capabilities(self):
         raise RuntimeError("registration rejected by the plugin")
+)PY";
+
+// A plugin that declares one read permission while it registers its one capability, so its load
+// goes through the combined permission prompt.
+const char* const DECLARING_PLUGIN_SOURCE = R"PY(# /// script
+# requires-python = ">=3.12"
+#
+# [tool.orcaslicer.plugin]
+# name = "Declaring Plugin"
+# type = "script"
+# version = "1.0"
+# ///
+import orca
+
+class Echo(orca.script.ScriptPluginCapabilityBase):
+    def get_name(self):
+        return "Echo"
+
+    def execute(self, ctx):
+        return orca.ExecutionResult.success()
+
+@orca.plugin
+class DeclaringPackage(orca.base):
+    def register_capabilities(self):
+        orca.request_permissions(fs_read=["/declared/read"])
+        orca.register_capability(Echo)
 )PY";
 
 } // namespace
@@ -250,7 +278,9 @@ TEST_CASE("install-state metadata read-modify-write leaves an unreadable sidecar
     write_raw_sidecar_text(plugin_dir, malformed);
 
     PluginInstallState state;
-    REQUIRE(read_install_state_status(plugin_dir, state) == InstallStateReadStatus::Unreadable);
+    bool               contents_malformed = false;
+    REQUIRE(read_install_state_status(plugin_dir, state, &contents_malformed) == InstallStateReadStatus::Unreadable);
+    CHECK(contents_malformed);
 
     PluginDescriptor descriptor;
     descriptor.name    = "Broken Plugin";
@@ -270,9 +300,11 @@ TEST_CASE("a non-regular install-state path is unreadable and is left untouched"
     fs::create_directories(plugin_dir / ".install_state.json");
 
     // A filesystem object that cannot be a sidecar must fail closed rather than be treated as an
-    // absent sidecar and replaced.
+    // absent sidecar and replaced, and it is not malformed contents a load may set aside.
     PluginInstallState state;
-    REQUIRE(read_install_state_status(plugin_dir, state) == InstallStateReadStatus::Unreadable);
+    bool               malformed = true;
+    REQUIRE(read_install_state_status(plugin_dir, state, &malformed) == InstallStateReadStatus::Unreadable);
+    CHECK_FALSE(malformed);
 
     PluginDescriptor descriptor;
     descriptor.name = "Broken Plugin";
@@ -281,7 +313,30 @@ TEST_CASE("a non-regular install-state path is unreadable and is left untouched"
     CHECK(fs::is_directory(plugin_dir / ".install_state.json"));
 }
 
-TEST_CASE("a failed plugin registration leaves an unreadable install-state sidecar untouched", "[PluginInstall][Python]")
+TEST_CASE("a link to unparsable install-state contents is not malformed contents a load may set aside", "[PluginInstall]")
+{
+    ScopedDataDir  data_dir_guard("install-state-link-to-malformed");
+    const fs::path plugin_dir = data_dir_guard.plugins_dir() / "Linked_Plugin";
+    fs::create_directories(plugin_dir);
+    const fs::path target = data_dir_guard.plugins_dir() / "elsewhere.json";
+    {
+        std::ofstream out(target.string(), std::ios::binary);
+        out << "{ \"enabled\": tru";
+    }
+    boost::system::error_code ec;
+    fs::create_symlink(target, plugin_dir / ".install_state.json", ec);
+    if (ec)
+        SKIP("Cannot create a symbolic link here: " + ec.message());
+
+    // Moving a link aside may move what it points to instead (Windows renames through the link),
+    // so only a regular file at the sidecar path counts as malformed.
+    PluginInstallState state;
+    bool               malformed = true;
+    REQUIRE(read_install_state_status(plugin_dir, state, &malformed) == InstallStateReadStatus::Unreadable);
+    CHECK_FALSE(malformed);
+}
+
+TEST_CASE("a plugin load sets an unparsable install-state sidecar aside and keeps its bytes", "[PluginInstall][Python]")
 {
     ScopedPluginManager plugin_system;
     if (!plugin_system.initialized)
@@ -294,17 +349,83 @@ TEST_CASE("a failed plugin registration leaves an unreadable install-state sidec
     PluginManager& manager = PluginManager::instance();
     manager.discover_plugins(/*async=*/false, /*clear=*/true);
 
-    // A sidecar the manager cannot parse. It may still hold permissions and capability choices,
-    // so a failed load must not replace it with a fresh, empty one.
+    // A sidecar the manager cannot parse, as a crash or a hand edit leaves it.
     const std::string malformed = "{ \"permissions\": { \"fs_read\": [\"/granted\"";
     write_raw_sidecar_text(plugin_dir, malformed);
 
     std::string error;
     manager.load_plugin("Failing_Plugin", /*skip_deps=*/true);
     CHECK_FALSE(manager.wait_for_plugin_load("Failing_Plugin", std::chrono::seconds(120), error));
-
     CHECK_FALSE(error.empty());
-    CHECK(read_sidecar_text(plugin_dir) == malformed);
+
+    // The bytes are kept beside the sidecar for manual recovery, and the failed load then disables
+    // a fresh sidecar, as for a plugin that never had one.
+    CHECK(read_sidecar_text(plugin_dir, ".install_state.json.corrupt") == malformed);
+    PluginInstallState stored;
+    REQUIRE(read_install_state(plugin_dir, stored));
+    CHECK_FALSE(stored.enabled);
+    CHECK(stored.permissions.fs_read.empty());
+}
+
+TEST_CASE("a plugin that declares permissions loads over an unparsable install-state sidecar", "[PluginInstall][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("declaring-over-unparsable");
+    const fs::path plugin_dir = data_dir_guard.plugins_dir() / "Declaring_Plugin";
+    write_py_file(plugin_dir, "Declaring_Plugin.py", DECLARING_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    const std::string malformed = "{ \"enabled\": tru";
+    write_raw_sidecar_text(plugin_dir, malformed);
+
+    // The prompt runs on the load worker: record it there and assert once the load is done.
+    std::vector<std::string> prompts;
+    PluginAuditManager::set_permission_message_prompt_for_testing([&prompts](const std::string& message) {
+        prompts.push_back(message);
+        return true;
+    });
+    std::string error;
+    manager.load_plugin("Declaring_Plugin", /*skip_deps=*/true);
+    const bool loaded = manager.wait_for_plugin_load("Declaring_Plugin", std::chrono::seconds(120), error);
+    PluginAuditManager::set_permission_message_prompt_for_testing(nullptr);
+
+    // The declaration is put to the user again and the approval is saved in a fresh sidecar.
+    INFO(error);
+    CHECK(loaded);
+    CHECK(prompts.size() == 1);
+    PluginInstallState stored;
+    REQUIRE(read_install_state(plugin_dir, stored));
+    CHECK(stored.permissions.fs_read == std::vector<std::string>{"/declared/read"});
+    CHECK(read_sidecar_text(plugin_dir, ".install_state.json.corrupt") == malformed);
+}
+
+TEST_CASE("a plugin load leaves a sidecar path that is not a file in place", "[PluginInstall][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("failed-registration-non-regular");
+    const fs::path plugin_dir = data_dir_guard.plugins_dir() / "Failing_Plugin";
+    write_py_file(plugin_dir, "Failing_Plugin.py", FAILING_REGISTRATION_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    fs::create_directories(plugin_dir / ".install_state.json");
+
+    std::string error;
+    manager.load_plugin("Failing_Plugin", /*skip_deps=*/true);
+    CHECK_FALSE(manager.wait_for_plugin_load("Failing_Plugin", std::chrono::seconds(120), error));
+
+    // Only contents that opened and did not parse are set aside; anything else at the sidecar path
+    // stays where it is and keeps its writers refusing.
+    CHECK(fs::is_directory(plugin_dir / ".install_state.json"));
+    CHECK_FALSE(fs::exists(plugin_dir / ".install_state.json.corrupt"));
 }
 
 TEST_CASE("a failed plugin registration disables a readable install-state sidecar and keeps its grants",

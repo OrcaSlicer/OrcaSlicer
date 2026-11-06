@@ -160,9 +160,14 @@ enum class InstallStateReadStatus {
     Unreadable // the path exists but is not a regular readable file, or its contents are malformed
 };
 
-// Reads the sidecar and reports why it failed. `out` is only assigned on Readable.
+// Reads the sidecar and reports why it failed. `out` is only assigned on Readable. When `malformed`
+// is given, it is set to whether the result is Unreadable because the sidecar is a regular file
+// (not a link) that reads in full but does not parse as a JSON object, as opposed to a path that
+// cannot be examined, opened or read in full. Reading such a file again cannot recover it, so a
+// plugin load sets it aside (see plugin_loader::load); every other caller treats it as Unreadable.
 // Caller must hold install_state_mutex(); see the note on read_install_state below.
-InstallStateReadStatus read_install_state_status(const boost::filesystem::path& plugin_dir, PluginInstallState& out);
+InstallStateReadStatus read_install_state_status(const boost::filesystem::path& plugin_dir, PluginInstallState& out,
+                                                 bool* malformed = nullptr);
 
 // Reads install state back into the descriptor; plugin_key is always derived. Returns whether the
 // sidecar was present and valid.

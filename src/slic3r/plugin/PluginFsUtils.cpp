@@ -797,10 +797,13 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginDescrip
     return true;
 }
 
-InstallStateReadStatus read_install_state_status(const boost::filesystem::path& plugin_dir, PluginInstallState& out)
+InstallStateReadStatus read_install_state_status(const boost::filesystem::path& plugin_dir, PluginInstallState& out,
+                                                 bool* malformed)
 {
     namespace fs                = boost::filesystem;
     const fs::path sidecar_path = plugin_dir / ".install_state.json";
+    if (malformed != nullptr)
+        *malformed = false;
 
     // Report the entry itself, not its target: symlink_status lets a dangling symlink or an
     // unreadable parent be told apart from a genuinely missing sidecar. Only "no entry" means a
@@ -826,8 +829,20 @@ InstallStateReadStatus read_install_state_status(const boost::filesystem::path& 
 
     try {
         nlohmann::json state = nlohmann::json::parse(f, nullptr, false, true);
-        if (state.is_discarded() || !state.is_object())
+        if (state.is_discarded() || !state.is_object()) {
+            // A stream reports a read error as the end of the file, so contents cut short by I/O
+            // would look malformed too. They count as malformed only when the entry itself is a
+            // regular file, not a link that a move could follow on Windows, and a second read gets
+            // every byte on disk (load_string_file throws otherwise, caught below) that still
+            // does not parse.
+            if (malformed != nullptr && fs::is_regular_file(link_status)) {
+                std::string contents;
+                load_string_file(sidecar_path, contents);
+                const nlohmann::json reread = nlohmann::json::parse(contents, nullptr, false, true);
+                *malformed                  = reread.is_discarded() || !reread.is_object();
+            }
             return InstallStateReadStatus::Unreadable;
+        }
 
         PluginInstallState parsed;
         if (state.contains("installed_from") && state["installed_from"].is_string())

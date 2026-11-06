@@ -199,6 +199,16 @@ Reading is deliberately fail-closed:
 - `full_access` is enabled only by an explicit JSON boolean. A missing key, a string, a
   number, or any other type reads as false.
 
+A sidecar that exists but cannot be read is never overwritten, because it may still hold
+grants and capability choices. The one exception is a plugin load: if the sidecar is a
+regular file that reads in full but does not parse, as a crash or a hand edit can leave
+it, the load moves it to `.install_state.json.corrupt` before any plugin code runs. The
+plugin then counts as having no sidecar, so its declared permissions are asked for again
+and a fresh sidecar is written, while the old bytes stay beside it for manual recovery.
+Anything else at the sidecar path is left in place: a link or a directory, or a file
+that cannot be opened or read in full, since a read error can look like truncated
+contents.
+
 Each audit decision reads the current sidecar through
 `PluginManager::get_install_state`, so a grant persisted by a prompt applies to
 subsequent top-level operations. A root frame that was already recorded is not
