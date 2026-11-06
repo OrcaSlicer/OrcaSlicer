@@ -24,6 +24,7 @@
 #include "slic3r/GUI/IMSlider.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/ObjectID.hpp"
 #include <memory>
 #include "slic3r/GUI/SceneRaycaster.hpp"
 #include "slic3r/GUI/Camera.hpp"
