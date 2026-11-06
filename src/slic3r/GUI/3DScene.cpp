@@ -1197,7 +1197,8 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
             glsafe(::glEnable(GL_POLYGON_OFFSET_FILL));
             glsafe(::glPolygonOffset(1.0f, 1.0f));
         }
-        const bool outlined = outlined_volumes != nullptr && (volume.first->selected || persistent_outline) &&
+        const bool outlined = outlined_volumes != nullptr &&
+                              (volume.first->selected || (persistent_outline && volume.first->visible)) &&
                               volume.first->is_active && !volume.first->is_wipe_tower;
         if (outlined) {
             outlined_volumes->push_back(volume.first);
