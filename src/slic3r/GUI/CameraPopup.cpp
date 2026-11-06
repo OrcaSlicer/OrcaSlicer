@@ -239,6 +239,9 @@ void CameraPopup::on_camera_source_changed(wxCommandEvent& event)
 
 bool CameraPopup::custom_source_supported()
 {
+    // Temporary: a patch for the Bambu printer agent only. Once printer agents are fully
+    // implemented, the custom source is to be deprecated in favour of the agents' own camera
+    // handling, or extended to the other agents; this gate is where that change starts.
     auto agent         = wxGetApp().getAgent();
     auto printer_agent = agent ? agent->get_printer_agent() : nullptr;
     return printer_agent && printer_agent->get_agent_info().id == BBL_PRINTER_AGENT_ID;

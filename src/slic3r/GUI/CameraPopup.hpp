@@ -50,10 +50,11 @@ public:
     void check_func_supported(MachineObject* obj);
     void update(bool vcamera_streaming);
 
-    // Offered with the Bambu printer agent only for now: the custom view hides the Device
-    // tab's media control and play bar and takes over its WebView, which the other agents'
-    // camera modes play through. Printer agents are not for general use in 2.5.0, and the
-    // interaction gets a proper design after that release.
+    // Temporary patch for the Bambu printer agent only. The custom view hides the Device tab's
+    // media control and play bar and takes over its WebView, which the other agents' camera
+    // modes play through. Once printer agents are fully implemented, camera sources are
+    // expected to come from the agents themselves, and this feature is to be deprecated or
+    // extended to the other agents.
     static bool custom_source_supported();
     // The URL to show, normalised; empty when the source is disabled, blank or unsupported.
     static std::string custom_source_url();
