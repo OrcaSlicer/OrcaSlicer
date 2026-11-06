@@ -1,16 +1,16 @@
 {
 	"type": "filament",
-	"name": "3D-Fuel Pro PCTG @base",
-	"inherits": "fdm_filament_pctg",
+	"name": "3D-Fuel PETG Pro @base",
+	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "OFgpXeqm",
+	"filament_id": "OFvQQdr0",
 	"instantiation": "false",
 	"filament_vendor": [
 		"3D-Fuel"
 	],
 	"filament_type": [
-		"PCTG"
-	    ],
+		"PETG"
+	],
     "filament_diameter": [
         "1.75"
     ],
@@ -18,19 +18,19 @@
         "1.23"
     ],
     "filament_cost": [
-        "29.95"
+        "28.95"
     ],
     "nozzle_temperature": [
-        "270"
+        "255"
     ],
     "nozzle_temperature_initial_layer": [
-        "270"
+        "255"
     ],
     "nozzle_temperature_range_low": [
-        "250"
+        "230"
     ],
     "nozzle_temperature_range_high": [
-        "290"
+        "260"
     ],
     "cool_plate_temp": [
         "0"
@@ -39,10 +39,10 @@
         "0"
     ],
     "eng_plate_temp": [
-        "80"
+        "60"
     ],
     "eng_plate_temp_initial_layer": [
-        "80"
+        "60"
     ],
     "hot_plate_temp": [
         "80"
@@ -69,12 +69,30 @@
         "12"
     ],
     "fan_min_speed": [
-        "0"
+        "10"
     ],
     "fan_max_speed": [
-        "50"
+        "80"
     ],
     "temperature_vitrification": [
         "185"
+    ],
+	"enable_pressure_advance": [
+		"1"
+    ],
+    "pressure_advance": [
+		"0.52"
+    ],
+    "fan_cooling_layer_time": [
+		"20"
+    ],
+    "slow_down_layer_time": [
+		"18"
+    ],
+    "filament_retraction_length": [
+		"0.3"
+    ],
+    "filament_z_hop": [
+		"0.4"
     ]
 }
