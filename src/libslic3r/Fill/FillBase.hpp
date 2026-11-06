@@ -158,6 +158,9 @@ public:
 
     // Orca: Fill direction is fixed absolute angle if SurfaceFillParams.fixed_angle or config.ironing_angle_fixed
     bool        fixed_angle{false};
+    // Orca: Separated infills flag
+    bool        separated_infills{false};
+    
     // In scaled coordinates. Maximum lenght of a perimeter segment connecting two infill lines.
     // Used by the FillRectilinear2, FillGrid2, FillTriangles, FillStars and FillCubic.
     // If left to zero, the links will not be limited.

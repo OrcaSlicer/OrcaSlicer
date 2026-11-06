@@ -582,7 +582,7 @@ struct SurfaceFillParams
     // Shift of the infill center.
     Point           shift = Point(0., 0.);
     // Orca: fixed_angle
-    bool        fixed_angle = false;
+    bool            fixed_angle = false;
     // Is bridging used for this fill? Bridging parameters may be used even if this->flow.bridge() is not set.
     bool 			bridge;
     // Non-negative for a bridge.
@@ -1375,7 +1375,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                     params.shift       = complex.shift.cast<coord_t>();
                     params.density     = complex.density;
                     params.multiline   = complex.multiline;
-                    params.fixed_angle = false;
+                    //params.fixed_angle = false; // restore for interlacing of sparse infill
 
                     // Orca: the smoothing factor only applies to the sparse infill patterns that
                     // implement it. The fills clamp and validate the value themselves.
@@ -1400,7 +1400,6 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                                                                             region_config.internal_solid_infill_line_width.value));
                         params.angle = complex.angle;
                         params.shift = complex.shift.cast<coord_t>();
-                        params.fixed_angle = false;
                     }
                 }
                 params.bridge_angle = float(surface.bridge_angle);
@@ -1727,6 +1726,7 @@ void Layer::make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLigh
         f->angle 	= surface_fill.params.angle;
         f->shift    = surface_fill.params.shift;
         f->fixed_angle = surface_fill.params.fixed_angle;
+        f->separated_infills = surface_fill.params.separated_infills;
         const FillAdaptive::Octrees *octrees = fill_octrees ? fill_octrees->region(surface_fill.region_id) : nullptr;
         f->adaptive_infill_field   = this->object()->adaptive_infill_field(surface_fill.params.adaptive_infill_mode);
         f->print_config        = &this->object()->print()->config();

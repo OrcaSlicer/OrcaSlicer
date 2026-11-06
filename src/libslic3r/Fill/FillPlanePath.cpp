@@ -113,6 +113,8 @@ void FillPlanePath::_fill_surface_single(
     int index_ = 0;
     static time_t time_;
     time_t now = time(NULL);
+    static std::mutex debug_infill_path_mtx;
+    debug_infill_path_mtx.lock();
     if (time_ + 30 < now) {
         namespace fs            = std::filesystem;
         fs::path directory_path = path;
@@ -125,8 +127,9 @@ void FillPlanePath::_fill_surface_single(
                 fs::remove(entry.path());
             }
         }
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        //std::this_thread::sleep_for(std::chrono::seconds(1));
     }
+    debug_infill_path_mtx.unlock();
     time_ = now;
     while (std::filesystem::exists(path + filename + std::to_string(index_) + ".svg")) {
         index_++;
@@ -143,20 +146,18 @@ void FillPlanePath::_fill_surface_single(
     bool is_internal = params.extrusion_role == ExtrusionRole::erInternalInfill;
     bool is_solid    = params.extrusion_role == ExtrusionRole::erSolidInfill;
 
-    double angle = direction.first; // fixed_angle ? this->angle :
+    double angle = direction.first; // fixed_angle ? this->angle : direction.first;
 
     BoundingBox bounding_box;
     Point shift;
-    Point shift2 = direction.second;
+    Point shift2 = this->shift;
 
     // Sparse infill (or Internal where align == true) needs to be aligned across layers. Align infill across layers using the object's bounding box.
     // Solid infill does not need to be aligned across layers, generate the infill pattern around the clipping expolygon only.
-    if (is_internal || is_solid)
+    if (is_internal || is_solid || params.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model)
         bounding_box = this->bounding_box;
     else if (params.center_of_surface_pattern == CenterOfSurfacePattern::Each_Surface)
         bounding_box = get_extents(expolygon);
-    else if (params.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model)
-        bounding_box = this->bounding_box;
     else
         bounding_box = extended_object_bounding_box();
 
@@ -165,7 +166,7 @@ void FillPlanePath::_fill_surface_single(
     bounding_box.rotate(-angle);
     expolygon.rotate(-angle);
 
-    shift = bounding_box.center();
+    shift += bounding_box.center();
     expolygon.translate(-shift);
     bounding_box = get_extents(expolygon);
     
