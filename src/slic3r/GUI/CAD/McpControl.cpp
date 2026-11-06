@@ -450,8 +450,8 @@ json describe_tools_core()
                      json{{"name", "points"}, {"type", "array"}, {"description", "[[x,y,z], ...], at least two"}},
                      json{{"name", "smooth"}, {"type", "boolean"}, {"default", false}},
                      json{{"name", "closed"}, {"type", "boolean"}, {"default", false}}})}},
-            json{{"name", "new_document"}, {"summary", "Clear every feature (undoable). For test rigs that need a known starting document."},
-                 {"params", json::array()}},
+            json{{"name", "new_document"}, {"summary", "Clear every feature (undoable; fresh:true also forgets the undo history). For test rigs that need a known starting document."},
+                 {"params", json::array({json{{"name", "fresh"}, {"type", "boolean"}, {"default", false}}})}},
             json{{"name", "ui_option"}, {"summary", "Switch a Design UI option: imgui_tree = draw the feature tree on the canvas (ImGui) instead of the side panel; imgui_ribbon = draw the tool ribbon on the canvas instead of the wx toolbar groups; imgui_menu = the right-click offer as an ImGui popup; imgui_topbar = the row above the viewport (document actions, toolbox, Commit, Confirm/Cancel) drawn on the canvas instead of the wx row."},
                  {"params", json::array({
                      json{{"name", "name"},  {"type", "string"}, {"enum", json::array({"imgui_tree", "imgui_ribbon", "imgui_menu"})}},
@@ -3348,6 +3348,9 @@ json action_new_document(DesignPanel* panel, const json& params)
 json action_ui_option(DesignPanel* panel, const json& params)
 {
     const std::string name = params.value("name", std::string());
+    // "fresh": true also forgets the undo history. Without it new_document is itself an undoable step, and the stack is capped at
+    // 200, so a script that counts undo steps (check-undo) starts from a full stack and sees every step as +0.
+    if (params.value("fresh", false)) doc.drop_undo_to(0);
     const bool        on   = params.value("value", false);
     if (name == "imgui_tree")   { panel->mcp_set_imgui_tree(on);   return json{{"ok", true}, {"imgui_tree", on}}; }
     if (name == "imgui_ribbon") { panel->mcp_set_imgui_ribbon(on); return json{{"ok", true}, {"imgui_ribbon", on}}; }

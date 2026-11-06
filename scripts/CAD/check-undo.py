@@ -64,7 +64,7 @@ def clear_canvas():
 
 show()
 clear_canvas()
-call("new_document")
+call("new_document", fresh=True)   # the undo stack is capped at 200: start from an empty one
 
 
 def step(name, fn, want, features=None):
