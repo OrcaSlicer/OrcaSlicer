@@ -1,5 +1,6 @@
 
 #include "CutUtils.hpp"
+#include "Config.hpp"
 #include "Geometry.hpp"
 #include "Point.hpp"
 #include "TriangleMesh.hpp"
