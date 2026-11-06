@@ -1834,6 +1834,9 @@ void Layer::make_ironing()
             f->z        = this->print_z;
             f->overlap  = 0;
 		}
+		// Orca: the Archimedean spiral is ironed from its center outwards, one ring after the other,
+		// instead of hopping between the chords by nearest distance.
+		fill_params.fill_order = f_pattern == ipArchimedeanChords ? SurfaceFillOrder::Outward : SurfaceFillOrder::Default;
 
 		size_t j = i;
 		for (++ j; j < by_extruder.size() && ironing_params == by_extruder[j]; ++ j) ;

@@ -706,6 +706,23 @@ TEST_CASE("Ironing follows the solid infill rotation template", "[Fill]")
     REQUIRE(compared > int(ironing.size()) / 2);
 }
 
+TEST_CASE("Ironing with the Archimedean Chords pattern produces ironing extrusions", "[Fill]")
+{
+    const std::string pattern = GENERATE("rectilinear", "archimedeanchords");
+    CAPTURE(pattern);
+
+    Print print;
+    Slic3r::Test::init_and_process_print({Slic3r::Test::cube(10)}, print,
+                                        {{"ironing_type", "top"},
+                                         {"ironing_pattern", pattern},
+                                         {"top_shell_layers", 3},
+                                         {"layer_height", 0.2}});
+
+    const std::vector<int> ironing = angles_per_layer(print, ironing_role);
+    const auto             ironed  = std::count_if(ironing.begin(), ironing.end(), [](int angle) { return angle != -1; });
+    CHECK(ironed > 0);
+}
+
 
 namespace {
 
