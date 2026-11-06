@@ -876,6 +876,12 @@ if (NOT WIN32)
 else()
     target_link_libraries(libcurl INTERFACE crypt32)
 endif()
+if (APPLE)
+    # libcurl's macOS start-up calls SCDynamicStoreCopyProxies. curl's own
+    # CMake package links the framework, but our FindCURL module builds
+    # CURL::libcurl from the static archive alone.
+    target_link_libraries(libcurl INTERFACE "-framework SystemConfiguration")
+endif()
 
 if (SLIC3R_STATIC AND NOT SLIC3R_STATIC_EXCLUDE_CURL)
     if (NOT APPLE)
