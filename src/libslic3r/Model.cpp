@@ -251,7 +251,9 @@ Model Model::read_from_step(const std::string&                                  
     bool is_cb_cancel = false;
     Step::Step_Status status;
     Step step_file(input_file, stepFn);
-    status = step_file.load();
+    step_file.set_keep_original_names(options & LoadStrategy::KeepOriginalNames);
+    // A geometry-import dialog can enable names after load, so collect them for that path too.
+    status = step_file.load(step_file.keep_original_names() || (options & LoadStrategy::AssembleParts));
     if(status != Step::Step_Status::LOAD_SUCCESS) {
         goto _finished;
     }
@@ -262,7 +264,9 @@ Model Model::read_from_step(const std::string&                                  
         }
     }
     
-    status = step_file.mesh(&model, is_cb_cancel, is_split_compound, linear_deflection, angle_deflection);
+    // The callback may have changed the name preference after inspecting the CAD document.
+    status = step_file.mesh(&model, is_cb_cancel, is_split_compound, linear_deflection, angle_deflection,
+                           step_file.keep_original_names());
 
 _finished:
 
@@ -463,7 +467,7 @@ Model Model::read_from_file(const std::string&                                  
         result = load_drc(input_file.c_str(), &model);
     else if (boost::algorithm::iends_with(input_file, ".amf"))
         //BBS: is_xxx is used for is_inches when load amf
-        result = load_amf(input_file.c_str(), config, config_substitutions, &model, is_xxx);
+        result = load_amf(input_file.c_str(), config, config_substitutions, &model, is_xxx, options);
     else if (boost::algorithm::iends_with(input_file, ".3mf"))
         //BBS: add part plate related logic
         // BBS: backup & restore
@@ -543,7 +547,7 @@ Model Model::read_from_archive(const std::string& input_file, DynamicPrintConfig
         }
     }
     else if (boost::algorithm::iends_with(input_file, ".zip.amf"))
-        result = load_amf(input_file.c_str(), config, config_substitutions, &model, &is_bbl_3mf);
+        result = load_amf(input_file.c_str(), config, config_substitutions, &model, &is_bbl_3mf, options);
     else
         throw Slic3r::RuntimeError(_L("Unknown file format: input file must have .3mf or .zip.amf extension."));
 
@@ -904,7 +908,8 @@ bool Model::looks_like_multipart_object() const
         if (obj->volumes.size() > 1 || obj->config.keys().size() > 1)
             return false;
 
-        double zmin_this = obj->min_z();
+        // Objects the file does not place have no instance yet; they read zero, as min_z() did in Release builds.
+        double zmin_this = obj->instances.empty() ? 0. : obj->min_z();
         if (zmin == std::numeric_limits<double>::max())
             zmin = zmin_this;
         else if (std::abs(zmin - zmin_this) > EPSILON)
@@ -923,7 +928,7 @@ static inline int auto_extruder_id(unsigned int max_extruders, unsigned int &cnt
     return out;
 }
 
-void Model::convert_multipart_object(unsigned int max_extruders)
+void Model::convert_multipart_object(unsigned int max_extruders, bool preserve_volume_names)
 {
     assert(this->objects.size() >= 2);
     if (this->objects.size() < 2)
@@ -945,9 +950,13 @@ void Model::convert_multipart_object(unsigned int max_extruders)
             // Revert the centering operation.
             trafo_volume.set_offset(trafo_volume.get_offset() - o->origin_translation);
             int counter = 1;
-            auto copy_volume = [o, v, &counter](ModelVolume *new_v) {
+            auto copy_volume = [o, v, &counter, preserve_volume_names](ModelVolume *new_v) {
                 assert(new_v != nullptr);
-                new_v->name = (counter > 1) ? o->name + "_" + std::to_string(counter++) : o->name;
+                // Existing callers keep their naming; CAD import retains a concrete part name.
+                if (preserve_volume_names)
+                    new_v->name = v->name.empty() ? o->name : v->name;
+                else
+                    new_v->name = (counter > 1) ? o->name + "_" + std::to_string(counter++) : o->name;
                 //BBS: Use extruder priority: volumn > object > default
                 if (v->config.option("extruder"))
                     new_v->config.set("extruder", v->config.extruder());
@@ -1285,6 +1294,7 @@ ModelObject& ModelObject::assign_copy(const ModelObject &rhs)
     this->layer_height_profile        = rhs.layer_height_profile;
     this->printable                   = rhs.printable;
     this->auto_drop                   = rhs.auto_drop;
+    this->imported_parts_hidden       = rhs.imported_parts_hidden;
     this->origin_translation          = rhs.origin_translation;
     this->cut_id.copy(rhs.cut_id);
     this->copy_transformation_caches(rhs);
@@ -1326,6 +1336,7 @@ ModelObject& ModelObject::assign_copy(ModelObject &&rhs)
     this->layer_height_profile        = std::move(rhs.layer_height_profile);
     this->printable                   = std::move(rhs.printable);
     this->auto_drop                   = rhs.auto_drop;
+    this->imported_parts_hidden       = rhs.imported_parts_hidden;
     this->origin_translation          = std::move(rhs.origin_translation);
     this->copy_transformation_caches(rhs);
 
@@ -1388,6 +1399,8 @@ bool ModelObject::make_boolean(ModelObject *cut_object, const std::string &boole
 
 ModelVolume *ModelObject::add_volume(const TriangleMesh &mesh, bool modify_to_center_geometry)
 {
+    // Newly added parts must remain visible even on a single-object import.
+    imported_parts_hidden = false;
     ModelVolume* v = new ModelVolume(this, mesh);
     this->volumes.push_back(v);
     if (modify_to_center_geometry) {
@@ -1401,6 +1414,7 @@ ModelVolume *ModelObject::add_volume(const TriangleMesh &mesh, bool modify_to_ce
 
 ModelVolume *ModelObject::add_volume(TriangleMesh &&mesh, ModelVolumeType type /*= ModelVolumeType::MODEL_PART*/, bool modify_to_center_geometry)
 {
+    imported_parts_hidden = false;
     ModelVolume* v = new ModelVolume(this, std::move(mesh), type);
     this->volumes.push_back(v);
     if (modify_to_center_geometry) {
@@ -1414,6 +1428,7 @@ ModelVolume *ModelObject::add_volume(TriangleMesh &&mesh, ModelVolumeType type /
 
 ModelVolume* ModelObject::add_volume(const ModelVolume &other, ModelVolumeType type /*= ModelVolumeType::INVALID*/)
 {
+    imported_parts_hidden = false;
     ModelVolume* v = new ModelVolume(this, other);
     if (type != ModelVolumeType::INVALID && v->type() != type)
         v->set_type(type);
@@ -1431,6 +1446,7 @@ ModelVolume* ModelObject::add_volume(const ModelVolume &other, ModelVolumeType t
 
 ModelVolume* ModelObject::add_volume(const ModelVolume &other, TriangleMesh &&mesh)
 {
+    imported_parts_hidden = false;
     ModelVolume* v = new ModelVolume(this, other, std::move(mesh));
     this->volumes.push_back(v);
     v->center_geometry_after_creation();
@@ -1442,6 +1458,7 @@ ModelVolume* ModelObject::add_volume(const ModelVolume &other, TriangleMesh &&me
 
 ModelVolume* ModelObject::add_volume_with_shared_mesh(const ModelVolume &other, ModelVolumeType type /*= ModelVolumeType::INVALID*/)
 {
+    imported_parts_hidden = false;
     ModelVolume* v = new ModelVolume(this, other.m_mesh);
     if (type != ModelVolumeType::INVALID && v->type() != type)
         v->set_type(type);
@@ -1509,6 +1526,27 @@ bool ModelObject::is_mm_painted() const
 bool ModelObject::is_fuzzy_skin_painted() const
 {
     return std::any_of(this->volumes.cbegin(), this->volumes.cend(), [](const ModelVolume *mv) { return mv->is_fuzzy_skin_painted(); });
+}
+
+bool ModelObject::has_individual_part_settings() const
+{
+    // Copying objects gives them filament 1, and merging copies it to their parts.
+    const int object_extruder = this->config.has("extruder") && this->config.extruder() > 0 ? this->config.extruder() : 1;
+    const bool part_settings = std::any_of(this->volumes.cbegin(), this->volumes.cend(), [object_extruder](const ModelVolume *mv) {
+        if (!mv->is_model_part() || !mv->texture_displacement_layers.empty())
+            return true;
+        const size_t keys = mv->config.size();
+        const bool same_filament = keys == 1 && mv->config.has("extruder") &&
+            (mv->config.extruder() == 0 || mv->config.extruder() == object_extruder);
+        return keys > 0 && !same_filament;
+    });
+    return part_settings || this->is_fdm_support_painted() || this->is_seam_painted() || this->is_mm_painted() ||
+        this->is_fuzzy_skin_painted();
+}
+
+bool ModelObject::hides_imported_parts() const
+{
+    return this->imported_parts_hidden && this->volumes.size() > 1 && !this->has_individual_part_settings();
 }
 
 void ModelObject::sort_volumes(bool full_sort)
