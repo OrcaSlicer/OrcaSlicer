@@ -385,12 +385,12 @@ void Fill3DHoneycomb::_fill_surface_single(
     bb.merge(align_to_grid(bb.min, Point(gridSize * 2., gridSize * 2.)));
 
     // Z adjustment to start at the widest point for the lowest layer
-    coordf_t startOffset = gridSize / 2. + scale_(params.layer_height / 2.);
+    coordf_t startOffset = gridSize / 2. + scale_(params.layer_height / 2. / params.sparse_infill_scale[2]);
     // generate pattern
     Polylines polylines =
       makeGrid(
-	       scale_(this->z) * zScale + startOffset,
-	       scale_(this->z - (params.layer_height * params.multiline * layersPerSlice)) * zScale + startOffset,
+	       scale_(this->z / params.sparse_infill_scale[2]) * zScale + startOffset,
+	       scale_((this->z - (params.layer_height * params.multiline * layersPerSlice)) / params.sparse_infill_scale[2]) * zScale + startOffset,
 	       gridSize, bb.size()(0), bb.size()(1),
 	       params.infill_complete_top,
                scale_(this->spacing),

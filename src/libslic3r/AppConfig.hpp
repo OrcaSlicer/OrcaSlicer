@@ -31,6 +31,7 @@
 #define SETTING_NETWORK_PLUGIN_REMIND_LATER "network_plugin_remind_later"
 #define SETTING_USE_ENCRYPTED_TOKEN_FILE "use_encrypted_token_file"
 #define SETTING_CLOUD_PROVIDERS "cloud_providers"
+#define SETTING_FAVORITE_SPARSE_INFILL_PATTERNS "favorite_sparse_infill_patterns"
 #define SETTING_OPENGL_AA_SAMPLES "opengl_antialiasing_samples"
 #define SETTING_OPENGL_FXAA_ENABLED "opengl_fxaa_enabled"
 #define SETTING_OPENGL_FPS_CAP "opengl_fps_cap"
@@ -385,6 +386,10 @@ public:
 
     std::vector<std::string> get_recent_projects() const;
     void set_recent_projects(const std::vector<std::string>& recent_projects);
+
+    // Orca: keys of the sparse infill patterns of the Favorites pattern group.
+    std::vector<std::string> get_favorite_sparse_infill_patterns() const;
+    void set_favorite_sparse_infill_patterns(const std::vector<std::string>& patterns);
 
 	void set_mouse_device(const std::string& name, double translation_speed, double translation_deadzone, float rotation_speed, float rotation_deadzone, double zoom_speed, bool swap_yz, bool invert_x, bool invert_y, bool invert_z, bool invert_yaw, bool invert_pitch, bool invert_roll);
 	std::vector<std::string> get_mouse_device_names() const;

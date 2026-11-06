@@ -2,7 +2,7 @@
 
 ## Purpose and scope
 
-`adaptive_infill_mode` grades the sparse infill of the Gyroid, TPMS-D and TPMS-FK
+`adaptive_infill_mode` grades the sparse infill of Gyroid and the TPMS
 patterns inside the object: the cells grow continuously from the surface
 towards the center of the object. `distance_warp`, `smooth_blend` and
 `stepped_shells` follow the distance to the nearest surface, including the top
@@ -140,7 +140,7 @@ frequency, both from each pattern's own density calibration:
 With a denser surface, quadratic keeps the surface density deepest and
 exponential drops fastest. A denser interior works the same way.
 
-The zero level is extracted with marching squares like the regular TPMS-FK, on
+The zero level is extracted with marching squares like the regular TPMS-FK and the traced TPMS patterns, on
 a sampling grid fixed in the fill frame like the optimized Gyroid, so that every
 region of a layer connects its lines the same way at the saddles of the pattern.
 Loops narrower than two lines (shorter than `2 * PI * spacing`) are dropped, as

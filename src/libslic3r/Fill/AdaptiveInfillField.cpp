@@ -670,7 +670,7 @@ struct AdaptiveTpmsField
             // The regular patterns of the two levels around the target of the depth, blended by a smoothstep.
             auto lattice = [this, x, y](int level) {
                 const double frequency = tpms.surface_frequency * levels.scale(level);
-                return tpms.equation(float(frequency * x), float(frequency * y), float(frequency * z));
+                return tpms.equation(frequency * x, frequency * y, frequency * z);
             };
             if (levels.count == 0)
                 return lattice(0);
@@ -689,7 +689,7 @@ struct AdaptiveTpmsField
             Vec3d q                         = tpms.surface_frequency * scale(t) * (obj - center);
             if (axis >= 0)
                 q[axis] = tpms.interior_frequency * obj[axis];
-            value += weight * tpms.equation(float(cos_angle * q.x() + sin_angle * q.y()), float(cos_angle * q.y() - sin_angle * q.x()), float(q.z()));
+            value += weight * tpms.equation(cos_angle * q.x() + sin_angle * q.y(), cos_angle * q.y() - sin_angle * q.x(), q.z());
         }
         return value;
     }

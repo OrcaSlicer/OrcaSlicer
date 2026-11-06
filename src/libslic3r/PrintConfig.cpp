@@ -331,6 +331,12 @@ static t_config_enum_values s_keys_map_InfillPattern {
     { "crosshatch", ipCrossHatch },
     { "tpmsd", ipTpmsD },
     { "tpmsfk", ipTpmsFK },
+    { "tpmsp", ipTpmsP },
+    { "tpmsiwp", ipTpmsIWP },
+    { "tpmsneovius", ipTpmsNeovius },
+    { "tpmsfrd", ipTpmsFRD },
+    { "tpmslidinoid", ipTpmsLidinoid },
+    { "tpmssplitp", ipTpmsSplitP },
     { "gyroid", ipGyroid },
     { "concentric", ipConcentric },
     { "spiralinset", ipSpiralInset },
@@ -3829,9 +3835,15 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("lateral-honeycomb");
     def->enum_values.push_back("lateral-lattice");
     def->enum_values.push_back("crosshatch");
+    def->enum_values.push_back("gyroid");
     def->enum_values.push_back("tpmsd");
     def->enum_values.push_back("tpmsfk");
-    def->enum_values.push_back("gyroid");
+    def->enum_values.push_back("tpmsp");
+    def->enum_values.push_back("tpmsiwp");
+    def->enum_values.push_back("tpmsneovius");
+    def->enum_values.push_back("tpmsfrd");
+    def->enum_values.push_back("tpmslidinoid");
+    def->enum_values.push_back("tpmssplitp");
     def->enum_values.push_back("concentric");
     def->enum_values.push_back("hilbertcurve");
     def->enum_values.push_back("archimedeanchords");
@@ -3855,14 +3867,61 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Lateral Honeycomb"));
     def->enum_labels.push_back(L("Lateral Lattice"));
     def->enum_labels.push_back(L("Cross Hatch"));
+    def->enum_labels.push_back(L("Gyroid"));
     def->enum_labels.push_back(L("TPMS-D"));
     def->enum_labels.push_back(L("TPMS-FK"));
-    def->enum_labels.push_back(L("Gyroid"));
+    def->enum_labels.push_back(L("TPMS-P"));
+    def->enum_labels.push_back(L("TPMS-IWP"));
+    def->enum_labels.push_back(L("TPMS-Neovius"));
+    def->enum_labels.push_back(L("TPMS-FRD"));
+    def->enum_labels.push_back(L("TPMS-Lidinoid"));
+    def->enum_labels.push_back(L("TPMS-Split P"));
     def->enum_labels.push_back(L("Concentric"));
     def->enum_labels.push_back(L("Hilbert Curve"));
     def->enum_labels.push_back(L("Archimedean Chords"));
     def->enum_labels.push_back(L("Octagram Spiral"));
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipCrossHatch));
+
+    def = this->add("sparse_infill_scale_x", coFloat);
+    def->label = L("Sparse infill X scale");
+    def->category = L("Strength");
+    def->tooltip = L("Stretches the cells of the sparse infill along the X axis of the pattern, which is the X axis of the bed at an infill "
+                     "direction of 45 degrees. Values above 1 make the cells longer and the infill sparser.");
+    def->min = 0.1;
+    def->max = 10;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(1.));
+
+    def = this->add("sparse_infill_scale_y", coFloat);
+    def->label = L("Sparse infill Y scale");
+    def->category = L("Strength");
+    def->tooltip = L("Stretches the cells of the sparse infill along the Y axis of the pattern, which is the Y axis of the bed at an infill "
+                     "direction of 45 degrees. Values above 1 make the cells longer and the infill sparser.");
+    def->min = 0.1;
+    def->max = 10;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(1.));
+
+    def = this->add("sparse_infill_scale_z", coFloat);
+    def->label = L("Sparse infill Z scale");
+    def->category = L("Strength");
+    def->tooltip = L("Stretches the cells of the sparse infill along the Z axis. Values above 1 make the cells taller, values below 1 make "
+                     "them flatter.");
+    def->min = 0.1;
+    def->max = 10;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(1.));
+
+    def = this->add("sparse_infill_rotation_x", coFloat);
+    def->label = L("Sparse infill X rotation");
+    def->category = L("Strength");
+    def->tooltip = L("Turns the cells of the sparse infill around the X axis of the pattern after the sparse infill scale "
+                     "stretches them, tilting them away from the vertical.");
+    def->sidetext = u8"°";	// degrees, don't need translation
+    def->min = -90;
+    def->max = 90;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0.));
 
     def = this->add("sparse_infill_smooth_factor", coPercent);
     def->label = L("Sparse infill smooth factor");
