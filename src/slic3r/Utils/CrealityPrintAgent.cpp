@@ -2,6 +2,7 @@
 #include "CrealityPrint.hpp"
 #include "MoonrakerPrinterAgent.hpp"
 #include "IPrinterAgent.hpp"
+#include "NetworkAgentFactory.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -187,7 +188,7 @@ CrealityPrintAgent::CrealityPrintAgent(std::string log_dir)
 AgentInfo CrealityPrintAgent::get_agent_info_static()
 {
     return AgentInfo{
-        "crealityprint",
+        CREALITYPRINT_PRINTER_AGENT_ID,
         "CrealityPrint",
         CrealityPrintAgent_VERSION,
         "Creality K-series printer agent (CFS-aware filament sync)"
