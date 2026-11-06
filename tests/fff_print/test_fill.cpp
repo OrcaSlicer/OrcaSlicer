@@ -2393,6 +2393,60 @@ TEST_CASE("Adaptive TPMS infill of a region matches the infill of a larger regio
     }
 }
 
+TEST_CASE("TPMS infill lines do not end where the rings of the pattern start", "[Fill][Regression]")
+{
+    // Marching squares patterns are closed rings, starting anywhere along their lines.
+    const auto [pattern, mode, optimized] = GENERATE(table<InfillPattern, AdaptiveInfillMode, bool>(
+        {{ipGyroid, AdaptiveInfillMode::DistanceWarp, false},
+         {ipTpmsD, AdaptiveInfillMode::DistanceWarp, false},
+         {ipTpmsFK, AdaptiveInfillMode::DistanceWarp, false},
+         {ipTpmsFK, AdaptiveInfillMode::Disabled, false},
+         {ipGyroid, AdaptiveInfillMode::Disabled, true}}));
+    const int multiline = GENERATE(1, 2);
+    CAPTURE(pattern, mode, optimized, multiline);
+
+    // A 60 mm cube, filled with lines connected along the boundary of its 0.45 mm narrower section.
+    const double     spacing = 0.45;
+    const ExPolygons box{ExPolygon(Points{Point::new_scale(0., 0.), Point::new_scale(60., 0.), Point::new_scale(60., 60.), Point::new_scale(0., 60.)})};
+    std::vector<AdaptiveInfillField::Slice> slices;
+    for (int i = 0; i < 300; ++i)
+        slices.push_back({0.2 * i, 0.2 * (i + 1), &box});
+    const AdaptiveInfillField field(slices, get_extents(box), AdaptiveInfillMode::DistanceWarp, [] {});
+    const AABBTreeLines::LinesDistancer<Line> walls(to_lines(offset_ex(box, -float(scale_(0.5 * spacing)))));
+    auto on_wall = [&walls](const Point &point) { return walls.distance_from_lines<false>(point) < scale_(0.01); };
+
+    for (const double z : {5.1, 12.3, 20.1, 25.3, 28.7, 34.7, 40.1, 47.9, 54.9}) {
+        CAPTURE(z);
+        std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
+        filler->spacing = spacing;
+        filler->angle   = float(M_PI / 4.);
+        filler->z       = z;
+        filler->adaptive_infill_field = mode == AdaptiveInfillMode::Disabled ? nullptr : &field;
+
+        FillParams params;
+        params.density                          = 0.3f;
+        params.multiline                        = multiline;
+        params.gyroid_optimized                 = optimized;
+        params.adaptive_infill_mode             = mode;
+        params.adaptive_infill_interior_density = 0.05f;
+        params.adaptive_infill_gradient         = AdaptiveInfillGradient::Linear;
+        params.layer_height                     = 0.2;
+        params.dont_adjust                      = true;
+        Surface surface(stInternal, box.front());
+        const Polylines paths = filler->fill_surface(&surface, params);
+        REQUIRE_FALSE(paths.empty());
+
+        for (const Polyline &path : paths)
+            if (path.first_point() == path.last_point()) {
+                // An island of the pattern, away from the boundary. Running along it means a ring cut at its start.
+                CHECK(std::none_of(path.points.begin(), path.points.end(), on_wall));
+            } else {
+                CHECK(on_wall(path.first_point()));
+                CHECK(on_wall(path.last_point()));
+            }
+    }
+}
+
 TEST_CASE("Adaptive TPMS anchors match the printed infill", "[Fill][InternalBridge]")
 {
     const std::string pattern = GENERATE("tpmsd", "tpmsfk", "gyroid");
