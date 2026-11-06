@@ -55,6 +55,8 @@ public:
 
     void StopWebStream();
 
+    void Stop(wxString const &msg = {}, wxString const &msg2 = {});
+
     bool IsStreaming() const;
 
     void ToggleStream();
@@ -67,8 +69,6 @@ protected:
     void onStateChanged(wxMediaEvent & event);
 
     void Play();
-
-    void Stop(wxString const &msg = {}, wxString const &msg2 = {});
 
     void TogglePlay();
 

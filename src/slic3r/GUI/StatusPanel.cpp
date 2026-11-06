@@ -1467,8 +1467,7 @@ StatusBasePanel::StatusBasePanel(wxWindow *parent, wxWindowID id, const wxPoint 
 
 static bool custom_camera_source_enabled()
 {
-    return wxGetApp().app_config->get("camera", "enable_custom_source") == "true" &&
-           !wxGetApp().app_config->get("camera", "custom_source").empty();
+    return !CameraPopup::custom_source_url().empty();
 }
 
 StatusBasePanel::~StatusBasePanel()
@@ -1642,15 +1641,9 @@ wxBoxSizer *StatusBasePanel::create_monitoring_page()
 
 void StatusBasePanel::apply_custom_camera_source()
 {
-    const bool enabled = custom_camera_source_enabled();
-    if (enabled) {
-        std::string url = wxGetApp().app_config->get("camera", "custom_source");
-        if (url.find("://") == std::string::npos)
-            url = "http://" + url;
-        m_custom_camera_view->LoadURL(wxString::FromUTF8(url));
-    } else {
-        m_custom_camera_view->LoadURL("about:blank");
-    }
+    const std::string url = CameraPopup::custom_source_url();
+    const bool enabled = !url.empty();
+    m_custom_camera_view->LoadURL(enabled ? wxString::FromUTF8(url) : wxString("about:blank"));
     show_custom_camera(enabled);
     m_camera_switch_button->Show(enabled);
     m_panel_monitoring_title->Layout();
@@ -1658,6 +1651,8 @@ void StatusBasePanel::apply_custom_camera_source()
 
 void StatusBasePanel::show_custom_camera(bool show)
 {
+    if (show)
+        m_media_play_ctrl->Stop();
     m_custom_camera_view->Show(show);
     m_media_ctrl->Show(!show);
     m_media_play_ctrl->Show(!show);
@@ -5390,6 +5385,8 @@ void StatusPanel::rescale_camera_icons()
     m_bitmap_timelapse_off = ScalableBitmap(this, wxGetApp().dark_mode()?"monitor_timelapse_off_dark":"monitor_timelapse_off", 20);
     m_bitmap_vcamera_on = ScalableBitmap(this, wxGetApp().dark_mode()?"monitor_vcamera_on_dark":"monitor_vcamera_on", 20);
     m_bitmap_vcamera_off = ScalableBitmap(this, wxGetApp().dark_mode()?"monitor_vcamera_off_dark":"monitor_vcamera_off", 20);
+    m_bitmap_switch_camera = ScalableBitmap(this, wxGetApp().dark_mode() ? "camera_switch_dark" : "camera_switch", 20);
+    m_camera_switch_button->SetBitmap(m_bitmap_switch_camera.bmp());
 
     if (m_media_play_ctrl->IsStreaming()) {
         m_bitmap_vcamera_img->SetBitmap(m_bitmap_vcamera_on.bmp());

@@ -32,6 +32,9 @@
 #include <wx/utils.h>
 #include "GUI_App.hpp"
 #include <slic3r/GUI/StatusPanel.hpp>
+#include "slic3r/Utils/IPrinterAgent.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include <boost/algorithm/string/trim.hpp>
 
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevStorage.h"
@@ -130,8 +133,9 @@ CameraPopup::CameraPopup(wxWindow *parent)
     m_custom_camera_hint->SetFont(Label::Head_14);
     m_custom_camera_hint->SetForegroundColour(TEXT_COL);
     m_custom_camera_input = new TextInput(m_panel, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, wxDefaultSize);
-    m_custom_camera_input->GetTextCtrl()->SetHint(_L("Hostname or IP"));
+    m_custom_camera_input->GetTextCtrl()->SetHint(_L("Camera stream URL"));
     m_custom_camera_input->GetTextCtrl()->SetFont(Label::Body_14);
+    m_custom_camera_input->SetToolTip(_L("URL of an MJPEG stream or of a web page that shows the camera, for example http://192.168.1.10:8080/?action=stream"));
     m_custom_camera_input_confirm = new Button(m_panel, _L("Enable"));
     m_custom_camera_input_confirm->SetTextColor(wxColour(0xFFFFFE));
     m_custom_camera_input_confirm->SetFont(Label::Body_14);
@@ -216,7 +220,7 @@ void CameraPopup::on_switch_recording(wxCommandEvent& event)
 
 void CameraPopup::on_camera_source_changed(wxCommandEvent& event)
 {
-    const std::string url = m_custom_camera_input->GetTextCtrl()->GetValue().ToUTF8().data();
+    const std::string url = boost::algorithm::trim_copy(std::string(m_custom_camera_input->GetTextCtrl()->GetValue().ToUTF8().data()));
     if (!m_custom_camera_enabled && url.empty())
         return;
 
@@ -227,6 +231,22 @@ void CameraPopup::on_camera_source_changed(wxCommandEvent& event)
     wxCommandEvent evt(EVT_CAM_SOURCE_CHANGE);
     evt.SetEventObject(this);
     GetEventHandler()->ProcessEvent(evt);
+}
+
+bool CameraPopup::custom_source_supported()
+{
+    auto agent = wxGetApp().getAgent();
+    return agent && agent->get_camera_stream_mode() == CameraStreamMode::none;
+}
+
+std::string CameraPopup::custom_source_url()
+{
+    if (!custom_source_supported() || wxGetApp().app_config->get("camera", "enable_custom_source") != "true")
+        return {};
+    std::string url = boost::algorithm::trim_copy(wxGetApp().app_config->get("camera", "custom_source"));
+    if (!url.empty() && url.find("://") == std::string::npos)
+        url = "http://" + url;
+    return url;
 }
 
 void CameraPopup::set_custom_cam_button_state(bool state)
@@ -375,6 +395,11 @@ void CameraPopup::check_func_supported(MachineObject *obj2)
         vcamera_guide_link->Hide();
         link_underline->Hide();
     }
+
+    const bool custom_source = custom_source_supported();
+    m_custom_camera_hint->Show(custom_source);
+    m_custom_camera_input->Show(custom_source);
+    m_custom_camera_input_confirm->Show(custom_source);
 
     allow_alter_resolution = ( (m_obj->camera_resolution_supported.size() > 1?true:false) && m_obj->has_ipcam);
 

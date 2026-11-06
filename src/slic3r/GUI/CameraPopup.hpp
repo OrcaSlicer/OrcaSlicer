@@ -50,6 +50,12 @@ public:
     void check_func_supported(MachineObject* obj);
     void update(bool vcamera_streaming);
 
+    // The custom source replaces the printer's own stream in the Device tab, so it is only
+    // offered while the active agent plays nothing itself (CameraStreamMode::none).
+    static bool custom_source_supported();
+    // The URL to show, normalised; empty when the source is disabled, blank or unsupported.
+    static std::string custom_source_url();
+
     enum CameraResolution
     {
         RESOLUTION_720P = 0,
