@@ -1301,7 +1301,10 @@ public:
 
 	WipeTowerWriter& flush_planner_queue()
 	{
-		m_gcode += flush_planner_queue_command(m_gcode_flavor);
+		// Only called at toolchange boundaries; format_line_M104 syncs temperature changes itself.
+		// On Klipper M400 here only stalls the toolhead over the tower.
+		if (m_gcode_flavor != gcfKlipper)
+			m_gcode += flush_planner_queue_command(m_gcode_flavor);
 		return *this;
 	}
 
