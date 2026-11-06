@@ -120,6 +120,12 @@ std::pair<bool, std::string> GLShadersManager::init()
         valid &= append_shader("mm_gouraud", { prefix + "mm_gouraud.vs", prefix + "mm_gouraud.fs" });
     // Fast shaded preview for the texture displacement gizmo (see libslic3r/TextureDisplacement.hpp).
     valid &= append_shader("texture_displacement_shaded", { prefix + "texture_displacement_shaded.vs", prefix + "texture_displacement_shaded.fs" });
+    // ChromaStack: the printed colours on the model, read per fragment from its own height.
+    valid &= append_shader("chromastack", { prefix + "chromastack.vs", prefix + "chromastack.fs" });
+    // The same stack drawn as the stack of translucent sheets it is printed as, one quad per printed
+    // layer. Shares the vertex shader: a sheet needs exactly what the surface pass needs, since both
+    // read the picture's placement off the fragment's world position.
+    valid &= append_shader("chroma_layers", { prefix + "chromastack.vs", prefix + "chroma_layers.fs" });
     // UV-check overlay for the same gizmo: a procedural checker or a distortion heatmap over the
     // painted patch, to sanity-check the unwrap.
     valid &= append_shader("texture_displacement_uvcheck", { prefix + "texture_displacement_uvcheck.vs", prefix + "texture_displacement_uvcheck.fs" });

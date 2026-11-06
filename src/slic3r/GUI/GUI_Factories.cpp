@@ -19,6 +19,7 @@
 #include "Gizmos/GLGizmoAlignment.hpp"
 #include "Gizmos/GLGizmoEmboss.hpp"
 #include "Gizmos/GLGizmoSVG.hpp"
+#include "Gizmos/GLGizmoTextureDisplacement.hpp"
 
 #include <algorithm>
 #include <array>
@@ -750,6 +751,22 @@ static void add_volume_with_gizmo(GLGizmosManager::EType gizmo_type, ModelVolume
 
 void MenuFactory::add_text_volume(ModelVolumeType type) { add_volume_with_gizmo(GLGizmosManager::Emboss, type); }
 void MenuFactory::add_svg_volume(ModelVolumeType type) { add_volume_with_gizmo(GLGizmosManager::Svg, type); }
+
+// A ChromaStack picture is always a whole object, never a part or a modifier: it is a picture and the
+// plate made to print it on. So it does not go through add_volume_with_gizmo(), which exists to put a
+// volume inside whatever is selected.
+static void add_chroma_picture_plate()
+{
+    Plater *pl = plater();
+    if (pl == nullptr)
+        return;
+    const GLCanvas3D *canvas = pl->canvas3D();
+    if (canvas == nullptr)
+        return;
+    if (auto *gizmo = dynamic_cast<GLGizmoTextureDisplacement *>(
+            canvas->get_gizmos_manager().get_gizmo(GLGizmosManager::TextureDisplacement)))
+        gizmo->create_picture_plate();
+}
 
 static void append_menu_itemm_add_(const wxString& name, GLGizmosManager::EType gizmo_type, wxMenu *menu, ModelVolumeType type, bool is_submenu_item) {
     auto add_ = [type, gizmo_type](const wxCommandEvent & /*unnamed*/) { add_volume_with_gizmo(gizmo_type, type); };
@@ -1702,6 +1719,11 @@ void MenuFactory::create_default_menu()
     append_menu_item(&m_default_menu, wxID_ANY, _L("Add Models"), "", // ORCA: Add Models
         [](wxCommandEvent&) { plater()->add_file(); }, "menu_add_part", &m_default_menu,
         []() {return wxGetApp().plater()->can_add_model(); }, m_parent);
+    // A picture with no model behind it: the plate to print it on is made from the picture.
+    append_menu_item(&m_default_menu, wxID_ANY, _L("Add ChromaStack picture"),
+        _L("Print a picture in color: a plate sized to it, with a frame, ready to paint with filament swaps"),
+        [](wxCommandEvent&) { add_chroma_picture_plate(); }, "menu_add_part", &m_default_menu,
+        []() {return wxGetApp().plater()->can_add_model(); }, m_parent);
 
     m_default_menu.AppendSeparator();
 
@@ -2066,6 +2088,11 @@ void MenuFactory::create_plate_menu()
         []() {return true; }, m_parent);
     append_menu_item(menu, wxID_ANY, _L("Add Models"), "", // ORCA: Add Models
         [](wxCommandEvent&) { plater()->add_file(); }, "menu_add_part", menu,
+        []() {return wxGetApp().plater()->can_add_model(); }, m_parent);
+    // A picture with no model behind it: the plate to print it on is made from the picture.
+    append_menu_item(menu, wxID_ANY, _L("Add ChromaStack picture"),
+        _L("Print a picture in color: a plate sized to it, with a frame, ready to print in filament swaps"),
+        [](wxCommandEvent&) { add_chroma_picture_plate(); }, "menu_add_part", menu,
         []() {return wxGetApp().plater()->can_add_model(); }, m_parent);
 
     menu->AppendSeparator();
@@ -2789,7 +2816,7 @@ void MenuFactory::update_object_menu()
 
 void MenuFactory::update_default_menu()
 {
-    for (auto& name : { _L("Add Primitive") , _L("Add Handy models"), _L("Show Labels") }) {
+    for (auto& name : { _L("Add Primitive") , _L("Add Handy models"), _L("Add ChromaStack picture"), _L("Show Labels") }) {
         const auto menu_item_id = m_default_menu.FindItem(name);
         if (menu_item_id != wxNOT_FOUND)
             m_default_menu.Destroy(menu_item_id);

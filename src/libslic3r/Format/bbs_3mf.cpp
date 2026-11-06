@@ -3391,6 +3391,20 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
             layer.image_data = std::make_shared<std::vector<unsigned char>>(image->second.begin(), image->second.end());
         }
+        // The same for a ChromaStack layer's own picture, which is a separate file: the layer's image is
+        // the height map the solve produced, and the picture is what it was solved from. Without it the
+        // stack can still print, but it can never be solved again.
+        for (TextureDisplacementLayer &layer : layers) {
+            if (!layer.chroma_enabled || layer.chroma_source_in_3mf.empty())
+                continue;
+            const auto source = m_texture_displacement_files.find(layer.chroma_source_in_3mf);
+            if (source == m_texture_displacement_files.end()) {
+                add_error("Missing ChromaStack picture: " + layer.chroma_source_in_3mf);
+                continue;
+            }
+            layer.chroma_source = std::make_shared<std::vector<unsigned char>>(source->second.begin(),
+                                                                              source->second.end());
+        }
         volume.texture_displacement_layers  = std::move(layers);
         volume.texture_displacement_options = options;
     }
@@ -8285,6 +8299,18 @@ static void add_texture_displacement(std::stringstream &stream, const ModelVolum
     // being exported is const (and may be saved again, elsewhere, with different paths).
     std::vector<TextureDisplacementLayer> layers = volume.texture_displacement_layers;
     for (TextureDisplacementLayer &layer : layers) {
+        layer.chroma_source_in_3mf.clear();
+        if (layer.chroma_enabled && layer.chroma_source && !layer.chroma_source->empty()) {
+            // Its own file beside the height map: a ChromaStack layer has two images, the picture it
+            // was solved from and the heights that came out, and losing the first makes the second
+            // unrepeatable.
+            const std::string src = std::string(TEXTURE_DISPLACEMENT_DIR) + id + "_" + std::to_string(layer.slot) +
+                                    "_source.png";
+            if (mz_zip_writer_add_mem(&archive, src.c_str(), layer.chroma_source->data(), layer.chroma_source->size(),
+                                      MZ_NO_COMPRESSION))
+                layer.chroma_source_in_3mf = src;
+        }
+
         layer.path_in_3mf.clear();
         if (!layer.image_data || layer.image_data->empty())
             continue;

@@ -1,0 +1,13 @@
+{
+  "chroma_frame": 1,
+  "name": "Rounded mount",
+  "category": "gallery",
+  "width_mm": 18.0,
+  "rise_mm": 2.5,
+  "outline": { "shape": "rounded", "corner": 0.22 },
+  "profile": [
+    [0.0, 1.0], [0.86, 1.0], [1.0, 0.0]
+  ],
+  "profile_scaling": "proportional",
+  "legacy_profile": "mat"
+}

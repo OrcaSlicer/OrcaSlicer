@@ -8,6 +8,7 @@
 #include "Widgets/Label.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/ComboBox.hpp"
+#include "Widgets/SpinInput.hpp"
 #include "Widgets/TextInput.hpp"
 #include "Widgets/LabeledStaticBox.hpp"
 #include "Widgets/RadioGroup.hpp"
@@ -172,6 +173,27 @@ protected:
     TextInput* m_tiDampingFactorStart;
     TextInput* m_tiDampingFactorEnd;
     Plater* m_plater;
+};
+
+// The transmission distance test: a staircase of the filament being measured, printed over one it has
+// to hide. Unlike every other calibration its model is not a shipped asset - the steps are layers, so
+// the model is only right for one layer height - and it needs two filaments rather than a range, which
+// is why it has a dialog of its own rather than a start/end/step one.
+class TransmissionDistance_Test_Dlg : public DPIDialog
+{
+public:
+    TransmissionDistance_Test_Dlg(wxWindow *parent, wxWindowID id, Plater *plater);
+    ~TransmissionDistance_Test_Dlg();
+    void on_dpi_changed(const wxRect &suggested_rect) override;
+
+protected:
+    void on_start(wxCommandEvent &event);
+
+    ComboBox  *m_cbTest      = nullptr; // the filament being measured
+    ComboBox  *m_cbSubstrate = nullptr; // the one it is printed over
+    SpinInput *m_siSteps     = nullptr;
+    float      m_layer_height_mm = 0.08f;
+    Plater    *m_plater      = nullptr;
 };
 
 class Cornering_Test_Dlg : public DPIDialog

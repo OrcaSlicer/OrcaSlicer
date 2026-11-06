@@ -1,0 +1,13 @@
+{
+  "chroma_frame": 1,
+  "name": "Bevel",
+  "category": "plain",
+  "width_mm": 10.0,
+  "rise_mm": 3.0,
+  "outline": { "shape": "rectangle" },
+  "profile": [
+    [0.0, 1.0], [1.0, 0.0]
+  ],
+  "profile_scaling": "stretch",
+  "legacy_profile": "bevel"
+}

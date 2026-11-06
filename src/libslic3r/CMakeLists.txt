@@ -338,6 +338,14 @@ set(lisbslic3r_sources
     Geometry/VoronoiUtils.cpp
     Geometry/VoronoiUtils.hpp
     Geometry/VoronoiVisualUtils.hpp
+    ChromaStack.cpp
+    ChromaStack.hpp
+    ChromaDiagnostics.cpp
+    ChromaDiagnostics.hpp
+    ChromaTiles.cpp
+    ChromaTiles.hpp
+    ChromaSplit.cpp
+    ChromaSplit.hpp
     IMEXArrange.cpp
     IMEXArrange.hpp
     IMEXHelpers.cpp
@@ -385,6 +393,8 @@ set(lisbslic3r_sources
     NormalUtils.cpp
     NormalUtils.hpp
     NSVGUtils.cpp
+    TransmissionDistance.cpp
+    TransmissionDistance.hpp
     NSVGUtils.hpp
     ObjColorUtils.cpp
     ObjColorUtils.hpp

@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/system/error_code.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <ios>
 #include <iterator>
@@ -1502,6 +1503,209 @@ TEST_CASE("a full turn of the hue leaves a colour where it started", "[TextureDi
     // Rounding through 8-bit channels, so a level or two of slack rather than exact equality.
     for (size_t i = 0; i < out.rgb.size(); ++i)
         REQUIRE(std::abs(int(out.rgb[i]) - int(src.rgb[i])) <= 2);
+}
+
+// ---- Perceptual (CIE Lab) brightness ---------------------------------------------------------------
+
+// CIELAB under D65, the same conversion TextureDisplacement.cpp uses. Repeated here because the
+// production copy is file-static, but note what it is actually used for below: the *hue angle*
+// atan2(b*, a*) of one colour compared with the hue angle of another. That is a relation between two
+// images rather than an absolute, so a conversion constant that was wrong in both copies could not make a
+// brightness mode that shifts hue look like one that does not.
+struct TestLab
+{
+    double l = 0., a = 0., b = 0.;
+};
+
+static TestLab test_lab_of(uint8_t r8, uint8_t g8, uint8_t b8)
+{
+    const auto to_linear = [](uint8_t v) {
+        const double c = double(v) / 255.;
+        return c <= 0.04045 ? c / 12.92 : std::pow((c + 0.055) / 1.055, 2.4);
+    };
+    const auto   f  = [](double t) { return t > 0.008856 ? std::cbrt(t) : (7.787 * t + 16. / 116.); };
+    const double rl = to_linear(r8), gl = to_linear(g8), bl = to_linear(b8);
+    const double fx = f((0.4124 * rl + 0.3576 * gl + 0.1805 * bl) / 0.95047);
+    const double fy = f(0.2126 * rl + 0.7152 * gl + 0.0722 * bl);
+    const double fz = f((0.0193 * rl + 0.1192 * gl + 0.9505 * bl) / 1.08883);
+    return TestLab{ 116. * fy - 16., 500. * (fx - fy), 200. * (fy - fz) };
+}
+
+static double test_hue_deg(const TestLab &lab) { return std::atan2(lab.b, lab.a) * 180. / M_PI; }
+static double test_chroma(const TestLab &lab) { return std::hypot(lab.a, lab.b); }
+
+TEST_CASE("the brightness mode defaults to the per-channel lift it has always been", "[TextureDisplacement]")
+{
+    // The default has to be the old path: nothing serializes a TextureAdjustments, so an older project
+    // carries no mode at all and what it means is whatever this default says.
+    CHECK(TextureAdjustments{}.brightness_space == TextureBrightnessSpace::Rgb);
+    // The mode on its own is not an adjustment either. With brightness at zero the two curves are the
+    // same no-op, and calling that non-identity would send every image through the pass for a copy.
+    TextureAdjustments mode_only;
+    mode_only.brightness_space = TextureBrightnessSpace::PerceptualLab;
+    CHECK(mode_only.identity());
+
+    // The old path in full: each channel lifted toward white by the same fraction, which in 8-bit terms
+    // is c + 0.4 * (255 - c), so 200 -> 222, 60 -> 138 and 30 -> 120, exactly and with no rounding to
+    // argue about.
+    TextureAdjustments adj;
+    adj.brightness                 = 0.4f;
+    const DecodedHeightTexture out = apply_texture_adjustments(make_rgb_flat(200, 60, 30), adj);
+    REQUIRE(out.has_color());
+    REQUIRE(out.rgb.size() >= 3);
+    CHECK(int(out.rgb[0]) == 222);
+    CHECK(int(out.rgb[1]) == 138);
+    CHECK(int(out.rgb[2]) == 120);
+
+    // And it is per-channel: the same three levels through the grayscale path land on the same three
+    // numbers, because both read one scalar curve. That is exactly what the Lab mode gives up.
+    DecodedHeightTexture grey;
+    grey.width  = 3;
+    grey.height = 1;
+    grey.pixels = { 200, 60, 30 };
+    const DecodedHeightTexture grey_out = apply_texture_adjustments(grey, adj);
+    REQUIRE(grey_out.pixels.size() == 3);
+    CHECK(int(grey_out.pixels[0]) == 222);
+    CHECK(int(grey_out.pixels[1]) == 138);
+    CHECK(int(grey_out.pixels[2]) == 120);
+}
+
+TEST_CASE("the brightness mode is not something a project file can carry", "[TextureDisplacement]")
+{
+    // The backward-compatibility argument for the new mode, written down. A TextureAdjustments is the
+    // state of an open panel rather than a property of a layer: neither the .3mf JSON here nor the cereal
+    // save()/load() on TextureDisplacementLayer writes `preview_adjust`, so there is no field for an older
+    // document to be missing and nothing it can mean but the default. A layer saved mid-adjustment comes
+    // back with the panel closed, which is what it has always done.
+    std::vector<TextureDisplacementLayer> layers(1);
+    layers[0].slot                            = 0;
+    layers[0].preview_adjust.brightness       = 0.6f;
+    layers[0].preview_adjust.brightness_space = TextureBrightnessSpace::PerceptualLab;
+
+    TextureDisplacementOptions options;
+    const std::string          json = texture_displacement_layers_to_json(layers, options);
+    CHECK(json.find("brightness") == std::string::npos);
+
+    std::vector<TextureDisplacementLayer> read_layers;
+    TextureDisplacementOptions            read_options;
+    REQUIRE(texture_displacement_layers_from_json(json, read_layers, read_options));
+    REQUIRE(read_layers.size() == 1);
+    CHECK(read_layers[0].preview_adjust.identity());
+    CHECK(read_layers[0].preview_adjust.brightness_space == TextureBrightnessSpace::Rgb);
+}
+
+TEST_CASE("brightening a mid grey in Lab leaves it grey", "[TextureDisplacement]")
+{
+    const DecodedHeightTexture src = make_rgb_flat(128, 128, 128);
+    TextureAdjustments         adj;
+    adj.brightness                 = 0.4f;
+    adj.brightness_space           = TextureBrightnessSpace::PerceptualLab;
+    const DecodedHeightTexture out = apply_texture_adjustments(src, adj);
+    REQUIRE(out.has_color());
+    REQUIRE(out.rgb.size() >= 3);
+
+    // A neutral has a* = b* = 0, so moving L* can only move it along the grey axis. The one level of slack
+    // is for the 8-bit rounding and for the published sRGB matrices, which are rounded enough to put a few
+    // thousandths of chroma on a grey that has none.
+    for (size_t i = 0; i + 2 < out.rgb.size(); i += 3) {
+        REQUIRE(std::abs(int(out.rgb[i]) - int(out.rgb[i + 1])) <= 1);
+        REQUIRE(std::abs(int(out.rgb[i + 1]) - int(out.rgb[i + 2])) <= 1);
+    }
+    CHECK(int(out.rgb[0]) > 128); // and it did brighten
+
+    // The two modes really are different curves - one applied to the sRGB code, one to L* - so a mid grey
+    // does not land in the same place under both. Were they the same, every check above would pass on a
+    // mode that was never wired up.
+    TextureAdjustments rgb_mode = adj;
+    rgb_mode.brightness_space   = TextureBrightnessSpace::Rgb;
+    CHECK(apply_texture_adjustments(src, rgb_mode).rgb != out.rgb);
+}
+
+TEST_CASE("brightening a saturated colour in Lab keeps its hue where the per-channel lift does not",
+          "[TextureDisplacement]")
+{
+    const DecodedHeightTexture src    = make_rgb_flat(200, 60, 30);
+    const TestLab              before = test_lab_of(200, 60, 30);
+
+    TextureAdjustments lab;
+    lab.brightness                     = 0.35f;
+    lab.brightness_space               = TextureBrightnessSpace::PerceptualLab;
+    const DecodedHeightTexture lab_out = apply_texture_adjustments(src, lab);
+    REQUIRE(lab_out.has_color());
+    REQUIRE(lab_out.rgb.size() >= 3);
+    const TestLab lab_lab = test_lab_of(lab_out.rgb[0], lab_out.rgb[1], lab_out.rgb[2]);
+
+    // Two degrees of Lab hue angle: the budget for the 8-bit rounding on the way out plus whatever the
+    // gamut search gives up. This colour does leave the gamut when it is lifted - there is no light salmon
+    // carrying the chroma of a mid red - so the search pulls a* and b* in toward the achromatic axis, and
+    // surviving that is the whole claim, since scaling both by one factor cannot move atan2(b*, a*). The
+    // measured shift is about a sixteenth of a degree.
+    CHECK_THAT(test_hue_deg(lab_lab), WithinAbs(test_hue_deg(before), 2.0));
+
+    TextureAdjustments rgb = lab;
+    rgb.brightness_space               = TextureBrightnessSpace::Rgb;
+    const DecodedHeightTexture rgb_out = apply_texture_adjustments(src, rgb);
+    REQUIRE(rgb_out.has_color());
+    REQUIRE(rgb_out.rgb.size() >= 3);
+    const TestLab rgb_lab = test_lab_of(rgb_out.rgb[0], rgb_out.rgb[1], rgb_out.rgb[2]);
+
+    // The reason the mode is worth having: the per-channel lift misses the hue by more than that whole
+    // tolerance (about four degrees here)...
+    CHECK(std::abs(test_hue_deg(rgb_lab) - test_hue_deg(before)) > 2.0);
+    // ... and spends most of the chroma getting there, which on a stack with a few dozen reachable colours
+    // is the whole budget the picture had to spend.
+    CHECK(test_chroma(lab_lab) > test_chroma(rgb_lab));
+}
+
+TEST_CASE("Lab brightness still reaches pure white and pure black at the ends of the slider",
+          "[TextureDisplacement]")
+{
+    // The two modes agree at the ends - it is the same lift curve, applied to L*/100 rather than to the
+    // channel - which is what keeps the slider feeling like the same slider when the mode is switched
+    // under it. At L* 100 and L* 0 the only printable colour is neutral, so the gamut search takes the
+    // chroma all the way out and even a saturated colour ends on white and on black.
+    const DecodedHeightTexture src = make_rgb_flat(200, 60, 30);
+
+    TextureAdjustments up;
+    up.brightness                    = 1.f;
+    up.brightness_space              = TextureBrightnessSpace::PerceptualLab;
+    const DecodedHeightTexture white = apply_texture_adjustments(src, up);
+    REQUIRE(white.has_color());
+    CHECK(std::all_of(white.rgb.begin(), white.rgb.end(), [](uint8_t v) { return v == 255; }));
+
+    TextureAdjustments down = up;
+    down.brightness         = -1.f;
+    const DecodedHeightTexture black = apply_texture_adjustments(src, down);
+    REQUIRE(black.has_color());
+    CHECK(std::all_of(black.rgb.begin(), black.rgb.end(), [](uint8_t v) { return v == 0; }));
+}
+
+TEST_CASE("Lab brightness on a grayscale image stays an ordered curve", "[TextureDisplacement]")
+{
+    // A grey has no a* or b* to hold, so the Lab lift collapses to a scalar curve and the grayscale path
+    // keeps its one table lookup per texel. What has to survive is what survives in RGB mode: every level
+    // gets brighter, the order is preserved, and the top of the range does not collapse into a flat
+    // plateau - this image is also the height map, and a plateau there bakes as flat relief.
+    const DecodedHeightTexture src = make_gray_ramp();
+    TextureAdjustments         adj;
+    adj.brightness                 = 0.4f;
+    adj.brightness_space           = TextureBrightnessSpace::PerceptualLab;
+    const DecodedHeightTexture out = apply_texture_adjustments(src, adj);
+
+    REQUIRE_FALSE(out.has_color());
+    REQUIRE(out.pixels.size() == src.pixels.size());
+    for (size_t i = 0; i < out.pixels.size(); ++i)
+        REQUIRE(out.pixels[i] >= src.pixels[i]);
+    for (int x = 1; x < out.width; ++x)
+        REQUIRE(out.pixels[size_t(x)] >= out.pixels[size_t(x - 1)]);
+    const size_t clipped = size_t(std::count(out.pixels.begin(), out.pixels.end(), uint8_t(255)));
+    CHECK(clipped * 100 < out.pixels.size());
+
+    // And it is not the RGB curve wearing a different name: L* is not the sRGB code, so the two disagree
+    // in the middle of the range even though they agree at both ends.
+    TextureAdjustments rgb_mode = adj;
+    rgb_mode.brightness_space   = TextureBrightnessSpace::Rgb;
+    CHECK(apply_texture_adjustments(src, rgb_mode).pixels != out.pixels);
 }
 
 TEST_CASE("the adjustment blur radius ramps from zero and stays under its cost cap", "[TextureDisplacement]")
@@ -3535,4 +3739,277 @@ TEST_CASE("an unpainted part of the source carries no paint onto the rebuilt mes
         else if (x > 0.6f * size)
             CHECK(state[t] == uint8_t(EnforcerBlockerType::NONE));
     }
+}
+
+// ---- Palette-exact images -----------------------------------------------------------------------
+// Palette-exact images: artwork drawn from a fixed set of flat colours, as opposed to a photograph.
+// decode_height_texture() recognises one and reports it as DecodedHeightTexture::palette_exact, and the
+// resampling then honours it. The property worth asserting is a colour one rather than a numeric one:
+// a palette-exact image must come out of a resize holding only colours it went in with. Averaging two
+// flat fills produces a colour that is in neither of the areas it divides, and a ChromaStack solve then
+// matches that invented colour to an intermediate height, so a hard edge prints as a terraced ramp.
+
+// Every input here is built in code and encoded through Slic3r's own PNG writer, then read back, so the
+// decode is guaranteed a file it accepts - the same round trip the existing texture tests use, and the
+// same bytes the GUI's import path would hand over.
+static std::shared_ptr<std::vector<unsigned char>> png_bytes_of_temp_file(const boost::filesystem::path &path)
+{
+    std::vector<unsigned char> bytes;
+    {
+        std::ifstream ifs(path.string(), std::ios::binary);
+        bytes.assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    }
+    boost::system::error_code ec;
+    boost::filesystem::remove(path, ec);
+
+    REQUIRE_FALSE(bytes.empty());
+    return std::make_shared<std::vector<unsigned char>>(std::move(bytes));
+}
+
+static boost::filesystem::path temp_png_path()
+{
+    return boost::filesystem::temp_directory_path() / boost::filesystem::unique_path("palette_exact_%%%%%%%%.png");
+}
+
+static std::shared_ptr<std::vector<unsigned char>> make_gray_png(const std::vector<uint8_t> &pixels, size_t w, size_t h)
+{
+    REQUIRE(pixels.size() == w * h);
+    const boost::filesystem::path path = temp_png_path();
+    REQUIRE(Slic3r::png::write_gray_to_file(path.string(), w, h, pixels));
+    return png_bytes_of_temp_file(path);
+}
+
+static std::shared_ptr<std::vector<unsigned char>> make_rgb_png(const std::vector<uint8_t> &rgb, size_t w, size_t h)
+{
+    REQUIRE(rgb.size() == w * h * 3);
+    const boost::filesystem::path path = temp_png_path();
+    REQUIRE(Slic3r::png::write_rgb_to_file(path.string(), w, h, rgb));
+    return png_bytes_of_temp_file(path);
+}
+
+static DecodedHeightTexture decode_image(const std::shared_ptr<std::vector<unsigned char>> &bytes)
+{
+    TextureDisplacementLayer layer;
+    layer.slot       = 0;
+    layer.image_data = bytes;
+    return decode_height_texture(layer);
+}
+
+// The distinct colours an image holds, as packed 0xRRGGBB values (or as grey levels for a grayscale
+// one). Used both to assert what a resize produced and to check that a test's own input really has the
+// number of colours the test says it has.
+static std::set<uint32_t> distinct_colors(const DecodedHeightTexture &tex)
+{
+    std::set<uint32_t> out;
+    if (tex.has_color())
+        for (size_t i = 0; i < size_t(tex.width) * size_t(tex.height); ++i)
+            out.insert((uint32_t(tex.rgb[i * 3]) << 16) | (uint32_t(tex.rgb[i * 3 + 1]) << 8) |
+                       uint32_t(tex.rgb[i * 3 + 2]));
+    else
+        for (const uint8_t level : tex.pixels)
+            out.insert(level);
+    return out;
+}
+
+// Two flat fills split by an edge at x = 33: deliberately not on a block boundary of the resize below,
+// so a filtered resize has to average across the edge and a nearest-neighbour one cannot.
+static std::shared_ptr<std::vector<unsigned char>> make_two_color_png(size_t w = 64, size_t h = 64)
+{
+    std::vector<uint8_t> rgb;
+    rgb.reserve(w * h * 3);
+    for (size_t y = 0; y < h; ++y)
+        for (size_t x = 0; x < w; ++x)
+            if (x < 33)
+                rgb.insert(rgb.end(), { 220, 40, 40 });
+            else
+                rgb.insert(rgb.end(), { 30, 70, 200 });
+    return make_rgb_png(rgb, w, h);
+}
+
+TEST_CASE("a two-colour image downscales to exactly those two colours", "[PaletteExact]")
+{
+    const DecodedHeightTexture tex = decode_image(make_two_color_png());
+    REQUIRE_FALSE(tex.empty());
+    REQUIRE(tex.has_color());
+    REQUIRE(tex.palette_exact);
+    const std::set<uint32_t> source = distinct_colors(tex);
+    REQUIRE(source.size() == 2);
+
+    const DecodedHeightTexture small = downscale_height_texture(tex, 16);
+    REQUIRE(small.width == 16);
+    REQUIRE(small.height == 16);
+    // Only colours the source held, and both of them - a resize that answered with one flat colour
+    // would satisfy the first half on its own.
+    CHECK(distinct_colors(small) == source);
+    // The height goes with the colour: it is the luminance of one source texel, never of a blend of
+    // two, so the relief steps where the colour does.
+    const std::set<uint32_t> source_levels = { tex.pixels[0], tex.pixels[size_t(tex.width) - 1] };
+    for (const uint8_t level : small.pixels)
+        CHECK(source_levels.count(level) == 1);
+    // A subset of a palette is still that palette, so a caller downstream of the resize can still tell
+    // artwork from a photograph.
+    CHECK(small.palette_exact);
+}
+
+TEST_CASE("the palette-exact flag is what switches the resampling", "[PaletteExact]")
+{
+    // The same image with the flag cleared by hand goes through the box filter exactly as before, which
+    // is what keeps a relief layer's photograph untouched: this is an opt-in by the image's own content,
+    // not a change to the filtering.
+    DecodedHeightTexture tex = decode_image(make_two_color_png());
+    REQUIRE(tex.palette_exact);
+    const std::set<uint32_t> source = distinct_colors(tex);
+
+    tex.palette_exact                 = false;
+    const DecodedHeightTexture small  = downscale_height_texture(tex, 16);
+    const std::set<uint32_t>   result = distinct_colors(small);
+    // The block straddling the edge at x = 33 is averaged, so it holds a colour the artwork never did.
+    CHECK(std::any_of(result.begin(), result.end(), [&source](uint32_t c) { return source.count(c) == 0; }));
+}
+
+TEST_CASE("a photograph-like gradient is still filtered when it is downscaled", "[PaletteExact]")
+{
+    // 64 grey levels across the width, four levels apart: more colours than artwork has, and a ramp
+    // rather than flat fills. Halved, every destination texel is the average of two neighbouring
+    // levels, which lands two levels off either of them - a value the source does not hold. That is the
+    // filtering working, and it is what a photograph's gradients need.
+    const size_t         w = 64, h = 64;
+    std::vector<uint8_t> pixels(w * h);
+    for (size_t y = 0; y < h; ++y)
+        for (size_t x = 0; x < w; ++x)
+            pixels[y * w + x] = uint8_t(x * 4);
+
+    const DecodedHeightTexture tex = decode_image(make_gray_png(pixels, w, h));
+    REQUIRE_FALSE(tex.empty());
+    REQUIRE(distinct_colors(tex).size() == 64);
+    CHECK_FALSE(tex.palette_exact);
+
+    const DecodedHeightTexture small = downscale_height_texture(tex, 32);
+    REQUIRE(small.width == 32);
+    CHECK_FALSE(small.palette_exact);
+    const std::set<uint32_t> source = distinct_colors(tex);
+    CHECK(std::any_of(small.pixels.begin(), small.pixels.end(),
+                      [&source](uint8_t v) { return source.count(uint32_t(v)) == 0; }));
+}
+
+// A grayscale image with `levels` distinct grey levels, spread over enough texels that each level
+// really appears. The step is derived from the level count so the levels cannot collide.
+static std::shared_ptr<std::vector<unsigned char>> make_leveled_gray_png(int levels, size_t w = 16, size_t h = 16)
+{
+    REQUIRE(levels > 1);
+    REQUIRE(size_t(levels) <= w * h);
+    const int            step = 250 / (levels - 1);
+    std::vector<uint8_t> pixels(w * h);
+    for (size_t i = 0; i < pixels.size(); ++i)
+        pixels[i] = uint8_t(int(i % size_t(levels)) * step);
+    return make_gray_png(pixels, w, h);
+}
+
+TEST_CASE("the colour count decides palette-exactness, either side of its threshold", "[PaletteExact]")
+{
+    // At the threshold the image is still artwork; one colour past it, it is a photograph. The
+    // threshold is deliberately low - anti-aliasing is what pushes a nominally two-colour image over
+    // it, and an anti-aliased edge genuinely does carry the colours in between.
+    const DecodedHeightTexture at = decode_image(make_leveled_gray_png(PALETTE_EXACT_MAX_COLORS));
+    REQUIRE_FALSE(at.empty());
+    REQUIRE(distinct_colors(at).size() == size_t(PALETTE_EXACT_MAX_COLORS));
+    CHECK(at.palette_exact);
+
+    const DecodedHeightTexture past = decode_image(make_leveled_gray_png(PALETTE_EXACT_MAX_COLORS + 1));
+    REQUIRE_FALSE(past.empty());
+    REQUIRE(distinct_colors(past).size() == size_t(PALETTE_EXACT_MAX_COLORS) + 1);
+    CHECK_FALSE(past.palette_exact);
+}
+
+TEST_CASE("a grayscale image drawn from a few levels is palette-exact", "[PaletteExact]")
+{
+    // An indexed image arrives at the decode expanded - the importer converts anything that is not an
+    // 8-bit grey, RGB or RGBA PNG through wxImage, which keeps its colours exactly - so a four-level
+    // grey stencil is what one looks like here. Bands five texels wide, against a resize that takes
+    // four, so the blocks straddle the steps.
+    const size_t         w = 32, h = 32;
+    std::vector<uint8_t> pixels(w * h);
+    for (size_t y = 0; y < h; ++y)
+        for (size_t x = 0; x < w; ++x)
+            pixels[y * w + x] = uint8_t(((x / 5 + y / 5) % 4) * 85);
+
+    const DecodedHeightTexture tex = decode_image(make_gray_png(pixels, w, h));
+    REQUIRE_FALSE(tex.empty());
+    REQUIRE_FALSE(tex.has_color()); // a height map has no colour to give, and this must not invent one
+    REQUIRE(tex.palette_exact);
+
+    const DecodedHeightTexture small = downscale_height_texture(tex, 8);
+    REQUIRE(small.width == 8);
+    const std::set<uint32_t> source = distinct_colors(tex);
+    REQUIRE(source.size() == 4);
+    for (const uint8_t level : small.pixels)
+        CHECK(source.count(uint32_t(level)) == 1);
+}
+
+// An 8x8 RGBA PNG: two flat colours, left half against right half, with alpha alternating per row
+// (opaque, then half-transparent). Written out as bytes because libslic3r's PNG writers only produce
+// grey and RGB files, as the colour-decode tests in test_texture_displacement.cpp do for the same
+// reason. The point of the alpha is that it varies where the colour does not.
+static std::shared_ptr<std::vector<unsigned char>> make_two_color_rgba_png()
+{
+    static const unsigned char bytes[] = {
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+        0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x08,
+        0x08, 0x06, 0x00, 0x00, 0x00, 0xc4, 0x0f, 0xbe, 0x8b, 0x00, 0x00, 0x00,
+        0x20, 0x49, 0x44, 0x41, 0x54, 0x78, 0xda, 0x63, 0xb8, 0xa3, 0xa1, 0xf1,
+        0x1f, 0x19, 0xcb, 0xb9, 0x9d, 0x40, 0xc1, 0x0c, 0x40, 0xc1, 0x04, 0x64,
+        0x0c, 0x14, 0x44, 0xc1, 0x0c, 0xc3, 0xc2, 0x04, 0x00, 0x7d, 0x0a, 0x76,
+        0xe1, 0x09, 0x9e, 0xb7, 0x7e, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e,
+        0x44, 0xae, 0x42, 0x60, 0x82,
+    };
+    return std::make_shared<std::vector<unsigned char>>(std::begin(bytes), std::end(bytes));
+}
+
+TEST_CASE("an image with an alpha channel is judged on its colours alone", "[PaletteExact]")
+{
+    // The decode drops alpha, so two texels that differ only in it are the same colour everywhere
+    // downstream - counting them apart would read a two-colour logo as a four-colour one and, on a
+    // bigger image, as a photograph.
+    const DecodedHeightTexture tex = decode_image(make_two_color_rgba_png());
+    REQUIRE_FALSE(tex.empty());
+    REQUIRE(tex.has_color());
+    REQUIRE(tex.width == 8);
+    REQUIRE(tex.height == 8);
+    const std::set<uint32_t> source = distinct_colors(tex);
+    REQUIRE(source.size() == 2);
+    CHECK(tex.palette_exact);
+
+    const DecodedHeightTexture small = downscale_height_texture(tex, 4);
+    REQUIRE(small.width == 4);
+    CHECK(distinct_colors(small) == source);
+}
+
+TEST_CASE("blurring a palette-exact image makes it a photograph", "[PaletteExact]")
+{
+    // A blurred edge really does hold the colours between the two fills it separates, so the flag has
+    // to go off with the blur - whether it comes from the layer's Smoothing or from the adjustment
+    // panel. The tonal adjustments are per-texel curves and keep it: a flat image stays flat.
+    TextureDisplacementLayer layer;
+    layer.slot       = 0;
+    layer.image_data = make_two_color_png();
+    REQUIRE(decode_height_texture(layer).palette_exact);
+
+    layer.smoothing = 0.5f;
+    CHECK_FALSE(decode_height_texture(layer).palette_exact);
+    layer.smoothing = 0.f;
+
+    const DecodedHeightTexture tex = decode_height_texture(layer);
+    REQUIRE(tex.palette_exact);
+
+    TextureAdjustments adjust;
+    adjust.brightness = 0.3f;
+    CHECK(apply_texture_adjustments(tex, adjust).palette_exact);
+
+    adjust = TextureAdjustments{};
+    adjust.blur = 0.5f;
+    CHECK_FALSE(apply_texture_adjustments(tex, adjust).palette_exact);
+
+    adjust = TextureAdjustments{};
+    adjust.sharpness = 0.5f;
+    CHECK_FALSE(apply_texture_adjustments(tex, adjust).palette_exact);
 }

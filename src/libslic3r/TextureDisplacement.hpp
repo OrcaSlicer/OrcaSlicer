@@ -18,6 +18,7 @@
 
 #include <array>
 
+#include "ChromaStack.hpp"
 #include "Point.hpp"
 #include "TriangleSelector.hpp"
 
@@ -170,6 +171,26 @@ struct TextureIsland
 // chart to its true mm area, so a freshly unwrapped patch has uniform texel density to begin with.
 void average_island_scales(std::vector<TextureIsland> &islands);
 
+// Which space TextureAdjustments::brightness works in.
+//
+// Rgb is the original behaviour and stays the default, because every project and every undo step that
+// exists today means it. It lifts each of the three channels toward white (or toward black) by the same
+// fraction, which is cheap and is what most sliders do, but it drags the colour along with it: the three
+// channels converge as they approach the endpoint, so a brightened red loses chroma and slides toward
+// pink, and the hue the user picked is not the hue that gets printed.
+//
+// PerceptualLab moves L* in CIE Lab and leaves a* and b* where they are, so a texel keeps its hue and its
+// chroma and only gets lighter. It costs a colour-space round trip per texel instead of a table lookup,
+// and it is worth more here than the same switch would be in a photo editor: a ChromaStack palette is a
+// few dozen colours reachable from a handful of filaments, and a brightness pass that wanders off the hue
+// it started on spends that budget on colours nobody asked for. HueForge arrived at the same conclusion
+// in 0.9.4, which is where the idea comes from.
+enum class TextureBrightnessSpace : int
+{
+    Rgb           = 0, // per-channel lift toward white or black (default)
+    PerceptualLab = 1, // lift L* in CIE Lab, a* and b* held
+};
+
 // Photo-style adjustments to a layer's source image, as the gizmo's image-adjustment panel sets them.
 //
 // These are *not* layer parameters: nothing here is stored on TextureDisplacementLayer and nothing here is
@@ -187,17 +208,42 @@ struct TextureAdjustments
     float sharpness  = 0.f; // [0, 1];  0 unchanged. Unsharp-mask amount
     float blur       = 0.f; // [0, 1];  0 unchanged. Fraction of SOURCE_BLUR_SPAN, as `smoothing` is
     float hue_deg    = 0.f; // [-180, 180]; 0 unchanged. No effect on a grayscale image - grey has no hue
+    // [-1, 1]; 0 unchanged, -1 fully grey, +1 twice as saturated. No effect on a grayscale image,
+    // which has nothing to saturate.
+    //
+    // It matters more here than it would in a photo editor: a ChromaStack palette is a few dozen
+    // colours reachable from a handful of filaments, and a picture whose colours sit well inside that
+    // gamut wastes it, while one that sits outside it clips to the nearest band and flattens. Pulling
+    // the picture's saturation towards what the stack can reach is the single most effective thing a
+    // filter can do to it.
+    float saturation = 0.f;
 
+    // Which space `brightness` works in. See TextureBrightnessSpace. Deliberately last in the struct: as
+    // the comment above says, nothing serializes a TextureAdjustments - neither the cereal save()/load()
+    // on TextureDisplacementLayer nor the .3mf JSON carries `preview_adjust` - so there is no archive to
+    // append to and a project saved by an older build loads with the Rgb default and reproduces exactly.
+    // If a serialize() is ever added here, this member is already at the end, which is where a new field
+    // has to go.
+    TextureBrightnessSpace brightness_space = TextureBrightnessSpace::Rgb;
+
+    // The mode is not part of this: with `brightness` at zero it selects between two curves that both do
+    // nothing, and reporting such an adjustment as non-identity would send the whole image through the
+    // adjustment pass to get a copy of itself back.
     bool identity() const
     {
-        return brightness == 0.f && contrast == 0.f && sharpness == 0.f && blur == 0.f && hue_deg == 0.f;
+        return brightness == 0.f && contrast == 0.f && sharpness == 0.f && blur == 0.f && hue_deg == 0.f &&
+               saturation == 0.f;
     }
     // Exact equality, which is what is wanted: these come straight off sliders, and the question asked of
     // them is "is this still the value the preview on screen was computed from", not "are these close".
+    // The mode *is* part of this one, even though a zero brightness makes it irrelevant: the cost of an
+    // unnecessary recompute is one pass over the image, and the cost of missing a real one is a preview
+    // that disagrees with the picture.
     bool operator==(const TextureAdjustments &o) const
     {
         return brightness == o.brightness && contrast == o.contrast && sharpness == o.sharpness &&
-               blur == o.blur && hue_deg == o.hue_deg;
+               blur == o.blur && hue_deg == o.hue_deg && saturation == o.saturation &&
+               brightness_space == o.brightness_space;
     }
     bool operator!=(const TextureAdjustments &o) const { return !(*this == o); }
 };
@@ -353,16 +399,36 @@ struct TextureDisplacementLayer
     // for the boundary to be drawn on.
     bool color_enabled = false;
 
+    // ChromaStack (see ChromaStack.hpp): when set, `image_data` is not a texture the user picked but the
+    // height map chroma_solve() computed, so that the whole displacement pipeline - preview, UV
+    // editor, bake - goes on reading one grayscale height map and needs to know nothing about colour
+    // stacks. The picture it was solved from is kept here instead, because the solve has to be redone
+    // whenever the stack, the print's layer height or the picture itself changes.
+    //
+    // A ChromaStack layer gets its colour from filament swaps at fixed Z, which is what `chroma`
+    // records and what the object's height ranges carry out. That is a different mechanism from
+    // `color_enabled` (per-triangle filament assignment), and the two are mutually exclusive: the
+    // panel turns colour off on a ChromaStack layer, since painting the relief in one filament per
+    // triangle would hide the very stack the heights were solved against.
+    bool                                        chroma_enabled = false;
+    ChromaStack                                 chroma;
+    std::shared_ptr<std::vector<unsigned char>> chroma_source;
+    // Where `chroma_source` sits inside the .3mf once the project has been saved, as `path_in_3mf` is
+    // for the height map. Empty until then.
+    std::string                                 chroma_source_in_3mf;
+
     bool empty() const { return !image_data || image_data->empty(); }
 
     template<class Archive> void save(Archive &ar) const
     {
         std::string blob = image_data ? std::string(image_data->begin(), image_data->end()) : std::string();
+        std::string source = chroma_source ? std::string(chroma_source->begin(), chroma_source->end()) : std::string();
         ar(slot, name, path, path_in_3mf, blob, depth_mm, tiling_scale, rotation_deg, offset, invert, tile_enabled,
            static_cast<int>(tile_method), static_cast<int>(projection_method), lscm_seam_angle_deg, islands,
            static_cast<int>(blend_mode), midlevel, island_padding_mm, lscm_seam_edges, view_project_right,
            view_project_up, smoothing, edge_smoothing, edge_smoothing_amount, auto_connect_islands, island_groups,
-           lscm_uv_overrides, view_project_projective, view_project_matrix, color_enabled);
+           lscm_uv_overrides, view_project_projective, view_project_matrix, color_enabled, chroma_enabled, chroma,
+           source, chroma_source_in_3mf);
     }
     template<class Archive> void load(Archive &ar)
     {
@@ -370,12 +436,14 @@ struct TextureDisplacementLayer
         int         tile_method_int       = 0;
         int         projection_method_int = 0;
         int         blend_mode_int        = 0;
+        std::string source;
         ar(slot, name, path, path_in_3mf, blob, depth_mm, tiling_scale, rotation_deg, offset, invert, tile_enabled,
            tile_method_int, projection_method_int, lscm_seam_angle_deg, islands, blend_mode_int, midlevel,
            island_padding_mm, lscm_seam_edges, view_project_right, view_project_up, smoothing, edge_smoothing,
            edge_smoothing_amount, auto_connect_islands, island_groups, lscm_uv_overrides, view_project_projective,
-           view_project_matrix, color_enabled);
+           view_project_matrix, color_enabled, chroma_enabled, chroma, source, chroma_source_in_3mf);
         image_data        = blob.empty() ? nullptr : std::make_shared<std::vector<unsigned char>>(blob.begin(), blob.end());
+        chroma_source   = source.empty() ? nullptr : std::make_shared<std::vector<unsigned char>>(source.begin(), source.end());
         tile_method       = static_cast<TextureTileMethod>(tile_method_int);
         projection_method = static_cast<TextureProjectionMethod>(projection_method_int);
         blend_mode        = static_cast<TextureBlendMode>(blend_mode_int);
@@ -524,6 +592,23 @@ V2Resolution recommend_v2_resolution(const indexed_triangle_set                 
                                      const std::vector<TextureDisplacementLayer> &layers,
                                      const Transform3d                           &volume_to_world = Transform3d::Identity());
 
+// The most distinct colours (or, for a grayscale image, grey levels) an image may hold and still be
+// treated as artwork drawn from a fixed palette rather than as a photograph. See
+// DecodedHeightTexture::palette_exact.
+//
+// Flat artwork - a logo, line art, a flag, a map, a cartoon cel, camouflage - is painted from a
+// handful of fills, and even a busy one rarely passes a couple of dozen. A photograph passes this many
+// distinct colours within its first few hundred texels, which is also what makes the count cheap: the
+// detection stops counting the moment the image is clearly not artwork, so a large photograph pays for
+// a few hundred comparisons rather than for a second pass over itself.
+//
+// Deliberately low rather than generous. Anti-aliasing is what pushes a nominally two-colour image
+// over the line, and an anti-aliased glyph really does carry intermediate colours along its edges, so
+// filtering reproduces it correctly; the images this is for have hard edges and no in-between colours
+// to begin with. The two mistakes are not symmetric either: resampling a photograph with
+// nearest-neighbour aliases visibly, while filtering artwork is only what already happens today.
+static constexpr int PALETTE_EXACT_MAX_COLORS = 32;
+
 // Decoded height (and, for a colour source image, colour) samples, independent of any GUI/OpenGL
 // texture object so they can be evaluated from a background bake Job as well as from GUI-side
 // preview code.
@@ -537,6 +622,22 @@ struct DecodedHeightTexture
     std::vector<uint8_t> rgb;
     int width  = 0;
     int height = 0;
+
+    // The image is artwork drawn from a fixed palette - indexed, or few enough distinct colours to be
+    // a logo or line art rather than a photograph (see PALETTE_EXACT_MAX_COLORS). Decided once, during
+    // the decode, from a pass the decode already makes, so a caller can ask without redoing the work.
+    //
+    // Two things read it. Resampling: downscale_height_texture() switches to nearest-neighbour, because
+    // averaging texels across a hard edge invents colours that are in neither of the areas it divides,
+    // and a ChromaStack solve then matches those invented colours to intermediate heights - a hard edge
+    // prints as a soft terraced ramp. And dithering: error diffusion trades banding for stipple, which
+    // is the cure for a photograph's skies and the artifact itself on flat artwork.
+    //
+    // Cleared by anything that invents colours of its own - the Smoothing blur, and the adjustment
+    // panel's blur/sharpen - since a blurred logo genuinely does have intermediate colours in it. A
+    // purely tonal adjustment (brightness, contrast, hue) keeps it: those are per-texel curves, so a
+    // flat image stays flat with no more distinct colours than it started with.
+    bool palette_exact = false;
 
     bool empty() const { return width <= 0 || height <= 0 || pixels.empty(); }
     bool has_color() const { return !empty() && rgb.size() == size_t(width) * size_t(height) * 3; }
@@ -592,6 +693,12 @@ float adjustment_blur_radius(float blur, int width, int height);
 // full-size image only once, on commit. A box filter (rather than a plain decimation) is the point -
 // these textures are high-frequency by nature, and dropping texels would alias the preview into
 // showing detail the adjustment is not actually producing.
+//
+// A palette-exact source (DecodedHeightTexture::palette_exact) is the exception: it is resampled with
+// nearest-neighbour, so the result holds only colours the source itself held. Averaging is exactly
+// wrong there - the average of two flat fills is a colour the artwork does not contain, and on a
+// ChromaStack picture it becomes a terraced ramp down every edge. The flag carries over to the result,
+// which stays true of it: a subset of a palette is still that palette.
 DecodedHeightTexture downscale_height_texture(const DecodedHeightTexture &src, int max_px);
 
 // Decode a layer's raw image bytes into sampleable height data, plus colour when the source has any.
@@ -601,6 +708,9 @@ DecodedHeightTexture downscale_height_texture(const DecodedHeightTexture &src, i
 // as it did when the importer flattened it to grey on the way in. Returns an empty
 // DecodedHeightTexture if image_data is empty or is not a PNG at all. keep_decoded = false leaves the
 // result out of the decode cache, for one-off reads such as a picker thumbnail that must not hold full-size pixels.
+//
+// Also decides DecodedHeightTexture::palette_exact, from the same pass that reads the texels, so asking
+// whether an image is artwork or a photograph costs a cached decode and a bool.
 DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer, bool keep_decoded = true);
 
 // decode_height_texture(layer).has_color(), answered from the decode cache rather than from a copy of the
@@ -1077,6 +1187,51 @@ std::vector<Vec3f> texture_displacement_vertex_normals(const indexed_triangle_se
 void texture_displacement_patch_frame(const indexed_triangle_set &patch,
                                       const std::vector<Vec3f>   &vertex_normals,
                                       Vec3f &center, Vec3f &axis, Vec3f &average_normal);
+
+// ---- ChromaStack: measuring the painted patch, and the surface the picture lands on ----
+//
+// Both of these used to live in the gizmo, where they could only run on the UI thread because they
+// reached for the live ModelVolume. They are pure functions of a patch and two transforms, so they
+// are here instead and the gizmo passes what it has: that is what lets the solve run on a worker.
+// See ChromaStack.hpp for what the measurements are *for*.
+
+// What a ChromaStack needs to know about the face its picture is printed on, in the object's printed
+// coordinates (a filament swap happens at a print Z, so the instance transform is part of the frame).
+struct ChromaPatchMetrics
+{
+    bool  valid         = false;
+    // How far the top of the patch stands above the bottom of the instance, which is how many layers
+    // are printed under the picture.
+    float top_mm        = 0.f;
+    float spread_mm     = 0.f;
+    // The steepest tenth of the patch by area, and the area-weighted mean, both as an angle from
+    // level. A single facet on a rounded edge must not speak for a patch that is otherwise flat.
+    float tilt_deg      = 0.f;
+    float tilt_mean_deg = 0.f;
+    // The patch's extent in the bake frame, which is where tiling_scale and offset live.
+    Vec2f planar_min    = Vec2f::Zero();
+    Vec2f planar_max    = Vec2f::Zero();
+};
+
+// `trafo` is instance * volume (the printed frame), `bake` is texture_displacement_bake_frame() of
+// the volume-to-world (where the picture lands), and `instance_bottom_z` is the printed Z the object
+// sits at. An empty patch comes back `valid == false`.
+ChromaPatchMetrics chroma_measure_patch(const indexed_triangle_set &patch, const Transform3d &trafo,
+                                        const Transform3d &bake, double instance_bottom_z);
+
+// Lays one copy of the picture over the patch: the scale that makes its longer side one tile wide and
+// the offset that brings the patch's own corner to uv 0. Without this the picture would be a tile of
+// some arbitrary size starting at the volume's origin. `aspect` is the picture's width over its
+// height, so a wide picture is not squeezed into a square tile. A patch that did not measure is left
+// alone.
+void chroma_fit_layer_to_patch(TextureDisplacementLayer &layer, const ChromaPatchMetrics &patch, float aspect);
+
+// cos(tilt) of the painted surface at every texel of a `width` x `height` picture, sampled through
+// the same mapping the bake will use. Where the patch folds back on itself the surface nearest the
+// viewer wins: the picture is seen on the top of the part, not through it. Feeds chroma_tilt_relief().
+ChromaSurface chroma_build_surface(const indexed_triangle_set &patch, const Transform3d &trafo,
+                                   const Transform3d &bake, const TextureDisplacementLayer &layer,
+                                   float aspect, int width, int height);
 
 // Convenience overload for main-thread callers: extracts the mesh/layers/paint data/options from
 // `volume` and forwards to the overload above.
