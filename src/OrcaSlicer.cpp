@@ -3208,6 +3208,15 @@ int CLI::run(int argc, char **argv)
     // keep the printer in their last slot, so the new filament slots go in before it.
     const int project_defined_filament_count = filament_count;
     if (filament_count < load_filament_count) {
+        // An empty --load-filaments entry keeps the project's filament in that slot, so past the project's count
+        // it has nothing to keep; only --load-defaultfila fills such a slot, and then it is in load_filaments_index.
+        for (int slot = filament_count + 1; slot <= load_filament_count; slot++) {
+            if (std::find(load_filaments_index.begin(), load_filaments_index.end(), slot) == load_filaments_index.end()) {
+                boost::nowide::cerr << boost::format("--load-filaments slot %1% is empty, but the project defines only %2% filaments, so there is none to keep in it") % slot % filament_count << std::endl;
+                record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                flush_and_exit(CLI_INVALID_PARAMS);
+            }
+        }
         BOOST_LOG_TRIVIAL(info) << boost::format("%1% filaments loaded on a project with %2%, growing the project to %1%") % load_filament_count % filament_count;
         inherits_group.insert(inherits_group.begin() + filament_count + 1, load_filament_count - filament_count, std::string());
         different_settings.insert(different_settings.begin() + filament_count + 1, load_filament_count - filament_count, std::string());

@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 # End-to-end check that --load-filaments with more presets than the project defines grows the project
-# without disturbing its own filaments or the printer's slot.
+# without disturbing its own filaments or the printer's slot, and that an empty slot past the project's
+# count is rejected unless --load-defaultfila fills it.
 #
 # A one-filament project is exported from the shipped Bambu Lab H2D presets, where a filament has one
 # value per extruder variant. Its per-variant filament_max_volumetric_speed is changed and listed as
 # different, and the printer's name is put in its slot of inherits_group, the last one. The project is
 # sliced with as many filaments as it has variant entries, the one empty slot per project filament
-# refreshing it and the last one a loaded preset: the kept values must survive at their variant
+# refreshing it and every slot beyond it a loaded preset: the kept values must survive at their variant
 # positions (a loaded count that equals the variant count used to be mistaken for one value per
-# filament), and the printer must still hold the last slot, after the new filaments.
+# filament), and the printer must still hold the last slot, after the new filaments. The same count
+# with an empty slot beyond the project's filament has nothing to keep in that slot: the run must fail
+# with CLI_INVALID_PARAMS, unless --load-defaultfila fills the slot with the first loaded preset.
 #
 # usage: test_cli_load_filaments_count.sh <orca-slicer binary> <python3> <resources/profiles/BBL>
 set -u
@@ -38,12 +41,32 @@ with open(sys.argv[1], "w") as f:
     f.write("endsolid cube\n")
 EOF
 
-# slice <tag> <input> [option...]: slice into $WORK/<tag>/out.3mf with a fresh data directory.
-slice() {
+# run <tag> <input> [option...]: slice into $WORK/<tag>/out.3mf with a fresh data directory; prints the exit status.
+run() {
     local out="$WORK/$1" input="$2"; shift 2
     mkdir -p "$out"
-    timeout 300 "$BIN" --datadir "$out/datadir" "$@" --slice 0 --outputdir "$out" --export-3mf out.3mf "$input" \
-        > "$out/log" 2>&1 || { echo "FAIL: $1: orca-slicer exited $?"; tail -n 40 "$out/log"; exit 1; }
+    timeout 300 "$BIN" --datadir "$out/datadir" "$@" --slice 0 --outputdir "$out" --export-3mf out.3mf "$input" > "$out/log" 2>&1
+    echo $?
+}
+
+# slice <tag> <input> [option...]: the run must succeed.
+slice() {
+    local rc; rc="$(run "$@")"
+    [ "$rc" = 0 ] || { echo "FAIL: $1: orca-slicer exited $rc"; tail -n 40 "$WORK/$1/log"; exit 1; }
+}
+
+# reject <tag> <input> [option...]: the run must fail with CLI_INVALID_PARAMS (-2) and record it in result.json.
+reject() {
+    local rc; rc="$(run "$@")"
+    [ "$rc" = 254 ] || { echo "FAIL: $1: orca-slicer exited $rc, want 254 (CLI_INVALID_PARAMS)"; tail -n 40 "$WORK/$1/log"; exit 1; }
+    "$PY" - "$WORK/$1/result.json" <<'EOF' || { echo "FAIL: $1: result.json"; exit 1; }
+import json, sys
+
+with open(sys.argv[1]) as f:
+    result = json.load(f)
+if result.get("return_code") != -2 or not result.get("error_string"):
+    sys.exit("return_code %r, error_string %r, want -2 with a message" % (result.get("return_code"), result.get("error_string")))
+EOF
 }
 
 slice base "$WORK/cube.stl" \
@@ -78,9 +101,11 @@ with zipfile.ZipFile(src) as zin, zipfile.ZipFile(dst, "w", zipfile.ZIP_DEFLATED
 EOF
 )" || { rc=$?; [ "$rc" = 77 ] && exit 77; exit "$rc"; }
 
+MATTE="$PROFILES/filament/Bambu PLA Matte @BBL H2D.json"
+# Slot 1 stays the project's filament; every slot beyond it loads a preset.
 FILAMENTS=""
-for ((i = 1; i < LOADED; i++)); do FILAMENTS="$FILAMENTS;"; done
-slice grown "$WORK/old.3mf" --load-filaments "$FILAMENTS$PROFILES/filament/Bambu ABS @BBL H2D.json"
+for ((i = 1; i < LOADED; i++)); do FILAMENTS="$FILAMENTS;$MATTE"; done
+slice grown "$WORK/old.3mf" --load-filaments "$FILAMENTS"
 
 "$PY" - "$WORK/grown/out.3mf" "$WORK/old.3mf.expected.json" "$LOADED" <<'EOF' || { tail -n 40 "$WORK/grown/log"; exit 1; }
 import json, sys, zipfile
@@ -97,8 +122,8 @@ for key in ("filament_max_volumetric_speed", "filament_self_index"):
     if config.get(key, [])[:len(want)] != want:
         errors.append("%s is %r, want it to start with %r" % (key, config.get(key), want))
 ids = config.get("filament_settings_id", [])
-if len(ids) != loaded or ids[-1] != "Bambu ABS @BBL H2D":
-    errors.append("filament_settings_id is %r, want %d entries ending with the loaded preset" % (ids, loaded))
+if len(ids) != loaded or ids[1:] != ["Bambu PLA Matte @BBL H2D"] * (loaded - 1):
+    errors.append("filament_settings_id is %r, want %d entries with the loaded preset after the project's" % (ids, loaded))
 # One entry for the process, one per loaded filament, one for the printer.
 inherits = config.get("inherits_group", [])
 if len(inherits) != loaded + 2 or inherits[-1] != expected["inherits_group"][-1]:
@@ -109,5 +134,23 @@ if len(different) != loaded + 2 or "filament_max_volumetric_speed" not in differ
 for e in errors:
     print("FAIL: " + e)
 sys.exit(1 if errors else 0)
+EOF
+
+# Only the last slot loads a preset: the empty slots between the project's filament and it have nothing to keep.
+EMPTY_SLOTS=""
+for ((i = 1; i < LOADED; i++)); do EMPTY_SLOTS="$EMPTY_SLOTS;"; done
+reject empty_slot "$WORK/old.3mf" --load-filaments "$EMPTY_SLOTS$MATTE"
+grep -qF -- "--load-filaments slot 2 is empty" "$WORK/empty_slot/log" || { echo "FAIL: empty_slot: log does not name the empty slot"; tail -n 40 "$WORK/empty_slot/log"; exit 1; }
+
+# With --load-defaultfila the same empty slots take the first loaded preset instead.
+slice default_filled "$WORK/old.3mf" --load-defaultfila --load-filaments "$EMPTY_SLOTS$MATTE"
+"$PY" - "$WORK/default_filled/out.3mf" "$LOADED" <<'EOF' || { tail -n 40 "$WORK/default_filled/log"; exit 1; }
+import json, sys, zipfile
+
+with zipfile.ZipFile(sys.argv[1]) as z:
+    config = json.loads(z.read("Metadata/project_settings.config"))
+ids = config.get("filament_settings_id", [])
+if ids != ["Bambu PLA Matte @BBL H2D"] * int(sys.argv[2]):
+    sys.exit("FAIL: filament_settings_id is %r, want every slot filled with the loaded preset" % ids)
 EOF
 echo "PASS"
