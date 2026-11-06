@@ -23,7 +23,7 @@ struct MissingPlugin
     PluginCapabilityType type{PluginCapabilityType::Unknown};
 };
 
-// Rebuild one preset type's missing-plugin set from its "plugins" manifest, comparing each ref
+// Rebuild one preset type's missing-plugin set from its plugin manifest, comparing each ref
 // against the live catalog and loaded/enabled capabilities. A null/empty manifest clears the set.
 // Only TYPE_PRINT, TYPE_PRINTER and TYPE_FILAMENT are tracked.
 void refresh_missing_plugins(Preset::Type type, const ConfigOptionStrings* manifest, const Preset* preset = nullptr);
@@ -44,6 +44,11 @@ bool                     has_inactive_plugins();
 // capability at all (renamed/removed/outdated plugin). Activation cannot fix these.
 std::vector<MissingPlugin> get_broken_plugins();
 bool                     has_broken_plugins();
+
+// True while a missing, inactive or broken reference comes from the process or filament presets.
+// Printer preset plugins (e.g. printer agents) are reported but never block slicing:
+// they do not change the sliced result.
+bool                     has_blocking_plugins();
 
 // Optional progress hook for the cloud install worker. All three callbacks fire on the worker
 // thread; implementations must only touch thread-safe state or marshal to the UI thread.
@@ -73,7 +78,7 @@ void open_missing_plugins_on_cloud(const std::vector<std::string>& local_refs);
 std::string create_full_ref(const PluginCapabilityRef& ref);
 std::string resolve_recovery_url(const PluginCapabilityRef& ref);
 
-// The capabilities `preset`'s "plugins" manifest declares AND that one of its plugin-backed options
+// The capabilities `preset`'s plugin manifest declares AND that one of its plugin-backed options
 // (ConfigOptionDef::is_plugin_backed) currently references: a manifest entry nobody points at is not
 // in use. Pure preset logic — the catalog and loader are not consulted. Empty for untracked types.
 std::vector<PluginCapabilityRef> referenced_capabilities(Preset::Type type, const Preset& preset);

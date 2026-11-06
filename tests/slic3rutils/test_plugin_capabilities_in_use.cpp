@@ -74,3 +74,25 @@ TEST_CASE("referenced_capabilities skips malformed manifest entries", "[PluginRe
 
     CHECK(capability_names(referenced_capabilities(Preset::TYPE_PRINT, preset)) == std::vector<std::string>{"CapA"});
 }
+
+TEST_CASE("A missing printer preset plugin is reported but does not block slicing", "[PluginResolver]")
+{
+    const auto clear_missing = [] {
+        for (const Preset::Type type : {Preset::TYPE_PRINT, Preset::TYPE_PRINTER, Preset::TYPE_FILAMENT})
+            refresh_missing_plugins(type, nullptr);
+    };
+    clear_missing();
+
+    Preset printer(Preset::TYPE_PRINTER, "test-printer");
+    const std::unique_ptr<DynamicPrintConfig> defaults(
+        DynamicPrintConfig::new_from_defaults_keys({"printer_agent", "printer_plugins"}));
+    printer.config = *defaults;
+    printer.config.option<ConfigOptionString>("printer_agent")->value     = "agent";
+    printer.config.option<ConfigOptionStrings>("printer_plugins")->values = {"acme;;agent"};
+    refresh_missing_plugins(Preset::TYPE_PRINTER, printer.config.option<ConfigOptionStrings>("printer_plugins"), &printer);
+
+    CHECK(has_missing_plugins());
+    CHECK_FALSE(has_blocking_plugins());
+
+    clear_missing();
+}

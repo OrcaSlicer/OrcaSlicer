@@ -21,6 +21,7 @@
 #include "slic3r/plugin/PythonPluginInterface.hpp"
 #include <utility>
 #include <vector>
+#include <wx/app.h>
 #include <wx/utils.h>
 
 #include <algorithm>
@@ -114,7 +115,7 @@ std::vector<PluginCapabilityRef> referenced_capabilities(Preset::Type type, cons
     if (!is_tracked_type(type))
         return {};
 
-    const auto* manifest = dynamic_cast<const ConfigOptionStrings*>(preset.config.option("plugins"));
+    const auto* manifest = dynamic_cast<const ConfigOptionStrings*>(preset.config.option(preset.config.plugin_manifest_key()));
     if (manifest == nullptr)
         return {};
 
@@ -201,6 +202,9 @@ std::vector<PluginCapabilityId> capabilities_in_use(Preset::Type type, const Pre
 static std::string resolve_cloud_base_url()
 {
     std::string cloud_base_url = "https://cloud.orcaslicer.com";
+    // Without the app (unit tests, headless callers) there is no agent to ask: keep the default.
+    if (wxTheApp == nullptr)
+        return cloud_base_url;
     if (auto agent = GUI::wxGetApp().getAgent()) {
         if (auto orca_agent = std::dynamic_pointer_cast<OrcaCloudServiceAgent>(agent->get_cloud_agent())) {
             if (!orca_agent->get_cloud_base_url().empty())
@@ -237,7 +241,9 @@ static std::pair<bool, bool> loaded_capability_state(const std::string& plugin_k
 
 void refresh_missing_plugins(const PresetBundle& preset_bundle)
 {
-    const auto manifest_of = [](const Preset& preset) { return dynamic_cast<const ConfigOptionStrings*>(preset.config.option("plugins")); };
+    const auto manifest_of = [](const Preset& preset) {
+        return dynamic_cast<const ConfigOptionStrings*>(preset.config.option(preset.config.plugin_manifest_key()));
+    };
     const Preset& print_preset = preset_bundle.prints.get_edited_preset();
     refresh_missing_plugins(Preset::TYPE_PRINT, manifest_of(print_preset), &print_preset);
     const Preset& printer_preset = preset_bundle.printers.get_edited_preset();
@@ -376,6 +382,16 @@ bool has_broken_plugins()
     for (const auto& [type, set] : s_broken)
         if (!set.empty())
             return true;
+    return false;
+}
+
+bool has_blocking_plugins()
+{
+    std::lock_guard<std::mutex> lock(s_missing_mutex);
+    for (const auto* sets : {&s_missing, &s_inactive, &s_broken})
+        for (const auto& [type, set] : *sets)
+            if (type != Preset::TYPE_PRINTER && !set.empty())
+                return true;
     return false;
 }
 
