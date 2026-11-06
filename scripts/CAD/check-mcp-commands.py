@@ -44,7 +44,11 @@ cmds = call("list_commands")["commands"]
 names = {c["command"]: c for c in cmds}   # tools by name, ribbon verbs as "verb:<id>"
 check("extrude" in names and names["extrude"]["kind"] == "tool", "list_commands lists the extrude tool")
 check("verb:sheet_flange" in names and names["verb:sheet_flange"]["kind"] == "verb", "list_commands lists the sheet flange verb")
-check(names["verb:sheet_flange"]["enabled"] is False and names["verb:sheet_flange"].get("reason"), "a verb that cannot run says why: %r" % names["verb:sheet_flange"].get("reason"))
+# Card-opening verbs (the "fly:" ones, sheet_flange among them) are enabled by design: choosing one opens its card and says what it still needs.
+# A verb that really refuses is a direct button: Constrain sketch needs a sketch selected.
+check("verb:constrain" in names and names["verb:constrain"]["enabled"] is False and names["verb:constrain"].get("reason"),
+      "a verb that cannot run says why: %r" % names.get("verb:constrain", {}).get("reason"))
+check(names["verb:sheet_flange"]["enabled"] is True, "a card-opening verb is enabled and opens its card")
 check(all(c["command"] != "execute" for c in cmds), "execute does not list itself")
 check(len(call("list_commands", filter="sheet")["commands"]) >= 7, "filter narrows the list")
 
