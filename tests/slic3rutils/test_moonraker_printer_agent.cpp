@@ -30,12 +30,12 @@
 #include <boost/beast/core/error.hpp>
 #include <boost/beast/core/flat_buffer.hpp>
 #include <boost/beast/core/stream_traits.hpp>
+#include <boost/beast/core/string_type.hpp>
 #include <boost/beast/http/message.hpp>
 #include <boost/beast/http/read.hpp>
 #include <boost/beast/http/status.hpp>
 #include <boost/beast/http/string_body.hpp>
 #include <boost/beast/http/write.hpp>
-#include <boost/beast/websocket/error.hpp>
 #include <boost/beast/websocket/rfc6455.hpp>
 #include <boost/beast/websocket/ssl.hpp>
 #include <boost/beast/websocket/stream.hpp>
@@ -242,13 +242,6 @@ public:
         return m_close_frames;
     }
 
-    // The printer answers a close frame before its own read completes, so the agent's stop can return first.
-    bool wait_for_close_frames(int count)
-    {
-        std::unique_lock<std::mutex> lock(m_mutex);
-        return m_changed.wait_for(lock, 10s, [&] { return m_close_frames >= count; });
-    }
-
     // The answer to the gcodes directory listing, which reports the free space in disk_usage. Null leaves disk_usage out.
     void set_gcodes_listing(nlohmann::json disk_usage)
     {
@@ -424,14 +417,17 @@ private:
         beast::flat_buffer message;
         bool reading                    = true;
         bool writing                    = false;
+        // Counted on arrival: the read completes only after the reply and the teardown, by which time the
+        // agent's stop may have returned and the test's release closed this socket, failing the read instead.
+        ws.control_callback([&](websocket::frame_type kind, beast::string_view) {
+            if (kind == websocket::frame_type::close) {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                ++m_close_frames;
+            }
+        });
         std::function<void()> read_next = [&] {
             ws.async_read(message, [&](beast::error_code ec, std::size_t) {
                 message.clear();
-                if (ec == websocket::error::closed) {
-                    std::lock_guard<std::mutex> lock(m_mutex);
-                    ++m_close_frames;
-                    m_changed.notify_all();
-                }
                 if (ec)
                     reading = false;
                 else
@@ -688,7 +684,6 @@ TEST_CASE("Stopping the status stream sends the printer a close frame", "[Moonra
     REQUIRE(f.printer.wait_for_ready_connections(1));
 
     CHECK(f.stops_within(3s));
-    CHECK(f.printer.wait_for_close_frames(1));
     CHECK(f.printer.close_frames() == 1);
 }
 
@@ -848,7 +843,7 @@ TEST_CASE("The status stream reports a printer's status over TLS", "[MoonrakerPr
 
     CHECK(reports.wait_for(1));
     CHECK(f.stops_within(3s));
-    CHECK(f.printer.wait_for_close_frames(1));
+    CHECK(f.printer.close_frames() == 1);
 }
 
 TEST_CASE("The status stream sends no heartbeat while the printer has nothing new to report", "[MoonrakerPrinterAgent][StatusStream]")
