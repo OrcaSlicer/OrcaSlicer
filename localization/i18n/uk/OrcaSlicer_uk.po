@@ -39694,6 +39694,30 @@ msgstr ""
 "Уникнення деформації\n"
 "Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як ABS, відповідне підвищення температури столу може зменшити ймовірність деформації?"
 
+# AI Translated
+#. TRN %1% is the object name; %2% lists the heights of the first unsupported islands in millimetres.
+#, boost-format
+msgid "It seems the organic supports of object %1% have parts printed with nothing under them, starting on the layers at Z (mm): %2%. Consider a filled base pattern, such as Rectilinear, instead of a hollow one."
+msgstr "Схоже, у підтримках типу «Органічні» обʼєкта %1% є ділянки, які друкуються без опори знизу, починаючи з шарів на висоті Z (мм): %2%. Спробуйте використати основний шаблон із заповненням, наприклад «Прямолінійний», замість порожнистого."
+
+# AI Translated
+msgid "Initial Layer Diameter"
+msgstr "Діаметр першого шару"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Initial Layer Diameter"
+msgid "The diameter every branch of organic supports tries to reach on the build plate. Branches widen towards it near the bed, which improves bed adhesion but takes more space on the bed. A tree widens towards it only until its base is as wide as the tree is tall. A value not larger than the branch diameter turns this widening off. For small models, 2 to 3 mm is recommended."
+msgstr "Діаметр, якого кожна гілка органічних підтримок намагається досягти на столі. Поблизу столу гілки розширюються, наближаючись до цього діаметра, що покращує зчеплення зі столом, але потребує більше місця на ньому. Деревоподібна підтримка розширюється таким чином лише доти, доки ширина її основи не зрівняється з її висотою. Значення, що не перевищує діаметр гілки, вимикає це розширення. Для невеликих моделей рекомендовано 2–3 мм."
+
+# AI Translated
+msgid "Trunk Diameter"
+msgstr "Діаметр стовбура"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Trunk Diameter"
+msgid "The diameter of the widest branches of organic supports, their bases on the build plate included. A thicker trunk is sturdier, a thinner trunk takes up less space on the bed. A value smaller than the branch diameter keeps every branch at the branch diameter. 0 means no limit."
+msgstr "Діаметр найтовстіших гілок органічних підтримок, включно з їхніми основами на столі. Товстіший стовбур міцніший, тонший займає менше місця на столі. Якщо значення менше за діаметр гілки, усі гілки зберігають цей діаметр. 0 означає відсутність обмеження."
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "Показувати параметри під час імпортування файлу STEP"
 
