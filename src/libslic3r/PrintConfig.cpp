@@ -4401,7 +4401,7 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
-    
+
     def = this->add("gap_infill_speed", coFloats);
     def->label = L("Gap infill");
     def->category = L("Speed");
@@ -4469,6 +4469,15 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Enable"));
     def->enum_labels.push_back(L("Disable"));
     def->set_default_value(new ConfigOptionEnum<PowerLossRecoveryMode>(PowerLossRecoveryMode::PrinterConfiguration));
+
+    def = this->add("initial_z_clearance_height", coFloat);
+    def->label = L("Height");
+    def->tooltip = L("Lift Z before initial travel moves to avoid nozzle collisions. Set to 0 to disable.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->max = 10;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
 
     //BBS
     // def = this->add("spaghetti_detector", coBool);
