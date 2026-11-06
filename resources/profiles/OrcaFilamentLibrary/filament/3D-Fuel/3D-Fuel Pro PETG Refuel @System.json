@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "3D-Fuel Pro PETG Refuel @System",
+	"inherits": "3D-Fuel Pro PETG Refuel @base",
+	"from": "system",
+	"setting_id": "JrMhjLnGzmvVzhQ4",
+	"instantiation": "true",
+	"compatible_printers": []
+}

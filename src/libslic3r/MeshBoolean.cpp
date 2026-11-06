@@ -271,6 +271,10 @@ triangle_mesh_to_cgal(const std::vector<stl_vertex> &V,
 {
     std::unique_ptr<CGALMesh, CGALMeshDeleter> out(new CGALMesh{});
     triangle_mesh_to_cgal(V, F, out->m);
+    // CGAL's volume predicate dereferences an incident halfedge for every vertex.
+    // Remove isolated vertices and compact their indices for conversion back to an ITS.
+    if (CGALProc::remove_isolated_vertices(out->m) != 0)
+        out->m.collect_garbage();
     return out;
 }
 

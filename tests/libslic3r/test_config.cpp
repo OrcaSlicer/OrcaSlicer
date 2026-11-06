@@ -1579,6 +1579,16 @@ TEST_CASE("handle_legacy migrates the adaptive TPMS keys", "[Config]") {
     CHECK(ctxt.substitutions.empty());
 }
 
+TEST_CASE("normalize_fdm leaves feature filaments on Default", "[Config]") {
+    DynamicPrintConfig config;
+    config.set_key_value("sparse_infill_filament_id", new ConfigOptionInt(2));
+    config.set_key_value("internal_solid_filament_id", new ConfigOptionInt(0));
+    config.set_key_value("top_surface_filament_id", new ConfigOptionInt(3));
+    config.normalize_fdm();
+    CHECK(config.opt_int("internal_solid_filament_id") == 0);
+    CHECK_FALSE(config.has("bottom_surface_filament_id"));
+}
+
 TEST_CASE("silent_mode is no longer saved and is dropped on load", "[Config]") {
     DynamicPrintConfig full;
     full.apply(FullPrintConfig::defaults());

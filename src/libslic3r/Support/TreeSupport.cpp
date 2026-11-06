@@ -1810,6 +1810,7 @@ void TreeSupport::generate_toolpaths()
                                 // separate plates with nothing tying them together, and a tall support folds over.
                                 // 0 allows infill-only mode if support is thick enough, as auto did before.
                                 // Don't need extra walls if we have infill. Extra walls may overlap with the infills.
+                                // The shrink test runs only for 0, since any other value gives at least one wall.
                                 size_t min_wall_count = wall_count_config == 0 && !offset(poly, -scale_(support_spacing * 1.5)).empty() ? 0 : 1;
                                 make_perimeter_and_infill(base_dst, poly, std::max(min_wall_count, wall_count), flow,
                                     erSupportMaterial, filler_support.get(), support_density, false);
@@ -3360,7 +3361,7 @@ void TreeSupport::drop_nodes()
                     return; // from parallel_for_each lambda
                 }
                 const ExPolygons& next_collision = get_collision(0, obj_layer_nr_next);
-                const bool   to_buildplate  = !is_inside_ex(m_ts_data->m_layer_outlines[obj_layer_nr_next], next_layer_vertex);
+                const bool to_buildplate = !is_inside_ex(next_collision, next_layer_vertex);
                 // don't increase radius if next node will collide partially with the object (STUDIO-7883)
                 to_outside             = projection_onto(next_collision, next_layer_vertex);
                 direction_to_outer     = to_outside - node.position;
