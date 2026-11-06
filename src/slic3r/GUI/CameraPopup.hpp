@@ -50,9 +50,9 @@ public:
     void check_func_supported(MachineObject* obj);
     void update(bool vcamera_streaming);
 
-    // Every agent camera mode other than none plays through the Device tab's WebView, the
-    // view the custom source takes over; mode none is the Bambu native stream in its own
-    // control, so the source is only offered there.
+    // The custom view hides the Device tab's media control and play bar, which every agent
+    // camera mode plays through (snapshot mode via the same WebView), and the feature was only
+    // ever used against the Bambu native stream, so it is offered in mode none only.
     static bool custom_source_supported();
     // The URL to show, normalised; empty when the source is disabled, blank or unsupported.
     static std::string custom_source_url();

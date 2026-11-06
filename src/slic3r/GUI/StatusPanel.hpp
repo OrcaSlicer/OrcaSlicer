@@ -641,14 +641,14 @@ public:
     void           show_ams_group(bool show = true);
     void show_filament_load_group(bool show = true);
     MediaPlayCtrl* get_media_play_ctrl() {return m_media_play_ctrl;};
-    void apply_custom_camera_source(bool enabled);
-    void sync_custom_camera_source(bool enabled);
+    void apply_custom_camera_source(const std::string& url);
+    void sync_custom_camera_source(const std::string& url);
 
     void jump_to_Rack();
 
 private:
     void on_ams_rack_switch(wxCommandEvent& event);
-    void show_custom_camera(bool show);
+    void show_custom_camera(const std::string& url);
     void on_camera_switch_toggled(wxMouseEvent& event);
 };
 
