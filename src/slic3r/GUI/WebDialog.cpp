@@ -28,7 +28,8 @@ WebDialog::WebDialog(wxWindow*          parent,
                      SubmitHandler      on_submit,
                      CloseHandler       on_close,
                      CloseHandler       on_destroyed,
-                     long               wx_style)
+                     long               wx_style,
+                     const wxString&    profile)
     : WebViewHostDialog(parent, wxID_ANY, title, wxDefaultPosition, size, wx_style)
     , m_html(html)
     , m_on_message(std::move(on_message))
@@ -38,7 +39,7 @@ WebDialog::WebDialog(wxWindow*          parent,
 {
     // A tiny bundled bootstrap page brings the webview up; the real plugin HTML
     // is swapped in via SetPage once the bootstrap finishes loading.
-    create_webview(web_hosting::BOOTSTRAP_PAGE, title, size, wxSize(320, 240));
+    create_webview(web_hosting::BOOTSTRAP_PAGE, title, size, wxSize(320, 240), profile);
 
     // Paint the window/webview in the themed background so there is no white
     // flash before the (transparent) bootstrap page and plugin HTML render.

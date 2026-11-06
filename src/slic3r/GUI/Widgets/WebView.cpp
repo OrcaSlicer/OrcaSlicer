@@ -3,6 +3,8 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/Utils/MacDarkMode.hpp"
 
+#include <libslic3r/Utils.hpp>
+
 #include <algorithm>
 #include <boost/log/trivial.hpp>
 
@@ -10,8 +12,10 @@
 #include <chrono>
 #include <cstddef>
 #include <exception>
+#include <map>
 #include <thread>
 
+#include <wx/chartype.h>
 #include <wx/setup.h>
 #include <wx/webview.h>
 #include <wx/string.h>
@@ -81,6 +85,50 @@ webkit_get_minor_version                     (void);
 }
 #endif
 
+// Private storage root for an isolated (plugin) profile. Plugin pages must not reach the shared
+// default store's cookies/session (e.g. the OrcaCloud login), so each profile gets its own dir,
+// shared by every view of that profile. macOS isolates with an in-memory store instead (see
+// CreateWebView), so this is unused there.
+#if !defined(__WXOSX__)
+static wxString isolated_profile_path(const wxString& profile)
+{
+    wxString safe;
+    safe.reserve(profile.size());
+    for (wxString::const_iterator it = profile.begin(); it != profile.end(); ++it) {
+        const wxChar c = *it;
+        const bool keep = (c >= wxT('a') && c <= wxT('z')) || (c >= wxT('A') && c <= wxT('Z')) ||
+                          (c >= wxT('0') && c <= wxT('9')) || c == wxT('.') || c == wxT('-') || c == wxT('_');
+        safe += keep ? c : wxT('_');
+    }
+    if (safe.empty())
+        safe = wxT("default");
+    return wxString::FromUTF8((boost::filesystem::path(Slic3r::data_dir()) / "web_profiles" / safe.ToStdString()).string());
+}
+
+// A profile's backend state - the cookie jar, storage and the live session - belongs to the object
+// wx builds from a wxWebViewConfiguration: the WebView2 environment on Windows, the
+// WebKitWebContext on Linux. One configuration per profile is therefore what lets two views of the
+// same plugin see each other's login; a configuration per view would share only the directory on
+// disk, not the session in memory.
+static const wxWebViewConfiguration& profile_configuration(const wxString& profile)
+{
+    static std::map<wxString, wxWebViewConfiguration> configs;
+
+    const auto existing = configs.find(profile);
+    if (existing != configs.end())
+        return existing->second;
+
+#if defined(__WIN32__)
+    wxWebViewConfiguration config = wxWebView::NewConfiguration(wxWebViewBackendEdge);
+#else
+    wxWebViewConfiguration config = wxWebView::NewConfiguration(wxWebViewBackendWebKit);
+#endif
+    // Has to precede the first view, i.e. the environment/context built from the configuration.
+    config.SetDataPath(isolated_profile_path(profile));
+    return configs.emplace(profile, config).first->second;
+}
+#endif // !__WXOSX__
+
 #ifdef __WIN32__
 // Run Download and Install in another thread so we don't block the UI thread
 DWORD DownloadAndInstallWV2RT() {
@@ -144,6 +192,9 @@ DWORD DownloadAndInstallWV2RT() {
 class WebViewEdge : public wxWebViewEdge
 {
 public:
+    WebViewEdge() = default;
+    explicit WebViewEdge(const wxWebViewConfiguration& config) : wxWebViewEdge(config) {}
+
     bool SetUserAgent(const wxString &userAgent) override
     {
         bool dark = userAgent.Contains("dark");
@@ -219,6 +270,11 @@ class WebViewWebKit : public wxWebViewWebKit
 public:
     WebViewWebKit()
         : wxWebViewWebKit(wxWebView::NewConfiguration(wxWebViewBackendWebKit))
+    {
+    }
+
+    explicit WebViewWebKit(const wxWebViewConfiguration& config)
+        : wxWebViewWebKit(config)
     {
     }
 
@@ -310,7 +366,7 @@ static wxString linux_user_agent()
 }
 #endif
 
-wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
+wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url, wxString const & profile)
 {
 #if wxUSE_WEBVIEW_EDGE
     // Check if a fixed version of edge is present in
@@ -330,12 +386,38 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
     if (!url2.empty()) { url2 = wxURI(url2).BuildURI(); }
     BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << ": " << url2.ToUTF8();
 
+    const bool isolated = !profile.IsEmpty();
+
 #ifdef __WIN32__
-    wxWebView* webView = new WebViewEdge;
+    wxWebView* webView = nullptr;
+    if (isolated) {
+        // Reusing the configuration reuses its WebView2 environment, so every view of a profile
+        // belongs to the same browser profile and a login in one view is visible in another.
+        webView = new WebViewEdge(profile_configuration(profile));
+    } else {
+        webView = new WebViewEdge;
+    }
 #elif defined(__WXOSX__)
-    wxWebView* webView = new WebViewWebKit;
+    wxWebView* webView = nullptr;
+    if (isolated) {
+        // wx has no SetDataPath on macOS, and WKWebView copies the configuration for each view
+        // (wx's "wx" script message handler lives on that per-view copy), so the views keep one
+        // configuration each and share a session through the profile's in-memory data store.
+        wxWebViewConfiguration config = wxWebView::NewConfiguration(wxWebViewBackendWebKit);
+        Slic3r::GUI::WKWebViewConfiguration_setSharedNonPersistentDataStore(config.GetNativeConfiguration(), profile);
+        webView = new WebViewWebKit(config);
+    } else {
+        webView = new WebViewWebKit;
+    }
 #else
-    auto webView = wxWebView::New();
+    wxWebView* webView = nullptr;
+    if (isolated) {
+        // Reusing the configuration reuses its WebKitWebContext, so every view of a profile shares
+        // the same cookies, storage and live session.
+        webView = wxWebView::New(profile_configuration(profile));
+    } else {
+        webView = wxWebView::New();
+    }
 #endif
     if (webView) {
         webView->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
@@ -353,14 +435,25 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
         webView->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewFSHandler("memory")));
 #else
         // With WKWebView handlers need to be registered before creation.
-        // On Linux (WebKit2GTK), URI schemes are registered globally and can only
-        // be registered once, so guard against multiple registrations.
+#ifdef __linux__
+        // WebKitGTK registers a URI scheme on a WebKitWebContext, once per context, and wx answers
+        // a request through the view whose RegisterHandler() registered it. A view of the shared
+        // store has a context of its own, so it registers here. The views of a profile share one
+        // context, but registering from one of them would make every other view depend on that
+        // view's lifetime and would give untrusted plugin pages the local-file access of "wxfs";
+        // plugin pages load their own document only, so their context registers no scheme.
+        if (!isolated) {
+            webView->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewArchiveHandler("wxfs")));
+            webView->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewFSHandler("memory")));
+        }
+#else
         static bool s_schemes_registered = false;
         if (!s_schemes_registered) {
             webView->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewArchiveHandler("wxfs")));
             webView->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewFSHandler("memory")));
             s_schemes_registered = true;
         }
+#endif
         webView->Create(parent, wxID_ANY, url2, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
 #ifdef __linux__
         webView->SetUserAgent(linux_user_agent());

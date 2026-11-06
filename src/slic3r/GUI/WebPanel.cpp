@@ -18,7 +18,7 @@
 
 namespace Slic3r { namespace GUI {
 
-WebPanel::WebPanel(wxWindow* parent, const char* bridge_script)
+WebPanel::WebPanel(wxWindow* parent, const char* bridge_script, const wxString& profile)
     : wxPanel(parent, wxID_ANY)
 {
     SetBackgroundColour(wxGetApp().get_window_default_clr());
@@ -26,7 +26,7 @@ WebPanel::WebPanel(wxWindow* parent, const char* bridge_script)
     SetSizer(sizer);
 
     // Never null: WebView::CreateWebView substitutes a placeholder view when no backend is available.
-    m_browser = WebView::CreateWebView(this, web_hosting::bootstrap_url());
+    m_browser = WebView::CreateWebView(this, web_hosting::bootstrap_url(), profile);
     m_browser->SetBackgroundColour(GetBackgroundColour());
     m_browser->AddUserScript(wxString::FromUTF8(WebViewHostDialog::theme_user_script()));
     m_browser->AddUserScript(wxString::FromUTF8(WebViewHostDialog::element_defaults_user_script()));
