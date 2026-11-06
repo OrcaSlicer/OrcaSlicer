@@ -5351,6 +5351,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("small_area_infill_flow_compensation_model", coStrings);
+    def->gui_type = ConfigOptionDef::GUIType::curve;
     def->label = L("Flow Compensation Model");
     def->tooltip = L(
         "Flow Compensation Model, used to adjust the flow for small infill "
