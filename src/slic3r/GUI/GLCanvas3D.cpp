@@ -2604,6 +2604,11 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
     camera.apply_projection(_max_bounding_box(true, true, true));
 
+    if (m_section_view->follow_camera && is_section_view_active() && m_section_view->normal != -camera.get_dir_forward()) {
+        align_section_view_to_camera();
+        scene_dirty = true;
+    }
+
     const ImGuiID active_id = ImGui::GetActiveID();
     wxGetApp().imgui()->new_frame();
 
@@ -11451,7 +11456,13 @@ void GLCanvas3D::_render_section_view_panel(const ImVec2& bottom_left)
         set_section_view_ratio(percent / 100.);
 
     ImGui::SameLine();
+    imgui.disabled_begin(m_section_view->follow_camera);
     if (imgui.button(_L("Set viewing angle")))
+        align_section_view_to_camera();
+    imgui.disabled_end();
+
+    ImGui::SameLine();
+    if (imgui.bbl_checkbox(_L("Follow camera"), m_section_view->follow_camera))
         align_section_view_to_camera();
 
     imgui.disabled_begin(!is_section_view_active());
