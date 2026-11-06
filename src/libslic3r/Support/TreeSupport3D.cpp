@@ -33,6 +33,7 @@
 #include "libslic3r/Support/SupportLayer.hpp"
 #include "SupportCommon.hpp"
 #include "libslic3r/Surface.hpp"
+#include "TriangleMesh.hpp"
 #include "TriangleMeshSlicer.hpp"
 #include "TreeSupport.hpp"
 #include "I18N.hpp"
@@ -2989,8 +2990,9 @@ static std::pair<int, int> discretize_circle(const Vec3f &center, const Vec3f &n
     return { begin, int(pts.size()) };
 }
 
-// Returns Z span of the generated mesh.
-static std::pair<float, float> extrude_branch(
+// One closed tube along a continuous path: a bottom half sphere, the section circles on the bisector planes joined by
+// zig-zag strips, and a top half sphere. Returns Z span of the generated mesh.
+static std::pair<float, float> extrude_branch_tube(
     const std::vector<const SupportElement*>&path,
     const TreeSupportSettings               &config,
     const SlicingParameters                 &slicing_params,
@@ -3086,18 +3088,93 @@ static std::pair<float, float> extrude_branch(
 //            sprintf(fname, "d:\\temp\\meshes\\tree-partial-%d.obj", ++irun);
 //            its_write_obj(result, fname);
         }
-#if 0
-        if (circles_intersect(p1, nprev, support_element_radius(settings, prev), p2, ncurrent, support_element_radius(settings, current))) {
-            // Cannot connect previous and current slice using a simple zig-zag triangulation,
-            // because the two circles intersect.
-
-        } else {
-            // Continue with chaining.
-
-        }
-#endif
     }
 
+    return std::make_pair(zmin, zmax);
+}
+
+// Whether two section discs, each of a centre, a normal and a radius, intersect: each crosses the plane of the other and
+// their chords on the line the two planes meet along overlap. Discs of nearly parallel normals stack, as along a straight
+// tube. As in BambuStudio.
+static bool section_circles_intersect(const Vec3d &p1, const Vec3d &n1, const double r1, const Vec3d &p2, const Vec3d &n2, const double r2)
+{
+    const double cos_tilt = std::clamp(n1.dot(n2), -1., 1.);
+    const double sin_tilt = std::sqrt(std::max(0., 1. - cos_tilt * cos_tilt));
+    if (sin_tilt < 1e-4)
+        return false;
+    // The signed distance of each centre from the plane of the other disc, which a disc reaches as far as r sin_tilt.
+    const Vec3d  delta = p1 - p2;
+    const double dist1 = n2.dot(delta);
+    const double dist2 = n1.dot(delta);
+    if (std::abs(dist1) > r1 * sin_tilt || std::abs(dist2) > r2 * sin_tilt)
+        return false;
+    // The half lengths of the chords on the line the planes meet along, n1 x n2 of length sin_tilt, and the distance
+    // between their middles.
+    const double axial = std::abs(n1.cross(n2).dot(delta)) / sin_tilt;
+    const double h1    = std::sqrt(std::max(0., r1 * r1 - sqr(dist1 / sin_tilt)));
+    const double h2    = std::sqrt(std::max(0., r2 * r2 - sqr(dist2 / sin_tilt)));
+    return axial <= h1 + h2;
+}
+
+// The tube of a branch. Where two consecutive section circles intersect, at a sharp bend of a thick branch, the zig-zag
+// strip between them folds over itself and the slices lose its area, leaving a gap: the path is split there, each such
+// edge a closed capsule of its own between the runs on either side. The capsules overlap the runs at the nodes they
+// share, as two branches overlap where they meet, which the clipping of the slices merges. Returns Z span of the
+// generated mesh. As in BambuStudio.
+static std::pair<float, float> extrude_branch(
+    const std::vector<const SupportElement*>&path,
+    const TreeSupportSettings               &config,
+    const SlicingParameters                 &slicing_params,
+    const std::vector<SupportElements>      &move_bounds,
+    bool                                     has_root,
+    indexed_triangle_set                    &result)
+{
+    const size_t n = path.size();
+    if (n < 3)
+        return extrude_branch_tube(path, config, slicing_params, move_bounds, has_root, result);
+    // The section circle of each node: on the bisector plane in the middle of the path, as extrude_branch_tube() lays
+    // them, and across the path at its ends.
+    std::vector<Vec3d>  position(n), normal(n);
+    std::vector<double> radius(n);
+    for (size_t i = 0; i < n; ++ i) {
+        position[i] = to_3d(unscaled<double>(path[i]->state.result_on_layer), layer_z(slicing_params, config, path[i]->state.layer_idx));
+        radius[i]   = unscaled<double>(support_element_radius(config, *path[i]));
+    }
+    normal.front() = (position[1] - position[0]).normalized();
+    normal.back()  = (position[n - 1] - position[n - 2]).normalized();
+    for (size_t i = 1; i + 1 < n; ++ i)
+        normal[i] = ((position[i] - position[i - 1]).normalized() + (position[i + 1] - position[i]).normalized()).normalized();
+    std::vector<char> folds(n - 1, 0);
+    bool              any = false;
+    for (size_t k = 0; k + 1 < n; ++ k)
+        if (section_circles_intersect(position[k], normal[k], radius[k], position[k + 1], normal[k + 1], radius[k + 1]))
+            folds[k] = any = true;
+    if (! any)
+        return extrude_branch_tube(path, config, slicing_params, move_bounds, has_root, result);
+
+    float                              zmin = std::numeric_limits<float>::max();
+    float                              zmax = std::numeric_limits<float>::lowest();
+    std::vector<const SupportElement*> piece;
+    indexed_triangle_set               mesh;
+    // The piece of the path from node begin to node end; only the first one may stand on the bed.
+    auto extrude = [&](size_t begin, size_t end) {
+        piece.assign(path.begin() + begin, path.begin() + end + 1);
+        mesh.clear();
+        const std::pair<float, float> span = extrude_branch_tube(piece, config, slicing_params, move_bounds, has_root && begin == 0, mesh);
+        zmin = std::min(zmin, span.first);
+        zmax = std::max(zmax, span.second);
+        its_merge(result, mesh);
+    };
+    size_t run = 0;
+    for (size_t k = 0; k + 1 < n; ++ k)
+        if (folds[k]) {
+            if (run < k)
+                extrude(run, k);
+            extrude(k, k + 1);
+            run = k + 1;
+        }
+    if (run < n - 1)
+        extrude(run, n - 1);
     return std::make_pair(zmin, zmax);
 }
 
@@ -3994,12 +4071,17 @@ void organic_draw_branches(
                     // Triangulate the tube.
                     partial_mesh.clear();
                     std::pair<float, float> zspan = extrude_branch(branch.path, config, slicing_params, move_bounds, branch.has_root, partial_mesh);
-                    LayerIndex layer_begin = branch.has_root ?
-                        branch.path.front()->state.layer_idx : 
-                        std::min(branch.path.front()->state.layer_idx, layer_idx_ceil(slicing_params, config, zspan.first));
-                    LayerIndex layer_end   = (branch.has_tip ?
+                    // The round end of a branch may reach past the layers of the support, whose collisions are not
+                    // precalculated: getCollision() would calculate one, growing the cache of the collisions that other
+                    // trees drawn in parallel hold references into. As in BambuStudio.
+                    LayerIndex layer_begin = std::max(LayerIndex(0), branch.has_root ?
+                        branch.path.front()->state.layer_idx :
+                        std::min(branch.path.front()->state.layer_idx, layer_idx_ceil(slicing_params, config, zspan.first)));
+                    LayerIndex layer_end   = std::min(LayerIndex(move_bounds.size()), (branch.has_tip ?
                         branch.path.back()->state.layer_idx :
-                        std::max(branch.path.back()->state.layer_idx, layer_idx_floor(slicing_params, config, zspan.second))) + 1;
+                        std::max(branch.path.back()->state.layer_idx, layer_idx_floor(slicing_params, config, zspan.second))) + 1);
+                    if (layer_begin >= layer_end)
+                        continue;
                     slice_z.clear();
                     for (LayerIndex layer_idx = layer_begin; layer_idx < layer_end; ++ layer_idx) {
                         const double print_z  = layer_z(slicing_params, config, layer_idx);
