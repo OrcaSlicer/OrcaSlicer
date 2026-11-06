@@ -1405,6 +1405,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,              tree_support_branch_distance_organic))
     ((ConfigOptionPercent,            tree_support_top_rate))
     ((ConfigOptionFloat,              tree_support_branch_diameter_organic))
+    ((ConfigOptionFloat,              tree_support_initial_layer_diameter))
+    ((ConfigOptionFloat,              tree_support_trunk_diameter))
     ((ConfigOptionFloat,              tree_support_branch_angle_organic))
     ((ConfigOptionEnum<GapFillTarget>,gap_fill_target))
     ((ConfigOptionFloat,              min_length_factor))
