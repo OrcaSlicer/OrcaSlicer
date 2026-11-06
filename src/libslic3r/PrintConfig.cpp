@@ -7896,7 +7896,8 @@ void PrintConfigDef::init_fff_params()
                      "if dense interfaces are needed.");
     def->sidetext = "%";
     def->min = 5;
-    def->max_literal = 35;
+    // Above 100 % the tips would stand closer than their diameter.
+    def->max = 100;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionPercent(30));
     
@@ -7964,8 +7965,9 @@ void PrintConfigDef::init_fff_params()
     // TRN PrintSettings: "Organic supports" > "Initial Layer Diameter"
     def->tooltip = L("The diameter every branch of organic supports tries to reach on the build plate. "
                      "Branches widen towards it near the bed, which improves bed adhesion but takes more space on the bed. "
-                     "The base of a tree is no wider than the tree is tall. "
-                     "A value not larger than the branch diameter turns this widening off.");
+                     "A tree widens towards it only until its base is as wide as the tree is tall. "
+                     "A value not larger than the branch diameter turns this widening off. "
+                     "For small models, 2 to 3 mm is recommended.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->max = 20;
@@ -9868,6 +9870,9 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         value = "hollow";
     } else if (opt_key == "tree_support_wall_count" && value == "-1") {
         value = "0";
+    } else if (opt_key == "tree_support_top_rate" && string_to_double_decimal_point(value) > 100.) {
+        // Older projects and presets may hold a Branch Density above the limit of 100 %.
+        value = "100%";
     } else if (opt_key == "different_settings_to_system") {
         std::string copy_value = value;
         copy_value.erase(std::remove(copy_value.begin(), copy_value.end(), '\"'), copy_value.end()); // remove '"' in string

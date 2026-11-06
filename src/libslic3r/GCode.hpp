@@ -52,6 +52,7 @@
 #include "BoundingBox.hpp"
 #include "Polyline.hpp"
 #include "BeltBrim.hpp"
+#include "Support/OrganicToolpaths.hpp"
 
 namespace Slic3r { class ExtrusionEntityCollection; }
 
@@ -836,6 +837,7 @@ protected:
     // Current layer processed. In sequential printing mode, only a single copy will be printed.
     // In non-sequential mode, all its copies will be printed.
     const Layer*                        m_layer;
+    std::unique_ptr<OrganicScarfFooting> m_organic_scarf_footing;
     // m_layer is an object layer and it is being printed over raft surface.
     bool                                m_object_layer_over_raft;
     //double                              m_volumetric_speed;

@@ -45,6 +45,7 @@ add_executable(${_TEST_NAME}_tests
     test_elephant_foot_compensation.cpp
     test_exclusion_volumes.cpp
     test_fill_corner_smoothing.cpp
+    test_tree_support.cpp
     test_filament_mixer.cpp
     test_fill_plane_path.cpp
     test_adaptive_infill_field.cpp

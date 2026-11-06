@@ -145,6 +145,7 @@ using namespace std::literals::string_view_literals;
 #include "Extruder.hpp"
 #include "ExtrusionEntityCollection.hpp"
 #include "FilamentMixer.hpp"
+#include "Support/OrganicToolpaths.hpp"
 #include "Format/STEP.hpp"
 #include "Model.hpp"
 #include "MultiNozzleUtils.hpp"
@@ -3027,6 +3028,8 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     m_processor.result().nozzle_group_result = m_print->get_layered_nozzle_group_result();
 
     m_processor.finalize(true);
+    if (m_organic_scarf_footing)
+        m_organic_scarf_footing->update_warnings();
     if (m_processor.get_result().exclusion_volume_path_conflict) {
         const int extruder_id = m_processor.get_result().exclusion_volume_conflict_extruder_id;
         std::string warning = extruder_id >= 0 ?
@@ -3399,6 +3402,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     PROFILE_FUNC();
 
     m_print = &print;
+    m_organic_scarf_footing = std::make_unique<OrganicScarfFooting>(print);
+    if (m_organic_scarf_footing->empty())
+        m_organic_scarf_footing.reset();
     m_timelapse_pos_picker.init(&print,m_writer.get_xy_offset().cast<coord_t>());
     {
         // Runs the costly per-layer snapshot picker only for a template that names its results.
@@ -3635,7 +3641,17 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             throw Slic3r::SlicingError(_(L("No object can be printed. It may be too small.")));
         // We don't allow switching of extruders per layer by Model::custom_gcode_per_print_z in sequential mode.
         // Use the extruder IDs collected from Regions.
-        this->set_extruders(print.extruders());
+        auto writer_filaments = print.extruders();
+        if (std::any_of(print.objects().begin(), print.objects().end(),
+                [](const PrintObject *object) { return organic_support_needs_final_check(*object); })) {
+            // Organic's resolved footing check requires the same physical components in the writer.
+            // A virtual slot in this inventory can otherwise alias a missing component in Release.
+            // TODO: a temporary limit to Organic. Any sequential print with a mixed filament can miss a component
+            // here, whatever its support; expand them for every support type once each is tested with it.
+            writer_filaments = expand_mixed_filaments(writer_filaments, print.config().filament_is_mixed.values,
+                print.config().filament_mixed_components.values);
+        }
+        this->set_extruders(writer_filaments);
 
         has_wipe_tower = print.has_wipe_tower() && tool_ordering.has_wipe_tower();
     } else {
@@ -9539,6 +9555,9 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
     // _mm3_per_mm already includes the filament flow ratio, so convert it with the bare cross-section
     // rather than e_per_mm3(), which would apply the ratio a second time.
     double e_per_mm = _mm3_per_mm / m_writer.filament()->filament_crossection();
+    if (m_organic_scarf_footing && m_layer != nullptr && dynamic_cast<const SupportLayer*>(m_layer) == nullptr)
+        m_organic_scarf_footing->record(*m_layer, Point::new_scale(m_origin.x(), m_origin.y()), path,
+            m_nominal_z - m_config.z_offset.value, e_per_mm > 0. && !path.is_force_no_extrusion());
 
     // set speed
     if (speed == -1) {
