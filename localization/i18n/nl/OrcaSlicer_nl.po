@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:06-0600\n"
+"POT-Creation-Date: 2026-11-06 11:31-0600\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3585,8 +3585,8 @@ msgid "Simplify Model"
 msgstr "Model vereenvoudigen"
 
 # AI Translated
-msgid "Subdivision mesh"
-msgstr "Mesh onderverdelen"
+msgid "Subdivision mesh (Lost color)"
+msgstr "Onderverdelingsmesh (Kleur verloren)"
 
 msgid "Center"
 msgstr "Centreren"
@@ -3828,12 +3828,12 @@ msgstr "Het is niet toegestaand om het laaste vaste deel te verwijderen."
 msgid "Delete part"
 msgstr "Onderdeel verwijderen"
 
-msgid "Split to parts"
-msgstr "Opsplitsten in delen"
-
 # AI Translated
 msgid "The target object contains only one part and can not be split."
 msgstr "Het doelobject bevat slechts één onderdeel en kan niet worden gesplitst."
+
+msgid "Split to parts"
+msgstr "Opsplitsten in delen"
 
 msgid "Assembly"
 msgstr "Montage"
@@ -9682,10 +9682,6 @@ msgstr "Nieuwe netwerk plug-in beschikbaar."
 msgid "Details"
 msgstr "Détails"
 
-# AI Translated
-msgid "Updates are available for your OrcaCloud plugins."
-msgstr "Er zijn updates beschikbaar voor uw OrcaCloud-plug-ins."
-
 msgid "New printer config available."
 msgstr "Nieuwe printerconfiguratie beschikbaar."
 
@@ -10541,6 +10537,10 @@ msgstr "De type- en kleurinformatie van het filament is gesynchroniseerd, maar d
 msgid "Do you want to save changes to \"%1%\"?"
 msgstr "Wilt u de wijzigingen opslaan in \"%1%\"?"
 
+# AI Translated
+msgid "UV Editor"
+msgstr "UV-editor"
+
 #, c-format, boost-format
 msgid "Successfully unmounted. The device %s (%s) can now be safely removed from the computer."
 msgstr "Succesvol ontkoppeld. Het apparaat %s(%s) kan nu veilig van de computer worden verwijderd."
@@ -10580,17 +10580,6 @@ msgstr "Zijbalk inklappen"
 #, c-format, boost-format
 msgid "Loading file: %s"
 msgstr "Bestand laden: %s"
-
-# AI Translated
-msgid "Some imported objects contain modifiers or parts with individual settings. They are shown as assemblies so that these settings remain visible."
-msgstr "Sommige geïmporteerde objecten bevatten aanpassers of onderdelen met eigen instellingen. Ze worden als samenstellingen weergegeven, zodat deze instellingen zichtbaar blijven."
-
-# AI Translated
-msgid "Geometry import"
-msgstr "Geometrie-import"
-
-msgid "The file does not contain any geometry data."
-msgstr "Het bestand bevat geen geometriegegevens."
 
 msgid "Load 3MF"
 msgstr "Laad 3MF"
@@ -10741,6 +10730,9 @@ msgstr "Wilt u de printerinformatie synchroniseren en automatisch van voorinstel
 # AI Translated
 msgid "This project contains a model made in the Design tab and no other geometry. Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; it is kept when the project is saved."
 msgstr "Dit project bevat een model dat in het tabblad Ontwerp is gemaakt en geen andere geometrie. Schakel \"CAD-functie (experimenteel)\" in bij Voorkeuren en start opnieuw om het te bekijken en te bewerken; het blijft behouden wanneer het project wordt opgeslagen."
+
+msgid "The file does not contain any geometry data."
+msgstr "Het bestand bevat geen geometriegegevens."
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "Uw object lijkt te groot. Wilt u het verkleinen zodat het automatisch op het printbed past?"
@@ -10955,10 +10947,6 @@ msgid ""
 msgstr ""
 "De volgende aandachtspunten voor de IDEX/IQEX-parallelle modus zijn gedetecteerd:\n"
 "\n"
-
-# AI Translated
-msgid "UV Editor"
-msgstr "UV-editor"
 
 # AI Translated
 msgid "Network plug-in switched successfully."
@@ -11688,57 +11676,13 @@ msgstr "Renderen op de discrete GPU"
 msgid "On a computer with two GPUs, run OrcaSlicer on the discrete GPU instead of the one that drives the display. Some Wayland systems cannot show frames rendered on the other GPU, or fail to open the window at all. Turn this off if the 3D view stays empty; if OrcaSlicer no longer starts, start it once with DRI_PRIME=0 in the environment to get back here."
 msgstr "Laat OrcaSlicer op een computer met twee GPU's draaien op de discrete GPU in plaats van op de GPU die het beeldscherm aanstuurt. Sommige Wayland-systemen kunnen beelden die op de andere GPU zijn gerenderd niet weergeven, of openen het venster helemaal niet. Schakel dit uit als de 3D-weergave leeg blijft; start OrcaSlicer, als het niet meer opstart, eenmaal met DRI_PRIME=0 in de omgeving om hier terug te komen."
 
-msgid "Features"
-msgstr "Functies"
-
-msgid "Multi device management"
-msgstr "Beheer van meerdere apparaten"
+# AI Translated
+msgid "Downloads folder"
+msgstr "Downloadmap"
 
 # AI Translated
-msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
-msgstr "Met deze optie ingeschakeld kunt u een taak tegelijkertijd naar meerdere apparaten sturen en meerdere apparaten beheren."
-
-# AI Translated
-msgid "CAD feature (experimental)"
-msgstr "CAD-functie (experimenteel)"
-
-# AI Translated
-msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
-msgstr "Als deze optie is ingeschakeld, wordt het tabblad Ontwerp getoond, waar modellen parametrisch kunnen worden opgebouwd en bewerkt. Deze functie is experimenteel en nog in ontwikkeling."
-
-# AI Translated
-msgid "Pop up to select filament grouping mode"
-msgstr "Pop-up om de filamentgroeperingsmodus te kiezen"
-
-# AI Translated
-msgid "Clear my choice on..."
-msgstr "Mijn keuze wissen voor..."
-
-# AI Translated
-msgid "Unsaved projects"
-msgstr "Niet-opgeslagen projecten"
-
-msgid "Clear my choice on the unsaved projects."
-msgstr "Wis keuze voor niet-opgeslagen projecten."
-
-# AI Translated
-msgid "Unsaved presets"
-msgstr "Niet-opgeslagen voorinstellingen"
-
-msgid "Clear my choice on the unsaved presets."
-msgstr "Wis keuze voor niet-opgeslagen presets."
-
-# AI Translated
-msgid "Synchronizing printer preset"
-msgstr "Printervoorinstelling synchroniseren"
-
-# AI Translated
-msgid "Clear my choice for synchronizing printer preset after loading the file."
-msgstr "Wis mijn keuze voor het synchroniseren van de printervoorinstelling na het laden van het bestand."
-
-# AI Translated
-msgid "Files"
-msgstr "Bestanden"
+msgid "Target folder for downloaded items"
+msgstr "Doelmap voor gedownloade items"
 
 # AI Translated
 msgid "Load All"
@@ -11771,14 +11715,6 @@ msgid "Backup your project periodically to help with restoring from an occasiona
 msgstr "Maak regelmatig een back-up van uw project, zodat u het kunt herstellen na een incidentele crash."
 
 # AI Translated
-msgid "Store full source file paths in projects"
-msgstr "Volledige paden van bronbestanden in projecten opslaan"
-
-# AI Translated
-msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
-msgstr "Indien ingeschakeld slaan opgeslagen projecten het absolute pad naar geïmporteerde bronbestanden (STEP/STL/...) op, zodat \"Opnieuw laden vanaf schijf\" blijft werken wanneer het bronbestand in een andere map staat dan het project. Indien uitgeschakeld wordt alleen de bestandsnaam opgeslagen, wat projecten draagbaar houdt en het opnemen van absolute paden voorkomt."
-
-# AI Translated
 msgid "Maximum recent files"
 msgstr "Maximumaantal recente bestanden"
 
@@ -11790,64 +11726,20 @@ msgstr "Maximumaantal recente bestanden"
 msgid "Add STL/STEP files to recent files list"
 msgstr "STL-/STEP-bestanden toevoegen aan de lijst met recente bestanden"
 
-# AI Translated
-msgid "Folder paths"
-msgstr "Mappaden"
-
-# AI Translated
-msgid "Downloads folder"
-msgstr "Downloadmap"
-
-# AI Translated
-msgid "Target folder for downloaded items"
-msgstr "Doelmap voor gedownloade items"
-
-# AI Translated
-msgid "File import"
-msgstr "Bestandsimport"
-
-# AI Translated
-msgid "Ask how to handle unsupported characters in imported names"
-msgstr "Vragen hoe niet-ondersteunde tekens in geïmporteerde namen moeten worden verwerkt"
-
-# AI Translated
-msgid "Show the removal or replacement choices when original names contain unsupported characters."
-msgstr "De keuzes voor verwijderen of vervangen tonen wanneer originele namen niet-ondersteunde tekens bevatten."
-
-# AI Translated
-msgid "3MF import"
-msgstr "3MF-import"
-
-# AI Translated
-msgid "Show options when importing"
-msgstr "Opties tonen bij het importeren"
-
-# AI Translated
-msgid "Show original-name and sorting options when importing a 3MF without project settings into the current project."
-msgstr "Opties voor originele namen en sortering tonen bij het importeren van een 3MF zonder projectinstellingen in het huidige project."
-
-# AI Translated
-msgid "Keep original names"
-msgstr "Originele namen behouden"
-
-# AI Translated
-msgid "Use the body names stored in the imported file when it contains them."
-msgstr "De lichaamsnamen gebruiken die in het geïmporteerde bestand zijn opgeslagen, als het die bevat."
-
 msgid "Don't warn when loading 3MF with modified G-code"
 msgstr "Geen waarschuwingen bij het laden van 3MF met aangepaste G-codes"
 
 # AI Translated
-msgid "STEP import"
-msgstr "STEP-import"
+msgid "Show options when importing STEP file"
+msgstr "Opties tonen bij het importeren van een STEP-bestand"
 
 # AI Translated
 msgid "If enabled, a parameter settings dialog will appear during STEP file import."
 msgstr "Indien ingeschakeld verschijnt tijdens het importeren van een STEP-bestand een dialoogvenster met parameterinstellingen."
 
 # AI Translated
-msgid "Linear deflection"
-msgstr "Lineaire afwijking"
+msgid "STEP importing: linear deflection"
+msgstr "STEP-import: lineaire afwijking"
 
 # AI Translated
 msgid ""
@@ -11862,8 +11754,8 @@ msgstr ""
 "Standaard: 0,003 mm."
 
 # AI Translated
-msgid "Angle deflection"
-msgstr "Hoekafwijking"
+msgid "STEP importing: angle deflection"
+msgstr "STEP-import: hoekafwijking"
 
 # AI Translated
 msgid ""
@@ -11878,30 +11770,18 @@ msgstr ""
 "Standaard: 0,5."
 
 # AI Translated
-msgid "Split into multiple objects"
-msgstr "Splitsen in meerdere objecten"
+msgid "STEP importing: Split into multiple objects"
+msgstr "STEP-import: splitsen in meerdere objecten"
 
 # AI Translated
 msgid ""
 "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
 "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
-"Default: enabled."
+"Default: disabled."
 msgstr ""
 "Indien ingeschakeld worden samengestelde en compsolid-vormen in geïmporteerde STEP-bestanden gesplitst in meerdere objecten.\n"
 "Wordt gebruikt als standaardwaarde in het importdialoogvenster, of rechtstreeks wanneer dat dialoogvenster is uitgeschakeld.\n"
-"Standaard: ingeschakeld."
-
-# AI Translated
-msgid "AMF import"
-msgstr "AMF-import"
-
-# AI Translated
-msgid "Show body grouping, original-name and sorting options when importing geometry into the current project."
-msgstr "Opties voor lichaamsgroepering, originele namen en sortering tonen bij het importeren van geometrie in het huidige project."
-
-# AI Translated
-msgid "DRC export"
-msgstr "DRC-export"
+"Standaard: uitgeschakeld."
 
 # AI Translated
 msgid "Quality level for Draco export"
@@ -11920,133 +11800,13 @@ msgstr ""
 "0 = verliesvrije compressie (de geometrie blijft in volle precisie behouden). Geldige waarden met verlies liggen tussen 8 en 30.\n"
 "Lagere waarden leveren kleinere bestanden op maar verliezen meer geometrisch detail; hogere waarden behouden meer detail ten koste van grotere bestanden."
 
-msgid "Associate files to OrcaSlicer"
-msgstr "Koppel bestanden aan OrcaSlicer"
+# AI Translated
+msgid "Store full source file paths in projects"
+msgstr "Volledige paden van bronbestanden in projecten opslaan"
 
 # AI Translated
-msgid "File associations for the Microsoft Store version are managed by Windows Settings."
-msgstr "Bestandskoppelingen voor de Microsoft Store-versie worden beheerd via Windows-instellingen."
-
-# AI Translated
-msgid "Open Windows Default Apps Settings"
-msgstr "Windows-instellingen voor standaard-apps openen"
-
-msgid "Associate 3MF files to OrcaSlicer"
-msgstr "Koppel .3mf-bestanden aan OrcaSlicer"
-
-msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
-msgstr "Indien ingeschakeld, wordt OrcaSlicer ingesteld als de standaardtoepassing om .3mf-bestanden te openen"
-
-# AI Translated
-msgid "Associate DRC files to OrcaSlicer"
-msgstr "DRC-bestanden aan OrcaSlicer koppelen"
-
-# AI Translated
-msgid "If enabled, sets OrcaSlicer as default application to open DRC files."
-msgstr "Indien ingeschakeld wordt OrcaSlicer ingesteld als standaardapplicatie om DRC-bestanden te openen."
-
-msgid "Associate STL files to OrcaSlicer"
-msgstr "Koppel .stl-bestanden aan OrcaSlicer"
-
-msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
-msgstr "Indien ingeschakeld, wordt OrcaSlicer ingesteld als de standaardtoepassing om .stl-bestanden te openen"
-
-msgid "Associate STEP files to OrcaSlicer"
-msgstr "Koppel .step/.stp bestanden aan OrcaSlicer"
-
-msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
-msgstr "Indien ingeschakeld, wordt OrcaSlicer ingesteld als de standaardtoepassing om .step-bestanden te openen"
-
-msgid "Associate web links to OrcaSlicer"
-msgstr "Koppel weblinks aan OrcaSlicer"
-
-msgid "Behaviour"
-msgstr "Gedrag"
-
-# AI Translated
-msgid "Auto flush after changing..."
-msgstr "Automatisch spoelen na wijzigen van..."
-
-# AI Translated
-msgid "Auto calculate flushing volumes when selected values changed"
-msgstr "Spoelvolumes automatisch berekenen wanneer de geselecteerde waarden wijzigen"
-
-msgid "Auto arrange plate after cloning"
-msgstr "Plaat automatisch rangschikken na het klonen"
-
-# AI Translated
-msgid "Auto slice after changes"
-msgstr "Automatisch slicen na wijzigingen"
-
-# AI Translated
-msgid "If enabled, OrcaSlicer will re-slice automatically whenever slicing-related settings change."
-msgstr "Indien ingeschakeld slicet OrcaSlicer automatisch opnieuw wanneer slicegerelateerde instellingen wijzigen."
-
-# AI Translated
-msgid "Delay in seconds before auto slicing starts, allowing multiple edits to be grouped. Use 0 to slice immediately."
-msgstr "Vertraging in seconden voordat het automatisch slicen begint, zodat meerdere bewerkingen kunnen worden gegroepeerd. Gebruik 0 om direct te slicen."
-
-# AI Translated
-msgid "Show options when adding a primitive"
-msgstr "Opties tonen bij het toevoegen van een primitief"
-
-# AI Translated
-msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
-msgstr "Indien ingeschakeld vraagt een dialoogvenster naar de afmetingen van een primitieve vorm voordat deze wordt toegevoegd."
-
-# AI Translated
-msgid "Remove mixed temperature restriction"
-msgstr "Beperking op gemengde temperaturen opheffen"
-
-# AI Translated
-msgid "With this option enabled, you can print materials with a large temperature difference together."
-msgstr "Met deze optie ingeschakeld kunt u materialen met een groot temperatuurverschil samen printen."
-
-# AI Translated
-msgid "Remember last print action"
-msgstr "Laatste printactie onthouden"
-
-# AI Translated
-msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
-msgstr "Indien ingeschakeld onthoudt OrcaSlicer de laatst gekozen optie in de keuzelijst van de printknop (bijv. Printen, Exporteer plate sliced bestand, G-codebestand exporteren) en gebruikt deze bij de volgende start als standaard."
-
-# AI Translated
-msgid "Default view type"
-msgstr "Standaard weergavetype"
-
-# AI Translated
-msgid ""
-"The color scheme the sliced preview opens with.\n"
-"Automatic: Filament for multi material prints, Line Type for single material ones.\n"
-"Last used: the view type you selected last.\n"
-"Any other value always opens that view type.\n"
-"You can still switch the view type in the preview afterwards."
-msgstr ""
-"Het kleurenschema waarmee de geslicete voorvertoning opent.\n"
-"Automatisch: Filament voor prints met meerdere materialen, Lijn type voor prints met één materiaal.\n"
-"Laatst gebruikt: het weergavetype dat u het laatst hebt gekozen.\n"
-"Elke andere waarde opent altijd dat weergavetype.\n"
-"U kunt daarna in de voorvertoning nog steeds van weergavetype wisselen."
-
-# AI Translated
-msgid "Dim lower layers"
-msgstr "Onderliggende lagen dimmen"
-
-# AI Translated
-msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
-msgstr "Bij het verschuiven van de laagschuifregelaar in de slicevoorvertoning worden de lagen onder de huidige laag verduisterd weergegeven, zodat alleen de bekeken laag op volle helderheid wordt getoond."
-
-# AI Translated
-msgid "Dimmed layer brightness"
-msgstr "Helderheid van gedimde lagen"
-
-# AI Translated
-msgid ""
-"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
-"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
-msgstr ""
-"Hoe helder de gedimde lagen worden weergegeven wanneer \"Onderliggende lagen dimmen\" is ingeschakeld.\n"
-"99% is nauwelijks donkerder, 0% maakt ze zwart. Beperkt tot 99%, omdat 100% hetzelfde zou zijn als de optie uitschakelen."
+msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
+msgstr "Indien ingeschakeld slaan opgeslagen projecten het absolute pad naar geïmporteerde bronbestanden (STEP/STL/...) op, zodat \"Opnieuw laden vanaf schijf\" blijft werken wanneer het bronbestand in een andere map staat dan het project. Indien uitgeschakeld wordt alleen de bestandsnaam opgeslagen, wat projecten draagbaar houdt en het opnemen van absolute paden voorkomt."
 
 msgid "Preset"
 msgstr "Voorinstelling"
@@ -12093,37 +11853,15 @@ msgstr "Melding over gedeelde profielen tonen"
 msgid "Show a notification with a link to browse shared profiles when the selected printer is changed."
 msgstr "Toon een melding met een link om door gedeelde profielen te bladeren wanneer de geselecteerde printer wordt gewijzigd."
 
-# AI Translated
-msgid "Visible plugin pages"
-msgstr "Zichtbare plug-inpagina's"
+msgid "Features"
+msgstr "Functies"
+
+msgid "Multi device management"
+msgstr "Beheer van meerdere apparaten"
 
 # AI Translated
-msgid "pages"
-msgstr "pagina's"
-
-# AI Translated
-msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
-msgstr "Aantal plug-inpagina's dat als vaste tabbladen wordt getoond voordat de overige pagina's worden samengevouwen in een vervolgkeuzelijst op het laatste tabblad."
-
-# AI Translated
-msgid "Draw mate connectors as a face"
-msgstr "Koppelingsconnectoren als vlak tekenen"
-
-# AI Translated
-msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
-msgstr "Teken in het tabblad Ontwerp een koppelingsconnector als een klein vlak in plaats van de gebruikelijke schijf met een rolkwadrant. Een vlak toont zijn oriëntatie in één oogopslag, zonder dat u de schijfconventie hoeft te leren. Schakel dit uit voor de gebruikelijke CAD-weergave."
-
-# AI Translated
-msgid "Auto-close sketch loops"
-msgstr "Schetslussen automatisch sluiten"
-
-# AI Translated
-msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
-msgstr "Schetseindpunten binnen 0,001 mm als één verbinding behandelen en de lus dichtlassen. Uit: alleen exact samenvallende eindpunten worden verbonden, zodat een lus met een minieme opening als open wordt getoond in plaats van voor u te worden gesloten. Wordt bij elk ontwerp opgeslagen; geldt voor ontwerpen die na de wijziging zijn gestart."
-
-# AI Translated
-msgid "Speed dial"
-msgstr "Speed Dial"
+msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
+msgstr "Met deze optie ingeschakeld kunt u een taak tegelijkertijd naar meerdere apparaten sturen en meerdere apparaten beheren."
 
 # AI Translated
 msgid "Open the Speed Dial from the keyboard"
@@ -12145,6 +11883,80 @@ msgstr "acties"
 # AI Translated
 msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
 msgstr "Hoeveel recent gestarte acties bovenaan Speed Dial worden getoond. Stel in op 0 om recente acties te verbergen."
+
+# AI Translated
+msgid "CAD feature (experimental)"
+msgstr "CAD-functie (experimenteel)"
+
+# AI Translated
+msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
+msgstr "Als deze optie is ingeschakeld, wordt het tabblad Ontwerp getoond, waar modellen parametrisch kunnen worden opgebouwd en bewerkt. Deze functie is experimenteel en nog in ontwikkeling."
+
+# AI Translated
+msgid "Pop up to select filament grouping mode"
+msgstr "Pop-up om de filamentgroeperingsmodus te kiezen"
+
+# AI Translated
+msgid "Visible plugin pages"
+msgstr "Zichtbare plug-inpagina's"
+
+# AI Translated
+msgid "pages"
+msgstr "pagina's"
+
+# AI Translated
+msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
+msgstr "Aantal plug-inpagina's dat als vaste tabbladen wordt getoond voordat de overige pagina's worden samengevouwen in een vervolgkeuzelijst op het laatste tabblad."
+
+msgid "Behavior"
+msgstr "Gedrag"
+
+# AI Translated
+msgid "Auto flush after changing..."
+msgstr "Automatisch spoelen na wijzigen van..."
+
+# AI Translated
+msgid "Auto calculate flushing volumes when selected values changed"
+msgstr "Spoelvolumes automatisch berekenen wanneer de geselecteerde waarden wijzigen"
+
+msgid "Auto arrange plate after cloning"
+msgstr "Plaat automatisch rangschikken na het klonen"
+
+# AI Translated
+msgid "Show options when adding a primitive"
+msgstr "Opties tonen bij het toevoegen van een primitief"
+
+# AI Translated
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr "Indien ingeschakeld vraagt een dialoogvenster naar de afmetingen van een primitieve vorm voordat deze wordt toegevoegd."
+
+# AI Translated
+msgid "Auto slice after changes"
+msgstr "Automatisch slicen na wijzigingen"
+
+# AI Translated
+msgid "If enabled, OrcaSlicer will re-slice automatically whenever slicing-related settings change."
+msgstr "Indien ingeschakeld slicet OrcaSlicer automatisch opnieuw wanneer slicegerelateerde instellingen wijzigen."
+
+# AI Translated
+msgid "Delay in seconds before auto slicing starts, allowing multiple edits to be grouped. Use 0 to slice immediately."
+msgstr "Vertraging in seconden voordat het automatisch slicen begint, zodat meerdere bewerkingen kunnen worden gegroepeerd. Gebruik 0 om direct te slicen."
+
+# AI Translated
+msgid "Remove mixed temperature restriction"
+msgstr "Beperking op gemengde temperaturen opheffen"
+
+# AI Translated
+msgid "With this option enabled, you can print materials with a large temperature difference together."
+msgstr "Met deze optie ingeschakeld kunt u materialen met een groot temperatuurverschil samen printen."
+
+# AI Translated
+msgid "Remember last print action"
+msgstr "Laatste printactie onthouden"
+
+# AI Translated
+msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
+msgstr "Indien ingeschakeld onthoudt OrcaSlicer de laatst gekozen optie in de keuzelijst van de printknop (bijv. Printen, Exporteer plate sliced bestand, G-codebestand exporteren) en gebruikt deze bij de volgende start als standaard."
 
 # AI Translated
 msgid "Camera"
@@ -12193,6 +12005,22 @@ msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr "Als deze optie is ingeschakeld, wordt de zoomrichting met het muiswiel omgedraaid."
 
 # AI Translated
+msgid "Draw mate connectors as a face"
+msgstr "Koppelingsconnectoren als vlak tekenen"
+
+# AI Translated
+msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
+msgstr "Teken in het tabblad Ontwerp een koppelingsconnector als een klein vlak in plaats van de gebruikelijke schijf met een rolkwadrant. Een vlak toont zijn oriëntatie in één oogopslag, zonder dat u de schijfconventie hoeft te leren. Schakel dit uit voor de gebruikelijke CAD-weergave."
+
+# AI Translated
+msgid "Auto-close sketch loops"
+msgstr "Schetslussen automatisch sluiten"
+
+# AI Translated
+msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
+msgstr "Schetseindpunten binnen 0,001 mm als één verbinding behandelen en de lus dichtlassen. Uit: alleen exact samenvallende eindpunten worden verbonden, zodat een lus met een minieme opening als open wordt getoond in plaats van voor u te worden gesloten. Wordt bij elk ontwerp opgeslagen; geldt voor ontwerpen die na de wijziging zijn gestart."
+
+# AI Translated
 msgid "Pan"
 msgstr "Pannen"
 
@@ -12233,6 +12061,32 @@ msgid "Choose the key for each action."
 msgstr "Kies de toets voor elke actie."
 
 # AI Translated
+msgid "Clear my choice on..."
+msgstr "Mijn keuze wissen voor..."
+
+# AI Translated
+msgid "Unsaved projects"
+msgstr "Niet-opgeslagen projecten"
+
+msgid "Clear my choice on the unsaved projects."
+msgstr "Wis keuze voor niet-opgeslagen projecten."
+
+# AI Translated
+msgid "Unsaved presets"
+msgstr "Niet-opgeslagen voorinstellingen"
+
+msgid "Clear my choice on the unsaved presets."
+msgstr "Wis keuze voor niet-opgeslagen presets."
+
+# AI Translated
+msgid "Synchronizing printer preset"
+msgstr "Printervoorinstelling synchroniseren"
+
+# AI Translated
+msgid "Clear my choice for synchronizing printer preset after loading the file."
+msgstr "Wis mijn keuze voor het synchroniseren van de printervoorinstelling na het laden van het bestand."
+
+# AI Translated
 msgid "Graphics"
 msgstr "Grafisch"
 
@@ -12249,14 +12103,6 @@ msgstr ""
 "Past vloeiende normalen toe op het model.\n"
 "\n"
 "De scène moet handmatig opnieuw worden geladen om dit toe te passen (rechtsklik op de 3D-weergave → \"Alles opnieuw laden\")."
-
-# AI Translated
-msgid "Translucent filaments"
-msgstr "Doorschijnende filamenten"
-
-# AI Translated
-msgid "Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."
-msgstr "Teken de toolpaths van filamenten met een deels transparante kleur doorzichtig, zoals de 3D-weergave hun objecten tekent. Schakel dit uit om elk filament ondoorzichtig te tekenen."
 
 # AI Translated
 msgid "Phong shading"
@@ -12465,6 +12311,56 @@ msgstr "Uitvoeren"
 msgid "Replaces the current project with the OrcaSliced Combo, then measures the frame rate and render timings while the camera turns around it in Prepare and Preview, and while the layer slider moves through the sliced layers."
 msgstr "Vervangt het huidige project door de OrcaSliced Combo en meet daarna de framesnelheid en rendertijden terwijl de camera er in Voorbereiden en Voorvertoning omheen draait, en terwijl de laagschuifregelaar door de geslicete lagen beweegt."
 
+# AI Translated
+msgid "G-code Preview"
+msgstr "G-code-voorvertoning"
+
+# AI Translated
+msgid "Default view type"
+msgstr "Standaard weergavetype"
+
+# AI Translated
+msgid ""
+"The color scheme the sliced preview opens with.\n"
+"Automatic: Filament for multi material prints, Line Type for single material ones.\n"
+"Last used: the view type you selected last.\n"
+"Any other value always opens that view type.\n"
+"You can still switch the view type in the preview afterwards."
+msgstr ""
+"Het kleurenschema waarmee de geslicete voorvertoning opent.\n"
+"Automatisch: Filament voor prints met meerdere materialen, Lijn type voor prints met één materiaal.\n"
+"Laatst gebruikt: het weergavetype dat u het laatst hebt gekozen.\n"
+"Elke andere waarde opent altijd dat weergavetype.\n"
+"U kunt daarna in de voorvertoning nog steeds van weergavetype wisselen."
+
+# AI Translated
+msgid "Dim lower layers"
+msgstr "Onderliggende lagen dimmen"
+
+# AI Translated
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr "Bij het verschuiven van de laagschuifregelaar in de slicevoorvertoning worden de lagen onder de huidige laag verduisterd weergegeven, zodat alleen de bekeken laag op volle helderheid wordt getoond."
+
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "Helderheid van gedimde lagen"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"Hoe helder de gedimde lagen worden weergegeven wanneer \"Onderliggende lagen dimmen\" is ingeschakeld.\n"
+"99% is nauwelijks donkerder, 0% maakt ze zwart. Beperkt tot 99%, omdat 100% hetzelfde zou zijn als de optie uitschakelen."
+
+# AI Translated
+msgid "Translucent filaments"
+msgstr "Doorschijnende filamenten"
+
+# AI Translated
+msgid "Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."
+msgstr "Teken de toolpaths van filamenten met een deels transparante kleur doorzichtig, zoals de 3D-weergave hun objecten tekent. Schakel dit uit om elk filament ondoorzichtig te tekenen."
+
 msgid "Login region"
 msgstr "Inlogregio"
 
@@ -12560,6 +12456,49 @@ msgstr "Versie van de netwerkplug-in"
 # AI Translated
 msgid "Select the network plug-in version to use"
 msgstr "Selecteer de te gebruiken versie van de netwerkplug-in"
+
+msgid "Associate"
+msgstr "Associeer"
+
+msgid "Associate files to OrcaSlicer"
+msgstr "Koppel bestanden aan OrcaSlicer"
+
+# AI Translated
+msgid "File associations for the Microsoft Store version are managed by Windows Settings."
+msgstr "Bestandskoppelingen voor de Microsoft Store-versie worden beheerd via Windows-instellingen."
+
+# AI Translated
+msgid "Open Windows Default Apps Settings"
+msgstr "Windows-instellingen voor standaard-apps openen"
+
+msgid "Associate 3MF files to OrcaSlicer"
+msgstr "Koppel .3mf-bestanden aan OrcaSlicer"
+
+msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
+msgstr "Indien ingeschakeld, wordt OrcaSlicer ingesteld als de standaardtoepassing om .3mf-bestanden te openen"
+
+# AI Translated
+msgid "Associate DRC files to OrcaSlicer"
+msgstr "DRC-bestanden aan OrcaSlicer koppelen"
+
+# AI Translated
+msgid "If enabled, sets OrcaSlicer as default application to open DRC files."
+msgstr "Indien ingeschakeld wordt OrcaSlicer ingesteld als standaardapplicatie om DRC-bestanden te openen."
+
+msgid "Associate STL files to OrcaSlicer"
+msgstr "Koppel .stl-bestanden aan OrcaSlicer"
+
+msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
+msgstr "Indien ingeschakeld, wordt OrcaSlicer ingesteld als de standaardtoepassing om .stl-bestanden te openen"
+
+msgid "Associate STEP files to OrcaSlicer"
+msgstr "Koppel .step/.stp bestanden aan OrcaSlicer"
+
+msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
+msgstr "Indien ingeschakeld, wordt OrcaSlicer ingesteld als de standaardtoepassing om .step-bestanden te openen"
+
+msgid "Associate web links to OrcaSlicer"
+msgstr "Koppel weblinks aan OrcaSlicer"
 
 msgid "Developer"
 msgstr "Ontwikkelaar"
@@ -16585,11 +16524,6 @@ msgstr "%1% snijdt een botsingsvolume voor extruder %2%."
 msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% staat te dicht bij anderen en er kunnen botsingen ontstaan."
 
-# AI Translated
-#, boost-format
-msgid "%1% is printed later than its place in the object list, to avoid a collision."
-msgstr "%1% wordt later geprint dan de plaats in de objectlijst aangeeft, om een botsing te voorkomen."
-
 #, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% is te hoog en er kunnen botsingen ontstaan."
@@ -16744,12 +16678,6 @@ msgstr "Selecteer de afdrukvolgorde \"per object\" om meerdere objecten in spira
 
 msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "Spiraal (vaas) modus werkt niet als een object meer dan 1 filament bevalt."
-
-# AI Translated
-#. TRN %1% is the object name.
-#, boost-format
-msgid "Spiral vase mode needs no sparse infill, one wall loop and no top shell layers, but the object %1% uses other values, so it will not print as a continuous spiral."
-msgstr "De spiraalvaasmodus gaat uit van één wand, geen dunne vulling en geen bovenste buitenlagen, maar object %1% gebruikt andere waarden en wordt daardoor niet als doorlopende spiraal geprint."
 
 # AI Translated
 #, boost-format
@@ -16948,15 +16876,8 @@ msgid "Adaptive pressure advance is enabled for one or more extruders, but no me
 msgstr "Adaptieve Pressure Advance is ingeschakeld voor een of meer extruders, maar in hun model voor adaptieve Pressure Advance zijn geen metingen ingevoerd."
 
 # AI Translated
-#. TRN %1% is the filament number as shown in the filament list, starting from 1; %2% names the invalid line.
-#. one warning per filament, the notifications stack
-#, boost-format
-msgid ""
-"The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
-"%2%"
-msgstr ""
-"Het model voor adaptieve Pressure Advance van filament %1% bevat ongeldige waarden.\n"
-"%2%"
+msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
+msgstr "Het Adaptive Pressure Advance-model voor een of meer extruders bevat mogelijk ongeldige waarden."
 
 # AI Translated
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
@@ -24291,14 +24212,6 @@ msgid "Estimated print time when printed in normal mode (i.e. not in silent mode
 msgstr "Geschatte printtijd bij printen in de normale modus (dus niet in de stille modus). Hetzelfde als normal_print_time."
 
 # AI Translated
-msgid "Used filament types"
-msgstr "Verbruikte filamenttypes"
-
-# AI Translated
-msgid "Underscore-separated list of all filament types used during the print."
-msgstr "Door underscores gescheiden lijst van alle filamenttypes die tijdens de print worden gebruikt."
-
-# AI Translated
 msgid "Print time (silent mode)"
 msgstr "Printtijd (stille modus)"
 
@@ -28771,34 +28684,6 @@ msgid "Split compound and compsolid into multiple objects"
 msgstr "Splits compound en compsolid in meerdere objecten"
 
 # AI Translated
-msgid "Loads each body of a multi-body part separately. Needed to keep the bodies' original names."
-msgstr "Laadt elk lichaam van een onderdeel met meerdere lichamen afzonderlijk. Nodig om de originele namen van de lichamen te behouden."
-
-# AI Translated
-msgid "Load as an assembly"
-msgstr "Laden als samenstelling"
-
-# AI Translated
-msgid "Load as a single object (can be split later)"
-msgstr "Laden als één object (kan later worden gesplitst)"
-
-# AI Translated
-msgid "The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."
-msgstr "De originele lichamen en namen blijven binnen het object behouden. Gebruik 'Opsplitsten in delen' om ze als afzonderlijke onderdelen te tonen."
-
-# AI Translated
-msgid "Use the body names stored in the file, when there are any. Needs Split compound for parts with several bodies."
-msgstr "De lichaamsnamen gebruiken die in het bestand zijn opgeslagen, als die er zijn. Vereist 'Splits compound' voor onderdelen met meerdere lichamen."
-
-# AI Translated
-msgid "Sort parts by name"
-msgstr "Onderdelen sorteren op naam"
-
-# AI Translated
-msgid "Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."
-msgstr "Sorteert de onderdelen binnen elke geïmporteerde samenstelling in de objectlijst. Dit verandert de volgorde bij het slicen niet. Beschikbaar wanneer 'Originele namen behouden' is ingeschakeld."
-
-# AI Translated
 msgid "Number of triangular facets"
 msgstr "Aantal driehoekige facetten"
 
@@ -28809,96 +28694,6 @@ msgstr "Bezig met berekenen, even geduld..."
 # AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
 msgstr "Indien ingeschakeld worden de bovenstaande waarden opgeslagen als standaardwaarden voor toekomstige STEP-imports (en getoond in Voorkeuren)."
-
-# AI Translated
-msgid "Don't ask again"
-msgstr "Niet meer vragen"
-
-# AI Translated
-msgid "Save these choices and apply them without asking next time. You can show this dialog again in Preferences."
-msgstr "Deze keuzes opslaan en de volgende keer zonder te vragen toepassen. U kunt dit dialoogvenster opnieuw tonen via Voorkeuren."
-
-# AI Translated
-msgid "3MF geometry import options"
-msgstr "Importopties voor 3MF-geometrie"
-
-# AI Translated
-msgid "AMF geometry import options"
-msgstr "Importopties voor AMF-geometrie"
-
-# AI Translated
-msgid "Choose how to name and order the parts of this file."
-msgstr "Kies hoe de onderdelen van dit bestand worden benoemd en geordend."
-
-# AI Translated
-msgid "Choose how to load the bodies in this file."
-msgstr "Kies hoe de lichamen in dit bestand worden geladen."
-
-# AI Translated
-msgid "Load as separate objects"
-msgstr "Laden als afzonderlijke objecten"
-
-# AI Translated
-msgid "Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."
-msgstr "Elk object in het bestand wordt afzonderlijk geladen, zoals OrcaSlicer AMF-bestanden altijd heeft geladen."
-
-# AI Translated
-msgid "The bodies of each group in the file become parts of one object, in their relative positions."
-msgstr "De lichamen van elke groep in het bestand worden onderdelen van één object, op hun onderlinge posities."
-
-# AI Translated
-msgid "Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."
-msgstr "De lichaamsnamen gebruiken die in het bestand zijn opgeslagen, als die er zijn. Indien uitgeschakeld worden de gebruikelijke OrcaSlicer-namen gebruikt; bestaande projectnamen blijven behouden."
-
-# AI Translated
-msgid "Use these choices as defaults next time. The dialog still opens."
-msgstr "Deze keuzes de volgende keer als standaard gebruiken. Het dialoogvenster wordt nog steeds geopend."
-
-# AI Translated
-msgid "A name in the file is not valid Unicode. The geometry was not imported."
-msgstr "Een naam in het bestand is geen geldige Unicode. De geometrie is niet geïmporteerd."
-
-# AI Translated
-msgid "Invalid name"
-msgstr "Ongeldige naam"
-
-# AI Translated
-msgid "Unsupported characters in names"
-msgstr "Niet-ondersteunde tekens in namen"
-
-# AI Translated
-msgid "Some original names contain characters that OrcaSlicer cannot use. Choose how to change them before importing."
-msgstr "Sommige originele namen bevatten tekens die OrcaSlicer niet kan gebruiken. Kies vóór het importeren hoe ze moeten worden gewijzigd."
-
-# AI Translated
-msgid "Remove unsupported characters"
-msgstr "Niet-ondersteunde tekens verwijderen"
-
-# AI Translated
-msgid "Replace with:"
-msgstr "Vervangen door:"
-
-# AI Translated
-msgid "Each unsupported character is replaced with this text. It may be longer than one character."
-msgstr "Elk niet-ondersteund teken wordt vervangen door deze tekst. De tekst mag langer zijn dan één teken."
-
-# AI Translated
-msgid "Use this rule as the default next time. The dialog still opens."
-msgstr "Deze regel de volgende keer als standaard gebruiken. Het dialoogvenster wordt nog steeds geopend."
-
-# AI Translated
-msgid "Save this rule and apply it without asking next time. You can show this dialog again in Preferences."
-msgstr "Deze regel opslaan en de volgende keer zonder te vragen toepassen. U kunt dit dialoogvenster opnieuw tonen via Voorkeuren."
-
-# AI Translated
-msgid "Enter a non-empty replacement containing only supported characters, or choose removal."
-msgstr "Voer een niet-lege vervanging in met alleen ondersteunde tekens, of kies voor verwijderen."
-
-# AI Translated
-#. TRN The placeholders are the original name and its imported replacement.
-#, boost-format
-msgid "%1% → %2%"
-msgstr "%1% → %2%"
 
 # AI Translated
 msgid "PresetBundle"
@@ -36792,71 +36587,6 @@ msgid "Note:"
 msgstr "Opmerking:"
 
 # AI Translated
-#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
-#, boost-format
-msgid "• %1%: %2%"
-msgstr "• %1%: %2%"
-
-# AI Translated
-#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
-#, boost-format
-msgid "• %1% — %2%: %3%"
-msgstr "• %1% – %2%: %3%"
-
-# AI Translated
-#, boost-format
-msgid ""
-"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-"\n"
-"%1%\n"
-"\n"
-"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-msgstr ""
-"De volgende instellingen verwijzen naar plug-ins die Orca Slicer op deze computer niet kan identificeren:\n"
-"\n"
-"%1%\n"
-"\n"
-"Als u toch opslaat, behoudt de voorinstelling de plug-inverwijzingen voor deze instellingen niet. Op een andere computer weet Orca Slicer dan niet welke plug-ins het moet aanbieden, en werken de instellingen daar mogelijk niet."
-
-# AI Translated
-#, boost-format
-msgid ""
-"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-"\n"
-"%1%\n"
-"\n"
-"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-msgstr ""
-"De volgende instellingen verwijzen naar plug-ins die Orca Slicer op deze computer niet kan identificeren:\n"
-"\n"
-"%1%\n"
-"\n"
-"Als u toch opslaat, behoudt het project de plug-inverwijzingen voor deze instellingen niet. Op een andere computer weet Orca Slicer dan niet welke plug-ins het moet aanbieden, en werken de instellingen daar mogelijk niet."
-
-# AI Translated
-msgid "Plugin Not Identified"
-msgstr "Plug-in niet geïdentificeerd"
-
-# AI Translated
-msgid "Save anyway"
-msgstr "Toch opslaan"
-
-# AI Translated
-#, boost-format
-msgid ""
-"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
-"\n"
-"%1%\n"
-"\n"
-"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-msgstr ""
-"De voorinstellingen die worden opgeslagen, verwijzen naar plug-ins die Orca Slicer op deze computer niet kan identificeren:\n"
-"\n"
-"%1%\n"
-"\n"
-"Als u toch opslaat, behouden de voorinstellingen de plug-inverwijzingen voor deze instellingen niet. Op een andere computer weet Orca Slicer dan niet welke plug-ins het moet aanbieden, en werken de instellingen daar mogelijk niet."
-
-# AI Translated
 msgctxt "Texture Displacement"
 msgid "Bake"
 msgstr "Bakken"
@@ -41216,40 +40946,312 @@ msgstr ""
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
 
 # AI Translated
-#~ msgid "Show options when importing STEP file"
-#~ msgstr "Opties tonen bij het importeren van een STEP-bestand"
+#~ msgid "Subdivision mesh"
+#~ msgstr "Mesh onderverdelen"
 
 # AI Translated
-#~ msgid "STEP importing: linear deflection"
-#~ msgstr "STEP-import: lineaire afwijking"
+#~ msgid "Updates are available for your OrcaCloud plugins."
+#~ msgstr "Er zijn updates beschikbaar voor uw OrcaCloud-plug-ins."
 
 # AI Translated
-#~ msgid "STEP importing: angle deflection"
-#~ msgstr "STEP-import: hoekafwijking"
+#~ msgid "Some imported objects contain modifiers or parts with individual settings. They are shown as assemblies so that these settings remain visible."
+#~ msgstr "Sommige geïmporteerde objecten bevatten aanpassers of onderdelen met eigen instellingen. Ze worden als samenstellingen weergegeven, zodat deze instellingen zichtbaar blijven."
 
 # AI Translated
-#~ msgid "STEP importing: Split into multiple objects"
-#~ msgstr "STEP-import: splitsen in meerdere objecten"
+#~ msgid "Geometry import"
+#~ msgstr "Geometrie-import"
+
+# AI Translated
+#~ msgid "Files"
+#~ msgstr "Bestanden"
+
+# AI Translated
+#~ msgid "Folder paths"
+#~ msgstr "Mappaden"
+
+# AI Translated
+#~ msgid "File import"
+#~ msgstr "Bestandsimport"
+
+# AI Translated
+#~ msgid "Ask how to handle unsupported characters in imported names"
+#~ msgstr "Vragen hoe niet-ondersteunde tekens in geïmporteerde namen moeten worden verwerkt"
+
+# AI Translated
+#~ msgid "Show the removal or replacement choices when original names contain unsupported characters."
+#~ msgstr "De keuzes voor verwijderen of vervangen tonen wanneer originele namen niet-ondersteunde tekens bevatten."
+
+# AI Translated
+#~ msgid "3MF import"
+#~ msgstr "3MF-import"
+
+# AI Translated
+#~ msgid "Show options when importing"
+#~ msgstr "Opties tonen bij het importeren"
+
+# AI Translated
+#~ msgid "Show original-name and sorting options when importing a 3MF without project settings into the current project."
+#~ msgstr "Opties voor originele namen en sortering tonen bij het importeren van een 3MF zonder projectinstellingen in het huidige project."
+
+# AI Translated
+#~ msgid "Keep original names"
+#~ msgstr "Originele namen behouden"
+
+# AI Translated
+#~ msgid "Use the body names stored in the imported file when it contains them."
+#~ msgstr "De lichaamsnamen gebruiken die in het geïmporteerde bestand zijn opgeslagen, als het die bevat."
+
+# AI Translated
+#~ msgid "STEP import"
+#~ msgstr "STEP-import"
+
+# AI Translated
+#~ msgid "Linear deflection"
+#~ msgstr "Lineaire afwijking"
+
+# AI Translated
+#~ msgid "Angle deflection"
+#~ msgstr "Hoekafwijking"
+
+# AI Translated
+#~ msgid "Split into multiple objects"
+#~ msgstr "Splitsen in meerdere objecten"
 
 # AI Translated
 #~ msgid ""
 #~ "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
 #~ "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
-#~ "Default: disabled."
+#~ "Default: enabled."
 #~ msgstr ""
 #~ "Indien ingeschakeld worden samengestelde en compsolid-vormen in geïmporteerde STEP-bestanden gesplitst in meerdere objecten.\n"
 #~ "Wordt gebruikt als standaardwaarde in het importdialoogvenster, of rechtstreeks wanneer dat dialoogvenster is uitgeschakeld.\n"
-#~ "Standaard: uitgeschakeld."
+#~ "Standaard: ingeschakeld."
 
-#~ msgid "Behavior"
+# AI Translated
+#~ msgid "AMF import"
+#~ msgstr "AMF-import"
+
+# AI Translated
+#~ msgid "Show body grouping, original-name and sorting options when importing geometry into the current project."
+#~ msgstr "Opties voor lichaamsgroepering, originele namen en sortering tonen bij het importeren van geometrie in het huidige project."
+
+# AI Translated
+#~ msgid "DRC export"
+#~ msgstr "DRC-export"
+
+#~ msgid "Behaviour"
 #~ msgstr "Gedrag"
 
 # AI Translated
-#~ msgid "G-code Preview"
-#~ msgstr "G-code-voorvertoning"
+#~ msgid "Speed dial"
+#~ msgstr "Speed Dial"
 
-#~ msgid "Associate"
-#~ msgstr "Associeer"
+# AI Translated
+#, boost-format
+#~ msgid "%1% is printed later than its place in the object list, to avoid a collision."
+#~ msgstr "%1% wordt later geprint dan de plaats in de objectlijst aangeeft, om een botsing te voorkomen."
+
+# AI Translated
+#, boost-format
+#~ msgid "Spiral vase mode needs no sparse infill, one wall loop and no top shell layers, but the object %1% uses other values, so it will not print as a continuous spiral."
+#~ msgstr "De spiraalvaasmodus gaat uit van één wand, geen dunne vulling en geen bovenste buitenlagen, maar object %1% gebruikt andere waarden en wordt daardoor niet als doorlopende spiraal geprint."
+
+# AI Translated
+#, boost-format
+#~ msgid ""
+#~ "The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
+#~ "%2%"
+#~ msgstr ""
+#~ "Het model voor adaptieve Pressure Advance van filament %1% bevat ongeldige waarden.\n"
+#~ "%2%"
+
+# AI Translated
+#~ msgid "Used filament types"
+#~ msgstr "Verbruikte filamenttypes"
+
+# AI Translated
+#~ msgid "Underscore-separated list of all filament types used during the print."
+#~ msgstr "Door underscores gescheiden lijst van alle filamenttypes die tijdens de print worden gebruikt."
+
+# AI Translated
+#~ msgid "Loads each body of a multi-body part separately. Needed to keep the bodies' original names."
+#~ msgstr "Laadt elk lichaam van een onderdeel met meerdere lichamen afzonderlijk. Nodig om de originele namen van de lichamen te behouden."
+
+# AI Translated
+#~ msgid "Load as an assembly"
+#~ msgstr "Laden als samenstelling"
+
+# AI Translated
+#~ msgid "Load as a single object (can be split later)"
+#~ msgstr "Laden als één object (kan later worden gesplitst)"
+
+# AI Translated
+#~ msgid "The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."
+#~ msgstr "De originele lichamen en namen blijven binnen het object behouden. Gebruik 'Opsplitsten in delen' om ze als afzonderlijke onderdelen te tonen."
+
+# AI Translated
+#~ msgid "Use the body names stored in the file, when there are any. Needs Split compound for parts with several bodies."
+#~ msgstr "De lichaamsnamen gebruiken die in het bestand zijn opgeslagen, als die er zijn. Vereist 'Splits compound' voor onderdelen met meerdere lichamen."
+
+# AI Translated
+#~ msgid "Sort parts by name"
+#~ msgstr "Onderdelen sorteren op naam"
+
+# AI Translated
+#~ msgid "Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."
+#~ msgstr "Sorteert de onderdelen binnen elke geïmporteerde samenstelling in de objectlijst. Dit verandert de volgorde bij het slicen niet. Beschikbaar wanneer 'Originele namen behouden' is ingeschakeld."
+
+# AI Translated
+#~ msgid "Don't ask again"
+#~ msgstr "Niet meer vragen"
+
+# AI Translated
+#~ msgid "Save these choices and apply them without asking next time. You can show this dialog again in Preferences."
+#~ msgstr "Deze keuzes opslaan en de volgende keer zonder te vragen toepassen. U kunt dit dialoogvenster opnieuw tonen via Voorkeuren."
+
+# AI Translated
+#~ msgid "3MF geometry import options"
+#~ msgstr "Importopties voor 3MF-geometrie"
+
+# AI Translated
+#~ msgid "AMF geometry import options"
+#~ msgstr "Importopties voor AMF-geometrie"
+
+# AI Translated
+#~ msgid "Choose how to name and order the parts of this file."
+#~ msgstr "Kies hoe de onderdelen van dit bestand worden benoemd en geordend."
+
+# AI Translated
+#~ msgid "Choose how to load the bodies in this file."
+#~ msgstr "Kies hoe de lichamen in dit bestand worden geladen."
+
+# AI Translated
+#~ msgid "Load as separate objects"
+#~ msgstr "Laden als afzonderlijke objecten"
+
+# AI Translated
+#~ msgid "Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."
+#~ msgstr "Elk object in het bestand wordt afzonderlijk geladen, zoals OrcaSlicer AMF-bestanden altijd heeft geladen."
+
+# AI Translated
+#~ msgid "The bodies of each group in the file become parts of one object, in their relative positions."
+#~ msgstr "De lichamen van elke groep in het bestand worden onderdelen van één object, op hun onderlinge posities."
+
+# AI Translated
+#~ msgid "Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."
+#~ msgstr "De lichaamsnamen gebruiken die in het bestand zijn opgeslagen, als die er zijn. Indien uitgeschakeld worden de gebruikelijke OrcaSlicer-namen gebruikt; bestaande projectnamen blijven behouden."
+
+# AI Translated
+#~ msgid "Use these choices as defaults next time. The dialog still opens."
+#~ msgstr "Deze keuzes de volgende keer als standaard gebruiken. Het dialoogvenster wordt nog steeds geopend."
+
+# AI Translated
+#~ msgid "A name in the file is not valid Unicode. The geometry was not imported."
+#~ msgstr "Een naam in het bestand is geen geldige Unicode. De geometrie is niet geïmporteerd."
+
+# AI Translated
+#~ msgid "Invalid name"
+#~ msgstr "Ongeldige naam"
+
+# AI Translated
+#~ msgid "Unsupported characters in names"
+#~ msgstr "Niet-ondersteunde tekens in namen"
+
+# AI Translated
+#~ msgid "Some original names contain characters that OrcaSlicer cannot use. Choose how to change them before importing."
+#~ msgstr "Sommige originele namen bevatten tekens die OrcaSlicer niet kan gebruiken. Kies vóór het importeren hoe ze moeten worden gewijzigd."
+
+# AI Translated
+#~ msgid "Remove unsupported characters"
+#~ msgstr "Niet-ondersteunde tekens verwijderen"
+
+# AI Translated
+#~ msgid "Replace with:"
+#~ msgstr "Vervangen door:"
+
+# AI Translated
+#~ msgid "Each unsupported character is replaced with this text. It may be longer than one character."
+#~ msgstr "Elk niet-ondersteund teken wordt vervangen door deze tekst. De tekst mag langer zijn dan één teken."
+
+# AI Translated
+#~ msgid "Use this rule as the default next time. The dialog still opens."
+#~ msgstr "Deze regel de volgende keer als standaard gebruiken. Het dialoogvenster wordt nog steeds geopend."
+
+# AI Translated
+#~ msgid "Save this rule and apply it without asking next time. You can show this dialog again in Preferences."
+#~ msgstr "Deze regel opslaan en de volgende keer zonder te vragen toepassen. U kunt dit dialoogvenster opnieuw tonen via Voorkeuren."
+
+# AI Translated
+#~ msgid "Enter a non-empty replacement containing only supported characters, or choose removal."
+#~ msgstr "Voer een niet-lege vervanging in met alleen ondersteunde tekens, of kies voor verwijderen."
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% → %2%"
+#~ msgstr "%1% → %2%"
+
+# AI Translated
+#, boost-format
+#~ msgid "• %1%: %2%"
+#~ msgstr "• %1%: %2%"
+
+# AI Translated
+#, boost-format
+#~ msgid "• %1% — %2%: %3%"
+#~ msgstr "• %1% – %2%: %3%"
+
+# AI Translated
+#, boost-format
+#~ msgid ""
+#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+#~ msgstr ""
+#~ "De volgende instellingen verwijzen naar plug-ins die Orca Slicer op deze computer niet kan identificeren:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "Als u toch opslaat, behoudt de voorinstelling de plug-inverwijzingen voor deze instellingen niet. Op een andere computer weet Orca Slicer dan niet welke plug-ins het moet aanbieden, en werken de instellingen daar mogelijk niet."
+
+# AI Translated
+#, boost-format
+#~ msgid ""
+#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+#~ msgstr ""
+#~ "De volgende instellingen verwijzen naar plug-ins die Orca Slicer op deze computer niet kan identificeren:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "Als u toch opslaat, behoudt het project de plug-inverwijzingen voor deze instellingen niet. Op een andere computer weet Orca Slicer dan niet welke plug-ins het moet aanbieden, en werken de instellingen daar mogelijk niet."
+
+# AI Translated
+#~ msgid "Plugin Not Identified"
+#~ msgstr "Plug-in niet geïdentificeerd"
+
+# AI Translated
+#~ msgid "Save anyway"
+#~ msgstr "Toch opslaan"
+
+# AI Translated
+#, boost-format
+#~ msgid ""
+#~ "The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+#~ msgstr ""
+#~ "De voorinstellingen die worden opgeslagen, verwijzen naar plug-ins die Orca Slicer op deze computer niet kan identificeren:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "Als u toch opslaat, behouden de voorinstellingen de plug-inverwijzingen voor deze instellingen niet. Op een andere computer weet Orca Slicer dan niet welke plug-ins het moet aanbieden, en werken de instellingen daar mogelijk niet."
 
 # AI Translated
 #~ msgid "Remove from favorites"

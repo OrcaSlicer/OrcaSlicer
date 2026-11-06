@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:06-0600\n"
+"POT-Creation-Date: 2026-11-06 11:31-0600\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -3462,8 +3462,8 @@ msgid "Simplify Model"
 msgstr "Đơn giản hóa model"
 
 # AI Translated
-msgid "Subdivision mesh"
-msgstr "Chia nhỏ lưới"
+msgid "Subdivision mesh (Lost color)"
+msgstr "Chia nhỏ lưới (Mất màu)"
 
 msgid "Center"
 msgstr "Căn giữa"
@@ -3697,11 +3697,11 @@ msgstr "Không được phép xóa phần rắn cuối cùng."
 msgid "Delete part"
 msgstr "Xóa phần"
 
-msgid "Split to parts"
-msgstr "Tách thành phần"
-
 msgid "The target object contains only one part and can not be split."
 msgstr "Vật thể đích chỉ chứa một phần và không thể tách."
+
+msgid "Split to parts"
+msgstr "Tách thành phần"
 
 msgid "Assembly"
 msgstr "Lắp ráp"
@@ -9425,10 +9425,6 @@ msgstr "Có plug-in mạng mới."
 msgid "Details"
 msgstr "Chi tiết"
 
-# AI Translated
-msgid "Updates are available for your OrcaCloud plugins."
-msgstr "Đã có bản cập nhật cho các plugin OrcaCloud của bạn."
-
 msgid "New printer config available."
 msgstr "Có cấu hình máy in mới."
 
@@ -10263,6 +10259,10 @@ msgstr "Đã đồng bộ thông tin loại và màu filament, nhưng không bao
 msgid "Do you want to save changes to \"%1%\"?"
 msgstr "Bạn có muốn lưu thay đổi vào \"%1%\"?"
 
+# AI Translated
+msgid "UV Editor"
+msgstr "Trình chỉnh sửa UV"
+
 #, c-format, boost-format
 msgid "Successfully unmounted. The device %s (%s) can now be safely removed from the computer."
 msgstr "Ngắt kết nối thành công. Thiết bị %s (%s) giờ có thể được tháo an toàn khỏi máy tính."
@@ -10299,17 +10299,6 @@ msgstr "Thu gọn thanh bên"
 #, c-format, boost-format
 msgid "Loading file: %s"
 msgstr "Đang tải file: %s"
-
-# AI Translated
-msgid "Some imported objects contain modifiers or parts with individual settings. They are shown as assemblies so that these settings remain visible."
-msgstr "Một số vật thể được nhập chứa modifier hoặc phần có cài đặt riêng. Chúng được hiển thị dưới dạng cụm lắp ráp để các cài đặt này vẫn hiển thị."
-
-# AI Translated
-msgid "Geometry import"
-msgstr "Nhập dữ liệu hình học"
-
-msgid "The file does not contain any geometry data."
-msgstr "File không chứa bất kỳ dữ liệu hình học nào."
 
 msgid "Load 3MF"
 msgstr "Tải 3MF"
@@ -10453,6 +10442,9 @@ msgstr "Bạn có muốn đồng bộ thông tin máy in và tự động chuy�
 # AI Translated
 msgid "This project contains a model made in the Design tab and no other geometry. Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; it is kept when the project is saved."
 msgstr "Dự án này chứa một mô hình được tạo trong tab Thiết kế và không có hình học nào khác. Hãy bật \"Tính năng CAD (thử nghiệm)\" trong Tùy chọn rồi khởi động lại để xem và chỉnh sửa nó; mô hình vẫn được giữ lại khi lưu dự án."
+
+msgid "The file does not contain any geometry data."
+msgstr "File không chứa bất kỳ dữ liệu hình học nào."
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "Đối tượng của bạn có vẻ quá lớn, bạn có muốn thu nhỏ nó để vừa với bàn in tự động?"
@@ -10662,10 +10654,6 @@ msgid ""
 msgstr ""
 "Đã phát hiện các vấn đề sau của chế độ song song IDEX/IQEX:\n"
 "\n"
-
-# AI Translated
-msgid "UV Editor"
-msgstr "Trình chỉnh sửa UV"
 
 # AI Translated
 msgid "Network plug-in switched successfully."
@@ -11385,57 +11373,12 @@ msgid "On a computer with two GPUs, run OrcaSlicer on the discrete GPU instead o
 msgstr "Trên máy tính có hai GPU, chạy OrcaSlicer trên GPU rời thay vì GPU điều khiển màn hình. Một số hệ thống Wayland không thể hiển thị khung hình được kết xuất trên GPU còn lại, hoặc hoàn toàn không mở được cửa sổ. Hãy tắt tùy chọn này nếu khung nhìn 3D vẫn trống; nếu OrcaSlicer không còn khởi động được, hãy khởi động nó một lần với DRI_PRIME=0 trong biến môi trường để quay lại đây."
 
 # AI Translated
-msgid "Features"
-msgstr "Tính năng"
+msgid "Downloads folder"
+msgstr "Thư mục tải xuống"
 
 # AI Translated
-msgid "Multi device management"
-msgstr "Quản lý nhiều thiết bị"
-
-msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
-msgstr "Với tùy chọn này được bật, bạn có thể gửi tác vụ đến nhiều thiết bị cùng lúc và quản lý nhiều thiết bị."
-
-# AI Translated
-msgid "CAD feature (experimental)"
-msgstr "Tính năng CAD (thử nghiệm)"
-
-# AI Translated
-msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
-msgstr "Khi bật tùy chọn này, tab Thiết kế sẽ được hiển thị, nơi có thể dựng và chỉnh sửa mô hình theo tham số. Tính năng này đang thử nghiệm và vẫn đang được phát triển."
-
-# AI Translated
-msgid "Pop up to select filament grouping mode"
-msgstr "Hiện cửa sổ để chọn chế độ nhóm filament"
-
-# AI Translated
-msgid "Clear my choice on..."
-msgstr "Xóa lựa chọn của tôi về..."
-
-# AI Translated
-msgid "Unsaved projects"
-msgstr "Dự án chưa lưu"
-
-msgid "Clear my choice on the unsaved projects."
-msgstr "Xóa lựa chọn của tôi trên các dự án chưa lưu."
-
-# AI Translated
-msgid "Unsaved presets"
-msgstr "Cài đặt sẵn chưa lưu"
-
-msgid "Clear my choice on the unsaved presets."
-msgstr "Xóa lựa chọn của tôi trên các preset chưa lưu."
-
-# AI Translated
-msgid "Synchronizing printer preset"
-msgstr "Đồng bộ cài đặt sẵn máy in"
-
-# AI Translated
-msgid "Clear my choice for synchronizing printer preset after loading the file."
-msgstr "Xóa lựa chọn của tôi về việc đồng bộ cài đặt sẵn máy in sau khi tải file."
-
-# AI Translated
-msgid "Files"
-msgstr "File"
+msgid "Target folder for downloaded items"
+msgstr "Thư mục đích cho các mục đã tải xuống"
 
 msgid "Load All"
 msgstr "Tải tất cả"
@@ -11463,14 +11406,6 @@ msgstr "Tự động sao lưu"
 msgid "Backup your project periodically to help with restoring from an occasional crash."
 msgstr "Sao lưu dự án của bạn định kỳ để khôi phục từ sự cố thỉnh thoảng."
 
-# AI Translated
-msgid "Store full source file paths in projects"
-msgstr "Lưu đường dẫn đầy đủ của file nguồn trong dự án"
-
-# AI Translated
-msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
-msgstr "Nếu bật, dự án đã lưu sẽ lưu đường dẫn tuyệt đối đến các file nguồn được nhập (STEP/STL/...), nhờ đó \"Tải lại từ đĩa\" vẫn hoạt động khi file nguồn nằm ở thư mục khác với dự án. Nếu tắt, chỉ tên file được lưu, giúp dự án dễ mang đi và tránh nhúng đường dẫn tuyệt đối."
-
 msgid "Maximum recent files"
 msgstr "Số file gần đây tối đa"
 
@@ -11482,63 +11417,19 @@ msgid "Add STL/STEP files to recent files list"
 msgstr "Thêm file STL/STEP vào danh sách file gần đây"
 
 # AI Translated
-msgid "Folder paths"
-msgstr "Đường dẫn thư mục"
-
-# AI Translated
-msgid "Downloads folder"
-msgstr "Thư mục tải xuống"
-
-# AI Translated
-msgid "Target folder for downloaded items"
-msgstr "Thư mục đích cho các mục đã tải xuống"
-
-# AI Translated
-msgid "File import"
-msgstr "Nhập file"
-
-# AI Translated
-msgid "Ask how to handle unsupported characters in imported names"
-msgstr "Hỏi cách xử lý ký tự không được hỗ trợ trong tên được nhập"
-
-# AI Translated
-msgid "Show the removal or replacement choices when original names contain unsupported characters."
-msgstr "Hiện các lựa chọn xóa hoặc thay thế khi tên gốc chứa ký tự không được hỗ trợ."
-
-# AI Translated
-msgid "3MF import"
-msgstr "Nhập 3MF"
-
-# AI Translated
-msgid "Show options when importing"
-msgstr "Hiện tùy chọn khi nhập"
-
-# AI Translated
-msgid "Show original-name and sorting options when importing a 3MF without project settings into the current project."
-msgstr "Hiện tùy chọn tên gốc và sắp xếp khi nhập một file 3MF không có cài đặt dự án vào dự án hiện tại."
-
-# AI Translated
-msgid "Keep original names"
-msgstr "Giữ tên gốc"
-
-# AI Translated
-msgid "Use the body names stored in the imported file when it contains them."
-msgstr "Dùng tên khối được lưu trong file được nhập nếu file có chứa các tên đó."
-
-# AI Translated
 msgid "Don't warn when loading 3MF with modified G-code"
 msgstr "Không cảnh báo khi tải 3MF có G-code đã sửa đổi"
 
 # AI Translated
-msgid "STEP import"
-msgstr "Nhập STEP"
+msgid "Show options when importing STEP file"
+msgstr "Hiện tùy chọn khi nhập file STEP"
 
 msgid "If enabled, a parameter settings dialog will appear during STEP file import."
 msgstr "Nếu được bật, hộp thoại cài đặt tham số sẽ xuất hiện trong quá trình nhập file STEP."
 
 # AI Translated
-msgid "Linear deflection"
-msgstr "Độ lệch tuyến tính"
+msgid "STEP importing: linear deflection"
+msgstr "Nhập STEP: độ lệch tuyến tính"
 
 # AI Translated
 msgid ""
@@ -11553,8 +11444,8 @@ msgstr ""
 "Mặc định: 0.003 mm."
 
 # AI Translated
-msgid "Angle deflection"
-msgstr "Độ lệch góc"
+msgid "STEP importing: angle deflection"
+msgstr "Nhập STEP: độ lệch góc"
 
 # AI Translated
 msgid ""
@@ -11569,30 +11460,18 @@ msgstr ""
 "Mặc định: 0.5."
 
 # AI Translated
-msgid "Split into multiple objects"
-msgstr "Tách thành nhiều vật thể"
+msgid "STEP importing: Split into multiple objects"
+msgstr "Nhập STEP: Tách thành nhiều vật thể"
 
 # AI Translated
 msgid ""
 "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
 "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
-"Default: enabled."
+"Default: disabled."
 msgstr ""
 "Nếu bật, các hình compound và compsolid trong file STEP được nhập sẽ được tách thành nhiều vật thể.\n"
 "Được dùng làm mặc định trong hộp thoại nhập, hoặc dùng trực tiếp khi hộp thoại nhập bị tắt.\n"
-"Mặc định: bật."
-
-# AI Translated
-msgid "AMF import"
-msgstr "Nhập AMF"
-
-# AI Translated
-msgid "Show body grouping, original-name and sorting options when importing geometry into the current project."
-msgstr "Hiện tùy chọn nhóm khối, tên gốc và sắp xếp khi nhập dữ liệu hình học vào dự án hiện tại."
-
-# AI Translated
-msgid "DRC export"
-msgstr "Xuất DRC"
+"Mặc định: tắt."
 
 # AI Translated
 msgid "Quality level for Draco export"
@@ -11611,134 +11490,13 @@ msgstr ""
 "0 = nén không mất dữ liệu (hình học được giữ nguyên độ chính xác đầy đủ). Giá trị nén có mất dữ liệu hợp lệ nằm trong khoảng 8 đến 30.\n"
 "Giá trị thấp hơn cho file nhỏ hơn nhưng mất nhiều chi tiết hình học hơn; giá trị cao hơn giữ được nhiều chi tiết hơn nhưng file lớn hơn."
 
-msgid "Associate files to OrcaSlicer"
-msgstr "Liên kết file với OrcaSlicer"
+# AI Translated
+msgid "Store full source file paths in projects"
+msgstr "Lưu đường dẫn đầy đủ của file nguồn trong dự án"
 
 # AI Translated
-msgid "File associations for the Microsoft Store version are managed by Windows Settings."
-msgstr "Liên kết file cho phiên bản Microsoft Store được quản lý bởi Cài đặt Windows."
-
-# AI Translated
-msgid "Open Windows Default Apps Settings"
-msgstr "Mở Cài đặt ứng dụng mặc định của Windows"
-
-msgid "Associate 3MF files to OrcaSlicer"
-msgstr "Liên kết file 3MF với OrcaSlicer"
-
-msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
-msgstr "Nếu được bật, đặt OrcaSlicer làm ứng dụng mặc định để mở file 3MF."
-
-# AI Translated
-msgid "Associate DRC files to OrcaSlicer"
-msgstr "Liên kết file DRC với OrcaSlicer"
-
-# AI Translated
-msgid "If enabled, sets OrcaSlicer as default application to open DRC files."
-msgstr "Nếu bật, đặt OrcaSlicer làm ứng dụng mặc định để mở file DRC."
-
-msgid "Associate STL files to OrcaSlicer"
-msgstr "Liên kết file STL với OrcaSlicer"
-
-msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
-msgstr "Nếu được bật, đặt OrcaSlicer làm ứng dụng mặc định để mở file STL."
-
-msgid "Associate STEP files to OrcaSlicer"
-msgstr "Liên kết file STEP với OrcaSlicer"
-
-msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
-msgstr "Nếu được bật, đặt OrcaSlicer làm ứng dụng mặc định để mở file STEP."
-
-msgid "Associate web links to OrcaSlicer"
-msgstr "Liên kết liên kết web với OrcaSlicer"
-
-# AI Translated
-msgid "Behaviour"
-msgstr "Hành vi"
-
-# AI Translated
-msgid "Auto flush after changing..."
-msgstr "Tự động tính xả sau khi thay đổi..."
-
-# AI Translated
-msgid "Auto calculate flushing volumes when selected values changed"
-msgstr "Tự động tính thể tích xả khi các giá trị đã chọn thay đổi"
-
-msgid "Auto arrange plate after cloning"
-msgstr "Tự động sắp xếp bản sau khi nhân bản"
-
-# AI Translated
-msgid "Auto slice after changes"
-msgstr "Tự động slice sau khi thay đổi"
-
-# AI Translated
-msgid "If enabled, OrcaSlicer will re-slice automatically whenever slicing-related settings change."
-msgstr "Nếu bật, OrcaSlicer sẽ tự động slice lại mỗi khi các cài đặt liên quan đến slice thay đổi."
-
-# AI Translated
-msgid "Delay in seconds before auto slicing starts, allowing multiple edits to be grouped. Use 0 to slice immediately."
-msgstr "Độ trễ tính bằng giây trước khi bắt đầu tự động slice, cho phép gộp nhiều lần chỉnh sửa. Đặt 0 để slice ngay lập tức."
-
-# AI Translated
-msgid "Show options when adding a primitive"
-msgstr "Hiện tùy chọn khi thêm hình nguyên thủy"
-
-# AI Translated
-msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
-msgstr "Nếu bật, một hộp thoại sẽ hỏi kích thước của hình nguyên thủy trước khi thêm."
-
-# AI Translated
-msgid "Remove mixed temperature restriction"
-msgstr "Bỏ hạn chế trộn lẫn nhiệt độ"
-
-# AI Translated
-msgid "With this option enabled, you can print materials with a large temperature difference together."
-msgstr "Khi bật tùy chọn này, bạn có thể in cùng lúc các vật liệu có chênh lệch nhiệt độ lớn."
-
-# AI Translated
-msgid "Remember last print action"
-msgstr "Ghi nhớ thao tác in gần nhất"
-
-# AI Translated
-msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
-msgstr "Nếu bật, OrcaSlicer sẽ ghi nhớ tùy chọn được chọn gần nhất trong danh sách thả xuống của nút in (ví dụ: In, Xuất file plate đã slice, Xuất file G-code) và dùng nó làm mặc định ở lần khởi động tiếp theo."
-
-# AI Translated
-msgid "Default view type"
-msgstr "Kiểu xem mặc định"
-
-# AI Translated
-msgid ""
-"The color scheme the sliced preview opens with.\n"
-"Automatic: Filament for multi material prints, Line Type for single material ones.\n"
-"Last used: the view type you selected last.\n"
-"Any other value always opens that view type.\n"
-"You can still switch the view type in the preview afterwards."
-msgstr ""
-"Bảng màu được dùng khi mở bản xem trước đã slice.\n"
-"Tự động: Filament cho bản in nhiều vật liệu, Loại đường cho bản in một vật liệu.\n"
-"Dùng lần cuối: kiểu xem bạn đã chọn gần nhất.\n"
-"Các giá trị khác luôn mở đúng kiểu xem đó.\n"
-"Bạn vẫn có thể đổi kiểu xem trong bản xem trước sau đó."
-
-# AI Translated
-msgid "Dim lower layers"
-msgstr "Làm mờ các lớp bên dưới"
-
-# AI Translated
-msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
-msgstr "Khi kéo thanh trượt lớp trong bản xem trước đã slice, kết xuất các lớp bên dưới lớp hiện tại ở dạng tối đi để chỉ lớp đang xem hiển thị với độ sáng đầy đủ."
-
-# AI Translated
-msgid "Dimmed layer brightness"
-msgstr "Độ sáng của lớp bị làm mờ"
-
-# AI Translated
-msgid ""
-"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
-"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
-msgstr ""
-"Mức độ sáng khi hiển thị các lớp bị làm mờ nếu bật \"Làm mờ các lớp bên dưới\".\n"
-"99% gần như không tối đi, 0% khiến chúng đen hoàn toàn. Giới hạn ở 99% vì 100% sẽ giống hệt như tắt tùy chọn này."
+msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
+msgstr "Nếu bật, dự án đã lưu sẽ lưu đường dẫn tuyệt đối đến các file nguồn được nhập (STEP/STL/...), nhờ đó \"Tải lại từ đĩa\" vẫn hoạt động khi file nguồn nằm ở thư mục khác với dự án. Nếu tắt, chỉ tên file được lưu, giúp dự án dễ mang đi và tránh nhúng đường dẫn tuyệt đối."
 
 msgid "Preset"
 msgstr "Cài đặt sẵn"
@@ -11786,36 +11544,15 @@ msgid "Show a notification with a link to browse shared profiles when the select
 msgstr "Hiện thông báo kèm liên kết để duyệt hồ sơ chia sẻ khi máy in đã chọn thay đổi."
 
 # AI Translated
-msgid "Visible plugin pages"
-msgstr "Số trang plugin hiển thị"
+msgid "Features"
+msgstr "Tính năng"
 
 # AI Translated
-msgid "pages"
-msgstr "trang"
+msgid "Multi device management"
+msgstr "Quản lý nhiều thiết bị"
 
-# AI Translated
-msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
-msgstr "Số trang plugin được hiển thị dưới dạng tab cố định trước khi các trang còn lại được gom vào danh sách thả xuống ở tab cuối cùng."
-
-# AI Translated
-msgid "Draw mate connectors as a face"
-msgstr "Vẽ đầu nối lắp ghép dạng mặt"
-
-# AI Translated
-msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
-msgstr "Trong tab Thiết kế, vẽ đầu nối lắp ghép dưới dạng một mặt nhỏ thay vì đĩa thông thường có góc phần tư xoay. Một mặt cho thấy ngay hướng của nó mà không cần học quy ước của đĩa. Tắt tùy chọn này để dùng cách biểu diễn CAD thông thường."
-
-# AI Translated
-msgid "Auto-close sketch loops"
-msgstr "Tự động khép kín vòng phác thảo"
-
-# AI Translated
-msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
-msgstr "Coi các điểm đầu mút phác thảo cách nhau trong phạm vi 0.001 mm là một điểm nối và hàn kín vòng. Tắt: chỉ các điểm đầu mút trùng khít mới được nối, nên một vòng có khe hở nhỏ sẽ hiển thị là hở thay vì được tự động khép kín. Được lưu cùng mỗi thiết kế; áp dụng cho các thiết kế bắt đầu sau khi thay đổi."
-
-# AI Translated
-msgid "Speed dial"
-msgstr "Speed Dial"
+msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
+msgstr "Với tùy chọn này được bật, bạn có thể gửi tác vụ đến nhiều thiết bị cùng lúc và quản lý nhiều thiết bị."
 
 # AI Translated
 msgid "Open the Speed Dial from the keyboard"
@@ -11837,6 +11574,81 @@ msgstr "thao tác"
 # AI Translated
 msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
 msgstr "Số thao tác đã chạy gần đây được hiển thị ở đầu Speed Dial. Đặt 0 để ẩn thao tác gần đây."
+
+# AI Translated
+msgid "CAD feature (experimental)"
+msgstr "Tính năng CAD (thử nghiệm)"
+
+# AI Translated
+msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
+msgstr "Khi bật tùy chọn này, tab Thiết kế sẽ được hiển thị, nơi có thể dựng và chỉnh sửa mô hình theo tham số. Tính năng này đang thử nghiệm và vẫn đang được phát triển."
+
+# AI Translated
+msgid "Pop up to select filament grouping mode"
+msgstr "Hiện cửa sổ để chọn chế độ nhóm filament"
+
+# AI Translated
+msgid "Visible plugin pages"
+msgstr "Số trang plugin hiển thị"
+
+# AI Translated
+msgid "pages"
+msgstr "trang"
+
+# AI Translated
+msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
+msgstr "Số trang plugin được hiển thị dưới dạng tab cố định trước khi các trang còn lại được gom vào danh sách thả xuống ở tab cuối cùng."
+
+# AI Translated
+msgid "Behavior"
+msgstr "Hành vi"
+
+# AI Translated
+msgid "Auto flush after changing..."
+msgstr "Tự động tính xả sau khi thay đổi..."
+
+# AI Translated
+msgid "Auto calculate flushing volumes when selected values changed"
+msgstr "Tự động tính thể tích xả khi các giá trị đã chọn thay đổi"
+
+msgid "Auto arrange plate after cloning"
+msgstr "Tự động sắp xếp bản sau khi nhân bản"
+
+# AI Translated
+msgid "Show options when adding a primitive"
+msgstr "Hiện tùy chọn khi thêm hình nguyên thủy"
+
+# AI Translated
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr "Nếu bật, một hộp thoại sẽ hỏi kích thước của hình nguyên thủy trước khi thêm."
+
+# AI Translated
+msgid "Auto slice after changes"
+msgstr "Tự động slice sau khi thay đổi"
+
+# AI Translated
+msgid "If enabled, OrcaSlicer will re-slice automatically whenever slicing-related settings change."
+msgstr "Nếu bật, OrcaSlicer sẽ tự động slice lại mỗi khi các cài đặt liên quan đến slice thay đổi."
+
+# AI Translated
+msgid "Delay in seconds before auto slicing starts, allowing multiple edits to be grouped. Use 0 to slice immediately."
+msgstr "Độ trễ tính bằng giây trước khi bắt đầu tự động slice, cho phép gộp nhiều lần chỉnh sửa. Đặt 0 để slice ngay lập tức."
+
+# AI Translated
+msgid "Remove mixed temperature restriction"
+msgstr "Bỏ hạn chế trộn lẫn nhiệt độ"
+
+# AI Translated
+msgid "With this option enabled, you can print materials with a large temperature difference together."
+msgstr "Khi bật tùy chọn này, bạn có thể in cùng lúc các vật liệu có chênh lệch nhiệt độ lớn."
+
+# AI Translated
+msgid "Remember last print action"
+msgstr "Ghi nhớ thao tác in gần nhất"
+
+# AI Translated
+msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
+msgstr "Nếu bật, OrcaSlicer sẽ ghi nhớ tùy chọn được chọn gần nhất trong danh sách thả xuống của nút in (ví dụ: In, Xuất file plate đã slice, Xuất file G-code) và dùng nó làm mặc định ở lần khởi động tiếp theo."
 
 # AI Translated
 msgid "Camera"
@@ -11882,6 +11694,22 @@ msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr "Nếu được bật, đảo ngược hướng thu phóng bằng con lăn chuột."
 
 # AI Translated
+msgid "Draw mate connectors as a face"
+msgstr "Vẽ đầu nối lắp ghép dạng mặt"
+
+# AI Translated
+msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
+msgstr "Trong tab Thiết kế, vẽ đầu nối lắp ghép dưới dạng một mặt nhỏ thay vì đĩa thông thường có góc phần tư xoay. Một mặt cho thấy ngay hướng của nó mà không cần học quy ước của đĩa. Tắt tùy chọn này để dùng cách biểu diễn CAD thông thường."
+
+# AI Translated
+msgid "Auto-close sketch loops"
+msgstr "Tự động khép kín vòng phác thảo"
+
+# AI Translated
+msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
+msgstr "Coi các điểm đầu mút phác thảo cách nhau trong phạm vi 0.001 mm là một điểm nối và hàn kín vòng. Tắt: chỉ các điểm đầu mút trùng khít mới được nối, nên một vòng có khe hở nhỏ sẽ hiển thị là hở thay vì được tự động khép kín. Được lưu cùng mỗi thiết kế; áp dụng cho các thiết kế bắt đầu sau khi thay đổi."
+
+# AI Translated
 msgid "Pan"
 msgstr "Di chuyển khung nhìn"
 
@@ -11922,6 +11750,32 @@ msgid "Choose the key for each action."
 msgstr "Chọn phím cho từng thao tác."
 
 # AI Translated
+msgid "Clear my choice on..."
+msgstr "Xóa lựa chọn của tôi về..."
+
+# AI Translated
+msgid "Unsaved projects"
+msgstr "Dự án chưa lưu"
+
+msgid "Clear my choice on the unsaved projects."
+msgstr "Xóa lựa chọn của tôi trên các dự án chưa lưu."
+
+# AI Translated
+msgid "Unsaved presets"
+msgstr "Cài đặt sẵn chưa lưu"
+
+msgid "Clear my choice on the unsaved presets."
+msgstr "Xóa lựa chọn của tôi trên các preset chưa lưu."
+
+# AI Translated
+msgid "Synchronizing printer preset"
+msgstr "Đồng bộ cài đặt sẵn máy in"
+
+# AI Translated
+msgid "Clear my choice for synchronizing printer preset after loading the file."
+msgstr "Xóa lựa chọn của tôi về việc đồng bộ cài đặt sẵn máy in sau khi tải file."
+
+# AI Translated
 msgid "Graphics"
 msgstr "Đồ họa"
 
@@ -11938,14 +11792,6 @@ msgstr ""
 "Áp dụng pháp tuyến mượt cho mô hình.\n"
 "\n"
 "Cần tải lại cảnh thủ công để có hiệu lực (nhấn chuột phải trong khung 3D → \"Tải lại tất cả\")."
-
-# AI Translated
-msgid "Translucent filaments"
-msgstr "Filament trong mờ"
-
-# AI Translated
-msgid "Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."
-msgstr "Vẽ các đường công cụ của những filament có màu trong suốt một phần ở dạng nhìn xuyên qua được, giống cách chế độ xem 3D vẽ các vật thể của chúng. Tắt để vẽ mọi filament không trong suốt."
 
 # AI Translated
 msgid "Phong shading"
@@ -12155,6 +12001,56 @@ msgid "Replaces the current project with the OrcaSliced Combo, then measures the
 msgstr "Thay dự án hiện tại bằng OrcaSliced Combo, sau đó đo tốc độ khung hình và thời gian kết xuất trong khi camera xoay quanh nó ở Chuẩn bị và Xem trước, và trong khi thanh trượt lớp di chuyển qua các lớp đã slice."
 
 # AI Translated
+msgid "G-code Preview"
+msgstr "Xem trước G-code"
+
+# AI Translated
+msgid "Default view type"
+msgstr "Kiểu xem mặc định"
+
+# AI Translated
+msgid ""
+"The color scheme the sliced preview opens with.\n"
+"Automatic: Filament for multi material prints, Line Type for single material ones.\n"
+"Last used: the view type you selected last.\n"
+"Any other value always opens that view type.\n"
+"You can still switch the view type in the preview afterwards."
+msgstr ""
+"Bảng màu được dùng khi mở bản xem trước đã slice.\n"
+"Tự động: Filament cho bản in nhiều vật liệu, Loại đường cho bản in một vật liệu.\n"
+"Dùng lần cuối: kiểu xem bạn đã chọn gần nhất.\n"
+"Các giá trị khác luôn mở đúng kiểu xem đó.\n"
+"Bạn vẫn có thể đổi kiểu xem trong bản xem trước sau đó."
+
+# AI Translated
+msgid "Dim lower layers"
+msgstr "Làm mờ các lớp bên dưới"
+
+# AI Translated
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr "Khi kéo thanh trượt lớp trong bản xem trước đã slice, kết xuất các lớp bên dưới lớp hiện tại ở dạng tối đi để chỉ lớp đang xem hiển thị với độ sáng đầy đủ."
+
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "Độ sáng của lớp bị làm mờ"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"Mức độ sáng khi hiển thị các lớp bị làm mờ nếu bật \"Làm mờ các lớp bên dưới\".\n"
+"99% gần như không tối đi, 0% khiến chúng đen hoàn toàn. Giới hạn ở 99% vì 100% sẽ giống hệt như tắt tùy chọn này."
+
+# AI Translated
+msgid "Translucent filaments"
+msgstr "Filament trong mờ"
+
+# AI Translated
+msgid "Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."
+msgstr "Vẽ các đường công cụ của những filament có màu trong suốt một phần ở dạng nhìn xuyên qua được, giống cách chế độ xem 3D vẽ các vật thể của chúng. Tắt để vẽ mọi filament không trong suốt."
+
+# AI Translated
 msgid "Login region"
 msgstr "Khu vực đăng nhập"
 
@@ -12249,6 +12145,49 @@ msgstr "Phiên bản plug-in mạng"
 # AI Translated
 msgid "Select the network plug-in version to use"
 msgstr "Chọn phiên bản plug-in mạng sẽ dùng"
+
+msgid "Associate"
+msgstr "Liên kết"
+
+msgid "Associate files to OrcaSlicer"
+msgstr "Liên kết file với OrcaSlicer"
+
+# AI Translated
+msgid "File associations for the Microsoft Store version are managed by Windows Settings."
+msgstr "Liên kết file cho phiên bản Microsoft Store được quản lý bởi Cài đặt Windows."
+
+# AI Translated
+msgid "Open Windows Default Apps Settings"
+msgstr "Mở Cài đặt ứng dụng mặc định của Windows"
+
+msgid "Associate 3MF files to OrcaSlicer"
+msgstr "Liên kết file 3MF với OrcaSlicer"
+
+msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
+msgstr "Nếu được bật, đặt OrcaSlicer làm ứng dụng mặc định để mở file 3MF."
+
+# AI Translated
+msgid "Associate DRC files to OrcaSlicer"
+msgstr "Liên kết file DRC với OrcaSlicer"
+
+# AI Translated
+msgid "If enabled, sets OrcaSlicer as default application to open DRC files."
+msgstr "Nếu bật, đặt OrcaSlicer làm ứng dụng mặc định để mở file DRC."
+
+msgid "Associate STL files to OrcaSlicer"
+msgstr "Liên kết file STL với OrcaSlicer"
+
+msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
+msgstr "Nếu được bật, đặt OrcaSlicer làm ứng dụng mặc định để mở file STL."
+
+msgid "Associate STEP files to OrcaSlicer"
+msgstr "Liên kết file STEP với OrcaSlicer"
+
+msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
+msgstr "Nếu được bật, đặt OrcaSlicer làm ứng dụng mặc định để mở file STEP."
+
+msgid "Associate web links to OrcaSlicer"
+msgstr "Liên kết liên kết web với OrcaSlicer"
 
 # AI Translated
 msgid "Developer"
@@ -16200,11 +16139,6 @@ msgstr "%1% giao với một thể tích va chạm của extruder %2%."
 msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% quá gần các đối tượng khác, và có thể gây va chạm."
 
-# AI Translated
-#, boost-format
-msgid "%1% is printed later than its place in the object list, to avoid a collision."
-msgstr "%1% được in muộn hơn vị trí của nó trong danh sách đối tượng để tránh va chạm."
-
 #, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% quá cao, và sẽ gây va chạm."
@@ -16350,12 +16284,6 @@ msgstr "Vui lòng chọn trình tự in \"Theo đối tượng\" để in nhiề
 
 msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "Chế độ bình xoắn ốc không hoạt động khi đối tượng chứa nhiều hơn một vật liệu."
-
-# AI Translated
-#. TRN %1% is the object name.
-#, boost-format
-msgid "Spiral vase mode needs no sparse infill, one wall loop and no top shell layers, but the object %1% uses other values, so it will not print as a continuous spiral."
-msgstr "Chế độ bình xoắn ốc yêu cầu không có infill thưa, một vòng wall và không có lớp vỏ trên, nhưng vật thể %1% dùng giá trị khác nên sẽ không được in thành đường xoắn ốc liên tục."
 
 #, boost-format
 msgid "While the object %1% itself fits the build volume, it exceeds the maximum build volume height because of material shrinkage compensation."
@@ -16530,15 +16458,8 @@ msgid "Adaptive pressure advance is enabled for one or more extruders, but no me
 msgstr "Pressure Advance thích ứng đã được bật cho một hoặc nhiều extruder, nhưng chưa có số đo nào được nhập vào mô hình Pressure Advance thích ứng của chúng."
 
 # AI Translated
-#. TRN %1% is the filament number as shown in the filament list, starting from 1; %2% names the invalid line.
-#. one warning per filament, the notifications stack
-#, boost-format
-msgid ""
-"The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
-"%2%"
-msgstr ""
-"Mô hình Pressure Advance thích ứng của filament %1% chứa giá trị không hợp lệ.\n"
-"%2%"
+msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
+msgstr "Mô hình Adaptive Pressure Advance của một hoặc nhiều extruder có thể chứa giá trị không hợp lệ."
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "Co ngót filament sẽ không được sử dụng vì co ngót filament của các filament đã dùng khác nhau đáng kể."
@@ -23308,14 +23229,6 @@ msgid "Estimated print time when printed in normal mode (i.e. not in silent mode
 msgstr "Thời gian in ước tính khi in ở chế độ thường (tức là không ở chế độ yên tĩnh). Giống với normal_print_time."
 
 # AI Translated
-msgid "Used filament types"
-msgstr "Các loại filament đã dùng"
-
-# AI Translated
-msgid "Underscore-separated list of all filament types used during the print."
-msgstr "Danh sách tất cả loại filament được dùng trong bản in, phân tách bằng dấu gạch dưới."
-
-# AI Translated
 msgid "Print time (silent mode)"
 msgstr "Thời gian in (chế độ yên tĩnh)"
 
@@ -27617,34 +27530,6 @@ msgid "Split compound and compsolid into multiple objects"
 msgstr "Tách compound và compsolid thành nhiều vật thể"
 
 # AI Translated
-msgid "Loads each body of a multi-body part separately. Needed to keep the bodies' original names."
-msgstr "Tải riêng từng khối của một phần nhiều khối. Cần thiết để giữ tên gốc của các khối."
-
-# AI Translated
-msgid "Load as an assembly"
-msgstr "Tải dưới dạng cụm lắp ráp"
-
-# AI Translated
-msgid "Load as a single object (can be split later)"
-msgstr "Tải dưới dạng một vật thể (có thể tách sau)"
-
-# AI Translated
-msgid "The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."
-msgstr "Các khối và tên gốc được giữ bên trong vật thể. Dùng \"Tách thành phần\" để hiển thị chúng thành các phần riêng biệt."
-
-# AI Translated
-msgid "Use the body names stored in the file, when there are any. Needs Split compound for parts with several bodies."
-msgstr "Dùng tên khối được lưu trong file, nếu có. Cần bật \"Tách compound\" cho các phần có nhiều khối."
-
-# AI Translated
-msgid "Sort parts by name"
-msgstr "Sắp xếp các phần theo tên"
-
-# AI Translated
-msgid "Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."
-msgstr "Sắp xếp các phần bên trong mỗi cụm lắp ráp được nhập trong danh sách vật thể. Thao tác này không thay đổi thứ tự dùng để slice. Khả dụng khi \"Giữ tên gốc\" được bật."
-
-# AI Translated
 msgid "Number of triangular facets"
 msgstr "Số mặt tam giác"
 
@@ -27655,96 +27540,6 @@ msgstr "Đang tính toán, vui lòng đợi..."
 # AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
 msgstr "Nếu bật, các giá trị ở trên sẽ được lưu làm mặc định cho các lần nhập STEP sau này (và hiển thị trong Tùy chọn)."
-
-# AI Translated
-msgid "Don't ask again"
-msgstr "Đừng hỏi lại"
-
-# AI Translated
-msgid "Save these choices and apply them without asking next time. You can show this dialog again in Preferences."
-msgstr "Lưu các lựa chọn này và áp dụng mà không hỏi vào lần sau. Bạn có thể hiển thị lại hộp thoại này trong Tùy chọn."
-
-# AI Translated
-msgid "3MF geometry import options"
-msgstr "Tùy chọn nhập dữ liệu hình học 3MF"
-
-# AI Translated
-msgid "AMF geometry import options"
-msgstr "Tùy chọn nhập dữ liệu hình học AMF"
-
-# AI Translated
-msgid "Choose how to name and order the parts of this file."
-msgstr "Chọn cách đặt tên và sắp xếp thứ tự các phần của file này."
-
-# AI Translated
-msgid "Choose how to load the bodies in this file."
-msgstr "Chọn cách tải các khối trong file này."
-
-# AI Translated
-msgid "Load as separate objects"
-msgstr "Tải dưới dạng các vật thể riêng biệt"
-
-# AI Translated
-msgid "Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."
-msgstr "Mỗi vật thể trong file được tải riêng, như cách OrcaSlicer vẫn luôn tải file AMF."
-
-# AI Translated
-msgid "The bodies of each group in the file become parts of one object, in their relative positions."
-msgstr "Các khối của mỗi nhóm trong file trở thành các phần của một vật thể, giữ nguyên vị trí tương đối."
-
-# AI Translated
-msgid "Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."
-msgstr "Dùng tên khối được lưu trong file, nếu có. Khi tắt, tên OrcaSlicer thông thường sẽ được dùng; tên hiện có trong dự án được giữ nguyên."
-
-# AI Translated
-msgid "Use these choices as defaults next time. The dialog still opens."
-msgstr "Dùng các lựa chọn này làm mặc định cho lần sau. Hộp thoại vẫn sẽ mở."
-
-# AI Translated
-msgid "A name in the file is not valid Unicode. The geometry was not imported."
-msgstr "Một tên trong file không phải Unicode hợp lệ. Dữ liệu hình học chưa được nhập."
-
-# AI Translated
-msgid "Invalid name"
-msgstr "Tên không hợp lệ"
-
-# AI Translated
-msgid "Unsupported characters in names"
-msgstr "Ký tự không được hỗ trợ trong tên"
-
-# AI Translated
-msgid "Some original names contain characters that OrcaSlicer cannot use. Choose how to change them before importing."
-msgstr "Một số tên gốc chứa ký tự mà OrcaSlicer không thể dùng. Hãy chọn cách thay đổi chúng trước khi nhập."
-
-# AI Translated
-msgid "Remove unsupported characters"
-msgstr "Xóa ký tự không được hỗ trợ"
-
-# AI Translated
-msgid "Replace with:"
-msgstr "Thay thế bằng:"
-
-# AI Translated
-msgid "Each unsupported character is replaced with this text. It may be longer than one character."
-msgstr "Mỗi ký tự không được hỗ trợ sẽ được thay thế bằng văn bản này. Văn bản có thể dài hơn một ký tự."
-
-# AI Translated
-msgid "Use this rule as the default next time. The dialog still opens."
-msgstr "Dùng quy tắc này làm mặc định cho lần sau. Hộp thoại vẫn sẽ mở."
-
-# AI Translated
-msgid "Save this rule and apply it without asking next time. You can show this dialog again in Preferences."
-msgstr "Lưu quy tắc này và áp dụng mà không hỏi vào lần sau. Bạn có thể hiển thị lại hộp thoại này trong Tùy chọn."
-
-# AI Translated
-msgid "Enter a non-empty replacement containing only supported characters, or choose removal."
-msgstr "Hãy nhập chuỗi thay thế không rỗng chỉ chứa ký tự được hỗ trợ, hoặc chọn xóa."
-
-# AI Translated
-#. TRN The placeholders are the original name and its imported replacement.
-#, boost-format
-msgid "%1% → %2%"
-msgstr "%1% → %2%"
 
 # AI Translated
 msgid "PresetBundle"
@@ -35588,71 +35383,6 @@ msgid "Note:"
 msgstr "Lưu ý:"
 
 # AI Translated
-#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
-#, boost-format
-msgid "• %1%: %2%"
-msgstr "• %1%: %2%"
-
-# AI Translated
-#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
-#, boost-format
-msgid "• %1% — %2%: %3%"
-msgstr "• %1% — %2%: %3%"
-
-# AI Translated
-#, boost-format
-msgid ""
-"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-"\n"
-"%1%\n"
-"\n"
-"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-msgstr ""
-"Các cài đặt sau tham chiếu đến plugin mà Orca Slicer không nhận dạng được trên máy tính này:\n"
-"\n"
-"%1%\n"
-"\n"
-"Nếu vẫn lưu, cài đặt sẵn sẽ không giữ tham chiếu plugin cho các cài đặt này. Trên máy tính khác, Orca Slicer sẽ không biết cần đề xuất plugin nào, và các cài đặt có thể không hoạt động ở đó."
-
-# AI Translated
-#, boost-format
-msgid ""
-"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-"\n"
-"%1%\n"
-"\n"
-"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-msgstr ""
-"Các cài đặt sau tham chiếu đến plugin mà Orca Slicer không nhận dạng được trên máy tính này:\n"
-"\n"
-"%1%\n"
-"\n"
-"Nếu vẫn lưu, dự án sẽ không giữ tham chiếu plugin cho các cài đặt này. Trên máy tính khác, Orca Slicer sẽ không biết cần đề xuất plugin nào, và các cài đặt có thể không hoạt động ở đó."
-
-# AI Translated
-msgid "Plugin Not Identified"
-msgstr "Không nhận dạng được plugin"
-
-# AI Translated
-msgid "Save anyway"
-msgstr "Vẫn lưu"
-
-# AI Translated
-#, boost-format
-msgid ""
-"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
-"\n"
-"%1%\n"
-"\n"
-"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-msgstr ""
-"Các cài đặt sẵn đang được lưu tham chiếu đến plugin mà Orca Slicer không nhận dạng được trên máy tính này:\n"
-"\n"
-"%1%\n"
-"\n"
-"Nếu vẫn lưu, các cài đặt sẵn sẽ không giữ tham chiếu plugin cho các cài đặt này. Trên máy tính khác, Orca Slicer sẽ không biết cần đề xuất plugin nào, và các cài đặt có thể không hoạt động ở đó."
-
-# AI Translated
 msgctxt "Texture Displacement"
 msgid "Bake"
 msgstr "Nướng"
@@ -39964,41 +39694,313 @@ msgstr ""
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
 
 # AI Translated
-#~ msgid "Show options when importing STEP file"
-#~ msgstr "Hiện tùy chọn khi nhập file STEP"
+#~ msgid "Subdivision mesh"
+#~ msgstr "Chia nhỏ lưới"
 
 # AI Translated
-#~ msgid "STEP importing: linear deflection"
-#~ msgstr "Nhập STEP: độ lệch tuyến tính"
+#~ msgid "Updates are available for your OrcaCloud plugins."
+#~ msgstr "Đã có bản cập nhật cho các plugin OrcaCloud của bạn."
 
 # AI Translated
-#~ msgid "STEP importing: angle deflection"
-#~ msgstr "Nhập STEP: độ lệch góc"
+#~ msgid "Some imported objects contain modifiers or parts with individual settings. They are shown as assemblies so that these settings remain visible."
+#~ msgstr "Một số vật thể được nhập chứa modifier hoặc phần có cài đặt riêng. Chúng được hiển thị dưới dạng cụm lắp ráp để các cài đặt này vẫn hiển thị."
 
 # AI Translated
-#~ msgid "STEP importing: Split into multiple objects"
-#~ msgstr "Nhập STEP: Tách thành nhiều vật thể"
+#~ msgid "Geometry import"
+#~ msgstr "Nhập dữ liệu hình học"
+
+# AI Translated
+#~ msgid "Files"
+#~ msgstr "File"
+
+# AI Translated
+#~ msgid "Folder paths"
+#~ msgstr "Đường dẫn thư mục"
+
+# AI Translated
+#~ msgid "File import"
+#~ msgstr "Nhập file"
+
+# AI Translated
+#~ msgid "Ask how to handle unsupported characters in imported names"
+#~ msgstr "Hỏi cách xử lý ký tự không được hỗ trợ trong tên được nhập"
+
+# AI Translated
+#~ msgid "Show the removal or replacement choices when original names contain unsupported characters."
+#~ msgstr "Hiện các lựa chọn xóa hoặc thay thế khi tên gốc chứa ký tự không được hỗ trợ."
+
+# AI Translated
+#~ msgid "3MF import"
+#~ msgstr "Nhập 3MF"
+
+# AI Translated
+#~ msgid "Show options when importing"
+#~ msgstr "Hiện tùy chọn khi nhập"
+
+# AI Translated
+#~ msgid "Show original-name and sorting options when importing a 3MF without project settings into the current project."
+#~ msgstr "Hiện tùy chọn tên gốc và sắp xếp khi nhập một file 3MF không có cài đặt dự án vào dự án hiện tại."
+
+# AI Translated
+#~ msgid "Keep original names"
+#~ msgstr "Giữ tên gốc"
+
+# AI Translated
+#~ msgid "Use the body names stored in the imported file when it contains them."
+#~ msgstr "Dùng tên khối được lưu trong file được nhập nếu file có chứa các tên đó."
+
+# AI Translated
+#~ msgid "STEP import"
+#~ msgstr "Nhập STEP"
+
+# AI Translated
+#~ msgid "Linear deflection"
+#~ msgstr "Độ lệch tuyến tính"
+
+# AI Translated
+#~ msgid "Angle deflection"
+#~ msgstr "Độ lệch góc"
+
+# AI Translated
+#~ msgid "Split into multiple objects"
+#~ msgstr "Tách thành nhiều vật thể"
 
 # AI Translated
 #~ msgid ""
 #~ "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
 #~ "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
-#~ "Default: disabled."
+#~ "Default: enabled."
 #~ msgstr ""
 #~ "Nếu bật, các hình compound và compsolid trong file STEP được nhập sẽ được tách thành nhiều vật thể.\n"
 #~ "Được dùng làm mặc định trong hộp thoại nhập, hoặc dùng trực tiếp khi hộp thoại nhập bị tắt.\n"
-#~ "Mặc định: tắt."
+#~ "Mặc định: bật."
 
 # AI Translated
-#~ msgid "Behavior"
+#~ msgid "AMF import"
+#~ msgstr "Nhập AMF"
+
+# AI Translated
+#~ msgid "Show body grouping, original-name and sorting options when importing geometry into the current project."
+#~ msgstr "Hiện tùy chọn nhóm khối, tên gốc và sắp xếp khi nhập dữ liệu hình học vào dự án hiện tại."
+
+# AI Translated
+#~ msgid "DRC export"
+#~ msgstr "Xuất DRC"
+
+# AI Translated
+#~ msgid "Behaviour"
 #~ msgstr "Hành vi"
 
 # AI Translated
-#~ msgid "G-code Preview"
-#~ msgstr "Xem trước G-code"
+#~ msgid "Speed dial"
+#~ msgstr "Speed Dial"
 
-#~ msgid "Associate"
-#~ msgstr "Liên kết"
+# AI Translated
+#, boost-format
+#~ msgid "%1% is printed later than its place in the object list, to avoid a collision."
+#~ msgstr "%1% được in muộn hơn vị trí của nó trong danh sách đối tượng để tránh va chạm."
+
+# AI Translated
+#, boost-format
+#~ msgid "Spiral vase mode needs no sparse infill, one wall loop and no top shell layers, but the object %1% uses other values, so it will not print as a continuous spiral."
+#~ msgstr "Chế độ bình xoắn ốc yêu cầu không có infill thưa, một vòng wall và không có lớp vỏ trên, nhưng vật thể %1% dùng giá trị khác nên sẽ không được in thành đường xoắn ốc liên tục."
+
+# AI Translated
+#, boost-format
+#~ msgid ""
+#~ "The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
+#~ "%2%"
+#~ msgstr ""
+#~ "Mô hình Pressure Advance thích ứng của filament %1% chứa giá trị không hợp lệ.\n"
+#~ "%2%"
+
+# AI Translated
+#~ msgid "Used filament types"
+#~ msgstr "Các loại filament đã dùng"
+
+# AI Translated
+#~ msgid "Underscore-separated list of all filament types used during the print."
+#~ msgstr "Danh sách tất cả loại filament được dùng trong bản in, phân tách bằng dấu gạch dưới."
+
+# AI Translated
+#~ msgid "Loads each body of a multi-body part separately. Needed to keep the bodies' original names."
+#~ msgstr "Tải riêng từng khối của một phần nhiều khối. Cần thiết để giữ tên gốc của các khối."
+
+# AI Translated
+#~ msgid "Load as an assembly"
+#~ msgstr "Tải dưới dạng cụm lắp ráp"
+
+# AI Translated
+#~ msgid "Load as a single object (can be split later)"
+#~ msgstr "Tải dưới dạng một vật thể (có thể tách sau)"
+
+# AI Translated
+#~ msgid "The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."
+#~ msgstr "Các khối và tên gốc được giữ bên trong vật thể. Dùng \"Tách thành phần\" để hiển thị chúng thành các phần riêng biệt."
+
+# AI Translated
+#~ msgid "Use the body names stored in the file, when there are any. Needs Split compound for parts with several bodies."
+#~ msgstr "Dùng tên khối được lưu trong file, nếu có. Cần bật \"Tách compound\" cho các phần có nhiều khối."
+
+# AI Translated
+#~ msgid "Sort parts by name"
+#~ msgstr "Sắp xếp các phần theo tên"
+
+# AI Translated
+#~ msgid "Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."
+#~ msgstr "Sắp xếp các phần bên trong mỗi cụm lắp ráp được nhập trong danh sách vật thể. Thao tác này không thay đổi thứ tự dùng để slice. Khả dụng khi \"Giữ tên gốc\" được bật."
+
+# AI Translated
+#~ msgid "Don't ask again"
+#~ msgstr "Đừng hỏi lại"
+
+# AI Translated
+#~ msgid "Save these choices and apply them without asking next time. You can show this dialog again in Preferences."
+#~ msgstr "Lưu các lựa chọn này và áp dụng mà không hỏi vào lần sau. Bạn có thể hiển thị lại hộp thoại này trong Tùy chọn."
+
+# AI Translated
+#~ msgid "3MF geometry import options"
+#~ msgstr "Tùy chọn nhập dữ liệu hình học 3MF"
+
+# AI Translated
+#~ msgid "AMF geometry import options"
+#~ msgstr "Tùy chọn nhập dữ liệu hình học AMF"
+
+# AI Translated
+#~ msgid "Choose how to name and order the parts of this file."
+#~ msgstr "Chọn cách đặt tên và sắp xếp thứ tự các phần của file này."
+
+# AI Translated
+#~ msgid "Choose how to load the bodies in this file."
+#~ msgstr "Chọn cách tải các khối trong file này."
+
+# AI Translated
+#~ msgid "Load as separate objects"
+#~ msgstr "Tải dưới dạng các vật thể riêng biệt"
+
+# AI Translated
+#~ msgid "Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."
+#~ msgstr "Mỗi vật thể trong file được tải riêng, như cách OrcaSlicer vẫn luôn tải file AMF."
+
+# AI Translated
+#~ msgid "The bodies of each group in the file become parts of one object, in their relative positions."
+#~ msgstr "Các khối của mỗi nhóm trong file trở thành các phần của một vật thể, giữ nguyên vị trí tương đối."
+
+# AI Translated
+#~ msgid "Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."
+#~ msgstr "Dùng tên khối được lưu trong file, nếu có. Khi tắt, tên OrcaSlicer thông thường sẽ được dùng; tên hiện có trong dự án được giữ nguyên."
+
+# AI Translated
+#~ msgid "Use these choices as defaults next time. The dialog still opens."
+#~ msgstr "Dùng các lựa chọn này làm mặc định cho lần sau. Hộp thoại vẫn sẽ mở."
+
+# AI Translated
+#~ msgid "A name in the file is not valid Unicode. The geometry was not imported."
+#~ msgstr "Một tên trong file không phải Unicode hợp lệ. Dữ liệu hình học chưa được nhập."
+
+# AI Translated
+#~ msgid "Invalid name"
+#~ msgstr "Tên không hợp lệ"
+
+# AI Translated
+#~ msgid "Unsupported characters in names"
+#~ msgstr "Ký tự không được hỗ trợ trong tên"
+
+# AI Translated
+#~ msgid "Some original names contain characters that OrcaSlicer cannot use. Choose how to change them before importing."
+#~ msgstr "Một số tên gốc chứa ký tự mà OrcaSlicer không thể dùng. Hãy chọn cách thay đổi chúng trước khi nhập."
+
+# AI Translated
+#~ msgid "Remove unsupported characters"
+#~ msgstr "Xóa ký tự không được hỗ trợ"
+
+# AI Translated
+#~ msgid "Replace with:"
+#~ msgstr "Thay thế bằng:"
+
+# AI Translated
+#~ msgid "Each unsupported character is replaced with this text. It may be longer than one character."
+#~ msgstr "Mỗi ký tự không được hỗ trợ sẽ được thay thế bằng văn bản này. Văn bản có thể dài hơn một ký tự."
+
+# AI Translated
+#~ msgid "Use this rule as the default next time. The dialog still opens."
+#~ msgstr "Dùng quy tắc này làm mặc định cho lần sau. Hộp thoại vẫn sẽ mở."
+
+# AI Translated
+#~ msgid "Save this rule and apply it without asking next time. You can show this dialog again in Preferences."
+#~ msgstr "Lưu quy tắc này và áp dụng mà không hỏi vào lần sau. Bạn có thể hiển thị lại hộp thoại này trong Tùy chọn."
+
+# AI Translated
+#~ msgid "Enter a non-empty replacement containing only supported characters, or choose removal."
+#~ msgstr "Hãy nhập chuỗi thay thế không rỗng chỉ chứa ký tự được hỗ trợ, hoặc chọn xóa."
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% → %2%"
+#~ msgstr "%1% → %2%"
+
+# AI Translated
+#, boost-format
+#~ msgid "• %1%: %2%"
+#~ msgstr "• %1%: %2%"
+
+# AI Translated
+#, boost-format
+#~ msgid "• %1% — %2%: %3%"
+#~ msgstr "• %1% — %2%: %3%"
+
+# AI Translated
+#, boost-format
+#~ msgid ""
+#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+#~ msgstr ""
+#~ "Các cài đặt sau tham chiếu đến plugin mà Orca Slicer không nhận dạng được trên máy tính này:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "Nếu vẫn lưu, cài đặt sẵn sẽ không giữ tham chiếu plugin cho các cài đặt này. Trên máy tính khác, Orca Slicer sẽ không biết cần đề xuất plugin nào, và các cài đặt có thể không hoạt động ở đó."
+
+# AI Translated
+#, boost-format
+#~ msgid ""
+#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+#~ msgstr ""
+#~ "Các cài đặt sau tham chiếu đến plugin mà Orca Slicer không nhận dạng được trên máy tính này:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "Nếu vẫn lưu, dự án sẽ không giữ tham chiếu plugin cho các cài đặt này. Trên máy tính khác, Orca Slicer sẽ không biết cần đề xuất plugin nào, và các cài đặt có thể không hoạt động ở đó."
+
+# AI Translated
+#~ msgid "Plugin Not Identified"
+#~ msgstr "Không nhận dạng được plugin"
+
+# AI Translated
+#~ msgid "Save anyway"
+#~ msgstr "Vẫn lưu"
+
+# AI Translated
+#, boost-format
+#~ msgid ""
+#~ "The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+#~ msgstr ""
+#~ "Các cài đặt sẵn đang được lưu tham chiếu đến plugin mà Orca Slicer không nhận dạng được trên máy tính này:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "Nếu vẫn lưu, các cài đặt sẵn sẽ không giữ tham chiếu plugin cho các cài đặt này. Trên máy tính khác, Orca Slicer sẽ không biết cần đề xuất plugin nào, và các cài đặt có thể không hoạt động ở đó."
 
 # AI Translated
 #~ msgid "Remove from favorites"

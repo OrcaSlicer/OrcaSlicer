@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:06-0600\n"
+"POT-Creation-Date: 2026-11-06 11:31-0600\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3386,9 +3386,8 @@ msgstr "Clonar"
 msgid "Simplify Model"
 msgstr "Simplificar el model"
 
-# AI Translated
-msgid "Subdivision mesh"
-msgstr "Subdivisió de la malla"
+msgid "Subdivision mesh (Lost color)"
+msgstr "Subdivisió de la malla (Color perdut)"
 
 msgid "Center"
 msgstr "Centre"
@@ -3624,11 +3623,11 @@ msgstr "No es permet suprimir l'última part sòlida."
 msgid "Delete part"
 msgstr "Suprimir la peça"
 
-msgid "Split to parts"
-msgstr "Separar en peces"
-
 msgid "The target object contains only one part and can not be split."
 msgstr "L'objecte de destinació conté només una part i no es pot dividir."
+
+msgid "Split to parts"
+msgstr "Separar en peces"
 
 msgid "Assembly"
 msgstr "Muntatge"
@@ -9129,10 +9128,6 @@ msgstr "Nou plug-in de xarxa disponible."
 msgid "Details"
 msgstr "Detalls"
 
-# AI Translated
-msgid "Updates are available for your OrcaCloud plugins."
-msgstr "Hi ha actualitzacions disponibles per als vostres connectors d'OrcaCloud."
-
 msgid "New printer config available."
 msgstr "Nova configuració d'impressora disponible."
 
@@ -9939,6 +9934,10 @@ msgstr "S'ha sincronitzat la informació del tipus i color del filament, però n
 msgid "Do you want to save changes to \"%1%\"?"
 msgstr "Vols desar els canvis a \"%1%\"?"
 
+# AI Translated
+msgid "UV Editor"
+msgstr "Editor UV"
+
 #, c-format, boost-format
 msgid "Successfully unmounted. The device %s (%s) can now be safely removed from the computer."
 msgstr "Desmuntat amb èxit. El dispositiu %s ( %s ) ara es pot retirar de manera segura de l'ordinador."
@@ -9974,17 +9973,6 @@ msgstr "Replegar barra lateral"
 #, c-format, boost-format
 msgid "Loading file: %s"
 msgstr "Carregant fitxer: %s"
-
-# AI Translated
-msgid "Some imported objects contain modifiers or parts with individual settings. They are shown as assemblies so that these settings remain visible."
-msgstr "Alguns objectes importats contenen modificadors o peces amb configuració individual. Es mostren com a muntatges perquè aquesta configuració continuï sent visible."
-
-# AI Translated
-msgid "Geometry import"
-msgstr "Importació de geometria"
-
-msgid "The file does not contain any geometry data."
-msgstr "El fitxer no conté cap dada de geometria."
 
 msgid "Load 3MF"
 msgstr "Carregar 3MF"
@@ -10126,6 +10114,9 @@ msgstr "Voleu sincronitzar la informació de la impressora i canviar automàtica
 # AI Translated
 msgid "This project contains a model made in the Design tab and no other geometry. Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; it is kept when the project is saved."
 msgstr "Aquest projecte conté un model creat a la pestanya Disseny i cap altra geometria. Activeu \"Funció CAD (experimental)\" a Preferències i reinicieu per veure'l i editar-lo; es conserva quan es desa el projecte."
+
+msgid "The file does not contain any geometry data."
+msgstr "El fitxer no conté cap dada de geometria."
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "El teu objecte sembla ser massa gran, Vols reduir-lo per adaptar-lo automàticament al llit?"
@@ -10326,10 +10317,6 @@ msgid ""
 msgstr ""
 "S'han detectat els problemes següents del mode paral·lel IDEX/IQEX:\n"
 "\n"
-
-# AI Translated
-msgid "UV Editor"
-msgstr "Editor UV"
 
 msgid "Network plug-in switched successfully."
 msgstr "Connector de xarxa canviat correctament."
@@ -11013,50 +11000,11 @@ msgstr "Renderitzar a la GPU dedicada"
 msgid "On a computer with two GPUs, run OrcaSlicer on the discrete GPU instead of the one that drives the display. Some Wayland systems cannot show frames rendered on the other GPU, or fail to open the window at all. Turn this off if the 3D view stays empty; if OrcaSlicer no longer starts, start it once with DRI_PRIME=0 in the environment to get back here."
 msgstr "En un ordinador amb dues GPU, executa OrcaSlicer a la GPU dedicada en lloc de la que controla la pantalla. Alguns sistemes Wayland no poden mostrar els fotogrames renderitzats a l'altra GPU, o ni tan sols aconsegueixen obrir la finestra. Desactiveu-ho si la vista 3D es queda buida; si OrcaSlicer ja no s'inicia, inicieu-lo una vegada amb DRI_PRIME=0 a l'entorn per tornar aquí."
 
-msgid "Features"
-msgstr "Funcionalitats"
+msgid "Downloads folder"
+msgstr "Carpeta de descàrregues"
 
-msgid "Multi device management"
-msgstr "Gestió multidispositiu"
-
-msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
-msgstr "Amb aquesta opció habilitada, podeu enviar una tasca a diversos dispositius alhora i gestionar múltiples dispositius."
-
-# AI Translated
-msgid "CAD feature (experimental)"
-msgstr "Funció CAD (experimental)"
-
-# AI Translated
-msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
-msgstr "Amb aquesta opció activada, es mostra la pestanya Disseny, on es poden crear i editar models de manera paramètrica. Aquesta funció és experimental i encara està en desenvolupament."
-
-msgid "Pop up to select filament grouping mode"
-msgstr "Finestra emergent per seleccionar el mode d'agrupació de filaments"
-
-msgid "Clear my choice on..."
-msgstr "Esborra la meva elecció a..."
-
-msgid "Unsaved projects"
-msgstr "Projectes no desats"
-
-msgid "Clear my choice on the unsaved projects."
-msgstr "Esborrar la meva elecció sobre els projectes no desats."
-
-msgid "Unsaved presets"
-msgstr "Perfils no desats"
-
-msgid "Clear my choice on the unsaved presets."
-msgstr "Esborrar la meva elecció als perfils no desats."
-
-msgid "Synchronizing printer preset"
-msgstr "Sincronitzant el perfil de la impressora"
-
-msgid "Clear my choice for synchronizing printer preset after loading the file."
-msgstr "Esborra la meva elecció per sincronitzar el perfil de la impressora després de carregar el fitxer."
-
-# AI Translated
-msgid "Files"
-msgstr "Fitxers"
+msgid "Target folder for downloaded items"
+msgstr "Carpeta de destinació per als elements descarregats"
 
 msgid "Load All"
 msgstr "Carrega-ho tot"
@@ -11082,14 +11030,6 @@ msgstr "Còpia de seguretat automàtica"
 msgid "Backup your project periodically to help with restoring from an occasional crash."
 msgstr "Feu còpies de seguretat del vostre projecte periòdicament per restaurar en cas de fallida ocasional."
 
-# AI Translated
-msgid "Store full source file paths in projects"
-msgstr "Desar els camins complets dels fitxers d'origen als projectes"
-
-# AI Translated
-msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
-msgstr "Si s'activa, els projectes desats emmagatzemen el camí absolut dels fitxers d'origen importats (STEP/STL/...), de manera que \"Recarregar des del disc\" continua funcionant quan el fitxer d'origen es manté en una carpeta diferent de la del projecte. Si es desactiva, només es desa el nom del fitxer, cosa que fa els projectes portables i evita incrustar camins absoluts."
-
 msgid "Maximum recent files"
 msgstr "Nombre màxim de fitxers recents"
 
@@ -11099,61 +11039,18 @@ msgstr "Nombre màxim de fitxers recents"
 msgid "Add STL/STEP files to recent files list"
 msgstr "Afegeix fitxers STL/STEP a la llista de fitxers recents"
 
-# AI Translated
-msgid "Folder paths"
-msgstr "Rutes de carpetes"
-
-msgid "Downloads folder"
-msgstr "Carpeta de descàrregues"
-
-msgid "Target folder for downloaded items"
-msgstr "Carpeta de destinació per als elements descarregats"
-
-# AI Translated
-msgid "File import"
-msgstr "Importació de fitxers"
-
-# AI Translated
-msgid "Ask how to handle unsupported characters in imported names"
-msgstr "Pregunta com gestionar els caràcters no compatibles dels noms importats"
-
-# AI Translated
-msgid "Show the removal or replacement choices when original names contain unsupported characters."
-msgstr "Mostra les opcions d'eliminació o substitució quan els noms originals contenen caràcters no compatibles."
-
-# AI Translated
-msgid "3MF import"
-msgstr "Importació 3MF"
-
-# AI Translated
-msgid "Show options when importing"
-msgstr "Mostra opcions en importar"
-
-# AI Translated
-msgid "Show original-name and sorting options when importing a 3MF without project settings into the current project."
-msgstr "Mostra les opcions de nom original i d'ordenació en importar un 3MF sense configuració de projecte al projecte actual."
-
-# AI Translated
-msgid "Keep original names"
-msgstr "Conserva els noms originals"
-
-# AI Translated
-msgid "Use the body names stored in the imported file when it contains them."
-msgstr "Utilitza els noms de cos desats al fitxer importat, si en conté."
-
 msgid "Don't warn when loading 3MF with modified G-code"
 msgstr "No hi ha avisos en carregar 3MF amb G-code modificats"
 
-# AI Translated
-msgid "STEP import"
-msgstr "Importació STEP"
+msgid "Show options when importing STEP file"
+msgstr "Mostra opcions en importar fitxers STEP"
 
 msgid "If enabled, a parameter settings dialog will appear during STEP file import."
 msgstr "Si s'activa, apareixerà un diàleg de configuració de paràmetres durant la importació de fitxers STEP."
 
 # AI Translated
-msgid "Linear deflection"
-msgstr "Deflexió lineal"
+msgid "STEP importing: linear deflection"
+msgstr "Importació STEP: desviació lineal"
 
 # AI Translated
 msgid ""
@@ -11168,8 +11065,8 @@ msgstr ""
 "Per defecte: 0,003 mm."
 
 # AI Translated
-msgid "Angle deflection"
-msgstr "Deflexió angular"
+msgid "STEP importing: angle deflection"
+msgstr "Importació STEP: desviació angular"
 
 # AI Translated
 msgid ""
@@ -11184,30 +11081,18 @@ msgstr ""
 "Per defecte: 0,5."
 
 # AI Translated
-msgid "Split into multiple objects"
-msgstr "Separa en diversos objectes"
+msgid "STEP importing: Split into multiple objects"
+msgstr "Importació STEP: separar en diversos objectes"
 
 # AI Translated
 msgid ""
 "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
 "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
-"Default: enabled."
+"Default: disabled."
 msgstr ""
 "Si s'activa, les formes compound i compsolid dels fitxers STEP importats se separen en diversos objectes.\n"
 "S'utilitza com a valor per defecte al quadre de diàleg d'importació, o directament quan aquest està desactivat.\n"
-"Per defecte: activat."
-
-# AI Translated
-msgid "AMF import"
-msgstr "Importació AMF"
-
-# AI Translated
-msgid "Show body grouping, original-name and sorting options when importing geometry into the current project."
-msgstr "Mostra les opcions d'agrupació de cossos, de nom original i d'ordenació en importar geometria al projecte actual."
-
-# AI Translated
-msgid "DRC export"
-msgstr "Exportació DRC"
+"Per defecte: desactivat."
 
 msgid "Quality level for Draco export"
 msgstr "Nivell de qualitat per a l'exportació Draco"
@@ -11224,124 +11109,13 @@ msgstr ""
 "0 = compressió sense pèrdua (la geometria es preserva a plena precisió). Els valors amb pèrdua vàlids van de 8 a 30.\n"
 "Valors més baixos produeixen fitxers més petits però perden més detall geomètric; valors més alts preserven més detall a costa de fitxers més grans."
 
-msgid "Associate files to OrcaSlicer"
-msgstr "Associar fitxers a OrcaSlicer"
+# AI Translated
+msgid "Store full source file paths in projects"
+msgstr "Desar els camins complets dels fitxers d'origen als projectes"
 
 # AI Translated
-msgid "File associations for the Microsoft Store version are managed by Windows Settings."
-msgstr "Les associacions de fitxers de la versió de la Microsoft Store es gestionen des de la Configuració de Windows."
-
-# AI Translated
-msgid "Open Windows Default Apps Settings"
-msgstr "Obrir la configuració d'aplicacions predeterminades de Windows"
-
-msgid "Associate 3MF files to OrcaSlicer"
-msgstr "Associar .3mf fitxers a OrcaSlicer"
-
-msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
-msgstr "Si està habilitat, defineix OrcaSlicer com a l'aplicació predeterminada per obrir fitxers .3mf"
-
-msgid "Associate DRC files to OrcaSlicer"
-msgstr "Associa fitxers DRC a OrcaSlicer"
-
-msgid "If enabled, sets OrcaSlicer as default application to open DRC files."
-msgstr "Si s'activa, estableix OrcaSlicer com a aplicació predeterminada per obrir fitxers DRC."
-
-msgid "Associate STL files to OrcaSlicer"
-msgstr "Associar fitxers .stl a OrcaSlicer"
-
-msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
-msgstr "Si està habilitada, defineix OrcaSlicer com a l'aplicació predeterminada per obrir fitxers .stl"
-
-msgid "Associate STEP files to OrcaSlicer"
-msgstr "Associar fitxers .step/.stp a OrcaSlicer"
-
-msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
-msgstr "Si està habilitada, defineix OrcaSlicer com a l'aplicació predeterminada per obrir fitxers .step"
-
-msgid "Associate web links to OrcaSlicer"
-msgstr "Associar enllaços web a OrcaSlicer"
-
-msgid "Behaviour"
-msgstr "Comportament"
-
-msgid "Auto flush after changing..."
-msgstr "Purga automàtica després de canviar..."
-
-msgid "Auto calculate flushing volumes when selected values changed"
-msgstr "Calcula automàticament els volums de purga quan canvien els valors seleccionats"
-
-msgid "Auto arrange plate after cloning"
-msgstr "Disposició automàtica de la placa després de la clonació"
-
-msgid "Auto slice after changes"
-msgstr "Tall automàtic després dels canvis"
-
-msgid "If enabled, OrcaSlicer will re-slice automatically whenever slicing-related settings change."
-msgstr "Si s'activa, OrcaSlicer tornarà a tallar automàticament cada vegada que canviïn les configuracions de tall."
-
-msgid "Delay in seconds before auto slicing starts, allowing multiple edits to be grouped. Use 0 to slice immediately."
-msgstr "Retard en segons abans que comenci el tall automàtic, permetent agrupar múltiples edicions. Utilitzeu 0 per tallar immediatament."
-
-# AI Translated
-msgid "Show options when adding a primitive"
-msgstr "Mostrar opcions en afegir una primitiva"
-
-# AI Translated
-msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
-msgstr "Si està activat, un quadre de diàleg demana les dimensions d'una forma primitiva abans d'afegir-la."
-
-msgid "Remove mixed temperature restriction"
-msgstr "Elimina la restricció de temperatures barrejades"
-
-msgid "With this option enabled, you can print materials with a large temperature difference together."
-msgstr "Amb aquesta opció activada, podeu imprimir materials amb una gran diferència de temperatura junts."
-
-# AI Translated
-msgid "Remember last print action"
-msgstr "Recordar la darrera acció d'impressió"
-
-# AI Translated
-msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
-msgstr "Si s'activa, OrcaSlicer recordarà la darrera opció seleccionada al desplegable del botó d'impressió (p. ex. Imprimir, Exportar fitxer de la placa laminada, Exportar el fitxer del G-code) i la farà servir per defecte en el proper inici."
-
-# AI Translated
-msgid "Default view type"
-msgstr "Tipus de vista predeterminat"
-
-# AI Translated
-msgid ""
-"The color scheme the sliced preview opens with.\n"
-"Automatic: Filament for multi material prints, Line Type for single material ones.\n"
-"Last used: the view type you selected last.\n"
-"Any other value always opens that view type.\n"
-"You can still switch the view type in the preview afterwards."
-msgstr ""
-"L'esquema de colors amb què s'obre la previsualització laminada.\n"
-"Automàtic: Filament per a impressions multimaterial, Tipus de línia per a les d'un sol material.\n"
-"Darrer utilitzat: el tipus de vista que vau seleccionar per última vegada.\n"
-"Qualsevol altre valor obre sempre aquest tipus de vista.\n"
-"Després podeu canviar igualment el tipus de vista a la previsualització."
-
-# AI Translated
-msgid "Dim lower layers"
-msgstr "Enfosquir les capes inferiors"
-
-# AI Translated
-msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
-msgstr "En desplaçar el control lliscant de capes a la previsualització laminada, mostra enfosquides les capes per sota de l'actual, de manera que només la capa que s'està visualitzant es vegi amb la lluminositat completa."
-
-# AI Translated
-msgid "Dimmed layer brightness"
-msgstr "Brillantor de les capes enfosquides"
-
-# AI Translated
-msgid ""
-"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
-"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
-msgstr ""
-"Amb quina brillantor es mostren les capes enfosquides quan \"Enfosquir les capes inferiors\" està activat.\n"
-"99% amb prou feines s'enfosqueix, 0% les mostra negres. Limitat al 99% perquè el 100% seria el mateix que desactivar l'opció."
+msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
+msgstr "Si s'activa, els projectes desats emmagatzemen el camí absolut dels fitxers d'origen importats (STEP/STL/...), de manera que \"Recarregar des del disc\" continua funcionant quan el fitxer d'origen es manté en una carpeta diferent de la del projecte. Si es desactiva, només es desa el nom del fitxer, cosa que fa els projectes portables i evita incrustar camins absoluts."
 
 msgid "Preset"
 msgstr "Perfil"
@@ -11382,37 +11156,14 @@ msgstr "Mostrar la notificació de perfils compartits"
 msgid "Show a notification with a link to browse shared profiles when the selected printer is changed."
 msgstr "Mostra una notificació amb un enllaç per explorar els perfils compartits quan es canvia la impressora seleccionada."
 
-# AI Translated
-msgid "Visible plugin pages"
-msgstr "Pàgines de connectors visibles"
+msgid "Features"
+msgstr "Funcionalitats"
 
-# AI Translated
-msgid "pages"
-msgstr "pàgines"
+msgid "Multi device management"
+msgstr "Gestió multidispositiu"
 
-# AI Translated
-msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
-msgstr "Nombre de pàgines de connectors que es mostren com a pestanyes fixes abans que la resta de pàgines es replegui en un desplegable a l'última pestanya."
-
-# AI Translated
-msgid "Draw mate connectors as a face"
-msgstr "Dibuixar els connectors de relació de posició com una cara"
-
-# AI Translated
-msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
-msgstr "A la pestanya Disseny, dibuixa el connector de relació de posició com una petita cara en lloc del disc convencional amb un quadrant de gir. Una cara mostra la seva orientació d'un cop d'ull, sense haver d'aprendre la convenció del disc. Desactiveu-ho per obtenir la representació CAD convencional."
-
-# AI Translated
-msgid "Auto-close sketch loops"
-msgstr "Tancar automàticament els bucles dels esbossos"
-
-# AI Translated
-msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
-msgstr "Tracta els extrems d'esbós a menys de 0,001 mm com una sola unió i solda el bucle per tancar-lo. Desactivat: només s'uneixen els extrems exactament coincidents, de manera que un bucle amb una petita obertura es mostra obert en lloc de tancar-se automàticament. Es desa amb cada disseny; s'aplica als dissenys començats després del canvi."
-
-# AI Translated
-msgid "Speed dial"
-msgstr "Accés ràpid"
+msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
+msgstr "Amb aquesta opció habilitada, podeu enviar una tasca a diversos dispositius alhora i gestionar múltiples dispositius."
 
 # AI Translated
 msgid "Open the Speed Dial from the keyboard"
@@ -11434,6 +11185,72 @@ msgstr "accions"
 # AI Translated
 msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
 msgstr "Nombre d'accions executades recentment que es mostren a la part superior de l'Accés ràpid. Establiu-ho a 0 per amagar les accions recents."
+
+# AI Translated
+msgid "CAD feature (experimental)"
+msgstr "Funció CAD (experimental)"
+
+# AI Translated
+msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
+msgstr "Amb aquesta opció activada, es mostra la pestanya Disseny, on es poden crear i editar models de manera paramètrica. Aquesta funció és experimental i encara està en desenvolupament."
+
+msgid "Pop up to select filament grouping mode"
+msgstr "Finestra emergent per seleccionar el mode d'agrupació de filaments"
+
+# AI Translated
+msgid "Visible plugin pages"
+msgstr "Pàgines de connectors visibles"
+
+# AI Translated
+msgid "pages"
+msgstr "pàgines"
+
+# AI Translated
+msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
+msgstr "Nombre de pàgines de connectors que es mostren com a pestanyes fixes abans que la resta de pàgines es replegui en un desplegable a l'última pestanya."
+
+msgid "Behavior"
+msgstr "Comportament"
+
+msgid "Auto flush after changing..."
+msgstr "Purga automàtica després de canviar..."
+
+msgid "Auto calculate flushing volumes when selected values changed"
+msgstr "Calcula automàticament els volums de purga quan canvien els valors seleccionats"
+
+msgid "Auto arrange plate after cloning"
+msgstr "Disposició automàtica de la placa després de la clonació"
+
+# AI Translated
+msgid "Show options when adding a primitive"
+msgstr "Mostrar opcions en afegir una primitiva"
+
+# AI Translated
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr "Si està activat, un quadre de diàleg demana les dimensions d'una forma primitiva abans d'afegir-la."
+
+msgid "Auto slice after changes"
+msgstr "Tall automàtic després dels canvis"
+
+msgid "If enabled, OrcaSlicer will re-slice automatically whenever slicing-related settings change."
+msgstr "Si s'activa, OrcaSlicer tornarà a tallar automàticament cada vegada que canviïn les configuracions de tall."
+
+msgid "Delay in seconds before auto slicing starts, allowing multiple edits to be grouped. Use 0 to slice immediately."
+msgstr "Retard en segons abans que comenci el tall automàtic, permetent agrupar múltiples edicions. Utilitzeu 0 per tallar immediatament."
+
+msgid "Remove mixed temperature restriction"
+msgstr "Elimina la restricció de temperatures barrejades"
+
+msgid "With this option enabled, you can print materials with a large temperature difference together."
+msgstr "Amb aquesta opció activada, podeu imprimir materials amb una gran diferència de temperatura junts."
+
+# AI Translated
+msgid "Remember last print action"
+msgstr "Recordar la darrera acció d'impressió"
+
+# AI Translated
+msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
+msgstr "Si s'activa, OrcaSlicer recordarà la darrera opció seleccionada al desplegable del botó d'impressió (p. ex. Imprimir, Exportar fitxer de la placa laminada, Exportar el fitxer del G-code) i la farà servir per defecte en el proper inici."
 
 msgid "Camera"
 msgstr "Càmera"
@@ -11478,6 +11295,22 @@ msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr "Si està habilitat, inverteix la direcció del zoom amb la roda del ratolí."
 
 # AI Translated
+msgid "Draw mate connectors as a face"
+msgstr "Dibuixar els connectors de relació de posició com una cara"
+
+# AI Translated
+msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
+msgstr "A la pestanya Disseny, dibuixa el connector de relació de posició com una petita cara en lloc del disc convencional amb un quadrant de gir. Una cara mostra la seva orientació d'un cop d'ull, sense haver d'aprendre la convenció del disc. Desactiveu-ho per obtenir la representació CAD convencional."
+
+# AI Translated
+msgid "Auto-close sketch loops"
+msgstr "Tancar automàticament els bucles dels esbossos"
+
+# AI Translated
+msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
+msgstr "Tracta els extrems d'esbós a menys de 0,001 mm com una sola unió i solda el bucle per tancar-lo. Desactivat: només s'uneixen els extrems exactament coincidents, de manera que un bucle amb una petita obertura es mostra obert en lloc de tancar-se automàticament. Es desa amb cada disseny; s'aplica als dissenys començats després del canvi."
+
+# AI Translated
 msgid "Pan"
 msgstr "Panoràmica"
 
@@ -11517,6 +11350,27 @@ msgstr "Dreceres de teclat"
 msgid "Choose the key for each action."
 msgstr "Trieu la tecla per a cada acció."
 
+msgid "Clear my choice on..."
+msgstr "Esborra la meva elecció a..."
+
+msgid "Unsaved projects"
+msgstr "Projectes no desats"
+
+msgid "Clear my choice on the unsaved projects."
+msgstr "Esborrar la meva elecció sobre els projectes no desats."
+
+msgid "Unsaved presets"
+msgstr "Perfils no desats"
+
+msgid "Clear my choice on the unsaved presets."
+msgstr "Esborrar la meva elecció als perfils no desats."
+
+msgid "Synchronizing printer preset"
+msgstr "Sincronitzant el perfil de la impressora"
+
+msgid "Clear my choice for synchronizing printer preset after loading the file."
+msgstr "Esborra la meva elecció per sincronitzar el perfil de la impressora després de carregar el fitxer."
+
 # AI Translated
 msgid "Graphics"
 msgstr "Gràfics"
@@ -11534,14 +11388,6 @@ msgstr ""
 "Aplica normals suavitzades al model.\n"
 "\n"
 "Cal recarregar l'escena manualment perquè tingui efecte (clic dret a la vista 3D → \"Torna-ho a carregar Tot\")."
-
-# AI Translated
-msgid "Translucent filaments"
-msgstr "Filaments translúcids"
-
-# AI Translated
-msgid "Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."
-msgstr "Dibuixa de manera translúcida les trajectòries d'eina dels filaments amb un color parcialment transparent, tal com la vista 3D dibuixa els seus objectes. Desactiveu-ho per dibuixar tots els filaments opacs."
 
 # AI Translated
 msgid "Phong shading"
@@ -11750,6 +11596,56 @@ msgstr "Executar"
 msgid "Replaces the current project with the OrcaSliced Combo, then measures the frame rate and render timings while the camera turns around it in Prepare and Preview, and while the layer slider moves through the sliced layers."
 msgstr "Substitueix el projecte actual per l'OrcaSliced Combo i després mesura la velocitat de fotogrames i els temps de renderització mentre la càmera hi gira al voltant a Preparació i a Previsualització, i mentre el control lliscant de capes recorre les capes laminades."
 
+# AI Translated
+msgid "G-code Preview"
+msgstr "Previsualització del G-code"
+
+# AI Translated
+msgid "Default view type"
+msgstr "Tipus de vista predeterminat"
+
+# AI Translated
+msgid ""
+"The color scheme the sliced preview opens with.\n"
+"Automatic: Filament for multi material prints, Line Type for single material ones.\n"
+"Last used: the view type you selected last.\n"
+"Any other value always opens that view type.\n"
+"You can still switch the view type in the preview afterwards."
+msgstr ""
+"L'esquema de colors amb què s'obre la previsualització laminada.\n"
+"Automàtic: Filament per a impressions multimaterial, Tipus de línia per a les d'un sol material.\n"
+"Darrer utilitzat: el tipus de vista que vau seleccionar per última vegada.\n"
+"Qualsevol altre valor obre sempre aquest tipus de vista.\n"
+"Després podeu canviar igualment el tipus de vista a la previsualització."
+
+# AI Translated
+msgid "Dim lower layers"
+msgstr "Enfosquir les capes inferiors"
+
+# AI Translated
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr "En desplaçar el control lliscant de capes a la previsualització laminada, mostra enfosquides les capes per sota de l'actual, de manera que només la capa que s'està visualitzant es vegi amb la lluminositat completa."
+
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "Brillantor de les capes enfosquides"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"Amb quina brillantor es mostren les capes enfosquides quan \"Enfosquir les capes inferiors\" està activat.\n"
+"99% amb prou feines s'enfosqueix, 0% les mostra negres. Limitat al 99% perquè el 100% seria el mateix que desactivar l'opció."
+
+# AI Translated
+msgid "Translucent filaments"
+msgstr "Filaments translúcids"
+
+# AI Translated
+msgid "Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."
+msgstr "Dibuixa de manera translúcida les trajectòries d'eina dels filaments amb un color parcialment transparent, tal com la vista 3D dibuixa els seus objectes. Desactiveu-ho per dibuixar tots els filaments opacs."
+
 msgid "Login region"
 msgstr "Regió d'inici de sessió"
 
@@ -11836,6 +11732,47 @@ msgstr "Versió del connector de xarxa"
 
 msgid "Select the network plug-in version to use"
 msgstr "Seleccioneu la versió del connector de xarxa a utilitzar"
+
+msgid "Associate"
+msgstr "Associar"
+
+msgid "Associate files to OrcaSlicer"
+msgstr "Associar fitxers a OrcaSlicer"
+
+# AI Translated
+msgid "File associations for the Microsoft Store version are managed by Windows Settings."
+msgstr "Les associacions de fitxers de la versió de la Microsoft Store es gestionen des de la Configuració de Windows."
+
+# AI Translated
+msgid "Open Windows Default Apps Settings"
+msgstr "Obrir la configuració d'aplicacions predeterminades de Windows"
+
+msgid "Associate 3MF files to OrcaSlicer"
+msgstr "Associar .3mf fitxers a OrcaSlicer"
+
+msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
+msgstr "Si està habilitat, defineix OrcaSlicer com a l'aplicació predeterminada per obrir fitxers .3mf"
+
+msgid "Associate DRC files to OrcaSlicer"
+msgstr "Associa fitxers DRC a OrcaSlicer"
+
+msgid "If enabled, sets OrcaSlicer as default application to open DRC files."
+msgstr "Si s'activa, estableix OrcaSlicer com a aplicació predeterminada per obrir fitxers DRC."
+
+msgid "Associate STL files to OrcaSlicer"
+msgstr "Associar fitxers .stl a OrcaSlicer"
+
+msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
+msgstr "Si està habilitada, defineix OrcaSlicer com a l'aplicació predeterminada per obrir fitxers .stl"
+
+msgid "Associate STEP files to OrcaSlicer"
+msgstr "Associar fitxers .step/.stp a OrcaSlicer"
+
+msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
+msgstr "Si està habilitada, defineix OrcaSlicer com a l'aplicació predeterminada per obrir fitxers .step"
+
+msgid "Associate web links to OrcaSlicer"
+msgstr "Associar enllaços web a OrcaSlicer"
 
 msgid "Developer"
 msgstr "Desenvolupador"
@@ -15667,11 +15604,6 @@ msgstr "%1% talla un volum de col·lisió de l'extrusor %2%."
 msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% està massa a prop d'altres i es poden produir col·lisions."
 
-# AI Translated
-#, boost-format
-msgid "%1% is printed later than its place in the object list, to avoid a collision."
-msgstr "%1% s'imprimeix més tard del que li correspon per la seva posició a la llista d'objectes, per evitar una col·lisió."
-
 #, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% és massa alt i es provocaran col·lisions."
@@ -15815,12 +15747,6 @@ msgstr "Seleccioneu la seqüència d'impressió \"Per objecte\" per imprimir div
 
 msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "El mode Gerro en Espiral no funciona quan un objecte conté més d'un material."
-
-# AI Translated
-#. TRN %1% is the object name.
-#, boost-format
-msgid "Spiral vase mode needs no sparse infill, one wall loop and no top shell layers, but the object %1% uses other values, so it will not print as a continuous spiral."
-msgstr "El mode \"Gerro en Espiral\" necessita un sol bucle de perímetre, sense farciment poc dens ni capes de carcassa superior, però l'objecte %1% utilitza altres valors, de manera que no s'imprimirà com una espiral contínua."
 
 #, boost-format
 msgid "While the object %1% itself fits the build volume, it exceeds the maximum build volume height because of material shrinkage compensation."
@@ -15994,15 +15920,8 @@ msgid "Adaptive pressure advance is enabled for one or more extruders, but no me
 msgstr "El Pressure Advance adaptatiu està activat per a un o més extrusors, però no s'ha introduït cap mesura al seu model de Pressure Advance adaptatiu."
 
 # AI Translated
-#. TRN %1% is the filament number as shown in the filament list, starting from 1; %2% names the invalid line.
-#. one warning per filament, the notifications stack
-#, boost-format
-msgid ""
-"The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
-"%2%"
-msgstr ""
-"El model de Pressure Advance adaptatiu del filament %1% conté valors no vàlids.\n"
-"%2%"
+msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
+msgstr "El model de Pressure Advance adaptatiu d'un o més extrusors pot contenir valors no vàlids."
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "La contracció del filament no s'utilitzarà perquè la contracció del filament per als filaments utilitzats difereix significativament."
@@ -22703,14 +22622,6 @@ msgstr "Temps d'impressió estimat quan s'imprimeix en mode normal (és a dir, n
 msgid "Estimated print time when printed in normal mode (i.e. not in silent mode). Same as normal_print_time."
 msgstr "Temps d'impressió estimat quan s'imprimeix en mode normal (és a dir, no en mode silenciós). Igual que normal_print_time."
 
-# AI Translated
-msgid "Used filament types"
-msgstr "Tipus de filament utilitzats"
-
-# AI Translated
-msgid "Underscore-separated list of all filament types used during the print."
-msgstr "Llista de tots els tipus de filament utilitzats durant la impressió, separats per guions baixos."
-
 msgid "Print time (silent mode)"
 msgstr "Temps d'impressió (mode silenciós)"
 
@@ -26920,34 +26831,6 @@ msgstr "Introduïu un valor vàlid (0.01 < deflexió angular < 1.0)"
 msgid "Split compound and compsolid into multiple objects"
 msgstr "Divideix compostos i sòlids compostos en múltiples objectes"
 
-# AI Translated
-msgid "Loads each body of a multi-body part separately. Needed to keep the bodies' original names."
-msgstr "Carrega per separat cada cos d'una peça amb diversos cossos. Necessari per conservar els noms originals dels cossos."
-
-# AI Translated
-msgid "Load as an assembly"
-msgstr "Carrega com a muntatge"
-
-# AI Translated
-msgid "Load as a single object (can be split later)"
-msgstr "Carrega com a objecte únic (es pot separar més tard)"
-
-# AI Translated
-msgid "The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."
-msgstr "Els cossos i els noms originals es conserven dins de l'objecte. Utilitzeu \"Separar en peces\" per mostrar-los com a peces separades."
-
-# AI Translated
-msgid "Use the body names stored in the file, when there are any. Needs Split compound for parts with several bodies."
-msgstr "Utilitza els noms de cos desats al fitxer, si n'hi ha. Cal \"Divideix compostos\" per a les peces amb diversos cossos."
-
-# AI Translated
-msgid "Sort parts by name"
-msgstr "Ordena les peces per nom"
-
-# AI Translated
-msgid "Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."
-msgstr "Ordena les peces de cada muntatge importat a la llista d'objectes. Això no canvia l'ordre utilitzat per laminar. Disponible quan \"Conserva els noms originals\" està activat."
-
 msgid "Number of triangular facets"
 msgstr "Nombre de cares triangulars"
 
@@ -26957,96 +26840,6 @@ msgstr "Calculant, espereu..."
 # AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
 msgstr "Si s'activa, els valors anteriors es desen com a valors per defecte per a futures importacions STEP (i es mostren a Preferències)."
-
-# AI Translated
-msgid "Don't ask again"
-msgstr "No tornis a preguntar"
-
-# AI Translated
-msgid "Save these choices and apply them without asking next time. You can show this dialog again in Preferences."
-msgstr "Desa aquestes opcions i les aplica sense preguntar la propera vegada. Podeu tornar a mostrar aquest quadre de diàleg a Preferències."
-
-# AI Translated
-msgid "3MF geometry import options"
-msgstr "Opcions d'importació de geometria 3MF"
-
-# AI Translated
-msgid "AMF geometry import options"
-msgstr "Opcions d'importació de geometria AMF"
-
-# AI Translated
-msgid "Choose how to name and order the parts of this file."
-msgstr "Trieu com anomenar i ordenar les peces d'aquest fitxer."
-
-# AI Translated
-msgid "Choose how to load the bodies in this file."
-msgstr "Trieu com carregar els cossos d'aquest fitxer."
-
-# AI Translated
-msgid "Load as separate objects"
-msgstr "Carrega com a objectes separats"
-
-# AI Translated
-msgid "Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."
-msgstr "Cada objecte del fitxer es carrega per separat, tal com OrcaSlicer sempre ha carregat els fitxers AMF."
-
-# AI Translated
-msgid "The bodies of each group in the file become parts of one object, in their relative positions."
-msgstr "Els cossos de cada grup del fitxer es converteixen en peces d'un sol objecte, en les seves posicions relatives."
-
-# AI Translated
-msgid "Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."
-msgstr "Utilitza els noms de cos desats al fitxer, si n'hi ha. Si està desactivat, s'utilitzen els noms habituals d'OrcaSlicer; els noms de projecte existents es conserven."
-
-# AI Translated
-msgid "Use these choices as defaults next time. The dialog still opens."
-msgstr "Utilitza aquestes opcions com a valors per defecte la propera vegada. El quadre de diàleg es continuarà obrint."
-
-# AI Translated
-msgid "A name in the file is not valid Unicode. The geometry was not imported."
-msgstr "Un nom del fitxer no és Unicode vàlid. La geometria no s'ha importat."
-
-# AI Translated
-msgid "Invalid name"
-msgstr "Nom no vàlid"
-
-# AI Translated
-msgid "Unsupported characters in names"
-msgstr "Caràcters no compatibles als noms"
-
-# AI Translated
-msgid "Some original names contain characters that OrcaSlicer cannot use. Choose how to change them before importing."
-msgstr "Alguns noms originals contenen caràcters que OrcaSlicer no pot utilitzar. Trieu com canviar-los abans d'importar."
-
-# AI Translated
-msgid "Remove unsupported characters"
-msgstr "Elimina els caràcters no compatibles"
-
-# AI Translated
-msgid "Replace with:"
-msgstr "Substitueix per:"
-
-# AI Translated
-msgid "Each unsupported character is replaced with this text. It may be longer than one character."
-msgstr "Cada caràcter no compatible se substitueix per aquest text. Pot tenir més d'un caràcter."
-
-# AI Translated
-msgid "Use this rule as the default next time. The dialog still opens."
-msgstr "Utilitza aquesta regla com a valor per defecte la propera vegada. El quadre de diàleg es continuarà obrint."
-
-# AI Translated
-msgid "Save this rule and apply it without asking next time. You can show this dialog again in Preferences."
-msgstr "Desa aquesta regla i l'aplica sense preguntar la propera vegada. Podeu tornar a mostrar aquest quadre de diàleg a Preferències."
-
-# AI Translated
-msgid "Enter a non-empty replacement containing only supported characters, or choose removal."
-msgstr "Introduïu un text de substitució que no estigui buit i que només contingui caràcters compatibles, o trieu l'eliminació."
-
-# AI Translated
-#. TRN The placeholders are the original name and its imported replacement.
-#, boost-format
-msgid "%1% → %2%"
-msgstr "%1% → %2%"
 
 # AI Translated
 msgid "PresetBundle"
@@ -34923,71 +34716,6 @@ msgid "Note:"
 msgstr "Nota:"
 
 # AI Translated
-#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
-#, boost-format
-msgid "• %1%: %2%"
-msgstr "• %1%: %2%"
-
-# AI Translated
-#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
-#, boost-format
-msgid "• %1% — %2%: %3%"
-msgstr "• %1% — %2%: %3%"
-
-# AI Translated
-#, boost-format
-msgid ""
-"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-"\n"
-"%1%\n"
-"\n"
-"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-msgstr ""
-"Els ajustaments següents fan referència a connectors que Orca Slicer no pot identificar en aquest ordinador:\n"
-"\n"
-"%1%\n"
-"\n"
-"Si deseu igualment, el perfil no conservarà les referències als connectors d'aquests ajustaments. En un altre ordinador, Orca Slicer no sabrà quins connectors oferir, i és possible que els ajustaments no hi funcionin."
-
-# AI Translated
-#, boost-format
-msgid ""
-"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-"\n"
-"%1%\n"
-"\n"
-"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-msgstr ""
-"Els ajustaments següents fan referència a connectors que Orca Slicer no pot identificar en aquest ordinador:\n"
-"\n"
-"%1%\n"
-"\n"
-"Si deseu igualment, el projecte no conservarà les referències als connectors d'aquests ajustaments. En un altre ordinador, Orca Slicer no sabrà quins connectors oferir, i és possible que els ajustaments no hi funcionin."
-
-# AI Translated
-msgid "Plugin Not Identified"
-msgstr "Connector no identificat"
-
-# AI Translated
-msgid "Save anyway"
-msgstr "Desar igualment"
-
-# AI Translated
-#, boost-format
-msgid ""
-"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
-"\n"
-"%1%\n"
-"\n"
-"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-msgstr ""
-"Els perfils que es desen fan referència a connectors que Orca Slicer no pot identificar en aquest ordinador:\n"
-"\n"
-"%1%\n"
-"\n"
-"Si deseu igualment, els perfils no conservaran les referències als connectors d'aquests ajustaments. En un altre ordinador, Orca Slicer no sabrà quins connectors oferir, i és possible que els ajustaments no hi funcionin."
-
-# AI Translated
 msgctxt "Texture Displacement"
 msgid "Bake"
 msgstr "Fixar"
@@ -39326,40 +39054,313 @@ msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
 
-#~ msgid "Show options when importing STEP file"
-#~ msgstr "Mostra opcions en importar fitxers STEP"
+# AI Translated
+#~ msgid "Subdivision mesh"
+#~ msgstr "Subdivisió de la malla"
 
 # AI Translated
-#~ msgid "STEP importing: linear deflection"
-#~ msgstr "Importació STEP: desviació lineal"
+#~ msgid "Updates are available for your OrcaCloud plugins."
+#~ msgstr "Hi ha actualitzacions disponibles per als vostres connectors d'OrcaCloud."
 
 # AI Translated
-#~ msgid "STEP importing: angle deflection"
-#~ msgstr "Importació STEP: desviació angular"
+#~ msgid "Some imported objects contain modifiers or parts with individual settings. They are shown as assemblies so that these settings remain visible."
+#~ msgstr "Alguns objectes importats contenen modificadors o peces amb configuració individual. Es mostren com a muntatges perquè aquesta configuració continuï sent visible."
 
 # AI Translated
-#~ msgid "STEP importing: Split into multiple objects"
-#~ msgstr "Importació STEP: separar en diversos objectes"
+#~ msgid "Geometry import"
+#~ msgstr "Importació de geometria"
+
+# AI Translated
+#~ msgid "Files"
+#~ msgstr "Fitxers"
+
+# AI Translated
+#~ msgid "Folder paths"
+#~ msgstr "Rutes de carpetes"
+
+# AI Translated
+#~ msgid "File import"
+#~ msgstr "Importació de fitxers"
+
+# AI Translated
+#~ msgid "Ask how to handle unsupported characters in imported names"
+#~ msgstr "Pregunta com gestionar els caràcters no compatibles dels noms importats"
+
+# AI Translated
+#~ msgid "Show the removal or replacement choices when original names contain unsupported characters."
+#~ msgstr "Mostra les opcions d'eliminació o substitució quan els noms originals contenen caràcters no compatibles."
+
+# AI Translated
+#~ msgid "3MF import"
+#~ msgstr "Importació 3MF"
+
+# AI Translated
+#~ msgid "Show options when importing"
+#~ msgstr "Mostra opcions en importar"
+
+# AI Translated
+#~ msgid "Show original-name and sorting options when importing a 3MF without project settings into the current project."
+#~ msgstr "Mostra les opcions de nom original i d'ordenació en importar un 3MF sense configuració de projecte al projecte actual."
+
+# AI Translated
+#~ msgid "Keep original names"
+#~ msgstr "Conserva els noms originals"
+
+# AI Translated
+#~ msgid "Use the body names stored in the imported file when it contains them."
+#~ msgstr "Utilitza els noms de cos desats al fitxer importat, si en conté."
+
+# AI Translated
+#~ msgid "STEP import"
+#~ msgstr "Importació STEP"
+
+# AI Translated
+#~ msgid "Linear deflection"
+#~ msgstr "Deflexió lineal"
+
+# AI Translated
+#~ msgid "Angle deflection"
+#~ msgstr "Deflexió angular"
+
+# AI Translated
+#~ msgid "Split into multiple objects"
+#~ msgstr "Separa en diversos objectes"
 
 # AI Translated
 #~ msgid ""
 #~ "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
 #~ "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
-#~ "Default: disabled."
+#~ "Default: enabled."
 #~ msgstr ""
 #~ "Si s'activa, les formes compound i compsolid dels fitxers STEP importats se separen en diversos objectes.\n"
 #~ "S'utilitza com a valor per defecte al quadre de diàleg d'importació, o directament quan aquest està desactivat.\n"
-#~ "Per defecte: desactivat."
+#~ "Per defecte: activat."
 
-#~ msgid "Behavior"
+# AI Translated
+#~ msgid "AMF import"
+#~ msgstr "Importació AMF"
+
+# AI Translated
+#~ msgid "Show body grouping, original-name and sorting options when importing geometry into the current project."
+#~ msgstr "Mostra les opcions d'agrupació de cossos, de nom original i d'ordenació en importar geometria al projecte actual."
+
+# AI Translated
+#~ msgid "DRC export"
+#~ msgstr "Exportació DRC"
+
+#~ msgid "Behaviour"
 #~ msgstr "Comportament"
 
 # AI Translated
-#~ msgid "G-code Preview"
-#~ msgstr "Previsualització del G-code"
+#~ msgid "Speed dial"
+#~ msgstr "Accés ràpid"
 
-#~ msgid "Associate"
-#~ msgstr "Associar"
+# AI Translated
+#, boost-format
+#~ msgid "%1% is printed later than its place in the object list, to avoid a collision."
+#~ msgstr "%1% s'imprimeix més tard del que li correspon per la seva posició a la llista d'objectes, per evitar una col·lisió."
+
+# AI Translated
+#, boost-format
+#~ msgid "Spiral vase mode needs no sparse infill, one wall loop and no top shell layers, but the object %1% uses other values, so it will not print as a continuous spiral."
+#~ msgstr "El mode \"Gerro en Espiral\" necessita un sol bucle de perímetre, sense farciment poc dens ni capes de carcassa superior, però l'objecte %1% utilitza altres valors, de manera que no s'imprimirà com una espiral contínua."
+
+# AI Translated
+#, boost-format
+#~ msgid ""
+#~ "The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
+#~ "%2%"
+#~ msgstr ""
+#~ "El model de Pressure Advance adaptatiu del filament %1% conté valors no vàlids.\n"
+#~ "%2%"
+
+# AI Translated
+#~ msgid "Used filament types"
+#~ msgstr "Tipus de filament utilitzats"
+
+# AI Translated
+#~ msgid "Underscore-separated list of all filament types used during the print."
+#~ msgstr "Llista de tots els tipus de filament utilitzats durant la impressió, separats per guions baixos."
+
+# AI Translated
+#~ msgid "Loads each body of a multi-body part separately. Needed to keep the bodies' original names."
+#~ msgstr "Carrega per separat cada cos d'una peça amb diversos cossos. Necessari per conservar els noms originals dels cossos."
+
+# AI Translated
+#~ msgid "Load as an assembly"
+#~ msgstr "Carrega com a muntatge"
+
+# AI Translated
+#~ msgid "Load as a single object (can be split later)"
+#~ msgstr "Carrega com a objecte únic (es pot separar més tard)"
+
+# AI Translated
+#~ msgid "The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."
+#~ msgstr "Els cossos i els noms originals es conserven dins de l'objecte. Utilitzeu \"Separar en peces\" per mostrar-los com a peces separades."
+
+# AI Translated
+#~ msgid "Use the body names stored in the file, when there are any. Needs Split compound for parts with several bodies."
+#~ msgstr "Utilitza els noms de cos desats al fitxer, si n'hi ha. Cal \"Divideix compostos\" per a les peces amb diversos cossos."
+
+# AI Translated
+#~ msgid "Sort parts by name"
+#~ msgstr "Ordena les peces per nom"
+
+# AI Translated
+#~ msgid "Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."
+#~ msgstr "Ordena les peces de cada muntatge importat a la llista d'objectes. Això no canvia l'ordre utilitzat per laminar. Disponible quan \"Conserva els noms originals\" està activat."
+
+# AI Translated
+#~ msgid "Don't ask again"
+#~ msgstr "No tornis a preguntar"
+
+# AI Translated
+#~ msgid "Save these choices and apply them without asking next time. You can show this dialog again in Preferences."
+#~ msgstr "Desa aquestes opcions i les aplica sense preguntar la propera vegada. Podeu tornar a mostrar aquest quadre de diàleg a Preferències."
+
+# AI Translated
+#~ msgid "3MF geometry import options"
+#~ msgstr "Opcions d'importació de geometria 3MF"
+
+# AI Translated
+#~ msgid "AMF geometry import options"
+#~ msgstr "Opcions d'importació de geometria AMF"
+
+# AI Translated
+#~ msgid "Choose how to name and order the parts of this file."
+#~ msgstr "Trieu com anomenar i ordenar les peces d'aquest fitxer."
+
+# AI Translated
+#~ msgid "Choose how to load the bodies in this file."
+#~ msgstr "Trieu com carregar els cossos d'aquest fitxer."
+
+# AI Translated
+#~ msgid "Load as separate objects"
+#~ msgstr "Carrega com a objectes separats"
+
+# AI Translated
+#~ msgid "Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."
+#~ msgstr "Cada objecte del fitxer es carrega per separat, tal com OrcaSlicer sempre ha carregat els fitxers AMF."
+
+# AI Translated
+#~ msgid "The bodies of each group in the file become parts of one object, in their relative positions."
+#~ msgstr "Els cossos de cada grup del fitxer es converteixen en peces d'un sol objecte, en les seves posicions relatives."
+
+# AI Translated
+#~ msgid "Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."
+#~ msgstr "Utilitza els noms de cos desats al fitxer, si n'hi ha. Si està desactivat, s'utilitzen els noms habituals d'OrcaSlicer; els noms de projecte existents es conserven."
+
+# AI Translated
+#~ msgid "Use these choices as defaults next time. The dialog still opens."
+#~ msgstr "Utilitza aquestes opcions com a valors per defecte la propera vegada. El quadre de diàleg es continuarà obrint."
+
+# AI Translated
+#~ msgid "A name in the file is not valid Unicode. The geometry was not imported."
+#~ msgstr "Un nom del fitxer no és Unicode vàlid. La geometria no s'ha importat."
+
+# AI Translated
+#~ msgid "Invalid name"
+#~ msgstr "Nom no vàlid"
+
+# AI Translated
+#~ msgid "Unsupported characters in names"
+#~ msgstr "Caràcters no compatibles als noms"
+
+# AI Translated
+#~ msgid "Some original names contain characters that OrcaSlicer cannot use. Choose how to change them before importing."
+#~ msgstr "Alguns noms originals contenen caràcters que OrcaSlicer no pot utilitzar. Trieu com canviar-los abans d'importar."
+
+# AI Translated
+#~ msgid "Remove unsupported characters"
+#~ msgstr "Elimina els caràcters no compatibles"
+
+# AI Translated
+#~ msgid "Replace with:"
+#~ msgstr "Substitueix per:"
+
+# AI Translated
+#~ msgid "Each unsupported character is replaced with this text. It may be longer than one character."
+#~ msgstr "Cada caràcter no compatible se substitueix per aquest text. Pot tenir més d'un caràcter."
+
+# AI Translated
+#~ msgid "Use this rule as the default next time. The dialog still opens."
+#~ msgstr "Utilitza aquesta regla com a valor per defecte la propera vegada. El quadre de diàleg es continuarà obrint."
+
+# AI Translated
+#~ msgid "Save this rule and apply it without asking next time. You can show this dialog again in Preferences."
+#~ msgstr "Desa aquesta regla i l'aplica sense preguntar la propera vegada. Podeu tornar a mostrar aquest quadre de diàleg a Preferències."
+
+# AI Translated
+#~ msgid "Enter a non-empty replacement containing only supported characters, or choose removal."
+#~ msgstr "Introduïu un text de substitució que no estigui buit i que només contingui caràcters compatibles, o trieu l'eliminació."
+
+# AI Translated
+#, boost-format
+#~ msgid "%1% → %2%"
+#~ msgstr "%1% → %2%"
+
+# AI Translated
+#, boost-format
+#~ msgid "• %1%: %2%"
+#~ msgstr "• %1%: %2%"
+
+# AI Translated
+#, boost-format
+#~ msgid "• %1% — %2%: %3%"
+#~ msgstr "• %1% — %2%: %3%"
+
+# AI Translated
+#, boost-format
+#~ msgid ""
+#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+#~ msgstr ""
+#~ "Els ajustaments següents fan referència a connectors que Orca Slicer no pot identificar en aquest ordinador:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "Si deseu igualment, el perfil no conservarà les referències als connectors d'aquests ajustaments. En un altre ordinador, Orca Slicer no sabrà quins connectors oferir, i és possible que els ajustaments no hi funcionin."
+
+# AI Translated
+#, boost-format
+#~ msgid ""
+#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+#~ msgstr ""
+#~ "Els ajustaments següents fan referència a connectors que Orca Slicer no pot identificar en aquest ordinador:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "Si deseu igualment, el projecte no conservarà les referències als connectors d'aquests ajustaments. En un altre ordinador, Orca Slicer no sabrà quins connectors oferir, i és possible que els ajustaments no hi funcionin."
+
+# AI Translated
+#~ msgid "Plugin Not Identified"
+#~ msgstr "Connector no identificat"
+
+# AI Translated
+#~ msgid "Save anyway"
+#~ msgstr "Desar igualment"
+
+# AI Translated
+#, boost-format
+#~ msgid ""
+#~ "The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+#~ msgstr ""
+#~ "Els perfils que es desen fan referència a connectors que Orca Slicer no pot identificar en aquest ordinador:\n"
+#~ "\n"
+#~ "%1%\n"
+#~ "\n"
+#~ "Si deseu igualment, els perfils no conservaran les referències als connectors d'aquests ajustaments. En un altre ordinador, Orca Slicer no sabrà quins connectors oferir, i és possible que els ajustaments no hi funcionin."
 
 # AI Translated
 #~ msgid "Remove from favorites"
