@@ -73,6 +73,7 @@ private:
      * \param air_dilation The thickening kernel applied to air so that cells near the outside of the model won't be generated
      * \param air_filtering Whether to fully remove all of the interlocking cells which would be visible on the outside (i.e. touching air).
      * If no air filtering then those cells will be cut off in the middle of a beam.
+     * \param skip_bottom_layers The number of bottom layers whose outlines are left untouched (no interlocking structure).
      */
     InterlockingGenerator(PrintObject&          print_object,
                           const size_t          region_a_index,
@@ -85,6 +86,7 @@ private:
                           const DilationKernel& interface_dilation,
                           const DilationKernel& air_dilation,
                           const bool            air_filtering,
+                          const size_t          skip_bottom_layers,
                           const std::function<void()>& throw_on_cancel)
         : print_object(print_object)
         , region_a_index(region_a_index)
@@ -98,6 +100,7 @@ private:
         , interface_dilation(interface_dilation)
         , air_dilation(air_dilation)
         , air_filtering(air_filtering)
+        , skip_bottom_layers(skip_bottom_layers)
         , throw_on_cancel(throw_on_cancel)
     {}
     
@@ -176,6 +179,9 @@ private:
     // Whether to fully remove all of the interlocking cells which would be visible on the outside. If no air filtering then those cells
     // will be cut off midway in a beam.
     const bool air_filtering;
+
+    // Layers with an index below this value keep their original outlines; no interlocking structure is applied to them.
+    const size_t skip_bottom_layers;
 
     const std::function<void()>& throw_on_cancel;
 };

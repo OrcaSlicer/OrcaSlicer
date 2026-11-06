@@ -1508,6 +1508,7 @@ static std::vector<std::string> s_Preset_print_options{
     "interlocking_beam_layer_count",
     "interlocking_depth",
     "interlocking_boundary_avoidance",
+    "interlocking_skip_bottom_layers",
     "interlocking_beam_width",
     "calib_flowrate_topinfill_special_order",
     // IDEX/IQEX parallel print mode (per-print selection)
