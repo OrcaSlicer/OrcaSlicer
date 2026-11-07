@@ -4,9 +4,11 @@
 #include "UiInspector.hpp"
 #include "slic3r/GUI/LinuxDisplayBackend.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/SyntheticInput.hpp"
 
 #include <wx/gdicmn.h>
 #include <wx/glcanvas.h>
+#include <wx/menu.h>
 #include <wx/mstream.h>
 #include <wx/toplevel.h>
 #include <wx/window.h>
@@ -49,10 +51,26 @@ void composite(wxImage& dst, const wxImage& src, const wxPoint& at, const std::v
         return;
     const int x0 = std::max(0, at.x), y0 = std::max(0, at.y);
     const int x1 = std::min(dst.GetWidth(), at.x + src.GetWidth()), y1 = std::min(dst.GetHeight(), at.y + src.GetHeight());
+    const unsigned char* alpha = src.HasAlpha() ? src.GetAlpha() : nullptr;
     std::vector<std::pair<int, int>> skip; // the row's excluded spans, sorted
     for (int y = y0; y < y1; ++y) {
-        const unsigned char* s = src.GetData() + size_t(y - at.y) * size_t(src.GetWidth()) * 3;
-        unsigned char*       d = dst.GetData() + size_t(y) * size_t(dst.GetWidth()) * 3;
+        const size_t         row = size_t(y - at.y) * size_t(src.GetWidth());
+        const unsigned char* s   = src.GetData() + row * 3;
+        unsigned char*       d   = dst.GetData() + size_t(y) * size_t(dst.GetWidth()) * 3;
+        // Copies, or blends by the source's alpha, the pixels from x to x_end.
+        auto put = [&](int x, int x_end) {
+            if (alpha == nullptr) {
+                std::copy(s + size_t(x - at.x) * 3, s + size_t(x_end - at.x) * 3, d + size_t(x) * 3);
+                return;
+            }
+            for (; x < x_end; ++x) {
+                const int            a  = alpha[row + size_t(x - at.x)];
+                const unsigned char* sp = s + size_t(x - at.x) * 3;
+                unsigned char*       dp = d + size_t(x) * 3;
+                for (int c = 0; c < 3; ++c)
+                    dp[c] = (unsigned char) ((sp[c] * a + dp[c] * (255 - a) + 127) / 255);
+            }
+        };
         skip.clear();
         for (const wxRect& r : excluded)
             if (y >= r.GetTop() && y <= r.GetBottom())
@@ -61,13 +79,13 @@ void composite(wxImage& dst, const wxImage& src, const wxPoint& at, const std::v
         int x = x0;
         for (const auto& [from, to] : skip) {
             if (from > x)
-                std::copy(s + size_t(x - at.x) * 3, s + size_t(std::min(from, x1) - at.x) * 3, d + size_t(x) * 3);
+                put(x, std::min(from, x1));
             x = std::max(x, to);
             if (x >= x1)
                 break;
         }
         if (x < x1)
-            std::copy(s + size_t(x - at.x) * 3, s + size_t(x1 - at.x) * 3, d + size_t(x) * 3);
+            put(x, x1);
     }
 }
 
@@ -260,6 +278,14 @@ std::optional<Capture> capture_window(wxTopLevelWindow& window, std::string& err
         composite(c.image, frame, client_offset_in(*glc, window), c.covered);
     }
 
+    // Our popups over the window, over its 3D views too, as a context menu on the 3D view shows.
+    if (options.popups) {
+        const double scale = window.GetContentScaleFactor();
+        for (const PopupCapture& p : capture_popups())
+            if (p.owner == &window)
+                composite(c.image, p.image, wxPoint(int(std::lround(p.offset.x * scale)), int(std::lround(p.offset.y * scale))));
+    }
+
     // An OpenGL view with no frame capture: say so rather than return its area as the window
     // capture left it.
     std::function<bool(wxWindow*)> other_gl = [&](wxWindow* w) {
@@ -278,6 +304,10 @@ std::optional<Capture> capture_window(wxTopLevelWindow& window, std::string& err
     }
     return c;
 }
+
+#if !defined(__WXGTK__)
+std::vector<PopupCapture> capture_popups() { return {}; }
+#endif
 
 #if defined(__WXGTK__)
 
@@ -318,6 +348,119 @@ bool painted(cairo_surface_t* surface)
                 return true;
     }
     return false;
+}
+
+// The child a GtkWindow shows itself in: without the shadow of a client-side decoration, with the client
+// area where wx puts it.
+GtkWidget* content_of(GtkWidget* window)
+{
+    GtkWidget* child = GTK_IS_BIN(window) ? gtk_bin_get_child(GTK_BIN(window)) : nullptr;
+    return child != nullptr ? child : window;
+}
+
+// Draws a GtkWindow's content from its widget tree, at `scale` image pixels per logical one. A relayout still
+// pending, once a widget was shown or hidden, makes gtk_widget_draw() draw nothing, so it is run first, as the
+// frame clock's layout phase would. A window just shown or resized waits for the compositor to size it before
+// it can be laid out, and draws nothing until then: false.
+bool draw_widget_tree(GtkWidget* window, int scale, wxImage& out)
+{
+    gtk_container_check_resize(GTK_CONTAINER(window));
+    GtkWidget* content = content_of(window);
+    const int  w = gtk_widget_get_allocated_width(content), h = gtk_widget_get_allocated_height(content);
+    if (w <= 0 || h <= 0)
+        return false;
+    cairo_surface_t* surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w * scale, h * scale);
+    cairo_surface_set_device_scale(surface, scale, scale);
+    cairo_t* cr = cairo_create(surface);
+    gtk_widget_draw(content, cr);
+    cairo_destroy(cr);
+    const bool drawn = painted(surface);
+    if (drawn)
+        out = from_cairo(surface);
+    cairo_surface_destroy(surface);
+    return drawn && out.IsOk();
+}
+
+// Draws a popup GTK placed, a menu or a tooltip, as the compositor shows it: the whole window, since GTK
+// paints a tooltip's background and border on the window rather than its content, cropped to the window's
+// geometry, the part that is not shadow, found as the box of its opaque pixels. The image keeps the alpha
+// to blend it by.
+bool draw_popup_window(GtkWidget* window, int scale, wxImage& out)
+{
+    gtk_container_check_resize(GTK_CONTAINER(window));
+    const int w = gtk_widget_get_allocated_width(window), h = gtk_widget_get_allocated_height(window);
+    if (w <= 0 || h <= 0)
+        return false;
+    cairo_surface_t* surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w * scale, h * scale);
+    cairo_surface_set_device_scale(surface, scale, scale);
+    cairo_t* cr = cairo_create(surface);
+    gtk_widget_draw(window, cr);
+    cairo_destroy(cr);
+    cairo_surface_flush(surface);
+    const int            sw = cairo_image_surface_get_width(surface), sh = cairo_image_surface_get_height(surface);
+    const int            stride = cairo_image_surface_get_stride(surface);
+    const unsigned char* data   = cairo_image_surface_get_data(surface);
+    auto pixel = [&](int x, int y) { return reinterpret_cast<const uint32_t*>(data + size_t(y) * size_t(stride))[x]; };
+    int left = sw, top = sh, right = -1, bottom = -1;
+    for (int y = 0; y < sh; ++y)
+        for (int x = 0; x < sw; ++x)
+            if ((pixel(x, y) >> 24) >= 128) {
+                left   = std::min(left, x);
+                right  = std::max(right, x);
+                top    = std::min(top, y);
+                bottom = std::max(bottom, y);
+            }
+    const bool drawn = right >= left;
+    if (drawn) {
+        out.Create(right - left + 1, bottom - top + 1, false);
+        out.InitAlpha();
+        unsigned char* rgb   = out.GetData();
+        unsigned char* alpha = out.GetAlpha();
+        for (int y = top; y <= bottom; ++y)
+            for (int x = left; x <= right; ++x, rgb += 3, ++alpha) {
+                // Premultiplied in the surface; straight in a wxImage.
+                const uint32_t p = pixel(x, y);
+                const int      a = int(p >> 24);
+                auto           c = [a](uint32_t v) { return (unsigned char) (a == 0 ? 0 : std::min(255, int((v * 255 + a / 2) / a))); };
+                rgb[0]           = c((p >> 16) & 0xFF);
+                rgb[1]           = c((p >> 8) & 0xFF);
+                rgb[2]           = c(p & 0xFF);
+                *alpha           = (unsigned char) a;
+            }
+    }
+    cairo_surface_destroy(surface);
+    return drawn;
+}
+
+// Where a GtkWindow, and its content, are in GDK's root coordinates. On Wayland those are not the screen's,
+// but GDK keeps a popup's in step with the window it shows over (see capture_popups()).
+wxPoint origin_of(GdkWindow* window)
+{
+    gint x = 0, y = 0;
+    gdk_window_get_origin(window, &x, &y);
+    return {x, y};
+}
+
+wxPoint window_origin(GtkWidget* window) { return origin_of(gtk_widget_get_window(window)); }
+
+wxPoint content_origin(GtkWidget* window)
+{
+    wxPoint at = window_origin(window);
+    if (GtkWidget* content = content_of(window); content != window) {
+        GtkAllocation a;
+        gtk_widget_get_allocation(content, &a);
+        at += wxPoint(a.x, a.y);
+    }
+    return at;
+}
+
+// Our top-level wx window whose GtkWindow `window` is, or null.
+wxTopLevelWindow* wx_window_of(GtkWidget* window)
+{
+    for (wxWindow* w : wxTopLevelWindows)
+        if (w->GetHandle() == window)
+            return dynamic_cast<wxTopLevelWindow*>(w);
+    return nullptr;
 }
 
 } // namespace
@@ -468,32 +611,115 @@ bool capture_native_window(wxTopLevelWindow& window, CaptureSessions* /*sessions
     }
 #endif
     // Wayland offers no way to read a window back; draw the widget tree into an image instead.
-    // Widgets drawn by GTK come out right; web views may stay blank, and the 3D canvases are
-    // composited by the caller. The toplevel's allocation includes the shadow of its client-side
-    // decoration; its child is the window as it shows, with the client area where wx puts it. A relayout
-    // still pending, once a widget was shown or hidden, makes gtk_widget_draw() draw nothing, so it is run
-    // first, as the frame clock's layout phase would. A window just shown or resized waits for the
-    // compositor to size it before it can be laid out, and fails until then.
-    gtk_container_check_resize(GTK_CONTAINER(widget));
-    GtkWidget* content = GTK_IS_BIN(widget) && gtk_bin_get_child(GTK_BIN(widget)) != nullptr ? gtk_bin_get_child(GTK_BIN(widget)) : widget;
-    const int  scale   = gtk_widget_get_scale_factor(content);
-    const int  w = gtk_widget_get_allocated_width(content), h = gtk_widget_get_allocated_height(content);
-    cairo_surface_t* surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w * scale, h * scale);
-    cairo_surface_set_device_scale(surface, scale, scale);
-    cairo_t* cr = cairo_create(surface);
-    gtk_widget_draw(content, cr);
-    cairo_destroy(cr);
-    const bool drawn = painted(surface);
-    if (drawn)
-        out = from_cairo(surface);
-    cairo_surface_destroy(surface);
-    if (!drawn) {
+    // Widgets drawn by GTK come out right; web views may stay blank, and the 3D canvases and our popups
+    // are composited by the caller.
+    if (!draw_widget_tree(widget, gtk_widget_get_scale_factor(content_of(widget)), out)) {
         err = "The window is still being laid out; capture it again in a moment";
         return false;
     }
     approximate = true;
     note        = "drawn from the widget tree (Wayland); web views may be blank";
-    return out.IsOk();
+    return true;
+}
+
+std::vector<PopupCapture> capture_popups()
+{
+    std::vector<PopupCapture> out;
+    if (window_positions_known()) // X11 window captures read them from the screen
+        return out;
+    // wx shows a popup menu attached to no widget, so GTK makes it transient for no window: it shows over the
+    // top-level window of the one popup_menu() was given, and GTK placed it relative to that one.
+    struct WxMenu
+    {
+        GtkWidget*        popup;
+        wxTopLevelWindow* window;
+        wxWindow*         from;
+    };
+    std::vector<WxMenu> menus;
+    for (const auto& [menu, from] : shown_menus())
+        if (menu->m_menu != nullptr)
+            menus.push_back({gtk_widget_get_toplevel(menu->m_menu), dynamic_cast<wxTopLevelWindow*>(owning_window(from)), from});
+    // wx's own popups, which wx places itself.
+    std::vector<GtkWidget*> wx_popups;
+    for (wxWindow* top : wxTopLevelWindows)
+        for (wxWindow* popup : popups_of(top))
+            wx_popups.push_back(static_cast<GtkWidget*>(popup->GetHandle()));
+    // Where a popup's geometry, the part that is not shadow, is on the content of the window it shows over.
+    // GDK puts a popup's origin in its root coordinates at that offset from the content's origin, less where
+    // the window GTK placed it relative to (`anchor`) is in the one it shows over: wx's menus are placed
+    // relative to the window popup_menu() was given, a submenu or a drop-down menu relative to the widget it
+    // is attached to, and a tooltip relative to the window it shows over. wx places its own popups at their
+    // geometry, in the same coordinates. See calculate_moved_to_rect_result() and create_simple_positioner()
+    // in GTK 3's gdkwindow-wayland.c.
+    auto offset_on = [](GtkWidget* popup, GtkWidget* over, const wxPoint& anchor) {
+        return window_origin(popup) - content_origin(over) + anchor - window_origin(over);
+    };
+
+    struct Shown
+    {
+        GtkWidget*        popup;
+        wxTopLevelWindow* window;
+        wxPoint           offset;
+        int               depth;
+        bool              wx;
+    };
+    std::vector<Shown> shown;
+    // Not referenced by the list; drawing them runs no code that could destroy them, but they are held anyway.
+    GList* toplevels = gtk_window_list_toplevels();
+    g_list_foreach(toplevels, reinterpret_cast<GFunc>(g_object_ref), nullptr);
+    for (GList* l = toplevels; l != nullptr; l = l->next) {
+        GtkWidget* popup = GTK_WIDGET(l->data);
+        if (gtk_window_get_window_type(GTK_WINDOW(popup)) != GTK_WINDOW_POPUP || !gtk_widget_get_mapped(popup))
+            continue;
+        // A popup shows over the window it is transient for, or over another popup that does, as a submenu
+        // over its menu, or over the window its menu was shown from.
+        GtkWidget*        at     = popup;
+        wxTopLevelWindow* window = nullptr;
+        wxPoint           offset(0, 0);
+        int               depth = 1;
+        for (;;) {
+            GtkWidget* over = nullptr;
+            std::optional<wxPoint> anchor;
+            if (const auto menu = std::find_if(menus.begin(), menus.end(), [at](const WxMenu& m) { return m.popup == at; }); menu != menus.end()) {
+                window = menu->window;
+                over   = window != nullptr ? static_cast<GtkWidget*>(window->GetHandle()) : nullptr;
+                GtkWidget* main = menu->from->m_wxwindow != nullptr ? menu->from->m_wxwindow : static_cast<GtkWidget*>(menu->from->GetHandle());
+                if (gtk_widget_get_window(main) != nullptr)
+                    anchor = origin_of(gtk_widget_get_window(main));
+            } else if (GtkWindow* parent = gtk_window_get_transient_for(GTK_WINDOW(at)); parent != nullptr && depth < 16) {
+                over = GTK_WIDGET(parent);
+                if (gtk_window_get_window_type(parent) != GTK_WINDOW_POPUP)
+                    window = wx_window_of(over);
+                GtkWidget* child  = gtk_bin_get_child(GTK_BIN(at));
+                GtkWidget* attach = child != nullptr && GTK_IS_MENU(child) ? gtk_menu_get_attach_widget(GTK_MENU(child)) : nullptr;
+                if (attach != nullptr && gtk_widget_get_window(attach) != nullptr)
+                    anchor = origin_of(gtk_widget_get_window(attach));
+            }
+            if (over == nullptr)
+                break;
+            offset += offset_on(at, over, anchor.value_or(window_origin(over)));
+            if (gtk_window_get_window_type(GTK_WINDOW(over)) != GTK_WINDOW_POPUP)
+                break;
+            at = over;
+            ++depth;
+        }
+        if (window != nullptr && window->IsShownOnScreen() && !hidden_from_automation(window))
+            shown.push_back({popup, window, offset, depth, std::find(wx_popups.begin(), wx_popups.end(), popup) != wx_popups.end()});
+    }
+    // Submenus over their menus; among equals, the list's order, oldest first.
+    std::stable_sort(shown.begin(), shown.end(), [](const Shown& a, const Shown& b) { return a.depth < b.depth; });
+    for (const Shown& s : shown) {
+        PopupCapture p;
+        p.owner  = s.window;
+        p.offset = s.offset;
+        // At its window's scale, so it composites into that window's capture as it is. A wx popup has no
+        // shadow, so its content is its geometry.
+        const int scale = gtk_widget_get_scale_factor(static_cast<GtkWidget*>(s.window->GetHandle()));
+        if (s.wx ? draw_widget_tree(s.popup, scale, p.image) : draw_popup_window(s.popup, scale, p.image))
+            out.push_back(std::move(p));
+    }
+    g_list_free_full(toplevels, g_object_unref);
+    return out;
 }
 
 #endif // __WXGTK__

@@ -30,6 +30,7 @@
 #include <wx/glcanvas.h>
 #include <wx/image.h>
 #include <wx/object.h>
+#include <wx/popupwin.h>
 #include <wx/radiobut.h>
 #include <wx/settings.h>
 #include <wx/tglbtn.h>
@@ -278,34 +279,44 @@ bool capture_area(McpService& service, Recording& rec, const CaptureOptions& opt
         out  = cap->image;
         area = canvas->get_wxglcanvas();
     } else {
-        std::optional<Capture> cap = capture_window(*frame, err, options);
+        // Popups are drawn last, over the dialogs, rather than into the window each shows over, which would
+        // cut off a drop-down list reaching past its dialog.
+        CaptureOptions window_options = options;
+        window_options.popups         = false;
+        std::optional<Capture> cap    = capture_window(*frame, err, window_options);
         if (!cap)
             return false;
         out = cap->image;
         if (capture_reads_screen()) {
-            // The capture has whatever of ours is on top, modal dialogs included.
+            // The capture has whatever of ours is on top, modal dialogs and popups included.
             rec.note = "X11: the windows over the main window show as they are on screen";
         } else {
             if (!window_positions_known())
                 rec.note = "Wayland: dialogs are drawn centred on the window they were opened from, where the compositor usually "
                            "places them, since their place on the screen is unknown";
+            const double scale   = physical_scale(frame);
+            auto         draw_in = [&](wxImage image, double own, const wxPoint& at) {
+                if (std::abs(own - scale) > 1e-3)
+                    image = image.Scale(std::max(1, int(std::lround(image.GetWidth() * scale / own))),
+                                        std::max(1, int(std::lround(image.GetHeight() * scale / own))), wxIMAGE_QUALITY_BILINEAR);
+                composite(out, image, wxPoint(int(std::lround(at.x * scale)), int(std::lround(at.y * scale))));
+            };
             // The modal dialogs, outermost first, which is how they stack.
-            const double scale = physical_scale(frame);
+            std::vector<wxTopLevelWindow*> drawn{frame};
             for (wxDialog* dialog : service.modals().stack()) {
                 if (dialog == nullptr || is_native_dialog(dialog) || hidden_from_automation(dialog) || !dialog->IsShownOnScreen())
                     continue;
                 std::string            dialog_err;
-                std::optional<Capture> d = capture_window(*dialog, dialog_err, options);
+                std::optional<Capture> d = capture_window(*dialog, dialog_err, window_options);
                 if (!d)
                     continue;
-                wxImage      image = d->image;
-                const double own   = physical_scale(dialog);
-                if (std::abs(own - scale) > 1e-3)
-                    image = image.Scale(std::max(1, int(std::lround(image.GetWidth() * scale / own))),
-                                        std::max(1, int(std::lround(image.GetHeight() * scale / own))), wxIMAGE_QUALITY_BILINEAR);
-                const wxPoint at = top_level_offset_in(*dialog, *frame);
-                composite(out, image, wxPoint(int(std::lround(at.x * scale)), int(std::lround(at.y * scale))));
+                draw_in(d->image, physical_scale(dialog), top_level_offset_in(*dialog, *frame));
+                drawn.push_back(dialog);
             }
+            // Our popups, menus and tooltips over those windows, each at its window's scale.
+            for (const PopupCapture& p : capture_popups())
+                if (std::find(drawn.begin(), drawn.end(), p.owner) != drawn.end())
+                    draw_in(p.image, physical_scale(p.owner), top_level_offset_in(*p.owner, *frame) + p.offset);
         }
     }
     rec.origin = area->ClientToScreen(wxPoint(0, 0));
@@ -868,11 +879,11 @@ namespace {
 
 // What moves wx's screen coordinates of a point in `window` to where the recording draws that point: nothing
 // where window positions are known; on Wayland, where wx's are made up, the move from where wx puts the
-// dialog `window` is in to where capture_area() draws it.
+// dialog `window` is in, or the dialog of the popup it is in, to where capture_area() draws it.
 wxPoint drawn_shift(wxWindow& window)
 {
     MainFrame* frame = wxGetApp().mainframe;
-    auto*      top   = dynamic_cast<wxTopLevelWindow*>(wxGetTopLevelParent(&window));
+    auto*      top   = dynamic_cast<wxTopLevelWindow*>(owning_window(&window));
     if (window_positions_known() || frame == nullptr || top == nullptr || top == frame)
         return {0, 0};
     return frame->ClientToScreen(wxPoint(0, 0)) + top_level_offset_in(*top, *frame) - top->ClientToScreen(wxPoint(0, 0));
@@ -891,6 +902,15 @@ bool McpRecorder::shows(wxWindow* window) const
         return true;
     if (capture_reads_screen())
         return top->IsShownOnScreen();
+    // A popup shows where the recording draws it, over the window it belongs to: only where capture_popups()
+    // draws popups at all (Wayland).
+    if (dynamic_cast<wxPopupWindow*>(top) != nullptr) {
+        if (window_positions_known())
+            return false;
+        top = owning_window(top);
+        if (top == wxGetApp().mainframe)
+            return true;
+    }
     const auto& stack = m_service.modals().stack();
     return std::find(stack.begin(), stack.end(), top) != stack.end();
 }

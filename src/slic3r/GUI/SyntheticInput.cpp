@@ -18,6 +18,7 @@ namespace {
 std::vector<int>&           held_keys() { static std::vector<int> keys; return keys; }
 std::optional<wxMouseState>& held_mouse() { static std::optional<wxMouseState> mouse; return mouse; }
 std::function<bool(wxMenu&, wxWindow&)>& menu_capture() { static std::function<bool(wxMenu&, wxWindow&)> capture; return capture; }
+std::vector<std::pair<wxMenu*, wxWindow*>>& menus_shown() { static std::vector<std::pair<wxMenu*, wxWindow*>> menus; return menus; }
 
 // The modifier a key code stands for, so a held Shift also reads as WXK_SHIFT etc.
 bool same_key(int held, int asked)
@@ -75,8 +76,16 @@ bool popup_menu(wxWindow& owner, wxMenu& menu, const wxPoint& pos)
     // A copy: the capture may run a command whose nested event loop replaces or clears it.
     if (const auto capture = menu_capture(); capture && capture(menu, owner))
         return true;
+    // PopupMenu() returns once the menu has closed.
+    menus_shown().emplace_back(&menu, &owner);
+    struct Closed
+    {
+        ~Closed() { menus_shown().pop_back(); }
+    } closed;
     return owner.PopupMenu(&menu, pos);
 }
+
+const std::vector<std::pair<wxMenu*, wxWindow*>>& shown_menus() { return menus_shown(); }
 
 bool get_key_state(wxKeyCode key)
 {

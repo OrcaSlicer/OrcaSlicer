@@ -974,6 +974,22 @@ TEST_CASE("a canvas is not pasted over the windows an X11 capture drew on top of
     CHECK(dst.GetRed(9, 9) == 255);
 }
 
+TEST_CASE("an image with alpha is blended over what it is composited onto", "[Mcp][Recording]")
+{
+    wxImage dst(4, 1);
+    std::fill(dst.GetData(), dst.GetData() + 12, (unsigned char) 100);
+    wxImage src(4, 1);
+    std::fill(src.GetData(), src.GetData() + 12, (unsigned char) 200);
+    src.InitAlpha();
+    const unsigned char alpha[4] = {0, 255, 128, 255};
+    std::copy(alpha, alpha + 4, src.GetAlpha());
+    composite(dst, src, wxPoint(0, 0), {wxRect(3, 0, 1, 1)});
+    CHECK(dst.GetRed(0, 0) == 100); // transparent: what was there
+    CHECK(dst.GetRed(1, 0) == 200); // opaque: the source
+    CHECK(dst.GetRed(2, 0) == 150); // half see-through: halfway, (200 * 128 + 100 * 127) / 255
+    CHECK(dst.GetRed(3, 0) == 100); // excluded: left alone whatever its alpha
+}
+
 // ---- captions ------------------------------------------------------------------------------------------------------
 
 TEST_CASE("the caption is the newest call that runs or lingers", "[Mcp][Recording]")

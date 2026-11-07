@@ -2146,7 +2146,21 @@ says it is left out. Minimized and hidden windows fail. X11 reads only the on-sc
 for the rest), which leaves the remainder black. X11 keeps no backing store, so a part
 covered by another window reads back black. OrcaSlicer's own popups and tooltips stacked above the
 window are read and drawn in, as they appear on screen; another application's window leaves the
-hole, and the result is approximate. The full-size PNG goes to `save_path` or `<datadir>/mcp/out/OrcaSlicer-screenshot-<timestamp>.png`. The image
+hole, and the result is approximate. Wayland draws them in too, over the 3D views: `capture_popups()` draws
+each shown GTK popup window, a wx popup, a menu, a drop-down list or a tooltip, at its place on the
+window it shows over. That window is the end of its chain of transient parents or, for a menu, which wx
+shows attached to no widget, the one `popup_menu()` showed it from (`shown_menus()`). A wx popup has no
+shadow and is drawn from its widget tree. A popup GTK placed is drawn whole, since GTK paints a tooltip's
+background and border on the window rather than its content, then cut to its box of opaque pixels, which
+leaves its shadow out, and blended over the window by its alpha, as a tooltip's background can be
+see-through. The place comes from GDK's root coordinates, which on Wayland are not the screen's but keep a
+popup in step with its window (`calculate_moved_to_rect_result()` and `create_simple_positioner()` in
+GTK 3's `gdkwindow-wayland.c`): GDK puts a popup's origin at its offset from the content of the window it
+shows over, plus that content's origin, less where the window GTK placed it relative to is in that
+window. wx's menus are placed relative to the window `popup_menu()` was given, a submenu or a drop-down
+menu relative to the widget it is attached to, a tooltip relative to the window it shows over, and wx's
+own popups, which wx places with `gtk_window_move()`, at their offset from the content directly. macOS and
+Windows window captures leave popups out. The full-size PNG goes to `save_path` or `<datadir>/mcp/out/OrcaSlicer-screenshot-<timestamp>.png`. The image
 block is scaled to `max_dim` on the long edge (default 1280, clamped to 256–2000).
 `include_image: false` returns only the path.
 
@@ -2163,8 +2177,11 @@ modal loops too. `start_recording` takes the first frame in its own UI closure: 
 size (fit to `max_dim`, rounded down to even numbers for 4:2:0), and a failure fails the call before
 any file exists. The `window` target is the main window as `screenshot` captures it, with the modal
 stack (`ModalTracker::stack()`, outermost first, so in stacking order) composited at each dialog's
-client offset, resampled to the main window's content scale off MSW. Modeless windows, popups and
-native dialogs are left out: `wxTopLevelWindows` is creation order, not stacking order. On X11 the
+client offset, resampled to the main window's content scale off MSW. Modeless windows and native
+dialogs are left out: `wxTopLevelWindows` is creation order, not stacking order. Popups, menus and
+tooltips are left out on macOS and Windows; on Wayland the recording draws them last, over the
+dialogs, rather than into the window each shows over (`CaptureOptions::popups`), so a drop-down list
+reaching past its dialog is not cut off, and the pointer follows a wx popup to its window. On X11 the
 capture reads the screen, so it already shows our windows over the main window as they are, the
 script runner included when it covers it, and nothing more is composited (a reparenting window manager's
 frame is searched for our window inside it); the capture records the

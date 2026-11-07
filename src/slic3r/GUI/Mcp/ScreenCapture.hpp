@@ -55,7 +55,25 @@ struct CaptureOptions
     CanvasFrameProvider canvas_frame;
     // Null: the capture opens and closes its own.
     CaptureSessions*    sessions = nullptr;
+    // Draw in our popups shown over the window (capture_popups()). A recording draws them itself, over the
+    // dialogs it draws in, so that a popup reaching past its dialog is not cut off.
+    bool                popups = true;
 };
+
+// One of our popups as drawn: a wx popup, a menu, a drop-down list or a tooltip, with the top-level window it
+// shows over and its offset from that window's client area, in wx coordinates. The image is at that window's
+// scale, with alpha where the popup is see-through, as a tooltip's background can be.
+struct PopupCapture
+{
+    wxTopLevelWindow* owner = nullptr;
+    wxPoint           offset;
+    wxImage           image;
+};
+
+// Our popups shown now, bottom to top, where window captures leave them out but their place on their window is
+// known (Wayland). Empty elsewhere: X11 captures read them from the screen, and macOS and Windows captures
+// leave them out.
+std::vector<PopupCapture> capture_popups();
 
 // Whether a window capture reads the screen, and so shows our own windows over the target (X11).
 bool capture_reads_screen();
@@ -92,7 +110,8 @@ wxPoint top_level_offset_in(wxTopLevelWindow& window, wxTopLevelWindow& top);
 // small enough are unchanged.
 wxSize fit_within(const wxSize& size, int max_dim);
 
-// Copies `src` into `dst` at `at`, clipped to `dst`, leaving the `excluded` rectangles of `dst` as they are.
+// Copies `src` into `dst` at `at`, clipped to `dst`, leaving the `excluded` rectangles of `dst` as they are. A
+// `src` with alpha is blended over `dst` by it.
 void composite(wxImage& dst, const wxImage& src, const wxPoint& at, const std::vector<wxRect>& excluded = {});
 
 // PNG bytes of an image.

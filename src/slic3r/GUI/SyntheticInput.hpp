@@ -5,6 +5,8 @@
 #include <wx/mousestate.h>
 
 #include <functional>
+#include <utility>
+#include <vector>
 
 class wxMenu;
 class wxWindow;
@@ -36,6 +38,10 @@ void set_menu_capture(std::function<bool(wxMenu& menu, wxWindow& owner)> capture
 // Shows `menu` from `owner` as wxWindow::PopupMenu() does, unless automation takes it (see
 // SyntheticInput::set_menu_capture()). Every popup and context menu goes through here.
 bool popup_menu(wxWindow& owner, wxMenu& menu, const wxPoint& pos = wxDefaultPosition);
+
+// The menus popup_menu() shows now, each with the window it was shown from, the last shown last. Screen
+// captures draw them over that window: GTK knows no window of a menu shown as wx shows them.
+const std::vector<std::pair<wxMenu*, wxWindow*>>& shown_menus();
 
 // wxGetKeyState() plus the keys automation holds down.
 bool get_key_state(wxKeyCode key);
