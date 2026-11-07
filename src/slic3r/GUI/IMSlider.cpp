@@ -276,8 +276,6 @@ void IMSlider::SetTicksValues(const Info &custom_gcode_per_print_z)
         return;
     }
 
-    static bool last_spiral_vase_status = false;
-
     const bool was_empty = m_ticks.empty();
 
     m_ticks.ticks.clear();
@@ -291,14 +289,6 @@ void IMSlider::SetTicksValues(const Info &custom_gcode_per_print_z)
         if (!wxGetApp().plater()->only_gcode_mode() && !wxGetApp().plater()->using_exported_file())
         {
             m_ticks.erase_all_ticks_with_code(ToolChange);
-            post_ticks_changed_event();
-        }
-    }
-
-    if (last_spiral_vase_status != m_is_spiral_vase) {
-        last_spiral_vase_status = m_is_spiral_vase;
-        if (!m_ticks.empty()) {
-            m_ticks.ticks.clear();
             post_ticks_changed_event();
         }
     }
@@ -372,10 +362,7 @@ void IMSlider::SetModeAndOnlyExtruder(const bool is_one_extruder_printed_model, 
 
     m_is_wipe_tower = m_mode != SingleExtruder;
 
-    auto config = wxGetApp().preset_bundle->full_config();
-    m_is_spiral_vase = config.option<ConfigOptionBool>("spiral_mode")->value;
-
-    m_can_change_color = can_change_color && !m_is_spiral_vase;
+    m_can_change_color = can_change_color;
 
     // close opened menu window after reslice
     m_show_menu = false;
