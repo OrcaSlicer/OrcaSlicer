@@ -1056,7 +1056,11 @@ void GLCanvas3D::LayersEditing::render_object_volumes(const GLVolumeCollection& 
         shader.set_uniform("object_max_z", 0.0f);
         const Transform3d model_matrix = glvolume->world_matrix();
         shader.set_uniform("view_model_matrix", view_matrix * model_matrix);
-        const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
+        // Orca: the shader also tells the horizontal faces from the normals in world space, which need the inverse transpose
+        // too: the world matrix itself tilts them under a non-uniform scale.
+        const Matrix3d world_normal_matrix = model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
+        shader.set_uniform("volume_world_normal_matrix", world_normal_matrix);
+        const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * world_normal_matrix;
         shader.set_uniform("view_normal_matrix", view_normal_matrix);
 
         glvolume->render();
