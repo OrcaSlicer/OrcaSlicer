@@ -189,6 +189,9 @@ TEST_CASE("cloud metadata refresh preserves a plugin's stored config", "[PluginC
     INFO("load error: " << load_error);
     CHECK(load_error.empty());
     CHECK(manager.is_plugin_loaded(uuid));
+    // The load keeps the versions the cloud and the install state give, not the 1.0 its entry file declares.
+    CHECK(find_by_uuid().version == "1.1");
+    CHECK(find_by_uuid().installed_version == "1.0");
     CHECK(manager.unload_plugin(uuid));
 
     // Seeing the plugin in a subsequent cloud response clears the orphaned marker.

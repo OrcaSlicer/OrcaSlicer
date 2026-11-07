@@ -583,6 +583,40 @@ TEST_CASE("Duplicate discovered plugin keys are reported", "[PluginLifecycle][Py
     CHECK(descriptor.normalized_error().find("Duplicate plugin key") != std::string::npos);
 }
 
+TEST_CASE("A script plugin loads with the version and dependencies its entry file declares", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("lifecycle-edited");
+    write_plugin(data_dir_guard, "Echo_Plugin", ECHO_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    REQUIRE(descriptor_of(manager, "Echo_Plugin").version == "1.0");
+
+    // The entry file is edited after the scan, to a new version and a new dependency.
+    std::string       edited  = ECHO_PLUGIN_SOURCE;
+    const std::string version = "# version = \"1.0\"";
+    edited.replace(edited.find(version), version.size(), "# version = \"2.0\"");
+    edited.insert(edited.find("# [tool.orcaslicer.plugin]"), "# dependencies = [\"echo-dependency\"]\n");
+    write_plugin(data_dir_guard, "Echo_Plugin", edited);
+
+    // skip_deps: the dependency is read from the file, not installed.
+    std::string error;
+    REQUIRE(load_and_wait(manager, "Echo_Plugin", error));
+    INFO("load error: " << error);
+    CHECK(error.empty());
+
+    const PluginDescriptor loaded = descriptor_of(manager, "Echo_Plugin");
+    CHECK(loaded.version == "2.0");
+    CHECK(loaded.installed_version == "2.0");
+    CHECK(loaded.dependencies == std::vector<std::string>{"echo-dependency"});
+
+    manager.unload_plugin("Echo_Plugin");
+}
+
 TEST_CASE("Unloading a plugin drops the package and its capabilities", "[PluginLifecycle][Python]")
 {
     ScopedPluginManager plugin_system;

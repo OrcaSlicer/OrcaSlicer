@@ -73,6 +73,20 @@ std::vector<std::string>* permission_bucket(PluginPermissions& permissions, Plug
     return nullptr;
 }
 
+// Puts what a scan reads from a local plugin's entry file onto `target`. A local plugin's entry file is
+// the only record of its version, so the installed version follows it.
+void apply_entry_metadata(PluginDescriptor& target, const PluginDescriptor& fresh)
+{
+    target.name          = fresh.name;
+    target.description   = fresh.description;
+    target.author        = fresh.author;
+    target.version       = fresh.version;
+    target.entry_package = fresh.entry_package;
+    target.dependencies  = fresh.dependencies;
+    if (!fresh.version.empty())
+        target.installed_version = fresh.version;
+}
+
 } // namespace
 
 void Plugin::release_module()
@@ -995,6 +1009,24 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
         fail(GUI::format(_u8L("The plugin name %1% is reserved; rename the plugin file"), plugin_key));
         return;
     }
+    // A local .py plugin's entry file may have been edited since the last scan: read it again, so the load
+    // installs the dependencies it declares now and the Plugins dialog shows the version that loads. A wheel
+    // is left as scanned: a load imports the copy extracted when it first loaded, so new metadata read from
+    // the wheel could describe code that does not run; a reinstall replaces both. A cloud plugin's version
+    // comes from the cloud and its install state, and its files change only through a cloud install, which
+    // rescans.
+    if (!descriptor.is_cloud_plugin() && boost::filesystem::path(descriptor.entry_path).extension() == ".py") {
+        PluginDescriptor fresh;
+        std::string      meta_error;
+        if (!read_python_plugin_metadata(descriptor.entry_path, fresh, meta_error)) {
+            fail(std::move(meta_error));
+            return;
+        }
+        apply_entry_metadata(descriptor, fresh);
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (Plugin* entry = find_plugin_locked(plugin_key))
+            apply_entry_metadata(entry->descriptor, fresh);
+    }
 
     // Reject a duplicate package or a capability-name collision BEFORE on_load() runs, so a
     // rejected load costs no on_load/on_unload cycle. Also the point at which a cancellation that
@@ -1559,7 +1591,7 @@ bool PluginManager::install_plugin(const boost::filesystem::path& filepath, Plug
 
     std::string wait_error;
     if (!wait_for_discovery(std::chrono::milliseconds::max(), wait_error)) {
-        error = "Plugin discovery is still running";
+        error = GUI::format(_u8L("Plugin installation failed: %1%"), wait_error.empty() ? _u8L("Plugin discovery is still running") : wait_error);
         if (!plugin_descriptor.plugin_key.empty())
             set_plugin_error(plugin_descriptor.plugin_key, error);
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Plugin installation failed while waiting for discovery: " << error;
