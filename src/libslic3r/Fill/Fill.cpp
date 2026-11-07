@@ -101,7 +101,7 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
     // Convert the id to an index. Layer::id() counts the raft layers, object->layers() does not.
     const size_t first_object_layer_id = object->get_layer(0)->id();
     layer_id                           = layer_id > first_object_layer_id ? layer_id - first_object_layer_id : 0;
-    const std::string search_string    = "\\/^~NnZz$LlUuQq#JjCO|";
+    const std::string search_string    = "\\/^~NnZz$LlUuQq#JjCOo|";
     const std::string coord_string     = "XxYy";
     const std::string density_string   = "Dd";
     const std::string angle_string     = "A+-_0123456789.";
@@ -513,7 +513,8 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
             case 18: negvalue  = is_negative ? 1 - sqrt(1 - pow(negvalue * 2 - 1, 2)) : 
                                                sqrt(1 - pow(negvalue * 2 - 1, 2)); break;          // C-joint, half of circle
             case 19: negvalue  = (is_negative ? -.5 : .5) * cos(negvalue * PI * 2.) + .5; break;   // O-joint, vertical cosine wave
-            case 20: negvalue  = 0.5; break;                                                       // |-joint, copy of J-joint (is used for compatibility)
+            case 20: negvalue  = (is_negative ? -.5 : .5) * sin(negvalue * PI * 2.) + .5; break;   // O-joint, vertical sine wave
+            case 21: negvalue  = 0.5; break;                                                       // |-joint, copy of J-joint (is used for compatibility)
             default: negvalue  = 1.;
             }
 
