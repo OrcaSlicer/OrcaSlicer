@@ -1537,6 +1537,8 @@ bool PrintObject::invalidate_state_by_config_options(
         } else if (
                opt_key == "layer_height"
             || opt_key == "mmu_segmented_region_max_width"
+            || opt_key == "mmu_segmented_region_min_area"
+            || opt_key == "mmu_segmented_region_opening_threshold"
             || opt_key == "mmu_segmented_region_interlocking_depth"
             || opt_key == "raft_layers"
             || opt_key == "raft_contact_distance"
