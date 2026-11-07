@@ -1389,6 +1389,33 @@ set(CPACK_PACKAGE_EXECUTABLES "orca-slicer;OrcaSlicer")
 set(CPACK_CREATE_DESKTOP_LINKS "orca-slicer")
 set (CPACK_RESOURCE_FILE_LICENSE ${CMAKE_SOURCE_DIR}/LICENSE.txt) # must also include in install command
 
+# CI release builds Authenticode-sign the installer as makensis builds it: the payload before it is
+# compressed, the uninstaller the installer writes, and the installer itself. Only a configure run
+# with ORCA_SIGN_KMS_KEY in its environment (build_orca.yml) wires this in; scripts/sign_windows.ps1
+# lists what signing needs. The commands go into an included file because CPack writes
+# CPACK_NSIS_* values into CPackConfig.cmake unescaped. !include needs a native path, with its
+# backslashes doubled for CPackConfig.cmake. PowerShell 7 is preferred: Windows PowerShell started
+# under a PowerShell 7 session (CI runs cpack from one) inherits its module path and cannot load
+# Get-AuthenticodeSignature.
+if (WIN32 AND DEFINED ENV{ORCA_SIGN_KMS_KEY})
+    find_program(ORCA_SIGN_PWSH pwsh)
+    if (ORCA_SIGN_PWSH)
+        set(_orca_sign_shell pwsh)
+    else ()
+        set(_orca_sign_shell powershell)
+    endif ()
+    set(ORCA_SIGN_COMMAND "${_orca_sign_shell} -NoProfile -ExecutionPolicy Bypass -File \"${CMAKE_SOURCE_DIR}/scripts/sign_windows.ps1\" -Path")
+    string(CONFIGURE [=[
+!system '@ORCA_SIGN_COMMAND@ "${INST_DIR}"' = 0
+!uninstfinalize '@ORCA_SIGN_COMMAND@ "%1"' = 0
+!finalize '@ORCA_SIGN_COMMAND@ "%1"' = 0
+]=] _orca_sign_nsh @ONLY)
+    file(WRITE "${CMAKE_BINARY_DIR}/sign_windows.nsh" "${_orca_sign_nsh}")
+    file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/sign_windows.nsh" _orca_sign_nsh_path)
+    string(REPLACE "\\" "\\\\" _orca_sign_nsh_path "${_orca_sign_nsh_path}")
+    set(CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS "!include \\\"${_orca_sign_nsh_path}\\\"")
+endif ()
+
 set(CPACK_WIX_UPGRADE_GUID "058245e8-20e0-4a95-9ab7-1acfe17ad511")
 set(CPACK_GENERATOR NSIS)
 include(CPack)

@@ -16,9 +16,11 @@
 		"15"
 	],
 	"compatible_printers": [
+		"Sovol SV08 MAX 0.2 nozzle",
 		"Sovol SV08 MAX 0.4 nozzle",
 		"Sovol SV08 MAX 0.6 nozzle",
-		"Sovol SV08 MAX 0.8 nozzle"
+		"Sovol SV08 MAX 0.8 nozzle",
+		"Sovol SV08 MAX 1.0 nozzle"
 	],
 	"nozzle_temperature_initial_layer": [
 		"250"
