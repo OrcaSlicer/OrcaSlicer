@@ -396,6 +396,9 @@ public:
     void render() override;
 
     std::vector<GUI::GLModel> model_per_colors;
+    // The meshes of model_per_colors. A GLModel frees its own once it is on the GPU, and the path
+    // tracer reads them whenever it rebuilds its scene.
+    std::vector<indexed_triangle_set> its_per_color;
     bool                              IsTransparent();
     const std::vector<ColorRGBA>& get_colors() const { return m_colors; }
 

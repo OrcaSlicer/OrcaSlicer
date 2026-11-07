@@ -896,13 +896,17 @@ int GLVolumeCollection::load_wipe_tower_preview(
     volumes.emplace_back(new GLWipeTowerVolume(colors));
     GLWipeTowerVolume& v = *dynamic_cast<GLWipeTowerVolume*>(volumes.back());
     v.model_per_colors.resize(colors.size());
+    v.its_per_color.resize(colors.size());
     for (size_t i = 0; i < slab_count; i++) {
         TriangleMesh color_part = make_cube(width, depth / slab_count, height);
         color_part.translate({ 0.f, depth * i / slab_count, 0. });
         v.model_per_colors[i].init_from(color_part);
+        v.its_per_color[i] = std::move(color_part.its);
     }
-    if (show_brim && !colors.empty())
+    if (show_brim && !colors.empty()) {
         v.model_per_colors[slab_count].init_from(brim_slab);
+        v.its_per_color[slab_count] = std::move(brim_slab.its);
+    }
     v.model.init_from(wipe_tower_shell);
     v.mesh_raycaster = std::make_unique<GUI::MeshRaycaster>(std::make_shared<const TriangleMesh>(wipe_tower_shell));
     v.set_convex_hull(wipe_tower_shell);
@@ -942,6 +946,7 @@ int GLVolumeCollection::load_real_wipe_tower_preview(
     if (!colors.empty()) {
         v.model_per_colors.resize(1);
         v.model_per_colors[0].init_from(mesh);
+        v.its_per_color = {mesh.its};
     }
     TriangleMesh wipe_tower_shell = mesh.convex_hull_3d();
     v.model.init_from(wipe_tower_shell);

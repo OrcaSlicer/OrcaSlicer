@@ -930,36 +930,21 @@ void GLCanvas3D::_extract_prepare_volumes_for_pathtrace(
         const Transform3d local_trafo = grp.inv_instance_trafo * volume->world_matrix();
         if (volume->is_wipe_tower) {
             const auto* wt = dynamic_cast<const GLWipeTowerVolume*>(volume);
-            if (wt != nullptr && !wt->model_per_colors.empty()) {
-                const std::vector<ColorRGBA>& wt_colors = wt->get_colors();
-                for (size_t c = 0; c < wt->model_per_colors.size(); ++c) {
-                    const indexed_triangle_set its = wt->model_per_colors[c].get_geometry().get_as_indexed_triangle_set();
-                    if (its.indices.empty())
-                        continue;
-                    Vec4f albedo{0.75f, 0.77f, 0.80f, 1.0f};
-                    if (!wt_colors.empty()) {
-                        const ColorRGBA& col = c < wt_colors.size() ? wt_colors[c] : wt_colors.front();
-                        albedo = to_shown_albedo(col, col.a());
-                    }
-                    append_path_trace_triangles(out_triangles,
-                                                its.vertices,
-                                                its.indices,
-                                                local_trafo,
-                                                albedo,
-                                                smooth_normals);
-                    out_ext_ids.insert(out_ext_ids.end(), its.indices.size(), 0u);
-                }
-            } else if (volume->model.indices_count() > 0) {
-                const indexed_triangle_set its = volume->model.get_geometry().get_as_indexed_triangle_set();
-                if (!its.indices.empty()) {
-                    append_path_trace_triangles(out_triangles,
-                                                its.vertices,
-                                                its.indices,
-                                                local_trafo,
-                                                Vec4f{0.75f, 0.77f, 0.80f, 1.0f},
-                                                smooth_normals);
-                    out_ext_ids.insert(out_ext_ids.end(), its.indices.size(), 0u);
-                }
+            if (wt == nullptr)
+                return;
+            const std::vector<ColorRGBA>& wt_colors = wt->get_colors();
+            for (size_t c = 0; c < wt->its_per_color.size(); ++c) {
+                const indexed_triangle_set& its = wt->its_per_color[c];
+                if (its.indices.empty())
+                    continue;
+                const ColorRGBA& col = wt_colors[c];
+                append_path_trace_triangles(out_triangles,
+                                            its.vertices,
+                                            its.indices,
+                                            local_trafo,
+                                            to_shown_albedo(col, col.a()),
+                                            smooth_normals);
+                out_ext_ids.insert(out_ext_ids.end(), its.indices.size(), 0u);
             }
         } else {
             const int object_idx = volume->object_idx();
@@ -1477,7 +1462,8 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
                 combine_geom(std::hash<double>{}(bb.max.y()));
                 combine_geom(std::hash<double>{}(bb.max.z()));
             }
-            if (volume->is_active && volume->object_idx() >= 0) {
+            // The volume transformation of the wipe tower is where it stands, which moves its instance only.
+            if (volume->is_active && volume->object_idx() >= 0 && !volume->is_wipe_tower) {
                 const Transform3d& part_trafo = volume->get_volume_transformation().get_matrix();
                 for (int r = 0; r < 4; ++r) {
                     for (int c = 0; c < 4; ++c) {
