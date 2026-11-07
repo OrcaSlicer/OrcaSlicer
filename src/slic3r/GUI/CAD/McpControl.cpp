@@ -1187,6 +1187,7 @@ json import_step(DesignPanel* panel, const json& params)
     if (solids.empty()) throw std::runtime_error(err.empty() ? "no solids in STEP" : err);
 
     CadDocument& doc = panel->mcp_doc();
+    doc.place_on_bed(solids);
     doc.checkpoint();
     int first = int(doc.features.size());
     for (const TopoDS_Shape& s : solids) {
@@ -1228,19 +1229,33 @@ json import_mesh(DesignPanel* panel, const json& params)
         throw std::runtime_error("unsupported mesh format (want .stl or .obj): " + ext);
     }
 
+    // Each connected piece is its own body (mesh_to_brep would fuse them into one); the group is centred on the bed together.
     GeometryEngine::MeshBrepStats st;
-    const TopoDS_Shape shape = GeometryEngine::mesh_to_brep(mesh.its, tolerance, merge_angle_deg, st);
-    if (shape.IsNull()) throw std::runtime_error("mesh conversion produced no geometry");
+    std::vector<TopoDS_Shape> shapes;
+    bool all_solid = true; double volume = 0.0;
+    for (const TriangleMesh& piece : mesh.split()) {
+        GeometryEngine::MeshBrepStats ps;
+        TopoDS_Shape sh = GeometryEngine::mesh_to_brep(piece.its, tolerance, merge_angle_deg, ps);
+        if (sh.IsNull()) continue;
+        if (shapes.empty()) st = ps;
+        all_solid = all_solid && ps.is_solid; volume += ps.volume;
+        shapes.push_back(sh);
+    }
+    if (shapes.empty()) throw std::runtime_error("mesh conversion produced no geometry");
+    st.is_solid = all_solid; st.volume = volume;
 
     CadDocument& doc = panel->mcp_doc();
+    doc.place_on_bed(shapes);
     doc.checkpoint();
     const int first = int(doc.features.size());
-    CadFeature f;
-    f.type           = CadFeatureType::Import;
-    f.name           = "Mesh" + std::to_string(first + 1);
-    f.imported_solid = shape;
-    f.mode           = BooleanMode::New;
-    doc.append_feature(f);
+    for (const TopoDS_Shape& sh : shapes) {
+        CadFeature f;
+        f.type           = CadFeatureType::Import;
+        f.name           = "Mesh" + std::to_string(int(doc.features.size()) + 1);
+        f.imported_solid = sh;
+        f.mode           = BooleanMode::New;
+        doc.append_feature(f);
+    }
 
     const bool ok = doc.recompute();
     if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
@@ -3303,9 +3318,11 @@ json action_sketch3d(DesignPanel* panel, const json& params)
 
 json action_new_document(DesignPanel* panel, const json& params)
 {
-    (void)params;
     CadDocument& doc = panel->mcp_doc();
     doc.checkpoint();
+    // "fresh": true also forgets the undo history. Without it new_document is itself an undoable step, and the stack is capped at
+    // 200, so a script that counts undo steps (check-undo) starts from a full stack and sees every step as +0.
+    if (params.value("fresh", false)) doc.drop_undo_to(0);
     doc.features.clear();
     doc.variables.clear();   // a new document starts with no variables and no history marker
     doc.drop_replay_cache();
@@ -3320,9 +3337,6 @@ json action_new_document(DesignPanel* panel, const json& params)
 json action_ui_option(DesignPanel* panel, const json& params)
 {
     const std::string name = params.value("name", std::string());
-    // "fresh": true also forgets the undo history. Without it new_document is itself an undoable step, and the stack is capped at
-    // 200, so a script that counts undo steps (check-undo) starts from a full stack and sees every step as +0.
-    if (params.value("fresh", false)) doc.drop_undo_to(0);
     const bool        on   = params.value("value", false);
     if (name == "imgui_tree")   { panel->mcp_set_imgui_tree(on);   return json{{"ok", true}, {"imgui_tree", on}}; }
     if (name == "imgui_ribbon") { panel->mcp_set_imgui_ribbon(on); return json{{"ok", true}, {"imgui_ribbon", on}}; }
@@ -4986,12 +5000,14 @@ json action_batch(DesignPanel* panel, const json& params)
     json results = json::array(), failed;
     const auto t_start = std::chrono::steady_clock::now();
     const double budget_s = params.value("time_budget_s", 30.0);   // the window is frozen while a batch runs: bound it
+    struct Defer { DesignPanel* p; explicit Defer(DesignPanel* q) : p(q) { p->mcp_defer_begin(); } ~Defer() { p->mcp_defer_end(); } } defer(panel);   // one UI refresh for the whole batch
     for (size_t i = 0; i < cmds.size() && failed.is_null(); ++i) {
         const json& c = cmds[i];
         const std::string name = c.is_object() ? c.value("command", c.value("method", std::string())) : std::string();
         const json p = (c.is_object() && c.contains("params")) ? c["params"] : json::object();
         std::string err;
         json r;
+        const auto t_cmd = std::chrono::steady_clock::now();
         inflight_step(std::to_string(i + 1) + "/" + std::to_string(cmds.size()) + " " + name);
         if (i > 0 && std::chrono::duration<double>(std::chrono::steady_clock::now() - t_start).count() > budget_s)
             err = "time budget of " + std::to_string(int(budget_s)) + " s used up (the UI is frozen while a batch runs); "
@@ -5000,14 +5016,12 @@ json action_batch(DesignPanel* panel, const json& params)
         else if (!(err = refuse_reason(panel, name, p)).empty()) {}
         else {
             try { r = call_method(panel, name, p); }
-    struct Defer { DesignPanel* p; explicit Defer(DesignPanel* q) : p(q) { p->mcp_defer_begin(); } ~Defer() { p->mcp_defer_end(); } } defer(panel);   // one UI refresh for the whole batch
             catch (const MethodNotFound&)    { err = "unknown command: " + name; }
             catch (const Standard_Failure& e) { err = std::string("OCCT: ") + (*e.what() ? e.what() : "failure"); }
             catch (const std::exception& e)   { err = e.what(); }
         }
         if (err.empty() && r.is_object() && r.contains("ok") && r["ok"] == false)
             err = r.value("error", std::string("refused"));
-        const auto t_cmd = std::chrono::steady_clock::now();
         if (!err.empty()) failed = json{{"index", int(i)}, {"command", name}, {"error", err}};
         else {
             if (verbose && r.is_object()) r["ms"] = std::round(std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t_cmd).count() * 10) / 10;   // where a batch's time goes, per step

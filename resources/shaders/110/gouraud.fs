@@ -30,6 +30,8 @@ struct SlopeDetection
 };
 
 uniform vec4 uniform_color;
+// SolidWorks xDesign look (Design canvas only): Gooch cool/warm, fixed view-space lights, no specular.
+uniform bool use_gooch;
 uniform bool use_color_clip_plane;
 uniform vec4 uniform_color_clip_plane_1;
 uniform vec4 uniform_color_clip_plane_2;
@@ -244,6 +246,14 @@ void main()
     else if (use_environment_tex)
         gl_FragColor = vec4((0.45 * texture(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + 0.8 * color.rgb * intensity.x) * shade, color.a);
 #endif
+    else if (use_gooch) {
+        vec3 n = normalize(eye_normal);
+        float warm = (dot(normalize(vec3(-1.0, 1.0, 1.0)), n) + 1.0) * 0.5;
+        float cool = (dot(normalize(vec3( 1.0, 1.0, 1.0)), n) + 1.0) * 0.5;
+        vec3 kw = min(vec3(1.0, 0.9, 0.9) * 0.6 * color.rgb * warm, 1.0);
+        vec3 kc = min(vec3(0.9, 0.9, 1.0) * 0.4 * color.rgb * cool, 1.0);
+        gl_FragColor = vec4(min(kw + kc, 1.0), color.a);
+    }
     else
         gl_FragColor = vec4((vec3(intensity.y) + color.rgb * intensity.x) * shade, color.a);
 }

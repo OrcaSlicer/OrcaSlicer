@@ -4961,6 +4961,7 @@ void DesignPanel::on_import_step()
         return;
     }
     m_doc.checkpoint();   // undo boundary: importing STEP solids
+    m_doc.place_on_bed(solids);
     for (const TopoDS_Shape& s : solids) {
         m_feature_counter++;
         CadFeature f;
@@ -6816,8 +6817,8 @@ wxString DesignPanel::kernel_error_text(const std::string& err)
 void DesignPanel::set_status(StatusKind kind, const wxString& body)
 {
     if (m_status == nullptr) return;
-    wxColour colour;
     if (m_mcp_defer > 0) return;   // a batch: the status line is written once, by its closing refresh
+    wxColour colour;
     const wchar_t* glyph = nullptr;
     switch (kind) {
     case StatusKind::Info:    colour = wxNullColour;              break;
@@ -8122,8 +8123,8 @@ void DesignPanel::load_recipe(const std::string& blob)
 
 void DesignPanel::refresh_tree()
 {
-    m_tree_multi.clear();
     if (m_mcp_defer > 0) { m_mcp_dirty = true; return; }   // inside a batch: once at its end (mcp_defer_end)
+    m_tree_multi.clear();
     // The recipe mirrors the FEATURE LIST, and this is the moment the feature list changed —
     // every add, delete, reorder, rename and suppression ends here to redraw the tree. Putting
     // the sync in recompute_guarded instead tied it to "a solid was built", and CadDocument::
@@ -12448,8 +12449,8 @@ void DesignPanel::update_rib_gizmo()
 void DesignPanel::update_reference_planes()
 {
     if (!m_viewport) return;
-    // Default planes pass through the modeling origin (bed centre) — same point the kernel uses to
     if (m_mcp_defer > 0) { m_mcp_dirty = true; return; }   // inside a batch: once at its end (mcp_defer_end)
+    // Default planes pass through the modeling origin (bed centre) — same point the kernel uses to
     // resolve XY/XZ/YZ datum bases, so the ghosts, the datums and new sketches all coincide.
     const Vec3d o = m_doc.modeling_origin;
     SketchPlane xy = SketchPlane::XY(); xy.origin += o;

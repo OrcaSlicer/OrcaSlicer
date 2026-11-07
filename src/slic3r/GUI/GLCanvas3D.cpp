@@ -8370,6 +8370,8 @@ void GLCanvas3D::_render_background()
     glsafe(::glDisable(GL_DEPTH_TEST));
 
     ColorRGBA background_color = m_is_dark ? DEFAULT_BG_LIGHT_COLOR_DARK : DEFAULT_BG_LIGHT_COLOR;
+    if (m_design_canvas && !m_is_dark)
+        background_color = ColorRGBA(1.0f, 1.0f, 1.0f, 1.0f);   // SolidWorks xDesign: plain white viewport
     ColorRGBA error_background_color = m_is_dark ? ERROR_BG_LIGHT_COLOR_DARK : ERROR_BG_LIGHT_COLOR;
     const ColorRGBA bottom_color = use_error_color ? error_background_color : background_color;
 
@@ -8993,7 +8995,7 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
 
     const bool realistic_mode = _is_realistic_view_enabled();
     const bool realistic_phong = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_PHONG);
-    const std::string shader_name = (m_studio_lighting || (realistic_mode && realistic_phong)) ? "phong" : "gouraud";
+    const std::string shader_name = (!m_design_canvas && (m_studio_lighting || (realistic_mode && realistic_phong))) ? "phong" : "gouraud";
     GLShaderProgram* shader = wxGetApp().get_shader(shader_name);
     if (shader == nullptr && shader_name != "gouraud")
         shader = wxGetApp().get_shader("gouraud");
@@ -9013,6 +9015,8 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
         // Set on every use: the program is shared, so a canvas that leaves it unset would inherit
         // the last canvas's choice.
         shader->set_uniform("lighting_model", studio ? 1 : 0);
+        // Design canvas: SolidWorks xDesign look (Gooch cool/warm). Set on every use, the program is shared.
+        shader->set_uniform("use_gooch", m_design_canvas);
         if (studio) {
             const Transform3d& view = wxGetApp().plater()->get_camera().get_view_matrix();
             shader->set_uniform("world_up_eye", Vec3f((view.matrix().block<3, 3>(0, 0) * Vec3d::UnitZ()).cast<float>()));
