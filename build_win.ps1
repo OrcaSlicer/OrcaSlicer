@@ -581,9 +581,9 @@ try {
         }
         # Enable ORCA_TOOLS to build generate_system_cache.exe for preset cache generation
         $cmakeArgs += "-DORCA_TOOLS=ON"
-        # MSBuild + ARM64 needs -A arch
-        if ($Msbuild -and $Arch -eq "ARM64") {
-            $cmakeArgs += "-A", "ARM64"
+        # MSBuild generator needs -A arch (matches build_win.bat behavior)
+        if ($Msbuild) {
+            $cmakeArgs += "-A", $Arch
         }
         # Ninja + clang-cl under VS generator needs ClangCL toolset
         if (-not $Ninja -and $ClangCl) {
