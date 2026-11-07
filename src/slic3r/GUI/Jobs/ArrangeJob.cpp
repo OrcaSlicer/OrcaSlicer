@@ -8,6 +8,7 @@
 #include "libslic3r/IMEXArrange.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/GCode/WipeTower.hpp"
 
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
