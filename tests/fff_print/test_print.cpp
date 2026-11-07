@@ -9,6 +9,7 @@
 #endif
 
 #include <catch2/catch_test_macros.hpp>
+#include <initializer_list>
 #include <string>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/generators/catch_generators_range.hpp>
@@ -236,6 +237,94 @@ TEST_CASE("An object that starts sharing another object's slices keeps its own l
     REQUIRE(!print_a->layers().empty());
     CHECK(print_b->layers() == print_a->layers());
     CHECK(print_b->support_layers() == print_a->support_layers());
+}
+
+// A copy that shares the mesh of another object shares its slices only when its height ranges are the same: a height
+// range gives the layers in its range other regions, which the other object's layers do not have.
+TEST_CASE("Objects share slices only when their height ranges are the same", "[Print][Regression]")
+{
+    struct HeightRange {
+        t_layer_height_range range;
+        double               density;
+    };
+    struct RangesCase {
+        std::string              name;
+        std::vector<HeightRange> ranges_a; // on the object that slices first
+        std::vector<HeightRange> ranges_b; // on its copy
+        bool                     shared;
+    };
+    // The first two differ in the number of ranges, the next two in the heights or the settings of one range.
+    const RangesCase ranges_case = GENERATE(from_range(std::vector<RangesCase>{
+        { "a range on the first object only", { { { 10., 20. }, 40. } }, {},                         false },
+        { "a range on the copy only",         {},                         { { { 10., 20. }, 40. } }, false },
+        { "same heights, other settings",     { { { 10., 20. }, 40. } }, { { { 10., 20. }, 30. } }, false },
+        { "other heights, same settings",     { { { 10., 20. }, 40. } }, { { { 12., 20. }, 40. } }, false },
+        { "the same range on both",           { { { 10., 20. }, 40. } }, { { { 10., 20. }, 40. } }, true },
+    }));
+    INFO("height ranges: " << ranges_case.name);
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "sparse_infill_density",      "20%" },
+    });
+
+    Print print;
+    Model model;
+    init_print({cube(20)}, print, model, config);
+    ModelObject *object_a = model.objects.front();
+    // add_object() gives the copy extruder 1, and objects only share slices when their configs match.
+    object_a->config.set_key_value("extruder", new ConfigOptionInt(1));
+    ModelObject *object_b = model.add_object(*object_a); // shares object_a's mesh
+    for (ModelInstance *instance : object_b->instances)
+        instance->set_offset(instance->get_offset() + Vec3d(40., 0., 0.));
+
+    const auto add_ranges = [](ModelObject *object, const std::vector<HeightRange> &ranges) {
+        for (const HeightRange &height_range : ranges) {
+            DynamicPrintConfig range_config;
+            // Every layer range must carry a layer_height (see layer_height_profile_from_ranges).
+            range_config.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+            range_config.set_key_value("sparse_infill_density", new ConfigOptionPercent(height_range.density));
+            object->layer_config_ranges[height_range.range].assign_config(std::move(range_config));
+        }
+    };
+    add_ranges(object_a, ranges_case.ranges_a);
+    add_ranges(object_b, ranges_case.ranges_b);
+
+    print.apply(model, config);
+    print.process();
+    REQUIRE(print.objects().size() == 2);
+    const PrintObject *print_a = print.objects()[0];
+    const PrintObject *print_b = print.objects()[1];
+    REQUIRE(print_b->model_object()->id() == object_b->id()); // Print slices its own copy of the model
+    CHECK(print_a->get_shared_object() == nullptr);
+    CHECK(print_b->get_shared_object() == (ranges_case.shared ? print_a : nullptr));
+
+    // The infill density of each object at a height is the one of its own height range there, or the default without
+    // one. A height range has regions of its own, so the density is read from the region that has the slices there.
+    const auto density_at = [](const PrintObject *object, double print_z) {
+        const Layer *layer = object->get_layer_at_printz(print_z, 0.1);
+        REQUIRE(layer != nullptr);
+        std::vector<double> densities;
+        for (const LayerRegion *region : layer->regions())
+            if (!region->slices.empty())
+                densities.push_back(region->region().config().sparse_infill_density.value);
+        REQUIRE(densities.size() == 1);
+        return densities.front();
+    };
+    const auto expected_density = [](const std::vector<HeightRange> &ranges, double print_z) {
+        for (const HeightRange &height_range : ranges)
+            if (height_range.range.first < print_z && print_z <= height_range.range.second)
+                return height_range.density;
+        return 20.;
+    };
+    // 11 mm is in the ranges that start at 10 mm, and not in the one that starts at 12 mm.
+    for (const double print_z : { 11., 15. }) {
+        INFO("at " << print_z << " mm");
+        CHECK(density_at(print_a, print_z) == expected_density(ranges_case.ranges_a, print_z));
+        CHECK(density_at(print_b, print_z) == expected_density(ranges_case.ranges_b, print_z));
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -2795,6 +2884,62 @@ TEST_CASE("Changing G-code precision invalidates only G-code export", "[Print][R
 
 namespace {
 
+// A plate printed by layer with the prime tower on and both filaments loaded. The tower stands in a corner
+// of the 200 mm bed, far from where the objects are placed.
+DynamicPrintConfig prime_tower_config(std::initializer_list<Slic3r::ConfigBase::SetDeserializeItem> extra = {})
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "enable_prime_tower",         1 },
+        { "printable_area",             "0x0,200x0,200x200,0x200" },
+        { "wipe_tower_x",               160 },
+        { "wipe_tower_y",               160 },
+        { "prime_tower_width",          20 },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "skirt_loops",                0 },
+        { "brim_type",                  "no_brim" },
+        { "layer_change_gcode",         "G92 E0\n" }, // validate() relative-E reset
+    });
+    config.set_deserialize_strict(extra);
+    return config;
+}
+
+// Support on filament 1 with its interface on filament 2, for the objects that need any.
+const std::initializer_list<Slic3r::ConfigBase::SetDeserializeItem> support_interface_on_filament_2 = {
+    { "enable_support",             1 },
+    { "support_type",               "normal(auto)" },
+    { "support_threshold_angle",    30 },
+    { "support_filament",           1 },
+    { "support_interface_filament", 2 },
+};
+
+ModelObject *add_object(Model &model, TriangleMesh &&mesh, double x, double y)
+{
+    ModelObject *object = model.add_object();
+    object->add_volume(std::move(mesh));
+    object->add_instance()->set_offset(Vec3d(x, y, 0.));
+    object->ensure_on_bed();
+    return object;
+}
+
+// Slices the lower half of a 20 mm cube at 0.1 mm, so that it shares none of its layers there with an
+// object sliced at 0.2 mm.
+void slice_lower_half_finer(ModelObject &object)
+{
+    DynamicPrintConfig range;
+    range.set_key_value("layer_height", new ConfigOptionFloat(0.1));
+    object.layer_config_ranges[{ 0., 10. }].assign_config(std::move(range));
+}
+
+void print_upper_part_with_filament_2(ModelObject &object, double from_z, double to_z)
+{
+    DynamicPrintConfig range;
+    range.set_key_value("extruder", new ConfigOptionInt(2));
+    // Every layer range must carry a layer_height (see layer_height_profile_from_ranges).
+    range.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+    object.layer_config_ranges[{ from_z, to_z }].assign_config(std::move(range));
+}
+
 // The slicing parameters of an object printed with one filament, on a printer whose first extruder
 // allows layers up to 0.32 mm and the second one up to 0.28 mm. The layers are 0.2 mm, within both.
 SlicingParameters slicing_parameters_on_filament(unsigned int filament)
@@ -2817,6 +2962,98 @@ SlicingParameters slicing_parameters_on_filament(unsigned int filament)
 }
 
 } // namespace
+
+// The parts use one filament and only their support would use the other, so the plate changes filaments
+// only if slicing generates support. Without any, no tower is printed, and the objects need not share
+// their layers.
+TEST_CASE("A plate is sliced with objects that do not share their layers when no support changes filaments", "[Print][PrimeTower]")
+{
+    Model model;
+    slice_lower_half_finer(*add_object(model, cube(20), 20., 20.));
+    add_object(model, cube(20), 60., 20.);
+    Print print;
+    print.apply(model, prime_tower_config(support_interface_on_filament_2));
+
+    CHECK(print.validate().string.empty());
+    REQUIRE_NOTHROW(print.process());
+    CHECK(print.wipe_tower_data().tool_changes.empty());
+}
+
+TEST_CASE("Objects that do not share their layers are refused once their support changes filaments", "[Print][PrimeTower]")
+{
+    Model model;
+    slice_lower_half_finer(*add_object(model, cube(20), 20., 20.));
+    TriangleMesh overhang = mesh(TestMesh::overhang);
+    overhang.scale(2.f);
+    add_object(model, std::move(overhang), 60., 20.);
+    Print print;
+    print.apply(model, prime_tower_config(support_interface_on_filament_2));
+
+    // Before slicing it is not known whether the overhang gets support.
+    CHECK(print.validate().string.empty());
+    REQUIRE_THROWS_WITH(print.process(), Catch::Matchers::ContainsSubstring("prime tower"));
+}
+
+TEST_CASE("Objects that do not share their layers are refused before slicing when their parts use two filaments", "[Print][PrimeTower]")
+{
+    Model model;
+    slice_lower_half_finer(*add_object(model, cube(20), 20., 20.));
+    add_object(model, cube(20), 60., 20.)->config.set_key_value("extruder", new ConfigOptionInt(2));
+    Print print;
+    print.apply(model, prime_tower_config());
+
+    CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("prime tower"));
+}
+
+// "No sparse layers" refuses an object that rises too far above the compacted tower. Away from the
+// toolhead that limit is the lid clearance above the tower, which slicing alone tells how tall it is.
+TEST_CASE("No sparse layers lets an object away from the tower rise past the lid clearance when the tower keeps up", "[Print][PrimeTower]")
+{
+    Model model;
+    // A tool change on every layer, so the compacted tower is as tall as the objects.
+    add_object(model, make_cube(20., 20., 40.), 20., 20.);
+    add_object(model, make_cube(20., 20., 40.), 60., 20.)->config.set_key_value("extruder", new ConfigOptionInt(2));
+    Print print;
+    print.apply(model, prime_tower_config({
+        { "wipe_tower_no_sparse_layers",      1 },
+        { "extruder_clearance_height_to_lid", 20 },
+        { "extruder_clearance_height_to_rod", 20 },
+    }));
+
+    CHECK(print.validate().string.empty());
+    REQUIRE_NOTHROW(print.process());
+    CHECK_FALSE(print.wipe_tower_data().tool_changes.empty());
+}
+
+TEST_CASE("No sparse layers still refuses an object that rises past the lid clearance above the tower", "[Print][PrimeTower]")
+{
+    Model model;
+    // The filament only changes from 30 mm up, by when the compacted tower is still a few layers tall.
+    print_upper_part_with_filament_2(*add_object(model, make_cube(20., 20., 40.), 20., 20.), 30., 40.);
+    Print print;
+    print.apply(model, prime_tower_config({
+        { "wipe_tower_no_sparse_layers",      1 },
+        { "extruder_clearance_height_to_lid", 20 },
+        { "extruder_clearance_height_to_rod", 20 },
+    }));
+
+    CHECK(print.validate().string.empty());
+    REQUIRE_THROWS_WITH(print.process(), Catch::Matchers::ContainsSubstring("No sparse layers"));
+}
+
+// Within the toolhead radius of the tower the head body limits an object to nozzle_height, however tall the tower
+// grows, so validate() refuses it before slicing.
+TEST_CASE("No sparse layers refuses before slicing an object that rises within the toolhead radius of the tower", "[Print][PrimeTower]")
+{
+    Model model;
+    // 10 mm from the tower in X and in Y, within the 40 mm toolhead radius, and taller than the 2.5 mm nozzle cone.
+    add_object(model, make_cube(10., 10., 10.), 140., 140.);
+    add_object(model, make_cube(20., 20., 10.), 20., 20.)->config.set_key_value("extruder", new ConfigOptionInt(2));
+    Print print;
+    print.apply(model, prime_tower_config({ { "wipe_tower_no_sparse_layers", 1 } }));
+
+    CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("No sparse layers"));
+}
 
 TEST_CASE("An object takes the layer height limits of the extruder of its own filament", "[Print]")
 {
