@@ -9900,6 +9900,18 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         else if (value == "0"){
             value = "ensure_moderate";
         }
+        // BambuStudio values. Like ours, its old "1" became "enabled" and "0" became "partial".
+        // Its "disabled" skips vertical shells and stops the horizontal shell search on void layers,
+        // which ensure_critical_only does too.
+        else if (value == "enabled") {
+            value = "ensure_all";
+        }
+        else if (value == "partial") {
+            value = "ensure_moderate";
+        }
+        else if (value == "disabled") {
+            value = "ensure_critical_only";
+        }
     } else if (opt_key == "rotate_solid_infill_direction") {
         opt_key = "solid_infill_rotate_template";
         if (value == "1") {
