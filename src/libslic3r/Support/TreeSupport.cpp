@@ -2372,7 +2372,8 @@ void TreeSupport::draw_circles()
                 roof_1st_layer = intersection_ex(roof_1st_layer, m_machine_border);
 
                 ExPolygons roofs; append(roofs, roof_1st_layer); append(roofs, roof_areas);append(roofs, roof_gap_areas);
-                base_areas = diff_ex(base_areas, ClipperUtils::clip_clipper_polygons_with_subject_bbox(roofs, get_extents(base_areas)));
+                const BoundingBox base_bbox = get_extents(base_areas);
+                base_areas = diff_ex(union_overlapping_ex(std::move(base_areas)), ClipperUtils::clip_clipper_polygons_with_subject_bbox(roofs, base_bbox));
                 base_areas = intersection_ex(base_areas, m_machine_border);
 
                 // Belt floor: clip tree support polygons by the belt surface plane.
