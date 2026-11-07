@@ -385,6 +385,8 @@ set(lisbslic3r_sources
     NormalUtils.cpp
     NormalUtils.hpp
     NSVGUtils.cpp
+    TransmissionDistance.cpp
+    TransmissionDistance.hpp
     NSVGUtils.hpp
     ObjColorUtils.cpp
     ObjColorUtils.hpp
