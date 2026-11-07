@@ -277,6 +277,7 @@ void Button::SetValue(bool state)
 bool Button::GetValue() const { return state_handler.states() & StateHandler::Checked; }
 
 void Button::SetCenter(bool isCenter) { this->isCenter = isCenter; }
+void Button::SetLabelOffsetY(int offset) { m_label_offset_y = offset; Refresh(); }
 
 void Button::SetIndicator(bool on)
 {
@@ -487,7 +488,7 @@ void Button::render(wxDC& dc)
         } else {
             if (pt.x + textSize.x > size.x)
                 text = wxControl::Ellipsize(text, dc, wxELLIPSIZE_END, size.x - pt.x);
-            pt.y += (rcContent.height - textSize.y) / 2;
+            pt.y += (rcContent.height - textSize.y) / 2 + m_label_offset_y;
         }
         dc.SetTextForeground(text_color.colorForStates(states));
 #if 0

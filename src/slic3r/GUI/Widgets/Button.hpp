@@ -55,6 +55,7 @@ class Button : public StaticBox
     bool canFocus    = true;
     bool isCenter    = true;
     bool vertical    = false;
+    int  m_label_offset_y = 0;
     bool m_show_indicator = false;
     wxColour m_indicator_color = wxColour("#009688");
 
@@ -109,6 +110,8 @@ public:
     bool GetValue() const;
 
     void SetCenter(bool isCenter);
+
+    void SetLabelOffsetY(int offset);
 
     void SetVertical(bool vertical = true);
 
