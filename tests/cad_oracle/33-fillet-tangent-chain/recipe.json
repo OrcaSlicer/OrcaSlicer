@@ -1,0 +1,212 @@
+{
+ "id": "33-fillet-tangent-chain",
+ "name": "Fillet chain across tangent faces",
+ "description": "Obround (centres 0 and 40, R8) extruded 10; one top edge filleted R2 with tangent chain (whole top loop), then one bottom edge chamfered 1 with tangent chain.",
+ "exercises": [
+  "fillet",
+  "tangent_chain",
+  "chamfer"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "SlotSketch",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "arc_center_start_sweep",
+     "center": {
+      "at": [
+       0,
+       0
+      ]
+     },
+     "start": {
+      "at": [
+       0,
+       8
+      ]
+     },
+     "sweep_deg": 180,
+     "id": "a1"
+    },
+    {
+     "type": "arc_center_start_sweep",
+     "center": {
+      "at": [
+       40,
+       0
+      ]
+     },
+     "start": {
+      "at": [
+       40,
+       -8
+      ]
+     },
+     "sweep_deg": 180,
+     "id": "a2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "a1.end",
+      "at": [
+       -0.0,
+       -8.0
+      ]
+     },
+     "end": {
+      "ref": "a2.start",
+      "at": [
+       40.0,
+       -8.0
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "a2.end",
+      "at": [
+       40.0,
+       8.0
+      ]
+     },
+     "end": {
+      "ref": "a1.start",
+      "at": [
+       0.0,
+       8.0
+      ]
+     },
+     "id": "l2"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Extrude1",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "SlotSketch",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "a1",
+        "a2",
+        "l1",
+        "l2"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 10,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Slot"
+   ]
+  },
+  {
+   "op": "fillet",
+   "name": "TopFillet",
+   "type": "constant_radius",
+   "radius": 2,
+   "tangent_chain": true,
+   "edge_selection": "top straight edge at y=-8, z=10, plus tangent chain",
+   "edges": [
+    {
+     "type": "line",
+     "start": [
+      0.0,
+      -8.0,
+      10.0
+     ],
+     "end": [
+      40.0,
+      -8.0,
+      10.0
+     ],
+     "point": [
+      20.0,
+      -8.0,
+      10.0
+     ]
+    }
+   ]
+  },
+  {
+   "op": "chamfer",
+   "name": "BottomChamfer",
+   "type": "equal_distance",
+   "distance": 1,
+   "tangent_chain": true,
+   "edge_selection": "bottom straight edge at y=-8, z=0, plus tangent chain",
+   "edges": [
+    {
+     "type": "line",
+     "start": [
+      -0.0,
+      -8.0,
+      0.0
+     ],
+     "end": [
+      40.0,
+      -8.0,
+      0.0
+     ],
+     "point": [
+      20.0,
+      -8.0,
+      0.0
+     ]
+    }
+   ]
+  }
+ ]
+}

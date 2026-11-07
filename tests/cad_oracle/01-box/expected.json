@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "box 40 x 30 x 20 from the origin: V = abc, A = 2(ab + bc + ca)",
+  "body_count": 1,
+  "volume_mm3": 24000.0,
+  "area_mm2": 5200.0,
+  "center_of_mass": [
+    20.0,
+    15.0,
+    10.0
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      40.0,
+      30.0,
+      20.0
+    ]
+  },
+  "faces": 6
+}

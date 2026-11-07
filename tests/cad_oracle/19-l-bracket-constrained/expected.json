@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "solved L: (0,0)-(60,0)-(60,8)-(8,8)-(8,40)-(0,40); area 60x8 + 8x32, extruded 20: V = A2 h, A = 2 A2 + perimeter*h, centroid of the two rectangles",
+  "body_count": 1,
+  "volume_mm3": 14720.0,
+  "area_mm2": 5472.0,
+  "center_of_mass": [
+    20.956521739130434,
+    10.956521739130435,
+    10.0
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      60.0,
+      40.0,
+      20.0
+    ]
+  },
+  "faces": 8
+}

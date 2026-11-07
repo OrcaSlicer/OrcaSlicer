@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "true helix coil (screw motion of the axial d4 section, R20, pitch 8, 3 turns): V = turns * 2 pi R * pi a^2; lateral A = turns * 2 pi * int sqrt(r^2 + (p/2pi)^2 (dr/ds)^2) ds (periodic trapezoid, exact to round-off) + two end discs; COM z = pitch*turns/2",
+  "body_count": 1,
+  "volume_mm3": 4737.410112522892,
+  "area_mm2": 4767.351236008563,
+  "center_of_mass": [
+    0.0,
+    0.0,
+    12.0
+  ],
+  "bbox": {
+    "min": [
+      -22.0,
+      -22.0,
+      -2.0
+    ],
+    "max": [
+      22.0,
+      22.0,
+      26.0
+    ]
+  },
+  "faces": 3
+}

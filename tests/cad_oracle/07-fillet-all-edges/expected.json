@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "box 40x30x20 with every edge rounded r=3 = inner box (34x24x14) grown by a ball r (Steiner): V = abc + 2r(ab+bc+ca) + pi r^2 (a+b+c) + 4/3 pi r^3, A = 2(ab+bc+ca) + 2 pi r (a+b+c) + 4 pi r^2; faces 6 planes + 12 quarter cylinders + 8 sphere octants",
+  "body_count": 1,
+  "volume_mm3": 23340.84937505542,
+  "area_mm2": 4726.265361880023,
+  "center_of_mass": [
+    20.0,
+    15.0,
+    10.0
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      40.0,
+      30.0,
+      20.0
+    ]
+  },
+  "faces": 26
+}

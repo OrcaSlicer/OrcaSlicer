@@ -1,0 +1,374 @@
+{
+ "id": "66-sketch-linkage",
+ "name": "Sketch solver: symmetric link",
+ "description": "Link with R12 and R8 end arcs 60 apart joined by tangent lines, concentric d12/d8 holes, and two d4 holes symmetric about the construction centre line; fully constrained; extruded 6.",
+ "exercises": [
+  "sketch_only",
+  "sketch_constraints",
+  "tangent",
+  "concentric",
+  "symmetric",
+  "offset_dim"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Link",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "arc_three_point",
+     "start": {
+      "at": [
+       2,
+       11
+      ]
+     },
+     "mid": [
+      -13,
+      1
+     ],
+     "end": {
+      "at": [
+       1,
+       -12
+      ]
+     },
+     "id": "a1"
+    },
+    {
+     "type": "arc_three_point",
+     "start": {
+      "at": [
+       58,
+       -7
+      ]
+     },
+     "mid": [
+      69,
+      1
+     ],
+     "end": {
+      "at": [
+       59,
+       8
+      ]
+     },
+     "id": "a2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "a2.end",
+      "at": [
+       59.0,
+       8.0
+      ]
+     },
+     "end": {
+      "ref": "a1.start",
+      "at": [
+       2.0,
+       11.0
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "a1.end",
+      "at": [
+       1.0,
+       -12.0
+      ]
+     },
+     "end": {
+      "ref": "a2.start",
+      "at": [
+       58.0,
+       -7.0
+      ]
+     },
+     "id": "l2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "a1.center",
+      "at": [
+       -1.246268657,
+       -0.380597015
+      ]
+     },
+     "end": {
+      "ref": "a2.center",
+      "at": [
+       61.079617834,
+       0.328025478
+      ]
+     },
+     "id": "lc",
+     "construction": true
+    },
+    {
+     "type": "circle",
+     "center": {
+      "ref": "a1.center",
+      "at": [
+       -1.246268657,
+       -0.380597015
+      ]
+     },
+     "radius": 5,
+     "id": "h1"
+    },
+    {
+     "type": "circle",
+     "center": {
+      "ref": "a2.center",
+      "at": [
+       61.079617834,
+       0.328025478
+      ]
+     },
+     "radius": 3.5,
+     "id": "h2"
+    },
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       28,
+       4
+      ]
+     },
+     "radius": 2.5,
+     "id": "h3"
+    },
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       31,
+       -5
+      ]
+     },
+     "radius": 1.5,
+     "id": "h4"
+    }
+   ],
+   "constraints": [
+    {
+     "type": "coincident",
+     "refs": [
+      "a1.center",
+      "origin"
+     ]
+    },
+    {
+     "type": "horizontal",
+     "refs": [
+      "lc"
+     ]
+    },
+    {
+     "type": "tangent",
+     "refs": [
+      "l1",
+      "a1"
+     ]
+    },
+    {
+     "type": "tangent",
+     "refs": [
+      "l1",
+      "a2"
+     ]
+    },
+    {
+     "type": "tangent",
+     "refs": [
+      "l2",
+      "a1"
+     ]
+    },
+    {
+     "type": "tangent",
+     "refs": [
+      "l2",
+      "a2"
+     ]
+    },
+    {
+     "type": "symmetric",
+     "refs": [
+      "h3",
+      "h4",
+      "lc"
+     ]
+    }
+   ],
+   "dimensions": [
+    {
+     "type": "distance",
+     "refs": [
+      "a1.center",
+      "a2.center"
+     ],
+     "value": 60,
+     "unit": "mm",
+     "orientation": "horizontal"
+    },
+    {
+     "type": "radius",
+     "refs": [
+      "a1"
+     ],
+     "value": 12,
+     "unit": "mm"
+    },
+    {
+     "type": "radius",
+     "refs": [
+      "a2"
+     ],
+     "value": 8,
+     "unit": "mm"
+    },
+    {
+     "type": "diameter",
+     "refs": [
+      "h1"
+     ],
+     "value": 12,
+     "unit": "mm"
+    },
+    {
+     "type": "diameter",
+     "refs": [
+      "h2"
+     ],
+     "value": 8,
+     "unit": "mm"
+    },
+    {
+     "type": "diameter",
+     "refs": [
+      "h3"
+     ],
+     "value": 4,
+     "unit": "mm"
+    },
+    {
+     "type": "distance",
+     "refs": [
+      "a1.center",
+      "h3.center"
+     ],
+     "value": 30,
+     "unit": "mm",
+     "orientation": "horizontal"
+    },
+    {
+     "type": "offset",
+     "refs": [
+      "lc",
+      "h3.center"
+     ],
+     "value": 4,
+     "unit": "mm"
+    }
+   ]
+  },
+  {
+   "op": "extrude",
+   "name": "Extrude1",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "Link",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "a1",
+        "a2",
+        "l1",
+        "l2"
+       ]
+      },
+      {
+       "outer": false,
+       "curves": [
+        "h1"
+       ]
+      },
+      {
+       "outer": false,
+       "curves": [
+        "h2"
+       ]
+      },
+      {
+       "outer": false,
+       "curves": [
+        "h3"
+       ]
+      },
+      {
+       "outer": false,
+       "curves": [
+        "h4"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 6,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Link"
+   ]
+  }
+ ]
+}

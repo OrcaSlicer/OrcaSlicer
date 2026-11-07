@@ -45,9 +45,15 @@ public:
     void open(const wxPoint& canvas_px, double value, const std::string& title,
               std::function<void(double)> on_commit,
               std::function<void()> on_cancel);
+    // Characters typed BEFORE the field existed (type-first): they are fed to it the first frame it is active, so
+    // the first digit replaces the pre-selected value exactly as if the field had been open already.
+    void seed(const std::string& s) { m_seed = s; }
     void close();                        // drop it with neither callback
     void cancel();                       // if open, run the registered cancel (keep-as-drawn)
     void commit();                       // if open, run the registered commit (accept the typed value)
+    // How the last commit was made: 0 Enter, +1 Tab, -1 Shift+Tab. A value chain (a rectangle's width, then height) uses it to step
+    // forwards or back and to wrap round at either end; Enter ends the chain.
+    int  last_commit_dir() const { return m_last_dir; }
     // Called from inside a commit callback that cannot accept the value (a negative length, a
     // count of 1): the field comes back with the typed text and `why` in its title line, instead
     // of closing as if the value had been taken.
@@ -91,6 +97,7 @@ private:
     bool        m_focus_pending{false};  // one frame of SetKeyboardFocusHere after opening
     wxPoint     m_anchor{0, 0};          // canvas device px
     std::string m_title;
+    std::string m_seed;                  // type-first characters waiting for the field to become active
     std::string m_err;                   // why the last value was refused, shown in the title line
     char        m_buf[64]{};             // the edited text; ImGui::InputText writes into it
     double      m_prefill_value{0.0};    // the exact value the field opened with...
@@ -104,6 +111,7 @@ private:
     };
     Closed      m_last;
     bool        m_in_commit{false};
+    int         m_last_dir{0};
 };
 
 }} // namespace Slic3r::GUI

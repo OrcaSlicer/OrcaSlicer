@@ -1,0 +1,24 @@
+{
+  "source": "freecad 1.1.4",
+  "method": "FreeCAD (OpenCASCADE) build of recipe.json by tools/freecad-oracle/build.py: Part extrude, Part makeChamfer, Part makeFillet",
+  "body_count": 1,
+  "volume_mm3": 22892.42132988775,
+  "area_mm2": 4753.688476928938,
+  "center_of_mass": [
+    20.000000000000004,
+    15.000000000000012,
+    9.95512677479753
+  ],
+  "bbox": {
+    "min": [
+      -1.3322676295501878e-15,
+      -8.881784197001252e-16,
+      0.0
+    ],
+    "max": [
+      40.0,
+      30.0,
+      20.0
+    ]
+  }
+}

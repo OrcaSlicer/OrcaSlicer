@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "40x40x30 box, 5 deg draft hinged on the bottom (z=0), pull -Z: square frustum 40 -> 40 + 2*30*tan5; V = h/3 (A0 + A1 + sqrt(A0A1)), sides 4 trapezoids of slant h/cos5",
+  "body_count": 1,
+  "volume_mm3": 54574.73735870641,
+  "area_mm2": 8781.998445243411,
+  "center_of_mass": [
+    0.0,
+    0.0,
+    15.614983642248854
+  ],
+  "bbox": {
+    "min": [
+      -22.62465990577772,
+      -22.62465990577772,
+      0.0
+    ],
+    "max": [
+      22.62465990577772,
+      22.62465990577772,
+      30.0
+    ]
+  },
+  "faces": 6
+}

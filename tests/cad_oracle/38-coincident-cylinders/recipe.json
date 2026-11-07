@@ -1,0 +1,179 @@
+{
+ "id": "38-coincident-cylinders",
+ "name": "Union of coaxial equal cylinders",
+ "description": "Cylinder r10 z 0..30 and cylinder r10 z 20..50 (coincident cylindrical faces), combine join.",
+ "exercises": [
+  "combine_join",
+  "coincident_faces",
+  "offset_plane"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "S1",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       0,
+       0
+      ]
+     },
+     "radius": 10,
+     "id": "c1"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "CylA",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "S1",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c1"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 30,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "A"
+   ]
+  },
+  {
+   "op": "construction_plane",
+   "name": "Z20",
+   "method": "offset",
+   "base": "XY",
+   "offset": 20
+  },
+  {
+   "op": "sketch",
+   "name": "S2",
+   "plane": {
+    "ref": "construction plane Z20",
+    "origin": [
+     0.0,
+     0.0,
+     20.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       0,
+       0
+      ]
+     },
+     "radius": 10,
+     "id": "c1"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "CylB",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "S2",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c1"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 30,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "B"
+   ]
+  },
+  {
+   "op": "combine",
+   "name": "Combine1",
+   "operation": "join",
+   "target_body": "A",
+   "tool_bodies": [
+    "B"
+   ],
+   "keep_tools": false
+  }
+ ]
+}

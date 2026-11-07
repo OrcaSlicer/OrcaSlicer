@@ -8,8 +8,8 @@ when launched with ORCA_CAD_MCP set). The tool list is built *live* from the app
 without touching this file.
 
 Usage:  orca_cad_mcp_bridge.py [SOCKET_PATH]   (default /tmp/orca-cad-mcp.sock)
-The app must be running with ORCA_CAD_MCP set; if the socket is down, tools/list falls
-back to the slice-1 set and tool calls report the connection error (never crash).
+The app must be running with ORCA_CAD_MCP set; if the socket is down, tools/list serves the last
+cached describe_tools reply and tool calls report the connection error (never crash).
 """
 import sys, os, json, socket, itertools
 
@@ -53,72 +53,30 @@ def _param_schema(p):
     if "default" in p: sch["default"] = p["default"]
     return sch
 
-# Fallback when the app socket is unreachable at list time (e.g. the GUI isn't up yet when the
-# MCP client lists tools at session start). The LIVE describe_tools reply is authoritative — this
-# mirrors its 16-method surface so the agent still sees the full toolset; params without a
-# `default` are surfaced as required. Keep in sync with McpControl.cpp describe_tools().
-def _p(name, typ="number", **kw): return dict(name=name, type=typ, **kw)
-_PLANE = _p("plane", "string", enum=["XY", "XZ", "YZ"], default="XY")
-_FALLBACK_TOOLS = {"tools": [
-    {"name": "describe_tools", "summary": "List callable tools and their parameters.", "params": []},
-    {"name": "describe_scene", "summary": "Feature tree + per-body bounding boxes.", "params": []},
-    {"name": "extrude", "summary": "Extrude a profile (or width x height rectangle) to a depth; Onshape end conditions.",
-     "params": [_p("width", default=20), _p("height", default=20), _p("distance", default=10), _PLANE,
-                _p("profile", "array", default=[], description="closed [[x,y],...] overrides width/height"),
-                _p("boolean", "string", enum=["new", "union", "subtract", "intersect"], default="new"),
-                _p("end", "string", enum=["blind", "symmetric", "two_sided", "through_all", "up_to_face"], default="blind"),
-                _p("distance2", default=0, description="second side when end=two_sided"),
-                _p("up_to_face", "integer", default=-1, description="target face id when end=up_to_face"),
-                _p("taper", default=0), _p("flip", "boolean", default=False)]},
-    {"name": "revolve", "summary": "Revolve a profile about a plane axis.",
-     "params": [_p("width", default=20), _p("height", default=10), _p("angle", default=360),
-                _p("axis", "integer", enum=[0, 1], default=0), _p("flip", "boolean", default=False), _PLANE,
-                _p("profile", "array", default=[], description="closed [[x,y],...] overrides width/height"),
-                _p("boolean", "string", enum=["new", "union", "subtract", "intersect"], default="new")]},
-    {"name": "fillet", "summary": "Round a measured edge of a body.",
-     "params": [_p("edge", "integer"), _p("radius", default=1),
-                _p("body", "integer", default=-1, description="target body; omit for last")]},
-    {"name": "chamfer", "summary": "Chamfer a measured edge of a body.",
-     "params": [_p("edge", "integer"), _p("distance", default=1),
-                _p("body", "integer", default=-1, description="target body; omit for last")]},
-    {"name": "hole", "summary": "Drill a circular hole at (x,y) on a plane.",
-     "params": [_p("diameter", default=5), _p("depth", default=10), _p("through", "boolean", default=False),
-                _p("x", default=0), _p("y", default=0), _PLANE]},
-    {"name": "boolean", "summary": "Combine two bodies: union | subtract | intersect.",
-     "params": [_p("op", "string", enum=["union", "subtract", "intersect"], default="subtract"),
-                _p("target", "integer", default=0), _p("tool", "integer", default=1),
-                _p("keep_tool", "boolean", default=False), _p("tolerance", default=0)]},
-    {"name": "pattern", "summary": "Replicate a body: linear or circular.",
-     "params": [_p("circular", "boolean", default=False), _p("count", "integer", default=3),
-                _p("spacing", default=10), _p("dir", "integer", enum=[0, 1], default=0),
-                _p("angle", default=360), _PLANE, _p("body", "integer", default=-1, description="target body; omit for last")]},
-    {"name": "shell", "summary": "Hollow a body to a wall thickness; optionally open one face.",
-     "params": [_p("thickness", default=1), _p("face", "integer", default=-1, description="face id to leave open; omit for closed"),
-                _p("body", "integer", default=-1, description="target body; omit for last")]},
-    {"name": "draft", "summary": "Taper a body face by an angle (pull +Z).",
-     "params": [_p("face", "integer"), _p("angle", default=5),
-                _p("body", "integer", default=-1, description="target body; omit for last")]},
-    {"name": "query_topology", "summary": "Measured faces and edges of a body.",
-     "params": [_p("body", "integer", default=0)]},
-    {"name": "measure", "summary": "Distance/angle between two refs {face|edge|point} on a body.",
-     "params": [_p("body", "integer", default=0), _p("a", "object"), _p("b", "object")]},
-    {"name": "slice_body", "summary": "Cross-section of a body; ordered closed/open contours.",
-     "params": [_p("body", "integer", default=0), _PLANE, _p("offset", default=0)]},
-    {"name": "import_step", "summary": "Import a STEP file as native B-rep bodies.",
-     "params": [_p("path", "string")]},
-    {"name": "validate_against", "summary": "Volume + bbox + surface deviation of a body vs a reference {step|body}.",
-     "params": [_p("body", "integer", default=0), _p("reference", "object")]},
-]}
+# The app's describe_tools reply is the ONLY source of the tool list (no hand-kept copy to drift). The last good
+# reply is cached, so a client that lists tools before the GUI is up still sees the whole surface.
+CACHE = os.path.expanduser("~/.cache/orca_cad_mcp_tools.json")
 
-def list_tools():
+def _describe():
     try:
         desc = app_call("describe_tools").get("result", {})
-        if "tools" not in desc:
-            desc = _FALLBACK_TOOLS
+        if "tools" in desc:
+            try:
+                os.makedirs(os.path.dirname(CACHE), exist_ok=True)
+                with open(CACHE, "w") as f: json.dump(desc, f)
+            except OSError:
+                pass
+            return desc
     except Exception:
-        desc = _FALLBACK_TOOLS
+        pass
+    try:
+        with open(CACHE) as f: return json.load(f)
+    except (OSError, ValueError):
+        return {"tools": []}
+
+def list_tools():
     out = []
-    for t in desc["tools"]:
+    for t in _describe()["tools"]:
         params = t.get("params", [])
         props = {p["name"]: _param_schema(p) for p in params}
         required = [p["name"] for p in params if "default" not in p]
@@ -126,6 +84,7 @@ def list_tools():
             "name": t["name"],
             "description": t.get("summary", ""),
             "inputSchema": {"type": "object", "properties": props, "required": required},
+            "annotations": {"readOnlyHint": bool(t.get("readOnly")), "destructiveHint": bool(t.get("destructive"))},
         })
     return out
 
@@ -134,13 +93,30 @@ def handle(req):
     m = req.get("method")
     rid = req.get("id")
     if m == "initialize":
-        ver = (req.get("params") or {}).get("protocolVersion", "2024-11-05")
+        want = (req.get("params") or {}).get("protocolVersion")
+        ver = want if want in ("2025-06-18", "2025-03-26", "2024-11-05") else "2025-06-18"
         return {"jsonrpc": "2.0", "id": rid, "result": {
             "protocolVersion": ver,
-            "capabilities": {"tools": {"listChanged": False}},
+            "capabilities": {"tools": {"listChanged": False}, "resources": {}},
             "serverInfo": SERVER_INFO}}
     if m == "ping":
         return {"jsonrpc": "2.0", "id": rid, "result": {}}
+    if m == "resources/list":
+        return {"jsonrpc": "2.0", "id": rid, "result": {"resources": [
+            {"uri": "orca-cad://design", "name": "design", "mimeType": "application/json",
+             "description": "Live state of the open design: parameters, features with errors, bodies with volume/COM/bbox, sketches, undo depth (inspect_design)."},
+            {"uri": "orca-cad://tools", "name": "tools", "mimeType": "application/json",
+             "description": "Every callable method with its parameters (describe_tools)."}]}}
+    if m == "resources/read":
+        uri = (req.get("params") or {}).get("uri")
+        method = {"orca-cad://design": "inspect_design", "orca-cad://tools": "describe_tools"}.get(uri)
+        if method is None:
+            return {"jsonrpc": "2.0", "id": rid, "error": {"code": -32602, "message": f"unknown resource: {uri}"}}
+        try:
+            body = app_call(method).get("result")
+        except Exception as e:
+            return {"jsonrpc": "2.0", "id": rid, "error": {"code": -32603, "message": f"control socket unreachable ({SOCK_PATH}): {e}"}}
+        return {"jsonrpc": "2.0", "id": rid, "result": {"contents": [{"uri": uri, "mimeType": "application/json", "text": json.dumps(body, indent=2)}]}}
     if m == "tools/list":
         return {"jsonrpc": "2.0", "id": rid, "result": {"tools": list_tools()}}
     if m == "tools/call":
@@ -156,8 +132,10 @@ def handle(req):
         if "error" in reply:
             return {"jsonrpc": "2.0", "id": rid, "result": {
                 "content": [{"type": "text", "text": json.dumps(reply["error"])}], "isError": True}}
+        res = reply.get("result")
         return {"jsonrpc": "2.0", "id": rid, "result": {
-            "content": [{"type": "text", "text": json.dumps(reply.get("result"), indent=2)}]}}
+            "content": [{"type": "text", "text": json.dumps(res, indent=2)}],
+            "isError": isinstance(res, dict) and res.get("ok") is False}}
     if rid is not None:  # unknown *request*
         return {"jsonrpc": "2.0", "id": rid, "error": {"code": -32601, "message": f"method not found: {m}"}}
     return None  # notification (e.g. notifications/initialized) -> no reply

@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "plate 40x30x15 minus d6.8 cylinder 12 deep (to the shoulder) and 118 deg drill point cone (h = r/tan59, V = pi r^2 h/3, lateral pi r * r/sin59); cosmetic thread adds no geometry",
+  "body_count": 1,
+  "volume_mm3": 17539.467413298902,
+  "area_mm2": 4762.405554138465,
+  "center_of_mass": [
+    20.0,
+    15.0,
+    7.469794810863136
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      40.0,
+      30.0,
+      15.0
+    ]
+  },
+  "faces": 8
+}

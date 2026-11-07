@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "obround (R8, centres 40 apart) x 10 minus R2 fillet spandrel R^2(1-pi/4) and 1 mm chamfer triangle swept round the whole loop (Pappus: section x path of its centroid, inset R(10-3pi)/(3(4-pi)) resp. c/3); surfaces likewise (fillet arc centroid inset R-2R/pi)",
+  "body_count": 1,
+  "volume_mm3": 8237.12239193832,
+  "area_mm2": 2793.569488148386,
+  "center_of_mass": [
+    20.0,
+    0.0,
+    4.975827363940953
+  ],
+  "bbox": {
+    "min": [
+      -8.0,
+      -8.0,
+      0.0
+    ],
+    "max": [
+      48.0,
+      8.0,
+      10.0
+    ]
+  },
+  "faces": 14
+}

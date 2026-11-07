@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "final rule thickness 3 (bend radius = Thickness = 3): base y 6..60 x 3; bend annulus R 3..6 about (y 6, z 6); flange y 0..3, z 6..20; extrusion along x 100",
+  "body_count": 1,
+  "volume_mm3": 22520.575041173113,
+  "area_mm2": 16064.12819493887,
+  "center_of_mass": [
+    50.0,
+    24.30326264966137,
+    3.788688791962308
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      100.0,
+      60.0,
+      20.0
+    ]
+  },
+  "note": "the rule's thickness edits regenerate the whole sheet body; only the final 3 mm state matters"
+}

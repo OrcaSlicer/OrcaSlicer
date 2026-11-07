@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "solved sketch: hull of circles R12 at (0,0) and R8 at (60,0) (outer tangent lines, cos a = 4/60) minus holes d12, d8 (concentric) and d4 at (30,+-4) (symmetry keeps radii equal); prism h6",
+  "body_count": 1,
+  "volume_mm3": 8045.386394390547,
+  "area_mm2": 4308.174742415074,
+  "center_of_mass": [
+    26.196311954241445,
+    -2.1175331398316964e-16,
+    3.0000000000000004
+  ],
+  "bbox": {
+    "min": [
+      -12.0,
+      -12.0,
+      0.0
+    ],
+    "max": [
+      68.0,
+      12.0,
+      6.0
+    ]
+  },
+  "faces": 10
+}

@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "U channel 80x50 (t 2.5, R 2.5, base y 5..45, flanges z 5..20) with the flat-pattern slot x 35..45, y -12..10 refolded: BA = (pi/2)(R + K t) = 5.654866776, so the slot removes base y 5..10, the whole y=0 bend and the flange from z 5 to 5 + (12 - (BA - 5)) = 16.345133224; x-segments 0..35 / 35..45 / 45..80",
+  "body_count": 1,
+  "volume_mm3": 15800.304003966867,
+  "area_mm2": 13610.326162673397,
+  "center_of_mass": [
+    40.0,
+    25.774257210144707,
+    5.531072022389276
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      80.0,
+      50.0,
+      20.0
+    ]
+  },
+  "note": "unfold/refold maps flat distance through the K-factor neutral layer (K 0.44)"
+}

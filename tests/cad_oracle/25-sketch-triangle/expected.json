@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "solved triangle (0,0), (50,0), P = t(cos60, sin60) with t = 25 + sqrt(150) from |P-(50,0)| = 45 (the root nearest the drawn apex); V = (1/2 * 50 * Py) * 5, A = 2 A2 + perimeter*5, centroid = vertex mean",
+  "body_count": 1,
+  "volume_mm3": 4032.1546015511467,
+  "area_mm2": 2274.0990841900384,
+  "center_of_mass": [
+    22.87457478565265,
+    10.752412270803058,
+    2.5
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      50.0,
+      32.257236812409175,
+      5.0
+    ]
+  },
+  "faces": 5
+}
