@@ -116,6 +116,10 @@ std::vector<std::string> collect_resource_texture_files(const std::string& dir,
                                                         const std::string& plugin_root,
                                                         std::string& error);
 
+// Validated non-recursive .stl/.png/.svg files directly inside `dir` (a printer asset pack's asset folder), every
+// one contained in `plugin_root`, at most 16. Empty with `error` set on failure.
+std::vector<std::string> collect_printer_asset_files(const std::string& dir, const std::string& plugin_root, std::string& error);
+
 // Process-wide mutex serializing every in-process read and read-modify-write of a plugin's
 // .install_state.json sidecar. Hold it across the read and the matching write so two writers
 // cannot overwrite each other's grants, and around standalone reads so a reader cannot observe a

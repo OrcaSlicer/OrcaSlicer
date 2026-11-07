@@ -93,6 +93,8 @@ private:
 	void		load_stl();
     void		load_texture();
     void		load_model();
+    // Picks a bed model (model = true) or texture from an installed printer asset pack, stored as a reference.
+    void		pick_from_asset_pack(bool model, wxWindow* anchor);
 
     wxSimplebook* m_shape_options_book;
     ComboBox*     m_shape_combo;

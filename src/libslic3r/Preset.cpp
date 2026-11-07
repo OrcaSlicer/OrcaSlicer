@@ -846,6 +846,11 @@ bool Preset::save(DynamicPrintConfig* parent_config)
                     opt_dst->set(opt_src);
             }
         }
+        // A printer preset keeps its plugin manifest in "printer_plugins" (ConfigBase::plugin_manifest_key
+        // picks the key from the options present), so keep it even when it matches the parent's.
+        if (type == TYPE_PRINTER && temp_config.option("printer_plugins") == nullptr)
+            if (const ConfigOption* manifest = config.option("printer_plugins"))
+                temp_config.set_key_value("printer_plugins", manifest->clone());
         to_save = &temp_config;
     } else if (!filament_id.empty() && inherits().empty()) {
         temp_config = config;
@@ -1603,7 +1608,7 @@ static std::vector<std::string> s_Preset_machine_limits_options {
 
 static std::vector<std::string> s_Preset_printer_options {
     "printer_technology",
-    "printable_area", "extruder_printable_area", "support_parallel_printheads", "parallel_printheads_count", "parallel_printheads_bed_exclude_areas", "bed_exclude_area","bed_custom_texture", "bed_custom_model", "build_plate_tilt_x", "build_plate_tilt_y", "belt_printer", "belt_printer_infinite_y",
+    "printable_area", "extruder_printable_area", "support_parallel_printheads", "parallel_printheads_count", "parallel_printheads_bed_exclude_areas", "bed_exclude_area","bed_custom_texture", "bed_custom_model", "printer_asset_plugins", "printer_plugins", "build_plate_tilt_x", "build_plate_tilt_y", "belt_printer", "belt_printer_infinite_y",
     "belt_slice_rotation", "belt_slice_rotation_angle",
     "gcode_remap_x", "gcode_remap_y", "gcode_remap_z",
     "belt_frame_tilt_decouple", "belt_frame_tilt_angle",
@@ -3443,9 +3448,13 @@ std::map<std::string, std::vector<Preset const *>> PresetCollection::get_filamen
 }
 
 //BBS: add project embedded preset logic
+PresetCollection::BeforeSaveFn PresetCollection::s_before_save_fn;
+
 void PresetCollection::save_current_preset(const std::string &new_name, bool detach, bool save_to_project, Preset* _curr_preset)
 {
     Preset curr_preset = _curr_preset ? *_curr_preset : m_edited_preset;
+    if (s_before_save_fn)
+        s_before_save_fn(m_type, curr_preset.config, this->get_selected_preset().config);
     //BBS: add lock logic for sync preset in background
     std::string final_inherits;
     lock();

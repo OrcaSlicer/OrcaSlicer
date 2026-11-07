@@ -13,7 +13,7 @@
 
 namespace Slic3r {
 
-enum class PluginCapabilityType { PrinterConnection = 0, Pages, Analysis, Importer, Exporter, Visualization, Script, SlicingPipeline, ResourceTexture, Unknown };
+enum class PluginCapabilityType { PrinterConnection = 0, Pages, Analysis, Importer, Exporter, Visualization, Script, SlicingPipeline, ResourceTexture, ResourcePrinterAsset, Unknown };
 
 struct PluginCapabilityId
 {
@@ -48,6 +48,7 @@ inline std::string plugin_capability_type_to_string(PluginCapabilityType type)
     case PluginCapabilityType::Script: return "script";
     case PluginCapabilityType::SlicingPipeline: return "slicing-pipeline";
     case PluginCapabilityType::ResourceTexture: return "resource-texture";
+    case PluginCapabilityType::ResourcePrinterAsset: return "resource-printer-asset";
     default: return "unknown";
     }
 }
@@ -64,6 +65,7 @@ inline std::string plugin_capability_type_display_name(PluginCapabilityType type
     case PluginCapabilityType::Script: return "Script";
     case PluginCapabilityType::SlicingPipeline: return "Slicing Pipeline";
     case PluginCapabilityType::ResourceTexture: return "Resource Texture";
+    case PluginCapabilityType::ResourcePrinterAsset: return "Resource Printer Asset";
     default: return "Unknown";
     }
 }
@@ -95,6 +97,8 @@ inline PluginCapabilityType plugin_capability_type_from_string(std::string_view 
         return PluginCapabilityType::SlicingPipeline;
     if (lowered == "resource-texture")
         return PluginCapabilityType::ResourceTexture;
+    if (lowered == "resource-printer-asset")
+        return PluginCapabilityType::ResourcePrinterAsset;
     return PluginCapabilityType::Unknown;
 }
 

@@ -419,6 +419,7 @@ set(lisbslic3r_sources
     PresetBundle.cpp
     PresetBundle.hpp
     PrinterBedAssets.hpp
+    PrinterAssetRef.hpp
     PresetCacheFormat.cpp
     PresetCacheFormat.hpp
     Preset.cpp
