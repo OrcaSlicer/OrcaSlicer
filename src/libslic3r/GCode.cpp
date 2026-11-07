@@ -1659,16 +1659,27 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     std::string WipeTowerIntegration::append_tcr2(GCode                             &gcodegen,
                                                   const WipeTower::ToolChangeResult &tcr,
                                                   int                                new_extruder_id,
-                                                  double                             z) const
+                                                  double                             z,
+                                                  std::optional<double>              object_z) const
     {
         if (new_extruder_id != -1 && new_extruder_id != tcr.new_tool)
             throw Slic3r::InvalidArgument("Error: WipeTowerIntegration::append_tcr was asked to do a toolchange it didn't expect.");
 
         if (!tcr.segments.empty()) {
-            std::string gcode;
+            std::string gcode = gcodegen.writer().unlift();
+            const double current_z = gcodegen.writer().get_position().z();
+            const Point return_pos = gcodegen.last_pos_defined() ? gcodegen.last_pos() :
+                gcodegen.gcode_to_point(gcodegen.writer().get_position().head<2>() +
+                                       Vec2d(m_plate_origin(0), m_plate_origin(1)));
+            // The outgoing ram and incoming purge are one visit. Stay above the
+            // stepped tower between segments and return only after the tool switch.
             for (const auto &segment : tcr.segments)
                 gcode += append_tcr2(gcodegen, segment, segment.new_tool,
-                    segment.print_z + m_print_config->z_offset.value);
+                    segment.print_z + m_print_config->z_offset.value, current_z);
+            gcodegen.m_avoid_crossing_perimeters.use_external_mp_once();
+            gcode += gcodegen.travel_to(return_pos, erMixed, "Return from independent tower columns");
+            gcode += gcodegen.writer().unlift();
+            gcode += gcodegen.writer().travel_to_z(current_z, "Restore object layer Z");
             return gcode;
         }
 
@@ -1699,14 +1710,12 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         gcode += gcodegen.writer().unlift(); // Make sure there is no z-hop (in most cases, there isn't).
 
-        double current_z = gcodegen.writer().get_position().z();
+        double current_z = object_z.value_or(gcodegen.writer().get_position().z());
 
 
         if (z == -1.) // in case no specific z was provided, print at current_z pos
             z = current_z;
 
-        const Point column_return_pos = gcodegen.last_pos_defined() ? gcodegen.last_pos() :
-            gcodegen.gcode_to_point(gcodegen.writer().get_position().head<2>() + plate_origin_2d.cast<double>());
         double column_clearance_z = current_z;
         if (tcr.independent_column) {
             m_highest_tool_column_z = std::max(m_highest_tool_column_z, z);
@@ -1973,10 +1982,6 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             gcodegen.m_wipe.reset_path();
             gcode += gcodegen.retract();
             gcode += gcodegen.writer().travel_to_z(column_clearance_z, "Clear stepped tower surface");
-            gcodegen.m_avoid_crossing_perimeters.use_external_mp_once();
-            gcode += gcodegen.travel_to(column_return_pos, erMixed, "Return from independent tower column");
-            gcode += gcodegen.writer().unlift();
-            gcode += gcodegen.writer().travel_to_z(current_z, "Restore object layer Z");
             // Keep the outgoing rammed tool retracted. The next column or model
             // extrusion restores pressure at its destination, not over the part.
         } else if (!is_approx(z, current_z)) {

@@ -367,6 +367,53 @@ TEST_CASE("One prime tower uses per-tool heights on a fine object grid", "[Extru
     REQUIRE(coarse_moves > 0);
 }
 
+TEST_CASE("Mixed-height tower visits switch tools before returning to the model", "[ExtruderLayerHeight][WipeTower]")
+{
+    const auto wall = GENERATE("rectangle", "rib", "cone");
+    const int rotation = GENERATE(0, 30);
+    CAPTURE(wall, rotation);
+    auto config = layer_config();
+    config.set_deserialize_strict({{"enable_prime_tower", "1"}, {"wipe_tower_type", "type2"},
+        {"single_extruder_multi_material", "0"}, {"prime_tower_width", "30"},
+        {"nozzle_diameter", "0.2,0.6"}, {"extruder_layer_height", "0.15,0.3"},
+        {"max_layer_height", "0.2,0.42"}, {"filament_multitool_ramming", "1,1"},
+        {"filament_multitool_ramming_volume", "5,5"}, {"wipe_tower_x", "100"}, {"wipe_tower_y", "100"},
+        {"wipe_tower_wall_type", wall}, {"wipe_tower_rotation_angle", rotation},
+        {"change_filament_gcode", "T[next_extruder]\n"}, {"gcode_comments", "1"}});
+    Print print;
+    Model model;
+    auto second = make_cube(8., 8., 1.3);
+    second.translate(20., 0., 0.);
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{
+        {{"extruder", "1"}}, {{"extruder", "2"}}
+    };
+    init_print({make_cube(8., 8., 1.3), second}, print, model, config, &overrides, false);
+    print.set_status_silent();
+    const std::string output = gcode(print);
+    bool tower_extruded = false;
+    bool returned_to_model = false;
+    size_t switches_after_tower = 0;
+    GCodeReader reader;
+    reader.apply_config(config);
+    reader.parse_buffer(output, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const auto command = line.cmd();
+        if (command.size() > 1 && command.front() == 'T' && tower_extruded) {
+            ++switches_after_tower;
+            CHECK_FALSE(returned_to_model);
+            tower_extruded = false;
+            returned_to_model = false;
+        }
+        if (line.extruding(self) && line.dist_XY(self) > 0.) {
+            tower_extruded = line.new_X(self) >= 40. || line.new_Y(self) >= 40.;
+            returned_to_model = false;
+        } else if (tower_extruded && line.travel() && line.dist_XY(self) > 0. &&
+                   line.new_X(self) < 40. && line.new_Y(self) < 40.) {
+            returned_to_model = true;
+        }
+    });
+    REQUIRE(switches_after_tower > 2);
+}
+
 TEST_CASE("A shared three-tool tower fits in the bed corner", "[ExtruderLayerHeight][WipeTower]")
 {
     auto config = layer_config(3);
