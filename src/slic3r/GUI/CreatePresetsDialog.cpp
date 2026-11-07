@@ -83,7 +83,6 @@
 #define PRINTER_LIST_SIZE wxSize(-1, FromDIP(100))
 #define FILAMENT_LIST_SIZE wxSize(FromDIP(560), FromDIP(100))
 #define FILAMENT_OPTION_SIZE wxSize(FromDIP(-1), FromDIP(30))
-#define PRESET_TEMPLATE_SIZE wxSize(FromDIP(-1), FromDIP(100))
 #define PRINTER_SPACE_SIZE wxSize(FromDIP(100), FromDIP(24)) // ORCA Match size with other components
 #define ORIGIN_TEXT_SIZE wxSize(FromDIP(10), FromDIP(24))
 #define PRINTER_PRESET_VENDOR_SIZE wxSize(FromDIP(150), FromDIP(24))
@@ -126,101 +125,6 @@ static const std::vector<std::string> filament_types = {"PLA",    "rPLA",  "PLA+
                                                         "NYLON",  "PVA",   "PVB",       "PC",        "PCABS", "PCTG",   "PCCF",   "PHA",    "PP",     "PEI",    "PET",
                                                         "PETGCF", "PTBA",  "PTBA90A",   "PEEK",  "TPU93A", "TPU75D", "TPU",       "TPU92A", "TPU98A", "Misc",
                                                         "TPE",    "GLAZE", "Nylon",     "CPE",   "METAL",  "ABST",   "Carbon Fiber", "SBS"};
-
-static const std::vector<std::string> printer_vendors = 
-    {"Anker",              "Anycubic",           "Artillery",          "Bambulab",           "BIQU",
-     "Blocks",             "Chuanying",          "Co Print",           "Comgrow",            "CONSTRUCT3D",
-     "Creality",           "DeltaMaker",         "Dremel",             "Elegoo",             "Flashforge",
-     "FLSun",              "FlyingBear",         "Folgertech",         "Geeetech",           "Ginger Additive",
-     "InfiMech",           "Kingroon",           "Lulzbot",            "MagicMaker",         "Mellow",
-     "Orca Arena Printer", "Peopoly",            "Positron 3D",        "Prusa",              "Qidi",
-     "Raise3D",            "RatRig",             "re3D",               "RolohaunDesign",     "SecKit",             
-     "Snapmaker",          "Sovol",              "Thinker X400",       "Tronxy",             "TwoTrees",           
-     "UltiMaker",          "Vivedino",           "Volumic",            "Voron",              "Voxelab",            
-     "Vzbot",              "Wanhao",             "Z-Bolt"};
-
-static const std::unordered_map<std::string, std::vector<std::string>> printer_model_map =
-    {{"Anker",             {"Anker M5",                   "Anker M5 All-Metal Hot End", "Anker M5C"}},
-     {"Anycubic",          {"Anycubic i3 Mega S",    "Anycubic Chiron",       "Anycubic Vyper",        "Anycubic Kobra",        "Anycubic Kobra Max",
-                            "Anycubic Kobra Plus",   "Anycubic 4Max Pro",     "Anycubic 4Max Pro 2",   "Anycubic Kobra 2",      "Anycubic Kobra 2 Plus",
-                            "Anycubic Kobra 2 Max",  "Anycubic Kobra 2 Pro",  "Anycubic Kobra 2 Neo",  "Anycubic Kobra 3",      "Anycubic Kobra 3 Max", "Anycubic Kobra S1", "Anycubic Predator", }},
-     {"Artillery",         {"Artillery Sidewinder X1",      "Artillery Genius",             "Artillery Genius Pro",         "Artillery Sidewinder X2",      "Artillery Hornet",
-                            "Artillery Sidewinder X3 Pro",  "Artillery Sidewinder X3 Plus", "Artillery Sidewinder X4 Pro",  "Artillery Sidewinder X4 Plus"}},
-     {"Bambulab",          {"Bambu Lab X1 Carbon", "Bambu Lab X1",        "Bambu Lab X1E",       "Bambu Lab P1P",       "Bambu Lab P1S",
-                            "Bambu Lab A1 mini",   "Bambu Lab A1"}},
-     {"BIQU",              {"BIQU B1",      "BIQU BX",      "BIQU Hurakan"}},
-     {"Blocks",            {"BLOCKS Pro S100", "BLOCKS RD50 V2",  "BLOCKS RF50"}},
-     {"Chuanying",         {"Chuanying X1"}},
-     {"Co Print",          {"Co Print ChromaSet"}},
-     {"Comgrow",           {"Comgrow T300", "Comgrow T500"}},
-     {"CONSTRUCT3D",       {"Construct 1 XL", "Construct 1"}},
-     {"Creality",          {"Creality CR-10 V2",           "Creality CR-10 Max",          "Creality CR-10 SE",           "Creality CR-6 SE",            "Creality CR-6 Max",
-                            "Creality CR-M4",              "Creality Ender-3 V2",         "Creality Ender-3 V2 Neo",     "Creality Ender-3 S1",         "Creality Ender-3",
-                            "Creality Ender-3 Pro",        "Creality Ender-3 S1 Pro",     "Creality Ender-3 S1 Plus",    "Creality Ender-3 V3 SE",      "Creality Ender-3 V3 KE",
-                            "Creality Ender-3 V3",         "Creality Ender-3 V3 Plus",    "Creality Ender-5",            "Creality Ender-5 Max",        "Creality Ender-5 Plus",
-                            "Creality Ender-5 Pro (2019)", "Creality Ender-5S",           "Creality Ender-5 S1",         "Creality Ender-6",            "Creality Sermoon V1",
-                            "Creality K1",                 "Creality K1C",                "Creality K1 Max",             "Creality K1 SE",              "Creality K2 Plus",
-                            "Creality Hi"}},
-     {"DeltaMaker",        {"DeltaMaker 2",   "DeltaMaker 2T",  "DeltaMaker 2XT"}},
-     {"Dremel",            {"Dremel 3D20", "Dremel 3D40", "Dremel 3D45"}},
-     {"Elegoo",            {"Elegoo Centauri Carbon 2", "Elegoo Centauri Carbon",  "Elegoo Centauri",         "Elegoo Neptune",          "Elegoo Neptune X",        "Elegoo Neptune 2",
-                            "Elegoo Neptune 2S",       "Elegoo Neptune 2D",       "Elegoo Neptune 3",        "Elegoo Neptune 3 Pro",    "Elegoo Neptune 3 Plus",
-                            "Elegoo Neptune 3 Max",    "Elegoo Neptune 4 Pro",    "Elegoo Neptune 4",        "Elegoo Neptune 4 Max",    "Elegoo Neptune 4 Plus",
-                            "Elegoo OrangeStorm Giga"}},
-     {"Flashforge",        {"Flashforge Adventurer 5M",       "Flashforge Adventurer 5M Pro",   "Flashforge AD5X",                "Flashforge Adventurer 3 Series", "Flashforge Adventurer 4 Series",
-                            "Flashforge Guider 3 Ultra",      "Flashforge Guider 2s", "Flashforge Artemis"}},
-     {"FLSun",             {"FLSun Q5",               "FLSun QQ-S Pro",         "FLSun Super Racer (SR)", "FLSun V400",             "FLSun T1",
-                            "FLSun S1"}},
-     {"FlyingBear",        {"FlyingBear Reborn3", "FlyingBear S1",      "FlyingBear Ghost 6"}},
-     {"Folgertech",        {"Folgertech i3",   "Folgertech FT-5", "Folgertech FT-6"}},
-     {"Geeetech",          {"Geeetech Thunder",   "Geeetech Mizar M",   "Geeetech Mizar S",   "Geeetech Mizar Pro", "Geeetech Mizar Max",
-                            "Geeetech Mizar",     "Geeetech A10 Pro",   "Geeetech A10 M",     "Geeetech A10 T",     "Geeetech A20",
-                            "Geeetech A20 M",     "Geeetech A20 T",     "Geeetech A30 Pro",   "Geeetech A30 M",     "Geeetech A30 T",
-                            "Geeetech M1"}},
-     {"Ginger Additive",   {"ginger G1"}},
-     {"InfiMech",          {"InfiMech TX",                       "InfiMech TX Hardened Steel Nozzle"}},
-     {"Kingroon",          {"Kingroon KP3S PRO S1", "Kingroon KP3S PRO V2", "Kingroon KP3S 3.0",    "Kingroon KP3S V1",     "Kingroon KLP1"}},
-     {"Lulzbot",           {"Lulzbot Taz 6",        "Lulzbot Taz 4 or 5",   "Lulzbot Taz Pro Dual", "Lulzbot Taz Pro S"}},
-     {"MagicMaker",        {"MM hqs hj",   "MM hqs SF",   "MM hj SK",    "MM BoneKing", "MM slb"}},
-     {"Mellow",            {"M1"}},
-     {"Orca Arena Printer",{"Orca Arena X1 Carbon"}},
-     {"Peopoly",           {"Peopoly Magneto X"}},
-     {"Positron 3D",       {"The Positron"}},
-     {"Prusa",             {"Prusa CORE One", "Prusa CORE One HF", "Prusa CORE One L", "Prusa CORE One L HF", "MK4IS", "MK4S", "MK4S HF",
-                            "Prusa XL", "Prusa XL 5T", "MK3.5", "MK3S", "MINI", "MINIIS"}},
-     {"Qidi",              {"Qidi X-Plus 4",  "Qidi Q1 Pro",    "Qidi X-Max 3",   "Qidi X-Plus 3",  "Qidi X-Smart 3",
-                            "Qidi X-Plus",    "Qidi X-Max",     "Qidi X-CF Pro"}},
-     {"Raise3D",           {"Raise3D Pro3",      "Raise3D Pro3 Plus"}},
-     {"RatRig",            {"RatRig V-Core 3 200",                  "RatRig V-Core 3 300",                  "RatRig V-Core 3 400",                  "RatRig V-Core 3 500",                  "RatRig V-Minion",
-                            "RatRig V-Cast",                        "RatRig V-Core 4 300",                  "RatRig V-Core 4 400",                  "RatRig V-Core 4 500",                  "RatRig V-Core 4 HYBRID 300",
-                            "RatRig V-Core 4 HYBRID 400",           "RatRig V-Core 4 HYBRID 500",           "RatRig V-Core 4 IDEX 300",             "RatRig V-Core 4 IDEX 300 COPY MODE",   "RatRig V-Core 4 IDEX 300 MIRROR MODE",
-                            "RatRig V-Core 4 IDEX 400",             "RatRig V-Core 4 IDEX 400 COPY MODE",   "RatRig V-Core 4 IDEX 400 MIRROR MODE", "RatRig V-Core 4 IDEX 500",             "RatRig V-Core 4 IDEX 500 COPY MODE",
-                            "RatRig V-Core 4 IDEX 500 MIRROR MODE"}},
-     {"re3D",              {"re3D Gigabot 4",                       "re3D Gigabot 4 XLT",                   "re3D Terabot 4",
-                            "re3D GigabotX 2",                      "re3D GigabotX 2 XLT",                  "re3D TerabotX 2"}},
-     {"RolohaunDesign",    {"Rook MK1 LDO"}},
-     {"SecKit",            {"SecKit SK-Tank", "Seckit Go3"}},
-     {"Snapmaker",         {"Snapmaker J1",                 "Snapmaker A250",               "Snapmaker A350",               "Snapmaker A250 Dual",          "Snapmaker A350 Dual",
-                            "Snapmaker A250 QSKit",         "Snapmaker A350 QSKit",         "Snapmaker A250 BKit",          "Snapmaker A350 BKit",          "Snapmaker A250 QS+B Kit",
-                            "Snapmaker A350 QS+B Kit",      "Snapmaker A250 Dual QSKit",    "Snapmaker A350 Dual QSKit",    "Snapmaker A250 Dual BKit",     "Snapmaker A350 Dual BKit",
-                            "Snapmaker A250 Dual QS+B Kit", "Snapmaker A350 Dual QS+B Kit", "Snapmaker Artisan"}},
-     {"Sovol",             {"Sovol SV01 Pro",      "Sovol SV02",          "Sovol SV05",          "Sovol SV06",          "Sovol SV06 Plus",
-                            "Sovol SV06 ACE",      "Sovol SV06 Plus ACE", "Sovol SV07",          "Sovol SV07 Plus",     "Sovol SV08"}},
-     {"Thinker X400",      {"Thinker X400"}},
-     {"Tronxy",            {"Tronxy X5SA 400 Marlin Firmware"}},
-     {"TwoTrees",          {"TwoTrees SP-5 Klipper", "TwoTrees SK1"}},
-     {"UltiMaker",         {"UltiMaker 2"}},
-     {"Vivedino",          {"Troodon 2.0 - RRF",     "Troodon 2.0 - Klipper"}},
-     {"Volumic",           {"EXO42 Performance", "EXO65 Performance", "SH65 Performance",  "EXO42",             "EXO65",           
-                            "SH65",              "VS30SC2",           "VS30SC",            "VS30ULTRA",         "VS30MK3",         
-                            "VS30MK2",           "VS20MK2"}},
-     {"Voron",             {"Voron 2.4 250",        "Voron 2.4 300",        "Voron 2.4 350",        "Voron Trident 250",    "Voron Trident 300",
-                            "Voron Trident 350",    "Voron 0.1",            "Voron Switchwire 250"}},
-     {"Voxelab",           {"Voxelab Aquila X2"}},
-     {"Vzbot",             {"Vzbot 235 AWD", "Vzbot 330 AWD"}},
-     {"Wanhao",            {"Wanhao D12-300"}},
-     {"Z-Bolt",            {"Z-Bolt S300",      "Z-Bolt S300 Dual", "Z-Bolt S400",      "Z-Bolt S400 Dual", "Z-Bolt S600",
-                            "Z-Bolt S600 Dual"}}};
 
 static std::vector<std::string>               nozzle_diameter_vec = {"0.4", "0.15", "0.2", "0.25", "0.3", "0.35", "0.5", "0.6", "0.75", "0.8", "1.0", "1.2", "1.75"};
 static std::unordered_map<std::string, float> nozzle_diameter_map = {{"0.15", 0.15}, {"0.2", 0.2},   {"0.25", 0.25}, {"0.3", 0.3},
@@ -394,19 +298,19 @@ static wxBoxSizer *create_checkbox(wxWindow *parent, wxString &preset_name, std:
     return sizer;
 }
 
-static wxArrayString get_exist_vendor_choices(VendorMap& vendors)
+static wxArrayString get_exist_vendor_choices(VendorMap& vendors, bool include_user_models = true)
 {
     wxArrayString choices;
     PresetBundle  temp_preset_bundle;
     temp_preset_bundle.load_system_models_from_json(ForwardCompatibilitySubstitutionRule::EnableSystemSilent);
-    PresetBundle *preset_bundle = wxGetApp().preset_bundle;
-
-    VendorProfile users_models  = preset_bundle->get_custom_vendor_models();
 
     vendors = temp_preset_bundle.vendors;
 
-    if (!users_models.models.empty()) {
-        vendors[users_models.name] = users_models;
+    if (include_user_models) {
+        VendorProfile users_models = wxGetApp().preset_bundle->get_custom_vendor_models();
+        if (!users_models.models.empty()) {
+            vendors[users_models.name] = users_models;
+        }
     }
 
     for (const auto& vendor : vendors) {
@@ -1798,22 +1702,21 @@ wxBoxSizer *CreatePrinterPresetDialog::create_printer_item(wxWindow *parent)
     m_select_vendor            = new ComboBox(parent, wxID_ANY, wxEmptyString, wxDefaultPosition, NAME_OPTION_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
     m_select_vendor->SetValue(_L("Select Vendor"));
     m_select_vendor->SetLabelColor(DEFAULT_PROMPT_TEXT_COLOUR);
-    wxArrayString printer_vendor;
-    for (const std::string &vendor : printer_vendors) {
-        assert(printer_model_map.find(vendor) != printer_model_map.end());
-        printer_vendor.Add(vendor);
-    }
+    // List the installed vendor profiles, the same source page 2 uses. The user's own printer models are
+    // left out: they would replace the system "Custom" vendor's generic printers (both are keyed
+    // PRESET_CUSTOM_VENDOR), and picking one would name the new printer "Custom <existing user model>".
+    // Extending an existing printer is what "Create Nozzle" is for, and a custom vendor/model can be typed in.
+    wxArrayString printer_vendor = get_exist_vendor_choices(m_page1_vendors, false);
     m_select_vendor->Set(printer_vendor);
     m_select_vendor->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent e) {
         m_select_vendor->SetLabelColor(*wxBLACK);
         std::string curr_selected_vendor = into_u8(m_select_vendor->GetStringSelection());
-        std::unordered_map<std::string,std::vector<std::string>>::const_iterator iter  = printer_model_map.find(curr_selected_vendor);
-        if (iter != printer_model_map.end())
+        auto        iter                 = m_page1_vendors.find(curr_selected_vendor);
+        if (iter != m_page1_vendors.end())
         {
-            std::vector<std::string> vendor_model = iter->second;
-            wxArrayString            model_choice;
-            for (const std::string &model : vendor_model) {
-                model_choice.Add(model);
+            wxArrayString model_choice;
+            for (const VendorProfile::PrinterModel &model : iter->second.models) {
+                model_choice.Add(from_u8(model.name));
             }
             m_select_model->Set(model_choice);
             if (!model_choice.empty()) {
@@ -2580,20 +2483,14 @@ void CreatePrinterPresetDialog::select_curr_radiobox(std::vector<std::pair<Radio
             this->Freeze();
             if (curr_selected_type == m_create_type.base_template) {
                 if (m_printer_model->GetValue() == _L("Select Model")) {
-                    m_filament_preset_template_sizer->Clear(true);
-                    m_filament_preset.clear();
-                    m_process_preset_template_sizer->Clear(true);
-                    m_process_preset.clear();
+                    clear_preset_combobox();
                 } else {
                     update_presets_list(true);
                 }
                 m_page2->SetSizerAndFit(m_page2_sizer);
             } else if (curr_selected_type == m_create_type.base_curr_printer) {
                 if (m_printer_model->GetValue() == _L("Select Model")) {
-                    m_filament_preset_template_sizer->Clear(true);
-                    m_filament_preset.clear();
-                    m_process_preset_template_sizer->Clear(true);
-                    m_process_preset.clear();
+                    clear_preset_combobox();
                 } else {
                     update_presets_list();
                 }
@@ -2737,31 +2634,15 @@ wxBoxSizer *CreatePrinterPresetDialog::create_presets_template_item(wxWindow *pa
     m_filament_sizer              = new wxBoxSizer(wxVERTICAL);
     wxStaticText *static_filament_preset_text = new wxStaticText(m_preset_template_panel, wxID_ANY, _L("Filament Preset Template"), wxDefaultPosition, wxDefaultSize);
     m_filament_sizer->Add(static_filament_preset_text, 0, wxEXPAND | wxALL, FromDIP(5));
-    m_filament_preset_panel          = new wxPanel(m_preset_template_panel);
-    m_filament_preset_template_sizer = new wxGridSizer(3, FromDIP(5), FromDIP(5));
-    m_filament_preset_panel->SetSize(PRESET_TEMPLATE_SIZE);
-    m_filament_preset_panel->SetSizer(m_filament_preset_template_sizer);
-    m_filament_sizer->Add(m_filament_preset_panel, 0, wxEXPAND | wxALL, FromDIP(5));
-
-    wxBoxSizer *hori_filament_btn_sizer = new wxBoxSizer(wxHORIZONTAL);
-    wxPanel *   filament_btn_panel      = new wxPanel(m_preset_template_panel);
-    filament_btn_panel->SetBackgroundColour(FILAMENT_OPTION_COLOUR);
-    wxStaticText *filament_sel_all_text = new wxStaticText(filament_btn_panel, wxID_ANY, _L("Select All"), wxDefaultPosition, wxDefaultSize);
-    filament_sel_all_text->SetForegroundColour(SELECT_ALL_OPTION_COLOUR);
-    filament_sel_all_text->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
-        select_all_preset_template(m_filament_preset);
-        e.Skip();
-        });
-    wxStaticText *filament_desel_all_text = new wxStaticText(filament_btn_panel, wxID_ANY, _L("Deselect All"), wxDefaultPosition, wxDefaultSize);
-    filament_desel_all_text->SetForegroundColour(SELECT_ALL_OPTION_COLOUR);
-    filament_desel_all_text->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
-        deselect_all_preset_template(m_filament_preset);
-        e.Skip();
-    });
-    hori_filament_btn_sizer->Add(filament_sel_all_text, 0, wxEXPAND | wxALL, FromDIP(5));
-    hori_filament_btn_sizer->Add(filament_desel_all_text, 0, wxEXPAND | wxALL, FromDIP(5));
-    filament_btn_panel->SetSizer(hori_filament_btn_sizer);
-    m_filament_sizer->Add(filament_btn_panel, 0, wxEXPAND, 0);
+    // Shown instead of the filament lists when the vendor ships no printer-specific filament presets:
+    // the new printer then uses the shared system filament library, so none need to be created.
+    m_no_filament_template_text = new wxStaticText(m_preset_template_panel, wxID_ANY,
+                                                   _L("This printer uses the shared system filament library; no filament presets need to be created."));
+    m_no_filament_template_text->SetForegroundColour(DEFAULT_PROMPT_TEXT_COLOUR);
+    m_no_filament_template_text->Hide();
+    m_filament_sizer->Add(m_no_filament_template_text, 0, wxEXPAND | wxALL, FromDIP(5));
+    add_template_subsection(m_preset_template_panel, m_filament_sizer, _L("System"), true, m_filament_preset, m_filament_system_section, m_filament_system_panel, m_filament_system_grid);
+    add_template_subsection(m_preset_template_panel, m_filament_sizer, _L("User"), false, m_filament_preset, m_filament_user_section, m_filament_user_panel, m_filament_user_grid);
 
     wxPanel *split_panel = new wxPanel(m_preset_template_panel, wxID_ANY, wxDefaultPosition, wxSize(-1, FromDIP(10)));
     split_panel->SetBackgroundColour(wxColour(*wxWHITE));
@@ -2769,32 +2650,9 @@ wxBoxSizer *CreatePrinterPresetDialog::create_presets_template_item(wxWindow *pa
 
     wxStaticText *static_process_preset_text = new wxStaticText(m_preset_template_panel, wxID_ANY, _L("Process Preset Template"), wxDefaultPosition, wxDefaultSize);
     m_filament_sizer->Add(static_process_preset_text, 0, wxEXPAND | wxALL, FromDIP(5));
-    m_process_preset_panel = new wxPanel(m_preset_template_panel);
-    m_process_preset_panel->SetSize(PRESET_TEMPLATE_SIZE);
-    m_process_preset_template_sizer = new wxGridSizer(3, FromDIP(5), FromDIP(5));
-    m_process_preset_panel->SetSizer(m_process_preset_template_sizer);
-    m_filament_sizer->Add(m_process_preset_panel, 0, wxEXPAND | wxALL, FromDIP(5));
-
-
-    wxBoxSizer *hori_process_btn_sizer = new wxBoxSizer(wxHORIZONTAL);
-    wxPanel *   process_btn_panel      = new wxPanel(m_preset_template_panel);
-    process_btn_panel->SetBackgroundColour(FILAMENT_OPTION_COLOUR);
-    wxStaticText *process_sel_all_text = new wxStaticText(process_btn_panel, wxID_ANY, _L("Select All"), wxDefaultPosition, wxDefaultSize);
-    process_sel_all_text->SetForegroundColour(SELECT_ALL_OPTION_COLOUR);
-    process_sel_all_text->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
-        select_all_preset_template(m_process_preset);
-        e.Skip();
-    });
-    wxStaticText *process_desel_all_text = new wxStaticText(process_btn_panel, wxID_ANY, _L("Deselect All"), wxDefaultPosition, wxDefaultSize);
-    process_desel_all_text->SetForegroundColour(SELECT_ALL_OPTION_COLOUR);
-    process_desel_all_text->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
-        deselect_all_preset_template(m_process_preset);
-        e.Skip();
-    });
-    hori_process_btn_sizer->Add(process_sel_all_text, 0, wxEXPAND | wxALL, FromDIP(5));
-    hori_process_btn_sizer->Add(process_desel_all_text, 0, wxEXPAND | wxALL, FromDIP(5));
-    process_btn_panel->SetSizer(hori_process_btn_sizer);
-    m_filament_sizer->Add(process_btn_panel, 0, wxEXPAND, 0);
+    add_template_subsection(m_preset_template_panel, m_filament_sizer, _L("System"), true, m_process_preset, m_process_system_section, m_process_system_panel, m_process_system_grid);
+    add_template_subsection(m_preset_template_panel, m_filament_sizer, _L("User"), false, m_process_preset, m_process_user_section, m_process_user_panel, m_process_user_grid);
+    update_template_section_visibility();
 
     m_preset_template_panel->SetSizer(m_filament_sizer);
     m_scrooled_preset_sizer->Add(m_preset_template_panel, 0, wxEXPAND | wxALL, 0);
@@ -2858,19 +2716,12 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
             }
         }
 
-        // Confirm if the filament preset is exist
-        bool                        filament_preset_is_exist = false;
+        // Filament presets are optional: system filaments that are not bound to specific printers (e.g. the
+        // shared filament library) are compatible with the new printer without being cloned, and vendors
+        // such as Voron ship no printer-specific filament presets at all.
         std::vector<Preset const *> selected_filament_presets;
         for (std::pair<::CheckBox *, Preset const *> filament_preset : m_filament_preset) {
             if (filament_preset.first->GetValue()) { selected_filament_presets.push_back(filament_preset.second); }
-            if (!filament_preset_is_exist && preset_bundle->filaments.find_preset(filament_preset.second->alias + " @ " + printer_preset_name) != nullptr) {
-                filament_preset_is_exist = true;
-            }
-        }
-        if (selected_filament_presets.empty() && !filament_preset_is_exist) {
-            MessageDialog dlg(this, _L("You need to select at least one filament preset."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxOK | wxCENTRE);
-            dlg.ShowModal();
-            return;
         }
 
         // Confirm if the process preset is exist
@@ -2896,7 +2747,6 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
             return get_filament_id(vendor_typr_serial, filament_id_sources);
         };
 
-        std::vector<std::string> successful_preset_names;
         if (curr_selected_preset_type == m_create_type.base_template) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " base template";
             /******************************   clone filament preset    ********************************/
@@ -2918,9 +2768,6 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
                         return;
                     }
                 }
-                // save created successfully preset name
-                for (Preset const *sucessful_preset : selected_filament_presets)
-                    successful_preset_names.push_back(sucessful_preset->name.substr(0, sucessful_preset->name.find(" @")) + " @" + printer_preset_name);
             }
 
             /******************************   clone process preset    ********************************/
@@ -2982,13 +2829,10 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
                     if (wxID_YES == res) {
                         create_preset_result = preset_bundle->prints.clone_presets_for_printer(selected_process_presets, failures, printer_preset_name, create_filament_id, true);
                     } else {
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " printer preset no same preset but filament has same preset, user cancel create the printer preset";
+                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " printer preset no same preset but process has same preset, user cancel create the printer preset";
                         return;
                     }
                 }
-                // save created successfully preset name
-                for (Preset const *sucessful_preset : selected_filament_presets)
-                    successful_preset_names.push_back(sucessful_preset->name.substr(0, sucessful_preset->name.find(" @")) + " @" + printer_preset_name);
             }
         }
 
@@ -3051,9 +2895,64 @@ void CreatePrinterPresetDialog::show_page2()
 
 bool CreatePrinterPresetDialog::data_init()
 {
+    // Carry page 1's printer over to page 2, so its preset lists start on the printer being created
+    // ("Create Printer": the vendor/model dropdowns) or extended ("Create Nozzle": the existing printer).
+    std::string    target_vendor;
+    std::string    target_model;
+    const wxString create_type = curr_create_printer_type();
+    if (create_type == m_create_type.create_printer && !m_can_not_find_vendor_combox->GetValue()) {
+        if (m_select_vendor->GetSelection() != wxNOT_FOUND) target_vendor = into_u8(m_select_vendor->GetStringSelection());
+        if (m_select_model->GetSelection() != wxNOT_FOUND) target_model = into_u8(m_select_model->GetStringSelection());
+    } else if (create_type == m_create_type.create_nozzle) {
+        auto iter = m_printer_name_to_preset.find(into_u8(m_select_printer->GetStringSelection()));
+        if (iter != m_printer_name_to_preset.end() && iter->second) {
+            const Preset &printer = *iter->second;
+            target_model  = printer.config.opt_string("printer_model");
+            // User printers are listed under the custom vendor on page 2.
+            target_vendor = printer.is_system && printer.vendor ? printer.vendor->id : PRESET_CUSTOM_VENDOR;
+        }
+    }
+    if (!target_model.empty()) {
+        // A printer's printer_model may not be listed under its own vendor, or may give the model's id rather
+        // than its name, and some model names exist under several vendors: prefer the expected vendor, fall
+        // back to any vendor with the model, and use the profile's model name.
+        VendorMap vendors;
+        get_exist_vendor_choices(vendors);
+        auto find_model = [&target_model](const VendorProfile &vendor) {
+            auto it = std::find_if(vendor.models.begin(), vendor.models.end(), [&target_model](const VendorProfile::PrinterModel &m) {
+                return m.name == target_model || m.id == target_model || m.model_id == target_model;
+            });
+            return it == vendor.models.end() ? nullptr : &*it;
+        };
+        const VendorProfile::PrinterModel *model  = nullptr;
+        auto                               vendor = vendors.find(target_vendor);
+        if (vendor != vendors.end()) model = find_model(vendor->second);
+        for (vendor = vendors.begin(); !model && vendor != vendors.end(); ++vendor) {
+            if ((model = find_model(vendor->second))) target_vendor = vendor->first;
+        }
+        if (model) target_model = model->name;
+    }
+    if (!target_vendor.empty())
+        m_printer_vendor->SetStringSelection(from_u8(target_vendor));
+
     wxCommandEvent e;
     e.SetExtraLong(0);  // 0 means form last page,  1 means form cur combobox
     on_select_printer_model(e);
+
+    // The model list is sorted by distance from the chosen nozzle diameter, so the first entry of the
+    // target model is its closest nozzle variant. on_select_printer_model() already loaded entry 0.
+    if (!target_model.empty()) {
+        const wxString prefix = from_u8(target_model) + " @ ";
+        for (unsigned int i = 0; i < m_printer_model->GetCount(); ++i) {
+            if (!m_printer_model->GetString(i).StartsWith(prefix)) continue;
+            if ((int) i != m_printer_model->GetSelection()) {
+                m_printer_model->SetSelection(i);
+                wxCommandEvent model_event;
+                on_preset_model_value_change(model_event);
+            }
+            break;
+        }
+    }
 
     auto get_nozzle_size_for_printer_model = [this](const std::string &model_name) -> size_t {
         auto iter = m_printer_name_to_preset.find(model_name);
@@ -3120,10 +3019,9 @@ void CreatePrinterPresetDialog::on_select_printer_model(wxCommandEvent &e)
         return;
     }
 
-    std::string nozzle_type = into_u8(m_nozzle_diameter->GetStringSelection());
-    size_t      index_mm    = nozzle_type.find(" mm");
-    if (std::string::npos != index_mm) { nozzle_type = nozzle_type.substr(0, index_mm); }
-    float nozzle = nozzle_diameter_map[nozzle_type];
+    // Honor a custom nozzle diameter ("Can't find my nozzle diameter") when sorting the models.
+    std::string nozzle_type = get_nozzle_diameter();
+    float       nozzle      = my_stof(nozzle_type);
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " entry and nozzle type is: " << nozzle_type << " and nozzle is: " << nozzle;
 
     wxArrayString printer_preset_model = printer_preset_sort_with_nozzle_diameter(m_printer_preset_vendor_selected, nozzle);
@@ -3237,18 +3135,66 @@ wxArrayString CreatePrinterPresetDialog::printer_preset_sort_with_nozzle_diamete
     return printer_preset_model_selection;
 }
 
-void CreatePrinterPresetDialog::select_all_preset_template(std::vector<std::pair<::CheckBox *, Preset *>> &preset_templates)
+void CreatePrinterPresetDialog::select_preset_template_subset(std::vector<std::pair<::CheckBox *, Preset *>> &preset_templates, bool value, bool system)
 {
-    for (std::pair<::CheckBox *, Preset const *> filament_preset : preset_templates) {
-        filament_preset.first->SetValue(true);
-    }
+    for (const std::pair<::CheckBox *, Preset *> &preset : preset_templates)
+        if (preset.second && preset.second->is_system == system)
+            preset.first->SetValue(value);
 }
 
-void CreatePrinterPresetDialog::deselect_all_preset_template(std::vector<std::pair<::CheckBox *, Preset *>> &preset_templates)
+// Build a "System" or "User" sub-section: a label, a checkbox grid and a Select All / Deselect All bar
+// acting only on the presets of this sub-section, so selecting all system presets never grabs user ones.
+void CreatePrinterPresetDialog::add_template_subsection(wxWindow *parent, wxBoxSizer *sizer, const wxString &label, bool system,
+                                                        std::vector<std::pair<::CheckBox *, Preset *>> &preset_templates,
+                                                        wxPanel *&out_section, wxPanel *&out_panel, wxGridSizer *&out_grid)
 {
-    for (std::pair<::CheckBox *, Preset const *> filament_preset : preset_templates) {
-        filament_preset.first->SetValue(false);
-    }
+    // The whole sub-section lives in one panel so it can be hidden when it has no presets.
+    out_section = new wxPanel(parent);
+    out_section->SetBackgroundColour(PRINTER_LIST_COLOUR);
+    wxBoxSizer *section_sizer = new wxBoxSizer(wxVERTICAL);
+
+    wxStaticText *sub_label = new wxStaticText(out_section, wxID_ANY, label, wxDefaultPosition, wxDefaultSize);
+    sub_label->SetFont(::Label::Body_13);
+    sub_label->SetForegroundColour(DEFAULT_PROMPT_TEXT_COLOUR);
+    section_sizer->Add(sub_label, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(5));
+
+    out_panel = new wxPanel(out_section);
+    out_panel->SetBackgroundColour(PRINTER_LIST_COLOUR);
+    out_grid = new wxGridSizer(3, FromDIP(5), FromDIP(5));
+    out_panel->SetSizer(out_grid);
+    section_sizer->Add(out_panel, 0, wxEXPAND | wxALL, FromDIP(5));
+
+    wxBoxSizer *btn_sizer = new wxBoxSizer(wxHORIZONTAL);
+    wxPanel *   btn_panel = new wxPanel(out_section);
+    btn_panel->SetBackgroundColour(FILAMENT_OPTION_COLOUR);
+    wxStaticText *sel_all_text = new wxStaticText(btn_panel, wxID_ANY, _L("Select All"), wxDefaultPosition, wxDefaultSize);
+    sel_all_text->SetForegroundColour(SELECT_ALL_OPTION_COLOUR);
+    sel_all_text->Bind(wxEVT_LEFT_DOWN, [this, &preset_templates, system](wxMouseEvent &e) {
+        select_preset_template_subset(preset_templates, true, system);
+        e.Skip();
+    });
+    wxStaticText *desel_all_text = new wxStaticText(btn_panel, wxID_ANY, _L("Deselect All"), wxDefaultPosition, wxDefaultSize);
+    desel_all_text->SetForegroundColour(SELECT_ALL_OPTION_COLOUR);
+    desel_all_text->Bind(wxEVT_LEFT_DOWN, [this, &preset_templates, system](wxMouseEvent &e) {
+        select_preset_template_subset(preset_templates, false, system);
+        e.Skip();
+    });
+    btn_sizer->Add(sel_all_text, 0, wxEXPAND | wxALL, FromDIP(5));
+    btn_sizer->Add(desel_all_text, 0, wxEXPAND | wxALL, FromDIP(5));
+    btn_panel->SetSizer(btn_sizer);
+    section_sizer->Add(btn_panel, 0, wxEXPAND, 0);
+
+    out_section->SetSizer(section_sizer);
+    sizer->Add(out_section, 0, wxEXPAND, 0);
+}
+
+void CreatePrinterPresetDialog::update_template_section_visibility()
+{
+    m_filament_system_section->Show(m_filament_system_grid->GetItemCount() > 0);
+    m_filament_user_section->Show(m_filament_user_grid->GetItemCount() > 0);
+    m_process_system_section->Show(m_process_system_grid->GetItemCount() > 0);
+    m_process_user_section->Show(m_process_user_grid->GetItemCount() > 0);
+    m_no_filament_template_text->Show(m_filament_preset.empty() && !m_process_preset.empty());
 }
 
 void CreatePrinterPresetDialog::update_presets_list(bool just_template)
@@ -3269,8 +3215,9 @@ void CreatePrinterPresetDialog::update_presets_list(bool just_template)
             if (filament_preset.is_default) continue;
             Preset *temp_filament = new Preset(filament_preset);
             wxString filament_name = wxString::FromUTF8(temp_filament->name);
-            m_filament_preset_template_sizer->Add(create_checkbox(m_filament_preset_panel, temp_filament, filament_name, m_filament_preset), 0,
-                                                  wxEXPAND, FromDIP(5));
+            wxPanel     *panel = filament_preset.is_system ? m_filament_system_panel : m_filament_user_panel;
+            wxGridSizer *grid  = filament_preset.is_system ? m_filament_system_grid : m_filament_user_grid;
+            grid->Add(create_checkbox(panel, temp_filament, filament_name, m_filament_preset), 0, wxEXPAND, FromDIP(5));
         }
     }
 
@@ -3280,10 +3227,12 @@ void CreatePrinterPresetDialog::update_presets_list(bool just_template)
 
             Preset *temp_process = new Preset(process_preset);
             wxString process_name = wxString::FromUTF8(temp_process->name);
-            m_process_preset_template_sizer->Add(create_checkbox(m_process_preset_panel, temp_process, process_name, m_process_preset), 0, wxEXPAND,
-                                                 FromDIP(5));
+            wxPanel     *panel = process_preset.is_system ? m_process_system_panel : m_process_user_panel;
+            wxGridSizer *grid  = process_preset.is_system ? m_process_system_grid : m_process_user_grid;
+            grid->Add(create_checkbox(panel, temp_process, process_name, m_process_preset), 0, wxEXPAND, FromDIP(5));
         }
     }
+    update_template_section_visibility();
     m_preset_template_panel->Thaw();
 }
 
@@ -3296,7 +3245,8 @@ void CreatePrinterPresetDialog::clear_preset_combobox()
         }
     }
     m_filament_preset.clear();
-    m_filament_preset_template_sizer->Clear(true);
+    m_filament_system_grid->Clear(true);
+    m_filament_user_grid->Clear(true);
 
     for (std::pair<::CheckBox *, Preset *> preset : m_process_preset) {
         if (preset.second) {
@@ -3305,7 +3255,9 @@ void CreatePrinterPresetDialog::clear_preset_combobox()
         }
     }
     m_process_preset.clear();
-    m_process_preset_template_sizer->Clear(true);
+    m_process_system_grid->Clear(true);
+    m_process_user_grid->Clear(true);
+    update_template_section_visibility();
 }
 
 bool CreatePrinterPresetDialog::save_printable_area_config(Preset *preset)
