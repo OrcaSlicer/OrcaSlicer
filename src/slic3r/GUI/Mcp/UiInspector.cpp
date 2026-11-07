@@ -886,6 +886,18 @@ private:
     bool        m_keep_held = false;
 };
 
+// Gives the canvas the focus before a gesture that presses a button, and before its modifiers go down.
+// A real press on a window in the background activates it, so the canvas has the focus by the time the press
+// arrives. A synthesized press reaches a background app as it is, and the canvas taking the focus on the press
+// makes Windows move the focus away and back: the kill-focus handler then drops the ImGui item being pressed and
+// releases the held modifiers, and the click is lost.
+void focus_for_press(GLCanvas3D& canvas)
+{
+    wxGLCanvas* glc = canvas.get_wxglcanvas();
+    if (glc != nullptr && wxWindow::FindFocus() != glc)
+        glc->SetFocus();
+}
+
 // The pointer arriving with no modifier held, as a person moves onto a spot before holding Shift to
 // click it: gizmos that prepare on hover (Measure's point picking) see the spot first.
 void hover(GLCanvas3D& canvas, const wxPoint& pos)
@@ -896,6 +908,7 @@ void hover(GLCanvas3D& canvas, const wxPoint& pos)
 
 void canvas_click(GLCanvas3D& canvas, const wxPoint& pos, const ClickOptions& o)
 {
+    focus_for_press(canvas);
     const int mods = parse_modifiers(o.modifiers);
     if (mods != wxMOD_NONE)
         hover(canvas, pos);
@@ -3577,6 +3590,8 @@ json UiInspector::mouse(GLCanvas3D& canvas, const json& g, const std::string& ow
         canvas_click(canvas, from, o);
         return out;
     }
+    if (action == "down" || action == "drag")
+        focus_for_press(canvas);
     if (mods != wxMOD_NONE && (action == "down" || action == "drag"))
         hover(canvas, from);
     CanvasMouse m(canvas, mods);
