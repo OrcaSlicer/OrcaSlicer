@@ -327,9 +327,6 @@ TEST_CASE("Objects share slices only when their height ranges are the same", "[P
     }
 }
 
-// Layers are stored relative to a PrintObject's center_offset(), which is derived from the first instance of its
-// ModelObject. Two objects with the same trafo can therefore have different offsets, and sharing the layers of one
-// with the other would print it shifted.
 TEST_CASE("Objects whose center offsets differ do not share slices", "[Print][Regression]")
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
