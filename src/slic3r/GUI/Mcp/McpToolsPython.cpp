@@ -123,6 +123,10 @@ def reference(package):
                 for member, attr in sorted(vars(value).items()):
                     if member.startswith("_") or (values is not None and (member in values or member in ("name", "value"))):
                         continue
+                    # A class holds a static method as a staticmethod object, whose documentation is the
+                    # staticmethod type's; pybind11 documented the function inside it.
+                    if isinstance(attr, (staticmethod, classmethod)):
+                        attr = attr.__func__
                     kind = "property" if isinstance(attr, property) else "method" if callable(attr) else None
                     if kind:
                         out.append(_entry(full + "." + member, attr, kind))

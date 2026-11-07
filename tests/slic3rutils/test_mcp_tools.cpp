@@ -125,6 +125,11 @@ TEST_CASE("python_api's reference covers the orca package with constructors and 
     const std::string overloads = by_name["orca.host.preset.PresetEditor.begin_update"]["signature"];
     CHECK(overloads.find("*args") == std::string::npos);
     CHECK(overloads.find("slot_number") != std::string::npos);
+    // A static method has its own signature and documentation, not the staticmethod type's.
+    REQUIRE(by_name.count("orca.ExecutionResult.success") == 1);
+    const json& success = by_name["orca.ExecutionResult.success"];
+    CHECK(success["signature"].get<std::string>().rfind("success(message: str", 0) == 0);
+    CHECK(success["doc"].get<std::string>().find("Success result") != std::string::npos);
 
     CHECK(rank_python_api(reference, "mesh normals")[0]["name"] == "orca.host.TriangleMesh.face_normals");
 }
