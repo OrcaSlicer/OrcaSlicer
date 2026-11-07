@@ -513,7 +513,7 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
             case 18: negvalue  = is_negative ? 1 - sqrt(1 - pow(negvalue * 2 - 1, 2)) : 
                                                sqrt(1 - pow(negvalue * 2 - 1, 2)); break;          // C-joint, half of circle
             case 19: negvalue  = (is_negative ? -.5 : .5) * cos(negvalue * PI * 2.) + .5; break;   // O-joint, vertical cosine wave
-            case 20: negvalue  = (is_negative ? -.5 : .5) * sin(negvalue * PI * 2.) + .5; break;   // O-joint, vertical sine wave
+            case 20: negvalue  = .5 * sin(negvalue * PI * 2.) + .5; break;                         // O-joint, vertical sine wave
             case 21: negvalue  = 0.5; break;                                                       // |-joint, copy of J-joint (is used for compatibility)
             default: negvalue  = 1.;
             }
