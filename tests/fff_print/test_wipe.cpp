@@ -208,6 +208,8 @@ TEST_CASE("Inward wipe preserves retraction splits and minimum travel", "[Wipe][
         {"use_relative_e_distances", relative_e},
         {"reduce_crossing_wall", reduce_crossing_wall},
         {"retraction_minimum_travel", minimum_travel},
+        // This case checks the threshold itself, which the option overrides after an outer wall.
+        {"retract_after_outer_wall", "0"},
         {"retract_when_changing_layer", "0"},
         {"use_firmware_retraction", "0"},
         {"retract_before_wipe", before_percent},
