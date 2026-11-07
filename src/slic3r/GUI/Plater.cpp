@@ -18986,7 +18986,9 @@ ProjectDropDialog::ProjectDropDialog(const std::string &filename)
                 wxDefaultPosition,
                 wxDefaultSize,
                 wxCAPTION | wxCLOSE_BOX)
-    , m_action(2)
+    // Default to the user's last choice, saved on OK, else Open as project (an unset choice reads as 0,
+    // which clamps to 1): importing geometry only drops the project's printer, filament and process settings.
+    , m_action(std::clamp(std::atoi(wxGetApp().app_config->get("import_project_action").c_str()), 1, 2))
 {
     // def setting
     SetBackgroundColour(m_def_color);
@@ -19112,17 +19114,19 @@ void ProjectDropDialog::on_dpi_changed(const wxRect& suggested_rect)
 
 LoadType determine_load_type(std::string filename, std::string override_setting);
 
-static LoadType choose_3mf_load_type(Plater& plater, const fs::path& file)
+static LoadType choose_3mf_load_type(Plater& plater, const fs::path& file, bool from_url = false)
 {
     if (is_geometry_only_3mf(file.string()))
         return LoadType::LoadGeometry;
     const std::string filename = encode_path(file.filename().string().c_str());
     const bool ask_when_relevant = wxGetApp().app_config->get(SETTING_PROJECT_LOAD_BEHAVIOUR) == OPTION_PROJECT_LOAD_BEHAVIOUR_ASK_WHEN_RELEVANT;
-    return determine_load_type(filename, !plater.model().objects.empty() && ask_when_relevant ? OPTION_PROJECT_LOAD_BEHAVIOUR_ALWAYS_ASK : "");
+    // The user picked a project from an orcaslicer:// link, so an occupied plate is no reason to ask how to
+    // open it. The Load Behaviour setting still applies, and load_project() still asks about unsaved changes.
+    return determine_load_type(filename, !from_url && !plater.model().objects.empty() && ask_when_relevant ? OPTION_PROJECT_LOAD_BEHAVIOUR_ALWAYS_ASK : "");
 }
 
 //BBS: remove GCodeViewer as seperate APP logic
-bool Plater::load_files(const wxArrayString& filenames)
+bool Plater::load_files(const wxArrayString& filenames, bool from_url)
 {
     const std::regex pattern_drop(".*[.](stp|step|stl|oltp|obj|amf|3mf|svg|zip|drc|glb|gltf|fbx)", std::regex::icase);
     const std::regex pattern_gcode_drop(".*[.](gcode|g)", std::regex::icase);
@@ -19234,7 +19238,7 @@ bool Plater::load_files(const wxArrayString& filenames)
     });
     LoadType first_3mf_action = LoadType::Unknown;
     if (first_3mf != normal_paths.end()) {
-        first_3mf_action = choose_3mf_load_type(*this, *first_3mf);
+        first_3mf_action = choose_3mf_load_type(*this, *first_3mf, from_url);
         if (first_3mf_action == LoadType::Unknown)
             return false;
         const bool contains_zip = std::any_of(normal_paths.begin(), normal_paths.end(), [](const fs::path& path) {
