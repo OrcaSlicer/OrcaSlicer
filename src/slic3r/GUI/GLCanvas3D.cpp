@@ -11298,7 +11298,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         create_menu_item( _utf8(L("Outline")),
             m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
             wxGetApp().show_outline(),
-            []{wxGetApp().toggle_show_outline();}
+            [this]{wxGetApp().toggle_show_outline(); m_dirty = true;}
         );
 
         create_menu_item( _utf8(L("Wireframe")),
