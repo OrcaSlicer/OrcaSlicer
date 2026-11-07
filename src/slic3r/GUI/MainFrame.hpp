@@ -238,6 +238,8 @@ class MainFrame : public DPIFrame
     //bool can_eject() const;
     bool can_slice() const;
     bool can_change_view() const;
+    bool can_toggle_camera_fullscreen() const;
+    void toggle_camera_fullscreen();
     bool can_select() const;
     bool can_deselect() const;
     bool can_clone() const;
