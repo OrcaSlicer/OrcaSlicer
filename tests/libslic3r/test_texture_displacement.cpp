@@ -1592,6 +1592,60 @@ TEST_CASE("changing a live adjustment is not served the previous one from cache"
     CHECK(smooth_bright != smooth_dark);
 }
 
+TEST_CASE("background removal keys out corner or chosen colours into alpha without changing height",
+          "[TextureDisplacement]")
+{
+    DecodedHeightTexture src = make_rgb_flat(255, 255, 255, 4, 4);
+    auto set_rgb = [&](int x, int y, uint8_t r, uint8_t g, uint8_t b) {
+        const size_t i     = size_t(y) * 4 + size_t(x);
+        src.rgb[i * 3]     = r;
+        src.rgb[i * 3 + 1] = g;
+        src.rgb[i * 3 + 2] = b;
+        src.pixels[i]      = uint8_t(std::lround(0.299 * r + 0.587 * g + 0.114 * b));
+    };
+    // Red 2x2 centre block at (1..2, 1..2), and one stray black corner at (0, 0) to verify the median
+    // of the four corners still picks white.
+    set_rgb(0, 0, 0, 0, 0);
+    for (int y = 1; y <= 2; ++y)
+        for (int x = 1; x <= 2; ++x)
+            set_rgb(x, y, 220, 20, 20);
+
+    TextureAdjustments adj;
+    adj.bg_remove       = true;
+    adj.bg_from_corners = true;
+    adj.bg_tolerance    = 0.1f;
+
+    const DecodedHeightTexture keyed = apply_texture_adjustments(src, adj);
+    REQUIRE(keyed.has_alpha());
+    CHECK(keyed.pixels == src.pixels); // relief height is untouched
+    CHECK(keyed.alpha[1 * 4 + 1] == 255);
+    CHECK(keyed.alpha[0 * 4 + 0] == 255); // stray black corner is not white
+    CHECK(keyed.alpha[0 * 4 + 3] == 0);   // white background is keyed out
+
+    // sample_layer_color skips transparent texels and keeps opaque ones, and sample_layer_height
+    // returns midlevel (zero displacement) where the background was keyed out.
+    TextureDisplacementLayer layer;
+    layer.tiling_scale = 4.f;
+    layer.tile_enabled = false;
+    layer.midlevel     = 0.25f;
+    Vec3f rgb          = Vec3f::Zero();
+    CHECK_FALSE(sample_layer_color(keyed, layer, Vec3f(3.5f, -0.5f, 0.f), Vec3f::UnitZ(), rgb));
+    CHECK_THAT(sample_layer_height(keyed, layer, Vec3f(3.5f, -0.5f, 0.f), Vec3f::UnitZ()), WithinAbs(layer.midlevel, 1e-6f));
+    CHECK(sample_layer_color(keyed, layer, Vec3f(1.5f, -1.5f, 0.f), Vec3f::UnitZ(), rgb));
+    CHECK(rgb.x() > 0.8f);
+    CHECK(sample_layer_height(keyed, layer, Vec3f(1.5f, -1.5f, 0.f), Vec3f::UnitZ()) > layer.midlevel);
+
+    // Explicit colour key overrides the corners.
+    adj.bg_from_corners = false;
+    adj.bg_color[0]     = 220.f / 255.f;
+    adj.bg_color[1]     = 20.f / 255.f;
+    adj.bg_color[2]     = 20.f / 255.f;
+    const DecodedHeightTexture keyed_red = apply_texture_adjustments(src, adj);
+    REQUIRE(keyed_red.has_alpha());
+    CHECK(keyed_red.alpha[1 * 4 + 1] == 0);
+    CHECK(keyed_red.alpha[0 * 4 + 3] == 255);
+}
+
 // ---------------------------------------------------------------------------------------------
 // Texture smoothing
 // ---------------------------------------------------------------------------------------------

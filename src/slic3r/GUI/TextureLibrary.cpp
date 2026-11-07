@@ -26,6 +26,7 @@
 #include <wx/gdicmn.h>
 #include <utility>
 #include <wx/image.h>
+#include <wx/imagpng.h>
 #include <wx/mstream.h>
 
 #include "libslic3r/PNGReadWrite.hpp"
@@ -118,7 +119,7 @@ bool image_has_color(const wxImage &image)
     return false;
 }
 
-// Colour images are stored as-is (as an RGB PNG) so the texture can colour the model as well as
+// Colour images are stored as-is (as an RGB/RGBA PNG) so the texture can colour the model as well as
 // displace it; decode_height_texture() takes the height from their luminance, with the same
 // coefficients ConvertToGreyscale() uses, so the relief is identical either way. wxImage writes the
 // PNG here rather than Slic3r::png, which only encodes grayscale.
@@ -129,12 +130,11 @@ bool encode_color_png_bytes(const wxImage &image, std::vector<unsigned char> &ou
         return false;
     }
     wxMemoryOutputStream stream;
-    // Alpha would be lost on the way into DecodedHeightTexture anyway, and a partly transparent
-    // texture reading as black relief is worse than reading as its own colour over the background.
-    wxImage opaque = image;
-    if (opaque.HasAlpha())
-        opaque.ClearAlpha();
-    if (!opaque.SaveFile(stream, wxBITMAP_TYPE_PNG)) {
+    wxImage              out_image = image;
+    if (out_image.HasMask() && !out_image.HasAlpha())
+        out_image.InitAlpha();
+    out_image.SetOption(wxIMAGE_OPTION_PNG_FORMAT, wxPNG_TYPE_COLOUR);
+    if (!out_image.SaveFile(stream, wxBITMAP_TYPE_PNG)) {
         error = _u8L("Failed to prepare the texture for use.");
         return false;
     }
@@ -188,20 +188,21 @@ bool encode_gray_png_bytes(const wxImage &image, std::vector<unsigned char> &out
     return true;
 }
 
-// Grayscale in, grayscale out; colour in, colour out.
+// Grayscale in, grayscale out; colour (or alpha) in, colour/RGBA out.
 bool encode_png_bytes(const wxImage &image, std::vector<unsigned char> &out, std::string &error)
 {
-    return image_has_color(image) ? encode_color_png_bytes(image, out, error)
-                                  : encode_gray_png_bytes(image, out, error);
+    return (image_has_color(image) || image.HasAlpha() || image.HasMask()) ? encode_color_png_bytes(image, out, error)
+                                                                           : encode_gray_png_bytes(image, out, error);
 }
 
 // A wxImage over decoded pixels, so the encoders above can be reached from an in-memory image as well as
 // from a file. Grayscale is expanded to the three equal channels wxImage always stores, which is what
 // image_has_color() then reads as "no colour" - so a grey image still encodes as a grayscale PNG.
 //
-// `scratch` holds the pixel buffer: the wxImage is constructed over it without taking ownership, so it
-// has to outlive every use of the returned image.
-wxImage image_from_decoded(const DecodedHeightTexture &image, std::vector<unsigned char> &scratch)
+// `scratch` and `alpha_scratch` hold the pixel buffers: the wxImage is constructed over them without
+// taking ownership, so they have to outlive every use of the returned image.
+wxImage image_from_decoded(const DecodedHeightTexture &image, std::vector<unsigned char> &scratch,
+                           std::vector<unsigned char> &alpha_scratch)
 {
     if (image.empty())
         return wxImage();
@@ -214,7 +215,12 @@ wxImage image_from_decoded(const DecodedHeightTexture &image, std::vector<unsign
         for (size_t i = 0; i < n; ++i)
             scratch[i * 3] = scratch[i * 3 + 1] = scratch[i * 3 + 2] = image.pixels[i];
 
-    return wxImage(image.width, image.height, scratch.data(), /* static_data */ true);
+    wxImage wx(image.width, image.height, scratch.data(), /* static_data */ true);
+    if (image.has_alpha()) {
+        alpha_scratch.assign(image.alpha.begin(), image.alpha.end());
+        wx.SetAlpha(alpha_scratch.data(), /* static_data */ true);
+    }
+    return wx;
 }
 
 std::vector<unsigned char> read_file_bytes(const std::string &path)
@@ -466,7 +472,8 @@ std::optional<TextureLibraryEntry> save_texture_to_library(const DecodedHeightTe
                                                            std::string &error)
 {
     std::vector<unsigned char> scratch;
-    const wxImage              wx = image_from_decoded(image, scratch);
+    std::vector<unsigned char> alpha_scratch;
+    const wxImage              wx = image_from_decoded(image, scratch, alpha_scratch);
     if (!wx.IsOk()) {
         error = _u8L("The selected image is empty.");
         return std::nullopt;

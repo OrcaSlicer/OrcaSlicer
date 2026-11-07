@@ -187,19 +187,38 @@ struct TextureAdjustments
     float sharpness  = 0.f; // [0, 1];  0 unchanged. Unsharp-mask amount
     float blur       = 0.f; // [0, 1];  0 unchanged. Fraction of SOURCE_BLUR_SPAN, as `smoothing` is
     float hue_deg    = 0.f; // [-180, 180]; 0 unchanged. No effect on a grayscale image - grey has no hue
+    // Leaves the background of a picture unprinted, so the object's own colour shows through instead
+    // of a slab of white behind a logo. Texels the source image marked transparent always count;
+    // `bg_remove` additionally keys out one colour.
+    bool  bg_remove       = false;
+    float bg_tolerance    = 0.15f; // [0, 1], distance from the keyed colour that still counts as background
+    // The colour keyed out. Taken from the median of the picture's four corners while
+    // `bg_from_corners` is set, which is right for nearly every logo on a flat card; the panel's
+    // dropper and swatch clear it and put a colour of the user's own here.
+    bool  bg_from_corners = true;
+    float bg_color[3]     = { 1.f, 1.f, 1.f };
 
     bool identity() const
     {
-        return brightness == 0.f && contrast == 0.f && sharpness == 0.f && blur == 0.f && hue_deg == 0.f;
+        return brightness == 0.f && contrast == 0.f && sharpness == 0.f && blur == 0.f && hue_deg == 0.f &&
+               !bg_remove;
     }
     // Exact equality, which is what is wanted: these come straight off sliders, and the question asked of
     // them is "is this still the value the preview on screen was computed from", not "are these close".
     bool operator==(const TextureAdjustments &o) const
     {
         return brightness == o.brightness && contrast == o.contrast && sharpness == o.sharpness &&
-               blur == o.blur && hue_deg == o.hue_deg;
+               blur == o.blur && hue_deg == o.hue_deg && bg_remove == o.bg_remove &&
+               bg_tolerance == o.bg_tolerance && bg_from_corners == o.bg_from_corners &&
+               bg_color[0] == o.bg_color[0] && bg_color[1] == o.bg_color[1] && bg_color[2] == o.bg_color[2];
     }
     bool operator!=(const TextureAdjustments &o) const { return !(*this == o); }
+
+    template<class Archive> void serialize(Archive &ar)
+    {
+        ar(brightness, contrast, sharpness, blur, hue_deg, bg_remove, bg_tolerance, bg_from_corners,
+           bg_color[0], bg_color[1], bg_color[2]);
+    }
 };
 
 // One texture asset plus its projection/displacement parameters. Several layers may be painted
@@ -362,7 +381,7 @@ struct TextureDisplacementLayer
            static_cast<int>(tile_method), static_cast<int>(projection_method), lscm_seam_angle_deg, islands,
            static_cast<int>(blend_mode), midlevel, island_padding_mm, lscm_seam_edges, view_project_right,
            view_project_up, smoothing, edge_smoothing, edge_smoothing_amount, auto_connect_islands, island_groups,
-           lscm_uv_overrides, view_project_projective, view_project_matrix, color_enabled);
+           lscm_uv_overrides, view_project_projective, view_project_matrix, color_enabled, preview_adjust);
     }
     template<class Archive> void load(Archive &ar)
     {
@@ -374,7 +393,7 @@ struct TextureDisplacementLayer
            tile_method_int, projection_method_int, lscm_seam_angle_deg, islands, blend_mode_int, midlevel,
            island_padding_mm, lscm_seam_edges, view_project_right, view_project_up, smoothing, edge_smoothing,
            edge_smoothing_amount, auto_connect_islands, island_groups, lscm_uv_overrides, view_project_projective,
-           view_project_matrix, color_enabled);
+           view_project_matrix, color_enabled, preview_adjust);
         image_data        = blob.empty() ? nullptr : std::make_shared<std::vector<unsigned char>>(blob.begin(), blob.end());
         tile_method       = static_cast<TextureTileMethod>(tile_method_int);
         projection_method = static_cast<TextureProjectionMethod>(projection_method_int);
@@ -535,11 +554,19 @@ struct DecodedHeightTexture
     // has_color() is what the whole colour feature keys off: a layer set to colour a model with a
     // grayscale texture on it simply colours nothing.
     std::vector<uint8_t> rgb;
+    // Coverage: 0 where the picture is not there at all, 255 where it is fully there. Empty when the
+    // source image had no alpha and nothing has keyed a background out, which is the common case and
+    // means "opaque everywhere". Distinct from a black texel, which is a colour.
+    std::vector<uint8_t> alpha;
     int width  = 0;
     int height = 0;
 
     bool empty() const { return width <= 0 || height <= 0 || pixels.empty(); }
     bool has_color() const { return !empty() && rgb.size() == size_t(width) * size_t(height) * 3; }
+    bool has_alpha() const { return !empty() && alpha.size() == size_t(width) * size_t(height); }
+    // Coverage at a uv, bilinear, in [0, 1]. 1 everywhere when there is no alpha plane.
+    float sample_alpha(const Vec2f &uv, bool tile_enabled = true,
+                       TextureTileMethod tile_method = TextureTileMethod::Repeat) const;
     // Bilinearly sampled height in [0, 1] at a normalized uv coordinate. When tile_enabled is false,
     // a uv outside [0, 1) samples as 0 - the texture simply is not there, rather than its border
     // row/column being smeared outward forever (which is what clamping the coordinate would do, and

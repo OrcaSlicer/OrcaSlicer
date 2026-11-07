@@ -171,6 +171,7 @@ public:
     // What the cache was built from.
     std::vector<ColorRGBA>                                   m_palette_filaments;
     std::vector<std::shared_ptr<std::vector<unsigned char>>> m_palette_images; // the colouring layers' images
+    std::vector<TextureAdjustments>                          m_palette_adjusts;
     std::optional<std::vector<PaletteEntry>>                 m_mix_ranking;    // rank_mixes(), computed on demand
     bool                                                     m_palette_mixing     = false;
     int                                                      m_palette_mix_count  = 0;
@@ -547,9 +548,9 @@ private:
     // Resolves the panel: writes the adjusted image into the user's texture library as a new file and
     // points `layer` at it, which is the only way an adjustment becomes permanent. Closes the panel.
     void commit_image_adjust(TextureDisplacementLayer &layer);
-    // Closes the panel and reverts the layer's live preview_adjust to identity, so every exit that is not
-    // a commit - Cancel, the window's close button, the gizmo closing - leaves the layer as it was found.
-    void close_image_adjust();
+    // Closes the panel. When `revert` is true (Cancel), restores the layer's live preview_adjust to what
+    // it was when the panel opened; otherwise keeps the current adjustment on the layer.
+    void close_image_adjust(bool revert = false);
     // Collects a finished preview and starts one for the current slider values. One at a time, so a drag
     // coalesces into "whatever the sliders last said" instead of a queue of superseded frames.
     void update_image_adjust_preview();
@@ -559,6 +560,7 @@ private:
     // What the layer's live preview_adjust was last set from, so a slider move can be told from a frame in
     // which nothing happened and only the former asks the displacement to be recomputed.
     TextureAdjustments m_adjust_applied;
+    TextureAdjustments m_adjust_initial;   // what preview_adjust was when the panel opened, restored on Cancel
 
     // The layer's image as it was when the panel opened, and a small copy of it. The sliders are applied
     // to the small copy for the live preview and to the full-size one exactly once, on commit. Measured on
@@ -586,6 +588,13 @@ private:
     TextureAdjustments                m_adjust_preview_running; // what the in-flight pass is computing
     TextureAdjustments                m_adjust_preview_shown;   // what m_adjust_preview_tex holds
     bool                              m_adjust_preview_valid = false;
+    // Set while the image-adjustment panel's background dropper is armed: the next click on the preview
+    // image or on the model takes the colour under it.
+    bool                              m_adjust_bg_picking = false;
+    // Takes the background colour from the point of the model under `mouse_pos`: the picture's own
+    // colour there, read through the same projection the bake uses, not the lit pixel on screen.
+    // False when the ray misses or the layer does not colour that point, leaving the dropper armed.
+    bool                              pick_background_at(const Vec2d &mouse_pos);
     // Drops the GPU copies of the layer's image so the next frame rebuilds them from the decode, which
     // is where the live adjustment is applied. Called whenever the panel moves or reverts it.
     void invalidate_adjust_textures();
