@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <boost/log/trivial.hpp>
 #include <glad/gl.h>
+#include <imgui.h>
 
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Camera.hpp"
@@ -80,6 +81,8 @@ void GLGizmoPainterBase::data_changed(bool is_serializing)
     {
         //BBS: add logic to distinguish the first_time_update and later_update
         update_from_model_object(!m_schedule_update);
+        // ORCA: the rebuilt selectors renumber the facets a LINE anchor points at.
+        m_line_pending = false;
 
         m_old_mo_id = mo->id();
         m_old_volumes_size = mo->volumes.size();
@@ -221,6 +224,46 @@ bool GLGizmoPainterBase::render_follows_cursor() const
     return m_rr.mesh_id != -1;
 }
 
+void GLGizmoPainterBase::render_tool_preview()
+{
+    // ORCA: the LINE anchor and its rubber band.
+    //
+    // This runs from the gizmo's input window rather than from render_cursor(), which the canvas
+    // calls during the 3D pass: a frame rendered there is not guaranteed to reach the screen with
+    // the ImGui foreground list it filled, and the canvas stops redrawing once the cursor leaves
+    // the part. Both together left the band on screen only while the cursor was over the mesh.
+    if (m_tool_type != ToolType::LINE || !m_line_pending || m_line_first_mesh_idx < 0)
+        return;
+    if (m_c->selection_info() == nullptr || m_c->selection_info()->model_object() == nullptr)
+        return;
+
+    const std::vector<Transform3d> trafo_matrices = mesh_trafo_matrices();
+    if (m_line_first_mesh_idx >= int(trafo_matrices.size()))
+        return;
+
+    // The camera matrices are Transform3d, whose product keeps the affine bottom row and so drops
+    // the perspective one. Multiply them as plain 4x4, the way GLGizmoMeasure does, or the divide
+    // below is by w == 1 and the anchor lands tens of thousands of pixels away.
+    const Camera  &camera          = wxGetApp().plater()->get_camera();
+    const Matrix4d projection_view = camera.get_projection_matrix().matrix() * camera.get_view_matrix().matrix();
+    const Vec4d    clip            = projection_view *
+                    (trafo_matrices[m_line_first_mesh_idx] * m_line_first_hit.cast<double>()).homogeneous();
+    if (clip.w() <= 0.0)
+        return;
+
+    // ImGui draws in canvas points, not in the GL viewport's pixels; the two differ by the display
+    // scaling factor. render_cursor_circle() takes the canvas size for the same reason.
+    const Size   cnv_size = m_parent.get_canvas_size();
+    const Vec3d  ndc      = clip.head<3>() / clip.w();
+    const ImVec2 anchor(float(0.5 * (ndc.x() + 1.0) * double(cnv_size.get_width())),
+                        float(0.5 * (1.0 - ndc.y()) * double(cnv_size.get_height())));
+    const Vec2d  mouse = m_parent.get_local_mouse_position();
+    const ImU32  color = IM_COL32(0, 150, 136, 220);
+    ImDrawList  *draw  = ImGui::GetForegroundDrawList();
+    draw->AddLine(anchor, ImVec2(float(mouse.x()), float(mouse.y())), color, 2.0f);
+    draw->AddCircleFilled(anchor, 4.0f, color);
+}
+
 void GLGizmoPainterBase::render_cursor()
 {
     // First check that the mouse pointer is on an object.
@@ -228,12 +271,14 @@ void GLGizmoPainterBase::render_cursor()
 
     // Precalculate transformations of individual meshes.
     const std::vector<Transform3d> trafo_matrices = mesh_trafo_matrices();
-    // Raycast and return if there's no hit.
+    // Raycast the cursor.
     update_raycast_cache(m_parent.get_local_mouse_position(), camera, trafo_matrices);
+
     if (m_rr.mesh_id == -1)
         return;
 
-    if (m_tool_type == ToolType::BRUSH) {
+    // ORCA: LINE reuses the brush preview, so the second click lands where the operator sees it.
+    if (m_tool_type == ToolType::BRUSH || m_tool_type == ToolType::LINE) {
         if (m_cursor_type == TriangleSelector::SPHERE)
             render_cursor_sphere(trafo_matrices[m_rr.mesh_id]);
         else if (m_cursor_type == TriangleSelector::CIRCLE)
@@ -942,6 +987,22 @@ bool GLGizmoPainterBase::gizmo_event(SLAGizmoEventType action, const Vec2d& mous
                         m_triangle_selectors[mesh_idx]->select_patch(int(first_position_it->facet_idx), std::move(cursor), new_state, trafo_matrix_not_translate, m_triangle_splitting_enabled, m_paint_on_overhangs_only ? get_highlight_angle_limit_deg() : 0.f, get_tilt_up_direction());
                     }
                 }
+            } else if (m_tool_type == ToolType::LINE) {
+                // ORCA: the first click only records where it landed; the second paints from there
+                //       to the new hit with the cursor a drag-stroke uses between two frames.
+                const ProjectedMousePosition &hit = projected_mouse_positions.front();
+                if (m_line_pending && mesh_idx == m_line_first_mesh_idx) {
+                    std::unique_ptr<TriangleSelector::Cursor> cursor = TriangleSelector::DoublePointCursor::cursor_factory(m_line_first_hit, hit.mesh_hit, camera_pos, m_cursor_radius, m_cursor_type, trafo_matrix, clp);
+                    m_triangle_selectors[mesh_idx]->select_patch(m_line_first_facet_idx, std::move(cursor), new_state, trafo_matrix_not_translate,
+                                                                 m_triangle_splitting_enabled, m_paint_on_overhangs_only ? m_highlight_by_angle_threshold_deg : 0.f, get_tilt_up_direction());
+                    m_line_pending = false;
+                } else {
+                    // A click on a different mesh restarts there rather than painting across the two.
+                    m_line_first_hit       = hit.mesh_hit;
+                    m_line_first_facet_idx = int(hit.facet_idx);
+                    m_line_first_mesh_idx  = mesh_idx;
+                    m_line_pending         = true;
+                }
             }
 
             m_triangle_selectors[mesh_idx]->request_update_render_data(true);
@@ -1225,6 +1286,8 @@ void GLGizmoPainterBase::on_set_state()
         // first move would end it as if released and the first press would paint a line from its last position.
         m_button_down      = Button::None;
         m_last_mouse_click = Vec2d::Zero();
+        // ORCA: same for a LINE anchor, whose facet index only means anything to the selectors it was taken from.
+        m_line_pending     = false;
 
         //Camera& camera = wxGetApp().plater()->get_camera();
         //camera.look_at(camera.get_position(), m_previous_target, Vec3d::UnitZ());

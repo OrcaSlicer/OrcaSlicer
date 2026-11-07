@@ -240,6 +240,9 @@ protected:
     // object - and drawing those parts' selectors over it would bury the preview under a flat surface.
     void render_triangles(const Selection& selection, const std::vector<const ModelVolume*>& skip) const;
     void render_cursor();
+    // ORCA: the LINE anchor and its rubber band. Drawn from on_render_input_window(), not from
+    //       render_cursor(), so it survives the cursor leaving the part - see the definition.
+    void render_tool_preview();
     void render_cursor_circle();
     void render_cursor_sphere(const Transform3d& trafo) const;
     // BBS
@@ -277,6 +280,8 @@ protected:
         SMART_FILL,
         // BBS
         GAP_FILL,
+        // ORCA: paints the swept region between two clicked points.
+        LINE,
     };
 
     struct ProjectedMousePosition
@@ -297,6 +302,12 @@ protected:
     bool     m_triangle_splitting_enabled = true;
     ToolType m_tool_type                  = ToolType::BRUSH;
     float    m_smart_fill_angle           = 30.f;
+
+    // ORCA: the LINE tool's first click, kept until the second click paints from it.
+    bool     m_line_pending               = false;
+    Vec3f    m_line_first_hit             = Vec3f::Zero();
+    int      m_line_first_mesh_idx        = -1;
+    int      m_line_first_facet_idx       = -1;
 
     bool     m_paint_on_overhangs_only          = false;
     float    m_highlight_by_angle_threshold_deg = 0.f;
