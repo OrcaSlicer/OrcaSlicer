@@ -15,7 +15,7 @@ page submits to stderr, "MCP web fixture window" opens it as a modeless window, 
 panel" docks a small page beside the 3D view (the Prepare tab). The dialog script's configuration UI (CONFIG_UI) is shown by
 the Plugins dialog in its sandboxed frame. Each page logs what its controls saw into <pre id="log">,
 which the test reads back. "MCP web fixture thread" starts a thread, for which the host asks the
-threading permission in a native message box.
+threading permission in its permission prompt.
 """
 import json
 import sys
@@ -253,8 +253,9 @@ class FixtureThread(orca.script.ScriptPluginCapabilityBase):
         return "MCP web fixture thread"
 
     def execute(self):
-        # It runs on the UI thread, where the host asks for the threading permission in a modal native
-        # message box; a refusal raises PermissionError, which the action's result reports.
+        # It runs on a worker thread. Without the threading permission the thread does not start: it
+        # raises PermissionError, which the action's result reports, and the host asks for the permission
+        # in a prompt whose Yes lets a later run start it.
         threading.Thread(target=lambda: None).start()
         return orca.ExecutionResult.success("thread started")
 
