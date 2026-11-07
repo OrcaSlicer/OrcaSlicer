@@ -2,6 +2,7 @@
 #include "Http.hpp"
 #include "MoonrakerPrinterAgent.hpp"
 #include "IPrinterAgent.hpp"
+#include "NetworkAgentFactory.hpp"
 #include "bambu_networking.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -46,7 +47,7 @@ QidiPrinterAgent::QidiPrinterAgent(std::string log_dir) : MoonrakerPrinterAgent(
 
 AgentInfo QidiPrinterAgent::get_agent_info_static()
 {
-    return AgentInfo{"qidi", "Qidi", QidiPrinterAgent_VERSION, "Qidi printer agent"};
+    return AgentInfo{QIDI_PRINTER_AGENT_ID, "Qidi", QidiPrinterAgent_VERSION, "Qidi printer agent"};
 }
 
 bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
