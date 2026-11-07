@@ -1010,7 +1010,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                 // Shrink the extruder_clearance_radius a tiny bit, so that if the object arrangement algorithm placed the objects
                 // exactly by satisfying the extruder_clearance_radius, this test will not trigger collision.
                 object_skirt_offset = print.object_skirt_offset(&convex_hull0);
-                float obj_distance = print.is_all_objects_are_short() ? scale_(std::max(0.5f * MAX_OUTER_NOZZLE_DIAMETER, object_skirt_offset)/2 - 0.1) : scale_(0.5 * print.config().extruder_clearance_radius.value + object_skirt_offset - 0.1);
+                float obj_distance  = print.is_all_objects_are_short() ? scale_(std::max(float(MAX_OUTER_NOZZLE_DIAMETER), object_skirt_offset)/2 - 0.1) : scale_(0.5 * print.config().extruder_clearance_radius.value + object_skirt_offset - 0.1);
 
                 Polygon convex_hull_no_offset = convex_hull0, convex_hull;
                 auto tmp = offset(convex_hull_no_offset, obj_distance, jtRound, scale_(0.1));
