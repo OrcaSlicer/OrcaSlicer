@@ -28,6 +28,43 @@ TEST_CASE("Full collision-volume previews are opt-in and retain the user's prefe
     CHECK(config.get_bool("show_collision_volumes"));
 }
 
+TEST_CASE("Persistent outlines are opt-in and use white by default", "[AppConfig][Outline]")
+{
+    AppConfig config;
+    CHECK_FALSE(config.get_bool(SETTING_OPENGL_OUTLINE_PERSISTENT));
+    CHECK(config.get(SETTING_OPENGL_OUTLINE_COLOR) == "#FFFFFF");
+    CHECK(config.get(SETTING_OPENGL_SELECTION_OUTLINE_COLOR) == "#FFFFFF");
+
+    config.set_bool(SETTING_OPENGL_OUTLINE_PERSISTENT, true);
+    config.set(SETTING_OPENGL_OUTLINE_COLOR, "#2468AC");
+    config.set(SETTING_OPENGL_SELECTION_OUTLINE_COLOR, "#FF8000");
+    config.set_defaults();
+    CHECK(config.get_bool(SETTING_OPENGL_OUTLINE_PERSISTENT));
+    CHECK(config.get(SETTING_OPENGL_OUTLINE_COLOR) == "#2468AC");
+    CHECK(config.get(SETTING_OPENGL_SELECTION_OUTLINE_COLOR) == "#FF8000");
+}
+
+TEST_CASE("Outline preferences survive save and reload independently of selection outlining", "[AppConfig][Outline]")
+{
+    ScopedDataDir data_dir("outline-preferences");
+    save_main_thread_id();
+    AppConfig config;
+    const bool persistent = GENERATE(false, true);
+    const bool selected_outline = GENERATE(false, true);
+    config.set_bool(SETTING_OPENGL_OUTLINE_PERSISTENT, persistent);
+    config.set_bool("show_outline", selected_outline);
+    config.set(SETTING_OPENGL_OUTLINE_COLOR, "#2468AC");
+    config.set(SETTING_OPENGL_SELECTION_OUTLINE_COLOR, "#FF8000");
+    config.save();
+
+    AppConfig reloaded;
+    REQUIRE(reloaded.load().empty());
+    CHECK(reloaded.get_bool(SETTING_OPENGL_OUTLINE_PERSISTENT) == persistent);
+    CHECK(reloaded.get_bool("show_outline") == selected_outline);
+    CHECK(reloaded.get(SETTING_OPENGL_OUTLINE_COLOR) == "#2468AC");
+    CHECK(reloaded.get(SETTING_OPENGL_SELECTION_OUTLINE_COLOR) == "#FF8000");
+}
+
 TEST_CASE("AppConfig network version helpers", "[AppConfig]") {
     AppConfig config;
 

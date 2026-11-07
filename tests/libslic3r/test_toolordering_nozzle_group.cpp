@@ -234,6 +234,15 @@ DynamicPrintConfig loaded_filament(const std::string &colour, const std::string 
     return tray;
 }
 
+// The AMS inventory rides the next Print::apply(), which is where the grouping steps get invalidated,
+// so it has to be set before the apply, not after it.
+void apply_with_filament_info(Print &print, const Model &model, const DynamicPrintConfig &config,
+                              const std::vector<std::vector<DynamicPrintConfig>> &filament_info)
+{
+    print.set_extruder_filament_info(filament_info);
+    print.apply(model, config);
+}
+
 // A two-extruder Bambu printer whose master is the second extruder, as on the H2D (one nozzle on
 // each extruder) and the H2C (six on the second), printing PLA in the given colours. A change
 // between two of them flushes extruder_flush[e] on extruder e.
@@ -274,11 +283,11 @@ TEST_CASE("Filament-saving grouping puts a filament on the extruder the printer 
     Model model;
     model.add_object("cube", "", make_cube(20, 20, 20))->add_instance();
     Print print;
-    print.apply(model, master_second_extruder_config(1, {"#F98C36"}));
     print.is_BBL_printer() = true;
     // Only the first (non-master) extruder holds the printed PLA.
-    print.set_extruder_filament_info({{loaded_filament("#F98C36", "PLA", "A1"), loaded_filament("#BCBCBC", "PETG", "A2")},
-                                      {loaded_filament("#F95D73", "PETG", "Ext")}});
+    apply_with_filament_info(print, model, master_second_extruder_config(1, {"#F98C36"}),
+                             {{loaded_filament("#F98C36", "PLA", "A1"), loaded_filament("#BCBCBC", "PETG", "A2")},
+                              {loaded_filament("#F95D73", "PETG", "Ext")}});
 
     auto result = ToolOrdering::get_recommended_filament_maps({{0}, {0}, {0}}, &print, FilamentMapMode::fmmAutoForFlush, {}, {});
 
@@ -306,9 +315,9 @@ TEST_CASE("Filament-saving grouping prefers the master extruder when the printer
     Model model;
     model.add_object("cube", "", make_cube(20, 20, 20))->add_instance();
     Print print;
-    print.apply(model, master_second_extruder_config(1, {"#FFFFFF", "#000000", "#808080"}, {10., 100.}));
     print.is_BBL_printer() = true;
-    print.set_extruder_filament_info({{loaded_filament("#FF0000", "PETG", "A1")}, {loaded_filament("#F95D73", "PETG", "Ext")}});
+    apply_with_filament_info(print, model, master_second_extruder_config(1, {"#FFFFFF", "#000000", "#808080"}, {10., 100.}),
+                             {{loaded_filament("#FF0000", "PETG", "A1")}, {loaded_filament("#F95D73", "PETG", "Ext")}});
 
     auto result = ToolOrdering::get_recommended_filament_maps({{0}, {1}, {2}, {0}, {1}, {2}}, &print, FilamentMapMode::fmmAutoForFlush, {}, {});
 
@@ -328,10 +337,10 @@ TEST_CASE("Convenience-mode grouping puts a filament where the printer holds its
     Model model;
     model.add_object("cube", "", make_cube(20, 20, 20))->add_instance();
     Print print;
-    print.apply(model, config);
     print.is_BBL_printer() = true;
-    print.set_extruder_filament_info({{loaded_filament("#FFFFFF", "PLA", "A1", "GFL99")},
-                                      {loaded_filament("#FFFFFF", "PLA", "A1", "GFA00")}});
+    apply_with_filament_info(print, model, config,
+                             {{loaded_filament("#FFFFFF", "PLA", "A1", "GFL99")},
+                              {loaded_filament("#FFFFFF", "PLA", "A1", "GFA00")}});
 
     auto result = ToolOrdering::get_recommended_filament_maps({{0}, {0}, {0}}, &print, FilamentMapMode::fmmAutoForMatch, {}, {});
 
@@ -347,10 +356,10 @@ TEST_CASE("Filament-saving grouping on a multi-nozzle printer keeps filaments on
     Model model;
     model.add_object("cube", "", make_cube(20, 20, 20))->add_instance();
     Print print;
-    print.apply(model, master_second_extruder_config(6, {"#F98C36", "#FFFFFF"}));
     print.is_BBL_printer() = true;
-    print.set_extruder_filament_info({{loaded_filament("#F98C36", "PLA", "A1"), loaded_filament("#FFFFFF", "PLA", "A2")},
-                                      {loaded_filament("#F95D73", "PETG", "Ext")}});
+    apply_with_filament_info(print, model, master_second_extruder_config(6, {"#F98C36", "#FFFFFF"}),
+                             {{loaded_filament("#F98C36", "PLA", "A1"), loaded_filament("#FFFFFF", "PLA", "A2")},
+                              {loaded_filament("#F95D73", "PETG", "Ext")}});
 
     auto result = ToolOrdering::get_recommended_filament_maps({{0}, {1}, {0}}, &print, FilamentMapMode::fmmAutoForFlush, {}, {});
 
@@ -1246,5 +1255,211 @@ TEST_CASE("parse_cyclic_order parses user cyclic toolchange sequences", "[ToolOr
 
     SECTION("a partial sequence only names the filaments it lists") {
         REQUIRE(parse_cyclic_order("3,1", 4) == std::vector<unsigned int>({2, 0}));
+    }
+}
+
+namespace {
+// One AMS slot in the raw per-tray shape the device reports it.
+DynamicPrintConfig make_tray(const std::string &colour, const std::string &type, const std::string &tray_name,
+                             bool is_support, const std::string &filament_id)
+{
+    DynamicPrintConfig tray;
+    tray.set_key_value("filament_colour", new ConfigOptionStrings{colour});
+    tray.set_key_value("filament_type", new ConfigOptionStrings{type});
+    tray.set_key_value("tray_name", new ConfigOptionStrings{tray_name});
+    tray.set_key_value("filament_is_support", new ConfigOptionBools{is_support});
+    tray.set_key_value("filament_id", new ConfigOptionStrings{filament_id});
+    return tray;
+}
+
+// The same slot plus the keys the grouping does not consume: remaining amount, temperatures, the
+// change counters and the tray tags.
+DynamicPrintConfig with_volatile_keys(DynamicPrintConfig tray, double remaining, int temperature, bool changed)
+{
+    tray.set_key_value("remaining", new ConfigOptionFloats{remaining});
+    tray.set_key_value("nozzle_temperature", new ConfigOptionInts{temperature});
+    tray.set_key_value("filament_changed", new ConfigOptionBools{changed});
+    tray.set_key_value("tag_uid", new ConfigOptionStrings{"0123456789ABCDEF"});
+    tray.set_key_value("filament_exist", new ConfigOptionBools{changed});
+    return tray;
+}
+
+// An AMS inventory payload: outer index = extruder, inner = that extruder's slots in slot order.
+using AmsPayload = std::vector<std::vector<DynamicPrintConfig>>;
+
+bool filaments_changed(const AmsPayload &old_payload, const AmsPayload &new_payload)
+{
+    return FilamentGroupUtils::machine_filaments_changed(old_payload, new_payload);
+}
+} // namespace
+
+// The filament grouping is invalidated by a change of the device's material inventory; a polled
+// inventory that reports the same materials must leave the grouping alone.
+TEST_CASE("An unchanged AMS inventory reports no filament change", "[ToolOrdering][FilamentGroup][Regression]")
+{
+    const AmsPayload payload = {
+        {make_tray("#161616", "PLA", "A1", false, "GFL99"), make_tray("#FFFFFF", "PETG", "A2", false, "GFG99")},
+        {make_tray("#F95D73", "PLA", "Ext", false, "GFL99")},
+    };
+
+    CHECK_FALSE(filaments_changed(payload, payload));
+}
+
+TEST_CASE("A tray colour change reports a filament change", "[ToolOrdering][FilamentGroup][Regression]")
+{
+    const AmsPayload before = {
+        {make_tray("#161616", "PLA", "A1", false, "GFL99")},
+        {make_tray("#F95D73", "PLA", "Ext", false, "GFL99")},
+    };
+    AmsPayload after = before;
+    after[0][0]      = make_tray("#00FFFF", "PLA", "A1", false, "GFL99");
+
+    CHECK(filaments_changed(before, after));
+}
+
+TEST_CASE("Changing only volatile AMS slot keys reports no filament change", "[ToolOrdering][FilamentGroup][Regression]")
+{
+    const AmsPayload before = {
+        {make_tray("#161616", "PLA", "A1", false, "GFL99"), make_tray("#FFFFFF", "PETG", "A2", false, "GFG99")},
+    };
+    AmsPayload after = before;
+    after[0][0]      = with_volatile_keys(before[0][0], 92., 220, true);
+    after[0][1]      = with_volatile_keys(before[0][1], 3., 250, true);
+
+    REQUIRE(after[0][0].has("remaining"));
+    REQUIRE(after[0][0].has("nozzle_temperature"));
+    REQUIRE(after[0][0].has("filament_changed"));
+    REQUIRE(after[0][0].has("tag_uid"));
+    REQUIRE(after[0][0].has("filament_exist"));
+
+    CHECK_FALSE(filaments_changed(before, after));
+}
+
+TEST_CASE("A filament sub-type change reports a filament change", "[ToolOrdering][FilamentGroup][Regression]")
+{
+    // Same colour and type, a different preset id: PLA Translucent instead of Generic PLA.
+    const AmsPayload before = {{make_tray("#161616", "PLA", "A1", false, "GFL99")}};
+    AmsPayload after        = before;
+    after[0][0]             = make_tray("#161616", "PLA", "A1", false, "GFA17");
+
+    CHECK(filaments_changed(before, after));
+}
+
+TEST_CASE("Moving a tray to the external spool reports a filament change", "[ToolOrdering][FilamentGroup][Regression]")
+{
+    // The tray name tells an AMS slot ("A1") from the external spool ("Ext"); the same filament
+    // loaded in either place groups differently.
+    const AmsPayload in_ams = {{make_tray("#F95D73", "PLA", "A1", false, "GFL99")}};
+    const AmsPayload on_ext = {{make_tray("#F95D73", "PLA", "Ext", false, "GFL99")}};
+
+    CHECK(filaments_changed(in_ams, on_ext));
+    CHECK(filaments_changed(on_ext, in_ams));
+}
+
+TEST_CASE("A tray losing its support flag reports a filament change", "[ToolOrdering][FilamentGroup][Regression]")
+{
+    const AmsPayload support    = {{make_tray("#FFFFFF", "PLA", "A1", true, "GFL99")}};
+    const AmsPayload not_support = {{make_tray("#FFFFFF", "PLA", "A1", false, "GFL99")}};
+
+    CHECK(filaments_changed(support, not_support));
+}
+
+TEST_CASE("Swapping two AMS slot positions reports a filament change", "[ToolOrdering][FilamentGroup][Regression]")
+{
+    // The grouping keys slots by position, so two swapped trays are a different inventory even
+    // though the set of loaded materials is the same.
+    const AmsPayload before = {
+        {make_tray("#161616", "PLA", "A1", false, "GFL99"), make_tray("#FFFFFF", "PLA", "A2", false, "GFL99")},
+    };
+    AmsPayload after = before;
+    after[0][0]      = before[0][1];
+    after[0][1]      = before[0][0];
+
+    CHECK(filaments_changed(before, after));
+}
+
+TEST_CASE("Adding an AMS tray reports a filament change", "[ToolOrdering][FilamentGroup][Regression]")
+{
+    const AmsPayload two_trays = {
+        {make_tray("#161616", "PLA", "A1", false, "GFL99"), make_tray("#FFFFFF", "PLA", "A2", false, "GFL99")},
+    };
+    const AmsPayload one_tray = {{make_tray("#161616", "PLA", "A1", false, "GFL99")}};
+
+    CHECK(filaments_changed(one_tray, two_trays));
+    CHECK(filaments_changed(two_trays, one_tray));
+}
+
+TEST_CASE("An empty AMS inventory reports no filament change", "[ToolOrdering][FilamentGroup][Regression]")
+{
+    const AmsPayload filled = {{make_tray("#161616", "PLA", "A1", false, "GFL99")}};
+
+    // No payload at all is "the device has not reported yet", in either direction.
+    CHECK_FALSE(filaments_changed(AmsPayload{}, filled));
+    CHECK_FALSE(filaments_changed(filled, AmsPayload{}));
+
+    // A reported slot with no colour is still a reported tray, so it counts as inventory: a connected
+    // device that reports empty slots is not "unknown", and losing a filament there is a change.
+    CHECK(filaments_changed(AmsPayload{{make_tray("", "PLA", "A1", false, "GFL99")}}, filled));
+}
+
+TEST_CASE("An AMS slot missing a projected key is ignored by the inventory comparison", "[ToolOrdering][FilamentGroup][Regression]")
+{
+    const DynamicPrintConfig keeper = make_tray("#FFFFFF", "PLA", "A2", false, "GFL99");
+
+    SECTION("no tray name") {
+        // A slot that names no tray cannot be placed in the AMS, so its colour is not inventory.
+        DynamicPrintConfig recoloured = make_tray("#00FFFF", "PLA", "A1", false, "GFL99");
+        REQUIRE(recoloured.erase("tray_name"));
+        DynamicPrintConfig unnamed = make_tray("#161616", "PLA", "A1", false, "GFL99");
+        REQUIRE(unnamed.erase("tray_name"));
+
+        CHECK_FALSE(filaments_changed(AmsPayload{{unnamed, keeper}}, AmsPayload{{recoloured, keeper}}));
+    }
+
+    SECTION("empty tray name") {
+        const AmsPayload before = {{make_tray("#161616", "PLA", "", false, "GFL99"), keeper}};
+        const AmsPayload after  = {{make_tray("#00FFFF", "PLA", "", false, "GFL99"), keeper}};
+
+        CHECK_FALSE(filaments_changed(before, after));
+    }
+
+    SECTION("no filament type") {
+        DynamicPrintConfig retyped = make_tray("#00FFFF", "PLA", "A1", false, "GFL99");
+        REQUIRE(retyped.erase("filament_type"));
+        DynamicPrintConfig untyped = make_tray("#161616", "PLA", "A1", false, "GFL99");
+        REQUIRE(untyped.erase("filament_type"));
+
+        CHECK_FALSE(filaments_changed(AmsPayload{{untyped, keeper}}, AmsPayload{{retyped, keeper}}));
+    }
+
+    SECTION("no colour") {
+        const AmsPayload before = {{make_tray("", "PLA", "A1", false, "GFL99"), keeper}};
+        const AmsPayload after  = {{make_tray("", "PETG", "A1", false, "GFL99"), keeper}};
+
+        CHECK_FALSE(filaments_changed(before, after));
+    }
+}
+
+TEST_CASE("Different extruder counts are compared bucket by bucket", "[ToolOrdering][FilamentGroup][Regression]")
+{
+    const DynamicPrintConfig tray = make_tray("#161616", "PLA", "A1", false, "GFL99");
+
+    SECTION("a further extruder holding a tray is a change") {
+        const AmsPayload two_extruders = {{tray}, {tray}};
+        AmsPayload       three_extruders = two_extruders;
+        three_extruders.push_back({make_tray("#FFFFFF", "PETG", "A2", false, "GFG99")});
+
+        CHECK(filaments_changed(two_extruders, three_extruders));
+        CHECK(filaments_changed(three_extruders, two_extruders));
+    }
+
+    SECTION("a second extruder that gains a tray is a change") {
+        // The projection always keeps two buckets, so a one-extruder payload still has an empty
+        // second bucket to differ from.
+        CHECK(filaments_changed(AmsPayload{{tray}}, AmsPayload{{tray}, {tray}}));
+    }
+
+    SECTION("an extruder that holds no tray is the same as a missing one") {
+        CHECK_FALSE(filaments_changed(AmsPayload{{tray}}, AmsPayload{{tray}, {}}));
     }
 }
