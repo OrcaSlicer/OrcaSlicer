@@ -370,10 +370,13 @@ void DesignCanvas::request_repaint()
     }
 }
 
-// A frame NOW, for a caller that waits for it (the screenshot loop yields only UI events, which a queued render is not).
+// A frame NOW, for a caller that waits for it (the screenshot loop yields only UI events, which a queued render is not, and
+// on hardware GL Refresh() depends on the compositor sending a paint event).
 void DesignCanvas::render_now()
 {
-    if (m_canvas && m_canvas->is_initialized() && m_sw_gl == 1) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    // Hardware GL too: Refresh() waits for a paint event, and a compositor that is not repainting the window (covered, other workspace,
+    // Xwayland) never sends one, so the frame the caller waits for did not come (macOS: "the viewport did not render a frame").
+    if (m_canvas && m_canvas->is_initialized()) { m_canvas->set_as_dirty(); m_canvas->render(); }
     else request_repaint();
 }
 
