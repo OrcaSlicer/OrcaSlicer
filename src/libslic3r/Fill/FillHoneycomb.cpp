@@ -89,6 +89,7 @@ void FillHoneycomb::_fill_surface_single(
     multiline_fill(all_polylines, params, spacing);
 
     all_polylines = intersection_pl(std::move(all_polylines), expolygon);
+    join_cut_outlines(all_polylines, params);
     chain_or_connect_infill(std::move(all_polylines), expolygon, polylines_out, this->spacing, params);
 }
 

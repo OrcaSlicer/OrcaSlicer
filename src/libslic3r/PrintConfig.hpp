@@ -2577,6 +2577,8 @@ int bed_exclusion_extruder_for_filament(size_t filament_id, const std::vector<in
                                         FilamentMapMode map_mode, bool is_bambu, bool automatic_map_resolved,
                                         size_t extruder_count);
 bool is_bed_exclusion_volume_syntax(const std::string &value);
+// Bed exclusion areas must be simple polygons with non-zero area.
+bool is_valid_bed_exclude_area(const Pointfs &points);
 bool is_valid_bed_exclude_volumes_string(const std::string &value, double printable_height);
 // Add shared definitions without replacing existing volumes or changing the
 // configured multi-nozzle mode. In individual mode the new definitions are
