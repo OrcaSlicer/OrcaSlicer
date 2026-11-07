@@ -454,8 +454,7 @@ std::shared_ptr<CaptureSessions> open_capture_sessions()
     }
 }
 
-bool capture_native_window(wxTopLevelWindow& window, CaptureSessions* sessions, wxImage& out, bool& approximate, std::string& note,
-                           std::vector<wxRect>& /*covered*/, std::string& err)
+bool capture_native_window(wxTopLevelWindow& window, CaptureSessions* sessions, Capture& out, std::string& err)
 {
     HWND hwnd = static_cast<HWND>(window.GetHWND());
     if (hwnd == nullptr) {
@@ -469,12 +468,12 @@ bool capture_native_window(wxTopLevelWindow& window, CaptureSessions* sessions, 
     }
     std::string wgc_err;
     if (sessions != nullptr) {
-        if (sessions->capture(hwnd, out, wgc_err))
+        if (sessions->capture(hwnd, out.image, wgc_err))
             return true;
         if (!wgc_err.empty())
             BOOST_LOG_TRIVIAL(warning) << "MCP capture: " << wgc_err << "; using PrintWindow";
     }
-    return print_window(hwnd, out, approximate, note, err);
+    return print_window(hwnd, out.image, out.approximate, out.note, err);
 }
 
 bool capture_native_popup(wxWindow& popup, wxImage& out)

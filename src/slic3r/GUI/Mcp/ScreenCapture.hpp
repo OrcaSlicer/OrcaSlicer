@@ -28,9 +28,16 @@ struct Capture
     // A 3D canvas came back entirely black. The view is never drawn black, so its surface was not
     // ready yet, as on Wayland for a moment after the canvas is first shown; capture again later.
     bool        blank_canvas = false;
-    // Where the native capture drew one of our own windows that covers the target (X11 only, which reads
-    // the screen), in image pixels; the 3D canvases are not composited there.
+    // The native capture is the screen's composition of our windows (X11, and macOS's window-server capture):
+    // our dialogs, popups, menus and tooltips over the target show in it as they are on screen, so none is
+    // composited in.
+    bool                from_screen = false;
+    // Where such a capture drew one of our own windows that covers the target, in image pixels; the 3D
+    // canvases are not composited there.
     std::vector<wxRect> covered;
+    // The native capture shows the 3D views as they were last presented (macOS's window-server capture), so
+    // a caller that keeps them (CaptureOptions::keep_shown_canvases) need not draw them.
+    bool                canvases_shown = false;
 };
 
 // How a capture gets a 3D canvas's frame: render one and read it back, unless the caller keeps frames.
@@ -39,11 +46,12 @@ using CanvasFrameProvider = std::function<bool(GLCanvas3D& canvas, wxImage& out,
 // Window captures kept open from one capture to the next, as a recording's frames are. On Windows a window
 // is read through Windows Graphics Capture, which takes what the screen shows without making the window
 // repaint, as PrintWindow does, visibly. Opening one waits for the next composited frame, and an open one has
-// the newest at hand.
+// the newest at hand. On macOS they keep what ScreenCaptureKit lists of our windows and displays, so that a
+// recording does not fetch the list again at every frame.
 class CaptureSessions;
 
-// Null where there is nothing to keep open: other platforms, and Windows without Windows Graphics Capture.
-// UI thread, which must also release it.
+// Null where there is nothing to keep open: Linux, Windows without Windows Graphics Capture, and macOS before
+// 14.4. UI thread, which must also release it.
 std::shared_ptr<CaptureSessions> open_capture_sessions();
 
 struct CaptureOptions
@@ -55,9 +63,15 @@ struct CaptureOptions
     CanvasFrameProvider canvas_frame;
     // Null: the capture opens and closes its own.
     CaptureSessions*    sessions = nullptr;
-    // Draw in our popups shown over the window (capture_popups()). A recording draws them itself, over the
-    // dialogs it draws in, so that a popup reaching past its dialog is not cut off.
+    // Draw in our popups shown over the window (capture_popups()) where the capture does not show them
+    // (Capture::from_screen). A recording draws them itself, over the dialogs it draws in, so that a popup
+    // reaching past its dialog is not cut off.
     bool                popups = true;
+    // Leave the 3D views as a capture that shows them as presented has them (Capture::canvases_shown) rather
+    // than drawing each and compositing it in. A recording keeps them, since a video shows what the screen
+    // showed; a screenshot draws them, so that it shows a change the view has not presented yet and can tell
+    // a view that is not drawn yet.
+    bool                keep_shown_canvases = false;
 };
 
 // One of our popups as drawn: a wx popup, a menu, a drop-down list or a tooltip, with the top-level window it
@@ -70,9 +84,9 @@ struct PopupCapture
     wxImage           image;
 };
 
-// Our popups shown now, bottom to top, which window captures leave out. Empty on X11, whose captures read them
-// from the screen. macOS has wx's popups only: AppKit draws its menus and tooltips itself, and only reading the
-// screen, which needs the Screen Recording permission, would capture them.
+// Our popups shown now, bottom to top, for the captures that leave them out (not Capture::from_screen). Empty on
+// X11, whose captures read them from the screen. On macOS, where its window-server capture is unavailable, wx's
+// popups only: AppKit draws its menus and tooltips in windows of its own, which only the window server shows.
 std::vector<PopupCapture> capture_popups();
 
 // The OS parts of capture_popups() on Windows and macOS. capture_native_popup() draws one of wx's popups from its
@@ -82,8 +96,6 @@ std::vector<PopupCapture> capture_popups();
 bool                      capture_native_popup(wxWindow& popup, wxImage& out);
 std::vector<PopupCapture> capture_native_popups();
 
-// Whether a window capture reads the screen, and so shows our own windows over the target (X11).
-bool capture_reads_screen();
 // Whether the app knows where its top-level windows are on the screen (not on Wayland).
 bool window_positions_known();
 
@@ -93,16 +105,17 @@ bool is_blank(const wxImage& image);
 // The canvas exactly as presented: scene, toolpaths, toolbars and ImGui overlays. All platforms.
 std::optional<Capture> capture_canvas(GLCanvas3D& canvas, std::string& err, const CaptureOptions& options = {});
 
-// A top-level window's own pixels (never other windows on the screen), with every visible 3D
-// canvas composited in from its canvas capture, since window capture APIs miss or mangle OpenGL
-// content on several platforms. Minimized windows fail.
+// A top-level window's client area: its own pixels, or where the capture reads the screen
+// (Capture::from_screen) our windows over it too, never other applications' windows, with every visible 3D
+// canvas composited in from its canvas capture, since window capture APIs miss or mangle OpenGL content on
+// several platforms. Minimized windows fail.
 std::optional<Capture> capture_window(wxTopLevelWindow& window, std::string& err, const CaptureOptions& options = {});
 
-// The OS part of capture_window(): Windows Graphics Capture (or PrintWindow without it), macOS
-// cacheDisplayInRect, Linux X11 XGetImage or (Wayland) gtk_widget_draw. Implemented per platform. `covered`
-// gets the rectangles where it drew another of our windows (X11).
-bool capture_native_window(wxTopLevelWindow& window, CaptureSessions* sessions, wxImage& out, bool& approximate, std::string& note,
-                           std::vector<wxRect>& covered, std::string& err);
+// The OS part of capture_window(): Windows Graphics Capture (or PrintWindow without it), macOS ScreenCaptureKit
+// (or cacheDisplayInRect without it), Linux X11 XGetImage or (Wayland) gtk_widget_draw. Implemented per
+// platform. Fills `out`'s image, its approximate flag and note, and, where it reads the screen, from_screen,
+// covered and canvases_shown.
+bool capture_native_window(wxTopLevelWindow& window, CaptureSessions* sessions, Capture& out, std::string& err);
 
 // Physical-pixel offset of `child`'s client area inside `top`'s client area.
 wxPoint client_offset_in(wxWindow& child, wxTopLevelWindow& top);

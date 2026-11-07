@@ -143,7 +143,7 @@ private:
     // The capture's provider of 3D canvas frames: the one kept while the canvas has presented no other.
     bool canvas_frame(Recording& rec, GLCanvas3D& canvas, wxImage& out, std::string& err);
     void on_event(wxEvent& event);
-    bool shows(wxWindow* window) const;
+    bool shows(const Recording& rec, wxWindow* window) const;
     // A recording runs and is not ending.
     bool running() const;
     // Shows the tab bar's REC pill while running(), and hides it otherwise; not while the main window is

@@ -1103,6 +1103,8 @@ elseif (APPLE)
     else()
         target_link_libraries(libslic3r_gui ${DISKARBITRATION_LIBRARY} "-framework Security")
     endif()
+    # MCP window captures (ScreenCapture_mac.mm); weak, since macOS before 12.3 has no ScreenCaptureKit.
+    target_link_libraries(libslic3r_gui "-weak_framework ScreenCaptureKit")
 endif()
 
 if (SLIC3R_STATIC)

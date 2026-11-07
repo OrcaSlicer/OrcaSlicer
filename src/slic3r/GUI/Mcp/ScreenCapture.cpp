@@ -173,15 +173,6 @@ bool canvas_frame(GLCanvas3D& canvas, wxImage& out, std::string& err, const Capt
 
 } // namespace
 
-bool capture_reads_screen()
-{
-#if defined(__WXGTK__)
-    return get_linux_display_backend() == LinuxDisplayBackend::X11;
-#else
-    return false;
-#endif
-}
-
 bool window_positions_known()
 {
 #if defined(__WXGTK__)
@@ -254,8 +245,10 @@ std::optional<Capture> capture_window(wxTopLevelWindow& window, std::string& err
         return std::nullopt;
     }
     Capture c;
-    if (!capture_native_window(window, options.sessions, c.image, c.approximate, c.note, c.covered, err))
+    if (!capture_native_window(window, options.sessions, c, err))
         return std::nullopt;
+    if (c.canvases_shown && options.keep_shown_canvases)
+        return c; // the views as presented, and our popups over them where the capture reads the screen
 
     // Composite every visible 3D canvas inside this window from an exact frame capture.
     std::vector<wxWindow*> captured;
@@ -279,7 +272,7 @@ std::optional<Capture> capture_window(wxTopLevelWindow& window, std::string& err
     }
 
     // Our popups over the window, over its 3D views too, as a context menu on the 3D view shows.
-    if (options.popups) {
+    if (options.popups && !c.from_screen) {
         const double scale = window.GetContentScaleFactor();
         for (const PopupCapture& p : capture_popups())
             if (p.owner == &window)
@@ -287,7 +280,9 @@ std::optional<Capture> capture_window(wxTopLevelWindow& window, std::string& err
     }
 
     // An OpenGL view with no frame capture: say so rather than return its area as the window
-    // capture left it.
+    // capture left it, unless the capture shows OpenGL views as presented.
+    if (c.canvases_shown)
+        return c;
     std::function<bool(wxWindow*)> other_gl = [&](wxWindow* w) {
         if (!w->IsShownOnScreen())
             return false;
@@ -488,9 +483,12 @@ wxTopLevelWindow* wx_window_of(GtkWidget* window)
 
 std::shared_ptr<CaptureSessions> open_capture_sessions() { return nullptr; }
 
-bool capture_native_window(wxTopLevelWindow& window, CaptureSessions* /*sessions*/, wxImage& out, bool& approximate, std::string& note,
-                           std::vector<wxRect>& covered, std::string& err)
+bool capture_native_window(wxTopLevelWindow& window, CaptureSessions* /*sessions*/, Capture& capture, std::string& err)
 {
+    wxImage&             out         = capture.image;
+    bool&                approximate = capture.approximate;
+    std::string&         note        = capture.note;
+    std::vector<wxRect>& covered     = capture.covered;
     GtkWidget* widget = static_cast<GtkWidget*>(window.GetHandle());
     GdkWindow* gdkwin = widget != nullptr ? gtk_widget_get_window(widget) : nullptr;
     if (gdkwin == nullptr) {
@@ -628,6 +626,7 @@ bool capture_native_window(wxTopLevelWindow& window, CaptureSessions* /*sessions
             }
             XFree(stack);
         }
+        capture.from_screen = true;
         return true;
     }
 #endif

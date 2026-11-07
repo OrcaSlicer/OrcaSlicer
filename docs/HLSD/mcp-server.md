@@ -2104,9 +2104,10 @@ dialog natively; cross-origin frames other than plugin configuration UIs are lis
   the first since a tool's change, yet it shows the change settled, since slider moves reach the
   toolpaths before they are drawn and the capture first draws any extra frames the change asked for:
   a capture right after `set_view` shows the layers its slider shows and the legend laid out.
-- `window`: the main window's own pixels, never the screen, from `capture_native_window()`, with
-  every visible 3D canvas composited in from its canvas capture, since window capture loses OpenGL
-  content on several platforms.
+- `window`: the main window's client area from `capture_native_window()`: its own pixels or, where
+  the capture reads the screen (X11, macOS 14.4 and later), our windows over it as well, never another
+  application's, with every visible 3D canvas composited in from its canvas capture, since window
+  capture loses OpenGL content on several platforms.
 - `dialog`: the topmost modal, captured like a window.
 - a widget's ref or locator: its top-level window captured like a window (a window that is not
   modal, such as an object's settings, has no other target) and cropped to the widget, or the
@@ -2118,7 +2119,7 @@ When the capture may differ from the screen, the result carries `approximate: tr
 | Platform | Window capture | Approximate when |
 |---|---|---|
 | Windows | Windows Graphics Capture of the window, cropped to its client area; `PrintWindow(PW_CLIENTONLY \| PW_RENDERFULLCONTENT)` where that is unavailable | `PrintWindow` fails and the screen is copied instead |
-| macOS | `cacheDisplayInRect:toBitmapImageRep:` on the content view | always: web views may be blank |
+| macOS | ScreenCaptureKit of our windows on the window's display, cropped to its client area (14.4 and later); `cacheDisplayInRect:toBitmapImageRep:` on the content view where that is unavailable or the window is not wholly on its display | always with `cacheDisplayInRect`: web views may be blank |
 | Linux X11, Xvfb, XWayland | `XGetImage` of the top-level X window | part of it is off-screen or under another application's window |
 | Linux Wayland | `gtk_widget_draw()` of the top-level window's child, which leaves out the client-side decoration's shadow, after `gtk_container_check_resize()` runs any relayout still pending, without which it draws nothing | always: web views may be blank |
 
@@ -2134,6 +2135,39 @@ capture leaves out the pointer and, where Windows allows it (Windows 11), the ye
 around a captured window; Windows 10 shows the border while a recording runs. A few pixels at the
 corners Windows 11 rounds read black. A window Windows Graphics Capture cannot read falls back to
 `PrintWindow` for the rest of the recording.
+
+On macOS 14.4 and later the capture comes from the window server through ScreenCaptureKit, which lets
+a process capture its own windows without the Screen Recording permission
+(`getCurrentProcessShareableContentWithCompletionHandler:`). A filter of the window's display with
+OrcaSlicer's windows only gives what the screen shows of them in the client area, at the window's
+backing scale, in sRGB: the window, web views and 3D views included, and over it our dialogs, wx
+popups, AppKit's menus and tooltips, but no other application's window, so a covered window captures
+whole. The filter names the application rather than its windows, so a menu or tooltip that opens later
+is in it too. It leaves out the shown windows hidden from automation (the script runner), their wx
+popups, and AppKit's windows over them: AppKit does not say which window opened a menu or tooltip, so
+each of our windows that is not wx's goes with the topmost wx window below it that it overlaps, as on
+Windows. The window behind such a window shows through. `SCScreenshotManager` takes one image per
+capture; the UI thread waits up to 2 s for its completion handler, which runs on a ScreenCaptureKit
+queue, even while a menu is tracking. The wait is the window server composing the image: about 25–35 ms
+for OrcaSlicer's main window on a Retina display (6–7 ms for a plain window), so a recording reaches
+about 12 frames a second however high its `fps`. The window server shows
+what was last committed, so the capture first runs `displayIfNeeded` on our visible windows and flushes
+Core Animation; without that, a change made earlier in the same turn of the event loop is missing.
+Listing the content takes 10–20 ms, so a recording keeps it and a filter per display in
+its sessions, and fetches them again when the left-out windows change or the window moves to a display
+they do not list. The capture records the rectangles of our windows above the target
+(`CGWindowListCopyWindowInfo`) in `Capture::covered`, where a screenshot's 3D views are not composited.
+The pixels the window's rounded corners leave uncovered read black. The window server shows only the
+part of a window on its display, and ScreenCaptureKit clamps what it captures to it, so a window not
+wholly on its display is drawn from its views (`cacheDisplayInRect`), which leaves AppKit's windows out
+and may leave web views blank, as it is before macOS 14.4 or with an SDK older than 14.4, and while the
+window or the app is hidden or the window is on another Space. A failure or a timeout ends
+ScreenCaptureKit captures for a recording, which draws views from then on rather than wait at every
+frame; the third timeout in the run ends them for the run, as a macOS whose answers needed the waiting
+UI thread would never answer. ScreenCaptureKit is weakly linked, since the deployment target (12.0)
+predates it. A stream of the whole display (`SCStream`) would take the composing off the UI thread, but
+holds several display-sized buffers for the recording's life, and each frame it hands over may predate a
+change of the left-out windows or a move of the window it is cropped to.
 
 On every platform, a canvas that can't be captured keeps whatever the window capture drew, and the
 result is approximate. A canvas frame that reads back black (`is_blank()`, a stray pixel aside) has
@@ -2159,15 +2193,16 @@ GTK 3's `gdkwindow-wayland.c`): GDK puts a popup's origin at its offset from the
 shows over, plus that content's origin, less where the window GTK placed it relative to is in that
 window. wx's menus are placed relative to the window `popup_menu()` was given, a submenu or a drop-down
 menu relative to the widget it is attached to, a tooltip relative to the window it shows over, and wx's
-own popups, which wx places with `gtk_window_move()`, at their offset from the content directly. Windows
-and macOS draw them in too, each where its screen position puts it on the window it shows over. wx's
-popups (`popups_of()`) show over the window they opened from: Windows reads one from the screen, where
-it shows topmost, and macOS draws its view as it draws a window's (`capture_native_popup()`). Windows
-also reads the system's popups from the screen (`capture_native_popups()`): menus, tooltips and the
+own popups, which wx places with `gtk_window_move()`, at their offset from the content directly. Windows,
+and macOS where it draws views, draw them in too, each where its screen position puts it on the window it
+shows over. wx's popups (`popups_of()`) show over the window they opened from: Windows reads one from the
+screen, where it shows topmost, and macOS draws its view as it draws a window's (`capture_native_popup()`),
+while its window is on the screen: wx can still report a drop-down shown after its window has left it.
+Windows also reads the system's popups from the screen (`capture_native_popups()`): menus, tooltips and the
 lists of native drop-downs are top-level windows of the thread that showed them, and each shows over the
 topmost of our windows below it that it overlaps (`EnumWindows` lists windows topmost first). AppKit
-draws macOS's menus and tooltips itself, and only reading the screen, which needs the Screen Recording
-permission, would capture them, so they are left out. The full-size PNG goes to `save_path` or `<datadir>/mcp/out/OrcaSlicer-screenshot-<timestamp>.png`. The image
+draws macOS's menus and tooltips in windows of its own, which only the window server shows, so drawing
+views leaves them out. The full-size PNG goes to `save_path` or `<datadir>/mcp/out/OrcaSlicer-screenshot-<timestamp>.png`. The image
 block is scaled to `max_dim` on the long edge (default 1280, clamped to 256–2000).
 `include_image: false` returns only the path.
 
@@ -2185,20 +2220,30 @@ size (fit to `max_dim`, rounded down to even numbers for 4:2:0), and a failure f
 any file exists. The `window` target is the main window as `screenshot` captures it, with the modal
 stack (`ModalTracker::stack()`, outermost first, so in stacking order) composited at each dialog's
 client offset, resampled to the main window's content scale off MSW. Modeless windows and native
-dialogs are left out: `wxTopLevelWindows` is creation order, not stacking order. Off X11, popups,
-menus and tooltips (on macOS, wx's popups only) are drawn last, over the dialogs, rather than into the window
-each shows over (`CaptureOptions::popups`), so a drop-down list reaching past its dialog is not cut
-off, and the pointer follows a wx popup to its window. On X11 the
-capture reads the screen, so it already shows our windows over the main window as they are, the
-script runner included when it covers it, and nothing more is composited (a reparenting window manager's
-frame is searched for our window inside it); the capture records the
+dialogs are left out: `wxTopLevelWindows` is creation order, not stacking order. Where the capture
+does not read the screen, popups, menus and tooltips (on macOS, wx's popups only) are drawn last, over
+the dialogs, rather than into the window each shows over (`CaptureOptions::popups`), so a drop-down list
+reaching past its dialog is not cut off, and the pointer follows a wx popup to its window. A capture that
+reads the screen (`Capture::from_screen`: X11, and macOS's window-server capture) already shows our
+windows over the main window as they are, modeless ones and native pickers included (a native message box,
+an in-process panel, should show too; OrcaSlicer raises none on demand on macOS to check), and nothing more
+is composited; the frame decides, so a macOS recording that falls back to drawing views composites them
+from then on. Popups reaching past the window are cut at its edge, as everywhere. X11 shows the script
+runner when it covers the window (a reparenting window manager's frame is searched for our window inside
+it); macOS leaves it out. The capture records the
 rectangles it drew another of our windows in (`Capture::covered`) and composites the 3D views
-everywhere else, so they are not pasted over those windows (X11 screenshots get this too). Wayland
+everywhere else, so they are not pasted over those windows (screenshots get this too). A macOS
+window-server capture shows the 3D views as presented (`Capture::canvases_shown`), and a recording keeps
+them so (`CaptureOptions::keep_shown_canvases`): it draws no canvas there. Wayland
 never tells the app where its windows are, so there `top_level_offset_in()` centres each dialog on the
 window GTK made it transient for, and that one on its own, as compositors place a dialog: KWin centres
 its frame, title bar included, so the video shows the dialog half a title bar higher than the screen
-does. The pointer follows the same placement (`drawn_shift()`). The result's `note` says which
-applies. The `canvas` target is `shown_canvas()`. A recording captures with
+does. The pointer follows the same placement (`drawn_shift()`). It follows wx's mouse events, which
+AppKit's menu tracking and native dialogs do not send, so it is not drawn moving inside a menu. The
+result's `note` is the last frame's: which of these applies, then what that frame's capture
+approximated, so a macOS recording that fell back to drawing views says so. `capture_frame()` stores it
+under the recorder's mutex, since `stop_recording` reports from another thread while a tick may be
+capturing. The `canvas` target is `shown_canvas()`. A recording captures with
 `CaptureOptions::hide_covering` off, so X11 never hides and re-shows the script runner at each frame.
 
 The costly part is a 3D view: `render_and_capture()` draws a frame, after any extra frames a change
@@ -2206,8 +2251,9 @@ asked for, and reads it back. A recording
 keeps each canvas's last capture with `GLCanvas3D::presented_frames()`, which counts the frames the
 canvas presented, and its size and the UI generation; while all three are unchanged, the frame on
 screen is the kept one, so the canvas is drawn only when it changed. Each tick measures its capture
-and the next comes after `max(1000/fps, 3 x capture time)`, so recording takes at most about a third
-of the UI thread wherever window capture is slow (macOS `cacheDisplayInRect`, X11 `XGetImage`). A
+and starts the next `max(1000/fps, 3 x capture time)` after its own start, so recording takes at most
+about a third of the UI thread wherever window capture is slow (macOS's window-server capture or view
+drawing, X11 `XGetImage`). A
 tick is skipped while the main window is minimized or being rebuilt, or no canvas is shown for
 `canvas`. A frame whose pixels equal the last queued one (`memcmp`), under the same overlay, is not
 queued, unless an overlay is animating (a ripple, a caption or the pointer fading) or a second has

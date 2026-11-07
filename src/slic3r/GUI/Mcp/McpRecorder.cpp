@@ -168,7 +168,7 @@ struct Recording
     uint64_t                       files_owner = 0;
     Clock::time_point              started;
     int                            video_w = 0, video_h = 0;
-    std::string                    note;
+    std::string                    note;            // written on the UI thread under the recorder's mutex
     std::atomic<bool>              ending{false};
     std::atomic<uint64_t>          skipped{0};
     std::atomic<uint64_t>          captures{0};    // ticks that captured, and their UI-thread time
@@ -185,6 +185,7 @@ struct Recording
     Clock::time_point last_queued;
     wxPoint           origin; // the captured area's top left on the screen, wx coordinates
     double            scale = 1.;
+    bool              from_screen = false; // the last frame's capture showed our windows over it (Capture::from_screen)
     struct CanvasFrame
     {
         wxImage  image;
@@ -254,8 +255,8 @@ McpRecorder::~McpRecorder()
 namespace {
 
 // The captured area: the main window with the modal dialogs on it, or the 3D view shown. Sets where it
-// is on the screen, for the pointer. UI thread.
-bool capture_area(McpService& service, Recording& rec, const CaptureOptions& options, wxImage& out, std::string& err)
+// is on the screen, for the pointer, and `note` to what the capture approximated. UI thread.
+bool capture_area(McpService& service, Recording& rec, const CaptureOptions& options, wxImage& out, std::string& note, std::string& err)
 {
     if (service.suspended()) {
         err = "OrcaSlicer is rebuilding its window";
@@ -276,8 +277,9 @@ bool capture_area(McpService& service, Recording& rec, const CaptureOptions& opt
         std::optional<Capture> cap = capture_canvas(*canvas, err, options);
         if (!cap)
             return false;
-        out  = cap->image;
-        area = canvas->get_wxglcanvas();
+        out             = cap->image;
+        area            = canvas->get_wxglcanvas();
+        rec.from_screen = false;
     } else {
         // Popups are drawn last, over the dialogs, rather than into the window each shows over, which would
         // cut off a drop-down list reaching past its dialog.
@@ -286,14 +288,18 @@ bool capture_area(McpService& service, Recording& rec, const CaptureOptions& opt
         std::optional<Capture> cap    = capture_window(*frame, err, window_options);
         if (!cap)
             return false;
-        out = cap->image;
-        if (capture_reads_screen()) {
-            // The capture has whatever of ours is on top, modal dialogs and popups included.
-            rec.note = "X11: the windows over the main window show as they are on screen";
-        } else {
-            if (!window_positions_known())
-                rec.note = "Wayland: dialogs are drawn centred on the window they were opened from, where the compositor usually "
-                           "places them, since their place on the screen is unknown";
+        out             = cap->image;
+        rec.from_screen = cap->from_screen;
+        // How its windows were drawn, then what its capture approximated, as a macOS capture that fell back to
+        // drawing views says.
+        if (cap->from_screen)
+            note = "the windows over the main window show as they are on screen";
+        else if (!window_positions_known())
+            note = "Wayland: dialogs are drawn centred on the window they were opened from, where the compositor usually "
+                   "places them, since their place on the screen is unknown";
+        if (!cap->note.empty())
+            note += (note.empty() ? "" : "; ") + cap->note;
+        if (!cap->from_screen) {
             const double scale   = physical_scale(frame);
             auto         draw_in = [&](wxImage image, double own, const wxPoint& at) {
                 if (std::abs(own - scale) > 1e-3)
@@ -446,15 +452,17 @@ json McpRecorder::start(const RecordingOptions& options, uint64_t files_owner)
     rec->started     = Clock::now();
     rec->windows     = open_capture_sessions();
     CaptureOptions capture_options;
-    capture_options.hide_covering = false;
-    capture_options.sessions      = rec->windows.get();
-    capture_options.canvas_frame  = [this, raw = rec.get()](GLCanvas3D& canvas, wxImage& out, std::string& err) {
+    capture_options.hide_covering       = false;
+    capture_options.keep_shown_canvases = true;
+    capture_options.sessions            = rec->windows.get();
+    capture_options.canvas_frame        = [this, raw = rec.get()](GLCanvas3D& canvas, wxImage& out, std::string& err) {
         return canvas_frame(*raw, canvas, out, err);
     };
     wxImage     first;
-    std::string err;
-    if (!capture_area(m_service, *rec, capture_options, first, err))
+    std::string note, err;
+    if (!capture_area(m_service, *rec, capture_options, first, note, err))
         throw ToolFailure("Cannot record: " + err);
+    rec->note = note; // no other thread has it yet
     std::tie(rec->video_w, rec->video_h) = video_size(first.GetWidth(), first.GetHeight(), options.max_dim);
 
     auto output = std::make_unique<MkvOutput>();
@@ -539,8 +547,10 @@ void McpRecorder::tick(const std::shared_ptr<Recording>& rec)
     const auto spent = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - now);
     ++rec->captures;
     rec->capture_us += uint64_t(spent.count());
-    // At most about a third of the UI thread, however slow the capture is here.
-    m_timer->StartOnce(std::max(1000 / rec->options.fps, int(3 * spent.count() / 1000)));
+    // Frames start max(1000/fps, 3 x capture) apart: at most about a third of the UI thread, however slow the
+    // capture is here.
+    const int spent_ms = int(spent.count() / 1000);
+    m_timer->StartOnce(std::max({1, 1000 / rec->options.fps - spent_ms, 2 * spent_ms}));
 }
 
 void McpRecorder::capture_frame(Recording& rec, Clock::time_point now, const wxImage* captured)
@@ -550,13 +560,19 @@ void McpRecorder::capture_frame(Recording& rec, Clock::time_point now, const wxI
         image = *captured;
     } else {
         CaptureOptions options;
-        options.hide_covering = false;
-        options.canvas_frame  = [this, &rec](GLCanvas3D& canvas, wxImage& out, std::string& err) { return canvas_frame(rec, canvas, out, err); };
-        options.sessions      = rec.windows.get();
-        std::string err;
-        if (!capture_area(m_service, rec, options, image, err)) {
+        options.hide_covering       = false;
+        options.keep_shown_canvases = true;
+        options.canvas_frame        = [this, &rec](GLCanvas3D& canvas, wxImage& out, std::string& err) { return canvas_frame(rec, canvas, out, err); };
+        options.sessions            = rec.windows.get();
+        std::string note, err;
+        if (!capture_area(m_service, rec, options, image, note, err)) {
             ++rec.skipped;
             return;
+        }
+        // The last frame's, which the result reports.
+        if (note != rec.note) {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            rec.note = std::move(note);
         }
     }
 
@@ -715,9 +731,12 @@ json McpRecorder::report(Recording& rec) const
     const SinkResult r       = rec.sink->result();
     const double     seconds = r.end_ms / 1000.;
     std::string      ended   = r.ended;
-    if (ended.empty()) {
+    std::string      note;
+    {
         std::lock_guard<std::mutex> lock(m_mutex);
-        ended = rec.reason;
+        if (ended.empty())
+            ended = rec.reason;
+        note = rec.note;
     }
     json out{{"path", path_to_utf8(rec.options.path)},
              {"seconds", std::round(seconds * 10.) / 10.},
@@ -735,8 +754,8 @@ json McpRecorder::report(Recording& rec) const
              {"ended", ended}};
     if (!r.error.empty())
         out["error"] = r.error;
-    if (!rec.note.empty())
-        out["note"] = rec.note;
+    if (!note.empty())
+        out["note"] = note;
     return out;
 }
 
@@ -891,7 +910,7 @@ wxPoint drawn_shift(wxWindow& window)
 
 } // namespace
 
-bool McpRecorder::shows(wxWindow* window) const
+bool McpRecorder::shows(const Recording& rec, wxWindow* window) const
 {
     if (hidden_from_automation(window))
         return false;
@@ -900,7 +919,7 @@ bool McpRecorder::shows(wxWindow* window) const
         return false;
     if (top == wxGetApp().mainframe)
         return true;
-    if (capture_reads_screen())
+    if (rec.from_screen)
         return top->IsShownOnScreen();
     // A popup shows where the recording draws it (capture_popups()), over the window it belongs to.
     if (dynamic_cast<wxPopupWindow*>(top) != nullptr) {
@@ -929,7 +948,7 @@ void McpRecorder::on_event(wxEvent& event)
     if (!rec || rec->ending || !rec->options.pointer)
         return;
     auto* window = wxDynamicCast(event.GetEventObject(), wxWindow);
-    if (window == nullptr || !shows(window))
+    if (window == nullptr || !shows(*rec, window))
         return;
     Input&                  in       = *m_input;
     const Clock::time_point now      = Clock::now();
