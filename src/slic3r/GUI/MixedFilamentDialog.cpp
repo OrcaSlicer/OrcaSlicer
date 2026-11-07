@@ -200,8 +200,7 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow* parent,
 
 void MixedFilamentDialog::on_dpi_changed(const wxRect&)
 {
-    int h = (num_components() >= 3) ? FromDIP(680) : FromDIP(580);
-    SetSize(FromDIP(439), h);
+    resize_keeping_centre();
     Refresh();
 }
 
@@ -1837,12 +1836,15 @@ void MixedFilamentDialog::update_component_count_ui()
 
 void MixedFilamentDialog::resize_keeping_centre()
 {
-    const wxSize new_size = compute_dialog_size();
+    // Until it is shown the dialog has no display of its own (on Wayland none at all), so use
+    // the parent's, which is also where CentreOnParent() places it.
+    const wxRect area     = wxDisplay(IsShown() ? static_cast<wxWindow*>(this) : GetParent()).GetClientArea();
+    wxSize       new_size = compute_dialog_size();
+    new_size.DecTo(area.GetSize()); // never larger than the display
     if (GetSize() == new_size)
         return;
     // Grow or shrink around the current centre, but keep the whole dialog inside its display
     // so the buttons don't end up under the taskbar.
-    const wxRect  area   = wxDisplay(this).GetClientArea();
     const wxPoint centre = GetPosition() + GetSize() / 2;
     const int     x      = std::max(area.x, std::min(centre.x - new_size.x / 2, area.GetRight() + 1 - new_size.x));
     const int     y      = std::max(area.y, std::min(centre.y - new_size.y / 2, area.GetBottom() + 1 - new_size.y));
