@@ -48,6 +48,8 @@ void FillBedJob::prepare()
     m_bedpts.clear();
 
     params = init_arrange_params(m_plater);
+    // Fill Bed relies on on_packed / priority, which the sparrow backend ignores.
+    params.use_sparrow = false;
 
     m_object_idx = m_plater->get_selected_object_idx();
     if (m_object_idx == -1)
