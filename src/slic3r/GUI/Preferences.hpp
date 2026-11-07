@@ -88,6 +88,8 @@ public:
     ::TextInput *m_backup_interval_textinput = {nullptr};
     ::SpinInput *m_dim_previous_layers_brightness_input = {nullptr};
     ::ComboBox * m_pathtrace_quality_combobox = {nullptr};
+    // Disabled while persistent outlines are off.
+    wxWindow *   m_persistent_outline_color_button = {nullptr};
     ::ComboBox * m_network_version_combo     = {nullptr};
     std::vector<NetworkLibraryVersionInfo> m_available_versions;
 
