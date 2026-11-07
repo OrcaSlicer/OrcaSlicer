@@ -285,12 +285,12 @@ bool capture_area(McpService& service, Recording& rec, const CaptureOptions& opt
         if (capture_reads_screen()) {
             // The capture has whatever of ours is on top, modal dialogs included.
             rec.note = "X11: the windows over the main window show as they are on screen";
-        } else if (!window_positions_known()) {
-            rec.note = "Wayland: dialogs are not drawn in, since their place on the screen is unknown";
         } else {
+            if (!window_positions_known())
+                rec.note = "Wayland: dialogs are drawn centred on the window they were opened from, where the compositor usually "
+                           "places them, since their place on the screen is unknown";
             // The modal dialogs, outermost first, which is how they stack.
-            const double  scale  = physical_scale(frame);
-            const wxPoint origin = frame->ClientToScreen(wxPoint(0, 0));
+            const double scale = physical_scale(frame);
             for (wxDialog* dialog : service.modals().stack()) {
                 if (dialog == nullptr || is_native_dialog(dialog) || hidden_from_automation(dialog) || !dialog->IsShownOnScreen())
                     continue;
@@ -303,7 +303,7 @@ bool capture_area(McpService& service, Recording& rec, const CaptureOptions& opt
                 if (std::abs(own - scale) > 1e-3)
                     image = image.Scale(std::max(1, int(std::lround(image.GetWidth() * scale / own))),
                                         std::max(1, int(std::lround(image.GetHeight() * scale / own))), wxIMAGE_QUALITY_BILINEAR);
-                const wxPoint at = dialog->ClientToScreen(wxPoint(0, 0)) - origin;
+                const wxPoint at = top_level_offset_in(*dialog, *frame);
                 composite(out, image, wxPoint(int(std::lround(at.x * scale)), int(std::lround(at.y * scale))));
             }
         }
@@ -864,6 +864,22 @@ void McpRecorder::call_ended(uint64_t call, const ToolResult& result)
         m_rec->board.call_ended(call, !result.is_error, error, Clock::now());
 }
 
+namespace {
+
+// What moves wx's screen coordinates of a point in `window` to where the recording draws that point: nothing
+// where window positions are known; on Wayland, where wx's are made up, the move from where wx puts the
+// dialog `window` is in to where capture_area() draws it.
+wxPoint drawn_shift(wxWindow& window)
+{
+    MainFrame* frame = wxGetApp().mainframe;
+    auto*      top   = dynamic_cast<wxTopLevelWindow*>(wxGetTopLevelParent(&window));
+    if (window_positions_known() || frame == nullptr || top == nullptr || top == frame)
+        return {0, 0};
+    return frame->ClientToScreen(wxPoint(0, 0)) + top_level_offset_in(*top, *frame) - top->ClientToScreen(wxPoint(0, 0));
+}
+
+} // namespace
+
 bool McpRecorder::shows(wxWindow* window) const
 {
     if (hidden_from_automation(window))
@@ -873,8 +889,6 @@ bool McpRecorder::shows(wxWindow* window) const
         return false;
     if (top == wxGetApp().mainframe)
         return true;
-    if (!window_positions_known())
-        return false;
     if (capture_reads_screen())
         return top->IsShownOnScreen();
     const auto& stack = m_service.modals().stack();
@@ -911,7 +925,7 @@ void McpRecorder::on_event(wxEvent& event)
 
     if (mouse) {
         const auto&   m      = static_cast<const wxMouseEvent&>(event);
-        const wxPoint screen = window->ClientToScreen(m.GetPosition());
+        const wxPoint screen = window->ClientToScreen(m.GetPosition()) + drawn_shift(*window);
         in.pointer_known     = true;
         in.pointer           = screen;
         in.pointer_at        = now;
@@ -930,7 +944,7 @@ void McpRecorder::on_event(wxEvent& event)
     if (pressed != nullptr && now - in.pressed_at < kSemanticClick && (pressed == window || window->IsDescendant(pressed)))
         return;
     const wxRect r = window->GetScreenRect();
-    press_at(wxPoint(r.x + r.width / 2, r.y + r.height / 2), PointerButton::Left);
+    press_at(wxPoint(r.x + r.width / 2, r.y + r.height / 2) + drawn_shift(*window), PointerButton::Left);
 }
 
 }}} // namespace Slic3r::GUI::Mcp

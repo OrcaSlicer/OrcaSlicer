@@ -82,6 +82,12 @@ bool capture_native_window(wxTopLevelWindow& window, CaptureSessions* sessions, 
 // Physical-pixel offset of `child`'s client area inside `top`'s client area.
 wxPoint client_offset_in(wxWindow& child, wxTopLevelWindow& top);
 
+// Offset of top-level `window`'s client area inside top-level `top`'s, in wx coordinates. Where window
+// positions are unknown (Wayland), `window` is taken to be centred on the window it is transient for, and
+// that one on its own, up to `top`, which is where compositors place a dialog: KWin centres its frame, title
+// bar included, so the client area shows half a title bar lower than this.
+wxPoint top_level_offset_in(wxTopLevelWindow& window, wxTopLevelWindow& top);
+
 // The largest size within `max_dim` on its long edge that keeps the aspect ratio; sizes already
 // small enough are unchanged.
 wxSize fit_within(const wxSize& size, int max_dim);

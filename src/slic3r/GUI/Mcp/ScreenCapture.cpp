@@ -92,6 +92,46 @@ wxPoint client_offset_in(wxWindow& child, wxTopLevelWindow& top)
 #endif
 }
 
+#if defined(__WXGTK__)
+namespace {
+
+// The top-level window `window` was shown over: GTK's transient parent, which a compositor places it by.
+wxTopLevelWindow* transient_parent(wxTopLevelWindow& window)
+{
+    auto* widget = static_cast<GtkWidget*>(window.GetHandle());
+    GtkWindow* parent = widget != nullptr && GTK_IS_WINDOW(widget) ? gtk_window_get_transient_for(GTK_WINDOW(widget)) : nullptr;
+    if (parent != nullptr)
+        for (wxWindow* w : wxTopLevelWindows)
+            if (w->GetHandle() == GTK_WIDGET(parent))
+                return dynamic_cast<wxTopLevelWindow*>(w);
+    return nullptr;
+}
+
+} // namespace
+#endif
+
+wxPoint top_level_offset_in(wxTopLevelWindow& window, wxTopLevelWindow& top)
+{
+#if defined(__WXGTK__)
+    if (!window_positions_known()) {
+        // Up the transient parents to `top`; a missing one, or a chain longer than there are windows, ends
+        // at `top`.
+        wxPoint           at(0, 0);
+        wxTopLevelWindow* w = &window;
+        for (std::size_t steps = 0; w != &top; ++steps) {
+            wxTopLevelWindow* parent = transient_parent(*w);
+            if (parent == nullptr || parent == w || steps > wxTopLevelWindows.size())
+                parent = &top;
+            const wxSize outer = parent->GetClientSize(), inner = w->GetClientSize();
+            at += wxPoint((outer.x - inner.x) / 2, (outer.y - inner.y) / 2);
+            w = parent;
+        }
+        return at;
+    }
+#endif
+    return window.ClientToScreen(wxPoint(0, 0)) - top.ClientToScreen(wxPoint(0, 0));
+}
+
 bool is_blank(const wxImage& image)
 {
     // A surface that is not ready reads back black, give or take a stray pixel.
@@ -264,6 +304,22 @@ wxImage from_cairo(cairo_surface_t* surface)
     return img;
 }
 
+// Whether anything was drawn on a surface created transparent.
+bool painted(cairo_surface_t* surface)
+{
+    cairo_surface_flush(surface);
+    const int            w = cairo_image_surface_get_width(surface), h = cairo_image_surface_get_height(surface);
+    const int            stride = cairo_image_surface_get_stride(surface);
+    const unsigned char* data   = cairo_image_surface_get_data(surface);
+    for (int y = 0; y < h; ++y) {
+        const uint32_t* row = reinterpret_cast<const uint32_t*>(data + size_t(y) * size_t(stride));
+        for (int x = 0; x < w; ++x)
+            if ((row[x] >> 24) != 0)
+                return true;
+    }
+    return false;
+}
+
 } // namespace
 
 std::shared_ptr<CaptureSessions> open_capture_sessions() { return nullptr; }
@@ -414,7 +470,11 @@ bool capture_native_window(wxTopLevelWindow& window, CaptureSessions* /*sessions
     // Wayland offers no way to read a window back; draw the widget tree into an image instead.
     // Widgets drawn by GTK come out right; web views may stay blank, and the 3D canvases are
     // composited by the caller. The toplevel's allocation includes the shadow of its client-side
-    // decoration; its child is the window as it shows, with the client area where wx puts it.
+    // decoration; its child is the window as it shows, with the client area where wx puts it. A relayout
+    // still pending, once a widget was shown or hidden, makes gtk_widget_draw() draw nothing, so it is run
+    // first, as the frame clock's layout phase would. A window just shown or resized waits for the
+    // compositor to size it before it can be laid out, and fails until then.
+    gtk_container_check_resize(GTK_CONTAINER(widget));
     GtkWidget* content = GTK_IS_BIN(widget) && gtk_bin_get_child(GTK_BIN(widget)) != nullptr ? gtk_bin_get_child(GTK_BIN(widget)) : widget;
     const int  scale   = gtk_widget_get_scale_factor(content);
     const int  w = gtk_widget_get_allocated_width(content), h = gtk_widget_get_allocated_height(content);
@@ -423,8 +483,14 @@ bool capture_native_window(wxTopLevelWindow& window, CaptureSessions* /*sessions
     cairo_t* cr = cairo_create(surface);
     gtk_widget_draw(content, cr);
     cairo_destroy(cr);
-    out = from_cairo(surface);
+    const bool drawn = painted(surface);
+    if (drawn)
+        out = from_cairo(surface);
     cairo_surface_destroy(surface);
+    if (!drawn) {
+        err = "The window is still being laid out; capture it again in a moment";
+        return false;
+    }
     approximate = true;
     note        = "drawn from the widget tree (Wayland); web views may be blank";
     return out.IsOk();

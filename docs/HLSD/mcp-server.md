@@ -2120,7 +2120,7 @@ When the capture may differ from the screen, the result carries `approximate: tr
 | Windows | Windows Graphics Capture of the window, cropped to its client area; `PrintWindow(PW_CLIENTONLY \| PW_RENDERFULLCONTENT)` where that is unavailable | `PrintWindow` fails and the screen is copied instead |
 | macOS | `cacheDisplayInRect:toBitmapImageRep:` on the content view | always: web views may be blank |
 | Linux X11, Xvfb, XWayland | `XGetImage` of the top-level X window | part of it is off-screen or under another application's window |
-| Linux Wayland | `gtk_widget_draw()` of the top-level window's child, which leaves out the client-side decoration's shadow | always: web views may be blank |
+| Linux Wayland | `gtk_widget_draw()` of the top-level window's child, which leaves out the client-side decoration's shadow, after `gtk_container_check_resize()` runs any relayout still pending, without which it draws nothing | always: web views may be blank |
 
 On Windows the capture never makes the window repaint. `PrintWindow` gets its image by repainting the
 window and every child into its bitmap, and the screen shows that repaint as a flash of the half-drawn
@@ -2169,9 +2169,12 @@ capture reads the screen, so it already shows our windows over the main window a
 script runner included when it covers it, and nothing more is composited (a reparenting window manager's
 frame is searched for our window inside it); the capture records the
 rectangles it drew another of our windows in (`Capture::covered`) and composites the 3D views
-everywhere else, so they are not pasted over those windows (X11 screenshots get this too). On
-Wayland, where the app can't know where its windows are, dialogs are not composited. The result's
-`note` says which applies. The `canvas` target is `shown_canvas()`. A recording captures with
+everywhere else, so they are not pasted over those windows (X11 screenshots get this too). Wayland
+never tells the app where its windows are, so there `top_level_offset_in()` centres each dialog on the
+window GTK made it transient for, and that one on its own, as compositors place a dialog: KWin centres
+its frame, title bar included, so the video shows the dialog half a title bar higher than the screen
+does. The pointer follows the same placement (`drawn_shift()`). The result's `note` says which
+applies. The `canvas` target is `shown_canvas()`. A recording captures with
 `CaptureOptions::hide_covering` off, so X11 never hides and re-shows the script runner at each frame.
 
 The costly part is a 3D view: `render_and_capture()` draws a frame, after any extra frames a change
