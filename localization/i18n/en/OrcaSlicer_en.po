@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-07 00:14+0800\n"
+"POT-Creation-Date: 2026-11-06 11:06-0600\n"
 "PO-Revision-Date: 2026-06-17 15:44-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -6507,7 +6507,7 @@ msgstr ""
 msgid "Size:"
 msgstr ""
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr ""
 
@@ -30774,6 +30774,11 @@ msgid "HTTP network"
 msgstr ""
 
 msgid "Network sockets"
+msgstr ""
+
+#. TRN Operating system processes a plugin may start, not print process presets.
+msgctxt "Permission category"
+msgid "Processes"
 msgstr ""
 
 msgid "Threading"

@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-07 00:14+0800\n"
+"POT-Creation-Date: 2026-11-06 11:18-0600\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -7531,7 +7531,7 @@ msgid "Size:"
 msgstr "尺寸："
 
 # AI Translated
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "在第 %d 層（Z = %.2lf mm）發現 G-code 路徑衝突。請將有衝突的物件分開得更遠（%s <-> %s）。"
 
@@ -7652,7 +7652,6 @@ msgstr "重新嘗試 Liveview"
 msgid "Resolution"
 msgstr "解析度"
 
-# AI Translated
 msgid "Custom camera source"
 msgstr "自訂攝影機來源"
 
@@ -8746,7 +8745,6 @@ msgstr "儲存空間"
 msgid "Camera Setting"
 msgstr "攝影機設定"
 
-# AI Translated
 msgid "Switch Camera View"
 msgstr "切換攝影機畫面"
 
@@ -11634,7 +11632,6 @@ msgstr "啟用後，將 OrcaSlicer 設定為開啟 STEP 檔案的預設應用程
 msgid "Associate web links to OrcaSlicer"
 msgstr "將網頁連結關聯到 OrcaSlicer"
 
-# AI Translated
 msgid "Behaviour"
 msgstr "行為"
 
@@ -37863,6 +37860,12 @@ msgstr "HTTP 網路"
 # AI Translated
 msgid "Network sockets"
 msgstr "網路通訊端"
+
+# AI Translated
+#. TRN Operating system processes a plugin may start, not print process presets.
+msgctxt "Permission category"
+msgid "Processes"
+msgstr "處理程序"
 
 # AI Translated
 msgid "Threading"

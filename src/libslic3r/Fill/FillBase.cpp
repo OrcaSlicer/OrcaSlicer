@@ -3153,4 +3153,10 @@ void join_close_ends(Polylines &polylines, double max_gap, bool can_reverse)
     polylines = std::move(out);
 }
 
+void join_cut_outlines(Polylines &polylines, const FillParams &params)
+{
+    if (params.multiline > 1)
+        join_close_ends(polylines, SCALED_EPSILON, true);
+}
+
 } // namespace Slic3r

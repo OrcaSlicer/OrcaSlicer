@@ -1807,7 +1807,8 @@ void TreeSupport::generate_toolpaths()
                                 // allow infill-only mode if support is thick enough (so min_wall_count is 0);
                                 // otherwise must draw 1 wall
                                 // Don't need extra walls if we have infill. Extra walls may overlap with the infills.
-                                size_t min_wall_count = offset(poly, -scale_(support_spacing * 1.5)).empty() ? 1 : 0;
+                                // The shrink test can only add the one wall, so it is skipped when walls are configured.
+                                size_t min_wall_count = wall_count == 0 && offset(poly, -scale_(support_spacing * 1.5)).empty() ? 1 : 0;
                                 make_perimeter_and_infill(base_dst, poly, std::max(min_wall_count, wall_count), flow,
                                     erSupportMaterial, filler_support.get(), support_density, false);
                             }
