@@ -101,13 +101,12 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
     // Convert the id to an index. Layer::id() counts the raft layers, object->layers() does not.
     const size_t first_object_layer_id = object->get_layer(0)->id();
     layer_id                           = layer_id > first_object_layer_id ? layer_id - first_object_layer_id : 0;
-    const std::string search_base      = "^~NnZz$LlUuQq#JjCc|";
-    const std::string search_string    = "/\\" + search_base;
+    const std::string search_string    = "\\/^~NnZz$LlUuQq#JjCO|";
     const std::string coord_string     = "XxYy";
     const std::string density_string   = "Dd";
     const std::string angle_string     = "A+-_0123456789.";
     std::string template_string2       = std::regex_replace(template_string, std::regex(";"), ""); // remove the easy-reading separators
-    if (regex_search(template_string2, std::regex("[+\\-%AXYxyDd_*@&\'\"cm\\/\\\\" + search_base + "]"))) { // template metalanguage of rotating infill
+    if (regex_search(template_string2, std::regex("[+\\-%AXYxyDd_*@&\'\"cm\\" + search_string + "]"))) { // template metalanguage of rotating infill
         // Check for the "0X" character combination, which may be interpreted incorrectly by the strtod() function. 
         // Replace it with "X". The cases like "10X" not replaced.
         template_string2 = std::regex_replace(template_string2, std::regex("(^|\\D)0+([xX])"), "$1$2");
@@ -490,12 +489,11 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
                 }
             }
 
-            double negvalue = std::min(std::max((is_negative ? (limit_fill_z - fill_z) : (fill_z - start_fill_z)) / (limit_fill_z - start_fill_z), 0.), 1.);
+            double negvalue = std::min(std::max(((is_negative && fill_form) ? (limit_fill_z - fill_z) : (fill_z - start_fill_z)) / (limit_fill_z - start_fill_z), 0.), 1.);
 
             switch (fill_form) {
-            case 0:  break;                                                                        // /-joint, linear
-            case 1:  negvalue = std::min(std::max(((fill_z - start_fill_z)) / 
-                                                  (limit_fill_z - start_fill_z), 0.), 1.); break;  // \-joint, linear like /, but rounding up for some parameters
+            case 0:  break;                                                                        // \-joint, linear like /, but rounding up for some parameters
+            case 1:  break;                                                                        // /-joint, linear
             case 2:  negvalue += (double) rand() / RAND_MAX - .5; break;                           // ^-joint, pseudorandom, disperse at middle line
             case 3:  negvalue  = (double) rand() / RAND_MAX; break;                                // ~-joint, random, fill the whole range
             case 4:  negvalue -= sin(negvalue * PI * 2.) / (PI * 2.); break;                       // N-joint, sinus, vertical start
@@ -513,8 +511,8 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
             case 16: negvalue  = 0.5; break;                                                       // J-joint, like #-joint but placed at middle angle (former |-joint)
             case 17: negvalue  = is_negative != (negvalue > 0.5) ? 0. : 1.; break;                 // j-joint, vertical separated at the start and end of range
             case 18: negvalue  = is_negative ? 1 - sqrt(1 - pow(negvalue * 2 - 1, 2)) : 
-                                               sqrt(1 - pow(negvalue * 2 - 1, 2)); break;          // C-joint, half of circle // (_negative ? 1 - sin(negvalue * PI) : sin(negvalue * PI))
-            case 19: negvalue  = (is_negative ? -.5 : .5) * cos(negvalue * PI * 2.) + .5; break;   // c-joint, vertical cosine wave
+                                               sqrt(1 - pow(negvalue * 2 - 1, 2)); break;          // C-joint, half of circle
+            case 19: negvalue  = (is_negative ? -.5 : .5) * cos(negvalue * PI * 2.) + .5; break;   // O-joint, vertical cosine wave
             case 20: negvalue  = 0.5; break;                                                       // |-joint, copy of J-joint (is used for compatibility)
             default: negvalue  = 1.;
             }
@@ -530,10 +528,10 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
 
             // Adapt density if changed multiline number at next command
             double multiline_param; 
-            if (fill_form == 1)
-                multiline_param = is_negative ? floor(multiline_start + multiline_add * negvalue) : ceil(multiline_start + multiline_add * negvalue);
-            else
+            if (fill_form)
                 multiline_param = round(multiline_start + multiline_add * negvalue);
+            else
+                multiline_param = is_negative ? floor(multiline_start + multiline_add * negvalue) : ceil(multiline_start + multiline_add * negvalue);
 
             params.multiline = std::max(multiline_param, 1.); // store new value
             if (density_adapt == 1)
