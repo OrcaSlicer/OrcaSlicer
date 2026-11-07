@@ -7589,8 +7589,10 @@ LayerResult GCode::process_layer(
         gcode += std::move(gcode_toolchange);
 
         // let analyzer tag generator aware of a role type change
-        if (layer_tools.has_wipe_tower && m_wipe_tower)
+        if (layer_tools.has_wipe_tower && m_wipe_tower) {
             m_last_processor_extrusion_role = erWipeTower;
+            m_retract_after_last_path = false;
+        }
 
         // Belt printers: now that this pass's tool is selected, lay down any ordinary-layer
         // apron band whose brim filament is this extruder, before the object extrusion at
@@ -8924,6 +8926,23 @@ std::string GCode::extrude_path(const ExtrusionPath& path, const std::string& de
     return gcode;
 }
 
+// Orca: overhanging segments share one role on every wall, so the wall index decides where it is set.
+// Without it (classic thin walls, extra perimeters on overhangs) an external path decides. Unlike
+// !is_inner_wall(), extra perimeters are not an outer wall, and every path counts, not just the first.
+static bool is_outer_wall(const ExtrusionEntity &wall)
+{
+    if (wall.inset_idx >= 0)
+        return wall.inset_idx == 0;
+    const ExtrusionPaths *paths = nullptr;
+    if (const auto *loop = dynamic_cast<const ExtrusionLoop *>(&wall))
+        paths = &loop->paths;
+    else if (const auto *multipath = dynamic_cast<const ExtrusionMultiPath *>(&wall))
+        paths = &multipath->paths;
+    if (paths == nullptr)
+        return wall.role() == erExternalPerimeter;
+    return std::any_of(paths->begin(), paths->end(), [](const ExtrusionPath &path) { return path.role() == erExternalPerimeter; });
+}
+
 // Extrude perimeters: Decide where to put seams (hide or align seams).
 std::string GCode::extrude_perimeters(const Print &print, const std::vector<ObjectByExtruder::Island::Region> &by_region, bool is_first_layer, bool is_infill_first, bool unsupported_loops_only)
 {
@@ -8974,8 +8993,10 @@ std::string GCode::extrude_perimeters(const Print &print, const std::vector<Obje
             for (const ExtrusionEntity* ee : region.perimeters) {
                 if (defer_unsupported && waits_for_infill(ee) != unsupported_loops_only)
                     continue;
+                m_on_outer_wall = is_outer_wall(*ee);
                 gcode += this->extrude_entity(*ee, "perimeter", -1., region.perimeters,
                                              wipe_support ? &*wipe_support : nullptr);
+                m_on_outer_wall = false;
                 if (wipe_support)
                     wipe_support->append(*ee);
             }
@@ -9867,6 +9888,9 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
     char buf[64];
     assert(is_decimal_separator_point());
 
+    // Set after the travel to this path, so that travel still sees the previous path. m_config now holds
+    // the wall's own region and the calibration overrides, not the region of whatever is printed next.
+    m_retract_after_last_path = m_on_outer_wall && m_config.retract_after_outer_wall.value;
     if (path.role() != m_last_processor_extrusion_role) {
         m_last_processor_extrusion_role = path.role();
         sprintf(buf, ";%s%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role).c_str(), ExtrusionEntity::role_to_string(m_last_processor_extrusion_role).c_str());
@@ -10724,7 +10748,7 @@ bool GCode::needs_retraction(const Polyline &travel, ExtrusionRole role, LiftTyp
 {
     const bool leaving_external_perimeter = is_perimeter(m_last_processor_extrusion_role) && m_last_processor_extrusion_role != erPerimeter;
     // Orca: a short travel off the outer wall drags its hot end inward; retract_after_outer_wall ignores the threshold there.
-    const bool force_after_outer_wall = leaving_external_perimeter && m_config.retract_after_outer_wall.value && travel.length() > SCALED_EPSILON;
+    const bool force_after_outer_wall = m_retract_after_last_path && travel.length() > SCALED_EPSILON;
     if (!force_after_outer_wall && travel.length() < scale_(FILAMENT_CONFIG(retraction_minimum_travel))) {
         // skip retraction if the move is shorter than the configured threshold
         return false;
