@@ -97,6 +97,18 @@ size_t count_decompose_new_physical_filaments(
     size_t source_physical_idx,
     const std::vector<size_t>* physical_config_indices);
 
+// Sidebar IDs that would be assigned if the result were confirmed: the component filaments (missing
+// standard base colors are appended first), then the mixed filament last. A single-base 100% result
+// creates no mixed filament, so mixed_id reuses that base's ID. CMYK+W components report their fixed
+// slot numbers (C=1, M=2, Y=3, K=4, W=5).
+DecomposePreviewIds preview_decompose_filament_ids(
+    const ColorDecomposeResult& result,
+    int source_physical_idx,
+    size_t current_filament_count,
+    const std::vector<std::string>& physical_colors,
+    const std::vector<std::string>& physical_types,
+    const std::vector<size_t>& physical_config_indices);
+
 bool confirm_create_decompose_missing_components(wxWindow* parent,
     const std::vector<DecomposeMissingComponent>& missing);
 

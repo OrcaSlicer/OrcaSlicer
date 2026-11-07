@@ -330,11 +330,95 @@ ColorDecomposeRecipeResult recommend_from_physical_filaments(
     return best;
 }
 
+// Direct analytical CMYKW decomposition (no JSON lookup needed).
+// Uses subtractive CMY + black undercolor removal + white coverage fill.
+// Filament slot convention: C=1, M=2, Y=3, K=4, W=5 (0-based index stored as 1-based).
+static ColorDecomposeRecipeResult lookup_cmykw_recipe(const ColorDecomposeRgb& target)
+{
+    const double r = target.r / 255.0;
+    const double g = target.g / 255.0;
+    const double b = target.b / 255.0;
+
+    double c = 1.0 - r;
+    double m = 1.0 - g;
+    double y = 1.0 - b;
+    const double k = std::min({c, m, y});
+
+    ColorDecomposeRecipeResult result;
+    result.valid  = true;
+    result.mode   = ColorDecomposeRecipeMode::CMYKW;
+
+    if (k >= 1.0 - 1e-9) {
+        // Pure black
+        result.matched_color_hex = "#000000";
+        ColorDecomposeRecipeComponent comp;
+        comp.color_hex   = "#1A1A1A";
+        comp.base_color  = "Black";
+        comp.ratio       = 100;
+        comp.filament_index = 4; // slot 4
+        result.components.push_back(comp);
+        return result;
+    }
+
+    c -= k; m -= k; y -= k;
+    const double ink_sum = c + m + y + k;
+    const double w = std::max(0.0, 1.0 - ink_sum);
+    const double total = ink_sum + w;
+
+    // Normalize and convert to integer percentages (sum == 100).
+    auto pct = [&](double v) -> int {
+        return static_cast<int>(std::lround(v / total * 100.0));
+    };
+    int ic = pct(c), im = pct(m), iy = pct(y), ik = pct(k), iw = pct(w);
+    // Correct rounding drift: add/remove 1% from the largest non-zero component.
+    int diff = 100 - (ic + im + iy + ik + iw);
+    if (diff != 0) {
+        int* biggest = &ic;
+        for (int* p : {&im, &iy, &ik, &iw})
+            if (*p > *biggest) biggest = p;
+        *biggest += diff;
+    }
+
+    // Build simulated mixed color for display (additive preview via CMYK hex).
+    const double pr = std::max(0.0, std::min(1.0, 1.0 - c / total - k / total));
+    const double pg = std::max(0.0, std::min(1.0, 1.0 - m / total - k / total));
+    const double pb = std::max(0.0, std::min(1.0, 1.0 - y / total - k / total));
+    char mbuf[8];
+    std::snprintf(mbuf, sizeof(mbuf), "#%02X%02X%02X",
+        static_cast<int>(std::lround(pr * 255)),
+        static_cast<int>(std::lround(pg * 255)),
+        static_cast<int>(std::lround(pb * 255)));
+    result.matched_color_hex = mbuf;
+
+    static const struct { const char* key; const char* hex; unsigned int slot; } kChannels[5] = {
+        {"Cyan",    "#00FFFF", 1},
+        {"Magenta", "#FF00FF", 2},
+        {"Yellow",  "#FFFF00", 3},
+        {"Black",   "#1A1A1A", 4},
+        {"White",   "#FFFFFF", 5},
+    };
+    const int values[5] = {ic, im, iy, ik, iw};
+
+    for (int i = 0; i < 5; ++i) {
+        if (values[i] <= 0) continue;
+        ColorDecomposeRecipeComponent comp;
+        comp.color_hex      = kChannels[i].hex;
+        comp.base_color     = kChannels[i].key;
+        comp.ratio          = values[i];
+        comp.filament_index = kChannels[i].slot;
+        result.components.push_back(comp);
+    }
+    return result;
+}
+
 ColorDecomposeRecipeResult lookup_standard_recipe(
     const ColorDecomposeRgb& target,
     ColorDecomposeRecipeMode mode,
     const std::string& preferred_material_type)
 {
+    if (mode == ColorDecomposeRecipeMode::CMYKW)
+        return lookup_cmykw_recipe(target);
+
     const LabColor target_lab = rgb_to_lab(target);
     ColorDecomposeRecipeResult best;
     double best_score = std::numeric_limits<double>::max();
