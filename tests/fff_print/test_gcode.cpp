@@ -197,30 +197,34 @@ TEST_CASE("Retract after outer wall retracts on a travel shorter than the thresh
 
     const std::string &role_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
     ExtrusionRole role = erNone;
-    bool after_outer_wall = false;
+    ExtrusionRole last_extruded = erNone;
     double retraction = 0.;
-    size_t transitions = 0;
+    size_t exits = 0;
+    size_t entries = 0;
     GCodeReader parser;
     parser.apply_config(config);
     parser.parse_buffer(output, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
         if (line.comment().find(role_tag) == 0)
             role = ExtrusionEntity::string_to_role(line.comment().substr(role_tag.size()));
         if (line.extruding(self) && line.dist_XY(self) > EPSILON) {
-            if (role == erExternalPerimeter) {
-                after_outer_wall = true;
-                retraction = 0.;
-            } else if (after_outer_wall) {
+            if (last_extruded == erExternalPerimeter && role != erExternalPerimeter) {
                 REQUIRE(role == erPerimeter);
-                ++transitions;
+                ++exits;
                 CHECK_THAT(retraction, Catch::Matchers::WithinAbs(enabled ? 0.8 : 0., 0.00005));
-                after_outer_wall = false;
+            } else if (last_extruded == erPerimeter && role == erExternalPerimeter) {
+                // The short travel from an inner wall to the outer wall keeps the threshold.
+                ++entries;
+                CHECK_THAT(retraction, Catch::Matchers::WithinAbs(0., 0.00005));
             }
-        } else if (after_outer_wall && line.retracting(self)) {
+            last_extruded = role;
+            retraction = 0.;
+        } else if (line.retracting(self)) {
             retraction -= line.dist_E(self);
         }
     });
-    // The 1 mm cube has five 0.2 mm layers, each with one outer wall followed by an inner wall.
-    REQUIRE(transitions == 5);
+    // The 1 mm cube has five 0.2 mm layers, each printing an inner wall, the outer wall and another inner wall.
+    REQUIRE(exits == 5);
+    REQUIRE(entries == 5);
 }
 
 TEST_CASE("Retract after outer wall is on by default", "[GCode]")
