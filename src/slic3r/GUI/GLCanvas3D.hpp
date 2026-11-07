@@ -373,13 +373,15 @@ class GLCanvas3D
             Point move_start_threshold_position_2D{ Invalid_2D_Point };
             // Orca: Keep the world-space point selected at the start of a mouse pan.
             std::optional<Vec3d> camera_pan_anchor;
+            // Orca: Keep the screen point a mouse dolly aims at, where it started.
+            std::optional<Point> camera_dolly_aim;
         };
 
         bool dragging{ false };
         Vec2d position{ DBL_MAX, DBL_MAX };
         bool ignore_left_up{ false };
         Drag drag;
-        bool ignore_right_up;
+        bool ignore_right_up{ false };
         // ORCA a button was pressed on toolbar empty areas, swallow events until it is released
         bool down_on_toolbar{ false };
 
@@ -388,6 +390,7 @@ class GLCanvas3D
         void set_start_position_2D_as_invalid() {
             drag.start_position_2D = Drag::Invalid_2D_Point;
             drag.camera_pan_anchor.reset();
+            drag.camera_dolly_aim.reset();
         }
         void set_start_position_3D_as_invalid() { drag.start_position_3D = Drag::Invalid_3D_Point; }
         void set_move_start_threshold_position_2D_as_invalid() { drag.move_start_threshold_position_2D = Drag::Invalid_2D_Point; }
@@ -1309,10 +1312,11 @@ public:
     void force_set_focus();
 
     enum class MouseButton { None, Left, Middle, Right };
-    enum class MouseAction { None, Pan, Rotation };
+    enum class MouseAction { None, Pan, Rotation, Dolly };
     bool clicked_button_matches_action(const wxMouseEvent& evt, MouseAction action, const std::map<MouseButton, MouseAction>& mappings) const;
     bool is_camera_rotate(const wxMouseEvent& evt, const std::map<MouseButton, MouseAction>& mappings) const;
     bool is_camera_pan(const wxMouseEvent& evt, const std::map<MouseButton, MouseAction>& mappings) const;
+    bool is_camera_dolly(const wxMouseEvent& evt, const std::map<MouseButton, MouseAction>& mappings) const;
 
     Size get_canvas_size() const;
     Vec2d get_local_mouse_position() const;
@@ -1508,6 +1512,11 @@ private:
 
     void _zoom_to_box(const BoundingBoxf3& box, double margin_factor = DefaultCameraZoomToBoxMarginFactor);
     void _update_camera_zoom(double zoom);
+    // Zooms while keeping what is under the given screen position in place.
+    void _update_camera_zoom_at(const Point& screen_position, double zoom);
+    // Orca: In dolly mode, puts the camera target at the depth of what is under the given position, or
+    // under the center of the view, so the next zoom step is scaled to that surface instead of a stale target.
+    void _anchor_dolly_target(const std::optional<Vec2d>& screen_position = std::nullopt);
 
     void _refresh_if_shown_on_screen(bool scene_dirty = true);
 

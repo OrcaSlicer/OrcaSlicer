@@ -237,13 +237,13 @@ void GLGizmoPainterBase::render_cursor()
         if (m_cursor_type == TriangleSelector::SPHERE)
             render_cursor_sphere(trafo_matrices[m_rr.mesh_id]);
         else if (m_cursor_type == TriangleSelector::CIRCLE)
-            render_cursor_circle();
+            render_cursor_circle(trafo_matrices[m_rr.mesh_id]);
         else if (m_cursor_type == TriangleSelector::HEIGHT_RANGE)
             render_cursor_height_range(trafo_matrices[m_rr.mesh_id]);
     }
 }
 
-void GLGizmoPainterBase::render_cursor_circle()
+void GLGizmoPainterBase::render_cursor_circle(const Transform3d& trafo)
 {
     const Size cnv_size = m_parent.get_canvas_size();
     const float cnv_width  = float(cnv_size.get_width());
@@ -255,8 +255,21 @@ void GLGizmoPainterBase::render_cursor_circle()
     const float cnv_inv_height = 1.0f / cnv_height;
 
     const Vec2d center = m_parent.get_local_mouse_position();
-    const float zoom = float(wxGetApp().plater()->get_camera().get_zoom());
-    const float radius = m_cursor_radius * float(wxGetApp().plater()->get_camera().get_zoom());
+    float zoom = float(wxGetApp().plater()->get_camera().get_zoom());
+    float radius = m_cursor_radius * float(wxGetApp().plater()->get_camera().get_zoom());
+
+    // Orca: Zoom gives the scale on the target plane only. In dolly mode the surface can be much
+    // nearer or farther than that, so show the size the brush really paints at the hit point.
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    if (camera.is_dolly_active()) {
+        const double eye_depth = -(camera.get_view_matrix() * trafo * m_rr.hit.cast<double>()).z();
+        if (eye_depth > EPSILON) {
+            radius = float(m_cursor_radius * camera.get_projection_matrix().matrix()(1, 1) * 0.5 * cnv_height / eye_depth);
+            // The segment count below grows with the zoom, so give it the scale at the surface,
+            // limited to the highest zoom it was designed for.
+            zoom = std::min(radius / m_cursor_radius, 250.0f);
+        }
+    }
 
 #if !SLIC3R_OPENGL_ES
     if (!OpenGLManager::get_gl_info().is_core_profile())

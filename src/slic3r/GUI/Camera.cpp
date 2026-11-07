@@ -36,6 +36,25 @@ double Camera::FrustrumMinNearZ = 100.0;
 double Camera::FrustrumZMargin = 10.0;
 double Camera::MaxFovDeg = 60.0;
 double Camera::ZoomUnit = 0.1;
+const double Camera::DollyFovDeg = 40.0;
+const double Camera::DollyMinNearFactor = 0.05;
+const double Camera::DollyMinTargetDepth = 1.0;
+
+static constexpr double LegacyMaxZoom = 250.0;
+
+static std::vector<Vec3d> box_vertices(const BoundingBoxf3& box)
+{
+    return {
+        box.min,
+        { box.max(0), box.min(1), box.min(2) },
+        { box.max(0), box.max(1), box.min(2) },
+        { box.min(0), box.max(1), box.min(2) },
+        { box.min(0), box.min(1), box.max(2) },
+        { box.max(0), box.min(1), box.max(2) },
+        box.max,
+        { box.min(0), box.max(1), box.max(2) }
+    };
+}
 
 std::string Camera::get_type_as_string() const
 {
@@ -57,6 +76,64 @@ void Camera::set_type(EType type)
             wxGetApp().app_config->set_bool("use_perspective_camera", m_type == EType::Perspective);
         }
     }
+}
+
+void Camera::set_dolly_enabled(bool enable)
+{
+    // Leaving dolly mode must not keep a short distance: it would exaggerate the legacy perspective.
+    if (m_dolly_enabled && !enable) {
+        set_distance(DefaultDistance);
+        m_zoom = std::min(m_zoom, LegacyMaxZoom);
+    }
+    m_dolly_enabled = enable;
+}
+
+double Camera::dolly_zoom_distance_product() const
+{
+    return 0.5 * (double)m_viewport[3] / std::tan(0.5 * Geometry::deg2rad(DollyFovDeg));
+}
+
+void Camera::sync_dolly_distance()
+{
+    if (is_dolly_active() && m_viewport[3] > 0)
+        set_distance(dolly_zoom_distance_product() * get_inv_zoom());
+}
+
+void Camera::set_dolly_target_depth(double depth)
+{
+    if (!is_dolly_active() || m_viewport[3] <= 0)
+        return;
+
+    // Apply a zoom change that has not been rendered yet, or it would be lost.
+    sync_dolly_distance();
+
+    const double product = dolly_zoom_distance_product();
+    m_zoom = product / std::max(depth, DollyMinTargetDepth);
+    const double zoom_min = min_zoom();
+    if (zoom_min > 0.0)
+        m_zoom = std::max(m_zoom, zoom_min);
+
+    // Not set_distance(), which would move the camera.
+    m_distance = product * get_inv_zoom();
+    update_target();
+}
+
+double Camera::get_pixel_size_at(const Vec3d& point) const
+{
+    if (!is_dolly_active())
+        return get_inv_zoom();
+
+    const double depth = (point - get_position()).dot(get_dir_forward());
+    return get_inv_zoom() * std::max(depth, DollyMinNearFactor * m_distance) / m_distance;
+}
+
+double Camera::max_zoom() const
+{
+    // One step can multiply the zoom by 1 / (1 - 4 * ZoomUnit). This limit leaves room for it above
+    // the zoom at the smallest target depth, so a step from there always moves the camera.
+    if (is_dolly_active() && m_viewport[3] > 0)
+        return std::max(LegacyMaxZoom, 2.0 * dolly_zoom_distance_product() / DollyMinTargetDepth);
+    return LegacyMaxZoom;
 }
 
 void Camera::select_next_type()
@@ -113,7 +190,8 @@ void Camera::set_zoom(double zoom)
         zoom = std::max(zoom, zoom_min);
 
     // Don't allow to zoom too close to the scene.
-    m_zoom = std::min(zoom, max_zoom());
+    // Orca: Orthographic view keeps the higher limit of dolly mode until zoomed out, or the first zoom step would jump.
+    m_zoom = std::min(zoom, m_dolly_enabled ? std::max(max_zoom(), m_zoom) : max_zoom());
 }
 
 void Camera::select_view(const std::string& direction)
@@ -281,6 +359,11 @@ double Camera::get_fov() const
 
 void Camera::set_viewport(int x, int y, unsigned int w, unsigned int h)
 {
+    // Orca: The dolly distance follows the zoom and the viewport height. Scale the zoom with the height,
+    // or resizing the window or moving it to a display with another scale would move the camera.
+    if (is_dolly_active() && m_viewport[3] > 0 && h > 0)
+        m_zoom *= (double)h / (double)m_viewport[3];
+
     m_viewport = { 0, 0, int(w), int(h) };
 }
 
@@ -293,6 +376,10 @@ void Camera::apply_projection(const BoundingBoxf3& box, double near_z, double fa
 {
     double w = 0.0;
     double h = 0.0;
+
+    // Orca: Place the camera so the fixed field of view shows the target plane at the current zoom.
+    // This runs on every frame, so the distance also recovers after orthographic view moved the camera.
+    sync_dolly_distance();
 
     m_frustrum_zs = calc_tight_frustrum_zs_around(box);
 
@@ -363,7 +450,8 @@ void Camera::apply_projection(double left, double right, double bottom, double t
 void Camera::zoom_to_box(const BoundingBoxf3& box, double margin_factor)
 {
     // Calculate the zoom factor needed to adjust the view around the given box.
-    const double zoom = calc_zoom_to_bounding_box_factor(box, margin_factor);
+    const double zoom = is_dolly_active() ? calc_dolly_zoom_to_fit(box_vertices(box), box.center(), margin_factor) :
+                                            calc_zoom_to_bounding_box_factor(box, margin_factor);
     if (zoom > 0.0) {
         m_zoom = zoom;
         // center view around box center
@@ -374,7 +462,16 @@ void Camera::zoom_to_box(const BoundingBoxf3& box, double margin_factor)
 void Camera::zoom_to_volumes(const GLVolumePtrs& volumes, double margin_factor)
 {
     Vec3d center;
-    const double zoom = calc_zoom_to_volumes_factor(volumes, center, margin_factor);
+    double zoom = calc_zoom_to_volumes_factor(volumes, center, margin_factor);
+    if (zoom > 0.0 && is_dolly_active()) {
+        std::vector<Vec3d> points;
+        for (const GLVolume* volume : volumes) {
+            if (const TriangleMesh* hull = volume->convex_hull())
+                for (const Vec3f& vertex : hull->its.vertices)
+                    points.emplace_back(volume->world_matrix() * vertex.cast<double>());
+        }
+        zoom = calc_dolly_zoom_to_fit(points, center, margin_factor);
+    }
     if (zoom > 0.0) {
         m_zoom = zoom;
         // center view around the calculated center
@@ -539,7 +636,12 @@ std::pair<double, double> Camera::calc_tight_frustrum_zs_around(const BoundingBo
         far_z = mid_z + half_size;
     }
 
-    if (near_z < FrustrumMinNearZ) {
+    if (is_dolly_active()) {
+        // Orca: The camera may enter the scene, so clip what is too close instead of pushing the camera back.
+        near_z = std::max(near_z, DollyMinNearFactor * m_distance);
+        far_z  = std::max(far_z, near_z + FrustrumMinZRange);
+    }
+    else if (near_z < FrustrumMinNearZ) {
         const double delta = FrustrumMinNearZ - near_z;
         set_distance(m_distance + delta);
         near_z += delta;
@@ -573,16 +675,7 @@ double Camera::calc_zoom_to_bounding_box_factor(const BoundingBoxf3& box, double
     const Vec3d bb_center = box.center();
 
     // box vertices in world space
-    const std::vector<Vec3d> vertices = {
-        box.min,
-        { box.max(0), box.min(1), box.min(2) },
-        { box.max(0), box.max(1), box.min(2) },
-        { box.min(0), box.max(1), box.min(2) },
-        { box.min(0), box.min(1), box.max(2) },
-        { box.max(0), box.min(1), box.max(2) },
-        box.max,
-        { box.min(0), box.max(1), box.max(2) }
-    };
+    const std::vector<Vec3d> vertices = box_vertices(box);
 
     double min_x = DBL_MAX;
     double min_y = DBL_MAX;
@@ -613,6 +706,28 @@ double Camera::calc_zoom_to_bounding_box_factor(const BoundingBoxf3& box, double
     dy *= margin_factor;
 
     return std::min((double)m_viewport[2] / dx, (double)m_viewport[3] / dy);
+}
+
+double Camera::calc_dolly_zoom_to_fit(const std::vector<Vec3d>& points, const Vec3d& center, double margin_factor) const
+{
+    if (m_viewport[2] <= 0 || m_viewport[3] <= 0)
+        return -1.0;
+
+    const double tan_y = std::tan(0.5 * Geometry::deg2rad(DollyFovDeg));
+    const double tan_x = tan_y * (double)m_viewport[2] / (double)m_viewport[3];
+    const Vec3d right = get_dir_right();
+    const Vec3d up = get_dir_up();
+    const Vec3d forward = get_dir_forward();
+
+    // Points nearer than the target plane look larger, so each needs its own distance to fit in the view.
+    double distance = 0.0;
+    for (const Vec3d& point : points) {
+        const Vec3d pos = point - center;
+        const double fit_distance = margin_factor * std::max(std::abs(pos.dot(right)) / tan_x, std::abs(pos.dot(up)) / tan_y);
+        distance = std::max(distance, fit_distance - pos.dot(forward));
+    }
+
+    return distance > 0.0 ? std::min(0.5 * (double)m_viewport[3] / (distance * tan_y), max_zoom()) : -1.0;
 }
 
 double Camera::calc_zoom_to_volumes_factor(const GLVolumePtrs& volumes, Vec3d& center, double margin_factor) const
@@ -689,6 +804,8 @@ void Camera::set_distance(double distance)
 void Camera::load_camera_view(Camera& cam)
 {
     m_target = cam.get_target();
+    // The target is derived from the view matrix and the distance, so they must be copied together.
+    m_distance = cam.m_distance;
     m_zoom = cam.get_zoom();
     m_scene_box = cam.get_scene_box();
     m_viewport = cam.get_viewport();

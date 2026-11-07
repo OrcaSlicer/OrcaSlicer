@@ -361,6 +361,9 @@ void AppConfig::set_defaults()
     if (get("zoom_to_mouse").empty())
         set_bool("zoom_to_mouse", false);
 
+    if (get("perspective_camera_dolly").empty())
+        set_bool("perspective_camera_dolly", false);
+
 #ifdef SLIC3R_CAD
     // Experimental parametric Design tab. Off by default: the tab is not created at all
     // until this is turned on, so nothing it builds reaches an unsuspecting user.

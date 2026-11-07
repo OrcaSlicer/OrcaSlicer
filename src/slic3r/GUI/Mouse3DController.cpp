@@ -14,6 +14,7 @@
 #include <vector>
 #include "libslic3r/Point.hpp"
 #include <cstddef>
+#include <functional>
 #include <mutex>
 #include <deque>
 #include <utility>
@@ -319,7 +320,7 @@ bool Mouse3DController::State::process_mouse_wheel()
 }
 #endif // _WIN32
 
-bool Mouse3DController::State::apply(const Mouse3DController::Params &params, Camera& camera)
+bool Mouse3DController::State::apply(const Mouse3DController::Params &params, Camera& camera, const std::function<void()>& before_camera_move)
 {
     if (! wxGetApp().IsActive())
         return false;
@@ -339,8 +340,17 @@ bool Mouse3DController::State::apply(const Mouse3DController::Params &params, Ca
         m_input_queue.clear();
     }
 
+    bool camera_move_prepared = !before_camera_move;
+    const auto prepare_camera_move = [&camera_move_prepared, &before_camera_move]() {
+        if (!camera_move_prepared) {
+            before_camera_move();
+            camera_move_prepared = true;
+        }
+    };
+
     for (const QueueItem &input_queue_item : input_queue) {
     	if (input_queue_item.is_translation()) {
+            prepare_camera_move();
             Vec3d translation = params.swap_yz ? Vec3d(input_queue_item.vector.x() * xmult, - input_queue_item.vector.z() * zmult, input_queue_item.vector.y() * ymult) : Vec3d(input_queue_item.vector.x() * xmult, input_queue_item.vector.y() * ymult, input_queue_item.vector.z() * zmult);
             double zoom_factor = camera.min_zoom() / camera.get_zoom();
 	        camera.set_target(camera.get_target() + zoom_factor * params.translation.scale * (translation.x() * camera.get_dir_right() + translation.z() * camera.get_dir_up()));
@@ -356,8 +366,8 @@ bool Mouse3DController::State::apply(const Mouse3DController::Params &params, Ca
 	    } else {
 	    	assert(input_queue_item.is_buttons());
 	        switch (input_queue_item.type_or_buttons) {
-	        case 0: camera.update_zoom(1.0); break;
-	        case 1: camera.update_zoom(-1.0); break;
+	        case 0: prepare_camera_move(); camera.update_zoom(1.0); break;
+	        case 1: prepare_camera_move(); camera.update_zoom(-1.0); break;
             default: break;
 	        }
     	}
@@ -432,7 +442,7 @@ void Mouse3DController::save_config(AppConfig &appconfig) const
     }
 }
 
-bool Mouse3DController::apply(Camera& camera)
+bool Mouse3DController::apply(Camera& camera, const std::function<void()>& before_camera_move)
 {
     // check if the user unplugged the device
     if (! m_connected) {
@@ -451,7 +461,7 @@ bool Mouse3DController::apply(Camera& camera)
     }
 #endif // _WIN32
 
-    return m_state.apply(m_params, camera);
+    return m_state.apply(m_params, camera, before_camera_move);
 }
 
 bool Mouse3DController::can_show_settings_dialog() const

@@ -841,6 +841,8 @@ public:
 
     const Camera& get_camera() const;
     Camera& get_camera();
+    // Applies the perspective_camera_dolly preference to the active camera and the stored ones.
+    void apply_camera_dolly_setting();
 
     //BBS: partplate list related functions
     PartPlateList& get_partplate_list();

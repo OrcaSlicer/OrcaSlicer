@@ -7462,6 +7462,7 @@ struct Plater::priv
     void reset_gcode_toolpaths();
 
     void reset_all_gizmos();
+    void apply_camera_dolly_setting();
     void apply_free_camera_correction(bool apply = true);
     void update_ui_from_settings();
     // BBS
@@ -8281,6 +8282,7 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
     } else {
         camera.set_type(Camera::EType::Ortho);
     }
+    apply_camera_dolly_setting();
 
     // Load the 3DConnexion device database.
     mouse3d_controller.load_config(*wxGetApp().app_config);
@@ -8574,6 +8576,17 @@ wxString Plater::get_slice_warning_string(GCodeProcessorResult::SliceWarning& wa
         return wxString(warning.msg);
     }
 }
+
+void Plater::priv::apply_camera_dolly_setting()
+{
+    const bool enable = wxGetApp().app_config->get_bool("perspective_camera_dolly");
+    camera.set_dolly_enabled(enable);
+    // The cameras stored for each tab also hold a distance, which must not outlive dolly mode.
+    view3D->get_canvas3d()->get_camera().set_dolly_enabled(enable);
+    assemble_view->get_canvas3d()->get_camera().set_dolly_enabled(enable);
+}
+
+void Plater::apply_camera_dolly_setting() { p->apply_camera_dolly_setting(); }
 
 void Plater::priv::apply_free_camera_correction(bool apply/* = true*/)
 {

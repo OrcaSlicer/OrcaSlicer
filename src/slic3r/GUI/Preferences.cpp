@@ -1120,6 +1120,14 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
                 }
             }
         }
+        // ORCA: apply the camera change immediately to the current view
+        else if (param == "perspective_camera_dolly") {
+            if (Plater* plater = wxGetApp().plater()) {
+                plater->apply_camera_dolly_setting();
+                if (GLCanvas3D* canvas = plater->get_current_canvas3D())
+                    canvas->set_as_dirty();
+            }
+        }
         // ORCA: apply the preview dimming change immediately to the currently loaded preview
         else if (param == "preview_dim_previous_layers") {
             if (m_dim_previous_layers_brightness_input)
@@ -2116,13 +2124,20 @@ void PreferencesDialog::create_items()
     auto item_zoom_to_mouse    = create_item_checkbox(_L("Zoom to mouse position"), _L("Zoom in towards the mouse pointer's position in the 3D view, rather than the 2D window center."), "zoom_to_mouse");
     g_sizer->Add(item_zoom_to_mouse);
 
+    // TRN: "Dolly" is a film and camera term: the camera itself travels towards or away from the scene.
+    auto item_perspective_dolly = create_item_checkbox(_L("Dolly the perspective camera"), _L("In perspective view, zooming moves the camera towards the scene and keeps the field of view fixed. If not enabled, the camera stays at about the same distance and zooming changes the field of view.\nThe camera can enter the scene when this is enabled, and nearby objects are then cut off."), "perspective_camera_dolly");
+    g_sizer->Add(item_perspective_dolly);
+
     auto item_use_free_camera  = create_item_checkbox(_L("Use free camera"), _L("If enabled, use free camera. If not enabled, use constrained camera."), "use_free_camera");
     g_sizer->Add(item_use_free_camera);
 
     auto reverse_mouse_zoom    = create_item_checkbox(_L("Reverse mouse zoom"), _L("If enabled, reverses the direction of zoom with mouse wheel."), "reverse_mouse_wheel_zoom");
     g_sizer->Add(reverse_mouse_zoom);
 
-    std::vector<wxString> ButtonDragActions = {_L("None"), _L("Pan"), _L("Rotate")};
+    // These indices are saved in the config, so new actions go at the end.
+    std::vector<wxString> ButtonDragActions = {_L("None"), _L("Pan"), _L("Rotate"),
+        // TRN: Mouse drag action. It moves the camera in dolly mode ("Dolly" is a film and camera term) and zooms otherwise.
+        _L("Dolly/Zoom")};
     auto item_left_mouse_drag  = create_item_combobox(_L("Left Mouse Drag"), _L("Set the action that dragging the left mouse button should perform."), "left_mouse_drag_action", ButtonDragActions);
     g_sizer->Add(item_left_mouse_drag);
     auto item_middle_mouse_drag  = create_item_combobox(_L("Middle Mouse Drag"), _L("Set the action that dragging the middle mouse button should perform."), "middle_mouse_drag_action", ButtonDragActions);
