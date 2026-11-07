@@ -562,23 +562,24 @@ bool install_local_plugin_package(const boost::filesystem::path& package_file, w
         return false;
     }
 
+    // The message is the package's own error, which says what to fix in it. Each reason arrives framed as a
+    // failed install ("Plugin installation failed: ...") by the code that made it, so none is framed here.
+    const auto failed = [&](const std::string& reason) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Plugin package installation failed for " << package_file << " error=" << reason;
+        message = reason.empty() ? _L("Failed to install plugin package. See the log for details.") : from_u8(reason);
+        return false;
+    };
+
     PluginDescriptor plugin_descriptor;
     bool             existing_installation = false;
     std::string      error;
     try {
-        if (!PluginManager::instance().inspect_local_plugin_package(package_file, plugin_descriptor, existing_installation, error)) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Plugin package inspection failed for " << package_file << " error=" << error;
-            message = _L("Failed to install plugin package. See the log for details.");
-            return false;
-        }
+        if (!PluginManager::instance().inspect_local_plugin_package(package_file, plugin_descriptor, existing_installation, error))
+            return failed(error);
     } catch (const std::exception& ex) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Plugin package inspection failed for " << package_file << " error=" << ex.what();
-        message = _L("Failed to install plugin package. See the log for details.");
-        return false;
+        return failed(GUI::format(_u8L("Plugin installation failed: %1%"), ex.what()));
     } catch (...) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Plugin package inspection failed for " << package_file;
-        message = _L("Failed to install plugin package. See the log for details.");
-        return false;
+        return failed({});
     }
 
     if (existing_installation) {
@@ -615,9 +616,9 @@ bool install_local_plugin_package(const boost::filesystem::path& package_file, w
                 try {
                     ok = PluginManager::instance().install_plugin(package_file, error);
                 } catch (const std::exception& ex) {
-                    error = ex.what();
+                    error = GUI::format(_u8L("Plugin installation failed: %1%"), ex.what());
                 } catch (...) {
-                    error = "Unknown error";
+                    error.clear();
                 }
                 if (ok) {
                     // Reflect the new package in discovery/cloud metadata without blocking the caller.
@@ -635,11 +636,8 @@ bool install_local_plugin_package(const boost::filesystem::path& package_file, w
         error     = std::move(state->error);
     }
 
-    if (!installed) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Plugin package installation failed for " << package_file << " error=" << error;
-        message = _L("Failed to install plugin package. See the log for details.");
-        return false;
-    }
+    if (!installed)
+        return failed(error);
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Plugin package installed successfully from " << package_file;
     const wxString installed_name = from_u8(plugin_descriptor.name.empty() ? package_file.filename().string() : plugin_descriptor.name);

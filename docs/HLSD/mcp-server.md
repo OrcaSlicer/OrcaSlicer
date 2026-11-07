@@ -1319,7 +1319,7 @@ turns a bad path into an Error result.
 | `export_stl_multi` | existing directory | `Plater::export_stl(..., multiple, dir)` |
 | `add_primitive_svg` | `.svg` | `GLGizmoSVG::create_volume(path, type)`: a new object, or a part of the selected one; a job |
 | `export_config` | existing directory | `ExportConfigsDialog(parent, dir)`: the dialog still opens, and its OK writes there |
-| `install_local_plugin` | `.py`, `.whl` | `install_local_plugin_package(path, parent, message)`, the Plugins dialog's install: it still asks before replacing an installed plugin, in Orca's own "Overwrite Plugin" message dialog, which `dialog_respond` answers on every platform. Cancel makes the command an error saying that the plugin was not installed. A file that is not a `.py` or `.whl` is refused before that. A package that does not install is an Error. |
+| `install_local_plugin` | `.py`, `.whl` | `install_local_plugin_package(path, parent, message)`, the Plugins dialog's install: it still asks before replacing an installed plugin, in Orca's own "Overwrite Plugin" message dialog, which `dialog_respond` answers on every platform. Cancel makes the command an error saying that the plugin was not installed. A file that is not a `.py` or `.whl` is refused before that. A package that fails inspection or installation is an Error whose message is "Plugin installation failed:" and the reason, such as a `.py` without a name in its PEP 723 `[tool.orcaslicer.plugin]` table |
 
 The six shape commands (`add_primitive_cube`, `_cylinder`, `_sphere`, `_cone`, `_disc`, `_torus`)
 take a `Text` param, the size the Primitive size dialog asks for (`"40 40 10"`, `"90 4"`), and then

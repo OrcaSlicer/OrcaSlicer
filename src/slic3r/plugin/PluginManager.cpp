@@ -1559,7 +1559,7 @@ bool PluginManager::install_plugin(const boost::filesystem::path& filepath, Plug
 
     std::string wait_error;
     if (!wait_for_discovery(std::chrono::milliseconds::max(), wait_error)) {
-        error = wait_error.empty() ? "Plugin discovery is still running" : wait_error;
+        error = "Plugin discovery is still running";
         if (!plugin_descriptor.plugin_key.empty())
             set_plugin_error(plugin_descriptor.plugin_key, error);
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Plugin installation failed while waiting for discovery: " << error;

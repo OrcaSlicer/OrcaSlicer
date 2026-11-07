@@ -5,6 +5,7 @@
 #include <chrono>
 #include <ios>
 #include <libslic3r/Utils.hpp>
+#include <slic3r/GUI/PluginsDialog.hpp>
 #include <slic3r/plugin/PluginLoader.hpp>
 #include <slic3r/plugin/PluginAuditManager.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
@@ -30,6 +31,7 @@
 
 #include <libslic3r/Zipper.hpp>
 #include <nlohmann/json.hpp>
+#include <wx/string.h>
 
 using namespace Slic3r;
 namespace fs = boost::filesystem;
@@ -167,7 +169,24 @@ TEST_CASE("install_plugin rejects a side-loaded .py with no PEP 723 metadata", "
     const bool installed = plugin_loader::install_plugin(py, /*cloud_user_id=*/"", descriptor, error);
 
     REQUIRE_FALSE(installed);
+    // The error names the table the name goes in, so whoever reads it can fix the package.
     CHECK_THAT(error, Catch::Matchers::ContainsSubstring("PEP 723"));
+    CHECK_THAT(error, Catch::Matchers::ContainsSubstring("[tool.orcaslicer.plugin]"));
+}
+
+TEST_CASE("a local install that fails inspection reports the reason once framed as a failed install", "[PluginInstall]")
+{
+    ScopedDataDir data_dir_guard("install-missing");
+
+    // The package is never found, so the install stops at its inspection, before any window opens.
+    wxString   message;
+    const bool installed = GUI::install_local_plugin_package(data_dir_guard.dir / "missing.py", /*parent=*/nullptr, message);
+
+    REQUIRE_FALSE(installed);
+    const std::string text(message.ToUTF8().data());
+    CHECK_THAT(text, Catch::Matchers::StartsWith("Plugin installation failed: "));
+    CHECK(text.find("Plugin installation failed", 1) == std::string::npos);
+    CHECK_THAT(text, Catch::Matchers::ContainsSubstring("missing.py"));
 }
 
 TEST_CASE("install_plugin accepts a side-loaded .py with complete PEP 723 metadata", "[PluginInstall]")
