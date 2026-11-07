@@ -361,8 +361,23 @@ void DesignCanvas::request_repaint()
         if (m_canvas_widget)
             m_canvas_widget->Refresh();   // hardware GL: paint cycle drives render()
     } else {
-        m_canvas->render();               // software GL or backend not yet known
+        // Software GL (llvmpipe: the test rigs, remote desktops) or backend not yet known: no paint cycle to lean on, so draw, but ONCE per
+        // event-loop turn. A tree refresh asks for a repaint from five setters in a row (datum planes, connectors, links, reference planes,
+        // bodies) and each rendered a whole frame at 25-50 ms; the last state is what the frame must show anyway.
+        if (m_repaint_queued) return;
+        m_repaint_queued = true;
+        CallAfter([this]() {
+            m_repaint_queued = false;
+            if (m_canvas) m_canvas->render();
+        });
     }
+}
+
+// A frame NOW, for a caller that waits for it (the screenshot loop yields only UI events, which a queued render is not).
+void DesignCanvas::render_now()
+{
+    if (m_canvas && m_canvas->is_initialized() && m_sw_gl == 1) { m_canvas->set_as_dirty(); m_canvas->render(); }
+    else request_repaint();
 }
 
 // ImGui's display size is shared by every canvas and only refreshed when a canvas sees its own

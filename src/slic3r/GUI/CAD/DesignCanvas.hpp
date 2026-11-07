@@ -434,6 +434,8 @@ public:
     const DesignSketchTool& mcp_sketch_tool() const { return m_sketch_tool; }
 
     void request_repaint();
+
+    void render_now();   // synchronous frame (software GL); hardware GL paints through Refresh()
     GLCanvas3D* gl_canvas() { return m_canvas; }
     // Repaint synchronously, once the pending show/resize has settled. Needed when the
     // notebook re-shows the Design page: an invalidation issued while the page is still
@@ -466,6 +468,7 @@ private:
     wxGLCanvas* m_canvas_widget{nullptr};
     GLCanvas3D* m_canvas{nullptr};
     int         m_sw_gl{-1};   // -1 unknown, 0 hardware GL, 1 software GL
+    bool m_repaint_queued = false;   // a software-GL render is already queued for this event-loop turn
     GLToolbar   m_collapse_toolbar{GLToolbar::Normal, "Collapse"};
 
     std::function<void(const wxPoint&)> m_on_context_menu;
