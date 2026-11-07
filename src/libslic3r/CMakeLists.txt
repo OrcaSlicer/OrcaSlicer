@@ -404,6 +404,8 @@ set(lisbslic3r_sources
     PerimeterGenerator.hpp
     PlaceholderParser.cpp
     PlaceholderParser.hpp
+    PlateReorder.cpp
+    PlateReorder.hpp
     Platform.cpp
     Platform.hpp
     PNGReadWrite.cpp
