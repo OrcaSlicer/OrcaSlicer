@@ -105,11 +105,7 @@ protected:
     // title of select filament preset
     Label*       m_filament_preset_title;
     // select a filament preset
-#ifdef __APPLE__
-    wxComboBox* m_comboBox_filament;
-#else
     ComboBox* m_comboBox_filament;
-#endif
 
 #ifdef __APPLE__
     wxComboBox* m_comboBox_bed_type;
