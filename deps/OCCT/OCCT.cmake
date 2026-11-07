@@ -1,8 +1,16 @@
 # clang-cl cannot emit some OCCT sources for ARM64 (llvm/llvm-project#62081).
 # cl and clang-cl share an ABI.
 set(_occt_compiler_args "")
+set(_occt_exception_patch "")
 if ("${DEPS_ARCH}" STREQUAL "arm64" AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
     set(_occt_compiler_args -DCMAKE_C_COMPILER:STRING=cl -DCMAKE_CXX_COMPILER:STRING=cl)
+elseif (WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND
+        CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
+    # clang-cl with /EHa leaves unresolved std::variant destructors in OCCT 8.
+    list(APPEND _occt_compiler_args -DORCA_OCCT_USE_EHSC:BOOL=ON)
+    set(_occt_exception_patch COMMAND
+        ${CMAKE_COMMAND} -DOCCT_SOURCE_DIR=<SOURCE_DIR>
+        -P ${CMAKE_CURRENT_LIST_DIR}/patch_exception_flags.cmake)
 endif ()
 
 if(WIN32)
@@ -35,6 +43,7 @@ orcaslicer_add_cmake_project(OCCT
     # Makes BRepMesh triangulate cone faces whose seam pcurve is slightly tilted
     # (Open-Cascade-SAS/OCCT#572); remove the patch once an OCCT release includes the fix.
     PATCH_COMMAND git apply ${OCCT_DIRECTORY_FLAG} --verbose --ignore-space-change --whitespace=fix ${CMAKE_CURRENT_LIST_DIR}/0001-BRepMesh-seam-pcurve-at-edge-parameter.patch
+        ${_occt_exception_patch}
     #DEPENDS dep_Boost
     CMAKE_ARGS
         -DCMAKE_CXX_STANDARD=17
