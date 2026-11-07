@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 #include <utility>
@@ -374,6 +375,40 @@ ImexZoneLayout compute_imex_zone_layout(const DynamicPrintConfig& printer_cfg,
     }
 
     return out;
+}
+
+bool update_imex_layout_key(std::optional<ImexLayoutKey>& key, const DynamicPrintConfig* printer_cfg, const std::string& mode)
+{
+    static const std::string              no_mode;
+    static const std::vector<std::string> no_strings;
+    const auto* is_imex = printer_cfg != nullptr ? printer_cfg->option<ConfigOptionBool>("is_imex") : nullptr;
+
+    ImexLayoutKey::Scalars     s;
+    const ConfigOptionStrings* names = nullptr;
+    const ConfigOptionStrings* tools = nullptr;
+    if (is_imex != nullptr && is_imex->value) {
+        // The same accessors compute_imex_zone_layout() uses, so the key holds the values it lays
+        // out from.
+        s.imex             = true;
+        s.gantry_count     = imex_cfg_int(*printer_cfg, "imex_gantry_count");
+        s.tools_per_gantry = imex_cfg_int(*printer_cfg, "imex_tools_per_gantry");
+        s.tool_layout      = int(imex_cfg_enum<ImexToolLayout>(*printer_cfg, "imex_tool_layout"));
+        s.clearance_x      = imex_cfg_float(*printer_cfg, "imex_nozzle_clearance_x");
+        s.clearance_y      = imex_cfg_float(*printer_cfg, "imex_nozzle_clearance_y");
+        s.carriage_margin  = imex_cfg_float(*printer_cfg, "imex_carriage_margin");
+        s.firmware_managed = imex_cfg_bool(*printer_cfg, "imex_firmware_managed_zones");
+        names              = printer_cfg->option<ConfigOptionStrings>("imex_mode_names");
+        tools              = printer_cfg->option<ConfigOptionStrings>("imex_mode_active_tools");
+    }
+    const std::string&              resolved_mode = s.imex ? mode : no_mode;
+    const std::vector<std::string>& mode_names    = names != nullptr ? names->values : no_strings;
+    const std::vector<std::string>& mode_tools    = tools != nullptr ? tools->values : no_strings;
+
+    if (key.has_value() && key->s == s && key->mode == resolved_mode && key->mode_names == mode_names &&
+        key->mode_active_tools == mode_tools)
+        return false;
+    key = ImexLayoutKey{ s, resolved_mode, mode_names, mode_tools };
+    return true;
 }
 
 } // namespace Slic3r

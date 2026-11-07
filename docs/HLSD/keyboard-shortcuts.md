@@ -156,7 +156,8 @@ Control on the Global page, and from the `?` key on the page of the view that re
    the dialog should list it; the row's section heading is the `section_table` entry
    above it, so a new section needs an entry there too. Pick a default that does not
    collide inside its contexts; the `[Shortcuts]` tests check every default against the
-   others.
+   others. An empty chord `{}` leaves a shortcut unbound until the user picks a key,
+   as the jump-to-tab shortcuts are.
 2. Handle it in the dispatcher of its context: `MainFrame::handle_global_shortcut`,
    `GLCanvas3D::handle_shortcut`, `ObjectList::dispatch_shortcut`, or a gizmo's
    `on_tool_shortcut`. A gizmo that opens on a key sets `m_shortcut` in its constructor.

@@ -490,6 +490,9 @@ bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const Pre
 bool is_compatible_with_printer(const DynamicPrintConfig &preset_config, Preset::Type preset_type,
                                 const DynamicPrintConfig &printer_config, const std::string &printer_name);
 
+// True for a list option the settings tab edits as one value, so a change to it is reported for the whole list.
+bool is_edited_as_whole_list(const ConfigDef *def, const std::string &opt_key);
+
 // Where a preset is being loaded from. `Auto` lets load_presets() infer from the directory path.
 struct PresetOrigin {
     enum class Kind { Auto, User, LocalBundle, SubscribedBundle };

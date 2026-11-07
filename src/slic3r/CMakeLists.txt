@@ -124,6 +124,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/PluginStatus.hpp
     GUI/PluginPickerDialog.cpp
     GUI/PluginPickerDialog.hpp
+    GUI/PluginPermissionValidation.cpp
+    GUI/PluginPermissionValidation.hpp
     GUI/PluginsDialog.cpp
     GUI/PluginsDialog.hpp
     GUI/Shortcuts.cpp
@@ -509,6 +511,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/SceneRaycaster.hpp
     GUI/SceneCache.cpp
     GUI/SceneCache.hpp
+    GUI/SelectionOutline.cpp
+    GUI/SelectionOutline.hpp
     GUI/FrameProfiler.cpp
     GUI/FrameProfiler.hpp
     GUI/SceneBenchmark.cpp
@@ -547,6 +551,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/StatusPanel.hpp
     GUI/StepMeshDialog.cpp
     GUI/StepMeshDialog.hpp
+    GUI/GeometryImportDialog.cpp
+    GUI/GeometryImportDialog.hpp
     GUI/SurfaceDrag.cpp
     GUI/SurfaceDrag.hpp
     GUI/Tabbook.cpp
@@ -750,6 +756,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/CloudDeleteQueue.hpp
     Utils/ColorSpaceConvert.cpp
     Utils/ColorSpaceConvert.hpp
+    Utils/CrealityCfs.cpp
+    Utils/CrealityCfs.hpp
     Utils/CrealityPrint.cpp
     Utils/CrealityPrint.hpp
     Utils/CrealityPrintAgent.cpp
@@ -901,6 +909,8 @@ if (APPLE)
             GUI/GUI_UtilsMac.mm
             GUI/MacIME.mm
             GUI/MacIME.hpp
+            GUI/Accessibility/AccessibilityMac.mm
+            GUI/Accessibility/AccessibilityMac.h
         )
     FIND_LIBRARY(DISKARBITRATION_LIBRARY DiskArbitration)
 endif ()

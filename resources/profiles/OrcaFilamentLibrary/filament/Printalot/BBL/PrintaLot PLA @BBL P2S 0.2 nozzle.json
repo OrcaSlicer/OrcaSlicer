@@ -1,0 +1,32 @@
+{
+	"type": "filament",
+	"name": "PrintaLot PLA @BBL P2S 0.2 nozzle",
+	"inherits": "PrintaLot PLA @base",
+	"from": "system",
+	"setting_id": "zaNiU4k1GGoCdbAN",
+	"instantiation": "true",
+	"eng_plate_temp": [
+		"55"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_flush_volumetric_speed": [
+		"3",
+		"3"
+	],
+	"filament_max_volumetric_speed": [
+		"1.6",
+		"1.6"
+	],
+	"first_x_layer_fan_speed": [
+		"40"
+	],
+	"compatible_printers": [
+		"Bambu Lab P2S 0.2 nozzle"
+	]
+}
