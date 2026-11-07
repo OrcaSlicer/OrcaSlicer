@@ -57,6 +57,7 @@ struct TriangleMeshStats {
     stl_vertex    min                       = stl_vertex::Zero();
     stl_vertex    size                      = stl_vertex::Zero();
     float         volume                    = -1.f;
+    float         surface_area              = -1.f;
     int           number_of_parts           = 0;
 
     // Mesh errors, remaining.
@@ -104,6 +105,7 @@ public:
     bool write_ascii(const char* output_file) const;
     bool write_binary(const char* output_file) const;
     float volume();
+    float surface_area();
     void WriteOBJFile(const char* output_file) const;
     void scale(float factor);
     void scale(const Vec3f &versor);
@@ -325,6 +327,7 @@ inline stl_normal its_unnormalized_normal(const indexed_triangle_set &its,
 }
 
 float its_volume(const indexed_triangle_set &its);
+float its_surface_area(const indexed_triangle_set& its, const Transform3d& t = Transform3d::Identity());
 // Mass, volume and center of mass of a solid, and the mean over its mass of (x - center)(x - center)^T, from which its
 // moments of inertia about axes through the center follow.
 struct MassProperties
