@@ -34,6 +34,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <mutex>
+#include "FilamentGroupUtils.hpp"
 #include "MultiNozzleUtils.hpp"
 #include "ObjectID.hpp"
 #include "PlaceholderParser.hpp"
@@ -1653,6 +1654,21 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 
     // Grab the lock for the Print / PrintObject milestones.
 	std::scoped_lock<std::mutex> lock(this->state_mutex());
+
+    // The device-owned AMS inventory only feeds filament grouping, so a changed payload invalidates
+    // the grouping steps.
+    if (m_extruder_filament_info_pending) {
+        if (FilamentGroupUtils::machine_filaments_changed(m_extruder_filament_info, m_pending_extruder_filament_info)) {
+            // Both steps are attempted on purpose, and the status escalates only when one was actually
+            // taken back, so a print that is already invalid stays UNCHANGED.
+            const bool wipe_tower_invalidated = this->invalidate_step(psWipeTower);
+            const bool skirt_brim_invalidated = this->invalidate_step(psSkirtBrim);
+            if (wipe_tower_invalidated || skirt_brim_invalidated)
+                update_apply_status(true);
+        }
+        m_extruder_filament_info = std::move(m_pending_extruder_filament_info);
+        m_extruder_filament_info_pending = false;
+    }
 
     // The following call may stop the background processing.
     if (! print_diff.empty())
