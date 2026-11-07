@@ -35,6 +35,7 @@ enum ExtrusionRole : uint8_t {
     erIroning,
     erBridgeInfill,
     erInternalBridgeInfill,
+    erWaveBridgeInfill,
     erGapFill,
     erSkirt,
     erBrim,
@@ -80,6 +81,7 @@ inline bool is_infill(ExtrusionRole role)
 {
     return role == erBridgeInfill
         || role == erInternalBridgeInfill
+        || role == erWaveBridgeInfill
         || role == erInternalInfill
         || role == erSolidInfill
         || role == erTopSolidInfill
@@ -96,6 +98,7 @@ inline bool is_solid_infill(ExtrusionRole role)
 {
     return role == erBridgeInfill
         || role == erInternalBridgeInfill
+        || role == erWaveBridgeInfill
         || role == erSolidInfill
         || role == erTopSolidInfill
         || role == erBottomSurface
@@ -106,6 +109,7 @@ inline bool is_bridge(ExtrusionRole role)
 {
     return role == erBridgeInfill
         || role == erInternalBridgeInfill
+        || role == erWaveBridgeInfill
         || role == erOverhangPerimeter;
 }
 
