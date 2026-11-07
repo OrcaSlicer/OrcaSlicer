@@ -1,7 +1,9 @@
 #include "libslic3r/ArcFitter.hpp"
+#include "ExclusionVolumePathCheck.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/Exception.hpp"
+#include "libslic3r/BeltTransform.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/CommonDefs.hpp"
 #include "ExtrusionEntity.hpp"
@@ -35,6 +37,7 @@
 #include <boost/filesystem/path.hpp>
 
 #include <cstddef>
+#include <cstdint>
 #include <cmath>
 #include <exception>
 #include <deque>
@@ -2202,6 +2205,14 @@ void GCodeProcessor::PreCoolingInjector::build_extruder_free_blocks(const std::v
         build_by_extruder_blocks(extruder_usage_blocks);
 }
 
+// ConfigOptionVector::get_at() for the vectors copied out of the config.
+template<class T> static T value_at_or_front(const std::vector<T>& v, int i, T fallback)
+{
+    if (v.empty())
+        return fallback;
+    return i >= 0 && i < (int) v.size() ? v[i] : v.front();
+}
+
 // The core injector. Measures the idle-window duration from move.time[valid_machine_id], bails if it is
 // below the threshold, and emits pre-cool M104 at the window start and pre-heat M104 (relocated out of
 // SKIPPABLE blocks) at the back-solved heating-start move.
@@ -2213,13 +2224,13 @@ void GCodeProcessor::PreCoolingInjector::inject_cooling_heating_command(TimeProc
     };
 
     auto is_pre_cooling_valid = [&nozzle_temps = this->filament_nozzle_temps, &pre_cooling_temps = this->filament_pre_cooling_temps](int idx) -> bool {
-        if (idx < 0)
+        if (idx < 0 || idx >= (int) pre_cooling_temps.size() || idx >= (int) nozzle_temps.size())
             return false;
         return pre_cooling_temps[idx] > 0 && pre_cooling_temps[idx] < nozzle_temps[idx];
     };
 
     auto get_partial_free_cooling_thres = [&](int idx) -> float {
-        if (idx < 0)
+        if (idx < 0 || idx >= (int) filament_nozzle_temps.size() || idx >= (int) filament_pre_cooling_temps.size())
             return 30.f;
         float temp_in_tower = filament_nozzle_temps[idx];
         return temp_in_tower - (float) (filament_pre_cooling_temps[idx]);
@@ -2318,8 +2329,8 @@ void GCodeProcessor::PreCoolingInjector::inject_cooling_heating_command(TimeProc
         return;
 
     int extruder_id = get_valid_extruder_id(block.last_nozzle_id);
-    float ext_heating_rate = heating_rate[extruder_id];
-    float ext_cooling_rate = cooling_rate[extruder_id];
+    float ext_heating_rate = value_at_or_front(heating_rate, extruder_id, 1.0);
+    float ext_cooling_rate = value_at_or_front(cooling_rate, extruder_id, 1.0);
 
     auto add_M104_lines = [&](int gcode_id, int target_extruder, int target_temp, int target_filament, bool skippable, int next_filament_idx, int next_nozzle_id, TimeProcessor::InsertLineType type, const std::string& comment = std::string()) {
         auto format_line_M104 = [&](int target_extruder, int target_temp, int target_filament, bool skippable, int next_filament_idx, int next_nozzle_id, const std::string& comment = std::string()) -> std::vector<std::string> {
@@ -2329,7 +2340,7 @@ void GCodeProcessor::PreCoolingInjector::inject_cooling_heating_command(TimeProc
                 std::string m632_line = "M632 S" + std::to_string(next_filament_idx);
                 if (support_dynamic_nozzle_map)
                     m632_line += " H" + std::to_string(next_nozzle_id);
-                if (extruder_max_nozzle_count[target_extruder] > 1)
+                if (value_at_or_front(extruder_max_nozzle_count, target_extruder, 1) > 1)
                     m632_line += " N R";
                 m632_line += " W\n";
                 buffer.emplace_back(std::move(m632_line));
@@ -2339,7 +2350,7 @@ void GCodeProcessor::PreCoolingInjector::inject_cooling_heating_command(TimeProc
             if (handle_hotend_as_extruder) {
                 M104_line += (" I" + std::to_string(target_filament == -1 ? next_filament_idx : target_filament));
             } else if (target_extruder != -1) {
-                M104_line += (" T" + std::to_string(physical_extruder_map[target_extruder]));
+                M104_line += (" T" + std::to_string(target_extruder < (int) physical_extruder_map.size() ? physical_extruder_map[target_extruder] : target_extruder));
             }
 
             M104_line += " S" + std::to_string(target_temp);
@@ -2682,6 +2693,17 @@ void GCodeProcessorResult::reset() {
     wrapping_exclude_area = Pointfs();
     //BBS: add toolpath_outside
     toolpath_outside = false;
+    exclusion_volume_path_checked = false;
+    exclusion_volume_path_conflict = false;
+    exclusion_volume_travel_conflict = false;
+    exclusion_volume_extrusion_conflict = false;
+    exclusion_volume_other_motion_conflict = false;
+    exclusion_volume_conflict_gcode_id = 0;
+    exclusion_volume_conflict_move_id = 0;
+    exclusion_volume_conflict_move_type = EMoveType::Noop;
+    exclusion_volume_conflict_extruder_id = -1;
+    exclusion_volume_conflict_region_id = 0;
+    exclusion_volume_conflict_used_unknown_z = false;
     //BBS: add label_object_enabled
     label_object_enabled = false;
     long_retraction_when_cut = false;
@@ -2991,11 +3013,33 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
     } else
         plate_printable_bbox.defined = false; //when this is used, the printable area config was missing, something wrong
 
+    std::vector<BoundingBox> unprintable_bboxes;
+    for (const Polygons &polys : unprintable_areas)
+        unprintable_bboxes.emplace_back(get_extents(polys));
+    // Bit i is set when the path's box reaches extruder i's unprintable region. An area inset on two
+    // adjacent sides or more leaves an L-, U- or frame-shaped region with a bed-sized bounding box, so
+    // the region's box only pre-filters. The path's box is grown so edge contact still counts and a
+    // straight path still has an area, then moved off the plate into the regions' bed coordinates.
+    auto unprintable_extruders = [&unprintable_areas, &unprintable_bboxes, &plate_offset](const BoundingBox &path_bbox) {
+        BoundingBox bbox = path_bbox.inflated(SCALED_EPSILON);
+        bbox.translate(-plate_offset);
+        uint64_t mask = 0;
+        for (size_t i = 0; i < unprintable_areas.size(); ++i)
+            if (!unprintable_areas[i].empty() && unprintable_bboxes[i].overlap(bbox) &&
+                !intersection(unprintable_areas[i], bbox.polygon()).empty())
+                mask |= uint64_t(1) << i;
+        return mask;
+    };
+
     for (auto obj_iter = gcode_path_pos.begin(); obj_iter != gcode_path_pos.end(); ++obj_iter) {
         int                                object_label_id = obj_iter->first;
         const std::map<int, GCodePosInfo> &path_pos        = obj_iter->second;
         for (auto iter = path_pos.begin(); iter != path_pos.end(); ++iter) {
             int extruder_id = filament_map[iter->first] - 1;
+            // A filament map entry of 0 names no extruder, and the errors below are listed under the
+            // filament's extruder, so leave that filament unchecked.
+            if (extruder_id < 0)
+                continue;
             Points iter_points;//temp points
             iter_points.insert(iter_points.end(), iter->second.pos.begin(), iter->second.pos.end());// put object/wipetower extrude position in
             Polygon     path_poly(iter_points);
@@ -3041,20 +3085,16 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
                 //BoundingBox bbox_custom = path_poly_custom.bounding_box();
                 //bbox_custom.offset(-scale_(1.0)); // Narrow the range to provide a tolerance for the custom gcode
                 //bbox.merge(bbox_custom);          // merge the custom gcode pos with other pos*/
+                const uint64_t unprintable_mask = unprintable_extruders(bbox);
                 // check printable area
-                // Simplified use bounding_box, Accurate calculation is not efficient
-                if ((extruder_id < unprintable_areas.size()) && !unprintable_areas[extruder_id].empty())
-                    for (Polygon poly : unprintable_areas[extruder_id]) {
-                        poly.translate(plate_offset);
-                        if (poly.bounding_box().overlap(bbox)) {
-                            m_result.gcode_check_result.error_code |= 1;
-                            std::pair<int, int>         filament_to_object_id;
-                            filament_to_object_id.first = iter->first;
-                            filament_to_object_id.second = object_label_id;
-                            m_result.gcode_check_result.print_area_error_infos[extruder_id].push_back(filament_to_object_id);
-                            valid = false;
-                        }
-                    }
+                if ((extruder_id < unprintable_areas.size()) && (unprintable_mask & (uint64_t(1) << extruder_id))) {
+                    m_result.gcode_check_result.error_code |= 1;
+                    std::pair<int, int>         filament_to_object_id;
+                    filament_to_object_id.first = iter->first;
+                    filament_to_object_id.second = object_label_id;
+                    m_result.gcode_check_result.print_area_error_infos[extruder_id].push_back(filament_to_object_id);
+                    valid = false;
+                }
 
                 // check printable height
                 if (!m_belt_printer && (extruder_id < printable_heights.size()) && (iter->second.max_print_z > printable_heights[extruder_id])) {
@@ -3063,18 +3103,11 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
                     filament_to_object_id.first  = iter->first;
                     filament_to_object_id.second = object_label_id;
                     m_result.gcode_check_result.print_height_error_infos[extruder_id].push_back(filament_to_object_id);
-                    m_result.limit_filament_maps[iter->first] |= (1 << extruder_id);
+                    m_result.limit_filament_maps[iter->first] |= uint64_t(1) << extruder_id;
                     valid = false;
                 }
 
-                for (int i = 0; i < unprintable_areas.size(); ++i) {
-                    for (Polygon poly : unprintable_areas[i]) {
-                        poly.translate(plate_offset);
-                        if (!poly.bounding_box().overlap(bbox)) continue;
-
-                        m_result.limit_filament_maps[iter->first] |= (1 << i);
-                    }
-                }
+                m_result.limit_filament_maps[iter->first] |= unprintable_mask;
             }
         }
     }
@@ -3083,7 +3116,7 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
     for (int extruder_id = 0; extruder_id < unprintable_filament_types.size(); ++extruder_id) {
         const std::set<int> &filament_ids = unprintable_filament_types[extruder_id];
         for (int filament_id : filament_ids) {
-            m_result.limit_filament_maps[filament_id] |= (1 << extruder_id);
+            m_result.limit_filament_maps[filament_id] |= uint64_t(1) << extruder_id;
         }
     };
 
@@ -3229,6 +3262,8 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     m_machine_frame_transform.init_from_config(config);
     m_result.machine_frame_transform_active = m_machine_frame_transform.is_active();
     m_belt_printer = config.belt_printer.value;
+    m_belt_linear  = m_belt_printer ? std::optional<Matrix3d>(BeltTransformPipeline::build_gcode_back_transform(config).linear()) :
+                                      std::nullopt;
 
     auto filament_maps = config.option<ConfigOptionInts>("filament_map");
     if (filament_maps != nullptr) {
@@ -3265,6 +3300,7 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
     // a belt printer is selected switches the preview's belt view off, and a belt file
     // loaded on another printer brings its own tilt, remaps and bed along.
     m_belt_render_config.clear();
+    m_belt_linear.reset();
     {
         const auto *belt = config.option<ConfigOptionBool>("belt_printer");
         if (belt != nullptr) {
@@ -3279,10 +3315,15 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
             // The Rev remaps mirror inside the build volume, so the designed view needs
             // the bed the file was sliced for. Only a belt file may override it.
             static const char *bed_keys[] = { "printable_area", "printable_height" };
-            if (belt->value)
+            if (belt->value) {
                 for (const char *key : bed_keys)
                     if (const ConfigOption *opt = config.option(key); opt != nullptr)
                         m_belt_render_config.set_key_value(key, opt->clone());
+                // The preview maps the file by these keys as well.
+                FullPrintConfig belt_config;
+                belt_config.apply(m_belt_render_config, true);
+                m_belt_linear = BeltTransformPipeline::build_gcode_back_transform(belt_config).linear();
+            }
         }
     }
 
@@ -3640,14 +3681,6 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
                                                                                                   DEFAULT_TRAVEL_ACCELERATION;
     }
 
-    if (m_flavor == gcfMarlinLegacy || m_flavor == gcfMarlinFirmware) {
-        const ConfigOptionBool* silent_mode = config.option<ConfigOptionBool>("silent_mode");
-        if (silent_mode != nullptr) {
-            if (silent_mode->value && m_time_processor.machine_limits.machine_max_acceleration_x.values.size() > 1)
-                enable_stealth_time_estimator(true);
-        }
-    }
-
     const ConfigOptionFloat* initial_layer_print_height = config.option<ConfigOptionFloat>("initial_layer_print_height");
     if (initial_layer_print_height != nullptr)
         m_first_layer_height = std::abs(initial_layer_print_height->value);
@@ -3687,11 +3720,6 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
     ensure_nozzle_group_result(static_cast<int>(m_result.filaments_count));
 }
 
-void GCodeProcessor::enable_stealth_time_estimator(bool enabled)
-{
-    m_time_processor.machines[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Stealth)].enabled = enabled;
-}
-
 void GCodeProcessor::reset()
 {
     m_units = EUnits::Millimeters;
@@ -3704,6 +3732,10 @@ void GCodeProcessor::reset()
     m_start_position = { 0.0f, 0.0f, 0.0f, 0.0f };
     m_end_position = { 0.0f, 0.0f, 0.0f, 0.0f };
     m_origin = { 0.0f, 0.0f, 0.0f, 0.0f };
+    m_axis_position_known = { false, false, false };
+    m_axis_origin_known = { true, true, true };
+    m_processing_homing_move = false;
+    m_exclusion_volume_path_checker.clear();
     m_cached_position.reset();
     m_wiping = false;
     m_flushing = false;
@@ -3816,6 +3848,8 @@ DynamicConfig GCodeProcessor::export_config_for_render() const
     config.set_key_value("filament_is_support", new ConfigOptionBools(m_parser.get_config().filament_is_support.values));
     config.set_key_value("filament_type", new ConfigOptionStrings(m_parser.get_config().filament_type.values));
     config.set_key_value("filament_map", new ConfigOptionInts(m_parser.get_config().filament_map.values));
+    // The tool position readout shows coordinates with the precision the file was exported with.
+    config.set_key_value("high_precision_gcode", new ConfigOptionBool(m_parser.get_config().high_precision_gcode.value));
     // += clones the options; apply() would need a definition this config does not have.
     config += m_belt_render_config;
     return config;
@@ -3916,6 +3950,40 @@ void GCodeProcessor::process_buffer(const std::string &buffer)
     });
 }
 
+void GCodeProcessor::configure_exclusion_volume_path_check(const PrintConfig &config)
+{
+    m_exclusion_volume_path_checker.configure(config);
+}
+
+GCodeProcessor::PositionState GCodeProcessor::get_current_position() const
+{
+    PositionState state;
+    state.position = Vec3d(m_end_position[X], m_end_position[Y], m_end_position[Z]);
+    state.axis_known = m_axis_position_known;
+    return state;
+}
+
+void GCodeProcessor::update_exclusion_volume_path_check_result()
+{
+    m_result.exclusion_volume_path_checked = m_exclusion_volume_path_checker.configured();
+    const ExclusionVolumePathCheckResult &check = m_exclusion_volume_path_checker.result();
+    m_result.exclusion_volume_path_conflict = check.has_any_conflict;
+    m_result.exclusion_volume_travel_conflict = check.has_travel_conflict;
+    m_result.exclusion_volume_extrusion_conflict = check.has_extrusion_conflict;
+    m_result.exclusion_volume_other_motion_conflict = check.has_other_motion_conflict;
+
+    if (!check.first_hit)
+        return;
+
+    const ExclusionVolumePathHit &hit = *check.first_hit;
+    m_result.exclusion_volume_conflict_gcode_id = hit.gcode_id;
+    m_result.exclusion_volume_conflict_move_id = hit.move_id;
+    m_result.exclusion_volume_conflict_move_type = static_cast<EMoveType>(hit.source_move_type);
+    m_result.exclusion_volume_conflict_extruder_id = hit.extruder_id;
+    m_result.exclusion_volume_conflict_region_id = hit.region_id;
+    m_result.exclusion_volume_conflict_used_unknown_z = hit.used_unknown_z;
+}
+
 void GCodeProcessor::finalize(bool post_process)
 {
     m_result.z_offset = m_z_offset;
@@ -3956,6 +4024,7 @@ void GCodeProcessor::finalize(bool post_process)
         if (m_enable_pre_heating)
             run_second_pass_injection();
     }
+    update_exclusion_volume_path_check_result();
     //BBS: update slice warning
     update_slice_warnings();
 }
@@ -5110,6 +5179,30 @@ void GCodeProcessor::process_G0(const GCodeReader::GCodeLine& line)
     process_G1(line);
 }
 
+void GCodeProcessor::update_position_known_from_move(
+    const std::array<std::optional<double>, 4> &axes,
+    const G1DiscretizationOrigin origin)
+{
+    if (origin != G1DiscretizationOrigin::G1 || m_global_positioning_type != EPositioningType::Absolute)
+        return;
+
+    for (unsigned char axis = X; axis <= Z; ++axis) {
+        if (axes[axis].has_value())
+            m_axis_position_known[axis] = m_axis_origin_known[axis];
+    }
+}
+
+void GCodeProcessor::update_position_known_from_move(const GCodeReader::GCodeLine &line)
+{
+    if (m_global_positioning_type != EPositioningType::Absolute)
+        return;
+
+    for (unsigned char axis = X; axis <= Z; ++axis) {
+        if (line.has(static_cast<Axis>(axis)))
+            m_axis_position_known[axis] = m_axis_origin_known[axis];
+    }
+}
+
 void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::optional<unsigned int>& remaining_internal_g1_lines)
 {
     std::array<std::optional<double>, 4> g1_axes = { std::nullopt, std::nullopt, std::nullopt, std::nullopt };
@@ -5133,6 +5226,7 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
 void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes, const std::optional<double>& feedrate,
     G1DiscretizationOrigin origin, const std::optional<unsigned int>& remaining_internal_g1_lines)
 {
+    const std::array<bool, 3> start_axis_known = m_axis_position_known;
     int filament_id = get_filament_id();
     int last_filament_id = get_last_filament_id();
     float filament_diameter = (static_cast<size_t>(filament_id) < m_result.filament_diameters.size()) ? m_result.filament_diameters[filament_id] : m_result.filament_diameters.back();
@@ -5182,6 +5276,7 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
     for (unsigned char a = X; a <= E; ++a) {
         m_end_position[a] = extract_absolute_position_on_axis((Axis)a, axes[a], double(area_filament_cross_section));
     }
+    update_position_known_from_move(axes, origin);
 
     // updates feedrate from line, if present
     if (feedrate.has_value())
@@ -5202,6 +5297,40 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
     EMoveType type = move_type(delta_pos);
     const float delta_xyz = std::sqrt(sqr(delta_pos[X]) + sqr(delta_pos[Y]) + sqr(delta_pos[Z]));
     m_travel_dist = delta_xyz;
+
+    if (!m_processing_homing_move) {
+        std::optional<ExclusionVolumeMotionType> exclusion_motion_type;
+        switch (type) {
+        case EMoveType::Travel:
+            exclusion_motion_type = ExclusionVolumeMotionType::Travel;
+            break;
+        case EMoveType::Extrude:
+        case EMoveType::Wipe:
+            exclusion_motion_type = ExclusionVolumeMotionType::Extrude;
+            break;
+        case EMoveType::Retract:
+        case EMoveType::Unretract:
+            exclusion_motion_type = ExclusionVolumeMotionType::Other;
+            break;
+        default:
+            break;
+        }
+
+        if (exclusion_motion_type) {
+            m_exclusion_volume_path_checker.check_motion(
+                Vec3d(m_start_position[X], m_start_position[Y], m_start_position[Z]),
+                Vec3d(m_end_position[X], m_end_position[Y], m_end_position[Z]),
+                start_axis_known[X] && start_axis_known[Y],
+                m_axis_position_known[X] && m_axis_position_known[Y],
+                start_axis_known[Z],
+                m_axis_position_known[Z],
+                get_extruder_id(false),
+                *exclusion_motion_type,
+                static_cast<unsigned char>(type),
+                m_line_id,
+                m_result.moves.size());
+        }
+    }
 
     if (type == EMoveType::Extrude) {
         float volume_extruded_filament = area_filament_cross_section * delta_pos[E];
@@ -5234,7 +5363,15 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
 
         if (origin == G1DiscretizationOrigin::G1)
             m_extruded_last_z = m_end_position[Z];
-        m_options_z_corrector.update(m_height);
+        // The queued blocks of the moves after the erased one follow them down the list.
+        if (const std::optional<size_t> erased = m_options_z_corrector.update(m_height)) {
+            for (TimeMachine& machine : m_time_processor.machines) {
+                for (TimeBlock& block : machine.blocks) {
+                    if (block.move_id > *erased)
+                        --block.move_id;
+                }
+            }
+        }
 
         if (m_forced_width > 0.0f)
             m_width = m_forced_width;
@@ -6230,6 +6367,10 @@ void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool cloc
         m_start_position = m_end_position; // this is required because we are skipping the call to process_gcode_line()
         internal_only_g1_line(adjust_target(end_position, prev_target), arc.delta_z() != 0.0, (segments == 1) ? feedrate : std::nullopt, extrusion);
     }
+
+    // Internal linearized arc segments inherit the arc's starting certainty.
+    // Only the original absolute command may establish a newly known endpoint.
+    update_position_known_from_move(line);
 }
 
 //BBS
@@ -6303,22 +6444,56 @@ void GCodeProcessor::process_G23(const GCodeReader::GCodeLine& line)
     store_move_vertex(EMoveType::Unretract);
 }
 
+static std::array<bool, 3> g28_homed_axes(const GCodeReader::GCodeLine &line)
+{
+    std::array<bool, 3> homed { false, false, false };
+    std::string_view raw = line.raw();
+    const size_t command_end = raw.find_first_of(" \t;");
+    size_t pos = command_end == std::string_view::npos ? raw.size() : command_end;
+
+    while (pos < raw.size()) {
+        pos = raw.find_first_not_of(" \t", pos);
+        if (pos == std::string_view::npos || raw[pos] == ';')
+            break;
+        const size_t end = raw.find_first_of(" \t;", pos);
+        const std::string_view word = raw.substr(pos, end == std::string_view::npos ? raw.size() - pos : end - pos);
+
+        const bool compact_axes = !word.empty() && std::all_of(word.begin(), word.end(), [](const char c) {
+            const char upper = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+            return upper == 'X' || upper == 'Y' || upper == 'Z';
+        });
+        if (compact_axes) {
+            for (const char c : word)
+                homed[static_cast<size_t>(std::toupper(static_cast<unsigned char>(c)) - 'X')] = true;
+        } else if (!word.empty()) {
+            const char axis = static_cast<char>(std::toupper(static_cast<unsigned char>(word.front())));
+            const bool numeric_axis_word = word.size() > 1 &&
+                (std::isdigit(static_cast<unsigned char>(word[1])) || word[1] == '+' || word[1] == '-' || word[1] == '.');
+            if (axis >= 'X' && axis <= 'Z' && numeric_axis_word)
+                homed[static_cast<size_t>(axis - 'X')] = true;
+        }
+
+        if (end == std::string_view::npos || raw[end] == ';')
+            break;
+        pos = end;
+    }
+    return homed;
+}
+
 void GCodeProcessor::process_G28(const GCodeReader::GCodeLine& line)
 {
     std::string_view cmd = line.cmd();
     std::string new_line_raw = { cmd.data(), cmd.size() };
-    bool found = false;
-    if (line.has('X')) {
+    const std::array<bool, 3> homed = g28_homed_axes(line);
+    const bool found = std::any_of(homed.begin(), homed.end(), [](const bool value) { return value; });
+    if (homed[X]) {
         new_line_raw += " X0";
-        found = true;
     }
-    if (line.has('Y')) {
+    if (homed[Y]) {
         new_line_raw += " Y0";
-        found = true;
     }
-    if (line.has('Z')) {
+    if (homed[Z]) {
         new_line_raw += " Z0";
-        found = true;
     }
     if (!found)
         new_line_raw += " X0  Y0  Z0";
@@ -6326,7 +6501,19 @@ void GCodeProcessor::process_G28(const GCodeReader::GCodeLine& line)
     GCodeReader::GCodeLine new_gline;
     GCodeReader reader;
     reader.parse_line(new_line_raw, [&](GCodeReader& reader, const GCodeReader::GCodeLine& gline) { new_gline = gline; });
+    m_processing_homing_move = true;
     process_G1(new_gline);
+    m_processing_homing_move = false;
+
+    // G28's physical endpoint is printer-specific even though the preview uses
+    // zero. Wait for a subsequent explicit absolute coordinate before checking
+    // a path from any homed axis.
+    for (unsigned char axis = X; axis <= Z; ++axis) {
+        if (!found || homed[axis]) {
+            m_axis_position_known[axis] = false;
+            m_axis_origin_known[axis] = true;
+        }
+    }
 }
 
 void GCodeProcessor::process_G90(const GCodeReader::GCodeLine& line)
@@ -6345,16 +6532,19 @@ void GCodeProcessor::process_G92(const GCodeReader::GCodeLine& line)
     bool any_found = false;
 
     if (line.has_x()) {
+        m_axis_origin_known[X] = m_axis_position_known[X];
         m_origin[X] = m_end_position[X] - line.x() * lengths_scale_factor;
         any_found = true;
     }
 
     if (line.has_y()) {
+        m_axis_origin_known[Y] = m_axis_position_known[Y];
         m_origin[Y] = m_end_position[Y] - line.y() * lengths_scale_factor;
         any_found = true;
     }
 
     if (line.has_z()) {
+        m_axis_origin_known[Z] = m_axis_position_known[Z];
         m_origin[Z] = m_end_position[Z] - line.z() * lengths_scale_factor;
         any_found = true;
         // Belt only: the start G-code's purge-blob advance + G92 Z0 resets leave a constant
@@ -6379,6 +6569,8 @@ void GCodeProcessor::process_G92(const GCodeReader::GCodeLine& line)
         // The G92 may be called for axes that PrusaSlicer does not recognize, for example see GH issue #3510,
         // where G92 A0 B0 is called although the extruder axis is till E.
         for (unsigned char a = X; a <= E; ++a) {
+            if (a <= Z)
+                m_axis_origin_known[a] = m_axis_position_known[a];
             m_origin[a] = m_end_position[a];
         }
     }
@@ -7425,12 +7617,28 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
     }
 }
 
-void GCodeProcessorResult::ObjectMass::add(const Sum &sum, const BoundingBoxf3 &extent, size_t layer)
+void GCodeProcessorResult::ObjectMass::add(const Sum &sum, const BoundingBoxf3 &extent, const BoundingBoxf3 &belt_extent, size_t layer)
 {
     box.merge(extent);
+    belt_box.merge(belt_extent);
     if (printed_up_to_layer.size() <= layer)
         printed_up_to_layer.resize(layer + 1);
     printed_up_to_layer[layer].add(sum);
+}
+
+void GCodeProcessorResult::ObjectMass::transform(const Transform3d &trafo)
+{
+    const Matrix3d linear      = trafo.linear();
+    const Vec3d    translation = trafo.translation();
+    for (Sum &sum : printed_up_to_layer) {
+        const Vec3d moment = linear * sum.moment;
+        sum.set_second_moments(linear * sum.second_moments() * linear.transpose() + moment * translation.transpose() +
+                               translation * moment.transpose() + sum.mass * translation * translation.transpose());
+        sum.moment = moment + sum.mass * translation;
+    }
+    box = belt_box;
+    if (box.defined)
+        box.translate(translation);
 }
 
 void GCodeProcessor::add_object_mass(int filament_id, float volume)
@@ -7447,26 +7655,40 @@ void GCodeProcessor::add_object_mass(int filament_id, float volume)
     const Vec3d offset      = Vec3d(m_x_offset, m_y_offset, -m_z_offset) - half_height + m_extruder_offsets[filament_id].cast<double>();
     const Vec3d start       = Vec3d(m_start_position[X], m_start_position[Y], m_start_position[Z]) + offset;
     const Vec3d end         = Vec3d(m_end_position[X], m_end_position[Y], m_end_position[Z]) + offset;
-    // The second moments of a uniform segment.
-    const GCodeProcessorResult::ObjectMass::Sum sum{ mass, double(volume), 0.5 * mass * (start + end),
-                                                     mass / 3. * (start.cwiseProduct(start) + start.cwiseProduct(end) + end.cwiseProduct(end)) };
+    // The second moments of a uniform segment, m (2 s s^T + s e^T + e s^T + 2 e e^T) / 6: its diagonal, and the entries for
+    // the axis pairs xy, xz and yz.
+    const auto lhs = [](const Vec3d &v) { return Vec3d(v.x(), v.x(), v.y()); };
+    const auto rhs = [](const Vec3d &v) { return Vec3d(v.y(), v.z(), v.z()); };
+    const GCodeProcessorResult::ObjectMass::Sum sum{
+        mass, double(volume), 0.5 * mass * (start + end),
+        mass / 3. * (start.cwiseProduct(start) + start.cwiseProduct(end) + end.cwiseProduct(end)),
+        mass / 6. * (2. * lhs(start).cwiseProduct(rhs(start)) + lhs(start).cwiseProduct(rhs(end)) + lhs(end).cwiseProduct(rhs(start)) +
+                     2. * lhs(end).cwiseProduct(rhs(end))) };
     // Of the bead's center line and its height, as its width is only estimated. Merged, as a wall along an axis is flat.
     BoundingBoxf3 extent;
     extent.merge(start.cwiseMin(end) - half_height);
     extent.merge(start.cwiseMax(end) + half_height);
+    BoundingBoxf3 belt_extent;
+    if (m_belt_linear) {
+        const Vec3d belt_start       = *m_belt_linear * start;
+        const Vec3d belt_end         = *m_belt_linear * end;
+        const Vec3d belt_half_height = (*m_belt_linear * half_height).cwiseAbs();
+        belt_extent.merge(belt_start.cwiseMin(belt_end) - belt_half_height);
+        belt_extent.merge(belt_start.cwiseMax(belt_end) + belt_half_height);
+    }
     const bool   part  = role != erBrim && !is_support(role);
     const size_t layer = std::max<unsigned int>(1, m_layer_id) - 1;
 
-    m_result.plate_mass.add(sum, extent, layer);
+    m_result.plate_mass.add(sum, extent, belt_extent, layer);
     // The brim belongs to the plate alone.
     if (role == erBrim || !m_mass_locator)
         return;
-    const auto add = [&sum, &extent, layer](std::vector<GCodeProcessorResult::ObjectMass> &masses, int index) {
+    const auto add = [&sum, &extent, &belt_extent, layer](std::vector<GCodeProcessorResult::ObjectMass> &masses, int index) {
         if (index < 0)
             return;
         if (masses.size() <= size_t(index))
             masses.resize(index + 1);
-        masses[index].add(sum, extent, layer);
+        masses[index].add(sum, extent, belt_extent, layer);
     };
     // At the nozzle's height, which the layers print at.
     const MassLocation location = m_mass_locator(0.5 * (start + end) + half_height, !part);
@@ -7958,6 +8180,7 @@ void GCodeProcessor::calculate_time(GCodeProcessorResult& result, size_t keep_la
                                 it->second : block.move_id + (unsigned int)inserted_actual_speed_moves_count;
         }
     }
+    m_options_z_corrector.on_moves_inserted(m_actual_speed_id_map);
 }
 
 void GCodeProcessor::simulate_st_synchronize(float additional_time, EMoveType target_move_type)

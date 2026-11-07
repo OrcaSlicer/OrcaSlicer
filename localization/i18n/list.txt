@@ -166,6 +166,7 @@ src/slic3r/GUI/NotificationManager.cpp
 src/slic3r/GUI/ObjectDataViewModel.cpp
 src/slic3r/GUI/OpenGLManager.cpp
 src/slic3r/GUI/OptionsGroup.cpp
+src/slic3r/GUI/OptionStateRegistry.cpp
 src/slic3r/GUI/PrintOptionsDialog.cpp
 src/slic3r/GUI/SafetyOptionsDialog.cpp
 src/slic3r/GUI/ParamsPanel.cpp
@@ -176,6 +177,7 @@ src/slic3r/GUI/Plater.cpp
 src/slic3r/GUI/Preferences.cpp
 src/slic3r/GUI/PresetComboBoxes.cpp
 src/slic3r/GUI/PresetHints.cpp
+src/slic3r/GUI/PrimitiveSizeDialog.cpp
 src/slic3r/GUI/ProgressStatusBar.cpp
 src/slic3r/GUI/PlateSettingsDialog.cpp
 src/slic3r/GUI/PrivacyUpdateDialog.cpp
@@ -292,6 +294,7 @@ src/slic3r/GUI/FilamentPickerDialog.cpp
 src/slic3r/GUI/NetworkPluginDialog.cpp
 src/slic3r/GUI/RammingChart.cpp
 src/slic3r/GUI/StepMeshDialog.cpp
+src/slic3r/GUI/GeometryImportDialog.cpp
 src/slic3r/GUI/FilamentPickerDialog.hpp
 src/slic3r/GUI/PresetBundleDialog.cpp
 src/slic3r/GUI/ExportPresetBundleDialog.cpp
@@ -346,6 +349,7 @@ src/slic3r/GUI/MixedFilamentDialog.cpp
 src/slic3r/GUI/ModelMall.cpp
 src/slic3r/GUI/OAuthDialog.cpp
 src/slic3r/GUI/PluginPickerDialog.cpp
+src/slic3r/GUI/PluginPermissionValidation.cpp
 src/slic3r/GUI/PluginsConfigDialog.cpp
 src/slic3r/GUI/PluginsDialog.cpp
 src/slic3r/GUI/PrinterWebView.cpp

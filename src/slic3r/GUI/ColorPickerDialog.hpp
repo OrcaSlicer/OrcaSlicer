@@ -3,6 +3,7 @@
 #include "libslic3r/Color.hpp"
 #include "Widgets/WebViewHostDialog.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <variant>
@@ -18,9 +19,7 @@ class wxWindow;
 
 namespace Slic3r::GUI {
 
-// Most colors an ordered gradient may hold. This is the native switch for multi-color gradients:
-// 2 keeps the classic two-color gradients. The page receives it as options.max_gradient_colors
-// and never offers more, so the picker, favorites and project colors all share one limit.
+// Shared storage limit; individual picker callers may request a lower editing limit.
 inline constexpr std::size_t COLOR_PICKER_MAX_GRADIENT_COLORS = 7;
 
 // Gradient colors retain their order (2..COLOR_PICKER_MAX_GRADIENT_COLORS); a solid has exactly one color.
@@ -30,6 +29,17 @@ using ColorSelection = std::variant<ColorRGBA, ColorGradient>;
 struct ColorPickerOptions {
     bool allow_gradient = false;
     bool allow_alpha = false;
+    std::size_t max_gradient_colors = COLOR_PICKER_MAX_GRADIENT_COLORS;
+
+    constexpr std::size_t gradient_color_limit() const
+    {
+        return std::clamp(max_gradient_colors, std::size_t{2}, COLOR_PICKER_MAX_GRADIENT_COLORS);
+    }
+
+    constexpr bool supports_gradient(std::size_t count) const
+    {
+        return allow_gradient && count >= 2 && count <= gradient_color_limit();
+    }
 };
 
 // Project storage preserves direction; FilamentColor's set is only for the
@@ -60,6 +70,7 @@ private:
     void handle_web_command(const nlohmann::json& payload);
     void send_initial_state();
     void finish(int return_code);
+    void sample_screen(); // Native screen eyedropper (ColorSampler); dialog only offers it where one is available
     void position_panel();
     void move_to_anchor();
     void resize_to_content(int height);
@@ -77,6 +88,9 @@ private:
     bool m_init_sent = false;
     bool m_page_ready = false;
     bool m_closing = false;
+#if defined(__WXOSX__) || defined(__WXMSW__) || defined(__WXGTK__)
+    bool m_sampling = false; // A screen sampler is open; only platforms with one use this.
+#endif
     bool m_favorites_writable = false;
     bool m_sidebar_open = false;
     std::string m_palette;

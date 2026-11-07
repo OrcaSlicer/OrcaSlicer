@@ -3040,6 +3040,9 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
     if ((params.pattern == ipLateralLattice || params.pattern == ipLateralHoneycomb) && params.multiline > 1)
         remove_overlapped(fill_lines, line_width);
 
+    // After remove_overlapped(), which would not recognize a line joined with its duplicate.
+    join_cut_outlines(fill_lines, params);
+
     if (!fill_lines.empty()) {
         if (params.dont_connect()) {
             if (fill_lines.size() > 1)
@@ -3428,7 +3431,7 @@ bool FillRectilinear::fill_surface_trapezoidal(
 
     // Orca: round the corners of the trapezoids. The straight base lines of the triangular family
     // have no corner to round.
-    smooth_polylines_corners(polylines, params.smooth_factor, scaled<double>(params.resolution));
+    smooth_polylines_corners(polylines, params.corner_smoothing());
 
     // Only the centerlines within d1 / 2 of the surface have outlines reaching it.
     polylines = intersection_pl(std::move(polylines), offset(expolygon, float(d1 / 2)));

@@ -24,6 +24,7 @@
 #include "../PrintConfig.hpp"
 #include "../Flow.hpp"
 #include "../ExtrusionEntity.hpp"
+#include "FillCornerSmoothing.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Point.hpp"
@@ -99,6 +100,8 @@ struct FillParams
 
     // Orca: corner smoothing factor in the range [0, 1].
     double      smooth_factor { 0. };
+    // The corner smoothing in scaled coordinates.
+    CornerSmoothing corner_smoothing() const { return CornerSmoothing{smooth_factor, scaled<double>(resolution)}; }
 
     // For Lateral lattice
     coordf_t    lateral_lattice_angle_1    { 0.f };
@@ -263,6 +266,8 @@ public:
    // Joins polylines whose ends are at most max_gap apart, shortest gaps first and without closing a loop, so each such
    // group prints as one path. Without can_reverse only the end of one polyline joins the start of another.
    void join_close_ends(Polylines &polylines, double max_gap, bool can_reverse);
+   // Clipping also cuts a closed outline of multiline_fill() at its first point, anywhere along a line. Joins those pieces back.
+   void join_cut_outlines(Polylines &polylines, const FillParams &params);
 } // namespace Slic3r
 
 #endif // slic3r_FillBase_hpp_

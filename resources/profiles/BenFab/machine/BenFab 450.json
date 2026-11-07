@@ -1,0 +1,15 @@
+{
+	"type": "machine_model",
+	"name": "BenFab 450",
+	"model_id": "BenFab-450",
+	"nozzle_diameter": "0.4;0.6;0.8;1.0",
+	"machine_tech": "FFF",
+	"family": "BenFab",
+	"bed_model": "benfab_450_buildplate_model.stl",
+	"bed_texture": "benfab_450_buildplate_texture.svg",
+	"bed_exclude_area": [
+		"0x0"
+	],
+	"hotend_model": "",
+	"default_materials": "Generic ABS @System;Generic ASA @System;Generic PETG @System;Generic PETG-CF @System;Generic PLA @System;Generic PLA-CF @System;Generic PLA Matte @System;Generic PLA Silk @System;Generic TPU @System"
+}

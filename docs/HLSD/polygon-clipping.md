@@ -62,6 +62,23 @@ Clipper2 behaves differently by default, the wrapper adjusts it.
   clip do not leave slivers.
 - Open polylines are clipped with the non-zero rule and keep their direction.
 
+### Tiled booleans
+
+The sweep slows down with the number of edges crossing a scan line, so a layer
+cut into thousands of pieces makes every whole-layer boolean expensive.
+`diff_ex_by_piece()` and `intersection_ex_by_piece()` take a subject of
+non-overlapping `ExPolygons`, group them into tiles with
+`ClipperUtils::tile_expolygons()`, and run each tile in parallel against only
+the clip polygons near it, cut to the tile's box. Below 128 pieces there is a
+single tile, and they are the plain `diff_ex()` / `intersection_ex()`.
+
+The result covers the same area as the plain call. Without the safety offset
+the rings are the same. With it, each tile unites only the clip polygons near
+it, so a clip edge that the whole-layer union splits where it crosses a distant
+clip polygon stays whole, and a crossing with the subject can round 1 unit
+differently. The tiles' results are concatenated in tile order, so the order of
+the output `ExPolygons` differs from the plain call.
+
 ### Offsets
 
 - Before offsetting, input vertices closer than

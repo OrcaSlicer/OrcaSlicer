@@ -27,7 +27,7 @@ namespace {
 SequentialClearanceInstance instance(coord_t x, coord_t y, double height)
 {
     return {height, BoundingBox(Point(x, y), Point(x + 5, y + 10)),
-        Polygon{Point(x, y), Point(x + 5, y), Point(x + 5, y + 10), Point(x, y + 10)}};
+        Slic3r::Polygon{Point(x, y), Point(x + 5, y), Point(x + 5, y + 10), Point(x, y + 10)}};
 }
 
 } // namespace
@@ -83,7 +83,7 @@ TEST_CASE("Sequential clearance allows the last object up to printable height", 
     CHECK_THAT(warnings.front().second, WithinAbs(200., 1e-6));
 }
 
-TEST_CASE("Sequential clearance warns the same rotated copy as print validation", "[SequentialClearance][Regression]")
+TEST_CASE("Sequential clearance warns the same copy as print validation", "[SequentialClearance][Regression]")
 {
     constexpr double rod_height = 10.;
     constexpr double lid_height = 30.;
@@ -103,7 +103,7 @@ TEST_CASE("Sequential clearance warns the same rotated copy as print validation"
     print.auto_assign_extruders(object);
     print.apply(model, config);
     Polygons polygons;
-    std::vector<std::pair<Polygon, float>> validation_warnings;
+    std::vector<std::pair<Slic3r::Polygon, float>> validation_warnings;
     Print::sequential_print_clearance_valid(print, &polygons, &validation_warnings);
 
     std::map<ObjectID, int> print_order;
@@ -113,18 +113,20 @@ TEST_CASE("Sequential clearance warns the same rotated copy as print validation"
 
     std::vector<SequentialClearanceInstance> instances;
     for (size_t i = 0; i < object->instances.size(); ++i) {
-        Polygon hull = object->convex_hull_2d(object->instances[i]->get_matrix());
+        Slic3r::Polygon hull = object->convex_hull_2d(object->instances[i]->get_matrix());
         instances.push_back({object->get_instance_max_z(i), hull.bounding_box(), hull, object->instances[i]->id()});
     }
-    const Polygon expected_warning = instances[1].hull_polygon;
+    // Copies print in object-list order, so the first copy is the one held to the rod height: the later
+    // copy shares its Y band. Print validation warns about that copy, and the clearance preview must
+    // warn about the same one.
     REQUIRE(validation_warnings.size() == 1);
-    CHECK(validation_warnings.front().first.bounding_box().contains(instances[1].bounding_box.center()));
-    CHECK_FALSE(validation_warnings.front().first.bounding_box().contains(instances[0].bounding_box.center()));
+    CHECK(validation_warnings.front().first.bounding_box().contains(instances[0].bounding_box.center()));
+    CHECK_FALSE(validation_warnings.front().first.bounding_box().contains(instances[1].bounding_box.center()));
 
     sort_sequential_clearance_instances(instances.begin(), instances.end(), print_order);
     const auto warnings = sequential_clearance_height_polygons(instances, printable_height, lid_height, rod_height);
     REQUIRE(warnings.size() == 1);
-    CHECK(warnings.front().first == expected_warning);
+    CHECK(warnings.front().first == instances[0].hull_polygon);
     CHECK_THAT(warnings.front().second, WithinAbs(rod_height, 1e-6));
 }
 

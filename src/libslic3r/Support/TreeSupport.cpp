@@ -996,16 +996,46 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
                 if (is_auto(stype) && config_detect_sharp_tails)
                 {
                     // BBS detect sharp tail
+                    // On a belt, "below" has to include the belt itself and the
+                    // shear-advanced lower layer, or every belt-contact island reads as
+                    // a sharp tail -- which is what the empty-predecessor skip above was
+                    // really masking. effective_lower is exactly that notion of below.
+                    const ExPolygons &tail_lower = belt_ovh_active ? effective_lower : lower_polys;
+                    // Each island is tested only against the lower islands whose box meets its own; overlaps() tries
+                    // every pair, which is quadratic in the island counts of the two layers.
+                    std::vector<BoundingBox> lower_bboxes;
+                    lower_bboxes.reserve(tail_lower.size());
+                    for (const ExPolygon &lower : tail_lower)
+                        lower_bboxes.emplace_back(get_extents(lower));
                     for (const ExPolygon& expoly : curr_polys) {
                         bool  is_sharp_tail = false;
                         // 1. nothing below
-                        // this is a sharp tail region if it's floating and non-ignorable.
-                        // On a belt, "below" has to include the belt itself and the
-                        // shear-advanced lower layer, or every belt-contact island reads as
-                        // a sharp tail -- which is what the empty-predecessor skip above was
-                        // really masking. effective_lower is exactly that notion of below.
-                        const ExPolygons &tail_lower = belt_ovh_active ? effective_lower : lower_polys;
-                        if (!overlaps(offset_ex(expoly, 0.1 * extrusion_width_scaled), tail_lower)) {
+                        // this is a sharp tail region if it's floating and non-ignorable
+                        const ExPolygons  expanded = offset_ex(expoly, 0.1 * extrusion_width_scaled);
+                        const BoundingBox bbox     = get_extents(expanded);
+                        ExPolygons        lower_nearby;
+                        for (size_t i = 0; i < tail_lower.size(); ++i)
+                            if (lower_bboxes[i].overlap(bbox))
+                                lower_nearby.emplace_back(tail_lower[i]);
+                        // As overlaps(expanded, lower_nearby), with each lower island cut to the island's box first:
+                        // below a fine relief the lower layer is a few islands with thousands of holes, and the whole
+                        // of that boundary would otherwise be intersected once per island above.
+                        const auto overlaps_nearby = [&]() {
+                            for (const ExPolygon &a : expanded) {
+                                if (a.empty())
+                                    continue;
+                                const BoundingBox a_bbox = get_extents(a);
+                                for (const ExPolygon &b : lower_nearby) {
+                                    if (b.empty() || !get_extents(b).overlap(a_bbox))
+                                        continue;
+                                    const Polygons b_near = ClipperUtils::clip_clipper_polygons_with_subject_bbox(b, a_bbox.inflated(SCALED_EPSILON));
+                                    if (!intersection_pl(to_polylines(b_near), a).empty() || b.contains(a.contour.points.front()))
+                                        return true;
+                                }
+                            }
+                            return false;
+                        };
+                        if (!overlaps_nearby()) {
                             is_sharp_tail = !offset_ex(expoly, -0.1 * extrusion_width_scaled).empty();
                         }
 
@@ -1777,7 +1807,8 @@ void TreeSupport::generate_toolpaths()
                                 // allow infill-only mode if support is thick enough (so min_wall_count is 0);
                                 // otherwise must draw 1 wall
                                 // Don't need extra walls if we have infill. Extra walls may overlap with the infills.
-                                size_t min_wall_count = offset(poly, -scale_(support_spacing * 1.5)).empty() ? 1 : 0;
+                                // The shrink test can only add the one wall, so it is skipped when walls are configured.
+                                size_t min_wall_count = wall_count == 0 && offset(poly, -scale_(support_spacing * 1.5)).empty() ? 1 : 0;
                                 make_perimeter_and_infill(base_dst, poly, std::max(min_wall_count, wall_count), flow,
                                     erSupportMaterial, filler_support.get(), support_density, false);
                             }
@@ -3327,7 +3358,7 @@ void TreeSupport::drop_nodes()
                     return; // from parallel_for_each lambda
                 }
                 const ExPolygons& next_collision = get_collision(0, obj_layer_nr_next);
-                const bool   to_buildplate  = !is_inside_ex(m_ts_data->m_layer_outlines[obj_layer_nr_next], next_layer_vertex);
+                const bool to_buildplate = !is_inside_ex(next_collision, next_layer_vertex);
                 // don't increase radius if next node will collide partially with the object (STUDIO-7883)
                 to_outside             = projection_onto(next_collision, next_layer_vertex);
                 direction_to_outer     = to_outside - node.position;

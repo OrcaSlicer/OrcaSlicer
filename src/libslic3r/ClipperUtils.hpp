@@ -5,12 +5,14 @@
 #include "Polyline.hpp"
 #include "Line.hpp"
 #include "libslic3r.h"
+#include "BoundingBox.hpp"
 #include "ExPolygon.hpp"
 #include "Polygon.hpp"
 #include "Surface.hpp"
 #include <cstddef>
 #include <iterator>
 #include <cassert>
+#include <optional>
 #include <vector>
 
 namespace Slic3r {
@@ -332,6 +334,19 @@ namespace ClipperUtils {
     [[nodiscard]] Polygons clip_clipper_polygons_with_subject_bbox(const ExPolygon &src, const BoundingBox &bbox, const bool get_entire_polygons = false);
     [[nodiscard]] Polygons clip_clipper_polygons_with_subject_bbox(const ExPolygons &src, const BoundingBox &bbox, const bool get_entire_polygons = false);
 
+    // Splits ExPolygons into tiles by the centres of their boxes, about `per_tile` of them to a tile, to run Clipper on a
+    // layer of many pieces tile by tile. Returns the non-empty tiles, each with the indices of its ExPolygons and their box.
+    struct ExPolygonsTile
+    {
+        BoundingBox         bbox;
+        std::vector<size_t> members;
+    };
+    [[nodiscard]] std::vector<ExPolygonsTile> tile_expolygons(const ExPolygons &expolygons, size_t per_tile);
+
+    // A grid point strictly inside the polygon, or none if the polygon is at most a few units thick everywhere.
+    // Decides on which side of another path a path lies when every one of its vertices touches that path.
+    [[nodiscard]] std::optional<Point> interior_point(const Polygon &polygon);
+
     }
 
 // offset Polygons
@@ -343,7 +358,8 @@ Slic3r::Polygons offset(const Slic3r::Polygon &polygon, const float delta, JoinT
 // Input polygons for negative offset shall be "normalized": There must be no overlap / intersections between the input polygons.
 Slic3r::Polygons   offset(const Slic3r::Polyline &polyline, const float delta, JoinType joinType = DefaultLineJoinType, double miterLimit = DefaultLineMiterLimit, EndType end_type = DefaultEndType);
 Slic3r::Polygons   offset(const Slic3r::Polyline3 &polyline, const float delta, JoinType joinType = DefaultLineJoinType, double miterLimit = DefaultLineMiterLimit, EndType end_type = DefaultEndType);
-Slic3r::Polygons   offset(const Slic3r::Polylines &polylines, const float delta, JoinType joinType = DefaultLineJoinType, double miterLimit = DefaultLineMiterLimit, EndType end_type = DefaultEndType);
+// cap_tolerance: the arc tolerance of round end caps when joinType is not jtRound, 0 for the default.
+Slic3r::Polygons   offset(const Slic3r::Polylines &polylines, const float delta, JoinType joinType = DefaultLineJoinType, double miterLimit = DefaultLineMiterLimit, EndType end_type = DefaultEndType, double cap_tolerance = 0.);
 Slic3r::Polygons   offset(const Slic3r::Polygons &polygons, const float delta, JoinType joinType = DefaultJoinType, double miterLimit = DefaultMiterLimit);
 Slic3r::Polygons   offset(const Slic3r::ExPolygon &expolygon, const float delta, JoinType joinType = DefaultJoinType, double miterLimit = DefaultMiterLimit);
 Slic3r::Polygons   offset(const Slic3r::ExPolygons &expolygons, const float delta, JoinType joinType = DefaultJoinType, double miterLimit = DefaultMiterLimit);
@@ -447,6 +463,12 @@ Slic3r::ExPolygons diff_clipped(const Slic3r::ExPolygons &src, const Slic3r::ExP
 Slic3r::Polygons   diff(const Slic3r::ExPolygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
 Slic3r::Polygons   diff(const Slic3r::ExPolygons &subject, const Slic3r::ExPolygons &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
 Slic3r::Polygons   diff(const Slic3r::Surfaces &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
+// The part of subject farther than delta from clip, as diff(subject, expand(clip, delta)). Expanding finely detailed polygons by
+// a large delta is slow, so a cheaper, smaller round expansion of the simplified clip, which lies within the full one, is tried
+// first: where it covers the subject, so does the full expansion. That holds as long as both expansions grow the regions their
+// paths enclose; the offsets' own input decimation can fold a sliver thinner than about 0.01 * delta and break it, so the
+// result may then differ from diff with expand. Callers use it where such a difference cannot matter.
+Slic3r::Polygons   diff_expanded(const Slic3r::Polygons &subject, const Slic3r::Polygons &clip, float delta);
 Slic3r::ExPolygons diff_ex(const Slic3r::Polygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
 Slic3r::ExPolygons diff_ex(const Slic3r::Polygons &subject, const Slic3r::ExPolygons &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
 Slic3r::ExPolygons diff_ex(const Slic3r::Polygons &subject, const Slic3r::Surfaces &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
@@ -527,6 +549,11 @@ Slic3r::ExPolygons intersection_ex(const Slic3r::Surfaces &subject, const Slic3r
 Slic3r::ExPolygons intersection_ex(const Slic3r::Surfaces &subject, const Slic3r::ExPolygons &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
 Slic3r::ExPolygons intersection_ex(const Slic3r::Surfaces &subject, const Slic3r::Surfaces &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
 Slic3r::ExPolygons intersection_ex(const Slic3r::SurfacesPtr &subject, const Slic3r::ExPolygons &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
+// diff_ex() / intersection_ex() of the subject split into tiles, each against only the part of the clip near it, the tiles in
+// parallel. The same area as the operation on the whole subject when its ExPolygons do not overlap, and much faster for a
+// subject of thousands of pieces spread over a layer: Clipper slows down with the number of edges crossing a scan line.
+Slic3r::ExPolygons diff_ex_by_piece(const Slic3r::ExPolygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
+Slic3r::ExPolygons intersection_ex_by_piece(const Slic3r::ExPolygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
 Slic3r::Polylines  intersection_pl(const Slic3r::Polylines &subject, const Slic3r::Polygon &clip);
 Slic3r::Polylines  intersection_pl(const Slic3r::Polyline &subject, const Slic3r::ExPolygon &clip);
 Slic3r::Polylines  intersection_pl(const Slic3r::Polylines &subject, const Slic3r::ExPolygon &clip);
