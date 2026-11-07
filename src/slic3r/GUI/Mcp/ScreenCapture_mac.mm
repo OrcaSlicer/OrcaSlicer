@@ -2,10 +2,13 @@
 
 #include "ScreenCapture.hpp"
 
+#include <wx/image.h>
 #include <wx/toplevel.h>
+#include <wx/window.h>
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #import <AppKit/AppKit.h>
 
@@ -13,17 +16,16 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 
 std::shared_ptr<CaptureSessions> open_capture_sessions() { return nullptr; }
 
-bool capture_native_window(wxTopLevelWindow& window, CaptureSessions* /*sessions*/, wxImage& out, bool& approximate, std::string& note,
-                           std::vector<wxRect>& /*covered*/, std::string& err)
+namespace {
+
+// The view drawn into a bitmap, which needs no screen-recording permission and works for covered windows.
+// Layer-backed OpenGL and web views don't draw this way.
+bool draw_view(NSView* view, wxImage& out, std::string& err)
 {
-    NSView* view = (NSView*) window.GetHandle();
     if (view == nil) {
         err = "The window has no native view";
         return false;
     }
-    // The content view draws itself into a bitmap, so this needs no screen-recording permission
-    // and works for covered windows. Layer-backed OpenGL and web views don't draw this way; the 3D
-    // canvases are composited from their own frames afterwards, web views may stay blank.
     NSRect              bounds = [view bounds];
     NSBitmapImageRep*   rep    = [view bitmapImageRepForCachingDisplayInRect:bounds];
     if (rep == nil) {
@@ -49,9 +51,30 @@ bool capture_native_window(wxTopLevelWindow& window, CaptureSessions* /*sessions
             rgb[2] = row[x * spp + 2];
         }
     }
+    return true;
+}
+
+} // namespace
+
+bool capture_native_window(wxTopLevelWindow& window, CaptureSessions* /*sessions*/, wxImage& out, bool& approximate, std::string& note,
+                           std::vector<wxRect>& /*covered*/, std::string& err)
+{
+    // The 3D canvases are composited from their own frames afterwards; web views may stay blank.
+    if (!draw_view((NSView*) window.GetHandle(), out, err))
+        return false;
     approximate = true;
     note        = "drawn from the view hierarchy; web views may be blank";
     return true;
 }
+
+// A wx popup's content view is all of it: wx makes it a borderless window.
+bool capture_native_popup(wxWindow& popup, wxImage& out)
+{
+    std::string err;
+    return draw_view((NSView*) popup.GetHandle(), out, err);
+}
+
+// AppKit draws its menus and tooltips itself; only reading the screen would capture them.
+std::vector<PopupCapture> capture_native_popups() { return {}; }
 
 }}} // namespace Slic3r::GUI::Mcp

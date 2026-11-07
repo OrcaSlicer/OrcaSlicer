@@ -1620,7 +1620,7 @@ are children of the window they opened from. `ui_snapshot` lists each shown one 
 after its window (`popups_of()`), and `root: "popup"` lists only them. A widget in a popup belongs
 to that window (`owning_window()`), so it is inside the topmost modal for the input guards when its
 popup opened from there, and its locator's `within` names that window. A screenshot of a widget in
-a popup is refused, since window captures leave popups out.
+a popup is refused: a screenshot of its window shows the popup.
 
 ### Plate icons
 
@@ -2159,8 +2159,15 @@ GTK 3's `gdkwindow-wayland.c`): GDK puts a popup's origin at its offset from the
 shows over, plus that content's origin, less where the window GTK placed it relative to is in that
 window. wx's menus are placed relative to the window `popup_menu()` was given, a submenu or a drop-down
 menu relative to the widget it is attached to, a tooltip relative to the window it shows over, and wx's
-own popups, which wx places with `gtk_window_move()`, at their offset from the content directly. macOS and
-Windows window captures leave popups out. The full-size PNG goes to `save_path` or `<datadir>/mcp/out/OrcaSlicer-screenshot-<timestamp>.png`. The image
+own popups, which wx places with `gtk_window_move()`, at their offset from the content directly. Windows
+and macOS draw them in too, each where its screen position puts it on the window it shows over. wx's
+popups (`popups_of()`) show over the window they opened from: Windows reads one from the screen, where
+it shows topmost, and macOS draws its view as it draws a window's (`capture_native_popup()`). Windows
+also reads the system's popups from the screen (`capture_native_popups()`): menus, tooltips and the
+lists of native drop-downs are top-level windows of the thread that showed them, and each shows over the
+topmost of our windows below it that it overlaps (`EnumWindows` lists windows topmost first). AppKit
+draws macOS's menus and tooltips itself, and only reading the screen, which needs the Screen Recording
+permission, would capture them, so they are left out. The full-size PNG goes to `save_path` or `<datadir>/mcp/out/OrcaSlicer-screenshot-<timestamp>.png`. The image
 block is scaled to `max_dim` on the long edge (default 1280, clamped to 256–2000).
 `include_image: false` returns only the path.
 
@@ -2178,10 +2185,10 @@ size (fit to `max_dim`, rounded down to even numbers for 4:2:0), and a failure f
 any file exists. The `window` target is the main window as `screenshot` captures it, with the modal
 stack (`ModalTracker::stack()`, outermost first, so in stacking order) composited at each dialog's
 client offset, resampled to the main window's content scale off MSW. Modeless windows and native
-dialogs are left out: `wxTopLevelWindows` is creation order, not stacking order. Popups, menus and
-tooltips are left out on macOS and Windows; on Wayland the recording draws them last, over the
-dialogs, rather than into the window each shows over (`CaptureOptions::popups`), so a drop-down list
-reaching past its dialog is not cut off, and the pointer follows a wx popup to its window. On X11 the
+dialogs are left out: `wxTopLevelWindows` is creation order, not stacking order. Off X11, popups,
+menus and tooltips (on macOS, wx's popups only) are drawn last, over the dialogs, rather than into the window
+each shows over (`CaptureOptions::popups`), so a drop-down list reaching past its dialog is not cut
+off, and the pointer follows a wx popup to its window. On X11 the
 capture reads the screen, so it already shows our windows over the main window as they are, the
 script runner included when it covers it, and nothing more is composited (a reparenting window manager's
 frame is searched for our window inside it); the capture records the

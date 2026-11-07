@@ -5,6 +5,7 @@
 #include <wx/gdicmn.h>
 #include <wx/image.h>
 #include <wx/toplevel.h>
+#include <wx/window.h>
 
 #include <boost/log/trivial.hpp>
 
@@ -13,6 +14,7 @@
 #include <condition_variable>
 #include <cstddef>
 #include <cstdio>
+#include <cwchar>
 #include <exception>
 #include <iterator>
 #include <map>
@@ -60,6 +62,48 @@ namespace {
 
 constexpr auto kFormat = ABI::Windows::Graphics::DirectX::DirectXPixelFormat_B8G8R8A8UIntNormalized;
 
+// The pixels of `bmp`, which must not be selected into a device context.
+bool read_bitmap(HDC dc, HBITMAP bmp, int w, int h, wxImage& out)
+{
+    BITMAPINFO bi{};
+    bi.bmiHeader.biSize        = sizeof(BITMAPINFOHEADER);
+    bi.bmiHeader.biWidth       = w;
+    bi.bmiHeader.biHeight      = -h; // top-down rows
+    bi.bmiHeader.biPlanes      = 1;
+    bi.bmiHeader.biBitCount    = 32;
+    bi.bmiHeader.biCompression = BI_RGB;
+    std::vector<unsigned char> bgra(size_t(w) * size_t(h) * 4);
+    if (GetDIBits(dc, bmp, 0, UINT(h), bgra.data(), &bi, DIB_RGB_COLORS) != h)
+        return false;
+    out.Create(w, h, false);
+    unsigned char* rgb = out.GetData();
+    for (size_t i = 0; i < size_t(w) * size_t(h); ++i, rgb += 3) {
+        rgb[0] = bgra[i * 4 + 2];
+        rgb[1] = bgra[i * 4 + 1];
+        rgb[2] = bgra[i * 4 + 0];
+    }
+    return true;
+}
+
+// What the screen shows in `r`, layered windows such as a fading menu or tooltip included.
+bool read_screen(const RECT& r, wxImage& out)
+{
+    const int w = r.right - r.left, h = r.bottom - r.top;
+    if (w <= 0 || h <= 0)
+        return false;
+    HDC        screen = GetDC(nullptr);
+    HDC        mem    = CreateCompatibleDC(screen);
+    HBITMAP    bmp    = CreateCompatibleBitmap(screen, w, h);
+    HGDIOBJ    old    = SelectObject(mem, bmp);
+    const BOOL copied = BitBlt(mem, 0, 0, w, h, screen, r.left, r.top, SRCCOPY | CAPTUREBLT);
+    SelectObject(mem, old);
+    const bool read = copied && read_bitmap(mem, bmp, w, h, out);
+    DeleteObject(bmp);
+    DeleteDC(mem);
+    ReleaseDC(nullptr, screen);
+    return read;
+}
+
 // PrintWindow makes the window and its children repaint into the bitmap, a repaint the screen can show as a
 // flash of the half-drawn window; it is what is left without Windows Graphics Capture.
 bool print_window(HWND hwnd, wxImage& out, bool& approximate, std::string& note, std::string& err)
@@ -87,33 +131,40 @@ bool print_window(HWND hwnd, wxImage& out, bool& approximate, std::string& note,
         BitBlt(mem, 0, 0, w, h, screen, 0, 0, SRCCOPY);
     }
     SelectObject(mem, old);
-
-    BITMAPINFO bi{};
-    bi.bmiHeader.biSize        = sizeof(BITMAPINFOHEADER);
-    bi.bmiHeader.biWidth       = w;
-    bi.bmiHeader.biHeight      = -h; // top-down rows
-    bi.bmiHeader.biPlanes      = 1;
-    bi.bmiHeader.biBitCount    = 32;
-    bi.bmiHeader.biCompression = BI_RGB;
-    std::vector<unsigned char> bgra(size_t(w) * size_t(h) * 4);
-    const int lines = GetDIBits(mem, bmp, 0, UINT(h), bgra.data(), &bi, DIB_RGB_COLORS);
-
+    const bool read = read_bitmap(mem, bmp, w, h, out);
     DeleteObject(bmp);
     DeleteDC(mem);
     ReleaseDC(hwnd, screen);
-    if (lines != h) {
+    if (!read) {
         err = "Reading the window bitmap failed";
         return false;
     }
-
-    out.Create(w, h, false);
-    unsigned char* rgb = out.GetData();
-    for (size_t i = 0; i < size_t(w) * size_t(h); ++i, rgb += 3) {
-        rgb[0] = bgra[i * 4 + 2];
-        rgb[1] = bgra[i * 4 + 1];
-        rgb[2] = bgra[i * 4 + 0];
-    }
     return true;
+}
+
+BOOL CALLBACK collect_own_window(HWND hwnd, LPARAM windows)
+{
+    if (IsWindowVisible(hwnd) && GetWindowThreadProcessId(hwnd, nullptr) == GetCurrentThreadId())
+        reinterpret_cast<std::vector<HWND>*>(windows)->push_back(hwnd);
+    return TRUE;
+}
+
+// A menu or submenu, a tooltip, or the list of a native combo box or choice: the system shows each in a
+// top-level window of the thread that asked for it.
+bool is_system_popup(HWND hwnd)
+{
+    wchar_t name[32] = {};
+    if (GetClassNameW(hwnd, name, int(std::size(name))) == 0)
+        return false;
+    return wcscmp(name, L"#32768") == 0 || wcscmp(name, L"tooltips_class32") == 0 || wcscmp(name, L"ComboLBox") == 0;
+}
+
+wxTopLevelWindow* top_level_window_of(HWND hwnd)
+{
+    for (wxWindow* w : wxTopLevelWindows)
+        if (w->GetHWND() == hwnd)
+            return dynamic_cast<wxTopLevelWindow*>(w);
+    return nullptr;
 }
 
 void check(HRESULT hr, const char* what)
@@ -424,6 +475,38 @@ bool capture_native_window(wxTopLevelWindow& window, CaptureSessions* sessions, 
             BOOST_LOG_TRIVIAL(warning) << "MCP capture: " << wgc_err << "; using PrintWindow";
     }
     return print_window(hwnd, out, approximate, note, err);
+}
+
+bool capture_native_popup(wxWindow& popup, wxImage& out)
+{
+    RECT r{};
+    return GetWindowRect(static_cast<HWND>(popup.GetHWND()), &r) && read_screen(r, out);
+}
+
+std::vector<PopupCapture> capture_native_popups()
+{
+    // The UI thread's shown top-level windows, topmost first, as EnumWindows lists them.
+    std::vector<HWND> windows;
+    EnumWindows(collect_own_window, reinterpret_cast<LPARAM>(&windows));
+    std::vector<PopupCapture> out;
+    for (std::size_t i = windows.size(); i-- > 0;) {
+        RECT r{};
+        if (!is_system_popup(windows[i]) || !GetWindowRect(windows[i], &r))
+            continue;
+        // It shows over the topmost of our windows below it that it overlaps, the one it opened over.
+        PopupCapture p;
+        for (std::size_t j = i + 1; j < windows.size() && p.owner == nullptr; ++j) {
+            RECT below{}, both{};
+            if (wxTopLevelWindow* top = top_level_window_of(windows[j]);
+                top != nullptr && GetWindowRect(windows[j], &below) && IntersectRect(&both, &r, &below))
+                p.owner = top;
+        }
+        if (p.owner == nullptr || !read_screen(r, p.image))
+            continue;
+        p.offset = wxPoint(r.left, r.top) - p.owner->ClientToScreen(wxPoint(0, 0));
+        out.push_back(std::move(p));
+    }
+    return out;
 }
 
 }}} // namespace Slic3r::GUI::Mcp

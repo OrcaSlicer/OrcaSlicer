@@ -902,11 +902,8 @@ bool McpRecorder::shows(wxWindow* window) const
         return true;
     if (capture_reads_screen())
         return top->IsShownOnScreen();
-    // A popup shows where the recording draws it, over the window it belongs to: only where capture_popups()
-    // draws popups at all (Wayland).
+    // A popup shows where the recording draws it (capture_popups()), over the window it belongs to.
     if (dynamic_cast<wxPopupWindow*>(top) != nullptr) {
-        if (window_positions_known())
-            return false;
         top = owning_window(top);
         if (top == wxGetApp().mainframe)
             return true;

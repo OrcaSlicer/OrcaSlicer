@@ -70,10 +70,17 @@ struct PopupCapture
     wxImage           image;
 };
 
-// Our popups shown now, bottom to top, where window captures leave them out but their place on their window is
-// known (Wayland). Empty elsewhere: X11 captures read them from the screen, and macOS and Windows captures
-// leave them out.
+// Our popups shown now, bottom to top, which window captures leave out. Empty on X11, whose captures read them
+// from the screen. macOS has wx's popups only: AppKit draws its menus and tooltips itself, and only reading the
+// screen, which needs the Screen Recording permission, would capture them.
 std::vector<PopupCapture> capture_popups();
+
+// The OS parts of capture_popups() on Windows and macOS. capture_native_popup() draws one of wx's popups from its
+// GetScreenPosition() on, at its scale: Windows reads it from the screen, where it shows topmost, and macOS
+// draws its view. capture_native_popups() gives the system's popups over our windows, bottom to top: menus,
+// tooltips and the lists of native drop-downs on Windows, none on macOS.
+bool                      capture_native_popup(wxWindow& popup, wxImage& out);
+std::vector<PopupCapture> capture_native_popups();
 
 // Whether a window capture reads the screen, and so shows our own windows over the target (X11).
 bool capture_reads_screen();

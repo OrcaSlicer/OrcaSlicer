@@ -306,7 +306,28 @@ std::optional<Capture> capture_window(wxTopLevelWindow& window, std::string& err
 }
 
 #if !defined(__WXGTK__)
-std::vector<PopupCapture> capture_popups() { return {}; }
+std::vector<PopupCapture> capture_popups()
+{
+    std::vector<PopupCapture> out;
+    // wx's popups, each over the window it opened from, where its screen position puts it.
+    for (wxWindow* top : wxTopLevelWindows) {
+        auto* window = dynamic_cast<wxTopLevelWindow*>(top);
+        if (window == nullptr || !window->IsShownOnScreen() || hidden_from_automation(window))
+            continue;
+        for (wxWindow* popup : popups_of(window)) {
+            PopupCapture p;
+            p.owner  = window;
+            p.offset = popup->GetScreenPosition() - window->ClientToScreen(wxPoint(0, 0));
+            if (capture_native_popup(*popup, p.image))
+                out.push_back(std::move(p));
+        }
+    }
+    // The system's over them: menus and tooltips show topmost.
+    for (PopupCapture& p : capture_native_popups())
+        if (p.owner->IsShownOnScreen() && !hidden_from_automation(p.owner))
+            out.push_back(std::move(p));
+    return out;
+}
 #endif
 
 #if defined(__WXGTK__)

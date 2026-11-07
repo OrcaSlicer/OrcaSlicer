@@ -424,9 +424,10 @@ void register_view_tools(McpService& service)
                             cap = capture_canvas(*canvas, err);
                         } else {
                             wxWindow* top = wxGetTopLevelParent(w);
-                            // A popup is a native window of its own, which window captures leave out.
+                            // A popup is a native window of its own, which its window's capture draws in.
                             if (dynamic_cast<wxPopupWindow*>(top) != nullptr)
-                                throw ToolFailure("The widget is in a popup, which screenshots don't capture; ui_snapshot {root: \"popup\"} lists it");
+                                throw ToolFailure("The widget is in a popup; a screenshot of its window shows the popup, and ui_snapshot "
+                                                  "{root: \"popup\"} lists it");
                             auto* tlw = dynamic_cast<wxTopLevelWindow*>(top);
                             if (tlw == nullptr)
                                 throw ToolFailure("The widget has no window");
