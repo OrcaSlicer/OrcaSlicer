@@ -755,9 +755,8 @@ public:
     // Called on the GUI thread after an audit prompt stores a grant outside the Plugins dialog.
     // Refreshes an existing dialog instance; never creates or raises it.
     void            notify_plugin_permissions_changed(const std::string& plugin_key);
-    // Dialog-free plugin actions used by the speed dial: they never require the Plugins dialog to be open.
+    // Dialog-free plugin action used by the speed dial: it never requires the Plugins dialog to be open.
     void            refresh_plugins();
-    void            install_local_plugin();
     void            open_terminal_dialog();
     void            open_speed_dial();
     ActionRegistry& action_registry() { return *m_action_registry; }

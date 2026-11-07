@@ -583,11 +583,13 @@ bool install_local_plugin_package(const boost::filesystem::path& package_file, w
 
     if (existing_installation) {
         const wxString plugin_name = from_u8(plugin_descriptor.name.empty() ? package_file.filename().string() : plugin_descriptor.name);
-        wxMessageDialog dialog(parent,
-                               wxString::Format(_L("Plugin \"%s\" is already installed.\n\nInstalling this package will overwrite the existing plugin."),
-                                                plugin_name),
-                               kOverwritePluginTitle, wxOK | wxCANCEL | wxCANCEL_DEFAULT | wxICON_WARNING);
-        dialog.SetOKCancelLabels(_L("Overwrite"), _L("Cancel"));
+        // Orca's own message dialog rather than a native box, which dialog_respond can't press on every platform.
+        MessageDialog dialog(parent,
+                             wxString::Format(_L("Plugin \"%s\" is already installed.\n\nInstalling this package will overwrite the existing plugin."),
+                                              plugin_name),
+                             kOverwritePluginTitle, wxOK | wxCANCEL | wxICON_WARNING);
+        dialog.SetButtonLabel(wxID_OK, _L("Overwrite"));
+        dialog.SetButtonLabel(wxID_CANCEL, _L("Cancel"), /*set_focus=*/true);
         if (dialog.ShowModal() != wxID_OK) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Plugin package installation cancelled before overwrite. package=" << package_file
                                     << " plugin=" << plugin_descriptor.name;

@@ -77,6 +77,7 @@
 
 #include <vector>
 #include <wx/dataview.h>
+#include <wx/filedlg.h>
 #include <wx/gdicmn.h>
 #include <wx/image.h>
 #include <wx/string.h>
@@ -619,7 +620,10 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"open_plugins", "Open the plugins dialog."},
         {"refresh_plugins", "Reload plugins."},
         {"install_plugin", "Open the plugin hub to install a plugin."},
-        {"install_local_plugin", "Install a plugin from a local file (opens a file dialog)."},
+        {"install_local_plugin", "Install a plugin from a .py or .whl file, as the Plugins dialog's Install local plugin does. With a "
+                                 "path, installs that file without a dialog. Replacing a plugin installed already asks first "
+                                 "(answer with dialog_respond); the message names the plugin installed, or why it was not.",
+         CommandParamType::Path, "absolute path of a .py or .whl plugin package"},
         // Filament slots
         {"filament_add", "Add a filament slot, as the + button above the filament list does; the message names the new slot. It "
                          "takes the next colour and the last slot's preset (change them with select_preset filament_slot and "
@@ -1561,9 +1565,29 @@ std::vector<NativeCommand> build_command_catalog()
         open_plugin_hub();
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
-    add("install_local_plugin", L("Install Local Plugin"), L("Plugins"), [](const std::string&) {
-        wxGetApp().install_local_plugin();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+    add("install_local_plugin", L("Install Local Plugin"), L("Plugins"), [](const std::string& param) {
+        MainFrame* mf = wxGetApp().mainframe;
+        if (mf == nullptr)
+            return AppActionRunResult{};
+        boost::filesystem::path package;
+        if (param.empty()) {
+            wxFileDialog dialog(mf, _L("Select plugin package"), wxEmptyString, wxEmptyString, _L("Plugin files (*.py;*.whl)|*.py;*.whl"),
+                                wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+            if (dialog.ShowModal() != wxID_OK)
+                return AppActionRunResult{AppActionRunResult::Level::Success};
+            package = into_path(dialog.GetPath());
+        } else {
+            AppActionRunResult fail;
+            const auto         path = path_param(param, false, fail);
+            if (!path)
+                return fail;
+            package = *path;
+        }
+        wxString   message;
+        const bool installed = install_local_plugin_package(package, mf, message);
+        if (message.IsEmpty()) // the overwrite prompt was cancelled
+            return AppActionRunResult{AppActionRunResult::Level::Info, _L("The plugin was not installed."), false};
+        return AppActionRunResult{installed ? AppActionRunResult::Level::Success : AppActionRunResult::Level::Error, message};
     });
 
     describe_commands(out);
