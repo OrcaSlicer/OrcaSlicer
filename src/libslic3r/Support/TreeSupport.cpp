@@ -152,10 +152,6 @@ enum TreeSupportStage {
     STAGE_DRAW_CIRCLES,
     STAGE_GENERATE_TOOLPATHS,
     STAGE_MinimumSpanningTree,
-    STAGE_GET_AVOIDANCE,
-    STAGE_projection_onto_ex,
-    STAGE_get_collision,
-    STAGE_intersection_ln,
     STAGE_total,
     NUM_STAGES
 };
@@ -213,11 +209,7 @@ public:
             << "; STAGE_DROP_DOWN_NODES: " << stage_durations[STAGE_DROP_DOWN_NODES]
             << "; STAGE_DRAW_CIRCLES: " << stage_durations[STAGE_DRAW_CIRCLES]
             << "; STAGE_GENERATE_TOOLPATHS: " << stage_durations[STAGE_GENERATE_TOOLPATHS]
-            << "; STAGE_MinimumSpanningTree: " << stage_durations[STAGE_MinimumSpanningTree]
-            << "; STAGE_GET_AVOIDANCE: " << stage_durations[STAGE_GET_AVOIDANCE]
-            << "; STAGE_projection_onto_ex: " << stage_durations[STAGE_projection_onto_ex]
-            << "; STAGE_get_collision: " << stage_durations[STAGE_get_collision]
-            << "; STAGE_intersection_ln: " << stage_durations[STAGE_intersection_ln];
+            << "; STAGE_MinimumSpanningTree: " << stage_durations[STAGE_MinimumSpanningTree];
 
         return ss.str();
     }
@@ -2966,12 +2958,10 @@ void TreeSupport::drop_nodes()
                     return true;
             }
             else {
-                profiler.tic();
                 Line ln(b, a);
                 Lines pls_intersect = intersection_ln(ln, layer_contours);
                 mst_line_x_layer_contour_cache.insert({ {a, b}, !pls_intersect.empty() });
                 mst_line_x_layer_contour_cache.insert({ ln, !pls_intersect.empty() });
-                profiler.stage_add(STAGE_intersection_ln);
                 if (!pls_intersect.empty())
                     return true;
             }
@@ -3946,24 +3936,20 @@ TreeSupportData::TreeSupportData(const PrintObject &object, coordf_t xy_distance
 
 const ExPolygons& TreeSupportData::get_collision(coordf_t radius, size_t layer_nr) const
 {
-    profiler.tic();
     radius = ceil_radius(radius);
     RadiusLayerPair key{radius, layer_nr};
     const auto it = m_collision_cache.find(key);
     const ExPolygons& collision = it != m_collision_cache.end() ? it->second : calculate_collision(key);
-    profiler.stage_add(STAGE_get_collision);
     return collision;
 }
 
 const ExPolygons& TreeSupportData::get_avoidance(coordf_t radius, size_t layer_nr, int recursions) const
 {
-    profiler.tic();
     radius = ceil_radius(radius);
     RadiusLayerPair key{radius, layer_nr, recursions };
     const auto it = m_avoidance_cache.find(key);
     const ExPolygons& avoidance = it != m_avoidance_cache.end() ? it->second : calculate_avoidance(key);
 
-    profiler.stage_add(STAGE_GET_AVOIDANCE);
     return avoidance;
 }
 
