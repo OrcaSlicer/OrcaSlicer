@@ -78,3 +78,45 @@ TEST_CASE("An AMF object metadata element with no type attribute is rejected", "
         CHECK_FALSE(load(tmp.string(), model));
     }
 }
+
+namespace {
+
+// An internal DTD subset has to precede the root element, so splice it in ahead of the root tag.
+std::string amf_with_dtd(const std::string &declarations, const std::string &object_metadata)
+{
+    std::string xml = amf_with_object_metadata(object_metadata);
+    xml.insert(xml.find("<amf"), "<!DOCTYPE amf [\n" + declarations + "\n]>\n");
+    return xml;
+}
+
+} // namespace
+
+TEST_CASE("AMF rejects an XML entity amplification bomb", "[AMF][Security]")
+{
+    ScopedTemporaryFile tmp(".amf");
+    // Seven levels expand to 10^7 characters, past expat's 8 MiB output and 100x amplification thresholds, yet a
+    // build without the guard still parses that in well under a second instead of exhausting CI memory as ten would.
+    std::string declarations = "<!ENTITY e1 \"AAAAAAAAAA\">";
+    for (int level = 2; level <= 7; ++level) {
+        std::string body;
+        for (int repeat = 0; repeat < 10; ++repeat)
+            body += "&e" + std::to_string(level - 1) + ";";
+        declarations += "\n<!ENTITY e" + std::to_string(level) + " \"" + body + "\">";
+    }
+    write_file(tmp.string(), amf_with_dtd(declarations, "<metadata type=\"name\">&e7;</metadata>"));
+
+    Model model;
+    CHECK_FALSE(load(tmp.string(), model));
+}
+
+TEST_CASE("AMF still expands an ordinary internal entity", "[AMF][Security]")
+{
+    // The amplification cap must not turn entity support off: ordinary AMF files keep parsing.
+    ScopedTemporaryFile tmp(".amf");
+    write_file(tmp.string(), amf_with_dtd("<!ENTITY name \"hello\">", "<metadata type=\"name\">&name;</metadata>"));
+
+    Model model;
+    REQUIRE(load(tmp.string(), model));
+    REQUIRE(model.objects.size() == 1);
+    CHECK(model.objects.front()->name == "hello");
+}
