@@ -36,7 +36,7 @@ public:
 	// First-layer outline of a cone-wall tower in tower-local (scaled) coordinates: body box
 	// unioned with the cone's base ellipse — the model first_layer_wipe_tower_corners uses,
 	// and generate_support_cone_wall stays within it. Brim not included.
-	static Polygon cone_base_polygon(double width, double depth, double height, double angle_deg);
+	static Polygon cone_base_polygon(double width, double depth, double height, double angle_deg, double reference_height = 0.);
 	static std::vector<std::vector<float>> extract_wipe_volumes(const ConfigBase& config);
 	// Estimated total flush volume of a SEMM print with the given number of filaments,
 	// used to reserve wipe tower space before the tower is generated.
@@ -289,7 +289,6 @@ private:
     float m_shared_height = 0.f;
     float m_region_wall_clearance = 0.f;
     bool m_shared_brim = false;
-    Polygon m_shared_outline;
     bool m_skip_ramming = false;
     size_t m_toolchange_index = 0;
     void generate_tool_regions(std::vector<std::vector<WipeTower::ToolChangeResult>> &result);
@@ -477,7 +476,7 @@ private:
 		bool infill_cone, 
 		float spacing);
 
-    Polygon generate_rib_polygon(const WipeTower::box_coordinates& wt_box);
+    Polygon generate_rib_polygon(const WipeTower::box_coordinates& wt_box, bool shared = false);
 
     void compute_wall_skip_points();
 

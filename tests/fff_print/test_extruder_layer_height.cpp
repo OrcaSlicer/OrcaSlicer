@@ -7,6 +7,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "test_helpers.hpp"
 #include "libslic3r/AdaptiveLayerMerge.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/ExtrusionEntityCollection.hpp"
@@ -18,8 +19,10 @@
 #include <cmath>
 #include <functional>
 #include <limits>
+#include <map>
 #include <vector>
 #include <string>
+#include <string_view>
 #include <utility>
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
@@ -274,24 +277,25 @@ TEST_CASE("Supports use the selected extruder's process height", "[ExtruderLayer
 TEST_CASE("One prime tower uses per-tool heights on a fine object grid", "[ExtruderLayerHeight][WipeTower]")
 {
     const bool mixed_nozzles = GENERATE(false, true);
+    const int shell_filament = GENERATE(1, 2);
     const bool ramming = GENERATE(false, true);
     const auto wall = GENERATE("rectangle", "rib", "cone");
-    CAPTURE(mixed_nozzles, ramming, wall);
+    CAPTURE(mixed_nozzles, ramming, wall, shell_filament);
     auto config = layer_config();
     config.set_deserialize_strict({{"enable_prime_tower", "1"}, {"wipe_tower_type", "type2"},
         {"single_extruder_multi_material", "0"}, {"prime_tower_width", "30"},
         {"nozzle_diameter", mixed_nozzles ? "0.2,0.6" : "0.4,0.4"},
         {"extruder_layer_height", "0.05,0.3"}, {"max_layer_height", "0.14,0.42"},
         {"filament_multitool_ramming", ramming ? "1,1" : "0,0"},
-        {"wipe_tower_filament", "2"}, {"wipe_tower_x", "60"}, {"wipe_tower_y", "60"},
-        {"wipe_tower_wall_type", wall}, {"wipe_tower_cone_angle", "30"}, {"wipe_tower_rotation_angle", "30"},
+        {"wipe_tower_filament", shell_filament}, {"wipe_tower_x", "60"}, {"wipe_tower_y", "60"},
+        {"wipe_tower_wall_type", wall}, {"wipe_tower_extra_rib_length", "8"}, {"wipe_tower_cone_angle", "30"}, {"wipe_tower_rotation_angle", "30"},
         {"change_filament_gcode", "T[next_extruder]\n"}, {"gcode_comments", "1"}});
     Print print;
     Model model;
     const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{
         {{"extruder", "1"}}, {{"extruder", "2"}}
     };
-    init_print({make_cube(8., 8., 1.3), make_cube(8., 8., 1.3)}, print, model, config, &overrides);
+    init_print({make_cube(8., 8., 1.25), make_cube(8., 8., 1.25)}, print, model, config, &overrides);
     print.set_status_silent();
     GCodeProcessorResult processed;
     const std::string output = gcode(print, &processed);
@@ -303,6 +307,28 @@ TEST_CASE("One prime tower uses per-tool heights on a fine object grid", "[Extru
     for (size_t pos = 0; (pos = output.find("; WIPE_TOWER_BRIM_START", pos)) != std::string::npos; ++pos)
         ++brim_count;
     REQUIRE(brim_count == 1);
+    unsigned int active_tool = 0;
+    bool outer_wall = false;
+    size_t wall_moves = 0;
+    std::map<int, BoundingBoxf> wall_bounds;
+    GCodeReader wall_reader;
+    wall_reader.parse_buffer(output, [&](GCodeReader &reader, const GCodeReader::GCodeLine &line) {
+        const std::string command(line.cmd());
+        if (command.size() > 1 && command.front() == 'T')
+            active_tool = static_cast<unsigned int>(std::stoul(command.substr(1)));
+        if (line.comment().find("SHARED_TOWER_WALL_START") != std::string_view::npos) outer_wall = true;
+        if (line.comment().find("SHARED_TOWER_WALL_END") != std::string_view::npos) outer_wall = false;
+        if (!outer_wall || !line.extruding(reader)) return;
+        CHECK(active_tool == unsigned(shell_filament - 1)); // The explicitly selected tower filament owns the entire shell.
+        ++wall_moves;
+        wall_bounds[int(std::lround(line.new_Z(reader) * 1000.))].merge(Vec2d(line.new_X(reader), line.new_Y(reader)));
+    });
+    REQUIRE(wall_moves > 0);
+    CHECK_THAT(wall_bounds.rbegin()->first / 1000., WithinAbs(print.wipe_tower_data().height, 1e-4));
+    if (std::string(wall) == "rib") {
+        REQUIRE(wall_bounds.size() > 1);
+        CHECK(wall_bounds.rbegin()->second.size().norm() < wall_bounds.begin()->second.size().norm());
+    }
     std::set<int> coarse_tops;
     size_t coarse_visits = 0;
     for (const auto &layer : print.wipe_tower_data().tool_changes)
@@ -326,7 +352,9 @@ TEST_CASE("One prime tower uses per-tool heights on a fine object grid", "[Extru
     REQUIRE(coarse_tops.size() >= 3);
     // Fine-grid revisits must share the reserved purge space in a thick layer,
     // rather than depositing another thick layer on the same footprint.
-    REQUIRE(coarse_visits > coarse_tops.size());
+    REQUIRE(coarse_visits >= coarse_tops.size());
+    if (shell_filament == 2)
+        CHECK(coarse_visits > coarse_tops.size());
     size_t coarse_moves = 0;
     for (const auto &move : processed.moves)
         if (move.type == EMoveType::Extrude && move.extrusion_role == erWipeTower && move.position.z() > 0.10001) {
