@@ -130,6 +130,11 @@ TEST_CASE("python_api's reference covers the orca package with constructors and 
     const json& success = by_name["orca.ExecutionResult.success"];
     CHECK(success["signature"].get<std::string>().rfind("success(message: str", 0) == 0);
     CHECK(success["doc"].get<std::string>().find("Success result") != std::string::npos);
+    // No required parameter follows one with a default, which Python could not declare; the handler may
+    // still be passed by keyword alone.
+    REQUIRE(by_name.count("orca.register_operation") == 1);
+    CHECK(by_name["orca.register_operation"]["signature"].get<std::string>().find("schema: object = None, handler: object = None") !=
+          std::string::npos);
 
     CHECK(rank_python_api(reference, "mesh normals")[0]["name"] == "orca.host.TriangleMesh.face_normals");
 }

@@ -754,13 +754,19 @@ not a capability.)pbdoc");
                           pending.end());
             pending.push_back(std::move(op));
         },
-        py::arg("name"), py::arg("description"), py::arg("schema") = py::none(), py::arg("handler"), py::arg("changes") = true,
+        // handler is required, and the callable check above refuses a missing one. It defaults to None only so that
+        // the signature stays one Python can declare while schema keeps its default, which lets a caller pass the
+        // handler by keyword alone.
+        py::arg("name"), py::arg("description"), py::arg("schema") = py::none(), py::arg("handler") = py::none(),
+        py::arg("changes") = true,
         R"pbdoc(Offer an operation to AI agents and scripts while OrcaSlicer loads your module.
 
 The person is asked whether to allow each operation; an allowed one is reached as
-"plugin.<plugin>.<name>" through api_call and orca.host.tools.call. handler(args) receives the
-arguments as a dict, validated against schema (a JSON Schema object), runs under the plugin's identity
-and permissions, and returns a JSON value. changes=False marks an operation that only reads.)pbdoc");
+"plugin.<plugin>.<name>" through api_call and orca.host.tools.call. handler, which is required, is
+called as handler(args) with the arguments as a dict, validated against schema (a JSON Schema object,
+or None for an operation that takes no arguments); it runs under the plugin's identity and permissions
+and returns a JSON value. Pass handler by position after schema, or as handler= on its own.
+changes=False marks an operation that only reads.)pbdoc");
 
     m.def(
         "request_permissions",
