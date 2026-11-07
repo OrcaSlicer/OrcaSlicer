@@ -1,4 +1,11 @@
 #include <catch2/catch_all.hpp>
+#include <catch2/catch_test_macros.hpp>
+
+#include <cassert>
+#include <cmath>
+#include <cstdlib>
+#include <utility>
+#include <vector>
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Model.hpp"
@@ -8,7 +15,12 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Surface.hpp"
 
 #include "test_helpers.hpp"
 
