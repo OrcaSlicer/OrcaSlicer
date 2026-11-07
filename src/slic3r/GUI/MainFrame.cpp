@@ -159,6 +159,7 @@
 #include <cassert>
 #include <wx/display.h>
 #include <wx/window.h>
+#include <wx/wupdlock.h>
 
 
 using json = nlohmann::json;
@@ -1214,7 +1215,11 @@ void MainFrame::update_layout()
 
     wxBusyCursor busy;
 
-    Freeze();
+    // While the main frame is being created nothing is on screen, and a freeze would only walk
+    // every child window to block redraws that cannot happen.
+    wxWindowUpdateLocker no_updates;
+    if (IsShownOnScreen())
+        no_updates.Lock(this);
 
     // Remove old settings
     if (m_layout != ESettingsLayout::Unknown)
@@ -1306,7 +1311,6 @@ void MainFrame::update_layout()
 #endif
 
     Layout();
-    Thaw();
 }
 
 #ifdef __WXGTK__
@@ -1506,6 +1510,14 @@ void MainFrame::init_tabpanel() {
 #else
     m_tabpanel->Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, [this](wxBookCtrlEvent& e) {
 #endif
+        // A page's own book (the Calibration page's Tabbook) emits the same event, and it propagates
+        // up here. Treating it as a main tab change resets the selected tab and the undo/redo state,
+        // and the SetFocus() below re-activates the main window on wxGTK, which dismisses the Speed
+        // Dial when the page is built in the background while the dial is open.
+        if (e.GetEventObject() != m_tabpanel) {
+            e.Skip();
+            return;
+        }
         //BBS
         wxWindow* panel = m_tabpanel->GetCurrentPage();
         //wxString page_text = m_tabpanel->GetPageText(sel);

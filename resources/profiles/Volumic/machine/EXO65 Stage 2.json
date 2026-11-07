@@ -5,6 +5,6 @@
 	"nozzle_diameter": "0.6",
 	"machine_tech": "FFF",
 	"family": "VOLUMIC",
-	"bed_model": "EXO65_bed.STL",
+	"bed_model": "EXO65_bed.stl",
 	"default_materials": "Volumic UNIVERSAL Ultra"
 }
