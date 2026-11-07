@@ -3312,7 +3312,14 @@ bool GUI_App::on_init_inner()
     HMODULE hKernel32 = GetModuleHandleW(L"kernel32.dll");
     m_is_arm64 = false;
     if (hKernel32) {
-        auto fnIsWow64Process2 = (LPFN_ISWOW64PROCESS2)GetProcAddress(hKernel32, "IsWow64Process2");
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-function-type-mismatch"
+#endif
+        auto fnIsWow64Process2 = reinterpret_cast<LPFN_ISWOW64PROCESS2>(GetProcAddress(hKernel32, "IsWow64Process2"));
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
         if (fnIsWow64Process2) {
             USHORT processMachine = 0;
             USHORT nativeMachine = 0;

@@ -123,10 +123,17 @@ protected:
         typedef BOOL     	(WINAPI *Func_wglDeleteContext)(HGLRC);
         typedef GLubyte* 	(WINAPI *Func_glGetString     )(GLenum);
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-function-type-mismatch"
+#endif
         Func_wglCreateContext 	wglCreateContext = (Func_wglCreateContext)GetProcAddress(hOpenGL, "wglCreateContext");
         Func_wglMakeCurrent 	wglMakeCurrent 	 = (Func_wglMakeCurrent)  GetProcAddress(hOpenGL, "wglMakeCurrent");
         Func_wglDeleteContext 	wglDeleteContext = (Func_wglDeleteContext)GetProcAddress(hOpenGL, "wglDeleteContext");
         Func_glGetString 		glGetString 	 = (Func_glGetString)	  GetProcAddress(hOpenGL, "glGetString");
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
         if (wglCreateContext == nullptr || wglMakeCurrent == nullptr || wglDeleteContext == nullptr || glGetString == nullptr) {
             printf("Failed loading the system opengl32.dll: The library is invalid.\n");
@@ -303,6 +310,10 @@ int wmain(int argc, wchar_t **argv)
     }
 
     // resolve function address here
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-function-type-mismatch"
+#endif
     orcaslicer_main = (Slic3rMainFunc)GetProcAddress(hInstance_Slic3r,
 #ifdef _WIN64
         // there is just a single calling conversion, therefore no mangling of the function name.
@@ -311,6 +322,9 @@ int wmain(int argc, wchar_t **argv)
         "_bambustu_main@8"
 #endif
         );
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
     if (orcaslicer_main == nullptr) {
         printf("could not locate the function orcaslicer_main in OrcaSlicer.dll\n");
         return -1;

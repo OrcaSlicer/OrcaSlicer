@@ -694,7 +694,14 @@ wxString TroubleshootDialog::GetWinVersion()
     typedef NTSTATUS(WINAPI* RtlGetVersionPtr)(PRTL_OSVERSIONINFOW);
     HMODULE hNtdll = GetModuleHandleW(L"ntdll.dll");
     if (hNtdll) {
-        auto RtlGetVersion = (RtlGetVersionPtr)GetProcAddress(hNtdll, "RtlGetVersion");
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-function-type-mismatch"
+#endif
+        auto RtlGetVersion = reinterpret_cast<RtlGetVersionPtr>(GetProcAddress(hNtdll, "RtlGetVersion"));
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
         if (RtlGetVersion) {
             RTL_OSVERSIONINFOW osvi = {};
             osvi.dwOSVersionInfoSize = sizeof(osvi);
@@ -981,7 +988,14 @@ wxString TroubleshootDialog::GetMONinfo()
     UINT dpi = 96;
     HMODULE hUser = GetModuleHandleW(L"user32.dll");
     if (hUser) {
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-function-type-mismatch"
+#endif
         auto fn = reinterpret_cast<UINT(WINAPI*)()>(GetProcAddress(hUser, "GetDpiForSystem"));
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
         if (fn)
             dpi = fn();
     }
