@@ -6,6 +6,7 @@
 
 #include <functional>
 #include <chrono>
+#include <map>
 #include <cstdint>
 #include <atomic>
 #include <memory>
@@ -137,6 +138,19 @@ protected:
     virtual bool accepts_3mf() const;
     void start_status_stream(const std::string& dev_id, const std::string& base_url, const std::string& api_key);
     void stop_status_stream();
+
+    // Whether the print dialog offers flow calibration and timelapse; only meaningful when
+    // print_uploaded_file() passes the dialog's choices on to the firmware.
+    virtual bool supports_flow_calibration() const { return false; }
+    virtual bool supports_timelapse() const { return false; }
+
+    // One JSON-RPC request over a short-lived websocket, for methods Moonraker registers for
+    // websocket clients only. On success `result` holds the response's result (or error) object.
+    bool call_jsonrpc_ws(const std::string& method, const nlohmann::json& params, nlohmann::json& result, std::string& error) const;
+
+    // Filament-to-tool assignment of the print dialog: filament index -> physical tool, from the
+    // dialog's per-filament tray array. Tray ids past `tool_count` and unused filaments are left out.
+    static std::map<int, int> parse_tool_mapping(const std::string& ams_mapping, int tool_count);
 
     // State access for derived classes
     mutable std::recursive_mutex       state_mutex;

@@ -3936,7 +3936,7 @@ static void load_mixed_filament_settings(DynamicPrintConfig &project_config, App
     }
 }
 
-void PresetBundle::update_selections(AppConfig &config)
+void PresetBundle::update_selections(AppConfig &config, bool keep_project_filaments)
 {
     std::string initial_printer_profile_name    = printers.get_selected_preset_name();
     // Orca: load from orca_presets
@@ -3945,80 +3945,82 @@ void PresetBundle::update_selections(AppConfig &config)
 
     // Selects the profiles, which were selected at the last application close.
     prints.select_preset_by_name_strict(initial_print_profile_name);
-    filaments.select_preset_by_name_strict(initial_filament_profile_name);
+    if (!keep_project_filaments) {
+        filaments.select_preset_by_name_strict(initial_filament_profile_name);
 
-    // Load the names of the other filament profiles selected for a multi-material printer.
-    // Load it even if the current printer technology is SLA.
-    // The possibly excessive filament names will be later removed with this->update_multi_material_filament_presets()
-    // once the FFF technology gets selected.
-    this->filament_presets = { filaments.get_selected_preset_name() };
-    for (unsigned int i = 1; i < 1000; ++ i) {
-        char name[64];
-        sprintf(name, "filament_%02u", i);
-        auto f_name = config.get_printer_setting(initial_printer_profile_name, name);
-        if (f_name.empty())
-            break;
-        this->filament_presets.emplace_back(remove_ini_suffix(f_name));
+        // Load the names of the other filament profiles selected for a multi-material printer.
+        // Load it even if the current printer technology is SLA.
+        // The possibly excessive filament names will be later removed with this->update_multi_material_filament_presets()
+        // once the FFF technology gets selected.
+        this->filament_presets = { filaments.get_selected_preset_name() };
+        for (unsigned int i = 1; i < 1000; ++ i) {
+            char name[64];
+            sprintf(name, "filament_%02u", i);
+            auto f_name = config.get_printer_setting(initial_printer_profile_name, name);
+            if (f_name.empty())
+                break;
+            this->filament_presets.emplace_back(remove_ini_suffix(f_name));
+        }
+
+        update_filament_count();
+
+        std::vector<std::string> filament_colors;
+        auto f_colors = config.get_printer_setting(initial_printer_profile_name, "filament_colors");
+        if (!f_colors.empty()) {
+            boost::algorithm::split(filament_colors, f_colors, boost::algorithm::is_any_of(","));
+        }
+        filament_colors.resize(filament_presets.size(), "#26A69A");
+        project_config.option<ConfigOptionStrings>("filament_colour")->values = filament_colors;
+
+        std::vector<std::string> multi_filament_colors;
+        if (config.has_printer_setting(initial_printer_profile_name, "filament_multi_colors")) {
+            boost::algorithm::split(multi_filament_colors, config.get_printer_setting(initial_printer_profile_name, "filament_multi_colors"), boost::algorithm::is_any_of(","));
+        }
+        if (multi_filament_colors.size() == 0) project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = filament_colors;
+        else project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = multi_filament_colors;
+
+        std::vector<std::string> filament_color_types;
+        if (config.has_printer_setting(initial_printer_profile_name, "filament_color_types")) {
+            boost::algorithm::split(filament_color_types, config.get_printer_setting(initial_printer_profile_name, "filament_color_types"), boost::algorithm::is_any_of(","));
+        }
+        filament_color_types.resize(filament_presets.size(), "1");
+        project_config.option<ConfigOptionStrings>("filament_colour_type")->values = filament_color_types;
+
+        std::vector<int> filament_maps(filament_colors.size(), 1);
+        project_config.option<ConfigOptionInts>("filament_map")->values = filament_maps;
+
+        std::vector<int> filament_nozzle_maps(filament_colors.size(), 0);
+        project_config.option<ConfigOptionInts>("filament_nozzle_map")->values = filament_nozzle_maps;
+
+        std::vector<int> filament_volume_maps(filament_colors.size(), static_cast<int>(NozzleVolumeType::nvtStandard));
+        project_config.option<ConfigOptionInts>("filament_volume_map")->values = filament_volume_maps;
+
+        std::vector<std::string> extruder_ams_count_str;
+        if (config.has_printer_setting(initial_printer_profile_name, "extruder_ams_count")) {
+            boost::algorithm::split(extruder_ams_count_str, config.get_printer_setting(initial_printer_profile_name, "extruder_ams_count"), boost::algorithm::is_any_of(","));
+        }
+        this->extruder_ams_counts = get_extruder_ams_count(extruder_ams_count_str);
+
+        std::vector<std::string> matrix;
+        if (config.has_printer_setting(initial_printer_profile_name, "flush_volumes_matrix")) {
+            boost::algorithm::split(matrix, config.get_printer_setting(initial_printer_profile_name, "flush_volumes_matrix"), boost::algorithm::is_any_of("|"));
+            auto flush_volumes_matrix = matrix | boost::adaptors::transformed(boost::lexical_cast<double, std::string>);
+            project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values = std::vector<double>(flush_volumes_matrix.begin(), flush_volumes_matrix.end());
+        }
+        if (config.has_printer_setting(initial_printer_profile_name, "flush_volumes_vector")) {
+            boost::algorithm::split(matrix, config.get_printer_setting(initial_printer_profile_name, "flush_volumes_vector"), boost::algorithm::is_any_of("|"));
+            auto flush_volumes_vector = matrix | boost::adaptors::transformed(boost::lexical_cast<double, std::string>);
+            project_config.option<ConfigOptionFloats>("flush_volumes_vector")->values = std::vector<double>(flush_volumes_vector.begin(), flush_volumes_vector.end());
+        }
+        if (config.has_printer_setting(initial_printer_profile_name, "flush_multiplier")) {
+            boost::algorithm::split(matrix, config.get_printer_setting(initial_printer_profile_name, "flush_multiplier"), boost::algorithm::is_any_of("|"));
+            auto flush_multipliers = matrix | boost::adaptors::transformed(boost::lexical_cast<double, std::string>);
+            project_config.option<ConfigOptionFloats>("flush_multiplier")->values = std::vector<double>(flush_multipliers.begin(), flush_multipliers.end());
+        }
+        // No global fallback here: on a printer change the legacy shared keys describe another
+        // printer's filament list, so absent per-printer keys must clear the mixes, not revive them.
+        load_mixed_filament_settings(project_config, config, initial_printer_profile_name, filament_presets.size(), false);
     }
-
-    update_filament_count();
-
-    std::vector<std::string> filament_colors;
-    auto f_colors = config.get_printer_setting(initial_printer_profile_name, "filament_colors");
-    if (!f_colors.empty()) {
-        boost::algorithm::split(filament_colors, f_colors, boost::algorithm::is_any_of(","));
-    }
-    filament_colors.resize(filament_presets.size(), "#26A69A");
-    project_config.option<ConfigOptionStrings>("filament_colour")->values = filament_colors;
-
-    std::vector<std::string> multi_filament_colors;
-    if (config.has_printer_setting(initial_printer_profile_name, "filament_multi_colors")) {
-        boost::algorithm::split(multi_filament_colors, config.get_printer_setting(initial_printer_profile_name, "filament_multi_colors"), boost::algorithm::is_any_of(","));
-    }
-    if (multi_filament_colors.size() == 0) project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = filament_colors;
-    else project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = multi_filament_colors;
-
-    std::vector<std::string> filament_color_types;
-    if (config.has_printer_setting(initial_printer_profile_name, "filament_color_types")) {
-        boost::algorithm::split(filament_color_types, config.get_printer_setting(initial_printer_profile_name, "filament_color_types"), boost::algorithm::is_any_of(","));
-    }
-    filament_color_types.resize(filament_presets.size(), "1");
-    project_config.option<ConfigOptionStrings>("filament_colour_type")->values = filament_color_types;
-
-    std::vector<int> filament_maps(filament_colors.size(), 1);
-    project_config.option<ConfigOptionInts>("filament_map")->values = filament_maps;
-
-    std::vector<int> filament_nozzle_maps(filament_colors.size(), 0);
-    project_config.option<ConfigOptionInts>("filament_nozzle_map")->values = filament_nozzle_maps;
-
-    std::vector<int> filament_volume_maps(filament_colors.size(), static_cast<int>(NozzleVolumeType::nvtStandard));
-    project_config.option<ConfigOptionInts>("filament_volume_map")->values = filament_volume_maps;
-
-    std::vector<std::string> extruder_ams_count_str;
-    if (config.has_printer_setting(initial_printer_profile_name, "extruder_ams_count")) {
-        boost::algorithm::split(extruder_ams_count_str, config.get_printer_setting(initial_printer_profile_name, "extruder_ams_count"), boost::algorithm::is_any_of(","));
-    }
-    this->extruder_ams_counts = get_extruder_ams_count(extruder_ams_count_str);
-
-    std::vector<std::string> matrix;
-    if (config.has_printer_setting(initial_printer_profile_name, "flush_volumes_matrix")) {
-        boost::algorithm::split(matrix, config.get_printer_setting(initial_printer_profile_name, "flush_volumes_matrix"), boost::algorithm::is_any_of("|"));
-        auto flush_volumes_matrix = matrix | boost::adaptors::transformed(boost::lexical_cast<double, std::string>);
-        project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values = std::vector<double>(flush_volumes_matrix.begin(), flush_volumes_matrix.end());
-    }
-    if (config.has_printer_setting(initial_printer_profile_name, "flush_volumes_vector")) {
-        boost::algorithm::split(matrix, config.get_printer_setting(initial_printer_profile_name, "flush_volumes_vector"), boost::algorithm::is_any_of("|"));
-        auto flush_volumes_vector = matrix | boost::adaptors::transformed(boost::lexical_cast<double, std::string>);
-        project_config.option<ConfigOptionFloats>("flush_volumes_vector")->values = std::vector<double>(flush_volumes_vector.begin(), flush_volumes_vector.end());
-    }
-    if (config.has_printer_setting(initial_printer_profile_name, "flush_multiplier")) {
-        boost::algorithm::split(matrix, config.get_printer_setting(initial_printer_profile_name, "flush_multiplier"), boost::algorithm::is_any_of("|"));
-        auto flush_multipliers = matrix | boost::adaptors::transformed(boost::lexical_cast<double, std::string>);
-        project_config.option<ConfigOptionFloats>("flush_multiplier")->values = std::vector<double>(flush_multipliers.begin(), flush_multipliers.end());
-    }
-    // No global fallback here: on a printer change the legacy shared keys describe another
-    // printer's filament list, so absent per-printer keys must clear the mixes, not revive them.
-    load_mixed_filament_settings(project_config, config, initial_printer_profile_name, filament_presets.size(), false);
 
     // Update visibility of presets based on their compatibility with the active printer.
     // Always try to select a compatible print and filament preset to the current printer preset,
