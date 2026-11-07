@@ -245,6 +245,24 @@ def park_pointer(display, width, height):
         pass
 
 
+def app_env(env, datadir, xvfb_display=None):
+    """Adds to `env` what OrcaSlicer needs to start unattended with `datadir`: the Xvfb display when
+    given one, the CA bundle on Linux and a WebView2 profile of its own on Windows."""
+    if xvfb_display:
+        env.pop("WAYLAND_DISPLAY", None)
+        env.update(DISPLAY=xvfb_display, GDK_BACKEND="x11")
+    if sys.platform.startswith("linux"):
+        # A static OpenSSL asks at startup which CA bundle to trust unless told.
+        for bundle in ("/etc/ssl/certs/ca-certificates.crt", "/etc/pki/tls/certs/ca-bundle.crt"):
+            if os.path.exists(bundle):
+                env.setdefault("SSL_CERT_FILE", bundle)
+                break
+    if os.name == "nt":
+        # The WebView2 profile otherwise lives in %LOCALAPPDATA%\OrcaSlicer, shared with the user's own OrcaSlicer.
+        env.setdefault("WEBVIEW2_USER_DATA_FOLDER", os.path.join(datadir, "webview2"))
+    return env
+
+
 def launch(args):
     if args.xvfb and not sys.platform.startswith("linux"):
         sys.exit("--xvfb runs only on Linux; elsewhere the app opens on the desktop")
@@ -257,20 +275,10 @@ def launch(args):
     seed_datadir(datadir, printer, args.cad)
 
     env = dict(os.environ, ORCA_MCP_TOKEN=token)
-    xvfb_pid = None
+    display = xvfb_pid = None
     if args.xvfb:
         display, xvfb_pid = start_xvfb(args.width, args.height)
-        env.pop("WAYLAND_DISPLAY", None)
-        env.update(DISPLAY=display, GDK_BACKEND="x11")
-    if sys.platform.startswith("linux"):
-        # A static OpenSSL asks at startup which CA bundle to trust unless told.
-        for bundle in ("/etc/ssl/certs/ca-certificates.crt", "/etc/pki/tls/certs/ca-bundle.crt"):
-            if os.path.exists(bundle):
-                env.setdefault("SSL_CERT_FILE", bundle)
-                break
-    if os.name == "nt":
-        # The WebView2 profile otherwise lives in %LOCALAPPDATA%\OrcaSlicer, shared with the user's own OrcaSlicer.
-        env.setdefault("WEBVIEW2_USER_DATA_FOLDER", os.path.join(datadir, "webview2"))
+    app_env(env, datadir, display)
     cmd = [find_binary(args.bin), "--datadir", datadir, "--mcp", "--mcp-port", str(args.port)] + args.extra
     log = open(os.path.join(datadir, "mcp-launch.log"), "w")
     proc = subprocess.Popen(cmd, env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)

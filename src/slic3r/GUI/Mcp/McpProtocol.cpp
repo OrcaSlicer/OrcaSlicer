@@ -440,7 +440,8 @@ PostReply McpProtocol::handle_post(const PostRequest& request)
         return reply(400, error_body(nullptr, kParseError, "Parse error"));
     if (msg.is_array())
         return reply(400, error_body(nullptr, kInvalidRequest, "Batches are not supported"));
-    if (!msg.is_object() || msg.value("jsonrpc", "") != "2.0")
+    // Compared as JSON, not read with value(), which throws when the member is not a string.
+    if (!msg.is_object() || !msg.contains("jsonrpc") || msg["jsonrpc"] != "2.0")
         return reply(400, error_body(nullptr, kInvalidRequest, "Not a JSON-RPC 2.0 message"));
 
     // Responses (to requests this server never sends) and notifications are accepted silently.

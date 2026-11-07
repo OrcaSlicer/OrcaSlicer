@@ -2,6 +2,9 @@
 #include "McpPaths.hpp"
 
 #include "McpOptions.hpp"
+#include "McpProtocol.hpp"
+#include "McpService.hpp"
+#include "McpTypes.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r_version.h"
 
@@ -216,14 +219,17 @@ std::string self_executable(char** argv)
 #endif
 }
 
-// Starts `exe --mcp [--datadir dir]` detached from this process. Returns false when it could not be
-// started or exited within a moment (a running instance without MCP took the launch over).
-bool launch_app(const std::string& exe, const std::string& datadir)
+// Starts `exe --mcp [--datadir dir] [--mcp-port port]` detached from this process, so it serves where
+// the bridge looks for it. Returns false when it could not be started or exited within a moment (a
+// running instance without MCP took the launch over).
+bool launch_app(const std::string& exe, const std::string& datadir, int port)
 {
 #ifdef _WIN32
     std::wstring cmd = L"\"" + path_from_utf8(exe).wstring() + L"\" --mcp";
     if (!datadir.empty())
         cmd += L" --datadir \"" + path_from_utf8(datadir).wstring() + L"\"";
+    if (port > 0)
+        cmd += L" --mcp-port " + std::to_wstring(port);
     STARTUPINFOW        si{};
     PROCESS_INFORMATION pi{};
     si.cb = sizeof(si);
@@ -239,13 +245,19 @@ bool launch_app(const std::string& exe, const std::string& datadir)
         return false;
     if (pid == 0) {
         setsid();
-        // The GUI must not inherit the MCP stdio pipes.
+        // The GUI must not inherit the MCP stdio pipes, stderr included: it outlives the bridge, and
+        // would keep the client's pipe open and write into it once the client has gone.
         std::freopen("/dev/null", "r", stdin);
         std::freopen("/dev/null", "w", stdout);
+        std::freopen("/dev/null", "w", stderr);
         std::vector<std::string> args{exe, "--mcp"};
         if (!datadir.empty()) {
             args.push_back("--datadir");
             args.push_back(datadir);
+        }
+        if (port > 0) {
+            args.push_back("--mcp-port");
+            args.push_back(std::to_string(port));
         }
         std::vector<char*> cargs;
         for (std::string& a : args)
@@ -278,6 +290,40 @@ json error_reply(const json& id, int code, const std::string& message)
     return {{"jsonrpc", "2.0"}, {"id", id}, {"error", {{"code", code}, {"message", message}}}};
 }
 
+// The member `key` of `obj` when it is a string, else empty.
+std::string string_member(const json& obj, const char* key)
+{
+    if (!obj.is_object())
+        return {};
+    const auto it = obj.find(key);
+    return it != obj.end() && it->is_string() ? it->get<std::string>() : std::string();
+}
+
+// The reply this build's server would give to `line`, for any request but tools/call: the other
+// methods only read the tool catalog and the server's details, and the server keeps no session, so
+// the reply is the same whether or not OrcaSlicer runs.
+PostReply answer_offline(const std::string& line, const std::map<std::string, std::string>& headers)
+{
+    // A tool needs the app, so the bridge never brings a tools/call here.
+    struct NoApp final : ToolCaller
+    {
+        ToolResult call(const ToolDef&, const json&) override { return ToolResult::error("OrcaSlicer is not running."); }
+    };
+    static NoApp       caller;
+    static McpProtocol protocol(McpService::offline_catalog(), caller, McpService::server_info());
+    auto header = [&headers](const char* name) {
+        const auto it = headers.find(name);
+        return it == headers.end() ? std::string() : it->second;
+    };
+    // The same boundary as the HTTP transport's: a message the server fails on gets an error, and the
+    // bridge keeps serving.
+    try {
+        return protocol.handle_post({line, header("MCP-Protocol-Version"), header("Mcp-Method"), header("Mcp-Name")});
+    } catch (const std::exception& e) {
+        return {500, error_reply(nullptr, -32603, e.what()).dump()};
+    }
+}
+
 } // namespace
 
 std::map<std::string, std::string> bridge_headers(const json& message, const std::string& negotiated_version)
@@ -285,7 +331,7 @@ std::map<std::string, std::string> bridge_headers(const json& message, const std
     std::map<std::string, std::string> h;
     if (!message.is_object())
         return h;
-    const std::string                  method = message.value("method", "");
+    const std::string                  method = string_member(message, "method");
     const json                         params = message.contains("params") && message["params"].is_object() ? message["params"] : json::object();
     std::string                        version = negotiated_version;
     if (params.contains("_meta") && params["_meta"].is_object()) {
@@ -299,9 +345,9 @@ std::map<std::string, std::string> bridge_headers(const json& message, const std
         h["Mcp-Method"] = method;
     std::string name;
     if (method == "tools/call" || method == "prompts/get")
-        name = params.value("name", "");
+        name = string_member(params, "name");
     else if (method == "resources/read")
-        name = params.value("uri", "");
+        name = string_member(params, "uri");
     if (!name.empty())
         h["Mcp-Name"] = header_safe(name) ? name : "=?base64?" + base64(name) + "?=";
     return h;
@@ -347,10 +393,23 @@ int run_stdio_bridge(int argc, char** argv)
         return alive(*e) ? e : std::nullopt;
     };
 
+    // While no instance answers, every request but tools/call is answered offline, so OrcaSlicer is
+    // started only when the agent calls a tool.
     std::optional<Endpoint> endpoint = resolve();
     std::string             failure;
-    if (!endpoint) {
-        if (!launch_app(self_executable(argv), datadir_arg))
+    const std::string       exe = self_executable(argv);
+    // Finds the running instance or, when none answers, starts OrcaSlicer and waits for its server.
+    // A start that failed is not tried again, so a stuck or refused start never makes every tool call
+    // another launch and another wait: its reason answers each call until an instance is found, and
+    // once that instance quits, a tool call starts the app again.
+    auto connect = [&]() -> bool {
+        if ((endpoint = resolve())) {
+            failure.clear();
+            return true;
+        }
+        if (!failure.empty())
+            return false;
+        if (!launch_app(exe, datadir_arg, port_arg))
             failure = "OrcaSlicer is running without the MCP server, or could not be started. Turn on \"MCP server\" under "
                       "AI features in OrcaSlicer's Preferences (or start it with --mcp) and reconnect.";
         else
@@ -360,7 +419,8 @@ int run_stdio_bridge(int argc, char** argv)
             }
         if (!endpoint && failure.empty())
             failure = "OrcaSlicer did not start its MCP server within 60 seconds.";
-    }
+        return endpoint.has_value();
+    };
 
     std::string negotiated;
     std::string line;
@@ -378,21 +438,35 @@ int run_stdio_bridge(int argc, char** argv)
             write_line(error_reply(nullptr, -32600, "Each line must be one JSON-RPC message object (batches are not supported)").dump());
             continue;
         }
-        const bool is_request = msg.is_object() && msg.contains("id") && msg.contains("method");
-        if (!endpoint) {
-            if (is_request)
-                write_line(error_reply(msg["id"], -32603, failure).dump());
-            continue;
+        const bool        is_request = msg.is_object() && msg.contains("id") && msg.contains("method");
+        const std::string method     = string_member(msg, "method");
+        const bool        needs_app  = is_request && method == "tools/call";
+        const auto        headers    = bridge_headers(msg, negotiated);
+        bool              sent       = false;
+
+        std::optional<std::pair<int, std::string>> reply;
+        if (endpoint) {
+            reply = post(*endpoint, line, headers, &sent);
+            if ((!reply && !sent) || (reply && reply->first == 401)) {
+                // The app restarted, or its port or token changed in Preferences: the discovery file
+                // has the current ones. Only a request the server cannot have acted on (never sent,
+                // or refused for its token) is sent again. When nothing answers, the app quit.
+                if (auto fresh = resolve()) {
+                    endpoint = fresh;
+                    reply    = post(*endpoint, line, headers, &sent);
+                } else if (!reply)
+                    endpoint.reset();
+            }
         }
-        bool sent  = false;
-        auto reply = post(*endpoint, line, bridge_headers(msg, negotiated), &sent);
-        if ((!reply && !sent) || (reply && reply->first == 401)) {
-            // The app restarted, or its port or token changed in Preferences: the discovery file
-            // has the current ones. Only a request the server cannot have acted on (never sent, or
-            // refused for its token) is sent again.
-            if (auto fresh = resolve()) {
-                endpoint = fresh;
-                reply    = post(*endpoint, line, bridge_headers(msg, negotiated), &sent);
+        if (!endpoint) {
+            if (!needs_app) {
+                const PostReply offline = answer_offline(line, headers);
+                reply                   = std::make_pair(offline.status, offline.body);
+            } else if (connect())
+                reply = post(*endpoint, line, headers, &sent);
+            else {
+                write_line(error_reply(msg["id"], -32603, failure).dump());
+                continue;
             }
         }
         if (!reply) {
@@ -416,8 +490,8 @@ int run_stdio_bridge(int argc, char** argv)
                 write_line(error_reply(msg["id"], -32603, "HTTP " + std::to_string(reply->first) + ": " + reply->second).dump());
             continue;
         }
-        if (msg.value("method", "") == "initialize" && body.contains("result"))
-            negotiated = body["result"].value("protocolVersion", "");
+        if (method == "initialize" && body.contains("result"))
+            negotiated = string_member(body["result"], "protocolVersion");
         write_line(body.dump());
     }
     return 0;

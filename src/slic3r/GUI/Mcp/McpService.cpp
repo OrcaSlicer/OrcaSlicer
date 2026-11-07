@@ -199,6 +199,26 @@ void McpServiceDeleter::operator()(McpService* service) const
 
 McpService::McpService() = default;
 
+const ToolRegistry& McpService::offline_catalog()
+{
+    // Kept, never destroyed: the catalog's handlers refer to this service, and the bridge answers from
+    // the catalog until the process exits.
+    static McpService* const service = [] {
+        auto* s = new McpService();
+        s->register_tools();
+        return s;
+    }();
+    return service->m_registry;
+}
+
+ServerInfo McpService::server_info()
+{
+    ServerInfo info;
+    info.version      = SLIC3R_VERSION;
+    info.instructions = kInstructions;
+    return info;
+}
+
 // Reached only through McpServiceDeleter, after stop() joined the script thread and drain() saw
 // every thread leave.
 McpService::~McpService() = default;
@@ -280,12 +300,9 @@ bool McpService::start(const McpLaunchOptions& options, bool serve, std::string&
     }
     m_token = token;
 
-    ServerInfo info;
-    info.version      = SLIC3R_VERSION;
-    info.instructions = kInstructions;
     // Request threads of an endpoint closed earlier may still be using the protocol object.
     if (!m_protocol) {
-        m_protocol = std::make_unique<McpProtocol>(m_registry, *m_core, info);
+        m_protocol = std::make_unique<McpProtocol>(m_registry, *m_core, server_info());
         m_gate     = std::make_shared<RequestGate>();
         m_gate->protocol = m_protocol.get();
     }

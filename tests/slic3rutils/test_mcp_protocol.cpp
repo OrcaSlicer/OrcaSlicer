@@ -1,8 +1,10 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "slic3r/GUI/Mcp/McpProtocol.hpp"
+#include "slic3r/GUI/Mcp/McpService.hpp"
 #include "slic3r/GUI/Mcp/McpStdioBridge.hpp"
 #include "slic3r/GUI/Mcp/McpTypes.hpp"
+#include "libslic3r_version.h"
 
 #include <nlohmann/json.hpp>
 
@@ -197,6 +199,14 @@ TEST_CASE("malformed messages are rejected", "[Mcp]")
 
     r = f.post({{"jsonrpc", "1.0"}, {"id", 1}, {"method", "ping"}});
     CHECK(body(r)["error"]["code"] == -32600);
+
+    // A jsonrpc that is not a string is the same error, never an exception: the stdio bridge calls
+    // handle_post directly.
+    for (const json& version : {json(2), json(nullptr), json::object()}) {
+        r = f.post({{"jsonrpc", version}, {"id", 1}, {"method", "ping"}});
+        CHECK(r.status == 400);
+        CHECK(body(r)["error"]["code"] == -32600);
+    }
 }
 
 TEST_CASE("params that are not an object are invalid params", "[Mcp]")
@@ -214,6 +224,26 @@ TEST_CASE("the stdio bridge derives no headers from a line that is not a message
     CHECK(bridge_headers(json(42), {}).empty());
     CHECK(bridge_headers({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/call"}, {"params", {{"name", "get_state"}}}}, "2025-06-18")
               .count("MCP-Protocol-Version") == 1);
+    // Members of the wrong type are left out rather than thrown on.
+    CHECK(bridge_headers({{"jsonrpc", "2.0"}, {"id", 1}, {"method", 5}}, "").empty());
+    CHECK(bridge_headers({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/call"}, {"params", {{"name", 3}}}}, "").count("Mcp-Name") == 0);
+}
+
+TEST_CASE("the catalog the stdio bridge lists without the app holds every tool family", "[Mcp]")
+{
+    const ToolRegistry&   catalog = McpService::offline_catalog();
+    std::set<std::string> names;
+    for (const ToolDef& def : catalog.tools()) {
+        CHECK(names.insert(def.name).second);
+        CHECK(def.description.rfind(std::string("[") + lane_name(def.lane) + "] ", 0) == 0);
+    }
+    for (const char* name : {"get_state", "run_action", "open_files", "set_settings", "slice", "set_layer_ranges", "set_view",
+                             "ui_snapshot", "run_script", "start_recording", "run_python", "api_call"})
+        CHECK(names.count(name) == 1);
+    // Built once, for the life of the process.
+    CHECK(&McpService::offline_catalog() == &catalog);
+    CHECK(McpService::server_info().version == SLIC3R_VERSION);
+    CHECK_FALSE(McpService::server_info().instructions.empty());
 }
 
 TEST_CASE("ping returns an empty result", "[Mcp]")

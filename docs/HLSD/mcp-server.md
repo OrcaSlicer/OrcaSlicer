@@ -2829,14 +2829,42 @@ such as Claude Desktop; `main` handles it before any GUI or CLI processing (`Mcp
 It POSTs each line of JSON-RPC from stdin to the instance in the discovery file (or `--mcp-port`)
 with the token and the headers `bridge_headers()` derives: `MCP-Protocol-Version` (negotiated, or
 from `_meta`), `Mcp-Method`, and `Mcp-Name` for `tools/call`, `prompts/get` and `resources/read`.
-Replies go to stdout; a 202 writes nothing. When nothing answers, it starts `orca-slicer --mcp`
-detached and waits up to 60 s. If that process exits within seconds, a running instance without
-MCP took the launch over, and every request is answered with an error saying to turn the server
-on in Preferences. A request that could not be sent, or was refused with 401 because the token
-changed, is sent once more to the endpoint the discovery file names now: the app restarted, or its
-port or token changed in Preferences. A request that was sent but lost its reply is never sent
-again, since it may have run. The client gets an error saying so, and later requests go to the new
-endpoint. A request gets 5 s to connect, 30 s to be sent and 120 s for its reply (a tool replies
+Replies go to stdout; a 202 writes nothing.
+
+The bridge starts OrcaSlicer only for a tool call, so an agent session that is registered user-wide
+but never calls a tool never opens the app. While nothing answers, every other message is answered
+by an `McpProtocol` of the bridge's own over `McpService::offline_catalog()`, given the headers the
+server would get: the handshake, `ping`, `tools/list`, `server/discover`, notifications and unknown
+methods get exactly the reply this build's server gives. That holds because these methods read
+only the catalog and the server's details, and the server keeps no session. The catalog is held by
+a service that is never started: registering a tool only describes it (a schema built from
+constants and compile-time options), and its handler runs only when the tool is called, so
+building it needs neither wx nor a window. A tool's registration must stay that way, never reading
+app state; a unit test builds the catalog without the app.
+
+A `tools/call` with nothing answering starts `orca-slicer --mcp` detached, with the bridge's
+`--datadir` and `--mcp-port`, and waits up to 60 s. If that process exits within seconds, a running
+instance without MCP took the launch over, and each tool call is answered with an error saying to
+turn the server on in Preferences. The bridge does not start the app again after a failed start, so
+a stuck or refused start never makes every call another launch and another wait, but each tool call
+still looks for an instance; once one is found, a later tool call after it quits starts the app
+again. The offline answering keeps the same containment as the HTTP transport: a message the server
+fails on gets a JSON-RPC error, and the bridge keeps serving. A request that could not be sent, or was refused with 401 because the token changed, is sent once more
+to the endpoint the discovery file names now: the app restarted, or its port or token changed in
+Preferences. When nothing answers it, the app quit: the request is answered offline, or a tool call
+starts the app again. A request that was sent but lost its reply is never sent again, since it may
+have run. The client gets an error saying so, and later requests go to the new endpoint.
+
+The bridge looks for an instance when it starts, at each tool call and when a forwarded request
+fails; in between, its own build answers. An instance running when the bridge starts, possibly
+another build sharing the configuration folder, answers everything, its tool list included. The
+client keeps the tool list it got at the handshake, so an instance that comes up later, or replaces
+the app mid-session, serves tool calls against that list. When it is another build, its server
+still checks every call against its own catalog: a tool it lacks is a -32602 "Unknown tool" error,
+arguments its schema rejects are an "Invalid arguments" result, and a protocol version it does not
+support is a 400. Reconnecting the MCP server lists its tools. The bridge does not look for an
+instance before each message it answers offline: the handshake follows the startup lookup at once,
+and each lookup costs a connection attempt while nothing runs. A request gets 5 s to connect, 30 s to be sent and 120 s for its reply (a tool replies
 within its 45 s budget, `wait` within 50 s), so a server that never replies can't hang the agent.
 A line that is valid JSON but not one message object, such as a batch, gets an error reply.
 
@@ -2875,12 +2903,11 @@ opens with a line on what agents can do and who can connect, then has five rows:
     `url` and `headers`, or with `command` and `args` for apps that only take a command, such as
     Claude Desktop.
 
-HTTP is the default because its URL stays the same whichever OrcaSlicer build runs, and starting an
-agent session never starts OrcaSlicer: the stdio bridge launches the app as soon as a client
-starts it, so a user-wide registration would open OrcaSlicer with every agent session. The cost is
-that OrcaSlicer must be running with the server on before the agent connects, and a registration
-holds the token: a new token (delete the token file, then turn the server off and on) or a new port
-means copying the setup again. Stdio suits an agent that should open OrcaSlicer on demand, and apps
+HTTP is the default because its URL stays the same whichever OrcaSlicer build runs, and nothing
+runs on the agent's side: the stdio bridge is a process of its own for each agent session, and it
+opens OrcaSlicer when the agent first calls a tool. The cost is that OrcaSlicer must be running with
+the server on before the agent connects, and a registration holds the token: a new token (delete
+the token file, then turn the server off and on) or a new port means copying the setup again. Stdio suits an agent that should open OrcaSlicer on demand, and apps
 that can't connect over HTTP; its setup names this executable, so it breaks when the program moves.
 
 ## Testing

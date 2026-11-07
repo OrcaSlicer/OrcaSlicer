@@ -4,6 +4,7 @@
 #include "McpCore.hpp"
 #include "McpJournal.hpp"
 #include "McpOptions.hpp"
+#include "McpProtocol.hpp"
 #include "McpScript.hpp"
 #include "McpScriptRun.hpp"
 #include "McpServicePtr.hpp"
@@ -52,6 +53,14 @@ public:
     McpService();
     McpService(const McpService&)            = delete;
     McpService& operator=(const McpService&) = delete;
+
+    // The tool catalog this build serves, held by a service that is never started. Building it needs
+    // neither wx nor a window: registering a tool only describes it, and its handler runs only when
+    // the tool is called. The stdio bridge lists the tools from it while no OrcaSlicer is running.
+    // Built on first use and kept until the process exits.
+    static const ToolRegistry& offline_catalog();
+    // What initialize and server/discover report: the server's name, version and instructions.
+    static ServerInfo server_info();
 
     // Builds the catalog and, when `serve` is true, opens the HTTP endpoint. A script from
     // `options` runs after mark_ready(). Returns false with `err` set when the endpoint can't start;

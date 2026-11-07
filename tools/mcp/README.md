@@ -348,7 +348,10 @@ case or with `_` for a space, and `export` with the format taken from the path. 
 preset scope's whole `get_settings` listing leaves meta out.
 
 `test_stdio_bridge.py [--bin PATH]` checks `orca-slicer --mcp-stdio` against the launched instance:
-the handshake, notifications, tool calls in both protocol eras, and errors.
+the handshake, notifications, tool calls in both protocol eras, and errors. With no instance
+answering, it checks that the bridge answers the handshake and lists the launched instance's tools
+without starting OrcaSlicer, and that a tool call then starts OrcaSlicer on the bridge's port (the
+test stops that app).
 `test_recovery_under_load.py` fills the server's connections with 32 blocked `wait` calls and 32
 idle or half-sent connections while a dialog is open, and checks that `dialog_respond` on a new
 connection still closes it. `test_cancel_pending_slice.py` cancels a slice while it still waits for
