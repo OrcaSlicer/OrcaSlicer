@@ -95,6 +95,7 @@
 #include "2DBed.hpp"
 #include "3DBed.hpp"
 #include "PartPlate.hpp"
+#include "Shortcuts.hpp"
 #include "Camera.hpp"
 #include "GUI_Colors.hpp"
 #include "GUI_ObjectList.hpp"
@@ -2599,10 +2600,10 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
                 render_icon_texture(m_plate_name_edit_icon.model, m_partplate_list->m_plate_name_edit_texture);
 
 			if (hover_id == 7) {
-                render_icon_texture(m_move_front_icon.model, m_partplate_list->m_move_front_hovered_texture);
-                set_hover_tooltip(_u8L("Move plate to the front"));
+                render_icon_texture(m_arrange_plates_icon.model, m_partplate_list->m_arrange_plates_hovered_texture);
+                set_hover_tooltip(wxGetApp().shortcuts().with_key(_u8L("Arrange plates"), Shortcut::PlateArrangement));
             } else
-                render_icon_texture(m_move_front_icon.model, m_partplate_list->m_move_front_texture);
+                render_icon_texture(m_arrange_plates_icon.model, m_partplate_list->m_arrange_plates_texture);
 
             // IDEX/IQEX mode icon — only when is_imex is active
             {
@@ -2667,7 +2668,7 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
             }
 
 			if (m_partplate_list->render_plate_settings) {
-				bool has_plate_settings = get_bed_type() != BedType::btDefault || get_print_seq() != PrintSequence::ByDefault || !get_first_layer_print_sequence().empty() || !get_other_layers_print_sequence().empty() || has_spiral_mode_config();
+				const bool has_plate_settings = has_custom_settings();
                 if (hover_id == 5) {
                     if (!has_plate_settings)
                         render_icon_texture(m_plate_settings_icon.model, m_partplate_list->m_plate_settings_hovered_texture);
@@ -2973,7 +2974,7 @@ void PartPlate::register_raycasters_for_picking(GLCanvas3D &canvas)
 	// During reset / reload_scene the icon may not have a raycaster yet, which is valid.
 	if (m_plate_name_edit_icon.mesh_raycaster != nullptr)
 		register_model_for_picking(canvas, m_plate_name_edit_icon, picking_id_component(6));
-    register_model_for_picking(canvas, m_move_front_icon, picking_id_component(7));
+    register_model_for_picking(canvas, m_arrange_plates_icon, picking_id_component(7));
 
     // Only register filament map button for H2D (dual-extruder Bambu Lab) printers
     PresetBundle* preset = wxGetApp().preset_bundle;
@@ -5157,7 +5158,7 @@ bool PartPlate::set_shape(const Pointfs& shape, const Pointfs& exclude_areas, co
 			PresetBundle* preset = wxGetApp().preset_bundle;
 			dual_bbl = (preset->is_bbl_vendor() && preset->get_printer_extruder_count() == 2);
 			calc_vertex_for_icons(dual_bbl ? 5 : 6, m_plate_filament_map_icon);
-			calc_vertex_for_icons(dual_bbl ? 6 : 5, m_move_front_icon);
+			calc_vertex_for_icons(dual_bbl ? 6 : 5, m_arrange_plates_icon);
 			{
 				auto* is_imex_opt = preset->printers.get_edited_preset().config.option<ConfigOptionBool>("is_imex");
 				if (is_imex_opt && is_imex_opt->value) {
@@ -5548,6 +5549,12 @@ int PartPlate::load_pattern_box_data(std::string filename)
         BOOST_LOG_TRIVIAL(trace) << boost::format("catch an exception %1%")%ex.what();
         return -1;
     }
+}
+
+bool PartPlate::has_custom_settings() const
+{
+    return get_bed_type() != BedType::btDefault || get_print_seq() != PrintSequence::ByDefault || !get_first_layer_print_sequence().empty() ||
+           !get_other_layers_print_sequence().empty() || has_spiral_mode_config();
 }
 
 std::vector<int> PartPlate::get_first_layer_print_sequence() const
@@ -6021,18 +6028,18 @@ void PartPlateList::generate_icon_textures()
 	}
 
 	
-	// if (m_move_front_texture.get_id() == 0)
+	// if (m_arrange_plates_texture.get_id() == 0)
     {
-        file_name = path + (m_is_dark ? "plate_move_front_dark.svg" : "plate_move_front.svg");
-        if (!m_move_front_texture.load_from_svg_file(file_name, true, false, false, icon_size)) {
+        file_name = path + (m_is_dark ? "plate_arrangement_dark.svg" : "plate_arrangement.svg");
+        if (!m_arrange_plates_texture.load_from_svg_file(file_name, true, false, false, icon_size)) {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(":load file %1% failed") % file_name;
         }
     }
 
-    // if (m_move_front_hovered_texture.get_id() == 0)
+    // if (m_arrange_plates_hovered_texture.get_id() == 0)
     {
-        file_name = path + (m_is_dark ? "plate_move_front_hover_dark.svg" : "plate_move_front_hover.svg");
-        if (!m_move_front_hovered_texture.load_from_svg_file(file_name, true, false, false, icon_size)) {
+        file_name = path + (m_is_dark ? "plate_arrangement_hover_dark.svg" : "plate_arrangement_hover.svg");
+        if (!m_arrange_plates_hovered_texture.load_from_svg_file(file_name, true, false, false, icon_size)) {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(":load file %1% failed") % file_name;
         }
     }
@@ -6210,8 +6217,8 @@ void PartPlateList::release_icon_textures()
 	m_logo_texture.reset();
 	m_del_texture.reset();
 	m_del_hovered_texture.reset();
-    m_move_front_hovered_texture.reset();
-    m_move_front_texture.reset();
+    m_arrange_plates_hovered_texture.reset();
+    m_arrange_plates_texture.reset();
 	m_arrange_texture.reset();
 	m_arrange_hovered_texture.reset();
 	m_orient_texture.reset();
@@ -7037,50 +7044,26 @@ void PartPlateList::update_all_plates_pos_and_size(bool adjust_position, bool wi
 	unprintable_plate.set_pos_and_size(origin2, m_plate_width, m_plate_depth, m_plate_height, with_unprintable_move);
 }
 
-//move the plate to position index
-int PartPlateList::move_plate_to_index(int old_index, int new_index)
+// Moves every plate to its new index in one pass, with the objects on it; new_order[k] is the current index of the
+// plate that goes to index k. Objects are assigned to plates once, up front: set_pos_and_size() moves a plate's
+// origin but not the bounding box reload_all_objects() tests against, which update_plates() rebuilds afterwards.
+int PartPlateList::reorder_plates(const std::vector<int>& new_order)
 {
-	int ret = 0, delta;
-	Vec3d origin;
-
-
-	if (old_index == new_index)
-	{
-		BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(":should not happen, the same index %1%") % old_index;
+	const std::vector<PartPlate*> old_list = m_plate_list;
+	if (old_list.empty() || new_order.size() != old_list.size())
 		return -1;
-	}
 
-	// Orca: Rebuild plate membership before moving the plates.
 	reload_all_objects();
-
-	if (old_index < new_index)
-	{
-		delta = 1;
+	PartPlate* current = m_plate_list[m_current_plate];
+	for (int k = 0; k < (int)old_list.size(); ++k) {
+		PartPlate* plate = old_list[new_order[k]];
+		m_plate_list[k]  = plate;
+		plate->set_index(k);
+		Vec3d origin = compute_origin(k, m_plate_cols);
+		plate->set_pos_and_size(origin, m_plate_width, m_plate_depth, m_plate_height, true);
 	}
-	else
-	{
-		delta = -1;
-	}
-
-	PartPlate* plate = m_plate_list[old_index];
-	//update the plates between old_index and new_index
-	for (unsigned int i = (unsigned int)old_index; i != (unsigned int)new_index; i = i + delta)
-	{
-		m_plate_list[i] = m_plate_list[i + delta];
-		m_plate_list[i]->set_index(i);
-
-		origin = compute_origin(i, m_plate_cols);
-		m_plate_list[i]->set_pos_and_size(origin, m_plate_width, m_plate_depth, m_plate_height, true);
-	}
-	origin = compute_origin(new_index, m_plate_cols);
-	m_plate_list[new_index] = plate;
-	plate->set_index(new_index);
-	plate->set_pos_and_size(origin, m_plate_width, m_plate_depth, m_plate_height, true);
-
-	//update the new plate index
-	m_current_plate = new_index;
-
-	return ret;
+	m_current_plate = current->get_index();
+	return 0;
 }
 
 //lock plate

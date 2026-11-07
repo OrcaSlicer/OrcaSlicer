@@ -180,6 +180,7 @@ src/slic3r/GUI/PresetHints.cpp
 src/slic3r/GUI/PrimitiveSizeDialog.cpp
 src/slic3r/GUI/ProgressStatusBar.cpp
 src/slic3r/GUI/PlateSettingsDialog.cpp
+src/slic3r/GUI/PlateArrangementDialog.cpp
 src/slic3r/GUI/PrivacyUpdateDialog.cpp
 src/slic3r/GUI/PublishSettingsDialog.cpp
 src/slic3r/GUI/SavePresetDialog.cpp
