@@ -8,9 +8,19 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/file_status.hpp>
+#include <boost/system/error_code.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/nowide/cstdio.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <ios>
+
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 
 #include "PluginAuditManager.hpp"
 #include "PythonInterpreter.hpp"
@@ -21,9 +31,13 @@
 #include <miniz.h>
 #include <nlohmann/json.hpp>
 
+#include <atomic>
+#include <cerrno>
 #include <chrono>
 #include <filesystem>
+#include <mutex>
 #include <string>
+#include <system_error>
 #include "slic3r/plugin/PluginDescriptor.hpp"
 #include <utility>
 #include <algorithm>
@@ -37,6 +51,13 @@
 namespace Slic3r {
 
 const char* const INSTALL_STATE_FILE = ".install_state.json";
+
+std::mutex& install_state_mutex()
+{
+    // Function-local static: safe to use from any writer regardless of static initialization order.
+    static std::mutex mutex;
+    return mutex;
+}
 
 std::string get_orca_plugins_dir()
 {
@@ -179,7 +200,10 @@ void scan_plugin_directory(const std::string& dir_path, std::vector<PluginDescri
             // its error, rather than dropping it silently.
             if (entry_path.empty()) {
                 descriptor.set_error(entry_error);
-                descriptor.install_state_valid = read_install_state(plugin_dir, descriptor);
+                {
+                    std::lock_guard<std::mutex> state_lock(install_state_mutex());
+                    descriptor.install_state_valid = read_install_state(plugin_dir, descriptor);
+                }
                 assign_discovered_plugin_key(descriptor, plugin_dir);
                 out.push_back(std::move(descriptor));
                 BOOST_LOG_TRIVIAL(warning) << "Invalid plugin package: " << plugin_dir.string() << " - " << out.back().error;
@@ -192,7 +216,10 @@ void scan_plugin_directory(const std::string& dir_path, std::vector<PluginDescri
                                               read_python_plugin_metadata(entry_path, descriptor, meta_error);
             if (!parsed) {
                 descriptor.set_error(meta_error);
-                descriptor.install_state_valid = read_install_state(plugin_dir, descriptor);
+                {
+                    std::lock_guard<std::mutex> state_lock(install_state_mutex());
+                    descriptor.install_state_valid = read_install_state(plugin_dir, descriptor);
+                }
                 assign_discovered_plugin_key(descriptor, entry_path);
                 out.push_back(std::move(descriptor));
                 BOOST_LOG_TRIVIAL(warning) << (is_wheel ? "Invalid wheel plugin: " : "Invalid .py plugin: ")
@@ -206,7 +233,10 @@ void scan_plugin_directory(const std::string& dir_path, std::vector<PluginDescri
 
             // Cloud identity and the package-level auto-load flag. plugin_key is always derived
             // below, never read from the sidecar.
-            descriptor.install_state_valid = read_install_state(plugin_dir, descriptor);
+            {
+                std::lock_guard<std::mutex> state_lock(install_state_mutex());
+                descriptor.install_state_valid = read_install_state(plugin_dir, descriptor);
+            }
             assign_discovered_plugin_key(descriptor, entry_path);
 
             out.push_back(std::move(descriptor));
@@ -394,31 +424,41 @@ std::string unquote_toml_string(const std::string& val)
     return val;
 }
 
-// Split a TOML inline array: ["a", "b"] → {"a", "b"}.
-// Handles trailing commas and single-line format.
-std::vector<std::string> parse_toml_inline_array(const std::string& val)
+// Append the string items of one line of a TOML array to `items`. A quoted item keeps its commas,
+// as a version range ("numpy>=1.20,<2") needs; '#' starts a comment and ']' closes the array.
+// Returns true when the array closes on this line.
+bool read_toml_array_items(const std::string& line, std::vector<std::string>& items)
 {
-    std::vector<std::string> result;
-    std::string inner = val;
-    // Strip outer brackets.
-    if (!inner.empty() && inner.front() == '[')
-        inner.erase(0, 1);
-    if (!inner.empty() && inner.back() == ']')
-        inner.pop_back();
-
-    // Simple split by comma, strip quotes and whitespace.
-    std::istringstream ss(inner);
-    std::string item;
-    while (std::getline(ss, item, ',')) {
-        // Trim whitespace.
-        size_t s = 0, e = item.size();
-        while (s < e && (item[s] == ' ' || item[s] == '\t')) ++s;
-        while (e > s && (item[e - 1] == ' ' || item[e - 1] == '\t')) --e;
-        item = item.substr(s, e - s);
+    size_t i = 0;
+    while (i < line.size()) {
+        const char c = line[i];
+        if (c == ']')
+            return true;
+        if (c == '#')
+            return false;
+        if (c == ' ' || c == '\t' || c == ',') {
+            ++i;
+            continue;
+        }
+        std::string item;
+        if (c == '"' || c == '\'') {
+            // A basic string ("...") takes backslash escapes; a literal string ('...') takes none.
+            for (++i; i < line.size() && line[i] != c; ++i) {
+                if (c == '"' && line[i] == '\\' && i + 1 < line.size())
+                    ++i;
+                item += line[i];
+            }
+            ++i;
+        } else {
+            // An unquoted item isn't TOML, but is kept as the requirement it names.
+            const size_t end = std::min(line.find_first_of(" \t,]#", i), line.size());
+            item = line.substr(i, end - i);
+            i = end;
+        }
         if (!item.empty())
-            result.push_back(unquote_toml_string(item));
+            items.push_back(item);
     }
-    return result;
+    return false;
 }
 
 // Parse PEP 723 TOML subset for dependencies, requires-python, and
@@ -485,16 +525,8 @@ bool parse_pep723_toml(const std::string& toml_content,
         }
 
         if (section == TomlSection::InDepsArray) {
-            if (trimmed == "]") {
+            if (read_toml_array_items(trimmed, out_deps))
                 section = TomlSection::Root;
-                continue;
-            }
-            std::string val = trimmed;
-            if (!val.empty() && val.back() == ',')
-                val.pop_back();
-            val = unquote_toml_string(val);
-            if (!val.empty())
-                out_deps.push_back(val);
             continue;
         }
 
@@ -518,12 +550,11 @@ bool parse_pep723_toml(const std::string& toml_content,
             if (key == "requires-python") {
                 out_requires_python = unquote_toml_string(val);
             } else if (key == "dependencies") {
-                if (val == "[") {
+                // The array may close on this line or run on over the following ones.
+                out_deps.clear();
+                const bool array = !val.empty() && val.front() == '[';
+                if (!read_toml_array_items(array ? val.substr(1) : val, out_deps) && array)
                     section = TomlSection::InDepsArray;
-                } else {
-                    // Inline array: dependencies = ["a", "b"]
-                    out_deps = parse_toml_inline_array(val);
-                }
             }
         } else if (section == TomlSection::OrcaPlugin) {
             if (key == "name")         out_name = unquote_toml_string(val);
@@ -766,22 +797,52 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginDescrip
     return true;
 }
 
-bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstallState& out)
+InstallStateReadStatus read_install_state_status(const boost::filesystem::path& plugin_dir, PluginInstallState& out,
+                                                 bool* malformed)
 {
     namespace fs                = boost::filesystem;
     const fs::path sidecar_path = plugin_dir / ".install_state.json";
+    if (malformed != nullptr)
+        *malformed = false;
 
-    if (!fs::exists(sidecar_path) || !fs::is_regular_file(sidecar_path))
-        return false;
+    // Report the entry itself, not its target: symlink_status lets a dangling symlink or an
+    // unreadable parent be told apart from a genuinely missing sidecar. Only "no entry" means a
+    // new plugin whose metadata may be seeded; anything else that cannot be read must be
+    // preserved.
+    boost::system::error_code ec;
+    const fs::file_status     link_status = fs::symlink_status(sidecar_path, ec);
+    if (ec) {
+        if (ec == boost::system::errc::no_such_file_or_directory)
+            return InstallStateReadStatus::Absent;
+        return InstallStateReadStatus::Unreadable;
+    }
+    if (!fs::exists(link_status))
+        return InstallStateReadStatus::Absent;
+
+    const fs::file_status status = fs::status(sidecar_path, ec);
+    if (ec || !fs::is_regular_file(status))
+        return InstallStateReadStatus::Unreadable;
 
     boost::nowide::ifstream f(sidecar_path.string());
     if (!f)
-        return false;
+        return InstallStateReadStatus::Unreadable;
 
     try {
         nlohmann::json state = nlohmann::json::parse(f, nullptr, false, true);
-        if (state.is_discarded() || !state.is_object())
-            return false;
+        if (state.is_discarded() || !state.is_object()) {
+            // A stream reports a read error as the end of the file, so contents cut short by I/O
+            // would look malformed too. They count as malformed only when the entry itself is a
+            // regular file, not a link that a move could follow on Windows, and a second read gets
+            // every byte on disk (load_string_file throws otherwise, caught below) that still
+            // does not parse.
+            if (malformed != nullptr && fs::is_regular_file(link_status)) {
+                std::string contents;
+                load_string_file(sidecar_path, contents);
+                const nlohmann::json reread = nlohmann::json::parse(contents, nullptr, false, true);
+                *malformed                  = reread.is_discarded() || !reread.is_object();
+            }
+            return InstallStateReadStatus::Unreadable;
+        }
 
         PluginInstallState parsed;
         if (state.contains("installed_from") && state["installed_from"].is_string())
@@ -807,8 +868,27 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstall
             read_string_list("network_http", parsed.permissions.network_http);
             read_string_list("network_socket", parsed.permissions.network_socket);
             read_string_list("process", parsed.permissions.process);
-            read_string_list("threading", parsed.permissions.threading);
             read_string_list("events", parsed.permissions.events);
+
+            // Threading is a boolean grant. Newer sidecars store the boolean directly; the older
+            // array form stored an empty list when denied and a nonempty one when granted. By
+            // explicit migration choice, any nonempty string or array therefore grants and an
+            // empty one denies; any other JSON type leaves the permission off. Reading never
+            // rewrites the sidecar; the next normal write stores the boolean form.
+            if (permissions.contains("threading")) {
+                const auto& threading = permissions["threading"];
+                if (threading.is_boolean())
+                    parsed.permissions.threading = threading.get<bool>();
+                else if (threading.is_string())
+                    parsed.permissions.threading = !threading.get<std::string>().empty();
+                else if (threading.is_array())
+                    parsed.permissions.threading = !threading.empty();
+            }
+
+            // Full access is a boolean grant. Only an explicit JSON boolean enables it: a missing
+            // key, a "true" string, a number or any other type leaves it off.
+            if (permissions.contains("full_access") && permissions["full_access"].is_boolean())
+                parsed.permissions.full_access = permissions["full_access"].get<bool>();
         }
 
         if (state.contains("enabled") && state["enabled"].is_boolean())
@@ -827,13 +907,99 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstall
         }
 
         out = std::move(parsed);
-        return true;
+        return InstallStateReadStatus::Readable;
     } catch (...) {
-        return false;
+        return InstallStateReadStatus::Unreadable;
     }
 }
 
+bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstallState& out)
+{
+    return read_install_state_status(plugin_dir, out) == InstallStateReadStatus::Readable;
+}
+
 namespace {
+
+// Strictly atomic replacement for the install-state sidecar.
+//
+// The payload is written to a uniquely named temporary in the target's own directory, flushed,
+// closed, and then moved over the target with the platform replace primitive. Staying in the same
+// directory keeps the replacement on one filesystem, so POSIX rename(2) and Windows MoveFileExW
+// replace the target in one step: a reader sees the old sidecar or the new one, and the target is
+// never removed or moved aside first. There is deliberately no in-place fallback: on any failure
+// the temporary is removed and the existing sidecar is left exactly as it was. An in-place write
+// could expose a torn sidecar, which read_install_state() treats as no grants, and the next
+// read-modify-write would then persist that empty grant set.
+//
+// rename_file() is not used here: on POSIX it may remove the target before a second rename, and on
+// Windows it moves the target aside with DELETE_ON_CLOSE before renaming the source, so either path
+// can lose the previous sidecar on failure. The bounded Windows retry below keeps the same replace
+// primitive and retries only transient sharing or access errors.
+bool replace_install_state_file(const boost::filesystem::path& target, const std::string& contents, std::string& error)
+{
+    namespace fs = boost::filesystem;
+
+    static std::atomic<unsigned> counter{0};
+    const fs::path tmp_path = target.parent_path() /
+        (target.filename().string() + "." + std::to_string(get_current_pid()) + "." +
+         std::to_string(counter.fetch_add(1, std::memory_order_relaxed)) + ".tmp");
+
+    const auto fail = [&tmp_path, &error](const std::string& reason) {
+        boost::system::error_code remove_ec;
+        fs::remove(tmp_path, remove_ec);
+        error = reason;
+        return false;
+    };
+
+    boost::nowide::ofstream out(tmp_path.string(), std::ios::out | std::ios::trunc);
+    if (!out)
+        return fail("cannot open temporary for writing");
+
+    out.write(contents.data(), static_cast<std::streamsize>(contents.size()));
+    out.flush();
+    if (!out) {
+        out.close();
+        return fail("write or flush failed");
+    }
+
+    out.close();
+    if (!out)
+        return fail("close failed");
+
+#ifndef _WIN32
+    // Keep the replaced file's mode where the platform has one. Best effort, matching the previous
+    // writer; a failure here does not turn a successful replace into a failed one.
+    boost::system::error_code perm_ec;
+    const fs::file_status   target_status = fs::status(target, perm_ec);
+    if (!perm_ec && fs::exists(target_status))
+        fs::permissions(tmp_path, target_status.permissions(), perm_ec);
+#endif
+
+#ifdef _WIN32
+    const std::wstring wide_tmp    = tmp_path.wstring();
+    const std::wstring wide_target = target.wstring();
+    // A scanner or a reader holding the target open makes MoveFileExW fail transiently with a
+    // sharing or access error. Retry the same replace primitive a bounded number of times; any
+    // other error, or the last attempt, reports the last error and removes the temporary.
+    constexpr unsigned max_attempts = 200;
+    for (unsigned attempt = 0;; ++attempt) {
+        if (::MoveFileExW(wide_tmp.c_str(), wide_target.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+            break;
+        const DWORD last_error = ::GetLastError();
+        const bool transient = last_error == ERROR_SHARING_VIOLATION || last_error == ERROR_LOCK_VIOLATION ||
+                               last_error == ERROR_ACCESS_DENIED;
+        if (!transient || attempt + 1 == max_attempts)
+            return fail("MoveFileExW failed with error " +
+                        std::to_string(static_cast<unsigned long>(last_error)));
+        ::Sleep(10);
+    }
+#else
+    if (boost::nowide::rename(tmp_path.string().c_str(), target.string().c_str()) != 0)
+        return fail(std::error_code(errno, std::generic_category()).message());
+#endif
+
+    return true;
+}
 
 // The single descriptor -> sidecar metadata mapping. Prefer installed_version (fetched at install
 // time and preserved across rewrites) over a possibly stale manifest version.
@@ -877,6 +1043,7 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
         {"process", state.permissions.process},
         {"threading", state.permissions.threading},
         {"events", state.permissions.events},
+        {"full_access", state.permissions.full_access},
     };
 
     nlohmann::json capabilities = nlohmann::json::array();
@@ -884,12 +1051,14 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
         capabilities.push_back(nlohmann::json{{name, enabled}});
     json["capabilities"] = std::move(capabilities);
 
-    boost::nowide::ofstream f(sidecar_path.string());
-    if (!f)
+    // Replace the sidecar atomically: a reader sees the old or the new contents, and a failed
+    // write leaves the previous file in place instead of truncating it.
+    std::string error;
+    if (!replace_install_state_file(sidecar_path, json.dump(2), error)) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Failed to replace " << sidecar_path.string() << ": " << error;
         return false;
-
-    f << json.dump(2);
-    return static_cast<bool>(f);
+    }
+    return true;
 }
 
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginDescriptor& entry, bool enabled,
@@ -897,8 +1066,11 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
 {
     PluginInstallState state;
     // Loading a plugin updates its lifecycle/capability state, but must retain permissions granted
-    // during register_capabilities() or by a previous runtime audit prompt.
-    read_install_state(plugin_dir, state);
+    // during register_capabilities() or by a previous runtime audit prompt. A missing sidecar is a
+    // new plugin and gets fresh metadata; an existing sidecar that cannot be read is never
+    // replaced, because its permissions and capability choices would be lost.
+    if (read_install_state_status(plugin_dir, state) == InstallStateReadStatus::Unreadable)
+        return false;
     apply_install_metadata(state, entry);
     state.enabled      = enabled;
     state.capabilities = capabilities;

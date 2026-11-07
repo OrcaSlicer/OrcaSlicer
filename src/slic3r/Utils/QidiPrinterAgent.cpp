@@ -2,12 +2,14 @@
 #include "Http.hpp"
 #include "MoonrakerPrinterAgent.hpp"
 #include "IPrinterAgent.hpp"
+#include "NetworkAgentFactory.hpp"
 #include "bambu_networking.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "nlohmann/json.hpp"
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/log/trivial.hpp>
@@ -45,8 +47,7 @@ QidiPrinterAgent::QidiPrinterAgent(std::string log_dir) : MoonrakerPrinterAgent(
 
 AgentInfo QidiPrinterAgent::get_agent_info_static()
 {
-    // The native Device and Calibration tabs have nothing to show for Qidi printers yet, so Fluidd's web Device tab is the only one
-    return AgentInfo{"qidi", "Qidi", QidiPrinterAgent_VERSION, "Qidi printer agent", false};
+    return AgentInfo{QIDI_PRINTER_AGENT_ID, "Qidi", QidiPrinterAgent_VERSION, "Qidi printer agent"};
 }
 
 bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
@@ -129,7 +130,16 @@ bool QidiPrinterAgent::print_uploaded_file(const PrintParams& params, const std:
 
     // On the X-Max 4 and Q2, Klipper only opens the copy Moonraker's print start makes, so SDCARD_PRINT_FILE can't find the upload
     std::string response;
-    return send_jsonrpc_command(device_info.base_url, device_info.api_key, {{"filename", filename}}, response);
+    return send_jsonrpc_command(device_info.base_url, device_info.api_key, print_start_request(params, filename), response);
+}
+
+nlohmann::json QidiPrinterAgent::print_start_request(const PrintParams& params, const std::string& filename)
+{
+    nlohmann::json request{{"filename", filename}};
+    // Qidi's Moonraker prints Metadata/plate_<plateindex>.gcode from a 3MF, defaulting to plate 1
+    if (boost::iends_with(filename, ".3mf"))
+        request["plateindex"] = std::to_string(params.plate_index);
+    return request;
 }
 
 bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,

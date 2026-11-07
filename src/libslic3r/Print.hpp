@@ -965,6 +965,8 @@ struct PrintStatistics
     double                          total_wipe_tower_filament;
     unsigned int                    initial_tool;
     unsigned int                    initial_no_support_tool;
+    // Orca: underscore-separated list of the filament types really extruded on the plate.
+    std::string                     printing_filament_types;
     std::map<size_t, double>        filament_stats;
 
     // Config with the filled in print statistics.
@@ -984,6 +986,7 @@ struct PrintStatistics
         total_wipe_tower_filament = 0.;
         initial_tool           = 0;
         initial_no_support_tool = 0;
+        printing_filament_types.clear();
         filament_stats.clear();
     }
     static const std::string FilamentUsedG;
@@ -1235,7 +1238,13 @@ public:
     const std::map<const PrintObject*, ToolOrdering>& sequential_dynamic_orderings() const { return m_sequential_dynamic_orderings; }
 
     const std::vector<std::vector<DynamicPrintConfig>>& get_extruder_filament_info() const { return m_extruder_filament_info; }
-    void set_extruder_filament_info(const std::vector<std::vector<DynamicPrintConfig>>& filament_info) { m_extruder_filament_info = filament_info; }
+    // Two-phase: the setter only stashes the payload, so Print::apply() can invalidate the grouping
+    // steps once the inventory actually changed.
+    void set_extruder_filament_info(const std::vector<std::vector<DynamicPrintConfig>>& filament_info)
+    {
+        m_pending_extruder_filament_info = filament_info;
+        m_extruder_filament_info_pending = true;
+    }
 
     void set_geometric_unprintable_filaments(const std::vector<std::set<int>> &unprintables_filament_ids) { m_geometric_unprintable_filaments = unprintables_filament_ids; }
     std::vector<std::set<int>> get_geometric_unprintable_filaments() const { return m_geometric_unprintable_filaments;}
@@ -1308,6 +1317,10 @@ public:
     //BBS: export gcode from previous gcode file from 3mf
     void set_gcode_file_ready();
     void set_gcode_file_invalidated();
+    // For the background thread that exported the G-code, when a step that then edits the file in place
+    // (post-processing scripts or plugins) failed and may have left it half edited: the next run exports
+    // the G-code again instead of reusing it.
+    void invalidate_gcode_export_from_worker() { this->invalidate_step_from_worker(psGCodeExport); }
     void export_gcode_from_previous_file(const std::string& file, GCodeProcessorResult* result, ThumbnailsGeneratorCallback thumbnail_cb = nullptr);
     // Re-reads the moves and line offsets of `result` from its G-code file after the file was rewritten in
     // place (post-processing scripts or plugins), so the preview and its G-code window follow the file on
@@ -1531,6 +1544,9 @@ private:
     Points                                  m_skirt_convex_hull;
 
     std::vector<std::vector<DynamicPrintConfig>> m_extruder_filament_info;
+    // Payload handed to set_extruder_filament_info(), installed by Print::apply(). See the setter.
+    std::vector<std::vector<DynamicPrintConfig>> m_pending_extruder_filament_info;
+    bool                                       m_extruder_filament_info_pending { false };
 
     // Logical (extruder, nozzle) grouping result, set by ToolOrdering during reorder.
     std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> m_nozzle_group_result;
