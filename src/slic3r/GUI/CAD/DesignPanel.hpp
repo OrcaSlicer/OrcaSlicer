@@ -123,7 +123,16 @@ public:
     bool         mcp_section_on() const { return m_section_on; }
     double       mcp_section_z() const  { return m_section_cut_z; }
     bool         mcp_section_upper() const { return m_section_upper; }     // ship the bodies to the plate as objects, staying on this tab
-    void         mcp_after_change() { after_tree_edit(true); } // refresh tree + viewport + status
+    // refresh tree + viewport + status. Inside a batch the refresh is deferred and run once at the end (mcp_defer_end):
+    // measured on the rig, ~170 ms of tree/status/repaint per command against <5 ms of kernel.
+    void         mcp_after_change() { if (m_mcp_defer > 0) { m_mcp_dirty = true; return; } after_tree_edit(true); }
+    void         mcp_defer_begin() { ++m_mcp_defer; }
+    void         mcp_defer_end()
+    {
+        if (--m_mcp_defer > 0) return;
+        if (m_mcp_mode_dirty) { m_mcp_mode_dirty = false; set_ui_mode(m_ui_mode); }
+        if (m_mcp_dirty)      { m_mcp_dirty = false; update_reference_planes(); after_tree_edit(true); }
+    }
     DesignCanvas* mcp_viewport()  { return m_viewport; }        // live sketch + 3D view
     // Put the PANEL into (or out of) sketch mode, not just the canvas tool. Measured on the
     // rig: a sketch started straight through DesignCanvas::begin_sketch leaves m_ui_mode at
@@ -134,7 +143,7 @@ public:
     void mcp_set_sketch_mode(bool on)
     {
         set_ui_mode(on ? UiMode::Sketch : UiMode::Feature);
-        update_action_bar();
+        if (m_mcp_defer == 0) update_action_bar();
     }
     // The offer-table vocabulary without a right-click: the external controller asks which verbs
     // exist (and which apply to the current selection) and fires one by id, so a deck key names a
@@ -408,6 +417,9 @@ public:
     // Grey the app's Undo/Redo to this tab's history and gate (shown tab only).
     void update_undo_redo_buttons();
 private:
+    int  m_mcp_defer = 0;      // batch nesting: >0 = mcp_after_change only marks the UI stale
+    bool m_mcp_dirty = false;
+    bool m_mcp_mode_dirty = false;   // set_ui_mode ran inside a batch: its widget layout is still to do
     // The plane the Hole tool drills on: a picked face (inward, centred) or the dropdown.
     SketchPlane hole_plane() const;
     void        attach_to_face(CadFeature& f, int body, int face, bool cylinder) const;

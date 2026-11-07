@@ -2219,12 +2219,12 @@ json action_sketch_begin(DesignPanel* panel, const json& params)
     // Every plane passes through modeling_origin (the bed centre), as the GUI's, the datum planes', extrude{profile}'s,
     // hole's and mirror's already do. sketch_begin alone used the world origin, so a sketch and its datum plane disagreed.
     if (pl.rfind("datum:", 0) != 0 && !params.contains("face")) plane.origin = panel->mcp_doc().modeling_origin;
-    vp->begin_sketch(plane, DesignSketchTool::Mode::Select);
+    { PhaseLog t("sketch_begin.begin_sketch"); vp->begin_sketch(plane, DesignSketchTool::Mode::Select); }
     // The panel has to enter sketch mode too, or the app is half in it: the tool sketches, the
     // offer menu offers sketch verbs, and every sketch KEY is dead because key dispatch tests
     // m_ui_mode while the menu tests the viewport. Driving the socket must leave the GUI in the
     // state a user would be in, not a state only the socket can produce.
-    panel->mcp_set_sketch_mode(true);
+    { PhaseLog t("sketch_begin.set_mode"); panel->mcp_set_sketch_mode(true); }
     // The plane as it is, not as it was asked for: a face is "face:<id>" with its frame, so a client never reads "XY" for a
     // sketch that lies on a tilted or offset face. origin is in model coordinates, like every sketch coordinate.
     auto v3 = [](const Vec3d& v) { return json::array({v.x(), v.y(), v.z()}); };
@@ -2237,8 +2237,8 @@ json action_sketch_commit(DesignPanel* panel, const json& params)
     (void)params;
     DesignCanvas* vp = panel->mcp_viewport();
     if (vp == nullptr || !vp->is_sketching()) throw std::runtime_error("no sketch is open");
-    vp->finish_sketch();
-    panel->mcp_set_sketch_mode(false);
+    { PhaseLog t("sketch_commit.finish"); vp->finish_sketch(); }
+    { PhaseLog t("sketch_commit.set_mode"); panel->mcp_set_sketch_mode(false); }
     panel->mcp_after_change();
     CadDocument& cd = panel->mcp_doc();
     const int last = cd.last_added >= 0 && cd.last_added < int(cd.features.size()) ? cd.last_added : int(cd.features.size()) - 1;
@@ -3331,9 +3331,11 @@ json action_sketch3d(DesignPanel* panel, const json& params)
 
 json action_new_document(DesignPanel* panel, const json& params)
 {
-    (void)params;
     CadDocument& doc = panel->mcp_doc();
     doc.checkpoint();
+    // "fresh": true also forgets the undo history. Without it new_document is itself an undoable step, and the stack is capped at
+    // 200, so a script that counts undo steps (check-undo) starts from a full stack and sees every step as +0.
+    if (params.value("fresh", false)) doc.drop_undo_to(0);
     doc.features.clear();
     doc.variables.clear();   // a new document starts with no variables and no history marker
     doc.drop_replay_cache();
@@ -3348,9 +3350,6 @@ json action_new_document(DesignPanel* panel, const json& params)
 json action_ui_option(DesignPanel* panel, const json& params)
 {
     const std::string name = params.value("name", std::string());
-    // "fresh": true also forgets the undo history. Without it new_document is itself an undoable step, and the stack is capped at
-    // 200, so a script that counts undo steps (check-undo) starts from a full stack and sees every step as +0.
-    if (params.value("fresh", false)) doc.drop_undo_to(0);
     const bool        on   = params.value("value", false);
     if (name == "imgui_tree")   { panel->mcp_set_imgui_tree(on);   return json{{"ok", true}, {"imgui_tree", on}}; }
     if (name == "imgui_ribbon") { panel->mcp_set_imgui_ribbon(on); return json{{"ok", true}, {"imgui_ribbon", on}}; }
@@ -5079,6 +5078,7 @@ json action_batch(DesignPanel* panel, const json& params)
     json results = json::array(), failed;
     const auto t_start = std::chrono::steady_clock::now();
     const double budget_s = params.value("time_budget_s", 30.0);   // the window is frozen while a batch runs: bound it
+    struct Defer { DesignPanel* p; explicit Defer(DesignPanel* q) : p(q) { p->mcp_defer_begin(); } ~Defer() { p->mcp_defer_end(); } } defer(panel);   // one UI refresh for the whole batch
     for (size_t i = 0; i < cmds.size() && failed.is_null(); ++i) {
         const json& c = cmds[i];
         const std::string name = c.is_object() ? c.value("command", c.value("method", std::string())) : std::string();
@@ -5099,8 +5099,12 @@ json action_batch(DesignPanel* panel, const json& params)
         }
         if (err.empty() && r.is_object() && r.contains("ok") && r["ok"] == false)
             err = r.value("error", std::string("refused"));
+        const auto t_cmd = std::chrono::steady_clock::now();
         if (!err.empty()) failed = json{{"index", int(i)}, {"command", name}, {"error", err}};
-        else              results.push_back(verbose ? r : json{{"ok", true}});
+        else {
+            if (verbose && r.is_object()) r["ms"] = std::round(std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t_cmd).count() * 10) / 10;   // where a batch's time goes, per step
+            results.push_back(verbose ? r : json{{"ok", true}});
+        }
     }
     bool undone = false;
     if (!failed.is_null() && rollback) {

@@ -4492,6 +4492,9 @@ void DesignPanel::set_ui_mode(UiMode m)
     // still count as a selection and swallow the first Esc. The double-click that opens a sketch
     // for editing makes one with its first click.
     if (m == UiMode::Sketch && m_viewport != nullptr) m_viewport->clear_loop_pick();
+    // Inside a batch the widgets are re-laid-out once, at its end: with the tab on screen each switch costs ~60 ms of layout,
+    // the plane rebuild and a repaint, and a sketch macro switches twice.
+    if (m_mcp_defer > 0) { m_mcp_dirty = m_mcp_mode_dirty = true; return; }
     // The DoF readout describes a SKETCH's constraint state, so it means nothing back in Feature
     // mode — where it nonetheless stayed on screen after every Confirm, Cancel and Escape
     // (752). Cleared here rather than at those three exits because this is the one place
@@ -4603,6 +4606,7 @@ void DesignPanel::set_status_ok()
 void DesignPanel::sync_sketch_display()
 {
     if (m_viewport == nullptr) return;
+    if (m_mcp_defer > 0) { m_mcp_dirty = true; return; }   // inside a batch: once at its end (mcp_defer_end)
     const int n = int(m_doc.features.size());
     std::vector<bool> consumed(n, false);
     // Per-loop extrudes (sketch_ref < 0) carry a verbatim copy of the one loop they
@@ -6823,6 +6827,7 @@ void DesignPanel::set_status(StatusKind kind, const wxString& body)
 {
     if (m_status == nullptr) return;
     wxColour colour;
+    if (m_mcp_defer > 0) return;   // a batch: the status line is written once, by its closing refresh
     const wchar_t* glyph = nullptr;
     switch (kind) {
     case StatusKind::Info:    colour = wxNullColour;              break;
@@ -8136,6 +8141,7 @@ void DesignPanel::load_recipe(const std::string& blob)
 void DesignPanel::refresh_tree()
 {
     m_tree_multi.clear();
+    if (m_mcp_defer > 0) { m_mcp_dirty = true; return; }   // inside a batch: once at its end (mcp_defer_end)
     // The recipe mirrors the FEATURE LIST, and this is the moment the feature list changed —
     // every add, delete, reorder, rename and suppression ends here to redraw the tree. Putting
     // the sync in recompute_guarded instead tied it to "a solid was built", and CadDocument::
@@ -12462,6 +12468,7 @@ void DesignPanel::update_reference_planes()
 {
     if (!m_viewport) return;
     // Default planes pass through the modeling origin (bed centre) — same point the kernel uses to
+    if (m_mcp_defer > 0) { m_mcp_dirty = true; return; }   // inside a batch: once at its end (mcp_defer_end)
     // resolve XY/XZ/YZ datum bases, so the ghosts, the datums and new sketches all coincide.
     const Vec3d o = m_doc.modeling_origin;
     SketchPlane xy = SketchPlane::XY(); xy.origin += o;
