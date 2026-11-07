@@ -2293,3 +2293,48 @@ TEST_CASE("Nozzle change ramming is symmetric for identical filaments", "[MultiF
     }
     CHECK_THAT(medians[0], Catch::Matchers::WithinRel(medians[1], 0.01));
 }
+
+// change_filament_gcode receives the flush both as a total, flush_length, and split into chunks of
+// about 135 mm³, flush_length_1..4. Profiles purge the chunks, so a flush too small to round up to
+// one chunk must still land in flush_length_1 instead of being dropped.
+TEST_CASE("The flush chunks add up to the whole flush, however small", "[MultiFilament]")
+{
+    const std::string path   = GENERATE(as<std::string>{}, "direct", "type1");
+    const double      volume = GENERATE(30., 50., 100., 300., 1000.);
+    CAPTURE(path, volume);
+
+    const std::string flush = "0," + std::to_string(volume) + "," + std::to_string(volume) + ",0";
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "change_filament_gcode", "; FLUSH {flush_length} {flush_length_1} {flush_length_2} {flush_length_3} {flush_length_4}\n" },
+        { "flush_volumes_matrix",  flush },
+        { "flush_multiplier",      1 },
+        { "skirt_loops",           0 },
+        { "brim_type",             "no_brim" },
+    });
+    if (path == "direct")
+        config.set_deserialize_strict({ { "print_sequence", "by object" } });
+    else
+        config.set_deserialize_strict({
+            { "enable_prime_tower", true },
+            { "wipe_tower_type",    "type1" },
+            { "prime_tower_width",  35 },
+            { "wipe_tower_x",       120 },
+            { "wipe_tower_y",       120 },
+            { "printable_area",     "0x0,200x0,200x200,0x200" },
+        });
+    const std::string gcode = slice_with_object_overrides({ cube(20), cube(20) }, config,
+                                                          { { { "extruder", "1" } }, { { "extruder", "2" } } });
+
+    size_t flushes = 0;
+    std::istringstream lines(gcode);
+    for (std::string line; std::getline(lines, line);) {
+        double total, chunks[4];
+        if (std::sscanf(line.c_str(), "; FLUSH %lf %lf %lf %lf %lf", &total, &chunks[0], &chunks[1], &chunks[2], &chunks[3]) != 5 || total <= 0.)
+            continue;
+        ++flushes;
+        CAPTURE(line);
+        CHECK(chunks[0] > 0.);
+        CHECK_THAT(chunks[0] + chunks[1] + chunks[2] + chunks[3], Catch::Matchers::WithinRel(total, 1e-3));
+    }
+    CHECK(flushes > 0);
+}
