@@ -28,17 +28,18 @@ namespace py = pybind11;
 namespace Slic3r {
 namespace {
 
-CadFaceSelectionState& selection_state()
+template<class Value>
+CadSelectionState<Value>& selection_state()
 {
-    static CadFaceSelectionState state;
+    static CadSelectionState<Value> state;
     return state;
 }
 
-struct FaceCallback
+struct CadCallback
 {
     py::function function;
-    explicit FaceCallback(py::function fn) : function(std::move(fn)) {}
-    ~FaceCallback()
+    explicit CadCallback(py::function fn) : function(std::move(fn)) {}
+    ~CadCallback()
     {
         PythonGILState gil;
         if (gil)
@@ -48,16 +49,17 @@ struct FaceCallback
     }
 };
 
-std::shared_ptr<CadFaceSubscription> subscribe(py::function callback)
+template<class Value>
+std::shared_ptr<CadSelectionSubscription<Value>> subscribe(py::function callback)
 {
     const auto& audit = PluginAuditManager::instance();
     const std::string owner = audit.current_plugin();
     const std::string capability_name = audit.current_capability();
     if (owner.empty() || capability_name.empty())
-        throw std::runtime_error("on_face_selection_changed() must be called from a plugin capability callback");
-    auto holder = std::make_shared<FaceCallback>(std::move(callback));
-    return selection_state().subscribe(owner, [holder, owner, capability_name](const CadFaceSnapshot& face,
-                                                                             const CadFaceSubscription& subscription) {
+        throw std::runtime_error("CAD subscriptions must be created from a plugin capability callback");
+    auto holder = std::make_shared<CadCallback>(std::move(callback));
+    return selection_state<Value>().subscribe(owner, [holder, owner, capability_name](const std::optional<Value>& selection,
+                                                                             const CadSelectionSubscription<Value>& subscription) {
         PythonGILState gil;
         if (!gil || !subscription.is_active())
             return;
@@ -72,13 +74,13 @@ std::shared_ptr<CadFaceSubscription> subscribe(py::function callback)
             if (active.empty())
                 return;
             ScopedPluginAuditContext context(owner, capability_name);
-            holder->function(face ? py::cast(*face) : py::none());
+            holder->function(selection ? py::cast(*selection) : py::none());
         } catch (py::error_already_set& error) {
-            BOOST_LOG_TRIVIAL(error) << "orca.host.cad face selection callback raised: " << error.what();
+            BOOST_LOG_TRIVIAL(error) << "orca.host.cad selection callback raised: " << error.what();
         } catch (const std::exception& error) {
-            BOOST_LOG_TRIVIAL(error) << "orca.host.cad face selection callback raised: " << error.what();
+            BOOST_LOG_TRIVIAL(error) << "orca.host.cad selection callback raised: " << error.what();
         } catch (...) {
-            BOOST_LOG_TRIVIAL(error) << "orca.host.cad face selection callback raised an unknown exception";
+            BOOST_LOG_TRIVIAL(error) << "orca.host.cad selection callback raised an unknown exception";
         }
     });
 }
@@ -87,40 +89,50 @@ std::shared_ptr<CadFaceSubscription> subscribe(py::function callback)
 
 void PluginHostCad::RegisterBindings(py::module_& host)
 {
-    auto cad = host.def_submodule("cad", "Read-only Design-tab face selection snapshots and events.");
-    py::class_<GUI::CadFaceSelection>(cad, "SelectedFace")
-        .def_readonly("body_index", &GUI::CadFaceSelection::body_index)
-        .def_readonly("face_index", &GUI::CadFaceSelection::face_index)
-        .def_readonly("selection_revision", &GUI::CadFaceSelection::selection_revision)
-        .def_readonly("centroid", &GUI::CadFaceSelection::centroid)
-        .def_readonly("normal", &GUI::CadFaceSelection::normal)
-        .def_readonly("area", &GUI::CadFaceSelection::area)
-        .def_readonly("is_planar", &GUI::CadFaceSelection::is_planar)
-        .def_readonly("body_to_design", &GUI::CadFaceSelection::body_to_design);
+    auto cad = host.def_submodule("cad", "Read-only Design-tab OCCT geometry and selection events.");
+    register_cad_geometry(cad);
     py::class_<CadFaceSubscription, std::shared_ptr<CadFaceSubscription>>(cad, "FaceSelectionSubscription")
-        .def("close", &CadFaceSubscription::close, "Disconnect. Safe to call more than once or from inside the callback.")
+        .def("close", &CadFaceSubscription::close)
         .def("is_active", &CadFaceSubscription::is_active);
-    cad.def("selected_face", [] { return selection_state().selected_face(); },
-            "Return an owned SelectedFace snapshot, or None when no CAD face is selected. Safe on a Script worker.");
-    cad.def("on_face_selection_changed", &subscribe, py::arg("callback"),
-            "Subscribe to native face selection changes. Keep the returned handle; close it to unsubscribe. "
-            "callback(face_or_none) runs later on the UI thread. No initial event; use selected_face(). "
-            "Subscriptions are closed automatically on plugin unload.");
+    py::class_<CadShapeSubscription, std::shared_ptr<CadShapeSubscription>>(cad, "ShapeSelectionSubscription")
+        .def("close", &CadShapeSubscription::close)
+        .def("is_active", &CadShapeSubscription::is_active);
+    cad.def("selected_face", [] { return selection_state<GUI::CadFaceSelection>().selected(); },
+            "Return an owned SelectedFace snapshot, or None. Safe on a Script worker.");
+    cad.def("selected_shape", [] { return selection_state<GUI::CadShapeSelection>().selected(); },
+            "Return the primary native face, edge, vertex or whole-body selection, or None.");
+    cad.def("selected_edge", [] {
+        auto value = selection_state<GUI::CadShapeSelection>().selected();
+        return value && value->kind == "edge" ? value : std::nullopt;
+    });
+    cad.def("selected_vertex", [] {
+        auto value = selection_state<GUI::CadShapeSelection>().selected();
+        return value && value->kind == "vertex" ? value : std::nullopt;
+    });
+    cad.def("on_face_selection_changed", &subscribe<GUI::CadFaceSelection>, py::arg("callback"),
+            "Subscribe to face changes. Keep the handle. callback(face_or_none) runs later on the UI thread. "
+            "No initial event; use selected_face(). Automatically disconnected on plugin unload.");
+    cad.def("on_selection_changed", &subscribe<GUI::CadShapeSelection>, py::arg("callback"),
+            "Subscribe to native face, edge, vertex and whole-body picks. Keep the handle. "
+            "callback(selection_or_none) runs later on the UI thread. No initial event; use selected_shape().");
 }
 
-void PluginHostCad::selection_changed(std::optional<GUI::CadFaceSelection> face)
+void PluginHostCad::selection_changed(std::optional<GUI::CadShapeSelection> selection)
 {
-    auto notify = selection_state().update(std::move(face));
-    if (notify && wxTheApp != nullptr && !GUI::wxGetApp().is_closing())
-        GUI::wxGetApp().CallAfter([notify = std::move(notify)] {
-            if (!GUI::wxGetApp().is_closing())
-                notify();
+    auto face_notify = selection_state<GUI::CadFaceSelection>().update(selection ? selection->face : std::nullopt);
+    auto shape_notify = selection_state<GUI::CadShapeSelection>().update(std::move(selection));
+    if ((face_notify || shape_notify) && wxTheApp != nullptr && !GUI::wxGetApp().is_closing())
+        GUI::wxGetApp().CallAfter([face_notify = std::move(face_notify), shape_notify = std::move(shape_notify)] {
+            if (GUI::wxGetApp().is_closing()) return;
+            if (face_notify) face_notify();
+            if (shape_notify) shape_notify();
         });
 }
 
 void PluginHostCad::close_for_plugin(const std::string& plugin_key)
 {
-    selection_state().close_for_plugin(plugin_key);
+    selection_state<GUI::CadFaceSelection>().close_for_plugin(plugin_key);
+    selection_state<GUI::CadShapeSelection>().close_for_plugin(plugin_key);
 }
 
 } // namespace Slic3r

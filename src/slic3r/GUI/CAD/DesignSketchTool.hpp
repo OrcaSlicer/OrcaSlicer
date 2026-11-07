@@ -11,6 +11,7 @@
 #include "slic3r/GUI/GLModel.hpp"
 #include "slic3r/GUI/GLSelectionRectangle.hpp"   // left-drag rubber band over the committed bodies
 #include "slic3r/GUI/CAD/CadFaceSelection.hpp"
+#include "slic3r/GUI/CAD/CadShapeSelection.hpp"
 #include <Eigen/Core>
 #include <array>
 #include <cstddef>
@@ -244,9 +245,10 @@ public:
     void set_body_edges_hidden(bool h) { m_body_edges_hidden = h; }
     void clear_solid_selection();
     std::optional<CadFaceSelection> selected_face() const;
+    std::optional<CadShapeSelection> selected_shape() const;
     // Separate from the panel's solid-pick callback: also fires for silent clears during a
     // rebuild or teardown, without changing how native modeling tools consume their selection.
-    std::function<void(std::optional<CadFaceSelection>)> on_face_selection_changed;
+    std::function<void(std::optional<CadShapeSelection>)> on_cad_selection_changed;
     // Resample the edges of each body whose shape changed and drop those of bodies that are gone.
     // Also expires a pick or hover on a rebuilt body. The canvas calls it whenever it gets the bodies.
     void refresh_body_edges();
@@ -1314,7 +1316,7 @@ private:
     std::vector<std::vector<Vec3d>> m_sel_edges_more_pts;
     Vec3d                   m_sel_vertex_pt{Vec3d::Zero()};   // world point of a picked vertex
     bool handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent& evt);  // pick + notify
-    void notify_face_selection_changed() const;
+    void notify_cad_selection_changed() const;
     // What a click at (mx,my) WOULD take, resolved without touching the selection. One
     // implementation, two callers: the click, and the hover pre-highlight that promises what the
     // click is about to do. Split so the promise cannot drift from the act.

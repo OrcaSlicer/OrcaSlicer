@@ -862,8 +862,10 @@ set(SLIC3R_GUI_SOURCES
 if (SLIC3R_CAD)
     list(APPEND SLIC3R_GUI_SOURCES
         GUI/CAD/CadFaceSelection.hpp
+        GUI/CAD/CadShapeSelection.hpp
         plugin/host/CadFaceSelectionState.hpp
         plugin/host/PluginHostCad.cpp
+        plugin/host/PluginHostCadGeometry.cpp
         plugin/host/PluginHostCad.hpp
         GUI/CAD/DesignPanel.cpp
         GUI/CAD/DesignPanel.hpp

@@ -73,7 +73,7 @@ static void select_iso_view(Camera& camera)
 DesignCanvas::DesignCanvas(wxWindow* parent)
     : wxPanel()
 {
-    m_sketch_tool.on_face_selection_changed = PluginHostCad::selection_changed;
+    m_sketch_tool.on_cad_selection_changed = PluginHostCad::selection_changed;
     if (!Create(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0))
         return;
 
@@ -259,7 +259,7 @@ void DesignCanvas::reset_canvas_volumes()
 DesignCanvas::~DesignCanvas()
 {
     m_sketch_tool.clear_solid_selection();
-    m_sketch_tool.on_face_selection_changed = nullptr;
+    m_sketch_tool.on_cad_selection_changed = nullptr;
     delete m_canvas;
     delete m_canvas_widget;
 }

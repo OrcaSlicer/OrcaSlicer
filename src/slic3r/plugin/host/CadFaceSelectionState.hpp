@@ -1,6 +1,7 @@
 #pragma once
 
 #include "slic3r/GUI/CAD/CadFaceSelection.hpp"
+#include "slic3r/GUI/CAD/CadShapeSelection.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -16,14 +17,15 @@ namespace Slic3r {
 
 using CadFaceSnapshot = std::optional<GUI::CadFaceSelection>;
 
-class CadFaceSubscription
+template<class Value>
+class CadSelectionSubscription
 {
 public:
-    using Callback = std::function<void(const CadFaceSnapshot&, const CadFaceSubscription&)>;
+    using Callback = std::function<void(const std::optional<Value>&, const CadSelectionSubscription&)>;
 
-    CadFaceSubscription(std::string owner, Callback callback)
+    CadSelectionSubscription(std::string owner, Callback callback)
         : m_owner(std::move(owner)), m_callback(std::move(callback)) {}
-    ~CadFaceSubscription() { close(); }
+    ~CadSelectionSubscription() { close(); }
 
     void close()
     {
@@ -43,7 +45,7 @@ public:
 
     const std::string& owner() const { return m_owner; }
 
-    void deliver(const CadFaceSnapshot& face) const
+    void deliver(const std::optional<Value>& selection) const
     {
         Callback callback;
         {
@@ -52,7 +54,7 @@ public:
         }
         // A callback may close itself, subscribe again, or query the current selection.
         if (callback)
-            callback(face, *this);
+            callback(selection, *this);
     }
 
 private:
@@ -64,18 +66,21 @@ private:
 // Native selection changes update this copy on the UI thread. Python can read/subscribe from
 // a Script worker without a blocking UI round-trip. The returned notification is queued by the
 // GUI, so no Python callback runs inside the native mouse handler.
-class CadFaceSelectionState
+template<class Value>
+class CadSelectionState
 {
 public:
-    CadFaceSnapshot selected_face() const
+    using Subscription = CadSelectionSubscription<Value>;
+    using Snapshot = std::optional<Value>;
+    Snapshot selected() const
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        return m_face;
+        return m_selection;
     }
 
-    std::shared_ptr<CadFaceSubscription> subscribe(std::string owner, CadFaceSubscription::Callback callback)
+    std::shared_ptr<Subscription> subscribe(std::string owner, typename Subscription::Callback callback)
     {
-        auto subscription = std::make_shared<CadFaceSubscription>(std::move(owner), std::move(callback));
+        auto subscription = std::make_shared<Subscription>(std::move(owner), std::move(callback));
         std::lock_guard<std::mutex> lock(m_mutex);
         m_subscriptions.erase(std::remove_if(m_subscriptions.begin(), m_subscriptions.end(),
                                             [](const auto& weak) { return weak.expired(); }), m_subscriptions.end());
@@ -83,27 +88,27 @@ public:
         return subscription;
     }
 
-    std::function<void()> update(CadFaceSnapshot face)
+    std::function<void()> update(Snapshot selection)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        if ((!face && !m_face) || (face && m_face && face->same_geometry(*m_face)))
+        if ((!selection && !m_selection) || (selection && m_selection && selection->same_geometry(*m_selection)))
             return {};
         ++m_revision;
-        if (face)
-            face->selection_revision = m_revision;
-        m_face = face;
+        if (selection)
+            selection->selection_revision = m_revision;
+        m_selection = selection;
         // Weak handles: queued events neither keep a forgotten subscription alive nor deliver
         // to one that has been closed. A later subscriber does not receive earlier events.
-        return [subscriptions = m_subscriptions, face = std::move(face)] {
+        return [subscriptions = m_subscriptions, selection = std::move(selection)] {
             for (const auto& weak : subscriptions)
                 if (auto subscription = weak.lock())
-                    subscription->deliver(face);
+                    subscription->deliver(selection);
         };
     }
 
     void close_for_plugin(const std::string& owner)
     {
-        std::vector<std::shared_ptr<CadFaceSubscription>> closing;
+        std::vector<std::shared_ptr<Subscription>> closing;
         {
             std::lock_guard<std::mutex> lock(m_mutex);
             for (const auto& weak : m_subscriptions)
@@ -116,9 +121,14 @@ public:
 
 private:
     mutable std::mutex m_mutex;
-    CadFaceSnapshot m_face;
+    Snapshot m_selection;
     std::uint64_t m_revision{0};
-    std::vector<std::weak_ptr<CadFaceSubscription>> m_subscriptions;
+    std::vector<std::weak_ptr<Subscription>> m_subscriptions;
 };
+
+using CadFaceSubscription = CadSelectionSubscription<GUI::CadFaceSelection>;
+using CadFaceSelectionState = CadSelectionState<GUI::CadFaceSelection>;
+using CadShapeSubscription = CadSelectionSubscription<GUI::CadShapeSelection>;
+using CadShapeSelectionState = CadSelectionState<GUI::CadShapeSelection>;
 
 } // namespace Slic3r

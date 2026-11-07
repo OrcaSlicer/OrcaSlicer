@@ -65,7 +65,10 @@ add_executable(${_TEST_NAME}_tests
     )
 
 if (SLIC3R_CAD)
-    target_sources(${_TEST_NAME}_tests PRIVATE test_design_sketch_tool.cpp test_cad_face_selection.cpp)
+    target_sources(${_TEST_NAME}_tests PRIVATE
+        test_design_sketch_tool.cpp
+        test_cad_face_selection.cpp
+        test_plugin_cad_geometry.cpp)
 endif ()
 
 if (MSVC)

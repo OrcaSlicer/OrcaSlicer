@@ -3,11 +3,14 @@
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <memory>
 #include <tuple>
+
+namespace Slic3r { class CadShape; }
 
 namespace Slic3r::GUI {
 
-// A value snapshot, with no references to the document or the OCCT shape. Indices expire when
+// A snapshot with detached geometry and no references to the live document. Indices expire when
 // the selection is cleared or the CAD document is rebuilt; they are not persistent face IDs.
 struct CadFaceSelection
 {
@@ -18,6 +21,7 @@ struct CadFaceSelection
     std::optional<std::array<double, 3>> normal;
     double area{0.0};
     bool is_planar{false};
+    std::shared_ptr<CadShape> shape; // detached, read-only topology and surface geometry
     // centroid/normal/area are in OCCT shape coordinates (mm, mm^2). This row-major affine
     // matrix maps shape points into the Design viewport, including a pending body move.
     std::array<std::array<double, 4>, 4> body_to_design{{

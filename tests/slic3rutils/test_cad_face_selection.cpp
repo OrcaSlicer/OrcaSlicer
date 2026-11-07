@@ -3,6 +3,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "slic3r/GUI/CAD/CadFaceSelection.hpp"
+#include "slic3r/GUI/CAD/CadShapeSelection.hpp"
 #include "slic3r/plugin/host/CadFaceSelectionState.hpp"
 
 #include <array>
@@ -31,21 +32,21 @@ GUI::CadFaceSelection face(int index)
 TEST_CASE("Face snapshots survive subsequent selections and deselection", "[CadFaceSelection]")
 {
     CadFaceSelectionState state;
-    CHECK_FALSE(state.selected_face());
+    CHECK_FALSE(state.selected());
     state.update(face(2));
-    auto first = state.selected_face();
+    auto first = state.selected();
     REQUIRE(first);
     const auto revision = first->selection_revision;
     state.update(face(3));
     CHECK(first->face_index == 2);
-    REQUIRE(state.selected_face());
-    CHECK(state.selected_face()->face_index == 3);
-    CHECK(state.selected_face()->selection_revision > revision);
+    REQUIRE(state.selected());
+    CHECK(state.selected()->face_index == 3);
+    CHECK(state.selected()->selection_revision > revision);
     // Changing the copy cannot mutate the cached native selection.
     first->centroid[0] = 500.;
-    CHECK_THAT(state.selected_face()->centroid[0], Catch::Matchers::WithinAbs(1., 1e-12));
+    CHECK_THAT(state.selected()->centroid[0], Catch::Matchers::WithinAbs(1., 1e-12));
     state.update(std::nullopt);
-    CHECK_FALSE(state.selected_face());
+    CHECK_FALSE(state.selected());
     CHECK(first->face_index == 2);
 }
 
@@ -111,8 +112,8 @@ TEST_CASE("Selection callbacks can unsubscribe and query state without deadlocki
     subscription = state.subscribe("plugin", [&](const CadFaceSnapshot& value, const CadFaceSubscription&) {
         ++calls;
         REQUIRE(value);
-        REQUIRE(state.selected_face());
-        CHECK(state.selected_face()->face_index == value->face_index);
+        REQUIRE(state.selected());
+        CHECK(state.selected()->face_index == value->face_index);
         subscription->close();
     });
     state.update(face(0))();
@@ -141,12 +142,60 @@ TEST_CASE("Unchanged selections are silent and changed geometry gets a new revis
     CadFaceSelectionState state;
     CHECK_FALSE(state.update(std::nullopt));
     CHECK(bool(state.update(face(0))));
-    const std::uint64_t revision = state.selected_face()->selection_revision;
+    const std::uint64_t revision = state.selected()->selection_revision;
     CHECK_FALSE(state.update(face(0)));
     auto moved = face(0);
     moved.body_to_design[0][3] = 10.;
     CHECK(bool(state.update(moved)));
-    CHECK(state.selected_face()->selection_revision > revision);
+    CHECK(state.selected()->selection_revision > revision);
     CHECK(bool(state.update(std::nullopt)));
     CHECK_FALSE(state.update(std::nullopt));
+}
+
+TEST_CASE("Generic selection events preserve each pick type and extended edge sets", "[CadFaceSelection]")
+{
+    CadShapeSelectionState state;
+    std::vector<std::optional<GUI::CadShapeSelection>> delivered;
+    auto subscription = state.subscribe("plugin", [&](const auto& value, const auto&) { delivered.push_back(value); });
+    GUI::CadShapeSelection selection;
+    selection.kind = "face";
+    selection.body_index = 0;
+    selection.face_index = 3;
+    auto face_event = state.update(selection);
+    selection.kind = "edge";
+    selection.face_index = -1;
+    selection.edge_index = 2;
+    selection.edge_indices = {2};
+    auto edge_event = state.update(selection);
+    const auto revision = state.selected()->selection_revision;
+    selection.edge_indices = {1, 2};
+    auto extended_event = state.update(selection);
+    REQUIRE(extended_event);
+    CHECK(state.selected()->selection_revision > revision);
+    CHECK_FALSE(state.update(selection));
+    selection.kind = "vertex";
+    selection.edge_index = -1;
+    selection.edge_indices.clear();
+    selection.vertex_index = 5;
+    auto vertex_event = state.update(selection);
+    selection.kind = "body";
+    selection.vertex_index = -1;
+    auto body_event = state.update(selection);
+    auto cleared_event = state.update(std::nullopt);
+    face_event(); edge_event(); extended_event(); vertex_event(); body_event(); cleared_event();
+    REQUIRE(delivered.size() == 6);
+    REQUIRE(delivered[0]);
+    REQUIRE(delivered[1]);
+    REQUIRE(delivered[2]);
+    REQUIRE(delivered[3]);
+    REQUIRE(delivered[4]);
+    CHECK(delivered[0]->kind == "face");
+    CHECK(delivered[1]->kind == "edge");
+    CHECK(delivered[1]->edge_indices.size() == 1);
+    CHECK(delivered[2]->edge_indices.size() == 2);
+    CHECK(delivered[3]->vertex_index == 5);
+    CHECK(delivered[4]->kind == "body");
+    CHECK_FALSE(delivered[5]);
+    state.close_for_plugin("plugin");
+    CHECK_FALSE(subscription->is_active());
 }
