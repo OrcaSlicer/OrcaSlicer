@@ -835,7 +835,8 @@ UnsavedChangesDialog::UnsavedChangesDialog(const wxString &caption, const wxStri
     wxGetApp().UpdateDlgDarkUI(this);
 }
 
-UnsavedChangesDialog::UnsavedChangesDialog(const wxString &caption, const wxString &header, DynamicConfig *config, int from, int to, bool left_to_right, NozzleVolumeType nozzle)
+UnsavedChangesDialog::UnsavedChangesDialog(const wxString &caption, const wxString &header, DynamicConfig *config, int from, int to, bool left_to_right, NozzleVolumeType nozzle,
+                                           const wxString &left_name, const wxString &right_name)
     : DPIDialog(static_cast<wxWindow *>(wxGetApp().mainframe),
                 wxID_ANY,
                 caption,
@@ -844,7 +845,7 @@ UnsavedChangesDialog::UnsavedChangesDialog(const wxString &caption, const wxStri
                 wxCAPTION | wxCLOSE_BOX)
     , m_buttons(ActionButtons::SAVE | ActionButtons::DONT_SAVE)
 {
-    SyncExtruderParams params { config, from, to, left_to_right, nozzle };
+    SyncExtruderParams params { config, from, to, left_to_right, nozzle, left_name, right_name };
     build(Preset::TYPE_PRINT, reinterpret_cast<PresetCollection*>(&params), "SyncExtruderParams", header);
     this->CenterOnScreen();
     wxGetApp().UpdateDlgDarkUI(this);
@@ -949,7 +950,12 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     wxBoxSizer *top_title_oldv_h = new wxBoxSizer(wxHORIZONTAL);
 
     std::string ucd_pt = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
-    static_oldv_title = new wxStaticText(m_panel_oldv, wxID_ANY, params ? _L(DevPrinterConfigUtil::get_toolhead_display_name(ucd_pt, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::SentenceCase)) + ": " + get_nozzle_volume_type_name(params->nozzle) : _L("Old Value"), wxDefaultPosition, wxDefaultSize, 0);
+    auto sync_column_title = [&](const wxString &name, int extruder_id) {
+        return !name.empty() ? name :
+                               _L(DevPrinterConfigUtil::get_toolhead_display_name(ucd_pt, extruder_id, ToolHeadComponent::Nozzle, ToolHeadNameCase::SentenceCase)) + ": " +
+                                   get_nozzle_volume_type_name(params->nozzle);
+    };
+    static_oldv_title = new wxStaticText(m_panel_oldv, wxID_ANY, params ? sync_column_title(params->left_name, DEPUTY_EXTRUDER_ID) : _L("Old Value"), wxDefaultPosition, wxDefaultSize, 0);
     static_oldv_title->SetFont(::Label::Body_13);
     static_oldv_title->Wrap(-1);
     static_oldv_title->SetForegroundColour(params && params->left_to_right ? wxGetApp().get_label_clr_modified() : wxColour("#363636"));
@@ -968,7 +974,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     wxBoxSizer *top_title_newv = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *top_title_newv_h = new wxBoxSizer(wxHORIZONTAL);
 
-    static_newv_title = new wxStaticText(m_panel_newv, wxID_ANY, params ? _L(DevPrinterConfigUtil::get_toolhead_display_name(ucd_pt, MAIN_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::SentenceCase)) + ": " + get_nozzle_volume_type_name(params->nozzle) : _L("New Value"),
+    static_newv_title = new wxStaticText(m_panel_newv, wxID_ANY, params ? sync_column_title(params->right_name, MAIN_EXTRUDER_ID) : _L("New Value"),
                                          wxDefaultPosition, wxDefaultSize, 0);
     static_newv_title->SetFont(::Label::Body_13);
     static_newv_title->Wrap(-1);
