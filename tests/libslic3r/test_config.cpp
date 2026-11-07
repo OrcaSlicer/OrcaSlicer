@@ -1566,6 +1566,13 @@ TEST_CASE("handle_legacy maps the boolean arc fitting values to modes", "[Config
     CHECK(config.opt_enum<ArcFittingMode>("enable_arc_fitting") == mode);
 }
 
+TEST_CASE("handle_legacy renames the highest cooling participation threshold of BambuStudio profiles", "[Config]") {
+    ConfigSubstitutionContext ctxt(ForwardCompatibilitySubstitutionRule::Disable);
+    DynamicPrintConfig config;
+    config.set_deserialize("overhang_threshold_participating_cooling", "95%", ctxt);
+    CHECK(config.opt_serialize("overhang_threshold_participating_cooling") == "100%");
+}
+
 TEST_CASE("handle_legacy migrates the adaptive TPMS keys", "[Config]") {
     ConfigSubstitutionContext ctxt(ForwardCompatibilitySubstitutionRule::Enable);
     DynamicPrintConfig config;
