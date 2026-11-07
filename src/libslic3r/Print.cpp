@@ -2446,8 +2446,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
 
     // Cache of layer height profiles for checking:
     // 1) Whether all layers are synchronized if printing with wipe tower and / or unsynchronized supports.
-    // 2) Whether layer height is constant for Organic supports.
-    // 3) Whether build volume Z is not violated.
+    // 2) Whether build volume Z is not violated.
     std::vector<std::vector<coordf_t>> layer_height_profiles;
     auto layer_height_profile = [this, &layer_height_profiles](const size_t print_object_idx) -> const std::vector<coordf_t>& {
         const PrintObject       &print_object = *m_objects[print_object_idx];
@@ -2522,18 +2521,6 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
     bool has_custom_layering = std::find_if(m_objects.begin(), m_objects.end(), 
         [](const PrintObject *object) { return object->model_object()->has_custom_layering(); }) 
         != m_objects.end();
-
-    // Custom layering is not allowed for tree supports as of now.
-    for (size_t print_object_idx = 0; print_object_idx < m_objects.size(); ++ print_object_idx)
-        if (const PrintObject &print_object = *m_objects[print_object_idx];
-            print_object.has_support_material() && is_tree(print_object.config().support_type.value) && (print_object.config().support_style.value == smsTreeOrganic || 
-                // Orca: use organic as default
-                print_object.config().support_style.value == smsDefault) &&
-            print_object.model_object()->has_custom_layering()) {
-            if (const std::vector<coordf_t> &layers = layer_height_profile(print_object_idx); ! layers.empty())
-                if (! check_object_layers_fixed(print_object.slicing_parameters(), layers))
-                    return {_u8L("Variable layer height is not supported with Organic supports.") };
-        }
 
     if ((this->has_wipe_tower() || this->has_belt_purge_tower()) && ! m_objects.empty()) {
         // Orca: wipe_tower_filament (issue #10971) is inserted into the tool order after
