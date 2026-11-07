@@ -220,6 +220,7 @@ void FillCrossHatch ::_fill_surface_single(
     multiline_fill(polylines, params, spacing);
 
     polylines = intersection_pl(std::move(polylines), to_polygons(expolygon));
+    join_cut_outlines(polylines, params);
 
     // --- remove small remains from gyroid infill
     if (!polylines.empty()) {
