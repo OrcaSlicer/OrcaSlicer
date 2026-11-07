@@ -14,6 +14,7 @@ interface GitHubIssue {
   user: { id: number };
   created_at: string;
   closed_at?: string;
+  pull_request?: unknown;
 }
 
 interface GitHubComment {
@@ -57,7 +58,7 @@ async function triggerDedupeWorkflow(
   }
 
   await githubRequest(
-    `/repos/${owner}/${repo}/actions/workflows/claude-dedupe-issues.yml/dispatches`,
+    `/repos/${owner}/${repo}/actions/workflows/dedupe-issues.yml/dispatches`,
     token,
     'POST',
     {
@@ -82,19 +83,25 @@ Usage:
 Environment Variables:
   GITHUB_TOKEN - GitHub personal access token with repo and actions permissions (required)
   DRY_RUN - Set to "false" to actually trigger workflows (default: true for safety)
-  MAX_ISSUE_NUMBER - Only process issues with numbers less than this value (default: 4050)`);
+  MIN_ISSUE_NUMBER - Only process issues with numbers at or above this value (default: 1)
+  MAX_ISSUE_NUMBER - Only process issues with numbers less than this value (default: no limit)
+  LIMIT - Stop after triggering this many workflows (default: 100)`);
   }
   console.log("[DEBUG] GitHub token found");
 
   const owner = "OrcaSlicer";
   const repo = "OrcaSlicer";
   const dryRun = process.env.DRY_RUN !== "false";
-  const maxIssueNumber = parseInt(process.env.MAX_ISSUE_NUMBER || "11000", 10);
+  const maxIssueNumber = process.env.MAX_ISSUE_NUMBER ? parseInt(process.env.MAX_ISSUE_NUMBER, 10) : Infinity;
   const minIssueNumber = parseInt(process.env.MIN_ISSUE_NUMBER || "1", 10);
+  const limit = parseInt(process.env.LIMIT || "100", 10);
+  // A dedupe run takes about 2.5 minutes, so this keeps about five running at once and
+  // leaves the rest of the Actions runners and the Claude subscription free for other work.
+  const dispatchIntervalMs = 30_000;
   
   console.log(`[DEBUG] Repository: ${owner}/${repo}`);
   console.log(`[DEBUG] Dry run mode: ${dryRun}`);
-  console.log(`[DEBUG] Looking at issues between #${minIssueNumber} and #${maxIssueNumber}`);
+  console.log(`[DEBUG] Looking at open issues between #${minIssueNumber} and #${maxIssueNumber}, triggering at most ${limit}`);
 
   console.log(`[DEBUG] Fetching issues between #${minIssueNumber} and #${maxIssueNumber}...`);
   const allIssues: GitHubIssue[] = [];
@@ -103,15 +110,15 @@ Environment Variables:
   
   while (true) {
     const pageIssues: GitHubIssue[] = await githubRequest(
-      `/repos/${owner}/${repo}/issues?state=all&per_page=${perPage}&page=${page}&sort=created&direction=desc`,
+      `/repos/${owner}/${repo}/issues?state=open&per_page=${perPage}&page=${page}&sort=created&direction=desc`,
       token
     );
     
     if (pageIssues.length === 0) break;
     
-    // Filter to only include issues within the specified range
+    // Filter to only include issues within the specified range; the issues endpoint also lists pull requests
     const filteredIssues = pageIssues.filter(issue => 
-      issue.number >= minIssueNumber && issue.number < maxIssueNumber
+      !issue.pull_request && issue.number >= minIssueNumber && issue.number < maxIssueNumber
     );
     allIssues.push(...filteredIssues);
     
@@ -141,8 +148,13 @@ Environment Variables:
   let processedCount = 0;
   let candidateCount = 0;
   let triggeredCount = 0;
+  let lowestTriggered: number | undefined;
 
   for (const issue of allIssues) {
+    if (triggeredCount >= limit) {
+      console.log(`[DEBUG] Reached the limit of ${limit} workflows, stopping`);
+      break;
+    }
     processedCount++;
     console.log(
       `[DEBUG] Processing issue #${issue.number} (${processedCount}/${allIssues.length}): ${issue.title}`
@@ -150,7 +162,7 @@ Environment Variables:
 
     console.log(`[DEBUG] Fetching comments for issue #${issue.number}...`);
     const comments: GitHubComment[] = await githubRequest(
-      `/repos/${owner}/${repo}/issues/${issue.number}/comments`,
+      `/repos/${owner}/${repo}/issues/${issue.number}/comments?per_page=100`,
       token
     );
     console.log(
@@ -192,19 +204,25 @@ Environment Variables:
         );
       }
       triggeredCount++;
+      lowestTriggered = issue.number;
     } catch (error) {
       console.error(
         `[ERROR] Failed to trigger workflow for issue #${issue.number}: ${error}`
       );
     }
 
-    // Add a delay between workflow triggers to avoid overwhelming the system
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    if (!dryRun) {
+      await new Promise(resolve => setTimeout(resolve, dispatchIntervalMs));
+    }
   }
 
   console.log(
     `[DEBUG] Script completed. Processed ${processedCount} issues, found ${candidateCount} candidates without duplicate comments, ${dryRun ? 'would trigger' : 'triggered'} ${triggeredCount} workflows`
   );
+  // Issues with no duplicates get no comment, so a later run would pick them again; continue below this batch instead.
+  if (lowestTriggered !== undefined) {
+    console.log(`[INFO] To continue with older issues, run again with max_issue_number set to ${lowestTriggered}`);
+  }
 }
 
 backfillDuplicateComments().catch(console.error);
