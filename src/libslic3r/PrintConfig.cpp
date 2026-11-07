@@ -3648,6 +3648,21 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionStrings{L("(Undefined)")});
     def->cli = ConfigOptionDef::nocli;
 
+    def = this->add("filament_subtype", coStrings);
+    def->label = L("Subtype");
+    def->tooltip = L("Variant or finish of the filament, such as Basic, Matte or Silk. "
+                     "Used to tell apart profiles that share a vendor and type, for example when "
+                     "matching spools reported by a printer's filament tags.");
+    // An open list: common values to pick from, and any other value can be typed. Values are stored and
+    // compared as they are, so they are not translated.
+    def->gui_type  = ConfigOptionDef::GUIType::f_enum_open;
+    def->gui_flags = "show_value";
+    def->enum_values = {"Basic", "Color Change", "Galaxy", "Glow", "HF", "High Speed", "Lite", "Marble", "Matte",
+                        "Metal", "Pro", "Silk", "SnapSpeed", "Sparkle", "Tough", "Translucent", "Wood"};
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionStrings{""});
+    def->cli = ConfigOptionDef::nocli;
+
     def = this->add("infill_direction", coFloat);
     def->label = L("Sparse infill direction");
     def->category = L("Strength");
