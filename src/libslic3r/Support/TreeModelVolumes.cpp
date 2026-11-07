@@ -110,13 +110,15 @@ TreeModelVolumes::TreeModelVolumes(
     {
         m_anti_overhang = print_object.slice_support_blockers();
         TreeSupportMeshGroupSettings mesh_settings(print_object);
-        const TreeSupportSettings config{ mesh_settings, print_object.slicing_parameters() };
+        const TreeSupportSettings config{ mesh_settings, print_object.slicing_parameters(), &print_object };
         m_current_min_xy_dist = config.xy_min_distance;
         m_current_min_xy_dist_delta = config.xy_distance - m_current_min_xy_dist;
         assert(m_current_min_xy_dist_delta >= 0);
         m_increase_until_radius = config.increase_radius_until_radius;
         m_radius_0 = config.getRadius(0);
         m_raft_layers = config.raft_layers;
+        m_layer_zs = config.layer_zs;
+        m_layer_height = config.layer_height;
         // Support blockers are consumed in the same index space as m_layer_outlines
         // (object layer i lives at index num_raft_layers + i), but
         // slice_support_blockers() returns them in object-layer space.  Shift them.
@@ -491,6 +493,20 @@ void TreeModelVolumes::calculateCollision(const coord_t radius, const LayerIndex
             const coord_t       layer_height              = settings.layer_height;
             const int           z_distance_bottom_layers  = int(round(double(settings.support_bottom_distance) / double(layer_height)));
             const int           z_distance_top_layers     = int(round(double(settings.support_top_distance) / double(layer_height)));
+            // Orca: With variable layer height, the number of layers within the Z distances depends on the layer.
+            auto z_distance_bottom_layers_at = [&layer_zs = std::as_const(m_layer_zs), z_distance_bottom_layers, distance = unscaled<double>(settings.support_bottom_distance)](LayerIndex layer_idx) {
+                return layer_zs.empty() ? z_distance_bottom_layers : int(z_distance_layers_below(layer_zs, layer_idx, distance));
+            };
+            auto z_distance_top_layers_at = [&layer_zs = std::as_const(m_layer_zs), z_distance_top_layers, distance = unscaled<double>(settings.support_top_distance)](LayerIndex layer_idx) {
+                return layer_zs.empty() ? z_distance_top_layers : int(z_distance_layers_above(layer_zs, layer_idx, distance));
+            };
+            int max_z_distance_bottom_layers = z_distance_bottom_layers;
+            int max_z_distance_top_layers    = z_distance_top_layers;
+            if (! m_layer_zs.empty())
+                for (LayerIndex layer_idx = data.begin(); layer_idx < data.end(); ++ layer_idx) {
+                    max_z_distance_bottom_layers = std::max(max_z_distance_bottom_layers, z_distance_bottom_layers_at(layer_idx));
+                    max_z_distance_top_layers    = std::max(max_z_distance_top_layers, z_distance_top_layers_at(layer_idx));
+                }
             const coord_t       xy_distance               = outline_idx == m_current_outline_idx ? m_current_min_xy_dist : 
                 // technically this causes collision for the normal xy_distance to be larger by m_current_min_xy_dist_delta for all 
                 // not currently processing meshes as this delta will be added at request time.
@@ -503,8 +519,8 @@ void TreeModelVolumes::calculateCollision(const coord_t radius, const LayerIndex
             // 1) Calculate offsets of collision areas in parallel.
             LayerPolygonCache collision_areas_offsetted;
             collision_areas_offsetted.allocate(
-                std::max<LayerIndex>(0, data.begin() - z_distance_bottom_layers),
-                std::min<LayerIndex>(outlines.size(), data.end() + z_distance_top_layers));
+                std::max<LayerIndex>(0, data.begin() - max_z_distance_bottom_layers),
+                std::min<LayerIndex>(outlines.size(), data.end() + max_z_distance_top_layers));
             tbb::parallel_for(tbb::blocked_range<LayerIndex>(collision_areas_offsetted.begin(), collision_areas_offsetted.end()),
                 [&outlines, &machine_border = std::as_const(m_machine_border), offset_value = radius + xy_distance, &collision_areas_offsetted, &throw_on_cancel]
                 (const tbb::blocked_range<LayerIndex> &range) {
@@ -525,9 +541,11 @@ void TreeModelVolumes::calculateCollision(const coord_t radius, const LayerIndex
             const bool processing_last_mesh = outline_pos + 1 == layer_outline_indices.size();
             tbb::parallel_for(tbb::blocked_range<LayerIndex>(data.begin(), data.end()),
                 [&collision_areas_offsetted, &outlines, &machine_border = m_machine_border, &anti_overhang = m_anti_overhang, radius,
-                    xy_distance, z_distance_bottom_layers, z_distance_top_layers, min_resolution = m_min_resolution, &data, processing_last_mesh, &throw_on_cancel]
+                    xy_distance, &z_distance_bottom_layers_at, &z_distance_top_layers_at, min_resolution = m_min_resolution, &data, processing_last_mesh, &throw_on_cancel]
                 (const tbb::blocked_range<LayerIndex>& range) {
                     for (LayerIndex layer_idx = range.begin(); layer_idx != range.end(); ++ layer_idx) {
+                        const int z_distance_bottom_layers = z_distance_bottom_layers_at(layer_idx);
+                        const int z_distance_top_layers    = z_distance_top_layers_at(layer_idx);
                         Polygons collisions;
                         for (int i = - z_distance_bottom_layers; i <= 0; ++ i)
                             if (int j = layer_idx + i; collision_areas_offsetted.has(j))
@@ -593,13 +611,15 @@ void TreeModelVolumes::calculateCollision(const coord_t radius, const LayerIndex
             // 3) Optionally calculate placables.
             if (calculate_placable) {
                 // Now calculate the placable areas.
-                tbb::parallel_for(tbb::blocked_range<LayerIndex>(std::max(z_distance_bottom_layers + 1, data.begin()), data.end()),
+                tbb::parallel_for(tbb::blocked_range<LayerIndex>(std::max(m_layer_zs.empty() ? z_distance_bottom_layers + 1 : 1, data.begin()), data.end()),
                     [&collision_areas_offsetted, &outlines, &anti_overhang = m_anti_overhang, processing_last_mesh,
-                     min_resolution = m_min_resolution, z_distance_bottom_layers, xy_distance, &data_placeable, &throw_on_cancel]
+                     min_resolution = m_min_resolution, &z_distance_bottom_layers_at, xy_distance, &data_placeable, &throw_on_cancel]
                 (const tbb::blocked_range<LayerIndex>& range) {
                     for (LayerIndex layer_idx = range.begin(); layer_idx != range.end(); ++ layer_idx) {
-                        LayerIndex layer_idx_below = layer_idx - z_distance_bottom_layers - 1;
-                        assert(layer_idx_below >= 0);
+                        LayerIndex layer_idx_below = layer_idx - z_distance_bottom_layers_at(layer_idx) - 1;
+                        if (layer_idx_below < 0)
+                            // Orca: With variable layer height, the lowest layers may be within the bottom Z distance.
+                            continue;
                         const Polygons &current = collision_areas_offsetted[layer_idx];
                         const Polygons &below   = outlines[layer_idx_below];
                         Polygons placable = diff(
@@ -720,22 +740,29 @@ void TreeModelVolumes::calculateAvoidance(const std::vector<RadiusLayerPair> &ke
                 getPlaceableAreas(task.radius, task.max_required_layer, throw_on_cancel);
             // The following loop propagating avoidance regions bottom up is inherently serial.
             const bool  collision_holefree = (task.slow() || task.holefree()) && task.radius < m_increase_until_radius + m_current_min_xy_dist_delta;
-            const float max_move           = task.slow() ? m_max_move_slow : m_max_move;
             // Limiting the offset step so that unioning the shrunk latest_avoidance with the current layer collisions
             // will not create gaps in the resulting avoidance region letting a tree support branch tunneling through an object wall.
-            float move_step      = 1.9 * std::max(task.radius, m_current_min_xy_dist);
-            if (move_step < EPSILON) return;
-            int   move_steps     = round_up_divide<int>(max_move, move_step);
-            assert(move_steps > 0);
-            float last_move_step = max_move - (move_steps - 1) * move_step;
-            if (last_move_step < scaled<float>(0.05)) {
-                assert(move_steps > 1);
-                if (move_steps > 1) {
-                    // Avoid taking a very short last step, stretch the other steps a bit instead.
-                    move_step = max_move / (-- move_steps);
-                    last_move_step = move_step;
+            const float max_move_step = 1.9 * std::max(task.radius, m_current_min_xy_dist);
+            if (max_move_step < EPSILON) return;
+            float move_step;
+            int   move_steps;
+            float last_move_step;
+            auto  calculate_move_steps = [&](const float max_move) {
+                move_step      = max_move_step;
+                move_steps     = round_up_divide<int>(max_move, move_step);
+                assert(move_steps > 0);
+                last_move_step = max_move - (move_steps - 1) * move_step;
+                if (last_move_step < scaled<float>(0.05)) {
+                    assert(move_steps > 1);
+                    if (move_steps > 1) {
+                        // Avoid taking a very short last step, stretch the other steps a bit instead.
+                        move_step = max_move / (-- move_steps);
+                        last_move_step = move_step;
+                    }
                 }
-            }
+            };
+            const coord_t max_move = task.slow() ? m_max_move_slow : m_max_move;
+            calculate_move_steps(max_move);
             // minDist as the delta was already added, also avoidance for layer 0 will return the collision.
             Polygons    latest_avoidance   = getAvoidance(task.radius, task.start_layer - 1, task.type, task.to_model, true);
             std::vector<std::pair<RadiusLayerPair, Polygons>> data;
@@ -743,6 +770,9 @@ void TreeModelVolumes::calculateAvoidance(const std::vector<RadiusLayerPair> &ke
             for (LayerIndex layer_idx = task.start_layer; layer_idx <= task.max_required_layer; ++ layer_idx) {
                 // Merge current layer collisions with shrunk last_avoidance.
                 const Polygons &current_layer_collisions = collision_holefree ? getCollisionHolefree(task.radius, layer_idx) : getCollision(task.radius, layer_idx, true);
+                if (! m_layer_zs.empty())
+                    // Orca: With variable layer height, a branch moves from layer_idx to the layer below by a distance following the height of layer_idx.
+                    calculate_move_steps(scale_move_distance(max_move, layer_height_ratio(m_layer_zs, m_layer_height, layer_idx)));
                 // For mildly steep branch angles only one step will be taken.
                 for (int istep = 0; istep < move_steps; ++ istep)
                     latest_avoidance = union_(current_layer_collisions,

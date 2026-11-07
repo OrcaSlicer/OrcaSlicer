@@ -1,7 +1,11 @@
 #include <catch2/catch_all.hpp>
 
 #include <algorithm>
+#include <cmath>
 #include <initializer_list>
+#include <limits>
+#include <string>
+#include <utility>
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Point.hpp"
@@ -10,12 +14,17 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
 #include "test_helpers.hpp"
 #include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Slicing.hpp"
 
 using namespace Slic3r::Test;
 using namespace Slic3r;
@@ -197,4 +206,106 @@ TEST_CASE("Tree support toolpaths do not depend on the MST tie order", "[TreeSup
         { "tree_support_branch_angle",    40 },
         { "support_line_width",           0.4 },
     });
+}
+
+namespace {
+
+// Slices two_tier_mesh() with organic tree support and a variable layer height: thin layers below z = 10
+// and thick ones above it, so the upper plate overhang is supported from thick layers and the branches
+// cross into thin ones on their way down.
+std::string slice_organic_with_variable_layer_height(Slic3r::Print &print, Slic3r::Model &model)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "enable_support",              1 },
+        { "support_type",                "tree(auto)" },
+        { "support_style",               "organic" },
+        { "support_threshold_angle",     30 },
+        { "layer_height",                0.2 },
+        { "initial_layer_print_height",  0.2 },
+        { "support_top_z_distance",      0.2 },
+        { "support_bottom_z_distance",   0.2 },
+        // validate() otherwise asks for a G92 E0 in the layer change G-code, which these tests don't emit.
+        { "use_relative_e_distances",    0 },
+    });
+    ModelObject *object = model.add_object();
+    object->add_volume(two_tier_mesh());
+    // Every layer range must carry a layer_height (see layer_height_profile_from_ranges).
+    for (const auto &[range, height] : { std::pair<t_layer_height_range, double>{ { 2., 10. }, 0.1 }, { { 10., 19. }, 0.28 } }) {
+        DynamicPrintConfig range_config;
+        range_config.set_key_value("layer_height", new ConfigOptionFloat(height));
+        object->layer_config_ranges[range].assign_config(std::move(range_config));
+    }
+    object->add_instance()->set_offset(Vec3d(90., 90., 0.));
+    object->ensure_on_bed();
+    print.apply(model, config);
+    std::string error = print.validate().string;
+    if (error.empty())
+        print.process();
+    return error;
+}
+
+} // namespace
+
+TEST_CASE("Organic tree support is generated on the layers of an object with variable layer height", "[TreeSupport]")
+{
+    Slic3r::Print print;
+    Slic3r::Model model;
+    const std::string error = slice_organic_with_variable_layer_height(print, model);
+    INFO(error);
+    REQUIRE(error.empty());
+    REQUIRE(support_points(print).size() > 1000);
+
+    const PrintObject &object = *print.objects().front();
+    double min_height = std::numeric_limits<double>::max(), max_height = 0.;
+    for (const Layer *layer : object.layers())
+        if (layer->print_z > 3.) {
+            min_height = std::min(min_height, layer->height);
+            max_height = std::max(max_height, layer->height);
+        }
+    // The object really is sliced with variable layer height.
+    REQUIRE(max_height - min_height > 0.1);
+
+    // Every support layer is printed together with an object layer and is as thick as it.
+    size_t checked = 0;
+    for (const SupportLayer *support_layer : object.support_layers()) {
+        if (support_layer->support_fills.entities.empty())
+            continue;
+        const auto it = std::find_if(object.layers().begin(), object.layers().end(),
+            [support_layer](const Layer *layer) { return std::abs(layer->print_z - support_layer->print_z) < EPSILON; });
+        CAPTURE(support_layer->print_z, support_layer->height);
+        REQUIRE(it != object.layers().end());
+        CHECK_THAT(support_layer->height, Catch::Matchers::WithinAbs((*it)->height, EPSILON));
+        ++checked;
+    }
+    REQUIRE(checked > 20);
+}
+
+TEST_CASE("Organic tree support keeps the top Z distance with variable layer height", "[TreeSupport]")
+{
+    Slic3r::Print print;
+    Slic3r::Model model;
+    const std::string error = slice_organic_with_variable_layer_height(print, model);
+    INFO(error);
+    REQUIRE(error.empty());
+
+    const PrintObject &object = *print.objects().front();
+    // The bottom of the first layer of the 50 x 50 mm upper plate.
+    double plate_bottom = 0.;
+    for (const Layer *layer : object.layers())
+        if (layer->print_z > 10. && area(layer->lslices) > 0.9 * sqr(scaled<double>(50.))) {
+            plate_bottom = layer->print_z - layer->height;
+            break;
+        }
+    REQUIRE(plate_bottom > 15.);
+
+    // The highest support below the plate is where the branches supporting it end.
+    double support_top = 0.;
+    for (const SupportLayer *support_layer : object.support_layers())
+        if (! support_layer->support_fills.entities.empty() && support_layer->print_z < plate_bottom + EPSILON)
+            support_top = std::max(support_top, support_layer->print_z);
+    const double gap = plate_bottom - support_top;
+    CAPTURE(plate_bottom, support_top);
+    // 0.2 mm rounds to a single empty 0.28 mm layer.
+    CHECK_THAT(gap, Catch::Matchers::WithinAbs(0.28, EPSILON));
 }
