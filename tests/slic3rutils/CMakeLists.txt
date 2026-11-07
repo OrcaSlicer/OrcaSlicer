@@ -22,6 +22,7 @@ add_executable(${_TEST_NAME}_tests
     test_scene_raycaster.cpp
     test_scene_benchmark.cpp
     test_lazy.cpp
+    test_keyboard_navigation.cpp
     test_prebuild_queue.cpp
     test_staged_build.cpp
     test_network_versions.cpp

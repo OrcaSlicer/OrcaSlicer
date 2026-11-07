@@ -437,6 +437,19 @@ int em_unit(wxWindow* win)
     return Slic3r::GUI::wxGetApp().em_unit();
 }
 
+int row_focus_target(int current, int count, int key_code)
+{
+    if (count <= 0)
+        return -1;
+    switch (key_code) {
+    case WXK_LEFT:  return (current + count - 1) % count;
+    case WXK_RIGHT: return (current + 1) % count;
+    case WXK_HOME:  return 0;
+    case WXK_END:   return count - 1;
+    default:        return -1;
+    }
+}
+
 wxBitmap create_menu_bitmap(const std::string& bmp_name)
 {
     return create_scaled_bitmap(bmp_name, nullptr, 16, false, "", true);
