@@ -9046,6 +9046,17 @@ void GUI_App::open_plugins_dialog(size_t open_on_tab, const std::string& highlig
     }
 }
 
+void GUI_App::notify_plugin_permissions_changed(const std::string& plugin_key)
+{
+    // The dialog owns its webview and clears m_plugins_dlg from its destroy handler, so check the
+    // pointer here on the GUI thread rather than capturing it in an asynchronous callback.
+    if (is_closing() || m_plugins_dlg == nullptr)
+        return;
+
+    BOOST_LOG_TRIVIAL(debug) << "Plugins dialog refresh after a stored permission change for " << plugin_key;
+    m_plugins_dlg->refresh_permissions_if_visible();
+}
+
 void GUI_App::refresh_plugins()
 {
     // The metadata refresh blocks on disc discovery and a cloud round-trip, so run it on a worker
