@@ -240,6 +240,9 @@ protected:
     // object - and drawing those parts' selectors over it would bury the preview under a flat surface.
     void render_triangles(const Selection& selection, const std::vector<const ModelVolume*>& skip) const;
     void render_cursor();
+    // ORCA: the LINE anchor and its rubber band. Drawn from on_render_input_window(), not from
+    //       render_cursor(), so it survives the cursor leaving the part - see the definition.
+    void render_tool_preview();
     void render_cursor_circle();
     void render_cursor_sphere(const Transform3d& trafo) const;
     // BBS
@@ -277,6 +280,12 @@ protected:
         SMART_FILL,
         // BBS
         GAP_FILL,
+        // ORCA: paints the swept region between two clicked points.
+        LINE,
+        // ORCA: fills a screen-space box marked by two clicked corners.
+        RECTANGLE,
+        // ORCA: fills a screen-space polygon closed from any number of clicked corners.
+        POLYGON,
     };
 
     struct ProjectedMousePosition
@@ -297,6 +306,34 @@ protected:
     bool     m_triangle_splitting_enabled = true;
     ToolType m_tool_type                  = ToolType::BRUSH;
     float    m_smart_fill_angle           = 30.f;
+
+    // ORCA: the LINE tool's first click, kept until the second click paints from it.
+    bool     m_line_pending               = false;
+    Vec3f    m_line_first_hit             = Vec3f::Zero();
+    int      m_line_first_mesh_idx        = -1;
+    int      m_line_first_facet_idx       = -1;
+
+    // ORCA: the RECTANGLE tool's first corner in canvas pixels, kept until the second
+    //       click fills the box. Spacing is in pixels too, so density does not change
+    //       with the zoom.
+    bool     m_rect_pending               = false;
+    Vec2d    m_rect_first_screen          = Vec2d::Zero();
+    float    m_fill_spacing_px            = 8.f;
+    static constexpr float FillSpacingMin = 2.f;
+    static constexpr float FillSpacingMax = 64.f;
+    // Each sample costs a raycast and a select_patch on the UI thread. Past this count the
+    // step widens, so a large box at fine spacing fills coarsely instead of stalling.
+    static constexpr int   FillMaxSamples = 20000;
+
+    // ORCA: the POLYGON tool's clicked corners in canvas pixels. The shape stays open until
+    //       the panel closes it, so the operator can place as many corners as they need.
+    std::vector<Vec2d> m_polygon_points;
+
+    // ORCA: paint everything inside the pending polygon and clear it. `enforcer` selects the
+    //       left-button state, otherwise the right-button one, matching the brush. Returns
+    //       whether anything was painted. The caller owns the undo snapshot, because a panel
+    //       button has no mouse-up to pair with.
+    bool close_and_paint_polygon(bool enforcer);
 
     bool     m_paint_on_overhangs_only          = false;
     float    m_highlight_by_angle_threshold_deg = 0.f;
