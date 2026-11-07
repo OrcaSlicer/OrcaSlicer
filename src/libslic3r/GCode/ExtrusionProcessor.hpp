@@ -547,7 +547,8 @@ public:
                                                            // does not depend on overlap.
                                                            float                               fan_overlap_threshold = -1.0f,
                                                            // Limit of overhang speed-ups in mm/s, the volumetric limit; zero disables speed-ups,
-                                                           // so no point is printed faster than the path speed.
+                                                           // so no point is printed faster than the path speed. Only outer and inner walls
+                                                           // are sped up.
                                                            float                               max_speed = 0.f)
     {
         size_t                               speed_sections_count = std::min(overlaps.values.size(), speeds.values.size());
@@ -576,12 +577,13 @@ public:
             }
         }
 
-        if (max_speed <= 0.f)
+        // Bridges and overhang walls keep their own speed.
+        if (max_speed <= 0.f || (path.role() != erExternalPerimeter && path.role() != erPerimeter))
             max_speed = original_speed;
         const auto is_speedup = [&](size_t i) {
-            // At 100% the last point is bridge speed, unless curled-edge slowdown extends the 87% target.
-            return max_speed > original_speed && speed_sections[i].second > ext_perimeter_speed &&
-                   (i + 1 < speed_sections.size() || slowdown_for_curled_edges);
+            // The last point, at 100%, is the bridge speed or, with the slowdown for curled perimeters, the 87% target.
+            // It is never a speed-up, so a fully unsupported wall keeps its path speed.
+            return max_speed > original_speed && speed_sections[i].second > ext_perimeter_speed && i + 1 < speed_sections.size();
         };
         bool has_speedup = false;
         for (size_t i = 0; i < speed_sections.size() && !has_speedup; ++i)
@@ -719,8 +721,9 @@ public:
 
             float extrusion_speed = std::min(calculate_speed(curr.distance), calculate_speed(next.distance));
             
-            if(slowdown_for_curled_edges && artificial_distance_to_curled_lines > 0.0f) {
-                // Only a detected curl may cancel a speed-up; its own reading must never accelerate the path.
+            if (slowdown_for_curled_edges && (artificial_distance_to_curled_lines > 0.0f || !has_speedup)) {
+                // Only a detected curl may cancel a speed-up; its own reading must never accelerate the path. Without
+                // speed-ups the reading always applies, which rounds the speed down to the whole path speed as before.
                 float curled_speed = std::min(calculate_speed(artificial_distance_to_curled_lines), original_speed);
             	extrusion_speed       = std::min(curled_speed, extrusion_speed); // adjust extrusion speed based on what is smallest - the calculated overhang speed or the artificial curled speed
             }
