@@ -61,6 +61,8 @@ public:
 public:
     static std::string hms_language_code();
     static std::string build_query_params(std::string& lang);
+    // Orca: remove cached catalogs the install can regenerate
+    static void remove_bundled_cache();
 
 private:
     // load hms

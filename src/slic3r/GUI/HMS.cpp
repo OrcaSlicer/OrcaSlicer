@@ -171,7 +171,7 @@ int HMSQuery::download_hms_related(const std::string& hms_type, const std::strin
 }
 
 
-// Orca: read a whole file into memory, binary-safe
+// Orca: read a whole file into memory
 static bool read_file(const fs::path& file_path, std::string& content)
 {
     std::ifstream file(encode_path(fs::path(file_path).make_preferred().string().c_str()), std::ios::binary);
@@ -181,10 +181,8 @@ static bool read_file(const fs::path& file_path, std::string& content)
     return !file.bad();
 }
 
-// Orca: release packages ship the resources/hms/hms_*.json files inside resources/hms/hms.zip
-// (cmake/modules/PackHmsResources.cmake), while builds run from the source tree read the plain JSON.
-// When hms.zip exists it is the only source: plain files next to it can only be left over from an
-// older version, e.g. a portable zip extracted over an older folder. Only the requested file is read.
+// Orca: read a bundled HMS file from hms.zip, or from the plain JSON when there is no zip (source-tree builds).
+// Plain files next to hms.zip are leftovers of an older version and are ignored.
 static bool read_bundled_hms_file(const std::string& filename, std::string& content)
 {
     const fs::path hms_dir  = fs::path(Slic3r::resources_dir()) / HMS_PATH;
@@ -273,6 +271,51 @@ int HMSQuery::load_bundled(const std::string& hms_type, const std::string& dev_i
         return 0;
     std::string version;
     return parse_hms_file(content, hms_type, load_json, version);
+}
+
+// Orca: on an app version change, remove the cached files the install can regenerate, so the new bundled
+// catalogs are used. Cloud-only catalogs are kept.
+void HMSQuery::remove_bundled_cache()
+{
+    if (data_dir().empty())
+        return;
+    const fs::path cache_dir = fs::path(data_dir()) / HMS_PATH;
+    boost::system::error_code ec;
+    if (!fs::is_directory(cache_dir, ec))
+        return;
+
+    std::vector<fs::path> cached_files;
+    for (fs::directory_iterator it(cache_dir, ec), end; !ec && it != end; it.increment(ec)) {
+        boost::system::error_code file_ec;
+        if (fs::is_regular_file(it->path(), file_ec))
+            cached_files.push_back(it->path());
+    }
+
+    const fs::path hms_dir  = fs::path(Slic3r::resources_dir()) / HMS_PATH;
+    const fs::path zip_path = hms_dir / HMS_ZIP_FILE;
+    mz_zip_archive zip;
+    mz_zip_zero_struct(&zip);
+    const bool use_zip = fs::exists(zip_path, ec);
+    if (use_zip && !open_zip_reader(&zip, zip_path.string())) {
+        BOOST_LOG_TRIVIAL(error) << "HMS: failed to open " << zip_path.string() << ", cache left as is";
+        return;
+    }
+
+    size_t removed = 0;
+    for (const fs::path& file : cached_files) {
+        const std::string name    = file.filename().string();
+        const bool        bundled = use_zip ? mz_zip_reader_locate_file(&zip, name.c_str(), nullptr, MZ_ZIP_FLAG_CASE_SENSITIVE) >= 0 :
+                                              fs::is_regular_file(hms_dir / name, ec);
+        if (bundled && fs::remove(file, ec))
+            ++removed;
+    }
+    if (use_zip)
+        close_zip_reader(&zip);
+
+    // Images are read from resources_dir; this old copy is unused.
+    const auto removed_images = fs::remove_all(fs::path(data_dir()) / HMS_LOCAL_IMG_PATH, ec);
+    BOOST_LOG_TRIVIAL(info) << "HMS: removed " << removed << " bundled catalogs and " << (ec ? 0 : removed_images)
+                            << " entries of the old local_image copy from " << cache_dir.string();
 }
 
 int HMSQuery::load_from_local(const std::string& hms_type, const std::string& dev_id_type, json* load_json, std::string& load_version)
@@ -676,8 +719,7 @@ void HMSQuery::init_hms_info(const std::string& dev_type_id)
             std::string load_version;
             load_from_local(QUERY_HMS_INFO, dev_type_id, &m_hms_info_jsons[dev_type_id], load_version);/*load from local first*/
             if (load_version.empty() || load_version == "0") {
-                // Orca: a language without a bundled catalog (e.g. th, vi) uses the English one from memory only,
-                // so the download below still asks for the full file in that language (v=0).
+                // Orca: without a bundled catalog, use English from memory only, so the download still fetches the full file
                 if (copy_bundled_file_to_local(get_hms_file(QUERY_HMS_INFO, hms_language_code(), dev_type_id)))
                     load_from_local(QUERY_HMS_INFO, dev_type_id, &m_hms_info_jsons[dev_type_id], load_version);
                 else

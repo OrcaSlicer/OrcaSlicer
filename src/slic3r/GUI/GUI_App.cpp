@@ -3437,6 +3437,8 @@ bool GUI_App::on_init_inner()
 
     //Orca: write OrcaSlicer version
     if(app_config->get("version") != SoftFever_VERSION) {
+        // Orca: drop cached HMS catalogs that this version bundles
+        HMSQuery::remove_bundled_cache();
         app_config->set("version", SoftFever_VERSION);
     }
 

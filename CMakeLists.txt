@@ -1286,9 +1286,7 @@ if (NOT WIN32 AND NOT APPLE)
     configure_file(${LIBDIR}/dev-utils/platform/unix/build_appimage.sh.in ${CMAKE_CURRENT_BINARY_DIR}/build_appimage.sh USE_SOURCE_PERMISSIONS @ONLY)
 endif()
 
-# Orca: release packages carry the resources/hms/hms_*.json files in one hms.zip, the repository keeps the
-# editable JSON, and HMSQuery reads either. Must be called after the install(DIRECTORY) that stages
-# resources/, so the zipping runs on the installed copy only.
+# Orca: zip the installed hms_*.json into hms.zip. Call after the install(DIRECTORY) of resources/.
 function(orca_install_zip_hms resources_destination)
     install(CODE "set(_orca_hms_dir \"${resources_destination}/hms\")\nset(_orca_hms_script \"${CMAKE_SOURCE_DIR}/cmake/modules/PackHmsResources.cmake\")")
     install(CODE [[

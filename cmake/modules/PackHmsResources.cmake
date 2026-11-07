@@ -1,10 +1,6 @@
-# Moves every hms_*.json in a staged copy of resources/hms into a single hms.zip.
-# The repository keeps the plain JSON so it stays editable and diffable; only release packages carry
-# the compressed copies, and HMSQuery extracts the one file a connected Bambu Lab printer needs.
-#
+# Moves the hms_*.json files of a staged resources/hms into one hms.zip; the repository keeps the plain JSON.
 # Usage: cmake -DHMS_DIR=<staged resources/hms> -P PackHmsResources.cmake
-#
-# Never point HMS_DIR at the source tree: the JSON files are deleted after zipping.
+# The JSON files are deleted, so HMS_DIR must never be the source tree.
 
 cmake_minimum_required(VERSION 3.13)
 
