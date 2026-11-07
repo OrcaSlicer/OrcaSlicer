@@ -1238,7 +1238,13 @@ public:
     const std::map<const PrintObject*, ToolOrdering>& sequential_dynamic_orderings() const { return m_sequential_dynamic_orderings; }
 
     const std::vector<std::vector<DynamicPrintConfig>>& get_extruder_filament_info() const { return m_extruder_filament_info; }
-    void set_extruder_filament_info(const std::vector<std::vector<DynamicPrintConfig>>& filament_info) { m_extruder_filament_info = filament_info; }
+    // Two-phase: the setter only stashes the payload, so Print::apply() can invalidate the grouping
+    // steps once the inventory actually changed.
+    void set_extruder_filament_info(const std::vector<std::vector<DynamicPrintConfig>>& filament_info)
+    {
+        m_pending_extruder_filament_info = filament_info;
+        m_extruder_filament_info_pending = true;
+    }
 
     void set_geometric_unprintable_filaments(const std::vector<std::set<int>> &unprintables_filament_ids) { m_geometric_unprintable_filaments = unprintables_filament_ids; }
     std::vector<std::set<int>> get_geometric_unprintable_filaments() const { return m_geometric_unprintable_filaments;}
@@ -1538,6 +1544,9 @@ private:
     Points                                  m_skirt_convex_hull;
 
     std::vector<std::vector<DynamicPrintConfig>> m_extruder_filament_info;
+    // Payload handed to set_extruder_filament_info(), installed by Print::apply(). See the setter.
+    std::vector<std::vector<DynamicPrintConfig>> m_pending_extruder_filament_info;
+    bool                                       m_extruder_filament_info_pending { false };
 
     // Logical (extruder, nozzle) grouping result, set by ToolOrdering during reorder.
     std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> m_nozzle_group_result;

@@ -1349,7 +1349,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     for (auto el : { "lateral_lattice_angle_1", "lateral_lattice_angle_2"})
         toggle_line(el, lattice_options, -1, _L("Select the Lateral Lattice sparse infill pattern to use this setting."));
 
-    bool lightning_options = config->opt_enum<InfillPattern>("sparse_infill_pattern") == InfillPattern::ipLightning;
+    bool lightning_options = config->opt_enum<InfillPattern>("sparse_infill_pattern") == InfillPattern::ipLightning && have_infill;
     for (auto el : { "lightning_overhang_angle", "lightning_prune_angle", "lightning_straightening_angle" })
         toggle_line(el, lightning_options, -1, _L("Select the Lightning sparse infill pattern to use this setting."));
         

@@ -8978,6 +8978,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     bool dlg_cont = true;
     bool is_user_cancel = false;
     bool translate_old = false;
+    bool invalid_bed_exclude_area = false;
     int current_width = 0, current_depth = 0;
     double current_height = 0;
 
@@ -9679,6 +9680,12 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         config.apply(static_cast<const ConfigBase &>(FullPrintConfig::defaults()));
                         // and place the loaded config over the base.
                         config += std::move(config_loaded);
+                        if (ConfigOptionPoints *bed_exclude_area = config.option<ConfigOptionPoints>("bed_exclude_area");
+                            bed_exclude_area != nullptr && bed_exclude_area->values.size() > 1 &&
+                            !is_valid_bed_exclude_area(bed_exclude_area->values)) {
+                            bed_exclude_area->values.clear();
+                            invalid_bed_exclude_area = true;
+                        }
                         std::map<std::string, std::string> validity = config.validate();
                         if (!validity.empty()) {
                             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << " " << boost::format("Param values in 3mf error: ");
@@ -10568,6 +10575,10 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     }
     q->schedule_background_process(true);
     q->mark_plate_toolbar_image_dirty();
+    if (invalid_bed_exclude_area) {
+        GUI::show_error(q, _L("The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon.") +
+            "\n" + _L("The invalid area has been removed, so please define it again using a valid polygon."));
+    }
     return obj_idxs;
 }
 
@@ -11708,8 +11719,10 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
         if (f_volume_maps.empty()) {
             f_volume_maps = preset_bundle->get_default_nozzle_volume_types_for_filaments(f_maps);
         }
-        invalidated = background_process.apply(this->model, preset_bundle->full_config(false, f_maps, f_volume_maps));
+        // Set the device filament info before Print::apply: it compares the payload and invalidates the
+        // grouping steps when the AMS material inventory changed, so apply must see it in the same pass.
         background_process.fff_print()->set_extruder_filament_info(get_extruder_filament_info());
+        invalidated = background_process.apply(this->model, preset_bundle->full_config(false, f_maps, f_volume_maps));
     }
     else
         invalidated = background_process.apply(this->model, preset_bundle->full_config(false));
@@ -22760,6 +22773,8 @@ void Plater::changed_objects(const std::vector<size_t>& object_idxs)
         p->view3D->reload_scene(false);
         p->view3D->get_canvas3d()->update_instance_printable_state_for_objects(object_idxs);
     }
+
+    mark_plate_toolbar_image_dirty();
 
     // update print
     this->p->schedule_background_process();
