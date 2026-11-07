@@ -587,6 +587,9 @@ protected:
     // as calculated and stored in the m_multi_segment_path_average_mm3_per_mm value
     double          m_multi_flow_segment_path_average_mm3_per_mm = 0;
     bool            m_multi_flow_segment_path_pa_set = false;
+    // Wall index (0 = outer wall) of the loop or multipath being extruded, -1 outside of those.
+    // Marks the first inner wall for the Consistent surface cooling logic.
+    int             m_cooling_inset_idx = -1;
     // Adaptive PA last set flow to enable issuing of PA change commands when adaptive PA for overhangs
     // is enabled
     double          m_last_mm3_mm = 0;
@@ -810,7 +813,7 @@ protected:
     //resonance avoidance
     bool                                m_resonance_avoidance; 
     // If enabled, the G-code generator will put following comments at the ends
-    // of the G-code lines: _EXTRUDE_SET_SPEED, _WIPE, _OVERHANG_FAN_START, _OVERHANG_FAN_END
+    // of the G-code lines: _EXTRUDE_SET_SPEED, _EXTERNAL_PERIMETER, _INTERNAL_PERIMETER1, _WIPE, _OVERHANG_FAN_START, _OVERHANG_FAN_END
     // Those comments are received and consumed (removed from the G-code) by the CoolingBuffer.pm Perl module.
     bool                                m_enable_cooling_markers;
     
