@@ -699,8 +699,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             // BBS
             double wipe_dist = scale_(gcodegen.config().wipe_distance.get_at(gcodegen.get_filament_config_index((int)gcodegen.writer().filament()->id())));
 
-            /*  Take the stored wipe path and replace first point with the current actual position
-                (they might be different, for example, in case of loop clipping).  */
+            // Replace the stored first point with the actual nozzle position,
+            // including any loop clipping or Wipe on loop move.
             Polyline wipe_path;
             wipe_path.append(gcodegen.last_pos());
             wipe_path.append(
@@ -1070,27 +1070,6 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         return gcode;
     }
 
-    // A folded tower layer is thicker than the object layer it sits on, so the height process_layer
-    // emitted is not the tower's. Both writers declare one, but each hardcodes a tag dialect - Type 1
-    // forces s_IsBBLPrinter and writes "; LAYER_HEIGHT:", Type 2 writes ";HEIGHT:" - and the processor
-    // reads only its printer's, so a Type 1 tower on a non-BBL printer loses it and the merged layer
-    // is drawn and costed as a thin one. Declare it here, where the printer is known, unless the tower
-    // already wrote the right tag. _extrude puts the object's height back on the next object path,
-    // since process_layer forces the role to erWipeTower on any layer with a tower.
-    std::string WipeTowerIntegration::tower_height_tag(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr,
-                                                       const std::string &tcr_gcode) const
-    {
-        const std::string tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height);
-        if (! m_sparse_layers_combined || std::abs(gcodegen.m_last_height - tcr.layer_height) <= EPSILON ||
-            tcr_gcode.find(tag) != std::string::npos)
-            return {};
-        // Keep m_last_height what the G-code last declared, so a second visit does not repeat it.
-        gcodegen.m_last_height = tcr.layer_height;
-        char buf[64];
-        sprintf(buf, "%s%g\n", tag.c_str(), tcr.layer_height);
-        return buf;
-    }
-
     // FanMover consumes these markers (and drops them) to avoid splitting a G1 inside custom gcode.
     // Only written when FanMover runs, the same gate as its construction in GCode::process_layers.
     static std::string wrap_custom_gcode_for_fan_mover(const FullPrintConfig &config, const std::string &gcode)
@@ -1167,7 +1146,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         // over the tower - which is what the is_finish_first travel above does. Otherwise the nozzle
         // is still over the model and this descent would drive it into the print, so defer it to the
         // re-descents below, which run after the travel to the tower.
-        const bool defer_compacted_descend = m_sparse_layers_skipped
+        // A layer joined to the tower layer below descends to it the same way, by less than a layer.
+        const bool joined_below_layer      = m_layer_joined && !tcr.priming && (current_z - z) > EPSILON;
+        const bool defer_compacted_descend = (m_sparse_layers_skipped || joined_below_layer)
             && !tcr.priming && !tcr.is_finish_first && (current_z - z) > EPSILON;
         if (!is_approx(z, current_z) && !defer_compacted_descend) {
             gcode += gcodegen.writer().retract();
@@ -1176,7 +1157,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         }
         // Tower compacted below the object, so any extrusion emitted without an explicit z has to be
         // pulled back down to it first.
-        const bool compacted_below_object = m_sparse_layers_skipped && z >= 0. && (tcr.print_z - z) > EPSILON;
+        const bool compacted_below_object = (m_sparse_layers_skipped && z >= 0. && (tcr.print_z - z) > EPSILON) || joined_below_layer;
 
         // Process the end filament gcode.
         bool        add_change_filament_624 = false;
@@ -1511,6 +1492,14 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         if (position_before_toolchange)
             gcodegen.synchronize_toolchange_position(*position_before_toolchange, toolchange_gcode_str);
 
+        // A joined layer descends to the tower layer below it. With no macro and no nozzle change
+        // nothing has moved the head off the part yet, so travel over the tower before that descent.
+        if (joined_below_layer && !need_travel_after_change_filament_gcode && !is_nozzle_change) {
+            std::string start_pos_str = gcodegen.travel_to(wipe_tower_point_to_object_point(gcodegen, tool_change_start_pos + plate_origin_2d), erMixed, "Move to start pos");
+            check_add_eol(start_pos_str);
+            wipe_next_start_point_str = start_pos_str;
+        }
+
         if (need_travel_after_change_filament_gcode) {
             // move to start_pos for wiping after toolchange
             if (!is_used_travel_avoid_perimeter) {
@@ -1630,7 +1619,6 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         config.set_key_value("filament_start_gcode", new ConfigOptionString(start_filament_gcode_str));
         std::string tcr_gcode, tcr_escaped_gcode = gcodegen.placeholder_parser_process("tcr_rotated_gcode", tcr_rotated_gcode, new_filament_id, &config);
         unescape_string_cstyle(tcr_escaped_gcode, tcr_gcode);
-        gcode += tower_height_tag(gcodegen, tcr, tcr_gcode);
         gcode += tcr_gcode;
         // Count the toolchange only when the emitted block really changed the tool —
         // tower visits without a filament change must not advance the ordinal.
@@ -1922,7 +1910,12 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                         }
                     }
                 }
-                if (!skip_line) {
+                if (skip_line) {
+                    // Also drop the planner sync WipeTower2 put right before the stripped M109.
+                    const std::string sync = flush_planner_queue_command(gcodegen.config().gcode_flavor.value);
+                    if (boost::ends_with(out, sync))
+                        out.resize(out.size() - sync.size());
+                } else {
                     out.append(line);
                     if (line_end < tcr_rotated_gcode.size())
                         out.push_back('\n');
@@ -1945,7 +1938,6 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         std::string tcr_gcode,
             tcr_escaped_gcode = gcodegen.placeholder_parser_process("tcr_rotated_gcode", tcr_rotated_gcode, new_extruder_id, &config);
         unescape_string_cstyle(tcr_escaped_gcode, tcr_gcode);
-        gcode += tower_height_tag(gcodegen, tcr, tcr_gcode);
         gcode += tcr_gcode;
         check_add_eol(toolchange_gcode_str);
 
@@ -2098,7 +2090,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                         ignore_sparse = wipe_tower_layer_is_sparse(m_tool_changes[m_layer_idx]) && m_layer_idx != 0;
                         if (m_tool_change_idx == 0 && !ignore_sparse)
                         wipe_tower_z = m_last_wipe_tower_print_z + m_tool_changes[m_layer_idx].front().layer_height;
-                    }
+                    } else if (m_layer_joined)
+                        wipe_tower_z = joined_tower_z();
 
                     if (!ignore_sparse) {
                         gcode += append_tcr2(gcodegen, m_tool_changes[m_layer_idx][m_tool_change_idx++], extruder_id, wipe_tower_z);
@@ -2115,7 +2108,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             if (m_sparse_layers_skipped) {
                 ignore_sparse = wipe_tower_layer_is_sparse(m_tool_changes[m_layer_idx]);
                 wipe_tower_z  = m_compacted_tower_z[m_layer_idx];
-            }
+            } else if (m_layer_joined)
+                wipe_tower_z = joined_tower_z();
 
             if ((m_enable_timelapse_print || m_enable_wrapping_detection) && m_is_first_print) {
                 gcode += append_tcr(gcodegen, m_tool_changes[m_layer_idx][0], m_tool_changes[m_layer_idx][0].new_tool, wipe_tower_z);
@@ -3304,32 +3298,30 @@ static inline std::vector<const PrintInstance*> sort_object_instances_by_max_z(c
 }
 #endif
 
-// Produce a vector of PrintObjects in the order of their respective ModelObjects in print.model().
+// Produce a vector of PrintInstances in the order of their ModelInstances in the object and instance lists of print.model().
 //BBS: add sort logic for seq-print
 std::vector<const PrintInstance*> sort_object_instances_by_model_order(const Print& print, bool init_order)
 {
-    auto find_object_index = [](const Model& model, const ModelObject* obj) {
-        for (int index = 0; index < model.objects.size(); index++)
-        {
-            if (model.objects[index] == obj)
-                return index;
-        }
-        return -1;
-    };
+    if (init_order) {
+        // Number by position in the model's object and instance lists. Copies of one object can be split
+        // into separate PrintObjects, one per distinct transformation, and print.objects() orders those by
+        // transformation, so its order is not the list order.
+        int order = 0;
+        for (const ModelObject *model_object : print.model().objects)
+            for (ModelInstance *model_instance : model_object->instances)
+                model_instance->arrange_order = ++order;
+    }
 
     // Build up map from ModelInstance* to PrintInstance*
     std::vector<std::pair<const ModelInstance*, const PrintInstance*>> model_instance_to_print_instance;
     model_instance_to_print_instance.reserve(print.num_object_instances());
     for (const PrintObject *print_object : print.objects())
         for (const PrintInstance &print_instance : print_object->instances())
-        {
-            if (init_order)
-                const_cast<ModelInstance*>(print_instance.model_instance)->arrange_order = find_object_index(print.model(), print_object->model_object());
             model_instance_to_print_instance.emplace_back(print_instance.model_instance, &print_instance);
-        }
     std::sort(model_instance_to_print_instance.begin(), model_instance_to_print_instance.end(), [](auto &l, auto &r) { return l.first->arrange_order < r.first->arrange_order; });
     if (init_order) {
-        // Re-assign the arrange_order so each instance has a unique order number
+        // Re-assign the arrange_order so each instance of this print has a unique order number. The
+        // numbering above covers the whole model, including the instances of the other plates.
         for (int k = 0; k < model_instance_to_print_instance.size(); k++) {
             const_cast<ModelInstance*>(model_instance_to_print_instance[k].first)->arrange_order = k + 1;
         }
@@ -3337,13 +3329,8 @@ std::vector<const PrintInstance*> sort_object_instances_by_model_order(const Pri
 
     std::vector<const PrintInstance*> instances;
     instances.reserve(model_instance_to_print_instance.size());
-    for (const ModelObject *model_object : print.model().objects)
-        for (const ModelInstance *model_instance : model_object->instances) {
-            auto it = std::lower_bound(model_instance_to_print_instance.begin(), model_instance_to_print_instance.end(), std::make_pair(model_instance, nullptr), [](auto &l, auto &r) { return l.first->arrange_order < r.first->arrange_order; });
-            if (it != model_instance_to_print_instance.end() && it->first == model_instance)
-                instances.emplace_back(it->second);
-        }
-    std::sort(instances.begin(), instances.end(), [](auto& l, auto& r) { return l->model_instance->arrange_order < r->model_instance->arrange_order; });
+    for (const auto &model_instance_print_instance : model_instance_to_print_instance)
+        instances.emplace_back(model_instance_print_instance.second);
     return instances;
 }
 
@@ -5204,8 +5191,13 @@ void GCode::process_layers(
             const std::pair<coordf_t, std::vector<LayerToPrint>>& layer = layers_to_print[precomputed.index];
             const LayerTools& layer_tools = tool_ordering.tools_for_layer(layer.first);
             print.set_status(80, Slic3r::format(_(L("Generating G-code: layer %1%")), std::to_string(precomputed.index + 1)));
-            if (m_wipe_tower && layer_tools.has_wipe_tower)
-                m_wipe_tower->next_layer();
+            // A layer that joined the tower layer below continues it.
+            if (m_wipe_tower && layer_tools.has_wipe_tower) {
+                if (layer_tools.joins_wipe_tower_layer_below())
+                    m_wipe_tower->join_layer();
+                else
+                    m_wipe_tower->next_layer();
+            }
             //BBS
             check_placeholder_parser_failed();
             print.throw_if_canceled();
@@ -7457,7 +7449,8 @@ LayerResult GCode::process_layer(
         gcode += insert_timelapse_gcode();
     }
 
-    if (m_wipe_tower)
+    // A joined layer continues a tower layer whose first print is already done.
+    if (m_wipe_tower && ! layer_tools.joins_wipe_tower_layer_below())
         m_wipe_tower->set_is_first_print(true);
 
     auto insert_wrapping_detection_gcode = [this, &print, &print_z, &most_used_extruder]() -> std::string {
@@ -7546,7 +7539,8 @@ LayerResult GCode::process_layer(
 
         std::string gcode_toolchange;
         if (has_wipe_tower) {
-            if (!m_wipe_tower->is_empty_wipe_tower_gcode(*this, extruder_id, extruder_id == layer_tools.extruders.back())) {
+            const bool finish_tower_layer = extruder_id == layer_tools.extruders.back() && layer_tools.wipe_tower_layer_ends;
+            if (!m_wipe_tower->is_empty_wipe_tower_gcode(*this, extruder_id, finish_tower_layer)) {
                 if (need_insert_timelapse_gcode_for_traditional && !has_insert_timelapse_gcode
                     && !(m_farthest_point_timelapse.enabled && m_farthest_point_timelapse.farthest_is_photo_head)) {
                     bool should_insert = true;
@@ -7574,7 +7568,7 @@ LayerResult GCode::process_layer(
                     gcode += insert_wrapping_detection_gcode();
                     has_insert_wrapping_detection_gcode = true;
                 }
-                gcode_toolchange = m_wipe_tower->tool_change(*this, extruder_id, extruder_id == layer_tools.extruders.back());
+                gcode_toolchange = m_wipe_tower->tool_change(*this, extruder_id, finish_tower_layer);
             }
         } else {
             // Same case-A/case-B split for the non-wipe-tower path. With the subsystem off,
@@ -8097,7 +8091,7 @@ LayerResult GCode::process_layer(
                     m_nominal_z            = entry.sub_z;
                     // Use the same lazy-Z mechanism as change_layer(): set the flag so travel_to
                     // fires even when m_last_pos coincides with the first extrusion point,
-                    // ensuring Z reaches sub_z via the combined XY+Z move.
+                    // ensuring Z reaches sub_z on the travel to it.
                     m_need_change_layer_lift_z = true;
 
                     for (ObjectByExtruder::Island &island : instance_to_print.object_by_extruder.islands) {
@@ -8809,11 +8803,14 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
         paths.back().polyline.points.size() >= 2)
         wipe_on_loops_dest = wipe_on_loops_destination(paths, scale_(nozzle_diameter), is_ccw, is_hole);
 
-    bool wipe_inward_applied = false;
     // Orca: store loop paths in print order because inward offsets use this orientation.
     if (m_wipe.enable && FILAMENT_CONFIG(wipe)) {
         m_wipe.update_path(paths);
 
+        // A loop's role is its first path's role. An overhanging start must
+        // not hide ordinary external-wall segments elsewhere in the loop.
+        const auto external_path = std::find_if(paths.begin(), paths.end(),
+            [](const ExtrusionPath &path) { return is_external_perimeter(path.role()); });
         // Orca: loop wipe paths retain print direction. Their material side is
         // therefore left for CCW contours and right for CW contours, with the
         // result inverted for holes. Only external perimeters are eligible.
@@ -8821,18 +8818,19 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
         // context was created. Check the effective setting again at execution.
         if (m_config.wipe_inward && m_config.wipe_inward_distance.value > 0. &&
             wipe_support != nullptr && !wipe_support->inner_lines.empty() &&
-            // A loop's role is its first path's role. An overhanging start must
-            // not hide ordinary external-wall segments elsewhere in the loop.
-            std::any_of(paths.begin(), paths.end(),
-                [](const ExtrusionPath &path) { return is_external_perimeter(path.role()); }) &&
-            m_wipe.path.points.size() >= 2) {
-            // Orca: use the actual extrusion width from the path, not the config
+            external_path != paths.end() && m_wipe.path.points.size() >= 2) {
+            // Orca: use the actual extrusion width of the external wall, not the config
             // value — outer_wall_line_width=0 (Auto) would make get_abs_value
             // return 0 and silently disable the feature, and Arachne may produce
-            // a different width than the config default.
-            const double outer_wall_line_width = paths.front().width;
+            // a different width than the config default. An overhanging start
+            // may have another width, so it does not set the offset.
+            const double outer_wall_line_width = external_path->width;
             const double requested_offset = m_config.wipe_inward_distance.get_abs_value(outer_wall_line_width);
-            const double offset_dist = scale_(std::min(requested_offset, outer_wall_line_width));
+            // Outer/Inner and sandwich order print the adjacent inner wall after
+            // this one. Only the outer bead's own inner half is available for wiping now.
+            const double max_offset = outer_wall_line_width *
+                (m_config.wall_sequence == WallSequence::InnerOuter ? 1. : 0.5);
+            const double offset_dist = scale_(std::min(requested_offset, max_offset));
             if (offset_dist > SCALED_EPSILON) {
                 const Point seam_start = paths.front().first_point();
                 const Point seam_end   = paths.back().last_point();
@@ -8842,11 +8840,10 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
                 // from points[1]. The helper preserves that sentinel and atomically
                 // replaces the remaining points, or leaves the path untouched.
                 // Orca: a configured wall count does not guarantee that Arachne
-                // generated an adjacent wall for this particular loop. Only
-                // earlier entities are considered because later walls have
-                // not been printed yet (for example with Outer/Inner order).
-                // Inner walls determine the material side; every earlier wall
-                // remains available to validate the executable wipe path.
+                // generated an adjacent wall for this particular loop. Inner walls
+                // determine the material side; with Outer/Inner and sandwich order
+                // they include walls printed later. Only printed walls validate
+                // the executable wipe path.
                 const double support_distance = scale_(std::max(nozzle_diameter, outer_wall_line_width));
                 Polyline inward_path = m_wipe.path;
                 if (offset_wipe_path_toward_support(
@@ -8854,8 +8851,9 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
                         wipe_offset_direction(is_ccw, is_hole), offset_dist, max_wipe_length,
                         wipe_support->inner_lines, wipe_support->printed_lines,
                         m_wipe.path.lines(), support_distance)) {
+                    // Only the stored geometry changes. Like the regular wipe, the path
+                    // runs when travel planning retracts and is skipped on short travels.
                     m_wipe.path = std::move(inward_path);
-                    wipe_inward_applied = true;
                 }
             }
         }
@@ -8867,12 +8865,6 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
             this->point_to_gcode(*wipe_on_loops_dest), 0, "move inwards before travel", true);
         this->set_last_pos(*wipe_on_loops_dest);
     }
-
-    // Execute the accepted path before another extrusion replaces it. Wiping
-    // must not force retraction or Z-hop across a short travel to the next wall.
-    // Ordinary travel planning decides whether to retract from the new position.
-    if (wipe_inward_applied)
-        gcode += m_wipe.wipe(*this, 0.);
 
     return gcode;
 }
@@ -8979,6 +8971,18 @@ std::string GCode::extrude_perimeters(const Print &print, const std::vector<Obje
                 m_config.wipe_inward_distance.value > 0. &&
                 scale_(FILAMENT_CONFIG(wipe_distance)) > SCALED_EPSILON)
                 wipe_support.emplace();
+
+            // Outer/Inner and sandwich order print the adjacent inner wall after the
+            // external wall. Its geometry still identifies the inward side and whether
+            // the external wall has a neighbour, while the half-width limit in
+            // extrude_loop() keeps the wipe on the outer bead.
+            if (wipe_support && m_config.wall_sequence != WallSequence::InnerOuter) {
+                WipeInwardSupport all_walls;
+                for (const ExtrusionEntity* ee : region.perimeters)
+                    all_walls.append(*ee);
+                wipe_support->inner_lines = std::move(all_walls.inner_lines);
+                wipe_support->inner_lines_complete = true;
+            }
 
             // ORCA: loops flagged as extruded in mid air, out of reach of the layer below, are held back
             // for a second pass after the infill that anchors them. Infill already precedes infill first walls.
@@ -10645,9 +10649,6 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
             result.append(to_local_point(gcode_point));
         return result;
     };
-    const auto nominal_writer_z = [this]() {
-        return m_writer.get_position().z() - m_writer.get_zhop();
-    };
     const auto route_around_exclusion_volumes = [&](
         Polyline &path,
         const std::optional<double> &start_z_override,
@@ -10656,7 +10657,8 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
             return false;
 
         const double target_z = z == DBL_MAX ? m_nominal_z : z;
-        double route_start_z = start_z_override.value_or(nominal_writer_z());
+        // A lifted nozzle travels at its lifted height, so the route is checked from there.
+        double route_start_z = start_z_override.value_or(m_writer.get_position().z());
         double route_end_z = target_z;
         if (include_planned_lift) {
             const Vec2d destination_xy = this->point_to_gcode(path.back());
@@ -10805,13 +10807,15 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
                 gcode += m_writer.travel_to_xy(this->point_to_gcode(travel.points[i]), comment);
             }
         } else {
-            if (travel.size() == 2) {
-                // No extra movements emitted by avoid_crossing_perimeters, simply move to the end point with z change
-                const auto& dest2d = this->point_to_gcode(travel.points.back());
-                Vec3d dest3d(dest2d(0), dest2d(1), z == DBL_MAX ? m_nominal_z : z);
-                gcode += m_writer.travel_to_xyz(dest3d, comment, m_need_change_layer_lift_z);
-                m_need_change_layer_lift_z = false;
-            } else if (exclusion_volume_travel_rerouted && z != DBL_MAX) {
+            const double target_z = z == DBL_MAX ? m_nominal_z : z;
+            // A lifted nozzle keeps its height over the whole detour and descends only at the last
+            // point, so it never sinks over the print.
+            const bool stay_lifted = m_writer.get_zhop() > EPSILON && m_writer.get_position().z() > target_z + EPSILON;
+            // A lift left pending by the retraction happens on the first leg, so that detour is lifted too.
+            const Vec2d first2d = this->point_to_gcode(travel.points[1]);
+            const bool lift_pending =
+                m_writer.planned_travel_z(Vec3d(first2d.x(), first2d.y(), target_z), m_need_change_layer_lift_z).second > target_z + EPSILON;
+            if (exclusion_volume_travel_rerouted && z != DBL_MAX && !stay_lifted && !lift_pending) {
                 // Preserve the original sloped-Z move over the longer detour.
                 // The router activates every volume touched by the complete Z
                 // range, so this interpolation remains conservative.
@@ -10830,23 +10834,19 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
                         m_need_change_layer_lift_z = false;
                 }
             } else {
-                // Extra movements emitted by avoid_crossing_perimeters, lift the z to normal height at the beginning, then apply the z
-                // ratio at the last point
+                // Extra movements emitted by avoid_crossing_perimeters move to the layer height at the first point,
+                // unless the nozzle stays lifted. The target Z is applied at the last point.
+                const bool layer_z_first = travel.size() > 2 && !stay_lifted;
                 for (size_t i = 1; i < travel.size(); ++i) {
-                    if (i == 1) {
-                        // Lift to normal z at beginning
-                        Vec2d dest2d = this->point_to_gcode(travel.points[i]);
-                        Vec3d dest3d(dest2d(0), dest2d(1), m_nominal_z);
-                        gcode += m_writer.travel_to_xyz(dest3d, comment, m_need_change_layer_lift_z);
+                    const Vec2d dest2d = this->point_to_gcode(travel.points[i]);
+                    if (i == 1 && layer_z_first) {
+                        gcode += m_writer.travel_to_xyz(Vec3d(dest2d.x(), dest2d.y(), m_nominal_z), comment, m_need_change_layer_lift_z);
                         m_need_change_layer_lift_z = false;
-                    } else if (z != DBL_MAX && i == travel.size() - 1) {
-                        // Apply z_ratio for the very last point
-                        Vec2d dest2d = this->point_to_gcode(travel.points[i]);
-                        Vec3d dest3d(dest2d(0), dest2d(1), z);
-                        gcode += m_writer.travel_to_xyz(dest3d, comment);
+                    } else if (i == travel.size() - 1 && (z != DBL_MAX || !layer_z_first)) {
+                        gcode += m_writer.travel_to_xyz(Vec3d(dest2d.x(), dest2d.y(), target_z), comment, m_need_change_layer_lift_z);
+                        m_need_change_layer_lift_z = false;
                     } else {
-                        // For all points in between, no z change
-                        gcode += m_writer.travel_to_xy(this->point_to_gcode(travel.points[i]), comment);
+                        gcode += m_writer.travel_to_xy(dest2d, comment);
                     }
                 }
             }
