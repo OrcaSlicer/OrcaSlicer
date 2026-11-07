@@ -73,6 +73,19 @@
 }
 }
 
+/*/// KEYBOARD FOCUS ///*/
+/* one ring for every focusable control, at low specificity so a widget's own ring wins */
+:focus-visible {
+	outline: 2px solid var(--fg-color-text);
+	outline-offset: 1px;
+}
+
+/* a label drawing a visually hidden checkbox or radio takes the ring for it */
+label:has(> input.A11yOnly:focus-visible) {
+	outline: 2px solid var(--fg-color-text);
+	outline-offset: 1px;
+}
+
 /*////////////////////////////*/
 /*           ICONS            */
 /*////////////////////////////*/
@@ -116,8 +129,18 @@
 /*////////////////////////////*/
 
 /*/// BUTTONS ///*/
+/* .PlainButtons scopes a reset that draws a converted <button> like the <div> it replaced; zero specificity so page rules win */
+:where(.PlainButtons) button {
+	display: inline-grid; /* the UA box centres the label vertically, a div puts it at the top; a mixed-content button needs its own display */
+	box-sizing: content-box;
+	background: none;
+	font: inherit;
+	color: inherit;
+	text-align: inherit;
+	white-space: normal; /* WebKit buttons default to pre - keep div-style wrapping */
+}
+
 /*----Values slightly different since renderer is different----*/
-/*----Currently no support for focus border----*/
 .ButtonTypeCompact   { font-size: 11px; padding: 0px 8px ; border-radius: 12px; line-height: 23px; height: 24px; text-align: center}
 .ButtonTypeWindow    { font-size: 13px; padding: 0px 11px; border-radius: 12px; line-height: 23px; height: 24px; text-align: center}
 .ButtonTypeChoice    { font-size: 15px; padding: 0px 13px; border-radius: 4px ; line-height: 31px; height: 32px; text-align: center}
@@ -199,7 +222,6 @@ OPTIONS
 }
 
 .ComboBox > select:focus {
-    outline: none;
     background-color: var(--focus-bg-box);
     border-color: var(--main-color);;
 }
@@ -238,4 +260,16 @@ OPTIONS
 
 .thin-scroll::-webkit-scrollbar-thumb:hover {
 	background: var(--button-bg-hover);
+}
+
+/*/// SCREEN READER ONLY ///*/
+/* a heading or label with no visible counterpart - out of the layout, still read */
+.A11yOnly {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	clip-path: inset(50%);
+	white-space: nowrap;
 }

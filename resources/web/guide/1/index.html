@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="max-age=7200" />
-<title>引导_P1</title>
+<title data-i18n="welcome">Welcome to Orca Slicer</title>
 <link rel="stylesheet" type="text/css" href="../../include/global.css" />	<!-- ORCA One for all-->
 <link rel="stylesheet" type="text/css" href="../css/common.css" />	
 <link rel="stylesheet" type="text/css" href="../css/dark.css" />		
@@ -11,16 +11,17 @@
 <script type="text/javascript" src="../../include/jquery-3.6.0.min.js"></script>
 <script type="text/javascript" src="../../include/i18n.js"></script>	
 <script type="text/javascript" src="../js/globalapi.js"></script>	
+<script type="text/javascript" src="../../include/a11y.js"></script>
 <script type="text/javascript" src="../js/common.js"></script>
 </head>
-<body onLoad="TranslatePage()">
+<body class="PlainButtons" onLoad="TranslatePage()">
 	<div id="SlicerIcon" style="text-align: center;">
-		<img src="../../image/logo.png"/>
+		<img src="../../image/logo.png" alt=""/>
 	</div>
-	<div id="Title" data-i18n="welcome">Welcome to Orca Slicer</div>
+	<h1 id="Title" data-i18n="welcome">Welcome to Orca Slicer</h1>
 	<div id="STip" data-i18n="setup_intro">Orca Slicer will be set up in several steps. Let's start!</div>
 	<div id="BtnArea">
-	    <a id="StartBtn" class="ButtonStyleConfirm ButtonTypeChoice" href="../11/index.html" data-i18n="get_started">Get Started</a>
+	    <button type="button" id="StartBtn" class="ButtonStyleConfirm ButtonTypeChoice" onclick="location.href='../11/index.html'" data-i18n="get_started">Get Started</button>
 	</div>
 </body>
 </html>

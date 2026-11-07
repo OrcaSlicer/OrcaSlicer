@@ -109,6 +109,7 @@ static json guide_strings()
         {"finish", _u8L("Finish")},
         {"confirm", _u8L("Confirm")},
         {"cancel", _u8L("Cancel")},
+        {"close", _u8L("Close")},
         {"ok", _u8L("OK")},
         {"yes", _u8L("Yes")},
         {"no", _u8L("No")},
@@ -136,6 +137,8 @@ static json guide_strings()
         {"all", _u8L("All")},
         {"no_items", _u8L("No items")},
         {"filter_items", _u8L("Filter items")},
+        // TRN An item of the "Filter by state" menu beside Filter items: no filter on the checked state.
+        {"state_all", _u8L_CONTEXT("All", "Filter by state")},
         {"checked", _u8L("Checked")},
         {"unchecked", _u8L("Unchecked")},
         {"select_filtered", _u8L("Select filtered")},
@@ -151,6 +154,40 @@ static json guide_strings()
         {"proprietary_plugins_desc", _u8L("Some printer vendors require proprietary plugins for communication with their printers. Please select the corresponding plugin if you use such printers.")},
         {"proprietary_plugins_risk", _u8L("Please be aware that these plugins are not developed or maintained by OrcaSlicer. They should be used at your own discretion and risk.")},
         {"install_bambu_plugin", _u8L("Install Bambu Network plug-in")},
+        // Screen reader names for controls and sections that show no text of their own.
+        {"jump_to_vendor", _u8L("Jump to vendor")},
+        {"view_compact_list", _u8L("Compact list view")},
+        {"view_compact_cover", _u8L("Compact cover view")},
+        {"view_large_cover", _u8L("Large cover view")},
+        // TRN %s is a printer vendor name.
+        {"select_all_printers", _u8L("Select all %s printers")},
+        // TRN %s is a printer vendor name. Used while a search hides some of the vendor's printers.
+        {"select_all_shown_printers", _u8L("Select all shown %s printers")},
+        // TRN Screen reader text for a "3 / 12" count: the number selected, then the total, of the printers or filaments
+        // it sits beside. The numbers lead; reword freely if your language needs a noun or agreement.
+        {"count_selected", _u8L("%s of %s selected")},
+        // TRN Screen reader text spoken after a search or filter: how many printers or filaments it leaves.
+        // This form is used only for a count of 1; "%s results" covers every other count.
+        {"count_result_one", _u8L("%s result")},
+        // TRN Screen reader text spoken after a search or filter: how many printers or filaments it leaves.
+        // Used for every count except 1. If your language inflects the noun by number, choose a wording
+        // that reads correctly with any number.
+        {"count_results", _u8L("%s results")},
+        // TRN Screen reader text spoken after a search in the filament step's columns: how many entries match, of
+        // the column's total. These "_one" forms are used only when the total is 1; the plural forms cover every other
+        // total. If your language inflects the noun by number, choose a wording that reads correctly with any number.
+        {"count_of_printers_one", _u8L("%s of %s printer")},
+        {"count_of_printers", _u8L("%s of %s printers")},
+        {"count_of_filament_types_one", _u8L("%s of %s filament type")},
+        {"count_of_filament_types", _u8L("%s of %s filament types")},
+        {"count_of_vendors_one", _u8L("%s of %s vendor")},
+        {"count_of_vendors", _u8L("%s of %s vendors")},
+        {"printers", _u8L("Printers")},
+        {"filament_types", _u8L("Filament types")},
+        {"filaments", _u8L("Filaments")},
+        {"filter_by_state", _u8L("Filter by state")},
+        // TRN Name of the edit button beside a custom filament. %s is the filament name.
+        {"edit_filament_named", _u8L("Edit filament %s")},
     };
 }
 
@@ -349,10 +386,12 @@ wxString GuideFrame::SetStartPage(GuidePage startpage, bool load)
         else
             TargetUrl = guide_url + "?target=21";
     } else if (startpage == BBL_FILAMENT_ONLY) {
-        SetTitle("");
+        // ORCA: these two pages open as standalone dialogs, not as the wizard, so an
+        // empty title left them announced as a nameless "dialog" by screen readers.
+        SetTitle(_L("Select Filaments"));
         TargetUrl = guide_url + "?target=23";
     } else if (startpage == BBL_MODELS_ONLY) {
-        SetTitle("");
+        SetTitle(_L("Select Printers"));
         TargetUrl = guide_url + "?target=24";
     }
     else {
