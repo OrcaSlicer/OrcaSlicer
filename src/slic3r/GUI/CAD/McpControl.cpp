@@ -5000,14 +5000,19 @@ json action_batch(DesignPanel* panel, const json& params)
         else if (!(err = refuse_reason(panel, name, p)).empty()) {}
         else {
             try { r = call_method(panel, name, p); }
+    struct Defer { DesignPanel* p; explicit Defer(DesignPanel* q) : p(q) { p->mcp_defer_begin(); } ~Defer() { p->mcp_defer_end(); } } defer(panel);   // one UI refresh for the whole batch
             catch (const MethodNotFound&)    { err = "unknown command: " + name; }
             catch (const Standard_Failure& e) { err = std::string("OCCT: ") + (*e.what() ? e.what() : "failure"); }
             catch (const std::exception& e)   { err = e.what(); }
         }
         if (err.empty() && r.is_object() && r.contains("ok") && r["ok"] == false)
             err = r.value("error", std::string("refused"));
+        const auto t_cmd = std::chrono::steady_clock::now();
         if (!err.empty()) failed = json{{"index", int(i)}, {"command", name}, {"error", err}};
-        else              results.push_back(verbose ? r : json{{"ok", true}});
+        else {
+            if (verbose && r.is_object()) r["ms"] = std::round(std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t_cmd).count() * 10) / 10;   // where a batch's time goes, per step
+            results.push_back(verbose ? r : json{{"ok", true}});
+        }
     }
     bool undone = false;
     if (!failed.is_null() && rollback) {
