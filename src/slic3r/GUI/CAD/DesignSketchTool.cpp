@@ -1,4 +1,5 @@
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
+#include "slic3r/GUI/CAD/CadFaceSelection.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
@@ -24,6 +25,14 @@
 #include "libslic3r/CAD/GeometryEngine.hpp"
 
 #include <BRepBndLib.hxx>
+#include <BRepAdaptor_Surface.hxx>
+#include <BRepGProp.hxx>
+#include <BRepLProp_SLProps.hxx>
+#include <GProp_GProps.hxx>
+#include <GeomAbs_SurfaceType.hxx>
+#include <TopAbs_Orientation.hxx>
+#include <gp_Dir.hxx>
+#include <boost/log/trivial.hpp>
 #include <BRep_Builder.hxx>
 #include <Bnd_Box.hxx>
 #include <Standard_Failure.hxx>
@@ -50,6 +59,7 @@
 #include <climits>
 #include <limits>
 #include <array>
+#include <optional>
 #include <cmath>
 #include <cstdio>
 #include <cstdarg>
@@ -3640,6 +3650,52 @@ void DesignSketchTool::clear_solid_selection()
     // rebuilt, so it expires with the selection it was a promise about. Left behind it would keep
     // glowing on whatever now sits at those indices — a real entity, but not the one meant.
     m_pre = SolidPick{};
+    notify_face_selection_changed();
+}
+
+std::optional<CadFaceSelection> DesignSketchTool::selected_face() const
+{
+    if (m_solid_sel != SolidSel::Face || m_sel_shape.IsNull() || m_sel_face < 0)
+        return std::nullopt;
+    const TopoDS_Face face = GeometryEngine::face_by_index(m_sel_shape, m_sel_face);
+    if (face.IsNull())
+        return std::nullopt;
+    CadFaceSelection result;
+    result.body_index = m_sel_body;
+    result.face_index = m_sel_face;
+    const Vec3d centroid = GeometryEngine::face_centroid_world(face);
+    result.centroid = {centroid.x(), centroid.y(), centroid.z()};
+    BRepAdaptor_Surface surface(face);
+    const double u = 0.5 * (surface.FirstUParameter() + surface.LastUParameter());
+    const double v = 0.5 * (surface.FirstVParameter() + surface.LastVParameter());
+    BRepLProp_SLProps differential(surface, u, v, 1, 1e-6);
+    if (differential.IsNormalDefined()) {
+        gp_Dir normal = differential.Normal();
+        if (face.Orientation() == TopAbs_REVERSED)
+            normal.Reverse();
+        result.normal = std::array<double, 3>{normal.X(), normal.Y(), normal.Z()};
+    }
+    result.is_planar = surface.GetType() == GeomAbs_Plane;
+    GProp_GProps properties;
+    BRepGProp::SurfaceProperties(face, properties);
+    result.area = properties.Mass();
+    if (m_solid_xform != nullptr && m_sel_body >= 0 && m_sel_body < int(m_solid_xform->size()))
+        for (int row = 0; row < 4; ++row)
+            for (int col = 0; col < 4; ++col)
+                result.body_to_design[row][col] = (*m_solid_xform)[m_sel_body].matrix()(row, col);
+    return result;
+}
+
+void DesignSketchTool::notify_face_selection_changed() const
+{
+    if (!on_face_selection_changed)
+        return;
+    try {
+        on_face_selection_changed(selected_face());
+    } catch (const Standard_Failure& error) {
+        BOOST_LOG_TRIVIAL(warning) << "Could not describe selected CAD face: " << error.GetMessageString();
+        on_face_selection_changed(std::nullopt);
+    }
 }
 
 std::vector<int> DesignSketchTool::selected_edges() const
@@ -3666,6 +3722,7 @@ void DesignSketchTool::select_body(int body)
     m_sel_edges_more.clear();
     m_sel_edges_more_pts.clear();
     m_solid_sel = SolidSel::Whole;   // the canvas fills just this body, render_solid_highlight outlines it
+    notify_face_selection_changed();
 }
 
 void DesignSketchTool::set_highlight_faces(const std::vector<std::pair<int, int>>& faces)
@@ -4169,6 +4226,7 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
     }
     dp_pick_trace("pick -> sel=%d body=%d face=%d edge=%d",
                   int(m_solid_sel), m_sel_body, m_sel_face, m_sel_edge);
+    notify_face_selection_changed();
     if (on_solid_selection_changed)
         on_solid_selection_changed(int(m_solid_sel), m_sel_body, m_sel_face, m_sel_edge);
     return true;
