@@ -84,6 +84,18 @@ using AABox = std::array<Vec3, 2>;
 //
 using Interval = std::array<std::size_t, 2>;
 
+// ORCA: the layers greyed or dimmed around the ones the sliders show, as the toolpath shaders apply
+// them: every vertex but kept_vertex and those of the layers lit_layers names is scaled by
+// dim_brightness in 8 bit sRGB, or, without dimming (dim_brightness < 0), drawn grey (64) below
+// layer grey_below_layer.
+struct LayerShading
+{
+    std::array<int, 2> lit_layers{ -1, -1 };
+    int grey_below_layer{ 0 };
+    float dim_brightness{ -1.0f };
+    int kept_vertex{ -1 };
+};
+
 //
 // View types
 //

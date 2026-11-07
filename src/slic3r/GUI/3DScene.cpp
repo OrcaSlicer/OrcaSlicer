@@ -109,6 +109,24 @@ float FullTransparentModdifiedToFixAlpha = 0.3f;
 // which breaks the `SelectMachineDialog::record_edge_pixels_data()` function!
 float FULL_BLACK_THRESHOLD = 0.2f;
 
+// The path traced view draws the objects for their depth only, with the color writes off; their
+// sinking contours still show over its image. Turns the color writes on for its scope.
+class ColorWritesOn
+{
+public:
+    ColorWritesOn()
+    {
+        glsafe(::glGetBooleanv(GL_COLOR_WRITEMASK, m_saved.data()));
+        glsafe(::glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
+    }
+    ~ColorWritesOn() { glsafe(::glColorMask(m_saved[0], m_saved[1], m_saved[2], m_saved[3])); }
+    ColorWritesOn(const ColorWritesOn&) = delete;
+    ColorWritesOn& operator=(const ColorWritesOn&) = delete;
+
+private:
+    std::array<GLboolean, 4> m_saved{};
+};
+
 Slic3r::ColorRGBA adjust_color_for_rendering(const Slic3r::ColorRGBA &colors)
 {
     // a clear color keeps its hue, at the least opacity that still shows it
@@ -677,6 +695,7 @@ void GLVolume::render_sinking_contours()
 {
     if (!is_active)
         return;
+    const ColorWritesOn color_writes;
     m_sinking_contours.render();
 }
 

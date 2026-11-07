@@ -397,6 +397,7 @@ public:
 
     std::vector<GUI::GLModel> model_per_colors;
     bool                              IsTransparent();
+    const std::vector<ColorRGBA>& get_colors() const { return m_colors; }
 
 private:
     std::vector<ColorRGBA> m_colors;
@@ -525,6 +526,7 @@ public:
     void set_range(double low, double high) { for (GLVolume *vol : this->volumes) vol->set_range(low, high); }
 
     void set_print_volume(const PrintVolume& print_volume) { m_print_volume = print_volume; }
+    const PrintVolume& get_print_volume() const { return m_print_volume; }
 
     void set_z_range(float min_z, float max_z) { m_z_range[0] = min_z; m_z_range[1] = max_z; }
     void set_clipping_plane(const std::array<double, 4>& coeffs) { m_clipping_plane = coeffs; }
