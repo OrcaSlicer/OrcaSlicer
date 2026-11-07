@@ -546,7 +546,8 @@ public:
                                                            // Overlap at or below which the overhang fan switches on; negative when the fan
                                                            // does not depend on overlap.
                                                            float                               fan_overlap_threshold = -1.0f,
-                                                           // Volumetric limit in mm/s; zero preserves the legacy path-speed limit.
+                                                           // Limit of overhang speed-ups in mm/s, the volumetric limit; zero disables speed-ups,
+                                                           // so no point is printed faster than the path speed.
                                                            float                               max_speed = 0.f)
     {
         size_t                               speed_sections_count = std::min(overlaps.values.size(), speeds.values.size());
@@ -633,8 +634,9 @@ public:
                 }
                 final_speed = (1.0f - t) * from_speed + t * to_speed;
             }
-            const float rounded_speed = std::round(final_speed);
-            return std::min(rounded_speed, std::min(speed_limit, max_speed));
+            // The volumetric limit caps speed-ups only: a path speed above it, such as a resonance-avoidance boost, is
+            // left to the settings that chose it.
+            return std::min(std::round(final_speed), speed_limit);
         };
 
         // Precomputed distances hold only if they were measured against the layer prev_layer_boundaries is built from.

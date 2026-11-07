@@ -1988,6 +1988,17 @@ void PrintConfigDef::init_fff_params()
     def->nullable = true;
     def->set_default_value(new ConfigOptionBoolsNullable{ false });
 
+    def = this->add("allow_overhang_speedup", coBools);
+    def->label = L("Allow overhang speeds above wall speed");
+    def->category = L("Speed");
+    def->tooltip = L("Print overhanging outer and inner walls faster when their overhang speed is set above the wall speed, "
+                     "up to the maximum volumetric speed of the filament. When disabled, such overhang speeds print at the wall speed.\n"
+                     "Bridges, fully unsupported overhang walls, scarf seams and walls slowed down by other settings, "
+                     "such as small perimeters, are never sped up.");
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionBoolsNullable{ false });
+
     def = this->add("overhang_0_4_speed", coFloatsOrPercents);
     def->label = "<10%";
     def->category = L("Speed");
@@ -1997,8 +2008,9 @@ void PrintConfigDef::init_fff_params()
                      "speed is linearly interpolated from the actual wall speed to this value. "
                      "For example, a wall speed of 60 mm/s and a target of 30 mm/s give 45 mm/s at 5% overhang. "
                      "A value of 0 disables this initial interpolation. "
-                     "Values in % are relative to the reference wall speed. Targets above it allow faster overhangs, "
-                     "subject to volumetric flow, cooling and curled-perimeter slowdown.");
+                     "Values in % are relative to the reference wall speed. Targets above it print faster only with "
+                     "Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and "
+                     "curled-perimeter slowdown.");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "outer_wall_speed";
     def->min = 0;
@@ -2015,8 +2027,9 @@ void PrintConfigDef::init_fff_params()
                      "speed is linearly interpolated from the preceding control point to this value. "
                      "A value of 0 uses the wall speed at this control point, subject to existing speed limits. "
                      "Adjacent targets can still change the speed between control points. "
-                     "Values in % are relative to the reference wall speed. Targets above it allow faster overhangs, "
-                     "subject to volumetric flow, cooling and curled-perimeter slowdown.");
+                     "Values in % are relative to the reference wall speed. Targets above it print faster only with "
+                     "Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and "
+                     "curled-perimeter slowdown.");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "outer_wall_speed";
     def->min = 0;
@@ -2033,8 +2046,9 @@ void PrintConfigDef::init_fff_params()
                      "speed is linearly interpolated from the preceding control point to this value. "
                      "A value of 0 uses the wall speed at this control point, subject to existing speed limits. "
                      "Adjacent targets can still change the speed between control points. "
-                     "Values in % are relative to the reference wall speed. Targets above it allow faster overhangs, "
-                     "subject to volumetric flow, cooling and curled-perimeter slowdown.");
+                     "Values in % are relative to the reference wall speed. Targets above it print faster only with "
+                     "Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and "
+                     "curled-perimeter slowdown.");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "outer_wall_speed";
     def->min = 0;
@@ -2051,8 +2065,9 @@ void PrintConfigDef::init_fff_params()
                      "speed is linearly interpolated from the preceding control point to this value. "
                      "A value of 0 uses the wall speed at this control point, subject to existing speed limits. "
                      "Adjacent targets can still change the speed between control points. "
-                     "Values in % are relative to the reference wall speed. Targets above it allow faster overhangs, "
-                     "subject to volumetric flow, cooling and curled-perimeter slowdown.");
+                     "Values in % are relative to the reference wall speed. Targets above it print faster only with "
+                     "Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and "
+                     "curled-perimeter slowdown.");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "outer_wall_speed";
     def->min = 0;
@@ -2072,8 +2087,9 @@ void PrintConfigDef::init_fff_params()
                      "With it enabled, this value is used throughout the 87% to 100% range. "
                      "A value of 0 uses the wall speed at this control point, subject to existing speed limits. "
                      "Adjacent targets can still change the speed between control points. "
-                     "Values in % are relative to the reference wall speed. Targets above it allow faster overhangs, "
-                     "subject to volumetric flow, cooling and curled-perimeter slowdown.");
+                     "Values in % are relative to the reference wall speed. Targets above it print faster only with "
+                     "Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and "
+                     "curled-perimeter slowdown.");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "outer_wall_speed";
     def->min = 0;
@@ -10160,6 +10176,7 @@ std::set<std::string> print_options_with_variant = {
     "overhang_3_4_speed",
     "overhang_4_4_speed",
     "slowdown_for_curled_perimeters",
+    "allow_overhang_speedup",
     "bridge_speed",
     "internal_bridge_speed",
     "gap_infill_speed",
