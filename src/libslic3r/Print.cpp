@@ -1452,11 +1452,11 @@ static Polygon estimated_wipe_tower_footprint(const Print &print)
     return footprint;
 }
 
-// Pre-slice counterpart of validate_compacted_wipe_tower_clearance(). It applies the very same
-// clearance rule, but to an estimated tower footprint instead of the real tool-change extrusions,
-// which is what lets it run from Print::validate() before anything has been sliced. Reporting through
-// polygons / height_polygons rather than by throwing is what puts the collision area and the height
-// limit plane on the plater, exactly the way sequential printing does it.
+// Pre-slice counterpart of validate_compacted_wipe_tower_clearance(). It applies the same clearance
+// rule to the objects near the toolhead, but to an estimated tower footprint instead of the real
+// tool-change extrusions, which is what lets it run from Print::validate() before anything has been
+// sliced. Reporting through polygons / height_polygons rather than by throwing is what puts the
+// collision area and the height limit plane on the plater, exactly the way sequential printing does it.
 StringObjectException Print::compacted_wipe_tower_clearance_valid(const Print &print, Polygons *polygons, std::vector<std::pair<Polygon, float>> *height_polygons)
 {
     const PrintConfig &config = print.config();
@@ -1485,14 +1485,10 @@ StringObjectException Print::compacted_wipe_tower_clearance_valid(const Print &p
             // it stood. validate_compacted_wipe_tower_clearance() judges those against the real tower.
             if (! clearance.near_nozzle && ! clearance.near_body)
                 continue;
-            body_tier_used                          = body_tier_used || compacted_tower_body_tier(clearance);
-            // Every tier the precise check applies is applied here too, otherwise an object standing
-            // within the toolhead radius would pass here and then be rejected mid-slice, which is the
-            // one outcome this check exists to prevent. The compacted tower base is unknown before
-            // slicing, so the rise is measured from the plate rather than from the tower top; that
-            // overstates it by the tower's own height and makes this check err strict, never lax.
-            if (object_top <= clearance.allowed_rise + EPSILON)
-                continue;
+            // Orca: closer, the rise is measured from the plate, the tower base being unknown before slicing,
+            // which errs strict. Next to the nozzle an object may not rise at all, and within the toolhead
+            // radius it is taller than nozzle_height, the most it may rise there, so either way it is refused.
+            body_tier_used = body_tier_used || compacted_tower_body_tier(clearance);
 
             // Height-limit and too-close cases share one user-facing message: both mean the layout
             // violates the "No sparse layers" clearance rule, and the remedies are the same.

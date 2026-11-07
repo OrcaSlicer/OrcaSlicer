@@ -2384,6 +2384,20 @@ TEST_CASE("No sparse layers still refuses an object that rises past the lid clea
     REQUIRE_THROWS_WITH(print.process(), Catch::Matchers::ContainsSubstring("No sparse layers"));
 }
 
+// Within the toolhead radius of the tower the head body limits an object to nozzle_height, however tall the tower
+// grows, so validate() refuses it before slicing.
+TEST_CASE("No sparse layers refuses before slicing an object that rises within the toolhead radius of the tower", "[Print][PrimeTower]")
+{
+    Model model;
+    // 10 mm from the tower in X and in Y, within the 40 mm toolhead radius, and taller than the 2.5 mm nozzle cone.
+    add_object(model, make_cube(10., 10., 10.), 140., 140.);
+    add_object(model, make_cube(20., 20., 10.), 20., 20.)->config.set_key_value("extruder", new ConfigOptionInt(2));
+    Print print;
+    print.apply(model, prime_tower_config({ { "wipe_tower_no_sparse_layers", 1 } }));
+
+    CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("No sparse layers"));
+}
+
 TEST_CASE("An object takes the layer height limits of the extruder of its own filament", "[Print]")
 {
     CHECK_THAT(slicing_parameters_on_filament(1).max_layer_height, Catch::Matchers::WithinAbs(0.32, EPSILON));
