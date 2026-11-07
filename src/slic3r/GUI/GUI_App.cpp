@@ -9046,6 +9046,17 @@ void GUI_App::open_plugins_dialog(size_t open_on_tab, const std::string& highlig
     }
 }
 
+void GUI_App::notify_plugin_permissions_changed(const std::string& plugin_key)
+{
+    // The dialog owns its webview and clears m_plugins_dlg from its destroy handler, so check the
+    // pointer here on the GUI thread rather than capturing it in an asynchronous callback.
+    if (is_closing() || m_plugins_dlg == nullptr)
+        return;
+
+    BOOST_LOG_TRIVIAL(debug) << "Plugins dialog refresh after a stored permission change for " << plugin_key;
+    m_plugins_dlg->refresh_permissions_if_visible();
+}
+
 void GUI_App::refresh_plugins()
 {
     // The metadata refresh blocks on disc discovery and a cloud round-trip, so run it on a worker
@@ -9175,7 +9186,8 @@ void GUI_App::open_preferences(PreferencesTab tab, const std::string& highlight_
     static constexpr const char* opengl_render_setting_keys[] = {
         SETTING_OPENGL_FXAA_ENABLED, SETTING_OPENGL_FPS_CAP, SETTING_OPENGL_SHOW_FPS_OVERLAY, SETTING_OPENGL_SHOW_RENDER_TIMINGS,
         SETTING_OPENGL_SCENE_CACHE, SETTING_OPENGL_SKIP_IDENTICAL_FRAMES, SETTING_OPENGL_REALISTIC_SHADOWS,
-        SETTING_OPENGL_REALISTIC_GLOSS
+        SETTING_OPENGL_REALISTIC_GLOSS, SETTING_OPENGL_OUTLINE_PERSISTENT, SETTING_OPENGL_OUTLINE_COLOR,
+        SETTING_OPENGL_SELECTION_OUTLINE_COLOR
     };
     std::vector<std::string> previous_opengl_render_settings;
     for (const char* key : opengl_render_setting_keys)

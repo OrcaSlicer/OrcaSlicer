@@ -111,13 +111,17 @@ compacted z for the same reason.
 Reaching down is only safe if nothing tall stands near the tower. `Print.hpp`
 carries the clearance rule: a keep-out zone grown from the tower's footprint by
 the spiral z-hop envelope, and a per-object limit on how high an object may rise
-near it, tiered by the nozzle cone, the head body, the rod and the lid. The same
-rule serves the precise check on real extrusions, the pre-slice estimate that
-feeds the plater, and the outlines the plater draws while an object is dragged,
-so that the ring the user sees touches the object's outline exactly when the
-check trips. Arrange and Fill bed follow it too: they keep objects the toolhead
-radius away from the tower, and keep those taller than the rod clearance out of
-its Y span.
+near it, tiered by the nozzle cone, the head body, the rod and the lid. The
+precise check applies all four to the real extrusions, measuring an object's
+rise from the tower as printed by then. Before slicing that height is unknown,
+so the pre-slice estimate that feeds the plater, and the outlines the plater
+draws while an object is dragged, measure the rise from the plate and apply only
+the nozzle cone and the head body. An object away from the toolhead, which only
+the rod or the lid can reach, is left to the precise check. The ring the user
+sees touches the object's outline exactly when the pre-slice check trips.
+Arrange and Fill bed follow the rule too: they keep objects the toolhead radius
+away from the tower, and keep those taller than the rod clearance out of its Y
+span.
 
 ## Merging sparse layers
 

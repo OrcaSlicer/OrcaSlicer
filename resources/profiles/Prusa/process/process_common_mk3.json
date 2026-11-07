@@ -97,7 +97,6 @@
 	"tree_support_branch_angle": "40",
 	"tree_support_branch_diameter": "2",
 	"tree_support_branch_diameter_angle": "3",
-	"tree_support_branch_diameter_double_wall": "3",
 	"tree_support_tip_diameter": "0.6",
 	"tree_support_top_rate": "30%",
 	"wall_distribution_count": "1",
