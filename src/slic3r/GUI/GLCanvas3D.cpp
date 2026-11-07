@@ -6408,8 +6408,8 @@ void GLCanvas3D::update_compacted_wipe_tower_clearance()
     // the moment that object goes over its limit - which is what makes the pair worth drawing at all.
     // The tier is per object, so a short object gets the narrow nozzle outline rather than the wide
     // body one it is not subject to; without that, a 3 mm object parked beside the tower would be drawn
-    // deep inside the keep-out ring while passing the check. Only the instances that already exceed
-    // allowed_rise also get a height limit plane.
+    // deep inside the keep-out ring while passing the check. Only the instances the validation refuses,
+    // next to the nozzle or within the toolhead radius, also get a height limit plane.
     Polygons                               outlines;
     std::vector<std::pair<Polygon, float>> height_polygons;
     bool                                   body_tier_used = false;
@@ -6424,15 +6424,17 @@ void GLCanvas3D::update_compacted_wipe_tower_clearance()
                 continue;
 
             // Same tiers and the same rise measured from the plate as
-            // Print::compacted_wipe_tower_clearance_valid(), so that the preview and the validation
-            // that follows it never contradict each other.
+            // Print::compacted_wipe_tower_clearance_valid(), so that the preview shows a height limit on
+            // the very objects the validation that follows refuses. Orca: like it, the preview leaves an
+            // object away from the toolhead to the check after slicing, which measures its rise from the
+            // tower as printed, so such an object gets no height limit plane.
             const double                  object_top = model_object->get_instance_max_z(i);
             const CompactedTowerClearance clearance  = compacted_wipe_tower_clearance(config, zone, inst_hull, object_top);
             body_tier_used                           = body_tier_used || compacted_tower_body_tier(clearance);
 
             const Polygon outline = compacted_wipe_tower_offender_outline(inst_hull, clearance.body_clearance);
             outlines.emplace_back(outline);
-            if (object_top <= clearance.allowed_rise + EPSILON)
+            if (! clearance.near_nozzle && ! clearance.near_body)
                 continue;
             height_polygons.emplace_back(outline, float(clearance.allowed_rise));
         }
