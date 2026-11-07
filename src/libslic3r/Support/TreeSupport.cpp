@@ -2195,8 +2195,8 @@ void TreeSupport::draw_circles()
         return;
     BOOST_LOG_TRIVIAL(info) << "draw_circles for object: " << m_object->model_object()->name;
 
-    // Top and bottom surfaces of each object layer, for the bottom contact search below. Every support layer
-    // searches all object layers under it, so they are collected once here instead of on every search.
+    // Top and bottom surfaces of each object layer, for the bottom contact searches below. Several
+    // components and support layers read the same object layer, so they are collected once here.
     std::vector<Polygons>    contact_surfaces;
     std::vector<BoundingBox> contact_surfaces_bbox;
     if (!on_buildplate_only && (bottom_gap_height > EPSILON || bottom_interface_layers > 0)) {

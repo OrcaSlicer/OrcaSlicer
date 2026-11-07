@@ -202,7 +202,7 @@ TEST_CASE("Tree support toolpaths do not depend on the MST tie order", "[TreeSup
 
 // Branches landing on the lower plate get the bottom gap and then every bottom interface layer asked for. The contact
 // search stops at the gap and interface height below each layer, so it must still reach the plate from the highest
-// interface layer, and must not find it from the layers above.
+// interface layer, and the layers above must not get an interface.
 TEST_CASE("Tree support resting on the model gets every bottom interface layer above the gap", "[TreeSupport]")
 {
     const int    interface_layers = 2;
