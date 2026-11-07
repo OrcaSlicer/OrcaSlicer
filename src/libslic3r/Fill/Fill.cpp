@@ -101,7 +101,7 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
     // Convert the id to an index. Layer::id() counts the raft layers, object->layers() does not.
     const size_t first_object_layer_id = object->get_layer(0)->id();
     layer_id                           = layer_id > first_object_layer_id ? layer_id - first_object_layer_id : 0;
-    const std::string search_string    = "/^~NnZz$LlUuQq#JjCc|"; // Attention: the first character in the string must be the ^ symbol, as it will later be escaped in the regex.
+    const std::string search_string    = "/Ii^~NnZz$LlUuQq#JjCc|"; // Attention: the first character in the string must be the / symbol, as it will later be escaped in the regex.
     const std::string coord_string     = "XxYy";
     const std::string density_string   = "Dd";
     const std::string angle_string     = "A+-_0123456789.";
@@ -493,26 +493,28 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
 
             switch (fill_form) {
             case 0:  break;                                                                        // /-joint, linear
-            case 1:  negvalue += (double) rand() / RAND_MAX - .5; break;                           // ^-joint, pseudorandom, disperse at middle line
-            case 2:  negvalue  = (double) rand() / RAND_MAX; break;                                // ~-joint, random, fill the whole range
-            case 3:  negvalue -= sin(negvalue * PI * 2.) / (PI * 2.); break;                       // N-joint, sinus, vertical start
-            case 4:  negvalue -= sin(negvalue * PI * 2.) / (PI * 4.); break;                       // n-joint, sinus, vertical start, lazy
-            case 5:  negvalue += sin(negvalue * PI * 2.) / (PI * 2.); break;                       // Z-joint, sinus, horizontal start
-            case 6:  negvalue += sin(negvalue * PI * 2.) / (PI * 4.); break;                       // z-joint, sinus, horizontal start, lazy
-            case 7:  negvalue  = asin(negvalue * 2. - 1.) / PI + .5; break;                        // $-joint, arcsin
-            case 8:  negvalue  = sin(negvalue * M_PI_2); break;                                    // L-joint, quarter of circle, horizontal start
-            case 9:  negvalue  = 1. - cos(negvalue * M_PI_2); break;                               // l-joint, quarter of circle, vertical start
-            case 10: negvalue  = 1. - pow(1. - negvalue, 2); break;                                // U-joint, squared, x2
-            case 11: negvalue  = pow(1 - negvalue, 2); break;                                      // u-joint, squared, x2 inverse
-            case 12: negvalue  = 1. - pow(1. - negvalue, 3); break;                                // Q-joint, cubic, x3
-            case 13: negvalue  = pow(1. - negvalue, 3); break;                                     // q-joint, cubic, x3 inverse
-            case 14: negvalue  = is_negative ? 0. : 1.; break;                                     // #-joint, vertical at the end of range
-            case 15: negvalue  = 0.5; break;                                                       // J-joint, like #-joint but placed at middle angle (former |-joint)
-            case 16: negvalue  = is_negative != (negvalue > 0.5) ? 0. : 1.; break;                 // j-joint, vertical separated at the start and end of range
-            case 17: negvalue  = is_negative ? 1 - sqrt(1 - pow(negvalue * 2 - 1, 2)) : 
+            case 1:  break;                                                                        // I-joint, linear like /, but rounding up for some parameters
+            case 2:  break;                                                                        // i-joint, linear like /, but rounding down for some parameters
+            case 3:  negvalue += (double) rand() / RAND_MAX - .5; break;                           // ^-joint, pseudorandom, disperse at middle line
+            case 4:  negvalue  = (double) rand() / RAND_MAX; break;                                // ~-joint, random, fill the whole range
+            case 5:  negvalue -= sin(negvalue * PI * 2.) / (PI * 2.); break;                       // N-joint, sinus, vertical start
+            case 6:  negvalue -= sin(negvalue * PI * 2.) / (PI * 4.); break;                       // n-joint, sinus, vertical start, lazy
+            case 7:  negvalue += sin(negvalue * PI * 2.) / (PI * 2.); break;                       // Z-joint, sinus, horizontal start
+            case 8:  negvalue += sin(negvalue * PI * 2.) / (PI * 4.); break;                       // z-joint, sinus, horizontal start, lazy
+            case 9:  negvalue  = asin(negvalue * 2. - 1.) / PI + .5; break;                        // $-joint, arcsin
+            case 10: negvalue  = sin(negvalue * M_PI_2); break;                                    // L-joint, quarter of circle, horizontal start
+            case 11: negvalue  = 1. - cos(negvalue * M_PI_2); break;                               // l-joint, quarter of circle, vertical start
+            case 12: negvalue  = 1. - pow(1. - negvalue, 2); break;                                // U-joint, squared, x2
+            case 13: negvalue  = pow(1 - negvalue, 2); break;                                      // u-joint, squared, x2 inverse
+            case 14: negvalue  = 1. - pow(1. - negvalue, 3); break;                                // Q-joint, cubic, x3
+            case 15: negvalue  = pow(1. - negvalue, 3); break;                                     // q-joint, cubic, x3 inverse
+            case 16: negvalue  = is_negative ? 0. : 1.; break;                                     // #-joint, vertical at the end of range
+            case 17: negvalue  = 0.5; break;                                                       // J-joint, like #-joint but placed at middle angle (former |-joint)
+            case 18: negvalue  = is_negative != (negvalue > 0.5) ? 0. : 1.; break;                 // j-joint, vertical separated at the start and end of range
+            case 19: negvalue  = is_negative ? 1 - sqrt(1 - pow(negvalue * 2 - 1, 2)) : 
                                                sqrt(1 - pow(negvalue * 2 - 1, 2)); break;          // C-joint, half of circle // (_negative ? 1 - sin(negvalue * PI) : sin(negvalue * PI))
-            case 18: negvalue  = (is_negative ? -.5 : .5) * cos(negvalue * PI * 2.) + .5; break;   // c-joint, vertical cosine wave
-            case 19: negvalue  = 0.5; break;                                                       // |-joint, copy of J-joint (is used for compatibility)
+            case 20: negvalue  = (is_negative ? -.5 : .5) * cos(negvalue * PI * 2.) + .5; break;   // c-joint, vertical cosine wave
+            case 21: negvalue  = 0.5; break;                                                       // |-joint, copy of J-joint (is used for compatibility)
             default: negvalue  = 1.;
             }
 
@@ -526,7 +528,14 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
                 params.density = density_start + density_add * negvalue;
 
             // Adapt density if changed multiline number at next command
-            double multiline_param = round(multiline_start + multiline_add * negvalue);
+            double multiline_param; 
+            if (fill_form == 1)
+                multiline_param = ceil(multiline_start + multiline_add * negvalue);
+            else if (fill_form == 2)
+                multiline_param = floor(multiline_start + multiline_add * negvalue);
+            else
+                multiline_param = round(multiline_start + multiline_add * negvalue);
+
             params.multiline = std::max(multiline_param, 1.); // store new value
             if (density_adapt == 1)
                 params.density *= round(multiline_start) / multiline_param;
