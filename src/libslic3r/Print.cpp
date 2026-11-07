@@ -290,6 +290,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "pressure_advance",
         "enable_overhang_bridge_fan",
         "overhang_fan_speed",
+        "pre_start_fan_time",
         "overhang_fan_threshold",
         "slow_down_for_layer_cooling",
         "default_acceleration",

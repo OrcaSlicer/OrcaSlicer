@@ -80,9 +80,6 @@
 		"120"
 	],
 	"override_filament_scarf_seam_setting": "0",
-	"pre_start_fan_time": [
-		"0"
-	],
 	"prime_tower_width": "35",
 	"print_sequence": "by layer",
 	"print_settings_id": "",
