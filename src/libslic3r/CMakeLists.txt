@@ -494,6 +494,8 @@ set(lisbslic3r_sources
     Slicing.hpp
     Support/BeltFloorContext.cpp
     Support/BeltFloorContext.hpp
+    Support/OrganicToolpaths.cpp
+    Support/OrganicToolpaths.hpp
     Support/SupportCommon.cpp
     Support/SupportCommon.hpp
     Support/SupportLayer.hpp

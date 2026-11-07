@@ -23,6 +23,7 @@
 #include <cfloat>
 #include <utility>
 #include <vector>
+#include <string>
 #include <cstddef>
 #include <initializer_list>
 #include <iterator>
@@ -1618,8 +1619,9 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     // Orca: seed with 0-based extruder indices so the copy stays a valid slot map even when the
     // variant options are absent below and the rebuild loop is skipped (unit tests, degenerate
     // presets); the loop overwrites every entry when it runs.
-    m_config.filament_map_2.values = filament_maps;
-    for (auto& v : m_config.filament_map_2.values)
+    const std::vector<int> previous_process_slots = m_config.filament_map_2.values;
+    std::vector<int> process_slots = filament_maps;
+    for (auto& v : process_slots)
         --v;
     auto opt_extruder_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(new_full_config.option("extruder_type"));
     auto opt_filament_volume_maps = dynamic_cast<const ConfigOptionInts*>(new_full_config.option("filament_volume_map"));
@@ -1639,7 +1641,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         // print_extruder_id), key the override by plain extruder index like the seeding
         // above instead of poisoning the map with -1.
         int slot_index = new_full_config.get_index_for_extruder(filament_maps[index], "print_extruder_id", extruder_type, nozzle_volume_type, "print_extruder_variant");
-        m_config.filament_map_2.values[index] = slot_index >= 0 ? slot_index : filament_maps[index] - 1;
+        process_slots[index] = slot_index >= 0 ? slot_index : filament_maps[index] - 1;
     }
 
     // Do not use the ApplyStatus as we will use the max function when updating apply_status.
@@ -1673,6 +1675,28 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     // The following call may stop the background processing.
     if (! print_diff.empty())
         update_apply_status(this->invalidate_state_by_config_options(new_full_config, print_diff));
+
+    // Organic model footing reads the fixed process column's top flow. A nozzle/volume reassignment
+    // can switch that column between zero and positive flow without changing the ratio array itself.
+    const bool footing_assignment_changed = previous_process_slots != process_slots ||
+        std::any_of(print_diff.begin(), print_diff.end(), [](const std::string &key) {
+            return key == "nozzle_volume_type" || key == "extruder_max_nozzle_count" || key == "filament_map_mode" ||
+                key == "filament_is_mixed" || key == "enable_mixed_color_sublayer" || key.find("filament_mixed_") == 0;
+        });
+    const FilamentMapMode next_map_mode = new_full_config.opt_enum<FilamentMapMode>("filament_map_mode");
+    const bool unchanged_automatic_assignment = is_BBL_printer() && is_auto_filament_map_mode(next_map_mode) &&
+        m_config.filament_map_mode == next_map_mode;
+    if (footing_assignment_changed && !unchanged_automatic_assignment)
+        for (PrintObject *object : m_objects) {
+            const PrintObjectConfig &config = object->config();
+            if ((config.enable_support || config.raft_layers > 0) && !config.support_on_build_plate_only &&
+                is_tree(config.support_type) &&
+                config.support_style != smsTreeSlim && config.support_style != smsTreeStrong && config.support_style != smsTreeHybrid)
+                update_apply_status(object->invalidate_step(posSupportMaterial));
+        }
+    // Publish only after affected workers are stopped. Equal values must leave the backing storage alone.
+    if (previous_process_slots != process_slots)
+        m_config.filament_map_2.values = std::move(process_slots);
 
     // Apply variables to placeholder parser. The placeholder parser is used by G-code export,
     // which should be stopped if print_diff is not empty.
@@ -1744,6 +1768,19 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         //BBS: replace model custom gcode with current plate custom gcode
         m_model.curr_plate_index = model.curr_plate_index;
         if (m_model.get_curr_plate_custom_gcodes() != model.get_curr_plate_custom_gcodes()) {
+            const bool organic_tool_changes_changed =
+                m_model.get_curr_plate_custom_gcodes().mode != model.get_curr_plate_custom_gcodes().mode ||
+                custom_per_printz_gcodes_tool_changes_differ(m_model.get_curr_plate_custom_gcodes().gcodes,
+                    model.get_curr_plate_custom_gcodes().gcodes);
+            // Early Organic cleanup must retain possible material while layer tool overrides are unresolved.
+            if (num_extruders > 1 && m_config.print_sequence != PrintSequence::ByObject && organic_tool_changes_changed)
+                for (PrintObject *object : m_objects) {
+                    const auto &config = object->config();
+                    if ((config.enable_support || config.raft_layers > 0) && !config.support_on_build_plate_only &&
+                        is_tree(config.support_type) && config.support_style != smsTreeSlim &&
+                        config.support_style != smsTreeStrong && config.support_style != smsTreeHybrid)
+                        update_apply_status(object->invalidate_step(posSupportMaterial));
+                }
             update_apply_status(num_extruders_changed ||
                 // Tool change G-codes are applied as color changes for a single extruder printer, no need to invalidate tool ordering.
                 //FIXME The tool ordering may be invalidated unnecessarily if the custom_gcode_per_print_z.mode is not applicable
@@ -2303,6 +2340,14 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         object->update_slicing_parameters();
         m_support_used |= object->config().enable_support;
     }
+    // The steps read this rather than the custom G-codes. It changes only with the tool changes, the extruders or the print
+    // sequence, which invalidated those steps above: written only then, it is not written while they run.
+    const CustomGCode::Info &codes = m_model.get_curr_plate_custom_gcodes();
+    const bool custom_tool_overrides = m_config.print_sequence != PrintSequence::ByObject &&
+        codes.mode == CustomGCode::MultiAsSingle && m_config.filament_diameter.size() > 1 && this->object_extruders().size() == 1 &&
+        !CustomGCode::custom_tool_changes(codes, m_config.filament_diameter.size()).empty();
+    if (custom_tool_overrides != m_custom_tool_overrides)
+        m_custom_tool_overrides = custom_tool_overrides;
 
 #ifdef _DEBUG
     check_model_ids_equal(m_model, model);

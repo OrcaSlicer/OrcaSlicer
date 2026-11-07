@@ -1589,6 +1589,23 @@ TEST_CASE("normalize_fdm leaves feature filaments on Default", "[Config]") {
     CHECK_FALSE(config.has("bottom_surface_filament_id"));
 }
 
+TEST_CASE("handle_legacy caps the Branch Density of older projects at 100 %", "[Config]") {
+    // Above 100 % the tips of Organic supports would stand closer than their diameter. Projects and presets saved
+    // before the limit may still hold more; they load with 100 %, and lower values stay as they are.
+    const auto [value, expected] = GENERATE(table<std::string, double>({
+        { "50%",  50. },
+        { "100%", 100. },
+        { "150%", 100. },
+        { "250",  100. },
+    }));
+    INFO(value);
+    ConfigSubstitutionContext ctxt(ForwardCompatibilitySubstitutionRule::Disable);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize("tree_support_top_rate", value, ctxt);
+    CHECK_THAT(config.option<ConfigOptionPercent>("tree_support_top_rate")->value, Catch::Matchers::WithinAbs(expected, 1e-9));
+    CHECK(config.validate().empty());
+}
+
 TEST_CASE("silent_mode is no longer saved and is dropped on load", "[Config]") {
     DynamicPrintConfig full;
     full.apply(FullPrintConfig::defaults());

@@ -20,7 +20,7 @@
 #include "Model.hpp"
 #include "PlaceholderParser.hpp"
 #include "PrintConfig.hpp"
-
+#include <algorithm>
 namespace Slic3r {
 
 enum StringExceptionType {
@@ -71,7 +71,8 @@ public:
         SlicingEmptyGcodeLayers,
         SlicingGcodeOverlap,
         SlicingExclusionVolumeToolpath,
-        SlicingPreciseSeamWarning
+        SlicingPreciseSeamWarning,
+        SlicingOrganicSupportWarning
     };
 
     typedef size_t TimeStamp;
@@ -308,7 +309,32 @@ public:
         assert(m_step_active != -1);
         StateWithWarnings &state = m_state[m_step_active];
         assert(state.state == STARTED);
-        std::pair<StepType, bool> retval(static_cast<StepType>(m_step_active), true);
+        return {static_cast<StepType>(m_step_active), update_warning(state, warning_level, message, message_id)};
+    }
+
+    // A downstream check may refine a warning without invalidating an already completed geometry step.
+    bool update_step_warning(StepType step, PrintStateBase::WarningLevel level, const std::string &message,
+        int message_id, std::mutex &mtx)
+    {
+        assert(message_id != 0);
+        std::scoped_lock<std::mutex> lock(mtx);
+        StateWithWarnings &state = m_state[step];
+        if (state.state == INVALID)
+            return false;
+        if (!message.empty())
+            return update_warning(state, level, message, message_id);
+        auto it = std::find_if(state.warnings.begin(), state.warnings.end(),
+            [message_id](const auto &warning) { return warning.message_id == message_id; });
+        if (it == state.warnings.end())
+            return false;
+        state.warnings.erase(it);
+        return true;
+    }
+
+private:
+    static bool update_warning(StateWithWarnings &state, PrintStateBase::WarningLevel warning_level,
+        const std::string &message, int message_id)
+    {
         // Does a warning of the same level and message or message_id exist already?
         auto it = (message_id == 0) ?
             std::find_if(state.warnings.begin(), state.warnings.end(), [&message](const auto &w) { return w.message_id == 0 && w.message == message; }) :
@@ -323,11 +349,11 @@ public:
             it->current = true;
         } else if (it->current)
             // Yes, and it is current. Don't update UI.
-            retval.second = false;
+            return false;
         else
             // Yes, but it is not current. Mark it as current.
             it->current = true;
-        return retval;
+        return true;
     }
 
 private:
@@ -645,6 +671,15 @@ public:
     bool            is_step_done(PrintObjectStepEnum step) const { return m_state.is_done(step, PrintObjectBase::state_mutex(m_print)); }
     PrintStateBase::StateWithTimeStamp step_state_with_timestamp(PrintObjectStepEnum step) const { return m_state.state_with_timestamp(step, PrintObjectBase::state_mutex(m_print)); }
     PrintStateBase::StateWithWarnings  step_state_with_warnings(PrintObjectStepEnum step) const { return m_state.state_with_warnings(step, PrintObjectBase::state_mutex(m_print)); }
+
+    // Refresh one identified diagnostic after a downstream stage resolves information unavailable during slicing.
+    void update_step_warning(PrintObjectStepEnum step, PrintStateBase::WarningLevel level, const std::string &message,
+        PrintStateBase::SlicingNotificationType message_id)
+    {
+        if (m_state.update_step_warning(step, level, message, int(message_id), PrintObjectBase::state_mutex(m_print))) {
+            this->status_update_warnings(m_print, int(step), level, message, message_id);
+        }
+    }
 
 protected:
 	PrintObjectBaseWithState(PrintType *print, ModelObject *model_object) : PrintObjectBase(model_object), m_print(print) {}

@@ -2224,6 +2224,14 @@ void NotificationManager::close_slicing_error_notification(const std::string& te
 		}
 	}
 }
+void NotificationManager::close_slicing_warning_notification(ObjectID oid, int warning_msg_id)
+{
+    for (const auto &notification : m_pop_notifications)
+        if (notification->get_type() == NotificationType::SlicingWarning &&
+            notification->get_data().sub_msg_id == warning_msg_id &&
+            static_cast<const ObjectIDNotification*>(notification.get())->object_id == oid)
+            notification->close();
+}
 void  NotificationManager::push_simplify_suggestion_notification(const std::string& text, ObjectID object_id, const std::string& hypertext/* = ""*/, std::function<bool(wxEvtHandler*)> callback/* = std::function<bool(wxEvtHandler*)>()*/)
 {
 	NotificationData data{ NotificationType::SimplifySuggestion, NotificationLevel::PrintInfoNotificationLevel, 0,  text, hypertext, callback };
@@ -3128,9 +3136,10 @@ bool NotificationManager::push_notification_data(std::unique_ptr<NotificationMan
 	bool retval = false;
 	if (this->activate_existing(notification.get())) {
 		if (m_initialized && m_imgui_ready) {
-			// Precise Seam already aggregates all causes; replace it on repeated warning events.
+			// These diagnostics already aggregate their causes; replace them on repeated warning events.
 			if (notification->get_type() == NotificationType::SlicingWarning &&
-                notification->get_data().sub_msg_id != PrintStateBase::SlicingPreciseSeamWarning) {
+                notification->get_data().sub_msg_id != PrintStateBase::SlicingPreciseSeamWarning &&
+                notification->get_data().sub_msg_id != PrintStateBase::SlicingOrganicSupportWarning) {
 				m_pop_notifications.back()->append(notification->get_data().ori_text);
 			} else {
                 m_pop_notifications.back()->update(notification->get_data());
@@ -3307,6 +3316,8 @@ bool NotificationManager::activate_existing(const NotificationManager::PopNotifi
 					const NotificationData& data1 = w1->get_data();
 					const NotificationData& data2 = w2->get_data();
 					if (data1.sub_msg_id != data2.sub_msg_id)
+						continue;
+					if (data1.sub_msg_id == PrintStateBase::SlicingOrganicSupportWarning && w1->object_id != w2->object_id)
 						continue;
 					//if (!(*it)->compare_text(new_text) || w1->object_id != w2->object_id) {
 					//	continue;
