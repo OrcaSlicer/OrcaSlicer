@@ -958,6 +958,8 @@ static void             UpdateViewportsNewFrame();
 // - DLL users: read comments above.
 #ifndef GImGui
 ImGuiContext*   GImGui = NULL;
+#else
+thread_local ImGuiContext* GImGuiTLS = NULL; // OrcaSlicer, see imconfig.h
 #endif
 
 // Memory Allocator functions. Use SetAllocatorFunctions() to change them.
