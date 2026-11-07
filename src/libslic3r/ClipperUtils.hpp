@@ -591,7 +591,7 @@ Slic3r::ExPolygons union_ex(const Slic3r::ExPolygons &subject, const Slic3r::Pol
 Slic3r::ExPolygons union_ex(const Slic3r::Surfaces &subject);
 // Same as union_ex(), but much faster on many overlapping polygons, such as the branch circles of a support layer.
 // The result can differ from union_ex() by rounding: vertices within a unit, near-collinear vertices, and
-// slivers of no area.
+// slivers about a unit wide.
 Slic3r::ExPolygons union_overlapping_ex(Slic3r::ExPolygons polygons);
 
 Slic3r::ExPolygons union_ex(const Slic3r::ExPolygons& poly1, const Slic3r::ExPolygons& poly2, bool safety_offset_ = false);
