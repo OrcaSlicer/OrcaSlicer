@@ -5902,6 +5902,10 @@ msgid "Enable converting holes to polyholes to use this setting."
 msgstr "启用“将圆孔转换为多边形孔”后，才能使用此设置。"
 
 # AI Translated
+msgid "Set overhang wall overlap to a value greater than 0 to use this setting."
+msgstr "将“悬垂墙重叠”设为大于 0，才能使用此设置。"
+
+# AI Translated
 msgid "Enable overhang wall detection to use this setting."
 msgstr "启用“识别悬垂墙”后，才能使用此设置。"
 
@@ -20355,6 +20359,50 @@ msgstr "识别悬垂墙"
 #, no-c-format, no-boost-format
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100% overhang, bridging speed is used."
 msgstr "检测悬垂相对于线宽的百分比，并应用不同的速度打印。100%的悬垂将使用桥接速度。"
+
+# AI Translated
+msgid "Overhang wall overlap"
+msgstr "悬垂墙重叠"
+
+# AI Translated
+msgid ""
+"Sets the maximum extra overlap between adjacent walls in overhang areas. Higher values allow inner walls to move closer to their outer neighbors, increasing overlap. The outermost wall stays in place.\n"
+"Set to 0 to disable. Requires the Arachne wall generator and 'Detect overhang walls'."
+msgstr ""
+"设置悬垂区域相邻墙之间最多可增加多少重叠。数值越大，允许内墙向外侧相邻墙靠得越近，增加更多重叠。最外墙的位置不变。\n"
+"设为 0 可禁用。需使用 Arachne 墙生成器，并启用“识别悬垂墙”。"
+
+# AI Translated
+msgid "Overlap activation threshold"
+msgstr "重叠启用阈值"
+
+# AI Translated
+msgid "Overhang wall overlap activation threshold"
+msgstr "悬垂墙重叠启用阈值"
+
+# AI Translated
+msgid ""
+"Extra overlap adjustment is enabled in regions where the overhang percentage exceeds this value.\n"
+"For a smooth transition, the adjustment extends into nearby regions below this threshold. This threshold therefore does not mark the position where extra overlap starts increasing from zero."
+msgstr ""
+"悬垂比例超过此值的区域会启用额外重叠调整。\n"
+"为使过渡平顺，调整范围会延伸至邻近低于此阈值的区域。因此，此值并非额外重叠量从零开始增加的位置。"
+
+# AI Translated
+msgid "Overlap full threshold"
+msgstr "重叠上限阈值"
+
+# AI Translated
+msgid "Overhang wall overlap full threshold"
+msgstr "悬垂墙重叠上限阈值"
+
+# AI Translated
+msgid ""
+"Sets the overhang percentage at which extra overlap reaches its limit. Lower values reach the limit at milder overhangs.\n"
+"If this value is at or below the activation threshold, extra overlap gradually increases to the limit once the adjustment is triggered."
+msgstr ""
+"设置悬垂比例达到多少时，额外重叠量会达到上限。数值越小，较轻微的悬垂就能达到重叠上限。\n"
+"若此值小于或等于启用阈值，启用调整后就会逐渐增加到上限。"
 
 # AI Translated
 msgid "Print unsupported walls last"

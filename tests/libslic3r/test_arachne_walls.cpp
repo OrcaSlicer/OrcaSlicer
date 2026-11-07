@@ -19,6 +19,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/catch_message.hpp>
 #include "libslic3r/Arachne/WallToolPaths.hpp"
 #include "libslic3r/Arachne/SkeletalTrapezoidation.hpp"
@@ -35,6 +37,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <limits>
 #include "libslic3r/libslic3r.h"
 #include <vector>
 #include <utility>
@@ -389,4 +392,174 @@ TEST_CASE("Fuzzy skin displacement mode leaves widths untouched", "[Arachne][Fuz
 
     REQUIRE(loop.size() > 100);
     CHECK(std::all_of(loop.begin(), loop.end(), [width](const auto& j) { return j.w == width; }));
+}
+
+namespace {
+
+// Intersect a vertical probe with the lowest wall segment. This also measures
+// displaced/sloping segments without relying on Arachne's junction placement.
+std::pair<double, double> bottom_wall_at(const std::vector<VariableWidthLines> &walls, size_t inset, double x)
+{
+    REQUIRE(inset < walls.size());
+    double y = std::numeric_limits<double>::max(), width = 0.;
+    const double scaled_x = scale_(x);
+    for (const ExtrusionLine &wall : walls[inset]) {
+        if (wall.is_odd)
+            continue;
+        for (size_t i = 1; i < wall.junctions.size(); ++i) {
+            const auto &a = wall.junctions[i - 1];
+            const auto &b = wall.junctions[i];
+            if (a.p.x() == b.p.x())
+                continue;
+            const double t = (scaled_x - a.p.x()) / double(b.p.x() - a.p.x());
+            if (t < 0. || t > 1.)
+                continue;
+            const double candidate = a.p.y() + t * double(b.p.y() - a.p.y());
+            if (candidate < y) {
+                y = candidate;
+                width = a.w + t * double(b.w - a.w);
+            }
+        }
+    }
+    REQUIRE(y < std::numeric_limits<double>::max());
+    return {unscaled<double>(y), unscaled<double>(width)};
+}
+
+struct OverlapWallFixture {
+    const double spacing = 0.4;
+    WallToolPathsParams params = make_bbl_x1c_028_params(85);
+    Polygons outline{Polygon{Points{Point::new_scale(0., 0.), Point::new_scale(20., 0.),
+                                   Point::new_scale(20., 20.), Point::new_scale(0., 20.)}}};
+    std::vector<VariableWidthLines> original;
+
+    OverlapWallFixture()
+    {
+        params.wall_maximum_resolution = scaled<coord_t>(0.05);
+        params.wall_maximum_deviation = scaled<coord_t>(0.000001);
+        params.overhang_wall_overlap_start = 0.25;
+        params.overhang_wall_overlap_full = 0.75;
+        params.overhang_wall_overlap_transition_length = 5 * 0.4;
+        original = generate();
+        params.overhang_wall_overlap = 0.1;
+    }
+
+    std::vector<VariableWidthLines> generate() const
+    {
+        WallToolPaths paths(outline, scaled<coord_t>(spacing), scaled<coord_t>(spacing), 3, 0, 0.2, params);
+        return paths.getToolPaths();
+    }
+
+    // Prescribe support along the bottom wall. Fractions are exact on horizontal
+    // portions; on slopes the slicer still measures the true signed distance.
+    ExPolygons support(const std::vector<std::pair<double, double>> &fractions) const
+    {
+        const auto [y, width] = bottom_wall_at(original, 0, 10.);
+        Polygon polygon;
+        for (const auto &[x, fraction] : fractions)
+            polygon.points.push_back(Point::new_scale(x, y + (fraction - 0.5) * width));
+        polygon.points.push_back(Point::new_scale(fractions.back().first, 25.));
+        polygon.points.push_back(Point::new_scale(fractions.front().first, 25.));
+        return {ExPolygon(polygon)};
+    }
+
+    double displacement(const std::vector<VariableWidthLines> &walls, size_t inset, double x) const
+    {
+        return bottom_wall_at(original, inset, x).first - bottom_wall_at(walls, inset, x).first;
+    }
+};
+
+} // namespace
+
+TEST_CASE("Overhang overlap extends only around triggered wall regions", "[Arachne][OverhangOverlap][Regression]")
+{
+    OverlapWallFixture fixture;
+    const bool reaches_trigger = GENERATE(false, true);
+    const double peak = reaches_trigger ? 1. : 0.2;
+    const ExPolygons support = fixture.support({{-5., 0.1}, {6., 0.1}, {8., 0.25 * peak},
+                                               {10., peak}, {12., 0.25 * peak}, {14., 0.1}, {25., 0.1}});
+    fixture.params.overhang_support = &support;
+    const auto walls = fixture.generate();
+    const double tolerance = 0.00002;
+    CHECK_THAT(fixture.displacement(walls, 0, 10.), Catch::Matchers::WithinAbs(0., tolerance));
+    CHECK_THAT(fixture.displacement(walls, 1, 4.), Catch::Matchers::WithinAbs(0., tolerance));
+    if (reaches_trigger) {
+        // Below the 25% trigger, but within its two-millimeter entry transition.
+        CHECK(fixture.displacement(walls, 1, 7.5) > 0.001);
+        CHECK_THAT(fixture.displacement(walls, 1, 10.),
+                   Catch::Matchers::WithinAbs(fixture.params.overhang_wall_overlap * fixture.spacing, tolerance));
+        // The next wall follows the moved wall even though its own support is sufficient.
+        CHECK_THAT(fixture.displacement(walls, 2, 10.),
+                   Catch::Matchers::WithinAbs(fixture.displacement(walls, 1, 10.), tolerance));
+    } else {
+        CHECK_THAT(fixture.displacement(walls, 1, 7.5), Catch::Matchers::WithinAbs(0., tolerance));
+        CHECK_THAT(fixture.displacement(walls, 1, 10.), Catch::Matchers::WithinAbs(0., tolerance));
+    }
+}
+
+TEST_CASE("Overhang overlap stops extending at fully supported walls", "[Arachne][OverhangOverlap][Regression]")
+{
+    OverlapWallFixture fixture;
+    const ExPolygons support = fixture.support({{-5., -0.1}, {6.5, -0.1}, {7., 0.}, {8., 0.25},
+                                               {10., 1.}, {12., 0.25}, {13., 0.}, {13.5, -0.1}, {25., -0.1}});
+    fixture.params.overhang_support = &support;
+    const auto walls = fixture.generate();
+    CHECK_THAT(fixture.displacement(walls, 1, 6.5), Catch::Matchers::WithinAbs(0., 0.00002));
+    CHECK(fixture.displacement(walls, 1, 7.5) > 0.001);
+    CHECK(fixture.displacement(walls, 1, 12.5) > 0.001);
+    CHECK_THAT(fixture.displacement(walls, 1, 13.5), Catch::Matchers::WithinAbs(0., 0.00002));
+}
+
+TEST_CASE("Neighboring overhang transitions retain overlap at their handoff", "[Arachne][OverhangOverlap][Regression]")
+{
+    OverlapWallFixture fixture;
+    const ExPolygons support = fixture.support({{-5., 0.1}, {4., 0.1}, {6., 1.}, {7., 0.25},
+                                               {8.2, 0.05}, {10., 0.25}, {11., 1.}, {13., 0.1}, {25., 0.1}});
+    fixture.params.overhang_support = &support;
+    const auto fused = fixture.generate();
+    CHECK(fixture.displacement(fused, 1, 8.2) > 0.001);
+    CHECK(fixture.displacement(fused, 1, 8.2) < fixture.params.overhang_wall_overlap * fixture.spacing);
+
+    fixture.params.overhang_wall_overlap_transition_length = 0.4;
+    const auto separated = fixture.generate();
+    CHECK_THAT(fixture.displacement(separated, 1, 8.2), Catch::Matchers::WithinAbs(0., 0.00002));
+}
+
+TEST_CASE("Overhang regions below full retain a proportional peak overlap", "[Arachne][OverhangOverlap][Regression]")
+{
+    OverlapWallFixture fixture;
+    const ExPolygons support = fixture.support({{-5., 0.1}, {6., 0.1}, {8., 0.25}, {9., 0.5},
+                                               {11., 0.5}, {12., 0.25}, {14., 0.1}, {25., 0.1}});
+    fixture.params.overhang_support = &support;
+    const auto walls = fixture.generate();
+    const double peak_factor = (0.5 - fixture.params.overhang_wall_overlap_start) /
+                               (fixture.params.overhang_wall_overlap_full - fixture.params.overhang_wall_overlap_start);
+    CHECK_THAT(fixture.displacement(walls, 1, 10.),
+               Catch::Matchers::WithinAbs(fixture.params.overhang_wall_overlap * fixture.spacing * peak_factor, 0.00002));
+    CHECK(fixture.displacement(walls, 1, 7.5) > 0.001);
+    for (const auto &inset : walls)
+        for (const auto &wall : inset)
+            if (wall.is_closed)
+                CHECK(wall.junctions.front().p == wall.junctions.back().p);
+}
+
+TEST_CASE("Overhang transitions average unequal ramps at a minimum plateau", "[Arachne][OverhangOverlap][Regression]")
+{
+    OverlapWallFixture fixture;
+    const ExPolygons both_support = fixture.support({{-5., 0.1}, {4., 0.1}, {6., 1.}, {7., 0.25}, {7.5, 0.1},
+                                                    {9.5, 0.1}, {10., 0.25}, {11., 0.5}, {12., 0.5}, {14., 0.1}, {25., 0.1}});
+    const ExPolygons left_support = fixture.support({{-5., 0.1}, {4., 0.1}, {6., 1.}, {7., 0.25}, {7.5, 0.1}, {25., 0.1}});
+    const ExPolygons right_support = fixture.support({{-5., 0.1}, {9.5, 0.1}, {10., 0.25}, {11., 0.5}, {12., 0.5},
+                                                     {14., 0.1}, {25., 0.1}});
+    fixture.params.overhang_support = &left_support;
+    const auto left = fixture.generate();
+    fixture.params.overhang_support = &right_support;
+    const auto right = fixture.generate();
+    fixture.params.overhang_support = &both_support;
+    const auto both = fixture.generate();
+    const double a = fixture.displacement(left, 1, 8.5);
+    const double b = fixture.displacement(right, 1, 8.5);
+    REQUIRE(std::abs(a - b) > 0.001);
+    // Signed distance around the bends shifts the trigger crossings slightly;
+    // allow for that geometric shift, while distinguishing the mean from the max.
+    CHECK_THAT(fixture.displacement(both, 1, 8.5), Catch::Matchers::WithinAbs(0.5 * (a + b), 0.0005));
 }
