@@ -2871,7 +2871,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
             const bool has_wireframe = wxGetApp().plater() != nullptr && wxGetApp().plater()->is_show_wireframe();
             // Modifiers and unprintable parts are no part of the print: the path tracer leaves them
             // out, and they are drawn over its image as in the plain view.
-            // The depth pass also marks the selection for its outline. The sinking contours show over
+            // The depth pass also marks the volumes to outline. The sinking contours show over
             // the image too: a second depth pass draws them with the color writes on (ColorWritesOn in
             // 3DScene.cpp), against the depth of all objects, which the rasterizer gets by drawing the
             // objects over them.
@@ -2879,11 +2879,12 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
             bool has_outline = false;
             bool has_sinking_contours = false;
             const bool show_outline = wxGetApp().show_outline();
+            const bool persistent_outline = wxGetApp().app_config->get_bool(SETTING_OPENGL_OUTLINE_PERSISTENT);
             for (const GLVolume* volume : m_volumes.volumes) {
                 if (volume == nullptr || !volume->is_active)
                     continue;
                 has_overlays = has_overlays || volume->is_modifier || !volume->printable;
-                has_outline = has_outline || (volume->selected && show_outline);
+                has_outline = has_outline || (show_outline && (volume->selected || (persistent_outline && volume->visible)));
                 has_sinking_contours = has_sinking_contours || (m_sinking_contours_enabled && volume->is_sinking());
             }
             const bool has_gizmo = m_gizmos.get_current_type() != GLGizmosManager::Undefined;
