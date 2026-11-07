@@ -1022,5 +1022,10 @@ TEST_CASE("Equal tool heights preserve ordinary Type 1 and Type 2 tower G-code",
     const auto scalar = shared_height_tower_gcode(type, semm, wall, false);
     const auto explicit_heights = shared_height_tower_gcode(type, semm, wall, true);
     CHECK(scalar.first.compare(explicit_heights.first) == 0);
+    const auto mismatch = std::mismatch(scalar.second.begin(), scalar.second.end(),
+                                        explicit_heights.second.begin(), explicit_heights.second.end());
+    const size_t offset = size_t(mismatch.first - scalar.second.begin());
+    INFO("First exported difference at " << offset << ": scalar=" << scalar.second.substr(offset, 200)
+         << "; explicit=" << explicit_heights.second.substr(offset, 200));
     CHECK(scalar.second.compare(explicit_heights.second) == 0);
 }
