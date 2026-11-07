@@ -53,6 +53,11 @@ struct NfpPConfig {
 
     TPoint<RawShape> best_object_pos;
 
+    /// Align the pile using only the movable items. By default the fixed items
+    /// (obstacles) are part of the box that gets aligned, so the pile lands wherever
+    /// that combined box is centred, which depends on where the obstacles are.
+    bool align_movable_only = false;
+
     /**
      * @brief A function object representing the fitting function in the
      * placement optimization process. (Optional)
@@ -1083,7 +1088,7 @@ private:
 
         Box bb;
         for (Item& item : items_)
-            if (!item.is_virt_object)
+            if (!item.is_virt_object && !(config_.align_movable_only && item.isFixed()))
                 bb = sl::boundingBox(item.boundingBox(), bb);
 
         Vertex ci, cb;
