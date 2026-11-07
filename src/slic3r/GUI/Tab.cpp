@@ -3253,8 +3253,9 @@ void TabPrint::build()
 
         optgroup->append_single_option_line("slowdown_for_curled_perimeters", "speed_settings_overhang_speed#slow-down-for-curled-perimeters", 0);
         optgroup->append_single_option_line("allow_overhang_speedup", "speed_settings_overhang_speed#allow-overhang-speeds-above-wall-speed", 0);
-        // xgettext:no-c-format, no-boost-format
-        Line line = { L("Overhang speed"), L("Overhang is the unsupported fraction of the wall line width. "
+        Line line = { L("Overhang speed"),
+            // xgettext:no-c-format, no-boost-format
+            L("Overhang is the unsupported fraction of the wall line width. "
             "Speeds are interpolated between targets at 10%, 25%, 50%, 75% and 87%. "
             "The reference speed is the outer or inner wall speed after volumetric and scarf-seam limits; percentage values use this reference. "
             "Targets above it print faster only with Allow overhang speeds above wall speed enabled; other targets retain existing path-speed limits. "

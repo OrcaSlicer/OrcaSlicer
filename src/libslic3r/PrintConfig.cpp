@@ -1992,17 +1992,18 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Allow overhang speeds above wall speed");
     def->category = L("Speed");
     def->tooltip = L("Print overhanging outer and inner walls faster when their overhang speed is set above the wall speed, "
-                     "up to the maximum volumetric speed of the filament. When disabled, such overhang speeds print at the wall speed.\n"
-                     "Bridges, fully unsupported overhang walls, scarf seams and walls slowed down by other settings, "
-                     "such as small perimeters, are never sped up.");
+                     "up to the maximum volumetric speed of the filament. When disabled, overhang speeds never make a wall "
+                     "print faster than it would without the overhang.\n"
+                     "Bridges, overhang walls, fully unsupported walls, scarf seams and walls whose speed other settings change, "
+                     "such as small perimeters or resonance avoidance, are never sped up.");
     def->mode = comAdvanced;
     def->nullable = true;
     def->set_default_value(new ConfigOptionBoolsNullable{ false });
 
     def = this->add("overhang_0_4_speed", coFloatsOrPercents);
-    def->label = "<10%";
+    def->label = "0%";
     def->category = L("Speed");
-    def->full_label = "<10%";
+    def->full_label = "0%";
     // xgettext:no-c-format, no-boost-format
     def->tooltip = L("Target speed when 10% of the wall line width is unsupported. Between 0% and 10%, "
                      "speed is linearly interpolated from the actual wall speed to this value. "
@@ -2084,7 +2085,8 @@ void PrintConfigDef::init_fff_params()
                      "speed is linearly interpolated from the preceding control point to this value. "
                      "With Slow down for curled perimeters disabled, speed is interpolated from this value at 87% "
                      "to the external bridge speed at 100%; the bridge target is limited to the original path speed. "
-                     "With it enabled, this value is used throughout the 87% to 100% range. "
+                     "With it enabled, this value is used throughout the 87% to 100% range, except that a value above "
+                     "the wall speed falls back to the original path speed at 100%. "
                      "A value of 0 uses the wall speed at this control point, subject to existing speed limits. "
                      "Adjacent targets can still change the speed between control points. "
                      "Values in % are relative to the reference wall speed. Targets above it print faster only with "

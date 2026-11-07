@@ -9755,11 +9755,11 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
                 fan_overlap_threshold = overhang_fan_overlap_threshold(FILAMENT_CONFIG(overhang_fan_threshold));
 
             // ORCA: Overhang speeds above the wall speed only speed up when the user allows it, so profiles and projects
-            // that set them keep printing at the wall speed. Only walls printed at their own speed are sped up: bridges keep
-            // the bridge speed, and scarf seams and walls slowed down by small-perimeter, first-layer or resonance limits
-            // keep the speed those settings chose.
+            // that set them keep printing at the wall speed. Only paths printed at the wall speed itself are sped up:
+            // scarf seams, and walls whose speed small perimeters, slow-down layers or resonance avoidance changed, keep
+            // the speed those settings chose. The estimator leaves bridges and overhang walls at their own speed.
             const bool allow_speedup = NOZZLE_CONFIG(enable_overhang_speed) && NOZZLE_CONFIG(allow_overhang_speedup) &&
-                (path.role() == erExternalPerimeter || path.role() == erPerimeter) && sloped == nullptr && speed + EPSILON >= ref_speed;
+                sloped == nullptr && std::abs(speed - ref_speed) <= EPSILON;
             const double volumetric_speed = (FILAMENT_CONFIG(filament_max_volumetric_speed) > 0) ?
                 FILAMENT_CONFIG(filament_max_volumetric_speed) / _mm3_per_mm : std::numeric_limits<double>::infinity();
 
