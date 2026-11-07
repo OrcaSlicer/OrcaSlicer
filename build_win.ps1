@@ -570,7 +570,11 @@ try {
     if ($Slicer) {
         # --- 6. Configure and build ---
         Write-Step "[6/7] Configuring and building..."
-        $generator = if ($Msbuild) { "Visual Studio 17 2022" } else { "Ninja Multi-Config" }
+        # Determine VS generator from install path (like build_win.bat does)
+        $vsMajor = if ($vsInstall -match '\\\(1[6-9]|[2-9][0-9])\\') { $matches[1] } else { "17" }
+        $vsGenMap = @{ 16 = "Visual Studio 16 2019"; 17 = "Visual Studio 17 2022"; 18 = "Visual Studio 18 2026" }
+        $generator = if ($Msbuild) { $vsGenMap[$vsMajor] ?? "Visual Studio 17 2022" } else { "Ninja Multi-Config" }
+        Write-Status "generator" $generator
         $compiler = if ($ClangCl) { $clangClExe } else { $clExe }
         $cmakeArgs = @()
         if ($Cache -eq "ccache") {
