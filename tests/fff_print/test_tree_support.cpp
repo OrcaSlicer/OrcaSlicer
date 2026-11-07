@@ -8,7 +8,6 @@
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/ClipperUtils.hpp"
-#include "libslic3r/ExtrusionEntity.hpp"
 #include <cstddef>
 #include "libslic3r/libslic3r.h"
 
@@ -18,6 +17,7 @@
 #include "libslic3r/TriangleMesh.hpp"
 
 #include "test_helpers.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/Print.hpp"
 
@@ -201,6 +201,36 @@ TEST_CASE("Tree support toolpaths do not depend on the MST tie order", "[TreeSup
         { "tree_support_branch_angle",    40 },
         { "support_line_width",           0.4 },
     });
+}
+
+// Branches landing on the lower plate get the bottom gap and then every bottom interface layer asked for. The contact
+// search stops at the gap and interface height below each layer, so it must still reach the plate from the highest
+// interface layer, and the layers above must not get an interface.
+TEST_CASE("Tree support resting on the model gets every bottom interface layer above the gap", "[TreeSupport]")
+{
+    const int    interface_layers = 2;
+    const double lower_top = 3., upper_bottom = 16.; // two_tier_mesh()
+    Slic3r::Print print;
+    slice_with_tree_support(two_tier_mesh(), print, "tree_slim", 30, 0, 0, {
+        { "support_interface_top_layers",    interface_layers },
+        { "support_interface_bottom_layers", interface_layers },
+        { "support_bottom_z_distance",       0.2 },
+    });
+
+    int above_plate = 0, between_plates = 0;
+    for (const SupportLayer *layer : print.objects().front()->support_layers()) {
+        bool has_interface = false;
+        for (const ExtrusionEntity *entity : layer->support_fills.flatten().entities)
+            has_interface |= entity->role() == erSupportMaterialInterface;
+        if (! has_interface)
+            continue;
+        if (layer->print_z > lower_top && layer->print_z < lower_top + 1.5)
+            ++above_plate;
+        else if (layer->print_z < upper_bottom - 1.5)
+            ++between_plates;
+    }
+    CHECK(above_plate == interface_layers);
+    CHECK(between_plates == 0);
 }
 
 // Each node under an overhang adds the whole overhang to its roof list, so the top interface is a solid sheet rather

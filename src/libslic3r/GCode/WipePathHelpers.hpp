@@ -11,9 +11,13 @@ namespace Slic3r {
 
 // Printed prefix of one region's perimeter sequence. Append each entity only
 // after extrusion; later walls and other regions cannot support an inward wipe.
+// When the adjacent inner wall is printed after the external wall, all inner
+// walls are collected in advance as targets: they identify the inward side
+// and the local wall count, while only printed walls support the path.
 struct WipeInwardSupport {
     Lines printed_lines;
     Lines inner_lines;
+    bool  inner_lines_complete = false;
     void append(const ExtrusionEntity &entity);
 };
 
