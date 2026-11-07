@@ -152,7 +152,6 @@ enum TreeSupportStage {
     STAGE_DRAW_CIRCLES,
     STAGE_GENERATE_TOOLPATHS,
     STAGE_MinimumSpanningTree,
-    STAGE_projection_onto_ex,
     STAGE_total,
     NUM_STAGES
 };
@@ -210,8 +209,7 @@ public:
             << "; STAGE_DROP_DOWN_NODES: " << stage_durations[STAGE_DROP_DOWN_NODES]
             << "; STAGE_DRAW_CIRCLES: " << stage_durations[STAGE_DRAW_CIRCLES]
             << "; STAGE_GENERATE_TOOLPATHS: " << stage_durations[STAGE_GENERATE_TOOLPATHS]
-            << "; STAGE_MinimumSpanningTree: " << stage_durations[STAGE_MinimumSpanningTree]
-            << "; STAGE_projection_onto_ex: " << stage_durations[STAGE_projection_onto_ex];
+            << "; STAGE_MinimumSpanningTree: " << stage_durations[STAGE_MinimumSpanningTree];
 
         return ss.str();
     }
