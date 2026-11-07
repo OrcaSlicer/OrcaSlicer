@@ -8483,6 +8483,11 @@ int PartPlateList::load_from_3mf_structure(PlateDataPtrs& plate_data_list, int f
 	for (unsigned int i = 0; i < (unsigned int)plate_data_list.size(); ++i)
 	{
 		int index = create_plate(false);
+		if (index < 0) {
+			// create_plate() stops at MAX_PLATES_COUNT. The objects of the remaining plates stay in the model, off the plates.
+			BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(": the project has %1% plates, only %2% can be loaded") % plate_data_list.size() % MAX_PLATES_COUNT;
+			break;
+		}
 		m_plate_list[index]->m_locked = plate_data_list[i]->locked;
 		m_plate_list[index]->config()->apply(plate_data_list[i]->config);
 		m_plate_list[index]->set_plate_name(plate_data_list[i]->plate_name);

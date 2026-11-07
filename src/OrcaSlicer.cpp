@@ -4696,6 +4696,12 @@ int CLI::run(int argc, char **argv)
             plate_list.reset_size(current_printable_width, current_printable_depth, current_printable_height, true, true);
         }
     };
+    if (plate_data_src.size() > MAX_PLATE_COUNT)
+    {
+        BOOST_LOG_TRIVIAL(error) << boost::format("the project has %1% plates, the limit is %2%") % plate_data_src.size() % MAX_PLATE_COUNT;
+        record_exit_reson(outfile_dir, CLI_DATA_FILE_ERROR, 0, cli_errors[CLI_DATA_FILE_ERROR], sliced_info);
+        flush_and_exit(CLI_DATA_FILE_ERROR);
+    }
     if (plate_data_src.size() > 0)
     {
         partplate_list.load_from_3mf_structure(plate_data_src);
