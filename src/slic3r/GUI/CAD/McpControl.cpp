@@ -4439,7 +4439,7 @@ json action_screenshot(DesignPanel* panel, const json& params)
     auto frame = std::make_shared<std::tuple<bool, std::vector<unsigned char>, int, int>>(false, std::vector<unsigned char>(), 0, 0);
     v->gl_canvas()->capture_next_frame([frame](std::vector<unsigned char>&& px, int w, int h) { *frame = {true, std::move(px), w, h}; });
     for (int i = 0; i < 40 && !std::get<0>(*frame); ++i) {   // paint, then let the event loop run until the frame arrives (<= ~2 s)
-        v->request_repaint(); v->Refresh(); v->Update();
+        v->render_now(); v->Refresh(); v->Update();
         if (wxEventLoopBase* loop = wxEventLoopBase::GetActive()) loop->YieldFor(wxEVT_CATEGORY_UI);
         if (!std::get<0>(*frame)) wxMilliSleep(50);
     }
