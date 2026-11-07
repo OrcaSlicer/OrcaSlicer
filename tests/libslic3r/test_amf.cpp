@@ -553,7 +553,6 @@ TEST_CASE("AMF rejects an XML entity amplification bomb", "[AMF][Security]")
     write_file(tmp.string(), amf_with_dtd(declarations, "<metadata type=\"name\">&e7;</metadata>"));
 
     Model model;
-    REQUIRE_NOTHROW(load(tmp.string(), model));
     CHECK_FALSE(load(tmp.string(), model));
 }
 

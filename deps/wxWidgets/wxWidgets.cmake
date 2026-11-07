@@ -26,8 +26,8 @@ endif ()
 # __declspec(dllimport) unless XML_STATIC is defined, which wx never does.
 if (WIN32)
     set(_wx_expat_static
-        "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS} /DXML_STATIC"
-        "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS} /DXML_STATIC"
+        "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS} -DXML_STATIC"
+        "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS} -DXML_STATIC"
     )
 else ()
     set(_wx_expat_static "")

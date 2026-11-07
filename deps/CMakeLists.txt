@@ -348,7 +348,6 @@ if(FLATPAK)
     # also, yes, this reduces CI by not needing to vendor certain deps
     find_package(ZLIB)
     find_package(PNG)
-    find_package(EXPAT)
     find_package(CURL)
     find_package(JPEG)
     find_package(OpenSSL 1.1...<3.2)
