@@ -1742,10 +1742,7 @@ void CalibrationFlowCoarseSavePage::create_page(wxWindow* parent)
         e.Skip();
         });
 
-    m_optimal_block_coarse->Bind(wxEVT_COMBOBOX, [this](auto& e) {
-        m_coarse_flow_ratio = m_curr_flow_ratio * (100.0f + stof(m_optimal_block_coarse->GetValue().ToStdString())) / 100.0f;
-        m_coarse_calc_result_text->SetLabel(wxString::Format(_L("flow ratio : %s "), std::to_string(m_coarse_flow_ratio)));
-        });
+    m_optimal_block_coarse->Bind(wxEVT_COMBOBOX, [this](auto& e) { update_coarse_flow_ratio(); });
 
     m_sending_panel = new CaliPageSendingPanel(parent);
     m_sending_panel->get_sending_progress_bar()->set_cancel_callback_fina([this]() {
@@ -1782,11 +1779,21 @@ bool CalibrationFlowCoarseSavePage::is_skip_fine_calibration() {
     return m_skip_fine_calibration;
 }
 
+void CalibrationFlowCoarseSavePage::update_coarse_flow_ratio() {
+    if (m_optimal_block_coarse->GetSelection() == -1)
+        return;
+    m_coarse_flow_ratio = m_curr_flow_ratio * (100.0f + stof(m_optimal_block_coarse->GetValue().ToStdString())) / 100.0f;
+    m_coarse_calc_result_text->SetLabel(wxString::Format(_L("flow ratio : %s "), std::to_string(m_coarse_flow_ratio)));
+}
+
 void CalibrationFlowCoarseSavePage::set_curr_flow_ratio(const float value) {
     m_curr_flow_ratio = value;
+    // A block chosen for an earlier calibration must not keep its old result
+    update_coarse_flow_ratio();
 }
 
 bool CalibrationFlowCoarseSavePage::get_result(float* out_value, wxString* out_name) {
+    update_coarse_flow_ratio();
     // Check if the value is valid
     if (m_optimal_block_coarse->GetSelection() == -1 || m_coarse_flow_ratio <= 0.0 || m_coarse_flow_ratio >= 2.0) {
         MessageDialog msg_dlg(nullptr, _L("Please choose a block with smoothest top surface."), wxEmptyString, wxICON_WARNING | wxOK);
@@ -1934,10 +1941,7 @@ void CalibrationFlowFineSavePage::create_page(wxWindow* parent)
 
     m_top_sizer->AddSpacer(FromDIP(20));
 
-    m_optimal_block_fine->Bind(wxEVT_COMBOBOX, [this](auto& e) {
-        m_fine_flow_ratio = m_curr_flow_ratio * (100.0f + stof(m_optimal_block_fine->GetValue().ToStdString())) / 100.0f;
-        m_fine_calc_result_text->SetLabel(wxString::Format(_L("flow ratio : %s "), std::to_string(m_fine_flow_ratio)));
-        });
+    m_optimal_block_fine->Bind(wxEVT_COMBOBOX, [this](auto& e) { update_fine_flow_ratio(); });
 
     m_action_panel = new CaliPageActionPanel(parent, m_cali_mode, CaliPageType::CALI_PAGE_FINE_SAVE);
     m_top_sizer->Add(m_action_panel, 0, wxEXPAND, 0);
@@ -1957,11 +1961,21 @@ void CalibrationFlowFineSavePage::set_default_options(const wxString &name) {
     m_save_name_input->GetTextCtrl()->SetValue(name);
 }
 
+void CalibrationFlowFineSavePage::update_fine_flow_ratio() {
+    if (m_optimal_block_fine->GetSelection() == -1)
+        return;
+    m_fine_flow_ratio = m_curr_flow_ratio * (100.0f + stof(m_optimal_block_fine->GetValue().ToStdString())) / 100.0f;
+    m_fine_calc_result_text->SetLabel(wxString::Format(_L("flow ratio : %s "), std::to_string(m_fine_flow_ratio)));
+}
+
 void CalibrationFlowFineSavePage::set_curr_flow_ratio(const float value) {
     m_curr_flow_ratio = value;
+    // A block chosen for an earlier calibration must not keep its old result
+    update_fine_flow_ratio();
 }
 
 bool CalibrationFlowFineSavePage::get_result(float* out_value, wxString* out_name) {
+    update_fine_flow_ratio();
     // Check if the value is valid
     if (m_optimal_block_fine->GetSelection() == -1 || m_fine_flow_ratio <= 0.0 || m_fine_flow_ratio >= 2.0) {
         MessageDialog msg_dlg(nullptr, _L("Please choose a block with smoothest top surface."), wxEmptyString, wxICON_WARNING | wxOK);
