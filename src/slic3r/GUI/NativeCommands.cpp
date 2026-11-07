@@ -1585,6 +1585,7 @@ std::vector<NativeCommand> build_command_catalog()
         }
         wxString   message;
         const bool installed = install_local_plugin_package(package, mf, message);
+        wxGetApp().update_plugins_dialog();
         if (message.IsEmpty()) // the overwrite prompt was cancelled
             return AppActionRunResult{AppActionRunResult::Level::Info, _L("The plugin was not installed."), false};
         return AppActionRunResult{installed ? AppActionRunResult::Level::Success : AppActionRunResult::Level::Error, message};

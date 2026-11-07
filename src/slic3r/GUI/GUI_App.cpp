@@ -3061,10 +3061,7 @@ void GUI_App::init_plugin_gui_wiring()
         if (app->is_closing())
             return;
 
-        app->CallAfter([app] {
-            if (!app->is_closing() && app->m_plugins_dlg)
-                app->m_plugins_dlg->update_plugin_dialog_ui();
-        });
+        app->CallAfter([app] { app->update_plugins_dialog(); });
     };
 
     // why: a newly loaded plugin only adds a selectable agent
@@ -9200,6 +9197,7 @@ void GUI_App::refresh_plugins()
         wxTheApp->CallAfter([error, unknown_error]() {
             if (wxGetApp().is_closing())
                 return;
+            wxGetApp().update_plugins_dialog();
             Plater* plater = wxGetApp().plater();
             if (plater == nullptr)
                 return;
@@ -9215,6 +9213,12 @@ void GUI_App::refresh_plugins()
                     into_u8(wxString::Format(_L("Failed to refresh plugins: %s"), unknown_error ? _L("Unknown error") : error)));
         });
     }).detach();
+}
+
+void GUI_App::update_plugins_dialog()
+{
+    if (!is_closing() && m_plugins_dlg != nullptr)
+        m_plugins_dlg->update_plugin_dialog_ui();
 }
 
 void GUI_App::open_terminal_dialog()

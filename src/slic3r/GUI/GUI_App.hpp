@@ -757,6 +757,9 @@ public:
     void            notify_plugin_permissions_changed(const std::string& plugin_key);
     // Dialog-free plugin action used by the speed dial: it never requires the Plugins dialog to be open.
     void            refresh_plugins();
+    // Shows the current plugin list in the Plugins dialog when it is open, after a change made outside it
+    // (the speed dial's refresh or install, a plugin loading). GUI thread; never creates or raises it.
+    void            update_plugins_dialog();
     void            open_terminal_dialog();
     void            open_speed_dial();
     ActionRegistry& action_registry() { return *m_action_registry; }
