@@ -392,20 +392,28 @@ TEST_CASE("Mixed-height tower visits switch tools before returning to the model"
     const std::string output = gcode(print);
     bool tower_extruded = false;
     bool returned_to_model = false;
+    bool landed_without_printing = false;
     size_t switches_after_tower = 0;
     GCodeReader reader;
     reader.apply_config(config);
     reader.parse_buffer(output, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
         const auto command = line.cmd();
+        if (tower_extruded && line.has_z() && line.new_Z(self) < self.z() &&
+            line.new_X(self) < 40. && line.new_Y(self) < 40.)
+            landed_without_printing = true;
+        if (landed_without_printing && line.travel() && line.dist_XY(self) > 0.)
+            CHECK_FALSE(landed_without_printing);
         if (command.size() > 1 && command.front() == 'T' && tower_extruded) {
             ++switches_after_tower;
             CHECK_FALSE(returned_to_model);
             tower_extruded = false;
             returned_to_model = false;
+            landed_without_printing = false;
         }
         if (line.extruding(self) && line.dist_XY(self) > 0.) {
             tower_extruded = line.new_X(self) >= 40. || line.new_Y(self) >= 40.;
             returned_to_model = false;
+            landed_without_printing = false;
         } else if (tower_extruded && line.travel() && line.dist_XY(self) > 0. &&
                    line.new_X(self) < 40. && line.new_Y(self) < 40.) {
             returned_to_model = true;

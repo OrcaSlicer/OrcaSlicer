@@ -125,6 +125,9 @@ public:
     // record a lift request, do realy lift in next travel
     std::string lazy_lift(LiftType lift_type = LiftType::NormalLift, bool spiral_vase = false);
     std::string unlift();
+    // Record an already emitted clearance move as a lift above the nominal layer.
+    // The next XY travel keeps this clearance until unlift() at its destination.
+    void set_lifted_z(double nominal_z);
     const Vec3d& get_position() const { return m_pos; }
     Vec3d&       get_position() { return m_pos; }
     void        set_position(const Vec3d& in) { m_pos = in; }
