@@ -1,3 +1,4 @@
+#include "AdaptiveLayerMerge.hpp"
 #include "ArcFitter.hpp"
 #include <tuple>
 #include "BoundingBox.hpp"
@@ -1661,6 +1662,14 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         if (new_extruder_id != -1 && new_extruder_id != tcr.new_tool)
             throw Slic3r::InvalidArgument("Error: WipeTowerIntegration::append_tcr was asked to do a toolchange it didn't expect.");
 
+        if (!tcr.segments.empty()) {
+            std::string gcode;
+            for (const auto &segment : tcr.segments)
+                gcode += append_tcr2(gcodegen, segment, segment.new_tool,
+                    segment.print_z + m_print_config->z_offset.value);
+            return gcode;
+        }
+
         const std::optional<GCode::ToolchangePositionState> position_before_toolchange =
             gcodegen.capture_toolchange_position();
 
@@ -1675,11 +1684,11 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         Vec2f start_pos = tcr.start_pos;
         Vec2f end_pos   = tcr.end_pos;
         if (!tcr.priming) {
-            start_pos = transform_wt2_pt(start_pos);
-            end_pos   = transform_wt2_pt(end_pos);
+            start_pos = transform_wt2_pt(start_pos + tcr.column_offset);
+            end_pos   = transform_wt2_pt(end_pos + tcr.column_offset);
         }
 
-        Vec2f wipe_tower_offset   = tcr.priming ? Vec2f::Zero() : Vec2f(m_wipe_tower_pos + Eigen::Rotation2Df(alpha) * m_rib_offset);
+        Vec2f wipe_tower_offset   = tcr.priming ? Vec2f::Zero() : Vec2f(m_wipe_tower_pos + Eigen::Rotation2Df(alpha) * (m_rib_offset + tcr.column_offset));
         float wipe_tower_rotation = tcr.priming ? 0.f : alpha;
         Vec2f plate_origin_2d(m_plate_origin(0), m_plate_origin(1));
 
@@ -1694,8 +1703,18 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         if (z == -1.) // in case no specific z was provided, print at current_z pos
             z = current_z;
 
+        const Point column_return_pos = gcodegen.last_pos_defined() ? gcodegen.last_pos() :
+            gcodegen.gcode_to_point(gcodegen.writer().get_position().head<2>() + plate_origin_2d.cast<double>());
+        double column_clearance_z = current_z;
+        if (tcr.independent_column) {
+            m_highest_tool_column_z = std::max(m_highest_tool_column_z, z);
+            column_clearance_z = std::max(current_z, m_highest_tool_column_z) + 0.2;
+            gcode += gcodegen.retract();
+            gcode += gcodegen.writer().travel_to_z(column_clearance_z, "Clear stepped tower surface");
+        }
+
         const bool needs_toolchange = gcodegen.writer().need_toolchange(new_extruder_id);
-        const bool will_go_down     = !is_approx(z, current_z);
+        const bool will_go_down     = tcr.independent_column || !is_approx(z, current_z);
         const bool is_ramming       = (gcodegen.config().single_extruder_multi_material) ||
                                 (!gcodegen.config().single_extruder_multi_material &&
                                  gcodegen.config().filament_multitool_ramming.get_at(gcodegen.get_filament_config_index(tcr.initial_tool)));
@@ -1703,7 +1722,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         // Forces the toolhead to travel over the wipe tower before issuing Tx even on multi-toolhead
         // printers without ramming, where Orca would otherwise emit Tx in place (potentially over the part).
         const bool tool_change_on_wipe_tower = gcodegen.config().tool_change_on_wipe_tower.value;
-        const bool should_travel_to_tower = !tcr.priming && (tcr.force_travel     // wipe tower says so
+        const bool should_travel_to_tower = !tcr.priming && (tcr.force_travel || tcr.independent_column // wipe tower says so
                                                              || !needs_toolchange // this is just finishing the tower with no toolchange
                                                              || will_go_down // Make sure to move to prime tower before moving down
                                                              || is_ramming
@@ -1765,7 +1784,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 || (gcodegen.writer().filament() != nullptr
                     && gcodegen.writer().filament()->extruder_id() != get_extruder_index(*m_print_config, new_extruder_id));
             if (will_go_down && tool_may_travel && gcodegen.config().enable_prime_tower) {
-                restore_layer_z_str += gcodegen.writer().travel_to_z(current_z, "Restore layer Z before toolchange");
+                restore_layer_z_str += gcodegen.writer().travel_to_z(column_clearance_z, "Restore layer Z before toolchange");
                 check_add_eol(restore_layer_z_str);
             }
             toolchange_gcode_str = gcodegen.set_extruder(new_extruder_id, tcr.print_z, false, toolchange_temp_override,
@@ -1948,7 +1967,17 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         // A phony move to the end position at the wipe tower.
         gcodegen.writer().travel_to_xy((end_pos + plate_origin_2d).cast<double>());
         gcodegen.set_last_pos(wipe_tower_point_to_object_point(gcodegen, end_pos + plate_origin_2d));
-        if (!is_approx(z, current_z)) {
+        if (tcr.independent_column) {
+            gcodegen.m_wipe.reset_path();
+            gcode += gcodegen.retract();
+            gcode += gcodegen.writer().travel_to_z(column_clearance_z, "Clear stepped tower surface");
+            gcodegen.m_avoid_crossing_perimeters.use_external_mp_once();
+            gcode += gcodegen.travel_to(column_return_pos, erMixed, "Return from independent tower column");
+            gcode += gcodegen.writer().unlift();
+            gcode += gcodegen.writer().travel_to_z(current_z, "Restore object layer Z");
+            // Keep the outgoing rammed tool retracted. The next column or model
+            // extrusion restores pressure at its destination, not over the part.
+        } else if (!is_approx(z, current_z)) {
             gcode += gcodegen.writer().retract();
             gcode += gcodegen.writer().travel_to_z(current_z, "Travel back up to the topmost object layer.");
             gcode += gcodegen.writer().unretract();
@@ -1958,7 +1987,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             // Prepare a future wipe.
             gcodegen.m_wipe.reset_path();
             for (const Vec2f& wipe_pt : tcr.wipe_path)
-                gcodegen.m_wipe.path.points.emplace_back(wipe_tower_point_to_object_point(gcodegen, transform_wt2_pt(wipe_pt) + plate_origin_2d));
+                gcodegen.m_wipe.path.points.emplace_back(wipe_tower_point_to_object_point(gcodegen, transform_wt2_pt(wipe_pt + tcr.column_offset) + plate_origin_2d));
         }
 
         // Let the planner know we are traveling between objects.
@@ -2414,7 +2443,8 @@ std::vector<GCode::LayerToPrint> GCode::collect_layers_to_print(const PrintObjec
                 extra_gap = std::max(extra_gap, object.config().raft_contact_distance.value);
             }
             double maximal_print_z = (last_extrusion_layer ? last_extrusion_layer->print_z() : 0.)
-                + layer_to_print.layer()->height
+                + (has_extruder_layer_heights(object) ?
+                   layer_to_print.layer()->effective_print_height() : layer_to_print.layer()->height)
                 + std::max(0., extra_gap);
             // Negative support_contact_z is not taken into account, it can result in false positives in cases
 

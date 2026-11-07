@@ -1,3 +1,4 @@
+#include "FilamentMixer.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -10,6 +11,7 @@
 #include "Point.hpp"
 #include "libslic3r.h"
 #include "Slicing.hpp"
+#include "AdaptiveLayerMerge.hpp"
 #include "SlicingAdaptive.hpp"
 #include "PrintConfig.hpp"
 #include "Model.hpp"
@@ -68,12 +70,29 @@ coordf_t Slicing::max_layer_height_from_nozzle(const DynamicPrintConfig &print_c
     return std::max(min_layer_height, (max_layer_height == 0.) ? (0.75 * nozzle_dmr) : max_layer_height);
 }
 
+// min_layer_height, max_layer_height and nozzle_diameter are per physical extruder, while objects
+// and supports name logical filaments. When the user has assigned filaments to extruders by hand,
+// read the limits of the extruder the filament is mapped to. Automatic map modes decide the map
+// after slicing, so they keep the per-filament lookup. Returns the one-based index the helpers
+// above expect, or `unresolved` when the filament is not mapped.
+static int nozzle_index_for_filament(const PrintConfig &print_config, unsigned int filament_id, int unresolved)
+{
+    const FilamentMapMode mode = print_config.filament_map_mode.value;
+    if ((mode == fmmManual || mode == fmmNozzleManual) && filament_id < print_config.filament_map.size()) {
+        const int extruder = print_config.filament_map.get_at(filament_id);
+        if (extruder > 0 && size_t(extruder) <= print_config.nozzle_diameter.size())
+            return extruder;
+    }
+    return unresolved;
+}
+
 SlicingParameters SlicingParameters::create_from_config(
     const PrintConfig               &print_config,
     const PrintObjectConfig         &object_config,
     coordf_t                         object_height,
     const std::vector<unsigned int> &object_extruders,
-    const Vec3d                     &object_shrinkage_compensation)
+    const Vec3d                     &object_shrinkage_compensation,
+    const std::vector<unsigned int> *print_filaments)
 {
     coordf_t initial_layer_print_height                      = (print_config.initial_layer_print_height.value <= 0) ? 
         object_config.layer_height.value : print_config.initial_layer_print_height.value;
@@ -83,8 +102,13 @@ SlicingParameters SlicingParameters::create_from_config(
     // which is consistent with the requirement that if support_filament == 0 resp. support_interface_filament == 0,
     // support will not trigger tool change, but it will use the current nozzle instead.
     // In that case all the nozzles have to be of the same diameter.
-    coordf_t support_material_extruder_dmr           = print_config.nozzle_diameter.get_at(object_config.support_filament.value - 1);
-    coordf_t support_material_interface_extruder_dmr = print_config.nozzle_diameter.get_at(object_config.support_interface_filament.value - 1);
+    auto support_nozzle_index = [&print_config](int support_filament) {
+        return support_filament > 0 ? nozzle_index_for_filament(print_config, unsigned(support_filament - 1), support_filament) : support_filament;
+    };
+    const int support_idx_nozzle           = support_nozzle_index(object_config.support_filament.value);
+    const int support_interface_idx_nozzle = support_nozzle_index(object_config.support_interface_filament.value);
+    coordf_t support_material_extruder_dmr           = print_config.nozzle_diameter.get_at(support_idx_nozzle - 1);
+    coordf_t support_material_interface_extruder_dmr = print_config.nozzle_diameter.get_at(support_interface_idx_nozzle - 1);
 
     // ORCA: store Z distance
     const coordf_t support_top_z_gap    = object_config.support_top_z_distance.value;
@@ -112,9 +136,19 @@ SlicingParameters SlicingParameters::create_from_config(
     const bool zero_gap_interface_raft =
         raft_z_gap == 0.0 || zero_topZ_contact;
 
+    std::vector<unsigned int> used_filaments = print_filaments ? *print_filaments : object_extruders;
+    if (!print_filaments && (object_config.enable_support || object_config.raft_layers > 0 || object_config.enforce_support_layers > 0)) {
+        if (object_config.support_filament > 0)
+            used_filaments.push_back(object_config.support_filament.value - 1);
+        if (object_config.support_interface_filament > 0)
+            used_filaments.push_back(object_config.support_interface_filament.value - 1);
+    }
+    used_filaments = expand_mixed_filaments(used_filaments, print_config.filament_is_mixed.values,
+                                           print_config.filament_mixed_components.values);
     SlicingParameters params;
+    params.use_extruder_layer_heights = has_extruder_layer_heights(print_config, used_filaments);
 
-    params.layer_height               = object_config.layer_height.value;
+    params.layer_height               = extruder_layer_height_grid(print_config, object_config.layer_height.value, used_filaments);
     params.first_print_layer_height   = initial_layer_print_height;
     params.first_object_layer_height  = initial_layer_print_height;
     params.object_print_z_min         = 0.0;
@@ -133,11 +167,11 @@ SlicingParameters SlicingParameters::create_from_config(
     if (object_config.enable_support.value || params.base_raft_layers > 0 || object_config.enforce_support_layers > 0) {
         // Has some form of support. Add the support layers to the minimum / maximum layer height limits.
         params.min_layer_height = std::max(
-            min_layer_height_from_nozzle(print_config, object_config.support_filament), 
-            min_layer_height_from_nozzle(print_config, object_config.support_interface_filament));
+            min_layer_height_from_nozzle(print_config, support_idx_nozzle),
+            min_layer_height_from_nozzle(print_config, support_interface_idx_nozzle));
         params.max_layer_height = std::min(
-            max_layer_height_from_nozzle(print_config, object_config.support_filament), 
-            max_layer_height_from_nozzle(print_config, object_config.support_interface_filament));
+            max_layer_height_from_nozzle(print_config, support_idx_nozzle),
+            max_layer_height_from_nozzle(print_config, support_interface_idx_nozzle));
         params.max_suport_layer_height = params.max_layer_height;
     }
 
@@ -147,10 +181,17 @@ SlicingParameters SlicingParameters::create_from_config(
     } else {
         // Orca: object_extruders are 0-based, the extruder the limits are read from is 1-based like support_filament.
         for (unsigned int extruder_id : object_extruders) {
-            params.min_layer_height = std::max(params.min_layer_height, min_layer_height_from_nozzle(print_config, extruder_id + 1));
-            params.max_layer_height = std::min(params.max_layer_height, max_layer_height_from_nozzle(print_config, extruder_id + 1));
+            // object_extruders holds zero-based filament ids.
+            const int idx_nozzle = nozzle_index_for_filament(print_config, extruder_id, int(extruder_id) + 1);
+            params.min_layer_height = std::max(params.min_layer_height, min_layer_height_from_nozzle(print_config, idx_nozzle));
+            params.max_layer_height = std::min(params.max_layer_height, max_layer_height_from_nozzle(print_config, idx_nozzle));
         }
     }
+
+    if (params.use_extruder_layer_heights && object_config.support_filament.value > 0)
+        params.max_suport_layer_height = std::max(
+            extruder_layer_height_for_filament(print_config, object_config.support_filament.value, object_config.layer_height.value),
+            extruder_layer_height_for_filament(print_config, object_config.support_interface_filament.value, object_config.layer_height.value));
 
     params.min_layer_height = std::min(params.min_layer_height, params.layer_height);
     params.max_layer_height = std::max(params.max_layer_height, params.layer_height);
@@ -164,7 +205,7 @@ SlicingParameters SlicingParameters::create_from_config(
         params.gap_raft_object = 0.0;
     } else {
         params.gap_raft_object = raft_z_gap;
-        if (!print_config.independent_support_layer_height) {
+        if (!independent_support_layers(print_config, params)) {
             params.gap_raft_object =
                 std::round(params.gap_raft_object / object_config.layer_height + EPSILON)
                 * object_config.layer_height;
@@ -177,7 +218,7 @@ SlicingParameters SlicingParameters::create_from_config(
     } else {
         params.gap_object_support = support_bottom_z_gap;
 
-        if (!print_config.independent_support_layer_height) {
+        if (!independent_support_layers(print_config, params)) {
             params.gap_object_support =
                 std::round(params.gap_object_support / object_config.layer_height + EPSILON)
                 * object_config.layer_height;
@@ -190,7 +231,7 @@ SlicingParameters SlicingParameters::create_from_config(
     } else {
         params.gap_support_object = support_top_z_gap;
 
-        if (!print_config.independent_support_layer_height) {
+        if (!independent_support_layers(print_config, params)) {
             params.gap_support_object =
                 std::round(params.gap_support_object / object_config.layer_height + EPSILON)
                 * object_config.layer_height;

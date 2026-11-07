@@ -1,3 +1,4 @@
+#include "AdaptiveLayerMerge.hpp"
 #include "ClipperUtils.hpp"
 #include "IMEXHelpers.hpp"
 #include "Geometry.hpp"
@@ -1353,6 +1354,8 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     check_model_ids_validity(model);
 #endif /* _DEBUG */
 
+    const auto previous_layer_filaments = layer_height_filaments();
+    const bool previous_layer_heights = has_extruder_layer_heights(m_config, previous_layer_filaments);
     //BBS: add more logs
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: enter")%__LINE__;
     // Normalize the config.
@@ -2308,10 +2311,17 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     check_model_ids_equal(m_model, model);
 #endif /* _DEBUG */
 
+    const auto current_layer_filaments = layer_height_filaments();
+    if (previous_layer_filaments != current_layer_filaments &&
+        (previous_layer_heights || has_extruder_layer_heights(m_config, current_layer_filaments)))
+        for (PrintObject *object : m_objects)
+            update_apply_status(object->invalidate_step(posSlice));
+
 	//BBS: add timestamp logic
 	if (apply_status != APPLY_STATUS_UNCHANGED)
 		m_modified_count++;
 	BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: finished,  this %2%, m_modified_count %3%, apply_status %4%, m_support_used %5%")%__LINE__ %this %m_modified_count %apply_status %m_support_used;
+
 	return static_cast<ApplyStatus>(apply_status);
 }
 

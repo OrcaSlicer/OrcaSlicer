@@ -959,3 +959,68 @@ TEST_CASE("Smooth timelapse prints each tower layer's wall once when a layer joi
     slice_precise_z_pair(config, "type1", 10.004, print);
     CHECK(count_joined_layers(print) > 0);
 }
+
+// Compare the planner output and the exported tower blocks, including tool-change
+// macros and coordinate transforms. Equal explicit heights must take the ordinary
+// path for both tower implementations.
+static std::pair<std::string, std::string> shared_height_tower_gcode(
+    const char *type, bool semm, const char *wall, bool explicit_height)
+{
+    auto config = multifilament_config(2);
+    config.set_deserialize_strict({{"enable_prime_tower", "1"}, {"wipe_tower_type", type},
+        {"single_extruder_multi_material", semm ? "1" : "0"}, {"nozzle_diameter", "0.4,0.4"},
+        {"layer_height", "0.2"}, {"initial_layer_print_height", "0.2"},
+        {"min_layer_height", "0.05,0.05"}, {"max_layer_height", "0.3,0.3"},
+        {"prime_tower_width", "30"}, {"wipe_tower_x", "60"}, {"wipe_tower_y", "60"},
+        {"wipe_tower_wall_type", wall}, {"wipe_tower_rotation_angle", "30"}, {"wipe_tower_cone_angle", "30"},
+        {"filament_multitool_ramming", "1,1"}, {"filament_multitool_ramming_volume", "5,5"},
+        {"wipe_tower_no_sparse_layers", "0"}, {"wipe_tower_sparse_layers_combination", "0"},
+        {"filament_map", "1,2"}, {"filament_map_mode", "Manual"},
+        {"change_filament_gcode", "T[next_extruder]\n"}, {"gcode_flavor", "klipper"},
+        {"gcode_comments", "1"}, {"brim_type", "no_brim"}, {"skirt_loops", "0"}});
+    if (explicit_height)
+        config.set_deserialize_strict("extruder_layer_height", "0.2,0.2");
+    config.set_num_extruders(2);
+    size_flush_to_nozzles(config);
+    Print print;
+    Model model;
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{{{"extruder", "1"}}, {{"extruder", "2"}}};
+    init_print({make_cube(8., 8., 1.2), make_cube(8., 8., 1.2)}, print, model, config, &overrides);
+    print.set_status_silent();
+    const std::string output = gcode(print);
+    REQUIRE(print.has_wipe_tower());
+    std::ostringstream raw;
+    const auto &tower = print.wipe_tower_data();
+    if (tower.priming)
+        for (const auto &part : *tower.priming) raw << part.gcode;
+    for (const auto &layer : tower.tool_changes)
+        for (const auto &part : layer) raw << part.gcode;
+    if (tower.final_purge) raw << tower.final_purge->gcode;
+    std::ostringstream emitted;
+    const std::string start = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Tower_Start);
+    const std::string end = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Tower_End);
+    size_t count = 0;
+    for (size_t pos = 0; (pos = output.find(start, pos)) != std::string::npos;) {
+        const size_t last = output.find(end, pos);
+        REQUIRE(last != std::string::npos);
+        const size_t after = output.find('\n', last);
+        REQUIRE(after != std::string::npos);
+        emitted << output.substr(pos, after + 1 - pos);
+        pos = after + 1;
+        ++count;
+    }
+    REQUIRE(count > 0);
+    return {raw.str(), emitted.str()};
+}
+
+TEST_CASE("Equal tool heights preserve ordinary Type 1 and Type 2 tower G-code", "[WipeTower][ExtruderLayerHeight]")
+{
+    const auto type = GENERATE("type1", "type2");
+    const bool semm = GENERATE(false, true);
+    const auto wall = GENERATE("rectangle", "rib", "cone");
+    CAPTURE(type, semm, wall);
+    const auto scalar = shared_height_tower_gcode(type, semm, wall, false);
+    const auto explicit_heights = shared_height_tower_gcode(type, semm, wall, true);
+    CHECK(scalar.first.compare(explicit_heights.first) == 0);
+    CHECK(scalar.second.compare(explicit_heights.second) == 0);
+}

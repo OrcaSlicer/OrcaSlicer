@@ -2055,6 +2055,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     // ORCA: explicit override for the part cooling fan speed on the first printed layer.
     ((ConfigOptionInts,               initial_layer_fan_speed))
     ((ConfigOptionFloats,               fan_max_speed))
+    ((ConfigOptionFloats,             extruder_layer_height))
     ((ConfigOptionFloats,             max_layer_height))
     ((ConfigOptionFloats,               fan_min_speed))
     ((ConfigOptionFloats,             min_layer_height))
