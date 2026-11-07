@@ -28,6 +28,7 @@
 #include <boost/container_hash/hash.hpp>
 #include "slic3r/GUI/MeshUtils.hpp"
 #include <initializer_list>
+#include <algorithm>
 #include <set>
 #include <string>
 #include "libvgcode/include/Types.hpp"
@@ -871,6 +872,30 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
     }
 }
 
+void GCodeViewer::SequentialView::GCodeWindow::GCodeTextView::update(uint64_t line_count, uint64_t visible_count, uint64_t current_line)
+{
+    m_line_count = line_count;
+    m_visible_count = std::min(line_count, visible_count);
+    if (m_following) {
+        const uint64_t half = m_visible_count / 2;
+        m_first_line = current_line > half ? current_line - half : 1;
+    }
+    m_first_line = std::clamp(m_first_line, uint64_t(1), max_first_line());
+}
+
+void GCodeViewer::SequentialView::GCodeWindow::GCodeTextView::scroll_to(uint64_t first_line)
+{
+    m_following = false;
+    m_first_line = std::clamp(first_line, uint64_t(1), max_first_line());
+}
+
+void GCodeViewer::SequentialView::GCodeWindow::GCodeTextView::scroll(int lines)
+{
+    const uint64_t distance = lines < 0 ? -int64_t(lines) : lines;
+    scroll_to(lines < 0 ? m_first_line - std::min(distance, m_first_line - 1) :
+        m_first_line + std::min(distance, max_first_line() - m_first_line));
+}
+
 void GCodeViewer::SequentialView::GCodeWindow::load_gcode(const std::string& filename, const std::vector<size_t> &lines_ends)
 {
     assert(! m_file.is_open());
@@ -880,8 +905,7 @@ void GCodeViewer::SequentialView::GCodeWindow::load_gcode(const std::string& fil
     m_filename   = filename;
     m_lines_ends = lines_ends;
 
-    m_selected_line_id = 0;
-    m_last_lines_size = 0;
+    reset_view();
 
     try
     {
@@ -896,9 +920,9 @@ void GCodeViewer::SequentialView::GCodeWindow::load_gcode(const std::string& fil
 }
 
 // Byte offset just past the first count characters of str, or its length if it is shorter.
-static size_t utf8_offset(const std::string& str, size_t count)
+static size_t utf8_offset(std::string_view str, size_t count)
 {
-    const char* const begin = str.c_str();
+    const char* const begin = str.data();
     const char* const end   = begin + str.size();
     const char*       pos   = begin;
     for (size_t i = 0; i < count && pos < end; ++i) {
@@ -909,29 +933,32 @@ static size_t utf8_offset(const std::string& str, size_t count)
 }
 
 //BBS: GUI refactor: move to right
-void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, float right, uint64_t curr_line_id) const
+void GCodeViewer::SequentialView::GCodeWindow::render(ImGuiWrapper& imgui, float top, float bottom, float right, uint64_t curr_line_id)
 {
-    // Orca: truncate long lines(>55 characters), add "..." at the end
-    auto update_lines = [this](uint64_t start_id, uint64_t end_id) {
-        std::vector<Line> ret;
-        ret.reserve(end_id - start_id + 1);
+    auto source_line = [this](uint64_t id) {
         // Orca: m_lines_ends indexes into a memory mapping, so it must be clamped to the mapping. If the
         // file was modified behind our back (an in-place post-processing script that shrank it), an
         // unchecked read is an access violation, which the caller's try/catch cannot catch on Windows.
         const size_t file_size = m_file.size();
+        const size_t start = id == 1 ? 0 : std::min(m_lines_ends[id - 2], file_size);
+        const size_t end   = std::min(m_lines_ends[id - 1], file_size);
+        return std::string_view(m_file.data() + start, end > start ? end - start : 0);
+    };
+
+    // Orca: truncate long lines(>55 characters), add "..." at the end
+    auto update_lines = [&source_line](uint64_t start_id, uint64_t end_id) {
+        std::vector<Line> ret;
+        ret.reserve(end_id - start_id + 1);
         for (uint64_t id = start_id; id <= end_id; ++id) {
             // read line from file
             // Keep one entry per id: render() indexes m_lines by (id - start_id).
-            const size_t start = id == 1 ? 0 : std::min(m_lines_ends[id - 2], file_size);
-            const size_t end   = std::min(m_lines_ends[id - 1], file_size);
-            const size_t original_len = end > start ? end - start : 0;
+            const std::string_view source = source_line(id);
             // A character is four bytes at most, so 55 of them always fit in 220.
-            const size_t len          = std::min(original_len, (size_t) 55 * 4);
-            std::string  gline(m_file.data() + start, len);
+            std::string gline(source.substr(0, 55 * 4));
 
             // If original line is longer than 55 characters, truncate and append "...".
             // The cut must land on a character boundary or it leaves half a character behind.
-            if (len < original_len || utf8_offset(gline, 55) < gline.size())
+            if (gline.size() < source.size() || utf8_offset(gline, 55) < gline.size())
                 gline = gline.substr(0, utf8_offset(gline, 52)) + "...";
 
             std::string command, parameters, comment;
@@ -965,7 +992,7 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
     static const ImVec4 PARAMETERS_COLOR     = { 1.0f, 1.0f, 1.0f, 1.0f };
     static const ImVec4 COMMENT_COLOR        = { 0.7f, 0.7f, 0.7f, 1.0f };
 
-    if (!wxGetApp().show_gcode_window() || m_filename.empty() || m_lines_ends.empty() || curr_line_id == 0)
+    if (m_filename.empty() || m_lines_ends.empty() || curr_line_id == 0)
         return;
 
     // window height
@@ -974,33 +1001,28 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
     // number of visible lines
     const float text_height = ImGui::CalcTextSize("0").y;
     const ImGuiStyle& style = ImGui::GetStyle();
-    const uint64_t lines_count = static_cast<uint64_t>((wnd_height - 2.0f * style.WindowPadding.y + style.ItemSpacing.y) / (text_height + style.ItemSpacing.y));
+    const uint64_t lines_count = static_cast<uint64_t>(std::max(0.f,
+        (wnd_height - 2.0f * style.WindowPadding.y + style.ItemSpacing.y) / (text_height + style.ItemSpacing.y)));
 
     if (lines_count == 0)
         return;
 
-    // visible range
-    const uint64_t half_lines_count = lines_count / 2;
-    uint64_t start_id = (curr_line_id >= half_lines_count) ? curr_line_id - half_lines_count : 0;
-    uint64_t end_id = start_id + lines_count - 1;
-    if (end_id >= static_cast<uint64_t>(m_lines_ends.size())) {
-        end_id = static_cast<uint64_t>(m_lines_ends.size()) - 1;
-        start_id = end_id - lines_count + 1;
-    }
+    m_viewport.update(m_lines_ends.size(), lines_count, curr_line_id);
+    const uint64_t start_id = m_viewport.first_line();
+    const uint64_t end_id = m_viewport.last_line();
 
     // updates list of lines to show, if needed
-    if (m_selected_line_id != curr_line_id || m_last_lines_size != end_id - start_id + 1) {
+    if (m_cached_first_line != start_id || m_lines.size() != end_id - start_id + 1) {
         try
         {
-            *const_cast<std::vector<Line>*>(&m_lines) = update_lines(start_id, end_id);
+            m_lines = update_lines(start_id, end_id);
         }
         catch (...)
         {
             BOOST_LOG_TRIVIAL(error) << "Error while loading from file " << m_filename << ". Cannot show G-code window.";
             return;
         }
-        *const_cast<uint64_t*>(&m_selected_line_id) = curr_line_id;
-        *const_cast<size_t*>(&m_last_lines_size) = m_lines.size();
+        m_cached_first_line = start_id;
     }
 
     // line number's column width
@@ -1028,25 +1050,52 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
                 max_text_width = w;
         }
 
-        required_width = id_width + max_text_width;
+        required_width = id_width + max_text_width + 2.f * style.WindowPadding.x;
     }
 
-    ImGuiWrapper& imgui = *wxGetApp().imgui();
+    const float scrollbar_width = m_lines_ends.size() > m_viewport.visible_count() ? style.ScrollbarSize : 0.f;
+    required_width += scrollbar_width + style.ItemSpacing.x;
 
     //BBS: GUI refactor: move to right
     imgui.set_next_window_pos(right, top + 6 * m_scale, ImGuiCond_Always, 1.0f, 0.0f); // ORCA add a small gap between legend and code viewer
     ImGui::SetNextWindowSize(ImVec2(required_width, wnd_height), ImGuiCond_Always);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f * m_scale); // ORCA add window rounding to modernize / match style
     ImGui::SetNextWindowBgAlpha(0.8f);
-    imgui.begin(std::string("G-code"), ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
+    imgui.begin(std::string("G-code"), ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollWithMouse);
+    ImGui::PushID(std::to_string(m_load_revision).c_str());
 
     // center the text in the window by pushing down the first line
-    const float f_lines_count = static_cast<float>(lines_count);
+    const float f_lines_count = static_cast<float>(m_viewport.visible_count());
     ImGui::SetCursorPosY(0.5f * (wnd_height - f_lines_count * text_height - (f_lines_count - 1.0f) * style.ItemSpacing.y));
 
     // render text lines
     for (uint64_t id = start_id; id <= end_id; ++id) {
         const Line& line = m_lines[id - start_id];
+        const std::string id_str = std::to_string(id);
+        const ImVec2 row_pos = ImGui::GetCursorScreenPos();
+        const float row_right = right - style.WindowPadding.x - scrollbar_width - style.ItemSpacing.x;
+        ImGui::PushID(id_str.c_str());
+        if (ImGui::InvisibleButton("##source_line", ImVec2(std::max(1.f, row_right - row_pos.x), text_height))) {
+            m_selected_line_id = id;
+            m_requested_line = id;
+            m_viewport.scroll_to(start_id);
+            imgui.set_requires_extra_frame();
+        }
+        ImGui::PopID();
+        if (ImGui::IsItemHovered()) {
+            std::string_view source = source_line(id);
+            if (utf8_offset(source, 55) < source.size()) {
+                while (!source.empty() && (source.back() == '\r' || source.back() == '\n'))
+                    source.remove_suffix(1);
+                imgui.tooltip(std::string(source), ImGui::GetFontSize() * 20.f);
+            }
+        }
+        ImGui::SetCursorScreenPos(row_pos);
+        if (id == m_selected_line_id) {
+            ImVec4 color = ImGuiWrapper::COL_ORANGE_LIGHT;
+            color.w = m_is_dark ? 0.25f : 0.18f;
+            ImGui::GetWindowDrawList()->AddRectFilled(row_pos, ImVec2(row_right, row_pos.y + text_height), ImGui::GetColorU32(color));
+        }
 
         // rect around the current selected line
         if (id == curr_line_id) {
@@ -1059,12 +1108,11 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
             //    { ImGui::GetCurrentWindow()->Size.x - half_padding_x, pos_y + text_height + half_ItemSpacing_y },
             //    ImGui::GetColorU32(SELECTION_RECT_COLOR));
             ImGui::GetWindowDrawList()->AddRect({ pos_x - half_ItemSpacing_x, pos_y - half_ItemSpacing_y },
-                { right - half_ItemSpacing_x, pos_y + text_height + half_ItemSpacing_y },
+                { right - style.WindowPadding.x - scrollbar_width - style.ItemSpacing.x, pos_y + text_height + half_ItemSpacing_y },
                 ImGui::GetColorU32(SELECTION_RECT_COLOR));
         }
 
         // render line number
-        const std::string id_str = std::to_string(id);
         // spacer to right align text
         ImGui::Dummy({ id_width - ImGui::CalcTextSize(id_str.c_str()).x, text_height });
         ImGui::SameLine(0.0f, 0.0f);
@@ -1100,6 +1148,24 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
         }
     }
 
+    // Keep the text at whole source lines; do not create a full-file pixel-height ImGui list.
+    if (ImGui::IsWindowHovered() && ImGui::GetIO().MouseWheel != 0.f) {
+        m_viewport.scroll(ImGui::GetIO().MouseWheel > 0.f ? -3 : 3);
+        imgui.set_requires_extra_frame();
+    }
+    if (scrollbar_width > 0.f) {
+        const ImVec2 pos = ImGui::GetWindowPos();
+        const ImRect bounds(ImVec2(right - style.WindowPadding.x - scrollbar_width, pos.y + style.WindowPadding.y),
+            ImVec2(right - style.WindowPadding.x, pos.y + wnd_height - style.WindowPadding.y));
+        float offset = static_cast<float>(m_viewport.first_line() - 1);
+        if (ImGui::ScrollbarEx(bounds, ImGui::GetID("##gcode_scroll"), ImGuiAxis_Y, &offset,
+                static_cast<float>(m_viewport.visible_count()), static_cast<float>(m_lines_ends.size()), 0)) {
+            m_viewport.scroll_to(static_cast<uint64_t>(std::max(0.f, offset)) + 1);
+            imgui.set_requires_extra_frame();
+        }
+    }
+
+    ImGui::PopID();
     imgui.end();
     ImGui::PopStyleVar();
 }
@@ -1134,8 +1200,9 @@ void GCodeViewer::SequentialView::render_overlay(const bool has_render_path, flo
     if (wxGetApp().is_editor())
         bottom -= wxGetApp().plater()->get_view_toolbar().get_height();
 #endif
-    if (has_render_path)
-        gcode_window.render(legend_height + 2, std::max(10.f, (float)canvas_height - 40), (float)canvas_width - (float)right_margin, gcode_id);
+    if (has_render_path && wxGetApp().show_gcode_window())
+        gcode_window.render(*wxGetApp().imgui(), legend_height + 2, std::max(10.f, (float)canvas_height - 40),
+            (float)canvas_width - (float)right_margin, gcode_id);
 }
 
 GCodeViewer::GCodeViewer()
@@ -1621,6 +1688,8 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
 //#endif // ENABLE_DATA_EXPORT
 
     // send data to the viewer
+    m_gcode_ids_sorted = std::is_sorted(data.vertices.begin(), data.vertices.end(),
+        [](const libvgcode::PathVertex& a, const libvgcode::PathVertex& b) { return a.gcode_id < b.gcode_id; });
     m_viewer.reset_default_extrusion_roles_colors();
     m_viewer.load(std::move(data));
 
@@ -2471,6 +2540,11 @@ void GCodeViewer::set_clipping_plane(const ClippingPlane& plane)
 
 void GCodeViewer::render_overlay(int canvas_width, int canvas_height, int right_margin)
 {
+    const bool layer_interaction = m_layers_slider->consume_user_interaction();
+    const bool move_interaction = m_moves_slider->consume_user_interaction();
+    if (layer_interaction || move_interaction)
+        resume_gcode_text_following();
+
     if (m_viewer.get_extrusion_roles().empty())
         return;
 
@@ -2562,6 +2636,152 @@ bool GCodeViewer::can_export_toolpaths() const
             return true;
     }
     return false;
+}
+
+namespace {
+
+struct GCodeNavigationTarget
+{
+    uint32_t line_id;
+    size_t first_vertex;
+    size_t last_vertex;
+};
+
+struct GCodeNavigationCategories
+{
+    std::array<bool, libvgcode::GCODE_EXTRUSION_ROLES_COUNT> roles{};
+    std::array<bool, libvgcode::OPTION_TYPES_COUNT> options{};
+};
+
+template<class VertexAt>
+GCodeNavigationCategories gcode_navigation_categories(const GCodeNavigationTarget& target, const VertexAt& vertex_at)
+{
+    GCodeNavigationCategories categories;
+    for (size_t i = target.first_vertex; i <= target.last_vertex; ++i) {
+        const auto& vertex = vertex_at(i);
+        if (vertex.type == libvgcode::EMoveType::Extrude) {
+            const size_t role = static_cast<size_t>(vertex.role);
+            if (role < categories.roles.size())
+                categories.roles[role] = true;
+        } else {
+            const size_t option = static_cast<size_t>(libvgcode::move_type_to_option(vertex.type));
+            if (option < categories.options.size())
+                categories.options[option] = true;
+        }
+    }
+    return categories;
+}
+
+// The accessor reads the viewer's existing vertices without copying a second line index.
+// The caller checks ordering once when loading a result; unusual order uses a linear fallback.
+template<class LineIdAt>
+std::optional<GCodeNavigationTarget> find_gcode_navigation_target(
+    uint32_t requested_line, size_t vertex_count, const LineIdAt& line_id_at, bool sorted)
+{
+    if (requested_line == 0 || vertex_count == 0)
+        return std::nullopt;
+
+    size_t candidate = vertex_count;
+    if (sorted) {
+        auto upper_bound = [&](uint32_t line) {
+            size_t first = 0, last = vertex_count;
+            while (first < last) {
+                const size_t mid = first + (last - first) / 2;
+                if (line_id_at(mid) <= line)
+                    first = mid + 1;
+                else
+                    last = mid;
+            }
+            return first;
+        };
+        const size_t next = upper_bound(requested_line);
+        candidate = next == 0 ? 0 : next - 1;
+        if (line_id_at(candidate) == 0)
+            candidate = upper_bound(0);
+    } else {
+        uint32_t preceding_line = 0;
+        uint32_t first_source_line = UINT32_MAX;
+        for (size_t i = 0; i < vertex_count; ++i) {
+            const uint32_t line = line_id_at(i);
+            if (line == 0)
+                continue;
+            if (line <= requested_line && line >= preceding_line) {
+                preceding_line = line;
+                candidate = i;
+            } else if (preceding_line == 0 && line <= first_source_line) {
+                first_source_line = line;
+                candidate = i;
+            }
+        }
+    }
+    if (candidate == vertex_count || line_id_at(candidate) == 0)
+        return std::nullopt;
+
+    const uint32_t line = line_id_at(candidate);
+    size_t first = candidate, last = candidate;
+    while (first > 0 && line_id_at(first - 1) == line)
+        --first;
+    while (last + 1 < vertex_count && line_id_at(last + 1) == line)
+        ++last;
+    return GCodeNavigationTarget{line, first, last};
+}
+
+void enable_gcode_navigation_categories(libvgcode::Viewer& viewer, const GCodeNavigationCategories& categories)
+{
+    for (size_t i = 0; i < categories.roles.size(); ++i) {
+        const auto role = static_cast<libvgcode::EGCodeExtrusionRole>(i);
+        if (categories.roles[i] && !viewer.is_extrusion_role_visible(role))
+            viewer.toggle_extrusion_role_visibility(role);
+    }
+    for (size_t i = 0; i < categories.options.size(); ++i) {
+        const auto option = static_cast<libvgcode::EOptionType>(i);
+        if (categories.options[i] && !viewer.is_option_visible(option))
+            viewer.toggle_option_visibility(option);
+    }
+}
+
+} // namespace
+
+bool GCodeViewer::navigate_to_gcode_line(uint64_t line_id)
+{
+    if (m_loaded_as_preview || !has_data() || line_id == 0 || line_id > UINT32_MAX)
+        return false;
+
+    const auto vertex_at = [this](size_t i) -> const libvgcode::PathVertex& { return m_viewer.get_vertex_at(i); };
+    const auto target = find_gcode_navigation_target(static_cast<uint32_t>(line_id), m_viewer.get_vertices_count(),
+        [&](size_t i) { return vertex_at(i).gcode_id; }, m_gcode_ids_sorted);
+    if (!target)
+        return false;
+
+    const auto old_layers = m_viewer.get_layers_view_range();
+    const auto old_lower = m_viewer.get_view_visible_range()[0];
+    const auto layer = vertex_at(target->last_vertex).layer_id;
+    const size_t lower_layer = m_layers_slider->is_one_layer() ? layer : std::min<size_t>(old_layers[0], layer);
+    const bool layer_changed = old_layers[0] != lower_layer || old_layers[1] != layer;
+    if (layer_changed) {
+        m_layers_slider->SetSelectionSpan(static_cast<int>(lower_layer), static_cast<int>(layer));
+        m_viewer.set_layers_view_range(lower_layer, layer);
+    }
+
+    const GCodeNavigationCategories categories = gcode_navigation_categories(*target, vertex_at);
+    enable_gcode_navigation_categories(m_viewer, categories);
+
+    // Visibility and layer changes can rebuild/clamp the range. Use vertex identities, not old ticks.
+    update_moves_slider();
+    const int target_tick = m_moves_slider->GetTickFromValue(static_cast<double>(target->last_vertex + 1));
+    if (target_tick < 0)
+        return false;
+    if (!layer_changed) {
+        const int lower_tick = m_moves_slider->GetTickFromValue(static_cast<double>(old_lower + 1));
+        m_moves_slider->SetLowerValue(lower_tick < 0 ? m_moves_slider->GetMaxValue() : lower_tick);
+    }
+    m_moves_slider->SetHigherValue(target_tick);
+    update_sequential_view_current(static_cast<unsigned int>(m_moves_slider->GetLowerValueD() - 1.0),
+        static_cast<unsigned int>(m_moves_slider->GetHigherValueD() - 1.0));
+    m_sequential_view.m_show_marker = true;
+    m_layers_slider->set_as_dirty(false);
+    m_moves_slider->set_as_dirty(false);
+    return true;
 }
 
 void GCodeViewer::update_sequential_view_current(unsigned int first, unsigned int last)

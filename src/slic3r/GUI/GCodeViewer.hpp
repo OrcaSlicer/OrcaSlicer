@@ -25,6 +25,7 @@
 #include <optional>
 #include "libvgcode/include/PathVertex.hpp"
 #include <libvgcode/include/Types.hpp>
+#include "libvgcode/include/Viewer.hpp"
 
 #include <array>
 #include <cstdint>
@@ -47,6 +48,7 @@ namespace GUI {
 
 class PartPlateList;
 class OpenGLManager;
+class ImGuiWrapper;
 
 static const float GCODE_VIEWER_SLIDER_SCALE = 0.6f;
 static const float SLIDER_DEFAULT_RIGHT_MARGIN  = 10.0f;
@@ -54,6 +56,7 @@ static const float SLIDER_DEFAULT_BOTTOM_MARGIN = 10.0f;
 // ORCA: match right margin to the vertical slider window width to prevent overlap.
 static inline const float SLIDER_RIGHT_MARGIN = IMSlider::vertical_slider_window_width();
 static const float SLIDER_BOTTOM_MARGIN = 64.0f;
+
 class GCodeViewer
 {
 public:
@@ -133,6 +136,32 @@ public:
 
         class GCodeWindow
         {
+            friend struct GCodeTextViewTestAccess;
+
+            // Source lines are one-based. Browsing is independent of the preview's current line.
+            class GCodeTextView
+            {
+            public:
+                void update(uint64_t line_count, uint64_t visible_count, uint64_t current_line);
+                void scroll_to(uint64_t first_line);
+                void scroll(int lines);
+
+                void resume_following() { m_following = true; }
+                void reset() { *this = GCodeTextView(); }
+                bool following() const { return m_following; }
+                uint64_t first_line() const { return m_first_line; }
+                uint64_t last_line() const { return m_visible_count == 0 ? 0 : m_first_line + m_visible_count - 1; }
+                uint64_t visible_count() const { return m_visible_count; }
+
+            private:
+                uint64_t max_first_line() const { return m_visible_count == 0 ? 1 : m_line_count - m_visible_count + 1; }
+
+                uint64_t m_line_count{0};
+                uint64_t m_visible_count{0};
+                uint64_t m_first_line{1};
+                bool m_following{true};
+            };
+
             struct Line
             {
                 std::string command;
@@ -140,8 +169,11 @@ public:
                 std::string comment;
             };
             bool m_is_dark = false;
-            uint64_t m_selected_line_id{ 0 };
-            size_t m_last_lines_size{ 0 };
+            GCodeTextView m_viewport;
+            uint64_t m_cached_first_line{0};
+            uint64_t m_selected_line_id{0};
+            uint64_t m_load_revision{0};
+            std::optional<uint64_t> m_requested_line;
             std::string m_filename;
             boost::iostreams::mapped_file_source m_file;
             // map for accessing data in file by line number
@@ -154,7 +186,15 @@ public:
             GCodeWindow() = default;
             ~GCodeWindow() { stop_mapping_file(); }
             void load_gcode(const std::string& filename, const std::vector<size_t> &lines_ends);
+            void reset_view() {
+                m_viewport.reset();
+                m_cached_first_line = 0;
+                m_selected_line_id = 0;
+                m_requested_line.reset();
+                ++m_load_revision;
+            }
             void reset() {
+                reset_view();
                 stop_mapping_file();
                 m_lines_ends.clear();
                 m_lines_ends.shrink_to_fit();
@@ -164,9 +204,9 @@ public:
                 m_filename.shrink_to_fit();
             }
 
-            //BBS: GUI refactor: add canvas size
-            //void render(float top, float bottom, uint64_t curr_line_id) const;
-            void render(float top, float bottom, float right, uint64_t curr_line_id) const;
+            void render(ImGuiWrapper& imgui, float top, float bottom, float right, uint64_t curr_line_id);
+            void resume_following() { m_viewport.resume_following(); }
+            std::optional<uint64_t> take_requested_line() { return std::exchange(m_requested_line, std::nullopt); }
             void on_change_color_mode(bool is_dark) { m_is_dark = is_dark; }
 
             void stop_mapping_file();
@@ -209,6 +249,7 @@ private:
     std::vector<int> m_plater_extruder;
     bool m_gl_data_initialized{ false };
     unsigned int m_last_result_id{ 0 };
+    bool m_gcode_ids_sorted{true};
     // Belt printers: the view the loaded result was converted for (see load_as_gcode).
     bool m_last_belt_show_designed{ true };
     // Belt printers: the print Z of each viewer layer, in the viewer's layer numbering.
@@ -434,6 +475,10 @@ public:
 
     const SequentialView& get_sequential_view() const { return m_sequential_view; }
     void update_sequential_view_current(unsigned int first, unsigned int last);
+    void resume_gcode_text_following() { m_sequential_view.gcode_window.resume_following(); }
+    void reset_gcode_text_view() { m_sequential_view.gcode_window.reset_view(); }
+    std::optional<uint64_t> take_gcode_line_request() { return m_sequential_view.gcode_window.take_requested_line(); }
+    bool navigate_to_gcode_line(uint64_t line_id);
 
     /* BBS IMSlider */
     IMSlider *get_moves_slider() { return m_moves_slider; }
