@@ -2195,12 +2195,12 @@ json action_sketch_begin(DesignPanel* panel, const json& params)
     // Every plane passes through modeling_origin (the bed centre), as the GUI's, the datum planes', extrude{profile}'s,
     // hole's and mirror's already do. sketch_begin alone used the world origin, so a sketch and its datum plane disagreed.
     if (pl.rfind("datum:", 0) != 0 && !params.contains("face")) plane.origin = panel->mcp_doc().modeling_origin;
-    vp->begin_sketch(plane, DesignSketchTool::Mode::Select);
+    { PhaseLog t("sketch_begin.begin_sketch"); vp->begin_sketch(plane, DesignSketchTool::Mode::Select); }
     // The panel has to enter sketch mode too, or the app is half in it: the tool sketches, the
     // offer menu offers sketch verbs, and every sketch KEY is dead because key dispatch tests
     // m_ui_mode while the menu tests the viewport. Driving the socket must leave the GUI in the
     // state a user would be in, not a state only the socket can produce.
-    panel->mcp_set_sketch_mode(true);
+    { PhaseLog t("sketch_begin.set_mode"); panel->mcp_set_sketch_mode(true); }
     return json{{"ok", true}, {"plane", pl}};
 }
 
@@ -2209,8 +2209,8 @@ json action_sketch_commit(DesignPanel* panel, const json& params)
     (void)params;
     DesignCanvas* vp = panel->mcp_viewport();
     if (vp == nullptr || !vp->is_sketching()) throw std::runtime_error("no sketch is open");
-    vp->finish_sketch();
-    panel->mcp_set_sketch_mode(false);
+    { PhaseLog t("sketch_commit.finish"); vp->finish_sketch(); }
+    { PhaseLog t("sketch_commit.set_mode"); panel->mcp_set_sketch_mode(false); }
     panel->mcp_after_change();
     CadDocument& cd = panel->mcp_doc();
     const int last = cd.last_added >= 0 && cd.last_added < int(cd.features.size()) ? cd.last_added : int(cd.features.size()) - 1;
