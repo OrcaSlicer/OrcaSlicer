@@ -262,9 +262,9 @@ bool GLGizmoMeasure::on_mouse(const wxMouseEvent &mouse_event)
         if (mouse_event.CmdDown())
             return false;
 
-        if (m_hover_id != -1) {
+        clear_unpickable_hover_id();
+        if (hover_has_pick_target()) {
             m_mouse_left_down = true;
-            m_mouse_left_down_mesh_deal = true;
             auto detect_current_item = [this]() {
                 SelectedFeatures::Item item;
                 if (m_hover_id == SEL_SPHERE_1_ID) {
@@ -360,6 +360,7 @@ bool GLGizmoMeasure::on_mouse(const wxMouseEvent &mouse_event)
                         else {
                             // 2nd feature selection
                             m_selected_features.second = item;
+                            record_hit_volume(item);
                             if (requires_sphere_raycaster_for_picking(item)) {
                                 auto pick = std::make_shared<PickRaycaster>(SEL_SPHERE_2_ID, *m_sphere.mesh_raycaster);
                                 m_gripper_id_raycast_map[GripperType::SPHERE_2] = pick;
@@ -392,6 +393,7 @@ bool GLGizmoMeasure::on_mouse(const wxMouseEvent &mouse_event)
                 }
                 m_selected_wrong_feature_waring_tip = false;
                 m_selected_features.first = item;
+                record_hit_volume(item);
                 if (requires_sphere_raycaster_for_picking(item)) {
                     auto pick = std::make_shared<PickRaycaster>(SEL_SPHERE_1_ID, *m_sphere.mesh_raycaster);
                     m_gripper_id_raycast_map[GripperType::SPHERE_1] = pick;
@@ -563,26 +565,23 @@ bool GLGizmoMeasure::on_is_activable() const
 void GLGizmoMeasure::init_circle_glmodel(GripperType gripper_type, const Measure::SurfaceFeature &feature, CircleGLModel &circle_gl_model,float inv_zoom)
 {
     const auto [center, radius, normal] = feature.get_circle();
-    auto cur_feature =const_cast<Measure::SurfaceFeature *>(&feature);
-    if (circle_gl_model.inv_zoom != inv_zoom) {
-        if (circle_gl_model.last_circle_feature) {
-            const auto [last_center, last_radius, last_normal] = circle_gl_model.last_circle_feature->get_circle();
-            float eps    = 1e-2;
-            if ((last_center - center).norm() < eps && (last_normal - normal).norm() < eps && abs(last_radius - radius) < eps){
-                return;
-            }
+    if (circle_gl_model.inv_zoom == inv_zoom && circle_gl_model.last_circle_feature) {
+        const auto [last_center, last_radius, last_normal] = circle_gl_model.last_circle_feature->get_circle();
+        float eps    = 1e-2;
+        if ((last_center - center).norm() < eps && (last_normal - normal).norm() < eps && abs(last_radius - radius) < eps){
+            return;
         }
-        reset_gripper_pick(gripper_type);
-        circle_gl_model.circle.reset();
-        GLModel::Geometry circle_geometry = init_torus_data(64, 16, center.cast<float>(), float(radius), 5.0f * inv_zoom, normal.cast<float>(), Transform3f::Identity());
-        circle_gl_model.circle.mesh_raycaster = std::make_unique<MeshRaycaster>(std::make_shared<const TriangleMesh>(circle_geometry.get_as_indexed_triangle_set()));
-        circle_gl_model.circle.model.init_from(std::move(circle_geometry));
-        if (circle_gl_model.circle.model.is_initialized()) {
-            m_gripper_id_raycast_map[gripper_type] = std::make_shared<PickRaycaster>(CIRCLE_ID, *m_curr_circle.circle.mesh_raycaster);
-        }
-        circle_gl_model.last_circle_feature = cur_feature;
-        circle_gl_model.inv_zoom            = inv_zoom;
     }
+    reset_gripper_pick(gripper_type);
+    circle_gl_model.circle.reset();
+    GLModel::Geometry circle_geometry = init_torus_data(64, 16, center.cast<float>(), float(radius), 5.0f * inv_zoom, normal.cast<float>(), Transform3f::Identity());
+    circle_gl_model.circle.mesh_raycaster = std::make_unique<MeshRaycaster>(std::make_shared<const TriangleMesh>(circle_geometry.get_as_indexed_triangle_set()));
+    circle_gl_model.circle.model.init_from(std::move(circle_geometry));
+    if (circle_gl_model.circle.model.is_initialized()) {
+        m_gripper_id_raycast_map[gripper_type] = std::make_shared<PickRaycaster>(CIRCLE_ID, *circle_gl_model.circle.mesh_raycaster);
+    }
+    circle_gl_model.last_circle_feature = feature;
+    circle_gl_model.inv_zoom            = inv_zoom;
 }
 const float MEASURE_PLNE_NORMAL_OFFSET = 0.05;
 void GLGizmoMeasure::init_plane_glmodel(GripperType gripper_type, const Measure::SurfaceFeature &feature, PlaneGLModel &plane_gl_model)
@@ -607,6 +606,9 @@ void GLGizmoMeasure::init_plane_glmodel(GripperType gripper_type, const Measure:
             m_gripper_id_raycast_map[gripper_type] = std::make_shared<PickRaycaster>(PLANE_ID, *plane_gl_model.plane.mesh_raycaster, feature.world_tran);
         }
     }
+    // The plane mesh is only rebuilt for a new plane, so the gripper follows the feature when its object moves.
+    else if (auto it = m_gripper_id_raycast_map.find(gripper_type); it != m_gripper_id_raycast_map.end() && it->second != nullptr)
+        it->second->set_transform(feature.world_tran);
 }
 
 bool GLGizmoMeasure::render_follows_cursor() const
@@ -646,23 +648,16 @@ void GLGizmoMeasure::on_render()
     bool mouse_on_object =false;
     {
         if (!m_editing_distance) {
-            Vec3f  hit                          = Vec3f::Zero();
-            double closest_hit_squared_distance = std::numeric_limits<double>::max();
-            for (auto item : m_gripper_id_raycast_map) {
-
-                auto  world_tran = item.second->get_transform();
+            std::vector<GripperHit> hits;
+            for (const auto &item : m_gripper_id_raycast_map) {
+                const Transform3d &world_tran = item.second->get_transform();
+                Vec3f hit = Vec3f::Zero();
                 Vec3f normal_on_gripper;
-                if (item.second->get_raycaster()->closest_hit(mouse_position, item.second->get_transform(), camera, hit, normal_on_gripper)) {
-                    double hit_squared_distance = (camera.get_position() - world_tran * hit.cast<double>()).squaredNorm();
-                    if (hit_squared_distance < closest_hit_squared_distance) {
-                        closest_hit_squared_distance = hit_squared_distance;
-                        if (item.second->get_id() > 0) {
-                            m_hover_id       = item.second->get_id();
-                            mouse_on_gripper = true;
-                        }
-                    }
-                }
+                if (item.second->get_id() > 0 && item.second->get_raycaster()->closest_hit(mouse_position, world_tran, camera, hit, normal_on_gripper))
+                    hits.push_back({item.second->get_id(), (camera.get_position() - world_tran * hit.cast<double>()).squaredNorm()});
             }
+            m_hover_id       = pick_hover_id(hits);
+            mouse_on_gripper = m_hover_id != -1;
         }
     }
     Vec3d  position_on_model;
@@ -697,44 +692,8 @@ void GLGizmoMeasure::on_render()
             reset_gripper_pick(GripperType::PLANE);
             reset_gripper_pick(GripperType::CIRCLE);
         }
-        if (m_mouse_left_down_mesh_deal && m_hover_id >= 0) {
-            m_mouse_left_down_mesh_deal = false;
-            if (m_selected_features.second.feature.has_value()) {
-                if (m_hit_order_volumes.size() == 1) {
-                    m_hit_order_volumes.push_back(m_last_hit_volume);
-                } else {
-                    m_hit_order_volumes[1] = m_last_hit_volume;
-                }
-                // deal hit_different_volumes
-                if (m_hit_different_volumes.size() >= 1) {
-                    if (m_last_hit_volume == m_hit_different_volumes[0]) {
-                        if (m_hit_different_volumes.size() == 2) {//hit same volume
-                            m_hit_different_volumes.erase(m_hit_different_volumes.begin() + 1);
-                        }
-                    } else  {
-                        if (m_hit_different_volumes.size() == 2) {
-                            m_hit_different_volumes[1] = m_last_hit_volume;
-                        } else {
-                            m_hit_different_volumes.push_back(m_last_hit_volume);
-                        }
-                    }
-                }
-            }
-            else if (m_selected_features.first.feature.has_value()) {
-                if (m_hit_order_volumes.size() == 0) {
-                    m_hit_order_volumes.push_back(m_last_hit_volume);
-                } else {
-                    m_hit_order_volumes[0] = m_last_hit_volume;
-                }
-                //deal hit_different_volumes
-                if (m_hit_different_volumes.size() == 0) {
-                    m_hit_different_volumes.push_back(m_last_hit_volume);
-                }
-            }
-        }
     }
     //const bool mouse_on_object = m_raycaster->unproject_on_mesh(mouse_position, Transform3d::Identity(), camera, position_on_model, normal_on_model, nullptr, &model_facet_idx);
-    const bool is_hovering_on_feature = m_mode == EMode::PointSelection && m_hover_id != -1;
 
     if (m_mode == EMode::FeatureSelection || m_mode == EMode::PointSelection) {
         if (m_hover_id == SEL_SPHERE_1_ID || m_hover_id == SEL_SPHERE_2_ID) {
@@ -742,6 +701,9 @@ void GLGizmoMeasure::on_render()
             //reset_gripper_pick(GripperType::UNDEFINE, true);
             m_curr_feature.reset();
             m_curr_point_on_feature_position.reset();
+        }
+        else if (m_hover_id == POINT_ID && m_curr_feature.has_value()) {
+            // A circle center or polygon center is too far from its feature to keep it hovered, so the feature is kept while its point is hit.
         }
         else {
             std::optional<Measure::SurfaceFeature> curr_feature = std::nullopt;
@@ -766,9 +728,11 @@ void GLGizmoMeasure::on_render()
             }
             if (m_curr_feature != curr_feature ||
                 (curr_feature.has_value() && curr_feature->get_type() == Measure::SurfaceFeatureType::Circle && (m_curr_feature != curr_feature || m_last_inv_zoom != inv_zoom))) {
-                reset_gripper_pick(GripperType::UNDEFINE, true);
+                reset_hover_gripper_pick();
 
                 m_curr_feature = curr_feature;
+                m_last_inv_zoom = inv_zoom;
+                m_curr_point_on_feature_position.reset();
                 // The selected features are drawn below whether or not one is hovered.
                 if (m_curr_feature.has_value()) {
                     m_curr_feature->volume     = m_last_hit_volume;
@@ -784,12 +748,15 @@ void GLGizmoMeasure::on_render()
                     case Measure::SurfaceFeatureType::Edge:
                     {
                         m_gripper_id_raycast_map[GripperType::EDGE] = std::make_shared<PickRaycaster>(EDGE_ID, *m_cylinder.mesh_raycaster);
+                        if (m_curr_feature->get_extra_point().has_value())
+                            m_gripper_id_raycast_map[GripperType::POINT] = std::make_shared<PickRaycaster>(POINT_ID, *m_sphere.mesh_raycaster);
                         break;
                     }
                     case Measure::SurfaceFeatureType::Circle: {
-                        m_curr_circle.last_circle_feature = nullptr;
+                        m_curr_circle.last_circle_feature.reset();
                         m_curr_circle.inv_zoom            = 0;
                         init_circle_glmodel(GripperType::CIRCLE, *m_curr_feature, m_curr_circle,inv_zoom);
+                        m_gripper_id_raycast_map[GripperType::POINT] = std::make_shared<PickRaycaster>(POINT_ID, *m_sphere.mesh_raycaster);
                         break;
                     }
                     case Measure::SurfaceFeatureType::Plane: {
@@ -807,8 +774,8 @@ void GLGizmoMeasure::on_render()
     if (m_mode != EMode::PointSelection) {
         m_curr_point_on_feature_position.reset();
     }
-    else if (is_hovering_on_feature) {
-        auto position_on_feature = [this, &mouse_position](int feature_type_id, const Camera &camera, std::function<Vec3f(const Vec3f &)> callback = nullptr) -> Vec3d {
+    else {
+        auto position_on_feature = [this, &mouse_position](int feature_type_id, const Camera &camera, std::function<Vec3f(const Vec3f &)> callback = nullptr) -> std::optional<Vec3d> {
             auto it = m_gripper_id_raycast_map.find((GripperType) feature_type_id); // m_raycasters.find(feature_type_id);
             if (it != m_gripper_id_raycast_map.end() && it->second != nullptr) {
                 Vec3f p;
@@ -821,7 +788,7 @@ void GLGizmoMeasure::on_render()
                     return trafo * p.cast<double>();
                 }
             }
-            return Vec3d(DBL_MAX, DBL_MAX, DBL_MAX);
+            return std::nullopt;
         };
         if (m_curr_feature.has_value()) {
             switch (m_curr_feature->get_type())
@@ -835,18 +802,16 @@ void GLGizmoMeasure::on_render()
             case Measure::SurfaceFeatureType::Edge:
             {
                 const std::optional<Vec3d> extra = m_curr_feature->get_extra_point();
-                if (extra.has_value() && m_hover_id == GripperType::POINT)
+                if (extra.has_value() && m_hover_id == POINT_ID)
                     m_curr_point_on_feature_position = *extra;
-                else {
-                    const Vec3d pos = position_on_feature(GripperType::EDGE, camera, [](const Vec3f &v) { return Vec3f(0.0f, 0.0f, v.z()); });
-                    if (!pos.isApprox(Vec3d(DBL_MAX, DBL_MAX, DBL_MAX)))
-                        m_curr_point_on_feature_position = pos;
-                }
+                else if (const std::optional<Vec3d> pos = position_on_feature(GripperType::EDGE, camera, [](const Vec3f &v) { return Vec3f(0.0f, 0.0f, v.z()); }))
+                    m_curr_point_on_feature_position = pos;
                 break;
             }
             case Measure::SurfaceFeatureType::Plane:
             {
-                m_curr_point_on_feature_position = position_on_feature(GripperType::PLANE, camera);
+                if (const std::optional<Vec3d> pos = position_on_feature(GripperType::PLANE, camera))
+                    m_curr_point_on_feature_position = pos;
                 break;
             }
             case Measure::SurfaceFeatureType::Circle:
@@ -854,11 +819,10 @@ void GLGizmoMeasure::on_render()
                 const auto [center, radius, normal] = m_curr_feature->get_circle();
                 if (m_hover_id == POINT_ID)
                     m_curr_point_on_feature_position = center;
-                else {
-                    const Vec3d world_pof = position_on_feature(GripperType::CIRCLE, camera, [](const Vec3f &v) { return v; });
+                else if (const std::optional<Vec3d> world_pof = position_on_feature(GripperType::CIRCLE, camera, [](const Vec3f &v) { return v; })) {
                     const Eigen::Hyperplane<double, 3> plane(normal, center);
                     const Transform3d local_to_model_matrix = Geometry::translation_transform(center) * Eigen::Quaternion<double>::FromTwoVectors(Vec3d::UnitZ(), normal);
-                    const Vec3d local_proj = local_to_model_matrix.inverse() * plane.projection(world_pof);
+                    const Vec3d local_proj = local_to_model_matrix.inverse() * plane.projection(*world_pof);
                     double angle = std::atan2(local_proj.y(), local_proj.x());
                     if (angle < 0.0)
                         angle += 2.0 * double(M_PI);
@@ -871,9 +835,8 @@ void GLGizmoMeasure::on_render()
             }
         }
     }
-    else {
-        m_curr_point_on_feature_position.reset();
-    }
+
+    clear_unpickable_hover_id();
 
     if (!m_curr_feature.has_value() && !m_selected_features.first.feature.has_value()) {
         return;
@@ -954,10 +917,11 @@ void GLGizmoMeasure::on_render()
                     const Transform3d center_matrix = Geometry::translation_transform(center) * Geometry::scale_transform(inv_zoom);
                     render_glmodel(m_sphere, colors.back(), center_matrix, hover);
 
-                    Geometry::Transformation tran(center_matrix);
-                    auto it = m_gripper_id_raycast_map.find(GripperType::POINT);
-                    if (it != m_gripper_id_raycast_map.end() && it->second != nullptr)
-                        it->second->set_transform(center_matrix);
+                    if (update_raycasters_transform) {
+                        auto it = m_gripper_id_raycast_map.find(GripperType::POINT);
+                        if (it != m_gripper_id_raycast_map.end() && it->second != nullptr)
+                            it->second->set_transform(center_matrix);
+                    }
                 }
                 break;
             }
@@ -985,9 +949,11 @@ void GLGizmoMeasure::on_render()
                         Geometry::Transformation tran(point_matrix);
                         render_glmodel(m_sphere, colors.back(), tran.get_matrix(), hover);
 
-                        auto it = m_gripper_id_raycast_map.find(GripperType::POINT);
-                        if (it != m_gripper_id_raycast_map.end() && it->second != nullptr) {
-                            it->second->set_transform(point_matrix);
+                        if (update_raycasters_transform) {
+                            auto it = m_gripper_id_raycast_map.find(GripperType::POINT);
+                            if (it != m_gripper_id_raycast_map.end() && it->second != nullptr) {
+                                it->second->set_transform(point_matrix);
+                            }
                         }
                     }
                 }
@@ -1145,7 +1111,7 @@ void GLGizmoMeasure::on_render()
         }
     }
 
-    if (is_hovering_on_feature && m_curr_point_on_feature_position.has_value()) {
+    if (m_mode == EMode::PointSelection && m_curr_point_on_feature_position.has_value()) {
         if (m_hover_id != POINT_ID) {
             // render point on feature while SHIFT is pressed
             const Transform3d matrix = Geometry::translation_transform(*m_curr_point_on_feature_position) * Geometry::scale_transform(inv_zoom);
@@ -2327,14 +2293,102 @@ void GLGizmoMeasure::reset_gripper_pick(GripperType id, bool is_all)
         m_gripper_id_raycast_map.erase(id);
     }
     if (id == GripperType ::UNDEFINE && is_all) {
-        reset_gripper_pick(GripperType::POINT);
-        reset_gripper_pick(GripperType::EDGE);
-        reset_gripper_pick(GripperType::PLANE);
+        reset_hover_gripper_pick();
         reset_gripper_pick(GripperType::PLANE_1);
         reset_gripper_pick(GripperType::PLANE_2);
-        reset_gripper_pick(GripperType::CIRCLE);
         reset_gripper_pick(GripperType::CIRCLE_1);
         reset_gripper_pick(GripperType::CIRCLE_2);
+    }
+}
+
+void GLGizmoMeasure::reset_hover_gripper_pick()
+{
+    reset_gripper_pick(GripperType::POINT);
+    reset_gripper_pick(GripperType::EDGE);
+    reset_gripper_pick(GripperType::PLANE);
+    reset_gripper_pick(GripperType::CIRCLE);
+}
+
+bool GLGizmoMeasure::has_pick_target(const PickState &state)
+{
+    if (state.hover_id == SEL_SPHERE_1_ID)
+        return state.sphere_1_live;
+    if (state.hover_id == SEL_SPHERE_2_ID)
+        return state.sphere_2_live;
+    return state.feature_hovered && (!state.point_selection || state.has_point_on_feature);
+}
+
+int GLGizmoMeasure::pick_hover_id(const std::vector<GripperHit> &hits)
+{
+    auto is_selection_sphere = [](int id) { return id == SEL_SPHERE_1_ID || id == SEL_SPHERE_2_ID; };
+    int    hover_id = -1;
+    double closest  = std::numeric_limits<double>::max();
+    for (const GripperHit &hit : hits) {
+        const bool tie = std::abs(hit.distance - closest) <= 1e-9 * closest;
+        if (tie ? is_selection_sphere(hit.id) && !is_selection_sphere(hover_id) : hit.distance < closest) {
+            closest  = hit.distance;
+            hover_id = hit.id;
+        }
+    }
+    return hover_id;
+}
+
+bool GLGizmoMeasure::hover_has_pick_target() const
+{
+    PickState state;
+    state.hover_id             = m_hover_id;
+    state.sphere_1_live        = m_selected_features.first.feature.has_value() && m_gripper_id_raycast_map.count(GripperType::SPHERE_1) > 0;
+    state.sphere_2_live        = m_selected_features.second.feature.has_value() && m_gripper_id_raycast_map.count(GripperType::SPHERE_2) > 0;
+    state.feature_hovered      = m_curr_feature.has_value();
+    state.point_selection      = m_mode == EMode::PointSelection;
+    state.has_point_on_feature = m_curr_point_on_feature_position.has_value();
+    return has_pick_target(state);
+}
+
+void GLGizmoMeasure::clear_unpickable_hover_id()
+{
+    if (!hover_has_pick_target())
+        m_hover_id = -1;
+}
+
+void GLGizmoMeasure::record_hit_volume(const SelectedFeatures::Item &item)
+{
+    // A center item's feature is a new point with no volume, so the volume comes from the feature it is the center of.
+    GLVolume *volume = static_cast<GLVolume *>(item.feature->volume);
+    if (volume == nullptr && item.source.has_value())
+        volume = static_cast<GLVolume *>(item.source->volume);
+    if (volume == nullptr)
+        volume = m_last_hit_volume;
+
+    if (m_selected_features.second.feature.has_value()) {
+        if (m_hit_order_volumes.size() == 1) {
+            m_hit_order_volumes.push_back(volume);
+        } else {
+            m_hit_order_volumes[1] = volume;
+        }
+        if (m_hit_different_volumes.size() >= 1) {
+            if (volume == m_hit_different_volumes[0]) {
+                if (m_hit_different_volumes.size() == 2) {
+                    m_hit_different_volumes.erase(m_hit_different_volumes.begin() + 1);
+                }
+            } else  {
+                if (m_hit_different_volumes.size() == 2) {
+                    m_hit_different_volumes[1] = volume;
+                } else {
+                    m_hit_different_volumes.push_back(volume);
+                }
+            }
+        }
+    }
+    else if (m_selected_features.first.feature.has_value()) {
+        if (m_hit_order_volumes.size() == 0) {
+            m_hit_order_volumes.push_back(volume);
+        } else {
+            m_hit_order_volumes[0] = volume;
+        }
+        if (m_hit_different_volumes.size() == 0) {
+            m_hit_different_volumes.push_back(volume);
+        }
     }
 }
 
@@ -2385,7 +2439,7 @@ void GLGizmoMeasure::reset_feature1_render()
     }
     if (m_feature_circle_first.circle.model.is_initialized()) {
         m_feature_circle_first.circle.model.reset();
-        m_feature_circle_first.last_circle_feature = nullptr;
+        m_feature_circle_first.last_circle_feature.reset();
         m_feature_circle_first.inv_zoom            = 0;
     }
 }
@@ -2398,7 +2452,7 @@ void GLGizmoMeasure::reset_feature2_render()
     }
     if (m_feature_circle_second.circle.model.is_initialized()) {
         m_feature_circle_second.circle.model.reset();
-        m_feature_circle_second.last_circle_feature = nullptr;
+        m_feature_circle_second.last_circle_feature.reset();
         m_feature_circle_second.inv_zoom            = 0;
     }
 }
@@ -2508,9 +2562,9 @@ void GLGizmoMeasure::update_feature_by_tran(Measure::SurfaceFeature &feature)
         feature.clone(*feature.origin_surface_feature);
         feature.translate(feature.world_tran);
         if (feature.get_type() == Measure::SurfaceFeatureType::Circle) {
-            m_feature_circle_first.last_circle_feature  = nullptr;
+            m_feature_circle_first.last_circle_feature.reset();
             m_feature_circle_first.inv_zoom             = 0;
-            m_feature_circle_second.last_circle_feature = nullptr;
+            m_feature_circle_second.last_circle_feature.reset();
             m_feature_circle_second.inv_zoom            = 0;
         }
         if (feature.get_type() == Measure::SurfaceFeatureType::Plane) {

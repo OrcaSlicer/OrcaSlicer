@@ -179,7 +179,7 @@ protected:
     struct CircleGLModel
     {
         PickingModel circle;
-        Measure::SurfaceFeature *last_circle_feature{nullptr};
+        std::optional<Measure::SurfaceFeature> last_circle_feature;
         float                    inv_zoom{0};
     };
     CircleGLModel  m_curr_circle;
@@ -226,7 +226,6 @@ protected:
     int m_last_plane_idx{ -1 };
 
     bool m_mouse_left_down{ false }; // for detection left_up of this gizmo
-    bool m_mouse_left_down_mesh_deal{false};//for pick mesh
 
     KeyAutoRepeatFilter m_shift_kar_filter;
 
@@ -268,6 +267,28 @@ public:
     std::string get_gizmo_leaving_text() const override { return _u8L("Leaving Measure gizmo"); }
     //std::string get_action_snapshot_name() const override { return _u8L("Measure gizmo editing"); }
 
+    struct PickState
+    {
+        int  hover_id{-1};
+        bool sphere_1_live{false};
+        bool sphere_2_live{false};
+        bool feature_hovered{false};
+        bool point_selection{false};
+        bool has_point_on_feature{false};
+    };
+    // Returns true when a click can select a live selection sphere under the cursor, or else the hovered feature
+    // and, in point selection, the point on it.
+    static bool has_pick_target(const PickState &state);
+
+    struct GripperHit
+    {
+        int    id;
+        double distance;
+    };
+    // Returns the closest hit's id, or -1 without a hit. On a tie a selection sphere beats any other gripper,
+    // and otherwise the earlier hit is kept.
+    static int pick_hover_id(const std::vector<GripperHit> &hits);
+
 protected:
     bool on_init() override;
     std::string on_get_name() const override;
@@ -293,6 +314,11 @@ protected:
 
     void reset_all_pick();
     void reset_gripper_pick(GripperType id,bool is_all = false);
+    void reset_hover_gripper_pick();
+    bool hover_has_pick_target() const;
+    // Sets m_hover_id to -1 when the gripper it names has no feature to select.
+    void clear_unpickable_hover_id();
+    void record_hit_volume(const SelectedFeatures::Item &item);
     void register_single_mesh_pick();
     //void update_single_mesh_pick(GLVolume* v);
 
