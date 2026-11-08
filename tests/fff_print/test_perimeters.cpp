@@ -1634,6 +1634,59 @@ double y_running_length(const ExtrusionEntityCollection &entities, Keep &&keep)
 
 } // namespace
 
+TEST_CASE("A bridge anchor into another filament is equally wide whatever the bridge direction", "[Perimeters]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+
+    Print print;
+    Model model;
+    // An oblique bridge meets the boundaries with the pillars at 45 degrees.
+    painted_bridge(print, model, wall_generator, false, false, 45., 25., false);
+    const PrintObject &object = *print.objects().front();
+    const auto layer = std::find_if(object.layers().begin(), object.layers().end(),
+                                    [](const Layer *l) { return std::abs(l->print_z - 5.2) < EPSILON; });
+    REQUIRE(layer != object.layers().end());
+
+    const LayerRegion *deck = nullptr;
+    const LayerRegion *pillars = nullptr;
+    for (const LayerRegion *layerm : (*layer)->regions())
+        if (! layerm->slices.empty())
+            (get_extents(layerm->slices.surfaces).size().x() < scaled(15.) ? deck : pillars) = layerm;
+    REQUIRE(deck != nullptr);
+    REQUIRE(pillars != nullptr);
+    const BoundingBox deck_bbox = get_extents(deck->slices.surfaces);
+    ExPolygons bridges;
+    for (const Surface &surface : deck->fill_surfaces.surfaces)
+        if (surface.surface_type == stBottomBridge)
+            bridges.emplace_back(surface.expolygon);
+    REQUIRE(! bridges.empty());
+    const BoundingBox bridge_bbox = get_extents(bridges);
+
+    const double anchor = std::min<double>({BRIDGE_INFILL_MARGIN, deck->flow(frPerimeter).spacing(),
+                                            deck->flow(frExternalPerimeter).width()});
+    const double extension = deck->bridging_flow(frSolidInfill).spacing() / 2. + anchor;
+    // The anchors are measured perpendicular to the boundaries, away from the rounded ends of the bridge.
+    const coord_t width = scaled(extension - 0.01);
+    const coord_t y_min = bridge_bbox.min.y() + scaled(1.);
+    const coord_t y_max = bridge_bbox.max.y() - scaled(1.);
+    for (const BoundingBox &band : { BoundingBox(Point(deck_bbox.min.x() - width, y_min), Point(deck_bbox.min.x(), y_max)),
+                                     BoundingBox(Point(deck_bbox.max.x(), y_min), Point(deck_bbox.max.x() + width, y_max)) }) {
+        INFO("anchor band: " << unscale<double>(band.min.x()) << ", " << unscale<double>(band.max.x()));
+        CHECK(area(diff_ex(Polygons{ band.polygon() }, bridges)) < sqr(scale_(0.01)));
+    }
+
+    // The walls of the pillars cut back for the anchors leave no strips to be filled with gap fill.
+    double gap_fill_along_anchors = 0.;
+    const Polygons near_anchors = offset(bridges, scale_(1.));
+    for_each_extrusion_path(pillars->fills, [&gap_fill_along_anchors, &near_anchors](const ExtrusionPath &path) {
+        if (path.role() == erGapFill)
+            for (const Polyline &piece : intersection_pl(Polylines{ path.polyline.to_polyline() }, near_anchors))
+                gap_fill_along_anchors += unscale<double>(piece.length());
+    });
+    CHECK(gap_fill_along_anchors < 0.5);
+}
+
 TEST_CASE("A bridge in another filament is bridged between the walls of its neighbours", "[Perimeters]")
 {
     const char *wall_generator = GENERATE("classic", "arachne");

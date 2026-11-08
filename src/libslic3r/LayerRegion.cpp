@@ -612,24 +612,14 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
             const float extension = float(scale_(bridge_flow.spacing() / 2.) + bridge_anchor_offset);
             Surfaces anchored_bridges;
             for (const Surface &bridge : bridges.surfaces) {
-                // Extend along the bridge lines only. Growing sideways creates short extra
-                // spans around the corners which cannot reach the full anchor distance.
-                const Point shift(coord_t(std::llround(extension * std::cos(bridge.bridge_angle))),
-                                  coord_t(std::llround(extension * std::sin(bridge.bridge_angle))));
-                Polygons expanded = to_polygons(bridge.expolygon);
-                Polygons shifted = expanded;
-                translate(expanded, -shift);
-                translate(shifted, shift);
-                append(expanded, std::move(shifted));
-                for (const Polygon &polygon : to_polygons(bridge.expolygon))
-                    for (const Line &line : polygon.lines()) {
-                        Polygon sweep({line.a - shift, line.b - shift, line.b + shift, line.a + shift});
-                        if (sweep.area() == 0.)
-                            continue;
-                        sweep.make_counter_clockwise();
-                        expanded.emplace_back(std::move(sweep));
-                    }
-                ExPolygons anchors = intersection_ex(union_(expanded), other_regions);
+                // Anchor only across the boundaries shared with the other regions, equally far whatever the
+                // bridge direction. Butt ends keep the anchor from spreading sideways past these boundaries
+                // into areas the bridge lines cannot cover.
+                Polylines shared;
+                for (Polyline &edge : intersection_pl(to_polylines(bridge.expolygon), offset(other_regions, float(SCALED_EPSILON))))
+                    if (edge.length() > 2. * SCALED_EPSILON)
+                        shared.emplace_back(std::move(edge));
+                ExPolygons anchors = intersection_ex(offset(shared, extension, jtMiter, 3.), other_regions);
                 anchors = intersection_ex(anchors, this->layer()->lslices);
                 // Surface classification uses safety offsets and may leave a sub-resolution
                 // gap at the material boundary. Close it without joining separate islands.

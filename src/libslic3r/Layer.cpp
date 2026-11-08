@@ -368,6 +368,46 @@ void Layer::reserve_bridge_anchors()
         displaced_walls = diff(displaced_walls, anchors);
         displaced_walls = diff(displaced_walls, to_polygons(surfaces));
         displaced_walls = intersection(displaced_walls, to_polygons(lower_layer->lslices));
+        // The walls touching an anchor are removed whole, leaving a band narrower than a wall between the
+        // anchor and the walls kept. Let the bridge extend over it, which keeps the anchor as wide all along
+        // the boundary instead of filling the band with short gap fill.
+        const Polygons kept_walls = region->perimeters.polygons_covered_by_width();
+        for (LayerRegion *other : m_regions) {
+            if (other == region || displaced_walls.empty())
+                continue;
+            const Flow bridge_flow = other->bridging_flow(frSolidInfill, object()->config().thick_bridges);
+            const float footprint_offset = float(scale_(std::max(0., (double(bridge_flow.width()) - bridge_flow.spacing()) / 2.)) + SCALED_EPSILON);
+            const Polygons wall_clearance = offset(kept_walls, footprint_offset);
+            Surfaces extended;
+            for (Surface &surface : other->fill_surfaces.surfaces) {
+                if (surface.surface_type != stBottomBridge)
+                    continue;
+                const Polygons reach = offset(surface.expolygon, footprint_offset + float(SCALED_EPSILON));
+                Polygons taken;
+                for (ExPolygon &band : union_ex(displaced_walls))
+                    if (!intersection(to_polygons(band), reach).empty())
+                        polygons_append(taken, to_polygons(std::move(band)));
+                if (taken.empty())
+                    continue;
+                displaced_walls = diff(displaced_walls, taken);
+                // Include the strip of the anchor between the bridge and the band.
+                polygons_append(taken, intersection(anchors, offset(taken, footprint_offset + float(SCALED_EPSILON))));
+                taken = diff(taken, wall_clearance);
+                ExPolygons merged = closing_ex(union_ex(ExPolygons{surface.expolygon}, union_ex(taken)), float(SCALED_EPSILON));
+                merged = intersection_ex(merged, lslices);
+                bool first = true;
+                for (ExPolygon &expoly : merged) {
+                    if (intersection_ex(ExPolygons{expoly}, ExPolygons{surface.expolygon}).empty())
+                        continue;
+                    if (first) {
+                        surface.expolygon = std::move(expoly);
+                        first = false;
+                    } else
+                        extended.emplace_back(surface, std::move(expoly));
+                }
+            }
+            append(other->fill_surfaces.surfaces, std::move(extended));
+        }
         const Flow gap_flow = region->flow(frSolidInfill);
         const double min_width = 0.2 * std::min(region->flow(frPerimeter).scaled_width(),
                                                region->flow(frExternalPerimeter).scaled_width()) * (1 - INSET_OVERLAP_TOLERANCE);
