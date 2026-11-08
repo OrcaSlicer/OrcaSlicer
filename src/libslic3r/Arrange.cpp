@@ -157,10 +157,59 @@ void update_arrange_params(ArrangeParams& params, const DynamicPrintConfig* prin
     params.bed_shrink_y += params.brim_skirt_distance;
 }
 
+void update_arrange_items(ArrangePolygons& selected, ArrangePolygons& unselected, const DynamicPrintConfig* print_cfg, ArrangeParams& params)
+{
+    update_arrange_params(params, print_cfg, selected);
+    update_selected_items_axis_align(selected, print_cfg, params);
+    update_selected_items_inflation(selected, print_cfg, params);
+    update_unselected_items_inflation(unselected, print_cfg, params);
+}
+
+// The size of an item as the nester packs it, inflated with square joins and then turned.
+static Point packed_size(const ArrangePolygon &ap, coord_t inflation)
+{
+    const ExPolygons inflated = inflation > 0 ? offset_ex(ap.poly, float(inflation), jtSquare) : ExPolygons();
+    Polygon          outline  = inflated.empty() ? ap.poly.contour : inflated.front().contour;
+    outline.rotate(ap.rotation);
+    return outline.bounding_box().size();
+}
+
+// An item's inflation as set, and its packed size without and with it.
+struct ItemSizes
+{
+    coord_t inflation;
+    Point   bare;
+    Point   inflated;
+};
+
+// Lowers the inflation of `ap`, which starts as `item`'s, so it fits `room` where it can, and returns its packed size.
+static Point cap_to_room(ArrangePolygon &ap, const ItemSizes &item, const Point &room)
+{
+    Point size = item.inflated;
+    // The packed size grows convexly with the inflation, so one step along the line from the bare size
+    // fits the item, and a second covers rounding.
+    for (int pass = 0; pass < 2 && ap.inflation > 0 && (size.x() > room.x() || size.y() > room.y()); ++pass) {
+        double ratio = 1.;
+        for (int axis : {0, 1})
+            if (size[axis] > room[axis])
+                ratio = std::min(ratio, double(room[axis] - item.bare[axis]) / double(size[axis] - item.bare[axis]));
+        ap.inflation = coord_t(ap.inflation * std::max(0., ratio));
+        size         = packed_size(ap, ap.inflation);
+    }
+    return size;
+}
+
+// Whether the bed fills its bounding box, so the nester packs it as a box.
+static bool is_box_bed(const Points &bed)
+{
+    const BoundingBox bb(bed);
+    return 1.0 - std::abs(Polygon::area(bed)) / (double(bb.size().x()) * double(bb.size().y())) < 1e-3;
+}
+
 void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, ArrangeParams& params) {
     // do not inflate brim_width. Objects are allowed to have overlapped brim.
-    // A brim reaching the printable area's edge is fine, so measure against the full bed.
-    BoundingBox bedbb = Polygon(get_bed_shape(*print_cfg)).bounding_box();
+    const Points      bed_shape = get_bed_shape(*print_cfg);
+    const BoundingBox bedbb(bed_shape);
     // set obj distance for auto seq_print
     if (params.is_seq_print) {
         bool all_objects_are_short = std::all_of(selected.begin(), selected.end(), [&](ArrangePolygon& ap) { return ap.height < params.nozzle_height; });
@@ -182,47 +231,68 @@ void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPri
         // 3. otherwise, use each object's own brim width
         ap.inflation = params.min_obj_distance != 0 ? params.min_obj_distance / 2 :
             plate_has_tree_support ? scaled(brim_max / 2) : scaled(ap.brim_width);
-        if (params.min_obj_distance != 0)
-            return; // an explicit object distance is the user's call, not ours to shrink
-        // An item cannot be larger than the printable area, inflation included. Inflating
-        // an almost bed filling item would leave it too big to ever be placed.
-        BoundingBox apbb   = ap.poly.contour.bounding_box();
-        auto        diffx  = bedbb.size().x() - apbb.size().x();
-        auto        diffy  = bedbb.size().y() - apbb.size().y();
-        ap.inflation = std::max<coord_t>(0, std::min({ ap.inflation, diffx / 2, diffy / 2 }));
         });
+
+    // The inflation past every item's brim or tree support only keeps items apart, so the bed may grow
+    // by it, and by all of it when printing by object. A round bed would grow unevenly at its
+    // diagonals, so a set distance grows only a rectangular bed.
+    coord_t reach = params.is_seq_print  ? params.min_obj_distance / 2 :
+                    is_box_bed(bed_shape) ? params.min_obj_distance / 2 - (plate_has_tree_support ? scaled(brim_max / 2) : scaled(brim_max)) :
+                                            0;
+    reach = std::max<coord_t>(0, reach);
+
+    // Kept between an item and the edge of the arrange bed, since the nester cannot place an
+    // item beside one that fills the bed exactly.
+    const coord_t slack = scaled(EPSILON);
+    // The bed less the room for the skirt and the slack, grown by `grow`.
+    auto room = [&](coord_t grow) {
+        const coord_t edge = 2 * (scaled(params.brim_skirt_distance) + slack - grow);
+        return Point(bedbb.size().x() - edge, bedbb.size().y() - edge);
+    };
+    // An item no larger than the bed less the room for the skirt can be placed.
+    const Point plain     = room(0) + Point(2 * slack, 2 * slack);
+    auto        placeable = [&](const ItemSizes &item) { return item.bare.x() <= plain.x() && item.bare.y() <= plain.y(); };
+
+    std::vector<ItemSizes> sizes;
+    sizes.reserve(selected.size());
+    for (const ArrangePolygon &ap : selected)
+        sizes.push_back({ap.inflation, packed_size(ap, 0), packed_size(ap, ap.inflation)});
+    // Caps every item to the bed grown by `grow` and returns the largest that can be placed, as packed.
+    auto cap_items = [&](coord_t grow) {
+        const Point fit = room(grow);
+        Point       largest(0, 0);
+        for (size_t i = 0; i < selected.size(); ++i) {
+            selected[i].inflation = sizes[i].inflation;
+            // An almost bed filling item gets less inflation, or it could never be placed. An item too
+            // big for the bed keeps all of it and stays too big for the grown bed. Printing by object,
+            // the distance keeps the extruder clear of printed objects, so it is never shrunk.
+            const bool  capped = !params.is_seq_print && placeable(sizes[i]);
+            const Point size   = capped ? cap_to_room(selected[i], sizes[i], fit) : sizes[i].inflated;
+            if (placeable(sizes[i]))
+                largest = largest.cwiseMax(size);
+        }
+        return largest;
+    };
+    Point largest = cap_items(reach);
+    // An item cut to less inflation than the reach could be placed off the bed, so the bed does not grow.
+    // An item that fills the bed falls short by the slack at most, which BuildVolume::BedEpsilon covers.
+    for (size_t i = 0; i < selected.size() && reach > 0; ++i)
+        if (placeable(sizes[i]) && selected[i].inflation + slack < reach) {
+            reach   = 0;
+            largest = cap_items(reach);
+        }
 
     // Give the bed margin, which the arrange bed keeps from the printable area, back
     // where the largest item needs it. The skirt keeps its room: pushing a skirt off
     // the bed is worse than saying the item does not fit.
     if (!selected.empty()) {
-        coord_t max_width = 0, max_height = 0;
-        for (const ArrangePolygon &ap : selected) {
-            BoundingBox apbb      = ap.poly.contour.bounding_box();
-            coord_t     inflation = ap.inflation;
-            if (params.is_seq_print) {
-                // Printing by object, the inflation only keeps objects apart and may reach past the edge,
-                // so measure the object itself, leaving EPSILON for rounding when it fills the bed. Measure
-                // it as the nester packs it, inflated with square joins and then turned, since the corners
-                // of that outline reach past the inflation.
-                const ExPolygons inflated = offset_ex(ap.poly, float(ap.inflation), jtSquare);
-                Polygon          outline  = inflated.empty() ? ap.poly.contour : inflated.front().contour;
-                outline.rotate(ap.rotation);
-                apbb      = outline.bounding_box();
-                inflation = scaled(EPSILON) - (inflated.empty() ? 0 : ap.inflation);
-            }
-            max_width  = std::max(max_width, apbb.size().x() + 2 * inflation);
-            max_height = std::max(max_height, apbb.size().y() + 2 * inflation);
-        }
-        auto margin = [](coord_t bed, coord_t item) { return std::max(0., unscale<double>(bed - item) / 2.); };
-        params.bed_shrink_x = std::min<double>(params.bed_shrink_x, std::max<double>(params.brim_skirt_distance, margin(bedbb.size().x(), max_width)));
-        params.bed_shrink_y = std::min<double>(params.bed_shrink_y, std::max<double>(params.brim_skirt_distance, margin(bedbb.size().y(), max_height)));
+        auto margin = [&](coord_t bed, coord_t item) { return std::max(0., unscale<double>(bed - item + 2 * (reach - slack)) / 2.); };
+        params.bed_shrink_x = std::min<double>(params.bed_shrink_x, std::max<double>(params.brim_skirt_distance, margin(bedbb.size().x(), largest.x())));
+        params.bed_shrink_y = std::min<double>(params.bed_shrink_y, std::max<double>(params.brim_skirt_distance, margin(bedbb.size().y(), largest.y())));
     }
-    // Printing by object, grow the bed by the objects' inflation, so the objects themselves keep the bed margin.
-    if (params.is_seq_print) {
-        params.bed_shrink_x -= unscale<float>(params.min_obj_distance) / 2;
-        params.bed_shrink_y -= unscale<float>(params.min_obj_distance) / 2;
-    }
+    // Grow the bed by the reach, so the items themselves keep the bed margin.
+    params.bed_shrink_x -= unscale<float>(reach);
+    params.bed_shrink_y -= unscale<float>(reach);
 }
 
 void update_unselected_items_inflation(ArrangePolygons& unselected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params)
@@ -1204,8 +1274,6 @@ inline Box to_nestbin(const InfiniteBed &bed)
 
 inline coord_t width(const BoundingBox& box) { return box.max.x() - box.min.x(); }
 inline coord_t height(const BoundingBox& box) { return box.max.y() - box.min.y(); }
-inline double area(const BoundingBox& box) { return double(width(box)) * height(box); }
-inline double poly_area(const Points &pts) { return std::abs(Polygon::area(pts)); }
 inline double distance_to(const Point& p1, const Point& p2)
 {
     double dx = p2.x() - p1.x();
@@ -1284,11 +1352,10 @@ template<class Fn> auto call_with_bed(const Points &bed, Fn &&fn)
     else if (bed.size() == 1)
         return fn(InfiniteBed{bed.front()});
     else {
-        auto      bb    = BoundingBox(bed);
-        CircleBed circ  = to_circle(bb.center(), bed);
-        auto      parea = poly_area(bed);
+        auto      bb   = BoundingBox(bed);
+        CircleBed circ = to_circle(bb.center(), bed);
 
-        if ((1.0 - parea / area(bb)) < 1e-3)
+        if (is_box_bed(bed))
             return fn(bb);
         else if (!std::isnan(circ.radius()))
             return fn(circ);
