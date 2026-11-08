@@ -1209,11 +1209,11 @@ int CLI::run(int argc, char **argv)
     //
     //   GDK_BACKEND unset (DEFAULT)    Wayland path.
     //                                  GTK auto-picks Wayland on Wayland
-    //                                  sessions and X11 otherwise. WebKit
-    //                                  XWayland-compositing workaround
-    //                                  applied only when actually on
-    //                                  XWayland. XInitThreads gated on
-    //                                  DISPLAY presence.
+    //                                  sessions and X11 otherwise. Outside
+    //                                  the Flatpak, WebKit avoids its
+    //                                  hardware DMABUF path on Wayland.
+    //                                  XInitThreads gated on DISPLAY
+    //                                  presence.
     //
     //   GDK_BACKEND=x11   (OPT-IN)     X11/XWayland mode. Applies the
     //                                  v2.3.2 workarounds that the X11
@@ -1228,10 +1228,11 @@ int CLI::run(int argc, char **argv)
     // opt-in path. The ~2020-era WebKit2GTK XWayland compositor bug it
     // worked around appears fixed in WebKit2GTK >= 2.42; leaving it
     // unset preserves WebKit hardware acceleration on Device / Setup
-    // Wizard / login / store. The default path applies it only where it
-    // forces GDK_BACKEND=x11 below (a build without EGL, so the app really
-    // runs through XWayland), and only when the linked WebKitGTK predates
-    // the fix (< 2.42), as a conservative fallback for older WebKit.
+    // Wizard / login / store. The default path applies it where it forces
+    // GDK_BACKEND=x11 below (a build without EGL, which runs through
+    // XWayland) on WebKitGTK < 2.42, and in a Wayland session outside the
+    // Flatpak on WebKitGTK 2.42 and 2.43, which ignore the shared-memory
+    // transport.
     // ------------------------------------------------------------------
     {
         const char* gdk_backend = ::getenv("GDK_BACKEND");
@@ -1239,16 +1240,33 @@ int CLI::run(int argc, char **argv)
         // honours the first backend in the comma-separated list).
         const bool x11_opt_in = gdk_backend && boost::starts_with(gdk_backend, "x11");
 
-        // NVIDIA's proprietary driver cannot back WebKitGTK's DMABUF renderer.
-        // Force the shared-memory transport, which keeps compositing and threaded
-        // scrolling; the second variable clears Debian/Ubuntu/openSUSE's isNVIDIA().
-        if (::access("/proc/driver/nvidia/version", F_OK) == 0 && WebView::SupportsForceSharedMemory()) {
-            ::setenv("WEBKIT_DMABUF_RENDERER_FORCE_SHM", "1", /* replace */ false);
-            ::setenv("WEBKIT_FORCE_DMABUF_RENDERER", "1", /* replace */ false);
-        }
+        const bool nvidia = ::access("/proc/driver/nvidia/version", F_OK) == 0;
 
-        if (is_hypervisor_guest() && WebView::SupportsForceSharedMemory())
-            ::setenv("WEBKIT_DMABUF_RENDERER_FORCE_SHM", "1", /* replace */ false);
+        // The Wayland default below forces GDK_BACKEND=x11 in a build without EGL, so that build runs through XWayland.
+        #if defined(wxHAS_EGL) && wxHAS_EGL
+        constexpr bool wx_has_egl = true;
+        #else
+        constexpr bool wx_has_egl = false;
+        #endif
+
+        // Ubuntu's WebKitGTK 2.52 on Intel GPUs freezes the window under Wayland on its hardware DMABUF
+        // path; affected builds can't be told apart, so the default path avoids it for every WebKitGTK outside
+        // the Flatpak.
+        const bool system_webkit_on_wayland = wx_has_egl && !x11_opt_in && wayland_socket_available() &&
+                                              !is_running_in_flatpak();
+
+        // NVIDIA's proprietary driver and virtual GPUs cannot back the DMABUF renderer either, and the
+        // shared-memory transport keeps compositing on.
+        if (WebView::SupportsForceSharedMemory()) {
+            if (nvidia || is_hypervisor_guest() || system_webkit_on_wayland)
+                ::setenv("WEBKIT_DMABUF_RENDERER_FORCE_SHM", "1", /* replace */ false);
+            // Clears the isNVIDIA() early return that Debian, Ubuntu and openSUSE patch into WebKitGTK.
+            if (nvidia)
+                ::setenv("WEBKIT_FORCE_DMABUF_RENDERER", "1", /* replace */ false);
+        } else if (system_webkit_on_wayland && !WebView::NeedsCompositingWorkaround()) {
+            // WebKitGTK 2.42 and 2.43 have the DMABUF renderer but ignore the shared-memory switch.
+            ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
+        }
 
         if (x11_opt_in) {
             // ===== X11 / XWayland (opted in via GDK_BACKEND=x11) =====
@@ -1272,8 +1290,7 @@ int CLI::run(int argc, char **argv)
             // deps were not rebuilt.
             #if !defined(wxHAS_EGL) || !wxHAS_EGL
             {
-                const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
-                if (wayland_env && *wayland_env) {
+                if (wayland_socket_available()) {
                     BOOST_LOG_TRIVIAL(warning) << "Wayland detected but wxWidgets has no EGL support (wxHAS_EGL is OFF). Forcing X11 backend.";
                     ::setenv("GDK_BACKEND", "x11", true);
 
@@ -1473,9 +1490,8 @@ int CLI::run(int argc, char **argv)
     #if !defined(_WIN32) && !defined(__APPLE__)
         // likely some linux / unix system
         const char *display = boost::nowide::getenv("DISPLAY");
-        const char *wayland_display = boost::nowide::getenv("WAYLAND_DISPLAY");
-        if (! ((display && *display) || (wayland_display && *wayland_display))) {
-            boost::nowide::cerr << "Neither DISPLAY nor WAYLAND_DISPLAY set, GUI mode not available." << std::endl << std::endl;
+        if (! ((display && *display) || wayland_socket_available())) {
+            boost::nowide::cerr << "Neither DISPLAY nor a Wayland socket found, GUI mode not available." << std::endl << std::endl;
             this->print_help(false);
             // Indicate an error.
             return 1;

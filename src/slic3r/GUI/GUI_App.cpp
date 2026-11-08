@@ -593,7 +593,7 @@ private:
 #ifdef __linux__
 static void migrate_flatpak_legacy_datadir(const boost::filesystem::path &data_dir_path)
 {
-    if(!boost::filesystem::exists("/.flatpak-info"))
+    if (!is_running_in_flatpak())
         return; // Not running as a Flatpak, nothing to migrate.
     
     namespace fs = boost::filesystem;
