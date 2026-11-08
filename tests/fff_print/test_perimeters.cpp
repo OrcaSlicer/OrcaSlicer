@@ -15,6 +15,7 @@
 #include "libslic3r/TriangleMesh.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include "libslic3r/PrintConfig.hpp"
 #include <cstddef>
@@ -1677,11 +1678,11 @@ TEST_CASE("A bridge in another filament is anchored on its neighbours", "[Perime
         return x < gap.min.x() - scaled(5.) || x > gap.max.x() + scaled(5.);
     }) > 2. * 15.);
 
-    // The deck takes a strip of the tops of the pillars to anchor on, which leaves the outer surface of the object
-    // to the pillars, two walls wide.
+    // The deck takes a strip of the tops of the pillars to anchor on, which leaves the outer wall of the object to the
+    // pillars.
     const ExPolygons anchors = intersection_ex(deck->slices.surfaces, layer->lower_layer->lslices);
     CHECK(area(anchors) > 0.75 * line_width * 2. * 15. / SCALING_FACTOR / SCALING_FACTOR);
-    CHECK(area(diff_ex(anchors, offset(layer->lslices, float(scaled(-2. * line_width)) + SCALED_EPSILON))) < sqr(scale_(0.01)));
+    CHECK(area(diff_ex(anchors, offset(layer->lslices, float(scaled(-line_width)) + SCALED_EPSILON))) < sqr(scale_(0.01)));
     CHECK(area(intersection_ex(deck->fill_expolygons, pillars->fill_expolygons)) < sqr(scale_(0.01)));
 
     // The deck is bridged across the gap, and away from the outer surface the bridge reaches on over the strip.
@@ -1715,6 +1716,76 @@ TEST_CASE("A bridge in another filament is anchored on its neighbours", "[Perime
     Polygons pillar_footprint = pillars->perimeters.polygons_covered_by_width(0.f);
     polygons_append(pillar_footprint, pillars->fills.polygons_covered_by_width(0.f));
     CHECK(area(intersection_ex(union_ex(bridge_footprint), union_ex(pillar_footprint))) < 0.05 * 2. * 20. / SCALING_FACTOR / SCALING_FACTOR);
+}
+
+TEST_CASE("A bridge in another filament is anchored on a neighbour two walls thin", "[Perimeters]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+
+    // A 20x20x6mm square tube with walls two outer walls thick in one filament, closed at z=[5,6] by a lid in another,
+    // the way a painted sacrificial layer over a hole is segmented.
+    const double wall = 2. * 0.42;
+    TriangleMesh tube = make_cube(wall, 20., 6.);
+    // The other three sides: x, y, size x, size y.
+    const std::array<std::array<double, 4>, 3> sides{ { { 20. - wall, 0., wall, 20. }, { wall, 0., 20. - 2. * wall, wall }, { wall, 20. - wall, 20. - 2. * wall, wall } } };
+    for (const auto &[x, y, size_x, size_y] : sides) {
+        TriangleMesh side = make_cube(size_x, size_y, 6.);
+        side.translate(float(x), float(y), 0.f);
+        tube.merge(side);
+    }
+    TriangleMesh lid = make_cube(20. - 2. * wall, 20. - 2. * wall, 1.);
+    lid.translate(float(wall), float(wall), 5.f);
+    Model model;
+    ModelObject *object = model.add_object();
+    object->name = "painted_lid.stl";
+    object->add_volume(std::move(tube))->config.set("extruder", 1);
+    object->add_volume(std::move(lid))->config.set("extruder", 2);
+    object->add_instance();
+    object->ensure_on_bed();
+    Print print;
+    print.apply(model, painted_bridge_config(wall_generator));
+    print.set_status_silent();
+    print.process();
+
+    const Layer *layer = nullptr;
+    for (const Layer *l : print.objects().front()->layers())
+        if (std::abs(l->print_z - 5.2) < EPSILON)
+            layer = l;
+    REQUIRE(layer != nullptr);
+    const auto contains = [](const ExPolygons &expolys, const Point &pt) {
+        return std::any_of(expolys.begin(), expolys.end(), [&pt](const ExPolygon &expoly) { return expoly.contains(pt); });
+    };
+    const Point        center      = get_extents(layer->lslices).center();
+    const LayerRegion *lid_region  = nullptr;
+    const LayerRegion *tube_region = nullptr;
+    for (const LayerRegion *layerm : layer->regions())
+        if (! layerm->slices.empty())
+            (contains(to_expolygons(layerm->slices.surfaces), center) ? lid_region : tube_region) = layerm;
+    REQUIRE(lid_region != nullptr);
+    REQUIRE(tube_region != nullptr);
+
+    // The tube keeps its outer wall around the outline of the object.
+    double longest_loop = 0.;
+    for (const ExtrusionEntity *entity : tube_region->perimeters.flatten().entities)
+        if (entity->is_loop())
+            longest_loop = std::max(longest_loop, unscale<double>(entity->length()));
+    CHECK(longest_loop > 4. * 18.);
+
+    // The lid is bridged from the top of one side of the tube to the top of the other.
+    size_t spans = 0;
+    size_t anchored = 0;
+    for_each_extrusion_path(lid_region->fills, [&](const ExtrusionPath &path) {
+        if (path.role() != erBridgeInfill)
+            return;
+        for (const Line &line : path.polyline.to_polyline().lines())
+            if (line.length() > scaled(15.)) {
+                ++ spans;
+                anchored += size_t(contains(layer->lower_layer->lslices, line.a) && contains(layer->lower_layer->lslices, line.b));
+            }
+    });
+    CHECK(spans > 10);
+    CHECK(anchored > spans * 9 / 10);
 }
 
 TEST_CASE("The anchor of a bridge in another filament follows the settings it is reprocessed with", "[Perimeters]")

@@ -214,7 +214,8 @@ static ExPolygons bridged_overhangs(const Layer &layer, const ExPolygons &slices
 // Orca: Each region of a multi-material object, painted or a part of its own, is printed within its own outline, so a
 // bridge segmented into a region of its own ends at its neighbours, where a single-material bridge reaches on over the
 // supported area around it. Move a strip of the supported neighbours, as wide as the outer wall they would print
-// there, to the bridge to anchor on, which the walls, the infill and the bridge detection then all see.
+// there, to the bridge to anchor on, which the infill and the bridge detection then see. The walls of the neighbours
+// are still generated over the strip, which is then left to the bridge, see Layer::make_perimeters().
 void Layer::anchor_bridges_in_neighbours()
 {
     if (m_regions.size() < 2 || lower_layer == nullptr)
@@ -228,20 +229,24 @@ void Layer::anchor_bridges_in_neighbours()
         for (LayerRegion *neighbour : m_regions) {
             if (neighbour == bridge || neighbour->slices.empty())
                 continue;
-            // The neighbour keeps two walls along its other boundaries, as the outer surface of the object: a narrower
-            // strip of it would be left to gap fill.
+            // The neighbour keeps its outer wall along its other boundaries, as the outer surface of the object.
             const ExPolygons neighbour_slices = to_expolygons(neighbour->slices.surfaces);
             const float      width            = float(neighbour->flow(frExternalPerimeter).scaled_width());
-            const ExPolygons anchor = intersection_ex(intersection_ex(neighbour_slices, lower_layer->lslices),
-                                                      intersection(offset(overhangs, width),
-                                                                   offset(union_ex(slices, neighbour_slices, true), -2.f * width)));
+            ExPolygons anchor = intersection_ex(intersection_ex(neighbour_slices, lower_layer->lslices),
+                                                intersection(offset(overhangs, width),
+                                                             offset(union_ex(slices, neighbour_slices, true), -width)));
             if (anchor.empty())
                 continue;
+            // What it leaves of the neighbour too thin for a wall, as of a line between two bridges, goes to the bridge
+            // too. Along the outline, the neighbour keeps its outer wall.
+            const ExPolygons rest = diff_ex(neighbour_slices, anchor);
+            append(anchor, intersection_ex(diff_ex(rest, opening_ex(rest, width / 2)),
+                                           intersection(offset(anchor, width), offset(lslices, -width - float(SCALED_EPSILON)))));
             neighbour->slices.set(diff_ex(neighbour->slices.surfaces, anchor), stInternal);
             append(slices, anchor);
         }
         if (slices.size() > own_count)
-            bridge->slices.set(closing_ex(slices, float(SCALED_EPSILON)), stInternal);
+            bridge->slices.set(union_ex(slices), stInternal);
     }
 }
 
@@ -265,11 +270,15 @@ static ExPolygons neighbours_along_overhangs(const Layer &layer, const LayerRegi
         return {};
     // Far enough for the walls along the far side of these parts to stay off the anchor of the bridge, and for the
     // extra perimeters on overhangs to find the bridge anchored there, as on a single-material object.
-    const float reach = float(2 * wall_width + wall_loops * layerm.flow(frPerimeter).scaled_spacing() + scale_(EXTERNAL_INFILL_MARGIN));
-    ExPolygons  out   = intersection_ex(others, offset(overhangs, reach));
+    const float walls = float(wall_width + wall_loops * layerm.flow(frPerimeter).scaled_spacing());
+    ExPolygons  out   = intersection_ex(others, offset(overhangs, walls + float(wall_width + scale_(EXTERNAL_INFILL_MARGIN))));
     // Only the neighbours the overhangs hang from, past the strip they may have handed over to anchor on.
     const Polygons along = offset(overhangs, float(2 * wall_width));
     out.erase(std::remove_if(out.begin(), out.end(), [&along](const ExPolygon &expoly) { return intersection(along, expoly).empty(); }), out.end());
+    // Along the outline of the object, the neighbours may be thinner than the walls. Add the void past their outline,
+    // so that the walls along it are removed too. The void past the outline of these regions keeps their walls.
+    if (! out.empty())
+        append(out, diff_ex(offset(out, walls), union_(to_polygons(layer.lslices), offset(own, float(wall_width / 2)))));
     return out;
 }
 
@@ -411,8 +420,14 @@ void Layer::make_perimeters()
                     }
 		        }
 
-	        const ExPolygons neighbours = neighbours_along_overhangs(*this, layerms);
-	        if (layerms.size() == 1 && neighbours.empty()) {  // optimization
+	        // Orca: The walls of these regions are generated over the neighbours along their bridges and over the strips they
+	        // handed to bridges of other regions to anchor on, then removed from there.
+	        ExPolygons clipped = neighbours_along_overhangs(*this, layerms);
+	        for (const LayerRegion *l : layerms)
+	            if (const ExPolygons slices = to_expolygons(l->slices.surfaces); slices != l->raw_slices)
+	                append(clipped, diff_ex(l->raw_slices, slices));
+	        clipped = union_ex(clipped);
+	        if (layerms.size() == 1 && clipped.empty()) {  // optimization
 	            (*layerm)->fill_surfaces.surfaces.clear();
                 (*layerm)->make_perimeters((*layerm)->slices, {*layerm}, &(*layerm)->fill_surfaces, &(*layerm)->fill_no_overlap_expolygons);
 	            (*layerm)->fill_expolygons = to_expolygons((*layerm)->fill_surfaces.surfaces);
@@ -433,7 +448,7 @@ void Layer::make_perimeters()
 	                    if (layerm->region().config().sparse_infill_density > layerm_config->region().config().sparse_infill_density)
 	                    	layerm_config = layerm;
 	                }
-	                for (const ExPolygon &expoly : neighbours)
+	                for (const ExPolygon &expoly : clipped)
 	                    slices.begin()->second.emplace_back(slices.begin()->second.front(), expoly);
 	                // merge the surfaces assigned to each group
 	                for (std::pair<const unsigned short,Surfaces> &surfaces_with_extra_perimeters : slices)
@@ -445,10 +460,10 @@ void Layer::make_perimeters()
                 //BBS
                 ExPolygons fill_no_overlap;
 	            layerm_config->make_perimeters(new_slices, layerms, &fill_surfaces, &fill_no_overlap);
-	            if (! neighbours.empty()) {
-	                // The fill over the neighbours is dropped below, with the fill outside the slices of these regions.
-	                remove_extrusions_over(layerm_config->perimeters, to_polygons(neighbours));
-	                remove_extrusions_over(layerm_config->thin_fills, to_polygons(neighbours));
+	            if (! clipped.empty()) {
+	                // The fill there is dropped below, with the fill outside the slices of these regions.
+	                remove_extrusions_over(layerm_config->perimeters, to_polygons(clipped));
+	                remove_extrusions_over(layerm_config->thin_fills, to_polygons(clipped));
 	            }
 
 	            // assign fill_surfaces to each layer, clearing those of a previous run first, which an empty fill would keep
@@ -476,7 +491,7 @@ void Layer::make_perimeters()
 	                    Polygons all_region_slices_p;
 	                    for (LayerRegion *l : layerms)
 	                        polygons_append(all_region_slices_p, to_polygons(l->slices.surfaces));
-	                    polygons_append(all_region_slices_p, to_polygons(neighbours));
+	                    polygons_append(all_region_slices_p, to_polygons(clipped));
 	                    ExPolygons extra_fill = diff_ex(fill_surfaces.surfaces, all_region_slices_p, ApplySafetyOffset::Yes);
 	                    if (!extra_fill.empty()) {
 	                        append(layerms.front()->fill_expolygons, extra_fill);
