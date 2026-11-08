@@ -20,7 +20,6 @@
 #include "libvgcode/include/Types.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Line.hpp"
-#include "libslic3r/PathTracer.hpp"
 #include <stddef.h>
 #include <functional>
 #include <memory>
@@ -28,7 +27,6 @@
 #include <cstdint>
 #include <atomic>
 #include <optional>
-#include <future>
 
 #include "GLToolbar.hpp"
 #include "Event.hpp"
@@ -239,8 +237,12 @@ wxDECLARE_EVENT(EVT_GLCANVAS_ADAPTIVE_LAYER_HEIGHT_PROFILE, Event<float>);
 wxDECLARE_EVENT(EVT_GLCANVAS_SMOOTH_LAYER_HEIGHT_PROFILE, HeightProfileSmoothEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_PRINTABLE, SimpleEvent);
 
+class PathTraceRenderer;
+
 class GLCanvas3D
 {
+    friend class PathTraceRenderer;
+
     static const double DefaultCameraZoomToBoxMarginFactor;
     static const double DefaultCameraZoomToBedMarginFactor;
     static const double DefaultCameraZoomToPlateMarginFactor;
@@ -740,129 +742,8 @@ private:
     GLVolumeCollection m_volumes;
     GCodeViewer m_gcode_viewer;
 
-    size_t m_pathtrace_requested_signature{0};
-    PathTraceGpuScene m_pathtrace_gpu_scene;
-    // Whether the uploaded scene has shading normals, which do not stay on the CPU.
-    bool m_pathtrace_gpu_has_vertex_normals{false};
-    std::vector<size_t> m_pathtrace_gpu_tri_vertex_id;
-    size_t m_pathtrace_preview_color_signature{0};
-    std::chrono::steady_clock::time_point m_pathtrace_last_change_time{};
-    unsigned int m_pathtrace_gpu_node_buffer{0};
-    unsigned int m_pathtrace_gpu_triangle_buffer{0};
-    unsigned int m_pathtrace_gpu_shading_buffer{0};
-    // Shading normals of the triangles, Prepare only: toolpaths have their own bead normals.
-    unsigned int m_pathtrace_gpu_normal_buffer{0};
-    unsigned int m_pathtrace_gpu_instance_buffer{0};
-    unsigned int m_pathtrace_gpu_tlas_buffer{0};
-    unsigned int m_pathtrace_gpu_accumulation_image{0};
-    unsigned int m_pathtrace_gpu_display_image{0};
-    unsigned int m_pathtrace_gpu_trans_accumulation_image{0};
-    unsigned int m_pathtrace_gpu_trans_display_image{0};
-    // Denoiser inputs (first surface normal and distance, albedo and class) and its ping-pong images
-    // (color A, color B, bed A, bed B).
-    unsigned int m_pathtrace_gpu_aux_normal_depth_image{0};
-    unsigned int m_pathtrace_gpu_aux_albedo_image{0};
-    // Sum of the squared luminance of the samples, for the variance the denoiser follows.
-    unsigned int m_pathtrace_gpu_moment_image{0};
-    std::array<unsigned int, 4> m_pathtrace_gpu_denoise_images{0, 0, 0, 0};
-    // Display images of the reduced resolution interactive pass. They stay on screen until the first
-    // full resolution sample is complete, so that releasing the mouse never stalls on a full frame.
-    unsigned int m_pathtrace_gpu_interactive_display_image{0};
-    unsigned int m_pathtrace_gpu_interactive_trans_display_image{0};
-    // All path tracing images are allocated at the full render size; the interactive pass renders
-    // into their top left corner, of this size.
-    std::array<unsigned int, 2> m_pathtrace_gpu_interactive_size{0, 0};
-    // The previous interactive frame, which the next one reprojects and blends with: copies of its
-    // accumulation, bed term, first surfaces and their class, and the camera and size it was rendered
-    // with. Valid while nothing but the camera changed since.
-    std::array<unsigned int, 4> m_pathtrace_gpu_history_images{0, 0, 0, 0};
-    struct PathTraceHistory {
-        bool valid{false};
-        size_t scene_signature{0};
-        std::array<unsigned int, 2> size{0, 0};
-        PathTraceCamera camera;
-        uint32_t frame{0};
-    };
-    PathTraceHistory m_pathtrace_history;
-    std::array<unsigned int, 2> m_pathtrace_gpu_image_size{0, 0};
-    size_t m_pathtrace_gpu_scene_signature{0};
-    size_t m_pathtrace_geom_signature{0};
-    size_t m_pathtrace_transform_signature{0};
-    struct PathTraceVolumeBlas {
-        uint32_t root_node{0};
-        uint32_t node_count{0};
-        uint32_t tri_offset{0};
-        uint32_t tri_count{0};
-        Vec3f local_bounds_min{Vec3f::Zero()};
-        Vec3f local_bounds_max{Vec3f::Zero()};
-        // The part this BLAS holds, for all the instances of its object, see pathtrace_part_key(). Object
-        // indices go stale when an arrange or an undo reorders the objects of the model, which keeps
-        // the meshes and so this BLAS. Zero for the toolpaths and the plates.
-        std::pair<size_t, size_t> part_key{0, 0};
-        int plate_idx{-1};
-    };
-    std::vector<PathTraceVolumeBlas> m_pathtrace_volume_blas;
-    std::vector<PathTraceGpuInstance> m_pathtrace_gpu_instances;
-    uint32_t m_pathtrace_gpu_samples{0};
-    uint32_t m_pathtrace_max_samples{2048};
-    bool m_pathtrace_is_interactive{false};
-    // Begin and end timestamps of the path tracing dispatches, double buffered. Timestamps, because a
-    // GL_TIME_ELAPSED query around compute dispatches, like a timestamp right after them, can measure
-    // only their submission.
-    std::array<unsigned int, 4> m_pathtrace_gpu_timer_queries{0, 0, 0, 0};
-    int m_pathtrace_gpu_timer_query_idx{0};
-    bool m_pathtrace_gpu_timer_query_in_flight[2]{false, false};
-    bool m_pathtrace_gpu_timer_is_interactive[2]{false, false};
-    std::array<unsigned int, 2> m_pathtrace_gpu_timer_res[2]{{0, 0}, {0, 0}};
-    // Tiles dispatched in each timer slot, and the GPU time per tile they measured.
-    std::array<uint32_t, 2> m_pathtrace_gpu_timer_tiles{0, 0};
-    float m_pathtrace_gpu_ms_per_tile{0.0f};
-    float m_pathtrace_gpu_dispatch_time_ms{0.0f};
-    float m_pathtrace_gpu_dispatch_full_res_ms{0.0f};
-    float m_pathtrace_gpu_dispatch_interactive_ms{0.0f};
-    uint32_t m_pathtrace_tile_cursor{ 0 };
-    uint32_t m_pathtrace_tiles_per_frame{ 6 };
-    // Starts at the lowest scale of the presets: nothing has been timed yet for the first dispatch, which
-    // could otherwise stall a weak GPU.
-    float    m_pathtrace_dynamic_orbit_scale{ 0.15f };
-    struct PathTraceSceneBuildResult {
-        size_t geom_signature{0};
-        size_t color_signature{0};
-        PathTraceGpuScene gpu_scene;
-        std::vector<PathTraceVolumeBlas> volume_blas;
-        std::vector<size_t> gpu_tri_vertex_id;
-    };
-    struct PathTraceBvhJob {
-        size_t geom_signature{0};
-        // The colors the triangles are extracted with.
-        size_t color_signature{0};
-        bool is_preview{false};
-        // Subsurface scattering family of each extruder's filament, read from the presets on the GUI thread.
-        std::vector<int> extruder_sss_families;
-        std::vector<PathTraceTriangle> preview_triangles;
-        std::vector<size_t> source_tri_vertex_id;
-        std::vector<float> source_tri_tag_z;
-        std::vector<float> source_tri_height;
-        std::vector<float> source_tri_role;
-        std::vector<float> source_tri_facet;
-        std::vector<float> source_tri_delta_angle;
-        std::vector<float> source_tri_opacity;
-        struct VolumeGroupTriangles {
-            std::pair<size_t, size_t> part_key{0, 0};
-            std::vector<PathTraceTriangle> triangles;
-            std::vector<uint32_t> triangle_extruder_ids;
-        };
-        std::vector<VolumeGroupTriangles> volume_groups;
-        struct PlateTriangles {
-            int plate_idx{-1};
-            std::vector<PathTraceTriangle> triangles;
-        };
-        std::vector<PlateTriangles> plate_groups;
-    };
-    static PathTraceSceneBuildResult _build_pathtrace_scene_async(PathTraceBvhJob job, std::shared_ptr<std::atomic<bool>> cancel_token);
-    std::future<PathTraceSceneBuildResult> m_pathtrace_bvh_future;
-    std::shared_ptr<std::atomic<bool>> m_pathtrace_bvh_cancel_token;
-    size_t m_pathtrace_bvh_job_signature{0};
+    // Draws this canvas by path tracing, when that is its shading model.
+    std::unique_ptr<PathTraceRenderer> m_path_tracer;
 
     RenderTimer m_render_timer;
 
@@ -1143,13 +1024,7 @@ public:
     //BBS
     GCodeViewer& get_gcode_viewer() { return m_gcode_viewer; }
     void init_gcode_viewer(ConfigOptionMode mode, Slic3r::PresetBundle* preset_bundle) { m_gcode_viewer.init(mode, preset_bundle); }
-    void reset_gcode_toolpaths()
-    {
-        const bool gl_current = _set_shown_canvas_current();
-        m_gcode_viewer.reset();
-        // Also while the Preview is hidden, when no frame would free the path traced toolpaths.
-        _release_pathtrace_scene(gl_current);
-    }
+    void reset_gcode_toolpaths();
     const GCodeViewer::SequentialView& get_gcode_sequential_view() const { return m_gcode_viewer.get_sequential_view(); }
     void update_gcode_sequential_view_current(unsigned int first, unsigned int last) { m_gcode_viewer.update_sequential_view_current(first, last); }
     const libvgcode::Interval& get_gcode_view_full_range() const { return m_gcode_viewer.get_gcode_view_full_range(); }
@@ -1674,27 +1549,8 @@ private:
     // scene_dirty is false only for a frame that its requester knows to be overlay-only.
     void _render_frame(bool scene_dirty, bool only_init = false);
     void _render_scene(const Camera& camera, const Size& cnv_size);
-    bool _render_pathtraced_view(const Camera& camera, const Size& cnv_size);
-    // Resolves the accumulation of the last pass into the interactive or the full resolution display
-    // images, through the denoiser.
-    void _resolve_pathtrace_image(GLShaderProgram& shader, bool interactive, uint32_t width, uint32_t height, uint32_t samples);
-    // Composites the path traced display images over the rasterized bed.
-    void _render_pathtrace_composite();
-    void _reset_pathtrace_accumulation();
-    void _stop_pathtrace_bvh_worker();
-    void _release_pathtrace_gl_resources();
-    // Marks everything on the GPU as never uploaded.
-    void _forget_pathtrace_uploads();
-    void _free_pathtrace_cpu_scene();
     // Whether the path tracer draws this volume, or the rasterizer draws it over the path traced image.
     static bool _is_path_traced(const GLVolume& volume);
-    // Frees the scene, so that it is built anew when next path traced. Without a current OpenGL context
-    // its GL objects stay until this canvas next renders, which frees or overwrites them.
-    void _release_pathtrace_scene(bool gl_current = true);
-    void _render_pathtrace_fps_overlay(ImGuiWrapper& imgui) const;
-    void _extract_preview_toolpaths_for_pathtrace(PathTraceBvhJob& job, bool plate_visible, PartPlate* current_plate) const;
-    void _extract_prepare_volumes_for_pathtrace(PathTraceBvhJob& job, const std::vector<ColorRGBA>& extruder_colors, bool plate_visible, PartPlateList& plate_list) const;
-    void _update_pathtrace_instances_and_tlas(size_t transform_signature);
     // Request a frame that only rebuilds the overlay.
     void _set_overlay_as_dirty() { m_overlay_dirty = true; }
     // These read the hover state _picking_pass() sets.

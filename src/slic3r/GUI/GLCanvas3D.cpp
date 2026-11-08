@@ -107,6 +107,7 @@
 #include "I18N.hpp"
 #include "format.hpp"
 #include "NotificationManager.hpp"
+#include "PathTraceRenderer.hpp"
 #include "DailyTips.hpp"
 #include "FilamentMapDialog.hpp"
 #include "Gizmos/GLGizmoUtils.hpp"
@@ -1654,6 +1655,7 @@ GLCanvas3D::GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed)
     , m_labels(*this)
     , m_slope(m_volumes)
 {
+    m_path_tracer = std::make_unique<PathTraceRenderer>(*this);
     if (m_canvas != nullptr) {
         m_timer.SetOwner(m_canvas);
         m_render_timer.SetOwner(m_canvas);
@@ -1678,10 +1680,10 @@ GLCanvas3D::GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed)
 
 GLCanvas3D::~GLCanvas3D()
 {
-    _stop_pathtrace_bvh_worker();
+    m_path_tracer->stop_worker();
 
     if (_set_current()) {
-        _release_pathtrace_gl_resources();
+        m_path_tracer->release_gl_resources();
         m_scene_cache.reset();
         m_selection_outline.reset();
         m_frame_profiler.reset();
@@ -1848,6 +1850,14 @@ const float GLCanvas3D::get_scale() const
 #endif
 }
 
+void GLCanvas3D::reset_gcode_toolpaths()
+{
+    const bool gl_current = _set_shown_canvas_current();
+    m_gcode_viewer.reset();
+    // Also while the Preview is hidden, when no frame would free the path traced toolpaths.
+    m_path_tracer->release_scene(gl_current);
+}
+
 void GLCanvas3D::reset_volumes()
 {
     if (!m_initialized)
@@ -1863,7 +1873,7 @@ void GLCanvas3D::reset_volumes()
     m_section_view_caps.clear();
     m_dirty = true;
     // Also while this canvas is hidden, when no frame would free its path traced scene.
-    _release_pathtrace_scene(_set_current());
+    m_path_tracer->release_scene(_set_current());
 
     _set_warning_notification(EWarning::ObjectOutside, false);
 }
@@ -2826,7 +2836,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
     _render_background();
 
     if (!_is_pathtrace_selected())
-        _release_pathtrace_scene();
+        m_path_tracer->release_scene();
     // Whether this frame shows the path traced image, or the rasterizer stood in for it.
     bool pathtraced_rendered = false;
 
@@ -2872,7 +2882,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
         m_frame_profiler.mark("plates");
         // Whether the layer editor is open, and the outside state the path tracer tints by.
         _update_volumes_state();
-        if (_is_pathtrace_enabled() && _render_pathtraced_view(camera, cnv_size)) {
+        if (_is_pathtrace_enabled() && m_path_tracer->render(camera, cnv_size)) {
             pathtraced_rendered = true;
             _render_section_view_caps();
 
@@ -2971,7 +2981,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
             m_frame_profiler.mark("bed");
             _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, true, hover_id);
             m_frame_profiler.mark("plates");
-            if (_render_pathtraced_view(camera, cnv_size)) {
+            if (m_path_tracer->render(camera, cnv_size)) {
                 const auto& layers_range = m_gcode_viewer.get_layers_z_range();
                 const std::vector<double> layer_zs = m_gcode_viewer.get_layers_zs();
                 const bool has_unprinted_layers = !layer_zs.empty() && (layers_range[1] + 1 < layer_zs.size());
@@ -8707,6 +8717,39 @@ bool GLCanvas3D::_is_realistic_view_enabled() const
     return m_canvas_type != ECanvasType::CanvasPreview || cfg->get_bool(SETTING_OPENGL_REALISTIC_PREVIEW);
 }
 
+bool GLCanvas3D::_is_pathtrace_selected() const
+{
+    // Only these views of an FFF printer have a path traced branch in _render_scene().
+    if ((m_canvas_type != ECanvasType::CanvasView3D && m_canvas_type != ECanvasType::CanvasPreview) ||
+        current_printer_technology() != ptFFF)
+        return false;
+    const AppConfig* cfg = wxGetApp().app_config;
+    return cfg != nullptr && cfg->get(SETTING_OPENGL_SHADING_MODEL) == "pathtrace" && _is_realistic_view_enabled() && wxGetApp().can_pathtrace();
+}
+
+bool GLCanvas3D::_is_pathtrace_enabled() const
+{
+    if (!_is_pathtrace_selected())
+        return false;
+    const GLGizmosManager::EType gizmo = m_gizmos.get_current_type();
+    if (gizmo == GLGizmosManager::Seam ||
+        gizmo == GLGizmosManager::FdmSupports ||
+        gizmo == GLGizmosManager::FuzzySkin ||
+        gizmo == GLGizmosManager::MmSegmentation)
+        return false;
+    // The layer height editor and X-Ray draw the objects through their own shaders, as the painting
+    // gizmos do.
+    if (m_picking_enabled && m_layers_editing.is_enabled() && m_layers_editing.last_object_id != -1 &&
+        m_layers_editing.object_max_z() > 0.0f)
+        return false;
+    return !_is_xray_view_active();
+}
+
+bool GLCanvas3D::_is_path_traced(const GLVolume& volume)
+{
+    return !volume.is_modifier && volume.printable;
+}
+
 bool GLCanvas3D::_is_ssao_enabled() const
 {
     if (wxGetApp().app_config == nullptr)
@@ -8812,9 +8855,7 @@ bool GLCanvas3D::_is_scene_cache_enabled() const
 
 bool GLCanvas3D::_is_scene_cacheable() const
 {
-    // A path traced frame is final once it has converged. An empty scene has nothing to converge.
-    if (_is_pathtrace_enabled() && (m_pathtrace_bvh_future.valid() ||
-        (!m_pathtrace_volume_blas.empty() && m_pathtrace_gpu_samples <= m_pathtrace_max_samples)))
+    if (_is_pathtrace_enabled() && !m_path_tracer->is_frame_final())
         return false;
     if (!_is_scene_cache_enabled())
         return false;
@@ -8878,7 +8919,7 @@ void GLCanvas3D::_render_fps_overlay(int fps) const
         // The subset of those frames that redrew the scene rather than reusing the cached one.
         imgui.text(std::string("3D: ") + std::to_string(m_render_stats.get_scene_fps()));
         if (_is_pathtrace_enabled()) {
-            _render_pathtrace_fps_overlay(imgui);
+            m_path_tracer->render_fps_overlay(imgui);
         }
     }
     if (show_timings && ImGui::BeginTable("frame_sections", 3, ImGuiTableFlags_SizingFixedFit)) {
@@ -9988,7 +10029,7 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
                 _render_imex_ghosts();
             } else if (subset == EObjectsSubset::Overlays) {
                 // Over the path traced image they blend with it, the pass above having left blending
-                // off. Destination alpha stays at 1 for Wayland, see _render_pathtrace_composite().
+                // off. Destination alpha stays at 1 for Wayland, see PathTraceRenderer::render_composite().
                 glsafe(::glEnable(GL_BLEND));
                 glsafe(::glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
                 _render_imex_ghosts();

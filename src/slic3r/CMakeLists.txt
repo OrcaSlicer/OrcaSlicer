@@ -224,7 +224,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoUtils.cpp
     GUI/Gizmos/GLGizmoUtils.hpp
     GUI/GLCanvas3D.cpp
-    GUI/GLCanvas3D_PathTracer.cpp
     GUI/GLCanvas3D.hpp
     GUI/SequentialPrintClearance.hpp
     GUI/GLModel.cpp
@@ -451,6 +450,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/ParamsPanel.hpp
     GUI/PartPlate.cpp
     GUI/PartPlate.hpp
+    GUI/PathTraceRenderer.cpp
+    GUI/PathTraceRenderer.hpp
     GUI/BeltPurgeTower.cpp
     GUI/BeltPurgeTower.hpp
     GUI/FilamentGroupPopup.hpp
