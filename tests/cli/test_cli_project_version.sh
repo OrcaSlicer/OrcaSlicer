@@ -2,12 +2,12 @@
 # End-to-end check that the CLI judges a project against this build's version on the line that wrote it.
 #
 # A project records two versions: the OrcaSlicer version this build is based on in the "OrcaSlicer"
-# metadata tag, and this fork's release in the "UnlayeredSlicer" tag. Releases from before that second
+# metadata tag, and this fork's release in the "OrcaSlicer" tag. Releases from before that second
 # tag wrote their own 0.x release into the first. A project is exported from the shipped Bambu Lab P1S
 # presets, which must carry each tag once, and its tags are rewritten to make:
 # - an OrcaSlicer project at the minor version this build is based on, which loads;
 # - an OrcaSlicer project one minor version newer, which is refused, and loads with --allow-newer-file;
-# - a project this fork saved before the UnlayeredSlicer tag, which loads without OrcaSlicer's migrations
+# - a project this fork saved before the OrcaSlicer tag, which loads without OrcaSlicer's migrations
 #   of old files, and is saved again with this build's two tags;
 # - a project from a newer release of this fork, which is refused.
 #
@@ -57,14 +57,14 @@ slice() {
     fi
 }
 
-# tags <3mf>: the file's OrcaSlicer and UnlayeredSlicer tag values, one "name=value" line each, in file order.
+# tags <3mf>: the file's OrcaSlicer and OrcaSlicer tag values, one "name=value" line each, in file order.
 tags() {
     "$PY" - "$1" <<'EOF'
 import re, sys, zipfile
 
 with zipfile.ZipFile(sys.argv[1]) as z:
     model = z.read("3D/3dmodel.model").decode("utf-8")
-for name, value in re.findall(r'<metadata name="(OrcaSlicer|UnlayeredSlicer)">([^<]*)</metadata>', model):
+for name, value in re.findall(r'<metadata name="(OrcaSlicer|OrcaSlicer)">([^<]*)</metadata>', model):
     print("%s=%s" % (name, value))
 EOF
 }
@@ -75,15 +75,15 @@ slice base 0 "$WORK/cube.stl" \
 
 BASE_TAGS="$(tags "$WORK/base/out.3mf")"
 ORCA="$(printf '%s\n' "$BASE_TAGS" | sed -n 's/^OrcaSlicer=//p')"
-UNLAYERED="$(printf '%s\n' "$BASE_TAGS" | sed -n 's/^UnlayeredSlicer=//p')"
+UNLAYERED="$(printf '%s\n' "$BASE_TAGS" | sed -n 's/^OrcaSlicer=//p')"
 if [ "$(printf '%s\n' "$BASE_TAGS" | wc -l)" -ne 2 ] || [ -z "$ORCA" ] || [ -z "$UNLAYERED" ]; then
     echo "FAIL: a saved project carries each version tag once; got:"
     printf '%s\n' "$BASE_TAGS"
     exit 1
 fi
 
-# variant <name> <OrcaSlicer value> [UnlayeredSlicer value]: $WORK/<name>.3mf, the base project with its
-# tags replaced; without the third argument it has no UnlayeredSlicer tag.
+# variant <name> <OrcaSlicer value> [OrcaSlicer value]: $WORK/<name>.3mf, the base project with its
+# tags replaced; without the third argument it has no OrcaSlicer tag.
 variant() {
     "$PY" - "$WORK/base/out.3mf" "$WORK/$1.3mf" "$2" "${3:-}" <<'EOF' || exit $?
 import re, sys, zipfile
@@ -95,8 +95,8 @@ with zipfile.ZipFile(src) as zin, zipfile.ZipFile(dst, "w", zipfile.ZIP_DEFLATED
         if item.filename == "3D/3dmodel.model":
             model = data.decode("utf-8")
             model = re.sub(r'<metadata name="OrcaSlicer">[^<]*</metadata>', '<metadata name="OrcaSlicer">%s</metadata>' % orca, model)
-            model = re.sub(r'<metadata name="UnlayeredSlicer">[^<]*</metadata>',
-                           '<metadata name="UnlayeredSlicer">%s</metadata>' % unlayered if unlayered else "", model)
+            model = re.sub(r'<metadata name="OrcaSlicer">[^<]*</metadata>',
+                           '<metadata name="OrcaSlicer">%s</metadata>' % unlayered if unlayered else "", model)
             data = model.encode("utf-8")
         zout.writestr(item, data)
 EOF

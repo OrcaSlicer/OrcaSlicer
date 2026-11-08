@@ -1,7 +1,6 @@
 get_filename_component(_TEST_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)
 add_executable(${_TEST_NAME}_tests
     ${_TEST_NAME}_tests_main.cpp
-    test_cut_segment_palette.cpp
     test_bambu_filament_ids.cpp
     test_bed_exclusion_fields.cpp
     test_cloud_delete_queue.cpp
@@ -49,7 +48,6 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_sort.cpp
     test_plugin_cloud_metadata.cpp
     test_plugin_audit.cpp
-    test_sys_files_bundle.cpp
     test_plugin_json_depth.cpp
     test_plugin_permission_validation.cpp
     test_shortcuts.cpp
@@ -59,37 +57,10 @@ add_executable(${_TEST_NAME}_tests
     test_texture_island_view.cpp
     test_timelapse_codecs.cpp
     test_file_url.cpp
-    test_bambu_connect.cpp
     test_imgui_wrapper.cpp
     test_user_manager.cpp
     test_sequential_clearance.cpp
     test_object_list.cpp
-    test_sys_files_updater.cpp
-    test_usage_telemetry.cpp
-    test_ui_exception.cpp
-    test_crash_log_scrub.cpp
-    test_webapp_preset_share.cpp
-    test_privacy_consent.cpp
-    test_app_updater_macos.cpp
-    test_app_updater_platform.cpp
-    test_app_updater_reuse.cpp
-    test_action_catalog.cpp
-    test_action_schema.cpp
-    test_actions_objects.cpp
-    test_actions_parts.cpp
-    test_actions_objectsettings.cpp
-    test_actions_plates.cpp
-    test_plate_printability.cpp
-    test_actions_paint.cpp
-    test_actions_presets.cpp
-    test_actions_filament.cpp
-    test_actions_slice_project.cpp
-    test_actions_printers.cpp
-    test_printer_update_check.cpp
-    test_firmware_bundle.cpp
-    test_slice_warnings.cpp
-    test_orient_scope.cpp
-    test_unlayered_account.cpp
     ../fff_print/test_helpers.cpp
     )
 
@@ -108,7 +79,7 @@ endif ()
 
 set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 
-unlayered_copy_test_dlls(${_TEST_NAME}_tests)
+orcaslicer_copy_test_dlls(${_TEST_NAME}_tests)
 
 if (WIN32)
     add_custom_command(TARGET ${_TEST_NAME}_tests POST_BUILD
@@ -168,4 +139,4 @@ if (ORCA_BUNDLED_UV_EXECUTABLE)
     )
 endif()
 
-unlayered_discover_tests(${_TEST_NAME}_tests)
+orcaslicer_discover_tests(${_TEST_NAME}_tests)
