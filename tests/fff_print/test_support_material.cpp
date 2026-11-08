@@ -37,6 +37,11 @@
 #include "libslic3r/Support/SupportParameters.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include <catch2/catch_approx.hpp>
+#include <initializer_list>
 
 using namespace Slic3r::Test;
 using namespace Slic3r;

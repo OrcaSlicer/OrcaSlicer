@@ -37,12 +37,25 @@
 
 #include "SupportFins.hpp"
 #include "SupportCommon.hpp"
+#include "SupportLayer.hpp"
+#include "SupportParameters.hpp"
+#include "../BoundingBox.hpp"
 #include "../ClipperUtils.hpp"
+#include "../ExPolygon.hpp"
 #include "../Layer.hpp"
+#include "../Point.hpp"
+#include "../Polygon.hpp"
 #include "../Print.hpp"
+#include "../PrintConfig.hpp"
+#include "../TriangleSelector.hpp"
+#include "../libslic3r.h"
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <math.h>
+#include <utility>
+#include <vector>
 #include <boost/log/trivial.hpp>
 #include <tbb/parallel_for.h>
 
