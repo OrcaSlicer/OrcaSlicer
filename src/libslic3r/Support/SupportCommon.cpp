@@ -1418,6 +1418,27 @@ static void modulate_extrusion_by_overlapping_layers(
         // The extrusions do not overlap with any other extrusion.
         return;
 
+    // Organic double walls are ordered collections, not individual paths.
+    // Thick support slabs may overlap contacts, so modulate their children
+    // without flattening the collection and losing its wall ordering.
+    if (std::any_of(extrusions_in_out.begin(), extrusions_in_out.end(), [](const ExtrusionEntity *entity) {
+            return dynamic_cast<const ExtrusionEntityCollection *>(entity) != nullptr;
+        })) {
+        ExtrusionEntitiesPtr modulated;
+        for (ExtrusionEntity *entity : extrusions_in_out) {
+            if (auto *collection = dynamic_cast<ExtrusionEntityCollection *>(entity)) {
+                modulate_extrusion_by_overlapping_layers(collection->entities, this_layer, overlapping_layers);
+                modulated.push_back(collection);
+            } else {
+                ExtrusionEntitiesPtr paths{entity};
+                modulate_extrusion_by_overlapping_layers(paths, this_layer, overlapping_layers);
+                modulated.insert(modulated.end(), paths.begin(), paths.end());
+            }
+        }
+        extrusions_in_out.swap(modulated);
+        return;
+    }
+
     // Get the initial extrusion parameters.
     ExtrusionPath *extrusion_path_template = dynamic_cast<ExtrusionPath*>(extrusions_in_out.front());
     assert(extrusion_path_template != nullptr);
