@@ -8,6 +8,7 @@
 #include <wx/string.h>
 #include <boost/optional.hpp>
 #include <boost/asio/ip/address.hpp>
+#include <boost/filesystem/path.hpp>
 
 #include "PrintHost.hpp"
 #include "libslic3r/PrintConfig.hpp"
