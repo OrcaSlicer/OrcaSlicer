@@ -144,7 +144,7 @@ TEST_CASE("every tool of the catalog has the lane the concept gives it", "[Mcp]"
     for (const char* name : {"get_state", "wait", "cancel", "get_log", "run_script", "export_script", "dialog_respond",
                              "dialog_auto_answer", "run_python", "python_api"})
         CHECK(tool_lane(name) == ToolLane::Core);
-    for (const char* name : {"ui_snapshot", "ui_click", "ui_input", "ui_key", "ui_mouse", "gizmo_file", "webview_eval", "set_view",
+    for (const char* name : {"list_windows", "ui_snapshot", "ui_click", "ui_input", "ui_key", "ui_mouse", "gizmo_file", "webview_eval", "set_view",
                              "screenshot", "start_recording", "stop_recording", "encode_recording", "list_actions", "run_action",
                              "select"})
         CHECK(tool_lane(name) == ToolLane::Ui);

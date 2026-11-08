@@ -342,8 +342,9 @@ void register_view_tools(McpService& service)
         "plus the full-size PNG written to save_path (or the session's output folder). target: \"window\" (the main "
         "window), \"canvas\" (the visible 3D view exactly as rendered: scene, toolpaths, toolbars, ImGui panels; on the "
         "Design tab its view), "
-        "\"dialog\" (the topmost modal dialog), or a widget's ref from ui_snapshot (a window that is not modal, or just "
-        "that widget; a page element's ref captures its whole web view). The result says when parts may differ from the "
+        "\"dialog\" (the topmost modal dialog), or a ref: a window's from list_windows (one that is not modal, say), or a "
+        "widget's from ui_snapshot, cropped to that widget (a page element's ref captures its whole web view). The result "
+        "says when parts may differ from the "
         "screen (approximate). Point the view first with set_view.",
         object_schema({{"target", {{"type", json::array({"string", "object"})},
                                     {"description", "window (default), canvas, dialog, or a widget's ref or locator from ui_snapshot."}}},

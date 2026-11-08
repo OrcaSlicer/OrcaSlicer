@@ -399,7 +399,8 @@ the UI thread.
 | Recording | `start_recording` | record the main window with its modal dialogs, or the 3D view shown, into an MJPEG `.mkv`, with the current tool call as a caption and the pointer highlighted when asked for, and with `encode` an MP4 of it once stopped |
 | | `stop_recording` | capture the last state, end the recording and report its file once written: length, frames, drops, the mean UI time of a capture, size and why it ended; the job of the encode `start_recording` asked for |
 | | `encode_recording` | encode a recording into an H.265 or H.264 MP4 with the system ffmpeg; cancellable |
-| GUI | `ui_snapshot` | widgets, rows of lists, trees and tables, popups, menus, GL toolbar items, gizmos, the Prepare view's plates and plate icons, and ImGui items, with refs |
+| GUI | `list_windows` | the open windows, modal or not, with refs for `screenshot`, `ui_snapshot` and the input tools, paged |
+| | `ui_snapshot` | widgets, rows of lists, trees and tables, popups, menus, GL toolbar items, gizmos, the Prepare view's plates and plate icons, and ImGui items, with refs |
 | | `ui_click` | activate a ref or locator, click a row's cell or a plate icon, or click a point of a 3D canvas or custom-drawn widget; list the menu it opens, or run one of its items |
 | | `ui_input` | set a control's text, value, selection or checked state, or a row's checkbox |
 | | `ui_key` | send a key chord to a target or the focused window, whose panels' key hooks see it first; list or run the menu it opens |
@@ -1518,6 +1519,22 @@ click opens the offer menu, which is listed or run like any other. Points of the
 Prepare's objects, so on the Design view `ui_mouse` takes pixels only; `cad_call query_topology`
 gives its faces.
 
+### Windows
+
+`list_windows` (`UiInspector::windows()`) lists the open windows without their widgets, in `ui_snapshot`'s
+order: the main window, the windows that don't block in the order they were created, then the modal
+stack, the topmost last. wx keeps top-level windows in creation order, not stacking order, so only the
+modal stack orders by what is on top. Each window has the ref `ui_snapshot` gives its node, with the same
+locator, so `screenshot` captures that window by it, `ui_snapshot` takes it as `root`, the input tools as
+`target`, and the journal records the locator; its title is what `within` takes. A window says whether it
+is modal and whether it shows a web view (outside a hidden pane), with its size and, where the platform
+knows it (not Wayland, `window_positions_known()`), its place on screen. A native dialog of the modal
+stack, which only `dialog_respond` reaches, is listed with `native` and no ref, whether or not wx reports
+it shown. A window named `kHiddenFromAutomation` is listed by its title and kind with `hidden` and
+nothing more: without a ref no tool acts on it, and an agent learns why a window it was told about is out
+of its reach. The Python scripts window is the one modal window the tracker leaves off its stack, so it is
+listed among the others, `modal` from `wxDialog::IsModal()`.
+
 ### Menus
 
 Every popup and context menu goes through `popup_menu()` (`SyntheticInput.hpp`), which is
@@ -2116,7 +2133,7 @@ dialog natively; cross-origin frames other than plugin configuration UIs are lis
   capture loses OpenGL content on several platforms.
 - `dialog`: the topmost modal, captured like a window.
 - a widget's ref or locator: its top-level window captured like a window (a window that is not
-  modal, such as an object's settings, has no other target) and cropped to the widget, or the
+  modal, such as an object's settings, has no other target: `list_windows` gives its ref) and cropped to the widget, or the
   canvas capture for a 3D canvas. A tab is cropped to its page, which must be the one shown. The
   journal records the locator.
 
@@ -2620,7 +2637,8 @@ run's replacing tools treat the run as `discard_changes: true` (`McpService::dis
 read from the job lineage when the tool checks), so changes are dropped only when a step really
 replaces the project. The runner never answers the app's own question.
 
-The window is named `kHiddenFromAutomation`: `ui_snapshot` and locators skip it, web view
+The window is named `kHiddenFromAutomation`: `ui_snapshot` and locators skip it, `list_windows` lists
+it as hidden with no ref, web view
 scripts never pick it, a key sent without a target never goes to the focus inside it, and on X11,
 where a window capture reads the screen, it hides for the moment of the capture. Every prompt and
 file dialog it opens is named so too, so no auto-answer rule a replay registers answers the person's
@@ -2961,7 +2979,8 @@ ends rather than as it moves.
 `.py` opens in the panel, and any other navigation is vetoed. The pane is named `kHiddenFromAutomation`, as are the frame it floats in
 (`AuiMgr::CreateFloatingFrame()`) and every prompt and file dialog it opens. `skipped_by_walks()` keeps the walks of
 `ui_snapshot`, locators and `webview_eval`'s search for a web view out of it, and a key sent without a target never
-goes to the focus inside it, so a script never acts on the panel that runs it. Docked, the panel is part of the main
+goes to the focus inside it, so a script never acts on the panel that runs it. `list_windows` lists the floating
+frame as hidden, with no ref. Docked, the panel is part of the main
 window and shows in its screenshots and recordings; floating, it is a window of its own and stays out of them, as the
 person's own dialogs do.
 

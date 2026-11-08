@@ -135,6 +135,11 @@ public:
 
     // {tree, nodes, omitted}
     nlohmann::json snapshot(const SnapshotOptions& options);
+    // The open windows as list_windows lists them, in ui_snapshot's order: the main window, the windows
+    // that don't block, then the modal dialogs in the order they opened, so the topmost is last. Each
+    // has the ref ui_snapshot gives it. A native dialog has no ref, and a window hidden from automation
+    // is listed by its title and kind alone, so an agent knows it is there and out of reach.
+    nlohmann::json windows();
     // The web views a snapshot with `options` walks whose pages it lists: shown ones under its
     // roots, and while a modal dialog is open only those in the topmost one. `behind` gets the
     // others under the roots, which are listed without their pages.
@@ -209,6 +214,8 @@ private:
                    const SnapshotOptions& options);
     void add_canvas_items(GLCanvas3D& canvas, int depth, std::vector<UiNode>& nodes, std::size_t& omitted, const SnapshotOptions& options);
     bool push(UiNode node, UiTarget target, std::vector<UiNode>& nodes, std::size_t& omitted, const SnapshotOptions& options);
+    // A new ref to `target`, live while what it names is.
+    std::string add_ref(UiTarget target);
     // What a locator finds, in snapshot order; resolve() and locator_for() share them.
     std::vector<wxWindow*>                                          match_windows(const nlohmann::json& locator);
     std::vector<std::pair<GLCanvas3D*, ImGuiWrapper::RecordedItem>> match_imgui(const nlohmann::json& locator);

@@ -5,6 +5,7 @@
 #include "McpService.hpp"
 #include "McpTypes.hpp"
 #include "ModalTracker.hpp"
+#include "ScreenCapture.hpp"
 #include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/BBLTopbar.hpp"
 #include "slic3r/GUI/Camera.hpp"
@@ -95,6 +96,7 @@
 #include <wx/tglbtn.h>
 #include <wx/toplevel.h>
 #include <wx/arrstr.h>
+#include <wx/aui/floatpane.h>
 #include <wx/bookctrl.h>
 #include <wx/tracker.h>
 #include <wx/utils.h>
@@ -623,8 +625,9 @@ std::string no_modal_dialog(McpService& service)
             open += (open.empty() ? "\"" : ", \"") + label_of(tlw) + "\"";
     if (open.empty())
         return "No modal dialog is open";
-    return "No modal dialog is open. Open without blocking the app: " + open + ". ui_snapshot lists such a window; with its ref as "
-           "root it reads that window alone, and the window's own close button or ui_key Escape with its ref as target closes it";
+    return "No modal dialog is open. Open without blocking the app: " + open + ". list_windows lists such a window with its ref: "
+           "screenshot captures it with the ref as target, ui_snapshot reads it alone with the ref as root, and the window's own "
+           "close button or ui_key Escape with its ref as target closes it";
 }
 
 // Stable English gizmo names for refs and locators: the names Orca uses for the gizmos it names,
@@ -1999,6 +2002,13 @@ bool UiInspector::push(UiNode node, UiTarget target, std::vector<UiNode>& nodes,
     }
     if (web)
         ++m_web_nodes;
+    node.ref = add_ref(std::move(target));
+    nodes.push_back(std::move(node));
+    return true;
+}
+
+std::string UiInspector::add_ref(UiTarget target)
+{
     const uint64_t generation = m_service.ui_generation();
     std::function<bool()> alive;
     char                  kind = 'w';
@@ -2070,9 +2080,7 @@ bool UiInspector::push(UiNode node, UiTarget target, std::vector<UiNode>& nodes,
         break;
     }
     }
-    node.ref = m_refs.add(kind, generation, std::move(target), std::move(alive));
-    nodes.push_back(std::move(node));
-    return true;
+    return m_refs.add(kind, generation, std::move(target), std::move(alive));
 }
 
 void UiInspector::add_menus(wxMenu* menu, const std::string& path, wxWindow* frame, int depth, std::vector<UiNode>& nodes,
@@ -2579,6 +2587,77 @@ json UiInspector::snapshot(const SnapshotOptions& o)
     json dialogs = m_service.modals().snapshot();
     if (!dialogs.empty())
         out["dialogs"] = std::move(dialogs);
+    return out;
+}
+
+namespace {
+
+// Whether `w` shows a web view, outside the windows and panes hidden from automation.
+bool shows_web_view(wxWindow* w)
+{
+    if (dynamic_cast<wxWebView*>(w) != nullptr)
+        return w->IsShownOnScreen();
+    for (wxWindow* child : w->GetChildren())
+        if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr && dynamic_cast<wxPopupWindow*>(child) == nullptr && child->IsShown() &&
+            !skipped_by_walks(child) && shows_web_view(child))
+            return true;
+    return false;
+}
+
+} // namespace
+
+json UiInspector::windows()
+{
+    const std::vector<wxDialog*>& modals = m_service.modals().stack();
+    const bool                    placed = window_positions_known();
+    json                          out    = json::array();
+    auto add = [&](wxTopLevelWindow* tlw, bool modal) {
+        const bool        main  = tlw == wxGetApp().mainframe;
+        auto*             dlg   = dynamic_cast<wxDialog*>(tlw);
+        const std::string title = label_of(tlw);
+        json w{{"title", title},
+               {"kind", main ? "main" : dynamic_cast<wxAuiFloatingFrame*>(tlw) != nullptr ? "panel" : dlg != nullptr ? "dialog" : "window"},
+               {"modal", modal}};
+        if (tlw->GetName() == kHiddenFromAutomation) {
+            w["hidden"] = true;
+        } else if (dlg != nullptr && is_native_dialog(dlg)) {
+            // dialog_respond answers it; no other tool reaches into it.
+            w["native"] = true;
+        } else {
+            // The locator ui_snapshot gives the window, so a journal records the same.
+            UiTarget t;
+            t.kind    = UiTarget::Kind::Window;
+            t.window  = tlw;
+            t.locator = {{"class", short_class(tlw)}};
+            if (!title.empty())
+                t.locator["label"] = title;
+            if (const std::string name = meaningful_name(tlw); !name.empty())
+                t.locator["name"] = name;
+            w["ref"] = add_ref(std::move(t));
+            w["web"] = shows_web_view(tlw);
+            if (placed) {
+                const wxPoint pos = tlw->GetScreenPosition();
+                w["x"] = pos.x, w["y"] = pos.y;
+            }
+            const wxSize size = tlw->GetSize();
+            w["width"] = size.x, w["height"] = size.y;
+        }
+        out.push_back(std::move(w));
+    };
+    if (wxGetApp().mainframe != nullptr && wxGetApp().mainframe->IsShown())
+        add(wxGetApp().mainframe, false);
+    for (wxWindow* w : wxTopLevelWindows) {
+        auto* tlw = dynamic_cast<wxTopLevelWindow*>(w);
+        if (tlw == nullptr || !tlw->IsShown() || tlw == wxGetApp().mainframe || std::find(modals.begin(), modals.end(), tlw) != modals.end())
+            continue;
+        // A window hidden from automation is the only modal one the tracker leaves off its stack.
+        auto* dlg = dynamic_cast<wxDialog*>(tlw);
+        add(tlw, dlg != nullptr && dlg->IsModal());
+    }
+    // A native dialog may not report itself shown while its box is up.
+    for (wxDialog* d : modals)
+        if (d->IsShown() || is_native_dialog(d))
+            add(d, true);
     return out;
 }
 

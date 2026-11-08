@@ -186,6 +186,8 @@ const char* kInstructions =
     "- run_action runs every Speed Dial command (list_actions to search): prefer it to GUI clicks.\n"
     "- ui_snapshot lists widgets, menus, 3D toolbar items, gizmos, ImGui items and web page elements with refs; ui_click "
     "/ ui_input / ui_key / ui_mouse act on refs from the latest snapshot, or on locators, which its description lists.\n"
+    "- list_windows lists the open windows, modal or not, with refs: a window's ref as screenshot's target captures "
+    "that window, and as ui_snapshot's root lists it alone.\n"
     "- Gizmos (Cut, Text, SVG, the painting tools...): ui_click {target: {gizmo: \"Cut\"}} opens one; its panel's "
     "fields and buttons are ImGui items for ui_input / ui_click, and painting is a ui_mouse drag starting on the "
     "object. Turn the camera with set_view camera or orbit, never a drag: what a drag does follows the user's mouse "

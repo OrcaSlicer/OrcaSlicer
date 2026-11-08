@@ -321,6 +321,10 @@ tools/mcp/orca_mcp.py launch --datadir /tmp/orca-mcp-test
 tools/mcp/test_web_ui.py
 ```
 
+`test_list_windows.py` checks `list_windows`: the main window first, the Plugins window (which doesn't
+block the app) with a ref that `screenshot` captures alone, `ui_snapshot` reads alone and `ui_key` Escape
+closes, Preferences last as a modal dialog, and Action Replay listed as hidden, without a ref.
+
 `test_script_runner_hidden.py` opens Action Replay and checks that the GUI tools don't see
 it: `ui_snapshot` lists no window for it, `webview_eval` without a target behaves as before it
 opened, and a key sent without a target never reaches it. It then shows the Run Script panel on

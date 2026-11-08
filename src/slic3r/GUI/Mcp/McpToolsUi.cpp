@@ -1044,6 +1044,23 @@ void register_ui_tools(McpService& service)
 {
     ToolRegistry& reg = service.registry();
 
+    reg.add(inspect_tool(
+        "list_windows", L("List the windows"),
+        "List OrcaSlicer's open windows: the main window, then the windows that don't block the app (Plugins, an "
+        "object's settings, a dock panel floating on its own), then the modal dialogs in the order they opened, the "
+        "topmost last. A window's ref goes to screenshot as target to capture that window, to ui_snapshot as root to "
+        "list it alone, and to ui_key as target; its title is the within of locators for its widgets.\n"
+        "Reply: each window's title, kind (main, window, dialog, or panel: a dock panel floating on its own), modal, "
+        "ref, web (it shows a web page), x and y on screen (not on Wayland, which doesn't say), width and height.\n"
+        "A native dialog (a message box, a file picker) has native: true and no ref: dialog_respond answers it. hidden: "
+        "true marks the person's own windows (Action Replay, the Run Script panel and their prompts, the Python scripts "
+        "setting), which no tool reaches and screenshots leave out.",
+        object_schema({{"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 200}, {"description", "Default 100."}}},
+                       {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
+        [&service](const json& args, ToolContext& ctx) {
+            return ToolResult::ok(page(ctx.run_ui([&] { return service.inspector().windows(); }), args));
+        }));
+
     {
         ToolDef def = inspect_tool(
             "ui_snapshot", L("List the GUI"),
@@ -1069,7 +1086,7 @@ void register_ui_tools(McpService& service)
             "the snapshot lists (exactly, else ignoring case, else a part of it), its kind, a CSS selector (the id a line "
             "shows as name: name=#save is {css: \"#save\"}), or together. Without within it looks in the topmost dialog's "
             "pages while one is open, else in every shown page, and it waits up to 3 s for its element.",
-            object_schema({{"root", prop("string", "all (default), main, dialog (the topmost modal), popup, or a window's ref.")},
+            object_schema({{"root", prop("string", "all (default), main, dialog (the topmost modal), popup, or a window's ref (list_windows).")},
                            {"query", prop("string", "Case-insensitive text to look for in labels, values, names and classes.")},
                            {"max_nodes", {{"type", "integer"}, {"minimum", 1}, {"maximum", 5000}, {"description", "Default 400."}}},
                            {"include_imgui", prop("boolean", "List ImGui items (default true).")},
