@@ -1,0 +1,20 @@
+{
+	"type": "process",
+	"name": "0.10mm Fine @Markforged",
+	"inherits": "fdm_process_markforged_common",
+	"from": "system",
+	"setting_id": "EWk5uRqdBquLbI3Y",
+	"instantiation": "true",
+	"layer_height": "0.1",
+	"initial_layer_print_height": "0.15",
+	"compatible_printers": [
+		"Markforged Mark Two 0.4 nozzle",
+		"Markforged Onyx One 0.4 nozzle",
+		"Markforged Onyx Pro 0.4 nozzle",
+		"Markforged X3 0.4 nozzle",
+		"Markforged X5 0.4 nozzle",
+		"Markforged X7 0.4 nozzle",
+		"Markforged FX10 0.4 nozzle",
+		"Markforged FX20 0.4 nozzle"
+	]
+}

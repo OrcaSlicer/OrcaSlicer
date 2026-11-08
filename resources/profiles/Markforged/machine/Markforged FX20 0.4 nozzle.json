@@ -1,0 +1,20 @@
+{
+	"type": "machine",
+	"name": "Markforged FX20 0.4 nozzle",
+	"inherits": "fdm_markforged_common",
+	"from": "system",
+	"setting_id": "5W3GKMYt13MPkp4L",
+	"instantiation": "true",
+	"printer_model": "Markforged FX20",
+	"printer_variant": "0.4",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"printable_area": [
+		"0x0",
+		"525x0",
+		"525x400",
+		"0x400"
+	],
+	"printable_height": "400"
+}

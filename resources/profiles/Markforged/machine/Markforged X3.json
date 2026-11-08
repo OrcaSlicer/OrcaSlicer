@@ -1,0 +1,12 @@
+{
+	"type": "machine_model",
+	"name": "Markforged X3",
+	"model_id": "markforged_x3",
+	"nozzle_diameter": "0.4",
+	"machine_tech": "FFF",
+	"family": "Markforged",
+	"bed_model": "",
+	"bed_texture": "",
+	"hotend_model": "",
+	"default_materials": "Markforged Onyx;Markforged Precise PLA"
+}

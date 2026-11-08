@@ -1,0 +1,12 @@
+{
+	"type": "machine_model",
+	"name": "Markforged FX20",
+	"model_id": "markforged_fx20",
+	"nozzle_diameter": "0.4",
+	"machine_tech": "FFF",
+	"family": "Markforged",
+	"bed_model": "",
+	"bed_texture": "",
+	"hotend_model": "",
+	"default_materials": "Markforged Onyx"
+}

@@ -1,0 +1,46 @@
+{
+	"type": "filament",
+	"name": "Markforged Nylon White",
+	"inherits": "fdm_filament_pa",
+	"from": "system",
+	"setting_id": "q0d0bGbQ5cI5YBPz",
+	"filament_id": "OFqvemRx",
+	"instantiation": "true",
+	"filament_type": [
+		"PA"
+	],
+	"filament_vendor": [
+		"Markforged"
+	],
+	"filament_density": [
+		"1.1"
+	],
+	"filament_diameter": [
+		"1.75"
+	],
+	"nozzle_temperature": [
+		"263"
+	],
+	"nozzle_temperature_initial_layer": [
+		"263"
+	],
+	"hot_plate_temp": [
+		"0"
+	],
+	"hot_plate_temp_initial_layer": [
+		"0"
+	],
+	"filament_max_volumetric_speed": [
+		"6"
+	],
+	"compatible_printers": [
+		"Markforged Mark Two 0.4 nozzle",
+		"Markforged Onyx One 0.4 nozzle",
+		"Markforged Onyx Pro 0.4 nozzle",
+		"Markforged X3 0.4 nozzle",
+		"Markforged X5 0.4 nozzle",
+		"Markforged X7 0.4 nozzle",
+		"Markforged FX10 0.4 nozzle",
+		"Markforged FX20 0.4 nozzle"
+	]
+}

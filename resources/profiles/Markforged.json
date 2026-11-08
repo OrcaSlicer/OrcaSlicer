@@ -1,0 +1,134 @@
+{
+	"name": "Markforged",
+	"version": "02.05.00.00",
+	"force_update": "0",
+	"description": "Markforged composite printers (sliced and printed through Eiger)",
+	"machine_model_list": [
+		{
+			"name": "Markforged FX10",
+			"sub_path": "machine/Markforged FX10.json"
+		},
+		{
+			"name": "Markforged FX20",
+			"sub_path": "machine/Markforged FX20.json"
+		},
+		{
+			"name": "Markforged Mark Two",
+			"sub_path": "machine/Markforged Mark Two.json"
+		},
+		{
+			"name": "Markforged Onyx One",
+			"sub_path": "machine/Markforged Onyx One.json"
+		},
+		{
+			"name": "Markforged Onyx Pro",
+			"sub_path": "machine/Markforged Onyx Pro.json"
+		},
+		{
+			"name": "Markforged X3",
+			"sub_path": "machine/Markforged X3.json"
+		},
+		{
+			"name": "Markforged X5",
+			"sub_path": "machine/Markforged X5.json"
+		},
+		{
+			"name": "Markforged X7",
+			"sub_path": "machine/Markforged X7.json"
+		}
+	],
+	"process_list": [
+		{
+			"name": "fdm_process_common",
+			"sub_path": "process/fdm_process_common.json"
+		},
+		{
+			"name": "fdm_process_markforged_common",
+			"sub_path": "process/fdm_process_markforged_common.json"
+		},
+		{
+			"name": "0.10mm Fine @Markforged",
+			"sub_path": "process/0.10mm Fine @Markforged.json"
+		},
+		{
+			"name": "0.125mm Standard @Markforged",
+			"sub_path": "process/0.125mm Standard @Markforged.json"
+		},
+		{
+			"name": "0.20mm Draft @Markforged",
+			"sub_path": "process/0.20mm Draft @Markforged.json"
+		}
+	],
+	"filament_list": [
+		{
+			"name": "fdm_filament_common",
+			"sub_path": "filament/fdm_filament_common.json"
+		},
+		{
+			"name": "fdm_filament_pa",
+			"sub_path": "filament/fdm_filament_pa.json"
+		},
+		{
+			"name": "fdm_filament_pla",
+			"sub_path": "filament/fdm_filament_pla.json"
+		},
+		{
+			"name": "Markforged Nylon White",
+			"sub_path": "filament/Markforged Nylon White.json"
+		},
+		{
+			"name": "Markforged Onyx",
+			"sub_path": "filament/Markforged Onyx.json"
+		},
+		{
+			"name": "Markforged Onyx FR",
+			"sub_path": "filament/Markforged Onyx FR.json"
+		},
+		{
+			"name": "Markforged Precise PLA",
+			"sub_path": "filament/Markforged Precise PLA.json"
+		}
+	],
+	"machine_list": [
+		{
+			"name": "fdm_machine_common",
+			"sub_path": "machine/fdm_machine_common.json"
+		},
+		{
+			"name": "fdm_markforged_common",
+			"sub_path": "machine/fdm_markforged_common.json"
+		},
+		{
+			"name": "Markforged FX10 0.4 nozzle",
+			"sub_path": "machine/Markforged FX10 0.4 nozzle.json"
+		},
+		{
+			"name": "Markforged FX20 0.4 nozzle",
+			"sub_path": "machine/Markforged FX20 0.4 nozzle.json"
+		},
+		{
+			"name": "Markforged Mark Two 0.4 nozzle",
+			"sub_path": "machine/Markforged Mark Two 0.4 nozzle.json"
+		},
+		{
+			"name": "Markforged Onyx One 0.4 nozzle",
+			"sub_path": "machine/Markforged Onyx One 0.4 nozzle.json"
+		},
+		{
+			"name": "Markforged Onyx Pro 0.4 nozzle",
+			"sub_path": "machine/Markforged Onyx Pro 0.4 nozzle.json"
+		},
+		{
+			"name": "Markforged X3 0.4 nozzle",
+			"sub_path": "machine/Markforged X3 0.4 nozzle.json"
+		},
+		{
+			"name": "Markforged X5 0.4 nozzle",
+			"sub_path": "machine/Markforged X5 0.4 nozzle.json"
+		},
+		{
+			"name": "Markforged X7 0.4 nozzle",
+			"sub_path": "machine/Markforged X7 0.4 nozzle.json"
+		}
+	]
+}
