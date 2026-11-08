@@ -5,7 +5,7 @@
 # name = "Elegoo Cloud for Centauri Carbon 2"
 # description = "Send G-code from the slicer to an Elegoo Centauri Carbon 2 through the Elegoo cloud (works away from the printer's network)."
 # author = "Unified Slicer"
-# version = "0.2.1"
+# version = "0.3.0"
 # ///
 """Elegoo Cloud for Centauri Carbon 2.
 
