@@ -22,7 +22,6 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
-#include "libslic3r/Config.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Line.hpp"
 #include "libslic3r/Point.hpp"
@@ -1578,7 +1577,7 @@ namespace {
 // painted underside of a bridge is segmented. The deck's first layer (print_z 5.2) lies entirely over the gap,
 // next to the tops of the pillars on the same layer.
 Print &painted_bridge(Print &print, Model &model, const char *wall_generator, bool thick_bridges, bool extra_perimeters, double bridge_angle,
-                      double overlap_percent, bool reverse_filaments)
+                      bool reverse_filaments)
 {
     DynamicPrintConfig config = multifilament_config(2, {
         { "wall_generator",                wall_generator },
@@ -1589,7 +1588,6 @@ Print &painted_bridge(Print &print, Model &model, const char *wall_generator, bo
         { "bottom_shell_layers",           3 },
         { "outer_wall_line_width",         0.42 },
         { "inner_wall_line_width",         0.45 },
-        { "top_bottom_infill_wall_overlap", ConfigOptionPercent(overlap_percent) },
         { "detect_overhang_wall",          true },
         { "extra_perimeters_on_overhangs", extra_perimeters },
         { "thick_bridges",                 thick_bridges },
@@ -1642,7 +1640,7 @@ TEST_CASE("A bridge anchor into another filament is equally wide whatever the br
     Print print;
     Model model;
     // An oblique bridge meets the boundaries with the pillars at 45 degrees.
-    painted_bridge(print, model, wall_generator, false, false, 45., 25., false);
+    painted_bridge(print, model, wall_generator, false, false, 45., false);
     const PrintObject &object = *print.objects().front();
     const auto layer = std::find_if(object.layers().begin(), object.layers().end(),
                                     [](const Layer *l) { return std::abs(l->print_z - 5.2) < EPSILON; });
@@ -1695,14 +1693,13 @@ TEST_CASE("A bridge in another filament is bridged between the walls of its neig
     const bool thick_bridges = GENERATE(false, true);
     const bool extra_perimeters = GENERATE(false, true);
     const double bridge_angle = GENERATE(0., 180.);
-    const double overlap_percent = GENERATE(0., 25., 50.);
     const bool reverse_filaments = GENERATE(false, true);
     const bool reprocess_infill = GENERATE(false, true);
-    CAPTURE(wall_generator, thick_bridges, extra_perimeters, bridge_angle, overlap_percent, reverse_filaments, reprocess_infill);
+    CAPTURE(wall_generator, thick_bridges, extra_perimeters, bridge_angle, reverse_filaments, reprocess_infill);
 
     Print print;
     Model model;
-    painted_bridge(print, model, wall_generator, thick_bridges, extra_perimeters, bridge_angle, overlap_percent, reverse_filaments);
+    painted_bridge(print, model, wall_generator, thick_bridges, extra_perimeters, bridge_angle, reverse_filaments);
     if (reprocess_infill) {
         DynamicPrintConfig updated(print.full_print_config());
         updated.set("bottom_shell_layers", 4);

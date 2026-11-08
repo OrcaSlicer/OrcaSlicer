@@ -615,14 +615,11 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
                     if (edge.length() > 2. * SCALED_EPSILON)
                         shared.emplace_back(std::move(edge));
                 ExPolygons anchors = intersection_ex(offset(shared, extension, jtMiter, 3.), other_regions);
-                anchors = intersection_ex(anchors, this->layer()->lslices);
                 // Surface classification uses safety offsets and may leave a sub-resolution
                 // gap at the material boundary. Close it without joining separate islands.
                 ExPolygons anchored = closing_ex(union_ex(ExPolygons{bridge.expolygon}, anchors), float(SCALED_EPSILON));
-                anchored = intersection_ex(anchored, this->layer()->lslices);
-                for (ExPolygon &expoly : anchored)
-                    if (!intersection_ex(ExPolygons{expoly}, ExPolygons{bridge.expolygon}).empty())
-                        anchored_bridges.emplace_back(bridge, std::move(expoly));
+                for (ExPolygon &expoly : intersection_ex(anchored, this->layer()->lslices))
+                    anchored_bridges.emplace_back(bridge, std::move(expoly));
             }
             bridges.surfaces = std::move(anchored_bridges);
         }
