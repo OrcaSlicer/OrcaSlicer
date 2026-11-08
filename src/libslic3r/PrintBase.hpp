@@ -485,7 +485,7 @@ public:
     // No status output or callback whatsoever, useful mostly for automatic tests.
     void                    set_status_silent() { m_status_callback = [](const SlicingStatus&){}; }
     // Register a custom status callback.
-    void                    set_status_callback(status_callback_type cb) { m_status_callback = cb; }
+    void                    set_status_callback(status_callback_type cb) { std::scoped_lock<std::mutex> lock(m_status_callback_mutex); m_status_callback = std::move(cb); }
     // Calls a registered callback to update the status, or print out the default message.
     void                    set_status(int percent, const std::string &message, unsigned int flags = SlicingStatus::DEFAULT, int warning_step = -1) const;
 
@@ -583,8 +583,8 @@ private:
     // The mutex will be used to guard the worker thread against entering a stage
     // while the data influencing the stage is modified.
     mutable std::mutex                      m_state_mutex;
-    // Held while the status callback runs: the objects run their steps concurrently, and a callback may keep state
-    // of its own, such as the warnings the command line collects.
+    // Held while the status callback runs or is replaced: the objects run their steps concurrently, a callback may keep
+    // state of its own, such as the warnings the command line collects, and the GUI replaces it while a slice runs.
     mutable std::mutex                      m_status_callback_mutex;
 
     friend PrintTryCancel;
