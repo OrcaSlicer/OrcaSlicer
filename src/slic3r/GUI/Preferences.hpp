@@ -130,6 +130,7 @@ public:
     wxBoxSizer *create_item_auto_reslice(wxString title, wxString checkbox_tooltip, wxString delay_tooltip);
     wxBoxSizer *create_item_bambu_cloud(wxString title, wxString tooltip);
     wxBoxSizer *create_item_mcp_server(wxString title, wxString tooltip);
+    wxBoxSizer *create_item_mcp_port(wxString title, wxString tooltip);
     wxBoxSizer *create_item_mcp_address(wxString title, wxString tooltip);
     wxBoxSizer *create_item_mcp_transport(wxString title, wxString tooltip);
     wxBoxSizer *create_item_mcp_connect(wxString title, wxString tooltip);

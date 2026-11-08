@@ -8561,10 +8561,10 @@ void GUI_App::stop_mcp_endpoint()
 
 bool GUI_App::restart_mcp_endpoint(std::string* error)
 {
-    if (!m_mcp || !m_mcp->serving())
-        return true;
     if (init_params != nullptr)
         init_params->mcp.port = 0;
+    if (!m_mcp || !m_mcp->serving())
+        return true;
     m_mcp->stop_serving();
     return start_mcp_service(true, error);
 }

@@ -56,6 +56,7 @@
 #include <wx/dirdlg.h>
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/GUI_Init.hpp"
 #include "slic3r/GUI/Widgets/TabCtrl.hpp"
 #include "slic3r/GUI/Field.hpp"
 #include <map>
@@ -1343,21 +1344,26 @@ static constexpr int MCP_HINT_WIDTH   = 270;
 // The setup row's Copy button, in DIP: ButtonType::Parameter's height, narrower to leave the picker room.
 static const wxSize MCP_COPY_BUTTON_SIZE(100, 26);
 
-// Where agents connect over HTTP: the running server's port, otherwise the one turning it on here
-// uses, which McpService::start() reads the same way.
-static std::string mcp_url(const Mcp::McpService *mcp, AppConfig *config)
+// The running server's port, otherwise the one turning it on here opens, which McpService::start()
+// reads the same way: --mcp-port until a port is set in Preferences, then the saved one.
+static int mcp_port(const Mcp::McpService *mcp, AppConfig *config)
 {
-    int port = 0;
     if (mcp != nullptr && mcp->serving())
-        port = mcp->port();
-    else {
+        return mcp->port();
+    const GUI_InitParams *params = wxGetApp().init_params;
+    int                   port   = params != nullptr ? params->mcp.port : 0;
+    if (port <= 0) {
         try {
             port = std::stoi(config->get("mcp_port"));
         } catch (const std::exception &) {}
-        if (port <= 0 || port > 65535)
-            port = Mcp::kDefaultPort;
     }
-    return "http://127.0.0.1:" + std::to_string(port) + "/mcp";
+    return port > 0 && port <= 65535 ? port : Mcp::kDefaultPort;
+}
+
+// Where agents connect over HTTP.
+static std::string mcp_url(const Mcp::McpService *mcp, AppConfig *config)
+{
+    return "http://127.0.0.1:" + std::to_string(mcp_port(mcp, config)) + "/mcp";
 }
 
 // The program a stdio setup runs. Inside an AppImage the executable path is a temporary mount.
@@ -1496,6 +1502,51 @@ void PreferencesDialog::update_mcp_status(const std::string &note)
     // A reason that wraps changes the row's height.
     m_parent->Layout();
     m_parent->FitInside();
+}
+
+// Shows the port the server is on, also one --mcp-port gave for this session only, so it reads the
+// same as the address. The field commits on Enter and whenever it loses focus, also when focus only
+// passed through it and the dialog then closes; since the shown port may not be the saved one, only
+// an edit is saved and moves the server.
+wxBoxSizer *PreferencesDialog::create_item_mcp_port(wxString title, wxString tooltip)
+{
+    wxBoxSizer *m_sizer = create_item_label(title, tooltip);
+    auto        shown   = std::make_shared<long>(mcp_port(wxGetApp().mcp_service(), app_config));
+    auto        input   = new ::TextInput(m_parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, DESIGN_INPUT_SIZE,
+                                          wxTE_PROCESS_ENTER);
+    StateColor  input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled),
+                         std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
+    input->SetBackgroundColor(input_bg);
+    input->GetTextCtrl()->SetValue(std::to_string(*shown));
+    input->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_DIGITS));
+    input->SetToolTip(tooltip);
+    input->SetName("mcp_port");
+    m_sizer->Add(input, 0, wxALIGN_CENTER_VERTICAL);
+
+    auto commit = [this, input, shown] {
+        long port = 0;
+        if (!input->GetTextCtrl()->GetValue().ToLong(&port) || port < 1024 || port > 65535) {
+            update_mcp_status(_u8L("The port must be between 1024 and 65535"));
+            return;
+        }
+        std::string err;
+        if (port != *shown) {
+            *shown = port;
+            app_config->set("mcp_port", std::to_string(port));
+            app_config->save();
+            wxGetApp().restart_mcp_endpoint(&err);
+        }
+        update_mcp_status(err); // the address shows the new port, also while the server is off
+    };
+    input->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [commit](wxCommandEvent &e) {
+        commit();
+        e.Skip();
+    });
+    input->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [commit](wxFocusEvent &e) {
+        commit();
+        e.Skip();
+    });
+    return m_sizer;
 }
 
 wxBoxSizer *PreferencesDialog::create_item_mcp_address(wxString title, wxString tooltip)
@@ -2119,19 +2170,7 @@ void PreferencesDialog::create_items()
         _L("Run a local server that AI agents connect to through the Model Context Protocol (MCP)."));
     g_sizer->Add(item_mcp_server);
 
-    auto item_mcp_port = create_item_input(_L("Server port"), "", _L("Local port of the MCP server."), "mcp_port",
-        [this](wxString value) {
-            long port = 0;
-            if (!value.ToLong(&port) || port < 1024 || port > 65535) {
-                update_mcp_status(_u8L("The port must be between 1024 and 65535"));
-                return;
-            }
-            std::string            err;
-            const Mcp::McpService *mcp = wxGetApp().mcp_service();
-            if (mcp != nullptr && mcp->serving() && mcp->port() != port)
-                wxGetApp().restart_mcp_endpoint(&err);
-            update_mcp_status(err); // the address shows the new port, also while the server is off
-        });
+    auto item_mcp_port = create_item_mcp_port(_L("Server port"), _L("Local port of the MCP server."));
     g_sizer->Add(item_mcp_port);
 
     auto item_mcp_address = create_item_mcp_address(_L("Server address"),

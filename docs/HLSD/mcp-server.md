@@ -169,9 +169,11 @@ Preferences turns the server on with `GUI_App::start_mcp_service()` and off with
 `GUI_App::stop_mcp_endpoint()`, which stops the takeover retries and calls
 `McpService::stop_serving()` to close only the endpoint and remove the discovery file. The
 catalog, running jobs and a launch script carry on, because the call that opened Preferences may
-itself be an MCP call still on the stack. A new port reopens the endpoint through
-`GUI_App::restart_mcp_endpoint()`, and a port set in Preferences replaces `--mcp-port` for the rest
-of the session. Closing the endpoint drops the session's auto-answer rules, and a client's rules
+itself be an MCP call still on the stack. The port field shows the port in use, `--mcp-port`'s
+included, and only an edit of it is saved and reopens the endpoint, through
+`GUI_App::restart_mcp_endpoint()`: the field also commits when focus merely passes through it. A
+port set in Preferences replaces `--mcp-port` for the rest of the session, also while the server is
+off. Closing the endpoint drops the session's auto-answer rules, and a client's rules
 that a call still running registers afterwards are refused, so a person using the app afterwards
 never has a prompt answered for them. Closing doesn't wait for in-flight requests, which
 may be waiting on the UI thread that closes it; their replies are dropped. A bind failure is

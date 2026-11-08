@@ -678,8 +678,8 @@ public:
     void            stop_mcp_service();
     // Stops it and frees it once no call runs in it. Outside any event loop only (OnExit, CleanUp).
     void            destroy_mcp_service();
-    // Reopens a serving MCP endpoint on the port set in Preferences, which replaces one given on the
-    // command line; no-op when not serving.
+    // Moves the MCP endpoint to the port set in Preferences, which replaces one given on the command
+    // line for the rest of the session: a serving endpoint reopens on it, and a later start opens on it.
     bool            restart_mcp_endpoint(std::string* error = nullptr);
     Mcp::McpService* mcp_service() { return m_mcp.get(); }
 
