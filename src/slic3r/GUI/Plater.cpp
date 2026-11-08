@@ -310,6 +310,7 @@
 #include "DeviceCore/DevConfigUtil.h"
 #include "DeviceCore/DevDefs.h"
 #include "BBLTopbar.hpp"
+#include "VendorSendDialog.hpp"
 
 namespace fs = boost::filesystem;
 using namespace nlohmann;
@@ -3862,6 +3863,9 @@ void Sidebar::update_all_preset_comboboxes()
             p_mainframe->load_printer_url(url, apikey);
 
 
+        // A vendor send dialog (Elegoo cloud, Creality, Markforged) makes Print the default even without a host.
+        if (Plater::has_vendor_send_dialog())
+            print_btn_type = MainFrame::PrintSelectType::ePrintPlate;
         p_mainframe->set_print_button_to_default(print_btn_type);
 
     }
@@ -13862,6 +13866,8 @@ void Plater::priv::on_action_print_plate(SimpleEvent&)
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received print plate event\n" ;
     }
 
+    if (q->send_to_vendor(PLATE_CURRENT_IDX))
+        return;
     PresetBundle& preset_bundle = *wxGetApp().preset_bundle;
     if (preset_bundle.use_bbl_network() || wxGetApp().app_config->get_bool("use_printer_agents")) {
         open_machine_select_dialog(partplate_list.get_curr_plate_index());
@@ -13985,6 +13991,8 @@ void Plater::priv::on_action_print_all(SimpleEvent&)
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received print all event\n" ;
     }
 
+    if (q->send_to_vendor(PLATE_ALL_IDX))
+        return;
     PresetBundle& preset_bundle = *wxGetApp().preset_bundle;
     if (preset_bundle.use_bbl_network() || wxGetApp().app_config->get_bool("use_printer_agents")) {
         open_machine_select_dialog(PLATE_ALL_IDX);
@@ -14005,7 +14013,8 @@ void Plater::priv::on_action_send_gcode(SimpleEvent&)
 {
     if (q != nullptr) {
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received export gcode event\n" ;
-        q->send_gcode_legacy();
+        if (!q->send_to_vendor(PLATE_CURRENT_IDX))
+            q->send_gcode_legacy();
     }
 }
 
@@ -21344,6 +21353,92 @@ void Plater::reslice_SLA_until_step(SLAPrintObjectStep step, const ModelObject &
     // and let the background processing start.
     this->p->restart_background_process(state | priv::UPDATE_BACKGROUND_PROCESS_FORCE_RESTART);
 }
+bool Plater::has_vendor_send_dialog()
+{
+    register_builtin_vendor_send_backends();
+    const SendVendor vendor = current_send_vendor();
+    if (vendor == SendVendor::None || vendor == SendVendor::Bambu)
+        return false;
+    return make_vendor_send_backend(vendor, wxGetApp().preset_bundle->printers.get_edited_preset().config) != nullptr;
+}
+
+bool Plater::send_to_vendor(int plate_idx)
+{
+    register_builtin_vendor_send_backends();
+    const SendVendor vendor = current_send_vendor();
+    if (vendor == SendVendor::None || vendor == SendVendor::Bambu)
+        return false;
+    std::shared_ptr<VendorSendBackend> backend =
+        make_vendor_send_backend(vendor, wxGetApp().preset_bundle->printers.get_edited_preset().config);
+    if (!backend)
+        return false;
+    if (p->model.objects.empty())
+        return true;
+
+    // The dialog sends one plate's G-code: "all plates" sends the current one.
+    const int plate = (plate_idx == PLATE_CURRENT_IDX || plate_idx == PLATE_ALL_IDX) ? get_partplate_list().get_curr_plate_index() : plate_idx;
+
+    fs::path default_output_file;
+    try {
+        const unsigned int state = p->update_restart_background_process(false, false);
+        if (state & priv::UPDATE_BACKGROUND_PROCESS_INVALID)
+            return true;
+        default_output_file = p->background_process.output_filepath_for_project(into_path(p->get_project_filename(".3mf")));
+    } catch (const Slic3r::PlaceholderParserError& ex) {
+        show_error(this, ex.what(), true);
+        return true;
+    } catch (const std::exception& ex) {
+        show_error(this, ex.what(), false);
+        return true;
+    }
+    default_output_file = fs::path(Slic3r::fold_utf8_to_ascii(default_output_file.string()));
+
+    SendJobSummary job;
+    job.name = from_path(default_output_file.stem());
+    if (PartPlate* part_plate = get_partplate_list().get_plate(plate); part_plate != nullptr) {
+        const ThumbnailData& data = part_plate->thumbnail_data;
+        if (data.is_valid()) {
+            wxImage image(data.width, data.height);
+            image.InitAlpha();
+            for (unsigned int r = 0; r < data.height; ++r) {
+                const unsigned int rr = (data.height - 1 - r) * data.width;
+                for (unsigned int c = 0; c < data.width; ++c) {
+                    const unsigned char* px = data.pixels.data() + 4 * (rr + c);
+                    image.SetRGB(int(c), int(r), px[0], px[1], px[2]);
+                    image.SetAlpha(int(c), int(r), px[3]);
+                }
+            }
+            job.thumbnail = image;
+        }
+        if (GCodeProcessorResult* result = part_plate->get_slice_result(); result != nullptr)
+            job.time_s = result->print_statistics.modes[0].time;
+        job.filaments = part_plate->get_slice_filaments_info();
+    }
+    const Print& print = get_partplate_list().get_current_fff_print();
+    job.weight_g = print.print_statistics().total_weight;
+    for (const PrintObject* object : print.objects())
+        job.layers = std::max(job.layers, int(object->total_layer_count()));
+    DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
+    const auto* colours = full.option<ConfigOptionStrings>("filament_colour");
+    for (FilamentInfo& f : job.filaments) {
+        if (f.id < 0)
+            continue;
+        std::string display_type;
+        try {
+            f.type = full.get_filament_type(display_type, f.id);
+        } catch (...) {}
+        if (f.type.empty())
+            f.type = display_type.empty() ? "?" : display_type;
+        if (f.color.empty() && colours != nullptr && size_t(f.id) < colours->values.size())
+            f.color = colours->values[f.id];
+    }
+
+    std::optional<PrintHostJob> upload_job = show_vendor_send_dialog(this, vendor, backend, job, default_output_file);
+    if (upload_job && !upload_job->empty())
+        p->export_gcode(fs::path(), false, std::move(*upload_job));
+    return true;
+}
+
 void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
 {
     // if physical_printer is selected, send gcode for this printer

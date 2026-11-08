@@ -659,6 +659,11 @@ public:
      * -2: send all gcode to target machine */
     int send_gcode(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
     void send_gcode_legacy(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
+    // Opens the selected printer vendor's own send dialog (Elegoo, Creality, Markforged).
+    // Returns false when the vendor has none, so the caller falls back to the regular flow.
+    bool send_to_vendor(int plate_idx);
+    // Whether the selected printer has a vendor send dialog.
+    static bool has_vendor_send_dialog();
     int export_config_3mf(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
     //BBS jump to nonitor after print job finished
     void send_calibration_job_finished(wxCommandEvent &evt);

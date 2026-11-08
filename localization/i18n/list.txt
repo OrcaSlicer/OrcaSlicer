@@ -249,6 +249,9 @@ src/slic3r/GUI/CaliHistoryDialog.cpp
 src/slic3r/GUI/BonjourDialog.cpp
 src/slic3r/GUI/calib_dlg.cpp
 src/slic3r/GUI/PrintHostDialogs.cpp
+src/slic3r/GUI/ElegooLoginDialog.cpp
+src/slic3r/GUI/VendorSendBackends.cpp
+src/slic3r/GUI/VendorSendDialog.cpp
 src/slic3r/GUI/Gizmos/GLGizmoMeshBoolean.cpp
 src/slic3r/GUI/NetworkTestDialog.cpp
 src/slic3r/GUI/CreatePresetsDialog.cpp
@@ -278,6 +281,7 @@ src/slic3r/GUI/FilamentMapPanel.cpp
 src/slic3r/Utils/Obico.cpp
 src/slic3r/Utils/SimplyPrint.cpp
 src/slic3r/Utils/Flashforge.cpp
+src/slic3r/Utils/ElegooCloud.cpp
 src/slic3r/Utils/ElegooLink.cpp
 src/slic3r/Utils/CrealityPrint.cpp
 src/slic3r/Utils/PrintHost.cpp

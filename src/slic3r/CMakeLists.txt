@@ -485,6 +485,11 @@ set(SLIC3R_GUI_SOURCES
     GUI/PrimitiveSizeDialog.hpp
     GUI/PrinterCloudAuthDialog.cpp
     GUI/PrinterCloudAuthDialog.hpp
+    GUI/ElegooLoginDialog.cpp
+    GUI/ElegooLoginDialog.hpp
+    GUI/VendorSendBackends.cpp
+    GUI/VendorSendDialog.cpp
+    GUI/VendorSendDialog.hpp
     GUI/Printer/PrinterFileSystem.cpp
     GUI/Printer/PrinterFileSystem.h
     GUI/PrinterWebView.cpp
@@ -772,6 +777,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/CrealityHostDiscovery.hpp
     Utils/Duet.cpp
     Utils/Duet.hpp
+    Utils/ElegooCloud.cpp
+    Utils/ElegooCloud.hpp
     Utils/ElegooLink.cpp
     Utils/ElegooLink.hpp
     Utils/EmbossStyleManager.cpp
