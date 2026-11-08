@@ -282,6 +282,28 @@ void GLCanvas3D::_release_pathtrace_gl_resources()
         m_pathtrace_gpu_timer_query_in_flight[0] = false;
         m_pathtrace_gpu_timer_query_in_flight[1] = false;
     }
+    // What was uploaded is gone, so it counts as never uploaded.
+    m_pathtrace_gpu_scene_signature = 0;
+    m_pathtrace_transform_signature = 0;
+    m_pathtrace_requested_signature = 0;
+    m_pathtrace_gpu_instances.clear();
+    m_pathtrace_gpu_instances.shrink_to_fit();
+    _reset_pathtrace_accumulation();
+}
+
+void GLCanvas3D::_release_pathtrace_scene()
+{
+    _stop_pathtrace_bvh_worker();
+    m_pathtrace_bvh_future = std::future<PathTraceSceneBuildResult>();
+    m_pathtrace_bvh_job_signature = 0;
+    _release_pathtrace_gl_resources();
+    m_pathtrace_gpu_scene = PathTraceGpuScene();
+    m_pathtrace_volume_blas.clear();
+    m_pathtrace_volume_blas.shrink_to_fit();
+    m_pathtrace_gpu_tri_vertex_id.clear();
+    m_pathtrace_gpu_tri_vertex_id.shrink_to_fit();
+    m_pathtrace_geom_signature = 0;
+    m_pathtrace_preview_color_signature = 0;
 }
 
 void GLCanvas3D::_reset_pathtrace_accumulation()
@@ -291,9 +313,23 @@ void GLCanvas3D::_reset_pathtrace_accumulation()
     m_pathtrace_last_dispatched_tiles = 0;
 }
 
+bool GLCanvas3D::_is_pathtrace_selected() const
+{
+    // Only these views of an FFF printer have a path traced branch in _render_scene().
+    if ((m_canvas_type != ECanvasType::CanvasView3D && m_canvas_type != ECanvasType::CanvasPreview) ||
+        current_printer_technology() != ptFFF)
+        return false;
+    if (!wxGetApp().is_gl_version_greater_or_equal_to(4, 3) || !_is_realistic_view_enabled())
+        return false;
+    const AppConfig* cfg = wxGetApp().app_config;
+    if (cfg == nullptr || cfg->get(SETTING_OPENGL_SHADING_MODEL) != "pathtrace")
+        return false;
+    return wxGetApp().get_shader("pathtrace_compute") != nullptr && wxGetApp().get_shader("pathtrace_denoise") != nullptr;
+}
+
 bool GLCanvas3D::_is_pathtrace_enabled() const
 {
-    if (!wxGetApp().is_gl_version_greater_or_equal_to(4, 3))
+    if (!_is_pathtrace_selected())
         return false;
     const GLGizmosManager::EType gizmo = m_gizmos.get_current_type();
     if (gizmo == GLGizmosManager::Seam ||
@@ -306,14 +342,7 @@ bool GLCanvas3D::_is_pathtrace_enabled() const
     if (m_picking_enabled && m_layers_editing.is_enabled() && m_layers_editing.last_object_id != -1 &&
         m_layers_editing.object_max_z() > 0.0f)
         return false;
-    if (_is_xray_view_active())
-        return false;
-    if (!_is_realistic_view_enabled())
-        return false;
-    const AppConfig* cfg = wxGetApp().app_config;
-    if (cfg == nullptr)
-        return false;
-    return cfg->get(SETTING_OPENGL_SHADING_MODEL) == "pathtrace";
+    return !_is_xray_view_active();
 }
 
 void GLCanvas3D::_render_pathtrace_fps_overlay(ImGuiWrapper& imgui) const
@@ -341,7 +370,7 @@ void GLCanvas3D::_render_pathtrace_fps_overlay(ImGuiWrapper& imgui) const
                 ImGui::Dummy(ImVec2(reserved - used, 0.0f));
             }
         }
-    } else {
+    } else if (m_pathtrace_bvh_future.valid() || !m_pathtrace_volume_blas.empty()) {
         imgui.text(std::string("PT: GPU [Initializing]"));
     }
 }
@@ -529,7 +558,6 @@ GLCanvas3D::PathTraceSceneBuildResult GLCanvas3D::_build_pathtrace_scene_async(
 
 void GLCanvas3D::_extract_preview_toolpaths_for_pathtrace(
     PathTraceBvhJob& job,
-    int cfg_layer_profile,
     bool plate_visible,
     PartPlate* current_plate) const
 {
@@ -1339,6 +1367,7 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
 
     const std::vector<ColorRGBA> extruder_colors =
         (wxGetApp().plater() != nullptr) ? wxGetApp().plater()->get_extruders_colors() : std::vector<ColorRGBA>{};
+    const std::vector<int> sss_families = build_extruder_sss_families();
 
     combine_geom(size_t(m_canvas_type));
     combine_geom(size_t(wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_SMOOTH_NORMALS)));
@@ -1356,6 +1385,9 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
         combine_color(std::hash<float>{}(c.b()));
         combine_color(std::hash<float>{}(c.a()));
     }
+    // Another type of filament in the same color scatters differently.
+    for (const int family : sss_families)
+        combine_color(std::hash<int>{}(family));
     if (m_model != nullptr && m_canvas_type == ECanvasType::CanvasView3D) {
         for (const GLVolume* volume : m_volumes.volumes) {
             if (volume == nullptr)
@@ -1425,9 +1457,6 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
         }
     } else if (m_model != nullptr) {
         combine_geom(m_model->objects.size());
-        // The BLAS of an instance holds its parts moved apart by the explosion of the assembly view.
-        if (m_canvas_type == ECanvasType::CanvasAssembleView)
-            combine_geom(std::hash<float>{}(GLVolume::explosion_ratio));
         for (const GLVolume* volume : m_volumes.volumes) {
             if (volume == nullptr)
                 continue;
@@ -1550,10 +1579,10 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
         PathTraceBvhJob job;
         job.geom_signature = geom_signature;
         job.is_preview = (m_canvas_type == ECanvasType::CanvasPreview);
-        job.extruder_sss_families = build_extruder_sss_families();
+        job.extruder_sss_families = sss_families;
 
         if (m_canvas_type == ECanvasType::CanvasPreview) {
-            _extract_preview_toolpaths_for_pathtrace(job, 0, plate_visible, current_plate);
+            _extract_preview_toolpaths_for_pathtrace(job, plate_visible, current_plate);
         } else if (m_model != nullptr) {
             _extract_prepare_volumes_for_pathtrace(job, extruder_colors, plate_visible, plate_list);
         }
@@ -1569,12 +1598,14 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
         return false;
     }
 
-    if (m_pathtrace_volume_blas.empty())
+    if (m_pathtrace_volume_blas.empty()) {
+        // Nothing to trace. The geometry signature stays, it stands for this empty scene.
+        _release_pathtrace_gl_resources();
         return false;
+    }
 
     if (!m_pathtrace_gpu_tri_vertex_id.empty() &&
         m_pathtrace_preview_color_signature != preview_color_signature) {
-        const std::vector<int> sss_families = build_extruder_sss_families();
         bool any_opacity_changed = false;
         if (m_canvas_type == ECanvasType::CanvasPreview) {
             for (size_t i = 0; i < m_pathtrace_gpu_scene.triangles.size(); ++i) {
@@ -1823,6 +1854,11 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
             glsafe(::glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0));
 
             m_pathtrace_gpu_scene_signature = m_pathtrace_geom_signature;
+            // Unlike the triangles and shadings, which color changes rewrite, these are only uploaded.
+            m_pathtrace_gpu_scene.nodes.clear();
+            m_pathtrace_gpu_scene.nodes.shrink_to_fit();
+            m_pathtrace_gpu_scene.original_indices.clear();
+            m_pathtrace_gpu_scene.original_indices.shrink_to_fit();
         }
 
         if (m_pathtrace_gpu_instances.empty() || m_pathtrace_transform_signature != transform_signature) {

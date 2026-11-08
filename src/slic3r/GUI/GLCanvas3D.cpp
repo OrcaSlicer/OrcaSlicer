@@ -2823,6 +2823,11 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
     m_shadow_map_valid = false;
     _render_background();
 
+    if (!_is_pathtrace_selected())
+        _release_pathtrace_scene();
+    // Whether this frame shows the path traced image, or the rasterizer stood in for it.
+    bool pathtraced_rendered = false;
+
     //BBS add partplater rendering logic
     bool only_current = false, only_body = false;
     const bool show_bed = is_bed_visible();
@@ -2866,6 +2871,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
         // Whether the layer editor is open, and the outside state the path tracer tints by.
         _update_volumes_state();
         if (_is_pathtrace_enabled() && _render_pathtraced_view(camera, cnv_size)) {
+            pathtraced_rendered = true;
             _render_section_view_caps();
 
             const bool has_wireframe = wxGetApp().plater() != nullptr && wxGetApp().plater()->is_show_wireframe();
@@ -2887,25 +2893,33 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
                 has_outline = has_outline || (show_outline && (volume->selected || (persistent_outline && volume->visible)));
                 has_sinking_contours = has_sinking_contours || (m_sinking_contours_enabled && volume->is_sinking());
             }
+            // The ghosts of an IMEX printer are no part of the path traced scene either.
+            const PartPlate* current_plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
+            has_overlays = has_overlays || (current_plate != nullptr && !current_plate->get_imex_ghost_volumes().empty());
             const bool has_gizmo = m_gizmos.get_current_type() != GLGizmosManager::Undefined;
             if (has_overlays || has_outline || has_sinking_contours || has_wireframe || has_gizmo) {
+                // The print, whose parts of a translucent filament the transparent pass draws.
+                const auto render_print = [this]() {
+                    _render_objects(GLVolumeCollection::ERenderType::Opaque, false);
+                    _render_objects(GLVolumeCollection::ERenderType::Transparent, false, EObjectsSubset::Print);
+                };
                 glsafe(::glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE));
                 glsafe(::glEnable(GL_DEPTH_TEST));
                 glsafe(::glDepthMask(GL_TRUE));
                 const bool sinking_contours_enabled = m_sinking_contours_enabled;
                 m_sinking_contours_enabled = false;
-                _render_objects(GLVolumeCollection::ERenderType::Opaque, false);
+                render_print();
                 m_sinking_contours_enabled = sinking_contours_enabled;
                 if (has_sinking_contours) {
                     // The first pass has collected the selection to outline already.
                     const std::vector<GLVolume*> outlined_volumes = m_outlined_volumes;
-                    _render_objects(GLVolumeCollection::ERenderType::Opaque, false);
+                    render_print();
                     m_outlined_volumes = outlined_volumes;
                 }
                 glsafe(::glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
 
                 if (has_overlays)
-                    _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running(), true);
+                    _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running(), EObjectsSubset::Overlays);
                 if (has_wireframe)
                     _render_wireframe_overlay();
             }
@@ -2949,7 +2963,6 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
     }
     /* preview render */
     else if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview) {
-        bool pathtraced_rendered = false;
         if (_is_pathtrace_enabled()) {
             m_gcode_viewer.set_clipping_plane(_get_section_view_plane());
             _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
@@ -3048,14 +3061,13 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
         m_rectangle_selection.render(*this);
     m_frame_profiler.mark("gizmos");
 
-    const bool pathtraced_active = _is_pathtrace_enabled();
-    if (!pathtraced_active && _is_ssao_enabled()) {
+    if (!pathtraced_rendered && _is_ssao_enabled()) {
         _render_ssao_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
         m_frame_profiler.mark("ssao");
     }
 
     if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview) {
-        if (!pathtraced_active) {
+        if (!pathtraced_rendered) {
             _render_gcode_translucent(cnv_size.get_width(), cnv_size.get_height());
             m_frame_profiler.mark("gcode translucent");
         }
@@ -3064,7 +3076,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
     // After the occlusion pass, which would shade it as the surface behind it.
     m_center_of_mass.render(*this);
 
-    if (!pathtraced_active && _is_fxaa_enabled()) {
+    if (!pathtraced_rendered && _is_fxaa_enabled()) {
         _render_fxaa_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
         m_frame_profiler.mark("fxaa");
     }
@@ -8695,7 +8707,7 @@ bool GLCanvas3D::_is_realistic_view_enabled() const
 
 bool GLCanvas3D::_is_ssao_enabled() const
 {
-    if (_is_pathtrace_enabled() || wxGetApp().app_config == nullptr)
+    if (wxGetApp().app_config == nullptr)
         return false;
     return _is_realistic_view_enabled() &&
            wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_SSAO);
@@ -8798,12 +8810,10 @@ bool GLCanvas3D::_is_scene_cache_enabled() const
 
 bool GLCanvas3D::_is_scene_cacheable() const
 {
-    if (_is_pathtrace_enabled()) {
-        if (m_pathtrace_gpu_display_image == 0)
-            return false;
-        const uint32_t target = m_pathtrace_max_samples + 1u;
-        return m_pathtrace_gpu_samples >= target;
-    }
+    // A path traced frame is final once it has converged. An empty scene has nothing to converge.
+    if (_is_pathtrace_enabled() && (m_pathtrace_bvh_future.valid() ||
+        (!m_pathtrace_volume_blas.empty() && (m_pathtrace_gpu_display_image == 0 || m_pathtrace_gpu_samples < m_pathtrace_max_samples + 1u))))
+        return false;
     if (!_is_scene_cache_enabled())
         return false;
 
@@ -9811,7 +9821,7 @@ void GLCanvas3D::_update_volumes_state()
 }
 
 //BBS: add outline drawing logic
-void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with_outline, bool overlays_only)
+void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with_outline, EObjectsSubset subset)
 {
     if (m_volumes.empty())
         return;
@@ -9958,12 +9968,12 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
             }*/
             const Camera& camera = wxGetApp().plater()->get_camera();
             //BBS:add assemble view related logic
-            m_volumes.render(type, false, camera.get_view_matrix(), camera.get_projection_matrix(), [canvas_type, overlays_only](const GLVolume& volume) {
+            m_volumes.render(type, false, camera.get_view_matrix(), camera.get_projection_matrix(), [canvas_type, subset](const GLVolume& volume) {
                 if (canvas_type == ECanvasType::CanvasAssembleView) {
                     return !volume.is_modifier;
                 }
-                else if (overlays_only) {
-                    return volume.is_modifier || !volume.printable;
+                else if (subset != EObjectsSubset::All) {
+                    return (volume.is_modifier || !volume.printable) == (subset == EObjectsSubset::Overlays);
                 }
                 else {
                     return true;
@@ -9972,7 +9982,7 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
                 partly_inside_enable, printable_heights, outlined_volumes);
             // IMEX ghosts are transparent and share the same shader/camera state;
             // render them right after the main transparent pass while the shader is still bound.
-            if (!overlays_only)
+            if (subset != EObjectsSubset::Print)
                 _render_imex_ghosts();
             break;
         }

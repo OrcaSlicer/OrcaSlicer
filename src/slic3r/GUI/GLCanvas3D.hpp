@@ -1641,6 +1641,10 @@ private:
     void _picking_pass_imex_ghosts();
     bool _is_fxaa_enabled() const;
     bool _is_realistic_view_enabled() const;
+    // Path tracing is the shading model of this canvas and can run. It holds on to its scene for as
+    // long as this is true.
+    bool _is_pathtrace_selected() const;
+    // Whether to path trace now: selected, and no open view that draws the objects through its own shaders.
     bool _is_pathtrace_enabled() const;
     bool _is_ssao_enabled() const;
     int _get_effective_fps_cap() const;
@@ -1670,8 +1674,10 @@ private:
     void _reset_pathtrace_accumulation();
     void _stop_pathtrace_bvh_worker();
     void _release_pathtrace_gl_resources();
+    // Frees the scene on the CPU and on the GPU, so that it is built anew when next path traced.
+    void _release_pathtrace_scene();
     void _render_pathtrace_fps_overlay(ImGuiWrapper& imgui) const;
-    void _extract_preview_toolpaths_for_pathtrace(PathTraceBvhJob& job, int cfg_layer_profile, bool plate_visible, PartPlate* current_plate) const;
+    void _extract_preview_toolpaths_for_pathtrace(PathTraceBvhJob& job, bool plate_visible, PartPlate* current_plate) const;
     void _extract_prepare_volumes_for_pathtrace(PathTraceBvhJob& job, const std::vector<ColorRGBA>& extruder_colors, bool plate_visible, PartPlateList& plate_list) const;
     void _update_pathtrace_instances_and_tlas(size_t transform_signature);
     // Request a frame that only rebuilds the overlay.
@@ -1701,7 +1707,10 @@ private:
     // The layer editing object, the print volume and the outside state of the volumes, which the
     // object shaders and the path tracer read.
     void _update_volumes_state();
-    void _render_objects(GLVolumeCollection::ERenderType type, bool with_outline = true, bool overlays_only = false);
+    // The volumes a pass of _render_objects() draws: all of them or, around the path traced image,
+    // those the path tracer leaves out or the print it traces.
+    enum class EObjectsSubset { All, Overlays, Print };
+    void _render_objects(GLVolumeCollection::ERenderType type, bool with_outline = true, EObjectsSubset subset = EObjectsSubset::All);
     // IMEX ghost volumes owned by PartPlate, drawn through the shader the caller bound:
     // the shaded pass's transparent half, or the X-Ray pass below.
     void _render_imex_ghosts(bool xray_pass = false);

@@ -9,6 +9,7 @@
 
 #include <atomic>
 #include <cmath>
+#include <cstddef>
 #include <vector>
 
 using namespace Slic3r;
@@ -124,6 +125,38 @@ TEST_CASE("Path tracer encodes unit vectors in 32 bits", "[PathTracer]")
     REQUIRE_THAT(decoded.x(), Catch::Matchers::WithinAbs(unit.x(), 1e-3));
     REQUIRE_THAT(decoded.y(), Catch::Matchers::WithinAbs(unit.y(), 1e-3));
     REQUIRE_THAT(decoded.z(), Catch::Matchers::WithinAbs(unit.z(), 1e-3));
+}
+
+TEST_CASE("Path tracer keeps the faces of a mirrored mesh facing outward", "[PathTracer]")
+{
+    const float angle = 20.0f * 3.14159265f / 180.0f;
+    const std::vector<Vec3f> vertices = {Vec3f{0.0f, 0.0f, 0.0f}, Vec3f{0.0f, 1.0f, 0.0f}, Vec3f{-1.0f, 0.5f, 0.0f},
+                                         Vec3f{std::cos(angle), 0.5f, std::sin(angle)}};
+    const std::vector<Vec3i32> indices = {Vec3i32{0, 1, 2}, Vec3i32{1, 0, 3}};
+    Transform3d mirror = Transform3d::Identity();
+    mirror.scale(Vec3d{-1.0, 1.0, 1.0});
+    const auto mirrored_x = [](const Vec3f& v) { return Vec3f{-v.x(), v.y(), v.z()}; };
+    const auto face_normal = [](const PathTraceTriangle& t) { return Vec3f((t.b - t.a).cross(t.c - t.a).normalized()); };
+
+    const bool smooth_normals = GENERATE(false, true);
+    std::vector<PathTraceTriangle> plain;
+    std::vector<PathTraceTriangle> mirrored;
+    append_path_trace_triangles(plain, vertices, indices, Transform3d::Identity(), Vec3f{0.5f, 0.5f, 0.5f}, smooth_normals);
+    append_path_trace_triangles(mirrored, vertices, indices, mirror, Vec3f{0.5f, 0.5f, 0.5f}, smooth_normals);
+
+    REQUIRE(mirrored.size() == plain.size());
+    for (size_t i = 0; i < plain.size(); ++i) {
+        REQUIRE_THAT(face_normal(mirrored[i]).dot(mirrored_x(face_normal(plain[i]))), Catch::Matchers::WithinAbs(1.0, 1e-3));
+        if (!smooth_normals)
+            continue;
+        // The corners b and c change places, and each keeps the normal of its vertex.
+        REQUIRE_THAT(unpack_unit_vector_oct(mirrored[i].vertex_normals[0]).dot(mirrored_x(unpack_unit_vector_oct(plain[i].vertex_normals[0]))),
+                     Catch::Matchers::WithinAbs(1.0, 1e-3));
+        REQUIRE_THAT(unpack_unit_vector_oct(mirrored[i].vertex_normals[1]).dot(mirrored_x(unpack_unit_vector_oct(plain[i].vertex_normals[2]))),
+                     Catch::Matchers::WithinAbs(1.0, 1e-3));
+        REQUIRE_THAT(unpack_unit_vector_oct(mirrored[i].vertex_normals[2]).dot(mirrored_x(unpack_unit_vector_oct(plain[i].vertex_normals[1]))),
+                     Catch::Matchers::WithinAbs(1.0, 1e-3));
+    }
 }
 
 TEST_CASE("Path tracer smooths normals across shallow folds and keeps sharp edges", "[PathTracer]")

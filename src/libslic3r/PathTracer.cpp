@@ -2,6 +2,7 @@
 #include "Point.hpp"
 
 #include <Eigen/Core>
+#include <Eigen/LU>
 
 #include <cassert>
 #include <cstddef>
@@ -396,6 +397,10 @@ void append_path_trace_triangles(std::vector<PathTraceTriangle>& triangles,
     if (indices.empty() || vertices.empty())
         return;
     const Vec4f clamped_albedo = albedo.cwiseMax(0.0f).cwiseMin(1.0f);
+    // A mirroring transform turns the faces inside out: going round their corners the other way keeps
+    // them facing outward, which the facing of a hit relies on.
+    const bool mirrored = transform.linear().determinant() < 0.0;
+    const auto oriented = [mirrored](const Vec3i32& face) { return mirrored ? Vec3i32(face.x(), face.z(), face.y()) : face; };
     std::vector<Vec3f> transformed_vertices(vertices.size());
     for (size_t i = 0; i < vertices.size(); ++i)
         transformed_vertices[i] = (transform * vertices[i].cast<double>()).cast<float>();
@@ -405,7 +410,8 @@ void append_path_trace_triangles(std::vector<PathTraceTriangle>& triangles,
         triangles.reserve(std::max(needed, triangles.capacity() * 2));
     }
     if (!smooth_normals) {
-        for (const Vec3i32& face : indices) {
+        for (const Vec3i32& source : indices) {
+            const Vec3i32 face = oriented(source);
             PathTraceTriangle triangle;
             triangle.a = transformed_vertices[size_t(face.x())];
             triangle.b = transformed_vertices[size_t(face.y())];
@@ -420,8 +426,8 @@ void append_path_trace_triangles(std::vector<PathTraceTriangle>& triangles,
     std::vector<Vec3f> face_normals(indices.size());
     std::vector<uint32_t> row_start(transformed_vertices.size() + 1, 0);
     for (size_t f = 0; f < indices.size(); ++f) {
-        const Vec3i32& face = indices[f];
-        face_normals[f] = (transformed_vertices[size_t(face.y())] - transformed_vertices[size_t(face.x())])
+        const Vec3i32 face = oriented(indices[f]);
+        face_normals[f] =(transformed_vertices[size_t(face.y())] - transformed_vertices[size_t(face.x())])
                               .cross(transformed_vertices[size_t(face.z())] - transformed_vertices[size_t(face.x())]);
         for (int k = 0; k < 3; ++k)
             ++row_start[size_t(face[k]) + 1];
@@ -435,7 +441,7 @@ void append_path_trace_triangles(std::vector<PathTraceTriangle>& triangles,
             vertex_faces[fill[size_t(indices[f][k])]++] = uint32_t(f);
 
     for (size_t f = 0; f < indices.size(); ++f) {
-        const Vec3i32& face = indices[f];
+        const Vec3i32 face = oriented(indices[f]);
         PathTraceTriangle triangle;
         triangle.a = transformed_vertices[size_t(face.x())];
         triangle.b = transformed_vertices[size_t(face.y())];
