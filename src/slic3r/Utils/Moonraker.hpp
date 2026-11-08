@@ -23,6 +23,7 @@ class Http;
 //
 // Endpoints used:
 //   GET  /server/info                      -- connection test, reads klippy_state
+//   GET  /printer/objects/query?bed_mesh   -- the bed mesh Klipper currently compensates with
 //   POST /server/files/upload (multipart)  -- upload gcode (form fields: file, root, print,
 //                                             plateindex)
 //   POST /printer/print/start (json)       -- {"filename":"<name>.gcode"} starts print
@@ -48,6 +49,8 @@ public:
     PrintHostPostUploadActions get_post_upload_actions() const override { return PrintHostPostUploadAction::StartPrint; }
     std::string get_host() const override { return m_host; }
     bool get_storage(wxArrayString &storage_path, wxArrayString &storage_name) const override;
+    bool can_get_bed_mesh() const override { return true; }
+    bool get_bed_mesh(BedMesh &mesh, wxString &error) const override;
     const std::string& get_apikey() const { return m_apikey; }
     const std::string& get_cafile() const { return m_cafile; }
 

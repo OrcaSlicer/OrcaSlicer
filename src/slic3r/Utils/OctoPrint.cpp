@@ -32,6 +32,12 @@
 #include "slic3r/GUI/format.hpp"
 #include "Http.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/BedMesh.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <nlohmann/json.hpp>
+#include <chrono>
+#include <random>
+#include <thread>
 #include "Bonjour.hpp"
 #include "slic3r/GUI/BonjourDialog.hpp"
 #include <boost/asio/ip/address.hpp>
@@ -141,7 +147,232 @@ OctoPrint::OctoPrint(DynamicPrintConfig *config) :
     m_apikey(config->opt_string("printhost_apikey")),
     m_cafile(config->opt_string("printhost_cafile")),
     m_ssl_revoke_best_effort(config->opt_bool("printhost_ssl_ignore_revoke"))
-{}
+{
+    if (const auto* area = config->option<ConfigOptionPoints>("printable_area"))
+        for (const Vec2d& p : area->values)
+            m_bed_bounds.merge(p);
+}
+
+// Bed mesh readback. Every step logs at info level under "OctoPrint: bed mesh:" so a failure can
+// be traced from the slicer log (datadir/log/debug_*.log) without a debugger:
+//   1. POST api/login {"passive": true}  -> {"name", "session"}   (the API key picks the user)
+//   2. POST sockjs/<srv>/<sid>/xhr        -> "o"                    (open a SockJS polling session)
+//      POST sockjs/<srv>/<sid>/xhr_send   ["{\"auth\":\"name:session\"}"]
+//   3. GET  api/printer                   -> must be operational and not printing
+//   4. POST api/printer/command           {"commands": ["@BEDLEVELVISUALIZER", "M420 V"]}
+//   5. POST sockjs/<srv>/<sid>/xhr repeatedly: "a[...]" frames carry {"current": {"logs": [...]}}
+//      (terminal lines, "Recv: " prefixed) and, with the Bed Level Visualizer plugin installed,
+//      {"plugin": {"plugin": "bedlevelvisualizer", "data": {"mesh": ..., "bed": ...}}}.
+//   6. Failing all that, the copy the plugin's web UI may have stored in plugins.bedlevelvisualizer
+//      of GET api/settings is used, flagged as not loaded.
+bool OctoPrint::get_bed_mesh(BedMesh &mesh, wxString &error) const
+{
+    using json = nlohmann::json;
+    const char* name = get_name();
+    auto fail = [&](const std::string& what) {
+        BOOST_LOG_TRIVIAL(error) << name << ": bed mesh: " << what;
+        error = GUI::from_u8(what);
+        return false;
+    };
+    // Runs one request; `body` and `status` are filled either way, so a 409 can still be read.
+    auto request = [&](Http& http, const char* step, std::string& body, unsigned& status) -> bool {
+        bool ok = true;
+        status  = 0;
+        set_auth(http);
+        http.timeout_connect(5)
+            .on_error([&](std::string b, std::string err, unsigned s) {
+                ok     = false;
+                status = s;
+                body   = std::move(b);
+                BOOST_LOG_TRIVIAL(error) << name << ": bed mesh: " << step << " failed: " << err << ", HTTP " << s << ", body: `" << body.substr(0, 300) << "`";
+            })
+            .on_complete([&](std::string b, unsigned s) {
+                status = s;
+                body   = std::move(b);
+                BOOST_LOG_TRIVIAL(info) << name << ": bed mesh: " << step << " HTTP " << s << ", " << body.size() << " bytes";
+                BOOST_LOG_TRIVIAL(debug) << name << ": bed mesh: " << step << " body: " << body.substr(0, 600);
+            })
+#ifdef WIN32
+            .ssl_revoke_best_effort(m_ssl_revoke_best_effort)
+#endif
+            .perform_sync();
+        return ok;
+    };
+    std::string body;
+    unsigned    status = 0;
+
+    // 1. Passive login: the API key names the user and yields the session the socket needs.
+    std::string user, session;
+    {
+        auto http = Http::post(make_url("api/login"));
+        http.header("Content-Type", "application/json").set_post_body(std::string("{\"passive\": true}")).timeout_max(10);
+        if (!request(http, "POST api/login", body, status))
+            return fail(status == 403 ? "OctoPrint rejected the API key (HTTP 403). Check the key in the printer settings." :
+                        status == 0   ? "Could not reach OctoPrint. Check the host and that it is running." :
+                                        "Login failed, HTTP " + std::to_string(status) + ": " + body.substr(0, 200));
+        try {
+            json j  = json::parse(body);
+            user    = j.value("name", std::string());
+            session = j.value("session", std::string());
+        } catch (const std::exception& ex) {
+            return fail(std::string("Login reply is not JSON: ") + ex.what());
+        }
+        if (user.empty() || session.empty())
+            return fail("Login reply has no name/session; OctoPrint 1.3.10 or newer is needed.");
+        BOOST_LOG_TRIVIAL(info) << name << ": bed mesh: logged in as '" << user << "'";
+    }
+
+    // 2. A SockJS polling session. Server id and session id are the client's choice.
+    std::string sid;
+    {
+        std::mt19937 rng{ std::random_device{}() };
+        const char   alphabet[] = "abcdefghijklmnopqrstuvwxyz0123456789";
+        for (int i = 0; i < 12; ++i)
+            sid.push_back(alphabet[rng() % (sizeof(alphabet) - 1)]);
+    }
+    const std::string sock = make_url("sockjs/000/" + sid);
+    {
+        auto http = Http::post(sock + "/xhr");
+        http.set_post_body(std::string()).timeout_max(10);
+        if (!request(http, "POST sockjs/xhr (open)", body, status) || body.empty() || body[0] != 'o')
+            return fail("Could not open OctoPrint's push socket (HTTP " + std::to_string(status) + ", reply `" + body.substr(0, 60) + "`). A reverse proxy must forward /sockjs/.");
+        auto send = Http::post(sock + "/xhr_send");
+        const std::string auth = json::array({ json({ { "auth", user + ":" + session } }).dump() }).dump();
+        send.header("Content-Type", "application/json").set_post_body(auth).timeout_max(10);
+        if (!request(send, "POST sockjs/xhr_send (auth)", body, status))
+            return fail("Could not authenticate on OctoPrint's push socket (HTTP " + std::to_string(status) + ").");
+    }
+
+    // 3. The printer must be connected and idle before we talk to it.
+    {
+        auto http = Http::get(make_url("api/printer?exclude=temperature,sd"));
+        http.timeout_max(10);
+        if (!request(http, "GET api/printer", body, status))
+            return fail(status == 409 ? "The printer is not connected to OctoPrint (HTTP 409). Connect it first." :
+                                        "Could not read the printer state, HTTP " + std::to_string(status) + ".");
+        try {
+            json j = json::parse(body);
+            const json& flags = j["state"]["flags"];
+            if (!flags.value("operational", false))
+                return fail("The printer is not operational (" + j["state"].value("text", std::string("?")) + ").");
+            if (flags.value("printing", false) || flags.value("paused", false))
+                return fail("The printer is printing; the mesh is not read during a print.");
+        } catch (const std::exception& ex) {
+            return fail(std::string("Printer state reply is not JSON: ") + ex.what());
+        }
+    }
+
+    // 4. Ask the firmware for its mesh. The at-command wakes the Bed Level Visualizer plugin if it
+    //    is installed and is ignored otherwise; M420 V makes Marlin print the grid.
+    {
+        auto http = Http::post(make_url("api/printer/command"));
+        http.header("Content-Type", "application/json")
+            .set_post_body(json({ { "commands", json::array({ "@BEDLEVELVISUALIZER", "M420 V" }) } }).dump())
+            .timeout_max(10);
+        if (!request(http, "POST api/printer/command (M420 V)", body, status))
+            return fail("Could not send M420 V, HTTP " + std::to_string(status) + ": " + body.substr(0, 200));
+    }
+
+    // 5. Read the socket until the grid, the plugin's message, or the deadline.
+    std::vector<std::string> lines;
+    BedMesh                  parsed;
+    bool                     have_grid = false, plugin_seen = false;
+    const auto               deadline  = std::chrono::steady_clock::now() + std::chrono::seconds(25);
+    auto                     grid_done = std::chrono::steady_clock::time_point::max();
+    while (std::chrono::steady_clock::now() < deadline && std::chrono::steady_clock::now() < grid_done) {
+        // Each long-poll is capped at what is left of the deadline, so the worker is not held
+        // for a SockJS heartbeat interval past it.
+        const auto remaining = std::chrono::duration_cast<std::chrono::seconds>(std::min(deadline, grid_done) - std::chrono::steady_clock::now()).count();
+        auto http = Http::post(sock + "/xhr");
+        http.set_post_body(std::string()).timeout_max(std::max<long>(1, long(remaining) + 1));
+        if (!request(http, "POST sockjs/xhr (poll)", body, status))
+            break;
+        if (body.empty())
+            continue;
+        if (body[0] == 'c') {
+            BOOST_LOG_TRIVIAL(error) << name << ": bed mesh: socket closed by server: " << body.substr(0, 200);
+            break;
+        }
+        if (body[0] != 'a')
+            continue; // 'h' heartbeat, 'o' again
+        json frames;
+        try {
+            frames = json::parse(body.substr(1));
+        } catch (const std::exception& ex) {
+            BOOST_LOG_TRIVIAL(warning) << name << ": bed mesh: unparsable socket frame: " << ex.what();
+            continue;
+        }
+        for (const json& frame : frames) {
+            if (!frame.is_string())
+                continue;
+            json msg;
+            try {
+                msg = json::parse(frame.get<std::string>());
+            } catch (const std::exception&) {
+                continue;
+            }
+            if (!msg.is_object())
+                continue;
+            if (auto plugin = msg.find("plugin"); plugin != msg.end() && plugin->is_object() && plugin->value("plugin", std::string()) == "bedlevelvisualizer") {
+                plugin_seen = true;
+                BOOST_LOG_TRIVIAL(info) << name << ": bed mesh: plugin message: " << plugin->dump().substr(0, 300);
+                std::string perr;
+                if (BedMesh::from_bedlevelvisualizer_message(plugin->dump(), mesh, perr)) {
+                    BOOST_LOG_TRIVIAL(info) << name << ": bed mesh: using the Bed Level Visualizer plugin's mesh, " << mesh.probed_cols() << " x " << mesh.probed_rows();
+                    return true;
+                }
+            }
+            // Terminal lines. "history" is what happened before our command, so only "current" counts.
+            if (auto current = msg.find("current"); current != msg.end() && current->is_object()) {
+                if (auto logs = current->find("logs"); logs != current->end() && logs->is_array())
+                    for (const json& l : *logs) {
+                        if (!l.is_string())
+                            continue;
+                        std::string line = l.get<std::string>();
+                        if (boost::algorithm::starts_with(line, "Recv: "))
+                            line = line.substr(6);
+                        else if (boost::algorithm::starts_with(line, "Send: "))
+                            continue;
+                        BOOST_LOG_TRIVIAL(debug) << name << ": bed mesh: terminal: " << line;
+                        lines.push_back(std::move(line));
+                    }
+            }
+        }
+        std::string perr;
+        BedMesh     candidate;
+        if (BedMesh::from_marlin_report(lines, m_bed_bounds, candidate, perr)) {
+            parsed    = std::move(candidate);
+            have_grid = true;
+            // Give a subdivided grid (or the plugin) a couple more seconds to arrive.
+            if (grid_done == std::chrono::steady_clock::time_point::max())
+                grid_done = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+        }
+    }
+    if (have_grid) {
+        mesh = std::move(parsed);
+        BOOST_LOG_TRIVIAL(info) << name << ": bed mesh: parsed Marlin's report, " << mesh.probed_cols() << " x " << mesh.probed_rows() << ", " << mesh.note;
+        return true;
+    }
+    BOOST_LOG_TRIVIAL(warning) << name << ": bed mesh: no grid in " << lines.size() << " terminal lines" << (plugin_seen ? " (plugin messages seen but without a mesh)" : "");
+
+    // 6. Last resort: the copy the plugin's web UI may have stored.
+    {
+        auto http = Http::get(make_url("api/settings"));
+        http.timeout_max(10);
+        std::string perr;
+        if (request(http, "GET api/settings", body, status) && BedMesh::from_bedlevelvisualizer_json(body, mesh, perr) && !mesh.empty()) {
+            BOOST_LOG_TRIVIAL(info) << name << ": bed mesh: using the stored copy from the plugin settings, " << mesh.note;
+            return true;
+        }
+        if (!perr.empty())
+            BOOST_LOG_TRIVIAL(info) << name << ": bed mesh: no stored copy: " << perr;
+    }
+    std::string tail;
+    for (size_t i = lines.size() > 6 ? lines.size() - 6 : 0; i < lines.size(); ++i)
+        tail += "\n  " + lines[i];
+    return fail("No leveling grid arrived from the printer within 25 s. Run M420 V in OctoPrint's terminal to see what the firmware prints; "
+                "the slicer log has the full transcript. Last terminal lines:" + (tail.empty() ? std::string(" (none)") : tail));
+}
 
 const char* OctoPrint::get_name() const { return "OctoPrint"; }
 

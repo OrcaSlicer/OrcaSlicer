@@ -13,6 +13,8 @@
 
 #include "PrintHost.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/BedMesh.hpp"
+#include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/format.hpp"
 #include "Http.hpp"
@@ -108,6 +110,36 @@ bool Moonraker::test(wxString &msg) const
 #endif
     .perform_sync();
 
+    return res;
+}
+
+bool Moonraker::get_bed_mesh(BedMesh &mesh, wxString &error) const
+{
+    // Klipper's bed_mesh status object: profile_name, mesh_min/mesh_max (the probed rectangle,
+    // which for adaptive/KAMP meshes is only the print area), probed_matrix and mesh_matrix.
+    bool res  = true;
+    auto url  = make_url("printer/objects/query?bed_mesh");
+    auto http = Http::get(std::move(url));
+    set_auth(http);
+    http.timeout_connect(5)
+        .timeout_max(20)
+        .on_error([&](std::string body, std::string err, unsigned status) {
+            BOOST_LOG_TRIVIAL(error) << boost::format("Moonraker: bed mesh query failed: %1%, HTTP %2%, body: `%3%`") % err % status % body;
+            res   = false;
+            error = err.empty() ? wxString::Format("HTTP %u", status) : GUI::from_u8(err);
+        })
+        .on_complete([&](std::string body, unsigned) {
+            std::string parse_error;
+            if (!BedMesh::from_moonraker_json(body, mesh, parse_error)) {
+                BOOST_LOG_TRIVIAL(error) << "Moonraker: cannot parse bed mesh reply: " << parse_error;
+                res   = false;
+                error = GUI::format_wxstr(_L("Could not parse Moonraker server response: %s"), parse_error);
+            }
+        })
+#ifdef WIN32
+        .ssl_revoke_best_effort(m_ssl_revoke_best_effort)
+#endif
+        .perform_sync();
     return res;
 }
 

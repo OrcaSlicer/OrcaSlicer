@@ -8,6 +8,7 @@
 #include <boost/asio/ip/address.hpp>
 
 #include "PrintHost.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/enum_bitmask.hpp"
 
@@ -36,7 +37,17 @@ public:
     const std::string& get_apikey() const { return m_apikey; }
     const std::string& get_cafile() const { return m_cafile; }
 
+    // Reads the mesh back over OctoPrint's push socket (SockJS, spoken as plain HTTP polling so
+    // no browser or websocket is involved): log in with the API key, send M420 V, and parse what
+    // the firmware prints. If the Bed Level Visualizer plugin is installed its parsed mesh
+    // arrives on the same socket and is preferred, since it carries the bed bounds.
+    bool can_get_bed_mesh() const override { return true; }
+    bool get_bed_mesh(BedMesh &mesh, wxString &error) const override;
+
 protected:
+    // The printer profile's bed, used to place a Marlin grid that comes without positions.
+    BoundingBoxf m_bed_bounds;
+
 #ifdef WIN32
     virtual bool upload_inner_with_resolved_ip(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn, const boost::asio::ip::address& resolved_addr) const;
 #endif
@@ -72,6 +83,8 @@ public:
 
     // gets possible storage to be uploaded to. This allows different printer to have different storage. F.e. local vs sdcard vs usb.
     bool get_storage(wxArrayString& storage_path, wxArrayString& storage_name) const override;
+    // PrusaLink is not OctoPrint: no push socket, no plugins, and Buddy prints its mesh nowhere we can read.
+    bool can_get_bed_mesh() const override { return false; }
 protected:
     bool test(wxString& curl_msg) const override;
     bool validate_version_text(const boost::optional<std::string>& version_text) const override;

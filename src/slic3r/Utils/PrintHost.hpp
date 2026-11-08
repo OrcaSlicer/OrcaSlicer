@@ -19,6 +19,7 @@ class wxArrayString;
 namespace Slic3r {
 
 class DynamicPrintConfig;
+struct BedMesh;
 
 enum class PrintHostPostUploadAction {
     None,
@@ -86,6 +87,14 @@ public:
     // Support for PrusaLink uploading to different storage. Not supported by other print hosts.
     // Returns false if not supported or fail.
     virtual bool get_storage(wxArrayString& /*storage_path*/, wxArrayString& /*storage_name*/) const { return false; }
+
+    // Bed mesh readback, implemented by Moonraker (Klipper's bed_mesh object), Duet/Unlayered
+    // (RepRapFirmware's heightmap.csv) and OctoPrint (Marlin's M420 V report over the push
+    // socket). `get_bed_mesh` returns false with `error` set when the request fails, and true
+    // with an empty mesh when the printer simply has none loaded. Blocking; run it off the UI
+    // thread.
+    virtual bool can_get_bed_mesh() const { return false; }
+    virtual bool get_bed_mesh(BedMesh& /*mesh*/, wxString& error) const;
 
     static PrintHost* get_print_host(DynamicPrintConfig *config);
     static std::string get_print_host_webui(DynamicPrintConfig *config);

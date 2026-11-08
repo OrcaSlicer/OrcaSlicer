@@ -3,6 +3,7 @@
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include <exception>
 #include <cstddef>
 #include <map>
 #include "libslic3r/Technologies.hpp"
@@ -19,6 +20,7 @@
 #include <string>
 #include <vector>
 #include <boost/filesystem/path.hpp>
+#include <nlohmann/json.hpp>
 
 #include <wx/arrstr.h>
 #include <wx/colour.h>
@@ -47,6 +49,7 @@
 #include "libslic3r/calib.hpp"
 #include "libslic3r/CutUtils.hpp"
 #include "libslic3r/FlushVolCalc.hpp"
+#include "libslic3r/SkeletonPipeline.hpp"
 
 #define FILAMENT_SYSTEM_COLORS_NUM      16
 
@@ -96,6 +99,7 @@ namespace UndoRedo {
 
 namespace GUI {
 class SyncAmsInfoDialog;
+struct MixedFilamentResult;
 class MainFrame;
 class ConfigOptionsGroup;
 class ObjectSettings;
@@ -311,6 +315,10 @@ public:
     // one slot per colour in its palette, so clearing them one at a time is tedious.
     void remove_all_mixed_filaments();
     void decompose_filament_color(int filament_idx);
+    // The writes the mixed filament dialog's OK makes (create_mixed_filament_from_result), for a
+    // caller that built the result itself: a new mixed slot at the end. False when it cannot be
+    // added (fewer than two physical filaments, the filament limit). color_strs: physical colours.
+    bool add_mixed_filament_from_result(const MixedFilamentResult& result, const std::vector<std::string>& color_strs);
     void recalc_filament_scroll_sizes();
     void update_mixed_filament_list();
     bool has_broken_mixed_filament() const;
@@ -366,6 +374,8 @@ public:
     Sidebar& sidebar();
     const Model& model() const;
     Model& model();
+    SkeletonRegistry&       skeleton_registry();
+    const SkeletonRegistry& skeleton_registry() const;
     const Print& fff_print() const;
     Print& fff_print();
     const SLAPrint& sla_print() const;
@@ -393,6 +403,21 @@ public:
     void add_file();
     // Returns false when no object was added (e.g. the user cancelled the load dialog).
     bool add_model(bool imperial_units = false, std::string fname = "");
+    // Orca: research/mesh-infill — generate the TPMS infill mesh of the
+    // selected object at the current settings and attach it as a modifier
+    // volume of the object (menu action; re-run to refresh).
+    void preview_mesh_infill();
+    // Preview Mesh Infill for one object without any dialog (automation): true when the preview
+    // volume was (re)built, or with dry_run would be; false with `error` set when it cannot be, or
+    // with `error` empty when the existing preview is up to date. No undo snapshot is taken.
+    bool generate_infill_preview(int obj_idx, bool dry_run, std::string &error, std::string &warning);
+    // Unlayered: SVG infill art tiled over the current plate at print scale (3D view overlay);
+    // an empty list clears it. Fed by the Process tab while its SVG settings are on screen.
+    void set_svg_infill_preview(const Polylines &lines);
+    // Regenerate the preview volumes of every object whose mesh-relevant
+    // settings changed since the last generation. Called on entering the
+    // Infill tab; silent for objects with unsupported patterns.
+    void refresh_infill_previews();
     void import_zip_archive();
     void import_sl1_archive();
     void extract_config_from_project();
@@ -400,10 +425,7 @@ public:
     void load_gcode(const wxString& filename);
     void reload_gcode_from_disk();
     void reload_print();
-    // Belt printers: re-run the G-code preview conversion so the "designed view" toggle
-    // (hotkey B / legend checkbox) takes effect; the back-transform is applied to the
-    void refresh_belt_view();
-    // toolpath geometry at load time. Keeps the current layer range and only-gcode mode.
+    void refresh_belt_view();   // BELT_MOD: see Preview::refresh_belt_view
 
     // SoftFever
     void calib_pa(const Calib_Params& params);
@@ -602,9 +624,19 @@ public:
     void replace_with_stl();
     void replace_all_with_stl();
     void reload_all_from_disk();
+    // Read the bed mesh from the current printer's host (off the UI thread) and show it on the plate.
+    // `done`, when given, runs once on the UI thread with the outcome: ok with an empty error when
+    // the read finished (the overlay holds the mesh, or none when the printer has none loaded), or
+    // not ok with what went wrong (no capable host, the host's error, cancelled).
+    void fetch_bed_mesh(std::function<void(bool ok, const std::string& error)> done = {});
+    // Flip View > Show Bed Mesh; turning it on with nothing loaded yet fetches.
+    void toggle_bed_mesh();
     bool has_toolpaths_to_export() const;
     void export_toolpaths_to_obj() const;
     void reslice();
+    // A slice the person asked for that threw on this (main) thread: the usual slicing error
+    // (notification + "slice" diagnostics), not a crash (UiException). Fatal kinds are rethrown.
+    void show_slice_exception(std::exception_ptr e);
     void reslice_SLA_supports(const ModelObject &object, bool postpone_error_messages = false);
     void reslice_SLA_hollowing(const ModelObject &object, bool postpone_error_messages = false);
     void reslice_SLA_until_step(SLAPrintObjectStep step, const ModelObject &object, bool postpone_error_messages = false);
@@ -658,6 +690,10 @@ public:
     bool leave_gizmos_stack();
 
     void on_filament_change(size_t filament_idx);
+    // Put the installed filament preset `preset_name` (name or alias) into slot `idx`, running the
+    // same sequence as picking it from the sidebar combo, without a combo box. The entry point of
+    // slicer.selectPreset {type:"filament"}. Returns true when the slot holds it afterwards.
+    bool select_filament_preset(size_t idx, const std::string& preset_name);
     void on_filament_count_change(size_t extruders_count);
     void on_filaments_delete(size_t extruders_count, size_t filament_id, int replace_filament_id = -1, const std::vector<unsigned char>& is_mixed_before_delete = {});
     std::vector<Slic3r::ColorRGBA> get_extruders_colors();
@@ -874,6 +910,10 @@ public:
     //BBS: delete the plate, index= -1 means the current plate
     int delete_plate(int plate_index = -1);
     int duplicate_plate(int plate_index = -1);
+    // Move plate `old_index` to `new_index` (the bed's "Move plate to the front" icon moves it to 0)
+    // and make it the current plate; every plate in between shifts by one. No snapshot: the caller
+    // takes it. Returns 0 on success.
+    int move_plate_to_index(int old_index, int new_index);
     //BBS: select the sliced plate by index
     int select_sliced_plate(int plate_index, bool skip_zoom = false);
     //BBS: set bed positions
@@ -1094,6 +1134,19 @@ private:
     struct priv;
     std::unique_ptr<priv> p;
     std::string           m_3mf_path;
+    // Orca: research/mesh-infill — per-object generation key of the last
+    // infill preview, for refresh_infill_previews staleness checks.
+    std::map<size_t, std::string> m_infill_preview_keys;
+    // Shared core of preview_mesh_infill / refresh_infill_previews.
+    // dry_run: stop after the staleness check and report whether generation
+    // would happen, without touching the model.
+    // What a caller that shows no dialogs (interactive false) learns instead of them.
+    struct InfillPreviewReport
+    {
+        std::string error;   // why no preview was built; empty when it was, or was already up to date
+        std::string warning; // built, with a caveat (a truncated tiling)
+    };
+    bool generate_infill_preview_for_object(int obj_idx, bool interactive, bool dry_run = false, InfillPreviewReport *report = nullptr);
     // Set true during PopupMenu() tracking to suppress immediate error message boxes.
     // The error messages are collected to m_tracking_popup_menu_error_message instead and these error messages
     // are shown after the pop-up dialog closes.

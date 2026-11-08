@@ -202,6 +202,8 @@
 #include "GUI_Factories.hpp"
 #include "wxExtensions.hpp"
 #include "../Utils/PrintHost.hpp"
+#include "../Utils/Moonraker.hpp"
+#include "libslic3r/BedMesh.hpp"
 #include "MainFrame.hpp"
 #ifdef SLIC3R_CAD
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
@@ -7210,6 +7212,7 @@ struct Plater::priv
     Slic3r::Print               fff_print;
     Slic3r::SLAPrint            sla_print;
     Slic3r::Model               model;
+    Slic3r::SkeletonRegistry    skeleton_registry;
     PrinterTechnology           printer_technology = ptFFF;
     Slic3r::GCodeProcessorResult gcode_result;
 
@@ -7866,6 +7869,9 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         "layer_height", "initial_layer_print_height", "min_layer_height", "max_layer_height",
         "wall_loops", "outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_density", "sparse_infill_filament_id", "top_shell_layers",
         "enable_support", "support_filament", "support_interface_filament",
+        // UNLAYERED_MOD: enable_nonplanar gates layer_rotation_b/c, and the variable layer height
+        // editor derives object_max_z from the rotated box (PrintObject::slicing_parameters).
+        "test_input", "layer_rotation_b", "layer_rotation_c", "enable_nonplanar",
         "support_top_z_distance", "support_bottom_z_distance", "raft_layers",
         "wipe_tower_rotation_angle", "wipe_tower_cone_angle", "wipe_tower_extra_spacing", "wipe_tower_extra_flow", "wipe_tower_max_purge_speed",
         "wipe_tower_wall_type", "wipe_tower_extra_rib_length","wipe_tower_rib_width","wipe_tower_fillet_wall",
@@ -10770,6 +10776,7 @@ bool Plater::priv::delete_object_from_model(size_t obj_idx, bool refresh_immedia
     if (obj->is_cut())
         sidebar->obj_list()->invalidate_cut_info_for_object(obj_idx);
 
+    skeleton_registry.erase(model.objects[obj_idx]->id());
     std::string obj_name = obj->name;
     model.delete_object(obj_idx);
     {
@@ -10810,6 +10817,7 @@ void Plater::priv::delete_all_objects_from_model()
     //BBS: update partplate
     partplate_list.clear();
 
+    skeleton_registry.clear();
     model.clear_objects();
     update();
     // Delete object from Sidebar list. Do it after update, so that the GLScene selection is updated with the modified model.
@@ -13084,6 +13092,11 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
      * and for SLA presets they should be deleted
      */
         wxGetApp().obj_list()->update_object_list_by_printer_technology();
+
+        // A bed mesh read from another host does not describe this printer.
+        BedMeshOverlay& bed_mesh = this->partplate_list.bed_mesh_overlay();
+        if (bed_mesh.has_mesh() && bed_mesh.host() != wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_string("print_host"))
+            bed_mesh.clear();
 
         // BBS:Model reset by plate center
         PartPlateList& cur_plate_list = this->partplate_list;
@@ -16056,16 +16069,24 @@ void Plater::priv::handle_textured_mesh_import(Slic3r::Model& loaded_model, cons
 Sidebar&        Plater::sidebar()           { return *p->sidebar; }
 const Model&    Plater::model() const       { return p->model; }
 Model&          Plater::model()             { return p->model; }
+SkeletonRegistry&       Plater::skeleton_registry()       { return p->skeleton_registry; }
+const SkeletonRegistry& Plater::skeleton_registry() const { return p->skeleton_registry; }
 const Print&    Plater::fff_print() const   { return p->fff_print; }
 Print&          Plater::fff_print()         { return p->fff_print; }
 const SLAPrint& Plater::sla_print() const   { return p->sla_print; }
 SLAPrint&       Plater::sla_print()         { return p->sla_print; }
+
+void Plater::skip_next_new_project_confirm(bool skip) { p->skip_next_new_project_confirm = skip; }
 
 int Plater::new_project(bool skip_confirm, bool silent, const wxString& project_name, bool reload_presets)
 {
     model().calib_pa_pattern.reset(nullptr);
     model().plates_custom_gcodes.clear();
 
+    if (p->skip_next_new_project_confirm) {
+        p->skip_next_new_project_confirm = false;
+        skip_confirm                     = true;
+    }
     bool transfer_preset_changes = false;
     // BBS: save confirm
     auto check = [this,&transfer_preset_changes](bool yes_or_no) {
@@ -16635,6 +16656,210 @@ bool Plater::up_to_date(bool saved, bool backup)
     // never carry a recipe, so the empty-project shortcut is unchanged for them.
     return (p->model.objects.empty() && p->model.cad_recipe.empty()) ||
            (p->up_to_date(saved, backup) && !Slic3r::has_other_changes(backup));
+}
+
+bool Plater::generate_infill_preview_for_object(int obj_idx, bool interactive, bool dry_run, InfillPreviewReport *report)
+{
+    static const char *kPreviewVolumeName = "Infill Preview";
+    if (obj_idx < 0 || obj_idx >= int(p->model.objects.size()))
+        return false;
+    ModelObject *object = p->model.objects[obj_idx];
+
+    // Effective config: global presets + this object's overrides.
+    DynamicPrintConfig full_config = wxGetApp().preset_bundle->full_config();
+    full_config.apply(object->config.get(), true);
+    const InfillPattern pattern = full_config.option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern")->value;
+    const bool tpms_pattern = pattern == ipGyroid || pattern == ipTpmsD || pattern == ipTpmsFK;
+    if (pattern != ipCustomMesh && ! (tpms_pattern && mesh_backed_tpms_enabled())) {
+        if (interactive)
+            MessageDialog(this, mesh_backed_tpms_enabled()
+                ? _L("Mesh infill preview supports the Custom (infill mesh), Gyroid, TPMS-D and Fischer-Koch S sparse infill patterns.")
+                : _L("Mesh infill preview supports the Custom (infill mesh) sparse infill pattern."),
+                          _L("Preview Mesh Infill"), wxOK).ShowModal();
+        else if (report)
+            report->error = mesh_backed_tpms_enabled()
+                ? "mesh infill preview needs the Custom (infill mesh), Gyroid, TPMS-D or Fischer-Koch S sparse infill pattern"
+                : "mesh infill preview needs the Custom (infill mesh) sparse infill pattern";
+        return false;
+    }
+    // Replace any previous preview volume; the preview is a modifier without overrides, so it
+    // follows the object in every instance without changing the sliced result.
+    auto replace_preview_volume = [&](TriangleMesh &&mesh, const std::string &key) {
+        for (int i = int(object->volumes.size()) - 1; i >= 0; --i)
+            if (object->volumes[i]->name == kPreviewVolumeName)
+                object->delete_volume(size_t(i));
+        ModelVolume *vol = object->add_volume(std::move(mesh), ModelVolumeType::PARAMETER_MODIFIER,
+                                              /*modify_to_center_geometry=*/false);
+        vol->name = kPreviewVolumeName;
+        sidebar().obj_list()->add_volumes_to_object_in_list(size_t(obj_idx));
+        m_infill_preview_keys[object->id().id] = key;
+    };
+    auto preview_up_to_date = [&](const std::string &key) {
+        const bool has_preview_volume = std::any_of(object->volumes.begin(), object->volumes.end(),
+            [](const ModelVolume *v) { return v->name == kPreviewVolumeName; });
+        auto it = m_infill_preview_keys.find(object->id().id);
+        return has_preview_volume && it != m_infill_preview_keys.end() && it->second == key;
+    };
+
+    if (pattern == ipCustomMesh) {
+        // The user's Infill Mesh volume(s) tiled through the object's own bounding box, in
+        // object-local coordinates -- the same lattice prepare_mesh_infill_data slices.
+        Transform3d          cell_to_object;
+        const std::string    mesh_path = full_config.opt_string("infill_mesh_path");
+        indexed_triangle_set cell = infill_mesh_cell(*object, mesh_path, cell_to_object);
+        if (cell.indices.empty()) {
+            if (interactive)
+                MessageDialog(this, _L("The object has no Infill Mesh volume and no infill mesh file. Right-click the object and use "
+                                       "Add Infill Mesh, or set the infill mesh file in the Strength settings."),
+                              _L("Preview Mesh Infill"), wxOK).ShowModal();
+            else if (report)
+                report->error = "the object has no Infill Mesh volume and no infill mesh file (infill_mesh_path)";
+            return false;
+        }
+        const BoundingBoxf3 target = object->raw_mesh_bounding_box();
+        std::string key = "custom|" + mesh_path + "|" + std::to_string(cell.indices.size()) + "|";
+        for (const ModelVolume *v : object->volumes)
+            if (v->is_infill_mesh()) {
+                key += std::to_string(v->id().id) + ":";
+                for (int r = 0; r < 3; ++r)
+                    for (int c = 0; c < 4; ++c)
+                        key += std::to_string(v->get_matrix().matrix()(r, c)) + ",";
+            }
+        char bb_buf[160];
+        std::snprintf(bb_buf, sizeof(bb_buf), "|%.6g,%.6g,%.6g,%.6g,%.6g,%.6g",
+                      target.min.x(), target.min.y(), target.min.z(), target.max.x(), target.max.y(), target.max.z());
+        key += bb_buf;
+        if (! interactive && preview_up_to_date(key))
+            return false;
+        if (dry_run)
+            return true;
+        InfillCellTiling tiling;
+        indexed_triangle_set lattice;
+        {
+            wxBusyCursor busy;
+            lattice = build_infill_lattice(cell, cell_to_object, target, kMaxInfillTiles, &tiling);
+        }
+        if (lattice.indices.empty()) {
+            if (interactive)
+                MessageDialog(this, _L("Mesh infill generation produced no geometry."), _L("Preview Mesh Infill"), wxOK).ShowModal();
+            else if (report)
+                report->error = "mesh infill generation produced no geometry";
+            return false;
+        }
+        if (tiling.truncated && interactive)
+            MessageDialog(this, _L("The infill mesh is too small for this object: tiling it would exceed the tile limit, "
+                                   "so only the cell itself is shown."), _L("Preview Mesh Infill"), wxOK).ShowModal();
+        else if (tiling.truncated && report)
+            report->warning = "the infill mesh is too small for this object: tiling it would exceed the tile limit, so only the cell is shown";
+        replace_preview_volume(TriangleMesh(std::move(lattice)), key);
+        return true;
+    }
+    const double density_pct = full_config.option<ConfigOptionPercent>("sparse_infill_density")->value;
+    if (density_pct <= 0.) {
+        if (interactive)
+            MessageDialog(this, _L("Sparse infill density is zero."), _L("Preview Mesh Infill"), wxOK).ShowModal();
+        else if (report)
+            report->error = "sparse infill density is zero";
+        return false;
+    }
+    const int    multiline    = std::max(1, full_config.option<ConfigOptionInt>("fill_multiline")->value);
+    const double layer_height = full_config.opt_float("layer_height");
+    const double nozzle       = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.front();
+    // The same flow-spacing derivation the slicing path uses — NOT the raw
+    // line width (period parity; see prepare_mesh_infill_data).
+    const Flow   flow = Flow::new_from_config_width(frInfill,
+        *full_config.option<ConfigOptionFloatOrPercent>("sparse_infill_line_width"), float(nozzle), float(layer_height));
+    const double spacing = flow.spacing();
+
+    // Same env knobs as the slicing path.
+    const char *mode_env = std::getenv("UNLAYERED_MESH_INFILL_MODE");
+    const ImplicitMeshMode mode = (mode_env != nullptr && std::strcmp(mode_env, "band") == 0)
+        ? ImplicitMeshMode::SolidBand : ImplicitMeshMode::Surface;
+    int wall_count = 2;
+    if (const char *w = std::getenv("UNLAYERED_MESH_INFILL_WALLS"); w != nullptr && *w != '\0')
+        wall_count = std::max(1, atoi(w));
+
+    const BoundingBoxf3 aabb = object->instance_bounding_box(0);
+    // Staleness key over everything generation depends on.
+    char key_buf[320];
+    std::snprintf(key_buf, sizeof(key_buf), "%d|%d|%d|%.9g|%d|%.9g|%.9g|%.9g,%.9g,%.9g,%.9g,%.9g,%.9g",
+                  int(pattern), int(mode), wall_count, density_pct, multiline, spacing, layer_height,
+                  aabb.min.x(), aabb.min.y(), aabb.min.z(), aabb.max.x(), aabb.max.y(), aabb.max.z());
+    const std::string key(key_buf);
+    if (! interactive && preview_up_to_date(key))
+        return false;
+    if (dry_run)
+        return true; // would regenerate
+
+    const MeshInfillField field_spec = make_mesh_infill_field(pattern, 0.01 * density_pct, spacing, multiline, layer_height);
+    TriangleMesh mesh;
+    {
+        wxBusyCursor busy;
+        mesh = make_mesh_infill_preview_mesh(field_spec, aabb, mode, wall_count, spacing);
+    }
+    if (mesh.empty()) {
+        if (interactive)
+            MessageDialog(this, _L("Mesh infill generation produced no geometry."), _L("Preview Mesh Infill"), wxOK).ShowModal();
+        else if (report)
+            report->error = "mesh infill generation produced no geometry";
+        return false;
+    }
+
+    // The mesh was generated in world coordinates (instance 0's frame);
+    // pull it back into object-local coordinates and attach it as a modifier
+    // volume of the source object. That places it exactly, makes it follow
+    // the object when moved, and shows it in every instance. A modifier with
+    // no setting overrides does not change the sliced result.
+    mesh.transform(object->instances.front()->get_matrix().inverse());
+    replace_preview_volume(std::move(mesh), key);
+    return true;
+}
+
+void Plater::set_svg_infill_preview(const Polylines &lines)
+{
+    if (GLCanvas3D *canvas = get_view3D_canvas3D(); canvas != nullptr)
+        canvas->set_svg_infill_preview(lines, 0.2);
+}
+
+void Plater::preview_mesh_infill()
+{
+    int obj_idx = get_selected_object_idx();
+    if (obj_idx < 0 && ! p->model.objects.empty())
+        obj_idx = 0;
+    if (obj_idx < 0 || obj_idx >= int(p->model.objects.size())) {
+        MessageDialog(this, _L("Add or select an object first."), _L("Preview Mesh Infill"), wxOK).ShowModal();
+        return;
+    }
+    take_snapshot(std::string("Preview mesh infill"));
+    if (generate_infill_preview_for_object(obj_idx, /*interactive=*/true))
+        update();
+}
+
+bool Plater::generate_infill_preview(int obj_idx, bool dry_run, std::string &error, std::string &warning)
+{
+    InfillPreviewReport report;
+    const bool          built = generate_infill_preview_for_object(obj_idx, /*interactive=*/false, dry_run, &report);
+    error   = report.error;
+    warning = report.warning;
+    if (built && ! dry_run)
+        update();
+    return built;
+}
+
+void Plater::refresh_infill_previews()
+{
+    // Dry-run first: only pay for an undo snapshot when something is stale.
+    bool any_stale = false;
+    for (size_t i = 0; i < p->model.objects.size() && ! any_stale; ++i)
+        any_stale = generate_infill_preview_for_object(int(i), /*interactive=*/false, /*dry_run=*/true);
+    if (! any_stale)
+        return;
+    take_snapshot(std::string("Refresh infill previews"));
+    bool changed = false;
+    for (size_t i = 0; i < p->model.objects.size(); ++i)
+        changed |= generate_infill_preview_for_object(int(i), /*interactive=*/false);
+    if (changed)
+        update();
 }
 
 bool Plater::add_model(bool imperial_units, std::string fname)
@@ -20771,6 +20996,115 @@ void Plater::replace_all_with_stl()
     p->replace_all_with_stl();
 }
 
+void Plater::toggle_bed_mesh()
+{
+    wxGetApp().toggle_show_bed_mesh();
+    if (wxGetApp().show_bed_mesh() && !p->partplate_list.bed_mesh_overlay().has_mesh())
+        fetch_bed_mesh();
+    if (GLCanvas3D* canvas = get_current_canvas3D()) {
+        canvas->set_as_dirty();
+        canvas->request_extra_frame();
+    }
+}
+
+void Plater::fetch_bed_mesh(std::function<void(bool ok, const std::string& error)> done)
+{
+    // Same config the upload path uses: this fork keeps the host on the printer preset.
+    DynamicPrintConfig& printer_config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    std::shared_ptr<PrintHost> host(PrintHost::get_print_host(&printer_config));
+    // Hosts to try in order. Klipper users often leave the host type at OctoPrint, which Moonraker
+    // emulates for uploads; the same host, key and certificate then answer Moonraker's own
+    // bed_mesh query, which is quick to try before OctoPrint's own socket-based readback.
+    std::vector<std::shared_ptr<PrintHost>> hosts;
+    if (const auto* host_type = printer_config.option<ConfigOptionEnum<PrintHostType>>("host_type");
+        host && host_type != nullptr && host_type->value == htOctoPrint)
+        hosts.push_back(std::make_shared<Moonraker>(&printer_config));
+    if (host && host->can_get_bed_mesh())
+        hosts.push_back(host);
+    NotificationManager* notifications = get_notification_manager();
+    if (hosts.empty()) {
+        notifications->push_notification(NotificationType::CustomNotification, NotificationManager::NotificationLevel::WarningNotificationLevel,
+            _u8L("This printer's host type cannot report a bed mesh. Moonraker (Klipper), OctoPrint (Marlin) and Duet/Unlayered (RepRapFirmware) can."));
+        if (done)
+            done(false, "this printer's host type cannot report a bed mesh; Moonraker (Klipper), OctoPrint (Marlin) and "
+                        "Duet (RepRapFirmware) hosts can");
+        return;
+    }
+
+    struct Result {
+        BedMesh     mesh;
+        std::string error;
+        bool        ok = false;
+    };
+    auto              result    = std::make_shared<Result>();
+    const std::string host_name = hosts.front()->get_host();
+    const std::string status    = _u8L("Reading bed mesh from printer");
+    queue_job(get_ui_job_worker(),
+        [hosts, result, status](Job::Ctl& ctl) {
+            ctl.update_status(0, status);
+            for (const std::shared_ptr<PrintHost>& h : hosts) {
+                wxString error;
+                BOOST_LOG_TRIVIAL(info) << "Bed mesh: asking " << h->get_name() << " at " << h->get_host();
+                result->ok = h->get_bed_mesh(result->mesh, error);
+                if (result->ok)
+                    break;
+                if (!result->error.empty())
+                    result->error += " / ";
+                result->error += std::string(h->get_name()) + ": " + error.ToUTF8().data();
+            }
+            ctl.update_status(100, "");
+        },
+        [this, result, host_name, done](bool canceled, std::exception_ptr& eptr) {
+            if (eptr) {
+                try { std::rethrow_exception(eptr); }
+                catch (const std::exception& ex) { result->ok = false; result->error = ex.what(); }
+                eptr = nullptr;
+            }
+            if (canceled) {
+                if (done)
+                    done(false, "the bed mesh read was cancelled");
+                return;
+            }
+            NotificationManager* notifications = get_notification_manager();
+            BedMeshOverlay&      overlay       = p->partplate_list.bed_mesh_overlay();
+            if (!result->ok) {
+                notifications->push_notification(NotificationType::CustomNotification, NotificationManager::NotificationLevel::ErrorNotificationLevel,
+                    Slic3r::format(_u8L("Could not read the bed mesh from %1%: %2%"), host_name, result->error));
+            }
+            else if (result->mesh.empty()) {
+                overlay.clear();
+                notifications->push_notification(NotificationType::CustomNotification, NotificationManager::NotificationLevel::RegularNotificationLevel,
+                    Slic3r::format(_u8L("%1% has no bed mesh loaded."), host_name));
+            }
+            else {
+                const BedMesh& mesh = result->mesh;
+                const Vec2d    size = mesh.max - mesh.min;
+                std::string text = Slic3r::format(_u8L("Bed mesh \"%1%\" read from %2% via %3%: %4% x %5% probe points over %6% x %7% mm, range %8% mm."),
+                    mesh.profile_name.empty() ? _u8L("unsaved") : mesh.profile_name, host_name, mesh.source,
+                    mesh.probed_cols(), mesh.probed_rows(), int(std::lround(size.x())), int(std::lround(size.y())),
+                    Slic3r::format("%.3f", mesh.z_range()));
+                if (!mesh.note.empty())
+                    text += " " + mesh.note + ".";
+                if (!mesh.loaded)
+                    text += " " + _u8L("The printer is not confirmed to be compensating with this mesh.");
+                notifications->push_notification(NotificationType::CustomNotification, NotificationManager::NotificationLevel::RegularNotificationLevel, text);
+                if (mesh.out_of_flat())
+                    notifications->push_notification(NotificationType::CustomNotification, NotificationManager::NotificationLevel::WarningNotificationLevel,
+                        Slic3r::format(_u8L("Bed is %1% mm out of flat, more than the %2% mm warning threshold. Mesh compensation will hide it, but check the bed and its tramming before relying on that."),
+                                       Slic3r::format("%.3f", mesh.z_range()), Slic3r::format("%.1f", BedMesh::FLATNESS_WARNING_MM)));
+                overlay.set_mesh(mesh, host_name);
+                if (!wxGetApp().show_bed_mesh())
+                    wxGetApp().toggle_show_bed_mesh();
+            }
+            if (GLCanvas3D* canvas = get_current_canvas3D()) {
+                canvas->set_as_dirty();
+                canvas->request_extra_frame();
+            }
+            if (done)
+                done(result->ok, result->ok ? std::string() : "could not read the bed mesh from " + host_name + ": " + result->error);
+        });
+}
+
 void Plater::reload_all_from_disk()
 {
     p->reload_all_from_disk();
@@ -23530,13 +23864,7 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
     } else if ((action == 7) && (!right_click)) {
         // move plate to the front
         take_snapshot("move plate to the front");
-        ret = p->partplate_list.move_plate_to_index(plate_index,0);
-        p->partplate_list.update_slice_context_to_current_plate(p->background_process);
-        p->preview->update_gcode_result(p->partplate_list.get_current_slice_result());
-        p->sidebar->obj_list()->reload_all_plates();
-        p->partplate_list.update_plates();
-        update();
-        p->partplate_list.select_plate(0);
+        ret = move_plate_to_index(plate_index, 0);
     }
     else if (action == (int)PartPlate::PLATE_IMEX_MODE_ID)
     {
@@ -23619,6 +23947,18 @@ int Plater::add_plate()
     //get_camera().select_view("topfront");
     p->camera.requires_zoom_to_plate = REQUIRES_ZOOM_TO_ALL_PLATE;
     return new_plate;
+}
+
+int Plater::move_plate_to_index(int old_index, int new_index)
+{
+    const int ret = p->partplate_list.move_plate_to_index(old_index, new_index);
+    p->partplate_list.update_slice_context_to_current_plate(p->background_process);
+    p->preview->update_gcode_result(p->partplate_list.get_current_slice_result());
+    p->sidebar->obj_list()->reload_all_plates();
+    p->partplate_list.update_plates();
+    update();
+    p->partplate_list.select_plate(new_index);
+    return ret;
 }
 
 int Plater::duplicate_plate(int plate_index)
