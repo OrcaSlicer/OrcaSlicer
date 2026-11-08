@@ -8395,6 +8395,17 @@ int PartPlateList::store_to_3mf_structure(PlateDataPtrs& plate_data_list, bool w
 		PlateData* plate_data_item = new PlateData();
 		// TODO: write if needed
 		plate_data_item->filament_maps = m_plate_list[i]->get_filament_maps();
+		// Orca: a decoupled plate in automatic mode has no map of its own; publish the one it was
+		// sliced with, so the slice info names each filament's nozzle (FilamentCompaction). The CLI
+		// builds its plates through this list too, with no plater and no GUI app behind it.
+		if (plate_data_item->filament_maps.empty() && m_plater != nullptr && m_plate_list[i]->m_print != nullptr) {
+			const DynamicPrintConfig& printer_config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+			if (decouples_filaments_from_tools(printer_config)) {
+				const auto* nozzles = printer_config.option<ConfigOptionFloats>("nozzle_diameter");
+				plate_data_item->filament_maps = m_plate_list[i]->m_print->filament_compaction().project_filament_map(
+					wxGetApp().preset_bundle->filament_presets.size(), nozzles == nullptr ? 0 : nozzles->size());
+			}
+		}
 		plate_data_item->locked = m_plate_list[i]->m_locked;
 		plate_data_item->plate_index = m_plate_list[i]->m_plate_index;
 		plate_data_item->plate_name  = m_plate_list[i]->get_plate_name();
