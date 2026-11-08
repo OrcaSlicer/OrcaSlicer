@@ -4238,6 +4238,11 @@ bool GLCanvas3D::handle_shortcut(const KeyChord& chord)
     case Shortcut::AddInstance:    post_event(Event<int>(EVT_GLCANVAS_INCREASE_INSTANCES, +1)); break;
     case Shortcut::RemoveInstance: post_event(Event<int>(EVT_GLCANVAS_INCREASE_INSTANCES, -1)); break;
     case Shortcut::TogglePrintable: post_event(SimpleEvent(EVT_GLCANVAS_PRINTABLE)); break;
+    case Shortcut::ReloadFromDisk:
+        // Only where the context menu offers it: the 3D view's selection, with no gizmo open.
+        if (m_canvas_type == CanvasView3D && !m_gizmos.is_running() && wxGetApp().plater()->can_reload_from_disk())
+            wxGetApp().plater()->reload_from_disk();
+        break;
     case Shortcut::Arrange:
         if (!m_gizmos.is_running())
             post_event(SimpleEvent(EVT_GLCANVAS_ARRANGE));

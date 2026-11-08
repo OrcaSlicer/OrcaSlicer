@@ -1895,6 +1895,11 @@ bool ObjectList::dispatch_shortcut(Shortcut shortcut)
     case Shortcut::RemoveInstance:  decrease_instances(); break;
     case Shortcut::TogglePrintable: toggle_printable_state(); break;
     case Shortcut::ToggleAutoDrop:  toggle_auto_drop(); break;
+    case Shortcut::ReloadFromDisk:
+        // An open gizmo keeps references to the meshes a reload replaces.
+        if (!wxGetApp().plater()->get_view3D_canvas3D()->get_gizmos_manager().is_running() && wxGetApp().plater()->can_reload_from_disk())
+            wxGetApp().plater()->reload_from_disk();
+        break;
     default: return false;
     }
     return true;
