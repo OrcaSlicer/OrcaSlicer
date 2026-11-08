@@ -285,6 +285,8 @@ src/slic3r/Utils/ElegooCloud.cpp
 src/slic3r/Utils/ElegooLink.cpp
 src/slic3r/Utils/MarkforgedEiger.cpp
 src/slic3r/Utils/CrealityPrint.cpp
+src/slic3r/Utils/CrealityCloudPrinterAgent.cpp
+src/slic3r/Utils/CrealityCloudServiceAgent.cpp
 src/slic3r/Utils/PrintHost.cpp
 src/slic3r/GUI/Jobs/OAuthJob.cpp
 src/slic3r/GUI/Gizmos/GLGizmoBrimEars.cpp

@@ -277,6 +277,11 @@ private:
 
 namespace Slic3r {
 
+bool MoonrakerPrinterAgent::extract_plate_gcode(const std::string& archive_path, int plate_index, const boost::filesystem::path& gcode_path)
+{
+    return ::extract_plate_gcode(archive_path, plate_index, gcode_path);
+}
+
 const std::string MoonrakerPrinterAgent_VERSION = "1.0.0";
 
 MoonrakerPrinterAgent::MoonrakerPrinterAgent(std::string log_dir) : m_cloud_agent(nullptr) { (void) log_dir; }

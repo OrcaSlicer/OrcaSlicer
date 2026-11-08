@@ -14,6 +14,7 @@
 #include <string>
 #include <thread>
 
+#include <boost/filesystem/path.hpp>
 #include <nlohmann/json.hpp>
 #include <vector>
 
@@ -72,6 +73,9 @@ public:
     bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override;
 
     // JSON helper methods
+    // Extracts a plate's G-code from a .gcode.3mf bundle; when the plate's entry is missing, takes the only plate there is.
+    static bool extract_plate_gcode(const std::string& archive_path, int plate_index, const boost::filesystem::path& gcode_path);
+
     static std::string safe_json_string(const nlohmann::json& obj, const char* key);
     static int safe_json_int(const nlohmann::json& obj, const char* key);
     static std::string safe_array_string(const nlohmann::json& arr, int idx);

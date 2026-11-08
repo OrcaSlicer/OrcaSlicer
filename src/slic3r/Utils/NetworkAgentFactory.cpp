@@ -10,6 +10,7 @@
 #include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/plugin/pluginTypes/printerAgent/PrinterAgentPluginCapability.hpp"
 #include "CrealityPrintAgent.hpp"
+#include "CrealityCloudPrinterAgent.hpp"
 #include <algorithm>
 #include <boost/log/trivial.hpp>
 #include <chrono>
@@ -213,6 +214,10 @@ void NetworkAgentFactory::register_all_agents()
                                             // for K-series boards with CFS support.
     register_agent<MoonrakerPrinterAgent>();
 
+    // Unified Slicer: printers on a Creality Cloud account, signed in to under the "creality" provider.
+    register_agent<CrealityCloudPrinterAgent>();
+    set_agent_cloud_provider(CrealityCloudPrinterAgent::AGENT_ID, CREALITY_CLOUD_PROVIDER);
+
     // Keep BBL as a built-in option. Python printer-agent plugins with the
     // same AgentInfo ID are listed separately under the plugin registry key.
     {
@@ -248,8 +253,10 @@ std::unique_ptr<NetworkAgent> create_agent_from_config(const std::string& log_di
             orca_cloud->configure_urls(app_config);
         }
 
-        // Initialize third-party cloud agents from config
+        // Initialize third-party cloud agents from config. The Creality account is built in, so it is always offered.
         auto providers = app_config->get_cloud_providers();
+        if (std::find(providers.begin(), providers.end(), CREALITY_CLOUD_PROVIDER) == providers.end())
+            providers.push_back(CREALITY_CLOUD_PROVIDER);
         for (const auto& provider : providers) {
             if (provider == ORCA_CLOUD_PROVIDER)
                 continue; // Primary agent already created above
