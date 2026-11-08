@@ -753,6 +753,27 @@ void GLTexture::render_sub_texture(unsigned int tex_id, float left, float right,
     glsafe(::glDisable(GL_BLEND));
 }
 
+// Resolves the samples of the bound read framebuffer into the texture, through a framebuffer object holding it.
+static void blit_into_texture(unsigned int tex_id, unsigned int width, unsigned int height)
+{
+    // Restored as found: VirtualGL reports its own framebuffer object as 0, and binds it again for 0.
+    GLint draw_framebuffer = 0;
+    glsafe(::glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &draw_framebuffer));
+    // Unlike a copy, a blit is clipped by the scissor test.
+    const GLboolean scissor_test = ::glIsEnabled(GL_SCISSOR_TEST);
+    GLuint framebuffer = 0;
+    glsafe(::glGenFramebuffers(1, &framebuffer));
+    glsafe(::glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer));
+    glsafe(::glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex_id, 0));
+    if (scissor_test)
+        glsafe(::glDisable(GL_SCISSOR_TEST));
+    glsafe(::glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST));
+    if (scissor_test)
+        glsafe(::glEnable(GL_SCISSOR_TEST));
+    glsafe(::glBindFramebuffer(GL_DRAW_FRAMEBUFFER, static_cast<GLuint>(draw_framebuffer)));
+    glsafe(::glDeleteFramebuffers(1, &framebuffer));
+}
+
 void GLTexture::copy_from_framebuffer(unsigned int& tex_id, std::array<unsigned int, 2>& tex_size, unsigned int width, unsigned int height, int filter)
 {
     if (tex_id == 0) {
@@ -771,9 +792,30 @@ void GLTexture::copy_from_framebuffer(unsigned int& tex_id, std::array<unsigned 
         tex_size = { width, height };
     }
 
-    // Copying from the default framebuffer resolves its multisampling.
-    glsafe(::glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height));
+    // Copying from the default framebuffer resolves its multisampling, but copying from a multisampled framebuffer
+    // object is an error. VirtualGL draws the window into a framebuffer object of its own and reports it as the
+    // default one, so the binding cannot tell them apart: the first multisampled copy is checked instead, and where
+    // it fails, a blit resolves the samples from then on.
+    enum class EResolve : unsigned char { Unknown, Copy, Blit };
+    static EResolve resolve = EResolve::Unknown;
+    GLint sample_buffers = 0;
+    glsafe(::glGetIntegerv(GL_SAMPLE_BUFFERS, &sample_buffers));
+    if (sample_buffers == 0 || resolve == EResolve::Copy)
+        glsafe(::glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height));
+    else if (resolve == EResolve::Unknown) {
+        ::glGetError(); // drop anything pending, so the check below sees only this copy
+        ::glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height);
+        const GLenum error = ::glGetError();
+        // The blit needs framebuffer objects, as does VirtualGL.
+        resolve = error == GL_INVALID_OPERATION && OpenGLManager::get_framebuffers_type() == OpenGLManager::EFramebufferType::Arb ?
+            EResolve::Blit : EResolve::Copy;
+        if (resolve == EResolve::Blit)
+            BOOST_LOG_TRIVIAL(info) << "Copying from the multisampled framebuffer failed; resolving it with a blit instead";
+    }
     glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+
+    if (sample_buffers > 0 && resolve == EResolve::Blit)
+        blit_into_texture(tex_id, width, height);
 }
 
 static bool to_squared_power_of_two(const std::string& filename, int max_size_px, int& w, int& h)
