@@ -383,6 +383,9 @@ void AppConfig::set_defaults()
     // Design tab: draw the printer bed and its plate grid (the Feature tree's Bed row).
     if (get("design_show_bed").empty())
         set_bool("design_show_bed", true);
+    // SolidWorks xDesign shows the three origin planes by default.
+    if (get("design_show_origin").empty())
+        set_bool("design_show_origin", true);
 #endif
 
 //#ifdef SUPPORT_SHOW_HINTS

@@ -4397,7 +4397,7 @@ void DesignSketchTool::render_body_edges()
                 continue;
             append_ribbons(g, b, m_body_edges[b], vd, pull, hw);
         }
-        render_ribbons(m_body_edges_model, std::move(g), ColorRGBA(0.08f, 0.09f, 0.11f, pass == 0 ? 0.85f : 0.25f));
+        render_ribbons(m_body_edges_model, std::move(g), ColorRGBA(0.08f, 0.09f, 0.11f, pass == 0 ? 0.90f : 0.20f));   // xShape line alphas: 0.9 visible, 0.2 faded
     }
 }
 
@@ -5288,7 +5288,7 @@ void DesignSketchTool::render_view_helpers()
             fill.add_vertex((Vec3f)c[3].cast<float>()); fill.add_triangle(fb, fb+1, fb+2); fb += 3;
         }
         if (fb > 0) { GLModel fm; fm.init_from(std::move(fill));
-            fm.set_color(ColorRGBA(0.42f, 0.52f, 0.78f, 0.20f)); fm.render(); }
+            fm.set_color(ColorRGBA(0.61f, 0.74f, 0.82f, 0.30f)); fm.render(); }   // xShape plane: light blue, alpha 0.3
     }
 
     if (m_show_axes) {
@@ -5402,11 +5402,11 @@ void DesignSketchTool::render_sketch_plane_frame()
     glsafe(::glEnable(GL_BLEND));
     glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
     GLModel fm; fm.init_from(std::move(fill));
-    fm.set_color(ColorRGBA(0.12f, 0.78f, 0.70f, 0.10f));
+    fm.set_color(ColorRGBA(0.61f, 0.74f, 0.82f, 0.30f));   // xShape plane
     fm.render();
     if (bb > 0) {
         GLModel bm; bm.init_from(std::move(border));
-        bm.set_color(ColorRGBA(0.12f, 0.85f, 0.75f, 0.95f));
+        bm.set_color(ColorRGBA(0.47f, 0.63f, 0.78f, 0.80f));
         bm.render();
     }
     glsafe(::glDisable(GL_BLEND));
@@ -5459,12 +5459,12 @@ void DesignSketchTool::render_datum_planes()
     glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
     if (fb > 0) {
         GLModel fm; fm.init_from(std::move(fill));
-        fm.set_color(ColorRGBA(0.62f, 0.52f, 0.95f, 0.10f));
+        fm.set_color(ColorRGBA(0.61f, 0.74f, 0.82f, 0.30f));   // xShape plane fill
         fm.render();
     }
     if (bb > 0) {
         GLModel bm; bm.init_from(std::move(border));
-        bm.set_color(ColorRGBA(0.70f, 0.60f, 1.0f, 0.85f));
+        bm.set_color(ColorRGBA(0.47f, 0.63f, 0.78f, 0.60f));   // xShape plane outline
         bm.render();
     }
     glsafe(::glDisable(GL_BLEND));
@@ -6734,9 +6734,7 @@ void DesignSketchTool::render_base_pick()
     // Plane card offers as a base keeps a slate of its own, clear of the grey hover.
     auto hue = [&](size_t i) {
         switch (base_of(i)) {
-        case 0: return ColorRGBA(0.30f, 0.55f, 0.95f, 1.0f);
-        case 1: return ColorRGBA(0.35f, 0.80f, 0.45f, 1.0f);
-        case 2: return ColorRGBA(0.92f, 0.42f, 0.42f, 1.0f);
+        case 0: case 1: case 2: return ColorRGBA(0.61f, 0.74f, 0.82f, 1.0f);   // SolidWorks xDesign: every origin plane the same light blue
         default: return ColorRGBA(0.55f, 0.60f, 0.72f, 1.0f);
         }
     };
@@ -6746,7 +6744,7 @@ void DesignSketchTool::render_base_pick()
     // selection colour would match one of the three.
     auto fill = [&](size_t i) {
         ColorRGBA c = look(i) == Look::Hover ? ColorRGBA(0.80f, 0.80f, 0.80f, 1.0f) : hue(i);
-        c.a(look(i) == Look::Selected ? 0.85f : look(i) == Look::Hover ? 0.45f : 0.50f);
+        c.a(look(i) == Look::Selected ? 0.85f : look(i) == Look::Hover ? 0.45f : 0.30f);   // xDesign plane alpha 0.3
         return c;
     };
     auto ink = [&](size_t i) {
@@ -6798,6 +6796,27 @@ void DesignSketchTool::render_base_pick()
         }
         m_plane = squares[i];   // draw_strokes lifts plane coordinates through m_plane
         draw_strokes(m_line_model, strokes, 0.07 * th, ink(i));
+    }
+    // xDesign outlines every plane with a thin blue-grey line.
+    {
+        const double hw = 1.0 * px_unit(cam);
+        const Vec3d  vd = cam.get_dir_forward();
+        GLModel::Geometry edge; edge.format = { EPT::Triangles, EVL::P3 };
+        unsigned int eb = 0;
+        for (size_t i = 0; i < squares.size() && i < m_dbp_planes.size(); ++i) {
+            const SketchPlane& p = squares[i];
+            const Vec3d c[4] = { p.to_world(Vec2d(-H, -H)), p.to_world(Vec2d(H, -H)), p.to_world(Vec2d(H, H)), p.to_world(Vec2d(-H, H)) };
+            for (int k = 0; k < 4; ++k) {
+                const Vec3d a = c[k], b = c[(k + 1) & 3];
+                Vec3d dir = (b - a).normalized(), off = dir.cross(vd);
+                if (off.norm() < 1e-9) continue;
+                off.normalize(); off *= hw;
+                edge.add_vertex((Vec3f)(a + off).cast<float>()); edge.add_vertex((Vec3f)(b + off).cast<float>());
+                edge.add_vertex((Vec3f)(b - off).cast<float>()); edge.add_vertex((Vec3f)(a - off).cast<float>());
+                edge.add_triangle(eb, eb + 1, eb + 2); edge.add_triangle(eb, eb + 2, eb + 3); eb += 4;
+            }
+        }
+        if (eb > 0) { GLModel em; em.init_from(std::move(edge)); em.set_color(ColorRGBA(0.47f, 0.63f, 0.78f, 0.60f)); em.render(); }
     }
     for (size_t i = 0; i < m_dbp_planes.size() && i < m_dbp_labels.size(); ++i)
         if (!is_base_plane(base_of(i)) && !m_dbp_labels[i].empty()) {
