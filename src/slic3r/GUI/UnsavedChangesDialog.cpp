@@ -1163,8 +1163,8 @@ void UnsavedChangesDialog::show_info_line(Action action, std::string preset_name
             else
                 text = format_wxstr(
                     action == Action::Save ?
-                        _L("Save the selected options to preset \n\"%1%\".") :
-                        _L("Transfer the selected options to the newly selected preset \n\"%1%\"."),
+                        _L("Save the selected options to preset\n\"%1%\".") :
+                        _L("Transfer the selected options to the newly selected preset\n\"%1%\"."),
                     preset_name);
             //text += "\n" + _L("Unselected options will be reverted.");
         }

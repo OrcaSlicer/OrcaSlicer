@@ -459,6 +459,10 @@ public:
 
     void get_ams_cobox_infos(AMSComboInfo &combox_info);
     unsigned int sync_ams_list(std::vector<std::pair<DynamicPrintConfig *,std::string>> &unknowns, bool use_map, std::map<int, AMSMapInfo> &maps, bool enable_append, MergeFilamentInfo &merge_info, bool color_only = false);
+    // Installs the system filament presets in the slots: visible now, and in config's filaments
+    // section, which load_selections() keeps a slot's preset by. After an AMS sync the slots hold the
+    // printer's filaments, which the user may never have ticked.
+    void install_slot_filaments(AppConfig &config);
     //BBS: check whether this is the only edited filament
     bool is_the_only_edited_filament(unsigned int filament_index);
 

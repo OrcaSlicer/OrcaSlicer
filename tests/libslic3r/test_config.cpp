@@ -303,6 +303,15 @@ TEST_CASE("Flush-volume warning predicate respects used filament transitions", "
     }
 }
 
+TEST_CASE("Enum list options copied from the print config defaults read and write their names", "[Config]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    // z_hop_types defaults to Slope Lift.
+    CHECK(config.opt_serialize("z_hop_types") == "Slope Lift");
+    config.set_deserialize_strict("z_hop_types", "Normal Lift");
+    CHECK(config.opt_serialize("z_hop_types") == "Normal Lift");
+}
+
 // TODO: https://github.com/SoftFever/OrcaSlicer/issues/11269 - Is this test still relevant? Delete if not.
 // It was failing so at least "nozzle_type" and "extruder_printable_area" could not be serialized
 // and an exception was thrown, but "nozzle_type" has been around for at least 3 months now.
@@ -1568,6 +1577,16 @@ TEST_CASE("handle_legacy migrates the adaptive TPMS keys", "[Config]") {
     CHECK(config.option<ConfigOptionPercent>("adaptive_infill_interior_density")->value == Catch::Approx(12.));
     CHECK(config.opt_enum<AdaptiveInfillGradient>("adaptive_infill_gradient") == AdaptiveInfillGradient::Quadratic);
     CHECK(ctxt.substitutions.empty());
+}
+
+TEST_CASE("normalize_fdm leaves feature filaments on Default", "[Config]") {
+    DynamicPrintConfig config;
+    config.set_key_value("sparse_infill_filament_id", new ConfigOptionInt(2));
+    config.set_key_value("internal_solid_filament_id", new ConfigOptionInt(0));
+    config.set_key_value("top_surface_filament_id", new ConfigOptionInt(3));
+    config.normalize_fdm();
+    CHECK(config.opt_int("internal_solid_filament_id") == 0);
+    CHECK_FALSE(config.has("bottom_surface_filament_id"));
 }
 
 TEST_CASE("silent_mode is no longer saved and is dropped on load", "[Config]") {
