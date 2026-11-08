@@ -1311,7 +1311,12 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
         apply(config, &new_conf);
     }
     toggle_line("overhang_reverse_threshold", has_detect_overhang_wall && allow_overhang_reverse && has_overhang_reverse && !has_overhang_reverse_internal_only, -1, _L("Enable overhang wall detection and reverse overhang direction, disable spiral vase mode, and turn off reversing internal perimeters only."));
-    toggle_line("timelapse_type", is_BBL_Printer, -1, _L("This setting requires a Bambu Lab printer."));
+    // Orca: Smooth timelapse also works on non-Bambu printers whose printer profile implements it in the
+    // layer change G-code (e.g. QIDI Q2, which parks the head for the frame when timelapse_type == 1).
+    const auto *layer_change_gcode = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionString>("layer_change_gcode");
+    const bool profile_supports_timelapse = layer_change_gcode != nullptr &&
+                                            layer_change_gcode->value.find("timelapse_type") != std::string::npos;
+    toggle_line("timelapse_type", is_BBL_Printer || profile_supports_timelapse, -1, _L("This setting requires a Bambu Lab printer."));
 
 
     bool have_small_area_infill_flow_compensation = config->opt_bool("small_area_infill_flow_compensation");
