@@ -775,7 +775,7 @@ private:
         build_options(p);
         enable_actions(p.online);
         relayout();
-        if (!m_job.filaments.empty())
+        if (!m_job.filaments.empty() && m_backend.has_filament_mapping())
             load_slots(p);
     }
 
@@ -838,7 +838,7 @@ private:
         }
 
         // Filament mapping (filled in once the printer's slots arrive).
-        if (!m_job.filaments.empty()) {
+        if (!m_job.filaments.empty() && m_backend.has_filament_mapping()) {
             if (elegoo)
                 m_options_host->Add(section_header(this, m_theme, _L("Filament Mapping")), 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(10));
             else

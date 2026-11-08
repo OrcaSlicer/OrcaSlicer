@@ -21434,8 +21434,12 @@ bool Plater::send_to_vendor(int plate_idx)
     }
 
     std::optional<PrintHostJob> upload_job = show_vendor_send_dialog(this, vendor, backend, job, default_output_file);
-    if (upload_job && !upload_job->empty())
-        p->export_gcode(fs::path(), false, std::move(*upload_job));
+    if (upload_job && !upload_job->empty()) {
+        if (upload_job->upload_data.extended("vendor_source_ready") == "1")
+            wxGetApp().printhost_job_queue().enqueue(std::move(*upload_job));
+        else
+            p->export_gcode(fs::path(), false, std::move(*upload_job));
+    }
     return true;
 }
 

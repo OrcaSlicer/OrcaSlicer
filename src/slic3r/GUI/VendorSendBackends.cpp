@@ -15,6 +15,22 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/Utils/CrealityPrint.hpp"
 #include "slic3r/Utils/ElegooCloud.hpp"
+#include "slic3r/Utils/MarkforgedEiger.hpp"
+
+#include <boost/filesystem.hpp>
+#include <wx/dialog.h>
+#include <wx/hyperlink.h>
+#include <wx/sizer.h>
+#include <wx/stattext.h>
+#include <wx/textctrl.h>
+
+#include "GUI_App.hpp"
+#include "PartPlate.hpp"
+#include "Plater.hpp"
+#include "libslic3r/Format/STL.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/Utils.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -301,6 +317,168 @@ private:
     std::vector<Slot>   m_slots;
 };
 
+
+// ---------------------------------------------------------------------------------------------
+// Markforged: organization printers through the Eiger cloud API.
+// ---------------------------------------------------------------------------------------------
+
+bool ask_eiger_keys(wxWindow* parent, EigerKeys& keys)
+{
+    wxDialog dlg(parent, wxID_ANY, _L("Sign in to Eiger"));
+    auto*    s = new wxBoxSizer(wxVERTICAL);
+    s->Add(new wxStaticText(&dlg, wxID_ANY, _L("Enter the API keys from Eiger (Settings > API keys).")), 0, wxALL, dlg.FromDIP(12));
+    auto* grid = new wxFlexGridSizer(2, dlg.FromDIP(6), dlg.FromDIP(10));
+    grid->AddGrowableCol(1, 1);
+    grid->Add(new wxStaticText(&dlg, wxID_ANY, _L("Access key")), 0, wxALIGN_CENTER_VERTICAL);
+    auto* access = new wxTextCtrl(&dlg, wxID_ANY, wxString::FromUTF8(keys.access), wxDefaultPosition, wxSize(dlg.FromDIP(320), -1));
+    grid->Add(access, 1, wxEXPAND);
+    grid->Add(new wxStaticText(&dlg, wxID_ANY, _L("Secret key")), 0, wxALIGN_CENTER_VERTICAL);
+    auto* secret = new wxTextCtrl(&dlg, wxID_ANY, wxString::FromUTF8(keys.secret), wxDefaultPosition, wxDefaultSize, wxTE_PASSWORD);
+    grid->Add(secret, 1, wxEXPAND);
+    s->Add(grid, 0, wxEXPAND | wxLEFT | wxRIGHT, dlg.FromDIP(12));
+    s->Add(new wxHyperlinkCtrl(&dlg, wxID_ANY, _L("Open Eiger"), "https://www.eiger.io/"), 0, wxALL, dlg.FromDIP(12));
+    s->Add(dlg.CreateStdDialogButtonSizer(wxOK | wxCANCEL), 0, wxEXPAND | wxALL, dlg.FromDIP(12));
+    dlg.SetSizerAndFit(s);
+    dlg.CentreOnParent();
+    if (dlg.ShowModal() != wxID_OK)
+        return false;
+    keys.access = access->GetValue().Trim().Trim(false).ToUTF8().data();
+    keys.secret = secret->GetValue().Trim().Trim(false).ToUTF8().data();
+    return !keys.empty();
+}
+
+class MarkforgedBackend : public VendorSendBackend
+{
+public:
+    explicit MarkforgedBackend(const DynamicPrintConfig& cfg) : m_keys(Eiger::keys_for(&cfg)) {}
+
+    bool     needs_sign_in() const override { return true; }
+    bool     signed_in() const override { return !m_keys.empty(); }
+    bool     sign_in(wxWindow* parent) override
+    {
+        EigerKeys keys = m_keys;
+        if (!ask_eiger_keys(parent, keys))
+            return false;
+        Eiger::save_keys(keys);
+        m_keys = keys;
+        return true;
+    }
+    void     sign_out() override
+    {
+        m_keys = EigerKeys();
+        Eiger::save_keys(m_keys);
+    }
+    wxString account_label() const override { return m_keys.empty() ? wxString() : _L("Eiger API key"); }
+    bool     has_filament_mapping() const override { return false; }
+    bool     supports_upload_only() const override { return false; }
+
+    std::vector<SendPrinter> printers() override
+    {
+        Eiger api(m_keys);
+        std::vector<SendPrinter> out;
+        for (const nlohmann::json& d : api.devices()) {
+            auto str = [&](const char* k) {
+                return d.contains(k) && d[k].is_string() ? d[k].get<std::string>() : d.contains(k) && !d[k].is_null() ? d[k].dump() : std::string();
+            };
+            SendPrinter p;
+            p.id               = str("id");
+            p.name             = wxString::FromUTF8(str("name"));
+            p.model            = str("device_type");
+            const std::string state = str("state");
+            p.status           = wxString::FromUTF8(state);
+            p.busy             = state != "Ready";
+            p.online           = !(state.empty() || state == "Offline" || state == "Disabled" || state == "Unknown");
+            wxString detail    = wxString::FromUTF8(p.model);
+            if (const std::string mat = str("loaded_primary_material"); !mat.empty())
+                detail += "  ·  " + wxString::FromUTF8(mat);
+            if (d.contains("queue_length") && d["queue_length"].is_number_integer() && d["queue_length"].get<int>() > 0) {
+                const int n    = d["queue_length"].get<int>();
+                const int mins = d.value("queue_estimated_time_seconds", 0) / 60;
+                detail += "  ·  " + wxString::Format(_L_PLURAL("%d job queued", "%d jobs queued", n), n);
+                if (mins > 0)
+                    detail += wxString::Format(" (%dh %02dm)", mins / 60, mins % 60);
+            }
+            p.detail = detail;
+            out.push_back(std::move(p));
+        }
+        try {
+            m_presets = api.settings_presets();
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(warning) << "Eiger: settings presets unavailable: " << e.what();
+        }
+        return out;
+    }
+
+    std::vector<SendOption> options(const SendPrinter&) const override
+    {
+        SendOption preset;
+        preset.key            = "settings_preset";
+        preset.label          = _L("Settings preset");
+        preset.kind           = SendOption::Kind::Choice;
+        preset.choices.push_back({"", _L("Organization default")});
+        for (const auto& [id, title] : m_presets)
+            preset.choices.push_back({id, wxString::FromUTF8(title)});
+        preset.default_choice = Eiger::saved_settings_preset();
+        preset.tooltip        = _L("Material, layer height and fiber settings come from this Eiger preset.");
+        SendOption action;
+        action.key            = "action";
+        action.label          = _L("When sent");
+        action.kind           = SendOption::Kind::Choice;
+        action.choices        = {{"now", _L("Print now")}, {"queue", _L("Add to queue")}, {"backlog", _L("Send to backlog")}};
+        action.default_choice = "now";
+        return {preset, action};
+    }
+
+    PrintHostJob make_job(const SendRequest& req, const boost::filesystem::path&, wxString& error) override
+    {
+        PrintHostJob job;
+        // Eiger slices itself and takes STL only: write the plate's printable instances, placed as on the plate.
+        Plater*        plater = wxGetApp().plater();
+        PartPlate*     plate  = plater->get_partplate_list().get_curr_plate();
+        Model&         model  = plater->model();
+        TriangleMesh   all;
+        for (size_t oi = 0; oi < model.objects.size(); ++oi) {
+            const ModelObject* o   = model.objects[oi];
+            const TriangleMesh raw = o->raw_mesh();
+            for (size_t ii = 0; ii < o->instances.size(); ++ii) {
+                if (!o->instances[ii]->printable || plate == nullptr || !plate->contain_instance(int(oi), int(ii)))
+                    continue;
+                TriangleMesh m = raw;
+                m.transform(o->instances[ii]->get_matrix());
+                all.merge(m);
+            }
+        }
+        if (all.empty()) {
+            error = _L("The plate has nothing to print.");
+            return job;
+        }
+        const std::string title = boost::filesystem::path(req.file_name.ToUTF8().data()).stem().stem().string();
+        const boost::filesystem::path stl =
+            boost::filesystem::temp_directory_path() / boost::filesystem::unique_path("eiger-%%%%%%%%.stl");
+        if (!store_stl(stl.string().c_str(), &all, true)) {
+            error = _L("Could not write the plate for Eiger.");
+            return job;
+        }
+        auto opt = [&](const char* key, const char* def) {
+            auto it = req.options.find(key);
+            return it == req.options.end() ? std::string(def) : it->second;
+        };
+        job.printhost               = std::make_unique<MarkforgedEigerHost>(m_keys);
+        job.upload_data.source_path = stl;
+        job.upload_data.upload_path = title + ".stl";
+        job.upload_data.post_action = PrintHostPostUploadAction::StartPrint;
+        job.upload_data.extended_info = {{"eiger_device", req.printer_id},
+                                         {"eiger_action", opt("action", "now")},
+                                         {"eiger_preset", opt("settings_preset", "")},
+                                         {"eiger_title", title},
+                                         {"vendor_source_ready", "1"}};
+        return job;
+    }
+
+private:
+    EigerKeys                                        m_keys;
+    std::vector<std::pair<std::string, std::string>> m_presets;
+};
 } // namespace
 
 void register_builtin_vendor_send_backends()
@@ -316,6 +494,7 @@ void register_builtin_vendor_send_backends()
             return nullptr;
         return std::make_shared<CrealityBackend>(cfg);
     });
+    register_vendor_send_backend(SendVendor::Markforged, [](const DynamicPrintConfig& cfg) { return std::make_shared<MarkforgedBackend>(cfg); });
 }
 
 }} // namespace Slic3r::GUI
