@@ -250,6 +250,64 @@ void scan_plugin_directory(const std::string& dir_path, std::vector<PluginDescri
 
 } // namespace
 
+namespace {
+// Unified Slicer: plugins that ship with the app (resources/plugins/*.py) are copied into the
+// user's local plugin folder, where they can keep their data next to themselves. A copy that is
+// missing, or older than the bundled one (PEP 723 "version"), is (re)installed; a newer or
+// hand-edited copy with a higher version is left alone.
+std::string bundled_plugin_version(const boost::filesystem::path& file)
+{
+    boost::nowide::ifstream in(file.string());
+    std::string line;
+    for (int i = 0; i < 40 && std::getline(in, line); ++i) {
+        const auto pos = line.find("version");
+        if (line.rfind("#", 0) == 0 && pos != std::string::npos && line.find('=', pos) != std::string::npos) {
+            const auto q1 = line.find('"', pos);
+            const auto q2 = q1 == std::string::npos ? q1 : line.find('"', q1 + 1);
+            if (q2 != std::string::npos)
+                return line.substr(q1 + 1, q2 - q1 - 1);
+        }
+    }
+    return {};
+}
+
+bool version_less(const std::string& a, const std::string& b)
+{
+    auto parts = [](const std::string& v) {
+        std::vector<int> out;
+        std::string cur;
+        for (char c : v + ".") {
+            if (c == '.') { out.push_back(cur.empty() ? 0 : std::atoi(cur.c_str())); cur.clear(); }
+            else if (std::isdigit(static_cast<unsigned char>(c))) cur += c;
+        }
+        return out;
+    };
+    return parts(a) < parts(b);
+}
+
+void seed_bundled_plugins(const boost::filesystem::path& local_dir)
+{
+    namespace fs = boost::filesystem;
+    const fs::path bundled = fs::path(resources_dir()) / "plugins";
+    boost::system::error_code ec;
+    if (!fs::is_directory(bundled, ec))
+        return;
+    for (fs::directory_iterator it(bundled, ec), end; !ec && it != end; it.increment(ec)) {
+        const fs::path src = it->path();
+        if (!fs::is_regular_file(src, ec) || src.extension() != ".py")
+            continue;
+        const fs::path dst = local_dir / src.filename();
+        if (fs::exists(dst, ec) && !version_less(bundled_plugin_version(dst), bundled_plugin_version(src)))
+            continue;
+        fs::copy_file(src, dst, fs::copy_options::overwrite_existing, ec);
+        if (ec)
+            BOOST_LOG_TRIVIAL(warning) << "Could not install bundled plugin " << src.filename().string() << ": " << ec.message();
+        else
+            BOOST_LOG_TRIVIAL(info) << "Installed bundled plugin " << src.filename().string();
+    }
+}
+} // namespace
+
 std::vector<std::string> get_plugin_directories(const std::string& cloud_user_id)
 {
     namespace fs = boost::filesystem;
@@ -273,6 +331,11 @@ std::vector<std::string> get_plugin_directories(const std::string& cloud_user_id
 
     // Local plugins: {data_dir}/orca_plugins/
     add_or_create_dir(fs::path(data_dir()) / "orca_plugins");
+    static bool seeded = false;
+    if (!seeded) {
+        seeded = true;
+        seed_bundled_plugins(fs::path(data_dir()) / "orca_plugins");
+    }
 
     // Cloud plugins: {data_dir}/orca_plugins/_subscribed/{user_id}/
     if (!cloud_user_id.empty())
