@@ -9,6 +9,9 @@
 
 #include "test_helpers.hpp"
 
+#include <boost/nowide/fstream.hpp>
+#include <nlohmann/json.hpp>
+
 #include <cstddef>
 #include <regex>
 #include <sstream>
@@ -216,6 +219,45 @@ TEST_CASE("Tool change prime is full length after a pause", "[ToolchangePrime]")
         if (!block.first_use)
             REQUIRE(block.after_pause);
     }
+}
+
+TEST_CASE("U1 tool change prime moves absolutely in XY before its first extrusion", "[ToolchangePrime]")
+{
+    // After an object is excluded mid-print, Klipper's exclude_object keeps a stale offset per tool. The first move
+    // without XY applies it and shoves the head out of the purge chute (Y 337.6 on a real U1). An absolute XY move
+    // clears it, so it must come before the E-only moves.
+    boost::nowide::ifstream file(std::string(PROFILES_DIR) + "/Snapmaker/machine/fdm_U1.json");
+    REQUIRE(file);
+    std::string prime_gcode = nlohmann::json::parse(file).at("toolchange_prime_gcode").get<std::string>();
+
+    DynamicPrintConfig config = two_tool_config();
+    config.set_deserialize_strict({{ "toolchange_prime_gcode", prime_gcode }, { "toolchange_prime_on_printer", false }});
+    std::string gcode = slice({TestMesh::cube_20x20x20}, config);
+
+    std::istringstream in(gcode);
+    std::string        line;
+    std::regex         absolute_xy("G1 X[0-9.]+ Y[0-9.]+ Z[0-9.]+ F[0-9.]+.*");
+    size_t             moved_blocks = 0;
+    bool               in_block = false, absolute = false, moved = false;
+    while (std::getline(in, line)) {
+        if (line.rfind(";" + GCodeProcessor::Toolchange_Prime_Start_Tag, 0) == 0) {
+            in_block = true;
+            absolute = moved = false;
+        } else if (line.rfind(";" + GCodeProcessor::Toolchange_Prime_End_Tag, 0) == 0) {
+            // A first use with nothing to restore leaves the block empty.
+            moved_blocks += moved;
+            in_block = false;
+        } else if (in_block && line.rfind("G90", 0) == 0)
+            absolute = true;
+        else if (in_block && std::regex_match(line, absolute_xy)) {
+            CHECK(absolute);
+            moved = true;
+        } else if (in_block && line.rfind("G1 E", 0) == 0) {
+            INFO(line);
+            REQUIRE(moved);
+        }
+    }
+    CHECK(moved_blocks > 2);
 }
 
 TEST_CASE("Tool change prime is left to the printer when timed on the printer", "[ToolchangePrime]")
