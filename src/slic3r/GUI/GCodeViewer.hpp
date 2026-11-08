@@ -77,6 +77,14 @@ public:
         class Marker
         {
             GLModel m_model;
+            // UNLAYERED_MOD: translucent four-sided pyramid standing on the nozzle tip, sized from the
+            // same HotendEnvelope HotendCollisionCheck reads and turned by the same tool_head_frame(),
+            // so what is drawn is the envelope actually being tested. It leaves out the check's 0.5 mm
+            // lateral margin, sub-millimetre against a 40 mm envelope. Built lazily in render():
+            // set_envelope() is called from load(), where there is no guarantee of a current GL context.
+            GLModel m_envelope;
+            HotendEnvelope m_envelope_shape;
+            bool m_envelope_enabled{ false };
             Vec3f m_world_position;
             // for seams, the position of the marker is on the last endpoint of the toolpath containing it
             // the offset is used to show the correct value of tool position in the "ToolPosition" window
@@ -85,6 +93,10 @@ public:
             float m_z_offset{ 0.0f };
             // z offset of the model
             float m_model_z_offset{ 0.5f };
+            // UNLAYERED_MOD: unit direction the nozzle points away from the surface along. +Z for an
+            // ordinary planar print; the chunk's tool axis on a multiplanar / 5-axis one, which tilts
+            // the hotend model about its tip so it stays on the toolpath.
+            Vec3f m_tool_axis{ 0.0f, 0.0f, 1.0f };
             bool m_visible{ true };
             bool m_is_dark = false;
             // the G-code was exported with high_precision_gcode, so positions are shown with one more decimal
@@ -104,6 +116,11 @@ public:
             void set_world_position(const Vec3f& position) { m_world_position = position; }
             void set_world_offset(const Vec3f& offset) { m_world_offset = offset; }
             void set_z_offset(float z_offset) { m_z_offset = z_offset; }
+            // UNLAYERED_MOD
+            void set_tool_axis(const Vec3f& axis) { m_tool_axis = (axis.squaredNorm() > 0.0f) ? axis.normalized() : Vec3f::UnitZ(); }
+            const Vec3f& get_tool_axis() const { return m_tool_axis; }
+            // UNLAYERED_MOD
+            void set_envelope(bool enabled, const HotendEnvelope& envelope);
             void set_high_precision_gcode(bool high_precision) { m_high_precision_gcode = high_precision; }
 
 #if ENABLE_ACTUAL_SPEED_DEBUG
@@ -199,6 +216,10 @@ public:
     };
     //BBS
     ConflictResultOpt m_conflict_result;
+    // UNLAYERED_MOD — the loaded G-code was sliced for virtual 5-axis (plain 3-axis) output. The
+    // layers tilt but the machine has no rotary axes, so the physical nozzle stays vertical and the
+    // sequential-view hotend marker must not be tilted by the per-move tool axis.
+    bool              m_virtual_5axis{ false };
     GCodeCheckResult  m_gcode_check_result;
     FilamentPrintableResult filament_printable_reuslt;
     Shells            m_shells;
@@ -207,12 +228,8 @@ private:
     std::vector<int> m_plater_extruder;
     bool m_gl_data_initialized{ false };
     unsigned int m_last_result_id{ 0 };
-    // Belt printers: the view the loaded result was converted for (see load_as_gcode).
-    bool m_last_belt_show_designed{ true };
-    // Belt printers: the print Z of each viewer layer, in the viewer's layer numbering.
-    std::vector<double> m_belt_layer_zs;
     //BBS: save m_gcode_result as well
-    const GCodeProcessorResult* m_gcode_result;
+    const GCodeProcessorResult* m_gcode_result{ nullptr };
     std::array<unsigned int, static_cast<size_t>(EMoveType::Count)> m_move_type_counts{};
     std::array<std::array<float, static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count)>, static_cast<size_t>(EMoveType::Count)> m_move_type_times{};
     std::array<float, static_cast<size_t>(EMoveType::Count)> m_move_type_distances{};
@@ -231,8 +248,24 @@ private:
     //BBS: add shell bounding box
     BoundingBoxf3 m_shell_bounding_box;
     float m_max_print_height{ 0.0f };
-    bool  m_machine_frame_transform_active{ false };
     float m_z_offset{ 0.0f };
+    // BELT_MOD: the loaded file was written for a belt printer (GCodeProcessorResult::belt_printer).
+    // The upright ("designed") view maps every vertex through belt_to_bed at load time, so the
+    // toolpaths sit on the model shells in the bed frame; the raw view shows the machine-frame
+    // coordinates as written, for checking the transform itself. The choice survives reloads.
+    bool m_belt_view_enabled{ false };
+    bool m_belt_show_designed{ true };
+    // See GCodeProcessorResult::tool_axis_fixed.
+    bool  m_tool_axis_fixed{ false };
+    Vec3f m_fixed_tool_axis{ Vec3f::UnitZ() };
+    // UNLAYERED_MOD: the hotend envelope per nozzle (physical extruder), and the G-code line ids at
+    // which the printing nozzle changes, so the marker draws the envelope of the nozzle that makes the
+    // current move -- the one HotendCollisionCheck tested it with. Before the first tool change, or
+    // for a nozzle past the end of the list, the conservative envelope over every nozzle.
+    bool                                           m_envelope_on{ false };
+    HotendEnvelope                                 m_envelope_conservative;
+    std::vector<HotendEnvelope>                    m_extruder_envelopes;
+    std::vector<std::pair<unsigned int, int>>      m_envelope_extruder_changes; // (first gcode_id, physical extruder)
 
     ConfigOptionMode m_user_mode;
     bool m_fold = {false};
@@ -366,11 +399,6 @@ private:
 mutable bool m_no_render_path { false };
     bool m_is_dark = false;
 
-    bool  m_belt_view_enabled = false;
-    bool  m_belt_show_designed = true;   // Designed (upright, back-transformed) view by default; off shows
-                                         // the raw machine-frame G-code (canvas view menu, hotkey B).
-    float m_belt_angle_deg = 0.f;
-
     libvgcode::Viewer m_viewer;
     // ORCA: section view, as the viewer has it. What it cuts away casts no shadow.
     std::array<float, 4> m_clipping_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
@@ -392,6 +420,9 @@ public:
         const std::vector<std::string>& str_color_print_colors, const BuildVolume& build_volume,
         const std::vector<BoundingBoxf3>& exclude_bounding_box, ConfigOptionMode mode, bool only_gcode = false);
     void load_as_preview(libvgcode::GCodeInputData&& data);
+    // Preference "preview_color_vision": (re)applies the extrusion-role and range palettes for
+    // normal vision or one of the common deficiencies. Called on load and when the preference changes.
+    void apply_color_vision_palette();
     void update_shells_color_by_extruder(const DynamicPrintConfig* config);
     void set_shell_transparency(float alpha = 0.15f);
 
@@ -431,21 +462,44 @@ public:
     std::vector<int> get_plater_extruder();
 
     const float                get_max_print_height() const { return m_max_print_height; }
-    bool                       is_machine_frame_transform_active() const { return m_machine_frame_transform_active; }
     const BoundingBoxf3& get_paths_bounding_box() const { return m_paths_bounding_box; }
     const BoundingBoxf3& get_max_bounding_box() const { return m_max_bounding_box; }
     const BoundingBoxf3& get_shell_bounding_box() const { return m_shell_bounding_box; }
     std::vector<double> get_layers_zs() const {
-        // Belt printers: the layer Z the slider labels and the colour-change ticks
-        // use is the layer's print Z (see load_as_gcode), not a toolpath height.
-        if (! m_belt_layer_zs.empty())
-            return m_belt_layer_zs;
         const std::vector<float> zs = m_viewer.get_layers_zs();
         std::vector<double> ret;
         std::transform(zs.begin(), zs.end(), std::back_inserter(ret), [](float z) { return static_cast<double>(z); });
         return ret;
     }
     std::vector<float> get_layers_times() const { return m_viewer.get_layers_estimated_times(); }
+
+    // UNLAYERED_MOD: per-layer "printed with the tool straight up". Empty for an ordinary planar
+    // print, so consumers can skip the tilted-layer handling entirely.
+    std::vector<bool> get_layers_planar() const {
+        if (m_viewer.all_layers_planar())
+            return {};
+        const size_t count = m_viewer.get_layers_count();
+        std::vector<bool> ret(count);
+        for (size_t i = 0; i < count; ++i)
+            ret[i] = m_viewer.is_layer_planar(i);
+        return ret;
+    }
+    // Z extent of the given inclusive layer range. A tilted layer occupies a slab, so clipping the
+    // shells to a single Z band per layer would cut them apart.
+    std::array<double, 2> get_layers_z_extent(size_t first, size_t last) const {
+        const size_t count = m_viewer.get_layers_count();
+        if (count == 0)
+            return { 0.0, 0.0 };
+        first = std::min(first, count - 1);
+        last  = std::min(last, count - 1);
+        double z_min = m_viewer.get_layer_z_min(first);
+        double z_max = m_viewer.get_layer_z_max(first);
+        for (size_t i = first + 1; i <= last; ++i) {
+            z_min = std::min(z_min, double(m_viewer.get_layer_z_min(i)));
+            z_max = std::max(z_max, double(m_viewer.get_layer_z_max(i)));
+        }
+        return { z_min, z_max };
+    }
 
     const std::array<size_t,2> &get_layers_z_range() const { return m_viewer.get_layers_view_range(); }
     const GCodeProcessorResult::ObjectMass&              get_plate_mass() const { return m_plate_mass; }
@@ -473,10 +527,22 @@ public:
     const libvgcode::PathVertex& get_gcode_vertex_at(size_t id) const { return m_viewer.get_vertex_at(id); }
 
     bool is_contained_in_bed() const { return m_contained_in_bed; }
+    // BELT_MOD: see m_belt_view_enabled. Toggling only takes effect once the preview is reloaded
+    // (Plater::refresh_belt_view), because the mapping is baked into the vertex positions.
+    bool is_belt_view() const { return m_belt_view_enabled; }
+    bool is_belt_show_designed() const { return m_belt_show_designed; }
+    void toggle_belt_show_designed() { if (m_belt_view_enabled) m_belt_show_designed = ! m_belt_show_designed; }
+    // Are the loaded positions in the bed frame, so that heights and bed bounds mean what they say?
+    bool positions_in_bed_frame() const { return ! m_belt_view_enabled || m_belt_show_designed; }
     //BBS: add only gcode mode
     bool is_only_gcode_in_preview() const { return m_only_gcode_in_preview; }
 
     void set_view_type(libvgcode::EViewType type) {
+        // Declarative cut planes: per-section visibility is only reachable from the Section legend,
+        // so it must not survive a switch to another view -- otherwise toolpaths would silently
+        // stay hidden in Speed/Feature with no control to bring them back.
+        if (type != libvgcode::EViewType::CutSegment)
+            m_viewer.show_all_cut_segments();
         m_viewer.set_view_type(type);
     }
     // ORCA: select a view type in the preview combo box and apply it
@@ -503,6 +569,35 @@ public:
 
     libvgcode::EViewType get_view_type() const { return m_viewer.get_view_type(); }
 
+    // Automation (Actions/PreviewActions.cpp): what the legend's controls do, callable outside the
+    // ImGui frame. Each setter does what the matching legend click does (the toggle, then
+    // update_moves_slider()) and nothing when the state already matches.
+    // The colouring combo's pick: also moves the combo's own selection (m_view_type_sel). False when
+    // the combo does not offer `type` for the loaded G-code (Tool never; Section only with >1 section).
+    bool pick_offered_view_type(libvgcode::EViewType type);
+    std::vector<libvgcode::EViewType> get_offered_view_types() const;
+    // Option rows (Travel, Wipe, Retract, Unretract, Seams, Filament changes).
+    const std::vector<libvgcode::EOptionType>& get_options() const { return m_viewer.get_options(); }
+    bool is_option_visible(libvgcode::EOptionType type) const { return m_viewer.is_option_visible(type); }
+    void set_option_visible(libvgcode::EOptionType type, bool visible);
+    // Feature-type rows.
+    std::vector<libvgcode::EGCodeExtrusionRole> get_extrusion_roles() const { return m_viewer.get_extrusion_roles(); }
+    bool is_extrusion_role_visible(libvgcode::EGCodeExtrusionRole role) const { return m_viewer.is_extrusion_role_visible(role); }
+    void set_extrusion_role_visible(libvgcode::EGCodeExtrusionRole role, bool visible);
+    // Section rows (Section view only; set_view_type to any other view shows them all again).
+    std::vector<int16_t> get_used_cut_segments_ids() const { return m_viewer.get_used_cut_segments_ids(); }
+    bool is_cut_segment_visible(int16_t segment_id) const { return m_viewer.is_cut_segment_visible(segment_id); }
+    void set_cut_segment_visible(int16_t segment_id, bool visible);
+    // "Show stealth mode" / "Show normal mode".
+    libvgcode::ETimeMode get_time_mode() const { return m_viewer.get_time_mode(); }
+    std::vector<libvgcode::ETimeMode> get_time_modes() const { return m_viewer.get_time_modes(); }
+    void set_time_mode(libvgcode::ETimeMode mode);
+    // The legend's colour scale for a range view (min, max).
+    std::array<float, 2> get_color_range(libvgcode::EViewType type) const { return m_viewer.get_color_range(type).get_range(); }
+    // The tool-position window's vertex.
+    size_t get_current_vertex_id() const { return m_viewer.get_current_vertex_id(); }
+    float  get_estimated_time_at(size_t id) const { return m_viewer.get_estimated_time_at(id); }
+
     // ORCA: darken the layers not scrubbed to while using the preview layer slider
     void set_dim_previous_layers(bool value) { m_viewer.set_dim_previous_layers(value); }
     bool is_dim_previous_layers() const { return m_viewer.is_dim_previous_layers(); }
@@ -520,11 +615,6 @@ public:
     float get_legend_height() { return m_legend_height; }
 
     void export_toolpaths_to_obj(const char* filename) const;
-
-    void set_belt_printer(bool enabled, float angle_deg) { m_belt_view_enabled = enabled; m_belt_angle_deg = angle_deg; }
-    bool is_belt_view() const { return m_belt_view_enabled && m_belt_angle_deg > 0.f; }
-    void toggle_belt_show_designed() { if (m_belt_view_enabled) m_belt_show_designed = !m_belt_show_designed; }
-    bool is_belt_show_designed() const { return m_belt_show_designed; }
 
     size_t get_extruders_count() { return m_extruders_count; }
     void push_combo_style();

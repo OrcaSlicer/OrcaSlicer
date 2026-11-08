@@ -57,14 +57,23 @@ void OrientJob::prepare_selection(std::vector<bool> obj_sel, bool only_one_plate
     PartPlateList& plate_list = m_plater->get_partplate_list();
     //OrientMeshs selected_in_lock, unselect_in_lock;
     bool selected_is_locked = false;
+    // UNLAYERED_MOD: which instances this run takes. A plate-scoped run, or one with nothing
+    // selected, takes the current plate's instances only; it never means every plate.
+    PartPlate*          curr_plate = plate_list.get_curr_plate();
+    std::vector<size_t> instance_counts;
+    for (size_t oidx = 0; oidx < obj_sel.size(); ++oidx)
+        instance_counts.push_back(model.objects[oidx]->instances.size());
+    const std::vector<std::vector<bool>> sel = selected_instances(instance_counts, obj_sel, only_one_plate,
+        [curr_plate](int o, int i) { return curr_plate != nullptr && curr_plate->contain_instance(o, i); });
 
     // Go through the objects and check if inside the selection
     for (size_t oidx = 0; oidx < obj_sel.size(); ++oidx) {
-        bool selected = obj_sel[oidx];
         ModelObject* mo = model.objects[oidx];
 
         for (size_t inst_idx = 0; inst_idx < mo->instances.size(); ++inst_idx)
         {
+            const bool selected = sel[oidx][inst_idx];
+
             ModelInstance* mi = mo->instances[inst_idx];
             OrientMesh&& om = get_orient_mesh(mi);
 
@@ -89,17 +98,27 @@ void OrientJob::prepare_selection(std::vector<bool> obj_sel, bool only_one_plate
         }
     }
 
-    // If the selection was empty orient everything
-    if (m_selected.empty()) {
-        if (!selected_is_locked) {
-            m_selected.swap(m_unselected);
-            //m_unselected.insert(m_unselected.begin(), unselect_in_lock.begin(), unselect_in_lock.end());
-        }
-        else {
-            m_plater->get_notification_manager()->push_notification(NotificationType::BBLPlateInfo,
-                NotificationManager::NotificationLevel::WarningNotificationLevel, into_u8(_L("All the selected objects are on a locked plate.\nCannot auto-orient these objects.")));
-        }
+    // UNLAYERED_MOD: upstream swapped in every unselected object here when m_selected came out empty
+    // (orient all plates). An empty selection now means the current plate (selected_instances), so
+    // there is no fallback: nothing orientable means nothing is oriented.
+    if (m_selected.empty() && selected_is_locked && !only_one_plate)
+        m_plater->get_notification_manager()->push_notification(NotificationType::BBLPlateInfo,
+            NotificationManager::NotificationLevel::WarningNotificationLevel, into_u8(_L("All the selected objects are on a locked plate.\nCannot auto-orient these objects.")));
+}
+
+std::vector<std::vector<bool>> OrientJob::selected_instances(const std::vector<size_t>&             instance_counts,
+                                                             const std::vector<bool>&               obj_sel,
+                                                             bool                                   plate_scoped,
+                                                             const std::function<bool(int, int)>&   on_current_plate)
+{
+    const bool by_plate = plate_scoped || std::find(obj_sel.begin(), obj_sel.end(), true) == obj_sel.end();
+    std::vector<std::vector<bool>> out(instance_counts.size());
+    for (size_t o = 0; o < instance_counts.size(); ++o) {
+        out[o].assign(instance_counts[o], false);
+        for (size_t i = 0; i < instance_counts[o]; ++i)
+            out[o][i] = by_plate ? on_current_plate(int(o), int(i)) : (o < obj_sel.size() && obj_sel[o]);
     }
+    return out;
 }
 
 void OrientJob::prepare_selected() {
@@ -149,7 +168,8 @@ void OrientJob::prepare_partplate() {
         ModelObject* mo = model.objects[oidx];
         for (size_t inst_idx = 0; inst_idx < mo->instances.size(); ++inst_idx)
         {
-            obj_sel[oidx] = plate->contain_instance(oidx, inst_idx);
+            // UNLAYERED_MOD: OR over the instances; plain assignment let the last instance decide.
+            obj_sel[oidx] = obj_sel[oidx] || plate->contain_instance(oidx, inst_idx);
         }
     }
 

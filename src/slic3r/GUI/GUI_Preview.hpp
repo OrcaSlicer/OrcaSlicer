@@ -148,7 +148,7 @@ public:
     //BBS: add only gcode mode
     void load_print(bool keep_z_range = false, bool only_gcode = false);
     void reload_print(bool only_gcode = false);
-    // Belt printers: re-convert the G-code preview so the "designed view" toggle takes effect.
+    // BELT_MOD: re-run the G-code conversion so the belt upright/raw toggle takes effect.
     void refresh_belt_view();
     //BBS: always load shell at preview
     void load_shells(const Print& print, bool force_previewing = false);

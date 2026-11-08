@@ -3,6 +3,9 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/LifecycleEvents.hpp"
 #include "GUI_ObjectList.hpp"
+#ifdef __WXGTK__
+#include <gtk/gtk.h>
+#endif
 #include "GUI_Factories.hpp"
 //#include "GUI_ObjectLayers.hpp"
 #include "GUI_App.hpp"
@@ -157,13 +160,13 @@ public:
     wxRenderer() : wxDelegateRendererNative(wxRendererNative::Get()) {}
     virtual void DrawItemSelectionRect(wxWindow *win, wxDC& dc, const wxRect& rect, int flags = 0) override
     {   // ORCA draw selection background to improve consistency between platforms
-        dc.SetBrush(StateColor::darkModeColorFor(wxColour("#BFE1DE")));
+        dc.SetBrush(StateColor::darkModeColorFor(wxColour("#D8D8D8")));
         dc.DrawRectangle(rect);
         //GetGeneric().DrawItemSelectionRect(win, dc, rect, flags);
     }
     virtual void DrawFocusRect(        wxWindow *win, wxDC& dc, const wxRect& rect, int flags = 0) override
     {   // ORCA draw focus rectangle to improve consistency between platforms
-        dc.SetPen(  StateColor::darkModeColorFor(wxColour("#009688")));
+        dc.SetPen(  StateColor::darkModeColorFor(wxColour("3707f5")));
         dc.DrawRectangle(rect);
     }
     virtual void DrawTreeItemButton(   wxWindow *win, wxDC& dc, const wxRect& rect, int flags = 0) override
@@ -321,14 +324,27 @@ ObjectList::ObjectList(wxWindow* parent) :
     Bind(wxEVT_CHAR, [this](wxKeyEvent& event) { key_event(event); }); // doesn't work on OSX
 #endif
 
-#ifdef __WXMSW__
     GetMainWindow()->Bind(wxEVT_MOTION, [this](wxMouseEvent& event) {
+        const wxPoint pos = this->get_mouse_position_in_control();
+#ifdef __WXMSW__
         // BBS
         // this->SetFocus();
-        set_tooltip_for_item(this->get_mouse_position_in_control());
+        set_tooltip_for_item(pos);
+#endif //__WXMSW__
+        // Tell the user the grip is grabbable before they try it.
+        GetMainWindow()->SetCursor(is_over_drag_handle(pos) ? wxCursor(wxCURSOR_SIZENS) : wxNullCursor);
         event.Skip();
     });
-#endif //__WXMSW__
+    // Remember whether the press that may turn into a drag landed on a grip. The begin-drag
+    // event fires only after the pointer has moved, so it cannot tell on its own.
+    GetMainWindow()->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& event) {
+        m_drag_from_handle = is_over_drag_handle(this->get_mouse_position_in_control());
+        event.Skip();
+    });
+    GetMainWindow()->Bind(wxEVT_LEFT_UP, [this](wxMouseEvent& event) {
+        m_drag_from_handle = false;
+        event.Skip();
+    });
 
     Bind(wxEVT_DATAVIEW_ITEM_CONTEXT_MENU,  &ObjectList::OnContextMenu,     this);
 
@@ -420,6 +436,21 @@ void ObjectList::create_objects_ctrl()
 #if wxUSE_DRAG_AND_DROP && wxUSE_UNICODE
     EnableDragSource(wxDF_UNICODETEXT);
     EnableDropTarget(wxDF_UNICODETEXT);
+#ifdef __WXGTK__
+    // wx registers the GTK drag source and target with GDK_ACTION_COPY only, so the pointer
+    // carries the "+" copy badge while a row is dragged. Re-register the same target with MOVE;
+    // wx's drag-data-delete hook is a no-op, so GTK removes nothing on our behalf.
+    {
+        const std::string target = wxDataFormat(wxDF_UNICODETEXT).GetId().ToStdString();
+        GtkTargetEntry    entry;
+        entry.target = const_cast<gchar*>(target.c_str());
+        entry.flags  = 0;
+        entry.info   = static_cast<guint>(-1);
+        GtkTreeView* tree = GTK_TREE_VIEW(GtkGetTreeView());
+        gtk_tree_view_enable_model_drag_source(tree, GDK_BUTTON1_MASK, &entry, 1, GDK_ACTION_MOVE);
+        gtk_tree_view_enable_model_drag_dest(tree, &entry, 1, GDK_ACTION_MOVE);
+    }
+#endif // __WXGTK__
 #endif // wxUSE_DRAG_AND_DROP && wxUSE_UNICODE
 
     const int em = wxGetApp().em_unit();
@@ -433,6 +464,7 @@ void ObjectList::create_objects_ctrl()
     m_columns_width[colSinking] = 3;
     m_columns_width[colColorPaint] = 3;
     m_columns_width[colEditing] = 3;
+    m_columns_width[colDragHandle] = 4; // grip centred in 4 em, so it sits clear of the overlay scrollbar at the right edge
 
     // column ItemName(Icon+Text) of the view control:
     // And Icon can be consisting of several bitmaps
@@ -491,6 +523,12 @@ void ObjectList::create_objects_ctrl()
 
     // column ItemEditing of the view control:
     AppendBitmapColumn(" ", colEditing, wxOSX ? wxDATAVIEW_CELL_EDITABLE : wxDATAVIEW_CELL_INERT, m_columns_width[colEditing] * em,
+        wxALIGN_CENTER_HORIZONTAL, 0);
+
+    // Grip column: the visible affordance for drag-and-drop reordering (objects within a plate,
+    // parts within an object). Rightmost so the tree expander, indentation and the x-offset hit
+    // tests on the name column stay where they are.
+    AppendBitmapColumn(" ", colDragHandle, wxDATAVIEW_CELL_INERT, m_columns_width[colDragHandle] * em,
         wxALIGN_CENTER_HORIZONTAL, 0);
 
 
@@ -716,6 +754,10 @@ void ObjectList::set_tooltip_for_item(const wxPoint& pt)
     else if (col->GetModelColumn() == (unsigned int)colSinking) {
         if (node->HasSinking())
             tooltip = _(L("Click the icon to shift this object to the bed"));
+    }
+    else if (col->GetModelColumn() == (unsigned int)colDragHandle) {
+        if (m_objects_model->GetItemType(item) & (itObject | itVolume))
+            tooltip = _(L("Drag the grip to reorder"));
     }
     else if (col->GetModelColumn() == (unsigned int)colName && (pt.x >= 2 * wxGetApp().em_unit() && pt.x <= 4 * wxGetApp().em_unit()))
     {
@@ -1859,6 +1901,16 @@ void ObjectList::key_event(wxKeyEvent& event)
 }
 #endif /* __WXOSX__ */
 
+bool ObjectList::is_over_drag_handle(const wxPoint& pt) const
+{
+    wxDataViewItem    item;
+    wxDataViewColumn* col = nullptr;
+    HitTest(pt, item, col);
+    if (!item.IsOk() || col == nullptr || col->GetModelColumn() != (unsigned int)colDragHandle)
+        return false;
+    return (m_objects_model->GetItemType(item) & (itVolume | itObject)) != 0;
+}
+
 #ifdef __WXOSX__
 void ObjectList::update_shortcut_accelerators()
 {
@@ -1898,6 +1950,17 @@ bool ObjectList::dispatch_shortcut(Shortcut shortcut)
 
 void ObjectList::OnBeginDrag(wxDataViewEvent &event)
 {
+    // Drags start from the grip only. Dragging anywhere on a row used to reorder it too, which
+    // made an ordinary click-and-select on the name an accidental reorder; the grip makes the
+    // intent explicit. The press handler records the grip hit; the hit test at drag time is
+    // the fallback for ports that do not deliver the press to the main window.
+    const bool from_handle = m_drag_from_handle || is_over_drag_handle(get_mouse_position_in_control());
+    m_drag_from_handle = false;
+    if (!from_handle) {
+        event.Veto();
+        return;
+    }
+
     const bool mult_sel = multiple_selection();
     if (mult_sel) {
         event.Veto();
@@ -1995,55 +2058,236 @@ bool ObjectList::can_drop(const wxDataViewItem& item, int& src_obj_id, int& src_
     else if (m_dragged_data.type() & itVolume) {  // move volumes inside one object only
         if (m_dragged_data.obj_idx() != m_objects_model->GetObjectIdByItem(item))
             return false;
-        wxDataViewItem dragged_item = m_objects_model->GetItemByVolumeId(m_dragged_data.obj_idx(), m_dragged_data.sub_obj_idx());
-        if (!dragged_item)
-            return false;
-        ModelVolumeType item_v_type = m_objects_model->GetVolumeType(item);
-        ModelVolumeType dragged_item_v_type = m_objects_model->GetVolumeType(dragged_item);
-
-        if (dragged_item_v_type == item_v_type && dragged_item_v_type != ModelVolumeType::MODEL_PART)
-            return true;
-
-        // Use tree item types: hidden cut connectors make tree indices differ from volumes indices.
-        if (is_precise_seam(dragged_item_v_type) && is_precise_seam(item_v_type))
-            // Allow reordering only within the strong or weak modifier group.
-            return is_precise_seam_strong(dragged_item_v_type) == is_precise_seam_strong(item_v_type);
-
-        if ((dragged_item_v_type != item_v_type) ||   // we can't reorder volumes outside of types
-            item_v_type >= ModelVolumeType::SUPPORT_BLOCKER)        // support blockers/enforcers can't change its place
-            return false;
-
-        bool only_one_solid_part = true;
-        auto& volumes = (*m_objects)[m_dragged_data.obj_idx()]->volumes;
-        for (size_t cnt, id = cnt = 0; id < volumes.size() && cnt < 2; id ++)
-            if (volumes[id]->type() == ModelVolumeType::MODEL_PART) {
-                if (++cnt > 1)
-                    only_one_solid_part = false;
-            }
-
-        if (dragged_item_v_type == ModelVolumeType::MODEL_PART) {
-            if (only_one_solid_part)
-                return false;
-            return (m_objects_model->GetVolumeIdByItem(item) == 0 ||
-                    (m_dragged_data.sub_obj_idx()==0 && volumes[1]->type() == ModelVolumeType::MODEL_PART) ||
-                    (m_dragged_data.sub_obj_idx()!=0 && volumes[0]->type() == ModelVolumeType::MODEL_PART));
-        }
-        if ((dragged_item_v_type == ModelVolumeType::NEGATIVE_VOLUME || dragged_item_v_type == ModelVolumeType::PARAMETER_MODIFIER)) {
-            if (only_one_solid_part)
-                return false;
-            return m_objects_model->GetVolumeIdByItem(item) != 0;
-        }
-        return false;
+        return can_move_volume(m_dragged_data.obj_idx(), m_dragged_data.sub_obj_idx(), m_objects_model->GetVolumeIdByItem(item));
     }
+    return true;
+}
+
+bool ObjectList::can_move_volume(int obj_idx, int from_vol_idx, int to_vol_idx) const
+{
+    if (m_objects == nullptr || obj_idx < 0 || obj_idx >= int(m_objects->size()))
+        return false;
+    wxDataViewItem from_item = m_objects_model->GetItemByVolumeId(obj_idx, from_vol_idx);
+    wxDataViewItem to_item   = m_objects_model->GetItemByVolumeId(obj_idx, to_vol_idx);
+    if (!from_item || !to_item)
+        return false;
+    ModelVolumeType to_v_type   = m_objects_model->GetVolumeType(to_item);
+    ModelVolumeType from_v_type = m_objects_model->GetVolumeType(from_item);
+
+    if (from_v_type == to_v_type && from_v_type != ModelVolumeType::MODEL_PART)
+        return true;
+
+    // Use tree item types: hidden cut connectors make tree indices differ from volumes indices.
+    if (is_precise_seam(from_v_type) && is_precise_seam(to_v_type))
+        // Allow reordering only within the strong or weak modifier group.
+        return is_precise_seam_strong(from_v_type) == is_precise_seam_strong(to_v_type);
+
+    if ((from_v_type != to_v_type) ||   // we can't reorder volumes outside of types
+        to_v_type >= ModelVolumeType::SUPPORT_BLOCKER)        // support blockers/enforcers can't change its place
+        return false;
+
+    bool only_one_solid_part = true;
+    auto& volumes = (*m_objects)[obj_idx]->volumes;
+    for (size_t cnt, id = cnt = 0; id < volumes.size() && cnt < 2; id ++)
+        if (volumes[id]->type() == ModelVolumeType::MODEL_PART) {
+            if (++cnt > 1)
+                only_one_solid_part = false;
+        }
+
+    if (from_v_type == ModelVolumeType::MODEL_PART) {
+        if (only_one_solid_part)
+            return false;
+        return (to_vol_idx == 0 ||
+                (from_vol_idx == 0 && volumes[1]->type() == ModelVolumeType::MODEL_PART) ||
+                (from_vol_idx != 0 && volumes[0]->type() == ModelVolumeType::MODEL_PART));
+    }
+    if ((from_v_type == ModelVolumeType::NEGATIVE_VOLUME || from_v_type == ModelVolumeType::PARAMETER_MODIFIER)) {
+        if (only_one_solid_part)
+            return false;
+        return to_vol_idx != 0;
+    }
+    return false;
+}
+
+void ObjectList::move_volume(int obj_idx, int from_vol_idx, int to_vol_idx)
+{
+    if (from_vol_idx == to_vol_idx)
+        return;
+    // Object-indexed UI maps may be stale after another object is removed or reordered.
+    if (obj_idx < 0 || size_t(obj_idx) >= m_objects->size())
+        return;
+    const ModelObject *object  = (*m_objects)[obj_idx];
+    auto              &volumes = (*m_objects)[obj_idx]->volumes;
+    std::vector<size_t> visible_volume_indices;
+    visible_volume_indices.reserve(volumes.size());
+    for (size_t idx = 0; idx < volumes.size(); ++idx)
+        // Match add_volumes_to_object_in_list: only connectors of cut objects are hidden.
+        if (!(object->is_cut() && volumes[idx]->is_cut_connector()))
+            visible_volume_indices.push_back(idx);
+    // Validate the entire move before any swap; these checks must also protect Release builds.
+    if (from_vol_idx < 0 || to_vol_idx < 0 ||
+        size_t(from_vol_idx) >= visible_volume_indices.size() || size_t(to_vol_idx) >= visible_volume_indices.size())
+        return;
+
+    // Move through visible slots only, keeping hidden cut connectors at their original indices.
+    // The local mapping stays valid because no hidden volume changes slots during the move.
+    const int delta = to_vol_idx < from_vol_idx ? -1 : 1;
+    for (int id = from_vol_idx; id != to_vol_idx; id += delta)
+        std::swap(volumes[visible_volume_indices[id]], volumes[visible_volume_indices[id + delta]]);
+
+    // Later selection/filament handlers use this cache; repair it for the moved object too.
+    auto &ui_to_model = m_objects_model->get_ui_and_3d_volume_map()[obj_idx];
+    ui_to_model.clear();
+    for (size_t idx = 0; idx < visible_volume_indices.size(); ++idx)
+        ui_to_model[int(idx)] = int(visible_volume_indices[idx]);
+
+    const wxDataViewItem parent = m_objects_model->GetParent(m_objects_model->GetItemByVolumeId(obj_idx, from_vol_idx));
+    select_item(m_objects_model->ReorganizeChildren(from_vol_idx, to_vol_idx, parent));
+    changed_object(obj_idx);
+}
+
+int ObjectList::order_target(OrderMove move, int& obj_idx, int& vol_idx) const
+{
+    obj_idx = -1;
+    vol_idx = -1;
+    if (m_objects == nullptr || multiple_selection())
+        return -1;
+    const wxDataViewItem item = GetSelection();
+    if (!item.IsOk())
+        return -1;
+    const ItemType type = m_objects_model->GetItemType(item);
+
+    // The slots this item may occupy, in list order, including its own.
+    std::vector<int> slots;
+    int self = -1;
+    if (type & itObject) {
+        obj_idx = m_objects_model->GetIdByItem(item);
+        PartPlateList& plates = wxGetApp().plater()->get_partplate_list();
+        const int plate = plates.find_instance(obj_idx, 0);
+        if (obj_idx < 0 || plate == -1)
+            return -1;
+        for (int i = 0; i < int(m_objects->size()); ++i)
+            if (plates.find_instance(i, 0) == plate)
+                slots.push_back(i);
+        self = obj_idx;
+    }
+    else if (type & itVolume) {
+        obj_idx = m_objects_model->GetObjectIdByItem(item);
+        vol_idx = m_objects_model->GetVolumeIdByItem(item);
+        if (obj_idx < 0 || vol_idx < 0)
+            return -1;
+        for (int i = 0; i < int((*m_objects)[obj_idx]->volumes.size()); ++i)
+            if (i == vol_idx || can_move_volume(obj_idx, vol_idx, i))
+                slots.push_back(i);
+        self = vol_idx;
+    }
+    else
+        return -1;
+
+    const auto pos = std::find(slots.begin(), slots.end(), self);
+    if (pos == slots.end())
+        return -1;
+    int target = -1;
+    switch (move) {
+    case OrderMove::Up:     target = pos == slots.begin() ? -1 : *std::prev(pos); break;
+    case OrderMove::Down:   target = std::next(pos) == slots.end() ? -1 : *std::next(pos); break;
+    case OrderMove::Top:    target = slots.front(); break;
+    case OrderMove::Bottom: target = slots.back(); break;
+    }
+    return target == self ? -1 : target;
+}
+
+bool ObjectList::can_move_in_order(OrderMove move) const
+{
+    int obj_idx, vol_idx;
+    return order_target(move, obj_idx, vol_idx) >= 0;
+}
+
+void ObjectList::move_in_order(OrderMove move)
+{
+    int obj_idx, vol_idx;
+    const int target = order_target(move, obj_idx, vol_idx);
+    if (target < 0)
+        return;
+    take_snapshot(_u8L("Object order changed"));
+    if (vol_idx < 0)
+        reorder_object(obj_idx, target);
+    else
+        move_volume(obj_idx, vol_idx, target);
+    wxGetApp().plater()->set_current_canvas_as_dirty();
+}
+
+bool ObjectList::resolve_drop(const wxDataViewEvent& event, int& target_idx) const
+{
+    target_idx = -1;
+    const wxDataViewItem item       = event.GetItem();
+    const int            drop_index = event.GetProposedDropIndex();
+    const ItemType       type       = m_dragged_data.type();
+    if (!(type & (itObject | itVolume)))
+        return false;
+
+    // A drop onto the middle of a row: the dragged row takes that row's place.
+    if (drop_index == wxNOT_FOUND) {
+        int src_obj_id, src_plate, dest_obj_id, dest_plate;
+        if (!can_drop(item, src_obj_id, src_plate, dest_obj_id, dest_plate))
+            return false;
+        target_idx = (type & itObject) ? dest_obj_id : m_objects_model->GetVolumeIdByItem(item);
+        return true;
+    }
+
+    // A drop between rows (GTK, the generic port and macOS all report it this way): `item` is
+    // the parent and the row is to be inserted before its child `drop_index`. Translate that
+    // into the "take this index" move the reorder code performs.
+    if (!item.IsOk())
+        return false;
+    ObjectDataViewModelNode* parent      = static_cast<ObjectDataViewModelNode*>(item.GetID());
+    const int                child_count = int(parent->GetChildCount());
+    if (drop_index < 0 || drop_index > child_count)
+        return false;
+
+    if (type & itObject) {
+        if (!(m_objects_model->GetItemType(item) & itPlate))
+            return false;
+        const int        src = m_dragged_data.obj_idx();
+        std::vector<int> ids;   // object indices of the plate's rows, in list order
+        int              src_pos = -1;
+        for (int i = 0; i < child_count; ++i) {
+            const int id = m_objects_model->GetIdByItem(wxDataViewItem(parent->GetNthChild(i)));
+            if (id == src)
+                src_pos = int(ids.size());
+            ids.push_back(id);
+        }
+        if (src_pos < 0)
+            return false; // another plate
+        const int pos = drop_index > src_pos ? drop_index - 1 : drop_index; // slot once src is lifted out
+        target_idx = pos == src_pos ? src : (pos < src_pos ? ids[pos] : ids[pos + 1]);
+        return true;
+    }
+
+    // Parts: the object row's children also hold the settings / instances / layers rows, so map
+    // the insertion slot onto the part range before applying the part-move rules.
+    const int obj_idx = m_dragged_data.obj_idx();
+    if (!(m_objects_model->GetItemType(item) & itObject) || m_objects_model->GetObjectIdByItem(item) != obj_idx)
+        return false;
+    const int first_vol = int(m_objects_model->GetItemIndexForFirstVolume(parent));
+    const int n_vol     = int((*m_objects)[obj_idx]->volumes.size());
+    const int slot      = std::clamp(drop_index - first_vol, 0, n_vol);
+    const int src       = m_dragged_data.sub_obj_idx();
+    const int pos       = slot > src ? slot - 1 : slot;
+    if (pos != src && !can_move_volume(obj_idx, src, pos))
+        return false;
+    target_idx = pos;
     return true;
 }
 
 void ObjectList::OnDropPossible(wxDataViewEvent &event)
 {
-    const wxDataViewItem& item = event.GetItem();
-
-    int src_obj_id, src_plate, dest_obj_id, dest_plate;
-    if (!can_drop(item, src_obj_id, src_plate, dest_obj_id, dest_plate)) {
+    // GTK reports a drop after the last row with an invalid item and no index (the path points
+    // past the end); let it through, OnDrop validates the final position.
+    const bool past_end = !event.GetItem().IsOk() && event.GetProposedDropIndex() == wxNOT_FOUND
+                       && (m_dragged_data.type() & (itObject | itVolume));
+    int target_idx;
+    if (!past_end && !resolve_drop(event, target_idx)) {
         event.Veto();
         m_prevent_list_events = false;
     }
@@ -2051,94 +2295,21 @@ void ObjectList::OnDropPossible(wxDataViewEvent &event)
 
 void ObjectList::OnDrop(wxDataViewEvent &event)
 {
-    const wxDataViewItem& item = event.GetItem();
-
-    int src_obj_id, src_plate, dest_obj_id, dest_plate;
-    if (!can_drop(item, src_obj_id, src_plate, dest_obj_id, dest_plate))
-    {
+    int target_idx;
+    if (!resolve_drop(event, target_idx)) {
         event.Veto();
         m_dragged_data.clear();
         return;
     }
 
-//#if 1
-    take_snapshot(_u8L("Object order changed"));
-
-    if(m_dragged_data.type() & itObject){
-        int delta = dest_obj_id < src_obj_id ? -1 : 1;
-        PartPlateList& partplate_list = wxGetApp().plater()->get_partplate_list();
-        /*int cnt = 0, cur_id = src_obj_id, next_id, total = abs(src_obj_id - dest_obj_id);
-        //for (cur_id = src_obj_id; cnt < total; id += delta, cnt++)
-        next_id = src_obj_id + delta;
-        while (cnt < total)
-        {
-            int cur_plate = partplate_list.find_instance(next_id, 0);
-            if (cur_plate != src_plate) {
-                cnt ++;
-                next_id += delta;
-                continue;
-            }
-            std::swap((*m_objects)[cur_id], (*m_objects)[next_id]);
-            cur_id = next_id;
-            cnt ++;
-            next_id += delta;
-        }*/
-
-        int cnt = 0;
-        for (int id = src_obj_id; cnt < abs(src_obj_id - dest_obj_id); id += delta, cnt++)
-            std::swap((*m_objects)[id], (*m_objects)[id + delta]);
-
-        select_item(m_objects_model->ReorganizeObjects(src_obj_id, dest_obj_id));
-
-        partplate_list.reload_all_objects(false, src_plate);
-        changed_object(src_obj_id);
-    }
-    else if (m_dragged_data.type() & itVolume) {
-        int from_volume_id = m_dragged_data.sub_obj_idx();
-        int to_volume_id   = m_objects_model->GetVolumeIdByItem(item);
-        int delta          = to_volume_id < from_volume_id ? -1 : 1;
-
-        const int obj_idx = m_dragged_data.obj_idx();
-        // Object-indexed UI maps may be stale after another object is removed or reordered.
-        if (obj_idx < 0 || size_t(obj_idx) >= m_objects->size()) {
-            event.Veto();
-            m_dragged_data.clear();
-            return;
-        }
-        const ModelObject *object = (*m_objects)[obj_idx];
-        auto &volumes = (*m_objects)[obj_idx]->volumes;
-        std::vector<size_t> visible_volume_indices;
-        visible_volume_indices.reserve(volumes.size());
-        for (size_t idx = 0; idx < volumes.size(); ++idx)
-            // Match add_volumes_to_object_in_list: only connectors of cut objects are hidden.
-            if (!(object->is_cut() && volumes[idx]->is_cut_connector()))
-                visible_volume_indices.push_back(idx);
-
-        // Validate the entire move before any swap; these checks must also protect Release builds.
-        if (from_volume_id < 0 || to_volume_id < 0 ||
-            size_t(from_volume_id) >= visible_volume_indices.size() || size_t(to_volume_id) >= visible_volume_indices.size()) {
-            event.Veto();
-            m_dragged_data.clear();
-            return;
-        }
-
-        // Move through visible slots only, keeping hidden cut connectors at their original indices.
-        // The local mapping stays valid because no hidden volume changes slots during the move.
-        for (int id = from_volume_id; id != to_volume_id; id += delta) {
-            const size_t current_idx = visible_volume_indices[id];
-            const size_t next_idx = visible_volume_indices[id + delta];
-            std::swap(volumes[current_idx], volumes[next_idx]);
-        }
-
-        // Later selection/filament handlers use this cache; repair it for the moved object too.
-        auto &ui_to_model = m_objects_model->get_ui_and_3d_volume_map()[obj_idx];
-        ui_to_model.clear();
-        for (size_t idx = 0; idx < visible_volume_indices.size(); ++idx)
-            ui_to_model[int(idx)] = int(visible_volume_indices[idx]);
-
-        select_item(m_objects_model->ReorganizeChildren(from_volume_id, to_volume_id, m_objects_model->GetParent(item)));
-
-        changed_object(m_dragged_data.obj_idx());
+    const bool is_object = (m_dragged_data.type() & itObject) != 0;
+    const int  src       = is_object ? m_dragged_data.obj_idx() : m_dragged_data.sub_obj_idx();
+    if (src != target_idx) {
+        take_snapshot(_u8L("Object order changed"));
+        if (is_object)
+            reorder_object(src, target_idx);
+        else
+            move_volume(m_dragged_data.obj_idx(), src, target_idx);
     }
 
     m_dragged_data.clear();
@@ -2419,7 +2590,7 @@ void ObjectList::load_modifier(const wxArrayString& input_files, ModelObject& mo
                     input_file, LoadStrategy::LoadModel, nullptr, nullptr,
                     [&is_user_cancel, &linear, &angle, &split_compound](Slic3r::Step& file, double& linear_value,
                                                                                      double& angle_value, bool& is_split) -> int {
-                        if (wxGetApp().app_config->get_bool("enable_step_mesh_setting")) {
+                        if (step_mesh_dialog_wanted()) {
                             StepMeshDialog mesh_dlg(nullptr, file, linear, angle);
                             if (mesh_dlg.ShowModal() == wxID_OK) {
                                 linear_value = mesh_dlg.get_linear_deflection();
@@ -2895,6 +3066,12 @@ void ObjectList::del_info_item(const int obj_idx, InfoItemType type)
             mv->fuzzy_skin_facets.reset();
         break;
     }
+
+    case InfoItemType::CutPlanes:
+        cnv->get_gizmos_manager().reset_all_states();
+        Plater::TakeSnapshot(plater, _u8L("Remove cut planes"));
+        (*m_objects)[obj_idx]->cut_planes = CutPlaneStack();
+        break;
 
     // BBS: remove Sinking
     case InfoItemType::Undef : assert(false); break;
@@ -3912,10 +4089,12 @@ void ObjectList::part_selection_changed()
                     //case InfoItemType::CustomSeam:
                     case InfoItemType::MmSegmentation:
                     case InfoItemType::FuzzySkin:
+                    case InfoItemType::CutPlanes:
                     {
                         GLGizmosManager::EType gizmo_type = info_type == InfoItemType::CustomSupports ? GLGizmosManager::EType::FdmSupports :
                                                             /*info_type == InfoItemType::CustomSeam ? GLGizmosManager::EType::Seam :*/
                                                             info_type == InfoItemType::FuzzySkin        ? GLGizmosManager::EType::FuzzySkin :
+                                                            info_type == InfoItemType::CutPlanes        ? GLGizmosManager::EType::CutPlanes :
                                                             GLGizmosManager::EType::MmSegmentation;
                         GLGizmosManager& gizmos_mgr = wxGetApp().plater()->get_view3D_canvas3D()->get_gizmos_manager();
                         if (gizmos_mgr.get_current_type() != gizmo_type)
@@ -4047,7 +4226,8 @@ wxDataViewItem ObjectList::add_settings_item(wxDataViewItem parent_item, const D
     if (!is_object_settings) {
         ModelVolumeType volume_type = m_objects_model->GetVolumeType(parent_item);
         // Precise Seam is non-printing helper geometry — no per-volume settings
-        if (volume_type == ModelVolumeType::NEGATIVE_VOLUME || volume_type == ModelVolumeType::SUPPORT_BLOCKER || volume_type == ModelVolumeType::SUPPORT_ENFORCER || is_precise_seam(volume_type))
+        if (volume_type == ModelVolumeType::NEGATIVE_VOLUME || volume_type == ModelVolumeType::SUPPORT_BLOCKER || volume_type == ModelVolumeType::SUPPORT_ENFORCER ||
+            volume_type == ModelVolumeType::INFILL_MESH || is_precise_seam(volume_type))
             return ret;
     }
 
@@ -4149,6 +4329,29 @@ void ObjectList::update_info_items(size_t obj_idx, wxDataViewItemArray *selectio
                     // it's need to be deleted from selection array, if it was there
                     selections->Remove(item);
                     // Select item_obj, if info_item doesn't exist for item anymore, but was selected
+                    if (selections->Index(item_obj) == wxNOT_FOUND) selections->Add(item_obj);
+                }
+            } else
+                Select(item_obj);
+        }
+    }
+
+    // Declarative cut planes: badge shown whenever planes exist (even with the stack disabled —
+    // the badge is how a disabled stack is found again); clicking it opens the Cut Planes gizmo.
+    {
+        wxDataViewItem item = m_objects_model->GetInfoItemByType(item_obj, InfoItemType::CutPlanes);
+        bool shows = item.IsOk();
+        bool should_show = ! model_object->cut_planes.planes.empty();
+
+        if (!shows && should_show) {
+            m_objects_model->AddInfoChild(item_obj, InfoItemType::CutPlanes);
+            Expand(item_obj);
+        } else if (shows && !should_show) {
+            if (!selections) Unselect(item);
+            m_objects_model->Delete(item);
+            if (selections) {
+                if (selections->Index(item) != wxNOT_FOUND) {
+                    selections->Remove(item);
                     if (selections->Index(item_obj) == wxNOT_FOUND) selections->Add(item_obj);
                 }
             } else
@@ -4446,6 +4649,26 @@ void ObjectList::delete_object_from_list()
 void ObjectList::delete_object_from_list(const size_t obj_idx)
 {
     select_item([this, obj_idx]() { return m_objects_model->Delete(m_objects_model->GetItemById(obj_idx)); });
+}
+
+void ObjectList::reorder_object(int from_idx, int to_idx)
+{
+    if (!m_objects || from_idx == to_idx)
+        return;
+    const int count = static_cast<int>(m_objects->size());
+    if (from_idx < 0 || to_idx < 0 || from_idx >= count || to_idx >= count)
+        return;
+
+    // Keep the model vector in step with the tree by walking one slot at a time,
+    // exactly as the drag-and-drop handler (OnDrop) does.
+    const int delta = to_idx < from_idx ? -1 : 1;
+    for (int id = from_idx, cnt = 0; cnt < std::abs(from_idx - to_idx); id += delta, ++cnt)
+        std::swap((*m_objects)[id], (*m_objects)[id + delta]);
+
+    select_item(m_objects_model->ReorganizeObjects(from_idx, to_idx));
+
+    wxGetApp().plater()->get_partplate_list().reload_all_objects(false);
+    changed_object(to_idx);
 }
 
 void ObjectList::delete_volume_from_list(const size_t obj_idx, const size_t vol_idx)
@@ -6023,7 +6246,7 @@ void ObjectList::set_volume_type(ModelVolumeType new_type, bool preserve_ps_subt
     // The same rationale applies to any Precise Seam subtype.
     // This block must never be reachable under a healthy UI; if it ever logs, the UI guard has
     // been bypassed (new entry point, refactor, plugin, etc.) and should be investigated.
-    if (new_type == ModelVolumeType::SUPPORT_BLOCKER || new_type == ModelVolumeType::SUPPORT_ENFORCER
+    if (new_type == ModelVolumeType::SUPPORT_BLOCKER || new_type == ModelVolumeType::SUPPORT_ENFORCER || new_type == ModelVolumeType::INFILL_MESH
         || is_precise_seam(new_type)) {
         const bool has_text_or_svg = std::any_of(volumes.begin(), volumes.end(),
             [](const VolumeSelection& sel) { return sel.volume->is_svg() || sel.volume->is_text(); });

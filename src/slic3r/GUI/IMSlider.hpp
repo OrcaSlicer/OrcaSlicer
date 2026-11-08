@@ -92,6 +92,10 @@ public:
     void SetTicksValues(const CustomGCode::Info &custom_gcode_per_print_z);
     void SetLayersTimes(const std::vector<float> &layers_times, float total_time);
     void SetLayersTimes(const std::vector<double> &layers_times);
+    // UNLAYERED_MOD: which layers were printed with the tool straight up. Pass an empty vector (the
+    // default) for an ordinary print. A tilted layer has no single Z, so its label shows its
+    // representative height prefixed with '~' instead of pretending to be exact.
+    void SetLayersPlanar(const std::vector<bool> &planar) { m_layers_planar = planar; }
 
     void SetDrawMode(bool is_sequential_print);
     void SetDrawMode(DrawMode mode) { m_draw_mode = mode; }
@@ -170,6 +174,15 @@ private:
     std::string get_label(int tick, LabelType label_type = ltHeightWithLayer);
     double get_double_value(const SelectedSlider& selection);
     int    get_tick_from_value(double value, bool force_lower_bound = false);
+    // UNLAYERED_MOD: a print by object lists every object's layers in print order, so print_z
+    // repeats. An object ends where the next layer is not higher than the last one.
+    // The 0-based object (in print order) whose layer `tick` is, and the tick of `object`'s layer at
+    // print_z (-1: that object has no such layer).
+    int    sequential_object_of_tick(int tick) const;
+    int    tick_in_sequential_object(int object, double print_z) const;
+    // Pauses and custom G-code can be added in a print by object; with horizontal layers only,
+    // where the object boundaries above hold. Color and tool changes stay off there.
+    bool   sequential_codes_allowed() const { return m_draw_mode == dmSequentialFffPrint && m_layers_planar.empty(); }
     float get_pos_from_value(int v_min, int v_max, int value, const ImRect& rect);
     int    get_tick_near_point(int v_min, int v_max, const ImVec2& pt, const ImRect& rect);
 
@@ -227,6 +240,8 @@ private:
     TickCodeInfo             m_ticks;
     std::vector<double>      m_layers_times;
     std::vector<double>      m_layers_values;
+    // UNLAYERED_MOD: see SetLayersPlanar(). Empty means "every layer is horizontal".
+    std::vector<bool>        m_layers_planar;
     std::vector<std::string> m_extruder_colors;
     bool                     m_can_change_color;
     std::string              m_print_obj_idxs;

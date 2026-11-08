@@ -31,6 +31,7 @@
 #include <wx/numformatter.h>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include "libslic3r/Exception.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 #include "I18N.hpp"
@@ -41,6 +42,8 @@
 #include <wx/utils.h>
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/filesys.h>
+#include <wx/filename.h>
 
 namespace Slic3r { namespace GUI {
 
@@ -192,15 +195,24 @@ void OptionsGroup::set_max_win_width(int max_win_width)
 
 void OptionsGroup::remove_option_if(std::function<bool(std::string const&)> const& comp)
 {
+    // m_options_mode holds one entry per line that had options when appended, NOT one per line:
+    // append_line() gives a full-width widget line none. Indexing it by line number ran past its
+    // end once a group held such a line (the Browse buttons under the file-path options), which
+    // corrupted the heap while the object-settings tab was built.
+    std::vector<ConfigOptionMode> kept_modes;
+    size_t                        mode_idx = 0;
     for (auto& l : m_lines) {
         auto& opts = const_cast<std::vector<Option>&>(l.get_options());
+        const bool has_mode = ! opts.empty() && ! (l.full_width && (l.widget != nullptr || ! l.get_extra_widgets().empty()));
         opts.erase(std::remove_if(opts.begin(), opts.end(), [&comp](Option& o) { return comp(o.opt.opt_key); }), opts.end());
         l.undo_to_sys = true;
+        if (has_mode) {
+            if (! opts.empty() && mode_idx < m_options_mode.size())
+                kept_modes.push_back(m_options_mode[mode_idx]);
+            ++ mode_idx;
+        }
     }
-    for (int i = m_lines.size() - 1; i >= 0; --i) {
-        if (m_lines[i].get_options().empty())
-            m_options_mode.erase(m_options_mode.begin() + i);
-    }
+    m_options_mode = std::move(kept_modes);
     m_lines.erase(std::remove_if(m_lines.begin(), m_lines.end(), [](auto& l) { return l.get_options().empty(); }), m_lines.end());
     // TODO: remove items from g->m_options;
 }
@@ -296,6 +308,8 @@ void OptionsGroup::append_line(const Line& line)
 Line* OptionsGroup::get_line(const std::string& opt_key)
 {
     for (int index = 0; index < m_lines.size(); index++) {
+        if (! m_lines[index].widget_key.empty() && m_lines[index].widget_key == opt_key)
+            return &(m_lines[index]);
         for (auto& opt : m_lines[index].get_options())
             if (opt.opt_id == opt_key)
                 return &(m_lines[index]);
@@ -317,6 +331,7 @@ void OptionsGroup::activate_line(Line& line)
         // BBS: new layout
         const auto h_sizer = new wxBoxSizer(wxHORIZONTAL);
         sizer->Add(h_sizer, 1, wxEXPAND | wxALL, (wxOSX && !staticbox) ? 0 : 15);
+        line.full_width_sizer = h_sizer;
         if (line.widget != nullptr) {
             // description lines
             sizer->Add(line.widget(this->ctrl_parent()), 0, wxEXPAND | wxALL, (wxOSX && !staticbox) ? 0 : 15);
@@ -559,6 +574,8 @@ bool OptionsGroup::activate(std::function<void()> throw_if_canceled /* = [](){}*
             }
             this->stb = stl;
         }
+        if (! title_tooltip.IsEmpty())
+            this->stb->SetToolTip(title_tooltip);
 
         auto num_columns = 1U;
         size_t grow_col  = 1;
@@ -926,6 +943,11 @@ bool ConfigOptionsGroup::update_visibility(ConfigOptionMode mode)
     if (custom_ctrl) {
         bool show = custom_ctrl->update_visibility(mode);
         this->Show(show);
+        if (show)
+            // Keyed widget lines honour toggle_line(): Show(true) above re-showed them.
+            for (const Line &line : m_lines)
+                if (line.full_width_sizer != nullptr && ! line.widget_key.empty())
+                    sizer->Show(line.full_width_sizer, line.toggle_visible, true);
         return show;
     }
 
@@ -1412,6 +1434,12 @@ wxString OptionsGroup::get_url(const std::string& path_end)
         anchor.Replace(L" ", "-");
         str = str.Left(pos) + anchor;
     }
+    // UNLAYERED_MOD -- our own options have no page on the upstream wiki; "multiplanar_tutorial#x"
+    // opens the bundled offline tutorial (resources/web/tutorial) at anchor x instead.
+    static const std::string tutorial_prefix = "multiplanar_tutorial";
+    if (boost::starts_with(path_end, tutorial_prefix))
+        return wxFileSystem::FileNameToURL(wxFileName(from_u8(Slic3r::resources_dir() + "/web/tutorial/multiplanar.html"))) +
+               from_u8(path_end.substr(tutorial_prefix.size()));
     // Orca: point to sf wiki for seam parameters
     return wxString::Format(L"https://www.orcaslicer.com/wiki/%s", from_u8(path_end));
 }

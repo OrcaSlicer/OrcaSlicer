@@ -1,6 +1,7 @@
 #include "PostProcessor.hpp"
 
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/GCode/TrunnionAC.hpp"
 #include "libslic3r/format.hpp"
 #include "libslic3r_version.h"
 #include "I18N.hpp"
@@ -286,7 +287,7 @@ static void run_post_process_plugins(const ConfigOptionStrings& capabilities,
 
     auto execute_fn = [&](std::shared_ptr<SlicingPipelinePluginCapability> cap, const PluginCapabilityRef& ref) {
         SlicingPipelineContext ctx;
-        ctx.orca_version = SoftFever_VERSION;
+        ctx.orca_version = UNLAYERED_VERSION;
         ctx.step         = SlicingPipelineStepPlugin::psGCodePostProcess;
         ctx.gcode_path   = gcode_path;
         ctx.host         = host;
@@ -355,7 +356,11 @@ static bool run_post_process_scripts_impl(
     const auto* slicing_pipeline_plugin = config.opt<ConfigOptionStrings>("slicing_pipeline_plugin");
     const bool  have_scripts            = post_process != nullptr && !post_process->values.empty();
     const bool  have_plugins            = slicing_pipeline_plugin != nullptr && !slicing_pipeline_plugin->values.empty();
-    if (!have_scripts && !have_plugins)
+    // UNLAYERED_MOD -- an A/C table-table printer needs its G-code in machine coordinates. The slicer
+    // and the G-code viewer keep working in the bed frame; only the exported copy is converted, first,
+    // so the user's own scripts see what the printer will run.
+    const bool  have_ac                 = trunnion_ac_enabled(config);
+    if (!have_scripts && !have_plugins && !have_ac)
         return false;
 
     std::string path;
@@ -422,6 +427,8 @@ static bool run_post_process_scripts_impl(
     remove_output_name_file();
 
     try {
+        if (have_ac)
+            trunnion_ac_process_file(path, config);
         if (have_scripts) {
             for (const std::string& scripts : post_process->values) {
                 std::vector<std::string> lines;

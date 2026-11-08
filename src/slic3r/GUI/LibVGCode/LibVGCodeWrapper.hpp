@@ -72,9 +72,12 @@ extern ETimeMode convert(const Slic3r::PrintEstimatedStatistics::ETimeMode& mode
 extern Slic3r::PrintEstimatedStatistics::ETimeMode convert(const ETimeMode& mode);
 
 // mapping from Slic3r::GCodeProcessorResult to libvgcode::GCodeInputData
+// BELT_MOD: `display_transform`, when given, maps every vertex position before it is handed to the
+// viewer (a belt file's machine-frame positions back to the bed frame). Only the rendered position
+// changes; layers, times and the volumetric data keep the values the processor computed.
 extern GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::vector<std::string>& str_tool_colors,
     const std::vector<std::string>& str_color_print_colors, const Viewer& viewer,
-    const Slic3r::Transform3d* belt_xform = nullptr);
+    const Slic3r::Transform3d* display_transform = nullptr);
 
 // mapping from Slic3r::Print to libvgcode::GCodeInputData
 extern GCodeInputData convert(const Slic3r::Print& print, const std::vector<std::string>& str_tool_colors,

@@ -7,6 +7,9 @@
 #include <exception>
 #include "libslic3r/Model.hpp"
 
+#include <functional>
+#include <vector>
+
 namespace Slic3r {
 
 class ModelObject;
@@ -30,7 +33,7 @@ class OrientJob : public Job
     void prepare_selection(std::vector<bool> obj_sel, bool only_one_plate);
     
     // Prepare the selected and unselected items separately. If nothing is
-    // selected, behaves as if everything would be selected.
+    // selected, takes the current plate's objects (UNLAYERED_MOD: upstream took every plate).
     void prepare_selected();
 
     //BBS:prepare the items from current selected partplate
@@ -40,6 +43,14 @@ public:
     void prepare();
     
     void process(Ctl &ctl) override;
+
+    // UNLAYERED_MOD: which instances an orient run takes, [object][instance]. A plate-scoped run, or
+    // one with no object selected, takes the instances on the current plate (on_current_plate(o, i));
+    // otherwise every instance of the selected objects. Never every plate by default.
+    static std::vector<std::vector<bool>> selected_instances(const std::vector<size_t>&           instance_counts,
+                                                             const std::vector<bool>&             obj_sel,
+                                                             bool                                 plate_scoped,
+                                                             const std::function<bool(int, int)>& on_current_plate);
 
     OrientJob();
     

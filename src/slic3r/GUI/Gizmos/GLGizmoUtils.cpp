@@ -160,20 +160,13 @@ namespace Slic3r::GUI::GLGizmoUtils {
 
     void push_orca_button_style()
     {
-        ImVec4 base_orca = ImGuiWrapper::COL_ORCA;
-
-        float h, s, v;
-        ImGui::ColorConvertRGBtoHSV(base_orca.x, base_orca.y, base_orca.z, h, s, v);
-
-        ImVec4 hover, active;
-
-        // Lighter variant for Hover (Increase Value by ~12%)
-        ImGui::ColorConvertHSVtoRGB(h, s, std::min(v + 0.12f, 1.0f), hover.x, hover.y, hover.z);
-        hover.w = base_orca.w;
-
-        // Darker variant for Active (Decrease Value by ~12%)
-        ImGui::ColorConvertHSVtoRGB(h, s, std::max(v - 0.12f, 0.0f), active.x, active.y, active.z);
-        active.w = base_orca.w;
+        // Use the explicit accent ramp rather than deriving hover/active by shifting HSV
+        // value: on a neutral grey the +-12% shift lands on #949494 / #575757, which are
+        // near-duplicates of existing chrome greys and do not match the wx ramp. See
+        // GUI/AccentColor.hpp.
+        ImVec4 base_orca = ImGuiWrapper::COL_ORCA;                             // Accent::Base    #767676
+        ImVec4 hover     = ImVec4(136 / 255.f, 136 / 255.f, 136 / 255.f, base_orca.w);  // Accent::Hover   #888888
+        ImVec4 active    = ImVec4(92 / 255.f, 92 / 255.f, 92 / 255.f, base_orca.w);     // Accent::Pressed #5C5C5C
 
         ImGui::PushStyleColor(ImGuiCol_Button, base_orca);
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hover);

@@ -5,7 +5,12 @@
 
 #include <string>
 #include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"   // UNLAYERED_MOD: virtual_tilt_limit_explanation()
 #include <wx/intl.h> 
+
+#include "GUI.hpp"
+#include "format.hpp"
+#include "I18N.hpp"
 
 namespace Slic3r { class Preset; }
 namespace Slic3r { class PresetBundle; }
@@ -312,6 +317,66 @@ std::string PresetHints::top_bottom_shell_thickness_explanation(const PresetBund
     } else 
         out += _utf8(L("Bottom is open."));
     */
+    return out;
+}
+
+// UNLAYERED_MOD -- see the header. Reads the same geometry keys and the same helper the
+// cut-plane gizmo and Print::validate() use, so the number quoted here is the number that will
+// actually stop a drag; only the reach differs, and that is stated rather than assumed.
+std::string PresetHints::virtual_tilt_limit_explanation(const DynamicPrintConfig &printer_config)
+{
+    const auto *np  = printer_config.option<ConfigOptionBool>("enable_nonplanar");
+    const auto *sel = printer_config.option<ConfigOptionEnum<AxisSelection>>("axis_selection");
+    if (np == nullptr || ! np->value || sel == nullptr || sel->value != AxisSelection::Virtual)
+        return {};
+
+    auto get = [&printer_config](const char *key) {
+        const auto *opt = printer_config.option<ConfigOptionFloat>(key);
+        return opt == nullptr ? 0. : opt->value;
+    };
+    const HotendEnvelope envelope = HotendEnvelope::from_config(printer_config);
+    const double         gantry   = get("nonplanar_gantry_height");
+
+    if (gantry <= 0. && ! envelope.enabled())
+        return _utf8(L("Tilt limit: none. The hotend envelope radius is 0 and the gantry height is not set, so "
+                       "cut planes can be set to any angle, and nothing checks whether this printer can reach "
+                       "them."));
+
+    if (! envelope.enabled())
+        // No hotend model, so the gantry is the only thing limiting anything.
+        return (boost::format(_utf8(L("Tilt limit: the hotend envelope height is 0, so only the %1% mm under the "
+                                      "gantry limits the tilt. The cut plane panel shows the limit for the chunk "
+                                      "being edited."))) % (boost::format("%.0f") % gantry).str()).str();
+
+    // The hotend term alone, i.e. the limit for a chunk small enough that the gantry never matters,
+    // per side of the hotend the layer climbs toward -- a chunk leaning AWAY from that side. The
+    // gantry term depends on how wide each chunk is, so it can only be quoted per chunk -- the
+    // cut-plane panel shows that one, against the chunk actually seated on the plane being edited.
+    auto fmt = [](double a) { return (boost::format("%.1f") % a).str(); };
+    const double lean_away[4] = { PI, 0., -0.5 * PI, 0.5 * PI };   // by HotendEnvelope::Side
+    std::string  sides;
+    for (int s = 0; s < 4; ++ s) {
+        if (s > 0) sides += ", ";
+        sides += (boost::format("%1% %2%°") % HotendEnvelope::side_name(HotendEnvelope::Side(s))
+                  % fmt(virtual_tilt_limit_deg(envelope, gantry, 0., lean_away[s]))).str();
+    }
+    const double worst = virtual_tilt_limit_deg(envelope, gantry, 0.);
+    std::string  out   = (boost::format(_utf8(L("Tilt limit for a small chunk, by the side of the hotend its layers climb "
+                                                "toward: %1%. At worst %2%°, leaning toward a corner, where two sides "
+                                                "meet."))) % sides % fmt(worst)).str();
+    out += " ";
+    if (gantry <= 0.)
+        // No gantry term: the hotend limit above holds for a chunk of any size.
+        return out + _utf8(L("The gantry height above the nozzle is not set, so how wide a chunk is does not "
+                             "limit its tilt. Measure it and enter it above to limit wide chunks too."));
+    // Where the two terms cross over in the tightest direction: past it, the climb across the chunk
+    // is what runs out of headroom, not the shape of the hotend. Toward a slimmer side it comes sooner.
+    const double crossover = gantry / std::tan(worst * PI / 180.);
+    out += (boost::format(_utf8(L("Past about %1% mm across, the climb over the chunk runs out of the %2% mm under "
+                                  "the gantry first, and sooner toward a slimmer side. The cut plane panel shows the "
+                                  "limit for the chunk being edited.")))
+            % (boost::format("%.0f") % crossover).str()
+            % (boost::format("%.0f") % gantry).str()).str();
     return out;
 }
 

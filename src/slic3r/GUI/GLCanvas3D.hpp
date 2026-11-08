@@ -23,6 +23,7 @@
 #include <stddef.h>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <chrono>
 #include <cstdint>
 #include <optional>
@@ -217,13 +218,12 @@ wxDECLARE_EVENT(EVT_GLCANVAS_UPDATE_GEOMETRY, Vec3dsEvent<2>);
 wxDECLARE_EVENT(EVT_GLCANVAS_MOUSE_DRAGGING_STARTED, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_MOUSE_DRAGGING_FINISHED, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_UPDATE_BED_SHAPE, SimpleEvent);
-wxDECLARE_EVENT(EVT_GLCANVAS_TAB, SimpleEvent);
+wxDECLARE_EVENT(EVT_GLCANVAS_TAB, SimpleEvent);   // Shortcut::SwitchView (unbound by default in Unlayered)
 wxDECLARE_EVENT(EVT_GLCANVAS_RESETGIZMOS, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_UNDO, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_REDO, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_SWITCH_TO_OBJECT, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_SWITCH_TO_GLOBAL, SimpleEvent);
-wxDECLARE_EVENT(EVT_GLCANVAS_COLLAPSE_SIDEBAR, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_RELOAD_FROM_DISK, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_RENDER_TIMER, wxTimerEvent/*RenderTimerEvent*/);
 wxDECLARE_EVENT(EVT_GLCANVAS_TOOLBAR_HIGHLIGHTER_TIMER, wxTimerEvent);
@@ -636,6 +636,8 @@ public:
 
 private:
     bool m_is_dark = false;
+    // Unlayered: set first thing in the destructor; teardown posts no notifications (see _set_warning_notification).
+    bool m_destroying = false;
     wxGLCanvas* m_canvas;
     wxGLContext* m_context;
     SceneRaycaster m_scene_raycaster;
@@ -742,6 +744,13 @@ private:
     BackgroundSlicingProcess *m_process;
     bool m_requires_check_outside_state{ false };
 
+    // Cut chunk previews of the Prepare view, keyed by (object id, instance index). See
+    // _update_cut_chunk_previews(). The prompt flags drive the one-time offer to switch the
+    // colouring off once a plate uses a second filament.
+    std::map<std::pair<ObjectID, int>, std::shared_ptr<GLVolume::CutChunkPreview>> m_cut_chunk_previews;
+    bool m_cut_chunk_prompt_check_pending{ false };
+    bool m_cut_chunk_prompt_shown{ false };
+
     std::array<unsigned int, 2> m_old_size{ 0, 0 };
 
     bool m_is_touchpad_navigation{ false };
@@ -759,6 +768,8 @@ private:
     bool m_dynamic_background_enabled;
     bool m_multisample_allowed;
     bool m_moving;
+    // Keyboard stepping through the toolbar and gizmo icons; -1 = the view itself.
+    int  m_kbd_tool{ -1 };
     // The key-down being dispatched, kept for the char event that may follow it.
     struct KeyDown
     {
@@ -935,6 +946,16 @@ public:
     std::optional<size_t> m_presented_signature;
     GLModel m_plate_shadow_mask;
     std::string m_plate_shadow_mask_key;
+    // Cached, world-space mesh of the usable build volume: a single cylinder on the rotary axis.
+    // Rebuilt only when its dimensions or the plate center change (keyed by m_..._key).
+    GLModel m_chunk_build_volumes;
+    // Unlayered: the SVG infill art tiled over the current plate at print scale, shown while the
+    // Strength page's SVG settings are being edited (Tab -> Plater::set_svg_infill_preview).
+    GLModel m_svg_infill_preview;
+    std::string m_chunk_build_volumes_key;
+    // UNLAYERED_MOD -- unit arrow (along +Z, 1 unit long) drawn per selected instance whose object
+    // leans its support; see _render_support_direction_arrows().
+    GLModel m_support_direction_arrow;
     // Depth-based shadow map used to cast object shadows onto other objects and themselves.
     unsigned int m_shadow_map_fbo{ 0 };
     unsigned int m_shadow_map_texture_id{ 0 };
@@ -958,6 +979,9 @@ public:
 
     wxGLCanvas* get_wxglcanvas() { return m_canvas; }
 	const wxGLCanvas* get_wxglcanvas() const { return m_canvas; }
+    // The canvas has the keyboard focus on a toolbar or gizmo icon reached with Tab, which
+    // Space/Enter activate (see on_key()).
+    bool keyboard_tool_has_focus() const;
 
     bool init();
     void post_event(wxEvent &&event);
@@ -984,6 +1008,11 @@ public:
     float get_explosion_ratio() { return m_explosion_ratio; }
     void reset_explosion_ratio() { m_explosion_ratio = 1.0; }
     void on_change_color_mode(bool is_dark, bool reinit = true);
+    // Preferences > Appearance: a user colour for the view background of one theme (nullopt =
+    // built-in), and the colour in effect.
+    static void set_background_color_override(bool dark, const std::optional<ColorRGBA>& color);
+    static ColorRGBA view_background_color(bool dark);
+
     const bool get_dark_mode_status() { return m_is_dark; }
     void set_as_dirty() { m_dirty = true; }
     // True while any GLCanvas3D is inside _render_frame(). The other surfaces that share the app's one
@@ -1247,6 +1276,8 @@ public:
     void ensure_on_bed(unsigned int object_idx, bool allow_negative_z);
 
     std::vector<double> get_gcode_layers_zs() const { return m_gcode_viewer.get_layers_zs(); }
+    // UNLAYERED_MOD
+    std::vector<bool> get_gcode_layers_planar() const { return m_gcode_viewer.get_layers_planar(); }
     std::vector<float> get_gcode_layers_times() const { return m_gcode_viewer.get_layers_times(); }
     const std::vector<float>& get_gcode_layers_times_cache() const { return m_gcode_layers_times_cache; }
     void reset_gcode_layers_times_cache() { m_gcode_layers_times_cache.clear(); }
@@ -1434,6 +1465,9 @@ public:
         m_sequential_print_clearance.set_polygons(Polygons(), std::vector<std::pair<Polygon, float>>());
     }
 
+    // Replace the SVG infill preview lines (mm, drawn at height z); empty clears it.
+    void set_svg_infill_preview(const Polylines& lines, double z);
+
     void set_sequential_print_clearance_visible(bool visible) {
         m_sequential_print_clearance.set_visible(visible);
     }
@@ -1491,6 +1525,9 @@ private:
     CollapseSide collapse_side() const;
 
     bool _set_current();
+    bool _keyboard_tool_step(int direction); // false: stepped past the ends, leave the view
+    void _keyboard_tool_activate();
+    void _keyboard_tool_clear();
     bool _set_shown_canvas_current();
     void _resize(unsigned int w, unsigned int h);
 
@@ -1534,6 +1571,15 @@ private:
     void _capture_scene_cache(const Camera& camera);
     void _render_background();
     void _render_bed(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool show_axes);
+    void _render_svg_infill_preview(const Transform3d& view_matrix, const Transform3d& projection_matrix);
+    // Draws the usable build volume as a translucent cylinder on the rotary axis, sized by the
+    // radius / max_build_height / min_build_height printer settings. Shown when at least one chunk
+    // (a ModelObject carrying a layer_rotation_b override) is present. Visualization only.
+    void _render_chunk_build_volumes(const Transform3d& view_matrix, const Transform3d& projection_matrix);
+    // Support direction arrows: one per selected instance whose object sets support_direction to
+    // "World vertical" or "Custom", pointing along the resolved WORLD direction from above the
+    // instance. Visualization only; support_lean() resolves the same direction for slicing.
+    void _render_support_direction_arrows(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     // Build the light-space depth shadow map (consumed by gouraud/phong for object & self shadows)
     // and cast it onto the build plate. Realistic view only.
     void _render_shadows(const Transform3d& view_matrix, const Transform3d& projection_matrix);
@@ -1550,6 +1596,12 @@ private:
     void _render_cad_grid(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     //BBS: add outline drawing logic
     void _render_objects(GLVolumeCollection::ERenderType type, bool with_outline = true);
+    // Keep the per-instance cut chunk models in step with the model and hand them to the
+    // model-part volumes; clears them when the colouring is off or this is not the Prepare view.
+    void _update_cut_chunk_previews();
+    // Offer (once per session, unless "don't ask again") to turn cut chunk colours off when the
+    // current plate uses more than one filament, since the colouring hides filament colours.
+    void _maybe_prompt_cut_chunk_colors();
     // IMEX ghost volumes owned by PartPlate, drawn through the shader the caller bound:
     // the shaded pass's transparent half, or the X-Ray pass below.
     void _render_imex_ghosts(bool xray_pass = false);
@@ -1600,6 +1652,7 @@ private:
     void _render_paint_toolbar() const;
     float _render_assembly_tooltip_button(ImGuiWrapper* imgui_wrapper) const;
     void _render_assemble_control();
+    void _render_bed_mesh_legend();
     void _render_assemble_info() const;
 #if ENABLE_SHOW_CAMERA_TARGET
     void _render_camera_target();

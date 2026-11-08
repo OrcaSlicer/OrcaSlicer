@@ -375,7 +375,7 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
 
         ImGui::AlignTextToFramePadding();
         m_imgui->text(m_desc["smart_fill_angle"]);
-        std::string format_str = std::string("%.f") + I18N::translate_utf8("°",
+        std::string format_str = std::string("%.f") + I18N::translate_utf8("�",
                                                                             "Face angle threshold,"
                                                                             "placed after the number with no whitespace in between.");
         ImGui::SameLine(sliders_left_width);

@@ -63,11 +63,23 @@ static const float  GROOVE_WIDTH      = 12.0f;
 static const ImVec2 ONE_LAYER_MARGIN  = ImVec2(20.0f, 20.0f);
 static const ImVec2 ONE_LAYER_BUTTON_SIZE  = ImVec2(56.0f, 56.0f);
 
-static const ImU32 BACKGROUND_COLOR_DARK  = IM_COL32(65, 65, 71, 255);
-static const ImU32 BACKGROUND_COLOR_LIGHT = IM_COL32(255, 255, 255, 255);
-static const ImU32 GROOVE_COLOR_DARK      = IM_COL32(45, 45, 49, 255);
-static const ImU32 GROOVE_COLOR_LIGHT     = IM_COL32(206, 206, 206, 255);
-static const ImU32 BRAND_COLOR            = IM_COL32(0, 150, 136, 255);
+static const ImU32 BACKGROUND_COLOR_DARK  = IM_COL32(43, 43, 48, 255); // #2B2B30, one step above the dark window
+static ImU32 background_color_light() // the light window colour, theme override included
+{
+    const wxColour c = StateColor::darkModeColorFor(wxColour("#FFFFFF"));
+    return IM_COL32(c.Red(), c.Green(), c.Blue(), 255);
+}
+static ImU32 groove_color_dark() // the dark window colour, user override included
+{
+    const wxColour c = StateColor::darkModeColorFor(wxColour("#FFFFFF"));
+    return IM_COL32(c.Red(), c.Green(), c.Blue(), 255);
+}
+static ImU32 groove_color_light() // the selected-tab grey, theme override included
+{
+    const wxColour c = StateColor::darkModeColorFor(wxColour("#CECECE"));
+    return IM_COL32(c.Red(), c.Green(), c.Blue(), 255);
+}
+static const ImU32 BRAND_COLOR            = IM_COL32(118, 118, 118, 255);
 
 static int m_tick_value = -1;
 static ImVec4 m_tick_rect;
@@ -262,6 +274,9 @@ Info IMSlider::GetTicksValues() const
         for (const TickCode &tick : m_ticks.ticks) {
             if (tick.tick > val_size) break;
             values.emplace_back(CustomGCode::Item{m_values[tick.tick], tick.type, tick.extruder, tick.color, tick.extra});
+            // UNLAYERED_MOD: in a print by object a print_z alone does not say which object
+            if (m_draw_mode == dmSequentialFffPrint)
+                values.back().sequential_object = sequential_object_of_tick(tick.tick);
         }
 
     if (m_force_mode_apply) custom_gcode_per_print_z.mode = m_mode;
@@ -282,10 +297,17 @@ void IMSlider::SetTicksValues(const Info &custom_gcode_per_print_z)
 
     m_ticks.ticks.clear();
     const std::vector<CustomGCode::Item> &heights = custom_gcode_per_print_z.gcodes;
+    // UNLAYERED_MOD: in a print by object, a code goes on its own object's layer. One without an
+    // object (added by layer, or from an older project) can't be placed and is dropped, as every
+    // code used to be in this mode.
+    bool dropped = false;
     for (auto h : heights) {
-        int tick = get_tick_from_value(h.print_z, true);
+        int tick = m_draw_mode != dmSequentialFffPrint ? get_tick_from_value(h.print_z, true) :
+                   h.sequential_object >= 0            ? tick_in_sequential_object(h.sequential_object, h.print_z) : -1;
         if (tick >= 0) m_ticks.ticks.emplace(TickCode{tick, h.type, h.extruder, h.color, h.extra});
+        else dropped |= m_draw_mode == dmSequentialFffPrint;
     }
+    if (dropped) post_ticks_changed_event();
 
     if (m_ticks.has_tick_with_code(ToolChange) && !m_can_change_color) {
         if (!wxGetApp().plater()->only_gcode_mode() && !wxGetApp().plater()->using_exported_file())
@@ -310,13 +332,16 @@ void IMSlider::SetTicksValues(const Info &custom_gcode_per_print_z)
     //    return false;
     //};
     if ((!m_ticks.empty() /*&& has_tick_execpt(PausePrint)*/) && m_draw_mode == dmSequentialFffPrint) {
+        // UNLAYERED_MOD: pauses and custom G-code stay; color and tool changes still go
+        bool erased = false;
         for (auto it{ m_ticks.ticks.begin() }, end{ m_ticks.ticks.end() }; it != end;) {
-            if (true/*it->type != PausePrint*/)
+            if (!sequential_codes_allowed() || (it->type != PausePrint && it->type != Custom && it->type != Template)) {
                 it = m_ticks.ticks.erase(it);
-            else
+                erased = true;
+            } else
                 ++it;
         }
-        post_ticks_changed_event();
+        if (erased) post_ticks_changed_event();
     }
 
     if (custom_gcode_per_print_z.mode && !custom_gcode_per_print_z.gcodes.empty()) m_ticks.mode = custom_gcode_per_print_z.mode;
@@ -511,8 +536,8 @@ bool IMSlider::switch_one_layer_mode()
 }
 
 void IMSlider::draw_background_and_groove(const ImRect& bg_rect, const ImRect& groove) {
-    const ImU32 bg_rect_col = m_is_dark ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT;
-    const ImU32 groove_col = m_is_dark ? GROOVE_COLOR_DARK : GROOVE_COLOR_LIGHT;
+    const ImU32 bg_rect_col = m_is_dark ? BACKGROUND_COLOR_DARK : background_color_light();
+    const ImU32 groove_col = m_is_dark ? groove_color_dark() : groove_color_light();
 
     // draw bg of slider
     ImGui::RenderFrame(bg_rect.Min, bg_rect.Max, bg_rect_col, false, 0.5 * bg_rect.GetWidth());
@@ -542,11 +567,13 @@ bool IMSlider::horizontal_slider(const char* str_id, int* value, int v_min, int 
     const ImVec2 text_padding        = ImVec2(5.0f, 2.0f) * m_scale;
 
     const ImU32 handle_clr = BRAND_COLOR;
-    const ImU32 handle_border_clr = m_is_dark ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT;
-    const wxColour label_bg = StateColor::darkModeColorFor(wxGetApp().get_window_default_clr());
+    const ImU32 handle_border_clr = m_is_dark ? BACKGROUND_COLOR_DARK : background_color_light();
+    // Dark: below the window colour so the label box reads as a box; the text is the theme's
+    // label colour (pushed in render()), not the grey accent it used to be.
+    const wxColour label_bg = m_is_dark ? wxColour("#1B1B1E") : wxGetApp().get_window_default_clr();
     const wxColour label_border = StateColor::darkModeColorFor(wxColour("#CECECE"));
     const wxColour rail_inner_bg = m_is_dark ? StateColor::darkModeColorFor(wxColour("#CECECE")) : wxGetApp().get_highlight_default_clr();
-    const wxColour rail_border = m_is_dark ? StateColor::darkModeColorFor(wxColour("#F0F0F1")) : wxColour("#CECECE");
+    const wxColour rail_border = m_is_dark ? StateColor::darkModeColorFor(wxColour("#F0F0F1")) : StateColor::darkModeColorFor(wxColour("#CECECE"));
     const ImU32 label_bg_clr = IM_COL32(label_bg.Red(), label_bg.Green(), label_bg.Blue(), 238);
     const ImU32 label_border_clr = IM_COL32(label_border.Red(), label_border.Green(), label_border.Blue(), 255);
     const ImU32 label_shadow_clr = m_is_dark ? IM_COL32(0, 0, 0, 84) : IM_COL32(0, 0, 0, 38);
@@ -624,13 +651,13 @@ void IMSlider::draw_colored_band(const ImRect& groove, const ImRect& slideable_r
 
     auto draw_band = [this](const ImU32& clr, const ImRect& band_rc)
     {
-        if (clr == (m_is_dark ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT)) {
+        if (clr == (m_is_dark ? BACKGROUND_COLOR_DARK : background_color_light())) {
             ImRect rc = band_rc;
             rc.Min += ImVec2(1, 1) * m_scale;
             rc.Max -= ImVec2(1, 1) * m_scale;
-            ImGui::RenderFrame(band_rc.Min, band_rc.Max, m_is_dark ? GROOVE_COLOR_DARK : GROOVE_COLOR_LIGHT, false, band_rc.GetWidth() * 0.5);
+            ImGui::RenderFrame(band_rc.Min, band_rc.Max, m_is_dark ? groove_color_dark() : groove_color_light(), false, band_rc.GetWidth() * 0.5);
             //cover round corner
-            ImGui::RenderFrame(ImVec2(band_rc.Min.x, band_rc.Max.y - band_rc.GetWidth() * 0.5), band_rc.Max, m_is_dark ? GROOVE_COLOR_DARK : GROOVE_COLOR_LIGHT, false);
+            ImGui::RenderFrame(ImVec2(band_rc.Min.x, band_rc.Max.y - band_rc.GetWidth() * 0.5), band_rc.Max, m_is_dark ? groove_color_dark() : groove_color_light(), false);
 
             ImGui::RenderFrame(rc.Min, rc.Max, clr, false, rc.GetWidth() * 0.5);
             //cover round corner
@@ -643,11 +670,11 @@ void IMSlider::draw_colored_band(const ImRect& groove, const ImRect& slideable_r
         }
     };
     auto draw_main_band = [&main_band, this](const ImU32& clr) {
-        if (clr == (m_is_dark ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT)) {
+        if (clr == (m_is_dark ? BACKGROUND_COLOR_DARK : background_color_light())) {
             ImRect rc = main_band;
             rc.Min += ImVec2(1, 1) * m_scale;
             rc.Max -= ImVec2(1, 1) * m_scale;
-            ImGui::RenderFrame(main_band.Min, main_band.Max, m_is_dark ? GROOVE_COLOR_DARK : GROOVE_COLOR_LIGHT, false, main_band.GetWidth() * 0.5);
+            ImGui::RenderFrame(main_band.Min, main_band.Max, m_is_dark ? groove_color_dark() : groove_color_light(), false, main_band.GetWidth() * 0.5);
             ImGui::RenderFrame(rc.Min, rc.Max, clr, false, rc.GetWidth() * 0.5);
         }
         else {
@@ -742,7 +769,7 @@ void IMSlider::draw_ticks(const ImRect& slideable_region) {
     ImVec2 icon_size     = ImVec2(14.0f, 14.0f) * m_scale;
 
     const ImU32 tick_clr = IM_COL32(144, 144, 144, 255);
-    const ImU32 tick_hover_box_clr = m_is_dark ? IM_COL32(65, 65, 71, 255) : IM_COL32(219, 253, 231, 255);
+    const ImU32 tick_hover_box_clr = m_is_dark ? IM_COL32(43, 43, 48, 255) : IM_COL32(216, 216, 216, 255);
 
     auto get_tick_pos = [this, slideable_region](int tick)
     {
@@ -935,14 +962,16 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
     const ImVec2 text_padding        = ImVec2(5.0f, 2.0f) * m_scale;
     ImVec2 text_size;
 
-    const ImU32 white_bg = m_is_dark ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT;
+    const ImU32 white_bg = m_is_dark ? BACKGROUND_COLOR_DARK : background_color_light();
     const ImU32 handle_clr = BRAND_COLOR;
-    const ImU32 handle_border_clr = m_is_dark ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT;
-    const wxColour label_bg = StateColor::darkModeColorFor(wxGetApp().get_window_default_clr());
-    const wxColour label_bg_active = StateColor::darkModeColorFor(wxColour("#E5F0EE"));
+    const ImU32 handle_border_clr = m_is_dark ? BACKGROUND_COLOR_DARK : background_color_light();
+    // Dark: below the window colour so the label box reads as a box; the text is the theme's
+    // label colour (pushed in render()), not the grey accent it used to be.
+    const wxColour label_bg = m_is_dark ? wxColour("#1B1B1E") : wxGetApp().get_window_default_clr();
+    const wxColour label_bg_active = StateColor::darkModeColorFor(wxColour("#ECECEC"));
     const wxColour label_border = StateColor::darkModeColorFor(wxColour("#CECECE"));
     const wxColour rail_inner_bg = m_is_dark ? StateColor::darkModeColorFor(wxColour("#CECECE")) : wxGetApp().get_highlight_default_clr();
-    const wxColour rail_border = m_is_dark ? StateColor::darkModeColorFor(wxColour("#F0F0F1")) : wxColour("#CECECE");
+    const wxColour rail_border = m_is_dark ? StateColor::darkModeColorFor(wxColour("#F0F0F1")) : StateColor::darkModeColorFor(wxColour("#CECECE"));
     const ImU32 label_bg_clr = IM_COL32(label_bg.Red(), label_bg.Green(), label_bg.Blue(), 238);
     const ImU32 label_bg_active_clr = IM_COL32(label_bg_active.Red(), label_bg_active.Green(), label_bg_active.Blue(), 246);
     const ImU32 label_border_clr = IM_COL32(label_border.Red(), label_border.Green(), label_border.Blue(), 255);
@@ -1265,7 +1294,8 @@ bool IMSlider::render(int canvas_width, int canvas_height)
     ImGui::PushStyleVar(ImGuiStyleVar_::ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_::ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-    ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_Text, ImGuiWrapper::COL_ORCA); // ORCA: Use orca color for slider value text
+    // Value labels in the theme's text colour: the grey accent sat at 3.5:1 (dark) / 4.5:1 (light).
+    ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_Text, m_is_dark ? ImVec4(226 / 255.0f, 226 / 255.0f, 229 / 255.0f, 1.0f) : ImVec4(50 / 255.0f, 58 / 255.0f, 61 / 255.0f, 1.0f));
 
     int windows_flag = ImGuiWindowFlags_NoTitleBar
                        | ImGuiWindowFlags_NoCollapse
@@ -1527,7 +1557,8 @@ void IMSlider::render_add_menu()
         m_show_menu = false;
     }
     if (ImGui::BeginPopup("slider_add_menu_popup", ImGuiWindowFlags_NoMove)) {
-        bool menu_item_enable = m_draw_mode != dmSequentialFffPrint;
+        // UNLAYERED_MOD: also in a print by object (see sequential_codes_allowed())
+        bool menu_item_enable = m_draw_mode != dmSequentialFffPrint || sequential_codes_allowed();
         bool hovered = false;
         {
             if (menu_item_with_icon(_u8L("Add Pause").c_str(), "", ImVec2(0, 0), 0, false, menu_item_enable, &hovered)) {
@@ -1767,8 +1798,11 @@ std::string IMSlider::get_label(int tick, LabelType label_type)
             return value < m_layers_times.size() ? short_and_splitted_time(get_time_dhms(m_layers_times[value])) : "";
         }
 
+        // UNLAYERED_MOD: a tilted (multiplanar / 5-axis) layer is not at one height, so mark its
+        // representative Z with '~' rather than presenting an arbitrary value as exact.
+        const bool planar = m_layers_planar.empty() || value >= m_layers_planar.size() || m_layers_planar[value];
         char layer_height[64];
-        ::sprintf(layer_height, "%.2f", m_values.empty() ? m_label_koef * value : m_values[value]);
+        ::sprintf(layer_height, planar ? "%.2f" : "~%.2f", m_values.empty() ? m_label_koef * value : m_values[value]);
         if (label_type == ltHeight) return std::string(layer_height);
         if (label_type == ltHeightWithLayer) {
             char   buffer[90];
@@ -1790,6 +1824,30 @@ double IMSlider::get_double_value(const SelectedSlider &selection)
         return m_values.back();
     }
     return m_values[selection == ssLower ? m_lower_value : m_higher_value];
+}
+
+int IMSlider::sequential_object_of_tick(int tick) const
+{
+    int object = 0;
+    for (int i = 1; i <= tick && i < int(m_values.size()); ++i)
+        if (m_values[i] <= m_values[i - 1] + epsilon())
+            ++object;
+    return object;
+}
+
+int IMSlider::tick_in_sequential_object(int object, double print_z) const
+{
+    int current = 0;
+    for (int i = 0; i < int(m_values.size()); ++i) {
+        if (i > 0 && m_values[i] <= m_values[i - 1] + epsilon())
+            ++current;
+        if (current > object)
+            break;
+        // The object's first layer at or above print_z, as get_tick_from_value() does for a whole print
+        if (current == object && m_values[i] >= print_z - epsilon())
+            return i;
+    }
+    return -1;
 }
 
 int IMSlider::get_tick_from_value(double value, bool force_lower_bound /* = false*/)

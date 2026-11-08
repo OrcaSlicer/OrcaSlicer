@@ -25,6 +25,7 @@
 #include <wx/event.h>
 #include <utility>
 #include <wx/anybutton.h>
+#include <nlohmann/json.hpp>
 #include <wx/panel.h>
 #include <wx/notebook.h>
 #include <wx/listbook.h>
@@ -153,6 +154,7 @@ class Tab: public wxPanel
 {
 	//BBS: GUI refactor
 protected:
+
 	ParamsPanel*		m_parent;
 /*#ifdef __WXOSX__
 	wxPanel*			m_tmp_panel;
@@ -498,6 +500,13 @@ public:
 
 	virtual void    on_value_change(const std::string& opt_key, const boost::any& value);
 
+    // One entry of slicer.settingsChanged's `changes` (WEB_APP_BRIDGE.md 4.5) for `opt_key`, which
+    // m_config already holds the new value of: label, category, tooltip, value, previous, saved,
+    // system. `previous` is the value just before the edit: pass it when the caller knows it (a
+    // bridge write), else the last value reported for this key in this preset, else the saved one.
+    // Either way it becomes the last reported value, so user edits and bridge writes stay in step.
+    nlohmann::json  describe_setting_change(const std::string& opt_key, const nlohmann::json& previous = nullptr);
+
     void            update_wiping_button_visibility();
 	virtual void	activate_option(const std::string& opt_key, const wxString& category);
     void			apply_searcher();
@@ -585,6 +594,10 @@ public:
 	void		update_description_lines() override;
 	void		toggle_options() override;
 	void		update() override;
+	// Unlayered: the SVG infill art tiled over the plate in the 3D view while the Strength
+	// page's SVG settings are on screen; rebuilt from the current settings by toggle_options().
+	void		update_svg_infill_preview();
+	std::string m_svg_infill_preview_key;
 	void		clear_pages() override;
 	bool 		supports_printer_technology(const PrinterTechnology tech) const override { return tech == ptFFF; }
 	// Column of the extruder's variant in the per-variant process vectors, as the extruder switch
@@ -758,12 +771,17 @@ public:
         Tab(parent, _L("Machine"), Slic3r::Preset::TYPE_PRINTER) {}
 	~TabPrinter() {}
 
+	// UNLAYERED_MOD -- the derived virtual-5-axis tilt limit, shown read-only under the non-planar
+	// group so the angle that stops a cut-plane drag is visible where its inputs are edited.
+	ogStaticText*	m_virtual_tilt_limit_description_line = nullptr;
+
 	void		build() override;
     void		build_fff();
     void		build_sla();
 	void		reload_config() override;
 	void		activate_selected_page(std::function<void()> throw_if_canceled) override;
 	void		clear_pages() override;
+	void		update_description_lines() override;
 	void		toggle_options() override;
     void		update() override;
     void		update_fff();

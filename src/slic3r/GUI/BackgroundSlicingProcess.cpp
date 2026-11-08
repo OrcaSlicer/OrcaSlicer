@@ -65,6 +65,7 @@
 #ifdef _WIN32
 #include <excpt.h>
 #endif
+#include <boost/format.hpp>
 
 namespace Slic3r {
 
@@ -225,6 +226,16 @@ void BackgroundSlicingProcess::process_fff()
     assert(m_print == m_fff_print);
     PresetBundle& preset_bundle   = *GUI::wxGetApp().preset_bundle;
     m_fff_print->is_BBL_printer() = preset_bundle.is_bbl_vendor();
+    // UNLAYERED_MOD -- a plate loaded from a sliced file (a .gcode.3mf with no objects) has
+    // no objects, only its G-code. A config difference in Print::apply (the current filament list vs
+    // the file's) invalidates the "G-code ready" step, and slicing that empty print crashed the export
+    // (print.objects().front() of nothing: "A fatal error occurred: Access violation"). There is
+    // nothing to slice; keep processing the file the plate already holds.
+    if (!m_print->finished() && m_fff_print->objects().empty() && m_current_plate != nullptr &&
+        m_current_plate->is_slice_result_valid() && boost::filesystem::exists(m_current_plate->get_tmp_gcode_path())) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": empty print on a plate with a G-code file, re-using the file";
+        m_fff_print->set_gcode_file_ready();
+    }
     // BBS: add the logic to process from an existed gcode file
     if (m_print->finished()) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: skip slicing, to process previous gcode file") % __LINE__;
@@ -468,13 +479,23 @@ static void rethrow_seh_exception(unsigned long win32_seh_catched)
     }
 }
 
+// The __except filter: handles the hardware exceptions above, and keeps where it happened.
+static int seh_hardware_filter(EXCEPTION_POINTERS *info, const void **address) throw()
+{
+    if (!info || !info->ExceptionRecord || !is_win32_seh_harware_exception(info->ExceptionRecord->ExceptionCode))
+        return EXCEPTION_CONTINUE_SEARCH;
+    *address = info->ExceptionRecord->ExceptionAddress;
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+
 // Wrapper for Win32 structured exceptions. Win32 structured exception blocks and C++ exception blocks cannot be mixed in the same function.
 unsigned long BackgroundSlicingProcess::call_process_seh(std::exception_ptr& ex) throw()
 {
     unsigned long win32_seh_catched = 0;
+    m_seh_crash_address = nullptr;
     __try {
         this->call_process(ex);
-    } __except (is_win32_seh_harware_exception(GetExceptionCode())) {
+    } __except (seh_hardware_filter(GetExceptionInformation(), &m_seh_crash_address)) {
         win32_seh_catched = GetExceptionCode();
     }
     return win32_seh_catched;
@@ -492,6 +513,15 @@ void BackgroundSlicingProcess::call_process_seh_throw(std::exception_ptr& ex) th
     }
 }
 #endif // _WIN32
+
+std::string BackgroundSlicingProcess::hard_crash_site() const
+{
+#ifdef _WIN32
+    return m_seh_crash_address ? (boost::format("0x%1$x") % reinterpret_cast<uintptr_t>(m_seh_crash_address)).str() : std::string();
+#else
+    return {}; // hardware exceptions are only caught (and located) on Windows
+#endif
+}
 
 void BackgroundSlicingProcess::call_process(std::exception_ptr& ex) throw()
 {
@@ -756,11 +786,15 @@ Print::ApplyStatus BackgroundSlicingProcess::apply(const Model& model, const Dyn
     Print::ApplyStatus invalidated = m_print->apply(model, new_config);
 
     // Orca: prevent resetting under gcode viewer mode
+    // UNLAYERED_MOD: ...and for a loaded SLICED 3MF (an exported .gcode.3mf, as a slicing service may
+    // hand a job back). It cannot be resliced either, and the first apply after loading it always sees
+    // a config diff against the Print's previous config, which wiped the plate's G-code result:
+    // Preview came up empty though Print plate stayed enabled.
     if (invalidated != PrintBase::APPLY_STATUS_UNCHANGED) {
-        // Use the app’s plater accessor instead of going through mainframe, otherwise anything during startup that reaches apply() 
+        // Use the app’s plater accessor instead of going through mainframe, otherwise anything during startup that reaches apply()
         // (loading presets, config or input files, e.g. from the CLI) therefore dereferences a null `mainframe` and crashes.
         const auto plater = GUI::wxGetApp().plater();
-        if (plater && plater->only_gcode_mode()) {
+        if (plater && (plater->only_gcode_mode() || plater->using_exported_file())) {
             invalidated = PrintBase::APPLY_STATUS_UNCHANGED;
         }
     }

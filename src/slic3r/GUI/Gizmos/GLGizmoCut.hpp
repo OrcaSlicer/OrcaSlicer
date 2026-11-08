@@ -9,6 +9,7 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/CutUtils.hpp"
 #include "imgui/imgui.h"
+#include "libslic3r/Skeleton.hpp"
 #include "libslic3r/Point.hpp"
 #include "slic3r/GUI/MeshUtils.hpp"
 #include <map>
@@ -29,16 +30,27 @@ enum class CutConnectorType : int;
 class ModelVolume;
 class GLShaderProgram;
 struct CutConnectorAttributes;
+struct SkeletonResult; // defined in libslic3r/SkeletonBuild.hpp; see the note below
+struct SkeletonParams; // ditto
 
 namespace GUI {
+
+// Forward-declared rather than included: SkeletonJob.hpp pulls in SkeletonBuild.hpp, and
+// this header is included widely enough that doing so would rebuild most of the GUI for
+// every pipeline parameter added.
+struct SkeletonJobState;
+
 class Selection;
 
 enum class SLAGizmoEventType : unsigned char;
 
-namespace CommonGizmosDataObjects { class ObjectClipper; }
+namespace CommonGizmosDataObjects {
+class ObjectClipper;
+}
 
 class GLGizmoCut3D : public GLGizmoBase
 {
+protected:
     enum GrabberID {
         X = 0,
         Y,
@@ -50,49 +62,93 @@ class GLGizmoCut3D : public GLGizmoBase
         Count,
     };
 
-    Transform3d                 m_rotation_m{ Transform3d::Identity() };
-    double                      m_snap_step{ 1.0 };
-    int                         m_connectors_group_id;
+    Transform3d m_rotation_m{Transform3d::Identity()};
+    double m_snap_step{1.0};
+    int m_connectors_group_id;
 
-    // archived values 
-    Vec3d m_ar_plane_center { Vec3d::Zero() };
-    Transform3d m_start_dragging_m{ Transform3d::Identity() };
+    // archived values
+    Vec3d m_ar_plane_center{Vec3d::Zero()};
+    Transform3d m_start_dragging_m{Transform3d::Identity()};
 
-    Vec3d m_plane_center{ Vec3d::Zero() };
+    Vec3d m_plane_center{Vec3d::Zero()};
     // data to check position of the cut palne center on gizmo activation
-    Vec3d m_min_pos{ Vec3d::Zero() };
-    Vec3d m_max_pos{ Vec3d::Zero() };
-    Vec3d m_bb_center{ Vec3d::Zero() };
-    Vec3d m_center_offset{ Vec3d::Zero() };
+    Vec3d m_min_pos{Vec3d::Zero()};
+    Vec3d m_max_pos{Vec3d::Zero()};
+    Vec3d m_bb_center{Vec3d::Zero()};
+    Vec3d m_center_offset{Vec3d::Zero()};
 
     BoundingBoxf3 m_bounding_box;
     BoundingBoxf3 m_transformed_bounding_box;
 
     // values from RotationGizmo
-    double m_radius{ 0.0 };
-    double m_grabber_radius{ 0.0 };
-    double m_grabber_connection_len{ 0.0 };
-    Vec3d  m_cut_plane_start_move_pos {Vec3d::Zero()};
+    double m_radius{0.0};
+    double m_grabber_radius{0.0};
+    double m_grabber_connection_len{0.0};
+    Vec3d m_cut_plane_start_move_pos{Vec3d::Zero()};
 
-    double m_snap_coarse_in_radius{ 0.0 };
-    double m_snap_coarse_out_radius{ 0.0 };
-    double m_snap_fine_in_radius{ 0.0 };
-    double m_snap_fine_out_radius{ 0.0 };
+    double m_snap_coarse_in_radius{0.0};
+    double m_snap_coarse_out_radius{0.0};
+    double m_snap_fine_in_radius{0.0};
+    double m_snap_fine_out_radius{0.0};
 
     // dragging angel in hovered axes
-    double m_angle{ 0.0 };
+    double m_angle{0.0};
 
-    TriangleMesh    m_connector_mesh;
+    TriangleMesh m_connector_mesh;
     // workaround for using of the clipping plane normal
-    Vec3d           m_clp_normal{ Vec3d::Ones() };
+    Vec3d m_clp_normal{Vec3d::Ones()};
 
-    Vec3d           m_line_beg{ Vec3d::Zero() };
-    Vec3d           m_line_end{ Vec3d::Zero() };
+    Vec3d m_line_beg{Vec3d::Zero()};
+    Vec3d m_line_end{Vec3d::Zero()};
 
-    Vec2d           m_ldown_mouse_position{ Vec2d::Zero() };
+    Vec2d m_ldown_mouse_position{Vec2d::Zero()};
 
     GLModel m_grabber_connection;
     GLModel m_cut_line;
+
+    SkeletonGraph    m_skeleton;
+    SkeletonDAG      m_skeleton_dag;
+    SkeletonTangents m_skel_tangents;
+    GLModel m_skeleton_model;       // edges
+    GLModel m_skeleton_nodes_model; // nodes
+    GLModel m_skeleton_artic_model; // articulation nodes (highlighted)
+    GLModel m_skeleton_roots_model; // root nodes (green)
+    bool m_show_skeleton{false};
+    int m_hovered_skeleton_node{-1};
+    float m_skel_quality_speed{0.1f};
+    float m_skel_min_edge_factor{0.002f};
+    int m_skel_smooth_iterations{10};
+    float m_skel_smooth_alpha{0.5f};
+    float m_skel_collapse_angle{10.0f};
+    float m_skel_collapse_edge_len{0.2f};
+    bool m_skel_collapse_to_spine{false};
+    int m_skel_spine_slices{20};
+    float m_skel_resample_edge_len{5.0f};
+    float m_skel_tangent_W{0.5f};
+    bool  m_skel_correct_convergence{true};
+    bool  m_skel_show_direction{false};
+    bool  m_skel_show_advanced{false};
+    int   m_skel_method{0};              // 0 = MCF, 1 = Voxel thinning
+    int   m_skel_voxel_resolution{64};  // grid dimension for Voxel method
+    bool  m_skel_collapse_junctions{true};
+    // UNLAYERED_MOD — hollow geometry and leaf pruning. m_skel_tunnel_fill mirrors
+    // Slic3r::TunnelFill (0 = off, 1 = threshold, 2 = on); kept as an int so this header
+    // does not have to pull in SkeletonBuild.hpp.
+    int   m_skel_tunnel_fill{1};
+    float m_skel_tunnel_min_aspect{1.2f};
+    float m_skel_prune_leaves{0.0f};
+    int   m_skel_decimate_faces{0};  // 0 = off; see the Face budget tooltip
+    // Where the root stands; mirrors Slic3r::BedRootMode (0 = auto, 1 = middle, 2 = tips). The
+    // lean and ramp shape how the cuts fan out of it and apply live, without a rebuild.
+    int   m_skel_bed_root{0};
+    float m_skel_root_lean{45.0f};
+    float m_skel_root_ramp{0.0f};    // 0 = auto
+    // Outstanding async skeleton build, if any. Shared with the worker so that closing
+    // the gizmo mid-build cannot leave it writing through a dangling pointer.
+    std::shared_ptr<SkeletonJobState> m_skel_job_state;
+    int                 m_skel_request_id{0};
+    int                 m_skel_conv_count{0}; // cached; panel reads it per frame
+    std::vector<TunnelSpine> m_skel_tunnels;
 
     PickingModel m_plane;
     PickingModel m_sphere;
@@ -111,30 +167,23 @@ class GLGizmoCut3D : public GLGizmoBase
 
     struct InvalidConnectorsStatistics
     {
-        unsigned int    outside_cut_contour;
-        unsigned int    outside_bb;
-        bool            is_overlap;
+        unsigned int outside_cut_contour;
+        unsigned int outside_bb;
+        bool is_overlap;
 
-        void invalidate() {
+        void invalidate()
+        {
             outside_cut_contour = 0;
-            outside_bb = 0;
-            is_overlap = false;
-        } 
+            outside_bb          = 0;
+            is_overlap          = false;
+        }
     } m_info_stats;
-
-    bool m_keep_upper{ true };
-    bool m_keep_lower{ true };
-    bool m_keep_as_parts{ false };
-    bool m_place_on_cut_upper{ true };
-    bool m_place_on_cut_lower{ false };
-    bool m_rotate_upper{ false };
-    bool m_rotate_lower{ false };
 
     // Input params for cut with tongue and groove
     Cut::Groove m_groove;
-    bool m_groove_editing { false };
+    bool m_groove_editing{false};
 
-    bool m_is_slider_editing_done { false };
+    bool m_is_slider_editing_done{false};
 
     // Multiple Dovetail cuts
     int m_groove_count_init { 1 };
@@ -143,48 +192,55 @@ class GLGizmoCut3D : public GLGizmoBase
     float m_groove_gap_init { 10.f }; 
 
     // Input params for cut with snaps
-    float m_snap_bulge_proportion{ 0.15f };
-    float m_snap_space_proportion{ 0.3f };
+    float m_snap_bulge_proportion{0.15f};
+    float m_snap_space_proportion{0.3f};
 
-    bool m_hide_cut_plane{ false };
-    bool m_connectors_editing{ false };
-    bool m_cut_plane_as_circle{ false };
+    bool m_hide_cut_plane{false};
+    bool m_connectors_editing{false};
+    bool m_cut_plane_as_circle{false};
 
-    float m_connector_depth_ratio{ 3.f };
-    float m_connector_size{ 2.5f };
-    float m_connector_angle{ 0.f };
+    float m_connector_depth_ratio{3.f};
+    float m_connector_size{2.5f};
+    float m_connector_angle{0.f};
 
-    float m_connector_depth_ratio_tolerance{ 0.1f };
-    float m_connector_size_tolerance{ 0.f };
+    float m_connector_depth_ratio_tolerance{0.1f};
+    float m_connector_size_tolerance{0.f};
 
-    float m_label_width{ 0.f };
-    float m_control_width{ 200.f };
+    float m_label_width{0.f};
+    float m_control_width{200.f};
     double m_editing_window_width;
-    bool  m_imperial_units{ false };
+    bool m_imperial_units{false};
 
-    float m_contour_width{ 0.4f };
-    float m_cut_plane_radius_koef{ 1.5f };
+    float m_contour_width{0.4f};
+    float m_cut_plane_radius_koef{1.5f};
 
     mutable std::vector<bool> m_selected; // which pins are currently selected
-    int  m_selected_count{ 0 };
+    int m_selected_count{0};
 
     GLSelectionRectangle m_selection_rectangle;
 
     std::vector<size_t> m_invalid_connectors_idxs;
-    bool m_was_cut_plane_dragged { false };
-    bool m_was_contour_selected { false };
+    bool m_was_cut_plane_dragged{false};
+    bool m_was_contour_selected{false};
 
     // Vertices of the groove used to detection if groove is valid
     std::vector<Vec3d> m_groove_vertices;
 
-    class PartSelection {
+    class PartSelection
+    {
     public:
         PartSelection() = default;
-        PartSelection(const ModelObject* mo, const Transform3d& cut_matrix, int instance_idx, const Vec3d& center, const Vec3d& normal, const CommonGizmosDataObjects::ObjectClipper& oc);
+        PartSelection(const ModelObject* mo,
+                      const Transform3d& cut_matrix,
+                      int instance_idx,
+                      const Vec3d& center,
+                      const Vec3d& normal,
+                      const CommonGizmosDataObjects::ObjectClipper& oc);
         PartSelection(const ModelObject* mo, int instance_idx_in);
         ~PartSelection() { m_model.clear_objects(); }
 
-        struct Part {
+        struct Part
+        {
             GLModel glmodel;
             MeshRaycaster raycaster;
             bool selected;
@@ -193,7 +249,13 @@ class GLGizmoCut3D : public GLGizmoBase
 
         void render(const Vec3d* normal, GLModel& sphere_model);
         void toggle_selection(const Vec2d& mouse_pos);
+
         void turn_over_selection();
+        // Select only the part whose world-space bbox center is nearest to world_pos;
+        // demote all other above-plane parts (strays) to the trunk side.
+        // Pass the skeleton child node in world space to pick the arm piece.
+        void select_contour_near(const Vec3d& world_pos);
+        void select_contour_near(const Vec3d& arm_world_pos, const Vec3d& trunk_world_pos);
         ModelObject* model_object() { return m_model.objects.front(); }
         bool valid() const { return m_valid; }
         bool is_one_object() const;
@@ -207,8 +269,10 @@ class GLGizmoCut3D : public GLGizmoBase
         int m_instance_idx;
         std::vector<Part> m_parts;
         bool m_valid = false;
-        std::vector<std::pair<std::vector<size_t>, std::vector<size_t>>> m_contour_to_parts; // for each contour, there is a vector of parts above and a vector of parts below
-        std::vector<size_t> m_ignored_contours; // contour that should not be rendered (the parts on both sides will both be parts of the same object)
+        std::vector<std::pair<std::vector<size_t>, std::vector<size_t>>>
+            m_contour_to_parts; // for each contour, there is a vector of parts above and a vector of parts below
+        std::vector<size_t>
+            m_ignored_contours; // contour that should not be rendered (the parts on both sides will both be parts of the same object)
 
         std::vector<Vec3d> m_contour_points;         // Debugging
         std::vector<std::vector<Vec3d>> m_debug_pts; // Debugging
@@ -224,23 +288,20 @@ class GLGizmoCut3D : public GLGizmoBase
     std::vector<std::pair<wxString, wxString>> m_shortcuts_connector;
 
     enum class CutMode {
-        cutPlanar
-        , cutTongueAndGroove
+        cutPlanar,
+        cutTongueAndGroove
         //, cutGrig
         //,cutRadial
         //,cutModular
     };
 
-    enum class CutConnectorMode {
-        Auto
-        , Manual
-    };
+    enum class CutConnectorMode { Auto, Manual };
 
     std::vector<std::string> m_modes;
-    size_t m_mode{ size_t(CutMode::cutPlanar) };
+    size_t m_mode{size_t(CutMode::cutPlanar)};
 
     std::vector<std::string> m_connector_modes;
-    CutConnectorMode m_connector_mode{ CutConnectorMode::Manual };
+    CutConnectorMode m_connector_mode{CutConnectorMode::Manual};
 
     std::vector<std::string> m_connector_types;
     CutConnectorType m_connector_type;
@@ -273,41 +334,48 @@ public:
     /// </summary>
     /// <param name="mouse_event">Keep information about mouse click</param>
     /// <returns>Return True when use the information otherwise False.</returns>
-    bool on_mouse(const wxMouseEvent &mouse_event) override;
+    bool on_mouse(const wxMouseEvent& mouse_event) override;
 
     void shift_cut(double delta);
-    void rotate_vec3d_around_plane_center(Vec3d&vec);
+    void rotate_vec3d_around_plane_center(Vec3d& vec);
     void put_connectors_on_cut_plane(const Vec3d& cp_normal, double cp_offset);
     void update_clipper();
     void invalidate_cut_plane();
 
-    BoundingBoxf3   bounding_box() const;
-    BoundingBoxf3   transformed_bounding_box(const Vec3d& plane_center, const Transform3d& rotation_m = Transform3d::Identity()) const;
+    BoundingBoxf3 bounding_box() const;
+    BoundingBoxf3 transformed_bounding_box(const Vec3d& plane_center, const Transform3d& rotation_m = Transform3d::Identity()) const;
 
 protected:
-    bool               on_init() override;
-    void               on_load(cereal::BinaryInputArchive&ar) override;
-    void               on_save(cereal::BinaryOutputArchive&ar) const override;
-    std::string        on_get_name() const override;
-    void               on_set_state() override;
+    void compute_skeleton();          // launches the worker; result arrives via poll
+    SkeletonParams skeleton_params() const; // the panel's settings as pipeline parameters
+    void poll_skeleton_job();         // main thread: apply the worker's result when ready
+    // virtual so GLGizmoSkeleton can refresh its cache when the async result lands
+    virtual void apply_skeleton_result(const SkeletonResult& res);
+    void rebuild_skeleton_gl_models();
+
+    bool on_init() override;
+    void on_load(cereal::BinaryInputArchive& ar) override;
+    void on_save(cereal::BinaryOutputArchive& ar) const override;
+    std::string on_get_name() const override;
+    void on_set_state() override;
     CommonGizmosDataID on_get_requirements() const override;
-    void               on_set_hover_id() override;
-    bool               on_is_activable() const override;
-    bool               on_is_selectable() const override;
-    Vec3d              mouse_position_in_local_plane(GrabberID axis, const Linef3&mouse_ray) const;
-    void               dragging_grabber_move(const GLGizmoBase::UpdateData &data);
-    void               dragging_grabber_rotation(const GLGizmoBase::UpdateData &data);
-    void               dragging_connector(const GLGizmoBase::UpdateData &data);
-    void               on_dragging(const UpdateData&data) override;
-    void               on_start_dragging() override;
-    void               on_stop_dragging() override;
-    void               on_render() override;
+    void on_set_hover_id() override;
+    bool on_is_activable() const override;
+    bool on_is_selectable() const override;
+    Vec3d mouse_position_in_local_plane(GrabberID axis, const Linef3& mouse_ray) const;
+    void dragging_grabber_move(const GLGizmoBase::UpdateData& data);
+    void dragging_grabber_rotation(const GLGizmoBase::UpdateData& data);
+    void dragging_connector(const GLGizmoBase::UpdateData& data);
+    void on_dragging(const UpdateData& data) override;
+    void on_start_dragging() override;
+    void on_stop_dragging() override;
+    void on_render() override;
 
     void render_debug_input_window(float x);
     void unselect_all_connectors();
     void select_all_connectors();
     void apply_selected_connectors(std::function<void(size_t idx)> apply_fn);
-    void render_connectors_input_window(CutConnectors &connectors, float x, float y, float bottom_limit);
+    void render_connectors_input_window(CutConnectors& connectors, float x, float y, float bottom_limit);
     void render_build_size();
     void reset_cut_plane();
     void set_connectors_editing(bool connectors_editing);
@@ -324,15 +392,15 @@ protected:
     void render_groove_angle_input(const std::string &label, float &in_val, const float &init_val, float min_val, float max_val);
     void render_groove_int_input(const std::string& label, int& in_val, const int& init_val, int min_val, int max_val);
     bool render_angle_input(const std::string& label, float& in_val, const float& init_val, float min_val, float max_val);
-    void render_snap_specific_input(const std::string& label, const wxString& tooltip, float& in_val, const float& init_val, const float min_val, const float max_val);
-    void render_cut_plane_input_window(CutConnectors &connectors, float x, float y, float bottom_limit);
-    void init_input_window_data(CutConnectors &connectors);
+    void render_snap_specific_input(
+        const std::string& label, const wxString& tooltip, float& in_val, const float& init_val, const float min_val, const float max_val);
+    void init_input_window_data(CutConnectors& connectors);
     void render_input_window_warning() const;
-    bool add_connector(CutConnectors&connectors, const Vec2d&mouse_position);
-    bool delete_selected_connectors(CutConnectors&connectors);
+    bool add_connector(CutConnectors& connectors, const Vec2d& mouse_position);
+    bool delete_selected_connectors(CutConnectors& connectors);
     void select_connector(int idx, bool select);
     bool is_selection_changed(bool alt_down, bool shift_down);
-    void process_selection_rectangle(CutConnectors &connectors);
+    void process_selection_rectangle(CutConnectors& connectors);
 
     virtual void on_register_raycasters_for_picking() override;
     virtual void on_unregister_raycasters_for_picking() override;
@@ -345,52 +413,75 @@ protected:
     void on_render_input_window(float x, float y, float bottom_limit) override;
     void render_tooltip_button(float x, float y);
 
-    bool wants_enter_leave_snapshots() const override       { return true; }
-    std::string get_gizmo_entering_text() const override    { return _u8L("Entering Cut gizmo"); }
-    std::string get_gizmo_leaving_text() const override     { return _u8L("Leaving Cut gizmo"); }
-    std::string get_action_snapshot_name() const override   { return _u8L("Cut gizmo editing"); }
+    bool wants_enter_leave_snapshots() const override { return true; }
+    std::string get_gizmo_entering_text() const override { return _u8L("Entering Cut gizmo"); }
+    std::string get_gizmo_leaving_text() const override { return _u8L("Leaving Cut gizmo"); }
+    std::string get_action_snapshot_name() const override { return _u8L("Cut gizmo editing"); }
 
-    void data_changed(bool is_serializing) override; 
+    void data_changed(bool is_serializing) override;
     Transform3d get_cut_matrix(const Selection& selection);
 
+    virtual void render_cut_plane_input_window(CutConnectors& connectors, float x, float y, float bottom_limit);
+    // added surpress_diag to supresse manifold repair worning during perform_skeleton_cut()
+    virtual void perform_cut(const Selection& selection, bool surpress_diag);
+
+    void reset_connectors();
+    void render_move_center_input(int axis);
+    bool render_reset_button(const std::string& label_id, const std::string& tooltip) const;
+    bool can_perform_cut() const;
+
+    Vec3d m_old_center;
+
+    bool m_keep_upper{true};
+    bool m_keep_lower{true};
+    bool m_keep_as_parts{false};
+    bool m_place_on_cut_upper{true};
+    bool m_place_on_cut_lower{false};
+    bool m_rotate_upper{false};
+    bool m_rotate_lower{false};
+
+    void set_center(const Vec3d& center, bool update_tbb = false);
+
 private:
-    void set_center(const Vec3d&center, bool update_tbb = false);
     void switch_to_mode(size_t new_mode);
     bool render_cut_mode_combo();
     bool render_double_input(const std::string& label, double& value_in);
     bool render_slider_two_input(const std::string& label, float& value_in, float& tolerance_in, float min_val = -0.1f, float max_tolerance = -0.1f);
     bool render_slider_input(const std::string& label, float& value_in, float min_val = -0.1f, float max_val = 100.f);
-    void render_move_center_input(int axis);
     void render_connect_mode_radio_button(CutConnectorMode mode);
-    bool render_reset_button(const std::string& label_id, const std::string& tooltip) const;
     bool render_connect_type_radio_button(CutConnectorType type);
     bool is_outside_of_cut_contour(size_t idx, const CutConnectors& connectors, const Vec3d cur_pos);
     bool is_conflict_for_connector(size_t idx, const CutConnectors& connectors, const Vec3d cur_pos);
     void render_connectors();
 
-    bool can_perform_cut() const;
     bool has_valid_groove() const;
-    bool has_valid_contour() const;
-    void apply_connectors_in_model(ModelObject* mo, int &dowels_count);
+protected:
+    // Does the editing plane actually cut the object? Drives the "placed outside" warning. Virtual
+    // because it reads the object clipper's last render, and a subclass that never renders the
+    // clipper (Cut Planes) has to answer from its own slice instead.
+    virtual bool has_valid_contour() const;
+private:
+    void apply_connectors_in_model(ModelObject* mo, int& dowels_count);
     bool cut_line_processing() const;
     void discard_cut_line_processing();
 
     void apply_color_clip_plane_colors();
-    void render_cut_plane();
+    // Virtual so GLGizmoCutPlanes can replace the plane visual (contour-shaped surface + faint
+    // square) while keeping the base's grabbers and on_render flow.
+    virtual void render_cut_plane();
+    void render_skeleton();
     static void render_model(GLModel& model, const ColorRGBA& color, Transform3d view_model_matrix);
     void render_line(GLModel& line_model, const ColorRGBA& color, Transform3d view_model_matrix, float width);
     void render_rotation_snapping(GrabberID axis, const ColorRGBA& color);
     void render_grabber_connection(const ColorRGBA& color, Transform3d view_matrix, double line_len_koef = 1.0);
     void render_cut_plane_grabbers();
     void render_cut_line();
-    void perform_cut(const Selection&selection);
-    void set_center_pos(const Vec3d&center_pos, bool update_tbb = false);
+    void set_center_pos(const Vec3d& center_pos, bool update_tbb = false);
     void update_bb();
     void init_picking_models();
     void init_rendering_items();
-    void render_clipper_cut();
+    virtual void render_clipper_cut();
     void clear_selection();
-    void reset_connectors();
     void init_connector_shapes();
     void update_connector_shape();
     void validate_connector_settings();
@@ -404,6 +495,15 @@ private:
 
     indexed_triangle_set get_connector_mesh(CutConnectorAttributes connector_attributes);
     void apply_cut_connectors(ModelObject* mo, const std::string& connector_name);
+};
+
+// new. Currently exactly the same as cut
+class GLGizmoRotateLayers3D : public GLGizmoCut3D
+{
+public:
+    GLGizmoRotateLayers3D(GLCanvas3D& parent, const std::string& icon_filename, unsigned int sprite_id)
+        : GLGizmoCut3D(parent, icon_filename, sprite_id)
+    {}
 };
 
 } // namespace GUI

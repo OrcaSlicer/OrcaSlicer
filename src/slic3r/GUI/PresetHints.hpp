@@ -5,6 +5,7 @@
 
 namespace Slic3r { class Preset; }
 namespace Slic3r { class PresetBundle; }
+namespace Slic3r { class DynamicPrintConfig; }
 
 
 namespace Slic3r {
@@ -29,7 +30,12 @@ public:
     // Produce a textual explanation of the combined effects of the top/bottom_shell_layers
     // versus top/bottom_min_shell_thickness. Which of the two values wins depends
     // on the active layer height.
-    static std::string top_bottom_shell_thickness_explanation(const PresetBundle &preset_bundle);    
+    static std::string top_bottom_shell_thickness_explanation(const PresetBundle &preset_bundle);
+
+    // UNLAYERED_MOD -- explain the virtual-5-axis tilt limit this printer's geometry works out to.
+    // Takes the printer config directly rather than the bundle, so it reflects the fields being
+    // edited on the page it is shown on. Empty when there is nothing to say (not a virtual printer).
+    static std::string virtual_tilt_limit_explanation(const DynamicPrintConfig &printer_config);
 };
 
 } // namespace Slic3r

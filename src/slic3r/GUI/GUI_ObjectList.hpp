@@ -490,6 +490,17 @@ public:
     void update_printable_state(int obj_idx, int instance_idx);
     void toggle_printable_state();
     void toggle_auto_drop();
+    // Move an object within the list (and the underlying model / part-plate),
+    // keeping the data-view tree, model vector and part-plate in sync. Mirrors
+    // the drag-and-drop reorder path so a programmatic reorder is just as reliable.
+    void reorder_object(int from_idx, int to_idx);
+
+    // Keyboard/menu counterpart of drag-and-drop reordering ("Order" in the context menu).
+    // Objects move among the objects of their plate, parts among the parts of their object
+    // under the same rules a drop obeys (can_move_volume).
+    enum class OrderMove { Up, Down, Top, Bottom };
+    bool can_move_in_order(OrderMove move) const;
+    void move_in_order(OrderMove move);
     void enable_layers_editing();
 
     //BBS: remove const qualifier
@@ -528,6 +539,20 @@ private:
     void OnDropPossible(wxDataViewEvent &event);
     void OnDrop(wxDataViewEvent &event);
     bool can_drop(const wxDataViewItem& item, int& src_obj_id, int& src_plate, int& dest_obj_id, int& dest_plate) const ;
+    // May part `from_vol_idx` of object `obj_idx` take the place of part `to_vol_idx`? Parts only
+    // reorder within their own type group, and the first slot is reserved for a model part.
+    bool can_move_volume(int obj_idx, int from_vol_idx, int to_vol_idx) const;
+    // Move part `from_vol_idx` to `to_vol_idx` (model + list), no snapshot; shared by drop and menu.
+    void move_volume(int obj_idx, int from_vol_idx, int to_vol_idx);
+    // Index the selected object/part would move to for `move`, or -1 when it cannot move.
+    int  order_target(OrderMove move, int& obj_idx, int& vol_idx) const;
+    // Turn a drop event into the index the dragged row moves to (object index or part index),
+    // covering both a drop onto a row and a drop between rows. False when not allowed.
+    bool resolve_drop(const wxDataViewEvent& event, int& target_idx) const;
+    // True when `pt` (control coordinates) is over the grip of a row that can be dragged.
+    bool is_over_drag_handle(const wxPoint& pt) const;
+    // Set on left-button press over a grip; a drag may only begin from there.
+    bool m_drag_from_handle = false;
 
     void ItemValueChanged(wxDataViewEvent &event);
     // Workaround for entering the column editing mode on Windows. Simulate keyboard enter when another column of the active line is selected.

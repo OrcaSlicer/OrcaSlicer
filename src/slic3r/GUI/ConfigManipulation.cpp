@@ -854,6 +854,15 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // gyroid_optimized only applies when the sparse infill pattern is gyroid without adaptive density;
     // hide the whole line otherwise.
     toggle_line("gyroid_optimized", have_infill && pattern == ipGyroid && !have_adaptive_infill, -1, _L("Select Gyroid infill with nonzero sparse infill density and disable adaptive density to use this setting."));
+    // SVG line-art patterns and the user infill mesh.
+    const bool svg_art = pattern == ipSvg || pattern == ipCatfill || pattern == ipSharkfill || pattern == ipPuppyfill;
+    toggle_line("sparse_infill_svg_path", have_infill && pattern == ipSvg);
+    toggle_line("browse_sparse_infill_svg_path", have_infill && pattern == ipSvg);
+    toggle_line("browse_infill_mesh_path", have_infill && pattern == ipCustomMesh);
+    toggle_line("sparse_infill_svg_scale", have_infill && svg_art);
+    toggle_line("sparse_infill_single_wall", have_infill && (svg_art || pattern == ipCustomMesh));
+    toggle_line("infill_mesh_global_orientation", have_infill && pattern == ipCustomMesh);
+    toggle_line("infill_mesh_path", have_infill && pattern == ipCustomMesh);
 
     // If there is infill, enable/disable fill_multiline according to whether the pattern supports multiline infill.
     if (have_infill) {
@@ -1068,6 +1077,16 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
         "support_type", "support_on_build_plate_only", "support_critical_regions_only", "support_interface_not_for_body",
         "support_object_xy_distance", "support_object_first_layer_gap", "independent_support_layer_height"})
         toggle_field(el, have_support_material, -1, support_reason);
+    // UNLAYERED_MOD -- the custom support direction angles only mean anything in "custom" mode.
+    const SupportDirection support_direction = config->opt_enum<SupportDirection>("support_direction");
+    toggle_field("support_direction", have_support_material, -1, support_reason);
+    for (auto el : { "support_direction_b", "support_direction_c" }) {
+        toggle_line(el, support_direction == sdCustom);
+        toggle_field(el, have_support_material, -1, support_reason);
+    }
+    toggle_line("support_direction_max_lean", support_direction != sdLayers);
+    toggle_field("support_direction_max_lean", have_support_material, -1, support_reason);
+    toggle_field("support_section_overlap", have_support_material, -1, support_reason);
     toggle_field("support_threshold_angle", have_support_material && is_auto(support_type), -1,
                  !have_support_material ? support_reason : _L("Select an automatic support type to edit the threshold angle."));
     toggle_field("support_threshold_overlap", config->opt_int("support_threshold_angle") == 0 && have_support_material && is_auto(support_type), -1,
@@ -1159,7 +1178,18 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     for (auto el : {"zaa_minimize_perimeter_height", "zaa_min_z", "zaa_dont_alternate_fill_direction", "ironing_expansion"})
         toggle_line(el, has_zaa, -1, _L("Enable Z contouring to use this setting."));
 
-    bool have_sequential_printing = (config->opt_enum<PrintSequence>("print_sequence") == PrintSequence::ByObject);
+    // UNLAYERED_MOD: nonplanar layers
+    if (config->has("nonplanar_layers")) {
+        const bool has_np = config->opt_bool("nonplanar_layers");
+        for (auto el : {"nonplanar_max_angle", "nonplanar_max_height", "nonplanar_layer_count", "nonplanar_hold_back",
+                        "nonplanar_top_surface_direction_enable", "nonplanar_top_surface_flow_ratio_enable"})
+            toggle_line(el, has_np);
+        toggle_line("nonplanar_top_surface_direction", has_np && config->opt_bool("nonplanar_top_surface_direction_enable"));
+        toggle_line("nonplanar_top_surface_flow_ratio", has_np && config->opt_bool("nonplanar_top_surface_flow_ratio_enable"));
+    }
+
+    auto print_seq = config->opt_enum<PrintSequence>("print_sequence");
+    bool have_sequential_printing = (print_seq == PrintSequence::ByObject || print_seq == PrintSequence::ByGroup);
     // for (auto el : { "extruder_clearance_radius", "extruder_clearance_height_to_rod", "extruder_clearance_height_to_lid" })
     //     toggle_field(el, have_sequential_printing);
     toggle_field("print_order", !have_sequential_printing, -1, _L("Print order cannot be edited when the print sequence is By object."));
@@ -1365,6 +1395,71 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     std::string printer_type = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
     toggle_line("enable_wrapping_detection", DevPrinterConfigUtil::support_wrapping_detection(printer_type), -1, _L("The selected printer does not support wrapping detection."));
+
+    // Orca: wave-overhangs conditional visibility.
+    // - Master toggle off → hide every wave_overhang_* tunable (only master stays).
+    const bool wo_enabled = config->opt_bool("wave_overhangs");
+
+    // UNLAYERED_MOD: waves are generated inside the overhang-wall pass, which only runs with
+    // walls, overhang-wall detection on and outside spiral vase. Grey the master toggle out
+    // when it cannot take effect (same rule as extra_perimeters_on_overhangs above).
+    toggle_field("wave_overhangs", have_perimeters && has_detect_overhang_wall && !has_spiral_vase);
+
+    for (const std::string &k : {
+        std::string("wave_overhangs_instead_of_bridges"),
+        std::string("wave_overhang_outer_perimeters"),
+        std::string("wave_overhang_flow_mm3_per_mm"),
+        std::string("wave_overhang_end_retract_length"),
+        std::string("wave_overhang_print_speed"),
+        std::string("wave_overhang_perimeter_speed"),
+        std::string("wave_overhang_travel_speed"),
+        std::string("wave_overhang_fan_speed"),
+        std::string("wave_overhang_aux_fan_speed"),
+        std::string("wave_overhang_nozzle_temp"),
+        std::string("wave_overhang_min_wave_time"),
+        std::string("wave_overhang_min_layer_time"),
+        std::string("wave_overhang_floor_layers"),
+        std::string("wave_overhang_floor_perimeter_speed"),
+        std::string("wave_overhang_floor_speed_ramp"),
+        std::string("wave_overhang_floor_use_hilbert"),
+        std::string("wave_overhang_min_angle"),
+        std::string("wave_overhang_min_length"),
+        std::string("wave_overhang_max_iterations"),
+        std::string("wave_overhang_seam_mode"),
+        std::string("wave_overhang_debug_gcode"),
+        std::string("support_remaining_areas_after_wave_overhangs"),
+        std::string("wave_overhang_pattern"),
+        std::string("wave_overhang_perimeter_overlap"),
+        std::string("wave_overhang_minimum_width"),
+        std::string("wave_overhang_line_spacing"),
+        std::string("wave_overhang_spacing_mode"),
+        std::string("wave_overhang_min_new_area"),
+        std::string("wave_overhang_corner_taper_enable"),
+    })
+        toggle_line(k, wo_enabled);
+
+    // Orca: corner-reinforcement sub-options. Master toggle reveals the three
+    // tunables, same shape as the Hilbert-floor section below.
+    const bool wo_corner_taper = wo_enabled
+        && config->opt_bool("wave_overhang_corner_taper_enable");
+    for (const std::string &k : {
+        std::string("wave_overhang_line_spacing_corner"),
+        std::string("wave_overhang_corner_taper_distance"),
+        std::string("wave_overhang_corner_angle_threshold"),
+    })
+        toggle_line(k, wo_corner_taper);
+
+    // Orca: wave-overhang Hilbert floor sub-options. Only meaningful when the
+    // master Hilbert toggle is on AND wave overhangs themselves are enabled.
+    const bool wo_floor_hilbert = wo_enabled && config->opt_bool("wave_overhang_floor_use_hilbert");
+    for (const std::string &k : {
+        std::string("wave_overhang_floor_hilbert_layers"),
+        std::string("wave_overhang_floor_hilbert_density"),
+        std::string("wave_overhang_floor_print_speed"),
+        std::string("wave_overhang_floor_fan_speed"),
+        std::string("wave_overhang_floor_aux_fan_speed"),
+    })
+        toggle_line(k, wo_floor_hilbert);
 }
 
 void ConfigManipulation::update_print_sla_config(DynamicPrintConfig* config, const bool is_global_config/* = false*/)

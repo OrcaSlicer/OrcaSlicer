@@ -64,7 +64,7 @@
 #include "slic3r/GUI/PartPlate.hpp"
 
 static const Slic3r::ColorRGBA UNIFORM_SCALE_COLOR     = Slic3r::ColorRGBA::ORANGE();
-static const Slic3r::ColorRGBA SOLID_PLANE_COLOR       = {0.0f, 174.0f / 255.0f, 66.0f / 255.0f, 1.0f};
+static const Slic3r::ColorRGBA SOLID_PLANE_COLOR       = {118.0f / 255.0f, 118.0f / 255.0f, 118.0f / 255.0f, 1.0f};
 static const Slic3r::ColorRGBA TRANSPARENT_PLANE_COLOR = { 0.8f, 0.8f, 0.8f, 0.5f };
 
 namespace Slic3r {
@@ -1498,7 +1498,8 @@ void Selection::scale_to_fit_print_volume(const BuildVolume& volume, const Vec2d
 
         // center selection on print bed
         setup_cache();
-        offset.z() = -get_bounding_box().min.z();
+        // UNLAYERED_MOD
+        //offset.z() = -get_bounding_box().min.z();
         TransformationType trafo_type;
         trafo_type.set_relative();
         translate(offset, trafo_type);
@@ -3327,7 +3328,21 @@ void Selection::paste_objects_from_clipboard()
         Vec3d displacement;
         bool  in_current  = plate->intersects(bbox);
         auto  start_point = in_current ? bbox.center() : plate->get_build_volume().center();
-        auto  start_offset = in_current ? src_object->instances.front()->get_offset() : plate->get_build_volume().center();
+        // UNLAYERED_MOD - the copy keeps the source instance's Z whichever plate it lands on.
+        // Upstream took the whole offset from the build volume's centre (i.e. half the build
+        // height) whenever the source sits off the current plate, and relied on
+        // Plater::changed_objects() -> ensure_on_bed() to pull the copy back down. In this fork
+        // auto_drop is normally cleared (imports are seated once in load_model_objects and then
+        // left alone; cut chunks clear it too), so ensure_on_bed() skips the new instances and
+        // the copy was left floating mid-air. Using the source Z is right either way: an
+        // auto_drop copy is dropped afterwards anyway, and a non-auto_drop copy should sit at
+        // exactly the height of its original. Only XY is taken from the plate centre.
+        Vec3d start_offset = src_object->instances.front()->get_offset();
+        if (!in_current) {
+            const Vec3d plate_center = plate->get_build_volume().center();
+            start_offset.x() = plate_center.x();
+            start_offset.y() = plate_center.y();
+        }
         if (shift_all(0) != 0 || shift_all(1) != 0) {
             // BBS: if multiple objects are selected, move them as a whole after copy
             if (i == 0) empty_cell_all = wxGetApp().plater()->canvas3D()->get_nearest_empty_cell({start_point(0), start_point(1)}, {bbox.size()(0)+1,bbox.size()(1)+1});

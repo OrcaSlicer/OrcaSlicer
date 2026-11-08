@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <cstring>
 #include <iterator>
+#include <limits>
 #include <cassert>
 #include <cinttypes>
 #include "libslic3r/Point.hpp"
@@ -17,9 +18,6 @@
 
 #include "libslic3r/libslic3r.h"
 #include "LibVGCodeWrapper.hpp"
-#include "slic3r/GUI/3DScene.hpp"
-
-#include <limits>
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Color.hpp"
 #include "libslic3r/CustomGCode.hpp"
@@ -27,6 +25,7 @@
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
+#include "slic3r/GUI/3DScene.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/Line.hpp"
 #include "libslic3r/Polyline.hpp"
@@ -232,28 +231,64 @@ static bool starts_path(const Slic3r::GCodeProcessorResult::MoveVertex& prev,
         return false;
     return first_move || prev.type != curr.type || prev.extrusion_role != curr.extrusion_role
         // ORCA: Split the path when a preview value changes.
-        || prev.mm3_per_mm != curr.mm3_per_mm || prev.acceleration != curr.acceleration || prev.jerk != curr.jerk;
+        || prev.mm3_per_mm != curr.mm3_per_mm || prev.acceleration != curr.acceleration || prev.jerk != curr.jerk
+        // Declarative cut planes: a section boundary must start a new path too, or the first move of
+        // a section renders as one line continuing out of the previous section -- one colour
+        // spanning the cut plane.
+        || prev.cut_segment_id != curr.cut_segment_id;
 }
 
 GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::vector<std::string>& str_tool_colors,
     const std::vector<std::string>& str_color_print_colors, const Viewer& viewer,
-    const Slic3r::Transform3d* belt_xform)
+    const Slic3r::Transform3d* display_transform)
 {
     GCodeInputData ret;
 
-    // Belt printers: optionally map each vertex DISPLAY position from machine
-    // (G-code) space back to model/Cartesian space using the general belt
-    // back-transform (handles any mesh rotation + shear + axis remap, not just
-    // 45 deg). Only the rendered position is transformed; layer_id, times and
-    // the volumetric/flow math below keep the original machine-space values.
-    auto xform_pos = [belt_xform](const Slic3r::Vec3f& v) -> Vec3 {
-        if (belt_xform != nullptr)
-            return convert(Slic3r::Vec3f((*belt_xform * v.cast<double>()).cast<float>()));
-        return convert(v);
+    // BELT_MOD: see the declaration.
+    auto position = [display_transform](const Slic3r::Vec3f& v) -> Vec3 {
+        return display_transform == nullptr ? convert(v) : convert(Slic3r::Vec3f((*display_transform * v.cast<double>()).cast<float>()));
     };
 
     ret.tools_colors = convert_filament_colors(str_tool_colors);
     ret.color_print_colors = convert_filament_colors(str_color_print_colors.empty() ? str_tool_colors : str_color_print_colors);
+
+    // UNLAYERED_MOD: tool-axis palette (see PathVertex::tool_axis_id). Index 0 is always +Z.
+    ret.tool_axes.reserve(result.tool_axes.size());
+    for (const Slic3r::Vec3f& axis : result.tool_axes)
+        ret.tool_axes.emplace_back(convert(axis));
+
+    // Declarative cut planes: PathVertex stores the section id in an int16_t while the processor
+    // uses an int. A print can in principle derive more sections than that holds; clamp rather
+    // than wrap a huge id onto some other section's colour.
+    auto to_section_id = [](int id) -> int16_t {
+        return (id < 0 || id > int(std::numeric_limits<int16_t>::max())) ? int16_t(-1) : int16_t(id);
+    };
+
+    // Declarative cut planes: the section palette. Taken from Slic3r::GUI::cut_segment_color so the
+    // preview colours a section exactly as the Prepare tab's chunk preview does -- one palette,
+    // defined once, rather than a second copy that can drift. Sized to the highest section id
+    // actually present, so the legend lists only sections that exist.
+    {
+        int max_segment_id = -1;
+        for (const Slic3r::GCodeProcessorResult::MoveVertex& move : result.moves)
+            max_segment_id = std::max(max_segment_id, int(to_section_id(move.cut_segment_id)));
+        // UNLAYERED_MOD -- each section fades from the filament it is printed in: the extruder of
+        // the first extrusion carrying that id. Ids are per object, so with several objects the
+        // first one to print a given id sets its base colour; with one object this is exactly the
+        // Prepare view's fade.
+        std::vector<int> section_tool(size_t(max_segment_id + 1), -1);
+        for (const Slic3r::GCodeProcessorResult::MoveVertex& move : result.moves) {
+            const int id = int(to_section_id(move.cut_segment_id));
+            if (id >= 0 && section_tool[id] < 0 && move.type == Slic3r::EMoveType::Extrude)
+                section_tool[id] = int(move.extruder_id);
+        }
+        ret.cut_segment_colors.reserve(size_t(max_segment_id + 1));
+        for (int i = 0; i <= max_segment_id; ++i) {
+            const int tool = section_tool[i] >= 0 && section_tool[i] < int(ret.tools_colors.size()) ? section_tool[i] : 0;
+            const Slic3r::ColorRGBA filament = ret.tools_colors.empty() ? Slic3r::ColorRGBA::WHITE() : convert(ret.tools_colors[tool]);
+            ret.cut_segment_colors.emplace_back(convert(::cut_segment_color(size_t(i), size_t(max_segment_id + 1), filament)));
+        }
+    }
 
     const std::vector<Slic3r::GCodeProcessorResult::MoveVertex>& moves = result.moves;
     // One vertex per move after the first, plus a phantom in front of every path start. Reserving
@@ -264,74 +299,65 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
         if (starts_path(moves[i - 1], moves[i], i == 1))
             ++vertices_count;
     ret.vertices.reserve(vertices_count);
-    // libvgcode numbers its layers from the vertices it is given and expects them to
-    // arrive one layer after the other with consecutive ids: a layer without any move
-    // (a belt file can carry layer changes that print nothing) would leave a gap, and
-    // every later vertex would then be folded into the last layer created.  Renumber
-    // the ids consecutively over the moves that exist.
-    uint32_t src_layer_id = std::numeric_limits<uint32_t>::max();
-    uint32_t layer_id     = 0;
     for (size_t i = 1; i < moves.size(); ++i) {
         const Slic3r::GCodeProcessorResult::MoveVertex& curr = moves[i];
         const Slic3r::GCodeProcessorResult::MoveVertex& prev = moves[i - 1];
         const EMoveType curr_type = convert(curr.type);
-        if (curr.layer_id != src_layer_id) {
-            if (src_layer_id != std::numeric_limits<uint32_t>::max())
-                ++ layer_id;
-            src_layer_id = curr.layer_id;
-        }
         if (starts_path(prev, curr, i == 1)) {
             // to allow libvgcode to properly detect the start/end of a path we need to add a 'phantom' vertex
             // equal to the current one with the exception of the position, which should match the previous move position,
             // and the times, which are set to zero
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
-            const libvgcode::PathVertex vertex = { xform_pos(prev.position), curr.height, curr.width, curr.feedrate, prev.actual_feedrate,
+            const libvgcode::PathVertex vertex = { position(prev.position), curr.height, curr.width, curr.feedrate, prev.actual_feedrate,
                 curr.mm3_per_mm, curr.fan_speed, curr.temperature, 0.0f, convert(curr.extrusion_role), curr_type,
-                static_cast<uint32_t>(curr.gcode_id), layer_id,
+                static_cast<uint32_t>(curr.gcode_id), static_cast<uint32_t>(curr.layer_id),
                 static_cast<uint8_t>(curr.extruder_id), static_cast<uint8_t>(curr.cp_color_id), { 0.0f, 0.0f },
                 /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance,
                 /* ORCA: Add Acceleration visualization support */ curr.acceleration,
-                /* ORCA: Add Jerk visualization support */ curr.jerk };
+                /* ORCA: Add Jerk visualization support */ curr.jerk,
+                /* UNLAYERED_MOD: tilted-layer tool axis */ curr.tool_axis_id,
+                /* cut planes: section id */ to_section_id(curr.cut_segment_id) };
 #else
-            const libvgcode::PathVertex vertex = { xform_pos(prev.position), curr.height, curr.width, curr.feedrate, prev.actual_feedrate,
+            const libvgcode::PathVertex vertex = { position(prev.position), curr.height, curr.width, curr.feedrate, prev.actual_feedrate,
                 curr.mm3_per_mm, curr.fan_speed, curr.temperature, convert(curr.extrusion_role), curr_type,
-                static_cast<uint32_t>(curr.gcode_id), layer_id,
+                static_cast<uint32_t>(curr.gcode_id), static_cast<uint32_t>(curr.layer_id),
                 static_cast<uint8_t>(curr.extruder_id), static_cast<uint8_t>(curr.cp_color_id), { 0.0f, 0.0f },
                 /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance,
                 /* ORCA: Add Acceleration visualization support */ curr.acceleration,
-                /* ORCA: Add Jerk visualization support */ curr.jerk };
+                /* ORCA: Add Jerk visualization support */ curr.jerk,
+                /* UNLAYERED_MOD: tilted-layer tool axis */ curr.tool_axis_id,
+                /* cut planes: section id */ to_section_id(curr.cut_segment_id) };
 #endif // VGCODE_ENABLE_COG_AND_TOOL_MARKERS
             ret.vertices.emplace_back(vertex);
         }
 
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
-        const libvgcode::PathVertex vertex = { xform_pos(curr.position), curr.height, curr.width, curr.feedrate, curr.actual_feedrate,
+        const libvgcode::PathVertex vertex = { position(curr.position), curr.height, curr.width, curr.feedrate, curr.actual_feedrate,
             curr.mm3_per_mm, curr.fan_speed, curr.temperature,
             result.filament_densities[curr.extruder_id] * curr.mm3_per_mm * (curr.position - prev.position).norm(),
-            convert(curr.extrusion_role), curr_type, static_cast<uint32_t>(curr.gcode_id), layer_id,
+            convert(curr.extrusion_role), curr_type, static_cast<uint32_t>(curr.gcode_id), static_cast<uint32_t>(curr.layer_id),
             static_cast<uint8_t>(curr.extruder_id), static_cast<uint8_t>(curr.cp_color_id), curr.time,
             /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance,
             /* ORCA: Add Acceleration visualization support */ curr.acceleration,
-            /* ORCA: Add Jerk visualization support */ curr.jerk };
+            /* ORCA: Add Jerk visualization support */ curr.jerk,
+            /* UNLAYERED_MOD: tilted-layer tool axis */ curr.tool_axis_id,
+            /* cut planes: section id */ to_section_id(curr.cut_segment_id) };
 #else
-        const libvgcode::PathVertex vertex = { xform_pos(curr.position), curr.height, curr.width, curr.feedrate, curr.actual_feedrate,
+        const libvgcode::PathVertex vertex = { position(curr.position), curr.height, curr.width, curr.feedrate, curr.actual_feedrate,
             curr.mm3_per_mm, curr.fan_speed, curr.temperature, convert(curr.extrusion_role), curr_type,
-            static_cast<uint32_t>(curr.gcode_id), layer_id,
+            static_cast<uint32_t>(curr.gcode_id), static_cast<uint32_t>(curr.layer_id),
             static_cast<uint8_t>(curr.extruder_id), static_cast<uint8_t>(curr.cp_color_id), curr.time,
             /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance,
             /* ORCA: Add Acceleration visualization support */ curr.acceleration,
-            /* ORCA: Add Jerk visualization support */ curr.jerk };
+            /* ORCA: Add Jerk visualization support */ curr.jerk,
+            /* UNLAYERED_MOD: tilted-layer tool axis */ curr.tool_axis_id,
+            /* cut planes: section id */ to_section_id(curr.cut_segment_id) };
 #endif // VGCODE_ENABLE_COG_AND_TOOL_MARKERS
         ret.vertices.emplace_back(vertex);
     }
     assert(ret.vertices.size() == vertices_count);
     // A no-op when the count above is exact; restores the exact fit if the count ever drifts.
     ret.vertices.shrink_to_fit();
-
-    // Note: the belt designed-view anchoring (recovering the per-object placement/
-    // lift translation the linear back-transform cannot) is folded into belt_xform
-    // by the caller (GCodeViewer::load_as_gcode), which anchors onto the upright
-    // model bounding box. Nothing extra to do here.
 
     ret.spiral_vase_mode = result.spiral_vase_mode;
 

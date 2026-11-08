@@ -97,6 +97,9 @@ enum BackgroundSlicingProcessStep {
 class BackgroundSlicingProcess
 {
 public:
+	// UNLAYERED_MOD -- where the last slice that ended in a hardware exception (Slic3r::HardCrash)
+	// faulted, "module.dll+0x1a2b" (UsageTelemetry::code_location); empty otherwise. Usage diagnostics.
+	std::string hard_crash_site() const;
 	BackgroundSlicingProcess();
 	// Stop the background processing and finalize the bacgkround processing thread, remove temp files.
 	~BackgroundSlicingProcess();
@@ -241,6 +244,8 @@ private:
 	// Wrapper for Win32 structured exceptions. Win32 structured exception blocks and C++ exception blocks cannot be mixed in the same function.
 	// Catch a SEH exception and return its ID or zero if no SEH exception has been catched.
 	unsigned long call_process_seh(std::exception_ptr &ex) throw();
+	// UNLAYERED_MOD -- the code address of the last hardware exception call_process_seh() caught.
+	const void   *m_seh_crash_address = nullptr;
 	// Calls call_process_seh(), rethrows a Slic3r::HardCrash exception based on SEH exception
 	// returned by call_process_seh().
 	void    	  call_process_seh_throw(std::exception_ptr &ex) throw();
