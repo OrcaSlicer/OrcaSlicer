@@ -179,7 +179,7 @@ TEST_CASE("An object that starts sharing another object's slices keeps its own l
 {
     // Unlayered: Print::process() slices every object itself (UNLAYERED_MOD there), so no object shares
     // another's slices.
-    SKIP("objects do not share slices in Unlayered Slicer");
+    SKIP("objects do not share slices in OrcaSlicer");
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
         { "layer_height",               0.2 },
@@ -2821,7 +2821,7 @@ TEST_CASE("Slicing errors are reported per object with the object's name", "[Pri
     print.set_status_silent();
     // Unlayered: an empty first layer is not an error here (a tilted chunk or a cut-plane segment
     // may start with one; see GCode::collect_layers_to_print), so this scene exports.
-    SKIP("an empty first layer does not stop the export in Unlayered Slicer");
+    SKIP("an empty first layer does not stop the export in OrcaSlicer");
 
     ScopedTemporaryFile temp(".gcode");
     std::string message;

@@ -198,7 +198,7 @@ const std::string BBL_APPLICATION_TAG               = "Application";
 // OrcaSlicer version tag
 const std::string ORCASLICER_TAG                    = "OrcaSlicer";
 // UNLAYERED_MOD: this fork's release; ORCASLICER_TAG holds the OrcaSlicer version it is based on
-const std::string UNLAYEREDSLICER_TAG               = "UnlayeredSlicer";
+const std::string UNLAYEREDSLICER_TAG               = "UnifiedSlicer";
 const std::string BBL_MAKERLAB_TAG                  = "MakerLab";
 const std::string BBL_MAKERLAB_VERSION_TAG          = "MakerLabVersion";
 
@@ -1175,7 +1175,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool m_load_restore = false;
         std::string m_backup_path;
         std::string m_origin_file;
-        // Semantic version of Unlayered Slicer, that generated this 3MF.
+        // Semantic version of OrcaSlicer, that generated this 3MF.
         boost::optional<Semver> m_bambuslicer_generator_version;
         // Semantic version from the OrcaSlicer metadata tag (if present).
         boost::optional<Semver> m_orca_slicer_version;
@@ -1985,7 +1985,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         // Orca: skip version check
         bool dont_load_config = !m_load_config;
         // if (m_bambuslicer_generator_version) {
-        //     Semver app_version = *(Semver::parse(UNLAYERED_VERSION));
+        //     Semver app_version = *(Semver::parse(SoftFever_VERSION));
         //     Semver file_version = *m_bambuslicer_generator_version;
         //     if (file_version.maj() != app_version.maj())
         //         dont_load_config = true;
@@ -4250,7 +4250,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }*/
         } else if (m_curr_metadata_name == BBL_APPLICATION_TAG) {
             // Generator application of the 3MF.
-            // SLIC3R_APP_KEY - UNLAYERED_VERSION
+            // SLIC3R_APP_KEY - SoftFever_VERSION
             if (boost::starts_with(m_curr_characters, "BambuStudio-")) {
                 m_is_bbl_3mf = true;
                 m_bambuslicer_generator_version = Semver::parse(m_curr_characters.substr(12));
@@ -7402,9 +7402,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     // the explicit !m_minimal_published guard keeps the tag-less guarantee from
                     // depending on that erase happening to run first.
                     stream << " <" << METADATA_TAG << " name=\"" << ORCASLICER_TAG << "\">"
-                           << xml_escape(ORCA_BASE_VERSION) << "</" << METADATA_TAG << ">\n";
+                           << xml_escape(SoftFever_VERSION) << "</" << METADATA_TAG << ">\n";
                     stream << " <" << METADATA_TAG << " name=\"" << UNLAYEREDSLICER_TAG << "\">"
-                           << xml_escape(UNLAYERED_VERSION) << "</" << METADATA_TAG << ">\n";
+                           << xml_escape(SoftFever_VERSION) << "</" << METADATA_TAG << ">\n";
                 }
             }
 
@@ -8883,8 +8883,8 @@ bool _BBS_3MF_Exporter::_add_model_config_file_to_archive(mz_zip_archive& archiv
         stream << "  <" << SLICE_HEADER_TAG << ">\n";
         stream << "    <" << SLICE_HEADER_ITEM_TAG << " " << KEY_ATTR << "=\"" << "X-BBL-Client-Type"    << "\" " << VALUE_ATTR << "=\"" << "slicer" << "\"/>\n";
         stream << "    <" << SLICE_HEADER_ITEM_TAG << " " << KEY_ATTR << "=\"" << "X-BBL-Client-Version" << "\" " << VALUE_ATTR << "=\"" << convert_to_full_version(SLIC3R_VERSION) << "\"/>\n";
-        stream << "    <" << SLICE_HEADER_ITEM_TAG << " " << KEY_ATTR << "=\"" << "OrcaSlicer-Version" << "\" " << VALUE_ATTR << "=\"" << ORCA_BASE_VERSION << "\"/>\n";
-        stream << "    <" << SLICE_HEADER_ITEM_TAG << " " << KEY_ATTR << "=\"" << "UnlayeredSlicer-Version" << "\" " << VALUE_ATTR << "=\"" << UNLAYERED_VERSION << "\"/>\n";
+        stream << "    <" << SLICE_HEADER_ITEM_TAG << " " << KEY_ATTR << "=\"" << "OrcaSlicer-Version" << "\" " << VALUE_ATTR << "=\"" << SoftFever_VERSION << "\"/>\n";
+        stream << "    <" << SLICE_HEADER_ITEM_TAG << " " << KEY_ATTR << "=\"" << "UnifiedSlicer-Version" << "\" " << VALUE_ATTR << "=\"" << SoftFever_VERSION << "\"/>\n";
         stream << "  </" << SLICE_HEADER_TAG << ">\n";
 
         for (unsigned int i = 0; i < (unsigned int)plate_data_list.size(); ++i)

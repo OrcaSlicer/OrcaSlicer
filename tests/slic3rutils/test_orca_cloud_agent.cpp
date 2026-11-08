@@ -586,7 +586,7 @@ TEST_CASE_METHOD(HealthCheckFixture, "A token request made while start() refresh
 {
     // Unlayered: start() makes no silent sign-in from a stored session (the cloud service is
     // removed), so there is no refresh for a token request to wait on.
-    SKIP("start() does not refresh a stored session in Unlayered Slicer");
+    SKIP("start() does not refresh a stored session in OrcaSlicer");
     // A session saved by a previous run: start() refreshes it on its own thread.
     agent->persist_user_secret(nlohmann::json{{"refresh_token", "stored-refresh-token"}, {"user_id", "test-user-id"}}.dump());
     const std::string access_token = FAR_FUTURE_JWT;
@@ -626,7 +626,7 @@ std::string closed_port_url()
 // Unlayered: the cloud service is removed, so OrcaCloudServiceAgent's http_get/post/put/delete
 // return before sending anything (OrcaCloudServiceAgent.cpp). The delete and subscription tests
 // below need a request to reach the loopback server, so they are skipped.
-#define SKIP_WITHOUT_CLOUD_TRANSPORT() SKIP("OrcaCloudServiceAgent sends no requests in Unlayered Slicer")
+#define SKIP_WITHOUT_CLOUD_TRANSPORT() SKIP("OrcaCloudServiceAgent sends no requests in OrcaSlicer")
 
 TEST_CASE_METHOD(HealthCheckFixture, "Deleting a profile succeeds once the cloud has no such profile", "[OrcaCloudServiceAgent]")
 {

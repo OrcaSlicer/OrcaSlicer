@@ -901,8 +901,8 @@ TEST_CASE("A saved project records the OrcaSlicer version it is based on and thi
 
     std::string xml;
     REQUIRE(read_cad_recipe_entry(file.string(), xml, "3D/3dmodel.model"));
-    CHECK(count_occurrences(xml, version_tag("OrcaSlicer", ORCA_BASE_VERSION)) == 1);
-    CHECK(count_occurrences(xml, version_tag("UnlayeredSlicer", UNLAYERED_VERSION)) == 1);
+    CHECK(count_occurrences(xml, version_tag("OrcaSlicer", SoftFever_VERSION)) == 1);
+    CHECK(count_occurrences(xml, version_tag("UnlayeredSlicer", SoftFever_VERSION)) == 1);
 
     // OrcaSlicer's version line is what the importer reports as the file version, so OrcaSlicer's
     // migrations judge the file as one of its own; the fork's release is read apart from it.
@@ -910,10 +910,10 @@ TEST_CASE("A saved project records the OrcaSlicer version it is based on and thi
     Model              model;
     Semver             file_version;
     REQUIRE(load_project(file.string(), model, backup_dir, &file_version));
-    CHECK(file_version == *Semver::parse(ORCA_BASE_VERSION));
+    CHECK(file_version == *Semver::parse(SoftFever_VERSION));
     const std::optional<Semver> unlayered_version = unlayered_3mf_version(model);
     REQUIRE(unlayered_version.has_value());
-    CHECK(*unlayered_version == *Semver::parse(UNLAYERED_VERSION));
+    CHECK(*unlayered_version == *Semver::parse(SoftFever_VERSION));
 }
 
 TEST_CASE("A re-saved project carries each slicer version tag once, with this build's versions", "[3mf][Regression]")
@@ -922,9 +922,9 @@ TEST_CASE("A re-saved project carries each slicer version tag once, with this bu
     // UnlayeredSlicer tag. Both tags reach the re-save through the loaded model's metadata.
     ScopedTemporaryFile old_file(".3mf");
     store_cube_project(old_file.string());
-    REQUIRE(replace_in_3mf_entry(old_file.string(), "3dmodel.model", version_tag("OrcaSlicer", ORCA_BASE_VERSION),
+    REQUIRE(replace_in_3mf_entry(old_file.string(), "3dmodel.model", version_tag("OrcaSlicer", SoftFever_VERSION),
                                  version_tag("OrcaSlicer", "0.1.2")));
-    REQUIRE(replace_in_3mf_entry(old_file.string(), "3dmodel.model", version_tag("UnlayeredSlicer", UNLAYERED_VERSION), ""));
+    REQUIRE(replace_in_3mf_entry(old_file.string(), "3dmodel.model", version_tag("UnlayeredSlicer", SoftFever_VERSION), ""));
 
     ScopedTemporaryDir backup_dir("unlayered_version_resave");
     Model              model;
@@ -936,8 +936,8 @@ TEST_CASE("A re-saved project carries each slicer version tag once, with this bu
     REQUIRE(read_cad_recipe_entry(new_file.string(), xml, "3D/3dmodel.model"));
     CHECK(count_occurrences(xml, "<metadata name=\"OrcaSlicer\">") == 1);
     CHECK(count_occurrences(xml, "<metadata name=\"UnlayeredSlicer\">") == 1);
-    CHECK(count_occurrences(xml, version_tag("OrcaSlicer", ORCA_BASE_VERSION)) == 1);
-    CHECK(count_occurrences(xml, version_tag("UnlayeredSlicer", UNLAYERED_VERSION)) == 1);
+    CHECK(count_occurrences(xml, version_tag("OrcaSlicer", SoftFever_VERSION)) == 1);
+    CHECK(count_occurrences(xml, version_tag("UnlayeredSlicer", SoftFever_VERSION)) == 1);
 }
 
 TEST_CASE("A 0.x OrcaSlicer tag without an UnlayeredSlicer tag reads as an older release of this fork", "[3mf]")
@@ -953,9 +953,9 @@ TEST_CASE("A 0.x OrcaSlicer tag without an UnlayeredSlicer tag reads as an older
 
     ScopedTemporaryFile file(".3mf");
     store_cube_project(file.string());
-    REQUIRE(replace_in_3mf_entry(file.string(), "3dmodel.model", version_tag("OrcaSlicer", ORCA_BASE_VERSION),
+    REQUIRE(replace_in_3mf_entry(file.string(), "3dmodel.model", version_tag("OrcaSlicer", SoftFever_VERSION),
                                  version_tag("OrcaSlicer", c.orca_tag)));
-    REQUIRE(replace_in_3mf_entry(file.string(), "3dmodel.model", version_tag("UnlayeredSlicer", UNLAYERED_VERSION), ""));
+    REQUIRE(replace_in_3mf_entry(file.string(), "3dmodel.model", version_tag("UnlayeredSlicer", SoftFever_VERSION), ""));
 
     ScopedTemporaryDir backup_dir("unlayered_version_legacy");
     Model              model;

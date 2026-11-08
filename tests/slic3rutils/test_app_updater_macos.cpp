@@ -127,7 +127,7 @@ TEST_CASE("launch_silent_update refuses a target that is not an app bundle", "[A
 TEST_CASE("the generated update script is correct and correctly quoted", "[AppUpdaterMac]")
 {
     const fs::path dir = make_temp_dir();          // contains a space
-    const fs::path app = make_fake_bundle(dir, "Unlayered Slicer.app"); // and so does this
+    const fs::path app = make_fake_bundle(dir, "OrcaSlicer.app"); // and so does this
     const fs::path dl  = dir / "download dir";
     fs::create_directories(dl);
     const fs::path dmg = dl / "update.dmg";

@@ -54,88 +54,6 @@
 #define PLUGIN_PAGES_VISIBLE_COUNT_DEFAULT 5
 #define PLUGIN_PAGES_VISIBLE_COUNT_MAX 10
 
-// Embedded web application tab. Deliberately generic: any web application at any URL the user
-// configures may drive the slicer through the documented bridge in WEB_APP_BRIDGE.md. Nothing
-// here is specific to a particular application, and the shipped defaults live in
-// resources/web/webapp/default.json rather than in this source tree.
-#define SETTING_WEB_APP_ENABLED        "web_app_enabled"
-#define SETTING_WEB_APP_URL            "web_app_url"
-#define SETTING_WEB_APP_TITLE          "web_app_title"
-#define SETTING_WEB_APP_ALLOW_LOCAL    "web_app_allow_local_files"
-#define SETTING_WEB_APP_PATH_ROOTS     "web_app_path_roots"
-#define SETTING_WEB_APP_DOWNLOAD_HOSTS "web_app_download_hosts"
-// Additional https origins the tab may NAVIGATE to (vendor shops, docs, an OAuth provider).
-// Navigable is not the same as trusted: the bridge session token is injected only on the
-// configured origin, so a page reached this way can never drive the slicer.
-#define SETTING_WEB_APP_EXTRA_ORIGINS  "web_app_extra_origins"
-#define SETTING_WEB_APP_SEEDED         "web_app_seeded"
-// Lets the page in this tab read and change print settings through the bridge (the settings
-// family of methods, gated per slot -- see WEB_APP_BRIDGE.md). Off by default, and with it off
-// the bridge is exactly the surface it was before that family existed.
-#define SETTING_WEB_APP_ALLOW_SETTINGS "web_app_allow_settings"
-// Lets the tab ask the slicer to export the open project and read the bytes back, which is how a
-// page publishes what is on the plate. A separate key from ALLOW_SETTINGS because it is a
-// different kind of permission: settings are the slicer's state, this is the user's model leaving.
-#define SETTING_WEB_APP_ALLOW_EXPORT "web_app_allow_export"
-// Marker for the one-shot visibility change described in WebAppPanel::ensure_seeded. Holds the
-// tag of the last one the slot asked for, in either direction, so the same release never does it
-// twice and the user's own choice afterwards sticks. Named for the switch-off it did first.
-#define SETTING_WEB_APP_DISABLE_ONCE "web_app_disable_once"
-
-// Second web-application slot, the side panel (WebAppSlot::side_panel()) -- hosted as a sidebar
-// beside the tabs rather than as a tab of its own. Same panel, same bridge, its own keys so the
-// slots are configured independently. Mirrors the web_app_* family above key for key, plus the two
-// sidebar keys at the end. Configurations from before the rename carry agent_app_* keys, which
-// AppConfig::load() copies to side_panel_* once (when the new key is absent) and then erases.
-#define SETTING_SIDE_PANEL_ENABLED        "side_panel_enabled"
-#define SETTING_SIDE_PANEL_URL            "side_panel_url"
-#define SETTING_SIDE_PANEL_TITLE          "side_panel_title"
-#define SETTING_SIDE_PANEL_ALLOW_LOCAL    "side_panel_allow_local_files"
-#define SETTING_SIDE_PANEL_PATH_ROOTS     "side_panel_path_roots"
-#define SETTING_SIDE_PANEL_DOWNLOAD_HOSTS "side_panel_download_hosts"
-#define SETTING_SIDE_PANEL_EXTRA_ORIGINS  "side_panel_extra_origins"
-#define SETTING_SIDE_PANEL_SEEDED         "side_panel_seeded"
-#define SETTING_SIDE_PANEL_ALLOW_SETTINGS "side_panel_allow_settings"
-#define SETTING_SIDE_PANEL_ALLOW_EXPORT   "side_panel_allow_export"
-#define SETTING_SIDE_PANEL_DISABLE_ONCE   "side_panel_disable_once"
-#define SETTING_SIDE_PANEL_RESEED_ONCE    "side_panel_reseed_once"
-// Whether the side panel is open, and how wide it is. The width is stored in DIP (as text --
-// AppConfig has no integer accessor) so it survives a DPI change; 0 or unparsable = the default.
-#define SETTING_SIDE_PANEL_SIDEBAR_OPEN  "side_panel_sidebar_open"
-#define SETTING_SIDE_PANEL_SIDEBAR_WIDTH "side_panel_sidebar_width"
-
-// Unlayered: the third slot, the Unlayered Universe tab -- the model-sharing site embedded so a
-// print can be opened straight onto the plate instead of going through the browser and the
-// Downloads folder. Seeded once from resources/web/webapp/universe.json. Mirrors the two
-// families above key for key. Note universe_app_download_hosts carries the blob host the site
-// redirects downloads to: it is a different host from the page's own, so without it every
-// "open in the slicer" is refused by openProjectFromUrl's allow-list.
-#define SETTING_UNIVERSE_APP_ENABLED        "universe_app_enabled"
-#define SETTING_UNIVERSE_APP_URL            "universe_app_url"
-#define SETTING_UNIVERSE_APP_TITLE          "universe_app_title"
-#define SETTING_UNIVERSE_APP_ALLOW_LOCAL    "universe_app_allow_local_files"
-#define SETTING_UNIVERSE_APP_PATH_ROOTS     "universe_app_path_roots"
-#define SETTING_UNIVERSE_APP_DOWNLOAD_HOSTS "universe_app_download_hosts"
-#define SETTING_UNIVERSE_APP_EXTRA_ORIGINS  "universe_app_extra_origins"
-#define SETTING_UNIVERSE_APP_SEEDED         "universe_app_seeded"
-#define SETTING_UNIVERSE_APP_ALLOW_SETTINGS "universe_app_allow_settings"
-#define SETTING_UNIVERSE_APP_ALLOW_EXPORT "universe_app_allow_export"
-#define SETTING_UNIVERSE_APP_DISABLE_ONCE "universe_app_disable_once"
-
-// External slicing service: the address the plate is handed to when the user picks one of the
-// service's entries in the Slice dropdown (Preferences > Advanced). Deliberately generic in the same way as the web application above -- any
-// service implementing the protocol in SLICE_SERVICE_PROTOCOL.md may be configured here, this
-// source tree carries no address, and with none set the feature is absent from the UI.
-#define SETTING_NONPLANAR_SLICE_URL    "nonplanar_slice_url"
-// The account provider the application signs in with (auth only: device sign-in, a short-lived
-// token for a slicing service, signed-in web pages). Protocol: the provider section of
-// SLICE_SERVICE_PROTOCOL.md. Preferences > Advanced > "Web apps & services". Blank = no account.
-// Seeded with Unlayered's site only when the key is absent (see AppConfig::set_defaults).
-#define SETTING_ACCOUNT_PROVIDER_URL   "account_provider_url"
-// Comma-separated origins (https://host[:port]) besides the provider's own site that may receive
-// a provider token. A slicing service anywhere else gets no Authorization header from the slicer.
-#define SETTING_SERVICE_TOKEN_ORIGINS  "service_token_origins"
-
 #define SETTING_SPEED_DIAL_RECENT_COUNT "speed_dial_recent_count"
 #define SPEED_DIAL_RECENT_COUNT_MIN 0
 #define SPEED_DIAL_RECENT_COUNT_DEFAULT 5
@@ -317,13 +235,6 @@ public:
 	}
 	bool				has(const std::string &key) const
 		{ return this->has("app", key); }
-	// True when the key is stored at all, even with an empty value -- unlike has(), which treats
-	// an empty value as absent. For settings where blank is a choice ("off") rather than "unset".
-	bool				contains(const std::string &key) const
-	{
-		auto it = m_storage.find("app");
-		return it != m_storage.end() && it->second.find(key) != it->second.end();
-	}
 
 	void				erase(const std::string &section, const std::string &key)
 	{
@@ -455,17 +366,12 @@ public:
 	bool 				legacy_datadir() const { return m_legacy_datadir; }
 	void 				set_legacy_datadir(bool value) { m_legacy_datadir = value; }
 
-	// Get the Unlayered Slicer update manifest url.
+	// Get the Slic3r version check url.
 	// This returns a hardcoded string unless it is overriden by "version_check_url" in the ini file.
 	std::string 		version_check_url() const;
 
-	// Base URL of the GitHub-shaped releases API the firmware and printer-config updaters use:
-	// https://unlayered3d.com/printer-updates-api unless overridden by "github_api_base" in the
-	// ini file (the key keeps its old name so existing overrides still work).
-	std::string 		github_api_base() const;
-
-	// Unlayered: there is deliberately no profile_update_url(). Vendor profiles are shipped in
-	// resources/profiles and installed locally; nothing is fetched from a remote profile service.
+	// Get the Orca profile update url.
+	std::string 		profile_update_url() const;
 
 	// Returns the original Slic3r version found in the ini file before it was overwritten
 	// by the current version

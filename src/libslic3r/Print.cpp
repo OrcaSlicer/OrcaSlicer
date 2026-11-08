@@ -3003,7 +3003,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                        if (!warning_key.empty()) {
                             motion_warning.string = L(
                                 "The jerk setting exceeds the printer's maximum jerk (machine_max_jerk_x/machine_max_jerk_y).\n"
-                                "Unlayered Slicer will automatically cap the jerk speed to ensure it doesn't surpass the printer's capabilities.\n"
+                                "OrcaSlicer will automatically cap the jerk speed to ensure it doesn't surpass the printer's capabilities.\n"
                                 "You can adjust the maximum jerk setting in your printer's configuration to get higher speeds.");
                             motion_warning.opt_key = warning_key;
                        }
@@ -3015,7 +3015,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 const bool support_max_junction_deviation = ( m_config.gcode_flavor == gcfMarlinFirmware);
                 if (warning_key.empty() && m_default_object_config.default_junction_deviation.get_at(extruder_id) > max_junction_deviation && support_max_junction_deviation) {
                     motion_warning.string  = L( "Junction deviation setting exceeds the printer's maximum value (machine_max_junction_deviation).\n"
-                                          "Unlayered Slicer will automatically cap the junction deviation to ensure it doesn't surpass the printer's capabilities.\n"
+                                          "OrcaSlicer will automatically cap the junction deviation to ensure it doesn't surpass the printer's capabilities.\n"
                                           "You can adjust the machine_max_junction_deviation value in your printer's configuration to get higher limits.");
                     motion_warning.opt_key = "default_junction_deviation";
                 }

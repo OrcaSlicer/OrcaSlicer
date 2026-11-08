@@ -624,7 +624,7 @@ TEST_CASE("A printer or filament Unlayered does not ship is skipped, never an er
     REQUIRE(h2s != nullptr);
     CHECK(h2s->why == Skipped::Why::NotShipped);
     CHECK(h2s->kind == Kind::Printer);
-    CHECK(h2s->reason == "not available in Unlayered Slicer yet");
+    CHECK(h2s->reason == "not available in OrcaSlicer yet");
     REQUIRE(find_skipped(p, "Bambu Lab A1 0.2 nozzle") != nullptr);
     REQUIRE(find_skipped(p, "Some Unknown Filament") != nullptr);
     CHECK(find_skipped(p, "Some Unknown Filament")->kind == Kind::Filament);

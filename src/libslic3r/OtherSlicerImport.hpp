@@ -24,7 +24,7 @@ class DynamicPrintConfig;
 //  - scan(): read that app's user presets (never written to, never anything else of the app's);
 //  - plan(): for each preset, resolve its "inherits" chain IN THE SOURCE APP (user presets, the
 //    app's installed system presets, the vendor profiles shipped with it) and flatten it, so the
-//    result stands on its own. If Unlayered Slicer has a system preset of the same name as one of the
+//    result stands on its own. If OrcaSlicer has a system preset of the same name as one of the
 //    ancestors, the preset inherits that instead and keeps its link to the vendor profile (the
 //    importer then saves only what differs from it). PrusaSlicer keys and values are translated to
 //    this fork's names. Names that already exist get " (<App>)" appended; nothing is overwritten.
@@ -36,7 +36,7 @@ class DynamicPrintConfig;
 // Since 0.1.7 the import also brings over what the person picked from the app's BUILT-IN lists (most
 // people never save a preset of their own): the printer models + nozzles and system filaments its app
 // config has enabled, and, on a fresh install here, its current printer / process / filament. Those
-// are matched against the vendor profiles Unlayered Slicer ships; anything it does not have is
+// are matched against the vendor profiles OrcaSlicer ships; anything it does not have is
 // reported as skipped, never an error.
 namespace OtherSlicers {
 
@@ -90,7 +90,7 @@ struct AppLocation
 
 // The data directories of the supported apps that exist on this machine (Windows %APPDATA%, macOS
 // ~/Library/Application Support, Linux $XDG_CONFIG_HOME or ~/.config and the Flatpak sandboxes).
-// `exclude` is never returned (Unlayered Slicer's own data directory).
+// `exclude` is never returned (OrcaSlicer's own data directory).
 std::vector<AppLocation> find(const boost::filesystem::path &exclude = {});
 // The same for one app, rooted at `data_dir`, with the standard profile roots under it. For tests
 // and for an installation somewhere unusual.
@@ -172,7 +172,7 @@ struct Scan
 // Reads the app's user presets. Light: only the user presets are parsed, nothing is resolved.
 Scan scan(const AppLocation &location);
 
-// What Unlayered Slicer already has.
+// What OrcaSlicer already has.
 struct Target
 {
     // Any preset of this kind (system, default, user, bundle) already has this name.
@@ -237,7 +237,7 @@ struct Skipped
     std::string name;
     std::string reason; // English, for the log
     // NotShipped: a printer model / nozzle or filament picked from the app's built-in list that
-    // Unlayered Slicer has no profile for. NoPrinter: a PrusaSlicer physical printer none of whose
+    // OrcaSlicer has no profile for. NoPrinter: a PrusaSlicer physical printer none of whose
     // printer presets is imported, so its address has nowhere to go.
     enum class Why { AlreadyImported, AlreadyPresent, Duplicate, MissingParent, NotShipped, NoPrinter } why;
     // AlreadyImported: the name it got here; MissingParent: the parent's name; NotShipped: the vendor

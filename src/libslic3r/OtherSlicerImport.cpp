@@ -1435,13 +1435,13 @@ void plan_system(const Scan &scan, const Target &target, const ImportHistory &hi
                 continue;
             const auto [here_vendor, here_model] = match_model(app, vendor, model, target.shipped_models);
             if (here_model.empty()) {
-                skip(Kind::Printer, model, "not available in Unlayered Slicer yet");
+                skip(Kind::Printer, model, "not available in OrcaSlicer yet");
                 continue;
             }
             const std::set<std::string> &shipped = target.shipped_models.at(here_vendor).at(here_model);
             for (const std::string &nozzle : nozzles) {
                 if (shipped.count(nozzle) == 0) {
-                    skip(Kind::Printer, here_model + " " + nozzle + " nozzle", "this nozzle is not available in Unlayered Slicer yet");
+                    skip(Kind::Printer, here_model + " " + nozzle + " nozzle", "this nozzle is not available in OrcaSlicer yet");
                     continue;
                 }
                 if (is_enabled(models_now, here_vendor, here_model, nozzle) ||
@@ -1458,7 +1458,7 @@ void plan_system(const Scan &scan, const Target &target, const ImportHistory &hi
             continue;
         const std::string vendor = target.filament_vendor ? target.filament_vendor(name) : std::string();
         if (vendor.empty()) {
-            skip(Kind::Filament, name, "not available in Unlayered Slicer yet");
+            skip(Kind::Filament, name, "not available in OrcaSlicer yet");
             continue;
         }
         // A vendor's own filaments only for that vendor's printers; the filament library for every printer.
@@ -1558,7 +1558,7 @@ Plan plan(const std::vector<Scan> &scans, const Target &target, const ImportHist
                     r.complete = true;
                 if (!r.complete && parent.empty()) {
                     out.skipped.push_back({app, kind, p.name,
-                                           "based on \"" + r.missing + "\", which neither " + app_name(app) + " nor Unlayered Slicer has",
+                                           "based on \"" + r.missing + "\", which neither " + app_name(app) + " nor OrcaSlicer has",
                                            Skipped::Why::MissingParent, r.missing});
                     continue;
                 }
@@ -1568,7 +1568,7 @@ Plan plan(const std::vector<Scan> &scans, const Target &target, const ImportHist
                     const DynamicPrintConfig *existing = !prusa_format(app) && target.user_config ? target.user_config(kind, name) : nullptr;
                     if (existing != nullptr && same_settings(p, *existing)) {
                         renamed[{app, kind, p.name}] = name;
-                        out.skipped.push_back({app, kind, p.name, "already in Unlayered Slicer", Skipped::Why::AlreadyPresent, name});
+                        out.skipped.push_back({app, kind, p.name, "already in OrcaSlicer", Skipped::Why::AlreadyPresent, name});
                         continue;
                     }
                     const std::string base = p.name + " (" + app_name(app) + ")";

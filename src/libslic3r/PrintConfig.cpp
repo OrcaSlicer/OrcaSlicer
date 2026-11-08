@@ -460,8 +460,7 @@ static t_config_enum_values s_keys_map_PrintHostType {
     { "simplyprint",    htSimplyPrint },
     { "elegoolink",     htElegooLink },
     { "3dprinteros",    ht3DPrinterOS },
-    { "moonraker",      htMoonraker },
-    { "unlayered",      htUnlayered }
+    { "moonraker",      htMoonraker }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintHostType)
 
@@ -1503,7 +1502,7 @@ void PrintConfigDef::init_common_params()
 
     def = this->add("use_3mf", coBool);
     def->label = L("Use 3MF instead of G-code");
-    def->tooltip = L("Enable this if the printer accepts a 3MF file as the print job. When enabled, Unlayered Slicer "
+    def->tooltip = L("Enable this if the printer accepts a 3MF file as the print job. When enabled, OrcaSlicer "
                      "sends the sliced file as a .gcode.3mf, instead of a plain .gcode file.");
     def->mode = comAdvanced;
     def->cli = ConfigOptionDef::nocli;
@@ -1523,7 +1522,7 @@ void PrintConfigDef::init_common_params()
     def->label = L("Hostname, IP or URL");
     // The URL is an example of the format to type, not a link, so it stays in the text.
     // xgettext:no-url-check
-    def->tooltip = L("Unlayered Slicer can upload G-code files to a printer host. This field should contain "
+    def->tooltip = L("OrcaSlicer can upload G-code files to a printer host. This field should contain "
         "the hostname, IP address or URL of the printer host instance. "
         "Print host behind HAProxy with basic auth enabled can be accessed by putting the user name and password into the URL "
         "in the following format: https://username:password@your-octopi-address/");
@@ -1540,7 +1539,7 @@ void PrintConfigDef::init_common_params()
 
     def = this->add("printhost_apikey", coString);
     def->label = L("API Key / Password");
-    def->tooltip = L("Unlayered Slicer can upload G-code files to a printer host. This field should contain "
+    def->tooltip = L("OrcaSlicer can upload G-code files to a printer host. This field should contain "
         "the API Key or the password required for authentication.");
     def->mode = comAdvanced;
     def->cli = ConfigOptionDef::nocli;
@@ -3734,7 +3733,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Minimal purge on wipe tower");
     def->tooltip = L("After a tool change, the exact position of the newly loaded filament inside "
                      "the nozzle may not be known, and the filament pressure is likely not yet stable. "
-                     "Before purging the print head into an infill or a sacrificial object, Unlayered Slicer will always prime "
+                     "Before purging the print head into an infill or a sacrificial object, OrcaSlicer will always prime "
                      "this amount of material into the wipe tower to produce successive infill or sacrificial object extrusions reliably.");
     def->sidetext = L(u8"mm³");	// cubic millimeters, CIS languages need translation
     def->min = 0;
@@ -5409,7 +5408,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("Connect an infill line to an internal perimeter with a short segment of an additional perimeter. "
                      "If expressed as percentage (example: 15%) it is calculated over infill extrusion width. "
-                     "Unlayered Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment "
+                     "OrcaSlicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment "
                      "shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side "
                      "and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
                      "Set this parameter to zero to disable anchoring perimeters connected to a single infill line.");
@@ -5437,7 +5436,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("Connect an infill line to an internal perimeter with a short segment of an additional perimeter. "
                      "If expressed as percentage (example: 15%) it is calculated over infill extrusion width. "
-                     "Unlayered Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment "
+                     "OrcaSlicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment "
                      "shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side "
                      "and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
                      "If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0.");
@@ -6726,11 +6725,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("host_type", coEnum);
     def->label = L("Host Type");
-    def->tooltip = L("Unlayered Slicer can upload G-code files to a printer host. This field must contain "
-                   "the kind of the host.\n\n"
-                   "Choose Unlayered for a Duet board running Unlayered firmware: it speaks the same "
-                   "protocol as Duet and adds in-app firmware updates. Plain Duet leaves the board's "
-                   "firmware alone.");
+    def->tooltip = L("Orca Slicer can upload G-code files to a printer host. This field must contain "
+                   "the kind of the host.");
     def->enum_keys_map = &ConfigOptionEnum<PrintHostType>::get_enum_values();
     // The order here must match the declaration order of PrintHostType -- see the note on that
     // enum. New entries go on the END of both lists.
@@ -6751,7 +6747,6 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("elegoolink");
     def->enum_values.push_back("3dprinteros");
     def->enum_values.push_back("moonraker");
-    def->enum_values.push_back("unlayered");
     def->enum_labels.push_back("PrusaLink");
     def->enum_labels.push_back("PrusaConnect");
     def->enum_labels.push_back("Octo/Klipper");
@@ -6769,7 +6764,6 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back("Elegoo Link");
     def->enum_labels.push_back("3DPrinterOS");
     def->enum_labels.push_back("Moonraker (Klipper)");
-    def->enum_labels.push_back("Unlayered");
     def->mode = comAdvanced;
     def->cli = ConfigOptionDef::nocli;
     def->set_default_value(new ConfigOptionEnum<PrintHostType>(htOctoPrint));
@@ -7443,7 +7437,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("If you want to process the output G-code through custom scripts, "
                    "just list their absolute paths here. Separate multiple scripts with a semicolon. "
                    "Scripts will be passed the absolute path to the G-code file as the first argument, "
-                   "and they can access the Unlayered Slicer config settings by reading environment variables.");
+                   "and they can access the OrcaSlicer config settings by reading environment variables.");
     def->gui_flags = "serialized";
     def->multiline = true;
     def->full_width = true;
@@ -8442,8 +8436,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("preheat_time", coFloat);
     def->label = L("Preheat time");
-    def->tooltip = L("To reduce the waiting time after tool change, Unlayered Slicer can preheat the next tool while the current tool is still in use. "
-                     "This setting specifies the time in seconds to preheat the next tool. Unlayered Slicer will insert a M104 command to preheat the tool in advance.");
+    def->tooltip = L("To reduce the waiting time after tool change, OrcaSlicer can preheat the next tool while the current tool is still in use. "
+                     "This setting specifies the time in seconds to preheat the next tool. OrcaSlicer will insert a M104 command to preheat the tool in advance.");
     def->sidetext = L_CONTEXT("s", "second");	// seconds, CIS languages need translation
     def->min = 0;
     def->max = 120;
@@ -8665,7 +8659,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Tool change on wipe tower");
     def->tooltip = L("Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx).\n\n"
                      "Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. "
-                     "By default Unlayered Slicer skips the travel on multi-toolhead machines because the firmware handles the head swap, "
+                     "By default OrcaSlicer skips the travel on multi-toolhead machines because the firmware handles the head swap, "
                      "which can result in the Tx command being issued above the printed part. "
                      "Enable this option if you want the tool change to always be issued above the wipe tower instead.");
     def->mode = comAdvanced;
@@ -14747,8 +14741,8 @@ CLIMiscConfigDef::CLIMiscConfigDef()
 
     def = this->add("config_compatibility", coEnum);
     def->label = L("Forward-compatibility rule when loading configurations from config files and project files (3MF, AMF).");
-    def->tooltip = L("This version of Unlayered Slicer may not understand configurations produced by the newest Unlayered Slicer versions. "
-                     "For example, newer Unlayered Slicer may extend the list of supported firmware flavors. One may decide to "
+    def->tooltip = L("This version of OrcaSlicer may not understand configurations produced by the newest OrcaSlicer versions. "
+                     "For example, newer OrcaSlicer may extend the list of supported firmware flavors. One may decide to "
                      "bail out or to substitute an unknown value with a default silently or verbosely.");
     def->enum_keys_map = &ConfigOptionEnum<ForwardCompatibilitySubstitutionRule>::get_enum_values();
     def->enum_values.push_back("disable");
@@ -14823,8 +14817,8 @@ CLIMiscConfigDef::CLIMiscConfigDef()
 
     def = this->add("single_instance", coBool);
     def->label = L("Single instance mode");
-    def->tooltip = L("If enabled, the command line arguments are sent to an existing instance of GUI Unlayered Slicer, "
-                     "or an existing Unlayered Slicer window is activated. "
+    def->tooltip = L("If enabled, the command line arguments are sent to an existing instance of GUI OrcaSlicer, "
+                     "or an existing OrcaSlicer window is activated. "
                      "Overrides the \"single_instance\" configuration value from application preferences.");*/
 
 /*
@@ -14987,12 +14981,12 @@ ReadWriteSlicingStatesConfigDef::ReadWriteSlicingStatesConfigDef()
     def = this->add("position", coFloats);
     def->label = L("Position");
     def->tooltip = L("Position of the extruder at the beginning of the custom G-code block. If the custom G-code travels somewhere else, "
-                     "it should write to this variable so Unlayered Slicer knows where it travels from when it gets control back.");
+                     "it should write to this variable so OrcaSlicer knows where it travels from when it gets control back.");
 
     def = this->add("e_retracted", coFloats);
     def->label = L("Retraction");
     def->tooltip = L("Retraction state at the beginning of the custom G-code block. If the custom G-code moves the extruder axis, "
-                     "it should write to this variable so Unlayered Slicer de-retracts correctly when it gets control back.");
+                     "it should write to this variable so OrcaSlicer de-retracts correctly when it gets control back.");
 
     def = this->add("e_restart_extra", coFloats);
     def->label = L("Extra de-retraction");

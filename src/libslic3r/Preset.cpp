@@ -3749,7 +3749,7 @@ std::string PresetCollection::add_detached_preset(const std::string &name_base, 
     preset.m_excluded_from.clear();
     preset.setting_id.clear();
     preset.inherits().clear();
-    preset.version = Semver::parse(UNLAYERED_VERSION).value_or(Semver());
+    preset.version = Semver::parse(SoftFever_VERSION).value_or(Semver());
     preset.is_default  = false;
     preset.is_system   = false;
     preset.is_external = false;

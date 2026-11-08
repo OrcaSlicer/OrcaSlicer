@@ -287,7 +287,7 @@ static void run_post_process_plugins(const ConfigOptionStrings& capabilities,
 
     auto execute_fn = [&](std::shared_ptr<SlicingPipelinePluginCapability> cap, const PluginCapabilityRef& ref) {
         SlicingPipelineContext ctx;
-        ctx.orca_version = UNLAYERED_VERSION;
+        ctx.orca_version = SoftFever_VERSION;
         ctx.step         = SlicingPipelineStepPlugin::psGCodePostProcess;
         ctx.gcode_path   = gcode_path;
         ctx.host         = host;

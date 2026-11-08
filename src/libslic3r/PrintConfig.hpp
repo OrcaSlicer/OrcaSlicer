@@ -123,7 +123,7 @@ enum class WipeTowerType {
 // to keep matching its position in host_type's enum_values list in PrintConfig.cpp. Inserting
 // in the middle silently remaps every host type after the insertion point.
 enum PrintHostType {
-    htPrusaLink, htPrusaConnect, htOctoPrint, htDuet, htUltiMaker, htFlashAir, htAstroBox, htRepetier, htMKS, htESP3D, htCrealityPrint, htObico, htFlashforge, htSimplyPrint, htElegooLink, ht3DPrinterOS, htMoonraker, htUnlayered
+    htPrusaLink, htPrusaConnect, htOctoPrint, htDuet, htUltiMaker, htFlashAir, htAstroBox, htRepetier, htMKS, htESP3D, htCrealityPrint, htObico, htFlashforge, htSimplyPrint, htElegooLink, ht3DPrinterOS, htMoonraker
 };
 
 // Orca: wave-overhang ring spacing mode.

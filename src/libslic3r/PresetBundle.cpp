@@ -1051,7 +1051,7 @@ bool PresetBundle::use_bbl_device_tab() {
 
 bool PresetBundle::backup_user_folder() const
 {
-    const std::string backup_folderpath = data_dir() + "/" + (boost::format("user_backup-v%1%") % UNLAYERED_VERSION).str();
+    const std::string backup_folderpath = data_dir() + "/" + (boost::format("user_backup-v%1%") % SoftFever_VERSION).str();
 
     // Check if backup file already exists
     if (boost::filesystem::exists(boost::filesystem::path(backup_folderpath)))

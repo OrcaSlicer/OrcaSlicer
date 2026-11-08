@@ -3,7 +3,7 @@
 
 #include <wx/colour.h>
 
-// Unlayered Slicer accent palette.
+// OrcaSlicer accent palette.
 //
 // The accent is a neutral grey and is DELIBERATELY THEME-INDEPENDENT: none of these
 // values appears as a key or as a value in gDarkColors (Widgets/StateColor.cpp), so
