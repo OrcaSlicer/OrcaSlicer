@@ -1205,6 +1205,10 @@ public:
     // both, which makes the tower deeper. So precise Z height is left out of the whole print instead:
     // the objects stay on the same layers, and the last layer of a lower object ends where the shared
     // layers do, a fraction of a layer off its own top.
+    // It keys on has_wipe_tower(), which reads the config, so it also applies when the tower turns out
+    // not to be needed after slicing, such as support in another filament that no object needs. Keying
+    // it on wipe_tower_certain_before_slicing() would keep precise Z there, but a plate whose support
+    // does need the tower would then be refused after slicing.
     bool                        precise_z_height_overridden() const { return m_precise_z_height_overridden; }
     const WipeTowerData&        wipe_tower_data(size_t filaments_cnt = 0) const;
     const ToolOrdering& 		tool_ordering() const { return m_tool_ordering; }
