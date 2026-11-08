@@ -9,6 +9,7 @@
 #include "PluginFsUtils.hpp"
 #include "PythonInterpreter.hpp"
 #include "PythonPluginBridge.hpp"
+#include "pluginTypes/resourceTexture/ResourceTexturePluginCapability.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/format.hpp"
@@ -22,7 +23,7 @@
 #include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/file_status.hpp>
 #include <boost/log/trivial.hpp>
-#include <boost/process.hpp>
+#include <slic3r/Utils/BoostProcessCompat.hpp>
 #include "slic3r/plugin/PluginDescriptor.hpp"
 #include <optional>
 #include <vector>
@@ -30,13 +31,7 @@
 #include "slic3r/plugin/PythonPluginInterface.hpp"
 #include <cstddef>
 #include <functional>
-#include <boost/process/pipe.hpp>
-#include <boost/process/args.hpp>
-#include <boost/process/io.hpp>
 #include <system_error>
-#ifdef _WIN32
-#include <boost/process/windows.hpp>
-#endif
 
 #include <algorithm>
 #include <chrono>
@@ -266,6 +261,32 @@ bool load(const PluginDescriptor&                          descriptor,
     static std::mutex           load_serializer;
     std::lock_guard<std::mutex> load_lock(load_serializer);
 
+    // A sidecar whose contents do not parse (cut short by a crash, or broken by a hand edit) would
+    // make every writer refuse it, so a plugin that declares permissions could never load and no
+    // grant or capability choice could be saved. Set it aside before any plugin code runs, so this
+    // load treats the plugin as having no sidecar: request_permissions asks again and the on-load
+    // writer creates a fresh one, as for a new plugin. The old bytes stay beside it for manual
+    // recovery, and the denied-filename prefix keeps the backup out of the plugin's reach too.
+    // Anything else at the sidecar path (a link, a directory, a file that cannot be opened or read
+    // in full) is left alone, so its writers keep refusing.
+    if (!descriptor.plugin_root.empty()) {
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        const boost::filesystem::path plugin_root(descriptor.plugin_root);
+        PluginInstallState            unused_state;
+        bool                          malformed = false;
+        if (read_install_state_status(plugin_root, unused_state, &malformed) == InstallStateReadStatus::Unreadable &&
+            malformed) {
+            const std::string sidecar = (plugin_root / INSTALL_STATE_FILE).string();
+            const std::string backup  = sidecar + ".corrupt";
+            if (const std::error_code ec = rename_file(sidecar, backup))
+                BOOST_LOG_TRIVIAL(warning) << "[plugin_loader::load] Cannot set aside unparsable " << sidecar << ": "
+                                           << ec.message();
+            else
+                BOOST_LOG_TRIVIAL(warning) << "[plugin_loader::load] Install state of " << descriptor.plugin_key
+                                           << " could not be parsed; moved it to " << backup << " and starting fresh";
+        }
+    }
+
     Plugin plugin;
     plugin.descriptor  = descriptor;
     plugin.module_name = plugin_module_name(descriptor);
@@ -322,8 +343,12 @@ bool load(const PluginDescriptor&                          descriptor,
     // The user's per-capability enable choices live in the sidecar — the only durable record, since
     // a capability has no state (and no existence) while the package is not loaded.
     PluginInstallState install_state;
-    const bool         have_install_state = !descriptor.plugin_root.empty() &&
-                                    read_install_state(boost::filesystem::path(descriptor.plugin_root), install_state);
+    bool have_install_state = false;
+    {
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        have_install_state = !descriptor.plugin_root.empty() &&
+                             read_install_state(boost::filesystem::path(descriptor.plugin_root), install_state);
+    }
 
     // get_name()/get_type() are read exactly once — here, under the GIL this block already holds —
     // and cached on the capability, which is the only place capability state lives.
@@ -385,6 +410,37 @@ bool load(const PluginDescriptor&                          descriptor,
                             << "Plugin capability '" << found.name << "' of plugin '" << descriptor.plugin_key
                             << "': has_config_ui() failed (" << ex.what() << "); falling back to the default JSON editor";
                         instance->set_config_ui_available(false);
+                    }
+
+                    // ResourceTexture capabilities resolve their texture directory here, under the
+                    // GIL this block already holds, and cache the validated result. A resolution
+                    // fault only costs this capability its textures, so it is caught locally like
+                    // has_config_ui() above rather than failing the load.
+                    if (auto* resource_texture = dynamic_cast<ResourceTexturePluginCapability*>(instance.get())) {
+                        try {
+                            const std::string texture_dir = resource_texture->get_texture_dir();
+                            if (texture_dir.empty()) {
+                                resource_texture->set_texture_dir({});
+                            } else {
+                                std::string texture_error;
+                                collect_resource_texture_files(texture_dir, descriptor.plugin_root, texture_error);
+                                if (texture_error.empty()) {
+                                    resource_texture->set_texture_dir(texture_dir);
+                                } else {
+                                    BOOST_LOG_TRIVIAL(warning)
+                                        << "Plugin capability '" << found.name << "' of plugin '" << descriptor.plugin_key
+                                        << "': texture directory rejected (" << texture_error
+                                        << "); the capability will provide no textures";
+                                    resource_texture->set_texture_dir({});
+                                }
+                            }
+                        } catch (const std::exception& ex) {
+                            BOOST_LOG_TRIVIAL(warning)
+                                << "Plugin capability '" << found.name << "' of plugin '" << descriptor.plugin_key
+                                << "': get_texture_dir() failed (" << ex.what()
+                                << "); the capability will provide no textures";
+                            resource_texture->set_texture_dir({});
+                        }
                     }
 
                     capabilities.push_back(std::move(instance));
@@ -717,9 +773,11 @@ bool install_plugin(const boost::filesystem::path& filepath,
     plugin_descriptor.set_metadata_valid(true);
     plugin_descriptor.clear_error();
 
-    // Write install state sidecar before removing the backup.
+    // Write install state sidecar before removing the backup. The write takes the shared
+    // install-state mutex so it cannot interleave with an in-process read-modify-write writer.
     {
-        PluginDescriptor installed_entry = plugin_descriptor;
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        PluginDescriptor            installed_entry = plugin_descriptor;
         if (is_cloud_install)
             installed_entry.cloud = CloudPluginState{cloud_uuid, true, false, false, plugin_descriptor.cloud->is_mine};
         if (!write_install_state(final_dir, installed_entry)) {

@@ -23,6 +23,21 @@ namespace {
 
 ExPolygon rectangle(double x, double width) { return ExPolygon(Polygon::new_scale({ { x, 0. }, { x + width, 0. }, { x + width, 10. }, { x, 10. } })); }
 
+// A ring from 0 to 30 mm with a hole from 5 to 25 mm, an island from 10 to 20 mm in that hole, and one from 40 to 50 mm alone.
+ExPolygons ring_inner_alone()
+{
+    const auto square = [](double from, double to) {
+        return Polygon::new_scale({ { from, from }, { to, from }, { to, to }, { from, to } });
+    };
+    Polygon hole = square(5., 25.);
+    hole.make_clockwise();
+    ExPolygon ring(square(0., 30.));
+    ring.holes.emplace_back(hole);
+    return { ring, ExPolygon(square(10., 20.)), ExPolygon(square(40., 50.)) };
+}
+
+Point at(double x, double y) { return Point::new_scale(x, y); }
+
 } // namespace
 
 TEST_CASE("Islands overlapping their neighbors' make one body", "[ConnectedBodies]")
@@ -48,17 +63,8 @@ TEST_CASE("Islands overlapping their neighbors' make one body", "[ConnectedBodie
 
 TEST_CASE("The island locator tests the outlines only where boxes overlap", "[ConnectedBodies]")
 {
-    const auto square = [](double from, double to) {
-        return Polygon::new_scale({ { from, from }, { to, from }, { to, to }, { from, to } });
-    };
-    Polygon hole = square(5., 25.);
-    hole.make_clockwise();
-    ExPolygon ring(square(0., 30.));
-    ring.holes.emplace_back(hole);
-    ExPolygon alone(square(40., 50.));
-    const ExPolygons    islands = { ring, ExPolygon(square(10., 20.)), alone };
+    const ExPolygons    islands = ring_inner_alone();
     const IslandLocator locator(islands, scaled<coord_t>(1.));
-    const auto          at = [](double x, double y) { return Point::new_scale(x, y); };
 
     CHECK(locator.find(at(2., 2.)).first == 0);
     CHECK(locator.find(at(15., 15.)).first == 1);
@@ -75,6 +81,23 @@ TEST_CASE("The island locator tests the outlines only where boxes overlap", "[Co
     CHECK(locator.holds(2, at(50.5, 45.)));
     CHECK_FALSE(locator.holds(1, at(7., 15.)));
     CHECK(locator.find(at(35., 45.)).first == -1);
+}
+
+TEST_CASE("Islands not told apart are found by their boxes", "[ConnectedBodies]")
+{
+    const ExPolygons    islands = ring_inner_alone();
+    const IslandLocator locator(islands, scaled<coord_t>(1.), false);
+
+    // In the ring's hole, outside the island within it, the ring's box holds the point.
+    CHECK(locator.holds(0, at(7., 15.)));
+    const auto [island, distance] = locator.find(at(7., 15.));
+    CHECK(island == 0);
+    CHECK_THAT(distance, WithinAbs(0., 0.));
+    // A strict call still tests the outline: the ring is only the nearest, 2 mm away.
+    CHECK_FALSE(locator.holds(0, at(7., 15.), true));
+    const auto [nearest, strict_distance] = locator.find(at(7., 15.), true);
+    CHECK(nearest == 0);
+    CHECK_THAT(strict_distance, WithinRel(sqr(scaled<double>(2.)), 1e-6));
 }
 
 TEST_CASE("Separate solids are separate bodies", "[ConnectedBodies]")

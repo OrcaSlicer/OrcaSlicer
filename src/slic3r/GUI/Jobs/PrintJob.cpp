@@ -716,8 +716,6 @@ void PrintJob::process(Ctl &ctl)
     } else {
         // wait for printer mqtt ready the same job id
 
-        wxGetApp().plater()->record_slice_preset("print");
-
         BOOST_LOG_TRIVIAL(error) << "print_job: send ok.";
         wxCommandEvent* evt = new wxCommandEvent(m_print_job_completed_id);
         if (!m_completed_evt_data.empty())

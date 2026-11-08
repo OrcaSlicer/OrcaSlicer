@@ -1,54 +1,20 @@
 #include <catch2/catch_all.hpp>
 
-#include <clocale>
-#include <locale.h>
-
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/catch_message.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/LocalesUtils.hpp"
+#include "libslic3r/Utils.hpp"
+#include "test_utils.hpp"
+
+#include <boost/lexical_cast.hpp>
+#include <boost/lexical_cast/bad_lexical_cast.hpp>
 
 #include <string>
 
 using namespace Slic3r;
-
-namespace {
-
-// Switches this thread's numeric locale to one whose decimal separator is a comma,
-// when the system has one installed.
-struct CommaNumericLocale
-{
-#ifdef _WIN32
-    bool apply()
-    {
-        for (const char* name : { "de-DE", "German_Germany.1252" })
-            if (std::setlocale(LC_NUMERIC, name) != nullptr)
-                return true;
-        return false;
-    }
-#else
-    locale_t locale { (locale_t) 0 };
-    bool apply()
-    {
-        for (const char* name : { "de_DE.UTF-8", "de_DE.utf8", "de_DE" })
-            if ((locale = newlocale(LC_NUMERIC_MASK, name, (locale_t) 0)) != (locale_t) 0) {
-                uselocale(locale);
-                return true;
-            }
-        return false;
-    }
-    // Freed once the setters around apply() have put the thread's own locale back.
-    ~CommaNumericLocale()
-    {
-        if (locale != (locale_t) 0)
-            freelocale(locale);
-    }
-#endif
-};
-
-} // namespace
 
 TEST_CASE("Floats print as printf prints them in the C locale", "[LocalesUtils]")
 {
@@ -121,4 +87,26 @@ TEST_CASE("atof_decimal_point parses what atof parses in the C locale", "[Locale
     }));
     INFO(text);
     CHECK_THAT(atof_decimal_point(text), Catch::Matchers::WithinAbs(value, 1e-12));
+}
+
+TEST_CASE("Nozzle diameter strings read back in a locale whose decimal separator is a comma", "[LocalesUtils]")
+{
+    CommaNumericLocale comma;
+    {
+        CNumericLocalesSetter outer;
+        if (! comma.apply())
+            SKIP("no locale with a comma decimal separator is installed");
+        const std::string diameter = format_diameter_to_str(0.4);
+        CHECK(diameter == "0.4");
+        CHECK_THAT(string_to_double_decimal_point(diameter), Catch::Matchers::WithinAbs(0.4, 1e-12));
+        CHECK_THAT(boost::lexical_cast<double>(diameter), Catch::Matchers::WithinAbs(0.4, 1e-12));
+        CHECK_THAT(boost::lexical_cast<float>(diameter), Catch::Matchers::WithinAbs(0.4, 1e-6));
+        // A comma is not read as the decimal separator.
+        CHECK_THAT(string_to_double_decimal_point("0,4"), Catch::Matchers::WithinAbs(0., 1e-12));
+        // Callers that skip a diameter they cannot read rely on lexical_cast throwing for it.
+        for (const char* text : { "", "abc", "0.4x", "0,4", "1e1000" }) {
+            INFO(text);
+            CHECK_THROWS_AS(boost::lexical_cast<float>(text), boost::bad_lexical_cast);
+        }
+    }
 }

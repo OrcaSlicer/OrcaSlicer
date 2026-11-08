@@ -348,10 +348,8 @@ if(FLATPAK)
     # also, yes, this reduces CI by not needing to vendor certain deps
     find_package(ZLIB)
     find_package(PNG)
-    find_package(EXPAT)
     find_package(CURL)
     find_package(JPEG)
-    find_package(Freetype)
     find_package(OpenSSL 1.1...<3.2)
     find_package(CURL)
 endif()
@@ -367,10 +365,19 @@ if (NOT PNG_FOUND)
     set(PNG_PKG dep_PNG)
 endif ()
 set(EXPAT_PKG "")
-find_package(EXPAT)
-if (NOT EXPAT_FOUND)
+if (WIN32 OR APPLE)
+    # A system lookup here can resolve an old SDK libexpat without the
+    # entity-amplification guard, so always build the pinned copy.
     include(EXPAT/EXPAT.cmake)
     set(EXPAT_PKG dep_EXPAT)
+else ()
+    # Anything older than the pinned version is built by the EXPAT dep, so every
+    # platform links the same parser.
+    find_package(EXPAT 2.10.0)
+    if (NOT EXPAT_FOUND)
+        include(EXPAT/EXPAT.cmake)
+        set(EXPAT_PKG dep_EXPAT)
+    endif ()
 endif ()
 
 # The order of includes respects the dependencies between libraries
@@ -441,12 +448,6 @@ if (NOT FLATPAK)
     set(WXWIDGETS_PKG "dep_wxWidgets")
 endif()
 
-set(FREETYPE_PKG "")
-if(NOT FREETYPE_FOUND)
-    include(FREETYPE/FREETYPE.cmake)
-    set(FREETYPE_PKG "dep_FREETYPE")
-endif()
-
 execute_process(
     COMMAND ${GIT_EXECUTABLE} rev-parse --is-inside-work-tree
     RESULT_VARIABLE REV_PARSE_RESULT
@@ -482,7 +483,6 @@ set(_dep_list
     dep_CGAL
     dep_GLFW
     dep_OCCT
-    ${FREETYPE_PKG}
     ${PNG_PKG}
     ${ZLIB_PKG}
     ${EXPAT_PKG}

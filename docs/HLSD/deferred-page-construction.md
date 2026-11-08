@@ -87,6 +87,58 @@ tasks, such as a tab, a dialog, the Prepare tab's settings page one option group
 time, the Prepare page's layout at the size the book gives its pages, or the 3D view's GL
 resources.
 
+### Settings option restrictions
+
+Each settings `Tab` owns an `OptionStateRegistry` independent of its page controls.
+`toggle_line` records a hidden reason and `toggle_option` records a disabled reason
+before looking for controls. Each restriction is stored only while its toggle is false;
+setting it true removes that restriction without affecting the other one. Repeated calls
+replace the previous reason, including an empty reason from a caller without explanatory
+text. Loading a preset clears the previous preset's records.
+
+Keys are the exact strings supplied to the public toggles. The registry does not expand
+an option to its row siblings or distinguish indices passed separately from the key.
+It records executed public calls, so direct field operations and rules that have not run
+are outside its coverage. Keeping it with the Tab lets reasons survive page control
+recycling without retaining a Field or window pointer.
+
+The registry formats the current restrictions for both controls and their labels.
+Public toggles refresh the active input's tooltip, and each page's `OG_CustomCtrl`
+reads its owning Tab's registry when the pointer rests on a row label. The label
+remains a hover target when the input is disabled. For rows with multiple options,
+identical restriction descriptions appear once, in their first occurrence order.
+Markdown tips prepend the same restriction text to their document and refresh
+when that text changes, even when
+the document identifier stays the same. Callers without a reason receive a generic
+current-configuration explanation. Dependency rules supply complete translated
+messages describing their prerequisites; compound rules can choose the message for
+the failed prerequisite. The same recorded text reaches tooltips and search results.
+
+Filament setting overrides record retraction-length dependency restrictions separately
+from override selection. Leaving an override unchecked does not add a restriction reason.
+Compatibility condition fields explain that the "All" checkbox must be selected before
+editing a condition; both checkbox changes and reloads refresh the restriction.
+
+The object table's settings form owns a separate registry because it builds option
+groups outside a Tab. Its dependency callbacks retain their reasons and refresh
+both input and native label tooltips. Rebuilding the form or reevaluating dependencies
+clears its records, so restrictions follow the current object and effective configuration.
+
+Settings search resolves the same owning Tab as option navigation: a matching model
+Tab in object mode, otherwise the global preset Tab. Results show the first line of
+the registry description beneath the option name, with the complete description in
+the tooltip. Availability text is not part of fuzzy name matching. The Speed Dial
+keeps settings with a recorded hidden reason in its catalog and prepends their
+restrictions to its detail strip. Settings hidden only by an unrecorded row
+restriction retain the Speed Dial's existing filtering.
+
+A page's rules run only while that page is shown, and the registry keys carry no
+extruder index, so a listed restriction reflects the configuration and extruder of
+the last time its page was shown. Navigation therefore never trusts it: selecting a
+setting from search or the Speed Dial opens its page (and extruder), reruns that
+page's rules, and only a setting still hidden then displays its explanation instead
+of focusing an invisible input.
+
 ### The 3D view's GL resources
 
 OpenGL is loaded on the Prepare tab's canvas. When the start page is not Prepare, loading

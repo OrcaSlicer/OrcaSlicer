@@ -27,6 +27,7 @@ CheckOptions:
   # are included through clipper2/clipper.h, or clipper2_z.hpp, which defines
   # USINGZ first. minilzo's config
   # headers are internal to minilzo.h.
+  # The boost/process headers are only included through Utils/BoostProcessCompat.hpp.
   # FFmpeg's C headers are left alone because they are only included inside
   # extern "C", which an inserted include would miss. OS-specific headers (GLib,
   # GTK, D-Bus, POSIX, the Windows SDK) are only used inside platform #if blocks,
@@ -72,4 +73,5 @@ CheckOptions:
     mcut[/\\]platform\.h;
     boost[/\\]polygon[/\\].*;
     clipper2[/\\]clipper\.(core|engine|offset|minkowski|rectclip|export|triangulation|version)\.h;
-    lzo(conf|defs)\.h
+    lzo(conf|defs)\.h;
+    boost[/\\]process[/\\].*

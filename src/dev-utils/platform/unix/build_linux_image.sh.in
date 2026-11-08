@@ -429,7 +429,8 @@ if [ "\$XDG_SESSION_TYPE" = "wayland" ] && [ "\$ZINK_DISABLE_OVERRIDE" != "1" ];
                 export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json
                 export MESA_LOADER_DRIVER_OVERRIDE=zink
                 export GALLIUM_DRIVER=zink
-                export WEBKIT_DISABLE_DMABUF_RENDERER=1
+                # WebKit's NVIDIA DMABUF workaround is applied by the binary itself,
+                # gated on the runtime WebKitGTK version (src/OrcaSlicer.cpp).
             fi
         fi
     fi

@@ -22,6 +22,8 @@
 #include "../PrintConfig.hpp"
 #include "../Surface.hpp"
 
+#include <tbb/parallel_for.h>
+
 #include "AABBTreeLines.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/ExPolygon.hpp"
@@ -312,9 +314,9 @@ struct SurfaceFillParams
     bool gyroid_optimized = false;
 
     // For TPMS: grade the density from the surface to the interior of the object.
-    TpmsAdaptiveMode     tpms_adaptive          = TpmsAdaptiveMode::Disabled;
-    float                tpms_interior_density  = 0.f;
-    TpmsAdaptiveGradient tpms_adaptive_gradient = TpmsAdaptiveGradient::Linear;
+    AdaptiveInfillMode     adaptive_infill_mode          = AdaptiveInfillMode::Disabled;
+    float                adaptive_infill_interior_density  = 0.f;
+    AdaptiveInfillGradient adaptive_infill_gradient = AdaptiveInfillGradient::Linear;
 
     // Orca: corner smoothing factor in the range [0, 1].
     double      smooth_factor { 0. };
@@ -358,9 +360,9 @@ struct SurfaceFillParams
 		RETURN_COMPARE_NON_EQUAL(skin_infill_depth);
         RETURN_COMPARE_NON_EQUAL(infill_overhang_angle);
 		RETURN_COMPARE_NON_EQUAL(gyroid_optimized);
-		RETURN_COMPARE_NON_EQUAL(tpms_adaptive);
-		RETURN_COMPARE_NON_EQUAL(tpms_interior_density);
-		RETURN_COMPARE_NON_EQUAL(tpms_adaptive_gradient);
+		RETURN_COMPARE_NON_EQUAL(adaptive_infill_mode);
+		RETURN_COMPARE_NON_EQUAL(adaptive_infill_interior_density);
+		RETURN_COMPARE_NON_EQUAL(adaptive_infill_gradient);
         RETURN_COMPARE_NON_EQUAL(smooth_factor);
         RETURN_COMPARE_NON_EQUAL(center_of_surface_pattern);
         RETURN_COMPARE_NON_EQUAL(separated_infills);
@@ -394,9 +396,9 @@ struct SurfaceFillParams
                 this->center_of_surface_pattern == rhs.center_of_surface_pattern &&
                 this->separated_infills       == rhs.separated_infills &&
                 this->gyroid_optimized        == rhs.gyroid_optimized        &&
-                this->tpms_adaptive           == rhs.tpms_adaptive           &&
-                this->tpms_interior_density   == rhs.tpms_interior_density   &&
-                this->tpms_adaptive_gradient  == rhs.tpms_adaptive_gradient  &&
+                this->adaptive_infill_mode           == rhs.adaptive_infill_mode           &&
+                this->adaptive_infill_interior_density   == rhs.adaptive_infill_interior_density   &&
+                this->adaptive_infill_gradient  == rhs.adaptive_infill_gradient  &&
                 this->smooth_factor           == rhs.smooth_factor           &&
                 this->fill_order              == rhs.fill_order;
 	}
@@ -675,24 +677,28 @@ void split_solid_surface(size_t layer_id, const SurfaceFill &fill, ExPolygons &n
     if (!line_based_pattern) {
         const coord_t scaled_spacing = scaled<coord_t>(fill.params.spacing);
 
-        for (const ExPolygon &expolygon : fill.expolygons) {
+        // Each expolygon is split on its own, so they run in parallel and are collected in their original order.
+        std::vector<std::pair<ExPolygons, ExPolygons>> split_parts(fill.expolygons.size()); // normal, narrow
+        tbb::parallel_for(size_t(0), fill.expolygons.size(), [&](size_t idx) {
+            const ExPolygon &expolygon = fill.expolygons[idx];
             Polygons filled_area = to_polygons(expolygon);
 
             // "Core" area: open (erode+dilate) to drop thin features, then clamp back to the original polygon.
             Polygons inner_area  = intersection(filled_area, opening(filled_area, scaled_spacing, scaled_spacing));
 
             if (inner_area.empty()) {
-                narrow_infill.emplace_back(expolygon);
-                continue;
+                split_parts[idx].second.emplace_back(expolygon);
+                return;
             }
 
             ExPolygons inner_ex = union_ex(inner_area);
             ExPolygons expolys{expolygon};
-            ExPolygons narrow_ex = diff_ex(expolys, inner_ex);
-            ExPolygons normal_ex = intersection_ex(expolys, inner_ex);
-
-            append(normal_infill, normal_ex); // normal infill area
-            append(narrow_infill, narrow_ex); // narrow infill area
+            split_parts[idx].second = diff_ex(expolys, inner_ex);         // narrow infill area
+            split_parts[idx].first  = intersection_ex(expolys, inner_ex); // normal infill area
+        });
+        for (auto &[normal_ex, narrow_ex] : split_parts) {
+            append(normal_infill, std::move(normal_ex));
+            append(narrow_infill, std::move(narrow_ex));
         }
 
         return;
@@ -714,7 +720,10 @@ void split_solid_surface(size_t layer_id, const SurfaceFill &fill, ExPolygons &n
     }
     const double aligning_angle = -base_angle + PI;
 
-	for (const ExPolygon &expolygon : fill.expolygons) {
+    // Each expolygon is reconstructed on its own, so they run in parallel and are collected in their original order.
+    std::vector<Polygons> split_reconstructed(fill.expolygons.size());
+    tbb::parallel_for(size_t(0), fill.expolygons.size(), [&](size_t expolygon_idx) {
+        const ExPolygon &expolygon = fill.expolygons[expolygon_idx];
         Polygons filled_area = to_polygons(expolygon);
         polygons_rotate(filled_area, aligning_angle);
         BoundingBox bb = get_extents(filled_area);
@@ -845,8 +854,10 @@ void split_solid_surface(size_t layer_id, const SurfaceFill &fill, ExPolygons &n
             }
         }
 
-        polygons_append(normal_fill_areas, reconstructed_area);
-    }
+        split_reconstructed[expolygon_idx] = std::move(reconstructed_area);
+    });
+    for (Polygons &reconstructed_area : split_reconstructed)
+        polygons_append(normal_fill_areas, std::move(reconstructed_area));
 
     polygons_rotate(normal_fill_areas, -aligning_angle);
 
@@ -1010,17 +1021,17 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                                            params.extrusion_role != erTopSolidInfill && params.extrusion_role != erBottomSurface;
 
                 // Orca: only the TPMS sparse infill is graded; reset otherwise, as params is reused.
-                params.tpms_adaptive = is_tpms_adaptive_pattern(params.pattern) && params.extrusion_role == erInternalInfill ?
-                                           region_config.tpms_adaptive.value : TpmsAdaptiveMode::Disabled;
-                const bool tpms_adaptive      = params.tpms_adaptive != TpmsAdaptiveMode::Disabled;
-                params.tpms_interior_density  = tpms_adaptive ? std::max(1.f, float(region_config.tpms_interior_density)) : 0.f;
-                params.tpms_adaptive_gradient = tpms_adaptive ? region_config.tpms_adaptive_gradient.value : TpmsAdaptiveGradient::Linear;
+                params.adaptive_infill_mode = is_adaptive_infill_pattern(params.pattern) && params.extrusion_role == erInternalInfill ?
+                                           region_config.adaptive_infill_mode.value : AdaptiveInfillMode::Disabled;
+                const bool adaptive_infill_mode      = params.adaptive_infill_mode != AdaptiveInfillMode::Disabled;
+                params.adaptive_infill_interior_density  = adaptive_infill_mode ? std::max(1.f, float(region_config.adaptive_infill_interior_density)) : 0.f;
+                params.adaptive_infill_gradient = adaptive_infill_mode ? region_config.adaptive_infill_gradient.value : AdaptiveInfillGradient::Linear;
 
                 // Pass through gyroid_optimized only when the effective pattern is Gyroid,
                 // so non-Gyroid fills do not differ in SurfaceFillParams by an irrelevant flag
                 // (which would unnecessarily split fill batching). Adaptive density replaces it.
                 // Stored on SurfaceFillParams; copied to FillParams during conversion.
-                params.gyroid_optimized = (params.pattern == ipGyroid) && region_config.gyroid_optimized && !tpms_adaptive;
+                params.gyroid_optimized = (params.pattern == ipGyroid) && region_config.gyroid_optimized && !adaptive_infill_mode;
 
                 if (params.extrusion_role == erInternalInfill) {
                     params.angle = calculate_infill_rotation_angle(layer.object(), layer.id(), region_config.infill_direction.value,
@@ -1373,7 +1384,7 @@ void Layer::make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLigh
         f->angle 	= surface_fill.params.angle;
         f->fixed_angle = surface_fill.params.fixed_angle;
         const FillAdaptive::Octrees *octrees = fill_octrees ? fill_octrees->region(surface_fill.region_id) : nullptr;
-        f->tpms_radial_field   = this->object()->tpms_radial_field(surface_fill.params.tpms_adaptive);
+        f->adaptive_infill_field   = this->object()->adaptive_infill_field(surface_fill.params.adaptive_infill_mode);
         f->print_config        = &this->object()->print()->config();
         f->print_object_config = &this->object()->config();
 		if (surface_fill.params.pattern == ipConcentricInternal) {
@@ -1423,9 +1434,9 @@ void Layer::make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLigh
         params.lateral_lattice_angle_2   = surface_fill.params.lateral_lattice_angle_2;
         params.infill_overhang_angle   = surface_fill.params.infill_overhang_angle;
         params.gyroid_optimized          = surface_fill.params.gyroid_optimized;
-        params.tpms_adaptive             = surface_fill.params.tpms_adaptive;
-        params.tpms_interior_density     = float(0.01 * surface_fill.params.tpms_interior_density);
-        params.tpms_adaptive_gradient    = surface_fill.params.tpms_adaptive_gradient;
+        params.adaptive_infill_mode             = surface_fill.params.adaptive_infill_mode;
+        params.adaptive_infill_interior_density     = float(0.01 * surface_fill.params.adaptive_infill_interior_density);
+        params.adaptive_infill_gradient    = surface_fill.params.adaptive_infill_gradient;
         params.smooth_factor             = surface_fill.params.smooth_factor;
 
 		// BBS
@@ -1473,7 +1484,15 @@ void Layer::make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLigh
             f->set_bounding_box(body >= 0 ? this->object()->separated_body_bboxes()[body] : bbox);
             f->adapt_fill_octree = octrees ? octrees->get(body) : nullptr;
 
-            f->no_overlap_expolygons = intersection_ex(surface_fill.no_overlap_expolygons, ExPolygons() = {expoly}, ApplySafetyOffset::Yes);
+            // Only the part of the layer-wide no-overlap area under this expolygon matters, so clip it to the
+            // expolygon's box first (padded past the safety offset, which grows the clip side). The result is
+            // identical; the cost is not: a layer split into many small fills, e.g. by colour painting,
+            // otherwise intersects every one of them with the whole layer.
+            BoundingBox no_overlap_bbox = get_extents(expoly);
+            no_overlap_bbox.offset(SCALED_EPSILON);
+            f->no_overlap_expolygons = intersection_ex(
+                ClipperUtils::clip_clipper_polygons_with_subject_bbox(surface_fill.no_overlap_expolygons, no_overlap_bbox),
+                ExPolygons() = {expoly}, ApplySafetyOffset::Yes);
             if (params.symmetric_infill_y_axis) {
                 params.symmetric_y_axis = f->extended_object_bounding_box().center().x();
                 expoly.symmetric_y(params.symmetric_y_axis);
@@ -1598,7 +1617,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
         f->angle    = surface_fill.params.angle;
         f->fixed_angle = surface_fill.params.fixed_angle;
         const FillAdaptive::Octrees *octrees = fill_octrees ? fill_octrees->region(surface_fill.region_id) : nullptr;
-        f->tpms_radial_field   = this->object()->tpms_radial_field(surface_fill.params.tpms_adaptive);
+        f->adaptive_infill_field   = this->object()->adaptive_infill_field(surface_fill.params.adaptive_infill_mode);
         f->print_config        = &this->object()->print()->config();
         f->print_object_config = &this->object()->config();
 
@@ -1638,9 +1657,9 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
         params.infill_overhang_angle   = surface_fill.params.infill_overhang_angle;
         params.multiline         = surface_fill.params.multiline;
         params.gyroid_optimized          = surface_fill.params.gyroid_optimized;
-        params.tpms_adaptive             = surface_fill.params.tpms_adaptive;
-        params.tpms_interior_density     = float(0.01 * surface_fill.params.tpms_interior_density);
-        params.tpms_adaptive_gradient    = surface_fill.params.tpms_adaptive_gradient;
+        params.adaptive_infill_mode             = surface_fill.params.adaptive_infill_mode;
+        params.adaptive_infill_interior_density     = float(0.01 * surface_fill.params.adaptive_infill_interior_density);
+        params.adaptive_infill_gradient    = surface_fill.params.adaptive_infill_gradient;
         params.smooth_factor             = surface_fill.params.smooth_factor;
         // Orca: Match make_fills() when choosing the origin of plane-path patterns.
         // Without the sparse extrusion role, the filler uses each surface's bounds

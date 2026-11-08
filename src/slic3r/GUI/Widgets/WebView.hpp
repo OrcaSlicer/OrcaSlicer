@@ -34,6 +34,16 @@ public:
     // ignoring every navigation. A panel that gets true here recreates its view on first Show().
     static bool NeedsRecreateOnShow();
 
+    // True when the linked WebKitGTK predates 2.42, where accelerated compositing
+    // could fail silently on XWayland sessions, so it is forced off as a fallback.
+    // False on every other platform. Safe to call before GTK initialises.
+    static bool NeedsCompositingWorkaround();
+
+    // True when the linked WebKitGTK is new enough (>= 2.44) to honour
+    // WEBKIT_DMABUF_RENDERER_FORCE_SHM, the shared-memory transport switch.
+    // False on every other platform. Safe to call before GTK initialises.
+    static bool SupportsForceSharedMemory();
+
     static void RecreateAll();
 };
 

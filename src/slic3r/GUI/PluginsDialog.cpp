@@ -4,12 +4,14 @@
 #include "GUI_App.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "I18N.hpp"
+#include "MsgDialog.hpp"
 #include "OrcaCloudServiceAgent.hpp"
 #include "slic3r/plugin/PluginConfig.hpp"
 #include "slic3r/plugin/PluginFsUtils.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 
 #include <cctype>
+#include <cstddef>
 #include <exception>
 #include <atomic>
 #include <boost/filesystem/operations.hpp>
@@ -18,6 +20,7 @@
 
 #include <slic3r/GUI/NotificationManager.hpp>
 #include <slic3r/GUI/Plater.hpp>
+#include "slic3r/GUI/PluginPermissionValidation.hpp"
 #include "slic3r/GUI/PluginSource.hpp"
 #include "slic3r/GUI/PluginStatus.hpp"
 #include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
@@ -33,12 +36,12 @@
 #include <algorithm>
 #include <memory>
 #include <mutex>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include <wx/busycursor.h>
+#include <wx/chartype.h>
 #include <wx/dialog.h>
 #include <wx/event.h>
 #include <wx/filedlg.h>
@@ -48,6 +51,7 @@
 #include <wx/string.h>
 #include <wx/timer.h>
 #include <wx/utils.h>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r { namespace GUI {
 namespace {
@@ -127,6 +131,11 @@ struct PluginDialogItem
     // Runtime capabilities in registration order, or descriptor-only type rows when unloaded.
     std::vector<PluginCapabilityView> capabilities;
 
+    // Grants stored in the plugin's install sidecar. False when the sidecar is missing or unreadable
+    // (e.g. an uninstalled cloud plugin), so the payload reports null instead of empty permissions.
+    PluginPermissions permissions;
+    bool has_permissions = false;
+
     PluginAvailableActions available_actions;
 };
 
@@ -157,6 +166,20 @@ PluginDescriptor as_cloud_only_descriptor(PluginDescriptor descriptor)
 
 std::string to_string(PluginUpdateStatus status);
 nlohmann::json build_context_actions_payload(const PluginAvailableActions& available_actions);
+
+nlohmann::json build_permissions_payload(const PluginPermissions& permissions)
+{
+    nlohmann::json payload;
+    payload["fs_read"]        = permissions.fs_read;
+    payload["fs_readwrite"]   = permissions.fs_readwrite;
+    payload["network_http"]   = permissions.network_http;
+    payload["network_socket"] = permissions.network_socket;
+    payload["process"]        = permissions.process;
+    payload["threading"]      = permissions.threading;
+    payload["events"]         = permissions.events;
+    payload["full_access"]    = permissions.full_access;
+    return payload;
+}
 
 nlohmann::json build_plugin_payload_item(const PluginDialogItem& dialog_item)
 {
@@ -222,6 +245,12 @@ nlohmann::json build_plugin_payload_item(const PluginDialogItem& dialog_item)
     payload_item["orphaned"]              = dialog_item.orphaned;
     payload_item["installed_version"]     = dialog_item.installed_version;
     payload_item["latest_version"]        = dialog_item.latest_version;
+    // Null when the sidecar could not be read: an uninstalled/unreadable plugin has unknown grants,
+    // not no grants.
+    if (dialog_item.has_permissions)
+        payload_item["permissions"] = build_permissions_payload(dialog_item.permissions);
+    else
+        payload_item["permissions"] = nullptr;
     return payload_item;
 }
 
@@ -343,6 +372,12 @@ PluginDialogItem build_plugin_dialog_item(const PluginDescriptor& descriptor)
     item.unauthorized          = descriptor.is_unauthorized();
     item.is_loaded             = manager.is_plugin_loaded(descriptor.plugin_key);
     item.loading               = manager.is_plugin_load_in_progress(descriptor.plugin_key);
+
+    PluginInstallState install_state;
+    item.has_permissions = manager.get_install_state(descriptor.plugin_key, install_state);
+    if (item.has_permissions)
+        item.permissions = std::move(install_state.permissions);
+
     item.has_script_capability = false;
     for (const auto& capability : capabilities) {
         item.capabilities.push_back({capability->identity(), capability->is_enabled(), true, false, capability->config_ui_available()});
@@ -410,6 +445,34 @@ bool take_plugin_operation_result(const std::shared_ptr<PluginOperationState>& s
     error = std::move(state->error);
     return state->succeeded;
 }
+
+// A full-access or permission-save request carries an opaque correlation token that the webview
+// ties to its pending operation. Bound the shape so a malformed or oversized value cannot be
+// echoed back: non-empty, at most 128 bytes, printable ASCII only.
+bool is_valid_bridge_request_id(const std::string& request_id)
+{
+    constexpr size_t kMaxRequestIdLength = 128;
+    if (request_id.empty() || request_id.size() > kMaxRequestIdLength)
+        return false;
+    return std::all_of(request_id.begin(), request_id.end(), [](unsigned char c) {
+        return c >= 0x21 && c <= 0x7e;
+    });
+}
+
+// Reports every permission mutation outcome, including rejection and cancelled confirmation.
+void send_permissions_result(WebViewHostDialog& dialog,
+                             const std::string& plugin_key,
+                             const std::string& request_id,
+                             bool success)
+{
+    nlohmann::json payload;
+    payload["command"]    = "plugin_permissions_result";
+    payload["plugin_key"] = plugin_key;
+    payload["request_id"] = request_id;
+    payload["success"]    = success;
+    dialog.call_web_handler(payload);
+}
+
 } // namespace
 
 // ── Dialog-independent plugin actions (also used by the speed dial) ───────────────────────────
@@ -584,7 +647,9 @@ bool install_local_plugin_package(const boost::filesystem::path& package_file, w
 
 PluginsDialog::PluginsDialog(wxWindow* parent, wxWindowID id, const wxString&, const wxPoint& pos, const wxSize& size, long style)
     : WebViewHostDialog(parent, id, _L("Plugins"), pos, size, style)
-{ create_webview("web/dialog/PluginsDialog/index.html", _L("Plugins"), wxSize(900, 820), wxSize(760, 715)); }
+{
+    create_webview("web/dialog/PluginsDialog/index.html", _L("Plugins"), wxSize(900, 820), wxSize(760, 715));
+}
 
 nlohmann::json PluginsDialog::localized_strings() const
 {
@@ -650,6 +715,53 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"open_in_browser", _u8L("Open this plugin in your browser")},
         {"capability_count", _u8L("Capabilities: %s")},
         {"capabilities", _u8L_CONTEXT("Capabilities", "Plugin")},
+        {"permissions_tab", _u8L("Permissions")},
+        {"permissions_unavailable", _u8L("Permissions are unavailable.")},
+        {"permissions_fs_read", _u8L("File system read")},
+        {"permissions_fs_readwrite", _u8L("File system read and write")},
+        {"permissions_network_http", _u8L("HTTP network")},
+        {"permissions_network_socket", _u8L("Network sockets")},
+        // TRN Operating system processes a plugin may start, not print process presets.
+        {"permissions_process", _u8L_CONTEXT("Processes", "Permission category")},
+        {"permissions_threading", _u8L("Threading")},
+        {"permissions_events", _u8L_CONTEXT("Events", "Permission category")},
+        {"permissions_filesystem_help", _u8L("Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. A read/write grant can create files through open(), but it does not cover create or delete events such as os.mkdir and os.remove. Without Full access, each such event outside allowed folders needs its own approval, which is never saved. When a plugin runs in the background, these events are denied without asking.")},
+#ifdef _WIN32
+        {"permissions_filesystem_placeholder", _u8L("C:\\path\\to\\directory\\*")},
+#else
+        {"permissions_filesystem_placeholder", _u8L("/path/to/directory/*")},
+#endif
+        {"permissions_network_access_guidance", _u8L("Enter a full http:// or https:// URL; only its scheme and host are saved, so the grant covers every port, path, and query on that host. A network socket grant also accepts a bare host name or IP address, with or without a port, and covers every port on that host. Other schemes are not accepted. Grants in either list are checked for HTTP and socket access.")},
+        {"permissions_process_help", _u8L("Enter the exact value recorded by the audit. It may be a Python representation of the command.")},
+        {"permissions_process_placeholder", _u8L("Exact audited value")},
+        {"permissions_threading_help_short", _u8L("Allow this plugin to create threads.")},
+        {"permissions_events_help", _u8L("Enter a category and event separated by a colon, such as Socket:socket.__new__.")},
+        {"permissions_events_placeholder", _u8L("Socket:socket.__new__")},
+        {"permissions_full_access_label", _u8L("Full access")},
+        {"permissions_group_filesystem", _u8L("File system")},
+        {"permissions_network_access_title", _u8L("Network access")},
+        {"permissions_group_execution", _u8L("Execution")},
+        {"permissions_group_events", _u8L("Audit events")},
+        {"permissions_files_folders", _u8L("Files and folders")},
+        {"permissions_access_read", _u8L_CONTEXT("Read", "Permission access")},
+        {"permissions_access_readwrite", _u8L_CONTEXT("Read and write", "Permission access")},
+        {"permissions_read_unavailable", _u8L("Read permissions are unavailable.")},
+        {"permissions_readwrite_unavailable", _u8L("Read and write permissions are unavailable.")},
+        {"permissions_filesystem_read_name", _u8L("File system: Read")},
+        {"permissions_filesystem_readwrite_name", _u8L("File system: Read and write")},
+        {"permissions_full_access_help", _u8L("Full access bypasses permission checks. The plugin can read and write most files you can access; modifying startup or application files can let code run outside these checks. Direct Python access to OrcaSlicer's configuration, secret, certificate and install-state paths stays blocked, but subprocesses are not restricted.")},
+        {"permissions_full_access_editor_disabled", _u8L("Permission list editing is disabled while full access is on.")},
+        {"permissions_full_access_unavailable", _u8L("Full access status is unavailable.")},
+        {"permissions_values_empty", _u8L("No values added.")},
+        {"permissions_apply", _u8L_CONTEXT("Apply", "Permission value")},
+        {"permissions_apply_value_label", _u8L("Apply value for %s")},
+        {"permissions_install_to_edit", _u8L("Install this plugin to edit its permissions.")},
+        {"permissions_add_value_label", _u8L("New value for %s")},
+        {"permissions_edit_value_label", _u8L("Edit value for %s")},
+        {"permissions_add", _u8L_CONTEXT("Add", "Permission value")},
+        {"permissions_add_label", _u8L("Add value to %s")},
+        {"permissions_remove", _u8L_CONTEXT("Remove", "Permission value")},
+        {"permissions_remove_label", _u8L("Remove %s")},
         {"run_named", _u8L("Run \"%s\"")},
         {"enable_named", _u8L("Enable %s")},
         {"not_available", _u8L("N/A")},
@@ -690,6 +802,12 @@ void PluginsDialog::update_plugin_dialog_ui()
     // cloud-plugin state callback. Do not fetch here or the callback can re-enter.
     send_plugins();
     resolve_pending_activation();
+}
+
+void PluginsDialog::refresh_permissions_if_visible()
+{
+    if (IsShown() && !IsBeingDeleted())
+        send_plugins();
 }
 
 void PluginsDialog::resolve_pending_activation()
@@ -773,6 +891,8 @@ void PluginsDialog::handle_web_command(const nlohmann::json& payload)
         // `config` is a JSON string from the default editor's textarea, or an already-structured
         // value from a capability's custom UI. Both land here; save_capability_config sorts it out.
         save_capability_config(id, payload.contains("config") ? payload.at("config") : nlohmann::json::object());
+    } else if (command == "mutate_plugin_permission") {
+        mutate_plugin_permission(payload);
     } else if (command == "set_plugin_install_action") {
         const std::string action = payload.value("action", "");
         if (action == "explore" || action == "install-local")
@@ -861,6 +981,142 @@ void PluginsDialog::refresh_plugins()
     BOOST_LOG_TRIVIAL(info) << "Refreshing plugins from Plugins dialog";
 
     refresh_plugin_metadata_async(_L("Refreshing"), _L("Refreshing plugins data"), kFetchCloudMeta);
+}
+
+bool PluginsDialog::prompt_enable_full_access(const std::string& plugin_key)
+{
+    const wxString plugin_name = plugin_display_name(plugin_key);
+    MessageDialog dialog(
+        this,
+        wxString::Format(
+            _L("Enable full access for \"%s\"?\n\n"
+               "Full access turns off permission auditing for this plugin: its file system, network, "
+               "process, thread and event permissions are no longer checked. The plugin can read and "
+               "write most files your user account can access, including startup scripts, SSH keys "
+               "and a writable OrcaSlicer installation. Modifying startup or application files can "
+               "let code run outside these checks. Direct Python access to OrcaSlicer's "
+               "configuration, secret, certificate and install-state paths stays blocked, but "
+               "subprocesses are not restricted. Full access is not a sandbox.\n\n"
+               "Only enable this for a plugin you trust."),
+            plugin_name),
+        _L("Full access"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
+    // MsgDialog builds its own buttons in a fixed order and always gives Yes the initial focus;
+    // wxNO_DEFAULT does not change that. Focus No explicitly so Enter cannot grant full access.
+    dialog.SetButtonLabel(wxID_NO, _L("No"), /*set_focus=*/true);
+
+    const int rc = dialog.ShowModal();
+    restore_z_order();
+    return rc == wxID_YES;
+}
+
+void PluginsDialog::mutate_plugin_permission(const nlohmann::json& payload)
+{
+    const auto string_field = [&payload](const char* key) -> std::string {
+        return payload.contains(key) && payload.at(key).is_string() ? payload.at(key).get<std::string>() : std::string{};
+    };
+    const std::string plugin_key = string_field("plugin_key");
+    const std::string request_id = string_field("request_id");
+    const std::string operation  = string_field("operation");
+    const std::string category   = string_field("category");
+    const auto finish = [&](bool success) {
+        send_plugins();
+        send_permissions_result(*this, plugin_key, is_valid_bridge_request_id(request_id) ? request_id : std::string{}, success);
+    };
+    const auto invalid = [&]() {
+        show_status(_L("Invalid permission save request."), "error");
+        finish(false);
+    };
+    if (plugin_key.empty() || !is_valid_bridge_request_id(request_id)) {
+        invalid();
+        return;
+    }
+
+    PluginInstallState stored;
+    if (!PluginManager::instance().get_install_state(plugin_key, stored)) {
+        show_status(_L("Install this plugin to edit its permissions."), "warn");
+        finish(false);
+        return;
+    }
+
+    PluginPermissionMutation mutation;
+    const wxString plugin_name = plugin_display_name(plugin_key);
+    PluginPermissionCategory bucket = PluginPermissionCategory::FsRead;
+    const std::vector<std::string>* entries = nullptr;
+    if (category == "fs_read") {
+        bucket = PluginPermissionCategory::FsRead; entries = &stored.permissions.fs_read;
+    } else if (category == "fs_readwrite") {
+        bucket = PluginPermissionCategory::FsReadWrite; entries = &stored.permissions.fs_readwrite;
+    } else if (category == "network_http") {
+        bucket = PluginPermissionCategory::NetworkHttp; entries = &stored.permissions.network_http;
+    } else if (category == "network_socket") {
+        bucket = PluginPermissionCategory::NetworkSocket; entries = &stored.permissions.network_socket;
+    } else if (category == "process") {
+        bucket = PluginPermissionCategory::Process; entries = &stored.permissions.process;
+    } else if (category == "events") {
+        bucket = PluginPermissionCategory::Events; entries = &stored.permissions.events;
+    }
+
+    if (category == "full_access" || category == "threading") {
+        if (operation != "set" || !payload.contains("value") || !payload.at("value").is_boolean()) {
+            invalid();
+            return;
+        }
+        const bool enabled = payload.at("value").get<bool>();
+        if (category == "full_access") {
+            if (enabled && !prompt_enable_full_access(plugin_key)) {
+                finish(false);
+                return;
+            }
+            mutation.full_access = enabled;
+        } else {
+            mutation.threading = enabled;
+        }
+    } else {
+        if (!entries || (operation != "add" && operation != "remove" && operation != "replace") ||
+            (operation != "add" && (!payload.contains("old_value") || !payload.at("old_value").is_string())) ||
+            (operation != "remove" && (!payload.contains("value") || !payload.at("value").is_string()))) {
+            invalid();
+            return;
+        }
+        if (operation != "add") {
+            const std::string old_value = string_field("old_value");
+            if (std::find(entries->begin(), entries->end(), old_value) == entries->end()) {
+                invalid();
+                return;
+            }
+            mutation.remove.push_back({bucket, old_value});
+        }
+        if (operation != "remove") {
+            const std::string raw = string_field("value");
+            const std::string value = trim_permission_target(raw);
+            std::string normalized = value;
+            wxString reason;
+            bool valid = !value.empty() && value.find('\0') == std::string::npos;
+            if (valid && (category == "fs_read" || category == "fs_readwrite"))
+                valid = normalize_filesystem_permission(value, normalized, reason);
+            else if (valid && category == "network_http")
+                valid = normalize_network_permission(value, normalized, reason);
+            else if (valid && category == "network_socket")
+                valid = normalize_socket_permission(value, normalized, reason);
+            if (!valid) {
+                if (!reason.empty())
+                    show_status(format_wxstr(_L("Cannot save \"%1%\": %2%"), from_u8(raw), reason), "error");
+                else
+                    show_status(_L("Invalid permission save request."), "error");
+                finish(false);
+                return;
+            }
+            mutation.add.push_back({bucket, normalized});
+        }
+    }
+
+    if (!PluginManager::instance().mutate_plugin_permissions(plugin_key, mutation)) {
+        show_status(_L("Failed to save permissions."), "error");
+        finish(false);
+        return;
+    }
+    finish(true);
+    show_status(wxString::Format(_L("Permissions saved for \"%s\"."), plugin_name), "success");
 }
 
 void PluginsDialog::toggle_plugin(const std::string& plugin_key, bool enabled)
@@ -1158,10 +1414,7 @@ void PluginsDialog::run_script_plugin_capability(const std::string& plugin_key, 
 {
     PluginManager& manager = PluginManager::instance();
 
-    std::string error;
-    ExecutionResult result;
-
-    auto complete_with_error = [this, &manager, &plugin_key](const std::string& plugin_error, const wxString& status_message) {
+    auto complete_with_error = [this, &manager, plugin_key](const std::string& plugin_error, const wxString& status_message) {
         const std::string normalized_error = plugin_error.empty() ? _u8L("Script plugin failed.") : plugin_error;
         if (!manager.set_plugin_error(plugin_key, normalized_error))
             BOOST_LOG_TRIVIAL(warning) << "Failed to record plugin error. plugin_key=" << plugin_key;
@@ -1177,32 +1430,53 @@ void PluginsDialog::run_script_plugin_capability(const std::string& plugin_key, 
         show_status(message, "error");
     };
 
+    // Always runs on the GUI thread. For a started invocation (sync `def execute` or `async def`)
+    // the runtime delivers it later; it is called inline here only when the launch itself failed.
+    auto finish = [this, alive = m_alive, plugin_key, &manager, complete_with_error](const ScriptCompletion& completion) {
+        if (!alive->load())
+            return;
+
+        // Cancelled by PluginManager (unload/shutdown): expected termination. Report neither an
+        // error nor a normal success, and do not touch the plugin's error/state.
+        if (completion.cancelled)
+            return;
+
+        if (!completion.error.empty()) {
+            complete_with_error(completion.error, wxString());
+            return;
+        }
+
+        const ExecutionResult& result = completion.result;
+
+        BOOST_LOG_TRIVIAL(info) << "Script plugin execution completed. plugin_key=" << plugin_key
+                                << " status=" << static_cast<int>(result.status) << " message=" << result.message
+                                << " data=" << result.data;
+
+        const bool failed = result.status == PluginResult::RecoverableError || result.status == PluginResult::FatalError;
+        if (failed) {
+            complete_with_error(result.message, wxString());
+            return;
+        }
+
+        manager.clear_plugin_error(plugin_key);
+        send_plugins();
+
+        const bool     skipped  = result.status == PluginResult::Skipped;
+        const wxString fallback = skipped ? _L("Script plugin skipped.") : _L("Script plugin finished.");
+        const wxString message  = result.message.empty() ? fallback : from_u8(result.message);
+        show_status(message, skipped ? "info" : "success");
+    };
+
+    PluginManager::ScriptLaunchResult launch;
     {
         wxBusyCursor busy;
-        result = manager.run_script_capability(plugin_key, capability_name, error);
+        launch = manager.launch_script_capability(plugin_key, capability_name, finish);
     }
 
-    if (!error.empty()) {
-        complete_with_error(error, wxString());
-        return;
-    }
-
-    BOOST_LOG_TRIVIAL(info) << "Script plugin execution completed. plugin_key=" << plugin_key
-                            << " status=" << static_cast<int>(result.status) << " message=" << result.message << " data=" << result.data;
-
-    const bool failed = result.status == PluginResult::RecoverableError || result.status == PluginResult::FatalError || !error.empty();
-    if (failed) {
-        complete_with_error(result.message, wxString());
-        return;
-    }
-
-    manager.clear_plugin_error(plugin_key);
-    send_plugins();
-
-    const bool     skipped  = result.status == PluginResult::Skipped;
-    const wxString fallback = skipped ? _L("Script plugin skipped.") : _L("Script plugin finished.");
-    const wxString message  = result.message.empty() ? fallback : from_u8(result.message);
-    show_status(message, skipped ? "info" : "success");
+    // Every started invocation — a synchronous `def execute` included — completes later through
+    // `finish`; only a launch failure is reported inline. Return without blocking.
+    if (!launch.launched_async)
+        finish(launch.outcome);
 }
 
 void PluginsDialog::update_plugin(const std::string& plugin_key)
@@ -1301,6 +1575,9 @@ void PluginsDialog::delete_local_plugin(const PluginDescriptor& plugin)
             }
 
             send_plugins();
+            // The package is gone only now; the unload callback rechecked the notices too early.
+            if (Plater* plater = wxGetApp().plater())
+                plater->refresh_missing_plugin_notifications();
             show_status(wxString::Format(_L("Deleted \"%s\"."), plugin_name), "success");
         },
         _L("Deleting plugin"), _L("Deleting plugin..."));
@@ -1332,6 +1609,9 @@ void PluginsDialog::unsubscribe_cloud_plugin(const PluginDescriptor& plugin)
             }
 
             send_plugins();
+            // The package is gone only now; the unload callback rechecked the notices too early.
+            if (Plater* plater = wxGetApp().plater())
+                plater->refresh_missing_plugin_notifications();
             show_status(wxString::Format(_L("Unsubscribed \"%s\"."), plugin_name), "success");
         },
         _L("Unsubscribing plugin"), _L("Deleting local files and unsubscribing plugin..."));

@@ -16,6 +16,8 @@ else()
 	endif()
 endif()
 
+set(_openssl_dir ${DESTDIR})
+
 if(WIN32)
     set(_openssl_msvc_env CC=cl CXX=cl RC=rc CL=/FS)
     # OpenSSL's perl Configure honors the CC environment variable, but the
@@ -43,6 +45,14 @@ if(WIN32)
 else()
     if(APPLE)
         set(_conf_cmd export MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET} && ./Configure -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
+        # OPENSSLDIR is only where OpenSSL looks at runtime for cert.pem, certs/
+        # and openssl.cnf; install_sw installs nothing there. Point it at the
+        # system CA bundle, the one libcurl already uses here, so the bundled
+        # Python's ssl module can verify HTTPS. Elsewhere it stays the prefix:
+        # Windows Python reads the system certificate store, and on Linux, where
+        # the bundle's location differs by distro, CurlGlobalInit points
+        # SSL_CERT_FILE at it at startup.
+        set(_openssl_dir /etc/ssl)
     else()
         # A static library that is embedded into a shared object must not export
         # its symbols. On Linux the running process also loads the system OpenSSL
@@ -81,7 +91,7 @@ ExternalProject_Add(dep_OpenSSL
     # URL_HASH SHA256=8c776993154652d0bb393f506d850b811517c8bd8d24b1008aef57fbe55d3f31
     DOWNLOAD_DIR ${DEP_DOWNLOAD_DIR}/OpenSSL
 	CONFIGURE_COMMAND ${_conf_cmd} ${_cross_arch}
-        "--openssldir=${DESTDIR}"
+        "--openssldir=${_openssl_dir}"
         "--prefix=${DESTDIR}"
         # OpenSSL's linux-x86_64 target sets multilib=64, so it installs to
         # <prefix>/lib64 while every other dep uses <prefix>/lib. CPython's
@@ -115,12 +125,12 @@ ExternalProject_Add_Step(dep_OpenSSL install_cmake_files
     WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
 )
 
-if (NOT WIN32 AND NOT APPLE)
-    # OpenSSL's object rules do not depend on CFLAGS, so reconfiguring it (for
-    # example to add -fvisibility=hidden) relinks the archives from stale
-    # objects instead of recompiling them, and the change silently has no
-    # effect. Drop the objects whenever this recipe changes so the next build
-    # actually recompiles them.
+if (NOT WIN32)
+    # OpenSSL's object rules do not depend on the configured flags or paths, so
+    # reconfiguring it (a new compiler flag, a different --openssldir) relinks
+    # the archives from stale objects instead of recompiling them, and the
+    # change silently has no effect. Drop the objects whenever this recipe
+    # changes so the next build actually recompiles them.
     ExternalProject_Get_Property(dep_OpenSSL SOURCE_DIR)
     ExternalProject_Add_Step(dep_OpenSSL clean_objects
         DEPENDEES configure

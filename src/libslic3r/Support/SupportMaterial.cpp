@@ -553,6 +553,10 @@ void PrintObjectSupportMaterial::generate(PrintObject &object)
 
     BOOST_LOG_TRIVIAL(info) << "Support generator - Creating layers";
 
+    trim_support_layers_by_exclusion_volumes(
+        object, raft_layers, bottom_contacts, top_contacts, intermediate_layers,
+        interface_layers, base_interface_layers);
+
 // For debugging purposes, one may want to show only some of the support extrusions.
 //    raft_layers.clear();
 //    bottom_contacts.clear();
@@ -1004,9 +1008,9 @@ public:
                 ::fread(&y, sizeof(coord_t), 1, file);
                 poly.points.emplace_back(Point(x * scale, y * scale));
             }
+            printf("Polygon %d, area: %lf\n", i, area(poly.points));
             if (which == -1 || which == i)
                 m_support_polygons_deserialized.emplace_back(std::move(poly));
-            printf("Polygon %d, area: %lf\n", i, area(poly.points));
         }
         ::fread(&n_polygons, 4, 1, file);
         m_trimming_polygons_deserialized.reserve(n_polygons);
