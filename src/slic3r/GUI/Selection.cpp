@@ -3347,6 +3347,8 @@ void Selection::paste_objects_from_clipboard()
             Geometry::Transformation t = inst->get_transformation();
             inst->set_assemble_transformation(t);
         }
+        // Its pose on the plate would put it far from the other objects in the assembly view.
+        m_model->set_assembly_pos(dst_object);
 
         object_idxs.push_back(m_model->objects.size() - 1);
 #ifdef _DEBUG

@@ -10677,7 +10677,10 @@ std::vector<size_t> Plater::priv::load_model_objects(const ModelObjectPtrs& mode
                         model_object->instances[i]->set_assemble_transformation(model_object->instances[i]->get_transformation());
                     }
                 }
-            }            
+            }
+            // An object that came without a position would otherwise sit at the origin of the assembly view, on top of the others.
+            if (model_object->instances.empty())
+                model.set_assembly_pos(object);
         }
     }
 

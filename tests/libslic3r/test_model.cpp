@@ -200,3 +200,61 @@ TEST_CASE("Repairing a part replaces its mesh only when the repair changes it", 
     CHECK_FALSE(stats.modified);
     CHECK(valid->id() == valid_id);
 }
+
+// A cube whose raw mesh spans [0, size] on every axis, with one instance at plate_offset on the plate.
+static ModelObject *add_cube(Model &model, double size, const Vec3d &plate_offset)
+{
+    ModelObject *object = model.add_object();
+    object->add_volume(make_cube(size, size, size), ModelVolumeType::MODEL_PART, false);
+    object->add_instance()->set_offset(plate_offset);
+    return object;
+}
+
+TEST_CASE("An object placed in the assembly view goes 10 mm to the right of the others", "[Model]")
+{
+    Model model;
+    ModelObject *placed = add_cube(model, 20., Vec3d::Zero());
+    placed->instances.front()->set_assemble_transformation(placed->instances.front()->get_transformation());
+    const Vec3d plate_offset(128., 128., 5.);
+    ModelObject *added = add_cube(model, 10., plate_offset);
+
+    model.set_assembly_pos(added);
+
+    const BoundingBoxf3 placed_box = placed->bounding_box_in_assembly_view();
+    const BoundingBoxf3 added_box  = added->bounding_box_in_assembly_view();
+    CHECK(added->instances.front()->is_assemble_initialized());
+    CHECK_THAT(added_box.min.x(), Catch::Matchers::WithinAbs(placed_box.max.x() + 10., 1e-6));
+    CHECK_THAT(added_box.center().y(), Catch::Matchers::WithinAbs(placed_box.center().y(), 1e-6));
+    // The height comes from the plate, and the plate itself is left alone.
+    CHECK_THAT(added_box.min.z(), Catch::Matchers::WithinAbs(plate_offset.z(), 1e-6));
+    CHECK_THAT((added->instances.front()->get_offset() - plate_offset).norm(), Catch::Matchers::WithinAbs(0., 1e-6));
+}
+
+TEST_CASE("An object alone in the assembly view is centred on the origin and keeps its instance layout", "[Model]")
+{
+    Model model;
+    ModelObject *object = add_cube(model, 10., {100., 100., 0.});
+    object->add_instance()->set_offset({130., 100., 0.});
+
+    model.set_assembly_pos(object);
+
+    const BoundingBoxf3 box = object->bounding_box_in_assembly_view();
+    CHECK_THAT(box.center().x(), Catch::Matchers::WithinAbs(0., 1e-6));
+    CHECK_THAT(box.center().y(), Catch::Matchers::WithinAbs(0., 1e-6));
+    const Vec3d spacing = object->instances[1]->get_assemble_offset() - object->instances[0]->get_assemble_offset();
+    CHECK_THAT((spacing - Vec3d(30., 0., 0.)).norm(), Catch::Matchers::WithinAbs(0., 1e-6));
+}
+
+TEST_CASE("Ignored objects do not push an object aside in the assembly view", "[Model]")
+{
+    Model model;
+    ModelObject *ignored = add_cube(model, 20., Vec3d::Zero());
+    ignored->instances.front()->set_assemble_transformation(ignored->instances.front()->get_transformation());
+    ModelObject *object = add_cube(model, 10., {128., 128., 0.});
+
+    model.set_assembly_pos(object, {ignored});
+
+    const BoundingBoxf3 box = object->bounding_box_in_assembly_view();
+    CHECK_THAT(box.center().x(), Catch::Matchers::WithinAbs(0., 1e-6));
+    CHECK_THAT(box.center().y(), Catch::Matchers::WithinAbs(0., 1e-6));
+}

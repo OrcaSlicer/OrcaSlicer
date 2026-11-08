@@ -508,6 +508,9 @@ public:
     // A snug bounding box around the transformed non-modifier object volumes.
     BoundingBoxf3 instance_bounding_box(size_t instance_idx, bool dont_translate = false) const;
     BoundingBoxf3 instance_bounding_box(const ModelInstance& instance, bool dont_translate = false) const;
+    // A bounding box around the non-modifier object volumes of all instances, as placed in the assembly view.
+    // It encloses the corners of the raw mesh box, so it is loose for rotated instances.
+    BoundingBoxf3 bounding_box_in_assembly_view() const;
 
 	// A snug bounding box of non-transformed (non-rotated, non-scaled, non-translated) sum of non-modifier object volumes.
 	const BoundingBoxf3& raw_mesh_bounding_box() const;
@@ -1837,6 +1840,11 @@ public:
     void          clear_materials();
     // Make sure all objects have at least one instance
     bool          add_default_instances();
+    // Moves model_object in the assembly view 10 mm to the right of the other objects (except those in ignore),
+    // centred on them in Y, or onto the origin when there are none, so that an object added on its own does not
+    // overlap the others there. Keeps its height and the layout of its instances. Instances that have no
+    // assembly pose yet start from their pose on the plate.
+    void          set_assembly_pos(ModelObject *model_object, const std::vector<const ModelObject*> &ignore = {});
     // Returns approximate axis aligned bounding box of this model.
     BoundingBoxf3 bounding_box_approx() const;
     // Returns exact axis aligned bounding box of this model.
