@@ -1578,7 +1578,10 @@ TEST_CASE("Sequential printing counts only the part of an object above the rod h
     const std::string error = print.validate().string;
     INFO(error);
     const bool refused = fins == Fins::FacingEachOther || skirt != Skirt::None;
-    CHECK((error.find("too tall") != std::string::npos) == refused);
+    if (refused)
+        CHECK(error.find("too tall") != std::string::npos);
+    else
+        CHECK(error.empty());
     if (fins == Fins::OneOfEach && !refused) {
         // validate() records the print order on the print's own copy of the model.
         const ModelObjectPtrs &objects = print.model().objects;
@@ -1633,7 +1636,10 @@ TEST_CASE("Sequential printing checks the part above the rod against the rod's f
 
     const std::string error = print.validate().string;
     INFO(error);
-    CHECK((error.find("too tall") != std::string::npos) == (dist_to_rod > 36.5));
+    if (dist_to_rod > 36.5)
+        CHECK(error.find("too tall") != std::string::npos);
+    else
+        CHECK(error.empty());
 }
 
 TEST_CASE("Sequential printing keeps the rod's reach within the object", "[Print]")
@@ -1691,7 +1697,10 @@ TEST_CASE("Sequential printing counts a raft toward what reaches the rod", "[Pri
 
     const std::string error = print.validate().string;
     INFO(error);
-    CHECK((error.find("too tall") != std::string::npos) == raft);
+    if (raft)
+        CHECK(error.find("too tall") != std::string::npos);
+    else
+        CHECK(error.empty());
 }
 
 TEST_CASE("Sequential printing refuses objects a raft lifts above the rod when the lid is below it", "[Print]")
@@ -1891,7 +1900,7 @@ TEST_CASE("Sequential printing measures objects on a belt printer by the model's
 
     const std::string error = print.validate().string;
     INFO(error);
-    CHECK(error.find("too tall") == std::string::npos);
+    CHECK(error.empty());
 }
 
 // A sequential (by-object) print must publish the print-level nozzle group result just
