@@ -409,6 +409,18 @@ TEST_CASE("Reading a CFS-capable printer gives its name and CFS slots", "[Creali
     CHECK(info.boxes_json == R"({"boxsInfo":{"materialBoxs":[]}})");
 }
 
+TEST_CASE("Reading a Creality Hi gives its name and CFS slots", "[CrealityPrint]")
+{
+    FakeCrealityPrinter printer(Behavior::Answers, "F018");
+    const auto host = make_host(printer, 5s);
+
+    const CrealityPrinterInfo info = host->read_printer_info();
+    CHECK(info.reachable);
+    CHECK(info.multi_color);
+    CHECK(info.model_name == "Hi");
+    CHECK(info.boxes_json == R"({"boxsInfo":{"materialBoxs":[]}})");
+}
+
 TEST_CASE("Reading a CFS-capable printer that reports no CFS connected flags it", "[CrealityPrint]")
 {
     FakeCrealityPrinter printer(Behavior::ReportsNoCfs, "K1C");

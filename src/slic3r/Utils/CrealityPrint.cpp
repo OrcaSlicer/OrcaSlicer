@@ -366,6 +366,7 @@ static const std::map<std::string, std::string>& cfs_capable_models()
         {"F008", "K2 Plus"},
         {"F012", "K2 Pro"},
         {"F016", "K2 SE"},
+        {"F018", "Hi"},
         {"F021", "K2"},
         {"F022", "SPARKX i7"},
         {"K1", "K1"},
