@@ -1022,6 +1022,7 @@ public:
 #endif // ENABLE_SHOW_CAMERA_TARGET
     GLModel m_background;
     unsigned int m_fxaa_texture_id{ 0 };
+    unsigned int m_fxaa_framebuffer_id{ 0 };
     std::array<unsigned int, 2> m_fxaa_texture_size{ 0, 0 };
     unsigned int m_ssao_color_texture_id{ 0 };
     unsigned int m_ssao_depth_texture_id{ 0 };
