@@ -98,8 +98,11 @@ double calculate_infill_rotation_angle(const PrintObject* object,
     double             angle = 0.0;
     ConfigOptionFloats rotate_angles;
     const std::string  search_string = "/NnZz$LlUuQq~^|#";
-    if (regex_search(template_string, std::regex("[+\\-%*@\'\"cm" + search_string + "]"))) { // template metalanguage of rotating infill
-        std::regex                 del("[\\s,]+");
+    // Built once: layers and objects are filled in parallel, and building a std::regex writes to a cache of the
+    // shared locale, which is a data race.
+    static const std::regex metalanguage("[+\\-%*@\'\"cm" + search_string + "]");
+    static const std::regex del("[\\s,]+");
+    if (regex_search(template_string, metalanguage)) { // template metalanguage of rotating infill
         std::sregex_token_iterator it(template_string.begin(), template_string.end(), del, -1);
         std::vector<std::string>   tk;
         std::sregex_token_iterator end;
