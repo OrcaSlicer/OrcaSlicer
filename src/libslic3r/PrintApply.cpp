@@ -2305,8 +2305,10 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     {
         // Keep automatic assignments in the project, but choose a stable physical
         // tool before computing support slab heights and nozzle limits.
-        PrintObjectConfig support_config = PrintObject::object_config_from_model_object(
-            m_default_object_config, *object->model_object(), num_extruders, print_variant_index);
+        // Preserve assignments already resolved while applying the object config.
+        // Rebuilding from the model here can turn Auto back into Default and
+        // invalidate completed supports on an otherwise unchanged apply.
+        PrintObjectConfig support_config = object->config();
         if (object->has_support_material() && has_extruder_layer_heights(m_config, layer_height_filaments())) {
             const auto filaments = object->object_extruders();
             if (!filaments.empty()) {
