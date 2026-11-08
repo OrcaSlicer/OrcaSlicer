@@ -1,0 +1,14 @@
+{
+  "$domain": "calib",
+  "$doc": "Coverage manifest; see tools/check_action_coverage.py. Each key is <file>::<kind>::<label>; the value is {\"action\"} | {\"actions\"} | {\"coveredBy\"} | {\"excluded\": reason} | {\"todo\": true}.",
+  "MainFrame.cpp::menu::Calibration Guide": {"excluded": "cosmetic-help", "note": "opens the online guide"},
+  "MainFrame.cpp::menu::Cornering": {"action": "calib.run"},
+  "MainFrame.cpp::menu::Flow ratio": {"action": "calib.run"},
+  "MainFrame.cpp::menu::Input Shaping Damping/zeta factor": {"action": "calib.run"},
+  "MainFrame.cpp::menu::Input Shaping Frequency": {"action": "calib.run"},
+  "MainFrame.cpp::menu::Max flowrate": {"action": "calib.run"},
+  "MainFrame.cpp::menu::Pressure advance": {"action": "calib.run"},
+  "MainFrame.cpp::menu::Retraction": {"action": "calib.run"},
+  "MainFrame.cpp::menu::Temperature": {"action": "calib.run"},
+  "MainFrame.cpp::menu::VFA": {"action": "calib.run"}
+}

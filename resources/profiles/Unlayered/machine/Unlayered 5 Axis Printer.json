@@ -1,0 +1,13 @@
+{
+    "type": "machine_model",
+    "name": "Unlayered 5 Axis Printer",
+    "model_id": "unlayered_5axis",
+    "nozzle_diameter": "0.4;0.6;0.8",
+    "machine_tech": "FFF",
+    "family": "Unlayered",
+    "bed_model": "Unlayered_v1.5_bed_model.stl",
+    "bed_texture": "Unlayered_v1.5_bed_texture.svg",
+    "hotend_model": "",
+    "default_materials": "Generic PLA @System;Generic PETG @System;Generic ABS @System;Generic TPU @System;Generic ASA @System;Generic PC @System;Generic PA @System;Generic PA-CF @System",
+    "printable_height": "190"
+}

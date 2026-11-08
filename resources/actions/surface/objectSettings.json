@@ -1,0 +1,15 @@
+{
+  "$domain": "objectSettings",
+  "$doc": "Coverage manifest; see tools/check_action_coverage.py. Each key is <file>::<kind>::<label>; the value is {\"action\"} | {\"actions\"} | {\"coveredBy\"} | {\"excluded\": reason} | {\"todo\": true}.",
+  "GLCanvas3D.cpp::toolbar::layersediting": {"actions": ["object.layerHeightProfile", "layer.addRange"]},
+  "GUI_Factories.cpp::menu::Flush into objects' infill": {"action": "object.setSettings"},
+  "GUI_Factories.cpp::menu::Flush into objects' support": {"action": "object.setSettings"},
+  "GUI_Factories.cpp::menu::Flush into this object": {"action": "object.setSettings"},
+  "GUI_Factories.cpp::menu::Height Range Modifier": {"actions": ["layer.addRange", "layer.editRange", "layer.removeRange"]},
+  "GUI_Factories.cpp::menu::expr:_(cat.first)@create_settings_popupmenu": {"actions": ["object.setSettings", "part.setSettings"]},
+  "GUI_Factories.cpp::menu::expr:_(category.first)@create_freq_settings_popupmenu": {"actions": ["object.setSettings", "part.setSettings"]},
+  "GUI_Factories.cpp::menu::expr:names2[0]@append_menu_item_per_object_process": {"actions": ["object.getSettings", "part.getSettings"]},
+  "GUI_Factories.cpp::menu::expr:names3[0]@append_menu_item_per_object_process": {"actions": ["object.setSettings", "part.setSettings"]},
+  "GUI_Factories.cpp::menu::expr:names[0]@append_menu_item_per_object_process": {"actions": ["object.setSettings", "part.setSettings"]},
+  "GUI_Factories.cpp::menu::expr:names[0]@append_menu_item_per_object_settings": {"actions": ["object.getSettings", "object.setSettings"]}
+}

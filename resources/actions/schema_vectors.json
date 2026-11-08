@@ -1,0 +1,83 @@
+{
+  "$doc": "Shared vectors for the action params dialect (ActionSchema.hpp). Both the slicer (Catch2) and the server (pytest) run them. schemaValid: check_schema outcome. cases: validate outcomes; path is the first failing path when invalid (params root = \"/\").",
+  "vectors": [
+    {"name": "mirror axis", "schemaValid": true,
+     "schema": {"type": "object", "additionalProperties": false, "required": ["axis"], "properties": {"axis": {"type": "string", "enum": ["x", "y", "z"]}}},
+     "cases": [
+       {"value": {"axis": "x"}, "valid": true},
+       {"value": {"axis": "w"}, "valid": false, "path": "/axis"},
+       {"value": {}, "valid": false, "path": "/axis", "needs": "axis"},
+       {"value": {"axis": "x", "extra": 1}, "valid": false, "path": "/extra"},
+       {"value": [], "valid": false, "path": "/"}
+     ]},
+    {"name": "integer range", "schemaValid": true,
+     "schema": {"type": "object", "additionalProperties": false, "properties": {"count": {"type": "integer", "minimum": 1, "maximum": 100}}},
+     "cases": [
+       {"value": {"count": 1}, "valid": true},
+       {"value": {"count": 2.0}, "valid": true},
+       {"value": {"count": 2.5}, "valid": false, "path": "/count"},
+       {"value": {"count": 0}, "valid": false, "path": "/count"},
+       {"value": {"count": 101}, "valid": false, "path": "/count"},
+       {"value": {"count": "3"}, "valid": false, "path": "/count"},
+       {"value": {"count": true}, "valid": false, "path": "/count"},
+       {"value": {}, "valid": true}
+     ]},
+    {"name": "number and boolean", "schemaValid": true,
+     "schema": {"type": "object", "additionalProperties": false, "properties": {"ratio": {"type": "number", "minimum": 0, "maximum": 1}, "flag": {"type": "boolean"}}},
+     "cases": [
+       {"value": {"ratio": 0.5, "flag": false}, "valid": true},
+       {"value": {"ratio": 1}, "valid": true},
+       {"value": {"ratio": -0.1}, "valid": false, "path": "/ratio"},
+       {"value": {"flag": 0}, "valid": false, "path": "/flag"}
+     ]},
+    {"name": "string lengths count code points", "schemaValid": true,
+     "schema": {"type": "object", "additionalProperties": false, "properties": {"name": {"type": "string", "minLength": 1, "maxLength": 3}}},
+     "cases": [
+       {"value": {"name": "abc"}, "valid": true},
+       {"value": {"name": "\u00e9\u00e9\u00e9"}, "valid": true},
+       {"value": {"name": ""}, "valid": false, "path": "/name"},
+       {"value": {"name": "abcd"}, "valid": false, "path": "/name"}
+     ]},
+    {"name": "array of points", "schemaValid": true,
+     "schema": {"type": "object", "additionalProperties": false, "properties": {"points": {"type": "array", "minItems": 1, "maxItems": 2,
+       "items": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}}}}},
+     "cases": [
+       {"value": {"points": [[0, 0, 1]]}, "valid": true},
+       {"value": {"points": []}, "valid": false, "path": "/points"},
+       {"value": {"points": [[0, 0, 1], [1, 2, 3], [4, 5, 6]]}, "valid": false, "path": "/points"},
+       {"value": {"points": [[0, 0]]}, "valid": false, "path": "/points/0"},
+       {"value": {"points": [[0, "a", 1]]}, "valid": false, "path": "/points/0/1"}
+     ]},
+    {"name": "nested object", "schemaValid": true,
+     "schema": {"type": "object", "additionalProperties": false, "properties": {"plane": {"type": "object", "additionalProperties": false, "required": ["z"],
+       "properties": {"z": {"type": "number"}, "keep": {"type": "string", "enum": ["upper", "lower", "both"], "default": "both"}}}}},
+     "cases": [
+       {"value": {"plane": {"z": 20}}, "valid": true},
+       {"value": {"plane": {}}, "valid": false, "path": "/plane/z", "needs": "z"},
+       {"value": {"plane": {"z": 1, "w": 2}}, "valid": false, "path": "/plane/w"}
+     ]},
+    {"name": "exactly one", "schemaValid": true,
+     "schema": {"type": "object", "additionalProperties": false, "x-exactlyOne": [["face"], ["rotation"]],
+       "properties": {"face": {"type": "string", "enum": ["bottom", "top"]}, "rotation": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}}}},
+     "cases": [
+       {"value": {"face": "top"}, "valid": true},
+       {"value": {"rotation": [0, 0, 90]}, "valid": true},
+       {"value": {}, "valid": false, "path": "/"},
+       {"value": {"face": "top", "rotation": [0, 0, 0]}, "valid": false, "path": "/"}
+     ]},
+    {"name": "empty params", "schemaValid": true,
+     "schema": {"type": "object", "additionalProperties": false, "properties": {}},
+     "cases": [{"value": {}, "valid": true}, {"value": {"a": 1}, "valid": false, "path": "/a"}]},
+    {"name": "missing additionalProperties", "schemaValid": false, "schema": {"type": "object", "properties": {}}},
+    {"name": "additionalProperties true", "schemaValid": false, "schema": {"type": "object", "additionalProperties": true}},
+    {"name": "unknown keyword", "schemaValid": false, "schema": {"type": "string", "pattern": "^a"}},
+    {"name": "oneOf not allowed", "schemaValid": false, "schema": {"type": "object", "additionalProperties": false, "oneOf": []}},
+    {"name": "union type not allowed", "schemaValid": false, "schema": {"type": ["string", "null"]}},
+    {"name": "array without items", "schemaValid": false, "schema": {"type": "array"}},
+    {"name": "required undeclared", "schemaValid": false, "schema": {"type": "object", "additionalProperties": false, "required": ["a"], "properties": {}}},
+    {"name": "enum type mismatch", "schemaValid": false, "schema": {"type": "string", "enum": [1]}},
+    {"name": "bad default", "schemaValid": false, "schema": {"type": "integer", "minimum": 0, "default": -1}},
+    {"name": "minLength on number", "schemaValid": false, "schema": {"type": "number", "minLength": 1}},
+    {"name": "exactlyOne one group", "schemaValid": false, "schema": {"type": "object", "additionalProperties": false, "x-exactlyOne": [["a"]], "properties": {"a": {"type": "string"}}}}
+  ]
+}

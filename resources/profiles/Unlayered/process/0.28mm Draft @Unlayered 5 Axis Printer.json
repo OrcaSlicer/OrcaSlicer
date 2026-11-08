@@ -1,0 +1,16 @@
+{
+    "type": "process",
+    "name": "0.28mm Draft @Unlayered 5 Axis Printer",
+    "inherits": "fdm_process_unlayered_0.4_nozzle_common",
+    "from": "system",
+    "setting_id": "EqkF3fA7z95h3Xfz",
+    "instantiation": "true",
+    "layer_height": "0.28",
+    "outer_wall_speed": "100",
+    "inner_wall_speed": "150",
+    "internal_solid_infill_speed": "160",
+    "sparse_infill_speed": "150",
+    "compatible_printers": [
+        "Unlayered 5 Axis Printer 0.4 nozzle"
+    ]
+}

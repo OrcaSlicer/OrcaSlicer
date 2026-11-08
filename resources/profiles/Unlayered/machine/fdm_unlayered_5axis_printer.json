@@ -1,0 +1,92 @@
+{
+	"type": "machine",
+	"name": "fdm_unlayered_5axis_printer",
+	"inherits": "fdm_common_5axis",
+	"from": "system",
+	"instantiation": "false",
+	"change_filament_gcode": "M226",
+	"deretraction_speed": [
+		"60"
+	],
+	"extruder_clearance_radius": "40",
+	"host_type": "unlayered",
+	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]\n;m98 p\"timelapse.g\"",
+	"machine_end_gcode": "{if !virtual_5axis}M564 S0\nG1 X133 Y-97 Z140 B-120 C0 F5000\nG1 X133 Y-97 Z100 B-120 C0 F5000\n{endif}",
+	"machine_max_acceleration_extruding": [
+		"10000",
+		"20000"
+	],
+	"machine_max_acceleration_retracting": [
+		"10000",
+		"5000"
+	],
+	"machine_max_acceleration_z": [
+		"3000",
+		"200"
+	],
+	"machine_max_jerk_e": [
+		"2",
+		"2.5"
+	],
+	"machine_max_jerk_x": [
+		"10",
+		"9"
+	],
+	"machine_max_jerk_y": [
+		"10",
+		"9"
+	],
+	"machine_max_jerk_z": [
+		"3",
+		"0.4"
+	],
+	"machine_max_speed_e": [
+		"60",
+		"25"
+	],
+	"machine_max_speed_x": [
+		"600",
+		"200"
+	],
+	"machine_max_speed_y": [
+		"600",
+		"200"
+	],
+	"machine_max_speed_z": [
+		"130",
+		"12"
+	],
+	"machine_start_gcode": "M140 S[first_layer_bed_temperature] ; start bed heating early -- the M116 below waits before probing\n;Set plate offset\n{if curr_bed_type == \"High Temp Plate\"}\nset global.bedType = 0\n{endif}\n{if curr_bed_type == \"Textured PEI Plate\"}\nset global.bedType = 1\n{endif}\n{if curr_bed_type == \"Cool Plate\"}\nset global.bedType = 2\n{endif}\n{if curr_bed_type == \"Cool Plate\"}\nset global.bedType = 2\n{endif}\nM98 P\"setBed.g\"  ;set bed offset\nM568 P0 R170 ;Standby/preheat temp: no-ooze preheat while homing and probing\nM106 P0 S0     ;Turn off cooling fan\nM106 P2 S0     ;Turn off bed fan\nM568 P0 A1     ;Activate tool 1\nG28                  ;Home \nM116 P0 S5\nM98 P\"wipe.g\"\nM98 p\"calibrate.g\"\nM83                 ;Set extruder to relative mode\nG90                  ;Absolute positioning\nM116 S5         ;Wait for temp to 5 degrees\nG32                 ;Probe bed\nM568 P0 A2   ;Set tool to active temp\nM98 P\"Purge.g\" ;Run the purge and wipe sequence\nG1 X93 Y0 Z1.4\nG3 X91.5 Y9.63 F500 R93 E9\nG1 E-0.6 F1000\nG1 Z10 F8000\n\n{if virtual_5axis}G1 X0 Y0 Z10 F48000 ;Go to center of bed (virtual 5-axis: no rotary axes)\n{else}G1 X0 Y0 Z10 B-90 C0 F48000 ;Go to center of bed\n{endif}G1 E0.58 F1000\n{if virtual_5axis}M201 X20000 Y20000\n{else}M201 X20000 Y20000 B20000 C20000\n{endif}{if virtual_5axis}M203 X48000 Y48000\n{else}M203 X48000 Y48000 B48000 C48000\n{endif}{if virtual_5axis}M205 X600 Y600\n{else}M205 X600 Y600 B600 C600\n{endif}",
+	"manual_filament_change": "1",
+	"nonplanar_departure_distance": "5",
+	"retraction_length": [
+		"0.4"
+	],
+	"retraction_speed": [
+		"60"
+	],
+	"support_multi_bed_types": "1",
+	"thumbnails": "48x48/PNG, 128x128/PNG",
+	"z_hop": [
+		"0.5"
+	],
+	"machine_max_acceleration_e": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_travel": [
+		"20000",
+		"20000"
+	],
+	"machine_max_acceleration_x": [
+		"20000",
+		"20000"
+	],
+	"machine_max_acceleration_y": [
+		"20000",
+		"20000"
+	],
+	"retraction_minimum_travel": [
+		"1"
+	]
+}

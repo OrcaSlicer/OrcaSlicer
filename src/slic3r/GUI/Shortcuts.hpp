@@ -78,6 +78,10 @@ enum class ShortcutSection : uint8_t {
 };
 
 const ShortcutInfo&   shortcut_info(Shortcut shortcut);
+// Unlayered: keys the keyboard navigation owns, never bindable: Tab and Shift+Tab step through
+// the canvas toolbar and move focus, Ctrl+Tab and Ctrl+Shift+Tab switch the main tabs, F10
+// highlights the menu bar, Menu and Shift+F10 open the context menu.
+bool                  is_navigation_chord(const KeyChord& chord);
 ShortcutSection       shortcut_section(Shortcut shortcut);
 const char*           section_name(ShortcutSection section);   // untranslated heading
 std::vector<Shortcut> shortcuts_in(ShortcutContext context);   // in table order

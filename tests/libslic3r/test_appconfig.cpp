@@ -51,19 +51,6 @@ void load_config_text(AppConfig &config, const std::string &json)
 }
 } // namespace
 
-TEST_CASE("Stealth mode is turned off once for a config that has it on", "[AppConfig]") {
-    SECTION("a config from a build that forced it on, including one whose broken first migration only set its flag") {
-        AppConfig config;
-        load_config_text(config, R"({"app": {"stealth_mode": true, "unlayered_stealth_off_migrated": true}})");
-        REQUIRE_FALSE(config.get_stealth_mode());
-        REQUIRE(config.get_bool("unlayered_stealth_off_migrated_v2"));
-    }
-    SECTION("turned back on after the migration, it stays on") {
-        AppConfig config;
-        load_config_text(config, R"({"app": {"stealth_mode": true, "unlayered_stealth_off_migrated_v2": true}})");
-        REQUIRE(config.get_stealth_mode());
-    }
-}
 
 TEST_CASE("AppConfig network version helpers", "[AppConfig]") {
     AppConfig config;

@@ -1,0 +1,23 @@
+{
+  "$domain": "app",
+  "$doc": "Coverage manifest; see tools/check_action_coverage.py. Each key is <file>::<kind>::<label>; the value is {\"action\"} | {\"actions\"} | {\"coveredBy\"} | {\"excluded\": reason} | {\"todo\": true}.",
+  "MainFrame.cpp::menu::Check for Updates": {"action": "app.checkUpdates"},
+  "MainFrame.cpp::menu::Keyboard Shortcuts": {"excluded": "cosmetic-help"},
+  "MainFrame.cpp::menu::Multiplanar Tutorial": {"excluded": "cosmetic-help"},
+  "MainFrame.cpp::menu::New Window": {"excluded": "forbidden-security", "note": "process spawn"},
+  "MainFrame.cpp::menu::Open Network Test": {"excluded": "cosmetic-help", "note": "troubleshooting dialog"},
+  "MainFrame.cpp::menu::Plugins": {"excluded": "forbidden-security", "note": "plugins (D6)"},
+  "MainFrame.cpp::menu::Preferences": {"actions": ["prefs.get", "prefs.set"]},
+  "MainFrame.cpp::menu::Preset Bundle": {"actions": ["preset.exportBundle", "preset.importBundle"], "note": "S7"},
+  "MainFrame.cpp::menu::Quit": {"excluded": "forbidden-security", "note": "app lifecycle"},
+  "MainFrame.cpp::menu::Restart to Update": {"excluded": "forbidden-security", "note": "app lifecycle / OTA"},
+  "MainFrame.cpp::menu::Setup Wizard": {"coveredBy": "slicer.addPrinter", "note": "with slicer.listPrinterModels"},
+  "MainFrame.cpp::menu::Show Configuration Folder": {"excluded": "forbidden-security", "note": "opens a filesystem path"},
+  "MainFrame.cpp::menu::Show Tip of the Day": {"excluded": "cosmetic-help"},
+  "MainFrame.cpp::menu::Sign in to Unlayered": {"excluded": "forbidden-security", "note": "sign-in"},
+  "MainFrame.cpp::menu::Sign out of Unlayered": {"excluded": "forbidden-security", "note": "sign-out"},
+  "MainFrame.cpp::menu::Sync Presets": {"excluded": "forbidden-security", "note": "cloud preset sync (account)"},
+  "MainFrame.cpp::menu::Troubleshoot Center": {"excluded": "cosmetic-help", "note": "troubleshooting dialog"},
+  "MainFrame.cpp::menu::expr:_L(about_title)@init_menubar_as_editor": {"excluded": "cosmetic-help"},
+  "MainFrame.cpp::menu::expr:about_title@generate_help_menu": {"excluded": "cosmetic-help"}
+}

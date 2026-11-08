@@ -1,0 +1,80 @@
+{
+  "$domain": "plate",
+  "$doc": "Coverage manifest; see tools/check_action_coverage.py. Each key is <file>::<kind>::<label>; the value is {\"action\"} | {\"actions\"} | {\"coveredBy\"} | {\"excluded\": reason} | {\"todo\": true}.",
+  "GLCanvas3D.cpp::toolbar::addplate": {
+    "action": "plate.add"
+  },
+  "GLCanvas3D.cpp::toolbar::arrange": {
+    "action": "plate.arrange"
+  },
+  "GLCanvas3D.cpp::toolbar::orient": {
+    "actions": [
+      "object.autoOrient",
+      "plate.autoOrient"
+    ]
+  },
+  "GUI_Factories.cpp::menu::Add Models": {
+    "excluded": "os-dialog-replaced"
+  },
+  "GUI_Factories.cpp::menu::Arrange": {
+    "action": "plate.arrange"
+  },
+  "GUI_Factories.cpp::menu::Auto Rotate": {
+    "action": "plate.autoOrient"
+  },
+  "GUI_Factories.cpp::menu::Auto orientation": {
+    "excluded": "sla-only"
+  },
+  "GUI_Factories.cpp::menu::Delete All": {
+    "action": "plate.clear"
+  },
+  "GUI_Factories.cpp::menu::Delete Plate": {
+    "action": "plate.delete"
+  },
+  "GUI_Factories.cpp::menu::Reload All": {
+    "action": "plate.reloadAll"
+  },
+  "GUI_Factories.cpp::menu::Select All": {
+    "action": "plate.selectAll"
+  },
+  "GUI_Factories.cpp::menu::Select All Plates": {
+    "action": "plate.selectAll"
+  },
+  "GUI_Factories.cpp::menu::expr:lock_text@append_menu_item_locked": {
+    "action": "plate.lock"
+  },
+  "GUI_Factories.cpp::menu::expr:name@append_menu_item_plate_name": {
+    "action": "plate.rename"
+  },
+  "MainFrame.cpp::sidebutton::Slice all": {
+    "action": "slice.all"
+  },
+  "Plater.cpp::bedicon::hover:0": {
+    "action": "plate.select"
+  },
+  "Plater.cpp::bedicon::hover:1": {
+    "action": "plate.delete"
+  },
+  "Plater.cpp::bedicon::hover:2": {
+    "action": "plate.autoOrient"
+  },
+  "Plater.cpp::bedicon::hover:3": {
+    "action": "plate.arrange"
+  },
+  "Plater.cpp::bedicon::hover:4": {
+    "action": "plate.lock"
+  },
+  "Plater.cpp::bedicon::hover:5": {
+    "action": "plate.setSettings"
+  },
+  "Plater.cpp::bedicon::hover:6": {
+    "action": "plate.rename"
+  },
+  "Plater.cpp::bedicon::hover:7": {
+    "action": "plate.move"
+  },
+  "Plater.cpp::bedicon::hover:PLATE_FILAMENT_MAP_ID": {
+    "excluded": "deferred-printer",
+    "note": "FilamentMapDialog: dual-nozzle printers' filament grouping"
+  }
+}

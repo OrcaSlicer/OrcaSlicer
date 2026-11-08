@@ -1,0 +1,12 @@
+{
+    "type": "process",
+    "name": "0.32mm Standard @Unlayered 5 Axis Printer 0.8 nozzle",
+    "inherits": "fdm_process_unlayered_0.8_nozzle_common",
+    "from": "system",
+    "setting_id": "vSK3W7BTqz4DvXv0",
+    "instantiation": "true",
+    "layer_height": "0.32",
+    "compatible_printers": [
+        "Unlayered 5 Axis Printer 0.8 nozzle"
+    ]
+}

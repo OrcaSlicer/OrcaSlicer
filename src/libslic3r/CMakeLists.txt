@@ -699,6 +699,9 @@ endif ()
 # Lets CGAL algorithms given CGAL::Parallel_if_available_tag run on TBB.
 target_compile_definitions(libslic3r_cgal PRIVATE CGAL_LINKED_WITH_TBB)
 target_link_libraries(libslic3r_cgal PRIVATE ${_cgal_tgt} admesh libigl mcut boost_libs TBB::tbb)
+# SkeletonBuild (in this library) calls back into libslic3r (its_quadric_edge_collapse); static
+# libraries need the cycle spelled out or a test binary that pulls SkeletonBuild fails to link.
+target_link_libraries(libslic3r_cgal PRIVATE libslic3r)
 
 if (MSVC AND "${CMAKE_SIZEOF_VOID_P}" STREQUAL "4") # 32 bit MSVC workaround
     target_compile_definitions(libslic3r_cgal PRIVATE CGAL_DO_NOT_USE_MPZF)

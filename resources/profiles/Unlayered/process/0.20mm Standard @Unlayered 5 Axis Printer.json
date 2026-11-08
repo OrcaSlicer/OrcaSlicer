@@ -1,0 +1,12 @@
+{
+    "type": "process",
+    "name": "0.20mm Standard @Unlayered 5 Axis Printer",
+    "inherits": "fdm_process_unlayered_0.4_nozzle_common",
+    "from": "system",
+    "setting_id": "xH9McY4Qex5teCPo",
+    "instantiation": "true",
+    "layer_height": "0.2",
+    "compatible_printers": [
+        "Unlayered 5 Axis Printer 0.4 nozzle"
+    ]
+}

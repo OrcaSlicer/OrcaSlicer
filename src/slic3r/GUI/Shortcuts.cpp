@@ -31,15 +31,10 @@ constexpr int SHIFT      = wxMOD_SHIFT;
 constexpr int CTRL_SHIFT = wxMOD_CONTROL | wxMOD_SHIFT;
 
 #ifdef __APPLE__
-// Cmd+Tab is the system application switcher, so cycling tabs uses the physical Control key.
-constexpr KeyChord TAB_NEXT_CHORD{ WXK_TAB, wxMOD_RAW_CONTROL };
-constexpr KeyChord TAB_PREVIOUS_CHORD{ WXK_TAB, wxMOD_RAW_CONTROL | wxMOD_SHIFT };
 constexpr KeyChord PREFERENCES_CHORD{ ',', CTRL };
 constexpr KeyChord DELETE_CHORD{ WXK_BACK };
 constexpr KeyChord MOUSE3D_CHORD{ 'M', CTRL_SHIFT };
 #else
-constexpr KeyChord TAB_NEXT_CHORD{ WXK_TAB, CTRL };
-constexpr KeyChord TAB_PREVIOUS_CHORD{ WXK_TAB, CTRL_SHIFT };
 constexpr KeyChord PREFERENCES_CHORD{ 'P', CTRL };
 constexpr KeyChord DELETE_CHORD{ WXK_DELETE };
 constexpr KeyChord MOUSE3D_CHORD{ 'M', CTRL };
@@ -88,13 +83,13 @@ constexpr std::array<ShortcutInfo, size_t(Shortcut::Count)> shortcut_table = {{
     // Objects
     REPEATING(AddInstance,      "add_instance",       L("Add instance"),                                         PLATER | OBJECT_LIST, { '+' }),
     REPEATING(RemoveInstance,   "remove_instance",    L("Remove instance"),                                      PLATER | OBJECT_LIST, { '-' }),
-    SHORTCUT(TogglePrintable,   "toggle_printable",   L("Toggle printable for object/part"),                     PLATER | OBJECT_LIST, { 'V' }),
+    SHORTCUT(TogglePrintable,   "toggle_printable",   L("Toggle printable for object/instance"),                 PLATER | OBJECT_LIST, { 'V' }),
     SHORTCUT(ToggleAutoDrop,    "toggle_auto_drop",   L("Auto Drop"),                                            OBJECT_LIST,          { 'D' }),
 
     // Placement
     SHORTCUT(Arrange,           "arrange",            L("Arrange all objects"),                                  PLATER, { 'A' }),
     SHORTCUT(ArrangePlate,      "arrange_plate",      L("Arrange objects on selected plates"),                   PLATER, { 'A', SHIFT }),
-    SHORTCUT(Orient,            "orient",             L("Auto orient all/selected objects"),                     PLATER, { 'Q' }),
+    SHORTCUT(Orient,            "orient",             L("Auto orient selected objects, or the current plate"),  PLATER, { 'Q' }),
     SHORTCUT(OrientPlate,       "orient_plate",       L("Auto orient all objects on current plate"),             PLATER, { 'Q', SHIFT }),
     STEPPING(MoveSelectionLeft,   "move_selection_left",    L("Move selection 10mm in negative X direction"),    PLATER, { WXK_LEFT }),
     STEPPING(MoveSelectionRight,  "move_selection_right",   L("Move selection 10mm in positive X direction"),    PLATER, { WXK_RIGHT }),
@@ -161,8 +156,10 @@ constexpr std::array<ShortcutInfo, size_t(Shortcut::Count)> shortcut_table = {{
     // Application
     SHORTCUT(Preferences,       "preferences",        L("Preferences"),                                          GLOBAL, PREFERENCES_CHORD),
     SHORTCUT(Search,            "search",             L("Search"),                                               GLOBAL, { 'F', CTRL }),
-    SHORTCUT(SwitchView,        "switch_view",        L("Switch between Prepare/Preview"),                       CANVAS, { WXK_TAB }),
-    SHORTCUT(CollapseSidebar,   "collapse_sidebar",   L("Collapse/Expand the sidebar"),                          CANVAS, { WXK_TAB, SHIFT }),
+    // Unlayered: Tab and Shift+Tab are keyboard navigation (is_navigation_chord), so the view
+    // switch ships unbound and the sidebar toggle keeps the fork's Ctrl+B, from anywhere.
+    SHORTCUT(SwitchView,        "switch_view",        L("Switch between Prepare/Preview"),                       CANVAS, KeyChord{}),
+    SHORTCUT(CollapseSidebar,   "collapse_sidebar",   L("Collapse/Expand the sidebar"),                          GLOBAL, { 'B', CTRL }),
     // The jump-to-tab shortcuts have no default key, so users can bind the ones they want.
     SHORTCUT(GoToHome,          "go_to_home",         L("Go to the Home tab"),                                   GLOBAL, {}),
 #ifdef SLIC3R_CAD
@@ -174,8 +171,10 @@ constexpr std::array<ShortcutInfo, size_t(Shortcut::Count)> shortcut_table = {{
     SHORTCUT(GoToMultiDevice,   "go_to_multi_device", L("Go to the Multi-device tab"),                           GLOBAL, {}),
     SHORTCUT(GoToProject,       "go_to_project",      L("Go to the Project tab"),                                GLOBAL, {}),
     SHORTCUT(GoToCalibration,   "go_to_calibration",  L("Go to the Calibration tab"),                            GLOBAL, {}),
-    SHORTCUT(TabNext,           "tab_next",           L("Switch to the next tab"),                               GLOBAL, TAB_NEXT_CHORD),
-    SHORTCUT(TabPrevious,       "tab_previous",       L("Switch to the previous tab"),                           GLOBAL, TAB_PREVIOUS_CHORD),
+    // Unlayered: Ctrl+Tab and Ctrl+Shift+Tab are the fork's fixed tab keys (MainFrame, ahead of the
+    // registry), so cycling ships unbound here too; a user may still give it another key.
+    SHORTCUT(TabNext,           "tab_next",           L("Switch to the next tab"),                               GLOBAL, {}),
+    SHORTCUT(TabPrevious,       "tab_previous",       L("Switch to the previous tab"),                           GLOBAL, {}),
     SHORTCUT(ReloadDevicePage,  "reload_device_page", L("Reload the device page"),                               CANVAS, { WXK_F5 }),
     SHORTCUT(KeyboardShortcuts, "keyboard_shortcuts", L("Show keyboard shortcuts list"),                         CANVAS, { '?' }),
     SHORTCUT(Quit,              "quit",               L("Quit"),                                                 GLOBAL, { 'Q', CTRL }),
@@ -253,6 +252,16 @@ int step_modifiers(const KeyChord& chord, const KeyChord& binding)
 } // namespace
 
 const ShortcutInfo& shortcut_info(Shortcut shortcut) { return shortcut_table[size_t(shortcut)]; }
+
+bool is_navigation_chord(const KeyChord& chord)
+{
+    switch (chord.key) {
+    case WXK_TAB:  return (chord.modifiers & wxMOD_ALT) == 0;
+    case WXK_F10:  return chord.modifiers == wxMOD_NONE || chord.modifiers == wxMOD_SHIFT;
+    case WXK_MENU: return chord.modifiers == wxMOD_NONE;
+    default:       return false;
+    }
+}
 
 ShortcutSection shortcut_section(Shortcut shortcut)
 {
@@ -379,7 +388,7 @@ void ShortcutRegistry::load(const AppConfig& config)
                 continue;
             if (it->second == UNBOUND)
                 m_overrides[size_t(info.id)] = KeyChord{};
-            else if (std::optional<KeyChord> chord = KeyChord::parse(it->second); chord.has_value())
+            else if (std::optional<KeyChord> chord = KeyChord::parse(it->second); chord.has_value() && !is_navigation_chord(*chord))
                 // A Global chord is seen before any text field, so it needs a modifier or a non-typing key.
                 if ((info.contexts & GLOBAL) == 0 || chord->is_menu_accelerator())
                     m_overrides[size_t(info.id)] = *chord;
