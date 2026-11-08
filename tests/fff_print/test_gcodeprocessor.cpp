@@ -832,24 +832,25 @@ TEST_CASE("Nozzles up to the 64th are marked as unable to print a filament they 
     // 64 nozzles over a 200 mm square bed. Filament 1 maps to one of them and prints a 20 mm square
     // at X 160-180, Y 100-120, Z 10, which that nozzle alone can't print.
     const int nozzle = GENERATE(1, 31, 32, 63); // 0-based
-    CAPTURE(nozzle);
+    // It can't reach the square, the square is above its printable height, or it can't print the filament's type.
+    const std::string limit = GENERATE(as<std::string>{}, "area", "height", "filament type");
+    CAPTURE(nozzle, limit);
     const Vec2ds bed { Vec2d(0., 0.), Vec2d(200., 0.), Vec2d(200., 200.), Vec2d(0., 200.) };
     std::vector<Polygons>      unprintable_areas(MAXIMUM_EXTRUDER_NUMBER);
     std::vector<double>        printable_heights(MAXIMUM_EXTRUDER_NUMBER, 100.);
     std::vector<std::set<int>> unprintable_filament_types(MAXIMUM_EXTRUDER_NUMBER);
     int                        expected_error = 0;
-    SECTION("it can't reach the square")
-    {
+    if (limit == "area") {
         const Vec2ds nozzle_area { Vec2d(0., 0.), Vec2d(150., 0.), Vec2d(150., 200.), Vec2d(0., 200.) };
         unprintable_areas[nozzle] = diff(Polygon::new_scale(bed), Polygon::new_scale(nozzle_area));
         expected_error            = 1;
-    }
-    SECTION("the square is above its printable height")
-    {
+    } else if (limit == "height") {
         printable_heights[nozzle] = 5.;
         expected_error            = 1 << 1;
+    } else {
+        REQUIRE(limit == "filament type");
+        unprintable_filament_types[nozzle] = { 0 };
     }
-    SECTION("it can't print the filament's type") { unprintable_filament_types[nozzle] = { 0 }; }
 
     GCodeProcessor processor;
     for (const Vec2d &point : { Vec2d(160., 100.), Vec2d(180., 100.), Vec2d(180., 120.), Vec2d(160., 120.) }) {

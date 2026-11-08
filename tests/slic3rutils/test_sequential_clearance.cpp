@@ -136,15 +136,16 @@ TEST_CASE("Sequential clearance keeps copy order when print order is unavailable
     instances[0].instance_id = ObjectID(1);
     instances[1].instance_id = ObjectID(2);
     std::map<ObjectID, int> print_order{{ObjectID(1), 2}, {ObjectID(2), 1}};
+    const auto check_copy_order = [&]() {
+        sort_sequential_clearance_instances(instances.begin(), instances.end(), print_order);
+        CHECK(instances[0].instance_id == ObjectID(1));
+        CHECK(instances[1].instance_id == ObjectID(2));
+    };
 
-    SECTION("No validation order") { print_order.clear(); }
-    SECTION("New copy missing from print") { print_order.erase(ObjectID(2)); }
-    SECTION("Copy has not been ordered") { print_order[ObjectID(2)] = 0; }
-    SECTION("Copy has an invalid order") { print_order[ObjectID(2)] = -1; }
-
-    sort_sequential_clearance_instances(instances.begin(), instances.end(), print_order);
-    CHECK(instances[0].instance_id == ObjectID(1));
-    CHECK(instances[1].instance_id == ObjectID(2));
+    SECTION("No validation order") { print_order.clear(); check_copy_order(); }
+    SECTION("New copy missing from print") { print_order.erase(ObjectID(2)); check_copy_order(); }
+    SECTION("Copy has not been ordered") { print_order[ObjectID(2)] = 0; check_copy_order(); }
+    SECTION("Copy has an invalid order") { print_order[ObjectID(2)] = -1; check_copy_order(); }
 }
 
 TEST_CASE("Sequential clearance keeps object order when sorting copies", "[SequentialClearance]")

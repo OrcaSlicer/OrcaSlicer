@@ -33,6 +33,7 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include <catch2/generators/catch_generators_adapters.hpp>
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/AABBTreeLines.hpp"
 #include "libslic3r/Fill/Fill.hpp"
@@ -2492,12 +2493,12 @@ TEST_CASE("Infill lines do not end where the rings of the pattern start", "[Fill
          {ipCubic, AdaptiveInfillMode::Disabled, false, 2},
          {ipCrossHatch, AdaptiveInfillMode::Disabled, false, 2},
          {ipHilbertCurve, AdaptiveInfillMode::Disabled, false, 2}}));
-    const int   multiline = GENERATE(1, 2, 3);
+    // A single line of the other patterns is not a ring, and the center line of these two may stop short of the boundary.
+    const int   lowest    = first_multiline; // C++17 lambdas can't capture a structured binding
+    const int   highest   = pattern == ipCrossHatch || pattern == ipHilbertCurve ? 2 : 3;
+    const int   multiline = GENERATE_COPY(filter([=](int m) { return m >= lowest && m <= highest; }, values({1, 2, 3})));
     const float density   = GENERATE(0.1f, 0.3f);
     const bool  with_hole = GENERATE(false, true);
-    // A single line of the other patterns is not a ring, and the center line of these two may stop short of the boundary.
-    if (multiline < first_multiline || (multiline == 3 && (pattern == ipCrossHatch || pattern == ipHilbertCurve)))
-        return;
     CAPTURE(pattern, mode, optimized, multiline, density, with_hole);
 
     // A 60 mm cube, filled with lines connected along the boundary of its 0.45 mm narrower section.
