@@ -27,17 +27,29 @@ struct FilamentCompaction
     // How many of used_slots are part filaments, which print for certain. Not a prefix of
     // slot_of_tool: a demoted slot moves to its end.
     size_t           certain_count = 0;
+    // On a printer whose T numbers are the project's filament numbers (its T namespace is not its
+    // nozzle count and no changer feeds its extruders), the 0-based physical extruder each T number
+    // prints from, sized to the highest T in use; -1 for a T no used filament takes. Empty where the
+    // T numbers are the extruders.
+    std::vector<int> extruder_of_tool;
+    // The printer's extruder count when extruder_of_tool is set.
+    size_t           extruder_count = 0;
 
     bool is_identity() const;
+    bool reassigns_extruders() const { return !extruder_of_tool.empty(); }
     // The dense tool number that prints a project slot, or -1 when the plate doesn't use it.
     int  tool_of_slot(int slot_0based) const;
     // The 0-based project slot a g-code tool number prints. Data parsed from g-code is keyed by tool
     // and must come through here before indexing project-indexed vectors. Tools outside the
     // compaction are returned unchanged.
     int  project_slot_of_tool(int tool) const;
-    // The assignment as the slice info stores it: a 1-based extruder per project filament. A filament
-    // with no tool reports 1. Without a renumbering, filament i is extruder i within the tools.
-    std::vector<int> project_filament_map(size_t filament_count, size_t namespace_size) const;
+    // The 0-based physical extruder, and so nozzle, a project slot prints from: its tool, through
+    // extruder_of_tool where that is set. -1 when the plate doesn't use the slot.
+    int  extruder_of_slot(int slot_0based) const;
+    // The assignment as the slice info stores it: a 1-based physical extruder per project filament. A
+    // filament with no extruder reports 1. Without a renumbering, filament i is extruder i within the
+    // extruders.
+    std::vector<int> project_filament_map(size_t filament_count, size_t extruder_count) const;
 };
 
 // Thrown by resolve_filament_tools when a plate's manual map pins two used filaments to one tool.
@@ -65,7 +77,9 @@ std::vector<int> resolve_filament_tools(const std::vector<int>& order, const std
 // slot_of_tool is resolve_filament_tools() over the plate's physical slots, surest tier first
 // (parts, features, wipe tower, tool changes, support), pinned by the config's `filament_map` when
 // its `filament_map_mode` is manual, then used mixed slots; empty when that is the identity.
-// `demoted`: slots the last slice showed never print; they are numbered last.
+// `demoted`: slots the last slice showed never print; they are numbered last. Where `namespace_size`
+// is not the config's nozzle count and it reports no changer, the T numbers are the filament numbers
+// and the manual map pins extruder_of_tool instead, resolved by the same rules over the extruders.
 FilamentCompaction build_filament_compaction(const ModelFilaments& filaments, const std::vector<int>& demoted,
                                              const DynamicPrintConfig& config, size_t namespace_size);
 
@@ -76,7 +90,8 @@ FilamentCompaction build_filament_compaction(const ModelFilaments& filaments, co
 void apply_filament_compaction(Model& model, const Model& source, const FilamentCompaction& compaction);
 
 // Gather per-filament config vectors to the used slots in dense order, and renumber scalar 1-based
-// filament references and mixed-slot component lists.
+// filament references and mixed-slot component lists. Where extruders are reassigned, per-extruder
+// vectors get one column per T number, copied from the extruder it prints from.
 void apply_filament_compaction(DynamicPrintConfig& config, const FilamentCompaction& compaction);
 
 // Thrown by Print::process when the printed filaments fit the tools but a non-printing filament was

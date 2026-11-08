@@ -68,11 +68,11 @@ std::vector<PlateFilamentNozzlesPanel::Row> PlateFilamentNozzlesPanel::rows_of(c
     // next apply will pin, so show it as soon as it is set.
     const std::vector<int> manual = plate.get_filament_map_mode() == FilamentMapMode::fmmManual ? plate.get_filament_maps() : std::vector<int>();
     for (int slot : compaction.used_slots) {
-        int tool = compaction.slot_of_tool.empty() ? slot : compaction.tool_of_slot(slot);
+        int extruder = compaction.extruder_of_slot(slot);
         if (size_t(slot) < manual.size() && manual[slot] >= 1)
-            tool = manual[slot] - 1;
-        if (tool >= 0)
-            rows.push_back({slot, tool});
+            extruder = manual[slot] - 1;
+        if (extruder >= 0)
+            rows.push_back({slot, extruder});
     }
     return rows;
 }

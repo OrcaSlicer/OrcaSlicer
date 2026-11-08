@@ -1418,7 +1418,8 @@ Print::ApplyStatus Print::apply(const Model &model_in, DynamicPrintConfig new_fu
     const size_t nozzle_count = new_full_config.option<ConfigOptionFloats>("nozzle_diameter", true)->values.size();
     // process() reads the compaction and writes the renumber hint on the slicing thread.
     std::unique_lock<std::mutex> compaction_lock(this->state_mutex());
-    const std::vector<int> previous_slot_of_tool = std::move(m_filament_compaction.slot_of_tool);
+    const std::vector<int> previous_slot_of_tool     = std::move(m_filament_compaction.slot_of_tool);
+    const std::vector<int> previous_extruder_of_tool = std::move(m_filament_compaction.extruder_of_tool);
     m_filament_compaction = FilamentCompaction();
     m_filament_assignment_error.clear();
     if (decouples_filaments_from_tools(new_full_config)) {
@@ -1437,13 +1438,15 @@ Print::ApplyStatus Print::apply(const Model &model_in, DynamicPrintConfig new_fu
     compaction_lock.unlock();
     const bool compacting = !m_filament_compaction.slot_of_tool.empty();
     // The numbering can change with no edit to the source, which mirrored timestamps can't show.
-    const bool compaction_changed = m_filament_compaction.slot_of_tool != previous_slot_of_tool;
+    const bool compaction_changed = m_filament_compaction.slot_of_tool != previous_slot_of_tool ||
+                                    m_filament_compaction.extruder_of_tool != previous_extruder_of_tool;
     if (compacting) {
         // A member, not a local: PrintObjects keep raw pointers into the model sliced from.
         m_compacted_model = model_in;
         apply_filament_compaction(m_compacted_model, model_in, m_filament_compaction);
-        apply_filament_compaction(new_full_config, m_filament_compaction);
     }
+    if (compacting || m_filament_compaction.reassigns_extruders())
+        apply_filament_compaction(new_full_config, m_filament_compaction);
     const Model &model = compacting ? m_compacted_model : model_in;
 
     //BBS: add more logs

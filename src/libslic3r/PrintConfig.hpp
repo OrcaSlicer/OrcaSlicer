@@ -2810,6 +2810,10 @@ bool decouples_filaments_from_tools(const ConfigBase& printer_config);
 // nozzle count. Only meaningful when decouples_filaments_from_tools() is true.
 size_t filament_namespace_size(const ConfigBase& printer_config, size_t nozzle_count);
 
+// How many filaments one plate may print: the T namespace where a changer feeds the extruders, else
+// one filament per extruder, whatever T numbers the printer accepts.
+size_t filament_capacity(const ConfigBase& printer_config, size_t nozzle_count);
+
 // Filament i -> extruder i up to extruder_count, the rest -> master_extruder_id_0based (clamped to
 // >= 0). Returns 0-based extruder indices. All callers must agree, or every Print::apply sees a
 // config diff.

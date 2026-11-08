@@ -2459,15 +2459,20 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
     if (decouples_filaments_from_tools(printer_config)) {
         if (!m_filament_assignment_error.empty())
             return {m_filament_assignment_error};
-        const size_t namespace_size = filament_namespace_size(printer_config, nozzles);
-        if (m_filament_compaction.certain_count > namespace_size)
-            return {too_many_filaments_error(m_filament_compaction.certain_count, namespace_size)};
-        // Per-filament vectors are gathered by tool here; nozzle_type is per tool. Whether the nozzle
-        // actually installed is hard enough is decided at print time, so this is a warning.
+        // m_config's per-extruder vectors may carry one column per T number; the printer's count is
+        // the compaction's.
+        const size_t extruders = m_filament_compaction.extruder_count > 0 ? m_filament_compaction.extruder_count : nozzles;
+        const size_t capacity  = filament_capacity(printer_config, extruders);
+        if (m_filament_compaction.certain_count > capacity)
+            return {too_many_filaments_error(m_filament_compaction.certain_count, capacity)};
+        // Per-filament vectors are gathered by tool here, and nozzle_type carries a column per tool.
+        // Whether the nozzle actually installed is hard enough is decided at print time, so this is a
+        // warning.
         const auto& types = m_config.nozzle_type;
         for (int slot : m_filament_compaction.used_slots) {
-            const int tool = m_filament_compaction.slot_of_tool.empty() ? slot : m_filament_compaction.tool_of_slot(slot);
-            if (tool < 0 || size_t(tool) >= std::min(namespace_size, types.size()) || types.is_nil(size_t(tool)))
+            const int tool     = m_filament_compaction.slot_of_tool.empty() ? slot : m_filament_compaction.tool_of_slot(slot);
+            const int extruder = m_filament_compaction.extruder_of_slot(slot);
+            if (tool < 0 || extruder < 0 || size_t(tool) >= types.size() || types.is_nil(size_t(tool)))
                 continue;
             const int required = m_config.required_nozzle_HRC.get_at(size_t(tool));
             const auto type    = NozzleType(types.values[size_t(tool)]);
@@ -2475,7 +2480,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 continue;
             if (const int available = get_hrc_by_nozzle_type(type); available < required)
                 warn((boost::format(L("Filament %1% needs a nozzle of %2% HRC or harder, but tool %3% has a %4% nozzle (%5% HRC)."))
-                      % (slot + 1) % required % (tool + 1) % ConfigOptionEnum<NozzleType>::get_enum_names()[int(type)] % available).str(),
+                      % (slot + 1) % required % (extruder + 1) % ConfigOptionEnum<NozzleType>::get_enum_names()[int(type)] % available).str(),
                      "nozzle_type");
         }
     }
@@ -3866,13 +3871,15 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         }
         // Orca: check the tools the G-code will command. Thrown before set_done so the step reruns.
         if (decouples_filaments_from_tools(full_print_config())) {
-            const size_t namespace_size = filament_namespace_size(full_print_config(), m_config.nozzle_diameter.size());
             const std::vector<unsigned int> tools = this->emitted_tools();
             // apply() rebuilds the compaction and reads the hint on the UI thread.
             this->throw_if_canceled();
             std::scoped_lock<std::mutex> lock(this->state_mutex());
-            if (tools.size() > namespace_size)
-                throw Slic3r::SlicingError(too_many_filaments_error(tools.size(), namespace_size));
+            const size_t extruders = m_filament_compaction.extruder_count > 0 ? m_filament_compaction.extruder_count :
+                                                                                 m_config.nozzle_diameter.size();
+            const size_t namespace_size = filament_namespace_size(full_print_config(), extruders);
+            if (const size_t capacity = filament_capacity(full_print_config(), extruders); tools.size() > capacity)
+                throw Slic3r::SlicingError(too_many_filaments_error(tools.size(), capacity));
             if (!tools.empty() && tools.back() >= namespace_size) {
                 // They fit but are numbered past the last tool. Renumbering is a permutation, so a
                 // reslice with the unprinted ones numbered last fits.

@@ -242,6 +242,12 @@ size_t filament_namespace_size(const ConfigBase& printer_config, size_t nozzle_c
     return nozzle_count;
 }
 
+size_t filament_capacity(const ConfigBase& printer_config, size_t nozzle_count)
+{
+    const size_t namespace_size = filament_namespace_size(printer_config, nozzle_count);
+    return reported_changer_of(printer_config).empty() ? std::min(namespace_size, nozzle_count) : namespace_size;
+}
+
 std::vector<int> non_bbl_identity_filament_extruder_map(size_t filament_count, size_t extruder_count, int master_extruder_id_0based)
 {
     master_extruder_id_0based = std::max(0, master_extruder_id_0based);

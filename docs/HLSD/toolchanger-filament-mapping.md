@@ -62,15 +62,27 @@ as the sync dialog. The agent receives the map, keyed by the g-code's tool numbe
 
 The project's filaments are decoupled from the printer's tools, as described in
 [Decoupling filaments from tools](filament-decoupling.md): the project may hold more filaments
-than the printer has nozzles, and a plate that reaches past the printer's T namespace is
-renumbered densely before slicing. On these printers the gate is also true for a vendor
-protocol or a reported changer, whatever `enable_filament_mapping` says, and the namespace
-(`filament_namespace_size`) is the probed count when a sync measured it, else the vendor's
-constant (32 for the U1's table), else the nozzle count.
+than the printer has nozzles, and each plate assigns the filaments it uses to the printer's
+extruders. On these printers the gate is also true for a vendor protocol or a reported changer,
+whatever `enable_filament_mapping` says.
+
+Two sizes are kept apart. The T namespace (`filament_namespace_size`) is the T numbers the printer
+accepts: the probed count when a sync measured it, else the vendor's constant (32 for the U1's
+table), else the nozzle count. The capacity (`filament_capacity`) is how many filaments one plate
+may print: the namespace where a changer feeds the extruders, else one filament per extruder.
+
+Where the namespace is the nozzle count, a T number is an extruder, and a plate that reaches past
+it is renumbered densely before slicing (a stock ZR prints any plate of up to four filaments
+whatever their numbers). Where it is not, and no changer is reported, the T numbers are the
+project's filament numbers, as the U1's metadata view and `extruder_map_table` expect, and the
+plate's assignment names the physical extruder each T prints from instead
+(`FilamentCompaction::extruder_of_tool`, resolved by the same rules over the extruders and pinned
+by the same per-plate map). At apply, the per-extruder options get one column per T number in use,
+copied from that extruder, so T4 slices with extruder 4's nozzle. A five-filament plate is refused
+on a four-extruder U1 although its table has 32 entries.
 
 Once the plate is sliced, the send dialog and the delivered map narrow the plate's filaments
-to the ones the G-code prints, and the map is expressed in the renumbered tool numbers. A stock
-ZR (namespace 4) prints any plate of up to four filaments whatever their numbers, and a
+to the ones the G-code prints, and the map is expressed in the emitted tool numbers. A
 35-filament project prints on a U1 plate by plate.
 
 ## The dialogs

@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <cassert>
 #include <memory>
+#include <set>
 #include <vector>
 #include <string>
 #include <utility>
@@ -56,13 +57,21 @@ int FilamentCompaction::project_slot_of_tool(int tool) const
     return tool;
 }
 
-std::vector<int> FilamentCompaction::project_filament_map(size_t filament_count, size_t namespace_size) const
+int FilamentCompaction::extruder_of_slot(int slot_0based) const
+{
+    const int tool = slot_of_tool.empty() ? slot_0based : tool_of_slot(slot_0based);
+    if (tool < 0 || extruder_of_tool.empty())
+        return tool;
+    return size_t(tool) < extruder_of_tool.size() ? extruder_of_tool[size_t(tool)] : -1;
+}
+
+std::vector<int> FilamentCompaction::project_filament_map(size_t filament_count, size_t extruder_count) const
 {
     std::vector<int> map(filament_count, 1);
     for (size_t slot = 0; slot < filament_count; ++slot) {
-        const int tool = slot_of_tool.empty() ? (slot < namespace_size ? int(slot) : -1) : tool_of_slot(int(slot));
-        if (tool >= 0 && size_t(tool) < namespace_size)
-            map[slot] = tool + 1;
+        const int extruder = extruder_of_slot(int(slot));
+        if (extruder >= 0 && size_t(extruder) < extruder_count)
+            map[slot] = extruder + 1;
     }
     return map;
 }
@@ -177,7 +186,25 @@ FilamentCompaction build_filament_compaction(const ModelFilaments& filaments, co
         for (int extruder_1based : map->values)
             manual.push_back(extruder_1based - 1);
     }
-    compaction.slot_of_tool = resolve_filament_tools(order, manual, demoted, namespace_size, filament_count);
+    // A printer whose T namespace is not its nozzle count numbers T by filament (the U1's 32-wide
+    // table): the T numbers stay the filament numbers and the physical extruder is assigned apart,
+    // by the same rules over the extruders. A changer owns that routing itself.
+    const auto*  nozzles      = config.option<ConfigOptionFloats>("nozzle_diameter");
+    const size_t nozzle_count = nozzles == nullptr ? namespace_size : nozzles->size();
+    const bool   by_filament  = nozzle_count != namespace_size && reported_changer_of(config).empty();
+    compaction.slot_of_tool = resolve_filament_tools(order, by_filament ? std::vector<int>() : manual, demoted, namespace_size, filament_count);
+    if (by_filament) {
+        const std::vector<int> slot_of_extruder = resolve_filament_tools(order, manual, demoted, nozzle_count, filament_count);
+        size_t tools = 0;
+        for (int slot : order)
+            tools = std::max(tools, size_t(compaction.tool_of_slot(slot)) + 1);
+        compaction.extruder_of_tool.assign(tools, -1);
+        // Only used slots: a hole in either numbering holds an unused filament or a filler.
+        for (size_t extruder = 0; extruder < slot_of_extruder.size(); ++extruder)
+            if (const int slot = slot_of_extruder[extruder]; slot >= 0 && std::find(order.begin(), order.end(), slot) != order.end())
+                compaction.extruder_of_tool[size_t(compaction.tool_of_slot(slot))] = int(extruder);
+        compaction.extruder_count = nozzle_count;
+    }
     if (any_mixed)
         for (unsigned int slot : filaments.all())
             if (slot < is_mixed->values.size() && is_mixed->values[slot])
@@ -319,11 +346,48 @@ static const std::vector<std::string>& filament_indexed_keys()
     return keys;
 }
 
+// Per-extruder vectors get one column per T number in use, copied from the extruder it prints from;
+// a T past the extruders (refused by validation) copies the last one, a T no filament takes keeps its
+// own column.
+static void reassign_extruder_columns(DynamicPrintConfig& config, const FilamentCompaction& compaction)
+{
+    const size_t extruders = compaction.extruder_count;
+    const size_t tools     = std::max(extruders, compaction.extruder_of_tool.size());
+    const auto   source_extruder = [&](size_t tool) {
+        const int extruder = tool < compaction.extruder_of_tool.size() ? compaction.extruder_of_tool[tool] : -1;
+        return extruder < 0 ? std::min(tool, extruders - 1) : std::min(size_t(extruder), extruders - 1);
+    };
+    std::set<std::string> keys(printer_extruder_options);
+    keys.insert(printer_options_with_variant_1.begin(), printer_options_with_variant_1.end());
+    keys.insert(printer_options_with_variant_2.begin(), printer_options_with_variant_2.end());
+    const auto& extruder_keys = print_config_def.extruder_option_keys();
+    keys.insert(extruder_keys.begin(), extruder_keys.end());
+    for (const std::string& key : keys) {
+        ConfigOption* opt = config.option(key, false);
+        if (opt == nullptr || !opt->is_vector())
+            continue;
+        auto* vec = static_cast<ConfigOptionVectorBase*>(opt);
+        if (vec->size() != extruders)
+            continue;
+        const std::unique_ptr<ConfigOption> source(vec->clone());
+        vec->resize(tools);
+        for (size_t tool = 0; tool < tools; ++tool)
+            vec->set_at(source.get(), tool, source_extruder(tool));
+    }
+}
+
+static void renumber_filament_columns(DynamicPrintConfig& config, const FilamentCompaction& compaction);
+
 void apply_filament_compaction(DynamicPrintConfig& config, const FilamentCompaction& compaction)
 {
-    if (compaction.slot_of_tool.empty())
-        return;
+    if (!compaction.slot_of_tool.empty())
+        renumber_filament_columns(config, compaction);
+    if (compaction.reassigns_extruders() && compaction.extruder_count > 0)
+        reassign_extruder_columns(config, compaction);
+}
 
+static void renumber_filament_columns(DynamicPrintConfig& config, const FilamentCompaction& compaction)
+{
     const ConfigOptionStrings* colours = config.option<ConfigOptionStrings>("filament_colour");
     const size_t old_count = colours == nullptr ? 0 : colours->size();
     const size_t new_count = compaction.slot_of_tool.size();
