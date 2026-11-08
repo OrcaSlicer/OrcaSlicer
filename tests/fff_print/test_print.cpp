@@ -56,6 +56,7 @@
 #include <cstdlib>
 #include <sstream>
 #include <atomic>
+#include <chrono>
 #include <thread>
 #include <limits>
 #include <fstream>
@@ -3153,6 +3154,32 @@ TEST_CASE("Slicing several objects cancelled from another thread and run again g
     const std::string resumed = toolpaths(Test::gcode(print));
     REQUIRE(! resumed.empty());
     CHECK(resumed == fresh_slice_toolpaths(config));
+}
+
+TEST_CASE("Slicing several objects calls the status callback one status at a time", "[Print]")
+{
+    // The objects run their steps concurrently, while a callback such as the command line's appends the warnings
+    // to a vector of its own.
+    Print print;
+    Model model;
+    Test::init_print(distinct_objects(), print, model, DynamicPrintConfig::full_print_config());
+    REQUIRE(print.objects().size() == 4);
+
+    std::atomic<int>  calls { 0 };
+    std::atomic<int>  running { 0 };
+    std::atomic<bool> overlapped { false };
+    print.set_status_callback([&calls, &running, &overlapped](const PrintBase::SlicingStatus &) {
+        ++ calls;
+        if (++ running > 1)
+            overlapped = true;
+        // Stay in the callback long enough for the other objects to report meanwhile.
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+        -- running;
+    });
+    print.process();
+
+    REQUIRE(calls > 1);
+    CHECK_FALSE(overlapped);
 }
 
 // The AMS inventory is device state that only feeds filament grouping. A changed inventory has to

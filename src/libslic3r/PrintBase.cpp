@@ -122,9 +122,10 @@ std::string PrintBase::output_filepath(const std::string &path, const std::strin
 //BBS: move set_status from hpp to cpp
 void  PrintBase::set_status(int percent, const std::string &message, unsigned int flags, int warning_step) const
 {
-	if (m_status_callback)
+	if (m_status_callback) {
+        std::scoped_lock<std::mutex> lock(m_status_callback_mutex);
         m_status_callback(SlicingStatus(percent, message, flags, warning_step));
-    else
+    } else
         BOOST_LOG_TRIVIAL(debug) <<boost::format("Percent %1%: %2%\n")%percent %message.c_str();
 }
 
@@ -133,6 +134,7 @@ void PrintBase::status_update_warnings(int step, PrintStateBase::WarningLevel  w
 {
     if (this->m_status_callback) {
         auto status = print_object ? SlicingStatus(*print_object, step, message, message_id, warning_level) : SlicingStatus(*this, step, message, message_id, warning_level);
+        std::scoped_lock<std::mutex> lock(m_status_callback_mutex);
         m_status_callback(status);
     }
     else if (! message.empty())
@@ -145,6 +147,7 @@ void PrintBase::status_update_warnings(int step, PrintStateBase::WarningLevel wa
 {
     //BBS: add object it into slicing status
     if (this->m_status_callback) {
+        std::scoped_lock<std::mutex> lock(m_status_callback_mutex);
         m_status_callback(SlicingStatus(object, step, message, message_id, warning_level));
     }
     else if (!message.empty())

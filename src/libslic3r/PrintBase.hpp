@@ -583,6 +583,9 @@ private:
     // The mutex will be used to guard the worker thread against entering a stage
     // while the data influencing the stage is modified.
     mutable std::mutex                      m_state_mutex;
+    // Held while the status callback runs: the objects run their steps concurrently, and a callback may keep state
+    // of its own, such as the warnings the command line collects.
+    mutable std::mutex                      m_status_callback_mutex;
 
     friend PrintTryCancel;
 };
