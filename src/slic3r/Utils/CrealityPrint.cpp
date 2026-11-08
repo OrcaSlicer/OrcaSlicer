@@ -340,6 +340,7 @@ static bool stores_gcode_in_usr_data(const std::string& model)
         "F003", // CR-10 SE
         "F004", // Ender-5 Max
         "F005", // Ender-3 V3 KE
+        "F016", // K2 SE
         "K1",
         "K1 Max",
         "K1 Max_CFS-C",
