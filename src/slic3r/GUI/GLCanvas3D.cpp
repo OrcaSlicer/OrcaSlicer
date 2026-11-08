@@ -1539,6 +1539,7 @@ wxDEFINE_EVENT(EVT_GLCANVAS_MOUSE_DRAGGING_STARTED, SimpleEvent);
 wxDEFINE_EVENT(EVT_GLCANVAS_MOUSE_DRAGGING_FINISHED, SimpleEvent);
 wxDEFINE_EVENT(EVT_GLCANVAS_UPDATE_BED_SHAPE, SimpleEvent);
 wxDEFINE_EVENT(EVT_GLCANVAS_TAB, SimpleEvent);
+wxDEFINE_EVENT(EVT_GLCANVAS_COLLAPSE_SIDEBAR, SimpleEvent);
 wxDEFINE_EVENT(EVT_GLCANVAS_RESETGIZMOS, SimpleEvent);
 wxDEFINE_EVENT(EVT_GLCANVAS_UNDO, SimpleEvent);
 wxDEFINE_EVENT(EVT_GLCANVAS_REDO, SimpleEvent);
@@ -4271,8 +4272,9 @@ bool GLCanvas3D::handle_shortcut(const KeyChord& chord)
     case Shortcut::ZoomOut: _update_camera_zoom(-1.0); break;
     case Shortcut::SwitchView: post_event(SimpleEvent(EVT_GLCANVAS_TAB)); break;
     case Shortcut::CollapseSidebar:   // Global in Unlayered (MainFrame), kept for a rebinding to the canvas
+        // Plater and the CAD design canvas bind this to their own sidebar.
         if (!wxGetApp().is_gcode_viewer())
-            wxGetApp().plater()->collapse_sidebar(!wxGetApp().plater()->is_sidebar_collapsed());
+            post_event(SimpleEvent(EVT_GLCANVAS_COLLAPSE_SIDEBAR));
         break;
     case Shortcut::ShowWireframe:
         wxGetApp().plater()->toggle_show_wireframe();

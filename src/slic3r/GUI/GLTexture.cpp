@@ -30,10 +30,12 @@
 #include "libslic3r/Point.hpp"
 #include <wx/image.h>
 #include <boost/filesystem.hpp>
+#include <boost/nowide/fstream.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <vector>
 #include <algorithm>
+#include <cmath>
 #include <thread>
 #include <wx/string.h>
 #include <wx/types.h>
@@ -189,6 +191,16 @@ bool GLTexture::load_from_svg_file(const std::string& filename, bool use_mipmaps
         return false;
 }
 
+bool GLTexture::load_from_svg_file(const std::string& filename, bool use_mipmaps, bool compress, bool apply_anisotropy, unsigned int max_size_px, const ColorSubstitutions& substitutions)
+{
+    reset();
+    auto svg_file = filename;
+    Utils::slash_to_back_slash(svg_file);
+    if (!boost::filesystem::exists(svg_file) || !boost::algorithm::iends_with(svg_file, ".svg"))
+        return false;
+    return load_from_svg(svg_file, use_mipmaps, compress, apply_anisotropy, max_size_px, substitutions.empty() ? nullptr : &substitutions);
+}
+
 bool GLTexture::load_from_raw_data(std::vector<unsigned char> data, unsigned int w, unsigned int h, bool apply_anisotropy,
                                    bool use_mipmaps)
 {
@@ -329,18 +341,83 @@ bool GLTexture::load_from_svg_files_as_sprites_array(const std::vector<std::stri
     std::vector<unsigned char> output_data(sprite_bytes, 0);
 
     //BBS
-    std::vector<unsigned char> pressed_data(sprite_bytes, 0); // (gizmo) pressed
-    std::vector<unsigned char> disable_data(sprite_bytes, 0);
-    std::vector<unsigned char> hover_data(sprite_bytes, 0); // hover
+    std::vector<unsigned char> pressed_data(sprite_bytes, 0); // pressed / selected: glyph on a strong plate
+    std::vector<unsigned char> hover_data(sprite_bytes, 0);   // hover: glyph on a faint plate
 
-    const unsigned char pressed_color[3] = {255, 255, 255};
-    const unsigned char hover_color[3] = {255, 255, 255};
-    const unsigned char normal_color[3] = {43, 52, 54};
-    const unsigned char disable_color[3] = {200, 200, 200};
-    const unsigned char pressed_color_dark[3] = {60, 60, 65};
-    const unsigned char hover_color_dark[3] = {60, 60, 65};
-    const unsigned char normal_color_dark[3] = {182, 182, 182};
-    const unsigned char disable_color_dark[3] = {76, 76, 85};
+    // Icon state ramp for the 3D toolbars (top toolbar, gizmo bar).
+    //
+    // Upstream drew hover / pressed / selected by leaving the rasterised SVG ALONE, so the
+    // accent path inside each icon -- teal #009688 -- was the entire state signal. The
+    // Unlayered palette bakes that path to a grey (tools/theme/recolor-accent.py: #B8B8B8 in
+    // the _dark assets, #5D5D5D in the light ones) that lands within 2/255 of the flat grey
+    // the Normal state already flattens the whole icon to, so every state rendered the same
+    // and nothing looked enabled, hovered or on. Hence: those two states are now BUILT here
+    // rather than inherited from the asset.
+    //
+    // They are drawn as a PLATE behind the glyph, not as a brighter glyph. A grayscale theme
+    // has ~4 usable steps between the panel and white; spending three of them on icon states
+    // leaves no headroom, and a lightness step alone is exactly what stops reading once the
+    // hue is gone. A filled plate is a SHAPE cue and survives the palette -- the same
+    // polarity trick recolor-accent.py applies to plate_locked.svg.
+    //
+    // Values are Accent::Tint25/Tint25Dark and Accent::Base from GUI/AccentColor.hpp; keep
+    // them in sync with that header. The pressed plate is deliberately theme-independent
+    // (white on #767676 is the 4.54:1 pair documented there, and #767676 clears 3:1 against
+    // both the light and the dark toolbar panel), so only the hover tier is split by theme.
+    const unsigned char normal_color[3]       = {43, 52, 54};     // #2B3436
+    const unsigned char disable_color[3]      = {200, 200, 200};  // #C8C8C8
+    const unsigned char hover_plate_color[3]  = {216, 216, 216};  // Accent::Tint25     #D8D8D8
+    const unsigned char normal_color_dark[3]  = {182, 182, 182};  // #B6B6B6
+    const unsigned char disable_color_dark[3] = {76, 76, 85};     // #4C4C55
+    const unsigned char hover_plate_dark[3]   = {79, 79, 83};     // Accent::Tint25Dark #4F4F53
+    // Dark mode lifts the hovered glyph as well: the plate step there (#2D2D31 -> #4F4F53) is
+    // subtle against the canvas. Light mode's glyph is already near-black and has nowhere to
+    // go, so there the plate carries the state on its own.
+    const unsigned char hover_glyph_dark[3]   = {218, 218, 218};  // recolor-accent DARK strong
+    const unsigned char pressed_plate_color[3] = {118, 118, 118}; // Accent::Base       #767676
+    const unsigned char pressed_glyph_color[3] = {255, 255, 255};
+
+    const unsigned char *hover_plate = dark_mode ? hover_plate_dark : hover_plate_color;
+    const unsigned char *hover_glyph = dark_mode ? hover_glyph_dark : normal_color;
+
+    // Rounded-rect coverage of the plate. Shared by every sprite, so it is built once.
+    // nsvgRasterize() below is called with a (1,1) translation and the last row/column of the
+    // (sprite_size_px + 1)^2 tile is left transparent as the linear-sampling guard, which puts
+    // the glyph in rows/cols [1, sprite_size_px - 1] -- the plate has to sit on exactly that
+    // box to stay centred under it.
+    std::vector<unsigned char> plate_alpha(sprite_n_pixels, 0);
+    {
+        const float lo     = 1.0f;
+        const float hi     = (float)sprite_size_px - 1.0f;
+        const float centre = 0.5f * (lo + hi);
+        const float half   = 0.5f * (hi - lo) + 0.5f;
+        const float radius = std::min(half, std::max(2.0f, 0.4f * half));
+        for (unsigned int r = 1; r < sprite_size_px; ++r) {
+            for (unsigned int c = 1; c < sprite_size_px; ++c) {
+                const float qx = std::abs((float)c - centre) - (half - radius);
+                const float qy = std::abs((float)r - centre) - (half - radius);
+                // signed distance to the rounded rect, then a 1px linear feather: the plate is
+                // the only edge in the tile the rasteriser did not anti-alias for us
+                const float d   = (qx > 0.0f && qy > 0.0f) ? std::sqrt(qx * qx + qy * qy) - radius
+                                                           : std::max(qx, qy) - radius;
+                const float cov = std::clamp(0.5f - d, 0.0f, 1.0f);
+                plate_alpha[r * sprite_size_px_ex + c] = (unsigned char)(cov * 255.0f + 0.5f);
+            }
+        }
+    }
+
+    // Glyph over plate. Alpha is the max of the two coverages rather than the plate's, so an
+    // icon whose art bleeds past the rounded corner still draws there instead of being clipped.
+    auto compose_plate = [&](std::vector<unsigned char> &dst, const unsigned char *plate,
+                             const unsigned char *glyph) {
+        for (int i = 0; i < sprite_n_pixels; ++i) {
+            const int   offset = i * 4;
+            const float a      = (float)sprite_data[offset + 3] * (1.0f / 255.0f);
+            for (int ch = 0; ch < 3; ++ch)
+                dst[offset + ch] = (unsigned char)((float)glyph[ch] * a + (float)plate[ch] * (1.0f - a) + 0.5f);
+            dst[offset + 3] = std::max(plate_alpha[i], sprite_data[offset + 3]);
+        }
+    };
 
     NSVGrasterizer* rast = nsvgCreateRasterizer();
     if (rast == nullptr) {
@@ -367,37 +444,8 @@ bool GLTexture::load_from_svg_files_as_sprites_array(const std::vector<std::stri
         // offset by 1 to leave the first pixel empty (both in x and y)
         nsvgRasterize(rast, image, 1, 1, scale, sprite_data.data(), sprite_size_px, sprite_size_px, sprite_stride);
 
-        ::memcpy((void*)pressed_data.data(), (const void*)sprite_data.data(), sprite_bytes);
-        for (int i = 0; i < sprite_n_pixels; ++i) {
-            int offset = i * 4;
-            if (pressed_data.data()[offset + 0] == 0 &&
-                pressed_data.data()[offset + 1] == 0 &&
-                pressed_data.data()[offset + 2] == 0) {
-                hover_data.data()[offset + 0] = dark_mode ? pressed_color_dark[0] : pressed_color[0];
-                hover_data.data()[offset + 0] = dark_mode ? pressed_color_dark[1] : pressed_color[1];
-                hover_data.data()[offset + 0] = dark_mode ? pressed_color_dark[2] : pressed_color[2];
-            }
-        }
-
-        ::memcpy((void*)disable_data.data(), (const void*)sprite_data.data(), sprite_bytes);
-        for (int i = 0; i < sprite_n_pixels; ++i) {
-            int offset = i * 4;
-            if (disable_data.data()[offset] != 0)
-                ::memset((void*)&disable_data.data()[offset], 200, 3);
-        }
-
-        ::memcpy((void*)hover_data.data(), (const void*)sprite_data.data(), sprite_bytes);
-        for (int i = 0; i < sprite_n_pixels; ++i) {
-            int offset = i * 4;
-            if (hover_data.data()[offset + 0] == 0 &&
-                hover_data.data()[offset + 1] == 0 &&
-                hover_data.data()[offset + 2] == 0)
-            {
-                hover_data.data()[offset + 0] = dark_mode ? hover_color_dark[0] : hover_color[0];
-                hover_data.data()[offset + 1] = dark_mode ? hover_color_dark[1] : hover_color[1];
-                hover_data.data()[offset + 2] = dark_mode ? hover_color_dark[2] : hover_color[2];
-            }
-        }
+        compose_plate(hover_data, hover_plate, hover_glyph);
+        compose_plate(pressed_data, pressed_plate_color, pressed_glyph_color);
 
         ::memcpy((void*)sprite_white_only_data.data(), (const void*)sprite_data.data(), sprite_bytes);
         for (int i = 0; i < sprite_n_pixels; ++i) {
@@ -430,12 +478,16 @@ bool GLTexture::load_from_svg_files_as_sprites_array(const std::vector<std::stri
             ++state_id;
 
             // select the sprite variant
+            // 0: as authored (IconManager::RasterType::color depends on this being untouched)
+            // 1: flat normal, 2: flat disabled, 3: hover plate, 4: pressed / selected plate
             std::vector<unsigned char>* src = nullptr;
             switch (state.first)
             {
             case 1: { src = &sprite_white_only_data; break; }
             case 2: { src = &sprite_gray_only_data; break; }
-            default: { src = &hover_data; break; }
+            case 3: { src = &hover_data; break; }
+            case 4: { src = &pressed_data; break; }
+            default: { src = &sprite_data; break; }
             }
 
             // applies background, if needed
@@ -712,12 +764,15 @@ void GLTexture::render_texture(unsigned int tex_id, float left, float right, flo
     render_sub_texture(tex_id, left, right, bottom, top, FullTextureUVs);
 }
 
-void GLTexture::render_sub_texture(unsigned int tex_id, float left, float right, float bottom, float top, const GLTexture::Quad_UVs& uvs)
+void GLTexture::render_sub_texture(unsigned int tex_id, float left, float right, float bottom, float top, const GLTexture::Quad_UVs& uvs, bool opaque)
 {
     glsafe(::glEnable(GL_BLEND));
     // Orca: fix washed-out toolbar icons on Wayland: keep destination alpha at 1.0 so the compositor
     // does not treat anti-aliased icon edges as window transparency.
-    glsafe(::glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
+    if (opaque)
+        glsafe(::glBlendFunc(GL_ONE, GL_ZERO));
+    else
+        glsafe(::glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
 
     glsafe(::glBindTexture(GL_TEXTURE_2D, (GLuint)tex_id));
 
@@ -950,11 +1005,22 @@ bool GLTexture::load_from_png(const std::string& filename, bool use_mipmaps, ECo
     return true;
 }
 
-bool GLTexture::load_from_svg(const std::string& filename, bool use_mipmaps, bool compress, bool apply_anisotropy, unsigned int max_size_px)
+bool GLTexture::load_from_svg(const std::string& filename, bool use_mipmaps, bool compress, bool apply_anisotropy, unsigned int max_size_px, const ColorSubstitutions* substitutions)
 {
     const bool compression_enabled = compress && OpenGLManager::are_compressed_textures_supported();
 
-    NSVGimage* image = nsvgParseFromFile(filename.c_str(), "px", 96.0f);
+    NSVGimage* image = nullptr;
+    if (substitutions != nullptr) {
+        boost::nowide::ifstream in(filename, std::ios::binary);
+        std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        for (const auto& [from, to] : *substitutions)
+            for (size_t pos = 0; (pos = text.find(from, pos)) != std::string::npos; pos += to.size())
+                text.replace(pos, from.size(), to);
+        std::vector<char> buffer(text.begin(), text.end());
+        buffer.push_back('\0');
+        image = nsvgParse(buffer.data(), "px", 96.0f); // parses in place
+    } else
+        image = nsvgParseFromFile(filename.c_str(), "px", 96.0f);
     if (image == nullptr) {
         reset();
         return false;

@@ -103,6 +103,10 @@ namespace GUI {
 
         bool load_from_file(const std::string& filename, bool use_mipmaps, ECompressionType compression_type, bool apply_anisotropy);
         bool load_from_svg_file(const std::string& filename, bool use_mipmaps, bool compress, bool apply_anisotropy, unsigned int max_size_px);
+        // Same, with literal colour substitutions ("#rrggbb" -> "#rrggbb") applied to the SVG text
+        // before it is parsed: the plate icons take the theme's colours this way.
+        using ColorSubstitutions = std::vector<std::pair<std::string, std::string>>;
+        bool load_from_svg_file(const std::string& filename, bool use_mipmaps, bool compress, bool apply_anisotropy, unsigned int max_size_px, const ColorSubstitutions& substitutions);
         //BBS load GLTexture from raw pixel data
         // `data` is RGBA, w * h * 4 bytes. With use_mipmaps, a real box-filtered mipmap chain is
         // built, so the texture may safely be drawn smaller than its pixel size.
@@ -138,14 +142,15 @@ namespace GUI {
         bool all_compressed_data_sent_to_gpu() const { return m_compressor.all_compressed_data_sent_to_gpu(); }
 
         static void render_texture(unsigned int tex_id, float left, float right, float bottom, float top);
-        static void render_sub_texture(unsigned int tex_id, float left, float right, float bottom, float top, const Quad_UVs& uvs);
+        // opaque: ignore the texture's alpha (preference "opaque_overlays").
+        static void render_sub_texture(unsigned int tex_id, float left, float right, float bottom, float top, const Quad_UVs& uvs, bool opaque = false);
         // Copies the bound read framebuffer into an RGBA texture, creating it on first use and
         // reallocating it when the size changes.
         static void copy_from_framebuffer(unsigned int& tex_id, std::array<unsigned int, 2>& tex_size, unsigned int width, unsigned int height, int filter);
 
     private:
         bool load_from_png(const std::string& filename, bool use_mipmaps, ECompressionType compression_type, bool apply_anisotropy);
-        bool load_from_svg(const std::string& filename, bool use_mipmaps, bool compress, bool apply_anisotropy, unsigned int max_size_px);
+        bool load_from_svg(const std::string& filename, bool use_mipmaps, bool compress, bool apply_anisotropy, unsigned int max_size_px, const ColorSubstitutions* substitutions = nullptr);
 
         friend class Compressor;
     };
