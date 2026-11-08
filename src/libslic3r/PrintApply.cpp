@@ -1534,7 +1534,10 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     {
         FilamentMapMode map_mode = new_full_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode", true)->value;
         if (is_auto_filament_map_mode(map_mode)) {
-            if (print_diff_set.find("filament_map") != print_diff_set.end()) {
+            // Orca: a toolchanger's extra filaments take their tools from filament_map, so there it is
+            // the user's input and a change must invalidate, not be adopted as engine output.
+            const bool map_is_input = !this->is_BBL_printer() && toolchanger_allows_extra_filaments(new_full_config);
+            if (!map_is_input && print_diff_set.find("filament_map") != print_diff_set.end()) {
                 print_diff_set.erase("filament_map");
                 full_config_diff.erase(std::remove(full_config_diff.begin(), full_config_diff.end(), "filament_map"), full_config_diff.end());
                 ConfigOptionInts* old_opt = m_full_print_config.option<ConfigOptionInts>("filament_map", true);

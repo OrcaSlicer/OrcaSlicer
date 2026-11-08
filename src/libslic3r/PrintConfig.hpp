@@ -116,6 +116,12 @@ enum class WipeTowerType {
     Type2,
 };
 
+// Orca: how a toolchanger prints project filaments beyond its tool count.
+enum class ToolchangerExtraFilaments {
+    Disabled,
+    FirmwareRemap,
+};
+
 enum PrintHostType {
     htPrusaLink, htPrusaConnect, htOctoPrint, htDuet, htUltiMaker, htFlashAir, htAstroBox, htRepetier, htMKS, htESP3D, htCrealityPrint, htObico, htFlashforge, htSimplyPrint, htElegooLink, ht3DPrinterOS, htMoonraker
 };
@@ -801,6 +807,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(TopSurfaceExpansionDirection)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerType)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ToolchangerExtraFilaments)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(NoiseType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(IroningType)
@@ -1821,6 +1828,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionStrings,             filament_start_gcode))
     ((ConfigOptionBool,                single_extruder_multi_material))
     ((ConfigOptionBool,                manual_filament_change))
+    ((ConfigOptionEnum<ToolchangerExtraFilaments>, toolchanger_extra_filaments))
     // IDEX/IQEX (independent X extruder) — parallel printing support for IDEX/IQEX printers
     ((ConfigOptionBool,                is_imex))
     ((ConfigOptionBool,                imex_firmware_managed_zones))
@@ -2767,6 +2775,16 @@ static bool has_zero_flush_volume_for_used_filaments(const std::vector<T> &fv_ma
 size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id);
 
 double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, bool is_bbl_printer);
+
+// Orca: true for a toolchanger (several nozzles, no single-extruder MMU, no IDEX/IQEX) whose
+// toolchanger_extra_filaments lets a project use more filaments than tools. BBL printers are the
+// caller's to exclude: their detection is preset-based.
+bool toolchanger_allows_extra_filaments(const ConfigBase& printer_config);
+
+// Orca: 0-based tool printing the 0-based filament on a non-BBL toolchanger. Filament i below the
+// tool count is tool i; a later one takes its filament_map entry when the printer allows extra
+// filaments and that entry names a tool, else the master tool.
+int toolchanger_tool_for_filament(const ConfigBase& config, size_t filament_idx);
 
 } // namespace Slic3r
 

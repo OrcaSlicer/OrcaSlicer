@@ -1932,3 +1932,66 @@ TEST_CASE("An empty list applied by index replaces the target list", "[Config][R
     edited.apply_only(saved, {"filament_ids#0"});
     CHECK(edited.option<ConfigOptionStrings>("filament_ids")->values.empty());
 }
+
+namespace {
+
+// Two tools with 0.4 and 0.6 nozzles and three filaments, so filament 3 is the one extra filament.
+DynamicPrintConfig two_tool_config(ToolchangerExtraFilaments mode, std::vector<int> filament_map)
+{
+    DynamicPrintConfig config;
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats{0.4, 0.6});
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
+    config.set_key_value("is_imex", new ConfigOptionBool(false));
+    config.set_key_value("master_extruder_id", new ConfigOptionInt(1));
+    config.set_key_value("filament_map", new ConfigOptionInts(std::move(filament_map)));
+    config.set_key_value("toolchanger_extra_filaments", new ConfigOptionEnum<ToolchangerExtraFilaments>(mode));
+    return config;
+}
+
+} // namespace
+
+TEST_CASE("A toolchanger prints an extra filament on its assigned tool only when extra filaments are enabled", "[Config][Toolchanger]")
+{
+    using Catch::Matchers::WithinAbs;
+    const auto mode    = GENERATE(ToolchangerExtraFilaments::Disabled, ToolchangerExtraFilaments::FirmwareRemap);
+    const bool enabled = mode != ToolchangerExtraFilaments::Disabled;
+    // Filaments 1 and 2 are mapped to each other's tools, which must not move them; filament 3 is mapped to tool 2.
+    const DynamicPrintConfig config = two_tool_config(mode, {2, 1, 2});
+
+    // A tool's own filament stays on that tool whatever the map says.
+    CHECK(toolchanger_tool_for_filament(config, 0) == 0);
+    CHECK(toolchanger_tool_for_filament(config, 1) == 1);
+    // The extra filament follows the map when enabled, else stays on the master tool (tool 1).
+    CHECK(toolchanger_tool_for_filament(config, 2) == (enabled ? 1 : 0));
+
+    PrintConfig print_config;
+    print_config.apply(config);
+    CHECK_THAT(nozzle_diameter_for_filament(print_config, 3, false), WithinAbs(enabled ? 0.6 : 0.4, 1e-9));
+}
+
+TEST_CASE("A toolchanger's extra filament mapped to a missing tool prints on the master tool", "[Config][Toolchanger]")
+{
+    DynamicPrintConfig config = two_tool_config(ToolchangerExtraFilaments::FirmwareRemap, {1, 2, 5});
+    config.set_key_value("master_extruder_id", new ConfigOptionInt(2));
+
+    CHECK(toolchanger_tool_for_filament(config, 2) == 1);
+}
+
+TEST_CASE("Extra filaments need a printer with several tools and no single-extruder or IDEX mode", "[Config][Toolchanger]")
+{
+    DynamicPrintConfig config = two_tool_config(ToolchangerExtraFilaments::FirmwareRemap, {1, 2, 2});
+    CHECK(toolchanger_allows_extra_filaments(config));
+
+    SECTION("single extruder multimaterial") {
+        config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(true));
+        CHECK_FALSE(toolchanger_allows_extra_filaments(config));
+    }
+    SECTION("IDEX/IQEX") {
+        config.set_key_value("is_imex", new ConfigOptionBool(true));
+        CHECK_FALSE(toolchanger_allows_extra_filaments(config));
+    }
+    SECTION("one tool") {
+        config.set_key_value("nozzle_diameter", new ConfigOptionFloats{0.4});
+        CHECK_FALSE(toolchanger_allows_extra_filaments(config));
+    }
+}

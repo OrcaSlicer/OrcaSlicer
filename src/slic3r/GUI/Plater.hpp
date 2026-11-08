@@ -239,6 +239,9 @@ public:
     void get_small_btn_sync_pos_size(wxPoint &pt, wxSize &size);
     // Orca
     static bool should_show_SEMM_buttons();
+    // Orca: a non-BBL toolchanger letting the project use more filaments than tools
+    static bool takes_extra_filaments();
+    void set_extra_filament_tool(size_t filament_id, int tool);
     void show_SEMM_buttons();
     void enable_purge_mode_btn(bool enable);
     // Sidebar nozzle-count badge on the extruder cards (multi-nozzle printers only).

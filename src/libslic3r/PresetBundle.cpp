@@ -1014,7 +1014,7 @@ Semver PresetBundle::get_vendor_profile_version(std::string vendor_name)
     return result_ver;
 }
 
-VendorType PresetBundle::get_current_vendor_type()
+VendorType PresetBundle::get_current_vendor_type() const
 {
     auto        t      = VendorType::Unknown;
     auto        config = &printers.get_edited_preset().config;
@@ -5845,6 +5845,13 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     out.option<ConfigOptionString >("printer_settings_id",  true)->value  = this->printers.get_selected_preset_name();
     out.option<ConfigOptionStrings>("filament_ids", true)->values = filament_ids;
     out.option<ConfigOptionInts>("filament_map", true)->values = filament_maps;
+    // Orca: on a toolchanger taking extra filaments the map is user input; send it in the form the
+    // slicer prints and writes back, or every apply would see a difference and invalidate.
+    if (!this->is_bbl_vendor() && toolchanger_allows_extra_filaments(out)) {
+        std::vector<int> &map = out.option<ConfigOptionInts>("filament_map")->values;
+        for (size_t i = 0; i < map.size(); ++i)
+            map[i] = toolchanger_tool_for_filament(out, i) + 1;
+    }
     // Serialize the collected "compatible_printers_condition" and "inherits" fields.
     // There will be 1 + num_exturders fields for "inherits" and 2 + num_extruders for "compatible_printers_condition" stored.
     // The vector will not be stored if all fields are empty strings.

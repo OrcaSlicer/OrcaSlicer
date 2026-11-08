@@ -1936,6 +1936,24 @@ void MenuFactory::create_filament_action_menu(bool init, int active_filament_men
     append_submenu(menu, sub_menu, wxID_ANY, _L("Merge with"), "", "",
         [filaments_cnt]() { return filaments_cnt > 1; }, m_parent);
 
+    // Orca: a toolchanger's filaments beyond its tool count each print on a tool picked here
+    const PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    const int  tool_count     = preset_bundle->get_printer_extruder_count();
+    const bool extra_filament = Sidebar::takes_extra_filaments() && active_filament_menu_id >= tool_count;
+    if (extra_filament) {
+        DynamicPrintConfig tool_config = preset_bundle->printers.get_edited_preset().config;
+        tool_config.set_key_value("filament_map", new ConfigOptionInts(
+            plater()->get_partplate_list().get_curr_plate()->get_real_filament_maps(preset_bundle->project_config)));
+        const int current_tool = toolchanger_tool_for_filament(tool_config, active_filament_menu_id);
+
+        wxMenu* tool_menu = new wxMenu();
+        for (int tool = 0; tool < tool_count; ++tool)
+            append_menu_check_item(tool_menu, wxID_ANY, wxString::Format("T%d", tool + 1), "",
+                [active_filament_menu_id, tool](wxCommandEvent&) { plater()->sidebar().set_extra_filament_tool(active_filament_menu_id, tool); },
+                menu, []() { return true; }, [tool, current_tool]() { return tool == current_tool; }, m_parent);
+        append_submenu(menu, tool_menu, wxID_ANY, _L("Print with tool"), "", "", []() { return true; }, m_parent);
+    }
+
     // Decompose a target colour into a printable mix of the loaded filaments. Placed before the
     append_menu_item(
         menu, wxID_ANY, _L("Decompose Color"), "", [](wxCommandEvent&) {
@@ -1948,10 +1966,11 @@ void MenuFactory::create_filament_action_menu(bool init, int active_filament_men
     append_menu_item(
         menu, wxID_ANY, _L("Delete"), _L("Delete this filament"), [](wxCommandEvent&) {
             plater()->sidebar().delete_filament(-2); }, "", nullptr,
-        []() {
+        [extra_filament]() {
             return plater()->sidebar().combos_filament().size() > 1
-                // Orca: only show delete filament option for SEMM machines unless is BBL
-                && Sidebar::should_show_SEMM_buttons();
+                // Orca: only show delete filament option for SEMM machines unless is BBL,
+                // and for a toolchanger's filaments beyond its tool count
+                && (Sidebar::should_show_SEMM_buttons() || extra_filament);
         }, m_parent);
 }
 

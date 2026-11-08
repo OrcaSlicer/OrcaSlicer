@@ -3746,7 +3746,8 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filame
     edit_btn->Bind(wxEVT_BUTTON, [this, edit_btn, combobox, filament_idx](wxCommandEvent) {
         bool single_or_bbl     = should_show_SEMM_buttons();
         bool is_multi_material = p->combos_filament.size() > 1;
-        if(single_or_bbl && is_multi_material) {
+        bool extra_filament    = takes_extra_filaments() && filament_idx >= wxGetApp().preset_bundle->get_printer_extruder_count();
+        if((single_or_bbl && is_multi_material) || extra_filament) {
            // MULTI MATERIAL Show menu
             auto menu = p->plater->filament_action_menu(filament_idx);
             wxPoint pt { 0, edit_btn->GetSize().GetHeight() + FromDIP(2) };
@@ -6598,6 +6599,32 @@ bool Sidebar::should_show_SEMM_buttons()
     return cfg.opt_bool("single_extruder_multi_material") || is_bbl_vendor;
 }
 
+bool Sidebar::takes_extra_filaments()
+{
+    PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
+    return !preset_bundle.is_bbl_vendor() && toolchanger_allows_extra_filaments(preset_bundle.printers.get_edited_preset().config);
+}
+
+void Sidebar::set_extra_filament_tool(size_t filament_id, int tool)
+{
+    auto with_tool = [filament_id, tool](std::vector<int> filament_map) {
+        if (filament_id >= filament_map.size())
+            filament_map.resize(filament_id + 1, 1);
+        filament_map[filament_id] = tool + 1;
+        return filament_map;
+    };
+    p->plater->set_global_filament_map(with_tool(p->plater->get_global_filament_map()));
+    // A sliced plate keeps its own copy of the map, which slicing reads before the project's.
+    PartPlateList &plates = p->plater->get_partplate_list();
+    for (int i = 0; i < plates.get_plate_count(); ++i) {
+        PartPlate *plate = plates.get_plate(i);
+        if (!plate->get_filament_maps().empty())
+            plate->set_filament_maps(with_tool(plate->get_filament_maps()));
+    }
+    p->plater->set_plater_dirty(true);
+    p->plater->update();
+}
+
 void Sidebar::show_SEMM_buttons()
 {
     // ORCA
@@ -6609,9 +6636,12 @@ void Sidebar::show_SEMM_buttons()
     bool is_single = single_or_bbl && !is_multi_material; // SINGLE EXTRUDER / BBL WITH 1 MATERIAL
     bool is_multi  = single_or_bbl && is_multi_material;  // MULTI MATERIAL WITH SINGLE EXTRUDER
     bool is_fixed  = !is_single && !is_multi;             // MULTI EXTRUDER / TOOLCHANGER / IDEX WITH FIXED MATERIAL
+    // TOOLCHANGER TAKING EXTRA FILAMENTS: only the filaments beyond the tool count can be deleted
+    bool extra_filaments = takes_extra_filaments();
+    bool has_extra       = extra_filaments && p->combos_filament.size() > size_t(wxGetApp().preset_bundle->get_printer_extruder_count());
 
-    p->m_bpButton_add_filament->Show(single_or_bbl);
-    p->m_bpButton_del_filament->Show(is_multi);
+    p->m_bpButton_add_filament->Show(single_or_bbl || extra_filaments);
+    p->m_bpButton_del_filament->Show(is_multi || has_extra);
     p->m_flushing_volume_btn->Show(  is_multi);
 
     if (is_multi) {
@@ -6619,8 +6649,9 @@ void Sidebar::show_SEMM_buttons()
             c->edit_btn->SetBitmap_("menu_filament");
     }
     else if (is_single || is_fixed) {
-        for (auto &c : p->combos_filament)
-            c->edit_btn->SetBitmap_("edit");
+        const size_t tool_count = size_t(wxGetApp().preset_bundle->get_printer_extruder_count());
+        for (size_t i = 0; i < p->combos_filament.size(); ++i)
+            p->combos_filament[i]->edit_btn->SetBitmap_(extra_filaments && i >= tool_count ? "menu_filament" : "edit");
     }
 
     Layout();

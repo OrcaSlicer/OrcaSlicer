@@ -151,7 +151,35 @@ double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, 
     if (is_bbl_printer && config.nozzle_diameter.size() > 1 &&
         filament_id >= 1 && static_cast<size_t>(filament_id - 1) < config.filament_map.size())
         extruder = config.filament_map.get_at(filament_id - 1);
+    else if (!is_bbl_printer && filament_id >= 1 && toolchanger_allows_extra_filaments(config))
+        extruder = toolchanger_tool_for_filament(config, filament_id - 1) + 1;
     return config.nozzle_diameter.get_at(extruder - 1);
+}
+
+bool toolchanger_allows_extra_filaments(const ConfigBase& printer_config)
+{
+    const auto* nozzles = printer_config.option<ConfigOptionFloats>("nozzle_diameter");
+    const auto* mode    = printer_config.option("toolchanger_extra_filaments");
+    const auto* semm    = printer_config.option<ConfigOptionBool>("single_extruder_multi_material");
+    const auto* imex    = printer_config.option<ConfigOptionBool>("is_imex");
+    return nozzles && nozzles->size() > 1 && mode && mode->getInt() != int(ToolchangerExtraFilaments::Disabled) &&
+           !(semm && semm->value) && !(imex && imex->value);
+}
+
+int toolchanger_tool_for_filament(const ConfigBase& config, size_t filament_idx)
+{
+    const auto*  nozzles    = config.option<ConfigOptionFloats>("nozzle_diameter");
+    const size_t tool_count = nozzles ? nozzles->size() : 1;
+    if (filament_idx < tool_count)
+        return int(filament_idx);
+    const auto* filament_map = config.option<ConfigOptionInts>("filament_map");
+    if (filament_map && filament_idx < filament_map->size() && toolchanger_allows_extra_filaments(config)) {
+        const int tool = filament_map->get_at(filament_idx) - 1;
+        if (tool >= 0 && size_t(tool) < tool_count)
+            return tool;
+    }
+    const auto* master = config.option<ConfigOptionInt>("master_extruder_id");
+    return (master ? master->value : 1) - 1;
 }
 
 
@@ -291,6 +319,12 @@ static t_config_enum_values s_keys_map_WipeTowerType {
     { "type2",          int(WipeTowerType::Type2) }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WipeTowerType)
+
+static t_config_enum_values s_keys_map_ToolchangerExtraFilaments {
+    { "disabled",       int(ToolchangerExtraFilaments::Disabled) },
+    { "firmware_remap", int(ToolchangerExtraFilaments::FirmwareRemap) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(ToolchangerExtraFilaments)
 
 
 static t_config_enum_values s_keys_map_FuzzySkinMode {
@@ -7159,6 +7193,20 @@ void PrintConfigDef::init_fff_params()
                     "This is useful for manual multi-material printing, where we use M600/PAUSE to trigger the manual filament change action.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("toolchanger_extra_filaments", coEnum);
+    def->label = L("Extra filaments");
+    def->tooltip = L("Allows a project to use more filaments than the printer has tools. Each filament beyond the tool count "
+                     "prints with the tool chosen in its menu in the filament list, using that tool's nozzle settings.\n"
+                     "Firmware remaps tools: the G-code selects an extra filament by its own tool number, and the printer "
+                     "firmware must map that number to the chosen tool.");
+    def->enum_keys_map = &ConfigOptionEnum<ToolchangerExtraFilaments>::get_enum_values();
+    def->enum_values.emplace_back("disabled");
+    def->enum_values.emplace_back("firmware_remap");
+    def->enum_labels.emplace_back(L("Disabled"));
+    def->enum_labels.emplace_back(L("Firmware remaps tools"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<ToolchangerExtraFilaments>(ToolchangerExtraFilaments::Disabled));
 
     def = this->add("wipe_tower_type", coEnum);
     def->label = L("Wipe tower type");

@@ -1841,10 +1841,11 @@ MultiNozzleUtils::LayeredNozzleGroupResult ToolOrdering::get_recommended_filamen
     int              master_extruder_id = print_config.master_extruder_id.value - 1;
     std::vector<int> ret(filament_nums, master_extruder_id);
 
-    // Non-BBL multi-extruder printers do not support filament grouping: filament id == extruder id.
+    // Non-BBL multi-extruder printers do not support filament grouping: filament id == extruder id,
+    // and a filament beyond the tool count goes to the tool it was assigned, else the master.
     if (has_multiple_extruder && !print->is_BBL_printer()) {
-        for (size_t i = 0; i < filament_nums && i < extruder_nums; i++)
-            ret[i] = (int)i;
+        for (size_t i = 0; i < filament_nums; i++)
+            ret[i] = toolchanger_tool_for_filament(print_config, i);
         auto result_opt = LayeredNozzleGroupResult::create(ret, nozzle_list, used_filaments);
         return result_opt ? *result_opt : LayeredNozzleGroupResult();
     }

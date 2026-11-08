@@ -2224,6 +2224,9 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
     }
 
+    if (opt_key == "toolchanger_extra_filaments")
+        wxGetApp().sidebar().show_SEMM_buttons();
+
     if(opt_key == "purge_in_prime_tower")
         wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
 
@@ -2556,8 +2559,10 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         // sidebar's own +/- calls: they insert ahead of the mixed tail and renumber filament ids,
         // painted facets, custom g-code and mixed components, which a bulk resize clamps away.
         // Both also refresh the print tab and export the selections, so nothing to do afterwards.
+        // A toolchanger taking extra filaments keeps those beyond the tool count.
+        const bool keep_extra = !bundle->is_bbl_vendor() && toolchanger_allows_extra_filaments(*m_config);
         size_t physical = bundle->num_physical_filaments();
-        while (physical != num_extruder) {
+        while (physical < num_extruder || (physical > num_extruder && !keep_extra)) {
             if (physical < num_extruder)
                 sidebar.add_custom_filament(Plater::get_next_color_for_filament());
             else
@@ -6114,6 +6119,7 @@ if (is_marlin_flavor)
             });
         };
         optgroup->append_single_option_line("manual_filament_change", "printer_multimaterial_setup#manual-filament-change");
+        optgroup->append_single_option_line("toolchanger_extra_filaments");
         optgroup->append_single_option_line("bed_temperature_formula", "printer_basic_information_advanced#bed-temperature-type");
 
         optgroup = page->new_optgroup(L("Wipe tower"), "param_tower");
@@ -6843,6 +6849,9 @@ void TabPrinter::toggle_options()
         }
         toggle_option("extruders_count", !bSEMM, -1, _L("Extruder count cannot be edited in single extruder multimaterial mode."));
         toggle_option("manual_filament_change", bSEMM, -1, _L("Enable single extruder multimaterial mode to use manual filament changes."));
+        toggle_option("toolchanger_extra_filaments",
+                      !bSEMM && !is_BBL_printer && !m_config->opt_bool("is_imex") && m_config->option<ConfigOptionFloats>("nozzle_diameter")->size() > 1, -1,
+                      _L("Extra filaments are available on non-Bambu printers with several extruders, without single extruder multimaterial or IDEX/IQEX mode."));
         toggle_option("purge_in_prime_tower", bSEMM && supports_wipe_tower_2, -1,
             _L("Enable single extruder multimaterial mode with wipe tower Type 2 on a non-Bambu printer to use this setting."));
 

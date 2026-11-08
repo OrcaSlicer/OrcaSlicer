@@ -2293,3 +2293,31 @@ TEST_CASE("Nozzle change ramming is symmetric for identical filaments", "[MultiF
     }
     CHECK_THAT(medians[0], Catch::Matchers::WithinRel(medians[1], 0.01));
 }
+
+TEST_CASE("A toolchanger's extra filament prints on its assigned tool when extra filaments are enabled", "[MultiFilament][Toolchanger]")
+{
+    const auto mode = GENERATE(ToolchangerExtraFilaments::Disabled, ToolchangerExtraFilaments::FirmwareRemap);
+    // Two tools and three filaments: filament 3 is the extra one, assigned to tool 2.
+    DynamicPrintConfig config = multifilament_config(3);
+    config.set_deserialize_strict({
+        { "nozzle_diameter",                "0.4,0.4" },
+        { "printer_extruder_id",            "1,2" },
+        { "printer_extruder_variant",       "Direct Drive Standard,Direct Drive Standard" },
+        { "extruder_printable_height",      "0,0" },
+        { "single_extruder_multi_material", "0" },
+        { "master_extruder_id",             "1" },
+        { "filament_map",                   "1,2,2" },
+    });
+    config.set_key_value("toolchanger_extra_filaments", new ConfigOptionEnum<ToolchangerExtraFilaments>(mode));
+    size_flush_to_nozzles(config);
+    all_regions_on_filament(config, 3);
+
+    Print print;
+    init_and_process_print({ cube(20) }, print, config);
+    gcode(print);
+
+    // Disabled, the extra filament stays on the master tool (tool 1).
+    const int expected_tool = mode == ToolchangerExtraFilaments::Disabled ? 1 : 2;
+    REQUIRE(print.config().filament_map.values.size() == 3);
+    CHECK(print.config().filament_map.values[2] == expected_tool);
+}
