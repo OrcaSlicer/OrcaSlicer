@@ -5249,6 +5249,33 @@ void GCode::process_layers(
     });
 
     // The pipeline elements are joined using const references, thus no copying is performed.
+    if (m_config.layer_time_smoothing.value && ! m_spiral_vase) {
+        // Layer time smoothing needs the times of all layers. The layers are collected by the cooling buffer first,
+        // then smoothed and written by a second pipeline.
+        auto &cooling_buffer = *this->m_cooling_buffer;
+        cooling_buffer.begin_deferred();
+        const auto cooling_collect = tbb::make_filter<LayerResult, void>(slic3r_tbb_filtermode::serial_in_order,
+            [&cooling_buffer](LayerResult in) {
+                if (! in.nop_layer_result)
+                    cooling_buffer.collect_layer(std::move(in.gcode), in.layer_id, in.cooling_buffer_flush);
+            });
+        if (m_pressure_equalizer)
+            tbb::parallel_pipeline(12, source & generator & pressure_equalizer & cooling_collect);
+        else
+            tbb::parallel_pipeline(12, source & generator & cooling_collect);
+        print.set_status(85, L("Smoothing layer time"));
+        std::vector<std::string> smoothed_layers = cooling_buffer.finish_deferred();
+        size_t                   smoothed_idx    = 0;
+        const auto smoothed_source = tbb::make_filter<void, std::string>(slic3r_tbb_filtermode::serial_in_order,
+            [&smoothed_layers, &smoothed_idx](tbb::flow_control &fc) -> std::string {
+                if (smoothed_idx == smoothed_layers.size()) {
+                    fc.stop();
+                    return {};
+                }
+                return std::move(smoothed_layers[smoothed_idx++]);
+            });
+        tbb::parallel_pipeline(12, smoothed_source & fan_mover & pa_processor_filter & output);
+    } else
     if (m_spiral_vase && m_pressure_equalizer)
         tbb::parallel_pipeline(12, source & generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
     else if (m_spiral_vase)
@@ -5343,6 +5370,33 @@ void GCode::process_layers(
     });
 
     // The pipeline elements are joined using const references, thus no copying is performed.
+    if (m_config.layer_time_smoothing.value && ! m_spiral_vase) {
+        // Layer time smoothing needs the times of all layers. The layers are collected by the cooling buffer first,
+        // then smoothed and written by a second pipeline.
+        auto &cooling_buffer = *this->m_cooling_buffer;
+        cooling_buffer.begin_deferred();
+        const auto cooling_collect = tbb::make_filter<LayerResult, void>(slic3r_tbb_filtermode::serial_in_order,
+            [&cooling_buffer](LayerResult in) {
+                if (! in.nop_layer_result)
+                    cooling_buffer.collect_layer(std::move(in.gcode), in.layer_id, in.cooling_buffer_flush);
+            });
+        if (m_pressure_equalizer)
+            tbb::parallel_pipeline(12, source & generator & pressure_equalizer & cooling_collect);
+        else
+            tbb::parallel_pipeline(12, source & generator & cooling_collect);
+        print.set_status(85, L("Smoothing layer time"));
+        std::vector<std::string> smoothed_layers = cooling_buffer.finish_deferred();
+        size_t                   smoothed_idx    = 0;
+        const auto smoothed_source = tbb::make_filter<void, std::string>(slic3r_tbb_filtermode::serial_in_order,
+            [&smoothed_layers, &smoothed_idx](tbb::flow_control &fc) -> std::string {
+                if (smoothed_idx == smoothed_layers.size()) {
+                    fc.stop();
+                    return {};
+                }
+                return std::move(smoothed_layers[smoothed_idx++]);
+            });
+        tbb::parallel_pipeline(12, smoothed_source & fan_mover & pa_processor_filter & output);
+    } else
     if (m_spiral_vase && m_pressure_equalizer)
         tbb::parallel_pipeline(12, source & generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
     else if (m_spiral_vase)

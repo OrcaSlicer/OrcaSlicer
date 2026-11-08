@@ -3130,6 +3130,13 @@ void TabPrint::build()
         option.opt.height = 15;
         optgroup->append_single_option_line(option, "quality_settings_wall_and_surfaces#small-area-flow-compensation");
 
+        optgroup = page->new_optgroup(L("Layer time smoothing"), L"param_advanced");
+        optgroup->append_single_option_line("layer_time_smoothing", "quality_settings_wall_and_surfaces#layer-time-smoothing");
+        optgroup->append_single_option_line("layer_time_max_variation", "quality_settings_wall_and_surfaces#layer-time-smoothing");
+        optgroup->append_single_option_line("layer_time_smoothing_max_slowdown", "quality_settings_wall_and_surfaces#layer-time-smoothing");
+        optgroup->append_single_option_line("layer_time_smoothing_max_time_increase", "quality_settings_wall_and_surfaces#layer-time-smoothing");
+        optgroup->append_single_option_line("layer_time_smoothing_scope", "quality_settings_wall_and_surfaces#layer-time-smoothing");
+
         optgroup = page->new_optgroup(L("Bridging"), L"param_bridge");
         optgroup->append_single_option_line("bridge_flow", "quality_settings_bridging#flow-ratio");
         optgroup->append_single_option_line("internal_bridge_flow", "quality_settings_bridging#flow-ratio");

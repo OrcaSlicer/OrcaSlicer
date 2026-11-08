@@ -158,3 +158,32 @@ TEST_CASE("Overhang fan transitions do not depend on overhang speed", "[Cooling]
     REQUIRE(with_speed_feedrates != without_speed_feedrates);
     CHECK(with_speed_fan == without_speed_fan);
 }
+
+TEST_CASE("Layer time smoothing is off by default", "[Cooling][LayerTimeSmoothing]")
+{
+    const std::string gcode = slice({ cube(20) }, { { "layer_height", 0.2 } });
+    CHECK(gcode.find("LAYER_TIME_SMOOTHING") == std::string::npos);
+}
+
+TEST_CASE("Layer time smoothing annotates every layer and keeps the cooling pass working", "[Cooling][LayerTimeSmoothing]")
+{
+    const std::string gcode = slice({ cube(20) }, {
+        { "layer_height",           0.2 },
+        { "layer_time_smoothing",   true },
+    });
+    size_t comments = 0;
+    for (size_t pos = gcode.find("; LAYER_TIME_SMOOTHING"); pos != std::string::npos; pos = gcode.find("; LAYER_TIME_SMOOTHING", pos + 1))
+        ++ comments;
+    // The 20 mm cube has 100 layers of 0.2 mm.
+    CHECK(comments >= 90);
+    CHECK(gcode.find(";_EXTRUDE_SET_SPEED") == std::string::npos);
+}
+
+TEST_CASE("Layer time smoothing is ignored in spiral vase mode", "[Cooling][LayerTimeSmoothing]")
+{
+    const std::string gcode = slice({ cube(20) }, {
+        { "spiral_mode",            true },
+        { "layer_time_smoothing",   true },
+    });
+    CHECK(gcode.find("LAYER_TIME_SMOOTHING") == std::string::npos);
+}

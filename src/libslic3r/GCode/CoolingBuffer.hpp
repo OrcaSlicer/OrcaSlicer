@@ -7,6 +7,7 @@
 #include <string>
 #include <cfloat>
 #include <vector>
+#include <memory>
 
 namespace Slic3r {
 
@@ -27,13 +28,23 @@ struct PerExtruderAdjustments;
 class CoolingBuffer {
 public:
     CoolingBuffer(GCode &gcodegen);
+    ~CoolingBuffer();
     void        reset(const Vec3d &position);
     void        set_current_extruder(unsigned int extruder_id, unsigned int nozzle_id) { m_current_extruder = extruder_id; m_current_nozzle = nozzle_id; }
     std::string process_layer(std::string &&gcode, size_t layer_id, bool flush);
 
+    // Layer time smoothing needs the layer times of the whole print, so the layers are processed in two passes:
+    // collect_layer() parses each layer and applies the minimum layer time slow down, finish_deferred() then smooths
+    // the layer times over all collected layers and writes the layers. The G-code of all collected layers is held in memory.
+    void                     begin_deferred();
+    void                     collect_layer(std::string &&gcode, size_t layer_id, bool flush);
+    // Returns the adjusted G-code of every collected layer, in order.
+    std::vector<std::string> finish_deferred();
+
 private:
 	CoolingBuffer& operator=(const CoolingBuffer&) = delete;
-    std::vector<PerExtruderAdjustments> parse_layer_gcode(const std::string &gcode, std::vector<float> &current_pos) const;
+    // final_extruder, if not null, receives the extruder active at the end of the layer.
+    std::vector<PerExtruderAdjustments> parse_layer_gcode(const std::string &gcode, std::vector<float> &current_pos, unsigned int *final_extruder = nullptr) const;
     float       calculate_layer_slowdown(std::vector<PerExtruderAdjustments> &per_extruder_adjustments);
     // Apply slow down over G-code lines stored in per_extruder_adjustments, enable fan if needed.
     // Returns the adjusted G-code.
@@ -41,6 +52,11 @@ private:
 
     // G-code snippet cached for the support layers preceding an object layer.
     std::string                 m_gcode;
+    // A layer collected by collect_layer(), waiting for the layer time smoothing.
+    struct DeferredLayer;
+    std::vector<DeferredLayer>  m_deferred_layers;
+    // Extruder active at the end of the last collected layer.
+    unsigned int                m_deferred_extruder { 0 };
     // Internal data.
     // BBS: X,Y,Z,E,F,I,J
     std::vector<char>           m_axis;

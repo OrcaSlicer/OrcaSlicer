@@ -708,6 +708,12 @@ static const t_config_enum_values s_keys_map_CounterboreHoleBridgingOption{
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(CounterboreHoleBridgingOption)
 
+static const t_config_enum_values s_keys_map_LayerTimeSmoothingScope{
+    { "all",                 ltsAll },
+    { "exclude_outer_walls", ltsExcludeOuterWalls },
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(LayerTimeSmoothingScope)
+
 static const t_config_enum_values s_keys_map_WipeTowerWallType{
     {"rectangle", wtwRectangle},
     {"cone", wtwCone},
@@ -1327,6 +1333,71 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("This detours to avoid traveling across walls, which may cause blobs on the surface.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(INITIAL_REDUCE_CROSSING_WALL));
+
+    def = this->add("layer_time_smoothing", coBool);
+    def->label = L("Layer time smoothing (experimental)");
+    def->category = L("Quality");
+    def->tooltip = L("Limit how much the estimated print time may change from one layer to the next by slowing the faster layer down. "
+                     "A sudden change of the layer time changes the thermal history of the part and shows on vertical walls as banding, "
+                     "sunken or bulging regions, especially with glossy and high-shrinkage filaments, even though the wall itself is straight. "
+                     "Layers are only slowed down, never sped up, so the print time increases. The minimum layer time and the minimum print "
+                     "speed of the filament are respected, and the cooling fan follows the smoothed layer times. "
+                     "The first layer is not changed. This does not work in spiral vase mode.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("layer_time_max_variation", coPercent);
+    def->label = L("Max layer time variation");
+    def->category = L("Quality");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Maximum allowed change of the print time between two adjacent layers, relative to the longer of the two. "
+                     "With 25% a layer may take at most 25% less time than the layer below or above it. "
+                     "Smaller values give a smoother wall but a longer print. 0% forces all layers to the time of the slowest layer.");
+    def->sidetext = "%";
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionPercent(25));
+
+    def = this->add("layer_time_smoothing_max_slowdown", coPercent);
+    def->label = L("Max slowdown per layer");
+    def->category = L("Quality");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Maximum increase of the print time of a single layer. 200% means a layer may take up to three times as long as "
+                     "without smoothing. The minimum print speed of the filament is respected as well. Where this limit is reached, "
+                     "a part of the layer time step remains.");
+    def->sidetext = "%";
+    def->min = 0;
+    def->max = 1000;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionPercent(200));
+
+    def = this->add("layer_time_smoothing_max_time_increase", coPercent);
+    def->label = L("Max total time increase");
+    def->category = L("Quality");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Maximum increase of the total print time caused by layer time smoothing. If this limit would be exceeded, "
+                     "the allowed layer time variation is relaxed until the increase fits.");
+    def->sidetext = "%";
+    def->min = 0;
+    def->max = 1000;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionPercent(20));
+
+    def = this->add("layer_time_smoothing_scope", coEnum);
+    def->label = L("Slow down");
+    def->category = L("Quality");
+    def->tooltip = L("Which extrusions are slowed down by layer time smoothing.\n"
+                     "'All extrusions' slows down everything in the layer proportionally, so the speed ratios between the features are kept.\n"
+                     "'All except outer walls' keeps the outer wall speed unchanged, so that the gloss of the outer surface is not affected, "
+                     "and only slows down inner walls, infill and other internal extrusions.");
+    def->enum_keys_map = &ConfigOptionEnum<LayerTimeSmoothingScope>::get_enum_values();
+    def->enum_values.push_back("all");
+    def->enum_values.push_back("exclude_outer_walls");
+    def->enum_labels.push_back(L("All extrusions"));
+    def->enum_labels.push_back(L("All except outer walls"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<LayerTimeSmoothingScope>(ltsAll));
 
     def = this->add("max_travel_detour_distance", coFloatOrPercent);
     def->label = L("Avoid crossing walls - Max detour length");

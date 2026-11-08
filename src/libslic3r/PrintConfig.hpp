@@ -603,6 +603,12 @@ enum CounterboreHoleBridgingOption {
     chbNone, chbBridges, chbFilled
 };
 
+// Which extrusions the layer time smoothing may slow down.
+enum LayerTimeSmoothingScope {
+    ltsAll = 0,                 // All extrusions of the layer, proportionally
+    ltsExcludeOuterWalls = 1,   // Everything except the outer walls, so their speed and gloss stay untouched
+};
+
  enum WipeTowerWallType {
      wtwRectangle = 0,
      wtwCone,
@@ -825,6 +831,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(DraftShield)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ForwardCompatibilitySubstitutionRule)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(GCodeThumbnailsFormat)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(CounterboreHoleBridgingOption)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(LayerTimeSmoothingScope)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PrintHostType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(AuthorizationType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerWallType)
@@ -1990,6 +1997,12 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionInts,               additional_fan_full_speed_layer))
     ((ConfigOptionFloats,             first_x_layer_fan_speed))
     ((ConfigOptionBool,               reduce_crossing_wall))
+    // Layer time smoothing: limit the layer to layer variation of the layer print time.
+    ((ConfigOptionBool,               layer_time_smoothing))
+    ((ConfigOptionPercent,            layer_time_max_variation))
+    ((ConfigOptionPercent,            layer_time_smoothing_max_slowdown))
+    ((ConfigOptionPercent,            layer_time_smoothing_max_time_increase))
+    ((ConfigOptionEnum<LayerTimeSmoothingScope>, layer_time_smoothing_scope))
     ((ConfigOptionFloatOrPercent,     max_travel_detour_distance))
     ((ConfigOptionPoints,             printable_area))
     ((ConfigOptionPointsGroups,       extruder_printable_area))
