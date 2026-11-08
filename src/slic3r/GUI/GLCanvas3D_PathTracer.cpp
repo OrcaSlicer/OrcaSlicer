@@ -1093,7 +1093,7 @@ void GLCanvas3D::_update_pathtrace_instances_and_tlas(size_t transform_signature
         const Transform3d inv_trafo = world_trafo.inverse();
         const Eigen::Matrix4f m_inv = inv_trafo.matrix().cast<float>();
         const bool is_identity = m_inv.isApprox(Eigen::Matrix4f::Identity(), 1e-5f);
-        const Eigen::Matrix3f m_norm = m_inv.block<3, 3>(0, 0).transpose();
+        const Eigen::Matrix3f m_local_to_world = world_trafo.linear().cast<float>();
 
         for (int col = 0; col < 4; ++col) {
             for (int row = 0; row < 4; ++row) {
@@ -1102,11 +1102,11 @@ void GLCanvas3D::_update_pathtrace_instances_and_tlas(size_t transform_signature
         }
         for (int col = 0; col < 3; ++col) {
             for (int row = 0; row < 3; ++row) {
-                inst.normal_to_world[col * 4 + row] = m_norm(row, col);
+                inst.local_to_world[col * 4 + row] = m_local_to_world(row, col);
             }
         }
-        inst.normal_to_world[12] = float(flags);
-        inst.normal_to_world[15] = 1.0f;
+        inst.local_to_world[12] = float(flags);
+        inst.local_to_world[15] = 1.0f;
 
         Vec3f world_min = Vec3f::Constant(std::numeric_limits<float>::max());
         Vec3f world_max = Vec3f::Constant(std::numeric_limits<float>::lowest());

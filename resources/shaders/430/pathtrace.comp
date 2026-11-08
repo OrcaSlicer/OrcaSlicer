@@ -2,17 +2,23 @@
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
+// The integers are integers here too: GLSL may flush subnormal floats and need not keep the bits of a NaN.
 struct BvhNode
 {
-    vec4 bounds_min;
-    vec4 bounds_max;
+    vec3 bounds_min;
+    int left_or_first;
+    vec3 bounds_max;
+    uint count_and_axis;
 };
 
 struct Triangle
 {
-    vec4 a; // xyz: vertex a, w: tag_z
-    vec4 b; // xyz: vertex b, w: floatBits(raw_v_id)
-    vec4 c; // xyz: vertex c, w: opacity (alpha)
+    vec3 a;
+    float tag_z;
+    vec3 b;
+    uint vertex_id;
+    vec3 c;
+    float opacity;
 };
 
 struct Shading
@@ -48,7 +54,7 @@ struct Hit
 struct Instance
 {
     mat4 world_to_local;
-    mat4 normal_to_world;
+    mat4 local_to_world; // the upper left 3x3; [3].x: the flags of the object
     vec4 bounds_min;
     vec4 bounds_max;
     uvec4 data;
@@ -114,7 +120,7 @@ uniform bool glossy_toolpaths;
 // The object views of the rasterizer in Prepare, which tint what the camera sees (gouraud.fs): the
 // overhangs below slope_normal_z and the bed contact, the parts of an object partly outside the print
 // volume (print_volume_type -1 off, 0 rectangle, 1 circle), and with two extruders (x >= 1) the band
-// between their printable heights y and z. The flags of an object are in its normal_to_world[3].x.
+// between their printable heights y and z. The flags of an object are in its local_to_world[3].x.
 uniform bool slope_active;
 uniform float slope_normal_z;
 uniform vec3 slope_up;
@@ -574,12 +580,12 @@ void setup_clip_interval(Ray ray)
 // True when the layer range or the move range of the preview hides the triangle.
 bool triangle_hidden(Triangle tri)
 {
-    if (tri.a.w < 0.0)
+    if (tri.tag_z < 0.0)
         return false;
-    if (g_has_z_filter && (tri.a.w < z_min || tri.a.w > z_max))
+    if (g_has_z_filter && (tri.tag_z < z_min || tri.tag_z > z_max))
         return true;
     if (g_has_move_filter) {
-        uint raw_v_id = floatBitsToUint(tri.b.w);
+        uint raw_v_id = tri.vertex_id;
         if (raw_v_id != 0xFFFFFFFFu && ((move_min >= 0 && int(raw_v_id) < move_min) || (move_max >= 0 && int(raw_v_id) > move_max)))
             return true;
     }
@@ -614,10 +620,10 @@ void closest_leaf_test(uint i, Ray local_ray, float loc_scale, uint inst_idx, in
     Triangle tri = triangles[i];
     if (triangle_hidden(tri))
         return;
-    float opacity = tri.c.w;
+    float opacity = tri.opacity;
     if (opacity < 0.005)
         return;
-    if (g_only_opaque && tri.a.w >= -1.5 && opacity < OPAQUE_OPACITY)
+    if (g_only_opaque && tri.tag_z >= -1.5 && opacity < OPAQUE_OPACITY)
         return;
     vec2 bary;
     float det;
@@ -625,11 +631,11 @@ void closest_leaf_test(uint i, Ray local_ray, float loc_scale, uint inst_idx, in
     if (t_local < ray_epsilon || t_local >= hit.distance * loc_scale)
         return;
     float t_world = t_local / loc_scale;
-    if (g_has_clipping && tri.a.w > -1.5 && (t_world < g_clip_near || t_world > g_clip_far))
+    if (g_has_clipping && tri.tag_z > -1.5 && (t_world < g_clip_near || t_world > g_clip_far))
         return;
     hit.distance = t_world;
     hit.bary = bary;
-    hit.tag = tri.a.w;
+    hit.tag = tri.tag_z;
     hit.opacity = clamp(opacity, 0.0, 1.0);
     hit.tri_index = i;
     hit.inst_index = inst_idx;
@@ -647,7 +653,7 @@ bool shadow_leaf_test(uint i, Ray local_ray, float loc_scale)
     Triangle tri = triangles[i];
     if (triangle_hidden(tri))
         return false;
-    float opacity = tri.c.w;
+    float opacity = tri.opacity;
     if (opacity < 0.01)
         return false;
     bool opaque = opacity >= OPAQUE_OPACITY;
@@ -657,7 +663,7 @@ bool shadow_leaf_test(uint i, Ray local_ray, float loc_scale)
     if (t_local < ray_epsilon)
         return false;
     float t_world = t_local / loc_scale;
-    if (g_has_clipping && tri.a.w > -1.5 && (t_world < g_clip_near || t_world > g_clip_far))
+    if (g_has_clipping && tri.tag_z > -1.5 && (t_world < g_clip_near || t_world > g_clip_far))
         return false;
     Shading sh = shadings[i];
     // Seam markers cast no shadow.
@@ -671,9 +677,9 @@ bool shadow_leaf_test(uint i, Ray local_ray, float loc_scale)
     vec3 e1 = tri.b.xyz - tri.a.xyz;
     vec3 e2 = tri.c.xyz - tri.a.xyz;
     float cos_i = clamp(abs(det) / max(length(cross(e1, e2)), 1e-20), 0.0, 1.0);
-    float wall = tri.a.w >= 0.0 ? 0.5 * bead_path(g_sh_dir, sh.params.x) : PREPARE_WALL / max(transmitted_cos(cos_i), 0.2);
+    float wall = tri.tag_z >= 0.0 ? 0.5 * bead_path(g_sh_dir, sh.params.x) : PREPARE_WALL / max(transmitted_cos(cos_i), 0.2);
     g_sh_walls *= (1.0 - fresnel_dielectric(cos_i, IOR)) * wall_transmittance(sh.albedo.rgb, opacity, wall);
-    if (tri.a.w < 0.0) {
+    if (tri.tag_z < 0.0) {
         vec3 extinction = straight_extinction(opacity) + dye_extinction(sh.albedo.rgb);
         g_sh_tau_interior += extinction * (PREPARE_INFILL_DENSITY * (det > 0.0 ? -t_world : t_world));
     }
@@ -711,9 +717,9 @@ bool traverse_blas(int mode, uint root, bool is_print_inst, uint inst_idx, Ray l
     int stack_size = 0;
 
     while (true) {
-        uint count = floatBitsToUint(node.bounds_max.w) & 0x3FFFFFFFu;
+        uint count = node.count_and_axis & 0x3FFFFFFFu;
         if (count == 0u) {
-            uint left = uint(floatBitsToInt(node.bounds_min.w));
+            uint left = uint(node.left_or_first);
             BvhNode node_a = nodes[left];
             BvhNode node_b = nodes[left + 1u];
             float t_far = min(clip_far, hit.distance * loc_scale);
@@ -739,7 +745,7 @@ bool traverse_blas(int mode, uint root, bool is_print_inst, uint inst_idx, Ray l
                 continue;
             }
         } else {
-            uint first = uint(floatBitsToInt(node.bounds_min.w));
+            uint first = uint(node.left_or_first);
             for (uint i = first; i < first + count; ++i) {
                 if (mode == TRAVERSE_CLOSEST)
                     closest_leaf_test(i, local_ray, loc_scale, inst_idx, hit);
@@ -809,9 +815,9 @@ void traverse_scene(int mode, Ray ray, inout Hit hit)
         } else {
             bool found = false;
             while (walking) {
-                uint count = floatBitsToUint(node.bounds_max.w) & 0x3FFFFFFFu;
+                uint count = node.count_and_axis & 0x3FFFFFFFu;
                 if (count == 0u) {
-                    uint left = uint(floatBitsToInt(node.bounds_min.w));
+                    uint left = uint(node.left_or_first);
                     BvhNode node_a = tlas_nodes[left];
                     BvhNode node_b = tlas_nodes[left + 1u];
                     float d_a = box_entry(node_a.bounds_min.xyz, node_a.bounds_max.xyz, inv_dir, origin_inv, ray_epsilon, hit.distance);
@@ -836,7 +842,7 @@ void traverse_scene(int mode, Ray ray, inout Hit hit)
                         continue;
                     }
                 } else {
-                    inst_idx = uint(floatBitsToInt(node.bounds_min.w));
+                    inst_idx = uint(node.left_or_first);
                     found = true;
                 }
                 if (stack_size == 0)
@@ -917,10 +923,10 @@ bool intersect_scene(Ray ray, inout Hit hit)
         world_shading = local_shading;
     } else {
         mat4 world_to_local = instances[hit.inst_index].world_to_local;
-        mat3 local_to_world = inverse(mat3(world_to_local));
+        mat3 local_to_world = mat3(instances[hit.inst_index].local_to_world);
         hit.position = local_to_world * (local_position - world_to_local[3].xyz);
         hit.lifted_position = local_to_world * (local_lifted - world_to_local[3].xyz);
-        mat3 normal_to_world = mat3(instances[hit.inst_index].normal_to_world);
+        mat3 normal_to_world = transpose(mat3(world_to_local));
         world_normal = normal_to_world * raw_normal;
         world_shading = normal_to_world * local_shading;
     }
@@ -1004,7 +1010,7 @@ float layer_shading(inout vec3 albedo, float layer_z, uint vertex)
 // The tints of the object views, see slope_active. The rasterizer applies them in sRGB.
 vec3 object_view_tint(vec3 albedo, Hit hit)
 {
-    uint flags = uint(instances[hit.inst_index].normal_to_world[3].x + 0.5);
+    uint flags = uint(instances[hit.inst_index].local_to_world[3].x + 0.5);
     vec3 c = pow(albedo, vec3(1.0 / 2.2));
     vec3 p = hit.position;
     if (slope_active && (flags & INSTANCE_WIPE_TOWER) == 0u) {
@@ -1329,7 +1335,7 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
         bool toolpath = hit.tag >= 0.0;
         bool seam = toolpath && sh.params.z > 3.5;
         if (toolpath && !seam) {
-            float dim = layer_shading(albedo, hit.tag, floatBitsToUint(triangles[hit.tri_index].b.w));
+            float dim = layer_shading(albedo, hit.tag, triangles[hit.tri_index].vertex_id);
             if (depth == 0 && trans == 0)
                 throughput *= dim;
         }

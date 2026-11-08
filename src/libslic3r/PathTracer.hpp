@@ -60,7 +60,7 @@ Vec3f unpack_unit_vector_oct(uint32_t packed);
 struct alignas(16) PathTraceGpuTriangle
 {
     std::array<float, 4> a{}; // xyz: vertex A, w: tag_z
-    std::array<float, 4> b{}; // xyz: vertex B, w: floatBits(raw_v_id)
+    std::array<float, 4> b{}; // xyz: vertex B, w: the bits of the vertex ID, which the shader reads as a uint
     std::array<float, 4> c{}; // xyz: vertex C, w: opacity (alpha)
 };
 static_assert(sizeof(PathTraceGpuTriangle) == 48, "PathTraceGpuTriangle must be 48 bytes");
@@ -88,7 +88,7 @@ static_assert(sizeof(PathTraceGpuNode) == 32, "PathTraceGpuNode size must be 32 
 struct alignas(16) PathTraceGpuInstance
 {
     std::array<float, 16> world_to_local{};
-    std::array<float, 16> normal_to_world{};
+    std::array<float, 16> local_to_world{}; // the upper left 3x3; [12]: the flags of the object
     std::array<float, 4> bounds_min{};
     std::array<float, 4> bounds_max{};
     std::array<uint32_t, 4> data{}; // x: root_node, y: node_count, z: tri_offset, w: tri_count
