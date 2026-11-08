@@ -186,6 +186,12 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoBrimEars.cpp
     GUI/Gizmos/GLGizmoBrimEars.hpp
     GUI/Gizmos/GLGizmoCut.cpp
+    GUI/Gizmos/GLGizmoCutChunks.cpp
+    GUI/Gizmos/GLGizmoCutChunks.hpp
+    GUI/Gizmos/GLGizmoCutPlanes.cpp
+    GUI/Gizmos/GLGizmoCutPlanes.hpp
+    GUI/Gizmos/GLGizmoSkeleton.cpp
+    GUI/Gizmos/GLGizmoSkeleton.hpp
     GUI/Gizmos/GLGizmoCut.hpp
     GUI/Gizmos/GLGizmoEmboss.cpp
     GUI/Gizmos/GLGizmoEmboss.hpp
@@ -340,6 +346,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Jobs/OAuthJob.cpp
     GUI/Jobs/OAuthJob.hpp
     GUI/Jobs/OrientJob.cpp
+    GUI/Jobs/SkeletonJob.cpp
+    GUI/Jobs/SkeletonJob.hpp
     GUI/Jobs/OrientJob.hpp
     GUI/Jobs/PlaterWorker.hpp
     GUI/Jobs/PrintJob.cpp
@@ -452,6 +460,13 @@ set(SLIC3R_GUI_SOURCES
     GUI/PartPlate.hpp
     GUI/BeltPurgeTower.cpp
     GUI/BeltPurgeTower.hpp
+    GUI/BedMeshOverlay.cpp
+    GUI/BedMeshOverlay.hpp
+    GUI/AccentColor.hpp
+    GUI/FocusRing.cpp
+    GUI/FocusRing.hpp
+    GUI/Theme.cpp
+    GUI/Theme.hpp
     GUI/FilamentGroupPopup.hpp
     GUI/FilamentGroupPopup.cpp
     GUI/PhysicalPrinterDialog.cpp
