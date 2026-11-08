@@ -1721,26 +1721,31 @@ TEST_CASE("A bridge in another filament is anchored on its neighbours", "[Perime
 TEST_CASE("A bridge in another filament is anchored on a neighbour two walls thin", "[Perimeters]")
 {
     const char *wall_generator = GENERATE("classic", "arachne");
-    CAPTURE(wall_generator);
+    // A wall as thin across the middle splits the lid into two bridges, with a line of the tube between them.
+    const bool divided = GENERATE(false, true);
+    CAPTURE(wall_generator, divided);
 
     // A 20x20x6mm square tube with walls two outer walls thick in one filament, closed at z=[5,6] by a lid in another,
     // the way a painted sacrificial layer over a hole is segmented.
     const double wall = 2. * 0.42;
     TriangleMesh tube = make_cube(wall, 20., 6.);
-    // The other three sides: x, y, size x, size y.
-    const std::array<std::array<double, 4>, 3> sides{ { { 20. - wall, 0., wall, 20. }, { wall, 0., 20. - 2. * wall, wall }, { wall, 20. - wall, 20. - 2. * wall, wall } } };
-    for (const auto &[x, y, size_x, size_y] : sides) {
-        TriangleMesh side = make_cube(size_x, size_y, 6.);
-        side.translate(float(x), float(y), 0.f);
+    // The other sides: x, y, size x, size y.
+    const std::array<std::array<double, 4>, 4> sides{ { { 20. - wall, 0., wall, 20. }, { wall, 0., 20. - 2. * wall, wall },
+                                                        { wall, 20. - wall, 20. - 2. * wall, wall }, { 10. - wall / 2., wall, wall, 20. - 2. * wall } } };
+    for (size_t i = 0; i < (divided ? 4 : 3); ++ i) {
+        TriangleMesh side = make_cube(sides[i][2], sides[i][3], 6.);
+        side.translate(float(sides[i][0]), float(sides[i][1]), 0.f);
         tube.merge(side);
     }
-    TriangleMesh lid = make_cube(20. - 2. * wall, 20. - 2. * wall, 1.);
-    lid.translate(float(wall), float(wall), 5.f);
     Model model;
     ModelObject *object = model.add_object();
     object->name = "painted_lid.stl";
     object->add_volume(std::move(tube))->config.set("extruder", 1);
-    object->add_volume(std::move(lid))->config.set("extruder", 2);
+    for (const double x : divided ? std::vector<double>{ wall, 10. + wall / 2. } : std::vector<double>{ wall }) {
+        TriangleMesh lid = make_cube(divided ? 10. - 1.5 * wall : 20. - 2. * wall, 20. - 2. * wall, 1.);
+        lid.translate(float(x), float(wall), 5.f);
+        object->add_volume(std::move(lid))->config.set("extruder", 2);
+    }
     object->add_instance();
     object->ensure_on_bed();
     Print print;
@@ -1756,30 +1761,34 @@ TEST_CASE("A bridge in another filament is anchored on a neighbour two walls thi
     const auto contains = [](const ExPolygons &expolys, const Point &pt) {
         return std::any_of(expolys.begin(), expolys.end(), [&pt](const ExPolygon &expoly) { return expoly.contains(pt); });
     };
-    const Point        center      = get_extents(layer->lslices).center();
+    // A point inside the lid, off the middle wall.
+    const Point        in_lid      = get_extents(layer->lslices).center() + Point(scaled(5.), 0);
     const LayerRegion *lid_region  = nullptr;
     const LayerRegion *tube_region = nullptr;
     for (const LayerRegion *layerm : layer->regions())
         if (! layerm->slices.empty())
-            (contains(to_expolygons(layerm->slices.surfaces), center) ? lid_region : tube_region) = layerm;
+            (contains(to_expolygons(layerm->slices.surfaces), in_lid) ? lid_region : tube_region) = layerm;
     REQUIRE(lid_region != nullptr);
     REQUIRE(tube_region != nullptr);
 
-    // The tube keeps its outer wall around the outline of the object.
+    // The tube keeps its outer wall around the outline of the object, and the lid has no walls in mid air.
     double longest_loop = 0.;
     for (const ExtrusionEntity *entity : tube_region->perimeters.flatten().entities)
         if (entity->is_loop())
             longest_loop = std::max(longest_loop, unscale<double>(entity->length()));
     CHECK(longest_loop > 4. * 18.);
+    double lid_walls = 0.;
+    for_each_extrusion_path(lid_region->perimeters, [&lid_walls](const ExtrusionPath &path) { lid_walls += unscale<double>(path.length()); });
+    CHECK(lid_walls < 1.);
 
-    // The lid is bridged from the top of one side of the tube to the top of the other.
+    // The lid is bridged from the top of one wall of the tube to the top of another.
     size_t spans = 0;
     size_t anchored = 0;
     for_each_extrusion_path(lid_region->fills, [&](const ExtrusionPath &path) {
         if (path.role() != erBridgeInfill)
             return;
         for (const Line &line : path.polyline.to_polyline().lines())
-            if (line.length() > scaled(15.)) {
+            if (line.length() > scaled(8.)) {
                 ++ spans;
                 anchored += size_t(contains(layer->lower_layer->lslices, line.a) && contains(layer->lower_layer->lslices, line.b));
             }

@@ -213,40 +213,32 @@ static ExPolygons bridged_overhangs(const Layer &layer, const ExPolygons &slices
 
 // Orca: Each region of a multi-material object, painted or a part of its own, is printed within its own outline, so a
 // bridge segmented into a region of its own ends at its neighbours, where a single-material bridge reaches on over the
-// supported area around it. Move a strip of the supported neighbours, as wide as the outer wall they would print
-// there, to the bridge to anchor on, which the infill and the bridge detection then see. The walls of the neighbours
-// are still generated over the strip, which is then left to the bridge, see Layer::make_perimeters().
+// supported area around it. Move a strip of the supported neighbours, one outer wall wide, to the bridge to anchor on,
+// which the infill and the bridge detection then see. The walls of the neighbours are still generated over the strip,
+// which is then left to the bridge, see Layer::make_perimeters().
 void Layer::anchor_bridges_in_neighbours()
 {
     if (m_regions.size() < 2 || lower_layer == nullptr)
         return;
     for (LayerRegion *bridge : m_regions) {
-        ExPolygons       slices    = to_expolygons(bridge->slices.surfaces);
-        const size_t     own_count = slices.size();
-        const ExPolygons overhangs = bridged_overhangs(*this, slices, bridge->flow(frExternalPerimeter).scaled_width());
+        const float      width     = float(bridge->flow(frExternalPerimeter).scaled_width());
+        const ExPolygons slices    = to_expolygons(bridge->slices.surfaces);
+        const ExPolygons overhangs = bridged_overhangs(*this, slices, coord_t(width));
         if (overhangs.empty())
             continue;
-        for (LayerRegion *neighbour : m_regions) {
-            if (neighbour == bridge || neighbour->slices.empty())
-                continue;
-            // The neighbour keeps its outer wall along its other boundaries, as the outer surface of the object.
-            const ExPolygons neighbour_slices = to_expolygons(neighbour->slices.surfaces);
-            const float      width            = float(neighbour->flow(frExternalPerimeter).scaled_width());
-            ExPolygons anchor = intersection_ex(intersection_ex(neighbour_slices, lower_layer->lslices),
-                                                intersection(offset(overhangs, width),
-                                                             offset(union_ex(slices, neighbour_slices, true), -width)));
-            if (anchor.empty())
-                continue;
-            // What it leaves of the neighbour too thin for a wall, as of a line between two bridges, goes to the bridge
-            // too. Along the outline, the neighbour keeps its outer wall.
-            const ExPolygons rest = diff_ex(neighbour_slices, anchor);
-            append(anchor, intersection_ex(diff_ex(rest, opening_ex(rest, width / 2)),
-                                           intersection(offset(anchor, width), offset(lslices, -width - float(SCALED_EPSILON)))));
-            neighbour->slices.set(diff_ex(neighbour->slices.surfaces, anchor), stInternal);
-            append(slices, anchor);
-        }
-        if (slices.size() > own_count)
-            bridge->slices.set(union_ex(slices), stInternal);
+        // The neighbours keep their outer wall along the outline of the object.
+        const Polygons inside  = offset(lslices, -width);
+        ExPolygons     anchors = diff_ex(intersection_ex(intersection_ex(lower_layer->lslices, offset(overhangs, width)), inside), slices);
+        if (anchors.empty())
+            continue;
+        // The gaps narrower than a wall the anchors leave in the bridge, as of a thin line of a neighbour between two
+        // bridges or of a crack between two regions, go to the bridge too, or they would be walled.
+        const ExPolygons anchored = union_ex(slices, anchors);
+        append(anchors, intersection_ex(diff_ex(closing_ex(anchored, width / 2), anchored), intersection(offset(anchors, width), inside)));
+        for (LayerRegion *neighbour : m_regions)
+            if (neighbour != bridge && ! neighbour->slices.empty())
+                neighbour->slices.set(diff_ex(neighbour->slices.surfaces, anchors), stInternal);
+        bridge->slices.set(union_ex(slices, anchors), stInternal);
     }
 }
 
