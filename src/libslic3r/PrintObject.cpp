@@ -1882,6 +1882,12 @@ bool PrintObject::invalidate_step(PrintObjectStep step)
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
     } else if (step == posPrepareInfill) {
         invalidated |= this->invalidate_steps({ posInfill, posIroning, posContouring, posSimplifyPath, posSimplifyInfill });
+        // Anchor reservation trims perimeter output. Rebuild it before recalculating bridges,
+        // otherwise a prepare-infill-only update starts with already displaced walls and gap fills.
+        if (std::any_of(m_layers.begin(), m_layers.end(), [](const Layer *layer) { return layer->has_reserved_bridge_anchors(); })) {
+            invalidated |= Inherited::invalidate_step(posPerimeters);
+            invalidated |= m_print->invalidate_steps({ psSkirtBrim });
+        }
     } else if (step == posInfill) {
         invalidated |= this->invalidate_steps({ posIroning, posContouring, posSimplifyInfill });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
@@ -2502,6 +2508,13 @@ void PrintObject::process_external_surfaces()
     });
     m_print->throw_if_canceled();
     BOOST_LOG_TRIVIAL(debug) << "Processing external surfaces in parallel - end";
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, m_layers.size()),
+        [this](const tbb::blocked_range<size_t> &range) {
+            for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++layer_idx) {
+                m_print->throw_if_canceled();
+                m_layers[layer_idx]->reserve_bridge_anchors();
+            }
+        });
 }
 
 void PrintObject::discover_vertical_shells()

@@ -89,6 +89,7 @@ public:
     const ExPolygons            *upper_slices;
     const SurfaceCollection     *upper_slices_same_region;
     const ExPolygons            *lower_slices;
+    const ExPolygons            *bridge_exclusions = nullptr;
     double                       layer_height;
     int                          layer_id;
     coordf_t                     slice_z;

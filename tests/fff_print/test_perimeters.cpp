@@ -7,6 +7,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/Flow.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/GCodeReader.hpp"
@@ -17,13 +18,17 @@
 #include <cmath>
 #include "libslic3r/PrintConfig.hpp"
 #include <cstddef>
+#include <initializer_list>
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/Config.hpp"
 #include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Line.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Polyline.hpp"
+#include "libslic3r/Surface.hpp"
 #include <limits>
 #include <string>
 #include <utility>
@@ -1565,4 +1570,184 @@ TEST_CASE("Changing the brim updates the wall order of the first layer", "[Perim
     // The change does turn the first layer around.
     REQUIRE(before != fresh);
     CHECK(after == fresh);
+}
+
+namespace {
+
+// Two 10x20x6mm pillars 10mm apart in filament 1, bridged at z=[5,6] by a 10x20mm deck in filament 2, the way a
+// painted underside of a bridge is segmented. The deck's first layer (print_z 5.2) lies entirely over the gap,
+// next to the tops of the pillars on the same layer.
+Print &painted_bridge(Print &print, Model &model, const char *wall_generator, bool thick_bridges, bool extra_perimeters, double bridge_angle,
+                      double overlap_percent, bool reverse_filaments)
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "wall_generator",                wall_generator },
+        { "layer_height",                  0.2 },
+        { "initial_layer_print_height",    0.2 },
+        { "wall_loops",                    2 },
+        { "sparse_infill_density",         "15%" },
+        { "bottom_shell_layers",           3 },
+        { "outer_wall_line_width",         0.42 },
+        { "inner_wall_line_width",         0.45 },
+        { "top_bottom_infill_wall_overlap", ConfigOptionPercent(overlap_percent) },
+        { "detect_overhang_wall",          true },
+        { "extra_perimeters_on_overhangs", extra_perimeters },
+        { "thick_bridges",                 thick_bridges },
+        { "bridge_angle",                  bridge_angle },
+        { "enable_support",                false },
+        { "enable_prime_tower",            false },
+    });
+
+    ModelObject *object = model.add_object();
+    object->name = "painted_bridge.stl";
+    TriangleMesh pillars = make_cube(10., 20., 6.);
+    TriangleMesh far_pillar = make_cube(10., 20., 6.);
+    far_pillar.translate(20.f, 0.f, 0.f);
+    pillars.merge(far_pillar);
+    object->add_volume(std::move(pillars))->config.set("extruder", reverse_filaments ? 2 : 1);
+    TriangleMesh deck = make_cube(10., 20., 1.);
+    deck.translate(10.f, 0.f, 5.f);
+    object->add_volume(std::move(deck))->config.set("extruder", reverse_filaments ? 1 : 2);
+    object->add_instance();
+    object->ensure_on_bed();
+
+    print.apply(model, config);
+    print.set_status_silent();
+    print.process();
+    return print;
+}
+
+// Length of the paths of `entities` running closer to the Y axis than to the X axis, the direction of the
+// boundaries between the deck and the pillars, keeping only those `keep` accepts.
+template<typename Keep>
+double y_running_length(const ExtrusionEntityCollection &entities, Keep &&keep)
+{
+    double length = 0.;
+    for_each_extrusion_path(entities, [&length, &keep](const ExtrusionPath &path) {
+        const Polyline polyline = path.polyline.to_polyline();
+        for (const Line &line : polyline.lines())
+            if (std::abs(line.b.y() - line.a.y()) > std::abs(line.b.x() - line.a.x()) && keep(path, line))
+                length += unscale<double>(line.length());
+    });
+    return length;
+}
+
+} // namespace
+
+TEST_CASE("A bridge in another filament is bridged between the walls of its neighbours", "[Perimeters]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    const bool thick_bridges = GENERATE(false, true);
+    const bool extra_perimeters = GENERATE(false, true);
+    const double bridge_angle = GENERATE(0., 180.);
+    const double overlap_percent = GENERATE(0., 25., 50.);
+    const bool reverse_filaments = GENERATE(false, true);
+    const bool reprocess_infill = GENERATE(false, true);
+    CAPTURE(wall_generator, thick_bridges, extra_perimeters, bridge_angle, overlap_percent, reverse_filaments, reprocess_infill);
+
+    Print print;
+    Model model;
+    painted_bridge(print, model, wall_generator, thick_bridges, extra_perimeters, bridge_angle, overlap_percent, reverse_filaments);
+    if (reprocess_infill) {
+        DynamicPrintConfig updated(print.full_print_config());
+        updated.set("bottom_shell_layers", 4);
+        print.apply(model, updated);
+        print.process();
+    }
+    const PrintObject &object = *print.objects().front();
+    const auto layer = std::find_if(object.layers().begin(), object.layers().end(),
+                                    [](const Layer *l) { return std::abs(l->print_z - 5.2) < EPSILON; });
+    REQUIRE(layer != object.layers().end());
+
+    const LayerRegion *deck = nullptr;
+    const LayerRegion *pillars = nullptr;
+    for (const LayerRegion *layerm : (*layer)->regions())
+        if (! layerm->slices.empty())
+            (get_extents(layerm->slices.surfaces).size().x() < scaled(15.) ? deck : pillars) = layerm;
+    REQUIRE(deck != nullptr);
+    REQUIRE(pillars != nullptr);
+    const BoundingBox deck_bbox = get_extents(deck->slices.surfaces);
+    Polygons lower_walls;
+    for (const LayerRegion *region : (*layer)->lower_layer->regions())
+        region->perimeters.polygons_covered_by_width(lower_walls, 0.f);
+    const ExPolygons lower_wall_areas = union_ex(lower_walls);
+    for (const Surface &surface : deck->fill_surfaces.surfaces) {
+        if (surface.surface_type == stBottomBridge) {
+            const BoundingBox bridge_bbox = get_extents(surface.expolygon);
+            INFO("bridge surface extensions: " << unscale<double>(deck_bbox.min.x() - bridge_bbox.min.x())
+                 << ", " << unscale<double>(bridge_bbox.max.x() - deck_bbox.max.x()));
+            CHECK(bridge_bbox.min.x() < deck_bbox.min.x());
+            CHECK(bridge_bbox.max.x() > deck_bbox.max.x());
+            CHECK(area(diff_ex(ExPolygons{surface.expolygon}, (*layer)->lslices)) < sqr(scale_(0.01)));
+            CHECK(area(intersection_ex(ExPolygons{surface.expolygon}, pillars->fill_expolygons)) < sqr(scale_(0.01)));
+        }
+    }
+
+    // The deck has no walls along the pillars, where they would be laid in mid air.
+    CHECK(y_running_length(deck->perimeters, [](const ExtrusionPath &, const Line &) { return true; }) < 1.);
+
+    // Only the shared material boundary is displaced; the pillars keep their outside walls.
+    const auto outside_deck = [&deck_bbox](const ExtrusionPath &, const Line &line) {
+        const coord_t x = (line.a.x() + line.b.x()) / 2;
+        return std::min(std::abs(x - deck_bbox.min.x()), std::abs(x - deck_bbox.max.x())) > scaled(5.);
+    };
+    CHECK(y_running_length(pillars->perimeters, outside_deck) > 2. * 15.);
+
+    const Polygons pillar_walls = pillars->perimeters.polygons_covered_by_width(0.f);
+    const Polygons pillar_fills = pillars->fills.polygons_covered_by_width(0.f);
+    for_each_extrusion_path(deck->fills, [&pillar_walls, &pillar_fills](const ExtrusionPath &path) {
+        if (path.role() != erBridgeInfill)
+            return;
+        Polygons footprint;
+        path.polygons_covered_by_width(footprint, 0.f);
+        CHECK(area(intersection_ex(footprint, pillar_walls)) < sqr(scale_(0.01)));
+        CHECK(area(intersection_ex(footprint, pillar_fills)) < sqr(scale_(0.01)));
+    });
+    Polygons coverage = pillar_walls;
+    polygons_append(coverage, pillar_fills);
+    polygons_append(coverage, deck->fills.polygons_covered_by_width(0.f));
+    const BoundingBox middle(Point(deck_bbox.min.x() - scaled(1.), deck_bbox.min.y() + scaled(3.)),
+                             Point(deck_bbox.max.x() + scaled(1.), deck_bbox.max.y() - scaled(3.)));
+    const ExPolygons missing_walls = diff_ex(intersection(lower_walls, Polygons{middle.polygon()}), coverage);
+    // Rounded bridge endpoints leave small scallops, but trimming must not leave a continuous wall-sized gap.
+    for (const ExPolygon &missing : opening_ex(missing_walls, float(scale_(0.08)))) {
+        const BoundingBox box = get_extents(missing);
+        CHECK(unscale<double>(box.size().y()) < 1.);
+    }
+
+    // The deck is bridged across the gap, from one pillar to the other.
+    double along_span = 0.;
+    double across_span = 0.;
+    for_each_extrusion_path(deck->fills, [&along_span, &across_span](const ExtrusionPath &path) {
+        if (path.role() != erBridgeInfill)
+            return;
+        for (const Line &line : path.polyline.to_polyline().lines())
+            (std::abs(line.b.x() - line.a.x()) > std::abs(line.b.y() - line.a.y()) ? along_span : across_span) += unscale<double>(line.length());
+    });
+    CHECK(along_span > 100.);
+    CHECK(across_span < along_span / 4.);
+
+    size_t anchored_spans = 0;
+    const double expected_overlap = std::min<double>({BRIDGE_INFILL_MARGIN, deck->flow(frPerimeter).spacing(),
+                                             deck->flow(frExternalPerimeter).width()});
+    for_each_extrusion_path(deck->fills, [&deck_bbox, &lower_wall_areas, &anchored_spans, expected_overlap](const ExtrusionPath &path) {
+        if (path.role() != erBridgeInfill)
+            return;
+        for (const Line &line : path.polyline.to_polyline().lines()) {
+            const coord_t min_x = std::min(line.a.x(), line.b.x());
+            const coord_t max_x = std::max(line.a.x(), line.b.x());
+            if (max_x - min_x < deck_bbox.size().x() * 0.8)
+                continue;
+            ++anchored_spans;
+            INFO("span endpoints: " << unscale<double>(line.a.x()) << ", " << unscale<double>(line.a.y())
+                 << " -> " << unscale<double>(line.b.x()) << ", " << unscale<double>(line.b.y()));
+            CHECK(unscale<double>(deck_bbox.min.x() - min_x) >= expected_overlap - 0.01);
+            CHECK(unscale<double>(max_x - deck_bbox.max.x()) >= expected_overlap - 0.01);
+            CHECK(std::any_of(lower_wall_areas.begin(), lower_wall_areas.end(),
+                              [&line](const ExPolygon &area) { return area.contains(line.a); }));
+            CHECK(std::any_of(lower_wall_areas.begin(), lower_wall_areas.end(),
+                              [&line](const ExPolygon &area) { return area.contains(line.b); }));
+        }
+    });
+    CHECK(anchored_spans > 10);
 }

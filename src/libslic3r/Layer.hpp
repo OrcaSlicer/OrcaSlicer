@@ -96,7 +96,8 @@ public:
     void    slices_to_fill_surfaces_clipped();
     void    prepare_fill_surfaces();
     //BBS
-    void    make_perimeters(const SurfaceCollection &slices, const LayerRegionPtrs &compatible_regions, SurfaceCollection* fill_surfaces, ExPolygons* fill_no_overlap);
+    void    make_perimeters(const SurfaceCollection &slices, const LayerRegionPtrs &compatible_regions, SurfaceCollection* fill_surfaces, ExPolygons* fill_no_overlap,
+                            const ExPolygons *bridge_exclusions = nullptr);
     void    process_external_surfaces(const Layer *lower_layer, const Polygons *lower_layer_covered);
     double  infill_area_threshold() const;
     // Trim surfaces by trimming polygons. Used by the elephant foot compensation at the 1st layer.
@@ -206,6 +207,8 @@ public:
     // Whether two regions can be printed in a continues perimeter
     static bool             is_perimeter_compatible(const Print& print, const PrintRegion& a, const PrintRegion& b);
     void                    make_perimeters();
+    void                    reserve_bridge_anchors();
+    bool                    has_reserved_bridge_anchors() const { return m_bridge_anchors_reserved; }
     // Phony version of make_fills() without parameters for Perl integration only.
     void                    make_fills() { this->make_fills(nullptr); }
     void                    make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLightning::Generator* lightning_generator = nullptr);
@@ -292,6 +295,7 @@ private:
     size_t              m_id;
     PrintObject        *m_object;
     LayerRegionPtrs     m_regions;
+    bool                m_bridge_anchors_reserved = false;
 };
 
 enum SupportInnerType {
