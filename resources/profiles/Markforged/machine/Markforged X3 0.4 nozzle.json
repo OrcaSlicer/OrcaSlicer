@@ -1,0 +1,20 @@
+{
+	"type": "machine",
+	"name": "Markforged X3 0.4 nozzle",
+	"inherits": "fdm_markforged_common",
+	"from": "system",
+	"setting_id": "tOeivFUeyRHwyesW",
+	"instantiation": "true",
+	"printer_model": "Markforged X3",
+	"printer_variant": "0.4",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"printable_area": [
+		"0x0",
+		"330x0",
+		"330x270",
+		"0x270"
+	],
+	"printable_height": "200"
+}

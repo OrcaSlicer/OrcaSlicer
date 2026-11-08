@@ -1,0 +1,45 @@
+{
+	"type": "machine",
+	"name": "fdm_markforged_common",
+	"inherits": "fdm_machine_common",
+	"from": "system",
+	"instantiation": "false",
+	"gcode_flavor": "marlin2",
+	"printer_agent": "markforged_eiger",
+	"printer_technology": "FFF",
+	"printer_variant": "0.4",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"max_layer_height": [
+		"0.25"
+	],
+	"min_layer_height": [
+		"0.05"
+	],
+	"retraction_length": [
+		"1"
+	],
+	"retraction_speed": [
+		"30"
+	],
+	"deretraction_speed": [
+		"30"
+	],
+	"z_hop": [
+		"0.2"
+	],
+	"machine_max_speed_z": [
+		"10",
+		"10"
+	],
+	"machine_start_gcode": "; Markforged printers only run jobs sliced by Eiger. Unified Slicer sends the model to Eiger,\n; which slices it with your Eiger settings preset. This G-code is for preview and estimates only.\n",
+	"machine_end_gcode": "",
+	"layer_change_gcode": "",
+	"before_layer_change_gcode": "G92 E0\n",
+	"default_print_profile": "0.125mm Standard @Markforged",
+	"bed_exclude_area": [
+		"0x0"
+	],
+	"auxiliary_fan": "0"
+}

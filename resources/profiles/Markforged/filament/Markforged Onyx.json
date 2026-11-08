@@ -1,0 +1,46 @@
+{
+	"type": "filament",
+	"name": "Markforged Onyx",
+	"inherits": "fdm_filament_pa",
+	"from": "system",
+	"setting_id": "NZrZgJXHmjSXpYHz",
+	"filament_id": "OFmv82Jo",
+	"instantiation": "true",
+	"filament_type": [
+		"PA-CF"
+	],
+	"filament_vendor": [
+		"Markforged"
+	],
+	"filament_density": [
+		"1.2"
+	],
+	"filament_diameter": [
+		"1.75"
+	],
+	"nozzle_temperature": [
+		"273"
+	],
+	"nozzle_temperature_initial_layer": [
+		"273"
+	],
+	"hot_plate_temp": [
+		"0"
+	],
+	"hot_plate_temp_initial_layer": [
+		"0"
+	],
+	"filament_max_volumetric_speed": [
+		"6"
+	],
+	"compatible_printers": [
+		"Markforged Mark Two 0.4 nozzle",
+		"Markforged Onyx One 0.4 nozzle",
+		"Markforged Onyx Pro 0.4 nozzle",
+		"Markforged X3 0.4 nozzle",
+		"Markforged X5 0.4 nozzle",
+		"Markforged X7 0.4 nozzle",
+		"Markforged FX10 0.4 nozzle",
+		"Markforged FX20 0.4 nozzle"
+	]
+}

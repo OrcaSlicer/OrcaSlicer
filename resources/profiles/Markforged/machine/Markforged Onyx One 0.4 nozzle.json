@@ -1,0 +1,20 @@
+{
+	"type": "machine",
+	"name": "Markforged Onyx One 0.4 nozzle",
+	"inherits": "fdm_markforged_common",
+	"from": "system",
+	"setting_id": "9vHmGJneNQlbxNJa",
+	"instantiation": "true",
+	"printer_model": "Markforged Onyx One",
+	"printer_variant": "0.4",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"printable_area": [
+		"0x0",
+		"320x0",
+		"320x132",
+		"0x132"
+	],
+	"printable_height": "154"
+}

@@ -1,0 +1,31 @@
+{
+	"type": "process",
+	"name": "fdm_process_markforged_common",
+	"inherits": "fdm_process_common",
+	"from": "system",
+	"instantiation": "false",
+	"line_width": "0.4",
+	"initial_layer_line_width": "0.45",
+	"wall_loops": "2",
+	"top_shell_layers": "4",
+	"bottom_shell_layers": "4",
+	"sparse_infill_density": "37%",
+	"sparse_infill_pattern": "triangles",
+	"outer_wall_speed": "30",
+	"inner_wall_speed": "40",
+	"sparse_infill_speed": "50",
+	"internal_solid_infill_speed": "40",
+	"top_surface_speed": "30",
+	"initial_layer_speed": "20",
+	"travel_speed": "150",
+	"compatible_printers": [
+		"Markforged Mark Two 0.4 nozzle",
+		"Markforged Onyx One 0.4 nozzle",
+		"Markforged Onyx Pro 0.4 nozzle",
+		"Markforged X3 0.4 nozzle",
+		"Markforged X5 0.4 nozzle",
+		"Markforged X7 0.4 nozzle",
+		"Markforged FX10 0.4 nozzle",
+		"Markforged FX20 0.4 nozzle"
+	]
+}
