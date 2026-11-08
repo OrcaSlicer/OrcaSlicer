@@ -1,13 +1,19 @@
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
-#include "test_data.hpp"
+#include "test_helpers.hpp"
 
+#include <cstddef>
 #include <regex>
 #include <sstream>
+#include <string>
+#include <vector>
 
 using namespace Slic3r;
 using namespace Slic3r::Test;
@@ -51,7 +57,7 @@ std::vector<PrimeBlock> prime_blocks(const std::string& gcode)
 
 DynamicPrintConfig two_tool_config()
 {
-    DynamicPrintConfig config = default_print_config();
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_num_extruders(2);
     config.set_deserialize_strict({
         { "filament_diameter",            "1.75,1.75" }, // the filament count comes from this, as in a loaded preset
