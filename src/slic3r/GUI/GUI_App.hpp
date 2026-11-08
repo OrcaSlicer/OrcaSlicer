@@ -727,6 +727,9 @@ public:
     void            open_preferences(PreferencesTab tab, const std::string& highlight_option = std::string());
     void            open_presetbundledialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
     void            open_plugins_dialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
+    // Called on the GUI thread after an audit prompt stores a grant outside the Plugins dialog.
+    // Refreshes an existing dialog instance; never creates or raises it.
+    void            notify_plugin_permissions_changed(const std::string& plugin_key);
     // Dialog-free plugin actions used by the speed dial: they never require the Plugins dialog to be open.
     void            refresh_plugins();
     void            install_local_plugin();

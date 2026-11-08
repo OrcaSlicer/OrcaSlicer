@@ -6479,6 +6479,9 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
 
 	this->update_compatible(PresetSelectCompatibleType::Never);
     this->update_multi_material_filament_presets();
+    // The call above does not resize the colour and map arrays, which must match filament_presets.
+    if (printer_technology == ptFFF && this->filament_presets.size() > this->project_config.option<ConfigOptionStrings>("filament_colour")->values.size())
+        this->set_num_filaments(this->filament_presets.size());
 
     // A "published" 3MF project overlays the author-selected published keys onto the user's
     // currently-selected (edited) process preset. Keys that cannot be applied are collected for
