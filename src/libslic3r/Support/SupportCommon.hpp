@@ -44,6 +44,13 @@ std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interfa
 void split_support_layers(SupportGeneratorLayersPtr &layers, SupportGeneratorLayerStorage &storage,
                           double height, double minimum, double first_layer_z, const std::vector<double> &boundaries = {});
 
+// Apply per-tool deposition schedules after support geometry and contacts are classified.
+void schedule_support_layers(const PrintObject &object, const SupportParameters &support_params,
+                             SupportGeneratorLayerStorage &layer_storage,
+                             SupportGeneratorLayersPtr &bottom_contacts, SupportGeneratorLayersPtr &top_contacts,
+                             SupportGeneratorLayersPtr &intermediate_layers, SupportGeneratorLayersPtr &interface_layers,
+                             SupportGeneratorLayersPtr &base_interface_layers);
+
 // Generate raft layers, also expand the 1st support layer
 // in case there is no raft layer to improve support adhesion.
 SupportGeneratorLayersPtr generate_raft_base(

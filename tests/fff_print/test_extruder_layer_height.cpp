@@ -563,16 +563,6 @@ TEST_CASE("Unsupported layer schedules are rejected before slicing", "[ExtruderL
     REQUIRE(error.string.find("0.01") != std::string::npos);
 }
 
-TEST_CASE("Organic support reports its incompatible layer schedule", "[ExtruderLayerHeight]")
-{
-    auto config = layer_config();
-    config.set_deserialize_strict({{"enable_support", "1"}, {"support_filament", "2"},
-        {"support_interface_filament", "2"}, {"support_type", "tree(auto)"}, {"support_style", "organic"}});
-    Print print;
-    Model model;
-    init_print({make_cube(8., 8., 1.)}, print, model, config);
-    REQUIRE(print.validate().opt_key == "support_style");
-}
 
 TEST_CASE("Unused nozzle heights do not constrain a single used tool", "[ExtruderLayerHeight]")
 {
@@ -620,17 +610,12 @@ TEST_CASE("Changes in used tools invalidate the shared slicing grid", "[Extruder
     REQUIRE(print.objects()[1]->layer_count() == 6);
 }
 
-TEST_CASE("Support bodies and interfaces use independent tool heights", "[ExtruderLayerHeight][SupportMaterial]")
+namespace {
+void check_support_heights(const char *style, bool zero_gap, bool coarse_interface, bool mapped,
+                           double fine_height, int interface_count, bool staggered)
 {
-    const auto style = GENERATE("normal", "snug", "tree_slim", "tree_strong", "tree_hybrid");
-    const bool zero_gap = GENERATE(false, true);
-    const bool normal = std::string(style) == "normal" || std::string(style) == "snug";
-    const bool coarse_interface = GENERATE(false, true);
-    const bool mapped = GENERATE(false, true);
-    const double fine_height = GENERATE(0.1, 0.15);
-    const int interface_count = GENERATE(1, 3);
-    const bool staggered = GENERATE(false, true);
     CAPTURE(style, zero_gap, coarse_interface, mapped, fine_height, interface_count, staggered);
+    const bool normal = std::string(style) == "normal" || std::string(style) == "snug";
     auto config = layer_config(3);
     config.set_deserialize_strict({
         {"nozzle_diameter", coarse_interface ? "0.2,0.6,0.2" : "0.6,0.2,0.2"},
@@ -644,6 +629,10 @@ TEST_CASE("Support bodies and interfaces use independent tool heights", "[Extrud
         {"independent_support_layer_height", "0"}, {"thick_bridges", "0"},
         {"layer_change_gcode", "G92 E0\n"}});
     config.set_deserialize_strict("support_interface_top_layers", std::to_string(interface_count));
+    // Make Organic tips wide enough to carry an interface from the 0.6 mm tool;
+    // its ordinary tiny-tip fallback intentionally prints base material instead.
+    if (std::string(style) == "organic" || std::string(style) == "default")
+        config.set_deserialize_strict("tree_support_tip_diameter", "2");
     auto &heights = config.option<ConfigOptionFloats>("extruder_layer_height")->values;
     heights[coarse_interface ? 0 : 1] = fine_height;
     if (mapped) {
@@ -712,8 +701,10 @@ TEST_CASE("Support bodies and interfaces use independent tool heights", "[Extrud
             CHECK(height <= requested + 1e-5);
             has_requested |= std::abs(height - requested) < 1e-5;
         }
+        CAPTURE(heights, requested);
         CHECK(has_requested);
     };
+    CAPTURE(base_heights.size(), interface_heights.size(), interface_bottom, interface_top);
     check(base_heights, coarse_interface ? fine_height : 0.3);
     check(interface_heights, coarse_interface ? 0.3 : fine_height);
     // More than one configured interface layer includes one adhesion layer on the base tool.
@@ -722,4 +713,70 @@ TEST_CASE("Support bodies and interfaces use independent tool heights", "[Extrud
     const double interface_depth = (interface_count > 1 ? interface_count - 1 : 1) * (coarse_interface ? 0.3 : fine_height);
     CHECK(interface_top - interface_bottom >= interface_depth - 1e-5);
     CHECK(interface_top - interface_bottom <= interface_depth + (staggered ? 0.1 : 0.) + 1e-5);
+}
+
+}
+TEST_CASE("Support bodies and interfaces use independent tool heights", "[ExtruderLayerHeight][SupportMaterial]")
+{
+    const auto style = GENERATE("normal", "snug", "tree_slim", "tree_strong", "tree_hybrid");
+    const bool zero_gap = GENERATE(false, true);
+    const bool coarse_interface = GENERATE(false, true);
+    const bool mapped = GENERATE(false, true);
+    const double fine_height = GENERATE(0.1, 0.15);
+    const int interface_count = GENERATE(1, 3);
+    const bool staggered = GENERATE(false, true);
+    check_support_heights(style, zero_gap, coarse_interface, mapped, fine_height, interface_count, staggered);
+}
+
+TEST_CASE("Organic support preserves per-tool heights and interface depth", "[ExtruderLayerHeight][SupportMaterial][OrganicMultiHeight]")
+{
+    const auto style = GENERATE("organic", "default");
+    const bool zero_gap = GENERATE(false, true);
+    const bool coarse_interface = GENERATE(false, true);
+    const double fine_height = GENERATE(0.1, 0.15);
+    const int interface_count = GENERATE(1, 3);
+    const bool staggered = GENERATE(false, true);
+    check_support_heights(style, zero_gap, coarse_interface, true, fine_height, interface_count, staggered);
+}
+
+TEST_CASE("Automatic support tools resolve before multi-height slicing", "[ExtruderLayerHeight][SupportMaterial][AutomaticSupportHeight]")
+{
+    const auto style = GENERATE("normal", "tree_slim", "organic");
+    const bool automatic_interface = GENERATE(false, true);
+    const bool multi_height = GENERATE(false, true);
+    CAPTURE(style, automatic_interface, multi_height);
+    auto config = layer_config();
+    config.set_deserialize_strict({{"enable_support", "1"}, {"support_filament", "0"},
+        {"support_interface_filament", automatic_interface ? "0" : "1"},
+        {"support_type", std::string(style) == "normal" ? "normal(auto)" : "tree(auto)"},
+        {"support_style", std::string(style) == "normal" ? "grid" : style},
+        {"support_top_z_distance", "0.2"}, {"support_interface_top_layers", "2"},
+        {"layer_change_gcode", "G92 E0\n"},
+        {"filament_map", "2,1"}, {"extruder_layer_height", multi_height ? "0.1,0.2" : "0,0"}});
+    TriangleMesh overhang = make_cube(6., 6., 4.1);
+    TriangleMesh roof = make_cube(20., 6., 1.);
+    roof.translate(-7., 0., 4.);
+    overhang.merge(roof);
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{{{"extruder", "2"}}};
+    Print print;
+    Model model;
+    init_print({overhang}, print, model, config, &overrides);
+    print.set_status_silent();
+    const auto validation = print.validate();
+    INFO(validation.string);
+    REQUIRE(validation.string.empty());
+    const auto &effective = print.objects().front()->config();
+    CHECK(effective.support_filament.value == (multi_height ? 2 : 0));
+    CHECK(effective.support_interface_filament.value == (automatic_interface ? (multi_height ? 2 : 0) : 1));
+    CHECK(config.opt_int("support_filament") == 0);
+    print.process();
+    REQUIRE_FALSE(print.objects().front()->support_layers().empty());
+    REQUIRE_FALSE(gcode(print).empty());
+    // Reapplying and switching the feature off must not retain the derived tool.
+    print.apply(model, config);
+    CHECK(print.objects().front()->config().support_filament.value == (multi_height ? 2 : 0));
+    config.set_deserialize_strict("extruder_layer_height", "0,0");
+    print.apply(model, config);
+    CHECK(print.objects().front()->config().support_filament.value == 0);
+    CHECK(print.objects().front()->config().support_interface_filament.value == (automatic_interface ? 0 : 1));
 }

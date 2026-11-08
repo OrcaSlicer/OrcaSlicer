@@ -2303,6 +2303,27 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     // (posSlicing and posSupportMaterial was invalidated).
     for (PrintObject *object : m_objects)
     {
+        // Keep automatic assignments in the project, but choose a stable physical
+        // tool before computing support slab heights and nozzle limits.
+        PrintObjectConfig support_config = PrintObject::object_config_from_model_object(
+            m_default_object_config, *object->model_object(), num_extruders, print_variant_index);
+        if (object->has_support_material() && has_extruder_layer_heights(m_config, layer_height_filaments())) {
+            const auto filaments = object->object_extruders();
+            if (!filaments.empty()) {
+                if (support_config.support_filament.value == 0)
+                    support_config.support_filament.value = int(filaments.front() + 1);
+                if (support_config.support_interface_filament.value == 0)
+                    support_config.support_interface_filament = support_config.support_filament;
+            }
+        }
+        t_config_option_keys support_diff;
+        for (const char *key : {"support_filament", "support_interface_filament"})
+            if (*object->config().option(key) != *support_config.option(key))
+                support_diff.emplace_back(key);
+        if (!support_diff.empty()) {
+            update_apply_status(object->invalidate_state_by_config_options(object->config(), support_config, support_diff));
+            object->config_apply_only(support_config, support_diff, true);
+        }
         object->update_slicing_parameters();
         m_support_used |= object->config().enable_support;
     }

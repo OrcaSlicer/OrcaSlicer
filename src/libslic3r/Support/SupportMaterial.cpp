@@ -586,29 +586,8 @@ void PrintObjectSupportMaterial::generate(PrintObject &object)
 //    intermediate_layers.clear();
 //    interface_layers.clear();
 
-    if (m_slicing_params.use_extruder_layer_heights) {
-        const auto split = [&](SupportGeneratorLayersPtr &layers, unsigned int filament) {
-            split_support_layers(layers, layer_storage,
-                extruder_layer_height_for_filament(*m_print_config, filament, m_object_config->layer_height.value),
-                extruder_layer_height_range(*m_print_config, filament).min_height,
-                m_slicing_params.first_print_layer_height);
-        };
-        split(intermediate_layers, m_object_config->support_filament.value);
-        split(base_interface_layers, m_object_config->support_filament.value);
-        const unsigned int interface_filament = m_support_params.has_interfaces() ?
-            m_object_config->support_interface_filament.value : m_object_config->support_filament.value;
-        split(bottom_contacts, interface_filament);
-        split(top_contacts, interface_filament);
-        split(interface_layers, interface_filament);
-        const auto combine = [&](SupportGeneratorLayersPtr &layers, unsigned int filament, double width) {
-            combine_support_layers(layers, layer_storage,
-                extruder_layer_height_for_filament(*m_print_config, filament, m_object_config->layer_height.value),
-                m_slicing_params.first_print_layer_height, width);
-        };
-        combine(intermediate_layers, m_object_config->support_filament.value, m_support_params.support_material_flow.width());
-        combine(base_interface_layers, m_object_config->support_filament.value, m_support_params.support_material_flow.width());
-        combine(interface_layers, interface_filament, m_support_params.support_material_interface_flow.width());
-    }
+    schedule_support_layers(object, m_support_params, layer_storage, bottom_contacts, top_contacts,
+                            intermediate_layers, interface_layers, base_interface_layers);
 
 #ifdef SLIC3R_DEBUG
     SupportGeneratorLayersPtr layers_sorted =

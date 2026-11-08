@@ -1088,7 +1088,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
         toggle_line(el, support_is_organic, -1, _L("Enable tree supports with the Organic or Default style to show this setting."));
     // ORCA: Independent support layer height is not compatible with organic tree supports,
     // as they rely on the support layers being the same as the object layers to determine where to place branches.
-    toggle_line("independent_support_layer_height", have_support_material && !support_is_organic, -1,
+    const auto *tool_heights = config->option<ConfigOptionFloats>("extruder_layer_height");
+    const bool multi_height = tool_heights && std::any_of(tool_heights->values.begin(), tool_heights->values.end(),
+                                                        [](double height) { return height > 0.; });
+    toggle_line("independent_support_layer_height", have_support_material && !support_is_organic && !multi_height, -1,
                 !have_support_material ? support_reason : _L("Independent support layer height is unavailable for organic tree supports."));
 
     toggle_field("tree_support_brim_width", support_is_tree && !config->opt_bool("tree_support_auto_brim"), -1,

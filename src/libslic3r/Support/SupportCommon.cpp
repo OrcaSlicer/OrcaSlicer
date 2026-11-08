@@ -326,6 +326,39 @@ void combine_support_layers(SupportGeneratorLayersPtr &layers, SupportGeneratorL
     std::stable_sort(layers.begin(), layers.end(), [](const auto *a, const auto *b) { return *a < *b; });
 }
 
+void schedule_support_layers(const PrintObject &object, const SupportParameters &support_params,
+                             SupportGeneratorLayerStorage &layer_storage,
+                             SupportGeneratorLayersPtr &bottom_contacts, SupportGeneratorLayersPtr &top_contacts,
+                             SupportGeneratorLayersPtr &intermediate_layers, SupportGeneratorLayersPtr &interface_layers,
+                             SupportGeneratorLayersPtr &base_interface_layers)
+{
+    if (object.slicing_parameters().use_extruder_layer_heights) {
+        const auto split = [&](SupportGeneratorLayersPtr &layers, unsigned int filament) {
+            split_support_layers(layers, layer_storage,
+                extruder_layer_height_for_filament(object.print()->config(), filament, object.config().layer_height.value),
+                extruder_layer_height_range(object.print()->config(), filament).min_height,
+                object.slicing_parameters().first_print_layer_height);
+        };
+        split(intermediate_layers, object.config().support_filament.value);
+        split(base_interface_layers, object.config().support_filament.value);
+        const unsigned int interface_filament = support_params.has_interfaces() ?
+            object.config().support_interface_filament.value : object.config().support_filament.value;
+        split(bottom_contacts, interface_filament);
+        split(top_contacts, interface_filament);
+        split(interface_layers, interface_filament);
+        const auto combine = [&](SupportGeneratorLayersPtr &layers, unsigned int filament, double width) {
+            combine_support_layers(layers, layer_storage,
+                extruder_layer_height_for_filament(object.print()->config(), filament, object.config().layer_height.value),
+                object.slicing_parameters().first_print_layer_height, width);
+        };
+        combine(intermediate_layers, object.config().support_filament.value, support_params.support_material_flow.width());
+        combine(base_interface_layers, object.config().support_filament.value, support_params.support_material_flow.width());
+        combine(interface_layers, interface_filament, support_params.support_material_interface_flow.width());
+        if (support_params.support_style == smsTreeOrganic)
+            combine(top_contacts, interface_filament, support_params.support_material_interface_flow.width());
+    }
+}
+
 std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interface_layers(
     const PrintObjectConfig           &config,
     const SupportParameters           &support_params,
@@ -539,6 +572,9 @@ std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interfa
             else {
                 SupportGeneratorLayersPtr out(in1.size() + in2.size(), nullptr);
                 std::merge(in1.begin(), in1.end(), in2.begin(), in2.end(), out.begin(), [](auto* l, auto* r) { return l->print_z < r->print_z; });
+                // insert_layer may reuse the Organic layer already present in in2.
+                // Keep that slab once, including when recombining its vertical span.
+                out.erase(std::unique(out.begin(), out.end()), out.end());
                 return out;
             }
         };
@@ -1663,10 +1699,8 @@ SupportGeneratorLayersPtr generate_support_layers(
                 num_interfaces += one_of(layer.layer_type, support_types_interface) || is_base_interface;
                 if (layer.layer_type == SupporLayerType::TopContact) {
                     ++ num_top_contacts;
-                    assert(num_top_contacts <= 1);
-                    // All top contact layers sharing this print_z shall also share bottom_z.
-                    //assert(num_top_contacts == 1 || (top_contact_bottom_z - layer.bottom_z) < EPSILON);
-                    top_contact_bottom_z = layer.bottom_z;
+                    // Regional contacts may share a top Z but have different slab heights.
+                    top_contact_bottom_z = num_top_contacts == 1 ? layer.bottom_z : std::min(top_contact_bottom_z, layer.bottom_z);
                 }
             }
             layer.print_z = zavg;
@@ -1820,7 +1854,7 @@ void generate_support_toolpaths(
         SupportGeneratorLayerExtruded                                     interface_layer;
         SupportGeneratorLayerExtruded                                     base_interface_layer;
         std::vector<LayerCacheItem> nonempty;
-        std::vector<std::unique_ptr<SupportGeneratorLayerExtruded>> additional_base, additional_interface, additional_base_interface;
+        std::vector<std::unique_ptr<SupportGeneratorLayerExtruded>> additional_base, additional_interface, additional_base_interface, additional_top_contact;
 
         float    ironing_angle;
         Polygons polys_to_iron;
@@ -1829,7 +1863,7 @@ void generate_support_toolpaths(
             for (SupportGeneratorLayerExtruded *item : { &bottom_contact_layer, &top_contact_layer, &interface_layer, &base_interface_layer, &base_layer })
                 if (! item->empty())
                     this->nonempty.emplace_back(item);
-            for (const auto *items : { &additional_base, &additional_interface, &additional_base_interface })
+            for (const auto *items : { &additional_base, &additional_interface, &additional_base_interface, &additional_top_contact })
                 for (const auto &item : *items)
                     if (!item->empty())
                         nonempty.emplace_back(item.get());
@@ -1918,6 +1952,7 @@ void generate_support_toolpaths(
                     destination.push_back(std::move(item));
                 }
             };
+            additional_at_z(top_contacts, idx_layer_top_contact, layer_cache.additional_top_contact);
             additional_at_z(intermediate_layers, idx_layer_intermediate, layer_cache.additional_base);
             additional_at_z(interface_layers, idx_layer_interface, layer_cache.additional_interface);
             additional_at_z(base_interface_layers, idx_layer_base_interface, layer_cache.additional_base_interface);
@@ -1945,6 +1980,13 @@ void generate_support_toolpaths(
                 }
 
                 loop_interface_processor.generate(top_contact_layer, support_params.support_material_interface_flow);
+                for (auto &item : layer_cache.additional_top_contact) {
+                    if (support_params.ironing) {
+                        layer_cache.ironing_angle = support_interface_angle;
+                        polygons_append(layer_cache.polys_to_iron, item->polygons_to_extrude());
+                    }
+                    loop_interface_processor.generate(*item, support_params.support_material_interface_flow);
+                }
                 // If no loops are allowed, we treat the contact layer exactly as a generic interface layer.
                 // Merge interface_layer into top_contact_layer, as the top_contact_layer is not synchronized and therefore it will be used
                 // to trim other layers.
@@ -1985,12 +2027,16 @@ void generate_support_toolpaths(
             // that expansion can overlap same-layer interface-material regions, so trim
             // the support-material regions from those interface footprints here.
             if (organic_tree && support_params.zero_gap_interface_top && !support_params.can_merge_support_regions &&
-                (!base_layer.empty() || !base_interface_layer.empty())) {
+                (!base_layer.empty() || !base_interface_layer.empty() ||
+                 !layer_cache.additional_base.empty() || !layer_cache.additional_base_interface.empty())) {
                 Polygons interface_polygons;
                 if (!top_contact_layer.empty())
                     polygons_append(interface_polygons, top_contact_layer.polygons_to_extrude());
                 if (!interface_layer.empty())
                     polygons_append(interface_polygons, interface_layer.polygons_to_extrude());
+                for (const auto *items : { &layer_cache.additional_top_contact, &layer_cache.additional_interface })
+                    for (const auto &item : *items)
+                        polygons_append(interface_polygons, item->polygons_to_extrude());
                 if (!interface_polygons.empty()) {
                     const coord_t trim_margin = std::max(
                         support_params.support_material_flow.scaled_width(),
@@ -2000,6 +2046,9 @@ void generate_support_toolpaths(
                         base_layer.set_polygons_to_extrude(diff(base_layer.polygons_to_extrude(), interface_keepout));
                     if (!base_interface_layer.empty())
                         base_interface_layer.set_polygons_to_extrude(diff(base_interface_layer.polygons_to_extrude(), interface_keepout));
+                    for (auto *items : { &layer_cache.additional_base, &layer_cache.additional_base_interface })
+                        for (auto &item : *items)
+                            item->set_polygons_to_extrude(diff(item->polygons_to_extrude(), interface_keepout));
                 }
             }
 
@@ -2058,6 +2107,8 @@ void generate_support_toolpaths(
                 }
             };
             extrude_interface(top_contact_layer,    raft_layer ? InterfaceLayerType::RaftContact : top_interfaces ? InterfaceLayerType::TopContact : InterfaceLayerType::InterfaceAsBase);
+            for (auto &item : layer_cache.additional_top_contact)
+                extrude_interface(*item, raft_layer ? InterfaceLayerType::RaftContact : top_interfaces ? InterfaceLayerType::TopContact : InterfaceLayerType::InterfaceAsBase);
             if (!organic_tree)
                 extrude_interface(bottom_contact_layer, bottom_interfaces ? InterfaceLayerType::BottomContact : InterfaceLayerType::InterfaceAsBase);
             const bool interface_layer_enabled = !interface_layer.empty() &&

@@ -2202,12 +2202,6 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         if (m_config.spiral_mode)
             return {L("Per-extruder layer heights cannot be used with spiral vase mode."), nullptr, "extruder_layer_height"};
         for (const PrintObject *object : m_objects) {
-            if (object->has_support_material() && is_tree(object->config().support_type.value) &&
-                (object->config().support_style.value == smsDefault || object->config().support_style.value == smsTreeOrganic))
-                return {L("Choose normal, slim, strong, or hybrid support when using per-extruder layer heights."), object, "support_style"};
-            if (object->has_support_material() &&
-                (object->config().support_filament.value == 0 || object->config().support_interface_filament.value == 0))
-                return {L("Select explicit support and support interface filaments when using per-extruder layer heights."), object, "support_filament"};
             for (const auto &range : object->model_object()->layer_config_ranges)
                 if (range.second.has("layer_height"))
                     return {L("Remove height-range layer height overrides before using per-extruder layer heights."), object, "extruder_layer_height"};
