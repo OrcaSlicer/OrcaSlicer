@@ -2301,6 +2301,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     // Update SlicingParameters for each object where the SlicingParameters is not valid.
     // If it is not valid, then it is ensured that PrintObject.m_slicing_params is not in use
     // (posSlicing and posSupportMaterial was invalidated).
+    const bool current_layer_heights = has_extruder_layer_heights(m_config, layer_height_filaments());
     for (PrintObject *object : m_objects)
     {
         // Keep automatic assignments in the project, but choose a stable physical
@@ -2308,8 +2309,13 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         // Preserve assignments already resolved while applying the object config.
         // Rebuilding from the model here can turn Auto back into Default and
         // invalidate completed supports on an otherwise unchanged apply.
-        PrintObjectConfig support_config = object->config();
-        if (object->has_support_material() && has_extruder_layer_heights(m_config, layer_height_filaments())) {
+        // When disabling per-tool heights, discard only the derived support
+        // assignments and restore the project's choices, including Auto.
+        PrintObjectConfig support_config = previous_layer_heights && !current_layer_heights ?
+            PrintObject::object_config_from_model_object(
+                m_default_object_config, *object->model_object(), num_extruders, print_variant_index) :
+            object->config();
+        if (object->has_support_material() && current_layer_heights) {
             const auto filaments = object->object_extruders();
             if (!filaments.empty()) {
                 if (support_config.support_filament.value == 0)
