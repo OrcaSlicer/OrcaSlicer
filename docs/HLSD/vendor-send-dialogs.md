@@ -6,7 +6,7 @@ When the selected printer comes from a vendor that has its own slicer app, **Pri
 |---|---|---|---|
 | Bambu Lab | Bambu Studio (`SelectMachineDialog`, unchanged) | Bambu cloud / LAN | AMS |
 | Elegoo | ElegooSlicer's print-send page | Elegoo cloud printers of the signed-in account, plus the LAN printer set in the preset | Canvas |
-| Creality | Creality Print's send dialog | LAN printer set in the preset | CFS |
+| Creality | Creality Print's send dialog | LAN printer set in the preset, plus the printers of the signed-in Creality Cloud account | CFS ("Enable CFS") |
 | Markforged | Eiger's print panel | Eiger organization printers (state, material, queue) | none (material comes from the Eiger settings preset) |
 
 ## Pieces
@@ -17,8 +17,9 @@ When the selected printer comes from a vendor that has its own slicer app, **Pri
 - `Utils/ElegooCloud.*`: native Elegoo cloud client and `ElegooCloudHost`, the `PrintHost` behind cloud jobs.
 - `GUI/ElegooLoginDialog.*`: Elegoo account sign-in.
 - `Utils/MarkforgedEiger.*`: Eiger REST client and `MarkforgedEigerHost`.
+- Creality Cloud jobs use `CrealityCloudHost` (in `VendorSendBackends.cpp`) over the `Utils/CrealityCloud` client: upload, the self-test flag, then `addSingleTask` with the CFS mapping. The session is the one the Creality Cloud account agent keeps (`CrealityCloud::SessionStore`).
 
-Other vendors plug in with `register_vendor_send_backend(SendVendor::X, factory)`. A factory returns null to leave a printer on the regular flow (the Creality factory does this when the preset's host is not Creality Print).
+Other vendors plug in with `register_vendor_send_backend(SendVendor::X, factory)`. A factory returns null to leave a printer on the regular flow.
 
 ## Elegoo cloud
 

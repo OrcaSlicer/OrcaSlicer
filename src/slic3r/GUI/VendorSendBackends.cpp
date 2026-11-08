@@ -1,6 +1,10 @@
 // Built-in backends for the per-vendor send dialogs (see VendorSendDialog.hpp).
 
+#include <algorithm>
+#include <cstring>
 #include <exception>
+#include <mutex>
+#include <tuple>
 #include <map>
 #include <memory>
 #include <string>
@@ -13,12 +17,15 @@
 #include "I18N.hpp"
 #include "VendorSendDialog.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "slic3r/Utils/CrealityCloud.hpp"
 #include "slic3r/Utils/CrealityPrint.hpp"
 #include "slic3r/Utils/ElegooCloud.hpp"
 #include "slic3r/Utils/MarkforgedEiger.hpp"
 
 #include <boost/filesystem.hpp>
+#include <wx/choice.h>
 #include <wx/dialog.h>
+#include <wx/utils.h>
 #include <wx/hyperlink.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
@@ -29,6 +36,7 @@
 #include "Plater.hpp"
 #include "libslic3r/Format/STL.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Utils.hpp"
 
@@ -207,68 +215,303 @@ private:
 };
 
 // ---------------------------------------------------------------------------------------------
-// Creality: the LAN printer set in the preset, with its CFS slots.
+// Creality: the LAN printer set in the preset, and the printers of the Creality Cloud account.
 // ---------------------------------------------------------------------------------------------
+
+// Uploads to Creality Cloud and starts the task, the way Creality Print sends a cloud print.
+// extended_info: cc_dn, cc_tb, cc_multi, cc_use_cfs, cc_self_test, cc_slots (JSON [{extruder, slot_id, type, color}]).
+class CrealityCloudHost : public PrintHost
+{
+public:
+    const char* get_name() const override { return "Creality Cloud"; }
+    bool        test(wxString& msg) const override
+    {
+        std::vector<CrealityCloud::Device> devices;
+        std::string                        error;
+        const int code = CrealityCloud::Client(CrealityCloud::SessionStore::get()).list_devices(devices, error);
+        msg            = wxString::FromUTF8(error);
+        return code == CrealityCloud::CODE_OK;
+    }
+    wxString get_test_ok_msg() const override { return _L("Connected to Creality Cloud."); }
+    wxString get_test_failed_msg(wxString& msg) const override { return wxString::Format("%s: %s", _L("Could not connect to Creality Cloud"), msg); }
+    bool     has_auto_discovery() const override { return false; }
+    bool     can_test() const override { return true; }
+    PrintHostPostUploadActions get_post_upload_actions() const override { return PrintHostPostUploadAction::StartPrint; }
+    std::string                get_host() const override { return "api.crealitycloud.com"; }
+    bool                       is_cloud() const override { return true; }
+
+    bool upload(PrintHostUpload u, ProgressFn progress_fn, ErrorFn error_fn, InfoFn info_fn) const override
+    {
+        namespace CC = CrealityCloud;
+        const std::string dummy;
+        bool              cancelled = false;
+        auto              report    = [&](int pct, const std::string& status) {
+            if (!status.empty() && info_fn)
+                info_fn(L"set_status", wxString::FromUTF8(status));
+            if (progress_fn)
+                progress_fn(Http::Progress(0, 0, 100, size_t(std::max(0, pct)), dummy), cancelled);
+        };
+        auto fail = [&](const std::string& msg) {
+            if (error_fn && !cancelled)
+                error_fn(wxString::FromUTF8(msg));
+            return false;
+        };
+        const CC::Session session = CC::SessionStore::get();
+        if (!session.valid())
+            return fail(_u8L("Sign in to Creality Cloud first."));
+        CC::Client        client(session);
+        CC::UploadedGcode uploaded;
+        std::string       error;
+        const std::string name = u.upload_path.filename().string();
+        report(0, _u8L("Uploading to Creality Cloud…"));
+        int code = client.upload_gcode(u.source_path.string(), name, [&](int pct) { report(pct * 9 / 10, std::string()); },
+                                       [&] { return cancelled; }, uploaded, error);
+        if (code == CC::CODE_CANCELLED)
+            return false;
+        if (code != CC::CODE_OK)
+            return fail(code == CC::CODE_TOKEN_INVALID ? _u8L("Creality Cloud session expired. Sign in again.") : error);
+        if (u.post_action != PrintHostPostUploadAction::StartPrint) {
+            report(100, _u8L("Uploaded to your Creality Cloud files"));
+            return true;
+        }
+        report(95, _u8L("Starting print…"));
+        const std::string tb = u.extended("cc_tb");
+        if (!tb.empty()) {
+            std::string ignored; // Creality Print sets the self-test flag right before the task; failure does not block the print.
+            client.set_self_test(tb, u.extended("cc_self_test", "1") == "1", ignored);
+        }
+        std::vector<CC::FilamentSlot> slots;
+        const nlohmann::json          js = nlohmann::json::parse(u.extended("cc_slots", "[]"), nullptr, false);
+        if (js.is_array())
+            for (const auto& e : js)
+                slots.push_back({e.value("extruder", 1), e.value("slot_id", ""), e.value("type", ""), e.value("color", "#FFFFFF")});
+        const bool multi = u.extended("cc_multi") == "1";
+        code = client.add_print_task(u.extended("cc_dn"), uploaded, fs_stem(name), slots, multi, multi && u.extended("cc_use_cfs") == "1" && !slots.empty(),
+                                     error);
+        if (code != CC::CODE_OK)
+            return fail(error.empty() ? _u8L("Creality Cloud did not start the print.") : error);
+        report(100, _u8L("Print started"));
+        return true;
+    }
+
+private:
+    static std::string fs_stem(const std::string& name)
+    {
+        std::string n = name;
+        for (const char* ext : {".gcode", ".3mf"})
+            if (n.size() > strlen(ext) && n.compare(n.size() - strlen(ext), strlen(ext), ext) == 0)
+                n.erase(n.size() - strlen(ext));
+        return n;
+    }
+};
+
+bool ask_creality_login(wxWindow* parent)
+{
+    namespace CC = CrealityCloud;
+    wxDialog dlg(parent, wxID_ANY, _L("Sign in to Creality Cloud"));
+    auto*    s    = new wxBoxSizer(wxVERTICAL);
+    auto*    grid = new wxFlexGridSizer(2, dlg.FromDIP(6), dlg.FromDIP(10));
+    grid->AddGrowableCol(1, 1);
+    grid->Add(new wxStaticText(&dlg, wxID_ANY, _L("Region")), 0, wxALIGN_CENTER_VERTICAL);
+    auto* region = new wxChoice(&dlg, wxID_ANY);
+    region->Append(_L("Global"));
+    region->Append(_L("Mainland China"));
+    region->SetSelection(CC::SessionStore::get().region == CC::Region::China ? 1 : 0);
+    grid->Add(region, 1, wxEXPAND);
+    grid->Add(new wxStaticText(&dlg, wxID_ANY, _L("Email")), 0, wxALIGN_CENTER_VERTICAL);
+    auto* account = new wxTextCtrl(&dlg, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(dlg.FromDIP(300), -1));
+    grid->Add(account, 1, wxEXPAND);
+    grid->Add(new wxStaticText(&dlg, wxID_ANY, _L("Password")), 0, wxALIGN_CENTER_VERTICAL);
+    auto* password = new wxTextCtrl(&dlg, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PASSWORD);
+    grid->Add(password, 1, wxEXPAND);
+    s->Add(grid, 0, wxEXPAND | wxALL, dlg.FromDIP(14));
+    auto* error = new wxStaticText(&dlg, wxID_ANY, wxEmptyString);
+    error->SetForegroundColour(wxColour("#FF4D4F"));
+    s->Add(error, 0, wxLEFT | wxRIGHT, dlg.FromDIP(14));
+    s->Add(dlg.CreateStdDialogButtonSizer(wxOK | wxCANCEL), 0, wxEXPAND | wxALL, dlg.FromDIP(14));
+    dlg.SetSizerAndFit(s);
+    dlg.CentreOnParent();
+    bool ok = false;
+    dlg.Bind(wxEVT_BUTTON, [&](wxCommandEvent& e) {
+        if (e.GetId() != wxID_OK) {
+            e.Skip();
+            return;
+        }
+        wxBusyCursor wait;
+        CC::Session  session;
+        std::string  err;
+        const std::string user = account->GetValue().Trim().Trim(false).ToUTF8().data();
+        // An account with an @ is an e-mail (type 2); otherwise a phone number with country code (type 1).
+        const int code = CC::Client::login(region->GetSelection() == 1 ? CC::Region::China : CC::Region::Global,
+                                           user.find('@') != std::string::npos ? 2 : 1, user, password->GetValue().ToUTF8().data(), session, err);
+        if (code != CC::CODE_OK || !session.valid()) {
+            error->SetLabel(err.empty() ? _L("Sign-in failed. Check the account and password.") : wxString::FromUTF8(err));
+            dlg.Layout();
+            dlg.Fit();
+            return;
+        }
+        CC::SessionStore::set(session);
+        ok = true;
+        dlg.EndModal(wxID_OK);
+    });
+    dlg.ShowModal();
+    return ok;
+}
+
+std::vector<SendSlot> parse_cfs_boxes(const nlohmann::json& resp, std::vector<std::tuple<std::string, std::string, int, int>>* raw)
+{
+    std::vector<SendSlot> out;
+    const nlohmann::json* boxes = nullptr;
+    if (resp.is_object() && resp.contains("boxsInfo") && resp["boxsInfo"].is_object() && resp["boxsInfo"].contains("materialBoxs"))
+        boxes = &resp["boxsInfo"]["materialBoxs"];
+    else if (resp.is_object() && resp.contains("materialBoxs"))
+        boxes = &resp["materialBoxs"];
+    if (boxes == nullptr || !boxes->is_array())
+        return out;
+    for (const auto& box : *boxes) {
+        const int box_id = box.value("id", 0);
+        if (box.value("type", 0) == 0 && box.value("state", 0) != 1) // inactive CFS; the spool holder (type 1) is always there
+            continue;
+        for (const auto& mat : box.value("materials", nlohmann::json::array())) {
+            const int   slot_id = mat.value("id", 0);
+            std::string color   = mat.value("color", "#FFFFFF");
+            if (color.size() == 8 && color[0] == '#') // Creality sends "#0RRGGBB"
+                color = "#" + color.substr(2);
+            SendSlot slot;
+            slot.label  = box.value("type", 0) == 1 ? wxString(_L("Ext")) : wxString::Format("%d%c", box_id, char('A' + slot_id));
+            slot.type   = mat.value("type", "");
+            slot.color  = wxColour(wxString::FromUTF8(color));
+            slot.loaded = !slot.type.empty();
+            slot.id     = box.value("type", 0) == 1 ? std::string("ext") : "T" + std::to_string(box_id) + std::string(1, char('A' + slot_id));
+            out.push_back(slot);
+            if (raw)
+                raw->emplace_back(slot.type, color, box_id, slot_id);
+        }
+    }
+    return out;
+}
 
 class CrealityBackend : public VendorSendBackend
 {
 public:
-    explicit CrealityBackend(const DynamicPrintConfig& cfg) : m_config(cfg) {}
+    explicit CrealityBackend(const DynamicPrintConfig& cfg) : m_config(cfg)
+    {
+        m_has_lan = host_type_of(cfg) == htCrealityPrint && !print_host_of(cfg).empty();
+    }
+
+    bool     needs_sign_in() const override { return true; }
+    bool     signed_in() const override { return CrealityCloud::SessionStore::get().valid(); }
+    bool     has_local_printers() const override { return m_has_lan; }
+    bool     sign_in(wxWindow* parent) override { return ask_creality_login(parent); }
+    void     sign_out() override { CrealityCloud::SessionStore::clear(); }
+    wxString account_label() const override
+    {
+        const CrealityCloud::Session s = CrealityCloud::SessionStore::get();
+        return s.valid() ? wxString::FromUTF8(s.nickname.empty() ? s.user_id : s.nickname) : _L("not signed in");
+    }
 
     std::vector<SendPrinter> printers() override
     {
         std::vector<SendPrinter> out;
-        if (host_type_of(m_config) != htCrealityPrint || print_host_of(m_config).empty())
-            throw std::runtime_error(_u8L("Set the printer's IP address in the printer settings (Connection) to send to it."));
-        CrealityPrint             host(&m_config);
-        const CrealityPrinterInfo info = host.read_printer_info();
-        SendPrinter               sp;
-        sp.id     = "lan";
-        sp.name   = wxString::FromUTF8(info.model_name);
-        if (sp.name.empty())
-            sp.name = _L("Creality printer");
-        sp.detail = wxString::FromUTF8(host.get_host());
-        sp.online = info.reachable;
-        sp.status = info.reachable ? _L("Online") : _L("Offline");
-        m_info    = info;
-        out.push_back(std::move(sp));
+        std::string              cloud_error;
+        if (m_has_lan) {
+            CrealityPrint host(&m_config);
+            m_info = host.read_printer_info();
+            SendPrinter sp;
+            sp.id     = LAN_ID;
+            sp.name   = info_name();
+            sp.detail = wxString::FromUTF8(host.get_host());
+            sp.group  = _L("LAN");
+            sp.online = m_info.reachable;
+            sp.status = m_info.reachable ? _L("Idle") : _L("Offline");
+            out.push_back(std::move(sp));
+        }
+        const CrealityCloud::Session session = CrealityCloud::SessionStore::get();
+        if (session.valid()) {
+            std::vector<CrealityCloud::Device> devices;
+            std::string                        error;
+            const int code = CrealityCloud::Client(session).list_devices(devices, error);
+            if (code != CrealityCloud::CODE_OK)
+                cloud_error = code == CrealityCloud::CODE_TOKEN_INVALID ? _u8L("Creality Cloud session expired. Sign in again.") : error;
+            std::lock_guard<std::mutex> lock(m_mutex);
+            m_devices.clear();
+            for (const CrealityCloud::Device& d : devices) {
+                SendPrinter sp;
+                sp.id     = "cloud:" + d.dn;
+                sp.name   = wxString::FromUTF8(d.name.empty() ? d.model : d.name);
+                sp.detail = wxString::FromUTF8(d.model);
+                sp.model  = d.model;
+                sp.group  = _L("Creality Cloud");
+                sp.online = d.online;
+                sp.busy   = d.online && d.state == int(CrealityCloud::PrintState::Printing);
+                sp.status = !d.online ? _L("Offline") : sp.busy ? _L("Printing") : _L("Idle");
+                out.push_back(std::move(sp));
+                m_devices[d.dn] = d;
+            }
+        }
+        if (out.empty() && !cloud_error.empty())
+            throw std::runtime_error(cloud_error);
+        if (out.empty() && !session.valid())
+            throw std::runtime_error(_u8L("Sign in to Creality Cloud, or set the printer's IP address in the printer settings (Connection)."));
         return out;
     }
 
-    SendSlots slots(const SendPrinter&) override
+    SendSlots slots(const SendPrinter& printer) override
     {
         SendSlots s;
-        s.system_name = "CFS";
-        m_slots.clear();
-        if (!m_info.multi_color || m_info.boxes_json.empty()) {
-            s.message = m_info.no_cfs ? _L("No CFS is connected. The printer uses the loaded filament.") :
-                                        _L("This printer has no CFS. It uses the loaded filament.");
+        s.system_name  = "CFS";
+        s.enable_label = _L("Enable CFS");
+        if (printer.id == LAN_ID) {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            m_lan_slots.clear();
+            if (!m_info.multi_color || m_info.boxes_json.empty()) {
+                s.message = m_info.no_cfs ? _L("No CFS is connected. Printing will be done using rack colors.") :
+                                            _L("This printer has no CFS. Printing will be done using rack colors.");
+                return s;
+            }
+            std::vector<std::tuple<std::string, std::string, int, int>> raw;
+            s.slots = parse_cfs_boxes(nlohmann::json::parse(m_info.boxes_json, nullptr, false), &raw);
+            for (size_t i = 0; i < s.slots.size(); ++i) {
+                s.slots[i].id = std::to_string(i);
+                m_lan_slots.push_back({std::get<0>(raw[i]), std::get<1>(raw[i]), std::get<2>(raw[i]), std::get<3>(raw[i])});
+            }
+            s.available = !s.slots.empty();
             return s;
         }
-        const nlohmann::json resp = nlohmann::json::parse(m_info.boxes_json, nullptr, false);
-        if (!resp.is_object() || !resp.contains("boxsInfo") || !resp["boxsInfo"].contains("materialBoxs"))
+        CrealityCloud::Device d;
+        if (!find(printer.id, d) || !d.multi_color) {
+            s.message = _L("This printer has no CFS. Printing will be done using rack colors.");
             return s;
-        for (const auto& box : resp["boxsInfo"]["materialBoxs"]) {
-            const int box_id = box.value("id", 0);
-            if (box.value("type", 0) == 0 && box.value("state", 0) != 1) // inactive CFS; the spool holder (type 1) is always there
-                continue;
-            for (const auto& mat : box.value("materials", nlohmann::json::array())) {
-                const int   slot_id = mat.value("id", 0);
-                std::string color   = mat.value("color", "#FFFFFF");
-                if (color.size() == 8 && color[0] == '#') // Creality sends "#0RRGGBB"
-                    color = "#" + color.substr(2);
-                SendSlot slot;
-                slot.id     = std::to_string(m_slots.size());
-                slot.label  = box.value("type", 0) == 1 ? wxString(_L("Ext")) : wxString::Format("%d%c", box_id, char('A' + slot_id));
-                slot.type   = mat.value("type", "");
-                slot.color  = wxColour(wxString::FromUTF8(color));
-                slot.loaded = !slot.type.empty();
-                s.slots.push_back(slot);
-                m_slots.push_back({slot.type, color, box_id, slot_id});
+        }
+        // The telemetry may carry the CFS contents; otherwise offer the slots without their filament.
+        nlohmann::json values;
+        std::string    error;
+        if (!d.tb_id.empty() &&
+            CrealityCloud::Client(CrealityCloud::SessionStore::get()).telemetry(d.tb_id, values, error) == CrealityCloud::CODE_OK) {
+            for (const char* key : {"boxsInfo", "materialBoxs"}) {
+                if (!values.contains(key))
+                    continue;
+                nlohmann::json v = values[key];
+                if (v.is_string())
+                    v = nlohmann::json::parse(v.get<std::string>(), nullptr, false);
+                nlohmann::json wrapped = nlohmann::json::object();
+                wrapped[key]           = v;
+                s.slots                = parse_cfs_boxes(wrapped, nullptr);
+                if (!s.slots.empty())
+                    break;
             }
         }
-        s.available = !s.slots.empty();
-        s.enable_label = _L("Enable CFS");
+        if (s.slots.empty())
+            for (int i = 0; i < 4; ++i) {
+                SendSlot slot;
+                slot.id     = "T1" + std::string(1, char('A' + i));
+                slot.label  = wxString::Format("1%c", char('A' + i));
+                slot.type   = "?";
+                slot.color  = wxColour("#BFBFBF");
+                slot.name   = _L("Filament not reported by the cloud");
+                s.slots.push_back(slot);
+            }
+        s.available = true;
         return s;
     }
 
@@ -284,22 +527,54 @@ public:
 
     PrintHostJob make_job(const SendRequest& req, const boost::filesystem::path&, wxString& error) override
     {
-        PrintHostJob job(&m_config);
-        if (job.empty()) {
-            error = _L("The printer's network settings are incomplete.");
-            return job;
-        }
-        auto it = req.options.find("self_test");
-        job.upload_data.extended_info["enableSelfTest"] = it != req.options.end() ? it->second : "1";
-        for (const auto& [filament, slot_id] : req.slot_map) {
-            const size_t idx = std::stoul(slot_id);
-            if (idx >= m_slots.size())
-                continue;
-            const Slot& s = m_slots[idx];
-            // The firmware matches by G-code tool (T1A for the first filament, ...), not by CFS slot.
-            job.upload_data.extended_info["colorMatch_" + std::to_string(filament)] = "T1" + std::string(1, char('A' + filament)) + "\t" +
-                                                                                    s.type + "\t" + s.color + "\t" + std::to_string(s.box) +
-                                                                                    "\t" + std::to_string(s.material);
+        auto opt = [&](const char* key, const char* def) {
+            auto it = req.options.find(key);
+            return it == req.options.end() ? std::string(def) : it->second;
+        };
+        PrintHostJob job;
+        if (req.printer_id == LAN_ID) {
+            job = PrintHostJob(&m_config);
+            if (job.empty()) {
+                error = _L("The printer's network settings are incomplete.");
+                return job;
+            }
+            job.upload_data.extended_info["enableSelfTest"] = opt("self_test", "1");
+            std::lock_guard<std::mutex> lock(m_mutex);
+            for (const auto& [filament, slot_id] : req.slot_map) {
+                const size_t idx = std::stoul(slot_id);
+                if (idx >= m_lan_slots.size())
+                    continue;
+                const Slot& s = m_lan_slots[idx];
+                // The firmware matches by G-code tool (T1A for the first filament, ...), not by CFS slot.
+                job.upload_data.extended_info["colorMatch_" + std::to_string(filament)] =
+                    "T1" + std::string(1, char('A' + filament)) + "\t" + s.type + "\t" + s.color + "\t" + std::to_string(s.box) + "\t" +
+                    std::to_string(s.material);
+            }
+        } else {
+            CrealityCloud::Device d;
+            if (!find(req.printer_id, d)) {
+                error = _L("Choose a printer.");
+                return job;
+            }
+            const DynamicPrintConfig full    = wxGetApp().preset_bundle->full_config();
+            const auto*              types   = full.option<ConfigOptionStrings>("filament_type");
+            const auto*              colours = full.option<ConfigOptionStrings>("filament_colour");
+            nlohmann::json           slots   = nlohmann::json::array();
+            for (const auto& [filament, slot_id] : req.slot_map) {
+                if (slot_id == "ext")
+                    continue;
+                slots.push_back({{"extruder", filament + 1},
+                                 {"slot_id", slot_id},
+                                 {"type", types && size_t(filament) < types->values.size() ? types->values[filament] : ""},
+                                 {"color", colours && size_t(filament) < colours->values.size() ? colours->values[filament] : "#FFFFFF"}});
+            }
+            job.printhost                 = std::make_unique<CrealityCloudHost>();
+            job.upload_data.extended_info = {{"cc_dn", d.dn},
+                                             {"cc_tb", d.tb_id},
+                                             {"cc_multi", d.multi_color ? "1" : "0"},
+                                             {"cc_use_cfs", opt("use_slots", "1")},
+                                             {"cc_self_test", opt("self_test", "1")},
+                                             {"cc_slots", slots.dump()}};
         }
         job.upload_data.upload_path = boost::filesystem::path(req.file_name.ToUTF8().data());
         job.upload_data.post_action = action_for(req.start_print);
@@ -312,11 +587,27 @@ private:
         std::string type, color;
         int         box, material;
     };
-    DynamicPrintConfig  m_config;
-    CrealityPrinterInfo m_info;
-    std::vector<Slot>   m_slots;
-};
+    wxString info_name() const
+    {
+        return m_info.model_name.empty() ? _L("Creality printer") : wxString::FromUTF8(m_info.model_name);
+    }
+    bool find(const std::string& id, CrealityCloud::Device& out)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        auto                        it = m_devices.find(id.rfind("cloud:", 0) == 0 ? id.substr(6) : id);
+        if (it == m_devices.end())
+            return false;
+        out = it->second;
+        return true;
+    }
 
+    DynamicPrintConfig                           m_config;
+    bool                                         m_has_lan{false};
+    std::mutex                                   m_mutex;
+    CrealityPrinterInfo                          m_info;
+    std::vector<Slot>                            m_lan_slots;
+    std::map<std::string, CrealityCloud::Device> m_devices;
+};
 
 // ---------------------------------------------------------------------------------------------
 // Markforged: organization printers through the Eiger cloud API.
@@ -488,12 +779,7 @@ void register_builtin_vendor_send_backends()
         return;
     done = true;
     register_vendor_send_backend(SendVendor::Elegoo, [](const DynamicPrintConfig& cfg) { return std::make_shared<ElegooBackend>(cfg); });
-    register_vendor_send_backend(SendVendor::Creality, [](const DynamicPrintConfig& cfg) -> std::shared_ptr<VendorSendBackend> {
-        // Creality printers driven by the printer-agent Device tab keep that flow.
-        if (host_type_of(cfg) != htCrealityPrint)
-            return nullptr;
-        return std::make_shared<CrealityBackend>(cfg);
-    });
+    register_vendor_send_backend(SendVendor::Creality, [](const DynamicPrintConfig& cfg) { return std::make_shared<CrealityBackend>(cfg); });
     register_vendor_send_backend(SendVendor::Markforged, [](const DynamicPrintConfig& cfg) { return std::make_shared<MarkforgedBackend>(cfg); });
 }
 
