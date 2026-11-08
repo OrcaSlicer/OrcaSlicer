@@ -2,6 +2,7 @@
 
 #include "McpTypes.hpp"
 #include "ModalTracker.hpp"
+#include "UiInspector.hpp"
 #include "UiRefs.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/KeyChord.hpp"
@@ -504,7 +505,7 @@ wxWebView* web_view_in(wxWindow* window, bool shown)
     if (auto* web = dynamic_cast<wxWebView*>(window))
         return web;
     for (wxWindow* child : window->GetChildren())
-        if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr)
+        if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr && !skipped_by_walks(child))
             if (wxWebView* web = web_view_in(child, shown))
                 return web;
     return nullptr;

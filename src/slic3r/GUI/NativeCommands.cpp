@@ -18,6 +18,7 @@
 #include "Jobs/Job.hpp"
 #include "Jobs/Worker.hpp"
 #include "MainFrame.hpp"
+#include "RunScriptPanel.hpp"
 #include "ObjectDataViewModel.hpp"
 #include "NetworkTestDialog.hpp"
 #include "Plater.hpp"
@@ -496,8 +497,10 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"new_project", "Start a new, empty project (asks first if the current one has unsaved changes)."},
         {"undo", "Undo the last change to the project."},
         {"redo", "Redo the last undone change."},
-        {"open_script_runner", "Open the Run Script dialog, where a person opens or pastes an orca_script, reads its steps and runs "
-                               "them. Agents run scripts with the run_script tool instead."},
+        {"open_script_runner", "Open the Action Replay window, where a person opens a replay file (an orca_script), reads its steps "
+                               "and replays them. Agents run replays with the run_script tool instead."},
+        {"toggle_run_script", "Show or hide the Run Script panel, where a person writes and runs Python scripts cell by cell. Agents "
+                              "run Python with the run_python tool instead."},
         {"take_screenshot", "Save a PNG of the main window in the folder Start Recording saves in (the person's Downloads unless "
                             "they chose another) and show the person a notification naming it; the reply has its path. Agents use "
                             "the screenshot tool, which returns the image."},
@@ -762,9 +765,14 @@ std::vector<NativeCommand> build_command_catalog()
             plater->redo();
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
-    add_with_icon("open_script_runner", L("Run Script"), L("Commands"), "media_play", [](const std::string&) {
+    add_with_icon("toggle_run_script", L("Run Script"), L("Commands"), "media_play", [](const std::string&) {
+        if (wxGetApp().mainframe != nullptr)
+            wxGetApp().run_script_panel().toggle();
+        return AppActionRunResult{AppActionRunResult::Level::Success};
+    });
+    add_with_icon("open_script_runner", L("Action Replay"), L("Commands"), "loop", [](const std::string&) {
         if (MainFrame* mf = wxGetApp().mainframe)
-            mf->show_script_runner();
+            mf->show_action_replay();
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
     add_with_icon("open_preferences", L("Preferences"), L("Commands"), "cog", [](const std::string& param) {

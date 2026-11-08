@@ -101,17 +101,8 @@ public:
 
     ToolResult call_child(const std::string& tool, const nlohmann::json& raw_args) override
     {
-        std::shared_ptr<const ToolDef> def = m_core.registry().lookup(tool);
-        if (def == nullptr)
-            return ToolResult::error("Unknown tool: " + tool);
-        nlohmann::json args = raw_args;
-        normalize_arguments(def->input_schema, args);
-        if (std::string err = validate_arguments(def->input_schema, args); !err.empty())
-            return ToolResult::error("Invalid arguments: " + err);
-        if (std::string err = resolve_api_call(m_core.registry(), def, args); !err.empty())
-            return ToolResult::error(err);
         // An inline caller has no job of its own; its children are rooted at its parent.
-        return m_core.call_child(*def, args, m_job.empty() ? m_parent : m_job, m_plugin);
+        return m_core.call_child_named(tool, raw_args, m_job.empty() ? m_parent : m_job, m_plugin);
     }
 
     const std::string& caller_plugin() const override { return m_plugin; }
@@ -213,6 +204,21 @@ ToolResult McpCore::call(const ToolDef& def, const nlohmann::json& args) { retur
 ToolResult McpCore::call_child(const ToolDef& def, const nlohmann::json& args, const std::string& parent_job, const std::string& plugin)
 {
     return run(def, args, parent_job, plugin);
+}
+
+ToolResult McpCore::call_child_named(const std::string& tool, const nlohmann::json& raw_args, const std::string& parent_job,
+                                     const std::string& plugin)
+{
+    std::shared_ptr<const ToolDef> def = m_registry.lookup(tool);
+    if (def == nullptr)
+        return ToolResult::error("Unknown tool: " + tool);
+    nlohmann::json args = raw_args;
+    normalize_arguments(def->input_schema, args);
+    if (std::string err = validate_arguments(def->input_schema, args); !err.empty())
+        return ToolResult::error("Invalid arguments: " + err);
+    if (std::string err = resolve_api_call(m_registry, def, args); !err.empty())
+        return ToolResult::error(err);
+    return call_child(*def, args, parent_job, plugin);
 }
 
 ToolResult McpCore::call_plugin(const ToolDef& def, const nlohmann::json& args, const std::string& plugin_key)

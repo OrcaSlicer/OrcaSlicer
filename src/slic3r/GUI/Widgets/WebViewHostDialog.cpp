@@ -3,6 +3,7 @@
 #include "WebView.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "libslic3r/Utils.hpp"
 #include <exception>
@@ -14,6 +15,8 @@
 #include <string>
 #include <wx/colour.h>
 #include <wx/event.h>
+#include <wx/filename.h>
+#include <wx/filesys.h>
 #include <wx/gdicmn.h>
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include <wx/chartype.h>
@@ -151,6 +154,68 @@ std::string WebViewHostDialog::document_start_injector(const std::string& markup
     s += "var obs=new MutationObserver(function(){if(inject())obs.disconnect();});";
     s += "obs.observe(document,{childList:true});})();";
     return s;
+}
+
+bool WebViewHostDialog::own_page_navigation(const wxString& url, const wxFileName& page)
+{
+    if (url == "about:blank")
+        return true;
+    return url.Lower().StartsWith("file:") && wxFileSystem::URLToFileName(url.BeforeFirst('?').BeforeFirst('#')).SameAs(page);
+}
+
+boost::filesystem::path WebViewHostDialog::dropped_file(const wxString& url)
+{
+    if (!url.Lower().StartsWith("file:"))
+        return {};
+    return into_path(wxFileSystem::URLToFileName(url.BeforeFirst('?').BeforeFirst('#')).GetFullPath());
+}
+
+nlohmann::json WebViewHostDialog::code_editor_strings()
+{
+    // The annotation, error-marker and gutter-tooltip messages are left out: these editors never show them.
+    return {
+        {"autocomplete.loading", _u8L("Loading…")},
+        {"autocomplete.popup.aria-label", _u8L("Suggestions")},
+        {"autocomplete.popup.aria-roledescription", _u8L("Suggestions")},
+        // TRN Read by a screen reader for one entry of the code editor's list of suggestions.
+        {"autocomplete.popup.item.aria-roledescription", _u8L("Suggestion")},
+        // TRN Read by a screen reader for the line numbers beside the code editor.
+        {"editor.gutter.aria-label", _u8L("Line numbers. Press Enter to use the fold buttons with the arrow keys, and Escape to leave them.")},
+        {"editor.gutter.aria-roledescription", _u8L("Line numbers")},
+        // TRN Read by a screen reader for the code editor's text.
+        {"editor.scroller.aria-label", _u8L("Code. Press Enter to start editing, and Escape to leave the editor.")},
+        {"editor.scroller.aria-roledescription", _u8L("Code editor")},
+        // TRN Shown when a person types in the code editor while a script runs.
+        {"editor.tooltip.disable-editing", _u8L("You can edit once the run ends.")},
+        // TRN The two %s are line numbers.
+        {"gutter.code-folding.closed.aria-label", _u8L("Unfold lines %s to %s")},
+        // TRN A button beside the code editor's line numbers that shows lines it hid.
+        {"gutter.code-folding.closed.title", _u8L_CONTEXT("Unfold", "Code editor")},
+        // TRN %s is a line number.
+        {"gutter.code-folding.open.aria-label", _u8L("Fold the lines from line %s")},
+        // TRN A button beside the code editor's line numbers that hides the lines of a block.
+        {"gutter.code-folding.open.title", _u8L_CONTEXT("Fold", "Code editor")},
+        // TRN The two %s are line numbers.
+        {"gutter.code-folding.range.aria-label", _u8L("Fold or unfold lines %s to %s")},
+        {"inline-fold.closed.title", _u8L_CONTEXT("Unfold", "Code editor")},
+        {"search-box.find-all.text", _u8L("Find all")},
+        {"search-box.find.placeholder", _u8L("Search for")},
+        {"search-box.replace-all.text", _u8L("Replace all")},
+        // TRN A button of the code editor's search box that replaces the next match.
+        {"search-box.replace-next.text", _u8L_CONTEXT("Replace", "Code editor")},
+        {"search-box.replace.placeholder", _u8L("Replace with")},
+        // TRN The code editor's search box: the first %s is the match the cursor is on, the second how many there are.
+        {"search-box.search-counter", _u8L("%s of %s")},
+        {"search-box.toggle-case.title", _u8L("Match case")},
+        {"search-box.toggle-in-selection.title", _u8L("Search in the selection")},
+        {"search-box.toggle-regexp.title", _u8L("Use a regular expression")},
+        // TRN Shows or hides the replace field of the code editor's search box.
+        {"search-box.toggle-replace.title", _u8L("Show or hide Replace")},
+        {"search-box.toggle-whole-word.title", _u8L("Match whole words")},
+        // TRN Read by a screen reader as the cursor moves in the code editor; %s is a line number.
+        {"text-input.aria-label", _u8L("Cursor on line %s")},
+        {"text-input.aria-roledescription", _u8L("Code editor")},
+    };
 }
 
 std::string WebViewHostDialog::localized_strings_script(const nlohmann::json& strings)

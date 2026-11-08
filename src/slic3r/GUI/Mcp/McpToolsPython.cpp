@@ -1,6 +1,8 @@
 // run_python and python_api: Python scripts against orca.host, the plugin API, and the orca package's
 // reference.
 
+#include "JobRegistry.hpp"
+#include "McpCore.hpp"
 #include "McpService.hpp"
 #include "McpTools.hpp"
 #include "McpTypes.hpp"
@@ -11,6 +13,7 @@
 #include "slic3r/plugin/PluginAuditManager.hpp"
 #include "slic3r/plugin/PythonInterpreter.hpp"
 #include "slic3r/plugin/PythonScriptRunner.hpp"
+#include "slic3r/plugin/PythonSession.hpp"
 #include "slic3r/plugin/host/PluginHostTools.hpp"
 
 #include <pybind11/eval.h>
@@ -19,6 +22,7 @@
 #include <pybind11/pytypes.h>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cstddef>
 #include <string>
@@ -48,6 +52,48 @@ public:
 
 private:
     ToolContext& m_ctx;
+};
+
+// The Run Script panel's session's orca.host.tools calls: child calls under a lineage node of the session's job, so a
+// stop cancels every call in flight, inline ones (wait) included, without stopping the session, and the next work's
+// calls run under a fresh node.
+class SessionBridge final : public ToolBridge
+{
+public:
+    SessionBridge(McpService& service, const std::string& session_job)
+        : m_service(service), m_node(service.jobs(), "run_python", session_job)
+    {}
+    json call(const std::string& tool, const json& args) override
+    {
+        ToolResult r = m_service.core().call_child_named(tool, args, m_node.id());
+        if (r.is_error)
+            throw ToolCallError(r.message, r.data);
+        return r.data;
+    }
+    // A stop or time-out, from the session's watcher: the node's calls are cancelled, and its operations, as the
+    // cancel tool cancels them.
+    void stop_calls()
+    {
+        const std::string node = m_node.id();
+        m_stopped              = true;
+        m_service.request_stop(node);
+        // Found again on the UI thread: the service may be gone by the time the closure runs.
+        m_service.post_ui([node] {
+            if (McpService* service = wxGetApp().mcp_service())
+                service->cancel_operations_of(node);
+        });
+    }
+    // As a work starts: after a stop its calls get a node no stop was asked for.
+    void renew_after_stop()
+    {
+        if (m_stopped.exchange(false))
+            m_node.renew();
+    }
+
+private:
+    McpService&       m_service;
+    LineageNode       m_node;
+    std::atomic<bool> m_stopped{false};
 };
 
 // python_api_reference()'s walk over the orca package.
@@ -198,6 +244,44 @@ bool python_has_numpy()
     } catch (py::error_already_set&) {
         return false;
     }
+}
+
+ToolResult run_python_session_job(McpService& service, ToolContext& ctx, PythonSession& session, const std::string& filename)
+{
+    const bool allowed = ctx.observe_ui([] { return json(python_scripts_allowed(*wxGetApp().app_config)); }).get<bool>();
+    if (!allowed)
+        throw ToolFailure("Python scripts are off. A person can allow them in Preferences > AI features > Python scripts.");
+
+    const std::string job = ctx.job_id();
+    // The session waits for the person between works: `wait {for: "idle"}` counts only the calls it makes.
+    service.jobs().set_idle(job);
+    // What its calls leave behind is the session's, as a run's is; its rules act only while a work runs.
+    service.begin_script_scope(job);
+    service.set_script_scope_paused(job, true);
+    struct ScopeEnd
+    {
+        McpService& service;
+        std::string job;
+        ~ScopeEnd() { service.end_script_scope(job); }
+    } scope_end{service, job};
+
+    SessionBridge        bridge(service, job);
+    ScopedToolBridge     bound(bridge);
+    PythonSessionRequest request;
+    request.identity     = kScriptIdentityPerson;
+    request.filename     = filename;
+    request.cancelled    = [&ctx] { return ctx.cancelled(); };
+    request.stop_calls   = [&bridge] { bridge.stop_calls(); };
+    request.work_started = [&service, &bridge, job] {
+        bridge.renew_after_stop();
+        service.set_script_scope_paused(job, false);
+    };
+    request.work_ended = [&service, job] {
+        service.set_script_scope_paused(job, true);
+        service.release_script_presses(job);
+    };
+    host_python_session(request, session);
+    return ToolResult::ok({{"status", "ended"}});
 }
 
 void register_python_tools(McpService& service)

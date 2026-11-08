@@ -1,0 +1,417 @@
+/* The Run Script panel. Colours come from the host theme contract (--orca-*) and theme.css's status roles, so the
+ * page follows the app in light and dark; the editor's own colours are code_editor.css's. The distinctive element is
+ * the margin: a bar per cell beside the line numbers that shows what ran in this session. */
+
+:root {
+  --rs-bg: var(--orca-bg, #ffffff);
+  --rs-fg: var(--orca-fg, #262e30);
+  --rs-muted: var(--orca-muted, #6b7478);
+  --rs-rule: var(--border, #dcdfe1);
+  --rs-accent: var(--orca-accent, #009688);
+  --rs-accent-fg: var(--orca-accent-fg, #ffffff);
+  --rs-accent-text: #00796b;
+  --rs-accent-tint: var(--plugin-source-mine-bg, rgba(0, 150, 136, 0.12));
+  --rs-ring: rgba(0, 150, 136, 0.25);
+  --rs-ring-soft: rgba(0, 150, 136, 0.08);
+  --rs-fail: var(--plugin-status-danger, #b42318);
+  --rs-warn: var(--plugin-status-warn, #a15c00);
+  --rs-chrome: var(--footer-bg, #f3f4f5);
+  --rs-console: #fbfcfc;
+  --rs-btn-bg: var(--btn-bg, #ffffff);
+  --rs-btn-border: var(--btn-border, #cccccc);
+  --rs-btn-hover: var(--btn-hover, #f0f0f0);
+  --rs-pop-bg: var(--ctx-bg, #ffffff);
+  --rs-pop-shadow: 0 6px 20px rgba(20, 30, 35, 0.16);
+  --rs-mono: var(--code-font);
+  /* The Cells menu's styles, drawn behind the editor's text. */
+  --rs-cell-divider: #c3c9cc;
+  --rs-cell-current: rgba(0, 150, 136, 0.07);
+  --rs-cell-band: #eef1f2;
+  --rs-cell-shade: rgba(38, 46, 48, 0.04);
+}
+:root[data-orca-theme="dark"] {
+  --rs-accent-text: #4db6ac;
+  --rs-accent-tint: rgba(0, 150, 136, 0.22);
+  --rs-ring: rgba(0, 150, 136, 0.45);
+  --rs-ring-soft: rgba(0, 150, 136, 0.15);
+  --rs-console: #262629;
+  --rs-pop-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  --rs-cell-divider: #55555d;
+  --rs-cell-current: rgba(0, 150, 136, 0.14);
+  --rs-cell-band: #36363b;
+  --rs-cell-shade: rgba(255, 255, 255, 0.04);
+}
+
+* { box-sizing: border-box; }
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--rs-bg);
+  color: var(--rs-fg);
+  font: 13px/1.45 var(--orca-font, "Segoe UI", system-ui, sans-serif);
+}
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--rs-accent); outline-offset: 1px; }
+
+.panel { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+
+/* ---- toolbar ---- */
+.toolbar { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-bottom: 1px solid var(--rs-rule); flex-wrap: wrap; flex: none; }
+.btn {
+  font: 12.5px var(--orca-font, "Segoe UI", system-ui, sans-serif);
+  color: var(--rs-fg);
+  background: var(--rs-btn-bg);
+  border: 1px solid var(--rs-btn-border);
+  border-radius: 4px;
+  padding: 3px 11px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.btn:hover:not(:disabled) { background: var(--rs-btn-hover); }
+.btn.primary { color: var(--rs-accent-fg); background: var(--rs-accent); border-color: var(--rs-accent); }
+.btn.primary:hover:not(:disabled) { filter: brightness(1.08); background: var(--rs-accent); }
+.btn.stop:not(:disabled) { color: var(--rs-fail); border-color: var(--rs-fail); }
+.btn:disabled { opacity: 0.42; cursor: default; }
+.btn .key { font-size: 11px; opacity: 0.7; }
+.caret-d { width: 0; height: 0; border-top: 4.5px solid currentColor; border-left: 4px solid transparent; border-right: 4px solid transparent; opacity: 0.7; }
+.tri { width: 0; height: 0; border-left: 7px solid currentColor; border-top: 4.5px solid transparent; border-bottom: 4.5px solid transparent; }
+.sq { width: 8px; height: 8px; background: currentColor; border-radius: 1px; }
+.sep { width: 1px; height: 20px; background: var(--rs-rule); margin: 0 3px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 4px; background: var(--rs-accent-tint); font-size: 12px; white-space: nowrap; max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
+.chip .edited { color: var(--rs-muted); }
+
+.menu-wrap { position: relative; display: inline-flex; }
+.menu {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0;
+  z-index: 20;
+  min-width: 240px;
+  max-width: 420px;
+  padding: 4px 0;
+  background: var(--rs-pop-bg);
+  border: 1px solid var(--rs-rule);
+  border-radius: 6px;
+  box-shadow: var(--rs-pop-shadow);
+}
+.menu-item {
+  display: flex;
+  width: 100%;
+  gap: 10px;
+  align-items: baseline;
+  padding: 4px 12px;
+  border: 0;
+  background: none;
+  color: var(--rs-fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.menu-item:hover, .menu-item:focus-visible { background: var(--rs-accent-tint); outline: none; }
+.menu-item:disabled { opacity: 0.42; cursor: default; }
+.menu-item .d { color: var(--rs-muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-label { padding: 6px 12px 2px; font-size: 11.5px; color: var(--rs-muted); }
+.menu-rule { height: 1px; margin: 4px 0; background: var(--rs-rule); }
+.menu.right { left: auto; right: 0; }
+/* The Cells menu: a dot on the style in use, a check on the highlight. */
+.menu-item[role="menuitemradio"]::before, .menu-item[role="menuitemcheckbox"]::before {
+  content: "";
+  flex: none;
+  width: 12px;
+  text-align: center;
+  color: var(--rs-accent);
+  font-weight: 700;
+}
+.menu-item[role="menuitemradio"][aria-checked="true"]::before { content: "●"; font-size: 9px; }
+.menu-item[role="menuitemcheckbox"][aria-checked="true"]::before { content: "✓"; }
+.cells-glyph {
+  width: 12px;
+  height: 11px;
+  flex: none;
+  border-top: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  background: linear-gradient(currentColor, currentColor) center / 100% 1.5px no-repeat;
+  opacity: 0.75;
+}
+
+/* The session line: its items, each on its own, apart. */
+.session { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--rs-muted); white-space: nowrap; }
+.session .dot { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--rs-muted); flex: none; }
+.session.live .dot { border: 0; background: var(--rs-accent); box-shadow: 0 0 0 3px var(--rs-accent-tint); }
+.session.busy { color: var(--rs-accent); }
+.session.busy .dot { border: 0; background: var(--rs-accent); animation: pulse 1.4s ease-in-out infinite; }
+.session .item + .item { padding-left: 7px; border-left: 1px solid var(--rs-rule); }
+.session .item.lead { color: var(--rs-fg); }
+
+/* ---- body: editor and console side by side, the editor's share of the width set by the divider ---- */
+.body { flex: 1; display: flex; min-height: 0; }
+.col { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.editor-col { flex: 0 0 var(--split, 60%); }
+.side { flex: 1 1 0; }
+.body.dragging { cursor: col-resize; user-select: none; }
+/* Dragged far enough past a side's smallest width, the side fades: the drag ending there hides it. */
+.body[data-pending="editor"] .editor-col, .body[data-pending="console"] .side { opacity: 0.35; }
+
+/* The divider: a line, a strip either side of it to grab, the accent while it can be dragged. */
+.split { position: relative; z-index: 8; flex: none; width: 1px; background: var(--rs-rule); cursor: col-resize; touch-action: none; }
+.split:focus-visible { outline: none; }
+.split::before { content: ""; position: absolute; top: 0; bottom: 0; left: -4px; right: -4px; }
+.split::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -1px;
+  width: 3px;
+  background: var(--rs-accent);
+  opacity: 0;
+  transition: opacity 0.1s 0.15s;
+  pointer-events: none;
+}
+.split:hover::after, .split:focus-visible::after, .body.dragging .split::after { opacity: 1; transition-delay: 0s; }
+/* Its grip: each arrow pushes the divider over the side it points at, which hides. */
+.grip {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 3px 1px;
+  background: var(--rs-bg);
+  border: 1px solid var(--rs-rule);
+  border-radius: 9px;
+  cursor: default;
+}
+.grip button { width: 16px; height: 18px; padding: 0; border: 0; border-radius: 6px; display: grid; place-items: center; background: none; color: var(--rs-muted); cursor: pointer; }
+.grip button:hover, .grip button:focus-visible { background: var(--rs-accent); color: var(--rs-accent-fg); outline: none; }
+.grip path, .strip-chev path { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* A hidden side leaves a strip at its edge, which brings it back. */
+.strip {
+  flex: none;
+  width: 28px;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0 10px;
+  overflow: hidden;
+  border: 0;
+  background: var(--rs-chrome);
+  color: var(--rs-muted);
+  font: 12px var(--orca-font, "Segoe UI", system-ui, sans-serif);
+  cursor: pointer;
+}
+.strip-editor { border-right: 1px solid var(--rs-rule); }
+.strip-console { border-left: 1px solid var(--rs-rule); }
+.strip:hover { color: var(--rs-fg); }
+.strip:focus-visible { outline-offset: -2px; }
+.strip-chev { flex: none; width: 20px; height: 20px; border-radius: 4px; display: grid; place-items: center; }
+.strip:hover .strip-chev, .strip:focus-visible .strip-chev { background: var(--rs-accent); color: var(--rs-accent-fg); }
+/* Read from the panel's edge inwards: up the left strip, down the right one. */
+.strip-label { writing-mode: vertical-rl; white-space: nowrap; min-height: 0; overflow: hidden; text-overflow: ellipsis; }
+.strip-editor .strip-label { transform: rotate(180deg); }
+.body[data-hidden="editor"] .strip-editor, .body[data-hidden="console"] .strip-console { display: flex; }
+.body[data-hidden="editor"] .editor-col, .body[data-hidden="editor"] .split,
+.body[data-hidden="console"] .side, .body[data-hidden="console"] .split { display: none; }
+.body[data-hidden="console"] .editor-col { flex: 1 1 0; }
+/* The hidden editor's strip: a bar per cell in the margin's colours, so what ran and what failed stays in sight. */
+.strip-cells { flex: none; display: flex; flex-direction: column; gap: 3px; max-height: 50%; overflow: hidden; }
+.strip-cells i { flex: none; width: 4px; height: 12px; border-radius: 2px; background: var(--rs-rule); }
+.strip-cells i.ran { background: var(--rs-accent); }
+.strip-cells i.edited { background: repeating-linear-gradient(180deg, var(--rs-accent) 0 4px, transparent 4px 7px); }
+.strip-cells i.failed { background: var(--rs-fail); }
+.strip-cells i.running { background: var(--rs-accent); animation: pulse 1.4s ease-in-out infinite; }
+/* The hidden console's strip: a dot while a run goes, for output not seen, red after a run failed. */
+.news { flex: none; width: 8px; height: 8px; border-radius: 50%; }
+.news.running { background: var(--rs-accent); animation: pulse 1.4s ease-in-out infinite; }
+.news.fresh { background: var(--rs-accent); box-shadow: 0 0 0 3px var(--rs-accent-tint); }
+.news.failed { background: var(--rs-fail); box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.18); }
+.editor { flex: 1; min-height: 0; font-size: 12.5px; }
+.editor.is-readonly .ace_content { opacity: 0.6; }
+.placeholder-text { margin: 0; color: var(--rs-muted); padding: 14px 18px; }
+
+/* The margin: one bar per cell, drawn on the gutter rows of its lines. */
+.editor .ace_gutter-cell { padding-left: 12px; }
+.editor .ace_gutter-cell[class*="rail-"]::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--rs-rule);
+}
+.editor .ace_gutter-cell.rail-first::before { top: 3px; border-top-left-radius: 2px; border-top-right-radius: 2px; }
+.editor .ace_gutter-cell.rail-last::before { bottom: 3px; border-bottom-left-radius: 2px; border-bottom-right-radius: 2px; }
+.editor .ace_gutter-cell.rail-ran::before { background: var(--rs-accent); }
+.editor .ace_gutter-cell.rail-edited::before { background: repeating-linear-gradient(180deg, var(--rs-accent) 0 5px, transparent 5px 9px); }
+.editor .ace_gutter-cell.rail-failed::before { background: var(--rs-fail); }
+.editor .ace_gutter-cell.rail-running::before { background: var(--rs-accent); animation: pulse 1.4s ease-in-out infinite; }
+.editor .ace_gutter-cell.rail-current::before { left: 3px; width: 6px; }
+.editor .ace_cell-marker { color: var(--code-comment); font-weight: 600; }
+
+/* The Cells menu's styles: full-line markers behind the text (RunScriptModel.cellMarks()). */
+.editor .ace_marker-layer .cell-divider { position: absolute; border-top: 1px solid var(--rs-cell-divider); }
+.editor .ace_marker-layer .cell-band { position: absolute; background: var(--rs-cell-band); border-top: 1px solid var(--rs-cell-divider); }
+.editor .ace_marker-layer .cell-shade { position: absolute; background: var(--rs-cell-shade); }
+.editor .ace_marker-layer .cell-current { position: absolute; background: var(--rs-cell-current); }
+.editor.cells-bands .ace_cell-marker { color: var(--rs-fg); }
+
+/* Add a cell: the + in the margin a row below the last line, and on hover where the cell goes. Drawn in the accent as
+ * text, which the dark theme lightens to read on its background. */
+.editor .add-cell {
+  position: absolute;
+  z-index: 6;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  background: none;
+  color: var(--rs-accent-text);
+  font: 700 16px/1 var(--orca-font, "Segoe UI", system-ui, sans-serif);
+  cursor: pointer;
+}
+.editor .add-cell:hover, .editor .add-cell:focus-visible { background: var(--rs-accent); color: var(--rs-accent-fg); }
+.editor .add-hint {
+  position: absolute;
+  z-index: 6;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+  visibility: hidden;
+  font: 12px var(--orca-font, "Segoe UI", system-ui, sans-serif);
+  color: var(--rs-accent-text);
+}
+.editor .add-hint::after { content: ""; flex: 1; border-top: 1px dashed var(--rs-accent-text); opacity: 0.6; }
+.editor .add-cell:hover + .add-hint, .editor .add-cell:focus-visible + .add-hint { visibility: visible; }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 1px var(--rs-ring); } 50% { box-shadow: 0 0 0 4px var(--rs-ring-soft); } }
+
+/* ---- console ---- */
+.console { flex: 1; min-height: 0; display: flex; flex-direction: column; font: 12px/1.55 var(--rs-mono); background: var(--rs-console); }
+.log { flex: 1; min-height: 0; overflow: auto; padding: 4px 0; }
+.block + .block { margin-top: 4px; border-top: 1px dashed var(--rs-rule); }
+.run-head { display: flex; gap: 8px; align-items: baseline; font: 12px var(--orca-font, "Segoe UI", system-ui, sans-serif); padding: 5px 12px 2px; }
+.run-head b { font-weight: 600; }
+.run-head .t { color: var(--rs-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.run-head .code { font-family: var(--rs-mono); color: var(--rs-muted); white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+.run-head .d { margin-left: auto; color: var(--rs-muted); white-space: nowrap; }
+.run-head.failed b { color: var(--rs-fail); }
+.run-head.busy b, .run-head.busy .d { color: var(--rs-accent); }
+.out { padding: 0 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.out.muted { color: var(--rs-muted); }
+.out.err { color: var(--rs-fail); }
+.out a.link { color: var(--rs-fail); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+/* Run all's block: a row per cell, folded to its heading, which shows what the cell showed last. The bar at a row's left
+ * is the cell's bar in the margin, in the same state. */
+.run-head .expand-all {
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--rs-muted);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+.run-head .expand-all:hover { color: var(--rs-fg); text-decoration-style: solid; }
+.cells { padding-bottom: 4px; }
+.cell-row { position: relative; }
+.cell-row::before { content: ""; position: absolute; left: 14px; top: 4px; bottom: 4px; width: 3px; border-radius: 2px; background: var(--rs-accent); }
+.cell-row.failed::before { background: var(--rs-fail); }
+.cell-row.running::before { animation: pulse 1.4s ease-in-out infinite; }
+.cell-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 3px 12px 3px 24px;
+  border: 0;
+  background: none;
+  color: var(--rs-fg);
+  font: 12px var(--orca-font, "Segoe UI", system-ui, sans-serif);
+  text-align: left;
+  cursor: pointer;
+}
+.cell-head:hover { background: var(--rs-cell-current); }
+.cell-head .chev {
+  flex: none;
+  align-self: center;
+  width: 0;
+  height: 0;
+  border-left: 5px solid currentColor;
+  border-top: 3.5px solid transparent;
+  border-bottom: 3.5px solid transparent;
+  opacity: 0.55;
+  transition: transform 0.12s;
+}
+.cell-row.open .chev { transform: rotate(90deg); }
+.cell-head b { flex: none; font-weight: 600; }
+.cell-head .t { flex: 0 1 auto; max-width: 45%; color: var(--rs-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cell-head .peek { flex: 1 1 0; min-width: 0; font: 11.5px var(--rs-mono); color: var(--rs-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cell-head .peek.err { color: var(--rs-fail); }
+.cell-row.open .peek { visibility: hidden; }
+.cell-head .d { flex: none; margin-left: auto; color: var(--rs-muted); white-space: nowrap; }
+.cell-head.busy b, .cell-head.busy .d { color: var(--rs-accent); }
+.cell-head.failed b { color: var(--rs-fail); }
+.cell-body { padding: 1px 0 5px; }
+.cell-body .out { padding-left: 37px; }
+/* A result JSON holds, in the editor's own JSON colours. */
+.out.json .j-key { color: var(--code-key); }
+.out.json .j-string { color: var(--code-string); }
+.out.json .j-number { color: var(--code-number); }
+.out.json .j-literal { color: var(--code-keyword); }
+.out.json .j-punct { color: var(--code-punct); }
+.divider { margin: 6px 12px; font: 11.5px var(--orca-font, "Segoe UI", system-ui, sans-serif); color: var(--rs-muted); display: flex; align-items: center; gap: 8px; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--rs-rule); }
+/* The prompt line, with Clear at its end; Clear stays usable while the line is off. */
+.prompt { display: flex; align-items: center; border-top: 1px solid var(--rs-rule); background: var(--rs-bg); flex: none; }
+.prompt-line { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 5px 12px; }
+.prompt .p { color: var(--rs-accent); font-weight: 700; }
+.prompt input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: var(--rs-fg); font: 12px var(--rs-mono); }
+.prompt input::placeholder { color: var(--rs-muted); font-family: var(--orca-font, "Segoe UI", system-ui, sans-serif); }
+.prompt-line:focus-within { box-shadow: inset 0 0 0 1px var(--rs-accent); }
+.prompt-line.off { opacity: 0.5; }
+.btn.small { font-size: 12px; padding: 1px 9px; margin-right: 8px; }
+
+/* ---- the side's other views: no script, Python off ---- */
+.side-msg { flex: 1; padding: 18px 20px; overflow: auto; }
+.side-msg h3 { font-size: 14px; font-weight: 600; margin: 0 0 6px; }
+.side-msg p { margin: 0 0 12px; color: var(--rs-muted); max-width: 52ch; }
+.side-msg code { font: 12px var(--rs-mono); background: var(--rs-accent-tint); border-radius: 3px; padding: 0 4px; }
+.side-msg .row { display: flex; gap: 8px; margin-bottom: 18px; }
+.recent { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rs-rule); }
+.recent li { border-bottom: 1px solid var(--rs-rule); }
+.recent button { display: flex; width: 100%; gap: 10px; align-items: baseline; padding: 6px 2px; border: 0; background: none; color: var(--rs-fg); font: inherit; text-align: left; cursor: pointer; }
+.recent button:hover { background: var(--rs-accent-tint); }
+.recent .f { font-weight: 600; white-space: nowrap; }
+.recent .d { color: var(--rs-muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.label-sm { font-size: 12px; color: var(--rs-muted); margin: 0 0 6px; }
+.off-note { border-left: 3px solid var(--rs-warn); padding: 2px 0 2px 12px; margin-bottom: 14px; }
+
+/* ---- status line, while a run goes ---- */
+.statusline { display: flex; align-items: center; gap: 10px; padding: 4px 10px; border-top: 1px solid var(--rs-rule); background: var(--rs-chrome); font-size: 12px; color: var(--rs-muted); flex: none; }
+#status-main { font-weight: 600; color: var(--rs-accent); }
+.statusline.is-error #status-main { color: var(--rs-fail); }
+
+@media (prefers-reduced-motion: reduce) {
+  .session.busy .dot, .editor .ace_gutter-cell.rail-running::before, .cell-row.running::before, .strip-cells i.running, .news.running {
+    animation: none;
+    box-shadow: 0 0 0 2px var(--rs-ring);
+  }
+  .cell-head .chev, .split::after { transition: none; }
+}

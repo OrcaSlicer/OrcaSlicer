@@ -134,14 +134,17 @@ set(SLIC3R_GUI_SOURCES
     GUI/RecordingDialog.hpp
     GUI/RecordingIndicator.cpp
     GUI/RecordingIndicator.hpp
-    GUI/ScriptRunnerDialog.cpp
-    GUI/ScriptRunnerDialog.hpp
+    GUI/RunScriptPanel.cpp
+    GUI/RunScriptPanel.hpp
+    GUI/CodeEditorWindow.hpp
     GUI/SpeedDialDialog.cpp
     GUI/SpeedDialDialog.hpp
     GUI/ColorPickerDialog.cpp
     GUI/ColorPickerDialog.hpp
     GUI/ActionRegistry.cpp
     GUI/ActionRegistry.hpp
+    GUI/ActionReplayDialog.cpp
+    GUI/ActionReplayDialog.hpp
     GUI/NativeCommands.cpp
     GUI/NativeCommands.hpp
     GUI/SyntheticInput.cpp
@@ -773,6 +776,8 @@ set(SLIC3R_GUI_SOURCES
     plugin/PythonRunScope.hpp
     plugin/PythonScriptRunner.cpp
     plugin/PythonScriptRunner.hpp
+    plugin/PythonSession.cpp
+    plugin/PythonSession.hpp
     plugin/PyPluginPackage.hpp
     plugin/PluginBindingUtils.hpp
     plugin/host/PluginHost.cpp

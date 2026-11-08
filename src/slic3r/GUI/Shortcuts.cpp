@@ -178,6 +178,8 @@ constexpr std::array<ShortcutInfo, size_t(Shortcut::Count)> shortcut_table = {{
     SHORTCUT(TabPrevious,       "tab_previous",       L("Switch to the previous tab"),                           GLOBAL, TAB_PREVIOUS_CHORD),
     SHORTCUT(ReloadDevicePage,  "reload_device_page", L("Reload the device page"),                               CANVAS, { WXK_F5 }),
     SHORTCUT(KeyboardShortcuts, "keyboard_shortcuts", L("Show keyboard shortcuts list"),                         CANVAS, { '?' }),
+    // Ctrl+Alt would be AltGr on the Windows layouts that type with it.
+    SHORTCUT(ToggleRunScript,   "toggle_run_script",  L("Show or hide the Run Script panel"),                    GLOBAL, { 'R', CTRL_SHIFT }),
     SHORTCUT(Quit,              "quit",               L("Quit"),                                                 GLOBAL, { 'Q', CTRL }),
 
     // Speed Dial

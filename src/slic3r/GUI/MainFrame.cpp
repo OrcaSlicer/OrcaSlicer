@@ -15,6 +15,7 @@
 #include "libslic3r/Preset.hpp"
 #include <functional>
 #include <memory>
+#include <set>
 #include <wx/busycursor.h>
 #include <cstddef>
 #include "slic3r/GUI/Project.hpp"
@@ -86,7 +87,9 @@
 #include "ParamsDialog.hpp"
 #include "PrintHostDialogs.hpp"
 #include "RecordingIndicator.hpp"
-#include "ScriptRunnerDialog.hpp"
+#include "ActionReplayDialog.hpp"
+#include "RunScriptPanel.hpp"
+#include "CodeEditorWindow.hpp"
 #include "NativeCommands.hpp"
 #include "libslic3r_version.h"
 #include "wxExtensions.hpp"
@@ -712,6 +715,12 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
             return wxGetApp().check_and_save_current_preset_changes(_L("Closing application"), _L("Closing Application while some presets are modified."));
         };
 
+        // The Run Script panel's unsaved script is asked about before the project.
+        if (RunScriptPanel* panel = wxGetApp().run_script_panel_if_built(); event.CanVeto() && panel != nullptr && !panel->confirm_close()) {
+            event.Veto();
+            return;
+        }
+
         // BBS: close save project
         int result;
         if (event.CanVeto() && ((result = m_plater->close_with_confirm(check)) == wxID_CANCEL)) {
@@ -822,6 +831,16 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
             }
             return;}
 #endif
+        // A key in the Run Script panel goes to its page, past the global shortcuts, apart from the toggle's.
+        if (focused_code_editor() != nullptr) {
+            const KeyChord chord = KeyChord::from_event(evt);
+            if (chord.valid() && chord == wxGetApp().shortcuts().binding(Shortcut::ToggleRunScript)) {
+                wxGetApp().run_script_panel().toggle();
+                return;
+            }
+            evt.Skip();
+            return;
+        }
         if (!handle_global_shortcut(KeyChord::from_event(evt)))
             evt.Skip();
     });
@@ -917,6 +936,7 @@ bool MainFrame::handle_global_shortcut(const KeyChord& chord)
             wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_EXPORT_SLICED_FILE));
         return false;
     case Shortcut::PrintHostQueue: m_printhost_queue_dlg->Show(); break;
+    case Shortcut::ToggleRunScript: wxGetApp().run_script_panel().toggle(); break;
     case Shortcut::SpeedDial:
         if (!wxGetApp().app_config->get_bool("enable_speed_dial") || (chord == KeyChord{ WXK_SPACE } && focus_keeps_space(wxWindow::FindFocus())))
             return false;
@@ -1356,6 +1376,8 @@ void MainFrame::shutdown()
     if (ProjectPanel* project = ProjectPanel::if_built())
         project->shutdown();
     m_plugin_pages.shutdown();
+    if (RunScriptPanel* panel = wxGetApp().run_script_panel_if_built())
+        panel->main_window_closing();
     if (m_plater != nullptr)
         m_plater->remove_dock_panes();
 #ifdef SLIC3R_CAD
@@ -2930,6 +2952,69 @@ void MainFrame::update_shortcut_labels()
 {
     for (const ShortcutMenuItem& entry : m_shortcut_menu_items)
         entry.item->SetItemLabel(shortcut_label(entry.label, entry.shortcut, entry.accelerator));
+    if (RunScriptPanel* panel = wxGetApp().run_script_panel_if_built())
+        panel->shortcuts_changed();
+}
+
+CodeEditorWindow* MainFrame::focused_code_editor() const
+{
+    const wxWindow* focus = wxWindow::FindFocus();
+    if (RunScriptPanel* panel = wxGetApp().run_script_panel_if_built(); panel != nullptr && panel->owns_focus(focus))
+        return panel;
+    if (auto* replay = dynamic_cast<ActionReplayDialog*>(m_action_replay.get()); replay != nullptr && replay->owns_focus(focus))
+        return replay;
+    return nullptr;
+}
+
+bool MainFrame::forward_to_editor(const char* action)
+{
+    CodeEditorWindow* editor = focused_code_editor();
+    if (editor == nullptr)
+        return false;
+    editor->forward_action(action);
+    return true;
+}
+
+bool MainFrame::editor_clipboard(char command)
+{
+    CodeEditorWindow* editor = focused_code_editor();
+    if (editor == nullptr)
+        return false;
+    // Through the web view, whose clipboard events the editor takes.
+    if (wxWebView* web = editor->web_view()) {
+        if (command == 'x')
+            web->Cut();
+        else if (command == 'c')
+            web->Copy();
+        else
+            web->Paste();
+    }
+    return true;
+}
+
+// While a code editor has the focus, a shortcut menu item whose key the editor takes is disabled, so the key reaches the
+// editor: a chord the page reported its editor binds, or a key with no modifier other than Shift. Save, the Edit items the
+// editor takes over and File › Run Script stay. The chords are compared, so this follows a rebinding.
+void MainFrame::bind_code_editor_menu_rule()
+{
+    static const std::set<Shortcut> kept{Shortcut::SaveProject, Shortcut::SaveProjectAs, Shortcut::Undo,  Shortcut::Redo,
+                                         Shortcut::Cut,         Shortcut::Copy,          Shortcut::Paste, Shortcut::SelectAll,
+                                         Shortcut::ToggleRunScript};
+    for (const ShortcutMenuItem& entry : m_shortcut_menu_items) {
+        if (kept.count(entry.shortcut) != 0)
+            continue;
+        // Bound after the item's own handler, so it runs first; an item it leaves alone goes on to that handler.
+        Bind(wxEVT_UPDATE_UI, [this, shortcut = entry.shortcut](wxUpdateUIEvent& evt) {
+            const CodeEditorWindow* editor = focused_code_editor();
+            const KeyChord          chord  = wxGetApp().shortcuts().binding(shortcut);
+            if (editor != nullptr && chord.valid() &&
+                ((chord.modifiers & ~wxMOD_SHIFT) == 0 || editor->editor_keys().count(chord.to_string()) != 0)) {
+                evt.Enable(false);
+                return;
+            }
+            evt.Skip();
+        }, entry.item->GetId());
+    }
 }
 
 wxMenu* MainFrame::generate_help_menu()
@@ -3119,22 +3204,22 @@ void MainFrame::init_menubar_as_editor()
         // BBS: close save project
 #ifndef __APPLE__
         append_shortcut_item(fileMenu, Shortcut::SaveProject, true, _L("Save Project"), _L("Save current project to file"),
-            [this](wxCommandEvent&) { if (m_plater) m_plater->save_project(); }, "menu_save", nullptr,
-            [this](){return m_plater != nullptr && can_save(); }, this);
+            [this](wxCommandEvent&) { if (!forward_to_editor("save") && m_plater) m_plater->save_project(); }, "menu_save", nullptr,
+            [this](){return focused_code_editor() != nullptr || (m_plater != nullptr && can_save()); }, this);
 #else
         append_shortcut_item(fileMenu, Shortcut::SaveProject, true, _L("Save Project"), _L("Save current project to file"),
-            [this](wxCommandEvent&) { if (m_plater) m_plater->save_project(); }, "", nullptr,
-            [this](){return m_plater != nullptr && can_save(); }, this);
+            [this](wxCommandEvent&) { if (!forward_to_editor("save") && m_plater) m_plater->save_project(); }, "", nullptr,
+            [this](){return focused_code_editor() != nullptr || (m_plater != nullptr && can_save()); }, this);
 #endif
 
 #ifndef __APPLE__
         append_shortcut_item(fileMenu, Shortcut::SaveProjectAs, true, _L("Save Project as") + dots, _L("Save current project as"),
-            [this](wxCommandEvent&) { if (m_plater) m_plater->save_project(true); }, "menu_save", nullptr,
-            [this](){return m_plater != nullptr && can_save_as(); }, this);
+            [this](wxCommandEvent&) { if (!forward_to_editor("save_as") && m_plater) m_plater->save_project(true); }, "menu_save", nullptr,
+            [this](){return focused_code_editor() != nullptr || (m_plater != nullptr && can_save_as()); }, this);
 #else
         append_shortcut_item(fileMenu, Shortcut::SaveProjectAs, true, _L("Save Project as") + dots, _L("Save current project as"),
-            [this](wxCommandEvent&) { if (m_plater) m_plater->save_project(true); }, "", nullptr,
-            [this](){return m_plater != nullptr && can_save_as(); }, this);
+            [this](wxCommandEvent&) { if (!forward_to_editor("save_as") && m_plater) m_plater->save_project(true); }, "", nullptr,
+            [this](){return focused_code_editor() != nullptr || (m_plater != nullptr && can_save_as()); }, this);
 #endif
 
         // BBS: publish
@@ -3219,8 +3304,11 @@ void MainFrame::init_menubar_as_editor()
 
         append_submenu(fileMenu, export_menu, wxID_ANY, _L("Export"), "");
 
-        append_menu_item(fileMenu, wxID_ANY, _L("Run Script") + dots, _L("Open or paste a script and run its steps"),
-            [this](wxCommandEvent&) { show_script_runner(); }, "", nullptr, []() { return true; }, this);
+        append_shortcut_check_item(fileMenu, Shortcut::ToggleRunScript, _L("Run Script"), _L("Show or hide the Run Script panel"),
+            [](wxCommandEvent&) { wxGetApp().run_script_panel().toggle(); }, []() { return true; },
+            []() { RunScriptPanel* panel = wxGetApp().run_script_panel_if_built(); return panel != nullptr && panel->on_screen(); });
+        append_menu_item(fileMenu, wxID_ANY, _L("Action Replay") + dots, _L("Open a replay file and replay its steps"),
+            [this](wxCommandEvent&) { show_action_replay(); }, "", nullptr, []() { return true; }, this);
 
         fileMenu->AppendSeparator();
 
@@ -3253,11 +3341,15 @@ void MainFrame::init_menubar_as_editor()
         // BBS undo
         append_shortcut_item(editMenu, Shortcut::Undo, true, _L("Undo"),
             _L("Undo"), [this](wxCommandEvent&) {
+                if (forward_to_editor("undo"))
+                    return;
 #ifdef SLIC3R_CAD
                 if (DesignPanel* dp = shown_design_panel()) { dp->menu_undo_redo(false); return; }
 #endif
                 m_plater->undo(); },
             "menu_undo", nullptr, [this](){
+                if (focused_code_editor() != nullptr)
+                    return true;
 #ifdef SLIC3R_CAD
                 if (DesignPanel* dp = shown_design_panel()) return dp->menu_can_undo_redo(false);
 #endif
@@ -3265,11 +3357,15 @@ void MainFrame::init_menubar_as_editor()
         // BBS redo
         append_shortcut_item(editMenu, Shortcut::Redo, true, _L("Redo"),
             _L("Redo"), [this](wxCommandEvent&) {
+                if (forward_to_editor("redo"))
+                    return;
 #ifdef SLIC3R_CAD
                 if (DesignPanel* dp = shown_design_panel()) { dp->menu_undo_redo(true); return; }
 #endif
                 m_plater->redo(); },
             "menu_redo", nullptr, [this](){
+                if (focused_code_editor() != nullptr)
+                    return true;
 #ifdef SLIC3R_CAD
                 if (DesignPanel* dp = shown_design_panel()) return dp->menu_can_undo_redo(true);
 #endif
@@ -3277,16 +3373,16 @@ void MainFrame::init_menubar_as_editor()
         editMenu->AppendSeparator();
         // BBS Cut TODO
         append_shortcut_item(editMenu, Shortcut::Cut, true, _L("Cut"),
-            _L("Cut selection to clipboard"), [this](wxCommandEvent&) {m_plater->cut_selection_to_clipboard(); },
-            "menu_cut", nullptr, [this]() {return m_plater->can_copy_to_clipboard(); }, this);
+            _L("Cut selection to clipboard"), [this](wxCommandEvent&) { if (!editor_clipboard('x')) m_plater->cut_selection_to_clipboard(); },
+            "menu_cut", nullptr, [this]() {return focused_code_editor() != nullptr || m_plater->can_copy_to_clipboard(); }, this);
         // BBS Copy
         append_shortcut_item(editMenu, Shortcut::Copy, true, _L("Copy"),
-            _L("Copy selection to clipboard"), [this](wxCommandEvent&) { m_plater->copy_selection_to_clipboard(); },
-            "menu_copy", nullptr, [this](){return m_plater->can_copy_to_clipboard(); }, this);
+            _L("Copy selection to clipboard"), [this](wxCommandEvent&) { if (!editor_clipboard('c')) m_plater->copy_selection_to_clipboard(); },
+            "menu_copy", nullptr, [this](){return focused_code_editor() != nullptr || m_plater->can_copy_to_clipboard(); }, this);
         // BBS Paste
         append_shortcut_item(editMenu, Shortcut::Paste, true, _L("Paste"),
-            _L("Paste clipboard"), [this](wxCommandEvent&) { m_plater->paste_from_clipboard(); },
-            "menu_paste", nullptr, [this](){return m_plater->can_paste_from_clipboard(); }, this);
+            _L("Paste clipboard"), [this](wxCommandEvent&) { if (!editor_clipboard('v')) m_plater->paste_from_clipboard(); },
+            "menu_paste", nullptr, [this](){return focused_code_editor() != nullptr || m_plater->can_paste_from_clipboard(); }, this);
         // BBS Delete selected
         append_shortcut_item(editMenu, Shortcut::DeleteSelected, true, _L("Delete Selected"),
             _L("Deletes the current selection"),[this](wxCommandEvent&) { m_plater->remove_selected(); },
@@ -3313,6 +3409,8 @@ void MainFrame::init_menubar_as_editor()
         // BBS undo
         append_shortcut_item(editMenu, Shortcut::Undo, false, _L("Undo"),
             _L("Undo"), [this, handle_key_event](wxCommandEvent&) {
+                if (forward_to_editor("undo"))
+                    return;
                 wxKeyEvent e;
                 e.SetEventType(wxEVT_KEY_DOWN);
                 e.SetControlDown(true);
@@ -3325,6 +3423,8 @@ void MainFrame::init_menubar_as_editor()
 #endif
                 m_plater->undo(); },
             "", nullptr, [this](){
+                if (focused_code_editor() != nullptr)
+                    return true;
 #ifdef SLIC3R_CAD
                 if (DesignPanel* dp = shown_design_panel()) return dp->menu_can_undo_redo(false);
 #endif
@@ -3332,6 +3432,8 @@ void MainFrame::init_menubar_as_editor()
         // BBS redo
         append_shortcut_item(editMenu, Shortcut::Redo, false, _L("Redo"),
             _L("Redo"), [this, handle_key_event](wxCommandEvent&) {
+                if (forward_to_editor("redo"))
+                    return;
                 wxKeyEvent e;
                 e.SetEventType(wxEVT_KEY_DOWN);
                 e.SetControlDown(true);
@@ -3344,6 +3446,8 @@ void MainFrame::init_menubar_as_editor()
 #endif
                 m_plater->redo(); },
             "", nullptr, [this](){
+                if (focused_code_editor() != nullptr)
+                    return true;
 #ifdef SLIC3R_CAD
                 if (DesignPanel* dp = shown_design_panel()) return dp->menu_can_undo_redo(true);
 #endif
@@ -3359,8 +3463,9 @@ void MainFrame::init_menubar_as_editor()
                 if (handle_key_event(e)) {
                     return;
                 }
-                m_plater->cut_selection_to_clipboard(); },
-            "", nullptr, [this]() {return m_plater->can_copy_to_clipboard(); }, this);
+                if (!editor_clipboard('x'))
+                    m_plater->cut_selection_to_clipboard(); },
+            "", nullptr, [this]() {return focused_code_editor() != nullptr || m_plater->can_copy_to_clipboard(); }, this);
         // BBS Copy
         append_shortcut_item(editMenu, Shortcut::Copy, false, _L("Copy"),
             _L("Copy selection to clipboard"), [this, handle_key_event](wxCommandEvent&) {
@@ -3371,8 +3476,9 @@ void MainFrame::init_menubar_as_editor()
                 if (handle_key_event(e)) {
                     return;
                 }
-                m_plater->copy_selection_to_clipboard(); },
-            "", nullptr, [this](){return m_plater->can_copy_to_clipboard(); }, this);
+                if (!editor_clipboard('c'))
+                    m_plater->copy_selection_to_clipboard(); },
+            "", nullptr, [this](){return focused_code_editor() != nullptr || m_plater->can_copy_to_clipboard(); }, this);
         // BBS Paste
         append_shortcut_item(editMenu, Shortcut::Paste, false, _L("Paste"),
             _L("Paste clipboard"), [this, handle_key_event](wxCommandEvent&) {
@@ -3383,8 +3489,9 @@ void MainFrame::init_menubar_as_editor()
                 if (handle_key_event(e)) {
                     return;
                 }
-                m_plater->paste_from_clipboard(); },
-            "", nullptr, [this](){return m_plater->can_paste_from_clipboard(); }, this);
+                if (!editor_clipboard('v'))
+                    m_plater->paste_from_clipboard(); },
+            "", nullptr, [this](){return focused_code_editor() != nullptr || m_plater->can_paste_from_clipboard(); }, this);
 #if 0
         // BBS Delete selected
         append_shortcut_item(editMenu, Shortcut::DeleteSelected, true, _L("Delete Selected"),
@@ -3439,8 +3546,9 @@ void MainFrame::init_menubar_as_editor()
                 if (handle_key_event(e)) {
                     return;
                 }
-                m_plater->select_all(); },
-            "", nullptr, [this](){return can_select(); }, this);
+                if (!forward_to_editor("select_all"))
+                    m_plater->select_all(); },
+            "", nullptr, [this](){return focused_code_editor() != nullptr || can_select(); }, this);
         // BBS Deslect All
         append_menu_item(editMenu, wxID_ANY, _L("Deselect All") + sep + _L_CONTEXT("Esc", "Keyboard Shortcut"),
             _L("Deselects all objects"), [this, handle_key_event](wxCommandEvent&) {
@@ -3913,6 +4021,7 @@ void MainFrame::init_menubar_as_editor()
         }, wxID_EXIT);
     }
 #endif // __APPLE__
+    bind_code_editor_menu_rule();
 }
 
 void MainFrame::set_max_recent_count(int max)
@@ -4050,12 +4159,12 @@ struct ConfigsOverwriteConfirmDialog : MessageDialog
     }
 };
 
-void MainFrame::show_script_runner()
+void MainFrame::show_action_replay()
 {
-    if (!m_script_runner)
-        m_script_runner = new ScriptRunnerDialog(this);
-    m_script_runner->Show();
-    m_script_runner->Raise();
+    if (!m_action_replay)
+        m_action_replay = new ActionReplayDialog(this);
+    m_action_replay->Show();
+    m_action_replay->Raise();
 }
 
 void MainFrame::export_config()

@@ -7222,10 +7222,11 @@ struct Plater::priv
     // GUI elements
     AuiMgr m_aui_mgr;
     // Live dock panes. `on_close` runs when the user closes one from its close button; `shown` is
-    // what the owner asked for.
+    // what the owner asked for; `hide_on_close` keeps the pane's window when it is closed.
     struct DockPane
     {
         std::function<void()> on_close;
+        bool                  hide_on_close{false};
         bool                  shown{true};
     };
     std::map<wxWindow*, DockPane> m_dock_panes;
@@ -7447,7 +7448,7 @@ struct Plater::priv
     void reset_window_layout();
     Sidebar::DockingState get_sidebar_docking_state();
     void add_dock_pane(wxWindow* window, const std::string& name, const wxString& caption, const std::string& dock,
-                       const wxSize& size, std::function<void()> on_close);
+                       const wxSize& size, std::function<void()> on_close, bool hide_on_close);
     void remove_dock_pane(wxWindow* window);
     void show_dock_pane(wxWindow* window, bool show);
     bool dock_pane_visible(const DockPane& dock_pane, const wxAuiPaneInfo& pane) const;
@@ -8034,7 +8035,18 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
     q->Bind(wxEVT_AUI_PANE_CLOSE, [this](wxAuiManagerEvent& evt) {
         const wxAuiPaneInfo* pane = evt.GetPane();
         auto                 it   = pane != nullptr ? m_dock_panes.find(pane->window) : m_dock_panes.end();
-        if (it != m_dock_panes.end()) {
+        if (it != m_dock_panes.end() && it->second.hide_on_close) {
+            // Hidden as its owner hides it, after the manager is done with the close; the window stays.
+            evt.Veto();
+            this->q->CallAfter([this, window = pane->window] {
+                const auto kept = m_dock_panes.find(window);
+                if (kept == m_dock_panes.end())
+                    return;
+                show_dock_pane(window, false);
+                if (kept->second.on_close)
+                    kept->second.on_close();
+            });
+        } else if (it != m_dock_panes.end()) {
             const std::function<void()> on_close = std::move(it->second.on_close);
             m_dock_panes.erase(it);
             if (on_close)
@@ -8736,7 +8748,7 @@ bool Plater::priv::dock_pane_visible(const DockPane& dock_pane, const wxAuiPaneI
 }
 
 void Plater::priv::add_dock_pane(wxWindow* window, const std::string& name, const wxString& caption, const std::string& dock,
-                                 const wxSize& size, std::function<void()> on_close)
+                                 const wxSize& size, std::function<void()> on_close, bool hide_on_close)
 {
     const wxString base_name   = wxString::FromUTF8(name);
     wxString       unique_name = base_name;
@@ -8746,7 +8758,7 @@ void Plater::priv::add_dock_pane(wxWindow* window, const std::string& name, cons
     // A restored layout below already holds pixels.
     const wxSize  pixels = q->FromDIP(size);
     wxAuiPaneInfo info;
-    info.Name(unique_name).Caption(caption).BestSize(pixels).FloatingSize(pixels).DestroyOnClose(true);
+    info.Name(unique_name).Caption(caption).BestSize(pixels).FloatingSize(pixels).DestroyOnClose(!hide_on_close);
     if (dock == "left")
         info.Left();
     else if (dock == "bottom")
@@ -8760,7 +8772,7 @@ void Plater::priv::add_dock_pane(wxWindow* window, const std::string& name, cons
     const std::string saved = aui_pane_layout_entry(wxGetApp().app_config->get("window_layout"), unique_name.utf8_string());
     if (!saved.empty()) {
         m_aui_mgr.LoadPaneInfo(wxString::FromUTF8(saved), info);
-        info.Caption(caption).DestroyOnClose(true).Show();
+        info.Caption(caption).DestroyOnClose(!hide_on_close).Show();
     }
 
     // Floating is disabled on Wayland.
@@ -8770,7 +8782,7 @@ void Plater::priv::add_dock_pane(wxWindow* window, const std::string& name, cons
             info.Right();
     }
 
-    const DockPane& dock_pane = m_dock_panes[window] = DockPane{std::move(on_close)};
+    const DockPane& dock_pane = m_dock_panes[window] = DockPane{std::move(on_close), hide_on_close};
     info.Show(dock_pane_visible(dock_pane, info));
     m_aui_mgr.AddPane(window, info);
 
@@ -11218,12 +11230,18 @@ void Plater::priv::reset(bool apply_presets_change, bool reload_presets)
             sidebar.Show();
         }
         auto layout = m_aui_mgr.SavePerspective();
-        // The UV editor pane is only built when first used; keep its saved place from an earlier session.
-        if (!uv_editor.built()) {
-            const std::string kept = aui_pane_layout_entry(wxGetApp().app_config->get("window_layout"), "uv_editor");
+        // The UV editor pane and the Run Script panel are only built when first used; keep their saved places from an
+        // earlier session.
+        const std::string saved = wxGetApp().app_config->get("window_layout");
+        const auto        keep  = [&](const char* name, bool built) {
+            if (built)
+                return;
+            const std::string kept = aui_pane_layout_entry(saved, name);
             if (!kept.empty())
                 layout += wxString::FromUTF8(kept) + "|";
-        }
+        };
+        keep("uv_editor", uv_editor.built());
+        keep("run_script", m_aui_mgr.GetPane("run_script").IsOk());
         wxGetApp().app_config->set("window_layout", layout.utf8_string());
     }
 }
@@ -19620,9 +19638,9 @@ void Plater::reset_window_layout()
 }
 
 void Plater::add_dock_pane(wxWindow* window, const std::string& name, const wxString& caption, const std::string& dock,
-                           const wxSize& size, std::function<void()> on_close)
+                           const wxSize& size, std::function<void()> on_close, bool hide_on_close)
 {
-    p->add_dock_pane(window, name, caption, dock, size, std::move(on_close));
+    p->add_dock_pane(window, name, caption, dock, size, std::move(on_close), hide_on_close);
 }
 void Plater::remove_dock_pane(wxWindow* window) { p->remove_dock_pane(window); }
 void Plater::remove_dock_panes()

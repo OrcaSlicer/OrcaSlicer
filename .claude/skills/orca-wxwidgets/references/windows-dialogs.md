@@ -507,7 +507,7 @@ name — for any other window call `window_pos_save/restore` with its own name.
   A `WebViewHostDialog` subclass calls the inherited `restore_z_order()` after each such modal, on every
   outcome including Cancel.
   Cite: 0a0d59b76b (`PluginsDialog`: also passed as the `restore` callback of
-  `detail::run_off_thread_with_progress`); `ScriptRunnerDialog::open_file`.
+  `detail::run_off_thread_with_progress`); `ActionReplayDialog::open_file`.
 - **Rule:** On macOS, when a secondary dialog raises the main window on purpose (to give it the keyboard
   focus for work that acts on it) and must stay in sight meanwhile, attach it as a Cocoa child window of the
   main window for that span — `keep_window_above(GetHandle(), mainframe->GetHandle(), true)`
@@ -518,7 +518,7 @@ name — for any other window call `window_pos_save/restore` with its own name.
   it also moves with its parent, so attach it only for the span. wx detaches it on `Hide()` and in the
   window's destructor (`src/osx/cocoa/nonownedwnd.mm:767-768, 990-991`), so closing the dialog midway
   needs no extra step.
-  Cite: `ScriptRunnerDialog::run` (a run's progress and Stop button; the dialog takes the focus back with
+  Cite: `ActionReplayDialog::run` (a run's progress and Stop button; the dialog takes the focus back with
   `restore_z_order()` when the run finishes).
 - **Rule:** Never position windows by absolute coordinates on Wayland, and never expect `SetIcon` to show on
   macOS or Wayland.

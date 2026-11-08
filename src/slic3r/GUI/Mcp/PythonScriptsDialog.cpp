@@ -8,6 +8,7 @@
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/RunScriptPanel.hpp"
 #include "slic3r/GUI/Widgets/CheckBox.hpp"
 #include "slic3r/GUI/Widgets/DialogButtons.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
@@ -40,7 +41,7 @@ public:
         auto* sizer = new wxBoxSizer(wxVERTICAL);
 
         m_about = new Label(this, Label::Body_13,
-                            _L("When this is on, you can run Python scripts (.py files) in the Run Script dialog and with "
+                            _L("When this is on, you can run Python scripts (.py files) in the Run Script panel and with "
                                "--mcp-script, and AI agents connected to the MCP server can send Python code to run inside "
                                "OrcaSlicer."));
         m_about->Wrap(FromDIP(kTextWidth));
@@ -104,6 +105,8 @@ bool show_python_scripts_dialog(wxWindow* parent)
     if (allow == python_scripts_allowed(config))
         return false;
     config.set_bool(kPythonScriptsKey, allow);
+    if (RunScriptPanel* panel = wxGetApp().run_script_panel_if_built())
+        panel->python_setting_changed();
     return true;
 }
 

@@ -100,6 +100,7 @@ class ObjectSettings;
 class ObjectList;
 class ObjectLayers;
 class Plater;
+class RunScriptPanel;
 class ParamsPanel;
 class NotificationManager;
 class Downloader;
@@ -386,6 +387,7 @@ private:
     wxString         m_info_dialog_content;
     std::unique_ptr<HttpServer> m_http_server;
     Mcp::McpServicePtr m_mcp;
+    std::unique_ptr<RunScriptPanel> m_run_script_panel;
     bool               m_mcp_wanted = false;        // the endpoint should be open: --mcp, the preference, or Preferences
     std::unique_ptr<wxTimer> m_mcp_takeover_timer;  // retries the port another window holds; created on first need
     bool             m_show_gcode_window{true};
@@ -682,6 +684,10 @@ public:
     // line for the rest of the session: a serving endpoint reopens on it, and a later start opens on it.
     bool            restart_mcp_endpoint(std::string* error = nullptr);
     Mcp::McpService* mcp_service() { return m_mcp.get(); }
+    // The Run Script panel's controller, built on first use and kept until the MCP service, whose job hosts its session,
+    // goes away.
+    RunScriptPanel&  run_script_panel();
+    RunScriptPanel*  run_script_panel_if_built() { return m_run_script_panel.get(); }
 
     void            on_show_check_privacy_dlg(int online_login = 0, const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            show_check_privacy_dlg(wxCommandEvent& evt);

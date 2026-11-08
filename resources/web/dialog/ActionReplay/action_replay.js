@@ -1,5 +1,5 @@
-// Script runner page. The host (ScriptRunnerDialog) parses, describes and runs scripts and words what
-// it reports; this page shows the steps as a rail that fills in as the script runs, and asks.
+// Action Replay page. The host (ActionReplayDialog) parses, describes and replays replay files and words what
+// it reports; this page shows the steps as a rail that fills in as the replay runs, and asks.
 
 const FLAG_LABELS = {
   writes_file: ["flag_writes_file", "Writes a file"],
@@ -10,9 +10,9 @@ const FLAG_LABELS = {
 
 const state = {
   ready: false,
-  fileName: "",        // the file the script was opened from or saved to; empty for a new script
-  savedText: "",       // the text as opened or last saved (for a new script, its draft), to tell when it's edited
-  name: "",            // the script's name, as last parsed
+  fileName: "",        // the file the replay was opened from or saved to; empty for a new replay
+  savedText: "",       // the text as opened or last saved (for a new replay, its draft), to tell when it's edited
+  name: "",            // the replay's name, as last parsed
   parseSeq: 0,
   parseTimer: 0,
   parsed: null,        // the host's last description: {ok, error, name, steps, count_text}
@@ -53,7 +53,7 @@ function seconds(ms) { return T("seconds", "%s s", (ms / 1000).toFixed(1)); }
 
 // ---- source -----------------------------------------------------------------------------------
 
-function sourceText() { return $("source").value; }
+function sourceText() { return ed.editor.getValue(); }
 
 function scheduleParse(delay) {
   clearTimeout(state.parseTimer);
@@ -71,16 +71,16 @@ function scheduleParse(delay) {
   }, delay);
 }
 
-// What the editor holds when the dialog opens: a script that runs as it is, with comments on the format.
+// What the editor holds when the dialog opens: a replay that runs as it is, with comments on the format.
 function draftScript() {
   return [
-    "// " + T("draft_about", "A script runs OrcaSlicer's tools in order, the way an AI agent does through MCP."),
+    "// " + T("draft_about", "A replay file runs OrcaSlicer's tools in order, the way an AI agent does through MCP."),
     "// " + T("draft_steps", "Each step names a \"tool\" and its \"args\"; \"expect\" checks the result before the next step."),
     "// " + T("draft_out_dir", "%s is this run's output folder.", "${out_dir}"),
-    "// " + T("draft_keys", "%s shows suggestions, %s runs the script.", T("key_suggest", "Ctrl+Space"), T("key_run", "Ctrl+Enter")),
+    "// " + T("draft_keys", "%s shows suggestions, %s replays the file.", T("key_suggest", "Ctrl+Space"), T("key_run", "Ctrl+Enter")),
     "{",
     '  "orca_script": 1,',
-    '  "name": ' + JSON.stringify(T("untitled_script", "Untitled script")) + ",",
+    '  "name": ' + JSON.stringify(T("untitled_script", "Untitled replay")) + ",",
     '  "steps": [',
     '    {"tool": "wait", "args": {"for": "ready"}},',
     '    {"tool": "slice", "expect": {"/status": {"eq": "done"}}},',
@@ -95,19 +95,14 @@ function draftScript() {
 // A new source: the dialog's draft or an opened file, unedited, read from the top, with no run of it yet
 // and no steps until the host describes it.
 function setSource(text) {
-  const source = $("source");
-  source.value = text;
-  // As the textarea holds it: its line breaks are LF whatever the file has.
-  state.savedText = source.value;
+  closeEditorSuggestions(ed.editor);
+  setEditorText(ed.editor, text);
+  // As the editor holds it: its line breaks are LF whatever the file has.
+  state.savedText = sourceText();
   state.outDir = "";
   state.parsed = null;
   state.steps = [];
   state.name = "";
-  source.setSelectionRange(0, 0);
-  $("editor").scrollTop = 0;
-  $("editor").scrollLeft = 0;
-  closeSuggest();
-  refreshEditor();
   resetRun();
   buildRail();
   reportEdit();
@@ -127,7 +122,7 @@ function onSourceInput() {
 }
 
 function renderChip() {
-  $("chip-name").textContent = state.fileName || state.name || T("untitled_script", "Untitled script");
+  $("chip-name").textContent = state.fileName || state.name || T("untitled_script", "Untitled replay");
   $("chip-edited").hidden = !(state.fileName && edited());
 }
 
@@ -139,7 +134,7 @@ function edited() { return sourceText() !== state.savedText; }
 // replacing it.
 function reportEdit() { send("edit", { text: sourceText(), edited: edited() }); }
 
-// Save writes an opened or saved script back to its file and asks where to put a new one; Save as
+// Save writes an opened or saved replay back to its file and asks where to put a new one; Save as
 // (`pick`) asks where to put a copy.
 function save(pick) {
   const button = pick ? $("save-as") : $("save");
@@ -151,8 +146,8 @@ function onSaved(msg) {
   state.savedText = msg.text;
   reportEdit();
   showSaved();
-  // Saved somewhere new, the script is that file's: its steps are described again with the file's
-  // folders, and the last run's output folder belongs to the script as it was.
+  // Saved somewhere new, the replay is that file's: its steps are described again with the file's
+  // folders, and the last run's output folder belongs to the replay as it was.
   if (msg.moved) {
     state.outDir = "";
     resetRun();
@@ -201,12 +196,12 @@ function toggleSection(id) { setSectionOpen(id, !$(id).classList.contains("is-op
 function onParsed(msg) {
   if (msg.seq !== state.parseSeq) return; // an answer to text that has changed since
   // Run waits for the latest description and the text is frozen from the click on, so no answer can
-  // arrive for a run's script; none may reset a run's log either way.
+  // arrive for a run's replay; none may reset a run's log either way.
   if (busy()) return;
   state.stale = false;
   state.parsed = msg;
   resetRun();
-  // A script that doesn't parse keeps the last steps that did, faded, so typing doesn't empty the list.
+  // A replay that doesn't parse keeps the last steps that did, faded, so typing doesn't empty the list.
   if (msg.ok || msg.empty) {
     state.steps = msg.ok ? msg.steps : [];
     buildRail();
@@ -390,7 +385,7 @@ function canRun() { return state.ready && !busy() && !state.stale && state.parse
 
 function requestRun(extra) {
   if (!canRun()) return;
-  // Frozen at once: the host may ask about unsaved changes first, and the script must not change meanwhile.
+  // Frozen at once: the host may ask about unsaved changes first, and the replay must not change meanwhile.
   state.pending = true;
   send("run", extra);
   render();
@@ -473,9 +468,9 @@ function render() {
   renderFooter();
 
   $("open-file").disabled = busy();
-  $("source").readOnly = busy();
+  ed.editor.setReadOnly(busy());
   $("editor").classList.toggle("is-readonly", busy());
-  if (busy()) closeSuggest();
+  if (busy()) closeEditorSuggestions(ed.editor);
 }
 
 function runningText() {
@@ -491,7 +486,7 @@ function renderSummary() {
   else if (state.parsed && state.parsed.ok) summary.textContent = state.parsed.count_text || "";
   else if (state.parsed && !state.parsed.empty && state.parsed.error) {
     summary.textContent = state.parsed.error;
-    // Over faded steps the reason stays quiet while the script is being written.
+    // Over faded steps the reason stays quiet while the replay is being written.
     summary.classList.toggle("is-error", rows.size === 0);
   } else summary.textContent = "";
   summary.title = summary.textContent;
@@ -502,7 +497,7 @@ function renderFooter() {
   const detail = $("outcome-detail");
   let shown = null;
   if (!state.ready) shown = { kind: "quiet", text: T("starting", "OrcaSlicer is still starting…"), detail: "" };
-  else if (state.running) shown = { kind: "quiet", text: runningText(), detail: T("hands_off", "Don't use OrcaSlicer until the script finishes.") };
+  else if (state.running) shown = { kind: "quiet", text: runningText(), detail: T("hands_off", "Don't use OrcaSlicer until the replay finishes.") };
   else if (state.message) shown = state.message;
   else if (state.outcome) shown = state.outcome;
   outcome.className = shown ? "is-" + shown.kind : "";
@@ -512,7 +507,7 @@ function renderFooter() {
 
   $("run").hidden = state.running;
   $("run").disabled = !canRun();
-  $("run").textContent = state.hasRun ? T("run_again", "Run again") : T("run", "Run");
+  $("run").textContent = state.hasRun ? T("run_again", "Replay again") : T("run", "Replay");
   $("stop").hidden = !state.running;
   $("open-output").hidden = state.running || !state.outDir;
   renderSummary();
@@ -526,7 +521,7 @@ function HandleStudio(msg) {
     const was = state.ready;
     state.ready = !!msg.ready;
     if (msg.tools) setEditorTools(msg.tools);
-    // A script parsed while the service was starting got only "still starting" back.
+    // A replay parsed while the service was starting got only "still starting" back.
     if (state.ready && !was && !busy()) scheduleParse(0);
     render();
     break;
@@ -539,6 +534,7 @@ function HandleStudio(msg) {
   case "step_finished": onStepFinished(msg); break;
   case "run_finished": onRunFinished(msg); break;
   case "run_refused": onRunRefused(msg); break;
+  case "key": onKey(msg.action); break;
   case "error":
     state.pending = false;
     state.message = { kind: "fail", text: msg.message, detail: "" };
@@ -547,9 +543,26 @@ function HandleStudio(msg) {
   }
 }
 
+// A key the host forwards from its menus while this window has the focus: Save and Save as as the buttons save, the
+// editing actions through runEditorAction(), so one press acts once.
+function onKey(action) {
+  if (action === "save" || action === "save_as") {
+    if (!ownKeyRan(ed.editor, action === "save" ? "save" : "saveAs")) save(action === "save_as");
+  } else
+    runEditorAction(ed.editor, action);
+}
+
+// Ctrl/Cmd+Enter replays, Ctrl/Cmd+S saves and with Shift saves as: in the editor as its commands, elsewhere on the page
+// through the document's key handler.
+const PAGE_COMMANDS = [
+  { name: "replay", bindKey: { win: "Ctrl-Return", mac: "Command-Return" }, exec: () => runAll(), readOnly: true },
+  { name: "save", bindKey: { win: "Ctrl-S", mac: "Command-S" }, exec: () => save(false), readOnly: true },
+  { name: "saveAs", bindKey: { win: "Ctrl-Shift-S", mac: "Command-Shift-S" }, exec: () => save(true), readOnly: true },
+];
+
 function OnInit() {
   TranslatePage();
-  initEditor();
+  initEditor(onSourceInput, PAGE_COMMANDS);
   $("open-file").addEventListener("click", () => send("open_file"));
   $("save").addEventListener("click", () => save(false));
   $("save-as").addEventListener("click", () => save(true));
@@ -561,21 +574,20 @@ function OnInit() {
   $("open-output").addEventListener("click", () => send("open_output"));
   for (const id of ["steps-section", "source-section"])
     $(id).querySelector(".section-head").addEventListener("click", () => toggleSection(id));
-  const source = $("source");
-  source.addEventListener("input", onSourceInput);
-  source.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+  document.addEventListener("keydown", (e) => {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+    if (e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      // Recorded as the editor's own Save, so the host's forwarded one for this press does nothing more.
+      ed.editor.$orcaOwnAt[e.shiftKey ? "saveAs" : "save"] = Date.now();
+      save(e.shiftKey);
+    } else if (e.key === "Enter") {
       e.preventDefault();
       runAll();
     }
   });
-  // Ctrl/Cmd+S saves wherever the focus is, and with Shift saves as.
-  document.addEventListener("keydown", (e) => {
-    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "s") {
-      e.preventDefault();
-      save(e.shiftKey);
-    }
-  });
   setSource(draftScript());
   send("init");
+  // The keys the editor takes, which the host keeps from its menus while this window has the focus.
+  send("editor_keys", { chords: editorChords(ed.editor) });
 }

@@ -306,6 +306,106 @@ TEST_CASE("an auto-answer rule presses a wx dialog's button, and answers a nativ
     }
 }
 
+TEST_CASE("a paused rule layer answers nothing until resumed", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    if (wxTheApp == nullptr)
+        wxApp::SetInstance(new wxApp);
+    wxInitializer init;
+    REQUIRE(init.IsOk());
+    {
+        ModalTracker tracker;
+        const int    layer = tracker.push_rules({make_rule("unsaved", "Transfer")});
+        tracker.set_paused(layer, true);
+
+        wxDialog dialog(nullptr, wxID_ANY, "Unsaved changes");
+        int      transfers = 0;
+        auto*    transfer  = new wxButton(&dialog, wxID_ANY, "Transfer");
+        transfer->Bind(wxEVT_BUTTON, [&transfers](wxCommandEvent&) { ++transfers; });
+        CHECK(wxModalDialogHook::CallEnter(&dialog) == wxID_NONE);
+        wxTheApp->ProcessPendingEvents();
+        CHECK(transfers == 0);
+        CHECK(tracker.top() == &dialog); // it stays open for the person
+        wxModalDialogHook::CallExit(&dialog);
+        CHECK(tracker.rules_json()[0]["uses"] == 0);
+        CHECK(tracker.rules_json()[0].value("paused", false));
+        CHECK_FALSE(tracker.rule_in_force(layer, "unsaved", "Transfer"));
+
+        tracker.set_paused(layer, false);
+        CHECK(tracker.rule_in_force(layer, "unsaved", "Transfer"));
+        CHECK_FALSE(tracker.rules_json()[0].value("paused", false));
+        CHECK(wxModalDialogHook::CallEnter(&dialog) == wxID_NONE);
+        wxTheApp->ProcessPendingEvents();
+        CHECK(transfers == 1);
+        wxModalDialogHook::CallExit(&dialog);
+        CHECK(tracker.rules_json()[0]["uses"] == 1);
+    }
+}
+
+TEST_CASE("an answer queued for a dialog is dropped when its rule is paused before it runs", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    if (wxTheApp == nullptr)
+        wxApp::SetInstance(new wxApp);
+    wxInitializer init;
+    REQUIRE(init.IsOk());
+    {
+        ModalTracker tracker;
+        const int    layer = tracker.push_rules({make_rule("unsaved", "Transfer")});
+
+        wxDialog dialog(nullptr, wxID_ANY, "Unsaved changes");
+        int      transfers = 0;
+        auto*    transfer  = new wxButton(&dialog, wxID_ANY, "Transfer");
+        transfer->Bind(wxEVT_BUTTON, [&transfers](wxCommandEvent&) { ++transfers; });
+        // The press is queued for the dialog's modal loop; a Run Script work ends and pauses its rules before it runs.
+        CHECK(wxModalDialogHook::CallEnter(&dialog) == wxID_NONE);
+        tracker.set_paused(layer, true);
+        wxTheApp->ProcessPendingEvents();
+        CHECK(transfers == 0);
+        CHECK(tracker.top() == &dialog);
+        wxModalDialogHook::CallExit(&dialog);
+        CHECK(tracker.rules_json()[0]["uses"] == 0);
+    }
+}
+
+TEST_CASE("a rule layer pushed paused answers nothing from the start", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    if (wxTheApp == nullptr)
+        wxApp::SetInstance(new wxApp);
+    wxInitializer init;
+    REQUIRE(init.IsOk());
+    {
+        // A Run Script session's thread registers a rule between works: the layer is paused as it is created, so it is
+        // never in force before the session's next work resumes it.
+        ModalTracker tracker;
+        const int    layer = tracker.push_rules({make_rule("unsaved", "Transfer")}, true);
+        CHECK(tracker.rules_json()[0].value("paused", false));
+        CHECK_FALSE(tracker.rule_in_force(layer, "unsaved", "Transfer"));
+
+        wxDialog dialog(nullptr, wxID_ANY, "Unsaved changes");
+        int      transfers = 0;
+        auto*    transfer  = new wxButton(&dialog, wxID_ANY, "Transfer");
+        transfer->Bind(wxEVT_BUTTON, [&transfers](wxCommandEvent&) { ++transfers; });
+        CHECK(wxModalDialogHook::CallEnter(&dialog) == wxID_NONE);
+        wxTheApp->ProcessPendingEvents();
+        CHECK(transfers == 0);
+        wxModalDialogHook::CallExit(&dialog);
+
+        tracker.set_paused(layer, false);
+        CHECK(tracker.rule_in_force(layer, "unsaved", "Transfer"));
+    }
+}
+
 TEST_CASE("a dialog hidden from automation is neither tracked nor auto-answered", "[Mcp]")
 {
 #if defined(__linux__)

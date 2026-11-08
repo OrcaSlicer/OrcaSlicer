@@ -80,6 +80,10 @@ public:
     // `wait {for:"idle"}` from that job does not wait for it, and the journal leaves it out.
     ToolResult call_child(const ToolDef& def, const nlohmann::json& args, const std::string& parent_job,
                           const std::string& plugin = {});
+    // A child call by the tool's name, as ToolContext::call_child() makes one, under any parent: the tool is looked up
+    // and its arguments normalized, validated and resolved first. Any thread.
+    ToolResult call_child_named(const std::string& tool, const nlohmann::json& args, const std::string& parent_job,
+                                const std::string& plugin = {});
     // A call a plugin's code makes through orca.host.tools: run as a client's call is, its job owned by
     // `plugin_key` (JobRegistry::owner, ToolContext::caller_plugin), and never journaled, since the journal
     // is the agent's session.

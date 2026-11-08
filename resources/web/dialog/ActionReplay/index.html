@@ -3,18 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Run Script</title>
+  <title>Action Replay</title>
   <link rel="stylesheet" type="text/css" href="../css/theme.css" />
+  <link rel="stylesheet" type="text/css" href="../js/code_editor.css" />
   <link rel="stylesheet" type="text/css" href="./style.css" />
   <script type="text/javascript" src="../../include/i18n.js"></script>
   <script type="text/javascript" src="../js/globalapi.js"></script>
+  <script type="text/javascript" src="../../include/ace/ace.js"></script>
+  <script type="text/javascript" src="../../include/ace/ext-language_tools.js"></script>
+  <script type="text/javascript" src="../../include/ace/ext-searchbox.js"></script>
+  <script type="text/javascript" src="../../include/ace/mode-json.js"></script>
+  <script type="text/javascript" src="../js/code_editor.js"></script>
   <script type="text/javascript" src="./script_editor.js"></script>
-  <script type="text/javascript" src="./script_runner.js"></script>
+  <script type="text/javascript" src="./action_replay.js"></script>
 </head>
 <body onload="OnInit()">
   <div class="runner">
     <header class="source-bar">
-      <button type="button" id="open-file" class="btn" data-i18n="open_script">Open script…</button>
+      <button type="button" id="open-file" class="btn" data-i18n="open_script">Open replay…</button>
       <span class="chip">
         <span id="chip-name"></span>
         <span id="chip-edited" class="chip-note" hidden data-i18n="edited">(edited)</span>
@@ -40,7 +46,7 @@
         <div class="section-row">
           <button type="button" class="section-head" aria-expanded="true" aria-controls="source-body">
             <span class="chevron" aria-hidden="true"></span>
-            <span class="section-title" data-i18n="script_source">Script source</span>
+            <span class="section-title" data-i18n="script_source">Replay file</span>
           </button>
           <div class="section-actions">
             <span id="save-note" class="save-note" hidden role="status" data-i18n="saved">Saved</span>
@@ -49,19 +55,7 @@
           </div>
         </div>
         <div id="source-body" class="section-body">
-          <div id="editor" class="editor">
-            <div class="lines">
-              <div id="gutter" class="gutter" aria-hidden="true"></div>
-              <div class="code">
-                <pre id="highlight" aria-hidden="true"></pre>
-                <textarea id="source" wrap="off" spellcheck="false" autocomplete="off" autocapitalize="off"
-                          aria-autocomplete="list" aria-controls="suggest-list" aria-expanded="false"
-                          data-i18n-aria-label="script_source" data-i18n-placeholder="source_placeholder"
-                          placeholder="Write a script here, or open one."></textarea>
-                <span id="measure" class="measure" aria-hidden="true"></span>
-              </div>
-            </div>
-          </div>
+          <div id="editor" class="editor"></div>
         </div>
       </section>
     </main>
@@ -73,14 +67,10 @@
       </div>
       <button type="button" id="open-output" class="btn" hidden data-i18n="open_output">Open output folder</button>
       <button type="button" id="stop" class="btn" hidden data-i18n="stop">Stop</button>
-      <button type="button" id="run" class="btn primary" disabled data-i18n="run">Run</button>
+      <button type="button" id="run" class="btn primary" disabled data-i18n="run">Replay</button>
       <button type="button" id="close" class="btn" data-i18n="close">Close</button>
     </footer>
   </div>
 
-  <div id="suggest" class="suggest" hidden>
-    <ul id="suggest-list" role="listbox"></ul>
-    <p id="suggest-detail" class="suggest-detail" hidden></p>
-  </div>
 </body>
 </html>

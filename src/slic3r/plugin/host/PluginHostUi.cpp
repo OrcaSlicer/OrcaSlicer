@@ -261,6 +261,17 @@ public:
         }
         return out;
     }
+    // The plugin's windows, left registered.
+    std::vector<std::pair<int, wxWindow*>> windows_for_plugin(const std::string& plugin_key)
+    {
+        std::lock_guard<std::mutex>            lk(m_mtx);
+        std::vector<std::pair<int, wxWindow*>> out;
+        for (const auto& [id, owner] : m_owners)
+            if (owner == plugin_key)
+                if (auto it = m_resources.find(id); it != m_resources.end())
+                    out.emplace_back(id, it->second);
+        return out;
+    }
     void bind_callback(const CallablePtr& callback, const std::string& plugin_key)
     {
         if (!callback)
@@ -919,6 +930,26 @@ void PluginHostUi::close_windows_for_plugin(const std::string& plugin_key)
         teardown();
     else if (!app_closing())
         GUI::wxGetApp().CallAfter(teardown);
+}
+
+void PluginHostUi::end_run_modals(const std::string& owner)
+{
+    if (wxTheApp == nullptr)
+        return;
+    auto end_modals = [owner]() {
+        for (const auto& [id, window] : UiRegistry::instance().windows_for_plugin(owner)) {
+            if (auto* message = dynamic_cast<GUI::MessageDialog*>(window))
+                message->EndModal(wxID_CANCEL); // its modal call unregisters it
+            else if (auto* dialog = dynamic_cast<GUI::WebDialog*>(window); dialog != nullptr && dialog->IsModal()) {
+                UiRegistry::instance().remove(id);
+                GUI::WebDialog::destroy_silently(dialog);
+            }
+        }
+    };
+    if (wxIsMainThread())
+        end_modals();
+    else if (!app_closing())
+        GUI::wxGetApp().CallAfter(end_modals);
 }
 
 void PluginHostUi::close_run_windows(const std::string& owner)

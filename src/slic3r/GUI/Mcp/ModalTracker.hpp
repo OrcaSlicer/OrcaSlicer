@@ -10,6 +10,7 @@
 #include <mutex>
 #include <optional>
 #include <regex>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -57,12 +58,16 @@ public:
     bool          is_open(std::uint64_t serial) const;
 
     // Rule sets are layered so a script can add its own and drop exactly those when it ends.
-    // Returns the layer id to pass to pop_rules(). Any thread.
-    int  push_rules(std::vector<AutoAnswerRule> rules);
+    // Returns the layer id to pass to pop_rules(). A layer pushed `paused` is never in force until resumed (set_paused()).
+    // Any thread.
+    int  push_rules(std::vector<AutoAnswerRule> rules, bool paused = false);
     void pop_rules(int layer);
+    // A paused layer answers no dialog, and rule_in_force() is false for it, until it is resumed: a Run Script session's
+    // rules act only while its work runs. Any thread.
+    void set_paused(int layer, bool paused);
     nlohmann::json rules_json() const;
-    // For a web dialog's answer, which ends later (start_web_answer()): whether layer `layer` still
-    // has the rule, and counting its use. Any thread.
+    // For an answer that runs or ends later (a queued press, a web dialog's start_web_answer()): whether
+    // layer `layer` (0: any) still has the rule and is not paused. Any thread.
     bool rule_in_force(int layer, const std::string& pattern, const std::string& button) const;
     void count_use(int layer, const std::string& pattern, const std::string& button);
 
@@ -97,6 +102,7 @@ private:
     mutable std::mutex                                     m_mutex;
     nlohmann::json                                         m_snapshot = nlohmann::json::array();
     std::vector<std::pair<int, std::vector<AutoAnswerRule>>> m_layers;
+    std::set<int>                                          m_paused_layers;
     int                                                    m_next_layer = 1;
 };
 

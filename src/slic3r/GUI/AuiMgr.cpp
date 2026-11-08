@@ -1,6 +1,7 @@
 #include "AuiMgr.hpp"
 
 #include "GUI_App.hpp"
+#include "Mcp/McpTypes.hpp"
 #ifdef __WXGTK__
 #include "LinuxDisplayBackend.hpp"
 #endif
@@ -78,7 +79,12 @@ wxAuiPaneInfo AuiMgr::sidebar_pane_info()
 
 wxAuiFloatingFrame* AuiMgr::CreateFloatingFrame(wxWindow* parent, const wxAuiPaneInfo& pane)
 {
-    return new FloatFrame(parent, this, pane);
+    auto* frame = new FloatFrame(parent, this, pane);
+    // A pane kept from the automation (the Run Script panel) floats in a window kept from it too, which captures then
+    // leave out as they leave out the person's own dialogs.
+    if (pane.window != nullptr && pane.window->GetName() == Mcp::kHiddenFromAutomation)
+        frame->SetName(Mcp::kHiddenFromAutomation);
+    return frame;
 }
 
 }} // namespace Slic3r::GUI

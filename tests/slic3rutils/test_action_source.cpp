@@ -287,6 +287,21 @@ TEST_CASE("Native command catalog has the screenshot and recording commands", "[
     }
 }
 
+// The Run Script panel's command sits beside Action Replay's, which keeps its id so existing replays and agent sessions
+// that open it still do.
+TEST_CASE("Native command catalog has the Run Script panel and Action Replay commands", "[ActionSource][SpeedDial]")
+{
+    const Slic3r::GUI::NativeCommand* replay = Slic3r::GUI::NativeCommands::find("open_script_runner");
+    REQUIRE(replay != nullptr);
+    CHECK(std::string(replay->title) == "Action Replay");
+    const Slic3r::GUI::NativeCommand* panel = Slic3r::GUI::NativeCommands::find("toggle_run_script");
+    REQUIRE(panel != nullptr);
+    CHECK(panel->group == replay->group);
+    CHECK(panel->input.empty());
+    CHECK(panel->param.type == Slic3r::GUI::CommandParamType::None);
+    CHECK_FALSE(panel->description.empty());
+}
+
 // Every "Add Primitive" item and shipped handy model has a palette command, grouped as in the Add
 // menu. Groups are compared to a peer's own group to stay independent of translation.
 TEST_CASE("Native command catalog covers the Add menus", "[ActionSource][SpeedDial]")

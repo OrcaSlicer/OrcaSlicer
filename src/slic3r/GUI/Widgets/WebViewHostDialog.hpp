@@ -1,6 +1,7 @@
 #ifndef slic3r_GUI_Widgets_WebViewHostDialog_hpp_
 #define slic3r_GUI_Widgets_WebViewHostDialog_hpp_
 
+#include <boost/filesystem/path.hpp>
 #include <nlohmann/json.hpp>
 #include <slic3r/GUI/GUI_Utils.hpp>
 
@@ -17,6 +18,7 @@
 #include <wx/webview.h>
 
 class wxCommandEvent;
+class wxFileName;
 class wxWebView;
 class wxWebViewEvent;
 class wxWindow;
@@ -72,6 +74,16 @@ public:
     // static markup shows its English until the page's init calls TranslatePage(). A host builds them
     // when it creates its web view; a language switch rebuilds the GUI and with it the host.
     static std::string localized_strings_script(const nlohmann::json& strings);
+    // The translated text of the code editor (resources/web/dialog/js/code_editor.js, Ace): its search box, suggestion
+    // list, read-only note, folding and ARIA labels, keyed by Ace's message keys, with %s for each of a message's
+    // placeholders. A page with an editor puts it under "code_editor" in its strings.
+    static nlohmann::json code_editor_strings();
+    // Whether a web view showing the bundled page `page` may navigate to `url`: the page's own loads (its file, with any
+    // query) and about:blank. Such a page never goes anywhere else, so its host vetoes every other navigation, which
+    // would hand the page's message handler to a page that isn't the app's: a link or a file dropped on it.
+    static bool own_page_navigation(const wxString& url, const wxFileName& page);
+    // The file a file: URL names: a web view navigates to a file dropped on it. Empty for any other URL.
+    static boost::filesystem::path dropped_file(const wxString& url);
 
 protected:
     wxWebView* browser() const { return m_browser; }

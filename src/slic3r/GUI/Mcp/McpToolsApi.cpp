@@ -28,6 +28,25 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 
 using nlohmann::json;
 
+json editor_tool_catalog(const ToolRegistry& registry)
+{
+    json tools = json::array();
+    for (const ToolDef& def : registry.tools()) {
+        json       args       = json::object();
+        const auto properties = def.input_schema.find("properties");
+        if (properties != def.input_schema.end())
+            for (const auto& [name, schema] : properties->items()) {
+                json arg = json::object();
+                for (const char* key : {"type", "enum"})
+                    if (schema.contains(key))
+                        arg[key] = schema[key];
+                args[name] = std::move(arg);
+            }
+        tools.push_back({{"name", def.name}, {"title", _u8L(def.title.c_str())}, {"args", std::move(args)}});
+    }
+    return tools;
+}
+
 namespace {
 
 // How many of each other catalog's matches api_describe shows beside the tools; its own search lists

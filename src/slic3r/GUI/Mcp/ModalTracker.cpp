@@ -911,11 +911,13 @@ bool ModalTracker::is_open(std::uint64_t serial) const
 
 ModalTracker::~ModalTracker() { Unregister(); }
 
-int ModalTracker::push_rules(std::vector<AutoAnswerRule> rules)
+int ModalTracker::push_rules(std::vector<AutoAnswerRule> rules, bool paused)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     const int layer = m_next_layer++;
     m_layers.emplace_back(layer, std::move(rules));
+    if (paused)
+        m_paused_layers.insert(layer);
     return layer;
 }
 
@@ -923,6 +925,16 @@ void ModalTracker::pop_rules(int layer)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_layers.erase(std::remove_if(m_layers.begin(), m_layers.end(), [layer](const auto& l) { return l.first == layer; }), m_layers.end());
+    m_paused_layers.erase(layer);
+}
+
+void ModalTracker::set_paused(int layer, bool paused)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (!paused)
+        m_paused_layers.erase(layer);
+    else if (std::any_of(m_layers.begin(), m_layers.end(), [layer](const auto& l) { return l.first == layer; }))
+        m_paused_layers.insert(layer);
 }
 
 json ModalTracker::rules_json() const
@@ -930,8 +942,12 @@ json ModalTracker::rules_json() const
     std::lock_guard<std::mutex> lock(m_mutex);
     json out = json::array();
     for (const auto& [layer, rules] : m_layers)
-        for (const AutoAnswerRule& r : rules)
-            out.push_back({{"layer", layer}, {"match", r.pattern}, {"button", r.button}, {"uses", r.uses}});
+        for (const AutoAnswerRule& r : rules) {
+            json rule{{"layer", layer}, {"match", r.pattern}, {"button", r.button}, {"uses", r.uses}};
+            if (m_paused_layers.count(layer) != 0)
+                rule["paused"] = true;
+            out.push_back(std::move(rule));
+        }
     return out;
 }
 
@@ -939,7 +955,7 @@ bool ModalTracker::rule_in_force(int layer, const std::string& pattern, const st
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     for (const auto& [id, rules] : m_layers)
-        if (layer == 0 || id == layer)
+        if ((layer == 0 || id == layer) && m_paused_layers.count(id) == 0)
             for (const AutoAnswerRule& r : rules)
                 if (r.pattern == pattern && r.button == button)
                     return true;
@@ -1037,7 +1053,9 @@ int ModalTracker::Enter(wxDialog* dialog)
         std::optional<std::tuple<int, std::string, std::string>> web_rule, wx_rule;
         const int         answer = [&] {
             std::lock_guard<std::mutex> lock(m_mutex);
-            for (auto layer = m_layers.rbegin(); layer != m_layers.rend(); ++layer)
+            for (auto layer = m_layers.rbegin(); layer != m_layers.rend(); ++layer) {
+                if (m_paused_layers.count(layer->first) != 0)
+                    continue;
                 for (AutoAnswerRule& rule : layer->second)
                     if (rule_matches(rule, title, message, text)) {
                         if (web && native_dialog_button(dialog, rule.button) == wxID_NONE) {
@@ -1058,6 +1076,7 @@ int ModalTracker::Enter(wxDialog* dialog)
                             return id;
                         }
                     }
+            }
             return int(wxID_NONE);
         }();
         // A native dialog has no handlers to run: ShowModal() returns the id without showing it.
@@ -1076,9 +1095,10 @@ int ModalTracker::Enter(wxDialog* dialog)
         // dialog_respond. The tracker lives as long as the app.
         if (wx_rule)
             dialog->CallAfter([this, dialog, answer, title, rule = *wx_rule] {
-                if (top() != dialog)
-                    return;
                 const auto& [layer, pattern, button] = rule;
+                // The rule may have been paused (a Run Script work ended) or dropped since the press was queued.
+                if (top() != dialog || !rule_in_force(layer, pattern, button))
+                    return;
                 before_press();
                 if (const DialogPress press = press_dialog_button(dialog, answer); press == DialogPress::Disabled || press == DialogPress::Hidden) {
                     BOOST_LOG_TRIVIAL(info) << "MCP: auto-answer rule \"" << pattern << "\" for dialog \"" << title << "\": its "

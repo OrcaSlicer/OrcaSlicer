@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
-"""Checks that the Run Script dialog stays out of reach of the GUI tools, so a script can't act on it.
+"""Checks that the Action Replay window and the Run Script panel stay out of reach of the GUI tools, so a
+replay or a script can't act on them.
 
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_script_runner_hidden.py
 
-With the dialog open: ui_snapshot lists no window for it, a window screenshot still works,
-webview_eval without a target behaves as it did before the dialog opened (it must not find a second
-web view), and ui_key without a target goes to the 3D view. run_script still runs the smoke test, and
-a script nesting an inline run_script passes. Exits 0 when every check passes.
+With Action Replay open: ui_snapshot lists no window for it, a window screenshot still works,
+webview_eval without a target behaves as it did before the window opened (it must not find a second
+web view), and ui_key without a target never reaches its web view. With the Run Script panel shown on
+Prepare: ui_snapshot lists no more web views than before, webview_eval without a target behaves as
+before, ui_key without a target reaches the 3D view, a window screenshot works and an agent's run_python
+finishes. run_script still runs the smoke test, and a script nesting an inline run_script passes. Exits
+0 when every check passes.
 """
 
 import os
+import re
 import sys
 import tempfile
 import time
@@ -34,6 +39,10 @@ def main():
         except orca_mcp.McpError as e:
             return "error: " + str(e)
 
+    def webview_nodes():
+        _snap, texts = client.call_with_text("ui_snapshot")
+        return len(re.findall(r"\bwebview\b", texts[0] if texts else ""))
+
     client.call("new_project", discard_changes=True)
     client.call("set_view", tab="home")
     before = eval_outcome()
@@ -43,8 +52,8 @@ def main():
 
     snap, texts = client.call_with_text("ui_snapshot")
     tree = texts[0] if texts else ""
-    # The File menu's "Run Script..." item is listed; the dialog's window must not be.
-    check("ui_snapshot lists no Run Script window", 'window "Run Script"' not in tree)
+    # The File menu's "Action Replay..." item is listed; the window must not be.
+    check("ui_snapshot lists no Action Replay window", 'window "Action Replay"' not in tree)
     check("ui_snapshot still lists the main window", "(MainFrame)" in tree)
     check("a window screenshot works", client.call("screenshot", target="window").get("path"))
     check("webview_eval without a target behaves as before", eval_outcome() == before, f"{before} / {eval_outcome()}")
@@ -52,7 +61,22 @@ def main():
     client.call("set_view", tab="prepare")
     client.call("run_action", id="orca_command:open_script_runner:orca")  # raised again, so it has the focus
     key = client.call("ui_key", keys="Escape")
-    check("a key without a target never goes to the runner's web view", "webview" not in str(key.get("to", "")).lower(), key)
+    check("a key without a target never goes to Action Replay's web view", "webview" not in str(key.get("to", "")).lower(), key)
+
+    # The Run Script panel, docked under the 3D view of Prepare.
+    client.call("set_view", tab="prepare")
+    nodes_before = webview_nodes()
+    prepare_eval = eval_outcome()
+    client.call("run_action", id="orca_command:toggle_run_script:orca")
+    time.sleep(1.0)  # let its web view load
+    check("ui_snapshot lists no node of the Run Script panel", webview_nodes() == nodes_before, f"{nodes_before} / {webview_nodes()}")
+    check("webview_eval without a target behaves as before the panel", eval_outcome() == prepare_eval, f"{prepare_eval} / {eval_outcome()}")
+    key = client.call("ui_key", keys="Escape")
+    check("a key without a target reaches the 3D view", "canvas" in str(key.get("to", "")).lower(), key)
+    check("a window screenshot works with the panel shown", client.call("screenshot", target="window").get("path"))
+    python = client.await_job(client.call("run_python", code="print('agent run')"))
+    check("an agent's run_python finishes while the panel is shown", python.get("status") == "finished", python)
+    client.call("run_action", id="orca_command:toggle_run_script:orca")  # hidden again
 
     out = tempfile.mkdtemp(prefix="orca-runner-")
     smoke = client.await_job(client.call("run_script", path=os.path.join(HERE, "smoke_test.json"), out_dir=out))

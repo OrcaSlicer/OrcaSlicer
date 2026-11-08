@@ -189,7 +189,7 @@ std::vector<wxWebView*> visible_webviews()
         }
         // A dialog is its parent's child too; it is visited once, as a top-level window.
         for (wxWindow* child : w->GetChildren())
-            if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr)
+            if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr && !skipped_by_walks(child))
                 visit(child);
     };
     if (wxGetApp().mainframe != nullptr)
@@ -1680,9 +1680,10 @@ void register_ui_tools(McpService& service)
                 for (const json& r : args["rules"])
                     rules.push_back(make_rule(r["match"].get<std::string>(), r["button"].get<std::string>()));
                 const std::vector<AutoAnswerRule> registered = rules;
-                const std::string scope = service.set_auto_answer(std::move(rules), service.jobs().ancestry(ctx.job_id()));
-                json out{{"scope", scope}, {"rules", service.modals().rules_json()}};
-                json answered = ctx.run_ui([&]() -> json {
+                const AutoAnswerSet set = service.set_auto_answer(std::move(rules), service.jobs().ancestry(ctx.job_id()));
+                json out{{"scope", set.scope}, {"rules", service.modals().rules_json()}};
+                // Paused rules leave the dialog that is open now to the person, as they leave the ones that open later.
+                json answered = set.paused ? json() : ctx.run_ui([&]() -> json {
                     wxDialog* top = service.modals().top();
                     // A message box is pressed as dialog_respond presses it; a picker can't be.
                     const bool native = top != nullptr && is_native_dialog(top);
@@ -1692,10 +1693,13 @@ void register_ui_tools(McpService& service)
                     const json  info = describe_dialog(top, &text);
                     for (const AutoAnswerRule& rule : registered)
                         if (rule_matches(rule, info["title"].get<std::string>(), info["message"].get<std::string>(), text)) {
+                            // The rule may have been paused (a Run Script work ended) or replaced since it was registered.
+                            if (!service.modals().rule_in_force(set.layer, rule.pattern, rule.button))
+                                return json();
                             // A web dialog is answered on its page, as ModalTracker::Enter() does.
                             if (info.value("web", false) && native_dialog_button(top, rule.button) == wxID_NONE) {
                                 const int standard = standard_dialog_button(rule.button);
-                                start_web_answer(service.modals(), top, 0, rule.pattern, rule.button,
+                                start_web_answer(service.modals(), top, set.layer, rule.pattern, rule.button,
                                                  standard == wxID_CANCEL || standard == wxID_CLOSE ? standard : int(wxID_NONE));
                                 return {{"dialog", info["title"]}, {"button", rule.button}, {"web", "answering on its page"}};
                             }
@@ -1709,7 +1713,7 @@ void register_ui_tools(McpService& service)
                             // As before any other press, the presses ui_mouse downs left on pages end first.
                             service.modals().before_press();
                             if (press_dialog_button(top, id) != DialogPress::Failed) {
-                                service.modals().count_use(0, rule.pattern, rule.button);
+                                service.modals().count_use(set.layer, rule.pattern, rule.button);
                                 return {{"dialog", info["title"]}, {"button", rule.button}};
                             }
                         }

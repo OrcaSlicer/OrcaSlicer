@@ -1,10 +1,5 @@
 #include "McpScriptRun.hpp"
-#include "JobRegistry.hpp"
-#include "McpCore.hpp"
 #include "McpService.hpp"
-
-#include "slic3r/GUI/GUI_App.hpp"
-#include "slic3r/GUI/Plater.hpp"
 
 #include <cstddef>
 #include <memory>
@@ -45,12 +40,8 @@ void ScriptRun::stop()
     if (job.empty() || m_service.stopping())
         return;
     m_service.request_stop(job);
-    // The step's own operation stops too, as the cancel tool stops it: a background job through the
-    // worker, a slice or export through the plater.
-    for (const std::string& op : m_service.jobs().running_operations())
-        if (m_service.jobs().lineage(op).count(job) != 0 && !m_service.core().cancel_worker(op))
-            if (Plater* plater = wxGetApp().plater())
-                plater->cancel_slicing();
+    // The step's own operation stops too, as the cancel tool stops it.
+    m_service.cancel_operations_of(job);
 }
 
 void ScriptRun::detach() { m_detached = true; }

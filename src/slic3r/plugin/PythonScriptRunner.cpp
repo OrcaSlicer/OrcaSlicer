@@ -5,6 +5,7 @@
 #include "PluginLoader.hpp"
 #include "PythonInterpreter.hpp"
 #include "PythonRunScope.hpp"
+#include "PythonSession.hpp"
 #include "host/PluginHostTools.hpp"
 #include "host/PluginHostUi.hpp"
 
@@ -14,6 +15,7 @@
 #include <boost/system/error_code.hpp>
 
 #include <pybind11/attr.h>
+#include <pybind11/cast.h>
 #include <pybind11/embed.h>
 #include <pybind11/eval.h>
 #include <pybind11/gil.h>
@@ -23,6 +25,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -30,11 +33,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <exception>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -59,13 +64,20 @@ import atexit, concurrent.futures.thread, importlib.machinery, os, re, sys, thre
 class RunInterrupted(BaseException):
     """Raised in a script's code when its run is cancelled or out of time."""
 
+_TRUNCATED = "\n[output truncated at 256 KiB]\n"
+
+# A run's output: kept until the run ends, or, for a session, handed to `sink` (as UTF-8 bytes) as it is written.
+# Either way a stretch of output is capped at LIMIT characters and then cut with the note; a session renews the
+# allowance as each work starts and ends. A session's `results` takes its results as JSON, within the same allowance.
 class _Capture:
-    __slots__ = ("parts", "size", "truncated")
+    __slots__ = ("parts", "size", "truncated", "sink", "results")
     LIMIT = 256 * 1024
-    def __init__(self):
+    def __init__(self, sink, results):
         self.parts = []
         self.size = 0
         self.truncated = False
+        self.sink = sink
+        self.results = results
 
 _captures = {}
 
@@ -78,16 +90,21 @@ class _RunStream:
             if self._original is not None:
                 return self._original.write(s)
             return len(s)
-        if not capture.truncated:
-            room = _Capture.LIMIT - capture.size
-            if len(s) > room:
-                capture.parts.append(s[:room])
-                capture.size = _Capture.LIMIT
-                capture.truncated = True
-            else:
-                capture.parts.append(s)
-                capture.size += len(s)
-        return len(s)
+        written = len(s)
+        if capture.truncated:
+            return written
+        room = _Capture.LIMIT - capture.size
+        if written > room:
+            s = s[:room]
+            capture.size = _Capture.LIMIT
+            capture.truncated = True
+        else:
+            capture.size += written
+        if capture.sink is None:
+            capture.parts.append(s)
+        else:
+            capture.sink((s + _TRUNCATED if capture.truncated else s).encode("utf-8", "replace"))
+        return written
     def flush(self):
         if self._original is not None:
             try:
@@ -99,8 +116,25 @@ class _RunStream:
     def __getattr__(self, name):
         return getattr(self._original, name)
 
-def begin(run_id):
-    _captures[run_id] = _Capture()
+def begin(run_id, sink=None, results=None):
+    _captures[run_id] = _Capture(sink, results)
+
+def result(run_id, text):
+    """Host bookkeeping: hands a result's JSON to the run's `results`. False when the run has none or the JSON doesn't
+    fit what is left of the allowance, and the caller prints the result instead."""
+    capture = _captures.get(run_id)
+    if capture is None or capture.results is None or capture.truncated or len(text) > _Capture.LIMIT - capture.size:
+        return False
+    capture.size += len(text)
+    capture.results(text.encode("utf-8", "replace"))
+    return True
+
+def renew(run_id):
+    """Host bookkeeping: a session's next stretch of output gets the whole allowance."""
+    capture = _captures.get(run_id)
+    if capture is not None:
+        capture.size = 0
+        capture.truncated = False
 
 def end(run_id):
     capture = _captures.pop(run_id, None)
@@ -108,7 +142,7 @@ def end(run_id):
         return ""
     text = "".join(capture.parts)
     if capture.truncated:
-        text += "\n[output truncated at 256 KiB]\n"
+        text += _TRUNCATED
     return text
 
 sys.stdout = _RunStream(sys.stdout)
@@ -458,6 +492,124 @@ def leave(run_id):
     return held
 )CAPTURE";
 
+// A session's own helpers in the capture module, run after kCaptureSource in the same module.
+constexpr const char* kSessionSource = R"SESSION(
+import ast, bisect, io, json, linecache, math, sys, traceback
+
+# A session's traceback, which quotes the editor's text (`source`) for the frames in the session's file and linecache
+# for the others, in the exception and in every exception chained to it or grouped in it. linecache itself is left
+# alone: every run, plugin and later traceback shares it, and theirs must quote the file on disk.
+def format_quoted(exc_type, exc, tb, filename, source):
+    lines = io.StringIO(source, newline=None).readlines()
+    def quoted(stack):
+        frames = []
+        for frame in stack:
+            line = ""
+            if frame.lineno:
+                if frame.filename == filename:
+                    line = lines[frame.lineno - 1] if 0 < frame.lineno <= len(lines) else ""
+                else:
+                    line = linecache.getline(frame.filename, frame.lineno)
+            if line and not line.endswith("\n"):
+                line += "\n"
+            frames.append(traceback.FrameSummary(frame.filename, frame.lineno, frame.name, lookup_line=False, line=line,
+                                                 end_lineno=frame.end_lineno, colno=frame.colno, end_colno=frame.end_colno))
+        return traceback.StackSummary.from_list(frames)
+    top = traceback.TracebackException(exc_type, exc, tb, lookup_lines=False)
+    seen = set()
+    todo = [top]
+    while todo:
+        item = todo.pop()
+        if id(item) in seen:
+            continue
+        seen.add(id(item))
+        item.stack = quoted(item.stack)
+        todo.extend(nested for nested in (item.__cause__, item.__context__) if nested is not None)
+        todo.extend(item.exceptions or ())
+    return "".join(top.format())
+
+def error_line(exc, tb, filename):
+    """The innermost line of `tb` in `filename`, or a SyntaxError's own line there; 0 for none."""
+    if isinstance(exc, SyntaxError) and exc.filename == filename and isinstance(exc.lineno, int):
+        return exc.lineno
+    line = 0
+    while tb is not None:
+        if tb.tb_frame.f_code.co_filename == filename and tb.tb_lineno:
+            line = tb.tb_lineno
+        tb = tb.tb_next
+    return line
+
+# A File work's cells, reported as their lines start running: LINE events on its module code only, through
+# sys.monitoring's tool id 4 while the work runs. False when another owner holds the id.
+_CELLS_TOOL = 4
+
+def claim_cells(code, starts, emit):
+    monitoring = sys.monitoring
+    try:
+        monitoring.use_tool_id(_CELLS_TOOL, "OrcaSlicer Run Script")
+    except ValueError:
+        return False
+    current = [-1]
+    def line(where, number, _code=code, _starts=starts, _emit=emit, _current=current, _find=bisect.bisect_right):
+        if where is _code:
+            cell = max(_find(_starts, number) - 1, 0)
+            if cell != _current[0]:
+                _current[0] = cell
+                _emit(cell)
+    monitoring.register_callback(_CELLS_TOOL, monitoring.events.LINE, line)
+    monitoring.set_local_events(_CELLS_TOOL, code, monitoring.events.LINE)
+    return True
+
+def release_cells(code):
+    """Host bookkeeping: the events and the callback go before the id, since freeing it leaves both in place."""
+    monitoring = sys.monitoring
+    monitoring.set_local_events(_CELLS_TOOL, code, 0)
+    monitoring.register_callback(_CELLS_TOOL, monitoring.events.LINE, None)
+    monitoring.free_tool_id(_CELLS_TOOL)
+
+# A File work's module with each cell's result shown, as a Cell work shows its own: the last top-level statement that
+# starts in a cell, when it is a bare expression, becomes a call with its value to `show`, the name the host binds to
+# show_result() in the work's namespace, so neither __import__ nor sys.modules stands between a cell and its value.
+# Every statement keeps its lines, so cells, tracebacks and error lines are the file's. The module's docstring stays its
+# docstring.
+def mark_cell_results(tree, starts, show):
+    body = tree.body
+    last = {}
+    for at, statement in enumerate(body):
+        last[max(bisect.bisect_right(starts, statement.lineno) - 1, 0)] = at
+    for at in last.values():
+        statement = body[at]
+        if not isinstance(statement, ast.Expr):
+            continue
+        if at == 0 and isinstance(statement.value, ast.Constant) and isinstance(statement.value.value, str):
+            continue
+        statement.value = ast.copy_location(ast.Call(ast.Name(show, ast.Load()), [statement.value], []), statement.value)
+    ast.fix_missing_locations(tree)
+
+# A result as compact JSON when it is a dict or a list that JSON holds as is: str keys, finite floats, strings UTF-8
+# holds (no lone surrogate, which the trip to the page would replace), and no tuple, subclass or other value JSON would
+# turn into something else. None otherwise, and for anything too deep or that can't be written; never raises an
+# Exception.
+def result_json(value):
+    def plain(item, depth):
+        kind = type(item)
+        if kind is dict:
+            return depth < 100 and all(type(key) is str and plain(member, depth + 1) for key, member in item.items())
+        if kind is list:
+            return depth < 100 and all(plain(member, depth + 1) for member in item)
+        if kind is float:
+            return math.isfinite(item)
+        return item is None or kind is str or kind is int or kind is bool
+    try:
+        if type(value) in (dict, list) and plain(value, 0):
+            text = json.dumps(value, ensure_ascii=False)
+            text.encode("utf-8")
+            return text
+    except Exception:
+        pass
+    return None
+)SESSION";
+
 // The capture module's functions and interrupt, installed on first use and held from then on, so a script
 // that rebinds the module's names or replaces it in sys.modules changes nothing the runner calls. The
 // references are kept for the process: dropping them after the interpreter finalizes would crash. GIL held.
@@ -474,21 +626,75 @@ struct Capture
     PyObject* take_exits         = nullptr;
     PyObject* call_exits         = nullptr;
     PyObject* dependencies       = nullptr;
+    PyObject* renew              = nullptr;
+    PyObject* format_quoted      = nullptr;
+    PyObject* error_line         = nullptr;
+    PyObject* claim_cells        = nullptr;
+    PyObject* release_cells      = nullptr;
+    PyObject* mark_cell_results  = nullptr;
+    PyObject* result_json        = nullptr;
+    PyObject* result             = nullptr;
+    PyObject* show_result        = nullptr;
 };
 
-// A work item's tag (item._orca_run, a capsule that owns it): the run it belongs to and its task's accounting there,
-// in plain C++, so nothing between taking the count and recording it, or between testing the claim and setting it, can
-// raise or run Python code.
+// The name a File work's namespace binds show_result() to for the calls mark_cell_results() puts in its cells. A
+// leading underscore keeps it out of the session's variable count.
+constexpr const char* kShowResultName = "_orca_show_result";
+
+// The work a session's hosting thread runs now, for the show_result() calls mark_cell_results() puts in a File work.
+// The function is one for every run and can outlive the work in a script's hands, so it finds the work here rather than
+// holding it.
+struct ResultTarget
+{
+    py::dict*      ns      = nullptr;
+    std::uint64_t  run_id  = 0;
+    const Capture* capture = nullptr;
+};
+thread_local const ResultTarget* t_result_target = nullptr;
+
+// The thread's ResultTarget while a work's code runs.
+class ScopedResultTarget
+{
+public:
+    explicit ScopedResultTarget(const ResultTarget& target) : m_previous(t_result_target) { t_result_target = &target; }
+    ~ScopedResultTarget() { t_result_target = m_previous; }
+    ScopedResultTarget(const ScopedResultTarget&)            = delete;
+    ScopedResultTarget& operator=(const ScopedResultTarget&) = delete;
+
+private:
+    const ResultTarget* m_previous;
+};
+
+// A work's or a cell's result, as the REPL shows one: `_` names it, and the session gets it as a Result event when
+// result_json() writes it and it fits the output's allowance, else it is printed as its repr. Nothing for None. It is
+// C++, so a repr that raises leaves no frame of the host's in the traceback. GIL held.
+void show_result(const py::object& value, const ResultTarget& target)
+{
+    if (value.is_none())
+        return;
+    (*target.ns)["_"] = value;
+    const py::object text = py::handle(target.capture->result_json)(value);
+    if (!text.is_none() && py::handle(target.capture->result)(target.run_id, text).cast<bool>())
+        return;
+    const py::module_ builtins = py::module_::import("builtins");
+    builtins.attr("print")(builtins.attr("repr")(value));
+}
+
+// A work item's tag (item._orca_run, a capsule that owns it): the run it belongs to, the run's stop generation when the
+// task was submitted, and its task's accounting there, in plain C++, so nothing between taking the count and recording
+// it, or between testing the claim and setting it, can raise or run Python code.
 struct ItemTag
 {
     std::shared_ptr<PythonRunScope> run;
-    bool                            counted = false;
-    bool                            claimed = false;
+    std::uint64_t                   generation = 0;
+    bool                            counted    = false;
+    bool                            claimed    = false;
 };
 
 py::capsule item_tag(std::shared_ptr<PythonRunScope> run)
 {
-    return py::capsule(new ItemTag{std::move(run)}, [](void* tag) { delete static_cast<ItemTag*>(tag); });
+    const std::uint64_t generation = run->stop_generation();
+    return py::capsule(new ItemTag{std::move(run), generation}, [](void* tag) { delete static_cast<ItemTag*>(tag); });
 }
 
 ItemTag& tag_of(const py::handle& capsule) { return *static_cast<ItemTag*>(py::reinterpret_borrow<py::capsule>(capsule).get_pointer()); }
@@ -536,11 +742,14 @@ py::object run_work_item(const py::object& original, const py::handle& interrupt
         const unsigned long      ident = PyThread_get_thread_ident();
         run->task_running(ident);
         try {
-            if (run->stopped() || run->admission_closed()) {
-                // A stopped or ended run's queued task doesn't run.
-                py::object future = item.attr("future");
+            const bool ended = run->admission_closed();
+            if (ended || run->queued_task_refused(tag.generation)) {
+                // A queued task doesn't run once its run has ended, or once a stop came after it was submitted; a
+                // session that goes on after the stop runs the tasks its later work submits.
+                const char* why    = ended || run->ending() ? "The script's run has ended" : "The task was stopped before it ran";
+                py::object  future = item.attr("future");
                 if (future.attr("set_running_or_notify_cancel")().cast<bool>())
-                    future.attr("set_exception")(py::module_::import("builtins").attr("RuntimeError")("The script's run has ended"));
+                    future.attr("set_exception")(py::module_::import("builtins").attr("RuntimeError")(why));
             } else
                 original(item);
         } catch (py::error_already_set& err) {
@@ -591,7 +800,13 @@ const Capture& capture_functions()
     module.attr("_count")     = py::cpp_function([](const py::handle& capsule) { return count_item(tag_of(capsule)); });
     module.attr("_claim")     = py::cpp_function([](const py::handle& capsule) { return claim_item(tag_of(capsule)); });
     module.attr("_task_done") = py::cpp_function([](const py::handle& capsule) { tag_of(capsule).run->task_done(); });
+    // Off the hosting thread of the File work that runs it, it shows nothing.
+    module.attr("show_result") = py::cpp_function([](const py::object& value) {
+        if (t_result_target != nullptr)
+            show_result(value, *t_result_target);
+    });
     py::exec(kCaptureSource, module.attr("__dict__"));
+    py::exec(kSessionSource, module.attr("__dict__"));
     py::module_::import("sys").attr("modules")[kCaptureModule] = module;
     const auto hold = [&module](const char* name) { return py::object(module.attr(name)).release().ptr(); };
     capture.end         = hold("end");
@@ -604,6 +819,15 @@ const Capture& capture_functions()
     capture.take_exits         = hold("take_exits");
     capture.call_exits         = hold("call_exits");
     capture.dependencies       = hold("script_dependencies");
+    capture.renew              = hold("renew");
+    capture.format_quoted      = hold("format_quoted");
+    capture.error_line         = hold("error_line");
+    capture.claim_cells        = hold("claim_cells");
+    capture.release_cells      = hold("release_cells");
+    capture.mark_cell_results  = hold("mark_cell_results");
+    capture.result_json        = hold("result_json");
+    capture.result             = hold("result");
+    capture.show_result        = hold("show_result");
     {
         py::object item_class = py::module_::import("concurrent.futures.thread").attr("_WorkItem");
         py::object original   = item_class.attr("run");
@@ -693,21 +917,46 @@ json strict_json(const py::handle& value, int depth = 0)
     throw std::invalid_argument("result holds a " + std::string(Py_TYPE(value.ptr())->tp_name) + ", which is not JSON");
 }
 
-// Interrupts the run when it is cancelled or out of time, until stopped. What it interrupts depends on the run's
-// phase: in Body (the code runs) and Exit (atexit functions, the namespace's finalizers, the folder's teardown) the
-// run's thread and its interrupt targets; in Threads (the run's thread waits in C++ for the work it started) the
-// targets only; in Drain (host bookkeeping) nothing, though it still records a stop or time-out. The phase is set,
-// and read before an interrupt, under the GIL, so no interrupt lands after the phase that allowed it.
+// How long a stop reaches a session's threads and tasks while it is idle, and how long a run or session's end waits for
+// the work it started once a stop came.
+constexpr std::chrono::seconds kStopWindow{5};
+
+// Interrupts what a run or session runs when it is stopped, cancelled or out of time. What it interrupts depends on the
+// phase: in Body (a work's code runs) and Exit (atexit functions, the namespace's finalizers, the folder's teardown) the
+// hosting thread and the interrupt targets; in Threads (the hosting thread waits in C++ for the work it started) and
+// Idle (a session waits for work) the targets only; in Drain (host bookkeeping) nothing, though it still records a stop.
+// The phase is set, and read before an interrupt, under the GIL, so no interrupt lands after the phase that allowed it.
+//
+// A session's stop() reaches what runs from then until the next work starts, and while the session is idle only for
+// kStopWindow; a cancel or a time-out reaches everything until the end, and ends the session.
+//
+// Lock order: the GIL before this object's mutex, and this mutex before the scope's.
 class Watcher
 {
 public:
-    enum class Reason { None, Cancelled, TimedOut };
-    enum class Phase { Body, Threads, Exit, Drain };
+    enum class Reason { None, Stopped, Cancelled, TimedOut };
+    enum class Phase { Body, Threads, Exit, Drain, Idle };
 
-    Watcher(const PythonRunRequest& request, unsigned long thread_ident, PyObject* interrupt, std::shared_ptr<PythonRunScope> scope)
-        : m_request(request), m_ident(thread_ident), m_interrupt(interrupt), m_scope(std::move(scope)), m_thread([this] { run(); })
+    struct Config
+    {
+        std::function<bool()>     cancelled;
+        std::chrono::milliseconds budget{0};
+        std::function<void()>     stop_calls;
+        bool                      stop_closes_ui = false;
+    };
+
+    Watcher(Config config, PythonSession& session, unsigned long thread_ident, PyObject* interrupt, std::shared_ptr<PythonRunScope> scope)
+        : m_config(std::move(config))
+        , m_session(session)
+        , m_ident(thread_ident)
+        , m_interrupt(interrupt)
+        , m_scope(std::move(scope))
+        , m_start(std::chrono::steady_clock::now())
+        , m_thread([this] { run(); })
     {}
     ~Watcher() { stop(); }
+    Watcher(const Watcher&)            = delete;
+    Watcher& operator=(const Watcher&) = delete;
 
     // Ends the watcher. Call without the GIL: an interrupt it is raising needs it.
     void stop()
@@ -720,76 +969,159 @@ public:
         if (m_thread.joinable())
             m_thread.join();
     }
-    Reason reason() const { return m_reason.load(); }
+    // Takes in the stops asked for so far, as the watcher's own loop does, so a work's tasks are counted after them, and
+    // waits until no stop is still being applied (its tool calls cancelled, its modal windows ended), this call's own or
+    // one the loop took, so the next work's calls never meet a stop meant for the work before. Call without the GIL.
+    void settle()
+    {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        take_stops(lock);
+        m_cv.wait(lock, [this] { return m_applying == 0; });
+    }
+    // With the GIL held, as a work starts: only the stops asked for after the first `floor` reach it.
+    void begin_work(std::uint64_t floor)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_floor = floor;
+    }
+    // With the GIL held, as the teardown starts: a stop older than kStopWindow no longer reaches it.
+    void begin_teardown()
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (m_stops_seen > m_floor && std::chrono::steady_clock::now() - m_last_stop >= kStopWindow)
+            m_floor = m_stops_seen;
+    }
+    // What reaches what runs now: the end (a cancel or a time-out) when one came, else Stopped when a stop came since the
+    // work started.
+    Reason reason() const
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return reason_locked();
+    }
     // With the GIL held.
     void set_phase(Phase phase) { m_phase = phase; }
-    // Time since the run's first stop or time-out, or nullopt before it.
+    // Time since the stop, cancel or time-out that reaches what runs now, or nullopt when none does.
     std::optional<std::chrono::steady_clock::duration> since_stop() const
     {
-        const long long at = m_stopped_at.load();
-        if (at < 0)
+        std::lock_guard<std::mutex> lock(m_mutex);
+        const Reason why = reason_locked();
+        if (why == Reason::None)
             return std::nullopt;
-        return std::chrono::steady_clock::now().time_since_epoch() - std::chrono::steady_clock::duration(at);
+        return std::chrono::steady_clock::now() - (why == Reason::Stopped ? m_last_stop : m_end_at);
     }
 
 private:
+    Reason reason_locked() const
+    {
+        if (m_end != Reason::None)
+            return m_end;
+        return m_stops_seen > m_floor ? Reason::Stopped : Reason::None;
+    }
+
+    // Records new stop requests, a cancel and a time-out, and does what each asks: the run's queued tasks are refused,
+    // its tool calls cancelled, and its modal windows ended (every window of a run that closes its UI at a stop). A
+    // cancel or a time-out also ends the session; the first of them sticks. `lock` is released while that is done.
+    void take_stops(std::unique_lock<std::mutex>& lock)
+    {
+        const auto now     = std::chrono::steady_clock::now();
+        bool       stopped = false;
+        if (const std::uint64_t asked = m_session.stop_requests(); asked > m_stops_seen) {
+            m_stops_seen = asked;
+            m_last_stop  = now;
+            stopped      = true;
+        }
+        Reason end = Reason::None;
+        if (m_end == Reason::None) {
+            if (m_config.cancelled && m_config.cancelled())
+                end = Reason::Cancelled;
+            else if (m_config.budget.count() > 0 && now - m_start >= m_config.budget)
+                end = Reason::TimedOut;
+        }
+        if (end != Reason::None) {
+            m_end    = end;
+            m_end_at = now;
+        }
+        if (!stopped && end == Reason::None)
+            return;
+        m_last_interrupt = {};
+        m_scope->mark_stopped();
+        ++m_applying;
+        lock.unlock();
+        if (m_config.stop_calls)
+            m_config.stop_calls();
+        if (m_scope->owns_ui()) {
+            // A stopped run opens nothing more, and what it has open closes now, which ends a modal loop it waits in. A
+            // stopped session keeps its modeless windows and only leaves the modal loops.
+            if (m_config.stop_closes_ui) {
+                m_scope->mark_ui_closed();
+                PluginHostUi::close_windows_for_plugin(m_scope->ui_owner());
+            } else
+                PluginHostUi::end_run_modals(m_scope->ui_owner());
+        }
+        if (end != Reason::None)
+            m_session.end();
+        lock.lock();
+        --m_applying;
+        m_cv.notify_all();
+    }
+
     void run()
     {
-        const auto start = std::chrono::steady_clock::now();
-        auto       last  = std::chrono::steady_clock::time_point{};
         std::unique_lock<std::mutex> lock(m_mutex);
         while (!m_cv.wait_for(lock, std::chrono::milliseconds(50), [this] { return m_stop; })) {
-            Reason why = Reason::None;
-            if (m_request.cancelled && m_request.cancelled())
-                why = Reason::Cancelled;
-            else if (m_request.budget.count() > 0 && std::chrono::steady_clock::now() - start >= m_request.budget)
-                why = Reason::TimedOut;
-            if (why == Reason::None)
-                continue;
-            // The first reason sticks: a run cancelled after its budget ran out still timed out.
-            Reason expected = Reason::None;
-            if (m_reason.compare_exchange_strong(expected, why)) {
-                m_stopped_at = std::chrono::steady_clock::now().time_since_epoch().count();
-                m_scope->mark_stopped();
-                lock.unlock();
-                if (m_request.stop_calls)
-                    m_request.stop_calls();
-                // A stopped script opens nothing more, and what it has open closes now, which ends a modal loop it
-                // waits in.
-                if (m_scope->owns_ui()) {
-                    m_scope->mark_ui_closed();
-                    PluginHostUi::close_windows_for_plugin(m_scope->ui_owner());
-                }
-                lock.lock();
-            }
+            m_session.set_has_threads(m_scope->has_live_work());
+            take_stops(lock);
             const auto now = std::chrono::steady_clock::now();
-            if (now - last < std::chrono::seconds(1))
+            if (reason_locked() == Reason::None || now - m_last_interrupt < std::chrono::seconds(1))
                 continue;
-            last = now;
             lock.unlock();
             // The run holds an interpreter lease until this watcher is stopped, so the interpreter is up.
             const PyGILState_STATE gil   = PyGILState_Ensure();
             const Phase            phase = m_phase.load();
-            if (phase == Phase::Body || phase == Phase::Exit)
+            bool                   reaches;
+            {
+                std::lock_guard<std::mutex> again(m_mutex);
+                reaches = m_end != Reason::None ||
+                          (m_stops_seen > m_floor && (phase != Phase::Idle || now - m_last_stop < kStopWindow));
+            }
+            bool sent = false;
+            if (reaches && (phase == Phase::Body || phase == Phase::Exit)) {
                 PyThreadState_SetAsyncExc(m_ident, m_interrupt);
-            if (phase != Phase::Drain)
-                m_scope->for_each_interrupt_target([this](unsigned long ident) { PyThreadState_SetAsyncExc(ident, m_interrupt); });
+                sent = true;
+            }
+            if (reaches && phase != Phase::Drain)
+                m_scope->for_each_interrupt_target([this, &sent](unsigned long ident) {
+                    PyThreadState_SetAsyncExc(ident, m_interrupt);
+                    sent = true;
+                });
             PyGILState_Release(gil);
             lock.lock();
+            // Nothing sent (host bookkeeping, no target yet): tried again at the next poll.
+            if (sent)
+                m_last_interrupt = now;
         }
     }
 
-    const PythonRunRequest&         m_request;
-    const unsigned long             m_ident;
-    PyObject*                       m_interrupt;
-    std::shared_ptr<PythonRunScope> m_scope;
-    std::mutex                      m_mutex;
-    std::condition_variable         m_cv;
-    bool                            m_stop = false;
-    std::atomic<Reason>             m_reason{Reason::None};
-    std::atomic<Phase>              m_phase{Phase::Body}; // set and read under the GIL
-    std::atomic<long long>          m_stopped_at{-1};
-    std::thread                     m_thread;
+    const Config                          m_config;
+    PythonSession&                        m_session;
+    const unsigned long                   m_ident;
+    PyObject*                             m_interrupt;
+    std::shared_ptr<PythonRunScope>       m_scope;
+    const std::chrono::steady_clock::time_point m_start;
+    mutable std::mutex                    m_mutex;
+    std::condition_variable               m_cv;
+    bool                                  m_stop       = false;
+    // How many stops are having their tool calls and modal windows dealt with, outside the lock (take_stops()): the loop
+    // and settle() can each be applying one.
+    int                                   m_applying   = 0;
+    std::uint64_t                         m_stops_seen = 0;
+    std::uint64_t                         m_floor      = 0;
+    std::chrono::steady_clock::time_point m_last_stop{};
+    Reason                                m_end = Reason::None;
+    std::chrono::steady_clock::time_point m_end_at{};
+    std::chrono::steady_clock::time_point m_last_interrupt{};
+    std::atomic<Phase>                    m_phase{Phase::Body}; // set and read under the GIL
+    std::thread                           m_thread;
 };
 
 std::string format_traceback(py::error_already_set& err)
@@ -815,51 +1147,154 @@ std::string exception_line(py::error_already_set& err)
     }
 }
 
+py::object trace_of(py::error_already_set& err) { return err.trace() ? py::object(err.trace()) : py::object(py::none()); }
+
+// A session's traceback, quoting `source` for its file's frames; today's format when that can't be made.
+std::string quoted_traceback(const Capture& capture, py::error_already_set& err, const std::string& filename, const std::string& source)
+{
+    try {
+        return py::handle(capture.format_quoted)(err.type(), err.value(), trace_of(err), filename, source).cast<std::string>();
+    } catch (const std::exception&) {
+        return format_traceback(err);
+    }
+}
+
+int error_line_of(const Capture& capture, py::error_already_set& err, const std::string& filename)
+{
+    try {
+        return py::handle(capture.error_line)(err.value(), trace_of(err), filename).cast<int>();
+    } catch (const std::exception&) {
+        return 0;
+    }
+}
+
+// The names a person calls the session's variables: not starting with '_', not `args`, not modules. Reads the dict
+// without running Python code. GIL held.
+int count_variables(const py::dict& ns)
+{
+    int        count = 0;
+    PyObject*  key   = nullptr;
+    PyObject*  value = nullptr;
+    Py_ssize_t pos   = 0;
+    while (PyDict_Next(ns.ptr(), &pos, &key, &value)) {
+        if (!PyUnicode_Check(key))
+            continue;
+        Py_ssize_t  size = 0;
+        const char* name = PyUnicode_AsUTF8AndSize(key, &size);
+        if (name == nullptr) {
+            PyErr_Clear();
+            continue;
+        }
+        const std::string_view text(name, static_cast<std::size_t>(size));
+        if (text.empty() || text.front() == '_' || text == "args" || PyModule_Check(value))
+            continue;
+        ++count;
+    }
+    return count;
+}
+
+PythonSessionEvent finished_event(std::string status, std::string message = {})
+{
+    PythonSessionEvent event;
+    event.kind    = PythonSessionEvent::Kind::Finished;
+    event.status  = std::move(status);
+    event.message = std::move(message);
+    return event;
+}
+
+// The status of a work an interrupt ended, from what reached it. With `ran_on`, a work that finished while a stop
+// reached what it ran on into (its threads, or the session's teardown, whose finalizer swallowed the interrupt, as
+// Python ignores what __del__ raises) did not finish in time either.
+void resolve_interrupted(PythonSessionEvent& done, Watcher::Reason reason, bool ran_on, std::chrono::milliseconds budget)
+{
+    if (ran_on && done.status == "finished" && reason != Watcher::Reason::None)
+        done.status = "interrupted";
+    if (done.status != "interrupted")
+        return;
+    if (reason == Watcher::Reason::None) {
+        // The code raised the interrupt itself.
+        done.status  = "raised";
+        done.message = "RunInterrupted";
+        return;
+    }
+    done.result = nullptr;
+    if (reason == Watcher::Reason::TimedOut) {
+        done.status  = "timed_out";
+        done.message = "The script ran longer than its " + std::to_string(budget.count() / 1000) + " s budget";
+    } else {
+        done.status  = "cancelled";
+        done.message = reason == Watcher::Reason::Cancelled ? "The script was cancelled" : "The script was stopped";
+    }
+}
+
+PythonSessionEvent output_event(std::string text)
+{
+    PythonSessionEvent event;
+    event.kind = PythonSessionEvent::Kind::Output;
+    event.text = std::move(text);
+    return event;
+}
+
 } // namespace
 
-PythonRunOutcome run_python_code(const PythonRunRequest& request)
+void host_python_session(const PythonSessionRequest& request, PythonSession& session)
 {
-    PythonRunOutcome outcome;
-    std::string      result_note;
+    struct Returned
+    {
+        PythonSession& session;
+        ~Returned() { session.host_returned(); }
+    } returned{session};
+
+    // Nothing is set up before the first work: a session ended or cancelled before it leaves nothing behind.
+    std::uint64_t             floor = 0;
+    std::optional<PythonWork> work;
+    while (!(work = session.take_work(std::chrono::milliseconds(50), floor)))
+        if (session.end_requested() || (request.cancelled && request.cancelled()))
+            return;
+    // The first work ends without running, and the session with it.
+    const auto refuse = [&session](const char* status, std::string message) {
+        PythonSessionEvent done = finished_event(status, std::move(message));
+        done.executed           = false;
+        session.push_event(std::move(done));
+    };
     if (!PythonInterpreter::instance().is_initialized()) {
-        outcome.status  = "unavailable";
-        outcome.message = "Python is not available in this OrcaSlicer";
-        return outcome;
+        refuse("unavailable", "Python is not available in this OrcaSlicer");
+        return;
     }
     PythonRuntimeLease lease = PythonInterpreter::instance().acquire_runtime_lease();
     if (!lease) {
-        outcome.status  = "unavailable";
-        outcome.message = "Python is shutting down";
-        return outcome;
+        refuse("unavailable", "Python is shutting down");
+        return;
     }
 
     const boost::filesystem::path file  = run_file(request.filename);
     auto                          scope = std::make_shared<PythonRunScope>(g_next_run_id++, request.identity, file, current_tool_bridge());
     ScopedPythonRun               bound(scope, PythonRunThread::Main);
     const std::uint64_t           run_id = scope->id();
+    if (session.end_requested())
+        scope->mark_ending();
 
     py::gil_scoped_acquire gil;
-    const unsigned long ident = PyThread_get_thread_ident();
-    const Capture*      capture = nullptr;
+    const unsigned long    ident   = PyThread_get_thread_ident();
+    const Capture*         capture = nullptr;
     try {
         capture = &capture_functions();
     } catch (py::error_already_set& err) {
-        outcome.status  = "unavailable";
-        outcome.message = std::string("Cannot prepare the Python run: ") + err.what();
-        return outcome;
+        refuse("unavailable", std::string("Cannot prepare the Python run: ") + err.what());
+        return;
     }
     py::handle interrupt(capture->interrupt);
 
-    // A file run's PEP 723 dependencies are installed before its code, as a plugin's are; a block that can't be read
-    // or an install that fails stops the run there. The install runs without the GIL, bounded by uv's own limit.
+    // A file session's PEP 723 dependencies are installed before its first work, as a plugin's are; a block that can't
+    // be read or an install that fails ends the session there. The install runs without the GIL, bounded by uv's own
+    // limit.
     if (!file.empty()) {
         std::vector<std::string> packages;
         try {
-            packages = py::handle(capture->dependencies)(request.code).cast<std::vector<std::string>>();
+            packages = py::handle(capture->dependencies)(work->source).cast<std::vector<std::string>>();
         } catch (py::error_already_set& err) {
-            outcome.status  = "raised";
-            outcome.message = "Cannot read the script's PEP 723 block: " + exception_line(err);
-            return outcome;
+            refuse("raised", "Cannot read the script's PEP 723 block: " + exception_line(err));
+            return;
         }
         if (!packages.empty()) {
             std::string error;
@@ -869,32 +1304,32 @@ PythonRunOutcome run_python_code(const PythonRunRequest& request)
                 installed = install_dependencies(packages, error);
             }
             if (!installed) {
-                outcome.status  = "raised";
-                outcome.message = "Cannot install the script's dependencies: " + error;
-                return outcome;
+                refuse("raised", "Cannot install the script's dependencies: " + error);
+                return;
             }
         }
     }
 
-    // Everything below that can run the script's Python (its body, a result's or exception's own methods,
-    // finalizers of what its namespace and traceback hold) runs inside the script's audit scope and under the
-    // watcher, so none of it escapes the identity, the budget or a cancel.
-    Watcher::Reason reason = Watcher::Reason::None;
+    // Everything below that can run the script's Python (its works, a result's or exception's own methods, finalizers of
+    // what its namespace and tracebacks hold) runs inside the script's audit scope and under the watcher, so none of it
+    // escapes the identity, the budget, a stop or a cancel.
+    std::string                       notes;    // what follows the captured output when it is not streamed
+    std::optional<PythonSessionEvent> deferred; // a work's Finished event when the session's end was asked before it
+    Watcher::Reason                   deferred_reason = Watcher::Reason::None;
+    Watcher::Reason                   reason          = Watcher::Reason::None;
     {
         ScopedPluginAuditContext audit(request.identity);
-        Watcher                  watcher(request, ident, interrupt.ptr(), scope);
-        std::optional<py::error_already_set> failure;
+        Watcher watcher(Watcher::Config{request.cancelled, request.budget, request.stop_calls, request.stop_closes_ui}, session, ident,
+                        interrupt.ptr(), scope);
         py::dict                             ns;
-        bool                                 executed = false;
-        bool                                 entered  = false;
-        // The body is the run's main program, which `python file.py` runs on a non-daemon thread, so the threads it
-        // starts are waited for unless they say otherwise. The app runs it on a thread Python didn't start, which
-        // Python sees as a daemon dummy thread, so the body runs with that flag cleared. Thread.daemon refuses a
-        // started thread, hence _daemonic.
-        py::object main_thread;
-        bool       was_daemon = false;
-        // Host bookkeeping that an interrupt must not cut in half (a folder's use count, what its teardown takes) runs
-        // in the Drain phase, with an interrupt already sent dropped. The caller sets the phase that follows.
+        bool                                 entered = false;
+        py::object                           main_thread;
+        py::object                           builtins = py::module_::import("builtins");
+        // A deferred work's exception, which keeps its frames until the teardown drops it, as a run's does.
+        std::optional<py::error_already_set> held_failure;
+        // Host bookkeeping that an interrupt must not cut in half (a folder's use count, what its teardown takes, the
+        // monitoring id) runs in the Drain phase, with an interrupt already sent dropped. The caller sets the phase that
+        // follows.
         const auto uninterrupted = [&](const auto& step) {
             watcher.set_phase(Watcher::Phase::Drain);
             PyThreadState_SetAsyncExc(ident, nullptr);
@@ -923,15 +1358,24 @@ PythonRunOutcome run_python_code(const PythonRunRequest& request)
                 }
             }
         };
+
+        // The session's own __main__ and output; a file session also gets __file__, sys.argv and imports from its
+        // folder. A teardown an earlier run from this folder left pending runs before the first work.
+        bool ready = false;
         try {
             py::object taken;
             uninterrupted([&] {
                 main_thread = py::module_::import("threading").attr("current_thread")();
-                was_daemon  = main_thread.attr("daemon").cast<bool>();
-                if (was_daemon)
-                    main_thread.attr("_daemonic") = false;
-                py::handle(capture->begin)(run_id);
-                // The run's own __main__: a file run also gets __file__, sys.argv and imports from its folder.
+                if (request.stream_output) {
+                    PythonSession* target = &session;
+                    py::handle(capture->begin)(run_id, py::cpp_function([target](const std::string& text) { target->push_event(output_event(text)); }),
+                                               py::cpp_function([target](const std::string& text) {
+                                                   PythonSessionEvent event = output_event(text);
+                                                   event.kind               = PythonSessionEvent::Kind::Result;
+                                                   target->push_event(std::move(event));
+                                               }));
+                } else
+                    py::handle(capture->begin)(run_id);
                 const py::tuple entry = py::handle(capture->enter)(run_id, file.empty() ? py::object(py::none()) : py::str(request.filename))
                                             .cast<py::tuple>();
                 ns      = entry[0].cast<py::dict>();
@@ -939,83 +1383,240 @@ PythonRunOutcome run_python_code(const PythonRunRequest& request)
                 entered = true;
             });
             watcher.set_phase(Watcher::Phase::Body);
-            // A teardown an earlier run from this folder left pending runs before this run's code.
             if (taken && !taken.is_none())
                 to_end([&] { py::handle(capture->teardown)(taken); });
-            taken                = py::object();
-            py::module_ builtins = py::module_::import("builtins");
-            ns["__builtins__"]   = builtins;
+            taken              = py::object();
+            ns["__builtins__"] = builtins;
             ns["args"]         = json_to_py(request.args);
-            // Text: a BOM a file's text kept is dropped, as Python drops it from a file.
-            const bool bom  = request.code.compare(0, 3, "\xEF\xBB\xBF") == 0;
-            py::object code = builtins.attr("compile")(py::str(bom ? request.code.substr(3) : request.code), request.filename, "exec");
-            builtins.attr("exec")(code, ns);
-            executed = true;
+            ready              = true;
         } catch (py::error_already_set& err) {
-            failure.emplace(std::move(err));
+            deferred            = finished_event("raised", exception_line(err));
+            deferred->traceback = format_traceback(err);
+            deferred->executed  = false;
         } catch (const std::exception& e) {
-            // Never past the watcher while it may wait for the GIL this thread holds.
-            outcome.status  = "raised";
-            outcome.message = e.what();
+            deferred           = finished_event("raised", e.what());
+            deferred->executed = false;
         }
-        if (was_daemon && PyObject_SetAttrString(main_thread.ptr(), "_daemonic", Py_True) != 0)
-            PyErr_Clear();
 
-        try {
-            if (failure && failure->matches(PyExc_SystemExit)) {
-                py::object exit_code = failure->value().attr("code");
-                if (exit_code.is_none() || (py::isinstance<py::int_>(exit_code) && exit_code.cast<long long>() == 0)) {
-                    failure.reset();
-                    executed = true;
-                }
+        // One work, up to its Finished event, whose status may still be "interrupted" for resolve_interrupted().
+        const auto run_one = [&](const PythonWork& w) {
+            PythonSessionEvent done    = finished_event("");
+            const bool         is_file = w.kind == PythonWork::Kind::File;
+            watcher.set_phase(Watcher::Phase::Drain);
+            {
+                py::gil_scoped_release release;
+                watcher.settle();
+                if (request.work_started)
+                    request.work_started();
             }
-            if (failure && !failure->matches(interrupt)) {
-                outcome.status    = "raised";
-                outcome.message   = exception_line(*failure);
-                outcome.traceback = format_traceback(*failure);
-            } else if (!failure && executed && ns.contains("result")) {
-                try {
-                    outcome.result = strict_json(ns["result"]);
-                    outcome.status = "finished";
-                } catch (const std::invalid_argument& e) {
-                    if (file.empty()) {
-                        outcome.status  = "raised";
-                        outcome.message = e.what();
-                    } else {
-                        // A standalone script may well have a variable named result: it is no result, not a failure.
-                        outcome.status = "finished";
-                        result_note    = std::string("\n[result is not JSON, so it was not returned: ") + e.what() + "]\n";
+            std::optional<py::error_already_set> failure;
+            bool                                 started    = false;
+            bool                                 completed  = false;
+            bool                                 was_daemon = false;
+            bool                                 claimed    = false;
+            auto                                 cells_sent = std::make_shared<std::atomic<bool>>(false);
+            py::object                           code;
+            try {
+                // A work is the session's main program, which `python file.py` runs on a non-daemon thread, so the
+                // threads it starts are waited for unless they say otherwise. The app hosts it on a thread Python didn't
+                // start, which Python sees as a daemon dummy thread, so the work runs with that flag cleared.
+                // Thread.daemon refuses a started thread, hence _daemonic.
+                uninterrupted([&] {
+                    watcher.begin_work(floor);
+                    if (session.end_requested())
+                        scope->mark_ending();
+                    if (request.stream_output)
+                        py::handle(capture->renew)(run_id);
+                    was_daemon = main_thread.attr("daemon").cast<bool>();
+                    if (was_daemon)
+                        main_thread.attr("_daemonic") = false;
+                });
+                watcher.set_phase(Watcher::Phase::Body);
+                py::object expr;
+                if (is_file) {
+                    // Text: a BOM a file's text kept is dropped, as Python drops it from a file.
+                    const bool    bom  = w.code.compare(0, 3, "\xEF\xBB\xBF") == 0;
+                    const py::str text = py::str(bom ? w.code.substr(3) : w.code);
+                    if (request.cell_results) {
+                        const py::object tree = builtins.attr("compile")(text, request.filename, "exec",
+                                                                         py::module_::import("ast").attr("PyCF_ONLY_AST"), true);
+                        py::handle(capture->mark_cell_results)(tree, py::cast(w.cell_starts), kShowResultName);
+                        code = builtins.attr("compile")(tree, request.filename, "exec", 0, true);
+                        // Bound again for each work, so one that deleted it doesn't take it from the next.
+                        ns[kShowResultName] = py::handle(capture->show_result);
+                    } else
+                        code = builtins.attr("compile")(text, request.filename, "exec");
+                } else {
+                    // A Cell compiles at its own lines of the file; a trailing bare expression is split off and
+                    // evaluated, as the REPL shows one. Only builtins compile it, so a SyntaxError's traceback holds no
+                    // frame of the host's.
+                    const std::string filename = w.kind == PythonWork::Kind::Console ? std::string("<console>") : request.filename;
+                    const std::string text     = w.kind == PythonWork::Kind::Cell ? std::string(std::max(w.first_line - 1, 0), '\n') + w.code
+                                                                                 : w.code;
+                    const py::module_ ast      = py::module_::import("ast");
+                    const py::object  tree     = builtins.attr("compile")(py::str(text), filename, "exec", ast.attr("PyCF_ONLY_AST"), true);
+                    py::list          body     = tree.attr("body");
+                    if (py::len(body) > 0 && py::isinstance(body[py::len(body) - 1], ast.attr("Expr")))
+                        expr = builtins.attr("compile")(ast.attr("Expression")(body.attr("pop")().attr("value")), filename, "eval", 0, true);
+                    code = builtins.attr("compile")(tree, filename, "exec", 0, true);
+                }
+                started = true;
+                if (is_file && request.report_cells) {
+                    uninterrupted([&] {
+                        PythonSession* target = &session;
+                        claimed = py::handle(capture->claim_cells)(code, py::cast(w.cell_starts), py::cpp_function([target, cells_sent](int cell) {
+                                      PythonSessionEvent event;
+                                      event.kind = PythonSessionEvent::Kind::Cell;
+                                      event.cell = cell;
+                                      cells_sent->store(true);
+                                      target->push_event(std::move(event));
+                                  })).cast<bool>();
+                    });
+                    watcher.set_phase(Watcher::Phase::Body);
+                }
+                const ResultTarget       result_target{&ns, run_id, capture};
+                const ScopedResultTarget showing(result_target);
+                builtins.attr("exec")(code, ns);
+                if (expr)
+                    show_result(builtins.attr("eval")(expr, ns), result_target);
+                completed = true;
+            } catch (py::error_already_set& err) {
+                failure.emplace(std::move(err));
+            } catch (const std::exception& e) {
+                // Never past the watcher while it may wait for the GIL this thread holds.
+                done.status  = "raised";
+                done.message = e.what();
+            }
+            if (claimed) {
+                quietly([&] { uninterrupted([&] { py::handle(capture->release_cells)(code); }); });
+                watcher.set_phase(Watcher::Phase::Body);
+            }
+            if (was_daemon && PyObject_SetAttrString(main_thread.ptr(), "_daemonic", Py_True) != 0)
+                PyErr_Clear();
+
+            try {
+                if (failure && failure->matches(PyExc_SystemExit)) {
+                    py::object exit_code = failure->value().attr("code");
+                    if (exit_code.is_none() || (py::isinstance<py::int_>(exit_code) && exit_code.cast<long long>() == 0)) {
+                        failure.reset();
+                        completed = true;
                     }
                 }
-            } else if (!failure && executed)
-                outcome.status = "finished";
-        } catch (py::error_already_set& err) {
-            // The result's own code raised, or the run was interrupted while it ran.
-            if (!err.matches(interrupt)) {
-                outcome.status  = "raised";
-                outcome.message = exception_line(err);
-            } else
-                failure.emplace(std::move(err));
-        }
-        if (outcome.status.empty())
-            outcome.status = "interrupted"; // decided below from the watcher's reason
+                if (failure && !failure->matches(interrupt)) {
+                    done.status     = "raised";
+                    done.message    = exception_line(*failure);
+                    done.traceback  = request.quote_source ? quoted_traceback(*capture, *failure, request.filename, w.source) : format_traceback(*failure);
+                    done.error_line = error_line_of(*capture, *failure, request.filename);
+                } else if (!failure && completed && is_file && ns.contains("result")) {
+                    try {
+                        done.result = strict_json(ns["result"]);
+                        done.status = "finished";
+                    } catch (const std::invalid_argument& e) {
+                        if (file.empty()) {
+                            done.status  = "raised";
+                            done.message = e.what();
+                        } else {
+                            // A standalone script may well have a variable named result: it is no result, not a failure.
+                            done.status      = "finished";
+                            std::string note = std::string("\n[result is not JSON, so it was not returned: ") + e.what() + "]\n";
+                            if (request.stream_output)
+                                session.push_event(output_event(std::move(note)));
+                            else
+                                notes += note;
+                        }
+                    }
+                } else if (!failure && completed)
+                    done.status = "finished";
+            } catch (py::error_already_set& err) {
+                // The result's own code raised, or the work was interrupted while it ran.
+                if (!err.matches(interrupt)) {
+                    done.status  = "raised";
+                    done.message = exception_line(err);
+                } else
+                    failure.emplace(std::move(err));
+            }
+            if (done.status.empty())
+                done.status = "interrupted"; // decided by resolve_interrupted() from what reached it
+            held_failure.reset();
+            if (failure && session.end_requested())
+                held_failure.emplace(std::move(*failure));
+            failure.reset();
 
-        // Like `python file.py`, the run ends once the work it started is done: its non-daemon threads, its window
+            // A File work in a session that goes on reports once the waited work it started is done, as `python file.py`
+            // ends; a stop interrupts that work and gives it kStopWindow. When the session ends, its teardown waits.
+            if (is_file && !session.end_requested()) {
+                watcher.set_phase(Watcher::Phase::Threads);
+                py::gil_scoped_release release;
+                while (!scope->quiet() && !session.end_requested()) {
+                    if (const auto since = watcher.since_stop(); since && *since >= kStopWindow)
+                        break;
+                    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                }
+            }
+            // An interrupt sent as the work returned would land in the next Python this thread runs. What the session's
+            // threads print from here until the next work is a stretch of output of its own.
+            uninterrupted([&] {
+                if (request.stream_output)
+                    py::handle(capture->renew)(run_id);
+            });
+            {
+                py::gil_scoped_release release;
+                if (request.work_ended)
+                    request.work_ended();
+            }
+            // Before the Finished event, so a stop() right after it reaches the threads the work left.
+            session.set_has_threads(scope->has_live_work());
+            done.executed       = started;
+            done.cells_reported = cells_sent->load();
+            done.variables      = count_variables(ns);
+            return done;
+        };
+
+        // Between works the hosting thread waits for the next one without the GIL; the session's threads run on.
+        const auto next_work = [&]() -> std::optional<PythonWork> {
+            uninterrupted([] {});
+            watcher.set_phase(Watcher::Phase::Idle);
+            py::gil_scoped_release release;
+            for (;;) {
+                if (session.end_requested())
+                    return std::nullopt;
+                if (std::optional<PythonWork> next = session.take_work(std::chrono::milliseconds(50), floor))
+                    return next;
+            }
+        };
+
+        while (ready && work) {
+            PythonSessionEvent done = run_one(*work);
+            if (session.end_requested()) {
+                // Its Finished event comes after the teardown and reflects it.
+                deferred_reason = watcher.reason();
+                deferred        = std::move(done);
+                break;
+            }
+            resolve_interrupted(done, watcher.reason(), work->kind == PythonWork::Kind::File, request.budget);
+            session.work_done();
+            session.push_event(std::move(done));
+            work = next_work();
+        }
+
+        // Like `python file.py`, the session ends once the work it started is done: its non-daemon threads, its window
         // callbacks and the pool tasks it submitted. It waits here, without the GIL, on what it counted, never through
         // Thread.join(), whose interrupted wait marks a live thread stopped. A stop interrupts that work and gives it
-        // 5 s; then the run stops waiting and closes its admission anyway.
+        // kStopWindow; then the session stops waiting and closes its admission anyway.
+        scope->mark_ending();
+        uninterrupted([&] { watcher.begin_teardown(); });
         watcher.set_phase(Watcher::Phase::Threads);
         {
             py::gil_scoped_release release;
             while (!scope->close_admission_if_quiet()) {
-                if (const auto since = watcher.since_stop(); since && *since >= std::chrono::seconds(5)) {
+                if (const auto since = watcher.since_stop(); since && *since >= kStopWindow) {
                     scope->close_admission();
                     break;
                 }
                 std::this_thread::sleep_for(std::chrono::milliseconds(50));
             }
         }
-        // An interrupt the body was sent as it returned would land in the next Python this thread runs.
+        // An interrupt sent as the wait ended would land in the next Python this thread runs.
         PyThreadState_SetAsyncExc(ident, nullptr);
         PyErr_Clear();
 
@@ -1039,7 +1640,7 @@ PythonRunOutcome run_python_code(const PythonRunRequest& request)
             PluginHostUi::close_run_windows(scope->ui_owner());
         }
         ns.clear();
-        failure.reset();
+        held_failure.reset();
         if (entered) {
             py::object taken;
             quietly([&] { uninterrupted([&] { taken = py::handle(capture->release)(run_id); }); });
@@ -1059,7 +1660,9 @@ PythonRunOutcome run_python_code(const PythonRunRequest& request)
         PyThreadState_SetAsyncExc(ident, nullptr);
         PyErr_Clear();
         try {
-            outcome.output = py::handle(capture->end)(run_id).cast<std::string>();
+            std::string text = py::handle(capture->end)(run_id).cast<std::string>() + notes;
+            if (!text.empty())
+                session.push_event(output_event(std::move(text)));
         } catch (const std::exception&) {
         }
         {
@@ -1074,22 +1677,48 @@ PythonRunOutcome run_python_code(const PythonRunRequest& request)
         PyThreadState_SetAsyncExc(ident, nullptr);
         PyErr_Clear();
     }
-    outcome.output += result_note;
+    if (deferred) {
+        resolve_interrupted(*deferred, reason != Watcher::Reason::None ? reason : deferred_reason, true, request.budget);
+        session.push_event(std::move(*deferred));
+    }
+}
 
-    // A finalizer that ran on past the budget or a cancel while the namespace was cleared swallowed the
-    // interrupt, as Python ignores what __del__ raises: the run still did not finish in time.
-    if (outcome.status == "finished" && reason != Watcher::Reason::None)
-        outcome.status = "interrupted";
-    if (outcome.status == "interrupted" && reason == Watcher::Reason::None) {
-        // The code raised the interrupt itself.
-        outcome.status  = "raised";
-        outcome.message = "RunInterrupted";
-    } else if (outcome.status == "interrupted") {
-        outcome.result  = nullptr;
-        outcome.status  = reason == Watcher::Reason::TimedOut ? "timed_out" : "cancelled";
-        outcome.message = reason == Watcher::Reason::TimedOut
-                              ? "The script ran longer than its " + std::to_string(request.budget.count() / 1000) + " s budget"
-                              : "The script was cancelled";
+PythonRunOutcome run_python_code(const PythonRunRequest& request)
+{
+    // A session with one File work and its end asked up front, so its Finished event comes after the teardown.
+    PythonSession session;
+    PythonWork    work;
+    work.kind        = PythonWork::Kind::File;
+    work.code        = request.code;
+    work.source      = request.code;
+    work.cell_starts = {1};
+    session.submit(std::move(work));
+    session.end();
+
+    PythonSessionRequest hosted;
+    hosted.identity       = request.identity;
+    hosted.filename       = request.filename;
+    hosted.args           = request.args;
+    hosted.budget         = request.budget;
+    hosted.cancelled      = request.cancelled;
+    hosted.stop_calls     = request.stop_calls;
+    hosted.stop_closes_ui = true;
+    hosted.stream_output  = false;
+    hosted.quote_source   = false;
+    hosted.report_cells   = false;
+    hosted.cell_results   = false;
+    host_python_session(hosted, session);
+
+    PythonRunOutcome outcome;
+    for (PythonSessionEvent& event : session.take_events()) {
+        if (event.kind == PythonSessionEvent::Kind::Output)
+            outcome.output += event.text;
+        else if (event.kind == PythonSessionEvent::Kind::Finished) {
+            outcome.status    = std::move(event.status);
+            outcome.result    = std::move(event.result);
+            outcome.traceback = std::move(event.traceback);
+            outcome.message   = std::move(event.message);
+        }
     }
     return outcome;
 }

@@ -27,11 +27,13 @@
 
 #include <string>
 #include <map>
+#include <utility>
 #include <vector>
 
 #include "GUI_Utils.hpp"
 #include "Event.hpp"
 #include "IdleScheduler.hpp"
+#include "wxExtensions.hpp"
 
 
 #include <boost/property_tree/ptree_fwd.hpp>
@@ -74,6 +76,7 @@ namespace GUI
 {
 
 class Tab;
+class CodeEditorWindow;
 class PrintHostQueueDialog;
 class DiffPresetDialog;
 class ParamsPanel;
@@ -282,8 +285,23 @@ class MainFrame : public DPIFrame
         m_shortcut_menu_items.push_back({ item, shortcut, label, accelerator });
         return item;
     }
+    // A check item showing the shortcut's key: display-only on macOS, a live accelerator elsewhere.
+    wxMenuItem* append_shortcut_check_item(wxMenu* menu, Shortcut shortcut, const wxString& label, const wxString& description,
+                                           std::function<void(wxCommandEvent&)> cb, std::function<bool()> enable,
+                                           std::function<bool()> check)
+    {
+        wxMenuItem* item = append_menu_check_item(menu, wxID_ANY, shortcut_label(label, shortcut, false), description, std::move(cb), this,
+                                                  std::move(enable), std::move(check), this);
+        m_shortcut_menu_items.push_back({ item, shortcut, label, false });
+        return item;
+    }
     // Runs the Global shortcut bound to chord; false when the focused control should see the key as well.
     bool handle_global_shortcut(const KeyChord& chord);
+    // Sends a Save or Edit menu action to the code editor that has the focus; false when none has it.
+    bool forward_to_editor(const char* action);
+    // Cut ('x'), copy ('c') or paste ('v') in the code editor that has the focus; false when none has it.
+    bool editor_clipboard(char command);
+    void bind_code_editor_menu_rule();
     void add_common_view_menu_items(wxMenu* view_menu, std::function<bool(void)> can_change_view);
     wxMenu* generate_help_menu();
 
@@ -423,8 +441,10 @@ public:
 
     void        reslice_now();
     void        export_config();
-    // Shows the Run Script dialog, creating it the first time and raising the open one after.
-    void        show_script_runner();
+    // Shows the Action Replay window, creating it the first time and raising the open one after.
+    void        show_action_replay();
+    // The code editor window (the Run Script panel, Action Replay) that has the focus, or nullptr.
+    CodeEditorWindow* focused_code_editor() const;
     // Query user for the config file and open it.
     void        load_config_file();
     // Import preset files (.json, .zip, .orca_printer, .orca_filament, .orca_bundle) as the Import Configs
@@ -521,7 +541,7 @@ public:
     Input_Shaping_Damp_Test_Dlg* m_IS_damp_calib_dlg{ nullptr };
     Cornering_Test_Dlg* m_cornering_calib_dlg{ nullptr };
     // Modeless and owned by this frame; the weak ref clears when it is destroyed.
-    wxWeakRef<wxDialog> m_script_runner;
+    wxWeakRef<wxDialog> m_action_replay;
 
     // BBS. Replace title bar and menu bar with top bar.
     BBLTopbar*            m_topbar{ nullptr };

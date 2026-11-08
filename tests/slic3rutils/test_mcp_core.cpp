@@ -1374,3 +1374,73 @@ TEST_CASE("a plugin's running call is cancelled the moment the plugin unloads", 
     CHECK_FALSE(r.is_error);
     CHECK(r.data.value("cancelled", false));
 }
+
+TEST_CASE("a call under a lineage node sees a stop asked for the node, inline calls included, and a renewed node's calls run", "[Mcp]")
+{
+    Harness h;
+    // Polls for cancellation for up to `for_ms`, as wait does.
+    const auto poll = [](const json& args, ToolContext& ctx) {
+        const auto end = std::chrono::steady_clock::now() + std::chrono::milliseconds(args.value("for_ms", 5000));
+        while (!ctx.cancelled() && std::chrono::steady_clock::now() < end)
+            std::this_thread::sleep_for(10ms);
+        return ToolResult::ok({{"cancelled", ctx.cancelled()}});
+    };
+    ToolDef inline_poll     = tool("inline_poll", GuardClass::Inspect, poll);
+    inline_poll.inline_call = true;
+    h.registry.add(inline_poll);
+    h.registry.add(tool("job_poll", GuardClass::Mutate, poll));
+    h.timing.soft_budget = 10000ms;
+    h.start();
+
+    const std::string session = h.jobs.create("run_python", "");
+    h.jobs.set_idle(session);
+    LineageNode node(h.jobs, "run_python", session);
+    const auto  call = [&](const char* tool, int for_ms) {
+        return std::async(std::launch::async, [&h, &node, tool, for_ms] {
+            return h.core->call_child_named(tool, {{"for_ms", for_ms}}, node.id());
+        });
+    };
+    auto inline_call = call("inline_poll", 5000);
+    auto job_call    = call("job_poll", 5000);
+    std::this_thread::sleep_for(300ms);
+    const auto asked = std::chrono::steady_clock::now();
+    h.jobs.request_stop(node.id());
+    const ToolResult stopped_inline = inline_call.get();
+    const ToolResult stopped_job    = job_call.get();
+    CHECK(std::chrono::steady_clock::now() - asked < 1s);
+    CHECK(stopped_inline.data.value("cancelled", false));
+    CHECK(stopped_job.data.value("cancelled", false));
+
+    node.renew();
+    auto ran_inline = call("inline_poll", 300);
+    auto ran_job    = call("job_poll", 300);
+    CHECK(ran_inline.get().data["cancelled"] == false);
+    CHECK(ran_job.get().data["cancelled"] == false);
+    CHECK_FALSE(h.jobs.stop_requested(session));
+    h.jobs.finish(session, ToolResult::ok());
+}
+
+TEST_CASE("lineage nodes leave no running job behind", "[Mcp]")
+{
+    JobRegistry       jobs;
+    const std::string session  = jobs.create("run_python", "");
+    const auto        running_nodes = [&] {
+        int count = 0;
+        for (const json& job : jobs.list())
+            if (job["tool"] == "run_python" && job.value("parent", std::string()) == session && job["state"] == "running")
+                ++count;
+        return count;
+    };
+    {
+        LineageNode node(jobs, "run_python", session);
+        CHECK(running_nodes() == 1);
+    }
+    for (int round = 0; round < 10; ++round) {
+        LineageNode node(jobs, "run_python", session);
+        for (int renewal = 0; renewal < 3; ++renewal)
+            node.renew();
+        CHECK(running_nodes() == 1);
+    }
+    CHECK(running_nodes() == 0);
+    jobs.finish(session, ToolResult::ok());
+}

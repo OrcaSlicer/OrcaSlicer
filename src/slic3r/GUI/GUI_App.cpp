@@ -194,6 +194,7 @@
 #include "3DScene.hpp"
 #include "MainFrame.hpp"
 #include "Plater.hpp"
+#include "RunScriptPanel.hpp"
 #include "GLCanvas3D.hpp"
 #include "EncodedFilament.hpp"
 #include "GeneratedConfig.hpp"
@@ -5116,6 +5117,8 @@ void GUI_App::recreate_GUI(const wxString &msg_name)
     m_is_recreating_gui = false;
     if (m_mcp)
         m_mcp->resume();
+    if (m_run_script_panel)
+        m_run_script_panel->main_window_rebuilt();
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "recreate_GUI exit";
 }
@@ -8578,8 +8581,17 @@ void GUI_App::stop_mcp_service()
         m_mcp->stop();
 }
 
+RunScriptPanel& GUI_App::run_script_panel()
+{
+    if (!m_run_script_panel)
+        m_run_script_panel = std::make_unique<RunScriptPanel>();
+    return *m_run_script_panel;
+}
+
 void GUI_App::destroy_mcp_service()
 {
+    // The Run Script panel's session is a job of the service: it goes first.
+    m_run_script_panel.reset();
     // Before wxApp::CleanUp(): a timer must not outlive the toolkit.
     m_mcp_takeover_timer.reset();
     // Outside any event loop: the deleter waits for running calls, and leaks a service whose calls

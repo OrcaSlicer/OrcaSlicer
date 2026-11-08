@@ -28,6 +28,7 @@
 #include "slic3r/GUI/Mcp/CanvasTarget.hpp"
 #include "slic3r/GUI/Mcp/McpService.hpp"
 #include "slic3r/GUI/Mcp/McpServicePtr.hpp"
+#include "slic3r/GUI/Mcp/McpTypes.hpp"
 #include "slic3r/GUI/Mcp/UiInspector.hpp"
 #include "slic3r/GUI/Mcp/UiRefs.hpp"
 
@@ -36,6 +37,7 @@
 #include <wx/app.h>
 #include <wx/event.h>
 #include <wx/frame.h>
+#include <wx/gdicmn.h>
 #include <wx/init.h>
 #include <wx/panel.h>
 #include <wx/window.h>
@@ -566,5 +568,28 @@ TEST_CASE("a key goes to the hooks of the target and its parents before the targ
         allow_next = true;
         inspector.key(&target, "Escape", "");
         CHECK(seen == std::vector<std::string>{"panel hook", "key down"});
+    }
+}
+
+TEST_CASE("a window inside a pane hidden from automation is hidden, and the pane's siblings are not", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    if (wxTheApp == nullptr)
+        wxApp::SetInstance(new wxApp);
+    wxInitializer init;
+    REQUIRE(init.IsOk());
+    {
+        // A pane docked in the main window, as the Run Script panel is, beside the window's other panels.
+        wxFrame frame(nullptr, wxID_ANY, "main");
+        auto*   pane    = new wxPanel(&frame, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL, kHiddenFromAutomation);
+        auto*   child   = new wxWindow(pane, wxID_ANY);
+        auto*   sibling = new wxPanel(&frame);
+        CHECK(hidden_from_automation(child));
+        CHECK(hidden_from_automation(pane));
+        CHECK_FALSE(hidden_from_automation(sibling));
+        CHECK_FALSE(hidden_from_automation(&frame));
     }
 }

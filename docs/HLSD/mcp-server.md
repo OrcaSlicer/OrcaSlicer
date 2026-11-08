@@ -116,8 +116,8 @@ file, and one that stops must not hide another's server from the stdio bridge.
 
 `GUI_App::on_init_inner()` starts the service once AppConfig is loaded. That is before the first
 startup dialog, such as the TLS prompt or the setup wizard, so an agent can answer those dialogs.
-`--mcp` or the `mcp_enabled` preference opens the endpoint, while `--mcp-script` alone, or opening the
-Run Script dialog, only builds the catalog. `get_state.ready` stays false until `post_init()` calls `mark_ready()`, the Prepare
+`--mcp` or the `mcp_enabled` preference opens the endpoint, while `--mcp-script` alone, or opening
+Action Replay or the Run Script panel, only builds the catalog. `get_state.ready` stays false until `post_init()` calls `mark_ready()`, the Prepare
 canvas has loaded OpenGL and the main window has built its tab pages, and tools that need the main
 window fail with "still starting". Starting on Home, the canvas loads OpenGL at idle after
 `post_init()` (MainFrame's GL prebuild), and before that a 3MF save would draw its thumbnail with no
@@ -2149,7 +2149,8 @@ OrcaSlicer's windows only gives what the screen shows of them in the client area
 backing scale, in sRGB: the window, web views and 3D views included, and over it our dialogs, wx
 popups, AppKit's menus and tooltips, but no other application's window, so a covered window captures
 whole. The filter names the application rather than its windows, so a menu or tooltip that opens later
-is in it too. It leaves out the shown windows hidden from automation (the script runner), their wx
+is in it too. It leaves out the shown windows hidden from automation (Action Replay, a floating Run Script
+panel), their wx
 popups, and AppKit's windows over them: AppKit does not say which window opened a menu or tooltip, so
 each of our windows that is not wx's goes with the topmost wx window below it that it overlaps, as on
 Windows. The window behind such a window shows through. `SCScreenshotManager` takes one image per
@@ -2263,7 +2264,7 @@ result's `note` is the last frame's: which of these applies, then what that fram
 approximated, so a macOS recording that fell back to drawing views says so. `capture_frame()` stores it
 under the recorder's mutex, since `stop_recording` reports from another thread while a tick may be
 capturing. The `canvas` target is `shown_canvas()`. A recording captures with
-`CaptureOptions::hide_covering` off, so X11 never hides and re-shows the script runner at each frame.
+`CaptureOptions::hide_covering` off, so X11 never hides and re-shows Action Replay at each frame.
 
 The costly part is a 3D view: `render_and_capture()` draws a frame, after any extra frames a change
 asked for, and reads it back. A recording
@@ -2334,8 +2335,8 @@ that would encode without an ffmpeg is refused rather than recording unencoded. 
 recording's file is closed (`McpRecorder::wait_closed()`), so it can be cancelled like any encode. No reply
 names the job, which only exists once the file is closed: an agent finds it in `get_state.jobs` and waits
 for it by its id, as the command's description says.
-Start Recording starts the service without its endpoint when the server is off, as the Run Script dialog
-does. The person's recording has its own owner (`kPersonOwner`), so neither a script's end nor the
+Start Recording starts the service without its endpoint when the server is off, as Action Replay and the
+Run Script panel do. The person's recording has its own owner (`kPersonOwner`), so neither a script's end nor the
 endpoint closing ends it. Whatever ends it tells the person where it went, in a notification whose button
 opens the folder: Stop Recording itself, which stops any recording, an agent's too, ending it as
 `stopped_in_app`; or `RecordingOptions::ended`, which the recorder runs on the UI thread when an agent's
@@ -2537,7 +2538,7 @@ file's `out_dir` defaults to `<script name>.out` beside it. An inline script's d
 `<datadir>/mcp/out/script-<timestamp>`, which is also its `${script_dir}`.
 
 The engine (`McpScript.cpp`, wx-free) and the job around it (`run_script_job()` in
-`McpToolsScript.cpp`) are shared by `run_script`, `--mcp-script` and the Run Script dialog. A run
+`McpToolsScript.cpp`) are shared by `run_script`, `--mcp-script` and Action Replay. A run
 stops before its next step, and stops waiting on a step's job, once the service stops or a stop was
 asked for any job in its lineage (`McpService::request_stop()`), so a nested `run_script` stops with
 the run that holds it. Stop requests last the session, and `JobRegistry` records each job's ancestor
@@ -2554,25 +2555,45 @@ invalid. `OrcaSlicer.cpp` resolves both paths against the original working direc
 GUI changes it. wx ignores `OnExit()`'s return value, so `GUI_Run()` returns
 `McpService::script_exit_code()` after `wxEntry()`.
 
-### Script runner dialog
+### Action Replay
 
-File › Run Script… and the Speed Dial command `open_script_runner` open `ScriptRunnerDialog`, where a
-person opens or writes a script, reads its steps and runs it whole or one step at a time. A `.py` file is a
-Python script, shown and run as one step through `McpService::start_python_run()`, with no time limit, since
-Stop ends it: its printed output, its result or its traceback show in that step. With the Python setting off it does not parse, so Run stays
-off and the page says why. The editor holds UTF-8 text: a `.py` file is decoded as Python reads it and
-saved back in the encoding it was read in, BOM included; text that encoding can't hold is not saved. It is a
-`WebViewHostDialog` page (`resources/web/dialog/ScriptRunner/`), modeless and one at a time
-(`MainFrame::show_script_runner()`). The page's editor starts from a commented draft and suggests the
-script's keys, tool names, a tool's arguments and their allowed values, and `${…}` placeholders; the
-tool part comes from the registry, which the dialog sends once the service is ready, so the
-suggestions match the build. Save writes the text back to the file it was opened from, or asks where
-to put a new script and offers the script's name as the file name. A script saved somewhere new is
-that file's from then on: `${script_dir}` and its output folder follow the file, as for an opened
-one. Closing the dialog, or opening another script, with unsaved edits asks first. The page reports
-every edit to the host, which parses, runs and saves that one copy of the text, so the host can ask
-and save even when the window's close box starts the close. Opening the dialog starts the service without the endpoint, as
-`--mcp-script` does, so a person runs scripts with the server off.
+File › Action Replay… and the Speed Dial command `open_script_runner` (an id kept because exported
+replays and agent sessions already call it) open `ActionReplayDialog`, where a person opens or writes a
+replay file, reads its steps and replays it whole or one step at a time. It is a `WebViewHostDialog` page
+(`resources/web/dialog/ActionReplay/`), modeless and one at a time (`MainFrame::show_action_replay()`).
+It takes JSON replay files only. A `.py` file, picked with the picker's "All files" or dropped on the
+window, brings up a notice that Python scripts run in the Run Script panel, with Open in Run Script
+(`RunScriptPanel::open_file()`, which asks about the panel's unsaved changes first) and Cancel. The page
+navigates nowhere but its own loads (`WebViewHostDialog::own_page_navigation()`); every other navigation is
+vetoed, since it would hand the page's message handler to a page that isn't the app's. A file dropped on the
+window is such a navigation, to that file (`WebViewHostDialog::dropped_file()`), handled after the event: a
+`.json` through `load_file()` once the unsaved-changes question is answered, anything else ignored, and
+nothing while a replay runs, as Open is unavailable then. The browser's own keys are off, so Ctrl+R and F5
+don't reload the page back to its draft. The page's editor starts from a commented
+draft and suggests the replay's keys, tool names, a tool's arguments and their allowed values, and
+`${…}` placeholders; the tool part comes from the registry, which the dialog sends once the service is
+ready, so the suggestions match the build. Save writes the text back to the file it was opened from, or
+asks where to put a new replay file and offers the replay's name as the file name. A replay saved
+somewhere new is that file's from then on: `${script_dir}` and its output folder follow the file, as for
+an opened one. Closing the window, or opening another replay, with unsaved edits asks first. The page
+reports every edit to the host, which parses, runs and saves that one copy of the text, so the host can
+ask and save even when the window's close box starts the close. Opening the window starts the service
+without the endpoint, as `--mcp-script` does, so a person replays files with the server off.
+
+**The editor.** Action Replay and the Run Script panel edit in Ace (`ace-builds` 1.45.2, BSD-3-Clause),
+vendored unmodified in `resources/web/include/ace/` (its `src-min-noconflict` core, the JSON and Python
+modes, the language tools and the search box) and set up by `resources/web/dialog/js/code_editor.js`.
+The pages are `file://` URLs, so they load it with script tags, and nothing is loaded on demand: no
+workers, no snippets, the default commands that would load a file the repository doesn't ship (the
+settings menu, error navigation, go to line, the command palette, the mode select) removed, the
+completers set to the page's own as an array, and the theme applied as an object built from the host's
+theme tokens, never by name. Ace draws only the rows on screen, and brings indentation, bracket matching,
+folding, search and replace, multiple cursors and its own undo. Its own text (the search box, the
+suggestion list, the read-only note, folding and its ARIA labels) is translated: the host puts
+`WebViewHostDialog::code_editor_strings()` under `code_editor` in the page's strings, keyed by Ace's
+message keys, and `code_editor.js` hands them to `ace.config.setMessages()`. Each page reports the
+chords its editor binds (`editor_keys`), which the main frame's menu rule reads (Keys, under Run Script
+panel). Action Replay's language is a JSON mode of its own (`orca_replay`, `script_editor.js`).
 
 `McpService::start_script_run()` runs the script as a job of `run_script`'s kind but outside the
 session journal, since a person's run is not an agent's call. A thread the service owns follows the
@@ -2599,9 +2620,11 @@ run's replacing tools treat the run as `discard_changes: true` (`McpService::dis
 read from the job lineage when the tool checks), so changes are dropped only when a step really
 replaces the project. The runner never answers the app's own question.
 
-The dialog's window is named `kHiddenFromAutomation`: `ui_snapshot` and locators skip it, web view
+The window is named `kHiddenFromAutomation`: `ui_snapshot` and locators skip it, web view
 scripts never pick it, a key sent without a target never goes to the focus inside it, and on X11,
-where a window capture reads the screen, it hides for the moment of the capture. Its own wording is
+where a window capture reads the screen, it hides for the moment of the capture. Every prompt and
+file dialog it opens is named so too, so no auto-answer rule a replay registers answers the person's
+own question. Its own wording is
 translated, from the structured step descriptions and failure reasons; a tool's own error, which
 agents read in English, is shown as a detail under a translated lead. Tool titles are marked with
 `L()` so the dialog can show them translated while `tools/list` keeps the English.
@@ -2642,18 +2665,19 @@ be satisfied. Only the call's own job counts as its job: a
 
 A Python script is a `.py` file or a code string that runs on the plugin interpreter as an embedded macro: the
 main program of a run inside OrcaSlicer, with the whole plugin API (`orca.host`), without being packaged as a
-plugin. A person runs one from the Run Script dialog or with `--mcp-script file.py`; an agent sends one with
+plugin. A person runs one in the Run Script panel or with `--mcp-script file.py`; an agent sends one with
 `run_python {code, args, timeout_s, filename}`; a plugin's code may call `run_python` too. A script that runs
 under `python file.py` runs the same way here, and code written for a plugin's `execute()` (windows, progress,
 presets, storage) runs from a script unchanged. A script is not a plugin: it gets no permission prompt and no
 grants, is never in the Plugins list, and ends when its work ends, leaving nothing loaded.
 
 **Entry contract.** `run_python_code()` (`plugin/PythonScriptRunner.cpp`) runs the code on the calling thread, the
-MCP job that runs `run_python`, holding an interpreter lease and the GIL. The code is text, compiled as Python
+MCP job that runs `run_python`, holding an interpreter lease and the GIL, as a session with one file work (Run
+Script panel, below). The code is text, compiled as Python
 compiles any code string, so a coding line in it changes nothing; a file's bytes are decoded first as Python reads
 a source file, by its BOM or its PEP 263 declaration, else as UTF-8 (`decode_python_source()`). It runs as the main
 program, in a `types.ModuleType("__main__")` of its own, with `args` bound and `orca` importable. A run is a *file
-run* when `filename` names an existing file (the dialog's and `--mcp-script`'s always do): `__file__` and
+run* when `filename` names an existing file (a saved script's in the panel and `--mcp-script`'s do): `__file__` and
 `sys.argv` (`[path]`) name it, its folder serves its imports, and its PEP 723 dependencies are installed first.
 Any other name (the default `<run_python>`, a bare traceback name) is code sent as text, which gets none of that;
 `filename` still names it in tracebacks. The value left in `result` is read once when the body returns; in code
@@ -2750,8 +2774,8 @@ run's code, on its thread, under its identity and watcher, with the output in it
 running after the run sees the run's globals, and its evicted helpers', cleared, and is refused tool calls.
 
 **Cancellation.** A watcher thread interrupts the run with `PyThreadState_SetAsyncExc` when `cancel {job}` stops
-the job (`run_python` is `cancellable`) or the time budget (`timeout_s`, default 300 s; the dialog's run has none,
-since its Stop ends it) runs out, again every second until it ends. What it interrupts follows the run's phase,
+the job (`run_python` is `cancellable`) or the time budget (`timeout_s`, default 300 s; the panel's session has
+none, since its Stop ends what runs) runs out, again every second until it ends. What it interrupts follows the run's phase,
 which is set, and read before each interrupt, under the GIL: in *Body* (the code) and *Exit* (`atexit` functions,
 the result's own code, the UI teardown, the namespace's finalizers, the folder's teardown, dropping what the script
 left in its routes, its `sys.argv` or in place of `__main__`) the run's thread and its interrupt targets (its
@@ -2777,7 +2801,7 @@ code. The install isn't covered by the watcher; uv's 120 s timeout bounds it.
 
 **Identity.** A person's script runs under the audit identity `script`, an agent's under `mcp`
 (`kScriptIdentityPerson`, `kScriptIdentityAgent`); `McpService::person_run()` tells them apart by the run's
-lineage, since the dialog's and `--mcp-script`'s jobs are marked as a person's (`as_person()`). Every audited
+lineage, since the panel's and `--mcp-script`'s jobs are marked as a person's (`as_person()`). Every audited
 access is allowed to these identities and logged under them (reads at debug level), apart from the categorical
 denies every plugin has (`is_denied_path()`): nothing contains the code, and the setting is the boundary. The
 threads, pool tasks and window callbacks of a run carry its identity. A run owns what its calls leave behind, as a
@@ -2820,7 +2844,7 @@ its title. A plugin's `run_python` leaves all of this to the plugin.
 
 **Idle.** A `run_python` job doesn't count as busy for `wait {for: "idle"}` (`JobRegistry::set_idle()`); the
 calls it makes, and what they start, do. A macro waiting for the person in its window would otherwise hold every
-agent's idle wait, and a `tools/mcp` driver run from the dialog against the same app would wait on its own run.
+agent's idle wait, and a `tools/mcp` driver run from the panel against the same app would wait on its own run.
 
 **Journal and replay.** `run_python` is journaled as one step holding its code, kept when the code failed
 partway; its tool calls are not journaled. In a JSON script a `run_python` step's `code` is never
@@ -2840,6 +2864,118 @@ name (pybind11 names an unnamed one `arg0`). A query ranks the
 entries as the settings search does (`query_words()`, `match_score()`); without one the whole package is
 listed with each entry's first sentence. The reply says whether numpy is installed, which the mesh and
 matrix arrays need and which the bundled Python lacks unless a file run's PEP 723 block installs it.
+
+### Run Script panel
+
+File › Run Script (the Global shortcut Ctrl+Shift+R, ⌘⇧R on macOS) and the Speed Dial command
+`toggle_run_script` show or hide the Run Script panel (`RunScriptPanel`, page `resources/web/dialog/RunScript/`),
+a dock pane of the Plater under the 3D view and the sidebar, where a person edits a `.py` file in `# %%` cells and
+runs a cell, the whole file or a console line in a live session. Showing it selects Prepare when the current tab is
+neither Prepare nor Preview; the menu item's check mark is whether it is on screen.
+
+**Sessions.** `PythonSession` (`plugin/PythonSession.hpp`) is a `__main__`, folder, identity, output capture and
+watcher that outlive one piece of work. The panel submits a `PythonWork` and reads `PythonSessionEvent`s from any
+thread; `host_python_session()` hosts the session on one thread, under one interpreter lease and audit scope, and runs
+the teardown a run has (threads, pools, `atexit`, its windows, its folder's helpers) once, at the session's end. A work
+is a File (the whole script, run as `run_python_code()` runs code), a Cell (its lines, which start at the file line
+`first_line`, so line numbers are the file's) or Console code; a Cell or Console work that ends in a bare expression
+shows its value, as Python's prompt does, and binds it to `_`, and so does each cell of a File work whose last
+statement is one (`cell_results`): `mark_cell_results()` makes that statement a call to `_orca_show_result`, which
+the work's namespace binds to the capture module's `show_result()`, a C++ function, so the module keeps its lines,
+cells, tracebacks and docstring, and neither `__import__` nor `sys.modules` stands between a cell and its value. A
+value that is a dict or a list JSON holds as is (str keys, finite floats, strings UTF-8 holds, no tuples or
+subclasses) comes as a Result event, compact JSON counted in the output's allowance; any other value, or one past the
+allowance, is printed as its repr. The events
+are Output, streamed as printed, with each
+work and each stretch between works capped at 256 KiB and then the note `[output truncated at 256 KiB]`; Result; Cell, a
+File work's cell whose lines start running, reported through `sys.monitoring` tool id 4, which the session claims only
+around a File work and frees after it (when another owner holds the id the work runs without Cell events, and its
+Finished says `cells_reported` false); and Finished, with the outcome, the traceback, the innermost line in the
+session's file, whether the code started at all (`executed` is false for a syntax error or a failed dependency
+install) and the count of variables, the names in `__main__` that don't start with `_`, aren't `args` and aren't
+modules. A work's traceback quotes its `source`, the editor's text, for frames in the session's file, by rebuilding the
+frame summaries, chained exceptions included, never through `linecache`, which every run, plugin and later traceback
+shares; a traceback the session's own threads print reads the file on disk. A File work reports once the non-daemon
+threads it started have ended, as `python file.py` ends; the threads of a Cell or Console work keep running in the
+session, whose admission stays open until it ends. A session keeps the file it started with (`__file__`, `sys.argv`
+and its folder), so saving somewhere new applies from the next session, and a file session installs its PEP 723
+dependencies as its first work starts. `run_python_code()` is a session with one File work and its end asked up front,
+with streaming, quoting, Cell events and cell results off and a stop closing every window of the run, which is how it
+keeps the run described above.
+
+**The session job.** `McpService::start_python_session()` hosts the panel's session as an unjournaled person's
+`run_python` job (`run_python_session_job()`) on a thread the service owns, which `stop()` joins and
+`stop_script_runs()` stops. The job is idle for `wait {for: "idle"}` as any `run_python` job is, so agents' and
+plugins' runs overlap with it, sharing no state, tracebacks included. It owns what its calls leave behind for the
+whole session, as a run does (`begin_script_scope()`): auto-answer rules, recordings, held presses. Between works its
+rule layer is paused (`ModalTracker::set_paused()`; the rules listing shows it as paused), so a rule a cell
+registered never answers the person's own dialogs between runs and answers again in the next one (a rule a thread of
+the session registers between works starts paused, and leaves the dialog open then to the person too), and its held
+presses are released as each work ends (`release_script_presses()`). Its `orca.host.tools` calls are child calls of a
+`LineageNode`, a running idle job under the session's job that only parents calls: a stop requests the stop for the
+node and cancels its operations (`cancel_operations_of()`), so every call in flight, inline ones such as `wait`
+included, returns at once while the session goes on, and the next work after a stop starts once that cancelling is done,
+under a renewed node. With Python
+scripts off the job refuses before it hosts anything, and turning them off ends the session.
+
+**Stop.** Stop interrupts what runs now: the work, and the session's threads and tasks; while the session is idle a
+stop reaches its threads and tasks for five seconds (`kStopWindow`), and the session goes on. A stop moves the run
+scope's stop generation on, so a pool task queued before it doesn't run (its future fails with "The task was stopped
+before it ran") while one submitted later does, and ends the session's message boxes and modal windows on the UI
+thread (`PluginHostUi::end_run_modals()`), so code waiting in them can be interrupted, leaving its modeless windows,
+dock panels and callbacks open. A cancel or time-out of the job reaches everything until the end, and ends the
+session. A Run all still waiting for the old session to end is dropped by Stop and reported stopped. Restart session, Close script, New, Open, a recent or dropped script, Run all (which runs in a session of
+its own, as `python file.py` does), turning Python scripts off, quitting and a main-window rebuild end the session
+and stop it, so it ends as a stopped run does: its threads get five seconds, its `atexit` functions run once, and
+what the teardown runs can be interrupted, as a stop asked once the session is ending reaches its teardown even when
+nothing else was live; then its windows close and its folder's helpers are evicted.
+
+**Lifetime.** `RunScriptPanel` is owned by `GUI_App`, so the script's text, file, unsaved state, session and recent
+scripts (AppConfig `run_script` › `recent`, newest first, at most 10) outlive the pane (`RunScriptPane`), which a
+main-window rebuild (a language change) destroys: `MainFrame::shutdown()` calls `main_window_closing()`, which stops
+and ends the session and stops reading its events, and the end of `GUI_App::recreate_GUI()` calls
+`main_window_rebuilt()`, which builds the pane again, with an empty console, if it was shown. The pane is built the
+first time it is shown and hidden at each start; its place and size are kept in the saved layout, and its close button
+hides it (`add_dock_pane(..., hide_on_close)`). The page reports every edit as it happens, so New, Open, a recent or
+dropped script, Close script and quitting ask Save / Don't save / Cancel against the host's current copy. While a work
+runs the editor is read-only; threads alone don't lock it. The console keeps its last 2 MiB; its Clear button
+empties it and leaves the session alone, keeping, during a run, the run's heading (in Run all, with the row of the cell
+it runs now) for the output still to come. Run all's block holds a row per cell it reaches, folded to a heading that
+shows the last line the cell printed, its result or its error; the cell a run stops in opens, and Expand all opens
+every row. The page lays a JSON result out (an array or object stays on one line while it fits 72 characters, and a
+result whose layout would be more than four times as long stays on one line), keeping its numbers and strings as
+Python wrote them, in the editor's JSON colours, and counts what it shows toward the console's 2 MiB. Besides each cell's bar in the margin, the
+toolbar's Cells menu draws dividers, header bands or shaded cells, and can tint the cell at the cursor, as Ace
+full-line markers behind the text for the cells on screen; the choice is AppConfig `run_script` › `cell_style` and
+`highlight_cell`. Ace has no cells, so the + in the margin a row below the last line, which adds a `# %% ` cell at
+the end, is the page's own element, placed after each render. The divider between the editor and the console sets the
+editor's share of the width, so a resized pane keeps its proportions; a drag stops at 220 px of editor and 200 px of
+console, and its arrow keys, Home and End and double-click (back to 60%) work as a window splitter's. The arrows on its
+grip hide a side, as does a drag that ends 48 px past a side's smallest width; a hidden side leaves a strip at its edge
+that brings it back at its width: the editor's shows each cell's bar, the console's a dot for a run going, output not
+seen, or a failed run. The console's side hides only while it shows the console, never the start page or the note that
+Python is off. The share and the hidden side are AppConfig `run_script` › `split` and `hidden_side`, saved when a drag
+ends rather than as it moves.
+
+**Out of the tools' reach.** Like Action Replay's page, the page navigates nowhere but its own loads: a dropped
+`.py` opens in the panel, and any other navigation is vetoed. The pane is named `kHiddenFromAutomation`, as are the frame it floats in
+(`AuiMgr::CreateFloatingFrame()`) and every prompt and file dialog it opens. `skipped_by_walks()` keeps the walks of
+`ui_snapshot`, locators and `webview_eval`'s search for a web view out of it, and a key sent without a target never
+goes to the focus inside it, so a script never acts on the panel that runs it. Docked, the panel is part of the main
+window and shows in its screenshots and recordings; floating, it is a window of its own and stays out of them, as the
+person's own dialogs do.
+
+**Keys.** The page handles its own keys: in the editor through Ace's commands, elsewhere through a document key
+handler. The pane's web view has the browser's accelerator keys off, so Ctrl+R, Ctrl+Shift+R and F5 don't reload it.
+While a code editor window (`CodeEditorWindow`: the panel or Action Replay) has the focus
+(`MainFrame::focused_code_editor()`; on Windows the focus inside WebView2 is found with `::IsChild()` of
+`::GetFocus()`), the main frame's key hook passes keys to the page past the global shortcuts, apart from the toggle's,
+and a menu item whose shortcut the editor takes is disabled: a chord the page reported in `editor_keys` (Ace's own
+bindings only, so a rebinding can't make it stale) or a key with no modifier but Shift. Save, Save As, Undo, Redo, Cut,
+Copy, Paste, Select All and Run Script stay enabled, and Save and the Edit items are forwarded to that window's editor
+(`forward_to_editor()`, `editor_clipboard()`), so one press acts once, on the text; a text field outside the editor
+that has the focus (the console prompt) takes the forwarded Undo, Redo and Select All itself. A toggle the page asks for within
+150 ms of one the main frame dispatched is the same press delivered twice and is dropped.
 
 ## Plugins and the tools
 

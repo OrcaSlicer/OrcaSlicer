@@ -148,9 +148,8 @@ void PythonRunScope::task_finished(unsigned long ident)
         m_task_targets.erase(it);
 }
 
-bool PythonRunScope::close_admission_if_quiet()
+bool PythonRunScope::quiet_locked() const
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
     if (m_admission_closed)
         return true;
     if (m_waited_pending > 0 || m_callbacks_active > 0 || m_tasks_outstanding > 0)
@@ -158,8 +157,41 @@ bool PythonRunScope::close_admission_if_quiet()
     for (const auto& [ident, waited] : m_live_threads)
         if (waited)
             return false;
+    return true;
+}
+
+bool PythonRunScope::quiet() const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return quiet_locked();
+}
+
+bool PythonRunScope::close_admission_if_quiet()
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (!quiet_locked())
+        return false;
     m_admission_closed = true;
     return true;
+}
+
+bool PythonRunScope::has_live_work() const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_waited_pending > 0 || m_callbacks_active > 0 || m_tasks_outstanding > 0 || !m_live_threads.empty();
+}
+
+void PythonRunScope::mark_ending()
+{
+    if (m_ending.exchange(true))
+        return;
+    m_ending_generation.store(m_stop_generation.load());
+}
+
+bool PythonRunScope::queued_task_refused(std::uint64_t submitted) const
+{
+    const std::uint64_t now = m_stop_generation.load();
+    return now != submitted || (m_ending.load() && now != m_ending_generation.load());
 }
 
 void PythonRunScope::close_admission()

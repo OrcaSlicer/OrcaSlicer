@@ -125,6 +125,7 @@ src/slic3r/GUI/Jobs/SLAImportJob.cpp
 src/slic3r/GUI/Jobs/UpgradeNetworkJob.cpp
 src/slic3r/GUI/AboutDialog.cpp
 src/slic3r/GUI/ActionRegistry.cpp
+src/slic3r/GUI/ActionReplayDialog.cpp
 src/slic3r/GUI/AMSMaterialsSetting.cpp
 src/slic3r/GUI/ExtrusionCalibration.cpp
 src/slic3r/GUI/AmsMappingPopup.cpp
@@ -167,7 +168,7 @@ src/slic3r/GUI/Mcp/PythonScriptsDialog.cpp
 src/slic3r/GUI/Mcp/RecordingSettings.cpp
 src/slic3r/GUI/RecordingDialog.cpp
 src/slic3r/GUI/RecordingIndicator.cpp
-src/slic3r/GUI/ScriptRunnerDialog.cpp
+src/slic3r/GUI/RunScriptPanel.cpp
 src/slic3r/GUI/MediaPlayCtrl.cpp
 src/slic3r/GUI/MediaFilePanel.cpp
 src/slic3r/GUI/ImageGrid.cpp
@@ -414,3 +415,4 @@ src/slic3r/GUI/PostProcessor.cpp
 src/slic3r/GUI/TaskManager.cpp
 src/slic3r/GUI/Widgets/ProgressDialog.hpp
 src/slic3r/GUI/Widgets/StepCtrl.cpp
+src/slic3r/GUI/Widgets/WebViewHostDialog.cpp

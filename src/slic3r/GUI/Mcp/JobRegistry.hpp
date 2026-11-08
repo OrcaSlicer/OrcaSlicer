@@ -123,6 +123,33 @@ private:
     bool                        m_woken = false;
 };
 
+// A parent for calls, not a call itself: a running job under `parent`, set idle, so a stop asked for it reaches every
+// call made under it, inline ones included, without stopping `parent`. renew() finishes it and makes a fresh one, whose
+// calls run again; the destructor finishes it, and nothing else does. A Run Script session's calls hang under one.
+// Any thread.
+class LineageNode
+{
+public:
+    // Throws ToolFailure as JobRegistry::create() does.
+    LineageNode(JobRegistry& jobs, std::string tool, std::string parent);
+    ~LineageNode();
+    LineageNode(const LineageNode&)            = delete;
+    LineageNode& operator=(const LineageNode&) = delete;
+
+    std::string id() const;
+    // Throws ToolFailure as JobRegistry::create() does, keeping the current node.
+    void        renew();
+
+private:
+    std::string make() const;
+
+    JobRegistry&       m_jobs;
+    const std::string  m_tool;
+    const std::string  m_parent;
+    mutable std::mutex m_mutex;
+    std::string        m_id;
+};
+
 // Refuses a plugin's call (ToolContext::caller_plugin()) about a job its own calls did not start: the
 // session tools act only on a plugin's own jobs. `what` names the action, as in "waits for".
 void require_own_job(const ToolContext& ctx, const JobRegistry& jobs, const std::string& job, const char* what);

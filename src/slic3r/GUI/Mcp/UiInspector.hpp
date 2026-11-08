@@ -274,8 +274,12 @@ private:
 // button's menu), the one the popup opened from, which on every port is the popup's parent. Guards and
 // `within` judge popup widgets by it.
 wxWindow* owning_window(wxWindow* w);
-// `w` is, or is inside, a top-level window named kHiddenFromAutomation.
+// `w`, one of its parents up to its top-level window, or that window (through a popup, the window the popup belongs
+// to) is named kHiddenFromAutomation: a dialog of the person's own, or a pane inside the main window such as the Run
+// Script panel.
 bool hidden_from_automation(const wxWindow* w);
+// A child walk leaves out a window named kHiddenFromAutomation and everything inside it.
+bool skipped_by_walks(const wxWindow* w);
 // "No modal dialog is open", naming the shown windows that don't block (the Plugins dialog) and how
 // to reach them, since an agent sees them as dialogs too. UI thread only.
 std::string no_modal_dialog(McpService& service);

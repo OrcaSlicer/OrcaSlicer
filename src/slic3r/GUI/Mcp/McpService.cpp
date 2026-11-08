@@ -25,6 +25,7 @@
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/plugin/PythonScriptRunner.hpp"
+#include "slic3r/plugin/PythonSession.hpp"
 
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Utils.hpp"
@@ -457,7 +458,7 @@ bool McpService::drain(std::chrono::milliseconds timeout)
     return m_core->drain(std::max(left, std::chrono::milliseconds(0)));
 }
 
-std::string McpService::set_auto_answer(std::vector<AutoAnswerRule> rules, const std::vector<std::string>& ancestry)
+AutoAnswerSet McpService::set_auto_answer(std::vector<AutoAnswerRule> rules, const std::vector<std::string>& ancestry)
 {
     // A plugin's call is owned by its plugin's scope when no script in its chain is nearer.
     const std::string plugin = ancestry.empty() ? std::string() : m_jobs.owner(ancestry.front());
@@ -465,15 +466,18 @@ std::string McpService::set_auto_answer(std::vector<AutoAnswerRule> rules, const
     // The nearest running script in the caller's job chain owns the rules.
     for (const std::string& job : ancestry)
         if (auto it = m_script_rule_layers.find(job); it != m_script_rule_layers.end()) {
-            if (!rules.empty())
-                it->second.push_back(m_modals->push_rules(std::move(rules)));
-            return "script";
+            const bool paused = m_paused_scopes.count(job) != 0;
+            if (rules.empty())
+                return {"script", 0, paused};
+            it->second.push_back(m_modals->push_rules(std::move(rules), paused));
+            return {"script", it->second.back(), paused};
         }
     if (!plugin.empty()) {
         if (auto it = m_script_rule_layers.find(plugin_scope_key(plugin)); it != m_script_rule_layers.end()) {
-            if (!rules.empty())
-                it->second.push_back(m_modals->push_rules(std::move(rules)));
-            return "plugin";
+            if (rules.empty())
+                return {"plugin", 0, false};
+            it->second.push_back(m_modals->push_rules(std::move(rules)));
+            return {"plugin", it->second.back(), false};
         }
         if (m_unloaded_plugins.count(plugin) != 0)
             throw ToolFailure("The plugin that made this call has been unloaded; its rules were not applied");
@@ -484,7 +488,7 @@ std::string McpService::set_auto_answer(std::vector<AutoAnswerRule> rules, const
     if (m_session_rule_layer != 0)
         m_modals->pop_rules(m_session_rule_layer);
     m_session_rule_layer = rules.empty() ? 0 : m_modals->push_rules(std::move(rules));
-    return "session";
+    return {"session", m_session_rule_layer, false};
 }
 
 void McpService::begin_script_scope(const std::string& job)
@@ -508,10 +512,31 @@ void McpService::end_script_scope(const std::string& job, bool wait_recording)
             for (int layer : it->second)
                 m_modals->pop_rules(layer);
         m_script_rule_layers.erase(it);
+        m_paused_scopes.erase(job);
     }
     // A recording the script started ends with it, its file closed before the script's call returns.
     if (m_recorder)
         m_recorder->end_owned_by(job, "script_ended", wait_recording);
+    release_script_presses(job);
+}
+
+void McpService::set_script_scope_paused(const std::string& job, bool paused)
+{
+    std::lock_guard<std::mutex> lock(m_rules_mutex);
+    auto                        it = m_script_rule_layers.find(job);
+    if (it == m_script_rule_layers.end())
+        return;
+    if (paused)
+        m_paused_scopes.insert(job);
+    else
+        m_paused_scopes.erase(job);
+    if (m_modals)
+        for (int layer : it->second)
+            m_modals->set_paused(layer, paused);
+}
+
+void McpService::release_script_presses(const std::string& job)
+{
     // Found again on the UI thread: the service may be gone by the time the closure runs.
     if (m_dispatcher && !m_stopping)
         m_dispatcher->post([job] {
@@ -520,6 +545,14 @@ void McpService::end_script_scope(const std::string& job, bool wait_recording)
                 release_web_presses(service->m_web_presses, &job);
             }
         });
+}
+
+void McpService::cancel_operations_of(const std::string& job)
+{
+    for (const std::string& op : m_jobs.running_operations())
+        if (m_jobs.lineage(op).count(job) != 0 && !m_core->cancel_worker(op))
+            if (Plater* plater = wxGetApp().plater())
+                plater->cancel_slicing();
 }
 
 std::string McpService::script_owner(const std::vector<std::string>& ancestry) const
@@ -960,10 +993,11 @@ std::shared_ptr<ScriptRun> McpService::start_script_run(Script script, ScriptCon
     return run;
 }
 
-std::shared_ptr<ScriptRun> McpService::start_python_run(std::string code, const fs::path& file, ScriptRun::Events events)
+std::shared_ptr<ScriptRun> McpService::start_python_session(std::shared_ptr<PythonSession> session, const fs::path& file,
+                                                           ScriptRun::Events events)
 {
     const ToolDef* run_python = started() ? m_registry.find("run_python") : nullptr;
-    if (run_python == nullptr || m_stopping)
+    if (run_python == nullptr || m_stopping || !session)
         return nullptr;
     {
         // Threads whose run has ended are done or about to be; joining them keeps the list short.
@@ -978,26 +1012,38 @@ std::shared_ptr<ScriptRun> McpService::start_python_run(std::string code, const 
             it = m_run_threads.erase(it);
         }
     }
-    auto run = std::make_shared<ScriptRun>(*this, std::move(events));
+    auto run      = std::make_shared<ScriptRun>(*this, std::move(events));
+    auto hosted   = std::make_shared<std::atomic<bool>>(false);
+    auto filename = file.empty() ? std::string("<run_python>") : path_to_utf8(file);
     // run_python's properties, outside the session journal, as a person's run.
     ToolDef def = as_person(*run_python);
     def.journal = false;
-    def.handler = [run, handler = def.handler](const json& args, ToolContext& ctx) {
+    def.handler = [this, run, session, hosted, filename](const json&, ToolContext& ctx) {
         run->set_job(ctx.job_id());
-        return handler(args, ctx);
+        hosted->store(true);
+        // A handler that refuses never hosts the session: it ends here all the same.
+        struct Ended
+        {
+            PythonSession& session;
+            ~Ended()
+            {
+                if (!session.ended())
+                    session.host_returned();
+            }
+        } ended{*session};
+        return run_python_session_job(*this, ctx, *session, filename);
     };
-    // No time limit: the person has the dialog's Stop.
-    json args{{"code", std::move(code)}, {"timeout_s", 0}};
-    if (!file.empty())
-        args["filename"] = path_to_utf8(file);
 
     std::lock_guard<std::mutex> lock(m_runs_mutex);
-    m_run_threads.push_back({std::thread([this, run, def, args] {
-                                 const std::optional<ToolResult> r = call_to_end(def, args);
+    m_run_threads.push_back({std::thread([this, run, def, session, hosted] {
+                                 const std::optional<ToolResult> r = call_to_end(def, json::object());
                                  run->mark_ended();
-                                 if (!r || m_stopping)
+                                 // Refused before its handler ran: the session was never hosted.
+                                 if (r && !hosted->load())
+                                     session->host_returned();
+                                 if (!r || m_stopping || !r->is_error)
                                      return;
-                                 run->post_finished(r->is_error ? json{{"error", r->message}} : r->data, json());
+                                 run->post_finished(json{{"error", r->message}}, json());
                              }),
                              run});
     return run;

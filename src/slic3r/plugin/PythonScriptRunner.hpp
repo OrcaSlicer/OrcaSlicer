@@ -15,6 +15,7 @@ class handle;
 namespace Slic3r {
 
 class PythonRunScope;
+class PythonSession;
 
 // A Python script a person or an agent starts (run_python, a .py in the Run Script dialog or
 // --mcp-script), or a plugin's run_python: code run on the plugin interpreter without being packaged
@@ -66,6 +67,47 @@ struct PythonRunOutcome
 // keys, a list, a str, a finite number, a bool or None, nested) makes the run raised; SystemExit with
 // code 0 or None finishes it.
 PythonRunOutcome run_python_code(const PythonRunRequest& request);
+
+// How a session is hosted: who it runs as, its file, and what its output, tracebacks and stops do.
+struct PythonSessionRequest
+{
+    // As PythonRunRequest::identity.
+    std::string    identity;
+    // As PythonRunRequest::filename, fixed for the session: an existing file makes it a file session, whose works
+    // run with `__file__`, `sys.argv` and its folder's imports, and whose first work installs its PEP 723 dependencies.
+    std::string    filename = "<run_python>";
+    // Bound to the module-level name `args`.
+    nlohmann::json args = nlohmann::json::object();
+    // The session is stopped and ended as timed_out once it has run this long, measured from its start; 0 is none.
+    std::chrono::milliseconds budget{0};
+    // Polled from another thread; true stops and ends the session as cancelled.
+    std::function<bool()> cancelled;
+    // Called from another thread at each stop or time-out, to cancel the tool calls in flight.
+    std::function<void()> stop_calls;
+    // A stop closes every window of the run, as a run's stop does, instead of only its message boxes and modal
+    // windows, which a session's stop ends so the code waiting in them can be interrupted.
+    bool stop_closes_ui = false;
+    // Output events as the code prints, each work and each stretch between works capped at 256 KiB with a note;
+    // false: one Output event at the session's end, capped at 256 KiB as a run's output is.
+    bool stream_output = true;
+    // Tracebacks quote the work's `source` for frames in the session's file, never the file on disk or linecache.
+    bool quote_source = true;
+    // File works send a Cell event as each cell's lines start running.
+    bool report_cells = true;
+    // A File work shows the result of each cell whose last statement is a bare expression, as a Cell work shows its
+    // own: `_` names it, and it comes as a Result event, or printed as its repr.
+    bool cell_results = true;
+    // Run on the hosting thread without the GIL, before and after each work.
+    std::function<void()> work_started, work_ended;
+};
+
+// Hosts `session` on the calling thread until it ends: one interpreter lease, audit scope, __main__, folder, output
+// capture and watcher for all its works, and the teardown a run has (threads, pools, atexit, the run's windows, the
+// folder's helpers) once at its end. A Cell or Console work echoes the value of a trailing bare expression and binds it
+// to `_`; a File work runs as run_python_code() runs its code, and when the session goes on afterwards it reports once
+// the waited threads it started have ended. Stop interrupts what runs now and the session's threads and tasks, and
+// for five seconds after it, while the session is idle, its threads and tasks; the session goes on.
+void host_python_session(const PythonSessionRequest& request, PythonSession& session);
 
 // Installs a file run's PEP 723 dependencies; false with `error` when that fails. plugin_loader::install_packages
 // unless a test sets another; nullptr restores it.

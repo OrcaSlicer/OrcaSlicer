@@ -92,6 +92,40 @@ std::vector<std::string> JobRegistry::running_owned_by(const std::string& owner)
     return out;
 }
 
+LineageNode::LineageNode(JobRegistry& jobs, std::string tool, std::string parent)
+    : m_jobs(jobs), m_tool(std::move(tool)), m_parent(std::move(parent)), m_id(make())
+{}
+
+LineageNode::~LineageNode()
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_jobs.finish(m_id, ToolResult::ok());
+}
+
+std::string LineageNode::make() const
+{
+    const std::string id = m_jobs.create(m_tool, m_parent);
+    m_jobs.set_idle(id);
+    return id;
+}
+
+std::string LineageNode::id() const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_id;
+}
+
+void LineageNode::renew()
+{
+    std::string fresh = make();
+    std::string old;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        old = std::exchange(m_id, std::move(fresh));
+    }
+    m_jobs.finish(old, ToolResult::ok());
+}
+
 void require_own_job(const ToolContext& ctx, const JobRegistry& jobs, const std::string& job, const char* what)
 {
     if (!ctx.caller_plugin().empty() && jobs.owner(job) != ctx.caller_plugin())

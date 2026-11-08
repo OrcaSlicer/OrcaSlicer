@@ -94,7 +94,7 @@ plugin in the Plugins dialog withdraws its operation and ends its rule); and wit
 where a `--mcp-script` runs the plugin's script and its rule is still the plugin's. Run it as `python tools/mcp/test_plugin_tools.py`. The permission's own
 prompt opens while the app starts, before MCP can answer it, so the first launch sets
 `ORCA_MCP_TOOLS_FIXTURE_ASK=0` and the plugin doesn't ask; the prompt is covered by the unit tests. The
-script runner's `.py` files are not driven from here: the dialog is hidden from automation and opens its
+Run Script panel's `.py` files are not driven from here: the panel is hidden from automation and opens its
 files through a file picker, so how it reads and saves them is covered by the unit tests of
 `decode_python_source()` and `encode_python_source()`.
 
@@ -321,10 +321,12 @@ tools/mcp/orca_mcp.py launch --datadir /tmp/orca-mcp-test
 tools/mcp/test_web_ui.py
 ```
 
-`test_script_runner_hidden.py` opens the Run Script dialog and checks that the GUI tools don't see
+`test_script_runner_hidden.py` opens Action Replay and checks that the GUI tools don't see
 it: `ui_snapshot` lists no window for it, `webview_eval` without a target behaves as before it
-opened, and a key sent without a target never reaches it; `run_script` still runs the smoke test and
-a nested inline script.
+opened, and a key sent without a target never reaches it. It then shows the Run Script panel on
+Prepare and checks the same for it, with no more web views in `ui_snapshot` than before, a key sent
+without a target reaching the 3D view, a window screenshot, and an agent's `run_python` finishing
+while it is shown; `run_script` still runs the smoke test and a nested inline script.
 
 `tests/slice_stats.json` slices one cube, then two cubes in two colours, and checks the slice
 reply's statistics: layers, max Z, filament changes, and each filament slot's model, flush and

@@ -1,4 +1,4 @@
-#include "ScriptRunnerDialog.hpp"
+#include "ActionReplayDialog.hpp"
 
 #include "GLCanvas3D.hpp"
 #include "GUI.hpp"
@@ -8,15 +8,15 @@
 #include "MsgDialog.hpp"
 #include "NativeCommands.hpp"
 #include "Plater.hpp"
+#include "RunScriptPanel.hpp"
 #include "format.hpp"
 #include "Mcp/McpPaths.hpp"
 #include "Mcp/McpScript.hpp"
 #include "Mcp/McpScriptRun.hpp"
 #include "Mcp/McpScriptSummary.hpp"
 #include "Mcp/McpService.hpp"
+#include "Mcp/McpTools.hpp"
 #include "Mcp/McpTypes.hpp"
-#include "Mcp/PythonScriptsDialog.hpp"
-#include "slic3r/plugin/PythonScriptRunner.hpp"
 #include "Widgets/WebViewHostDialog.hpp"
 #include "libslic3r/Utils.hpp"
 #ifdef __APPLE__
@@ -35,12 +35,18 @@
 #include <wx/defs.h>
 #include <wx/event.h>
 #include <wx/filedlg.h>
+#include <wx/filename.h>
 #include <wx/gdicmn.h>
 #include <wx/image.h>
 #include <wx/mstream.h>
 #include <wx/string.h>
 #include <wx/timer.h>
 #include <wx/utils.h>
+#include <wx/webview.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #include <algorithm>
 #include <chrono>
@@ -75,7 +81,7 @@ std::string timestamp()
     return buf;
 }
 
-// The file name a new script is first offered under: the script's name, with the characters file
+// The file name a new replay is first offered under: the replay's name, with the characters file
 // systems refuse replaced.
 std::string file_name_for(const std::string& text)
 {
@@ -83,10 +89,12 @@ std::string file_name_for(const std::string& text)
     const auto  script = Mcp::parse_script(text, err);
     std::string name   = script ? sanitize_filename(script->name) : std::string();
     boost::trim_if(name, boost::is_any_of(" ."));
-    return (name.empty() ? std::string("script") : name) + ".json";
+    return (name.empty() ? std::string("replay") : name) + ".json";
 }
 
-wxString script_wildcard() { return format_wxstr("%1% (*.json;*.py)|*.json;*.py", _L("Script files")); }
+wxString replay_wildcard() { return format_wxstr("%1% (*.json)|*.json|%2% (*.*)|*.*", _L("Replay files"), _L("All files")); }
+
+bool is_replay_file(const fs::path& path) { return boost::iequals(path.extension().string(), ".json"); }
 
 bool is_python_file(const fs::path& path) { return boost::iequals(path.extension().string(), ".py"); }
 
@@ -146,12 +154,12 @@ std::pair<std::string, std::string> what_text(const json& what)
     return {};
 }
 
-// One check of a step's expect in a sentence; the pointer and operand are the script's data.
+// One check of a step's expect in a sentence; the pointer and operand are the replay's data.
 std::string check_text(const std::string& pointer, const std::string& op, const json& operand)
 {
     const std::string value = value_text(operand);
-    // TRN In these messages %1% names the field of a step's result that the script checks (a JSON
-    // pointer such as /plates/0/outcome) and %2% the value the script compares it with.
+    // TRN In these messages %1% names the field of a step's result that the replay checks (a JSON
+    // pointer such as /plates/0/outcome) and %2% the value the replay compares it with.
     if (op == "eq")
         return format(_u8L("Checks that %1% is %2%."), pointer, value);
     if (op == "ne")
@@ -172,7 +180,7 @@ std::string check_text(const std::string& pointer, const std::string& op, const 
         return operand == false ? format(_u8L("Checks that %1% is missing."), pointer) : format(_u8L("Checks that %1% is there."), pointer);
     if (op == "empty")
         return operand == false ? format(_u8L("Checks that %1% is not empty."), pointer) : format(_u8L("Checks that %1% is empty."), pointer);
-    // A matcher this version doesn't know, which the run reports: the script's own words.
+    // A matcher this version doesn't know, which the run reports: the replay's own words.
     return pointer + ": " + op + " " + value;
 }
 
@@ -190,7 +198,7 @@ json checks_view(const json& expect)
     return out;
 }
 
-// A failed expectation in a sentence; the pointer and values are the script's data.
+// A failed expectation in a sentence; the pointer and values are the replay's data.
 std::string expect_text(const json& r)
 {
     const std::string pointer  = r.value("pointer", "");
@@ -198,17 +206,17 @@ std::string expect_text(const json& r)
     const std::string actual   = value_text(r.value("actual", json()));
     const std::string expected = value_text(r.value("expected", json()));
     const bool        exists   = r.value("exists", false);
-    // TRN In these messages %1% names the field of a step's result that the script checked (a JSON
-    // pointer such as /plates/0/outcome), %2% the value it had and %3% the value the script expected.
+    // TRN In these messages %1% names the field of a step's result that the replay checked (a JSON
+    // pointer such as /plates/0/outcome), %2% the value it had and %3% the value the replay expected.
     if (op == "exists")
         return r.value("expected", json(true)) == true ? format(_u8L("The step finished, but %1% was missing."), pointer) :
-                                                         format(_u8L("The step finished, but %1% was there, which the script did not expect."), pointer);
+                                                         format(_u8L("The step finished, but %1% was there, which the replay did not expect."), pointer);
     if (!exists)
         return format(_u8L("The step finished, but %1% was missing."), pointer);
     if (op == "eq")
         return format(_u8L("The step finished, but %1% was %2%, not %3%."), pointer, actual, expected);
     if (op == "ne")
-        return format(_u8L("The step finished, but %1% was %2%, which the script did not expect."), pointer, actual);
+        return format(_u8L("The step finished, but %1% was %2%, which the replay did not expect."), pointer, actual);
     if (op == "gt")
         return format(_u8L("The step finished, but %1% was %2%, not more than %3%."), pointer, actual, expected);
     if (op == "ge")
@@ -244,34 +252,13 @@ std::string thumbnail(const std::string& path)
     return "data:image/png;base64," + into_u8(wxBase64Encode(bytes.data(), bytes.size()));
 }
 
-// What the editor suggests for each tool: its name, title and arguments with their types and allowed
-// values. The argument descriptions are written for agents, in English, and stay out.
-json tool_catalog(const Mcp::ToolRegistry& registry)
-{
-    json tools = json::array();
-    for (const Mcp::ToolDef& def : registry.tools()) {
-        json       args       = json::object();
-        const auto properties = def.input_schema.find("properties");
-        if (properties != def.input_schema.end())
-            for (const auto& [name, schema] : properties->items()) {
-                json arg = json::object();
-                for (const char* key : {"type", "enum"})
-                    if (schema.contains(key))
-                        arg[key] = schema[key];
-                args[name] = std::move(arg);
-            }
-        tools.push_back({{"name", def.name}, {"title", _u8L(def.title.c_str())}, {"args", std::move(args)}});
-    }
-    return tools;
-}
-
 } // namespace
 
-ScriptRunnerDialog::ScriptRunnerDialog(wxWindow* parent) : WebViewHostDialog(parent)
+ActionReplayDialog::ActionReplayDialog(wxWindow* parent) : WebViewHostDialog(parent)
 {
-    // Scripts drive the main window through the MCP tools; the dialog keeps out of their sight.
+    // Replays drive the main window through the MCP tools; the dialog keeps out of their sight.
     SetName(Mcp::kHiddenFromAutomation);
-    // The script runner needs the MCP service's tools and jobs, never its network endpoint.
+    // Replaying needs the MCP service's tools and jobs, never its network endpoint.
     if (service() == nullptr)
         wxGetApp().start_mcp_service(false);
 
@@ -281,11 +268,17 @@ ScriptRunnerDialog::ScriptRunnerDialog(wxWindow* parent) : WebViewHostDialog(par
             m_ready_timer.Stop();
         send_service_state();
     });
-    Bind(wxEVT_CLOSE_WINDOW, &ScriptRunnerDialog::on_close, this);
-    create_webview("web/dialog/ScriptRunner/index.html", _L("Run Script"), wxSize(760, 720), wxSize(560, 480));
+    Bind(wxEVT_CLOSE_WINDOW, &ActionReplayDialog::on_close, this);
+    static const char page[] = "web/dialog/ActionReplay/index.html";
+    m_page                   = wxFileName(from_path(fs::path(resources_dir()) / page));
+    if (create_webview(page, _L("Action Replay"), wxSize(760, 720), wxSize(560, 480))) {
+        // No reload: it would put the page back to its draft while the host keeps the file it replaces.
+        browser()->EnableBrowserAcceleratorKeys(false);
+        browser()->Bind(wxEVT_WEBVIEW_NAVIGATING, &ActionReplayDialog::on_navigating, this);
+    }
 }
 
-ScriptRunnerDialog::~ScriptRunnerDialog()
+ActionReplayDialog::~ActionReplayDialog()
 {
     m_alive->store(false);
     m_ready_timer.Stop();
@@ -296,9 +289,24 @@ ScriptRunnerDialog::~ScriptRunnerDialog()
     }
 }
 
-bool ScriptRunnerDialog::running() const { return m_run && m_run->running(); }
+bool ActionReplayDialog::running() const { return m_run && m_run->running(); }
 
-nlohmann::json ScriptRunnerDialog::localized_strings() const
+bool ActionReplayDialog::owns_focus(const wxWindow* focus) const
+{
+    for (const wxWindow* w = focus; w != nullptr; w = w->GetParent())
+        if (w == this)
+            return true;
+#ifdef _WIN32
+    // WebView2 keeps the focus in windows of its own, which wx doesn't know.
+    if (const HWND native = ::GetFocus(); native != nullptr && ::IsChild(static_cast<HWND>(GetHWND()), native))
+        return true;
+#endif
+    return false;
+}
+
+void ActionReplayDialog::forward_action(const std::string& action) { call_web_handler({{"command", "key"}, {"action", action}}); }
+
+nlohmann::json ActionReplayDialog::localized_strings() const
 {
     // Shortcuts as the menus write them (⌘+S, Ctrl+S). The editor's suggestion key is Control+Space on
     // every platform, which the Mac writes ⌃.
@@ -313,30 +321,30 @@ nlohmann::json ScriptRunnerDialog::localized_strings() const
         {"key_run", ctrl + enter},
         {"key_save", ctrl + "S"},
         {"key_save_as", ctrl + shortkey_shift_prefix() + "S"},
-        {"open_script", _u8L("Open script…")},
+        {"open_script", _u8L("Open replay…")},
         {"save", _u8L("Save")},
-        // TRN Saves a new script: the button opens a file dialog.
+        // TRN Saves a new replay file: the button opens a file dialog.
         {"save_new", _u8L("Save…")},
         {"save_as", _u8L("Save as…")},
-        // TRN Shown for a moment after a script is saved.
+        // TRN Shown for a moment after a replay file is saved.
         {"saved", _u8L("Saved")},
         {"edited", _u8L("(edited)")},
-        // TRN The name a new script starts with, in the editor of the Run Script dialog.
-        {"untitled_script", _u8L("Untitled script")},
+        // TRN The name a new replay starts with, in the editor of the Action Replay window.
+        {"untitled_script", _u8L("Untitled replay")},
         {"steps", _u8L("Steps")},
         {"steps_hint", _u8L("Steps appear here as you write them.")},
-        {"script_source", _u8L("Script source")},
-        {"source_placeholder", _u8L("Write a script here, or open one.")},
-        // TRN The first comment line a new script starts with. MCP is the protocol AI agents use to drive OrcaSlicer.
-        {"draft_about", _u8L("A script runs OrcaSlicer's tools in order, the way an AI agent does through MCP.")},
-        // TRN A comment line a new script starts with. "tool", "args" and "expect" are the script's keys and stay in English.
+        {"script_source", _u8L("Replay file")},
+        {"source_placeholder", _u8L("Write a replay here, or open one.")},
+        // TRN The first comment line a new replay starts with. MCP is the protocol AI agents use to drive OrcaSlicer.
+        {"draft_about", _u8L("A replay file runs OrcaSlicer's tools in order, the way an AI agent does through MCP.")},
+        // TRN A comment line a new replay starts with. "tool", "args" and "expect" are the file's keys and stay in English.
         {"draft_steps", _u8L("Each step names a \"tool\" and its \"args\"; \"expect\" checks the result before the next step.")},
-        // TRN %s is the placeholder ${out_dir}, written as is in the script.
+        // TRN %s is the placeholder ${out_dir}, written as is in the replay file.
         {"draft_out_dir", _u8L("%s is this run's output folder.")},
         // TRN The first %s is a key such as Ctrl+Space, the second one such as Ctrl+Enter.
-        {"draft_keys", _u8L("%s shows suggestions, %s runs the script.")},
-        {"run", _u8L("Run")},
-        {"run_again", _u8L("Run again")},
+        {"draft_keys", _u8L("%s shows suggestions, %s replays the file.")},
+        {"run", _u8L("Replay")},
+        {"run_again", _u8L("Replay again")},
         {"stop", _u8L("Stop")},
         {"close", _u8L("Close")},
         {"open_output", _u8L("Open output folder")},
@@ -356,12 +364,13 @@ nlohmann::json ScriptRunnerDialog::localized_strings() const
         {"running_one", _u8L("Running step %s")},
         // TRN The first %s is the number of the step that is running, the second how many steps there are.
         {"running_step", _u8L("Running step %s of %s")},
-        {"hands_off", _u8L("Don't use OrcaSlicer until the script finishes.")},
+        {"hands_off", _u8L("Don't use OrcaSlicer until the replay finishes.")},
         {"starting", _u8L("OrcaSlicer is still starting…")},
+        {"code_editor", code_editor_strings()},
     };
 }
 
-void ScriptRunnerDialog::on_script_message(const nlohmann::json& payload)
+void ActionReplayDialog::on_script_message(const nlohmann::json& payload)
 {
     // Out of the web view's message callback: window work on its stack (file dialogs, prompts,
     // closing) is a crash class on GTK and macOS.
@@ -371,7 +380,7 @@ void ScriptRunnerDialog::on_script_message(const nlohmann::json& payload)
     });
 }
 
-void ScriptRunnerDialog::handle(const nlohmann::json& payload)
+void ActionReplayDialog::handle(const nlohmann::json& payload)
 {
     const std::string command = payload.value("command", "");
     try {
@@ -382,6 +391,11 @@ void ScriptRunnerDialog::handle(const nlohmann::json& payload)
         else if (command == "edit") {
             m_text   = payload.value("text", "");
             m_edited = payload.value("edited", false);
+        } else if (command == "editor_keys") {
+            m_editor_keys.clear();
+            for (const json& chord : payload.value("chords", json::array()))
+                if (chord.is_string())
+                    m_editor_keys.insert(chord.get<std::string>());
         } else if (command == "save")
             save(payload.value("pick", false));
         else if (command == "parse")
@@ -404,7 +418,7 @@ void ScriptRunnerDialog::handle(const nlohmann::json& payload)
     }
 }
 
-void ScriptRunnerDialog::send_service_state()
+void ActionReplayDialog::send_service_state()
 {
     Mcp::McpService* s     = service();
     const bool       ready = s != nullptr && s->ready();
@@ -412,22 +426,31 @@ void ScriptRunnerDialog::send_service_state()
         m_ready_timer.Start(500);
     json msg{{"command", "service"}, {"ready", ready}};
     if (ready)
-        msg["tools"] = tool_catalog(s->registry());
+        msg["tools"] = Mcp::editor_tool_catalog(s->registry());
     call_web_handler(msg);
 }
 
-void ScriptRunnerDialog::open_file()
+void ActionReplayDialog::open_file()
 {
     if (!confirm_unsaved())
         return;
-    wxFileDialog dialog(this, _L("Open a script"), wxEmptyString, wxEmptyString, script_wildcard(), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    wxFileDialog dialog(this, _L("Open a replay file"), wxEmptyString, wxEmptyString, replay_wildcard(), wxFD_OPEN | wxFD_FILE_MUST_EXIST,
+                        wxDefaultPosition, wxDefaultSize, Mcp::kHiddenFromAutomation);
     const int result = dialog.ShowModal();
     if (!m_alive->load())
         return;
     restore_z_order();
     if (result != wxID_OK)
         return;
-    const fs::path          path = into_path(dialog.GetPath());
+    const fs::path path = into_path(dialog.GetPath());
+    if (is_python_file(path))
+        offer_run_script(path);
+    else
+        load_file(path);
+}
+
+void ActionReplayDialog::load_file(const fs::path& path)
+{
     boost::nowide::ifstream in(Mcp::path_to_utf8(path).c_str(), std::ios::binary);
     if (!in) {
         call_web_handler({{"command", "error"}, {"message", format(_u8L("Can't read %1%."), Mcp::path_to_utf8(path))}});
@@ -435,35 +458,66 @@ void ScriptRunnerDialog::open_file()
     }
     std::ostringstream text;
     text << in.rdbuf();
-    std::string source = text.str();
-    std::string encoding = "utf-8";
-    if (is_python_file(path)) {
-        // The page edits UTF-8 text: the file is decoded as Python reads it, and saved back in its encoding.
-        std::string decoded, error;
-        if (!decode_python_source(source, decoded, encoding, error)) {
-            // TRN %1% is a script's file name, %2% why it can't be read.
-            call_web_handler({{"command", "error"},
-                              {"message", format(_u8L("%1% can't be read as Python source: %2%"), Mcp::path_to_utf8(path.filename()), error)}});
-            return;
-        }
-        source = std::move(decoded);
+    m_file = path;
+    m_jobs = json::object();
+    call_web_handler({{"command", "source"}, {"file_name", Mcp::path_to_utf8(path.filename())}, {"text", text.str()}});
+}
+
+// The page goes nowhere but its own loads. A file dropped on it is a navigation to that file, handled after this event.
+void ActionReplayDialog::on_navigating(wxWebViewEvent& event)
+{
+    if (own_page_navigation(event.GetURL(), m_page)) {
+        event.Skip();
+        return;
     }
-    m_python_encoding = encoding;
-    m_file   = path;
-    m_python = is_python_file(path);
-    m_jobs   = json::object();
-    call_web_handler({{"command", "source"}, {"file_name", Mcp::path_to_utf8(path.filename())}, {"text", source}});
+    event.Veto();
+    fs::path path = dropped_file(event.GetURL());
+    if (path.empty())
+        return;
+    wxGetApp().CallAfter([this, alive = m_alive, path = std::move(path)] {
+        if (alive->load())
+            dropped(path);
+    });
+}
+
+void ActionReplayDialog::dropped(const fs::path& path)
+{
+    // As Open, which is unavailable while a replay runs.
+    if (running())
+        return;
+    if (is_python_file(path))
+        offer_run_script(path);
+    else if (is_replay_file(path) && confirm_unsaved())
+        load_file(path);
+}
+
+void ActionReplayDialog::offer_run_script(const fs::path& path)
+{
+    // TRN %1% is a file name.
+    MessageDialog dialog(this, format_wxstr(_L("%1% is a Python script. Python scripts run in the Run Script panel."), from_path(path.filename())),
+                         _L("Action Replay"), wxOK | wxCANCEL | wxICON_INFORMATION);
+    // The person's own question: no auto-answer rule answers it.
+    dialog.SetName(Mcp::kHiddenFromAutomation);
+    dialog.SetButtonLabel(wxID_OK, _L("Open in Run Script"));
+    const int answer = dialog.ShowModal();
+    if (!m_alive->load())
+        return;
+    if (answer == wxID_OK)
+        wxGetApp().run_script_panel().open_file(path);
+    else
+        restore_z_order();
 }
 
 // Writes the source to its file, or to one the person picks when it has none or `pick` asks for another.
 // False when nothing was written: the person cancelled, or the file can't be written.
-bool ScriptRunnerDialog::save(bool pick)
+bool ActionReplayDialog::save(bool pick)
 {
     fs::path path = m_file;
     if (pick || path.empty()) {
         const wxString name = path.empty() ? from_u8(file_name_for(m_text)) : from_path(path.filename());
-        wxFileDialog   dialog(this, _L("Save the script"), path.empty() ? wxString() : from_path(path.parent_path()), name,
-                              script_wildcard(), wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+        wxFileDialog   dialog(this, _L("Save the replay file"), path.empty() ? wxString() : from_path(path.parent_path()), name,
+                              replay_wildcard(), wxFD_SAVE | wxFD_OVERWRITE_PROMPT, wxDefaultPosition, wxDefaultSize,
+                              Mcp::kHiddenFromAutomation);
         const int      result = dialog.ShowModal();
         if (!m_alive->load())
             return false;
@@ -472,13 +526,13 @@ bool ScriptRunnerDialog::save(bool pick)
             return false;
         path = into_path(dialog.GetPath());
         // GTK's file dialog doesn't add the filter's extension, so it never asked about the file adding it names.
-        const char* extension = m_python ? ".py" : ".json";
-        if (!boost::iequals(path.extension().string(), extension)) {
-            path += extension;
+        if (!is_replay_file(path)) {
+            path += ".json";
             boost::system::error_code ec;
             if (fs::exists(path, ec)) {
                 MessageDialog confirm(this, wxString::Format(_L("The file %s already exists.\nDo you want to replace it?"), from_path(path)),
                                       _L("Confirm Save As"), wxYES_NO | wxICON_WARNING);
+                confirm.SetName(Mcp::kHiddenFromAutomation);
                 const int answer = confirm.ShowModal();
                 if (!m_alive->load() || answer != wxID_YES)
                     return false;
@@ -487,21 +541,10 @@ bool ScriptRunnerDialog::save(bool pick)
     }
     // Written beside the file, then renamed over it. Unlike write_file_atomically() nothing is ever written
     // in place, so a save that fails (a full disk, a folder that refuses new files) leaves the file as it was.
-    const std::string target = Mcp::path_to_utf8(path);
-    // A Python script goes back in the encoding it was read in.
-    std::string contents = m_text;
-    if (m_python) {
-        std::string error;
-        if (!encode_python_source(m_text, m_python_encoding, contents, error)) {
-            // TRN %1% is a file name, %2% the text encoding it is in (such as cp1252), %3% why the text doesn't fit it.
-            call_web_handler({{"command", "error"},
-                              {"message", format(_u8L("Can't save %1% in its encoding, %2%: %3%"), target, m_python_encoding, error)}});
-            return false;
-        }
-    }
-    const std::string       temp = target + ".saving";
+    const std::string       target = Mcp::path_to_utf8(path);
+    const std::string       temp   = target + ".saving";
     boost::nowide::ofstream out(temp.c_str(), std::ios::binary | std::ios::trunc);
-    out << contents;
+    out << m_text;
     out.close();
     const bool written = bool(out);
     if (!written || rename_file(temp, target)) {
@@ -512,7 +555,7 @@ bool ScriptRunnerDialog::save(bool pick)
         call_web_handler({{"command", "error"}, {"message", format(_u8L("Can't save %1%."), target)}});
         return false;
     }
-    // Saved somewhere new, the script is that file's: ${script_dir} and the output folder follow it.
+    // Saved somewhere new, the replay is that file's: ${script_dir} and the output folder follow it.
     const bool moved = path != m_file;
     m_file           = path;
     m_edited         = false;
@@ -522,14 +565,16 @@ bool ScriptRunnerDialog::save(bool pick)
 
 // Asks whether to save an edited source before it is closed or replaced. False to keep it: the person
 // cancelled, or chose to save and nothing was saved.
-bool ScriptRunnerDialog::confirm_unsaved()
+bool ActionReplayDialog::confirm_unsaved()
 {
     if (!m_edited)
         return true;
-    const wxString question = m_file.empty() ? _L("Save this script?\nIf you don't, your changes are lost.") :
-                                               // TRN %1% is a script's file name.
+    const wxString question = m_file.empty() ? _L("Save this replay file?\nIf you don't, your changes are lost.") :
+                                               // TRN %1% is a replay file's name.
                                                format_wxstr(_L("Save the changes to %1%?\nIf you don't, your changes are lost."), from_path(m_file.filename()));
-    MessageDialog dialog(this, question, _L("Run Script"), wxYES_NO | wxCANCEL | wxICON_QUESTION);
+    MessageDialog dialog(this, question, _L("Action Replay"), wxYES_NO | wxCANCEL | wxICON_QUESTION);
+    // The person's own question: no auto-answer rule answers it.
+    dialog.SetName(Mcp::kHiddenFromAutomation);
     dialog.SetButtonLabel(wxID_YES, _L("Save"));
     dialog.SetButtonLabel(wxID_NO, _L("Don't save"));
     const int answer = dialog.ShowModal();
@@ -538,9 +583,9 @@ bool ScriptRunnerDialog::confirm_unsaved()
     return answer == wxID_YES ? save(false) : answer == wxID_NO;
 }
 
-// A file's runs write next to it, into <name>.out; a new script's into one folder of the session's
+// A file's runs write next to it, into <name>.out; a new replay's into one folder of the session's
 // output, named when first needed.
-fs::path ScriptRunnerDialog::out_dir() const
+fs::path ActionReplayDialog::out_dir() const
 {
     if (!m_file.empty()) {
         fs::path dir = m_file.parent_path() / m_file.stem();
@@ -552,7 +597,7 @@ fs::path ScriptRunnerDialog::out_dir() const
     return m_draft_out_dir;
 }
 
-Mcp::ScriptContext ScriptRunnerDialog::context() const
+Mcp::ScriptContext ActionReplayDialog::context() const
 {
     Mcp::ScriptContext ctx;
     ctx.out_dir    = out_dir();
@@ -561,7 +606,7 @@ Mcp::ScriptContext ScriptRunnerDialog::context() const
     return ctx;
 }
 
-json ScriptRunnerDialog::describe(const Mcp::Script& script) const
+json ActionReplayDialog::describe(const Mcp::Script& script) const
 {
     Mcp::McpService* s = service();
     // ${jobs.NAME} stays as written: a full run starts from no saved jobs and a single step uses the
@@ -595,39 +640,21 @@ json ScriptRunnerDialog::describe(const Mcp::Script& script) const
     return steps;
 }
 
-void ScriptRunnerDialog::parse(const nlohmann::json& payload)
+void ActionReplayDialog::parse(const nlohmann::json& payload)
 {
     json reply{{"command", "parsed"}, {"seq", payload.value("seq", 0)}, {"ok", false}};
-    if (m_python && !Mcp::python_scripts_allowed(*wxGetApp().app_config)) {
-        // The page keeps Run off while a script doesn't parse, and says why.
-        reply["error"] = _u8L("Python scripts are off. You can turn them on in Preferences > AI features > Python scripts.");
-        call_web_handler(reply);
-        return;
-    }
-    if (m_python) {
-        // Python is checked when it runs; the page shows it as one step that runs the whole file.
-        json step{{"index", 1},          {"tool", "run_python"}, {"title", _u8L("Run Python code")}, {"flags", json::array()},
-                  {"checks_result", false}, {"optional", false},  {"args", json::object()},          {"expect", json::object()},
-                  {"checks", json::array()}};
-        reply.update({{"ok", true},
-                      {"name", Mcp::path_to_utf8(m_file.stem())},
-                      {"steps", json::array({std::move(step)})},
-                      {"count_text", _u8L("Python script")}});
-        call_web_handler(reply);
-        return;
-    }
     try {
         Mcp::McpService* s = service();
         std::string      err;
         const auto       script = Mcp::parse_script(m_text, err);
         if (s == nullptr)
-            reply["error"] = _u8L("Scripts can't run while OrcaSlicer is starting or closing.");
+            reply["error"] = _u8L("Replays can't run while OrcaSlicer is starting or closing.");
         else if (!script)
             reply["error"] = err;
         else {
             for (std::size_t i = 0; i < script->steps.size() && !reply.contains("error"); ++i)
                 if (s->registry().lookup(script->steps[i].tool) == nullptr)
-                    // TRN %1% is a step number, %2% the name of the tool the script asks for.
+                    // TRN %1% is a step number, %2% the name of the tool the replay asks for.
                     reply["error"] = format(_u8L("Step %1% uses a tool this version of OrcaSlicer doesn't have: %2%"), i + 1,
                                             script->steps[i].tool);
             if (!reply.contains("error")) {
@@ -644,35 +671,31 @@ void ScriptRunnerDialog::parse(const nlohmann::json& payload)
     call_web_handler(reply);
 }
 
-void ScriptRunnerDialog::refuse(const std::string& message, const std::string& detail)
+void ActionReplayDialog::refuse(const std::string& message, const std::string& detail)
 {
     call_web_handler({{"command", "run_refused"}, {"message", message}, {"detail", detail}});
 }
 
-void ScriptRunnerDialog::run(const nlohmann::json& payload)
+void ActionReplayDialog::run(const nlohmann::json& payload)
 {
     if (running())
         return;
     Mcp::McpService* s = service();
     if (s == nullptr || !s->ready()) {
-        refuse(_u8L("Scripts can't run while OrcaSlicer is starting or closing."));
-        return;
-    }
-    if (m_python) {
-        run_python();
+        refuse(_u8L("Replays can't run while OrcaSlicer is starting or closing."));
         return;
     }
     std::string err;
     auto        script = Mcp::parse_script(m_text, err);
     if (!script) {
-        refuse(_u8L("The script could not run."), err);
+        refuse(_u8L("The replay could not run."), err);
         return;
     }
     std::optional<std::size_t> only;
     if (payload.contains("step") && payload["step"].is_number_unsigned()) {
         only = payload["step"].get<std::size_t>();
         if (*only < 1 || *only > script->steps.size()) {
-            refuse(_u8L("The script could not run."));
+            refuse(_u8L("The replay could not run."));
             return;
         }
     }
@@ -682,7 +705,7 @@ void ScriptRunnerDialog::run(const nlohmann::json& payload)
         ctx.jobs = json::object();
 
     // The runner asks about unsaved changes only before replacements it can answer for (steps that
-    // check them themselves), or ones the script may answer the app's own question for.
+    // check them themselves), or ones the replay may answer the app's own question for.
     bool checked = false, app_asked = false, answers = false;
     for (std::size_t i = only ? *only - 1 : 0; i < (only ? *only : script->steps.size()); ++i) {
         const Mcp::StepDescription d = Mcp::describe_step(script->steps[i], *script, ctx);
@@ -693,8 +716,9 @@ void ScriptRunnerDialog::run(const nlohmann::json& payload)
     bool    discard = false;
     Plater* plater  = wxGetApp().plater();
     if (plater != nullptr && plater->is_project_dirty() && (checked || (app_asked && answers))) {
-        MessageDialog dialog(this, _L("This script replaces the current project, which has unsaved changes. Save them before running the script?"),
-                             _L("Run Script"), wxYES_NO | wxCANCEL | wxICON_QUESTION);
+        MessageDialog dialog(this, _L("This replay replaces the current project, which has unsaved changes. Save them before replaying it?"),
+                             _L("Action Replay"), wxYES_NO | wxCANCEL | wxICON_QUESTION);
+        dialog.SetName(Mcp::kHiddenFromAutomation);
         const int answer = dialog.ShowModal();
         if (!m_alive->load())
             return;
@@ -714,7 +738,7 @@ void ScriptRunnerDialog::run(const nlohmann::json& payload)
         }
     }
 
-    // Steps act on the main window, and keys a script sends without a target go where the focus is.
+    // Steps act on the main window, and keys a replay sends without a target go where the focus is.
     if (MainFrame* frame = wxGetApp().mainframe) {
         frame->Raise();
         if (plater != nullptr)
@@ -750,7 +774,7 @@ void ScriptRunnerDialog::run(const nlohmann::json& payload)
     m_started = std::chrono::steady_clock::now();
     m_run     = s->start_script_run(std::move(*script), ctx, only, discard, std::move(events));
     if (!m_run) {
-        refuse(_u8L("Scripts can't run while OrcaSlicer is starting or closing."));
+        refuse(_u8L("Replays can't run while OrcaSlicer is starting or closing."));
         return;
     }
 #ifdef __APPLE__
@@ -767,7 +791,7 @@ void ScriptRunnerDialog::run(const nlohmann::json& payload)
     call_web_handler(started);
 }
 
-json ScriptRunnerDialog::step_view(const json& entry) const
+json ActionReplayDialog::step_view(const json& entry) const
 {
     const std::string tool = entry.value("tool", "");
     json              view{{"command", "step_finished"},
@@ -785,21 +809,21 @@ json ScriptRunnerDialog::step_view(const json& entry) const
             const int s = reason.value("seconds", 0);
             view["failure_text"] = format(_L_PLURAL("The step didn't finish within %1% second.", "The step didn't finish within %1% seconds.", s), s);
         } else if (kind == "expect") {
-            view["failure_text"]   = _u8L("The step's result was not what the script expected.");
+            view["failure_text"]   = _u8L("The step's result was not what the replay expected.");
             const std::string text = expect_text(reason);
             view["failure_detail"] = text.empty() ? entry.value("expect_failure", "") : text;
         } else if (kind == "expect_invalid") {
-            view["failure_text"]   = _u8L("The script's check of this step's result isn't valid.");
+            view["failure_text"]   = _u8L("The replay's check of this step's result isn't valid.");
             view["failure_detail"] = entry.value("expect_failure", "");
         } else if (kind == "placeholder")
-            // TRN %1% is a placeholder such as ${vars.model} that the script uses.
-            view["failure_text"] = format(_u8L("The script refers to %1%, which has no value."), reason.value("text", ""));
+            // TRN %1% is a placeholder such as ${vars.model} that the replay uses.
+            view["failure_text"] = format(_u8L("The replay refers to %1%, which has no value."), reason.value("text", ""));
         else if (kind == "missing_job") {
             if (reason.contains("saved_by") && reason["saved_by"].is_number())
                 // TRN %1% is the number of the step that saves the job this step needs.
                 view["failure_text"] = format(_u8L("This step needs the job saved by step %1%. Run that step first."), reason["saved_by"].get<int>());
             else
-                view["failure_text"] = _u8L("This step needs a job that no step of this script saves.");
+                view["failure_text"] = _u8L("This step needs a job that no step of this replay saves.");
         } else if (kind == "python") {
             const std::string status = reason.value("status", "");
             view["failure_text"]     = status == "cancelled" ? _u8L("The script was stopped.") :
@@ -860,59 +884,11 @@ json ScriptRunnerDialog::step_view(const json& entry) const
     return view;
 }
 
-void ScriptRunnerDialog::run_python()
-{
-    if (!Mcp::python_scripts_allowed(*wxGetApp().app_config)) {
-        refuse(_u8L("Python scripts are off. You can turn them on in Preferences > AI features > Python scripts."));
-        return;
-    }
-    // The script acts on the main window, as a JSON script's steps do.
-    if (MainFrame* frame = wxGetApp().mainframe)
-        frame->Raise();
-
-    Mcp::ScriptRun::Events events;
-    auto                   alive = m_alive;
-    events.finished = [this, alive](const json& result, const json&) {
-        if (!alive->load())
-            return;
-        // The run's outcome as the one step it is shown as.
-        json entry{{"index", 1}, {"tool", "run_python"}, {"duration_ms",
-                   std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - m_started).count()}};
-        const bool ok = !result.contains("error") && result.value("status", "") == "finished";
-        entry["ok"]   = ok;
-        if (result.contains("error"))
-            entry.update({{"error", result["error"]}, {"reason", {{"kind", "tool"}}}});
-        else {
-            entry["result"] = result;
-            if (!ok)
-                entry.update({{"error", result.value("message", std::string())},
-                              {"reason", {{"kind", "python"}, {"status", result.value("status", "")}}},
-                              {"cancelled", result.value("status", "") == "cancelled"}});
-        }
-        call_web_handler(step_view(entry));
-        json script_result{{"passed", ok}, {"steps", json::array({entry})}};
-        if (!ok)
-            script_result["failed_step"] = 1;
-        call_web_handler(finished_view(script_result));
-        restore_z_order();
-    };
-    m_single  = std::nullopt;
-    m_total   = 1;
-    m_started = std::chrono::steady_clock::now();
-    m_run     = service()->start_python_run(m_text, m_file, std::move(events));
-    if (!m_run) {
-        refuse(_u8L("Scripts can't run while OrcaSlicer is starting or closing."));
-        return;
-    }
-    call_web_handler({{"command", "run_started"}, {"total", 1}});
-    call_web_handler({{"command", "step_started"}, {"index", 1}});
-}
-
-json ScriptRunnerDialog::finished_view(const json& result) const
+json ActionReplayDialog::finished_view(const json& result) const
 {
     json view{{"command", "run_finished"}, {"single", m_single.has_value()}, {"out_dir", Mcp::path_to_utf8(out_dir())}};
     if (result.contains("error")) {
-        view.update({{"passed", false}, {"outcome_kind", "fail"}, {"outcome_text", _u8L("The script could not run.")}, {"error_detail", value_text(result["error"])}});
+        view.update({{"passed", false}, {"outcome_kind", "fail"}, {"outcome_text", _u8L("The replay could not run.")}, {"error_detail", value_text(result["error"])}});
         return view;
     }
     const bool  passed  = result.value("passed", false);
@@ -930,11 +906,11 @@ json ScriptRunnerDialog::finished_view(const json& result) const
         view["failed_step"] = failed;
     if (stopped)
         view.update({{"outcome_kind", "warn"},
-                     // TRN %1% is the step the run stopped at, %2% how many steps the script has.
+                     // TRN %1% is the step the run stopped at, %2% how many steps the replay has.
                      {"outcome_text", m_single ? _u8L("Stopped.") : format(_u8L("Stopped at step %1% of %2%"), failed, total)}});
     else if (!passed)
         view.update({{"outcome_kind", "fail"},
-                     // TRN %1% is the step that failed, %2% how many steps the script has.
+                     // TRN %1% is the step that failed, %2% how many steps the replay has.
                      {"outcome_text", m_single ? _u8L("The step failed.") : format(_u8L("Failed at step %1% of %2%"), failed, total)}});
     else if (nested_failed)
         view.update({{"outcome_kind", "warn"}, {"outcome_text", _u8L("Finished, but a nested script failed.")}});
@@ -949,11 +925,12 @@ json ScriptRunnerDialog::finished_view(const json& result) const
     return view;
 }
 
-void ScriptRunnerDialog::on_close(wxCloseEvent& event)
+void ActionReplayDialog::on_close(wxCloseEvent& event)
 {
     if (event.CanVeto()) {
         if (running()) {
-            MessageDialog dialog(this, _L("A script is running. Stop it and close this window?"), _L("Run Script"), wxYES_NO | wxICON_QUESTION);
+            MessageDialog dialog(this, _L("A replay is running. Stop it and close this window?"), _L("Action Replay"), wxYES_NO | wxICON_QUESTION);
+            dialog.SetName(Mcp::kHiddenFromAutomation);
             if (dialog.ShowModal() != wxID_YES) {
                 event.Veto();
                 return;

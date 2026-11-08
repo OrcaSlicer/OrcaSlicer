@@ -9,6 +9,7 @@
 #include <slic3r/plugin/PythonInterpreter.hpp>
 #include <slic3r/plugin/PythonRunScope.hpp>
 #include <slic3r/plugin/PythonScriptRunner.hpp>
+#include <slic3r/plugin/PythonSession.hpp>
 #include <slic3r/plugin/host/PluginHostTools.hpp>
 #include <slic3r/plugin/host/PluginHostUi.hpp>
 #include <slic3r/plugin/PluginOperations.hpp>
@@ -43,6 +44,7 @@
 
 using namespace Slic3r;
 using Catch::Matchers::ContainsSubstring;
+using Catch::Matchers::EndsWith;
 using nlohmann::json;
 namespace py = pybind11;
 
@@ -2222,4 +2224,716 @@ TEST_CASE("without Python, a .py file is read only as strict UTF-8", "[PythonScr
     }
     std::string saved;
     CHECK_FALSE(encode_python_source("x = 1\n", "iso-8859-1", saved, error));
+}
+
+namespace {
+
+// A session hosted on a thread of its own, as the app hosts one on a job thread Python didn't start. The test's thread
+// submits work, reads the events and asserts; the host thread only hosts.
+struct HostedSession
+{
+    PythonSession     session;
+    std::thread       host;
+    std::atomic<bool> returned{false};
+
+    static PythonSessionRequest person_session(std::string filename = "<run_python>")
+    {
+        PythonSessionRequest request;
+        request.identity = kScriptIdentityPerson;
+        request.filename = std::move(filename);
+        return request;
+    }
+
+    explicit HostedSession(PythonSessionRequest request = person_session())
+    {
+        host = std::thread([this, request = std::move(request)] {
+            host_python_session(request, session);
+            returned = true;
+        });
+    }
+    ~HostedSession()
+    {
+        session.stop();
+        session.end();
+        if (host.joinable())
+            host.join();
+    }
+    HostedSession(const HostedSession&)            = delete;
+    HostedSession& operator=(const HostedSession&) = delete;
+};
+
+// The events of one piece of work, up to and including its Finished event.
+struct WorkEvents
+{
+    std::vector<PythonSessionEvent>   events;
+    std::optional<PythonSessionEvent> finished;
+
+    std::string output() const
+    {
+        std::string text;
+        for (const PythonSessionEvent& event : events)
+            if (event.kind == PythonSessionEvent::Kind::Output)
+                text += event.text;
+        return text;
+    }
+    // The Result events' JSON, in order.
+    std::vector<std::string> results() const
+    {
+        std::vector<std::string> texts;
+        for (const PythonSessionEvent& event : events)
+            if (event.kind == PythonSessionEvent::Kind::Result)
+                texts.push_back(event.text);
+        return texts;
+    }
+    // "cell N", "out <text>" (consecutive outputs merged), "result <json>" and "finished <status>", in order.
+    std::vector<std::string> sequence() const
+    {
+        std::vector<std::string> out;
+        for (const PythonSessionEvent& event : events) {
+            if (event.kind == PythonSessionEvent::Kind::Output) {
+                if (!out.empty() && out.back().rfind("out ", 0) == 0)
+                    out.back() += event.text;
+                else
+                    out.push_back("out " + event.text);
+            } else if (event.kind == PythonSessionEvent::Kind::Cell)
+                out.push_back("cell " + std::to_string(event.cell));
+            else if (event.kind == PythonSessionEvent::Kind::Result)
+                out.push_back("result " + event.text);
+            else
+                out.push_back("finished " + event.status);
+        }
+        return out;
+    }
+};
+
+// Polls the session's events until a Finished event or `seconds`.
+WorkEvents await_work(PythonSession& session, double seconds = 10)
+{
+    WorkEvents result;
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::duration<double>(seconds);
+    while (!result.finished && std::chrono::steady_clock::now() < deadline) {
+        for (PythonSessionEvent& event : session.take_events()) {
+            if (!result.finished && event.kind == PythonSessionEvent::Kind::Finished)
+                result.finished = event;
+            result.events.push_back(std::move(event));
+        }
+        if (!result.finished)
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    return result;
+}
+
+// What the session prints within `seconds`.
+std::string output_within(PythonSession& session, double seconds)
+{
+    std::string text;
+    const auto  deadline = std::chrono::steady_clock::now() + std::chrono::duration<double>(seconds);
+    while (std::chrono::steady_clock::now() < deadline) {
+        for (const PythonSessionEvent& event : session.take_events())
+            if (event.kind == PythonSessionEvent::Kind::Output)
+                text += event.text;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    return text;
+}
+
+bool eventually(const std::function<bool()>& condition, double seconds)
+{
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::duration<double>(seconds);
+    while (!condition()) {
+        if (std::chrono::steady_clock::now() >= deadline)
+            return false;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    return true;
+}
+
+PythonWork cell(std::string code, int first_line = 1, std::string source = {})
+{
+    PythonWork work;
+    work.kind       = PythonWork::Kind::Cell;
+    work.first_line = first_line;
+    work.source     = source.empty() ? code : std::move(source);
+    work.code       = std::move(code);
+    return work;
+}
+
+PythonWork console(std::string code)
+{
+    PythonWork work;
+    work.kind = PythonWork::Kind::Console;
+    work.code = std::move(code);
+    return work;
+}
+
+PythonWork file_work(std::string code, std::vector<int> cell_starts = {1})
+{
+    PythonWork work;
+    work.kind        = PythonWork::Kind::File;
+    work.source      = code;
+    work.code        = std::move(code);
+    work.cell_starts = std::move(cell_starts);
+    return work;
+}
+
+WorkEvents run_work(PythonSession& session, PythonWork work)
+{
+    REQUIRE(session.submit(std::move(work)));
+    WorkEvents result = await_work(session);
+    REQUIRE(result.finished);
+    return result;
+}
+
+constexpr const char* kTruncatedNote = "\n[output truncated at 256 KiB]\n";
+
+} // namespace
+
+TEST_CASE("a session keeps what each cell defined for the next one", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    HostedSession hosted;
+    CHECK(run_work(hosted.session, cell("x = 2")).finished->status == "finished");
+    CHECK(run_work(hosted.session, cell("y = x * 3")).finished->status == "finished");
+    const WorkEvents shown = run_work(hosted.session, console("y"));
+    CHECK(shown.output() == "6\n");
+    CHECK(shown.finished->status == "finished");
+    CHECK(shown.finished->variables == 2);
+}
+
+TEST_CASE("a cell ending in an expression shows its value, and so does a file run's cell, but not an agent's run", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    HostedSession hosted;
+    CHECK(run_work(hosted.session, cell("1 + 1")).output() == "2\n");
+    CHECK(run_work(hosted.session, cell("None")).output().empty());
+    const WorkEvents file = run_work(hosted.session, file_work("1 + 1"));
+    CHECK(file.finished->status == "finished");
+    CHECK(file.output() == "2\n");
+
+    const PythonRunOutcome agent = run_file("<run_python>", "1 + 1\n[1, 2]\n");
+    CHECK(agent.status == "finished");
+    CHECK(agent.output.empty());
+}
+
+TEST_CASE("a file run shows the result of each cell whose last statement is an expression", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    HostedSession     hosted;
+    const std::string code = "x = 1\nx + 1\n"                                  // cell 0, lines 1-2
+                             "# %% two\nprint('b')\n{'a': [1, 2.5, True, None]}\n" // cell 1, lines 3-5
+                             "# %% three\nobjects = [1]\n"                       // cell 2, lines 6-7
+                             "# %% four\n'done'\nNone\n";                        // cell 3, lines 8-10
+    const WorkEvents  file = run_work(hosted.session, file_work(code, {1, 3, 6, 8}));
+    CHECK(file.sequence() == std::vector<std::string>{"cell 0", "out 2\n", "cell 1", "out b\n", "result {\"a\": [1, 2.5, true, null]}",
+                                                      "cell 2", "cell 3", "finished finished"});
+    // `_` is the last result shown, as after a cell.
+    CHECK(run_work(hosted.session, console("_ == {'a': [1, 2.5, True, None]}")).output() == "True\n");
+}
+
+TEST_CASE("a result comes as JSON only when JSON holds it as is", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    HostedSession hosted;
+    const WorkEvents json_result = run_work(hosted.session, cell("{'name': 'Benchy \\u00e9', 'sizes': [[1, 2], {}]}"));
+    CHECK(json_result.results() == std::vector<std::string>{"{\"name\": \"Benchy \xC3\xA9\", \"sizes\": [[1, 2], {}]}"});
+    CHECK(json_result.output().empty());
+    // A str key JSON would write for an int, a tuple it would write as a list, a float it can't write, a string UTF-8
+    // can't hold (a lone surrogate, as a key or a value), and anything that is not a dict or a list show as their repr.
+    for (const char* code : {"{1: 'a'}", "[(1, 2)]", "[float('nan')]", "{'path': '\\udcff'}", "{'\\udcff': 1}", "'text'", "3"}) {
+        const WorkEvents shown = run_work(hosted.session, cell(code));
+        CHECK(shown.results().empty());
+        CHECK(shown.output() == py_json(std::string("repr(") + code + ")").get<std::string>() + "\n");
+    }
+    // JSON past the output's allowance is printed instead, and cut as long output is.
+    const WorkEvents long_result = run_work(hosted.session, cell("list(range(100000))"));
+    CHECK(long_result.results().empty());
+    CHECK_THAT(long_result.output(), EndsWith(kTruncatedNote));
+}
+
+TEST_CASE("a file run shows its cells' results whatever the script does to __import__ and sys.modules", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    HostedSession     hosted;
+    const std::string code = "import sys\ncapture = sys.modules.pop('_orca_run_capture')\n__import__ = None\n1 + 1\n";
+    const WorkEvents  file = run_work(hosted.session, file_work(code));
+    // The capture module goes back before anything checks, whatever the run did.
+    run_work(hosted.session, console("sys.modules['_orca_run_capture'] = capture"));
+    CHECK(file.finished->status == "finished");
+    CHECK(file.output() == "2\n");
+}
+
+TEST_CASE("a file run keeps its docstring and its tracebacks as the file's", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    HostedSession hosted;
+    // The docstring is the last statement of its cell.
+    const WorkEvents documented = run_work(hosted.session, file_work("'''The plate report.'''\n# %% two\nx = 1\n", {1, 2}));
+    CHECK(documented.output().empty());
+    CHECK(run_work(hosted.session, console("__doc__")).output() == "'The plate report.'\n");
+
+    const WorkEvents raised = run_work(hosted.session, file_work("x = 1\n# %% two\n1 / x\n1 / 0\n", {1, 3}));
+    CHECK(raised.finished->status == "raised");
+    CHECK(raised.finished->error_line == 4);
+    CHECK_THAT(raised.finished->traceback, ContainsSubstring("1 / 0"));
+    CHECK_THAT(raised.finished->traceback, !ContainsSubstring("show_result"));
+    CHECK_THAT(raised.finished->traceback, !ContainsSubstring("_orca_run_capture"));
+}
+
+TEST_CASE("a session's traceback quotes the editor's text and leaves other runs' tracebacks alone", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    MacroDir    macro;
+    std::string disk;
+    for (int line = 1; line <= 10; ++line)
+        disk += "print('disk line " + std::to_string(line) + "')\n";
+    const std::string path = macro.write("script.py", disk);
+    // What another run of the same file raises at line 5: its traceback quotes the file on disk.
+    const auto disk_run_quotes_disk = [&] {
+        const PythonRunOutcome other = run_file(path, "x = 1\n\n\n\nraise ValueError('y')\n");
+        CHECK(other.status == "raised");
+        CHECK_THAT(other.traceback, ContainsSubstring("disk line 5"));
+        CHECK_THAT(other.traceback, !ContainsSubstring("raise ValueError('x')"));
+    };
+
+    auto hosted = std::make_unique<HostedSession>(HostedSession::person_session(path));
+    const std::string source = "# editor 1\n# 2\n# %% cell\na = 1\nraise ValueError('x')\n";
+    const WorkEvents  raised = run_work(hosted->session, cell("a = 1\nraise ValueError('x')", 4, source));
+    CHECK(raised.finished->status == "raised");
+    CHECK(raised.finished->error_line == 5);
+    CHECK(raised.finished->executed);
+    CHECK_THAT(raised.finished->traceback, ContainsSubstring("line 5"));
+    CHECK_THAT(raised.finished->traceback, ContainsSubstring("raise ValueError('x')"));
+    CHECK_THAT(raised.finished->traceback, !ContainsSubstring("disk line"));
+
+    const WorkEvents syntax = run_work(hosted->session, cell("def f(:", 9, source));
+    CHECK(syntax.finished->status == "raised");
+    CHECK(syntax.finished->error_line == 9);
+    CHECK_FALSE(syntax.finished->executed);
+
+    const std::string chained_source = "def g():\n    raise KeyError('inner')\ntry:\n    g()\n"
+                                       "except KeyError as e:\n    raise ValueError('outer') from e\n";
+    const WorkEvents chained = run_work(hosted->session, cell(chained_source, 1, chained_source));
+    CHECK(chained.finished->status == "raised");
+    CHECK(chained.finished->error_line == 6);
+    CHECK_THAT(chained.finished->traceback, ContainsSubstring("raise KeyError('inner')"));
+    CHECK_THAT(chained.finished->traceback, ContainsSubstring("raise ValueError('outer') from e"));
+    CHECK_THAT(chained.finished->traceback, !ContainsSubstring("disk line"));
+
+    disk_run_quotes_disk();
+    hosted.reset();
+    disk_run_quotes_disk();
+}
+
+TEST_CASE("a file run reports each cell as it starts and stops where it fails", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    HostedSession    hosted;
+    const WorkEvents file = run_work(hosted.session, file_work("print('a')\n# %% two\nprint('b')\n# %% three\nraise RuntimeError('c')\n", {1, 3, 5}));
+    CHECK(file.sequence() == std::vector<std::string>{"cell 0", "out a\n", "cell 1", "out b\n", "cell 2", "finished raised"});
+    CHECK(file.finished->error_line == 5);
+    CHECK(file.finished->cells_reported);
+    CHECK(py_json("sys.monitoring.get_tool(4)").is_null());
+}
+
+TEST_CASE("a file run sends no cell events while another owner holds the monitoring id", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    py_run("import sys\nsys.monitoring.use_tool_id(4, 'test')\n");
+    HostedSession    hosted;
+    const WorkEvents file = run_work(hosted.session, file_work("print('a')\n# %% two\nprint('b')\n# %% three\nraise RuntimeError('c')\n", {1, 3, 5}));
+    CHECK(file.sequence() == std::vector<std::string>{"out a\nb\n", "finished raised"});
+    CHECK(file.finished->error_line == 5);
+    CHECK_FALSE(file.finished->cells_reported);
+    CHECK(py_json("sys.monitoring.get_tool(4)") == "test");
+    py_run("import sys\nsys.monitoring.free_tool_id(4)\n");
+}
+
+TEST_CASE("a file run leaves the session able to start threads and tasks", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    HostedSession hosted;
+    CHECK(run_work(hosted.session, file_work("import threading\nt = threading.Thread(target=print, args=('x',))\nt.start()\nt.join()\n"))
+              .finished->status == "finished");
+    const WorkEvents later = run_work(hosted.session, cell("import threading\nfrom concurrent.futures import ThreadPoolExecutor\n"
+                                                           "t = threading.Thread(target=print, args=('t',))\nt.start()\nt.join()\n"
+                                                           "ThreadPoolExecutor(1).submit(lambda: 7).result()\n"));
+    CHECK(later.finished->status == "finished");
+    CHECK_THAT(later.output(), ContainsSubstring("7"));
+    CHECK_THAT(later.output(), ContainsSubstring("t"));
+}
+
+TEST_CASE("output arrives while the work is still running", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule  shared("_stream", {"go"});
+    HostedSession hosted;
+    REQUIRE(hosted.session.submit(cell("import _stream\nprint('a')\nok = _stream.go.wait(10)\n")));
+    std::string early;
+    CHECK(eventually(
+        [&] {
+            for (const PythonSessionEvent& event : hosted.session.take_events())
+                if (event.kind == PythonSessionEvent::Kind::Output)
+                    early += event.text;
+            return early == "a\n";
+        },
+        5));
+    CHECK(hosted.session.working());
+    shared.set("go");
+    const WorkEvents rest = await_work(hosted.session);
+    REQUIRE(rest.finished);
+    CHECK(rest.finished->status == "finished");
+}
+
+TEST_CASE("Stop interrupts the running cell and keeps the session", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    HostedSession hosted;
+    REQUIRE(run_work(hosted.session, cell("x = 1")).finished->status == "finished");
+    REQUIRE(hosted.session.submit(cell("while True:\n    pass\n")));
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    CHECK(hosted.session.working());
+    hosted.session.stop();
+    const WorkEvents stopped = await_work(hosted.session);
+    REQUIRE(stopped.finished);
+    CHECK(stopped.finished->status == "cancelled");
+    CHECK(run_work(hosted.session, cell("x + 1")).output() == "2\n");
+}
+
+TEST_CASE("Stop reaches a thread an earlier cell left running, and later cells start threads and tasks again",
+          "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    HostedSession hosted;
+    REQUIRE(run_work(hosted.session, cell("import threading, time\nfrom concurrent.futures import ThreadPoolExecutor\n"
+                                          "def spin():\n    while True:\n        time.sleep(0.01)\n"
+                                          "threading.Thread(target=spin).start()\nex = ThreadPoolExecutor(1)\n"))
+                .finished->status == "finished");
+    CHECK(eventually([&] { return hosted.session.has_threads(); }, 2));
+    hosted.session.stop();
+    CHECK(eventually([&] { return !hosted.session.has_threads(); }, 5));
+    // What the stopped thread printed as it ended comes before the next cell.
+    output_within(hosted.session, 0.2);
+    CHECK(run_work(hosted.session, cell("ex.submit(lambda: 7).result()")).output() == "7\n");
+}
+
+TEST_CASE("a task queued when a cell is stopped never runs, and the next cell's tasks do", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule  shared("_queued", {"ran"});
+    HostedSession hosted;
+    REQUIRE(hosted.session.submit(cell("import time, _queued\nfrom concurrent.futures import ThreadPoolExecutor\n"
+                                       "ex = ThreadPoolExecutor(1)\n"
+                                       "def spin():\n    while True:\n        time.sleep(0.01)\n"
+                                       "ex.submit(spin)\nsecond = ex.submit(_queued.ran.set)\n"
+                                       "while True:\n    time.sleep(0.01)\n")));
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    hosted.session.stop();
+    const WorkEvents stopped = await_work(hosted.session);
+    REQUIRE(stopped.finished);
+    CHECK(stopped.finished->status == "cancelled");
+    CHECK(run_work(hosted.session, cell("ex.submit(lambda: 3).result()")).output() == "3\n");
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    CHECK(py_json("__import__('_queued').ran.is_set()") == false);
+    CHECK_THAT(run_work(hosted.session, console("str(second.exception(5))")).output(), ContainsSubstring("The task was stopped before it ran"));
+}
+
+TEST_CASE("ending a session whose thread ignores Stop returns within its five seconds", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule shared("_stubborn", {"quit"});
+    {
+        HostedSession hosted;
+        // The thread waits in C, where no interrupt lands, until the test lets it go; the atexit function loops until
+        // an interrupt ends it.
+        REQUIRE(run_work(hosted.session, cell("import atexit, threading, _stubborn\n"
+                                              "threading.Thread(target=_stubborn.quit.wait, args=(30,)).start()\n"
+                                              "def forever():\n    while True:\n        pass\n"
+                                              "atexit.register(forever)\n"))
+                    .finished->status == "finished");
+        hosted.session.stop();
+        const auto start = std::chrono::steady_clock::now();
+        hosted.session.end();
+        CHECK(eventually([&] { return hosted.returned.load(); }, 8));
+        CHECK(std::chrono::steady_clock::now() - start < std::chrono::seconds(8));
+        CHECK(hosted.session.ended());
+        shared.set("quit");
+    }
+}
+
+TEST_CASE("stopping an idle session as it ends interrupts an atexit function that never returns", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule shared("_spin", {"release"});
+    {
+        HostedSession hosted;
+        // No thread is left: the session is idle with nothing live when it ends, and only its teardown runs the loop.
+        REQUIRE(run_work(hosted.session, cell("import atexit, _spin\n"
+                                              "def spin():\n    while not _spin.release.is_set():\n        pass\n"
+                                              "atexit.register(spin)\n"))
+                    .finished->status == "finished");
+        REQUIRE_FALSE(hosted.session.has_threads());
+        const auto start = std::chrono::steady_clock::now();
+        hosted.session.end();
+        hosted.session.stop();
+        CHECK(eventually([&] { return hosted.returned.load(); }, 8));
+        CHECK(std::chrono::steady_clock::now() - start < std::chrono::seconds(8));
+        // Lets a teardown the stop never reached finish, so the session's thread can be joined.
+        shared.set("release");
+    }
+}
+
+TEST_CASE("a work starts only once the stop before it has finished cancelling the session's tool calls", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    // The watcher cancels a stop's tool calls outside its lock; this stop holds that step open until the test lets it go.
+    std::atomic<bool>    cancelling{false}, release{false}, cancelled{false}, second_saw_cancelled{false};
+    std::atomic<int>     works{0};
+    PythonSessionRequest request = HostedSession::person_session();
+    request.stop_calls           = [&] {
+        cancelling = true;
+        for (int i = 0; i < 1000 && !release; ++i)
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        cancelled = true;
+    };
+    request.work_started = [&] {
+        if (++works == 2)
+            second_saw_cancelled = cancelled.load();
+    };
+    HostedSession hosted(request);
+    REQUIRE(hosted.session.submit(cell("import time\ntime.sleep(0.5)\n")));
+    REQUIRE(eventually([&] { return works.load() == 1; }, 5));
+    hosted.session.stop();
+    REQUIRE(eventually([&] { return cancelling.load(); }, 5));
+    REQUIRE(await_work(hosted.session).finished); // the sleep ends by itself; the stop's interrupt waits behind the cancel
+
+    REQUIRE(hosted.session.submit(cell("1")));
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    release = true;
+    REQUIRE(await_work(hosted.session).finished);
+    CHECK(second_saw_cancelled);
+}
+
+TEST_CASE("a work starts only once every stop being applied has finished, its own and the watcher's", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    // The watcher applies the first stop and is held there; a second stop, asked while the session is idle with a thread
+    // left, is taken by the next work's own start, overlapping the first.
+    SharedModule         shared("_overlap", {"go"});
+    std::atomic<bool>    release{false}, first_done{false}, second_saw_first_done{false};
+    std::atomic<int>     calls{0}, works{0};
+    PythonSessionRequest request = HostedSession::person_session();
+    request.stop_calls           = [&] {
+        if (++calls != 1)
+            return;
+        for (int i = 0; i < 1000 && !release; ++i)
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        first_done = true;
+    };
+    request.work_started = [&] {
+        if (++works == 2)
+            second_saw_first_done = first_done.load();
+    };
+    {
+        HostedSession hosted(request);
+        REQUIRE(hosted.session.submit(cell("import threading, time, _overlap\n"
+                                           "threading.Thread(target=_overlap.go.wait, args=(30,)).start()\n"
+                                           "time.sleep(0.5)\n")));
+        REQUIRE(eventually([&] { return works.load() == 1; }, 5));
+        hosted.session.stop();
+        REQUIRE(eventually([&] { return calls.load() == 1; }, 5));
+        REQUIRE(await_work(hosted.session).finished);
+        REQUIRE(hosted.session.has_threads());
+        hosted.session.stop(); // the watcher is held in the first stop: the second work's start takes this one
+        REQUIRE(hosted.session.submit(cell("1")));
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        release = true;
+        REQUIRE(await_work(hosted.session).finished);
+        CHECK(calls.load() == 2);
+        CHECK(second_saw_first_done);
+        shared.set("go");
+    }
+}
+
+TEST_CASE("ending a session runs its atexit functions once, inside the session", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule  shared("_bye", {"done"});
+    HostedSession hosted;
+    REQUIRE(run_work(hosted.session, cell("import atexit, _bye\n_bye.count = 0\n"
+                                          "def bye():\n    _bye.count += 1\n    _bye.done.set()\n    print('bye')\n"
+                                          "atexit.register(bye)\n"))
+                .finished->status == "finished");
+    hosted.session.end();
+    REQUIRE(eventually([&] { return hosted.session.ended(); }, 10));
+    CHECK(shared.wait("done", 1));
+    CHECK(shared.get("count") == 1);
+    CHECK_THAT(output_within(hosted.session, 0.1), ContainsSubstring("bye"));
+}
+
+TEST_CASE("work hooks bracket each piece of work", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule         shared("_hooks", {"go"});
+    std::atomic<int>     started{0}, ended{0};
+    PythonSessionRequest request = HostedSession::person_session();
+    request.work_started         = [&] { ++started; };
+    request.work_ended           = [&] { ++ended; };
+    HostedSession hosted(request);
+    REQUIRE(hosted.session.submit(cell("import _hooks\nok = _hooks.go.wait(10)\n")));
+    CHECK(eventually([&] { return started.load() == 1; }, 5));
+    CHECK(ended.load() == 0);
+    shared.set("go");
+    REQUIRE(await_work(hosted.session).finished);
+    run_work(hosted.session, cell("1"));
+    CHECK(started.load() == 2);
+    CHECK(ended.load() == 2);
+}
+
+TEST_CASE("submit refuses work while work runs and after end", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule  shared("_busy", {"go"});
+    HostedSession hosted;
+    REQUIRE(hosted.session.submit(cell("import _busy\nok = _busy.go.wait(10)\n")));
+    CHECK_FALSE(hosted.session.submit(cell("1")));
+    shared.set("go");
+    REQUIRE(await_work(hosted.session).finished);
+    hosted.session.end();
+    CHECK_FALSE(hosted.session.submit(cell("1")));
+    REQUIRE(eventually([&] { return hosted.session.ended(); }, 10));
+    CHECK_FALSE(hosted.session.submit(cell("1")));
+}
+
+TEST_CASE("a file session imports from its folder in cells and evicts its helpers when it ends", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    MacroDir macro;
+    macro.write("session_helper.py", "v = 41\n");
+    HostedSession hosted(HostedSession::person_session(macro.write("main.py", "")));
+    CHECK(run_work(hosted.session, cell("import session_helper\nsession_helper.v")).output() == "41\n");
+    hosted.session.end();
+    REQUIRE(eventually([&] { return hosted.session.ended(); }, 10));
+    CHECK(py_json("'session_helper' in sys.modules") == false);
+}
+
+TEST_CASE("SystemExit(0) in a cell finishes it and keeps the session", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    HostedSession hosted;
+    CHECK(run_work(hosted.session, cell("raise SystemExit(0)")).finished->status == "finished");
+    CHECK(run_work(hosted.session, cell("1")).output() == "1\n");
+}
+
+TEST_CASE("a session's output past 256 KiB is cut with a note, in a work and between works, and the next work streams again",
+          "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::size_t limit = 256 * 1024 + std::string(kTruncatedNote).size();
+    SharedModule      shared("_chatter", {"go", "done"});
+    HostedSession     hosted;
+    const std::string in_work = run_work(hosted.session, cell("print('x' * (300 * 1024))")).output();
+    CHECK(in_work.size() <= limit);
+    CHECK_THAT(in_work, ContainsSubstring("[output truncated at 256 KiB]"));
+
+    REQUIRE(run_work(hosted.session, cell("import threading, _chatter\n"
+                                          "def chatter():\n    _chatter.go.wait(10)\n    print('y' * (300 * 1024))\n    _chatter.done.set()\n"
+                                          "threading.Thread(target=chatter).start()\n"))
+                .finished->status == "finished");
+    shared.set("go");
+    REQUIRE(shared.wait("done", 10));
+    const std::string between = output_within(hosted.session, 0.5);
+    CHECK(between.size() <= limit);
+    CHECK_THAT(between, ContainsSubstring("[output truncated at 256 KiB]"));
+
+    CHECK(run_work(hosted.session, cell("print('ok')")).output() == "ok\n");
+}
+
+TEST_CASE("what a session's threads print after a work that used up its output still arrives", "[PythonScript][Python][PythonSession]")
+{
+    RunnerHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    SharedModule  shared("_after", {"go", "done"});
+    HostedSession hosted;
+    REQUIRE(run_work(hosted.session, cell("import threading, _after\n"
+                                          "def later():\n    _after.go.wait(10)\n    print('after the work')\n    _after.done.set()\n"
+                                          "threading.Thread(target=later).start()\n"
+                                          "print('x' * (300 * 1024))\n"))
+                .finished->status == "finished");
+    shared.set("go");
+    REQUIRE(shared.wait("done", 10));
+    CHECK_THAT(output_within(hosted.session, 0.5), ContainsSubstring("after the work"));
 }

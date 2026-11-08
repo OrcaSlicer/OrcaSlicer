@@ -1246,10 +1246,18 @@ wxWindow* owning_window(wxWindow* w)
     return top;
 }
 
+bool skipped_by_walks(const wxWindow* w) { return w->GetName() == kHiddenFromAutomation; }
+
 bool hidden_from_automation(const wxWindow* w)
 {
-    const wxWindow* top = owning_window(const_cast<wxWindow*>(w));
-    return top != nullptr && top->GetName() == kHiddenFromAutomation;
+    for (const wxWindow* at = w; at != nullptr; at = at->GetParent()) {
+        if (at->GetName() == kHiddenFromAutomation)
+            return true;
+        // A popup belongs to the window that opened it; any other top-level window ends the chain.
+        if (at->IsTopLevel() && dynamic_cast<const wxPopupWindow*>(at) == nullptr)
+            return false;
+    }
+    return false;
 }
 
 std::string within_of(wxWindow* w)
@@ -1263,7 +1271,7 @@ std::vector<wxWindow*> popups_of(wxWindow* top)
     std::vector<wxWindow*> out;
     std::function<void(wxWindow*)> visit = [&](wxWindow* w) {
         for (wxWindow* child : w->GetChildren()) {
-            if (dynamic_cast<wxTopLevelWindow*>(child) != nullptr || !child->IsShown())
+            if (dynamic_cast<wxTopLevelWindow*>(child) != nullptr || !child->IsShown() || skipped_by_walks(child))
                 continue;
             if (dynamic_cast<wxPopupWindow*>(child) != nullptr)
                 out.push_back(child);
@@ -1886,7 +1894,7 @@ std::vector<std::pair<wxWindow*, ListRow>> find_rows(const std::vector<wxWindow*
                 if (wanted.empty() || row_matches(row.path, wanted, current))
                     out.emplace_back(w, std::move(row));
         for (wxWindow* child : w->GetChildren())
-            if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr && dynamic_cast<wxPopupWindow*>(child) == nullptr)
+            if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr && dynamic_cast<wxPopupWindow*>(child) == nullptr && !skipped_by_walks(child))
                 visit(child);
     };
     for (wxWindow* root : roots) {
@@ -2451,7 +2459,7 @@ void UiInspector::walk(wxWindow* w, int depth, std::vector<UiNode>& nodes, std::
         return;
     // Popups are listed after the window they belong to (snapshot()).
     for (wxWindow* child : w->GetChildren())
-        if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr && dynamic_cast<wxPopupWindow*>(child) == nullptr)
+        if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr && dynamic_cast<wxPopupWindow*>(child) == nullptr && !skipped_by_walks(child))
             walk(child, child_depth, nodes, omitted, o);
 }
 
@@ -2529,7 +2537,7 @@ std::vector<wxWebView*> UiInspector::snapshot_pages(const SnapshotOptions& o, st
             return;
         }
         for (wxWindow* child : w->GetChildren())
-            if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr && dynamic_cast<wxPopupWindow*>(child) == nullptr)
+            if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr && dynamic_cast<wxPopupWindow*>(child) == nullptr && !skipped_by_walks(child))
                 visit(child);
     };
     if (o.include_web)
@@ -2549,7 +2557,7 @@ std::vector<wxWebView*> UiInspector::web_views(const std::string& within)
             return;
         }
         for (wxWindow* child : w->GetChildren())
-            if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr)
+            if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr && !skipped_by_walks(child))
                 visit(child);
     };
     for (wxTopLevelWindow* tlw : top_level_windows(m_service))
@@ -2773,7 +2781,7 @@ std::vector<wxWindow*> UiInspector::match_windows(const json& locator)
                 return; // not the inner text control too
         }
         for (wxWindow* child : w->GetChildren())
-            if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr)
+            if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr && !skipped_by_walks(child))
                 visit(child);
     };
     for (wxTopLevelWindow* tlw : top_level_windows(m_service))
@@ -2846,7 +2854,7 @@ std::vector<std::pair<wxBookCtrlBase*, int>> UiInspector::match_tabs(const json&
                 if (into_u8(book->GetPageText(i)) == text)
                     out.emplace_back(book, int(i));
         for (wxWindow* child : w->GetChildren())
-            if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr)
+            if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr && !skipped_by_walks(child))
                 visit(child);
     };
     for (wxTopLevelWindow* tlw : top_level_windows(m_service))

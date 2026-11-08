@@ -1,0 +1,127 @@
+/* The code editors' theme, ace-orca (code_editor.js applies it as an object, so Ace loads no theme file). Its colours
+ * come from the host theme contract (--orca-*) and the tokens below, which follow the app into dark mode through
+ * theme.css's data-orca-theme, as the rest of a page does. The syntax colours stay apart from the status colours, so a
+ * string never reads as a warning. A page sets the editor's size and border; this sets what is inside it. */
+
+:root {
+  --code-bg: var(--orca-bg, #ffffff);
+  --code-fg: var(--orca-fg, #262e30);
+  --code-muted: var(--orca-muted, #6b7478);
+  --code-rule: var(--border, #dcdfe1);
+  --code-accent: var(--orca-accent, #009688);
+  --code-accent-tint: var(--plugin-source-mine-bg, rgba(0, 150, 136, 0.12));
+  --code-gutter: #f6f7f8;
+  --code-selection: rgba(0, 150, 136, 0.22);
+  --code-font: "Cascadia Code", Consolas, "SF Mono", Menlo, "DejaVu Sans Mono", monospace;
+  --code-key: #00796b;
+  --code-string: #8a4b08;
+  --code-number: #6639ba;
+  --code-punct: #8a9397;
+  --code-comment: #7d8589;
+  --code-keyword: #1f5f99;
+  --code-builtin: #00796b;
+  --code-pop-bg: var(--ctx-bg, #ffffff);
+  --code-pop-border: var(--ctx-border, #cccccc);
+  --code-pop-shadow: 0 6px 20px rgba(20, 30, 35, 0.16);
+}
+:root[data-orca-theme="dark"] {
+  --code-gutter: #28282c;
+  --code-selection: rgba(0, 150, 136, 0.35);
+  --code-key: #4db6ac;
+  --code-string: #d9a35f;
+  --code-number: #b79af0;
+  --code-punct: #7f858b;
+  --code-comment: #858a90;
+  --code-keyword: #7cb4f0;
+  --code-builtin: #4db6ac;
+  --code-pop-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+.ace-orca {
+  background: var(--code-bg);
+  color: var(--code-fg);
+  font-family: var(--code-font);
+}
+.ace-orca .ace_gutter {
+  background: var(--code-gutter);
+  color: var(--code-muted);
+  border-right: 1px solid var(--code-rule);
+}
+.ace-orca .ace_gutter-active-line { background: transparent; }
+.ace-orca .ace_cursor { color: var(--code-fg); }
+.ace-orca .ace_marker-layer .ace_selection { background: var(--code-selection); }
+.ace-orca .ace_marker-layer .ace_selected-word { border: 1px solid var(--code-selection); }
+/* The bracket matching the one at the caret. */
+.ace-orca .ace_marker-layer .ace_bracket { margin: -1px 0 0 -1px; border: 1px solid var(--code-accent); }
+.ace-orca .ace_placeholder { color: var(--code-muted); font-family: inherit; }
+.ace-orca .ace_fold { background: var(--code-accent-tint); border-color: var(--code-accent); }
+.ace-orca .ace_indent-guide { background: none; box-shadow: inset -1px 0 0 var(--code-rule); }
+.ace-orca .ace_invisible { color: var(--code-rule); }
+
+/* Tokens: a replay's keys, strings, ${…}, numbers and literals; Python's keywords and built-ins. */
+.ace-orca .ace_comment { color: var(--code-comment); font-style: italic; }
+.ace-orca .ace_variable { color: var(--code-key); }
+.ace-orca .ace_string { color: var(--code-string); }
+.ace-orca .ace_orca_var { color: var(--code-accent); background: var(--code-accent-tint); border-radius: 2px; }
+.ace-orca .ace_constant.ace_numeric,
+.ace-orca .ace_constant.ace_language { color: var(--code-number); }
+.ace-orca .ace_paren,
+.ace-orca .ace_punctuation,
+.ace-orca .ace_keyword.ace_operator { color: var(--code-punct); }
+.ace-orca .ace_keyword { color: var(--code-keyword); }
+.ace-orca .ace_support.ace_function { color: var(--code-builtin); }
+
+/* The suggestion list and its detail, which Ace draws with the editor's theme. */
+.ace-orca.ace_autocomplete {
+  background: var(--code-pop-bg);
+  color: var(--code-fg);
+  border: 1px solid var(--code-pop-border);
+  border-radius: 6px;
+  box-shadow: var(--code-pop-shadow);
+}
+.ace-orca.ace_autocomplete .ace_marker-layer .ace_active-line,
+.ace-orca.ace_autocomplete .ace_selected { background: var(--code-accent-tint); }
+.ace-orca.ace_autocomplete .ace_line-hover { background: var(--code-accent-tint); border: 0; }
+.ace-orca.ace_autocomplete .ace_completion-highlight { color: var(--code-accent); font-weight: 600; text-shadow: none; }
+.ace-orca.ace_autocomplete .ace_completion-meta { color: var(--code-muted); opacity: 1; }
+.ace_tooltip.ace_doc-tooltip {
+  background: var(--code-pop-bg);
+  color: var(--code-muted);
+  border: 1px solid var(--code-pop-border);
+  border-radius: 6px;
+  box-shadow: var(--code-pop-shadow);
+  font-family: var(--code-font);
+  font-size: 11.5px;
+}
+
+/* The search box (Ctrl+F). */
+.ace-orca .ace_search {
+  background: var(--code-pop-bg);
+  color: var(--code-fg);
+  border-color: var(--code-pop-border);
+  box-shadow: var(--code-pop-shadow);
+}
+.ace-orca .ace_search_field {
+  background: var(--code-bg);
+  color: var(--code-fg);
+  border-color: var(--code-rule);
+}
+.ace-orca .ace_search_field:focus,
+.ace-orca .ace_searchbtn:focus-visible,
+.ace-orca .ace_button:focus-visible { outline: 2px solid var(--code-accent); outline-offset: -1px; }
+.ace-orca .ace_searchbtn,
+.ace-orca .ace_button {
+  background: var(--code-bg);
+  color: var(--code-fg);
+  border-color: var(--code-rule);
+}
+.ace-orca .ace_searchbtn:hover,
+.ace-orca .ace_button:hover { background: var(--code-accent-tint); }
+.ace-orca .ace_button.checked { border-color: var(--code-accent); color: var(--code-accent); opacity: 1; }
+.ace-orca .ace_search_counter { color: var(--code-muted); }
+.ace-orca .ace_searchbtn_close { filter: none; }
+:root[data-orca-theme="dark"] .ace-orca .ace_searchbtn_close { filter: invert(0.8); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ace-orca .ace_cursor { animation: none !important; transition: none !important; }
+}

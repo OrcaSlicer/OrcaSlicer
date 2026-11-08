@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Run Script</title>
+  <link rel="stylesheet" type="text/css" href="../css/theme.css" />
+  <link rel="stylesheet" type="text/css" href="../js/code_editor.css" />
+  <link rel="stylesheet" type="text/css" href="./style.css" />
+  <script type="text/javascript" src="../../include/i18n.js"></script>
+  <script type="text/javascript" src="../js/globalapi.js"></script>
+  <script type="text/javascript" src="../../include/ace/ace.js"></script>
+  <script type="text/javascript" src="../../include/ace/ext-language_tools.js"></script>
+  <script type="text/javascript" src="../../include/ace/ext-searchbox.js"></script>
+  <script type="text/javascript" src="../../include/ace/mode-python.js"></script>
+  <script type="text/javascript" src="../js/code_editor.js"></script>
+  <script type="text/javascript" src="./run_script_model.js"></script>
+  <script type="text/javascript" src="./python_editor.js"></script>
+  <script type="text/javascript" src="./run_script.js"></script>
+</head>
+<body onload="OnInit()">
+  <div class="panel">
+    <header class="toolbar">
+      <span id="file-chip" class="chip" hidden>
+        <span id="file-name"></span>
+        <span id="file-edited" class="edited" hidden data-i18n="edited">(edited)</span>
+      </span>
+      <button type="button" id="new" class="btn" data-i18n="new">New</button>
+      <span class="menu-wrap">
+        <button type="button" id="open" class="btn" aria-haspopup="menu" aria-expanded="false" aria-controls="open-menu">
+          <span data-i18n="open">Open…</span><span class="caret-d" aria-hidden="true"></span>
+        </button>
+        <div id="open-menu" class="menu" role="menu" hidden>
+          <button type="button" id="open-file" class="menu-item" role="menuitem" data-i18n="open">Open…</button>
+          <div class="menu-label" data-i18n="recent_scripts">Recent scripts</div>
+          <div id="open-recent"></div>
+          <div class="menu-rule" role="separator"></div>
+          <button type="button" id="close-script" class="menu-item" role="menuitem" data-i18n="close_script">Close script</button>
+        </div>
+      </span>
+      <button type="button" id="save" class="btn" data-i18n="save">Save</button>
+      <span class="sep" aria-hidden="true"></span>
+      <button type="button" id="run-all" class="btn primary">
+        <span class="tri" aria-hidden="true"></span><span data-i18n="run_all">Run all</span><span id="run-all-key" class="key"></span>
+      </button>
+      <button type="button" id="run-cell" class="btn">
+        <span class="tri" aria-hidden="true"></span><span data-i18n="run_cell">Run cell</span><span id="run-cell-key" class="key"></span>
+      </button>
+      <button type="button" id="stop" class="btn stop"><span class="sq" aria-hidden="true"></span><span data-i18n="stop">Stop</span></button>
+      <button type="button" id="restart" class="btn" data-i18n="restart">Restart session</button>
+      <span class="menu-wrap">
+        <button type="button" id="cells" class="btn" aria-haspopup="menu" aria-expanded="false" aria-controls="cells-menu">
+          <span class="cells-glyph" aria-hidden="true"></span><span data-i18n="cells">Cells</span><span class="caret-d" aria-hidden="true"></span>
+        </button>
+        <div id="cells-menu" class="menu" role="menu" hidden>
+          <div class="menu-label" data-i18n="show_cells_with">Show cells with</div>
+          <button type="button" class="menu-item" role="menuitemradio" data-style="margin" data-i18n="cells_margin">Margin bars only</button>
+          <button type="button" class="menu-item" role="menuitemradio" data-style="dividers" data-i18n="cells_dividers">Dividers</button>
+          <button type="button" class="menu-item" role="menuitemradio" data-style="bands" data-i18n="cells_bands">Header bands</button>
+          <button type="button" class="menu-item" role="menuitemradio" data-style="shaded" data-i18n="cells_shaded">Shaded cells</button>
+          <div class="menu-rule" role="separator"></div>
+          <button type="button" id="cells-highlight" class="menu-item" role="menuitemcheckbox" data-i18n="cells_highlight">Highlight the cell at the cursor</button>
+        </div>
+      </span>
+      <span id="session" class="session" role="status" aria-live="polite"></span>
+    </header>
+
+    <main id="panes" class="body" data-hidden="">
+      <button type="button" id="editor-strip" class="strip strip-editor" data-i18n-title="show_editor" data-i18n-aria-label="show_editor"
+              title="Show the editor" aria-label="Show the editor">
+        <span class="strip-chev" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 8 8"><path d="M2.5 1 5.5 4l-3 3" /></svg></span>
+        <span id="editor-strip-cells" class="strip-cells" aria-hidden="true"></span>
+        <span id="editor-strip-name" class="strip-label"></span>
+      </button>
+      <section id="editor-col" class="col editor-col">
+        <div id="editor" class="editor"></div>
+        <p id="editor-empty" class="placeholder-text" hidden data-i18n="empty_editor">Open a script, or start a new one.</p>
+      </section>
+      <div id="split" class="split" role="separator" tabindex="0" aria-orientation="vertical" aria-controls="editor-col"
+           aria-valuemin="0" aria-valuemax="100" aria-valuenow="60" data-i18n-title="split_tip" data-i18n-aria-label="split_label"
+           title="Drag to share the width between the editor and the console. Double-click to reset it." aria-label="Width of the editor">
+        <div class="grip">
+          <button type="button" id="hide-editor" data-i18n-title="hide_editor" data-i18n-aria-label="hide_editor"
+                  title="Hide the editor" aria-label="Hide the editor">
+            <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true"><path d="M5.5 1 2.5 4l3 3" /></svg></button>
+          <button type="button" id="hide-console" data-i18n-title="hide_console" data-i18n-aria-label="hide_console"
+                  title="Hide the console" aria-label="Hide the console">
+            <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true"><path d="M2.5 1 5.5 4l-3 3" /></svg></button>
+        </div>
+      </div>
+      <section class="col side">
+        <div id="console" class="console">
+          <div id="log" class="log" role="log" aria-live="polite"></div>
+          <div class="prompt">
+            <label class="prompt-line" for="prompt-input">
+              <span class="p" aria-hidden="true">&gt;&gt;&gt;</span>
+              <input id="prompt-input" type="text" spellcheck="false" autocomplete="off"
+                     data-i18n-placeholder="console_placeholder" placeholder="Python, run in the session" />
+            </label>
+            <button type="button" id="clear" class="btn small" data-i18n="clear">Clear</button>
+          </div>
+        </div>
+        <div id="start" class="side-msg" hidden>
+          <h3 data-i18n="start_script">Start a script</h3>
+          <p id="start-text"></p>
+          <div class="row">
+            <button type="button" id="start-new" class="btn primary" data-i18n="new_script">New script</button>
+            <button type="button" id="start-open" class="btn" data-i18n="open_script">Open a script…</button>
+          </div>
+          <p class="label-sm" data-i18n="recent_scripts">Recent scripts</p>
+          <ul id="start-recent" class="recent"></ul>
+          <p id="start-no-recent" class="label-sm" data-i18n="no_recent">No recent scripts</p>
+        </div>
+        <div id="off" class="side-msg" hidden>
+          <div class="off-note">
+            <h3 data-i18n="python_off">Python scripts are off.</h3>
+            <p data-i18n="python_off_text">You can edit and save this script, but it can't run until Python scripts are on.</p>
+            <p data-i18n="python_access">A script runs with OrcaSlicer's full access to your computer.</p>
+          </div>
+          <button type="button" id="turn-on" class="btn primary" data-i18n="turn_on_python">Turn on Python scripts…</button>
+        </div>
+      </section>
+      <button type="button" id="console-strip" class="strip strip-console" title="Show the console" aria-label="Show the console">
+        <span class="strip-chev" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 8 8"><path d="M5.5 1 2.5 4l3 3" /></svg></span>
+        <span class="strip-label" aria-hidden="true" data-i18n="console">Console</span>
+        <span id="console-news" class="news" aria-hidden="true"></span>
+      </button>
+    </main>
+
+    <footer id="status" class="statusline" hidden>
+      <span id="status-main"></span>
+      <span id="status-detail"></span>
+    </footer>
+  </div>
+</body>
+</html>

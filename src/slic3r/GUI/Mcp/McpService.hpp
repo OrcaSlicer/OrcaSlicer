@@ -30,6 +30,10 @@
 
 class wxTimer;
 
+namespace Slic3r {
+class PythonSession;
+}
+
 namespace Slic3r { namespace GUI { namespace Mcp {
 
 class McpHttpServer;
@@ -40,6 +44,16 @@ class UiInspector;
 class WebPresses;
 struct AutoAnswerRule;
 struct RequestGate;
+
+// Whose a dialog_auto_answer call's rules are ("script", "plugin" or "session"), the tracker layer they went into (0 for
+// none), and whether they start paused: a Run Script session's rules registered between its works answer nothing, an open
+// dialog included, until its next work.
+struct AutoAnswerSet
+{
+    std::string scope;
+    int         layer  = 0;
+    bool        paused = false;
+};
 
 // The MCP server inside the running app: owns the tool catalog, the UI invoker, jobs, the session
 // journal, the modal-dialog tracker and the HTTP endpoint, and runs a --mcp-script once the app is
@@ -119,13 +133,22 @@ public:
     // running script in `ancestry`, the caller's job chain, nearest first) last until that script
     // ends; a client's rules replace the ones it registered before, and end when the endpoint
     // closes: with no endpoint open (the server turned off meanwhile), a client's rules are refused.
-    // Returns "script" or "session". Any thread.
-    std::string set_auto_answer(std::vector<AutoAnswerRule> rules, const std::vector<std::string>& ancestry);
+    // A script scope that is paused (set_script_scope_paused()) gets them paused. Any thread.
+    AutoAnswerSet set_auto_answer(std::vector<AutoAnswerRule> rules, const std::vector<std::string>& ancestry);
     // run_script brackets its steps with these. A mouse press the script left held is released
     // when it ends, and so is a recording it started; `wait_recording` waits for that recording's file,
     // unless the run already did.
     void begin_script_scope(const std::string& job);
     void end_script_scope(const std::string& job, bool wait_recording = true);
+    // Pauses or resumes every rule layer of `job`'s scope (ModalTracker::set_paused); a layer the scope adds while it
+    // is paused starts paused. Any thread.
+    void set_script_scope_paused(const std::string& job, bool paused);
+    // Releases the mouse presses `job`'s calls left held, on widgets and pages, as the end of its scope does. Any
+    // thread.
+    void release_script_presses(const std::string& job);
+    // Cancels the operations whose lineage holds `job`, as the cancel tool does: a background job through the worker,
+    // a slice or an export through the plater. UI thread.
+    void cancel_operations_of(const std::string& job);
     // The job of the nearest running script in `ancestry`, else the scope of the plugin whose call it is,
     // or "" for a client's own call. Any thread.
     std::string script_owner(const std::vector<std::string>& ancestry) const;
@@ -157,7 +180,7 @@ public:
     // GUI_Run after the event loop ends; wx ignores OnExit()'s return value.
     static int script_exit_code();
 
-    // Runs a script for the script runner dialog: an unjournaled mutate job, as run_script runs one,
+    // Runs a replay for the Action Replay window: an unjournaled mutate job, as run_script runs one,
     // whose steps report through `events`. A thread the service owns follows the job to its end, past a
     // running or blocked_by_dialog reply, and posts `finished`; stop() joins it. `only_step` runs one
     // step (no result.json). `discard_authorized`: the user chose not to save before a run that
@@ -165,11 +188,13 @@ public:
     // the service is not started or is stopping. UI thread.
     std::shared_ptr<ScriptRun> start_script_run(Script script, ScriptContext sctx, std::optional<std::size_t> only_step,
                                                 bool discard_authorized, ScriptRun::Events events);
-    // Runs a Python script for the script runner dialog: run_python as an unjournaled job of a person's run,
-    // whose result `events.finished` gets as for a JSON script (no steps are reported). `file` names the
-    // script in its tracebacks; empty for an unsaved one. nullptr when the service is not started or is
-    // stopping. UI thread.
-    std::shared_ptr<ScriptRun> start_python_run(std::string code, const boost::filesystem::path& file, ScriptRun::Events events);
+    // Hosts the Run Script panel's `session` as an unjournaled person's run_python job (run_python_session_job()) on a
+    // thread the service owns, which stop() joins and stop_script_runs() stops. `file` is the session's file; empty
+    // for an unsaved script. `events.finished` is posted only for a job refused before its handler ran or a handler
+    // that refused (Python scripts off), as {"error": message}; the session's end is PythonSession::ended(), which a
+    // refused job sets too. nullptr when the service is not started or is stopping. UI thread.
+    std::shared_ptr<ScriptRun> start_python_session(std::shared_ptr<PythonSession> session, const boost::filesystem::path& file,
+                                                    ScriptRun::Events events);
     // True when a run a person started (the script runner dialog, --mcp-script) is in `lineage`: a
     // run_python there runs as the person's script, not an agent's. Any thread.
     bool person_run(const std::set<std::string>& lineage) const;
@@ -233,6 +258,7 @@ private:
 
     mutable std::mutex                      m_rules_mutex;
     std::map<std::string, std::vector<int>> m_script_rule_layers; // running script job -> layers
+    std::set<std::string>                   m_paused_scopes;      // jobs whose layers are paused
     int                                     m_session_rule_layer = 0;
     bool                                    m_endpoint_open      = false;
 

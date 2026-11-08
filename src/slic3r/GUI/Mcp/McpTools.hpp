@@ -23,6 +23,7 @@
 namespace Slic3r {
 
 class AppConfig;
+class PythonSession;
 struct Calib_Params;
 class ConfigOptionDef;
 class DynamicPrintConfig;
@@ -42,6 +43,7 @@ class Plater;
 namespace Mcp {
 
 class McpService;
+class ToolRegistry;
 struct Script;
 struct ScriptContext;
 
@@ -161,6 +163,17 @@ nlohmann::json rank_python_api(const nlohmann::json& reference, const std::strin
 // Whether numpy is installed in OrcaSlicer's Python, which the mesh and matrix arrays of orca.host need.
 // Takes the GIL, as python_api_reference() does.
 bool python_has_numpy();
+
+// The Run Script panel's session as the calling job, a person's run_python job: refused while Python scripts are off.
+// The job is idle for `wait {for: "idle"}`, and owns what the session's tool calls leave behind (auto-answer rules, a
+// recording, a held press) until the session ends, with its rules paused between works and its presses released as each
+// work ends. The calls hang under a lineage node of the job, which a stop cancels, inline calls included, and which the
+// next work replaces. Hosts `session` (host_python_session()) under `filename` until it ends; a job cancel ends it.
+ToolResult run_python_session_job(McpService& service, ToolContext& ctx, PythonSession& session, const std::string& filename);
+
+// What an editor suggests for each tool: [{name, title (translated), args: {name: {type?, enum?}}}]. The argument
+// descriptions are written for agents, in English, and stay out.
+nlohmann::json editor_tool_catalog(const ToolRegistry& registry);
 
 // ---- settings scopes (McpToolsConfig.cpp) ----------------------------------------------------
 
