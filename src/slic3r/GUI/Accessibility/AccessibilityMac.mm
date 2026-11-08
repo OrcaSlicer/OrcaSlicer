@@ -71,6 +71,7 @@ NSString* role_string(Role role)
     switch (role) {
     case Role::Button:   return NSAccessibilityButtonRole;
     case Role::Checkbox: return NSAccessibilityCheckBoxRole;
+    case Role::Toolbar:  return NSAccessibilityToolbarRole;
     }
     return NSAccessibilityUnknownRole;
 }
@@ -116,6 +117,10 @@ void apply(wxWindow* win, const Descriptor& desc)
     install_press_action();
 
     [view setAccessibilityRole:role_string(desc.role)];
+
+    // "Selected" applies to the custom-drawn elements we opt in (e.g. the active
+    // tab of a tab bar); native controls report their own selection state.
+    [view setAccessibilitySelected:desc.selected ? YES : NO];
 
     // wxWindow::IsEnabled() includes disabled ancestors; kept current by re-calling
     // apply() from the widget's DoEnable() (wx cascades DoEnable to children).

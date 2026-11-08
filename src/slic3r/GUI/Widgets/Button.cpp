@@ -635,13 +635,20 @@ void Button::DoEnable(bool enable)
     applyAccessibility();
 }
 
+void Button::applyAccessibility(bool selected)
+{
+    m_accessibility_selected = selected;
+    Slic3r::GUI::Accessibility::Descriptor desc;
+    desc.role     = Slic3r::GUI::Accessibility::Role::Button;
+    desc.name     = GetLabel();
+    desc.selected = m_accessibility_selected;
+    desc.press    = [this] { Click(); };
+    Slic3r::GUI::Accessibility::apply(this, desc);
+}
+
 void Button::applyAccessibility()
 {
-    Slic3r::GUI::Accessibility::Descriptor desc;
-    desc.role  = Slic3r::GUI::Accessibility::Role::Button;
-    desc.name  = GetLabel();
-    desc.press = [this] { Click(); };
-    Slic3r::GUI::Accessibility::apply(this, desc);
+    applyAccessibility(m_accessibility_selected);
 }
 #endif
 
