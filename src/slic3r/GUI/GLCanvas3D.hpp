@@ -742,6 +742,8 @@ private:
 
     size_t m_pathtrace_requested_signature{0};
     PathTraceGpuScene m_pathtrace_gpu_scene;
+    // Whether the uploaded scene has shading normals, which do not stay on the CPU.
+    bool m_pathtrace_gpu_has_vertex_normals{false};
     std::vector<size_t> m_pathtrace_gpu_tri_vertex_id;
     size_t m_pathtrace_preview_color_signature{0};
     std::chrono::steady_clock::time_point m_pathtrace_last_change_time{};
@@ -793,10 +795,10 @@ private:
         uint32_t tri_count{0};
         Vec3f local_bounds_min{Vec3f::Zero()};
         Vec3f local_bounds_max{Vec3f::Zero()};
-        // GLVolume::geometry_id of the part this BLAS holds. Object indices go stale when an arrange or
-        // an undo reorders the objects of the model, which keeps the meshes and so this BLAS. Zero for
-        // the toolpaths and the plates.
-        std::pair<size_t, size_t> geometry_id{0, 0};
+        // The part this BLAS holds, for all the instances of its object, see pathtrace_part_key(). Object
+        // indices go stale when an arrange or an undo reorders the objects of the model, which keeps
+        // the meshes and so this BLAS. Zero for the toolpaths and the plates.
+        std::pair<size_t, size_t> part_key{0, 0};
         int plate_idx{-1};
     };
     std::vector<PathTraceVolumeBlas> m_pathtrace_volume_blas;
@@ -846,7 +848,7 @@ private:
         std::vector<float> source_tri_delta_angle;
         std::vector<float> source_tri_opacity;
         struct VolumeGroupTriangles {
-            std::pair<size_t, size_t> geometry_id{0, 0};
+            std::pair<size_t, size_t> part_key{0, 0};
             std::vector<PathTraceTriangle> triangles;
             std::vector<uint32_t> triangle_extruder_ids;
         };

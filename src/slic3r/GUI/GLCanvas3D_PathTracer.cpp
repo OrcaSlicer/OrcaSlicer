@@ -25,6 +25,7 @@
 #include <memory>
 #include <new>
 #include <numeric>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -149,6 +150,13 @@ void notify_pathtrace_fallback()
 {
     wxGetApp().plater()->get_notification_manager()->push_notification(
         _u8L("This scene needs more memory than is available for path tracing. It is shown with the regular renderer until it changes."));
+}
+
+// What a BLAS is shared by: a part has one mesh for all the instances of its object, from the ID of its
+// ModelVolume, while each wipe tower, without one, is on its own.
+std::pair<size_t, size_t> pathtrace_part_key(const GLVolume& volume)
+{
+    return volume.is_wipe_tower ? volume.geometry_id : std::make_pair(volume.geometry_id.first, size_t(0));
 }
 
 // A vertex id as the bits of the float the GPU triangle carries it in.
@@ -562,7 +570,7 @@ GLCanvas3D::PathTraceSceneBuildResult GLCanvas3D::_build_pathtrace_scene_async(
             blas.tri_count = uint32_t(local_scene.triangles.size());
             blas.local_bounds_min = Vec3f(local_scene.nodes[0].bounds_min[0], local_scene.nodes[0].bounds_min[1], local_scene.nodes[0].bounds_min[2]);
             blas.local_bounds_max = Vec3f(local_scene.nodes[0].bounds_max[0], local_scene.nodes[0].bounds_max[1], local_scene.nodes[0].bounds_max[2]);
-            blas.geometry_id = grp_data.geometry_id;
+            blas.part_key = grp_data.part_key;
             blas.plate_idx = -1;
             result.volume_blas.push_back(blas);
 
@@ -1046,10 +1054,14 @@ void GLCanvas3D::_extract_prepare_volumes_for_pathtrace(
 
     // Modifiers and unprintable parts are no part of the print: the rasterizer draws them over the
     // path traced image, see "overlays" in _render_objects().
+    std::set<std::pair<size_t, size_t>> extracted_parts;
     for (const GLVolume* volume : m_volumes.volumes) {
         if (volume == nullptr || !volume->is_active || !_is_path_traced(*volume))
             continue;
-        PathTraceBvhJob::VolumeGroupTriangles group{volume->geometry_id, {}, {}};
+        const std::pair<size_t, size_t> part_key = pathtrace_part_key(*volume);
+        if (!extracted_parts.insert(part_key).second)
+            continue;
+        PathTraceBvhJob::VolumeGroupTriangles group{part_key, {}, {}};
         extract_volume_triangles(volume, group.triangles, group.triangle_extruder_ids);
         if (!group.triangles.empty())
             job.volume_groups.push_back(std::move(group));
@@ -1069,39 +1081,15 @@ void GLCanvas3D::_extract_prepare_volumes_for_pathtrace(
 
 void GLCanvas3D::_update_pathtrace_instances_and_tlas(size_t transform_signature)
 {
-    // The current trafo of each part, whose BLAS holds it in its own coordinates, and the flags of the
-    // object views (pathtrace.comp, slope_active).
-    struct PartState {
-        Transform3d trafo;
-        uint32_t flags{0};
-    };
-    constexpr uint32_t INSTANCE_PARTLY_INSIDE = 1;
-    constexpr uint32_t INSTANCE_WIPE_TOWER = 2;
-    std::map<std::pair<size_t, size_t>, PartState> part_states;
-    for (const GLVolume* v : m_volumes.volumes) {
-        if (v != nullptr && v->is_active)
-            part_states[v->geometry_id] = PartState{v->world_matrix(), (v->partly_inside ? INSTANCE_PARTLY_INSIDE : 0u) | (v->is_wipe_tower ? INSTANCE_WIPE_TOWER : 0u)};
-    }
-
     m_pathtrace_gpu_instances.clear();
-    for (PathTraceVolumeBlas& blas : m_pathtrace_volume_blas) {
-        if (blas.node_count == 0 || blas.tri_count == 0)
-            continue;
+    // The flags are those of the object views (pathtrace.comp, slope_active).
+    const auto add_instance = [this](const PathTraceVolumeBlas& blas, const Transform3d& world_trafo, uint32_t flags) {
         PathTraceGpuInstance inst;
         inst.data[0] = blas.root_node;
         inst.data[1] = blas.node_count;
         inst.data[2] = blas.tri_offset;
         inst.data[3] = blas.tri_count;
 
-        Transform3d world_trafo = Transform3d::Identity();
-        uint32_t flags = 0;
-        if (blas.geometry_id.second != 0) {
-            const auto it = part_states.find(blas.geometry_id);
-            if (it == part_states.end())
-                continue;
-            world_trafo = it->second.trafo;
-            flags = it->second.flags;
-        }
         const Transform3d inv_trafo = world_trafo.inverse();
         const Eigen::Matrix4f m_inv = inv_trafo.matrix().cast<float>();
         const bool is_identity = m_inv.isApprox(Eigen::Matrix4f::Identity(), 1e-5f);
@@ -1135,6 +1123,26 @@ void GLCanvas3D::_update_pathtrace_instances_and_tlas(size_t transform_signature
         inst.bounds_min = {world_min.x(), world_min.y(), world_min.z(), (blas.plate_idx >= 0) ? -2.0f : 1.0f};
         inst.bounds_max = {world_max.x(), world_max.y(), world_max.z(), is_identity ? 1.0f : 0.0f};
         m_pathtrace_gpu_instances.push_back(inst);
+    };
+
+    // The toolpaths and the plates stand where they are, and every copy of a part uses the BLAS of the part.
+    std::map<std::pair<size_t, size_t>, const PathTraceVolumeBlas*> part_blases;
+    for (const PathTraceVolumeBlas& blas : m_pathtrace_volume_blas) {
+        if (blas.node_count == 0 || blas.tri_count == 0)
+            continue;
+        if (blas.part_key == std::pair<size_t, size_t>(0, 0))
+            add_instance(blas, Transform3d::Identity(), 0);
+        else
+            part_blases[blas.part_key] = &blas;
+    }
+    constexpr uint32_t INSTANCE_PARTLY_INSIDE = 1;
+    constexpr uint32_t INSTANCE_WIPE_TOWER = 2;
+    for (const GLVolume* v : m_volumes.volumes) {
+        if (v == nullptr || !v->is_active || !_is_path_traced(*v))
+            continue;
+        const auto it = part_blases.find(pathtrace_part_key(*v));
+        if (it != part_blases.end())
+            add_instance(*it->second, v->world_matrix(), (v->partly_inside ? INSTANCE_PARTLY_INSIDE : 0u) | (v->is_wipe_tower ? INSTANCE_WIPE_TOWER : 0u));
     }
 
     if (m_pathtrace_gpu_instance_buffer == 0)
@@ -1852,8 +1860,10 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
             return give_up_on_scene("out of GPU memory for the scene");
 
         m_pathtrace_gpu_scene_signature = m_pathtrace_geom_signature;
+        m_pathtrace_gpu_has_vertex_normals = !scene.normals.empty() && scene.normals.size() == scene.triangles.size();
         // Unlike the triangles and shadings, which color changes rewrite, these are only uploaded.
         clear_and_shrink(m_pathtrace_gpu_scene.nodes);
+        clear_and_shrink(m_pathtrace_gpu_scene.normals);
         clear_and_shrink(m_pathtrace_gpu_scene.original_indices);
     }
 
@@ -2009,8 +2019,7 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
         compute_shader->set_uniform("print_volume_z", print_volume.zs);
         compute_shader->set_uniform("extruder_printable_heights", printable_heights);
         compute_shader->set_uniform("instance_count", int(m_pathtrace_gpu_instances.size()));
-        compute_shader->set_uniform("has_vertex_normals", m_pathtrace_gpu_scene.normals.size() == m_pathtrace_gpu_scene.triangles.size() &&
-                                                          !m_pathtrace_gpu_scene.normals.empty());
+        compute_shader->set_uniform("has_vertex_normals", m_pathtrace_gpu_has_vertex_normals);
         compute_shader->set_uniform("max_trans_bounces", max_trans_bounces);
         compute_shader->set_uniform("shadow_max_hits", shadow_max_hits);
         compute_shader->set_uniform("quality_preset", quality_preset);
