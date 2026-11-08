@@ -243,37 +243,49 @@ std::vector<Vec3i32> create_face_neighbors_index(ExPolicy &&ex, const indexed_tr
     std::vector<Vec3i32> neighbors(indices.size(),
                                  Vec3i32(no_value, no_value, no_value));
 
-    //for (int face_idx = 0; face_idx < indices.size(); face_idx++) {
-    execution::for_each(ex, size_t(0), indices.size(),
-        [&neighbors, &indices, &vertex_triangles] (size_t face_idx)
+    // An edge is only paired with an edge between the same two vertices, so the pairing of one vertex pair never
+    // touches the entries of another. Each task pairs the edges whose lower vertex is its own, so no two tasks touch
+    // the same entry. A vertex lists its faces in ascending order, so a task pairs its edges in the order a loop over
+    // the faces would, and the result doesn't depend on the scheduling, also where more than two faces share an edge
+    // and the first free one takes it.
+    execution::for_each(ex, size_t(0), its.vertices.size(),
+        [&neighbors, &indices, &vertex_triangles] (size_t vertex_idx)
         {
-            Vec3i32& neighbor = neighbors[face_idx];
-            const stl_triangle_vertex_indices & triangle_indices = indices[face_idx];
-            for (int edge_index = 0; edge_index < 3; ++edge_index) {
-                // check if done
-                int& neighbor_edge = neighbor[edge_index];
-                if (neighbor_edge != no_value)
-                    // This edge already has a neighbor assigned.
-                    continue;
-                Vec2i32 edge_indices = its_triangle_edge(triangle_indices, edge_index);
-                // IMPROVE: use same vector for 2 sides of triangle
-                for (const size_t other_face : vertex_triangles[edge_indices[0]]) {
-                    if (other_face <= face_idx) continue;
-                    const stl_triangle_vertex_indices &face_indices = indices[other_face];
-                    int vertex_index = its_triangle_vertex_index(face_indices, edge_indices[1]);
-                    // NOT Contain second vertex?
-                    if (vertex_index < 0) continue;
-                    // Has NOT oposite direction?
-                    if (edge_indices[0] != face_indices[(vertex_index + 1) % 3]) continue;
-                    //BBS: if this neighbor has already marked before, skip it
-                    if (neighbors[other_face][vertex_index] != no_value)
+            const auto faces = vertex_triangles[vertex_idx];
+            for (auto face_it = faces.begin(); face_it != faces.end(); ++face_it) {
+                const size_t face_idx = *face_it;
+                const stl_triangle_vertex_indices & triangle_indices = indices[face_idx];
+                for (int edge_index = 0; edge_index < 3; ++edge_index) {
+                    Vec2i32 edge_indices = its_triangle_edge(triangle_indices, edge_index);
+                    if (std::min(edge_indices[0], edge_indices[1]) != int(vertex_idx))
+                        // The task of the edge's lower vertex pairs it.
                         continue;
-                    //BBS: the same triangle with opposite direction, also treat it as open edges
-                    //if (its_triangle_vertex_the_same(face_indices, triangle_indices))
-                    //    continue;
-                    neighbor_edge = other_face;
-                    neighbors[other_face][vertex_index] = face_idx;
-                    break;
+                    // check if done
+                    int& neighbor_edge = neighbors[face_idx][edge_index];
+                    if (neighbor_edge != no_value)
+                        // This edge already has a neighbor assigned.
+                        continue;
+                    // The faces of this edge are all in the list of this vertex, and the later ones follow this face.
+                    for (auto other_it = std::next(face_it); other_it != faces.end(); ++other_it) {
+                        const size_t other_face = *other_it;
+                        // The face itself again, if it has this vertex twice.
+                        if (other_face <= face_idx) continue;
+                        const stl_triangle_vertex_indices &face_indices = indices[other_face];
+                        int vertex_index = its_triangle_vertex_index(face_indices, edge_indices[1]);
+                        // NOT Contain second vertex?
+                        if (vertex_index < 0) continue;
+                        // Has NOT oposite direction?
+                        if (edge_indices[0] != face_indices[(vertex_index + 1) % 3]) continue;
+                        //BBS: if this neighbor has already marked before, skip it
+                        if (neighbors[other_face][vertex_index] != no_value)
+                            continue;
+                        //BBS: the same triangle with opposite direction, also treat it as open edges
+                        //if (its_triangle_vertex_the_same(face_indices, triangle_indices))
+                        //    continue;
+                        neighbor_edge = other_face;
+                        neighbors[other_face][vertex_index] = face_idx;
+                        break;
+                    }
                 }
             }
         }, execution::max_concurrency(ex));
