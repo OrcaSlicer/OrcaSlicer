@@ -1694,7 +1694,7 @@ TEST_CASE("Sequential printing counts a raft toward what reaches the rod", "[Pri
     CHECK((error.find("too tall") != std::string::npos) == raft);
 }
 
-TEST_CASE("Sequential printing no longer lets an object its raft lifts above the rod use the rod height", "[Print]")
+TEST_CASE("Sequential printing refuses objects a raft lifts above the rod when the lid is below it", "[Print]")
 {
     // With the lid below the rod, an object that shares a Y band with a later one is checked against the
     // rod height instead of the lid. The fins face away from each other and stay below the rod on their
@@ -1859,6 +1859,39 @@ TEST_CASE("Sequential printing counts a raft toward the height checked against t
     const std::string error = print.validate().string;
     INFO(error);
     CHECK(error.find("too tall") != std::string::npos);
+}
+
+TEST_CASE("Sequential printing measures objects on a belt printer by the model's top", "[Print][belt]")
+{
+    // On a belt printer object_print_z_max is the height in the tilted slicing frame: at 45 degrees a 30 mm
+    // cube is over 42 mm tall there. The rod clears the model's own top, so two cubes side by side in X with
+    // the rod at 36 mm still slice, as the printable-height check in validate() also measures them.
+    std::vector<TriangleMesh> meshes;
+    for (size_t i = 0; i < 2; ++i) {
+        TriangleMesh box = make_cube(30, 30, 30);
+        box.translate(float(80 + 80 * i), 80.f, 0.f);
+        meshes.push_back(std::move(box));
+    }
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "belt_printer",                     1 },
+        { "belt_slice_rotation",              "x" },
+        { "belt_slice_rotation_angle",        45 },
+        { "extruder_clearance_height_to_lid", 50 },
+        { "extruder_clearance_height_to_rod", 36 },
+        { "skirt_loops",                      0 },
+        { "z_hop",                            0 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    Print print;
+    Model model;
+    Test::init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false);
+    REQUIRE(print.objects().front()->slicing_parameters().object_print_z_max > 36.);
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    CHECK(error.find("too tall") == std::string::npos);
 }
 
 // A sequential (by-object) print must publish the print-level nozzle group result just
