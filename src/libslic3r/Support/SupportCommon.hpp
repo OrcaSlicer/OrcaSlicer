@@ -6,9 +6,8 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "SupportLayer.hpp"
+#include "SegmentSupportBounds.hpp"
 #include "SupportParameters.hpp"
-#include "../Point.hpp"
-#include "../libslic3r.h"
 #include <utility>
 #include <algorithm>
 #include <vector>
@@ -50,6 +49,21 @@ SupportGeneratorLayersPtr generate_raft_base(
 	const SupportGeneratorLayersPtr &base_interface_layers,
 	const SupportGeneratorLayersPtr &base_layers,
 	SupportGeneratorLayerStorage    &layer_storage);
+
+// Declarative cut planes: extend the lowest support column down onto the segment's floor.
+//
+// A segment rests on a cut FACE, not on a flat plate, so under part of the footprint the floor lies
+// BELOW the segment's slice-frame zero -- and a segment that floats above its base plane has its
+// floor below zero everywhere. Every generator otherwise stops at zero and leaves support hanging.
+// `extra_seed` is folded into the projected footprint: it carries load that has no support layer of
+// its own to project, notably a floating segment's suspended first layer.
+//
+// Shared by normal/grid and organic tree, which both assemble SupportGeneratorLayers.
+void extend_support_below_segment_floor(const SegmentSupportBounds     &bounds,
+                                       const SlicingParameters        &slicing_params,
+                                       SupportGeneratorLayerStorage   &layer_storage,
+                                       SupportGeneratorLayersPtr      &intermediate_layers,
+                                       const Polygons                 &extra_seed = Polygons());
 
 void tree_supports_generate_paths(ExtrusionEntitiesPtr &dst, const Polygons &polygons, const Flow &flow, const SupportParameters &support_params);
 
@@ -179,16 +193,6 @@ int idx_lower_or_equal(const std::vector<T*> &vec, int idx, FN_LOWER_EQUAL fn_lo
 {
     return idx_lower_or_equal(vec.begin(), vec.end(), idx, fn_lower_equal);
 }
-
-// Belt floor: compute the belt-side half-plane polygon at a given print_z.
-// Used to clip support polygons against the belt surface.
-Polygons belt_floor_surface_polygon(
-    const SlicingParameters &slicing_params, const PrintConfig &print_config,
-    const PrintObject &object, coordf_t print_z);
-
-// Build plate tilt: XY drift of gravity per unit of layer height, zero on a level plate.
-// The tilt is capped below 90 degrees to keep the drift finite.
-Vec2d build_plate_tilt_slope(const PrintConfig &print_config);
 
 } // namespace Slic3r
 

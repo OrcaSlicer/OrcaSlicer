@@ -12,7 +12,7 @@
 #include "libslic3r/Support/SupportLayer.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "SupportCommon.hpp"
-#include "BeltFloorContext.hpp"
+#include "SegmentSupportBounds.hpp"
 #include "Geometry.hpp"
 #include "Point.hpp"
 #include "MutablePolygon.hpp"
@@ -398,20 +398,27 @@ inline void layers_append(SupportGeneratorLayersPtr &dst, const SupportGenerator
 }
 
 // Support layer that is covered by some form of dense interface.
-static constexpr const std::initializer_list<SupporLayerType> support_types_interface {
+static constexpr const std::initializer_list<SupporLayerType> support_types_interface { 
     SupporLayerType::RaftInterface, SupporLayerType::BottomContact, SupporLayerType::BottomInterface, SupporLayerType::TopContact, SupporLayerType::TopInterface
 };
 
-// Forward declarations for belt floor helpers (defined later in this file).
-// belt_floor_surface_polygon is declared in SupportCommon.hpp (non-static,
-// shared with TreeSupport.cpp).
-
-static Polygons belt_floor_valid_region_polygon(
-    const SlicingParameters &slicing_params, const PrintConfig &print_config,
-    const PrintObject &object, coordf_t print_z);
-static void trim_support_layers_by_belt_floor(
-    const SlicingParameters &slicing_params, const PrintConfig &print_config,
-    const PrintObject &object, SupportGeneratorLayersPtr &support_layers);
+// Declarative cut planes: clip assembled support layers to the segment's valid region, letting the
+// support-on-support columns reach support_section_overlap past the ceilings.
+static void trim_support_layers_by_segment_bounds(const SegmentSupportBounds &bounds, const PrintObject &object, SupportGeneratorLayersPtr &support_layers)
+{
+    if (! bounds.is_active() || support_layers.empty())
+        return;
+    const double overlap = object.config().support_section_overlap.value;
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, support_layers.size()),
+        [&bounds, &object, overlap, &support_layers](const tbb::blocked_range<size_t> &range) {
+            for (size_t i = range.begin(); i < range.end(); ++ i) {
+                SupportGeneratorLayer *layer = support_layers[i];
+                if (layer != nullptr && ! layer->polygons.empty())
+                    layer->polygons = intersection(layer->polygons,
+                        bounds.valid_region_polygon(layer->print_z, object.segment_support_column_at(layer->print_z), overlap));
+            }
+        });
+}
 
 void PrintObjectSupportMaterial::generate(PrintObject &object)
 {
@@ -485,12 +492,11 @@ void PrintObjectSupportMaterial::generate(PrintObject &object)
         object, bottom_contacts, top_contacts, layer_storage);
 
     this->trim_support_layers_by_object(object, top_contacts, m_slicing_params.gap_support_object, m_slicing_params.gap_object_support, m_support_params.gap_xy);
-    trim_support_layers_by_belt_floor(m_slicing_params, *m_print_config, object, top_contacts);
 
 #ifdef SLIC3R_DEBUG
     for (const SupportGeneratorLayer *layer : top_contacts)
         Slic3r::SVG::export_expolygons(
-            debug_out_path("support-top-contacts-trimmed-by-object-%d-%lf.svg", iRun, layer->print_z),
+            debug_out_path("support-top-contacts-trimmed-by-object-%d-%lf.svg", iRun, layer->print_z), 
             union_ex(layer->polygons));
 #endif
 
@@ -528,6 +534,28 @@ void PrintObjectSupportMaterial::generate(PrintObject &object)
     // There is also a 1st intermediate layer containing bases of support columns.
     // Inflate the bases of the support columns and create the raft base under the object.
     SupportGeneratorLayersPtr raft_layers = generate_raft_base(object, m_support_params, m_slicing_params, top_contacts, interface_layers, base_interface_layers, intermediate_layers, layer_storage);
+
+    // Declarative cut planes: confine support to the segment's own half-space. A segment's support
+    // may legitimately sit below its slice-frame z=0 (its floor is a TILTED cut face), so this both
+    // clips to the valid region and extends the column down onto that floor. Inactive -- and so a
+    // no-op -- for an ordinary object.
+    {
+        // Raise the plate by a first-layer height so support rests just above it rather than at
+        // z=0, keeping the un-rotated G-code clear of the machine's minimum Z.
+        const SegmentSupportBounds bounds(object, m_slicing_params.first_print_layer_height);
+        if (bounds.is_active()) {
+            trim_support_layers_by_segment_bounds(bounds, object, raft_layers);
+            trim_support_layers_by_segment_bounds(bounds, object, bottom_contacts);
+            trim_support_layers_by_segment_bounds(bounds, object, top_contacts);
+            trim_support_layers_by_segment_bounds(bounds, object, intermediate_layers);
+            trim_support_layers_by_segment_bounds(bounds, object, interface_layers);
+            trim_support_layers_by_segment_bounds(bounds, object, base_interface_layers);
+            // Seed with this segment's own first-layer demand as well: a floating segment's
+            // suspended first layer has no support layer of its own to project downward, so
+            // without it the column would start above the gap it is meant to bridge.
+            extend_support_below_segment_floor(bounds, m_slicing_params, layer_storage, intermediate_layers, object.segment_demand_first_layer());
+        }
+    }
 
     if (object.print()->canceled())
         return;
@@ -648,37 +676,6 @@ Polygons collect_region_slices_by_type(const Layer &layer, SurfaceType surface_t
             if (surface.surface_type == surface_type)
                 polygons_append(out, surface.expolygon);
     return out;
-}
-
-// Belt printer: compute the belt-side half-plane polygon at a given print_z.
-// This represents the region where the belt surface exists (the "phantom top surface").
-// Support that overlaps with this polygon should terminate with a bottom contact.
-// Returns empty if belt floor is not active.
-Polygons belt_floor_surface_polygon(
-    const SlicingParameters &slicing_params,
-    const PrintConfig       &print_config,
-    const PrintObject       &object,
-    coordf_t                 print_z)
-{
-    BeltFloorContext ctx;
-    if (!ctx.init(slicing_params, print_config))
-        return {};
-    return ctx.surface_polygon(print_z);
-}
-
-// Belt printer: compute the valid-region half-plane polygon at a given print_z.
-// This is the region where support is allowed to exist (above the belt).
-// Used to clip the downward-propagating support projection.
-static Polygons belt_floor_valid_region_polygon(
-    const SlicingParameters &slicing_params,
-    const PrintConfig       &print_config,
-    const PrintObject       &object,
-    coordf_t                 print_z)
-{
-    BeltFloorContext ctx;
-    if (!ctx.init(slicing_params, print_config))
-        return {};
-    return ctx.valid_region_polygon(print_z);
 }
 
 // Collect outer contours of all slices of this layer.
@@ -1472,9 +1469,6 @@ static inline ExPolygons detect_overhangs(
     const double threshold_rad = Geometry::deg2rad(thresh_angle);
     const bool bridge_no_support = object_config.bridge_no_support.value;
     const coordf_t xy_expansion = scale_(object_config.support_expansion.value);
-    // Build plate tilt: compute per-layer XY shift for tilted gravity direction
-    const Vec2d  tilt_slope = build_plate_tilt_slope(print_config);
-    const bool   has_tilt   = tilt_slope.cwiseAbs().maxCoeff() > EPSILON;
     float lower_layer_offset = 0;
 
     if (layer_id == 0)
@@ -1508,16 +1502,6 @@ static inline ExPolygons detect_overhangs(
             }
         }
 
-        // Apply build plate tilt: shift lower layer polygons to simulate tilted gravity.
-        // This is loop-invariant across regions, so compute it once here.
-        const Polygons *effective_lower = &lower_layer_polygons;
-        Polygons tilted_lower;
-        if (has_tilt) {
-            tilted_lower = lower_layer_polygons;
-            translate(tilted_lower, Point::new_scale(tilt_slope * lower_layer.height));
-            effective_lower = &tilted_lower;
-        }
-
         for (LayerRegion *layerm : layer.regions()) {
             // Extrusion width accounts for the roundings of the extrudates.
             // It is the maximum widh of the extrudate.
@@ -1536,7 +1520,7 @@ static inline ExPolygons detect_overhangs(
             Polygons layerm_polygons = to_polygons(layerm->slices.surfaces);
             if (lower_layer_offset == 0.f) {
                 // Support everything.
-                diff_polygons = diff(layerm_polygons, *effective_lower);
+                diff_polygons = diff(layerm_polygons, lower_layer_polygons);
                 if (buildplate_only) {
                     // Don't support overhangs above the top surfaces.
                     // This step is done before the contact surface is calculated by growing the overhang region.
@@ -1545,9 +1529,9 @@ static inline ExPolygons detect_overhangs(
             } else if (auto_normal_support) {
                 // Get the regions needing a suport, collapse very tiny spots.
                 //FIXME cache the lower layer offset if this layer has multiple regions.
-                diff_polygons =
+                diff_polygons = 
                     diff(layerm_polygons,
-                            expand(*effective_lower, lower_layer_offset, SUPPORT_SURFACES_OFFSET_PARAMETERS));
+                            expand(lower_layer_polygons, lower_layer_offset, SUPPORT_SURFACES_OFFSET_PARAMETERS));
                 if (buildplate_only && ! annotations.buildplate_covered[layer_id].empty()) {
                     // Don't support overhangs above the top surfaces.
                     // This step is done before the contact surface is calculated by growing the overhang region.
@@ -1555,9 +1539,9 @@ static inline ExPolygons detect_overhangs(
                 }
                 if (! diff_polygons.empty()) {
                     // Offset the support regions back to a full overhang, restrict them to the full overhang.
-                    // This is done to increase size of the supporting columns below, as they are calculated by
+                    // This is done to increase size of the supporting columns below, as they are calculated by 
                     // propagating these contact surfaces downwards.
-                    diff_polygons = diff(intersection(expand(diff_polygons, lower_layer_offset, SUPPORT_SURFACES_OFFSET_PARAMETERS), layerm_polygons), *effective_lower);
+                    diff_polygons = diff(intersection(expand(diff_polygons, lower_layer_offset, SUPPORT_SURFACES_OFFSET_PARAMETERS), layerm_polygons), lower_layer_polygons);
                 }
                 //FIXME add user defined filtering here based on minimal area or minimum radius or whatever.
 
@@ -2216,19 +2200,61 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::top_contact_layers(
     contact_out.assign(num_layers * 2, nullptr);
 
     std::vector<ExPolygons> overhangs_per_layers(num_layers);
-    size_t layer_id_start = this->has_raft() ? 0 : 1;
+    // Layer 0 is normally skipped for NATURAL overhang detection because it rests on the build
+    // plate: with no layer below it, every island there would look like an overhang. A segment that
+    // FLOATS above its base plane (a plane through empty space between disconnected shells produces
+    // no cut face) genuinely has its whole first layer suspended, so for that case the natural scan
+    // should include layer 0.
+    const bool floating_segment = (object.is_segment() && ! object.is_root_segment()
+                                   && ! object.segment()->touches_base_plane())
+                               || object.root_floats_above_plate();
+    size_t layer_id_start = (this->has_raft() || floating_segment) ? 0 : 1;
+
+    // INHERITED demand is a different matter, and must not be conflated with the above. A parent --
+    // including a root sitting flat on the plate -- can receive a child's load on its own layer 0,
+    // and that load is real regardless of whether layer 0 has natural overhangs. So contacts are
+    // generated from layer 0 whenever demand exists there, while natural detection keeps starting
+    // at layer_id_start; at layer 0 the only overhangs present are then the injected ones.
+    const bool demand_on_first_layer = ! object.segment_demand_first_layer().empty();
+    const size_t contact_id_start = demand_on_first_layer ? 0 : layer_id_start;
+    // BELT_MOD -- the true floor (no clearance) for the overhang diff.
+    const SegmentSupportBounds floor_bounds = object.support_floor_is_tilted() ? SegmentSupportBounds(object, 0.) : SegmentSupportBounds();
      // main part of overhang detection can be parallel
     tbb::parallel_for(tbb::blocked_range<size_t>(layer_id_start, num_layers),
         [&](const tbb::blocked_range<size_t>& range) {
             for (size_t layer_id = range.begin(); layer_id < range.end(); layer_id++) {
                 const Layer& layer = *object.layers()[layer_id];
                 Polygons            lower_layer_polygons = (layer_id == 0) ? Polygons() : to_polygons(object.layers()[layer_id - 1]->lslices);
+                // BELT_MOD -- material resting on a tilted floor is supported by it (see TreeSupport).
+                if (floor_bounds.is_active())
+                    lower_layer_polygons = union_(lower_layer_polygons, floor_bounds.floor_band(layer.print_z - layer.height, layer.print_z));
 
                 overhangs_per_layers[layer_id] = detect_overhangs(layer, layer_id, lower_layer_polygons, *m_print_config, *m_object_config, annotations, m_support_params.gap_xy
 #ifdef SLIC3R_DEBUG
                     , iRun
 #endif // SLIC3R_DEBUG
                 );
+
+                // Orca: if the user enabled "support only remaining areas after wave
+                // overhangs" on any region that uses wave overhangs, subtract the
+                // wave-covered footprint from detected overhangs here. Enforcers are
+                // handled separately later in detect_contacts() and therefore remain
+                // unaffected. Sharp-tail / first-layer logic already folded into
+                // overhangs_per_layers; subtracting covered regions is still safe
+                // since wave paths by construction only fill unsupported areas.
+                if (!overhangs_per_layers[layer_id].empty() && !layer.wave_overhang_covered_polygons.empty()) {
+                    bool wave_support_gate = false;
+                    for (size_t ri = 0; ri < object.num_printing_regions(); ++ri) {
+                        const PrintRegionConfig &rc = object.printing_region(ri).config();
+                        if (rc.wave_overhangs.value && rc.support_remaining_areas_after_wave_overhangs.value) {
+                            wave_support_gate = true;
+                            break;
+                        }
+                    }
+                    if (wave_support_gate) {
+                        overhangs_per_layers[layer_id] = diff_ex(overhangs_per_layers[layer_id], layer.wave_overhang_covered_polygons);
+                    }
+                }
 
                 if (object.print()->canceled())
                     break;
@@ -2405,7 +2431,44 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::top_contact_layers(
     if (object.print()->canceled())
         return SupportGeneratorLayersPtr();
 
-    for (size_t layer_id = layer_id_start; layer_id < num_layers; layer_id++) {
+    // Declarative cut planes: fold in the demand handed up by this segment's children. These
+    // regions float over the shared cut face -- this segment has no material under them -- so they
+    // go straight into the raw overhang accumulator rather than the enforcer path, which would
+    // intersect them with the layer's own slices and erase them. Injected AFTER small-overhang
+    // removal so inherited load can never be pruned as noise. See Print::run_segment_support_cascade.
+    if (! object.segment_support_demand().empty()) {
+        const std::vector<Polygons> &demand = object.segment_support_demand();
+        // Inherited load under the child's SUPPORT is support-on-support: the column must end
+        // flush under the ceiling the child rests on (or support_section_overlap past it), not a
+        // contact gap below it. demand[i] describes the column at layer i, where the ceiling is at
+        // or above print_z(i). new_contact_layer() puts the contact of an overhang found at layer
+        // j at bottom_z(j) minus the support gap, so hand the column of layer i to the HIGHEST
+        // layer j whose contact still lands at or below print_z(i) + overlap: the contact then
+        // sits within a layer of that height, and the segment-bounds trim removes whatever a
+        // tilted ceiling cuts off.
+        const double gap     = m_slicing_params.zero_gap_interface_top ? 0. : m_slicing_params.gap_support_object;
+        const double overlap = m_object_config->support_section_overlap.value;
+        size_t j = contact_id_start;
+        for (size_t layer_id = contact_id_start; layer_id < num_layers; layer_id++) {
+            if (layer_id >= demand.size() || demand[layer_id].empty())
+                continue;
+            const double top = object.layers()[layer_id]->print_z + overlap;
+            j = std::max(j, layer_id);
+            while (j + 1 < num_layers && object.layers()[j + 1]->bottom_z() - gap <= top + EPSILON)
+                ++ j;
+            append(overhangs_per_layers[j], union_ex(demand[layer_id]));
+        }
+    }
+    if (! object.segment_body_demand().empty()) {
+        // The child's BODY over this segment's empty space is an ordinary overhang: it gets the
+        // normal top Z distance, so it can be separated from the support like any other surface.
+        const std::vector<Polygons> &demand = object.segment_body_demand();
+        for (size_t layer_id = contact_id_start; layer_id < num_layers && layer_id < demand.size(); layer_id++)
+            if (! demand[layer_id].empty())
+                append(overhangs_per_layers[layer_id], union_ex(demand[layer_id]));
+    }
+
+    for (size_t layer_id = contact_id_start; layer_id < num_layers; layer_id++) {
         const Layer& layer = *object.layers()[layer_id];
         Polygons            overhang_polygons = to_polygons(overhangs_per_layers[layer_id]);
         Polygons            lower_layer_polygons = (layer_id == 0) ? Polygons() : to_polygons(object.layers()[layer_id - 1]->lslices);
@@ -2597,82 +2660,6 @@ static inline SupportGeneratorLayer* detect_bottom_contacts(
     return &layer_new;
 }
 
-// Belt printer: detect bottom contacts where support meets the belt floor plane.
-// Modeled on detect_bottom_contacts() but uses the belt plane polygon instead of stTop surfaces.
-static inline SupportGeneratorLayer* detect_belt_floor_bottom_contacts(
-    const SlicingParameters                          &slicing_params,
-    const SupportParameters                          &support_params,
-    const PrintConfig                                &print_config,
-    const PrintObject                                &object,
-    const Layer                                      &layer,
-    // Existing top contact layers, for snapping.
-    const SupportGeneratorLayersPtr                  &top_contacts,
-    size_t                                            contact_idx,
-    SupportGeneratorLayerStorage                     &layer_storage,
-    std::vector<Polygons>                            &layer_support_areas,
-    const Polygons                                   &supports_projected)
-{
-    // Compute the belt surface polygon at this layer's Z.
-    Polygons belt_surface = belt_floor_surface_polygon(slicing_params, print_config, object, layer.print_z);
-    if (belt_surface.empty())
-        return nullptr;
-
-    // Find where projected support overlaps the belt surface.
-    Polygons touching = intersection(belt_surface, supports_projected);
-    if (touching.empty())
-        return nullptr;
-
-    assert(layer.id() >= slicing_params.raft_layers());
-    size_t layer_id = layer.id() - slicing_params.raft_layers();
-
-    // Allocate a new bottom contact layer resting on the belt plane.
-    SupportGeneratorLayer &layer_new = layer_storage.allocate_unguarded(SupporLayerType::BottomContact);
-
-    // No object layer to sync with -- compute heights directly from flow parameters.
-    layer_new.height  = support_params.support_material_bottom_interface_flow.height();
-    layer_new.print_z = layer.print_z + layer_new.height + slicing_params.gap_object_support;
-    layer_new.bottom_z = layer.print_z;
-    layer_new.idx_object_layer_below = layer_id;
-    layer_new.bridging = ! slicing_params.zero_gap_interface_bottom && object.config().thick_bridges;
-    layer_new.polygons = expand(touching, float(support_params.support_material_flow.scaled_width()), SUPPORT_SURFACES_OFFSET_PARAMETERS);
-
-    if (! slicing_params.zero_gap_interface_bottom) {
-        // Snap to nearby top contact layers to avoid very thin support layers.
-        for (size_t top_idx = size_t(std::max<int>(0, int(contact_idx)));
-            top_idx < top_contacts.size() && top_contacts[top_idx]->print_z < layer_new.print_z + support_params.support_layer_height_min + EPSILON;
-            ++ top_idx) {
-            if (top_contacts[top_idx]->print_z > layer_new.print_z - support_params.support_layer_height_min - EPSILON) {
-                coordf_t diff = layer_new.print_z - top_contacts[top_idx]->print_z;
-                assert(std::abs(diff) <= support_params.support_layer_height_min + EPSILON);
-                if (diff > 0.F) {
-                    if (layer_new.height - diff > support_params.support_layer_height_min) {
-                        layer_new.print_z = top_contacts[top_idx]->print_z;
-                        layer_new.height -= diff;
-                    } else {
-                        continue;
-                    }
-                } else {
-                    layer_new.print_z = top_contacts[top_idx]->print_z;
-                    layer_new.height -= diff;
-                }
-                break;
-            }
-        }
-    }
-
-    // Trim the already created base layers above this belt contact.
-    touching = expand(touching, float(SCALED_EPSILON));
-    for (int layer_id_above = int(layer_id) + 1; layer_id_above < int(object.total_layer_count()); ++ layer_id_above) {
-        const Layer &layer_above = *object.layers()[layer_id_above];
-        if (layer_above.print_z > layer_new.print_z - EPSILON)
-            break;
-        if (Polygons &above = layer_support_areas[layer_id_above]; ! above.empty())
-            above = diff(above, touching);
-    }
-
-    return &layer_new;
-}
-
 // Returns polygons to print + polygons to propagate downwards.
 // Called twice: First for normal supports, possibly trimmed by "on build plate only", second for support enforcers not trimmed by "on build plate only".
 static inline std::pair<Polygons, Polygons> project_support_to_grid(const Layer &layer, const SupportGridParams &grid_params, const Polygons &overhangs, Polygons *layer_buildplate_covered
@@ -2772,7 +2759,6 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::bottom_contact_layers_and_
     //const auto   expansion_to_slice = m_support_material_flow.scaled_spacing() / 2 + 25;
     const SupportGridParams grid_params(*m_object_config, m_support_params.support_material_flow);
     const bool buildplate_only = ! buildplate_covered.empty();
-    const bool has_belt_floor  = std::abs(m_slicing_params.belt_floor_shear_factor) > EPSILON;
 
     // Allocate empty surface areas, one per object layer.
     layer_support_areas.assign(object.total_layer_count(), Polygons());
@@ -2833,9 +2819,8 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::bottom_contact_layers_and_
         tbb::task_group task_group;
         const Polygons &overhangs_for_bottom_contacts = buildplate_only ? enforcers_projection_raw : overhangs_projection_raw;
         if (! overhangs_for_bottom_contacts.empty())
-            // Find the bottom contact layers above the top surfaces of this layer,
-            // and also detect belt floor contacts if belt mode is active.
-            task_group.run([this, &object, &layer, &top_contacts, contact_idx, &layer_storage, &layer_support_areas, &bottom_contacts, &overhangs_for_bottom_contacts, has_belt_floor
+            // Find the bottom contact layers above the top surfaces of this layer.
+            task_group.run([this, &object, &layer, &top_contacts, contact_idx, &layer_storage, &layer_support_areas, &bottom_contacts, &overhangs_for_bottom_contacts
     #ifdef SLIC3R_DEBUG
                 , iRun, &polygons_new
     #endif // SLIC3R_DEBUG
@@ -2849,15 +2834,6 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::bottom_contact_layers_and_
                     );
                     if (layer_new)
                         bottom_contacts.push_back(layer_new);
-                    // Belt floor phantom surface: detect where support meets the belt plane.
-                    if (has_belt_floor) {
-                        SupportGeneratorLayer *belt_layer = detect_belt_floor_bottom_contacts(
-                            m_slicing_params, m_support_params, *m_print_config, object,
-                            layer, top_contacts, contact_idx, layer_storage,
-                            layer_support_areas, overhangs_for_bottom_contacts);
-                        if (belt_layer)
-                            bottom_contacts.push_back(belt_layer);
-                    }
                 });
 
         Polygons &layer_support_area = layer_support_areas[layer_id];
@@ -2896,23 +2872,6 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::bottom_contact_layers_and_
 
         task_group.wait();
 
-        // Belt floor: clip projections and support areas so support doesn't
-        // propagate below the belt plane.
-        if (has_belt_floor) {
-            Polygons valid_region = belt_floor_valid_region_polygon(
-                m_slicing_params, *m_print_config, object, layer.print_z);
-            if (! valid_region.empty()) {
-                if (! overhangs_projection.empty())
-                    overhangs_projection = intersection(overhangs_projection, valid_region);
-                if (! enforcers_projection.empty())
-                    enforcers_projection = intersection(enforcers_projection, valid_region);
-                if (! layer_support_area.empty())
-                    layer_support_area = intersection(layer_support_area, valid_region);
-                if (! layer_support_area_enforcers.empty())
-                    layer_support_area_enforcers = intersection(layer_support_area_enforcers, valid_region);
-            }
-        }
-
         if (! layer_support_area_enforcers.empty()) {
             if (layer_support_area.empty())
                 layer_support_area = std::move(layer_support_area_enforcers);
@@ -2923,7 +2882,6 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::bottom_contact_layers_and_
 
     std::reverse(bottom_contacts.begin(), bottom_contacts.end());
     trim_support_layers_by_object(object, bottom_contacts, m_slicing_params.gap_support_object, m_slicing_params.gap_object_support, m_support_params.gap_xy);
-    trim_support_layers_by_belt_floor(m_slicing_params, *m_print_config, object, bottom_contacts);
     return bottom_contacts;
 }
 
@@ -3297,31 +3255,6 @@ void PrintObjectSupportMaterial::generate_base_layers(
 #endif /* SLIC3R_DEBUG */
 
     this->trim_support_layers_by_object(object, intermediate_layers, m_slicing_params.gap_support_object, m_slicing_params.gap_object_support, m_support_params.gap_xy);
-    trim_support_layers_by_belt_floor(m_slicing_params, *m_print_config, object, intermediate_layers);
-}
-
-// Belt printer: trim support layer polygons by the belt floor plane.
-// For each support layer, computes the belt floor half-plane at that layer's print_z
-// and subtracts it from the support polygons. This follows the same diff() pattern
-// as trim_support_layers_by_object() so that interface layers derived from trimmed
-// intermediates automatically inherit the belt floor trimming.
-static void trim_support_layers_by_belt_floor(
-    const SlicingParameters          &slicing_params,
-    const PrintConfig                &print_config,
-    const PrintObject                &object,
-    SupportGeneratorLayersPtr        &support_layers)
-{
-    BeltFloorContext ctx;
-    if (!ctx.init(slicing_params, print_config))
-        return;
-
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, support_layers.size()),
-        [&](const tbb::blocked_range<size_t> &range) {
-            for (size_t i = range.begin(); i < range.end(); ++i)
-                if (support_layers[i])
-                    support_layers[i]->polygons = diff(support_layers[i]->polygons,
-                                                       ctx.surface_polygon(support_layers[i]->print_z));
-        });
 }
 
 void PrintObjectSupportMaterial::trim_support_layers_by_object(

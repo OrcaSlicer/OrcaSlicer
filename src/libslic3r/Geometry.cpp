@@ -907,4 +907,39 @@ bool is_point_inside_polygon_corner(const Point &a, const Point &b, const Point 
     }
 }
 
+Eigen::Matrix3d layer_rotation_matrix(double b_deg, double c_deg)
+{
+    const double b = b_deg * M_PI / 180.0;
+    const double c = c_deg * M_PI / 180.0;
+
+    // Rotation about Y (B axis)
+    Eigen::Matrix3d Rb;
+    Rb << std::cos(b), 0.0, std::sin(b),
+                  0.0, 1.0,         0.0,
+         -std::sin(b), 0.0, std::cos(b);
+
+    // Rotation about Z (C axis)
+    Eigen::Matrix3d Rc;
+    Rc << std::cos(c), -std::sin(c), 0.0,
+          std::sin(c),  std::cos(c), 0.0,
+                  0.0,          0.0, 1.0;
+
+    return Rb * Rc;
+}
+
+void bc_from_build_normal(const Vec3d &n, double &b_deg, double &c_deg)
+{
+    c_deg = -std::atan2(n.y(), n.x()) * 180.0 / M_PI;
+    b_deg = -std::atan2(std::sqrt(n.x() * n.x() + n.y() * n.y()), n.z()) * 180.0 / M_PI;
+}
+
+Vec3d build_normal_from_bc(double b_deg, double c_deg)
+{
+    // Inverse of bc_from_build_normal: with b' = -b, c' = -c (radians),
+    // n = (sin(b')*cos(c'), sin(b')*sin(c'), cos(b')). sin(b') >= 0 for b in [-180, 0].
+    const double b = -b_deg * M_PI / 180.0;
+    const double c = -c_deg * M_PI / 180.0;
+    return Vec3d(std::sin(b) * std::cos(c), std::sin(b) * std::sin(c), std::cos(b));
+}
+
 }} // namespace Slic3r::Geometry

@@ -401,6 +401,10 @@ BuildVolume::ObjectState BuildVolume::object_state(const indexed_triangle_set& i
             build_volume.max.z() = std::numeric_limits<double>::max();
         if (ignore_bottom)
             build_volume.min.z() = -std::numeric_limits<double>::max();
+        if (m_belt_infinite_y) {   // BELT_MOD
+            build_volume.min.y() = -std::numeric_limits<double>::max();
+            build_volume.max.y() =  std::numeric_limits<double>::max();
+        }
         BoundingBox3Base<Vec3f> build_volumef(build_volume.min.cast<float>(), build_volume.max.cast<float>());
         // The following test correctly interprets intersection of a non-convex object with a rectangular build volume.
         //return rectangle_test(its, trafo, to_2d(build_volume.min), to_2d(build_volume.max), build_volume.max.z());
@@ -529,10 +533,15 @@ BuildVolume::ObjectState  BuildVolume::check_volume_bbox_state_with_extruder_are
 }
 
 
-bool BuildVolume::all_paths_inside(const GCodeProcessorResult& paths, const BoundingBoxf3& paths_bbox, bool ignore_bottom) const
+bool BuildVolume::all_paths_inside(const GCodeProcessorResult& paths, const BoundingBoxf3& paths_bbox, bool ignore_bottom,
+                                   const Transform3d *move_transform) const
 {
     auto move_valid = [](const GCodeProcessorResult::MoveVertex &move) {
         return move.type == EMoveType::Extrude && move.extrusion_role != erCustom && move.width != 0.f && move.height != 0.f;
+    };
+    // BELT_MOD: the position a move is tested at.
+    auto position = [move_transform](const GCodeProcessorResult::MoveVertex &move) -> Vec3f {
+        return move_transform == nullptr ? move.position : Vec3f((*move_transform * move.position.cast<double>()).cast<float>());
     };
     static constexpr const double epsilon = BedEpsilon;
 
@@ -544,6 +553,10 @@ bool BuildVolume::all_paths_inside(const GCodeProcessorResult& paths, const Boun
             build_volume.max.z() = std::numeric_limits<double>::max();
         if (ignore_bottom)
             build_volume.min.z() = -std::numeric_limits<double>::max();
+        if (m_belt_infinite_y) {   // BELT_MOD
+            build_volume.min.y() = -std::numeric_limits<double>::max();
+            build_volume.max.y() =  std::numeric_limits<double>::max();
+        }
         // BBox-only callers may provide no moves. Validate bbox corners regardless of paths_bbox.defined.
         if (paths.moves.empty())
             return build_volume.contains(paths_bbox.min) && build_volume.contains(paths_bbox.max);
@@ -552,8 +565,8 @@ bool BuildVolume::all_paths_inside(const GCodeProcessorResult& paths, const Boun
 
         // Fallback: validate only relevant extrusion moves.
         const BoundingBox3Base<Vec3f> build_volumef(build_volume.min.cast<float>(), build_volume.max.cast<float>());
-        return std::all_of(paths.moves.begin(), paths.moves.end(), [move_valid, build_volumef](const GCodeProcessorResult::MoveVertex &move)
-            { return !move_valid(move) || build_volumef.contains(move.position); });
+        return std::all_of(paths.moves.begin(), paths.moves.end(), [move_valid, position, build_volumef](const GCodeProcessorResult::MoveVertex &move)
+            { return !move_valid(move) || build_volumef.contains(position(move)); });
     }
     case BuildVolume_Type::Circle:
     {
@@ -561,19 +574,19 @@ bool BuildVolume::all_paths_inside(const GCodeProcessorResult& paths, const Boun
         const float r = unscaled<double>(m_circle.radius) + epsilon;
         const float r2 = sqr(r);
         return m_max_print_height == 0.0 ?
-            std::all_of(paths.moves.begin(), paths.moves.end(), [move_valid, c, r2](const GCodeProcessorResult::MoveVertex &move)
-                { return ! move_valid(move) || (to_2d(move.position) - c).squaredNorm() <= r2; }) :
-            std::all_of(paths.moves.begin(), paths.moves.end(), [move_valid, c, r2, z = m_max_print_height + epsilon](const GCodeProcessorResult::MoveVertex& move)
-                { return ! move_valid(move) || ((to_2d(move.position) - c).squaredNorm() <= r2 && move.position.z() <= z); });
+            std::all_of(paths.moves.begin(), paths.moves.end(), [move_valid, position, c, r2](const GCodeProcessorResult::MoveVertex &move)
+                { return ! move_valid(move) || (to_2d(position(move)) - c).squaredNorm() <= r2; }) :
+            std::all_of(paths.moves.begin(), paths.moves.end(), [move_valid, position, c, r2, z = m_max_print_height + epsilon](const GCodeProcessorResult::MoveVertex& move)
+                { const Vec3f p = position(move); return ! move_valid(move) || ((to_2d(p) - c).squaredNorm() <= r2 && p.z() <= z); });
     }
     case BuildVolume_Type::Convex:
     //FIXME doing test on convex hull until we learn to do test on non-convex polygons efficiently.
     case BuildVolume_Type::Custom:
         return m_max_print_height == 0.0 ?
-            std::all_of(paths.moves.begin(), paths.moves.end(), [move_valid, this](const GCodeProcessorResult::MoveVertex &move)
-                { return ! move_valid(move) || Geometry::inside_convex_polygon(m_top_bottom_convex_hull_decomposition_bed, to_2d(move.position).cast<double>()); }) :
-            std::all_of(paths.moves.begin(), paths.moves.end(), [move_valid, this, z = m_max_print_height + epsilon](const GCodeProcessorResult::MoveVertex &move)
-                { return ! move_valid(move) || (Geometry::inside_convex_polygon(m_top_bottom_convex_hull_decomposition_bed, to_2d(move.position).cast<double>()) && move.position.z() <= z); });
+            std::all_of(paths.moves.begin(), paths.moves.end(), [move_valid, position, this](const GCodeProcessorResult::MoveVertex &move)
+                { return ! move_valid(move) || Geometry::inside_convex_polygon(m_top_bottom_convex_hull_decomposition_bed, to_2d(position(move)).cast<double>()); }) :
+            std::all_of(paths.moves.begin(), paths.moves.end(), [move_valid, position, this, z = m_max_print_height + epsilon](const GCodeProcessorResult::MoveVertex &move)
+                { const Vec3f p = position(move); return ! move_valid(move) || (Geometry::inside_convex_polygon(m_top_bottom_convex_hull_decomposition_bed, to_2d(p).cast<double>()) && p.z() <= z); });
     default:
         return true;
     }

@@ -46,6 +46,16 @@ struct NSVGLineParams
     {}
 };
 
+/// The curves of one NSVGshape flattened to lines: closed sub-paths as polygons, open ones as
+/// polylines, in the scaled coordinates `param.scale` produces. Stroke width and fill rule are
+/// NOT applied -- this is the raw geometry the fill/stroke conversions below start from.
+struct LinesPath
+{
+    Polygons  polygons;
+    Polylines polylines;
+};
+LinesPath linearize_path(NSVGpath *first_path, const NSVGLineParams &param);
+
 /// <summary>
 /// Convert .svg opened by nanoSvg to shapes stored in expolygons with ids
 /// </summary>

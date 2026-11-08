@@ -319,9 +319,70 @@ size_t Viewer::get_layer_id_at(float z) const
     return m_impl->get_layer_id_at(z);
 }
 
+// UNLAYERED_MOD
+float Viewer::get_layer_z_min(size_t layer_id) const
+{
+    return m_impl->get_layer_z_min(layer_id);
+}
+
+float Viewer::get_layer_z_max(size_t layer_id) const
+{
+    return m_impl->get_layer_z_max(layer_id);
+}
+
+bool Viewer::is_layer_planar(size_t layer_id) const
+{
+    return m_impl->is_layer_planar(layer_id);
+}
+
+bool Viewer::all_layers_planar() const
+{
+    return m_impl->all_layers_planar();
+}
+
+Vec3 Viewer::get_layer_tool_axis(size_t layer_id) const
+{
+    return m_impl->get_layer_tool_axis(layer_id);
+}
+
+Vec3 Viewer::get_tool_axis(size_t tool_axis_id) const
+{
+    return m_impl->get_tool_axis(tool_axis_id);
+}
+
 size_t Viewer::get_used_extruders_count() const
 {
     return m_impl->get_used_extruders_count();
+}
+
+std::vector<int16_t> Viewer::get_used_cut_segments_ids() const
+{
+    return m_impl->get_used_cut_segments_ids();
+}
+
+size_t Viewer::get_used_cut_segments_count() const
+{
+    return m_impl->get_used_cut_segments_count();
+}
+
+Color Viewer::get_cut_segment_color(int16_t segment_id) const
+{
+    return m_impl->get_cut_segment_color(segment_id);
+}
+
+bool Viewer::is_cut_segment_visible(int16_t segment_id) const
+{
+    return m_impl->is_cut_segment_visible(segment_id);
+}
+
+void Viewer::toggle_cut_segment_visibility(int16_t segment_id)
+{
+    m_impl->toggle_cut_segment_visibility(segment_id);
+}
+
+void Viewer::show_all_cut_segments()
+{
+    m_impl->show_all_cut_segments();
 }
 
 std::vector<uint8_t> Viewer::get_used_extruders_ids() const

@@ -12,6 +12,6 @@ add_executable(${_TEST_NAME}_tests
 target_link_libraries(${_TEST_NAME}_tests test_common libnest2d Catch2::Catch2WithMain)
 set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 
-orcaslicer_copy_test_dlls()
+unlayered_copy_test_dlls()
 
-orcaslicer_discover_tests(${_TEST_NAME}_tests)
+unlayered_discover_tests(${_TEST_NAME}_tests)

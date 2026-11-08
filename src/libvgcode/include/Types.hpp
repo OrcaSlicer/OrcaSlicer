@@ -109,6 +109,10 @@ enum class EViewType : uint8_t
     // ORCA: Add Jerk visualization support
     Jerk,
     Tool,
+    // Declarative cut planes: colour each toolpath by the segment ("section") it belongs to,
+    // matching the Prepare tab's chunk preview. Appended last so previously stored view-type
+    // indices keep pointing at the same view.
+    CutSegment,
     COUNT
 };
 

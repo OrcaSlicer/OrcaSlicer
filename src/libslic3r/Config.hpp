@@ -257,8 +257,8 @@ class  ConfigOptionDef;
 struct ConfigOptionDeleter { void operator()(ConfigOption* p); };
 using  ConfigOptionUniquePtr = std::unique_ptr<ConfigOption, ConfigOptionDeleter>;
 
-// When parsing a configuration value, if the old_value is not understood by this OrcaSlicer version,
-// it is being substituted with some default value that this OrcaSlicer could work with.
+// When parsing a configuration value, if the old_value is not understood by this Unlayered Slicer version,
+// it is being substituted with some default value that this Unlayered Slicer could work with.
 // This structure serves to inform the user about the substitutions having been done during file import.
 struct ConfigSubstitution {
     const ConfigOptionDef   *opt_def { nullptr };
@@ -2297,7 +2297,13 @@ private:
             else
                 throw ConfigurationError("Serializing NaN");
         }
-        else if (this->keys_map != nullptr) {
+        else if (this->keys_map == nullptr) {
+            // A default-constructed option (e.g. a ConfigDef default value that was never
+            // deserialized) has no enum map bound; fall back to the numeric value instead of
+            // crashing. Happens when serializing a full default config, e.g. in tests.
+            ss << v;
+        }
+        else {
             for (const auto& kvp : *this->keys_map)
                 if (kvp.second == v)
                     ss << kvp.first;
@@ -2353,6 +2359,8 @@ public:
     ConfigOption*						create_empty_option() const;
     // Create a default option to be inserted into a DynamicConfig.
     ConfigOption*						create_default_option() const;
+    // Sets opt, an option of this definition's type, to the default value.
+    void                                assign_default(ConfigOption *opt) const;
 
     bool                                is_scalar()     const { return (int(this->type) & int(coVectorType)) == 0; }
 

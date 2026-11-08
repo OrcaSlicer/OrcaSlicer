@@ -11,6 +11,6 @@ endif ()
 
 set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 
-orcaslicer_copy_test_dlls()
+unlayered_copy_test_dlls()
 
-orcaslicer_discover_tests(${_TEST_NAME}_tests)
+unlayered_discover_tests(${_TEST_NAME}_tests)

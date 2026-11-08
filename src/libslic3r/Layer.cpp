@@ -52,6 +52,80 @@ LayerRegion* Layer::add_region(const PrintRegion *print_region)
     return m_regions.back();
 }
 
+// UNLAYERED_MOD -- translate every path of an extrusion tree in place. Only the paths themselves
+// move: the start/end ramps a scarf-seam loop caches are never read by support generation, and a
+// symmetric second call undoes exactly what the first did, so nothing drifts.
+static void translate_extrusions(ExtrusionEntityCollection &collection, const Point &shift)
+{
+    const Point3 shift3(shift.x(), shift.y(), coord_t(0));
+    for (ExtrusionEntity *ee : collection.entities) {
+        if (ee->is_collection())
+            translate_extrusions(*static_cast<ExtrusionEntityCollection*>(ee), shift);
+        else if (auto *loop = dynamic_cast<ExtrusionLoop*>(ee))
+            for (ExtrusionPath &path : loop->paths)
+                path.polyline.translate(shift3);
+        else if (auto *multi = dynamic_cast<ExtrusionMultiPath*>(ee))
+            for (ExtrusionPath &path : multi->paths)
+                path.polyline.translate(shift3);
+        else if (auto *path = dynamic_cast<ExtrusionPath*>(ee))
+            path->polyline.translate(shift3);
+        else
+            assert(false);
+    }
+}
+
+void Layer::translate(const Point &shift)
+{
+    if (shift == Point(0, 0))
+        return;
+    Slic3r::translate(this->lslices, shift);
+    Slic3r::translate(this->lslices_extrudable, shift);
+    for (BoundingBox &bb : this->lslices_bboxes)
+        bb.translate(shift);
+    Slic3r::translate(this->loverhangs, shift);
+    this->loverhangs_bbox.translate(shift);
+    Slic3r::translate(this->sharp_tails, shift);
+    Slic3r::translate(this->cantilevers, shift);
+    // Wave overhangs: support reads the covered footprint while the layers are sheared (support
+    // direction), so every per-layer wave polygon moves with the layer it describes.
+    for (Polygons *polys : { &this->wave_overhang_floor_polygons, &this->wave_overhang_covered_polygons, &this->wave_overhang_shadow_polygons })
+        for (Polygon &poly : *polys)
+            poly.translate(shift);
+    Slic3r::translate(this->segment_floor_support, shift);
+    for (LayerRegion *layerm : m_regions) {
+        for (Surface &surface : layerm->slices.surfaces)
+            surface.expolygon.translate(shift);
+        for (Surface &surface : layerm->fill_surfaces.surfaces)
+            surface.expolygon.translate(shift);
+        Slic3r::translate(layerm->raw_slices, shift);
+        Slic3r::translate(layerm->fill_expolygons, shift);
+        Slic3r::translate(layerm->fill_no_overlap_expolygons, shift);
+        for (Polyline &pl : layerm->unsupported_bridge_edges)
+            pl.translate(shift);
+        translate_extrusions(layerm->perimeters, shift);
+        translate_extrusions(layerm->fills, shift);
+        translate_extrusions(layerm->thin_fills, shift);
+    }
+}
+
+void SupportLayer::translate(const Point &shift)
+{
+    if (shift == Point(0, 0))
+        return;
+    Layer::translate(shift);
+    // The area lists are moved in place, point by point, so the raw pointers area_groups keeps
+    // into them stay valid.
+    Slic3r::translate(this->support_islands, shift);
+    Slic3r::translate(this->base_areas, shift);
+    Slic3r::translate(this->roof_areas, shift);
+    Slic3r::translate(this->roof_1st_layer, shift);
+    Slic3r::translate(this->floor_areas, shift);
+    Slic3r::translate(this->roof_gap_areas, shift);
+    translate_extrusions(this->support_fills, shift);
+    Slic3r::translate(this->unclipped_support_islands, shift);
+    translate_extrusions(this->unclipped_support_fills, shift);
+}
+
 // merge all regions' slices to get islands
 void Layer::make_slices()
 {
@@ -196,7 +270,28 @@ bool Layer::is_perimeter_compatible(const Print& print, const PrintRegion& a, co
         && config.seam_slope_entire_loop  == other_config.seam_slope_entire_loop
         && config.seam_slope_min_length   == other_config.seam_slope_min_length
         && config.seam_slope_steps        == other_config.seam_slope_steps
-        && config.seam_slope_inner_walls  == other_config.seam_slope_inner_walls;
+        && config.seam_slope_inner_walls  == other_config.seam_slope_inner_walls
+        // Wave overhangs are generated inside the perimeter generator from the first region's config,
+        // so regions that disagree on any wave geometry key must not share one make_perimeters call.
+        // The detail keys only matter when waves are on, so regions with waves off still merge as before.
+        && config.wave_overhangs                         == other_config.wave_overhangs
+        && (! config.wave_overhangs.value || (
+           config.wave_overhangs_instead_of_bridges      == other_config.wave_overhangs_instead_of_bridges
+        && config.wave_overhang_outer_perimeters         == other_config.wave_overhang_outer_perimeters
+        && config.wave_overhang_perimeter_overlap        == other_config.wave_overhang_perimeter_overlap
+        && config.wave_overhang_minimum_width            == other_config.wave_overhang_minimum_width
+        && config.wave_overhang_pattern                  == other_config.wave_overhang_pattern
+        && config.wave_overhang_line_spacing             == other_config.wave_overhang_line_spacing
+        && config.wave_overhang_flow_mm3_per_mm          == other_config.wave_overhang_flow_mm3_per_mm
+        && config.wave_overhang_spacing_mode             == other_config.wave_overhang_spacing_mode
+        && config.wave_overhang_seam_mode                == other_config.wave_overhang_seam_mode
+        && config.wave_overhang_min_length               == other_config.wave_overhang_min_length
+        && config.wave_overhang_max_iterations           == other_config.wave_overhang_max_iterations
+        && config.wave_overhang_min_new_area             == other_config.wave_overhang_min_new_area
+        && config.wave_overhang_corner_taper_enable      == other_config.wave_overhang_corner_taper_enable
+        && config.wave_overhang_line_spacing_corner      == other_config.wave_overhang_line_spacing_corner
+        && config.wave_overhang_corner_taper_distance    == other_config.wave_overhang_corner_taper_distance
+        && config.wave_overhang_corner_angle_threshold   == other_config.wave_overhang_corner_angle_threshold));
 }
 
 // Here the perimeters are created cummulatively for all layer regions sharing the same parameters influencing the perimeters.
@@ -205,6 +300,11 @@ bool Layer::is_perimeter_compatible(const Print& print, const PrintRegion& a, co
 void Layer::make_perimeters()
 {
     BOOST_LOG_TRIVIAL(trace) << "Generating perimeters for layer " << this->id();
+
+    // Wave-overhang footprints are appended by LayerRegion::make_perimeters(); reset them so a re-run of
+    // posPerimeters (e.g. a wall setting changed in the GUI) does not stack the previous run's footprint.
+    this->wave_overhang_floor_polygons.clear();
+    this->wave_overhang_covered_polygons.clear();
 
     const auto clear_generated_extrusions = [](LayerRegion *layer_region) {
         layer_region->perimeters.clear();

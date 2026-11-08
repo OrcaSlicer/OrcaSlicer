@@ -95,18 +95,24 @@ TEST_CASE("The default adaptive pressure advance model holds no measurements", "
     CHECK(AdaptivePAProcessor::adaptive_pa_model_has_measurements("0.04,3.96,3000"));
 }
 
-// The warnings Print::validate raises about the adaptive pressure advance model.
-static std::vector<std::string> adaptive_pa_model_warnings(const std::string &model)
+// The warnings Print::validate raises about the adaptive pressure advance models, one per filament,
+// when a cube is printed with the given filament.
+static std::vector<std::string> adaptive_pa_model_warnings(const std::vector<std::string> &models, int filament = 1)
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
-        { "enable_pressure_advance",   "1" },
-        { "adaptive_pressure_advance", "1" },
         // the default config fails validation on relative extrusion without a G92 E0 at each layer
         { "use_relative_e_distances",  "0" },
     });
+    for (const char *key : { "enable_pressure_advance", "adaptive_pressure_advance" })
+        config.option<ConfigOptionBools>(key)->values.assign(models.size(), true);
+    // the filament count is the number of filament diameters
+    config.option<ConfigOptionFloats>("filament_diameter")->values.assign(models.size(), 1.75);
     // set as a value so that an empty model stays one filament column, as a preset holds it
-    config.option<ConfigOptionStrings>("adaptive_pressure_advance_model")->values = { model };
+    config.option<ConfigOptionStrings>("adaptive_pressure_advance_model")->values = models;
+    for (const char *key : { "outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_filament_id",
+                             "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id" })
+        config.option<ConfigOptionInt>(key)->value = filament;
     Print print;
     Model model_instance;
     init_print({ cube(20) }, print, model_instance, config);
@@ -119,6 +125,11 @@ static std::vector<std::string> adaptive_pa_model_warnings(const std::string &mo
         if (warning.opt_key == "adaptive_pressure_advance_model")
             texts.push_back(warning.string);
     return texts;
+}
+
+static std::vector<std::string> adaptive_pa_model_warnings(const std::string &model)
+{
+    return adaptive_pa_model_warnings(std::vector<std::string>{ model });
 }
 
 TEST_CASE("Slicing warns when adaptive pressure advance is enabled without a model", "[AdaptivePressureAdvance]")
@@ -140,4 +151,21 @@ TEST_CASE("Slicing warns about an adaptive pressure advance model whose flow is 
     const std::vector<std::string> warnings = adaptive_pa_model_warnings("0.5,0.2,2000\n0.4,0.1,10000");
     REQUIRE(warnings.size() == 1);
     CHECK(warnings.front().find("invalid values") != std::string::npos);
+}
+
+TEST_CASE("Slicing names the filament and the line of an invalid adaptive pressure advance model", "[AdaptivePressureAdvance]")
+{
+    // a period where the comma belongs leaves the second line with two values
+    const std::vector<std::string> warnings = adaptive_pa_model_warnings("0.07,4.71,500\n0.04.7.53,1000\n0.035,9.41,1000");
+    REQUIRE(warnings.size() == 1);
+    CHECK(warnings.front().find("filament 1") != std::string::npos);
+    CHECK(warnings.front().find("Line 2") != std::string::npos);
+}
+
+TEST_CASE("Slicing names the second filament when its adaptive pressure advance model is invalid", "[AdaptivePressureAdvance]")
+{
+    const std::vector<std::string> warnings = adaptive_pa_model_warnings({ "0.07,4.71,500\n0.035,9.41,1000", "0.07,4.71,500\n0.04.7.53,1000" }, 2);
+    REQUIRE(warnings.size() == 1);
+    CHECK(warnings.front().find("filament 2") != std::string::npos);
+    CHECK(warnings.front().find("Line 2") != std::string::npos);
 }

@@ -347,7 +347,7 @@ public:
     ModelObject*            model_object()          { return m_model_object; }
 
 protected:
-    PrintObjectBase(ModelObject *model_object) : m_model_object(model_object) {}
+    PrintObjectBase(ModelObject* model_object) : m_model_object(model_object) {}
     virtual ~PrintObjectBase() {}
     // Declared here to allow access from PrintBase through friendship.
 	static std::mutex&                  state_mutex(PrintBase *print);
@@ -555,7 +555,8 @@ protected:
 
     // To be called by this->output_filename() with the format string pulled from the configuration layer.
     std::string            output_filename(const std::string &format, const std::string &default_ext, const std::string &filename_base, const DynamicConfig *config_override = nullptr) const;
-    // Update "scale", "input_filename", "input_filename_base" placeholders from the current printable ModelObjects.
+    // Update "scale", "input_filename", "input_filename_base" placeholders from the current printable ModelObjects;
+    // "input_filename" and "input_filename_base" fall back to the project or first object name when none is printable.
     void                   update_object_placeholders(DynamicConfig &config, const std::string &default_ext) const;
 
 	Model                                   m_model;

@@ -8,6 +8,7 @@
 #include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "FillTpmsFK.hpp"
+#include "Implicits.hpp"
 #include "AdaptiveInfillField.hpp"
 #include <cmath>
 #include <algorithm>
@@ -55,7 +56,12 @@ struct ScalarField
     {}
 
     // Get the scalar field value at x,y,z in coordf_t coordinates.
-    float get_scalar(coordf_t x, coordf_t y, coordf_t z) const { return fischer_koch(freq * x, freq * y, freq * z); }
+    // Shared with the mesh-backed generator (Implicits.hpp) so the two
+    // implementations cannot drift.
+    float get_scalar(coordf_t x, coordf_t y, coordf_t z) const
+    {
+        return fischer_koch_s_freq(Vec3f(float(x), float(y), float(z)), freq);
+    }
 
     // Get the scalar field value at a Coord for the current z value.
     float get_scalar(Coord p) const

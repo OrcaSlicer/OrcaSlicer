@@ -7,6 +7,7 @@ target_sources(libslic3r_cgal PRIVATE texture_import_cgal.cpp)
 add_executable(${_TEST_NAME}_tests
     ${_TEST_NAME}_tests.cpp
     test_3mf.cpp
+    test_bed_mesh.cpp
     test_amf.cpp
     # Round-trip seam metadata and active/dormant volume settings in both formats.
     test_precise_seam_3mf.cpp
@@ -20,13 +21,14 @@ add_executable(${_TEST_NAME}_tests
     test_arrange.cpp
     test_assemble_list.cpp
     test_bambu_networking.cpp
-    test_belt_brim.cpp
     test_buildvolume.cpp
     test_calib.cpp
     test_clipper_offset.cpp
     test_clipper_utils.cpp
     test_cut_connectors.cpp
     test_config.cpp
+    test_cut_plane_segmentation.cpp
+    test_segment_support_bounds.cpp
     test_config_variant_expansion.cpp
     test_locales_utils.cpp
     test_drc.cpp
@@ -38,13 +40,19 @@ add_executable(${_TEST_NAME}_tests
     test_preset_diff.cpp
     test_publish_settings.cpp
     test_vendor_cache.cpp
+    test_import_parents.cpp
     test_preset_options.cpp
+    test_other_slicer_import.cpp
     test_edge_grid.cpp
     test_elephant_foot_compensation.cpp
     test_exclusion_volumes.cpp
+    test_facet_selectors.cpp
     test_fill_corner_smoothing.cpp
     test_filament_mixer.cpp
     test_fill_plane_path.cpp
+    test_fill_svg.cpp
+    test_trunnion.cpp
+    test_infill_mesh_tiling.cpp
     test_adaptive_infill_field.cpp
     test_geometry.cpp
     test_kdtree.cpp
@@ -58,6 +66,7 @@ add_executable(${_TEST_NAME}_tests
     test_polygon.cpp
     test_mutable_polygon.cpp
     test_mutable_priority_queue.cpp
+    test_nonplanar.cpp
     test_minimum_spanning_tree.cpp
     test_nozzle_volume_type.cpp
     test_obj.cpp
@@ -102,7 +111,7 @@ if (SLIC3R_CAD)
 endif ()
 
 if (TARGET OpenVDB::openvdb)
-    target_sources(${_TEST_NAME}_tests PRIVATE test_hollowing.cpp)
+    target_sources(${_TEST_NAME}_tests PRIVATE test_hollowing.cpp test_mesh_infill_generator.cpp)
 endif()
 
 # libslic3r links Draco privately; test_drc.cpp encodes its own fixtures.
@@ -115,6 +124,6 @@ endif ()
 
 set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 
-orcaslicer_copy_test_dlls()
+unlayered_copy_test_dlls()
 
-orcaslicer_discover_tests(${_TEST_NAME}_tests)
+unlayered_discover_tests(${_TEST_NAME}_tests)

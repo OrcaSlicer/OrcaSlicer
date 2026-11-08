@@ -75,6 +75,8 @@ SlicingParameters SlicingParameters::create_from_config(
     const std::vector<unsigned int> &object_extruders,
     const Vec3d                     &object_shrinkage_compensation)
 {
+   
+
     coordf_t initial_layer_print_height                      = (print_config.initial_layer_print_height.value <= 0) ? 
         object_config.layer_height.value : print_config.initial_layer_print_height.value;
 
@@ -817,12 +819,14 @@ bool adjust_layer_series_to_align_object_height(const SlicingParameters &slicing
 }
 
 // Produce object layers as pairs of low / high layer boundaries, stored into a linear vector.
-std::vector<coordf_t> generate_object_layers(
+std::vector<coordf_t> generate_object_layers( //ok now this is important and will need to be redone
 	const SlicingParameters 	&slicing_params,
 	const std::vector<coordf_t> &layer_height_profile,
     bool is_precise_z_height)
 {
     assert(! layer_height_profile.empty());
+    
+    
 
     coordf_t print_z = 0;
     coordf_t height  = 0;

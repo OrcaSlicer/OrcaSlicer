@@ -1266,7 +1266,10 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
     // project downards pointing painted triangles over bottom surfaces.
     std::vector<std::vector<Polygons>> top_raw(num_facets_states), bottom_raw(num_facets_states);
     std::vector<float> zs = zs_from_layers(layers);
-    Transform3d        object_trafo = print_object.trafo_sliced();
+    // UNLAYERED_MOD -- the slice frame, not trafo_centered(): on a belt (and for a multi-planar
+    // object) the layers run along the rotated build direction, and painted facets projected with
+    // the unrotated transform landed on the wrong layers and the wrong side of the part.
+    Transform3d        object_trafo = print_object.object_to_slice();
 
 #ifdef MM_SEGMENTATION_DEBUG_TOP_BOTTOM
     static int iRun = 0;
@@ -1295,7 +1298,7 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
                             slicing_params.trafo = volume_trafo;
                             Polygons bottom_slice = slice_mesh(painted, zs[0], slicing_params);
 
-                            // Only the requested projections exist: with no top
+                            // UNLAYERED_MOD -- only the requested projections exist: with no top
                             // penetration layers `top` is empty and erasing its begin() was
                             // undefined (found by fuzzing: a sunk, painted object crashed here).
                             if (! top.empty())
@@ -2261,18 +2264,19 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
     }
 
     BOOST_LOG_TRIVIAL(debug) << "Print object segmentation - Projection of painted triangles - Begin";
-    // The layers were sliced in this frame (belt rotation, remap and Z lift included), and it already centers the object.
-    const Transform3d object_trafo = print_object.trafo_sliced();
     for (const ModelVolume *mv : print_object.model_object()->volumes) {
         const ModelVolumeFacetsInfo facets_info = extract_facets_info(*mv);
-        tbb::parallel_for(tbb::blocked_range<size_t>(1, num_facets_states), [&mv, &object_trafo, &facets_info, &layers, &edge_grids, &painted_lines, &painted_lines_mutex, &input_expolygons, &throw_on_cancel_callback](const tbb::blocked_range<size_t> &range) {
+        tbb::parallel_for(tbb::blocked_range<size_t>(1, num_facets_states), [&mv, &print_object, &facets_info, &layers, &edge_grids, &painted_lines, &painted_lines_mutex, &input_expolygons, &throw_on_cancel_callback](const tbb::blocked_range<size_t> &range) {
             for (size_t extruder_idx = range.begin(); extruder_idx < range.end(); ++extruder_idx) {
                 throw_on_cancel_callback();
                 const indexed_triangle_set custom_facets = facets_info.facets_annotation.get_facets(*mv, EnforcerBlockerType(extruder_idx));
                 if (!mv->is_model_part() || custom_facets.indices.empty())
                     continue;
 
-                const Transform3f tr = (object_trafo * mv->get_matrix()).cast<float>();
+                // UNLAYERED_MOD -- see above: the painted facets must be projected in the very frame
+                // the layers were sliced in (object_to_slice() carries the belt / multi-planar rotation
+                // and the XY centering), or the paint ends up on the wrong layers.
+                const Transform3f tr = print_object.object_to_slice().cast<float>() * mv->get_matrix().cast<float>();
                 tbb::parallel_for(tbb::blocked_range<size_t>(0, custom_facets.indices.size()), [&tr, &custom_facets, &layers, &edge_grids, &input_expolygons, &painted_lines, &painted_lines_mutex, &extruder_idx](const tbb::blocked_range<size_t> &range) {
                     for (size_t facet_idx = range.begin(); facet_idx < range.end(); ++facet_idx) {
                         float min_z = std::numeric_limits<float>::max();
@@ -2324,6 +2328,9 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
                                 line_end_f = facet[1] + t2 * (facet[2] - facet[1]);
                             }
 
+                            // UNLAYERED_MOD -- no `translate(-center_offset)` here any more: object_to_slice()
+                            // already centres the object, exactly like the layer slices (subtracting it again
+                            // moved every painted line by the centre offset and off the contour).
                             Line line_to_test(Point(scale_(line_start_f.x()), scale_(line_start_f.y())),
                                               Point(scale_(line_end_f.x()), scale_(line_end_f.y())));
 

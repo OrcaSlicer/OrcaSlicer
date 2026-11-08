@@ -8,8 +8,6 @@
 #include "Polygon.hpp"
 #include "Polyline.hpp"
 #include "Print.hpp"
-#include "BeltTransform.hpp"
-
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
 #include "ConnectedBodies.hpp"
@@ -17,12 +15,13 @@
 #include "I18N.hpp"
 #include "Layer.hpp"
 #include "MutablePolygon.hpp"
+#include "NonplanarTop.hpp"
+#include "NonplanarTopSlice.hpp"
 #include "PerimeterGenerator.hpp"
 #include "PrintBase.hpp"
 #include "PrintConfig.hpp"
 #include "SLA/IndexedMesh.hpp"
 #include "Support/SupportMaterial.hpp"
-#include "Support/SupportCommon.hpp"
 #include "Support/SupportSpotsGenerator.hpp"
 #include "Support/TreeSupport.hpp"
 #include "Surface.hpp"
@@ -31,23 +30,32 @@
 #include "TriangleMeshSlicer.hpp"
 #include "Utils.hpp"
 #include "Fill/FillAdaptive.hpp"
+#include "Fill/FillGyroid.hpp"
 #include "Fill/Fill.hpp"
 #include "Fill/FillLightning.hpp"
+#include "Fill/FillTpmsD.hpp"
+#include "Fill/FillTpmsFK.hpp"
+#include "Fill/Implicits.hpp"
+#include "Fill/InfillMeshTiling.hpp"
+#include "Fill/MeshGenerator.hpp"
+#include "Format/STL.hpp"
 #include "Fill/AdaptiveInfillField.hpp"
 #include "format.hpp"
 #include "AABBTreeIndirect.hpp"
 #include "AABBTreeLines.hpp"
 #include "libslic3r.h"
 
+#include <chrono>
 #include <algorithm>
 #include <cmath>
-#include <chrono>
 #include <Shiny/ShinyMacros.h>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <array>
 #include <cstddef>
+#include <functional>
 #include <cstdlib>
+#include <cstring>
 #include <cstdint>
 #include <float.h>
 #include <array>
@@ -89,7 +97,6 @@
 #include "Fill/Lightning/Generator.hpp"
 #include "SurfaceCollection.hpp"
 #include "TriangleMesh.hpp"
-#include "BeltBrim.hpp"
 
 namespace Slic3r { enum class EnforcerBlockerType : int8_t; }
 
@@ -162,6 +169,8 @@ PrintObject::PrintObject(Print* print, ModelObject* model_object, const Transfor
     m_max_z = scaled(model_object->instance_bounding_box(0).max(2));
 
     this->set_instances(std::move(instances));
+
+
 }
 
 PrintObject::~PrintObject()
@@ -519,6 +528,13 @@ std::vector<std::set<int>> PrintObject::detect_extruder_geometric_unprintables()
 // 3) Generates perimeters, gap fills and fill regions (fill regions of type stInternal).
 void PrintObject::make_perimeters()
 {
+    //this is the start of the actual logic
+    //add a rotation about x of 90 degrees to trafo
+    //ModelObject orig_model_object = this->m_model_object->clone();
+    //this->m_model_object->
+    //this->m_model_object->rotate(-0.8f, Z);
+    BOOST_LOG_TRIVIAL(info) << "am i getting here?" << log_memory_info();
+
     // prerequisites
     this->slice();
 
@@ -615,9 +631,12 @@ void PrintObject::make_perimeters()
             for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++ layer_idx) {
                 m_print->throw_if_canceled();
                 m_layers[layer_idx]->make_perimeters();
+                //m_layers[layer_idx]->
             }
         }
     );
+    //this->m_model_object->rotate(0.8f, Z);
+
     m_print->throw_if_canceled();
     BOOST_LOG_TRIVIAL(debug) << "Generating perimeters in parallel - end";
 
@@ -646,6 +665,9 @@ void PrintObject::prepare_infill()
     // by the cummulative area of the previous $layerm->fill_surfaces.
     this->detect_surfaces_type();
     m_print->throw_if_canceled();
+    // UNLAYERED_MOD: nonplanar layers -- the curved shell is the top: the planar tops under it are internal.
+    if (nonplanar_top_requested(*this))
+        nonplanar_top_retype_surfaces(*this);
 
     // Decide what surfaces are to be filled.
     // Here the stTop / stBottomBridge / stBottom infill is turned to just stInternal if zero top / bottom infill layers are configured.
@@ -789,6 +811,34 @@ void PrintObject::prepare_infill()
     this->bridge_over_infill();
     m_print->throw_if_canceled();
 
+    // UNLAYERED_MOD: nonplanar layers -- the curved shell is the top: no top shells, solid or bridges under it.
+    if (nonplanar_top_requested(*this))
+        nonplanar_top_shell_authority(*this);
+
+    // Orca: authoritative wave-overhang floor-layer pass. MUST run LAST after
+    // every surface-classification stage (process_external_surfaces,
+    // clip_fill_surfaces, bridge_over_infill) — each of those can re-promote
+    // the wave shadow area into solid/bridge/internal-bridge. At this point
+    // all upstream classifiers have had their final say; we overwrite within
+    // the wave shadow: N=0 => stInternal (zero solid above wave, no spurious
+    // internal bridges), N>=1 => N uniform stInternalSolid layers.
+    this->apply_wave_overhang_floor_layer_authority();
+    m_print->throw_if_canceled();
+
+    // Orca: wave-overhang bridge suppression. Runs after the floor-layer authority
+    // so bridges the authority pass didn't touch (residual pockets in overhang
+    // areas that the wave generator couldn't grow into) get reclassified to
+    // stInternalSolid. Without this pass those residuals print as bridge pattern
+    // mixed in with waves, which the "instead of bridges" flag is meant to prevent.
+    this->apply_wave_overhang_bridge_suppression();
+    m_print->throw_if_canceled();
+
+    // Orca: tag perimeters in wave/floor layers so the wall-speed overrides apply.
+    // Runs after the authority + bridge-suppression passes since both depend on
+    // wave_overhang_floor_polygons / wave_overhang_shadow_polygons being settled.
+    this->tag_wave_overhang_perimeters();
+    m_print->throw_if_canceled();
+
     // combine fill surfaces to honor the "infill every N layers" option
     this->combine_infill();
     m_print->throw_if_canceled();
@@ -818,13 +868,15 @@ void PrintObject::infill()
     if (this->set_started(posInfill)) {
         m_print->set_status(35, L("Generating infill toolpath"));
 
+        const PreSliceInfillStructures &pre_slice_infill_structures = this->m_pre_slice_infill_structures;
+
         BOOST_LOG_TRIVIAL(debug) << "Filling layers in parallel - start";
         tbb::parallel_for(
             tbb::blocked_range<size_t>(0, m_layers.size()),
-            [this](const tbb::blocked_range<size_t>& range) {
+            [this, &pre_slice_infill_structures](const tbb::blocked_range<size_t>& range) {
                 for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++ layer_idx) {
                     m_print->throw_if_canceled();
-                    m_layers[layer_idx]->make_fills(&m_adaptive_fill_octrees, this->m_lightning_generator.get());
+                    m_layers[layer_idx]->make_fills(pre_slice_infill_structures);
                 }
             }
         );
@@ -865,9 +917,57 @@ bool PrintObject::need_z_contouring() const
             return true;
     }
 
-    return false;
+    // UNLAYERED_MOD: nonplanar layers run in the same step and share its mesh.
+    return nonplanar_top_requested(*this);
 }
 
+//void PrintObject::contour_z()
+//{
+//    if (!this->set_started(posContouring)) {
+//        return;
+//    }
+//
+//    m_print->set_status(40, L("Z contouring"));
+//    BOOST_LOG_TRIVIAL(debug) << "Contouring in parallel - start";
+//
+//    TriangleMesh mesh = this->m_model_object->raw_mesh();
+//    if (m_model_object->instances.size() != 1) {
+//        throw RuntimeError("ContourZ: unexpected number of instances");
+//    }
+//
+//    ModelInstance *inst = m_model_object->instances.front();
+//    Point                    center_offset = this->center_offset();
+//    Geometry::Transformation trans = inst->get_transformation();
+//
+//    double z = this->m_model_object->min_z();
+//    trans.set_offset(Vec3d(-unscale<double>(center_offset.x()), -unscale<double>(center_offset.y()), 0));
+//    mesh.transform(trans.get_matrix());
+//
+//    sla::IndexedMesh imesh(mesh);
+//    imesh.ground_level_offset(-z);
+//
+//    std::mutex mtx;
+//    size_t completed = 0;
+//    tbb::parallel_for(
+//        // Contouring starting with layer second layer to avoid build plate collision
+//        tbb::blocked_range<size_t>(1, m_layers.size()),
+//        [&, this](const tbb::blocked_range<size_t>& range) {
+//            for (size_t layer_idx = range.begin(); layer_idx < range.end(); layer_idx++) {
+//                m_print->throw_if_canceled();
+//                m_layers[layer_idx]->make_contour_z(imesh);
+//
+//                std::scoped_lock lock(mtx);
+//                completed++;
+//                std::string msg = (boost::format("Z contoured layer %d/%d (%d%%)") % (completed) % m_layers.size() % int(double(completed) / m_layers.size() * 100)).str();
+//                m_print->set_status(40, msg);
+//            }
+//        }
+//    );
+//    m_print->throw_if_canceled();
+//    BOOST_LOG_TRIVIAL(debug) << "Contouring in parallel - end";
+//
+//    this->set_done(posContouring);
+//}
 void PrintObject::contour_z()
 {
     if (!this->set_started(posContouring)) {
@@ -877,42 +977,85 @@ void PrintObject::contour_z()
     m_print->set_status(40, L("Z contouring"));
     BOOST_LOG_TRIVIAL(debug) << "Contouring in parallel - start";
 
-    TriangleMesh mesh = this->m_model_object->raw_mesh();
-    // A PrintObject groups the instances that share their whole transformation but the XY shift: an
-    // instance rotated, scaled or mirrored differently is a PrintObject of its own. So the first
-    // instance stands for all of them.
-    const ModelInstance *inst = m_instances.front().model_instance;
-    Point                    center_offset = this->center_offset();
-    Geometry::Transformation trans = inst->get_transformation();
+    // Several copies on the plate are fine: the copies this PrintObject prints differ only by where
+    // they sit (a copy turned another way is its own PrintObject), so they share object_to_slice()
+    // and one contour serves them all.
 
-    double z = this->m_model_object->min_z();
-    trans.set_offset(Vec3d(-unscale<double>(center_offset.x()), -unscale<double>(center_offset.y()), 0));
-    mesh.transform(trans.get_matrix());
+    // The model parts this object slices, as raw_mesh() merges them -- except that a cut-plane
+    // segment owns only some directed parts (segment_includes_volume), and a ray must not land on
+    // a part another segment prints.
+    TriangleMesh mesh;
+    for (const ModelVolume *v : m_model_object->volumes)
+        if (v->is_model_part() && (! this->is_segment() || segment_includes_volume(&*m_segment, *v))) {
+            TriangleMesh vol_mesh(v->mesh());
+            // UNLAYERED_MOD -- keep a mirrored volume or instance outward-facing: the analysis reads the top
+            // from the face normals (log review 11/02: a mirrored part got no curved top, silently)
+            vol_mesh.transform(v->get_matrix(), true);
+            mesh.merge(vol_mesh);
+        }
+
+    // The exact frame slice_volumes_inner() sliced in: instance transform, B/C rotation (a
+    // segment's own build frame), Z floor correction or segment rebase, minus the center offset.
+    // The mesh seen by the ray caster must match what was sliced.
+    const Transform3d &trafo = this->object_to_slice();
+    mesh.transform(trafo, true);
+
+    // A segment slices the UNCLIPPED mesh and then clips each layer by its half-spaces (see
+    // PrintObject::slice), so its cut faces exist only as these planes. Map them into the slice
+    // frame the same way, or a ray from under a cut passes through into the next segment's
+    // material and the layers there stay an uncontoured staircase against the cut face.
+    std::vector<Layer::ContourZCeiling> ceilings;
+    if (this->is_segment()) {
+        const Eigen::Matrix3d a_inv_t = trafo.linear().inverse().transpose();
+        for (const CutSegmentClip &clip : m_segment->clips) {
+            const Vec3d  n_s = a_inv_t * clip.normal;
+            const double len = n_s.norm();
+            if (len > EPSILON)
+                ceilings.push_back({ n_s / len, (clip.offset + n_s.dot(trafo.translation())) / len });
+        }
+    }
 
     sla::IndexedMesh imesh(mesh);
-    imesh.ground_level_offset(-z);
+    // ground_level_offset: the rotated mesh's actual floor may differ from
+    // the original min_z(), so recompute it from the transformed bounding box.
+    BoundingBoxf3 rotated_bbox = mesh.bounding_box();
+    imesh.ground_level_offset(-rotated_bbox.min.z());
+
+    // UNLAYERED_MOD: nonplanar layers first, so Z contouring sees the planar material that is left
+    // (it skips the curved shell paths).
+    // Only where the slice frame keeps world Z vertical: the clearance model assumes the nozzle
+    // runs along the slice frame's Z. A tilted cut-plane segment (virtual or real 5-axis) is skipped.
+    // The FRAME, not the part: trafo is the frame's rotation times the object's own placement
+    // (this->trafo()), and a part merely rotated on the plate (auto-orient) still slices in flat layers.
+    // A tilted frame is allowed too: NonplanarTop.cpp reduces the angle limits by the tilt and skips a chunk tilted past them.
+    const bool np_upright = true;
+    if (nonplanar_top_requested(*this) && ! np_upright)
+        BOOST_LOG_TRIVIAL(info) << "Nonplanar layers: skipped for a segment printed in a tilted frame";
+    if (nonplanar_top_requested(*this) && np_upright) {
+        m_print->set_status(40, L("Nonplanar layers"));
+        make_nonplanar_top(*this, imesh, ceilings);
+        m_print->throw_if_canceled();
+    }
 
     std::mutex mtx;
     size_t completed = 0;
-    tbb::parallel_for(
-        // Contouring starting with layer second layer to avoid build plate collision
-        tbb::blocked_range<size_t>(1, m_layers.size()),
-        [&, this](const tbb::blocked_range<size_t>& range) {
-            for (size_t layer_idx = range.begin(); layer_idx < range.end(); layer_idx++) {
-                m_print->throw_if_canceled();
-                m_layers[layer_idx]->make_contour_z(imesh);
+    tbb::parallel_for(tbb::blocked_range<size_t>(1, m_layers.size()), [&, this](const tbb::blocked_range<size_t>& range) {
+        for (size_t layer_idx = range.begin(); layer_idx < range.end(); layer_idx++) {
+            m_print->throw_if_canceled();
+            m_layers[layer_idx]->make_contour_z(imesh, ceilings);
 
-                std::scoped_lock lock(mtx);
-                completed++;
-                // TRN Slicing status: layers done, total layers, percentage done.
-                std::string msg = (boost::format(L("Z contoured layer %d/%d (%d%%)")) % (completed) % m_layers.size() % int(double(completed) / m_layers.size() * 100)).str();
-                m_print->set_status(40, msg);
-            }
+            std::scoped_lock lock(mtx);
+            completed++;
+            // TRN Slicing status: layers done, total layers, percentage done.
+            std::string msg = (boost::format(L("Z contoured layer %d/%d (%d%%)")) % completed % m_layers.size() %
+                               int(double(completed) / m_layers.size() * 100))
+                                  .str();
+            m_print->set_status(40, msg);
         }
-    );
+    });
+
     m_print->throw_if_canceled();
     BOOST_LOG_TRIVIAL(debug) << "Contouring in parallel - end";
-
     this->set_done(posContouring);
 }
 
@@ -959,7 +1102,7 @@ void PrintObject::detect_overhangs_for_lift()
     }
 }
 
-void PrintObject::generate_support_material(bool with_belt_brim)
+void PrintObject::generate_support_material()
 {
     if (this->set_started(posSupportMaterial)) {
         this->clear_support_layers();
@@ -995,37 +1138,41 @@ void PrintObject::generate_support_material(bool with_belt_brim)
 #endif
         }
 
-        if ((this->has_support() && m_layers.size() > 1) || (this->has_raft() && !m_layers.empty())) {
+        // The m_layers.size() > 1 rule is about natural overhangs: a single-layer object rests on the
+        // plate and can have none. A cut-plane segment can still carry INHERITED load handed up by a
+        // child, or be floating above its base plane, and dropping that would leave real support
+        // ungenerated while the step reports success.
+        const bool has_inherited_demand = this->has_segment_demand();
+        if ((this->has_support() && (m_layers.size() > 1 || has_inherited_demand)) || (this->has_raft() && !m_layers.empty())) {
             m_print->set_status(50, L("Generating support"));
 
-            this->_generate_support_material();
+            {
+                // UNLAYERED_MOD -- lean the support along the configured direction by generating it
+                // in a sheared frame. A no-op for the default "follow layers"; the scope puts the
+                // layers back before anything else reads them. See Support/SupportDirection.hpp.
+                ScopedSupportShear shear(*this);
+                if (shear.active() && shear.clamped())
+                    this->active_step_add_warning(PrintStateBase::WarningLevel::NON_CRITICAL,
+                        Slic3r::format(L("The support direction of object %s is tilted more than %.0f degrees away from its layers; the lean was limited to that angle (\"Max lean\")."),
+                                       this->model_object()->name, m_config.support_direction_max_lean.value));
+                if (shear.active() && shear.lean_deg() > SupportLean::safe_lean_deg() + EPSILON)
+                    this->active_step_add_warning(PrintStateBase::WarningLevel::NON_CRITICAL,
+                        Slic3r::format(L("The support of object %s leans %.0f degrees away from its layers. Beyond %.0f degrees the support overhangs itself; tune and test-print this before relying on it."),
+                                       this->model_object()->name, shear.lean_deg(), SupportLean::safe_lean_deg()));
+                this->_generate_support_material();
+            }
             m_print->throw_if_canceled();
         }
         // Orca: the tree support collision/avoidance caches and support nodes are only used while this step runs
         // (detect_overhangs() rebuilds them from scratch), so don't keep them resident until the next slice.
         this->clear_tree_support_preview_cache();
-        // Belt brim rides here rather than in the brim step because its apron
-        // prologue introduces print_z values below the object's first layer, and
-        // those must exist before ToolOrdering is built at psWipeTower - one step
-        // ahead of psSkirtBrim.  The brim options already invalidate
-        // posSupportMaterial, so this needs no extra invalidation edges.
-        m_belt_brim_pending = true;
-        if (with_belt_brim)
-            this->generate_belt_brim();
+        // BELT_MOD -- the belt brim rides here rather than in the brim step: its apron prologue
+        // introduces print_z values below the object's first layer, which must exist before
+        // ToolOrdering is built at psWipeTower. The brim options already invalidate this step.
+        make_belt_brim(*this);
+        m_print->throw_if_canceled();
         this->set_done(posSupportMaterial);
     }
-}
-
-void PrintObject::generate_belt_brim()
-{
-    if (! m_belt_brim_pending)
-        return;
-    // belt_brim_obstacles() looks up the layers and support layers of every object
-    // on the plate by print_z.  Another object's support step rebuilds those (and
-    // temporarily shifts its layer Z values), so this must not overlap with it.
-    make_belt_brim(*this);
-    m_print->throw_if_canceled();
-    m_belt_brim_pending = false;
 }
 
 void PrintObject::estimate_curled_extrusions()
@@ -1191,10 +1338,7 @@ FillAdaptive::RegionOctrees PrintObject::prepare_adaptive_infill_data(
     indexed_triangle_set mesh = this->model_object()->raw_indexed_triangle_set();
     // Rotate mesh and build octree on it with axis-aligned (standart base) cubes.
     auto to_octree = transform_to_octree().toRotationMatrix();
-    // Overhangs below are placed at Layer::bottom_z(), which includes the belt global Z offset.
-    Transform3d object_trafo = this->trafo_sliced();
-    object_trafo.translation().z() += m_belt_global_z_offset;
-    its_transform(mesh, to_octree * object_trafo, true);
+    its_transform(mesh, to_octree * this->trafo_centered(), true);
 
     // Triangulate internal bridging surfaces.
     std::vector<std::vector<Vec3d>> overhangs(std::max(surfaces_w_layer.size(), size_t(1)));
@@ -1271,6 +1415,332 @@ FillLightning::GeneratorPtr PrintObject::prepare_lightning_infill_data()
     return has_lightning_infill ? FillLightning::build_generator(std::as_const(*this), [this]() -> void { this->throw_if_canceled(); }) : FillLightning::GeneratorPtr();
 }
 
+// Pre-slice mesh infill (research/mesh-infill, ported): build the object's infill lattice as
+// a triangle mesh in the slice frame, slice it at every layer's print_z, and stash the result in
+// the pre-slice container for FillMeshBackedT to clip per region.
+//
+// Two sources:
+//  - Custom (infill mesh): the object's Infill Mesh volume(s) form a unit cell, tiled on the
+//    pitch of the cell's own bounding box (Fill/InfillMeshTiling) -- always on.
+//  - Gyroid / TPMS-D / TPMS-FK from their implicit field, opt-in with UNLAYERED_MESH_INFILL=1
+//    (experimental; the analytic per-layer pattern remains the production path).
+//
+// The lattice frame is chosen by infill_mesh_global_orientation:
+//  - global: the lattice is fixed to the object (object_to_slice()), so the segments of a
+//    multi-planar print all sample ONE lattice and it runs continuously across their cut planes;
+//  - local (default): the layer rotation is dropped from that transform, so the lattice's Z
+//    follows each segment's layer normal, like the analytic patterns. For an object sliced
+//    without a layer rotation the two are identical.
+// Any generation failure resets the slot, which makes the Filler fall back to its analytic base.
+void PrintObject::prepare_mesh_infill_data()
+{
+    auto &slot = this->m_pre_slice_infill_structures.mesh_infill;
+    auto reset_slot = [&]() {
+        slot.reset();
+        this->m_mesh_infill_cache_key.clear();
+    };
+    const bool tpms_enabled = mesh_backed_tpms_enabled();
+    auto is_mesh_backed_pattern = [tpms_enabled](InfillPattern p) {
+        return p == ipCustomMesh || (tpms_enabled && (p == ipGyroid || p == ipTpmsD || p == ipTpmsFK));
+    };
+
+    // Object-wide parameters: the mesh is generated once per object, for the pattern+density of
+    // the region covering the largest sparse-internal fill area -- so under PARAMETER_MODIFIERs
+    // (or mixed-pattern objects) the pattern/density fallback gate in FillMeshBackedT hits only
+    // the minority regions, not the bulk of the object.
+    std::vector<double> candidate_region_area(this->num_printing_regions(), -1.);
+    bool has_candidate = false;
+    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++region_id) {
+        const PrintRegionConfig &config = this->printing_region(region_id).config();
+        if (config.sparse_infill_density > 0 && is_mesh_backed_pattern(config.sparse_infill_pattern)) {
+            has_candidate = true;
+            candidate_region_area[region_id] = 0.;
+        }
+    }
+    if (! has_candidate || this->layers().empty())
+        return reset_slot();
+    for (const Layer *layer : this->layers())
+        for (size_t region_id = 0; region_id < layer->regions().size() && region_id < candidate_region_area.size(); ++region_id) {
+            if (candidate_region_area[region_id] < 0.)
+                continue;
+            for (const Surface &s : layer->regions()[region_id]->fill_surfaces.surfaces)
+                if (s.surface_type == stInternal)
+                    candidate_region_area[region_id] += s.expolygon.area();
+        }
+    const size_t chosen_region = std::max_element(candidate_region_area.begin(), candidate_region_area.end())
+                               - candidate_region_area.begin();
+    const PrintRegionConfig &chosen_config = this->printing_region(chosen_region).config();
+    const InfillPattern pattern     = chosen_config.sparse_infill_pattern;
+    const double        density_pct = chosen_config.sparse_infill_density;
+    const int           multiline   = std::max(1, int(chosen_config.fill_multiline));
+    // The FIELD parameters must reproduce fill time exactly or the mesh pattern phase-drifts
+    // against the analytic one. Sparse infill's spacing is the region flow spacing at the
+    // object-level layer height (Fill.cpp group_fills, "aligned over all layers") -- NOT the
+    // configured line width; the ~10% difference between the two shifts waves by more than a
+    // column across a 20mm object.
+    const double spacing = this->printing_region(chosen_region)
+                               .flow(*this, frInfill, this->config().layer_height, false)
+                               .spacing();
+
+    // The unit cell of a user-supplied lattice, in its own frame.
+    Transform3d          cell_to_object = Transform3d::Identity();
+    indexed_triangle_set cell           = infill_mesh_cell(*this->model_object(), this->config().infill_mesh_path.value, cell_to_object);
+    if (pattern == ipCustomMesh && cell.indices.empty()) {
+        // The whole point of the pattern is the user's mesh: without an Infill Mesh volume or a
+        // mesh file there is nothing to print, so prompt and let the Filler fall back to gyroid.
+        BOOST_LOG_TRIVIAL(warning) << "mesh infill: 'Custom (infill mesh)' selected but the object has no "
+                                      "Infill Mesh volume and no infill mesh file - right-click the object, Add "
+                                      "Infill Mesh, and load or pick a shape, or set the infill mesh file. "
+                                      "Falling back to gyroid.";
+        return reset_slot();
+    }
+    if (pattern == ipGyroid && ! chosen_config.gyroid_optimized)
+        BOOST_LOG_TRIVIAL(warning) << "mesh infill: gyroid_optimized is off, but mesh-backed gyroid "
+                                      "always follows the optimized (implicit-surface) shape";
+
+    // Optional env overrides for benchmarking sweeps; defaults below.
+    auto env_double = [](const char *name, double fallback) {
+        const char *v = std::getenv(name);
+        if (v == nullptr || *v == '\0')
+            return fallback;
+        char *end = nullptr;
+        const double parsed = std::strtod(v, &end);
+        return (end != v && std::isfinite(parsed)) ? parsed : fallback;
+    };
+
+    try {
+        const double density_fraction = 0.01 * density_pct;
+
+        // The lattice frame (see the header comment) and the slice-frame box it has to cover:
+        // the object's XY footprint over this object's own layer range, which for a cut-plane
+        // segment is the segment's range, rebased to zero by update_slice_frame().
+        const bool  global = this->config().infill_mesh_global_orientation.value;
+        Transform3d object_to_lattice = this->object_to_slice();
+        if (! global)
+            object_to_lattice.linear() = this->trafo().linear();
+        const BoundingBox xy = this->bounding_box();
+        BoundingBoxf3 target(Vec3d(unscale<double>(xy.min.x()), unscale<double>(xy.min.y()),
+                                   std::min(0., this->layers().front()->print_z - this->layers().front()->height)),
+                             Vec3d(unscale<double>(xy.max.x()), unscale<double>(xy.max.y()),
+                                   this->layers().back()->print_z));
+
+        std::vector<float> zs;
+        zs.reserve(this->layers().size());
+        for (const Layer *layer : this->layers())
+            zs.emplace_back(float(layer->print_z));
+        auto zs_hash = [&zs]() {
+            return std::to_string(std::hash<std::string_view>{}(
+                std::string_view(reinterpret_cast<const char *>(zs.data()), zs.size() * sizeof(float))));
+        };
+        auto matrix_key = [](const Transform3d &m) {
+            char buf[256];
+            const auto &d = m.matrix();
+            std::snprintf(buf, sizeof(buf), "%.6g,%.6g,%.6g,%.6g|%.6g,%.6g,%.6g,%.6g|%.6g,%.6g,%.6g,%.6g",
+                          d(0, 0), d(0, 1), d(0, 2), d(0, 3), d(1, 0), d(1, 1), d(1, 2), d(1, 3),
+                          d(2, 0), d(2, 1), d(2, 2), d(2, 3));
+            return std::string(buf);
+        };
+
+        if (! cell.indices.empty()) {
+            // ---- user-supplied lattice ----
+            // Each cross-section is filled by Arachne with wall_count walls: two, or one when the
+            // region asks for single-wall infill (UNLAYERED_MESH_INFILL_WALLS overrides for sweeps).
+            const int wall_count = std::max(1, int(env_double("UNLAYERED_MESH_INFILL_WALLS",
+                                                              chosen_config.sparse_infill_single_wall.value ? 1. : 2.)));
+            const Transform3d cell_to_slice = object_to_lattice * cell_to_object;
+
+            // Session cache: the slices are a pure function of the inputs below. Volume identity
+            // covers the cell geometry (replacing a mesh creates a new volume); Print::apply
+            // re-runs this step whenever the Infill Mesh volumes or their placement change.
+            std::string key = "user|w" + std::to_string(wall_count) + "|d" + std::to_string(density_fraction)
+                            + "|s" + std::to_string(spacing) + "|g" + std::to_string(int(global))
+                            + "|" + matrix_key(cell_to_slice) + "|" + zs_hash();
+            for (const ModelVolume *volume : this->model_object()->volumes)
+                if (volume->is_infill_mesh())
+                    key += "|u" + std::to_string(volume->id().id);
+            key += "|f" + this->config().infill_mesh_path.value + "|n" + std::to_string(cell.indices.size());
+            if (slot != nullptr && key == this->m_mesh_infill_cache_key) {
+                BOOST_LOG_TRIVIAL(info) << "mesh infill: inputs unchanged, reusing cached slices";
+                return;
+            }
+
+            const auto t0 = std::chrono::steady_clock::now();
+            InfillCellTiling tiling;
+            indexed_triangle_set lattice = build_infill_lattice(cell, cell_to_slice, target, kMaxInfillTiles, &tiling);
+            if (tiling.truncated)
+                BOOST_LOG_TRIVIAL(warning) << "mesh infill: tiling the infill mesh over the part would need more than "
+                                           << kMaxInfillTiles << " copies; using the cell un-tiled";
+            if (lattice.indices.empty()) {
+                BOOST_LOG_TRIVIAL(warning) << "mesh infill: infill-mesh volumes are empty, falling back to the analytic pattern";
+                return reset_slot();
+            }
+            auto data              = std::make_unique<MeshInfillSlices>();
+            data->pattern          = pattern;
+            data->prepared_density = float(density_fraction);
+            size_t n_polygons = 0;
+            const bool sheets = its_is_open_surface(cell);
+            if (sheets) {
+                // An open surface (sheets, ribbons without thickness) has no interior to wall:
+                // each layer's cross-section is the line to print, one wall by nature.
+                data->mode       = ImplicitMeshMode::Lines;
+                data->wall_count = 1;
+                std::vector<Polylines> user_lines = slice_sheet_mesh(lattice, zs, scaled<coord_t>(0.002));
+                for (size_t i = 0; i < zs.size(); ++i) {
+                    n_polygons += user_lines[i].size();
+                    data->lines_by_print_z[MeshInfillSlices::key_for_print_z(this->layers()[i]->print_z)] = std::move(user_lines[i]);
+                }
+            } else {
+                // Solids: consume the cross-sections through the Arachne walls path.
+                std::vector<ExPolygons> user_slices = slice_mesh_ex(lattice, zs, float(0.5 * spacing),
+                                                                    [this]() { this->throw_if_canceled(); });
+                data->mode       = ImplicitMeshMode::SolidBand;
+                data->wall_count = wall_count;
+                for (size_t i = 0; i < zs.size(); ++i) {
+                    n_polygons += user_slices[i].size();
+                    data->slices_by_print_z[MeshInfillSlices::key_for_print_z(this->layers()[i]->print_z)] = std::move(user_slices[i]);
+                }
+            }
+            const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - t0).count();
+            BOOST_LOG_TRIVIAL(info) << "mesh infill: user cell tiled " << (tiling.hi.x() - tiling.lo.x() + 1) << "x"
+                                    << (tiling.hi.y() - tiling.lo.y() + 1) << "x" << (tiling.hi.z() - tiling.lo.z() + 1)
+                                    << " (" << (global ? "global" : "local") << " orientation), "
+                                    << lattice.indices.size() << " facets sliced to " << n_polygons
+                                    << (sheets ? " polylines (open surface, single lines) on " : " polygons on ") << zs.size()
+                                    << " layers, " << elapsed_ms << "ms; walls=" << data->wall_count;
+            slot = std::move(data);
+            this->m_mesh_infill_cache_key = std::move(key);
+            return;
+        }
+
+        // ---- implicit field (experimental) ----
+        // Field parameters derived exactly as fill time derives them -- shared with the GUI
+        // preview via make_mesh_infill_field.
+        const MeshInfillField field_spec =
+            make_mesh_infill_field(pattern, density_fraction, spacing, multiline, this->config().layer_height);
+        if (field_spec.period <= 0.f)
+            return reset_slot();
+        const float  period = field_spec.period;
+        const double omega  = field_spec.omega;
+
+        // Representation: Surface (default) meshes the signed f = 0 level set -- sliced polygon
+        // boundaries are single-wall centerlines. SolidBand (UNLAYERED_MESH_INFILL_MODE=band) is
+        // the |f| - t thin shell, the multi-wall path.
+        const char *mode_env = std::getenv("UNLAYERED_MESH_INFILL_MODE");
+        const ImplicitMeshMode mode = (mode_env != nullptr && std::strcmp(mode_env, "band") == 0)
+            ? ImplicitMeshMode::SolidBand
+            : ImplicitMeshMode::Surface;
+        const int wall_count = mode == ImplicitMeshMode::SolidBand
+            ? std::max(1, int(env_double("UNLAYERED_MESH_INFILL_WALLS", 2.)))
+            : 1;
+        const double thickness = mode == ImplicitMeshMode::SolidBand
+            ? env_double("UNLAYERED_MESH_INFILL_THICKNESS", 0.5 * spacing * wall_count)
+            : 0.;
+        // Surface mode captures a sign change at any resolution, so the voxel only needs to
+        // resolve the pattern period. SolidBand must also resolve the band width or marching
+        // cubes misses the two shell surfaces.
+        const double voxel_size = env_double("UNLAYERED_MESH_INFILL_VOXEL",
+            mode == ImplicitMeshMode::SolidBand
+                ? std::clamp(std::min(double(period) / 20., thickness / 1.5), 0.05, 1.0)
+                : std::clamp(double(period) / 20., 0.05, 1.0));
+        const double seed_stride = double(period) / 4.;
+        // Surface mode wants no decimation: adaptivity collapses vertices with up-to-voxel-scale
+        // deviation, which is exactly the visible faceting of the extruded centerlines. SolidBand
+        // keeps 0.5 from the band sweep (its output is re-traced by walls, not extruded directly).
+        const double adaptivity  = env_double("UNLAYERED_MESH_INFILL_ADAPTIVITY",
+                                              mode == ImplicitMeshMode::Surface ? 0. : 0.5);
+        // Z-slab height for the streaming generator; peak memory ~ one slab's worth of shell mesh.
+        const double slab_height = env_double("UNLAYERED_MESH_INFILL_SLAB", 8.);
+        // Pad so the shell is not clipped exactly at the object walls; the per-layer clip against
+        // fill_expolygons trims the excess anyway.
+        BoundingBoxf3 aabb = target;
+        aabb.offset(thickness + 2. * voxel_size);
+
+        // The field is evaluated in the lattice frame: identical to the slice frame unless the
+        // lattice is fixed to a rotated object (global orientation), in which case slice-frame
+        // points are mapped back before evaluation.
+        std::function<float(const Vec3f &)> field = field_spec.field;
+        if (! (object_to_lattice.matrix() - this->object_to_slice().matrix()).isZero(1e-9)) {
+            const Transform3f slice_to_lattice = (object_to_lattice * this->slice_to_object()).cast<float>();
+            const auto base = field_spec.field;
+            field = [base, slice_to_lattice](const Vec3f &p) { return base(slice_to_lattice * p); };
+        }
+
+        const auto t0 = std::chrono::steady_clock::now();
+        const char *pattern_name = pattern == ipTpmsD ? "tpms-d" : pattern == ipTpmsFK ? "tpms-fk" : "gyroid";
+
+        // The full shell mesh is only materialized when explicitly requested -- it can be
+        // enormous (131M facets on a 100mm cube at default settings).
+        const char *stl_path = std::getenv("UNLAYERED_MESH_INFILL_DEBUG_STL");
+        const char *keep_env = std::getenv("UNLAYERED_MESH_INFILL_KEEP_MESH");
+        const bool  dump_stl = stl_path != nullptr && *stl_path != '\0';
+        const bool  keep_mesh = keep_env != nullptr && *keep_env != '\0' && std::strcmp(keep_env, "0") != 0;
+
+        char key_buf[512];
+        std::snprintf(key_buf, sizeof(key_buf),
+                      "%s|m%d|w%d|d%.9g|l%d|s%.9g|t%.9g|v%.9g|a%.9g|b%.9g|%d%d|%.9g,%.9g,%.9g,%.9g,%.9g,%.9g|g%d|",
+                      pattern_name, int(mode), wall_count, density_fraction, multiline, spacing, thickness, voxel_size,
+                      adaptivity, slab_height, int(dump_stl), int(keep_mesh),
+                      aabb.min.x(), aabb.min.y(), aabb.min.z(), aabb.max.x(), aabb.max.y(), aabb.max.z(), int(global));
+        std::string key = std::string(key_buf) + matrix_key(object_to_lattice) + "|" + zs_hash();
+        if (slot != nullptr && key == this->m_mesh_infill_cache_key) {
+            BOOST_LOG_TRIVIAL(info) << "mesh infill: inputs unchanged, reusing cached slices";
+            return;
+        }
+
+        TriangleMesh merged;
+        size_t total_facets = 0;
+        std::vector<ExPolygons> slices = make_implicit_shell_slices(
+            field,
+            aabb, thickness, voxel_size, seed_stride, adaptivity, zs, float(0.5 * thickness),
+            [this]() { this->throw_if_canceled(); }, slab_height,
+            (dump_stl || keep_mesh) ? &merged : nullptr, &total_facets, mode);
+        if (total_facets == 0) {
+            BOOST_LOG_TRIVIAL(warning) << "mesh infill: implicit shell generation produced an empty mesh, "
+                                          "falling back to the analytic pattern";
+            return reset_slot();
+        }
+        // Debug/inspection dump of the generated structure.
+        if (dump_stl)
+            Slic3r::store_stl(stl_path, &merged, true);
+
+        auto data     = std::make_unique<MeshInfillSlices>();
+        data->pattern = pattern;
+        data->mode    = mode;
+        data->prepared_density = float(density_fraction);
+        data->wall_count       = wall_count;
+        size_t n_polygons = 0, n_layers_with_polygons = 0;
+        for (size_t i = 0; i < zs.size(); ++i) {
+            if (! slices[i].empty()) {
+                n_polygons += slices[i].size();
+                ++n_layers_with_polygons;
+            }
+            data->slices_by_print_z[MeshInfillSlices::key_for_print_z(this->layers()[i]->print_z)] = std::move(slices[i]);
+        }
+        const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - t0).count();
+        BOOST_LOG_TRIVIAL(info) << "mesh infill: " << pattern_name << " "
+                                << (mode == ImplicitMeshMode::Surface ? "surface" : "band")
+                                << (mode == ImplicitMeshMode::SolidBand ? " walls=" + std::to_string(wall_count) : "")
+                                << " period=" << period
+                                << "mm omega=" << omega
+                                << " thickness=" << thickness << "mm voxel=" << voxel_size
+                                << "mm adaptivity=" << adaptivity << " slab=" << slab_height << "mm, "
+                                << total_facets << " facets, " << n_polygons << " polygons on "
+                                << n_layers_with_polygons << "/" << zs.size() << " layers, " << elapsed_ms << "ms";
+        if (keep_mesh)
+            data->source_meshes.emplace_back(std::move(merged));
+        slot = std::move(data);
+        this->m_mesh_infill_cache_key = std::move(key);
+    } catch (const CanceledException &) {
+        throw;
+    } catch (const std::exception &ex) {
+        BOOST_LOG_TRIVIAL(warning) << "mesh infill: generation failed (" << ex.what()
+                                   << "), falling back to the analytic pattern";
+        reset_slot();
+    }
+}
+
 AdaptiveInfillFields PrintObject::prepare_adaptive_infill_fields() const
 {
     AdaptiveInfillFields fields;
@@ -1309,16 +1779,9 @@ void PrintObject::clear_layers()
         for (Layer *l : m_layers)
             delete l;
         m_layers.clear();
-        for (Layer *l : m_belt_truncated_layers)
+        for (Layer *l : m_belt_truncated_layers)   // BELT_MOD
             delete l;
         m_belt_truncated_layers.clear();
-        // Fills dropped for plastic saving are owned by the stash while they sit
-        // outside their layer's collection, so they are freed here too. Order
-        // matters only in that these point at layers deleted just above, and we
-        // never dereference the layer -- just the entity.
-        for (const BeltDroppedFill &d : m_belt_dropped_fills)
-            delete d.entity;
-        m_belt_dropped_fills.clear();
     }
 }
 
@@ -1342,6 +1805,7 @@ SupportLayer* PrintObject::get_support_layer_at_printz(coordf_t print_z, coordf_
 
 void PrintObject::clear_support_layers()
 {
+    this->clear_belt_brim();   // BELT_MOD: owned by the same step, never shared
     if (!m_shared_object) {
         for (SupportLayer* l : m_support_layers)
             delete l;
@@ -1352,75 +1816,6 @@ void PrintObject::clear_support_layers()
             l->cantilevers.clear();
         }
     }
-    // Belt brim is owned by the same step, so it must die with it or an
-    // invalidate-without-rerun would leave stale bands (and stale prologue Zs)
-    // behind.  Unconditional: unlike support layers it is never shared.
-    this->clear_belt_brim();
-}
-
-// Belt brim ------------------------------------------------------------------
-//
-// The tilt test is answered from the print CONFIG, not from SlicingParameters:
-// invalidating posSupportMaterial clears m_slicing_params.valid, and this is
-// queried from Print::process() dispatch, Brim.cpp and the G-code emitter, where
-// a stale zero shear factor would silently drop the brim.  BeltBrim.cpp itself
-// reads the real belt floor through BeltFloorContext, where the parameters are
-// guaranteed current.
-bool PrintObject::has_belt_brim() const
-{
-    if (! m_print->has_tilted_belt())
-        return false;
-    // The purge prism is sacrificial and sits at the plate's edge; its generator sets no_brim, and
-    // this keeps it brimless whatever its config says, so a brim on the parts never blocks purging.
-    if (m_config.belt_purge_tower_object.value)
-        return false;
-    if (m_config.brim_type == btNoBrim)
-        return false;
-    // An inner-only brim has no leading/extra geometry: leading_brim_length and
-    // extra_brim_width both widen the OUTER ring, which btInnerOnly never emits, so it
-    // produces nothing unless brim_width itself is positive.  Every other brim type is
-    // satisfied by any one of the three widths.  Requiring the width here (instead of
-    // "any width") stops has_belt_brim() - and therefore Print::validate() - from
-    // rejecting the prime tower / spiral vase for a brim that would never be drawn.
-    if (m_config.brim_type == btInnerOnly) {
-        if (m_config.brim_width.value <= 0.)
-            return false;
-    } else if (m_config.brim_width.value <= 0. && m_config.leading_brim_length.value <= 0.
-               && m_config.extra_brim_width.value <= 0.) {
-        return false;
-    }
-    return ! this->has_raft();
-}
-
-unsigned int PrintObject::belt_brim_filament() const
-{
-    // 1-based, matching PrintRegion::outer_wall_filament_id and the raw values pushed
-    // into LayerTools::extruders in ToolOrdering::collect_extruders (the whole list is
-    // reindexed to 0-based later).  Lowest positive outer-wall filament over the
-    // printing regions; 1 when none is explicitly set.
-    unsigned int brim_filament = 0;
-    for (size_t i = 0; i < this->num_printing_regions(); ++ i) {
-        const unsigned int f = this->printing_region(i).config().outer_wall_filament_id.value;
-        if (f > 0 && (brim_filament == 0 || f < brim_filament))
-            brim_filament = f;
-    }
-    return brim_filament == 0 ? 1u : brim_filament;
-}
-
-void PrintObject::clear_belt_brim()
-{
-    m_belt_brim_by_layer.clear();
-    m_belt_brim_areas_by_layer.clear();
-    m_belt_brim_prologue.clear();
-}
-
-void PrintObject::set_belt_brim(std::vector<ExtrusionEntityCollection> &&by_layer,
-                                std::vector<ExPolygons>                &&areas,
-                                std::vector<BeltBrimBand>              &&prologue)
-{
-    m_belt_brim_by_layer       = std::move(by_layer);
-    m_belt_brim_areas_by_layer = std::move(areas);
-    m_belt_brim_prologue       = std::move(prologue);
 }
 
 std::shared_ptr<TreeSupportData> PrintObject::alloc_tree_support_preview_cache()
@@ -1463,14 +1858,14 @@ bool PrintObject::invalidate_state_by_config_options(
     bool invalidated = false;
     for (const t_config_option_key &opt_key : opt_keys) {
         if (   opt_key == "brim_width"
-            || opt_key == "leading_brim_length"
-            || opt_key == "extra_brim_width"
             || opt_key == "brim_object_gap"
             || opt_key == "brim_use_efc_outline"
             || opt_key == "brim_type"
             || opt_key == "brim_ears_max_angle"
             || opt_key == "brim_ears_detection_length"
             || opt_key == "brim_ears_outer_only"
+            || opt_key == "leading_brim_length"   // BELT_MOD
+            || opt_key == "extra_brim_width"      // BELT_MOD
             // BBS: brim generation depends on printing speed
             || opt_key == "outer_wall_speed"
             || opt_key == "small_perimeter_speed"
@@ -1557,6 +1952,9 @@ bool PrintObject::invalidate_state_by_config_options(
                opt_key == "elefant_foot_compensation"
             || opt_key == "elefant_foot_compensation_layers"
             || opt_key == "elefant_foot_layers_density"
+            || opt_key == "test_input"
+            || opt_key == "layer_rotation_b"
+            || opt_key == "layer_rotation_c"
             || opt_key == "support_top_z_distance"
             || opt_key == "support_bottom_z_distance"
             || opt_key == "xy_hole_compensation"
@@ -1584,6 +1982,11 @@ bool PrintObject::invalidate_state_by_config_options(
 	        }
         } else if (
         	   opt_key == "support_type"
+            || opt_key == "support_direction"
+            || opt_key == "support_direction_b"
+            || opt_key == "support_direction_c"
+            || opt_key == "support_direction_max_lean"
+            || opt_key == "support_section_overlap"
             || opt_key == "support_angle"
             || opt_key == "support_on_build_plate_only"
             || opt_key == "support_critical_regions_only"
@@ -1706,6 +2109,11 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "infill_overhang_angle") {
             steps.emplace_back(posInfill);
         } else if (opt_key == "sparse_infill_pattern"
+                   || opt_key == "sparse_infill_svg_path"
+                   || opt_key == "sparse_infill_svg_scale"
+                   || opt_key == "sparse_infill_single_wall"
+                   || opt_key == "infill_mesh_path"
+                   || opt_key == "infill_mesh_global_orientation"
                    || opt_key == "adaptive_infill_mode"
                    || opt_key == "adaptive_infill_interior_density"
                    || opt_key == "adaptive_infill_gradient"
@@ -1856,7 +2264,66 @@ bool PrintObject::invalidate_state_by_config_options(
                opt_key == "flush_into_infill"
             || opt_key == "flush_into_objects"
             || opt_key == "flush_into_support"
-            || opt_key == "belt_purge_tower_object") {
+            || opt_key == "belt_purge_tower_object") {   // BELT_MOD
+            invalidated |= m_print->invalidate_step(psWipeTower);
+            invalidated |= m_print->invalidate_step(psGCodeExport);
+        } else if (
+               // Wave overhangs: the waves are generated by the overhang-wall pass (posPerimeters) and their
+               // footprint feeds the support pipeline, so geometry keys redo walls + supports.
+               opt_key == "wave_overhangs"
+            || opt_key == "wave_overhangs_instead_of_bridges"
+            || opt_key == "wave_overhang_outer_perimeters"
+            || opt_key == "wave_overhang_perimeter_overlap"
+            || opt_key == "wave_overhang_minimum_width"
+            || opt_key == "wave_overhang_pattern"
+            || opt_key == "wave_overhang_line_spacing"
+            || opt_key == "wave_overhang_flow_mm3_per_mm"
+            || opt_key == "wave_overhang_spacing_mode"
+            || opt_key == "wave_overhang_seam_mode"
+            || opt_key == "wave_overhang_min_length"
+            || opt_key == "wave_overhang_max_iterations"
+            || opt_key == "wave_overhang_min_new_area"
+            || opt_key == "wave_overhang_corner_taper_enable"
+            || opt_key == "wave_overhang_line_spacing_corner"
+            || opt_key == "wave_overhang_corner_taper_distance"
+            || opt_key == "wave_overhang_corner_angle_threshold") {
+            steps.emplace_back(posPerimeters);
+            steps.emplace_back(posSupportMaterial);
+        } else if (
+               // Wave floor layers: shadow, floor-layer authority and wall tagging run in prepare_infill;
+               // the Hilbert floor is chosen per surface in group_fills (cascades from posPrepareInfill).
+               opt_key == "wave_overhang_floor_layers"
+            || opt_key == "wave_overhang_floor_use_hilbert"
+            || opt_key == "wave_overhang_floor_hilbert_layers"
+            || opt_key == "wave_overhang_floor_hilbert_density") {
+            steps.emplace_back(posPrepareInfill);
+        } else if (opt_key == "support_remaining_areas_after_wave_overhangs") {
+            steps.emplace_back(posSupportMaterial);
+        } else if (
+               // Wave overhangs, G-code only: speeds, fans, temperature, dwells, retract and debug comments
+               // are applied by GCode::_extrude / process_layer / CoolingBuffer. min_angle is not enforced
+               // (fork behaviour) and only appears in the debug header.
+               opt_key == "wave_overhang_print_speed"
+            || opt_key == "wave_overhang_perimeter_speed"
+            || opt_key == "wave_overhang_travel_speed"
+            || opt_key == "wave_overhang_fan_speed"
+            || opt_key == "wave_overhang_aux_fan_speed"
+            || opt_key == "wave_overhang_nozzle_temp"
+            || opt_key == "wave_overhang_min_wave_time"
+            || opt_key == "wave_overhang_min_layer_time"
+            || opt_key == "wave_overhang_floor_print_speed"
+            || opt_key == "wave_overhang_floor_perimeter_speed"
+            || opt_key == "wave_overhang_floor_speed_ramp"
+            || opt_key == "wave_overhang_floor_fan_speed"
+            || opt_key == "wave_overhang_floor_aux_fan_speed"
+            || opt_key == "wave_overhang_debug_gcode"
+            || opt_key == "wave_overhang_end_retract_length"
+            || opt_key == "wave_overhang_min_angle") {
+            invalidated |= m_print->invalidate_step(psGCodeExport);
+        } else if (opt_key == "print_group") {
+            // Only affects the ByGroup print sequence (grouping/ordering), not object slicing.
+            // Mirror print_sequence: invalidate skirt/brim + wipe tower; G-code export cascades.
+            invalidated |= m_print->invalidate_step(psSkirtBrim);
             invalidated |= m_print->invalidate_step(psWipeTower);
             invalidated |= m_print->invalidate_step(psGCodeExport);
         } else {
@@ -1875,6 +2342,9 @@ bool PrintObject::invalidate_state_by_config_options(
 bool PrintObject::invalidate_step(PrintObjectStep step)
 {
 	bool invalidated = Inherited::invalidate_step(step);
+    // Whether THIS object's step just flipped to invalid. The cut-plane edge below propagates only
+    // then: a family of k segments otherwise re-walks every lower segment on every call, 2^k times.
+    const bool own_invalidated = invalidated;
 
     // propagate to dependent steps
     if (step == posPerimeters) {
@@ -1886,27 +2356,24 @@ bool PrintObject::invalidate_step(PrintObjectStep step)
         invalidated |= this->invalidate_steps({ posIroning, posContouring, posSimplifyInfill });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
     } else if (step == posSlice) {
-        // posSimplifySupportPath is listed with posSupportMaterial: invalidate_steps() does not
-        // propagate, so without it a re-slice regenerated the supports but kept the step done,
-        // and the new support paths were exported unsimplified, unlike a fresh slice.
-		// posDetectOverhangsForLift reads the layers' overhang regions, which a re-slice
-		// starts over empty: without it here the step stayed done and the lift logic in
-		// GCode::needs_retraction() had no overhangs to test against until something else
-		// invalidated it.
-		invalidated |= this->invalidate_steps({ posPerimeters, posPrepareInfill, posInfill, posIroning, posContouring, posSupportMaterial, posSimplifyPath, posSimplifyInfill, posSimplifySupportPath, posDetectOverhangsForLift });
+		invalidated |= this->invalidate_steps({ posPerimeters, posPrepareInfill, posInfill, posIroning, posContouring, posSupportMaterial, posSimplifyPath, posSimplifyInfill });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
         m_slicing_params.valid = false;
-        // The exact belt_floor_z_shift is recomputed when slice() runs again.
-        m_belt_floor_z_shift_cache_valid = false;
     } else if (step == posSupportMaterial) {
         invalidated |= this->invalidate_steps({ posSimplifySupportPath });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
-        // SlicingParameters depend on support config (enable_support /
-        // raft_layers / enforce_support_layers feed min/max layer height in
-        // Slicing.cpp), so invalidate them here.  The vertex-scan
-        // belt_floor_z_shift is preserved via m_belt_floor_z_shift_cached.
         m_slicing_params.valid = false;
     }
+
+    // Declarative cut planes: the per-object step graph has no cross-object edge, but a segment's
+    // support is generated from demand handed down by every segment printed after it (see
+    // Print::run_segment_support_cascade). So if this segment's slices or support change, the
+    // support of every segment BELOW it is stale. Propagation is strictly downward (a segment's
+    // support never depends on one printed later), so it terminates at the root. Ordinary objects
+    // have no descriptor and are unaffected.
+    if (own_invalidated && (step == posSlice || step == posSupportMaterial) && m_print != nullptr && this->is_segment() && ! this->is_root_segment())
+        for (PrintObject *lower : m_print->segments_below(this))
+            invalidated |= lower->invalidate_step(posSupportMaterial);
 
     // Wipe tower depends on the ordering of extruders, which in turn depends on everything.
     // It also decides about what the flush_into_infill / wipe_into_object / flush_into_support features will do,
@@ -1920,13 +2387,66 @@ bool PrintObject::invalidate_step(PrintObjectStep step)
 bool PrintObject::invalidate_all_steps()
 {
 	// First call the "invalidate" functions, which may cancel background processing.
-    const bool inherited_invalidated = Inherited::invalidate_all_steps();
-    const bool print_invalidated     = m_print->invalidate_all_steps();
-    bool result = inherited_invalidated || print_invalidated;
+    const bool own               = Inherited::invalidate_all_steps();
+    const bool print_invalidated = m_print->invalidate_all_steps();
+    bool       result            = own || print_invalidated;
 	// Then reset some of the depending values.
 	m_slicing_params.valid = false;
-	m_belt_floor_z_shift_cache_valid = false;
+    // Same downward edge as invalidate_step(): Print::invalidate_all_steps() clears the PRINT's
+    // own steps, not sibling objects', so a segment replaced wholesale (a changed descriptor at
+    // PrintApply time) would otherwise leave the segments below it with support built from stale
+    // demand.
+    if (own && m_print != nullptr && this->is_segment() && ! this->is_root_segment())
+        for (PrintObject *lower : m_print->segments_below(this))
+            result |= lower->invalidate_step(posSupportMaterial);
 	return result;
+}
+
+static void add_segment_demand(std::vector<Polygons> &dst, const std::vector<Polygons> &demand)
+{
+    if (demand.empty())
+        return;
+    if (dst.size() < demand.size())
+        dst.resize(demand.size());
+    for (size_t i = 0; i < demand.size(); ++ i)
+        if (! demand[i].empty())
+            append(dst[i], demand[i]);
+    // Union per layer once, here, rather than leaving overlapping patches for every consumer to
+    // deal with: several children can land demand on the same parent layer.
+    for (Polygons &layer : dst)
+        if (! layer.empty())
+            layer = union_(layer);
+}
+
+void PrintObject::add_segment_support_demand(const std::vector<Polygons> &demand)
+{
+    add_segment_demand(m_segment_support_demand, demand);
+}
+
+void PrintObject::add_segment_body_demand(const std::vector<Polygons> &demand)
+{
+    add_segment_demand(m_segment_body_demand, demand);
+}
+
+Polygons PrintObject::segment_demand_first_layer() const
+{
+    Polygons out;
+    if (! m_segment_support_demand.empty())
+        append(out, m_segment_support_demand.front());
+    if (! m_segment_body_demand.empty())
+        append(out, m_segment_body_demand.front());
+    return out.empty() ? out : union_(out);
+}
+
+Polygons PrintObject::segment_support_column_at(double print_z) const
+{
+    if (m_segment_support_demand.empty() || m_layers.empty())
+        return Polygons();
+    // The object layer whose slab holds print_z: the first with print_z >= z, else the last.
+    size_t i = 0;
+    while (i + 1 < m_layers.size() && m_layers[i]->print_z < print_z - EPSILON)
+        ++ i;
+    return i < m_segment_support_demand.size() ? m_segment_support_demand[i] : Polygons();
 }
 
 // This function analyzes slices of a region (SurfaceCollection slices).
@@ -1951,6 +2471,10 @@ void PrintObject::detect_surfaces_type()
     bool interface_shells = ! spiral_mode && m_config.interface_shells.value;
     size_t num_layers     = spiral_mode ? std::min(size_t(this->printing_region(0).config().bottom_shell_layers), m_layers.size()) : m_layers.size();
 
+    // Orca: clear stale wave-overhang shadow masks from any prior invocation, so the
+    // authoritative wave-promotion pass below can accumulate fresh masks across regions.
+    for (Layer *l : m_layers) l->wave_overhang_shadow_polygons.clear();
+
     // The regions of a layer do not see each other here, and a layer cut through a fine relief takes far longer than the
     // others, so the regions run next to each other instead of one after another, each still over all layers.
     tbb::parallel_for(size_t(0), this->num_printing_regions(), [&](size_t region_id) {
@@ -1966,6 +2490,11 @@ void PrintObject::detect_surfaces_type()
         if (interface_shells)
             surfaces_new.assign(num_layers, Surfaces());
 
+        // UNLAYERED_MOD -- a cut-plane chunk printed straight up (B 0): its first layer rests on its parent (see below).
+        double seg_b = 0., seg_c = 0.;
+        if (this->is_segment())
+            this->effective_layer_rotation_bc(seg_b, seg_c);
+        const bool upright_segment = this->is_segment() && std::abs(seg_b) < 1e-3;
         tbb::parallel_for(
             tbb::blocked_range<size_t>(0,
             	spiral_mode ?
@@ -1973,7 +2502,7 @@ void PrintObject::detect_surfaces_type()
             		((num_layers > 1) ? num_layers - 1 : num_layers) :
             		// In non-spiral vase mode, go over all layers.
             		m_layers.size()),
-            [this, region_id, interface_shells, &surfaces_new](const tbb::blocked_range<size_t>& range) {
+            [this, region_id, interface_shells, upright_segment, &surfaces_new](const tbb::blocked_range<size_t>& range) {
                 // If we have soluble support material, don't bridge. The overhang will be squished against a soluble layer separating
                 // the support from the print.
                 // BBS: the above logic only applys for normal(auto) support. Complete logic:
@@ -2020,6 +2549,28 @@ void PrintObject::detect_surfaces_type()
                         for (Surface &surface : top)
                             surface.surface_type = stTop;
                     }
+                    // UNLAYERED_MOD -- a level cut plane above this chunk (a Ceiling clip parallel to the layers): what the
+                    // next chunk prints straight on over is not a top, so no top shells grow down from it (the solid
+                    // band at an upright chunk transition, 2026-11-02). Tilted cuts keep their tops.
+                    if (! top.empty() && this->is_segment()) {
+                        const Transform3d     &trafo   = this->object_to_slice();
+                        const Eigen::Matrix3d  a_inv_t = trafo.linear().inverse().transpose();
+                        const double           z_next  = upper_layer != nullptr ? upper_layer->slice_z : layer->slice_z + layer->height;
+                        bool covered = false;
+                        for (const CutSegmentClip &clip : this->segment()->clips) {
+                            if (clip.role != CutClipRole::Ceiling)
+                                continue;
+                            const Vec3d n = (a_inv_t * clip.normal).normalized();
+                            if (std::hypot(n.x(), n.y()) > 1e-3)
+                                continue;
+                            const Vec3d  n_raw = a_inv_t * clip.normal;
+                            const double d     = clip.offset + n_raw.dot(trafo.translation());
+                            if (d - n_raw.z() * z_next < 0.)
+                                covered = true;
+                        }
+                        if (covered)
+                            top.clear();
+                    }
 
                     // Find bottom surfaces (difference between current surfaces of current layer and lower one).
                     Surfaces bottom;
@@ -2056,6 +2607,10 @@ void PrintObject::detect_surfaces_type()
                                 stBottom);
                         }
 #endif
+                    } else if (this->is_segment() && ! this->is_root_segment() && upright_segment) {
+                        // UNLAYERED_MOD -- the first layer of a cut-plane chunk that keeps printing straight up
+                        // lies on its own cut face, i.e. on the parent's material, not on air: no bottom shells
+                        // there (they showed as two solid layers mid-part, 2026-11-02).
                     } else {
                         // if no lower layer, all surfaces of this one are solid
                         // we clone surfaces because we're going to clear the slices collection
@@ -2397,6 +2952,53 @@ void PrintObject::detect_surfaces_type()
         m_print->throw_if_canceled();
     }
 
+    // ==============================================================================================================
+    // === ORCA: Wave-overhang shadow computation ===================================================================
+    // Populate Layer::wave_overhang_shadow_polygons — the union of wave footprints in the shell-influence
+    // window around each layer (both directions). Used as a first-line defense by discover_vertical_shells /
+    // discover_horizontal_shells to suppress shell-seed propagation into the wave region. Authoritative
+    // promotion of surface types has been MOVED to apply_wave_overhang_floor_layer_authority(), which runs
+    // AFTER all surface-classification passes so its results cannot be overwritten.
+    // Zero behavior change when wave_overhangs=false: loop early-outs, shadow stays empty.
+    // UNLAYERED_MOD: one region after another, outside the parallel region loops above and below: every region
+    // accumulates into the same per-layer mask.
+    // ==============================================================================================================
+    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
+        const PrintRegionConfig &rconf = this->printing_region(region_id).config();
+        const int floor_layers        = rconf.wave_overhang_floor_layers.value;
+        const int bottom_shell_layers = rconf.bottom_shell_layers.value;
+        const int top_shell_layers    = rconf.top_shell_layers.value;
+        const int shadow_up   = std::max(floor_layers, bottom_shell_layers);
+        const int shadow_down = top_shell_layers;
+        if (rconf.wave_overhangs.value) {
+            tbb::parallel_for(tbb::blocked_range<size_t>(0, m_layers.size()),
+                [this, shadow_up, shadow_down](const tbb::blocked_range<size_t> &range) {
+                    for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++ idx_layer) {
+                        m_print->throw_if_canceled();
+                        Layer *layer = m_layers[idx_layer];
+
+                        Polygons shadow = std::move(layer->wave_overhang_shadow_polygons);
+                        append(shadow, layer->wave_overhang_floor_polygons);  // this layer (wave strip itself)
+                        for (int k = 1; k <= shadow_up; ++k) {                // layers above wave (mask up)
+                            if ((int)idx_layer - k < 0) break;
+                            append(shadow, m_layers[idx_layer - k]->wave_overhang_floor_polygons);
+                        }
+                        for (int k = 1; k <= shadow_down; ++k) {              // layers below wave (mask down)
+                            if (idx_layer + k >= m_layers.size()) break;
+                            append(shadow, m_layers[idx_layer + k]->wave_overhang_floor_polygons);
+                        }
+                        if (!shadow.empty())
+                            shadow = union_(shadow);
+                        layer->wave_overhang_shadow_polygons = std::move(shadow);
+                    }
+                });
+            m_print->throw_if_canceled();
+        }
+    }
+    // ==============================================================================================================
+    // === ORCA: End of wave-overhang shadow computation ============================================================
+    // ==============================================================================================================
+
     tbb::parallel_for(size_t(0), this->num_printing_regions(), [&](size_t region_id) {
         BOOST_LOG_TRIVIAL(debug) << "Detecting solid surfaces for region " << region_id << " - clipping in parallel - start";
         // Fill in layerm->fill_surfaces by trimming the layerm->slices by the cummulative layerm->fill_surfaces.
@@ -2419,6 +3021,333 @@ void PrintObject::detect_surfaces_type()
     // Mark the object to have the region slices classified (typed, which also means they are split based on whether they are supported, bridging, top layers etc.)
     m_typed_slices = true;
 }
+
+// ==============================================================================================================
+// === ORCA: Authoritative wave-overhang floor-layer pass =======================================================
+// Runs AFTER detect_surfaces_type / discover_vertical_shells / discover_horizontal_shells and BEFORE
+// clip_fill_surfaces / bridge_over_infill / combine_infill. At this point every earlier pass has had
+// its chance to (re)classify surfaces; any stInternalSolid / stBottom / stBottomBridge / stTop / stInternal
+// values Orca chose within the wave shadow get OVERRIDDEN here so that wave_overhang_floor_layers is
+// authoritative:
+//   * N == 0 : every surface inside the wave shadow reverts to stInternal (sparse infill)
+//   * N >= 1 : layer L+k (k = 1..N) above the wave is stInternalSolid (regular solid infill on top of the
+//              wave extrusions — NOT stBottomBridge since it's supported by the wave strands, not air).
+//              Layers L+k for k > N revert to stInternal.
+// Operates on LayerRegion::fill_surfaces.surfaces (what later passes and gcode generation consume).
+// No-op when no region has wave_overhangs = true.
+// ==============================================================================================================
+void PrintObject::apply_wave_overhang_floor_layer_authority()
+{
+    bool any_wave = false;
+    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id)
+        if (this->printing_region(region_id).config().wave_overhangs.value) {
+            any_wave = true;
+            break;
+        }
+    if (!any_wave)
+        return;
+
+    BOOST_LOG_TRIVIAL(info) << "Applying wave-overhang floor-layer authority...";
+
+    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
+        const PrintRegionConfig &rconf = this->printing_region(region_id).config();
+        if (!rconf.wave_overhangs.value)
+            continue;
+        const int floor_layers = rconf.wave_overhang_floor_layers.value;
+
+        // Unlayered: the TOP shells are not the wave's to overrule. A top surface a few layers above
+        // a wave strip propagates stInternalSolid down through the shadow, and the pass below used to
+        // demote all of it to sparse -- a P1S Halo casing with a wave 5 layers under its top printed
+        // 1 top layer over sparse instead of 6 shells (2026-10-12). Per layer, the zone within
+        // top_shell_layers (or top_shell_thickness, whichever reaches further) below a real top
+        // surface keeps its classification. Collected before the parallel pass rewrites fill_surfaces.
+        std::vector<Polygons> top_zone(m_layers.size());
+        {
+            std::vector<Polygons> tops(m_layers.size());
+            for (size_t i = 0; i < m_layers.size(); ++i)
+                for (const Surface &s : m_layers[i]->m_regions[region_id]->fill_surfaces.surfaces)
+                    if (s.surface_type == stTop)
+                        polygons_append(tops[i], to_polygons(s.expolygon));
+            const int    n_top     = rconf.top_shell_layers.value;
+            const double thickness = rconf.top_shell_thickness.value;
+            for (size_t i = 0; i < m_layers.size(); ++i) {
+                if (m_layers[i]->wave_overhang_shadow_polygons.empty())
+                    continue;
+                Polygons zone;
+                for (size_t j = i + 1; j < m_layers.size(); ++j) {
+                    const bool by_count     = int(j - i) <= n_top - 1;
+                    const bool by_thickness = thickness > 0. && m_layers[j]->print_z - m_layers[i]->print_z < thickness - EPSILON;
+                    if (!by_count && !by_thickness)
+                        break;
+                    append(zone, tops[j]);
+                }
+                if (!zone.empty())
+                    top_zone[i] = union_(zone);
+            }
+        }
+
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, m_layers.size()),
+            [this, region_id, floor_layers, &top_zone](const tbb::blocked_range<size_t> &range) {
+                for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++ idx_layer) {
+                    m_print->throw_if_canceled();
+                    Layer *layer = m_layers[idx_layer];
+                    if (layer->wave_overhang_shadow_polygons.empty())
+                        continue;
+
+                    // Classify the wave shadow by each point's vertical distance to the
+                    // nearest wave strip at or below it. This is a per-POINT decision,
+                    // not per-layer: on an angled overhang every layer carries its own
+                    // wave strip, so a single per-layer "is this a wave layer" flag (the
+                    // old `k`) treated every such layer as k == 0 and dropped the fill
+                    // across its whole multi-layer shadow — wiping out the solid infill
+                    // that belongs above the wave strip of the layer BELOW (issue #67).
+                    //
+                    //   own crescent (this layer's own wave strip) : dropped — the wave
+                    //       extrusions are the fill, no overlay needed.
+                    //   1..N layers above a wave strip             : stInternalSolid —
+                    //       uniform solid infill bonding onto the wave below.
+                    //   rest of the shadow                         : stInternal (sparse;
+                    //       N == 0 => the whole shadow becomes sparse).
+                    //
+                    // Exception: stTop / stBottom / stBottomBridge are geometric
+                    // classifications (the part's real top face / bed-touching bottom /
+                    // overhang bottom), not shell propagation. Demoting them would print
+                    // real surfaces as sparse infill (issue #47, "missing line between
+                    // top surface and wave overhang"). Preserve those originals outside
+                    // the own crescent.
+                    Polygons own = m_layers[idx_layer]->wave_overhang_floor_polygons;
+                    if (! own.empty())
+                        own = union_(own);
+                    Polygons solid; // union of wave strips 1..N layers below this one
+                    for (int d = 1; d <= floor_layers && (int) idx_layer - d >= 0; ++d)
+                        append(solid, m_layers[idx_layer - d]->wave_overhang_floor_polygons);
+                    if (! solid.empty())
+                        solid = union_(solid);
+                    // own crescent wins over solid: a point on this layer's own wave
+                    // strip is filled by the wave even if it also sits above a lower one.
+                    const Polygons solid_only = solid.empty() ? Polygons{} : diff(solid, own);
+                    Polygons covered = own;
+                    append(covered, solid);
+                    if (! covered.empty())
+                        covered = union_(covered);
+
+                    // Top shells stay as classified (see top_zone above), except on this layer's own
+                    // wave strip, which the wave fills.
+                    Polygons shadow = layer->wave_overhang_shadow_polygons;
+                    if (! top_zone[idx_layer].empty()) {
+                        shadow = diff(shadow, own.empty() ? top_zone[idx_layer] : diff(top_zone[idx_layer], own));
+                        if (shadow.empty())
+                            continue;
+                    }
+                    LayerRegion *layerm = layer->m_regions[region_id];
+                    Surfaces &surfs = layerm->fill_surfaces.surfaces;
+                    Surfaces new_surfaces;
+                    new_surfaces.reserve(surfs.size() + 6);
+                    for (Surface &s : surfs) {
+                        Polygons   p       = to_polygons(s);
+                        ExPolygons inside  = intersection_ex(p, shadow, ApplySafetyOffset::Yes);
+                        if (inside.empty()) {
+                            new_surfaces.push_back(std::move(s));
+                            continue;
+                        }
+                        const Polygons    inside_p = to_polygons(inside);
+                        const SurfaceType orig     = s.surface_type;
+                        const bool        is_geometric_face =
+                            orig == stTop || orig == stBottom || orig == stBottomBridge;
+
+                        // Outside the shadow: keep the original classification.
+                        for (auto &ex_out : union_safety_offset_ex(diff_ex(p, inside_p, ApplySafetyOffset::Yes)))
+                            new_surfaces.emplace_back(orig, std::move(ex_out));
+                        // Solid floor: 1..N layers above a lower wave strip.
+                        if (! solid_only.empty()) {
+                            const SurfaceType t = is_geometric_face ? orig : stInternalSolid;
+                            for (auto &ex_in : union_safety_offset_ex(intersection_ex(inside_p, solid_only, ApplySafetyOffset::Yes)))
+                                new_surfaces.emplace_back(t, std::move(ex_in));
+                        }
+                        // Sparse: shadow that is neither the own crescent nor a solid
+                        // floor layer. The own crescent itself is dropped (wave fills it).
+                        const SurfaceType t = is_geometric_face ? orig : stInternal;
+                        for (auto &ex_in : union_safety_offset_ex(diff_ex(inside_p, covered, ApplySafetyOffset::Yes)))
+                            new_surfaces.emplace_back(t, std::move(ex_in));
+                    }
+                    surfs = std::move(new_surfaces);
+                }
+            });
+        m_print->throw_if_canceled();
+    }
+}
+// ==============================================================================================================
+// === ORCA: End of apply_wave_overhang_floor_layer_authority ===================================================
+// ==============================================================================================================
+
+// ==============================================================================================================
+// === ORCA: Wave-overhang bridge suppression ===================================================================
+// When wave_overhangs + wave_overhangs_instead_of_bridges are on for a region, the user has asked for waves to
+// replace bridges in that region entirely. Two kinds of bridge get classified by earlier passes:
+//
+//   stBottomBridge   : solid over empty space (classic cantilever-style bridge).
+//   stInternalBridge : solid over sparse infill (bridge_over_infill creates these).
+//
+// A geometric "inside the overhang footprint" filter (layer.lslices diff lower.lslices) catches stBottomBridge
+// but misses stInternalBridge, because stInternalBridge sits above sparse infill (still material in lslices).
+// Users saw teal "Internal bridge" patches inside wave layers even with both flags on.
+//
+// Simpler, region-scoped semantics: when the user opts in by setting both flags, suppress ALL bridges in the
+// region. Reclassify stBottomBridge / stInternalBridge to stInternalSolid so the Fill pipeline uses regular
+// solid infill, which bonds cleanly with surrounding wave extrusions and uses the same flow model.
+//
+// Runs AFTER apply_wave_overhang_floor_layer_authority. The authority pass's decisions stay where they land;
+// we only touch surfaces the authority pass kept as bridges.
+// ==============================================================================================================
+void PrintObject::apply_wave_overhang_bridge_suppression()
+{
+    bool any = false;
+    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
+        const PrintRegionConfig &rconf = this->printing_region(region_id).config();
+        if (rconf.wave_overhangs.value && rconf.wave_overhangs_instead_of_bridges.value) {
+            any = true;
+            break;
+        }
+    }
+    if (!any)
+        return;
+
+    BOOST_LOG_TRIVIAL(info) << "Applying wave-overhang bridge suppression...";
+
+    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
+        const PrintRegionConfig &rconf = this->printing_region(region_id).config();
+        if (!rconf.wave_overhangs.value || !rconf.wave_overhangs_instead_of_bridges.value)
+            continue;
+
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, m_layers.size()),
+            [this, region_id](const tbb::blocked_range<size_t> &range) {
+                for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++ idx_layer) {
+                    m_print->throw_if_canceled();
+                    Layer       *layer  = m_layers[idx_layer];
+                    LayerRegion *layerm = layer->m_regions[region_id];
+                    Surfaces    &surfs  = layerm->fill_surfaces.surfaces;
+                    for (Surface &s : surfs) {
+                        if (s.surface_type == stBottomBridge || s.surface_type == stInternalBridge) {
+                            s.surface_type = stInternalSolid;
+                            s.bridge_angle = 0;
+                        }
+                    }
+                }
+            });
+        m_print->throw_if_canceled();
+    }
+}
+// ==============================================================================================================
+// === ORCA: End of apply_wave_overhang_bridge_suppression ======================================================
+// ==============================================================================================================
+
+// ==============================================================================================================
+// === ORCA: Tag wave-overhang perimeters =======================================================================
+// Walks every layer after the floor-layer authority pass has populated wave_overhang_floor_polygons (wave
+// layers) and wave_overhang_shadow_polygons (wave + floor layers). For every perimeter ExtrusionPath in a
+// region with wave_overhangs enabled, sets one of two flags so GCode.cpp can apply the per-layer-class wall
+// speed override:
+//   wave_overhang_perimeter        : path lives on a layer that emitted wave traces (floor_polygons non-empty)
+//   wave_overhang_floor_perimeter  : path lives on a layer in the wave shadow but is NOT a wave layer itself
+// ==============================================================================================================
+namespace {
+// Recursively flag every leaf ExtrusionPath inside an entity tree. `distance` is the
+// 1-based layer offset from the nearest wave layer below (0 for wave layers themselves
+// and for non-floor layers); consumed by G-code together with
+// wave_overhang_floor_speed_ramp to interpolate floor speed back to normal.
+static void tag_wave_overhang_perimeter_recursive(ExtrusionEntity *ent, bool floor_layer, int8_t distance)
+{
+    if (!ent) return;
+    auto stamp = [floor_layer, distance](ExtrusionPath &p) {
+        if (floor_layer) {
+            p.wave_overhang_floor_perimeter = true;
+            p.wave_overhang_floor_distance  = distance;
+        } else {
+            p.wave_overhang_perimeter = true;
+        }
+    };
+    if (auto *path = dynamic_cast<ExtrusionPath*>(ent))         { stamp(*path); }
+    else if (auto *loop = dynamic_cast<ExtrusionLoop*>(ent))    { for (ExtrusionPath &p : loop->paths) stamp(p); }
+    else if (auto *mp = dynamic_cast<ExtrusionMultiPath*>(ent)) { for (ExtrusionPath &p : mp->paths)   stamp(p); }
+    else if (auto *coll = dynamic_cast<ExtrusionEntityCollection*>(ent))
+        for (ExtrusionEntity *child : coll->entities) tag_wave_overhang_perimeter_recursive(child, floor_layer, distance);
+}
+
+// UNLAYERED_MOD: prepare_infill re-runs without regenerating the walls when only a floor-layer key
+// changes (posPrepareInfill), so clear the previous run's wall tags before re-tagging. Without this a
+// layer that dropped out of the floor window kept its slow floor-wall speed.
+static void clear_wave_overhang_perimeter_tags_recursive(ExtrusionEntity *ent)
+{
+    if (!ent) return;
+    auto clear = [](ExtrusionPath &p) {
+        p.wave_overhang_perimeter       = false;
+        p.wave_overhang_floor_perimeter = false;
+        p.wave_overhang_floor_distance  = 0;
+    };
+    if (auto *path = dynamic_cast<ExtrusionPath*>(ent))         { clear(*path); }
+    else if (auto *loop = dynamic_cast<ExtrusionLoop*>(ent))    { for (ExtrusionPath &p : loop->paths) clear(p); }
+    else if (auto *mp = dynamic_cast<ExtrusionMultiPath*>(ent)) { for (ExtrusionPath &p : mp->paths)   clear(p); }
+    else if (auto *coll = dynamic_cast<ExtrusionEntityCollection*>(ent))
+        for (ExtrusionEntity *child : coll->entities) clear_wave_overhang_perimeter_tags_recursive(child);
+}
+} // anonymous namespace
+
+void PrintObject::tag_wave_overhang_perimeters()
+{
+    bool any_wave = false;
+    int  max_floor_layers = 0;
+    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
+        const PrintRegionConfig &rconf = this->printing_region(region_id).config();
+        if (rconf.wave_overhangs.value) {
+            any_wave = true;
+            max_floor_layers = std::max(max_floor_layers, rconf.wave_overhang_floor_layers.value);
+        }
+    }
+    if (!any_wave)
+        return;
+
+    BOOST_LOG_TRIVIAL(info) << "Tagging wave-overhang perimeters...";
+
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, m_layers.size()),
+        [this, max_floor_layers](const tbb::blocked_range<size_t> &range) {
+            for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++ idx_layer) {
+                m_print->throw_if_canceled();
+                Layer *layer = m_layers[idx_layer];
+                for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id)
+                    if (this->printing_region(region_id).config().wave_overhangs.value)
+                        clear_wave_overhang_perimeter_tags_recursive(&layer->m_regions[region_id]->perimeters);
+                const bool is_wave_layer  = !layer->wave_overhang_floor_polygons.empty();
+                const bool is_floor_layer = !is_wave_layer && !layer->wave_overhang_shadow_polygons.empty();
+                if (!is_wave_layer && !is_floor_layer)
+                    continue;
+                // For floor layers, find the closest wave layer below within the
+                // floor-layer window. The distance is 1-based: 1 = directly above the
+                // wave, 2 = one layer further up, etc. Capped at max_floor_layers
+                // across all regions. 0 stays as "no ramp data" so existing step-function
+                // behaviour is unaffected when the ramp config is 0.
+                int8_t distance = 0;
+                if (is_floor_layer && max_floor_layers > 0) {
+                    const int search_limit = std::min<int>(max_floor_layers, 127);
+                    for (int k = 1; k <= search_limit; ++k) {
+                        if ((int)idx_layer - k < 0) break;
+                        if (!m_layers[idx_layer - k]->wave_overhang_floor_polygons.empty()) {
+                            distance = static_cast<int8_t>(k);
+                            break;
+                        }
+                    }
+                }
+                for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
+                    if (!this->printing_region(region_id).config().wave_overhangs.value)
+                        continue;
+                    LayerRegion *layerm = layer->m_regions[region_id];
+                    tag_wave_overhang_perimeter_recursive(&layerm->perimeters, is_floor_layer, distance);
+                }
+            }
+        });
+}
+// ==============================================================================================================
+// === ORCA: End of tag_wave_overhang_perimeters ================================================================
+// ==============================================================================================================
 
 void PrintObject::process_external_surfaces()
 {
@@ -2564,6 +3493,13 @@ void PrintObject::discover_vertical_shells()
                             for (size_t region_id = 0; region_id < num_regions; ++ region_id)
                                 append(cache.top_surfaces, offset(layer.m_regions[region_id]->slices.filter_by_type(stTop), top_bottom_expansion(region_id)));
 //                              append(cache.top_surfaces, offset(layerm.fill_surfaces.filter_by_type(stTop), top_bottom_expansion));
+                            // Orca: authoritative wave-overhang semantics. Any surface seed whose
+                            // footprint lies within this layer's wave-overhang shadow is either the
+                            // wave strip itself or a force-promoted layer — it must NOT propagate
+                            // additional solid shells (up from bottom OR down from top). Mask both
+                            // seed sets so wave_overhang_floor_layers = N is fully authoritative.
+                            if (!layer.wave_overhang_shadow_polygons.empty() && !cache.top_surfaces.empty())
+                                cache.top_surfaces = diff(cache.top_surfaces, layer.wave_overhang_shadow_polygons);
                             // Save some computing time by reducing the number of polygons.
                             cache.top_surfaces = union_(cache.top_surfaces);
                         },
@@ -2571,6 +3507,9 @@ void PrintObject::discover_vertical_shells()
                             for (size_t region_id = 0; region_id < num_regions; ++ region_id)
                                 append(cache.bottom_surfaces, offset(layer.m_regions[region_id]->slices.filter_by_types(surfaces_bottom), top_bottom_expansion(region_id)));
 //                              append(cache.bottom_surfaces, offset(layerm.fill_surfaces.filter_by_types(surfaces_bottom), top_bottom_expansion));
+                            // Orca: wave-overhang shadow mask, as for the top surfaces above.
+                            if (!layer.wave_overhang_shadow_polygons.empty() && !cache.bottom_surfaces.empty())
+                                cache.bottom_surfaces = diff(cache.bottom_surfaces, layer.wave_overhang_shadow_polygons);
                             cache.bottom_surfaces = union_(cache.bottom_surfaces);
                         },
                         [&]() {
@@ -2767,6 +3706,15 @@ void PrintObject::discover_vertical_shells()
                         // Bottom surfaces.
                         cache.bottom_surfaces = offset(layerm.slices.filter_by_types(surfaces_bottom), top_bottom_expansion);
 //                        append(cache.bottom_surfaces, offset(layerm.fill_surfaces.filter_by_types(surfaces_bottom), top_bottom_expansion));
+                        // Orca: mask out wave-overhang shadow from BOTH top- and bottom-shell
+                        // seeds so the wave_overhang_floor_layers count is fully authoritative
+                        // (no shell propagation upward or downward through the wave shadow).
+                        if (!layer.wave_overhang_shadow_polygons.empty()) {
+                            if (!cache.bottom_surfaces.empty())
+                                cache.bottom_surfaces = diff(cache.bottom_surfaces, layer.wave_overhang_shadow_polygons);
+                            if (!cache.top_surfaces.empty())
+                                cache.top_surfaces    = diff(cache.top_surfaces,    layer.wave_overhang_shadow_polygons);
+                        }
                         // Holes over all regions. Only collect them once, they are valid for all region_id iterations.
                         if (cache.holes.empty()) {
                             for (size_t region_id = 0; region_id < layer.regions().size(); ++ region_id)
@@ -3337,7 +4285,7 @@ void PrintObject::bridge_over_infill()
         });
 
         // Use the modified surfaces to generate expanded lightning anchors
-        this->m_lightning_generator = this->prepare_lightning_infill_data();
+        this->m_pre_slice_infill_structures.lightning_generator = this->prepare_lightning_infill_data();
 
         // And now restore carefully the original surfaces, again using move to avoid reallocation and preserving the validity of the
         // pointers in surface candidates
@@ -3361,8 +4309,10 @@ void PrintObject::bridge_over_infill()
             }
         }
 
-        this->m_adaptive_fill_octrees = this->prepare_adaptive_infill_data(surfaces_w_layer);
-        this->m_adaptive_infill_fields    = this->prepare_adaptive_infill_fields();
+        this->m_pre_slice_infill_structures.adaptive_fill_octrees  = this->prepare_adaptive_infill_data(surfaces_w_layer);
+        this->m_pre_slice_infill_structures.adaptive_infill_fields = this->prepare_adaptive_infill_fields();
+
+        this->prepare_mesh_infill_data();
 
         std::vector<size_t> layers_to_generate_infill;
         for (const auto &pair : surfaces_by_layer) {
@@ -3377,9 +4327,7 @@ void PrintObject::bridge_over_infill()
             PRINT_OBJECT_TIME_LIMIT_MILLIS(PRINT_OBJECT_TIME_LIMIT_DEFAULT);
             for (size_t job_idx = r.begin(); job_idx < r.end(); job_idx++) {
                 size_t lidx = layers_to_generate_infill[job_idx];
-                infill_lines.at(
-                    lidx) = po->get_layer(lidx)->generate_sparse_infill_polylines_for_anchoring(&po->m_adaptive_fill_octrees,
-                                                                                                po->m_lightning_generator.get());
+                infill_lines.at(lidx) = po->get_layer(lidx)->generate_sparse_infill_polylines_for_anchoring(po->m_pre_slice_infill_structures);
             }
         });
 #ifdef DEBUG_BRIDGE_OVER_INFILL
@@ -4451,6 +5399,12 @@ void PrintObject::generate_support_preview()
     POProfiler profiler;
 
     boost::posix_time::ptime ts1 = boost::posix_time::microsec_clock::local_time();
+    // Declarative cut planes: a segment cannot be previewed on its own -- see
+    // Print::run_segment_support_preview().
+    if (m_print != nullptr && this->is_segment()) {
+        m_print->run_segment_support_preview(this);
+        return;
+    }
     this->slice();
     boost::posix_time::ptime ts2 = boost::posix_time::microsec_clock::local_time();
     profiler.duration1 = (ts2 - ts1).total_milliseconds();
@@ -4460,43 +5414,163 @@ void PrintObject::generate_support_preview()
     profiler.duration2 = (ts3 - ts2).total_milliseconds();
 }
 
+double PrintObject::segment_support_slack() const
+{
+    if (! this->is_segment())
+        return 0.;
+    bool has_ceiling = false;
+    for (const CutSegmentClip &clip : m_segment->clips)
+        has_ceiling |= clip.role == CutClipRole::Ceiling;
+    if (! has_ceiling)
+        return 0.;
+    double tallest = m_config.layer_height.value;
+    for (double h : m_print->config().max_layer_height.values)
+        tallest = std::max(tallest, h);
+    return m_config.support_top_z_distance.value + 2. * tallest;
+}
+
+double PrintObject::segment_slice_top() const
+{
+    if (! this->is_segment())
+        return 0.;
+    const double slack = this->segment_support_slack();
+    return slack > 0. ? std::max(m_segment->build_z_max, m_segment->support_z_max + slack) : m_segment->build_z_max;
+}
+
+void PrintObject::effective_layer_rotation_bc(double &b_deg, double &c_deg) const
+{
+    // Declarative cut-plane segments: the root always slices along +Z exactly (legacy path, no
+    // drift), a non-root segment along its world-frame build normal. The build normal is stored
+    // object-local, so it maps to world by the inverse-transpose of the instance linear part —
+    // correct under rotation, non-uniform scale and mirror. Ordinary objects keep the per-object
+    // config values (legacy destructive-chunk workflow).
+    if (this->is_segment()) {
+        b_deg = 0.;
+        c_deg = 0.;
+        // BELT_MOD: on a belt printer the root builds along the gantry normal stored in its
+        // descriptor (PrintApply hands derive_cut_segments that direction), so it is rotated too.
+        if (! this->is_root_segment() || m_print->config().belt_printer.value) {
+            const Vec3d n_world = (m_trafo.linear().inverse().transpose() * m_segment->build_normal).normalized();
+            Geometry::bc_from_build_normal(n_world, b_deg, c_deg);
+        }
+    } else {
+        b_deg = m_config.layer_rotation_b.getFloat();
+        c_deg = m_config.layer_rotation_c.getFloat();
+    }
+}
+
+// UNLAYERED_MOD -- the horizontal run the virtual-5-axis tilt limit is measured over; see
+// virtual_tilt_limit_deg() in PrintConfig.hpp. A segment carries its own, measured on the exact
+// clipped piece. A legacy per-object chunk has no segment, so the whole object's footprint is the
+// only thing available -- an over-estimate, which errs strict, and the honest answer for a
+// workflow that prints the object as one tilted piece anyway.
+double PrintObject::effective_build_reach() const
+{
+    if (this->is_segment())
+        return m_segment->build_reach_max;
+
+    const BoundingBoxf3 bb = this->model_object()->raw_mesh_bounding_box().transformed(m_trafo);
+    return std::hypot(bb.size().x(), bb.size().y());
+}
+
+// BELT_MOD -- see Print.hpp.
+Vec3d PrintObject::build_normal_world() const
+{
+    if (this->is_segment())
+        return (m_trafo.linear().inverse().transpose() * m_segment->build_normal).normalized();
+    double b_deg = 0., c_deg = 0.;
+    this->effective_layer_rotation_bc(b_deg, c_deg);
+    return Geometry::build_normal_from_bc(b_deg, c_deg);
+}
+
+// UNLAYERED_MOD -- see Print.hpp. 2026-11-03: "supports still dont work on parts floating off the
+// build plate" -- a lifted root got no support at all under its first layer (sample.3MF, 8.6 mm up).
+bool PrintObject::root_floats_above_plate() const
+{
+    if (! this->is_segment() || ! this->is_root_segment() || m_print->config().belt_printer.value)
+        return false;
+    return m_segment->root_builds_up && m_segment->slice_z_base() > m_print->config().initial_layer_print_height.value;
+}
+
+// BELT_MOD -- see Print.hpp.
+bool PrintObject::support_floor_is_tilted() const
+{
+    if (this->is_segment())
+        return ! this->is_root_segment() || m_print->config().belt_printer.value;
+    // UNLAYERED_MOD -- also an ordinary object with a whole-object layer rotation (layer_rotation_b/c):
+    // it is sliced in the frame layer_rotation_trafo() gives it (update_slice_frame), so unless that
+    // rotation is about Z alone, the plate is a tilted plane in its slice frame just as the belt is.
+    return m_print->config().belt_printer.value
+        || (layer_rotation_trafo(m_print->config(), m_config).linear() * Vec3d::UnitZ()).z() < 1. - EPSILON;
+}
+
+// BELT_MOD -- see Print.hpp. The plate is expressed through post_trafo_inverse(), the exact map
+// GCode::_extrude hands to GCodeWriter::extrude_to_xyz, so nothing derived from it can disagree
+// with what is written; row 2 of that map is bed-frame Z. XY has already been through
+// point_to_gcode() by then (plate coordinates) while Z is still slice-frame, so the instance shift
+// belongs in the constant; with several instances the lowest-sitting one is used.
+void PrintObject::bed_plane_in_slice_frame(Vec3d &n_bed, double &k_bed) const
+{
+    const Transform3d bed_map = this->post_trafo_inverse();
+    n_bed = Vec3d(bed_map(2, 0), bed_map(2, 1), bed_map(2, 2));
+    double shift_term = std::numeric_limits<double>::max();
+    for (const PrintInstance &inst : this->instances())
+        shift_term = std::min(shift_term, n_bed.x() * unscale<double>(inst.shift.x())
+                                        + n_bed.y() * unscale<double>(inst.shift.y()));
+    if (this->instances().empty())
+        shift_term = 0.;
+    k_bed = bed_map(2, 3) + shift_term;
+}
+
 void PrintObject::update_slicing_parameters()
 {
     // Orca: updated function call for XYZ shrinkage compensation
+    // Refresh the slice frame here, not only in slice(). Print::apply() reaches this during
+    // slicing-parameter preparation, so the frame is valid even for an object whose posSlice is
+    // already done -- otherwise a path that completes the step without calling slice() would be
+    // left with an identity frame.
+    // UNLAYERED_MOD: segments only. update_slice_frame() calls the uncached ModelObject::mesh()
+    // (a merge of every volume under every instance), and this function already does one such
+    // merge below for ordinary objects -- doing it twice per object on EVERY Print::apply made
+    // each settings tweak noticeably slower on large scenes. An ordinary object's frame is only
+    // ever read after slice(), which refreshes it before its posSlice early-return, and it is the
+    // identity for anything resting on the bed anyway.
+    if (this->is_segment())
+        this->update_slice_frame();
+
+    float object_max_z = 0.f;
+    if (this->is_segment()) {
+        // A cut-plane segment slices over ITS OWN extent along its build axis, not the whole
+        // object's. Sizing from the full object is what used to leave a non-root segment with a
+        // stack of empty leading layers (stripped after the fact) and its material starting well
+        // above slice z=0.
+        // ... but up to where its SUPPORT may have to reach, see segment_slice_top(). Measured from
+        // slice_z_base(), not build_z_min: a sunk ROOT is not rebased, so slicing starts at the
+        // plate and the printable height is measured from there (see CutSegmentDescriptor).
+        object_max_z = float(this->segment_slice_top() - m_segment->slice_z_base());
+    } else {
+        // UNLAYERED_MOD -- the object is sliced in its rotated frame, so its printable height is the
+        // height of the ROTATED bounding box. Same matrix the slicer uses (layer_rotation_trafo()).
+        const Transform3d tempTrafo = layer_rotation_trafo(this->print()->config(), this->config()); // BELT_MOD: belt tilt included
+        object_max_z = (float) this->model_object()->mesh().transformed_bounding_box(tempTrafo).size().z();
+        // BELT_MOD -- the frame is raised by the belt schedule offset, so the schedule must reach that
+        // much further; the leading layers below the object's own material are empty and skipped.
+        object_max_z += (float) m_belt_schedule_offset;
+        // UNLAYERED_MOD -- a plain object lifted off the bed keeps its lift in the slice frame
+        // (update_slice_frame()), so the layers must reach from the bed to its top, not only its height.
+        if (! this->print()->config().belt_printer.value && tempTrafo.linear().isIdentity(1e-12)) {
+            const ModelObject &mo = *this->model_object();
+            const double lift = mo.instances.size() > 1 && ! this->instances().empty()
+                ? mo.instance_bounding_box(*this->instances().front().model_instance).min.z()
+                : mo.bounding_box_exact().min.z();
+            if (lift > EPSILON)
+                object_max_z += (float) lift;
+        }
+    }
+
     if (!m_slicing_params.valid) {
-          coordf_t object_height = this->model_object()->max_z();
-          BeltTransformPipeline::BeltFloorParams belt_floor;
-          const auto &pcfg = this->print()->config();
-          const Vec3d shrinkage_compensation = this->print()->shrinkage_compensation();
-          if (pcfg.belt_printer.value) {
-              // The box of the mesh in the frame it is sliced in: XY centred and Z as
-              // placed on the bed (trafo_centered()).  raw_bounding_box() has the
-              // instance's Z offset removed, and the belt floor is not invariant to a
-              // Z shift (a point's z and the floor under it move in opposite
-              // directions under the rotation), so an offset box under-estimates the
-              // height by twice the shift and the layers stop part way up the object.
-              BoundingBoxf3     bb;
-              const Transform3d trafo = this->trafo_centered();
-              for (const ModelVolume *v : this->model_object()->volumes)
-                  if (v->is_model_part())
-                      bb.merge(v->mesh().transformed_bounding_box(trafo * v->get_matrix()));
-              // trafo() already carries the shrinkage compensation, so the belt height is
-              // compensated, while create_from_config() expects object_height without it.
-              auto hr = BeltTransformPipeline::compute_belt_height_and_floor(pcfg, bb, object_height * shrinkage_compensation.z());
-              object_height = hr.object_height / shrinkage_compensation.z();
-              belt_floor    = hr.floor_params;
-          }
-          m_slicing_params = SlicingParameters::create_from_config(pcfg, m_config, object_height,
-                                                                   this->object_extruders(), shrinkage_compensation);
-          // Populate belt floor parameters into slicing params for support clipping.
-          m_slicing_params.belt_floor_shear_factor = belt_floor.shear_factor;
-          m_slicing_params.belt_floor_from_axis    = belt_floor.from_axis;
-          m_slicing_params.belt_floor_z_shift     = belt_floor.z_shift;
-          // Prefer the vertex-scan z_shift over the bbox approximation when
-          // slice() has already produced one (e.g. this rebuild was triggered
-          // by a support-config change, which doesn't move the belt floor).
-          if (m_belt_floor_z_shift_cache_valid)
-              m_slicing_params.belt_floor_z_shift = m_belt_floor_z_shift_cached;
+          m_slicing_params = SlicingParameters::create_from_config(this->print()->config(), m_config, object_max_z,
+                                                                   this->object_extruders(), this->print()->shrinkage_compensation());
       }
 }
 
@@ -4536,29 +5610,21 @@ SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full
 		}
     sort_remove_duplicates(object_extruders);
     //FIXME add painting extruders
+    // UNLAYERED_MOD -- as in update_slicing_parameters(): measure the height of the ROTATED box.
+    // `print_config` derives from MachineEnvelopeConfig, so it carries enable_nonplanar; the option
+    // may still be absent from a hand-curated DynamicPrintConfig, in which case apply() left the
+    // default (false) in place, which is the safe answer.
+    const Transform3d tempTrafo = layer_rotation_trafo(object_config, print_config.enable_nonplanar.value);
 
-    BeltTransformPipeline::BeltFloorParams belt_floor;
-    if (object_max_z <= 0.f) {
-        BoundingBoxf3 bb = model_object.raw_bounding_box();
-        object_max_z = (float)bb.size().z();
-        if (print_config.belt_printer.value) {
-            // Z as placed on the bed, XY around the instance origin: the belt floor
-            // depends on where the box sits in Z (see update_slicing_parameters()).
-            if (! model_object.instances.empty()) {
-                bb = model_object.instance_bounding_box(0, false);
-                const Vec3d off = model_object.instances.front()->get_offset();
-                bb.translate(-off.x(), -off.y(), 0.);
-            }
-            auto hr = BeltTransformPipeline::compute_belt_height_and_floor(print_config, bb, object_max_z);
-            object_max_z = (float)hr.object_height;
-            belt_floor   = hr.floor_params;
-        }
+    object_max_z = (float) model_object.mesh().transformed_bounding_box(tempTrafo).size().z();
+    // UNLAYERED_MOD -- a plain object lifted off the bed is sliced from the bed up (update_slicing_parameters()).
+    if (! print_config.belt_printer.value && tempTrafo.linear().isIdentity(1e-12)) {
+        const double lift = model_object.bounding_box_exact().min.z();
+        if (lift > EPSILON)
+            object_max_z += (float) lift;
     }
-    SlicingParameters params = SlicingParameters::create_from_config(print_config, object_config, object_max_z, object_extruders, object_shrinkage_compensation);
-    params.belt_floor_shear_factor = belt_floor.shear_factor;
-    params.belt_floor_from_axis    = belt_floor.from_axis;
-    params.belt_floor_z_shift     = belt_floor.z_shift;
-    return params;
+
+    return SlicingParameters::create_from_config(print_config, object_config, object_max_z, object_extruders, object_shrinkage_compensation);
 }
 
 // returns 0-based indices of extruders used to print the object (without brim, support and other helper extrusions)
@@ -4601,6 +5667,7 @@ std::vector<unsigned int> PrintObject::printing_extruders() const
     return extruders;
 }
 
+//this is the first thing 
 bool PrintObject::update_layer_height_profile(const ModelObject &model_object, const SlicingParameters &slicing_parameters, std::vector<coordf_t> &layer_height_profile)
 {
     bool updated = false;
@@ -4803,6 +5870,15 @@ void PrintObject::discover_horizontal_shells()
                 for (const Surface &surface : layerm->fill_surfaces.surfaces)
                     if (surface.surface_type == type)
                         polygons_append(solid, to_polygons(surface.expolygon));
+                // Orca: authoritative wave-overhang semantics — for ALL surface types,
+                // subtract this layer's wave-overhang shadow. Bottom-type seeds
+                // (stBottom/stBottomBridge) in the shadow were force-promoted or are
+                // the wave strip itself — they must not propagate solid shells upward.
+                // Top-type seeds (stTop) in the shadow must not propagate solid shells
+                // downward (otherwise top_shell_layers would refill the wave region
+                // above N=0 with stTopSolid).
+                if (!layer->wave_overhang_shadow_polygons.empty() && !solid.empty())
+                    solid = diff(solid, layer->wave_overhang_shadow_polygons);
                 if (solid.empty())
                     continue;
 //                Slic3r::debugf "Layer %d has %s surfaces\n", $i, ($type == stTop) ? 'top' : 'bottom';
@@ -5093,58 +6169,9 @@ void PrintObject::_generate_support_material()
         tree_support.generate();
     }
     else {
-        // The normal generator anchors its layer grid at the slicing frame origin
-        // (SlicingParameters: first layer at first_print_layer_height, raft at
-        // z = 0), so it has to see the object layers in that frame.  On a belt the
-        // object layers carry the global Z offset (PrintObject::slice()), which is
-        // negative for the leading half of the belt: a top contact below z = 0
-        // then turns the intermediate-layer count negative and the generator
-        // allocates layers until memory runs out.  Lift the offset off the object
-        // layers and the belt floor for the duration of the run and put it back
-        // on everything, including the new support layers, afterwards (organic
-        // tree support is shifted the same way below).
-        const double global_z = m_belt_global_z_offset;
-        const bool   unshift  = std::abs(global_z) > EPSILON;
-        auto shift_object_frame = [this, global_z](double sign) {
-            for (Layer *layer : m_layers)
-                layer->print_z += sign * global_z;
-            m_slicing_params.belt_floor_z_shift += sign * global_z;
-        };
-        if (unshift)
-            shift_object_frame(-1.);
-        try {
-            PrintObjectSupportMaterial support_material(this, m_slicing_params);
-            support_material.generate(*this);
-        } catch (...) {
-            if (unshift)
-                shift_object_frame(1.);
-            throw;
-        }
-        if (unshift) {
-            shift_object_frame(1.);
-            for (SupportLayer *sl : m_support_layers)
-                sl->print_z += global_z;
-        }
+        PrintObjectSupportMaterial support_material(this, m_slicing_params);
+        support_material.generate(*this);
     }
-    // Global Z offset for support layers:
-    // - Normal support: generated in the object frame above and shifted afterwards.
-    // - Non-organic tree support (slim/strong/hybrid): plan_layer_heights() reads
-    //   from globally-offset object layers, so support layers already have it.
-    // - Organic tree support: generate_tree_support_3D() computes its own Z values
-    //   independently and does NOT inherit the offset — apply it here.
-    // Belt floor polygon clipping for non-organic tree support is done inside
-    // draw_circles() before area_groups and toolpaths are built.
-    if (is_tree(m_config.support_type.value) && std::abs(m_belt_global_z_offset) > EPSILON) {
-        // Resolve effective support style (same logic as SupportParameters).
-        auto style = m_config.support_style.value;
-        if (style == smsDefault)
-            style = smsTreeOrganic;
-        if (style == smsTreeOrganic) {
-            for (SupportLayer *sl : m_support_layers)
-                sl->print_z += m_belt_global_z_offset;
-        }
-    }
-
 }
 
 // BBS
@@ -5494,7 +6521,6 @@ static void project_triangles_to_slabs(ConstLayerPtrsAdaptor layers, const index
 void PrintObject::project_and_append_custom_facets(
         bool seam, EnforcerBlockerType type, std::vector<Polygons>& out, std::vector<std::pair<Vec3f, Vec3f>>* vertical_points) const
 {
-    const Transform3d object_trafo = this->trafo_sliced();
     for (const ModelVolume* mv : this->model_object()->volumes)
         if (mv->is_model_part()) {
             const indexed_triangle_set custom_facets = seam
@@ -5503,12 +6529,22 @@ void PrintObject::project_and_append_custom_facets(
             if (! custom_facets.indices.empty()) {
                 if (seam)
                     project_triangles_to_slabs(this->layers(), custom_facets,
-                        (object_trafo * mv->get_matrix()).cast<float>(),
+                        (this->object_to_slice() * mv->get_matrix()).cast<float>(),
                         seam, out);
                 else {
                     std::vector<Polygons> projected;
                     // Support blockers or enforcers. Project downward facing painted areas upwards to their respective slicing plane.
-                    slice_mesh_slabs(custom_facets, zs_from_layers(this->layers()), object_trafo * mv->get_matrix(), nullptr, &projected, vertical_points, [](){});
+                    slice_mesh_slabs(custom_facets, zs_from_layers(this->layers()), this->object_to_slice() * mv->get_matrix(), nullptr, &projected, vertical_points, [](){});
+                    // UNLAYERED_MOD -- while support is generated in a sheared frame, shift the painted
+                    // areas with the layers they are matched against (same rule as slice_support_volumes).
+                    // Only these new projections: `out` may already hold the enforcer/blocker volumes,
+                    // which slice_support_volumes() has shifted.
+                    if (m_support_lean.active())
+                        for (size_t i = 0; i < projected.size() && i < m_layers.size(); ++ i) {
+                            const Point shift = m_support_lean.shift_at(m_layers[i]->print_z);
+                            for (Polygon &poly : projected[i])
+                                poly.translate(shift);
+                        }
                     // Merge these projections with the output, layer by layer.
                     assert(! projected.empty());
                     assert(out.empty() || out.size() == projected.size());

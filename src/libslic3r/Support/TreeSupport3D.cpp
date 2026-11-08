@@ -7,6 +7,7 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "TreeSupport3D.hpp"
+#include "SegmentSupportBounds.hpp"
 #include "AABBTreeIndirect.hpp"
 #include "AABBTreeLines.hpp"
 #include "BuildVolume.hpp"
@@ -25,7 +26,6 @@
 #include "Polygon.hpp"
 #include "Polyline.hpp"
 #include "MutablePolygon.hpp"
-#include "BeltFloorContext.hpp"
 #include "libslic3r/Support/TreeSupportCommon.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Support/TreeModelVolumes.hpp"
@@ -245,9 +245,6 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
     const bool               support_threshold_auto = support_threshold == 0;
     // +1 makes the threshold inclusive
     double                   tan_threshold          = support_threshold_auto ? 0. : tan(M_PI * double(support_threshold + 1) / 180.);
-    // Build plate tilt: compute per-layer XY shift for tilted gravity direction
-    const Vec2d              tilt_slope             = build_plate_tilt_slope(print_config);
-    const bool               has_tilt               = tilt_slope.cwiseAbs().maxCoeff() > EPSILON;
     //FIXME this is a fudge constant!
     auto                     enforcer_overhang_offset = scaled<double>(config.tree_support_tip_diameter.value);
     const coordf_t radius_sample_resolution = g_config_tree_support_collision_resolution;
@@ -269,7 +266,7 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
     size_t num_overhang_layers = support_auto ? num_object_layers : std::min(num_object_layers, std::max(size_t(support_enforce_layers), enforcers_layers.size()));
     tbb::parallel_for(tbb::blocked_range<LayerIndex>(1, num_overhang_layers),
         [&print_object, &config, &print_config, &enforcers_layers, &blockers_layers,
-         support_auto, support_enforce_layers, support_threshold_auto, tan_threshold, enforcer_overhang_offset, num_raft_layers, radius_sample_resolution, has_tilt, tilt_slope, &throw_on_cancel, &out]
+         support_auto, support_enforce_layers, support_threshold_auto, tan_threshold, enforcer_overhang_offset, num_raft_layers, radius_sample_resolution, &throw_on_cancel, &out]
         (const tbb::blocked_range<LayerIndex> &range) {
         for (LayerIndex layer_id = range.begin(); layer_id < range.end(); ++ layer_id) {
             const Layer   &current_layer  = *print_object.get_layer(layer_id);
@@ -293,15 +290,7 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
                     lower_layer_offset = external_perimeter_width - float(scale_(config.support_threshold_overlap.get_abs_value(unscale_(external_perimeter_width))));
                 } else
                     lower_layer_offset = scaled<float>(lower_layer.height / tan_threshold);
-                // Apply build plate tilt: shift lower layer polygons to simulate tilted gravity
-                Polygons lower_layer_offseted;
-                if (has_tilt) {
-                    Polygons lower_src = to_polygons(lower_layer.lslices_extrudable);
-                    translate(lower_src, Point::new_scale(tilt_slope * lower_layer.height));
-                    lower_layer_offseted = offset(lower_src, lower_layer_offset);
-                } else {
-                    lower_layer_offseted = offset(lower_layer.lslices_extrudable, lower_layer_offset);
-                }
+                Polygons lower_layer_offseted = offset(lower_layer.lslices_extrudable, lower_layer_offset);
                 overhangs = diff(current_layer.lslices_extrudable, lower_layer_offseted);
                 if (lower_layer_offset == 0) {
                     raw_overhangs = overhangs;
@@ -3558,6 +3547,43 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
 #else
         std::vector<Polygons>        overhangs = generate_overhangs(config, *print.get_object(processing.second.front()), throw_on_cancel);
 #endif
+        // Declarative cut planes: seed the demand handed up by this segment's children as real
+        // OVERHANGS, so the organic tree places tips at the shared cut face and grows its own
+        // tapered branches down around this segment's body -- rather than stamping the child's flat
+        // root pad onto every base layer. Only the FRESH BAND (demand[i] - demand[i+1]) is seeded;
+        // the tree's own downward growth builds the column beneath it.
+        //
+        // Timing matters: this is after generate_overhangs (pure geometry, which never sees the
+        // demand) and before precalculate, so the demand participates in avoidance precalculation
+        // AND in tip placement. Indexing matters too: demand is OBJECT-layer indexed while
+        // `overhangs` is SUPPORT-layer indexed with a raft offset.
+        {
+            PrintObject &demand_object = *print.get_object(processing.second.front());
+            if (demand_object.has_segment_demand() && ! overhangs.empty()) {
+                const size_t num_raft = config.raft_layers.size();
+                // Inherited load under the child's SUPPORT is support-on-support and must end
+                // flush under the ceiling (or support_section_overlap past it). The organic tree
+                // leaves z_distance_top_layers empty below an overhang plus the overhang's own
+                // layer, so seed such a band that many layers ABOVE its own layer: the branch
+                // then tops out at the band's height, and the segment-bounds clip on the
+                // assembled layers trims whatever a tilted ceiling cuts off. A band under the
+                // child's BODY is an ordinary overhang and stays at its own layer.
+                const size_t overlap_layers = size_t(std::lround(demand_object.config().support_section_overlap.value / std::max(0.01, demand_object.config().layer_height.value)));
+                const size_t lift = config.z_distance_top_layers + 1 + overlap_layers;
+                for (const bool flush : { true, false }) {
+                    const std::vector<Polygons> &demand = flush ? demand_object.segment_support_demand() : demand_object.segment_body_demand();
+                    for (size_t i = 0; i < demand.size() && i < demand_object.layer_count(); ++ i) {
+                        if (demand[i].empty())
+                            continue;
+                        Polygons band = (i + 1 < demand.size()) ? diff(demand[i], demand[i + 1]) : demand[i];
+                        if (band.empty())
+                            continue;
+                        append(overhangs[std::min(i + (flush ? lift : 0) + num_raft, overhangs.size() - 1)], band);
+                    }
+                }
+            }
+        }
+
         // ### Precalculate avoidances, collision etc.
         size_t num_support_layers = precalculate(print, overhangs, processing.first, processing.second, volumes, throw_on_cancel);
         bool   has_support = num_support_layers > 0;
@@ -3677,24 +3703,18 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
             if (layer) layer->polygons = intersection(layer->polygons, volumes.m_bed_area);
         });
 
-        // Belt floor: clip ALL organic support layers (including intermediate/base
-        // fill) against the belt surface.  The branch slices were already clipped
-        // in organic_draw_branches(), but intermediate layers generated between
-        // branches and the build plate need clipping too.
-        // Compute the belt floor polygon directly from each layer's print_z
-        // rather than mapping to a layer index (avoids index mismatch issues).
+        // Declarative cut planes: terminate organic branches on this segment's floor and keep them
+        // below its ceilings. Applied to the assembled layers -- whose polygons alias the per-type
+        // lists generate_support_toolpaths reads, the same trick the bed-area clip above uses -- so
+        // it must stay before that call. Inactive for an ordinary object.
         {
-            const auto &sp   = print_object.slicing_parameters();
-            const auto &pcfg = print_object.print()->config();
-            BeltFloorContext ctx;
-            ctx.init_local(sp, pcfg, print_object.belt_global_z_offset());
-            if (ctx.is_active()) {
-                tbb::parallel_for_each(layers_sorted.begin(), layers_sorted.end(), [&](SupportGeneratorLayer *layer) {
-                    if (!layer || layer->polygons.empty())
-                        return;
-                    layer->polygons = diff(layer->polygons, ctx.surface_polygon(layer->print_z));
+            const SegmentSupportBounds segment_bounds(print_object, print_object.slicing_parameters().first_print_layer_height);
+            if (segment_bounds.is_active())
+                tbb::parallel_for_each(layers_sorted.begin(), layers_sorted.end(), [&segment_bounds, &print_object](SupportGeneratorLayer *layer) {
+                    if (layer != nullptr && ! layer->polygons.empty())
+                        layer->polygons = intersection(layer->polygons, segment_bounds.valid_region_polygon(layer->print_z,
+                            print_object.segment_support_column_at(layer->print_z), print_object.config().support_section_overlap.value));
                 });
-            }
         }
 
         print.set_status(69, _L("Generating support"));
@@ -3987,10 +4007,6 @@ void organic_draw_branches(
                         // ORCA: safety offset when trimming collision/bed to improve robustness.
                         slices[i] = diff_clipped(slices[i], volumes.getCollision(0, layer_begin + i, true), ApplySafetyOffset::Yes); // FIXME parent_uses_min || draw_area.element->state.use_min_xy_dist);
                         slices[i] = intersection(slices[i], volumes.m_bed_area, ApplySafetyOffset::Yes);
-                        // Belt floor: clip branch slices against the belt surface plane.
-                        LayerIndex belt_idx = layer_begin + i;
-                        if (belt_idx < LayerIndex(volumes.m_belt_floor.size()) && !volumes.m_belt_floor[belt_idx].empty())
-                            slices[i] = diff(slices[i], volumes.m_belt_floor[belt_idx]);
                         remove_small(slices[i], tiny_area);
                     }
 
@@ -4035,10 +4051,7 @@ void organic_draw_branches(
                                 if (!contacts.empty())
                                     bottom_contacts.emplace_back(std::move(contacts));
                             }
-                        } else if (layer_begin > 0 && (volumes.m_belt_floor.empty() || num_empty == 0)) {
-                            // Belt-floor clipping makes initial slices empty often; without this
-                            // gate, "verylost" branches propagate rest_support down to layer 0 and
-                            // OOM on tall belt prints.
+                        } else if (layer_begin > 0) {
                             // Drop down areas that do rest non - gracefully on the model to ensure the branch actually rests on something.
                             struct BottomExtraSlice {
                                 Polygons polygons;
@@ -4047,20 +4060,12 @@ void organic_draw_branches(
                             std::vector<BottomExtraSlice>   bottom_extra_slices;
                             Polygons                        rest_support;
                             coord_t                         bottom_radius = support_element_radius(config, *branch.path.front());
-                            // Belt printer (GeneratorOnly belt floor): the tilted belt surface is the
-                            // build surface, so a branch should terminate ON the belt with a thin tip,
-                            // not stamp its full footprint straight down to Z=0 and weld neighbouring
-                            // branches into a solid floor slab. m_belt_floor is only populated in that
-                            // mode, so it doubles as the gate (no effect on other printer types).
-                            const bool                      belt_mode = !volumes.m_belt_floor.empty();
                             // Don't propagate further than 1.5 * bottom radius.
                             //LayerIndex                      layers_propagate_max = 2 * bottom_radius / config.layer_height;
                             LayerIndex                      layers_propagate_max = 5 * bottom_radius / config.layer_height;
-                            LayerIndex                      layer_bottommost = (branch.path.front()->state.verylost && !belt_mode) ?
+                            LayerIndex                      layer_bottommost = branch.path.front()->state.verylost ?
                                 // If the tree bottom is hanging in the air, bring it down to some surface.
                                 0 :
-                                // In belt mode never force-drop to Z=0 (the belt clip below handles
-                                // termination); otherwise the "verylost" branch welds into the slab.
                                 //FIXME the "verylost" branches should stop when crossing another support.
                                 std::max(0, layer_begin - layers_propagate_max);
                             double                          support_area_min_radius = M_PI * sqr(double(config.branch_radius));
@@ -4071,29 +4076,12 @@ void organic_draw_branches(
                                 LayerIndex collision_layer = (layer_idx == layer_begin - 1) ? layer_begin : layer_idx;
                                 Polygons collision = volumes.getCollision(0, collision_layer, false);
                                 rest_support = diff_clipped(rest_support.empty() ? slice_front_contact : rest_support, collision, ApplySafetyOffset::Yes);
-                                // Belt floor: clip propagated support at belt surface.
-                                bool belt_cut = false;
-                                if (layer_idx < LayerIndex(volumes.m_belt_floor.size()) && !volumes.m_belt_floor[layer_idx].empty()) {
-                                    double area_before = area(rest_support);
-                                    rest_support = diff(rest_support, volumes.m_belt_floor[layer_idx]);
-                                    // The belt counts as "reached" only when it actually removes part
-                                    // of this branch's footprint. The belt half-plane is non-empty at
-                                    // every near-belt layer, so testing non-emptiness alone would
-                                    // terminate a laterally-distant branch ~1 layer above true contact,
-                                    // leaving a gap. Require a real area reduction instead.
-                                    belt_cut = belt_mode && area(rest_support) < area_before - tiny_area;
-                                }
                                 remove_small(rest_support, tiny_area);
                                 double rest_support_area = area(rest_support);
                                 if (rest_support_area < support_area_stop)
                                     // Don't propagate a fraction of the tree contact surface.
                                     break;
                                 bottom_extra_slices.push_back({ rest_support, rest_support_area });
-                                // Belt mode: once the belt surface actually starts cutting this branch
-                                // it has reached the belt — keep this last (belt-clipped) slice as the
-                                // contact and stop, rather than stamping the footprint further down.
-                                if (belt_cut)
-                                    break;
                             }
                             // Now remove those bottom slices that are not supported at all.
 #if 0
@@ -4111,10 +4099,7 @@ void organic_draw_branches(
                                 }
                             }
 #endif
-                            // Belt mode: no solid support-floor pad under these branches — it is what
-                            // welds neighbouring belt-terminating branches into the dense Z=0 slab.
-                            // They simply taper out onto the tilted belt as distributed thin contacts.
-                            if (!belt_mode && config.settings.support_floor_layers > 0) {
+                            if (config.settings.support_floor_layers > 0) {
                                 Polygons contacts;
                                 if (!bottom_extra_slices.empty()) {
                                     const int contact_idx = int(bottom_extra_slices.size()) - 1; // Use the lowest contact slice as the footprint.
@@ -4153,10 +4138,7 @@ void organic_draw_branches(
                         }
 
                         // ORCA: retain bottom contacts even when no placeable areas intersect.
-                        // Skipped in belt mode (m_belt_floor populated) so we don't re-introduce a
-                        // solid floor pad for branches that terminate on the tilted belt surface.
-                        if (volumes.m_belt_floor.empty() &&
-                            branch.has_root && config.support_rests_on_model && branch.path.front()->state.layer_idx > 0 &&
+                        if (branch.has_root && config.support_rests_on_model && branch.path.front()->state.layer_idx > 0 &&
                             config.settings.support_floor_layers > 0 && config.z_distance_bottom_layers > 0 &&
                             bottom_contacts.empty() && !slice_front_contact.empty())
                             bottom_contacts.emplace_back(slice_front_contact);

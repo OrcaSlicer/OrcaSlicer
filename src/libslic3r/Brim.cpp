@@ -1,6 +1,7 @@
 #include "BoundingBox.hpp"
 #include "BrimEarsPoint.hpp"
 #include "ClipperUtils.hpp"
+#include "CutPlaneSegmentation.hpp"
 #include "EdgeGrid.hpp"
 #include "ExclusionVolumeGeometry.hpp"
 #include "ExPolygon.hpp"
@@ -17,6 +18,7 @@
 #include "Print.hpp"
 #include "PrintBase.hpp"
 #include "ShortestPath.hpp"
+#include "TriangleMeshSlicer.hpp"
 #include "libslic3r.h"
 #include "PrintConfig.hpp"
 #include "MaterialType.hpp"
@@ -27,6 +29,7 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <set>
 #include <numeric>
 #include <optional>
 #include <map>
@@ -92,6 +95,66 @@ static void append_and_translate(Polygons &dst, const Polygons &src, const Print
         dst[dst_idx].translate(instance_shift);
 }
 
+// UNLAYERED_MOD -- where a NON-ROOT cut-plane segment lands on the build plate. Such a segment
+// carries a Bed clip (CutClipRole::Bed): a tilted chunk whose angled layers run down to the plate.
+// It gets no brim of its own (has_brim() and the loop below gate on is_root_segment()), and its
+// first layer is its cut face, tilted, so its slices say nothing about the plate. Measure it in the
+// BED frame instead: its material at mid first-layer height, sliced from its own volumes and
+// confined by its own clips. trafo_centered() keeps world Z and centres XY exactly as the root's
+// first layer is centred (every segment of one object shares the root's trafo and centre offset),
+// so the result sits in the same coordinates as any first-layer island and append_and_translate()
+// places it per instance. Empty for every other object.
+static ExPolygons segment_plate_footprint(const PrintObject &object)
+{
+    if (! object.is_segment() || object.is_root_segment() || ! object.segment()->has_bed_clip())
+        return {};
+    const CutSegmentDescriptor &segment = *object.segment();
+    indexed_triangle_set its;
+    for (const ModelVolume *mv : object.model_object()->volumes) {
+        if (! mv->is_model_part() || ! segment_includes_volume(&segment, *mv))
+            continue;
+        indexed_triangle_set part = mv->mesh().its;
+        its_transform(part, mv->get_matrix());
+        its_merge(its, part);
+    }
+    if (its.indices.empty())
+        return {};
+    const Transform3d trafo = object.trafo_centered();
+    its_transform(its, trafo, true);
+    const double z = 0.5 * object.print()->config().initial_layer_print_height.value;
+    ExPolygons footprint = union_ex(slice_mesh(its, float(z), MeshSlicingParams{}));
+    // Clips are object-local half-spaces; carry them into this frame (n -> A^-T n, d -> d + n.t)
+    // and intersect with their traces on the plane z. The Bed clip is skipped: z is above the plate
+    // by construction.
+    const Eigen::Matrix3d a_inv_t = trafo.linear().inverse().transpose();
+    for (const CutSegmentClip &clip : segment.clips) {
+        if (footprint.empty())
+            break;
+        if (clip.role == CutClipRole::Bed)
+            continue;
+        const Vec3d  n  = a_inv_t * clip.normal;
+        const Vec2d  ab(n.x(), n.y());
+        const double c  = clip.offset + n.dot(trafo.translation()) - n.z() * z;
+        if (ab.norm() < 1e-9 * n.norm()) {
+            if (c < 0.)
+                footprint.clear();
+        } else
+            footprint = clip_expolygons_by_half_plane(std::move(footprint), ab, c, get_extents(footprint));
+    }
+    return footprint;
+}
+
+// The root segment a non-root segment belongs to: same model object, same instance transform
+// (Print::apply derives one partition per distinct transform).
+static const PrintObject* segment_root_of(const Print &print, const PrintObject &object)
+{
+    for (const PrintObject *candidate : print.objects())
+        if (candidate != &object && candidate->is_segment() && candidate->is_root_segment()
+            && candidate->model_object() == object.model_object() && candidate->trafo().isApprox(object.trafo()))
+            return candidate;
+    return nullptr;
+}
+
 //ORCA: Brim can follow the post-EFC outline when enabled.
 static bool use_brim_efc_outline(const PrintObject &object)
 {
@@ -152,6 +215,10 @@ static bool closest_point_on_matching_island(const ExPolygons &raw_outline, cons
 static ExPolygons get_print_object_bottom_layer_expolygons(const PrintObject &print_object)
 {
     ExPolygons ex_polygons;
+    // A PrintObject can legitimately have no layers -- a cut-plane segment whose clipped geometry
+    // is empty, for one -- and every caller here reads layers().front() unguarded.
+    if (print_object.layers().empty())
+        return ex_polygons;
     for (LayerRegion *region : print_object.layers().front()->regions())
         Slic3r::append(ex_polygons, closing_ex(region->slices.surfaces, float(SCALED_EPSILON)));
     return ex_polygons;
@@ -164,6 +231,10 @@ double getadhesionCoeff(const PrintObject* printObject)
 
     auto print = printObject->print();
     std::vector<size_t> extrudersFirstLayer;
+    // No first layer: no first-layer extruders to look up, so keep the neutral coefficient the
+    // loop below would leave in place anyway.
+    if (printObject->layers().empty())
+        return 1.;
     auto firstLayerRegions = printObject->layers().front()->regions();
     if (!firstLayerRegions.empty()) {
         for (const LayerRegion* regionPtr : firstLayerRegions) {
@@ -399,6 +470,8 @@ static ExPolygons make_brim_ears(const PrintObject* object)
     if (brim_ear_points.size() <= 0) {
         return mouse_ears_ex;
     }
+    if (object->layers().empty())
+        return mouse_ears_ex;
     //ORCA: Painted ears follow the EFC-adjusted outline when enabled, while
     // preserving their position along the selected outline segment.
     const bool use_efc_outline = use_brim_efc_outline(*object);
@@ -487,10 +560,83 @@ static ExPolygons outer_inner_brim_area(const Print& print,
         brimToWrite.insert({ objectWithExtruder.first, {true,true} });
 
     ExPolygons objectIslands;
+
+    // UNLAYERED_MOD -- tilted cut-plane segments that land on the plate (segment_plate_footprint).
+    // They are skipped by the loop below like every non-root segment, but unlike the others they DO
+    // occupy plate area: the root's collar was laid straight across the strip where such a chunk
+    // lands later. So their footprints, grown by their brim gap, join no_brim_area (nobody's brim
+    // may cover them) and objectIslands (a brim touching one is anchored), and each is handed to
+    // its root, which wraps its own collar around it as well -- printed flat in the root's first
+    // layer, before the table tilts, so it is already down when the chunk arrives.
+    std::map<const PrintObject*, ExPolygons> footprints_by_root;
+    {
+        std::set<ObjectID> seen;
+        for (const auto &objectWithExtruder : objPrintVec) {
+            if (! seen.insert(objectWithExtruder.first).second)
+                continue;
+            const PrintObject *object = print.get_object(objectWithExtruder.first);
+            ExPolygons footprint = segment_plate_footprint(*object);
+            if (footprint.empty())
+                continue;
+            const ExPolygons island = offset_ex(footprint, scale_(object->config().brim_object_gap.value), jtRound, SCALED_RESOLUTION);
+            for (const PrintInstance &instance : object->instances()) {
+                append_and_translate(no_brim_area, island, instance);
+                append_and_translate(objectIslands, island, instance);
+            }
+            if (const PrintObject *root = segment_root_of(print, *object))
+                append(footprints_by_root[root], std::move(footprint));
+        }
+    }
+
     for (unsigned int extruderNo : printExtruders) {
         ++extruderNo;
         for (const auto& objectWithExtruder : objPrintVec) {
             const PrintObject* object = print.get_object(objectWithExtruder.first);
+            // No first layer, no brim to build from it (see get_print_object_bottom_layer_expolygons).
+            if (object->layers().empty())
+                continue;
+            // UNLAYERED_MOD -- a brim exists to pin the FIRST LAYER TO THE BUILD PLATE. There are
+            // two independent ways an object's first layer can fail to be on the plate, and both
+            // must be tested here: neither implies the other. An object that fails either one gets
+            // no brim AND contributes nothing to no_brim_area / objectIslands below -- it is not on
+            // the plate, so it must neither receive a brim nor block anyone else's.
+            //
+            // (a) a TILTED slice frame -- the legacy per-object chunk (layer_rotation_b/c). Its
+            // first layer rests on the chunk below it. The brim is built flat in the object's own
+            // slice frame and emitted with NO un-rotation (GCode::generate_object_brim calls
+            // extrude_entity with three arguments, so its trafo takes the Transform3d::Identity()
+            // default), while the machine has ALREADY been swung into that chunk's orientation by
+            // chunk_transition_gcode + set_last_trafo. The rotary table then applies the rotation
+            // the slicer declined to, and the flat collar is physically tipped under the bed.
+            // Measured on a 20 mm cube with one 30-degree chunk: 1209 brim extrusions below Z0,
+            // reaching 8.6 mm under the plate, while the object's own walls never went below 0.144.
+            // Same identity test GCode::_extrude uses to decide whether a path needs un-rotating at
+            // all, so the two agree by construction.
+            //
+            // (b) a NON-ROOT declarative cut-plane segment. A segment that builds along +Z -- the
+            // piece above a HORIZONTAL cut plane -- is untilted, so (a) waves it through, but its
+            // first layer is the cut face, measured 25 mm in the air on a 3-blade propeller. Its own
+            // phantom brim is invisible (a non-root segment joins no skirt/brim group, so
+            // Print::_make_skirt never hands it to generate_object_brim). The damage is that the
+            // block below appends that in-air cross-section, inflated by brim_object_gap, to the
+            // SHARED no_brim_area, and the diff_ex near the end of this function subtracts it from
+            // EVERY object's brim -- including the ROOT's. Measured: the root hub's 4 mm collar
+            // (r 4.07..8.07) came out as three disconnected crescents whose inner boundaries were
+            // three straight chords at r 4.70/4.83/4.87 -- the traces of the three tilted planes on
+            // that untilted top segment's cross-section -- with its three corners (r 7.81) punching
+            // the ring's three total gaps. It also leaked into m_first_layer_convex_hull and into
+            // the flat-print chamber-temperature area sum, neither of which gates on the root.
+            //
+            // is_root_segment() is the predicate the rest of the bed-contact family already uses:
+            // PrintObject::has_brim(), Print::_make_skirt(), Print::first_layer_islands(), the
+            // elephant-foot gate in slice_volumes(), and ConflictChecker. This loop was the one
+            // place in the pipeline that did not consult it. It is true for any object with no
+            // segment descriptor, so ordinary prints -- and legacy chunks, which (a) still catches
+            // -- are unaffected, byte for byte.
+            if (! object->post_trafo_inverse().linear().isApprox(Matrix3d::Identity()))
+                continue;
+            if (! object->is_root_segment())
+                continue;
             const BrimType     brim_type = object->config().brim_type.value;
             float              brim_offset = scale_(object->config().brim_object_gap.value);
             double             flowWidth = print.brim_flow().scaled_spacing() * SCALING_FACTOR;
@@ -503,8 +649,7 @@ static ExPolygons outer_inner_brim_area(const Print& print,
             const bool         use_brim_ears = object->config().brim_type == btPainted;
             const bool         use_inner_brim_ears = (use_auto_brim_ears || use_brim_ears) && !object->config().brim_ears_outer_only.value;
             const bool         has_inner_brim = brim_type == btInnerOnly || brim_type == btOuterAndInner || use_inner_brim_ears;
-            // btLeadingEdgeOnly is a belt-printer mode; on a flat bed there is no leading
-            // edge, so it degrades to an ordinary outer brim rather than silently to none.
+            // BELT_MOD: leading-edge-only is a belt mode; on a flat bed it is an ordinary outer brim.
             const bool         has_outer_brim = brim_type == btOuterOnly || brim_type == btOuterAndInner || brim_type == btAutoBrim || brim_type == btLeadingEdgeOnly || use_auto_brim_ears || use_brim_ears;
             coord_t            ear_detection_length = scale_(object->config().brim_ears_detection_length.value);
             coordf_t           brim_ears_max_angle = object->config().brim_ears_max_angle.value;
@@ -615,6 +760,21 @@ static ExPolygons outer_inner_brim_area(const Print& print,
                             append(holes_object, ex_poly_holes_reversed);
                         }
                     }
+                // UNLAYERED_MOD -- this root's collar also goes round the plate footprints of its
+                // tilted segments (see footprints_by_root), outer brim only, with the width the
+                // root's own islands got. Painted ears are explicit user placements and are left
+                // alone. The footprints themselves are already in no_brim_area, which cuts the
+                // ring back off them when the areas are diffed below.
+                if (has_outer_brim && ! use_brim_ears)
+                    if (auto it = footprints_by_root.find(object); it != footprints_by_root.end())
+                        for (const ExPolygon &footprint : it->second) {
+                            auto innerExpoly = offset_ex(footprint.contour, brim_offset, jtRound, SCALED_RESOLUTION);
+                            ExPolygons outerExpoly = use_auto_brim_ears ?
+                                make_brim_ears_auto(innerExpoly, coord_t(brim_width - brim_offset - flow.scaled_spacing()),
+                                                    ear_detection_length, brim_ears_max_angle, true) :
+                                offset_ex(innerExpoly, brim_width, jtRound, SCALED_RESOLUTION);
+                            append(brim_area_object, diff_ex(outerExpoly, innerExpoly));
+                        }
                 auto objectIsland = offset_ex(*brim_slices, brim_offset, jtRound, SCALED_RESOLUTION);
                 append(no_brim_area_object, objectIsland);
 
@@ -933,17 +1093,6 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
     std::vector<unsigned int>& printExtruders,
     std::map<ObjectInstanceID, ExPolygons>* objectBrimAreasByInstanceOut)
 {
-    // Belt printers never use the flat plate brim.
-    //
-    // With a tilted belt the brim has to be laid onto the belt plane over many layers,
-    // which BeltBrim.cpp does during posSupportMaterial.  With an untilted belt this
-    // could in principle fall through and produce an ordinary brim, but it would never
-    // reach the G-code: the plate brim is emitted out of skirt_brim_groups(), which
-    // _make_skirt() builds, and that returns early for every belt printer.  Running the
-    // generator anyway would just burn time on geometry nobody prints.
-    if (print.config().belt_printer.value)
-        return;
-
     std::map<ObjectInstanceID, ExPolygons> brimAreaMap;
     Flow                 flow = print.brim_flow();
     ExPolygons           islands_area_ex = outer_inner_brim_area(print,
@@ -961,6 +1110,9 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
     for (const ObjectID printObjID : print.print_object_ids()) {
         BoundingBox bbx;
         PrintObject* object = const_cast<PrintObject*>(print.get_object(printObjID));
+        // Nothing sliced, nothing to bound: layers().front() below would read out of bounds.
+        if (object->layers().empty())
+            continue;
         //ORCA: Use EFC-compensated outline for brim bounding box when enabled.
         const ExPolygons brim_slices = use_brim_efc_outline(*object) ?
             get_print_object_bottom_layer_expolygons(*object) : object->layers().front()->lslices;

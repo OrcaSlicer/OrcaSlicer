@@ -644,6 +644,64 @@ TEST_CASE("Z contouring slices instances of one object that are turned different
         CHECK(object->is_step_done(posContouring));
 }
 
+// Slice a 10mm cube with Z contouring on at the given layer height and minimum Z height, and
+// return its sliced PrintObject. The caller owns `print` so the layers outlive the call.
+static const PrintObject *slice_cube_with_min_z(double layer_height, double min_z, Print &print, Model &model)
+{
+    init_print({ cube(10) }, print, model, {
+        { "zaa_enabled",                true },
+        { "zaa_min_z",                  min_z },
+        { "layer_height",               layer_height },
+        { "initial_layer_print_height", layer_height }
+    });
+    REQUIRE_NOTHROW(print.process());
+
+    const PrintObject *object = print.objects().front();
+    REQUIRE(object->layer_count() > 1);
+    // slice_z is measured from the object's own bottom, which is where print_z starts without a raft.
+    REQUIRE(object->slicing_parameters().raft_layers() == 0);
+    return object;
+}
+
+TEST_CASE("Z contouring slices a layer thinner than its minimum Z height at the middle of the layer", "[PrintObject]")
+{
+    // A layer thinner than the configured minimum Z height has no plane at that height above its
+    // bottom: variable layer height, the slivers a cut plane leaves and the planar layer under a
+    // nonplanar hold-back all produce one. A minimum Z height above the layer height is the same
+    // arithmetic for every layer at once.
+    const double min_z = GENERATE(0.25, 0.4);
+    CAPTURE(min_z);
+
+    Print print;
+    Model model;
+    const PrintObject *object = slice_cube_with_min_z(0.2, min_z, print, model);
+
+    for (const Layer *layer : object->layers()) {
+        CAPTURE(layer->id());
+        CHECK_THAT(layer->slice_z, Catch::Matchers::WithinAbs(0.5 * (layer->bottom_z() + layer->print_z), 1e-9));
+    }
+}
+
+TEST_CASE("Z contouring slices a layer at its minimum Z height above the layer bottom", "[PrintObject]")
+{
+    // The minimum Z height fits in these layers, so the slicing plane sits at it, which is what
+    // Z contouring asks for. The first layer is sliced at its middle, as it always has been.
+    const double layer_height = 0.2;
+    const double min_z        = 0.05;
+
+    Print print;
+    Model model;
+    const PrintObject *object = slice_cube_with_min_z(layer_height, min_z, print, model);
+
+    ConstLayerPtrsAdaptor layers = object->layers();
+    CHECK_THAT(layers.front()->slice_z,
+               Catch::Matchers::WithinAbs(0.5 * (layers.front()->bottom_z() + layers.front()->print_z), 1e-9));
+    for (size_t i = 1; i < layers.size(); ++i) {
+        CAPTURE(i);
+        CHECK_THAT(layers[i]->slice_z, Catch::Matchers::WithinAbs(layers[i]->bottom_z() + min_z, 1e-9));
+    }
+}
+
 // A box tilted about X, so that its top slopes along Y and Z contouring has a surface to follow, with
 // one instance for each Z rotation given, laid out in a row.
 static void slice_tilted_box_instances(const std::vector<double> &z_rotations, Print &print, Model &model)

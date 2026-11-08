@@ -6,13 +6,22 @@ add_executable(${_TEST_NAME}_tests
 	test_adaptive_pressure_advance.cpp
 	test_calib.cpp
 	test_cooling.cpp
+	test_cut_plane_apply.cpp
+	test_segment_frames.cpp
+	test_gcode_baseline.cpp
+	test_hotend_collision.cpp
+	test_virtual_tilt_limit.cpp
+	test_max_layer_z_multiplanar.cpp
+	test_multiplanar_base_c.cpp
+	test_segment_support_cascade.cpp
+	test_skeleton_containment.cpp
 	test_extrusion_entity.cpp
 	test_extrusion_processor.cpp
 	test_exclusion_volumes.cpp
 	test_fan_mover.cpp
 	test_fill.cpp
+	test_mesh_infill.cpp
 	test_flow.cpp
-	test_gcode_processor.cpp
 	test_gcode_statistics.cpp
 	test_gcode_timing.cpp
 	test_gcode.cpp
@@ -27,6 +36,7 @@ add_executable(${_TEST_NAME}_tests
 	# Seam geometry and pipeline regressions share the existing Print fixtures.
 	test_precise_seam.cpp
 	test_print.cpp
+	test_start_gcode_temperature.cpp
 	test_printobject.cpp
 	test_mixed_filament.cpp
 	test_seam_placer.cpp
@@ -34,10 +44,14 @@ add_executable(${_TEST_NAME}_tests
 	test_slicing_pipeline_hook.cpp
 	test_spiral_vase.cpp
 	test_support_material.cpp
+	test_support_direction.cpp
+	test_support_neighbour_clip.cpp
 	test_texture_displacement.cpp
 	test_tree_support.cpp
 	test_trianglemesh.cpp
+	test_wave_overhangs.cpp
 	test_wipe.cpp
+	test_nonplanar_top.cpp
 	test_wipe_tower.cpp
 	)
 target_link_libraries(${_TEST_NAME}_tests test_common libslic3r Catch2::Catch2WithMain)
@@ -47,6 +61,6 @@ endif ()
 
 set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 
-orcaslicer_copy_test_dlls()
+unlayered_copy_test_dlls()
 
-orcaslicer_discover_tests(${_TEST_NAME}_tests)
+unlayered_discover_tests(${_TEST_NAME}_tests)

@@ -21,7 +21,7 @@ struct PerExtruderAdjustments;
 //
 // The simple it sounds, the actual implementation is significantly more complex.
 // Namely, for a multi-extruder print, each material may require a different cooling logic.
-// For example, some materials may not like to print too slowly, while with some materials
+// For example, some materials may not like to print too slowly, while with some materials 
 // we may slow down significantly.
 //
 class CoolingBuffer {
@@ -38,6 +38,8 @@ private:
     // Apply slow down over G-code lines stored in per_extruder_adjustments, enable fan if needed.
     // Returns the adjusted G-code.
     std::string apply_layer_cooldown(const std::string &gcode, size_t layer_id, float layer_time, std::vector<PerExtruderAdjustments> &per_extruder_adjustments);
+    // BELT_MOD -- see the definition.
+    int         compute_main_fan_speed(int effective_layer_id, float layer_time, unsigned int extruder_id) const;
 
     // G-code snippet cached for the support layers preceding an object layer.
     std::string                 m_gcode;
@@ -63,9 +65,6 @@ private:
     unsigned int                m_current_nozzle;
     //BBS: current fan speed
     int                         m_current_fan_speed;
-    // Belt printers: the extrusion being processed lies in the first-layer band above the
-    // belt (between a ";_BELT_BAND_START" and a ";_BELT_BAND_END"). Kept across layers.
-    bool                        m_belt_band_active = false;
 };
 
 }

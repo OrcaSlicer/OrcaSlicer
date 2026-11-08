@@ -1,4 +1,4 @@
-# OrcaSlicer tests
+# Unlayered Slicer tests
 
 Building, running and writing tests is documented on the wiki, under [How to Test](https://www.orcaslicer.com/wiki/developer_reference/how_to_test.html).
 

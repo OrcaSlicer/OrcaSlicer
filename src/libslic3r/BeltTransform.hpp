@@ -41,6 +41,11 @@ class ModelObject;
 // This also means that the pre-slice rotation transform methodology can be used 
 // more cleanly on non-belt printers.
 // - HarrierPigeon (Joseph Robertson)
+//
+// Unlayered (D-006): the fork applies the same rotation, but as one more per-object slicing frame
+// (layer_rotation_trafo(), PrintObject::update_slice_frame) undone per move by the writer, so
+// BeltSliceStrategy, BeltBackTransform and the belt floor parameters below are not used on its
+// slicing path. The machine-frame stage is shared.
 
 class BeltTransformPipeline
 {
@@ -88,6 +93,11 @@ public:
     // Returns Identity if rotation axis is None or angle is ~0.
     // Also sets has_rot_out if non-null.
     static Matrix3d build_rotation_matrix(const PrintConfig &config, bool *has_rot_out = nullptr);
+
+    // Unlayered: the 3x3 rotation of the machine's gantry -- the belt tilt, or the decoupled
+    // machine-frame tilt (belt_frame_tilt_decouple). Identity outside belt mode. Used for the
+    // rotary home and the preview's nozzle, which follow the physical gantry.
+    static Matrix3d build_gantry_matrix(const PrintConfig &config);
 
     // Forward transform (the rotation) — the mesh-side belt transform that
     // BeltSliceStrategy applies and BeltBackTransform inverts.

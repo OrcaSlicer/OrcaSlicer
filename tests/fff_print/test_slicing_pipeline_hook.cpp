@@ -179,8 +179,12 @@ TEST_CASE("Duplicate objects share a slice: Slice hook fires exactly once", "[sl
     Slic3r::Print::set_slicing_pipeline_hook_fn(nullptr);
 
     REQUIRE(print.objects().size() == 2);   // two print objects present...
-    CHECK(slice_calls == 1);                // ...but the duplicate is skipped -> one slice
-    CHECK(perim_calls == 1);                // and one perimeters pass (the sliced object)
+    // Unlayered: upstream skips the duplicate (one slice, one perimeters pass). This fork slices
+    // every object on purpose -- Print::process() puts all of them in need_slicing_objects
+    // (UNLAYERED_MOD) because rotated cut-plane chunks of one mesh are not interchangeable --
+    // so the hook fires once per object.
+    CHECK(slice_calls == 2);
+    CHECK(perim_calls == 2);
 }
 
 #include "libslic3r/Layer.hpp"          // Layer, LayerRegion (full defs for the cascade hook)

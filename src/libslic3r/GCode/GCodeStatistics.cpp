@@ -174,7 +174,7 @@ std::string gcode_statistics_json(const GCodeProcessorResult &result)
 
     // The version goes up only when a key is removed, renamed or changes meaning.
     const json out = json{ { "version", 1 },
-                           { "generator", std::string(SLIC3R_APP_NAME) + " " + SoftFever_VERSION },
+                           { "generator", std::string(SLIC3R_APP_NAME) + " " + UNLAYERED_VERSION },
                            { "units", json{ { "time", "s" }, { "length", "mm" }, { "volume", "mm3" }, { "weight", "g" } } },
                            { "summary", summary },
                            { "layers", layers_json },

@@ -978,20 +978,44 @@ public:
 
         if (stopcond) m_pck.stopCondition(stopcond);
 
-        m_pconf.sortfunc= [&params](Item& i1, Item& i2) {
+        // std::sort requires a strict weak ordering, and the non-sequential branch was not
+        // one: two items whose extrude_ids DIFFER but share a first element compared equal in
+        // both directions, while each could still be ordered against a third item carrying
+        // identical ids — so equivalence was not transitive. MSVC's release std::sort can walk
+        // off the buffer on an invalid comparator once a range exceeds its insertion-sort
+        // cutoff. Comparing the id vectors lexicographically keeps the intent (group by first
+        // extruder, fewest switches) while being a total order, so the result is also
+        // deterministic instead of merely unspecified.
+        //
+        // It removes an unguarded front() as well. extrude_ids is empty for every virtual
+        // object — exclude regions, wipe tower — and those only avoid it today because fixed
+        // items are split into fixed_bins before the sort runs. The sequential branch keeps
+        // its front(), guarded, and its divide is protected against a zero area.
+        //
+        // NOT fixed here: the sequential branch's `|a1/a2 - 1| > 0.2` band is inherently
+        // non-transitive (a~b and b~c does not give a~c across a 20% window). The banding is
+        // deliberate — group similar-sized objects — and making it transitive would reorder
+        // existing sequential prints, so it is left alone rather than changed silently.
+        auto first_extruder = [](const Item &i) { return i.extrude_ids.empty() ? 0 : i.extrude_ids.front(); };
+        m_pconf.sortfunc= [&params, first_extruder](Item& i1, Item& i2) {
             int p1 = i1.priority(), p2 = i2.priority();
             if (p1 != p2)
                 return p1 > p2;
             if (params.is_seq_print) {
-                return i1.bed_temp != i2.bed_temp                ? (i1.bed_temp > i2.bed_temp) :
-                       i1.height != i2.height                    ? (i1.height < i2.height) :
-                       std::abs(i1.area() / i2.area() - 1) > 0.2 ? (i1.area() > i2.area()) :
-                                                                   i1.extrude_ids.front() < i2.extrude_ids.front();
+                if (i1.bed_temp != i2.bed_temp)
+                    return i1.bed_temp > i2.bed_temp;
+                if (i1.height != i2.height)
+                    return i1.height < i2.height;
+                const double a1 = i1.area(), a2 = i2.area();
+                if (a2 != 0.0 && std::abs(a1 / a2 - 1) > 0.2)
+                    return a1 > a2;
+                return first_extruder(i1) < first_extruder(i2);
             }
-            else {
-                return i1.bed_temp != i2.bed_temp ? (i1.bed_temp > i2.bed_temp) :
-                    (i1.extrude_ids != i2.extrude_ids ? (i1.extrude_ids.front() < i2.extrude_ids.front()) : (i1.area() > i2.area()));
-            }
+            if (i1.bed_temp != i2.bed_temp)
+                return i1.bed_temp > i2.bed_temp;
+            if (i1.extrude_ids != i2.extrude_ids)
+                return i1.extrude_ids < i2.extrude_ids;
+            return i1.area() > i2.area();
         };
 
         m_pck.configure(m_pconf);
@@ -1317,8 +1341,21 @@ void arrange(ArrangePolygons &      arrangables,
     std::vector<Item> items, fixeditems;
     items.reserve(arrangables.size());
 
-    for (ArrangePolygon &arrangeable : arrangables)
-        process_arrangeable(arrangeable, items);
+    // Which ArrangePolygon produced each Item. process_arrangeable() silently emits nothing
+    // for a contour left with fewer than three points, so `items` is NOT index-parallel with
+    // `arrangables` — and the results below were written back by position. One dropped
+    // polygon therefore handed every arrangeable after it another object's placement, and
+    // left the last one at UNARRANGED, which the CLI reports as CLI_OBJECT_ARRANGE_FAILED.
+    // Silent mis-placement rather than a crash, so nothing ever caught it.
+    std::vector<size_t> item_source;
+    item_source.reserve(arrangables.size());
+
+    for (size_t i = 0; i < arrangables.size(); ++i) {
+        const size_t before = items.size();
+        process_arrangeable(arrangables[i], items);
+        if (items.size() != before)
+            item_source.emplace_back(i);
+    }
 
     for (const ArrangePolygon &fixed: excludes)
         process_arrangeable(fixed, fixeditems);
@@ -1327,12 +1364,14 @@ void arrange(ArrangePolygons &      arrangables,
 
     _arrange(items, fixeditems, to_nestbin(bed), params, params.progressind, params.stopcondition);
 
+    assert(item_source.size() == items.size());
     for(size_t i = 0; i < items.size(); ++i) {
+        ArrangePolygon &dst = arrangables[item_source[i]];
         Point tr = items[i].translation();
-        arrangables[i].translation = {coord_t(tr.x()), coord_t(tr.y())};
-        arrangables[i].rotation    = items[i].rotation();
-        arrangables[i].bed_idx     = items[i].binId();
-        arrangables[i].itemid      = items[i].itemId();  // arrange order is useful for sequential printing
+        dst.translation = {coord_t(tr.x()), coord_t(tr.y())};
+        dst.rotation    = items[i].rotation();
+        dst.bed_idx     = items[i].binId();
+        dst.itemid      = items[i].itemId();  // arrange order is useful for sequential printing
     }
 }
 

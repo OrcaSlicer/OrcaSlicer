@@ -24,11 +24,6 @@ namespace {
 using namespace Slic3r; // Polygon
 // see function nsvg__lineTo(NSVGparser* p, float x, float y)
 bool is_line(const float *p, float precision = 1e-4f);
-// convert curve in path to lines
-struct LinesPath{
-    Polygons polygons;
-    Polylines polylines; };
-LinesPath linearize_path(NSVGpath *first_path, const NSVGLineParams &param);
 HealedExPolygons fill_to_expolygons(const LinesPath &lines_path, const NSVGshape &shape, const NSVGLineParams &param);
 HealedExPolygons stroke_to_expolygons(const LinesPath &lines_path, const NSVGshape &shape, const NSVGLineParams &param);
 } // namespace
@@ -334,6 +329,10 @@ void flatten_cubic_bez(Points &points, float tessTol, const Vec2f& p1, const Vec
     flatten_cubic_bez(points, tessTol, p1234, p234, p34, p4, level);
 }
 
+} // namespace
+
+namespace Slic3r {
+
 LinesPath linearize_path(NSVGpath *first_path, const NSVGLineParams &param)
 {
     LinesPath result;
@@ -385,6 +384,11 @@ LinesPath linearize_path(NSVGpath *first_path, const NSVGLineParams &param)
     remove_same_neighbor(polylines);
     return result;
 }
+
+} // namespace Slic3r
+
+namespace {
+using namespace Slic3r;
 
 HealedExPolygons fill_to_expolygons(const LinesPath &lines_path, const NSVGshape &shape, const NSVGLineParams &param)
 {

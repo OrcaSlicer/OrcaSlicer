@@ -58,11 +58,33 @@ using namespace nlohmann;
 
 namespace Slic3r {
 
-static const std::string VERSION_CHECK_URL = "https://check-version.orcaslicer.com/latest";
-static const std::string PROFILE_UPDATE_URL = "https://check-version.orcaslicer.com/profile";
+// Unlayered: the update manifest. A single static JSON file, served publicly over HTTPS with no
+// authentication, deliberately shaped like one GitHub releases entry so the same parser handles
+// both:
+//   { "tag_name": "v0.0.4", "prerelease": false, "html_url": "<download page>",
+//     "body": "<release notes, markdown>",
+//     "assets": [ { "name": ..., "browser_download_url": ..., "size": ..., "sha256": ... } ] }
+// An empty or absent "assets" array means the installer is not directly downloadable, and the
+// update dialog offers to open "html_url" in a browser instead of installing in place.
+//
+// Since 0.1.3 unlayered3d.com builds this live from the installer published in its admin panel
+// (pilot repo: app/slicer/latest.json/route.ts). It always sends "assets": [] - the installer sits
+// behind a sign-in, which builds up to 0.1.2 cannot do - and adds what newer builds read instead:
+//     "unlayered_downloads": [ { "platform": "windows", "arch": "x64", "name": ..., "size": ...,
+//                                "sha256": ..., "url": <site>/api/slicer/update/download?...,
+//                                "auth": "unlayered-account" } ]
+// whose "url" answers, given the account's device token (UnlayeredAccount), with a short-lived
+// signed link to the file. See AutoUpdater for the rest. The check appends
+// "?platform=<windows|mac|linux>&arch=<x64|arm64>" so each platform hears about its own release;
+// a request without it is answered as Windows, which every earlier build was.
+static const std::string VERSION_CHECK_URL = "https://unlayered3d.com/slicer/latest.json";
 
-constexpr const char* CONFIG_ORCA_UPDATER_URL = "orca_updater_url";
-
+// Where the firmware and printer-config updaters look for releases: unlayered3d.com, which answers
+// the GitHub releases API paths and shape (repos/Unlayered3D/RepRapFirmware/releases and
+// repos/Unlayered3D/printer-config/releases), so the same parsers serve both. Firmware is public;
+// configuration needs the customer's Unlayered account sign-in. Anything else serving that shape can
+// stand in through "github_api_base" - a local copy of the site while testing, or GitHub itself.
+static const std::string PRINTER_UPDATES_API_BASE = "https://unlayered3d.com/printer-updates-api";
 static const std::string MODELS_STR = "models";
 
 const std::string AppConfig::SECTION_FILAMENTS = "filaments";
@@ -107,10 +129,8 @@ std::string AppConfig::get_hms_host()
 
 bool AppConfig::get_stealth_mode()
 {
-    // always return true when user did not finish setup wizard yet
-    if (!get_bool("firstguide","finish")) {
-        return true;
-    }
+    // Unlayered 2026-10-22: no longer forced on until the setup wizard finishes. Stealth mode is off
+    // by default and only ever turned on in Preferences; the wizard does not ask about it.
     return get_bool("stealth_mode");
 }
 
@@ -124,6 +144,47 @@ void AppConfig::reset()
     m_storage.clear();
     set_defaults();
 };
+
+// Unlayered one-shot migrations of a config read from disk. Called by load() only: run from
+// set_defaults(), they ran first on the empty config that reset() builds before load(), set their
+// "done" flag there, and never touched the file's values (stealth_mode stayed on everywhere). The
+// flags were renamed when that was fixed (2026-10-23), so every install gets each one for real once.
+static void migrate_loaded_config(AppConfig &config)
+{
+    // Configs written before this fork detached from OrcaSlicer.
+    if (config.get("unlayered_detach_migrated_v2").empty()) {
+        BOOST_LOG_TRIVIAL(info) << "Applying the Unlayered detach migration to this config";
+        // The persistent installation identifier the old update check sent with every request.
+        config.erase("app", "updater_iid");
+        config.erase("app", "iid");
+        // Left over from the Bambu network-plugin update flow.
+        config.erase("app", "update_network_plugin");
+        // Only ever read by the preset sync that no longer exists.
+        config.erase("app", "sync_system_preset");
+        // The same identifier was also mirrored to a bare file next to the config.
+        try {
+            const auto machine_id = boost::filesystem::path(Slic3r::data_dir()) / ".orcaslicer_machine_id";
+            boost::system::error_code ec;
+            if (boost::filesystem::exists(machine_id, ec))
+                boost::filesystem::remove(machine_id, ec);
+        } catch (...) {
+            // Never let a leftover file stop the application from starting.
+        }
+        config.set_bool("unlayered_detach_migrated_v2", true);
+    }
+
+    // Unlayered 2026-10-22: stealth mode is OFF by default and the setup wizard no longer
+    // asks about it. Earlier builds forced it on, so nearly every existing install has it on without
+    // anyone having chosen it - and on, it silently skips the account sign-in check and the printer
+    // configuration update offer. One-shot reset to off; turning it back on in Preferences sticks.
+    if (config.get("unlayered_stealth_off_migrated_v2").empty()) {
+        if (config.get_bool("stealth_mode")) {
+            BOOST_LOG_TRIVIAL(info) << "Turning stealth_mode off (the Unlayered default)";
+            config.set_bool("stealth_mode", false);
+        }
+        config.set_bool("unlayered_stealth_off_migrated_v2", true);
+    }
+}
 
 // Override missing or keys with their defaults.
 void AppConfig::set_defaults()
@@ -164,6 +225,9 @@ void AppConfig::set_defaults()
         // remove old 'use_legacy_opengl' parameter from this config, if present
         if (!get("use_legacy_opengl").empty())
             erase("app", "use_legacy_opengl");
+
+        // The Unlayered one-shot migrations are not here: set_defaults() also runs on the empty
+        // config before load(), where they would only mark themselves done. See migrate_loaded_config().
 
         // Migrate legacy_networking boolean to network_plugin_version string
         std::string legacy_networking = get("legacy_networking");
@@ -400,12 +464,35 @@ void AppConfig::set_defaults()
     if (get("show_3d_navigator").empty())
         set_bool("show_3d_navigator", true);
 
+    // Objects carrying cut planes are drawn one colour per chunk in the Prepare view, without
+    // opening the cut planes tool. The second key remembers "don't ask again" for the prompt
+    // that offers to turn this off once a plate uses more than one filament.
+    if (get("show_cut_chunk_colors").empty())
+        set_bool("show_cut_chunk_colors", true);
+
+    if (get("opaque_overlays").empty())
+        set_bool("opaque_overlays", false);
+
+    if (get("ui_font_scale").empty())
+        set("ui_font_scale", "100");
+
+    // Colour-vision palette for the G-code preview: normal | protanopia | deuteranopia | tritanopia.
+    if (get("preview_color_vision").empty())
+        set("preview_color_vision", "normal");
+
+
+    // Keyboard focus outline (Preferences > Appearance).
+
+
     // Show the one-time "Filament Track Switch is ready" tip until it has been seen once.
     if (get("show_fila_switch_tips").empty())
         set_bool("show_fila_switch_tips", true);
 
     if (get("show_plate_gridlines").empty())
         set_bool("show_plate_gridlines", true);
+
+    if (get("show_bed_mesh").empty())
+        set_bool("show_bed_mesh", false);
 
     if (get("focus_mode").empty())
         set_bool("focus_mode", false);
@@ -478,12 +565,18 @@ void AppConfig::set_defaults()
     }
 
     // Orca
+    // Unlayered 2026-10-22: off by default (see the stealth migration above).
     if (get("stealth_mode").empty()) {
         set_bool("stealth_mode", false);
     }
     if (get("hide_login_side_panel").empty()) {
         set_bool("hide_login_side_panel", false);
     }
+    // Unlayered: usage diagnostics (slic3r/Utils/UsageTelemetry). Since 0.1.6 "usage_diagnostics"
+    // is only a mirror of the privacy choice record "privacy_consent" (slic3r/Utils/PrivacyConsent),
+    // written with it; permission is never read from it. No default is written here: an explicit
+    // "false" in a config from before 0.1.6 is an opt-out that PrivacyConsent::migrate_legacy_setting
+    // keeps, and a default written by this function would look exactly like one.
     if (get("allow_abnormal_storage").empty()) {
         set_bool("allow_abnormal_storage", false);
     }
@@ -491,6 +584,76 @@ void AppConfig::set_defaults()
     if (get("preset_bundle_auto_update").empty()) {
         set_bool("preset_bundle_auto_update", false);
     }
+
+    // Unlayered: embedded web application tab. Off with no URL by default; the shipped defaults are
+    // seeded once from resources/web/webapp/default.json (see WebAppPanel::seed_defaults) so that
+    // this source tree carries no application-specific address. Every key is user-editable.
+    if (get(SETTING_WEB_APP_ENABLED).empty())
+        set_bool(SETTING_WEB_APP_ENABLED, false);
+    // No default for the URL or the title: an absent key is how ensure_seeded (WebAppPanel.cpp)
+    // tells "never set" from a blank the user chose, which means "off".
+    if (get(SETTING_WEB_APP_ALLOW_LOCAL).empty())
+        set_bool(SETTING_WEB_APP_ALLOW_LOCAL, false);
+    if (!has(SETTING_WEB_APP_PATH_ROOTS))
+        set(SETTING_WEB_APP_PATH_ROOTS, "");
+    if (!has(SETTING_WEB_APP_DOWNLOAD_HOSTS))
+        set(SETTING_WEB_APP_DOWNLOAD_HOSTS, "");
+    if (!has(SETTING_WEB_APP_EXTRA_ORIGINS))
+        set(SETTING_WEB_APP_EXTRA_ORIGINS, "");
+    if (get(SETTING_WEB_APP_ALLOW_SETTINGS).empty())
+        set_bool(SETTING_WEB_APP_ALLOW_SETTINGS, false);
+
+    // Unlayered: the second web-application slot, the side panel. Same defaults as the generic
+    // slot above (no URL or title default, for the same reason).
+    if (get(SETTING_SIDE_PANEL_ENABLED).empty())
+        set_bool(SETTING_SIDE_PANEL_ENABLED, false);
+    if (get(SETTING_SIDE_PANEL_ALLOW_LOCAL).empty())
+        set_bool(SETTING_SIDE_PANEL_ALLOW_LOCAL, false);
+    if (!has(SETTING_SIDE_PANEL_PATH_ROOTS))
+        set(SETTING_SIDE_PANEL_PATH_ROOTS, "");
+    if (!has(SETTING_SIDE_PANEL_DOWNLOAD_HOSTS))
+        set(SETTING_SIDE_PANEL_DOWNLOAD_HOSTS, "");
+    if (!has(SETTING_SIDE_PANEL_EXTRA_ORIGINS))
+        set(SETTING_SIDE_PANEL_EXTRA_ORIGINS, "");
+    if (get(SETTING_SIDE_PANEL_ALLOW_SETTINGS).empty())
+        set_bool(SETTING_SIDE_PANEL_ALLOW_SETTINGS, false);
+    // The side panel starts collapsed: only its toggle shows until the user opens it. The width
+    // default lives in MainFrame (it is a DIP value the frame clamps against its own size).
+    if (get(SETTING_SIDE_PANEL_SIDEBAR_OPEN).empty())
+        set_bool(SETTING_SIDE_PANEL_SIDEBAR_OPEN, false);
+    if (!has(SETTING_SIDE_PANEL_SIDEBAR_WIDTH))
+        set(SETTING_SIDE_PANEL_SIDEBAR_WIDTH, "0");
+
+    // Unlayered: the third slot, the Unlayered Universe tab, seeded once from
+    // resources/web/webapp/universe.json. Same defaults as the two slots above.
+    if (get(SETTING_UNIVERSE_APP_ENABLED).empty())
+        set_bool(SETTING_UNIVERSE_APP_ENABLED, false);
+    if (get(SETTING_UNIVERSE_APP_ALLOW_LOCAL).empty())
+        set_bool(SETTING_UNIVERSE_APP_ALLOW_LOCAL, false);
+    if (!has(SETTING_UNIVERSE_APP_PATH_ROOTS))
+        set(SETTING_UNIVERSE_APP_PATH_ROOTS, "");
+    if (!has(SETTING_UNIVERSE_APP_DOWNLOAD_HOSTS))
+        set(SETTING_UNIVERSE_APP_DOWNLOAD_HOSTS, "");
+    if (!has(SETTING_UNIVERSE_APP_EXTRA_ORIGINS))
+        set(SETTING_UNIVERSE_APP_EXTRA_ORIGINS, "");
+    if (get(SETTING_UNIVERSE_APP_ALLOW_SETTINGS).empty())
+        set_bool(SETTING_UNIVERSE_APP_ALLOW_SETTINGS, false);
+
+    // Unlayered: external slicing service (SLICE_SERVICE_PROTOCOL.md). No address by
+    // default, which leaves "Slice nonplanar" out of the UI entirely until the user sets one.
+    if (!has(SETTING_NONPLANAR_SLICE_URL))
+        set(SETTING_NONPLANAR_SLICE_URL, "");
+    // The account provider. Only when the key is absent, so a blank the user chose (no account)
+    // stays blank. An older configuration's undocumented test override (unlayered_site_url) is
+    // carried over once; this runs again after load(), which is when that key can appear.
+    if (has("unlayered_site_url")) {
+        set(SETTING_ACCOUNT_PROVIDER_URL, get("unlayered_site_url"));
+        erase("app", "unlayered_site_url");
+    }
+    if (!contains(SETTING_ACCOUNT_PROVIDER_URL))
+        set(SETTING_ACCOUNT_PROVIDER_URL, "https://unlayered3d.com");
+    if (!contains(SETTING_SERVICE_TOKEN_ORIGINS))
+        set(SETTING_SERVICE_TOKEN_ORIGINS, "");
 
 #ifdef __linux__
     if (get(SETTING_USE_ENCRYPTED_TOKEN_FILE).empty())
@@ -529,8 +692,9 @@ void AppConfig::set_defaults()
         set_bool("show_daily_tips", true);
     }
 
+    // Unlayered: off by default - it advertised OrcaSlicer's cloud bundle browser.
     if (get("show_shared_profiles_notification").empty()) {
-        set_bool("show_shared_profiles_notification", true);
+        set_bool("show_shared_profiles_notification", false);
     }
 
     if (get("auto_calculate_flush").empty()){
@@ -637,9 +801,9 @@ void AppConfig::set_defaults()
     //     set_bool("staff_pick_switch", false);
     // }
 
-    if (get("sync_system_preset").empty()) {
-        set_bool("sync_system_preset", true);
-    }
+    // Unlayered: "sync_system_preset" is not seeded any more. Its only reader was the preset sync
+    // that fetched vendor profiles from OrcaSlicer; built-in profiles now ship with the application
+    // and are installed unconditionally.
 
     if (get("backup_switch").empty() || get("version") < "01.06.00.00") {
         set_bool("backup_switch", true);
@@ -802,6 +966,27 @@ static bool verify_config_file_checksum(boost::nowide::ifstream &ifs)
 
 
 #ifdef USE_JSON_CONFIG
+// The side panel's keys were named agent_app_* before 2026-10-21. Copies each old key whose new
+// spelling the loaded file does not carry (so a value written by a newer build wins), then erases
+// the old one. Runs on the loaded "app" object, not on m_storage alone, because reset() has
+// already filled some side_panel_* keys with defaults that must not count as "present".
+static void migrate_renamed_app_keys(std::map<std::string, std::string> &app, const json &loaded)
+{
+    static const std::string OLD = "agent_app_";
+    static const std::string NEW = "side_panel_";
+    for (auto it = loaded.begin(); it != loaded.end(); ++it) {
+        const std::string &key = it.key();
+        if (key.compare(0, OLD.size(), OLD) != 0)
+            continue;
+        const std::string renamed = NEW + key.substr(OLD.size());
+        if (!loaded.contains(renamed)) {
+            if (auto found = app.find(key); found != app.end())
+                app[renamed] = found->second;
+        }
+        app.erase(key);
+    }
+}
+
 std::string AppConfig::load(bool read_only)
 {
     json j;
@@ -989,6 +1174,8 @@ std::string AppConfig::load(bool read_only)
                             }
                         }
                     }
+                    if (it.key() == "app")
+                        migrate_renamed_app_keys(m_storage["app"], it.value());
                 }
             }
         }
@@ -1033,6 +1220,8 @@ std::string AppConfig::load(bool read_only)
         }
     }
 
+    if (m_mode == EAppMode::Editor)
+        migrate_loaded_config(*this);
     // Override missing or keys with their defaults.
     this->set_defaults();
     m_dirty = false;
@@ -1313,6 +1502,8 @@ std::string AppConfig::load(bool read_only)
         }
     }
 
+    if (m_mode == EAppMode::Editor)
+        migrate_loaded_config(*this);
     // Override missing or keys with their defaults.
     this->set_defaults();
     m_dirty = false;
@@ -1949,16 +2140,25 @@ bool AppConfig::peek_bool(const std::string &data_dir, const std::string &key)
 
 std::string AppConfig::version_check_url() const
 {
+    // The "version_check_url" key is intentionally undocumented and has no UI. It exists so the
+    // updater can be pointed at a local file server for testing without publishing to the live
+    // host - see the update manifest contract above VERSION_CHECK_URL.
     auto from_settings = get("version_check_url");
     return from_settings.empty() ? VERSION_CHECK_URL : from_settings;
 }
 
-std::string AppConfig::profile_update_url() const
+std::string AppConfig::github_api_base() const
 {
-    std::string orca_updater_url = get(CONFIG_ORCA_UPDATER_URL);
-    if (orca_updater_url.empty())
-        return PROFILE_UPDATE_URL;
-    return orca_updater_url;
+    // Undocumented and deliberately without UI, exactly like "version_check_url" above: it exists
+    // so the firmware and config updaters can be pointed at a local server without publishing a
+    // release. A trailing slash would produce a double slash in every URL built from it, so it is
+    // stripped here rather than at each of the six call sites.
+    std::string base = get("github_api_base");
+    if (base.empty())
+        return PRINTER_UPDATES_API_BASE;
+    while (!base.empty() && base.back() == '/')
+        base.pop_back();
+    return base;
 }
 
 bool AppConfig::exists()

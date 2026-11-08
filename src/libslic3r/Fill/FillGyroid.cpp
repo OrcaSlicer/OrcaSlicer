@@ -16,6 +16,7 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Polyline.hpp"
 #include "FillGyroid.hpp"
+#include "Implicits.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "AdaptiveInfillField.hpp"
@@ -33,14 +34,13 @@ static float gyroid(float x, float y, float z)
 // Marching-squares scalar field for the optimized gyroid branch.
 // Modeled after FillTpmsFK.cpp's ScalarField.
 //
-// The gyroid scalar field is the standard implicit equation
-//     F(x,y,z) = sin(fx*x)cos(fy*y) + sin(fy*y)cos(fz*z) + sin(fz*z)cos(fx*x)
-// Marching squares extracts the iso-zero contour, which gives smoother
-// transitions between vertical and horizontal regimes than the analytical
-// asin-based wave generator. Setting fz = omega * baseline anisotropically
-// tightens the wave along the layer-stacking axis, shortening the effective
-// vertical strand length and improving column-buckling resistance under
-// Z-axis compression.
+// The gyroid scalar field is the standard implicit equation, shared with the
+// (Phase 2+) mesh-backed pipeline via Fill/Implicits.hpp. Marching squares
+// extracts the iso-zero contour, which gives smoother transitions between
+// vertical and horizontal regimes than the analytical asin-based wave
+// generator. Setting omega >= 1 anisotropically tightens the wave along the
+// layer-stacking axis, shortening the effective vertical strand length and
+// improving column-buckling resistance under Z-axis compression.
 // ---------------------------------------------------------------------------
 namespace marchsq {
 using namespace Slic3r;
@@ -57,23 +57,15 @@ struct GyroidField
     Point                  size;
     Point                  offs;
     coordf_t               z;
-    float                  fx;
-    float                  fy;
-    float                  fz;
+    GyroidParams           params;
     float                  isoval = 0.0f;
 
     explicit GyroidField(const BoundingBox bb, const coordf_t z, const float period, const float omega = 1.0f)
-        : size{bb.size()}, offs{bb.min}, z{z}
-    {
-        const float baseline = float(2.0 * PI) / std::max(period, 1e-3f);
-        fx = baseline;
-        fy = baseline;
-        fz = omega * baseline;
-    }
+        : size{bb.size()}, offs{bb.min}, z{z}, params{period, omega} {}
 
     float get_scalar(coordf_t x, coordf_t y, coordf_t z_arg) const
     {
-        return gyroid(fx * float(x), fy * float(y), fz * float(z_arg));
+        return gyroid(Vec3f(float(x), float(y), float(z_arg)), params);
     }
 
     float get_scalar(Coord p) const
@@ -245,14 +237,6 @@ static std::vector<Vec2d> make_one_period(double scaleFactor, double z_cos, doub
 // When gyroid_optimized is false, behavior is byte-identical to the
 // standard parametric gyroid path below.
 // ---------------------------------------------------------------------------
-
-static inline double compute_omega_factor(double density_adjusted, double line_spacing, double layer_height)
-{
-    double lh_ratio   = (line_spacing > 0.) ? layer_height / line_spacing : 0.5;
-    double correction = 1.0 / std::sqrt(1.0 + lh_ratio);
-    double raw        = std::sqrt(1.0 / std::max(density_adjusted, 0.1)) * correction;
-    return std::clamp(raw, 1.0, 2.0);
-}
 
 // Waves covering bbox, with the pattern anchored at origin.
 static Polylines make_gyroid_waves(double gridZ, double density_adjusted, double line_spacing, const BoundingBox &bbox, const Point &origin)

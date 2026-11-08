@@ -113,14 +113,14 @@ TEST_CASE("Plugin audit denies host-managed filenames anywhere", "[audit]")
 
     SECTION("matching is case-insensitive on every platform")
     {
-        CHECK(mgr.is_denied_filename(fs::path("orcaslicer.conf")));
-        CHECK(mgr.is_denied_filename(fs::path("ORCASLICER.CONF")));
+        CHECK(mgr.is_denied_filename(fs::path("unlayered slicer.conf")));
+        CHECK(mgr.is_denied_filename(fs::path("UNLAYERED SLICER.CONF")));
         CHECK(mgr.is_denied_filename(fs::path("ORCA_REFRESH_TOKEN.SEC")));
     }
 
     SECTION("an unrelated name that merely shares a stem is not denied")
     {
-        // The prefix is the full registered name ("OrcaSlicer.conf"), not the stem "OrcaSlicer",
+        // The prefix is the full registered name ("Unlayered Slicer.conf"), not the stem "Unlayered Slicer",
         // so a sibling file with a different extension/suffix stays allowed.
         CHECK_FALSE(mgr.is_denied_filename(fs::path(data_dir()) / (SLIC3R_APP_KEY "_other.txt")));
         CHECK_FALSE(mgr.is_denied_filename(fs::path(data_dir()) / (SLIC3R_APP_KEY ".json")));
@@ -244,7 +244,7 @@ TEST_CASE("Plugin audit does not constrain non-plugin code", "[audit]")
     seed_denied_names();
 
     PluginAuditManager& mgr = PluginAuditManager::instance();
-    mgr.clear_current_plugin(); // no plugin context: this is OrcaSlicer's own C++/internal Python
+    mgr.clear_current_plugin(); // no plugin context: this is Unlayered Slicer's own C++/internal Python
 
     const fs::path conf = fs::path(data_dir()) / (SLIC3R_APP_KEY ".conf");
 

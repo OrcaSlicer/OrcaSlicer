@@ -16,6 +16,7 @@
 namespace Slic3r {
 
 struct GCodeProcessorResult;
+
 enum class BuildVolume_Type : char {
   // Not set yet or undefined.
   Invalid = -1,
@@ -60,6 +61,13 @@ public:
     BuildVolume() {}
     // Initialize from PrintConfig::printable_area and PrintConfig::printable_height
     BuildVolume(const std::vector<Vec2d> &printable_area, const double printable_height, const std::vector<std::vector<Vec2d>> &extruder_areas, const std::vector<double>& extruder_printable_heights);
+
+    // BELT_MOD: a belt printer's bed is unbounded along Y when belt_printer_infinite_y is set. The
+    // stored bounding box is left alone (bed_center(), zoom-to-bed and the rendered plate keep the
+    // authored shape); only the containment tests treat Y as open. Idempotent, so the plater may
+    // call it on every bed-shape update, including for a printer that was never a belt.
+    void set_belt_printer(bool enabled, bool infinite_y) { m_belt_infinite_y = enabled && infinite_y; }
+    bool is_belt_infinite_y() const { return m_belt_infinite_y; }
 
     // Source data, unscaled coordinates.
     const std::vector<Vec2d>&   printable_area()         const { return m_bed_shape; }
@@ -121,7 +129,11 @@ public:
     static constexpr const double BedEpsilon = 3. * EPSILON;
     // Called on final G-code paths.
     //FIXME The test does not take the thickness of the extrudates into account!
-    bool         all_paths_inside(const GCodeProcessorResult& paths, const BoundingBoxf3& paths_bbox, bool ignore_bottom = true) const;
+    // BELT_MOD: `move_transform`, when given, maps each stored move position before testing it
+    // (a belt file stores machine-frame positions; GCodeProcessorResult::belt_to_bed maps them back).
+    // `paths_bbox` is expected to be in the tested frame already.
+    bool         all_paths_inside(const GCodeProcessorResult& paths, const BoundingBoxf3& paths_bbox, bool ignore_bottom = true,
+                                  const Transform3d *move_transform = nullptr) const;
 
     int          get_extruder_area_count() const { return m_extruder_volumes.size(); }
     const BuildExtruderVolume&  get_extruder_area_volume(int index) const;
@@ -143,6 +155,8 @@ private:
     // Source definition of the print volume height (PrintConfig::printable_height)
     double              m_max_print_height { 0.f };
     std::vector<double> m_extruder_printable_height;
+    // BELT_MOD: see set_belt_printer().
+    bool                m_belt_infinite_y { false };
 
     // Derived values.
     BuildVolume_Type                m_type { BuildVolume_Type::Invalid };

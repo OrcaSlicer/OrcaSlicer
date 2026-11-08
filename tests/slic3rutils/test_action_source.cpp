@@ -223,7 +223,7 @@ TEST_CASE("Native command icons resolve to shipped SVGs", "[ActionSource][SpeedD
                               Expected{"import_file", "menu_open"},
                               Expected{"help_open_config_folder", "open_project"},
                               Expected{"help_check_updates", "refresh"},
-                              Expected{"help_about", "OrcaSlicer_gradient_circle"},
+                              Expected{"help_about", "UnlayeredSlicer_gradient_circle"},
                               Expected{"go_to_tab", ""}}) {
         const std::string* icon = icon_of(e.key);
         INFO(e.key);
@@ -256,8 +256,7 @@ TEST_CASE("Native command catalog includes the Help and developer-mode commands"
     const Slic3r::GUI::NativeCommand* first = find("help_keyboard_shortcuts");
     REQUIRE(first != nullptr);
     for (const char* key : {"help_setup_wizard", "help_open_config_folder", "help_migrate_filament_presets", "help_troubleshoot", "help_network_test",
-                            "help_benchmark_3d_scene", "help_tip_of_the_day", "help_check_updates", "help_about", "open_wiki",
-                            "open_youtube"}) {
+                            "help_benchmark_3d_scene", "help_tip_of_the_day", "help_check_updates", "help_about", "open_wiki"}) {
         const Slic3r::GUI::NativeCommand* c = find(key);
         REQUIRE(c != nullptr);
         CHECK(c->group == first->group);

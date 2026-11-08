@@ -1397,6 +1397,18 @@ indexed_triangle_set its_convex_hull(const std::vector<Vec3f> &pts)
             Vec3i32  indices;
             int    cnt = 0;
             for (const orgQhull::QhullVertex vertex : facet.vertices()) {
+                if (cnt == 3) {
+                    // Bounds check BEFORE the store, not after it. `indices` is a Vec3i32 —
+                    // exactly three ints — and the previous form wrote indices[cnt] and only
+                    // then tested `cnt ++ == 3`, so a facet carrying four or more vertices
+                    // scribbled four bytes past a stack local before breaking out. qhull is
+                    // asked for triangulated output ("Qt") so that should not arise, but an
+                    // out-of-bounds write is not worth leaving to rest on a library option.
+                    // Still increment, so the `cnt == 3` test below rejects the over-long
+                    // facet exactly as it did before.
+                    ++ cnt;
+                    break;
+                }
                 int id = vertex.id();
                 assert(id >= 0);
                 if (id >= int(map_dst_vertices.size()))
@@ -1412,8 +1424,7 @@ indexed_triangle_set its_convex_hull(const std::vector<Vec3f> &pts)
                     // Reuse existing vertex.
                     indices[cnt] = i;
                 }
-                if (cnt ++ == 3)
-                    break;
+                ++ cnt;
             }
             assert(cnt == 3);
             if (cnt == 3) {

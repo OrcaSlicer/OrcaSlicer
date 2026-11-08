@@ -14,7 +14,6 @@
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/GCode/ExclusionVolumePathCheck.hpp"
-#include "libslic3r/GCode/MachineFrameTransform.hpp"
 
 #include <cstddef>
 #include <cassert>
@@ -164,6 +163,9 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         const void *_obj1; // nullptr means wipe tower
         const void *_obj2;
         int                layer = -1;
+        // UNLAYERED_MOD: when set, a ready-made description shown instead of the generic
+        // "G-code paths conflict between A and B" text (the hotend collision check fills this in).
+        std::string        message;
         ConflictResult(const std::string &objName1, const std::string &objName2, double height, const void *obj1, const void *obj2)
             : _objName1(objName1), _objName2(objName2), _height(height), _obj1(obj1), _obj2(obj2)
         {}
@@ -264,6 +266,22 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             //BBS
             int  object_label_id{-1};
             float print_z{0.0f};
+            // UNLAYERED_MOD: index into GCodeProcessorResult::tool_axes of the direction the nozzle
+            // pointed away from the surface for this move. 0 is always straight up, so a planar print
+            // leaves every move at 0.
+            uint16_t tool_axis_id{0};
+            // Declarative cut planes: index of the segment ("section") this move belongs to, -1
+            // for an ordinary object. Drives the section view in the preview.
+            //
+            // KEEP THESE LAST, IN THIS ORDER: this struct is brace-initialised positionally in
+            // store_move_vertex(), so an insert in the middle -- or swapping any of them -- silently
+            // shifts every later field.
+            int  cut_segment_id{-1};
+            // UNLAYERED_MOD: the PHYSICAL extruder (nozzle, 0-based) that made this move, -1 before
+            // the first tool change. `extruder_id` above is the filament. Lets the hotend collision
+            // check and the preview's envelope use that nozzle's own clearance pyramid on a
+            // dual-nozzle printer (HotendEnvelope::from_config(config, extruder)).
+            signed char physical_extruder_id{-1};
 
             float volumetric_rate() const { return feedrate * mm3_per_mm; }
             float actual_volumetric_rate() const { return actual_feedrate * mm3_per_mm; }
@@ -331,6 +349,29 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         std::string filename;
         unsigned int id;
         std::vector<MoveVertex> moves;
+        // UNLAYERED_MOD: palette of tool axes referenced by MoveVertex::tool_axis_id. Entry 0 is
+        // always +Z, so a planar print has exactly one entry and every move points at it. The
+        // multiplanar orientation is piecewise constant per chunk, so this stays tiny.
+        std::vector<Vec3f> tool_axes;
+        // UNLAYERED_MOD: the print was sliced for virtual-5-axis (3-axis) output -- B/C words are
+        // suppressed and the physical nozzle stays vertical, so the preview's hotend marker must
+        // not tilt even though tool_axes carries the layers' (tilted) build directions.
+        bool virtual_5axis{ false };
+        // BELT_MOD: the file was written for a belt printer, so every MoveVertex::position is a
+        // machine-frame coordinate (sheared, scaled and axis-swapped by BeltKinematics::to_machine).
+        // belt_to_bed maps such a stored position back to the bed frame the model, the bed shape
+        // and printable_height live in; identity for every other printer. It composes the plate
+        // offset the processor adds to stored positions, the Z origin the start G-code's G92 leaves
+        // behind, and the exact inverse of the writer's kinematics -- there is no anchoring guess.
+        bool        belt_printer{ false };
+        bool        belt_infinite_y{ false };
+        Transform3d belt_to_bed{ Transform3d::Identity() };
+        // BELT_MOD / UNLAYERED_MOD: the physical nozzle does not follow the per-move tool axis when
+        // the machine has no rotary axes to follow it with -- virtual 5-axis output on a flat bed
+        // (nozzle vertical) or a plain belt printer (nozzle along the tilted gantry). The preview's
+        // hotend marker then uses fixed_tool_axis instead of the tool_axes palette.
+        bool        tool_axis_fixed{ false };
+        Vec3f       fixed_tool_axis{ Vec3f::UnitZ() };
         ObjectMass plate_mass;
         // One per object instance, and one per connected body of the instances of several, when the sliced objects were at hand.
         std::vector<ObjectMass> object_masses;
@@ -366,19 +407,6 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         bool support_traditional_timelapse{true};
         float printable_height;
         float z_offset;
-        // Belt printer: physical tilt magnitude (deg) parsed from the slicing-rotation
-        // header comment; used to enable the preview's belt view.
-        float belt_tilt_angle{ 0.f };
-        // Belt printer: machine-Z origin offset (mm) left in m_origin[Z] by the start
-        // G-code (purge-blob belt advance + G92 Z0 resets). Move positions are stored
-        // as gcode_Z + this offset, so the designed-view back-transform must subtract it
-        // to recover the model's belt coordinate.
-        float belt_z_origin{ 0.f };
-        // Belt printer: post-gcode shear/scale/post_remap is configured and
-        // non-identity.  When set, the layer Z values in `moves` are in the
-        // machine frame and should not be compared against `printable_height`
-        // (which lives in the build-volume frame).
-        bool machine_frame_transform_active{ false };
         SettingsIds settings_ids;
         size_t filaments_count;
         bool backtrace_enabled;
@@ -436,6 +464,12 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             filename = std::forward<Other>(other).filename;
             id = std::forward<Other>(other).id;
             moves = std::forward<Other>(other).moves;
+            // UNLAYERED_MOD: must travel with `moves` - MoveVertex::tool_axis_id indexes into it.
+            // NOTE: this operator exists because the result_mutex member deletes the implicit copy
+            // and move assignments, so every new member has to be added here by hand or it silently
+            // stays at its default in the destination (which is how the tilted preview first broke).
+            tool_axes = std::forward<Other>(other).tool_axes;
+            virtual_5axis = std::forward<Other>(other).virtual_5axis;
             plate_mass = std::forward<Other>(other).plate_mass;
             object_masses = std::forward<Other>(other).object_masses;
             body_masses = std::forward<Other>(other).body_masses;
@@ -460,6 +494,11 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             long_retraction_when_cut = std::forward<Other>(other).long_retraction_when_cut;
             timelapse_warning_code = std::forward<Other>(other).timelapse_warning_code;
             printable_height = std::forward<Other>(other).printable_height;
+            belt_printer = std::forward<Other>(other).belt_printer;
+            belt_infinite_y = std::forward<Other>(other).belt_infinite_y;
+            belt_to_bed = std::forward<Other>(other).belt_to_bed;
+            tool_axis_fixed = std::forward<Other>(other).tool_axis_fixed;
+            fixed_tool_axis = std::forward<Other>(other).fixed_tool_axis;
             settings_ids = std::forward<Other>(other).settings_ids;
             filaments_count = std::forward<Other>(other).filaments_count;
             extruder_colors = std::forward<Other>(other).extruder_colors;
@@ -490,9 +529,6 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             // Keep the SKIPPABLE per-type time on a copied result.
             skippable_part_time = std::forward<Other>(other).skippable_part_time;
             initial_layer_time = std::forward<Other>(other).initial_layer_time;
-            belt_tilt_angle = std::forward<Other>(other).belt_tilt_angle;
-            belt_z_origin = std::forward<Other>(other).belt_z_origin;
-            machine_frame_transform_active = std::forward<Other>(other).machine_frame_transform_active;
 #if ENABLE_GCODE_VIEWER_STATISTICS
             time = std::forward<Other>(other).time;
 #endif
@@ -652,6 +688,9 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             Total_Cost_Placeholder,
             Total_Wipe_Tower_Cost_Placeholder,
             Total_Wipe_Tower_Filament_Placeholder,
+            // UNLAYERED_MOD: multiplanar tool axis. Keep last; Reserved_Tags and
+            // Reserved_Tags_compatible are indexed by this enum and must stay aligned with it.
+            Tool_Axis,
         };
 
         static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }
@@ -1237,10 +1276,6 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
     private:
         CommandProcessor m_command_processor;
         GCodeReader m_parser;
-        // Belt printer: the belt keys of the loaded file's config block (plus the bed they
-        // are relative to), handed to the preview through export_config_for_render() so the
-        // belt view and its back-transform follow the file, not the selected printer.
-        DynamicConfig m_belt_render_config;
         EUnits m_units;
         EPositioningType m_global_positioning_type;
         EPositioningType m_e_local_positioning_type;
@@ -1265,6 +1300,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         bool m_skippable{false};
         SkipType m_skippable_type{SkipType::stNone};
         int m_object_label_id{-1};
+        // Declarative cut planes: segment currently being printed, from the ;SEGMENT_ID: tag.
+        int m_cut_segment_id{-1};
         MassLocator m_mass_locator;
         float m_print_z{0.0f};
         std::vector<float> m_remaining_volume;
@@ -1320,14 +1357,19 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         //BBS: x, y offset for gcode generated
         double          m_x_offset{ 0 };
         double          m_y_offset{ 0 };
-
-        // Belt-printer post-gcode shear/scale/post_remap. Used by
-        // check_multi_extruder_gcode_valid to undo the machine-frame
-        // transform on move positions so bounds checks operate in the
-        // pre-machine-frame (build-volume) frame.
-        MachineFrameTransform m_machine_frame_transform;
-        bool                  m_belt_printer{ false };
-        // Of a belt print, the linear part of its G-code back-transform, for the boxes of the masses.
+        // BELT_MOD: see GCodeProcessorResult::belt_to_bed. m_belt_to_logical is the inverse of the
+        // writer's kinematics alone (plate-local machine -> plate-local bed frame); m_belt_z_origin
+        // is the machine-Z origin the start G-code's G92 resets leave in m_origin[Z].
+        bool        m_belt_printer{ false };
+        bool        m_belt_infinite_y{ false };
+        bool        m_belt_rotary{ false };                    // a belt with real rotary axes
+        Vec3f       m_belt_gantry_axis{ Vec3f::UnitZ() };      // the gantry normal in the bed frame
+        Transform3d m_belt_to_logical{ Transform3d::Identity() };
+        float       m_belt_z_origin{ 0.f };
+        void        apply_belt_config(const PrintConfig &config);
+        // Stored MoveVertex::position -> bed-frame display position (identity when not a belt).
+        Transform3d belt_to_bed_transform() const;
+        // Of a belt print, the linear part of belt_to_bed_transform(), for the boxes of the masses.
         std::optional<Matrix3d> m_belt_linear;
 
         unsigned int m_line_id;
@@ -1337,6 +1379,15 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         float m_height; // mm
         float m_forced_width; // mm
         float m_forced_height; // mm
+        // UNLAYERED_MOD: current entry in m_result.tool_axes; 0 = +Z, i.e. an ordinary planar print.
+        uint16_t m_tool_axis_id{ 0 };
+        // Set once a ";TOOL_AXIS:" tag is seen. While false, B/C words in G0/G1 are used instead, so
+        // externally produced 5-axis G-code still previews; once true the tags win outright (they are
+        // exact, and virtual_5axis exports carry the tags but no B/C words at all).
+        bool m_has_tool_axis_tag{ false };
+        // Last B/C seen as G-code words, degrees. Seeded with the identity datum (B = -90, C = 0) so a
+        // line that moves only one of the two keeps the other.
+        std::array<float, 2> m_last_bc_deg{ -90.0f, 0.0f };
         float m_mm3_per_mm;
         float m_travel_dist; // mm
         float m_fan_speed; // percentage
@@ -1359,7 +1410,6 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         float m_first_layer_height; // mm
         float m_zero_layer_height; // mm
         bool m_processing_start_custom_gcode;
-        bool m_in_config_block;
         unsigned int m_g1_line_id;
         unsigned int m_layer_id;
         CpColor m_cp_color;
@@ -1371,6 +1421,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         bool m_measure_g29_time {false};
         bool m_g29_time_added {false};
         bool m_single_extruder_multi_material;
+        // UNLAYERED_MOD: from apply_config, stamped into the result at finalize().
+        bool m_virtual_5axis {false};
         float m_preheat_time;
         int m_preheat_steps;
         bool m_disable_m73;
@@ -1496,6 +1548,14 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
 
         // Process tags embedded into comments
         void process_tags(const std::string_view comment, bool producers_enabled);
+        // UNLAYERED_MOD: intern a tool axis into m_result.tool_axes and return its index. Axes are
+        // deduplicated with a coarse tolerance because they only ever come from a handful of chunk
+        // orientations; the palette is what keeps the per-move cost down to one index.
+        uint16_t tool_axis_id(const Vec3f &axis);
+        // UNLAYERED_MOD: true while the active tool axis is +Z, i.e. the ordinary planar case. Move
+        // classification needs it because "extruding but no XY change" only means "Z lift that oozed"
+        // for a vertical tool axis - see move_type() in process_G1().
+        bool tool_axis_is_vertical() const;
         bool process_producers_tags(const std::string_view comment);
         bool process_bambuslicer_tags(const std::string_view comment);
         bool process_cura_tags(const std::string_view comment);

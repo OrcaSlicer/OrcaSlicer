@@ -349,6 +349,27 @@ public:
     //
     size_t get_layer_id_at(float z) const;
     //
+    // UNLAYERED_MOD: multiplanar (tilted layer) queries.
+    // A tilted layer occupies a slab of Z rather than a single height, and its get_layer_z() is
+    // therefore only a representative value. all_layers_planar() is false as soon as any layer was
+    // printed with the tool tilted, which is the signal for the UI to index layers by number
+    // instead of by Z.
+    //
+    float get_layer_z_min(size_t layer_id) const;
+    float get_layer_z_max(size_t layer_id) const;
+    bool  is_layer_planar(size_t layer_id) const;
+    bool  all_layers_planar() const;
+    //
+    // Look up an entry of the tool-axis palette (PathVertex::tool_axis_id). Out-of-range ids and an
+    // unset palette both give +Z, so callers never have to check.
+    //
+    Vec3 get_tool_axis(size_t tool_axis_id) const;
+    //
+    // Return the unit tool axis a layer was printed along, in G-code coordinates. +Z for a plain
+    // horizontal layer.
+    //
+    Vec3 get_layer_tool_axis(size_t layer_id) const;
+    //
     // Return the count of detected used extruders.
     //
     size_t get_used_extruders_count() const;
@@ -356,6 +377,21 @@ public:
     // Return the list of ids of the detected used extruders.
     //
     std::vector<uint8_t> get_used_extruders_ids() const;
+    //
+    // Declarative cut planes: the sections ("cut-plane segments") present in the loaded G-code,
+    // and the colour used for one. Empty / DUMMY_COLOR for a print without cut planes.
+    //
+    std::vector<int16_t> get_used_cut_segments_ids() const;
+    size_t               get_used_cut_segments_count() const;
+    Color                get_cut_segment_color(int16_t segment_id) const;
+    //
+    // Per-section visibility, so a single section can be inspected on its own. Moves belonging to
+    // no section (skirt, brim, custom G-code, ordinary objects) are never hidden by it, and a
+    // G-code without sections is unaffected.
+    //
+    bool                 is_cut_segment_visible(int16_t segment_id) const;
+    void                 toggle_cut_segment_visibility(int16_t segment_id);
+    void                 show_all_cut_segments();
     //
     // Return the list of detected time modes.
     //

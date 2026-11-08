@@ -36,6 +36,22 @@ Matrix3d BeltTransformPipeline::build_rotation_matrix(const PrintConfig &config,
     return Eigen::AngleAxisd(angle_rad, unit_axis).toRotationMatrix();
 }
 
+Matrix3d BeltTransformPipeline::build_gantry_matrix(const PrintConfig &config)
+{
+    const double angle_deg = config.belt_frame_tilt_decouple.value ? config.belt_frame_tilt_angle.value
+                                                                   : config.belt_slice_rotation_angle.value;
+    if (! config.belt_printer.value || std::abs(angle_deg) <= EPSILON)
+        return Matrix3d::Identity();
+    Vec3d unit_axis;
+    switch (config.belt_slice_rotation.value) {
+    case BeltRotationAxis::X: unit_axis = Vec3d::UnitX(); break;
+    case BeltRotationAxis::Y: unit_axis = Vec3d::UnitY(); break;
+    case BeltRotationAxis::Z: unit_axis = Vec3d::UnitZ(); break;
+    default:                  return Matrix3d::Identity();
+    }
+    return Eigen::AngleAxisd(Geometry::deg2rad(angle_deg), unit_axis).toRotationMatrix();
+}
+
 Transform3d BeltTransformPipeline::build_forward_transform(const PrintConfig &config)
 {
     // Mesh-side belt transform: the rotation. (Shear & scale are a g-code-side

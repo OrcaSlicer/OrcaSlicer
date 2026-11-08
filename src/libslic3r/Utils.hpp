@@ -320,7 +320,7 @@ inline bool ascii_iequals(std::string_view a, std::string_view b)
 }
 
 // Orca: custom protocal support utils
-inline bool is_orca_open(const std::string& url) { return boost::starts_with(url, "orcaslicer://open"); }
+inline bool is_orca_open(const std::string& url) { return boost::starts_with(url, "unlayeredslicer://open") || boost::starts_with(url, "orcaslicer://open"); }
 inline bool is_prusaslicer_open(const std::string& url) { return boost::starts_with(url, "prusaslicer://open"); }
 inline bool is_bambustudio_open(const std::string& url) { return boost::starts_with(url, "bambustudio://open") || boost::starts_with(url, "bambustudioopen://"); }
 inline bool is_cura_open(const std::string& url) { return boost::starts_with(url, "cura://open"); }

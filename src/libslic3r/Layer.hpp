@@ -32,13 +32,7 @@ class PrintRegionConfig;
 class PrintObject;
 class Print;
 
-namespace FillAdaptive {
-    struct RegionOctrees;
-};
-
-namespace FillLightning {
-    class Generator;
-};
+struct PreSliceInfillStructures;
 
 namespace sla {
     class IndexedMesh;
@@ -149,6 +143,7 @@ public:
     coordf_t            slice_z;       // Z used for slicing in unscaled coordinates
     coordf_t            print_z;       // Z used for printing in unscaled coordinates
     coordf_t            height;        // layer height in unscaled coordinates
+    coordf_t            angle_b;        //angle about y axis to slice at.
     coordf_t            bottom_z() const { return this->print_z - this->height; }
 
     //Extrusions estimated to be seriously malformed, estimated during "Estimating curled extrusions" step. These lines should be avoided during fast travels.
@@ -169,6 +164,10 @@ public:
     // that the 1st lslice is not compensated by the Elephant foot compensation algorithm.
     ExPolygons 				 lslices;
     ExPolygons 				 lslices_extrudable;  // BBS: the extrudable part of lslices used for tree support
+    // BELT_MOD -- for an object on a tilted floor (belt, cut face): the lower layer's slices plus the
+    // floor's band through this slab, so the perimeter generator does not read material resting on
+    // the floor as an overhang. Filled by LayerRegion::make_perimeters(); empty otherwise.
+    ExPolygons 				 lslices_with_floor;
     std::vector<BoundingBox> lslices_bboxes;
     // Orca: for separated infills / per-model centering / octree infills. Aligned with lslices: for each
     // island, the 3D connected body (across all layers) it belongs to, indexing
@@ -178,6 +177,51 @@ public:
     // BBS
     ExPolygons              loverhangs;
     BoundingBox             loverhangs_bbox;
+
+    // UNLAYERED_MOD -- shift every piece of geometry this layer holds (slices, regions, extrusions)
+    // by `shift` in place. Exactly invertible with -shift. Used to shear the object into the frame
+    // support is generated in, see Support/SupportDirection.hpp.
+    virtual void            translate(const Point &shift);
+    // No layer above this one carries material. Equal to `upper_layer == nullptr` for an ordinary
+    // object (empty top layers are stripped); a cut-plane segment sliced past its material for
+    // support keeps empty layers above its top, which must not hide that it IS the top.
+    bool                    no_material_above() const {
+        for (const Layer *l = this->upper_layer; l != nullptr; l = l->upper_layer)
+            if (! l->empty())
+                return false;
+        return true;
+    }
+    // Orca: 2D footprint (union of areas filled by wave-overhang extrusions)
+    // emitted in this layer. Populated by PerimeterGenerator via
+    // LayerRegion::make_perimeters; consumed by PrintObject::detect_surfaces_type
+    // to upgrade stInternal -> stBottomBridge on the floor_layers immediately
+    // above so they get solid bridge fill.
+    Polygons                wave_overhang_floor_polygons;
+
+    // Orca: 2D footprint of wave-overhang coverage in this layer, populated
+    // unconditionally whenever wave paths were generated (independent of
+    // wave_overhang_floor_layers). Consumed by the support pipeline when
+    // support_remaining_areas_after_wave_overhangs is enabled to subtract
+    // wave-covered regions from detected overhangs, so supports only fill
+    // the residual (uncovered) areas.
+    Polygons                wave_overhang_covered_polygons;
+
+    // Orca: wave-overhang "shadow" region on this layer — the subset of the
+    // layer that was force-classified as stBottomBridge by the wave-overhang
+    // authoritative floor-layer promotion (see PrintObject::detect_surfaces_type).
+    // Consumed by discover_vertical_shells / discover_horizontal_shells so that
+    // these promoted bottom-bridge surfaces do NOT propagate additional solid
+    // shells above them. This is what makes wave_overhang_floor_layers
+    // authoritative rather than additive with bottom_shell_layers.
+    Polygons                wave_overhang_shadow_polygons;
+
+    // UNLAYERED_MOD -- cut-plane segments only: material of EARLIER segments at this layer's slice
+    // plane, just past this segment's Floor clips. A layer above may rest on it as well as on this
+    // layer's own lslices: a segment printed flat over a sloped cut grows layer by layer onto the
+    // parent's material, and that growth is supported, not an overhang. Filled by slice_volumes()
+    // for every segment with a Floor clip, read only by the wave-overhang generator, so nothing
+    // else changes behaviour.
+    ExPolygons              segment_floor_support;
     size_t                  region_count() const { return m_regions.size(); }
     const LayerRegion*      get_region(int idx) const { return m_regions[idx]; }
     LayerRegion*            get_region(int idx) { return m_regions[idx]; }
@@ -206,18 +250,18 @@ public:
     // Whether two regions can be printed in a continues perimeter
     static bool             is_perimeter_compatible(const Print& print, const PrintRegion& a, const PrintRegion& b);
     void                    make_perimeters();
-    // Phony version of make_fills() without parameters for Perl integration only.
-    void                    make_fills() { this->make_fills(nullptr); }
-    void                    make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLightning::Generator* lightning_generator = nullptr);
-    Polylines               generate_sparse_infill_polylines_for_anchoring(const FillAdaptive::RegionOctrees *fill_octrees,
-                                                                           FillLightning::Generator* lightning_generator) const;
+    void                    make_fills(const PreSliceInfillStructures &pre_slice_infill_structures);
+    Polylines               generate_sparse_infill_polylines_for_anchoring(const PreSliceInfillStructures &pre_slice_infill_structures) const;
     void 					make_ironing();
     // Returns the filament id (1-based) the region is ironed with, or -1 when the
     // region is not ironed.
     static int              choose_ironing_extruder(const PrintRegionConfig &cfg,
                                                     bool spiral_mode,
                                                     bool is_topmost_layer);
-    void                    make_contour_z(const sla::IndexedMesh &mesh);
+    // Half-space  normal.dot(p) - offset <= 0  in the slice frame that bounds the material besides
+    // the mesh itself: a cut-plane segment's clips. Empty for an ordinary object.
+    struct ContourZCeiling { Vec3d normal; double offset; };
+    void                    make_contour_z(const sla::IndexedMesh &mesh, const std::vector<ContourZCeiling> &ceilings = {});
 
     void                    export_region_slices_to_svg(const char *path) const;
     void                    export_region_fill_surfaces_to_svg(const char *path) const;
@@ -275,10 +319,12 @@ protected:
     friend std::vector<Layer*> new_layers(PrintObject*, const std::vector<coordf_t>&);
     friend std::string fix_slicing_errors(PrintObject* object, LayerPtrs&, const std::function<void()>&, int &);
 
-    Layer(size_t id, PrintObject *object, coordf_t height, coordf_t print_z, coordf_t slice_z) :
-        upper_layer(nullptr), lower_layer(nullptr), slicing_errors(false),
-        slice_z(slice_z), print_z(print_z), height(height),
-        m_id(id), m_object(object) {}
+    Layer(size_t id, PrintObject *object, coordf_t height, coordf_t print_z, coordf_t slice_z, coordf_t angle_b = 1.0) :
+        upper_layer(nullptr), lower_layer(nullptr), slicing_errors(false), slice_z(slice_z)
+        , print_z(print_z)
+        , height(height)
+        , angle_b(angle_b)
+        , m_id(id), m_object(object) {}
     virtual ~Layer();
 
 //BBS: method to simplify support path
@@ -314,12 +360,15 @@ public:
 
 
     // Is there any valid extrusion assigned to this LayerRegion?
-    virtual bool                has_extrusions() const { return ! support_fills.empty(); }
+    bool                        has_extrusions() const override { return ! support_fills.empty(); }
 
     // Zero based index of an interface layer, used for alternating direction of interface / contact layers.
     size_t                      interface_id() const { return m_interface_id; }
 
     void simplify_support_extrusion_path() { this->simplify_support_entity_collection(&support_fills); }
+
+    // UNLAYERED_MOD -- see Layer::translate(); also moves the support areas and extrusions.
+    void translate(const Point &shift) override;
 
 protected:
     friend class PrintObject;
@@ -351,6 +400,16 @@ protected:
         AreaGroup(ExPolygon *a, int t, coordf_t d) : area(a), type(t), dist_to_top(d) {}
     };
     std::vector<AreaGroup>                    area_groups;
+
+public:
+    // UNLAYERED_MOD -- the support as generated, before clip_supports_to_neighbours() cut it away
+    // from the other objects on the plate (Support/SupportNeighbourClip.hpp); valid only while
+    // has_unclipped_support is set. unclipped_support_simplified: they were saved after the
+    // simplify step had already run on them. Kept last so no existing member moves.
+    ExtrusionEntityCollection   unclipped_support_fills;
+    ExPolygons                  unclipped_support_islands;
+    bool                        has_unclipped_support        = false;
+    bool                        unclipped_support_simplified = false;
 };
 
 template<typename LayerContainer>

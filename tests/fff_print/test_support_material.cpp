@@ -10,6 +10,7 @@
 #include "libslic3r/Layer.hpp"
 
 #include <cmath>
+#include <limits>
 #include <cstddef>
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/PrintBase.hpp"
@@ -527,3 +528,136 @@ TEST_CASE("Bottom-only support interface keeps the dense interface density", "[S
     REQUIRE(sp.bottom_interface_density > sp.support_density);
 }
 
+
+TEST_CASE("A support enforcer volume follows a rotated object's slice frame", "[SupportMaterial]")
+{
+    // Enforcer/blocker volumes are cut in the same frame as the model parts. With the layers
+    // tilted (non-planar layer_rotation_b) that frame is rotated, and an enforcer cut in the
+    // unrotated frame landed several millimetres away from the face it was painted under.
+    const double tilt = 20.;
+    Slic3r::Print print;
+    Model         model;
+    ModelObject  *object = model.add_object();
+    object->name = "cantilever_with_enforcer";
+    TriangleMesh pillar = make_cube(8., 8., 20.);
+    TriangleMesh beam   = make_cube(40., 8., 2.);
+    beam.translate(0.f, 0.f, 18.f);
+    pillar.merge(beam);
+    object->add_volume(std::move(pillar), ModelVolumeType::MODEL_PART, false);
+    // A small enforcer box straddling the beam's underside at its free end: an enforcer marks the
+    // overhang it contains, so it has to contain the underside layer itself.
+    ModelVolume *enforcer = object->add_volume(make_cube(6., 6., 4.), ModelVolumeType::SUPPORT_ENFORCER, false);
+    enforcer->set_offset(Vec3d(32., 1., 15.));
+    object->add_instance()->set_offset(Vec3d(100., 100., 0.));
+    object->ensure_on_bed();
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "enable_nonplanar",  "1" },
+        { "layer_rotation_b",  - tilt },
+        { "enable_support",    "1" },
+        { "support_type",      "normal(manual)" },   // enforcers only
+        { "layer_height",      "0.2" },
+        { "skirt_loops",       "0" },
+        { "layer_change_gcode", "G92 E0" },
+    });
+    print.apply(model, config);
+    print.process();
+    REQUIRE(print.objects().size() == 1);
+    const PrintObject &po = *print.objects().front();
+    REQUIRE(! po.support_layers().empty());
+
+    // Where the enforcer's centre lands in the slice frame; the support it forces must be there too.
+    const Vec3d centre_slice = po.object_to_slice() * (enforcer->get_matrix() * Vec3d(3., 3., 2.));
+    BoundingBox support_extents;
+    for (const SupportLayer *layer : po.support_layers())
+        for (const ExPolygon &island : layer->support_islands)
+            support_extents.merge(get_extents(island));
+    REQUIRE(support_extents.defined);
+    const Vec2d support_centre = unscale(support_extents.center());
+    INFO("enforcer centre in slice frame " << centre_slice.transpose() << ", support centre " << support_centre.transpose());
+    CHECK_THAT(support_centre.x(), Catch::Matchers::WithinAbs(centre_slice.x(), 4.));
+    CHECK_THAT(support_centre.y(), Catch::Matchers::WithinAbs(centre_slice.y(), 4.));
+}
+
+TEST_CASE("Support of a whole-object layer rotation prints under the part and above the bed", "[SupportMaterial][Regression]")
+{
+    // An ordinary object rotated by layer_rotation_b/c is sliced in a rotated frame and its islands
+    // are un-rotated on the way out. Its support was emitted in the slice frame as it stood, so it
+    // came out turned 90 degrees away from the part it was holding up.
+    const auto [b, c] = GENERATE(table<double, double>({ { 90., 0. }, { 90., 90. } }));
+    const std::string mode = GENERATE(as<std::string>{}, "bc", "virtual");
+    INFO("layer_rotation_b " << b << ", layer_rotation_c " << c << ", printer type " << mode);
+
+    // A plate with a tower on each corner: whichever horizontal direction the rotation turns the
+    // build direction to, the towers on the far side start as an overhang off the plate. The plate
+    // is twice as long as the towers are tall, so support turned 90 degrees cannot fit the part's
+    // extent by accident.
+    TriangleMesh mesh = make_cube(40., 20., 4.);
+    for (const Vec2f corner : { Vec2f(0.f, 0.f), Vec2f(34.f, 0.f), Vec2f(0.f, 14.f), Vec2f(34.f, 14.f) }) {
+        TriangleMesh tower = make_cube(6., 6., 20.);
+        tower.translate(corner.x(), corner.y(), 0.f);
+        mesh.merge(tower);
+    }
+    Slic3r::Print print;
+    Model         model;
+    ModelObject  *object = model.add_object();
+    object->add_volume(std::move(mesh));
+    object->add_instance()->set_offset(Vec3d(80., 80., 0.));
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "enable_nonplanar",   "1" },
+        { "axis_selection",     mode },
+        // Virtual mode: no hotend envelope, so the 90-degree tilt is not refused by the tilt limit.
+        { "nonplanar_hotend_cone_height", 0 },
+        { "layer_rotation_b",   b },
+        { "layer_rotation_c",   c },
+        { "enable_support",     "1" },
+        { "support_type",       "normal(auto)" },
+        { "layer_height",       "0.2" },
+        { "skirt_loops",        "0" },
+        { "brim_type",          "no_brim" },
+        { "layer_change_gcode", "G92 E0" },
+    });
+    print.apply(model, config);
+    print.process();
+    REQUIRE(! print.objects().front()->support_layers().empty());
+    const std::string gcode = Slic3r::Test::gcode(print);
+
+    BoundingBoxf3 part;
+    std::vector<Vec3d> support_pts;
+    bool in_support = false, in_part = false;
+    GCodeReader parser;
+    parser.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view comment = line.comment();
+        if (comment.rfind("TYPE:", 0) == 0) {
+            in_support = comment.find("Support") != std::string_view::npos;
+            in_part    = ! in_support && comment.find("wall") != std::string_view::npos;
+        }
+        if (! line.extruding(self) || line.dist_XY(self) <= 0.)
+            return;
+        const Vec3d p(line.new_X(self), line.new_Y(self), line.new_Z(self));
+        if (in_support)
+            support_pts.emplace_back(p);
+        else if (in_part)
+            part.merge(p);
+    });
+    REQUIRE(part.defined);
+    REQUIRE(! support_pts.empty());
+
+    // Support reaches past the overhang it holds up by its expansion margin, so allow a little more
+    // than that around the part; support turned 90 degrees away lands well outside it.
+    const BoundingBoxf3 near_part(part.min - Vec3d(2., 2., 2.), part.max + Vec3d(2., 2., 2.));
+    size_t inside = 0;
+    double lowest = std::numeric_limits<double>::max();
+    for (const Vec3d &p : support_pts) {
+        if (near_part.contains(p))
+            ++ inside;
+        lowest = std::min(lowest, p.z());
+    }
+    INFO("part walls " << part.min.transpose() << " .. " << part.max.transpose() << ", "
+         << inside << " of " << support_pts.size() << " support points near it, lowest support z " << lowest);
+    CHECK(inside == support_pts.size());
+    CHECK(lowest >= 0.);
+}

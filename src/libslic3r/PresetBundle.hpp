@@ -253,6 +253,7 @@ public:
     // Keys a project keeps when its presets are loaded: those listed in its escaped
     // "different_settings_to_system" entry for the preset, plus the preset bookkeeping keys.
     static std::set<std::string> project_different_keys(const std::string &different_settings);
+    static void                  carry_process_keys_to_printer(const std::set<std::string> &print_keys, std::set<std::string> &printer_keys);
     // A project filament saved under a name the current presets split per nozzle (e.g. H2D 0.6) is loaded from
     // the preset that now holds its values.
     static void convert_filament_preset_name(const std::string& machine_name, std::string& filament_name);
@@ -317,10 +318,20 @@ public:
                                                          const BundleMetadata& remote_metadata,
                                                          ForwardCompatibilitySubstitutionRule rule);
 
+    // Unlayered: what an import actually did. import_presets() used to give the caller nothing
+    // but config substitutions, so the GUI could only report how many FILES were selected --
+    // a bundle whose every preset was skipped still produced "1 config imported".
+    struct ImportReport
+    {
+        std::vector<std::string>                         imported;        // preset names loaded and saved
+        std::vector<std::pair<std::string, std::string>> missing_parents; // (preset name, "inherits" it needs)
+    };
+
     PresetsConfigSubstitutions import_presets(std::vector<std::string>& files,
                                               std::function<int(std::string const&)> override_confirm,
                                               ForwardCompatibilitySubstitutionRule rule,
-                                              AppConfig& config);
+                                              AppConfig& config,
+                                              ImportReport* report = nullptr);
 
     bool import_json_presets(PresetsConfigSubstitutions& substitutions,
                              std::string& file,
@@ -330,7 +341,18 @@ public:
                              std::vector<std::string>& result,
                              const std::string& bundle_dir = "",
                              const std::map<std::string, std::string> &bed_asset_paths = {},
-                             bool *bed_paths_loaded = nullptr);
+                             bool *bed_paths_loaded = nullptr,
+                             ImportReport* report = nullptr);
+
+    // Unlayered: the "inherits" parents the given preset files (.json, or the JSONs inside an
+    // .orca_printer / .orca_bundle / .orca_filament / .zip) would need, as (type subdir, parent
+    // name) pairs, without importing anything. Lets the GUI install a missing vendor first.
+    static std::vector<std::pair<std::string, std::string>> collect_import_parents(const std::vector<std::string>& files);
+    // Unlayered: the shipped vendor whose resources/profiles/<vendor>/<type_subdir>/<name>.json
+    // defines a preset, or empty. For machine presets also yields printer_model / printer_variant
+    // so the caller can enable that model in AppConfig the way the setup wizard would.
+    static std::string find_resource_vendor_for_preset(const std::string& type_subdir, const std::string& preset_name,
+                                                       std::string* printer_model = nullptr, std::string* printer_variant = nullptr);
                              
     void save_user_presets(AppConfig& config, std::map<std::string, std::string>& need_to_delete_list);
     void check_and_fix_user_presets_syncinfo(const std::string& user_id);

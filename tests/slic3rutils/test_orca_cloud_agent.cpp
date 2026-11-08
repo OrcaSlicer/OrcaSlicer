@@ -584,6 +584,9 @@ TEST_CASE_METHOD(HealthCheckFixture, "The health check does no token work", "[Or
 
 TEST_CASE_METHOD(HealthCheckFixture, "A token request made while start() refreshes waits for it instead of refreshing again", "[OrcaCloudServiceAgent]")
 {
+    // Unlayered: start() makes no silent sign-in from a stored session (the cloud service is
+    // removed), so there is no refresh for a token request to wait on.
+    SKIP("start() does not refresh a stored session in Unlayered Slicer");
     // A session saved by a previous run: start() refreshes it on its own thread.
     agent->persist_user_secret(nlohmann::json{{"refresh_token", "stored-refresh-token"}, {"user_id", "test-user-id"}}.dump());
     const std::string access_token = FAR_FUTURE_JWT;
@@ -620,8 +623,14 @@ std::string closed_port_url()
 
 } // namespace
 
+// Unlayered: the cloud service is removed, so OrcaCloudServiceAgent's http_get/post/put/delete
+// return before sending anything (OrcaCloudServiceAgent.cpp). The delete and subscription tests
+// below need a request to reach the loopback server, so they are skipped.
+#define SKIP_WITHOUT_CLOUD_TRANSPORT() SKIP("OrcaCloudServiceAgent sends no requests in Unlayered Slicer")
+
 TEST_CASE_METHOD(HealthCheckFixture, "Deleting a profile succeeds once the cloud has no such profile", "[OrcaCloudServiceAgent]")
 {
+    SKIP_WITHOUT_CLOUD_TRANSPORT();
     // Deleted now, nothing to delete, or the gateway's own answer that this account owns no such profile.
     const auto [status, body] = GENERATE(table<std::string, std::string>({
         {"200 OK", R"({"status":"ok","deleted":["3f9c1d2e-8b7a-4c55-9e10-6a2b4c8d1f07"]})"},
@@ -665,6 +674,7 @@ TEST_CASE_METHOD(HealthCheckFixture, "Deleting an id that can't name a cloud pro
 
 TEST_CASE_METHOD(HealthCheckFixture, "A delete that can't reach the server fails and reports status 0, not 404", "[OrcaCloudServiceAgent]")
 {
+    SKIP_WITHOUT_CLOUD_TRANSPORT();
     agent->set_api_base_url(closed_port_url());
 
     CHECK(agent->delete_setting(PROFILE_ID) != BAMBU_NETWORK_SUCCESS);
@@ -673,6 +683,7 @@ TEST_CASE_METHOD(HealthCheckFixture, "A delete that can't reach the server fails
 
 TEST_CASE_METHOD(HealthCheckFixture, "A delete goes out only while the session belongs to its account", "[OrcaCloudServiceAgent]")
 {
+    SKIP_WITHOUT_CLOUD_TRANSPORT();
     sign_in("A");
     server.set_reply("204 No Content", "");
 
@@ -685,6 +696,7 @@ TEST_CASE_METHOD(HealthCheckFixture, "A delete goes out only while the session b
 
 TEST_CASE_METHOD(HealthCheckFixture, "A delete is not retried after a 401 when the refreshed session is another account's", "[OrcaCloudServiceAgent]")
 {
+    SKIP_WITHOUT_CLOUD_TRANSPORT();
     // A's session, whose stored refresh now yields B's session, as after another instance signed in as B.
     REQUIRE(agent->set_user_session(nlohmann::json{{"access_token", FAR_FUTURE_JWT}, {"refresh_token", "refresh-a"}, {"user_id", "A"}}, false));
     LoopbackServer auth_server;
@@ -700,6 +712,7 @@ TEST_CASE_METHOD(HealthCheckFixture, "A delete is not retried after a 401 when t
 
 TEST_CASE_METHOD(HealthCheckFixture, "Unsubscribing a bundle succeeds only on a 2xx answer", "[OrcaCloudServiceAgent]")
 {
+    SKIP_WITHOUT_CLOUD_TRANSPORT();
     const auto [status, expected] = GENERATE(table<std::string, bool>({
         {"200 OK", true},
         {"204 No Content", true},
@@ -742,6 +755,7 @@ SubscriptionPoll poll_subscriptions(OrcaCloudServiceAgent& agent)
 
 TEST_CASE_METHOD(HealthCheckFixture, "A subscription poll answered 304 returns the list received last", "[OrcaCloudServiceAgent]")
 {
+    SKIP_WITHOUT_CLOUD_TRANSPORT();
     sign_in("A");
     server.set_reply("200 OK", SUBSCRIPTIONS_V1, R"(W/"v1")");
     const SubscriptionPoll first = poll_subscriptions(*agent);
@@ -764,6 +778,7 @@ TEST_CASE_METHOD(HealthCheckFixture, "A subscription poll answered 304 returns t
 
 TEST_CASE_METHOD(HealthCheckFixture, "A changed subscription list replaces the one received before", "[OrcaCloudServiceAgent]")
 {
+    SKIP_WITHOUT_CLOUD_TRANSPORT();
     sign_in("A");
     server.set_reply("200 OK", SUBSCRIPTIONS_V1, R"(W/"v1")");
     REQUIRE(poll_subscriptions(*agent).result == 0);
@@ -782,6 +797,7 @@ TEST_CASE_METHOD(HealthCheckFixture, "A changed subscription list replaces the o
 
 TEST_CASE_METHOD(HealthCheckFixture, "A subscription list is revalidated only for the account that received it", "[OrcaCloudServiceAgent]")
 {
+    SKIP_WITHOUT_CLOUD_TRANSPORT();
     sign_in("A");
     server.set_reply("200 OK", SUBSCRIPTIONS_V1, R"(W/"v1")");
     REQUIRE(poll_subscriptions(*agent).result == 0);
@@ -855,6 +871,7 @@ TEST_CASE("A delete for an id that can't name a cloud profile is dropped with it
 
 TEST_CASE("A delete the gateway answers with a verified 404 is not sent again", "[OrcaCloudServiceAgent]")
 {
+    SKIP_WITHOUT_CLOUD_TRANSPORT();
     DeletedPresetFixture fixture(PROFILE_ID);
     fixture.server.set_reply("404 Not Found", R"({"status":"failed","failed":["3f9c1d2e-8b7a-4c55-9e10-6a2b4c8d1f07"]})");
 

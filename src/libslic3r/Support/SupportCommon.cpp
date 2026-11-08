@@ -417,8 +417,6 @@ SupportGeneratorLayersPtr generate_raft_base(
         // The object does not have a raft.
         // Calculate the area covered by the brim.
         const BrimType brim_type       = object.config().brim_type;
-        // btLeadingEdgeOnly only means anything on a belt printer, where this code path
-        // does not run; elsewhere it degrades to an outer brim (see Brim.cpp).
         const bool     brim_outer      = brim_type == btOuterOnly || brim_type == btOuterAndInner || brim_type == btLeadingEdgeOnly;
         const bool     brim_inner      = brim_type == btInnerOnly || brim_type == btOuterAndInner;
         // BBS: the pattern of raft and brim are the same, thus the brim can be serpated by support raft.
@@ -447,12 +445,15 @@ SupportGeneratorLayersPtr generate_raft_base(
 
     // How much to inflate the support columns to be stable. This also applies to the 1st layer, if no raft layers are to be printed.
     const float inflate_factor_fine      = float(scale_((slicing_params.raft_layers() > 1) ? 0.5 : EPSILON));
-    // On a belt the first support layer is the leading tip of the support, a sliver
-    // where the belt crosses the layer, not a flange on a flat bed: inflating it
-    // puts lines in the air ahead of the belt crossing (and into the belt behind
-    // it).  The belt brim takes the adhesion role instead.
-    const bool  belt_floor_active        = std::abs(slicing_params.belt_floor_shear_factor) > EPSILON;
-    const float inflate_factor_1st_layer = belt_floor_active ? 0.f :
+    // Declarative cut planes: skip the first-layer base expansion for a non-root segment. Its
+    // support terminates on a tilted cut face and may extend below the segment's slice-frame zero,
+    // so that layer is mid-column rather than a build-plate base -- expanding it just leaves a
+    // flange sticking out of the side of the support. The root segment rests on the plate and keeps
+    // the expansion for adhesion, as does every ordinary object.
+    // BELT_MOD: the same holds for an object on a belt, whose first slice layer is the leading tip
+    // and whose support ends on the tilted belt plane (PrintObject::support_floor_is_tilted).
+    const bool  non_root_segment        = object.support_floor_is_tilted();
+    const float inflate_factor_1st_layer = non_root_segment ? 0.f :
         std::max(0.f, float(scale_(object.config().raft_first_layer_expansion)) - inflate_factor_fine);
     SupportGeneratorLayer       *contacts         = top_contacts         .empty() ? nullptr : top_contacts         .front();
     SupportGeneratorLayer       *interfaces       = interface_layers     .empty() ? nullptr : interface_layers     .front();
@@ -638,6 +639,77 @@ static Polylines draw_perimeters(const ExPolygon &expoly, double clip_length)
     }
     return polylines;
 }
+
+// Extend the lowest support column down onto a tilted floor. A segment rests on a cut face, not on
+// a flat plate, so under part of the footprint the floor lies BELOW the segment's slice-frame zero
+// and the stock generator simply stops there, leaving support hanging in the air.
+void extend_support_below_segment_floor(const SegmentSupportBounds     &bounds,
+                                       const SlicingParameters        &slicing_params,
+                                       SupportGeneratorLayerStorage   &layer_storage,
+                                       SupportGeneratorLayersPtr      &intermediate_layers,
+                                       const Polygons                 &extra_seed)
+{
+    // NOT gated on intermediate_layers being non-empty: a floating segment can have no support of
+    // its own at all, and then `extra_seed` -- its suspended first layer -- is the only thing there
+    // is to carry down. Bailing here is what previously made the whole floating case a no-op.
+    if (! bounds.is_active())
+        return;
+    const coordf_t lh = slicing_params.layer_height;
+    if (lh < EPSILON)
+        return;
+
+    // The lowest non-empty intermediate layer is the footprint to project downward; it has already
+    // been clipped to the valid region by the trim pass above.
+    const SupportGeneratorLayer *src = nullptr;
+    for (const SupportGeneratorLayer *layer : intermediate_layers)
+        if (layer != nullptr && ! layer->polygons.empty() && (src == nullptr || layer->print_z < src->print_z))
+            src = layer;
+    if (src == nullptr && extra_seed.empty())
+        return;
+    // Without any support layer of its own, the extra seed still has to descend -- start it at the
+    // segment's own zero, which is where its material begins.
+    const coordf_t first_z      = (src != nullptr) ? src->print_z : coordf_t(0.);
+    Polygons       source_areas = (src != nullptr) ? src->polygons : Polygons();
+    if (! extra_seed.empty())
+        source_areas = union_(source_areas, extra_seed);
+    if (source_areas.empty())
+        return;
+
+    // How deep the floor dips under that footprint. Sampled at every vertex: the floor is a plane,
+    // so its minimum over the footprint is attained at one of them.
+    double deepest = 0.;
+    for (const Polygon &poly : source_areas)
+        for (const Point &pt : poly.points)
+            deepest = std::min(deepest, bounds.floor_z(pt));
+    if (deepest >= - EPSILON)
+        return;                     // floor never dips below zero: nothing to extend
+
+    int added = 0;
+    for (int i = 1; ; ++ i) {
+        const coordf_t print_z = first_z - coordf_t(i) * lh;
+        if (print_z < deepest - lh)
+            break;                  // descended past the floor's lowest point under the footprint
+        Polygons clipped = intersection(source_areas, bounds.valid_region_polygon(print_z));
+        if (clipped.empty())
+            break;                  // footprint entirely past the floor
+        SupportGeneratorLayer &ln = layer_storage.allocate(SupporLayerType::Intermediate);
+        ln.print_z  = print_z;
+        ln.bottom_z = print_z - lh;
+        ln.height   = lh;
+        ln.polygons = std::move(clipped);
+        intermediate_layers.push_back(&ln);
+        ++ added;
+    }
+
+    // Load-bearing: generate_support_toolpaths() pairs raw layers to support layers with a binary
+    // search plus a monotonic forward scan, both of which require ascending print_z. The layers
+    // above were appended out of order, so without this re-sort they are never matched and the
+    // below-zero support silently produces no toolpaths at all.
+    if (added > 0)
+        std::sort(intermediate_layers.begin(), intermediate_layers.end(),
+                  [](const SupportGeneratorLayer *l, const SupportGeneratorLayer *r) { return l->print_z < r->print_z; });
+}
+
 
 void tree_supports_generate_paths(
     ExtrusionEntitiesPtr    &dst,
@@ -1932,15 +2004,12 @@ void generate_support_toolpaths(
                 bool  sheath  = support_params.with_sheath;
                 bool  no_sort = false;
                 bool  done    = false;
-                // Belt printers have no flat bed first layer — the belt is the tilted
-                // build surface — so the dense raft_first_layer_density flange must not
-                // fire anywhere, including the layer at z=0 (the belt-surface line).
-                // (belt_floor_shear_factor is non-zero only when belt_printer is on.)
-                // For every other printer type, support z is never negative, so this
-                // matches the original "first layer at z=0" behaviour unchanged.
-                const bool is_belt_printer = std::abs(slicing_params.belt_floor_shear_factor) > EPSILON;
-                if (! is_belt_printer && base_layer.layer->bottom_z < EPSILON) {
-                    // Base flange (the 1st layer).
+                // Gate on the layer INDEX as well as the height: a segment's support extends below
+                // its slice-frame zero, so many layers have bottom_z < 0 and would every one of
+                // them turn into a solid flange instead of sparse base. Only the actual lowest
+                // support layer is the flange.
+                if (support_layer_id == n_raft_layers && base_layer.layer->bottom_z < EPSILON) {
+                    // Base flange (the 1st / lowest layer).
                     filler = filler_first_layer;
                     filler->angle = Geometry::deg2rad(float(config.support_angle.value + 90.));
                     density = float(config.raft_first_layer_density.value * 0.01);
@@ -2191,11 +2260,5 @@ sub clip_with_shape {
     }
 }
 */
-
-Vec2d build_plate_tilt_slope(const PrintConfig &print_config)
-{
-    auto slope = [](double tilt_deg) { return std::tan(Geometry::deg2rad(std::clamp(tilt_deg, -89., 89.))); };
-    return { slope(print_config.build_plate_tilt_y.value), slope(print_config.build_plate_tilt_x.value) };
-}
 
 } // namespace Slic3r

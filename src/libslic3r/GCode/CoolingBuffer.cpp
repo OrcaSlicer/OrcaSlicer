@@ -18,7 +18,6 @@
 #include <iostream>
 #include <float.h>
 #include <string>
-#include <string_view>
 #include <system_error>
 #include <unordered_map>
 #include <vector>
@@ -47,12 +46,10 @@ CoolingBuffer::CoolingBuffer(GCode &gcodegen) : m_config(gcodegen.config()), m_g
         m_num_extruders = std::max(ex.id() + 1, m_num_extruders);
         m_extruder_ids.emplace_back(ex.id());
     }
-
 }
 
 void CoolingBuffer::reset(const Vec3d &position)
 {
-    m_belt_band_active = false;
     // BBS: add I and J axis to store center of arc
     m_current_pos.assign(7, 0.f);
     m_current_pos[0] = float(position.x());
@@ -92,9 +89,16 @@ struct CoolingLine
         // ORCA: Add support for ironing fan speed control
         TYPE_IRONING_FAN_START         = 1 << 19,
         TYPE_IRONING_FAN_END           = 1 << 20,
-        // Belt printers: extrusions within the first-layer band above the belt.
-        TYPE_BELT_BAND_START           = 1 << 21,
-        TYPE_BELT_BAND_END             = 1 << 22,
+        // BELT_MOD: contact-aware first layer (GCode::contact_fan_markers)
+        TYPE_CONTACT_BED_START         = 1 << 21,
+        TYPE_CONTACT_BED_END           = 1 << 22,
+        TYPE_CONTACT_OBJECT_START      = 1 << 23,
+        TYPE_CONTACT_OBJECT_END        = 1 << 24,
+        // Orca: wave-overhang fan speed override. The fan % is encoded inline in the
+        // marker (e.g. ";_WAVE_OVERHANG_FAN_START 100") so CoolingBuffer doesn't need
+        // region-config access. Parsed in parse_lines_and_collect_stats().
+        TYPE_WAVE_OVERHANG_FAN_START   = 1 << 25,   // 21-24 are the belt contact markers
+        TYPE_WAVE_OVERHANG_FAN_END     = 1 << 26,
     };
 
     CoolingLine(unsigned int type, size_t  line_start, size_t  line_end) :
@@ -126,6 +130,16 @@ struct CoolingLine
     float   time_max;
     // If marked with the "slowdown" flag, the line has been slowed down.
     bool    slowdown;
+    // BELT_MOD: for the contact markers -- band index, and for an object band the fan policy.
+    int     contact_index = 0;
+    int     contact_mode  = 0;
+    int     contact_speed = 0;
+    // Orca: wave-overhang fan override — fan %s parsed from the marker line. Valid
+    // only when type & TYPE_WAVE_OVERHANG_FAN_START. The marker carries two values:
+    // main part-cooling % (0-100, -1 = no override) and auxiliary fan % (0-100,
+    // -1 = no override). Pre-existing single-value markers parse with aux = -1.
+    int     wave_overhang_fan_percent     = -1;
+    int     wave_overhang_aux_fan_percent = -1;
 };
 
 // Calculate the required per extruder time stretches.
@@ -543,6 +557,32 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
             line.type = CoolingLine::TYPE_OVERHANG_FAN_START;
         } else if (boost::starts_with(sline, ";_OVERHANG_FAN_END")) {
             line.type = CoolingLine::TYPE_OVERHANG_FAN_END;
+        } else if (boost::starts_with(sline, ";_WAVE_OVERHANG_FAN_START")) {
+            // Orca: wave-overhang fan override. Marker carries up to two values:
+            //   ";_WAVE_OVERHANG_FAN_START <main> <aux>"
+            // <main>: 0-100 part-cooling fan %, -1 = no override.
+            // <aux>:  0-100 aux fan %, -1 = no override (or absent for legacy markers).
+            line.type = CoolingLine::TYPE_WAVE_OVERHANG_FAN_START;
+            const char *p = sline.c_str() + strlen(";_WAVE_OVERHANG_FAN_START");
+            auto skip_ws = [&p]() { while (*p == ' ' || *p == '\t') ++p; };
+            auto parse_int = [&p](int defv) {
+                if (*p == '-' || (*p >= '0' && *p <= '9'))
+                    return atoi(p);
+                return defv;
+            };
+            auto advance_past_token = [&p]() {
+                if (*p == '-') ++p;
+                while (*p >= '0' && *p <= '9') ++p;
+            };
+            skip_ws();
+            int main_pct = parse_int(100);
+            advance_past_token();
+            skip_ws();
+            int aux_pct = parse_int(-1);
+            line.wave_overhang_fan_percent     = (main_pct < 0) ? -1 : std::clamp(main_pct, 0, 100);
+            line.wave_overhang_aux_fan_percent = (aux_pct  < 0) ? -1 : std::clamp(aux_pct,  0, 100);
+        } else if (boost::starts_with(sline, ";_WAVE_OVERHANG_FAN_END")) {
+            line.type = CoolingLine::TYPE_WAVE_OVERHANG_FAN_END;
         } else if (boost::starts_with(sline, ";_INTERNAL_BRIDGE_FAN_START")) { // ORCA: Add support for separate internal bridge fan speed control
             line.type = CoolingLine::TYPE_INTERNAL_BRIDGE_FAN_START;
         } else if (boost::starts_with(sline, ";_INTERNAL_BRIDGE_FAN_END")) { // ORCA: Add support for separate internal bridge fan speed control
@@ -555,10 +595,16 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
             line.type = CoolingLine::TYPE_IRONING_FAN_START;
         } else if (boost::starts_with(sline, ";_IRONING_FAN_END")) { // ORCA: Add support for ironing fan speed control
             line.type = CoolingLine::TYPE_IRONING_FAN_END;
-        } else if (boost::starts_with(sline, ";_BELT_BAND_START")) {
-            line.type = CoolingLine::TYPE_BELT_BAND_START;
-        } else if (boost::starts_with(sline, ";_BELT_BAND_END")) {
-            line.type = CoolingLine::TYPE_BELT_BAND_END;
+        } else if (boost::starts_with(sline, ";_CONTACT_BED_START:")) { // BELT_MOD
+            line.type = CoolingLine::TYPE_CONTACT_BED_START;
+            line.contact_index = std::atoi(sline.c_str() + std::strlen(";_CONTACT_BED_START:"));
+        } else if (boost::starts_with(sline, ";_CONTACT_BED_END")) {
+            line.type = CoolingLine::TYPE_CONTACT_BED_END;
+        } else if (boost::starts_with(sline, ";_CONTACT_OBJECT_START:")) {
+            line.type = CoolingLine::TYPE_CONTACT_OBJECT_START;
+            std::sscanf(sline.c_str() + std::strlen(";_CONTACT_OBJECT_START:"), "%d:%d:%d", &line.contact_index, &line.contact_mode, &line.contact_speed);
+        } else if (boost::starts_with(sline, ";_CONTACT_OBJECT_END")) {
+            line.type = CoolingLine::TYPE_CONTACT_OBJECT_END;
         } else if (boost::starts_with(sline, "G4 ")) {
             // Parse the wait time.
             line.type = CoolingLine::TYPE_G4;
@@ -721,6 +767,47 @@ float CoolingBuffer::calculate_layer_slowdown(std::vector<PerExtruderAdjustments
 
 // Apply slow down over G-code lines stored in per_extruder_adjustments, enable fan if needed.
 // Returns the adjusted G-code.
+// BELT_MOD -- the main part-cooling fan speed the per-layer rule below gives for an effective layer
+// index: the first-N-layers gate, the initial-layer override, the layer-time interpolation and the
+// ramp to full_fan_speed_layer. Called at contact-band markers with the band index in place of the
+// slice layer index, so on a belt the fan follows height above the belt.
+int CoolingBuffer::compute_main_fan_speed(int effective_layer_id, float layer_time, unsigned int extruder_id) const
+{
+#define EXTRUDER_CFG(opt) m_config.opt.get_at(extruder_id)
+    const float fan_min_speed                = EXTRUDER_CFG(fan_min_speed);
+    const float fan_max_speed                = EXTRUDER_CFG(fan_max_speed);
+    const bool  reduce_fan_stop_start_freq   = EXTRUDER_CFG(reduce_fan_stop_start_freq);
+    const int   close_fan_the_first_x_layers = EXTRUDER_CFG(close_fan_the_first_x_layers);
+    const int   full_fan_speed_layer         = EXTRUDER_CFG(full_fan_speed_layer);
+    const float slow_down_layer_time         = float(EXTRUDER_CFG(slow_down_layer_time));
+    const float fan_cooling_layer_time       = float(EXTRUDER_CFG(fan_cooling_layer_time));
+    const int   initial_layer_fan_speed      = EXTRUDER_CFG(initial_layer_fan_speed);
+#undef EXTRUDER_CFG
+    const bool has_initial_layer_override = initial_layer_fan_speed >= 0 && close_fan_the_first_x_layers <= 0;
+    float fan_speed_new = reduce_fan_stop_start_freq ? fan_min_speed : 0.f;
+    if (has_initial_layer_override && effective_layer_id == 0)
+        return initial_layer_fan_speed;
+    if (effective_layer_id < close_fan_the_first_x_layers)
+        return 0;
+    if (layer_time < slow_down_layer_time) {
+        fan_speed_new = fan_max_speed;
+    } else if (layer_time < fan_cooling_layer_time) {
+        const double t = (layer_time - slow_down_layer_time) / (fan_cooling_layer_time - slow_down_layer_time);
+        fan_speed_new = float(int(floor(t * fan_min_speed + (1. - t) * fan_max_speed) + 0.5));
+    }
+    if (effective_layer_id + 1 < full_fan_speed_layer) {
+        if (has_initial_layer_override && close_fan_the_first_x_layers == 0 && full_fan_speed_layer > 1) {
+            const float anchor = float(initial_layer_fan_speed);
+            const float t      = float(effective_layer_id) / float(full_fan_speed_layer - 1);
+            fan_speed_new      = float(std::clamp(int(anchor + t * (fan_speed_new - anchor) + 0.5f), 0, 255));
+        } else {
+            const float factor = float(effective_layer_id + 1 - close_fan_the_first_x_layers) / float(full_fan_speed_layer - close_fan_the_first_x_layers);
+            fan_speed_new      = float(std::clamp(int(fan_speed_new * factor + 0.5f), 0, 255));
+        }
+    }
+    return int(fan_speed_new);
+}
+
 std::string CoolingBuffer::apply_layer_cooldown(
     // Source G-code for the current layer.
     const std::string                      &gcode,
@@ -757,6 +844,14 @@ std::string CoolingBuffer::apply_layer_cooldown(
     int  supp_interface_fan_speed = 0;
     bool ironing_fan_control= false; // ORCA: Add support for ironing fan speed control
     int  ironing_fan_speed   = 0; // ORCA: Add support for ironing fan speed control
+    // Orca: wave-overhang fan override. Value set from inline marker (per-region),
+    // not from filament/extruder config. Always "controlled" while scope is active.
+    int  wave_overhang_fan_speed = 0;
+    // Orca: wave-overhang aux fan override. Tracked separately because the aux fan
+    // (M106 P2) bypasses the main need_set_fan deferred-emission path; we emit it
+    // inline at the marker site and restore at the close marker. False means no
+    // aux override is currently active.
+    bool wave_aux_override_active = false;
     auto change_extruder_set_fan = [ this, layer_id, layer_time, &new_gcode, part_cooling_fan_min_pwm,
         &overhang_fan_control, &overhang_fan_speed,
         &internal_bridge_fan_control, &internal_bridge_fan_speed,
@@ -900,10 +995,12 @@ std::string CoolingBuffer::apply_layer_cooldown(
                                                                {CoolingLine::TYPE_INTERNAL_BRIDGE_FAN_START, false}, // ORCA: Add support for separate internal bridge fan speed control
                                                                {CoolingLine::TYPE_SUPPORT_INTERFACE_FAN_START, false},
                                                                {CoolingLine::TYPE_IRONING_FAN_START, false}, // ORCA: Add support for ironing fan speed control
+                                                               {CoolingLine::TYPE_WAVE_OVERHANG_FAN_START, false}, // Orca: wave-overhang fan override
                                                                {CoolingLine::TYPE_FORCE_RESUME_FAN, false}};
-    // Belt printers: a band still open from the previous layer has to take the fan back from
-    // the layer-level speed issued just above.
-    bool need_set_fan = m_belt_band_active;
+    bool need_set_fan = false;
+    // BELT_MOD: inside a contact band the main fan follows the band, not the layer.
+    bool contact_active = false;
+    int  contact_fan    = 0;
 
     for (const CoolingLine *line : lines) {
         const char *line_start  = gcode.c_str() + line->line_start;
@@ -917,11 +1014,22 @@ std::string CoolingBuffer::apply_layer_cooldown(
                 if (new_extruder != m_current_extruder) {
                     m_current_extruder = new_extruder;
                     change_extruder_set_fan(true);
-                    if (m_belt_band_active)
-                        need_set_fan = true;
                 }
             }
             new_gcode.append(line_start, line_end - line_start);
+        } else if (line->type & CoolingLine::TYPE_CONTACT_BED_START) { // BELT_MOD
+            contact_active = true;
+            contact_fan    = this->compute_main_fan_speed(line->contact_index, layer_time, m_current_extruder);
+            need_set_fan   = true;
+        } else if (line->type & CoolingLine::TYPE_CONTACT_OBJECT_START) { // BELT_MOD
+            // mode: 0 as first layer, 1 keep (never emitted), 2 off, 3 fixed
+            contact_active = line->contact_mode != 1;
+            contact_fan    = line->contact_mode == 0 ? this->compute_main_fan_speed(line->contact_index, layer_time, m_current_extruder)
+                           : line->contact_mode == 2 ? 0 : line->contact_speed;
+            need_set_fan   = true;
+        } else if (line->type & (CoolingLine::TYPE_CONTACT_BED_END | CoolingLine::TYPE_CONTACT_OBJECT_END)) { // BELT_MOD
+            contact_active = false;
+            need_set_fan   = true;
         } else if (line->type & CoolingLine::TYPE_OVERHANG_FAN_START) {
             if (overhang_fan_control && !fan_speed_change_requests[CoolingLine::TYPE_OVERHANG_FAN_START]) {
                 need_set_fan = true;
@@ -962,6 +1070,37 @@ std::string CoolingBuffer::apply_layer_cooldown(
                 fan_speed_change_requests[CoolingLine::TYPE_IRONING_FAN_START] = false;
             }
             need_set_fan = true;
+        } else if (line->type & CoolingLine::TYPE_WAVE_OVERHANG_FAN_START) {
+            // Orca: wave-overhang fan override. Marker carries main and aux %.
+            // Main fan goes through the deferred need_set_fan path; aux fan
+            // (M106 P2) is emitted inline because it bypasses the slowdown
+            // pipeline that motivated the deferred main-fan emission.
+            if (!fan_speed_change_requests[CoolingLine::TYPE_WAVE_OVERHANG_FAN_START]) {
+                bool any_override = false;
+                if (line->wave_overhang_fan_percent >= 0) {
+                    wave_overhang_fan_speed = line->wave_overhang_fan_percent;
+                    need_set_fan = true;
+                    any_override = true;
+                }
+                if (line->wave_overhang_aux_fan_percent >= 0 && m_config.auxiliary_fan.value) {
+                    new_gcode += GCodeWriter::set_additional_fan(line->wave_overhang_aux_fan_percent);
+                    wave_aux_override_active = true;
+                    any_override = true;
+                }
+                if (any_override)
+                    fan_speed_change_requests[CoolingLine::TYPE_WAVE_OVERHANG_FAN_START] = true;
+            }
+        } else if (line->type & CoolingLine::TYPE_WAVE_OVERHANG_FAN_END) {
+            if (fan_speed_change_requests[CoolingLine::TYPE_WAVE_OVERHANG_FAN_START]) {
+                fan_speed_change_requests[CoolingLine::TYPE_WAVE_OVERHANG_FAN_START] = false;
+            }
+            if (wave_aux_override_active && m_config.auxiliary_fan.value) {
+                // Restore aux fan to the underlying extruder default that
+                // change_extruder_set_fan most recently applied.
+                new_gcode += GCodeWriter::set_additional_fan(m_additional_fan_speed);
+                wave_aux_override_active = false;
+            }
+            need_set_fan = true;
         } else if (line->type & CoolingLine::TYPE_FORCE_RESUME_FAN) {
             // check if any fan speed change request is active
             if (m_fan_speed != -1 && !std::any_of(fan_speed_change_requests.begin(), fan_speed_change_requests.end(), [](const std::pair<int, bool>& p) { return p.second; })){
@@ -970,13 +1109,6 @@ std::string CoolingBuffer::apply_layer_cooldown(
             }
             if (m_additional_fan_speed != -1 && m_config.auxiliary_fan.value)
                 new_gcode += GCodeWriter::set_additional_fan(m_additional_fan_speed);
-        }
-        else if (line->type & CoolingLine::TYPE_BELT_BAND_START) {
-            m_belt_band_active = true;
-            need_set_fan       = true;
-        } else if (line->type & CoolingLine::TYPE_BELT_BAND_END) {
-            m_belt_band_active = false;
-            need_set_fan       = true;
         }
         else if (line->type & CoolingLine::TYPE_EXTRUDE_END) {
             // Just remove this comment.
@@ -1070,14 +1202,10 @@ std::string CoolingBuffer::apply_layer_cooldown(
                     m_current_fan_speed = speed;
                 }
             };
-            if (m_belt_band_active) {
-                // Belt printers: a tilted layer runs from the belt to the top of the part, so
-                // "the first layers" are a band along the belt rather than the first slicing
-                // layers. Extrusions GCode::_extrude() marks as inside that band print with the
-                // fan off, whatever overhang, bridge or resume request is pending, as the first
-                // layers of a flat bed do. Leaving the band falls through to the branches below.
-                set_fan(0);
-                fan_speed_change_requests[CoolingLine::TYPE_FORCE_RESUME_FAN] = false;
+            // Orca: wave-overhang fan override takes priority over regular overhang fan
+            // (a wave path is also an overhang path, so the two scopes can overlap).
+            if (fan_speed_change_requests[CoolingLine::TYPE_WAVE_OVERHANG_FAN_START]) {
+                set_fan(wave_overhang_fan_speed);
             } else if (fan_speed_change_requests[CoolingLine::TYPE_OVERHANG_FAN_START]){
                 set_fan(overhang_fan_speed);
             } else if (fan_speed_change_requests[CoolingLine::TYPE_INTERNAL_BRIDGE_FAN_START]){ // ORCA: Add support for separate internal bridge fan speed control
@@ -1092,6 +1220,9 @@ std::string CoolingBuffer::apply_layer_cooldown(
             else if(fan_speed_change_requests[CoolingLine::TYPE_FORCE_RESUME_FAN] && m_current_fan_speed != -1){
                 new_gcode += GCodeWriter::set_fan(m_config.gcode_flavor, m_current_fan_speed, part_cooling_fan_min_pwm);
                 fan_speed_change_requests[CoolingLine::TYPE_FORCE_RESUME_FAN] = false;
+            }
+            else if (contact_active) { // BELT_MOD
+                set_fan(contact_fan);
             }
             else {
                 set_fan(m_fan_speed);

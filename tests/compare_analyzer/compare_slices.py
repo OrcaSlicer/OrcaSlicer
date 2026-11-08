@@ -7,7 +7,7 @@ The script performs a deep comparison of two `.3mf` slicing project files
 
 Default behavior (file paths):
 ------------------------------------
-If only filenames are passed (e.g. `54orca.3mf` and `bbl.3mf`), the script searches by priority:
+If only filenames are passed (e.g. `54unlayered.3mf` and `bbl.3mf`), the script searches by priority:
 1. Looks for the file on the user's Desktop (~/Desktop/<filename>).
 2. Looks for the file relative to the current working directory.
 3. Supports absolute paths.

@@ -584,3 +584,109 @@ TEST_CASE("The temperature tower steps the temperature of the tool printing it",
         CHECK(tools == std::set<std::string>{multi_tool ? "1" : "none"});
     }
 }
+
+// In a print by object every object starts again at the first layer, so a pause from the layer
+// slider says which object it belongs to (CustomGCode::Item::sequential_object, its place in print
+// order). It runs once, at the start of that object's layer, and nowhere else. One without an object,
+// as in a print by layer, is dropped there, as every pause was before.
+TEST_CASE("A pause on one object of a print by object runs once, on that object's layer", "[GCode]")
+{
+    const auto [sequential_object, pauses, object_at_pause] = GENERATE(table<int, size_t, int>({
+        { 1, 1, 1 },  // the second object printed
+        { 0, 1, 0 },  // the first one
+        { -1, 0, -1 } // no object: not placed in a print by object
+    }));
+    DYNAMIC_SECTION("sequential_object " << sequential_object) {
+        Slic3r::Print print;
+        Slic3r::Model model;
+        // Two 20 mm cubes 60 mm apart, 0.2 mm layers: 100 layers each, Z 5 is layer 25 of each.
+        Test::place_two_cubes_apart(60., { { "print_sequence", "by object" },
+                                           { "layer_height", 0.2 },
+                                           { "initial_layer_print_height", 0.2 },
+                                           { "machine_pause_gcode", "M601" },
+                                           { "skirt_loops", 0 },
+                                           { "brim_type", "no_brim" },
+                                           { "enable_prime_tower", 0 } },
+                                    print, model);
+        CustomGCode::Item pause{ 5.0, CustomGCode::PausePrint, 1, "", "" };
+        pause.sequential_object = sequential_object;
+        model.plates_custom_gcodes[model.curr_plate_index].gcodes.push_back(pause);
+        print.apply(model, print.full_print_config());
+        const std::string gcode = Test::gcode(print);
+
+        // Walk the G-code: a drop of more than 10 mm is the next object starting; note the object
+        // and the Z of the first extrusion after each M601.
+        GCodeReader reader;
+        int    object = 0;
+        double top = 0.;
+        size_t seen = 0;
+        int    paused_object = -1;
+        bool   after_pause = false;
+        double z_after_pause = -1.;
+        reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+            if (line.cmd_is("M601")) {
+                ++seen;
+                paused_object = object;
+                after_pause   = true;
+            } else if (line.cmd_is("G1") || line.cmd_is("G0")) {
+                if (line.has_z()) {
+                    const double z = line.new_Z(self);
+                    if (z < top - 10.) {
+                        ++object;
+                        top = z;
+                    } else
+                        top = std::max(top, z);
+                }
+                if (after_pause && line.extruding(self) && line.dist_XY(self) > 0) {
+                    z_after_pause = self.z();
+                    after_pause   = false;
+                }
+            }
+        });
+        CHECK(seen == pauses);
+        if (pauses > 0) {
+            CHECK(paused_object == object_at_pause);
+            CHECK_THAT(z_after_pause, Catch::Matchers::WithinAbs(5.0, 0.01));
+        }
+    }
+}
+
+// A print by layer is unchanged: a pause runs once at its height, also one that still names an
+// object from when the plate printed by object.
+TEST_CASE("A pause in a print by layer runs once at its height", "[GCode]")
+{
+    const int sequential_object = GENERATE(-1, 1);
+    DYNAMIC_SECTION("sequential_object " << sequential_object) {
+        Slic3r::Print print;
+        Slic3r::Model model;
+        Test::place_two_cubes_apart(60., { { "print_sequence", "by layer" },
+                                           { "layer_height", 0.2 },
+                                           { "initial_layer_print_height", 0.2 },
+                                           { "machine_pause_gcode", "M601" },
+                                           { "skirt_loops", 0 },
+                                           { "brim_type", "no_brim" },
+                                           { "enable_prime_tower", 0 } },
+                                    print, model);
+        CustomGCode::Item pause{ 5.0, CustomGCode::PausePrint, 1, "", "" };
+        pause.sequential_object = sequential_object;
+        model.plates_custom_gcodes[model.curr_plate_index].gcodes.push_back(pause);
+        print.apply(model, print.full_print_config());
+        const std::string gcode = Test::gcode(print);
+
+        size_t seen = 0;
+        double z_after_pause = -1.;
+        bool   after_pause = false;
+        GCodeReader reader;
+        reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+            if (line.cmd_is("M601")) {
+                ++seen;
+                after_pause = true;
+            } else if (after_pause && line.cmd_is("G1") && line.extruding(self) && line.dist_XY(self) > 0) {
+                z_after_pause = self.z();
+                after_pause   = false;
+            }
+        });
+        CHECK(seen == 1);
+        CHECK_THAT(z_after_pause, Catch::Matchers::WithinAbs(5.0, 0.01));
+    }
+}

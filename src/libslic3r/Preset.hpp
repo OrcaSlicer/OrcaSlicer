@@ -130,6 +130,17 @@ extern ConfigFileType guess_config_file_type(const boost::property_tree::ptree &
 
 extern void extend_default_config_length(DynamicPrintConfig& config, const bool set_nil_to_default, const DynamicPrintConfig& defaults);
 
+// Unlayered: a filament preset holds one value per extruder variant for every option in
+// filament_options_with_variant, in the order of its filament_extruder_variant list.
+// PresetBundle::full_fff_config() appends the filaments' lists one after another and finds each
+// filament's values by counting variants, so one list of the wrong length shifts that option for
+// every later filament in the project (a 1-value nozzle_temperature on a 2-variant printer gave
+// the next filament this one's temperature). Resizes every such list in `config` that does not
+// have exactly one value per variant: a short list repeats its first value, a long one is cut,
+// an empty one takes the option's default. Logs each change with `preset_name` and returns the
+// keys it changed. A config without a filament_extruder_variant list is left alone.
+extern std::vector<std::string> normalize_filament_variant_lengths(DynamicPrintConfig& config, const std::string& preset_name);
+
 class VendorProfile
 {
 public:

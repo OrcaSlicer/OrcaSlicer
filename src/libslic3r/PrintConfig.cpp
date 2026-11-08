@@ -1,4 +1,5 @@
 #include "PrintConfig.hpp"
+#include "BeltTransform.hpp"
 #include "CommonDefs.hpp"
 #include "Point.hpp"
 #include "Polygon.hpp"
@@ -145,6 +146,254 @@ size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id)
     return 0;
 }
 
+// UNLAYERED_MOD — see the header. Rb(Y) * Rc(Z), or Identity when non-planar printing is off.
+Transform3d layer_rotation_trafo(const PrintObjectConfig &object_config, bool nonplanar_enabled)
+{
+    Transform3d trafo = Transform3d::Identity();
+    if (! nonplanar_enabled)
+        return trafo;
+    const double b_angle = object_config.layer_rotation_b.value * PI / 180.0;
+    const double c_angle = object_config.layer_rotation_c.value * PI / 180.0;
+    trafo.linear() = (Eigen::AngleAxisd(b_angle, Vec3d::UnitY()) *
+                      Eigen::AngleAxisd(c_angle, Vec3d::UnitZ())).toRotationMatrix();
+    return trafo;
+}
+
+// BELT_MOD -- see the header.
+Transform3d layer_rotation_trafo(const PrintConfig &print_config, const PrintObjectConfig &object_config)
+{
+    if (print_config.belt_printer.value) {
+        // The belt tilt first (gantry normal -> +Z), then the object's own B/C, which are authored
+        // relative to the machine's build direction; the emitted B/C are measured the same way.
+        Transform3d trafo = layer_rotation_trafo(object_config, print_config.enable_nonplanar.value);
+        trafo.linear() = trafo.linear() * BeltTransformPipeline::build_rotation_matrix(print_config);
+        return trafo;
+    }
+    return layer_rotation_trafo(object_config, print_config.enable_nonplanar.value);
+}
+
+// UNLAYERED_MOD — see the header.
+void tool_axis_to_bc(const Vec3d &tool_axis, double &angle_b, double &angle_c)
+{
+    const Vec3d n = tool_axis.normalized();
+    const double n_xy = std::sqrt(n.x() * n.x() + n.y() * n.y());
+    if (n_xy < 1e-6) {
+        // Vertical: the azimuth is arbitrary, so report the home value.
+        angle_c = 0.0;
+        angle_b = (n.z() > 0.0) ? -0.5 * PI : 0.5 * PI;
+    } else {
+        angle_c = std::atan2(n.y(), n.x());
+        angle_b = std::atan2(-n.z(), n_xy);
+    }
+}
+
+// UNLAYERED_MOD — see the header.
+Matrix3d tool_head_frame(const Vec3d &tool_axis)
+{
+    const Vec3d  n    = tool_axis.normalized();
+    const double n_xy = std::sqrt(n.x() * n.x() + n.y() * n.y());
+    Matrix3d     R;
+    if (n_xy < 1e-6) {
+        // Vertical: C = 0 (tool_axis_to_bc()'s home value), so the head frame is the bed frame --
+        // or, pointing straight down, that frame turned half over about X.
+        R.setIdentity();
+        if (n.z() < 0.)
+            R.diagonal() << 1., -1., -1.;
+        return R;
+    }
+    const double c   = std::atan2(n.y(), n.x());
+    const Vec3d  y_h = Vec3d(-std::sin(c), std::cos(c), 0.);
+    const Vec3d  x_h = y_h.cross(n);
+    R.row(0) = x_h.transpose();
+    R.row(1) = y_h.transpose();
+    R.row(2) = n.transpose();
+    return R;
+}
+
+// UNLAYERED_MOD — see the header.
+double HotendEnvelope::spread(Side s) const
+{
+    // cos/sin rather than 1/tan so that 90 is a clean zero instead of 1/1.6e16.
+    const double a = std::clamp(angle[size_t(s)], 1., 90.) * PI / 180.;
+    return std::max(0., std::cos(a) / std::sin(a));
+}
+
+const char *HotendEnvelope::option_key(Side s)
+{
+    static const char *keys[4] = { "nonplanar_hotend_angle_xpos", "nonplanar_hotend_angle_xneg",
+                                   "nonplanar_hotend_angle_ypos", "nonplanar_hotend_angle_yneg" };
+    return keys[size_t(s)];
+}
+
+const char *HotendEnvelope::side_name(Side s)
+{
+    static const char *names[4] = { "+X", "-X", "+Y", "-Y" };
+    return names[size_t(s)];
+}
+
+const std::vector<std::string> &HotendEnvelope::option_keys()
+{
+    static const std::vector<std::string> keys = { "nonplanar_hotend_cone_height",
+                                                   "nonplanar_hotend_angle_xpos", "nonplanar_hotend_angle_xneg",
+                                                   "nonplanar_hotend_angle_ypos", "nonplanar_hotend_angle_yneg" };
+    return keys;
+}
+
+// The printer_extruder_variant slot 0-based `extruder` uses in `config`, or -1 when the config has
+// no variant layout to resolve it with. The lookup of DynamicPrintConfig::get_index_for_extruder
+// (find_variant_index by printer_extruder_id plus the extruder_type / nozzle_volume_type variant
+// string), written against ConfigBase so it also serves a Print's static PrintConfig, whose variant
+// arrays -- printer_extruder_id and printer_extruder_variant included -- are already expanded per slot.
+static int hotend_envelope_slot(const ConfigBase &config, int extruder)
+{
+    const auto *ids      = config.option<ConfigOptionInts>("printer_extruder_id");
+    const auto *variants = config.option<ConfigOptionStrings>("printer_extruder_variant");
+    if (ids == nullptr || ids->values.empty())
+        return -1;
+    std::string want;
+    const auto *types = config.option<ConfigOptionEnumsGeneric>("extruder_type");
+    const auto *nvts  = config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+    if (types != nullptr && ! types->values.empty() && nvts != nullptr && ! nvts->values.empty()) {
+        NozzleVolumeType nvt = NozzleVolumeType(nvts->get_at(size_t(extruder)));
+        if (nvt == nvtHybrid)
+            nvt = nvtStandard; // presets carry no hybrid column, as in get_index_for_extruder
+        want = get_extruder_variant_string(ExtruderType(types->get_at(size_t(extruder))), nvt);
+    }
+    const int idx = find_variant_index(want, extruder + 1, variants != nullptr ? variants->values : std::vector<std::string>(), ids->values);
+    // find_variant_index answers 0 for an empty list: only an index whose id really matches counts.
+    return idx >= 0 && size_t(idx) < ids->values.size() && ids->values[size_t(idx)] == extruder + 1 ? idx : -1;
+}
+
+HotendEnvelope HotendEnvelope::from_config(const ConfigBase &config, int extruder)
+{
+    HotendEnvelope env;
+    const int  slot       = extruder >= 0 ? hotend_envelope_slot(config, extruder) : -1;
+    const bool has_layout = config.option("printer_extruder_id") != nullptr;
+    // take_max: the conservative merge is the largest height but the smallest (fattest) angle.
+    auto get = [&config, extruder, slot, has_layout](const std::string &key, double fallback, bool take_max) {
+        const ConfigOption *raw = config.option(key);
+        if (raw == nullptr)
+            return fallback;
+        if (const auto *scalar = dynamic_cast<const ConfigOptionFloat *>(raw))
+            return scalar->value; // a scalar from an old in-memory config: one value for every nozzle
+        const auto *vec = dynamic_cast<const ConfigOptionFloats *>(raw);
+        if (vec == nullptr || vec->values.empty())
+            return fallback;
+        const std::vector<double> &v = vec->values;
+        if (extruder >= 0) {
+            if (slot >= 0 && size_t(slot) < v.size())
+                return v[size_t(slot)];
+            if (v.size() == 1)
+                return v.front();
+            if (! has_layout && size_t(extruder) < v.size())
+                return v[size_t(extruder)]; // a bare per-extruder list with no variant layout
+            // Unresolvable: the conservative value below rather than a guessed nozzle.
+        }
+        return take_max ? *std::max_element(v.begin(), v.end()) : *std::min_element(v.begin(), v.end());
+    };
+    env.height = get("nonplanar_hotend_cone_height", env.height, true);
+    for (int s = 0; s < 4; ++ s)
+        env.angle[s] = get(option_key(Side(s)), env.angle[s], false);
+    return env;
+}
+
+void migrate_legacy_hotend_cone(DynamicPrintConfig &config)
+{
+    const auto *legacy = config.option<ConfigOptionFloat>("nonplanar_hotend_cone_angle");
+    if (legacy == nullptr)
+        return;
+    const double full = legacy->value;
+    // The faces are per nozzle now: the one legacy cone becomes every nozzle's envelope, keeping the
+    // slot count the config already has (extend_default_config_length pads a single value).
+    auto set_all = [&config](const std::string &key, double value) {
+        const auto  *cur = config.option<ConfigOptionFloats>(key);
+        const size_t n   = cur != nullptr && ! cur->values.empty() ? cur->values.size() : 1;
+        config.set_key_value(key, new ConfigOptionFloats(n, value));
+    };
+    if (full <= 0. || full >= 180.) {
+        // 0 was the documented "disable the check" value; 180 never described a cone either.
+        set_all("nonplanar_hotend_cone_height", 0.);
+    } else {
+        const double face = std::clamp(90. - 0.5 * full, 1., 90.);
+        for (int s = 0; s < 4; ++ s)
+            set_all(HotendEnvelope::option_key(HotendEnvelope::Side(s)), face);
+    }
+    config.erase("nonplanar_hotend_cone_angle");
+}
+
+namespace {
+// The spreads of the X and Y faces looking uphill for a build normal leaning toward `azimuth`, each
+// weighted by how squarely it faces uphill. The layer climbs AWAY from the lean, toward -azimuth.
+struct UphillFaces { HotendEnvelope::Side fx, fy; double wx, wy; };
+UphillFaces uphill_faces(double azimuth)
+{
+    const double dx = -std::cos(azimuth), dy = -std::sin(azimuth);
+    return { dx > 0. ? HotendEnvelope::XPos : HotendEnvelope::XNeg,
+             dy > 0. ? HotendEnvelope::YPos : HotendEnvelope::YNeg,
+             std::abs(dx), std::abs(dy) };
+}
+} // namespace
+
+double virtual_tilt_hotend_term_deg(const HotendEnvelope &envelope, std::optional<double> tilt_azimuth_rad)
+{
+    if (! envelope.enabled())
+        return 90.;
+    double reach = 0.;   // lateral reach of the envelope along the uphill direction, per mm of height
+    if (tilt_azimuth_rad) {
+        const UphillFaces f = uphill_faces(*tilt_azimuth_rad);
+        reach = f.wx * envelope.spread(f.fx) + f.wy * envelope.spread(f.fy);
+    } else {
+        // Worst direction: within each quadrant |dx|*sx + |dy|*sy peaks at hypot(sx, sy), toward the corner.
+        for (HotendEnvelope::Side fx : { HotendEnvelope::XPos, HotendEnvelope::XNeg })
+            for (HotendEnvelope::Side fy : { HotendEnvelope::YPos, HotendEnvelope::YNeg })
+                reach = std::max(reach, std::hypot(envelope.spread(fx), envelope.spread(fy)));
+    }
+    return std::atan2(1., reach) * 180. / PI;
+}
+
+HotendEnvelope::Side virtual_tilt_binding_face(const HotendEnvelope &envelope, std::optional<double> tilt_azimuth_rad)
+{
+    if (tilt_azimuth_rad) {
+        const UphillFaces f = uphill_faces(*tilt_azimuth_rad);
+        return f.wx * envelope.spread(f.fx) >= f.wy * envelope.spread(f.fy) ? f.fx : f.fy;
+    }
+    // Unknown direction: the fattest face.
+    HotendEnvelope::Side worst = HotendEnvelope::XPos;
+    for (int s = 1; s < 4; ++ s)
+        if (envelope.spread(HotendEnvelope::Side(s)) > envelope.spread(worst))
+            worst = HotendEnvelope::Side(s);
+    return worst;
+}
+
+// UNLAYERED_MOD — see the header for the geometry.
+double virtual_tilt_limit_deg(const HotendEnvelope &envelope, double gantry_height_mm, double reach_mm,
+                              std::optional<double> tilt_azimuth_rad)
+{
+    // Neither the hotend nor the gantry is modelled: no limit at all. A gantry height of 0 only means
+    // the gantry was never measured; the hotend term below does not depend on it.
+    const bool gantry_known = gantry_height_mm > 0.;
+    if (! gantry_known && ! envelope.enabled())
+        return 0.;
+
+    // The hotend envelope, toward whichever side the layer climbs (90 when it is switched off).
+    double limit = virtual_tilt_hotend_term_deg(envelope, tilt_azimuth_rad);
+
+    // The gantry, once we know how high it is and how far the chunk reaches.
+    if (gantry_known && reach_mm > 0.)
+        limit = std::min(limit, std::atan2(gantry_height_mm, reach_mm) * 180. / PI);
+
+    // A limit of zero would mean "no limit" to every caller, so a geometry this hostile has to
+    // report the smallest angle that still reads as a limit rather than silently opening up.
+    return std::max(limit, 0.01);
+}
+
+// UNLAYERED_MOD — see the header.
+Vec3d bc_to_tool_axis(double angle_b, double angle_c)
+{
+    const double cos_b = std::cos(angle_b);
+    return Vec3d(cos_b * std::cos(angle_c), cos_b * std::sin(angle_c), -std::sin(angle_b));
+}
+
 double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, bool is_bbl_printer)
 {
     int extruder = filament_id;
@@ -211,7 +460,8 @@ static t_config_enum_values s_keys_map_PrintHostType {
     { "simplyprint",    htSimplyPrint },
     { "elegoolink",     htElegooLink },
     { "3dprinteros",    ht3DPrinterOS },
-    { "moonraker",      htMoonraker }
+    { "moonraker",      htMoonraker },
+    { "unlayered",      htUnlayered }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintHostType)
 
@@ -265,6 +515,29 @@ static t_config_enum_values s_keys_map_CenterOfSurfacePattern{
     {"each_model", int(CenterOfSurfacePattern::Each_Model)},
     {"each_assembly", int(CenterOfSurfacePattern::Each_Assembly)}};
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(CenterOfSurfacePattern)
+
+// Orca: wave-overhang ring spacing mode
+static t_config_enum_values s_keys_map_WaveOverhangSpacingMode {
+    { "uniform",     wosmUniform },
+    { "progressive", wosmProgressive }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WaveOverhangSpacingMode)
+
+// Orca: wave-overhang seam mode
+static t_config_enum_values s_keys_map_WaveOverhangSeamMode {
+    { "alternating", woseAlternating },
+    { "aligned",     woseAligned },
+    { "random",      woseRandom }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WaveOverhangSeamMode)
+
+// Wave-overhang fill pattern (ported from stmcculloch alpha.6).
+static t_config_enum_values s_keys_map_WaveOverhangPattern {
+    { "monotonic", int(WaveOverhangPattern::Monotonic) },
+    { "zigzag",    int(WaveOverhangPattern::ZigZag) },
+    { "smart",     int(WaveOverhangPattern::Smart) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WaveOverhangPattern)
 
 static t_config_enum_values s_keys_map_FuzzySkinType {
     { "none",           int(FuzzySkinType::None) },
@@ -332,6 +605,11 @@ static t_config_enum_values s_keys_map_InfillPattern {
     { "tpmsd", ipTpmsD },
     { "tpmsfk", ipTpmsFK },
     { "gyroid", ipGyroid },
+    { "custommesh", ipCustomMesh },
+    { "catfill", ipCatfill },
+    { "sharkfill", ipSharkfill },
+    { "puppyfill", ipPuppyfill },
+    { "svg", ipSvg },
     { "concentric", ipConcentric },
     { "spiralinset", ipSpiralInset },
     { "hilbertcurve", ipHilbertCurve },
@@ -406,25 +684,28 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(AdaptiveInfillGradient)
 //BBS
 static t_config_enum_values s_keys_map_PrintSequence {
     { "by layer",     int(PrintSequence::ByLayer) },
-    { "by object",    int(PrintSequence::ByObject) }
+    { "by object",    int(PrintSequence::ByObject) },
+    { "by group",     int(PrintSequence::ByGroup) }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintSequence)
 
-static t_config_enum_values s_keys_map_PrintOrder{
-    { "default",     int(PrintOrder::Default) },
-    { "as_obj_list", int(PrintOrder::AsObjectList)},
-    { "best_of",       int(PrintOrder::BestOfStrategies)},
-    { "snake", int(PrintOrder::Snake)},
+// Orca 5-axis: active rotary axis pair.
+static t_config_enum_values s_keys_map_AxisSelection {
+    { "ab",      int(AxisSelection::AB) },
+    { "bc",      int(AxisSelection::BC) },
+    { "ac",      int(AxisSelection::AC) },
+    { "virtual", int(AxisSelection::Virtual) }
 };
-CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintOrder)
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(AxisSelection)
 
-static t_config_enum_values s_keys_map_SlicingMode {
-    { "regular",        int(SlicingMode::Regular) },
-    { "even_odd",       int(SlicingMode::EvenOdd) },
-    { "close_holes",    int(SlicingMode::CloseHoles) }
+static t_config_enum_values s_keys_map_AcSolution {
+    { "smallest_move", int(AcSolution::SmallestMove) },
+    { "negative_a",    int(AcSolution::NegativeA) },
+    { "positive_a",    int(AcSolution::PositiveA) }
 };
-CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SlicingMode)
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(AcSolution)
 
+// BELT_MOD -- see PrintConfig.hpp.
 static t_config_enum_values s_keys_map_BeltRotationAxis {
     { "none", int(BeltRotationAxis::None) },
     { "x",    int(BeltRotationAxis::X) },
@@ -445,6 +726,38 @@ static t_config_enum_values s_keys_map_RemapAxis {
     { "rev_z", int(RemapAxis::RevZ) },
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(RemapAxis)
+
+static t_config_enum_values s_keys_map_FirstLayerPlaneMode {
+    { "auto",        int(FirstLayerPlaneMode::Auto) },
+    { "xy",          int(FirstLayerPlaneMode::XY) },
+    { "yz",          int(FirstLayerPlaneMode::YZ) },
+    { "xz",          int(FirstLayerPlaneMode::XZ) },
+    { "belt_affine", int(FirstLayerPlaneMode::BeltAffine) },
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(FirstLayerPlaneMode)
+
+static t_config_enum_values s_keys_map_ObjectContactFanMode {
+    { "as_first_layer", int(ObjectContactFanMode::AsFirstLayer) },
+    { "keep",           int(ObjectContactFanMode::Keep) },
+    { "off",            int(ObjectContactFanMode::Off) },
+    { "fixed",          int(ObjectContactFanMode::Fixed) },
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(ObjectContactFanMode)
+
+static t_config_enum_values s_keys_map_PrintOrder{
+    { "default",     int(PrintOrder::Default) },
+    { "as_obj_list", int(PrintOrder::AsObjectList)},
+    { "best_of",       int(PrintOrder::BestOfStrategies)},
+    { "snake", int(PrintOrder::Snake)},
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintOrder)
+
+static t_config_enum_values s_keys_map_SlicingMode {
+    { "regular",        int(SlicingMode::Regular) },
+    { "even_odd",       int(SlicingMode::EvenOdd) },
+    { "close_holes",    int(SlicingMode::CloseHoles) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SlicingMode)
 
 static t_config_enum_values s_keys_map_SupportMaterialPattern {
     { "rectilinear",        smpRectilinear },
@@ -484,6 +797,13 @@ static t_config_enum_values s_keys_map_SupportType{
     { "tree(manual)", stTree }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SupportType)
+
+static t_config_enum_values s_keys_map_SupportDirection{
+    { "layers",   sdLayers },
+    { "vertical", sdVertical },
+    { "custom",   sdCustom }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SupportDirection)
 
 static t_config_enum_values s_keys_map_SeamPosition {
     { "nearest",        spNearest },
@@ -1183,7 +1503,7 @@ void PrintConfigDef::init_common_params()
 
     def = this->add("use_3mf", coBool);
     def->label = L("Use 3MF instead of G-code");
-    def->tooltip = L("Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer "
+    def->tooltip = L("Enable this if the printer accepts a 3MF file as the print job. When enabled, Unlayered Slicer "
                      "sends the sliced file as a .gcode.3mf, instead of a plain .gcode file.");
     def->mode = comAdvanced;
     def->cli = ConfigOptionDef::nocli;
@@ -1203,7 +1523,7 @@ void PrintConfigDef::init_common_params()
     def->label = L("Hostname, IP or URL");
     // The URL is an example of the format to type, not a link, so it stays in the text.
     // xgettext:no-url-check
-    def->tooltip = L("Orca Slicer can upload G-code files to a printer host. This field should contain "
+    def->tooltip = L("Unlayered Slicer can upload G-code files to a printer host. This field should contain "
         "the hostname, IP address or URL of the printer host instance. "
         "Print host behind HAProxy with basic auth enabled can be accessed by putting the user name and password into the URL "
         "in the following format: https://username:password@your-octopi-address/");
@@ -1220,7 +1540,7 @@ void PrintConfigDef::init_common_params()
 
     def = this->add("printhost_apikey", coString);
     def->label = L("API Key / Password");
-    def->tooltip = L("Orca Slicer can upload G-code files to a printer host. This field should contain "
+    def->tooltip = L("Unlayered Slicer can upload G-code files to a printer host. This field should contain "
         "the API Key or the password required for authentication.");
     def->mode = comAdvanced;
     def->cli = ConfigOptionDef::nocli;
@@ -2126,7 +2446,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.emplace_back("inner_only");
     def->enum_values.emplace_back("outer_and_inner");
     def->enum_values.emplace_back("no_brim");
-    def->enum_values.emplace_back("leading_edge_only");
+    def->enum_values.emplace_back("leading_edge_only");   // BELT_MOD
     def->enum_labels.emplace_back(L("Auto"));
     def->enum_labels.emplace_back(L("Mouse ear"));
     def->enum_labels.emplace_back(L("Painted"));
@@ -2134,7 +2454,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.emplace_back(L("Inner brim only"));
     def->enum_labels.emplace_back(L("Outer and inner brim"));
     def->enum_labels.emplace_back(L("No-brim"));
-    def->enum_labels.emplace_back(L("Leading edge only"));
+    def->enum_labels.emplace_back(L("Leading edge only"));   // BELT_MOD (upstream's label, translated in the catalogs)
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<BrimType>(btAutoBrim));
 
@@ -2267,10 +2587,22 @@ void PrintConfigDef::init_fff_params()
     def->enum_keys_map = &ConfigOptionEnum<PrintSequence>::get_enum_values();
     def->enum_values.push_back("by layer");
     def->enum_values.push_back("by object");
+    def->enum_values.push_back("by group");
     def->enum_labels.push_back(L("By layer"));
     def->enum_labels.push_back(L("By object"));
+    def->enum_labels.push_back(L("By group"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<PrintSequence>(PrintSequence::ByLayer));
+
+    def = this->add("print_group", coInt);
+    def->label = L("Print group");
+    def->category = L("Others");
+    def->tooltip = L("Assign this object to a numbered group for the 'by group' print sequence. "
+                     "Objects sharing the same group number are printed together layer by layer; "
+                     "groups are printed sequentially. 0 means this object prints alone (like 'by object').");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
 
     def = this->add("print_order", coEnum);
     def->label = L("Intra-layer order");
@@ -3402,7 +3734,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Minimal purge on wipe tower");
     def->tooltip = L("After a tool change, the exact position of the newly loaded filament inside "
                      "the nozzle may not be known, and the filament pressure is likely not yet stable. "
-                     "Before purging the print head into an infill or a sacrificial object, Orca Slicer will always prime "
+                     "Before purging the print head into an infill or a sacrificial object, Unlayered Slicer will always prime "
                      "this amount of material into the wipe tower to produce successive infill or sacrificial object extrusions reliably.");
     def->sidetext = L(u8"mm³");	// cubic millimeters, CIS languages need translation
     def->min = 0;
@@ -3836,6 +4168,11 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("hilbertcurve");
     def->enum_values.push_back("archimedeanchords");
     def->enum_values.push_back("octagramspiral");
+    def->enum_values.push_back("catfill");
+    def->enum_values.push_back("sharkfill");
+    def->enum_values.push_back("puppyfill");
+    def->enum_values.push_back("svg");
+    def->enum_values.push_back("custommesh");
     def->enum_labels.push_back(L("Rectilinear"));
     def->enum_labels.push_back(L("Aligned Rectilinear"));
     def->enum_labels.push_back(L("Zig Zag"));
@@ -3862,7 +4199,61 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Hilbert Curve"));
     def->enum_labels.push_back(L("Archimedean Chords"));
     def->enum_labels.push_back(L("Octagram Spiral"));
+    def->enum_labels.push_back(L("Catfill"));
+    def->enum_labels.push_back(L("Sharkfill"));
+    def->enum_labels.push_back(L("Puppyfill"));
+    def->enum_labels.push_back(L("Custom (SVG)"));
+    def->enum_labels.push_back(L("Custom (infill mesh)"));
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipCrossHatch));
+
+    def           = this->add("sparse_infill_svg_path", coString);
+    def->label    = L("SVG infill file");
+    def->category = L("Strength");
+    def->tooltip  = L("SVG file whose line art is repeated as the sparse infill when the pattern is Custom (SVG). "
+                      "The outline of every filled shape and the centerline of every stroked path are printed as "
+                      "single lines; the drawing's document size is the repeat.");
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionString(""));
+
+    def           = this->add("sparse_infill_svg_scale", coPercent);
+    def->label    = L("SVG infill scale");
+    def->category = L("Strength");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip  = L("Size of the SVG tile as a percentage of its native size for the Catfill, Sharkfill, Puppyfill "
+                      "and Custom (SVG) patterns. 0 sizes the tile automatically from the sparse infill density.");
+    def->sidetext = "%";
+    def->min      = 0;
+    def->max      = 10000;
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionPercent(0));
+
+    def           = this->add("sparse_infill_single_wall", coBool);
+    def->label    = L("Single wall infill");
+    def->category = L("Strength");
+    def->tooltip  = L("Print the art or lattice as one line. For the SVG patterns (Catfill, Sharkfill, Puppyfill, Custom), filled "
+                      "bands narrower than six line widths (a stroked drawing exported as a fill) are printed "
+                      "along their centerline instead of both edges. For Custom (infill mesh), each cross-section "
+                      "of the lattice gets a single wall instead of two.");
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def           = this->add("infill_mesh_path", coString);
+    def->label    = L("Infill mesh file");
+    def->category = L("Strength");
+    def->tooltip  = L("Mesh file (STL, OBJ or 3MF) used as the repeating cell of the Custom (infill mesh) pattern "
+                      "when the object carries no Infill Mesh volume. The cell is tiled on the pitch of its own "
+                      "bounding box from the object's origin; add an Infill Mesh volume instead to place and rotate it.");
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionString(""));
+
+    def           = this->add("infill_mesh_global_orientation", coBool);
+    def->label    = L("Global infill mesh orientation");
+    def->category = L("Strength");
+    def->tooltip  = L("Keep the infill mesh lattice fixed to the object, so the segments of a multi-planar print "
+                      "share one continuous lattice across their cut planes. When disabled the lattice follows "
+                      "each segment's layer orientation instead. Only applies to the Custom (infill mesh) pattern.");
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("sparse_infill_smooth_factor", coPercent);
     def->label = L("Sparse infill smooth factor");
@@ -4112,6 +4503,62 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(0));
+
+    // ---- BELT_MOD: layers on printed material (cut-plane segments resting on their parent) ----
+    def = this->add("object_contact_layers", coInt);
+    def->label = L("Layers on printed material");
+    def->category = L("Speed");
+    def->tooltip = L("When an object is split by cut planes, each segment's first layers are laid on the "
+                     "printed cut face of the segment below rather than on the build plate. How many of "
+                     "those layers, counted from that cut face, get the 'on printed material' fan, speed "
+                     "and flow settings below.");
+    def->sidetext = L("layers");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(1));
+
+    def = this->add("object_contact_fan_mode", coEnum);
+    def->label = L("Fan on printed material");
+    def->category = L("Speed");
+    def->tooltip = L("Part cooling fan for layers laid on already-printed plastic. Same as first layer: "
+                     "the first-layer fan rules apply (default). Keep: the layer's normal fan speed is "
+                     "kept, since the plastic underneath does not need the fan off. Off: fan off. "
+                     "Fixed: the speed below.");
+    def->enum_keys_map = &ConfigOptionEnum<ObjectContactFanMode>::get_enum_values();
+    def->enum_values   = {"as_first_layer", "keep", "off", "fixed"};
+    def->enum_labels   = {L("Same as first layer"), L("Keep layer fan"), L("Off"), L("Fixed")};
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<ObjectContactFanMode>(ObjectContactFanMode::AsFirstLayer));
+
+    def = this->add("object_contact_fan_speed", coInt);
+    def->label = L("Fan speed on printed material");
+    def->category = L("Speed");
+    def->tooltip = L("Fan speed used when 'Fan on printed material' is Fixed.");
+    def->sidetext = L("%");
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(100));
+
+    def = this->add("object_contact_speed", coFloat);
+    def->label = L("Speed on printed material");
+    def->category = L("Speed");
+    def->tooltip = L("Print speed for layers laid on already-printed plastic. 0 uses the first-layer "
+                     "speeds, as before.");
+    def->sidetext = L("mm/s");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("object_contact_flow_ratio", coFloat);
+    def->label = L("Flow ratio on printed material");
+    def->category = L("Speed");
+    def->tooltip = L("Flow multiplier for layers laid on already-printed plastic. 0 uses the first "
+                     "layer flow ratio, as before.");
+    def->min = 0;
+    def->max = 2;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("nozzle_temperature_initial_layer", coInts);
     def->label = L("First layer");
@@ -4962,7 +5409,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("Connect an infill line to an internal perimeter with a short segment of an additional perimeter. "
                      "If expressed as percentage (example: 15%) it is calculated over infill extrusion width. "
-                     "Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment "
+                     "Unlayered Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment "
                      "shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side "
                      "and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
                      "Set this parameter to zero to disable anchoring perimeters connected to a single infill line.");
@@ -4990,7 +5437,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("Connect an infill line to an internal perimeter with a short segment of an additional perimeter. "
                      "If expressed as percentage (example: 15%) it is calculated over infill extrusion width. "
-                     "Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment "
+                     "Unlayered Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment "
                      "shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side "
                      "and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
                      "If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0.");
@@ -5292,6 +5739,119 @@ void PrintConfigDef::init_fff_params()
     def->mode     = comExpert;
     def->set_default_value(new ConfigOptionFloat(0.05));
 
+    // UNLAYERED_MOD: nonplanar layers (curved top shells on a 3-axis printer); NonplanarTop.cpp.
+    def = this->add("nonplanar_layers", coBool);
+    def->label    = L("Use nonplanar layers (experimental)");
+    def->category = L("Quality");
+    def->tooltip  = L("Experimental: check the preview before printing, and expect visible seams on some models.\n"
+                      "Print gently sloped top surfaces as curved layers that follow the model, so they have no "
+                      "stair-stepping. The nozzle moves up and down while printing them; works on ordinary 3-axis "
+                      "printers.\n"
+                      "Not the printer setting \"Enable non-planar printing\", which is for cut planes and "
+                      "multi-axis machines.");
+    def->mode     = comSimple;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("nonplanar_max_angle", coFloat);
+    def->label    = L("Maximum nonplanar angle");
+    def->category = L("Quality");
+    def->tooltip  = L("Steepest top surface slope that is printed curved; steeper areas stay planar. Find your "
+                      "printer's value with a test print: the nozzle and its heater block must clear the slope. "
+                      "When the printer's hotend envelope is set (Printer settings, non-planar printing), the "
+                      "smallest envelope side angle also caps this value.");
+    def->sidetext = u8"°";	// degrees, don't need translation
+    def->min      = 0;
+    def->max      = 30;
+    def->mode     = comSimple;
+    def->set_default_value(new ConfigOptionFloat(12));
+
+    def = this->add("nonplanar_max_height", coFloat);
+    def->label    = L("Maximum nonplanar height");
+    def->category = L("Quality");
+    def->tooltip  = L("How far below the current layer the nozzle may reach while printing a curved patch. This is "
+                      "the clearance under the nozzle tip: anything on the toolhead that hangs lower than the "
+                      "nozzle by less than this can hit the print. The low part of a taller patch is left planar.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min      = 0;
+    def->max      = 50;
+    def->mode     = comSimple;
+    def->set_default_value(new ConfigOptionFloat(5));
+
+    def = this->add("nonplanar_layer_count", coInt);
+    def->label    = L("Nonplanar layer count");
+    def->category = L("Quality");
+    def->tooltip  = L("How many layers of the top shell follow the curved surface. 0 = automatic: as many as the "
+                      "top shell has (top shell layers, or more if the top shell thickness needs more).");
+    def->sidetext = L("layers");
+    def->min      = 0;
+    def->max      = 20;
+    def->mode     = comSimple;
+    def->set_default_value(new ConfigOptionInt(0));
+
+    def = this->add("nonplanar_hold_back", coBool);
+    def->label    = L("Print features on curved tops afterwards");
+    def->category = L("Quality");
+    def->tooltip  = L("A feature that stands on or right next to a curved top (a chimney on a roof, a cabin on a deck) "
+                      "pauses below the top and prints flat on top of its curved layers afterwards, so the curved top "
+                      "runs under it instead of stopping in a flat ring around it. Experimental: check the preview.");
+    def->mode     = comSimple;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("nonplanar_nozzle_tip_diameter", coFloat);
+    def->label    = L("Nozzle tip diameter");
+    def->category = L("Quality");
+    def->tooltip  = L("Diameter of the flat face at the end of the nozzle, around the hole. On a slope this face "
+                      "touches the surface at its uphill edge, so curved ironing is raised to match and curved "
+                      "layers keep clear of it. 0 = automatic (2.5 x nozzle diameter).");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min      = 0;
+    def->max      = 10;
+    def->mode     = comSimple;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("nonplanar_top_surface_tip_lift", coBool);
+    def->label    = L("Raise curved top surface and ironing on slopes");
+    def->category = L("Quality");
+    def->tooltip  = L("Raise the top surface lines and the ironing of curved tops on slopes: the nozzle's flat tip "
+                      "touches the surface with its uphill edge, so they run that much higher (tip radius x tan of "
+                      "the slope). Uses the slope's steepness only, not its direction.");
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("nonplanar_top_surface_direction_enable", coBool);
+    def->label    = L("Set nonplanar top surface direction");
+    def->category = L("Quality");
+    def->tooltip  = L("Use a fixed direction for the lines of the curved top surface. When off, they follow the "
+                      "solid infill direction.");
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("nonplanar_top_surface_direction", coFloat);
+    def->label    = L("Nonplanar top surface direction");
+    def->category = L("Quality");
+    def->tooltip  = L("Direction of the curved top surface lines. The curved layers under it alternate by 90 degrees.");
+    def->sidetext = u8"°";	// degrees, don't need translation
+    def->min      = 0;
+    def->max      = 360;
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("nonplanar_top_surface_flow_ratio_enable", coBool);
+    def->label    = L("Set nonplanar top surface flow ratio");
+    def->category = L("Quality");
+    def->tooltip  = L("Use a separate flow ratio for the curved top surface instead of the top surface flow ratio.");
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("nonplanar_top_surface_flow_ratio", coFloat);
+    def->label    = L("Nonplanar top surface flow ratio");
+    def->category = L("Quality");
+    def->tooltip  = L("Flow ratio of the curved top surface. Replaces the top surface flow ratio there.");
+    def->min      = 0;
+    def->max      = 2;
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(1));
+
     def = this->add("layer_change_gcode", coString);
     def->label = L("Layer change G-code");
     def->tooltip = L("This G-code is inserted at every layer change after the Z lift.");
@@ -5324,6 +5884,414 @@ void PrintConfigDef::init_fff_params()
         "set to Klipper.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
+
+    // ---- Orca non-planar printing settings ----
+    // NOTE: enable_nonplanar is intended to be the single SOURCE OF TRUTH for whether
+    // non-planar printing is active anywhere in the codebase. It is not yet wired into
+    // every consumer; for now it shows/hides the GUI non-planar section and is enabled by
+    // the 5-Axis Printer system profile. New non-planar behavior should branch on this.
+    def = this->add("enable_nonplanar", coBool);
+    def->label = L("Enable non-planar printing");
+    def->category = L("Non-planar Printing");
+    def->tooltip = L("Master switch for non-planar printing. This is the single source of truth for "
+                     "whether non-planar printing is enabled. The other options in this section are "
+                     "hidden unless this is enabled.\n"
+                     "For cut planes and multi-axis machines. Curved top surfaces on a 3-axis printer are "
+                     "\"Use nonplanar layers\" in the process Quality settings.");
+    // UNLAYERED_MOD -- Simple: fresh installs start in Simple mode, and without this the master
+    // switch for the Cut Planes tool was invisible there (the tool just stayed greyed out).
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    // DERIVED from printer type == Virtual; see DynamicPrintConfig::normalize_fdm_1. It is NOT
+    // shown in the UI any more (the "Printer type" dropdown replaced the checkbox) and must NOT be
+    // deleted: shipped machine_start_gcode / machine_end_gcode templates reference {virtual_5axis}
+    // as a placeholder-parser variable (resources/profiles/Unlayered/machine/*.json), and the
+    // parser throws "Variable does not exist" on an unknown identifier. A user carrying a
+    // customised copy of such a template would get a hard slicing failure that no key-renaming
+    // migration can reach, because nothing rewrites custom G-code TEXT.
+    def = this->add("virtual_5axis", coBool);
+    def->label = L("Virtual 5-axis (derived)");
+    def->category = L("Non-planar Printing");
+    def->tooltip = L("Derived from Printer type = Virtual. Kept so custom start/end G-code that "
+                     "branches on {virtual_5axis} keeps working. Do not set it by hand.");
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    // Per-chunk usable build-volume dimensions (GUI visualization only). The visualizer draws, for
+    // each chunk, a translucent cylinder of `radius` spanning Z from `min_build_height` to
+    // `max_build_height`. See GLCanvas3D::_render_chunk_build_volumes.
+    def = this->add("radius", coFloat);
+    def->label = L("Radius");
+    def->category = L("Non-planar Printing");
+    def->tooltip = L("Radius of a chunk's usable build-volume visualization cylinder.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(100.0));
+
+    def = this->add("max_build_height", coFloat);
+    def->label = L("Max build height");
+    def->category = L("Non-planar Printing");
+    def->tooltip = L("Upper Z bound of a chunk's usable build-volume visualization cylinder.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(200.0));
+
+    def = this->add("min_build_height", coFloat);
+    def->label = L("Min build height");
+    def->category = L("Non-planar Printing");
+    def->tooltip = L("Lower Z bound of a chunk's usable build-volume visualization cylinder.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    // Inter-chunk travel. Between two chunks the nozzle hops off along the tool axis it was
+    // printing with, rotates C to the next chunk (holding the machine X/Y axes still) while Z
+    // moves to the next chunk's lifted staging height, moves X/Y to that staging position while B
+    // tilts, and finally descends onto the first extrusion point. See the ByObject transition in
+    // GCode::_do_export.
+    def = this->add("nonplanar_departure_distance", coFloat);
+    def->label = L("Chunk departure distance");
+    def->category = L("Non-planar Printing");
+    def->tooltip = L("How far the nozzle backs off along the tool axis of the chunk it just "
+                     "finished, before climbing to the traverse height. This breaks away "
+                     "perpendicular to the surface just printed.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(1.0));
+
+    def = this->add("nonplanar_approach_distance", coFloat);
+    def->label = L("Chunk approach height");
+    def->category = L("Non-planar Printing");
+    def->tooltip = L("Height above the next chunk's local bed plane of the lifted staging "
+                     "position (over the center of the chunk's footprint) that the inter-chunk "
+                     "transition moves to before descending onto the first extrusion point.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(5.0));
+
+    def = this->add("nonplanar_nozzle_to_b_axis", coFloat);
+    def->label = L("Nozzle tip to B axis distance");
+    def->category = L("Non-planar Printing");
+    def->tooltip = L("Distance from the nozzle tip to the center of the B rotation axis. A B swing "
+                     "displaces the tip by this arm length; the inter-chunk transition uses it to "
+                     "pre-compensate the staging moves for that displacement.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(47.0));
+
+    // UNLAYERED_MOD -- hotend model for the post-slice collision check (multiplanar prints only).
+    // The key keeps its old "cone" name so no saved preset loses its value; the model is a pyramid now.
+    // Per nozzle (printer_options_with_variant_1): one value per printer_extruder_variant slot, so the
+    // Main and Auxiliary nozzle of a dual-nozzle printer each get their own envelope. A single value
+    // (every preset or project saved before this was per nozzle) applies to every nozzle.
+    def = this->add("nonplanar_hotend_cone_height", coFloats);
+    def->label = L("Hotend envelope radius");
+    def->category = L("Non-planar Printing");
+    def->tooltip = L("After slicing a multiplanar print, the hotend is modelled as a four-sided pyramid with its apex "
+                     "at the nozzle tip, clipped by a sphere of this radius about the tip -- so its far end is a "
+                     "spherical cap and no part of it reaches further than this from the nozzle, however shallow "
+                     "the side angles. Material printed earlier that falls inside it while a later chunk prints is "
+                     "reported as a collision. 0 switches the hotend model off: no collision check, and no hotend "
+                     "term in the virtual 5-axis tilt limit.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats{ 40.0 });
+
+    // UNLAYERED_MOD -- the four faces of the hotend envelope (HotendEnvelope in PrintConfig.hpp).
+    // Measured from the bed plane, so 45 on all four is the old 90-degree cone.
+    struct HotendFaceDef { const char *key, *label; };
+    for (const HotendFaceDef &face : { HotendFaceDef{ "nonplanar_hotend_angle_xpos", L("Hotend side angle +X (right)") },
+                                       HotendFaceDef{ "nonplanar_hotend_angle_xneg", L("Hotend side angle -X (left)") },
+                                       HotendFaceDef{ "nonplanar_hotend_angle_ypos", L("Hotend side angle +Y (back)") },
+                                       HotendFaceDef{ "nonplanar_hotend_angle_yneg", L("Hotend side angle -Y (front)") } }) {
+        def = this->add(face.key, coFloats);
+        def->label = face.label;
+        def->category = L("Non-planar Printing");
+        def->tooltip = L("Angle of this side of the hotend envelope, measured up from the bed plane with the nozzle "
+                         "vertical: lay a protractor on the bed against the nozzle tip and read the steepest line that "
+                         "still clears the fan duct, heater block, probe or anything else on this side. 90 is a side "
+                         "flush with the nozzle; a smaller angle is a fatter side. The side turns with the head as it "
+                         "tilts. On a virtual 5-axis printer it is also the steepest a chunk may lean away from this side.");
+        def->sidetext = L("\u00B0");
+        def->min = 1;
+        def->max = 90;
+        def->mode = comAdvanced;
+        def->set_default_value(new ConfigOptionFloats{ 45.0 });
+    }
+
+    // Legacy: the single full opening angle the four faces replaced. Kept defined, hidden and out of
+    // every config struct so a file or CLI argument carrying it still parses, and so its presence
+    // after a load proves the file had it; migrate_legacy_hotend_cone() converts and erases it.
+    def = this->add("nonplanar_hotend_cone_angle", coFloat);
+    def->label = "";
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionFloat(90.0));
+
+    // UNLAYERED_MOD -- the machine's headroom above the nozzle. The gantry term of the tilt limit
+    // cannot be derived without it, and 0 ("not measured") skips that term only; the hotend term
+    // still applies: see virtual_tilt_limit_deg() in the header for the geometry.
+    //
+    // Deliberately NOT extruder_clearance_height_to_rod, which means almost the same thing. That
+    // one ships with a default of 40 on every printer in the tree, so reusing it would quietly
+    // constrain machines nobody has measured, and it carries upstream sequential-print meaning
+    // that this must not perturb.
+    def = this->add("nonplanar_gantry_height", coFloat);
+    def->label = L("Gantry height above nozzle");
+    def->category = L("Non-planar Printing");
+    def->tooltip = L("Vertical distance from the nozzle tip up to the lowest fixed obstruction above "
+                     "it -- the gantry beam, the carriage plate, whichever the head would strike "
+                     "first. On a virtual 5-axis printer this sets how far a tilted chunk may climb "
+                     "before the print hits the machine, and together with the hotend side angles it "
+                     "gives the largest tilt each chunk is allowed. Leave at 0 if you have not "
+                     "measured it: the tilt is then limited by the hotend envelope alone, however "
+                     "wide the chunk.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    // UNLAYERED_MOD -- Virtual-only safety limits. Both default to 0 = no limit, so no project that
+    // slices today starts failing. Enforced by refusing the slice, never by clamping: the authored
+    // build normal drives the cut geometry, the support bounds and the 3D scene, so silently
+    // reducing it would print something the viewport does not show.
+    def = this->add("nonplanar_virtual_max_angle", coFloat);
+    def->label = L("Max tilt angle");
+    def->category = L("Non-planar Printing");
+    def->tooltip = L("An additional, stricter ceiling on how far a build direction may lean from "
+                     "vertical on a virtual 5-axis printer. The nozzle stays upright while a tilted "
+                     "chunk prints, so past a certain tilt the flat tip and the side of the hotend can no "
+                     "longer reach the surface cleanly. Slicing is refused if any build direction "
+                     "exceeds it. 0 means this ceiling is not applied -- it does NOT mean there is no "
+                     "limit, because a limit is also worked out from the gantry height and the hotend "
+                     "side angles above, and whichever is smaller wins.");
+    def->sidetext = u8"\u00B0";	// degrees, don't need translation
+    def->min = 0;
+    def->max = 90;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("nonplanar_virtual_max_z", coFloat);
+    def->label = L("Max print height (from the bed)");
+    def->category = L("Non-planar Printing");
+    def->tooltip = L("The highest the nozzle may go while printing on a virtual 5-axis printer, measured "
+                     "from the bed (a Z height, not a clearance): usually the printer's build height, or "
+                     "less if the gantry would strike a tall tilted part. On a large tilted plane the head "
+                     "climbs as it works outwards -- chunk transitions lift clear of everything printed so "
+                     "far -- and slicing is refused if the toolpath would go above this. The printer's own "
+                     "start and end G-code are not checked. 0 means no limit.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    // ---- BELT_MOD: belt printer keys the fork adds to Orca's (Orca's own are defined with them,
+    // under "Printable space") ----
+    def = this->add("belt_slice_angle_tolerance", coFloat);
+    def->label = L("Decoupled tilt tolerance");
+    def->category = L("Printable space");
+    def->tooltip = L("With the machine-frame tilt decoupled, how far the belt tilt angle the print is sliced "
+                     "at may differ from the machine-frame tilt angle, in degrees, before slicing is refused. "
+                     "A slightly misaligned layer plane prints fine; a grossly misaligned one collides with the "
+                     "gantry or lifts off the belt.");
+    def->sidetext = L("°");
+    def->min = 0.;
+    def->max = 88.;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(10.));
+
+    // ---- BELT_MOD: contact-aware first layer (OrcaSlicer's keys) ----
+    def = this->add("first_layer_plane", coEnum);
+    def->label = L("First layer plane");
+    def->category = L("Belt printer");
+    def->tooltip = L("How the slicer decides which extrusions get first-layer settings (speed, flow, "
+                     "acceleration, fan, initial temperatures). Auto: by height above the surface the "
+                     "material rests on -- the belt, the bed, or a cut-plane segment's floor -- so on a "
+                     "belt printer every layer's strip on the belt is treated as first layer. XY: the "
+                     "legacy rule, only the first slicing layer. The other values behave as Auto.");
+    def->enum_keys_map = &ConfigOptionEnum<FirstLayerPlaneMode>::get_enum_values();
+    def->enum_values   = {"auto", "xy", "yz", "xz", "belt_affine"};
+    def->enum_labels   = {L("Auto"), L("XY (first slicing layer)"), L("YZ"), L("XZ"), L("Belt affine plane")};
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionEnum<FirstLayerPlaneMode>(FirstLayerPlaneMode::Auto));
+
+    def = this->add("first_layer_plane_offset", coFloat);
+    def->label = L("First layer plane offset");
+    def->category = L("Belt printer");
+    def->tooltip = L("Shifts the surface the first-layer band is measured from, along its normal (mm). "
+                     "Positive values move it away from the belt or bed, deeper into the model.");
+    def->sidetext = L("mm");
+    def->min = -1000;
+    def->max =  1000;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("first_layer_plane_thickness", coFloat);
+    def->label = L("Plane band thickness");
+    def->category = L("Belt printer");
+    def->tooltip = L("Thickness of one band above the surface, in mm: the unit 'No cooling for the first N "
+                     "layers', 'Full fan speed at layer', 'Number of slow layers' and the layers-on-printed-"
+                     "material band are multiplied by when first-layer treatment is decided by height. "
+                     "-1 means the initial layer height.");
+    def->sidetext = L("mm");
+    def->min = -1;
+    def->max = 100;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(-1.0));
+
+    def = this->add("belt_initial_temperature_length", coFloat);
+    def->label = L("Initial temperature length");
+    def->category = L("Belt printer");
+    def->tooltip = L("On a belt printer every layer touches the belt, so the first-layer nozzle and bed "
+                     "temperatures are held for this many mm of belt travel from the start of the print "
+                     "before switching to the normal temperatures. 0 holds them for the whole print.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("axis_selection", coEnum);
+    def->label = L("Printer type");
+    def->category = L("Non-planar Printing");
+    def->tooltip = L("Which pair of rotary axes the machine drives. The slicer drives two rotary axes "
+                     "at a time (5 total); A/B/C are the standard machining rotary axes about X/Y/Z "
+                     "respectively. "
+                     "\"Virtual\" targets an ordinary 3-axis printer: toolpaths are still generated as "
+                     "if for a 5-axis machine, but no rotary words are written. The nozzle stays upright, "
+                     "so tilted chunks are bounded by the max tilt angle and max total height below.");
+    def->enum_keys_map = &ConfigOptionEnum<AxisSelection>::get_enum_values();
+    // Order here must match the AxisSelection enum: the combobox index IS the enum integer.
+    def->enum_values.push_back("ab");
+    def->enum_values.push_back("bc");
+    def->enum_values.push_back("ac");
+    def->enum_values.push_back("virtual");
+    def->enum_labels.push_back(L("A/B"));
+    def->enum_labels.push_back(L("B/C"));
+    def->enum_labels.push_back(L("A/C"));
+    def->enum_labels.push_back(L("Virtual"));
+    def->mode = comSimple; // UNLAYERED_MOD -- shown beside enable_nonplanar, which is Simple too
+    // UNLAYERED_MOD -- Virtual by default (2026-11-03, 0.1.10): every printer that is not an Unlayered 5-axis
+    // machine is a 3-axis printer, and with B/C as the default those presets wrote rotary moves and failed with
+    // trunnion errors once non-planar printing was switched on. The Unlayered 5-axis profiles set "bc" themselves
+    // (fdm_common_5axis.json); a legacy config that recorded virtual_5axis = 0 keeps B/C (handle_legacy).
+    def->set_default_value(new ConfigOptionEnum<AxisSelection>(AxisSelection::Virtual));
+
+    // Per-axis rotation limits (degrees). Read by the A/C output (GCode/TrunnionAC.cpp).
+    auto add_axis_rotation_limit = [this](const std::string &opt, const std::string &label, double default_value) {
+        ConfigOptionDef* def = this->add(opt, coFloat);
+        def->label = label;   // already wrapped in L() at the call site (literal -> extractable for i18n)
+        def->category = L("Non-planar Printing");
+        def->tooltip = L("Rotation limit of this rotary axis, in degrees. An A/C printer's G-code "
+                         "keeps A and C inside their limits; the other printer types store them only.");
+        def->sidetext = L("°");
+        def->min = -360;
+        def->max = 360;
+        def->mode = comAdvanced;
+        def->set_default_value(new ConfigOptionFloat(default_value));
+    };
+    add_axis_rotation_limit("axis_a_rotation_min", L("Min"), -360);
+    add_axis_rotation_limit("axis_a_rotation_max", L("Max"),  360);
+    add_axis_rotation_limit("axis_b_rotation_min", L("Min"), -360);
+    add_axis_rotation_limit("axis_b_rotation_max", L("Max"),  360);
+    add_axis_rotation_limit("axis_c_rotation_min", L("Min"), -360);
+    add_axis_rotation_limit("axis_c_rotation_max", L("Max"),  360);
+
+    // Per-axis continuous rotation (axis rotates infinitely / firmware unwinds it).
+    auto add_axis_continuous = [this](const std::string &opt) {
+        ConfigOptionDef* def = this->add(opt, coBool);
+        def->label = L("Continuous");
+        def->category = L("Non-planar Printing");
+        def->tooltip = L("This rotary axis can rotate infinitely, or the firmware is responsible for "
+                         "unwinding it, so its rotation limits do not apply.");
+        def->mode = comAdvanced;
+        def->set_default_value(new ConfigOptionBool(false));
+    };
+    add_axis_continuous("axis_a_continuous");
+    add_axis_continuous("axis_b_continuous");
+    add_axis_continuous("axis_c_continuous");
+
+    // UNLAYERED_MOD -- A/C table-table machine geometry (GCode/TrunnionAC.cpp).
+    def = this->add("ac_pivot_height", coFloat);
+    def->label = L("A axis height above the bed");
+    def->category = L("Non-planar Printing");
+    def->tooltip = L("A/C printers: how far the A axis (the cradle, tilting about X) lies above the bed surface. "
+                     "A/B (tri-Z bed) printers: the height of the tilt pivot, 0 for a pivot in the bed plane. "
+                     "The exported G-code is converted to machine coordinates with it, so a wrong value shifts "
+                     "every tilted section by the error times sin(A) sideways and (1 - cos(A)) in height.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.));
+
+    def = this->add("ac_c_axis_offset_x", coFloat);
+    def->label = L("X");
+    def->category = L("Non-planar Printing");
+    def->tooltip = L("A/C printers: where the C axis (the turntable) pierces the bed, relative to the bed centre, "
+                     "at A = C = 0. A/B (tri-Z bed) printers: where the tilt pivot (the leadscrews' centre) is.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.));
+
+    def = this->add("ac_c_axis_offset_y", coFloat);
+    def->label = L("Y");
+    def->category = L("Non-planar Printing");
+    def->tooltip = L("A/C printers: where the C axis (the turntable) pierces the bed, relative to the bed centre, "
+                     "at A = C = 0. A/B (tri-Z bed) printers: where the tilt pivot (the leadscrews' centre) is.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.));
+
+    def = this->add("ac_solution", coEnum);
+    def->label = L("A/C solution");
+    def->category = L("Non-planar Printing");
+    def->tooltip = L("A/C printers reach every tilted tool axis two ways: (A, C) and (-A, C + 180). "
+                     "\"Smallest move\" takes whichever needs the least rotation from the current pose; "
+                     "the other two keep A on one side whenever the A limits allow it.");
+    def->enum_keys_map = &ConfigOptionEnum<AcSolution>::get_enum_values();
+    def->enum_values.push_back("smallest_move");
+    def->enum_values.push_back("negative_a");
+    def->enum_values.push_back("positive_a");
+    def->enum_labels.push_back(L("Smallest move"));
+    def->enum_labels.push_back(L("Always negative A"));
+    def->enum_labels.push_back(L("Always positive A"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<AcSolution>(AcSolution::SmallestMove));
+
+    def = this->add("ac_table_radius", coFloat);
+    def->label = L("Turntable radius");
+    def->category = L("Non-planar Printing");
+    def->tooltip = L("A/C printers: radius of the turntable, which swings up with the part when A tilts. "
+                     "Section changes lift the nozzle above it. 0 uses the printable area.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.));
+
+    def = this->add("ac_transition_clearance", coFloat);
+    def->label = L("Section change clearance");
+    def->category = L("Non-planar Printing");
+    def->tooltip = L("A/C printers: before the table rotates to the next section, the nozzle lifts straight up "
+                     "until it is this far above the highest point the part and the turntable reach anywhere "
+                     "along the rotation.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(5.));
+
+    def = this->add("ac_rotation_speed", coFloat);
+    def->label = L("Rotation speed");
+    def->category = L("Non-planar Printing");
+    def->tooltip = L("A/C printers: speed of the A/C rotation at a section change.");
+    def->sidetext = L("°/s");
+    def->min = 1;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(30.));
 
     def = this->add("machine_pause_gcode", coString);
     def->label = L("Pause G-code");
@@ -5758,9 +6726,14 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("host_type", coEnum);
     def->label = L("Host Type");
-    def->tooltip = L("Orca Slicer can upload G-code files to a printer host. This field must contain "
-                   "the kind of the host.");
+    def->tooltip = L("Unlayered Slicer can upload G-code files to a printer host. This field must contain "
+                   "the kind of the host.\n\n"
+                   "Choose Unlayered for a Duet board running Unlayered firmware: it speaks the same "
+                   "protocol as Duet and adds in-app firmware updates. Plain Duet leaves the board's "
+                   "firmware alone.");
     def->enum_keys_map = &ConfigOptionEnum<PrintHostType>::get_enum_values();
+    // The order here must match the declaration order of PrintHostType -- see the note on that
+    // enum. New entries go on the END of both lists.
     def->enum_values.push_back("prusalink");
     def->enum_values.push_back("prusaconnect");
     def->enum_values.push_back("octoprint");
@@ -5778,6 +6751,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("elegoolink");
     def->enum_values.push_back("3dprinteros");
     def->enum_values.push_back("moonraker");
+    def->enum_values.push_back("unlayered");
     def->enum_labels.push_back("PrusaLink");
     def->enum_labels.push_back("PrusaConnect");
     def->enum_labels.push_back("Octo/Klipper");
@@ -5795,6 +6769,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back("Elegoo Link");
     def->enum_labels.push_back("3DPrinterOS");
     def->enum_labels.push_back("Moonraker (Klipper)");
+    def->enum_labels.push_back("Unlayered");
     def->mode = comAdvanced;
     def->cli = ConfigOptionDef::nocli;
     def->set_default_value(new ConfigOptionEnum<PrintHostType>(htOctoPrint));
@@ -5914,6 +6889,487 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
+    // Wave Overhangs
+    def = this->add("wave_overhangs", coBool);
+    def->label = L("Use wave overhangs");
+    def->category = L("Strength");
+    def->tooltip = L("Generate wave-patterned perimeters over overhangs to print steep angles "
+                     "without supports.");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("wave_overhangs_instead_of_bridges", coBool);
+    def->label = L("Use wave overhangs instead of bridges");
+    def->category = L("Strength");
+    def->tooltip = L("When wave overhangs are enabled, suppress every bridge classification "
+                     "in this region and fill with solid infill instead. Off by default: simple "
+                     "flat spans stay as regular bridges, only concave or holed overhangs get "
+                     "waves. Turn on to guarantee no bridge patterns anywhere in the region "
+                     "(bottom bridges and internal bridges both become solid infill).");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("wave_overhang_outer_perimeters", coInt);
+    def->label = L("Perimeters");
+    def->category = L("Strength");
+    def->tooltip = L("Number of outer perimeters preserved inside the overhang region. The rest of the "
+                     "overhang is replaced by the wave pattern. Independent of Quality › Walls: "
+                     "setting this to 1 always gives one outer wall then wave, regardless of how many "
+                     "walls the rest of the object uses. 1 is usually enough. Set to 0 for pure wave "
+                     "(no perimeter at the overhang boundary). Capped at the effective wall count for "
+                     "the layer (e.g. 1 on topmost layers with \"only one wall top\").");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->set_default_value(new ConfigOptionInt(1));
+
+    def = this->add("wave_overhang_perimeter_overlap", coFloat);
+    def->label = L("Perimeter overlap");
+    def->category = L("Strength");
+    def->tooltip = L("Extends the wave propagation boundary toward nearby perimeter lines so the last wave sits closer to the kept perimeter. "
+                     "This reduces the gap between wave lines and perimeter shells.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.1));
+
+    def = this->add("wave_overhang_minimum_width", coFloat);
+    def->label = L("Minimum wave width");
+    def->category = L("Strength");
+    def->tooltip = L("If a narrow neck in the wave region is smaller than this width, a thin split is inserted there before propagation so fragile wave branches do not form. "
+                     "Larger values split more aggressively.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.7));
+
+    def = this->add("wave_overhang_pattern", coEnum);
+    def->label = L("Pattern");
+    def->category = L("Strength");
+    def->tooltip = L("Controls whether wave-overhang tracks are printed one direction at a time (monotonic), "
+                     "connected into a back-and-forth meander (zig-zag), or started from the better-supported end of each new wave line (smart).");
+    def->enum_keys_map = &ConfigOptionEnum<WaveOverhangPattern>::get_enum_values();
+    def->enum_values.push_back("monotonic");
+    def->enum_values.push_back("zigzag");
+    def->enum_values.push_back("smart");
+    def->enum_labels.push_back(L("Monotonic"));
+    def->enum_labels.push_back(L("Zigzag"));
+    def->enum_labels.push_back(L("Smart"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<WaveOverhangPattern>(WaveOverhangPattern::Smart));
+
+    def = this->add("wave_overhang_line_spacing", coFloat);
+    def->label = L("Line spacing");
+    def->category = L("Strength");
+    def->tooltip = L("Center-to-center distance between adjacent wave-overhang extrusions.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->min = 0.01;
+    def->set_default_value(new ConfigOptionFloat(0.35));
+
+    def = this->add("wave_overhang_flow_mm3_per_mm", coFloat);
+    def->label = L("Wave flow");
+    def->category = L("Strength");
+    def->tooltip = L("Volume of plastic extruded per millimetre of wave-overhang line, in mm³/mm.\n\n"
+                     "Default 0.15 is a calibrated reference value for a 0.4 mm nozzle. "
+                     "The bead hangs in air rather than being squished against a layer below, so layer "
+                     "height has no effect on its cross-section. For non-0.4 mm nozzles, scale as "
+                     "0.15 × (nozzle/0.4)²: about 0.09 for 0.3 mm, 0.34 for 0.6 mm, 0.60 for 0.8 mm.\n\n"
+                     "Raise if wave lines look thin or broken; lower if they blob together.");
+    def->sidetext = L("mm³/mm");
+    def->mode = comAdvanced;
+    def->min = 0.02;
+    def->max = 1.5;
+    def->set_default_value(new ConfigOptionFloat(0.15));
+
+    def = this->add("wave_overhang_print_speed", coFloat);
+    def->label = L("Print speed");
+    def->category = L("Speed");
+    def->tooltip = L("Print speed for wave-overhang extrusions. Slow speeds give better cooling "
+                     "and adhesion of the cantilevered tracks.");
+    def->sidetext = L("mm/s");
+    def->mode = comAdvanced;
+    def->min = 0.1;
+    def->set_default_value(new ConfigOptionFloat(2.0));
+
+    def = this->add("wave_overhang_perimeter_speed", coFloat);
+    def->label = L("Perimeter speed");
+    def->category = L("Speed");
+    def->tooltip = L("Print speed for the walls (perimeters) on layers that contain wave-overhang "
+                     "traces. The walls in those layers anchor onto the cantilevered wave traces, "
+                     "so printing them at the regular outer/inner wall speed often pulls the wave "
+                     "loose or starves adhesion. 0 = inherit the normal wall speed.");
+    def->sidetext = L("mm/s");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 1000;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("wave_overhang_travel_speed", coFloat);
+    def->label = L("Travel speed");
+    def->category = L("Speed");
+    def->tooltip = L("Travel speed within wave-overhang regions (between non-extruding hops).");
+    def->sidetext = L("mm/s");
+    def->mode = comAdvanced;
+    def->min = 1.0;
+    def->set_default_value(new ConfigOptionFloat(40.0));
+
+    def = this->add("wave_overhang_fan_speed", coInt);
+    def->label = L("Fan speed");
+    def->category = L("Cooling");
+    def->tooltip = L("Part-cooling fan percentage forced during wave-overhang extrusions. "
+                     "Maximum cooling is usually best.");
+    def->sidetext = L("%");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 100;
+    def->set_default_value(new ConfigOptionInt(100));
+
+    def = this->add("wave_overhang_aux_fan_speed", coInt);
+    def->label = L("Aux fan speed");
+    def->category = L("Cooling");
+    def->tooltip = L("Auxiliary (chamber/side) fan percentage forced during wave-overhang extrusions. "
+                     "Useful when you want strong sideways airflow on the unsupported wave tracks "
+                     "without ramping up the printhead fan (which can cause an intra-layer thermal "
+                     "gradient near the nozzle). Requires the printer's auxiliary fan to be enabled. "
+                     "-1 = inherit the normal aux fan speed.");
+    def->sidetext = L("%");
+    def->mode = comAdvanced;
+    def->min = -1;
+    def->max = 100;
+    def->set_default_value(new ConfigOptionInt(-1));
+
+    def = this->add("wave_overhang_nozzle_temp", coInt);
+    def->label = L("Nozzle temperature");
+    def->category = L("Cooling");
+    def->tooltip = L("If non-zero, override the hotend temperature specifically for wave-overhang "
+                     "extrusions. An M104 is emitted at the start of each wave region and restored "
+                     "to the filament default at the end. Useful to experiment with cooler extrusion "
+                     "on the unsupported tracks (less sagging, better cooling). Set to 0 to keep the "
+                     "filament default.");
+    def->sidetext = L("°C");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 350;
+    def->set_default_value(new ConfigOptionInt(0));
+
+    def = this->add("wave_overhang_min_wave_time", coFloat);
+    def->label = L("Min wave time");
+    def->category = L("Cooling");
+    def->tooltip = L("Minimum time in seconds each wave region must take. If a wave region's "
+                     "extrusion would finish faster than this, a G4 dwell pads the difference "
+                     "before the next region — gives each ring time to solidify. Set to 0 to "
+                     "disable.");
+    def->sidetext = L("s");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 60;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("wave_overhang_min_layer_time", coFloat);
+    def->label = L("Min layer time");
+    def->category = L("Cooling");
+    def->tooltip = L("Minimum time in seconds the wave layer must take (from first wave "
+                     "extrusion to layer end). If the layer would finish faster than this, a "
+                     "G4 dwell pads the difference before the next layer starts — gives the "
+                     "wave bed time to solidify before solid infill lands on top. Targets "
+                     "warping. Set to 0 to disable.");
+    def->sidetext = L("s");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 300;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("wave_overhang_corner_taper_enable", coBool);
+    def->label = L("Enable corner-aware spacing taper");
+    def->category = L("Quality");
+    def->tooltip = L("When enabled, the wave-overhang generator densifies line spacing near sharp "
+                     "convex corners of the overhang outline. Corners warp worst because their "
+                     "cantilevered wave lines are short and have little neighbouring material to "
+                     "fuse with, so they curl as PLA cools. Packing more lines into a small radius "
+                     "around each corner gives each short line a neighbour to bond with, resisting "
+                     "the curl. The corner radius, denser spacing, and angle threshold appear when "
+                     "this is on.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("wave_overhang_line_spacing_corner", coFloat);
+    def->label = L("Corner line spacing");
+    def->category = L("Quality");
+    def->tooltip = L("Denser line spacing used near detected sharp corners of the overhang region. "
+                     "Corners warp worst because short cantilevered wave lines cool unevenly and curl. "
+                     "Packing more lines into the corner zone gives each line a nearby neighbour to "
+                     "fuse with, resisting the curl. Must be smaller than the main line spacing for "
+                     "the taper to engage; the master toggle above must also be on.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 2;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("wave_overhang_corner_taper_distance", coFloat);
+    def->label = L("Corner taper distance");
+    def->category = L("Quality");
+    def->tooltip = L("Radius around each detected corner vertex over which the tapered (denser) "
+                     "spacing is applied. Lines inside this radius use the corner spacing; lines "
+                     "further in use the normal spacing. Larger values widen the reinforced zone "
+                     "at the cost of more extrusion time. Set to 0 to disable corner tapering.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 20;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("wave_overhang_corner_angle_threshold", coFloat);
+    def->label = L("Corner angle threshold");
+    def->category = L("Quality");
+    def->tooltip = L("A vertex on the overhang contour is classified as a corner when its interior "
+                     "angle is smaller than this threshold. Smaller values catch only very sharp "
+                     "corners; larger values flag gentler turns too. 90 degrees is a reasonable "
+                     "default for most shapes.");
+    def->sidetext = L("degrees");
+    def->mode = comAdvanced;
+    def->min = 10;
+    def->max = 180;
+    def->set_default_value(new ConfigOptionFloat(90.0));
+
+    def = this->add("wave_overhang_end_retract_length", coFloat);
+    def->label = L("End-of-line retract");
+    def->category = L("Quality");
+    def->tooltip = L("Force a retraction of this many mm at the end of every wave-overhang line, "
+                     "independent of the filament's normal retraction settings. Relieves nozzle "
+                     "pressure so residual melt doesn't ooze into the gap between adjacent wave "
+                     "lines or bead up against the enclosing perimeter. The next wave line's lead-in "
+                     "travel automatically unretracts. Set to 0 to rely on Orca's normal travel-"
+                     "distance retraction heuristic.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 10;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("wave_overhang_floor_layers", coInt);
+    def->label = L("Floor layers");
+    def->category = L("Strength");
+    def->tooltip = L("Number of solid floor layers placed directly above wave-overhang regions. "
+                     "These layers bridge over the wave surface and give the cantilever mechanical backing. "
+                     "0 = let Orca's normal top-shell-layers handle it (no wave-specific override).");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 20;
+    def->set_default_value(new ConfigOptionInt(2));
+
+    def = this->add("wave_overhang_floor_use_hilbert", coBool);
+    def->label = L("Hilbert curve floor");
+    def->category = L("Strength");
+    def->tooltip = L("Force the solid floor layers above wave-overhang regions to use a Hilbert curve "
+                     "infill pattern instead of the region's normal solid-infill pattern. Fractal scan "
+                     "paths leave the smallest residual thermal stresses, which significantly reduces "
+                     "warping that pulls long cantilevered overhangs upward as the layers above cool. "
+                     "Opt-in: when off, floor layers retain the existing pattern.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("wave_overhang_floor_hilbert_layers", coInt);
+    def->label = L("Hilbert floor layer count");
+    def->category = L("Strength");
+    def->tooltip = L("Of the N solid floor layers above each wave region, only the bottom M get the "
+                     "Hilbert pattern; the rest use the default solid-infill pattern. The lowest "
+                     "layers warp most, so capping the Hilbert band saves print time without losing "
+                     "much warping benefit. 0 = match Floor layers (Hilbert on every solid floor).");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 20;
+    def->set_default_value(new ConfigOptionInt(0));
+
+    def = this->add("wave_overhang_floor_hilbert_density", coInt);
+    def->label = L("Hilbert floor density");
+    def->category = L("Strength");
+    def->tooltip = L("Infill percentage for the Hilbert-pattern floor layers. 100 = recipe-spec solid "
+                     "Hilbert (matches the cited research). Below 100 turns the floor into a sparse "
+                     "Hilbert: faster and less material, at the cost of weaker mechanical backing for "
+                     "the wave below. Experimental setting — 100 is the safe default.");
+    def->sidetext = L("%");
+    def->mode = comAdvanced;
+    def->min = 1;
+    def->max = 100;
+    def->set_default_value(new ConfigOptionInt(100));
+
+    def = this->add("wave_overhang_floor_print_speed", coFloat);
+    def->label = L("Hilbert floor print speed");
+    def->category = L("Speed");
+    def->tooltip = L("Print speed for the Hilbert-pattern floor layers above wave-overhang regions. "
+                     "Slower speeds give each line more time to dissipate heat before the next "
+                     "neighbouring line lands on top, reducing the residual thermal stress that drives "
+                     "warping. 0 = inherit the normal solid-infill speed.");
+    def->sidetext = L("mm/s");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 1000;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("wave_overhang_floor_perimeter_speed", coFloat);
+    def->label = L("Floor perimeter speed");
+    def->category = L("Speed");
+    def->tooltip = L("Print speed for the walls (perimeters) on the floor layers above wave-overhang "
+                     "regions. The fragile wave shadow underneath warps when fast walls land on top, "
+                     "so slowing them lets the substrate stay closer to bed temperature and relaxes "
+                     "thermal stress. 0 = inherit the normal wall speed.");
+    def->sidetext = L("mm/s");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 1000;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("wave_overhang_floor_speed_ramp", coInt);
+    def->label = L("Floor speed ramp");
+    def->category = L("Speed");
+    def->tooltip = L("Number of layers over which the floor-layer speed overrides (Floor print speed "
+                     "and Floor perimeter speed) ramp linearly from the slow override speed back up "
+                     "to the normal print/wall speed.\n\n"
+                     "0 = step function (current behaviour): every floor layer prints at the override "
+                     "speed, then snaps back to normal on the next layer.\n"
+                     "1..N = layer 1 above the wave prints at the override speed, layer N (or the last "
+                     "floor layer, whichever comes first) prints at full normal speed, with linear "
+                     "interpolation in between.\n\n"
+                     "Helpful for releasing the thermal stress that builds up at the speed transition: "
+                     "the gradual ramp keeps each layer slightly warmer than the next as the print "
+                     "moves away from the wave shadow, so curl is spread across the ramp instead of "
+                     "concentrated at one boundary.\n\n"
+                     "Capped by Floor layers; if you set a ramp longer than the floor-layer count, "
+                     "the ramp ends at the top floor layer.");
+    def->sidetext = L("layers");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 64;
+    def->set_default_value(new ConfigOptionInt(0));
+
+    def = this->add("wave_overhang_floor_fan_speed", coInt);
+    def->label = L("Hilbert floor fan speed");
+    def->category = L("Cooling");
+    def->tooltip = L("Cooling fan percentage forced during the Hilbert-pattern floor layers above "
+                     "wave-overhang regions. Lower fan keeps the layer warmer for longer, letting "
+                     "thermal stress relax before it solidifies into a permanently-curled state. "
+                     "Counter-intuitive but matches the cited research: warmer = more stress relaxation. "
+                     "-1 = inherit the normal fan speed.");
+    def->sidetext = L("%");
+    def->mode = comAdvanced;
+    def->min = -1;
+    def->max = 100;
+    def->set_default_value(new ConfigOptionInt(-1));
+
+    def = this->add("wave_overhang_floor_aux_fan_speed", coInt);
+    def->label = L("Hilbert floor aux fan speed");
+    def->category = L("Cooling");
+    def->tooltip = L("Auxiliary (chamber/side) fan percentage forced during the Hilbert-pattern floor "
+                     "layers above wave-overhang regions. Pair with a low printhead fan to keep the "
+                     "layer warm near the nozzle while still moving air through the chamber. "
+                     "Requires the printer's auxiliary fan to be enabled. "
+                     "-1 = inherit the normal aux fan speed.");
+    def->sidetext = L("%");
+    def->mode = comAdvanced;
+    def->min = -1;
+    def->max = 100;
+    def->set_default_value(new ConfigOptionInt(-1));
+
+    def = this->add("wave_overhang_min_angle", coFloat);
+    def->label = L("Min angle");
+    def->category = L("Strength");
+    def->tooltip = L("Soft limit only — currently NOT enforced. Orca's upstream overhang "
+                     "detection (Strength → Detect overhang walls / Overhang reverse "
+                     "threshold) is the primary slope filter that decides which regions "
+                     "become wave-overhang candidates. This value is kept as metadata on "
+                     "the profile for potential future use. 0 = no filtering.");
+    def->sidetext = L("°");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 90;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("wave_overhang_spacing_mode", coEnum);
+    def->label = L("Spacing mode");
+    def->category = L("Strength");
+    def->tooltip = L("How ring-to-ring spacing varies across the wave. Uniform keeps constant step. "
+                     "Progressive tightens near the supported edge and widens toward the cantilever tip "
+                     "for better mechanical anchoring.");
+    def->enum_keys_map = &ConfigOptionEnum<WaveOverhangSpacingMode>::get_enum_values();
+    def->enum_values.push_back("uniform");
+    def->enum_values.push_back("progressive");
+    def->enum_labels.push_back(L("Uniform"));
+    def->enum_labels.push_back(L("Progressive"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<WaveOverhangSpacingMode>(wosmUniform));
+
+    def = this->add("wave_overhang_seam_mode", coEnum);
+    def->label = L("Seam mode");
+    def->category = L("Strength");
+    def->tooltip = L("Direction pattern across successive wave rings. Alternating (boustrophedon) minimizes "
+                     "travel. Aligned keeps all rings same-direction for consistent flow but adds travel jumps. "
+                     "Random hides the start seam in high-visibility surfaces.");
+    def->enum_keys_map = &ConfigOptionEnum<WaveOverhangSeamMode>::get_enum_values();
+    def->enum_values.push_back("alternating");
+    def->enum_values.push_back("aligned");
+    def->enum_values.push_back("random");
+    def->enum_labels.push_back(L("Alternating"));
+    def->enum_labels.push_back(L("Aligned"));
+    def->enum_labels.push_back(L("Random"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<WaveOverhangSeamMode>(woseAlternating));
+
+    def = this->add("wave_overhang_debug_gcode", coBool);
+    def->label = L("Debug g-code");
+    def->category = L("Strength");
+    def->tooltip = L("Emit ';WAVE_OVERHANG_START'/';WAVE_OVERHANG_END' comments around wave-overhang "
+                     "extrusions in the G-code. Useful for post-process inspection and debugging. "
+                     "Comments-only — no effect on the print.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(true));
+
+    def = this->add("wave_overhang_min_length", coFloat);
+    def->label = L("Min length");
+    def->category = L("Strength");
+    def->tooltip = L("Minimum overhang perimeter length (in mm) below which wave-overhang generation "
+                     "is skipped. Useful to avoid waving tiny overhangs where normal perimeters are fine.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 50;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("wave_overhang_max_iterations", coInt);
+    def->label = L("Max iterations");
+    def->category = L("Strength");
+    def->tooltip = L("Safety cap on the wave-overhang generator's main loop: max wavefronts per overhang "
+                     "region. 0 = unlimited (stops naturally when the generator can't grow further). "
+                     "Useful for bounding print time on very large overhangs.");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 500;
+    def->set_default_value(new ConfigOptionInt(0));
+
+    def = this->add("wave_overhang_min_new_area", coFloat);
+    def->label = L("Min new area");
+    def->category = L("Strength");
+    def->tooltip = L("Termination threshold for wave-overhang propagation: when a new wavefront adds less "
+                     "than this much new area over the previous wavefront, stop propagating. "
+                     "Lower = longer propagation, potentially denser coverage. Higher = earlier "
+                     "termination. Default 0.01 mm² is a safe early-stop; lower toward 0.0001 for "
+                     "maximum coverage.");
+    def->sidetext = L("mm²");
+    def->mode = comDevelop;
+    def->min = 0.0;
+    def->max = 100.0;
+    def->set_default_value(new ConfigOptionFloat(0.01));
+
+    def = this->add("support_remaining_areas_after_wave_overhangs", coBool);
+    def->label = L("Support unfilled wave overhang areas");
+    def->category = L("Support");
+    def->tooltip = L("When wave overhangs are enabled AND supports are on, only generate supports "
+                     "for overhang areas the wave toolpaths did NOT cover. Explicit support enforcers "
+                     "still apply normally. Disable to let the support generator ignore wave coverage "
+                     "(treats every overhang as if waves weren't there).");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(true));
+
     def = this->add("unsupported_wall_last", coBool);
     def->label = L("Print unsupported walls last");
     def->category = L("Quality");
@@ -5987,7 +7443,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("If you want to process the output G-code through custom scripts, "
                    "just list their absolute paths here. Separate multiple scripts with a semicolon. "
                    "Scripts will be passed the absolute path to the G-code file as the first argument, "
-                   "and they can access the Orca Slicer config settings by reading environment variables.");
+                   "and they can access the Unlayered Slicer config settings by reading environment variables.");
     def->gui_flags = "serialized";
     def->multiline = true;
     def->full_width = true;
@@ -6779,6 +8235,28 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Per object"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<SkirtType>(stCombined));
+
+    def = this->add("layer_rotation_b", coFloat);
+    // def->gui_type = ConfigOptionDef::GUIType::f_enum_open;
+    def->label    = L("Layer Rotation B");
+    def->sidetext = u8"°"; // degrees, don't need translation
+    def->min      = -180;
+    def->max      = 180;
+    def->mode     = comAdvanced;
+    def->category = L("Others");
+    def->tooltip  = L("The rotation (in degrees) around the Y axis.");
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("layer_rotation_c", coFloat);
+    // def->gui_type = ConfigOptionDef::GUIType::f_enum_open;
+    def->label    = L("Layer Rotation C");
+    def->sidetext = u8"°"; // degrees, don't need translation
+    def->min      = -180;
+    def->max      = 180;
+    def->mode     = comAdvanced;
+    def->category = L("Others");
+    def->tooltip  = L("The rotation (in degrees) around the Z axis.");
+    def->set_default_value(new ConfigOptionFloat(0));
     
     def = this->add("skirt_loops", coInt);
     def->label = L("Skirt loops");
@@ -6964,8 +8442,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("preheat_time", coFloat);
     def->label = L("Preheat time");
-    def->tooltip = L("To reduce the waiting time after tool change, Orca can preheat the next tool while the current tool is still in use. "
-                     "This setting specifies the time in seconds to preheat the next tool. Orca will insert a M104 command to preheat the tool in advance.");
+    def->tooltip = L("To reduce the waiting time after tool change, Unlayered Slicer can preheat the next tool while the current tool is still in use. "
+                     "This setting specifies the time in seconds to preheat the next tool. Unlayered Slicer will insert a M104 command to preheat the tool in advance.");
     def->sidetext = L_CONTEXT("s", "second");	// seconds, CIS languages need translation
     def->min = 0;
     def->max = 120;
@@ -7187,7 +8665,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Tool change on wipe tower");
     def->tooltip = L("Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx).\n\n"
                      "Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. "
-                     "By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, "
+                     "By default Unlayered Slicer skips the travel on multi-toolhead machines because the firmware handles the head swap, "
                      "which can result in the Tx command being issued above the printed part. "
                      "Enable this option if you want the tool change to always be issued above the wipe tower instead.");
     def->mode = comAdvanced;
@@ -7337,6 +8815,76 @@ void PrintConfigDef::init_fff_params()
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<SupportType>(stNormalAuto));
 
+    // UNLAYERED_MOD -- support direction, see SupportDirection in PrintConfig.hpp.
+    def = this->add("support_direction", coEnum);
+    def->label = L("Direction");
+    def->category = L("Support");
+    def->tooltip = L("The direction support grows along. \"Follow layers\" stacks support straight along the "
+                     "layer normal. \"World vertical\" and \"Custom\" lean it towards a direction fixed in the "
+                     "printer's frame, whatever rotation the object or its segments are sliced at, so on a "
+                     "multi-planar print the columns keep pointing the same way in every segment. Support is "
+                     "generated as if the object were sheared so that direction is vertical, so overhangs are "
+                     "judged against it too. The lean away from the layer normal is limited by \"Max lean\".");
+    def->enum_keys_map = &ConfigOptionEnum<SupportDirection>::get_enum_values();
+    def->enum_values.push_back("layers");
+    def->enum_values.push_back("vertical");
+    def->enum_values.push_back("custom");
+    def->enum_labels.push_back(L("Follow layers"));
+    def->enum_labels.push_back(L("World vertical"));
+    def->enum_labels.push_back(L("Custom"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<SupportDirection>(sdLayers));
+
+    def = this->add("support_direction_b", coFloat);
+    def->label = L("Direction B");
+    def->category = L("Support");
+    def->tooltip = L("Custom support direction: tilt about the Y axis, in degrees, in the same convention as "
+                     "Layer Rotation B. 0 with C = 0 is world vertical.");
+    def->sidetext = u8"°";
+    def->min = -180;
+    def->max = 180;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("support_direction_c", coFloat);
+    def->label = L("Direction C");
+    def->category = L("Support");
+    def->tooltip = L("Custom support direction: spin of the tilt about the Z axis, in degrees, in the same "
+                     "convention as Layer Rotation C.");
+    def->sidetext = u8"°";
+    def->min = -180;
+    def->max = 180;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("support_section_overlap", coFloat);
+    def->label = L("Section support overlap");
+    def->category = L("Support");
+    def->tooltip = L("Cut planes only. How far the support of a lower section may reach past the section plane "
+                     "into the support of the section above it, closing the seam between the two columns. "
+                     "Layers are whole, so without this the lower column stops up to one layer short of a "
+                     "tilted plane. One layer height closes that seam at the cost of a little over-extrusion "
+                     "where the two columns meet. Never applied under the model itself, which keeps its normal "
+                     "top Z distance.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->max = 2;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("support_direction_max_lean", coFloat);
+    def->label = L("Max lean");
+    def->category = L("Support");
+    def->tooltip = L("How far, in degrees, the support may lean away from the layer normal. A direction that "
+                     "would lean further keeps its heading and is pulled back to this angle. A leaning column "
+                     "overhangs itself by the lean angle, so values above 45 are experimental: they need tuning "
+                     "and test prints for the material and support settings in use, and slicing warns about them.");
+    def->sidetext = u8"°";
+    def->min = 0;
+    def->max = 85;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(45));
+
     def = this->add("support_object_xy_distance", coFloat);
     def->label = L("Support/object XY distance");
     def->category = L("Support");
@@ -7411,6 +8959,17 @@ void PrintConfigDef::init_fff_params()
 #endif
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.2));
+
+    def = this->add("test_input", coFloat);
+    // def->gui_type = ConfigOptionDef::GUIType::f_enum_open;
+    def->label    = L("Test Input");
+    def->sidetext = u8"°"; // degrees, don't need translation
+    def->min      = -180;
+    def->max      = 180;
+    def->mode     = comAdvanced;
+    def->category = L("Support");
+    def->tooltip  = L("Test input amount");
+    def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("support_bottom_z_distance", coFloat);
     def->label = L("Bottom Z distance");
@@ -9840,7 +11399,12 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
     } else if (opt_key == "support_base_pattern" && value == "none") {
         value = "hollow";
     } else if (opt_key == "tree_support_wall_count" && value == "-1") {
+        // Unlayered: a BambuStudio project. Its range is [-1,2] with -1 = auto; ours is [0,2] with
+        // 0 = auto, so -1 failed validation ("Invalid values found in the 3MF") on every BS import.
         value = "0";
+    } else if (opt_key == "raft_first_layer_expansion" && !value.empty() && value.front() == '-') {
+        // Unlayered: BambuStudio's -1 = auto. There is no auto here (min 0); use our default.
+        value = "2";
     } else if (opt_key == "different_settings_to_system") {
         std::string copy_value = value;
         copy_value.erase(std::remove(copy_value.begin(), copy_value.end(), '\"'), copy_value.end()); // remove '"' in string
@@ -9894,11 +11458,16 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         }
     }
     else if(opt_key == "ensure_vertical_shell_thickness") {
-        if(value == "1") {
+        // Bambu Studio 2.x writes "enabled"/"disabled" here; without this every Bambu 3MF opened
+        // a "generated by a newer version" dialog that replaced "enabled" with the default anyway.
+        if(value == "1" || value == "enabled") {
             value = "ensure_all";
         }
         else if (value == "0"){
             value = "ensure_moderate";
+        }
+        else if (value == "disabled") {
+            value = "none";
         }
     } else if (opt_key == "rotate_solid_infill_direction") {
         opt_key = "solid_infill_rotate_template";
@@ -10005,6 +11574,8 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
     // Ignore the following obsolete configuration keys:
     static std::set<std::string> ignore = {
         "acceleration", "scale", "rotate", "duplicate", "duplicate_grid",
+        // UNLAYERED_MOD: dev-only predecessor of nonplanar_layer_count (never in a release).
+        "nonplanar_top_thickness",
         "bed_size",
         "print_center", "g0", "wipe_tower_per_color_wipe", 
         "support_sharp_tails","support_remove_small_overhangs", "support_with_sheath",
@@ -10022,11 +11593,11 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         "anisotropic_surfaces", // superseded by top_surface_fill_order / bottom_surface_fill_order
         // Belt printer keys retired before the first release: the global-mode and
         // back-transform switches are presumed on, and the pre-slice axis remap, the
-        // support Z offset mode, the support floor mode (always on) and the first-layer
-        // plane evaluator were removed.
+        // support Z offset mode and the support floor mode (always on) were removed.
+        // Unlayered (D-006): first_layer_plane* stay, they drive the contact-aware first layer.
         "belt_slice_rotation_global", "preslice_remap_x", "preslice_remap_y", "preslice_remap_z", "preslice_remap_global",
-        "belt_support_z_offset_mode", "first_layer_plane", "first_layer_plane_offset",
-        "belt_preslice_global", "gcode_back_transform", "belt_support_floor_mode", "first_layer_plane_thickness",
+        "belt_support_z_offset_mode",
+        "belt_preslice_global", "gcode_back_transform", "belt_support_floor_mode",
     };
 
     if (ignore.find(opt_key) != ignore.end()) {
@@ -10045,6 +11616,49 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
 // Don't convert single options here, implement such conversion in PrintConfigDef::handle_legacy() instead.
 void PrintConfigDef::handle_legacy_composite(DynamicPrintConfig &config)
 {
+    // UNLAYERED_MOD -- a key migrated here must also be listed in add_migrated_successor_keys()
+    // (PresetBundle.cpp), or a project's different_settings_to_system no longer protects it.
+    // UNLAYERED_MOD -- the "Virtual 5-axis" checkbox became the fourth value of the "Printer type"
+    // dropdown. Anything written before that carries virtual_5axis = 1 with axis_selection still at
+    // its default, so fold the old bool onto the new enum. This runs on every load path Config.cpp
+    // uses -- .json presets, the 3mf project config, .ini, and both G-code readers -- so one branch
+    // covers every format.
+    // BELT_MOD (D-006) -- the belt keys took Orca's meaning. In 0.1.x belt_frame_tilt_angle was the
+    // machine's tilt (a printer option) and belt_slice_rotation_angle the slicing angle (a process
+    // option); now belt_slice_rotation_angle is the tilt and drives both, and belt_frame_tilt_angle
+    // only counts with belt_frame_tilt_decouple set. Orca writes the decouple key along with the
+    // other two, so a config with a frame tilt and no decouple key is the fork's. A whole config (a
+    // project) keeps both angles and is decoupled where they differ; a printer preset hands its tilt
+    // to belt_slice_rotation_angle. Older files carrying only belt_slice_rotation_angle already meant
+    // it as the tilt.
+    if (config.has("belt_frame_tilt_angle") && ! config.has("belt_frame_tilt_decouple")) {
+        const double frame_tilt = config.opt_float("belt_frame_tilt_angle");
+        if (config.has("belt_slice_rotation_angle")) {
+            const bool differ = std::abs(config.opt_float("belt_slice_rotation_angle") - frame_tilt) > EPSILON;
+            config.set_key_value("belt_frame_tilt_decouple", new ConfigOptionBool(differ));
+        } else {
+            config.set_key_value("belt_slice_rotation_angle", new ConfigOptionFloat(frame_tilt));
+            config.set_key_value("belt_frame_tilt_decouple", new ConfigOptionBool(false));
+        }
+    }
+    if (config.has("virtual_5axis")) {
+        if (config.opt_bool("virtual_5axis"))
+            config.set_key_value("axis_selection", new ConfigOptionEnum<AxisSelection>(AxisSelection::Virtual));
+        // A config from before axis_selection that said "not virtual" meant the then-default B/C machine; the
+        // default is Virtual since 0.1.10, so say B/C explicitly.
+        else if (! config.has("axis_selection"))
+            config.set_key_value("axis_selection", new ConfigOptionEnum<AxisSelection>(AxisSelection::BC));
+        // Drop the legacy key once it has been read. Nothing writes it back now that the
+        // checkbox is gone, so leaving a stale true in a saved preset would re-run this
+        // migration on every load and silently undo a later change of the dropdown -- the
+        // setting would not stick. The preset then falls back to the (false) default, and
+        // normalize_fdm_1() recreates the key with the derived value before slicing.
+        config.erase("virtual_5axis");
+    }
+
+    // UNLAYERED_MOD -- the hotend cone became a four-sided pyramid; see the header.
+    migrate_legacy_hotend_cone(config);
+
     if (config.has("thumbnails")) {
         std::string extention;
         if (config.has("thumbnails_format")) {
@@ -10266,7 +11880,13 @@ std::set<std::string> printer_options_with_variant_1 = {
     // Per-variant hotend heat-up / cool-down rates (pre-heat time model)
     "hotend_cooling_rate",
     "hotend_heating_rate",
-    "nozzle_flush_dataset"
+    "nozzle_flush_dataset",
+    // UNLAYERED_MOD -- the hotend clearance envelope, per nozzle (HotendEnvelope::from_config)
+    "nonplanar_hotend_cone_height",
+    "nonplanar_hotend_angle_xpos",
+    "nonplanar_hotend_angle_xneg",
+    "nonplanar_hotend_angle_ypos",
+    "nonplanar_hotend_angle_yneg"
 };
 
 //options with silient mode
@@ -10420,6 +12040,30 @@ void DynamicPrintConfig::normalize_fdm(int used_filaments)
         }
         */
     }
+
+    // UNLAYERED_MOD -- same derivation as normalize_fdm_1(). Needed separately because the CLI
+    // applies --key=value overrides straight onto the config and calls THIS function
+    // (UnlayeredSlicer.cpp), never handle_legacy_composite -- so a script still passing
+    // --virtual_5axis=1 would otherwise be silently ignored and then reset to 0, emitting rotary
+    // B/C words into what the operator expects to be 3-axis G-code.
+    if (this->has("virtual_5axis") && this->opt_bool("virtual_5axis"))
+        this->set_key_value("axis_selection", new ConfigOptionEnum<AxisSelection>(AxisSelection::Virtual));
+    if (this->has("axis_selection"))
+        if (auto *v5 = this->option<ConfigOptionBool>("virtual_5axis", true); v5 != nullptr)
+            v5->value = this->option("axis_selection")->getInt() == int(AxisSelection::Virtual);
+
+    // UNLAYERED_MOD -- a CLI --nonplanar_hotend_cone_angle never reaches handle_legacy_composite().
+    migrate_legacy_hotend_cone(*this);
+
+    // UNLAYERED_MOD -- arc fitting is incompatible with non-planar printing. G2/G3 describe an arc
+    // in the XY plane at a single Z, so an arc fitted across a tilted chunk's toolpath silently
+    // discards the Z variation that makes the path non-planar. Forced off here rather than at the
+    // consumers because enable_arc_fitting drives path GENERATION (Layer, LayerRegion,
+    // PerimeterGenerator) as well as emission (GCode, GCodeWriter) -- one clamp in the config is
+    // the only way all of them agree, and it lands in the exported config so the G-code records it.
+    if (this->has("enable_nonplanar") && this->opt_bool("enable_nonplanar"))
+        if (auto *af = this->option<ConfigOptionEnum<ArcFittingMode>>("enable_arc_fitting", true); af != nullptr)
+            af->value = ArcFittingMode::Disabled;
 }
 
 //BBS:divide normalize_fdm to 2 steps and call them one by one in Print::Apply
@@ -10471,6 +12115,30 @@ void DynamicPrintConfig::normalize_fdm_1()
     if (auto *opt_gcode_resolution = this->opt<ConfigOptionFloat>("resolution", false); opt_gcode_resolution)
         // Resolution will be above 1um.
         opt_gcode_resolution->value = std::max(opt_gcode_resolution->value, 0.001);
+
+    // UNLAYERED_MOD -- virtual_5axis is now DERIVED from the "Printer type" dropdown. It stays in
+    // the config because shipped machine_start_gcode/machine_end_gcode templates reference
+    // {virtual_5axis} through the placeholder parser, which throws on an unknown identifier.
+    // Done here because Print::apply() calls normalize_fdm_1() unconditionally, before the full
+    // config is handed to the placeholder parser and before Print caches its typed config -- so
+    // headless CLI slicing gets the same value the GUI does. A GUI-only sync would miss the CLI.
+    // ConfigOptionBool does NOT override setInt() -- the base throws BadOptionTypeException
+    // ("Calling ConfigOption::setInt on a non-int ConfigOption"), so this has to assign the
+    // typed value. ConfigOptionEnum<T> does override getInt(), so reading the dropdown is fine.
+    if (this->has("axis_selection"))
+        if (auto *v5 = this->option<ConfigOptionBool>("virtual_5axis", true); v5 != nullptr)
+            v5->value = this->option("axis_selection")->getInt() == int(AxisSelection::Virtual);
+
+    // UNLAYERED_MOD -- a CLI --nonplanar_hotend_cone_angle never reaches handle_legacy_composite().
+    migrate_legacy_hotend_cone(*this);
+
+    // UNLAYERED_MOD -- see the same clamp in normalize_fdm(). Duplicated for the same reason the
+    // virtual_5axis derivation above is: Print::apply() calls normalize_fdm_1() while the CLI path
+    // calls normalize_fdm(), so a clamp in only one of them leaves the other emitting G2/G3 arcs
+    // across non-planar toolpaths.
+    if (this->has("enable_nonplanar") && this->opt_bool("enable_nonplanar"))
+        if (auto *af = this->option<ConfigOptionEnum<ArcFittingMode>>("enable_arc_fitting", true); af != nullptr)
+            af->value = ArcFittingMode::Disabled;
 
     return;
 }
@@ -10627,6 +12295,10 @@ static void extend_extruder_variant(DynamicPrintConfig& config, const unsigned i
     // They are not extruder option keys, so the resize loop in set_num_extruders skips them.
     const auto &defaults = FullPrintConfig::defaults();
     for (const std::string &key : printer_options_with_variant_2)
+        if (auto *opt = config.option<ConfigOptionFloats>(key))
+            opt->resize(config.get_parameter_size(key, num_extruders), defaults.option(key));
+    // UNLAYERED_MOD -- nor is the per-nozzle hotend envelope.
+    for (const std::string &key : HotendEnvelope::option_keys())
         if (auto *opt = config.option<ConfigOptionFloats>(key))
             opt->resize(config.get_parameter_size(key, num_extruders), defaults.option(key));
 }
@@ -12764,6 +14436,15 @@ CLIActionsConfigDef::CLIActionsConfigDef()
     def->tooltip = L("Export the objects as multiple STLs to directory.");
     def->set_default_value(new ConfigOptionString("stl_path"));
 
+    // UNLAYERED_MOD — headless access to the automated-multiplanar skeleton pipeline.
+    def = this->add("export_skeleton", coString);
+    def->label = L("Export skeleton");
+    def->tooltip = L("Run the multiplanar skeleton pipeline on each object and write "
+                     "<name>_skeleton.obj (viewable) and <name>_skeleton.json (checkable) "
+                     "to the given directory.");
+    def->cli_params = "directory";
+    def->set_default_value(new ConfigOptionString("skeleton_path"));
+
     /*def = this->add("export_gcode", coBool);
     def->label = L("Export G-code");
     def->tooltip = L("Slice the model and export toolpaths as G-code.");
@@ -13047,14 +14728,27 @@ CLIMiscConfigDef::CLIMiscConfigDef()
 {
     ConfigOptionDef* def;
 
+    // UNLAYERED_MOD — one string rather than a config option per knob, so the whole
+    // SkeletonParams set is reachable from the CLI without churning PrintConfig.
+    def = this->add("skeleton_params", coString);
+    def->label = L("Skeleton parameters");
+    def->tooltip = L("Semicolon-separated key=value overrides for --export-skeleton, e.g. "
+                     "\"tunnel_fill=on;resample=3;prune_leaves=2\". Keys: method, quality_speed, "
+                     "min_edge_factor, voxel_resolution, resample, smooth_iterations, smooth_alpha, "
+                     "collapse_junctions, collapse_to_spine, prune_leaves, tangent_w, "
+                     "correct_convergence, tunnel_fill (off|threshold|on), tunnel_min_aspect, "
+                     "tunnel_station, bed_snap_band.");
+    def->cli_params = "\"key=value;...\"";
+    def->set_default_value(new ConfigOptionString(""));
+
     /*def = this->add("ignore_nonexistent_config", coBool);
     def->label = L("Ignore non-existent config files");
     def->tooltip = L("Do not fail if a file supplied to --load does not exist.");
 
     def = this->add("config_compatibility", coEnum);
     def->label = L("Forward-compatibility rule when loading configurations from config files and project files (3MF, AMF).");
-    def->tooltip = L("This version of OrcaSlicer may not understand configurations produced by the newest OrcaSlicer versions. "
-                     "For example, newer OrcaSlicer may extend the list of supported firmware flavors. One may decide to "
+    def->tooltip = L("This version of Unlayered Slicer may not understand configurations produced by the newest Unlayered Slicer versions. "
+                     "For example, newer Unlayered Slicer may extend the list of supported firmware flavors. One may decide to "
                      "bail out or to substitute an unknown value with a default silently or verbosely.");
     def->enum_keys_map = &ConfigOptionEnum<ForwardCompatibilitySubstitutionRule>::get_enum_values();
     def->enum_values.push_back("disable");
@@ -13129,8 +14823,8 @@ CLIMiscConfigDef::CLIMiscConfigDef()
 
     def = this->add("single_instance", coBool);
     def->label = L("Single instance mode");
-    def->tooltip = L("If enabled, the command line arguments are sent to an existing instance of GUI OrcaSlicer, "
-                     "or an existing OrcaSlicer window is activated. "
+    def->tooltip = L("If enabled, the command line arguments are sent to an existing instance of GUI Unlayered Slicer, "
+                     "or an existing Unlayered Slicer window is activated. "
                      "Overrides the \"single_instance\" configuration value from application preferences.");*/
 
 /*
@@ -13293,12 +14987,12 @@ ReadWriteSlicingStatesConfigDef::ReadWriteSlicingStatesConfigDef()
     def = this->add("position", coFloats);
     def->label = L("Position");
     def->tooltip = L("Position of the extruder at the beginning of the custom G-code block. If the custom G-code travels somewhere else, "
-                     "it should write to this variable so OrcaSlicer knows where it travels from when it gets control back.");
+                     "it should write to this variable so Unlayered Slicer knows where it travels from when it gets control back.");
 
     def = this->add("e_retracted", coFloats);
     def->label = L("Retraction");
     def->tooltip = L("Retraction state at the beginning of the custom G-code block. If the custom G-code moves the extruder axis, "
-                     "it should write to this variable so OrcaSlicer de-retracts correctly when it gets control back.");
+                     "it should write to this variable so Unlayered Slicer de-retracts correctly when it gets control back.");
 
     def = this->add("e_restart_extra", coFloats);
     def->label = L("Extra de-retraction");

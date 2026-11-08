@@ -41,7 +41,9 @@ with zipfile.ZipFile(path + ".new", "w", zipfile.ZIP_DEFLATED) as dst:
 shutil.move(path + ".new", path)
 PYEOF
 
-"$BIN" --datadir "$WORK/datadir" --info "$WORK/empty_config.3mf" > "$WORK/info.txt" 2>&1
+# Unlayered: the handy models were saved by OrcaSlicer 2.x, a newer version than the fork's 0.x,
+# which the CLI refuses without --allow-newer-file.
+"$BIN" --datadir "$WORK/datadir" --info --allow-newer-file "$WORK/empty_config.3mf" > "$WORK/info.txt" 2>&1
 rc=$?
 if [ $rc -ne 0 ]; then
     echo "FAIL: --info on a project with empty settings exited $rc"

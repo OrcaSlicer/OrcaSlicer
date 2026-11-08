@@ -674,7 +674,7 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
     draw_box_opt_args.is_filled      = true;
     draw_box_opt_args.num_perimeters = wall_count();
     //draw box as bottom surface, so numbers are clearly visible on top
-    gcode << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Bottom surface\n";
+    gcode << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Bottom surface\n"; 
     gcode << draw_box(*m_writer, m_starting_point.x(), m_starting_point.y() + frame_size_y() + line_spacing_first_layer(),
                       print_size_x(),
                       max_numbering_height() + line_spacing_first_layer() + m_glyph_padding_vertical * 2, draw_box_opt_args);

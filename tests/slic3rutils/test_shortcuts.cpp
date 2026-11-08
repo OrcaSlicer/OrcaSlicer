@@ -291,7 +291,7 @@ TEST_CASE("Lookups are scoped to the context of the key press", "[Shortcuts]")
     CHECK(registry.lookup(ShortcutContext::Painting, c) == Shortcut::PaintToolCircle);
 }
 
-TEST_CASE("Tab shortcuts: jump-to-tab is unbound by default, Ctrl+Tab cycles", "[Shortcuts]")
+TEST_CASE("Tab shortcuts: jump-to-tab and cycling are unbound by default", "[Shortcuts]")
 {
     ShortcutRegistry registry;
 
@@ -301,14 +301,12 @@ TEST_CASE("Tab shortcuts: jump-to-tab is unbound by default, Ctrl+Tab cycles", "
         CHECK_FALSE(registry.binding(shortcut).valid());
     CHECK_FALSE(registry.lookup(ShortcutContext::Global, KeyChord{ WXK_F2 }).has_value());
 
-    // Cycling needs the physical Control key on macOS, where Cmd+Tab belongs to the system.
-#ifdef __APPLE__
-    constexpr int ctrl = wxMOD_RAW_CONTROL;
-#else
-    constexpr int ctrl = wxMOD_CONTROL;
-#endif
-    CHECK(registry.lookup(ShortcutContext::Global, KeyChord{ WXK_TAB, ctrl }) == Shortcut::TabNext);
-    CHECK(registry.lookup(ShortcutContext::Global, KeyChord{ WXK_TAB, ctrl | wxMOD_SHIFT }) == Shortcut::TabPrevious);
+    // Unlayered: Ctrl+Tab and Ctrl+Shift+Tab are the fork's fixed tab keys, handled ahead of the registry
+    // (docs/upstream-sync/DECISIONS.md, D-005), so the registry's cycling shortcuts ship unbound.
+    CHECK_FALSE(registry.binding(Shortcut::TabNext).valid());
+    CHECK_FALSE(registry.binding(Shortcut::TabPrevious).valid());
+    CHECK(is_navigation_chord(KeyChord{ WXK_TAB, wxMOD_CONTROL }));
+    CHECK_FALSE(registry.lookup(ShortcutContext::Global, KeyChord{ WXK_TAB, wxMOD_CONTROL }).has_value());
 
     // A user can bind a key to a tab.
     registry.bind(Shortcut::GoToDevice, KeyChord{ WXK_F3 });
@@ -454,4 +452,32 @@ TEST_CASE("Unreadable config entries fall back to the default binding", "[Shortc
     registry.load(config);
     CHECK_FALSE(registry.is_customized(Shortcut::Arrange));
     CHECK(registry.lookup(ShortcutContext::Plater, { 'A' }) == Shortcut::Arrange);
+}
+
+// Unlayered: Tab, Shift+Tab, Ctrl+Tab, F10, Shift+F10 and Menu belong to the keyboard
+// navigation, outside the registry (docs/upstream-sync/DECISIONS.md, D-005).
+TEST_CASE("Keyboard navigation keys are never bindable", "[Shortcuts]")
+{
+    CHECK(is_navigation_chord({ WXK_TAB }));
+    CHECK(is_navigation_chord({ WXK_TAB, wxMOD_SHIFT }));
+    CHECK(is_navigation_chord({ WXK_TAB, wxMOD_CONTROL | wxMOD_SHIFT }));
+    CHECK(is_navigation_chord({ WXK_F10 }));
+    CHECK(is_navigation_chord({ WXK_F10, wxMOD_SHIFT }));
+    CHECK(is_navigation_chord({ WXK_MENU }));
+    CHECK_FALSE(is_navigation_chord({ WXK_F10, wxMOD_CONTROL }));
+    CHECK_FALSE(is_navigation_chord({ 'B', wxMOD_CONTROL }));
+
+    ShortcutRegistry registry;
+    for (size_t i = 0; i < size_t(Shortcut::Count); ++i) {
+        const Shortcut shortcut = Shortcut(i);
+        CAPTURE(shortcut_info(shortcut).key);
+        CHECK_FALSE(is_navigation_chord(registry.binding(shortcut)));
+    }
+    CHECK(registry.lookup(ShortcutContext::Global, { 'B', wxMOD_CONTROL }) == Shortcut::CollapseSidebar);
+    CHECK(registry.lookup(ShortcutContext::Preview, { 'B' }) == Shortcut::ToggleBeltRawGcode);
+
+    AppConfig config;
+    config.set("shortcuts", "switch_view", std::string("Tab"));
+    registry.load(config);
+    CHECK_FALSE(registry.binding(Shortcut::SwitchView).valid());
 }

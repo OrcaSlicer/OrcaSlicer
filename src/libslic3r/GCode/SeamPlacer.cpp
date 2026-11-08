@@ -988,7 +988,7 @@ void compute_global_occlusion(GlobalModelInfo &result, const PrintObject *po,
                               SeamPosition seam_position = spAligned) {
   BOOST_LOG_TRIVIAL(debug)
       << "SeamPlacer: gather occlusion meshes: start";
-  auto obj_transform = po->trafo_sliced();
+  auto obj_transform = po->trafo_centered();
   indexed_triangle_set triangle_set;
   indexed_triangle_set negative_volumes_set;
   //add all parts
@@ -1100,7 +1100,7 @@ void gather_enforcers_blockers(GlobalModelInfo &result, const PrintObject *po) {
   BOOST_LOG_TRIVIAL(debug)
       << "SeamPlacer: build AABB trees for raycasting enforcers/blockers: start";
 
-  auto obj_transform = po->trafo_sliced();
+  auto obj_transform = po->trafo_centered();
 
   indexed_triangle_set painted_non_green; // Used only if the object has green paint.
   for (const ModelVolume *mv : po->model_object()->volumes) {

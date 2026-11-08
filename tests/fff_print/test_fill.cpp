@@ -19,6 +19,7 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include <limits>
 #include "libslic3r/Model.hpp"
+#include "libslic3r/PreSliceInfillStructures.hpp"
 #include <map>
 #include <memory>
 #include <math.h>
@@ -1854,7 +1855,7 @@ TEST_CASE("Sparse plane-path anchors match the printed infill", "[Fill][Internal
     const AABBTreeLines::LinesDistancer<Line> printed_tree(to_lines(printed));
 
     // Orca: Exclude perimeter connections: anchoring and extrusion can trim those differently.
-    const Polylines anchors = intersection_pl(layer.generate_sparse_infill_polylines_for_anchoring(nullptr, nullptr),
+    const Polylines anchors = intersection_pl(layer.generate_sparse_infill_polylines_for_anchoring(PreSliceInfillStructures{}),
                                               shrink(to_polygons(layer.lslices), scale_(3.)));
     REQUIRE_FALSE(anchors.empty());
     double max_distance = 0.;
@@ -2471,7 +2472,7 @@ TEST_CASE("Adaptive TPMS anchors match the printed infill", "[Fill][InternalBrid
     const AABBTreeLines::LinesDistancer<Line> printed_tree(to_lines(printed));
 
     // Exclude the perimeter connections, which anchoring and extrusion trim differently.
-    const Polylines anchors = intersection_pl(layer.generate_sparse_infill_polylines_for_anchoring(nullptr, nullptr),
+    const Polylines anchors = intersection_pl(layer.generate_sparse_infill_polylines_for_anchoring(PreSliceInfillStructures{}),
                                               shrink(to_polygons(layer.lslices), scale_(3.)));
     REQUIRE_FALSE(anchors.empty());
     double max_distance = 0.;

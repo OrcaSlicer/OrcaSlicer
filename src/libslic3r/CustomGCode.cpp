@@ -28,6 +28,9 @@ void Item::from_json(const nlohmann::json& j) {
     j.at("extruder").get_to(extruder);
     if(j.contains("extra"))
         j.at("extra").get_to(extra);
+    // UNLAYERED_MOD
+    if (j.contains("sequential_object"))
+        j.at("sequential_object").get_to(sequential_object);
 }
 
 void Info::from_json(const nlohmann::json& j) {

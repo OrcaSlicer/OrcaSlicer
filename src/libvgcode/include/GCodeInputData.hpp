@@ -31,6 +31,18 @@ struct GCodeInputData
     // Palette for color print colors
     //
     PaletteWithAlpha color_print_colors;
+    //
+    // UNLAYERED_MOD: palette of unit tool axes referenced by PathVertex::tool_axis_id.
+    // Index 0 must exist and must be +Z. If left empty the viewer supplies { +Z }, so a producer
+    // that does not know about tilted layers keeps working unchanged.
+    //
+    std::vector<Vec3> tool_axes;
+    //
+    // Declarative cut planes: palette for the section view, indexed by PathVertex::cut_segment_id.
+    // Supplied by the caller rather than hardcoded here so it stays identical to the colours the
+    // Prepare tab's chunk preview uses (Slic3r::GUI::cut_segment_color).
+    //
+    Palette cut_segment_colors;
 };
 
 } // namespace libvgcode

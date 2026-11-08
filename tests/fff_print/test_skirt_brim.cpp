@@ -14,6 +14,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <cstddef>
@@ -657,758 +658,178 @@ SCENARIO("Skirt and brim generation", "[SkirtBrim]") {
     }
 }
 
-// Belt printers ---------------------------------------------------------------
-//
-// On a tilted belt the brim is laid onto the belt PLANE rather than into the Z=0
-// bed plane, so it is spread across many layers instead of living on the first
-// one.  The discriminating measurement is the number of contiguous brim runs in
-// the G-code: a flat plate brim gives a single run, a belt brim gives one per
-// layer that carries a band.  Distinct Z values are useless here, because the
-// machine-frame transform couples Y into Z so every belt move has its own Z.
-static DynamicPrintConfig belt_brim_config()
+// ---------------------------------------------------------------------------------------------
+// Declarative cut planes: a segment that does not rest on the build plate must neither receive a
+// brim nor disturb anyone else's.
+// ---------------------------------------------------------------------------------------------
+
+// A post carrying a wide cap, as one mesh. Object-local: the post fills [0,10] x [0,10] x [0,15],
+// the cap [-15,25] x [2,8] x [15,20]. Cutting at z = 15 makes the cap a NON-ROOT segment that still
+// builds along +Z, so its slice frame is exactly the identity and the tilted-frame test cannot see
+// it. The cap's X overhang is the whole point: it reaches far enough past the post to cover the
+// post's entire brim collar on the -X and +X sides. With a plain cube (the fixture in
+// test_cut_plane_apply.cpp) the upper segment's cross-section matches the root's footprint exactly,
+// so subtracting it removes only what the root's own island already removed -- net effect zero,
+// which is why that fixture never caught this.
+static TriangleMesh post_and_cap_mesh()
+{
+    TriangleMesh mesh = make_cube(10., 10., 15.);
+    TriangleMesh cap  = make_cube(40., 6., 5.);
+    cap.translate(-15.f, 2.f, 15.f);
+    mesh.merge(cap);
+    return mesh;
+}
+
+static void make_post_and_cap_model(Model &model, double cut_z)
+{
+    ModelObject *object = model.add_object();
+    object->name = "post_and_cap";
+    object->add_volume(post_and_cap_mesh());
+    object->add_instance()->set_offset(Vec3d(100., 100., 0.));
+
+    CutPlaneStack stack;
+    stack.enabled = true;
+    CutPlane plane;
+    plane.point  = Vec3d(5., 5., cut_z); // on the post's axis, at the joint
+    plane.normal = Vec3d::UnitZ();
+    stack.planes.push_back(plane);
+    object->cut_planes = stack;
+    object->ensure_on_bed();
+}
+
+static DynamicPrintConfig cutplane_brim_config()
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
-        { "belt_printer",               1 },
-        { "belt_slice_rotation",        "x" },
-        { "belt_slice_rotation_angle",  45 },
-        { "gcode_remap_x",              "rev_x" },
-        { "gcode_remap_y",              "pos_z" },
-        { "gcode_remap_z",              "pos_y" },
-        { "layer_height",               0.2 },
-        { "initial_layer_print_height", 0.2 },
-        { "skirt_loops",                0 },
-        { "top_shell_layers",           0 },
-        { "bottom_shell_layers",        1 },
-        { "machine_start_gcode",        "T[initial_tool]\n" },
-        { "layer_change_gcode",         "G92 E0\n" },
+        { "enable_nonplanar",   "1" },
+        // Print::validate() refuses cut-plane segments in any other print sequence.
+        { "print_sequence",     "by group" },
+        // Unrelated validate() requirement of the stock test config (relative E addressing).
+        { "layer_change_gcode", "G92 E0" },
+        { "brim_type",          "outer_only" },
+        { "brim_width",         "5" },
+        { "brim_object_gap",    "0.1" },
+        { "skirt_loops",        "0" },
     });
     return config;
 }
 
-// Same belt as belt_brim_config(), but with `filaments` distinct filaments so the brim's
-// tool selection can be observed.  Kept separate from belt_brim_config() so the existing
-// single-filament belt tests are untouched.
-static DynamicPrintConfig belt_brim_multifilament_config(unsigned int filaments,
-    std::initializer_list<Slic3r::ConfigBase::SetDeserializeItem> extra = {})
+// Fraction of azimuth bins around `centre` holding brim. Sampled ALONG each segment rather than at
+// its vertices: an offset collar around a rectangular footprint carries only two vertices per
+// straight edge, so a vertex-only metric would report a perfectly closed ring as full of holes.
+// Deliberately not an area or a byte comparison -- brim width is quantised to an even number of
+// flow spacings, so any absolute area is a moving target, while "the collar closes" is the property
+// under test.
+static double brim_azimuth_coverage(Print &print, ObjectID object_id, const Point &centre, int bins = 72)
 {
-    DynamicPrintConfig config = multifilament_config(filaments);
-    config.set_deserialize_strict({
-        { "belt_printer",               1 },
-        { "belt_slice_rotation",        "x" },
-        { "belt_slice_rotation_angle",  45 },
-        { "gcode_remap_x",              "rev_x" },
-        { "gcode_remap_y",              "pos_z" },
-        { "gcode_remap_z",              "pos_y" },
-        { "layer_height",               0.2 },
-        { "initial_layer_print_height", 0.2 },
-        { "skirt_loops",                0 },
-        { "top_shell_layers",           0 },
-        { "bottom_shell_layers",        1 },
-        { "machine_start_gcode",        "T[initial_tool]\n" },
-        { "layer_change_gcode",         "G92 E0\n" },
-    });
-    if (extra.size() > 0)
-        config.set_deserialize_strict(extra);
-    return config;
-}
+    const auto it = print.get_brimMap().find(object_id);
+    if (it == print.get_brimMap().end())
+        return 0.;
+    Polylines paths;
+    it->second.collect_polylines(paths);
 
-// 0-based tool indices used by extrusions whose role comment contains `role` (needs
-// gcode_comments).  Mirrors tools_for_role in test_multifilament.cpp; statics do not cross
-// translation units, so it is repeated here.
-static std::set<int> belt_tools_for_role(const std::string &gcode, const std::string &role)
-{
-    std::set<int> tools;
-    int current_tool = 0;
-    GCodeReader reader;
-    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
-        const std::string cmd(line.cmd());
-        if (cmd.size() >= 2 && cmd[0] == 'T' && std::isdigit((unsigned char) cmd[1]))
-            current_tool = std::stoi(cmd.substr(1));
-        else if (line.extruding(self) && std::string(line.comment()).find(role) != std::string::npos)
-            tools.insert(current_tool);
-    });
-    return tools;
-}
-
-// Machine Z of the first extruding move whose role comment contains `role`, in file order;
-// numeric_limits<double>::max() when the role never extrudes.
-static double first_role_z(const std::string &gcode, const std::string &role)
-{
-    double z = std::numeric_limits<double>::max();
-    GCodeReader parser;
-    parser.parse_buffer(gcode, [&z, &role](GCodeReader &self, const GCodeReader::GCodeLine &line) {
-        if (line.extruding(self) && line.comment().find(role) != std::string_view::npos) {
-            z = self.z();
-            self.quit_parsing();
-        }
-    });
-    return z;
-}
-
-// Number of object layers that carry a belt brim band.  Every band prints at its own
-// layer Z, so this equals role_layers(gcode, "brim") (plus any apron bands below the
-// first object layer).  It is not a pass count: the bands on the empty lead-in layers
-// ahead of the object's first contact print back to back, so they fold into one pass.
-static int nonempty_belt_brim_layers(const PrintObject &object)
-{
-    int n = 0;
-    for (const ExtrusionEntityCollection &band : object.belt_brim_by_layer())
-        if (! band.empty())
-            ++ n;
-    return n;
-}
-
-// Number of distinct Z heights at which `role` extrudes: one per layer that prints it.
-static int role_layers(const std::string &gcode, const std::string &role)
-{
-    std::set<long> zs;
-    GCodeReader reader;
-    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
-        if (! line.extruding(self) || line.dist_XY(self) <= EPSILON)
+    std::vector<bool> hit(size_t(bins), false);
+    auto mark = [&hit, bins, &centre](const Point &p) {
+        const Vec2d d(unscale<double>(p.x() - centre.x()), unscale<double>(p.y() - centre.y()));
+        if (d.norm() < EPSILON)
             return;
-        if (line.comment().find(role) != std::string_view::npos)
-            zs.insert(std::lround(self.z() * 1000.));
-    });
-    return int(zs.size());
-}
+        const int b = int(std::floor((std::atan2(d.y(), d.x()) + PI) / (2. * PI) * double(bins)));
+        hit[size_t(std::min(std::max(b, 0), bins - 1))] = true;
+    };
 
-// Apron bands below the object's first layer that print something.
-static int belt_brim_apron_bands(const PrintObject &object)
-{
-    int n = 0;
-    for (const BeltBrimBand &band : object.belt_brim_prologue())
-        if (! band.fills.empty())
-            ++ n;
-    return n;
-}
-
-// For each active tool, the ordinal (1-based, over extruding moves) of the FIRST move whose
-// role comment contains `role`.  Lets a per-object ordering check key off the object's
-// unique wall filament.
-static std::map<int, long> first_move_by_tool(const std::string &gcode, const std::string &role)
-{
-    std::map<int, long> first;
-    int  tool = 0;
-    long idx  = 0;
-    GCodeReader reader;
-    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
-        const std::string cmd(line.cmd());
-        if (cmd.size() >= 2 && cmd[0] == 'T' && std::isdigit((unsigned char) cmd[1])) {
-            tool = std::stoi(cmd.substr(1));
-            return;
+    const double step = scaled<double>(0.2);
+    for (const Polyline &path : paths)
+        for (size_t i = 0; i + 1 < path.points.size(); ++ i) {
+            const Vec2d a  = path.points[i].cast<double>();
+            const Vec2d ab = path.points[i + 1].cast<double>() - a;
+            const int   n  = std::max(1, int(std::ceil(ab.norm() / step)));
+            for (int k = 0; k <= n; ++ k) {
+                const Vec2d s = a + ab * (double(k) / double(n));
+                mark(Point(coord_t(s.x()), coord_t(s.y())));
+            }
         }
-        if (! line.extruding(self))
-            return;
-        ++ idx;
-        if (std::string(line.comment()).find(role) != std::string::npos && ! first.count(tool))
-            first[tool] = idx;
-    });
-    return first;
+    return double(std::count(hit.begin(), hit.end(), true)) / double(bins);
 }
 
-// C - the band coincident with the object's FIRST contact with the belt must not be dropped:
-// a belt brim has to appear at or below the object's first perimeter.  On the unfixed feature
-// the first-contact band is dropped and the first brim then appears only at a later (higher)
-// layer.  Machine Z is meaningful and shared between roles under the belt remap, so the first
-// brim's Z must not exceed the first perimeter's.  Both with and without support.
-TEST_CASE("Belt brim is laid at the object's first belt contact", "[SkirtBrim][belt]")
+// The first layer's centre in the frame the brim lives in: slice coordinates plus the instance
+// shift plus the plate origin -- the same mapping brim_enters_first_layer_hole() uses above.
+static Point first_layer_centre_on_plate(const Print &print, const PrintObject &object)
 {
-    const bool support = GENERATE(false, true);
-    DYNAMIC_SECTION("enable_support=" << support) {
-        DynamicPrintConfig config = belt_brim_config();
-        config.set_deserialize_strict({
-            { "brim_type",           "outer_only" },
-            { "brim_width",          4 },
-            { "leading_brim_length", 0 },
-            { "extra_brim_width",    0 },
-            { "brim_object_gap",     0 },
-            { "enable_support",      support ? 1 : 0 },
-        });
-        const std::string gcode = slice({ cube(20) }, config);
-
-        const double brim_z = first_role_z(gcode, "brim");
-        const double peri_z = first_role_z(gcode, "perimeter");
-        REQUIRE(brim_z < std::numeric_limits<double>::max());
-        REQUIRE(peri_z < std::numeric_limits<double>::max());
-        CHECK(brim_z <= peri_z + EPSILON);
-    }
+    BoundingBox bb;
+    for (const ExPolygon &ex : object.layers().front()->lslices)
+        bb.merge(ex.contour.bounding_box());
+    const Vec3d plate_origin = print.get_plate_origin();
+    return bb.center() + object.instances().front().shift_without_plate_offset()
+         + Point(scaled(plate_origin.x()), scaled(plate_origin.y()));
 }
 
-// C control - when the band's own object layer has extrusion (any interior layer of a solid
-// cube), the band takes the ordinary process_layer() path and must be drawn immediately
-// before that layer's perimeters, and exactly once: never dropped, never double-emitted.
-TEST_CASE("Belt brim on an object layer precedes its perimeters, once", "[SkirtBrim][belt]")
-{
-    DynamicPrintConfig config = belt_brim_config();
-    config.set_deserialize_strict({
-        { "brim_type",       "outer_only" },
-        { "brim_width",      4 },
-        { "brim_object_gap", 0 },
-    });
-    Print print;
-    Model model;
-    init_print({ cube(20) }, print, model, config);
-    const std::string gc = gcode(print);
-
-    // Ordering: the first thing extruded is brim, then perimeter.
-    const std::vector<std::string> seq = role_sequence(gc, { "brim", "perimeter" });
-    REQUIRE(seq.size() >= 2);
-    CHECK(seq[0] == "brim");
-    CHECK(seq[1] == "perimeter");
-
-    // Exactly once: every band prints at its own layer Z, so the number of Z heights with
-    // brim equals the number of bands - not fewer, which a dropped band would give.  (A
-    // double emission would print twice at one Z: the pass count below catches that for
-    // the bands that sit on layers with perimeters.)
-    const PrintObject &object = *print.objects().front();
-    const int bands = nonempty_belt_brim_layers(object);
-    REQUIRE(bands > 0);
-    CHECK(role_layers(gc, "brim") == bands + belt_brim_apron_bands(object));
-    CHECK(role_passes(gc, "brim") <= bands);
-}
-
-// B - single extruder (filament id 1).  Every band must survive the 1-based -> 0-based
-// filament-id conversion the apron path performs: a wrong conversion drops all single-extruder
-// bands, so the pass count would collapse.  The expected count is derived from the sliced
-// layers, not a ratio.
-TEST_CASE("Belt brim on a single extruder emits every band once", "[SkirtBrim][belt]")
-{
-    DynamicPrintConfig config = belt_brim_config();
-    config.set_deserialize_strict({
-        { "brim_type",       "outer_only" },
-        { "brim_width",      4 },
-        { "brim_object_gap", 0 },
-    });
-    Print print;
-    Model model;
-    init_print({ cube(20) }, print, model, config);
-    const std::string gc = gcode(print);
-
-    const PrintObject &object = *print.objects().front();
-    const int expected = nonempty_belt_brim_layers(object) + belt_brim_apron_bands(object);
-    REQUIRE(expected > 0);
-    CHECK(role_layers(gc, "brim") == expected);
-    CHECK(belt_tools_for_role(gc, "brim") == std::set<int>{ 0 });   // filament 1 -> tool 0
-}
-
-// Number of brim segments the belt brim generator produced for `object`: the lattice
-// lines of every per-layer band plus the apron prologue.  Each segment is written as one
-// extruding move, so this is what a G-code count has to match.  A pass count cannot see a
-// band emitted twice back to back (two copies of the same band merge into one pass).
-static long belt_brim_segments(const PrintObject &object)
-{
-    auto segments = [](const ExtrusionEntityCollection &fills) {
-        long n = 0;
-        for (const ExtrusionEntity *entity : fills.flatten().entities)
-            for (const Polyline &pl : entity->as_polylines())
-                n += long(pl.size()) - 1;
-        return n;
-    };
-    long n = 0;
-    for (const ExtrusionEntityCollection &band : object.belt_brim_by_layer())
-        n += segments(band);
-    for (const BeltBrimBand &band : object.belt_brim_prologue())
-        n += segments(band.fills);
-    return n;
-}
-
-// Number of extruding moves in the G-code whose role is `role`.
-static long role_segments(const std::string &gcode, const std::string &role)
-{
-    long n = 0;
-    GCodeReader reader;
-    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
-        if (line.extruding(self) && line.dist_XY(self) > EPSILON && line.comment().find(role) != std::string_view::npos)
-            ++ n;
-    });
-    return n;
-}
-
-TEST_CASE("Belt brim writes every generated segment exactly once", "[SkirtBrim][belt]")
-{
-    // The pass count above cannot tell one band from the same band twice in a row; the
-    // segment count can, so a brim band emitted twice back to back fails here.
-    DynamicPrintConfig config = belt_brim_config();
-    config.set_deserialize_strict({
-        { "brim_type",           "outer_only" },
-        { "brim_width",          4 },
-        { "brim_object_gap",     0 },
-        { "leading_brim_length", 6 },
-    });
-    Print print;
-    Model model;
-    init_print({ cube(20) }, print, model, config);
-    const std::string gc = gcode(print);
-
-    const long expected = belt_brim_segments(*print.objects().front());
-    REQUIRE(expected > 100);
-    CHECK(role_segments(gc, "brim") == expected);
-}
-
-// B - multi extruder (wall filament id 2).  Every belt-brim line must print on the object's
-// wall filament (index 2 -> tool 1), and the total number of passes must equal the
-// single-extruder baseline: no per-filament doubling.
-TEST_CASE("Belt brim on a multi-extruder object uses the wall filament, no doubling", "[SkirtBrim][belt]")
-{
-    // Single-extruder baseline built the same way (same nozzle/flow), so the band geometry -
-    // and thus the band count - is identical and only the filament assignment differs.
-    DynamicPrintConfig base = belt_brim_multifilament_config(1, {
-        { "brim_type",       "outer_only" },
-        { "brim_width",      4 },
-        { "brim_object_gap", 0 },
-    });
-    const int baseline = role_passes(slice({ cube(20) }, base), "brim");
-    REQUIRE(baseline > 0);
-
-    DynamicPrintConfig config = belt_brim_multifilament_config(2, {
-        { "brim_type",              "outer_only" },
-        { "brim_width",             4 },
-        { "brim_object_gap",        0 },
-        { "outer_wall_filament_id", 2 },
-        { "inner_wall_filament_id", 2 },
-    });
-    const std::string gc = slice({ cube(20) }, config);
-
-    CHECK(belt_tools_for_role(gc, "brim") == std::set<int>{ 1 });   // filament 2 -> tool 1
-    CHECK(role_passes(gc, "brim") == baseline);
-}
-
-// B - two objects offset ALONG the belt (Y, since the tilt is about X), each with its own
-// wall filament.  Each object's brim/apron must print on that object's filament AND before
-// that object's own perimeters.  The object is identified by its unique tool.
-TEST_CASE("Belt brim of each object precedes its perimeters on its own filament", "[SkirtBrim][belt]")
-{
-    DynamicPrintConfig config = belt_brim_multifilament_config(2, {
-        { "brim_type",           "outer_only" },
-        { "brim_width",          4 },
-        { "leading_brim_length", 6 },
-        { "brim_object_gap",     0 },
-    });
-
-    std::vector<TriangleMesh> meshes;
-    meshes.emplace_back(cube(20));
-    TriangleMesh second = cube(20);
-    second.translate(0.f, 40.f, 0.f);   // offset along the belt so it lands well after the first
-    meshes.emplace_back(std::move(second));
-
-    const std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> overrides {
-        { { "outer_wall_filament_id", 1 }, { "inner_wall_filament_id", 1 } },
-        { { "outer_wall_filament_id", 2 }, { "inner_wall_filament_id", 2 } },
-    };
-    Print print;
-    Model model;
-    init_print(std::move(meshes), print, model, config, &overrides, /*arrange=*/false);
-    print.process();
-    const std::string gc = gcode(print);
-
-    // Both brims appear, each on its object's wall filament (1 -> T0, 2 -> T1).
-    CHECK(belt_tools_for_role(gc, "brim") == std::set<int>{ 0, 1 });
-
-    const std::map<int, long> brim_first = first_move_by_tool(gc, "brim");
-    const std::map<int, long> peri_first = first_move_by_tool(gc, "perimeter");
-    for (int tool : { 0, 1 }) {
-        REQUIRE(brim_first.count(tool) == 1);
-        REQUIRE(peri_first.count(tool) == 1);
-        CHECK(brim_first.at(tool) < peri_first.at(tool));
-    }
-}
-
-// D - the belt-brim predicate must not fire on a request that produces no belt brim.
-// leading_brim_length / extra_brim_width only feed the OUTER ring, so inner_only with zero
-// brim_width yields nothing and must not claim the layers the prime tower / spiral vase need.
-TEST_CASE("Belt inner-only leading brim does not reject the prime tower or spiral vase", "[SkirtBrim][belt]")
-{
-    auto inner_leading = [](std::initializer_list<Slic3r::ConfigBase::SetDeserializeItem> extra) {
-        DynamicPrintConfig config = belt_brim_config();
-        config.set_deserialize_strict({
-            { "brim_type",           "inner_only" },
-            { "brim_width",          0 },
-            { "leading_brim_length", 6 },
-            { "brim_object_gap",     0 },
-        });
-        config.set_deserialize_strict(extra);
-        return config;
-    };
-    auto init_inner_leading_with_prime_tower = [](Print &print, Model &model, double brim_width) {
-        DynamicPrintConfig config = belt_brim_multifilament_config(2, {
-            { "brim_type",                 "inner_only" },
-            { "brim_width",                brim_width },
-            { "leading_brim_length",       6 },
-            { "brim_object_gap",           0 },
-            { "enable_prime_tower",        1 },
-        });
-        const std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> overrides {
-            { { "extruder", 1 } }, { { "extruder", 2 } },
-        };
-        init_print({ cube(20), cube(20) }, print, model, config, &overrides);
-    };
-
-    SECTION("prime tower is left alone") {
+SCENARIO("A cut-plane segment off the build plate must not carve the root's brim", "[cutplanes][brim][SkirtBrim]") {
+    GIVEN("a post with a wide cap, split by one horizontal cut plane at the joint") {
         Print print;
         Model model;
-        init_inner_leading_with_prime_tower(print, model, 0);
-        CHECK_FALSE(print.objects().front()->has_belt_brim());
-        CHECK(print.validate().string.empty());
-    }
-    SECTION("spiral vase is left alone") {
-        Print print;
-        Model model;
-        init_print({ cube(20) }, print, model, inner_leading({ { "spiral_mode", 1 } }));
-        CHECK_FALSE(print.objects().front()->has_belt_brim());
-        CHECK(print.validate().string.empty());
-    }
-    // enable_prime_tower stays on for any multi-filament project, but a belt printer never
-    // prints the classic tower, so the setting alone must not cost the print its brim.
-    SECTION("a real inner brim is accepted with the prime tower setting on") {
-        Print print;
-        Model model;
-        init_inner_leading_with_prime_tower(print, model, 4);
-        CHECK(print.objects().front()->has_belt_brim());
-        CHECK(print.validate().string.empty());
-        CHECK_FALSE(gcode(print).empty());
-    }
-    // A purge tower object is accepted too: the purge plan moves every object, apron
-    // bands included, onto one layer grid.
-    SECTION("a brim is accepted next to a belt purge tower object") {
-        DynamicPrintConfig config = belt_brim_multifilament_config(2, {
-            { "brim_type",               "outer_only" },
-            { "brim_width",              4 },
-            { "brim_object_gap",         0 },
-            { "enable_belt_purge_tower", 1 },
-        });
-        const std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> overrides {
-            { { "extruder", 1 } }, { { "extruder", 2 } },
-        };
-        Print print;
-        Model model;
-        init_print({ cube(20), cube(20) }, print, model, config, &overrides);
-        model.objects.back()->config.set_key_value("belt_purge_tower_object", new ConfigOptionBool(true));
-        print.apply(model, config);
-        REQUIRE(print.has_belt_purge_tower());
-        CHECK(print.validate().string.empty());
-        CHECK_FALSE(gcode(print).empty());
-    }
-}
+        make_post_and_cap_model(model, 15.);
+        print.apply(model, cutplane_brim_config());
 
-TEST_CASE("Belt brim spans many layers instead of one", "[SkirtBrim][belt]")
-{
-    DynamicPrintConfig config = belt_brim_config();
-    config.set_deserialize_strict({
-        { "brim_type",  "outer_only" },
-        { "brim_width", 5 },
-    });
-    const std::string gcode = slice({ cube(20) }, config);
-    // A plate-brim implementation would score 1 here.
-    CHECK(role_passes(gcode, "brim") > 10);
-}
-
-TEST_CASE("Belt brim is absent when both widths are zero", "[SkirtBrim][belt]")
-{
-    // The "no effect when disabled" guard: brim_type Auto is the shipped default and
-    // reports has_brim() even at width 0, so this also pins the gate that keeps the
-    // flat plate brim from running on a tilted belt.
-    const char *brim_type = GENERATE("auto_brim", "outer_only", "no_brim");
-    DYNAMIC_SECTION("brim_type " << brim_type) {
-        DynamicPrintConfig config = belt_brim_config();
-        config.set_deserialize_strict({
-            { "brim_type",        brim_type },
-            { "brim_width",       0 },
-            { "leading_brim_length", 0 },
-            { "extra_brim_width", 0 },
-        });
-        const std::string gcode = slice({ cube(20) }, config);
-        CHECK(role_passes(gcode, "brim") == 0);
-    }
-}
-
-TEST_CASE("Belt brim layers give layer change G-code every layer change placeholder", "[SkirtBrim][belt]")
-{
-    DynamicPrintConfig config = belt_brim_config();
-    config.set_deserialize_strict({
-        { "brim_type",           "outer_only" },
-        { "brim_width",          10 },
-        { "leading_brim_length", 30 },
-        { "brim_object_gap",     0 },
-        { "layer_change_gcode",  "G92 E0\n; LC [layer_num] [most_used_physical_extruder_id] [curr_y_acceleration_limit] "
-                                 "[curr_accumulated_mass] [curr_layer_mass]\n" },
-    });
-    Print print;
-    Model model;
-    init_print({ cube(20) }, print, model, config);
-    print.process();
-    const int bands = belt_brim_apron_bands(*print.objects().front());
-    REQUIRE(bands > 0);
-    std::string gc;
-    REQUIRE_NOTHROW(gc = gcode(print));
-    // The apron bands print first, so they are layers 0 to bands - 1.
-    for (int layer = 0; layer < bands; ++ layer) {
-        INFO(layer);
-        CHECK(gc.find("\n; LC " + std::to_string(layer) + " 0 ") != std::string::npos);
-    }
-}
-
-TEST_CASE("Leading brim length alone produces a belt brim", "[SkirtBrim][belt]")
-{
-    // Exercises the leading_brim_length-only enablement path and the downhill sweep.
-    DynamicPrintConfig config = belt_brim_config();
-    config.set_deserialize_strict({
-        { "brim_type",        "outer_only" },
-        { "brim_width",       0 },
-        { "leading_brim_length", 5 },
-        { "brim_object_gap",  0 },
-    });
-    const std::string gcode = slice({ cube(20) }, config);
-    CHECK(role_passes(gcode, "brim") > 0);
-}
-
-TEST_CASE("Leading brim length reaches further ahead of the object", "[SkirtBrim][belt]")
-{
-    // Compared between two runs rather than against an absolute coordinate, so the
-    // assertion survives any change of origin or axis remap.
-    auto brim_extent = [](double extra) {
-        DynamicPrintConfig config = belt_brim_config();
-        config.set_deserialize_strict({
-            { "brim_type",        "outer_only" },
-            { "brim_width",       3 },
-            { "leading_brim_length", extra },
-            { "brim_object_gap",  0 },
-        });
-        const std::string gcode = slice({ cube(20) }, config);
-        // The apron prints before the object reaches the belt, so it shows up as brim
-        // extrusion at the lowest machine Z of any brim move.
-        double min_z = std::numeric_limits<double>::max();
-        GCodeReader parser;
-        parser.parse_buffer(gcode, [&min_z](GCodeReader &self, const GCodeReader::GCodeLine &line) {
-            if (line.extruding(self) && line.comment().find("brim") != std::string_view::npos)
-                min_z = std::min(min_z, static_cast<double>(self.z()));
-        });
-        return min_z;
-    };
-    const double without = brim_extent(0.);
-    const double with    = brim_extent(10.);
-    REQUIRE(without < std::numeric_limits<double>::max());
-    REQUIRE(with    < std::numeric_limits<double>::max());
-    CHECK(with < without);
-}
-
-TEST_CASE("Every brim type slices on a belt printer", "[SkirtBrim][belt]")
-{
-    // Auto / Mouse ear / Painted collapse to outer-only rather than crashing or
-    // silently producing nothing.
-    const char *brim_type = GENERATE("auto_brim", "brim_ears", "painted", "outer_only",
-                                     "inner_only", "outer_and_inner", "leading_edge_only", "no_brim");
-    DYNAMIC_SECTION("brim_type " << brim_type) {
-        DynamicPrintConfig config = belt_brim_config();
-        config.set_deserialize_strict({
-            { "brim_type",  brim_type },
-            { "brim_width", 5 },
-        });
-        const std::string gcode = slice({ cube(20) }, config);
-        REQUIRE(! gcode.empty());
-        if (std::string(brim_type) == "no_brim")
-            CHECK(role_passes(gcode, "brim") == 0);
-        else if (std::string(brim_type) != "inner_only")
-            // A solid cube has no holes, so inner_only legitimately yields nothing.
-            CHECK(role_passes(gcode, "brim") > 0);
-    }
-}
-
-// The leading-edge-only brim is the outer brim cut down to the part's first contact
-// with the belt.  The cut has to be taken at the first layer that touches the belt: the
-// slicing frame starts at the belt below the footprint, so layers().front() is an empty
-// lead-in layer whose contact lies ahead of the part, and a cut taken there left no brim
-// at all.
-TEST_CASE("Leading-edge-only brim is laid at the first contact and nowhere else", "[SkirtBrim][belt][Regression]")
-{
-    auto brim_gcode = [](const char *brim_type) {
-        DynamicPrintConfig config = belt_brim_config();
-        config.set_deserialize_strict({
-            { "brim_type",           brim_type },
-            { "brim_width",          5 },
-            { "leading_brim_length", 10 },
-            { "extra_brim_width",    0 },
-            { "brim_object_gap",     0 },
-        });
-        return slice({ cube(20) }, config);
-    };
-    const std::string leading = brim_gcode("leading_edge_only");
-    const std::string outer   = brim_gcode("outer_only");
-
-    const double brim_z = first_role_z(leading, "brim");
-    const double peri_z = first_role_z(leading, "perimeter");
-    REQUIRE(brim_z < std::numeric_limits<double>::max());
-    REQUIRE(peri_z < std::numeric_limits<double>::max());
-    // At the first contact: the brim starts no later than the part does...
-    CHECK(brim_z <= peri_z + EPSILON);
-    // ...and stops there, while the outer brim keeps following the footprint.
-    const int leading_layers = role_layers(leading, "brim");
-    const int outer_layers   = role_layers(outer, "brim");
-    INFO("brim layers: leading-edge " << leading_layers << ", outer " << outer_layers);
-    CHECK(leading_layers > 0);
-    CHECK(leading_layers < outer_layers);
-}
-
-// An overhang on the leading side is sliced before the part reaches the belt, so the
-// first layer with geometry is the overhang's tip, above the belt.  A leading-edge cut
-// taken there lies ahead of the part: the brim shrank to a sliver well ahead of it, or
-// vanished once the overhang reached further forward than the brim.  The overhang does
-// not touch the belt, so it must not change the brim at all.
-TEST_CASE("Leading-edge-only brim ignores an overhang ahead of the part", "[SkirtBrim][belt][Regression]")
-{
-    const double fin_length = GENERATE(30., 40.);
-    CAPTURE(fin_length);
-    // A 20 mm cube, with or without a 2 mm thick fin leaving its top edge and reaching
-    // `fin` toward -Y, the end of the part that prints first.  The fin overlaps the cube
-    // by 1 mm so the two shells merge instead of sharing a face.
-    auto brim_layers = [](double fin) {
-        indexed_triangle_set its = its_make_cube(20., 20., 20.);
-        if (fin > 0.) {
-            indexed_triangle_set fin_its = its_make_cube(20., fin + 1., 2.);
-            its_translate(fin_its, Vec3f(0.f, float(-fin), 18.f));
-            its_merge(its, fin_its);
-        }
-        DynamicPrintConfig config = belt_brim_config();
-        config.set_deserialize_strict({
-            { "brim_type",           "leading_edge_only" },
-            { "brim_width",          5 },
-            { "leading_brim_length", 10 },
-            { "extra_brim_width",    0 },
-            { "brim_object_gap",     0 },
-        });
-        return role_layers(slice({ TriangleMesh(std::move(its)) }, config), "brim");
-    };
-    const int plain    = brim_layers(0.);
-    const int with_fin = brim_layers(fin_length);
-    INFO("leading-edge brim layers: plain cube " << plain << ", with the fin " << with_fin);
-    REQUIRE(plain > 0);
-    // One layer of slack: the fin widens the part's footprint on the plate, which can
-    // move the layer grid by a fraction of a layer.
-    CHECK(std::abs(with_fin - plain) <= 1);
-}
-
-TEST_CASE("An untilted belt printer gets no brim", "[SkirtBrim][belt]")
-{
-    // Belt brim needs a tilt to have a belt plane to lie on, and the flat plate brim
-    // cannot reach the G-code on any belt printer: it is emitted out of
-    // skirt_brim_groups(), which _make_skirt() builds, and that returns early for every
-    // belt printer.  So an untilted belt printer gets nothing - unchanged by this
-    // feature.  Making the flat brim work here would mean reopening the belt skirt gate,
-    // which is a separate change; Print::validate() warns instead.
-    DynamicPrintConfig config = belt_brim_config();
-    config.set_deserialize_strict({
-        { "belt_slice_rotation", "none" },
-        { "brim_type",           "outer_only" },
-        { "brim_width",          5 },
-    });
-    const std::string gcode = slice({ cube(20) }, config);
-    CHECK(role_passes(gcode, "brim") == 0);
-}
-
-TEST_CASE("Belt brim does not resurrect the skirt", "[SkirtBrim][belt]")
-{
-    DynamicPrintConfig config = belt_brim_config();
-    config.set_deserialize_strict({
-        { "brim_type",   "outer_only" },
-        { "brim_width",  5 },
-        { "skirt_loops", 2 },
-    });
-    const std::string gcode = slice({ cube(20) }, config);
-    CHECK(role_passes(gcode, "skirt") == 0);
-}
-
-TEST_CASE("Belt brim lines all have the same width", "[SkirtBrim][belt]")
-{
-    // Each brim line's extrusion volume comes from its nozzle-to-belt clearance.  Anchoring
-    // every line to a fixed fraction of its own band gives them all the same clearance, so
-    // they all come out the same width.  The nominal-spacing lattice this replaced let each
-    // line land wherever it fell inside its band, so the clearance - and the width with it -
-    // varied by 2x, which showed up as visibly ragged brim.
-    DynamicPrintConfig config = belt_brim_config();
-    config.set_deserialize_strict({
-        { "brim_type",       "outer_only" },
-        { "brim_width",      5 },
-        { "brim_object_gap", 0 },
-    });
-    Print print;
-    init_and_process_print({ cube(20) }, print, config);
-    const PrintObject *obj = print.objects().front();
-
-    std::vector<float> widths;
-    auto collect = [&widths](const ExtrusionEntityCollection &coll) {
-        for (const ExtrusionEntity *ee : coll.entities)
-            if (const auto *path = dynamic_cast<const ExtrusionPath *>(ee))
-                widths.push_back(path->width);
-    };
-    for (const ExtrusionEntityCollection &band : obj->belt_brim_by_layer())
-        collect(band);
-    for (const BeltBrimBand &band : obj->belt_brim_prologue())
-        collect(band.fills);
-
-    REQUIRE(widths.size() > 10);
-    const float lo = *std::min_element(widths.begin(), widths.end());
-    const float hi = *std::max_element(widths.begin(), widths.end());
-    CHECK_THAT(hi, Catch::Matchers::WithinRel(lo, 1e-4f));
-}
-
-TEST_CASE("Belt apron survives another object printing at the same Z", "[SkirtBrim][belt]")
-{
-    // An apron band prints below its OWN object's first layer, but with two objects on the
-    // belt the second one is already printing at that print_z.  The layer then has an
-    // object layer and takes the ordinary process_layer() path rather than the brim-only
-    // branch, so the band must be emitted from both or it is silently dropped.  A
-    // single-object print cannot exercise this.
-    auto brim_passes = [](int object_count) {
-        DynamicPrintConfig config = belt_brim_config();
-        config.set_deserialize_strict({
-            { "brim_type",           "outer_only" },
-            { "brim_width",          3 },
-            { "leading_brim_length", 8 },
-            { "brim_object_gap",     0 },
-        });
-        std::vector<TriangleMesh> meshes;
-        for (int i = 0; i < object_count; ++ i) {
-            TriangleMesh m = cube(20);
-            // Offset along the belt so the second object starts well after the first.
-            m.translate(0.f, float(40 * i), 0.f);
-            meshes.emplace_back(std::move(m));
-        }
-        Print print;
-        Model model;
-        init_print(std::move(meshes), print, model, config);
+        const auto validation = print.validate();
+        INFO("validate: " << validation.string);
+        REQUIRE(validation.string.empty());
         print.process();
-        return role_passes(gcode(print), "brim");
-    };
 
-    const int one = brim_passes(1);
-    const int two = brim_passes(2);
-    REQUIRE(one > 0);
-    // Two identical objects should carry twice the brim.  Merely asserting `two > one`
-    // would not be decisive: the FIRST object's apron survives the bug, because nothing
-    // else is printing that early, so only the second object's apron goes missing.
-    // Requiring close to 2x is what actually detects the dropped bands.
-    CHECK(two >= 1.8 * one);
+        REQUIRE(print.objects().size() == 2);
+        const PrintObject *root = nullptr, *upper = nullptr;
+        for (const PrintObject *object : print.objects())
+            (object->is_root_segment() ? root : upper) = object;
+        REQUIRE(root  != nullptr);
+        REQUIRE(upper != nullptr);
+        REQUIRE(! root->layers().empty());
+        REQUIRE(! upper->layers().empty());
+
+        THEN("the upper segment builds straight up, so the tilted-frame test cannot exclude it") {
+            // Without this the scenario would silently degrade into a re-test of the tilt guard:
+            // a TILTED upper segment is caught by the older post_trafo_inverse() check and the
+            // brim would come out whole even with the bug present.
+            CHECK(upper->post_trafo_inverse().linear().isApprox(Matrix3d::Identity()));
+        }
+
+        THEN("the upper segment gets no brim of its own") {
+            // It floats 15 mm above the plate. PrintObject::has_brim() has always said so; this
+            // pins that Brim.cpp agrees, instead of computing a brim that only _make_skirt's root
+            // gate happens to stop from ever being emitted.
+            CHECK(! upper->has_brim());
+            CHECK(print.get_brimMap().count(upper->id()) == 0);
+        }
+
+        THEN("the root keeps a complete brim collar") {
+            // The defect: the cap's first-layer cross-section -- physically at z = 15 -- was
+            // inflated by brim_object_gap into the SHARED no_brim_area and then subtracted from
+            // every object's brim, cutting the post's collar into disconnected arcs.
+            REQUIRE(print.get_brimMap().count(root->id()) == 1);
+            const double coverage = brim_azimuth_coverage(print, root->id(),
+                                                          first_layer_centre_on_plate(print, *root));
+            INFO("brim azimuth coverage " << coverage);
+            CHECK(coverage == 1.);
+        }
+    }
 }
 
-TEST_CASE("Belt brim coexists with support material", "[SkirtBrim][belt]")
+// A tilted cut-plane segment that lands on the plate: a 20 mm cube at (120, 120) whose steep plane
+// (70 degrees from vertical) meets the plate along object-local x = 14. The root keeps the plate
+// strip x < 134; the tilted far piece prints later, after the table swings, and lands on x > 134.
+// The root's brim used to be laid straight across that strip; it must leave it free and wrap it.
+TEST_CASE("The root brim wraps a tilted segment's plate footprint instead of covering it", "[SkirtBrim]")
 {
-    // Supports put extra layers into the same z stream as the apron bands, which is what
-    // the three-way merge in collect_layers_to_print() exists to handle: a band sharing a
-    // print_z with a support layer of the SAME object used to overwrite it in the
-    // print-wide merge.  A smoke test - it cannot prove the collision occurred - but it
-    // does exercise the merge with all three streams populated.
-    DynamicPrintConfig config = belt_brim_config();
-    config.set_deserialize_strict({
-        { "brim_type",           "outer_only" },
-        { "brim_width",          4 },
-        { "leading_brim_length", 6 },
-        { "brim_object_gap",     0 },
-        { "enable_support",      1 },
-    });
-    const std::string gc = slice({ TestMesh::overhang }, config);
-    REQUIRE(! gc.empty());
-    CHECK(role_passes(gc, "brim") > 0);
-}
+    Model model;
+    Print print;
+    ModelObject *object = model.add_object();
+    object->add_volume(Test::cube(20.), ModelVolumeType::MODEL_PART, false);
+    object->add_instance()->set_offset(Vec3d(120., 120., 0.));
+    CutPlaneStack stack;
+    stack.enabled = true;
+    CutPlane cp;
+    cp.point  = Vec3d(14., 10., 0.);
+    cp.normal = Vec3d(std::cos(Geometry::deg2rad(20.)), 0., std::sin(Geometry::deg2rad(20.)));
+    stack.planes.push_back(cp);
+    object->cut_planes = stack;
 
 // On a shallow belt (25 degrees, 0.3 mm layers) the brim band on the belt is wider than one
 // bead, so its lines go on the nominal lattice instead of at one fixed clearance. A lattice
@@ -1426,8 +847,16 @@ TEST_CASE("Belt brim lattice lines keep their clearance above the belt", "[Skirt
         { "layer_height",               layer_height },
         { "initial_layer_print_height", layer_height },
         { "outer_wall_line_width",      wall_width },
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "enable_nonplanar",           "1" },
+        { "print_sequence",             "by group" },
+        { "layer_change_gcode",         "G92 E0" },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "skirt_loops",                0 },
         { "brim_type",                  "outer_only" },
-        { "brim_width",                 4 },
+        { "brim_width",                 3 },
         { "brim_object_gap",            0 },
     });
     const std::string gcode = slice({ cube(20) }, config);
@@ -1700,11 +1129,37 @@ TEST_CASE("Belt brim slices when every object is a flush target", "[SkirtBrim][b
     });
     const std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> overrides {
         { { "extruder", 1 } }, { { "extruder", 2 } },
+    print.apply(model, config);
+    REQUIRE(print.objects().size() == 2);
+    print.process();
+
+    // Brim centrelines back in bed coordinates (the brim map carries the plate origin), sampled
+    // every 0.25 mm: a brim loop round a box is four long segments, so its vertices alone would
+    // miss almost every window below.
+    const Vec3d plate_origin = print.get_plate_origin();
+    const Point plate_shift(scaled(plate_origin.x()), scaled(plate_origin.y()));
+    Points brim;
+    for (const auto &kv : print.get_brimMap()) {
+        Polylines paths;
+        kv.second.collect_polylines(paths);
+        for (const Polyline &path : paths)
+            for (const Line &line : path.lines()) {
+                const int steps = std::max(1, int(unscale<double>(line.length()) / 0.25));
+                for (int i = 0; i <= steps; ++ i)
+                    brim.push_back(line.a + ((line.b - line.a).cast<double>() * (double(i) / steps)).cast<coord_t>() - plate_shift);
+            }
+    }
+    REQUIRE(! brim.empty());
+    const auto count_in = [&brim](double x0, double x1, double y0, double y1) {
+        return std::count_if(brim.begin(), brim.end(), [=](const Point &pt) {
+            const double x = unscale<double>(pt.x()), y = unscale<double>(pt.y());
+            return x > x0 && x < x1 && y > y0 && y < y1;
+        });
     };
-    Print print;
-    Model model;
-    init_print({ cube(20), cube(20) }, print, model, config, &overrides);
-    REQUIRE(print.validate().string.empty());
-    const std::string out = gcode(print);
-    CHECK(out.find(";TYPE:Brim") != std::string::npos);
+    // Nothing on the strip the tilted segment lands on...
+    CHECK(count_in(134.5, 139.5, 120.5, 139.5) == 0);
+    // ...the collar goes round its far side instead...
+    CHECK(count_in(140.1, 143.5, 121., 139.) > 0);
+    // ...and still round the root itself.
+    CHECK(count_in(116.5, 119.9, 121., 139.) > 0);
 }

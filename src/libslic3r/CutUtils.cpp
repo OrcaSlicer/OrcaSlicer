@@ -496,12 +496,24 @@ const ModelObjectPtrs& Cut::perform_by_contour(const ModelObject* src_object, st
     const size_t cut_parts_cnt = parts.size();
     bool has_modifiers = false;
 
-    // Distribute SolidParts to the Upper/Lower object
+    // Distribute SolidParts to the Upper/Lower object.
+    // Slivers (any bbox dimension < 1mm) are cap-face artifacts from nearly-coincident cut planes.
+    constexpr double SLIVER_THRESHOLD = 1.0;
+    auto is_sliver = [&](size_t id) {
+        const Vec3d sz = cut_mo->volumes[id]->mesh().bounding_box().size();
+        return sz.x() < SLIVER_THRESHOLD || sz.y() < SLIVER_THRESHOLD || sz.z() < SLIVER_THRESHOLD;
+    };
+
     for (size_t id = 0; id < cut_parts_cnt; ++id) {
-        if (parts[id].is_modifier)
-            has_modifiers = true; // modifiers will be added later to the related parts
-        else if (ModelObject* obj = (parts[id].selected ? upper : lower))
-            obj->add_volume(*(cut_mo->volumes[id]));
+        if (parts[id].is_modifier) { has_modifiers = true; continue; }
+        if (is_sliver(id)) {
+            // Discard: merging into lower re-embeds the fragment as a disconnected mesh
+            // component that resurfaces as a ghost part on every subsequent cut.
+            printf("[perform_by_contour] discarding sliver part[%zu]\n", id);
+            continue;
+        }
+        ModelObject* obj = parts[id].selected ? upper : lower;
+        if (obj) obj->add_volume(*(cut_mo->volumes[id]));
     }
 
     if (has_modifiers) {

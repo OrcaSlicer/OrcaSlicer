@@ -79,22 +79,17 @@ set(lisbslic3r_sources
     ArcFitter.hpp
     Arrange.cpp
     Arrange.hpp
+    BedMesh.cpp
+    BedMesh.hpp
     BlacklistedLibraryCheck.cpp
     BlacklistedLibraryCheck.hpp
     BoundingBox.cpp
     BoundingBox.hpp
     BridgeDetector.cpp
     BridgeDetector.hpp
-    BeltBrim.cpp
-    BeltBrim.hpp
-    BeltGCode.cpp
-    BeltGCode.hpp
-    BeltPurge.cpp
-    BeltSliceStrategy.cpp
-    BeltSliceStrategy.hpp
-    BeltTransform.cpp
-    BeltTransform.hpp
     Brim.cpp
+    BrimEarsAuto.cpp
+    BrimEarsAuto.hpp
     BrimEarsPoint.hpp
     Brim.hpp
     BuildVolume.cpp
@@ -115,8 +110,12 @@ set(lisbslic3r_sources
     ConnectedBodies.cpp
     ConnectedBodies.hpp
     ContourZ.cpp
+    NonplanarTop.cpp
+    NonplanarTop.hpp
     CustomGCode.cpp
     CustomGCode.hpp
+    CutPlaneSegmentation.cpp
+    CutPlaneSegmentation.hpp
     CutUtils.cpp
     CutUtils.hpp
     EdgeGrid.cpp
@@ -143,10 +142,17 @@ set(lisbslic3r_sources
     ExtrusionEntityCollection.hpp
     ExtrusionEntity.cpp
     ExtrusionEntity.hpp
+    WaveOverhangs/WaveOverhangs.cpp
+    WaveOverhangs/WaveOverhangs.hpp
+    WaveOverhangs/IGenerator.hpp
+    WaveOverhangs/AndersonsGenerator.cpp
+    WaveOverhangs/AndersonsGenerator.hpp
     ExtrusionSimulator.cpp
     ExtrusionSimulator.hpp
     FaceDetector.cpp
     FaceDetector.hpp
+    FacetSelectors.cpp
+    FacetSelectors.hpp
     Feature/FuzzySkin/FuzzySkin.cpp
     Feature/FuzzySkin/FuzzySkin.hpp
     Feature/Interlocking/InterlockingGenerator.cpp
@@ -176,10 +182,18 @@ set(lisbslic3r_sources
     Fill/FillHoneycomb.cpp
     Fill/FillHoneycomb.hpp
     Fill/Fill.hpp
+    Fill/Implicits.hpp
     Fill/FillLightning.cpp
     Fill/FillLightning.hpp
     Fill/FillLine.cpp
     Fill/FillLine.hpp
+    Fill/FillMeshBacked.hpp
+    Fill/FillSvg.cpp
+    Fill/FillSvg.hpp
+    Fill/InfillMeshTiling.cpp
+    Fill/InfillMeshTiling.hpp
+    Fill/MeshGenerator.cpp
+    Fill/MeshGenerator.hpp
     Fill/FillPlanePath.cpp
     Fill/FillPlanePath.hpp
     Fill/FillRectilinear.cpp
@@ -248,16 +262,10 @@ set(lisbslic3r_sources
     GCode/AdaptivePAProcessor.hpp
     GCode/AvoidCrossingPerimeters.cpp
     GCode/AvoidCrossingPerimeters.hpp
-    GCode/BeltBackTransform.cpp
-    GCode/BeltBackTransform.hpp
-    GCode/MachineFrameTransform.cpp
-    GCode/MachineFrameTransform.hpp
-    GCode/BeltKinematics.cpp
-    GCode/BeltKinematics.hpp
-    GCode/MachineKinematics.cpp
-    GCode/MachineKinematics.hpp
     GCode/ConflictChecker.cpp
     GCode/ConflictChecker.hpp
+    GCode/HotendCollisionCheck.cpp
+    GCode/HotendCollisionCheck.hpp
     GCode/CoolingBuffer.cpp
     GCode/CoolingBuffer.hpp
     GCode/ExclusionVolumePathCheck.cpp
@@ -299,20 +307,37 @@ set(lisbslic3r_sources
     GCode/SpiralVase.hpp
     GCode/WipePathHelpers.cpp
     GCode/WipePathHelpers.hpp
+    GCode/StartGCodeTemperature.cpp
+    GCode/StartGCodeTemperature.hpp
     GCode/ThumbnailData.cpp
     GCode/ThumbnailData.hpp
     GCode/Thumbnails.cpp
     GCode/Thumbnails.hpp
     GCode/ToolOrdering.cpp
+    GCode/TrunnionAC.cpp
+    GCode/TrunnionAC.hpp
     GCode/ToolOrdering.hpp
     GCode/OrderingStrategies.cpp
     GCode/OrderingStrategies.hpp
+    GCode/BeltKinematics.cpp
+    GCode/BeltKinematics.hpp
+    BeltPurge.cpp
+    BeltBrim.cpp
+    BeltBrim.hpp
+    GCode/MachineFrameTransform.cpp
+    GCode/MachineFrameTransform.hpp
+    GCode/MachineKinematics.cpp
+    GCode/MachineKinematics.hpp
+    GCode/MultiplanarBaseC.cpp
+    GCode/MultiplanarBaseC.hpp
     GCode/WipeTower2.cpp
     GCode/WipeTower2.hpp
     GCode/WipeTower.cpp
     GCode/WipeTower.hpp
     GCode/WipeTowerEstimate.cpp
     GCode/WipeTowerEstimate.hpp
+    BeltTransform.cpp
+    BeltTransform.hpp
     GCodeWriter.cpp
     GCodeWriter.hpp
     Geometry/ArcWelder.hpp
@@ -393,6 +418,8 @@ set(lisbslic3r_sources
     Optimize/Optimizer.hpp
     Orient.cpp
     Orient.hpp
+    OtherSlicerImport.cpp
+    OtherSlicerImport.hpp
     ParallelResolve.hpp
     ParameterUtils.cpp
     ParameterUtils.hpp
@@ -423,6 +450,7 @@ set(lisbslic3r_sources
     Preset.hpp
     PrincipalComponents2D.cpp
     PrincipalComponents2D.hpp
+    PreSliceInfillStructures.hpp
     PublishSettings.cpp
     PublishSettings.hpp
     PrintApply.cpp
@@ -490,13 +518,17 @@ set(lisbslic3r_sources
     SlicingAdaptive.hpp
     Slicing.cpp
     Slicing.hpp
-    Support/BeltFloorContext.cpp
-    Support/BeltFloorContext.hpp
+    Support/SegmentSupportBounds.cpp
+    Support/SegmentSupportBounds.hpp
+    Support/SupportDirection.cpp
+    Support/SupportDirection.hpp
     Support/SupportCommon.cpp
     Support/SupportCommon.hpp
     Support/SupportLayer.hpp
     Support/SupportMaterial.cpp
     Support/SupportMaterial.hpp
+    Support/SupportNeighbourClip.cpp
+    Support/SupportNeighbourClip.hpp
     Support/SupportParameters.hpp
     Support/SupportSpotsGenerator.cpp
     Support/SupportSpotsGenerator.hpp
@@ -634,6 +666,8 @@ add_library(libslic3r_cgal STATIC
     CutSurface.hpp CutSurface.cpp
     IntersectionPoints.hpp IntersectionPoints.cpp
     MeshBoolean.hpp MeshBoolean.cpp
+    Skeleton.hpp Skeleton.cpp
+    SkeletonBuild.hpp SkeletonBuild.cpp
     MeshRepair.hpp MeshRepair.cpp
     TryCatchSignal.hpp TryCatchSignal.cpp
     Triangulation.hpp Triangulation.cpp

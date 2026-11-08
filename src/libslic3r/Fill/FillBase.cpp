@@ -37,6 +37,8 @@
 #include "FillHoneycomb.hpp"
 #include "Fill3DHoneycomb.hpp"
 #include "FillGyroid.hpp"
+#include "FillMeshBacked.hpp"
+#include "FillSvg.hpp"
 #include "FillTpmsD.hpp"
 #include "FillTpmsFK.hpp"
 #include "FillPlanePath.hpp"
@@ -70,9 +72,34 @@ Fill* Fill::new_from_type(const InfillPattern type)
     case ipHoneycomb:           return new FillHoneycomb();
     case ipLateralHoneycomb:         return new FillLateralHoneycomb();
     case ip3DHoneycomb:         return new Fill3DHoneycomb();
-    case ipGyroid:              return new FillGyroid();
-    case ipTpmsD:               return new FillTpmsD();//from creality print
-    case ipTpmsFK:              return new FillTpmsFK();
+    // User-supplied infill mesh (Fill/FillMeshBacked.hpp). The Filler falls back to
+    // analytic gyroid for every surface type except sparse internal fill and whenever
+    // the object carries no Infill Mesh volume (prepare_mesh_infill_data logs a prompt).
+    case ipCustomMesh:          return new FillMeshBackedCustom();
+    case ipCatfill:
+    case ipSharkfill:
+    case ipPuppyfill:
+    case ipSvg:                 return new FillSvg();
+    case ipGyroid:
+    case ipTpmsD:
+    case ipTpmsFK: {
+        // Experimental mesh-backed TPMS patterns (research/mesh-infill): the same
+        // Filler family consumes a mesh generated from the implicit field instead of
+        // evaluating the analytic pattern per layer. Opt-in with UNLAYERED_MESH_INFILL=1;
+        // the Filler gates itself back to the analytic pattern whenever no mesh data
+        // exists or the prepared mesh is for a different pattern or density.
+        if (mesh_backed_tpms_enabled())
+            switch (type) {
+            case ipTpmsD:  return new FillMeshBackedTpmsD();
+            case ipTpmsFK: return new FillMeshBackedTpmsFK();
+            default:       return new FillMeshBackedGyroid();
+            }
+        switch (type) {
+        case ipTpmsD:  return new FillTpmsD();
+        case ipTpmsFK: return new FillTpmsFK();
+        default:       return new FillGyroid();
+        }
+    }
     case ipRectilinear:         return new FillRectilinear();
     case ipAlignedRectilinear:  return new FillAlignedRectilinear();
     case ipCrossHatch:          return new FillCrossHatch();

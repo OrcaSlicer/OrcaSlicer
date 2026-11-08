@@ -197,6 +197,8 @@ const std::string BBL_CREATION_DATE_TAG             = "CreationDate";
 const std::string BBL_APPLICATION_TAG               = "Application";
 // OrcaSlicer version tag
 const std::string ORCASLICER_TAG                    = "OrcaSlicer";
+// UNLAYERED_MOD: this fork's release; ORCASLICER_TAG holds the OrcaSlicer version it is based on
+const std::string UNLAYEREDSLICER_TAG               = "UnlayeredSlicer";
 const std::string BBL_MAKERLAB_TAG                  = "MakerLab";
 const std::string BBL_MAKERLAB_VERSION_TAG          = "MakerLabVersion";
 
@@ -238,6 +240,7 @@ const std::string ORCA_CAD_RECIPE_FILE = "Metadata/orca_cad.bin";
 // feature tree of every project written before the move, without a word. Never written.
 const std::string LEGACY_CAD_RECIPE_FILE = "Metadata/SnapOrca_cad.bin";
 const std::string LAYER_CONFIG_RANGES_FILE = "Metadata/layer_config_ranges.xml";
+const std::string CUT_PLANES_FILE = "Metadata/cut_planes.xml";
 const std::string BRIM_EAR_POINTS_FILE = "Metadata/brim_ear_points.txt";
 /*const std::string SLA_SUPPORT_POINTS_FILE = "Metadata/Slic3r_PE_sla_support_points.txt";
 const std::string SLA_DRAIN_HOLES_FILE = "Metadata/Slic3r_PE_sla_drain_holes.txt";*/
@@ -1016,6 +1019,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         //typedef std::map<Id, Geometry> IdToGeometryMap;
         typedef std::map<int, std::vector<coordf_t>> IdToLayerHeightsProfileMap;
         typedef std::map<int, t_layer_config_ranges> IdToLayerConfigRangesMap;
+        typedef std::map<int, CutPlaneStack>          IdToCutPlanesMap;
         typedef std::map<int, BrimPoints>             IdToBrimPointsMap;
         /*typedef std::map<int, std::vector<sla::SupportPoint>> IdToSlaSupportPointsMap;
         typedef std::map<int, std::vector<sla::DrainHole>> IdToSlaDrainHolesMap;*/
@@ -1171,7 +1175,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool m_load_restore = false;
         std::string m_backup_path;
         std::string m_origin_file;
-        // Semantic version of Orca Slicer, that generated this 3MF.
+        // Semantic version of Unlayered Slicer, that generated this 3MF.
         boost::optional<Semver> m_bambuslicer_generator_version;
         // Semantic version from the OrcaSlicer metadata tag (if present).
         boost::optional<Semver> m_orca_slicer_version;
@@ -1212,6 +1216,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         IdToCutObjectInfoMap       m_cut_object_infos;
         IdToLayerHeightsProfileMap m_layer_heights_profiles;
         IdToLayerConfigRangesMap m_layer_config_ranges;
+        IdToCutPlanesMap m_cut_planes;
         IdToBrimPointsMap m_brim_ear_points;
         /*IdToSlaSupportPointsMap m_sla_support_points;
         IdToSlaDrainHolesMap    m_sla_drain_holes;*/
@@ -1296,6 +1301,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         void _extract_cut_information_from_archive(mz_zip_archive &archive, const mz_zip_archive_file_stat &stat, ConfigSubstitutionContext &config_substitutions);
         void _extract_layer_heights_profile_config_from_archive(mz_zip_archive& archive, const mz_zip_archive_file_stat& stat);
         void _extract_layer_config_ranges_from_archive(mz_zip_archive& archive, const mz_zip_archive_file_stat& stat, ConfigSubstitutionContext& config_substitutions);
+        void _extract_cut_planes_from_archive(mz_zip_archive& archive, const mz_zip_archive_file_stat& stat);
         void _extract_sla_support_points_from_archive(mz_zip_archive& archive, const mz_zip_archive_file_stat& stat);
         void _extract_sla_drain_holes_from_archive(mz_zip_archive& archive, const mz_zip_archive_file_stat& stat);
         void _extract_brim_ear_points_from_archive(mz_zip_archive& archive, const mz_zip_archive_file_stat& stat);
@@ -1507,6 +1513,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         m_items_auto_drop_off.clear();
         m_layer_heights_profiles.clear();
         m_layer_config_ranges.clear();
+        m_cut_planes.clear();
         m_brim_ear_points.clear();
         //m_sla_support_points.clear();
         m_curr_metadata_name.clear();
@@ -1978,7 +1985,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         // Orca: skip version check
         bool dont_load_config = !m_load_config;
         // if (m_bambuslicer_generator_version) {
-        //     Semver app_version = *(Semver::parse(SoftFever_VERSION));
+        //     Semver app_version = *(Semver::parse(UNLAYERED_VERSION));
         //     Semver file_version = *m_bambuslicer_generator_version;
         //     if (file_version.maj() != app_version.maj())
         //         dont_load_config = true;
@@ -2020,6 +2027,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 if (boost::algorithm::iequals(name, LAYER_CONFIG_RANGES_FILE)) {
                     // extract slic3r layer config ranges file
                     _extract_layer_config_ranges_from_archive(archive, stat, config_substitutions);
+                }
+                else if (boost::algorithm::iequals(name, CUT_PLANES_FILE)) {
+                    // extract declarative cut planes file (non-destructive multiplanar)
+                    _extract_cut_planes_from_archive(archive, stat);
                 }
                 else if (boost::algorithm::iequals(name, BRIM_EAR_POINTS_FILE)) {
                     // extract slic3r config file
@@ -2237,6 +2248,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             if (obj_layer_config_ranges != m_layer_config_ranges.end())
                 model_object->layer_config_ranges = std::move(obj_layer_config_ranges->second);
 
+            // m_cut_planes are indexed by a 1 based model object index.
+            IdToCutPlanesMap::iterator obj_cut_planes = m_cut_planes.find(object.second + 1);
+            if (obj_cut_planes != m_cut_planes.end())
+                model_object->cut_planes = std::move(obj_cut_planes->second);
+
             IdToBrimPointsMap::iterator obj_brim_points = m_brim_ear_points.find(object.second + 1);
             if (obj_brim_points != m_brim_ear_points.end())
                 model_object->brim_points = std::move(obj_brim_points->second);
@@ -2401,8 +2417,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
         }
 
-//        // fixes the min z of the model if negative
-//        model.adjust_min_z();
+        // fixes the min z of the model if negative
+        //model.adjust_min_z();
 
         //BBS progress point
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format("import 3mf IMPORT_STAGE_LOADING_PLATES, m_plater_data size %1%, m_backup_path %2%\n")%m_plater_data.size() %m_backup_path;
@@ -3108,6 +3124,67 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         }
     }
 
+    void _BBS_3MF_Importer::_extract_cut_planes_from_archive(mz_zip_archive& archive, const mz_zip_archive_file_stat& stat)
+    {
+        if (stat.m_uncomp_size > 0) {
+            std::string buffer((size_t)stat.m_uncomp_size, 0);
+            mz_bool res = mz_zip_reader_extract_file_to_mem(&archive, stat.m_filename, (void*)buffer.data(), (size_t)stat.m_uncomp_size, 0);
+            if (res == 0) {
+                add_error("Error while reading cut planes data to buffer");
+                return;
+            }
+
+            std::istringstream iss(buffer); // wrap returned xml to istringstream
+            pt::ptree objects_tree;
+            pt::read_xml(iss, objects_tree);
+
+            for (const auto& object : objects_tree.get_child("objects")) {
+                pt::ptree object_tree = object.second;
+                int obj_idx = object_tree.get<int>("<xmlattr>.id", -1);
+                if (obj_idx <= 0) {
+                    add_error("Found invalid object id");
+                    continue;
+                }
+
+                IdToCutPlanesMap::iterator object_item = m_cut_planes.find(obj_idx);
+                if (object_item != m_cut_planes.end()) {
+                    add_error("Found duplicated cut planes");
+                    continue;
+                }
+
+                CutPlaneStack stack;
+                stack.enabled      = object_tree.get<int>("<xmlattr>.enabled", 0) != 0;
+                // Absent in files from older builds: order stays automatic (seat rule).
+                stack.user_ordered = object_tree.get<int>("<xmlattr>.user_ordered", 0) != 0;
+
+                for (const auto& plane : object_tree) {
+                    if (plane.first != "plane")
+                        continue;
+                    pt::ptree plane_tree = plane.second;
+                    CutPlane cp;
+                    cp.point  = Vec3d(plane_tree.get<double>("<xmlattr>.px", 0.0),
+                                      plane_tree.get<double>("<xmlattr>.py", 0.0),
+                                      plane_tree.get<double>("<xmlattr>.pz", 0.0));
+                    cp.normal = Vec3d(plane_tree.get<double>("<xmlattr>.nx", 0.0),
+                                      plane_tree.get<double>("<xmlattr>.ny", 0.0),
+                                      plane_tree.get<double>("<xmlattr>.nz", 1.0));
+                    // Optional per-segment build-normal override; absent in files from older builds.
+                    if (auto bnx = plane_tree.get_optional<double>("<xmlattr>.bnx"); bnx.has_value()) {
+                        cp.build_normal = Vec3d(*bnx,
+                                                plane_tree.get<double>("<xmlattr>.bny", 0.0),
+                                                plane_tree.get<double>("<xmlattr>.bnz", 1.0));
+                        cp.has_build_normal = true;
+                    }
+                    cp.enabled = plane_tree.get<int>("<xmlattr>.enabled", 1) != 0;
+                    stack.planes.push_back(cp);
+                }
+
+                if (!stack.planes.empty())
+                    m_cut_planes.insert({ obj_idx, std::move(stack) });
+            }
+        }
+    }
+
     void _BBS_3MF_Importer::_extract_brim_ear_points_from_archive(mz_zip_archive& archive, const mz_zip_archive_file_stat& stat)
     {
         if (stat.m_uncomp_size > 0) {
@@ -3462,7 +3539,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                             type = static_cast<CustomGCode::Type>(tree.get<int>("<xmlattr>.type"));
                             extra = tree.get<std::string>("<xmlattr>.extra");
                         }
-                        m_model->plates_custom_gcodes[plate_id - 1].gcodes.push_back(CustomGCode::Item{ print_z, type, extruder, color, extra });
+                        CustomGCode::Item item{ print_z, type, extruder, color, extra };
+                        // UNLAYERED_MOD: the object a pause belongs to in a print by object (absent: by layer)
+                        item.sequential_object = tree.get<int>("<xmlattr>.sequential_object", -1);
+                        m_model->plates_custom_gcodes[plate_id - 1].gcodes.push_back(item);
                     }
                 }
             };
@@ -3989,7 +4069,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             const Vec3f v(m_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, X_ATTR),
                           m_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Y_ATTR),
                           m_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Z_ATTR));
-            // A non-finite coordinate ("nan", "inf") used to be accepted and crashed
+            // UNLAYERED_MOD -- a non-finite coordinate ("nan", "inf") used to be accepted and crashed
             // qhull in ModelVolume's convex hull while the file was still loading. Refuse the file.
             if (! v.allFinite()) {
                 _stop_xml_parser("Invalid vertex coordinate: not a finite number");
@@ -4170,7 +4250,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }*/
         } else if (m_curr_metadata_name == BBL_APPLICATION_TAG) {
             // Generator application of the 3MF.
-            // SLIC3R_APP_KEY - SoftFever_VERSION
+            // SLIC3R_APP_KEY - UNLAYERED_VERSION
             if (boost::starts_with(m_curr_characters, "BambuStudio-")) {
                 m_is_bbl_3mf = true;
                 m_bambuslicer_generator_version = Semver::parse(m_curr_characters.substr(12));
@@ -5314,7 +5394,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 }
 
                 for (const Vec3f &v : sub_object->geometry.vertices)
-                    if (! v.allFinite()) {   // Qhull cannot take a NaN vertex
+                    if (! v.allFinite()) {   // UNLAYERED_MOD -- qhull cannot take a NaN vertex
                         add_error("invalid (non-finite) vertex in object " + std::to_string(sub_object->id));
                         return false;
                     }
@@ -5865,7 +5945,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             const Vec3f v(object_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, X_ATTR),
                           object_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Y_ATTR),
                           object_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Z_ATTR));
-            // See _BBS_3MF_Importer::_handle_start_vertex: a non-finite coordinate
+            // UNLAYERED_MOD -- see _BBS_3MF_Importer::_handle_start_vertex: a non-finite coordinate
             // crashed qhull while the file loaded. The dispatcher stops this parser on `false`.
             if (! v.allFinite()) {
                 obj_parse_error_message = "Invalid vertex coordinate: not a finite number";
@@ -6284,6 +6364,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool _add_layer_height_profile_file_to_archive(mz_zip_archive& archive, Model& model);
         bool _add_cad_recipe_file_to_archive(mz_zip_archive& archive, Model& model);
         bool _add_layer_config_ranges_file_to_archive(mz_zip_archive& archive, Model& model);
+        bool _add_cut_planes_file_to_archive(mz_zip_archive& archive, Model& model);
         bool _add_brim_ear_points_file_to_archive(mz_zip_archive& archive, Model& model);
         bool _add_sla_support_points_file_to_archive(mz_zip_archive& archive, Model& model);
         bool _add_sla_drain_holes_file_to_archive(mz_zip_archive& archive, Model& model);
@@ -6709,6 +6790,13 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             // All layer height profiles of all ModelObjects are stored here, indexed by 1 based index of the ModelObject in Model.
             // The index differes from the index of an object ID of an object instance of a 3MF file!
             if (!_add_layer_config_ranges_file_to_archive(archive, model)) {
+                close_zip_writer(&archive);
+                return false;
+            }
+
+            // Adds declarative cut planes file ("Metadata/cut_planes.xml").
+            // Non-destructive multiplanar cut planes for all ModelObjects, indexed by 1 based object index.
+            if (!_add_cut_planes_file_to_archive(archive, model)) {
                 close_zip_writer(&archive);
                 return false;
             }
@@ -7269,12 +7357,17 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     // and import the geometry silently instead of showing a baked-in "old version"
                     // popup, and no version marker survives to seed a later re-save.
                     metadata_item_map.erase(BBL_APPLICATION_TAG);
-                    metadata_item_map.erase(ORCASLICER_TAG);
                     metadata_item_map.erase(BBS_3MF_VERSION);
                     metadata_item_map.erase(BBS_3MF_VERSION1);
                 } else {
                     metadata_item_map[BBL_APPLICATION_TAG] = (boost::format("%1%-%2%") % "BambuStudio" % SLIC3R_VERSION).str();
                 }
+                // UNLAYERED_MOD: the version tags go for every save, published or not. A regular save
+                // writes them after the Application tag below; seeded from the input file they would
+                // be written a second time, and the reader keeps the last one, so a re-saved project
+                // would go on reporting the release that first saved it.
+                metadata_item_map.erase(ORCASLICER_TAG);
+                metadata_item_map.erase(UNLAYEREDSLICER_TAG);
             }
             // The Bambu 3MF version marker is part of the slicer identity: omit it for a minimal
             // published file along with the tags erased above (skipping the overwrite alone would
@@ -7304,12 +7397,14 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 stream << " <" << METADATA_TAG << " name=\"" << item.first << "\">"
                        << xml_escape(item.second) << "</" << METADATA_TAG << ">\n";
                 if (item.first == BBL_APPLICATION_TAG && !m_minimal_published) {
-                    // The OrcaSlicer tag is only written for files that carry the Application
+                    // The version tags are only written for files that carry the Application
                     // tag, which a minimal published 3MF erases (see the map assignment above):
                     // the explicit !m_minimal_published guard keeps the tag-less guarantee from
                     // depending on that erase happening to run first.
                     stream << " <" << METADATA_TAG << " name=\"" << ORCASLICER_TAG << "\">"
-                           << xml_escape(SoftFever_VERSION) << "</" << METADATA_TAG << ">\n";
+                           << xml_escape(ORCA_BASE_VERSION) << "</" << METADATA_TAG << ">\n";
+                    stream << " <" << METADATA_TAG << " name=\"" << UNLAYEREDSLICER_TAG << "\">"
+                           << xml_escape(UNLAYERED_VERSION) << "</" << METADATA_TAG << ">\n";
                 }
             }
 
@@ -8050,6 +8145,68 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         return true;
     }
 
+    bool _BBS_3MF_Exporter::_add_cut_planes_file_to_archive(mz_zip_archive& archive, Model& model)
+    {
+        std::string out = "";
+        pt::ptree tree;
+
+        unsigned int object_cnt = 0;
+        for (const ModelObject* object : model.objects) {
+            object_cnt++;
+            const CutPlaneStack& stack = object->cut_planes;
+            if (!stack.planes.empty())
+            {
+                pt::ptree& obj_tree = tree.add("objects.object", "");
+
+                obj_tree.put("<xmlattr>.id", object_cnt);
+                obj_tree.put("<xmlattr>.enabled", stack.enabled ? 1 : 0);
+                // Emitted only when set, so files without a manual order stay byte-identical to
+                // those from older builds.
+                if (stack.user_ordered)
+                    obj_tree.put("<xmlattr>.user_ordered", 1);
+
+                // Store each cut plane as a point + normal in the object's local frame.
+                for (const CutPlane& plane : stack.planes) {
+                    pt::ptree& plane_tree = obj_tree.add("plane", "");
+                    plane_tree.put("<xmlattr>.px", plane.point.x());
+                    plane_tree.put("<xmlattr>.py", plane.point.y());
+                    plane_tree.put("<xmlattr>.pz", plane.point.z());
+                    plane_tree.put("<xmlattr>.nx", plane.normal.x());
+                    plane_tree.put("<xmlattr>.ny", plane.normal.y());
+                    plane_tree.put("<xmlattr>.nz", plane.normal.z());
+                    // Optional per-segment build-normal override: emitted only when set, so files
+                    // without overrides stay byte-identical to those from older builds.
+                    if (plane.has_build_normal) {
+                        plane_tree.put("<xmlattr>.bnx", plane.build_normal.x());
+                        plane_tree.put("<xmlattr>.bny", plane.build_normal.y());
+                        plane_tree.put("<xmlattr>.bnz", plane.build_normal.z());
+                    }
+                    if (!plane.enabled)
+                        plane_tree.put("<xmlattr>.enabled", 0);
+                }
+            }
+        }
+
+        if (!tree.empty()) {
+            std::ostringstream oss;
+            pt::write_xml(oss, tree);
+            out = oss.str();
+
+            // Post processing("beautification") of the output string for a better preview
+            boost::replace_all(out, "><", ">\n<");
+        }
+
+        if (!out.empty()) {
+            if (!mz_zip_writer_add_mem(&archive, CUT_PLANES_FILE.c_str(), (const void*)out.data(), out.length(), MZ_DEFAULT_COMPRESSION)) {
+                add_error("Unable to add cut planes file to archive");
+                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format("Unable to add cut planes file to archive\n");
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     bool _BBS_3MF_Exporter::_add_brim_ear_points_file_to_archive(mz_zip_archive& archive, Model& model)
     {
         std::string out = "";
@@ -8726,7 +8883,8 @@ bool _BBS_3MF_Exporter::_add_model_config_file_to_archive(mz_zip_archive& archiv
         stream << "  <" << SLICE_HEADER_TAG << ">\n";
         stream << "    <" << SLICE_HEADER_ITEM_TAG << " " << KEY_ATTR << "=\"" << "X-BBL-Client-Type"    << "\" " << VALUE_ATTR << "=\"" << "slicer" << "\"/>\n";
         stream << "    <" << SLICE_HEADER_ITEM_TAG << " " << KEY_ATTR << "=\"" << "X-BBL-Client-Version" << "\" " << VALUE_ATTR << "=\"" << convert_to_full_version(SLIC3R_VERSION) << "\"/>\n";
-        stream << "    <" << SLICE_HEADER_ITEM_TAG << " " << KEY_ATTR << "=\"" << "OrcaSlicer-Version" << "\" " << VALUE_ATTR << "=\"" << SoftFever_VERSION << "\"/>\n";
+        stream << "    <" << SLICE_HEADER_ITEM_TAG << " " << KEY_ATTR << "=\"" << "OrcaSlicer-Version" << "\" " << VALUE_ATTR << "=\"" << ORCA_BASE_VERSION << "\"/>\n";
+        stream << "    <" << SLICE_HEADER_ITEM_TAG << " " << KEY_ATTR << "=\"" << "UnlayeredSlicer-Version" << "\" " << VALUE_ATTR << "=\"" << UNLAYERED_VERSION << "\"/>\n";
         stream << "  </" << SLICE_HEADER_TAG << ">\n";
 
         for (unsigned int i = 0; i < (unsigned int)plate_data_list.size(); ++i)
@@ -9097,6 +9255,9 @@ bool _BBS_3MF_Exporter::_add_custom_gcode_per_print_z_file_to_archive(mz_zip_arc
                 code_tree.put("<xmlattr>.extruder", code.extruder);
                 code_tree.put("<xmlattr>.color", code.color);
                 code_tree.put("<xmlattr>.extra", code.extra);
+                // UNLAYERED_MOD: written only when set, so a print-by-layer project's file is unchanged
+                if (code.sequential_object >= 0)
+                    code_tree.put("<xmlattr>.sequential_object", code.sequential_object);
 
                 //BBS
                 std::string gcode = //code.type == CustomGCode::ColorChange ? config->opt_string("color_change_gcode")    :
@@ -9652,6 +9813,20 @@ struct PublishedXmlProbe
 };
 
 } // namespace
+
+std::optional<Semver> unlayered_3mf_version(const Model &model)
+{
+    if (!model.model_info)
+        return std::nullopt;
+    const std::map<std::string, std::string> &items = model.model_info->metadata_items;
+    if (const auto it = items.find(UNLAYEREDSLICER_TAG); it != items.end())
+        if (const boost::optional<Semver> version = Semver::parse(it->second))
+            return *version;
+    if (const auto it = items.find(ORCASLICER_TAG); it != items.end())
+        if (const boost::optional<Semver> version = Semver::parse(it->second); version && version->maj() == 0)
+            return *version;
+    return std::nullopt;
+}
 
 bool bbs_3mf_is_published(const std::string &path)
 {

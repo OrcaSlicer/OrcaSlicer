@@ -13,9 +13,9 @@ namespace Slic3r {
 // G-code, and answers the two structural questions the writer needs in order to
 // decide which axis words it may omit.
 //
-// This is a seam for writer-generated movement only.  Start/end/custom G-code,
-// classic wipe-tower output and GCodeWriter::extrude_arc_to_xy() do NOT pass
-// through it: they write machine coordinates directly.
+// This is a seam for writer-generated movement only.  Start/end/custom G-code and
+// classic wipe-tower output are appended as text and do NOT pass through it;
+// GCodeWriter::extrude_arc_to_xy() consults supports_arc_moves() instead.
 class MachineKinematics
 {
 public:
@@ -23,6 +23,17 @@ public:
 
     // Logical placed point -> emitted machine point.
     virtual Vec3d to_machine(const Vec3d &p) const = 0;
+
+    // Inverse of to_machine(), back to the logical placed frame.  Intended for
+    // consumers that must reconstruct model coordinates from emitted G-code
+    // (the G-code viewer's upright preview).
+    virtual Vec3d to_logical(const Vec3d &machine) const = 0;
+
+    // Machine point -> build-volume frame, for bounds validation only.  This is
+    // deliberately NOT to_logical(): the build-volume check wants the physical
+    // frame the printable area is expressed in, not the model frame.  Keeping
+    // them separate stops the two contracts from being confused.
+    virtual Vec3d to_build_volume(const Vec3d &machine) const = 0;
 
     // True when a move must emit X, Y and Z because omitting a word would be
     // wrong under this mapping.  Deliberately not called "couples_axes": a pure
@@ -61,6 +72,8 @@ class CartesianKinematics : public MachineKinematics
 {
 public:
     Vec3d to_machine(const Vec3d &p) const override;
+    Vec3d to_logical(const Vec3d &machine) const override;
+    Vec3d to_build_volume(const Vec3d &machine) const override { return machine; }
 
     bool must_emit_all_axes() const override { return this->has_axis_remap(); }
     bool suppress_lift_at_unknown_position() const override { return this->has_axis_remap(); }
@@ -80,6 +93,7 @@ public:
 
 protected:
     Vec3d apply_axis_remap(const Vec3d &pos) const;
+    Vec3d apply_axis_remap_inverse(const Vec3d &pos) const;
 
     int   m_remap_x { 0 };
     int   m_remap_y { 1 };

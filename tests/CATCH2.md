@@ -1,8 +1,8 @@
 # Catch2 reference
 
-How to write and structure test code with Catch2 in OrcaSlicer. For where a test belongs, how to name and tag it, and how to build and run the suites, see [AGENTS.md](AGENTS.md).
+How to write and structure test code with Catch2 in Unlayered Slicer. For where a test belongs, how to name and tag it, and how to build and run the suites, see [AGENTS.md](AGENTS.md).
 
-OrcaSlicer uses **Catch2 v3.11.0**, vendored in `tests/catch2/`. Include it with the single-header convenience include:
+Unlayered Slicer uses **Catch2 v3.11.0**, vendored in `tests/catch2/`. Include it with the single-header convenience include:
 
 ```cpp
 #include <catch2/catch_all.hpp>
@@ -41,7 +41,7 @@ t.join();
 REQUIRE(passed == 1);
 ```
 
-> Catch2 v3.9.0+ has opt-in thread-safe assertions via `CATCH_CONFIG_EXPERIMENTAL_THREAD_SAFE_ASSERTIONS`. OrcaSlicer does not enable that flag, so assertions remain non-thread-safe. See [Thread safety](#thread-safety) below for the full rule list.
+> Catch2 v3.9.0+ has opt-in thread-safe assertions via `CATCH_CONFIG_EXPERIMENTAL_THREAD_SAFE_ASSERTIONS`. Unlayered Slicer does not enable that flag, so assertions remain non-thread-safe. See [Thread safety](#thread-safety) below for the full rule list.
 
 ### 3. Do not combine conditions with binary operators
 
@@ -210,7 +210,7 @@ Available but currently unused in the suite; see the upstream docs for details.
 - **Conditional blocks**: `CHECKED_IF` / `CHECKED_ELSE` record a branch condition without counting it as a failure.
 - **Benchmarking** (v2.9.0+): `BENCHMARK("name") { return work(); };`, or `BENCHMARK_ADVANCED` when setup must be excluded from the measurement.
 
-## Usage patterns in OrcaSlicer
+## Usage patterns in Unlayered Slicer
 
 Concrete shapes for exercising the codebase's own types. Test data is reached through the `TEST_DATA_DIR` define; always wrap it in `std::string(...)` before concatenating a path.
 

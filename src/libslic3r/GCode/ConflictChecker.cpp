@@ -261,6 +261,13 @@ ConflictResultOpt ConflictChecker::find_inter_of_lines_in_diff_objs(PrintObjectP
         conflictQueue.emplace_back_bucket(std::move(wtels), wtdptr.value(), {wtdptr.value()->plate_origin.x(), wtdptr.value()->plate_origin.y()});
     }
     for (PrintObject *obj : objs) {
+        // Declarative cut planes: non-root segments print in their own rotated frames,
+        // interleaved by the ByGroup sequencing — their slice-frame toolpaths are not
+        // machine-frame geometry, so the planar conflict model does not apply to them (and
+        // they trivially "collide" with their own root in XY). The root segment (bed-level,
+        // unrotated) still participates.
+        if (obj->is_segment() && ! obj->is_root_segment())
+            continue;
         auto layers = getAllLayersExtrusionPathsFromObject(obj);
         // Orca: check for collisions between all instances
         const auto& instances = obj->instances();

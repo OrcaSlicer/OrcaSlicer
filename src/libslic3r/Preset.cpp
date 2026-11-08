@@ -369,6 +369,43 @@ void extend_default_config_length(DynamicPrintConfig& config, const bool set_nil
     }
 }
 
+// Unlayered: see Preset.hpp. extend_default_config_length() above does the same resize when a
+// preset is read from disk; this one is for a config that is already in memory (an edited or
+// saved preset, or a filament config about to be joined into the project config), and it says
+// which keys it changed.
+std::vector<std::string> normalize_filament_variant_lengths(DynamicPrintConfig& config, const std::string& preset_name)
+{
+    std::vector<std::string> resized;
+    const ConfigOptionStrings* variants = config.option<ConfigOptionStrings>("filament_extruder_variant");
+    if (variants == nullptr || variants->values.empty())
+        return resized;
+    const size_t variant_count = variants->values.size();
+
+    for (const std::string& key : filament_options_with_variant) {
+        if (key == "filament_extruder_variant")
+            continue; // the list the others are measured against
+        ConfigOption* opt = config.option(key);
+        if (opt == nullptr || !opt->is_vector())
+            continue;
+        ConfigOptionVectorBase* vec = static_cast<ConfigOptionVectorBase*>(opt);
+        const size_t old_size = vec->size();
+        if (old_size == variant_count)
+            continue;
+        const ConfigOption* fallback = nullptr; // only used when the list is empty
+        if (const ConfigOptionDef* def = print_config_def.get(key); def != nullptr)
+            fallback = def->default_value.get();
+        if (old_size == 0 && fallback == nullptr)
+            continue;
+        // A short list repeats its first value (ConfigOptionVector::resize), a long one is cut.
+        vec->resize(variant_count, fallback);
+        resized.push_back(key);
+        BOOST_LOG_TRIVIAL(warning) << "normalize_filament_variant_lengths: filament preset \"" << preset_name << "\": " << key
+                                   << " had " << old_size << " value(s) for " << variant_count
+                                   << " extruder variant(s); resized to " << variant_count;
+    }
+    return resized;
+}
+
 
 // Inherited per-variant printer vectors keep the parent's length; pad them up to this config's
 // variant count. Never truncates, so a longer child vector is left alone.
@@ -1210,6 +1247,44 @@ static std::vector<std::string> s_Preset_print_options{
     "overhang_reverse_threshold",
     "overhang_reverse_internal_only",
     "wall_direction",
+    "wave_overhangs",
+    "wave_overhangs_instead_of_bridges",
+    "wave_overhang_outer_perimeters",
+    "wave_overhang_perimeter_overlap",
+    "wave_overhang_minimum_width",
+    "wave_overhang_pattern",
+    "support_remaining_areas_after_wave_overhangs",
+    "wave_overhang_line_spacing",
+    "wave_overhang_flow_mm3_per_mm",
+    "wave_overhang_print_speed",
+    "wave_overhang_perimeter_speed",
+    "wave_overhang_travel_speed",
+    "wave_overhang_fan_speed",
+    "wave_overhang_aux_fan_speed",
+    "wave_overhang_nozzle_temp",
+    "wave_overhang_min_wave_time",
+    "wave_overhang_min_layer_time",
+    "wave_overhang_floor_layers",
+    "wave_overhang_floor_use_hilbert",
+    "wave_overhang_floor_hilbert_layers",
+    "wave_overhang_floor_hilbert_density",
+    "wave_overhang_floor_print_speed",
+    "wave_overhang_floor_perimeter_speed",
+    "wave_overhang_floor_fan_speed",
+    "wave_overhang_floor_aux_fan_speed",
+    "wave_overhang_floor_speed_ramp",
+    "wave_overhang_min_angle",
+    "wave_overhang_spacing_mode",
+    "wave_overhang_seam_mode",
+    "wave_overhang_debug_gcode",
+    "wave_overhang_min_length",
+    "wave_overhang_max_iterations",
+    "wave_overhang_min_new_area",
+    "wave_overhang_end_retract_length",
+    "wave_overhang_corner_taper_enable",
+    "wave_overhang_line_spacing_corner",
+    "wave_overhang_corner_taper_distance",
+    "wave_overhang_corner_angle_threshold",
     "seam_position",
     "staggered_inner_seams",
     "wall_sequence",
@@ -1221,6 +1296,11 @@ static std::vector<std::string> s_Preset_print_options{
     "adaptive_infill_gradient",
     "gyroid_optimized",
     "sparse_infill_pattern",
+    "sparse_infill_svg_path",
+    "sparse_infill_svg_scale",
+    "sparse_infill_single_wall",
+    "infill_mesh_global_orientation",
+    "infill_mesh_path",
     "sparse_infill_smooth_factor",
     "lateral_lattice_angle_1",
     "lateral_lattice_angle_2",
@@ -1275,6 +1355,8 @@ static std::vector<std::string> s_Preset_print_options{
     "inner_wall_speed", "outer_wall_speed", "sparse_infill_speed", "internal_solid_infill_speed",
     "top_surface_speed", "support_speed", "support_object_xy_distance", "support_object_first_layer_gap", "support_interface_speed",
     "bridge_speed", "internal_bridge_speed", "gap_infill_speed", "travel_speed", "travel_speed_z", "initial_layer_speed",
+    // BELT_MOD -- layers on printed material
+    "object_contact_layers", "object_contact_fan_mode", "object_contact_fan_speed", "object_contact_speed", "object_contact_flow_ratio",
     "outer_wall_acceleration", "initial_layer_acceleration", "top_surface_acceleration", "default_acceleration", "skirt_type", "skirt_loops", "skirt_speed","min_skirt_length", "skirt_distance", "skirt_start_angle", "skirt_height","single_loop_draft_shield", "draft_shield",
     "brim_width", "leading_brim_length", "extra_brim_width", "brim_object_gap", "brim_flow_ratio", "brim_use_efc_outline", "combine_brims", "brim_type", "brim_ears_max_angle", "brim_ears_detection_length", "brim_ears_outer_only", "enable_support", "support_type", "support_threshold_angle", "support_threshold_overlap","enforce_support_layers",
     "raft_layers", "raft_first_layer_density", "raft_first_layer_expansion", "raft_contact_distance", "raft_expansion",
@@ -1289,6 +1371,8 @@ static std::vector<std::string> s_Preset_print_options{
     "support_interface_pattern",
     "support_interface_spacing",
     "support_interface_loop_pattern",
+    "test_input", "layer_rotation_b", "layer_rotation_c", "print_group",
+    "support_direction", "support_direction_b", "support_direction_c", "support_direction_max_lean", "support_section_overlap",
     "support_top_z_distance",
     "support_on_build_plate_only",
     "support_critical_regions_only",
@@ -1519,6 +1603,13 @@ static std::vector<std::string> s_Preset_print_options{
     "zaa_dont_alternate_fill_direction",
     "zaa_min_z",
     "ironing_expansion",
+    // UNLAYERED_MOD: nonplanar layers
+    "nonplanar_layers", "nonplanar_max_angle", "nonplanar_max_height", "nonplanar_layer_count", "nonplanar_hold_back", "nonplanar_nozzle_tip_diameter", "nonplanar_top_surface_tip_lift",
+    "nonplanar_top_surface_direction_enable", "nonplanar_top_surface_direction",
+    "nonplanar_top_surface_flow_ratio_enable", "nonplanar_top_surface_flow_ratio",
+    // Multi-Axis
+    "test_input", "layer_rotation_b", "layer_rotation_c", "print_group",
+    "support_direction", "support_direction_b", "support_direction_c", "support_direction_max_lean", "support_section_overlap",
 };
 
 static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", */ "default_filament_colour", "required_nozzle_HRC", "filament_diameter", "pellet_flow_coefficient", "volumetric_speed_coefficients", "filament_type",
@@ -1608,7 +1699,6 @@ static std::vector<std::string> s_Preset_printer_options {
     "gcode_remap_x", "gcode_remap_y", "gcode_remap_z",
     "belt_frame_tilt_decouple", "belt_frame_tilt_angle",
     "belt_support_floor_offset",
-    "enable_belt_purge_tower",
     "bed_exclude_volumes", "bed_exclude_volume_mode", "extruder_bed_exclude_volumes",
     "gcode_flavor", "gcode_skip_config_block",
     "fan_kickstart", "part_cooling_fan_min_pwm", "fan_speedup_time", "fan_speedup_overhangs",
@@ -1627,7 +1717,7 @@ static std::vector<std::string> s_Preset_printer_options {
     "use_relative_e_distances", "extruder_type", "use_firmware_retraction", "printer_notes",
     "grab_length", "support_object_skip_flush", "physical_extruder_map",
     "cooling_tube_retraction",
-    "cooling_tube_length", "high_current_on_filament_swap", "parking_pos_retraction", "extra_loading_move", "wipe_tower_type", "purge_in_prime_tower", "enable_filament_ramming", "tool_change_on_wipe_tower", "wait_for_temp_on_wipe_tower",
+    "cooling_tube_length", "high_current_on_filament_swap", "parking_pos_retraction", "extra_loading_move", "wipe_tower_type", "purge_in_prime_tower", "enable_belt_purge_tower", "enable_filament_ramming", "tool_change_on_wipe_tower", "wait_for_temp_on_wipe_tower",
     "z_offset",
     "disable_m73", "preferred_orientation", "emit_machine_limits_to_gcode", "pellet_modded_printer", "support_multi_bed_types", "use_3mf", "default_bed_type", "bed_mesh_min","bed_mesh_max","bed_mesh_probe_distance", "adaptive_bed_mesh_margin", "enable_long_retraction_when_cut","long_retractions_when_cut","retraction_distances_when_cut",
     "bed_temperature_formula", "nozzle_flush_dataset",
@@ -1642,7 +1732,22 @@ static std::vector<std::string> s_Preset_printer_options {
     // Fast-purge printer flag + device/firmware-facing per-variant extruder-change
     // deretraction speed (unconsumed by the slicer; carried by H2D/A2L/X2D/P2S machine profiles).
     "support_fast_purge_mode", "deretract_speed_extruder_change",
-    "printer_plugin_config_overrides"
+    "printer_plugin_config_overrides",
+    // Orca non-planar printing settings
+    "enable_nonplanar", "virtual_5axis", "axis_selection",
+    "axis_a_rotation_min", "axis_a_rotation_max", "axis_b_rotation_min", "axis_b_rotation_max", "axis_c_rotation_min", "axis_c_rotation_max",
+    "axis_a_continuous", "axis_b_continuous", "axis_c_continuous",
+    "radius", "max_build_height", "min_build_height",
+    "nonplanar_departure_distance", "nonplanar_approach_distance", "nonplanar_nozzle_to_b_axis",
+    "nonplanar_hotend_cone_height",
+    "nonplanar_hotend_angle_xpos", "nonplanar_hotend_angle_xneg", "nonplanar_hotend_angle_ypos", "nonplanar_hotend_angle_yneg",
+    "nonplanar_gantry_height",
+    // BELT_MOD -- the fork's belt printer keys (Orca's are listed with the printable area)
+    "belt_slice_angle_tolerance",
+    "first_layer_plane", "first_layer_plane_offset", "first_layer_plane_thickness", "belt_initial_temperature_length",
+    "nonplanar_virtual_max_angle", "nonplanar_virtual_max_z",
+    "ac_pivot_height", "ac_c_axis_offset_x", "ac_c_axis_offset_y", "ac_solution", "ac_table_radius",
+    "ac_transition_clearance", "ac_rotation_speed"
     };
 
 static std::vector<std::string> s_Preset_sla_print_options {
@@ -3644,7 +3749,7 @@ std::string PresetCollection::add_detached_preset(const std::string &name_base, 
     preset.m_excluded_from.clear();
     preset.setting_id.clear();
     preset.inherits().clear();
-    preset.version = Semver::parse(SoftFever_VERSION).value_or(Semver());
+    preset.version = Semver::parse(UNLAYERED_VERSION).value_or(Semver());
     preset.is_default  = false;
     preset.is_system   = false;
     preset.is_external = false;

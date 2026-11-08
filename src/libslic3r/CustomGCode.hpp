@@ -33,7 +33,8 @@ struct Item
                (rhs.type      == this->type       ) &&
                (rhs.extruder  == this->extruder   ) &&
                (rhs.color     == this->color      ) &&
-               (rhs.extra     == this->extra      );
+               (rhs.extra     == this->extra      ) &&
+               (rhs.sequential_object == this->sequential_object);
     }
     bool operator!=(const Item& rhs) const { return ! (*this == rhs); }
     
@@ -47,6 +48,11 @@ struct Item
     std::string extra;      // this field is used for the extra data like :
                             // - G-code text for the Type::Custom 
                             // - message text for the Type::PausePrint
+    // UNLAYERED_MOD: in a print by object, print_z repeats once per object, so a pause or custom
+    // G-code added there also says which object it belongs to: the 0-based position of that object
+    // instance in print order, as the layer slider lists them. -1 (the default, and every item from
+    // older 3MFs): the layer at print_z, as in a print by layer.
+    int         sequential_object = -1;
     void from_json(const nlohmann::json& j);
 };
 

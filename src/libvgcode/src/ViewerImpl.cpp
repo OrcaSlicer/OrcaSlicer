@@ -300,8 +300,9 @@ static void delete_buffers(unsigned int& id)
 
 #ifndef ENABLE_OPENGL_ES
 // ORCA: the opaque depth, then the accumulated colors of the translucent segments, see render_translucent().
-// Past the units render_segments() and the shadow map take.
-static constexpr int TRANSLUCENT_TEXTURE_UNIT = 5;
+// Past the units render_segments() and the shadow map take. UNLAYERED_MOD: and the tool axis palette's (5 and 6),
+// which the segments shaders sample as buffers: one program may not have two sampler types on one unit.
+static constexpr int TRANSLUCENT_TEXTURE_UNIT = 7;
 
 // ORCA: the source with a #define after its #version line
 static std::string with_define(const char* source, const char* define)
@@ -785,6 +786,9 @@ void ViewerImpl::SegmentsUniforms::init(unsigned int shader_id)
     first_instance         = glGetUniformLocation(shader_id, "first_instance");
     // ORCA: section view
     clipping_plane         = glGetUniformLocation(shader_id, "clipping_plane");
+    // UNLAYERED_MOD
+    tool_axis_tex          = glGetUniformLocation(shader_id, "tool_axis_tex");
+    tool_axis_id_tex       = glGetUniformLocation(shader_id, "tool_axis_id_tex");
 }
 
 void ViewerImpl::init(const std::string& opengl_context_version)
@@ -845,7 +849,9 @@ void ViewerImpl::init(const std::string& opengl_context_version)
            m_uni_segments.colors_tex != -1 &&
            m_uni_segments.segment_index_tex != -1 &&
            m_uni_segments.reverse_order != -1 &&
-           m_uni_segments.instances_count != -1);
+           m_uni_segments.instances_count != -1 &&
+           m_uni_segments.tool_axis_tex != -1 &&
+           m_uni_segments.tool_axis_id_tex != -1);
 
     // ORCA: realistic view
 #ifdef ENABLE_OPENGL_ES
@@ -873,6 +879,9 @@ void ViewerImpl::init(const std::string& opengl_context_version)
     m_uni_options_height_width_angle_tex_id = glGetUniformLocation(m_options_shader_id, "height_width_angle_tex");
     m_uni_options_colors_tex_id             = glGetUniformLocation(m_options_shader_id, "color_tex");
     m_uni_options_segment_index_tex_id      = glGetUniformLocation(m_options_shader_id, "segment_index_tex");
+    // UNLAYERED_MOD
+    m_uni_options_tool_axis_tex_id          = glGetUniformLocation(m_options_shader_id, "tool_axis_tex");
+    m_uni_options_tool_axis_id_tex_id       = glGetUniformLocation(m_options_shader_id, "tool_axis_id_tex");
     // ORCA: section view
     m_uni_options_clipping_plane_id         = glGetUniformLocation(m_options_shader_id, "clipping_plane");
     m_uni_options_layer_colors.init(m_options_shader_id);
@@ -882,7 +891,9 @@ void ViewerImpl::init(const std::string& opengl_context_version)
            m_uni_options_positions_tex_id != -1 &&
            m_uni_options_height_width_angle_tex_id != -1 &&
            m_uni_options_colors_tex_id != -1 &&
-           m_uni_options_segment_index_tex_id != -1);
+           m_uni_options_segment_index_tex_id != -1 &&
+           m_uni_options_tool_axis_tex_id != -1 &&
+           m_uni_options_tool_axis_id_tex_id != -1);
 
     m_option_template.init(16);
 
@@ -978,8 +989,15 @@ void ViewerImpl::reset()
     m_extrusion_roles.reset();
     m_options.clear();
     m_used_extruders.clear();
+    // Declarative cut planes: a stale section list would keep offering the Section view (and its
+    // per-section visibility) for a G-code file that has no sections at all.
+    m_used_cut_segments.clear();
+    m_cut_segment_colors.clear();
+    m_settings.cut_segments_visibility.clear();
     m_total_time = { 0.0f, 0.0f };
     m_travels_time = { 0.0f, 0.0f };
+    // UNLAYERED_MOD: keep the +Z entry so a stale tool_axis_id can never index out of the palette.
+    m_tool_axes.assign(1, { 0.0f, 0.0f, 1.0f });
     // swap rather than clear: these are sized by the print, and a reset means the memory
     // should go back, not sit reserved until the next load
     std::vector<PathVertex>().swap(m_vertices);
@@ -1016,6 +1034,13 @@ void ViewerImpl::reset()
     delete_buffers(m_heights_widths_angles_buf_id);
     delete_textures(m_positions_tex_id);
     delete_buffers(m_positions_buf_id);
+    // UNLAYERED_MOD
+    delete_textures(m_tool_axes_tex_id);
+    delete_buffers(m_tool_axes_buf_id);
+    m_tool_axes_tex_size = 0;
+    delete_textures(m_tool_axis_ids_tex_id);
+    delete_buffers(m_tool_axis_ids_buf_id);
+    m_tool_axis_ids_tex_size = 0;
     m_translucent_targets.release();
 #endif // ENABLE_OPENGL_ES
 }
@@ -1045,9 +1070,11 @@ static bool is_joint(const std::vector<PathVertex>& vertices, size_t i)
     return before && after;
 }
 
-static void extract_pos_and_or_hwa(const std::vector<PathVertex>& vertices, float travels_radius, float wipes_radius, BitSet<>& valid_lines_bitset,
+static void extract_pos_and_or_hwa(const std::vector<PathVertex>& vertices, const std::vector<Vec3>& tool_axes,
+    float travels_radius, float wipes_radius, BitSet<>& valid_lines_bitset,
     std::vector<Vec4>* positions = nullptr, std::vector<Vec4>* heights_widths_angles = nullptr, bool update_bitset = false) {
   static constexpr const Vec3 ZERO = { 0.0f, 0.0f, 0.0f };
+  static constexpr const Vec3 UP_Z = { 0.0f, 0.0f, 1.0f };
     if (positions == nullptr && heights_widths_angles == nullptr)
         return;
     if (vertices.empty())
@@ -1076,14 +1103,23 @@ static void extract_pos_and_or_hwa(const std::vector<PathVertex>& vertices, floa
                 valid_lines_bitset.reset(i);
         }
         
+        // UNLAYERED_MOD: the direction this move's extrusion height runs along. World +Z for an
+        // ordinary planar layer; the chunk's tool axis for a tilted (multiplanar / 5-axis) one.
+        const Vec3 up = (v.tool_axis_id < tool_axes.size()) ? tool_axes[v.tool_axis_id] : UP_Z;
+
         if (positions != nullptr) {
             // ORCA: the last component, there to comply with GL_RGBA32F format, carries the layer the shaders grey and dim by,
             // plus 0.5 at the joint of two segments, which the shaders read as an int, see joint_a in Segments_Vertex_Shader
             Vec4 position = { v.position[0], v.position[1], v.position[2],
                               static_cast<float>(v.layer_id) + (is_joint(vertices, i) ? 0.5f : 0.0f) };
-            if (move_type == EMoveType::Extrude)
-                // push down extrusion vertices by half height to render them at the right z
-                position[2] -= 0.5f * v.height;
+            if (move_type == EMoveType::Extrude) {
+                // UNLAYERED_MOD: push extrusion vertices half a layer height back along the tool
+                // axis, so the ribbon straddles the toolpath instead of sitting on top of it
+                const float half_h = 0.5f * v.height;
+                position[0] -= half_h * up[0];
+                position[1] -= half_h * up[1];
+                position[2] -= half_h * up[2];
+            }
             positions->emplace_back(position);
         }
 
@@ -1110,10 +1146,15 @@ static void extract_pos_and_or_hwa(const std::vector<PathVertex>& vertices, floa
             else if (v.is_option())
                 bias = 0.1f;
 
+            // Signed corner angle between the incoming and outgoing segment, used by the shader to
+            // miter the joint. UNLAYERED_MOD: measured in the layer's own plane (about the tool
+            // axis) rather than in XY, so the wedge grows to the correct side on a tilted layer.
+            // For up == +Z this reduces exactly to the old XY cross product.
+            const float turn = std::atan2(dot(cross(prev_line, this_line), up), dot(prev_line, this_line));
+
             // the last component is a dummy float to comply with GL_RGBA32F format
             // ORCA: Pass bias to shader
-            heights_widths_angles->push_back({ height, width,
-                std::atan2(prev_line[0] * this_line[1] - prev_line[1] * this_line[0], dot(prev_line, this_line)), bias });
+            heights_widths_angles->push_back({ height, width, turn, bias });
         }
     }
 }
@@ -1130,16 +1171,41 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
 
     m_vertices = std::move(gcode_data.vertices);
     m_tool_colors = std::move(gcode_data.tools_colors);
+    m_cut_segment_colors = std::move(gcode_data.cut_segment_colors);
+    // Which sections actually occur, so the legend and the view-type list can show only those.
+    // NOTE: scan m_vertices, NOT gcode_data.vertices -- the latter was just moved from above and is
+    // empty, which left the section list empty and so hid the Section view type entirely.
+    m_used_cut_segments.clear();
+    for (const PathVertex& v : m_vertices)
+        if (v.cut_segment_id >= 0 &&
+            std::find(m_used_cut_segments.begin(), m_used_cut_segments.end(), v.cut_segment_id) == m_used_cut_segments.end())
+            m_used_cut_segments.emplace_back(v.cut_segment_id);
+    std::sort(m_used_cut_segments.begin(), m_used_cut_segments.end());
+    // All sections start visible. Sized to the highest id present, so an ordinary print (no
+    // sections) leaves this empty and skips section filtering altogether.
+    m_settings.cut_segments_visibility.clear();
+    if (!m_used_cut_segments.empty())
+        m_settings.cut_segments_visibility.assign(size_t(m_used_cut_segments.back()) + 1, true);
     m_color_print_colors = std::move(gcode_data.color_print_colors);
+    // UNLAYERED_MOD: tool-axis palette. Index 0 must exist and be +Z; a producer that knows nothing
+    // about tilted layers leaves the palette empty and gets exactly the old behaviour.
+    m_tool_axes = std::move(gcode_data.tool_axes);
+    if (m_tool_axes.empty())
+        m_tool_axes.push_back({ 0.0f, 0.0f, 1.0f });
     m_vertices_colors.resize(m_vertices.size());
 
     m_settings.spiral_vase_mode = gcode_data.spiral_vase_mode;
 
     m_extrusions_box = get_bounding_box({ EMoveType::Extrude });
     for (size_t i = 0; i < m_vertices.size(); ++i) {
-        const PathVertex& v = m_vertices[i];
+        PathVertex& v = m_vertices[i];
 
         m_layers.update(v, static_cast<uint32_t>(i));
+        // UNLAYERED_MOD: every later range test compares a vertex's layer_id with layer ITEM
+        // indices, so re-key the vertex to the item it just landed in. Equal to the source id
+        // unless the file skipped ids (a layer change with no move); then the source ids run
+        // ahead of the items and the top of the print fell outside every range.
+        v.layer_id = static_cast<uint32_t>(m_layers.count() - 1);
 
         for (size_t j = 0; j < TIME_MODES_COUNT; ++j) {
             m_total_time[j] += v.times[j];
@@ -1238,10 +1304,13 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
     std::vector<Vec4> heights_widths_angles;
     positions.reserve(m_vertices.size());
     heights_widths_angles.reserve(m_vertices.size());
-    extract_pos_and_or_hwa(m_vertices, m_travels_radius, m_wipes_radius, m_valid_lines_bitset, &positions, &heights_widths_angles, true);
+    extract_pos_and_or_hwa(m_vertices, m_tool_axes, m_travels_radius, m_wipes_radius, m_valid_lines_bitset, &positions, &heights_widths_angles, true);
 
     if (!positions.empty()) {
 #ifdef ENABLE_OPENGL_ES
+        // UNLAYERED_MOD TODO: tilted layers are not wired up here. TextureData needs a tool-axis
+        // palette texture (unit 5) and a per-vertex index texture (unit 6), matching the uniforms
+        // ShadersES.hpp declares. Not done: ENABLE_OPENGL_ES is off in this build and untestable.
         m_texture_data.init(positions.size());
         // create and fill position textures
         m_texture_data.set_positions(positions);
@@ -1286,6 +1355,33 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
         glsafe(glGenTextures(1, &m_enabled_options_tex_id));
         glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_enabled_options_tex_id));
 
+        // UNLAYERED_MOD: create and fill the tool-axis palette. One RGBA32F texel per distinct chunk
+        // orientation - a handful even for a heavily multiplanar print, exactly one for a planar one.
+        {
+            std::vector<Vec4> tool_axes;
+            tool_axes.reserve(m_tool_axes.size());
+            for (const Vec3& axis : m_tool_axes)
+                tool_axes.push_back({ axis[0], axis[1], axis[2], 0.0f });
+            m_tool_axes_tex_size = tool_axes.size() * sizeof(Vec4);
+            glsafe(glGenBuffers(1, &m_tool_axes_buf_id));
+            glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_tool_axes_buf_id));
+            glsafe(glBufferData(GL_TEXTURE_BUFFER, tool_axes.size() * sizeof(Vec4), tool_axes.data(), GL_STATIC_DRAW));
+            glsafe(glGenTextures(1, &m_tool_axes_tex_id));
+            glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_tool_axes_tex_id));
+
+            // and each vertex's index into it
+            std::vector<float> tool_axis_ids;
+            tool_axis_ids.reserve(m_vertices.size());
+            for (const PathVertex& v : m_vertices)
+                tool_axis_ids.push_back(static_cast<float>(v.tool_axis_id));
+            m_tool_axis_ids_tex_size = tool_axis_ids.size() * sizeof(float);
+            glsafe(glGenBuffers(1, &m_tool_axis_ids_buf_id));
+            glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_tool_axis_ids_buf_id));
+            glsafe(glBufferData(GL_TEXTURE_BUFFER, tool_axis_ids.size() * sizeof(float), tool_axis_ids.data(), GL_STATIC_DRAW));
+            glsafe(glGenTextures(1, &m_tool_axis_ids_tex_id));
+            glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_tool_axis_ids_tex_id));
+        }
+
         glsafe(glBindBuffer(GL_TEXTURE_BUFFER, 0));
         glsafe(glBindTexture(GL_TEXTURE_BUFFER, old_bound_texture));
 #endif // ENABLE_OPENGL_ES
@@ -1295,6 +1391,17 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
     m_view_range.set_visible(m_view_range.get_enabled());
     update_colors();
     update_enabled_entities();
+}
+
+// Declarative cut planes: is this move's section currently shown? Moves belonging to no section
+// (id < 0 -- ordinary objects, skirt/brim, custom G-code) are never hidden by the section filter,
+// and an empty visibility map means no filtering at all.
+static bool cut_segment_shown(const PathVertex& v, const Settings& settings)
+{
+    if (v.cut_segment_id < 0 || settings.cut_segments_visibility.empty())
+        return true;
+    const size_t idx = static_cast<size_t>(v.cut_segment_id);
+    return idx >= settings.cut_segments_visibility.size() || settings.cut_segments_visibility[idx];
 }
 
 void ViewerImpl::update_enabled_entities()
@@ -1327,6 +1434,8 @@ void ViewerImpl::update_enabled_entities()
         const PathVertex& v = m_vertices[i];
 
         if (!m_valid_lines_bitset[i] && !v.is_option())
+            continue;
+        if (!cut_segment_shown(v, m_settings))
             continue;
         if (v.is_travel()) {
             if (!m_settings.options_visibility[size_t(EOptionType::Travels)])
@@ -1618,6 +1727,51 @@ std::vector<ETimeMode> ViewerImpl::get_time_modes() const
     return ret;
 }
 
+std::vector<int16_t> ViewerImpl::get_used_cut_segments_ids() const
+{
+    return m_used_cut_segments;
+}
+
+Color ViewerImpl::get_cut_segment_color(int16_t segment_id) const
+{
+    if (segment_id < 0 || m_cut_segment_colors.empty())
+        return DUMMY_COLOR;
+    return m_cut_segment_colors[static_cast<size_t>(segment_id) % m_cut_segment_colors.size()];
+}
+
+bool ViewerImpl::is_cut_segment_visible(int16_t segment_id) const
+{
+    if (segment_id < 0)
+        return true;
+    const size_t idx = static_cast<size_t>(segment_id);
+    return idx >= m_settings.cut_segments_visibility.size() || m_settings.cut_segments_visibility[idx];
+}
+
+void ViewerImpl::toggle_cut_segment_visibility(int16_t segment_id)
+{
+    if (segment_id < 0)
+        return;
+    const size_t idx = static_cast<size_t>(segment_id);
+    if (idx >= m_settings.cut_segments_visibility.size())
+        return;
+    m_settings.cut_segments_visibility[idx] = ! m_settings.cut_segments_visibility[idx];
+    update_view_full_range();
+    m_settings.update_enabled_entities = true;
+    m_settings.update_colors = true;
+}
+
+void ViewerImpl::show_all_cut_segments()
+{
+    if (m_settings.cut_segments_visibility.empty() ||
+        std::find(m_settings.cut_segments_visibility.begin(), m_settings.cut_segments_visibility.end(), false) ==
+            m_settings.cut_segments_visibility.end())
+        return; // already all visible: do not disturb the update flags
+    m_settings.cut_segments_visibility.assign(m_settings.cut_segments_visibility.size(), true);
+    update_view_full_range();
+    m_settings.update_enabled_entities = true;
+    m_settings.update_colors = true;
+}
+
 std::vector<uint8_t> ViewerImpl::get_used_extruders_ids() const
 {
     std::vector<uint8_t> ret;
@@ -1807,6 +1961,15 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
         assert(static_cast<size_t>(v.extruder_id) < m_tool_colors.size());
         const ColorWithAlpha& color = m_tool_colors[v.extruder_id];
         return { color[0], color[1], color[2] };
+    }
+    case EViewType::CutSegment:
+    {
+        // Moves that belong to no segment (an ordinary object, or anything emitted outside an
+        // object such as skirt and custom G-code) keep the neutral colour rather than borrowing
+        // segment 0's, which would read as "this is part of the first section".
+        if (v.cut_segment_id < 0 || m_cut_segment_colors.empty())
+            return DUMMY_COLOR;
+        return m_cut_segment_colors[static_cast<size_t>(v.cut_segment_id) % m_cut_segment_colors.size()];
     }
     case EViewType::Summary: // ORCA
     case EViewType::ColorPrint:
@@ -1999,6 +2162,9 @@ size_t ViewerImpl::get_used_gpu_memory() const
     ret += m_colors_tex_size;
     ret += m_enabled_segments_tex_size;
     ret += m_enabled_options_tex_size;
+    // UNLAYERED_MOD
+    ret += m_tool_axes_tex_size;
+    ret += m_tool_axis_ids_tex_size;
     ret += m_translucent_targets.size_in_bytes();
 #endif // ENABLE_OPENGL_ES
     return ret;
@@ -2007,6 +2173,10 @@ size_t ViewerImpl::get_used_gpu_memory() const
 static bool is_visible(const PathVertex& v, const Settings& settings)
 {
     const EOptionType option_type = move_type_to_option(v.type);
+    // A hidden section must also drop out of the view full range, or the layer/moves sliders keep
+    // spanning moves that are not drawn.
+    if (!cut_segment_shown(v, settings))
+        return false;
     try
     {
         return (option_type == EOptionType::COUNT) ?
@@ -2098,10 +2268,15 @@ void ViewerImpl::update_view_full_range()
             const Interval& full_range = m_view_range.get_full();
             const auto range_first_it = m_vertices.begin() + full_range[0];
             auto top_first_it = range_first_it;
+            // UNLAYERED_MOD -- stop at the end of the full range. When the top layer holds nothing
+            // visible (a cut segment's first layers are often outer wall only, and outer walls can be
+            // hidden) the walk used to run past full_range[1]; Range::set then swapped the bounds,
+            // the visible end no longer matched the full end and every line below turned DUMMY_COLOR.
+            const auto top_last_it = m_vertices.begin() + full_range[1];
             // ORCA: skip straight to the top layer rather than walking there
             if (m_layers_in_vertex_order)
-                top_first_it = std::max(top_first_it, m_vertices.begin() + m_layer_first_vertex[layers_range[1]]);
-            while (top_first_it != m_vertices.end() && (top_first_it->layer_id < layers_range[1] || !is_visible(*top_first_it, m_settings)))
+                top_first_it = std::min(std::max(top_first_it, m_vertices.begin() + m_layer_first_vertex[layers_range[1]]), top_last_it);
+            while (top_first_it < top_last_it && (top_first_it->layer_id < layers_range[1] || !is_visible(*top_first_it, m_settings)))
                 ++top_first_it;
             const bool shortened = top_first_it != range_first_it;
             if (shortened)
@@ -2187,7 +2362,7 @@ void ViewerImpl::update_heights_widths()
 #ifdef ENABLE_OPENGL_ES
     std::vector<Vec4> heights_widths_angles;
     heights_widths_angles.reserve(m_vertices.size());
-    extract_pos_and_or_hwa(m_vertices, m_travels_radius, m_wipes_radius, m_valid_lines_bitset, nullptr, &heights_widths_angles);
+    extract_pos_and_or_hwa(m_vertices, m_tool_axes, m_travels_radius, m_wipes_radius, m_valid_lines_bitset, nullptr, &heights_widths_angles);
     m_texture_data.set_heights_widths_angles(heights_widths_angles);
 #else
     if (m_heights_widths_angles_buf_id == 0)
@@ -2195,7 +2370,9 @@ void ViewerImpl::update_heights_widths()
 
     glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_heights_widths_angles_buf_id));
 
-    Vec3* buffer = static_cast<Vec3*>(glMapBuffer(GL_TEXTURE_BUFFER, GL_WRITE_ONLY));
+    // The buffer is GL_RGBA32F: { height, width, angle, bias }. It used to be mapped as Vec3*, so
+    // every write landed at float offset 3i instead of 4i and corrupted neighbouring texels.
+    Vec4* buffer = static_cast<Vec4*>(glMapBuffer(GL_TEXTURE_BUFFER, GL_WRITE_ONLY));
     glcheck();
 
     for (size_t i = 0; i < m_vertices.size(); ++i) {
@@ -2250,6 +2427,9 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     glsafe(glUniform1i(uni.height_width_angle_tex, 1));
     glsafe(glUniform1i(uni.colors_tex, 2));
     glsafe(glUniform1i(uni.segment_index_tex, 3));
+    // UNLAYERED_MOD
+    glsafe(glUniform1i(uni.tool_axis_tex, 5));
+    glsafe(glUniform1i(uni.tool_axis_id_tex, 6));
     glsafe(glUniformMatrix4fv(uni.view_matrix, 1, GL_FALSE, view_matrix.data()));
     glsafe(glUniformMatrix4fv(uni.projection_matrix, 1, GL_FALSE, projection_matrix.data()));
     glsafe(glUniform3fv(uni.camera_position, 1, camera_position.data()));
@@ -2349,7 +2529,10 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
         draw(count, m_texture_data.get_enabled_translucent_segments_count(i));
     }
 #else
-    std::array<int, 4> curr_bound_texture = { 0, 0, 0, 0 };
+    // UNLAYERED_MOD: 7 units - unit 5 is the tool-axis palette, unit 6 each vertex's index into it.
+    // Unit 4 is left to the canvas's shadow map (set_shadow_map), a sampler2D that must not share a
+    // unit with a samplerBuffer.
+    std::array<int, 7> curr_bound_texture = { 0, 0, 0, 0, 0, 0, 0 };
     for (int i = 0; i < curr_bound_texture.size(); ++i) {
         glsafe(glActiveTexture(GL_TEXTURE0 + i));
         glsafe(glGetIntegerv(GL_TEXTURE_BINDING_BUFFER, &curr_bound_texture[i]));
@@ -2368,6 +2551,13 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     glsafe(glActiveTexture(GL_TEXTURE3));
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_enabled_segments_tex_id));
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, m_enabled_segments_buf_id));
+    // UNLAYERED_MOD: tool-axis palette and per-vertex indices into it
+    glsafe(glActiveTexture(GL_TEXTURE5));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_tool_axes_tex_id));
+    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, m_tool_axes_buf_id));
+    glsafe(glActiveTexture(GL_TEXTURE6));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_tool_axis_ids_tex_id));
+    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, m_tool_axis_ids_buf_id));
 
     draw(m_enabled_segments_count, m_enabled_translucent_segments_count);
 #endif // ENABLE_OPENGL_ES
@@ -2421,6 +2611,9 @@ void ViewerImpl::render_options(const Mat4x4& view_matrix, const Mat4x4& project
     glsafe(glUniform1i(m_uni_options_height_width_angle_tex_id, 1));
     glsafe(glUniform1i(m_uni_options_colors_tex_id, 2));
     glsafe(glUniform1i(m_uni_options_segment_index_tex_id, 3));
+    // UNLAYERED_MOD
+    glsafe(glUniform1i(m_uni_options_tool_axis_tex_id, 5));
+    glsafe(glUniform1i(m_uni_options_tool_axis_id_tex_id, 6));
     glsafe(glUniformMatrix4fv(m_uni_options_view_matrix_id, 1, GL_FALSE, view_matrix.data()));
     glsafe(glUniformMatrix4fv(m_uni_options_projection_matrix_id, 1, GL_FALSE, projection_matrix.data()));
     glsafe(glUniform4fv(m_uni_options_clipping_plane_id, 1, m_clipping_plane.data()));
@@ -2447,7 +2640,10 @@ void ViewerImpl::render_options(const Mat4x4& view_matrix, const Mat4x4& project
         m_option_template.render(count);
     }
 #else
-    std::array<int, 4> curr_bound_texture = { 0, 0, 0, 0 };
+    // UNLAYERED_MOD: 7 units - unit 5 is the tool-axis palette, unit 6 each vertex's index into it.
+    // Unit 4 is left to the canvas's shadow map (set_shadow_map), a sampler2D that must not share a
+    // unit with a samplerBuffer.
+    std::array<int, 7> curr_bound_texture = { 0, 0, 0, 0, 0, 0, 0 };
     for (int i = 0; i < curr_bound_texture.size(); ++i) {
         glsafe(glActiveTexture(GL_TEXTURE0 + i));
         glsafe(glGetIntegerv(GL_TEXTURE_BINDING_BUFFER, &curr_bound_texture[i]));
@@ -2466,6 +2662,13 @@ void ViewerImpl::render_options(const Mat4x4& view_matrix, const Mat4x4& project
     glsafe(glActiveTexture(GL_TEXTURE3));
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_enabled_options_tex_id));
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, m_enabled_options_buf_id));
+    // UNLAYERED_MOD: tool-axis palette and per-vertex indices into it
+    glsafe(glActiveTexture(GL_TEXTURE5));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_tool_axes_tex_id));
+    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, m_tool_axes_buf_id));
+    glsafe(glActiveTexture(GL_TEXTURE6));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_tool_axis_ids_tex_id));
+    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, m_tool_axis_ids_buf_id));
 
     m_option_template.render(m_enabled_options_count);
 #endif // ENABLE_OPENGL_ES

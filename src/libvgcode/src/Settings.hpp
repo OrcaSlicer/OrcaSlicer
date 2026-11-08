@@ -10,6 +10,7 @@
 #include <array>
 #include <cstddef>
 #include <map>
+#include <vector>
 
 namespace libvgcode {
 
@@ -78,6 +79,15 @@ struct Settings
 		        true, // SupportTransition
 		        true, // Mixed
 		};
+
+		//
+		// Declarative cut planes: per-section ("cut-plane segment") visibility, indexed by
+		// PathVertex::cut_segment_id. Sized at load() from the sections actually present; empty
+		// (the default, and for any G-code without cut planes) means "no section filtering", so an
+		// ordinary print behaves exactly as before. Moves belonging to no section (id < 0) are
+		// never hidden by it.
+		//
+		std::vector<bool> cut_segments_visibility;
 };
 
 } // namespace libvgcode

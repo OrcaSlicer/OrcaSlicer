@@ -247,6 +247,15 @@ extern std::string bbs_3mf_get_thumbnail(const char * path);
 // Lightweight check: does this 3mf carry the "published" (orca_published == "1") marker? Only reads the 3D/3dmodel.model metadata node
 extern bool bbs_3mf_is_published(const std::string &path);
 
+// UNLAYERED_MOD: the Unlayered Slicer release that wrote the 3MF load_bbs_3mf() loaded into model, or
+// none when another slicer wrote it. This fork records its release in the "UnlayeredSlicer" tag and the
+// OrcaSlicer version it is based on in the "OrcaSlicer" tag, which load_bbs_3mf() reports as the file
+// version, so OrcaSlicer's version checks and migrations apply to it as to OrcaSlicer's own files.
+// Releases from before the "UnlayeredSlicer" tag recorded their own release in the "OrcaSlicer" tag.
+// OrcaSlicer has never released a 0.x version, so a 0.x there is one of those files, and the file
+// version reported for it is that release, not an OrcaSlicer version.
+extern std::optional<Semver> unlayered_3mf_version(const Model &model);
+
 extern bool load_gcode_3mf_from_stream(std::istream & data, DynamicPrintConfig* config, Model* model, PlateDataPtrs* plate_data_list,
        Semver* file_version);
 

@@ -187,7 +187,7 @@ TEST_CASE("Plugin host API exposes the editable preset category handles and guar
             FAIL("preset editor update unexpectedly succeeded without a wx application");
         } catch (const py::error_already_set& error) {
             CHECK(error.matches(PyExc_RuntimeError));
-            CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+            CHECK(std::string(error.what()).find("Unlayered Slicer application is not initialized") != std::string::npos);
         }
     }
 }
@@ -205,7 +205,7 @@ TEST_CASE("Plugin host API exposes the filament slot form of preset update and g
         FAIL("slot-addressed filament update unexpectedly succeeded without a wx application");
     } catch (const py::error_already_set& error) {
         CHECK(error.matches(PyExc_RuntimeError));
-        CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+        CHECK(std::string(error.what()).find("Unlayered Slicer application is not initialized") != std::string::npos);
     }
 
     // The process and printer editors accept only update(key, value); the slot form is rejected
@@ -244,7 +244,7 @@ TEST_CASE("Plugin host API exposes staged preset update transactions", "[PluginH
             FAIL("begin_update unexpectedly succeeded without a wx application");
         } catch (const py::error_already_set& error) {
             CHECK(error.matches(PyExc_RuntimeError));
-            CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+            CHECK(std::string(error.what()).find("Unlayered Slicer application is not initialized") != std::string::npos);
         }
     }
 
@@ -255,7 +255,7 @@ TEST_CASE("Plugin host API exposes staged preset update transactions", "[PluginH
         FAIL("filament begin_update unexpectedly succeeded without a wx application");
     } catch (const py::error_already_set& error) {
         CHECK(error.matches(PyExc_RuntimeError));
-        CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+        CHECK(std::string(error.what()).find("Unlayered Slicer application is not initialized") != std::string::npos);
     }
 }
 
@@ -307,7 +307,7 @@ TEST_CASE("Plugin host API reports unavailable GUI objects before Orca app initi
             FAIL("host accessor unexpectedly succeeded without a wx application");
         } catch (const py::error_already_set& error) {
             CHECK(error.matches(PyExc_RuntimeError));
-            CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+            CHECK(std::string(error.what()).find("Unlayered Slicer application is not initialized") != std::string::npos);
         }
     }
 
@@ -316,7 +316,7 @@ TEST_CASE("Plugin host API reports unavailable GUI objects before Orca app initi
         FAIL("host.preset.bundles.reload_local unexpectedly succeeded without a wx application");
     } catch (const py::error_already_set& error) {
         CHECK(error.matches(PyExc_RuntimeError));
-        CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+        CHECK(std::string(error.what()).find("Unlayered Slicer application is not initialized") != std::string::npos);
     }
 
     try {
@@ -324,7 +324,7 @@ TEST_CASE("Plugin host API reports unavailable GUI objects before Orca app initi
         FAIL("host.preset.bundles.list_ids unexpectedly succeeded without a wx application");
     } catch (const py::error_already_set& error) {
         CHECK(error.matches(PyExc_RuntimeError));
-        CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+        CHECK(std::string(error.what()).find("Unlayered Slicer application is not initialized") != std::string::npos);
     }
 }
 
@@ -363,7 +363,7 @@ TEST_CASE("Plugin host API exposes the UI module and guards it before Orca app i
         FAIL("orca.host.ui.message unexpectedly succeeded without a wx application");
     } catch (const py::error_already_set& error) {
         CHECK(error.matches(PyExc_RuntimeError));
-        CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+        CHECK(std::string(error.what()).find("Unlayered Slicer application is not initialized") != std::string::npos);
     }
 
     try {
@@ -371,7 +371,7 @@ TEST_CASE("Plugin host API exposes the UI module and guards it before Orca app i
         FAIL("orca.host.ui.create_dock_panel unexpectedly succeeded without a wx application");
     } catch (const py::error_already_set& error) {
         CHECK(error.matches(PyExc_RuntimeError));
-        CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+        CHECK(std::string(error.what()).find("Unlayered Slicer application is not initialized") != std::string::npos);
     }
 
     // Positional arguments follow create_window(): width and height come straight after the title.

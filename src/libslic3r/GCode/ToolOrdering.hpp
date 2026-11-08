@@ -84,17 +84,7 @@ public:
 
     void set_layer_tools_ptr(const LayerTools* lt) { m_layer_tools = lt; }
 
-    // Returns true if entity is not printed with its usual extruder for a given
-    // copy -- i.e. it was claimed as a wiping/purge extrusion. Public because the
-    // belt purge prism uses it to tell which of its fills actually carry purge
-    // from the ones that are unclaimed waste (Print::_plan_belt_purge()).
-    bool is_entity_overridden(const ExtrusionEntity* entity, const PrintObject *object, size_t copy_id) const {
-        auto it = entity_map.find(std::make_tuple(entity, object));
-        return it != entity_map.end() && copy_id < it->second.size() && it->second[copy_id] != -1;
-    }
-
 private:
-
     int first_nonsoluble_extruder_on_layer(const PrintConfig& print_config) const;
     int last_nonsoluble_extruder_on_layer(const PrintConfig& print_config) const;
 
@@ -103,6 +93,12 @@ private:
     // BBS
     void set_support_extruder_override(const PrintObject* object, size_t copy_id, int extruder, size_t num_of_copies);
     void set_support_interface_extruder_override(const PrintObject* object, size_t copy_id, int extruder, size_t num_of_copies);
+
+    // Returns true in case that entity is not printed with its usual extruder for a given copy:
+    bool is_entity_overridden(const ExtrusionEntity* entity, const PrintObject *object, size_t copy_id) const {
+        auto it = entity_map.find(std::make_tuple(entity, object));
+        return it == entity_map.end() ? false : it->second[copy_id] != -1;
+    }
 
     std::map<std::tuple<const ExtrusionEntity*, const PrintObject *>, ExtruderPerCopy> entity_map;  // to keep track of who prints what
     // BBS
@@ -183,6 +179,9 @@ public:
     // Due to the support layers possibly interleaving the object layers,
     // wipe tower will be disabled for some support only layers.
     bool 						has_wipe_tower = false;
+    // BELT_MOD -- does this layer carry belt brim (an apron band or a coincident band)? Kept
+    // separate from has_object so skirt marking and wiping overrides are unaffected.
+    bool                        has_belt_brim = false;
     // Number of wipe tower partitions to support the required number of tool switches
     // and to support the wipe tower partitions above this one.
     size_t                      wipe_tower_partitions = 0;
@@ -277,11 +276,15 @@ public:
     // (print->config().print_sequence == PrintSequence::ByObject is false).
     ToolOrdering(const Print& print, unsigned int first_extruder, bool prime_multi_material = false);
 
+    // For ByGroup: a subset of objects printed layer-interleaved within the group.
+    ToolOrdering(const std::vector<const PrintObject*>& objects, unsigned int first_extruder, bool prime_multi_material = false);
+
     void handle_dontcare_extruder(const std::vector<unsigned int>& first_layer_tool_order);
     void handle_dontcare_extruder(unsigned int first_extruder);
 
     void sort_and_build_data(const PrintObject &object, unsigned int first_extruder, bool prime_multi_material = false);
     void sort_and_build_data(const Print& print, unsigned int first_extruder, bool prime_multi_material = false);
+    void sort_and_build_data(const std::vector<const PrintObject*>& objects, unsigned int first_extruder, bool prime_multi_material = false);
 
     void    clear() {
         m_layer_tools.clear();
@@ -295,6 +298,11 @@ public:
 	// Ignore color changes, which are performed on a layer and for such an extruder, that the extruder will not be printing above that layer.
 	// If multiple events are planned over a span of a single layer, use the last one.
 	void 				assign_custom_gcodes(const Print &print);
+    // UNLAYERED_MOD: the print-by-object counterpart, for the object instance printed
+    // `sequential_object`-th (0-based): assign the plate's pauses and custom G-codes keyed to that
+    // instance (CustomGCode::Item::sequential_object) to its layers, and clear every other layer's.
+    // Color and tool changes stay unsupported in a print by object.
+    void                assign_custom_gcodes_sequential(const Print &print, int sequential_object);
 
     // Get the first extruder printing, including the extruder priming areas, returns -1 if there is no layer printed.
     unsigned int   		first_extruder() const { return m_first_printing_extruder; }

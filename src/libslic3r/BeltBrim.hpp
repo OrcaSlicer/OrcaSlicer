@@ -5,73 +5,62 @@
 #include "ExtrusionEntityCollection.hpp"
 #include "Point.hpp"
 #include "Polyline.hpp"
-#include "libslic3r.h"
 
 #include <cmath>
 #include <vector>
 
-// Belt-printer brim geometry.
+// BELT_MOD -- belt-printer brim geometry, ported from OrcaSlicer's belt branch.
 //
-// A belt printer slices in a ROTATED frame, so the belt surface is not the
-// Z=0 bed plane but a tilted plane in slicing space:
+// A belt object is sliced in a ROTATED frame, so the belt surface is not the Z = 0 plane but a
+// tilted plane in slicing space, PrintObject::bed_plane_in_slice_frame():
 //
-//     z_slicing(u) = shear * u + floor_offset + z_shift,   u = X or Y
+//     bed_z(p) = n . p + k,   the belt is bed_z = 0
 //
-// where `shear == tan(tilt)` (SlicingParameters::belt_floor_shear_factor) and
-// the axis is selected by SlicingParameters::belt_floor_from_axis.  See
-// Support/BeltFloorContext.hpp for the canonical accessors.
+// With the gantry tilted about X, n has no X component and the belt height in the slice frame
+// depends on y alone: z_belt(u) = shear * u + z0 with u = y. Consequences that drive this file:
 //
-// Consequences that drive everything in this file:
+//   * A horizontal slicing layer touches the belt only along a narrow strip at its leading edge,
+//     layer_height / |shear| wide (~0.2 mm at 45 degrees). The object's belt footprint (its bottom
+//     face) is therefore spread over every layer, not contained in layer 0.
+//   * Distances measured in slicing XY are NOT on-belt distances: moving du along the shear axis
+//     travels du / cos(tilt) across the belt. Brim offsets are taken in a "flattened" space where
+//     the shear axis is stretched by 1 / cos(tilt), then mapped back.
+//   * Brim ahead of the part (downhill) lies at slicing Z BELOW the object's first layer, because
+//     the object's layer 0 is precisely its leading contact with the belt.
 //
-//   * A horizontal slicing layer touches the belt only along a narrow strip at
-//     its leading edge, `layer_height / shear` wide (~0.2 mm at 45 degrees).
-//     The object's belt footprint - its bottom face - is therefore spread over
-//     every layer, not contained in layer 0.
-//   * Distances measured in slicing XY are NOT on-belt distances: moving `du`
-//     along the shear axis travels `du / cos(tilt)` across the belt.  So brim
-//     offsets have to be taken in a "flattened" space where the shear axis is
-//     stretched by `1 / cos(tilt)`, then mapped back.
-//   * Brim ahead of the part (downhill) lies at slicing Z BELOW the object's
-//     first layer, because the object's layer 0 is precisely its leading
-//     contact with the belt.
-//
-// Everything here is pure geometry on ExPolygons/Polylines so it can be unit
-// tested without a Print.  Keep user-visible strings out of this file: it is
-// not listed in localization/i18n/list.txt.
+// Everything here is pure geometry on ExPolygons/Polylines so it can be unit tested without a
+// Print. Keep user-visible strings out of this file.
 
 namespace Slic3r {
 
-// Tilt window within which the BELT plane, not the bed plane, is the adhesion
-// surface.  Below ~1 degree a belt is a flat bed as far as adhesion goes, and the
-// contact band would be layer_height/sin(tilt) - tens of millimetres - so the
-// ordinary plate brim is both correct and cheaper.  Above ~85 degrees the whole
+// Tilt window within which the BELT plane, not the bed plane, is the adhesion surface. Below
+// about 1 degree a belt is a flat bed as far as adhesion goes; above about 85 degrees the whole
 // brim compresses into a sliver and is not worth generating.
 inline constexpr double BELT_BRIM_MIN_TILT_DEG = 1.;
 inline constexpr double BELT_BRIM_MAX_TILT_DEG = 85.;
 
-// Description of the tilted belt plane, reduced to what the brim geometry needs.
+// The tilted belt plane, reduced to what the brim geometry needs.
 struct BeltBrimFrame
 {
-    // tan(tilt).  Sign selects which way is downhill.
+    // dz/du of the belt plane in the slice frame (tan(tilt) up to sign). Sign selects downhill.
     double shear     = 0.;
-    // 0 = X, 1 = Y.  Matches BeltFloorContext::from_axis().
+    // 0 = X, 1 = Y: the slice-XY axis along which the belt height varies.
     int    from_axis = 1;
+    // z_belt(u) = shear * u + z0.
+    double z0        = 0.;
 
-    // 1 / cos(tilt).  Stretch factor that turns a projected distance along
-    // `from_axis` into the true distance travelled across the belt.
+    // 1 / cos(tilt): turns a projected distance along `from_axis` into the true distance across the belt.
     double u_stretch() const { return std::sqrt(1. + shear * shear); }
-    // cos(tilt).  The inverse mapping.
     double cos_tilt()  const { return 1. / this->u_stretch(); }
-    // Downhill is where the belt surface is lower, i.e. printed earlier, i.e.
-    // the leading edge of the part.  For shear > 0 that is -u.
+    // Downhill is where the belt surface is lower, i.e. printed earlier: the leading edge.
     int    downhill_sign() const { return shear > 0. ? -1 : +1; }
+    // Where the belt plane crosses height z, and the belt height at u.
+    double cutoff_u(double z) const { return (z - z0) / shear; }
+    double floor_z(double u)  const { return shear * u + z0; }
 };
 
-// Scale only the `from_axis` component by `factor`, rounding to nearest.
-//
-// Deliberately not MultiPoint::scale(fx, fy) / ExPolygon::scale(fx, fy): those
-// truncate toward zero, which is asymmetric about the origin and loses up to a
-// full coordinate unit per vertex on every round trip.
+// Scale only the `from_axis` component by `factor`, rounding to nearest (MultiPoint::scale
+// truncates toward zero, which drifts every vertex on a round trip).
 ExPolygons belt_scale_u(const ExPolygons &src, const BeltBrimFrame &frame, double factor);
 Polylines  belt_scale_u(const Polylines  &src, const BeltBrimFrame &frame, double factor);
 
@@ -81,40 +70,12 @@ inline ExPolygons belt_flatten(const ExPolygons &src, const BeltBrimFrame &frame
 inline ExPolygons belt_unflatten(const ExPolygons &src, const BeltBrimFrame &frame)
     { return belt_scale_u(src, frame, frame.cos_tilt()); }
 
-// Minkowski sum of `src` with the segment [0, t]: the region swept by sliding
-// `src` along t.  Used to grow the brim downhill for "extra brim width".
-//
-// Implemented as union_(P, P + t, {parallelogram per boundary edge}) over ALL
-// contours including holes, with every parallelogram forced counter-clockwise
-// so the non-zero fill rule closes holes narrower than t along the sweep
-// direction.  A hole survives exactly when it is wider than |t| measured along
-// t - not when it is wider in its narrowest Euclidean direction.
+// Minkowski sum of `src` with the segment [0, t]: the region swept by sliding `src` along t.
 ExPolygons sweep_ex(const ExPolygons &src, const Point &t);
 
-// "Leading edge only": keep the part of a brim region (unflattened, slicing XY)
-// at or downhill of the object's first contact with the belt, so the part is
-// supported as it lands and nothing is printed alongside it afterwards.  `u_cut`
-// is the uphill edge of the first layer's contact band along `frame.from_axis`,
-// in mm (BeltFloorContext::cutoff_u of the first layer); downhill is the side
-// `frame.downhill_sign()` points to.
-ExPolygons belt_brim_clip_leading_edge(const ExPolygons &region, const BeltBrimFrame &frame, coordf_t u_cut);
-
-// Brim region for one already-flattened belt footprint.  All lengths are scaled
-// and measured in the flattened (true on-belt) metric.
-//
-// `has_outer` / `has_inner` are the resolved BrimType: belt printers collapse
-// Auto / Mouse ear / Painted to outer-only, so the caller does that mapping and
-// this function never needs PrintConfig.
-//
-// Two directional extras are applied to the footprint before the outer offset, so
-// each one buys reach in one direction only:
-//
-//   `leading` (leading_brim_length) sweeps the footprint DOWNHILL along the belt,
-//   so every leading-facing edge gains an apron ahead of it.
-//   `lateral`  (extra_brim_width)   sweeps it BOTH WAYS across the belt, widening
-//   the brim sideways without pushing it further ahead or behind.
-//
-// Neither is applied to the inner (hole) ring.
+// Brim region for one already-flattened belt footprint (all lengths scaled, in the flattened
+// metric). `leading` sweeps the footprint DOWNHILL along the belt (leading_brim_length);
+// `lateral` sweeps it BOTH WAYS across the belt (extra_brim_width). Neither applies to the inner ring.
 ExPolygons belt_brim_region(const ExPolygons   &footprint_flat,
                             bool                has_outer,
                             bool                has_inner,
@@ -124,53 +85,31 @@ ExPolygons belt_brim_region(const ExPolygons   &footprint_flat,
                             coord_t             lateral,
                             const BeltBrimFrame &frame);
 
-// Brim line positions for one layer band.
-//
-// Lines sit on a fixed lattice `u_anchor + k * pitch_u` so the on-belt spacing
-// between neighbouring brim lines is constant regardless of how the lattice
-// falls across layer bands.  Snapping to band centres instead would quantise
-// the spacing to whole bands and under-deposit by ~35% at 45 degrees.
-//
-// The band is half-open, [u_lo, u_hi), so every lattice point belongs to
-// exactly one band: none duplicated at a boundary, none dropped.  A band
-// narrower than the pitch simply yields nothing; a band much wider (shallow
-// tilt) yields several lines.
-std::vector<coord_t> belt_brim_line_positions(coord_t u_lo,
-                                              coord_t u_hi,
-                                              coord_t pitch_u,
-                                              coord_t u_anchor);
+// Brim line positions for one layer band on a fixed lattice `u_anchor + k * pitch_u`, half-open
+// [u_lo, u_hi) so every lattice point belongs to exactly one band.
+std::vector<coord_t> belt_brim_line_positions(coord_t u_lo, coord_t u_hi, coord_t pitch_u, coord_t u_anchor);
 
-// ---------------------------------------------------------------- pipeline
-
-// One brim-only layer printed BEFORE the object's first layer, carrying the
-// apron that has to be stuck to the belt ahead of the part.
-//
-// Deliberately not a Layer subclass.  A synthetic Layer would inherit id()
-// semantics that leak into initial-layer temperature selection, the spiral vase
-// probe, gradual interpolation, avoid-crossing-perimeters and cooling, all of
-// which key off Layer::id() == 0 or off a layer's regions.  A plain record
-// carries only what the emitter needs.
-//
-// `height` is the LAYER height, used for the Z move and ordering metadata only.
-// Each extrusion path inside `fills` carries its own height, equal to that
-// line's nozzle-to-belt clearance, which varies across the band.
+// One brim-only layer printed BEFORE the object's first layer: the apron ahead of the part.
+// Deliberately not a Layer: a synthetic Layer would leak its id() into initial-layer temperature
+// selection, the spiral vase probe and cooling. `height` is the layer height (Z move and ordering);
+// each path inside `fills` carries its own height, its nozzle-to-belt clearance.
 struct BeltBrimBand
 {
     coordf_t                  print_z = 0.;
     coordf_t                  height  = 0.;
-    // erBrim paths in the object's local slicing frame, untranslated.
-    ExtrusionEntityCollection fills;
-    // Footprint of those paths, for the first-layer convex hull / bbox.
-    ExPolygons                areas;
+    ExtrusionEntityCollection fills;    // erBrim paths, object-local slice frame
+    ExPolygons                areas;    // their footprint, for the first-layer hull / bbox
 };
 
 class PrintObject;
 
-// Generate the belt brim for one object: fills its per-object-layer bands and
-// its apron prologue.  No-op unless PrintObject::has_belt_brim().
-//
-// Runs inside posSupportMaterial rather than the brim step, because the prologue
-// print_z values must exist before ToolOrdering is built at psWipeTower.
+// Build the frame from the object's belt plane. False when the object's floor is not a belt tilted
+// about one axis within the brim's tilt window.
+bool belt_brim_frame(const PrintObject &object, BeltBrimFrame &frame);
+
+// Generate the belt brim for one object: its per-layer bands and its apron prologue. No-op unless
+// PrintObject::has_belt_brim(). Runs inside posSupportMaterial, because the prologue print_z values
+// must exist before ToolOrdering is built at psWipeTower.
 void make_belt_brim(PrintObject &object);
 
 } // namespace Slic3r

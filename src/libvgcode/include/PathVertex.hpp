@@ -103,6 +103,23 @@ struct PathVertex
     // Jerk value
     //
     float jerk{ 0.0f };
+    //
+    // UNLAYERED_MOD: index into GCodeInputData::tool_axes of the direction the nozzle pointed away
+    // from the surface during this move. It is the "up" the extrusion cross-section is built around,
+    // so a tilted (multiplanar / 5-axis) layer renders in its own plane instead of flat in XY.
+    // Index 0 is always +Z, so a planar print leaves every vertex at 0.
+    //
+    uint16_t tool_axis_id{ 0 };
+    //
+    // Declarative cut planes: index of the segment ("section") this move belongs to, -1 for an
+    // ordinary object. Drives EViewType::CutSegment.
+    //
+    // KEEP THESE TWO LAST, IN THIS ORDER: PathVertex is aggregate-initialised positionally in
+    // LibVGCodeWrapper.cpp, so inserting a field earlier -- or swapping these two -- silently
+    // shifts every value after it. tool_axis_id and cut_segment_id were added independently on
+    // two branches, each believing itself last; the initialisers there now pass both, in this order.
+    //
+    int16_t cut_segment_id{ -1 };
 
     //
     // Return true if the segment is an extrusion move

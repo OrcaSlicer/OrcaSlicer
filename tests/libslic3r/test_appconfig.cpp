@@ -4,10 +4,14 @@
 #include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Thread.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Utils.hpp"
 #include "../slic3rutils/plugin_test_utils.hpp"
 #include "test_utils.hpp"
 
+#include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/nowide/fstream.hpp>
 
 #include <fstream>
 #include <ios>
@@ -24,6 +28,41 @@ TEST_CASE("Full collision-volume previews are opt-in and retain the user's prefe
     config.set_bool("show_collision_volumes", true);
     config.set_defaults();
     CHECK(config.get_bool("show_collision_volumes"));
+}
+
+namespace {
+// Loads `json` as this app's config file from a scratch data directory.
+void load_config_text(AppConfig &config, const std::string &json)
+{
+    const std::string old_dir = data_dir();
+    const auto        dir     = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path("appconfig-test-%%%%%%%%");
+    boost::filesystem::create_directories(dir);
+    set_data_dir(dir.string());
+    {
+        boost::nowide::ofstream f((dir / (SLIC3R_APP_KEY ".conf")).string());
+        // The trailer save() writes; the Windows loader expects a line after the closing brace.
+        f << json << "\n# MD5 checksum 0\n";
+    }
+    const std::string error = config.load();
+    set_data_dir(old_dir);
+    boost::system::error_code ec;
+    boost::filesystem::remove_all(dir, ec);
+    REQUIRE(error.empty());
+}
+} // namespace
+
+TEST_CASE("Stealth mode is turned off once for a config that has it on", "[AppConfig]") {
+    SECTION("a config from a build that forced it on, including one whose broken first migration only set its flag") {
+        AppConfig config;
+        load_config_text(config, R"({"app": {"stealth_mode": true, "unlayered_stealth_off_migrated": true}})");
+        REQUIRE_FALSE(config.get_stealth_mode());
+        REQUIRE(config.get_bool("unlayered_stealth_off_migrated_v2"));
+    }
+    SECTION("turned back on after the migration, it stays on") {
+        AppConfig config;
+        load_config_text(config, R"({"app": {"stealth_mode": true, "unlayered_stealth_off_migrated_v2": true}})");
+        REQUIRE(config.get_stealth_mode());
+    }
 }
 
 TEST_CASE("AppConfig network version helpers", "[AppConfig]") {

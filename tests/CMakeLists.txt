@@ -38,7 +38,7 @@ endif()
 # the deps-built FFmpeg libraries and adds an $ORIGIN rpath, since the ELF
 # loader does not search the executable's directory and the CI unit-test runner
 # only receives the tests artifact (no deps install).
-function(orcaslicer_copy_test_dlls)
+function(unlayered_copy_test_dlls)
     if (WIN32)
         set(_configs ${CMAKE_CONFIGURATION_TYPES})
         if (NOT _configs)
@@ -46,9 +46,9 @@ function(orcaslicer_copy_test_dlls)
         endif()
         foreach(_cfg IN LISTS _configs)
             if (_cfg STREQUAL "Debug")
-                orcaslicer_copy_dlls(COPY_DLLS "Debug" "d" _unused_dlls)
+                unlayered_copy_dlls(COPY_DLLS "Debug" "d" _unused_dlls)
             else()
-                orcaslicer_copy_dlls(COPY_DLLS "${_cfg}" "" _unused_dlls)
+                unlayered_copy_dlls(COPY_DLLS "${_cfg}" "" _unused_dlls)
             endif()
         endforeach()
     elseif (UNIX AND NOT APPLE)
@@ -78,13 +78,13 @@ function(orcaslicer_copy_test_dlls)
             set(_configs "${CMAKE_BUILD_TYPE}")
         endif()
         foreach(_cfg IN LISTS _configs)
-            orcaslicer_copy_sos(${_target} "${_cfg}" "" _unused_sos)
+            unlayered_copy_sos(${_target} "${_cfg}" "" _unused_sos)
         endforeach()
     endif()
 endfunction()
 
 # Register Catch2 tags as CTest labels so `ctest -L`/`-LE` can filter by tag.
-function(orcaslicer_discover_tests TARGET)
+function(unlayered_discover_tests TARGET)
     catch_discover_tests(${TARGET} ADD_TAGS_AS_LABELS)
 endfunction()
 
@@ -97,7 +97,7 @@ add_subdirectory(filament_group)
 
 # End-to-end checks of the orca-slicer binary. Linux only: they read result.json, which the CLI
 # writes on Linux only. src/ is added before tests/, so the target is known here.
-if (UNIX AND NOT APPLE AND TARGET OrcaSlicer)
+if (UNIX AND NOT APPLE AND TARGET UnlayeredSlicer)
     add_subdirectory(cli)
 endif ()
 

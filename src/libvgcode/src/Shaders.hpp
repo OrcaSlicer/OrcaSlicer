@@ -25,7 +25,6 @@ static const char* Segments_Vertex_Shader =
 "const float ambient = 0.2;\n"
 "const float emission = 0.15;\n"
 "const float REFERENCE_THICKNESS = 0.4;\n"
-"const vec3 UP = vec3(0, 0, 1);\n"
 "uniform mat4 view_matrix;\n"
 "uniform mat4 projection_matrix;\n"
 "uniform vec3 camera_position;\n"
@@ -33,6 +32,9 @@ static const char* Segments_Vertex_Shader =
 "uniform samplerBuffer height_width_angle_tex;\n"
 "uniform samplerBuffer color_tex;\n"
 "uniform usamplerBuffer segment_index_tex;\n"
+// UNLAYERED_MOD: palette of tool axes, and per vertex the index into it.
+"uniform samplerBuffer tool_axis_tex;\n"
+"uniform samplerBuffer tool_axis_id_tex;\n"
 // ORCA: draw last segment first, so looking down the top layers hide the rest from the fragment shader.
 "uniform bool reverse_order;\n"
 "uniform int instances_count;\n"
@@ -59,6 +61,8 @@ static const char* Segments_Vertex_Shader =
 "#ifndef DEPTH_ONLY\n"
 "out vec3 cut_color_direct;\n"
 "#endif\n"
+// UNLAYERED_MOD: the segment's tool axis, which the cut face's cross-section is built around
+"flat out vec3 segment_up;\n"
 // ORCA: the opaque and the translucent segments are drawn in separate passes, see ViewerImpl::render_segments().
 "uniform int first_instance;\n"
 "flat out float alpha;\n"
@@ -99,6 +103,13 @@ static const char* Segments_Vertex_Shader =
 "  int id_b = id_a + 1;\n"
 "  vec3 pos_a = texelFetch(position_tex, id_a).xyz;\n"
 "  vec3 pos_b = texelFetch(position_tex, id_b).xyz;\n"
+// UNLAYERED_MOD: the direction this segment's extrusion HEIGHT runs along. World +Z for an ordinary
+// planar layer; the chunk's tool axis for a tilted (multiplanar / 5-axis) one, so the ribbon lies in
+// its own layer plane. Read from the END vertex, because in libvgcode a segment a->b represents the
+// move that ended at b - the same vertex whose height, width, corner angle and half-height position
+// bias describe this extrusion, so all of them agree.
+"  vec3 UP = texelFetch(tool_axis_tex, int(texelFetch(tool_axis_id_tex, id_b).r)).xyz;\n"
+"  segment_up = UP;\n"
 "  vec3 line = pos_b - pos_a;\n"
 "  // directions of the line box in world space\n"
 "  float line_len = length(line);\n"
@@ -109,9 +120,11 @@ static const char* Segments_Vertex_Shader =
 "    line_dir = line / line_len;\n"
 "  vec3 line_right_dir;\n"
 "  if (abs(dot(line_dir, UP)) > 0.9) {\n"
-"    // For vertical lines, the width and height should be same, there is no concept of up and down.\n"
-"    // For simplicity, the code will expand width in the x axis, and height in the y axis\n"
-"    line_right_dir = normalize(cross(vec3(1, 0, 0), line_dir));\n"
+"    // For lines along the tool axis, the width and height should be same, there is no concept of up and down.\n"
+"    // UNLAYERED_MOD: pick whichever world axis is least aligned with the line, so this stays well\n"
+"    // conditioned for a tilted UP too (the old code always used the x axis).\n"
+"    vec3 fallback = (abs(line_dir.x) < 0.9) ? vec3(1, 0, 0) : vec3(0, 1, 0);\n"
+"    line_right_dir = normalize(cross(fallback, line_dir));\n"
 "  }\n"
 "  else\n"
 "    line_right_dir = normalize(cross(line_dir, UP));\n"
@@ -169,7 +182,8 @@ static const char* Segments_Vertex_Shader =
 "  if (height_width_angle.z == 0.0 && dot(joint_other, joint_other) > 0.0) {\n"
 "    vec3 into = vertex_id < 4 ? joint_other : line;\n"
 "    vec3 onto = vertex_id < 4 ? line : joint_other;\n"
-"    height_width_angle.z = atan(into.x * onto.y - into.y * onto.x, dot(into, onto));\n"
+// UNLAYERED_MOD: about the tool axis, as extract_pos_and_or_hwa() measures the angle
+"    height_width_angle.z = atan(dot(cross(into, onto), UP), dot(into, onto));\n"
 "  }\n"
 "  // ORCA: Extract bias from w component\n"
 "  float bias = hwa.w;\n"
@@ -242,13 +256,15 @@ static const char* Segments_Vertex_Shader =
 // ORCA: realistic view - shadow caster, one light facing ribbon per segment, not instanced as tiny instances are slow.
 static const char* Segments_Shadow_Caster_Vertex_Shader =
 "#version 150\n"
-"const vec3 UP = vec3(0, 0, 1);\n"
 "const int CORNERS[6] = int[](0, 1, 2, 0, 2, 3);\n"
 "uniform mat4 view_matrix;\n"
 "uniform mat4 projection_matrix;\n"
 "uniform samplerBuffer position_tex;\n"
 "uniform samplerBuffer height_width_angle_tex;\n"
 "uniform usamplerBuffer segment_index_tex;\n"
+// UNLAYERED_MOD: palette of tool axes, and per vertex the index into it.
+"uniform samplerBuffer tool_axis_tex;\n"
+"uniform samplerBuffer tool_axis_id_tex;\n"
 "uniform bool reverse_order;\n"
 "uniform int instances_count;\n"
 "out vec3 world_position;\n"
@@ -265,10 +281,13 @@ static const char* Segments_Shadow_Caster_Vertex_Shader =
 "  int id = corner < 2 ? id_a : id_a + 1;\n"
 "  vec3 pos_a = texelFetch(position_tex, id_a).xyz;\n"
 "  vec3 pos_b = texelFetch(position_tex, id_a + 1).xyz;\n"
+// UNLAYERED_MOD: the ribbon is built around the segment's tool axis, as in the segments shader
+"  vec3 UP = texelFetch(tool_axis_tex, int(texelFetch(tool_axis_id_tex, id_a + 1).r)).xyz;\n"
 "  vec3 line = pos_b - pos_a;\n"
 "  float line_len = length(line);\n"
 "  vec3 line_dir = line_len < 1e-4 ? vec3(1.0, 0.0, 0.0) : line / line_len;\n"
-"  vec3 line_right_dir = abs(dot(line_dir, UP)) > 0.9 ? normalize(cross(vec3(1, 0, 0), line_dir)) : normalize(cross(line_dir, UP));\n"
+"  vec3 fallback = (abs(line_dir.x) < 0.9) ? vec3(1, 0, 0) : vec3(0, 1, 0);\n"
+"  vec3 line_right_dir = abs(dot(line_dir, UP)) > 0.9 ? normalize(cross(fallback, line_dir)) : normalize(cross(line_dir, UP));\n"
 "  vec3 line_up_dir = normalize(cross(line_right_dir, line_dir));\n"
 "  vec3 to_light = vec3(view_matrix[0][2], view_matrix[1][2], view_matrix[2][2]);\n"
 "  vec3 side_dir = cross(to_light, line_dir);\n"
@@ -323,7 +342,6 @@ static const char* Segments_Fragment_Shader =
 "uniform vec3 camera_position;\n"
 "uniform samplerBuffer position_tex;\n"
 "uniform samplerBuffer height_width_angle_tex;\n"
-"const vec3 UP = vec3(0, 0, 1);\n"
 "const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);\n"
 // ORCA: in realistic view every filament is glossy, with an untinted highlight a translucent one's opacity does not dim
 "uniform float gloss_strength;\n"
@@ -340,6 +358,7 @@ static const char* Segments_Fragment_Shader =
 "#ifndef DEPTH_ONLY\n"
 "in vec3 cut_color_direct;\n"
 "#endif\n"
+"flat in vec3 segment_up;\n"
 "flat in float alpha;\n"
 "out vec4 fragment_color;\n"
 // ORCA: order independent transparency, see ViewerImpl::render_translucent_segments(). Pass 1 finds the depth of
@@ -391,7 +410,9 @@ static const char* Segments_Fragment_Shader =
 "  if (along < 0.0 || along > 1.0)\n"
 "    return false;\n"
 "  vec3 line_dir = line * inversesqrt(length_sq);\n"
-"  vec3 right_dir = abs(dot(line_dir, UP)) > 0.9 ? normalize(cross(vec3(1, 0, 0), line_dir)) : normalize(cross(line_dir, UP));\n"
+// UNLAYERED_MOD: the cross-section lies around the segment's tool axis, as in the vertex shader
+"  vec3 fallback = (abs(line_dir.x) < 0.9) ? vec3(1, 0, 0) : vec3(0, 1, 0);\n"
+"  vec3 right_dir = abs(dot(line_dir, segment_up)) > 0.9 ? normalize(cross(fallback, line_dir)) : normalize(cross(line_dir, segment_up));\n"
 "  vec3 offset = cut - pos_a - along * line;\n"
 "  vec2 half_height_width = 0.5 * mix(texelFetch(height_width_angle_tex, segment_id).xy,\n"
 "                                     texelFetch(height_width_angle_tex, segment_id + 1).xy, along);\n"
@@ -463,8 +484,10 @@ static const char* Segments_Fragment_Shader =
 "      float t = clamp(dot(position - start, line) / length_sq, 0.0, 1.0);\n"
 "      vec2 half_height_width = 0.5 * mix(texelFetch(height_width_angle_tex, segment_id).xy, texelFetch(height_width_angle_tex, segment_id + 1).xy, t);\n"
 "      vec3 radial = position - start - t * line;\n"
-"      vec3 n = vec3(radial.xy / (half_height_width.y * half_height_width.y), radial.z / (half_height_width.x * half_height_width.x));\n"
-"      n = dot(n, n) > 1e-12 ? normalize(n) : UP;\n"
+// UNLAYERED_MOD: the ellipse's height runs along the segment's tool axis, as the cross-section does in the vertex shader
+"      float radial_up = dot(radial, segment_up);\n"
+"      vec3 n = (radial - radial_up * segment_up) / (half_height_width.y * half_height_width.y) + radial_up / (half_height_width.x * half_height_width.x) * segment_up;\n"
+"      n = dot(n, n) > 1e-12 ? normalize(n) : segment_up;\n"
 "      across = mat3(view_matrix) * (n - dot(n, line) / length_sq * line);\n"
 "    }\n"
 "    vec3 v = projection_matrix[3][3] == 1.0 ? vec3(0.0, 0.0, 1.0) : -normalize((view_matrix * vec4(position, 1.0)).xyz);\n"
@@ -542,6 +565,9 @@ static const char* Options_Vertex_Shader =
 "uniform samplerBuffer height_width_angle_tex;\n"
 "uniform samplerBuffer color_tex;\n"
 "uniform usamplerBuffer segment_index_tex;\n"
+// UNLAYERED_MOD: palette of tool axes, and per vertex the index into it.
+"uniform samplerBuffer tool_axis_tex;\n"
+"uniform samplerBuffer tool_axis_id_tex;\n"
 // ORCA: section view
 "uniform vec4 clipping_plane;\n"
 "in vec3 in_position;\n"
@@ -576,7 +602,17 @@ static const char* Options_Vertex_Shader =
 "  vec2 height_width = hwa.xy;\n"
 "  // ORCA: Extract bias from w component\n"
 "  float bias = hwa.w;\n"
-"  vec3 offset = texelFetch(position_tex, id).xyz - vec3(0.0, 0.0, 0.5 * height_width.x);\n"
+// UNLAYERED_MOD: seat and orient the marker on the layer plane rather than on the XY plane, so a
+// seam or retraction on a tilted layer sits flush with the surface instead of leaning through it.
+// Build an orthonormal frame around the tool axis; for UP == +Z this reduces to the identity, so
+// planar prints render exactly as before.
+"  vec4 pos4 = texelFetch(position_tex, id);\n"
+"  vec3 up = texelFetch(tool_axis_tex, int(texelFetch(tool_axis_id_tex, id).r)).xyz;\n"
+"  vec3 fallback = (abs(up.x) < 0.9) ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);\n"
+"  vec3 fwd = normalize(cross(up, fallback));\n"
+"  vec3 right = cross(fwd, up);\n"
+"  mat3 frame = mat3(right, fwd, up);\n"
+"  vec3 offset = pos4.xyz - 0.5 * height_width.x * up;\n"
 "  height_width *= scaling_factor;\n"
 "  mat3 scale_matrix = mat3(\n"
 "    height_width.y, 0.0, 0.0,\n"
@@ -584,11 +620,11 @@ static const char* Options_Vertex_Shader =
 "    0.0, 0.0, height_width.x);\n"
 // ORCA: section view - markers are cut away whole, by their centre
 "  clipping_plane_dot = dot(vec4(offset, 1.0), clipping_plane);\n"
-"  vec3 eye_position = (view_matrix * vec4(scale_matrix * in_position + offset, 1.0)).xyz;\n"
+"  vec3 eye_position = (view_matrix * vec4(frame * (scale_matrix * in_position) + offset, 1.0)).xyz;\n"
 "  // ORCA: Apply bias to z-position to avoid z-fighting\n"
 "  eye_position.z += bias;\n"
-"  vec3 eye_normal = (view_matrix * vec4(in_normal, 0.0)).xyz;\n"
-"  vec3 color_base = decode_color(texelFetch(color_tex, id).rgb, id, int(texelFetch(position_tex, id).w));\n"
+"  vec3 eye_normal = (view_matrix * vec4(frame * in_normal, 0.0)).xyz;\n"
+"  vec3 color_base = decode_color(texelFetch(color_tex, id).rgb, id, int(pos4.w));\n"
 "  color = color_base * lighting(eye_position, eye_normal);\n"
 "  gl_Position = projection_matrix * vec4(eye_position, 1.0);\n"
 "}\n";

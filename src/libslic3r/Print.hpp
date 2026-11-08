@@ -12,9 +12,13 @@
 #include "PrintBase.hpp"
 #include "Fill/FillAdaptive.hpp"
 #include "Fill/FillLightning.hpp"
+#include "PreSliceInfillStructures.hpp"
 #include "Fill/AdaptiveInfillField.hpp"
 
 #include "BoundingBox.hpp"
+#include "CutPlaneSegmentation.hpp"
+#include "Support/SupportDirection.hpp"
+#include "BeltBrim.hpp"   // BELT_MOD
 #include "ExtrusionEntityCollection.hpp"
 #include "Flow.hpp"
 #include "Point.hpp"
@@ -28,8 +32,6 @@
 #include "GCode/ThumbnailData.hpp"
 #include "GCode/GCodeProcessor.hpp"
 #include "MultiMaterialSegmentation.hpp"
-#include "BeltBrim.hpp"
-#include "BeltTransform.hpp"
 #include "ObjectID.hpp"
 #include "TriangleSelector.hpp"
 #include "libslic3r.h"
@@ -40,10 +42,10 @@
 #include <cmath>
 #include <algorithm>
 #include <functional>
+#include <optional>
 #include <memory>
 #include <map>
 #include <math.h>
-#include <optional>
 #include <set>
 #include <string>
 #include <tuple>
@@ -377,9 +379,132 @@ public:
     // Trafo with the center_offset() applied after the transformation, to center the object in XY before slicing.
     Transform3d                  trafo_centered() const
         { Transform3d t = this->trafo(); t.pretranslate(Vec3d(- unscale<double>(m_center_offset.x()), - unscale<double>(m_center_offset.y()), 0)); return t; }
-    // trafo_centered() with the belt pre-slice transforms applied: the frame the layers were sliced in (Layer::slice_z).
-    // Equal to trafo_centered() unless a belt rotation or pre-slice remap is active.
-    Transform3d                  trafo_sliced() const;
+
+    //for multi-planar shit we add another transformation since we are cool :)
+    const Transform3d            post_trafo() const { return m_post_trafo; }
+    const Transform3d            post_trafo_inverse() const { return m_post_trafo_inv; }
+
+    // Authoritative slice frame. object_to_slice() is object-local -> the exact centered
+    // coordinates handed to slice_volumes_inner(); slice_to_object() is its true inverse.
+    // Geometry crossing between two objects (e.g. a cut-plane segment handing a support footprint
+    // to its parent) MUST compose these:
+    //     parent.object_to_slice() * child.slice_to_object()
+    // and must NOT use parent.post_trafo() * child.post_trafo().inverse(): the shared XY centering
+    // translation C does not cancel across a relative rotation. With A = C*P the two differ by
+    // (L - I)*c, where L is the relative rotation and c the object's XY bbox centre -- routinely
+    // tens of millimetres. Both are refreshed by update_slice_frame().
+    const Transform3d&           object_to_slice() const { return m_object_to_slice; }
+    const Transform3d&           slice_to_object() const { return m_slice_to_object; }
+
+    // Declarative cut planes: when this PrintObject is one segment of a ModelObject partitioned by
+    // its cut_planes, Print::apply stores the segment descriptor here (see CutPlaneSegmentation.hpp).
+    // Ordinary objects have no descriptor and behave exactly as before.
+    bool  is_segment() const       { return m_segment.has_value(); }
+    // Root == the segment resting on the bed. Non-segment objects count as roots so all
+    // bed-contact logic (brim, skirt, elephant foot) can gate on this uniformly.
+    bool  is_root_segment() const  { return ! m_segment || m_segment->is_root(); }
+    int   segment_index() const    { return m_segment ? m_segment->index : -1; }
+    const std::optional<CutSegmentDescriptor>& segment() const { return m_segment; }
+    // How far up its build axis (instance frame, same measure as the descriptor's build_z_*) this
+    // segment slices: its own material, or higher where a later segment's cut face rises above it
+    // and the column carrying that segment must be printed here in otherwise empty layers. The
+    // slack leaves room for a demand contact to sit flush under the ceiling plus the support gap.
+    double segment_slice_top() const;
+    // The slack above support_z_max that segment_slice_top() adds: zero for a segment with no
+    // ceiling (nothing ever lands on it), else the support gap plus two of the tallest layers the
+    // schedule may use, so the flush demand contact below a ceiling has layers to sit in.
+    double segment_support_slack() const;
+
+    // Declarative cut planes: support demand handed UP from this segment's children -- the load a
+    // child could not carry to its own floor, expressed in THIS object's slice frame and indexed
+    // 1:1 with layers(). Transient: rebuilt by Print::run_segment_support_cascade() before each
+    // support generation and never serialized, so it is not part of the step state or the project
+    // file. Empty for ordinary objects and for leaf segments.
+    const std::vector<Polygons>& segment_support_demand() const { return m_segment_support_demand; }
+    // The same, for the child's BODY: its material over this segment's empty space. Kept apart
+    // from support-on-support demand because the column under it must keep the normal top Z
+    // distance to the model, while a column under the child's support ends flush with the plane
+    // (and may reach past it by support_section_overlap).
+    const std::vector<Polygons>& segment_body_demand() const { return m_segment_body_demand; }
+    bool                         has_segment_demand() const { return ! m_segment_support_demand.empty() || ! m_segment_body_demand.empty(); }
+    // Union of both kinds at the first layer: what a floating segment or a below-floor extension
+    // has to carry down regardless of kind.
+    Polygons                     segment_demand_first_layer() const;
+    // The support-on-support column at height print_z: the support demand of the object layer
+    // whose slab contains it (the column only grows downward, so that layer's column covers every
+    // support layer within it). Empty when there is none.
+    Polygons                     segment_support_column_at(double print_z) const;
+
+    // UNLAYERED_MOD -- the support lean in effect WHILE this object's support is being generated
+    // (the layers are sheared for that duration, see Support/SupportDirection.hpp). Inactive at any
+    // other time, so readers outside support generation always see plain slice-frame geometry.
+    const SupportLean&           support_lean() const { return m_support_lean; }
+    void                         clear_segment_support_demand() { m_segment_support_demand.clear(); m_segment_body_demand.clear(); }
+    // Union in one child's contribution. A parent may have several children (the partition is a
+    // tree, not a stack), so this accumulates -- the old single-chunk cascade could assign.
+    void                         add_segment_support_demand(const std::vector<Polygons> &demand);
+    void                         add_segment_body_demand(const std::vector<Polygons> &demand);
+
+    // Declarative cut planes: where this segment's layer schedule was cut out of the FULL object
+    // schedule, in the object's own build coordinates. A segment's layer print_z is rebased to its
+    // own zero, so anything configured against object height -- height ranges and the per-range
+    // modifier/negative regions they carry -- has to add this back to ask the right question.
+    // Zero for an ordinary object. Exact for a segment building along +Z; for a tilted segment a
+    // slice plane covers a span of object heights and this is its representative height.
+    double                       segment_schedule_base() const { return m_segment_schedule_base; }
+    // BELT_MOD -- belt schedule. This object's slice frame is raised by this much, so that print_z
+    // measures the same belt position for every object on the belt and the by-layer merge prints
+    // them in belt order (Print::update_belt_schedule()). 0 for the object whose lowest point leads.
+    double                       belt_schedule_offset() const { return m_belt_schedule_offset; }
+    // BBS: the probe behind the "needs support" warning (public so tests can ask it directly).
+    SupportNecessaryType         is_support_necessary();
+    // BELT_MOD -- belt brim (BeltBrim.cpp): bands laid on the belt over many layers, generated in
+    // posSupportMaterial and stored per object layer, plus an apron prologue of brim-only bands
+    // printed BELOW the object's first layer. Object-local slice frame, like the object's extrusions.
+    bool                         has_belt_brim() const;
+    unsigned int                 belt_brim_filament() const;          // 1-based, like outer_wall_filament_id
+    bool                         belt_brim_instances_compatible() const;
+    const std::vector<ExtrusionEntityCollection>& belt_brim_by_layer()       const { return m_belt_brim_by_layer; }
+    const std::vector<ExPolygons>&                belt_brim_areas_by_layer() const { return m_belt_brim_areas_by_layer; }
+    const std::vector<BeltBrimBand>&              belt_brim_prologue()       const { return m_belt_brim_prologue; }
+    void                         clear_belt_brim();
+    void                         set_belt_brim(std::vector<ExtrusionEntityCollection> &&by_layer,
+                                               std::vector<ExPolygons>                &&areas,
+                                               std::vector<BeltBrimBand>              &&prologue);
+    // BELT_MOD -- on a belt every instance is its own PrintObject (its offset depends on where it
+    // sits along the belt); this key, the ModelInstance's id, keeps it distinct across applies.
+    size_t                       belt_instance_key() const { return m_belt_instance_key; }
+    // The B/C angles this object slices under: the per-object config for ordinary objects, the
+    // segment's build normal (root: exactly 0/0) for cut-plane segments.
+    void  effective_layer_rotation_bc(double &b_deg, double &c_deg) const;
+    // UNLAYERED_MOD -- horizontal run this object's tilt is measured over, in mm: the segment's own
+    // build_reach_max, or the whole footprint for a legacy per-object chunk. Feeds the gantry term
+    // of virtual_tilt_limit_deg().
+    double effective_build_reach() const;
+    // BELT_MOD -- this object's build direction in the world frame (a segment's stored normal
+    // through the instance's inverse transpose, or the per-object B/C for an ordinary object).
+    Vec3d build_normal_world() const;
+    // BELT_MOD -- true when this object's support must terminate on a plane that is NOT its
+    // slice-frame z = 0: a non-root cut-plane segment (rests on a tilted cut face), any object on
+    // a belt printer (rests on the belt, which the belt tilt turns into a tilted plane in the
+    // slice frame), or an ordinary object whose layer_rotation_b/c tilts its slice frame (rests on
+    // the plate, tilted in that frame the same way). The support generators use it wherever they
+    // used "non-root segment" to mean "the floor is tilted", and the G-code stage un-rotates such
+    // support like the object.
+    bool  support_floor_is_tilted() const;
+    // UNLAYERED_MOD -- the root segment of an object lifted off a flat plate (auto-drop off): its
+    // lowest material sits more than a first-layer height above the plate, so its first layer is
+    // suspended exactly like a segment floating above its base plane. Its slice frame keeps the plate
+    // at a negative slice z (CutSegmentDescriptor::slice_z_base), so support can descend to it.
+    bool  root_floats_above_plate() const;
+    // BELT_MOD -- the build plate (world z = 0) as a plane in this object's slice frame, in the
+    // form n . (x, y, print_z) + k >= 0 for material above the plate, with XY in plate coordinates
+    // and the lowest-sitting instance folded into k. Factored out of PrintObject::slice_volumes(),
+    // which clips layers with it, so SegmentSupportBounds can use the identical plane for a belt
+    // object's support floor.
+    void  bed_plane_in_slice_frame(Vec3d &n_bed, double &k_bed) const;
+
+
     const PrintInstances&        instances() const      { return m_instances; }
     // Orca: Bounding box of each connected body, indexed by Layer::lslices_separated_component_ids.
     const std::vector<BoundingBox>& separated_body_bboxes() const { return m_separated_body_bboxes; }
@@ -407,7 +532,7 @@ public:
     double                      max_z() const         { return m_max_z; }
     // Centering offset of the sliced mesh from the scaled and rotated mesh of the model.
     const Point& 			     center_offset() const  { return m_center_offset; }
-    const AdaptiveInfillField*       adaptive_infill_field(AdaptiveInfillMode mode) const { return m_adaptive_infill_fields[size_t(mode)].get(); }
+    const AdaptiveInfillField*       adaptive_infill_field(AdaptiveInfillMode mode) const { return m_pre_slice_infill_structures.adaptive_infill_fields[size_t(mode)].get(); }
 
     // BBS
     void generate_support_preview();
@@ -419,28 +544,10 @@ public:
     bool                         has_brim() const       {
         return ((this->config().brim_type != btNoBrim && this->config().brim_width.value > 0.) || this->config().brim_type == btAutoBrim
             || (this->config().brim_type == btPainted && !this->model_object()->brim_points.empty()))
-            && ! this->has_raft();
+            && ! this->has_raft()
+            // A non-root cut-plane segment rests on the segment below it, never on the bed.
+            && this->is_root_segment();
     }
-
-    // Belt brim.  A tilted belt needs its brim laid onto the belt plane over many
-    // layers instead of as one flat first-layer ring, so it is generated by
-    // BeltBrim.cpp and stored per layer here.  Deliberately separate from
-    // has_brim(): that predicate feeds PrintRegion extruder collection, support
-    // trimming and the spiral vase probe, and widening it would perturb belt
-    // support output.
-    bool                         has_belt_brim() const;
-    // Brim filament for this object's belt brim, returned in the 1-based domain of
-    // PrintRegion::outer_wall_filament_id and the raw values pushed into
-    // LayerTools::extruders in ToolOrdering::collect_extruders (ToolOrdering reindexes
-    // the whole list to 0-based afterwards).  Lowest positive outer_wall_filament_id
-    // over the printing regions, 1 if none is explicitly set.
-    unsigned int                 belt_brim_filament() const;
-    const std::vector<ExtrusionEntityCollection>& belt_brim_by_layer()       const { return m_belt_brim_by_layer; }
-    const std::vector<BeltBrimBand>&              belt_brim_prologue()       const { return m_belt_brim_prologue; }
-    void                         clear_belt_brim();
-    void                         set_belt_brim(std::vector<ExtrusionEntityCollection> &&by_layer,
-                                               std::vector<ExPolygons>                &&areas,
-                                               std::vector<BeltBrimBand>              &&prologue);
 
     // BBS
     const ExtrusionEntityCollection& object_skirt() const {
@@ -554,6 +661,7 @@ public:
   private:
     // to be called from Print only.
     friend class Print;
+    friend class ScopedSupportShear;
 
 	PrintObject(Print* print, ModelObject* model_object, const Transform3d& trafo, PrintInstances&& instances);
 	~PrintObject();
@@ -571,6 +679,10 @@ public:
         const ConfigOptionResolver &old_config, const ConfigOptionResolver &new_config, const std::vector<t_config_option_key> &opt_keys);
     // If ! m_slicing_params.valid, recalculate.
     void                    update_slicing_parameters();
+    // Recompute m_post_trafo / m_post_trafo_inv / m_object_to_slice / m_slice_to_object. Idempotent
+    // and independent of the slicing STEP, so the frame is valid even when posSlice is already done
+    // and slice() early-returns.
+    void                    update_slice_frame();
 
     static PrintObjectConfig object_config_from_model_object(const PrintObjectConfig &default_object_config, const ModelObject &object, size_t num_extruders, std::vector<int>& variant_index);
 
@@ -581,13 +693,7 @@ private:
     void ironing();
     bool need_z_contouring() const;
     void contour_z();
-    // with_belt_brim = false leaves the belt brim to generate_belt_brim(), for a
-    // caller that runs the support step of several objects in parallel.
-    void generate_support_material(bool with_belt_brim = true);
-    // The belt brim keeps clear of every object's layers and support layers, so
-    // it has to run after all support steps finished.  A no-op unless a support
-    // step left it pending.
-    void generate_belt_brim();
+    void generate_support_material();
     void estimate_curled_extrusions();
     void simplify_extrusion_path();
 
@@ -603,39 +709,11 @@ private:
     std::vector<std::set<int>> detect_extruder_geometric_unprintables() const;
 
     void slice_volumes();
-    // Belt mode: shift the sliced layer grid (layer print_z and the belt floor
-    // clipping shift) by delta, used by Print::_align_belt_purge_layers() to
-    // snap the purge prism's layers onto the printed objects' layer grid.
-    void belt_shift_layer_grid(double delta);
-    // Belt mode: remove layers above z (cancel the purge prism past the last
-    // toolchange). Returns how many layers were dropped.
+    // BELT_MOD -- belt purge prism: drop the layers above z once no toolchange needs them (the prism
+    // stops at the last colour swap), reversibly, since a wipe-tower-only invalidation replans
+    // without reslicing. See BeltPurge.cpp.
     size_t belt_truncate_layers_above(coordf_t z);
-    // Restore layers removed by belt_truncate_layers_above() before replanning.
-    // Wipe-tower-only invalidations do not necessarily reslice the object, so
-    // truncation must be reversible when later toolchanges move upward.
-    void belt_restore_truncated_layers();
-    // Belt purge prism, plastic saving: drop the fills on one layer that no
-    // toolchange claimed. `claimed` reports whether an entity was overridden as
-    // purge; everything else on that layer would otherwise print as solid infill
-    // in the prism's own filament for nothing. Perimeters are never touched, so
-    // the bar keeps a continuous wall along the belt.
-    //
-    // Entities are STASHED, not deleted, with their original positions -- the
-    // same reversibility contract belt_truncate_layers_above() has, and the
-    // reason the original version of this had to be removed: psWipeTower can
-    // rerun without regenerating infill, and a later tool ordering may claim what
-    // this one did not. Returns the number of entities dropped.
-    size_t belt_drop_unclaimed_fills(Layer *layer, const std::function<bool(const ExtrusionEntity*)> &claimed);
-    // Put every stashed fill back at its original index. Must run before a replan.
-    void   belt_restore_dropped_fills();
-    // Undo every edit _plan_belt_purge() made to this object's layers, leaving
-    // m_layers exactly as the object steps produced it. Fills first: they point
-    // into layers that are still live, and truncated layers were stashed whole
-    // with their own fills untouched, so the two stashes never share an entity.
-    // Print::process() calls this before any object step may rerun (those steps
-    // regenerate per-layer content over m_layers only, so a stale stash would
-    // otherwise be restored on top of fresh content); the plan calls it too.
-    void   belt_undo_purge_plan() { belt_restore_dropped_fills(); belt_restore_truncated_layers(); }
+    void   belt_restore_truncated_layers();
     //BBS
     ExPolygons _shrink_contour_holes(double contour_delta, double hole_delta, const ExPolygons& polys) const;
     // BBS
@@ -651,15 +729,29 @@ private:
     void bridge_over_infill();
     void clip_fill_surfaces();
     void discover_horizontal_shells();
+    // Orca: wave-overhang floor-layer authority — runs after all surface-classification
+    // passes to authoritatively set surface types within the wave shadow (N=0 => all
+    // stInternal; N>=1 => N layers of uniform stInternalSolid above each wave strip).
+    void apply_wave_overhang_floor_layer_authority();
+    // Orca: wave-overhang bridge suppression — when wave_overhangs_instead_of_bridges
+    // is true, reclassify any stBottomBridge / stInternalBridge surfaces inside the
+    // overhang region to stInternalSolid so residuals (small pockets the wave
+    // generator couldn't grow into) print as solid infill instead of bridge pattern.
+    void apply_wave_overhang_bridge_suppression();
+    // Orca: tag perimeter ExtrusionPaths in wave-overhang layers and floor layers above
+    // so the G-code stage applies wave_overhang_perimeter_speed (wave layers) or
+    // wave_overhang_floor_perimeter_speed (floor layers) to those walls.
+    void tag_wave_overhang_perimeters();
     void combine_infill();
     void _generate_support_material();
     FillAdaptive::RegionOctrees prepare_adaptive_infill_data(
         const std::vector<std::pair<const Surface*, const Layer*>>& surfaces_w_layer) const;
     FillLightning::GeneratorPtr prepare_lightning_infill_data();
+    // Writes m_pre_slice_infill_structures.mesh_infill; skips regeneration
+    // when the mesh-relevant inputs are unchanged since the last slice
+    // (m_mesh_infill_cache_key).
+    void prepare_mesh_infill_data();
     AdaptiveInfillFields prepare_adaptive_infill_fields() const;
-
-    // BBS
-    SupportNecessaryType is_support_necessary();
 
     // XYZ in scaled coordinates
     Vec3crd									m_size;
@@ -667,6 +759,28 @@ private:
     PrintObjectConfig                       m_config;
     // Translation in Z + Rotation + Scaling / Mirroring.
     Transform3d                             m_trafo = Transform3d::Identity();
+
+    // extra trafo for multi-planar
+    Transform3d m_post_trafo = Transform3d::Identity();
+    Transform3d m_post_trafo_inv = Transform3d::Identity();
+    // See object_to_slice(). Kept in sync with m_post_trafo by update_slice_frame().
+    Transform3d m_object_to_slice = Transform3d::Identity();
+    Transform3d m_slice_to_object = Transform3d::Identity();
+
+    // Declarative cut planes: segment descriptor, set by Print::apply right after construction.
+    std::optional<CutSegmentDescriptor> m_segment;
+    // See segment_support_demand(). Transient, per-layer, this object's slice frame.
+    std::vector<Polygons>               m_segment_support_demand;
+    // See segment_body_demand().
+    std::vector<Polygons>               m_segment_body_demand;
+    // See support_lean(). Set and cleared by ScopedSupportShear only.
+    SupportLean                         m_support_lean;
+    // See segment_schedule_base().
+    double                              m_segment_schedule_base { 0. };
+    // BELT_MOD -- see belt_schedule_offset() / belt_instance_key().
+    double                              m_belt_schedule_offset { 0. };
+    size_t                              m_belt_instance_key { 0 };
+
     // Slic3r::Point objects in scaled G-code coordinates
     std::vector<PrintInstance>              m_instances;
     // The mesh is being centered before thrown to Clipper, so that the Clipper's fixed coordinates require less bits.
@@ -679,24 +793,12 @@ private:
 
     SlicingParameters                       m_slicing_params;
     LayerPtrs                               m_layers;
-    LayerPtrs                               m_belt_truncated_layers;
-    // Fills removed by belt_drop_unclaimed_fills(), owned by this vector until
-    // restored or until clear_layers() deletes them. An entity is in exactly one
-    // of the live collection or this stash, never both.
-    struct BeltDroppedFill {
-        Layer           *layer      { nullptr };
-        size_t           region_idx { 0 };
-        size_t           index      { 0 };   // position in the original fills.entities
-        ExtrusionEntity *entity     { nullptr };
-    };
-    std::vector<BeltDroppedFill>            m_belt_dropped_fills;
-    SupportLayerPtrs                        m_support_layers;
-    // Belt brim, generated in posSupportMaterial by BeltBrim.cpp.  Object-local
-    // slicing frame, one entry per object layer plus a prologue of brim-only
-    // bands that print below the object's first layer.
+    LayerPtrs                               m_belt_truncated_layers;   // BELT_MOD, see belt_truncate_layers_above
+    // BELT_MOD -- belt brim, see has_belt_brim().
     std::vector<ExtrusionEntityCollection>  m_belt_brim_by_layer;
     std::vector<ExPolygons>                 m_belt_brim_areas_by_layer;
     std::vector<BeltBrimBand>               m_belt_brim_prologue;
+    SupportLayerPtrs                        m_support_layers;
     // BBS
     std::shared_ptr<TreeSupportData>        m_tree_support_preview_cache;
 
@@ -704,10 +806,10 @@ private:
     // so that next call to make_perimeters() performs a union() before computing loops
     bool                    				m_typed_slices = false;
 
-    FillAdaptive::RegionOctrees             m_adaptive_fill_octrees;
-    std::vector<BoundingBox>                m_separated_body_bboxes;
-    FillLightning::GeneratorPtr m_lightning_generator;
-    AdaptiveInfillFields m_adaptive_infill_fields;
+    PreSliceInfillStructures m_pre_slice_infill_structures;
+    // Session cache key for mesh_infill (see prepare_mesh_infill_data).
+    std::string              m_mesh_infill_cache_key;
+    std::vector<BoundingBox> m_separated_body_bboxes;
 
     std::vector < VolumeSlices >            firstLayerObjSliceByVolume;
     std::vector<groupedVolumeSlices>        firstLayerObjSliceByGroups;
@@ -717,25 +819,7 @@ private:
 
     PrintObject*                            m_shared_object{ nullptr };
 
-    // Belt printer: global Z offset applied to this object's layers for shear positioning.
-    double                                  m_belt_global_z_offset { 0.0 };
-    // generate_support_material(false) finished and generate_belt_brim() has not run yet.
-    bool                                    m_belt_brim_pending { false };
-    // Belt printer: min_z of mesh after belt shear (before Z-shift), for z_offset calc.
-    double                                  m_belt_min_z { 0.0 };
-    // Belt printer: exact belt_floor_z_shift computed during posSlice from a
-    // vertex-level scan of the post-transform mesh.  Cached separately from
-    // m_slicing_params so that rebuilding m_slicing_params on a non-belt-affecting
-    // invalidation (e.g. support config change) doesn't replace the exact value
-    // with the bbox approximation seeded by create_from_config().  Cleared when
-    // posSlice is invalidated.
-    double                                  m_belt_floor_z_shift_cached { 0.0 };
-    bool                                    m_belt_floor_z_shift_cache_valid { false };
-public:
-    double belt_global_z_offset() const { return m_belt_global_z_offset; }
-private:
-
-
+    
     // SoftFever
     // 
     // object id
@@ -1098,15 +1182,6 @@ public:
     bool                has_infinite_skirt() const;
     bool                has_skirt() const;
     bool                has_brim() const;
-    // True when the belt is tilted enough that the BELT plane, not the bed plane, is
-    // the adhesion surface.  The flat plate brim is geometrically meaningless then
-    // and must not run, whatever the per-object brim settings say - in particular
-    // brim_type "Auto", which has_brim() reports as enabled even at width 0.
-    bool                has_tilted_belt() const;
-    // True when at least one object actually gets a tilted-belt brim generated.
-    // Implies has_tilted_belt(), but additionally requires the object's own brim
-    // settings to ask for one.
-    bool                has_belt_brim() const;
     //BBS
     bool                has_auto_brim() const    {
         return std::any_of(m_objects.begin(), m_objects.end(), [](PrintObject* object) { return object->config().brim_type == btAutoBrim; });
@@ -1130,6 +1205,8 @@ public:
 
     const PrintConfig&          config() const { return m_config; }
     const PrintObjectConfig&    default_object_config() const { return m_default_object_config; }
+    // UNLAYERED_MOD -- see PrintApply.cpp: an object with its own B/C rotation gets one PrintObject per instance.
+    bool                        object_slices_rotated(const ModelObject &model_object) const;
     const PrintRegionConfig& default_region_config() const { return m_default_region_config; }
     ConstPrintObjectPtrsAdaptor objects() const { return ConstPrintObjectPtrsAdaptor(&m_objects); }
     PrintObject*                get_object(size_t idx) { return const_cast<PrintObject*>(m_objects[idx]); }
@@ -1185,8 +1262,12 @@ public:
 
     // Wipe tower support.
     bool                        has_wipe_tower() const;
-    // Belt purge prism (belt-mode replacement for the wipe tower).
+    // BELT_MOD -- the belt purge prism, the belt replacement for the wipe tower (BeltPurge.cpp).
     bool                        has_belt_purge_tower() const;
+    // BELT_MOD -- belt brim (BeltBrim.cpp): any object lays a brim onto the belt.
+    bool                        has_belt_brim() const;
+    // A belt tilted enough that the belt plane, not the bed plane, is the adhesion surface.
+    bool                        has_tilted_belt() const;
     const WipeTowerData&        wipe_tower_data(size_t filaments_cnt = 0) const;
     const ToolOrdering& 		tool_ordering() const { return m_tool_ordering; }
 
@@ -1326,7 +1407,9 @@ public:
     {
         std::string result;
         if (m_conflict_result) {
-            result = "Found gcode path conflicts between object " + m_conflict_result.value()._objName1 + " and " + m_conflict_result.value()._objName2;
+            result = m_conflict_result.value().message.empty()
+                ? "Found gcode path conflicts between object " + m_conflict_result.value()._objName1 + " and " + m_conflict_result.value()._objName2
+                : m_conflict_result.value().message; // UNLAYERED_MOD: hotend collision report
         }
 
         return result;
@@ -1465,14 +1548,30 @@ private:
     bool                has_tpu_filament() const;
     bool                invalidate_state_by_config_options(const ConfigOptionResolver &new_config, const std::vector<t_config_option_key> &opt_keys);
 
+    // Declarative cut planes: slice a segment's whole family and run the cascade over it, for the
+    // support-painting preview. Called by PrintObject::generate_support_preview(), which reaches it
+    // through the existing friendship.
+    void                run_segment_support_preview(PrintObject *member);
+
+    // Declarative cut planes: the segments derived from one ModelObject under one effective
+    // instance transform form a FAMILY. Support inside a family must be generated child-first,
+    // because a segment hands the load it cannot carry down to every segment printed before it,
+    // so the returned families are ordered deepest-first (descending segment index, a valid
+    // postorder over the segment.parent graph). Ordinary objects and objects with no cut planes
+    // are never returned.
+    std::vector<std::vector<PrintObject*>> segment_families() const;
+    // Every segment of `object`'s family printed BEFORE it (lower segment index): the segments its
+    // support column can pass through on the way to the bed, and therefore the ones whose support
+    // depends on it. Empty for the root and for ordinary objects.
+    std::vector<PrintObject*> segments_below(const PrintObject *object) const;
+    // Generate support for one family child-first, transferring each child's unsupported footprint
+    // to its parent in between. PrintObject::generate_support_material() is private to PrintObject
+    // and Print is its friend, which is why this lives here.
+    void                run_segment_support_cascade(const std::vector<PrintObject*> &family);
+
     void                _make_skirt();
     void                _make_wipe_tower();
-    // Belt mode: route filament-change purging into the belt purge prism
-    // (flush-into-objects) without generating a classic wipe tower.
-    void                _plan_belt_purge();
-    // Belt mode: shift the purge prism's layer grid to match the printed
-    // objects' grid so toolchange layers find prism layers to purge into.
-    void                _align_belt_purge_layers();
+    void                _plan_belt_purge();   // BELT_MOD
     void                finalize_first_layer_convex_hull();
     void                update_filament_self_index_cache();
     // Deduplicates, per filament, the (extruder type x volume type) variants the grouping
@@ -1579,6 +1678,8 @@ private:
     int     m_modified_count {0};
     //BBS
     ConflictResultOpt m_conflict_result;
+    // BELT_MOD -- recompute every object's belt_schedule_offset(); true when a slice was invalidated.
+    bool update_belt_schedule();
     FakeWipeTower     m_fake_wipe_tower;
     bool              m_has_auto_filament_map_result{false};
     

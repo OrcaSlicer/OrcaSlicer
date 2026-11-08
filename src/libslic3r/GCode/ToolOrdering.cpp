@@ -18,7 +18,6 @@
 #include "Utils.hpp"
 #include "format.hpp"
 #include "I18N.hpp"
-#include "../BeltBrim.hpp"
 
 #include <boost/log/trivial.hpp>
 #include <vector>
@@ -420,10 +419,6 @@ bool ToolOrdering::insert_wipe_tower_extruder()
 {
     if (!m_print_config_ptr || !m_print_config_ptr->enable_prime_tower)
         return false;
-    // Belt mode has no classic wipe tower; the dedicated wipe tower filament
-    // must not inject extra toolchanges into the purge prism planning.
-    if (m_print_config_ptr->belt_printer)
-        return false;
     if (m_print_config_ptr->wipe_tower_filament == 0)
         return false;
 
@@ -501,6 +496,78 @@ void ToolOrdering::sort_and_build_data(const PrintObject& object , unsigned int 
 }
 
 
+// For ByGroup: a subset of objects printed layer-interleaved within one group.
+ToolOrdering::ToolOrdering(const std::vector<const PrintObject*>& objects, unsigned int first_extruder, bool prime_multi_material)
+{
+    assert(!objects.empty());
+    const Print* print = objects.front()->print();
+    m_print_full_config = &print->full_print_config();
+    m_print = const_cast<Print*>(print);
+    m_print_config_ptr = &print->config();
+
+    coordf_t max_layer_height = 0.;
+    {
+        std::vector<coordf_t> zs;
+        for (const PrintObject* object : objects) {
+            zs.reserve(zs.size() + object->layers().size() + object->support_layers().size());
+            for (auto layer : object->layers())
+                zs.emplace_back(layer->print_z);
+            for (auto layer : object->support_layers())
+                zs.emplace_back(layer->print_z);
+            // BELT_MOD -- belt brim apron bands sit below the object's first layer and have no
+            // layer of their own, but tools_for_layer() asserts an exact Z match.
+            for (const BeltBrimBand &band : object->belt_brim_prologue())
+                zs.emplace_back(band.print_z);
+            max_layer_height = std::max(max_layer_height, object->config().layer_height.value);
+        }
+        this->initialize_layers(zs);
+    }
+    max_layer_height = calc_max_layer_height(print->config(), max_layer_height);
+
+    for (const PrintObject* object : objects)
+        this->collect_extruders(*object, std::vector<std::pair<double, unsigned int>>());
+
+    std::vector<unsigned int> first_layer_tool_order;
+    if (first_extruder == (unsigned int)-1)
+        first_layer_tool_order = generate_first_layer_tool_order(*objects.front());
+
+    if (!first_layer_tool_order.empty())
+        this->handle_dontcare_extruder(first_layer_tool_order);
+    else
+        this->handle_dontcare_extruder(first_extruder);
+
+    this->collect_extruder_statistics(prime_multi_material);
+    this->mark_skirt_layers(print->config(), max_layer_height);
+}
+
+void ToolOrdering::sort_and_build_data(const std::vector<const PrintObject*>& objects, unsigned int first_extruder, bool prime_multi_material)
+{
+    bool reorder_first_layer = (first_extruder != (unsigned int)(-1));
+    reorder_extruders_for_minimum_flush_volume(reorder_first_layer);
+    m_sorted = true;
+
+    const Print* print = objects.front()->print();
+    double max_layer_height = 0.;
+    double object_bottom_z = 0.;
+    for (const PrintObject* object : objects) {
+        for (const Layer* layer : object->layers()) {
+            if (layer->has_extrusions()) {
+                object_bottom_z = layer->print_z - layer->height;
+                break;
+            }
+        }
+        max_layer_height = std::max(max_layer_height, object->config().layer_height.value);
+    }
+    max_layer_height = calc_max_layer_height(print->config(), max_layer_height);
+
+    this->fill_wipe_tower_partitions(print->config(), object_bottom_z, max_layer_height);
+    if (this->insert_wipe_tower_extruder()) {
+        reorder_extruders_for_minimum_flush_volume(reorder_first_layer);
+        this->fill_wipe_tower_partitions(print->config(), object_bottom_z, max_layer_height);
+    }
+    this->collect_extruder_statistics(prime_multi_material);
+}
+
 // For the use case when each object is printed separately
 // (print->config().print_sequence == PrintSequence::ByObject is true).
 ToolOrdering::ToolOrdering(const PrintObject &object, unsigned int first_extruder, bool prime_multi_material)
@@ -521,10 +588,7 @@ ToolOrdering::ToolOrdering(const PrintObject &object, unsigned int first_extrude
             zs.emplace_back(layer->print_z);
         for (auto layer : object.support_layers())
             zs.emplace_back(layer->print_z);
-        // Belt brim apron bands sit below the object's first layer and have no
-        // layer of their own, but tools_for_layer() asserts an exact Z match, so
-        // their print_z must be part of the ordering.
-        for (const BeltBrimBand &band : object.belt_brim_prologue())
+        for (const BeltBrimBand &band : object.belt_brim_prologue())   // BELT_MOD, see the print ctor
             zs.emplace_back(band.print_z);
         this->initialize_layers(zs);
     }
@@ -570,8 +634,8 @@ ToolOrdering::ToolOrdering(const Print &print, unsigned int first_extruder, bool
                 zs.emplace_back(layer->print_z);
             for (auto layer : object->support_layers())
                 zs.emplace_back(layer->print_z);
-            // See the single-object ctor: belt brim apron bands need their own
-            // ordering entries or tools_for_layer() will assert.
+            // BELT_MOD -- belt brim apron bands sit below the object's first layer and have no
+            // layer of their own, but tools_for_layer() asserts an exact Z match.
             for (const BeltBrimBand &band : object->belt_brim_prologue())
                 zs.emplace_back(band.print_z);
 
@@ -996,39 +1060,28 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
         }
     }
 
-    // Belt brim apron bands own their layers outright: they print below the
-    // object's first layer, so no object or support layer claims an extruder there
-    // and process_layer() would bail out at "Nothing to extrude".  Claim the
-    // object's outer wall filament, in the same raw 1-based domain the loops above
-    // push.  Deliberately not layer_tools.has_object, which drives skirt marking
-    // and wiping overrides.
-    if (! object.belt_brim_prologue().empty()) {
-        // 1-based, same domain the object/support pushes above use; reindexed to 0-based
-        // with the rest of the list later.
+    // BELT_MOD -- belt brim. Apron bands own their layers outright (below the object's first
+    // layer nothing else claims an extruder there, and process_layer() would bail out at "Nothing
+    // to extrude"); coincident bands print ON an object layer that may yield no instance visit (a
+    // zero-extrusion lead-in slice). Claim the brim filament on both, in the same raw 1-based
+    // domain the loops above push. Deliberately not has_object.
+    if (object.has_belt_brim()) {
         const unsigned int brim_filament = object.belt_brim_filament();
         for (const BeltBrimBand &band : object.belt_brim_prologue()) {
             if (band.fills.empty())
                 continue;
             LayerTools &layer_tools = this->tools_for_layer(band.print_z);
             layer_tools.extruders.push_back(brim_filament);
+            layer_tools.has_belt_brim = true;
         }
-    }
-
-    // Coincident brim bands (belt_brim_by_layer) print ON an object layer rather than
-    // below it, but that layer can produce no InstanceVisit in process_layer - a
-    // zero-extrusion lead-in slice with no coinciding support - and the band would then
-    // be silently dropped.  Register the brim filament on every layer that carries a
-    // coincident band, in the same 1-based domain as the prologue push above, so a brim
-    // pass always exists there.
-    if (object.has_belt_brim()) {
-        const unsigned int brim_filament = object.belt_brim_filament();
-        const auto        &by_layer      = object.belt_brim_by_layer();
-        const size_t       n             = std::min(by_layer.size(), object.layers().size());
+        const auto  &by_layer = object.belt_brim_by_layer();
+        const size_t n        = std::min(by_layer.size(), object.layers().size());
         for (size_t i = 0; i < n; ++ i) {
             if (by_layer[i].empty())
                 continue;
             LayerTools &layer_tools = this->tools_for_layer(object.layers()[i]->print_z);
             layer_tools.extruders.push_back(brim_filament);
+            layer_tools.has_belt_brim = true;
         }
     }
 
@@ -1074,27 +1127,14 @@ void ToolOrdering::fill_wipe_tower_partitions(const PrintConfig &config, coordf_
     }
 
     //FIXME this is a hack to get the ball rolling.
-    // The `print_z < object_bottom_z` clause reads "below the object" as "raft
-    // gap".  On a belt printer that is wrong: the brim apron legitimately prints
-    // below the object's first layer, and treating those layers as raft would put a
-    // wipe tower at negative Z.  A belt printer never prints the classic
-    // prime tower (Print::has_wipe_tower()), so simply drop the clause there.
-    //
-    // Gate on config.belt_printer, NOT on has_belt_brim: every layer below the
-    // object bottom on a belt printer is legitimately a sub-object stream - brim
-    // apron, belt support printed below Z0, or the object's own lead-in - and none of
-    // them is ever raft, because Print::validate() rejects raft_layers>0 on a belt
-    // printer outright.  Narrowing this to has_belt_brim would reclassify
-    // belt-support-below-floor layers as raft on brim-less belt prints and reintroduce
-    // the negative-Z wipe tower, so the broad belt_printer gate is correct.
+    // BELT_MOD -- "below the object" is not a raft gap on a belt: the brim apron, belt support
+    // and the object's own lead-in legitimately print there, and there is no raft on a belt.
     const bool belt_no_raft_gap = config.belt_printer.value;
     for (LayerTools &lt : m_layer_tools)
         lt.has_wipe_tower |= ((lt.has_object || lt.has_support) && (config.timelapse_type == TimelapseType::tlSmooth || lt.wipe_tower_partitions > 0))
             || (! belt_no_raft_gap && lt.print_z < object_bottom_z + EPSILON);
 
     // Test for a raft, insert additional wipe tower layer to fill in the raft separation gap.
-    // Skipped on belt printers for the same reason as the clause above: layers
-    // below the object are brim apron, not raft.
     for (size_t i = 0; ! belt_no_raft_gap && i + 1 < m_layer_tools.size(); ++ i) {
         const LayerTools &lt      = m_layer_tools[i];
         const LayerTools &lt_next = m_layer_tools[i + 1];
@@ -3322,6 +3362,33 @@ void ToolOrdering::assign_custom_gcodes(const Print &print)
 			++ custom_gcode_it;
 		}
 	}
+}
+
+// UNLAYERED_MOD: the codes the layers of the object being printed point to. One object instance at a
+// time, like custom_gcode_per_print_z above: refilled before each instance is printed.
+static std::vector<CustomGCode::Item> custom_gcodes_sequential;
+void ToolOrdering::assign_custom_gcodes_sequential(const Print &print, int sequential_object)
+{
+    assert(print.config().print_sequence == PrintSequence::ByObject);
+    for (LayerTools &lt : m_layer_tools)
+        lt.custom_gcode = nullptr;
+    custom_gcodes_sequential.clear();
+    for (const CustomGCode::Item &item : print.model().get_curr_plate_custom_gcodes().gcodes)
+        if (item.sequential_object == sequential_object &&
+            (item.type == CustomGCode::PausePrint || item.type == CustomGCode::Custom || item.type == CustomGCode::Template))
+            custom_gcodes_sequential.push_back(item);
+    if (custom_gcodes_sequential.empty() || m_layer_tools.empty())
+        return;
+    // Each code goes to the layer it was added on (the slider stores that layer's print_z), or the
+    // nearest one; never to a layer more than half a layer away. Several on one layer: the last wins.
+    for (const CustomGCode::Item &item : custom_gcodes_sequential) {
+        auto it = std::min_element(m_layer_tools.begin(), m_layer_tools.end(), [&item](const LayerTools &a, const LayerTools &b) {
+            return std::abs(a.print_z - item.print_z) < std::abs(b.print_z - item.print_z);
+        });
+        coordf_t below = it == m_layer_tools.begin() ? 0. : std::prev(it)->print_z;
+        if (std::abs(it->print_z - item.print_z) <= 0.5 * (it->print_z - below) + EPSILON)
+            it->custom_gcode = &item;
+    }
 }
 
 const LayerTools& ToolOrdering::tools_for_layer(coordf_t print_z) const

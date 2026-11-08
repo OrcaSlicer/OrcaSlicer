@@ -16,6 +16,7 @@
 #include "libslic3r/Zipper.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Semver.hpp"
+#include "libslic3r_version.h"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/ProjectTask.hpp"
@@ -33,9 +34,12 @@
 #include "libslic3r/TriangleSelector.hpp"
 #include "libslic3r/TextureDisplacement.hpp"
 #include <memory>
+#include <optional>
 #include <cstdint>
 #include <ios>
 #include <nlohmann/json.hpp>
+
+#include <cereal/archives/binary.hpp>
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/file_status.hpp>   // no_perms, owner_all
@@ -166,6 +170,12 @@ SCENARIO("Export+Import geometry to/from 3mf file cycle", "[3mf]") {
                 load_3mf(test_file.c_str(), dst_config, ctxt, &dst_model, false);
             }
 
+            // UNLAYERED_MOD: this fork's load_3mf() drops a loaded model onto the bed (Model::adjust_min_z(),
+            // re-enabled in 82a4e99ca8; upstream keeps it commented out). The source model here has a
+            // negative min z after its rotated/mirrored instance transform, so apply the same drop to it:
+            // the comparison then tests the transform round-trip, which is the point, not the drop.
+            src_model.adjust_min_z();
+
             // compare meshes
             TriangleMesh src_mesh = src_model.mesh();
             TriangleMesh dst_mesh = dst_model.mesh();
@@ -178,6 +188,57 @@ SCENARIO("Export+Import geometry to/from 3mf file cycle", "[3mf]") {
             }
             THEN("world vertices coordinates after load match") {
                 REQUIRE(res);
+            }
+        }
+    }
+}
+
+// Declarative cut planes are persisted two ways, both modeled on layer_config_ranges:
+//   1. cereal  — in-session undo/redo and model backup (tested here, headless & exact).
+//   2. .3mf    — a Metadata/cut_planes.xml part written by the BBS exporter used for projects.
+//      The .3mf export is verified out-of-band (store a project, unzip, inspect the XML);
+//      an in-process load_bbs_3mf round-trip needs full Plater/plate state to reconstruct
+//      objects, so it is not reproduced as a unit test here.
+SCENARIO("Declarative cut planes survive a cereal round-trip", "[cutplanes]") {
+    GIVEN("a cut-plane stack with two planes, including a non-axis normal") {
+        CutPlaneStack src;
+        src.enabled      = true;
+        src.user_ordered = true;   // manual plane order must survive the round-trip too
+        src.planes.push_back(CutPlane{ Vec3d(1.0, 2.0, 3.0), Vec3d(0.0, 0.0, 1.0) });
+        src.planes.push_back(CutPlane{ Vec3d(-4.5, 6.25, -7.75), Vec3d(1.0, 2.0, 3.0).normalized() });
+        // Exercise the per-plane build-normal override and enabled flag as well.
+        src.planes[1].build_normal     = Vec3d(0.5, -0.25, 2.0).normalized();
+        src.planes[1].has_build_normal = true;
+        src.planes[1].enabled          = false;
+
+        WHEN("serialized to a binary cereal archive and read back") {
+            std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
+            {
+                cereal::BinaryOutputArchive oarchive(ss);
+                oarchive(src);
+            }
+            CutPlaneStack dst;
+            {
+                cereal::BinaryInputArchive iarchive(ss);
+                iarchive(dst);
+            }
+
+            THEN("the enabled flag and every plane's point/normal are preserved exactly") {
+                CHECK(dst.enabled == src.enabled);
+                CHECK(dst.user_ordered == src.user_ordered);
+                REQUIRE(dst.planes.size() == src.planes.size());
+
+                using Catch::Matchers::WithinAbs;
+                for (size_t i = 0; i < src.planes.size(); ++i) {
+                    for (int c = 0; c < 3; ++c) {
+                        CHECK_THAT(dst.planes[i].point[c],        WithinAbs(src.planes[i].point[c],        1e-12));
+                        CHECK_THAT(dst.planes[i].normal[c],       WithinAbs(src.planes[i].normal[c],       1e-12));
+                        CHECK_THAT(dst.planes[i].build_normal[c], WithinAbs(src.planes[i].build_normal[c], 1e-12));
+                    }
+                    CHECK(dst.planes[i].has_build_normal == src.planes[i].has_build_normal);
+                    CHECK(dst.planes[i].enabled          == src.planes[i].enabled);
+                }
+                CHECK(dst == src); // exercises CutPlaneStack::operator==
             }
         }
     }
@@ -470,7 +531,7 @@ static void store_painted_cube(const std::string& path)
 
 // Loads `path` through the BBS importer into `model`, releasing the plates it returns. The
 // importer stages metadata through `backup_dir`, which has to outlive the model.
-static bool load_project(const std::string& path, Model& model, const ScopedTemporaryDir& backup_dir)
+static bool load_project(const std::string& path, Model& model, const ScopedTemporaryDir& backup_dir, Semver* file_version = nullptr)
 {
     model.set_backup_path(backup_dir.string());
     DynamicPrintConfig        config;
@@ -478,9 +539,10 @@ static bool load_project(const std::string& path, Model& model, const ScopedTemp
     PlateDataPtrs             plates;
     std::vector<Preset*>      project_presets;
     bool   is_bbl_3mf = false, is_orca_3mf = false;
-    Semver file_version;
+    Semver loaded_version;
     const bool loaded = load_bbs_3mf(path.c_str(), &config, &ctxt, &model, &plates, &project_presets, &is_bbl_3mf,
-                                     &is_orca_3mf, &file_version, nullptr, LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
+                                     &is_orca_3mf, file_version ? file_version : &loaded_version, nullptr,
+                                     LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
     release_PlateData_list(plates);
     return loaded;
 }
@@ -806,6 +868,104 @@ TEST_CASE("A project with a malformed texture displacement value still loads", "
     // The layer stack is dropped as a whole; the paint, stored apart from it, still loads.
     CHECK(volume.texture_displacement_layers.empty());
     CHECK(texture_paint(volume) == texture_paint(painted));
+}
+
+// The metadata line the exporter writes for a slicer version tag.
+static std::string version_tag(const std::string& name, const std::string& version)
+{
+    return "<metadata name=\"" + name + "\">" + version + "</metadata>";
+}
+
+static size_t count_occurrences(const std::string& text, const std::string& what)
+{
+    size_t n = 0;
+    for (size_t pos = text.find(what); pos != std::string::npos; pos = text.find(what, pos + what.size()))
+        ++n;
+    return n;
+}
+
+// Stores a one-plate project holding a 10 mm cube.
+static void store_cube_project(const std::string& path)
+{
+    Model        model;
+    ModelObject* object = model.add_object();
+    object->add_volume(make_cube(10., 10., 10.));
+    object->add_instance();
+    store_project(model, path, SaveStrategy::Zip64 | SaveStrategy::Silence);
+}
+
+TEST_CASE("A saved project records the OrcaSlicer version it is based on and this fork's release", "[3mf]")
+{
+    ScopedTemporaryFile file(".3mf");
+    store_cube_project(file.string());
+
+    std::string xml;
+    REQUIRE(read_cad_recipe_entry(file.string(), xml, "3D/3dmodel.model"));
+    CHECK(count_occurrences(xml, version_tag("OrcaSlicer", ORCA_BASE_VERSION)) == 1);
+    CHECK(count_occurrences(xml, version_tag("UnlayeredSlicer", UNLAYERED_VERSION)) == 1);
+
+    // OrcaSlicer's version line is what the importer reports as the file version, so OrcaSlicer's
+    // migrations judge the file as one of its own; the fork's release is read apart from it.
+    ScopedTemporaryDir backup_dir("unlayered_version_tags");
+    Model              model;
+    Semver             file_version;
+    REQUIRE(load_project(file.string(), model, backup_dir, &file_version));
+    CHECK(file_version == *Semver::parse(ORCA_BASE_VERSION));
+    const std::optional<Semver> unlayered_version = unlayered_3mf_version(model);
+    REQUIRE(unlayered_version.has_value());
+    CHECK(*unlayered_version == *Semver::parse(UNLAYERED_VERSION));
+}
+
+TEST_CASE("A re-saved project carries each slicer version tag once, with this build's versions", "[3mf][Regression]")
+{
+    // A project from a release that wrote its own version into the OrcaSlicer tag and had no
+    // UnlayeredSlicer tag. Both tags reach the re-save through the loaded model's metadata.
+    ScopedTemporaryFile old_file(".3mf");
+    store_cube_project(old_file.string());
+    REQUIRE(replace_in_3mf_entry(old_file.string(), "3dmodel.model", version_tag("OrcaSlicer", ORCA_BASE_VERSION),
+                                 version_tag("OrcaSlicer", "0.1.2")));
+    REQUIRE(replace_in_3mf_entry(old_file.string(), "3dmodel.model", version_tag("UnlayeredSlicer", UNLAYERED_VERSION), ""));
+
+    ScopedTemporaryDir backup_dir("unlayered_version_resave");
+    Model              model;
+    REQUIRE(load_project(old_file.string(), model, backup_dir));
+    ScopedTemporaryFile new_file(".3mf");
+    store_project(model, new_file.string(), SaveStrategy::Zip64 | SaveStrategy::Silence);
+
+    std::string xml;
+    REQUIRE(read_cad_recipe_entry(new_file.string(), xml, "3D/3dmodel.model"));
+    CHECK(count_occurrences(xml, "<metadata name=\"OrcaSlicer\">") == 1);
+    CHECK(count_occurrences(xml, "<metadata name=\"UnlayeredSlicer\">") == 1);
+    CHECK(count_occurrences(xml, version_tag("OrcaSlicer", ORCA_BASE_VERSION)) == 1);
+    CHECK(count_occurrences(xml, version_tag("UnlayeredSlicer", UNLAYERED_VERSION)) == 1);
+}
+
+TEST_CASE("A 0.x OrcaSlicer tag without an UnlayeredSlicer tag reads as an older release of this fork", "[3mf]")
+{
+    struct Case
+    {
+        std::string                orca_tag;
+        std::optional<std::string> unlayered_release;
+    };
+    // OrcaSlicer itself has never released a 0.x version.
+    const Case c = GENERATE(Case{"0.1.2", "0.1.2"}, Case{"0.0.8-dev", "0.0.8-dev"}, Case{"2.4.0", std::nullopt});
+    CAPTURE(c.orca_tag);
+
+    ScopedTemporaryFile file(".3mf");
+    store_cube_project(file.string());
+    REQUIRE(replace_in_3mf_entry(file.string(), "3dmodel.model", version_tag("OrcaSlicer", ORCA_BASE_VERSION),
+                                 version_tag("OrcaSlicer", c.orca_tag)));
+    REQUIRE(replace_in_3mf_entry(file.string(), "3dmodel.model", version_tag("UnlayeredSlicer", UNLAYERED_VERSION), ""));
+
+    ScopedTemporaryDir backup_dir("unlayered_version_legacy");
+    Model              model;
+    Semver             file_version;
+    REQUIRE(load_project(file.string(), model, backup_dir, &file_version));
+    CHECK(file_version == *Semver::parse(c.orca_tag));
+    const std::optional<Semver> unlayered_version = unlayered_3mf_version(model);
+    REQUIRE(unlayered_version.has_value() == c.unlayered_release.has_value());
+    if (c.unlayered_release)
+        CHECK(*unlayered_version == *Semver::parse(*c.unlayered_release));
 }
 
 // The recipe lives only in the BBS-native backend, because that is the only one that runs:
@@ -2694,4 +2854,71 @@ SCENARIO("a rendered no-light thumbnail does not suppress the plate thumbnail", 
             }
         }
     }
+}
+
+// Unlayered 0.1.x, like OrcaSlicer before #15465, stored auto drop on each build item; today's
+// exporter writes it on the object. A project made then keeps its objects where they were.
+TEST_CASE("Auto drop stored on a build item still applies to the object", "[3mf][Regression]")
+{
+    const bool item_auto_drop = GENERATE(false, true);
+    INFO("build item auto_drop " << item_auto_drop);
+
+    ScopedTemporaryFile temp(".3mf");
+    {
+        Model        model;
+        ModelObject* object = model.add_object();
+        object->add_volume(make_cube(10., 10., 10.));
+        object->add_instance();
+        store_project(model, temp.string(), SaveStrategy::Zip64 | SaveStrategy::Silence);
+    }
+    // Age the project: the object loses the attribute and its build item gets the old one.
+    REQUIRE(replace_in_3mf_entry(temp.string(), "model_settings.config", " auto_drop=\"1\"", ""));
+    REQUIRE(replace_in_3mf_entry(temp.string(), "3dmodel.model", "<item ",
+                                 std::string("<item auto_drop=\"") + (item_auto_drop ? "1" : "0") + "\" "));
+
+    ScopedTemporaryDir backup_dir("orca_auto_drop_dst");
+    Model              model;
+    REQUIRE(load_project(temp.string(), model, backup_dir));
+    REQUIRE(model.objects.size() == 1);
+    CHECK(model.objects.front()->auto_drop == item_auto_drop);
+}
+
+// A pause added in a print by object names its object (CustomGCode::Item::sequential_object); the
+// project keeps it. One without (print by layer) is written as before, with no such attribute.
+TEST_CASE("A project keeps the object a print-by-object pause belongs to", "[3mf]")
+{
+    Model        model;
+    ModelObject* object = model.add_object();
+    object->add_volume(make_cube(10., 10., 10.));
+    object->add_instance();
+    CustomGCode::Item by_object{ 5.0, CustomGCode::PausePrint, 1, "", "" };
+    by_object.sequential_object = 1;
+    const CustomGCode::Item by_layer{ 7.0, CustomGCode::PausePrint, 1, "", "" };
+    model.plates_custom_gcodes[0].gcodes = { by_object, by_layer };
+
+    ScopedTemporaryDir backup_dir("orca_pause_src");
+    model.set_backup_path(backup_dir.string());
+    // The custom G-code file names each pause's G-code, which it reads from the printer settings.
+    DynamicPrintConfig cfg = DynamicPrintConfig::full_print_config();
+    PlateData          plate;
+    plate.plate_index = 0;
+    ScopedTemporaryFile file(".3mf");
+    const std::string   path = file.string();
+    StoreParams         sp;
+    sp.path     = path.c_str();
+    sp.model    = &model;
+    sp.config   = &cfg;
+    sp.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+    sp.plate_data_list.push_back(&plate);
+    REQUIRE(store_bbs_3mf(sp));
+
+    Model              loaded;
+    ScopedTemporaryDir load_dir("orca_pause_dst");
+    REQUIRE(load_project(path, loaded, load_dir));
+    REQUIRE(loaded.plates_custom_gcodes.count(0) == 1);
+    const std::vector<CustomGCode::Item>& gcodes = loaded.plates_custom_gcodes[0].gcodes;
+    REQUIRE(gcodes.size() == 2);
+    CHECK(gcodes[0] == by_object);
+    CHECK(gcodes[1] == by_layer);
+    CHECK(gcodes[1].sequential_object == -1);
 }

@@ -46,6 +46,12 @@ namespace Slic3r {
 // Other volume types must already match model_object_new in the correct order.
 // Friend to ModelVolume to allow copying.
 // static is not accepted by gcc if declared as a friend of ModelObject.
+// Auxiliary volumes: those that never contribute sliced geometry and can therefore be swapped
+// into the Print's ModelObject copy without invalidating the slicing step -- support
+// blockers/enforcers, precise seam modifiers, and infill meshes (consumed by
+// prepare_mesh_infill_data only).
+static inline bool model_volume_is_auxiliary(const ModelVolume &mv) { return mv.is_support_modifier() || mv.is_precise_seam() || mv.is_infill_mesh(); }
+
 /* static */ void model_volume_list_update_supports_and_seams(ModelObject &model_object_dst, const ModelObject &model_object_new)
 {
     typedef std::pair<const ModelVolume*, bool> ModelVolumeWithStatus;
@@ -73,7 +79,7 @@ namespace Slic3r {
                    (model_volume_dst->is_precise_seam()     && model_volume_src->is_support_modifier()) ||
                    model_volume_dst->type() == model_volume_src->type());
             model_object_dst.volumes.emplace_back(model_volume_dst);
-            if (model_volume_dst->is_support_modifier() || model_volume_dst->is_precise_seam()) {
+            if (model_volume_is_auxiliary(*model_volume_dst)) {
                 // Type may have been switched within or between support/precise_seam families.
                 model_volume_dst->set_type(model_volume_src->type());
                 model_volume_dst->set_transformation(model_volume_src->get_transformation());
@@ -81,7 +87,7 @@ namespace Slic3r {
             assert(model_volume_dst->get_matrix().isApprox(model_volume_src->get_matrix()));
         } else {
             // The volume was not found in the old list. Create a new copy.
-            assert(model_volume_src->is_support_modifier() || model_volume_src->is_precise_seam());
+            assert(model_volume_is_auxiliary(*model_volume_src));
             model_object_dst.volumes.emplace_back(new ModelVolume(*model_volume_src));
             model_object_dst.volumes.back()->set_model_object(&model_object_dst);
         }
@@ -185,18 +191,112 @@ struct PrintObjectTrafoAndInstances
 {
     Transform3d    	trafo;
     PrintInstances	instances;
-    bool operator<(const PrintObjectTrafoAndInstances &rhs) const { return transform3d_lower(this->trafo, rhs.trafo); }
+    // Declarative cut planes: which segment of the ModelObject's cut-plane partition this
+    // PrintObject represents (-1 = not segmented). Part of the identity key together with the
+    // trafo, so co-located segments do not collapse into one PrintObject.
+    int                         segment_index { -1 };
+    std::optional<CutSegmentDescriptor> segment;
+    // BELT_MOD -- on a belt printer each instance is its own PrintObject (see belt_instance_key()).
+    size_t                      instance_key { 0 };
+    bool operator<(const PrintObjectTrafoAndInstances &rhs) const {
+        if (transform3d_lower(this->trafo, rhs.trafo))
+            return true;
+        if (transform3d_lower(rhs.trafo, this->trafo))
+            return false;
+        if (this->segment_index != rhs.segment_index)
+            return this->segment_index < rhs.segment_index;
+        return this->instance_key < rhs.instance_key;
+    }
 };
+
+// BELT_MOD -- belt schedule. Every object on a belt is sliced in its own frame, but the layers of
+// all objects are merged by print_z and, on a belt, that order IS the print order: the belt only
+// advances, so material at a smaller belt position must never be printed after material at a
+// larger one. Each object's frame is therefore raised by how far its lowest point lies beyond the
+// lowest point of the whole print along the gantry normal; print_z then measures the same belt
+// position for every object, the existing by-layer merge interleaves them correctly, and the
+// per-move un-rotation subtracts the same offset again so the emitted coordinates are unchanged.
+// Exact (mesh minima, not bounding boxes): an error here would move the belt back and forth
+// between objects within one merged layer.
+bool Print::update_belt_schedule()
+{
+    bool invalidated = false;
+    if (! m_config.belt_printer.value) {
+        for (PrintObject *object : m_objects)
+            if (object->m_belt_schedule_offset != 0.) {
+                object->m_belt_schedule_offset = 0.;
+                invalidated |= object->invalidate_step(posSlice);
+            }
+        return invalidated;
+    }
+    const Transform3d rotation(BeltTransformPipeline::build_rotation_matrix(m_config));
+    std::vector<double> w_min(m_objects.size(), 0.);
+    double z0 = std::numeric_limits<double>::max();
+    for (size_t i = 0; i < m_objects.size(); ++ i) {
+        const PrintObject *object = m_objects[i];
+        // The instance's full placement: trafo() has its XY zeroed, the shift carries it -- minus
+        // the centre offset set_instances() folded into the shift. Measuring at the shift itself
+        // placed an off-centre mesh (the GUI's purge prism, whose mesh starts at its own corner)
+        // half its length further down the belt: its layers began 60 mm after the parts and every
+        // purge landed on the wrong stretch of belt.
+        Transform3d full = object->trafo();
+        if (! object->instances().empty()) {
+            full.translation().x() = unscale<double>(object->instances().front().shift.x() - object->center_offset().x());
+            full.translation().y() = unscale<double>(object->instances().front().shift.y() - object->center_offset().y());
+        }
+        w_min[i] = object->model_object()->raw_mesh().transformed_bounding_box(rotation * full).min.z();
+        z0 = std::min(z0, w_min[i]);
+    }
+    // With a belt purge prism every object must step on ONE print_z lattice: a filament change on
+    // object B is purged into the prism only if the prism has a layer at exactly B's print_z. The
+    // offset is what raises an object's grid, so snapping it to a multiple of the layer height
+    // (at most half a layer, a sub-100 um move along the belt) aligns the grids while the
+    // per-move un-rotation still undoes exactly the offset that was applied.
+    const bool snap_to_layer_grid = this->has_belt_purge_tower();
+    for (size_t i = 0; i < m_objects.size(); ++ i) {
+        PrintObject *object = m_objects[i];
+        // A cut-plane segment is sequenced by its group, not by print_z (its layers are not
+        // parallel to the gantry), so it takes no schedule offset; validate() limits a
+        // multi-planar belt plate to one object.
+        double offset = object->is_segment() ? 0. : w_min[i] - z0;
+        if (snap_to_layer_grid && ! object->is_segment()) {
+            const double h = object->config().layer_height.value;
+            if (h > EPSILON)
+                offset = std::round(offset / h) * h;
+        }
+        if (std::abs(offset - object->m_belt_schedule_offset) > EPSILON) {
+            object->m_belt_schedule_offset = offset;
+            invalidated |= object->invalidate_step(posSlice);
+        }
+    }
+    return invalidated;
+}
+
+// UNLAYERED_MOD -- does this object slice in a rotated frame (its own B/C rotation, with the
+// non-planar switch on)? Such an object's copies must each be their own PrintObject.
+bool Print::object_slices_rotated(const ModelObject &model_object) const
+{
+    if (! m_config.enable_nonplanar.value)
+        return false;
+    auto angle = [&](const char *key) {
+        const ConfigOption *opt = model_object.config.option(key);
+        return opt != nullptr ? opt->getFloat() : m_default_object_config.option(key)->getFloat();
+    };
+    return std::abs(angle("layer_rotation_b")) > EPSILON || std::abs(angle("layer_rotation_c")) > EPSILON;
+}
 
 // Generate a list of trafos and XY offsets for instances of a ModelObject
 // Orca: Updated to include XYZ filament shrinkage compensation
-static std::vector<PrintObjectTrafoAndInstances> print_objects_from_model_object(const ModelObject &model_object, const Vec3d &shrinkage_compensation, bool force_separate_instances = false)
+// Declarative cut planes: each distinct transform derives its own bed-relative descriptors and is
+// multiplied into one entry per segment (sharing the instance list), keyed by (trafo, segment_index).
+static std::vector<PrintObjectTrafoAndInstances> print_objects_from_model_object(
+    const ModelObject &model_object, const Vec3d &shrinkage_compensation, bool enable_cut_planes,
+    double min_segment_thickness, bool split_instances, const Vec3d &root_build_normal_world)
 {
     std::set<PrintObjectTrafoAndInstances> trafos;
     PrintObjectTrafoAndInstances           trafo;
     //BBS: add useful logs for debug
     int index = 0;
-    int unique_counter = 0;
     for (ModelInstance *model_instance : model_object.instances) {
         if (model_instance->is_printable()) {
             // Orca: Updated with XYZ filament shrinkage compensation
@@ -207,12 +307,13 @@ static std::vector<PrintObjectTrafoAndInstances> print_objects_from_model_object
             // Reset the XY axes of the transformation.
             trafo.trafo.data()[12] = 0;
             trafo.trafo.data()[13] = 0;
-            // Belt printer global mode: prevent instance grouping so each
-            // copy gets its own PrintObject with independent layer Z values.
-            // Add a tiny unique perturbation to the existing Z (don't replace
-            // it — the Z translation from ensure_on_bed must be preserved).
-            if (force_separate_instances)
-                trafo.trafo.data()[14] += 1e-10 * (++unique_counter);
+            // BELT_MOD: instances at different positions along the belt need different schedule
+            // offsets, so they cannot share one PrintObject's layers. Key each instance separately.
+            // BELT_MOD / UNLAYERED_MOD: one PrintObject per instance on a belt (the schedule is
+            // per instance) and for any object sliced in a rotated frame (its G-code un-rotation
+            // pivots on the instance placement, see PrintObject::update_slice_frame, so several
+            // copies cannot share one frame).
+            trafo.instance_key = split_instances ? model_instance->id().id : 0;
             // Search or insert a trafo.
             auto it = trafos.emplace(trafo).first;
             const_cast<PrintObjectTrafoAndInstances&>(*it).instances.emplace_back(PrintInstance{ nullptr, model_instance, shift });
@@ -225,8 +326,28 @@ static std::vector<PrintObjectTrafoAndInstances> print_objects_from_model_object
         index++;
     }
 
-    //BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: got %2% print objects")%__LINE__ %trafos.size();
-    return std::vector<PrintObjectTrafoAndInstances>(trafos.begin(), trafos.end());
+    std::vector<PrintObjectTrafoAndInstances> out;
+    for (const PrintObjectTrafoAndInstances &base : trafos) {
+        const std::vector<CutSegmentDescriptor> segments = enable_cut_planes
+            ? derive_cut_segments(model_object, base.trafo, min_segment_thickness, nullptr, nullptr, root_build_normal_world)
+            : std::vector<CutSegmentDescriptor>();
+        if (segments.empty()) {
+            out.push_back(base);
+        } else {
+            // Derive per distinct transform: a tilt or mirror may change which side rests on the
+            // bed, so descriptors cannot be shared between differently oriented instances.
+            out.reserve(out.size() + segments.size());
+            for (const CutSegmentDescriptor &seg : segments) {
+                PrintObjectTrafoAndInstances entry = base; // copies the instances
+                entry.segment_index = seg.index;
+                entry.segment       = seg;
+                out.push_back(std::move(entry));
+            }
+        }
+    }
+
+    //BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: got %2% print objects")%__LINE__ %out.size();
+    return out;
 }
 
 // Compare just the layer ranges and their layer heights, not the associated configs.
@@ -556,6 +677,8 @@ struct PrintObjectStatus {
         id(print_object->model_object()->id()),
         print_object(print_object),
         trafo(print_object->trafo()),
+        segment_index(print_object->segment_index()),
+        instance_key(print_object->belt_instance_key()),
         status(status) {}
     PrintObjectStatus(ObjectID id) : id(id), print_object(nullptr), trafo(Transform3d::Identity()), status(Unknown) {}
 
@@ -565,6 +688,10 @@ struct PrintObjectStatus {
     PrintObject     *print_object;
     // Trafo generated with model_object->world_matrix(true)
     Transform3d      trafo;
+    // Declarative cut planes: segment identity of the PrintObject (-1 = not segmented).
+    int              segment_index { -1 };
+    // BELT_MOD -- per-instance identity on a belt printer (0 otherwise).
+    size_t           instance_key { 0 };
     Status           status;
 
     // Search by id.
@@ -1374,17 +1501,6 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", i=%1%, key=%2%")%i %changed_keys[i];
         }
     }
-    // On belt printers the support tilt follows the slicing rotation. The GUI keeps the two in
-    // sync, but a CLI or 3MF edit of the rotation alone would otherwise leave supports on a stale tilt.
-    if (const auto *belt_opt = new_full_config.option<ConfigOptionBool>("belt_printer"); belt_opt && belt_opt->value) {
-        const auto *axis_opt  = new_full_config.option<ConfigOptionEnum<BeltRotationAxis>>("belt_slice_rotation");
-        const auto *angle_opt = new_full_config.option<ConfigOptionFloat>("belt_slice_rotation_angle");
-        if (axis_opt && angle_opt) {
-            const auto tilt = BeltTransformPipeline::physical_tilt(axis_opt->value, angle_opt->value);
-            new_full_config.set_key_value("build_plate_tilt_x", new ConfigOptionFloat(tilt.tilt_x_deg));
-            new_full_config.set_key_value("build_plate_tilt_y", new ConfigOptionFloat(tilt.tilt_y_deg));
-        }
-    }
     const ConfigOption* enable_support_option = new_full_config.option("enable_support");
     if (enable_support_option && enable_support_option->getBool())
         m_support_used = true;
@@ -1655,7 +1771,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         update_apply_status(this->invalidate_step(psGCodeExport));
         m_placeholder_parser.clear_config();
         // clear_config() wiped the constructor-set "version"; restore it for custom G-code.
-        m_placeholder_parser.set("version", std::string(SoftFever_VERSION));
+        m_placeholder_parser.set("version", std::string(UNLAYERED_VERSION));
         // Set the profile aliases for the PrintBase::output_filename()
 		m_placeholder_parser.set("print_preset",              new_full_config.option("print_settings_id")->clone());
 		m_placeholder_parser.set("filament_preset",           new_full_config.option("filament_settings_id")->clone());
@@ -1821,9 +1937,15 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         bool solid_or_modifier_differ   = model_volume_list_changed(model_object, model_object_new, solid_or_modifier_types) ||
                                           model_mmu_segmentation_data_changed(model_object, model_object_new) ||
                                           (model_object_new.is_mm_painted() && num_extruders_changed) ||
-                                          model_fuzzy_skin_data_changed(model_object, model_object_new);
+                                          model_fuzzy_skin_data_changed(model_object, model_object_new) ||
+                                          // Declarative cut planes reshape the sliced geometry (and possibly the
+                                          // PrintObject count), so any change routes through the full invalidation.
+                                          model_object.cut_planes != model_object_new.cut_planes;
         bool supports_differ            = model_volume_list_changed(model_object, model_object_new, ModelVolumeType::SUPPORT_BLOCKER) ||
                                           model_volume_list_changed(model_object, model_object_new, ModelVolumeType::SUPPORT_ENFORCER);
+        // Infill meshes are consumed by prepare_mesh_infill_data (posPrepareInfill), never sliced
+        // as bodies: a change re-runs infill preparation and nothing before it.
+        bool infill_meshes_differ       = model_volume_list_changed(model_object, model_object_new, ModelVolumeType::INFILL_MESH);
         bool precise_seam_differ        = model_volume_list_changed(model_object, model_object_new, precise_seam_types);
         bool layer_height_ranges_differ = ! layer_height_ranges_equal(model_object.layer_config_ranges, model_object_new.layer_config_ranges, model_object_new.layer_height_profile.empty());
         bool model_origin_translation_differ = model_object.origin_translation != model_object_new.origin_translation;
@@ -1858,15 +1980,19 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             model_object.assign_copy(model_object_new);
         } else {
             model_object_status.print_object_regions_status = ModelObjectStatus::PrintObjectRegionsStatus::Valid;
-            if (supports_differ || model_custom_supports_data_changed(model_object, model_object_new)) {
+            if (supports_differ || infill_meshes_differ || model_custom_supports_data_changed(model_object, model_object_new)) {
                 // First stop background processing before shuffling or deleting the ModelVolumes in the ModelObject's list.
-                if (supports_differ) {
+                if (supports_differ || infill_meshes_differ) {
                     this->call_cancel_callback();
                     update_apply_status(false);
                 }
-                // Invalidate just the supports step.
-                for (const PrintObjectStatus &print_object_status : print_objects_range)
-                    update_apply_status(print_object_status.print_object->invalidate_step(posSupportMaterial));
+                // Invalidate just the supports step (and infill preparation when an infill mesh changed).
+                for (const PrintObjectStatus &print_object_status : print_objects_range) {
+                    if (supports_differ || model_custom_supports_data_changed(model_object, model_object_new))
+                        update_apply_status(print_object_status.print_object->invalidate_step(posSupportMaterial));
+                    if (infill_meshes_differ)
+                        update_apply_status(print_object_status.print_object->invalidate_step(posPrepareInfill));
+                }
             }
             if (precise_seam_differ) {
                 // First stop background processing before shuffling or deleting the ModelVolumes in the ModelObject's list.
@@ -1879,7 +2005,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             }
             // Synchronize both families once, after cancellation and all affected-step invalidations.
             // This also handles type changes between supports and Precise Seam before copying configs below.
-            if (supports_differ || precise_seam_differ)
+            if (supports_differ || infill_meshes_differ || precise_seam_differ)
                 model_volume_list_update_supports_and_seams(model_object, model_object_new);
             if (brim_points_differ) {
                 model_object.brim_points = model_object_new.brim_points;
@@ -1948,15 +2074,27 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         PrintObjectPtrs print_objects_new;
         print_objects_new.reserve(std::max(m_objects.size(), m_model.objects.size()));
         bool new_objects = false;
-        bool belt_instances_shifted = false;
         // Walk over all new model objects and check, whether there are matching PrintObjects.
         for (ModelObject *model_object : m_model.objects) {
             ModelObjectStatus &model_object_status = const_cast<ModelObjectStatus&>(model_object_status_db.reuse(*model_object));
+            // Declarative cut planes: derive the segment partition. Gated on the canonical
+            // non-planar switch and an active stack; ordinary objects derive nothing and follow
+            // the legacy path bit-for-bit. Derivation is deterministic, so an unchanged stack
+            // reproduces identical (trafo, segment_index) keys and PrintObjects get reused.
             // Orca: Updated for XYZ filament shrink compensation
-            // Belt printers: force each instance into its own PrintObject so each
-            // gets independent layer Z values (its bed position is folded into them).
-            bool belt_force_separate = m_config.belt_printer.value;
-            model_object_status.print_instances = print_objects_from_model_object(*model_object, this->shrinkage_compensation(), belt_force_separate);
+            model_object_status.print_instances = print_objects_from_model_object(
+                *model_object, this->shrinkage_compensation(),
+                m_config.enable_nonplanar.value && (model_object->cut_planes.active() || object_has_directed_parts(*model_object)),
+                m_config.initial_layer_print_height.value,
+                // ... and a cut-plane object: its non-root segments un-rotate about the instance
+                // placement too, so its copies cannot share one PrintObject either.
+                m_config.belt_printer.value || object_slices_rotated(*model_object)
+                    || (m_config.enable_nonplanar.value && (model_object->cut_planes.active() || object_has_directed_parts(*model_object))),
+                // BELT_MOD: on a belt the root segment builds along the gantry normal (the belt
+                // rotation maps it onto +Z), not along world +Z.
+                m_config.belt_printer.value
+                    ? Vec3d(BeltTransformPipeline::build_rotation_matrix(m_config).transpose() * Vec3d::UnitZ())
+                    : Vec3d(Vec3d::UnitZ()));
             std::vector<const PrintObjectStatus*> old;
             old.reserve(print_object_status_db.count(*model_object));
             for (const PrintObjectStatus &print_object_status : print_object_status_db.get_range(*model_object))
@@ -1971,10 +2109,31 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                     PrintObject::object_config_from_model_object(m_default_object_config, *model_object, num_extruders, print_variant_index));
                 print_object_last = print_object;
             };
+            // Declarative cut planes: PrintObject identity is (trafo, segment_index), not the
+            // trafo alone — co-located segments must not collapse into one PrintObject.
+            auto old_key_lower = [](const PrintObjectStatus *lhs, const PrintObjectStatus *rhs) {
+                if (transform3d_lower(lhs->trafo, rhs->trafo)) return true;
+                if (transform3d_lower(rhs->trafo, lhs->trafo)) return false;
+                if (lhs->segment_index != rhs->segment_index) return lhs->segment_index < rhs->segment_index;
+                return lhs->instance_key < rhs->instance_key;   // BELT_MOD
+            };
+            auto old_lower_than_new = [](const PrintObjectStatus *lhs, const PrintObjectTrafoAndInstances &rhs) {
+                if (transform3d_lower(lhs->trafo, rhs.trafo)) return true;
+                if (transform3d_lower(rhs.trafo, lhs->trafo)) return false;
+                if (lhs->segment_index != rhs.segment_index) return lhs->segment_index < rhs.segment_index;
+                return lhs->instance_key < rhs.instance_key;    // BELT_MOD
+            };
+            auto old_equals_new = [](const PrintObjectStatus *lhs, const PrintObjectTrafoAndInstances &rhs) {
+                return transform3d_equal(lhs->trafo, rhs.trafo) && lhs->segment_index == rhs.segment_index
+                    && lhs->instance_key == rhs.instance_key;   // BELT_MOD
+            };
             if (old.empty()) {
                 // Simple case, just generate new instances.
                 for (PrintObjectTrafoAndInstances &print_instances : model_object_status.print_instances) {
                     PrintObject *print_object = new PrintObject(this, model_object, print_instances.trafo, std::move(print_instances.instances));
+                    if (print_instances.segment)
+                        print_object->m_segment = std::move(print_instances.segment);
+                    print_object->m_belt_instance_key = print_instances.instance_key;   // BELT_MOD
                     print_object_apply_config(print_object);
                     print_objects_new.emplace_back(print_object);
                     // print_object_status.emplace(PrintObjectStatus(print_object, PrintObjectStatus::New));
@@ -1983,15 +2142,18 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                 continue;
             }
             // Complex case, try to merge the two lists.
-            // Sort the old lexicographically by their trafos.
-            std::sort(old.begin(), old.end(), [](const PrintObjectStatus *lhs, const PrintObjectStatus *rhs){ return transform3d_lower(lhs->trafo, rhs->trafo); });
+            // Sort the old lexicographically by their (trafo, segment) keys.
+            std::sort(old.begin(), old.end(), old_key_lower);
             // Merge the old / new lists.
             auto it_old = old.begin();
             for (PrintObjectTrafoAndInstances &new_instances : model_object_status.print_instances) {
-				for (; it_old != old.end() && transform3d_lower((*it_old)->trafo, new_instances.trafo); ++ it_old);
-				if (it_old == old.end() || ! transform3d_equal((*it_old)->trafo, new_instances.trafo)) {
+				for (; it_old != old.end() && old_lower_than_new(*it_old, new_instances); ++ it_old);
+				if (it_old == old.end() || ! old_equals_new(*it_old, new_instances)) {
                     // This is a new instance (or a set of instances with the same trafo). Just add it.
                     PrintObject *print_object = new PrintObject(this, model_object, new_instances.trafo, std::move(new_instances.instances));
+                    if (new_instances.segment)
+                        print_object->m_segment = std::move(new_instances.segment);
+                    print_object->m_belt_instance_key = new_instances.instance_key;   // BELT_MOD
                     print_object_apply_config(print_object);
                     print_objects_new.emplace_back(print_object);
                     // print_object_status.emplace(PrintObjectStatus(print_object, PrintObjectStatus::New));
@@ -2004,7 +2166,15 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                     if (status != PrintBase::APPLY_STATUS_UNCHANGED) {
                         size_t extruder_num = new_full_config.option<ConfigOptionFloats>("nozzle_diameter")->size();
                         update_apply_status(status == PrintBase::APPLY_STATUS_INVALIDATED);
-                        belt_instances_shifted = true;
+                    }
+                    // Declarative cut planes: the (trafo, segment_index) key matched but the
+                    // descriptor content can still differ in rare cases (e.g. the reference
+                    // instance defining "down" changed while this trafo key survived). Refresh it
+                    // and invalidate — the sliced geometry depends on the clips and build normal.
+                    if (new_instances.segment && (*it_old)->print_object->segment().has_value() &&
+                        ! (*(*it_old)->print_object->segment() == *new_instances.segment)) {
+                        update_apply_status((*it_old)->print_object->invalidate_all_steps());
+                        (*it_old)->print_object->m_segment = std::move(new_instances.segment);
                     }
 					print_objects_new.emplace_back((*it_old)->print_object);
 					const_cast<PrintObjectStatus*>(*it_old)->status = PrintObjectStatus::Reused;
@@ -2027,18 +2197,16 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                 }
 			if (new_objects || deleted_objects)
                 update_apply_status(this->invalidate_steps({ psSkirtBrim, psWipeTower, psGCodeExport }));
-            // A belt brim is clipped against the other objects on the plate (BeltBrim.cpp,
-            // belt_brim_obstacles), and it is rebuilt with its object's support step: an
-            // object that arrived or left changes every other brim owner's brim.
-            if ((new_objects || deleted_objects) && m_config.belt_printer.value)
-                for (PrintObject *object : m_objects)
-                    if (object->has_belt_brim())
-                        update_apply_status(object->invalidate_step(posSupportMaterial));
 			if (new_objects)
 	            update_apply_status(false);
             print_regions_reshuffled = true;
         }
         print_object_status_db.clear();
+
+        // BELT_MOD -- with the objects and their instance positions settled, refresh the belt
+        // schedule; an object whose position along the belt changed is resliced in its new frame.
+        if (this->update_belt_schedule())
+            update_apply_status(true);
 
         // BBS
         for (PrintObject* object : m_objects) {
@@ -2046,14 +2214,6 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             if (/*object->config().adaptive_layer_height &&*/ ept_iter != print_diff.end()) {
                 update_apply_status(object->invalidate_step(posSlice));
             }
-        }
-
-        // Belt printer: when any object's instances shifted, re-slice every object.
-        // The global Z offset follows each object's position along the belt, and the
-        // belt brims are clipped against the other objects.
-        if (belt_instances_shifted && m_config.belt_printer.value) {
-            for (PrintObject *object : m_objects)
-                update_apply_status(object->invalidate_step(posSlice));
         }
     }
 
@@ -2240,7 +2400,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 
             m_placeholder_parser.clear_config();
             // clear_config() wiped the constructor-set "version"; restore it for custom G-code.
-            m_placeholder_parser.set("version", std::string(SoftFever_VERSION));
+            m_placeholder_parser.set("version", std::string(UNLAYERED_VERSION));
             // Set the profile aliases for the PrintBase::output_filename()
             m_placeholder_parser.set("print_preset",              new_full_config.option("print_settings_id")->clone());
             m_placeholder_parser.set("filament_preset",           new_full_config.option("filament_settings_id")->clone());

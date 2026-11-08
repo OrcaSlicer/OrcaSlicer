@@ -26,11 +26,13 @@ static const char* Segments_Vertex_Shader_ES =
 "const float ambient = 0.3;\n"
 "const float emission = 0.15;\n"
 "const float REFERENCE_THICKNESS = 0.4;\n"
-"const vec3 UP = vec3(0, 0, 1);\n"
 "uniform mat4 view_matrix;\n"
 "uniform mat4 projection_matrix;\n"
 "uniform vec3 camera_position;\n"
 "uniform sampler2D position_tex;\n"
+// UNLAYERED_MOD: palette of tool axes, and per vertex the index into it.
+"uniform sampler2D tool_axis_tex;\n"
+"uniform sampler2D tool_axis_id_tex;\n"
 "uniform sampler2D height_width_angle_tex;\n"
 "uniform sampler2D color_tex;\n"
 "uniform usampler2D segment_index_tex;\n"
@@ -97,6 +99,9 @@ static const char* Segments_Vertex_Shader_ES =
 "  int id_b = id_a + 1;\n"
 "  vec3 pos_a = texelFetch(position_tex, tex_coord(position_tex, id_a), 0).xyz;\n"
 "  vec3 pos_b = texelFetch(position_tex, tex_coord(position_tex, id_b), 0).xyz;\n"
+// UNLAYERED_MOD: see Shaders.hpp - extrusion height runs along the chunk's tool axis, read from the
+// segment's END vertex so it agrees with that vertex's height, width, corner angle and position bias.
+"  vec3 UP = texelFetch(tool_axis_tex, tex_coord(tool_axis_tex, int(texelFetch(tool_axis_id_tex, tex_coord(tool_axis_id_tex, id_b), 0).r)), 0).xyz;\n"
 "  vec3 line = pos_b - pos_a;\n"
 "  // directions of the line box in world space\n"
 "  float line_len = length(line);\n"
@@ -107,9 +112,10 @@ static const char* Segments_Vertex_Shader_ES =
 "    line_dir = line / line_len;\n"
 "  vec3 line_right_dir;\n"
 "  if (abs(dot(line_dir, UP)) > 0.9) {\n"
-"    // For vertical lines, the width and height should be same, there is no concept of up and down.\n"
-"    // For simplicity, the code will expand width in the x axis, and height in the y axis\n"
-"    line_right_dir = normalize(cross(vec3(1, 0, 0), line_dir));\n"
+"    // For lines along the tool axis, the width and height should be same, there is no concept of up and down.\n"
+"    // UNLAYERED_MOD: pick whichever world axis is least aligned with the line (see Shaders.hpp).\n"
+"    vec3 fallback = (abs(line_dir.x) < 0.9) ? vec3(1, 0, 0) : vec3(0, 1, 0);\n"
+"    line_right_dir = normalize(cross(fallback, line_dir));\n"
 "  }\n"
 "  else\n"
 "    line_right_dir = normalize(cross(line_dir, UP));\n"
@@ -166,7 +172,8 @@ static const char* Segments_Vertex_Shader_ES =
 "  if (height_width_angle.z == 0.0 && dot(joint_other, joint_other) > 0.0) {\n"
 "    vec3 into = vertex_id < 4 ? joint_other : line;\n"
 "    vec3 onto = vertex_id < 4 ? line : joint_other;\n"
-"    height_width_angle.z = atan(into.x * onto.y - into.y * onto.x, dot(into, onto));\n"
+// UNLAYERED_MOD: about the tool axis, as extract_pos_and_or_hwa() measures the angle
+"    height_width_angle.z = atan(dot(cross(into, onto), UP), dot(into, onto));\n"
 "  }\n"
 "#ifdef FIX_TWISTING\n"
 "  int closer_id = (dot(camera_position - pos_a, camera_position - pos_a) < dot(camera_position - pos_b, camera_position - pos_b)) ? id_a : id_b;\n"
@@ -477,6 +484,9 @@ static const char* Options_Vertex_Shader_ES =
 "uniform sampler2D height_width_angle_tex;\n"
 "uniform sampler2D color_tex;\n"
 "uniform usampler2D segment_index_tex;\n"
+// UNLAYERED_MOD: palette of tool axes, and per vertex the index into it.
+"uniform sampler2D tool_axis_tex;\n"
+"uniform sampler2D tool_axis_id_tex;\n"
 // ORCA: section view
 "uniform vec4 clipping_plane;\n"
 "in vec3 in_position;\n"
@@ -516,7 +526,15 @@ static const char* Options_Vertex_Shader_ES =
 "void main() {\n"
 "  int id = int(texelFetch(segment_index_tex, tex_coord_u(segment_index_tex, gl_InstanceID), 0).r);\n"
 "  vec2 height_width = texelFetch(height_width_angle_tex, tex_coord(height_width_angle_tex, id), 0).xy;\n"
-"  vec3 offset = texelFetch(position_tex, tex_coord(position_tex, id), 0).xyz - vec3(0.0, 0.0, 0.5 * height_width.x);\n"
+// UNLAYERED_MOD: seat and orient the marker on the layer plane instead of the XY plane (see
+// Shaders.hpp). For a tool axis of +Z the frame is the identity, so planar prints are unchanged.
+"  vec4 pos4 = texelFetch(position_tex, tex_coord(position_tex, id), 0);\n"
+"  vec3 up = texelFetch(tool_axis_tex, tex_coord(tool_axis_tex, int(texelFetch(tool_axis_id_tex, tex_coord(tool_axis_id_tex, id), 0).r)), 0).xyz;\n"
+"  vec3 fallback = (abs(up.x) < 0.9) ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);\n"
+"  vec3 fwd = normalize(cross(up, fallback));\n"
+"  vec3 right = cross(fwd, up);\n"
+"  mat3 frame = mat3(right, fwd, up);\n"
+"  vec3 offset = pos4.xyz - 0.5 * height_width.x * up;\n"
 "  height_width *= scaling_factor;\n"
 "  mat3 scale_matrix = mat3(\n"
 "    height_width.y, 0.0, 0.0,\n"
@@ -524,9 +542,9 @@ static const char* Options_Vertex_Shader_ES =
 "    0.0, 0.0, height_width.x);\n"
 // ORCA: section view - markers are cut away whole, by their centre
 "  clipping_plane_dot = dot(vec4(offset, 1.0), clipping_plane);\n"
-"  vec3 eye_position = (view_matrix * vec4(scale_matrix * in_position + offset, 1.0)).xyz;\n"
-"  vec3 eye_normal = (view_matrix * vec4(in_normal, 0.0)).xyz;\n"
-"  vec3 color_base = decode_color(texelFetch(color_tex, tex_coord(color_tex, id), 0).rgb, id, int(texelFetch(position_tex, tex_coord(position_tex, id), 0).w));\n"
+"  vec3 eye_position = (view_matrix * vec4(frame * (scale_matrix * in_position) + offset, 1.0)).xyz;\n"
+"  vec3 eye_normal = (view_matrix * vec4(frame * in_normal, 0.0)).xyz;\n"
+"  vec3 color_base = decode_color(texelFetch(color_tex, tex_coord(color_tex, id), 0).rgb, id, int(pos4.w));\n"
 "  color = color_base * lighting(eye_position, eye_normal);\n"
 "  gl_Position = projection_matrix * vec4(eye_position, 1.0);\n"
 "}\n";

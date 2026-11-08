@@ -54,10 +54,13 @@
 #include <iterator>
 #include "TriangleMesh.hpp"
 #include "Config.hpp"
+#include "Support/SegmentSupportBounds.hpp"
 #include "Exception.hpp"
 #include "IMEXHelpers.hpp"
 #include "IMEXZones.hpp"
 #include "Print.hpp"
+#include "BeltTransform.hpp"
+#include "Geometry.hpp"
 #include "BoundingBox.hpp"
 #include "Brim.hpp"
 #include "ClipperUtils.hpp"
@@ -72,8 +75,6 @@
 #include "Thread.hpp"
 #include "Time.hpp"
 #include "GCode.hpp"
-#include "BeltGCode.hpp"
-#include "BeltTransform.hpp"
 #include "GCode/WipeTower.hpp"
 #include "GCode/WipeTower2.hpp"
 #include "GCode/WipeTowerEstimate.hpp"
@@ -82,7 +83,6 @@
 #include "MaterialType.hpp"
 #include "Model.hpp"
 #include "format.hpp"
-#include "LocalesUtils.hpp"
 #include <float.h>
 
 #include <algorithm>
@@ -92,11 +92,14 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <sstream>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/regex.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <cstdlib>
 
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
@@ -105,12 +108,14 @@
 #include "nlohmann/json.hpp"
 
 #include "GCode/ConflictChecker.hpp"
+#include "Support/SupportNeighbourClip.hpp"
+#include "GCode/HotendCollisionCheck.hpp"
+#include "ParameterUtils.hpp"
 
 #include <codecvt>
 #include "Format/STEP.hpp"
 #include "PlaceholderParser.hpp"
 #include "SurfaceCollection.hpp"
-#include "BeltBrim.hpp"
 
 namespace fs = boost::filesystem;
 
@@ -271,14 +276,29 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
     // Cache the plenty of parameters, which influence the G-code generator only,
     // or they are only notes not influencing the generated G-code.
     static std::unordered_set<std::string> steps_gcode = {
-        // Belt printer G-code axis remap (only affects G-code output, not slicing).
-        "gcode_remap_x",
-        "gcode_remap_y",
-        "gcode_remap_z",
-        // Machine-frame transform (derived from belt tilt; only affects G-code output).
-        "belt_frame_tilt_decouple", "belt_frame_tilt_angle",
-        // Only inflates the GUI bed volume, like printable_area.
-        "belt_printer_infinite_y",
+        // UNLAYERED_MOD — these only change what the emitter writes, not the slices:
+        // virtual_5axis suppresses the B/C words, the rest tune the inter-chunk transition moves.
+        "virtual_5axis",
+        // BELT_MOD -- the machine frame mapping only changes what the emitter writes.
+        "gcode_remap_x", "gcode_remap_y", "gcode_remap_z",
+        "belt_frame_tilt_decouple", "belt_frame_tilt_angle", "belt_slice_angle_tolerance",
+        "first_layer_plane", "first_layer_plane_offset", "first_layer_plane_thickness", "belt_initial_temperature_length",
+        "object_contact_layers", "object_contact_fan_mode", "object_contact_fan_speed", "object_contact_speed", "object_contact_flow_ratio",
+        "nonplanar_departure_distance",
+        "nonplanar_approach_distance",
+        "nonplanar_nozzle_to_b_axis",
+        // the virtual-mode limits are checked at validate/export time; none of them moves a slice.
+        // validate() runs on every background-process update regardless of invalidation, so the
+        // derived tilt limit is re-evaluated as soon as the gantry height changes either way.
+        "nonplanar_virtual_max_angle",
+        "nonplanar_virtual_max_z",
+        "nonplanar_gantry_height",
+        // the hotend envelope feeds validate() and the post-export collision check only.
+        "nonplanar_hotend_cone_height",
+        "nonplanar_hotend_angle_xpos",
+        "nonplanar_hotend_angle_xneg",
+        "nonplanar_hotend_angle_ypos",
+        "nonplanar_hotend_angle_yneg",
         //BBS
         "additional_cooling_fan_speed",
         "reduce_crossing_wall",
@@ -494,17 +514,16 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             // In Spiral Vase mode, holes are closed and only the largest area contour is kept at each layer.
             // Therefore toggling the Spiral Vase on / off requires complete reslicing.
             || opt_key == "spiral_mode"
-            // Build plate tilt changes slicing plane orientation.
-            || opt_key == "build_plate_tilt_x"
-            || opt_key == "build_plate_tilt_y"
-            // Belt printer transform options change the mesh geometry before slicing.
+            // UNLAYERED_MOD — the non-planar master switch gates layer_rotation_b/c, i.e. it changes
+            // each object's slicing frame (see layer_rotation_trafo() / PrintObject::slice()). It has
+            // to invalidate posSlice: the generic fallback below only calls invalidate_all_steps(),
+            // which touches Print-level steps and leaves every PrintObject's slices stale.
+            || opt_key == "enable_nonplanar"
+            // BELT_MOD -- the belt tilt is every un-cut object's slicing rotation.
             || opt_key == "belt_printer"
             || opt_key == "belt_slice_rotation"
             || opt_key == "belt_slice_rotation_angle") {
             osteps.emplace_back(posSlice);
-        } else if (
-               opt_key == "belt_support_floor_offset") {
-            osteps.emplace_back(posSupportMaterial);
         } else if (
                opt_key == "print_sequence"
             || opt_key == "filament_type"
@@ -539,7 +558,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "hot_plate_temp"
             || opt_key == "textured_plate_temp"
             || opt_key == "enable_prime_tower"
-            || opt_key == "enable_belt_purge_tower"
+            || opt_key == "enable_belt_purge_tower"   // BELT_MOD
             || opt_key == "enable_wrapping_detection"
             || opt_key == "prime_tower_enable_framework"
             || opt_key == "prime_tower_width"
@@ -573,8 +592,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "flush_volumes_matrix"
             || opt_key == "prime_volume"
             || opt_key == "flush_into_infill"
+            || opt_key == "belt_purge_tower_width"   // BELT_MOD
             || opt_key == "flush_into_support"
-            || opt_key == "belt_purge_tower_width"
             || opt_key == "initial_layer_infill_speed"
             || opt_key == "travel_speed"
             || opt_key == "travel_speed_z"
@@ -832,7 +851,7 @@ std::vector<ObjectID> Print::print_object_ids() const
 
 bool Print::has_infinite_skirt() const
 {
-    // Belt printer: no skirt support.
+    // BELT_MOD -- no skirt on a belt: the "first layer" is the tilted leading tip, not a bed footprint.
     if (m_config.belt_printer.value)
         return false;
     // Orca: unclear why (m_config.ooze_prevention && this->extruders().size() > 1) logic is here, removed.
@@ -843,25 +862,17 @@ bool Print::has_infinite_skirt() const
 
 bool Print::has_skirt() const
 {
-    // Belt printer: no skirt support.
-    if (m_config.belt_printer.value)
+    if (m_config.belt_printer.value) // BELT_MOD, see has_infinite_skirt()
         return false;
     return (m_config.skirt_height > 0);
 }
 
-bool Print::has_brim() const
-{
-    return std::any_of(m_objects.begin(), m_objects.end(), [](PrintObject *object) { return object->has_brim(); });
-}
-
+// BELT_MOD -- see BeltBrim.hpp. Answered from the config, not from SlicingParameters, so it is
+// valid from validate() through the G-code stage.
 bool Print::has_tilted_belt() const
 {
-    if (! m_config.belt_printer.value)
-        return false;
-    // A Z rotation leaves the belt floor flat (BeltTransform forces shear = 0) and no
-    // rotation at all means the machine is geometrically a flat bed.
-    const BeltRotationAxis axis = m_config.belt_slice_rotation.value;
-    if (axis != BeltRotationAxis::X && axis != BeltRotationAxis::Y)
+    if (! m_config.belt_printer.value || m_config.belt_slice_rotation.value == BeltRotationAxis::None
+        || m_config.belt_slice_rotation.value == BeltRotationAxis::Z)
         return false;
     const double tilt = std::abs(m_config.belt_slice_rotation_angle.value);
     return tilt >= BELT_BRIM_MIN_TILT_DEG && tilt <= BELT_BRIM_MAX_TILT_DEG;
@@ -870,6 +881,16 @@ bool Print::has_tilted_belt() const
 bool Print::has_belt_brim() const
 {
     return std::any_of(m_objects.begin(), m_objects.end(), [](PrintObject *object) { return object->has_belt_brim(); });
+}
+
+bool Print::has_brim() const
+{
+    // BELT_MOD -- a plate brim would be laid in the tilted first-layer plane, in the air next to
+    // the leading tip. The belt brim (a sheet on the belt surface, BeltBrim.cpp) is the belt's
+    // brim; see has_belt_brim().
+    if (m_config.belt_printer.value)
+        return false;
+    return std::any_of(m_objects.begin(), m_objects.end(), [](PrintObject *object) { return object->has_brim(); });
 }
 
 //BBS
@@ -971,6 +992,10 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                 }
 
                 // if output needed, collect indices (inside convex_hulls_other) of intersecting hulls
+                // UNLAYERED_MOD: legacy chunks and cut-plane segments overlap in XY by design, so the
+                // object-vs-object hull test is skipped only for a non-planar machine; every other
+                // printer keeps upstream's sequential-print collision check.
+                if (! print.config().enable_nonplanar.value)
                 for (size_t i = 0; i < convex_hulls_other.size(); ++i) {
                     if (! intersection(convex_hulls_other[i], convex_hull).empty()) {
                         bool has_exception = false;
@@ -1192,7 +1217,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                 too_tall_instances[inst] = std::make_pair(print_instance_with_bounding_box[k].hull_polygon, unscaled<double>(height));
         }
 
-        if (too_tall_instances.size() > 0) {
+        if (! print.config().enable_nonplanar.value && ! print.config().belt_printer.value && too_tall_instances.size() > 0) { // UNLAYERED_MOD: see above; BELT_MOD: heights are along the tilted normal
             //return {, inst->model_instance->get_object()};
             for (auto& iter: too_tall_instances) {
                 if (single_object_exception.string.empty()) {
@@ -2141,75 +2166,6 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         }
     }
 
-    // Belt printer validation: incompatible features.
-    if (m_config.belt_printer.value) {
-        for (const PrintObject *object : m_objects) {
-            if (object->config().raft_layers > 0)
-                return { L("Raft is not compatible with belt printer mode.") };
-        }
-        if (m_config.draft_shield != dsDisabled)
-            return { L("Draft shield is not compatible with belt printer mode.") };
-
-        // Belt brim spans many layers and owns the layers below the object, which
-        // spiral vase cannot share. The prime tower setting is no obstacle: belt
-        // printers never print the classic tower, and the belt purge prism is an
-        // ordinary object that never takes a brim.
-        if (this->has_belt_brim()) {
-            if (m_config.spiral_mode.value)
-                return { L("Brim is not compatible with spiral vase mode on a belt printer. "
-                           "Disable one of them.") };
-        }
-
-        for (const PrintObject *object : m_objects) {
-            const PrintObjectConfig &ocfg = object->config();
-            // Mirror PrintObject::has_belt_brim(): an inner-only brim needs a positive
-            // brim_width (leading/extra widen only the outer ring), so keep this
-            // predicate in step or the belt-brim warnings below would fire for a brim
-            // that has_belt_brim() rejects.
-            const bool wants_brim = ocfg.brim_type != btNoBrim
-                                 && (ocfg.brim_type == btInnerOnly
-                                         ? ocfg.brim_width.value > 0.
-                                         : (ocfg.brim_width.value > 0. || ocfg.leading_brim_length.value > 0.
-                                            || ocfg.extra_brim_width.value > 0.));
-            if (! wants_brim)
-                continue;
-
-            if (! this->has_tilted_belt()) {
-                if (std::abs(m_config.belt_slice_rotation_angle.value) > BELT_BRIM_MAX_TILT_DEG)
-                    warn(L("The belt is too steep for a brim, so no brim will be generated."),
-                         "brim_width", object->model_object());
-                else
-                    warn(L("A brim is only generated when the belt is tilted. Set a belt tilt angle, "
-                           "or remove the brim setting."),
-                         "brim_type", object->model_object());
-            }
-
-            if (ocfg.brim_type == btAutoBrim || ocfg.brim_type == btEar || ocfg.brim_type == btPainted)
-                warn(L("Belt printers support outer and inner brim only. Auto, Mouse ear and Painted "
-                       "brim are printed as Outer brim only, using Brim width."),
-                     "brim_type", object->model_object());
-
-            if (ocfg.leading_brim_length.value > 0. && ocfg.brim_object_gap.value > 0.)
-                warn(L("Brim-object gap separates the leading brim from the object's leading edge, "
-                       "which is the edge it is meant to anchor. Set the gap to 0 when using leading "
-                       "brim length."),
-                     "brim_object_gap", object->model_object());
-        }
-        if (this->has_belt_brim() && m_objects.size() > 1)
-            warn(L("Leading brim length extends ahead of each object along the belt, and Arrange does "
-                   "not reserve that space. Leave room between objects."),
-                 "leading_brim_length");
-    } else {
-        // "Leading edge only" describes where a part meets a moving belt, so it has no
-        // meaning on a fixed bed.  Brim.cpp prints it as an ordinary outer brim rather
-        // than silently producing nothing; say so.
-        for (const PrintObject *object : m_objects)
-            if (object->config().brim_type == btLeadingEdgeOnly)
-                warn(L("\"Leading edge only\" brim applies to belt printers. On this printer it is "
-                       "printed as an ordinary outer brim."),
-                     "brim_type", object->model_object());
-    }
-
     // Orca: a gradient mixed filament only renders its gradient with "Mixed color sublayer" on;
     // without it ToolOrdering::resolve_mixed_filaments prints one whole component per layer and
     // the gradient is dropped silently. extruders() already covers painting, height ranges,
@@ -2235,13 +2191,236 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         }
     }
 
-    if (m_config.print_sequence == PrintSequence::ByObject && (m_objects.size() > 1 || m_objects[0]->instances().size() > 1)) {
+    // Declarative cut planes: differently-oriented segments interleave within one group, which
+    // only the By-Group sequencing understands. ByLayer would try to print co-located segments
+    // simultaneously; ByObject cannot interleave them by layer.
+    if (m_config.print_sequence != PrintSequence::ByGroup)
+        for (const PrintObject *object : m_objects)
+            if (object->is_segment()) {
+                StringObjectException ret;
+                ret.string  = L("Cut planes and per-part build directions require the \"By group\" print sequence.");
+                ret.opt_key = "print_sequence";
+                return ret;
+            }
+
+    // BELT_MOD -- belt printer restrictions of the first port increment. Multi-planar belt (cut
+    // planes composed on top of the belt tilt) and printing several objects along the belt (a
+    // shared slice-frame origin so layers interleave in belt order) are recorded follow-ups in
+    // the port plan; until then they are refused rather than sliced wrong.
+    if (m_config.belt_printer.value) {
+        if (m_config.spiral_mode.value)
+            return { L("Spiral vase mode is not supported on belt printers."), nullptr, "spiral_mode" };
+        // Orca's refusals (#14394).
+        for (const PrintObject *object : m_objects)
+            if (object->config().raft_layers > 0)
+                return { L("Raft is not compatible with belt printer mode."), object, "raft_layers" };
+        if (m_config.draft_shield != dsDisabled)
+            return { L("Draft shield is not compatible with belt printer mode."), nullptr, "draft_shield" };
+        // The belt tilt angle is what the print slices at. With the machine-frame tilt decoupled the
+        // machine tolerates only so much misalignment with its gantry before the nozzle collides with
+        // the layer plane or the part lifts off the belt.
+        {
+            const double slice_angle = m_config.belt_slice_rotation_angle.value;
+            if (std::abs(slice_angle) <= EPSILON)
+                return { L("The belt tilt angle must not be zero."), nullptr, "belt_slice_rotation_angle" };
+            if (m_config.belt_frame_tilt_decouple.value) {
+                const double tilt      = m_config.belt_frame_tilt_angle.value;
+                const double tolerance = m_config.belt_slice_angle_tolerance.value;
+                if (std::abs(slice_angle - tilt) > tolerance + EPSILON)
+                    return { Slic3r::format(L("The belt tilt angle (%1%°) is more than %2%° away from the machine-frame tilt angle (%3%°)."),
+                                            slice_angle, tolerance, tilt), nullptr, "belt_frame_tilt_angle" };
+            }
+        }
+        // Belt purge prism (BeltPurge.cpp): one managed prism, and one layer grid for everybody --
+        // the schedule snaps every object onto the prism's lattice, which only works when they
+        // all step by the same layer heights.
+        if (m_config.enable_belt_purge_tower.value) {
+            const size_t prism_count = std::count_if(m_objects.begin(), m_objects.end(), [](const PrintObject *object) {
+                return object->config().belt_purge_tower_object.value;
+            });
+            if (prism_count > 1)
+                return { L("The project contains several managed belt purge towers. Toggle the belt purge tower off and on to regenerate it."), nullptr, "enable_belt_purge_tower" };
+            // (The first layer height is a print-level option, so it is the same for everybody.)
+            if (prism_count == 1)
+                for (const PrintObject *object : m_objects)
+                    if (std::abs(object->config().layer_height.value - m_objects.front()->config().layer_height.value) > EPSILON)
+                        return { L("The belt purge tower requires every object to use the same layer height."), object, "layer_height" };
+        }
+        // Model instances, not PrintObjects: a multi-planar object is several PrintObjects.
+        std::set<const ModelInstance*> model_instances;
+        bool has_segments = false;
+        for (const PrintObject *object : m_objects) {
+            has_segments |= object->is_segment();
+            for (const PrintInstance &inst : object->instances())
+                model_instances.insert(inst.model_instance);
+        }
+        // Multi-planar belt: the segments of one object are sequenced by group along the belt;
+        // a second object would need the belt to run backwards between them.
+        if (has_segments && model_instances.size() > 1)
+            return { L("Multi-planar printing on a belt printer supports one object per plate."), nullptr, "" };
+        // An object's own B/C rotation would slice it along a direction the belt schedule does not
+        // measure (Print::update_belt_schedule() works along the gantry normal only).
+        for (const PrintObject *object : m_objects)
+            if (this->object_slices_rotated(*object->model_object()))
+                return { L("An object's own layer rotation (B/C) is not supported on a belt printer; use cut planes instead."), object, "layer_rotation_b" };
+        // Several objects interleave by belt position through the by-layer merge (see
+        // Print::update_belt_schedule()); the other sequences would drive the belt backwards.
+        if (! has_segments && model_instances.size() > 1 && m_config.print_sequence != PrintSequence::ByLayer)
+            return { L("Several objects on a belt printer require the \"By layer\" print sequence: their layers are printed in belt order."), nullptr, "print_sequence" };
+        // Belt brim (BeltBrim.cpp). The purge prism never gets one (PrintObject::has_belt_brim);
+        // the parts beside it may.
+        for (const PrintObject *object : m_objects) {
+            const PrintObjectConfig &ocfg = object->config();
+            const bool wants_brim = ocfg.brim_type != btNoBrim
+                                 && (ocfg.brim_type == btInnerOnly
+                                         ? ocfg.brim_width.value > 0.
+                                         : (ocfg.brim_width.value > 0. || ocfg.leading_brim_length.value > 0.
+                                            || ocfg.extra_brim_width.value > 0.));
+            if (! wants_brim)
+                continue;
+            if (! this->has_tilted_belt())
+                warn(L("The belt is too steep or too flat for a brim, so no brim will be generated."), "brim_type", object->model_object());
+            else if (object->is_segment())
+                warn(L("A cut-plane object gets no belt brim yet."), "brim_type", object->model_object());
+            if (ocfg.leading_brim_length.value > 0. && ocfg.brim_object_gap.value > 0.)
+                warn(L("Brim-object gap separates the leading brim from the object's leading edge, which is the edge "
+                       "it is meant to anchor. Set the gap to 0 when using leading brim length."),
+                     "brim_object_gap", object->model_object());
+            if (! object->belt_brim_instances_compatible())
+                warn(L("This object's copies are spaced along the belt, so they would each need their own brim and "
+                       "none is generated. Print them as separate objects, or arrange the copies side by side."),
+                     "brim_type", object->model_object());
+        }
+    }
+
+    // UNLAYERED_MOD -- virtual 5-axis tilt limit. The nozzle stays upright while a tilted chunk
+    // prints, so past a certain tilt the side of the hotend the layer climbs toward runs into it, and
+    // past a certain run the climb no longer fits under the gantry. virtual_tilt_limit_deg() derives
+    // both from the machine's own geometry; see its comment for the pyramid's per-side term.
+    //
+    // The cut-plane gizmo stops a drag at the same limit, so a user cannot normally author one of
+    // these at all. This remains the BACKSTOP, because a build direction can also arrive by typing
+    // B, from a project saved before the printer was characterised, from the skeleton gizmo, or
+    // from a pasted config -- and because the gizmo works from a live preview of the chunks while
+    // this works from the exact clipped pieces, so this is the one that is precisely right.
+    //
+    // Refused, never clamped: the build normal drives the cut geometry, the support bounds and the
+    // 3D scene, so quietly reducing it HERE would print something the viewport never showed. (That
+    // objection does not apply to the gizmo, where the plane visibly stops where it is stored.)
+    if (m_config.enable_nonplanar.value && m_config.virtual_5axis.value) {
+        const double         manual   = m_config.nonplanar_virtual_max_angle.value;
+        // Conservative over every nozzle: a chunk's tilt is fixed before it is known which nozzle prints it.
+        const HotendEnvelope envelope = HotendEnvelope::from_config(m_config);
+        // BELT_MOD: the upright nozzle stands along the machine's build direction -- world +Z on a
+        // flat bed, the gantry normal on a belt -- so on a belt the tilt and its azimuth are measured
+        // in the gantry frame: the nozzle follows the PHYSICAL tilt (build_gantry_matrix), not the
+        // print's slicing angle.
+        const bool     belt         = m_config.belt_printer.value;
+        const Matrix3d to_gantry    = belt ? BeltTransformPipeline::build_gantry_matrix(m_config) : Matrix3d::Identity();
+        for (const PrintObject *object : m_objects) {
+            double tilt = 0., azimuth = 0.;
+            if (belt) {
+                const Vec3d n = (to_gantry * object->build_normal_world()).normalized();
+                tilt    = Geometry::rad2deg(std::acos(std::clamp(n.z(), -1., 1.)));
+                azimuth = std::atan2(n.y(), n.x());
+            } else {
+                double b_deg = 0., c_deg = 0.;
+                object->effective_layer_rotation_bc(b_deg, c_deg);
+                // B is the tilt away from vertical; C spins that tilt about Z, which matters now that the
+                // hotend is not round: the limit depends on which of its sides the layer climbs toward.
+                tilt = std::abs(b_deg);
+                const Vec3d normal = Geometry::build_normal_from_bc(b_deg, c_deg);
+                azimuth = std::atan2(normal.y(), normal.x());
+            }
+            const double reach   = object->effective_build_reach();
+            const double derived = virtual_tilt_limit_deg(envelope, m_config.nonplanar_gantry_height.value, reach, azimuth);
+            // Whichever is stricter, ignoring the ones that are switched off (0 = not applied).
+            double limit = 0.;
+            if (derived > 0. && manual > 0.) limit = std::min(derived, manual);
+            else                             limit = std::max(derived, manual);
+            if (limit <= 0. || tilt <= limit + EPSILON)
+                continue;
+
+            // Name the constraint that actually bound, so the advice is actionable: a cone limit
+            // needs a shallower plane, a gantry limit can also be met by cutting smaller chunks.
+            // The hotend term of the derived limit, from the same helper virtual_tilt_limit_deg() uses.
+            const double hotend_term  = virtual_tilt_hotend_term_deg(envelope, azimuth);
+            const bool   gantry_bound = limit == derived && reach > 0. && derived < hotend_term - EPSILON;
+            const HotendEnvelope::Side face = virtual_tilt_binding_face(envelope, azimuth);
+            StringObjectException ret;
+            ret.string = Slic3r::format(_u8L("A build direction is tilted %1% degrees from vertical, but this "
+                                             "virtual 5-axis printer allows at most %2% degrees here. The nozzle "
+                                             "stays upright on a 3-axis machine, so a tilted chunk has to fit under "
+                                             "it."),
+                                        (boost::format("%.1f") % tilt).str(),
+                                        (boost::format("%.1f") % limit).str());
+            ret.string += " ";
+            ret.string += gantry_bound
+                ? Slic3r::format(_u8L("This chunk is %1% mm across, so at that tilt it would climb higher than the "
+                                      "%2% mm of clearance under the gantry. Reduce the cut plane angle, or cut it "
+                                      "into smaller chunks."),
+                                 (boost::format("%.0f") % reach).str(),
+                                 (boost::format("%.0f") % m_config.nonplanar_gantry_height.value).str())
+                : Slic3r::format(_u8L("Leaning this way, the layer climbs toward the hotend's %1% side. Reduce the cut "
+                                      "plane angle, or lean it toward a slimmer side. If the hotend really is this slim "
+                                      "here, correct \"Hotend side angle %1%\" in the printer settings."),
+                                 HotendEnvelope::side_name(face));
+            ret.opt_key = gantry_bound ? "nonplanar_gantry_height" : HotendEnvelope::option_key(face);
+            ret.object  = const_cast<ModelObject *>(object->model_object());
+            return ret;
+        }
+    }
+
+    // UNLAYERED_MOD -- virtual 5-axis total-height limit, the part of it that is decidable from the
+    // plate alone. "Max print height (from the bed)" is an absolute Z, but it sits in the same group
+    // directly under "Gantry height above nozzle", which is a clearance, and it gets entered as one:
+    // a few millimetres of headroom above the part. A limit below the top of the part itself can
+    // never be met -- the nozzle has to reach the top to print it -- so say so here, before anything
+    // is sliced, rather than letting it cost a whole slice and G-code export first.
+    //
+    // The post-export scan in export_gcode() stays as the backstop: it is the only thing that sees
+    // the transition hops, which climb above the part and are the reason a limit that clears the
+    // part can still be exceeded.
+    if (m_config.enable_nonplanar.value && m_config.virtual_5axis.value && ! m_config.belt_printer.value &&
+        m_config.nonplanar_virtual_max_z.value > 0.) {
+        const double       limit   = m_config.nonplanar_virtual_max_z.value;
+        const PrintObject *tallest = nullptr;
+        double             top_z   = 0.;
+        for (const PrintObject *object : m_objects) {
+            // Top of the object in the plate frame, the same measure the wipe tower clearance
+            // checks use, so a tilted or cut object counts at the height it actually stands.
+            const double object_top = unscaled<double>(object->max_z());
+            if (tallest == nullptr || object_top > top_z) {
+                tallest = object;
+                top_z   = object_top;
+            }
+        }
+        if (tallest != nullptr && top_z > limit + EPSILON) {
+            StringObjectException ret;
+            // Same setting path and the same "measured from the bed" wording as the post-export
+            // refusal, so a user who has seen one recognises the other.
+            ret.string = Slic3r::format(_u8L("The object %1% reaches Z%2% mm, above the %3% mm set in Printer settings > "
+                                             "Motion ability > Non-planar Printing > \"Max print height (from the bed)\". "
+                                             "That limit is an absolute height measured from the bed, not a clearance above "
+                                             "the part, so the nozzle could not reach the top of this object. Set it to the "
+                                             "printer's build height, or to 0 for no limit."),
+                                        tallest->model_object()->name,
+                                        (boost::format("%.1f") % top_z).str(),
+                                        (boost::format("%.1f") % limit).str());
+            ret.opt_key = "nonplanar_virtual_max_z";
+            ret.object  = tallest->model_object();
+            return ret;
+        }
+    }
+
+    if ((m_config.print_sequence == PrintSequence::ByObject || m_config.print_sequence == PrintSequence::ByGroup) &&
+        (m_objects.size() > 1 || m_objects[0]->instances().size() > 1)) {
         if (m_config.timelapse_type == TimelapseType::tlSmooth)
-            return {L("Smooth mode of timelapse is not supported when \"by object\" sequence is enabled.")};
+            return {L("Smooth mode of timelapse is not supported when \"by object\" or \"by group\" sequence is enabled.")};
 
         if (m_config.enable_wrapping_detection) {
             StringObjectException clumping_detection_setting_err;
-            clumping_detection_setting_err.string = L("Clumping detection is not supported when \"by object\" sequence is enabled.");
+            clumping_detection_setting_err.string = L("Clumping detection is not supported when \"by object\" or \"by group\" sequence is enabled.");
             clumping_detection_setting_err.opt_key = "enable_wrapping_detection";
             return clumping_detection_setting_err;
         }
@@ -2275,38 +2454,18 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         }
     }
 
-    if (m_config.belt_printer.value && m_config.enable_belt_purge_tower.value
-        && m_config.print_sequence == PrintSequence::ByObject
+    if (m_config.belt_printer.value && m_config.enable_belt_purge_tower.value && ! m_config.spiral_mode.value
         && extruders.size() > 1) {
-        StringObjectException warningtemp;
-        warningtemp.string     = L("The belt purge tower is not generated in \"By object\" print sequence; "
-                                   "filament changes will not be purged.");
-        warningtemp.opt_key    = "enable_belt_purge_tower";
-        warningtemp.is_warning = true;
-        add_warning(warningtemp);
-    }
-
-    // The purge tower is a model object the GUI creates and sizes; libslic3r only purges
-    // into one that exists. A project sliced without it (the CLI on a project saved before
-    // the tower was generated) changes filament with nowhere to purge.
-    if (m_config.belt_printer.value && m_config.enable_belt_purge_tower.value
-        && m_config.print_sequence != PrintSequence::ByObject
-        && ! m_config.spiral_mode.value && this->object_extruders().size() > 1 && ! this->has_belt_purge_tower()) {
-        StringObjectException warningtemp;
-        warningtemp.string     = L("The belt purge tower is enabled but the project has no purge tower object; "
-                                   "filament changes will not be purged. Open the project in the application "
-                                   "to generate the tower.");
-        warningtemp.opt_key    = "enable_belt_purge_tower";
-        warningtemp.is_warning = true;
-        add_warning(warningtemp);
-    }
-
-    if (m_config.belt_printer.value && m_config.enable_belt_purge_tower.value) {
-        const size_t prism_count = std::count_if(m_objects.begin(), m_objects.end(), [](const PrintObject *object) {
-            return object->config().belt_purge_tower_object.value;
-        });
-        if (prism_count > 1)
-            return {L("The project contains multiple managed belt purge towers. Reload the plate or toggle the belt purge tower off and on to regenerate it.")};
+        if (m_config.print_sequence == PrintSequence::ByObject)
+            warn(L("The belt purge tower is not generated in \"By object\" print sequence; "
+                   "filament changes will not be purged."), "enable_belt_purge_tower");
+        // The purge tower is a model object the GUI creates and sizes; libslic3r only purges
+        // into one that exists. A project sliced without it (the CLI on a project saved before
+        // the tower was generated) changes filament with nowhere to purge.
+        else if (this->object_extruders().size() > 1 && ! this->has_belt_purge_tower())
+            warn(L("The belt purge tower is enabled but the project has no purge tower object; "
+                   "filament changes will not be purged. Open the project in the application "
+                   "to generate the tower."), "enable_belt_purge_tower");
     }
 
     if (m_config.enable_prime_tower) {
@@ -2362,62 +2521,45 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         return profile;
     };
 
-    // Checks that the print does not exceed the max print height.
-    // For belt printers the slicing-frame Z spans the sheared X-length and
-    // is not comparable to printable_height (which is gantry clearance in the
-    // build-volume frame).  Compare against the model's pre-shear Z instead,
-    // mirroring the bbox computed in PrintObject::update_slicing_parameters.
-    // The machine-frame transform only changes how that height is written to
-    // G-code, not how much room there is under the gantry.
-    const bool belt_printer = this->config().belt_printer.value;
-    const double shrinkage_compensation_z = this->shrinkage_compensation().z();
+    // Checks that the print does not exceed the max print height
     for (size_t print_object_idx = 0; print_object_idx < m_objects.size(); ++ print_object_idx) {
         const PrintObject &print_object = *m_objects[print_object_idx];
+        //FIXME It is quite expensive to generate object layers just to get the print height!
+        if (auto layers = generate_object_layers(print_object.slicing_parameters(), layer_height_profile(print_object_idx),
+                                                 print_object.config().precise_z_height.value);
+            // BELT_MOD: slice z runs along the tilted gantry normal, not the machine's vertical axis,
+            // so printable_height does not bound it (OrcaSlicer skips this check the same way).
+            !layers.empty() && ! m_config.belt_printer.value) {
 
-        double effective_max_z       = 0;
-        bool   last_layer_below_max  = false;
-        bool   have_height           = false;
 
-        if (belt_printer) {
-            const double raw_z = print_object.model_object()->max_z();
-            effective_max_z = raw_z;
-            have_height     = raw_z > 0;
-        } else {
-            //FIXME It is quite expensive to generate object layers just to get the print height!
-            auto layers = generate_object_layers(print_object.slicing_parameters(), layer_height_profile(print_object_idx), print_object.config().precise_z_height.value);
-            if (!layers.empty()) {
-                // The object layers start above the raft.
-                const double raft_z  = print_object.slicing_parameters().object_print_z_min;
-                effective_max_z      = raft_z + layers.back();
-                last_layer_below_max = layers.size() >= 2 &&
+            // The layers start above the raft and already carry the Z shrinkage compensation (Orca #16313),
+            // so the compensated height is counted once and the uncompensated one decides whether the
+            // shrinkage is what pushed the object over.
+            const SlicingParameters &slicing_params = print_object.slicing_parameters();
+            const double raft_z                   = slicing_params.object_print_z_min;
+            const double max_z                    = raft_z + layers.back();
+            const double shrinkage_compensation_z = this->shrinkage_compensation().z();
+            if (shrinkage_compensation_z != 1. && max_z > this->config().printable_height + EPSILON &&
+                slicing_params.object_print_z_uncompensated_max <= this->config().printable_height + EPSILON) {
+                // The object exceeds the maximum build volume height because of shrinkage compensation.
+                return StringObjectException{
+                    Slic3r::format(_u8L("While the object %1% itself fits the build volume, it exceeds the maximum build volume height because of material shrinkage compensation."), print_object.model_object()->name),
+                    print_object.model_object(),
+                    ""
+                };
+            } else if (max_z > this->config().printable_height + EPSILON) {
+                // Test whether the last slicing plane is below or above the print volume.
+                const bool last_layer_below_max = layers.size() >= 2 &&
                     raft_z + 0.5 * (layers[layers.size() - 2] + layers.back()) <= this->config().printable_height + EPSILON;
-                have_height          = true;
+                return StringObjectException{
+                    last_layer_below_max ?
+                    Slic3r::format(_u8L("While the object %1% itself fits the build volume, its last layer exceeds the maximum build volume height."), print_object.model_object()->name) +
+                    " " + _u8L("You might want to reduce the size of your model or change current print settings and retry.") :
+                    Slic3r::format(_u8L("The object %1% exceeds the maximum build volume height."), print_object.model_object()->name),
+                    print_object.model_object(),
+                    ""
+                };
             }
-        }
-
-        if (!have_height)
-            continue;
-
-        // The layers of a regular printer already carry the Z shrinkage compensation, the belt height does not.
-        const double compensated_max_z   = belt_printer ? effective_max_z * shrinkage_compensation_z : effective_max_z;
-        const double uncompensated_max_z = belt_printer ? effective_max_z : print_object.slicing_parameters().object_print_z_uncompensated_max;
-        if (shrinkage_compensation_z != 1. && compensated_max_z > this->config().printable_height + EPSILON &&
-            uncompensated_max_z <= this->config().printable_height + EPSILON) {
-            // The object exceeds the maximum build volume height because of shrinkage compensation.
-            return StringObjectException{
-                Slic3r::format(_u8L("While the object %1% itself fits the build volume, it exceeds the maximum build volume height because of material shrinkage compensation."), print_object.model_object()->name),
-                print_object.model_object(),
-                ""
-            };
-        } else if (compensated_max_z > this->config().printable_height + EPSILON) {
-            return StringObjectException{
-                last_layer_below_max ?
-                Slic3r::format(_u8L("While the object %1% itself fits the build volume, its last layer exceeds the maximum build volume height."), print_object.model_object()->name) +
-                " " + _u8L("You might want to reduce the size of your model or change current print settings and retry.") :
-                Slic3r::format(_u8L("The object %1% exceeds the maximum build volume height."), print_object.model_object()->name),
-                print_object.model_object(),
-                ""
-            };
         }
     }
 
@@ -2438,7 +2580,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                     return {_u8L("Variable layer height is not supported with Organic supports.") };
         }
 
-    if ((this->has_wipe_tower() || this->has_belt_purge_tower()) && ! m_objects.empty()) {
+    if ((this->has_wipe_tower() || this->has_belt_purge_tower()) && ! m_objects.empty()) {   // BELT_MOD: the purge prism needs the same
         // Orca: wipe_tower_filament (issue #10971) is inserted into the tool order after
         // resolve_mixed_filaments has expanded every mixed (virtual) slot, so a mixed slot here
         // would reach the G-code as a tool change to a slot no nozzle carries. The GUI hides
@@ -2465,17 +2607,12 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 }
         }
 
-        // The following two constraints come from the classic wipe tower G-code
-        // generator; purging into the belt purge prism uses normal object
-        // extrusions and does not need them.
-        if (this->has_wipe_tower()) {
-            if (! m_config.use_relative_e_distances)
-                return { L("The Wipe Tower is currently only supported with the relative extruder addressing (use_relative_e_distances=1).") };
+        if (! m_config.use_relative_e_distances)
+            return { L("The Wipe Tower is currently only supported with the relative extruder addressing (use_relative_e_distances=1).") };
 
-            if (m_config.ooze_prevention && m_config.single_extruder_multi_material)
-                return {L("Ooze prevention is only supported with the wipe tower when 'single_extruder_multi_material' is off.")};
-        }
-
+        if (m_config.ooze_prevention && m_config.single_extruder_multi_material)
+            return {L("Ooze prevention is only supported with the wipe tower when 'single_extruder_multi_material' is off.")};
+            
 #if 0
         if (m_config.gcode_flavor != gcfRepRapSprinter && m_config.gcode_flavor != gcfRepRapFirmware &&
             m_config.gcode_flavor != gcfRepetier && m_config.gcode_flavor != gcfMarlinLegacy && m_config.gcode_flavor != gcfMarlinFirmware)
@@ -2866,7 +3003,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                        if (!warning_key.empty()) {
                             motion_warning.string = L(
                                 "The jerk setting exceeds the printer's maximum jerk (machine_max_jerk_x/machine_max_jerk_y).\n"
-                                "Orca will automatically cap the jerk speed to ensure it doesn't surpass the printer's capabilities.\n"
+                                "Unlayered Slicer will automatically cap the jerk speed to ensure it doesn't surpass the printer's capabilities.\n"
                                 "You can adjust the maximum jerk setting in your printer's configuration to get higher speeds.");
                             motion_warning.opt_key = warning_key;
                        }
@@ -2878,7 +3015,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 const bool support_max_junction_deviation = ( m_config.gcode_flavor == gcfMarlinFirmware);
                 if (warning_key.empty() && m_default_object_config.default_junction_deviation.get_at(extruder_id) > max_junction_deviation && support_max_junction_deviation) {
                     motion_warning.string  = L( "Junction deviation setting exceeds the printer's maximum value (machine_max_junction_deviation).\n"
-                                          "Orca will automatically cap the junction deviation to ensure it doesn't surpass the printer's capabilities.\n"
+                                          "Unlayered Slicer will automatically cap the junction deviation to ensure it doesn't surpass the printer's capabilities.\n"
                                           "You can adjust the machine_max_junction_deviation value in your printer's configuration to get higher limits.");
                     motion_warning.opt_key = "default_junction_deviation";
                 }
@@ -2984,10 +3121,12 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                              "adaptive_pressure_advance_model");
                         break;
                     }
-                    if (!AdaptivePAProcessor::validate_adaptive_pa_model(pa_model).empty()) {
-                        warn(L("The Adaptive Pressure Advance model for one or more extruders may contain invalid values."),
+                    const std::string pa_error = AdaptivePAProcessor::validate_adaptive_pa_model(pa_model);
+                    if (!pa_error.empty()) {
+                        // TRN %1% is the filament number as shown in the filament list, starting from 1; %2% names the invalid line.
+                        // one warning per filament, the notifications stack
+                        warn(Slic3r::format(L("The Adaptive Pressure Advance model of filament %1% contains invalid values.\n%2%"), filament_id + 1, pa_error),
                              "adaptive_pressure_advance_model");
-                        break;
                     }
                 }
             }
@@ -3027,8 +3166,15 @@ BoundingBox Print::total_bounding_box() const
     BoundingBox bb = this->bounding_box();
 
     // we need to offset the objects bounding box by at least half the perimeters extrusion width
-    Flow perimeter_flow = m_objects.front()->get_layer(0)->get_region(0)->flow(frPerimeter);
-    double extra = perimeter_flow.width/2;
+    // UNLAYERED_MOD: a declarative cut plane may legally leave a segment with zero layers (thin
+    // sliver), so the first object is not guaranteed to have a layer 0 to sample a representative
+    // flow from. Pick the first object that actually has one.
+    double extra = 0.;
+    for (const PrintObject *object : m_objects)
+        if (object->layer_count() > 0 && ! object->get_layer(0)->regions().empty()) {
+            extra = object->get_layer(0)->get_region(0)->flow(frPerimeter).width / 2;
+            break;
+        }
 
     // consider support material
     if (this->has_support_material()) {
@@ -3213,13 +3359,9 @@ BoundingBox PrintObject::get_first_layer_bbox(float& a, float& layer_height, std
             a += area(slice);
         }
     }
-    // Guard on `defined`: make_brim() can return before assigning this (it does on
-    // belt printers, where has_brim() is still true but the plate brim is skipped),
-    // and overwriting a valid bbox with an undefined one corrupted the first-layer
-    // centre and the GUI's first-layer area readout.
-    if (has_brim() && firstLayerObjectBrimBoundingBox.defined)
+    if (has_brim())
         bbox = firstLayerObjectBrimBoundingBox;
-    // Belt brim: the apron reaches ahead of the object along the belt.
+    // BELT_MOD -- the belt brim's apron reaches ahead of the object along the belt.
     if (has_belt_brim()) {
         const Point shift = instances().empty() ? Point(0, 0) : instances()[0].shift_without_plate_offset();
         for (const ExPolygons &areas : m_belt_brim_areas_by_layer)
@@ -3245,6 +3387,8 @@ std::map<ObjectID, unsigned int> getObjectExtruderMap(const Print& print) {
         // BBS
         if (object->object_first_layer_wall_extruders.empty()){
             unsigned int objectFirstLayerFirstExtruder = print.config().filament_diameter.size();
+            if (object->layers().empty())
+                continue;
             auto firstLayerRegions = object->layers().front()->regions();
             if (!firstLayerRegions.empty()) {
                 for (const LayerRegion* regionPtr : firstLayerRegions) {
@@ -3260,6 +3404,422 @@ std::map<ObjectID, unsigned int> getObjectExtruderMap(const Print& print) {
         }
     }
     return objectExtruderMap;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Declarative cut planes: the segment support cascade.
+//
+// A segment is sliced in its own frame, where its base plane is the ground. Its support therefore
+// terminates on that plane -- but the plane is a cut face of its PARENT, and wherever the parent
+// has no material under the contact the load has nowhere to go. The cascade closes that gap: each
+// segment is generated child-first, and whatever its support could not carry to its own floor is
+// projected onto the parent as forced overhang ("demand"), in the parent's frame.
+//
+// This replaces the world-frame cut-group cascade on haryr/support-generation. The differences
+// that matter: the partition is a TREE (a parent can receive from several children, so demand
+// accumulates rather than being assigned), the child->parent map is a single composition of the
+// authoritative frames instead of a four-matrix world round-trip, and floor/ceiling roles come
+// from the descriptor's clips rather than being re-derived from config planes.
+// ---------------------------------------------------------------------------------------------
+
+namespace {
+
+// Exact matrix identity, deliberately NOT isApprox(). PrintApply expands a ModelObject into one
+// PrintObject per DISTINCT transform using exact comparison (transform3d_equal), so two
+// numerically-close-but-distinct transforms are different families there. Matching them
+// approximately here would merge two families, put duplicate segment indices in one, and let
+// segment_parent_of() return a parent from the wrong transform.
+bool same_trafo(const Transform3d &lhs, const Transform3d &rhs)
+{
+    const double *l = lhs.data();
+    const double *r = rhs.data();
+    for (size_t i = 0; i < 16; ++ i, ++ l, ++ r)
+        if (*l != *r)
+            return false;
+    return true;
+}
+
+// Everything at the bottom of `child` that the segments below may have to hold up, in two kinds:
+// the child's SUPPORT (support-on-support: the receiver's column ends flush with the plane) and
+// the child's BODY (its material over the receiver's empty space: the receiver keeps the normal
+// top Z distance). Sampled over a window of 2 layer heights above the lowest layer rather than
+// the single lowest layer: the exact-lowest layer is routinely empty for one category or another,
+// and trusting it alone silently drops demand.
+struct SegmentFootprint { Polygons support; Polygons body; };
+
+SegmentFootprint segment_support_footprint(const PrintObject *child)
+{
+    Polygons     out;        // full-width support contributions
+    Polygons     tree_base;  // tree pads, eroded before handoff (see below)
+    Polygons     body;
+    const double lh = std::max(0.01, child->config().layer_height.value);
+
+    const ConstSupportLayerPtrsAdaptor support_layers = child->support_layers();
+    if (! support_layers.empty()) {
+        coordf_t z_lo = support_layers.front()->print_z;
+        for (const SupportLayer *sl : support_layers)
+            z_lo = std::min(z_lo, sl->print_z);
+        const coordf_t z_threshold = z_lo + coordf_t(2. * lh);
+        for (const SupportLayer *sl : support_layers)
+            if (sl->print_z <= z_threshold) {
+                // Normal/grid support records its footprint in support_islands; classic tree
+                // leaves that empty and uses base_areas. Take both so either style cascades.
+                append(out,       to_polygons(sl->support_islands));
+                append(tree_base, to_polygons(sl->base_areas));
+            }
+    }
+
+    // A tree roots in a wide base pad. Handing the full pad down makes the parent mirror it as a
+    // blocky column that visibly holds nothing, so slim it to its load-bearing cores by a branch
+    // radius and let the parent's own tree regrow a slim column.
+    if (! tree_base.empty()) {
+        const bool    organic = child->config().support_style.value == smsTreeOrganic;
+        const double  dia_mm  = organic ? child->config().tree_support_branch_diameter_organic.value
+                                        : child->config().tree_support_branch_diameter.value;
+        const coord_t r       = scale_(std::max(0.2, 0.5 * dia_mm));
+        append(out, offset(union_(tree_base), - double(r)));
+    }
+
+    // The body cross-section, same window. This is what makes a child needing NO support of its
+    // own still propagate: its overhang past the parent is not a slicing overhang in any frame.
+    if (child->layer_count() > 0) {
+        const coordf_t z_lo = child->get_layer(0)->print_z;
+        for (size_t i = 0; i < child->layer_count(); ++ i) {
+            const Layer *layer = child->get_layer(int(i));
+            if (layer->print_z > z_lo + coordf_t(2. * lh))
+                break;              // layers are sorted by print_z
+            append(body, to_polygons(layer->lslices));
+        }
+    }
+
+    SegmentFootprint footprint;
+    footprint.support = union_(out);
+    footprint.body    = union_(body);
+    return footprint;
+}
+
+// Fallback when the shared plane is horizontal or near-vertical in the parent's frame: drop the
+// footprint straight onto every parent layer at or below it, minus the parent's own material.
+void seed_single_layer(const PrintObject *parent, const Polygons &footprint_xy, double z_mm,
+                       std::vector<Polygons> &out)
+{
+    if (footprint_xy.empty() || parent->layer_count() == 0)
+        return;
+    // Descend from the shared plane, carrying what is still unsupported and CARVING it against the
+    // parent's material on the way -- the same accumulate-and-carve rule the tilted path uses.
+    // Testing each layer independently instead (as the original did) lets load caught by a shelf
+    // reappear wherever the parent narrows again lower down, asking for support beneath material
+    // that is already carrying it.
+    Polygons column = footprint_xy;
+    for (int i = int(parent->layer_count()) - 1; i >= 0; -- i) {
+        const Layer *layer = parent->get_layer(i);
+        if (layer->print_z > z_mm + EPSILON)
+            continue;                       // above the shared plane: nothing lands here
+        column = diff(column, to_polygons(layer->lslices));
+        if (column.empty())
+            break;                          // fully caught by the parent
+        out[size_t(i)] = column;
+    }
+}
+
+// The child's base plane, expressed in the PARENT's slice frame as z = a*x + b*y + d.
+// Taken from the descriptor's own Floor clip rather than reconstructed from the columns of the
+// child->parent matrix: the clip is exact and object-local, so this is both simpler and
+// numerically better. Returns false if the segment has no usable base-plane clip.
+bool base_plane_in_parent_frame(const PrintObject *child, const PrintObject *parent,
+                                double &a, double &b, double &d)
+{
+    if (! child->is_segment() || child->is_root_segment())
+        return false;
+    const CutSegmentClip *base = nullptr;
+    for (const CutSegmentClip &clip : child->segment()->clips)
+        if (clip.plane_index == child->segment()->base_plane && clip.role == CutClipRole::Floor)
+            base = &clip;
+    if (base == nullptr || base->normal.squaredNorm() < EPSILON)
+        return false;
+
+    const Transform3d &to_parent = parent->object_to_slice();
+    Vec3d              n         = to_parent.linear().inverse().transpose() * base->normal;
+    if (n.norm() < EPSILON)
+        return false;
+    n.normalize();
+    const Vec3d  on_plane = to_parent * (base->normal * (base->offset / base->normal.squaredNorm()));
+    const double D        = n.dot(on_plane);
+    if (std::abs(n.z()) < 1e-9)
+        return false;               // near-vertical in the parent frame; caller seeds instead
+    a = - n.x() / n.z();
+    b = - n.y() / n.z();
+    d = D / n.z();
+    return true;
+}
+
+// Project `footprint_child` (the child's slice frame) onto the parent's layers, keeping only what
+// genuinely overhangs. Walks top->bottom accumulating a column: a patch landing on solid parent
+// material is dropped and never enters the column; what survives descends to the parent's floor,
+// carved by the parent's material on the way. That tightness is what stops the old blocky
+// over-support columns.
+std::vector<Polygons> distribute_demand(const Polygons &footprint_child, const Transform3d &M,
+                                        const PrintObject *parent, const PrintObject *child)
+{
+    std::vector<Polygons> out(parent->layer_count());
+    if (footprint_child.empty() || parent->layer_count() == 0)
+        return out;
+
+    // The footprint polygons are flat 2D, so transforming them directly would treat them as lying at
+    // child-frame z = 0. That is right only when the child RESTS on its base plane. A floating
+    // segment's material starts a gap ABOVE the plane, and the load is handed over at the plane, so
+    // the polygons have to be projected down onto it first -- otherwise the relative transform's
+    // third column times the omitted height shifts the whole footprint sideways in the parent.
+    // Folding the projection into the matrix keeps the 2D transform below exact.
+    const double base_plane_z = child->is_root_segment() ? 0. : - child->segment()->base_plane_distance_below_material;
+    Transform3d  M_projected  = M;
+    M_projected.translate(Vec3d(0., 0., base_plane_z));
+
+    // Polygon::transform applies the matrix to RAW SCALED coordinates, so the translation has to
+    // be pre-divided by SCALING_FACTOR while the linear part is left alone. The z of the result is
+    // dropped; we keep the XY shadow.
+    Transform3d M_scaled = M_projected;
+    M_scaled.translation() = M_projected.translation() * (1. / SCALING_FACTOR);
+    Polygons footprint_xy;
+    footprint_xy.reserve(footprint_child.size());
+    for (const Polygon &p : footprint_child)
+        footprint_xy.emplace_back(p.transform(M_scaled));
+    footprint_xy = union_(footprint_xy);
+    if (footprint_xy.empty())
+        return out;
+
+    // Only the part of the footprint that enters THIS receiver's floor/ceiling slab at the plane
+    // is its business (the column is handed to every earlier segment, see
+    // run_segment_support_cascade). What lands above its ceiling reaches it, if at all, through
+    // the segment that owns that slab; what lands below its floor never does. Clipping here also
+    // spares the per-layer projection below for receivers the column never crosses.
+    const SegmentSupportBounds parent_bounds(*parent);
+
+    double a = 0., b = 0., d = 0.;
+    if (! base_plane_in_parent_frame(child, parent, a, b, d)) {
+        // No usable plane: fall back to the image of the child's own origin as a nominal height.
+        const double z_nominal = M.translation().z();
+        if (parent_bounds.is_active())
+            footprint_xy = intersection(footprint_xy, parent_bounds.valid_region_polygon(z_nominal));
+        seed_single_layer(parent, footprint_xy, z_nominal, out);
+        return out;
+    }
+    if (parent_bounds.is_active()) {
+        footprint_xy = parent_bounds.on_plane_inside(footprint_xy, a, b, d);
+        if (footprint_xy.empty())
+            return out;
+    }
+    const double gnorm = std::hypot(a, b);
+    if (gnorm < 1e-6) {                       // shared plane horizontal in the parent's frame
+        seed_single_layer(parent, footprint_xy, d, out);
+        return out;
+    }
+
+    // Rotate so the plane gradient aligns with +X: then z = gnorm * x_mm + d, and each parent
+    // layer's z band is an axis-aligned x strip.
+    const double ang = std::atan2(b, a);
+    Polygons     rot = footprint_xy;
+    for (Polygon &p : rot)
+        p.rotate(- ang);
+    const BoundingBox bb      = get_extents(rot);
+    const int         nlayers = int(parent->layer_count());
+
+    Polygons column;   // accumulated overhang, parent frame, unrotated
+    for (int i = nlayers - 1; i >= 0; -- i) {
+        const Layer   *layer = parent->get_layer(i);
+        const Polygons lmat  = to_polygons(layer->lslices);
+        const coord_t  x_lo  = scale_((layer->print_z - d) / gnorm);
+        const coord_t  x_hi  = (i + 1 < nlayers) ? scale_((parent->get_layer(i + 1)->print_z - d) / gnorm)
+                                                 : bb.max.x();
+        const coord_t  xa    = std::max(x_lo, bb.min.x());
+        const coord_t  xb    = std::min(x_hi, bb.max.x());
+        if (xb > xa) {
+            Polygon strip;
+            strip.points = { Point(xa, bb.min.y()), Point(xb, bb.min.y()),
+                             Point(xb, bb.max.y()), Point(xa, bb.max.y()) };
+            Polygons band = intersection(rot, Polygons{ strip });
+            for (Polygon &p : band)
+                p.rotate(ang);
+            Polygons overhang = diff(band, lmat);   // drop whatever rests on parent material
+            if (! overhang.empty())
+                append(column, overhang);
+        }
+        if (column.empty())
+            continue;
+        // Carve the column against this layer's material and KEEP the carved result: parent
+        // material that has caught part of the load has caught it for good. Recomputing a
+        // throwaway difference each layer (as the original did) let demand vanish at a shelf and
+        // reappear underneath it, asking for support below material that is already carrying it.
+        column = diff(union_(column), lmat);
+        if (! column.empty())
+            out[i] = column;
+    }
+    return out;
+}
+
+} // namespace
+
+std::vector<std::vector<PrintObject*>> Print::segment_families() const
+{
+    std::vector<std::vector<PrintObject*>> families;
+    for (PrintObject *object : const_cast<Print*>(this)->m_objects) {
+        if (! object->is_segment())
+            continue;
+        // One family per (ModelObject, effective instance transform): a tilt or mirror can change
+        // which side rests on the bed, so differently oriented instances derive different
+        // descriptors and must not be cascaded together.
+        auto family = std::find_if(families.begin(), families.end(), [object](const std::vector<PrintObject*> &f) {
+            return f.front()->model_object() == object->model_object() && same_trafo(f.front()->trafo(), object->trafo());
+        });
+        if (family == families.end()) {
+            families.push_back({ object });
+        } else {
+            family->push_back(object);
+        }
+    }
+
+    for (auto family = families.begin(); family != families.end(); ) {
+        if (family->size() < 2) {
+            // A lone segment has nobody to hand demand to; leave it on the ordinary path.
+            family = families.erase(family);
+            continue;
+        }
+        // Descriptor indices are assigned root-first in peel order, and a chunk's floor borders
+        // only the root and earlier-peeling chunks, so a parent's index is always below its
+        // children's; descending index order is therefore a valid postorder, and every child is
+        // generated before the parent that depends on it.
+        std::sort(family->begin(), family->end(), [](const PrintObject *l, const PrintObject *r) {
+            return l->segment_index() > r->segment_index();
+        });
+        for (const PrintObject *object : *family)
+            assert(object->is_root_segment() || object->segment()->parent < object->segment_index());
+        ++ family;
+    }
+    return families;
+}
+
+std::vector<PrintObject*> Print::segments_below(const PrintObject *object) const
+{
+    std::vector<PrintObject*> below;
+    if (object == nullptr || ! object->is_segment() || object->is_root_segment())
+        return below;
+    for (PrintObject *candidate : const_cast<Print*>(this)->m_objects)
+        if (candidate != object && candidate->is_segment()
+            && candidate->model_object() == object->model_object()
+            && same_trafo(candidate->trafo(), object->trafo())
+            && candidate->segment_index() < object->segment_index())
+            below.push_back(candidate);
+    return below;
+}
+
+// UNLAYERED_MOD -- may this object receive automatically-derived support demand?
+//
+// Inherited cut-chunk load is AUTOMATIC support: the slicer works out that a chunk rests on a
+// cut face with nothing under it. The operator did not ask for it by painting. support_type's
+// manual modes mean "I decide where support goes", so honour that here and let only painted
+// enforcers through -- they take the enforcer path and are unaffected by this.
+//
+// Gated at the two producers, not at the consumers: demand is read in six places across the
+// normal, tree and organic generators, and creating none at all is the only way to be sure they
+// all agree. enable_support is deliberately NOT consulted -- has_support() already gates
+// generation, and enforce_support_layers can legitimately turn it on with support off.
+//
+// The trade-off is real and is the operator's to make: a chunk floating over its base plane now
+// prints unsupported unless they paint it. That is what the setting asks for, and the slice is
+// not silent about it -- the suppression is logged per segment.
+static bool segment_demand_allowed(const PrintObject *object)
+{
+    return object != nullptr && is_auto(object->config().support_type.value);
+}
+
+void Print::run_segment_support_cascade(const std::vector<PrintObject*> &family)
+{
+    BOOST_LOG_TRIVIAL(info) << "Cut planes: support cascade over a family of " << family.size() << " segments (deepest first)";
+
+    // Demand is transient and rebuilt from scratch every run, so a stale contribution from a
+    // previous slice can never survive into this one.
+    for (PrintObject *segment : family)
+        segment->clear_segment_support_demand();
+
+    for (PrintObject *child : family) {
+        // A segment that FLOATS above its base plane (a plane through empty space between
+        // disconnected shells produces no cut face) has its whole first layer suspended. The stock
+        // generators assume layer 0 rests on the ground, so nothing would support it: seed the
+        // demand explicitly, before this segment generates.
+        // A root lifted off the plate (auto-drop off) is suspended the same way, over the plate.
+        const bool floats = child->is_root_segment() ? child->root_floats_above_plate()
+                                                     : ! child->segment()->touches_base_plane();
+        if (floats && child->layer_count() > 0 && ! segment_demand_allowed(child)) {
+            BOOST_LOG_TRIVIAL(info) << "Cut planes: segment " << child->segment_index()
+                                    << " floats above its base plane, but support_type is manual;"
+                                    << " not seeding it -- paint an enforcer to support it.";
+        }
+        else if (floats && child->layer_count() > 0) {
+            std::vector<Polygons> seed(1);
+            seed[0] = to_polygons(child->get_layer(0)->lslices);
+            BOOST_LOG_TRIVIAL(info) << "Cut planes: segment " << child->segment_index() << " floats "
+                                    << (child->is_root_segment() ? child->segment()->slice_z_base()
+                                                                 : child->segment()->base_plane_distance_below_material)
+                                    << (child->is_root_segment() ? "mm above the build plate" : "mm above its base plane")
+                                    << "; seeding its first layer as unsupported";
+            child->add_segment_body_demand(seed);
+        }
+
+        child->generate_support_material();
+
+        if (child->is_root_segment())
+            continue;               // the root: its floor is the build plate
+        const SegmentFootprint footprint = segment_support_footprint(child);
+        if (footprint.support.empty() && footprint.body.empty()) {
+            BOOST_LOG_TRIVIAL(info) << "Cut planes: segment " << child->segment_index() << " has no footprint to hand up";
+            continue;
+        }
+        // Hand the column to EVERY segment printed before this one, not only to the parent. The
+        // parent is the segment the child's base plane mostly rests on, but the column below that
+        // plane can pass through the slab of a sibling first: two planes through one point make a
+        // wedge whose ceiling is the child's floor, and where the wedge has no material the load
+        // has to be carried by the wedge's support before it reaches the root. Handing only to the
+        // parent left that slab empty -- the parent clips its support at its ceilings, and the
+        // wedge never heard about the load. Each receiver carves the column against its own
+        // material and clips it to its own floor/ceiling slab, so a segment the column never
+        // crosses ends up with nothing.
+        for (PrintObject *lower : family) {
+            if (lower->segment_index() >= child->segment_index())
+                continue;
+            if (! segment_demand_allowed(lower)) {
+                BOOST_LOG_TRIVIAL(info) << "Cut planes: segment " << child->segment_index()
+                                        << " has load to hand to segment " << lower->segment_index()
+                                        << ", but its support_type is manual; not cascading it.";
+                continue;
+            }
+            // The authoritative composition. NOT lower->post_trafo() * child->post_trafo().inverse():
+            // the shared XY centering does not cancel across a relative rotation (see Print.hpp).
+            const Transform3d M = lower->object_to_slice() * child->slice_to_object();
+            if (! footprint.support.empty())
+                lower->add_segment_support_demand(distribute_demand(footprint.support, M, lower, child));
+            if (! footprint.body.empty())
+                lower->add_segment_body_demand(distribute_demand(footprint.body, M, lower, child));
+        }
+    }
+}
+
+void Print::run_segment_support_preview(PrintObject *member)
+{
+    // The support-painting preview asks ONE PrintObject to slice and generate support. For a
+    // segment that is not enough: its support depends on demand handed up by its children, so
+    // previewing it alone shows support with every inherited load missing -- and, worse, marks its
+    // support step done, so a later full slice can skip regenerating it and keep the wrong result.
+    for (const std::vector<PrintObject*> &family : this->segment_families()) {
+        if (std::find(family.begin(), family.end(), member) == family.end())
+            continue;
+        for (PrintObject *segment : family)
+            segment->slice();
+        this->run_segment_support_cascade(family);
+        return;
+    }
+    // A segment with no family (nothing to hand demand to): the ordinary path is correct.
+    member->slice();
+    member->generate_support_material();
 }
 
 // Slicing process, running at a background thread.
@@ -3284,19 +3844,6 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": this=%1%, enter, use_cache=%2%, object size=%3%")%this%use_cache%m_objects.size();
     if (m_objects.empty())
         return;
-
-    // Belt purge prism: _plan_belt_purge() (psWipeTower) truncates the prism's
-    // layers and drops its unclaimed fills, stashing both so a replan can undo
-    // them. The object steps below regenerate per-layer content over m_layers
-    // ONLY, so if any of them is about to rerun the stashes must go back first;
-    // otherwise truncated layers keep stale perimeters/fills and dropped fills
-    // are re-inserted next to freshly generated ones. Every object-step
-    // invalidation also invalidates psWipeTower, so "psWipeTower not done" is
-    // exactly "some object step may rerun" -- and when it IS done nothing below
-    // regenerates, and the plan's edits have to stay.
-    if (!this->is_step_done(psWipeTower))
-        for (PrintObject *obj : m_objects)
-            obj->belt_undo_purge_plan();
 
     {
         LifecycleEventContext ctx;
@@ -3359,20 +3906,23 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
     int object_count = m_objects.size();
     std::set<PrintObject*> need_slicing_objects;
     std::set<PrintObject*> re_slicing_objects;
-    // Belt global modes couple each object's bed position into its layer Z values,
-    // so sharing layers between "identical" objects is wrong.
-    bool belt_no_share = m_config.belt_printer.value;
+
+    //UNLAYERED_MOD
+    //we just reslice everything since movements
+    for (int index = 0; index < object_count; index++) {
+        need_slicing_objects.insert(m_objects[index]);
+        re_slicing_objects.insert(m_objects[index]);
+    }
+    /*
     if (!use_cache) {
         for (int index = 0; index < object_count; index++)
         {
             PrintObject *obj =  m_objects[index];
-            if (!belt_no_share) {
-                for (PrintObject *slicing_obj : need_slicing_objects)
-                {
-                    if (is_print_object_the_same(obj, slicing_obj)) {
-                        obj->set_shared_object(slicing_obj);
-                        break;
-                    }
+            for (PrintObject *slicing_obj : need_slicing_objects)
+            {
+                if (is_print_object_the_same(obj, slicing_obj)) {
+                    obj->set_shared_object(slicing_obj);
+                    break;
                 }
             }
             if (!obj->get_shared_object())
@@ -3391,14 +3941,12 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             PrintObject *obj =  m_objects[index];
             bool found_shared = false;
             if (need_slicing_objects.find(obj) == need_slicing_objects.end()) {
-                if (!belt_no_share) {
-                    for (PrintObject *slicing_obj : need_slicing_objects)
-                    {
-                        if (is_print_object_the_same(obj, slicing_obj)) {
-                            obj->set_shared_object(slicing_obj);
-                            found_shared = true;
-                            break;
-                        }
+                for (PrintObject *slicing_obj : need_slicing_objects)
+                {
+                    if (is_print_object_the_same(obj, slicing_obj)) {
+                        obj->set_shared_object(slicing_obj);
+                        found_shared = true;
+                        break;
                     }
                 }
                 if (!found_shared) {
@@ -3412,9 +3960,11 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             }
         }
     }
+    */
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": total object counts %1% in current print, need to slice %2%")%m_objects.size()%need_slicing_objects.size();
     BOOST_LOG_TRIVIAL(info) << "Starting the slicing process." << log_memory_info();
+    
     if (!use_cache) {
         // Fire the SlicingPipeline hook for `obj` iff it just (re)computed `pstep` this pass.
         auto hook_after = [this](PrintObject* obj, bool was_done, PrintObjectStep pstep, SlicingPipelineStepPlugin sstep) {
@@ -3424,6 +3974,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
         // SlicingPipeline: dedicated slice loop so the Slice boundary is hookable before perimeters.
         for (PrintObject *obj : m_objects) {
+
             if (need_slicing_objects.count(obj) != 0) {
                 const bool was_done = obj->is_step_done(posSlice);
                 obj->slice();
@@ -3509,6 +4060,15 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             }
         }
 
+        // Declarative cut planes: segments of one family are supported child-first by the serial
+        // cascade below, because a parent's support depends on demand handed up by its children.
+        // They are skipped here; every other object keeps the parallel path unchanged, and with no
+        // cut planes in the scene `families` is empty and this is exactly the old behaviour.
+        const std::vector<std::vector<PrintObject*>> families = this->segment_families();
+        std::set<const PrintObject*> cascade_objects;
+        for (const std::vector<PrintObject*> &family : families)
+            for (const PrintObject *object : family)
+                cascade_objects.insert(object);
         // SlicingPipeline: support runs in the parallel block below; the hook must fire in a
         // sequential loop afterward. Snapshot per-object done-state just before the parallel_for.
         std::vector<char> sup_was_done(m_objects.size(), 1);
@@ -3517,12 +4077,13 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 sup_was_done[i] = m_objects[i]->is_step_done(posSupportMaterial) ? 1 : 0;
 
         tbb::parallel_for(tbb::blocked_range<int>(0, int(m_objects.size())),
-            [this, need_slicing_objects](const tbb::blocked_range<int>& range) {
+            [this, need_slicing_objects, &cascade_objects](const tbb::blocked_range<int>& range) {
                 for (int i = range.begin(); i < range.end(); i++) {
                     PrintObject* obj = m_objects[i];
+                    if (cascade_objects.count(obj) != 0)
+                        continue;           // handled by the cascade below
                     if (need_slicing_objects.count(obj) != 0) {
-                        // The belt brim follows sequentially below.
-                        obj->generate_support_material(false);
+                        obj->generate_support_material();
                     }
                     else {
                         if (obj->set_started(posSupportMaterial))
@@ -3531,16 +4092,14 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 }
             }
         );
-        // The belt brim keeps clear of every object's layers and support layers,
-        // so it runs once no support step is rebuilding them any more.
-        for (PrintObject *obj : m_objects)
-            obj->generate_belt_brim();
 
         if (m_pipeline_plugin_active)
             for (size_t i = 0; i < m_objects.size(); ++i)
                 if (need_slicing_objects.count(m_objects[i]) != 0 && !sup_was_done[i]
                     && m_objects[i]->is_step_done(posSupportMaterial))
                     run_pipeline_hook(SlicingPipelineStepPlugin::posSupportMaterial, m_objects[i]);
+        for (const std::vector<PrintObject*> &family : families)
+            this->run_segment_support_cascade(family);
 
         for (PrintObject* obj : m_objects) {
             if (need_slicing_objects.count(obj) != 0) {
@@ -3555,6 +4114,14 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         }
     }
     else {
+        // Same deferral as the parallel branch above: a family's support has to run child-first,
+        // serially, after the per-object work below. Empty when the scene has no cut planes.
+        const std::vector<std::vector<PrintObject*>> cached_families = this->segment_families();
+        std::set<const PrintObject*> cached_cascade_objects;
+        for (const std::vector<PrintObject*> &family : cached_families)
+            for (const PrintObject *object : family)
+                cached_cascade_objects.insert(object);
+
         for (PrintObject *obj : m_objects) {
             if (re_slicing_objects.count(obj) == 0) {
                 if (obj->set_started(posSlice))
@@ -3578,11 +4145,24 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 obj->make_perimeters();
                 obj->infill();
                 obj->ironing();
-                obj->generate_support_material();
+                // Cut-plane family members are deferred to the cascade below; their support (and
+                // the lift/curled analysis that reads it) cannot be generated until every child
+                // has contributed.
+                if (cached_cascade_objects.count(obj) == 0) {
+                    obj->generate_support_material();
+                    obj->detect_overhangs_for_lift();
+                    obj->estimate_curled_extrusions();
+                }
+            }
+        }
+
+        for (const std::vector<PrintObject*> &family : cached_families)
+            this->run_segment_support_cascade(family);
+        for (PrintObject *obj : m_objects)
+            if (cached_cascade_objects.count(obj) != 0 && re_slicing_objects.count(obj) != 0) {
                 obj->detect_overhangs_for_lift();
                 obj->estimate_curled_extrusions();
             }
-        }
     }
 
     for (PrintObject *obj : m_objects)
@@ -3591,6 +4171,15 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             obj->copy_layers_from_shared_object();
             obj->copy_layers_overhang_from_shared_object();
         }
+    }
+
+    // UNLAYERED_MOD -- support is generated per object and only avoids its own object; cut it away
+    // from every other object on the plate before the wipe tower, brim and conflict check read it.
+    // Runs on every process(): a move invalidates the brim, not the support (SupportNeighbourClip.hpp).
+    {
+        const size_t clipped = clip_supports_to_neighbours(*this, [this]() { this->throw_if_canceled(); });
+        if (clipped > 0)
+            BOOST_LOG_TRIVIAL(info) << "support clipped against neighbouring objects on " << clipped << " support layers";
     }
 
 
@@ -3612,7 +4201,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         m_wipe_tower_data.clear();
         m_tool_ordering.clear();
         if (this->has_belt_purge_tower() && this->config().print_sequence != PrintSequence::ByObject) {
-            this->_plan_belt_purge();
+            this->_plan_belt_purge();   // BELT_MOD
         }
         else if (this->has_wipe_tower()) {
             this->_make_wipe_tower();
@@ -3660,6 +4249,15 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         std::vector<const PrintInstance*> 					print_object_instances_ordering;
         std::vector<const PrintInstance*>::const_iterator 	print_object_instance_sequential_active;
         std::vector<std::pair<coordf_t, std::vector<GCode::LayerToPrint>>> layers_to_print = GCode::collect_layers_to_print(*this);
+
+        ////make a loop that iterates through layers to print and rotates them all by 10 degrees
+        //for (auto& layer_pair : layers_to_print) {
+        //    for (auto& layer_to_print : layer_pair.second) {
+        //        //layer_to_print.object
+        //        int iiii = 0;
+        //    }
+        //}
+
         std::vector<unsigned int> printExtruders;
         // Per-object first-layer mixed-slot resolutions for the by-object remap below
         // (BBS reads them from m_sequential_print_data->object_tool_ordering_map).
@@ -3870,12 +4468,8 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             for (Polygon &poly : union_(this->first_layer_islands(), islands_area))
                 append(m_first_layer_convex_hull.points, std::move(poly.points));
         }
-
-
-        // Belt brim: bound the first-layer convex hull by the lowest apron band, so
-        // bed levelling and the initial purge line account for brim that reaches
-        // ahead of every object.
-        if (this->has_belt_brim()) {
+        // BELT_MOD -- the belt brim's lowest apron band is the first thing on the belt.
+        if (this->has_belt_brim())
             for (PrintObject *object : m_objects) {
                 if (! object->has_belt_brim() || object->belt_brim_prologue().empty())
                     continue;
@@ -3887,11 +4481,8 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                         append(m_first_layer_convex_hull.points, std::move(poly.points));
                     }
             }
-        }
 
-        // Unchanged for belt printers: _make_skirt() already returns early for them, and
-        // the belt brim does not populate m_brimMapByInstance, which is what the
-        // skirt/brim grouping reads.
+
         if (has_skirt() || has_infinite_skirt() || has_brim()) {
             // Generate skirt/brim groups after brim so per-object and draft-shield footprints
             // include brims when grouping and offsetting skirt loops.
@@ -3913,6 +4504,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             *time_cost_with_cache = *time_cost_with_cache + end_time - start_time;
         }
     }
+    // one option is to inject the rotation after this point since simplifying paths is similar to rotating them
     //BBS
     for (PrintObject *obj : m_objects) {
         if (((!use_cache)&&(need_slicing_objects.count(obj) != 0))
@@ -3935,6 +4527,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         }
     }
 
+    //gcode hasnt happened l
     // BBS
     bool has_adaptive_layer_height = false;
     for (PrintObject* obj : m_objects) {
@@ -3995,12 +4588,7 @@ std::string Print::export_gcode(const std::string& path_template, GCodeProcessor
     this->set_status(80, message);
 
     // The following line may die for multiple reasons.
-    // Factory: use BeltGCode for belt printers, plain GCode otherwise.
-    std::unique_ptr<GCode> gcode;
-    if (m_config.belt_printer.value)
-        gcode = std::make_unique<BeltGCode>();
-    else
-        gcode = std::make_unique<GCode>();
+    GCode gcode;
     //BBS: compute plate offset for gcode-generator
     const Vec3d origin = this->get_plate_origin();
     // IMEX firmware-managed zones: writer offset gets the IMEX shift so emitted gcode is
@@ -4012,27 +4600,182 @@ std::string Print::export_gcode(const std::string& path_template, GCodeProcessor
     // still emits in the frame the current config asks for.
     this->update_imex_slice_offset();
     const Vec2d imex_off = this->get_imex_slice_offset();
-    gcode->set_gcode_offset_with_imex_shift(origin(0), origin(1), imex_off.x(), imex_off.y());
-    gcode->do_export(this, path.c_str(), result, thumbnail_cb);
-    gcode->export_layer_filaments(result);
-    //BBS
+    gcode.set_gcode_offset_with_imex_shift(origin(0), origin(1), imex_off.x(), imex_off.y());
+    gcode.do_export(this, path.c_str(), result, thumbnail_cb);
     if (result != nullptr) {
+        gcode.export_layer_filaments(result);
+        // UNLAYERED_MOD: hotend-envelope collision check on the finished toolpaths. Only a print with more
+        // than one tool axis can have material above a later nozzle position, so planar prints skip
+        // it (the check returns immediately). Reported through the same ConflictResult plumbing as
+        // the G-code path conflicts: sidebar warning in the GUI, exit -101 in the CLI.
+        // BELT_MOD: the belt machine frame shears the emitted coordinates, which this check reads as bed-frame.
+        if (! m_conflict_result && ! m_no_check && m_config.enable_nonplanar.value && ! m_config.belt_printer.value && result->tool_axes.size() > 1) {
+            HotendCollisionParams hp;
+            // Each nozzle's own envelope for the moves it makes (MoveVertex::physical_extruder_id); the
+            // conservative one over every nozzle for a move made before the first tool change.
+            hp.envelope = HotendEnvelope::from_config(m_config);
+            for (size_t x = 0; x < m_config.nozzle_diameter.values.size(); ++ x)
+                hp.extruder_envelopes.push_back(HotendEnvelope::from_config(m_config, int(x)));
+            // A 3-axis printer never tilts its nozzle, whatever axis the chunk was tagged with.
+            hp.upright  = m_config.virtual_5axis.value;
+            if (trunnion_ac_enabled(this->full_print_config()))
+                hp.ac = trunnion_ac_machine(this->full_print_config());
+            const auto t0 = std::chrono::high_resolution_clock::now();
+            m_conflict_result = check_hotend_collisions(*result, hp);
+            BOOST_LOG_TRIVIAL(info) << "hotend collision check took "
+                                    << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t0).count() << " ms"
+                                    << (m_conflict_result ? ", COLLISION" : ", clear");
+        }
+        // UNLAYERED_MOD -- virtual 5-axis total-height limit. Runs LAST: on a large tilted plane the
+        // head climbs as it works outwards (chunk transitions lift clear of everything printed so
+        // far, GCode.cpp) until it can strike the gantry.
+        //
+        // The WRITTEN FILE is scanned rather than result->moves so that every Z word counts,
+        // including the apex of each transition hop, which is normally the highest point in the
+        // whole print. Post-processing scripts have also already run by this point, so this sees
+        // exactly what the printer gets.
+        //
+        // Except the printer's own G-code: the machine start/end G-code (and filament change and
+        // other custom blocks) is written under a ";TYPE:Custom" role tag, and an end G-code that
+        // lifts the head and presents the print (Prusa MK3S: Z up, then X0 Y200) is not the
+        // toolpath climbing into the gantry. Refusing every print over it was most of the slice
+        // errors 0.1.3 reported. Transition hops carry no role tag of their own, so they keep the
+        // role of the extrusion before them and stay counted.
+        //
+        // The same scan refuses a toolpath that goes BELOW the plate (Z < 0). On a 3-axis printer that
+        // is the nozzle driven into the bed: a customer's A1 scraped its plate on 0.1.x. Nothing
+        // upstream should produce it any more (tilted objects are clipped at the plate in
+        // slice_volumes), so this is the last line of defence, not the fix.
+        bool height_limit_exceeded = false;
+        bool below_plate           = false;
+        const bool check_height = m_config.enable_nonplanar.value && m_config.virtual_5axis.value && ! m_config.belt_printer.value &&
+                                  m_config.nonplanar_virtual_max_z.value > 0.;
+        const bool check_floor  = m_config.enable_nonplanar.value && m_config.virtual_5axis.value && ! m_config.belt_printer.value;
+        if (check_height || check_floor) {
+            const double limit   = m_config.nonplanar_virtual_max_z.value;
+            double       worst_z = 0., worst_x = 0., worst_y = 0.;
+            double       low_z   = std::numeric_limits<double>::max(), low_x = 0., low_y = 0.;
+            double       cur_x   = 0., cur_y   = 0.;
+            {
+                boost::nowide::ifstream in(path);
+                std::string             line;
+                const std::string       role_tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
+                bool                    in_custom = false;
+                while (std::getline(in, line)) {
+                    if (boost::starts_with(line, role_tag)) {
+                        std::string role = line.substr(role_tag.size());
+                        boost::trim(role);
+                        in_custom = role == ExtrusionEntity::role_to_string(erCustom);
+                        continue;
+                    }
+                    if (line.size() < 2 || (line[0] != 'G' && line[0] != 'g'))
+                        continue;
+                    // G0/G1 only: arcs carry I/J/R and never change Z on this path.
+                    if (line[1] != '0' && line[1] != '1')
+                        continue;
+                    if (line.size() > 2 && line[2] != ' ' && line[2] != '	')
+                        continue;
+                    double z = 0.;
+                    bool   have_z = false;
+                    for (size_t i = 2; i < line.size(); ++i) {
+                        const char c = line[i];
+                        if (c == ';')
+                            break;
+                        if (c != 'X' && c != 'Y' && c != 'Z')
+                            continue;
+                        char       *endp = nullptr;
+                        const double v   = std::strtod(line.c_str() + i + 1, &endp);
+                        if (endp == line.c_str() + i + 1)
+                            continue;
+                        if      (c == 'X') cur_x = v;
+                        else if (c == 'Y') cur_y = v;
+                        else { z = v; have_z = true; }
+                        i = size_t(endp - line.c_str()) - 1;
+                    }
+                    if (have_z && ! in_custom && z > worst_z) {
+                        worst_z = z;
+                        worst_x = cur_x;
+                        worst_y = cur_y;
+                    }
+                    if (have_z && ! in_custom && z < low_z) {
+                        low_z = z;
+                        low_x = cur_x;
+                        low_y = cur_y;
+                    }
+                }
+            }
+            // UNLAYERED_MOD -- the written Z includes the printer's Z offset (the writer adds it, as
+            // GCode.cpp's max_extrusion_z() - z_offset knows): measure from the plate, or a printer with a
+            // negative Z offset has every virtual 5-axis slice refused as "below the build plate".
+            low_z   -= m_config.z_offset.value;
+            worst_z -= m_config.z_offset.value;
+            height_limit_exceeded = check_height && worst_z > limit + EPSILON;
+            below_plate           = check_floor && low_z < - EPSILON;
+            if (below_plate) {
+                ConflictResult cr(_u8L("toolpath"), _u8L("the build plate"), low_z, nullptr, nullptr);
+                cr.message = (boost::format(_u8L("Virtual 5-axis: the toolpath goes below the build plate, to Z%1% mm (near "
+                                                 "X%2% Y%3%), which would drive the nozzle into the bed. Part of the object "
+                                                 "is probably sunk below the plate: drop it onto the plate and slice again."))
+                              % (boost::format("%.2f") % low_z).str()
+                              % (boost::format("%.1f") % low_x).str()
+                              % (boost::format("%.1f") % low_y).str()).str();
+                if (m_conflict_result) {
+                    if (! m_conflict_result->message.empty())
+                        cr.message += " " + m_conflict_result->message;
+                    cr._obj1 = m_conflict_result->_obj1;
+                    cr._obj2 = m_conflict_result->_obj2;
+                }
+                m_conflict_result = cr;
+                BOOST_LOG_TRIVIAL(error) << "virtual 5-axis below the plate: " << cr.message;
+            }
+            if (height_limit_exceeded) {
+                ConflictResult cr(_u8L("toolpath"), _u8L("the gantry"), worst_z, nullptr, nullptr);
+                cr.message = (boost::format(_u8L("Virtual 5-axis: the toolpath reaches Z%1% mm (near X%3% Y%4%), above "
+                                                 "the %2% mm set in Printer settings > Motion ability > Non-planar "
+                                                 "Printing > \"Max print height (from the bed)\". Lower the part, reduce "
+                                                 "the cut plane angle, or raise that limit (0 means no limit)."))
+                              % (boost::format("%.1f") % worst_z).str()
+                              % (boost::format("%.1f") % limit).str()
+                              % (boost::format("%.1f") % worst_x).str()
+                              % (boost::format("%.1f") % worst_y).str()).str();
+                // Day one of 0.1.3 saw limits of 4, 5 and 7 mm: read as a clearance, not a height.
+                if (limit < 30.)
+                    cr.message += " " + _u8L("Note: this limit is measured from the bed, so it is usually close to the "
+                                             "printer's build height; a few millimetres refuses almost every print.");
+                // Only ONE ConflictResult survives into result->conflict_result and the GUI renders
+                // exactly one message, so fold anything already found into this one rather than
+                // dropping it: a print can both collide and exceed the height.
+                if (m_conflict_result) {
+                    if (! m_conflict_result->message.empty())
+                        cr.message += " " + m_conflict_result->message;
+                    cr._obj1 = m_conflict_result->_obj1;
+                    cr._obj2 = m_conflict_result->_obj2;
+                }
+                m_conflict_result = cr;
+                BOOST_LOG_TRIVIAL(error) << "virtual 5-axis height limit: " << cr.message;
+            }
+        }
+
+        //BBS
         result->conflict_result = m_conflict_result;
         // Surface the slicer's per-filament nozzle grouping onto the post-slice result
         // the device GUI reads. This is the static L/R + rack subset the multi-nozzle path computes;
         // null for single-nozzle prints where nothing computes it. It is assigned after g-code
         // generation and read by no emitter, so it does not affect the emitted g-code.
         result->nozzle_group_result = this->get_layered_nozzle_group_result();
+
+        // A ConflictResult alone is only a SERIOUS WARNING in the GUI: the slice completes and the
+        // G-code stays exportable and sendable (only the CLI blocks on it). This limit exists to
+        // refuse, so raise a real slicing error -- after the assignment above, so the preview still
+        // carries the marker. BackgroundSlicingProcess reports it and never finalizes the export.
+        if ((height_limit_exceeded || below_plate) && m_conflict_result)
+            throw Slic3r::SlicingError(m_conflict_result->message);
     }
     return path.c_str();
 }
 
 void Print::_make_skirt()
 {
-    // Belt printer: skirt is not compatible.
-    if (m_config.belt_printer.value)
-        return;
-  
     const bool generate_skirt = this->has_skirt() || this->has_infinite_skirt();
 
     // First off we need to decide how tall the skirt must be.
@@ -4048,9 +4791,15 @@ void Print::_make_skirt()
     coordf_t skirt_height_z = 0.;
     if (generate_skirt) {
         for (const PrintObject *object : m_objects) {
+            // Declarative cut planes: non-root segments start at their cut height, not at the bed —
+            // including them would inflate skirt_height_z to the cut and oversize the skirt hull.
+            if (! object->is_root_segment())
+                continue;
             size_t skirt_layers = this->has_infinite_skirt() ?
                 object->layer_count() :
                 std::min(size_t(m_config.skirt_height.value), object->layer_count());
+            if (skirt_layers == 0)
+                continue;
             skirt_height_z = std::max(skirt_height_z, object->m_layers[skirt_layers-1]->print_z);
         }
     }
@@ -4064,6 +4813,12 @@ void Print::_make_skirt()
     // geometry up to skirt height. Instances translate this hull later.
     std::vector<ObjectSkirtHull> object_convex_hulls;
     for (PrintObject *object : m_objects) {
+        // Declarative cut planes: only the root segment contributes to (and receives) the skirt;
+        // upper segments neither touch the bed nor print in the first skirt_height layers.
+        if (! object->is_root_segment())
+            continue;
+        if (object->m_layers.empty())
+            continue;
         Points object_points;
         // Get object layers up to skirt_height_z.
         for (const Layer *layer : object->m_layers) {
@@ -4443,6 +5198,11 @@ Polygons Print::first_layer_islands() const
 {
     Polygons islands;
     for (PrintObject *object : m_objects) {
+        // Declarative cut planes: upper segments do not touch the bed — no first-layer islands.
+        if (! object->is_root_segment())
+            continue;
+        if (object->m_layers.empty())
+            continue;
         Polygons object_islands;
         for (ExPolygon &expoly : object->m_layers.front()->lslices)
             object_islands.push_back(expoly.contour);
@@ -5188,13 +5948,10 @@ int Print::get_config_index(int filament_id, int layer_id, const std::vector<std
 // Wipe tower support.
 bool Print::has_wipe_tower() const
 {
-    // Belt printers never get the classic wipe tower: its G-code is generated
-    // directly in machine XY coordinates and bypasses the belt rotation
-    // transform. Purging is routed into the belt purge prism instead
-    // (see has_belt_purge_tower() / _plan_belt_purge()).
+    // BELT_MOD -- the classic wipe tower emits its own G1/G2/G3 text that never passes through
+    // the writer's machine frame mapping, so it cannot be placed on a belt.
     if (m_config.belt_printer.value)
         return false;
-
     if (m_config.enable_prime_tower.value == true) {
         if (m_config.enable_wrapping_detection.value && m_config.wrapping_exclude_area.values.size() > 2)
             return true;
@@ -5206,7 +5963,6 @@ bool Print::has_wipe_tower() const
     }
     return false;
 }
-
 
 const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
 {
@@ -5236,7 +5992,6 @@ bool Print::enable_timelapse_print() const
 {
     return m_config.timelapse_type.value == TimelapseType::tlSmooth;
 }
-
 
 void Print::_make_wipe_tower()
 {
@@ -5730,12 +6485,23 @@ void Print::export_gcode_from_previous_file(const std::string& file, GCodeProces
         GCodeProcessor::s_IsBBLPrinter = is_BBL_printer();
         const Vec3d origin = this->get_plate_origin();
         processor.set_xy_offset(origin(0), origin(1));
+        // UNLAYERED_MOD: seed the processor with this Print's config (filament count/map, flavor,
+        // densities, machine limits). A G-code without a slicer config block (an external slicer's) otherwise
+        // has filaments_count == 0, every T<n> is rejected and all usage lands on filament 0, so the
+        // sent package lists filament 1 and the AMS mapping misses the real tool (0700-8012 at T2).
+        // A file that carries its own config block still overrides this inside process_file().
+        processor.apply_config(this->config());
         // Reloaded sliced projects re-estimate with the same nozzle-grouping slot context as the
         // original export; process_file re-derives the device-side nozzle grouping onto the result
         // (via ensure_nozzle_group_result), so the multi-nozzle send/monitor mapping survives here.
         if (result != nullptr && result->nozzle_group_result)
             processor.initialize_from_context(result->nozzle_group_result);
         processor.configure_exclusion_volume_path_check(this->config());
+        // UNLAYERED_MOD: a sliced 3MF whose G-code carries no slicer config block (a slicing service
+        // may package its G-code that way for printers that take a sliced 3MF) needs the same defaults the G-code viewer gives an
+        // imported file (Plater::load_gcode), or every T command is "invalid" and the preview gets
+        // no moves. Fills only empty maps: a file with its own config block still overrides them.
+        processor.init_filament_maps_and_nozzle_type_when_import_only_gcode();
         //processor.enable_producers(true);
         processor.process_file(file);
 

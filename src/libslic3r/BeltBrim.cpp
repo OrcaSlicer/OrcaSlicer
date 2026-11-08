@@ -1,31 +1,15 @@
-#include <limits>
 #include "BeltBrim.hpp"
 
 #include "ClipperUtils.hpp"
 #include "Flow.hpp"
+#include "Geometry.hpp"
 #include "Layer.hpp"
 #include "Polygon.hpp"
 #include "Print.hpp"
 #include "ShortestPath.hpp"
-#include "Surface.hpp"
-#include "SurfaceCollection.hpp"
-#include "Support/BeltFloorContext.hpp"
-#include "BoundingBox.hpp"
-#include "ExPolygon.hpp"
-#include "ExtrusionEntity.hpp"
-#include "ExtrusionEntityCollection.hpp"
-#include "Point.hpp"
-#include "Polyline.hpp"
-#include "PrintConfig.hpp"
-#include "libslic3r.h"
 
 #include <algorithm>
-#include <cmath>
-#include <cstddef>
-#include <cstdint>
-#include <cstdlib>
-#include <utility>
-#include <vector>
+#include <boost/log/trivial.hpp>
 
 namespace Slic3r {
 
@@ -33,8 +17,6 @@ namespace Slic3r {
 
 static inline Point scale_u_point(const Point &p, int from_axis, double factor)
 {
-    // llround, not a cast: casting truncates toward zero, so a round trip would
-    // walk every vertex toward the origin by up to one unit per pass.
     return from_axis == 0 ?
         Point(coord_t(std::llround(double(p.x()) * factor)), p.y()) :
         Point(p.x(), coord_t(std::llround(double(p.y()) * factor)));
@@ -75,12 +57,9 @@ ExPolygons sweep_ex(const ExPolygons &src, const Point &t)
     if (t == Point(0, 0))
         return src;
 
-    // One parallelogram per boundary edge.  Together with P and P + t these
-    // cover the Minkowski sum exactly: for any q = p + s*t with p in P and
-    // s in [0, 1], let s* be the smallest lambda >= 0 with q - lambda*t in P.
-    // Either s* == 0 (so q is in P) or q - s* * t lies on some boundary edge e,
-    // putting q in that edge's parallelogram.  Hole edges must be included, or
-    // holes narrower than t along t would wrongly survive the sweep.
+    // One parallelogram per boundary edge. Together with P and P + t these cover the Minkowski
+    // sum exactly. Hole edges must be included, or holes narrower than t along t would wrongly
+    // survive the sweep.
     Polygons quads;
     for (const ExPolygon &ex : src)
         for (size_t c = 0; c < ex.num_contours(); ++ c)
@@ -89,9 +68,7 @@ ExPolygons sweep_ex(const ExPolygons &src, const Point &t)
                     continue;
                 Polygon q;
                 q.points = { e.a, e.b, e.b + t, e.a + t };
-                // The non-zero fill rule counts a clockwise ring as -1, which
-                // would punch a hole instead of adding material.  Edges parallel
-                // to t give a zero-area quad; Clipper discards those harmlessly.
+                // The non-zero fill rule counts a clockwise ring as -1, which would punch a hole.
                 if (q.is_clockwise())
                     q.reverse();
                 quads.emplace_back(std::move(q));
@@ -101,8 +78,6 @@ ExPolygons sweep_ex(const ExPolygons &src, const Point &t)
     for (ExPolygon &ex : shifted)
         ex.translate(t);
 
-    // union_ex(ExPolygons, Polygons) uses pftNonZero, which is the fill rule the
-    // argument above relies on.
     return union_ex(union_ex(src, shifted), quads);
 }
 
@@ -123,38 +98,27 @@ ExPolygons belt_brim_region(const ExPolygons    &footprint_flat,
     ExPolygons out;
 
     if (has_outer) {
-        // Offset the outer ring from the contours only, so a hole cannot punch
-        // through it.  Same reasoning as the plate brim in Brim.cpp.
+        // Offset the outer ring from the contours only, so a hole cannot punch through it.
         Polygons contours;
         contours.reserve(footprint_flat.size());
         for (const ExPolygon &ex : footprint_flat)
             contours.emplace_back(ex.contour);
 
-        // Inner and outer boundary offset from the same polygon, to avoid
-        // round-off mismatch between them.
         ExPolygons inner = offset_ex(contours, float(object_gap), jtRound, SCALED_RESOLUTION);
 
-        // Close the interior before offsetting outwards.  A belt contact patch is often a
-        // narrow, broken-up strip, and the offset rings of two islands less than
-        // 2 x brim_width apart merge and fill the space between them - space that lies
-        // UNDER the part, which is not what "outer brim" means.  Closing also swallows
-        // holes in the patch for the same reason.  Concavity-filling only, so an apron or
-        // any other outward protrusion is untouched.
+        // Close the interior before offsetting outwards: a belt contact patch is often a narrow,
+        // broken-up strip, and the offset rings of two islands less than 2 x brim_width apart
+        // would merge and fill the space UNDER the part. Concavity-filling only.
         ExPolygons envelope = brim_width > 0 ? closing_ex(inner, float(brim_width)) : inner;
 
         ExPolygons base  = envelope;
         if (leading > 0) {
-            // Sweep downhill from the gapped keep-out, so the apron is contiguous with
-            // the ring instead of starting inside the gap.
             const Point t = frame.from_axis == 0 ?
                 Point(frame.downhill_sign() * leading, 0) :
                 Point(0, frame.downhill_sign() * leading);
             base = union_ex(base, sweep_ex(envelope, t));
         }
         if (lateral > 0) {
-            // Across the belt, both ways.  Swept from `base` so the apron is widened
-            // too, and in the flattened frame the cross-belt axis is unscaled, so this
-            // distance is already a true on-belt distance.
             const Point t = frame.from_axis == 0 ? Point(0, lateral) : Point(lateral, 0);
             ExPolygons widened = union_ex(sweep_ex(base, t), sweep_ex(base, Point(-t.x(), -t.y())));
             base = union_ex(base, to_polygons(widened));
@@ -164,8 +128,6 @@ ExPolygons belt_brim_region(const ExPolygons    &footprint_flat,
     }
 
     if (has_inner) {
-        // Holes reversed so a negative offset grows inward, mirroring Brim.cpp.
-        // No apron here: an apron growing into a hole interior is never useful.
         Polygons holes;
         for (const ExPolygon &ex : footprint_flat)
             polygons_append(holes, ex.holes);
@@ -182,18 +144,11 @@ ExPolygons belt_brim_region(const ExPolygons    &footprint_flat,
 
 // ---------------------------------------------------------------- line lattice
 
-std::vector<coord_t> belt_brim_line_positions(coord_t u_lo,
-                                              coord_t u_hi,
-                                              coord_t pitch_u,
-                                              coord_t u_anchor)
+std::vector<coord_t> belt_brim_line_positions(coord_t u_lo, coord_t u_hi, coord_t pitch_u, coord_t u_anchor)
 {
     std::vector<coord_t> out;
     if (pitch_u <= 0 || u_hi <= u_lo)
         return out;
-
-    // Walk the lattice from just below u_lo.  Integer arithmetic throughout, so
-    // the half-open interval needs no epsilon: a point landing exactly on u_hi
-    // belongs to the next band.
     int64_t k = int64_t(std::floor(double(u_lo - u_anchor) / double(pitch_u))) - 1;
     while (u_anchor + coord_t(k) * pitch_u < u_lo)
         ++ k;
@@ -206,12 +161,37 @@ std::vector<coord_t> belt_brim_line_positions(coord_t u_lo,
     return out;
 }
 
+// ---------------------------------------------------------------- frame
+
+bool belt_brim_frame(const PrintObject &object, BeltBrimFrame &frame)
+{
+    const Print &print = *object.print();
+    if (! print.config().belt_printer.value || ! object.support_floor_is_tilted())
+        return false;
+    // The belt plane over layer-local XY: the G-code stage evaluates it on plate coordinates
+    // (layer XY + instance shift), and bed_plane_in_slice_frame() folds that shift into k.
+    Vec3d  n;
+    double k;
+    object.bed_plane_in_slice_frame(n, k);
+    // The belt height must depend on one slice-XY axis only, and vary with Z at all.
+    const double ax = std::abs(n.x()), ay = std::abs(n.y()), az = std::abs(n.z());
+    if (az < 1e-6 || (ax > 1e-6 && ay > 1e-6))
+        return false;
+    const int    from_axis = ax > ay ? 0 : 1;
+    const double n_u       = from_axis == 0 ? n.x() : n.y();
+    if (std::abs(n_u) < 1e-6)
+        return false;
+    // bed_z = n_u u + n_z z + k = 0  ->  z = -(n_u u + k) / n_z
+    frame.from_axis = from_axis;
+    frame.shear     = - n_u / n.z();
+    frame.z0        = - k / n.z();
+    const double tilt_deg = Geometry::rad2deg(std::atan(std::abs(frame.shear)));
+    return tilt_deg >= BELT_BRIM_MIN_TILT_DEG && tilt_deg <= BELT_BRIM_MAX_TILT_DEG;
+}
+
 // ---------------------------------------------------------------- pipeline
 
-// A band of the belt surface as an explicit box, clamped to `bounds` along the
-// shear axis.  Deliberately not BeltFloorContext::surface_polygon(): those
-// half-planes span +-1000 mm, which is wasteful to clip against and dangerous to
-// feed through the flattening scale.
+// A band of the belt surface as an explicit box, clamped to `bounds` along the shear axis.
 static Polygon band_box(const BoundingBox &bounds, int from_axis, coordf_t u_lo, coordf_t u_hi)
 {
     coord_t lo = scale_(u_lo);
@@ -232,30 +212,17 @@ static Polygon band_box(const BoundingBox &bounds, int from_axis, coordf_t u_lo,
     return poly;
 }
 
-ExPolygons belt_brim_clip_leading_edge(const ExPolygons &region, const BeltBrimFrame &frame, coordf_t u_cut)
-{
-    if (region.empty())
-        return region;
-    BoundingBox keep_bb = get_extents(region);
-    keep_bb.offset(scale_(1.));
-    const bool    low_side = frame.downhill_sign() < 0;   // downhill is -u
-    const Polygon keep = band_box(keep_bb, frame.from_axis,
-        low_side ? unscale<double>(frame.from_axis == 0 ? keep_bb.min.x() : keep_bb.min.y()) : u_cut,
-        low_side ? u_cut : unscale<double>(frame.from_axis == 0 ? keep_bb.max.x() : keep_bb.max.y()));
-    return keep.empty() ? ExPolygons{} : intersection_ex(region, Polygons{ keep });
-}
-
-// Everything the per-band line generator needs, gathered once per object.
 struct BeltBrimContext
 {
-    BeltFloorContext ctx;
-    BeltBrimFrame    frame;
-    ExPolygons       region;      // brim region, object-local slicing XY
-    BoundingBox      region_bbox;
-    Flow             brim_flow;
-    coord_t          pitch_u   = 0;
-    coord_t          u_anchor  = 0;
-    double           in_plane_pitch = 0.;   // mm
+    BeltBrimFrame frame;
+    ExPolygons    region;      // brim region, object-local slicing XY
+    BoundingBox   region_bbox;
+    // A placeholder: Flow's constructor computes the spacing and rejects a zero bead, so it cannot
+    // be default-constructed; make_belt_brim() replaces it with the print's brim flow.
+    Flow          brim_flow { 0.4f, 0.2f, 0.4f };
+    coord_t       pitch_u   = 0;
+    coord_t       u_anchor  = 0;
+    double        in_plane_pitch = 0.;   // mm
 };
 
 // Emit the cross-belt brim lines that belong to the band [print_z - height, print_z].
@@ -269,87 +236,54 @@ static void belt_brim_band_paths(const BeltBrimContext      &bc,
                                  ExtrusionEntityCollection  &out,
                                  ExPolygons                 &areas_out)
 {
-    coordf_t u_lo = bc.ctx.cutoff_u(print_z - height);
-    coordf_t u_hi = bc.ctx.cutoff_u(print_z);
+    coordf_t u_lo = bc.frame.cutoff_u(print_z - height);
+    coordf_t u_hi = bc.frame.cutoff_u(print_z);
     if (u_lo > u_hi)
         std::swap(u_lo, u_hi);
 
-    // How wide this band is measured ON the belt, versus one nominal bead.
     const double band_in_plane = (u_hi - u_lo) * bc.frame.u_stretch();
 
-    // Nozzle-to-belt clearance of the object's own outer wall where it rests on the belt.
-    // The layer is sliced half a layer below print_z, so the slice meets the belt there, and
-    // the wall's centreline is inset from that edge, where the belt lies lower by the inset
-    // times the shear.  No brim line sits closer to the belt than this, so brim and object
-    // are laid at the same height and one calibration of the belt height (endstop, extruder
-    // offset) serves both.  A contour compensation that pushes the wall down to the belt
-    // cannot be matched: the brim keeps a tenth of a layer, so its lines still have a
-    // cross-section.
-    const double wall_clearance = std::max(0.5 * height + wall_inset * std::abs(bc.frame.shear), 0.1 * height);
+    // Fraction of the layer height at which a line sits above the belt: toward the downhill edge,
+    // so the sheet is reasonably thick while the nozzle stays clear of the belt itself.
+    static constexpr double BAND_CLEARANCE_FRACTION = 0.75;
 
     std::vector<coord_t> us;
-    double uniform_clearance = 0.;   // 0 => derive per line from its own position
+    double uniform_clearance = 0.;
     double line_pitch        = bc.in_plane_pitch;
-    // One line also serves a band up to half a bead wider than the nominal pitch (a 0.3 mm
-    // first layer at 45 degrees): its flow is matched to the band, so the bead is that much
-    // wider. Two lattice lines in such a band would land almost on top of each other.
-    if (band_in_plane <= 1.5 * bc.in_plane_pitch + EPSILON) {
-        // Steep belt, which is the normal case: the band is narrower than one bead, so
-        // exactly one line fits.  Place it at the outer wall's clearance rather than on
-        // a nominal-spacing lattice.  On a lattice each line lands at an arbitrary point
-        // in its band, the clearance sweeps [0, height] from band to band, and the bead
-        // width therefore varies by 2x - visible as ragged, uneven brim lines.  A fixed
-        // clearance is identical everywhere, so every bead is the same width.  It can
-        // exceed the layer height, which only moves every band's line downhill by the
-        // same distance.
-        //
-        // The spacing is then whatever the bands give (height / sin(tilt) on the belt)
-        // rather than the nominal bead spacing, so the flow below is matched to THAT
-        // pitch.  Matched flow at the real pitch is what keeps the sheet uniform and
-        // gap-free; using nominal flow at band spacing would over-feed it.
-        us.push_back(scale_(bc.ctx.cutoff_u(print_z - wall_clearance)));
-        uniform_clearance = wall_clearance;
+    if (band_in_plane <= bc.in_plane_pitch + EPSILON) {
+        // Steep belt, the normal case: one line per band, at a FIXED fraction of the band so every
+        // bead has the same clearance and width; the flow is matched to the band pitch.
+        us.push_back(scale_(bc.frame.cutoff_u(print_z - BAND_CLEARANCE_FRACTION * height)));
+        uniform_clearance = BAND_CLEARANCE_FRACTION * height;
         line_pitch        = band_in_plane;
     } else {
-        // Shallow belt: the band is wider than a bead, so it takes several lines and they
-        // have to sit on the nominal lattice.  Their clearances then differ, and so do
-        // their widths - unavoidable here, but shallow belts are the rare case.
+        // Shallow belt: several lines on the nominal lattice.
         us = belt_brim_line_positions(scale_(u_lo), scale_(u_hi), bc.pitch_u, bc.u_anchor);
     }
     if (us.empty())
         return;
 
     const Polygons region_polys = to_polygons(bc.region);
-
-    // One lattice line at a time: the clearance - and therefore the extrusion
-    // volume - is a property of the line's u, so the pieces of different lines
-    // must not be pooled before the flow is resolved.
-    // Overshoot the region so the clip, not the line's ends, decides the extent.
-    const coord_t margin = coord_t(SCALED_EPSILON) + 1;
-    coord_t       u_prev = std::numeric_limits<coord_t>::min();
+    const coord_t  margin       = coord_t(SCALED_EPSILON) + 1;
+    coord_t u_prev = std::numeric_limits<coord_t>::min();
     for (coord_t u : us) {
-        // Nozzle-to-belt clearance for this line.  Constant along the line, because the
-        // belt height depends only on the shear-axis coordinate.  Band-anchored lines
-        // share one clearance by construction; lattice lines (shallow belts, or a first
-        // layer thick enough that the band is wider than a bead) each get their own.
-        //
-        // A lattice line can fall where the belt is only a hair below the band's print_z.
-        // The bead there would be laid scraping the belt while its flow is sized for a
-        // taller cell, so it is moved to the outer wall's clearance, where the single-line
-        // case puts every line.  (The clearance is along slice Z; the real gap under the
-        // nozzle is clearance x cos(tilt).)
+        // Nozzle-to-belt clearance for this line: constant along it (the belt height depends on
+        // u alone). Lattice lines each get their own. A lattice line may fall where the belt is
+        // only a hair below the band's print_z; such a bead would be laid scraping the belt (and
+        // the writer refuses it as "very low z"), so it is moved uphill to the same fraction of the
+        // band the single-line case uses. Note the clearance is measured along slice z; the true
+        // gap under the nozzle is clearance x cos(tilt), 0.53 h at 45 degrees for the 0.75 fraction,
+        // which is why half the band (0.35 h, under 0.1 mm for a 0.28 mm layer) is not enough. Found
+        // by fuzzing: every 0.28-0.3 mm first layer put its bands on the lattice and lost its brim.
         double clearance = uniform_clearance;
         if (clearance <= 0.) {
-            const Point probe = bc.frame.from_axis == 0 ? Point(u, 0) : Point(0, u);
-            clearance = std::min(print_z - bc.ctx.floor_print_z(probe), height);
-            if (clearance < wall_clearance) {
-                clearance = wall_clearance;
-                u         = scale_(bc.ctx.cutoff_u(print_z - clearance));
+            clearance = print_z - bc.frame.floor_z(unscale<double>(u));
+            if (clearance < BAND_CLEARANCE_FRACTION * height) {
+                clearance = BAND_CLEARANCE_FRACTION * height;
+                u         = scale_(bc.frame.cutoff_u(print_z - clearance));
             }
         }
-        // A line moved uphill can land on, or almost on, its neighbour; two beads closer
-        // than half a pitch would be laid into the same cell.
-        if (u_prev != std::numeric_limits<coord_t>::min() && std::abs(u - u_prev) < bc.pitch_u / 2)
+        if (u == u_prev)
             continue;
         u_prev = u;
 
@@ -367,39 +301,28 @@ static void belt_brim_band_paths(const BeltBrimContext      &bc,
         if (pieces.empty())
             continue;
 
-        // A bead as tall as the clearance and line_pitch apart from the next fills exactly
-        // one pitch x clearance cell of the sheet, at any clearance.  (with_cross_section()
-        // makes a round bead of a quarter of the area asked for when the cell is small.)
-        const float height_f = float(clearance);
-        const Flow  f(Flow::rounded_rectangle_extrusion_width_from_spacing(float(line_pitch), height_f), height_f,
-                      bc.brim_flow.nozzle_diameter());
+        // The bead fills one pitch x clearance cell of the sheet: that volume per mm, at the pitch
+        // as its width and the clearance as its height. Stated directly rather than through
+        // Flow::with_cross_section(), whose spacing arithmetic rejects beads thinner than the nozzle.
+        const double mm3_per_mm = line_pitch * clearance;
+        const double bead_width = std::max(line_pitch, 0.5 * double(bc.brim_flow.nozzle_diameter()));
 
-        // Footprint of these beads, for the first-layer convex hull and bbox.
-        for (const Polygon &p : offset(pieces, 0.5f * float(f.scaled_width())))
+        for (const Polygon &p : offset(pieces, 0.5f * float(scale_(bead_width))))
             areas_out.emplace_back(ExPolygon(p));
 
         extrusion_entities_append_paths(out.entities, chain_polylines(std::move(pieces)),
-                                        erBrim, f.mm3_per_mm(), f.width(), float(clearance));
+                                        erBrim, float(mm3_per_mm), float(bead_width), float(clearance));
     }
 }
 
-// Union of everything extruded at `print_z` that the brim must keep clear of, expressed
-// in `self`'s local slicing frame.  Includes `self` itself: its slice at this Z can
-// overhang outside the belt footprint and land in the brim ring, which the flattened
-// brim_object_gap - a belt-plane separation - does not cover.
+// Union of everything extruded at `print_z` that the brim must keep clear of, in `self`'s local
+// slice frame. Includes `self` itself (its slice at this Z can overhang into the ring).
 //
-// SEQUENCING: this reads every object's layers and this object's own support layers.
-// Another object's support step shifts that object's layer Z into the object frame for
-// the duration of the run (PrintObject::_generate_support_material()), so the brims must
-// not overlap with the parallel support step: Print::process() generates them one object
-// after the other once that step is over (PrintObject::generate_belt_brim()), and an
-// object that arrives on or leaves the plate invalidates the other brim owners' support
-// step (PrintApply.cpp) so their brims are clipped against what is there now.  Only this
-// object's supports are dodged; another object's support at the same Z is not.
-// `region_bbox` bounds the brim; anything outside it cannot clip a brim line, so whole
-// objects are skipped without materialising their polygons.  On a typical plate the
-// objects do not overlap and every foreign object drops out here, which matters because
-// this runs once per band - hundreds of times per object.
+// THREADING: runs inside posSupportMaterial, executed for all objects in parallel. Object slices
+// are finished by then and safe to read across objects, but SUPPORT layers are not: another
+// object's thread may be inside clear_support_layers() right now. Only this object's own supports
+// are consulted; they are complete, because make_belt_brim() runs at the tail of this object's own
+// generate_support_material().
 static Polygons belt_brim_obstacles(const Print &print, const PrintObject &self,
                                     const BoundingBox &region_bbox, coordf_t print_z, coordf_t tol)
 {
@@ -431,8 +354,81 @@ static Polygons belt_brim_obstacles(const Print &print, const PrintObject &self,
         }
     }
     if (out.size() < 2)
-        return out;   // union_() of 0 or 1 polygons is pure overhead
+        return out;
     return union_(out);
+}
+
+// ---------------------------------------------------------------- PrintObject
+
+bool PrintObject::has_belt_brim() const
+{
+    if (! m_print->has_tilted_belt() || this->is_segment())
+        return false;
+    // The purge prism is sacrificial and sits at the plate's edge; its generator sets no_brim, and
+    // this keeps it brimless whatever its config says, so a brim on the parts never blocks purging.
+    if (m_config.belt_purge_tower_object.value)
+        return false;
+    if (! this->belt_brim_instances_compatible())
+        return false;
+    if (m_config.brim_type == btNoBrim)
+        return false;
+    // An inner-only brim has no leading/extra geometry (both widen the OUTER ring), so it needs
+    // a positive brim_width; every other type is satisfied by any one of the three widths.
+    if (m_config.brim_type == btInnerOnly) {
+        if (m_config.brim_width.value <= 0.)
+            return false;
+    } else if (m_config.brim_width.value <= 0. && m_config.leading_brim_length.value <= 0.
+               && m_config.extra_brim_width.value <= 0.) {
+        return false;
+    }
+    return ! this->has_raft();
+}
+
+unsigned int PrintObject::belt_brim_filament() const
+{
+    // Lowest positive outer-wall filament over the printing regions; 1 when none is set.
+    unsigned int brim_filament = 0;
+    for (size_t i = 0; i < this->num_printing_regions(); ++ i) {
+        const unsigned int f = this->printing_region(i).config().outer_wall_filament_id.value;
+        if (f > 0 && (brim_filament == 0 || f < brim_filament))
+            brim_filament = f;
+    }
+    return brim_filament == 0 ? 1u : brim_filament;
+}
+
+bool PrintObject::belt_brim_instances_compatible() const
+{
+    // One set of bands is shared by every instance, so they must all sit at the same height on
+    // the belt: copies may sit side by side ACROSS the belt, not spaced ALONG it. (The belt
+    // schedule gives one PrintObject per instance anyway; this covers the rest.)
+    if (m_instances.size() <= 1)
+        return true;
+    BeltBrimFrame frame;
+    if (! belt_brim_frame(*this, frame))
+        return true;
+    const Point &ref = m_instances.front().shift;
+    for (const PrintInstance &inst : m_instances) {
+        const coord_t along = frame.from_axis == 0 ? inst.shift.x() - ref.x() : inst.shift.y() - ref.y();
+        if (std::abs(along) > SCALED_EPSILON)
+            return false;
+    }
+    return true;
+}
+
+void PrintObject::clear_belt_brim()
+{
+    m_belt_brim_by_layer.clear();
+    m_belt_brim_areas_by_layer.clear();
+    m_belt_brim_prologue.clear();
+}
+
+void PrintObject::set_belt_brim(std::vector<ExtrusionEntityCollection> &&by_layer,
+                                std::vector<ExPolygons>                &&areas,
+                                std::vector<BeltBrimBand>              &&prologue)
+{
+    m_belt_brim_by_layer       = std::move(by_layer);
+    m_belt_brim_areas_by_layer = std::move(areas);
+    m_belt_brim_prologue       = std::move(prologue);
 }
 
 void make_belt_brim(PrintObject &object)
@@ -443,31 +439,22 @@ void make_belt_brim(PrintObject &object)
 
     const Print &print = *object.print();
     BeltBrimContext bc;
-    if (! bc.ctx.init(object.slicing_parameters(), print.config()))
+    if (! belt_brim_frame(object, bc.frame))
         return;
-    bc.frame = BeltBrimFrame{ bc.ctx.shear_factor(), bc.ctx.from_axis() };
 
     const size_t nlayers = object.layers().size();
     if (nlayers == 0)
         return;
 
-    // 1. Belt footprint: the union of each layer's slice clipped to that layer's
-    //    own contact band.  This is the object's bottom face, which on a belt is
-    //    spread over every layer instead of sitting in layer 0.
+    // 1. Belt footprint: the union of each layer's slice clipped to that layer's own contact band.
+    //    On a belt the object's bottom face is spread over every layer.
     ExPolygons footprint_acc;
-    // The first layer that touches the belt: where the leading-edge brim is cut.
-    const Layer *first_contact = nullptr;
-    // Per layer, the width of the outer wall resting on the belt, the narrowest where several
-    // regions do, as it sits lowest; 0 where the layer does not rest on the belt.
-    std::vector<double> contact_wall_width(nlayers, 0.);
     for (size_t i = 0; i < nlayers; ++ i) {
         const Layer &layer = *object.layers()[i];
         if (layer.lslices.empty())
             continue;
-        // print_z - height, not the previous layer's print_z: variable layer
-        // heights make the latter wrong.
-        coordf_t u_lo = bc.ctx.cutoff_u(layer.print_z - layer.height);
-        coordf_t u_hi = bc.ctx.cutoff_u(layer.print_z);
+        coordf_t u_lo = bc.frame.cutoff_u(layer.print_z - layer.height);
+        coordf_t u_hi = bc.frame.cutoff_u(layer.print_z);
         if (u_lo > u_hi)
             std::swap(u_lo, u_hi);
         BoundingBox bb = get_extents(layer.lslices);
@@ -475,35 +462,32 @@ void make_belt_brim(PrintObject &object)
         const Polygon band = band_box(bb, bc.frame.from_axis, u_lo, u_hi);
         if (band.empty())
             continue;
-        ExPolygons contact = intersection_ex(layer.lslices, Polygons{ band });
-        if (contact.empty())
-            continue;
-        if (first_contact == nullptr)
-            first_contact = &layer;
-        expolygons_append(footprint_acc, std::move(contact));
-        for (const LayerRegion *layerm : layer.regions())
-            if (! layerm->slices.empty() && ! intersection(to_polygons(layerm->slices.surfaces), Polygons{ band }).empty()) {
-                const double w = layerm->flow(frExternalPerimeter).width();
-                contact_wall_width[i] = contact_wall_width[i] > 0. ? std::min(contact_wall_width[i], w) : w;
-            }
+        expolygons_append(footprint_acc, intersection_ex(layer.lslices, Polygons{ band }));
     }
     const ExPolygons footprint = union_ex(footprint_acc);
     if (footprint.empty())
         return;
 
+    // The object's first layer WITH MATERIAL. Not layers().front(): an object the belt schedule
+    // raised (Print::update_belt_schedule) starts its frame with empty layers below its material,
+    // which the G-code layer collector drops. Anchoring the apron on the empty front layer put its
+    // top at slice z 0, below the region's leading edge, so no apron band was made, and the bands
+    // riding on the empty layers were dropped with them: the brim began at the part.
+    const size_t   first_idx = size_t(std::find_if(object.layers().begin(), object.layers().end(),
+        [](const Layer *l) { return ! l->lslices.empty(); }) - object.layers().begin());
+    const Layer   &first     = *object.layers()[first_idx];
+
     // 2. Brim region, offset in the flattened (true on-belt) metric.
     const PrintObjectConfig &cfg = object.config();
     bc.brim_flow = print.brim_flow();
     const double  flow_w = bc.brim_flow.scaled_spacing() * SCALING_FACTOR;
-    // Quantize to an even number of lines, as the plate brim does.
     const coord_t width   = scale_(std::floor(cfg.brim_width.value / flow_w / 2) * flow_w * 2);
     const coord_t leading = scale_(cfg.leading_brim_length.value);
     const coord_t lateral = scale_(cfg.extra_brim_width.value);
     const coord_t gap     = scale_(cfg.brim_object_gap.value);
 
-    // Belt printers collapse Auto / Mouse ear / Painted to outer-only: the auto width
-    // heuristic and flat ear discs have no meaning on a tilted plane.  Leading-edge-only
-    // is an outer brim too; it is narrowed down to the first contact below.
+    // Belt printers collapse Auto / Mouse ear / Painted to outer-only: the auto width heuristic
+    // and flat ear discs have no meaning on a tilted plane.
     const BrimType bt = cfg.brim_type.value;
     const bool has_outer = bt == btOuterOnly || bt == btOuterAndInner
                         || bt == btAutoBrim  || bt == btEar || bt == btPainted
@@ -515,21 +499,24 @@ void make_belt_brim(PrintObject &object)
                          width, gap, leading, lateral, bc.frame),
         bc.frame);
 
-    if (bt == btLeadingEdgeOnly && first_contact != nullptr && ! bc.region.empty())
-        // The cut is the uphill edge of the first contact's band: everything past it
-        // belongs to later contacts.  The first contact is the first layer that touches
-        // the belt (step 1), neither layers().front(), an empty lead-in layer, nor the
-        // first layer with geometry, which is an overhang's tip when the part overhangs
-        // its leading end: both lie ahead of the part.
-        bc.region = belt_brim_clip_leading_edge(bc.region, bc.frame, bc.ctx.cutoff_u(first_contact->print_z));
+    if (bt == btLeadingEdgeOnly && ! bc.region.empty()) {
+        // Keep only what lies at or downhill of the object's FIRST contact with the belt.
+        const coordf_t u_cut   = bc.frame.cutoff_u(first.print_z);
+        BoundingBox    keep_bb = get_extents(bc.region);
+        keep_bb.offset(scale_(1.));
+        const bool     low_side = bc.frame.shear > 0.;   // downhill is -u
+        const Polygon  keep = band_box(keep_bb, bc.frame.from_axis,
+            low_side ? unscale<double>(bc.frame.from_axis == 0 ? keep_bb.min.x() : keep_bb.min.y()) : u_cut,
+            low_side ? u_cut : unscale<double>(bc.frame.from_axis == 0 ? keep_bb.max.x() : keep_bb.max.y()));
+        bc.region = keep.empty() ? ExPolygons{} : intersection_ex(bc.region, Polygons{ keep });
+    }
 
     if (bc.region.empty())
         return;
     bc.region_bbox = get_extents(bc.region);
 
-    // 3. Line lattice.  Fixed pitch in the flattened metric, anchored at the
-    //    footprint's leading-most edge so lines stay collinear across
-    //    disconnected islands and across the apron prologue.
+    // 3. Line lattice: fixed pitch in the flattened metric, anchored at the footprint's
+    //    leading-most edge so lines stay collinear across islands and across the apron.
     bc.pitch_u = std::max<coord_t>(1, coord_t(bc.brim_flow.scaled_spacing() * bc.frame.cos_tilt()));
     bc.in_plane_pitch = unscale<double>(bc.pitch_u) * bc.frame.u_stretch();
     {
@@ -539,49 +526,26 @@ void make_belt_brim(PrintObject &object)
                                               : (low_side ? fbb.min.y() : fbb.max.y());
     }
 
-    // How far each layer's outer wall, which the layer's brim band is levelled with, lies
-    // inside where the layer's slice met the belt: half its width, less the XY contour
-    // compensation that grew the slice toward the belt (none where slicing skips it, see
-    // PrintObject::slice_volumes()).  The first layer's walls take initial_layer_line_width.
-    // A layer that does not rest on the belt takes the wall of the last one before it that
-    // does, and the layers ahead of the part the first one's.
-    const double contour_compensation = print.config().filament_diameter.size() > 1 && object.is_mm_painted() ?
-        0. : object.config().xy_contour_compensation.value;
-    std::vector<double> wall_insets(nlayers);
-    {
-        const auto first_wall = std::find_if(contact_wall_width.begin(), contact_wall_width.end(), [](double w) { return w > 0.; });
-        double     width      = first_wall != contact_wall_width.end() ? *first_wall : 0.;
-        for (size_t i = 0; i < nlayers; ++ i) {
-            if (contact_wall_width[i] > 0.)
-                width = contact_wall_width[i];
-            wall_insets[i] = 0.5 * width - contour_compensation;
-        }
-    }
-
-    // 4. Bands coincident with an object layer.
+    // 4. Bands coincident with an object layer, from the first one with material; the apron below
+    //    covers the empty layers under it.
     std::vector<ExtrusionEntityCollection> by_layer(nlayers);
     std::vector<ExPolygons>                areas_by_layer(nlayers);
-    for (size_t i = 0; i < nlayers; ++ i) {
+    for (size_t i = first_idx; i < nlayers; ++ i) {
         const Layer &layer = *object.layers()[i];
         const Polygons obstacles = belt_brim_obstacles(print, object, bc.region_bbox, layer.print_z, 0.5 * layer.height);
         belt_brim_band_paths(bc, layer.print_z, layer.height, wall_insets[i], obstacles, by_layer[i], areas_by_layer[i]);
     }
 
-    // 5. Apron prologue: the part of the region downhill of the object's first
-    //    layer, which has no object layer to ride on.  It continues the first layer's
-    //    band, so it takes that layer's height, and the first contact's wall.
+    // 5. Apron prologue: the part of the region downhill of the object's first layer.
     std::vector<BeltBrimBand> prologue;
     {
-        const Layer   &first  = *object.layers().front();
         const coordf_t h      = first.height;
         const bool     low_side = bc.frame.shear > 0.;
         const coord_t  u_lead_s = bc.frame.from_axis == 0
             ? (low_side ? bc.region_bbox.min.x() : bc.region_bbox.max.x())
             : (low_side ? bc.region_bbox.min.y() : bc.region_bbox.max.y());
         const coordf_t u_lead  = unscale<double>(u_lead_s);
-        // print_z at which the belt surface crosses the region's leading edge.
-        const coordf_t z_lead  = bc.ctx.shear_factor() * u_lead
-                               + bc.ctx.floor_offset() + bc.ctx.z_shift();
+        const coordf_t z_lead  = bc.frame.floor_z(u_lead);   // where the belt crosses the region's leading edge
         if (h > EPSILON)
             for (coordf_t z = first.print_z - h; z > z_lead - h; z -= h) {
                 const Polygons obstacles = belt_brim_obstacles(print, object, bc.region_bbox, z, 0.5 * h);
@@ -592,10 +556,16 @@ void make_belt_brim(PrintObject &object)
                 if (! band.fills.empty())
                     prologue.emplace_back(std::move(band));
             }
-        // Lowest Z first, so collect_layers_to_print sees them in print order.
-        std::reverse(prologue.begin(), prologue.end());
+        std::reverse(prologue.begin(), prologue.end());   // lowest Z first
     }
 
+    BOOST_LOG_TRIVIAL(debug) << "belt brim: axis " << bc.frame.from_axis << " shear " << bc.frame.shear << " z0 " << bc.frame.z0
+        << " first layer band u [" << bc.frame.cutoff_u(first.print_z - first.height)
+        << ", " << bc.frame.cutoff_u(first.print_z) << "] footprint u ["
+        << unscale<double>(bc.frame.from_axis == 0 ? get_extents(footprint).min.x() : get_extents(footprint).min.y()) << ", "
+        << unscale<double>(bc.frame.from_axis == 0 ? get_extents(footprint).max.x() : get_extents(footprint).max.y())
+        << "] bands on layers " << std::count_if(by_layer.begin(), by_layer.end(), [](const ExtrusionEntityCollection &c) { return ! c.empty(); })
+        << " apron bands " << prologue.size();
     object.set_belt_brim(std::move(by_layer), std::move(areas_by_layer), std::move(prologue));
 }
 

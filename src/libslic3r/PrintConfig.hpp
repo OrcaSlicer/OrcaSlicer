@@ -21,6 +21,8 @@
 #include "CommonDefs.hpp"
 #include "Config.hpp"
 #include "Polygon.hpp"
+#include <array>
+#include <optional>
 #include <boost/container_hash/hash.hpp>
 #include <algorithm>
 #include <boost/preprocessor/facilities/empty.hpp>
@@ -116,8 +118,32 @@ enum class WipeTowerType {
     Type2,
 };
 
+// APPEND ONLY. PhysicalPrinterDialog::update_host_type() casts a combo-box INDEX straight to
+// this enum (static_cast<PrintHostType>(index + offset)), so an enumerator's integer value has
+// to keep matching its position in host_type's enum_values list in PrintConfig.cpp. Inserting
+// in the middle silently remaps every host type after the insertion point.
 enum PrintHostType {
-    htPrusaLink, htPrusaConnect, htOctoPrint, htDuet, htUltiMaker, htFlashAir, htAstroBox, htRepetier, htMKS, htESP3D, htCrealityPrint, htObico, htFlashforge, htSimplyPrint, htElegooLink, ht3DPrinterOS, htMoonraker
+    htPrusaLink, htPrusaConnect, htOctoPrint, htDuet, htUltiMaker, htFlashAir, htAstroBox, htRepetier, htMKS, htESP3D, htCrealityPrint, htObico, htFlashforge, htSimplyPrint, htElegooLink, ht3DPrinterOS, htMoonraker, htUnlayered
+};
+
+// Orca: wave-overhang ring spacing mode.
+enum WaveOverhangSpacingMode {
+    wosmUniform,
+    wosmProgressive
+};
+
+// Orca: wave-overhang inter-ring seam direction mode.
+enum WaveOverhangSeamMode {
+    woseAlternating,
+    woseAligned,
+    woseRandom
+};
+
+// Wave-overhang fill pattern (ported from stmcculloch alpha.6).
+enum class WaveOverhangPattern : int {
+    Monotonic,
+    ZigZag,
+    Smart
 };
 
 enum AuthorizationType {
@@ -134,6 +160,10 @@ enum InfillPattern : int {
     ipCrossHatch, ipTpmsD, ipTpmsFK, ipGyroid,
     ipConcentric, ipSpiralInset, ipHilbertCurve, ipArchimedeanChords, ipOctagramSpiral,
     ipSupportBase, ipConcentricInternal,
+    // Unlayered: user-supplied infill mesh (an Infill Mesh volume tiled through the part).
+    ipCustomMesh,
+    // Unlayered: SVG line art tiled per layer -- the bundled cats, sharks and puppies, and a user file.
+    ipCatfill, ipSharkfill, ipPuppyfill, ipSvg,
     ipCount,
 };
 
@@ -311,9 +341,73 @@ enum class AdaptiveInfillGradient {
 enum class PrintSequence {
     ByLayer,
     ByObject,
+    ByGroup,
     ByDefault,
     Count,
 };
+
+// Orca 5-axis: which pair of rotary axes the machine drives. The slicer currently
+// drives two rotary axes at a time (5 total); A/B/C are the standard machining
+// rotary axes about X/Y/Z respectively.
+enum class AxisSelection {
+    AB,
+    BC,
+    AC,
+    // A plain 3-axis machine emulating tilt: toolpaths are still generated as if for a 5-axis
+    // printer, but no rotary words are written and a clearance pass lifts Z where the vertical
+    // nozzle would plow into material printed earlier. Must stay LAST before Count -- the
+    // combobox index is the enum integer (Field.cpp fills in enum_labels order), so this order
+    // IS the display order. Reordering is safe on disk: values persist as the strings in
+    // s_keys_map_AxisSelection, never as integers.
+    Virtual,
+    Count,
+};
+
+// UNLAYERED_MOD -- an A/C table-table machine reaches every tilted tool axis two ways, (A, C) and
+// (-A, C + 180). Which one the exporter takes (GCode/TrunnionAC.cpp), within the A limits.
+enum class AcSolution {
+    SmallestMove,   // whichever needs the least A + C travel from the current pose
+    NegativeA,      // always A <= 0 when the limits allow it
+    PositiveA,      // always A >= 0 when the limits allow it
+    Count,
+};
+
+// BELT_MOD -- belt printer tilt axis (OrcaSlicer's BeltRotationAxis, kept verbatim so belt printer
+// profiles carry over). The single "belt tilt": it drives the slicing rotation of every un-cut
+// object (PrintObject::update_slice_frame) and the post-slice machine frame (MachineFrameTransform).
+// None disables both stages.
+enum class BeltRotationAxis
+{
+    None = 0,
+    X    = 1,
+    Y    = 2,
+    Z    = 3,
+};
+
+// BELT_MOD -- one output axis of the G-code axis remap (gcode_remap_*): which logical axis feeds it
+// and how. Rev mirrors within the build volume: max - pos.
+enum class RemapAxis
+{
+    PosX = 0, PosY = 1, PosZ = 2,
+    NegX = 3, NegY = 4, NegZ = 5,
+    RevX = 6, RevY = 7, RevZ = 8,
+};
+
+// BELT_MOD -- OrcaSlicer's first_layer_plane option, kept for profile compatibility. This fork
+// decides "first layer" by the height of each path above the surface it rests on (see
+// GCode::classify_path_contact): Auto enables that for rotated frames and non-root segments, XY
+// forces the legacy slice-layer-0 rule, and Orca's other modes behave as Auto.
+enum class FirstLayerPlaneMode { Auto = 0, XY, YZ, XZ, BeltAffine };
+
+// BELT_MOD -- fan policy for material laid on already-printed plastic (a cut-plane segment's
+// floor). AsFirstLayer keeps today's behaviour: the on-bed rule applies.
+enum class ObjectContactFanMode { AsFirstLayer = 0, Keep, Off, Fixed };
+
+// Which of the A/B/C rotary axes a given selection drives. Keeps the AB/AC/BC -> {A,B,C}
+// membership in one place (next to the enum) instead of duplicated at each use site.
+inline bool axis_a_active(AxisSelection s) { return s == AxisSelection::AB || s == AxisSelection::AC; }
+inline bool axis_b_active(AxisSelection s) { return s == AxisSelection::AB || s == AxisSelection::BC; }
+inline bool axis_c_active(AxisSelection s) { return s == AxisSelection::AC || s == AxisSelection::BC; }
 
 enum class PrintOrder
 {
@@ -332,25 +426,6 @@ enum class SlicingMode
     EvenOdd,
     // Orienting all contours CCW, thus closing all holes.
     CloseHoles,
-};
-
-// Axis around which the mesh is rotated before slicing, when
-// `belt_slice_rotation` is set.  None disables the rotation stage.  This is the
-// single "belt tilt" axis: it drives both the pre-slice mesh rotation and the
-// post-slice machine-frame transform (shear + scale derived from the tilt angle).
-enum class BeltRotationAxis
-{
-    None = 0,
-    X    = 1,
-    Y    = 2,
-    Z    = 3,
-};
-
-enum class RemapAxis
-{
-    PosX = 0, PosY = 1, PosZ = 2,
-    NegX = 3, NegY = 4, NegZ = 5,
-    RevX = 6, RevY = 7, RevZ = 8,  // Reversed: max - pos
 };
 
 enum SupportMaterialPattern {
@@ -390,6 +465,14 @@ inline bool is_tree_slim(SupportType type, SupportMaterialStyle style)
 inline bool is_auto(SupportType stype)
 {
     return std::set<SupportType>{stNormalAuto, stTreeAuto}.count(stype) != 0;
+};
+
+// UNLAYERED_MOD -- the direction support columns grow along, independent of the layer normal.
+// sdLayers: along the layer normal (stock behaviour). sdVertical: world +Z, however the object or
+// segment is rotated. sdCustom: the world direction given by support_direction_b/c, in the same
+// B/C convention as layer_rotation_b/c (b = c = 0 is world vertical).
+enum SupportDirection {
+    sdLayers, sdVertical, sdCustom
 };
 
 enum SeamPosition {
@@ -463,6 +546,8 @@ enum BrimType {
     // Belt printers: brim only where the part first touches the belt, nothing after
     // that.  Appended last so no existing value shifts.  On a non-belt printer this
     // has no meaning and behaves as btOuterOnly.
+    // BELT_MOD: the brim_type combo and the object table map a list position straight to this
+    // value, so brim_type's enum_values must stay in enum order.
     btLeadingEdgeOnly,
 };
 
@@ -805,13 +890,12 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(NoiseType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(IroningType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SlicingMode)
-CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(BeltRotationAxis)
-CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(RemapAxis)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialStyle)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialInterfacePattern)
 // BBS
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportType)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportDirection)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SeamPosition)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SeamScarfType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SLADisplayOrientation)
@@ -821,6 +905,12 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(TimelapseType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(BedType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SkirtType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InputShaperType)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(AxisSelection)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(AcSolution)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(BeltRotationAxis)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(RemapAxis)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FirstLayerPlaneMode)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ObjectContactFanMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(DraftShield)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ForwardCompatibilitySubstitutionRule)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(GCodeThumbnailsFormat)
@@ -833,6 +923,9 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ToolChangeOrderingType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ArcFittingMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SurfaceFillOrder)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangSpacingMode)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangSeamMode)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(AdaptiveInfillMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(AdaptiveInfillGradient)
 
@@ -1117,14 +1210,8 @@ protected:
                 m_keys.emplace_back(kvp.first);
                 const ConfigOptionDef *def = defs->get(kvp.first);
                 assert(def != nullptr);
-                if (def->default_value) {
-                    if (def->default_value->type() == coEnums) {
-                        // Enum list defaults are built without a keys map; set() adopts the one create_default_option() adds.
-                        std::unique_ptr<ConfigOption> default_option(def->create_default_option());
-                        opt->set(default_option.get());
-                    } else
-                        opt->set(def->default_value.get());
-                }
+                if (def->default_value)
+                    def->assign_default(opt);
             }
         }
 
@@ -1287,8 +1374,11 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                brim_use_efc_outline))
     ((ConfigOptionEnum<BrimType>,      brim_type))
     ((ConfigOptionFloat,               brim_width))
+    // BELT_MOD -- belt brim: apron ahead of the part along the belt, and extra width across it.
     ((ConfigOptionFloat,               leading_brim_length))
     ((ConfigOptionFloat,               extra_brim_width))
+    ((ConfigOptionBool,                infill_mesh_global_orientation))
+    ((ConfigOptionString,              infill_mesh_path))
     ((ConfigOptionFloat,               brim_ears_detection_length))
     ((ConfigOptionFloat,               brim_ears_max_angle))
     ((ConfigOptionBool,                brim_ears_outer_only))
@@ -1316,11 +1406,23 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                enable_support))
     // Automatic supports (generated based on support_threshold_angle).
     ((ConfigOptionEnum<SupportType>,   support_type))
+    // UNLAYERED_MOD -- see SupportDirection. The angles are world-frame, read only for sdCustom.
+    ((ConfigOptionEnum<SupportDirection>, support_direction))
+    ((ConfigOptionFloat,               support_direction_b))
+    ((ConfigOptionFloat,               support_direction_c))
+    ((ConfigOptionFloat,               support_direction_max_lean))
+    // UNLAYERED_MOD -- cut planes: how far a lower section's support may reach past the section
+    // plane into the support of the section above it (support-on-support only, never under the
+    // model). See docs/HLSD/segment-support-cascade.md.
+    ((ConfigOptionFloat,               support_section_overlap))
     // Direction of the support pattern (in XY plane).`
     ((ConfigOptionFloat,               support_angle))
     ((ConfigOptionBool,                support_on_build_plate_only))
     ((ConfigOptionBool,                support_critical_regions_only))
     ((ConfigOptionBool,                support_remove_small_overhang))
+    ((ConfigOptionFloat,               test_input))
+    ((ConfigOptionFloat,               layer_rotation_b))
+    ((ConfigOptionFloat,               layer_rotation_c))
     ((ConfigOptionFloat,               support_top_z_distance))
     ((ConfigOptionFloat,               support_bottom_z_distance))
     ((ConfigOptionInt,                 enforce_support_layers))
@@ -1440,12 +1542,20 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Orca: internal use only
     ((ConfigOptionBool,  calib_flowrate_topinfill_special_order)) // ORCA: special flag for flow rate calibration
 
+    // ByGroup print sequence: objects sharing a group number are printed by layer together;
+    // groups are printed sequentially. 0 = own singleton group (ByObject behavior).
+    ((ConfigOptionInt,   print_group))
+
     // IDEX/IQEX parallel print mode (per-print selection, stores mode name or "primary")
     ((ConfigOptionString,              imex_parallel_mode))
     // Per-plate head→filament override for MMU-equipped printers.
     // Serialized as compact "phys:slot,phys:slot" (1-based filament slots, matches UI).
     // Empty string means "use first_filament_for_physical_head defaults everywhere".
     ((ConfigOptionString,              imex_head_filament_map))
+    // UNLAYERED_MOD: nonplanar layers (NonplanarTop.cpp), shown with the region's nonplanar options: the
+    // region class is at the preprocessor's nesting limit (C1009 with one more option).
+    ((ConfigOptionFloat,               nonplanar_nozzle_tip_diameter))
+    ((ConfigOptionBool,                nonplanar_top_surface_tip_lift))
 )
 
 // This object is mapped to Perl as Slic3r::Config::PrintRegion.
@@ -1486,6 +1596,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionString,               sparse_infill_rotate_template))
     ((ConfigOptionPercent,              sparse_infill_density))
     ((ConfigOptionEnum<InfillPattern>,  sparse_infill_pattern))
+    ((ConfigOptionString,               sparse_infill_svg_path))
+    ((ConfigOptionPercent,              sparse_infill_svg_scale))
+    ((ConfigOptionBool,                 sparse_infill_single_wall))
     ((ConfigOptionPercent,              sparse_infill_smooth_factor))
     ((ConfigOptionFloat,                lateral_lattice_angle_1))
     ((ConfigOptionFloat,                lateral_lattice_angle_2))
@@ -1546,6 +1659,45 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatsNullable, filament_ironing_speed))
     // Detect bridging perimeters
     ((ConfigOptionBool, detect_overhang_wall))
+    // Wave Overhangs
+    ((ConfigOptionBool,                 wave_overhangs))
+    ((ConfigOptionBool,                 wave_overhangs_instead_of_bridges))
+    ((ConfigOptionInt,                  wave_overhang_outer_perimeters))
+    ((ConfigOptionFloat,                wave_overhang_perimeter_overlap))
+    ((ConfigOptionFloat,                wave_overhang_minimum_width))
+    ((ConfigOptionEnum<WaveOverhangPattern>, wave_overhang_pattern))
+    ((ConfigOptionFloat,                wave_overhang_line_spacing))
+    ((ConfigOptionFloat,                wave_overhang_flow_mm3_per_mm))
+    ((ConfigOptionFloat,                wave_overhang_print_speed))
+    ((ConfigOptionFloat,                wave_overhang_perimeter_speed))
+    ((ConfigOptionFloat,                wave_overhang_travel_speed))
+    ((ConfigOptionInt,                  wave_overhang_fan_speed))
+    ((ConfigOptionInt,                  wave_overhang_aux_fan_speed))
+    ((ConfigOptionInt,                       wave_overhang_floor_layers))
+    ((ConfigOptionBool,                      wave_overhang_floor_use_hilbert))
+    ((ConfigOptionInt,                       wave_overhang_floor_hilbert_layers))
+    ((ConfigOptionInt,                       wave_overhang_floor_hilbert_density))
+    ((ConfigOptionFloat,                     wave_overhang_floor_print_speed))
+    ((ConfigOptionFloat,                     wave_overhang_floor_perimeter_speed))
+    ((ConfigOptionInt,                       wave_overhang_floor_speed_ramp))
+    ((ConfigOptionInt,                       wave_overhang_floor_fan_speed))
+    ((ConfigOptionInt,                       wave_overhang_floor_aux_fan_speed))
+    ((ConfigOptionInt,                       wave_overhang_nozzle_temp))
+    ((ConfigOptionFloat,                     wave_overhang_min_wave_time))
+    ((ConfigOptionFloat,                     wave_overhang_min_layer_time))
+    ((ConfigOptionFloat,                     wave_overhang_min_angle))
+    ((ConfigOptionEnum<WaveOverhangSpacingMode>, wave_overhang_spacing_mode))
+    ((ConfigOptionEnum<WaveOverhangSeamMode>,    wave_overhang_seam_mode))
+    ((ConfigOptionBool,                      wave_overhang_debug_gcode))
+    ((ConfigOptionFloat,                     wave_overhang_min_length))
+    ((ConfigOptionInt,                       wave_overhang_max_iterations))
+    ((ConfigOptionFloat,                     wave_overhang_min_new_area))
+    ((ConfigOptionBool,                      wave_overhang_corner_taper_enable))
+    ((ConfigOptionFloat,                     wave_overhang_line_spacing_corner))
+    ((ConfigOptionFloat,                     wave_overhang_corner_taper_distance))
+    ((ConfigOptionFloat,                     wave_overhang_corner_angle_threshold))
+    ((ConfigOptionFloat,                     wave_overhang_end_retract_length))
+    ((ConfigOptionBool,                      support_remaining_areas_after_wave_overhangs))
     ((ConfigOptionBool, unsupported_wall_last))
     ((ConfigOptionInt, outer_wall_filament_id))
     ((ConfigOptionInt, inner_wall_filament_id))
@@ -1647,6 +1799,17 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool, zaa_dont_alternate_fill_direction))
     ((ConfigOptionFloat, zaa_min_z))
     ((ConfigOptionFloat, zaa_minimize_perimeter_height))
+
+    // UNLAYERED_MOD: nonplanar layers (curved top shells on a 3-axis printer). See NonplanarTop.hpp.
+    ((ConfigOptionBool,  nonplanar_layers))
+    ((ConfigOptionFloat, nonplanar_max_angle))
+    ((ConfigOptionFloat, nonplanar_max_height))
+    ((ConfigOptionInt,   nonplanar_layer_count))
+    ((ConfigOptionBool,  nonplanar_hold_back))
+    ((ConfigOptionBool,  nonplanar_top_surface_direction_enable))
+    ((ConfigOptionFloat, nonplanar_top_surface_direction))
+    ((ConfigOptionBool,  nonplanar_top_surface_flow_ratio_enable))
+    ((ConfigOptionFloat, nonplanar_top_surface_flow_ratio))
     )
 
 PRINT_CONFIG_CLASS_DEFINE(
@@ -1700,6 +1863,82 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                input_shaping_freq_y))
     ((ConfigOptionFloat,                input_shaping_damp_x))
     ((ConfigOptionFloat,                input_shaping_damp_y))
+
+    // Orca non-planar printing settings.
+    // enable_nonplanar is the CANONICAL SOURCE OF TRUTH for whether non-planar printing
+    // is active. Consumers throughout the codebase should gate non-planar behavior on
+    // this option (not yet wired up everywhere -- see PrintConfig.cpp note).
+    ((ConfigOptionBool,                 enable_nonplanar))
+    // When true, suppress the B/C rotary control G-code so output runs on a normal
+    // 3-axis printer ("virtual 5-axis"). Consumed in GCode.cpp.
+    ((ConfigOptionBool,                 virtual_5axis))
+    // Which pair of rotary axes the machine drives (A/B, A/C or B/C).
+    ((ConfigOptionEnum<AxisSelection>,  axis_selection))
+    // Per-axis rotation limits in degrees (A about X, B about Y, C about Z).
+    // Stored for the machine definition; not consumed by slicing yet.
+    ((ConfigOptionFloat,                axis_a_rotation_min))
+    ((ConfigOptionFloat,                axis_a_rotation_max))
+    ((ConfigOptionFloat,                axis_b_rotation_min))
+    ((ConfigOptionFloat,                axis_b_rotation_max))
+    ((ConfigOptionFloat,                axis_c_rotation_min))
+    ((ConfigOptionFloat,                axis_c_rotation_max))
+    // Per-axis "continuous rotation": axis can rotate infinitely or firmware unwinds it,
+    // so the rotation limits above do not apply.
+    ((ConfigOptionBool,                 axis_a_continuous))
+    ((ConfigOptionBool,                 axis_b_continuous))
+    ((ConfigOptionBool,                 axis_c_continuous))
+    // Per-chunk usable build-volume visualization: a cylinder of `radius` spanning Z from
+    // `min_build_height` to `max_build_height`. See GLCanvas3D::_render_chunk_build_volumes.
+    ((ConfigOptionFloat,                radius))
+    ((ConfigOptionFloat,                max_build_height))
+    ((ConfigOptionFloat,                min_build_height))
+    // Inter-chunk travel geometry. See the ByObject transition in GCode::_do_export.
+    ((ConfigOptionFloat,                nonplanar_departure_distance))
+    ((ConfigOptionFloat,                nonplanar_approach_distance))
+    ((ConfigOptionFloat,                nonplanar_nozzle_to_b_axis))
+    ((ConfigOptionFloats,               nonplanar_hotend_cone_height))
+    ((ConfigOptionFloats,               nonplanar_hotend_angle_xpos))
+    ((ConfigOptionFloats,               nonplanar_hotend_angle_xneg))
+    ((ConfigOptionFloats,               nonplanar_hotend_angle_ypos))
+    ((ConfigOptionFloats,               nonplanar_hotend_angle_yneg))
+    ((ConfigOptionFloat,                nonplanar_gantry_height))
+    ((ConfigOptionFloat,                nonplanar_virtual_max_angle))
+    ((ConfigOptionFloat,                nonplanar_virtual_max_z))
+    // UNLAYERED_MOD -- A/C table-table ("trunnion") machines: the exported G-code is converted to
+    // machine A/C coordinates by GCode/TrunnionAC.cpp. Read only when axis_selection is A/C.
+    ((ConfigOptionFloat,                ac_pivot_height))
+    ((ConfigOptionFloat,                ac_c_axis_offset_x))
+    ((ConfigOptionFloat,                ac_c_axis_offset_y))
+    ((ConfigOptionEnum<AcSolution>,     ac_solution))
+    ((ConfigOptionFloat,                ac_table_radius))
+    ((ConfigOptionFloat,                ac_transition_clearance))
+    ((ConfigOptionFloat,                ac_rotation_speed))
+    // BELT_MOD -- belt printer machine description, Orca's keys and semantics (D-006). The tilt
+    // (axis + belt_slice_rotation_angle) is the machine's build direction: un-cut objects slice
+    // rotated by it and the emitted G-code is mapped into the tilted-gantry machine frame by
+    // gcode_remap_* + MachineFrameTransform (GCode/BeltKinematics). Declared here rather than in
+    // PrintConfig, as upstream does, because fork code reads them through MachineEnvelopeConfig.
+    ((ConfigOptionBool,                   belt_printer))
+    ((ConfigOptionBool,                   belt_printer_infinite_y))
+    ((ConfigOptionEnum<BeltRotationAxis>, belt_slice_rotation))
+    ((ConfigOptionFloat,                  belt_slice_rotation_angle))
+    // Expert override: a machine-frame tilt of its own (belt_frame_tilt_angle) instead of the belt
+    // tilt, and how far the two may differ before slicing is refused (fork key).
+    ((ConfigOptionBool,                   belt_frame_tilt_decouple))
+    ((ConfigOptionFloat,                  belt_frame_tilt_angle))
+    ((ConfigOptionFloat,                  belt_slice_angle_tolerance))
+    // Output axis remap applied to every writer-generated move (the conventional belt Y/Z swap).
+    ((ConfigOptionEnum<RemapAxis>,        gcode_remap_x))
+    ((ConfigOptionEnum<RemapAxis>,        gcode_remap_y))
+    ((ConfigOptionEnum<RemapAxis>,        gcode_remap_z))
+    // Contact-aware first layer (Orca's keys): which paths get first-layer treatment is decided by
+    // height above the build surface, not by the slice layer index. See GCode::classify_path_contact.
+    ((ConfigOptionEnum<FirstLayerPlaneMode>, first_layer_plane))
+    ((ConfigOptionFloat,                  first_layer_plane_offset))
+    ((ConfigOptionFloat,                  first_layer_plane_thickness))
+    // Belt: hold the initial-layer nozzle/bed temperatures for this many mm along the belt
+    // (0 = the whole print, since every layer of a belt print touches the belt).
+    ((ConfigOptionFloat,                  belt_initial_temperature_length))
 )
 
 // This object is mapped to Perl as Slic3r::Config::GCode.
@@ -1960,24 +2199,8 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     // Build plate tilt for off-axis gravity support generation (printer-level setting).
     ((ConfigOptionFloat,               build_plate_tilt_x))
     ((ConfigOptionFloat,               build_plate_tilt_y))
-    // Belt printer settings (printer-level).
-    ((ConfigOptionBool,                belt_printer))
-    ((ConfigOptionBool,                belt_printer_infinite_y))
-    // Mesh rotation applied before slicing — the single source of truth for the
-    // physical belt tilt.  Its angle + axis drive bed rendering, support gravity
-    // tilt, the bed-exclusion projection, AND the post-slice machine-frame
-    // transform (shear + scale, derived from the tilt angle; see
-    // MachineFrameTransform).  Isometric (no distortion) on the mesh side; the
-    // g-code back-transform inverts the rotation before the machine-frame stage.
-    ((ConfigOptionEnum<BeltRotationAxis>, belt_slice_rotation))
-    ((ConfigOptionFloat,                  belt_slice_rotation_angle))
-    // Expert override: decouple the machine-frame tilt angle from the pre-slice
-    // rotation angle.  When disabled, the machine frame uses belt_slice_rotation_angle.
-    ((ConfigOptionBool,                   belt_frame_tilt_decouple))
-    ((ConfigOptionFloat,                  belt_frame_tilt_angle))
-    ((ConfigOptionEnum<RemapAxis>,  gcode_remap_x))
-    ((ConfigOptionEnum<RemapAxis>,  gcode_remap_y))
-    ((ConfigOptionEnum<RemapAxis>,  gcode_remap_z))
+    // Belt printer settings (printer-level). Unlayered: the shared ones are declared in
+    // MachineEnvelopeConfig with the fork's belt keys.
     ((ConfigOptionFloat,                          belt_support_floor_offset))
     // Width (machine X, across the belt) of the auto-generated belt purge prism.
     ((ConfigOptionFloat,                          belt_purge_tower_width))
@@ -2162,6 +2385,14 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionFloats,             grab_length))
     ((ConfigOptionBool,                gcode_comments))
     ((ConfigOptionInt,                 slow_down_layers))
+    // BELT_MOD -- "Layers on printed material": material laid on a cut-plane segment's floor
+    // (already-printed plastic) within object_contact_layers of it. Defaults reproduce today's
+    // behaviour (the on-bed first-layer rules); see GCode::classify_path_contact.
+    ((ConfigOptionInt,                 object_contact_layers))
+    ((ConfigOptionEnum<ObjectContactFanMode>, object_contact_fan_mode))
+    ((ConfigOptionInt,                 object_contact_fan_speed))
+    ((ConfigOptionFloat,               object_contact_speed))
+    ((ConfigOptionFloat,               object_contact_flow_ratio))
     ((ConfigOptionInts,                support_material_interface_fan_speed))
     ((ConfigOptionInts,                internal_bridge_fan_speed)) // ORCA: Add support for separate internal bridge fan speed control
     ((ConfigOptionInts,                ironing_fan_speed))
@@ -2763,6 +2994,135 @@ static bool has_zero_flush_volume_for_used_filaments(const std::vector<T> &fv_ma
 }
 
 size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id);
+
+// UNLAYERED_MOD — the multiplanar pre-slice rotation, Rb(Y, layer_rotation_b) * Rc(Z, layer_rotation_c).
+// It turns a chunk's local print direction into +Z so the chunk can be sliced with flat layers; the
+// machine is then told the matching table orientation via B/C (see trafo_to_bc() in GCode.cpp).
+// Pure rotation: translation() is always zero.
+// Returns Identity unless non-planar printing is enabled for the machine (`enable_nonplanar`), which
+// the caller must supply because the accessor differs per call site (Print vs. DynamicPrintConfig).
+// This is the single definition of that matrix - do not re-derive it locally.
+Transform3d layer_rotation_trafo(const PrintObjectConfig &object_config, bool nonplanar_enabled);
+// BELT_MOD -- the slicing rotation of an ordinary (non-segment) object under this machine: on a
+// belt printer the belt tilt (the machine's build direction, see BeltTransform.hpp), otherwise the
+// per-object B/C rotation above. Both PrintObject::update_slice_frame() and
+// PrintObject::update_slicing_parameters() derive the frame from this one function, so the sliced
+// height and the slice frame can never disagree.
+Transform3d layer_rotation_trafo(const PrintConfig &print_config, const PrintObjectConfig &object_config);
+
+// UNLAYERED_MOD — the machine's rotary-axis convention, in one place.
+//
+// The "tool axis" is the unit vector the nozzle points AWAY from the surface along, expressed in the
+// bed frame the G-code coordinates live in. It equals post_trafo_inverse().rotation() * UnitZ().
+// The machine is commanded in B/C instead: C is the azimuth of the tool axis and B its elevation
+// minus 90 degrees, so an untilted tool axis (0,0,1) is B = -90, C = 0 - which is what the Unlayered
+// machine profiles home to ("G1 X0 Y0 Z10 B-90 C0").
+//
+// These two are exact inverses (up to C being arbitrary when the axis is vertical). Angles in radians.
+void  tool_axis_to_bc(const Vec3d &tool_axis, double &angle_b, double &angle_c);
+Vec3d bc_to_tool_axis(double angle_b, double angle_c);
+
+// UNLAYERED_MOD — the physical orientation of the head for a given tool axis on a real 5-axis
+// machine, as a rotation whose ROWS are the head's own +X, +Y and nozzle axis expressed in the bed
+// frame (so `R * p` takes a bed-frame point into head coordinates). A tool axis alone does not fix
+// the head's spin about it, but the machine does: it reaches that axis through exactly the B/C that
+// tool_axis_to_bc() emits, B leaning the head about machine Y and C turning the table. Machine Y
+// therefore stays level, and in the bed frame it is Rz(C) * Y; +X completes the right-handed set.
+// A vertical axis is C = 0, the home pose, so there the head frame IS the bed frame.
+//
+// Assumes the nozzle leans toward machine +X as B moves off -90 -- derived from coreXBYC2's
+// kinematics (the tool axis is (cos B, 0, -sin B)). A machine that leans toward -X would mirror the
+// X faces of the hotend envelope.
+Matrix3d tool_head_frame(const Vec3d &tool_axis);
+
+// UNLAYERED_MOD — the hotend's collision envelope: a four-sided pyramid with its apex on the nozzle
+// tip, its axis along the nozzle, and each face at its own angle, because a real toolhead is not
+// round -- the fan duct, the heater block and the probe all stick out further on some sides than
+// on others. Angles are measured UP FROM THE BED PLANE with the head vertical (the plane square to
+// the nozzle axis when it is not): 90 is a face flush with the nozzle, smaller is a fatter side.
+// At a height h up the nozzle axis, face s stands spread(s) * h out from it.
+//
+// Faces are named in the head's own frame (tool_head_frame()): with the nozzle vertical, +X is the
+// side toward machine +X, and so on. The single definition, read by the post-export collision
+// check, the virtual tilt limit, the cut-plane gizmo, the settings hint and the preview.
+struct HotendEnvelope
+{
+    enum Side { XPos = 0, XNeg, YPos, YNeg };
+
+    double                height = 40.;                  // mm up the nozzle axis; <= 0 = no model
+    std::array<double, 4> angle  = { 45., 45., 45., 45. }; // degrees from the bed plane, by Side
+
+    bool   enabled() const { return height > 0.; }
+    // Lateral reach per mm of height, 1/tan(angle): 1 at 45, 0 at 90.
+    double spread(Side s) const;
+
+    // Per nozzle: the five keys are per-extruder-variant printer options (printer_options_with_variant_1),
+    // one value per printer_extruder_variant slot, so a dual-nozzle printer (H2D, X2D) carries a
+    // separate envelope for its Main and Auxiliary nozzle. `extruder` (0-based) picks that nozzle's
+    // slot the way every other variant option is resolved: by printer_extruder_id plus the variant
+    // string from its extruder_type / nozzle_volume_type, falling back to the extruder's first slot,
+    // then to index `extruder`. extruder < 0 is the CONSERVATIVE envelope over every slot: per side
+    // the smallest angle (the fattest side) and the largest height -- for every reader that models
+    // one head without knowing which nozzle prints.
+    static HotendEnvelope from_config(const ConfigBase &config, int extruder = -1);
+    static const char    *option_key(Side s);   // "nonplanar_hotend_angle_xpos", ...
+    static const std::vector<std::string> &option_keys(); // the height key and the four side keys
+    static const char    *side_name(Side s);    // "+X", "-X", "+Y", "-Y"
+};
+
+// UNLAYERED_MOD — `nonplanar_hotend_cone_angle` (one full opening angle) became the four face
+// angles above. The old key stays defined, hidden and outside every config struct, so defaults
+// never create it: seeing it after a load means the file really carried it. Converted here (a cone
+// of full angle A is four faces at 90 - A/2, and A = 0, which used to disable the check, becomes a
+// zero envelope height) and then erased. Called from handle_legacy_composite() for files and from
+// normalize_fdm() for CLI overrides, which never pass through the former.
+void migrate_legacy_hotend_cone(DynamicPrintConfig &config);
+
+// UNLAYERED_MOD — how steep a chunk may be built on a VIRTUAL 5-axis printer, from the machine's
+// own geometry. The single definition: the cut-plane gizmo stops a drag here and Print::validate()
+// refuses a slice here, and the two must never disagree about what is safe.
+//
+// Virtual mode means an ordinary 3-axis printer, so the nozzle stays upright while a tilted chunk
+// prints and a tilted chunk is simply a sloped surface under a vertical tool. Two things can hit it,
+// and the limit is whichever bites first:
+//
+//   The hotend. A chunk whose build normal leans toward azimuth phi has its layer plane climbing
+//   toward d = -(cos phi, sin phi): the material it has already laid stands up to r*tan(beta)
+//   above the tip at a distance r that way. At a height h the envelope reaches h*(|d.x|*sx + |d.y|*sy)
+//   along d, where sx, sy are the spreads of the X and Y faces that look uphill. The plane stays
+//   clear of it while
+//
+//       beta <= atan(1 / (|d.x|*sx + |d.y|*sy))
+//
+//   which, tilting straight at one face, is exactly that face's angle from the bed. A sharper side
+//   permits MORE tilt toward it. Between two faces the envelope's corner leads, so at four equal
+//   45-degree faces a diagonal tilt stops at 35.3 degrees, not 45 -- the price of a square envelope.
+//
+//   The gantry. It sits `gantry_height_mm` above the nozzle tip. While a tilted layer prints, the
+//   far end of that layer stands reach*tan(beta) above the nozzle, and that has to fit underneath:
+//
+//       beta <= atan(gantry_height_mm / reach_mm)
+//
+//   This is why a high-clearance hotend is not the whole story: a generous envelope permits a steep
+//   angle, but only across a run short enough that the climb still clears the gantry.
+//
+// `reach_mm` is the chunk's horizontal extent (CutSegmentDescriptor::build_reach_max); <= 0 means
+// it is not known yet and only the hotend term applies. `tilt_azimuth_rad` is the direction the
+// build normal leans in (atan2 of its XY); absent means "not known", and yields the worst direction,
+// so a caller that cannot say which way the chunk leans is never under-restricted.
+//
+// Each term has its own off switch. `gantry_height_mm` <= 0 means the gantry was never measured, so
+// the gantry term is skipped: a number we invented for it would constrain machines nobody has
+// measured. The hotend term still applies whenever the envelope is on (its radius,
+// nonplanar_hotend_cone_height, is the only off switch), because a nozzle that stays upright meets
+// its own hotend whatever the gantry is. Returns 0 = NO LIMIT only when both are off.
+double virtual_tilt_limit_deg(const HotendEnvelope &envelope, double gantry_height_mm, double reach_mm,
+                              std::optional<double> tilt_azimuth_rad = std::nullopt);
+
+// The hotend term of virtual_tilt_limit_deg() alone (90 when the envelope is off), and the face
+// that dominates it -- the one to name when it is what binds. Same meaning of an absent azimuth.
+double                virtual_tilt_hotend_term_deg(const HotendEnvelope &envelope, std::optional<double> tilt_azimuth_rad);
+HotendEnvelope::Side  virtual_tilt_binding_face(const HotendEnvelope &envelope, std::optional<double> tilt_azimuth_rad);
 
 double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, bool is_bbl_printer);
 
