@@ -18,6 +18,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <optional>
 #include "ConfigWizardTypes.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -458,6 +459,12 @@ public:
     void toggle_show_plate_gridlines() const { app_config->set_bool("show_plate_gridlines", !show_plate_gridlines()); }
     bool focus_mode() const { return app_config->get_bool("focus_mode"); }
     void toggle_focus_mode() const { app_config->set_bool("focus_mode", !focus_mode()); }
+
+    bool show_bed_mesh() const { return app_config->get_bool("show_bed_mesh"); }
+    void toggle_show_bed_mesh() const { app_config->set_bool("show_bed_mesh", !show_bed_mesh()); }
+
+    bool show_cut_chunk_colors() const { return app_config->get_bool("show_cut_chunk_colors"); }
+    void toggle_show_cut_chunk_colors() const { app_config->set_bool("show_cut_chunk_colors", !show_cut_chunk_colors()); }
 
     bool show_canvas_zoom_button() const { return app_config->get_bool("show_canvas_zoom_button"); }
     void toggle_canvas_zoom_button() const { app_config->set_bool("show_canvas_zoom_button", !show_canvas_zoom_button()); }
@@ -935,6 +942,24 @@ bool is_support_filament(int extruder_id, bool strict_check = true);
 bool is_soluble_filament(int extruder_id);
 // check if the filament for model is in the list
 bool has_filaments(const std::vector<std::string>& model_filaments);
+// UNLAYERED_MOD — `enable_nonplanar` on the selected printer preset: the canonical answer to
+// "does this machine do multiplanar printing?". Slicing honours the same flag when it decides
+// whether layer_rotation_b/c apply (see layer_rotation_trafo() in PrintConfig.cpp), so GUI that
+// authors or visualizes chunk rotations must gate on this too. Safe before the bundle is loaded.
+bool nonplanar_printing_enabled();
+// UNLAYERED_MOD -- "Virtual" is a value of the printer-type dropdown (axis_selection). Live UI must
+// ask THAT, not the derived virtual_5axis bool, which normalize_fdm_1() only recomputes at slice
+// time and would therefore lag a dropdown change until the next slice.
+bool   virtual_5axis_enabled();
+// UNLAYERED_MOD -- the virtual-mode tilt cap in degrees for a chunk of horizontal extent
+// `reach_mm`, or 0 when there is none. Wraps virtual_tilt_limit_deg() (PrintConfig.hpp) over the
+// EDITED printer preset, so it tracks the settings fields live, and folds in the optional hand-set
+// `nonplanar_virtual_max_angle` ceiling. Pass reach_mm = 0 when the chunk size is not known yet:
+// that yields the part-independent hotend term alone, which is the looser of the two, so a
+// caller that cannot supply a reach never over-restricts the user. `tilt_azimuth_rad` is the way the
+// build normal leans (atan2 of its XY), because the hotend is not round; absent yields the worst
+// direction, the strict answer for a caller that does not know yet.
+double virtual_max_tilt_deg(double reach_mm = 0., std::optional<double> tilt_azimuth_rad = std::nullopt);
 // Up direction of the edited printer's tilted build plate (+Z when untilted).
 Vec3d build_plate_tilt_up_direction();
 } // namespace GUI

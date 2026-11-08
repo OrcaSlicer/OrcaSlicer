@@ -462,11 +462,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/BeltPurgeTower.hpp
     GUI/BedMeshOverlay.cpp
     GUI/BedMeshOverlay.hpp
-    GUI/AccentColor.hpp
-    GUI/FocusRing.cpp
-    GUI/FocusRing.hpp
-    GUI/Theme.cpp
-    GUI/Theme.hpp
     GUI/FilamentGroupPopup.hpp
     GUI/FilamentGroupPopup.cpp
     GUI/PhysicalPrinterDialog.cpp

@@ -10473,6 +10473,51 @@ bool is_soluble_filament(int extruder_id)
     return support_option->get_at(0);
 };
 
+// UNLAYERED_MOD — see the header.
+bool nonplanar_printing_enabled()
+{
+    const PresetBundle* bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return false;
+    const ConfigOptionBool* opt = bundle->printers.get_edited_preset().config.option<ConfigOptionBool>("enable_nonplanar");
+    return opt != nullptr && opt->value;
+}
+
+bool virtual_5axis_enabled()
+{
+    const PresetBundle* bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return false;
+    const DynamicPrintConfig& cfg = bundle->printers.get_edited_preset().config;
+    const ConfigOptionBool* np = cfg.option<ConfigOptionBool>("enable_nonplanar");
+    if (np == nullptr || ! np->value)
+        return false;
+    const auto* sel = cfg.option<ConfigOptionEnum<AxisSelection>>("axis_selection");
+    return sel != nullptr && sel->value == AxisSelection::Virtual;
+}
+
+double virtual_max_tilt_deg(double reach_mm, std::optional<double> tilt_azimuth_rad)
+{
+    if (! virtual_5axis_enabled())
+        return 0.;
+    const DynamicPrintConfig& cfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    auto get = [&cfg](const char* key) {
+        const auto* opt = cfg.option<ConfigOptionFloat>(key);
+        return opt == nullptr ? 0. : opt->value;
+    };
+
+    // The geometry-derived limit, identical to the one Print::validate() enforces -- one definition
+    // in libslic3r so a drag can never stop somewhere the slicer would have accepted, or vice versa.
+    const double derived = virtual_tilt_limit_deg(HotendEnvelope::from_config(cfg), get("nonplanar_gantry_height"),
+                                                  reach_mm, tilt_azimuth_rad);
+    // The optional hand-set ceiling on top. 0 means "not applied" for either of them, so this is
+    // "the stricter of the two that are switched on", not a plain min.
+    const double manual = std::max(0., get("nonplanar_virtual_max_angle"));
+    if (derived > 0. && manual > 0.)
+        return std::min(derived, manual);
+    return std::max(derived, manual);
+}
+
 bool has_filaments(const std::vector<std::string>& model_filaments) {
     auto &filament_presets = Slic3r::GUI::wxGetApp().preset_bundle->filament_presets;
     if (!Slic3r::GUI::wxGetApp().plater()) return false;

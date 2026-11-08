@@ -96,7 +96,6 @@
 #include "OpenGLManager.hpp"
 #include "Plater.hpp"
 #include "CameraUtils.hpp"
-#include "FocusRing.hpp"
 #include "MsgDialog.hpp"
 #include "libslic3r/CutPlaneSegmentation.hpp"
 #include "MainFrame.hpp"
@@ -4870,11 +4869,6 @@ bool GLCanvas3D::_keyboard_tool_step(int direction)
     const bool on_main = m_kbd_tool >= 0 && m_kbd_tool < int(main_ids.size());
     m_main_toolbar.set_keyboard_hover(on_main ? main_ids[m_kbd_tool] : -1);
     m_gizmos.set_icon_hover(m_kbd_tool >= int(main_ids.size()) ? GLGizmosManager::EType(gizmo_ids[m_kbd_tool - main_ids.size()]) : GLGizmosManager::Undefined);
-    // The focus ring outlines the whole view; while an icon is highlighted it only distracts.
-    if (m_kbd_tool >= 0)
-        FocusRing::get().hide();
-    else
-        FocusRing::get().on_focus(m_canvas);
     set_as_dirty();
     request_extra_frame();
     return true;

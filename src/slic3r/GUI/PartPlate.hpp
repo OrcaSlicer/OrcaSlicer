@@ -842,7 +842,6 @@ class PartPlateList : public ObjectBase
 
     bool m_is_dark = false;
     bool m_icon_textures_dark = false;
-    unsigned m_icon_textures_theme_generation = 0;   // Unlayered: ThemeManager generation the icons were coloured for
 
     int m_filament_count = 1;
 
