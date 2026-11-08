@@ -1510,6 +1510,14 @@ void MainFrame::init_tabpanel() {
 #else
     m_tabpanel->Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, [this](wxBookCtrlEvent& e) {
 #endif
+        // A page's own book (the Calibration page's Tabbook) emits the same event, and it propagates
+        // up here. Treating it as a main tab change resets the selected tab and the undo/redo state,
+        // and the SetFocus() below re-activates the main window on wxGTK, which dismisses the Speed
+        // Dial when the page is built in the background while the dial is open.
+        if (e.GetEventObject() != m_tabpanel) {
+            e.Skip();
+            return;
+        }
         //BBS
         wxWindow* panel = m_tabpanel->GetCurrentPage();
         //wxString page_text = m_tabpanel->GetPageText(sel);
