@@ -29,6 +29,8 @@ public:
     // clean-room native-CAD decoders). It is found through $ORCA_CADMPEG, then PATH; it is not bundled, so without it the
     // result is empty and err says how to get it. cadmpeg decodes what it can: NX and Creo `.prt` carry no geometry yet.
     // `warnings`, when given, gets the count of cadmpeg "[warning" findings (e.g. geometry it could not write); "" if none.
+    // The cadmpeg executable read_cad_solids would run ($ORCA_CADMPEG, then PATH); empty when it is not installed.
+    static std::string cadmpeg_executable();
     static std::vector<TopoDS_Shape> read_cad_solids(const std::string& path, std::string& err, std::string* warnings = nullptr);
 
     // Triangle mesh -> B-rep solid. Native port of mesh2step

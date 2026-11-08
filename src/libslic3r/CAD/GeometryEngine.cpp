@@ -122,6 +122,16 @@ std::vector<TopoDS_Shape> GeometryEngine::read_step_solids(const std::string& pa
 }
 
 // ---- Native CAD -> STEP through the external cadmpeg CLI ----
+std::string GeometryEngine::cadmpeg_executable()
+{
+    boost::filesystem::path exe;
+    if (const char* env = std::getenv("ORCA_CADMPEG"); env && *env)
+        exe = env;
+    else
+        exe = boost::process::search_path("cadmpeg");
+    return (!exe.empty() && boost::filesystem::exists(exe)) ? exe.string() : std::string();
+}
+
 std::vector<TopoDS_Shape> GeometryEngine::read_cad_solids(const std::string& path, std::string& err, std::string* warnings)
 {
     namespace fs = boost::filesystem;
@@ -131,12 +141,8 @@ std::vector<TopoDS_Shape> GeometryEngine::read_cad_solids(const std::string& pat
         return read_step_solids(path, err);
 
     err.clear();
-    fs::path exe;
-    if (const char* env = std::getenv("ORCA_CADMPEG"); env && *env)
-        exe = env;
-    else
-        exe = bp::search_path("cadmpeg");
-    if (exe.empty() || !fs::exists(exe)) {
+    const fs::path exe = cadmpeg_executable();
+    if (exe.empty()) {
         err = _u8L("Reading this CAD format needs the cadmpeg tool (github.com/cadmpeg/cadmpeg): install it so that `cadmpeg` is on PATH, or set ORCA_CADMPEG to its full path");
         return {};
     }

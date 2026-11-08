@@ -1685,8 +1685,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
         auto* b_new = doc_btn("design_new", _L("New Design — clear the feature tree"));
         b_new->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_new_design(); });
         add_doc(b_new);
-        // Import STEP — a STEP comes in as a whole editable B-rep body, not a profile.
-        auto* b_step = doc_btn("design_step", _L("Import STEP (editable B-rep solid)"));
+        // Import CAD — a STEP, or any native CAD file cadmpeg can convert to one, comes in as a whole editable
+        // B-rep body, not a profile. The tooltip says up front whether the converter is installed.
+        auto* b_step = doc_btn("design_step", GeometryEngine::cadmpeg_executable().empty()
+            ? _L("Import CAD: STEP as an editable B-rep solid (SolidWorks, Fusion, Inventor, CATIA, FreeCAD, Rhino, IGES need the cadmpeg tool: not found)")
+            : _L("Import CAD: STEP, SolidWorks, Fusion, Inventor, CATIA, FreeCAD, Rhino or IGES file as an editable B-rep solid"));
         b_step->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_import_step(); });
         m_keys_feature[SHIFT('I')] = [this] { on_import_step(); };
         add_doc(b_step);
@@ -4943,7 +4946,7 @@ bool DesignPanel::recompute_guarded(const wxString& message)
 
 void DesignPanel::on_import_step()
 {
-    wxFileDialog dlg(this, _L("Import STEP or CAD file"), wxEmptyString, wxEmptyString,
+    wxFileDialog dlg(this, _L("Import CAD file"), wxEmptyString, wxEmptyString,
                      _L("STEP files (*.step;*.stp)|*.step;*.stp|Native CAD, converted with cadmpeg (*.sldprt;*.f3d;*.ipt;*.iam;*.catpart;*.fcstd;*.3dm;*.igs;*.iges;*.sat)|*.sldprt;*.f3d;*.ipt;*.iam;*.catpart;*.fcstd;*.3dm;*.igs;*.iges;*.sat|All files|*.*"),
                      wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     if (dlg.ShowModal() != wxID_OK)
@@ -12890,7 +12893,7 @@ void DesignPanel::set_imgui_topbar(bool on)
     auto later = [this](std::function<void()> f) { return [this, f = std::move(f)] { CallAfter(f); }; };
     b.docs.clear();
     b.docs.push_back({"design_new",         _u8L("New Design — clear the feature tree"),                          later([this] { on_new_design(); })});
-    b.docs.push_back({"design_step",        _u8L("Import STEP (editable B-rep solid)"),                            later([this] { on_import_step(); })});
+    b.docs.push_back({"design_step",        _u8L("Import CAD (STEP, SolidWorks, Fusion, ... as an editable B-rep solid)"),                            later([this] { on_import_step(); })});
     b.docs.push_back({"design_import_mesh", _u8L("Import mesh (STL/OBJ) as an editable B-rep solid"),              later([this] { on_import_mesh(); })});
     b.docs.push_back({"design_export",      _u8L("Export STEP…"),                                                  later([this] { on_export_step(); })});
     // Undo / Redo (the same route as Ctrl+Z) and the grid snap toggle: the wx row that held the checkbox is hidden while this bar is
