@@ -4490,6 +4490,15 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
             else if (evt.GetEventType() == wxEVT_KEY_DOWN) {
                 if (handle_shortcut(KeyChord::from_event(evt)))
                     return;
+                if (keyCode == WXK_ESCAPE && m_canvas_type == ECanvasType::CanvasPreview && m_render_preview) {
+                    if (m_gcode_viewer.reset_sliders()) {
+                        if (IMSlider* layers_slider = m_gcode_viewer.get_layers_slider(); layers_slider != nullptr)
+                            set_volumes_z_range({ layers_slider->GetLowerValueD(), layers_slider->GetHigherValueD() });
+                        m_dirty = true;
+                        request_extra_frame();
+                        return;
+                    }
+                }
                 if (keyCode == WXK_SHIFT) {
                     if (m_selection_edit.kind == SelectionEdit::Move)
                         apply_selection_move(true, evt.CmdDown());
@@ -4589,6 +4598,23 @@ void GLCanvas3D::on_mouse_wheel(wxMouseEvent& evt)
 
     if (evt.AltDown()) {
         set_section_view_ratio(get_section_view_ratio() + (evt.GetWheelRotation() < 0 ? -0.01 : 0.01));
+        return;
+    }
+
+    if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview && (evt.ShiftDown() != evt.CmdDown())) {
+        const int wheel_rot = evt.GetWheelRotation();
+        if (wheel_rot != 0) {
+            const int wheel_delta = std::max(1, evt.GetWheelDelta());
+            int steps = wheel_rot / wheel_delta;
+            if (steps == 0)
+                steps = (wheel_rot > 0) ? 1 : -1;
+            if (evt.ShiftDown())
+                m_gcode_viewer.step_moves_slider(steps);
+            else
+                m_gcode_viewer.step_layers_slider(steps);
+            m_dirty = true;
+            request_extra_frame();
+        }
         return;
     }
 
@@ -5112,6 +5138,10 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         // Orca: Retain the click position even if the first motion event crosses a surface edge.
         m_mouse.set_start_position_2D_as_invalid();
         m_mouse.drag.start_position_2D = pos;
+        if (evt.LeftDown()) {
+            m_mouse.left_down_position_2D = pos;
+            m_mouse.left_down_time        = std::chrono::steady_clock::now();
+        }
 
         //BBS: add orient deactivate logic
         if (!m_gizmos.on_mouse(evt)) {
@@ -5309,6 +5339,9 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
     }
     else if (evt.Dragging() || is_camera_rotate(evt, button_mappings) || is_camera_pan(evt, button_mappings)) {
         m_mouse.dragging = true;
+        if (m_mouse.is_left_down_position_2D_defined() &&
+            (pos - m_mouse.left_down_position_2D).cast<double>().norm() > Mouse::Drag::MoveThresholdPx)
+            m_mouse.set_left_down_position_2D_as_invalid();
 
         if (m_layers_editing.state != LayersEditing::Unknown && layer_editing_object_idx != -1) {
             if (m_layers_editing.state == LayersEditing::Editing) {
@@ -5463,6 +5496,17 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             // fall through to mouse_up_cleanup() below so mouse capture and drag state
             // get reset like every other branch in this chain.
             wxGetApp().plater()->on_imex_ghost_click(m_hover_ghost_head);
+        }
+        else if (evt.LeftUp() && !m_mouse.ignore_left_up && m_canvas_type == ECanvasType::CanvasPreview && m_render_preview &&
+                 m_mouse.is_left_down_position_2D_defined() &&
+                 (pos - m_mouse.left_down_position_2D).cast<double>().norm() <= Mouse::Drag::MoveThresholdPx &&
+                 std::chrono::steady_clock::now() - m_mouse.left_down_time <= Mouse::Drag::ClickTimeout) {
+            if (m_gcode_viewer.on_mouse_click_toolpath(mouse_ray(pos), evt.ShiftDown())) {
+                if (IMSlider* layers_slider = m_gcode_viewer.get_layers_slider(); layers_slider != nullptr)
+                    set_volumes_z_range({ layers_slider->GetLowerValueD(), layers_slider->GetHigherValueD() });
+                m_dirty = true;
+                request_extra_frame();
+            }
         }
         else if (evt.LeftUp() && !m_mouse.ignore_left_up && !m_mouse.dragging && m_hover_volume_idxs.empty() && m_hover_plate_idxs.empty() && !is_layers_editing_enabled()) {
             // deselect and propagate event through callback
@@ -6366,6 +6410,7 @@ void GLCanvas3D::mouse_up_cleanup()
     m_mouse.drag.move_volume_idx = -1;
     m_mouse.set_start_position_3D_as_invalid();
     m_mouse.set_start_position_2D_as_invalid();
+    m_mouse.set_left_down_position_2D_as_invalid();
     m_mouse.dragging = false;
     m_mouse.ignore_left_up = false;
     m_mouse.ignore_right_up = false;

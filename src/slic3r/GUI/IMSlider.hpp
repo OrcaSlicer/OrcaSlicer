@@ -78,6 +78,7 @@ public:
     double GetLowerValueD() { return get_double_value(ssLower); }
     double GetHigherValueD() { return get_double_value(ssHigher); }
     SelectedSlider GetSelection() { return m_selection; }
+    int    get_tick_from_value(double value, bool force_lower_bound = false);
 
     // Set low and high slider position. If the span is non-empty, disable the "one layer" mode.
     void SetLowerValue(const int lower_val);
@@ -169,7 +170,6 @@ protected:
 private:
     std::string get_label(int tick, LabelType label_type = ltHeightWithLayer);
     double get_double_value(const SelectedSlider& selection);
-    int    get_tick_from_value(double value, bool force_lower_bound = false);
     float get_pos_from_value(int v_min, int v_max, int value, const ImRect& rect);
     int    get_tick_near_point(int v_min, int v_max, const ImVec2& pt, const ImRect& rect);
 
