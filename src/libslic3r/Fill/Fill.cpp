@@ -598,7 +598,7 @@ struct SurfaceFillParams
     // FillParams
     float       	density = 0.f;
     // Infill line multiplier count.
-    int   multiline = 1;
+    int             multiline = 1;
     // Don't adjust spacing to fill the space evenly.
 //    bool        	dont_adjust = false;
     // Length of the infill anchor along the perimeter line.
