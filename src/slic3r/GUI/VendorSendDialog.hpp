@@ -89,6 +89,7 @@ struct SendSlots
     std::vector<SendSlot> slots;
     bool                  auto_refill{false};
     bool                  supports_auto_refill{false};
+    wxString              enable_label; // when set, a toggle that turns the mapping on or off (e.g. "Enable CFS")
 };
 
 struct SendOption

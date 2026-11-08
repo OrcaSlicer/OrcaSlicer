@@ -598,12 +598,12 @@ private:
         cancel->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
         footer->Add(cancel, 0, wxRIGHT, FromDIP(10));
         if (m_vendor == SendVendor::Creality && m_backend.supports_upload_only()) {
-            // Creality Print offers "Send" (upload) and "Print" side by side.
-            m_send_btn = new FlatButton(this, _L("Send"), m_theme, false);
+            // Creality Print offers "Send Only" (upload) next to "Send" (upload and print).
+            m_send_btn = new FlatButton(this, _L("Send Only"), m_theme, false);
             m_send_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { submit(false); });
             footer->Add(m_send_btn, 0, wxRIGHT, FromDIP(10));
         }
-        m_print_btn = new FlatButton(this, _L("Print"), m_theme, true);
+        m_print_btn = new FlatButton(this, m_vendor == SendVendor::Creality ? _L("Send") : _L("Print"), m_theme, true);
         m_print_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { submit(m_upload_and_print ? m_upload_and_print->GetValue() : true); });
         footer->Add(m_print_btn, 0);
         m_root->Add(footer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, pad);
@@ -790,6 +790,8 @@ private:
         m_upload_and_print = nullptr;
         m_switch_tab       = nullptr;
         m_auto_refill      = nullptr;
+        m_use_slots        = nullptr;
+        m_slot_grid_host   = nullptr;
         m_slot_area        = nullptr;
         if (m_plate_host)
             m_plate_host->Clear(true);
@@ -938,7 +940,20 @@ private:
             add_toggle_row(row, _L("Auto refill"), m_auto_refill, _L("Switch to a matching spool when one runs out."));
             m_slot_area->Add(row, 0, wxEXPAND);
         }
+        if (!m_slots.enable_label.empty()) {
+            // Creality Print: "Enable CFS"; off prints from the external spool.
+            auto* row  = new wxFlexGridSizer(1, 0, 0);
+            row->AddGrowableCol(0, 1);
+            m_use_slots = new Toggle(this, m_theme, recall("use_slots", "1") == "1");
+            add_toggle_row(row, m_slots.enable_label, m_use_slots);
+            m_slot_area->Add(row, 0, wxEXPAND);
+            m_use_slots->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
+                m_slot_grid_host->ShowItems(m_use_slots->GetValue());
+                relayout();
+            });
+        }
         auto* grid = new wxWrapSizer(wxHORIZONTAL);
+        m_slot_grid_host = grid;
         for (const FilamentInfo& f : m_job.filaments) {
             auto* col = new wxBoxSizer(wxVERTICAL);
             col->Add(new Swatch(this, m_theme, parse_colour(f.color), wxString::FromUTF8(f.type), format_weight(f.used_g), false), 0, wxEXPAND);
@@ -953,6 +968,8 @@ private:
             auto_match(f);
         }
         m_slot_area->Add(grid, 0, wxEXPAND);
+        if (m_use_slots)
+            grid->ShowItems(m_use_slots->GetValue());
         relayout();
     }
 
@@ -1044,13 +1061,18 @@ private:
         }
         if (m_auto_refill)
             req.options["auto_refill"] = m_auto_refill->GetValue() ? "1" : "0";
+        if (m_use_slots) {
+            req.options["use_slots"] = m_use_slots->GetValue() ? "1" : "0";
+            remember("use_slots", req.options["use_slots"]);
+        }
         if (m_switch_tab) {
             req.options["switch_to_device_tab"] = m_switch_tab->GetValue() ? "1" : "0";
             remember("switch_tab", req.options["switch_to_device_tab"]);
         }
         if (m_upload_and_print)
             remember("upload_and_print", m_upload_and_print->GetValue() ? "1" : "0");
-        req.slot_map = m_slot_choice;
+        if (!m_use_slots || m_use_slots->GetValue())
+            req.slot_map = m_slot_choice;
 
         wxString     error;
         PrintHostJob job = m_backend.make_job(req, m_default_output, error);
@@ -1117,6 +1139,8 @@ private:
     Toggle*               m_upload_and_print{nullptr};
     Toggle*               m_switch_tab{nullptr};
     Toggle*               m_auto_refill{nullptr};
+    Toggle*               m_use_slots{nullptr};
+    wxSizer*              m_slot_grid_host{nullptr};
 
     std::vector<SendPrinter>                                        m_printers;
     int                                                             m_selected{-1};

@@ -252,6 +252,7 @@ public:
             }
         }
         s.available = !s.slots.empty();
+        s.enable_label = _L("Enable CFS");
         return s;
     }
 
@@ -259,7 +260,7 @@ public:
     {
         SendOption calib;
         calib.key        = "self_test";
-        calib.label      = _L("Calibrate before printing");
+        calib.label      = _L("Print Calibration");
         calib.default_on = true;
         calib.tooltip    = _L("Runs the printer's leveling and calibration before the print starts.");
         return {calib};
