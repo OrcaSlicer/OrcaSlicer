@@ -159,31 +159,55 @@ TEST_CASE("Overhang fan transitions do not depend on overhang speed", "[Cooling]
     CHECK(with_speed_fan == without_speed_fan);
 }
 
-TEST_CASE("Layer time smoothing is off by default", "[Cooling][LayerTimeSmoothing]")
+namespace {
+size_t count_layer_time_smoothing_comments(const std::string &gcode)
 {
-    const std::string gcode = slice({ cube(20) }, { { "layer_height", 0.2 } });
-    CHECK(gcode.find("LAYER_TIME_SMOOTHING") == std::string::npos);
+    size_t count = 0;
+    for (size_t pos = gcode.find("; LAYER_TIME_SMOOTHING"); pos != std::string::npos; pos = gcode.find("; LAYER_TIME_SMOOTHING", pos + 1))
+        ++ count;
+    return count;
 }
+} // namespace
 
-TEST_CASE("Layer time smoothing annotates every layer and keeps the cooling pass working", "[Cooling][LayerTimeSmoothing]")
+TEST_CASE("Layers are not annotated when layer time smoothing is disabled", "[Cooling]")
 {
     const std::string gcode = slice({ cube(20) }, {
         { "layer_height",           0.2 },
-        { "layer_time_smoothing",   true },
+        { "layer_time_smoothing",   false },
     });
-    size_t comments = 0;
-    for (size_t pos = gcode.find("; LAYER_TIME_SMOOTHING"); pos != std::string::npos; pos = gcode.find("; LAYER_TIME_SMOOTHING", pos + 1))
-        ++ comments;
-    // The 20 mm cube has 100 layers of 0.2 mm.
-    CHECK(comments >= 90);
+    CHECK(count_layer_time_smoothing_comments(gcode) == 0);
+}
+
+TEST_CASE("Layer time smoothing annotates every layer and keeps the cooling pass working", "[Cooling]")
+{
+    // A 20 mm cube at 0.2 mm layers has 100 layers.
+    const std::string gcode = slice({ cube(20) }, {
+        { "initial_layer_print_height", 0.2 },
+        { "layer_height",               0.2 },
+        { "layer_time_smoothing",       true },
+    });
+    CHECK(count_layer_time_smoothing_comments(gcode) >= 90);
     CHECK(gcode.find(";_EXTRUDE_SET_SPEED") == std::string::npos);
 }
 
-TEST_CASE("Layer time smoothing is ignored in spiral vase mode", "[Cooling][LayerTimeSmoothing]")
+TEST_CASE("Layer time smoothing is ignored in spiral vase mode", "[Cooling]")
 {
     const std::string gcode = slice({ cube(20) }, {
         { "spiral_mode",            true },
         { "layer_time_smoothing",   true },
     });
-    CHECK(gcode.find("LAYER_TIME_SMOOTHING") == std::string::npos);
+    CHECK(count_layer_time_smoothing_comments(gcode) == 0);
+}
+
+TEST_CASE("Layer time smoothing smooths each object when printing by object", "[Cooling]")
+{
+    const std::string gcode = slice_two_cubes_apart(30., {
+        { "initial_layer_print_height", 0.2 },
+        { "layer_height",               0.2 },
+        { "print_sequence",             "by object" },
+        { "layer_time_smoothing",       true },
+    });
+    // Two 20 mm cubes at 0.2 mm layers have 200 layers together.
+    CHECK(count_layer_time_smoothing_comments(gcode) >= 180);
+    CHECK(gcode.find(";_EXTRUDE_SET_SPEED") == std::string::npos);
 }

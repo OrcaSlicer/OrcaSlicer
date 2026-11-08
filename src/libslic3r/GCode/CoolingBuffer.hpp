@@ -7,7 +7,6 @@
 #include <string>
 #include <cfloat>
 #include <vector>
-#include <memory>
 
 namespace Slic3r {
 

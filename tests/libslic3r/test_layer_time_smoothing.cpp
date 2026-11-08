@@ -8,6 +8,7 @@
 #include <vector>
 
 using namespace Slic3r;
+using Catch::Matchers::WithinAbs;
 
 namespace {
 
@@ -21,7 +22,7 @@ void check_variation(const std::vector<float> &t, float v, size_t first)
 
 } // namespace
 
-TEST_CASE("Layer time smoothing: target times obey the variation limit", "[LayerTimeSmoothing]")
+TEST_CASE("Layer time targets obey the variation limit", "[LayerTimeSmoothing]")
 {
     const std::vector<float> times = { 10.f, 100.f, 200.f, 50.f, 10.f };
     const std::vector<float> caps(times.size(), FLT_MAX);
@@ -32,23 +33,23 @@ TEST_CASE("Layer time smoothing: target times obey the variation limit", "[Layer
     for (size_t i = 0; i < t.size(); ++ i)
         REQUIRE(t[i] >= times[i]);
     // The slowest layer is not changed, its neighbours are raised to exactly 80% of it.
-    CHECK(t[2] == Catch::Approx(200.f));
-    CHECK(t[1] == Catch::Approx(160.f));
-    CHECK(t[3] == Catch::Approx(160.f));
-    CHECK(t[0] == Catch::Approx(128.f));
-    CHECK(t[4] == Catch::Approx(128.f));
+    CHECK_THAT(t[2], WithinAbs(200.f, 1e-3));
+    CHECK_THAT(t[1], WithinAbs(160.f, 1e-3));
+    CHECK_THAT(t[3], WithinAbs(160.f, 1e-3));
+    CHECK_THAT(t[0], WithinAbs(128.f, 1e-3));
+    CHECK_THAT(t[4], WithinAbs(128.f, 1e-3));
 }
 
-TEST_CASE("Layer time smoothing: layers before first_layer are untouched and do not constrain", "[LayerTimeSmoothing]")
+TEST_CASE("Layer time smoothing leaves the layers before the first layer untouched", "[LayerTimeSmoothing]")
 {
     const std::vector<float> times = { 300.f, 10.f, 10.f, 10.f };
     const std::vector<float> caps(times.size(), FLT_MAX);
     const std::vector<float> t = LayerTimeSmoother::solve_target_times(times, caps, 0.25f, 1);
     for (size_t i = 0; i < t.size(); ++ i)
-        CHECK(t[i] == Catch::Approx(times[i]));
+        CHECK_THAT(t[i], WithinAbs(times[i], 1e-3));
 }
 
-TEST_CASE("Layer time smoothing: caps stop the propagation", "[LayerTimeSmoothing]")
+TEST_CASE("Layer time caps stop the propagation of the variation limit", "[LayerTimeSmoothing]")
 {
     const std::vector<float> times = { 6.f, 6.f, 6.f, 40.f, 40.f };
     // Each layer may at most triple.
@@ -57,14 +58,14 @@ TEST_CASE("Layer time smoothing: caps stop the propagation", "[LayerTimeSmoothin
         caps.emplace_back(t * 3.f);
     const std::vector<float> t = LayerTimeSmoother::solve_target_times(times, caps, 0.25f, 0);
     // The layer below the step hits its cap, the layers below it ramp down with 25% per layer.
-    CHECK(t[2] == Catch::Approx(18.f));
-    CHECK(t[1] == Catch::Approx(13.5f));
-    CHECK(t[0] == Catch::Approx(10.125f));
-    CHECK(t[3] == Catch::Approx(40.f));
-    CHECK(t[4] == Catch::Approx(40.f));
+    CHECK_THAT(t[2], WithinAbs(18.f, 1e-3));
+    CHECK_THAT(t[1], WithinAbs(13.5f, 1e-3));
+    CHECK_THAT(t[0], WithinAbs(10.125f, 1e-3));
+    CHECK_THAT(t[3], WithinAbs(40.f, 1e-3));
+    CHECK_THAT(t[4], WithinAbs(40.f, 1e-3));
 }
 
-TEST_CASE("Layer time smoothing: total time increase limit relaxes the variation", "[LayerTimeSmoothing]")
+TEST_CASE("The total time increase limit relaxes the layer time variation limit", "[LayerTimeSmoothing]")
 {
     const std::vector<float> times = { 5.f, 5.f, 5.f, 5.f, 50.f, 5.f, 5.f, 5.f, 5.f };
     const std::vector<float> caps(times.size(), FLT_MAX);
@@ -72,7 +73,7 @@ TEST_CASE("Layer time smoothing: total time increase limit relaxes the variation
 
     // Without a budget the increase is large.
     const std::vector<float> unlimited = LayerTimeSmoother::solve_target_times(times, caps, 0.25f, 100.f, 0, effective);
-    CHECK(effective == Catch::Approx(0.25f));
+    CHECK_THAT(effective, WithinAbs(0.25f, 1e-3));
     double base = 0., increase_unlimited = 0.;
     for (size_t i = 0; i < times.size(); ++ i) {
         base += times[i];
@@ -93,7 +94,7 @@ TEST_CASE("Layer time smoothing: total time increase limit relaxes the variation
     check_variation(limited, effective, 0);
 }
 
-TEST_CASE("Layer time smoothing: solve applies the per layer slow down and the minimum speed cap", "[LayerTimeSmoothing]")
+TEST_CASE("Layer time smoothing applies the per layer slow down and the minimum speed cap", "[LayerTimeSmoothing]")
 {
     LayerTimeSmoother::Params params;
     params.max_variation      = 0.25f;
@@ -107,14 +108,14 @@ TEST_CASE("Layer time smoothing: solve applies the per layer slow down and the m
     const std::vector<float> t = smoother.solve(times, max_times, 1);
 
     REQUIRE(t.size() == times.size());
-    CHECK(t[0] == Catch::Approx(40.f));
+    CHECK_THAT(t[0], WithinAbs(40.f, 1e-3));
     // Layer 2 is limited to twice its time by the per layer cap, layer 1 follows it with 25% variation.
-    CHECK(t[2] == Catch::Approx(8.f));
-    CHECK(t[1] == Catch::Approx(6.f));
-    CHECK(t[4] == Catch::Approx(5.f));
+    CHECK_THAT(t[2], WithinAbs(8.f, 1e-3));
+    CHECK_THAT(t[1], WithinAbs(6.f, 1e-3));
+    CHECK_THAT(t[4], WithinAbs(5.f, 1e-3));
 }
 
-TEST_CASE("Layer time smoothing: the diagnostic comment reports the layer times", "[LayerTimeSmoothing]")
+TEST_CASE("The layer time smoothing comment reports the layer times", "[LayerTimeSmoothing]")
 {
     LayerTimeSmoother smoother{LayerTimeSmoother::Params{}};
     const std::vector<float> times = { 10.f, 4.f };
