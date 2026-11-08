@@ -103,6 +103,29 @@ const PrinterAgentInfo* NetworkAgentFactory::get_printer_agent_info(const std::s
     return (it != agents.end()) ? &it->second : nullptr;
 }
 
+std::string NetworkAgentFactory::cloud_provider_for_agent(const std::string& id)
+{
+    {
+        std::lock_guard<std::mutex> lock(s_registry_mutex);
+        auto& agents = get_printer_agents();
+        auto  it     = agents.find(id);
+        if (it != agents.end() && !it->second.cloud_provider.empty())
+            return it->second.cloud_provider;
+    }
+    return id == BBL_PRINTER_AGENT_ID ? BBL_CLOUD_PROVIDER : ORCA_CLOUD_PROVIDER;
+}
+
+bool NetworkAgentFactory::set_agent_cloud_provider(const std::string& id, const std::string& provider)
+{
+    std::lock_guard<std::mutex> lock(s_registry_mutex);
+    auto& agents = get_printer_agents();
+    auto  it     = agents.find(id);
+    if (it == agents.end())
+        return false;
+    it->second.cloud_provider = provider;
+    return true;
+}
+
 std::string NetworkAgentFactory::get_printer_agent_plugin_identifier(const std::string& id)
 {
     std::lock_guard<std::mutex> lock(s_registry_mutex);

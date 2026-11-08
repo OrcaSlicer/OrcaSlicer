@@ -4370,7 +4370,11 @@ void GUI_App::switch_printer_agent()
     const PrinterAgentInfo agent_info = *agent_info_ptr;
 
     std::string log_dir        = data_dir();
-    std::string cloud_agent_id = agent_info.id == BBL_PRINTER_AGENT_ID ? BBL_CLOUD_PROVIDER : ORCA_CLOUD_PROVIDER;
+    // Unified Slicer: each printer agent names the account it uses, so Bambu, Elegoo and Orca
+    // logins stay separate. Falls back to the Orca account when that provider is not running.
+    std::string cloud_agent_id = NetworkAgentFactory::cloud_provider_for_agent(agent_info.id);
+    if (!m_agent->get_cloud_agent(cloud_agent_id))
+        cloud_agent_id = ORCA_CLOUD_PROVIDER;
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << agent_info.id;
     std::shared_ptr<ICloudServiceAgent> cloud_agent = m_agent->get_cloud_agent(cloud_agent_id);
 
@@ -5402,7 +5406,8 @@ std::string GUI_App::get_printer_cloud_provider() const
     const std::string agent_id = resolve_printer_agent_id(
         preset_bundle ? preset_bundle->printers.get_edited_preset().config.opt_string("printer_agent")
                       : std::string());
-    return agent_id == BBL_PRINTER_AGENT_ID ? BBL_CLOUD_PROVIDER : ORCA_CLOUD_PROVIDER;
+    const std::string provider = NetworkAgentFactory::cloud_provider_for_agent(agent_id);
+    return (m_agent && m_agent->get_cloud_agent(provider)) ? provider : ORCA_CLOUD_PROVIDER;
 }
 
 

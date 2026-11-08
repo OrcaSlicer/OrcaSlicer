@@ -31,6 +31,9 @@ struct PrinterAgentInfo
     std::string         display_name; // e.g., "Orca Native", "Bambu Lab"
     std::string         plugin_identifier;     // Empty for built-ins, otherwise <plugin_key>;<uuid>;<capability_name>
     PrinterAgentFactory factory;      // Function to create the agent
+    // Cloud account this agent talks through ("bbl", "orca", "elegoo", ...). Empty: the default
+    // mapping (Bambu agent -> Bambu account, everything else -> Orca account).
+    std::string         cloud_provider;
 
     bool is_plugin() const { return !plugin_identifier.empty(); }
     PrinterAgentInfo(const std::string& id_, const std::string& display_name_, PrinterAgentFactory factory_)
@@ -97,6 +100,12 @@ public:
      * Get info about a registered agent by registry/config key
      */
     static const PrinterAgentInfo* get_printer_agent_info(const std::string& id);
+
+    // Cloud provider id the printer agent `id` uses: its registered cloud_provider, else "bbl"
+    // for the Bambu agent and "orca" for everything else.
+    static std::string cloud_provider_for_agent(const std::string& id);
+    // Sets the cloud provider of an already registered agent (built-in or plugin).
+    static bool set_agent_cloud_provider(const std::string& id, const std::string& provider);
 
     /**
      * Return the full plugin reference for a plugin-backed printer agent ID, or empty for built-ins.
