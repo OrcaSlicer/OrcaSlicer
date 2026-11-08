@@ -54,6 +54,7 @@
 #include <cmath>
 #include <cstddef>
 #include <math.h>
+#include <memory>
 #include <utility>
 #include <vector>
 #include <boost/log/trivial.hpp>
