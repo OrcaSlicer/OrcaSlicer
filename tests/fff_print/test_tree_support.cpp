@@ -5,6 +5,9 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/ClipperUtils.hpp"
 #include <cstddef>
 #include "libslic3r/libslic3r.h"
 
@@ -228,4 +231,45 @@ TEST_CASE("Tree support resting on the model gets every bottom interface layer a
     }
     CHECK(above_plate == interface_layers);
     CHECK(between_plates == 0);
+}
+
+// Each node under an overhang adds the whole overhang to its roof list, so the top interface is a solid sheet rather
+// than the branch circles alone. Counting interface layers would not notice the sheet missing.
+TEST_CASE("Tree support top interface covers the whole overhang", "[TreeSupport]")
+{
+    const double upper_bottom = 16.; // two_tier_mesh()
+    Slic3r::Print print;
+    slice_with_tree_support(two_tier_mesh(), print, "tree_slim", 30, 0, 0, {
+        // The test print is centred on the origin, and tree support drops nodes off the bed.
+        { "printable_area",               "-100x-100,100x-100,100x100,-100x100" },
+        { "support_interface_top_layers", 2 },
+        { "support_interface_spacing",    0 },
+    });
+    const PrintObject &object = *print.objects().front();
+
+    // The underside of the upper plate, less the column and a margin for the xy distance kept around it.
+    ExPolygons underside, column;
+    for (const Layer *layer : object.layers())
+        if (layer->print_z < upper_bottom)
+            column = layer->lslices;
+        else if (underside.empty())
+            underside = layer->lslices;
+    const ExPolygons overhang = diff_ex(underside, offset_ex(column, scaled<float>(2.)));
+    REQUIRE(area(overhang) > 0);
+
+    const SupportLayer *top_interface = nullptr;
+    for (const SupportLayer *layer : object.support_layers())
+        if (layer->print_z < upper_bottom)
+            for (const ExtrusionEntity *entity : layer->support_fills.flatten().entities)
+                if (entity->role() == erSupportMaterialInterface)
+                    top_interface = layer;
+    REQUIRE(top_interface != nullptr);
+
+    Polygons covered;
+    for (const ExtrusionEntity *entity : top_interface->support_fills.flatten().entities)
+        if (entity->role() == erSupportMaterialInterface)
+            entity->polygons_covered_by_width(covered, scaled<float>(0.05));
+    const double uncovered = area(diff_ex(overhang, covered)) / area(overhang);
+    INFO("uncovered fraction " << uncovered);
+    CHECK(uncovered < 0.02);
 }
