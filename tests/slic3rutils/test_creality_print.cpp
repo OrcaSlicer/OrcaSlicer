@@ -13,6 +13,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <string>
 #include <thread>
 #include <tuple>
@@ -109,6 +110,36 @@ public:
         return m_http_requests;
     }
 
+    // Each HTTP request as "METHOD target".
+    std::vector<std::string> http_log()
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_http_log;
+    }
+
+    // Folders and files under the gcodes root, as Moonraker sees them.
+    void add_folder(const std::string& folder)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_folders.insert(folder);
+    }
+    std::set<std::string> files()
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_files;
+    }
+    void fail_folder_creation()
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_folder_creation_fails = true;
+    }
+    // Answers uploads OK without storing them, as the Hi does for a folder that does not exist.
+    void drop_uploads()
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_drops_uploads = true;
+    }
+
     // Hangs up every connection that is waiting.
     void release()
     {
@@ -200,16 +231,74 @@ private:
         }
     }
 
+    static std::string url_decode(const std::string& text)
+    {
+        std::string decoded;
+        for (std::size_t i = 0; i < text.size(); ++i) {
+            if (text[i] == '%' && i + 2 < text.size()) {
+                decoded += static_cast<char>(std::stoi(text.substr(i + 1, 2), nullptr, 16));
+                i += 2;
+            } else
+                decoded += text[i];
+        }
+        return decoded;
+    }
+
+    static std::string parent_of(const std::string& path)
+    {
+        const auto slash = path.rfind('/');
+        return slash == std::string::npos ? std::string() : path.substr(0, slash);
+    }
+
+    // Port 80's /info and /upload, and Moonraker's folder API, all on one port.
     void serve_http(tcp::socket& socket, const http::request<http::string_body>& request)
     {
+        const std::string target(request.target());
+        const bool        post = request.method() == http::verb::post;
+        http::status      status = http::status::ok;
+        std::string       body   = "{}";
         {
             std::lock_guard<std::mutex> lock(m_mutex);
             ++m_http_requests;
+            m_http_log.push_back(std::string(post ? "POST " : "GET ") + target);
+
+            const std::string upload_prefix = "/upload/";
+            const std::string folder_prefix = "/server/files/directory?path=gcodes";
+            if (target == "/info")
+                body = nlohmann::json{{"model", m_model}}.dump();
+            else if (target.rfind(upload_prefix, 0) == 0) {
+                // The upload only needs a success status, and gets one even when the file is dropped.
+                const std::string path = url_decode(target.substr(upload_prefix.size()));
+                const std::string parent = parent_of(path);
+                if (!m_drops_uploads && (parent.empty() || m_folders.count(parent) > 0))
+                    m_files.insert(path);
+            } else if (target.rfind(folder_prefix, 0) == 0) {
+                std::string folder = url_decode(target.substr(folder_prefix.size()));
+                if (!folder.empty() && folder[0] == '/')
+                    folder.erase(0, 1);
+                const bool exists = folder.empty() || m_folders.count(folder) > 0;
+                if (!post && exists) {
+                    nlohmann::json files = nlohmann::json::array();
+                    for (const std::string& file : m_files)
+                        if (parent_of(file) == folder)
+                            files.push_back({{"filename", file.substr(folder.empty() ? 0 : folder.size() + 1)}});
+                    body = nlohmann::json{{"result", {{"dirs", nlohmann::json::array()}, {"files", files}}}}.dump();
+                } else if (!post) {
+                    status = http::status::bad_request;
+                    body   = R"({"error":{"code":400,"message":"Directory does not exist"}})";
+                } else if (exists) {
+                    status = http::status::bad_request;
+                    body   = R"({"error":{"code":400,"message":"[Errno 17] File exists"}})";
+                } else if (m_folder_creation_fails || !(parent_of(folder).empty() || m_folders.count(parent_of(folder)) > 0)) {
+                    status = http::status::bad_request;
+                    body   = R"({"error":{"code":400,"message":"[Errno 2] No such file or directory"}})";
+                } else
+                    m_folders.insert(folder);
+            }
         }
-        http::response<http::string_body> response{http::status::ok, request.version()};
+        http::response<http::string_body> response{status, request.version()};
         response.keep_alive(false);
-        // The upload only needs a success status.
-        response.body() = request.target() == "/info" ? nlohmann::json{{"model", m_model}}.dump() : "{}";
+        response.body() = body;
         response.prepare_payload();
         beast::error_code ec;
         http::write(socket, response, ec);
@@ -238,6 +327,11 @@ private:
     std::condition_variable m_changed;
     std::vector<Message> m_messages;
     int m_http_requests = 0;
+    std::vector<std::string> m_http_log;
+    std::set<std::string> m_folders;
+    std::set<std::string> m_files;
+    bool m_folder_creation_fails = false;
+    bool m_drops_uploads = false;
     bool m_released = false;
 };
 
@@ -246,6 +340,7 @@ class TestHost : public CrealityPrint
 public:
     using CrealityPrint::CrealityPrint;
     using CrealityPrint::ws_settings;
+    using CrealityPrint::moonraker_settings;
 };
 
 DynamicPrintConfig host_config(const std::string& url)
@@ -269,6 +364,10 @@ std::unique_ptr<TestHost> make_host(const FakeCrealityPrinter& printer, std::chr
     host->ws_settings.reply       = deadline;
     host->ws_settings.slots_reply = deadline;
     host->ws_settings.close       = deadline;
+    // The fake serves Moonraker's folder API on its one port.
+    host->moonraker_settings.port          = printer.port();
+    host->moonraker_settings.list_retries  = 2;
+    host->moonraker_settings.list_interval = 10ms;
     return host;
 }
 
@@ -286,13 +385,16 @@ template<class Call> bool finishes_within(FakeCrealityPrinter& printer, std::chr
     return in_time;
 }
 
-bool upload_and_print(const CrealityPrint& host, wxString& error, const std::map<std::string, std::string>& extended_info = {})
+bool upload_and_print(const CrealityPrint&                      host,
+                      wxString&                                 error,
+                      const std::map<std::string, std::string>& extended_info = {},
+                      const std::string&                        upload_path   = "test.gcode")
 {
     const ScopedTemporaryFile source(".gcode");
     std::ofstream(source.string()) << "G28\n";
     PrintHostUpload upload;
     upload.source_path   = source.path();
-    upload.upload_path   = "test.gcode";
+    upload.upload_path   = upload_path;
     upload.post_action   = PrintHostPostUploadAction::StartPrint;
     upload.extended_info = extended_info;
     return host.upload(upload, [](Http::Progress, bool&) {}, [&](wxString message) { error = message; }, [](wxString, wxString) {});
@@ -605,4 +707,112 @@ TEST_CASE("A printer without CFS support gets the plain start command", "[Creali
     const nlohmann::json& params = cmds[0]["params"];
     CHECK(params["opGcodeFile"] == "printprt:" + gcode_path);
     CHECK_FALSE(params.contains("enableSelfTest"));
+}
+
+
+namespace {
+
+const std::map<std::string, std::string> one_slot = {{"enableSelfTest", "0"}, {"colorMatch_0", "T1A\tPLA\t#FF0000\t1\t0"}};
+
+bool sent_request(FakeCrealityPrinter& printer, const std::string& prefix)
+{
+    for (const std::string& request : printer.http_log())
+        if (request.rfind(prefix, 0) == 0)
+            return true;
+    return false;
+}
+
+std::string started_path(FakeCrealityPrinter& printer)
+{
+    for (const Message& message : printer.messages()) {
+        const nlohmann::json params = nlohmann::json::parse(message.payload).at("params");
+        if (params.contains("multiColorPrint"))
+            return params.at("multiColorPrint").at("gcode");
+    }
+    return {};
+}
+
+} // namespace
+
+TEST_CASE("Uploading into an existing subfolder of a CFS-capable printer stores and starts the file there", "[CrealityPrint]")
+{
+    FakeCrealityPrinter printer(Behavior::Answers, "F008");
+    printer.add_folder("parts");
+    const auto host = make_host(printer, 5s);
+    wxString error;
+
+    CHECK(upload_and_print(*host, error, one_slot, "parts/test.gcode"));
+    CHECK(error.empty());
+    CHECK(sent_request(printer, "POST /upload/parts%2Ftest.gcode"));
+    CHECK_FALSE(sent_request(printer, "POST /server/files/directory"));
+    CHECK(printer.files() == std::set<std::string>{"parts/test.gcode"});
+    CHECK(started_path(printer) == "/mnt/UDISK/printer_data/gcodes/parts/test.gcode");
+}
+
+TEST_CASE("Uploading into a missing nested subfolder creates each level first", "[CrealityPrint]")
+{
+    FakeCrealityPrinter printer(Behavior::Answers, "F008");
+    const auto host = make_host(printer, 5s);
+    wxString error;
+
+    CHECK(upload_and_print(*host, error, one_slot, "jobs/week 1/test.gcode"));
+    CHECK(error.empty());
+    CHECK(sent_request(printer, "POST /server/files/directory?path=gcodes%2Fjobs"));
+    CHECK(sent_request(printer, "POST /server/files/directory?path=gcodes%2Fjobs%2Fweek_1"));
+    CHECK(printer.files() == std::set<std::string>{"jobs/week_1/test.gcode"});
+    CHECK(started_path(printer) == "/mnt/UDISK/printer_data/gcodes/jobs/week_1/test.gcode");
+}
+
+TEST_CASE("A subfolder that cannot be created stops before the upload", "[CrealityPrint]")
+{
+    FakeCrealityPrinter printer(Behavior::Answers, "F008");
+    printer.fail_folder_creation();
+    const auto host = make_host(printer, 5s);
+    wxString error;
+
+    CHECK_FALSE(upload_and_print(*host, error, one_slot, "parts/test.gcode"));
+    CHECK_FALSE(error.empty());
+    CHECK_FALSE(sent_request(printer, "POST /upload/"));
+    CHECK(printer.messages().empty());
+}
+
+TEST_CASE("An upload into a subfolder that the printer does not list is not started", "[CrealityPrint]")
+{
+    FakeCrealityPrinter printer(Behavior::Answers, "F008");
+    printer.add_folder("parts");
+    printer.drop_uploads();
+    const auto host = make_host(printer, 5s);
+    wxString error;
+
+    CHECK_FALSE(upload_and_print(*host, error, one_slot, "parts/test.gcode"));
+    CHECK(error.Contains("parts/test.gcode"));
+    CHECK(printer.messages().empty());
+}
+
+TEST_CASE("An upload into the root asks nothing of Moonraker", "[CrealityPrint]")
+{
+    // F008 is a multi-color model and F001 a plain one, which keeps sending the folder as a form field.
+    const std::string model = GENERATE("F008", "F001");
+    CAPTURE(model);
+    FakeCrealityPrinter printer(Behavior::Answers, model);
+    const auto host = make_host(printer, 5s);
+    wxString error;
+
+    CHECK(upload_and_print(*host, error, one_slot));
+    CHECK(error.empty());
+    CHECK(sent_request(printer, "POST /upload/test.gcode"));
+    CHECK_FALSE(sent_request(printer, "GET /server/"));
+    CHECK_FALSE(sent_request(printer, "POST /server/"));
+}
+
+TEST_CASE("A subfolder that leaves the G-code root is refused", "[CrealityPrint]")
+{
+    FakeCrealityPrinter printer(Behavior::Answers, "F008");
+    const auto host = make_host(printer, 5s);
+    wxString error;
+
+    CHECK_FALSE(upload_and_print(*host, error, one_slot, "../test.gcode"));
+    CHECK_FALSE(error.empty());
+    CHECK_FALSE(sent_request(printer, "POST /upload/"));
+    CHECK(printer.messages().empty());
 }
