@@ -166,7 +166,7 @@ void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPri
         bool all_objects_are_short = std::all_of(selected.begin(), selected.end(), [&](ArrangePolygon& ap) { return ap.height < params.nozzle_height; });
         if (all_objects_are_short) {
             // The gap Print::sequential_print_clearance_valid() requires between short objects.
-            params.min_obj_distance = std::max(params.min_obj_distance, scaled(std::max(float(MAX_OUTER_NOZZLE_DIAMETER), params.object_skirt_offset*2)+0.001));
+            params.min_obj_distance = std::max(params.min_obj_distance, scaled(std::max(float(MAX_OUTER_NOZZLE_DIAMETER), params.object_skirt_offset)+0.001));
         }
         else
             params.min_obj_distance = std::max(params.min_obj_distance, scaled(params.clearance_radius + 0.001)); // +0.001mm to avoid clearance check fail due to rounding error
@@ -1151,12 +1151,7 @@ void _arrange(
         std::function<void(unsigned,std::string)> progressfn,
         std::function<bool()>         stopfn)
 {
-    // Integer ceiling the min distance from the bed perimeters
-    coord_t md = params.min_obj_distance;
-    md = md / 2;
-
     auto corrected_bin = bin;
-    //sl::offset(corrected_bin, md);
     ArrangeParams mod_params = params;
     mod_params.min_obj_distance = 0;  // items are already inflated
 
