@@ -1335,9 +1335,7 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area)
     if (!m_spiral_vase && this->lower_slices != nullptr && this->config->detect_overhang_wall && this->config->extra_perimeters_on_overhangs &&
         this->config->wall_loops > 0 && this->layer_id > this->object_config->raft_layers) {
         // Generate extra perimeters on overhang areas, and cut them to these parts only, to save print time and material
-        // Cross-material bridges need continuous infill spans, not additional walls in mid-air.
-        const ExPolygons extra_perimeter_area = bridge_exclusions == nullptr ? infill_area : diff_ex(infill_area, *bridge_exclusions);
-        auto [extra_perimeters, filled_area] = generate_extra_perimeters_over_overhangs(extra_perimeter_area, this->lower_slices_polygons(),
+        auto [extra_perimeters, filled_area] = generate_extra_perimeters_over_overhangs(infill_area, this->lower_slices_polygons(),
                                                                                         this->config->wall_loops, this->overhang_flow,
                                                                                         this->m_scaled_resolution, *this->object_config,
                                                                                         *this->print_config);

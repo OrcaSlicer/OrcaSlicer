@@ -644,6 +644,7 @@ private:
 
    void _transform_hole_to_polyholes();
 
+    void anchor_bridges_in_neighbours();
     // Has any support (not counting the raft).
     void detect_surfaces_type();
     void process_external_surfaces();

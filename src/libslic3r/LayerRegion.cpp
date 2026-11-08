@@ -107,8 +107,7 @@ void LayerRegion::slices_to_fill_surfaces_clipped()
     }
 }
 
-void LayerRegion::make_perimeters(const SurfaceCollection &slices, const LayerRegionPtrs &compatible_regions, SurfaceCollection* fill_surfaces, ExPolygons* fill_no_overlap,
-                                 const ExPolygons *bridge_exclusions)
+void LayerRegion::make_perimeters(const SurfaceCollection &slices, const LayerRegionPtrs &compatible_regions, SurfaceCollection* fill_surfaces, ExPolygons* fill_no_overlap)
 {
     this->perimeters.clear();
     this->thin_fills.clear();
@@ -157,7 +156,6 @@ void LayerRegion::make_perimeters(const SurfaceCollection &slices, const LayerRe
         g.upper_slices_same_region = &this->layer()->upper_layer->get_region(region_id)->slices;
 
     g.layer_id              = (int)this->layer()->id();
-    g.bridge_exclusions     = bridge_exclusions;
     g.ext_perimeter_flow    = this->flow(frExternalPerimeter);
     g.overhang_flow         = this->bridging_flow(frPerimeter, object_config.thick_bridges);
     g.solid_infill_flow     = this->flow(frSolidInfill);
@@ -296,7 +294,7 @@ void detect_bridge_directions(
     const Algorithm::WaveSeeds& bridge_anchors,
     std::vector<Bridge>& bridges,
     const std::vector<ExpansionZone>& expansion_zones,
-    const Polygons& other_regions
+    const Polygons& other_regions_anchors
 ) {
     if (expansion_zones.empty()) {
         throw std::runtime_error("At least one expansion zone must exist!");
@@ -304,9 +302,8 @@ void detect_bridge_directions(
     auto it_bridge_anchor = bridge_anchors.begin();
     for (uint32_t bridge_id = 0; bridge_id < uint32_t(bridges.size()); ++ bridge_id) {
         Bridge &bridge = bridges[bridge_id];
-        // An adjacent region is an anchor only where it is supported by the layer below.
         Polygons anchor_areas = ClipperUtils::clip_clipper_polygons_with_subject_bbox(
-            other_regions, get_extents(bridge.expolygon).inflated(scale_(1.)));
+            other_regions_anchors, get_extents(bridge.expolygon).inflated(SCALED_EPSILON * 2));
         int32_t last_anchor_id = -1;
         for (; it_bridge_anchor != bridge_anchors.end() && it_bridge_anchor->src == bridge_id; ++ it_bridge_anchor) {
             if (last_anchor_id != int(it_bridge_anchor->boundary)) {
@@ -435,7 +432,7 @@ Surfaces expand_bridges_detect_orientations(
     Surfaces &surfaces,
     std::vector<ExpansionZone>& expansion_zones,
     const float closing_radius,
-    const Polygons& other_regions
+    const Polygons& other_regions_anchors
 )
 {
 
@@ -457,7 +454,7 @@ Surfaces expand_bridges_detect_orientations(
     bridge_expolygons.clear();
 
     std::sort(expansion_result.anchors.begin(), expansion_result.anchors.end(), Algorithm::lower_by_src_and_boundary);
-    detect_bridge_directions(expansion_result.anchors, bridges, expansion_zones, other_regions);
+    detect_bridge_directions(expansion_result.anchors, bridges, expansion_zones, other_regions_anchors);
 
     // Merge the groups with the same group id, produce surfaces by merging source overhangs with their newly expanded anchors.
     std::sort(expansion_result.expansions.begin(), expansion_result.expansions.end(), [](auto &l, auto &r) {
@@ -582,46 +579,21 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
             align_offset_rad = std::atan2((double)m(1, 0), (double)m(0, 0));
         }
 
-        Polygons other_regions;
-        if (lower_layer != nullptr) {
-            for (const LayerRegion *other : this->layer()->regions()) {
-                if (other == this || other->slices.empty())
-                    continue;
-                polygons_append(other_regions, to_polygons(other->slices.surfaces));
-            }
-            other_regions = intersection(other_regions, to_polygons(lower_layer->lslices));
-        }
+        // Orca: The supported parts of the other regions anchor a bridge as well, as one segmented into a region of its own.
+        Polygons other_regions_anchors;
+        if (lower_layer != nullptr && this->fill_surfaces.has(stBottomBridge))
+            for (const LayerRegion *other : this->layer()->regions())
+                if (other != this)
+                    polygons_append(other_regions_anchors, intersection(other->slices.surfaces, lower_layer->lslices));
 
         bridges.surfaces = (custom_angle_deg > 0.0 && !relative_angle) ?
             expand_merge_surfaces(this->fill_surfaces.surfaces, stBottomBridge, expansion_zones, closing_radius, custom_angle_rad + align_offset_rad) :
-            expand_bridges_detect_orientations(this->fill_surfaces.surfaces, expansion_zones, closing_radius, other_regions);
+            expand_bridges_detect_orientations(this->fill_surfaces.surfaces, expansion_zones, closing_radius, other_regions_anchors);
         if (custom_angle_deg > 0.0 && relative_angle) {
             for (Surface &bridge_surface : bridges.surfaces) {
                 if (bridge_surface.bridge_angle >= 0)
                     bridge_surface.bridge_angle += custom_angle_rad;
             }
-        }
-        if (!other_regions.empty() && !bridges.empty()) {
-            // Reach into the outer wall of the other regions only. Layer::reserve_bridge_anchors() removes that
-            // wall and extends the bridge over its place, so the anchor is one line wide.
-            const float extension = float(this->flow(frExternalPerimeter).scaled_width() / 2.);
-            Surfaces anchored_bridges;
-            for (const Surface &bridge : bridges.surfaces) {
-                // Anchor only across the boundaries shared with the other regions, equally far whatever the
-                // bridge direction. Butt ends keep the anchor from spreading sideways past these boundaries
-                // into areas the bridge lines cannot cover.
-                Polylines shared;
-                for (Polyline &edge : intersection_pl(to_polylines(bridge.expolygon), offset(other_regions, float(SCALED_EPSILON))))
-                    if (edge.length() > 2. * SCALED_EPSILON)
-                        shared.emplace_back(std::move(edge));
-                ExPolygons anchors = intersection_ex(offset(shared, extension, jtMiter, 3.), other_regions);
-                // Surface classification uses safety offsets and may leave a sub-resolution
-                // gap at the material boundary. Close it without joining separate islands.
-                ExPolygons anchored = closing_ex(union_ex(ExPolygons{bridge.expolygon}, anchors), float(SCALED_EPSILON));
-                for (ExPolygon &expoly : intersection_ex(anchored, this->layer()->lslices))
-                    anchored_bridges.emplace_back(bridge, std::move(expoly));
-            }
-            bridges.surfaces = std::move(anchored_bridges);
         }
         BOOST_LOG_TRIVIAL(trace) << "Processing external surface, detecting bridges - done";
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING

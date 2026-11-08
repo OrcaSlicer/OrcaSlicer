@@ -528,14 +528,13 @@ void PrintObject::make_perimeters()
     m_print->set_status(15, L("Generating walls"));
     BOOST_LOG_TRIVIAL(info) << "Generating walls..." << log_memory_info();
 
-    // Revert the typed slices into untyped slices.
-    if (m_typed_slices) {
-        for (Layer *layer : m_layers) {
-            layer->restore_untyped_slices();
-            m_print->throw_if_canceled();
-        }
-        m_typed_slices = false;
+    // Revert the typed slices into untyped slices, together with the anchors handed to bridges by a previous run.
+    for (Layer *layer : m_layers) {
+        layer->restore_untyped_slices();
+        m_print->throw_if_canceled();
     }
+    m_typed_slices = false;
+    this->anchor_bridges_in_neighbours();
 
     // compare each layer to the one below, and mark those slices needing
     // one additional inner perimeter, like the top of domed objects-
@@ -638,6 +637,8 @@ void PrintObject::prepare_infill()
             layer->restore_untyped_slices_no_extra_perimeters();
             m_print->throw_if_canceled();
         }
+        // The walls and the fill regions were generated with the anchors.
+        this->anchor_bridges_in_neighbours();
     }
 
     // This will assign a type (top/bottom/internal) to $layerm->slices.
@@ -1882,12 +1883,6 @@ bool PrintObject::invalidate_step(PrintObjectStep step)
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
     } else if (step == posPrepareInfill) {
         invalidated |= this->invalidate_steps({ posInfill, posIroning, posContouring, posSimplifyPath, posSimplifyInfill });
-        // Anchor reservation trims perimeter output. Rebuild it before recalculating bridges,
-        // otherwise a prepare-infill-only update starts with already displaced walls and gap fills.
-        if (std::any_of(m_layers.begin(), m_layers.end(), [](const Layer *layer) { return layer->has_reserved_bridge_anchors(); })) {
-            invalidated |= Inherited::invalidate_step(posPerimeters);
-            invalidated |= m_print->invalidate_steps({ psSkirtBrim });
-        }
     } else if (step == posInfill) {
         invalidated |= this->invalidate_steps({ posIroning, posContouring, posSimplifyInfill });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
@@ -1933,6 +1928,19 @@ bool PrintObject::invalidate_all_steps()
 	m_slicing_params.valid = false;
 	m_belt_floor_z_shift_cache_valid = false;
 	return result;
+}
+
+// Orca: See Layer::anchor_bridges_in_neighbours(). Applied to the untyped slices restored from the raw slices, so that
+// the anchors follow the current wall widths. A layer only reads the layer below, which this does not change.
+void PrintObject::anchor_bridges_in_neighbours()
+{
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, m_layers.size()), [this](const tbb::blocked_range<size_t> &range) {
+        for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++ layer_idx) {
+            m_print->throw_if_canceled();
+            m_layers[layer_idx]->anchor_bridges_in_neighbours();
+        }
+    });
+    m_print->throw_if_canceled();
 }
 
 // This function analyzes slices of a region (SurfaceCollection slices).
@@ -2508,13 +2516,6 @@ void PrintObject::process_external_surfaces()
     });
     m_print->throw_if_canceled();
     BOOST_LOG_TRIVIAL(debug) << "Processing external surfaces in parallel - end";
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, m_layers.size()),
-        [this](const tbb::blocked_range<size_t> &range) {
-            for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++layer_idx) {
-                m_print->throw_if_canceled();
-                m_layers[layer_idx]->reserve_bridge_anchors();
-            }
-        });
 }
 
 void PrintObject::discover_vertical_shells()
