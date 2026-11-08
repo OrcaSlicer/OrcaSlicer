@@ -2,11 +2,12 @@
 
 #include "../Utils/OrcaCloudServiceAgent.hpp"
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/libslic3r.h" // GCODEVIEWER_APP_KEY, and SLIC3R_APP_KEY via libslic3r_version.h
 #include "libslic3r_version.h"
 
-#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem/file_status.hpp>
 #include <boost/filesystem/path.hpp>
@@ -16,14 +17,15 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cctype>
 #include <cstddef>
 #include <cstdlib>
+#include <exception>
 #include <future>
 #include <mutex>
 #include <memory>
 #include <slic3r/GUI/BindDialog.hpp>
 #include <slic3r/GUI/GUI_App.hpp>
+#include <slic3r/GUI/MsgDialog.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <string>
@@ -32,8 +34,14 @@
 #include <utility>
 #include <vector>
 #include <wx/app.h>
+#include <wx/colour.h>
 #include <wx/event.h>
+#include <wx/dcclient.h>
+#include <wx/gdicmn.h>
+#include <wx/html/htmlwin.h>
 #include <wx/msgdlg.h>
+#include <wx/settings.h>
+#include <wx/sizer.h>
 #include <wx/string.h>
 #include <wx/thread.h>
 #include "slic3r/GUI/I18N.hpp"
@@ -173,13 +181,23 @@ static bool is_network_category(AuditEventCategory category)
     return category == AuditEventCategory::Http || category == AuditEventCategory::Socket;
 }
 
+// Create and delete have no persistent grant list. Off the main thread they are denied outright and
+// reported with an informational dialog rather than a Yes/No prompt that could not grant anything.
+static bool is_create_delete_category(AuditEventCategory category)
+{
+    return category == AuditEventCategory::FsCreate || category == AuditEventCategory::FsDelete;
+}
+
 // ---------------------------------------------------------------------------
 // Network permission identity
 // ---------------------------------------------------------------------------
 
+// Lowercases A-Z only. A locale-aware lowercase can break the UTF-8 of non-Latin names.
 static std::string ascii_lower(std::string value)
 {
-    boost::algorithm::to_lower(value);
+    for (char& c : value)
+        if (c >= 'A' && c <= 'Z')
+            c = static_cast<char>(c - 'A' + 'a');
     return value;
 }
 
@@ -368,6 +386,94 @@ static const char* category_name(AuditEventCategory category)
 
 namespace {
 
+struct PermissionMessage {
+    wxString text;
+    std::vector<std::pair<size_t, size_t>> targets;
+};
+
+class PermissionDialog : public GUI::MsgDialog
+{
+public:
+    PermissionDialog(const PermissionMessage& message, const wxString& title, bool show_tip)
+        : MsgDialog(nullptr, title, wxEmptyString, wxYES_NO | wxICON_WARNING)
+    {
+        auto* html = new wxHtmlWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHW_SCROLLBAR_AUTO);
+        const wxFont prose = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
+        const wxFont code = GUI::wxGetApp().code_font();
+        const int point_size = prose.GetPointSize();
+        int sizes[] = {point_size, code.GetPointSize(), point_size, point_size, point_size, point_size, point_size};
+        html->SetFonts(prose.GetFaceName(), code.GetFaceName(), sizes);
+        html->SetBorders(2);
+
+        auto escape = [](const wxString& text, bool fixed) {
+            std::string result = xml_escape(text.ToUTF8().data());
+            boost::replace_all(result, "\r\n", "\n");
+            boost::replace_all(result, "\n", "<br>");
+            if (fixed)
+                boost::replace_all(result, " ", "&nbsp;");
+            return wxString::FromUTF8(result.c_str());
+        };
+        wxString body;
+        size_t pos = 0;
+        for (const auto& range : message.targets) {
+            body += escape(message.text.Mid(pos, range.first - pos), false);
+            // Add visual separation without changing the translated message or target text.
+            // The target list already ends in a newline; surrounding messages may provide
+            // their own blank lines, so only add spacing where there isn't one already.
+            if (range.first > 0) {
+                if (message.text[range.first - 1] != '\n')
+                    body += "<br>";
+                if (range.first < 2 || message.text[range.first - 2] != '\n')
+                    body += "<br>";
+            }
+            body += "<font size=2><tt>" + escape(message.text.Mid(range.first, range.second), true) + "</tt></font>";
+            pos = range.first + range.second;
+            if (pos < message.text.length() && message.text[pos] != '\n')
+                body += "<br>";
+        }
+        body += escape(message.text.Mid(pos), false);
+        const wxColour foreground = GUI::wxGetApp().get_label_clr_default();
+        const wxColour background = GetBackgroundColour();
+
+        wxClientDC dc(this);
+        dc.SetFont(prose);
+        const int em = std::max(dc.GetTextExtent("m").x, FromDIP(10));
+        const wxSize extent = dc.GetMultiLineTextExtent(message.text);
+        const int width = std::min(std::max(extent.x + FromDIP(20), 35 * em), 68 * em);
+        // Lay out at the intended width before measuring. wxHtmlWindow computes its virtual
+        // size from the rendered cells, including wrapped prose and unbreakable target lines.
+        html->SetSize(wxSize(width, 4 * em));
+        html->SetPage(wxString::Format("<html><body bgcolor=\"#%02x%02x%02x\"><font color=\"#%02x%02x%02x\">",
+                                       background.Red(), background.Green(), background.Blue(),
+                                       foreground.Red(), foreground.Green(), foreground.Blue()) + body + "</font></body></html>");
+        const wxSize virtual_size = html->GetVirtualSize();
+        const int scrollbar = virtual_size.x > html->GetClientSize().x
+                                  ? wxSystemSettings::GetMetric(wxSYS_HSCROLL_Y, html) : 0;
+        const int height = std::min(std::max(virtual_size.y + scrollbar + FromDIP(4), 4 * em), 48 * em);
+        html->SetMinSize(wxSize(width, height));
+        m_html = html;
+        m_content_dip = ToDIP(wxSize(width, height));
+        content_sizer->Add(html, 1, wxEXPAND | wxRIGHT, 8);
+        GUI::wxGetApp().UpdateDarkUIWin(html);
+        if (show_tip)
+            show_dsa_button(_L("Don't show this tip again"));
+        finalize();
+    }
+
+    void on_dpi_changed(const wxRect& suggested_rect) override
+    {
+        GUI::MsgDialog::on_dpi_changed(suggested_rect);
+        m_html->SetMinSize(FromDIP(m_content_dip));
+        GetSizer()->SetSizeHints(this);
+        Layout();
+        Fit();
+    }
+
+private:
+    wxHtmlWindow* m_html = nullptr;
+    wxSize m_content_dip;
+};
+
 // Canonicalize a path for containment comparison.  weakly_canonical resolves symlinks but does
 // NOT require the path to exist — it canonicalizes the prefix that exists and appends the
 // non-existing tail lexically.
@@ -420,6 +526,20 @@ bool same_path_component(const boost::filesystem::path& lhs, const boost::filesy
 #else
     return lhs == rhs;
 #endif
+}
+
+// True when two canonical paths name the same location: every component must match, using the
+// platform's case rule. Unlike suffix_inside_root() this is full equality, so a lookalike that
+// merely shares a prefix -- or a file beside the granted one -- can never match.
+bool same_canonical_path(const boost::filesystem::path& lhs, const boost::filesystem::path& rhs)
+{
+    auto lhs_it = lhs.begin(), lhs_end = lhs.end();
+    auto rhs_it = rhs.begin(), rhs_end = rhs.end();
+    for (; lhs_it != lhs_end && rhs_it != rhs_end; ++lhs_it, ++rhs_it) {
+        if (!same_path_component(*lhs_it, *rhs_it))
+            return false;
+    }
+    return lhs_it == lhs_end && rhs_it == rhs_end;
 }
 
 // Component-wise containment: the whole of canonical_root must be a prefix of
@@ -631,8 +751,7 @@ void PluginAuditManager::add_denied_path_keyword(const std::string& keyword)
     if (keyword.empty())
         return;
 
-    std::string lower = keyword;
-    std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return std::tolower(c); });
+    const std::string lower = ascii_lower(keyword);
 
     std::lock_guard<std::mutex> lock(m_mutex);
     m_denied_path_keywords.push_back(lower);
@@ -689,10 +808,9 @@ bool PluginAuditManager::is_denied_path_keyword(const boost::filesystem::path& c
         return false;
 
     for (const auto& component : scope) {
-        std::string name = component.string();
+        const std::string name = ascii_lower(component.string());
         if (name.empty())
             continue;
-        std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return std::tolower(c); });
         for (const auto& keyword : m_denied_path_keywords) {
             if (name == keyword || (keyword == "conf" && has_denied_config_extension(name)))
                 return true;
@@ -783,12 +901,30 @@ AuditDecision PluginAuditManager::check_open(const std::string& path_str, const 
 
 namespace {
 
-// Builds and shows the modal confirmation. Must run on the GUI thread. The prompt helpers in
-// PluginAuditDetail below share it so every permission prompt is styled the same way.
-bool show_permission_dialog(const wxString& message, const wxString& title)
+// A complete sentence of its own, so a translator can place it independently of the request
+// body. Informational only: a prompt never navigates to, or opens, the Plugins dialog.
+void append_permission_dialog_tip(wxString& message)
 {
-    wxMessageDialog dialog(nullptr, message, title, wxYES_NO | wxICON_WARNING);
-    return dialog.ShowModal() == wxID_YES;
+    message += "\n\n";
+    message += _L("Tip: You can review and change this plugin's saved permissions in the Plugins dialog, on the Permissions tab.");
+}
+
+// The preference affects only the explanatory tip, never the permission decision.
+// Must run on the GUI thread.
+bool show_permission_dialog(PermissionMessage message, const wxString& title)
+{
+    auto* config = GUI::wxGetApp().app_config;
+    const bool show_tip = config == nullptr || config->get("hide_plugin_permission_tip") != "1";
+    if (show_tip)
+        append_permission_dialog_tip(message.text);
+
+    PermissionDialog dialog(message, title, show_tip);
+    const int result = dialog.ShowModal();
+    if (show_tip && config != nullptr && (result == wxID_YES || result == wxID_NO) && dialog.get_checkbox_state()) {
+        config->set("hide_plugin_permission_tip", "1");
+        config->save();
+    }
+    return result == wxID_YES;
 }
 
 } // namespace
@@ -815,6 +951,27 @@ bool PluginAuditManager::request_network_permissions(const std::string&         
     // network_permission_matches() also applies the recorded host grant to raw socket events, so
     // one HTTP grant covers both event layers without prompting for each list separately.
     return request_permissions(plugin_key, requested);
+}
+
+// A grant stored by an audit prompt can change what an existing Plugins dialog shows. Post a
+// refresh to the GUI thread: the grant may be persisted by a plugin-load or slicing worker, and
+// neither the notification manager nor the webview is thread safe. Never creates, shows or raises
+// the dialog; GUI_App checks the live pointer on the GUI thread, and the dialog clears that
+// pointer from its destroy handler.
+void post_permission_changed_notification(const std::string& plugin_key)
+{
+    if (wxTheApp == nullptr)
+        return;
+
+    GUI::GUI_App* app = &GUI::wxGetApp();
+    if (app->is_closing())
+        return;
+
+    app->CallAfter([app, plugin_key]() {
+        if (wxTheApp == nullptr || app->is_closing())
+            return;
+        app->notify_plugin_permissions_changed(plugin_key);
+    });
 }
 
 void PluginAuditManager::report_violation(const AuditViolation& violation)
@@ -1109,8 +1266,10 @@ std::vector<std::string>* permission_list_for(AuditEventCategory category, bool 
     case AuditEventCategory::Http:          return &permissions.network_http;
     case AuditEventCategory::Socket:        return &permissions.network_socket;
     case AuditEventCategory::ProcessCreate: return &permissions.process;
-    case AuditEventCategory::Threading:     return &permissions.threading;
     case AuditEventCategory::ProcessReplace: return &permissions.process;
+    // Threading is a boolean rather than a target list; decide_audited_event and persist_grant
+    // handle it directly.
+    case AuditEventCategory::Threading:     return nullptr;
     default:                                return nullptr;
     }
 }
@@ -1160,8 +1319,9 @@ bool tree_grant_root(const std::string& grant, boost::filesystem::path& root)
 // The grant to display and store for a permission request: a recognized tree grant is resolved
 // against the working directory when the request is made, so a relative "<dir>/*" names the
 // directory it actually covers. Grants that are already absolute, exact (non-tree) grants, and
-// the non-filesystem buckets are returned unchanged: they are matched verbatim, and re-rendering
-// them would change the string the user approved.
+// the non-filesystem buckets are returned unchanged: re-rendering them would change the string
+// the user approved, and an exact grant is matched by path equivalence (see exact_grant_covers)
+// rather than by that spelling alone.
 std::string absolute_tree_grant(const std::string& grant)
 {
     boost::filesystem::path root;
@@ -1176,9 +1336,66 @@ std::string absolute_tree_grant(const std::string& grant)
     return (absolute_root.lexically_normal() / "*").string();
 }
 
-// True when a filesystem grant covers a target: the exact string, or -- for a tree grant -- the
-// granted folder itself and every path beneath it, at any depth. Components are compared one by
-// one, so "/root/*" covers "/root/a/b" but not "/root-other/file".
+// True when an exact (non-tree) grant names the same file as `target`. A verbatim match is
+// accepted first, unchanged. Otherwise an absolute grant is compared with the target's canonical
+// path: "." / ".." and repeated separators are resolved, a relative target is resolved against
+// the current working directory, and symlinks are followed on both sides. The grant is therefore
+// treated as naming the file rather than the exact spelling the user approved, so another path or
+// a symlink alias reaching that file matches too; that is a deliberate slight broadening of an
+// exact grant. A link to a different file, a sibling, or a lookalike name still does not match:
+// the comparison is full path equality, not containment, so an exact grant never becomes a tree
+// grant.
+//
+// The grant must be absolute. A relative grant only matches verbatim: which directory it names
+// depends on the working directory at check time, which a plugin can steer with os.chdir().
+//
+// Canonicalization errors fail closed instead of falling back to lexical normalization, which
+// could equate different files across unresolved symlinks and "..". A target whose final
+// component is a dangling symlink is not matched by equivalence, and neither is a grant ending in
+// one. Windows compares case-insensitively and accepts either separator; POSIX stays
+// case-sensitive and treats "\" as an ordinary name character. Hardlinks, 8.3 short names and
+// extended-length paths remain distinct paths.
+bool exact_grant_covers(const std::string& grant, const std::string& target)
+{
+    if (grant == target)
+        return true;
+
+    namespace fs = boost::filesystem;
+
+    const fs::path grant_path(grant);
+    if (!grant_path.is_absolute())
+        return false;
+
+    boost::system::error_code ec;
+    const fs::path target_path(target);
+    const fs::path absolute_target = target_path.is_absolute() ? target_path : fs::absolute(target_path, ec);
+    if (ec || !absolute_target.is_absolute())
+        return false;
+
+    // Check the spelled path as well as its canonical form: a trailing separator can hide a
+    // dangling final link from the spelled form, and weakly_canonical() may either leave such a
+    // link as the path's tail or resolve it to the missing name.
+    if (ends_in_dangling_symlink(grant_path) || ends_in_dangling_symlink(absolute_target))
+        return false;
+
+    const fs::path canonical_grant = fs::weakly_canonical(grant_path, ec);
+    if (ec || !canonical_grant.is_absolute() || ends_in_dangling_symlink(canonical_grant))
+        return false;
+
+    const fs::path canonical_target = fs::weakly_canonical(absolute_target, ec);
+    if (ec || !canonical_target.is_absolute() || ends_in_dangling_symlink(canonical_target))
+        return false;
+
+    return same_canonical_path(canonical_grant, canonical_target);
+}
+
+// True when a filesystem grant covers a target: the exact string, an equivalent spelling of the
+// same file for an exact grant, or -- for a tree grant -- the granted folder itself and every path
+// beneath it, at any depth. Components are compared one by one, so "/root/*" covers "/root/a/b" but
+// not "/root-other/file". A tree grant's root must be absolute; a relative root never authorizes,
+// because the directory it names depends on the process working directory. That applies to an
+// exact spelling of the entry too: "foo/*" must not match the relative target "foo/*", which is
+// still a plugin-chosen path.
 //
 // A tree grant and its target are both canonicalized before the comparison, so a symlink inside
 // the granted folder cannot launder access to a path outside it, and a grant rooted at a symlink
@@ -1186,32 +1403,40 @@ std::string absolute_tree_grant(const std::string& grant)
 // exist yet matchable: it canonicalizes the existing prefix and appends the rest lexically. A
 // dangling final symlink is not covered at all: containment fails closed, because a write through
 // it would land at its target rather than at the granted path.
+//
+// An exact grant keeps its verbatim match -- legacy entries behave as before -- and additionally
+// matches an equivalent spelling of the one file it names; see exact_grant_covers().
 bool fs_grant_covers(const std::string& grant, const std::string& target)
 {
-    if (grant == target)
-        return true;
     if (target.empty())
         return false;
 
     boost::filesystem::path root;
     if (!tree_grant_root(grant, root))
+        return exact_grant_covers(grant, target);
+
+    // A relative root names whatever directory the process happens to be in, which differs
+    // between runs and which a plugin could otherwise steer. Fail closed for the whole entry,
+    // exact match included.
+    if (!root.is_absolute())
         return false;
 
-    return is_inside_allowed_root(boost::filesystem::path(target), root);
+    return grant == target || is_inside_allowed_root(boost::filesystem::path(target), root);
 }
 
-// True when `granted` already covers `target`. Only the filesystem buckets accept a tree grant:
-// an event grant ("FsRead:open") and the non-filesystem buckets (URLs, socket addresses,
-// commands) are matched verbatim, as before.
+// True when `granted` already covers `target`. Only the filesystem buckets accept a tree grant,
+// and their exact entries may name the target file by an equivalent path spelling: an event
+// grant ("FsRead:open") and the non-filesystem buckets (URLs, socket addresses, commands) are
+// matched verbatim, as before.
 bool has_permission(AuditEventCategory category, bool by_event, const std::vector<std::string>& granted,
                     const std::string& target)
 {
     const bool fs_bucket =
         !by_event && (category == AuditEventCategory::FsRead || category == AuditEventCategory::FsReadWrite);
     for (const auto& grant : granted) {
-        if (grant == target)
-            return true;
-        if (fs_bucket && fs_grant_covers(grant, target))
+        // fs_grant_covers also owns the exact match, so that a relative tree entry cannot match
+        // by spelling alone.
+        if (fs_bucket ? fs_grant_covers(grant, target) : grant == target)
             return true;
     }
     return false;
@@ -1247,22 +1472,51 @@ void seed_install_metadata(const PluginDescriptor& descriptor, PluginInstallStat
     state.enabled           = true;
 }
 
-bool persist_permission(const std::string&        plugin_key,
-                        PluginInstallState&       state,
-                        AuditEventCategory        category,
-                        bool                      by_event,
-                        std::vector<std::string>& permission_list,
-                        const std::string&        target)
+// Serialize the sidecar read-modify-write against every other writer. The lock is taken before
+// the descriptor lookup, keeping the shared install-state -> PluginManager::m_mutex order.
+bool persist_permission(const std::string& plugin_key, AuditEventCategory category, bool by_event,
+                        const std::string& target)
 {
+    std::lock_guard<std::mutex> state_lock(install_state_mutex());
+
     PluginDescriptor descriptor;
     if (!PluginManager::instance().try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
         return false;
 
+    const boost::filesystem::path root(descriptor.plugin_root);
+    PluginInstallState          state;
+    // A missing sidecar is a discovered plugin that has not been given one yet: seed it below. An
+    // existing sidecar that cannot be read must not be replaced, or its grants would be lost.
+    if (read_install_state_status(root, state) == InstallStateReadStatus::Unreadable)
+        return false;
     seed_install_metadata(descriptor, state);
 
-    if (!has_permission(category, by_event, permission_list, target))
-        permission_list.push_back(target);
-    return write_install_state(boost::filesystem::path(descriptor.plugin_root), state);
+    std::vector<std::string>* permission_list = permission_list_for(category, by_event, state.permissions);
+    if (!permission_list)
+        return false;
+
+    if (!has_permission(category, by_event, *permission_list, target))
+        permission_list->push_back(target);
+    return write_install_state(root, state);
+}
+
+// Threading is a boolean grant, so it has no target list to append to.
+bool persist_threading_grant(const std::string& plugin_key)
+{
+    std::lock_guard<std::mutex> state_lock(install_state_mutex());
+
+    PluginDescriptor descriptor;
+    if (!PluginManager::instance().try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
+        return false;
+
+    const boost::filesystem::path root(descriptor.plugin_root);
+    PluginInstallState          state;
+    // Same rule as persist_permission: seed a missing sidecar, never replace an unreadable one.
+    if (read_install_state_status(root, state) == InstallStateReadStatus::Unreadable)
+        return false;
+    seed_install_metadata(descriptor, state);
+    state.permissions.threading = true;
+    return write_install_state(root, state);
 }
 
 int report_denied(PluginAuditManager&            mgr,
@@ -1304,13 +1558,21 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
         return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to read/write the following file:\n%s",
                                           "Plugin \"%s\" is requesting to read/write the following files:\n%s", target_count),
                                 plugin_name, target_list);
+    // Creating and deleting have no persistent grant list, so the inline prompt says a Yes covers
+    // this operation only. Off the main thread they use the informational denial instead. The
+    // sentence is part of each msgid rather than appended: a translator must be able to reorder
+    // it inside the message.
     case AuditEventCategory::FsCreate:
-        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to create the following file:\n%s",
-                                          "Plugin \"%s\" is requesting to create the following files:\n%s", target_count),
+        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to create the following file:\n%s\n\n"
+                                          "This approval applies only to this operation and is not remembered.",
+                                          "Plugin \"%s\" is requesting to create the following files:\n%s\n\n"
+                                          "This approval applies only to this operation and is not remembered.", target_count),
                                 plugin_name, target_list);
     case AuditEventCategory::FsDelete:
-        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to delete the following file:\n%s",
-                                          "Plugin \"%s\" is requesting to delete the following files:\n%s", target_count),
+        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to delete the following file:\n%s\n\n"
+                                          "This approval applies only to this operation and is not remembered.",
+                                          "Plugin \"%s\" is requesting to delete the following files:\n%s\n\n"
+                                          "This approval applies only to this operation and is not remembered.", target_count),
                                 plugin_name, target_list);
     case AuditEventCategory::Http:
         return wxString::Format(
@@ -1337,6 +1599,25 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
     }
 }
 
+// Format with a placeholder first so translated messages can put the target list anywhere.
+PermissionMessage formatted_audit_message(AuditEventCategory category, const wxString& plugin_name,
+                                          const wxString& event_name, const wxString& targets, size_t count)
+{
+    if (targets.empty())
+        return {audit_message(category, plugin_name, event_name, targets, count), {}};
+
+    wxString marker = "__ORCA_PERMISSION_TARGETS__";
+    while (plugin_name.Contains(marker) || event_name.Contains(marker) || targets.Contains(marker))
+        marker += "_";
+    PermissionMessage message{audit_message(category, plugin_name, event_name, marker, count), {}};
+    const size_t pos = message.text.find(marker);
+    if (pos != wxString::npos) {
+        message.text.replace(pos, marker.length(), targets);
+        message.targets.emplace_back(pos, targets.length());
+    }
+    return message;
+}
+
 // Builds and shows the modal permission prompt. Must run on the GUI thread.
 bool prompt_for_targets(AuditEventCategory category, const std::string& plugin_name, const std::string& event_name,
                         const std::vector<std::string>& unresolved)
@@ -1345,33 +1626,82 @@ bool prompt_for_targets(AuditEventCategory category, const std::string& plugin_n
     for (const auto& target : unresolved)
         target_list += wxString::FromUTF8(target.c_str()) + "\n";
 
-    return show_permission_dialog(
-        audit_message(category, wxString::FromUTF8(plugin_name.c_str()), wxString::FromUTF8(event_name.c_str()),
-                      target_list, unresolved.size()),
-        _L("Plugin permission request"));
+    PermissionMessage message = formatted_audit_message(category, wxString::FromUTF8(plugin_name.c_str()),
+                                                         wxString::FromUTF8(event_name.c_str()), target_list, unresolved.size());
+    return show_permission_dialog(message, _L("Plugin permission request"));
 }
 
 // Shows a prompt whose body may cover several permission buckets. Must run on the GUI thread.
-bool prompt_for_permission_message(const wxString& message)
+bool prompt_for_permission_message(const PermissionMessage& message)
 {
-    wxMessageDialog dialog(nullptr, message, _L("Plugin permissions"), wxYES_NO | wxICON_WARNING);
-    return dialog.ShowModal() == wxID_YES;
+    return show_permission_dialog(message, _L("Plugin permissions"));
 }
 
-// Records a grant in the plugin's sidecar so it is not asked again. Reads the install state
-// freshly because the async prompt outlives the caller's stack copy of it.
-void persist_grant(const std::string& plugin_key, AuditEventCategory category, bool by_event, const std::vector<std::string>& keys)
+// Builds the informational message shown when an off-main-thread create/delete event is denied.
+// There is no Yes/No choice: that path cannot grant create/delete permission, so the dialog must
+// not imply that approving it would make a later attempt succeed.
+wxString permission_denied_message(AuditEventCategory category, const wxString& plugin_name,
+                                   const wxString& target_list, size_t target_count)
 {
-    PluginInstallState state;
-    if (!PluginManager::instance().get_install_state(plugin_key, state))
-        return;
+    if (target_list.IsEmpty())
+        return wxString::Format(
+            _L("Plugin \"%s\" tried to perform a file operation that requires permission.\n\n"
+               "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it."),
+            plugin_name);
 
-    std::vector<std::string>* permission_list = permission_list_for(category, by_event, state.permissions);
-    if (!permission_list)
-        return;
+    switch (category) {
+    case AuditEventCategory::FsCreate:
+        return wxString::Format(_L_PLURAL("Plugin \"%s\" tried to create the following file:\n%s\n\n"
+                                          "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it.",
+                                          "Plugin \"%s\" tried to create the following files:\n%s\n\n"
+                                          "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it.", target_count),
+                                plugin_name, target_list);
+    case AuditEventCategory::FsDelete:
+        return wxString::Format(_L_PLURAL("Plugin \"%s\" tried to delete the following file:\n%s\n\n"
+                                          "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it.",
+                                          "Plugin \"%s\" tried to delete the following files:\n%s\n\n"
+                                          "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it.", target_count),
+                                plugin_name, target_list);
+    default:
+        return wxString::Format(_L("Plugin \"%s\" tried to perform a file operation that requires permission.\n\n"
+                                   "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it."),
+                                plugin_name);
+    }
+}
 
-    for (const auto& key : keys)
-        persist_permission(plugin_key, state, category, by_event, *permission_list, key);
+// Shows the informational denial for a create/delete event whose prompt had to be handled off the
+// main thread. Must run on the GUI thread.
+void show_permission_denied_dialog(AuditEventCategory category, const std::string& plugin_name,
+                                   const std::vector<std::string>& targets)
+{
+    wxString target_list;
+    for (const auto& target : targets)
+        target_list += wxString::FromUTF8(target.c_str()) + "\n";
+
+    const wxString message = permission_denied_message(category, wxString::FromUTF8(plugin_name.c_str()),
+                                                       target_list, targets.size());
+    GUI::MessageDialog(nullptr, message, _L("Plugin operation denied"), wxOK | wxICON_WARNING).ShowModal();
+}
+
+// Records a grant in the plugin's sidecar so it is not asked again. Each persist helper re-reads
+// the sidecar under the shared lock, because the async prompt outlives the caller's copy of it.
+// Returns true when at least one write succeeded, and only then notifies an existing Plugins
+// dialog: a failed write leaves its Permissions tab accurate as it stands.
+bool persist_grant(const std::string& plugin_key, AuditEventCategory category, bool by_event, const std::vector<std::string>& keys)
+{
+    bool persisted = false;
+    if (category == AuditEventCategory::Threading) {
+        persisted = persist_threading_grant(plugin_key);
+    } else {
+        for (const auto& key : keys) {
+            if (persist_permission(plugin_key, category, by_event, key))
+                persisted = true;
+        }
+    }
+
+    if (persisted)
+        post_permission_changed_notification(plugin_key);
+    return persisted;
 }
 
 static PluginAuditManager::PermissionPrompt s_permission_prompt_for_testing;
@@ -1406,6 +1736,10 @@ static const char* audit_category_name(AuditEventCategory category)
 // is therefore posted asynchronously and the current event denied (fail closed, like an unanswered
 // prompt); the grant is persisted once the user accepts, so a later attempt succeeds without
 // re-prompting.
+//
+// Create and delete are the exception: they have no persistent grant to save, so an off-main-
+// thread request is denied and only an informational denial is shown. Showing a Yes/No prompt
+// would falsely imply that accepting it could authorize the operation or a later retry.
 bool request_permission(AuditEventCategory category, const std::string& plugin_key, const std::string& plugin_name,
                         const std::string& event_name, bool by_event, const std::vector<std::string>& keys)
 {
@@ -1430,6 +1764,15 @@ bool request_permission(AuditEventCategory category, const std::string& plugin_k
     if (wxIsMainThread())
         return prompt_for_targets(category, plugin_name, event_name, shown);
 
+    if (is_create_delete_category(category)) {
+        GUI::wxGetApp().CallAfter([category, plugin_name, shown]() {
+            if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
+                return;
+            show_permission_denied_dialog(category, plugin_name, shown);
+        });
+        return false;
+    }
+
     GUI::wxGetApp().CallAfter([category, plugin_key, plugin_name, event_name, by_event, keys, shown]() {
         if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
             return;
@@ -1440,7 +1783,8 @@ bool request_permission(AuditEventCategory category, const std::string& plugin_k
 }
 
 // Decides an event that no allowed root or running operation covers: a saved grant allows it,
-// otherwise the user is asked and a Yes is saved.
+// otherwise the user is asked. A Yes is saved when the category has a persistent grant list;
+// create/delete has none and off the main thread only reports the denial.
 int decide_audited_event(PluginAuditManager&             mgr,
                          PluginInstallState&              state,
                          const std::string&                plugin_key,
@@ -1449,22 +1793,38 @@ int decide_audited_event(PluginAuditManager&             mgr,
                          AuditEventCategory                category,
                          const std::vector<std::string>&   targets)
 {
+    // Full access turns permission auditing off for this plugin, so no grant or prompt applies.
+    // This is reached only after audit_plugin_event's unconditional denied-path loop: the
+    // install-state sidecar, the app config and the cloud refresh token stay blocked even here.
+    // It is a Python audit-hook policy only; the plugin still runs in the host process, so other
+    // processes are not restricted.
+    if (state.permissions.full_access)
+        return 0;
+
     const bool                     by_event = targets.empty();
     const std::vector<std::string> keys     = by_event ? std::vector<std::string>{event_grant_key(category, event_name)} : targets;
+    const bool                     threading_category = category == AuditEventCategory::Threading;
     std::vector<std::string>*      permission_list = permission_list_for(category, by_event, state.permissions);
 
     std::vector<std::string> unresolved = keys;
-    if (permission_list || is_network_category(category)) {
+    if (permission_list || is_network_category(category) || threading_category) {
         unresolved.clear();
-        for (const auto& key : keys) {
-            // A network grant authorizes a specific host, except for a targetless event such as
-            // http.client.send, which names no host: any network grant covers that.
-            const bool granted_network =
-                is_network_category(category) &&
-                (by_event ? has_any_network_permission(state.permissions)
-                          : has_network_permission(state.permissions, key));
-            if (!(permission_list && has_permission(category, by_event, *permission_list, key)) && !granted_network)
-                unresolved.push_back(key);
+        if (threading_category) {
+            // Threading is a boolean grant rather than a target list. The event still reports the
+            // fixed sentinel target so it is not treated as a targetless event grant.
+            if (!state.permissions.threading)
+                unresolved = keys;
+        } else {
+            for (const auto& key : keys) {
+                // A network grant authorizes a specific host, except for a targetless event such as
+                // http.client.send, which names no host: any network grant covers that.
+                const bool granted_network =
+                    is_network_category(category) &&
+                    (by_event ? has_any_network_permission(state.permissions)
+                              : has_network_permission(state.permissions, key));
+                if (!(permission_list && has_permission(category, by_event, *permission_list, key)) && !granted_network)
+                    unresolved.push_back(key);
+            }
         }
         if (unresolved.empty())
             return 0;
@@ -1478,9 +1838,9 @@ int decide_audited_event(PluginAuditManager&             mgr,
     if (!request_permission(category, plugin_key, plugin_name, event_name, by_event, unresolved))
         return report_denied(mgr, event_name, {false, "audit permission required"});
 
-    if (permission_list)
-        for (const auto& key : unresolved)
-            persist_permission(plugin_key, state, category, by_event, *permission_list, key);
+    if (threading_category || permission_list) {
+        persist_grant(plugin_key, category, by_event, unresolved);
+    }
     return 0;
 }
 
@@ -1551,8 +1911,24 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     if (!PluginManager::instance().try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
         return false;
 
-    PluginInstallState state;
-    read_install_state(boost::filesystem::path(descriptor.plugin_root), state);
+    PluginInstallState     state;
+    InstallStateReadStatus state_status;
+    {
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        state_status = read_install_state_status(boost::filesystem::path(descriptor.plugin_root), state);
+    }
+
+    // An existing sidecar that cannot be read is never replaced: its grants and capability choices
+    // would be lost, and the flag below cannot be trusted either. A missing sidecar is a plugin
+    // that has not been given one yet and is seeded when the grant is saved.
+    if (state_status == InstallStateReadStatus::Unreadable)
+        return false;
+
+    // Full access is an explicit opt-out of auditing: a declaration neither prompts nor adds a
+    // grant. Only a readable sidecar that stores the flag counts, so a missing file is never
+    // mistaken for an opt-out.
+    if (state.permissions.full_access)
+        return true;
 
     // Per bucket, keep only the targets that no earlier grant already covers. Dropping these
     // before prompting keeps a repeated declaration from asking again for what is on disk.
@@ -1601,22 +1977,28 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     collect_missing(AuditEventCategory::Http, requested.network_http, state.permissions.network_http);
     collect_missing(AuditEventCategory::Socket, requested.network_socket, state.permissions.network_socket);
     collect_missing(AuditEventCategory::ProcessCreate, requested.process, state.permissions.process);
-    collect_missing(AuditEventCategory::Threading, requested.threading, state.permissions.threading);
+    // Threading is a single boolean grant: ask once when requested and not yet granted. The fixed
+    // sentinel gives the prompt a target even though thread creation exposes none.
+    if (requested.threading && !state.permissions.threading)
+        missing_buckets.push_back({AuditEventCategory::Threading, {kThreadPermissionTarget}});
 
     if (missing_buckets.empty())
         return true;
 
     const auto build_message = [](const std::string& plugin_name, const std::vector<MissingBucket>& buckets) {
-        wxString message;
+        PermissionMessage message;
         for (const MissingBucket& bucket : buckets) {
             wxString targets;
             for (const std::string& target : bucket.targets)
                 targets += wxString::FromUTF8(target.c_str()) + "\n";
 
-            if (!message.IsEmpty())
-                message += "\n\n";
-            message += PluginAuditDetail::audit_message(bucket.category, wxString::FromUTF8(plugin_name.c_str()),
-                                                        wxEmptyString, targets, bucket.targets.size());
+            if (!message.text.IsEmpty())
+                message.text += "\n\n";
+            PermissionMessage part = PluginAuditDetail::formatted_audit_message(
+                bucket.category, wxString::FromUTF8(plugin_name.c_str()), wxEmptyString, targets, bucket.targets.size());
+            for (const auto& range : part.targets)
+                message.targets.emplace_back(message.text.length() + range.first, range.second);
+            message.text += part.text;
         }
         return message;
     };
@@ -1624,8 +2006,9 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     bool granted = false;
     if (PluginAuditDetail::s_permission_message_prompt_for_testing) {
         // Tests run without a wxApp to host the dialog: hand the seam the message it would show.
-        granted = PluginAuditDetail::s_permission_message_prompt_for_testing(
-            build_message(descriptor.name, missing_buckets).utf8_string());
+        wxString message = build_message(descriptor.name, missing_buckets).text;
+        append_permission_dialog_tip(message);
+        granted = PluginAuditDetail::s_permission_message_prompt_for_testing(message.utf8_string());
     } else if (wxTheApp == nullptr || GUI::wxGetApp().is_closing()) {
         return false;
     } else if (wxIsMainThread()) {
@@ -1642,25 +2025,46 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     if (!granted)
         return false;
 
-    // The dialog can stay open while another grant is persisted; re-read before saving so this
-    // request adds to the current state instead of replacing it.
-    PluginInstallState latest_state;
-    if (read_install_state(boost::filesystem::path(descriptor.plugin_root), latest_state))
+    // The dialog can stay open while another grant is persisted; take the shared lock and re-read
+    // before saving so this request adds to the current state instead of replacing it.
+    bool persisted = false;
+    {
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        PluginInstallState     latest_state;
+        InstallStateReadStatus latest_status =
+            read_install_state_status(boost::filesystem::path(descriptor.plugin_root), latest_state);
+        // A malformed file is never replaced. A sidecar that was readable when prompting started
+        // must not be recreated if it disappears meanwhile: that is lost state, not a new install.
+        // Only a sidecar absent at both reads is seeded.
+        if (latest_status == InstallStateReadStatus::Unreadable)
+            return false;
+        if (latest_status == InstallStateReadStatus::Absent && state_status == InstallStateReadStatus::Readable)
+            return false;
         state = std::move(latest_state);
 
-    PluginAuditDetail::seed_install_metadata(descriptor, state);
+        PluginAuditDetail::seed_install_metadata(descriptor, state);
 
-    for (const MissingBucket& bucket : missing_buckets) {
-        std::vector<std::string>* permission_list =
-            PluginAuditDetail::permission_list_for(bucket.category, /*by_event=*/false, state.permissions);
-        if (!permission_list)
-            continue;
-        for (const std::string& target : bucket.targets)
-            if (std::find(permission_list->begin(), permission_list->end(), target) == permission_list->end())
-                permission_list->push_back(target);
+        for (const MissingBucket& bucket : missing_buckets) {
+            if (bucket.category == AuditEventCategory::Threading) {
+                state.permissions.threading = true;
+                continue;
+            }
+            std::vector<std::string>* permission_list =
+                PluginAuditDetail::permission_list_for(bucket.category, /*by_event=*/false, state.permissions);
+            if (!permission_list)
+                continue;
+            for (const std::string& target : bucket.targets)
+                if (std::find(permission_list->begin(), permission_list->end(), target) == permission_list->end())
+                    permission_list->push_back(target);
+        }
+
+        persisted = write_install_state(boost::filesystem::path(descriptor.plugin_root), state);
     }
 
-    return write_install_state(boost::filesystem::path(descriptor.plugin_root), state);
+    // Only a stored grant changes what the dialog would read back; a failed write changed nothing.
+    if (persisted)
+        post_permission_changed_notification(plugin_key);
+    return persisted;
 }
 
 void PluginAuditManager::record_root_frame()
@@ -1792,7 +2196,18 @@ int PluginAuditManager::audit_hook(const char* event, PyObject* args, void* user
     // finalizer they run re-enters a hook whose held frames are already consistent.
     std::vector<PyObject*> returned_frames;
     PluginAuditDetail::take_returned_frames(m_root_frames, returned_frames);
-    const int result = PluginAuditDetail::audit_plugin_event(*mgr, event_name, event_type, args);
+    int result = -1;
+    // A C++ exception must not unwind through the interpreter that raised the event, so a check
+    // that throws denies the event, like an unanswered prompt.
+    try {
+        result = PluginAuditDetail::audit_plugin_event(*mgr, event_name, event_type, args);
+    } catch (const std::exception& error) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT] event=" << event_name << " denied, its check failed: " << error.what();
+        result = PluginAuditDetail::report_denied(*mgr, event_name, {false, "audit check failed"});
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT] event=" << event_name << " denied, its check failed";
+        result = PluginAuditDetail::report_denied(*mgr, event_name, {false, "audit check failed"});
+    }
     mgr->release_frames(returned_frames);
     return result;
 }

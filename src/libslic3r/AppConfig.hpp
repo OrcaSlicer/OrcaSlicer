@@ -48,6 +48,9 @@
 #define SETTING_OPENGL_PHONG_SMOOTH_NORMALS "opengl_phong_smooth_normals"
 #define SETTING_OPENGL_REALISTIC_PREVIEW "opengl_realistic_preview"
 #define SETTING_OPENGL_REALISTIC_GLOSS "opengl_realistic_gloss"
+#define SETTING_OPENGL_OUTLINE_PERSISTENT "opengl_outline_persistent"
+#define SETTING_OPENGL_OUTLINE_COLOR "opengl_outline_color"
+#define SETTING_OPENGL_SELECTION_OUTLINE_COLOR "opengl_selection_outline_color"
 
 #define SETTING_PLUGIN_PAGES_VISIBLE_COUNT "plugin_pages_visible_count"
 #define PLUGIN_PAGES_VISIBLE_COUNT_MIN 1
@@ -160,10 +163,16 @@ public:
 		{ std::string value; this->get(section, key, value); return value; }
 	std::string 		get(const std::string &key) const
 		{ std::string value; this->get("app", key, value); return value; }
+	// The spellings a boolean has in a saved configuration ("1" is the legacy form).
+	static bool			is_true(const std::string &value) { return value == "true" || value == "1"; }
 	bool				get_bool(const std::string &section, const std::string &key) const
-		{ const std::string value = this->get(section, key); return value == "true" || value == "1"; }
+		{ return is_true(this->get(section, key)); }
 	bool				get_bool(const std::string &key) const
 		{ return this->get_bool("app", key); }
+	// Reads one "app" boolean straight from the editor configuration saved in data_dir, for the
+	// few settings that must act before the configuration is loaded. False when the file is
+	// missing, unreadable or has no such key.
+	static bool			peek_bool(const std::string &data_dir, const std::string &key);
 	void			    set(const std::string &section, const std::string &key, const std::string &value)
 	{
 #ifndef NDEBUG
@@ -351,6 +360,8 @@ public:
 
 	// Get the default config path from Slic3r::data_dir().
 	std::string			config_path();
+	// The configuration file of the given mode inside data_dir.
+	static std::string	config_path(const std::string &data_dir, EAppMode mode);
 	// Lock file guarding config_path() against other running instances; empty without a data dir.
 	std::string			lock_path();
 

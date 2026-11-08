@@ -2,6 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <slic3r/plugin/PluginFsUtils.hpp>
+#include <slic3r/plugin/PluginJsonPy.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 
 #include "plugin_test_utils.hpp"
