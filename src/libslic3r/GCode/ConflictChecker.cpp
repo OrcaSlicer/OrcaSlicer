@@ -15,8 +15,8 @@
 #include <optional>
 #include <cstddef>
 #include <algorithm>
+#include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
-#include <tbb/concurrent_vector.h>
 
 #include <map>
 #include <functional>
@@ -286,23 +286,23 @@ ConflictResultOpt ConflictChecker::find_inter_of_lines_in_diff_objs(PrintObjectP
         layersLines.push_back(std::move(lines));
     }
 
-    bool                                                          find = false;
-    tbb::concurrent_vector<std::pair<ConflictComputeResult, float>> conflict;
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, layersLines.size()), [&](tbb::blocked_range<size_t> range) {
+    // Each layer gets its own slot, and the lowest conflicting layer is reported, so the report doesn't depend on which
+    // task finds a conflict first. A task stops at the first conflict in its range, as the rest of the range is higher.
+    std::vector<ConflictComputeOpt> conflicts(layersLines.size());
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, layersLines.size()), [&](const tbb::blocked_range<size_t> &range) {
         for (size_t i = range.begin(); i < range.end(); i++) {
-            auto interRes = find_inter_of_lines(layersLines[i]);
-            if (interRes.has_value()) {
-                find = true;
-                conflict.emplace_back(interRes.value(), bottomZs[i]);
+            conflicts[i] = find_inter_of_lines(layersLines[i]);
+            if (conflicts[i].has_value())
                 break;
-            }
         }
     });
 
-    if (find) {
-        const void *ptr1           = conflict[0].first._obj1;
-        const void *ptr2           = conflict[0].first._obj2;
-        float       conflictPrintZ = conflict[0].second;
+    const auto conflict = std::find_if(conflicts.begin(), conflicts.end(),
+                                       [](const ConflictComputeOpt &c) { return c.has_value(); });
+    if (conflict != conflicts.end()) {
+        const void *ptr1           = (*conflict)->_obj1;
+        const void *ptr2           = (*conflict)->_obj2;
+        float       conflictPrintZ = bottomZs[conflict - conflicts.begin()];
         if (wtdptr.has_value()) {
             const FakeWipeTower *wtdp = wtdptr.value();
             if (ptr1 == wtdp || ptr2 == wtdp) {
