@@ -10472,89 +10472,6 @@ static bool overhang_fan_active(float overlap, int overhang_fan_threshold, Extru
 
 std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_description, double speed, const Transform3d &trafo)
 {
-    std::vector<std::vector<double>> uncut_line_lengths;
-    const ExtrusionPaths pieces = this->belt_cut_at_band_edges(path, uncut_line_lengths);
-    if (pieces.size() < 2)
-        return this->_extrude_piece(path, path_description, speed);
-    std::string gcode;
-    for (size_t i = 0; i < pieces.size(); ++ i) {
-        m_belt_uncut_line_lengths = &uncut_line_lengths[i];
-        gcode += this->_extrude_piece(pieces[i], path_description, speed);
-    }
-    m_belt_uncut_line_lengths = nullptr;
-    return gcode;
-}
-
-// Belt printers: whether a path is on the first layer, and its step of the slow_down_layers
-// ramp, set its speed, flow and acceleration as a whole.  A wall loop runs from the belt up
-// the part, so a path is cut where it crosses the edge of the first-layer band above the belt
-// or of a band of the ramp, and each piece is judged on its own.  Otherwise the loop would
-// take the settings of wherever its seam is all the way round.  Returns no pieces when the
-// path stays in one band, and else, for each piece, the length of the uncut line each of its
-// lines comes from, so that small-area flow compensation sees the line as it was.
-ExtrusionPaths GCode::belt_cut_at_band_edges(const ExtrusionPath &path, std::vector<std::vector<double>> &uncut_line_lengths) const
-{
-    ExtrusionPaths pieces;
-    // A sloped seam carries its slope along it, and a contoured path scales each line's
-    // extrusion by the Z offset at the line's end, which a cut would move; both are judged
-    // whole.
-    if (! m_config.belt_printer.value || path.z_contoured || dynamic_cast<const ExtrusionPathSloped*>(&path) != nullptr)
-        return pieces;
-    // Band 0 is the first layer as on_first_layer() has it, band k > 0 the heights the ramp
-    // gives step k (effective_layer_index_for_point()), the last one everything above it.
-    const double first    = m_config.initial_layer_print_height.value;
-    const double band     = this->first_layer_band_mm();
-    const int    last     = std::max(1, m_config.slow_down_layers.value);
-    auto         band_of  = [this, first, last](double h) {
-        return h <= first + EPSILON ? 0 : std::clamp(this->belt_band_index(h), 1, last);
-    };
-    auto         band_top = [first, band](int k) { return k == 0 ? first : (k + 1) * band; };
-    const Points3 &points = path.polyline.points;
-    double         h_prev;
-    if (points.size() < 2 || ! this->belt_path_height(path, points.front(), h_prev))
-        return pieces;
-    int                 band_prev = band_of(h_prev);
-    Points3             current{ points.front() };
-    std::vector<double> current_lengths;
-    auto                extend = [&current, &current_lengths](const Point3 &p, double uncut_length) {
-        if (p != current.back()) {
-            current.push_back(p);
-            current_lengths.push_back(uncut_length);
-        }
-    };
-    for (size_t i = 1; i < points.size(); ++ i) {
-        double h;
-        this->belt_path_height(path, points[i], h);
-        const int    band_i = band_of(h);
-        const double length = unscale<double>((points[i] - points[i - 1]).cast<double>().norm());
-        // Cut at each edge the segment crosses.  The belt is a plane, so the height is
-        // linear along the segment.
-        for (int k = band_prev; k != band_i; k += band_i > band_prev ? 1 : -1) {
-            const double edge  = band_top(band_i > band_prev ? k : k - 1);
-            const double t     = std::clamp((edge - h_prev) / (h - h_prev), 0., 1.);
-            const Vec3d  cut   = points[i - 1].cast<double>() + t * (points[i] - points[i - 1]).cast<double>();
-            const Point3 cut_point(cut.x(), cut.y(), cut.z());
-            extend(cut_point, length);
-            if (current.size() > 1) {
-                pieces.emplace_back(Polyline3(current), path);
-                uncut_line_lengths.emplace_back(std::move(current_lengths));
-            }
-            current = { cut_point };
-            current_lengths.clear();
-        }
-        extend(points[i], length);
-        h_prev    = h;
-        band_prev = band_i;
-    }
-    if (! pieces.empty() && current.size() > 1) {
-        pieces.emplace_back(Polyline3(current), path);
-        uncut_line_lengths.emplace_back(std::move(current_lengths));
-    }
-    return pieces;
-}
-
-std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &path_description, double speed)
-{
     std::string gcode;
 
     // BELT_MOD -- contact-aware first layer: refresh the frame when the object or its un-rotation
@@ -11463,7 +11380,7 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
                     auto dE = e_per_mm * e_length;
                     if (_needSAFC(path)) {
                         auto oldE = dE;
-                        dE = m_small_area_infill_flow_compensator->modify_flow(m_belt_uncut_line_lengths != nullptr ? uncut_length : line_length, dE, path.role());
+                        dE = m_small_area_infill_flow_compensator->modify_flow(line_length, dE, path.role());
 
                         if (m_config.gcode_comments && oldE > 0 && oldE != dE) {
                             flow_description = description + Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);

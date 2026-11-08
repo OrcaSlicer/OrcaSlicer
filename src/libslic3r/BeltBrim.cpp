@@ -226,12 +226,9 @@ struct BeltBrimContext
 };
 
 // Emit the cross-belt brim lines that belong to the band [print_z - height, print_z].
-// wall_inset is how far the centreline of the outer wall of the band's object layer lies
-// inside where the layer's slice met the belt, mm.
 static void belt_brim_band_paths(const BeltBrimContext      &bc,
                                  coordf_t                    print_z,
                                  coordf_t                    height,
-                                 double                      wall_inset,
                                  const Polygons             &obstacles,
                                  ExtrusionEntityCollection  &out,
                                  ExPolygons                 &areas_out)
@@ -282,6 +279,7 @@ static void belt_brim_band_paths(const BeltBrimContext      &bc,
                 clearance = BAND_CLEARANCE_FRACTION * height;
                 u         = scale_(bc.frame.cutoff_u(print_z - clearance));
             }
+            clearance = std::min(clearance, height);
         }
         if (u == u_prev)
             continue;
@@ -533,7 +531,7 @@ void make_belt_brim(PrintObject &object)
     for (size_t i = first_idx; i < nlayers; ++ i) {
         const Layer &layer = *object.layers()[i];
         const Polygons obstacles = belt_brim_obstacles(print, object, bc.region_bbox, layer.print_z, 0.5 * layer.height);
-        belt_brim_band_paths(bc, layer.print_z, layer.height, wall_insets[i], obstacles, by_layer[i], areas_by_layer[i]);
+        belt_brim_band_paths(bc, layer.print_z, layer.height, obstacles, by_layer[i], areas_by_layer[i]);
     }
 
     // 5. Apron prologue: the part of the region downhill of the object's first layer.
@@ -552,7 +550,7 @@ void make_belt_brim(PrintObject &object)
                 BeltBrimBand band;
                 band.print_z = z;
                 band.height  = h;
-                belt_brim_band_paths(bc, z, h, wall_insets.front(), obstacles, band.fills, band.areas);
+                belt_brim_band_paths(bc, z, h, obstacles, band.fills, band.areas);
                 if (! band.fills.empty())
                     prologue.emplace_back(std::move(band));
             }
