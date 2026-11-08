@@ -1663,11 +1663,11 @@ TEST_CASE("A bridge anchor into another filament is equally wide whatever the br
     REQUIRE(! bridges.empty());
     const BoundingBox bridge_bbox = get_extents(bridges);
 
-    const double anchor = std::min<double>({BRIDGE_INFILL_MARGIN, deck->flow(frPerimeter).spacing(),
-                                            deck->flow(frExternalPerimeter).width()});
-    const double extension = deck->bridging_flow(frSolidInfill).spacing() / 2. + anchor;
-    // The anchors are measured perpendicular to the boundaries, away from the rounded ends of the bridge.
-    const coord_t width = scaled(extension - 0.01);
+    // The bridge takes over the place of the outer wall of the pillars, one line wide, whatever the bridge direction.
+    // It is measured perpendicular to the boundaries, away from the ends of the bridge.
+    const double line = pillars->flow(frExternalPerimeter).width();
+    const coord_t width = scaled(0.75 * line);
+    const coord_t limit = scaled(1.25 * line);
     const coord_t y_min = bridge_bbox.min.y() + scaled(1.);
     const coord_t y_max = bridge_bbox.max.y() - scaled(1.);
     for (const BoundingBox &band : { BoundingBox(Point(deck_bbox.min.x() - width, y_min), Point(deck_bbox.min.x(), y_max)),
@@ -1675,6 +1675,8 @@ TEST_CASE("A bridge anchor into another filament is equally wide whatever the br
         INFO("anchor band: " << unscale<double>(band.min.x()) << ", " << unscale<double>(band.max.x()));
         CHECK(area(diff_ex(Polygons{ band.polygon() }, bridges)) < sqr(scale_(0.01)));
     }
+    const BoundingBox inside(Point(deck_bbox.min.x() - limit, bridge_bbox.min.y()), Point(deck_bbox.max.x() + limit, bridge_bbox.max.y()));
+    CHECK(area(diff_ex(bridges, Polygons{ inside.polygon() })) < sqr(scale_(0.01)));
 
     // The walls of the pillars cut back for the anchors leave no strips to be filled with gap fill.
     double gap_fill_along_anchors = 0.;
@@ -1781,9 +1783,9 @@ TEST_CASE("A bridge in another filament is bridged between the walls of its neig
     CHECK(across_span < along_span / 4.);
 
     size_t anchored_spans = 0;
-    const double expected_overlap = std::min<double>({BRIDGE_INFILL_MARGIN, deck->flow(frPerimeter).spacing(),
-                                             deck->flow(frExternalPerimeter).width()});
-    for_each_extrusion_path(deck->fills, [&deck_bbox, &lower_wall_areas, &anchored_spans, expected_overlap](const ExtrusionPath &path) {
+    // The bridge lines reach over the place of the outer wall of the pillars, one line deep and no more.
+    const double line_width = pillars->flow(frExternalPerimeter).width();
+    for_each_extrusion_path(deck->fills, [&deck_bbox, &lower_wall_areas, &anchored_spans, line_width](const ExtrusionPath &path) {
         if (path.role() != erBridgeInfill)
             return;
         for (const Line &line : path.polyline.to_polyline().lines()) {
@@ -1794,8 +1796,15 @@ TEST_CASE("A bridge in another filament is bridged between the walls of its neig
             ++anchored_spans;
             INFO("span endpoints: " << unscale<double>(line.a.x()) << ", " << unscale<double>(line.a.y())
                  << " -> " << unscale<double>(line.b.x()) << ", " << unscale<double>(line.b.y()));
-            CHECK(unscale<double>(deck_bbox.min.x() - min_x) >= expected_overlap - 0.01);
-            CHECK(unscale<double>(max_x - deck_bbox.max.x()) >= expected_overlap - 0.01);
+            const double reach_min = unscale<double>(deck_bbox.min.x() - min_x) + path.width / 2.;
+            const double reach_max = unscale<double>(max_x - deck_bbox.max.x()) + path.width / 2.;
+            CHECK(reach_min >= 0.75 * line_width);
+            CHECK(reach_max >= 0.75 * line_width);
+            // Next to the outline of the object the anchor also takes the corner of the outer wall it replaces.
+            if (std::abs(line.a.y() - deck_bbox.center().y()) < deck_bbox.size().y() / 2 - scaled(2.)) {
+                CHECK(reach_min <= 1.25 * line_width);
+                CHECK(reach_max <= 1.25 * line_width);
+            }
             CHECK(std::any_of(lower_wall_areas.begin(), lower_wall_areas.end(),
                               [&line](const ExPolygon &area) { return area.contains(line.a); }));
             CHECK(std::any_of(lower_wall_areas.begin(), lower_wall_areas.end(),

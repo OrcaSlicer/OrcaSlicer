@@ -602,14 +602,9 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
             }
         }
         if (!other_regions.empty() && !bridges.empty()) {
-            const Flow bridge_flow = this->bridging_flow(frSolidInfill, this->layer()->object()->config().thick_bridges);
-            const coordf_t bridged_infill_margin = scale_(BRIDGE_INFILL_MARGIN);
-            const coordf_t perimeter_spacing = this->flow(frPerimeter).scaled_spacing();
-            const coordf_t ext_perimeter_width = this->flow(frExternalPerimeter).scaled_width();
-            const coordf_t bridge_anchor_offset = std::min({bridged_infill_margin, perimeter_spacing, ext_perimeter_width});
-            // The filler shrinks surfaces by half its spacing. Include that distance so the
-            // extrusion centreline, not just its surface boundary, reaches the anchor.
-            const float extension = float(scale_(bridge_flow.spacing() / 2.) + bridge_anchor_offset);
+            // Reach into the outer wall of the other regions only. Layer::reserve_bridge_anchors() removes that
+            // wall and extends the bridge over its place, so the anchor is one line wide.
+            const float extension = float(this->flow(frExternalPerimeter).scaled_width() / 2.);
             Surfaces anchored_bridges;
             for (const Surface &bridge : bridges.surfaces) {
                 // Anchor only across the boundaries shared with the other regions, equally far whatever the
