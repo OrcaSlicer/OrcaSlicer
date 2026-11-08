@@ -102,7 +102,7 @@ public:
         }
     }
 
-    PathTraceGpuScene pack_for_gpu() const
+    PathTraceGpuScene pack_for_gpu(bool with_normals) const
     {
         if (m_cancel_token != nullptr && m_cancel_token->load(std::memory_order_relaxed))
             return {};
@@ -112,7 +112,8 @@ public:
         PathTraceGpuScene packed;
         packed.triangles.resize(m_indices.size());
         packed.shadings.resize(m_indices.size());
-        packed.normals.resize(m_indices.size());
+        if (with_normals)
+            packed.normals.resize(m_indices.size());
         packed.nodes.resize(m_nodes.size());
         packed.original_indices.resize(m_indices.size());
 
@@ -137,7 +138,8 @@ public:
                     triangle.c[3] = std::clamp(source.albedo[3], 0.0f, 1.0f); // opacity
                     shading.albedo[3] = source.albedo[3];
                     shading.params = {0.20f, 0.0f, 0.0f, 0.0f};
-                    packed.normals[i] = {source.vertex_normals[0], source.vertex_normals[1], source.vertex_normals[2], source.smooth ? 1u : 0u};
+                    if (with_normals)
+                        packed.normals[i] = {source.vertex_normals[0], source.vertex_normals[1], source.vertex_normals[2], source.smooth ? 1u : 0u};
                 }
             });
 
@@ -475,9 +477,9 @@ void append_path_trace_triangles(std::vector<PathTraceTriangle>& triangles,
     append_path_trace_triangles(triangles, vertices, indices, transform, Vec4f(albedo.x(), albedo.y(), albedo.z(), 1.0f), smooth_normals);
 }
 
-PathTraceGpuScene build_path_trace_gpu_scene(const std::vector<PathTraceTriangle>& triangles, const std::atomic<bool>* cancel_token)
+PathTraceGpuScene build_path_trace_gpu_scene(const std::vector<PathTraceTriangle>& triangles, const std::atomic<bool>* cancel_token, bool with_normals)
 {
-    return BvhBuilder(triangles, cancel_token).pack_for_gpu();
+    return BvhBuilder(triangles, cancel_token).pack_for_gpu(with_normals);
 }
 
 } // namespace Slic3r

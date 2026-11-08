@@ -122,7 +122,8 @@ void append_path_trace_triangles(std::vector<PathTraceTriangle>& triangles,
                                  const Vec3f& albedo,
                                  bool smooth_normals = true);
 
-PathTraceGpuScene build_path_trace_gpu_scene(const std::vector<PathTraceTriangle>& triangles, const std::atomic<bool>* cancel_token = nullptr);
+// Without with_normals the scene has no shading normals, which saves their memory when nothing reads them.
+PathTraceGpuScene build_path_trace_gpu_scene(const std::vector<PathTraceTriangle>& triangles, const std::atomic<bool>* cancel_token = nullptr, bool with_normals = true);
 
 // Camera of a path traced frame.
 struct PathTraceCamera

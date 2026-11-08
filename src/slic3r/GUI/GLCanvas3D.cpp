@@ -1862,6 +1862,8 @@ void GLCanvas3D::reset_volumes()
     m_volumes.clear();
     m_section_view_caps.clear();
     m_dirty = true;
+    // Also while this canvas is hidden, when no frame would free its path traced scene.
+    _release_pathtrace_scene(_set_current());
 
     _set_warning_notification(EWarning::ObjectOutside, false);
 }
@@ -9982,8 +9984,20 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
                 partly_inside_enable, printable_heights, outlined_volumes);
             // IMEX ghosts are transparent and share the same shader/camera state;
             // render them right after the main transparent pass while the shader is still bound.
-            if (subset != EObjectsSubset::Print)
+            if (subset != EObjectsSubset::Print) {
+                // Over the path traced image they blend with it, the pass above having left blending
+                // off. Destination alpha stays at 1 for Wayland, see _render_pathtrace_composite().
+                const bool over_path_traced_image = subset == EObjectsSubset::Overlays;
+                if (over_path_traced_image) {
+                    glsafe(::glEnable(GL_BLEND));
+                    glsafe(::glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
+                }
                 _render_imex_ghosts();
+                if (over_path_traced_image) {
+                    glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+                    glsafe(::glDisable(GL_BLEND));
+                }
+            }
             break;
         }
         }

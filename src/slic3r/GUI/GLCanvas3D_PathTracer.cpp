@@ -4,6 +4,7 @@
 #include <imgui/imgui.h>
 #include <Eigen/Core>
 #include <Eigen/Dense>
+#include <boost/log/trivial.hpp>
 
 #include <algorithm>
 #include <array>
@@ -46,7 +47,6 @@
 #include "FrameProfiler.hpp"
 #include "GLModel.hpp"
 #include "GLShader.hpp"
-#include "GLTexture.hpp"
 #include "GUI_App.hpp"
 #include "I18N.hpp"
 #include "ImGuiWrapper.hpp"
@@ -139,6 +139,27 @@ void render_pathtrace_fullscreen_texture(GLModel& quad, unsigned int tex_id, flo
     glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
     if (cull_face)
         glsafe(::glEnable(GL_CULL_FACE));
+}
+
+// Whether OpenGL reported running out of memory since it was last asked. glsafe() only asks in debug
+// builds.
+bool gl_out_of_memory()
+{
+    bool out_of_memory = false;
+    for (GLenum error = ::glGetError(); error != GL_NO_ERROR; error = ::glGetError())
+        out_of_memory = out_of_memory || error == GL_OUT_OF_MEMORY;
+    return out_of_memory;
+}
+
+// Stores a buffer of the scene on the GPU, false if it has no memory for it. Asks at once and without
+// glsafe(), at whose error a debug build would stop.
+bool upload_storage_buffer(unsigned int& buffer, size_t size, const void* data, GLenum usage)
+{
+    if (buffer == 0)
+        glsafe(::glGenBuffers(1, &buffer));
+    glsafe(::glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer));
+    ::glBufferData(GL_SHADER_STORAGE_BUFFER, GLsizeiptr(size), data, usage);
+    return !gl_out_of_memory();
 }
 
 // Triangles of a plate's surface, tagged as the bed: the path tracer only bounces light off it, the
@@ -275,28 +296,35 @@ void GLCanvas3D::_release_pathtrace_gl_resources()
     }
     m_pathtrace_gpu_image_size = {0, 0};
     m_pathtrace_gpu_interactive_size = {0, 0};
-    m_pathtrace_history.valid = false;
     if (m_pathtrace_gpu_timer_queries[0] != 0) {
         glsafe(::glDeleteQueries(GLsizei(m_pathtrace_gpu_timer_queries.size()), m_pathtrace_gpu_timer_queries.data()));
         m_pathtrace_gpu_timer_queries = {0, 0, 0, 0};
         m_pathtrace_gpu_timer_query_in_flight[0] = false;
         m_pathtrace_gpu_timer_query_in_flight[1] = false;
     }
-    // What was uploaded is gone, so it counts as never uploaded.
+    _forget_pathtrace_uploads();
+}
+
+void GLCanvas3D::_forget_pathtrace_uploads()
+{
     m_pathtrace_gpu_scene_signature = 0;
     m_pathtrace_transform_signature = 0;
     m_pathtrace_requested_signature = 0;
     m_pathtrace_gpu_instances.clear();
     m_pathtrace_gpu_instances.shrink_to_fit();
+    m_pathtrace_history.valid = false;
     _reset_pathtrace_accumulation();
 }
 
-void GLCanvas3D::_release_pathtrace_scene()
+void GLCanvas3D::_release_pathtrace_scene(bool gl_current)
 {
     _stop_pathtrace_bvh_worker();
     m_pathtrace_bvh_future = std::future<PathTraceSceneBuildResult>();
     m_pathtrace_bvh_job_signature = 0;
-    _release_pathtrace_gl_resources();
+    if (gl_current)
+        _release_pathtrace_gl_resources();
+    else
+        _forget_pathtrace_uploads();
     m_pathtrace_gpu_scene = PathTraceGpuScene();
     m_pathtrace_volume_blas.clear();
     m_pathtrace_volume_blas.shrink_to_fit();
@@ -319,12 +347,10 @@ bool GLCanvas3D::_is_pathtrace_selected() const
     if ((m_canvas_type != ECanvasType::CanvasView3D && m_canvas_type != ECanvasType::CanvasPreview) ||
         current_printer_technology() != ptFFF)
         return false;
-    if (!wxGetApp().is_gl_version_greater_or_equal_to(4, 3) || !_is_realistic_view_enabled())
+    if (!wxGetApp().can_pathtrace() || !_is_realistic_view_enabled())
         return false;
     const AppConfig* cfg = wxGetApp().app_config;
-    if (cfg == nullptr || cfg->get(SETTING_OPENGL_SHADING_MODEL) != "pathtrace")
-        return false;
-    return wxGetApp().get_shader("pathtrace_compute") != nullptr && wxGetApp().get_shader("pathtrace_denoise") != nullptr;
+    return cfg != nullptr && cfg->get(SETTING_OPENGL_SHADING_MODEL) == "pathtrace";
 }
 
 bool GLCanvas3D::_is_pathtrace_enabled() const
@@ -389,12 +415,10 @@ GLCanvas3D::PathTraceSceneBuildResult GLCanvas3D::_build_pathtrace_scene_async(
         if (job.preview_triangles.empty())
             return result;
 
-        result.gpu_scene = build_path_trace_gpu_scene(job.preview_triangles, cancel_token.get());
+        // Toolpaths shade with their own bead normals.
+        result.gpu_scene = build_path_trace_gpu_scene(job.preview_triangles, cancel_token.get(), false);
         job.preview_triangles.clear();
         job.preview_triangles.shrink_to_fit();
-        // Toolpaths shade with their own bead normals.
-        result.gpu_scene.normals.clear();
-        result.gpu_scene.normals.shrink_to_fit();
 
         if (cancel_token && cancel_token->load(std::memory_order_relaxed))
             return {};
@@ -508,7 +532,7 @@ GLCanvas3D::PathTraceSceneBuildResult GLCanvas3D::_build_pathtrace_scene_async(
         if (plate_data.triangles.empty())
             continue;
 
-        PathTraceGpuScene plate_scene = build_path_trace_gpu_scene(plate_data.triangles, cancel_token.get());
+        PathTraceGpuScene plate_scene = build_path_trace_gpu_scene(plate_data.triangles, cancel_token.get(), !job.is_preview);
         plate_data.triangles.clear();
         plate_data.triangles.shrink_to_fit();
         if (plate_scene.nodes.empty() || plate_scene.triangles.empty())
@@ -730,8 +754,11 @@ void GLCanvas3D::_extract_preview_toolpaths_for_pathtrace(
             const Vec3f b0 = seg.p0 - h0;
             const Vec3f b1 = seg.p1 - h1;
 
-            const int r = int(seg.role);
-            const bool is_external = (r == 2 || r == 3 || r == 10 || r == 11 || r == 12 || r == 13 || r == 14 || r == 17 || r == 18);
+            using Role = libvgcode::EGCodeExtrusionRole;
+            const Role role = seg.role;
+            const bool is_external = role == Role::ExternalPerimeter || role == Role::OverhangPerimeter || role == Role::Skirt ||
+                                     role == Role::SupportMaterial || role == Role::SupportMaterialInterface || role == Role::WipeTower ||
+                                     role == Role::Custom || role == Role::Brim || role == Role::SupportTransition;
 
             float delta_angle = 0.0f;
             if (is_external) {
@@ -805,11 +832,11 @@ void GLCanvas3D::_extract_preview_toolpaths_for_pathtrace(
                 add_quad(b0, b1, r1, r0, 2.0f, delta_angle);
                 if (!conn_prev) add_quad(r0, t0, l0, b0, 2.0f);
                 if (!conn_next) add_quad(t1, r1, b1, l1, 2.0f);
-            } else if (r == 4) {
+            } else if (role == Role::InternalInfill) {
                 // Sparse internal infill: upper roof bevels visible from top and side (4 tris)
                 add_quad(r0, r1, t1, t0, 2.0f);
                 add_quad(t0, t1, l1, l0, 2.0f);
-            } else if (r == 1 || r == 19) {
+            } else if (role == Role::Perimeter || role == Role::Mixed) {
                 // Inner perimeters: upper bevels forming top deck and side walls (4 tris)
                 add_quad(r0, r1, t1, t0, 0.0f);
                 add_quad(t0, t1, l1, l0, 0.0f);
@@ -825,7 +852,7 @@ void GLCanvas3D::_extract_preview_toolpaths_for_pathtrace(
                 // Ironing smooths the top surface with lines that overlap each other many times: its
                 // ribbons shade flat, carrying three quarters on their facet kind, and lie a hair above
                 // the top surface they iron.
-                const bool ironing = r == 7;
+                const bool ironing = role == Role::Ironing;
                 const bool miter_prev = conn_prev && seg_dirs[s - 1].dot(dir) > 0.866f;
                 const bool miter_next = conn_next && dir.dot(seg_dirs[s + 1]) > 0.866f;
                 const Vec3f straight = seg_rights[s] * half_w;
@@ -1273,12 +1300,14 @@ void GLCanvas3D::_render_pathtrace_composite()
     // Pass 1: modulate the rasterized bed by the path traced irradiance ratio. The texture holds
     // half the ratio and GL_DST_COLOR, GL_SRC_COLOR yields 2 * src * dst, so the bed can be both
     // darkened (shadows) and brightened or tinted (indirect light). Destination alpha is kept.
-    // GLTexture::render_texture() cannot be used for this pass: it sets its own blend function.
     glsafe(::glEnable(GL_BLEND));
     glsafe(::glBlendFuncSeparate(GL_DST_COLOR, GL_SRC_COLOR, GL_ZERO, GL_ONE));
     render_pathtrace_fullscreen_texture(m_background, bed_tex, u, v);
-    // Pass 2: path traced objects over the modulated bed.
-    GLTexture::render_sub_texture(color_tex, -1.0f, 1.0f, -1.0f, 1.0f, { { 0.0f, v }, { u, v }, { u, 0.0f }, { 0.0f, 0.0f } });
+    // Pass 2: path traced objects over the modulated bed. Destination alpha stays at 1, or a Wayland
+    // compositor would treat the edges of the objects as window transparency.
+    glsafe(::glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
+    render_pathtrace_fullscreen_texture(m_background, color_tex, u, v);
+    glsafe(::glDisable(GL_BLEND));
     glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
     glsafe(::glEnable(GL_DEPTH_TEST));
 }
@@ -1816,42 +1845,41 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
     }
 #endif // !SLIC3R_OPENGL_ES
 
+    // A scene this GPU cannot hold leaves an empty one at its signature: the rasterizer stands in until
+    // the geometry changes, without building it again every frame.
+    const auto give_up_on_scene = [this](const char* reason) {
+        BOOST_LOG_TRIVIAL(warning) << "Path tracer: falling back to the rasterizer, " << reason;
+        const size_t geom_signature_kept = m_pathtrace_geom_signature;
+        _release_pathtrace_scene();
+        m_pathtrace_geom_signature = geom_signature_kept;
+        return false;
+    };
+
     if (can_use_gpu) {
         if (m_pathtrace_gpu_scene_signature != m_pathtrace_geom_signature) {
-            if (m_pathtrace_gpu_node_buffer == 0)
-                glsafe(::glGenBuffers(1, &m_pathtrace_gpu_node_buffer));
-            glsafe(::glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_pathtrace_gpu_node_buffer));
-            glsafe(::glBufferData(GL_SHADER_STORAGE_BUFFER,
-                                  m_pathtrace_gpu_scene.nodes.size() * sizeof(PathTraceGpuNode),
-                                  m_pathtrace_gpu_scene.nodes.data(),
-                                  GL_STATIC_DRAW));
+            GLint64 max_block_size = 0;
+            glsafe(::glGetInteger64v(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &max_block_size));
+            const size_t largest_buffer = std::max({ m_pathtrace_gpu_scene.nodes.size() * sizeof(PathTraceGpuNode),
+                                                     m_pathtrace_gpu_scene.triangles.size() * sizeof(PathTraceGpuTriangle),
+                                                     m_pathtrace_gpu_scene.shadings.size() * sizeof(PathTraceGpuShading),
+                                                     m_pathtrace_gpu_scene.normals.size() * sizeof(PathTraceGpuNormals) });
+            if (max_block_size > 0 && largest_buffer > size_t(max_block_size))
+                return give_up_on_scene("the scene exceeds the largest shader storage block of this GPU");
 
-            if (m_pathtrace_gpu_triangle_buffer == 0)
-                glsafe(::glGenBuffers(1, &m_pathtrace_gpu_triangle_buffer));
-            glsafe(::glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_pathtrace_gpu_triangle_buffer));
-            glsafe(::glBufferData(GL_SHADER_STORAGE_BUFFER,
-                                  m_pathtrace_gpu_scene.triangles.size() * sizeof(PathTraceGpuTriangle),
-                                  m_pathtrace_gpu_scene.triangles.data(),
-                                  GL_DYNAMIC_DRAW));
-
-            if (m_pathtrace_gpu_shading_buffer == 0)
-                glsafe(::glGenBuffers(1, &m_pathtrace_gpu_shading_buffer));
-            glsafe(::glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_pathtrace_gpu_shading_buffer));
-            glsafe(::glBufferData(GL_SHADER_STORAGE_BUFFER,
-                                  m_pathtrace_gpu_scene.shadings.size() * sizeof(PathTraceGpuShading),
-                                  m_pathtrace_gpu_scene.shadings.data(),
-                                  GL_DYNAMIC_DRAW));
-
+            // Errors left by earlier calls say nothing about these uploads.
+            gl_out_of_memory();
             // Without shading normals the binding still needs a buffer, which the shader never reads.
             const PathTraceGpuNormals no_normals{};
-            if (m_pathtrace_gpu_normal_buffer == 0)
-                glsafe(::glGenBuffers(1, &m_pathtrace_gpu_normal_buffer));
-            glsafe(::glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_pathtrace_gpu_normal_buffer));
-            glsafe(::glBufferData(GL_SHADER_STORAGE_BUFFER,
-                                  std::max<size_t>(1, m_pathtrace_gpu_scene.normals.size()) * sizeof(PathTraceGpuNormals),
-                                  m_pathtrace_gpu_scene.normals.empty() ? no_normals.data() : m_pathtrace_gpu_scene.normals.front().data(),
-                                  GL_STATIC_DRAW));
+            const PathTraceGpuScene& scene = m_pathtrace_gpu_scene;
+            const bool uploaded =
+                upload_storage_buffer(m_pathtrace_gpu_node_buffer, scene.nodes.size() * sizeof(PathTraceGpuNode), scene.nodes.data(), GL_STATIC_DRAW) &&
+                upload_storage_buffer(m_pathtrace_gpu_triangle_buffer, scene.triangles.size() * sizeof(PathTraceGpuTriangle), scene.triangles.data(), GL_DYNAMIC_DRAW) &&
+                upload_storage_buffer(m_pathtrace_gpu_shading_buffer, scene.shadings.size() * sizeof(PathTraceGpuShading), scene.shadings.data(), GL_DYNAMIC_DRAW) &&
+                upload_storage_buffer(m_pathtrace_gpu_normal_buffer, std::max<size_t>(1, scene.normals.size()) * sizeof(PathTraceGpuNormals),
+                                      scene.normals.empty() ? no_normals.data() : scene.normals.front().data(), GL_STATIC_DRAW);
             glsafe(::glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0));
+            if (!uploaded)
+                return give_up_on_scene("out of GPU memory for the scene");
 
             m_pathtrace_gpu_scene_signature = m_pathtrace_geom_signature;
             // Unlike the triangles and shadings, which color changes rewrite, these are only uploaded.
@@ -1885,7 +1913,9 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
         if (m_pathtrace_gpu_accumulation_image == 0 ||
             m_pathtrace_gpu_image_size[0] != full_width ||
             m_pathtrace_gpu_image_size[1] != full_height) {
-            const auto allocate_image = [full_width, full_height](unsigned int& tex, GLint internal_format, GLenum type, GLint filter) {
+            gl_out_of_memory();
+            bool images_allocated = true;
+            const auto allocate_image = [full_width, full_height, &images_allocated](unsigned int& tex, GLint internal_format, GLenum type, GLint filter) {
                 if (tex == 0)
                     glsafe(::glGenTextures(1, &tex));
                 glsafe(::glBindTexture(GL_TEXTURE_2D, tex));
@@ -1893,7 +1923,8 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
                 glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter));
                 glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
                 glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-                glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, internal_format, GLsizei(full_width), GLsizei(full_height), 0, GL_RGBA, type, nullptr));
+                ::glTexImage2D(GL_TEXTURE_2D, 0, internal_format, GLsizei(full_width), GLsizei(full_height), 0, GL_RGBA, type, nullptr);
+                images_allocated = !gl_out_of_memory() && images_allocated;
             };
             glsafe(::glActiveTexture(GL_TEXTURE0));
             allocate_image(m_pathtrace_gpu_accumulation_image, GL_RGBA32F, GL_FLOAT, GL_NEAREST);
@@ -1912,6 +1943,8 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
             allocate_image(m_pathtrace_gpu_history_images[2], GL_RGBA16F, GL_FLOAT, GL_NEAREST);
             allocate_image(m_pathtrace_gpu_history_images[3], GL_RGBA8, GL_UNSIGNED_BYTE, GL_NEAREST);
             glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+            if (!images_allocated)
+                return give_up_on_scene("out of GPU memory for the images");
 
             m_pathtrace_gpu_image_size = {full_width, full_height};
             m_pathtrace_gpu_interactive_size = {0, 0};

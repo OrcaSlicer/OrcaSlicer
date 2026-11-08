@@ -2248,7 +2248,7 @@ void PreferencesDialog::create_items()
     //// GRAPHICS > Realistic view
     g_sizer->Add(create_item_title(_L("Realistic View")), 1, wxEXPAND);
 
-    const bool can_pathtrace = wxGetApp().is_gl_version_greater_or_equal_to(4, 3);
+    const bool can_pathtrace = wxGetApp().can_pathtrace();
     std::vector<wxString> ShadingLabels = { _L("Gouraud"),
                                             _L("Phong") };
     std::vector<std::string> ShadingValues = { "gouraud", "phong" };

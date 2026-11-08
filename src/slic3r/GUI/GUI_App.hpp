@@ -847,6 +847,8 @@ public:
 
     bool is_gl_version_greater_or_equal_to(unsigned int major, unsigned int minor) const;
     bool is_glsl_version_greater_or_equal_to(unsigned int major, unsigned int minor) const;
+    // OpenGL 4.3 with the shaders of the path tracer built.
+    bool can_pathtrace();
     int  GetSingleChoiceIndex(const wxString& message, const wxString& caption, const wxArrayString& choices, int initialSelection);
 
     // extend is stl/3mf/gcode/step etc 

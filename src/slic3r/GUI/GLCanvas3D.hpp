@@ -1140,7 +1140,13 @@ public:
     //BBS
     GCodeViewer& get_gcode_viewer() { return m_gcode_viewer; }
     void init_gcode_viewer(ConfigOptionMode mode, Slic3r::PresetBundle* preset_bundle) { m_gcode_viewer.init(mode, preset_bundle); }
-    void reset_gcode_toolpaths() { _set_shown_canvas_current(); m_gcode_viewer.reset(); }
+    void reset_gcode_toolpaths()
+    {
+        const bool gl_current = _set_shown_canvas_current();
+        m_gcode_viewer.reset();
+        // Also while the Preview is hidden, when no frame would free the path traced toolpaths.
+        _release_pathtrace_scene(gl_current);
+    }
     const GCodeViewer::SequentialView& get_gcode_sequential_view() const { return m_gcode_viewer.get_sequential_view(); }
     void update_gcode_sequential_view_current(unsigned int first, unsigned int last) { m_gcode_viewer.update_sequential_view_current(first, last); }
     const libvgcode::Interval& get_gcode_view_full_range() const { return m_gcode_viewer.get_gcode_view_full_range(); }
@@ -1674,8 +1680,11 @@ private:
     void _reset_pathtrace_accumulation();
     void _stop_pathtrace_bvh_worker();
     void _release_pathtrace_gl_resources();
-    // Frees the scene on the CPU and on the GPU, so that it is built anew when next path traced.
-    void _release_pathtrace_scene();
+    // Marks everything on the GPU as never uploaded.
+    void _forget_pathtrace_uploads();
+    // Frees the scene, so that it is built anew when next path traced. Without a current OpenGL context
+    // its GL objects stay until this canvas next renders, which frees or overwrites them.
+    void _release_pathtrace_scene(bool gl_current = true);
     void _render_pathtrace_fps_overlay(ImGuiWrapper& imgui) const;
     void _extract_preview_toolpaths_for_pathtrace(PathTraceBvhJob& job, bool plate_visible, PartPlate* current_plate) const;
     void _extract_prepare_volumes_for_pathtrace(PathTraceBvhJob& job, const std::vector<ColorRGBA>& extruder_colors, bool plate_visible, PartPlateList& plate_list) const;

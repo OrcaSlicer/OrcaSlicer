@@ -127,6 +127,21 @@ TEST_CASE("Path tracer encodes unit vectors in 32 bits", "[PathTracer]")
     REQUIRE_THAT(decoded.z(), Catch::Matchers::WithinAbs(unit.z(), 1e-3));
 }
 
+TEST_CASE("Path tracer packs shading normals only on request", "[PathTracer]")
+{
+    PathTraceTriangle triangle;
+    triangle.a = Vec3f{-1.0f, -1.0f, 0.0f};
+    triangle.b = Vec3f{1.0f, -1.0f, 0.0f};
+    triangle.c = Vec3f{0.0f, 1.0f, 0.0f};
+
+    const PathTraceGpuScene with_normals = build_path_trace_gpu_scene({triangle});
+    REQUIRE(with_normals.normals.size() == with_normals.triangles.size());
+
+    const PathTraceGpuScene without_normals = build_path_trace_gpu_scene({triangle}, nullptr, false);
+    REQUIRE(without_normals.triangles.size() == 1);
+    REQUIRE(without_normals.normals.empty());
+}
+
 TEST_CASE("Path tracer keeps the faces of a mirrored mesh facing outward", "[PathTracer]")
 {
     const float angle = 20.0f * 3.14159265f / 180.0f;

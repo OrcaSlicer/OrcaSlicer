@@ -1283,6 +1283,7 @@ GLShaderProgram* GUI_App::get_current_shader() { return m_opengl_mgr->get_curren
 
 bool GUI_App::is_gl_version_greater_or_equal_to(unsigned int major, unsigned int minor) const { return m_opengl_mgr->get_gl_info().is_version_greater_or_equal_to(major, minor); }
 bool GUI_App::is_glsl_version_greater_or_equal_to(unsigned int major, unsigned int minor) const { return m_opengl_mgr->get_gl_info().is_glsl_version_greater_or_equal_to(major, minor); }
+bool GUI_App::can_pathtrace() { return is_gl_version_greater_or_equal_to(4, 3) && get_shader("pathtrace_compute") != nullptr && get_shader("pathtrace_denoise") != nullptr; }
 
 void GUI_App::shutdown()
 {
