@@ -1538,3 +1538,43 @@ TEST_CASE("Seam extraction preserves unknown boundary roles for open extrusion p
     REQUIRE(perimeters.size() == 1);
     CHECK(perimeters.front().contour_reliable == !open);
 }
+
+TEST_CASE("Seams are picked on every object when the seam map rehashes as init() adds the objects", "[SeamPlacer]")
+{
+    // init() adds an entry to m_seam_per_object for each object and keeps a pointer to it, which the objects' workers
+    // pick the seams through. Random seams are picked by the workers alone, and they finalize every loop.
+    // Sixteen objects: with one entry, the map has 13 buckets on libstdc++ and 8 on MSVC.
+    const size_t object_count = 16;
+    std::vector<TriangleMesh> meshes;
+    for (size_t i = 0; i < object_count; ++ i)
+        meshes.emplace_back(its_make_cube(10, 10, 1));
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict("seam_position", "random"); // Random needs no visibility ray tracing.
+    Model model;
+    Print print;
+    Test::init_print(std::move(meshes), print, model, config);
+    REQUIRE(print.objects().size() == object_count);
+    print.process();
+
+    SeamPlacer placer;
+    placer.init(print, [] {});
+
+    // init() took the first pointer when the map held one entry. It has more buckets now, so it rehashed meanwhile.
+    decltype(placer.m_seam_per_object) one_entry;
+    one_entry[nullptr];
+    REQUIRE(placer.m_seam_per_object.bucket_count() > one_entry.bucket_count());
+
+    size_t loops = 0, picked = 0;
+    for (const PrintObject *object : print.objects()) {
+        const std::vector<PrintObjectSeamData::LayerSeams> &layers = placer.m_seam_per_object.at(object).layers;
+        REQUIRE(layers.size() == object->layers().size());
+        for (const PrintObjectSeamData::LayerSeams &layer : layers)
+            for (const SeamPlacerImpl::Perimeter &perimeter : layer.perimeters) {
+                ++ loops;
+                if (perimeter.finalized)
+                    ++ picked;
+            }
+    }
+    REQUIRE(loops >= object_count);
+    CHECK(picked == loops);
+}
