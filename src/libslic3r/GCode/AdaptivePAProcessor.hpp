@@ -68,7 +68,15 @@ public:
      * @return Empty string if valid, or an error message describing the first issue found
      */
     static std::string validate_adaptive_pa_model(const std::string& model_str);
-    
+
+    /**
+     * @brief Tells whether a model string holds any measurement.
+     *
+     * The default model is a placeholder of zeros, so a filament whose model is blank or
+     * all zeros has no measurements to interpolate from.
+     */
+    static bool adaptive_pa_model_has_measurements(const std::string& model_str);
+
 private:
     GCode &m_gcodegen; ///< Reference to the GCode object.
     std::unordered_map<unsigned int, std::unique_ptr<AdaptivePAInterpolator>> m_AdaptivePAInterpolators; ///< Map between Interpolator objects and filament config indices (null when adaptive PA is off)

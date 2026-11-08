@@ -835,7 +835,10 @@ void PhysicalPrinterDialog::check_host_key_valid()
 
 void PhysicalPrinterDialog::OnOK(wxEvent& event)
 {
-    wxGetApp().get_tab(Preset::TYPE_PRINTER)->save_preset("", false, false, true, m_preset_name);
+    // Keep this dialog open when the save was cancelled (e.g. the unresolved-plugin warning), or it
+    // would close as if the physical printer's preset had been saved.
+    if (!wxGetApp().get_tab(Preset::TYPE_PRINTER)->save_preset("", false, false, true, m_preset_name))
+        return;
     event.Skip();
 }
 
