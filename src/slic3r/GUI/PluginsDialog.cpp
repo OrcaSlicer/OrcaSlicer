@@ -721,7 +721,8 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"permissions_fs_readwrite", _u8L("File system read and write")},
         {"permissions_network_http", _u8L("HTTP network")},
         {"permissions_network_socket", _u8L("Network sockets")},
-        {"permissions_process", _u8L("Processes")},
+        // TRN Operating system processes a plugin may start, not print process presets.
+        {"permissions_process", _u8L_CONTEXT("Processes", "Permission category")},
         {"permissions_threading", _u8L("Threading")},
         {"permissions_events", _u8L_CONTEXT("Events", "Permission category")},
         {"permissions_filesystem_help", _u8L("Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. A read/write grant can create files through open(), but it does not cover create or delete events such as os.mkdir and os.remove. Without Full access, each such event outside allowed folders needs its own approval, which is never saved. When a plugin runs in the background, these events are denied without asking.")},
@@ -731,7 +732,6 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"permissions_filesystem_placeholder", _u8L("/path/to/directory/*")},
 #endif
         {"permissions_network_access_guidance", _u8L("Enter a full http:// or https:// URL; only its scheme and host are saved, so the grant covers every port, path, and query on that host. A network socket grant also accepts a bare host name or IP address, with or without a port, and covers every port on that host. Other schemes are not accepted. Grants in either list are checked for HTTP and socket access.")},
-        {"permissions_network_placeholder", _u8L("https://example.com")},
         {"permissions_process_help", _u8L("Enter the exact value recorded by the audit. It may be a Python representation of the command.")},
         {"permissions_process_placeholder", _u8L("Exact audited value")},
         {"permissions_threading_help_short", _u8L("Allow this plugin to create threads.")},
