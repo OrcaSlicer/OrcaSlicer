@@ -8,13 +8,38 @@
 #include "CameraPopup.hpp"
 #include "GUI.hpp"
 #include "ThermalPreconditioningDialog.hpp"
+#include <string>
+#include <vector>
+#include <set>
+#include <utility>
+#include <functional>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/event.h>
+#include <wx/colour.h>
+#include <wx/gdicmn.h>
+#include <ctime>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <unordered_map>
+#include <unordered_set>
+#include "slic3r/GUI/wxMediaCtrl3.h"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <nlohmann/json.hpp>
+#include <boost/date_time/posix_time/ptime.hpp>
+#include <map>
+#include "libslic3r/calib.hpp"
+#include "slic3r/GUI/Event.hpp"
+#include <optional>
 #include <wx/panel.h>
 #include <wx/bitmap.h>
 #include <wx/image.h>
+#include <wx/scrolwin.h>
+#include <wx/simplebook.h>
 #include <wx/sizer.h>
 #include <wx/gbsizer.h>
+#include <wx/string.h>
 #include <wx/webrequest.h>
 #include <memory>
+#include <wx/webview.h>
 #include "MediaPlayCtrl.h"
 #include "WebMediaController.hpp"
 #include "AMSSetting.hpp"
@@ -146,7 +171,7 @@ public:
     std::string current_nozzle_loc = "";
     wxColour m_colour;
 
-    string m_file_name;
+    std::string m_file_name;
     bool   m_ams_loading{false};
     void   doRender(wxDC &dc);
     ExtruderImage(wxWindow *parent, wxWindowID id, int nozzle_num, const wxPoint &pos = wxDefaultPosition, const wxSize &size = wxDefaultSize);
@@ -219,7 +244,7 @@ protected:
     {
         wxString          local_image_url; //local image path
         std::string       img_url_paths; // oss url path
-        vector<wxPanel *> image_broad;
+        std::vector<wxPanel *> image_broad;
         bool              is_selected;
         bool              is_uploaded; // load
         wxBoxSizer *      image_tb_broad = nullptr;
@@ -442,7 +467,7 @@ protected:
     wxStaticBitmap *m_bitmap_sdcard_img;
     wxStaticBitmap *m_bitmap_static_use_time;
     wxStaticBitmap *m_bitmap_static_use_weight;
-    // wxStaticBitmap* m_camera_switch_button;
+    wxStaticBitmap* m_camera_switch_button;
 
 
     wxMediaCtrl3 *  m_media_ctrl;
@@ -465,6 +490,7 @@ protected:
     Button *        m_button_clean;
     wxWebView *     m_custom_camera_view{nullptr};
     std::unique_ptr<WebMediaController> m_web_media_controller;
+    bool            m_custom_camera_applied{false};
 
     wxSimplebook*   m_extruder_book;
     std::vector<ExtruderImage *> m_extruderImage;
@@ -581,8 +607,6 @@ protected:
     virtual void on_axis_ctrl_e_up_10(wxCommandEvent &event) { event.Skip(); }
     virtual void on_axis_ctrl_e_down_10(wxCommandEvent &event) { event.Skip(); }
     virtual void on_nozzle_selected(wxCommandEvent &event) { event.Skip(); }
-    void remove_controls();
-    void on_webview_navigating(wxWebViewEvent& evt);
 
 public:
     StatusBasePanel(wxWindow *      parent,
@@ -617,11 +641,15 @@ public:
     void           show_ams_group(bool show = true);
     void show_filament_load_group(bool show = true);
     MediaPlayCtrl* get_media_play_ctrl() {return m_media_play_ctrl;};
+    void apply_custom_camera_source(const std::string& url);
+    void sync_custom_camera_source(const std::string& url);
 
     void jump_to_Rack();
 
 private:
     void on_ams_rack_switch(wxCommandEvent& event);
+    void show_custom_camera(const std::string& url);
+    void on_camera_switch_toggled(wxMouseEvent& event);
 };
 
 
@@ -666,7 +694,7 @@ protected:
     int          m_last_vcamera   = -1;
     int          m_model_mall_request_count = 0;
     bool         m_is_load_with_temp = false;
-    json         m_rating_result;
+    nlohmann::json m_rating_result;
 
     wxWebRequest web_request;
     bool bed_temp_input    = false;
@@ -753,6 +781,7 @@ protected:
     void on_switch_vcamera(wxMouseEvent &event);
     void on_camera_enter(wxMouseEvent &event);
     void on_camera_leave(wxMouseEvent& event);
+    void on_camera_source_change(wxCommandEvent& event);
     void on_auto_leveling(wxCommandEvent &event);
     void on_xyz_abs(wxCommandEvent &event);
 

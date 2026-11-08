@@ -11,12 +11,14 @@
 #include <regex>
 #include <memory>
 #include <map>
+#include <unordered_map>
 #include "AdaptivePAInterpolator.hpp"
 
 namespace Slic3r {
 
 // Forward declaration of GCode class
 class GCode;
+class PrintConfig;
 
 /**
  * @brief Class for processing G-code layers with adaptive pressure advance.
@@ -66,7 +68,15 @@ public:
      * @return Empty string if valid, or an error message describing the first issue found
      */
     static std::string validate_adaptive_pa_model(const std::string& model_str);
-    
+
+    /**
+     * @brief Tells whether a model string holds any measurement.
+     *
+     * The default model is a placeholder of zeros, so a filament whose model is blank or
+     * all zeros has no measurements to interpolate from.
+     */
+    static bool adaptive_pa_model_has_measurements(const std::string& model_str);
+
 private:
     GCode &m_gcodegen; ///< Reference to the GCode object.
     std::unordered_map<unsigned int, std::unique_ptr<AdaptivePAInterpolator>> m_AdaptivePAInterpolators; ///< Map between Interpolator objects and filament config indices (null when adaptive PA is off)
@@ -75,7 +85,9 @@ private:
     double m_max_next_feedrate; ///< Maximum feed rate (speed) for the upcomming island. If no speed is found, the previous island speed is used.
     double m_next_feedrate; ///< First feed rate (speed) for the upcomming island.
     double m_current_feedrate; ///< Current, latest feedrate.
+    double m_modal_feedrate; ///< Feedrate the last move with an F word set, travels and wipes included: what an extrusion without its own G1 F runs at.
     int m_last_config_index; ///< Filament config index of the last PA_CHANGE tag.
+    bool m_enabled{false}; ///< Whether any filament config index has both PA and adaptive PA on, the only ones that emit PA_CHANGE tags.
 
     std::regex m_pa_change_pattern; ///< Regular expression to detect PA_CHANGE pattern.
     std::regex m_g1_f_pattern; ///< Regular expression to detect G1 F pattern.

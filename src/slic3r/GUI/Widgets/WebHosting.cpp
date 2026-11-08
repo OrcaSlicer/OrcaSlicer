@@ -6,6 +6,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include <wx/string.h>
 #include <wx/uri.h>
 
 namespace Slic3r { namespace GUI { namespace web_hosting {

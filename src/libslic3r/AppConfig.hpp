@@ -5,14 +5,14 @@
 #include <chrono>
 #include <map>
 #include <string>
-#include "nlohmann/json.hpp"
+#include "LocalesUtils.hpp"
 #include <boost/algorithm/string/trim_all.hpp>
+#include <utility>
+#include <vector>
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Semver.hpp"
 #include "calib.hpp"
-
-using namespace nlohmann;
 
 #define ENV_DEV_HOST		"0"
 #define ENV_QAT_HOST		"1"
@@ -37,13 +37,20 @@ using namespace nlohmann;
 #define SETTING_OPENGL_SCENE_CACHE "opengl_scene_cache"
 #define SETTING_OPENGL_SKIP_IDENTICAL_FRAMES "opengl_skip_identical_frames"
 #define SETTING_OPENGL_SHOW_FPS_OVERLAY "opengl_show_fps_overlay"
+#define SETTING_OPENGL_SHOW_RENDER_TIMINGS "opengl_show_render_timings"
 #define SETTING_OPENGL_REALISTIC_MODE "opengl_realistic_mode"
 #define SETTING_OPENGL_REALISTIC_PHONG "opengl_realistic_phong"
 #define SETTING_OPENGL_SHADING_MODEL "opengl_shading_model"
 #define SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS "opengl_phong_basic_plate_shadows"
+// off, static (light fixed in the world) or orbit (light turning with the camera)
+#define SETTING_OPENGL_REALISTIC_SHADOWS "opengl_realistic_shadows"
 #define SETTING_OPENGL_PHONG_SSAO "opengl_phong_ssao"
 #define SETTING_OPENGL_PHONG_SMOOTH_NORMALS "opengl_phong_smooth_normals"
 #define SETTING_OPENGL_REALISTIC_PREVIEW "opengl_realistic_preview"
+#define SETTING_OPENGL_REALISTIC_GLOSS "opengl_realistic_gloss"
+#define SETTING_OPENGL_OUTLINE_PERSISTENT "opengl_outline_persistent"
+#define SETTING_OPENGL_OUTLINE_COLOR "opengl_outline_color"
+#define SETTING_OPENGL_SELECTION_OUTLINE_COLOR "opengl_selection_outline_color"
 
 #define SETTING_PLUGIN_PAGES_VISIBLE_COUNT "plugin_pages_visible_count"
 #define PLUGIN_PAGES_VISIBLE_COUNT_MIN 1
@@ -156,10 +163,16 @@ public:
 		{ std::string value; this->get(section, key, value); return value; }
 	std::string 		get(const std::string &key) const
 		{ std::string value; this->get("app", key, value); return value; }
+	// The spellings a boolean has in a saved configuration ("1" is the legacy form).
+	static bool			is_true(const std::string &value) { return value == "true" || value == "1"; }
 	bool				get_bool(const std::string &section, const std::string &key) const
-		{ return this->get(section, key) == "true" || this->get(key) == "1"; }
+		{ return is_true(this->get(section, key)); }
 	bool				get_bool(const std::string &key) const
 		{ return this->get_bool("app", key); }
+	// Reads one "app" boolean straight from the editor configuration saved in data_dir, for the
+	// few settings that must act before the configuration is loaded. False when the file is
+	// missing, unreadable or has no such key.
+	static bool			peek_bool(const std::string &data_dir, const std::string &key);
 	void			    set(const std::string &section, const std::string &key, const std::string &value)
 	{
 #ifndef NDEBUG
@@ -193,6 +206,9 @@ public:
 			m_dirty = true;
 		}
 	}
+
+	void                set(const std::string& section, const std::string& key, const char* value)
+		{ this->set(section, key, std::string(value)); }
 
 	void				set(const std::string& section, const std::string &key, bool value)
 	{
@@ -250,7 +266,7 @@ public:
 	const VendorMap&    vendors() const { return m_vendors; }
 
 	// Orca printer settings
-    typedef std::map<std::string, nlohmann::json> MachineSettingMap;
+    typedef std::map<std::string, std::map<std::string, std::string>> MachineSettingMap;
     bool has_printer_settings(std::string printer) const {
         return m_printer_settings.find(printer) != m_printer_settings.end();
     }
@@ -261,9 +277,7 @@ public:
     bool has_printer_setting(std::string printer, std::string name) {
         if (!has_printer_settings(printer))
             return false;
-        if (!m_printer_settings[printer].contains(name))
-            return false;
-        return true;
+        return m_printer_settings[printer].count(name) != 0;
     }
     std::string get_printer_setting(std::string printer, std::string name) {
         if (!has_printer_setting(printer, name))
@@ -298,6 +312,8 @@ public:
             m_dirty = true;
         }
     }
+
+    void clear_local_machine_access_code(const std::string& dev_id, const std::string& agent_id);
 
     const std::vector<std::string> &get_filament_presets() const { return m_filament_presets; }
     void set_filament_presets(const std::vector<std::string> &filament_presets){
@@ -344,6 +360,8 @@ public:
 
 	// Get the default config path from Slic3r::data_dir().
 	std::string			config_path();
+	// The configuration file of the given mode inside data_dir.
+	static std::string	config_path(const std::string &data_dir, EAppMode mode);
 	// Lock file guarding config_path() against other running instances; empty without a data dir.
 	std::string			lock_path();
 

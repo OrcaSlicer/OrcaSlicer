@@ -1,10 +1,17 @@
 #include "../ClipperUtils.hpp"
 #include "../Print.hpp"
-#include "../ShortestPath.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Fill/Lightning/Layer.hpp"
 #include "FillBase.hpp"
 #include "FillCornerSmoothing.hpp"
 #include "FillLightning.hpp"
 #include "Lightning/Generator.hpp"
+#include <utility>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/libslic3r.h"
+#include <algorithm>
+#include <functional>
 
 namespace Slic3r::FillLightning {
 
@@ -29,12 +36,13 @@ void Filler::_fill_surface_single(
     const double branch_width   = scaled<double>(this->spacing) * params.multiline;
     const double branch_spacing = branch_width / std::max(double(params.density), EPSILON);
     const double max_reach      = 0.5 * (params.multiline > 1 ? branch_width : branch_spacing);
-    smooth_polylines_corners(fill_lines, params.smooth_factor, scaled<double>(params.resolution), max_reach);
+    smooth_polylines_corners(fill_lines, params.corner_smoothing(), max_reach);
 
     // Apply multiline offset if needed
     multiline_fill(fill_lines, params, spacing);
 
     fill_lines = Slic3r::intersection_pl(std::move(fill_lines), expolygon);
+    join_cut_outlines(fill_lines, params);
 
     chain_or_connect_infill(std::move(fill_lines), expolygon, polylines_out, this->spacing, params);
 }

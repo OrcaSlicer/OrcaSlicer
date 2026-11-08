@@ -4,9 +4,19 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/program_options.hpp>
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/value_semantic.hpp>
+#include <boost/program_options/variables_map.hpp>
+#include <boost/program_options/errors.hpp>
+#include <exception>
+#include <cstddef>
 #include <iostream>
+#include <memory>
+#include "libslic3r/Config.hpp"
 
 using namespace Slic3r;
 namespace fs = boost::filesystem;

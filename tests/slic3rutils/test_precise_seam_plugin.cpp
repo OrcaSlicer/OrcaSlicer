@@ -1,11 +1,17 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/Model.hpp"
 #include "libslic3r/TriangleMesh.hpp"
+#include <pybind11/gil.h>
+#include <pybind11/pytypes.h>
+#include <pybind11/cast.h>
 #include "python_test_support.hpp"
 
 #include <pybind11/embed.h>
 #include <array>
+#include <pybind11/detail/common.h>
+#include <pybind11/pybind11.h>
 
 namespace py = pybind11;
 using namespace Slic3r;

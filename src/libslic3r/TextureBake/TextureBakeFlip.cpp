@@ -1,13 +1,20 @@
 #include "TextureBakeFlip.hpp"
+#include "libslic3r/TextureBake/TextureBakeIndex.hpp"
+#include "libslic3r/TextureBake/TextureBakeDisplace.hpp"
+#include "libslic3r/Point.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
+#include <cstddef>
 #include <limits>
 
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_sort.h>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 namespace TextureBake {

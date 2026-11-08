@@ -1,12 +1,51 @@
 #include "Utils.hpp"
+#include "Exception.hpp"
 #include "I18N.hpp"
 
 #include <atomic>
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/log/sinks/sync_frontend.hpp>
+#include <boost/log/keywords/severity.hpp>
+#include <boost/dll/runtime_symbol_info.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/exception.hpp>
+#include <boost/system/error_code.hpp>
+#include <cstdio>
+#include <boost/log/keywords/file_name.hpp>
+#include <boost/log/keywords/rotation_size.hpp>
+#include <boost/log/keywords/format.hpp>
+#include <boost/log/expressions/formatters/stream.hpp>
+#include <boost/log/expressions/attr.hpp>
+#include <boost/log/expressions/formatters/date_time.hpp>
+#include <boost/date_time/posix_time/ptime.hpp>
+#include <boost/log/attributes/current_thread_id.hpp>
+#include <boost/log/expressions/message.hpp>
+#include <boost/log/keywords/auto_flush.hpp>
+#include <initializer_list>
+#include <boost/filesystem/file_status.hpp>
+#include <cstdint>
+#include <boost/filesystem/directory.hpp>
+#include <fstream>
+#include <iosfwd>
+#include <cstring>
+#include <cassert>
+#include <boost/locale/conversion.hpp>
+#include <iterator>
+#include <functional>
+#include <exception>
 #include <locale>
 #include <ctime>
 #include <cstdarg>
 #include <iostream>
+#include <map>
+#include <openssl/md5.h>
+#include <set>
 #include <stdio.h>
+#include <cstdlib>
+#ifndef _WIN32
+#include <pwd.h>
+#include <unistd.h>
+#endif
 #include <filesystem>
 #include <sstream>
 #include <cerrno>
@@ -14,15 +53,21 @@
 #include <iomanip>
 #include <algorithm>
 #include <cmath>
+#include <string>
+#include <system_error>
+#include <string_view>
+#include <vector>
+#include <regex>
 
+#include "Semver.hpp"
 #include "format.hpp"
 #include "Platform.hpp"
-#include "Time.hpp"
 #include "libslic3r.h"
 // For the vendor-installation helpers: the vendor profile version
 // (get_version_from_json) and the preset cache stamp (VendorCacheFile).
 #include "Preset.hpp"
 #include "PresetCacheFormat.hpp"
+#include "libslic3r_version.h"
 
 #ifdef __APPLE__
 #include "MacUtils.hpp"
@@ -82,6 +127,9 @@
 // We are using quite an old TBB 2017 U7, which does not support global control API officially.
 // Before we update our build servers, let's use the old API, which is deprecated in up to date TBB.
 #include <tbb/tbb.h>
+#include <string.h>
+
+namespace boost::posix_time { class ptime; }
 #if ! defined(TBB_VERSION_MAJOR)
     #include <tbb/version.h>
 #endif
@@ -326,6 +374,44 @@ const std::string& data_dir()
     return g_data_dir;
 }
 
+#ifndef _WIN32
+std::string xdg_config_dir(const std::string &app_name)
+{
+    std::string base;
+    if (const char *xdg = ::getenv("XDG_CONFIG_HOME"); xdg != nullptr && *xdg != '\0') {
+        base = xdg;
+    } else {
+        // The same chain as wxGetHomeDir(): $HOME, then the passwd entry of $USER / $LOGNAME,
+        // then the one of the real uid.
+        const char *home = ::getenv("HOME");
+        if (home == nullptr) {
+            const passwd *pw = nullptr;
+            for (const char *var : {"USER", "LOGNAME"})
+                if (const char *user = ::getenv(var); user != nullptr && (pw = ::getpwnam(user)) != nullptr)
+                    break;
+            if (pw == nullptr)
+                pw = ::getpwuid(::getuid());
+            if (pw != nullptr)
+                home = pw->pw_dir;
+        }
+        base = std::string(home != nullptr ? home : "") + "/.config";
+    }
+    return base + "/" + app_name;
+}
+#endif
+
+#ifdef __linux__
+std::string default_data_dir()
+{
+    // Runs before any error handling is in place, so a lookup that fails only means no portable dir.
+    boost::system::error_code ec;
+    const boost::filesystem::path portable = boost::dll::program_location(ec).parent_path() / "data_dir";
+    if (!ec && boost::filesystem::exists(portable, ec))
+        return portable.string();
+    return xdg_config_dir(SLIC3R_APP_KEY);
+}
+#endif
+
 std::string custom_shapes_dir()
 {
     return (boost::filesystem::path(g_data_dir) / "shapes").string();
@@ -364,7 +450,6 @@ std::string debug_out_path(const char *name, ...)
 }
 
 namespace logging = boost::log;
-namespace src = boost::log::sources;
 namespace expr = boost::log::expressions;
 namespace keywords = boost::log::keywords;
 namespace attrs = boost::log::attributes;
@@ -852,7 +937,6 @@ int copy_file_linux_read_write(int infile, int outfile, uintmax_t file_size)
 // and only features supported by Linux 3.10 (on our build server with CentOS 7) are kept, namely sendfile with ranges and statx() are not supported.
 bool copy_file_linux(const boost::filesystem::path &from, const boost::filesystem::path &to, boost::system::error_code &ec)
 {
-	using namespace boost::filesystem;
 
 	struct fd_wrapper
 	{
@@ -1706,9 +1790,7 @@ std::string format_diameter_to_str(double diameter, int precision)
     return oss.str();
 }
 
-// Returns platform-specific string to be used as log output or parsed in SysInfoDialog.
-// The latter parses the string with (semi)colons as separators, it should look about as
-// "desc1: value1; desc2: value2" or similar (spaces should not matter).
+// Returns platform-specific string to be used as log output.
 std::string log_memory_info(bool ignore_loglevel)
 {
     std::string out;
@@ -1912,7 +1994,7 @@ void copy_directory_recursively(const boost::filesystem::path& source,
             if (cfr != CopyFileResult::SUCCESS) {
                 BOOST_LOG_TRIVIAL(error) << "Copying failed(" << cfr << "): " << error_message;
                 throw Slic3r::CriticalException(Slic3r::format(
-                    ("Copying directory %1% to %2% failed: %3%"),
+                    _u8L("Copying directory %1% to %2% failed: %3%"),
                     source, target, error_message));
             }
         }
@@ -1988,7 +2070,9 @@ static Semver installable_cache_version(const boost::filesystem::path& dir, cons
     const auto cache_ver = Semver::parse(VendorCacheFile::peek_version((dir / (vendor + ".opc")).string(), vendor));
     if (! cache_ver)
         return Semver::invalid();
-    const Semver profile_ver = get_version_from_json((dir / (vendor + ".json")).string());
+    // Packaging prunes the profile of every vendor that ships a cache.
+    const boost::filesystem::path json = dir / (vendor + ".json");
+    const Semver profile_ver = boost::filesystem::exists(json) ? get_version_from_json(json.string()) : Semver();
     return cache_covers(*cache_ver, profile_ver) ? *cache_ver : Semver::invalid();
 }
 
@@ -2218,5 +2302,69 @@ bool check_layer_id_pattern(const std::string& pattern, int layer_id){
     return mod >= 0 && mod < count;
 }
 
+boost::filesystem::path extended_path(const boost::filesystem::path& path) {
+#ifdef WIN32
+    namespace fs = boost::filesystem;
+
+    // Already extended, or an explicit device path (which is not subject to MAX_PATH and must not
+    // be absolutized or normalized): leave it alone.
+    {
+        fs::path prefix_candidate = path;
+        const std::wstring native = prefix_candidate.make_preferred().wstring();
+        if (native.rfind(L"\\\\?\\", 0) == 0 || native.rfind(L"\\\\.\\", 0) == 0)
+            return fs::path(native);
+    }
+
+    fs::path absolute = path;
+    if (!absolute.is_absolute()) {
+        boost::system::error_code ec;
+        absolute = fs::absolute(absolute, ec);
+        if (ec)
+            return path; // can't form a valid prefixed path from a relative one
+    }
+
+    // A trailing separator is redundant to the Win32 APIs, but lexically_normal() would rewrite it
+    // as a "." element, which the "\\?\" prefix (normalisation off) takes literally. Drop it first.
+    while (absolute.has_relative_path() && absolute.filename() == ".")
+        absolute = absolute.parent_path();
+
+    // The "\\?\" prefix turns off Win32 normalisation, so do it here first.
+    absolute = absolute.lexically_normal();
+
+    // Extended paths only recognize backslash separators.
+    const std::wstring native = absolute.make_preferred().wstring();
+    if (native.empty())
+        return path;
+    if (native.rfind(L"\\\\", 0) == 0)
+        return fs::path(L"\\\\?\\UNC\\" + native.substr(2)); // \\server\share\... -> \\?\UNC\server\share\...
+    return fs::path(L"\\\\?\\" + native);                    // C:\dir\... -> \\?\C:\dir\...
+#else
+    return path;
+#endif
+}
+
+bool is_printables_link(const std::string& url)
+{
+    const std::regex url_regex("(http|https)://printables.com", std::regex_constants::icase);
+    return std::regex_match(url, url_regex);
+}
+
+bool is_makerworld_link(const std::string& url)
+{
+    const std::regex url_regex("(http|https)://makerworld.com", std::regex_constants::icase);
+    return std::regex_match(url, url_regex);
+}
+
+bool is_thingiverse_link(const std::string& url)
+{
+    const std::regex url_regex("(http|https)://www.thingiverse.com", std::regex_constants::icase);
+    return std::regex_match(url, url_regex);
+}
+
+std::string sanitize_filename(const std::string &filename)
+{
+    const std::regex special_chars("[/\\\\:*?\"<>|]");
+    return std::regex_replace(filename, special_chars, "_");
+}
 
 }; // namespace Slic3r

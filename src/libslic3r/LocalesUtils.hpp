@@ -1,6 +1,7 @@
 #ifndef slic3r_LocalesUtils_hpp_
 #define slic3r_LocalesUtils_hpp_
 
+#include <cstddef>
 #include <string>
 #include <clocale>
 #include <iomanip>
@@ -47,6 +48,9 @@ bool is_decimal_separator_point();
 std::string float_to_string_decimal_point(double value, int precision = -1);
 //std::string float_to_string_decimal_point(float value,  int precision = -1);
 double string_to_double_decimal_point(const std::string_view str, size_t* pos = nullptr);
+// Parses like atof in the C locale, skipping leading whitespace and a '+',
+// without the C runtime's per-call locale lookup.
+double atof_decimal_point(std::string_view str);
 
 } // namespace Slic3r
 

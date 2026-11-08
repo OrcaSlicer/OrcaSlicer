@@ -1,11 +1,19 @@
 #include "TextureBakeDebug.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/TextureBake/TextureBakeIndex.hpp"
 
 #include <algorithm>
+#include <boost/filesystem/operations.hpp>
+#include <cctype>
 #include <cinttypes>
+#include <cstdint>
 #include <cstdio>
 
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
+#include <vector>
+#include <utility>
+#include <string>
 
 namespace Slic3r {
 

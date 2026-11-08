@@ -1,5 +1,6 @@
 #include <catch2/catch_all.hpp>
 
+#include <cstddef>
 #include <numeric>
 #include <stdexcept>
 #include <thread>
@@ -9,6 +10,7 @@
 #include <tbb/parallel_for.h>
 #include <tbb/task_group.h>
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/ParallelResolve.hpp"
 
 using namespace Slic3r;

@@ -11,7 +11,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 #include "../Point.hpp"

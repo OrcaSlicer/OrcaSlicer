@@ -1,6 +1,7 @@
 #ifndef SLA_SUPPORTTREE_HPP
 #define SLA_SUPPORTTREE_HPP
 
+#include <math.h>
 #include <vector>
 #include <memory>
 #include <Eigen/Geometry>

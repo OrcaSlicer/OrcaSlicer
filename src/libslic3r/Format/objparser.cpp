@@ -1,8 +1,16 @@
+#include <cassert>
+#include <memory>
+#include <cstdio>
+#include <new>
+#include <istream>
 #include <stdlib.h>
 #include <string.h>
 
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/cstdio.hpp>
+#include <string>
+#include <vector>
+#include <utility>
 
 #include "objparser.hpp"
 

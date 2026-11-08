@@ -1,8 +1,18 @@
 #include "TextureLibrary.hpp"
 
 #include <algorithm>
+#include <atomic>
+#include <boost/filesystem/operations.hpp>
+#include <cstddef>
+#include <boost/filesystem/directory.hpp>
+#include <cstdint>
 #include <fstream>
+#include <ios>
+#include <iterator>
 #include <limits>
+#include <string>
+#include <optional>
+#include <memory>
 #include <unordered_map>
 
 #include <boost/algorithm/string/case_conv.hpp>
@@ -11,10 +21,15 @@
 #include <boost/nowide/fstream.hpp>
 #include <boost/system/error_code.hpp>
 
+#include <vector>
+#include <wx/app.h>
+#include <wx/gdicmn.h>
+#include <utility>
 #include <wx/image.h>
 #include <wx/mstream.h>
 
 #include "libslic3r/PNGReadWrite.hpp"
+#include "libslic3r/TextureDisplacement.hpp"
 #include "libslic3r/Utils.hpp"
 
 #include "libslic3r/AppConfig.hpp"
@@ -22,6 +37,9 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
+
+#include "slic3r/plugin/PluginFsUtils.hpp"
+#include "slic3r/plugin/host/PluginResourceTextures.hpp"
 
 namespace Slic3r::GUI {
 
@@ -37,7 +55,7 @@ bool is_image_file(const boost::filesystem::path &path)
     return ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp";
 }
 
-void scan_dir(const boost::filesystem::path &dir, bool is_user, std::vector<TextureLibraryEntry> &out)
+void scan_dir(const boost::filesystem::path &dir, TextureSource source, std::vector<TextureLibraryEntry> &out)
 {
     boost::system::error_code ec;
     if (!boost::filesystem::is_directory(dir, ec))
@@ -47,10 +65,41 @@ void scan_dir(const boost::filesystem::path &dir, bool is_user, std::vector<Text
     for (boost::filesystem::directory_iterator it(dir, ec), end; it != end && !ec; it.increment(ec)) {
         if (!boost::filesystem::is_regular_file(it->path(), ec) || !is_image_file(it->path()))
             continue;
-        out.push_back({ it->path().stem().string(), it->path().string(), is_user });
+        out.push_back({ it->path().stem().string(), it->path().string(), source });
     }
     std::sort(out.begin() + first, out.end(),
               [](const TextureLibraryEntry &a, const TextureLibraryEntry &b) { return a.name < b.name; });
+}
+
+// Appends every loaded pack's textures, ordered by the pack's display name and then by file name. Each
+// entry carries the contributing pack's display name, which the picker uses to group a pack's textures
+// into one section; a pack name is unique among loaded packs of this capability type, so the name both
+// groups the section and keeps its entries contiguous. A pack whose directory fails validation is
+// skipped, so one bad pack never hides the others.
+void scan_plugin_textures(std::vector<TextureLibraryEntry> &out)
+{
+    std::vector<TextureLibraryEntry> found;
+    for (const ResourceTextureEntry &pack : PluginResourceTextures::instance().entries()) {
+        std::string                    error;
+        const std::vector<std::string> files =
+            collect_resource_texture_files(pack.texture_dir, pack.plugin_root, error);
+        if (!error.empty()) {
+            BOOST_LOG_TRIVIAL(warning) << "Texture pack '" << pack.display_name << "' was skipped: " << error;
+            continue;
+        }
+        for (const std::string &file : files) {
+            const boost::filesystem::path path(file);
+            found.push_back({ path.stem().string(), file, TextureSource::Plugin, pack.display_name });
+        }
+    }
+
+    std::stable_sort(found.begin(), found.end(), [](const TextureLibraryEntry &a, const TextureLibraryEntry &b) {
+        if (a.pack_name != b.pack_name)
+            return a.pack_name < b.pack_name;
+        return a.name < b.name;
+    });
+    for (TextureLibraryEntry &entry : found)
+        out.push_back(std::move(entry));
 }
 
 // True if the image carries any colour at all, i.e. some pixel's channels are not all equal. A
@@ -146,33 +195,84 @@ bool encode_png_bytes(const wxImage &image, std::vector<unsigned char> &out, std
                                   : encode_gray_png_bytes(image, out, error);
 }
 
+// A wxImage over decoded pixels, so the encoders above can be reached from an in-memory image as well as
+// from a file. Grayscale is expanded to the three equal channels wxImage always stores, which is what
+// image_has_color() then reads as "no colour" - so a grey image still encodes as a grayscale PNG.
+//
+// `scratch` holds the pixel buffer: the wxImage is constructed over it without taking ownership, so it
+// has to outlive every use of the returned image.
+wxImage image_from_decoded(const DecodedHeightTexture &image, std::vector<unsigned char> &scratch)
+{
+    if (image.empty())
+        return wxImage();
+
+    const size_t n = size_t(image.width) * size_t(image.height);
+    scratch.resize(n * 3);
+    if (image.has_color())
+        scratch.assign(image.rgb.begin(), image.rgb.end());
+    else
+        for (size_t i = 0; i < n; ++i)
+            scratch[i * 3] = scratch[i * 3 + 1] = scratch[i * 3 + 2] = image.pixels[i];
+
+    return wxImage(image.width, image.height, scratch.data(), /* static_data */ true);
+}
+
 std::vector<unsigned char> read_file_bytes(const std::string &path)
 {
     std::ifstream ifs(path, std::ios::binary);
     return std::vector<unsigned char>(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
 }
 
-// True if these bytes are a PNG libslic3r can decode, i.e. can be stored on a layer as-is. Mirrors
-// exactly what decode_height_texture() accepts: 8-bit grayscale, or 8-bit colour (whose luminance is
-// the height and whose RGB is available to colour the model). Anything else is converted on load.
+// True if decode_height_texture() can read these bytes, so they can be stored on a layer as-is.
+// Anything else is converted on load.
 bool is_supported_height_map(const std::vector<unsigned char> &bytes)
 {
-    if (bytes.empty())
-        return false;
-    const png::ReadBuf rbuf{ bytes.data(), bytes.size() };
-    if (!png::is_png(rbuf))
-        return false;
-    png::ImageGreyscale gray;
-    if (png::decode_png(rbuf, gray) && gray.cols > 0 && gray.rows > 0)
-        return true;
-    png::ImageColorscale color;
-    return png::decode_colored_png(rbuf, color) && color.cols > 0 && color.rows > 0 &&
-           color.bytes_per_pixel >= 3 &&
-           color.buf.size() == color.cols * color.rows * size_t(color.bytes_per_pixel);
+    return !bytes.empty() && png::is_decodable_8bit_png(png::ReadBuf{ bytes.data(), bytes.size() });
 }
 
 std::vector<TextureLibraryEntry> g_library;
 bool                             g_library_scanned = false;
+// The generation g_library was last built from, so texture_library() can rescan after a pack change.
+uint64_t g_library_scan_generation = 0;
+
+// Bumped by plugin callbacks, read by the GUI frame. Atomic so a read never races a write.
+std::atomic<uint64_t> g_library_generation{ 0 };
+
+// Writes `bytes` into the user's own texture folder as `stem`.png, uniquified so an existing texture -
+// shipped-name collision, or a second edit of the same source - is never overwritten. Returns the new
+// file's library entry. Shared by import_texture_to_library() and save_texture_to_library(), which
+// differ only in where their bytes came from.
+std::optional<TextureLibraryEntry> write_user_texture(const std::vector<unsigned char> &bytes, const std::string &stem,
+                                                      std::string &error)
+{
+    const std::string user_dir = user_texture_dir();
+    if (user_dir.empty()) {
+        error = _u8L("Could not create the folder for imported textures.");
+        return std::nullopt;
+    }
+
+    boost::filesystem::path dest = boost::filesystem::path(user_dir) / (stem + ".png");
+    for (int i = 2; boost::filesystem::exists(dest); ++i)
+        dest = boost::filesystem::path(user_dir) / (stem + " (" + std::to_string(i) + ").png");
+
+    {
+        boost::nowide::ofstream ofs(dest.string(), std::ios::binary);
+        ofs.write(reinterpret_cast<const char *>(bytes.data()), std::streamsize(bytes.size()));
+        if (!ofs.good()) {
+            error = _u8L("Failed to save the imported texture.");
+            return std::nullopt;
+        }
+    }
+
+    texture_library(true); // pick the new file up
+    const std::string dest_str = dest.string();
+    for (const TextureLibraryEntry &e : g_library)
+        if (e.path == dest_str)
+            return e;
+
+    error = _u8L("Failed to save the imported texture.");
+    return std::nullopt;
+}
 
 // The user's own textures, most recently used first, kept in the app config. File names are stored rather
 // than paths so the order survives a moved data directory; '/' separates them because no platform allows
@@ -184,6 +284,8 @@ const size_t      RECENT_MAX     = 200;
 std::vector<std::string> recent_texture_names()
 {
     std::vector<std::string> names;
+    if (wxTheApp == nullptr) // headless or shutting down: there is no app config to read
+        return names;
     if (wxGetApp().app_config == nullptr)
         return names;
     const std::string value = wxGetApp().app_config->get(RECENT_SECTION, RECENT_KEY);
@@ -198,6 +300,8 @@ std::vector<std::string> recent_texture_names()
 
 void store_recent_texture_names(std::vector<std::string> names)
 {
+    if (wxTheApp == nullptr) // headless or shutting down: there is no app config to write
+        return;
     if (wxGetApp().app_config == nullptr)
         return;
     if (names.size() > RECENT_MAX)
@@ -208,8 +312,9 @@ void store_recent_texture_names(std::vector<std::string> names)
     wxGetApp().app_config->set(RECENT_SECTION, RECENT_KEY, value);
 }
 
-// Reorders the user's entries (the tail of `library`) by recent use. Stable, so textures never used keep
-// the name order scan_dir() gave them, after every used one.
+// Reorders the user's entries by recent use. Stable, so textures never used keep the name order
+// scan_dir() gave them, after every used one. Only the user's own range is touched: shipped and pack
+// entries must keep the order their scans produced.
 void sort_user_textures(std::vector<TextureLibraryEntry> &library)
 {
     const std::vector<std::string>       names = recent_texture_names();
@@ -220,8 +325,11 @@ void sort_user_textures(std::vector<TextureLibraryEntry> &library)
         const auto it = rank.find(boost::filesystem::path(e.path).filename().string());
         return it == rank.end() ? std::numeric_limits<int>::max() : it->second;
     };
-    const auto first_user = std::find_if(library.begin(), library.end(), [](const TextureLibraryEntry &e) { return e.is_user; });
-    std::stable_sort(first_user, library.end(),
+    const auto first_user = std::find_if(library.begin(), library.end(),
+                                         [](const TextureLibraryEntry &e) { return e.source == TextureSource::User; });
+    const auto user_end   = std::find_if(first_user, library.end(),
+                                         [](const TextureLibraryEntry &e) { return e.source != TextureSource::User; });
+    std::stable_sort(first_user, user_end,
                      [&rank_of](const TextureLibraryEntry &a, const TextureLibraryEntry &b) { return rank_of(a) < rank_of(b); });
 }
 
@@ -240,6 +348,16 @@ bool in_user_texture_dir(const std::string &path)
 
 } // namespace
 
+uint64_t texture_library_generation()
+{
+    return g_library_generation.load();
+}
+
+void bump_texture_library_generation()
+{
+    g_library_generation.fetch_add(1);
+}
+
 std::string user_texture_dir()
 {
     const boost::filesystem::path dir = boost::filesystem::path(Slic3r::data_dir()) / "textures" / "displacement";
@@ -254,17 +372,20 @@ std::string user_texture_dir()
 
 const std::vector<TextureLibraryEntry> &texture_library(bool force_rescan)
 {
-    if (g_library_scanned && !force_rescan)
+    const uint64_t generation = texture_library_generation();
+    if (g_library_scanned && !force_rescan && generation == g_library_scan_generation)
         return g_library;
 
     g_library.clear();
-    scan_dir(boost::filesystem::path(Slic3r::resources_dir()) / "textures" / "displacement", false, g_library);
+    scan_dir(boost::filesystem::path(Slic3r::resources_dir()) / "textures" / "displacement", TextureSource::Shipped, g_library);
     const std::string user_dir = user_texture_dir();
     if (!user_dir.empty())
-        scan_dir(boost::filesystem::path(user_dir), true, g_library);
+        scan_dir(boost::filesystem::path(user_dir), TextureSource::User, g_library);
     sort_user_textures(g_library);
+    scan_plugin_textures(g_library);
 
-    g_library_scanned = true;
+    g_library_scan_generation = generation;
+    g_library_scanned          = true;
     return g_library;
 }
 
@@ -305,12 +426,6 @@ bool remove_user_texture(const std::string &path, std::string &error)
 
 std::optional<TextureLibraryEntry> import_texture_to_library(const std::string &source_path, std::string &error)
 {
-    const std::string user_dir = user_texture_dir();
-    if (user_dir.empty()) {
-        error = _u8L("Could not create the folder for imported textures.");
-        return std::nullopt;
-    }
-
     wxImage image;
     if (!image.LoadFile(from_u8(source_path)) || !image.IsOk()) {
         error = _u8L("Could not load the selected image.");
@@ -321,30 +436,7 @@ std::optional<TextureLibraryEntry> import_texture_to_library(const std::string &
     if (!encode_png_bytes(image, bytes, error))
         return std::nullopt;
 
-    // Never overwrite an existing texture (the user's or, if they picked the same name twice, their
-    // own earlier import) - uniquify instead.
-    const std::string       stem = boost::filesystem::path(source_path).stem().string();
-    boost::filesystem::path dest = boost::filesystem::path(user_dir) / (stem + ".png");
-    for (int i = 2; boost::filesystem::exists(dest); ++i)
-        dest = boost::filesystem::path(user_dir) / (stem + " (" + std::to_string(i) + ").png");
-
-    {
-        boost::nowide::ofstream ofs(dest.string(), std::ios::binary);
-        ofs.write(reinterpret_cast<const char *>(bytes.data()), std::streamsize(bytes.size()));
-        if (!ofs.good()) {
-            error = _u8L("Failed to save the imported texture.");
-            return std::nullopt;
-        }
-    }
-
-    texture_library(true); // pick the new file up
-    const std::string dest_str = dest.string();
-    for (const TextureLibraryEntry &e : g_library)
-        if (e.path == dest_str)
-            return e;
-
-    error = _u8L("Failed to save the imported texture.");
-    return std::nullopt;
+    return write_user_texture(bytes, boost::filesystem::path(source_path).stem().string(), error);
 }
 
 std::shared_ptr<std::vector<unsigned char>> load_texture_image_data(const std::string &path, std::string &error)
@@ -368,6 +460,23 @@ std::shared_ptr<std::vector<unsigned char>> load_texture_image_data(const std::s
     if (!encode_png_bytes(image, converted, error))
         return nullptr;
     return std::make_shared<std::vector<unsigned char>>(std::move(converted));
+}
+
+std::optional<TextureLibraryEntry> save_texture_to_library(const DecodedHeightTexture &image, const std::string &stem,
+                                                           std::string &error)
+{
+    std::vector<unsigned char> scratch;
+    const wxImage              wx = image_from_decoded(image, scratch);
+    if (!wx.IsOk()) {
+        error = _u8L("The selected image is empty.");
+        return std::nullopt;
+    }
+
+    std::vector<unsigned char> bytes;
+    if (!encode_png_bytes(wx, bytes, error))
+        return std::nullopt;
+
+    return write_user_texture(bytes, stem.empty() ? std::string("texture") : stem, error);
 }
 
 } // namespace Slic3r::GUI

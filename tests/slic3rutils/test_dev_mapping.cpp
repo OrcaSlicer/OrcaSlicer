@@ -13,6 +13,12 @@
     #include <Windows.h>
 #endif
 
+#include <catch2/catch_test_macros.hpp>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "libslic3r/ProjectTask.hpp"
+#include <vector>
+#include <catch2/catch_message.hpp>
+
 #include <catch2/catch_all.hpp>
 
 #include <wx/timer.h>
@@ -22,6 +28,8 @@
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
 
 #include <nlohmann/json.hpp>
+#include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
+#include "slic3r/GUI/DeviceCore/DevUtil.h"
 
 using json = nlohmann::json;
 using namespace Slic3r;
@@ -55,6 +63,28 @@ TEST_CASE("AMS tray placeholder state follows the latest status", "[DevFilaSyste
     DevFilaSystemParser::ParseV1_0(loaded_slot, &obj, obj.GetFilaSystem().get(), false);
 
     CHECK_FALSE(tray->is_slot_placeholder);
+}
+
+TEST_CASE("An AMS unit is shown under the name its status gives it", "[DevFilaSystem]")
+{
+    MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
+
+    const json named = json::parse(R"({
+        "ams": { "ams": [ { "id": "0", "info": "00000001", "display_name": "Qidi Box 1", "tray": [] } ] }
+    })");
+    DevFilaSystemParser::ParseV1_0(named, &obj, obj.GetFilaSystem().get(), false);
+
+    DevAms* ams = obj.GetFilaSystem()->GetAmsById("0");
+    REQUIRE(ams != nullptr);
+    CHECK(ams->GetDisplayName().ToStdString() == "Qidi Box 1");
+
+    // Without a name the unit falls back to its type: an AMS (info type 1) with id 0 is AMS-1
+    const json unnamed = json::parse(R"({
+        "ams": { "ams": [ { "id": "0", "info": "00000001", "tray": [] } ] }
+    })");
+    DevFilaSystemParser::ParseV1_0(unnamed, &obj, obj.GetFilaSystem().get(), false);
+
+    CHECK(ams->GetDisplayName().ToStdString() == "AMS-1");
 }
 
 TEST_CASE("Switch-bound AMS trays map to the left extruder", "[DevMapping]")

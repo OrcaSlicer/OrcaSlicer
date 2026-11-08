@@ -1,6 +1,7 @@
 #ifndef slic3r_GUI_hpp_
 #define slic3r_GUI_hpp_
 
+#include <string>
 namespace boost { class any; }
 namespace boost::filesystem { class path; }
 

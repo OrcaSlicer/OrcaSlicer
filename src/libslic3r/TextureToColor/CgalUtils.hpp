@@ -1,8 +1,10 @@
 #pragma once
+#include "libslic3r/Point.hpp"
 #include "TriMesh.hpp"
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/Polygon_mesh_processing/repair.h>
+#include <CGAL/Surface_mesh/Surface_mesh.h>
 #include <chrono>
 #include <cstdio>
 #include <map>

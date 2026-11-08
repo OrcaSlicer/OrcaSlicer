@@ -9,6 +9,12 @@
 #define wxMediaCtrl3_h
 
 #include <chrono>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/string.h>
+#include <memory>
+#include <mutex>
+#include <cstdint>
 #include "wx/window.h"
 #include "wx/bitmap.h"
 #include "wx/uri.h"

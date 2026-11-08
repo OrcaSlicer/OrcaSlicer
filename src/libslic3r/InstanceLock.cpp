@@ -1,13 +1,18 @@
 #include "InstanceLock.hpp"
 
+#include <chrono>
+#include <exception>
 #include <map>
 #include <memory>
+#include <mutex>
+#include <string>
 #include <system_error>
 #include <thread>
 
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <ios>
 #ifdef _WIN32
 #include <boost/interprocess/sync/file_lock.hpp>
 #include <boost/nowide/convert.hpp>

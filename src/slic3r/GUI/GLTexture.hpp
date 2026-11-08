@@ -3,14 +3,17 @@
 
 #include <atomic>
 #include <string>
+#include <utility>
 #include <vector>
 #include <array>
 #include <thread>
 
 #include <wx/colour.h>
 #include <wx/font.h>
+#include <wx/gdicmn.h>
 
-class wxImage;
+class wxFont;
+
 
 namespace Slic3r {
 namespace GUI {

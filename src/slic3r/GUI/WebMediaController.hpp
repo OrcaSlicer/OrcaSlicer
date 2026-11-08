@@ -4,6 +4,7 @@
 #include <slic3r/Utils/IPrinterAgent.hpp>
 
 #include <string>
+#include <wx/uri.h>
 
 class wxWebView;
 

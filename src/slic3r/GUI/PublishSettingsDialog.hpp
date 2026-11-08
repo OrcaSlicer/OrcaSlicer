@@ -2,10 +2,15 @@
 
 #include "GUI_Utils.hpp"
 #include "wxExtensions.hpp"
-#include "Widgets/TabCtrl.hpp"
 
 #include "libslic3r/PublishSettings.hpp"
 
+#include <cstddef>
+#include <wx/string.h>
+#include <wx/sizer.h>
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
 #include <wx/wx.h>
 #include <wx/colour.h>
 #include <wx/scrolwin.h>
@@ -14,11 +19,25 @@
 #include <vector>
 #include <string>
 
+class TabCtrl;
+class wxBoxSizer;
+class wxCommandEvent;
+class wxMouseEvent;
+class wxPanel;
+class wxScrolledWindow;
+class wxSizerItem;
+class wxStaticBitmap;
+class wxStaticText;
+class wxTextCtrl;
+class wxWindow;
+namespace Slic3r { class DynamicPrintConfig; }
+
 // Forward declarations (all are global classes, see Widgets/TextInput.hpp and
 // Widgets/StaticLine.hpp).
 class TextInput;
 class StaticLine;
 class CheckBox;
+class MultiSwitchButton;
 
 namespace Slic3r { namespace GUI {
 
@@ -51,10 +70,13 @@ public:
     // remembered session selection or the payload of a freshly loaded published 3MF) the dialog
     // is seeded from it, overriding the dirty-default pre-check. A non-null pointer to an empty
     // selection means "publish nothing" (an intentional empty state); a null pointer means "no
-    // remembered selection" (keep the dirty defaults).
+    // remembered selection" (keep the dirty defaults). legacy_process_selection marks a selection
+    // read from a file without per-extruder process layout: its "key#N" process entries then select
+    // that setting on every extruder.
     PublishSettingsDialog(wxWindow* parent = nullptr,
                           const std::vector<std::string>* published_keys = nullptr,
-                          const std::vector<Slic3r::PublishedMaterialEntry>* material_keys = nullptr);
+                          const std::vector<Slic3r::PublishedMaterialEntry>* material_keys = nullptr,
+                          bool legacy_process_selection = false);
     ~PublishSettingsDialog();
 
     // The selected print/printer setting keys (in display order); printer keys carry a '#N'
@@ -176,7 +198,16 @@ private:
         std::string icon_name;        // "printer" / "filament" / "process"
         ScalableBitmap icon_bmp;      // tab icon next to the title; rescaled on DPI change
         wxPanel* page{nullptr};
+        // Holds every category in order and stays the selection model. Hidden on the Process section,
+        // whose page tabs are shown in `page_tabs` instead.
         TabCtrl* tabs{nullptr};
+        // Several extruders: the extruder switch, the same MultiSwitchButton (and option names) as the
+        // printer tab's Extruder page, with one option per entry of `variant_inners`.
+        MultiSwitchButton* variant_switch{nullptr};
+        // Process section: the visible strip of page tabs, shown below the extruder switch.
+        TabCtrl* page_tabs{nullptr};
+        std::vector<size_t> variant_inners; // positions in `categories` of the extruder categories
+        std::vector<size_t> page_inners;    // positions in `categories` of the categories shown in `page_tabs`
         // Second tab strip, below the main one, listing only the mixed-color filament slots.
         // Present on the Material section only (null elsewhere).
         TabCtrl* mixed_tabs{nullptr};
@@ -238,7 +269,8 @@ private:
                               size_t group,
                               size_t source_index,
                               const PublishMaterialIdentity& identity = PublishMaterialIdentity(),
-                              bool is_mixed                          = false);
+                              bool is_mixed                          = false,
+                              bool is_variant                        = false);
     size_t subcategory_index_for(size_t category_index, const wxString& title, const wxString& icon);
     void add_row_ui(const std::string& key,
                     const wxString& label,
@@ -255,10 +287,13 @@ private:
     void show_mixed_page(size_t section_index, int mixed_index);
     void on_outer_tab_changed(wxCommandEvent& event);
     void on_inner_tab_changed(size_t section_index, wxCommandEvent& event);
+    void on_page_tab_changed(size_t section_index, wxCommandEvent& event);
     void on_mixed_tab_changed(size_t section_index, wxCommandEvent& event);
     bool row_is_visible(const Row& row) const;
     void apply_visibility();
     void bind_tab_events();
+    // Replaces a section's inner tab strip with a variant switch (see SectionGroup::variant_switch).
+    void setup_variant_switch(size_t section_index);
 
     TabCtrl* m_outer_tabs{nullptr};
     wxPanel* m_outer_host{nullptr};
@@ -281,6 +316,7 @@ private:
 
     ScalableBitmap m_search;
     ScalableBitmap m_menu;
+    bool m_legacy_process_selection{false};
 
     std::vector<Row> m_rows;
     std::vector<Category> m_categories;

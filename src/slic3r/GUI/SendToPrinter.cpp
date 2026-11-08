@@ -16,17 +16,72 @@
 #include "Jobs/BoostThreadWorker.hpp"
 #include "Jobs/PlaterWorker.hpp"
 
+#include <wx/containr.h>
+#include <wx/event.h>
+#include <map>
+#include <string>
+#include "slic3r/GUI/Auxiliary.hpp"
+#include "libslic3r/Preset.hpp"
+#include <cstddef>
+#include <cstring>
+#include "slic3r/GUI/MsgDialog.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/SelectMachine.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <vector>
+#include "slic3r/GUI/Widgets/AnimaController.hpp"
+#include <memory>
+#include "slic3r/GUI/BBLStatusBarSend.hpp"
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include <wx/chartype.h>
+#include <wx/busycursor.h>
+#include <boost/log/trivial.hpp>
+#include <cassert>
+#include <ostream>
+#include "slic3r/GUI/PrePrintChecker.hpp"
+#include "slic3r/GUI/Jobs/PrintJob.hpp"
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <utility>
+#include <wx/datetime.h>
+#include <wx/arrstr.h>
+#include "slic3r/GUI/PartPlate.hpp"
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include <wx/image.h>
+#include <cstdio>
+#include <exception>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/lexical_cast.hpp>
+#include <cmath>
 #include <wx/progdlg.h>
 #include <wx/clipbrd.h>
 #include <wx/dcgraph.h>
 #include <miniz.h>
 #include <algorithm>
+#include <wx/string.h>
+#include <wx/wx.h>
+#include <wx/toplevel.h>
+#include <wx/scrolwin.h>
+#include <wx/stattext.h>
+#include <wx/textctrl.h>
+#include <wx/types.h>
+#include <wx/timer.h>
 #include "BitmapCache.hpp"
 
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevConfigUtil.h"
 #include "DeviceCore/DevStorage.h"
+#include "libslic3r_version.h"
 #include "slic3r/Utils/FileTransferUtils.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include <boost/filesystem.hpp>
+#include <nlohmann/json.hpp>
+
+namespace fs = boost::filesystem;
 
 
 namespace Slic3r {
@@ -73,7 +128,7 @@ void SendToPrinterDialog::stripWhiteSpace(std::string& str)
 {
     if (str == "") { return; }
 
-    string::iterator cur_it;
+    std::string::iterator cur_it;
     cur_it = str.begin();
 
     while (cur_it != str.end()) {
@@ -1077,17 +1132,6 @@ void SendToPrinterDialog::on_print_job_cancel(wxCommandEvent &evt)
     prepare_mode();
 }
 
-std::vector<std::string> SendToPrinterDialog::sort_string(std::vector<std::string> strArray)
-{
-    std::vector<std::string> outputArray;
-    std::sort(strArray.begin(), strArray.end());
-    std::vector<std::string>::iterator st;
-    for (st = strArray.begin(); st != strArray.end(); st++) { outputArray.push_back(*st); }
-
-    return outputArray;
-}
-
-
 bool  SendToPrinterDialog::is_timeout()
 {
     if (timeout_count > 15 * 1000 / LIST_REFRESH_INTERVAL) {
@@ -1115,32 +1159,21 @@ void SendToPrinterDialog::update_user_printer()
     // clear machine list
     m_list.clear();
     m_comboBox_printer->Clear();
-    std::vector<std::string>              machine_list;
     wxArrayString                         machine_list_name;
     std::map<std::string, MachineObject*> option_list;
 
     option_list = dev->get_my_machine_list(dev->get_current_printer_agent_id());
 
-    // same machine only appear once
     for (auto it = option_list.begin(); it != option_list.end(); it++) {
         if (it->second && (it->second->is_online() || it->second->is_connected())) {
-            machine_list.push_back(it->second->get_dev_name());
+            m_list.push_back(it->second);
         }
     }
-    machine_list = sort_string(machine_list);
-    for (auto tt = machine_list.begin(); tt != machine_list.end(); tt++) {
-        for (auto it = option_list.begin(); it != option_list.end(); it++) {
-            if (it->second->get_dev_name() == *tt) {
-                m_list.push_back(it->second);
-                wxString dev_name_text = from_u8(it->second->get_dev_name());
-                if (it->second->is_lan_mode_printer()) {
-                    dev_name_text += "(LAN)";
-                }
-                machine_list_name.Add(dev_name_text);
-                break;
-            }
-        }
-    }
+    // Printers that share a name keep separate entries, ordered by device id.
+    std::stable_sort(m_list.begin(), m_list.end(),
+                     [](const MachineObject* a, const MachineObject* b) { return a->get_dev_name() < b->get_dev_name(); });
+    for (const MachineObject* obj : m_list)
+        machine_list_name.Add(get_shown_printer_name(obj));
 
     m_comboBox_printer->Set(machine_list_name);
 
@@ -1176,7 +1209,7 @@ void SendToPrinterDialog::update_user_printer()
     }
     else {
         m_printer_last_select = "";
-        m_comboBox_printer->SetTextLabel("");
+        m_comboBox_printer->SetValue(_L("No available printers"));
     }
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "for send task, current printer id =  " << m_printer_last_select << std::endl;
@@ -1454,7 +1487,7 @@ void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxSt
 		Enable_Send_Button(true);
 		Enable_Refresh_Button(true);
 	} else if (status == PrintDialogStatus::PrintStatusNoSdcard) {
-		wxString msg_text = _L("Storage needs to be inserted before send to printer.");
+		wxString msg_text = _L("Insert storage or free up space before sending to the printer.");
 		update_print_status_msg(msg_text, true, true);
 		Enable_Send_Button(false);
 		Enable_Refresh_Button(true);
@@ -1778,7 +1811,7 @@ what();
                     }
                     BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " : Tutk url error: ress = " << res;
                 }
-            });
+            }, wxGetApp().get_printer_cloud_provider());
         }
     }
 }

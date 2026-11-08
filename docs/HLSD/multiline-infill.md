@@ -9,14 +9,16 @@ spacing (so the density holds), and `multiline_fill()` then replaces each
 centerline by the lines of that wall: the centerline itself when N is odd, and
 closed outlines around it at every `spacing` out to `d1 / 2`. The outlines are
 clipped to the fill region contracted by half a line width, then connected like
-any other infill.
+any other infill. Clipping also cuts an outline at its first point, which may be
+anywhere along a line, so `join_cut_outlines()` joins the pieces back first.
 
 Outlines of centerlines that cross each other overlap at every crossing, which
 over-extrudes the wall intersections. The line-crossing patterns Grid,
 Triangles, Tri-hexagon and Cubic therefore build centerlines that never cross
 (`FillRectilinear::fill_surface_trapezoidal()`), and so do Adaptive Cubic and
-Support Cubic (`FillAdaptive`); the other patterns outline their usual
-centerlines.
+Support Cubic (`FillAdaptive`). 3D Honeycomb skips `multiline_fill()` and draws
+its N lines itself as parallel copies of each wave, which never cross
+(`Fill3DHoneycomb`). The other patterns outline their usual centerlines.
 
 ## Non-crossing centerlines
 

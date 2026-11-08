@@ -17,15 +17,18 @@ if ("${DEPS_ARCH}" STREQUAL "arm64" AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
     set(_disable_carotene "-DWITH_CAROTENE=OFF")
 endif ()
 
-if (IN_GIT_REPO)
-    set(OpenCV_DIRECTORY_FLAG --directory ${BINARY_DIR_REL}/dep_OpenCV-prefix/src/dep_OpenCV)
+# clang-cl parses template bodies at the end of each file. In softfloat.cpp that
+# is after OpenCV's own float32_t, which then hides the NEON one in arm_neon.h.
+set(_clang_cl_flags "")
+if (MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
+    set(_clang_cl_flags "-DOPENCV_EXTRA_CXX_FLAGS=-fno-delayed-template-parsing")
 endif ()
 
 orcaslicer_add_cmake_project(OpenCV
     ${_options}
-    URL https://github.com/opencv/opencv/archive/refs/tags/4.6.0.tar.gz
-    URL_HASH SHA256=1ec1cba65f9f20fe5a41fda1586e01c70ea0c9a6d7b67c9e13edf0cfe2239277
-    PATCH_COMMAND git apply ${OpenCV_DIRECTORY_FLAG} --verbose --ignore-space-change --whitespace=fix ${CMAKE_CURRENT_LIST_DIR}/0001-vs.patch  ${CMAKE_CURRENT_LIST_DIR}/0002-clang19-macos.patch
+    URL https://github.com/opencv/opencv/archive/refs/tags/4.14.0.tar.gz
+    URL_HASH SHA256=ee8fb9b30eb60850431b4656447080e3737b56e45719c92b67f245950609f86e
+    DEPENDS ${JPEG_PKG} ${PNG_PKG}
     CMAKE_ARGS
     -DBUILD_SHARED_LIBS=0
        -DBUILD_PERE_TESTS=OFF
@@ -34,12 +37,13 @@ orcaslicer_add_cmake_project(OpenCV
        -DBUILD_EXAMPLES=OFF
        -DBUILD_JASPER=OFF
        -DBUILD_JAVA=OFF
-       -DBUILD_JPEG=ON
+       # Share Orca's libjpeg and libpng to avoid conflicting codec symbols in the application.
+       -DBUILD_JPEG=OFF
+       -DBUILD_PNG=OFF
        -DBUILD_APPS_LIST=version
        -DBUILD_opencv_apps=OFF
        -DBUILD_opencv_java=OFF
        -DBUILD_OPENEXR=OFF
-       -DBUILD_PNG=ON
        -DBUILD_TBB=OFF
        -DBUILD_WEBP=OFF
        -DBUILD_ZLIB=OFF
@@ -67,10 +71,16 @@ orcaslicer_add_cmake_project(OpenCV
        -DWITH_OPENJPEG=OFF
        -DWITH_QUIRC=OFF
        -DWITH_VTK=OFF
-       -DWITH_JPEG=OFF
+       # Textured GLB/OBJ imports decode embedded and external JPEGs with cv::imdecode.
+       -DWITH_JPEG=ON
        -DWITH_WEBP=OFF
        -DWITH_TIFF=OFF
        -DBUILD_TIFF=OFF
+       # Codecs and HALs added after 4.6 that default to ON. AVIF would link any
+       # system libavif it finds, and KleidiCV is downloaded at configure time.
+       -DWITH_AVIF=OFF
+       -DWITH_IMGCODEC_GIF=OFF
+       -DWITH_KLEIDICV=OFF
        -DENABLE_PRECOMPILED_HEADERS=OFF
        -DINSTALL_TESTS=OFF
        -DINSTALL_C_EXAMPLES=OFF
@@ -91,5 +101,6 @@ orcaslicer_add_cmake_project(OpenCV
        -DWITH_WIN32UI=OFF
        -DHAVE_WIN32UI=FALSE
        ${_disable_carotene}
+       ${_clang_cl_flags}
 )
 

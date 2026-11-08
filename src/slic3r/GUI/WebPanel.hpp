@@ -2,11 +2,17 @@
 
 #include <nlohmann/json.hpp>
 
+#include <wx/event.h>
 #include <wx/panel.h>
 #include <wx/webview.h>
 
 #include <optional>
 #include <string>
+
+class wxCommandEvent;
+class wxWebView;
+class wxWebViewEvent;
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 

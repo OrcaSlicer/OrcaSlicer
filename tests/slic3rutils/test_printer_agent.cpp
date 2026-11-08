@@ -1,14 +1,21 @@
 #include <catch2/catch_all.hpp>
 
+#include <memory>
 #include <slic3r/Utils/NetworkAgentFactory.hpp>
-#include <slic3r/plugin/PythonPluginBridge.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <pybind11/pytypes.h>
+#include <catch2/catch_message.hpp>
 #include "python_test_support.hpp"
 
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
 
 #include <string>
+#include <pybind11/cast.h>
+
+namespace Slic3r { class ICloudServiceAgent; }
+namespace Slic3r { class IPrinterAgent; }
 
 using namespace Slic3r;
 namespace py = pybind11;

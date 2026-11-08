@@ -1,0 +1,23 @@
+{
+	"type": "filament",
+	"name": "QIDI PLA-CF @Qidi X-Smart 5 0.6 nozzle",
+	"inherits": "QIDI PLA-CF@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "HMukvp5sAXPDuqEx",
+	"instantiation": "true",
+	"additional_cooling_fan_speed_unseal": [
+		"0"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"pressure_advance": [
+		"0.01"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.6 nozzle"
+	]
+}

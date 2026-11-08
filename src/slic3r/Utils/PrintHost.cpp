@@ -1,16 +1,27 @@
 #include "PrintHost.hpp"
 
+#include "libslic3r/Config.hpp"
+#include <string>
+#include <boost/algorithm/string/predicate.hpp>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <cstddef>
+#include <boost/filesystem/path.hpp>
+#include <utility>
+#include <memory>
+#include <boost/filesystem/operations.hpp>
+#include "libslic3r/LifecycleEvents.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
 #include <vector>
 #include <thread>
 #include <exception>
 #include <sstream>
-#include <boost/optional.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/filesystem.hpp>
 #include <nlohmann/json.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <wx/event.h>
 #include <wx/string.h>
 #include <wx/app.h>
 #include <wx/arrstr.h>
@@ -37,7 +48,6 @@
 #include "Moonraker.hpp"
 
 namespace fs = boost::filesystem;
-using boost::optional;
 using Slic3r::GUI::PrintHostQueueDialog;
 
 namespace Slic3r {
@@ -197,7 +207,7 @@ wxString PrintHost::format_error(const std::string &body, const std::string &err
         return wxString::Format("HTTP %u: %s", status, wxbody);
     } else {
         if (error.find("curl:Timeout was reached") != std::string::npos) {
-            return _L("Connection timed out. Please check if the printer and computer network are functioning properly, and confirm that they are on the same network.");
+            return timed_out_message();
         }else if(error.find("curl:Couldn't resolve host name")!= std::string::npos){
             return _L("The Hostname/IP/URL could not be parsed, please check it and try again.");
         } else if (error.find("Connection was reset") != std::string::npos){
@@ -207,6 +217,11 @@ wxString PrintHost::format_error(const std::string &body, const std::string &err
             return wxString::FromUTF8(error.data());
         }
     }
+}
+
+wxString PrintHost::timed_out_message()
+{
+    return _L("Connection timed out. Please check if the printer and computer network are functioning properly, and confirm that they are on the same network.");
 }
 
 

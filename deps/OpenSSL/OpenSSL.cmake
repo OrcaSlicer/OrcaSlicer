@@ -16,6 +16,8 @@ else()
 	endif()
 endif()
 
+set(_openssl_dir ${DESTDIR})
+
 if(WIN32)
     set(_openssl_msvc_env CC=cl CXX=cl RC=rc CL=/FS)
     # OpenSSL's perl Configure honors the CC environment variable, but the
@@ -29,12 +31,41 @@ if(WIN32)
     # driven through nmake from a Ninja configure step.
     set(_conf_cmd ${CMAKE_COMMAND} -E env ${_openssl_msvc_env} perl Configure )
     set(_cross_comp_prefix_line "")
+    if("${DEPS_ARCH}" STREQUAL "arm64")
+        # OpenSSL's VC configs pass /Gs0, which puts a __chkstk probe in every
+        # function. MSVC 14.51 and 14.52 (VS 2026) for ARM64 emit that call
+        # before the prologue saves LR, so the function returns into itself;
+        # in tls_parse_all_extensions that breaks every TLS handshake. 14.44
+        # (VS 2022) is unaffected. Restore cl's default threshold: Configure
+        # appends /Gs4096 after /Gs0, and the later option wins.
+        set(_openssl_extra_cflags /Gs4096)
+    endif()
     set(_make_cmd ${CMAKE_COMMAND} -E env ${_openssl_msvc_env} nmake)
     set(_install_cmd ${CMAKE_COMMAND} -E env ${_openssl_msvc_env} nmake install_sw )
 else()
     if(APPLE)
         set(_conf_cmd export MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET} && ./Configure -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
+        # OPENSSLDIR is only where OpenSSL looks at runtime for cert.pem, certs/
+        # and openssl.cnf; install_sw installs nothing there. Point it at the
+        # system CA bundle, the one libcurl already uses here, so the bundled
+        # Python's ssl module can verify HTTPS. Elsewhere it stays the prefix:
+        # Windows Python reads the system certificate store, and on Linux, where
+        # the bundle's location differs by distro, CurlGlobalInit points
+        # SSL_CERT_FILE at it at startup.
+        set(_openssl_dir /etc/ssl)
     else()
+        # A static library that is embedded into a shared object must not export
+        # its symbols. On Linux the running process also loads the system OpenSSL
+        # 3.x (WebKitGTK/gnutls pull in libcrypto.so.3), and CPython's _ssl and
+        # _hashlib are dlopened (RTLD_LOCAL) DSOs that each embed this OpenSSL.
+        # With default visibility their unversioned OpenSSL references are
+        # preempted by that global 3.x copy, mixing the 1.1.1 and 3.x ABIs and
+        # corrupting the heap (ssl.create_default_context() aborts). Hidden
+        # visibility makes each embedded copy self-contained. Linux-only: macOS
+        # binds dylibs with a two-level namespace (no interposition) and ships no
+        # OpenSSL, and Windows has no equivalent flag and no system OpenSSL to
+        # collide with.
+        set(_openssl_extra_cflags -fvisibility=hidden)
         set(_conf_cmd env "CC=${CMAKE_C_COMPILER}" "LDFLAGS=${CMAKE_EXE_LINKER_FLAGS}" "./config")
     endif()
     set(_cross_comp_prefix_line "")
@@ -60,7 +91,7 @@ ExternalProject_Add(dep_OpenSSL
     # URL_HASH SHA256=8c776993154652d0bb393f506d850b811517c8bd8d24b1008aef57fbe55d3f31
     DOWNLOAD_DIR ${DEP_DOWNLOAD_DIR}/OpenSSL
 	CONFIGURE_COMMAND ${_conf_cmd} ${_cross_arch}
-        "--openssldir=${DESTDIR}"
+        "--openssldir=${_openssl_dir}"
         "--prefix=${DESTDIR}"
         # OpenSSL's linux-x86_64 target sets multilib=64, so it installs to
         # <prefix>/lib64 while every other dep uses <prefix>/lib. CPython's
@@ -71,6 +102,7 @@ ExternalProject_Add(dep_OpenSSL
         # prefix stays single-layout.
         "--libdir=lib"
         ${_cross_comp_prefix_line}
+        ${_openssl_extra_cflags}
         no-shared
         no-asm
         no-ssl3-method
@@ -92,3 +124,20 @@ ExternalProject_Add_Step(dep_OpenSSL install_cmake_files
     COMMAND ${CMAKE_COMMAND} -E copy_directory openssl "${DESTDIR}${CMAKE_INSTALL_LIBDIR}/cmake/openssl"
     WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
 )
+
+if (NOT WIN32)
+    # OpenSSL's object rules do not depend on the configured flags or paths, so
+    # reconfiguring it (a new compiler flag, a different --openssldir) relinks
+    # the archives from stale objects instead of recompiling them, and the
+    # change silently has no effect. Drop the objects whenever this recipe
+    # changes so the next build actually recompiles them.
+    ExternalProject_Get_Property(dep_OpenSSL SOURCE_DIR)
+    ExternalProject_Add_Step(dep_OpenSSL clean_objects
+        DEPENDEES configure
+        DEPENDERS build
+        COMMAND make clean
+        WORKING_DIRECTORY "${SOURCE_DIR}"
+        DEPENDS "${CMAKE_CURRENT_LIST_FILE}"
+        COMMENT "OpenSSL: cleaning objects after a recipe change"
+    )
+endif ()

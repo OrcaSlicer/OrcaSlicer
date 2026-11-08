@@ -1,7 +1,7 @@
 {
 	"type": "machine",
 	"name": "fdm_machine_common_mk4s",
-	"inherits": "fdm_machine_common",
+	"inherits": "fdm_machine_common_nextruder",
 	"from": "system",
 	"instantiation": "false",
 	"before_layer_change_gcode": [

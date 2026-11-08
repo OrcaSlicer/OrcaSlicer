@@ -13,6 +13,7 @@
 #include <functional>
 #include <vector>
 
+#include "libslic3r/Point.hpp"
 #include "TextureBakeIndex.hpp"
 
 namespace Slic3r {

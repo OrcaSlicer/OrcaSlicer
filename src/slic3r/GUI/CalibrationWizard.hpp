@@ -10,6 +10,20 @@
 #include "CalibrationWizardCaliPage.hpp"
 #include "CalibrationWizardSavePage.hpp"
 #include "StagedBuild.hpp"
+#include <wx/panel.h>
+#include "libslic3r/calib.hpp"
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <string>
+#include <map>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <functional>
+#include <wx/scrolwin.h>
+#include <wx/sizer.h>
+#include <vector>
+#include "slic3r/GUI/ReleaseNote.hpp"
 
 namespace Slic3r { namespace GUI {
 

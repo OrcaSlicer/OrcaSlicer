@@ -18,9 +18,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <utility>
 #include <vector>
 
-#include "TextureBakeIndex.hpp"
+#include "libslic3r/Point.hpp"
+
+namespace Slic3r::TextureBake { struct TriSoup; }
 
 namespace Slic3r {
 

@@ -3,7 +3,13 @@
 
 #include "GUI_Utils.hpp"
 #include "DeviceManager.hpp"
+#include <cstdint>
 #include <functional>
+#include <string>
+#include <wx/event.h>
+#include <wx/string.h>
+#include <vector>
+#include <unordered_map>
 
 namespace Slic3r {
 namespace GUI {

@@ -3,10 +3,13 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdlib>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/Config.hpp"
 #include <string>
 #include <vector>
 
 #include <boost/nowide/convert.hpp>
+#include <wx/string.h>
 
 #include "GUI.hpp"
 #include "I18N.hpp"
@@ -60,7 +63,7 @@ static Option make_option(const std::string &key, Preset::Type type, const wxStr
                   GUI::Tab::translate_category(category, type).ToStdWstring(), false, mode, tooltip, gc.path,
                   // The settings page draws Line::label; carrying it lets the Speed Dial name a setting
                   // the way the page does. `label`/`label_local` stay the search-oriented name.
-                  into_u8(gc.line_label)};
+                  into_u8(gc.line_label), into_u8(gc.line_label_en)};
     return option;
 }
 
@@ -247,11 +250,13 @@ void SettingsIndex::set_path(const std::string &opt_key, Preset::Type type, cons
     m_groups_and_categories[get_key(opt_key, type)].path = path;
 }
 
-void SettingsIndex::set_line_label(const std::string &opt_key, Preset::Type type, const wxString &label)
+void SettingsIndex::set_line_label(const std::string &opt_key, Preset::Type type, const wxString &label, const wxString &label_en)
 {
     if (label.IsEmpty())
         return;
-    m_groups_and_categories[get_key(opt_key, type)].line_label = label;
+    GroupAndCategory &gc = m_groups_and_categories[get_key(opt_key, type)];
+    gc.line_label        = label;
+    gc.line_label_en     = label_en;
 }
 
 } // namespace Search

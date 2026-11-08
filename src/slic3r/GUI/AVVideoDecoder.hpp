@@ -2,6 +2,7 @@
 #define AVVIDEODECODER_HPP
 
 #include "Printer/BambuTunnel.h"
+#include <cstdint>
 
 extern "C" {
     #include <libavcodec/avcodec.h>
@@ -11,6 +12,9 @@ extern "C" {
 #include <wx/bitmap.h>
 #include <wx/gdicmn.h>
 #include <wx/image.h>
+
+class wxImage;
+struct SwsContext;
 
 class wxBitmap;
 

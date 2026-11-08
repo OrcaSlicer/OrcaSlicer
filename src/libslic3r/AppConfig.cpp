@@ -1,3 +1,8 @@
+#include "Technologies.hpp"
+#include "Config.hpp"
+#include "PrintConfig.hpp"
+#include "calib.hpp"
+#include "Semver.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Format/DRC.hpp"
@@ -9,9 +14,19 @@
 #include "LocalesUtils.hpp"
 #include "Thread.hpp"
 #include "format.hpp"
+#include "libslic3r_version.h"
 #include "nlohmann/json.hpp"
 
 #include <algorithm>
+#include <initializer_list>
+#include <string>
+#include <exception>
+#include <boost/none.hpp>
+#include <cstddef>
+#include <system_error>
+#include <chrono>
+#include <map>
+#include <cstring>
 #include <utility>
 #include <vector>
 #include <stdexcept>
@@ -28,6 +43,9 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <cassert>
+#include <iterator>
+#include <string_view>
 
 #ifdef WIN32
 //FIXME replace the two following includes with <boost/md5.hpp> after it becomes mainstream.
@@ -225,6 +243,14 @@ void AppConfig::set_defaults()
         set("preview_dim_previous_layers_brightness", std::to_string(std::max(0, std::min(brightness, 99))));
     }
 
+    // ORCA: whether the G-code preview keeps the opacity of the filament colors
+    if (get("preview_translucent_filaments").empty())
+        set_bool("preview_translucent_filaments", true);
+
+    // ORCA: whether realistic view gives the opaque toolpaths a glossy highlight
+    if (get(SETTING_OPENGL_REALISTIC_GLOSS).empty())
+        set_bool(SETTING_OPENGL_REALISTIC_GLOSS, true);
+
     // ORCA: view type the G-code preview opens with. "auto" keeps the automatic choice (Filament for
     // multi material prints, Line Type for single material ones), "last" restores the view type the user
     // picked last, any other value is a fixed view type name, see GCodeViewer::view_type_to_config_name().
@@ -304,6 +330,9 @@ void AppConfig::set_defaults()
     if (get(SETTING_OPENGL_SHOW_FPS_OVERLAY).empty())
         set_bool(SETTING_OPENGL_SHOW_FPS_OVERLAY, false);
 
+    if (get(SETTING_OPENGL_SHOW_RENDER_TIMINGS).empty())
+        set_bool(SETTING_OPENGL_SHOW_RENDER_TIMINGS, false);
+
     if (get(SETTING_OPENGL_REALISTIC_MODE).empty())
         set_bool(SETTING_OPENGL_REALISTIC_MODE, false);
 
@@ -316,8 +345,9 @@ void AppConfig::set_defaults()
     if (get(SETTING_OPENGL_SHADING_MODEL).empty())
         set(SETTING_OPENGL_SHADING_MODEL, "gouraud");
 
-    if (get(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS).empty())
-        set_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS, false);
+    // Replaces the on/off setting, whose shadows turned with the camera.
+    if (get(SETTING_OPENGL_REALISTIC_SHADOWS).empty())
+        set(SETTING_OPENGL_REALISTIC_SHADOWS, get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS) ? "orbit" : "off");
 
     if (get(SETTING_OPENGL_PHONG_SMOOTH_NORMALS).empty())
         set_bool(SETTING_OPENGL_PHONG_SMOOTH_NORMALS, false);
@@ -349,6 +379,10 @@ void AppConfig::set_defaults()
     // restores the conventional CAD representation for users who expect it (x0kd).
     if (get("design_connector_face_glyph").empty())
         set_bool("design_connector_face_glyph", true);
+
+    // Design tab: draw the printer bed and its plate grid (the Feature tree's Bed row).
+    if (get("design_show_bed").empty())
+        set_bool("design_show_bed", true);
 #endif
 
 //#ifdef SUPPORT_SHOW_HINTS
@@ -374,17 +408,32 @@ void AppConfig::set_defaults()
     if (get("show_plate_gridlines").empty())
         set_bool("show_plate_gridlines", true);
 
+    if (get("focus_mode").empty())
+        set_bool("focus_mode", false);
+
     if (get("show_outline").empty())
         set_bool("show_outline", false);
+
+    if (get(SETTING_OPENGL_OUTLINE_PERSISTENT).empty())
+        set_bool(SETTING_OPENGL_OUTLINE_PERSISTENT, false);
+    if (get(SETTING_OPENGL_OUTLINE_COLOR).empty())
+        set(SETTING_OPENGL_OUTLINE_COLOR, "#FFFFFF");
+    if (get(SETTING_OPENGL_SELECTION_OUTLINE_COLOR).empty())
+        set(SETTING_OPENGL_SELECTION_OUTLINE_COLOR, "#FFFFFF");
     
     if (get("show_axes").empty())
         set_bool("show_axes", true);
 
     if (get("show_labels").empty())
         set_bool("show_labels", false);
+    if (get("show_collision_volumes").empty())
+        set_bool("show_collision_volumes", false);
 
     if (get("show_overhang").empty())
         set_bool("show_overhang", false);
+
+    if (get("show_center_of_mass").empty())
+        set_bool("show_center_of_mass", false);
 
 #ifdef _WIN32
 
@@ -662,7 +711,31 @@ void AppConfig::set_defaults()
         set("angle_deflection", "0.5");
     }
     if (get("is_split_compound").empty()) {
-        set_bool("is_split_compound", false);
+        // Splitting keeps the bodies of a multi-body part, and with them their original names.
+        set_bool("is_split_compound", true);
+    }
+    // Geometry-import choices are editor preferences, never project print settings.
+    for (const std::string format : {"step", "amf", "3mf"}) {
+        const std::string prefix = "import_names_" + format + "_";
+        if (get(prefix + "keep").empty())
+            set_bool(prefix + "keep", true);
+        if (get(prefix + "sort").empty())
+            set_bool(prefix + "sort", false);
+        if (format != "3mf" && get(prefix + "assembly").empty())
+            set_bool(prefix + "assembly", true);
+        if (format == "amf" && get(prefix + "separate").empty())
+            set_bool(prefix + "separate", true);
+        if (format != "step" && get(prefix + "show_dialog").empty())
+            set_bool(prefix + "show_dialog", true);
+    }
+    if (get("import_names_cleanup_show_dialog").empty())
+        set_bool("import_names_cleanup_show_dialog", true);
+    if (get("import_names_cleanup_remove").empty())
+        set_bool("import_names_cleanup_remove", false);
+    if (get("import_names_cleanup_replacement").empty())
+        set("import_names_cleanup_replacement", "_");
+    if (get("enable_primitive_size_dialog").empty()) {
+        set_bool("enable_primitive_size_dialog", true);
     }
 
     if(get("installed_networking").empty()) {
@@ -672,17 +745,15 @@ void AppConfig::set_defaults()
 #ifdef __linux__
     if (get("window_buttons_on_left").empty())
         set_bool("window_buttons_on_left", false);
+
+    if (get("prefer_discrete_gpu").empty())
+        set_bool("prefer_discrete_gpu", false);
 #endif
 
     if (get("use_printer_agents").empty())
     {
         // false = legacy behavior using print hosts
         set_bool("use_printer_agents", false);
-    }
-
-    if (get("enable_ota").empty())
-    {
-        set_bool("enable_ota", false);
     }
 
     // Remove legacy window positions/sizes
@@ -714,6 +785,22 @@ static std::string appconfig_md5_hash_line(const std::string_view data)
     assert(md5_digest_str.size() == 32);
     // This line will be emited at the end of the file.
     return "# MD5 checksum " + md5_digest_str + "\n";
+}
+
+// write_config_file() saves the JSON configuration followed by a newline and the MD5 checksum line of the JSON.
+// Returns the JSON part of the file text and whether that checksum line follows it and matches. A person or a tool
+// editing the file may drop the checksum line, and the newline after the closing brace with it.
+static std::pair<std::string, bool> split_json_config_checksum(const std::string &file_text)
+{
+    const size_t json_end = file_text.find_last_of('}');
+    // Without a closing brace there is no JSON object, and parsing the empty text fails.
+    if (json_end == std::string::npos)
+        return {};
+    std::string json_text = file_text.substr(0, json_end + 1);
+    // Skip the newline after the closing brace.
+    const size_t checksum_pos = std::min(json_end + 2, file_text.size());
+    const bool   checksum_ok  = file_text.compare(checksum_pos, std::string::npos, appconfig_md5_hash_line(json_text)) == 0;
+    return { std::move(json_text), checksum_ok };
 }
 
 // Assume that the last line with the comment inside the config file contains a checksum and that the user didn't modify the config file.
@@ -764,18 +851,12 @@ std::string AppConfig::load(bool read_only)
 #ifdef WIN32
         std::stringstream input_stream;
         input_stream << ifs.rdbuf();
-        std::string total_string = input_stream.str();
-        size_t last_pos = total_string.find_last_of('}');
-        std::string left_string = total_string.substr(0, last_pos+1);
-        //skip the "\n"
-        std::string right_string = total_string.substr(last_pos+2);
-
-        std::string md5_str = appconfig_md5_hash_line({left_string.data()});
+        const auto [json_text, checksum_ok] = split_json_config_checksum(input_stream.str());
         // Verify the checksum of the config file without taking just for debugging purpose.
-        if (md5_str != right_string)
+        if (!checksum_ok)
             BOOST_LOG_TRIVIAL(info) << "The configuration file " << AppConfig::loading_path() <<
             " has a wrong MD5 checksum or the checksum is missing. This may indicate a file corruption or a harmless user edit.";
-        j = json::parse(left_string);
+        j = json::parse(json_text);
 #else
         ifs >> j;
 #endif
@@ -790,14 +871,8 @@ std::string AppConfig::load(bool read_only)
             boost::nowide::ifstream backup_ifs(backup_path);
             std::stringstream back_input_stream;
             back_input_stream << backup_ifs.rdbuf();
-            std::string back_total_string = back_input_stream.str();
-            size_t back_last_pos = back_total_string.find_last_of('}');
-            std::string back_left_string = back_total_string.substr(0, back_last_pos+1);
-            std::string back_right_string = back_total_string.substr(back_last_pos+2);
-
-            std::string back_md5_str = appconfig_md5_hash_line({back_left_string.data()});
-            // Verify the checksum of the config file without taking just for debugging purpose.
-            if (back_md5_str != back_right_string) {
+            const auto [back_json_text, back_checksum_ok] = split_json_config_checksum(back_input_stream.str());
+            if (!back_checksum_ok) {
                 BOOST_LOG_TRIVIAL(error) << format("Both \"%1%\" and \"%2%\" are corrupted. It isn't possible to restore configuration from the backup.", AppConfig::loading_path(), backup_path);
                 backup_ifs.close();
                 boost::filesystem::remove(backup_path);
@@ -810,7 +885,7 @@ std::string AppConfig::load(bool read_only)
             else {
                 BOOST_LOG_TRIVIAL(info) << format("Configuration file \"%1%\" was corrupted. It has been succesfully restored from the backup \"%2%\".", AppConfig::loading_path(), backup_path);
                 // Try parse configuration file after restore from backup.
-                j = json::parse(back_left_string);
+                j = json::parse(back_json_text);
                 recovered = true;
             }
         }
@@ -896,7 +971,10 @@ std::string AppConfig::load(bool read_only)
                 }
             } else if (it.key() == "orca_presets") {
                 for (auto& j_model : it.value()) {
-                    m_printer_settings[j_model["machine"].get<std::string>()] = j_model;
+                    auto& settings = m_printer_settings[j_model["machine"].get<std::string>()];
+                    settings.clear();
+                    for (auto item = j_model.begin(); item != j_model.end(); ++item)
+                        settings[item.key()] = item.value().is_string() ? item.value().get<std::string>() : item.value().dump();
                 }
             } else if (it.key() == "local_machines") {
                 for (auto m = it.value().begin(); m != it.value().end(); ++m) {
@@ -1344,6 +1422,26 @@ bool AppConfig::write_config_file(const std::string &path, std::string body, con
         BOOST_LOG_TRIVIAL(error) << "Failed to write the backup configuration " << backup_path << ": " << ec.message();
 #endif
     return true;
+}
+
+void AppConfig::clear_local_machine_access_code(const std::string& dev_id, const std::string& agent_id)
+{
+    // Unscoped credentials predate printer agents and belong to the legacy BBL agent.
+    const bool is_bbl_agent = agent_id.empty() || agent_id == "bbl";
+    auto it = m_local_machines.find(dev_id);
+    if (it != m_local_machines.end()) {
+        const std::string& stored_agent = it->second.printer_agent_id;
+        if (stored_agent == agent_id || (is_bbl_agent && (stored_agent.empty() || stored_agent == "bbl"))) {
+            if (!it->second.access_code.empty()) {
+                it->second.access_code.clear();
+                m_dirty = true;
+            }
+        }
+    }
+    if (is_bbl_agent) {
+        erase("access_code", dev_id);
+        erase("user_access_code", dev_id);
+    }
 }
 
 bool AppConfig::get_variant(const std::string &vendor, const std::string &model, const std::string &variant) const
@@ -1839,19 +1937,43 @@ std::string AppConfig::lock_path()
     return Slic3r::data_dir().empty() ? std::string() : config_path() + ".lock";
 }
 
-std::string AppConfig::config_path()
+std::string AppConfig::config_path(const std::string &data_dir, EAppMode mode)
 {
 #ifdef USE_JSON_CONFIG
-    std::string path = (m_mode == EAppMode::Editor) ?
-        (boost::filesystem::path(Slic3r::data_dir()) / (SLIC3R_APP_KEY ".conf")).make_preferred().string() :
-        (boost::filesystem::path(Slic3r::data_dir()) / (GCODEVIEWER_APP_KEY ".conf")).make_preferred().string();
+    const char *extension = ".conf";
 #else
-    std::string path = (m_mode == EAppMode::Editor) ?
-        (boost::filesystem::path(Slic3r::data_dir()) / (SLIC3R_APP_KEY ".ini")).make_preferred().string() :
-        (boost::filesystem::path(Slic3r::data_dir()) / (GCODEVIEWER_APP_KEY ".ini")).make_preferred().string();
+    const char *extension = ".ini";
 #endif
+    const char *name = (mode == EAppMode::Editor) ? SLIC3R_APP_KEY : GCODEVIEWER_APP_KEY;
+    return (boost::filesystem::path(data_dir) / (std::string(name) + extension)).make_preferred().string();
+}
 
-    return path;
+std::string AppConfig::config_path()
+{
+    return config_path(Slic3r::data_dir(), m_mode);
+}
+
+bool AppConfig::peek_bool(const std::string &data_dir, const std::string &key)
+{
+    try {
+        boost::nowide::ifstream ifs(config_path(data_dir, EAppMode::Editor));
+        if (!ifs.is_open())
+            return false;
+        // Parses the leading JSON value only, so the checksum line Windows appends is ignored.
+        json j;
+        ifs >> j;
+        const auto app = j.find("app");
+        if (app == j.end() || !app->is_object())
+            return false;
+        const auto it = app->find(key);
+        if (it == app->end())
+            return false;
+        if (it->is_boolean())
+            return it->get<bool>();
+        return it->is_string() && is_true(it->get<std::string>());
+    } catch (const std::exception &) {
+        return false;
+    }
 }
 
 std::string AppConfig::version_check_url() const

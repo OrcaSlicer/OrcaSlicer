@@ -1,6 +1,9 @@
 #ifndef SLA_SPATINDEX_HPP
 #define SLA_SPATINDEX_HPP
 
+#include <Eigen/Core>
+#include <functional>
+#include <cstddef>
 #include <memory>
 #include <utility>
 #include <vector>

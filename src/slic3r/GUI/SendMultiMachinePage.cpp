@@ -6,10 +6,78 @@
 #include "slic3r/Utils/bambu_networking.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/RadioBox.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/MultiMachine.hpp"
+#include <wx/dc.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/dcclient.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/AmsMappingPopup.hpp"
+#include "slic3r/GUI/MultiTaskManagerPage.hpp"
+#include <map>
+#include <string>
+#include <vector>
+#include <algorithm>
+#include "slic3r/GUI/Jobs/PrintJob.hpp"
+#include "libslic3r/Utils.hpp"
+#include <boost/log/trivial.hpp>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <nlohmann/json.hpp>
+#include "slic3r/GUI/MsgDialog.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <utility>
+#include "slic3r/GUI/SelectMachine.hpp"
+#include <wx/arrstr.h>
+#include <wx/chartype.h>
+#include <wx/layout.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/MultiMachinePage.hpp"
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/BitmapCache.hpp"
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include <wx/image.h>
+#include <cstdio>
+#include "slic3r/GUI/Auxiliary.hpp"
+#include <cstddef>
+#include <cstring>
 #include <wx/listimpl.cpp>
+#include <wx/scrolwin.h>
+#include <wx/string.h>
+#include <wx/toplevel.h>
+#include <wx/sizer.h>
+#include <wx/panel.h>
+#include <wx/timer.h>
+#include <wx/tglbtn.h>
+#include <wx/valtext.h>
+#include <wx/stattext.h>
+#include <wx/textctrl.h>
+#include <wx/wxcrt.h>
+#include <wx/simplebook.h>
 
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevStorage.h"
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/ProjectTask.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <boost/filesystem.hpp>
+#include <wx/dcgraph.h>
+
+namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {
@@ -954,7 +1022,7 @@ void SendMultiMachinePage::OnSelectRadio(wxMouseEvent& event)
                 while (iter != m_material_list.end()) {
                     Material *    item = iter->second;
                     MaterialItem *m    = item->item;
-                    if (item->id == m_current_filament_id) { m->set_ams_info(wxColour("#CECECE"), "Ext", 0, std::vector<wxColour>()); }
+                    if (item->id == m_current_filament_id) { m->set_ams_info(wxColour("#CECECE"), _L("Ext"), 0, std::vector<wxColour>()); }
                     iter++;
                 }
             } else if (rs->m_param_name == "use_ams") {
@@ -1006,7 +1074,7 @@ bool SendMultiMachinePage::get_value_radio(std::string param)
 void SendMultiMachinePage::on_set_finish_mapping(wxCommandEvent& evt)
 {
     auto selection_data = evt.GetString();
-    auto selection_data_arr = wxSplit(selection_data.ToStdString(), '|');
+    auto selection_data_arr = wxSplit(selection_data, '|');
 
     BOOST_LOG_TRIVIAL(info) << "The ams mapping selection result: data is " << selection_data;
 
@@ -1466,7 +1534,7 @@ void SendMultiMachinePage::sync_ams_list()
 
         MaterialItem* item = new MaterialItem(m_main_page, colour_rgb, _L(display_materials[extruder]));
         //item->set_ams_info(wxColour("#CECECE"), "A1", 0, std::vector<wxColour>());
-        item->set_ams_info(wxColour("#CECECE"), "Ext", 0, std::vector<wxColour>());
+        item->set_ams_info(wxColour("#CECECE"), _L("Ext"), 0, std::vector<wxColour>());
         m_ams_list_sizer->Add(item, 0, wxALL, FromDIP(4));
 
         item->Bind(wxEVT_LEFT_UP, [materials](wxMouseEvent& e) {});

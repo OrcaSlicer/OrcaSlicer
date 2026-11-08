@@ -30,14 +30,22 @@ how you read the wx docs:
 Look things up in the source the app is built from — it beats memory, and 3.3 changed real behaviour:
 
 ```bash
-WX=$(find deps -maxdepth 5 -type d -path '*dep_wxWidgets-prefix/src/dep_wxWidgets' | head -1)
-# macOS: deps/build/<arch>/dep_wxWidgets-prefix/src/dep_wxWidgets   Linux: deps/build/dep_wxWidgets-prefix/...
+WX=$(find -L deps -maxdepth 5 -type d -path '*dep_wxWidgets-prefix/src/dep_wxWidgets' 2>/dev/null | head -1)
+# macOS: deps/build/<arch>/dep_wxWidgets-prefix/src/dep_wxWidgets   Linux, Windows: deps/<tree>/dep_wxWidgets-prefix/...
+# -L follows a worktree's deps/<tree> symlinked to the main checkout. Not a glob: zsh aborts on one that matches nothing.
 # If deps are not built: git clone --depth 1 -b v3.3.2 https://github.com/SoftFever/Orca-deps-wxWidgets
 grep -n "CaptureMouse" -A 30 $WX/interface/wx/window.h      # documented contract (doxygen source)
 grep -rn "@onlyfor\|not implemented" $WX/interface/wx/popupwin.h   # documented platform limits
 ls $WX/docs/doxygen/overviews/                               # eventhandling.h, sizer.h, high_dpi.md, windowdeletion.h, ...
 grep -n "IsDark" $WX/docs/changes.txt                         # what changed in 3.3 (changes_32.txt for 3.2)
 grep -n "NotifyCaptureLost" -r $WX/src/osx $WX/src/gtk $WX/src/msw   # what each port actually does
+```
+
+On Windows these lookups are bash: run them from Git Bash. PowerShell has no `grep`, and its `find` is
+Windows' text-search `find.exe`. To locate the wx tree from PowerShell:
+
+```powershell
+$WX = Resolve-Path deps\*\dep_wxWidgets-prefix\src\dep_wxWidgets, deps\*\*\dep_wxWidgets-prefix\src\dep_wxWidgets -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Path
 ```
 
 `interface/wx/<class>.h` is the documentation; `src/common` holds shared behaviour and
@@ -206,7 +214,8 @@ known class with a pitfall entry and a fixing commit.
 - **macOS:** capture-lost is never sent (a leaked capture freezes all clicks); transient popups hover-
   dismiss across a gap — anchor flush and re-verify the cursor; native modals (file/dir dialogs, native
   message boxes) and generic progress dialogs re-activate the main window, so re-raise a secondary window
-  afterwards with a deferred, liveness-guarded `Raise()`; a live menu accelerator consumes the key before
+  afterwards with a deferred, liveness-guarded `Raise()` — but never `Raise()` a `wxPopupWindow`, which makes
+  it the key window; a live menu accelerator consumes the key before
   any wx key event; Control+click arrives as a right-click.
 - **Windows:** `IsDark()` and `wxSYS_COLOUR_*` follow the system app mode, not Orca's theme — use
   `dark_mode()`; menu bitmaps follow `check_dark_mode()`; windows are not double-buffered by default in

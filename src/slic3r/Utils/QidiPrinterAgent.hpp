@@ -1,11 +1,15 @@
 #ifndef __QIDI_PRINTER_AGENT_HPP__
 #define __QIDI_PRINTER_AGENT_HPP__
 
+#include "IPrinterAgent.hpp"
 #include "MoonrakerPrinterAgent.hpp"
+#include "bambu_networking.hpp"
 
 #include <map>
 #include <string>
 #include <vector>
+
+#include <nlohmann/json.hpp>
 
 namespace Slic3r {
 
@@ -20,6 +24,16 @@ public:
 
     // Override filament sync (Qidi-specific implementation)
     bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override;
+
+    // Builds the SAVE_VARIABLE lines that make each T<n> macro load the Box slot picked for filament n
+    static std::string build_tool_slot_script(const std::string& ams_mapping);
+    // Builds the body of Moonraker's print start for an uploaded file, naming the plate to print when it is a 3MF
+    static nlohmann::json print_start_request(const PrintParams& params, const std::string& filename);
+
+protected:
+    // Saves the Box slot picked for each filament in the print dialog, then starts the print through Moonraker
+    bool print_uploaded_file(const PrintParams& params, const std::string& filename) override;
+    std::string ams_unit_name(int ams_id) const override { return "Qidi Box " + std::to_string(ams_id + 1); }
 
 private:
     struct QidiFilamentDict

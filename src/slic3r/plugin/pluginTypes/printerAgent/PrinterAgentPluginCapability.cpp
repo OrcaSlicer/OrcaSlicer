@@ -2,11 +2,16 @@
 #include "PrinterAgentPluginCapabilityTrampoline.hpp"
 
 #include "IPrinterAgent.hpp"
+#include <pybind11/cast.h>
+#include "slic3r/Utils/bambu_networking.hpp"
 
+#include <memory>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include <string>
+#include "slic3r/plugin/PythonPluginInterface.hpp"
 #include <utility>
 
 namespace py = pybind11;

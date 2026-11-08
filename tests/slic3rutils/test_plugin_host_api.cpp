@@ -1,14 +1,41 @@
+// why: keep the Windows headers ahead of libslic3r. Model.hpp pulls in Format/STEP.hpp, and
+// OCCT's Standard_Macro.hxx defines NOUSER and NOGDI on Windows so that windows.h does not
+// collide with OCCT's identifiers. Defined that early they also hide the USER and GDI
+// declarations, and the wx MSW headers Field.hpp reaches (wx/wxprec.h -> wx/msw/private.h)
+// need WNDPROC, RGB and the ::GetWindowRect family. Including windows.h first, as
+// libslic3r_gui does through pchheader.hpp or win_platform.hpp, keeps them.
+#ifdef WIN32
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+    #include <Windows.h>
+    #include <CommCtrl.h>
+#endif
+
 #include <catch2/catch_all.hpp>
 
+#include <cstddef>
 #include <libslic3r/Model.hpp>
 #include <libslic3r/PresetBundle.hpp>
 #include <libslic3r/TriangleMesh.hpp>
 #include <slic3r/GUI/DockPanel.hpp>
 #include <slic3r/GUI/AuiPaneLayout.hpp>
+#include <slic3r/GUI/OptionsGroup.hpp>
 #include <slic3r/GUI/Widgets/WebHosting.hpp>
-#include <slic3r/plugin/PythonPluginBridge.hpp>
 
+#include <map>
+#include <utility>
+
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include "plugin_test_utils.hpp"
+#include <pybind11/pytypes.h>
+#include <pybind11/cast.h>
 #include "python_test_support.hpp"
 
 #include <pybind11/embed.h>
@@ -16,7 +43,13 @@
 
 #include <string>
 
+#include <wx/string.h>
 #include <wx/uri.h>
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <pybind11/detail/common.h>
 
 namespace py = pybind11;
 
@@ -44,6 +77,14 @@ TEST_CASE("Plugin host API exposes host-owned bundle and preset surface to Pytho
     REQUIRE(has_attr(host, "Model"));
     REQUIRE(has_attr(host, "ModelObject"));
     REQUIRE(has_attr(host, "Plater"));
+    REQUIRE(has_attr(host, "preset"));
+    py::object preset = host.attr("preset");
+    REQUIRE(has_attr(preset, "bundles"));
+    py::object bundles = preset.attr("bundles");
+    CHECK(has_attr(bundles, "list_ids"));
+    CHECK(has_attr(bundles, "reload_local"));
+    CHECK_FALSE(has_attr(host, "reload_local_bundle"));
+    CHECK_FALSE(has_attr(host, "list_bundle_ids"));
 
     py::object preset_bundle_type = host.attr("PresetBundle");
     CHECK(has_attr(preset_bundle_type, "prints"));
@@ -117,11 +158,149 @@ TEST_CASE("Plugin host API exposes host-owned bundle and preset surface to Pytho
     CHECK(printers.attr("find_preset")(printer_preset.name).attr("name").cast<std::string>() == printer_preset.name);
 }
 
+TEST_CASE("Plugin host API exposes the editable preset category handles and guards them before Orca app initialization",
+          "[PluginHost][Python]")
+{
+    py::object host   = import_orca_module().attr("host");
+    py::object preset = host.attr("preset");
+
+    REQUIRE(has_attr(preset, "PresetEditor"));
+    REQUIRE(has_attr(preset, "process"));
+    REQUIRE(has_attr(preset, "printer"));
+    REQUIRE(has_attr(preset, "filament"));
+
+    py::object process  = preset.attr("process");
+    py::object printer  = preset.attr("printer");
+    py::object filament = preset.attr("filament");
+
+    CHECK(process.attr("type").cast<Slic3r::Preset::Type>() == Slic3r::Preset::TYPE_PRINT);
+    CHECK(printer.attr("type").cast<Slic3r::Preset::Type>() == Slic3r::Preset::TYPE_PRINTER);
+    CHECK(filament.attr("type").cast<Slic3r::Preset::Type>() == Slic3r::Preset::TYPE_FILAMENT);
+    for (const py::object& editor : { process, printer, filament })
+        CHECK(has_attr(editor, "update"));
+
+    // With no wx application the call must fail cleanly, like the rest of host.preset, and must not
+    // be mistaken for a missing attribute or an argument error.
+    for (const py::object& editor : { process, printer, filament }) {
+        try {
+            editor.attr("update")("layer_height", "0.25");
+            FAIL("preset editor update unexpectedly succeeded without a wx application");
+        } catch (const py::error_already_set& error) {
+            CHECK(error.matches(PyExc_RuntimeError));
+            CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+        }
+    }
+}
+
+TEST_CASE("Plugin host API exposes the filament slot form of preset update and guards it", "[PluginHost][Python]")
+{
+    py::object host   = import_orca_module().attr("host");
+    py::object preset = host.attr("preset");
+
+    // The filament editor accepts update(slot_number, key, value) as well as update(key, value); with
+    // no wx application it reaches the same clean failure as the rest of host.preset. The slot
+    // validation and the switch/cancel path need a running app, so they are not exercised here.
+    try {
+        preset.attr("filament").attr("update")(1, "layer_height", "0.25");
+        FAIL("slot-addressed filament update unexpectedly succeeded without a wx application");
+    } catch (const py::error_already_set& error) {
+        CHECK(error.matches(PyExc_RuntimeError));
+        CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+    }
+
+    // The process and printer editors accept only update(key, value); the slot form is rejected
+    // before any application access, naming the editor that does accept it.
+    for (const char* name : { "process", "printer" }) {
+        CAPTURE(name);
+        try {
+            preset.attr(name).attr("update")(1, "layer_height", "0.25");
+            FAIL("slot-addressed update on a non-filament editor unexpectedly succeeded");
+        } catch (const py::error_already_set& error) {
+            CHECK(error.matches(PyExc_ValueError));
+            CHECK(std::string(error.what()).find("only available on") != std::string::npos);
+        }
+    }
+}
+
+TEST_CASE("Plugin host API exposes staged preset update transactions", "[PluginHost][Python]")
+{
+    py::object preset = import_orca_module().attr("host").attr("preset");
+    py::object transaction_type = preset.attr("PresetTransaction");
+    py::object result_type = preset.attr("PresetUpdateResult");
+
+    CHECK(has_attr(transaction_type, "set"));
+    CHECK(has_attr(transaction_type, "commit"));
+    CHECK(has_attr(result_type, "target_name"));
+    CHECK(has_attr(result_type, "selection_changed"));
+    CHECK(has_attr(result_type, "slot_assignment_changed"));
+    CHECK(has_attr(result_type, "shared_slots"));
+
+    for (const char* name : { "process", "printer" }) {
+        CAPTURE(name);
+        py::object editor = preset.attr(name);
+        CHECK(has_attr(editor, "begin_update"));
+        try {
+            editor.attr("begin_update")();
+            FAIL("begin_update unexpectedly succeeded without a wx application");
+        } catch (const py::error_already_set& error) {
+            CHECK(error.matches(PyExc_RuntimeError));
+            CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+        }
+    }
+
+    py::object filament = preset.attr("filament");
+    CHECK(has_attr(filament, "begin_update"));
+    try {
+        filament.attr("begin_update")(1);
+        FAIL("filament begin_update unexpectedly succeeded without a wx application");
+    } catch (const py::error_already_set& error) {
+        CHECK(error.matches(PyExc_RuntimeError));
+        CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+    }
+}
+
+TEST_CASE("A settings group resolves an option's id from its option map", "[PluginHost]")
+{
+    using Slic3r::GUI::option_id_in_map;
+    using Slic3r::GUI::t_opt_map;
+
+    // The map ConfigOptionsGroup::get_option leaves: a scalar option, and a per-extruder option
+    // whose entries carry their index.
+    t_opt_map options;
+    options.emplace("layer_height", std::make_pair(std::string("layer_height"), -1));
+    options.emplace("nozzle_diameter#0", std::make_pair(std::string("nozzle_diameter"), 0));
+    options.emplace("nozzle_diameter#1", std::make_pair(std::string("nozzle_diameter"), 1));
+
+    // A negative index resolves a scalar option and yields its own (negative) index.
+    int index = -1;
+    CHECK(option_id_in_map(options, "layer_height", index) == "layer_height");
+    CHECK(index == -1);
+
+    // A negative index on a vector option matches several entries, so it resolves to nothing.
+    index = -1;
+    CHECK(option_id_in_map(options, "nozzle_diameter", index).empty());
+
+    // An explicit index selects that entry.
+    index = 1;
+    CHECK(option_id_in_map(options, "nozzle_diameter", index) == "nozzle_diameter#1");
+    CHECK(index == 1);
+
+    // An index no entry carries, and a key the map does not own, resolve to nothing.
+    index = 7;
+    CHECK(option_id_in_map(options, "nozzle_diameter", index).empty());
+    index = -1;
+    CHECK(option_id_in_map(options, "wall_loops", index).empty());
+
+    const t_opt_map empty;
+    CHECK(option_id_in_map(empty, "layer_height", index).empty());
+}
+
 TEST_CASE("Plugin host API reports unavailable GUI objects before Orca app initialization", "[PluginHost][Python]")
 {
     py::object host = import_orca_module().attr("host");
+    py::object bundles = host.attr("preset").attr("bundles");
 
-    for (const char* function_name : { "preset_bundle", "plater", "model" }) {
+    for (const char* function_name : { "preset_bundle", "plater", "model", "app_info", "selected_printer" }) {
         CAPTURE(function_name);
         try {
             host.attr(function_name)();
@@ -131,6 +310,33 @@ TEST_CASE("Plugin host API reports unavailable GUI objects before Orca app initi
             CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
         }
     }
+
+    try {
+        bundles.attr("reload_local")("test-bundle");
+        FAIL("host.preset.bundles.reload_local unexpectedly succeeded without a wx application");
+    } catch (const py::error_already_set& error) {
+        CHECK(error.matches(PyExc_RuntimeError));
+        CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+    }
+
+    try {
+        bundles.attr("list_ids")();
+        FAIL("host.preset.bundles.list_ids unexpectedly succeeded without a wx application");
+    } catch (const py::error_already_set& error) {
+        CHECK(error.matches(PyExc_RuntimeError));
+        CHECK(std::string(error.what()).find("OrcaSlicer application is not initialized") != std::string::npos);
+    }
+}
+
+TEST_CASE("Plugin host API reports no GL details before the 3D view exists", "[PluginHost][Python]")
+{
+    py::object host = import_orca_module().attr("host");
+
+    CHECK(host.attr("gl_info")().is_none());
+
+    py::object plater_type = host.attr("Plater");
+    CHECK(has_attr(plater_type, "project_path"));
+    CHECK(has_attr(plater_type, "export_3mf_copy"));
 }
 
 TEST_CASE("Plugin host API exposes the UI module and guards it before Orca app initialization", "[PluginHost][Python]")

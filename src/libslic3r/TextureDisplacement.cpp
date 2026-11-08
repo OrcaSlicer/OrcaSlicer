@@ -1,7 +1,10 @@
 #include "TextureDisplacement.hpp"
 
+#include <Eigen/Core>
+#include <Eigen/Geometry>
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
@@ -11,10 +14,14 @@
 #include <iterator>
 #include <limits>
 #include <map>
+#include <memory>
+#include <math.h>
 #include <mutex>
 #include <numeric>
 #include <optional>
+#include "nlohmann/json.hpp"
 #include <queue>
+#include <ratio>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -27,15 +34,21 @@
 #include <tbb/parallel_sort.h>
 
 #include <boost/log/trivial.hpp>
+#include <utility>
+#include <vector>
 
 #include "AABBTreeIndirect.hpp"
 #include "MeshBoolean.hpp"
 #include "Model.hpp"
 #include "PNGReadWrite.hpp"
+#include "Point.hpp"
+#include "TriangleMesh.hpp"
+#include "TextureBake/TextureBakeDisplace.hpp"
 #include "TriangleSelector.hpp"
 #include "TextureBake/TextureBakeDebug.hpp"
 #include "TextureBake/TextureBakeMesh.hpp"
 #include "TextureBake/TextureBakePipeline.hpp"
+#include "TextureBake/TextureBakeIndex.hpp"
 
 namespace Slic3r {
 
@@ -145,12 +158,33 @@ struct SmoothedTextureCache
     {
         std::weak_ptr<const std::vector<unsigned char>> source;
         float                                           smoothing = 0.f;
+        // Part of the key, not of the result: smoothing is applied *after* the panel's adjustments, so a
+        // blur computed over one set of adjustments is not the blur another set would give.
+        TextureAdjustments                              adjust;
         DecodedHeightTexture                            texture;
     };
     std::mutex                                   mutex;
     std::unordered_map<const void *, Entry>      entries;
 };
 SmoothedTextureCache g_smoothed_texture_cache;
+
+// The adjusted copy, cached between the raw decode and the smoothed one. Needed for the same reason the
+// smoothed cache is: while a slider in the image-adjustment panel moves, the thumbnail, the shaded
+// preview's height and colour textures, the UV editor backdrop and the displacement preview job all ask
+// for the same (image, adjustments) pair within one frame, and each of them running a full-size resample
+// of its own is what would make the panel unusable on a large texture.
+struct AdjustedTextureCache
+{
+    struct Entry
+    {
+        std::weak_ptr<const std::vector<unsigned char>> source;
+        TextureAdjustments                              adjust;
+        DecodedHeightTexture                            texture;
+    };
+    std::mutex                              mutex;
+    std::unordered_map<const void *, Entry> entries;
+};
+AdjustedTextureCache g_adjusted_texture_cache;
 } // namespace
 
 namespace {
@@ -235,7 +269,21 @@ void smooth_height_pixels(std::vector<uint8_t> &pixels, int width, int height, f
 }
 } // namespace
 
-DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer)
+bool height_texture_has_color(const TextureDisplacementLayer &layer)
+{
+    if (layer.empty())
+        return false;
+    {
+        std::lock_guard<std::mutex> lock(g_decoded_texture_cache.mutex);
+        const auto it = g_decoded_texture_cache.entries.find(layer.image_data.get());
+        if (it != g_decoded_texture_cache.entries.end() && it->second.first.lock() == layer.image_data)
+            return it->second.second.has_color();
+    }
+    // Not decoded yet. Decoding caches the raw image, so this happens once per image.
+    return decode_height_texture(layer).has_color();
+}
+
+DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer, bool keep_decoded)
 {
     DecodedHeightTexture result;
     if (layer.empty())
@@ -303,13 +351,43 @@ DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer
                 }
         }
 
-        std::lock_guard<std::mutex> lock(g_decoded_texture_cache.mutex);
-        // Opportunistically drop entries for image_data that no longer exists anywhere, so the
-        // cache doesn't grow without bound across many add/remove-texture cycles in a long session.
-        auto &entries = g_decoded_texture_cache.entries;
-        for (auto it = entries.begin(); it != entries.end();)
-            it = it->second.first.expired() ? entries.erase(it) : std::next(it);
-        entries[key] = { std::weak_ptr<const std::vector<unsigned char>>(layer.image_data), result };
+        if (keep_decoded) {
+            std::lock_guard<std::mutex> lock(g_decoded_texture_cache.mutex);
+            // Opportunistically drop entries for image_data that no longer exists anywhere, so the
+            // cache doesn't grow without bound across many add/remove-texture cycles in a long session.
+            auto &entries = g_decoded_texture_cache.entries;
+            for (auto it = entries.begin(); it != entries.end();)
+                it = it->second.first.expired() ? entries.erase(it) : std::next(it);
+            entries[key] = { std::weak_ptr<const std::vector<unsigned char>>(layer.image_data), result };
+        }
+    }
+
+    // The image-adjustment panel's live edits, on top of the decode and before the smoothing. Before,
+    // because `preview_adjust` is an edit to the image while `smoothing` is a live low-pass over whatever
+    // the image is - the same order the panel presents them in, and the same order a commit bakes in.
+    //
+    // Nothing applies here once the panel has closed: it resets preview_adjust to identity, and identity
+    // is a no-op that costs one comparison.
+    if (!layer.preview_adjust.identity()) {
+        bool have_adjusted = false;
+        {
+            std::lock_guard<std::mutex> lock(g_adjusted_texture_cache.mutex);
+            auto it = g_adjusted_texture_cache.entries.find(key);
+            if (it != g_adjusted_texture_cache.entries.end() && it->second.adjust == layer.preview_adjust &&
+                it->second.source.lock() == layer.image_data) {
+                result        = it->second.texture;
+                have_adjusted = true;
+            }
+        }
+        if (!have_adjusted) {
+            result = apply_texture_adjustments(result, layer.preview_adjust);
+            std::lock_guard<std::mutex> lock(g_adjusted_texture_cache.mutex);
+            auto &entries = g_adjusted_texture_cache.entries;
+            for (auto it = entries.begin(); it != entries.end();)
+                it = it->second.source.expired() ? entries.erase(it) : std::next(it);
+            entries[key] = { std::weak_ptr<const std::vector<unsigned char>>(layer.image_data),
+                             layer.preview_adjust, result };
+        }
     }
 
     // Smoothing radius scales with the texture so the same slider value blurs the same *fraction* of
@@ -322,7 +400,7 @@ DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer
             std::lock_guard<std::mutex> lock(g_smoothed_texture_cache.mutex);
             auto it = g_smoothed_texture_cache.entries.find(key);
             if (it != g_smoothed_texture_cache.entries.end() && it->second.smoothing == layer.smoothing &&
-                it->second.source.lock() == layer.image_data)
+                it->second.adjust == layer.preview_adjust && it->second.source.lock() == layer.image_data)
                 return it->second.texture;
         }
         const float span   = 0.05f * float(std::min(result.width, result.height));
@@ -346,12 +424,70 @@ DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer
         auto &entries = g_smoothed_texture_cache.entries;
         for (auto it = entries.begin(); it != entries.end();)
             it = it->second.source.expired() ? entries.erase(it) : std::next(it);
-        entries[key] = { std::weak_ptr<const std::vector<unsigned char>>(layer.image_data), layer.smoothing, result };
+        entries[key] = { std::weak_ptr<const std::vector<unsigned char>>(layer.image_data), layer.smoothing,
+                         layer.preview_adjust, result };
     }
     return result;
 }
 
 namespace {
+// Fraction of the short side that TextureAdjustments::blur == 1 blurs over, and the cost cap on it.
+// Deliberately the same pair decode_height_texture() uses for the Smoothing slider - see
+// adjustment_blur_radius().
+constexpr float SOURCE_BLUR_SPAN   = 0.05f;
+constexpr float SOURCE_BLUR_MAX_PX = 48.f;
+
+// Radius of the unsharp mask's blurred reference, in texels. Small and only mildly resolution-dependent:
+// a sharpen is meant to act on the finest detail the image holds, so its radius tracks the texel grid
+// rather than the picture's size. 1024x1024 gives ~2 texels, the usual photo-editor default.
+float unsharp_radius(int width, int height)
+{
+    return std::max(1.f, 0.002f * float(std::min(width, height)));
+}
+
+// Brightness as a *lift* toward white (or toward black) rather than an additive offset: positive b maps
+// v to v + b*(1 - v), negative to v*(1 + b). Both reach the endpoint exactly at |b| == 1 while staying
+// monotonic and non-clipping in between, which an additive shift does not - it drives a whole region to
+// a flat 255 and, because this image is also the height map, that region bakes as flat relief rather
+// than as bright relief. Keeping the curve injective keeps the detail in it.
+float apply_brightness(float v, float b)
+{
+    return b >= 0.f ? v + b * (1.f - v) : v * (1.f + b);
+}
+
+// Contrast about the 0.5 pivot. Gain is 1/(1-c) going up (c == 1 would be an infinite-slope threshold, so
+// the caller's clamp keeps it finite) and 1+c going down, reaching a flat mid-grey at c == -1.
+float apply_contrast(float v, float c)
+{
+    const float gain = c >= 0.f ? 1.f / std::max(1e-3f, 1.f - c) : 1.f + c;
+    return (v - 0.5f) * gain + 0.5f;
+}
+
+// Blur then sharpen one 8-bit channel in place. Shared by the grayscale path and by each of a colour
+// image's three channels, so every channel gets the identical spatial treatment and a colour image's
+// hue cannot shift just because its channels were filtered differently.
+void adjust_channel_spatial(std::vector<uint8_t> &channel, int width, int height, float blur, float sharpness)
+{
+    if (blur > 0.f)
+        smooth_height_pixels(channel, width, height, adjustment_blur_radius(blur, width, height));
+
+    if (sharpness <= 0.f)
+        return;
+
+    // Unsharp mask: push each texel away from its local average by `amount` times the difference. The
+    // blurred reference is a copy, so the sharpen reads the un-sharpened neighbourhood everywhere rather
+    // than its own partly-written output.
+    std::vector<uint8_t> base = channel;
+    smooth_height_pixels(base, width, height, unsharp_radius(width, height));
+    const float amount = 1.5f * std::clamp(sharpness, 0.f, 1.f);
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, channel.size()), [&](const tbb::blocked_range<size_t> &r) {
+        for (size_t i = r.begin(); i < r.end(); ++i) {
+            const float v = float(channel[i]) + amount * (float(channel[i]) - float(base[i]));
+            channel[i]    = uint8_t(std::lround(std::clamp(v, 0.f, 255.f)));
+        }
+    });
+}
+
 struct TextureDetailCache
 {
     std::mutex mutex;
@@ -359,6 +495,150 @@ struct TextureDetailCache
 };
 TextureDetailCache g_texture_detail_cache;
 } // namespace
+
+float adjustment_blur_radius(float blur, int width, int height)
+{
+    if (blur <= 0.f || width <= 0 || height <= 0)
+        return 0.f;
+    const float span = SOURCE_BLUR_SPAN * float(std::min(width, height));
+    return std::clamp(blur, 0.f, 1.f) * std::min(span, SOURCE_BLUR_MAX_PX);
+}
+
+DecodedHeightTexture downscale_height_texture(const DecodedHeightTexture &src, int max_px)
+{
+    if (src.empty() || max_px <= 0 || (src.width <= max_px && src.height <= max_px))
+        return src;
+
+    const int  scale = std::max(1, (std::max(src.width, src.height) + max_px - 1) / max_px);
+    const int  w     = std::max(1, src.width / scale);
+    const int  h     = std::max(1, src.height / scale);
+    const bool color = src.has_color();
+
+    DecodedHeightTexture out;
+    out.width  = w;
+    out.height = h;
+    out.pixels.resize(size_t(w) * size_t(h));
+    if (color)
+        out.rgb.resize(size_t(w) * size_t(h) * 3);
+
+    tbb::parallel_for(tbb::blocked_range<int>(0, h), [&](const tbb::blocked_range<int> &r) {
+        for (int y = r.begin(); y < r.end(); ++y)
+            for (int x = 0; x < w; ++x) {
+                // The source block this destination texel covers. The max() keeps the block non-empty
+                // when rounding would otherwise collapse it.
+                const int x0 = x * src.width / w, x1 = std::max(x0 + 1, (x + 1) * src.width / w);
+                const int y0 = y * src.height / h, y1 = std::max(y0 + 1, (y + 1) * src.height / h);
+                uint32_t  sum_h = 0, sum_c[3] = { 0, 0, 0 }, n = 0;
+                for (int sy = y0; sy < y1 && sy < src.height; ++sy)
+                    for (int sx = x0; sx < x1 && sx < src.width; ++sx, ++n) {
+                        const size_t si = size_t(sy) * size_t(src.width) + size_t(sx);
+                        sum_h += src.pixels[si];
+                        if (color)
+                            for (int c = 0; c < 3; ++c)
+                                sum_c[c] += src.rgb[si * 3 + size_t(c)];
+                    }
+                const size_t di = size_t(y) * size_t(w) + size_t(x);
+                out.pixels[di]  = n > 0 ? uint8_t(sum_h / n) : 0;
+                if (color)
+                    for (int c = 0; c < 3; ++c)
+                        out.rgb[di * 3 + size_t(c)] = n > 0 ? uint8_t(sum_c[c] / n) : 0;
+            }
+    });
+    return out;
+}
+
+DecodedHeightTexture apply_texture_adjustments(const DecodedHeightTexture &src, const TextureAdjustments &adj)
+{
+    DecodedHeightTexture out = src;
+    if (src.empty() || adj.identity())
+        return out;
+
+    const int    w = out.width;
+    const int    h = out.height;
+    const size_t n = size_t(w) * size_t(h);
+
+    const float brightness = std::clamp(adj.brightness, -1.f, 1.f);
+    // Short of 1, so apply_contrast()'s gain stays finite; at this value it is already a 1000x slope,
+    // i.e. a threshold in all but name.
+    const float contrast   = std::clamp(adj.contrast, -1.f, 0.999f);
+    const float blur       = std::clamp(adj.blur, 0.f, 1.f);
+    const float sharpness  = std::clamp(adj.sharpness, 0.f, 1.f);
+
+    // The tonal pass: a 256-entry lookup table, because brightness and contrast are the same scalar
+    // curve for every texel and every channel. Building it once beats evaluating two curves a few
+    // million times, and it is what keeps this pass off the panel's critical path.
+    std::array<uint8_t, 256> tone{};
+    for (int i = 0; i < 256; ++i) {
+        float v = float(i) / 255.f;
+        v       = apply_brightness(v, brightness);
+        v       = apply_contrast(v, contrast);
+        tone[size_t(i)] = uint8_t(std::lround(std::clamp(v, 0.f, 1.f) * 255.f));
+    }
+
+    if (!out.has_color()) {
+        // Grayscale: one channel, and hue has nothing to turn.
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, n), [&](const tbb::blocked_range<size_t> &r) {
+            for (size_t i = r.begin(); i < r.end(); ++i)
+                out.pixels[i] = tone[out.pixels[i]];
+        });
+        adjust_channel_spatial(out.pixels, w, h, blur, sharpness);
+        return out;
+    }
+
+    // Colour: tone each channel through the same table, then rotate the hue about the luminance axis.
+    //
+    // The rotation is feColorMatrix's hueRotate matrix (SVG filters), which holds Rec.709 luma fixed.
+    // The height below is taken with decode_height_texture()'s Rec.601 coefficients instead, so a hue
+    // turn is not perfectly height-neutral - a few levels at full saturation. Reconciling the two would
+    // mean a different rotation than every other tool's, which is the worse trade: the user is watching
+    // the colour, and the height follows the colour by construction either way.
+    const float  theta = adj.hue_deg * float(M_PI) / 180.f;
+    const float  c     = std::cos(theta);
+    const float  s     = std::sin(theta);
+    const float  m[9]  = {
+        0.213f + c * 0.787f - s * 0.213f, 0.715f - c * 0.715f - s * 0.715f, 0.072f - c * 0.072f + s * 0.928f,
+        0.213f - c * 0.213f + s * 0.143f, 0.715f + c * 0.285f + s * 0.140f, 0.072f - c * 0.072f - s * 0.283f,
+        0.213f - c * 0.213f - s * 0.787f, 0.715f - c * 0.715f + s * 0.715f, 0.072f + c * 0.928f + s * 0.072f,
+    };
+    const bool turn_hue = adj.hue_deg != 0.f;
+
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, n), [&](const tbb::blocked_range<size_t> &r) {
+        for (size_t i = r.begin(); i < r.end(); ++i) {
+            const float rr = float(tone[out.rgb[i * 3]]);
+            const float gg = float(tone[out.rgb[i * 3 + 1]]);
+            const float bb = float(tone[out.rgb[i * 3 + 2]]);
+            const float nr = turn_hue ? m[0] * rr + m[1] * gg + m[2] * bb : rr;
+            const float ng = turn_hue ? m[3] * rr + m[4] * gg + m[5] * bb : gg;
+            const float nb = turn_hue ? m[6] * rr + m[7] * gg + m[8] * bb : bb;
+            out.rgb[i * 3]     = uint8_t(std::lround(std::clamp(nr, 0.f, 255.f)));
+            out.rgb[i * 3 + 1] = uint8_t(std::lround(std::clamp(ng, 0.f, 255.f)));
+            out.rgb[i * 3 + 2] = uint8_t(std::lround(std::clamp(nb, 0.f, 255.f)));
+        }
+    });
+
+    // The spatial pass wants one channel at a time (smooth_height_pixels() is a single-channel blur, and
+    // reusing it is what keeps this consistent with Smoothing), so de-interleave, filter, re-interleave.
+    if (blur > 0.f || sharpness > 0.f) {
+        std::vector<uint8_t> channel(n);
+        for (int ch = 0; ch < 3; ++ch) {
+            for (size_t i = 0; i < n; ++i)
+                channel[i] = out.rgb[i * 3 + size_t(ch)];
+            adjust_channel_spatial(channel, w, h, blur, sharpness);
+            for (size_t i = 0; i < n; ++i)
+                out.rgb[i * 3 + size_t(ch)] = channel[i];
+        }
+    }
+
+    // Height is the luminance of the colour that came out, not the toned luminance of the colour that
+    // went in: the two differ once hue rotation or a per-channel clamp has moved the channels around,
+    // and a height that disagrees with the colour it is stored next to is the bug this avoids.
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, n), [&](const tbb::blocked_range<size_t> &r) {
+        for (size_t i = r.begin(); i < r.end(); ++i)
+            out.pixels[i] = uint8_t(std::lround(0.299 * out.rgb[i * 3] + 0.587 * out.rgb[i * 3 + 1] +
+                                                0.114 * out.rgb[i * 3 + 2]));
+    });
+    return out;
+}
 
 TextureDetail analyze_texture_detail(const TextureDisplacementLayer &layer)
 {
@@ -465,6 +745,57 @@ V2Resolution recommend_v2_resolution(const indexed_triangle_set                 
     return out;
 }
 
+namespace {
+// Which side of a world plane a face is on, with an exactly zero component counted as the positive
+// side. The tie never shows: a normal component of zero carries zero tri-planar blend weight (see
+// triplanar_weights()), so the plane it orients contributes nothing at that point.
+inline float box_face_sign(float n) { return n >= 0.f ? 1.f : -1.f; }
+
+// The box projection's 2D basis for one of the three world planes, oriented the way a viewer
+// standing outside the model sees that face.
+//
+// v runs *down* the image, because that is what v means to the sampler: v = 0 is the texture's first
+// pixel row, i.e. its top (DecodedHeightTexture::sample(); the UV editor negates Y on screen for the
+// same reason, see UVEditorCanvas::render()). So v = -z on the four upright planes and v = -y on the
+// horizontal one, which is what puts the top of an image at the top of the model rather than
+// upside down.
+//
+// u then has to depend on which *side* of the plane the face is on, or one of the two faces sharing
+// a plane comes out left-right mirrored: with a single u per plane, a portrait image reads upright on
+// +X and 180 degrees round on -X. Fixing that is the sign below, chosen so that u x v == -normal,
+// i.e. (right, down, into the surface) is right-handed for a viewer outside:
+//
+//   face  u     v       face  u     v       face  u     v
+//   +X    +y    -z      +Y    -x    -z      +Z    +x    -y
+//   -X    -y    -z      -Y    +x    -z      -Z    -x    -y
+//
+// The sign flips where its own normal component crosses zero, and the blend weight of the plane it
+// belongs to is exactly zero there, so the blended tri-planar sum stays continuous across the flip -
+// it is not a return of the hard axis switch described on TextureProjectionMethod::Triplanar.
+inline Vec2f box_plane_yz(const Vec3f &p, float nx) { return Vec2f(box_face_sign(nx) * p.y(), -p.z()); }
+inline Vec2f box_plane_xz(const Vec3f &p, float ny) { return Vec2f(-box_face_sign(ny) * p.x(), -p.z()); }
+inline Vec2f box_plane_xy(const Vec3f &p, float nz) { return Vec2f(box_face_sign(nz) * p.x(), -p.y()); }
+} // namespace
+
+void box_projection_axes(const Vec3f &normal, Vec3f &u_axis, Vec3f &v_axis)
+{
+    // The same table as box_plane_yz()/box_plane_xz()/box_plane_xy(), handed out as a pair of world
+    // directions for the plane the normal is closest to. Two shapes of one table, because the bake's
+    // hot path wants the closed form and the GUI wants the axes; the test suite checks them against
+    // each other so they cannot drift apart.
+    const Vec3f n = normal.cwiseAbs();
+    if (n.x() >= n.y() && n.x() >= n.z()) {
+        u_axis = box_face_sign(normal.x()) * Vec3f::UnitY();
+        v_axis = -Vec3f::UnitZ();
+    } else if (n.y() >= n.x() && n.y() >= n.z()) {
+        u_axis = -box_face_sign(normal.y()) * Vec3f::UnitX();
+        v_axis = -Vec3f::UnitZ();
+    } else {
+        u_axis = box_face_sign(normal.z()) * Vec3f::UnitX();
+        v_axis = -Vec3f::UnitY();
+    }
+}
+
 Vec2f project_planar(const Vec3f &position, const Vec3f &normal)
 {
     // Planar-project onto the two axes orthogonal to the dominant component of `normal`. Called
@@ -475,23 +806,26 @@ Vec2f project_planar(const Vec3f &position, const Vec3f &normal)
     // other face in the same patch - exactly the bug an earlier version of this feature had).
     const Vec3f n = normal.cwiseAbs();
     if (n.x() >= n.y() && n.x() >= n.z())
-        return Vec2f(position.y(), position.z());
+        return box_plane_yz(position, normal.x());
     if (n.y() >= n.x() && n.y() >= n.z())
-        return Vec2f(position.x(), position.z());
-    return Vec2f(position.x(), position.y());
+        return box_plane_xz(position, normal.y());
+    return box_plane_xy(position, normal.z());
 }
 
 namespace {
 // Wrapped around patch_axis, centered at patch_center. u is the arc length (mm) around the axis at
-// this point's own radius, v is the signed distance along the axis - a reasonable approximation
-// for roughly cylindrical selections, not an exact fit for arbitrary geometry.
+// this point's own radius, v is the distance along the axis, measured *against* it - a reasonable
+// approximation for roughly cylindrical selections, not an exact fit for arbitrary geometry.
 Vec2f project_cylindrical(const Vec3f &position, const Vec3f &patch_center, const Vec3f &patch_axis)
 {
     Vec3f up = patch_axis;
     up       = (up.norm() > 1e-8f) ? Vec3f(up.normalized()) : Vec3f::UnitZ();
     const Vec3f arbitrary = (std::abs(up.dot(Vec3f::UnitZ())) < 0.9f) ? Vec3f::UnitZ() : Vec3f::UnitX();
     const Vec3f right     = Vec3f(up.cross(arbitrary).normalized());
-    const Vec3f fwd       = Vec3f(right.cross(up).normalized());
+    // up x right, not right x up: that makes (right, fwd, up) right-handed, so the angle below grows
+    // anticlockwise about the axis - which, seen from outside the cylinder, is to the viewer's right.
+    // The other way round the texture wraps on mirrored, as if seen through the model from behind.
+    const Vec3f fwd       = Vec3f(up.cross(right).normalized());
 
     const Vec3f rel        = position - patch_center;
     const float along_axis = rel.dot(up);
@@ -500,7 +834,9 @@ Vec2f project_cylindrical(const Vec3f &position, const Vec3f &patch_center, cons
     const float radius     = std::sqrt(x * x + y * y);
     const float angle      = std::atan2(y, x);
 
-    return Vec2f(angle * radius, along_axis);
+    // Negated, like every other projection's v: v = 0 is the texture's top row, so v has to grow
+    // *down* the axis for the top of the image to sit at the top of the model.
+    return Vec2f(angle * radius, -along_axis);
 }
 
 // Longitude/latitude around patch_center. u/v are scaled by this point's own distance from the
@@ -516,7 +852,9 @@ Vec2f project_spherical(const Vec3f &position, const Vec3f &patch_center)
     const Vec3f dir       = rel / radius;
     const float longitude = std::atan2(dir.y(), dir.x());
     const float latitude  = std::asin(std::clamp(dir.z(), -1.f, 1.f));
-    return Vec2f(longitude, latitude) * radius;
+    // Longitude already grows to the right as seen from outside; latitude grows toward the north
+    // pole, so it is negated to put the image's top row (v = 0) at the top of the model.
+    return Vec2f(longitude, -latitude) * radius;
 }
 
 // CGAL's LSCM parameterizer expects a clean mesh with no isolated (unreferenced) vertices - but
@@ -811,9 +1149,26 @@ std::vector<int> segment_into_charts(const indexed_triangle_set &mesh, const std
 // solve at all, and why this also serves as the fallback for a chart LSCM cannot handle.
 std::vector<Vec2f> project_to_tangent_plane(const indexed_triangle_set &chart, const Vec3f &normal)
 {
-    const Vec3f seed = (std::abs(normal.z()) < 0.9f) ? Vec3f::UnitZ() : Vec3f::UnitX();
-    const Vec3f u    = Vec3f(seed.cross(normal).normalized());
-    const Vec3f v    = Vec3f(normal.cross(u).normalized());
+    // Oriented like the box projection (see box_projection_axes()), so a chart reads the right way up
+    // and unmirrored instead of being flattened to whichever basis a cross product happened to give.
+    // For a chart whose normal *is* a world axis - a cube face, which is the common case once the
+    // seam angle has cut the patch along its sharp edges - this is exactly the box basis, so such a
+    // face unwraps to the same orientation Triplanar would have given it.
+    Vec3f u, v;
+    box_projection_axes(normal, u, v);
+    // The box axes lie in the tangent plane already when the normal is a world axis; for any other
+    // normal, u is squared up against it and v follows. u x v == -normal keeps the chart the way
+    // round a viewer outside the model sees it (a plain normal x u would mirror it).
+    u = u - normal * normal.dot(u);
+    if (u.norm() <= 1e-6f) {
+        // Out of reach for a unit normal - the box basis puts u perpendicular to the normal's own
+        // dominant axis, so the two can never be within 45 degrees of each other - but a caller
+        // handing over an unnormalized normal should still get a usable basis rather than a NaN.
+        const Vec3f seed = (std::abs(normal.z()) < 0.9f) ? Vec3f::UnitZ() : Vec3f::UnitX();
+        u = seed.cross(normal);
+    }
+    u = Vec3f(u.normalized());
+    v = Vec3f(u.cross(normal).normalized());
 
     std::vector<Vec2f> uvs(chart.vertices.size());
     for (size_t i = 0; i < chart.vertices.size(); ++i)
@@ -1236,52 +1591,81 @@ bool triangles_overlap(const Tri2 &a, const Tri2 &b, float eps)
 struct NetGrid
 {
     static constexpr int BIG_SPAN = 16;
-    float                cell;
-    float                eps;
-    std::unordered_map<uint64_t, std::vector<Tri2>> cells;
-    std::vector<Tri2>    big;
+    // Each stored triangle keeps its own bounding box. Overlap testing is dominated by rejects - a cell
+    // holds every triangle whose box touches it, and a candidate meets only a couple of them for real -
+    // so paying six floats per entry to answer most of those rejects with four comparisons, instead of a
+    // full triangle intersection, is what makes the net affordable. Measured on a 42k-triangle patch the
+    // grid ran ~19 million candidate pairs per net, nearly all of them misses, and rejecting them this
+    // way took the net from ~175 ms to ~53 ms.
+    //
+    // The box rides inside the entry rather than in a parallel array: splitting them to scan boxes back
+    // to back was tried and came out slower, because each bucket then grows two vectors instead of one.
+    struct Entry
+    {
+        Tri2  tri;
+        Vec2f lo, hi;
+    };
+    float                                           cell;
+    float                                           eps;
+    std::unordered_map<uint64_t, std::vector<Entry>> cells;
+    std::vector<Entry>                              big;
 
     static uint64_t key(int x, int y) { return (uint64_t(uint32_t(x)) << 32) | uint32_t(y); }
-    bool range(const Tri2 &t, int &x0, int &y0, int &x1, int &y1) const
+    static Entry    entry(const Tri2 &t)
     {
-        const Vec2f lo = t[0].cwiseMin(t[1]).cwiseMin(t[2]), hi = t[0].cwiseMax(t[1]).cwiseMax(t[2]);
+        return Entry{ t, t[0].cwiseMin(t[1]).cwiseMin(t[2]), t[0].cwiseMax(t[1]).cwiseMax(t[2]) };
+    }
+    bool range(const Vec2f &lo, const Vec2f &hi, int &x0, int &y0, int &x1, int &y1) const
+    {
         x0 = int(std::floor(lo.x() / cell));
         y0 = int(std::floor(lo.y() / cell));
         x1 = int(std::floor(hi.x() / cell));
         y1 = int(std::floor(hi.y() / cell));
         return x1 - x0 <= BIG_SPAN && y1 - y0 <= BIG_SPAN;
     }
+    // Boxes grown by eps on both sides, to match the tolerance triangles_overlap() itself works to: a
+    // reject here must never discard a pair that test would have called touching.
+    bool boxes_apart(const Entry &a, const Entry &b) const
+    {
+        return a.hi.x() + eps < b.lo.x() || b.hi.x() + eps < a.lo.x() || a.hi.y() + eps < b.lo.y() ||
+               b.hi.y() + eps < a.lo.y();
+    }
+    bool hits(const Entry &q, const std::vector<Entry> &bucket) const
+    {
+        for (const Entry &b : bucket)
+            if (!boxes_apart(q, b) && triangles_overlap(q.tri, b.tri, eps))
+                return true;
+        return false;
+    }
     bool overlaps(const Tri2 &t) const
     {
-        for (const Tri2 &b : big)
-            if (triangles_overlap(t, b, eps))
-                return true;
+        const Entry q = entry(t);
+        if (hits(q, big))
+            return true;
         int x0, y0, x1, y1;
-        if (!range(t, x0, y0, x1, y1)) {
-            for (const auto &[k, tris] : cells)
-                for (const Tri2 &b : tris)
-                    if (triangles_overlap(t, b, eps))
-                        return true;
+        if (!range(q.lo, q.hi, x0, y0, x1, y1)) {
+            for (const auto &[k, bucket] : cells)
+                if (hits(q, bucket))
+                    return true;
             return false;
         }
         for (int x = x0; x <= x1; ++x)
             for (int y = y0; y <= y1; ++y)
-                if (const auto it = cells.find(key(x, y)); it != cells.end())
-                    for (const Tri2 &b : it->second)
-                        if (triangles_overlap(t, b, eps))
-                            return true;
+                if (const auto it = cells.find(key(x, y)); it != cells.end() && hits(q, it->second))
+                    return true;
         return false;
     }
     void insert(const Tri2 &t)
     {
-        int x0, y0, x1, y1;
-        if (!range(t, x0, y0, x1, y1)) {
-            big.push_back(t);
+        const Entry e = entry(t);
+        int         x0, y0, x1, y1;
+        if (!range(e.lo, e.hi, x0, y0, x1, y1)) {
+            big.push_back(e);
             return;
         }
         for (int x = x0; x <= x1; ++x)
             for (int y = y0; y <= y1; ++y)
-                cells[key(x, y)].push_back(t);
+                cells[key(x, y)].push_back(e);
     }
 };
 } // namespace
@@ -1293,11 +1677,20 @@ std::vector<TextureIsland> compute_connected_net(const PatchUnwrap &unwrap)
     if (n <= 1)
         return islands;
 
-    // Chart adjacency, with one representative shared edge per adjacent pair.
+    // Chart adjacency, with one representative shared edge per adjacent pair: the fold line the pair is
+    // unfolded about.
+    //
+    // Which edge that is matters, because two charts can touch along more than one run. A chart cut open
+    // to flatten it - a ring opened by segment_into_charts(), say - touches its other half along *both*
+    // sides of the cut. Folding is rigid, so only the run the fold line belongs to comes out matching;
+    // every other run is left mismatched, and a mismatched run is exactly where the texture visibly
+    // jumps. Taking whichever edge the map happened to yield first therefore left the long side broken
+    // about as often as the short one. The fold line is picked from the longest run instead, so what is
+    // left discontinuous is the shortest boundary the pair has.
     const auto edges = build_shared_edges(unwrap);
     struct PairEdge { ChartEdge a, b; };
-    std::map<std::pair<int, int>, PairEdge> pair_edge;
-    std::vector<std::vector<int>>            adj(static_cast<size_t>(n));
+    struct SharedEdge { PairEdge fold; int base_lo = -1, base_hi = -1; float length = 0.f; };
+    std::map<std::pair<int, int>, std::vector<SharedEdge>> pair_shared;
     for (const auto &[base_edge, list] : edges) {
         for (size_t i = 0; i < list.size(); ++i)
             for (size_t j = i + 1; j < list.size(); ++j) {
@@ -1305,12 +1698,48 @@ std::vector<TextureIsland> compute_connected_net(const PatchUnwrap &unwrap)
                 if (c1 == c2 || c1 < 0 || c2 < 0 || c1 >= n || c2 >= n)
                     continue;
                 const std::pair<int, int> pk{ std::min(c1, c2), std::max(c1, c2) };
-                if (pair_edge.count(pk))
-                    continue; // keep the first shared edge as the fold line for this pair
-                pair_edge[pk] = (c1 < c2) ? PairEdge{ list[i], list[j] } : PairEdge{ list[j], list[i] };
-                adj[size_t(pk.first)].push_back(pk.second);
-                adj[size_t(pk.second)].push_back(pk.first);
+                SharedEdge se;
+                se.fold    = (c1 < c2) ? PairEdge{ list[i], list[j] } : PairEdge{ list[j], list[i] };
+                se.base_lo = base_edge.first;
+                se.base_hi = base_edge.second;
+                // The unwrap is scaled to true surface area, so a uv distance is a length in mm.
+                se.length = (unwrap.uvs[size_t(se.fold.a.uv_lo)] - unwrap.uvs[size_t(se.fold.a.uv_hi)]).norm();
+                pair_shared[pk].push_back(se);
             }
+    }
+
+    std::map<std::pair<int, int>, PairEdge> pair_edge;
+    std::map<std::pair<int, int>, float>    pair_weight; // length of the run each pair folds across
+    std::vector<std::vector<int>>           adj(static_cast<size_t>(n));
+    for (const auto &[pk, shared] : pair_shared) {
+        // Group the pair's shared edges into runs - edges joined end to end through a base vertex - and
+        // total each run's length.
+        std::unordered_map<int, int> local;
+        for (const SharedEdge &se : shared)
+            for (const int v : { se.base_lo, se.base_hi })
+                local.emplace(v, int(local.size()));
+        UnionFind runs(local.size());
+        for (const SharedEdge &se : shared)
+            runs.unite(local[se.base_lo], local[se.base_hi]);
+
+        std::unordered_map<int, float>  run_length;
+        std::unordered_map<int, size_t> run_first;
+        for (size_t i = 0; i < shared.size(); ++i) {
+            const int root = runs.find(local[shared[i].base_lo]);
+            run_length[root] += shared[i].length;
+            run_first.emplace(root, i);
+        }
+        int   best_root = -1;
+        float best_len  = -1.f;
+        for (const auto &[root, len] : run_length)
+            if (len > best_len) { best_len = len; best_root = root; }
+        if (best_root < 0)
+            continue;
+
+        pair_edge[pk] = shared[run_first[best_root]].fold;
+        pair_weight[pk] = best_len;
+        adj[size_t(pk.first)].push_back(pk.second);
+        adj[size_t(pk.second)].push_back(pk.first);
     }
 
     // Per chart: its vertices, its triangles and its flattened area.
@@ -1366,15 +1795,29 @@ std::vector<TextureIsland> compute_connected_net(const PatchUnwrap &unwrap)
             for (const int t : chart_tris[size_t(root)])
                 grid.insert(placed(m, t));
         }
-        std::queue<int> q;
-        q.push(root);
+        // Grown strongest-adjacency-first (Prim, not breadth-first): a chart is folded onto whichever
+        // neighbour it shares the longest boundary with, among everything reachable so far. Order matters
+        // because only the fold a chart is actually reached by comes out matching - every other boundary
+        // it has is left to chance. Taking neighbours in breadth-first order, biggest-area first, let a
+        // far-off branch claim a chart across a short boundary before its true neighbour was reached, and
+        // the long boundary they shared then stayed broken. That is the visible seam next to a hole: a
+        // ring is cut into two halves that share a long boundary, and whichever half was reached first
+        // took the other one along some unrelated edge.
+        using Candidate = std::pair<float, std::pair<int, int>>; // weight, (from, to)
+        std::priority_queue<Candidate>                              q;
+        const auto push_neighbours = [&](int p) {
+            for (const int c : adj[size_t(p)])
+                if (net_of[size_t(c)] < 0 && !chart_tris[size_t(c)].empty()) {
+                    const auto w = pair_weight.find({ std::min(p, c), std::max(p, c) });
+                    q.push({ w == pair_weight.end() ? 0.f : w->second, { p, c } });
+                }
+        };
+        push_neighbours(root);
         while (!q.empty()) {
-            const int p = q.front();
+            const auto [weight, link] = q.top();
             q.pop();
-            std::vector<int> neighbours = adj[size_t(p)];
-            std::stable_sort(neighbours.begin(), neighbours.end(),
-                             [&chart_area](int a, int b) { return chart_area[size_t(a)] > chart_area[size_t(b)]; });
-            for (const int c : neighbours) {
+            const int p = link.first, c = link.second;
+            {
                 if (net_of[size_t(c)] >= 0 || chart_tris[size_t(c)].empty())
                     continue;
                 const auto it = pair_edge.find({ std::min(p, c), std::max(p, c) });
@@ -1405,7 +1848,7 @@ std::vector<TextureIsland> compute_connected_net(const PatchUnwrap &unwrap)
                 for (const Tri2 &t : tris)
                     grid.insert(t);
                 net_of[size_t(c)] = net;
-                q.push(c);
+                push_neighbours(c);
             }
         }
     }
@@ -1454,6 +1897,61 @@ std::vector<TextureIsland> compute_connected_net(const PatchUnwrap &unwrap)
         if (net_of[size_t(c)] >= 0)
             islands[size_t(c)].offset += shift[size_t(net_of[size_t(c)])];
     return islands;
+}
+
+std::vector<uint8_t> transfer_facet_paint(const indexed_triangle_set                    &src_mesh,
+                                         const TriangleSelector::TriangleSplittingData &src_paint,
+                                         const indexed_triangle_set                    &dst_mesh)
+{
+    if (src_mesh.indices.empty() || dst_mesh.indices.empty() || src_paint.bitstream.empty())
+        return {};
+
+    const TriangleMesh src(src_mesh);
+    TriangleSelector   selector(src);
+    selector.deserialize(src_paint, false);
+
+    // Every sub-triangle of the source, each carrying its own state - NONE included, so the soup
+    // covers the whole surface and a foot point always lands on something. One soup rather than one
+    // tree per state: a foot point has one nearest triangle, and that triangle's state is the answer.
+    std::vector<indexed_triangle_set> per_state;
+    selector.get_facets(per_state);
+    indexed_triangle_set soup;
+    std::vector<uint8_t> label;
+    for (size_t st = 0; st < per_state.size(); ++st) {
+        const indexed_triangle_set &part = per_state[st];
+        if (part.indices.empty())
+            continue;
+        const int base = int(soup.vertices.size());
+        soup.vertices.insert(soup.vertices.end(), part.vertices.begin(), part.vertices.end());
+        for (const stl_triangle_vertex_indices &t : part.indices) {
+            soup.indices.emplace_back(t[0] + base, t[1] + base, t[2] + base);
+            label.push_back(uint8_t(st));
+        }
+    }
+    if (soup.indices.empty())
+        return {};
+
+    const AABBTreeIndirect::Tree3f tree =
+        AABBTreeIndirect::build_aabb_tree_over_indexed_triangle_set(soup.vertices, soup.indices);
+
+    std::vector<uint8_t> out(dst_mesh.indices.size(), 0);
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, dst_mesh.indices.size()),
+                      [&](const tbb::blocked_range<size_t> &range) {
+        for (size_t j = range.begin(); j < range.end(); ++j) {
+            const stl_triangle_vertex_indices &t = dst_mesh.indices[j];
+            // The centroid, not a corner: a facet takes one state, and its middle is the point that
+            // is inside it whatever the triangle looks like.
+            const Vec3f centroid = (dst_mesh.vertices[size_t(t[0])] + dst_mesh.vertices[size_t(t[1])] +
+                                    dst_mesh.vertices[size_t(t[2])]) / 3.f;
+            size_t      hit = 0;
+            Vec3f       foot;
+            const float d2 = AABBTreeIndirect::squared_distance_to_indexed_triangle_set(soup.vertices, soup.indices,
+                                                                                        tree, centroid, hit, foot);
+            if (d2 >= 0.f && hit < label.size())
+                out[j] = label[hit];
+        }
+    });
+    return out;
 }
 
 void average_island_scales(std::vector<TextureIsland> &islands)
@@ -1558,6 +2056,110 @@ std::vector<Vec2f> compute_lscm_corner_uvs(const indexed_triangle_set &patch, co
     return corner;
 }
 
+// Barycentric weights of `p` inside triangle (a, b, c), as the pair that belongs with the edges
+// (b - a) and (c - a): p ~= (1 - w1 - w2) * a + w1 * b + w2 * c. `p` is projected onto the triangle's
+// plane, so a point a hair off the surface still reports the weights of its foot point. A degenerate
+// triangle reports its centroid, the only coordinate that means anything there.
+static void barycentric_weights(const Vec3f &a, const Vec3f &b, const Vec3f &c, const Vec3f &p, float &w1, float &w2)
+{
+    const Vec3f e0 = b - a, e1 = c - a, ep = p - a;
+    const float d00 = e0.dot(e0), d01 = e0.dot(e1), d11 = e1.dot(e1), dp0 = ep.dot(e0), dp1 = ep.dot(e1);
+    const float den = d00 * d11 - d01 * d01;
+    if (std::abs(den) <= 1e-20f) {
+        w1 = w2 = 1.f / 3.f;
+        return;
+    }
+    w1 = (d11 * dp0 - d01 * dp1) / den;
+    w2 = (d00 * dp1 - d01 * dp0) / den;
+}
+
+std::vector<Vec2f> compute_model_corner_uvs(const indexed_triangle_set &base_mesh,
+                                            const std::vector<Vec2f>   &model_uv,
+                                            const indexed_triangle_set &patch,
+                                            const std::vector<int>     &patch_source)
+{
+    if (patch.indices.empty() || model_uv.size() != base_mesh.indices.size() * 3 ||
+        patch_source.size() != patch.indices.size())
+        return {};
+
+    std::vector<Vec2f> corner(patch.indices.size() * 3, Vec2f::Zero());
+    for (size_t j = 0; j < patch.indices.size(); ++j) {
+        const int S = patch_source[j];
+        if (S < 0 || size_t(S) >= base_mesh.indices.size())
+            continue; // no source triangle: leave (0, 0), which the callers read as "no placement"
+        const stl_triangle_vertex_indices &src = base_mesh.indices[size_t(S)];
+        const Vec3f &a = base_mesh.vertices[size_t(src[0])];
+        const Vec3f &b = base_mesh.vertices[size_t(src[1])];
+        const Vec3f &c = base_mesh.vertices[size_t(src[2])];
+        const Vec2f *uv = &model_uv[size_t(S) * 3];
+        const stl_triangle_vertex_indices &tri = patch.indices[j];
+        for (int k = 0; k < 3; ++k) {
+            // An unsplit patch triangle is its source triangle, so its corners land exactly on a, b
+            // and c and this reproduces their uvs unchanged; a sub-triangle the brush cut gets the
+            // interpolated coordinate, which is the whole point of going through the barycentric.
+            float w1 = 0.f, w2 = 0.f;
+            barycentric_weights(a, b, c, patch.vertices[size_t(tri[k])], w1, w2);
+            corner[j * 3 + size_t(k)] = (1.f - w1 - w2) * uv[0] + w1 * uv[1] + w2 * uv[2];
+        }
+    }
+    return corner;
+}
+
+std::vector<Vec2f> collapse_corner_uvs(const indexed_triangle_set &patch, const std::vector<Vec2f> &corner)
+{
+    if (patch.indices.empty() || corner.size() != patch.indices.size() * 3)
+        return {};
+
+    std::vector<Vec2f> per_vertex(patch.vertices.size(), Vec2f::Zero());
+    std::vector<char>  seen(patch.vertices.size(), 0);
+    for (size_t j = 0; j < patch.indices.size(); ++j)
+        for (int k = 0; k < 3; ++k) {
+            const int vi = patch.indices[j][k];
+            if (vi < 0 || size_t(vi) >= per_vertex.size() || seen[size_t(vi)])
+                continue;
+            seen[size_t(vi)]       = 1;
+            per_vertex[size_t(vi)] = corner[j * 3 + size_t(k)];
+        }
+    return per_vertex;
+}
+
+std::vector<Vec2f> transfer_uv_channel(const indexed_triangle_set &src_mesh,
+                                       const std::vector<Vec2f>   &src_uv,
+                                       const indexed_triangle_set &dst_mesh,
+                                       float                       max_distance)
+{
+    if (src_mesh.indices.empty() || dst_mesh.indices.empty() || src_uv.size() != src_mesh.indices.size() * 3)
+        return {};
+
+    const AABBTreeIndirect::Tree3f tree =
+        AABBTreeIndirect::build_aabb_tree_over_indexed_triangle_set(src_mesh.vertices, src_mesh.indices);
+    const float limit2 = max_distance >= 0.f ? max_distance * max_distance : std::numeric_limits<float>::max();
+
+    std::vector<Vec2f> out(dst_mesh.indices.size() * 3, Vec2f::Zero());
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, dst_mesh.indices.size()),
+                      [&](const tbb::blocked_range<size_t> &range) {
+        for (size_t j = range.begin(); j < range.end(); ++j) {
+            const stl_triangle_vertex_indices &tri = dst_mesh.indices[j];
+            for (int k = 0; k < 3; ++k) {
+                const Vec3f &p = dst_mesh.vertices[size_t(tri[k])];
+                size_t       hit = 0;
+                Vec3f        foot;
+                const float  d2 = AABBTreeIndirect::squared_distance_to_indexed_triangle_set(
+                    src_mesh.vertices, src_mesh.indices, tree, p, hit, foot);
+                if (d2 < 0.f || d2 > limit2 || hit >= src_mesh.indices.size())
+                    continue; // nowhere near the source surface: (0, 0), as documented
+                const stl_triangle_vertex_indices &st = src_mesh.indices[hit];
+                float w1 = 0.f, w2 = 0.f;
+                barycentric_weights(src_mesh.vertices[size_t(st[0])], src_mesh.vertices[size_t(st[1])],
+                                    src_mesh.vertices[size_t(st[2])], foot, w1, w2);
+                const Vec2f *uv        = &src_uv[hit * 3];
+                out[j * 3 + size_t(k)] = (1.f - w1 - w2) * uv[0] + w1 * uv[1] + w2 * uv[2];
+            }
+        }
+    });
+    return out;
+}
+
 namespace {
 // apply_uv_transform()'s per-layer constants, worked out once. Triplanar sampling runs the transform
 // three times per point, and recomputing the rotation's cos/sin and the tiling reciprocal on every one
@@ -1567,13 +2169,16 @@ struct UVTransform
     float scale, cs, sn, aspect;
     Vec2f offset;
 
-    UVTransform(const TextureDisplacementLayer &layer, float aspect_)
+    // `normalized_uv` drops the two steps that only mean something for a coordinate measured on the
+    // model - the millimetre tiling scale and the non-square aspect correction - and keeps the
+    // rotation and offset. See apply_uv_transform(); TextureProjectionMethod::ModelUV is what needs it.
+    UVTransform(const TextureDisplacementLayer &layer, float aspect_, bool normalized_uv = false)
     {
-        scale = (layer.tiling_scale > 1e-6f) ? (1.f / layer.tiling_scale) : 1.f;
+        scale = (normalized_uv || layer.tiling_scale <= 1e-6f) ? 1.f : (1.f / layer.tiling_scale);
         const float rad = layer.rotation_deg * float(M_PI) / 180.f;
         cs     = std::cos(rad);
         sn     = std::sin(rad);
-        aspect = aspect_;
+        aspect = normalized_uv ? 1.f : aspect_;
         offset = layer.offset;
     }
     Vec2f operator()(const Vec2f &planar) const
@@ -1598,9 +2203,11 @@ inline Vec3f triplanar_weights(const Vec3f &normal)
 }
 } // namespace
 
-Vec2f apply_uv_transform(const Vec2f &planar, const TextureDisplacementLayer &layer, float aspect)
+Vec2f apply_uv_transform(const Vec2f &planar, const TextureDisplacementLayer &layer, float aspect, bool normalized_uv)
 {
-    const float scale = (layer.tiling_scale > 1e-6f) ? (1.f / layer.tiling_scale) : 1.f;
+    // A uv that is already normalized has no millimetre scale to divide by and no aspect to correct -
+    // see the header. UVTransform does the same, and the two must stay in step.
+    const float scale = (normalized_uv || layer.tiling_scale <= 1e-6f) ? 1.f : (1.f / layer.tiling_scale);
     const Vec2f scaled = planar * scale;
 
     const float rad = layer.rotation_deg * float(M_PI) / 180.f;
@@ -1618,7 +2225,7 @@ Vec2f apply_uv_transform(const Vec2f &planar, const TextureDisplacementLayer &la
     // Applied after the rotation, not before: scaling one axis of an already-rotated coordinate is a
     // shear, and doing it the other way round would make "Rotation" skew the pattern instead of
     // turning it.
-    if (aspect > 0.f && aspect != 1.f)
+    if (!normalized_uv && aspect > 0.f && aspect != 1.f)
         rotated.y() *= aspect;
 
     return rotated + layer.offset;
@@ -1643,6 +2250,9 @@ float blend_displacement(float accumulated, float value, TextureBlendMode mode)
                                                                         value;
         return accumulated / divisor;
     }
+    // Replaces instead of combining, so `accumulated` is deliberately unused: whatever the layers
+    // below put here is gone where this one is painted.
+    case TextureBlendMode::Override: return value;
     case TextureBlendMode::Add:
     default: return accumulated + value;
     }
@@ -1672,14 +2282,21 @@ float sample_layer_height(const DecodedHeightTexture &texture, const TextureDisp
     // apply_uv_transform()). Every projection except the projective "from view" one funnels through
     // here, so this one line is what makes them all aspect-correct.
     const float       aspect = (texture.height > 0) ? float(texture.width) / float(texture.height) : 1.f;
-    const UVTransform xf(layer, aspect);
+    // A ModelUV layer's precomputed uv is the model's own, already normalized; every other coordinate
+    // reaching the transform - the unwrap's, and every analytic projection's - is in millimetres. The
+    // `lscm_uv` test is what keeps the two apart: a ModelUV layer with no channel gets none, falls
+    // through to the millimetre methods below, and must be scaled like them.
+    const bool        normalized_uv = layer.projection_method == TextureProjectionMethod::ModelUV &&
+                                      lscm_uv != nullptr;
+    const UVTransform xf(layer, aspect, normalized_uv);
     auto sample_at = [&](const Vec2f &planar) {
         return texture.sample(xf(planar), layer.tile_enabled, layer.tile_method);
     };
 
-    // Precomputed per-patch LSCM solve wins over the layer's own method (see the header): the
-    // caller only passes it when the patch actually parameterized successfully, so a patch that
-    // failed to unwrap falls through to the analytic methods below as its documented fallback.
+    // A precomputed per-patch uv - the LSCM solve, or the model's own channel - wins over the layer's
+    // own method (see the header): the caller only passes it when the patch actually has one, so a
+    // patch that failed to unwrap, or a volume with no UV channel, falls through to the analytic
+    // methods below as its documented fallback.
     if (lscm_uv != nullptr)
         return sample_at(*lscm_uv);
 
@@ -1700,8 +2317,10 @@ float sample_layer_height(const DecodedHeightTexture &texture, const TextureDisp
             return texture.sample(uv, layer.tile_enabled, layer.tile_method);
         }
         // Flat projection onto the captured projector plane. Single-valued per point, so unlike
-        // blended triplanar it is one sample, and it is what "project from view" places.
-        return sample_at(Vec2f(position.dot(layer.view_project_right), position.dot(layer.view_project_up)));
+        // blended triplanar it is one sample, and it is what "project from view" places. The
+        // projector's up axis is negated because v runs *down* the image (v = 0 is its first pixel
+        // row), the same reason the projective branch above measures window y downward.
+        return sample_at(Vec2f(position.dot(layer.view_project_right), -position.dot(layer.view_project_up)));
     case TextureProjectionMethod::LSCM: // no usable unwrap for this patch - fall back to Triplanar
     case TextureProjectionMethod::Triplanar:
     default: break;
@@ -1716,14 +2335,15 @@ float sample_layer_height(const DecodedHeightTexture &texture, const TextureDisp
     const float w_sum = w.x() + w.y() + w.z();
     if (w_sum < 1e-8f)
         // Degenerate normal: no axis is meaningfully dominant, so no blend is meaningful either.
-        return sample_at(Vec2f(position.x(), position.y()));
+        return sample_at(box_plane_xy(position, normal.z()));
     w /= w_sum;
 
-    // Each plane drops the axis it is named for, matching project_planar()'s own convention (which
-    // the GUI's on-canvas placement gizmo also relies on).
-    return w.x() * sample_at(Vec2f(position.y(), position.z())) +
-           w.y() * sample_at(Vec2f(position.x(), position.z())) +
-           w.z() * sample_at(Vec2f(position.x(), position.y()));
+    // Each plane drops the axis it is named for and is oriented for the side of that plane the normal
+    // points to, matching project_planar()'s own convention (which the GUI's on-canvas placement
+    // gizmo also relies on). See box_plane_yz() for why the orientation is not simply (y, z).
+    return w.x() * sample_at(box_plane_yz(position, normal.x())) +
+           w.y() * sample_at(box_plane_xz(position, normal.y())) +
+           w.z() * sample_at(box_plane_xy(position, normal.z()));
 }
 
 bool sample_layer_color(const DecodedHeightTexture &texture, const TextureDisplacementLayer &layer,
@@ -1737,8 +2357,12 @@ bool sample_layer_color(const DecodedHeightTexture &texture, const TextureDispla
     // the two differ in what "nothing here" means. Height returns 0, which is a perfectly good height
     // (no displacement); colour has no such neutral value - black is a colour - so every path that
     // returns 0 there has to report false here instead, and the caller leaves the triangle uncoloured.
-    const float       aspect = (texture.height > 0) ? float(texture.width) / float(texture.height) : 1.f;
-    const UVTransform xf(layer, aspect);
+    const float       aspect        = (texture.height > 0) ? float(texture.width) / float(texture.height) : 1.f;
+    // Same reasoning as sample_layer_height(), and it has to match it exactly or a layer's colour and
+    // its relief would be read from different places in the image.
+    const bool        normalized_uv = layer.projection_method == TextureProjectionMethod::ModelUV &&
+                                      lscm_uv != nullptr;
+    const UVTransform xf(layer, aspect, normalized_uv);
     auto sample_at = [&](const Vec2f &planar) {
         return texture.sample_color(xf(planar), layer.tile_enabled, layer.tile_method);
     };
@@ -1752,6 +2376,8 @@ bool sample_layer_color(const DecodedHeightTexture &texture, const TextureDispla
     };
 
     if (lscm_uv != nullptr) {
+        // The coverage test goes through the same transform, so an untiled ModelUV layer is "there"
+        // exactly where the model's own uv lands inside the image.
         if (!covered(*lscm_uv))
             return false;
         out = sample_at(*lscm_uv);
@@ -1785,7 +2411,8 @@ bool sample_layer_color(const DecodedHeightTexture &texture, const TextureDispla
             out = texture.sample_color(uv, layer.tile_enabled, layer.tile_method);
             return true;
         } else {
-            const Vec2f p(position.dot(layer.view_project_right), position.dot(layer.view_project_up));
+            // Negated up, exactly as sample_layer_height() does it.
+            const Vec2f p(position.dot(layer.view_project_right), -position.dot(layer.view_project_up));
             if (!covered(p))
                 return false;
             out = sample_at(p);
@@ -1801,7 +2428,7 @@ bool sample_layer_color(const DecodedHeightTexture &texture, const TextureDispla
     Vec3f w = triplanar_weights(normal);
     const float w_sum = w.x() + w.y() + w.z();
     if (w_sum < 1e-8f) {
-        const Vec2f p(position.x(), position.y());
+        const Vec2f p = box_plane_xy(position, normal.z());
         if (!covered(p))
             return false;
         out = sample_at(p);
@@ -1812,8 +2439,8 @@ bool sample_layer_color(const DecodedHeightTexture &texture, const TextureDispla
     // A blend of three planes is only "not covered" where *every* contributing plane is outside the
     // placement; where some are, the covered ones are renormalised so the colour does not fade toward
     // black at the edge of an untiled tri-planar layer.
-    const std::array<Vec2f, 3> planes = { Vec2f(position.y(), position.z()), Vec2f(position.x(), position.z()),
-                                          Vec2f(position.x(), position.y()) };
+    const std::array<Vec2f, 3> planes = { box_plane_yz(position, normal.x()), box_plane_xz(position, normal.y()),
+                                          box_plane_xy(position, normal.z()) };
     Vec3f acc     = Vec3f::Zero();
     float acc_w   = 0.f;
     for (int i = 0; i < 3; ++i)
@@ -2096,9 +2723,11 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
                                                    const TextureColorRequest                   *color,
                                                    bool                                         flip_normals,
                                                    BakeStageRecorder                           *debug,
-                                                   TextureBakeStats                            *stats)
+                                                   TextureBakeStats                            *stats,
+                                                   const std::vector<Vec2f>                    *model_uv,
+                                                   float                                        resting_drop)
 {
-    HeightFieldSampler combined = make_combined_displacement_sampler(mesh, layers, facets_data);
+    HeightFieldSampler combined = make_combined_displacement_sampler(mesh, layers, facets_data, model_uv);
     if (!combined)
         return mesh; // nothing decodable to displace with
 
@@ -2243,6 +2872,9 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
         bounds.min = bounds.min.cwiseMin(v);
         bounds.max = bounds.max.cwiseMax(v);
     }
+    // The bottom the pipeline clamps and snaps to is the plane the whole object rests on, not this
+    // part's own: a part held off the plate by another keeps the relief on its underside.
+    bounds.min.z() -= resting_drop;
 
     const auto sample = [&combined](const Vec3f &pos, const Vec3f &, const Vec3f &blend_normal) {
         // The blend normal chooses the projection; the move itself is along the smooth normal, which
@@ -2268,16 +2900,16 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
     // part of it (half a tile in the neighbour's colour, a tile edge that wanders).
     const bool              want_color = color != nullptr && color->out_triangle != nullptr && bool(color->quantize);
     const ColorFieldSampler color_sampler =
-        want_color ? make_combined_color_sampler(mesh, layers, facets_data, color->quantize, color->quantize_pure) : ColorFieldSampler{};
+        want_color ? make_combined_color_sampler(mesh, layers, facets_data, color->quantize, color->quantize_pure, model_uv) :
+                     ColorFieldSampler{};
     //
     // The *palette* index, not the printed filament. The decimation treats any edge whose two faces
     // differ as a crease (TextureBakeDecimate.cpp), so it must only ever see where the **perceived**
-    // colour changes - which is exactly what ColorResolveFn's own contract says the interleaving may
-    // never be fed into. Handing it the resolved filament made every Z band boundary a crease: on an
-    // upright wall that is one crease per band, so the collapse ran along those lines and left a stack
-    // of horizontal slivers, each printing in a single filament. Those were the horizontal colour
-    // lines in the baked result, and they also spent the triangle budget drawing a pattern the eye is
-    // meant to blend away. Faces the paint excludes are skipped by the pipeline itself.
+    // colour changes. A mix is one perceived colour however its components are laid down, which is why
+    // it has to be the palette index here: back when this was handed a per-triangle interleave instead,
+    // every band boundary read as a crease, the collapse ran along those lines and left a stack of
+    // horizontal slivers, and the triangle budget went on drawing a pattern the eye is meant to blend
+    // away. Faces the paint excludes are skipped by the pipeline itself.
     const TextureBake::ColorSampleFn color_sample =
         color_sampler ? TextureBake::ColorSampleFn([&color_sampler](const Vec3f &p, const Vec3f &n) {
                             return color_sampler(p, n);
@@ -2303,7 +2935,7 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
         stats->triangles_budget  = result.triangles_budget;
         stats->budget_limited    = result.budget_limited;
     }
-    indexed_triangle_set out = TextureBake::to_indexed_triangle_set(result.geometry);
+    indexed_triangle_set out = TextureBake::to_indexed_triangle_set(result.geometry, &result.face_color);
     if (out.indices.empty())
         return mesh;
     if (flip_normals)
@@ -2324,6 +2956,8 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
                 max_depth = std::max(max_depth, std::abs(layer.depth_mm));
             const float relief_tol = max_depth + paint_tol;
             std::vector<int> palette(out.indices.size(), -1);
+            const std::vector<int> &face_mask      = result.face_color;
+            const bool              have_face_mask = face_mask.size() == out.indices.size();
             tbb::parallel_for(tbb::blocked_range<size_t>(0, out.indices.size()), [&](const tbb::blocked_range<size_t> &r) {
                 for (size_t i = r.begin(); i < r.end(); ++i) {
                     const stl_triangle_vertex_indices &t = out.indices[i];
@@ -2339,8 +2973,19 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
                     // reason; this path was the inconsistent one.
                     Vec3f       foot = centroid, base_n = Vec3f::UnitZ();
                     const float d2   = painted_closest(centroid, &foot, &base_n);
-                    if (!all_painted && d2 >= relief_tol * relief_tol)
+                    // Which faces may be coloured comes from the pipeline, which recorded it on the
+                    // refined mesh where the paint mask is exact, and carried it through the collapse,
+                    // the T-junction repair and the weld. Proximity cannot answer this: a displaced face
+                    // is no longer where its base was, so on a part thinner than the relief depth the
+                    // nearest painted surface to the *opposite* face is the painted one, and the texture
+                    // appeared there too. Only the position to sample at still comes from the base
+                    // surface, for the projection reason above.
+                    if (have_face_mask) {
+                        if (face_mask[i] == TextureBake::FACE_UNPAINTED)
+                            continue;
+                    } else if (!all_painted && d2 >= relief_tol * relief_tol) {
                         continue;
+                    }
                     palette[i] = sampler(foot, base_n);
                 }
             });
@@ -2362,7 +3007,7 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
                 Vec3f        normal   = (b - a).cross(c - a);
                 const float  nl       = normal.norm();
                 normal                = (nl > 0.f) ? Vec3f(normal / nl) : Vec3f::UnitZ();
-                const int filament = color->resolve ? color->resolve(palette[i], centroid, normal) : palette[i];
+                const int filament = palette[i];
                 if (filament >= 0)
                     out_color[i] = uint8_t(std::min(filament + 1, 255));
             }
@@ -2388,7 +3033,9 @@ static indexed_triangle_set build_texture_displacement_in_place(
     const TextureColorRequest                   *color,
     bool                                         flip_normals,
     BakeStageRecorder                           *debug,
-    TextureBakeStats                            *stats)
+    TextureBakeStats                            *stats,
+    const std::vector<Vec2f>                    *model_uv,
+    float                                        resting_drop)
 {
     // The classic path moves the vertices the mesh already has, so there is no budget to report on.
     (void) stats;
@@ -2425,7 +3072,7 @@ static indexed_triangle_set build_texture_displacement_in_place(
 
     if (options.pipeline_v2)
         return build_texture_displacement_v2(mesh, layers, facets_data, options, progress, color, flip_normals,
-                                             debug, stats);
+                                             debug, stats, model_uv, resting_drop);
 
     // Layers are combined in slot order, like stacked layers in an image editor: each one folds its
     // own displacement into the running total via its blend mode (see TextureBlendMode).
@@ -2543,13 +3190,19 @@ static indexed_triangle_set build_texture_displacement_in_place(
         selector_dirty = true;
 
         const bool       color_this_layer = want_color && layer->color_enabled;
+        // The model's own channel is per base-mesh *triangle*, so reading it needs to know which base
+        // triangle each (possibly brush-split) patch triangle came from - the colour pass's map, asked
+        // for here as well.
+        const bool       model_uv_layer   = layer->projection_method == TextureProjectionMethod::ModelUV &&
+                                            model_uv != nullptr && model_uv->size() == mesh.indices.size() * 3;
         // A flat-colour image is matched against the filaments alone (see TextureColorRequest).
         const ColorQuantizeFn &layer_quantize =
             (color_this_layer && color->quantize_pure && analyze_texture_detail(*layer).flat_colors) ? color->quantize_pure
                                                                                                      : color->quantize;
-        std::vector<int> patch_source; // sub-triangle -> base mesh triangle, only built when colouring
+        std::vector<int> patch_source; // sub-triangle -> base mesh triangle; built when colouring or mapping by ModelUV
         const indexed_triangle_set patch =
-            selector.get_facets_strict(EnforcerBlockerType::ENFORCER, color_this_layer ? &patch_source : nullptr);
+            selector.get_facets_strict(EnforcerBlockerType::ENFORCER,
+                                       (color_this_layer || model_uv_layer) ? &patch_source : nullptr);
         if (patch.indices.empty())
             continue;
         // get_facets_strict() returns the same vertex array whichever state is asked for (only the
@@ -2580,18 +3233,25 @@ static indexed_triangle_set build_texture_displacement_in_place(
         // A real unwrap of the whole patch, computed once here rather than per vertex - it is a
         // per-chart solve over the whole patch, not a per-point formula. Cached, so repeating this
         // for every slider tweak costs a hash rather than a re-solve (see compute_patch_unwrap()).
-        const std::vector<Vec2f> lscm_uvs = (layer->projection_method == TextureProjectionMethod::LSCM) ?
+        // ModelUV takes its corners from the volume's own channel instead of solving anything, and
+        // collapses them to one per vertex the same way the unwrap does.
+        const std::vector<Vec2f> model_corner_uvs = model_uv_layer ?
+                                                        compute_model_corner_uvs(mesh, *model_uv, patch, patch_source) :
+                                                        std::vector<Vec2f>{};
+        const std::vector<Vec2f> patch_uvs = model_uv_layer ? collapse_corner_uvs(patch, model_corner_uvs) :
+                                             (layer->projection_method == TextureProjectionMethod::LSCM) ?
                                                  compute_lscm_uvs(patch, *layer) :
                                                  std::vector<Vec2f>{};
         // The colour pass below samples per *triangle*, so it takes the per-corner unwrap instead: the
         // per-vertex collapse above would hand a triangle at a seam the island layout did not join its
         // neighbour's placement, painting one triangle per face from the wrong part of the texture.
-        // (The displacement itself stays on lscm_uvs - a vertex has one position, so one height.)
-        const std::vector<Vec2f> lscm_corner_uvs = (layer->projection_method == TextureProjectionMethod::LSCM) ?
+        // (The displacement itself stays on patch_uvs - a vertex has one position, so one height.)
+        const std::vector<Vec2f> patch_corner_uvs = model_uv_layer ? model_corner_uvs :
+                                                    (layer->projection_method == TextureProjectionMethod::LSCM) ?
                                                         compute_lscm_corner_uvs(patch, *layer) :
                                                         std::vector<Vec2f>{};
-        const bool               corner_uv_ok    = !lscm_corner_uvs.empty() &&
-                                                   lscm_corner_uvs.size() == patch.indices.size() * 3;
+        const bool               corner_uv_ok     = !patch_corner_uvs.empty() &&
+                                                    patch_corner_uvs.size() == patch.indices.size() * 3;
 
         // Colour, if this layer carries any. Area-weighted over each base triangle's *painted* part,
         // so a triangle the brush only clipped a corner off takes the colour of that corner rather
@@ -2621,7 +3281,7 @@ static indexed_triangle_set build_texture_displacement_in_place(
                     // the per-vertex height sampling uses, evaluated at the centroid instead.
                     Vec3f n = Vec3f::Zero();
                     Vec2f uv = Vec2f::Zero();
-                    bool  have_uv = !lscm_uvs.empty();
+                    bool  have_uv = !patch_uvs.empty();
                     for (int k = 0; k < 3; ++k) {
                         const int vi = t[k];
                         if (vi < int(vertex_normals.size()))
@@ -2629,9 +3289,9 @@ static indexed_triangle_set build_texture_displacement_in_place(
                         if (!have_uv)
                             continue;
                         if (corner_uv_ok)
-                            uv += lscm_corner_uvs[j * 3 + size_t(k)];
-                        else if (size_t(vi) < lscm_uvs.size())
-                            uv += lscm_uvs[size_t(vi)];
+                            uv += patch_corner_uvs[j * 3 + size_t(k)];
+                        else if (size_t(vi) < patch_uvs.size())
+                            uv += patch_uvs[size_t(vi)];
                         else
                             have_uv = false;
                     }
@@ -2705,7 +3365,7 @@ static indexed_triangle_set build_texture_displacement_in_place(
                           [&](const tbb::blocked_range<size_t> &range) {
             for (size_t k = range.begin(); k < range.end(); ++k) {
                 const size_t vi      = size_t(layer_vertices[k]);
-                const Vec2f *lscm_uv = lscm_uvs.empty() ? nullptr : &lscm_uvs[vi];
+                const Vec2f *lscm_uv = patch_uvs.empty() ? nullptr : &patch_uvs[vi];
                 const float  h       = sample_layer_height(height, *layer, mesh.vertices[vi], vertex_normals[vi],
                                                             patch_centroid, patch_axis, lscm_uv);
                 // midlevel is the height that means "stay put", so anything below it displaces
@@ -2744,10 +3404,12 @@ static indexed_triangle_set build_texture_displacement_in_place(
     if (!any_displacement)
         return mesh;
 
-    // The model's own resting plane, taken before anything moves - see the clamp after smoothing.
+    // The plane the model rests on, taken before anything moves - see the clamp after smoothing. That
+    // is this mesh's own bottom, lowered to the object's when another part of it sits lower.
     float resting_z = std::numeric_limits<float>::max();
     for (const Vec3f &v : mesh.vertices)
         resting_z = std::min(resting_z, v.z());
+    resting_z -= resting_drop;
 
     size_t moved_count = 0;
     for (size_t vi = 0; vi < mesh.vertices.size(); ++vi)
@@ -2819,8 +3481,7 @@ static indexed_triangle_set build_texture_displacement_in_place(
             Vec3f        normal   = (b - a).cross(c - a);
             const float  nl       = normal.norm();
             normal                = (nl > 0.f) ? Vec3f(normal / nl) : Vec3f::UnitZ();
-            const int filament = color->resolve ? color->resolve(triangle_palette[i], centroid, normal)
-                                                : triangle_palette[i];
+            const int filament = triangle_palette[i];
             if (filament >= 0)
                 out_color[i] = uint8_t(std::min(filament + 1, 255));
         }
@@ -2839,17 +3500,21 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
                                                  const TextureColorRequest                   *color,
                                                  const Transform3d                           &volume_to_world,
                                                  BakeStageRecorder                           *debug,
-                                                 TextureBakeStats                            *stats)
+                                                 TextureBakeStats                            *stats,
+                                                 const std::vector<Vec2f>                    *model_uv,
+                                                 const Vec3d                                 *texture_anchor,
+                                                 float                                        resting_drop)
 {
     // An untransformed volume on an untransformed instance is by far the common case, and the round
     // trip costs two matrix multiplies per vertex on a mesh that can carry millions of them - so take
     // the identity out of the way rather than paying for it.
     // The texture is projected in the bake frame - world orientation and scale, anchored at the
-    // volume's origin (see texture_displacement_bake_frame()).
-    const Transform3d frame = texture_displacement_bake_frame(volume_to_world);
+    // texture's anchor (see texture_displacement_bake_frame()).
+    const Transform3d frame = texture_anchor != nullptr ? texture_displacement_bake_frame(volume_to_world, *texture_anchor) :
+                                                          texture_displacement_bake_frame(volume_to_world);
     if (frame.matrix().isApprox(Transform3d::Identity().matrix()))
         return build_texture_displacement_in_place(base_mesh, layers, facets_data, options, progress, color,
-                                                   false, debug, stats);
+                                                   false, debug, stats, model_uv, resting_drop);
 
     const Transform3d to_local = frame.inverse();
     // A mirroring placement leaves the positions correct but every winding-derived normal pointing
@@ -2863,8 +3528,10 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
         v = (frame * v.cast<double>()).cast<float>();
 
     const size_t         debug_mark = (debug != nullptr) ? debug->mark() : 0;
-    indexed_triangle_set out = build_texture_displacement_in_place(world, layers, facets_data, options,
-                                                                   progress, color, mirrored, debug, stats);
+    // The UV channel rides along untouched: a uv is a coordinate in the texture, not on the model, so
+    // the frame the mesh is measured in does not reach it.
+    indexed_triangle_set out = build_texture_displacement_in_place(world, layers, facets_data, options, progress,
+                                                                   color, mirrored, debug, stats, model_uv, resting_drop);
     // Everything the bake recorded is in world millimetres, like `out` itself. The debug view draws in
     // the volume's local frame, so the stages are brought back the same way the result is.
     if (debug != nullptr)
@@ -2911,13 +3578,18 @@ void texture_displacement_patch_frame(const indexed_triangle_set &patch, const s
            (an.y() <= an.x() && an.y() <= an.z()) ? Vec3f::UnitY() : Vec3f::UnitZ();
 }
 
+Transform3d texture_displacement_bake_frame(const Transform3d &volume_to_world, const Vec3d &anchor)
+{
+    // World orientation and scale, but the origin moved onto the model: the texture then rides with
+    // the model when it is moved about the plate (and a single, untiled stamp starts on the model
+    // rather than at the plate's corner), while a tile is still `tiling_scale` printed millimetres
+    // whatever the instance's scale.
+    return Eigen::Translation3d(-anchor) * volume_to_world;
+}
+
 Transform3d texture_displacement_bake_frame(const Transform3d &volume_to_world)
 {
-    // World orientation and scale, but the origin moved to where the volume's own origin sits: the
-    // texture then rides with the model when it is moved about the plate (and a single, untiled stamp
-    // starts on the model rather than at the plate's corner), while a tile is still `tiling_scale`
-    // printed millimetres whatever the instance's scale.
-    return Eigen::Translation3d(-volume_to_world.translation()) * volume_to_world;
+    return texture_displacement_bake_frame(volume_to_world, volume_to_world.translation());
 }
 
 Transform3d texture_displacement_volume_to_world(const ModelVolume &volume)
@@ -2936,7 +3608,8 @@ indexed_triangle_set build_texture_displacement(const ModelVolume &volume)
 
     return build_texture_displacement(volume.mesh().its, volume.texture_displacement_layers, facets_data,
                                       volume.texture_displacement_options, {}, nullptr,
-                                      texture_displacement_volume_to_world(volume));
+                                      texture_displacement_volume_to_world(volume), nullptr, nullptr,
+                                      volume.has_texture_uv() ? &volume.texture_uv : nullptr);
 }
 
 void smooth_mesh_vertices(indexed_triangle_set &mesh, const std::vector<uint8_t> &movable, float strength,
@@ -3000,16 +3673,18 @@ void smooth_mesh_vertices(indexed_triangle_set &mesh, const std::vector<uint8_t>
 namespace {
 // One decoded texture + placement per sampleable layer, in blend (slot) order. Held by shared_ptr so
 // the returned closure owns it for as long as the subdivider keeps calling back.
-// An unwrap turned into something a *point* sampler can use. LSCM has no formula from position to
-// uv - it is a per-triangle map - so a point is placed on the painted patch (the nearest patch
-// triangle, and its barycentric coordinates there) and the uv is interpolated from that triangle's own
-// per-corner uvs. Exact for a point on the base surface, which is where both samplers are queried: the
-// displacement samples refined positions before moving them, and the colour pass samples the foot
-// point on the painted pieces.
+// A per-triangle uv map turned into something a *point* sampler can use. Neither of the two maps that
+// are not a formula from position to uv - the LSCM unwrap and the model's own UV channel - can be
+// evaluated at an arbitrary point directly, so a point is placed on the painted patch (the nearest
+// patch triangle, and its barycentric coordinates there) and the uv is interpolated from that
+// triangle's own per-corner uvs. Exact for a point on the base surface, which is where both samplers
+// are queried: the displacement samples refined positions before moving them, and the colour pass
+// samples the foot point on the painted pieces.
 struct LscmLookup {
-    indexed_triangle_set    patch;  // the layer's painted patch, as the unwrap was solved on
+    indexed_triangle_set    patch;  // the layer's painted patch, as the uvs were computed on
     AABBTreeIndirect::Tree3f tree;
-    std::vector<Vec2f>      corner; // compute_lscm_corner_uvs(patch, layer)
+    // compute_lscm_corner_uvs(patch, layer), or compute_model_corner_uvs() for a ModelUV layer
+    std::vector<Vec2f>      corner;
 
     // False when `pos` is not on this layer's patch (farther than `tol`): there is no uv there, so the
     // layer contributes nothing - the same as a non-tiled texture outside its placement.
@@ -3022,15 +3697,9 @@ struct LscmLookup {
         if (d2 < 0.f || d2 > tol * tol || hit >= patch.indices.size())
             return false;
         const stl_triangle_vertex_indices &t = patch.indices[hit];
-        const Vec3f &a = patch.vertices[size_t(t[0])], &b = patch.vertices[size_t(t[1])], &c = patch.vertices[size_t(t[2])];
-        const Vec3f  e0 = b - a, e1 = c - a, ep = foot - a;
-        const float  d00 = e0.dot(e0), d01 = e0.dot(e1), d11 = e1.dot(e1), dp0 = ep.dot(e0), dp1 = ep.dot(e1);
-        const float  den = d00 * d11 - d01 * d01;
-        float        w1 = 1.f / 3.f, w2 = 1.f / 3.f; // a degenerate triangle takes its centroid's uv
-        if (std::abs(den) > 1e-20f) {
-            w1 = (d11 * dp0 - d01 * dp1) / den;
-            w2 = (d00 * dp1 - d01 * dp0) / den;
-        }
+        float w1 = 0.f, w2 = 0.f; // a degenerate triangle takes its centroid's uv
+        barycentric_weights(patch.vertices[size_t(t[0])], patch.vertices[size_t(t[1])], patch.vertices[size_t(t[2])],
+                            foot, w1, w2);
         const Vec2f *c3 = &corner[hit * 3];
         uv = (1.f - w1 - w2) * c3[0] + w1 * c3[1] + w2 * c3[2];
         return true;
@@ -3089,7 +3758,7 @@ struct PreparedLayer {
 // where a layer is placed. `need_color` additionally drops layers that cannot contribute colour.
 std::shared_ptr<std::vector<PreparedLayer>> prepare_sampleable_layers(
     const indexed_triangle_set &base_mesh, const std::vector<TextureDisplacementLayer> &layers,
-    const TextureDisplacementFacetsData &facets_data, bool need_color)
+    const TextureDisplacementFacetsData &facets_data, bool need_color, const std::vector<Vec2f> *model_uv)
 {
     auto prepared = std::make_shared<std::vector<PreparedLayer>>();
 
@@ -3120,9 +3789,14 @@ std::shared_ptr<std::vector<PreparedLayer>> prepare_sampleable_layers(
         if (tex.empty() || (need_color && !tex.has_color()))
             continue;
 
+        const bool model_uv_layer = layer->projection_method == TextureProjectionMethod::ModelUV &&
+                                    model_uv != nullptr && model_uv->size() == base_mesh.indices.size() * 3;
+
         TriangleSelector selector(selector_mesh);
         selector.deserialize(data, false);
-        const indexed_triangle_set patch = selector.get_facets_strict(EnforcerBlockerType::ENFORCER);
+        std::vector<int>           patch_source; // only the model's own channel needs it; see the classic path
+        const indexed_triangle_set patch =
+            selector.get_facets_strict(EnforcerBlockerType::ENFORCER, model_uv_layer ? &patch_source : nullptr);
         if (patch.indices.empty())
             continue;
 
@@ -3132,12 +3806,16 @@ std::shared_ptr<std::vector<PreparedLayer>> prepare_sampleable_layers(
         texture_displacement_patch_frame(patch, vertex_normals, centroid, axis, average_normal);
 
         std::shared_ptr<const LscmLookup> lscm;
-        if (layer->projection_method == TextureProjectionMethod::LSCM) {
+        if (model_uv_layer || layer->projection_method == TextureProjectionMethod::LSCM) {
             // Solved on the very patch the classic path and the GUI solve it on (same geometry, seam
             // angle and edges), so it hits the unwrap cache and lands exactly where the UV editor
-            // shows it, hand-placed islands and UV edits included.
+            // shows it, hand-placed islands and UV edits included. A ModelUV layer needs no solve at
+            // all - its corners are read straight out of the volume's channel - but it is looked up
+            // through the same per-triangle machinery, for the same reason: there is no formula from a
+            // point to its uv.
             auto l    = std::make_shared<LscmLookup>();
-            l->corner = compute_lscm_corner_uvs(patch, *layer);
+            l->corner = model_uv_layer ? compute_model_corner_uvs(base_mesh, *model_uv, patch, patch_source) :
+                                          compute_lscm_corner_uvs(patch, *layer);
             if (l->corner.size() == patch.indices.size() * 3) {
                 l->patch = patch;
                 l->tree  = AABBTreeIndirect::build_aabb_tree_over_indexed_triangle_set(l->patch.vertices, l->patch.indices);
@@ -3163,11 +3841,12 @@ ColorFieldSampler make_combined_color_sampler(const indexed_triangle_set        
                                               const std::vector<TextureDisplacementLayer> &layers,
                                               const TextureDisplacementFacetsData         &facets_data,
                                               ColorQuantizeFn                              quantize,
-                                              ColorQuantizeFn                              quantize_pure)
+                                              ColorQuantizeFn                              quantize_pure,
+                                              const std::vector<Vec2f>                    *model_uv)
 {
     if (!quantize)
         return nullptr;
-    auto prepared = prepare_sampleable_layers(base_mesh, layers, facets_data, /* need_color */ true);
+    auto prepared = prepare_sampleable_layers(base_mesh, layers, facets_data, /* need_color */ true, model_uv);
     if (prepared->empty())
         return nullptr;
     // Per layer: a flat-colour image is matched against the filaments alone, when that quantizer
@@ -3198,9 +3877,10 @@ ColorFieldSampler make_combined_color_sampler(const indexed_triangle_set        
 
 HeightFieldSampler make_combined_displacement_sampler(const indexed_triangle_set                  &base_mesh,
                                                       const std::vector<TextureDisplacementLayer> &layers,
-                                                      const TextureDisplacementFacetsData         &facets_data)
+                                                      const TextureDisplacementFacetsData         &facets_data,
+                                                      const std::vector<Vec2f>                    *model_uv)
 {
-    auto prepared = prepare_sampleable_layers(base_mesh, layers, facets_data, /* need_color */ false);
+    auto prepared = prepare_sampleable_layers(base_mesh, layers, facets_data, /* need_color */ false, model_uv);
     if (prepared->empty())
         return nullptr;
 
@@ -5039,6 +5719,262 @@ indexed_triangle_set cut_mesh_at_steps(const indexed_triangle_set &mesh, const s
     if (out_source) *out_source = std::move(source);
     if (out_cut_count) *out_cut_count = cut_count;
     return out;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Project persistence. See the declarations in TextureDisplacement.hpp for why this is JSON rather
+// than the cereal stream next to them.
+// ---------------------------------------------------------------------------------------------
+namespace {
+
+nlohmann::json vec2_to_json(const Vec2f &v) { return nlohmann::json::array({ v.x(), v.y() }); }
+nlohmann::json vec3_to_json(const Vec3f &v) { return nlohmann::json::array({ v.x(), v.y(), v.z() }); }
+
+Vec2f vec2_from_json(const nlohmann::json &j, const Vec2f &fallback)
+{
+    if (!j.is_array() || j.size() != 2)
+        return fallback;
+    return Vec2f(j[0].get<float>(), j[1].get<float>());
+}
+Vec3f vec3_from_json(const nlohmann::json &j, const Vec3f &fallback)
+{
+    if (!j.is_array() || j.size() != 3)
+        return fallback;
+    return Vec3f(j[0].get<float>(), j[1].get<float>(), j[2].get<float>());
+}
+
+// Reads key `k` into `out` when it is present and of the expected type, leaving `out` alone otherwise.
+// That "leave it alone" is the whole point: every member starts at its struct default, so a project
+// written by an older build simply keeps the defaults for whatever it did not know about.
+template<class T> void read(const nlohmann::json &j, const char *k, T &out)
+{
+    const auto it = j.find(k);
+    if (it == j.end())
+        return;
+    try {
+        out = it->get<T>();
+    } catch (...) {
+    }
+}
+void read_enum(const nlohmann::json &j, const char *k, int &out)
+{
+    const auto it = j.find(k);
+    if (it != j.end() && it->is_number_integer())
+        out = it->get<int>();
+}
+
+} // namespace
+
+std::string texture_displacement_layers_to_json(const std::vector<TextureDisplacementLayer> &layers,
+                                                const TextureDisplacementOptions            &options)
+{
+    nlohmann::json root;
+    root["version"] = 1;
+
+    nlohmann::json &opt = root["options"];
+    opt["displace_border"]    = options.displace_border;
+    opt["smooth_enabled"]     = options.smooth_enabled;
+    opt["smooth_strength"]    = options.smooth_strength;
+    opt["smooth_iterations"]  = options.smooth_iterations;
+    opt["smooth_skip_border"] = options.smooth_skip_border;
+    opt["pipeline_v2"]        = options.pipeline_v2;
+    opt["v2_refine_mm"]       = options.v2_refine_mm;
+    opt["v2_regularize"]      = options.v2_regularize;
+    opt["v2_max_triangles_k"] = options.v2_max_triangles_k;
+    opt["v2_relocate"]        = options.v2_relocate;
+    opt["v2_flip_edges"]      = options.v2_flip_edges;
+    opt["color_mix_enabled"]  = options.color_mix_enabled;
+    opt["color_despeckle"]    = options.color_despeckle;
+    opt["color_mix_count"]    = options.color_mix_count;
+    opt["active_slot"]        = options.active_slot;
+    opt["panel_mode"]         = options.panel_mode;
+
+    nlohmann::json &arr = root["layers"];
+    arr                 = nlohmann::json::array();
+    for (const TextureDisplacementLayer &l : layers) {
+        nlohmann::json j;
+        j["slot"]        = l.slot;
+        j["name"]        = l.name;
+        j["path"]        = l.path;
+        j["path_in_3mf"] = l.path_in_3mf;
+
+        j["depth_mm"]     = l.depth_mm;
+        j["tiling_scale"] = l.tiling_scale;
+        j["rotation_deg"] = l.rotation_deg;
+        j["offset"]       = vec2_to_json(l.offset);
+        j["invert"]       = l.invert;
+        j["midlevel"]     = l.midlevel;
+        j["smoothing"]    = l.smoothing;
+
+        j["edge_smoothing"]        = l.edge_smoothing;
+        j["edge_smoothing_amount"] = l.edge_smoothing_amount;
+        j["auto_connect_islands"]  = l.auto_connect_islands;
+
+        j["tile_enabled"]      = l.tile_enabled;
+        j["tile_method"]       = int(l.tile_method);
+        j["projection_method"] = int(l.projection_method);
+        j["blend_mode"]        = int(l.blend_mode);
+        j["color_enabled"]     = l.color_enabled;
+
+        j["lscm_seam_angle_deg"] = l.lscm_seam_angle_deg;
+        j["island_padding_mm"]   = l.island_padding_mm;
+
+        j["view_project_right"]      = vec3_to_json(l.view_project_right);
+        j["view_project_up"]         = vec3_to_json(l.view_project_up);
+        j["view_project_projective"] = l.view_project_projective;
+        j["view_project_matrix"]     = l.view_project_matrix;
+
+        // Flat pairs rather than nested arrays: shorter, and the reader can simply ignore a trailing
+        // odd element instead of having to validate every sub-array.
+        nlohmann::json &seams = j["lscm_seam_edges"];
+        seams                 = nlohmann::json::array();
+        for (const auto &[a, b] : l.lscm_seam_edges) {
+            seams.push_back(a);
+            seams.push_back(b);
+        }
+
+        nlohmann::json &islands = j["islands"];
+        islands                 = nlohmann::json::array();
+        for (const TextureIsland &island : l.islands)
+            islands.push_back(nlohmann::json::array(
+                { island.offset.x(), island.offset.y(), island.rotation_deg, island.scale }));
+
+        j["island_groups"] = l.island_groups;
+
+        nlohmann::json &overrides = j["lscm_uv_overrides"];
+        overrides                 = nlohmann::json::array();
+        for (const auto &[key, uv] : l.lscm_uv_overrides)
+            overrides.push_back(nlohmann::json::array({ key, uv.x(), uv.y() }));
+
+        arr.push_back(std::move(j));
+    }
+    return root.dump();
+}
+
+bool texture_displacement_layers_from_json(const std::string                     &text,
+                                           std::vector<TextureDisplacementLayer> &layers,
+                                           TextureDisplacementOptions            &options)
+{
+    nlohmann::json root;
+    try {
+        root = nlohmann::json::parse(text);
+    } catch (...) {
+        return false;
+    }
+    if (!root.is_object())
+        return false;
+
+    TextureDisplacementOptions out_options;
+    if (const auto it = root.find("options"); it != root.end() && it->is_object()) {
+        const nlohmann::json &opt = *it;
+        read(opt, "displace_border", out_options.displace_border);
+        read(opt, "smooth_enabled", out_options.smooth_enabled);
+        read(opt, "smooth_strength", out_options.smooth_strength);
+        read(opt, "smooth_iterations", out_options.smooth_iterations);
+        read(opt, "smooth_skip_border", out_options.smooth_skip_border);
+        read(opt, "pipeline_v2", out_options.pipeline_v2);
+        read(opt, "v2_refine_mm", out_options.v2_refine_mm);
+        read(opt, "v2_regularize", out_options.v2_regularize);
+        read(opt, "v2_max_triangles_k", out_options.v2_max_triangles_k);
+        read(opt, "v2_relocate", out_options.v2_relocate);
+        read(opt, "v2_flip_edges", out_options.v2_flip_edges);
+        read(opt, "color_mix_enabled", out_options.color_mix_enabled);
+        read(opt, "color_despeckle", out_options.color_despeckle);
+        read(opt, "color_mix_count", out_options.color_mix_count);
+        read(opt, "active_slot", out_options.active_slot);
+        read(opt, "panel_mode", out_options.panel_mode);
+        out_options.active_slot = std::clamp(out_options.active_slot, 0, int(TEXTURE_DISPLACEMENT_MAX_LAYERS) - 1);
+        out_options.panel_mode  = std::clamp(out_options.panel_mode, 0, 1);
+    }
+
+    std::vector<TextureDisplacementLayer> out_layers;
+    // read() skips a value of the wrong type, but the vector, matrix, seam, island and UV-override arrays
+    // below read their numbers with get<>(), which throws on one; that rejects the document, like text that
+    // does not parse.
+    try {
+        if (const auto it = root.find("layers"); it != root.end() && it->is_array()) {
+            for (const nlohmann::json &j : *it) {
+                if (!j.is_object())
+                    continue;
+                TextureDisplacementLayer l;
+                read(j, "slot", l.slot);
+                // The panel and the paint masks are indexed by slot, so a layer without a valid one rejects the
+                // document rather than reaching them.
+                if (l.slot < 0 || l.slot >= int(TEXTURE_DISPLACEMENT_MAX_LAYERS))
+                    return false;
+                read(j, "name", l.name);
+                read(j, "path", l.path);
+                read(j, "path_in_3mf", l.path_in_3mf);
+
+                read(j, "depth_mm", l.depth_mm);
+                read(j, "tiling_scale", l.tiling_scale);
+                read(j, "rotation_deg", l.rotation_deg);
+                if (const auto o = j.find("offset"); o != j.end())
+                    l.offset = vec2_from_json(*o, l.offset);
+                read(j, "invert", l.invert);
+                read(j, "midlevel", l.midlevel);
+                read(j, "smoothing", l.smoothing);
+
+                read(j, "edge_smoothing", l.edge_smoothing);
+                read(j, "edge_smoothing_amount", l.edge_smoothing_amount);
+                read(j, "auto_connect_islands", l.auto_connect_islands);
+
+                read(j, "tile_enabled", l.tile_enabled);
+                read(j, "color_enabled", l.color_enabled);
+                int tile_method = int(l.tile_method), projection = int(l.projection_method), blend = int(l.blend_mode);
+                read_enum(j, "tile_method", tile_method);
+                read_enum(j, "projection_method", projection);
+                read_enum(j, "blend_mode", blend);
+                l.tile_method       = TextureTileMethod(tile_method);
+                l.projection_method = TextureProjectionMethod(std::clamp(projection, 0, 4));
+                l.blend_mode        = TextureBlendMode(blend);
+
+                read(j, "lscm_seam_angle_deg", l.lscm_seam_angle_deg);
+                read(j, "island_padding_mm", l.island_padding_mm);
+
+                if (const auto v = j.find("view_project_right"); v != j.end())
+                    l.view_project_right = vec3_from_json(*v, l.view_project_right);
+                if (const auto v = j.find("view_project_up"); v != j.end())
+                    l.view_project_up = vec3_from_json(*v, l.view_project_up);
+                read(j, "view_project_projective", l.view_project_projective);
+                if (const auto v = j.find("view_project_matrix"); v != j.end() && v->is_array() && v->size() == 12)
+                    for (size_t i = 0; i < 12; ++i)
+                        l.view_project_matrix[i] = (*v)[i].get<float>();
+
+                if (const auto v = j.find("lscm_seam_edges"); v != j.end() && v->is_array())
+                    for (size_t i = 0; i + 1 < v->size(); i += 2)
+                        l.lscm_seam_edges.emplace_back((*v)[i].get<int>(), (*v)[i + 1].get<int>());
+
+                if (const auto v = j.find("islands"); v != j.end() && v->is_array())
+                    for (const nlohmann::json &e : *v) {
+                        if (!e.is_array() || e.size() != 4)
+                            continue;
+                        TextureIsland island;
+                        island.offset       = Vec2f(e[0].get<float>(), e[1].get<float>());
+                        island.rotation_deg = e[2].get<float>();
+                        island.scale        = e[3].get<float>();
+                        l.islands.push_back(island);
+                    }
+
+                read(j, "island_groups", l.island_groups);
+
+                if (const auto v = j.find("lscm_uv_overrides"); v != j.end() && v->is_array())
+                    for (const nlohmann::json &e : *v) {
+                        if (!e.is_array() || e.size() != 3)
+                            continue;
+                        l.lscm_uv_overrides.emplace_back(e[0].get<int>(), Vec2f(e[1].get<float>(), e[2].get<float>()));
+                    }
+
+                out_layers.push_back(std::move(l));
+            }
+        }
+    } catch (const nlohmann::json::exception &) {
+        return false;
+    }
+
+    layers  = std::move(out_layers);
+    options = out_options;
+    return true;
 }
 
 } // namespace Slic3r

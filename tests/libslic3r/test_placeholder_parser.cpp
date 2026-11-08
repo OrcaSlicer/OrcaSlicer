@@ -1,5 +1,13 @@
 #include <catch2/catch_all.hpp>
+#include <string>
+#include <memory>
+#include "libslic3r/Config.hpp"
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include "libslic3r/PlaceholderParser.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
@@ -389,5 +397,86 @@ SCENARIO("Placeholder parser names in branches that are not taken", "[Placeholde
         CHECK(process("{if false}{g}{endif}ok") == "ok");
         // Boolean expressions are not checked, so compatibility conditions keep their behaviour.
         CHECK(PlaceholderParser::evaluate_boolean_expression("false ? no_such_var == 1 : true", config));
+    }
+}
+
+TEST_CASE("Placeholder parser deferred values can be printed but not computed with", "[PlaceholderParser]") {
+    PlaceholderParser parser;
+    parser.set_deferred("total_weight", "@TOTAL_WEIGHT@");
+    parser.set_deferred("used_filament", "@USED_FILAMENT_LENGTH@");
+    parser.set("label", "W");
+    PlaceholderParser::ContextData context;
+    context.global_config = std::make_unique<DynamicConfig>();
+    auto process = [&parser, &context](const std::string &templ) { return parser.process(templ, 0, nullptr, nullptr, &context); };
+
+    SECTION("printed") {
+        CHECK(process("{total_weight}") == "@TOTAL_WEIGHT@");
+        CHECK(process("[total_weight]") == "@TOTAL_WEIGHT@");
+        CHECK(process("{label + \": \" + total_weight + \"g\"}") == "W: @TOTAL_WEIGHT@g");
+        CHECK(process("{total_weight + \"g, \" + used_filament + \"m\"}") == "@TOTAL_WEIGHT@g, @USED_FILAMENT_LENGTH@m");
+        CHECK(process("{\"W \" + total_weight + \"g for \" + 3 + \" parts\"}") == "W @TOTAL_WEIGHT@g for 3 parts");
+        CHECK(process("{true ? total_weight : 0}") == "@TOTAL_WEIGHT@");
+        CHECK(process("{regex_replace(\"x\", /x/, total_weight)}") == "@TOTAL_WEIGHT@");
+        CHECK(process("{local w = total_weight}{w}") == "@TOTAL_WEIGHT@");
+    }
+    SECTION("used in a calculation or a comparison") {
+        const auto deferred_error = Catch::Matchers::ContainsSubstring("known only after the G-code is generated");
+        for (const std::string templ : {
+                 "{total_weight + 1}", "{1 + total_weight}", "{total_weight * 2}", "{-total_weight}", "{int(total_weight)}",
+                 "{min(total_weight, 5)}", "{digits(total_weight, 5)}", "{total_weight + used_filament}",
+                 "{if total_weight > 100}heavy{endif}", "{if total_weight == \"1\"}one{endif}", "{total_weight and true}",
+                 "{total_weight ? 1 : 0}", "{if total_weight =~ /1.*/}one{endif}", "{one_of(total_weight, \"1\")}",
+                 "{regex_replace(total_weight, /1/, \"2\")}", "{(\"W\" + total_weight) == \"W1\"}", "{filament_change(total_weight)}",
+                 "{regex_replace(\"x\", /x/, total_weight) * 2}", "{if regex_replace(\"x\", /x/, \"W\" + total_weight) > \"W1\"}heavy{endif}",
+                 // A deferred value copied to a variable is still deferred.
+                 "{local w = total_weight}{w > 1}", "{global g = \"W\" + total_weight}{if g == \"W1\"}one{endif}" }) {
+            CAPTURE(templ);
+            CHECK_THROWS_WITH(process(templ), deferred_error);
+        }
+        // A mistake unrelated to the value being deferred keeps its own message.
+        CHECK_THROWS_WITH(process("{global v = (1, 2)}{global v = \"W\" + total_weight}"),
+                          Catch::Matchers::ContainsSubstring("Cannot assign a scalar value to a vector variable"));
+    }
+    SECTION("ignored in a branch that is not taken") {
+        CHECK(process("{if false}{total_weight * 2}{endif}ok") == "ok");
+        struct Restore { ~Restore() { PlaceholderParser::check_inactive_branches = false; } } restore;
+        PlaceholderParser::check_inactive_branches = true;
+        CHECK(process("{if false}{total_weight * 2}{endif}ok") == "ok");
+    }
+    SECTION("other strings keep their behavior") {
+        CHECK(process("{label + 1}") == "W1");
+        CHECK(process("{if label > \"A\"}yes{endif}") == "yes");
+        CHECK(process("{if regex_replace(label, /X/, total_weight) == \"W\"}yes{endif}") == "yes");
+    }
+}
+
+SCENARIO("Placeholder parser unindexed vector access with filament_map", "[PlaceholderParser]") {
+    DynamicPrintConfig external_config;
+    external_config.set_key_value("filament_map", new ConfigOptionInts({ 1, 1 }));
+
+    PlaceholderParser parser(&external_config);
+    DynamicPrintConfig config;
+    config.set_key_value("z_hop", new ConfigOptionFloats({ 0.4, 3.0 }));
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({ 0.4, 0.6 }));
+    parser.apply_config(config);
+
+    SECTION("Retraction option (z_hop) resolves per filament") {
+        CHECK(parser.process("{z_hop}", 0) == "0.4");
+        CHECK(parser.process("{z_hop}", 1) == "3");
+    }
+
+    SECTION("Non-retraction option (nozzle_diameter) resolves to physical extruder 0 via filament_map") {
+        CHECK(parser.process("{nozzle_diameter}", 0) == "0.4");
+        CHECK(parser.process("{nozzle_diameter}", 1) == "0.4");
+    }
+
+    SECTION("Multi-extruder printer with filament_map {1, 2} resolves nozzle_diameter per extruder") {
+        DynamicPrintConfig idex_config;
+        idex_config.set_key_value("filament_map", new ConfigOptionInts({ 1, 2 }));
+        PlaceholderParser idex_parser(&idex_config);
+        idex_parser.apply_config(config);
+
+        CHECK(idex_parser.process("{nozzle_diameter}", 0) == "0.4");
+        CHECK(idex_parser.process("{nozzle_diameter}", 1) == "0.6");
     }
 }

@@ -7,7 +7,22 @@
 #include "libslic3r/Utils.hpp"
 #include "I18N.hpp"
 
+#include <string>
+#include <sstream>
+#include <ios>
+#include <cctype>
+#include <iomanip>
+#include <boost/filesystem/operations.hpp>
+#include <boost/log/trivial.hpp>
+#include <cstddef>
 #include <wx/display.h>
+#include <wx/gdicmn.h>
+#include <wx/popupwin.h>
+#include <wx/sizer.h>
+#include <wx/timer.h>
+#include <wx/file.h>
+#include <wx/webview.h>
+#include <wx/window.h>
 
 namespace fs = boost::filesystem;
 
@@ -102,7 +117,7 @@ void MarkdownTip::LoadStyle()
     _lastTip.clear();
 }
 
-bool MarkdownTip::ShowTip(wxPoint pos, std::string const &tip, std::string const &tooltip)
+bool MarkdownTip::ShowTip(wxPoint pos, std::string const &tip, std::string const &tooltip, const std::string& availability)
 {
     if (tip.empty()) {
         if (_tipView->GetParent() != this)
@@ -119,9 +134,11 @@ bool MarkdownTip::ShowTip(wxPoint pos, std::string const &tip, std::string const
         }
         return false;
     }
-    bool tipChanged = _lastTip != tip;
+    bool tipChanged = _lastTip != tip || _lastTooltip != tooltip || _lastAvailability != availability;
     if (tipChanged) {
         auto content = LoadTip(tip, tooltip);
+        if (!availability.empty())
+            content = availability + "\n\n---\n\n" + content;
         if (content.empty()) {
             _hide = true;
             this->Hide();
@@ -136,6 +153,8 @@ bool MarkdownTip::ShowTip(wxPoint pos, std::string const &tip, std::string const
             RunScript(script);
         }
         _lastTip = tip;
+        _lastTooltip = tooltip;
+        _lastAvailability = availability;
         if (_tipView->GetParent() == this)
             this->Hide();
     }
@@ -292,12 +311,12 @@ MarkdownTip* MarkdownTip::markdownTip(bool create)
     return markdownTip;
 }
 
-bool MarkdownTip::ShowTip(std::string const& tip, std::string const & tooltip, wxPoint pos)
+bool MarkdownTip::ShowTip(std::string const& tip, std::string const &tooltip, wxPoint pos, const std::string& availability)
 {
 #ifdef NDEBUG
     return false;
 #endif
-    return markdownTip()->ShowTip(pos, tip, tooltip);
+    return markdownTip()->ShowTip(pos, tip, tooltip, availability);
 }
 
 void MarkdownTip::ExitTip()

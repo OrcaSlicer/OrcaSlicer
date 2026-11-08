@@ -9,7 +9,6 @@
 #include "GUI_App.hpp"
 #include "GUI_Preview.hpp"
 #include "MainFrame.hpp"
-#include "format.hpp"
 #include "Widgets/ProgressDialog.hpp"
 #include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/StaticBox.hpp"
@@ -38,6 +37,67 @@
 #include "BackgroundSlicingProcess.hpp"   // complete type for background_process().get_current_gcode_result()
 #include "DeviceCore/DevStorage.h"
 
+#include <wx/event.h>
+#include <string>
+#include "libslic3r/PrintConfig.hpp"
+#include <cassert>
+#include <vector>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/AmsMappingPopup.hpp"
+#include "libslic3r/ProjectTask.hpp"
+#include <wx/panel.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/PrePrintChecker.hpp"
+#include "slic3r/GUI/DeviceTab/uiAMSBestPositionPopup.hpp"
+#include <wx/anybutton.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <memory>
+#include "slic3r/GUI/BBLStatusBarPrint.hpp"
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <wx/busycursor.h>
+#include <boost/lexical_cast.hpp>
+#include <boost/log/trivial.hpp>
+#include <cstdio>
+#include <cstddef>
+#include "libslic3r/Config.hpp"
+#include <nlohmann/json.hpp>
+#include <exception>
+#include <cstdlib>
+#include <map>
+#include <ctime>
+#include <set>
+#include "slic3r/GUI/DeviceManager.hpp"
+#include <optional>
+#include <cmath>
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include <wx/chartype.h>
+#include <unordered_set>
+#include "libslic3r/CommonDefs.hpp"
+#include "slic3r/GUI/ReleaseNote.hpp"
+#include <boost/algorithm/string/case_conv.hpp>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/dcclient.h>
+#include "libslic3r/Print.hpp"
+#include <wx/dialog.h>
+#include <utility>
+#include "slic3r/GUI/Monitor.hpp"
+#include <ostream>
+#include "slic3r/GUI/Jobs/PrintJob.hpp"
+#include "slic3r/GUI/MsgDialog.hpp"
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <wx/arrstr.h>
+#include "slic3r/GUI/Auxiliary.hpp"
+#include <cstring>
+#include "libslic3r/PrintBase.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include <wx/image.h>
+#include <wx/dcmemory.h>
+#include <wx/dc.h>
+#include "slic3r/GUI/Widgets/DropDown.hpp"
 #include <wx/progdlg.h>
 #include <wx/clipbrd.h>
 #include <wx/dcgraph.h>
@@ -45,10 +105,42 @@
 #include <miniz.h>
 #include <algorithm>
 #include <unordered_map>
+#include <wx/wx.h>
+#include <wx/toplevel.h>
+#include <wx/simplebook.h>
+#include <wx/string.h>
+#include <wx/stattext.h>
+#include <wx/textctrl.h>
+#include <wx/sizer.h>
+#include <wx/timer.h>
+#include <wx/tglbtn.h>
+#include <wx/wxcrt.h>
+#include <wx/utils.h>
 #include "Plater.hpp"
 #include "Notebook.hpp"
 #include "BitmapCache.hpp"
 #include "BindDialog.hpp"
+#include "slic3r/GUI/DeviceCore/DevUtil.h"
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include "libslic3r/GCode/ToolOrdering.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/Jobs/BindJob.hpp"
+#include "slic3r/GUI/Tabbook.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include "slic3r/Utils/IPrinterAgent.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
+#include <boost/filesystem.hpp>
+
+using json = nlohmann::json;
+
+namespace Slic3r { class PrintBase; }
+
+namespace fs = boost::filesystem;
 
 namespace Slic3r { namespace GUI {
 
@@ -92,8 +184,18 @@ std::string get_nozzle_volume_type_cloud_string(NozzleVolumeType nozzle_volume_t
 // Throttle so the rack print-dispatch nozzle-mapping request isn't re-sent on every status poll.
 static int s_nozzle_mapping_last_request_time = 0;
 
+// Printer agents name a printer after its model, so two printers of one model are told apart by their address.
+wxString get_shown_printer_name(const MachineObject* obj)
+{
+    const wxString name = wxString::FromUTF8(obj->get_dev_name());
+    if (!obj->printer_agent_id.empty() && obj->printer_agent_id != BBL_PRINTER_AGENT_ID && !obj->get_dev_ip().empty() &&
+        obj->get_dev_ip() != obj->get_dev_name())
+        return name + " (" + wxString::FromUTF8(obj->get_dev_ip()) + ")";
+    return obj->is_lan_mode_printer() ? name + _L("(LAN)") : name;
+}
+
 std::vector<wxString> SelectMachineDialog::MACHINE_BED_TYPE_STRING;
-std::vector<string> SelectMachineDialog::MachineBedTypeString;
+std::vector<std::string> SelectMachineDialog::MachineBedTypeString;
 void                SelectMachineDialog::init_machine_bed_types()
 {
     if (MACHINE_BED_TYPE_STRING.size() == 0) {
@@ -857,7 +959,7 @@ void SelectMachineDialog::init_bind()
             if (!obj) return;
 
             if (obj->get_dev_id() == e.GetString()) {
-                m_printer_box->SetPrinterName(wxString::FromUTF8(obj->get_dev_name()) + "(LAN)");
+                m_printer_box->SetPrinterName(get_shown_printer_name(obj));
             }
         }
     });
@@ -1044,7 +1146,7 @@ void SelectMachineDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &res
     if (result.empty()) {
         BOOST_LOG_TRIVIAL(info) << "ams_mapping result is empty";
         for (auto it = m_materialList.begin(); it != m_materialList.end(); it++) {
-            wxString ams_id = "Ext";//
+            wxString ams_id = _L("Ext");//
             wxColour ams_col = wxColour(0xCE, 0xCE, 0xCE);
             it->second->item->set_ams_info(ams_col, ams_id);
             it->second->item->set_nozzle_info(get_mapped_nozzle_str(it->first));
@@ -1068,7 +1170,7 @@ void SelectMachineDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &res
 
                 if (f->tray_id == VIRTUAL_TRAY_MAIN_ID || f->tray_id == VIRTUAL_TRAY_DEPUTY_ID)
                 {
-                    ams_id = "Ext";
+                    ams_id = _L("Ext");
                 }else if (f->tray_id >= 0) {
                     ams_id = wxGetApp().transition_tridid(f->tray_id);
                 } else {
@@ -2659,8 +2761,8 @@ void SelectMachineDialog::on_ok_btn(wxCommandEvent &event)
     std::vector<ConfirmBeforeSendInfo> confirm_text;
 
     // check more than one using in same external spool
-    std::unordered_set<string> main_external_spool_filas;
-    std::unordered_set<string> deputy_external_spool_filas;
+    std::unordered_set<std::string> main_external_spool_filas;
+    std::unordered_set<std::string> deputy_external_spool_filas;
     for (const auto& mapping_info : m_ams_mapping_result) {
         if (mapping_info.ams_id == VIRTUAL_AMS_MAIN_ID_STR){
             main_external_spool_filas.insert(mapping_info.filament_id);
@@ -3770,13 +3872,14 @@ void SelectMachineDialog::on_refresh(wxCommandEvent &event)
 {
     BOOST_LOG_TRIVIAL(info) << "m_printer_last_select: on_refresh";
     show_status(PrintDialogStatus::PrintStatusRefreshingMachineList);
+    m_pull_filament_pending = true;
     update_user_machine_list();
 }
 
 void SelectMachineDialog::on_set_finish_mapping(wxCommandEvent &evt)
 {
     auto selection_data = evt.GetString();
-    auto selection_data_arr = wxSplit(selection_data.ToStdString(), '|');
+    auto selection_data_arr = wxSplit(selection_data, '|');
 
     BOOST_LOG_TRIVIAL(info) << "The ams mapping selection result: data is " << selection_data;
 
@@ -3998,7 +4101,7 @@ void SelectMachineDialog::update_user_printer()
     {
         m_printer_last_select = "";
         update_select_layout(nullptr);
-        m_printer_box->GetPrinterComboBox()->SetTextLabel("");
+        m_printer_box->GetPrinterComboBox()->SetValue(_L("No available printers"));
     }
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "for send task, current printer id =  " << m_printer_last_select << std::endl;
@@ -4199,6 +4302,7 @@ void SelectMachineDialog::on_selection_changed(wxCommandEvent &event)
 
         // Has changed machine unrecoverably
         m_check_flag = false;
+        m_pull_filament_pending = true;
     } else {
         BOOST_LOG_TRIVIAL(error) << "on_selection_changed dev_id not found";
         return;
@@ -4269,7 +4373,9 @@ void SelectMachineDialog::update_filament_change_count()
         m_mapping_sugs_sizer->Show(true);
         m_change_filament_times_sizer->Show(true);
         m_txt_change_filament_times->Show(true);
-        m_txt_change_filament_times->SetLabel(wxString::Format(_L("Cost %dg filament and %d changes more than optimal grouping."), saving_weight, hand_changes_count));
+        m_txt_change_filament_times->SetLabel(wxString::Format(_L_PLURAL("Cost %dg filament and %d change more than optimal grouping.",
+                                                                         "Cost %dg filament and %d changes more than optimal grouping.", hand_changes_count),
+                                                               saving_weight, hand_changes_count));
         m_txt_change_filament_times->Wrap(FromDIP(580));
         m_txt_change_filament_times->Layout();
     }
@@ -4289,9 +4395,9 @@ static wxString _check_kval_not_default(const MachineObject* obj, const std::vec
 
         wxString ams_name;
         if (info.tray_id == VIRTUAL_TRAY_MAIN_ID) {
-            ams_name = "Right-Ext";
+            ams_name = _L("Right-Ext");
         } else if (info.tray_id == VIRTUAL_TRAY_DEPUTY_ID) {
-            ams_name = "Left-Ext";
+            ams_name = _L("Left-Ext");
         } else {
             ams_name = wxGetApp().transition_tridid(info.tray_id);
         }
@@ -4350,7 +4456,7 @@ static std::unordered_multimap<int, NozzleDef> s_get_slicing_extuder_nozzles()
             const auto& used_nozzles = nozzle_group_res->get_used_nozzles_in_extruder();
             for (const auto& used_nozzle : used_nozzles) {
                 NozzleDef nozzle_data;
-                nozzle_data.nozzle_diameter = std::stof(used_nozzle.diameter);
+                nozzle_data.nozzle_diameter = boost::lexical_cast<float>(used_nozzle.diameter);
                 nozzle_data.nozzle_flow_type = DevNozzle::ToNozzleFlowType(used_nozzle.volume_type);
                 if (used_nozzle.extruder_id == 0) {
                     used_extuder_nozzles.insert({ DEPUTY_EXTRUDER_ID, nozzle_data });
@@ -4458,7 +4564,7 @@ void SelectMachineDialog::CheckWarningRackStatus(MachineObject* obj_)
     for (const auto& slicing_nozzle : nozzle_vec) {
         try {
             NozzleDef data;
-            data.nozzle_diameter = std::stof(slicing_nozzle.diameter);
+            data.nozzle_diameter = boost::lexical_cast<float>(slicing_nozzle.diameter);
             data.nozzle_flow_type = DevNozzle::ToNozzleFlowType(slicing_nozzle.volume_type);
             need_nozzle_map[data]++;
         } catch (const std::exception& e) {
@@ -4718,6 +4824,18 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
     }
 
     reset_timeout();
+
+    // Orca: pull-mode agents only refresh their filament data when asked, so ask before the mapping uses it
+    if (m_pull_filament_pending) {
+        m_pull_filament_pending = false;
+        if (agent->get_filament_sync_mode() == FilamentSyncMode::pull) {
+            wxBusyCursor busy;
+            if (agent->fetch_filament_info(obj_->get_dev_id())) {
+                m_ams_mapping_result.clear();
+                m_check_flag = false;
+            }
+        }
+    }
 
     /*check print all*/
     if (!obj_->GetConfig()->SupportPrintAllPlates() && m_print_plate_idx == PLATE_ALL_IDX)
@@ -5150,7 +5268,7 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
 
     /*Check high temperture slicing*/
     if (m_print_type == PrintFromType::FROM_NORMAL) {
-        std::set<string>  high_temp_filaments;
+        std::set<std::string> high_temp_filaments;
         std::unordered_set<int> known_fila_soften_extruders;
         std::unordered_set<int> unknown_fila_soften_extruders;
         auto preset_full_config = wxGetApp().preset_bundle->full_config();
@@ -5422,7 +5540,7 @@ void SelectMachineDialog::change_materialitem_tip(bool no_ams_only_ext)
         int       id   = iter->first;
         Material *item = iter->second;
         if (item) {
-            if (no_ams_only_ext && item->item->m_ams_name == "Ext") {
+            if (no_ams_only_ext && item->item->m_ams_name == _L("Ext")) {
                 item->item->SetToolTip(wxEmptyString);
             }
             else {
@@ -5647,8 +5765,9 @@ void SelectMachineDialog::reset_and_sync_ams_list()
 }
 
 // Orca: collapse the per-nozzle material items into the single panel when the printer has one
-// extruder or a filament switch (both feed a single logical mapping surface); otherwise keep the
-// left/right split. Early-returns unless an item is actually in the wrong panel.
+// extruder or a filament switch (both feed a single logical mapping surface), or when the plate is
+// sliced for one nozzle (it has no left/right filament map); otherwise keep the left/right split.
+// Early-returns unless an item is actually in the wrong panel.
 void SelectMachineDialog::update_material_item_pos(MachineObject* obj_)
 {
     if (!obj_) {
@@ -5657,7 +5776,10 @@ void SelectMachineDialog::update_material_item_pos(MachineObject* obj_)
 
     const bool is_single_head = obj_->GetExtderSystem()->GetTotalExtderCount() < 2;
     const bool has_switcher = obj_->GetFilaSwitch()->IsInstalled();
-    const bool use_single_panel = is_single_head || has_switcher;
+    // reset_and_sync_ams_list() fills m_filaments_map only for a multi-nozzle plate
+    const auto& full_config = wxGetApp().preset_bundle->full_config();
+    const bool single_nozzle_plate = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size() < 2;
+    const bool use_single_panel = is_single_head || has_switcher || single_nozzle_plate;
 
     bool to_change_pos = false;
     for (const auto& iter : m_materialList) {
@@ -6346,6 +6468,7 @@ bool SelectMachineDialog::Show(bool show)
 
 void SelectMachineDialog::show_init() {
     m_ams_mapping_result.clear();
+    m_pull_filament_pending = true;
 }
 
 SelectMachineDialog::~SelectMachineDialog()
@@ -6947,7 +7070,9 @@ static wxString _get_tips(MachineObject* obj_)
 
     wxString ext_diameter;
     if (obj_->GetExtderSystem()->GetTotalExtderCount() == 1) {
-        ext_diameter += format_nozzle_diameter(obj_->GetExtderSystem()->GetNozzleDiameter(0));
+        // A nozzle the printer hasn't reported shows no size rather than "Unknown"
+        if (const float diameter = obj_->GetExtderSystem()->GetNozzleDiameter(0); diameter > 0.0f)
+            ext_diameter += format_nozzle_diameter(diameter);
     } else if (obj_->GetExtderSystem()->GetTotalExtderCount() == 2) {
         ext_diameter += format_nozzle_diameter(obj_->GetExtderSystem()->GetNozzleDiameter(1));//Left
         ext_diameter += "/";
@@ -6971,13 +7096,8 @@ void PrinterInfoBox::SetPrinters(const std::vector<MachineObject*>& sorted_print
     std::vector<DropDown::Item> drop_items;
     for (MachineObject* obj : sorted_printers)
     {
-        wxString shown_dev_name = wxString::FromUTF8(obj->get_dev_name());
-        if (obj->is_lan_mode_printer()) {
-            shown_dev_name += "(LAN)";
-        }
-
         DropDown::Item drop_item;
-        drop_item.text = shown_dev_name;
+        drop_item.text = get_shown_printer_name(obj);
         drop_item.text_static_tips = _get_tips(obj);
 
         // update image

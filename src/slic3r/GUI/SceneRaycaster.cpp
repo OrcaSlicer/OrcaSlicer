@@ -5,6 +5,15 @@
 #include "GUI_App.hpp"
 #include "Selection.hpp"
 #include "Plater.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "libslic3r/Technologies.hpp"
+#include <memory>
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "libslic3r/Point.hpp"
+#include <cassert>
+#include <vector>
+#include <optional>
+#include <limits>
 
 namespace Slic3r {
 namespace GUI {

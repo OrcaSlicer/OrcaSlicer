@@ -1,5 +1,19 @@
+#include <libnoise/module/modulebase.h>
+#include <memory>
+#include <algorithm>
+#include <math.h>
+#include <cmath>
+#include <cstddef>
+#include <limits>
+#include <cstdlib>
+#include <optional>
 #include <random>
+#include <thread>
+#include <utility>
+#include <vector>
 
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Surface.hpp"
 #include "libslic3r/Algorithm/LineSplit.hpp"
 #include "libslic3r/Arachne/utils/ExtrusionJunction.hpp"
 #include "libslic3r/Arachne/utils/ExtrusionLine.hpp"
@@ -14,10 +28,9 @@
 #include "FuzzySkin.hpp"
 
 #include "libnoise/noise.h"
+#include <functional>
 
 // #define DEBUG_FUZZY
-
-using namespace Slic3r;
 
 namespace Slic3r::Feature::FuzzySkin {
 

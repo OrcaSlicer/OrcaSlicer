@@ -1,5 +1,6 @@
 #pragma once
 
+#include "IPrinterAgent.hpp"
 #include "MoonrakerPrinterAgent.hpp"
 
 #include <string>

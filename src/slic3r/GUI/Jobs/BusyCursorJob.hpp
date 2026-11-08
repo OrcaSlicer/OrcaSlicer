@@ -3,6 +3,8 @@
 
 #include "Job.hpp"
 
+#include <wx/busycursor.h>
+#include <exception>
 #include <wx/utils.h>
 #include <boost/log/trivial.hpp>
 

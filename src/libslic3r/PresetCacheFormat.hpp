@@ -1,9 +1,11 @@
 #ifndef slic3r_PresetCacheFormat_hpp_
 #define slic3r_PresetCacheFormat_hpp_
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include <cereal/archives/binary.hpp>
@@ -14,6 +16,9 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Semver.hpp"
+
+namespace cereal { class BinaryInputArchive; }
+namespace cereal { class BinaryOutputArchive; }
 
 namespace Slic3r {
 
@@ -57,17 +62,22 @@ public:
 
     // ---- reading ----
 
-    // The definition an index resolves to in THIS build, or nullptr where the
-    // key is unknown here or is now defined with a different type. A nullptr
-    // entry's value is still read — using type_at(idx), the type the writer
-    // recorded — and then dropped, which is what a JSON profile gets for an
-    // option this build no longer has.
+    // The definition THIS build has for an index's key, or nullptr where the key
+    // is unknown here. type_at(idx) is the type the writer recorded; the value
+    // is read by that type whatever this build's is. With no definition it is
+    // then dropped, which is what a JSON profile gets for an option this build
+    // no longer has; with a definition of another type it is placed as a JSON
+    // profile's text would be (see read_config), so the key is never left at
+    // the collection default while a JSON profile would have mapped it.
     const ConfigOptionDef* def_at(uint16_t idx) const { return m_defs[idx]; }
+    const std::string&     key_at(uint16_t idx) const { return m_keys[idx]; }
     ConfigOptionType       type_at(uint16_t idx) const { return ConfigOptionType(m_types[idx]); }
     const std::string&     enum_name_at(uint16_t idx) const { return m_enum_values[idx]; }
     // m_defs, not m_keys: only load() sizes it, so this is false for every index
     // on a dictionary that was collected rather than read.
     bool valid_key_index(uint16_t idx) const { return size_t(idx) < m_defs.size(); }
+    // True the first time it is asked for an index, false after.
+    bool first_report(uint16_t idx) const { return ! std::exchange(m_reported[idx], char(1)); }
     bool valid_enum_index(uint16_t idx) const { return size_t(idx) < m_enum_values.size(); }
 
     // The layout these two agree on is covered by CACHE_VERSION (PresetCacheFormat.cpp);
@@ -95,6 +105,10 @@ private:
     std::unordered_map<std::string, uint16_t> m_enum_index;
     // Reading, resolved once by load().
     std::vector<const ConfigOptionDef*> m_defs;
+    // Keys whose value read_config already reported dropping from this file,
+    // so a key set by every preset is logged once, not once per preset. The
+    // entries of one file are read in sequence, never concurrently.
+    mutable std::vector<char> m_reported;
 };
 
 // One config, keyed through `dict`. Options print_config_def does not know are
@@ -165,6 +179,11 @@ public:
     static bool load(const std::string& path, const std::string& expected_vendor_name,
                      const Semver& expected_vendor_version, VendorCacheData& data);
 
+    // Read only the vendor's own profile, under the same checks as load(),
+    // without deserializing its presets.
+    static bool load_vendor_profile(const std::string& path, const std::string& expected_vendor_name,
+                                    const Semver& expected_vendor_version, VendorProfile& vendor);
+
     // Read the profile version a cache was stamped with, without deserializing
     // its presets. Empty if the file is unreadable, not a cache this build
     // understands, or not this vendor's. This is how an installed vendor's
@@ -184,9 +203,10 @@ public:
     // read. The three kinds are written in one stream, so reaching the machines
     // means reading past the processes and filaments — their configs are consumed
     // and dropped rather than built. This is how a build that ships caches instead
-    // of preset JSONs answers "which vendor carries this preset?".
+    // of preset JSONs answers "which vendor carries this preset?". With `renamed`
+    // it answers whether a preset was renamed from `preset_name` instead.
     static bool carries_preset(const std::string& path, const std::string& vendor_name,
-                               Preset::Type type, const std::string& preset_name);
+                               Preset::Type type, const std::string& preset_name, bool renamed = false);
 };
 
 } // namespace Slic3r

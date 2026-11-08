@@ -5,7 +5,7 @@ How wx 3.3.2 popups and menus behave on each port, and the Orca wrappers built o
 `append_menu_item`, `Plater::PopupMenu` and the macOS menubar versus `BBLTopbar`. Read it before you add
 or change anything that opens over other UI and must close by itself, or any context menu or menubar item.
 
-wx cites are relative to the wx tree root (`deps/build/<arch>/dep_wxWidgets-prefix/src/dep_wxWidgets`).
+wx cites are relative to the wx tree root (located as in `SKILL.md` §Ground truth).
 **[source]** marks behaviour derived from the implementation that the wx docs do not state or contradict.
 Orca builds wx with `wxBUILD_DEBUG_LEVEL=0`, so every "asserts" below means "fails silently in Orca".
 "GTK" means wxGTK3 (X11 and Wayland), the default Linux build; GTK2 is only an opt-out (`-DDEP_WX_GTK3=OFF`).
@@ -57,8 +57,9 @@ Contents: [Rules](#rules) · [1. Choosing the window kind](#1-choosing-the-windo
 17. Don't shrink a dropdown below two rows to fit the screen. (§7)
 18. Content that needs typing focus or hosts a `wxWebView` uses a frameless `wxDialog` that hides on
     deactivation, not a transient popup. (§10)
-19. Display-only overlays (HUDs, toasts) use a plain `wxPopupWindow`: it never takes focus and never
-    auto-dismisses. (§4, §10)
+19. Display-only overlays (HUDs, toasts) use a plain `wxPopupWindow`: `Show()` never gives it focus and it
+    never auto-dismisses. Never `Raise()` any `wxPopupWindow`: `Raise()` is for top-level windows only, and on
+    macOS it makes the popup the key window. (§4, §5, §10)
 20. On MSW, don't `SetFocus()` another window on hover while `wxCurrentPopupWindow` is non-null. (§8)
 21. Menu items use `wxID_ANY` and read `item->GetId()`. `wxNewId()` is deprecated. (§13)
 22. Set a menu item's bitmap before `Append`. Don't expect icons on check or radio items. Never call
@@ -72,6 +73,19 @@ Contents: [Rules](#rules) · [1. Choosing the window kind](#1-choosing-the-windo
 27. Build `MenuFactory` menus once. Pass `parent` to `append_menu_item` only for items that persist. (§16)
 28. macOS: bind `wxID_EXIT` on `OSXGetAppleMenu()` to `Close()`, only insert into the Apple menu, and always
     `Skip()` a frame's `wxEVT_ACTIVATE`. (§15)
+29. On Wayland, a popup that can open while a GTK tooltip is shown hides every visible tooltip window before
+    it maps. `PopupWindow::Show` does it for every Orca popup; a popup outside `PopupWindow` opened from a
+    widget with a GTK tooltip must do it itself. Only a popup that cannot map while a GTK tooltip is visible,
+    such as one opened from the GL canvas (whose tooltips are ImGui), needs nothing. (§9)
+30. On Wayland, a hook that dismisses a popup when its toplevel deactivates ignores the deactivation while a GTK
+    tooltip of a widget in that popup, or in a popup opened from it, is on screen: the tooltip has taken the
+    keyboard while the user is still on the popup. `PopupWindow::topWindowActiavate` does it for every Orca popup;
+    a popup outside `PopupWindow` with such a hook must do it itself. (§9)
+31. When a dialog that hides on deactivation closes by itself, find the code that activated another window
+    instead of hardening the hook: on wxGTK, `SetFocus()` on a child of a visible, inactive toplevel presents
+    that toplevel. A handler bound on a book control acts only on events whose object is that book, because a
+    page-changed event from a book inside a page propagates up to it. A deferred, re-checked hide tolerates only
+    a focus bounce shorter than its delay. (§10)
 
 ## 1. Choosing the window kind
 
@@ -356,6 +370,13 @@ compensates for (§6).
   with `ShowWithoutActivating` → `setHidesOnDeactivate:YES` + `orderFront` (`src/osx/carbon/popupwin.cpp:56-75`,
   `nonownedwnd.mm:938-945`). When the app deactivates, Cocoa hides the panel and shows it again on reactivation.
   wx never calls `OnDismiss`, and `IsShown()` stays true. This applies to plain `wxPopupWindow` overlays too.
+- `Raise()` activates the popup. It is `makeKeyAndOrderFront` (`src/osx/nonownedwnd_osx.cpp:289-295`,
+  `nonownedwnd.mm:897-899`), and `wxNSPanel` answers `canBecomeKeyWindow` with YES (`nonownedwnd.mm:271`), so
+  the popup becomes the key window. Keys go to it, and the frame loses key status: `windowDidResignKey` →
+  `HandleActivated(0, false)` → `wxEVT_ACTIVATE(false)` on the frame (`nonownedwnd.mm:567-576`,
+  `nonownedwnd_osx.cpp:303-310`). Hiding the key popup gives key back to the frame, which then gets
+  `wxEVT_ACTIVATE(true)` (observed; AppKit behaviour, not in the wx tree). A popup at `NSPopUpMenuWindowLevel`
+  is already above its frame, so `Raise()` buys nothing.
 - Capture: `Show(true)` makes `m_child` capture the mouse ("Assume that the mouse is outside the popup to begin
   with", `popupcmn.cpp:421-426`). `OnIdle` releases the capture while the cursor is inside and re-captures it
   outside, but only when the mouse position has changed since the last idle pass. `s_posLast` is a
@@ -382,6 +403,10 @@ compensates for (§6).
   on older GTK and GTK2. On hide: `gdk_seat_ungrab` + `gtk_grab_remove` (`popupcmn.cpp:335-403`).
   `gdk_seat_ungrab` releases the *seat's* grab, whichever popup took it, so hiding a sub-popup also drops the
   parent popup's pointer grab.
+- The window is mapped before the grab is taken (`wxPopupWindow::Show` at `popupcmn.cpp:370`, the grab from
+  375). Under Wayland the popup itself therefore maps as an `xdg_popup` without an explicit grab, while GDK
+  records the grab seat on its window, and a popup mapped later as its transient child (a sub-dropdown, a GTK
+  tooltip of a widget inside it) inherits that seat and maps with `xdg_popup.grab` (§9).
 - An outside press arrives at the grab widget. `gtk_popup_button_press` sends `wxEVT_KILL_FOCUS` to the popup
   and **consumes the click** (`return TRUE`, `src/gtk/popupwin.cpp:28-58`). Presses older than the popup's
   creation time are ignored (33-34).
@@ -431,6 +456,9 @@ class PopupWindow : public wxPopupTransientWindow {
 public:
     PopupWindow(wxWindow* parent, int style = wxBORDER_NONE);
     bool Create(wxWindow* parent, int flags = wxBORDER_NONE);
+#ifdef __WXGTK__
+    bool Show(bool show = true) override;                                 // hides GTK tooltips first on Wayland (§9)
+#endif
 #ifdef __WXMSW__
     void BindUnfocusEvent();                                              // opt-in
 #endif
@@ -443,7 +471,7 @@ What it adds per platform:
 
 | Port | Behaviour |
 |---|---|
-| GTK | `Create` binds `wxEVT_ACTIVATE` on `GetTopParent(parent)`. `topWindowActiavate` calls `event.Skip()`, then `DismissAndNotify()` if the toplevel deactivated, the popup is shown and `ShouldDismissOnTopWindowDeactivate()` returns true. This supplies the app/toplevel deactivation dismissal that stock wxGTK lacks. |
+| GTK | `Create` binds `wxEVT_ACTIVATE` on `GetTopParent(parent)`. `topWindowActiavate` calls `event.Skip()`, then `DismissAndNotify()` if the toplevel deactivated, the popup is shown, `ShouldDismissOnTopWindowDeactivate()` returns true and, under Wayland, no GTK tooltip of the popup's own is on screen (§9). This supplies the app/toplevel deactivation dismissal that stock wxGTK lacks. Under Wayland, `Show(true)` on a hidden popup first hides every visible GTK tooltip window (§9). |
 | MSW | Nothing automatic. `BindUnfocusEvent()` binds the toplevel's `wxEVT_ACTIVATE`/`wxEVT_ICONIZE`/`wxEVT_SHOW` to `Dismiss()` (no `OnDismiss`). It is for default-style popups: they are desktop children that Windows does not hide with the frame, and stock wx closes them on deactivation or minimizing only if a focus message reaches a wx window (§4, §5). `topWindowActivate` does **not** `Skip()`, so while the popup lives it swallows the frame's `wxEVT_ACTIVATE`, and with it `wxTopLevelWindowMSW::OnActivate`'s focus save and restore (`src/msw/toplevel.cpp:1326-1360`). |
 | macOS | Only with `wxPU_CONTAINS_CONTROLS`: `OnMouseEvent2`, bound on the popup for `LEFT_DOWN/UP/DCLICK`, `MOTION` and `MOUSEWHEEL`, hit-tests the children (static `HitTest`) and re-dispatches the event to the deepest child under the cursor with `ProcessEventLocally`. On `MOTION` it synthesizes `ENTER`/`LEAVE` for the hovered target. This compensates for the capture rerouting in §5. |
 
@@ -562,6 +590,11 @@ Details [source] (`Widgets/PopupWindow.cpp`).
   - On GTK the sub binds an idle handler. While both are shown and the cursor is over main but not over the
     sub, it builds a `wxMouseEvent(wxEVT_MOTION)` from `wxGetMousePosition()`, calls `mainDropDown->mouseMove(ev)`
     **directly** (nothing is posted), and calls `e.RequestMore()` to keep polling.
+  - On GTK the sub also receives the wheel events the user raises over main: GDK sends a `wl_pointer.axis` only
+    to the surface the pointer is over, and GTK then hands that `GDK_SCROLL` to the chain's grab widget, which is
+    the sub. The sub installs a `GtkWidget::event` handler that replays the event on main with
+    `gtk_propagate_event(main->GetConnectWidget(), event)` when the event's GDK window belongs to main
+    (`DropDown::messureSize`).
 - **GTK wrapper sizing.** `messureSize` calls `gtk_window_resize` on `m_widget` after `SetSize`, because wxGTK's
   `DoSetSize` only uses `gtk_widget_set_size_request` ("gtk_window_resize does not work for GTK_WINDOW_POPUP",
   `src/gtk/popupwin.cpp:181-188`).
@@ -599,6 +632,32 @@ Details [source] (`Widgets/PopupWindow.cpp`).
   ```
   Cite: c0ae2bda99, b9ff15054f (`DropDown::mouseMove`, `DropDown::messureSize`, `DropDown::ShouldDismissOnTopWindowDeactivate`,
   `PopupWindow::ShouldDismissOnTopWindowDeactivate`).
+- **Rule:** On GTK, route a chained popup's wheel event by the GDK window it names, not by the grab widget and not
+  by the global cursor position.
+  **Why:** While the sub holds the grab, `gtk_main_do_event` hands every `GDK_SCROLL` of the chain to the grab
+  widget (the sub) with its original, un-rebased coordinates [source] (`gtkmain.c:1789-1792`, 1923-1924), while
+  GDK Wayland sends the axis to the surface under the pointer only (`pointer_handle_axis` → `create_scroll_event`,
+  `gdkdevice-wayland.c:1929, 1527`). The sub therefore sees and consumes wheel events raised over main, so the
+  main list never scrolls, on X11 and Wayland alike. A hit test against `wxGetMousePosition()` cannot replace the
+  window test: global coordinates are unreliable on Wayland (`mouse-keyboard-focus.md`). `DropDown` connects a
+  `GtkWidget::event` handler on the sub's `GtkWindow` (its `m_widget`), which is emitted before wx's
+  `::scroll-event` handler on the same widget and suppresses it when it returns TRUE (`gtkwidget.c:7696`), then
+  delivers the event with `gtk_propagate_event(main->GetConnectWidget(), event)`. Returning TRUE there also stops
+  the parent-chain propagation.
+  ```cpp
+  // Wrong: emitted on the popup's outer GtkWindow, where wx has no handlers at all
+  g_signal_emit_by_name(main->m_widget, "scroll-event", event, &handled);
+  // Right (wxGTK): replay GTK's own delivery on the widget wx listens to
+  gtk_propagate_event(main->GetConnectWidget(), event);
+  ```
+  **Where wx listens [source].** `wxPopupWindow::Create` builds a popup from two widgets: `m_widget` is the outer
+  `GtkWindow` and `m_wxwindow` is a `wxPizza` child added to it. `wxWindowGTK::GetConnectWidget()` is
+  `m_wxwindow ? m_wxwindow : m_widget`, and `ConnectWidget()` — which binds `button_press_event`, `motion_notify_event`
+  and `scroll_event` — is called on that widget (`src/gtk/window.cpp` `Create`, `GetConnectWidget`). A signal emitted
+  on the outer `GtkWindow` therefore reaches no wx handler; only events GTK delivers to the inner widget, or to a
+  descendant of the grab widget, are seen by wx. `GTKGetConnectWindow()`/`GTKGetMainWindow()` are the matching
+  GdkWindows.
+  Cite: `DropDown::messureSize`, `DropDown::mouseWheelMoved`.
 - **Rule:** When shrinking a dropdown to fit above the display bottom, give up if fewer than two rows would
   remain.
   **Why:** On Wayland the popup can land where almost no vertical space is left. Clamping to that sliver made an
@@ -682,6 +741,85 @@ fights the grab and focus model (§10). Two more [source] facts:
   `DropDown::Popup`, applied when `!mainDropDown && m_widget`).
 - **Rule:** Don't open a grabbing popup on hover on Linux if the opener must stay clickable.
   Cite: `MainFrame` slice-button hover handlers (`#ifndef __linux__`).
+- **Rule:** On Wayland, hide every visible GTK tooltip window right before mapping a popup that can open
+  while one is shown.
+  **Why:** A GTK3 tooltip is a `GTK_WINDOW_POPUP` with the `tooltip` type hint, placed with
+  `gdk_window_move_to_rect` (`gtktooltip.c:974-983`), so GDK Wayland maps it as an `xdg_popup` of the
+  hovered widget's toplevel (`should_map_as_popup`, `gdkwindow-wayland.c:3198-3199`). GDK refuses to map a
+  popup whose parent is not the last popup it mapped, warning "Tried to map a popup with a non-top most
+  parent" (`gdkwindow-wayland.c:3040-3046`), and the window stays invisible while wx believes it is shown.
+  GTK hides the tooltip on a button or key press, but only after the event has been propagated to the
+  widgets (`gtkmain.c:1949-1961`, `_gtk_tooltip_handle_event`). A dropdown opened from the click is therefore
+  mapped while the opener's tooltip is still up, and the click that opens it after the tooltip delay does
+  nothing. The same holds for a sub-dropdown opened on hover while the main dropdown shows an item tooltip.
+  GTK hides the current tooltip the same way before mapping its own menus (`gtk_menu_popup_internal`,
+  `gtkmenu.c:1837`), but through the private `_gtk_tooltip_hide_in_display` (`gtktooltip.c:1297`); apps have
+  no public call, so hide the window: `gtk_widget_hide` unmaps the `xdg_popup` at once, and GtkTooltip treats
+  the tooltip as no longer visible (`GTK_TOOLTIP_VISIBLE`, `gtktooltip.c:135`). Its own hide on the press
+  then returns early, before it times out browse mode (`gtk_tooltip_hide_tooltip`, `gtktooltip.c:1078`,
+  1092), so the next tooltip shows after the 60 ms browse delay instead of 500 ms. A tooltip GTK tries to
+  show while a popup is open fails to map with the same warning and stays hidden, unless its widget is in
+  the topmost popup (a dropdown's own item tooltip maps as that popup's child); that happens with or without
+  this step and is harmless. X11 has no popup stacking rule, so the step is gated on
+  `is_running_on_wayland()`. (Line numbers are GTK 3.24.52.)
+  ```cpp
+  // Wrong: map the popup with the opener's tooltip still on top
+  drop.Popup(&drop);
+  // Right (wxGTK, Wayland): PopupWindow::Show does this before every map
+  GList* toplevels = gtk_window_list_toplevels();
+  for (GList* l = toplevels; l; l = l->next)
+      if (gtk_window_get_type_hint(GTK_WINDOW(l->data)) == GDK_WINDOW_TYPE_HINT_TOOLTIP && gtk_widget_get_visible(GTK_WIDGET(l->data)))
+          gtk_widget_hide(GTK_WIDGET(l->data));
+  g_list_free(toplevels);
+  ```
+  Cite: `PopupWindow::Show` (#16595).
+
+- **Rule:** On Wayland, don't dismiss a shown popup on a toplevel deactivation while a GTK tooltip of one of its
+  widgets is on screen.
+  **Why:** GTK makes a tooltip transient for the toplevel of the widget it describes (`gtktooltip.c:974`), which
+  for a widget inside a popup, or the popup itself (`DropDown` sets its item tooltips on itself), is the popup's
+  own `GtkWindow`. The popup's window holds the seat grab (§5), and `find_grab_input_seat` walks the transient
+  parents to it (`gdkwindow-wayland.c:3142-3147`), so GDK maps the tooltip with an explicit `xdg_popup.grab`
+  (3100); the walk passes through every popup in a chain, so a tooltip in a popup opened from inside another
+  popup grabs too. The compositor gives the keyboard to the topmost grabbing popup: KWin sends `wl_keyboard.leave`
+  for the main window and `enter` for the tooltip (observed with `WAYLAND_DEBUG=client`). wxGTK turns the
+  toplevel's focus-out into `wxEVT_ACTIVATE(false)` (`src/gtk/toplevel.cpp:192-205`), so a deactivation hook closes
+  the popup as the tooltip appears, and GDK warns "Tried to unmap the parent of a popup"
+  (`gdkwindow-wayland.c:3429`) because the tooltip is still mapped as its child. The focus returns to the toplevel
+  when the tooltip hides. Ask GDK whether the tooltip is mapped (`gdk_window_is_visible`): when the compositor
+  dismisses a tooltip, `xdg_popup_done` hides only its `GdkWindow` (`gdkwindow-wayland.c:2289`,
+  `gdkwindow.c:5684-5690`), and `gtk_widget_get_visible` stays TRUE until GTK hides the tooltip itself. Alt+Tab with
+  a tooltip showing still closes the popup (observed): the Alt press reaches the app, which hides the tooltip after
+  handling the key (`gtkmain.c:1949-1961`). X11 tooltips never take the focus, so the check is gated on
+  `is_running_on_wayland()`. (Line numbers are GTK 3.24.52.)
+  **Limit:** wxGTK sends `wxEVT_ACTIVATE(false)` only while it holds an active frame and then clears it
+  (`g_activeFrame`, `src/gtk/toplevel.cpp:196-202`), so a deactivation ignored this way is never repeated. If the
+  app loses the focus while the tooltip holds it, without Orca seeing a key or the pointer leave first (another
+  app's window taking the focus, a gesture), the popup stays open until the user returns, and the first click
+  closes it (observed with a dialog from another app). Closing that gap means waiting for the compositor to
+  reactivate the toplevel, which takes a timer or a blocking round trip.
+  ```cpp
+  // Wrong: every toplevel deactivation dismisses, including the one the popup's own tooltip causes
+  if (!event.GetActive() && IsShown() && ShouldDismissOnTopWindowDeactivate())
+      DismissAndNotify();
+  // Right (wxGTK): Wayland only, skip it while a tooltip of this popup or of a popup opened from it is mapped
+  static bool own_tooltip_mapped(GtkWindow *popup)
+  {
+      bool mapped = false;
+      for_each_tooltip_window([popup, &mapped](GtkWindow *win) {   // GDK_WINDOW_TYPE_HINT_TOOLTIP toplevels
+          GdkWindow *gdk_win = gtk_widget_get_window(GTK_WIDGET(win));
+          if (!gdk_win || !gdk_window_is_visible(gdk_win))
+              return;
+          for (GtkWindow *w = gtk_window_get_transient_for(win); w && !mapped; w = gtk_window_get_transient_for(w))
+              mapped = w == popup;
+      });
+      return mapped;
+  }
+  if (!event.GetActive() && IsShown() && ShouldDismissOnTopWindowDeactivate() &&
+      !(Slic3r::GUI::is_running_on_wayland() && own_tooltip_mapped(GTK_WINDOW(m_widget))))
+      DismissAndNotify();
+  ```
+  Cite: `PopupWindow::topWindowActiavate` (#16800).
 
 ## 10. Frameless dialog instead of a popup
 
@@ -694,8 +832,9 @@ created with `wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT | wxF
 - `wxFRAME_NO_TASKBAR` gives no taskbar entry on MSW/GTK, on GTK only when the WM supports
   `_NET_WM_STATE_SKIP_TASKBAR` (`interface/wx/frame.h:97-103`).
 - `wxFRAME_FLOAT_ON_PARENT` requires a non-null parent (`interface/wx/frame.h:104-106`).
-- Its `wxEVT_ACTIVATE` handler hides on deactivation and `Skip()`s. On activation it focuses the web view, because
-  modeless focus is granted asynchronously and a focus request made right after `Show()` is dropped.
+- Its `wxEVT_ACTIVATE` handler focuses the web view on activation, because modeless focus is granted
+  asynchronously and a focus request made right after `Show()` is dropped. It hides on deactivation after a
+  short settle delay and a re-check of `gtk_window_is_active()` (Pitfalls below), and it `Skip()`s.
 - On Linux `focus_webview` grabs focus on the WebKit native widget (`gtk_widget_grab_focus` on
   `GetNativeBackend()`). `browser()->SetFocus()` focuses only the container.
 - Display-only web content can stay in a transient popup (`MarkdownTip`).
@@ -714,13 +853,39 @@ created with `wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT | wxF
                           wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT | wxFRAME_SHAPED)
   {
       Bind(wxEVT_ACTIVATE, [this](wxActivateEvent& e) {
-          if (e.GetActive() && IsShown())       focus_webview(browser(), m_page_ready);
-          else if (!e.GetActive() && IsShown()) Hide();
+          if (!IsShown())    { e.Skip(); return; }
+          if (e.GetActive()) { m_hide_timer.Stop(); focus_webview(browser(), m_page_ready); }
+          else               schedule_hide();   // validated, see the next rule
           e.Skip();
       });
   }
   ```
   Cite: f142716e51, a86202b45b (`SpeedDialPopup.cpp` replaced by `SpeedDialDialog.{hpp,cpp}`; `GUI_App.cpp`).
+- **Rule:** When a dialog that hides on deactivation closes by itself, find the code that activated another
+  window; do not harden the dismissal hook. A handler bound on a book control checks that `e.GetEventObject()`
+  is that book before acting.
+  **Why:** On wxGTK, `wxWindow::SetFocus()` on a child of a visible but inactive toplevel calls
+  `gtk_window_present` on that toplevel (`src/gtk/window.cpp:5157-5162`), so an unexpected `SetFocus()` anywhere
+  in the main frame takes the keyboard from a modeless dialog that hides on deactivation. The Speed Dial closed
+  by itself a moment after the first Space on Linux (GNOME and KDE, X11 and Wayland): the idle builder
+  constructed the Calibration page, whose `Tabbook::InsertPage` emitted `wxEVT_BOOKCTRL_PAGE_CHANGED`; the event
+  propagated, as every `wxNotifyEvent` does, to the main frame's `m_tabpanel` handler
+  (`wxEVT_NOTEBOOK_PAGE_CHANGED` is the same type, `include/wx/bookctrl.h:434`), which treated it as a main tab
+  change and ended with `panel->SetFocus()`. Found with a 10 ms focus poller and a backtrace on
+  `gtk_window_present`. MSW and macOS `SetFocus()` do not activate the toplevel, so the bug was Linux-only. The
+  dial's deferred, re-checked hide (`kHideSettleMs`, `gtk_window_is_active()`, since `wxTopLevelWindowGTK::IsActive()`
+  answers from `g_activeFrame`, which the deactivation has already cleared) absorbs only a focus bounce shorter
+  than the delay; it did not stop this.
+  ```cpp
+  // Wrong: the main book's handler acts on every page-changed event that reaches it
+  m_tabpanel->Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, [this](wxBookCtrlEvent& e) { /* ... */ panel->SetFocus(); });
+  // Right: only the book's own events
+  m_tabpanel->Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, [this](wxBookCtrlEvent& e) {
+      if (e.GetEventObject() != m_tabpanel) { e.Skip(); return; }
+      /* ... */
+  });
+  ```
+  Cite: #17245 (`MainFrame::init_tabpanel`; `SpeedDialWebDialog::on_hide_timer`).
 - **Rule:** When restoring the main frame after hiding a popup or overlay frame, call `Show()` only if
   `!IsShown()`, and `Raise()` unconditionally (top-level `Show`/`Raise` are owned by
   `references/windows-dialogs.md`).
@@ -739,8 +904,26 @@ created with `wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT | wxF
 - **Rule:** For overlays that must never take keyboard focus (above a GL surface), use a plain
   `wxPopupWindow(top, wxBORDER_NONE)`, not a `wxFrame`.
   **Why:** A frame took the X input focus and swallowed every shortcut until the user clicked the canvas. A popup
-  window cannot take focus. On macOS these overlays hide while the app is inactive (§5).
+  window does not take focus when shown. On macOS these overlays hide while the app is inactive (§5).
   Cite: `CAD/DesignCanvas.cpp` (`m_hud`, `m_status_hud`).
+- **Rule:** Never `Raise()` a `wxPopupWindow`. To bring an overlay up, `Show()` it if it is hidden, then
+  `Move()` it.
+  **Why:** `Raise()` is documented for top-level windows only (`interface/wx/window.h:3028-3029`), and a popup
+  derives from `wxNonOwnedWindow`, not `wxTopLevelWindow` (`include/wx/popupwin.h:33`). On macOS it makes the
+  popup the key window (§5): the popup takes the keys meant for the window below it, and the frame receives
+  `wxEVT_ACTIVATE(false)`. A frame activate handler that hides the overlay on deactivation and re-places it on
+  activation then loops: each `Raise()` deactivates the frame, the hide reactivates it, and the re-place raises
+  again, recursing until the main thread's stack overflows. A popup's `Show()` is `ShowWithoutActivating`
+  and is safe.
+  ```cpp
+  // Wrong
+  if (!overlay->IsShown()) overlay->Show();
+  overlay->Move(pos);
+  overlay->Raise();
+  // Right
+  if (!overlay->IsShown()) overlay->Show();
+  overlay->Move(pos);
+  ```
 
 ## 11. wxComboCtrl / wxComboPopup
 

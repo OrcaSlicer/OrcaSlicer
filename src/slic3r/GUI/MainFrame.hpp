@@ -3,10 +3,22 @@
 
 #include "libslic3r/PrintConfig.hpp"
 
+#include <cstdint>
+#include <memory>
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/Lazy.hpp"
+#include <wx/event.h>
+#include <functional>
+#include <cstddef>
+#include <deque>
 #include <wx/frame.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
 #include <wx/settings.h>
+#include <wx/sizer.h>
 #include <wx/string.h>
 #include <wx/filehistory.h>
+#include <wx/timer.h>
 #ifdef __APPLE__
 #include <wx/taskbar.h>
 #endif // __APPLE__
@@ -17,27 +29,11 @@
 
 #include "GUI_Utils.hpp"
 #include "Event.hpp"
-//BBS: GUI refactor
-#include "ParamsPanel.hpp"
-#include "Monitor.hpp"
-#include "Auxiliary.hpp"
-#include "Project.hpp"
-#include "CalibrationPanel.hpp"
-#include "UnsavedChangesDialog.hpp"
-#include "Widgets/SideButton.hpp"
-#include "Widgets/SideMenuPopup.hpp"
-#include "FilamentGroupPopup.hpp"
-#include "LazyPage.hpp"
 #include "IdleScheduler.hpp"
 
 
 #include <boost/property_tree/ptree_fwd.hpp>
 
-// BBS
-#include "BBLTopbar.hpp"
-#include "PrinterWebView.hpp"
-#include "calib_dlg.hpp"
-#include "MultiMachinePage.hpp"
 #include "slic3r/plugin/host/PluginPages.hpp"
 
 // Stable identifiers for MainFrame::m_tabpanel's built-in pages. These are
@@ -60,6 +56,13 @@
 #define ENABEL_PRINT_ALL 0
 
 class Notebook;
+class BBLTopbar;
+class SideButton;
+class SidePopup;
+class wxLogWindow;
+class wxMenu;
+class wxMenuBar;
+class wxMenuItem;
 class wxBookCtrlBase;
 class wxProgressDialog;
 
@@ -70,6 +73,24 @@ namespace GUI
 
 class Tab;
 class PrintHostQueueDialog;
+class DiffPresetDialog;
+class ParamsPanel;
+class MonitorPanel;
+class MultiMachinePage;
+class ProjectPanel;
+class CalibrationPanel;
+class PrinterWebView;
+class FilamentGroupPopup;
+class PA_Calibration_Dlg;
+class FlowRateCalibrationDialog;
+class Temp_Calibration_Dlg;
+class MaxVolumetricSpeed_Test_Dlg;
+class VFA_Test_Dlg;
+class Retraction_Test_Dlg;
+class Input_Shaping_Freq_Test_Dlg;
+class Input_Shaping_Damp_Test_Dlg;
+class Cornering_Test_Dlg;
+template <class Panel> class LazyPage;
 class Plater;
 #ifdef SLIC3R_CAD
 class DesignPanel;
@@ -173,7 +194,8 @@ class MainFrame : public DPIFrame
         std::string m_name{ "prepare_layout" };
         wxSize      m_laid_out_size;
     } m_prepare_layout_prebuild{ *this };
-    // Every LazyPage, in and out of the book; prebuild_pages_when_idle() registers them.
+    // Every built-in LazyPage, in and out of the book; prebuild_pages_when_idle() registers them.
+    // Plugin pages stay out: PluginPages destroys them at runtime.
     std::vector<LazyBase*> m_lazy_pages;
     // The latest EVT_LOAD_PRINTER_URL, applied when the web Device view is built.
     wxString              m_printer_url;
@@ -314,7 +336,7 @@ protected:
 
 public:
     MainFrame();
-    ~MainFrame() = default;
+    ~MainFrame();
 #ifdef __APPLE__
     bool get_mac_full_screen() { return m_mac_fullscreen; }
 #endif
@@ -495,7 +517,12 @@ public:
     // through LazyInstance's statics, and show_device() only moves pages in and out of the book.
 #ifdef SLIC3R_CAD
     LazyPage<DesignPanel>* m_design_page { nullptr };
+    // The Design panel when its tab is the one on screen, else null. Edit > Undo/Redo act on
+    // the tab that is shown: its own history when that is Design, the plater's otherwise.
+    DesignPanel*           shown_design_panel() const;
 #endif
+    // The top bar's Undo/Redo, for a tab that keeps its own history (Design).
+    void set_undo_redo_enabled(bool undo, bool redo);
     //BBS: GUI refactor
     LazyPage<MonitorPanel>* m_monitor_page{ nullptr };
 
@@ -517,7 +544,7 @@ public:
     //BBS
     SettingsDialog        m_settings_dialog;
     // The Compare presets dialog, built on first use or at idle through its holder.
-    Lazy<DiffPresetDialog> m_diff_dialog;
+    std::unique_ptr<Lazy<DiffPresetDialog>> m_diff_dialog;
     wxWindow*             m_plater_page{ nullptr };
     PrintHostQueueDialog* m_printhost_queue_dlg;
 

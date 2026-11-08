@@ -7,7 +7,7 @@ yields and nested event loops, progress dialogs, startup, shutdown and exception
 screen, and the access rules for `wxGetApp()` and `app_config`. Read it whenever code runs off the
 main thread, defers work, starts a timer, yields, shows progress, or runs during startup or shutdown.
 
-wx cites are relative to the pinned wx 3.3.2 tree (`deps/build/<arch>/dep_wxWidgets-prefix/src/dep_wxWidgets`).
+wx cites are relative to the pinned wx 3.3.2 tree (located as in `SKILL.md` §Ground truth).
 Orca builds wx with `wxBUILD_DEBUG_LEVEL=0` and `libslic3r_gui` with `wxDEBUG_LEVEL=0`, so `wxASSERT`
 is compiled out and `wxCHECK*` returns silently: a timer started off the main thread never fires on macOS,
 `Exit()` on a loop that is not the active one is ignored, `Start(0)` on macOS fails — all without

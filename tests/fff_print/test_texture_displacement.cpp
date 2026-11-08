@@ -1,10 +1,22 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
+#include <cstddef>
+#include <cstdint>
 #include <fstream>
+#include <ios>
 #include <iterator>
 
 #include <boost/filesystem.hpp>
+#include <memory>
+#include <vector>
+#include <utility>
+#include <string>
+#include "libslic3r/PrintConfig.hpp"
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PNGReadWrite.hpp"
 #include "libslic3r/Print.hpp"
@@ -12,6 +24,7 @@
 #include "libslic3r/TriangleSelector.hpp"
 
 #include "test_helpers.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Test;

@@ -4,17 +4,52 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 
+#include <vector>
+#include <string>
+#include <memory>
+#include <boost/filesystem/path.hpp>
+#include "slic3r/GUI/Project.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Field.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "libslic3r/Preset.hpp"
+#include <cstddef>
+#include <cstring>
+#include "slic3r/GUI/GUI.hpp"
+#include <boost/filesystem/operations.hpp>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <utility>
+#include "slic3r/GUI/Widgets/AMSItem.hpp"
+#include <iterator>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <wx/anybutton.h>
+#include "slic3r/GUI/Tabbook.hpp"
+#include <ctime>
+#include <map>
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include <wx/app.h>
+#include <wx/bookctrl.h>
 #include <wx/button.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/image.h>
+#include <wx/dcclient.h>
+#include <wx/notebook.h>
+#include <wx/chartype.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
 
 #include <wx/bmpcbox.h>
 #include <wx/bmpbuttn.h>
+#include <wx/string.h>
+#include <wx/stattext.h>
+#include <wx/textctrl.h>
 #include <wx/treectrl.h>
 #include <wx/imaglist.h>
 #include <wx/settings.h>
 #include <wx/filedlg.h>
+#include <wx/wrapsizer.h>
 #include <wx/wupdlock.h>
 #include <wx/dataview.h>
 #include <wx/tokenzr.h>
@@ -28,6 +63,14 @@
 #include "GUI_ObjectList.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/Label.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include <wx/dcgraph.h>
+#include <wx/dcmemory.h>
+#include <nlohmann/json.hpp>
+
+namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 namespace Slic3r { namespace GUI {
 
@@ -167,7 +210,7 @@ void AuFile::enter_rename_mode()
     m_file_exit_rename->Show();
     m_text_name->Hide();
     auto name = m_file_name.SubString(0, (m_file_name.Find(".") - 1));
-    m_input_name->GetTextCtrl()->SetLabelText(name);
+    m_input_name->GetTextCtrl()->ChangeValue(name);
     Layout();
 }
 
@@ -814,14 +857,14 @@ void AuxiliaryPanel::Split(const std::string &src, const std::string &separator,
     dest.clear();
     index = str.find_first_of(separator, start);
     do {
-        if (index != string::npos) {
+        if (index != std::string::npos) {
             substring = str.substr(start, index - start);
             dest.push_back(substring);
             start = index + separator.size();
             index = str.find(separator, start);
-            if (start == string::npos) break;
+            if (start == std::string::npos) break;
         }
-    } while (index != string::npos);
+    } while (index != std::string::npos);
 
     // the last part
     substring = str.substr(start);
@@ -932,12 +975,12 @@ void AuxiliaryPanel::on_import_file(wxCommandEvent &event)
 
     if (file_model == s_default_folders[MODEL_PICTURE]) {
         //wildcard = wxT("JPEG files (*.jpeg)|*.jpeg|BMP files (*.bmp)|*.bmp|GIF files (*.gif)|*.gif|PNG files (*.png)|*.png|JPG files (*.jpg)|*.jpg");
-        wildcard = wxT("files (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp");
+        wildcard = _L("Image files") + " (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp";
     } 
 
-    if (file_model == s_default_folders[OTHERS]) {  wildcard = wxT("TXT files (*.txt)|*.txt"); }
-    if (file_model == s_default_folders[BILL_OF_MATERIALS]){ wildcard = wxT("EXCEL files (*.xls)|*.xls|EXCEL files (*.xlsx)|*.xlsx|PDF files (*.pdf)|*.pdf"); }
-    if (file_model == s_default_folders[ASSEMBLY_GUIDE]) { wildcard = wxT("PDF files (*.pdf)|*.pdf"); }
+    if (file_model == s_default_folders[OTHERS]) {  wildcard = _L("TXT files") + " (*.txt)|*.txt"; }
+    if (file_model == s_default_folders[BILL_OF_MATERIALS]){ wildcard = _L("EXCEL files") + " (*.xls)|*.xls|" + _L("EXCEL files") + " (*.xlsx)|*.xlsx|" + _L("PDF files") + " (*.pdf)|*.pdf"; }
+    if (file_model == s_default_folders[ASSEMBLY_GUIDE]) { wildcard = _L("PDF files") + " (*.pdf)|*.pdf"; }
 
     wxFileDialog dialog(this, _L("Choose files"), wxEmptyString, wxEmptyString, wildcard, wxFD_OPEN | wxFD_FILE_MUST_EXIST | wxFD_MULTIPLE);
     if (dialog.ShowModal() == wxID_OK) {
@@ -1113,6 +1156,7 @@ void AuxiliaryPanel::update_all_cover()
      m_sizer_description->Add(m_text_description, 0, wxALIGN_TOP | wxRIGHT, FromDIP(10));
      m_input_description = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, 
                                           wxSize(FromDIP(450), FromDIP(300)), wxTE_MULTILINE | wxTE_PROCESS_ENTER);
+     m_input_description->SetBackgroundColour(*wxWHITE);
      m_input_description->SetFont(::Label::Body_14);
      m_sizer_description->Add(m_input_description, 0, wxALIGN_CENTER, 0);
 

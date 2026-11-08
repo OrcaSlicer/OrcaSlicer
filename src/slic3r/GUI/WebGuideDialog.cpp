@@ -1,12 +1,34 @@
 #include "WebGuideDialog.hpp"
+#include "CloudProvider.hpp"
 #include "ConfigWizard.hpp"
 
+#include <algorithm>
 #include <boost/algorithm/string/join.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/bind/bind.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/iostreams/detail/select.hpp>
 #include <boost/log/trivial.hpp>
+#include <map>
+#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <memory>
+#include <exception>
+#include "slic3r/GUI/Event.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include <set>
+#include <ostream>
+#include <iterator>
+#include "slic3r/GUI/UnsavedChangesDialog.hpp"
+#include "slic3r/GUI/ParamsDialog.hpp"
+#include "libslic3r/Semver.hpp"
+#include <ios>
+#include <stdexcept>
+#include <sstream>
 #include <string.h>
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
@@ -14,14 +36,28 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PresetCacheFormat.hpp"
-#include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include <nlohmann/json.hpp>
 #include "libslic3r_version.h"
 
+#include <string>
+#include <vector>
+#include <utility>
+#include <wx/gdicmn.h>
+#include <wx/log.h>
+#include <wx/settings.h>
+#include <wx/event.h>
+#include <wx/setup.h>
+#include <unordered_set>
+#include <system_error>
 #include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/strconv.h>
 #include <wx/toolbar.h>
 #include <wx/textdlg.h>
 
+#include <wx/webview.h>
+#include <wx/utils.h>
 #include <wx/wx.h>
 #include <wx/weakref.h>
 #include <wx/display.h>
@@ -35,16 +71,88 @@
 #include <unordered_map>
 
 #include "MainFrame.hpp"
+#include "Plater.hpp"
 #include <boost/dll.hpp>
 #include <slic3r/GUI/Widgets/WebView.hpp>
-#include <slic3r/Utils/Http.hpp>
-#include <libslic3r/miniz_extension.hpp>
+#include <slic3r/GUI/Widgets/WebViewHostDialog.hpp>
 #include <libslic3r/Utils.hpp>
 #include "CreatePresetsDialog.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/PresetUpdater.hpp"
+
+class wxWindow;
 
 using namespace nlohmann;
 
 namespace Slic3r { namespace GUI {
+
+// The strings of every setup wizard page (resources/web/guide), keyed by their data-i18n and T() ids.
+// The pages share one web view, so they share one table.
+static json guide_strings()
+{
+    return {
+        {"loading", _u8L("Loading…")},
+        // TRN Sidebar entry of the printer selection page for the group of custom (user-defined) printers.
+        {"custom_vendor", _u8L_CONTEXT("Custom", "Printer vendor")},
+        {"welcome", _u8L("Welcome to Orca Slicer")},
+        {"setup_intro", _u8L("Orca Slicer will be set up in several steps. Let's start!")},
+        {"get_started", _u8L("Get Started")},
+        {"login_region", _u8L("Please select your login region")},
+        {"asia_pacific", _u8L("Asia-Pacific")},
+        {"china", _u8L("China")},
+        {"europe", _u8L("Europe")},
+        {"north_america", _u8L("North America")},
+        {"others", _u8L_CONTEXT("Others", "Region")},
+        {"back", _u8L_CONTEXT("Back", "Navigation")},
+        {"next", _u8L("Next")},
+        {"finish", _u8L("Finish")},
+        {"confirm", _u8L("Confirm")},
+        {"cancel", _u8L("Cancel")},
+        {"ok", _u8L("OK")},
+        {"yes", _u8L("Yes")},
+        {"no", _u8L("No")},
+        {"error", _u8L("Error")},
+        {"information", _u8L("Information")},
+        {"printer_selection", _u8L("Printer Selection")},
+        {"vendors", _u8L("Vendors")},
+        {"search", _u8L("Search")},
+        {"custom_printer", _u8L("Custom Printer")},
+        {"nozzle", _u8L("Nozzle")},
+        {"create", _u8L("Create")},
+        {"check_new_printers", _u8L("Check for new printers")},
+        {"printer_required", _u8L("At least one printer must be selected.")},
+        {"new_printers_found", _u8L("New printers found")},
+        {"new_vendors_installed", _u8L("New printer vendors installed: %s")},
+        {"vendors_declined", _u8L("New printer vendors were found, but installation was cancelled.")},
+        {"no_new_printers", _u8L("No new printers found.")},
+        {"filament_selection", _u8L("Filament Selection")},
+        {"system_filaments", _u8L("System Filaments")},
+        {"custom_filaments", _u8L("Custom Filaments")},
+        {"create_new", _u8L("Create New")},
+        {"printer", _u8L("Printer")},
+        {"filament_type", _u8L("Filament type")},
+        {"vendor", _u8L("Vendor")},
+        {"all", _u8L("All")},
+        {"no_items", _u8L("No items")},
+        {"filter_items", _u8L("Filter items")},
+        {"checked", _u8L("Checked")},
+        {"unchecked", _u8L("Unchecked")},
+        {"select_filtered", _u8L("Select filtered")},
+        {"select_visible", _u8L("Select visible")},
+        {"clear_all", _u8L("Clear all")},
+        {"filament_required", _u8L("At least one filament must be selected.")},
+        {"use_default_filament", _u8L("Do you want to use the default filament?")},
+        {"stealth_mode", _u8L("Stealth Mode")},
+        {"stealth_mode_desc", _u8L("This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.")},
+        {"stealth_mode_note", _u8L("Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud.")},
+        {"enable_stealth_mode", _u8L("Enable Stealth Mode.")},
+        {"proprietary_plugins", _u8L("Proprietary Plugins")},
+        {"proprietary_plugins_desc", _u8L("Some printer vendors require proprietary plugins for communication with their printers. Please select the corresponding plugin if you use such printers.")},
+        {"proprietary_plugins_risk", _u8L("Please be aware that these plugins are not developed or maintained by OrcaSlicer. They should be used at your own discretion and risk.")},
+        {"install_bambu_plugin", _u8L("Install Bambu Network plug-in")},
+    };
+}
 
 static wxString update_custom_filaments()
 {
@@ -118,6 +226,7 @@ GuideFrame::GuideFrame(GUI_App *pGUI, long style)
     SetBackgroundColour(*wxWHITE);
     // INI
     m_SectionName = "firstguide";
+    m_page        = BBL_WELCOME;
     PrivacyUse    = false;
     StealthMode   = false;
     InstallNetplugin = false;
@@ -127,15 +236,14 @@ GuideFrame::GuideFrame(GUI_App *pGUI, long style)
     // set the frame icon
     wxBoxSizer *topsizer = new wxBoxSizer(wxVERTICAL);
 
-    wxString TargetUrl = SetStartPage(BBL_WELCOME, false);
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(",  set start page to welcome ");
-
-    // Create the webview
-    m_browser = WebView::CreateWebView(this, TargetUrl);
+    // Created empty and loaded by SetStartPage(BBL_REGION) below, after the strings are added, so the
+    // first load already has them.
+    m_browser = WebView::CreateWebView(this, wxEmptyString);
     if (m_browser == nullptr) {
         wxLogError("Could not init m_browser");
         return;
     }
+    m_browser->AddUserScript(wxString::FromUTF8(WebViewHostDialog::localized_strings_script(guide_strings())));
     m_browser->Hide();
     m_browser->SetSize(0, 0);
 
@@ -343,6 +451,16 @@ void GuideFrame::on_profile_loaded()
     SaveProfileData();
     const std::string strAll = m_ProfileJson.dump(-1, ' ', false, json::error_handler_t::ignore);
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", finished, json contents:\n" << strAll;
+    m_profile_ready = true;
+    notify_profile_loaded();
+}
+
+// The data is often ready before the loading page has run its scripts, and a
+// call into a page without HandleStudio is lost, so the message waits for both.
+void GuideFrame::notify_profile_loaded()
+{
+    if (!m_profile_ready || !m_page_ready)
+        return;
     json res;
     res["command"]     = "userguide_profile_load_finish";
     res["sequence_id"] = "10001";
@@ -438,7 +556,11 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
         wxString strCmd = j["command"];
         BOOST_LOG_TRIVIAL(trace) << "GuideFrame::OnScriptMessage;Command:" << strCmd;
 
-        if (strCmd == "close_page") {
+        if (strCmd == "userguide_loading_page_ready") {
+            m_page_ready = true;
+            notify_profile_loaded();
+        }
+        else if (strCmd == "close_page") {
             this->EndModal(wxID_CANCEL);
         }
         if (strCmd == "user_clause") {
@@ -575,7 +697,7 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
                 response["sequence_id"] = "";
 
             if (!m_MainPtr->preset_updater) {
-                response["error"] = "Printer update service is unavailable.";
+                response["error"] = _u8L("Printer update service is unavailable.");
                 wxString strJS = wxString::Format("HandleStudio(%s)", response.dump(-1, ' ', true));
                 wxGetApp().CallAfter([this, strJS] { RunScript(strJS); });
             } else {
@@ -629,7 +751,7 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
                         });
                 } catch (const std::exception &e) {
                     BOOST_LOG_TRIVIAL(warning) << "Failed to check for new printers: " << e.what();
-                    response["error"] = "Failed to check for new printers.";
+                    response["error"] = _u8L("Failed to check for new printers.");
                     wxString strJS = wxString::Format("HandleStudio(%s)", response.dump(-1, ' ', true));
                     wxGetApp().CallAfter([this, strJS] { RunScript(strJS); });
                 }
@@ -648,7 +770,7 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
                     if (wxGetApp().is_user_login()) {
                         BOOST_LOG_TRIVIAL(info) << "logout: user_logout on user_guide_finish";
                         // agent->user_logout();
-                        wxGetApp().request_user_logout();
+                        wxGetApp().request_user_logout(ORCA_CLOUD_PROVIDER, /*user_initiated=*/true);
                     }
                 }
             }
@@ -798,7 +920,7 @@ int GuideFrame::SaveProfile()
     m_MainPtr->app_config->set_bool("stealth_mode", StealthMode);
 
     //finish
-    m_MainPtr->app_config->set(std::string(m_SectionName.mb_str()), "finish", "1");
+    m_MainPtr->app_config->set(std::string(m_SectionName.mb_str()), "finish", true);
 
     m_MainPtr->app_config->save();
 
@@ -1125,6 +1247,8 @@ bool GuideFrame::run()
 
         app.app_config->set_legacy_datadir(false);
         app.update_mode();
+        if (Plater *plater = app.plater())
+            plater->normalize_bed_types(false);
         // BBS
         //app.obj_manipul()->update_ui_from_settings();
         BOOST_LOG_TRIVIAL(info) << "GuideFrame applied";
@@ -1641,13 +1765,13 @@ int GuideFrame::SaveProfileData()
     return 0;
 }
 
-void StringReplace(string &strBase, string strSrc, string strDes)
+void StringReplace(std::string &strBase, std::string strSrc, std::string strDes)
 {
-    string::size_type pos    = 0;
-    string::size_type srcLen = strSrc.size();
-    string::size_type desLen = strDes.size();
+    std::string::size_type pos    = 0;
+    std::string::size_type srcLen = strSrc.size();
+    std::string::size_type desLen = strDes.size();
     pos                      = strBase.find(strSrc, pos);
-    while ((pos != string::npos)) {
+    while ((pos != std::string::npos)) {
         strBase.replace(pos, srcLen, strDes);
         pos = strBase.find(strSrc, (pos + desLen));
     }

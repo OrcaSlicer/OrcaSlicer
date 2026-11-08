@@ -5,8 +5,22 @@
 #include "Arachne/WallToolPaths.hpp"
 
 #include "FillConcentric.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Arachne/utils/ExtrusionLine.hpp"
 #include "FillCornerSmoothing.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polygon.hpp"
+#include <algorithm>
+#include "libslic3r/PrintConfig.hpp"
+#include <cstddef>
+#include <cassert>
 #include <libslic3r/ShortestPath.hpp>
+#include <utility>
+#include <vector>
+#include "libslic3r/ExtrusionEntity.hpp"
 
 namespace Slic3r {
 
@@ -59,8 +73,7 @@ void FillConcentric::_fill_surface_single(
         }
         return true;
     };
-    smooth_polygons_corners(loops, params.smooth_factor, scaled<double>(params.resolution), 0.5 * distance,
-                            corner_stays_inside);
+    smooth_polygons_corners(loops, params.corner_smoothing(), 0.5 * distance, corner_stays_inside);
 
     // generate paths from the outermost to the innermost, to avoid
     // adhesion problems of the first central tiny loops

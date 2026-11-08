@@ -1,12 +1,20 @@
 #include "TextureBakeSubdivide.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/TextureBake/TextureBakeIndex.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <math.h>
 #include <unordered_map>
 
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_reduce.h>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 namespace TextureBake {

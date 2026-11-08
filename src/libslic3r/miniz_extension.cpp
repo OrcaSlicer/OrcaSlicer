@@ -1,3 +1,8 @@
+#include <cstddef>
+#include <cstdio>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/file_status.hpp>
 #include <exception>
 #include <cstdint>
 
@@ -6,9 +11,13 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
+#include <string>
+#include <miniz.h>
+#include <stdio.h>
 
 #if defined(_MSC_VER) || defined(__MINGW64__)
 #include "boost/nowide/cstdio.hpp"
+#include "boost/nowide/convert.hpp"
 #endif
 
 #include "I18N.hpp"
@@ -54,7 +63,11 @@ bool open_zip(mz_zip_archive *zip, const char *fname, bool isread)
 
     FILE *f = nullptr;
 #if defined(_MSC_VER) || defined(__MINGW64__)
-    f = boost::nowide::fopen(fname, mode);
+    // fname is UTF-8 (the nowide contract). Route it through the shared extended-path helper so an
+    // archive stored past MAX_PATH opens even with LongPathsEnabled off.
+    const std::wstring wide_path = boost::nowide::widen(fname);
+    const std::string  extended  = boost::nowide::narrow(Slic3r::extended_path(boost::filesystem::path(wide_path)).wstring());
+    f = boost::nowide::fopen(extended.c_str(), mode);
 #elif defined(__GNUC__) && defined(_LARGEFILE64_SOURCE)
     f = fopen64(fname, mode);
 #else
@@ -93,6 +106,14 @@ bool close_zip(mz_zip_archive *zip, bool isread)
     }
     return ret;
 }
+
+#ifdef WIN32
+// mz_file_write_func writing an extracted entry into an already-open FILE*.
+size_t mz_write_to_cfile(void *opaque, mz_uint64 /*file_ofs*/, const void *buffer, size_t size)
+{
+    return std::fwrite(buffer, 1, size, static_cast<FILE *>(opaque));
+}
+#endif
 }
 
 bool open_zip_reader(mz_zip_archive *zip, const std::string &fname)
@@ -107,6 +128,36 @@ bool open_zip_writer(mz_zip_archive *zip, const std::string &fname)
 
 bool close_zip_reader(mz_zip_archive *zip) { return close_zip(zip, true); }
 bool close_zip_writer(mz_zip_archive *zip) { return close_zip(zip, false); }
+
+bool extract_zip_entry_to_file(mz_zip_archive *zip, mz_uint file_index, const boost::filesystem::path &dest_path)
+{
+    if (!zip)
+        return false;
+#ifdef WIN32
+    // Open the destination ourselves with a Windows extended-length path: miniz's narrow
+    // extract_to_file cannot be relied on past MAX_PATH with LongPathsEnabled off, and its wide
+    // variant takes a plain (unprefixed) path and a text-mode stream. This keeps the write binary.
+    FILE *file = ::_wfopen(Slic3r::extended_path(dest_path).wstring().c_str(), L"wb");
+    if (!file) {
+        zip->m_last_error = MZ_ZIP_FILE_OPEN_FAILED;
+        return false;
+    }
+
+    const bool written = mz_zip_reader_extract_to_callback(zip, file_index, mz_write_to_cfile, file, 0) != 0;
+    const bool closed  = std::fclose(file) == 0;
+    if (!written || !closed) {
+        if (written && !closed)
+            zip->m_last_error = MZ_ZIP_FILE_CLOSE_FAILED;
+        // Drop the partial entry rather than leave a truncated file behind.
+        boost::system::error_code ec;
+        boost::filesystem::remove(Slic3r::extended_path(dest_path), ec);
+        return false;
+    }
+    return true;
+#else
+    return mz_zip_reader_extract_to_file(zip, file_index, dest_path.string().c_str(), 0) != 0;
+#endif
+}
 
 std::string decode_archive_entry_path(mz_zip_archive *zip, const mz_zip_archive_file_stat &stat)
 {
@@ -148,10 +199,13 @@ bool extract_archive_confined(const std::string &zip_path_utf8, const std::strin
         }
         const std::string dest_file = dest_dir + "/" + stat.m_filename;
         try {
+            // Use the extended-length form for every filesystem call so entries under a destination
+            // past MAX_PATH are created even with LongPathsEnabled off.
+            const boost::filesystem::path dest_path(dest_file);
+            const boost::filesystem::path io_dest = extended_path(dest_path);
             if (stat.m_is_directory) {
-                const boost::filesystem::path dest_path(dest_file);
-                if (!boost::filesystem::exists(dest_path))
-                    boost::filesystem::create_directories(dest_path);
+                if (!boost::filesystem::exists(io_dest))
+                    boost::filesystem::create_directories(io_dest);
                 continue;
             }
             if (stat.m_uncomp_size == 0) {
@@ -159,10 +213,9 @@ bool extract_archive_confined(const std::string &zip_path_utf8, const std::strin
                 continue;
             }
             // Replace a symlink at the destination rather than writing through it.
-            const boost::filesystem::path dest_path(dest_file);
-            if (boost::filesystem::is_symlink(boost::filesystem::symlink_status(dest_path)))
-                boost::filesystem::remove(dest_path);
-            if (!mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_file.c_str(), 0)) {
+            if (boost::filesystem::is_symlink(boost::filesystem::symlink_status(io_dest)))
+                boost::filesystem::remove(io_dest);
+            if (!extract_zip_entry_to_file(&archive, stat.m_file_index, dest_path)) {
                 BOOST_LOG_TRIVIAL(error) << "Unzip: extract file " << stat.m_filename << " to dest " << dest_file << " failed";
                 close_zip_reader(&archive);
                 return false;
@@ -255,7 +308,7 @@ std::string MZ_Archive::get_errorstr(mz_zip_error mz_err)
         break;
     }
 
-    return "unknown error";
+    return L("unknown error");
 }
 
 } // namespace Slic3r

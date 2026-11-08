@@ -3,13 +3,22 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <nlohmann/json.hpp>
+#include <wx/string.h>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
+#include <catch2/generators/catch_generators_range.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/LifecycleEvents.hpp"
 #include "slic3r/Utils/PrintHost.hpp"
 #include "slic3r/Utils/Flashforge.hpp"
+#include "slic3r/Utils/Http.hpp"
 
 using namespace Slic3r;
 

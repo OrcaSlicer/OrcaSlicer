@@ -1,8 +1,10 @@
 #pragma once
 
 #include "IMediaController.hpp"
-#include <slic3r/Utils/ICameraSignalingChannel.hpp>
 
+#include <wx/gdicmn.h>
+#include <string>
+#include <utility>
 #include <wx/image.h>
 
 #include <atomic>
@@ -16,6 +18,13 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+#include <wx/uri.h>
+#include <wx/mediactrl.h>
+
+class wxImage;
+namespace Slic3r { class ICameraSignalingChannel; }
+namespace Slic3r { enum class CameraUnavailableReason; }
+namespace Slic3r { struct CameraIceServer; }
 
 namespace rtc {
 class DataChannel;

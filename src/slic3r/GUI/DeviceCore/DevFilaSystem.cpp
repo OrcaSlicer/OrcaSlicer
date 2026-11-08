@@ -1,15 +1,34 @@
+#include <array>
+#include <cstddef>
+#include <cassert>
+#include <exception>
+#include <boost/log/trivial.hpp>
+#include <map>
+#include <ctime>
+#include <cstdlib>
+#include <chrono>
 #include <nlohmann/json.hpp>
+#include <wx/colour.h>
+#include <string>
+#include <wx/string.h>
+#include <optional>
+#include <unordered_map>
+#include <vector>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <set>
+#include <utility>
 #include "DevFilaSystem.h"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "DevNozzleSystem.h" // DevNozzle / DevNozzleSystem for GetNozzleFlowStringByAmsId
 
 // TODO: remove this include
 #include "slic3r/GUI/DeviceManager.hpp"
-#include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "DevUtil.h"
 #include "DevUtilBackend.h"
+#include "slic3r/GUI/DeviceCore/DevFilaAmsSetting.h"
+#include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
 
 using namespace nlohmann;
 
@@ -141,7 +160,7 @@ DevAms::~DevAms()
     m_trays.clear();
 }
 
-static unordered_map<int, wxString> s_ams_display_formats = {
+static std::unordered_map<int, wxString> s_ams_display_formats = {
     {DevAms::AMS,      "AMS-%d"},
     {DevAms::AMS_LITE, "AMS Lite-%d"},
     {DevAms::N3F,      "AMS 2 PRO-%d"},
@@ -150,6 +169,11 @@ static unordered_map<int, wxString> s_ams_display_formats = {
 
 wxString DevAms::GetDisplayName() const
 {
+    if (!m_display_name.empty())
+    {
+        return wxString::FromUTF8(m_display_name);
+    }
+
     wxString ams_display_format;
     // GetAmsType() maps AMS_LITE_MIXED -> AMS_LITE so N9 shows the AMS-Lite name.
     auto iter = s_ams_display_formats.find(GetAmsType());
@@ -513,6 +537,8 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
 
                     /*set ams type flag*/
                     curr_ams->SetAmsType(type_id);
+
+                    DevJsonValParser::ParseVal(*it, "display_name", curr_ams->m_display_name, std::string());
 
                     // Refresh the switch-aware extruder binding on every push (both create and
                     // update paths) so it can't go stale after an AMS is re-homed to another

@@ -1,7 +1,29 @@
+#include <algorithm>
+#include <boost/rational.hpp>
+#include <boost/multiprecision/fwd.hpp>
 #include <catch2/catch_all.hpp>
+#include <vector>
+#include "libnest2d/libnest2d.hpp"
+#include "libnest2d/geometry_traits.hpp"
+#include "libnest2d/backends/libslic3r/geometries.hpp"
+#include "libnest2d/common.hpp"
+#include <type_traits>
+#include <cstdlib>
+#include "libnest2d/placers/nfpplacer.hpp"
+#include <cmath>
+#include <cstdint>
+#include <limits>
+#include <iterator>
+#include "libnest2d/utils/rotcalipers.hpp"
 
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include "libnest2d_test_utils.hpp"
 #include "printer_parts.hpp"
+#include "libnest2d/nester.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
 
 using namespace libnest2d;
 

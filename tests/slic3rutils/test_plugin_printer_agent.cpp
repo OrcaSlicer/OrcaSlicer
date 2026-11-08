@@ -1,5 +1,6 @@
 #include <catch2/catch_all.hpp>
 
+#include "slic3r/Utils/bambu_networking.hpp"
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
 #include <slic3r/plugin/PythonPluginBridge.hpp>
@@ -9,10 +10,17 @@
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
 
+#include <chrono>
 #include <memory>
 #include <string>
+#include <thread>
 
+#include <catch2/catch_test_macros.hpp>
 #include "plugin_test_utils.hpp"
+#include <pybind11/pytypes.h>
+#include <pybind11/eval.h>
+#include <pybind11/gil.h>
+#include <pybind11/cast.h>
 
 namespace py = pybind11;
 using namespace Slic3r;
@@ -20,7 +28,9 @@ using namespace Slic3r;
 namespace {
 
 // Same idiom as ScopedPluginManager in test_plugin_lifecycle.cpp: the trampolines refuse to call
-// into Python unless PythonInterpreter::instance() reports initialized.
+// into Python unless PythonInterpreter::instance() reports initialized. Only the manager is torn
+// down here; the interpreter is finalized once per test process by PythonInterpreterRunEnd in
+// slic3rutils_tests_main.cpp.
 struct ScopedPluginManager
 {
     // Before initialize(): the interpreter creates {data_dir}/python/packages and {data_dir}/log,
@@ -28,11 +38,7 @@ struct ScopedPluginManager
     ScopedDataDir python_data_dir{"plugin-python"};
     bool initialized = PluginManager::instance().initialize();
 
-    ~ScopedPluginManager()
-    {
-        PluginManager::instance().shutdown();
-        PythonInterpreter::instance().shutdown();
-    }
+    ~ScopedPluginManager() { PluginManager::instance().shutdown(); }
 };
 
 // The host reaches a printer agent plugin through IPrinterAgent, so the tests do too. The Python
@@ -179,4 +185,69 @@ TEST_CASE("A working printer agent's answers reach the host unchanged", "[Plugin
     CHECK(ticket == "ticket");
     CHECK(agent->bind_detect("192.168.0.2", "secure", detect) == 0);
     CHECK(detect.dev_id == "192.168.0.2");
+}
+
+TEST_CASE("A printer agent's disconnect_printer is not waited for past its deadline while the app closes", "[PluginPrinterAgent][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    py::gil_scoped_acquire gil;
+
+    auto agent = make_agent("    release = __import__('threading').Event()\n"
+                            "    calls = 0\n"
+                            "    def disconnect_printer(self):\n"
+                            "        type(self).calls += 1\n"
+                            "        type(self).release.wait()\n"
+                            "        return 0\n");
+    REQUIRE(agent.agent);
+    const auto capability = std::dynamic_pointer_cast<PluginCapabilityInterface>(agent.agent);
+    REQUIRE(capability);
+
+    PluginManager::instance().set_shutting_down();
+    int                                 first = 0;
+    int                                 second = 0;
+    std::chrono::steady_clock::duration waited{};
+    {
+        // As at app exit: the closing UI thread does not hold the GIL. It disconnects the agent twice,
+        // once as the live agent and once from the agent cache.
+        py::gil_scoped_release nogil;
+        const auto start = std::chrono::steady_clock::now();
+        first            = agent->disconnect_printer();
+        second           = agent->disconnect_printer();
+        waited           = std::chrono::steady_clock::now() - start;
+    }
+    CHECK(first == -1);
+    CHECK(second == -1);
+    CHECK(waited < std::chrono::seconds(5)); // one 3 s deadline, not two
+    // At most once: on a slow machine the call can be abandoned before its thread reaches Python.
+    CHECK(agent.instance.attr("calls").cast<int>() <= 1);
+
+    // Let the abandoned call finish before the agent is destroyed.
+    agent.instance.attr("release").attr("set")();
+    {
+        py::gil_scoped_release nogil;
+        for (int i = 0; i < 500 && capability->ref_count() > 0; ++i)
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    CHECK(capability->ref_count() == 0);
+}
+
+TEST_CASE("A printer agent's disconnect_printer still answers while the app closes", "[PluginPrinterAgent][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    py::gil_scoped_acquire gil;
+
+    auto agent = make_agent("    def disconnect_printer(self): return 5\n");
+    REQUIRE(agent.agent);
+
+    PluginManager::instance().set_shutting_down();
+    int result = 0;
+    {
+        py::gil_scoped_release nogil;
+        result = agent->disconnect_printer();
+    }
+    CHECK(result == 5);
 }

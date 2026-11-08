@@ -4,7 +4,26 @@
 #include "format.hpp"
 #include "I18N.hpp"
 
-#include "libslic3r/LocalesUtils.hpp"
+#include "libslic3r/Config.hpp"
+#include <memory>
+#include <vector>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include "libslic3r/Point.hpp"
+#include <exception>
+#include <wx/log.h>
+#include <cassert>
+#include "libslic3r/libslic3r.h"
+#include <algorithm>
+#include "libslic3r/Preset.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/event.h>
+#include <boost/algorithm/string/constants.hpp>
+#include <cstddef>
+#include <wx/utils.h>
+#include <utility>
+#include <boost/filesystem/operations.hpp>
+#include <wx/string.h>
 #ifdef __APPLE__
 #include "slic3r/Utils/MacDarkMode.hpp"
 #endif
@@ -31,12 +50,13 @@
 #include "AboutDialog.hpp"
 #include "MsgDialog.hpp"
 #include "Plater.hpp"
-#include "format.hpp"
 
 #include "WebUserLoginDialog.hpp"
 
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Utils.hpp"
+
+namespace fs = boost::filesystem;
 
 namespace Slic3r {
 
@@ -243,8 +263,18 @@ void change_opt_value(DynamicPrintConfig& config, const t_config_option_key& opt
 			}
 			break;
 		case coPoints:{
+			if (opt_key == "bed_exclude_area" && boost::any_cast<std::string>(&value) != nullptr) {
+				// Tab handles pasted volume syntax after this callback. Do not
+				// deserialize it as points: failure would erase the saved area
+				// before the user can accept or cancel the copy operation.
+				break;
+			}
 			if (opt_key == "printable_area" || opt_key == "bed_exclude_area" || opt_key == "thumbnails" || opt_key == "wrapping_exclude_area" ) {
 				config.option<ConfigOptionPoints>(opt_key)->values = boost::any_cast<std::vector<Vec2d>>(value);
+				if (opt_key == "bed_exclude_area") {
+					ConfigOptionPoints normalized(boost::any_cast<std::vector<Vec2d>>(value));
+					config.option<ConfigOptionPoints>(opt_key)->deserialize(normalized.serialize());
+				}
 				break;
 			}
             auto vec_new = std::make_unique<ConfigOptionPoint>(boost::any_cast<Vec2d>(value));

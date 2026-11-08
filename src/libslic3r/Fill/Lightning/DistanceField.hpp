@@ -7,6 +7,13 @@
 #include "../../BoundingBox.hpp"
 #include "../../Point.hpp"
 #include "../../Polygon.hpp"
+#include "libslic3r/libslic3r.h"
+#include <cstddef>
+#include <cstdint>
+#include <vector>
+#include <functional>
+#include <limits>
+#include <cassert>
 
 //#define LIGHTNING_DISTANCE_FIELD_DEBUG_OUTPUT
 
@@ -100,7 +107,7 @@ protected:
     /*!
      * BoundingBox of all points in m_unsupported_points. Used for mapping of sign integer numbers to positive integer numbers.
      */
-    const BoundingBox          m_unsupported_points_bbox;
+    BoundingBox                m_unsupported_points_bbox;
 
     /*!
      * Links the unsupported points to a grid point, so that we can quickly look

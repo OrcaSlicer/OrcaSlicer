@@ -1,10 +1,18 @@
 #include "Circle.hpp"
 
-#include "../Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
 
+#include <cstddef>
+#include <iterator>
+#include <algorithm>
+#include <cstdlib>
+#include <cmath>
+#include <limits>
 #include <numeric>
 #include <random>
 #include <boost/log/trivial.hpp>
+#include <vector>
 
 namespace Slic3r { namespace Geometry {
 

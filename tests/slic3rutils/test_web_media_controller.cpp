@@ -1,11 +1,24 @@
+#include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <slic3r/GUI/WebMediaController.hpp>
 
+#include <wx/colour.h>
+#include <wx/gdicmn.h>
+#include <wx/string.h>
+#include <wx/sharedptr.h>
+#include <wx/vector.h>
+#include "slic3r/Utils/IPrinterAgent.hpp"
+#include <wx/uri.h>
 #include <wx/webview.h>
 
 #include <string>
 #include <vector>
+
+class wxColour;
+class wxPoint;
+class wxSize;
+class wxWindow;
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;

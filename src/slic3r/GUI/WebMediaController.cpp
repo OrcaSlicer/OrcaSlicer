@@ -1,5 +1,8 @@
 #include "WebMediaController.hpp"
+#include "IPrinterAgent.hpp"
 
+#include <wx/gdicmn.h>
+#include <wx/uri.h>
 #include <wx/webview.h>
 
 namespace Slic3r { namespace GUI {

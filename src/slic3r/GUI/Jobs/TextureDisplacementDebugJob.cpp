@@ -6,6 +6,19 @@
 #include "slic3r/GUI/Gizmos/GLGizmoTextureDisplacement.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include <functional>
+#include <vector>
+#include "libslic3r/TextureBake/TextureBakeDebug.hpp"
+#include <utility>
+#include <string>
+#include "libslic3r/TextureDisplacement.hpp"
+#include <exception>
+#include <cstddef>
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <memory>
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 
 namespace Slic3r::GUI {
 
@@ -40,14 +53,15 @@ void TextureDisplacementDebugJob::process(Ctl &ctl)
 
     indexed_triangle_set          mesh  = m_input.base_mesh;
     TextureDisplacementFacetsData masks = m_input.facets_data;
+    std::vector<Vec2f>            uv    = m_input.model_uv;
 
     // The default pipeline can only move vertices the mesh already has, so its recipe starts with the
     // preparation - which is where "first it remeshes, then it refines" actually happens. The
     // experimental pipeline refines as part of the bake and has nothing to prepare.
     if (m_input.run_prepare && !m_input.options.pipeline_v2) {
         const TextureDisplacementPrepareResult prepared =
-            GLGizmoTextureDisplacement::prepare_mesh(mesh, masks, m_input.layers, m_input.prepare_params,
-                                                     m_input.color.palette,
+            GLGizmoTextureDisplacement::prepare_mesh(mesh, masks, m_input.layers, uv, m_input.prepare_texture_frame,
+                                                     m_input.prepare_params, m_input.color,
                                                      // Preparation is roughly half the run; the bake
                                                      // takes the progress bar from there.
                                                      [&report](int pct) { return report(1 + pct / 2); },
@@ -65,12 +79,15 @@ void TextureDisplacementDebugJob::process(Ctl &ctl)
         if (!prepared.mesh.indices.empty()) {
             mesh  = prepared.mesh;
             masks = prepared.masks;
+            uv    = prepared.uv; // resampled onto the prepared mesh, as the prepare commit stores it
         }
     }
 
     build_texture_displacement(mesh, m_input.layers, masks, m_input.options,
                                [&report](int pct) { return report(50 + pct / 2); },
-                               /* color */ nullptr, m_input.volume_to_world, &recorder);
+                               /* color */ nullptr, m_input.volume_to_world, &recorder, /* stats */ nullptr,
+                               uv.empty() ? nullptr : &uv, /* texture_anchor: the volume's own origin */ nullptr,
+                               m_input.resting_drop);
 
     m_stages = recorder.take();
     ctl.update_status(100, status); // always finish at 100: this is what closes the notification
@@ -90,6 +107,7 @@ void TextureDisplacementDebugJob::finalize(bool canceled, std::exception_ptr &ep
 
 void queue_texture_displacement_debug(const ModelVolume &volume, const TextureColorSettings &color,
                                       const TextureDisplacementPrepareParams &prepare_params,
+                                      const Transform3d &prepare_texture_frame, float resting_drop,
                                       bool run_prepare, bool check_topology,
                                       std::function<void(std::vector<BakeStageSnapshot>)> on_finished)
 {
@@ -103,6 +121,10 @@ void queue_texture_displacement_debug(const ModelVolume &volume, const TextureCo
     input.check_topology  = check_topology;
     input.color           = color;
     input.volume_to_world = texture_displacement_volume_to_world(volume);
+    input.prepare_texture_frame = prepare_texture_frame;
+    input.resting_drop          = resting_drop;
+    if (volume.has_texture_uv())
+        input.model_uv = volume.texture_uv;
     for (int i = 0; i < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++i)
         input.facets_data[size_t(i)] = volume.texture_displacement_facet(i).get_data();
 

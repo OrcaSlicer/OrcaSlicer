@@ -9,10 +9,20 @@
 #include "libslic3r/TriangleSelector.hpp"
 #include "libslic3r/Model.hpp"
 
+#include <array>
+#include <cassert>
 #include <cereal/types/vector.hpp>
+#include <cstddef>
 #include <glad/gl.h>
 
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Color.hpp"
 #include <memory>
+#include <vector>
+#include <set>
+#include <string>
+#include <wx/event.h>
+#include <wx/string.h>
 
 
 namespace Slic3r::GUI {
@@ -38,6 +48,9 @@ public:
     virtual ~TriangleSelectorGUI() = default;
 
     virtual void render(ImGuiWrapper* imgui, const Transform3d& matrix);
+    // The seed-fill contour alone, as render() last built it - for a gizmo that draws over the selector
+    // and has to put the contour back on top.
+    void         render_paint_contour(const Transform3d& matrix);
     //void         render(const Transform3d& matrix) { this->render(nullptr, matrix); }
     void         set_wireframe_needed(bool need_wireframe) { m_need_wireframe = need_wireframe; }
     bool         get_wireframe_needed() { return m_need_wireframe; }
@@ -80,7 +93,6 @@ protected:
     GLModel                      m_paint_contour;
 
     void update_paint_contour();
-    void render_paint_contour(const Transform3d& matrix);
 
     bool                                m_need_wireframe {false};
 };
@@ -221,7 +233,12 @@ public:
     bool on_mouse(const wxMouseEvent &mouse_event) override;
 
 protected:
-    virtual void render_triangles(const Selection& selection) const;
+    // Draws every model part's selector, except `skip`'s when given.
+    virtual void render_triangles(const Selection& selection, const ModelVolume* skip = nullptr) const;
+    // The same, skipping every part in `skip`. A gizmo can have a preview standing in for more than one
+    // model part at a time - the texture-displacement gizmo previews every painted part of a multibody
+    // object - and drawing those parts' selectors over it would bury the preview under a flat surface.
+    void render_triangles(const Selection& selection, const std::vector<const ModelVolume*>& skip) const;
     void render_cursor();
     void render_cursor_circle();
     void render_cursor_sphere(const Transform3d& trafo) const;
@@ -283,6 +300,10 @@ protected:
 
     bool     m_paint_on_overhangs_only          = false;
     float    m_highlight_by_angle_threshold_deg = 0.f;
+    float    get_highlight_angle_limit_deg() const;
+
+    // Returns the up direction accounting for build plate tilt (default: UnitZ)
+    Vec3f get_tilt_up_direction() const;
 
     GLModel m_circle;
     Vec2d m_old_center{ Vec2d::Zero() };
@@ -314,6 +335,9 @@ protected:
     ClippingPlaneDataWrapper get_clipping_plane_data() const;
 
     TriangleSelector::ClippingPlane get_clipping_plane_in_volume_coordinates(const Transform3d &trafo) const;
+
+    // True while a paint or erase stroke is under way.
+    bool is_painting() const { return m_button_down != Button::None; }
 
 private:
     std::vector<std::vector<ProjectedMousePosition>> get_projected_mouse_positions(const Vec2d &mouse_position, double resolution, const std::vector<Transform3d> &trafo_matrices) const;

@@ -8,11 +8,17 @@
 #ifndef MediaPlayCtrl_h
 #define MediaPlayCtrl_h
 
-#include "wxMediaCtrl3.h"
-#include "IMediaController.hpp"
 #include "WebRtcMediaController.hpp"
 #include "slic3r/Utils/IPrinterAgent.hpp"
 
+#include <wx/gdicmn.h>
+#include <wx/mediactrl.h>
+#include <wx/event.h>
+#include <string>
+#include <memory>
+#include <cstdint>
+#include <vector>
+#include <wx/datetime.h>
 #include <wx/panel.h>
 
 #include <boost/thread.hpp>
@@ -20,6 +26,12 @@
 
 #include <deque>
 #include <set>
+#include <wx/string.h>
+
+class wxMediaCtrl3;
+class wxShowEvent;
+class wxWindow;
+namespace Slic3r::GUI { class IMediaController; }
 
 class Button;
 class Label;
@@ -42,6 +54,10 @@ public:
     void SetWebMediaController(IMediaController *ctrl);
 
     void StopWebStream();
+
+    // Stops playback for a view switch: not a stream failure, so it leaves no retry count,
+    // back-off or LAN dialog behind.
+    void StopPlayback();
 
     bool IsStreaming() const;
 

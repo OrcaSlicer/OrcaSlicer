@@ -2,11 +2,20 @@
 
 #include <algorithm>
 
+#include <vector>
+#include <cstddef>
 #include <wx/dcclient.h>
+#include <wx/gdicmn.h>
+#include <wx/frame.h>
+#include <wx/event.h>
 #include <wx/image.h>
+#include <wx/string.h>
+#include <wx/toplevel.h>
+#include <wx/types.h>
 
-#include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
+
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 

@@ -2,10 +2,14 @@
 #define __BBL_PRINTER_AGENT_HPP__
 
 #include "IPrinterAgent.hpp"
-#include "ICloudServiceAgent.hpp"
+#include "bambu_networking.hpp"
+#include <functional>
 #include <string>
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <vector>
+
+namespace Slic3r { class ICloudServiceAgent; }
 
 namespace Slic3r {
 
@@ -97,6 +101,9 @@ public:
     // scripts/update_bambu_filament_ids.py). An id without a map row is returned as it is.
     std::string to_orca_filament_id(const std::string& printer_filament_id) const override;
     std::string from_orca_filament_id(const std::string& orca_filament_id) const override;
+    // The same translation for Bambu-keyed data (filaments_color_codes.json) read while another
+    // agent, or none, is live.
+    static std::string bambu_filament_id(const std::string& orca_filament_id);
 
     // Rewrite every string under "tray_info_idx", "filament_id" or "filamentId", at any depth,
     // in a JSON document (an MQTT payload or PrintParams::ams_mapping_info). Text that does not

@@ -6,7 +6,7 @@ to write a custom control on the wx side and how to author an Orca widget on the
 `StaticBox`/`StateHandler` foundation. Read it before writing or reviewing any `wxEVT_PAINT`
 handler, `render`/`doRender` method, `messureSize`, or a new class under `src/slic3r/GUI/Widgets/`.
 
-wx cites are relative to the pinned wx 3.3.2 tree (`deps/build/<arch>/dep_wxWidgets-prefix/src/dep_wxWidgets`).
+wx cites are relative to the pinned wx 3.3.2 tree (located as in `SKILL.md` §Ground truth).
 Orca builds wx with `wxBUILD_DEBUG_LEVEL=0` and `libslic3r_gui` with `wxDEBUG_LEVEL=0`: every
 wx assert below is compiled out and `wxCHECK*` returns silently, so paint misuse shows up only as
 wrong, missing or stale pixels, never as an assert dialog.

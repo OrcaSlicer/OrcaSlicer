@@ -1,8 +1,11 @@
 #ifndef slic3r_PhysicalPrinterDialog_hpp_
 #define slic3r_PhysicalPrinterDialog_hpp_
 
+#include "libslic3r/PrintConfig.hpp"
+#include <string>
 #include <vector>
 
+#include <wx/event.h>
 #include <wx/gdicmn.h>
 
 #include "libslic3r/Preset.hpp"

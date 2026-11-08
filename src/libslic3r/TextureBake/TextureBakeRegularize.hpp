@@ -12,6 +12,7 @@
 // flattened); and the link condition must hold, or the result would be non-manifold. Boundary and
 // non-manifold edges are skipped outright. Rounds repeat until one achieves nothing.
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 

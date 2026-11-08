@@ -331,6 +331,10 @@ OrcaSlicer: integer spinners are `::SpinInput` ([below](#spininput)); progress b
 Contract:
 - A page must be created with the book as its parent and added once; the book owns and deletes it
   (`interface/wx/bookctrl.h:253-254, 273`). `RemovePage` detaches without deleting, and you then own it (`:324-330`).
+- Removing the selected page selects the page before it (the new first page if it was first) through `SetSelection`,
+  so that page is shown and PAGE_CHANGING/CHANGED are sent; removing a page before the selection only shifts the
+  index. This is `wxBookCtrlBase::DoSetSelectionAfterRemoval` (`src/common/bookctrl.cpp:477-495` **[source]**),
+  called from `DoRemovePage` by `wxSimplebook`, `wxChoicebook`, `wxListbook`, `wxToolbook` and Orca's `Notebook`.
 - `GetSelection()` inside a `PAGE_CHANGED` handler may return the old or the new page depending on the platform; use
   `event.GetSelection()` (`interface/wx/bookctrl.h:160-166`).
 - `wxSimplebook` has no UI; switch with `ChangeSelection()`. `SetSelection()` sends PAGE_CHANGING/CHANGED

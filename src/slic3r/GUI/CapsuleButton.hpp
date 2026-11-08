@@ -3,6 +3,11 @@
 
 #include "wxExtensions.hpp"
 #include "Widgets/Label.hpp"
+#include <wx/anybutton.h>
+#include <wx/panel.h>
+#include <wx/checklst.h>
+#include <wx/string.h>
+#include <wx/event.h>
 
 namespace Slic3r { namespace GUI {
 class CapsuleButton : public wxPanel

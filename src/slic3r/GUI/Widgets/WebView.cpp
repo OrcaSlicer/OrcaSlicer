@@ -3,11 +3,26 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/Utils/MacDarkMode.hpp"
 
+#include <algorithm>
 #include <boost/log/trivial.hpp>
 
+#include <cassert>
 #include <chrono>
+#include <cstddef>
+#include <exception>
 #include <thread>
 
+#include <wx/setup.h>
+#include <wx/webview.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/sharedptr.h>
+#include <wx/vector.h>
+#include <wx/event.h>
+#include <vector>
+#include <wx/object.h>
+#include <wx/log.h>
+#include <utility>
 #include <wx/webviewarchivehandler.h>
 #include <wx/webviewfshandler.h>
 #include <wx/weakref.h>
@@ -19,6 +34,15 @@
 #include <wx/uri.h>
 #include <wx/filename.h>
 #include <wx/stdpaths.h>
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <ios>
+#include <string>
+#include <wx/versioninfo.h>
+
+namespace fs = boost::filesystem;
 #if defined(__WIN32__) || defined(__WXMAC__)
 #include "wx/private/jsscriptwrapper.h"
 #endif
@@ -32,7 +56,12 @@
 #define WEBKIT_API
 struct WebKitWebView;
 struct WebKitJavascriptResult;
+struct WebKitSettings;
 extern "C" {
+WEBKIT_API WebKitSettings *
+webkit_settings_new                                  (void);
+WEBKIT_API const gchar *
+webkit_settings_get_user_agent                       (WebKitSettings            *settings);
 WEBKIT_API void
 webkit_web_view_run_javascript                       (WebKitWebView             *web_view,
                                                       const gchar               *script,
@@ -45,6 +74,10 @@ webkit_web_view_run_javascript_finish                (WebKitWebView             
 						      GError                    **error);
 WEBKIT_API void
 webkit_javascript_result_unref              (WebKitJavascriptResult *js_result);
+WEBKIT_API guint
+webkit_get_major_version                     (void);
+WEBKIT_API guint
+webkit_get_minor_version                     (void);
 }
 #endif
 
@@ -260,6 +293,23 @@ static WebViewRef *webview_ref(wxWebView *webView)
     return webView ? static_cast<WebViewRef *>(webView->GetRefData()) : nullptr;
 }
 
+#ifdef __linux__
+// WebKitGTK's own User-Agent with the tags the bundled pages (globalapi.js) and Bambu's cloud read
+// appended. wx's GTK backend cannot report the stock string, so it comes from a throwaway settings object.
+static wxString linux_user_agent()
+{
+    static const wxString stock = [] {
+        WebKitSettings *settings = webkit_settings_new();
+        wxString        ua       = wxString::FromUTF8(webkit_settings_get_user_agent(settings));
+        g_object_unref(settings);
+        return ua;
+    }();
+    return wxString::Format("%s BBL-Slicer/v%s (%s) BBL-Language/%s", stock, Slic3r::GUI::wxGetApp().get_bbl_client_version(),
+                            Slic3r::GUI::wxGetApp().dark_mode() ? "dark" : "light",
+                            Slic3r::GUI::wxGetApp().current_language_code().BeforeFirst('_'));
+}
+#endif
+
 wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
 {
 #if wxUSE_WEBVIEW_EDGE
@@ -312,8 +362,12 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
             s_schemes_registered = true;
         }
         webView->Create(parent, wxID_ANY, url2, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
+#ifdef __linux__
+        webView->SetUserAgent(linux_user_agent());
+#else
         webView->SetUserAgent(wxString::Format("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) BBL-Slicer/v%s (%s) BBL-Language/%s",
                                                Slic3r::GUI::wxGetApp().get_bbl_client_version(), Slic3r::GUI::wxGetApp().dark_mode() ? "dark" : "light", language_code.mb_str()));
+#endif
 #endif
 #ifdef __WXMAC__
         WKWebView * wkWebView = (WKWebView *) webView->GetNativeBackend();
@@ -366,6 +420,40 @@ void WebView::MarkScriptMessageHandlerAdded(wxWebView * webView)
     if (WebViewRef *ref = webview_ref(webView))
         ref->m_script_handler_added = true;
 }
+
+bool WebView::NeedsRecreateOnShow()
+{
+    const bool recreating = Slic3r::GUI::wxGetApp().is_recreating_gui();
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": is_recreating_gui = " << recreating;
+#ifdef __WIN32__
+    return recreating;
+#else
+    return false;
+#endif
+}
+
+bool WebView::NeedsCompositingWorkaround()
+{
+#ifdef __linux__
+    const guint major = webkit_get_major_version();
+    const guint minor = webkit_get_minor_version();
+    return major < 2 || (major == 2 && minor < 42);
+#else
+    return false;
+#endif
+}
+
+bool WebView::SupportsForceSharedMemory()
+{
+#ifdef __linux__
+    const guint major = webkit_get_major_version();
+    const guint minor = webkit_get_minor_version();
+    return major > 2 || (major == 2 && minor >= 44);
+#else
+    return false;
+#endif
+}
+
 #if wxUSE_WEBVIEW_EDGE
 bool WebView::CheckWebViewRuntime()
 {
@@ -383,6 +471,12 @@ bool WebView::DownloadAndInstallWebViewRuntime()
     return DownloadAndInstallWV2RT() == 0;
 }
 #endif
+wxString WebView::RedactUrl(const wxString& url)
+{
+    const size_t cut = url.find_first_of(wxString("?#"));
+    return cut == wxString::npos ? url : url.Left(cut);
+}
+
 void WebView::LoadUrl(wxWebView * webView, wxString const &url)
 {
     auto url2  = url;
@@ -390,7 +484,7 @@ void WebView::LoadUrl(wxWebView * webView, wxString const &url)
     url2.Replace("\\", "/");
 #endif
     if (!url2.empty()) { url2 = wxURI(url2).BuildURI(); }
-    BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << url2.ToUTF8();
+    BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << RedactUrl(url2).ToUTF8();
     webView->LoadURL(url2);
 }
 
@@ -435,8 +529,12 @@ void WebView::RecreateAll()
     wxString language_code = Slic3r::GUI::wxGetApp().current_language_code().BeforeFirst('_');
     language_code          = language_code.ToStdString();
     for (auto webView : g_webviews) {
+#ifdef __linux__
+        webView->SetUserAgent(linux_user_agent());
+#else
         webView->SetUserAgent(wxString::Format("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) BBL-Slicer/v%s (%s) BBL-Language/%s",
                                                Slic3r::GUI::wxGetApp().get_bbl_client_version(), dark ? "dark" : "light", language_code.mb_str()));
+#endif
         // A host-themed WebViewHostDialog re-themes in place (no reload). If it handles
         // the event, skip the reload; legacy pages fall through and reload as before
         // (their own dark.css swap re-themes them on reload).

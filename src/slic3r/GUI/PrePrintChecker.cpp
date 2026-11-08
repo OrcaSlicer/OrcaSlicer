@@ -1,7 +1,21 @@
 #include "PrePrintChecker.hpp"
-#include "GUI_Utils.hpp"
 #include "I18N.hpp"
+#include <algorithm>
+#include <functional>
 #include <set>
+#include <string>
+#include <wx/string.h>
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <wx/wx.h>
+#include <wx/colour.h>
+#include <vector>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/utils.h>
+
+class wxWindow;
 
 
 namespace Slic3r { namespace GUI {
@@ -100,7 +114,7 @@ wxString PrePrintChecker::get_pre_state_msg(PrintDialogStatus status)
     case PrintStatusNozzleDataInvalid: return _L("Invalid nozzle information, please refresh or manually set nozzle information.");
     case PrintStatusLanModeNoSdcard: return _L("Storage needs to be inserted before printing via LAN.");
     case PrintStatusLanModeSDcardNotAvailable: return _L("Storage is in abnormal state or is in read-only mode.");
-    case PrintStatusNoSdcard: return _L("Storage needs to be inserted before printing.");
+    case PrintStatusNoSdcard: return _L("Insert storage or free up space before printing.");
     case PrintStatusNeedForceUpgrading: return _L("Cannot send the print job to a printer whose firmware must be updated.");
     case PrintStatusNeedConsistencyUpgrading: return _L("Cannot send the print job to a printer whose firmware must be updated.");
     case PrintStatusBlankPlate: return _L("Cannot send a print job for an empty plate.");
