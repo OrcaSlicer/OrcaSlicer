@@ -573,7 +573,8 @@ try {
         # Determine VS generator from install path (like build_win.bat does)
         $vsMajor = if ($vsInstall -match '\\\(1[6-9]|[2-9][0-9])\\') { $matches[1] } else { "17" }
         $vsGenMap = @{ 16 = "Visual Studio 16 2019"; 17 = "Visual Studio 17 2022"; 18 = "Visual Studio 18 2026" }
-        $generator = if ($Msbuild) { $vsGenMap[$vsMajor] ?? "Visual Studio 17 2022" } else { "Ninja Multi-Config" }
+        $generator = if ($Msbuild) { $vsGenMap[$vsMajor] } else { "Ninja Multi-Config" }
+        if (-not $generator) { $generator = "Visual Studio 17 2022" }
         Write-Status "generator" $generator
         $compiler = if ($ClangCl) { $clangClExe } else { $clExe }
         $cmakeArgs = @()
