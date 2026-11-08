@@ -8,6 +8,7 @@
 #include "OrcaCloudServiceAgent.hpp"
 #include "BBLCloudServiceAgent.hpp"
 #include "BBLNetworkPlugin.hpp"
+#include "CrealityCloudServiceAgent.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include <memory>
 #include <string>
@@ -167,6 +168,8 @@ public:
                 return nullptr;
             }
             return std::make_shared<BBLCloudServiceAgent>();
+        } else if (provider == CREALITY_CLOUD_PROVIDER) {
+            return std::make_shared<CrealityCloudServiceAgent>(log_dir);
         }
         return nullptr;
     }

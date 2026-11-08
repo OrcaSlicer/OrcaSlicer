@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Creality Cloud</title>
+<style>
+  :root { --bg: #ffffff; --fg: #1f1f1f; --muted: #6b6b6b; --line: #d0d0d0; --accent: #009688; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #2b2b2b; --fg: #eeeeee; --muted: #a0a0a0; --line: #4a4a4a; } }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.4 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 360px; margin: 48px auto; padding: 0 16px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p.sub { color: var(--muted); margin: 0 0 24px; }
+  label { display: block; margin: 14px 0 4px; color: var(--muted); font-size: 12px; }
+  input, select { width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid var(--line); border-radius: 4px;
+                  background: var(--bg); color: var(--fg); font-size: 14px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 4px; }
+  .tabs button { flex: 1; padding: 7px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); border-radius: 4px; cursor: pointer; }
+  .tabs button.on { border-color: var(--accent); color: var(--accent); }
+  button.go { width: 100%; margin-top: 24px; padding: 10px; border: 0; border-radius: 4px; background: var(--accent); color: #fff; font-size: 15px; cursor: pointer; }
+  button.go:disabled { opacity: .5; cursor: default; }
+  .note { color: var(--muted); font-size: 12px; margin-top: 16px; }
+  .err { color: #d9534f; min-height: 1.4em; margin-top: 10px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Sign in to Creality Cloud</h1>
+  <p class="sub">Use the account your printers are bound to in the Creality Cloud app.</p>
+
+  <label for="region">Server</label>
+  <select id="region">
+    <option value="Global">Global (crealitycloud.com)</option>
+    <option value="China">China (crealitycloud.cn)</option>
+  </select>
+
+  <label>Sign in with</label>
+  <div class="tabs">
+    <button type="button" id="tab-email" class="on">E-mail</button>
+    <button type="button" id="tab-phone">Phone</button>
+  </div>
+
+  <label for="account" id="account-label">E-mail</label>
+  <input id="account" type="email" autocomplete="username">
+
+  <label for="password">Password</label>
+  <input id="password" type="password" autocomplete="current-password">
+
+  <div class="err" id="err"></div>
+  <button class="go" id="go" disabled>Sign in</button>
+
+  <p class="note">Accounts created with Google, Apple or a phone code have no password: set one in the Creality Cloud app first.
+     Your password is sent only to Creality Cloud; Unified Slicer keeps the session token, not the password.</p>
+</main>
+<script>
+  var accountType = 2; // 2 e-mail, 1 phone with country code
+  var account = document.getElementById('account');
+  var password = document.getElementById('password');
+  var go = document.getElementById('go');
+  function setType(type) {
+    accountType = type;
+    document.getElementById('tab-email').className = type === 2 ? 'on' : '';
+    document.getElementById('tab-phone').className = type === 1 ? 'on' : '';
+    document.getElementById('account-label').textContent = type === 2 ? 'E-mail' : 'Phone number with country code (e.g. +15551234567)';
+    account.type = type === 2 ? 'email' : 'tel';
+    validate();
+  }
+  function validate() { go.disabled = !(account.value.trim() && password.value); }
+  document.getElementById('tab-email').onclick = function () { setType(2); };
+  document.getElementById('tab-phone').onclick = function () { setType(1); };
+  account.oninput = password.oninput = validate;
+  password.onkeydown = function (e) { if (e.key === 'Enter' && !go.disabled) go.onclick(); };
+  go.onclick = function () {
+    if (!window.wx || !window.wx.postMessage) {
+      document.getElementById('err').textContent = 'Open this page from Unified Slicer.';
+      return;
+    }
+    go.disabled = true;
+    window.wx.postMessage(JSON.stringify({
+      command: 'user_login',
+      data: {
+        provider: 'creality',
+        region: document.getElementById('region').value,
+        account_type: accountType,
+        account: account.value.trim(),
+        password: password.value
+      }
+    }));
+  };
+</script>
+</body>
+</html>

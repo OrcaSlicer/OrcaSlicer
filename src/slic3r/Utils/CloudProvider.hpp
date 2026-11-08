@@ -9,5 +9,7 @@ static const std::string ORCA_CLOUD_PROVIDER("orca");
 static const std::string BBL_CLOUD_PROVIDER("bbl");
 // Unified Slicer: Elegoo account (matrix.elegoo.com), kept separate from the Bambu and Orca accounts.
 static const std::string ELEGOO_CLOUD_PROVIDER("elegoo");
+// Unified Slicer: Creality Cloud account (api.crealitycloud.com), likewise separate.
+static const std::string CREALITY_CLOUD_PROVIDER("creality");
 
 } // namespace Slic3r
