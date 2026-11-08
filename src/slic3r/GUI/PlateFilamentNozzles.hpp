@@ -36,7 +36,7 @@ private:
     struct Row
     {
         int slot = 0; // 0-based project filament
-        int tool = 0; // 0-based tool it prints from
+        int tool = 0; // 0-based physical extruder (tool) it prints from
     };
     std::vector<Row> rows_of(const PartPlate& plate) const;
     // `m_plate` if the plater still holds it, else nullptr.

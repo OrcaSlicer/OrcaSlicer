@@ -402,3 +402,75 @@ TEST_CASE("An object without a filament of its own is pinned to filament 1's too
     // An object that names its filament is renumbered, not pinned.
     CHECK(model.objects[1]->config.option("extruder")->getInt() == 1);
 }
+
+namespace {
+// A Snapmaker U1 with 0.4 mm nozzles on extruders 1 and 2 and 0.6 mm on 3 and 4. Its T numbers are
+// the project's filament numbers (a 32-wide table on the device), so a filament's physical extruder
+// is assigned separately from its T number.
+DynamicPrintConfig u1_config(size_t filament_count)
+{
+    DynamicPrintConfig config = plain_config(filament_count);
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4, 0.6, 0.6}));
+    config.set_key_value("retraction_length", new ConfigOptionFloats({1., 2., 3., 4.}));
+    config.set_deserialize_strict({{"filament_mapping_protocol", "snapmaker"}});
+    return config;
+}
+constexpr size_t u1_namespace = 32;
+} // namespace
+
+TEST_CASE("On a device-numbered printer a filament keeps its T number and is assigned a physical extruder", "[FilamentCompaction]")
+{
+    const FilamentCompaction compaction = compaction_of(model_using({1, 2, 3, 5}), u1_config(5), u1_namespace);
+    // T numbers are the filament numbers: no renumbering.
+    CHECK(compaction.slot_of_tool.empty());
+    // Filaments 1-3 keep their own extruders; filament 5, past the last one, takes the free extruder 4.
+    CHECK(compaction.extruder_of_slot(0) == 0);
+    CHECK(compaction.extruder_of_slot(2) == 2);
+    CHECK(compaction.extruder_of_slot(4) == 3);
+    CHECK(compaction.extruder_of_slot(3) == -1);
+    CHECK(compaction.extruder_count == 4);
+}
+
+TEST_CASE("A manual map on a device-numbered printer pins the physical extruder, not the T number", "[FilamentCompaction]")
+{
+    DynamicPrintConfig config = u1_config(3);
+    config.set_key_value("filament_map_mode", new ConfigOptionEnum<FilamentMapMode>(FilamentMapMode::fmmManual));
+    config.set_key_value("filament_map", new ConfigOptionInts({3, 1, 2}));
+    const FilamentCompaction compaction = compaction_of(model_using({1, 2, 3}), config, u1_namespace);
+    CHECK(compaction.slot_of_tool.empty());
+    CHECK(compaction.extruder_of_slot(0) == 2);
+    CHECK(compaction.extruder_of_slot(1) == 0);
+    CHECK(compaction.extruder_of_slot(2) == 1);
+}
+
+TEST_CASE("Two filaments pinned to one physical extruder on a device-numbered printer are refused", "[FilamentCompaction]")
+{
+    DynamicPrintConfig config = u1_config(3);
+    config.set_key_value("filament_map_mode", new ConfigOptionEnum<FilamentMapMode>(FilamentMapMode::fmmManual));
+    config.set_key_value("filament_map", new ConfigOptionInts({2, 2, 3}));
+    CHECK_THROWS_AS(compaction_of(model_using({1, 2}), config, u1_namespace), DuplicateToolAssignment);
+}
+
+TEST_CASE("Per-extruder config columns follow the physical extruder of each T number", "[FilamentCompaction]")
+{
+    DynamicPrintConfig       config     = u1_config(5);
+    const FilamentCompaction compaction = compaction_of(model_using({1, 2, 3, 5}), config, u1_namespace);
+    apply_filament_compaction(config, compaction);
+    // T4 (filament 5) slices with extruder 4's column.
+    const auto& nozzles = config.option<ConfigOptionFloats>("nozzle_diameter")->values;
+    REQUIRE(nozzles.size() == 5);
+    CHECK(nozzles[4] == 0.6);
+    CHECK(config.option<ConfigOptionFloats>("retraction_length")->values[4] == 4.);
+    // Per-filament vectors are untouched: nothing was renumbered.
+    CHECK(config.option<ConfigOptionStrings>("filament_colour")->size() == 5);
+}
+
+TEST_CASE("A printer whose T numbers are its extruders assigns no separate physical extruder", "[FilamentCompaction]")
+{
+    DynamicPrintConfig config = plain_config(5);
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4, 0.6, 0.6}));
+    const FilamentCompaction compaction = compaction_of(model_using({1, 2, 3, 5}), config, 4);
+    CHECK(compaction.extruder_of_tool.empty());
+    CHECK(compaction.extruder_of_slot(4) == compaction.tool_of_slot(4));
+    CHECK(compaction.extruder_of_slot(4) == 3);
+}
