@@ -2,7 +2,6 @@
 #include "Point.hpp"
 
 #include <Eigen/Core>
-#include <Eigen/LU>
 
 #include <cassert>
 #include <cstddef>
@@ -18,6 +17,7 @@
 #include <limits>
 #include <numeric>
 
+#include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_invoke.h>
 
@@ -142,11 +142,6 @@ public:
                         packed.normals[i] = {source.vertex_normals[0], source.vertex_normals[1], source.vertex_normals[2], source.smooth ? 1u : 0u};
                 }
             });
-
-        if (m_nodes.empty())
-            return packed;
-
-        packed.nodes.resize(m_nodes.size());
 
         // Breadth-First flattening so that each inner node's children are placed contiguously: [child, child + 1]
         std::vector<int> new_indices(m_nodes.size(), -1);
@@ -392,32 +387,23 @@ Vec3f unpack_unit_vector_oct(uint32_t packed)
 void append_path_trace_triangles(std::vector<PathTraceTriangle>& triangles,
                                  const std::vector<Vec3f>& vertices,
                                  const std::vector<Vec3i32>& indices,
-                                 const Transform3d& transform,
                                  const Vec4f& albedo,
                                  bool smooth_normals)
 {
     if (indices.empty() || vertices.empty())
         return;
     const Vec4f clamped_albedo = albedo.cwiseMax(0.0f).cwiseMin(1.0f);
-    // A mirroring transform turns the faces inside out: going round their corners the other way keeps
-    // them facing outward, which the facing of a hit relies on.
-    const bool mirrored = transform.linear().determinant() < 0.0;
-    const auto oriented = [mirrored](const Vec3i32& face) { return mirrored ? Vec3i32(face.x(), face.z(), face.y()) : face; };
-    std::vector<Vec3f> transformed_vertices(vertices.size());
-    for (size_t i = 0; i < vertices.size(); ++i)
-        transformed_vertices[i] = (transform * vertices[i].cast<double>()).cast<float>();
 
     const size_t needed = triangles.size() + indices.size();
     if (needed > triangles.capacity()) {
         triangles.reserve(std::max(needed, triangles.capacity() * 2));
     }
     if (!smooth_normals) {
-        for (const Vec3i32& source : indices) {
-            const Vec3i32 face = oriented(source);
+        for (const Vec3i32& face : indices) {
             PathTraceTriangle triangle;
-            triangle.a = transformed_vertices[size_t(face.x())];
-            triangle.b = transformed_vertices[size_t(face.y())];
-            triangle.c = transformed_vertices[size_t(face.z())];
+            triangle.a = vertices[size_t(face.x())];
+            triangle.b = vertices[size_t(face.y())];
+            triangle.c = vertices[size_t(face.z())];
             triangle.albedo = clamped_albedo;
             triangles.push_back(std::move(triangle));
         }
@@ -426,15 +412,15 @@ void append_path_trace_triangles(std::vector<PathTraceTriangle>& triangles,
     // Face normals scaled by twice the face area, which weighs the average, and the faces around each
     // vertex in compressed rows.
     std::vector<Vec3f> face_normals(indices.size());
-    std::vector<uint32_t> row_start(transformed_vertices.size() + 1, 0);
+    std::vector<uint32_t> row_start(vertices.size() + 1, 0);
     for (size_t f = 0; f < indices.size(); ++f) {
-        const Vec3i32 face = oriented(indices[f]);
-        face_normals[f] =(transformed_vertices[size_t(face.y())] - transformed_vertices[size_t(face.x())])
-                              .cross(transformed_vertices[size_t(face.z())] - transformed_vertices[size_t(face.x())]);
+        const Vec3i32& face = indices[f];
+        face_normals[f] = (vertices[size_t(face.y())] - vertices[size_t(face.x())])
+                              .cross(vertices[size_t(face.z())] - vertices[size_t(face.x())]);
         for (int k = 0; k < 3; ++k)
             ++row_start[size_t(face[k]) + 1];
     }
-    for (size_t v = 0; v < transformed_vertices.size(); ++v)
+    for (size_t v = 0; v < vertices.size(); ++v)
         row_start[v + 1] += row_start[v];
     std::vector<uint32_t> vertex_faces(row_start.back());
     std::vector<uint32_t> fill(row_start.begin(), row_start.end() - 1);
@@ -443,11 +429,11 @@ void append_path_trace_triangles(std::vector<PathTraceTriangle>& triangles,
             vertex_faces[fill[size_t(indices[f][k])]++] = uint32_t(f);
 
     for (size_t f = 0; f < indices.size(); ++f) {
-        const Vec3i32 face = oriented(indices[f]);
+        const Vec3i32& face = indices[f];
         PathTraceTriangle triangle;
-        triangle.a = transformed_vertices[size_t(face.x())];
-        triangle.b = transformed_vertices[size_t(face.y())];
-        triangle.c = transformed_vertices[size_t(face.z())];
+        triangle.a = vertices[size_t(face.x())];
+        triangle.b = vertices[size_t(face.y())];
+        triangle.c = vertices[size_t(face.z())];
         triangle.albedo = clamped_albedo;
         const float face_len = face_normals[f].norm();
         const Vec3f face_unit = face_len > 0.0f ? Vec3f(face_normals[f] / face_len) : Vec3f::UnitZ();
@@ -470,11 +456,10 @@ void append_path_trace_triangles(std::vector<PathTraceTriangle>& triangles,
 void append_path_trace_triangles(std::vector<PathTraceTriangle>& triangles,
                                  const std::vector<Vec3f>& vertices,
                                  const std::vector<Vec3i32>& indices,
-                                 const Transform3d& transform,
                                  const Vec3f& albedo,
                                  bool smooth_normals)
 {
-    append_path_trace_triangles(triangles, vertices, indices, transform, Vec4f(albedo.x(), albedo.y(), albedo.z(), 1.0f), smooth_normals);
+    append_path_trace_triangles(triangles, vertices, indices, Vec4f(albedo.x(), albedo.y(), albedo.z(), 1.0f), smooth_normals);
 }
 
 PathTraceGpuScene build_path_trace_gpu_scene(const std::vector<PathTraceTriangle>& triangles, const std::atomic<bool>* cancel_token, bool with_normals)

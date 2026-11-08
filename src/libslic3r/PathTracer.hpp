@@ -104,21 +104,19 @@ struct PathTraceGpuScene
     std::vector<uint32_t> original_indices;
 };
 
-// Appends a mesh, transformed. Its triangles are smooth: the shading normal at a corner averages the
+// Appends a mesh. Its triangles are smooth: the shading normal at a corner averages the
 // faces around the vertex that bend from the corner's face by less than the crease angle, so that
 // curved surfaces shade round and the edges of a part stay sharp. Without smooth_normals every
 // triangle shades flat.
 void append_path_trace_triangles(std::vector<PathTraceTriangle>& triangles,
                                  const std::vector<Vec3f>& vertices,
                                  const std::vector<Vec3i32>& indices,
-                                 const Transform3d& transform,
                                  const Vec4f& albedo,
                                  bool smooth_normals = true);
 
 void append_path_trace_triangles(std::vector<PathTraceTriangle>& triangles,
                                  const std::vector<Vec3f>& vertices,
                                  const std::vector<Vec3i32>& indices,
-                                 const Transform3d& transform,
                                  const Vec3f& albedo,
                                  bool smooth_normals = true);
 

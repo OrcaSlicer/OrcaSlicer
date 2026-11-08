@@ -2891,7 +2891,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
             for (const GLVolume* volume : m_volumes.volumes) {
                 if (volume == nullptr || !volume->is_active)
                     continue;
-                has_overlays = has_overlays || volume->is_modifier || !volume->printable;
+                has_overlays = has_overlays || !_is_path_traced(*volume);
                 has_outline = has_outline || (show_outline && (volume->selected || (persistent_outline && volume->visible)));
                 has_sinking_contours = has_sinking_contours || (m_sinking_contours_enabled && volume->is_sinking());
             }
@@ -8814,7 +8814,7 @@ bool GLCanvas3D::_is_scene_cacheable() const
 {
     // A path traced frame is final once it has converged. An empty scene has nothing to converge.
     if (_is_pathtrace_enabled() && (m_pathtrace_bvh_future.valid() ||
-        (!m_pathtrace_volume_blas.empty() && (m_pathtrace_gpu_display_image == 0 || m_pathtrace_gpu_samples < m_pathtrace_max_samples + 1u))))
+        (!m_pathtrace_volume_blas.empty() && m_pathtrace_gpu_samples <= m_pathtrace_max_samples)))
         return false;
     if (!_is_scene_cache_enabled())
         return false;
@@ -9975,7 +9975,7 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
                     return !volume.is_modifier;
                 }
                 else if (subset != EObjectsSubset::All) {
-                    return (volume.is_modifier || !volume.printable) == (subset == EObjectsSubset::Overlays);
+                    return _is_path_traced(volume) == (subset == EObjectsSubset::Print);
                 }
                 else {
                     return true;
@@ -9984,19 +9984,16 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
                 partly_inside_enable, printable_heights, outlined_volumes);
             // IMEX ghosts are transparent and share the same shader/camera state;
             // render them right after the main transparent pass while the shader is still bound.
-            if (subset != EObjectsSubset::Print) {
+            if (subset == EObjectsSubset::All) {
+                _render_imex_ghosts();
+            } else if (subset == EObjectsSubset::Overlays) {
                 // Over the path traced image they blend with it, the pass above having left blending
                 // off. Destination alpha stays at 1 for Wayland, see _render_pathtrace_composite().
-                const bool over_path_traced_image = subset == EObjectsSubset::Overlays;
-                if (over_path_traced_image) {
-                    glsafe(::glEnable(GL_BLEND));
-                    glsafe(::glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
-                }
+                glsafe(::glEnable(GL_BLEND));
+                glsafe(::glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
                 _render_imex_ghosts();
-                if (over_path_traced_image) {
-                    glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-                    glsafe(::glDisable(GL_BLEND));
-                }
+                glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+                glsafe(::glDisable(GL_BLEND));
             }
             break;
         }

@@ -213,7 +213,8 @@ void main()
     // coverage is raised to the radiance it carries.
     float out_alpha = clamp(max(avg.a, max(avg.r, max(avg.g, avg.b))), 0.0, 1.0);
     vec3 unpremul = out_alpha > 1e-4 ? avg.rgb / out_alpha : vec3(0.0);
-    imageStore(display_image, p, vec4(apply_tone(unpremul), out_alpha));
+    // Premultiplied: the composite samples it linearly, and a texel of the background has no color.
+    imageStore(display_image, p, vec4(apply_tone(unpremul) * out_alpha, out_alpha));
     // The bed term, stored halved so that factors up to 2 fit RGBA8: the composite blends it with
     // GL_DST_COLOR, GL_SRC_COLOR, which yields 2 * src * dst. The rasterized bed is in sRGB, the
     // power maps the linear ratio close to the ratio of the encoded values.

@@ -4,6 +4,7 @@
 #include <imgui/imgui.h>
 #include <Eigen/Core>
 #include <Eigen/Dense>
+#include <boost/container_hash/hash.hpp>
 #include <boost/log/trivial.hpp>
 
 #include <algorithm>
@@ -22,6 +23,7 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <new>
 #include <numeric>
 #include <string>
 #include <utility>
@@ -32,6 +34,7 @@
 #include "libslic3r/Color.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PathTracer.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -50,7 +53,7 @@
 #include "GUI_App.hpp"
 #include "I18N.hpp"
 #include "ImGuiWrapper.hpp"
-#include "OpenGLManager.hpp"
+#include "NotificationManager.hpp"
 #include "PartPlate.hpp"
 #include "Plater.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
@@ -141,6 +144,56 @@ void render_pathtrace_fullscreen_texture(GLModel& quad, unsigned int tex_id, flo
         glsafe(::glEnable(GL_CULL_FACE));
 }
 
+// The user chose path tracing, so say why the rasterizer is showing the scene instead.
+void notify_pathtrace_fallback()
+{
+    wxGetApp().plater()->get_notification_manager()->push_notification(
+        _u8L("This scene needs more memory than is available for path tracing. It is shown with the regular renderer until it changes."));
+}
+
+// A vertex id as the bits of the float the GPU triangle carries it in.
+float vertex_id_bits(uint32_t vertex_id)
+{
+    float bits;
+    std::memcpy(&bits, &vertex_id, sizeof(float));
+    return bits;
+}
+
+// Whether the view colors each move by a value of its own, so that collinear moves can differ in color.
+// No default: a new view has to be sorted in here.
+bool view_colored_per_move(libvgcode::EViewType view_type)
+{
+    switch (view_type) {
+    case libvgcode::EViewType::Speed:
+    case libvgcode::EViewType::ActualSpeed:
+    case libvgcode::EViewType::VolumetricFlowRate:
+    case libvgcode::EViewType::ActualVolumetricFlowRate:
+    case libvgcode::EViewType::FanSpeed:
+    case libvgcode::EViewType::Temperature:
+    case libvgcode::EViewType::PressureAdvance:
+    case libvgcode::EViewType::Acceleration:
+    case libvgcode::EViewType::Jerk:
+        return true;
+    case libvgcode::EViewType::Summary:
+    case libvgcode::EViewType::FeatureType:
+    case libvgcode::EViewType::ColorPrint:
+    case libvgcode::EViewType::Height:
+    case libvgcode::EViewType::Width:
+    case libvgcode::EViewType::LayerTimeLinear:
+    case libvgcode::EViewType::LayerTimeLogarithmic:
+    case libvgcode::EViewType::Tool:
+    case libvgcode::EViewType::COUNT:
+        break;
+    }
+    return false;
+}
+
+void combine_matrix(size_t& seed, const Transform3d& transform)
+{
+    const auto& matrix = transform.matrix();
+    boost::hash_range(seed, matrix.data(), matrix.data() + matrix.size());
+}
+
 // Whether OpenGL reported running out of memory since it was last asked. glsafe() only asks in debug
 // builds.
 bool gl_out_of_memory()
@@ -151,15 +204,23 @@ bool gl_out_of_memory()
     return out_of_memory;
 }
 
-// Stores a buffer of the scene on the GPU, false if it has no memory for it. Asks at once and without
-// glsafe(), at whose error a debug build would stop.
+// Whether the GPU has the memory for an allocation, whatever errors came before it. The allocation
+// goes without glsafe(), at whose error a debug build would stop.
+template<typename Allocate>
+bool gl_allocates(Allocate&& allocate)
+{
+    gl_out_of_memory();
+    allocate();
+    return !gl_out_of_memory();
+}
+
+// Stores a buffer of the scene on the GPU, false if it has no memory for it.
 bool upload_storage_buffer(unsigned int& buffer, size_t size, const void* data, GLenum usage)
 {
     if (buffer == 0)
         glsafe(::glGenBuffers(1, &buffer));
     glsafe(::glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer));
-    ::glBufferData(GL_SHADER_STORAGE_BUFFER, GLsizeiptr(size), data, usage);
-    return !gl_out_of_memory();
+    return gl_allocates([&]() { ::glBufferData(GL_SHADER_STORAGE_BUFFER, GLsizeiptr(size), data, usage); });
 }
 
 // Triangles of a plate's surface, tagged as the bed: the path tracer only bounces light off it, the
@@ -207,7 +268,7 @@ int filament_sss_family(std::string filament_type)
 }
 
 // Subsurface scattering family of each extruder's filament. Reads the preset bundle, so it must run
-// on the GUI thread, once per scene build or color update rather than per triangle.
+// on the GUI thread, once per frame rather than per triangle.
 std::vector<int> build_extruder_sss_families()
 {
     std::vector<int> families;
@@ -310,8 +371,7 @@ void GLCanvas3D::_forget_pathtrace_uploads()
     m_pathtrace_gpu_scene_signature = 0;
     m_pathtrace_transform_signature = 0;
     m_pathtrace_requested_signature = 0;
-    m_pathtrace_gpu_instances.clear();
-    m_pathtrace_gpu_instances.shrink_to_fit();
+    clear_and_shrink(m_pathtrace_gpu_instances);
     m_pathtrace_history.valid = false;
     _reset_pathtrace_accumulation();
 }
@@ -325,20 +385,27 @@ void GLCanvas3D::_release_pathtrace_scene(bool gl_current)
         _release_pathtrace_gl_resources();
     else
         _forget_pathtrace_uploads();
-    m_pathtrace_gpu_scene = PathTraceGpuScene();
-    m_pathtrace_volume_blas.clear();
-    m_pathtrace_volume_blas.shrink_to_fit();
-    m_pathtrace_gpu_tri_vertex_id.clear();
-    m_pathtrace_gpu_tri_vertex_id.shrink_to_fit();
+    _free_pathtrace_cpu_scene();
     m_pathtrace_geom_signature = 0;
     m_pathtrace_preview_color_signature = 0;
+}
+
+void GLCanvas3D::_free_pathtrace_cpu_scene()
+{
+    m_pathtrace_gpu_scene = PathTraceGpuScene();
+    clear_and_shrink(m_pathtrace_volume_blas);
+    clear_and_shrink(m_pathtrace_gpu_tri_vertex_id);
+}
+
+bool GLCanvas3D::_is_path_traced(const GLVolume& volume)
+{
+    return !volume.is_modifier && volume.printable;
 }
 
 void GLCanvas3D::_reset_pathtrace_accumulation()
 {
     m_pathtrace_gpu_samples = 0;
     m_pathtrace_tile_cursor = 0;
-    m_pathtrace_last_dispatched_tiles = 0;
 }
 
 bool GLCanvas3D::_is_pathtrace_selected() const
@@ -347,10 +414,8 @@ bool GLCanvas3D::_is_pathtrace_selected() const
     if ((m_canvas_type != ECanvasType::CanvasView3D && m_canvas_type != ECanvasType::CanvasPreview) ||
         current_printer_technology() != ptFFF)
         return false;
-    if (!wxGetApp().can_pathtrace() || !_is_realistic_view_enabled())
-        return false;
     const AppConfig* cfg = wxGetApp().app_config;
-    return cfg != nullptr && cfg->get(SETTING_OPENGL_SHADING_MODEL) == "pathtrace";
+    return cfg != nullptr && cfg->get(SETTING_OPENGL_SHADING_MODEL) == "pathtrace" && _is_realistic_view_enabled() && wxGetApp().can_pathtrace();
 }
 
 bool GLCanvas3D::_is_pathtrace_enabled() const
@@ -407,6 +472,7 @@ GLCanvas3D::PathTraceSceneBuildResult GLCanvas3D::_build_pathtrace_scene_async(
 {
     PathTraceSceneBuildResult result;
     result.geom_signature = job.geom_signature;
+    result.color_signature = job.color_signature;
 
     if (cancel_token && cancel_token->load(std::memory_order_relaxed))
         return {};
@@ -433,9 +499,7 @@ GLCanvas3D::PathTraceSceneBuildResult GLCanvas3D::_build_pathtrace_scene_async(
                     const uint32_t v_id = (job.source_tri_vertex_id[src_idx] == SIZE_MAX)
                         ? UINT32_MAX
                         : uint32_t(job.source_tri_vertex_id[src_idx]);
-                    float v_id_f;
-                    std::memcpy(&v_id_f, &v_id, sizeof(float));
-                    result.gpu_scene.triangles[i].b[3] = v_id_f;
+                    result.gpu_scene.triangles[i].b[3] = vertex_id_bits(v_id);
                     const float tri_opacity = (src_idx < job.source_tri_opacity.size()) ? job.source_tri_opacity[src_idx] : 1.0f;
                     result.gpu_scene.triangles[i].c[3] = tri_opacity;
                     result.gpu_scene.shadings[i].params[0] = job.source_tri_height[src_idx];
@@ -487,10 +551,7 @@ GLCanvas3D::PathTraceSceneBuildResult GLCanvas3D::_build_pathtrace_scene_async(
             }
             for (auto& tri : local_scene.triangles) {
                 tri.a[3] = -1.0f;
-                float invalid_v_id_f;
-                const uint32_t invalid_v_id = UINT32_MAX;
-                std::memcpy(&invalid_v_id_f, &invalid_v_id, sizeof(float));
-                tri.b[3] = invalid_v_id_f;
+                tri.b[3] = vertex_id_bits(UINT32_MAX);
                 tri.c[3] = std::clamp(tri.c[3], 0.0f, 1.0f); // preserve opacity from albedo
             }
 
@@ -501,9 +562,8 @@ GLCanvas3D::PathTraceSceneBuildResult GLCanvas3D::_build_pathtrace_scene_async(
             blas.tri_count = uint32_t(local_scene.triangles.size());
             blas.local_bounds_min = Vec3f(local_scene.nodes[0].bounds_min[0], local_scene.nodes[0].bounds_min[1], local_scene.nodes[0].bounds_min[2]);
             blas.local_bounds_max = Vec3f(local_scene.nodes[0].bounds_max[0], local_scene.nodes[0].bounds_max[1], local_scene.nodes[0].bounds_max[2]);
-            blas.instance_id = grp_data.instance_id;
+            blas.geometry_id = grp_data.geometry_id;
             blas.plate_idx = -1;
-            blas.is_wipe_tower = grp_data.is_wipe_tower;
             result.volume_blas.push_back(blas);
 
             result.gpu_scene.nodes.insert(result.gpu_scene.nodes.end(), local_scene.nodes.begin(), local_scene.nodes.end());
@@ -549,10 +609,7 @@ GLCanvas3D::PathTraceSceneBuildResult GLCanvas3D::_build_pathtrace_scene_async(
         }
         for (auto& tri : plate_scene.triangles) {
             tri.a[3] = -2.0f;
-            float invalid_v_id_f;
-            const uint32_t invalid_v_id = UINT32_MAX;
-            std::memcpy(&invalid_v_id_f, &invalid_v_id, sizeof(float));
-            tri.b[3] = invalid_v_id_f;
+            tri.b[3] = vertex_id_bits(UINT32_MAX);
             tri.c[3] = 1.0f;
         }
         for (auto& sh : plate_scene.shadings) {
@@ -572,11 +629,14 @@ GLCanvas3D::PathTraceSceneBuildResult GLCanvas3D::_build_pathtrace_scene_async(
         result.gpu_scene.nodes.insert(result.gpu_scene.nodes.end(), plate_scene.nodes.begin(), plate_scene.nodes.end());
         result.gpu_scene.triangles.insert(result.gpu_scene.triangles.end(), plate_scene.triangles.begin(), plate_scene.triangles.end());
         result.gpu_scene.shadings.insert(result.gpu_scene.shadings.end(), plate_scene.shadings.begin(), plate_scene.shadings.end());
-        if (!job.is_preview)
-            result.gpu_scene.normals.insert(result.gpu_scene.normals.end(), plate_scene.normals.begin(), plate_scene.normals.end());
+        result.gpu_scene.normals.insert(result.gpu_scene.normals.end(), plate_scene.normals.begin(), plate_scene.normals.end());
         result.gpu_tri_vertex_id.resize(result.gpu_scene.triangles.size(), SIZE_MAX);
     }
 
+    // Cancelled during the last build, the scene misses a part. The signature would still let it
+    // through if the scene changed back meanwhile.
+    if (cancel_token && cancel_token->load(std::memory_order_relaxed))
+        return {};
     return result;
 }
 
@@ -596,10 +656,8 @@ void GLCanvas3D::_extract_preview_toolpaths_for_pathtrace(
             libvgcode::EGCodeExtrusionRole role;
             uint16_t extruder_id{0};
         };
-        const libvgcode::EViewType view_type = m_gcode_viewer.get_view_type();
-        const bool check_speed = (view_type == libvgcode::EViewType::Speed || view_type == libvgcode::EViewType::ActualSpeed);
-        const bool check_temp  = (view_type == libvgcode::EViewType::Temperature);
-        const bool check_fan   = (view_type == libvgcode::EViewType::FanSpeed);
+        // A merged run takes a single color, so in these views it only spans moves that show the same.
+        const bool merge_by_color = view_colored_per_move(m_gcode_viewer.get_view_type());
         std::vector<ToolpathSegment> segments;
         const size_t total_vertices = m_gcode_viewer.get_vertices_count();
         segments.reserve(std::min<size_t>(500000, total_vertices * 2));
@@ -634,9 +692,6 @@ void GLCanvas3D::_extract_preview_toolpaths_for_pathtrace(
                     prev.role == next.role &&
                     std::abs(prev.width - next.width) < 1e-3f &&
                     std::abs(prev.height - next.height) < 1e-3f &&
-                    (!check_speed || std::abs(prev_v.feedrate - next.feedrate) < 0.5f) &&
-                    (!check_temp || std::abs(prev_v.temperature - next.temperature) < 0.5f) &&
-                    (!check_fan || std::abs(prev_v.fan_speed - next.fan_speed) < 0.5f) &&
                     (prev.p1 - p0).squaredNorm() < 1e-6f) {
                     const Vec3f prev_vec = prev.p1 - prev.p0;
                     const float prev_len = prev_vec.norm();
@@ -646,7 +701,8 @@ void GLCanvas3D::_extract_preview_toolpaths_for_pathtrace(
                         if (prev_dir.dot(curr_dir) > 0.99995f) {
                             const Vec3f total_dir = (p1 - prev.p0).normalized();
                             const float perp_dist_sq = ((prev.p1 - prev.p0) - (prev.p1 - prev.p0).dot(total_dir) * total_dir).squaredNorm();
-                            if (perp_dist_sq < 1e-6f) {
+                            if (perp_dist_sq < 1e-6f &&
+                                (!merge_by_color || m_gcode_viewer.get_gcode_vertex_color(prev_v) == m_gcode_viewer.get_gcode_vertex_color(next))) {
                                 prev.p1 = p1;
                                 continue;
                             }
@@ -775,18 +831,11 @@ void GLCanvas3D::_extract_preview_toolpaths_for_pathtrace(
             Vec3f seg_rgb{def_lin.x(), def_lin.y(), def_lin.z()};
             if (seg.vertex_id != SIZE_MAX) {
                 const libvgcode::PathVertex& v = m_gcode_viewer.get_gcode_vertex_at(seg.vertex_id);
-                if (v.is_option()) {
-                    const ColorRGBA opt_col = m_gcode_viewer.get_option_color(libvgcode::move_type_to_option(v.type));
-                    const Vec4f lin = to_linear_albedo(opt_col.r(), opt_col.g(), opt_col.b(), 1.0f);
-                    seg_rgb = {lin.x(), lin.y(), lin.z()};
-                    seg_opacity = 1.0f;
-                } else {
-                    const libvgcode::Color c = m_gcode_viewer.get_gcode_vertex_color(v);
-                    const uint8_t a = m_gcode_viewer.get_gcode_vertex_alpha(v);
-                    const Vec4f lin = to_linear_albedo(float(c[0]) / 255.0f, float(c[1]) / 255.0f, float(c[2]) / 255.0f, float(a) / 255.0f);
-                    seg_rgb = {lin.x(), lin.y(), lin.z()};
-                    seg_opacity = lin.w();
-                }
+                const libvgcode::Color c = m_gcode_viewer.get_gcode_vertex_color(v);
+                const uint8_t a = m_gcode_viewer.get_gcode_vertex_alpha(v);
+                const Vec4f lin = to_linear_albedo(float(c[0]) / 255.0f, float(c[1]) / 255.0f, float(c[2]) / 255.0f, float(a) / 255.0f);
+                seg_rgb = {lin.x(), lin.y(), lin.z()};
+                seg_opacity = lin.w();
             }
 
             const float tag_z = seg.p0.z() + half_h;
@@ -935,54 +984,11 @@ void GLCanvas3D::_extract_prepare_volumes_for_pathtrace(
     if (m_model == nullptr)
         return;
 
-    struct VolumeGroup {
-        size_t instance_id{0};
-        bool is_wipe_tower{false};
-        Transform3d instance_trafo{Transform3d::Identity()};
-        Transform3d inv_instance_trafo{Transform3d::Identity()};
-        std::vector<const GLVolume*> volumes;
-    };
-
-    std::vector<VolumeGroup> groups;
-    std::map<std::pair<int, int>, size_t> instance_to_group;
     // The meshes shade as smoothly as the rasterized realistic view does.
     const bool smooth_normals = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_SMOOTH_NORMALS);
 
-    // Modifiers and unprintable parts are no part of the print: the rasterizer draws them over the
-    // path traced image, see "overlays" in _render_objects().
-    for (const GLVolume* volume : m_volumes.volumes) {
-        if (volume == nullptr || !volume->is_active || volume->is_modifier || !volume->printable)
-            continue;
-
-        if (volume->is_wipe_tower || volume->object_idx() < 0) {
-            VolumeGroup grp;
-            grp.instance_id = volume->geometry_id.second;
-            grp.is_wipe_tower = volume->is_wipe_tower;
-            grp.instance_trafo = volume->world_matrix();
-            grp.inv_instance_trafo = grp.instance_trafo.inverse();
-            grp.volumes.push_back(volume);
-            groups.push_back(std::move(grp));
-        } else {
-            const std::pair<int, int> key{volume->object_idx(), volume->instance_idx()};
-            auto it = instance_to_group.find(key);
-            if (it == instance_to_group.end()) {
-                VolumeGroup grp;
-                grp.instance_id = volume->geometry_id.second;
-                grp.instance_trafo = volume->get_instance_transformation().get_matrix();
-                grp.inv_instance_trafo = grp.instance_trafo.inverse();
-                grp.volumes.push_back(volume);
-                instance_to_group[key] = groups.size();
-                groups.push_back(std::move(grp));
-            } else {
-                groups[it->second].volumes.push_back(volume);
-            }
-        }
-    }
-
-    auto extract_volume_triangles = [&](const GLVolume* volume, const VolumeGroup& grp, std::vector<PathTraceTriangle>& out_triangles, std::vector<uint32_t>& out_ext_ids) {
-        if (volume == nullptr || !volume->is_active || volume->is_modifier || !volume->printable)
-            return;
-        const Transform3d local_trafo = grp.inv_instance_trafo * volume->world_matrix();
+    // A BLAS holds one part in its own coordinates, so that moving a part only moves its instance.
+    auto extract_volume_triangles = [&](const GLVolume* volume, std::vector<PathTraceTriangle>& out_triangles, std::vector<uint32_t>& out_ext_ids) {
         if (volume->is_wipe_tower) {
             const auto* wt = dynamic_cast<const GLWipeTowerVolume*>(volume);
             if (wt == nullptr)
@@ -996,7 +1002,6 @@ void GLCanvas3D::_extract_prepare_volumes_for_pathtrace(
                 append_path_trace_triangles(out_triangles,
                                             its.vertices,
                                             its.indices,
-                                            local_trafo,
                                             to_shown_albedo(col, col.a()),
                                             smooth_normals);
                 out_ext_ids.insert(out_ext_ids.end(), its.indices.size(), 0u);
@@ -1024,7 +1029,6 @@ void GLCanvas3D::_extract_prepare_volumes_for_pathtrace(
                     append_path_trace_triangles(out_triangles,
                                                 its_per_color[color_idx].vertices,
                                                 its_per_color[color_idx].indices,
-                                                local_trafo,
                                                 resolve_extruder_albedo(int(ext_id), volume, extruder_colors),
                                                 smooth_normals);
                     out_ext_ids.insert(out_ext_ids.end(), its_per_color[color_idx].indices.size(), ext_id);
@@ -1033,7 +1037,6 @@ void GLCanvas3D::_extract_prepare_volumes_for_pathtrace(
                 append_path_trace_triangles(out_triangles,
                                             model_volume->mesh().its.vertices,
                                             model_volume->mesh().its.indices,
-                                            local_trafo,
                                             resolve_extruder_albedo(int(base_ext_id), volume, extruder_colors),
                                             smooth_normals);
                 out_ext_ids.insert(out_ext_ids.end(), model_volume->mesh().its.indices.size(), base_ext_id);
@@ -1041,15 +1044,15 @@ void GLCanvas3D::_extract_prepare_volumes_for_pathtrace(
         }
     };
 
-    for (const VolumeGroup& group : groups) {
-        std::vector<PathTraceTriangle> local_triangles;
-        std::vector<uint32_t> local_ext_ids;
-        for (const GLVolume* volume : group.volumes)
-            extract_volume_triangles(volume, group, local_triangles, local_ext_ids);
-
-        if (!local_triangles.empty()) {
-            job.volume_groups.push_back({group.instance_id, group.is_wipe_tower, std::move(local_triangles), std::move(local_ext_ids)});
-        }
+    // Modifiers and unprintable parts are no part of the print: the rasterizer draws them over the
+    // path traced image, see "overlays" in _render_objects().
+    for (const GLVolume* volume : m_volumes.volumes) {
+        if (volume == nullptr || !volume->is_active || !_is_path_traced(*volume))
+            continue;
+        PathTraceBvhJob::VolumeGroupTriangles group{volume->geometry_id, {}, {}};
+        extract_volume_triangles(volume, group.triangles, group.triangle_extruder_ids);
+        if (!group.triangles.empty())
+            job.volume_groups.push_back(std::move(group));
     }
 
     if (!job.volume_groups.empty() && plate_visible) {
@@ -1066,26 +1069,18 @@ void GLCanvas3D::_extract_prepare_volumes_for_pathtrace(
 
 void GLCanvas3D::_update_pathtrace_instances_and_tlas(size_t transform_signature)
 {
-    // The current trafo of each instance, the one its BLAS was built relative to, see
-    // _extract_prepare_volumes_for_pathtrace(), which the first active volume of an instance gives,
-    // and the flags of the object views (pathtrace.comp, slope_active).
-    struct InstanceState {
+    // The current trafo of each part, whose BLAS holds it in its own coordinates, and the flags of the
+    // object views (pathtrace.comp, slope_active).
+    struct PartState {
         Transform3d trafo;
         uint32_t flags{0};
     };
     constexpr uint32_t INSTANCE_PARTLY_INSIDE = 1;
     constexpr uint32_t INSTANCE_WIPE_TOWER = 2;
-    std::map<std::pair<bool, size_t>, InstanceState> instance_states;
+    std::map<std::pair<size_t, size_t>, PartState> part_states;
     for (const GLVolume* v : m_volumes.volumes) {
-        if (v == nullptr || !v->is_active)
-            continue;
-        const bool own_trafo = v->is_wipe_tower || v->object_idx() < 0;
-        InstanceState& state = instance_states.try_emplace(std::make_pair(v->is_wipe_tower, v->geometry_id.second),
-            InstanceState{own_trafo ? v->world_matrix() : v->get_instance_transformation().get_matrix()}).first->second;
-        if (v->partly_inside && !v->is_modifier)
-            state.flags |= INSTANCE_PARTLY_INSIDE;
-        if (v->is_wipe_tower)
-            state.flags |= INSTANCE_WIPE_TOWER;
+        if (v != nullptr && v->is_active)
+            part_states[v->geometry_id] = PartState{v->world_matrix(), (v->partly_inside ? INSTANCE_PARTLY_INSIDE : 0u) | (v->is_wipe_tower ? INSTANCE_WIPE_TOWER : 0u)};
     }
 
     m_pathtrace_gpu_instances.clear();
@@ -1100,9 +1095,9 @@ void GLCanvas3D::_update_pathtrace_instances_and_tlas(size_t transform_signature
 
         Transform3d world_trafo = Transform3d::Identity();
         uint32_t flags = 0;
-        if (blas.instance_id != 0) {
-            const auto it = instance_states.find({blas.is_wipe_tower, blas.instance_id});
-            if (it == instance_states.end())
+        if (blas.geometry_id.second != 0) {
+            const auto it = part_states.find(blas.geometry_id);
+            if (it == part_states.end())
                 continue;
             world_trafo = it->second.trafo;
             flags = it->second.flags;
@@ -1303,9 +1298,10 @@ void GLCanvas3D::_render_pathtrace_composite()
     glsafe(::glEnable(GL_BLEND));
     glsafe(::glBlendFuncSeparate(GL_DST_COLOR, GL_SRC_COLOR, GL_ZERO, GL_ONE));
     render_pathtrace_fullscreen_texture(m_background, bed_tex, u, v);
-    // Pass 2: path traced objects over the modulated bed. Destination alpha stays at 1, or a Wayland
-    // compositor would treat the edges of the objects as window transparency.
-    glsafe(::glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
+    // Pass 2: path traced objects over the modulated bed, in premultiplied color, which stays right
+    // when the image is scaled up. Destination alpha stays at 1, or a Wayland compositor would treat
+    // the edges of the objects as window transparency.
+    glsafe(::glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
     render_pathtrace_fullscreen_texture(m_background, color_tex, u, v);
     glsafe(::glDisable(GL_BLEND));
     glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
@@ -1380,19 +1376,10 @@ void GLCanvas3D::_resolve_pathtrace_image(GLShaderProgram& shader, bool interact
 bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size& canvas_size)
 {
     size_t geom_signature = 0;
-    const auto combine_geom = [&geom_signature](size_t value) {
-        geom_signature ^= value + size_t(0x9e3779b9) + (geom_signature << 6) + (geom_signature >> 2);
-    };
+    const auto combine_geom = [&geom_signature](const auto& value) { boost::hash_combine(geom_signature, value); };
 
     size_t transform_signature = 0;
-    const auto combine_transform = [&transform_signature](size_t value) {
-        transform_signature ^= value + size_t(0x9e3779b9) + (transform_signature << 6) + (transform_signature >> 2);
-    };
-    const auto hash_matrix_transform = [&combine_transform](const Transform3d& matrix) {
-        const auto& coefficients = matrix.matrix();
-        for (Eigen::Index i = 0; i < coefficients.size(); ++i)
-            combine_transform(std::hash<double>{}(coefficients.data()[i]));
-    };
+    const auto combine_transform = [&transform_signature](const auto& value) { boost::hash_combine(transform_signature, value); };
 
     const std::vector<ColorRGBA> extruder_colors =
         (wxGetApp().plater() != nullptr) ? wxGetApp().plater()->get_extruders_colors() : std::vector<ColorRGBA>{};
@@ -1405,26 +1392,24 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
     int preview_move_min = -1;
     int preview_move_max = -1;
     size_t preview_color_signature = 0;
-    const auto combine_color = [&preview_color_signature](size_t value) {
-        preview_color_signature ^= value + size_t(0x9e3779b9) + (preview_color_signature << 6) + (preview_color_signature >> 2);
-    };
+    const auto combine_color = [&preview_color_signature](const auto& value) { boost::hash_combine(preview_color_signature, value); };
     for (const ColorRGBA& c : extruder_colors) {
-        combine_color(std::hash<float>{}(c.r()));
-        combine_color(std::hash<float>{}(c.g()));
-        combine_color(std::hash<float>{}(c.b()));
-        combine_color(std::hash<float>{}(c.a()));
+        combine_color(c.r());
+        combine_color(c.g());
+        combine_color(c.b());
+        combine_color(c.a());
     }
     // Another type of filament in the same color scatters differently.
     for (const int family : sss_families)
-        combine_color(std::hash<int>{}(family));
+        combine_color(family);
     if (m_model != nullptr && m_canvas_type == ECanvasType::CanvasView3D) {
         for (const GLVolume* volume : m_volumes.volumes) {
             if (volume == nullptr)
                 continue;
-            combine_color(std::hash<float>{}(volume->color.r()));
-            combine_color(std::hash<float>{}(volume->color.g()));
-            combine_color(std::hash<float>{}(volume->color.b()));
-            combine_color(std::hash<float>{}(volume->color.a()));
+            combine_color(volume->color.r());
+            combine_color(volume->color.g());
+            combine_color(volume->color.b());
+            combine_color(volume->color.a());
         }
     }
     combine_color(size_t(m_gcode_viewer.is_translucent_filaments()));
@@ -1439,26 +1424,29 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
             for (size_t p_idx = 0; p_idx < plate_list.get_plate_count(); ++p_idx) {
                 if (const PartPlate* pl = plate_list.get_plate(int(p_idx))) {
                     for (const Vec2d& point : pl->get_shape()) {
-                        combine_geom(std::hash<double>{}(point.x()));
-                        combine_geom(std::hash<double>{}(point.y()));
+                        combine_geom(point.x());
+                        combine_geom(point.y());
                     }
                 }
             }
         } else {
             for (const Vec2d& point : current_plate->get_shape()) {
-                combine_geom(std::hash<double>{}(point.x()));
-                combine_geom(std::hash<double>{}(point.y()));
+                combine_geom(point.x());
+                combine_geom(point.y());
             }
         }
     }
 
     if (m_canvas_type == ECanvasType::CanvasPreview) {
-        combine_color(size_t(m_gcode_viewer.get_view_type()));
+        const libvgcode::EViewType view_type = m_gcode_viewer.get_view_type();
+        combine_color(size_t(view_type));
+        // Which moves merge into a run depends on these views, see _extract_preview_toolpaths_for_pathtrace().
+        combine_geom(view_colored_per_move(view_type) ? size_t(view_type) + 1 : 0);
         combine_geom(m_gcode_viewer.get_vertices_count());
         combine_geom(m_gcode_viewer.get_layers_count());
         const BoundingBoxf3& gcode_bb = m_gcode_viewer.get_paths_bounding_box();
         for (double v : {gcode_bb.min.x(), gcode_bb.min.y(), gcode_bb.min.z(), gcode_bb.max.x(), gcode_bb.max.y(), gcode_bb.max.z()})
-            combine_geom(std::hash<double>{}(v));
+            combine_geom(v);
         for (size_t r = 0; r < libvgcode::GCODE_EXTRUSION_ROLES_COUNT; ++r)
             combine_geom(size_t(m_gcode_viewer.is_extrusion_role_visible(libvgcode::EGCodeExtrusionRole(r))));
         combine_geom(size_t(m_gcode_viewer.is_option_visible(libvgcode::EOptionType::Seams)));
@@ -1495,6 +1483,7 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
             combine_geom(volume->model.indices_count());
             combine_geom(size_t(volume->is_active));
             combine_geom(size_t(volume->printable));
+            combine_geom(size_t(volume->is_modifier));
             combine_geom(size_t(volume->extruder_id));
             combine_geom(size_t(volume->is_wipe_tower));
             if (volume->is_wipe_tower) {
@@ -1506,28 +1495,19 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
                         combine_geom(m.indices_count());
                     }
                     for (const auto& c : wt->get_colors()) {
-                        combine_geom(std::hash<float>{}(c.r()));
-                        combine_geom(std::hash<float>{}(c.g()));
-                        combine_geom(std::hash<float>{}(c.b()));
-                        combine_geom(std::hash<float>{}(c.a()));
+                        combine_geom(c.r());
+                        combine_geom(c.g());
+                        combine_geom(c.b());
+                        combine_geom(c.a());
                     }
                 }
                 const BoundingBoxf3& bb = volume->bounding_box();
-                combine_geom(std::hash<double>{}(bb.min.x()));
-                combine_geom(std::hash<double>{}(bb.min.y()));
-                combine_geom(std::hash<double>{}(bb.min.z()));
-                combine_geom(std::hash<double>{}(bb.max.x()));
-                combine_geom(std::hash<double>{}(bb.max.y()));
-                combine_geom(std::hash<double>{}(bb.max.z()));
-            }
-            // The volume transformation of the wipe tower is where it stands, which moves its instance only.
-            if (volume->is_active && volume->object_idx() >= 0 && !volume->is_wipe_tower) {
-                const Transform3d& part_trafo = volume->get_volume_transformation().get_matrix();
-                for (int r = 0; r < 4; ++r) {
-                    for (int c = 0; c < 4; ++c) {
-                        combine_geom(std::hash<double>{}(part_trafo.matrix()(r, c)));
-                    }
-                }
+                combine_geom(bb.min.x());
+                combine_geom(bb.min.y());
+                combine_geom(bb.min.z());
+                combine_geom(bb.max.x());
+                combine_geom(bb.max.y());
+                combine_geom(bb.max.z());
             }
             const int object_idx = volume->object_idx();
             const int volume_idx = volume->volume_idx();
@@ -1537,6 +1517,8 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
                 const ModelVolume* mv = m_model->objects[object_idx]->volumes[volume_idx];
                 combine_geom(size_t(mv->extruder_id()));
                 combine_geom(size_t(mv->mmu_segmentation_facets.timestamp()));
+                // A replaced mesh can have the same counts.
+                combine_geom(mv->get_mesh_shared_ptr().get());
             }
         }
     }
@@ -1550,7 +1532,7 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
         for (const GLVolume* volume : m_volumes.volumes) {
             if (volume == nullptr || !volume->is_active)
                 continue;
-            hash_matrix_transform(volume->world_matrix());
+            combine_matrix(transform_signature, volume->world_matrix());
             combine_transform(size_t(volume->partly_inside));
         }
     }
@@ -1559,19 +1541,30 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
 
     if (m_pathtrace_bvh_future.valid()) {
         if (m_pathtrace_bvh_future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
-            PathTraceSceneBuildResult result = m_pathtrace_bvh_future.get();
+            PathTraceSceneBuildResult result;
+            try {
+                result = m_pathtrace_bvh_future.get();
+            } catch (const std::bad_alloc&) {
+                // Taken for an empty scene, the rasterizer stands in until the geometry changes.
+                // Uncaught, std::bad_alloc on the GUI thread ends the application.
+                BOOST_LOG_TRIVIAL(error) << "Path tracer: out of memory building the scene";
+                result.geom_signature = m_pathtrace_bvh_job_signature;
+                if (result.geom_signature == geom_signature)
+                    notify_pathtrace_fallback();
+            }
             if (result.geom_signature == geom_signature) {
                 m_pathtrace_gpu_scene = std::move(result.gpu_scene);
                 m_pathtrace_volume_blas = std::move(result.volume_blas);
                 m_pathtrace_gpu_tri_vertex_id = std::move(result.gpu_tri_vertex_id);
                 m_pathtrace_geom_signature = geom_signature;
-                m_pathtrace_preview_color_signature = 0;
+                m_pathtrace_preview_color_signature = result.color_signature;
                 m_pathtrace_transform_signature = 0; // force instance rebuild
             }
             m_pathtrace_bvh_job_signature = 0;
         } else if (m_pathtrace_bvh_job_signature == geom_signature) {
-            // Still building the BVH in background: fall back to rasterized view
-            schedule_extra_frame(16);
+            // Still building the BVH in background: fall back to rasterized view. Every poll redraws
+            // that whole view, which a long build need not do at the full frame rate.
+            schedule_extra_frame(50);
             return false;
         } else {
             // Scene changed while previous build was running: cancel it
@@ -1590,30 +1583,28 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
             return false;
         }
 
-        m_pathtrace_gpu_tri_vertex_id.clear();
-        m_pathtrace_gpu_tri_vertex_id.shrink_to_fit();
-        m_pathtrace_gpu_scene.triangles.clear();
-        m_pathtrace_gpu_scene.triangles.shrink_to_fit();
-        m_pathtrace_gpu_scene.shadings.clear();
-        m_pathtrace_gpu_scene.shadings.shrink_to_fit();
-        m_pathtrace_gpu_scene.normals.clear();
-        m_pathtrace_gpu_scene.normals.shrink_to_fit();
-        m_pathtrace_gpu_scene.nodes.clear();
-        m_pathtrace_gpu_scene.nodes.shrink_to_fit();
-        m_pathtrace_gpu_scene.original_indices.clear();
-        m_pathtrace_gpu_scene.original_indices.shrink_to_fit();
-        m_pathtrace_volume_blas.clear();
-        m_pathtrace_volume_blas.shrink_to_fit();
+        _free_pathtrace_cpu_scene();
 
         PathTraceBvhJob job;
         job.geom_signature = geom_signature;
+        job.color_signature = preview_color_signature;
         job.is_preview = (m_canvas_type == ECanvasType::CanvasPreview);
         job.extruder_sss_families = sss_families;
 
-        if (m_canvas_type == ECanvasType::CanvasPreview) {
-            _extract_preview_toolpaths_for_pathtrace(job, plate_visible, current_plate);
-        } else if (m_model != nullptr) {
-            _extract_prepare_volumes_for_pathtrace(job, extruder_colors, plate_visible, plate_list);
+        // Out of memory, the scene stays empty at its signature, as for a failed build below.
+        try {
+            if (m_canvas_type == ECanvasType::CanvasPreview) {
+                _extract_preview_toolpaths_for_pathtrace(job, plate_visible, current_plate);
+            } else if (m_model != nullptr) {
+                _extract_prepare_volumes_for_pathtrace(job, extruder_colors, plate_visible, plate_list);
+            }
+        } catch (const std::bad_alloc&) {
+            // First give back what was extracted: the log and the notification need memory too.
+            job = PathTraceBvhJob();
+            BOOST_LOG_TRIVIAL(error) << "Path tracer: out of memory extracting the scene";
+            notify_pathtrace_fallback();
+            m_pathtrace_geom_signature = geom_signature;
+            return false;
         }
 
         auto cancel_token = std::make_shared<std::atomic<bool>>(false);
@@ -1701,22 +1692,13 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
     }
 
     size_t signature = transform_signature;
-    const auto combine = [&signature](size_t value) {
-        signature ^= value + size_t(0x9e3779b9) + (signature << 6) + (signature >> 2);
-    };
-    const auto hash_matrix = [&combine](const Transform3d& matrix) {
-        const auto& coefficients = matrix.matrix();
-        for (Eigen::Index i = 0; i < coefficients.size(); ++i)
-            combine(std::hash<double>{}(coefficients.data()[i]));
-    };
+    const auto combine = [&signature](const auto& value) { boost::hash_combine(signature, value); };
     combine(preview_color_signature);
     std::string pt_quality = "medium";
     if (const AppConfig* cfg = wxGetApp().app_config) {
-        try {
-            const std::string q = cfg->get(SETTING_OPENGL_PATHTRACE_QUALITY);
-            if (!q.empty())
-                pt_quality = q;
-        } catch (...) {}
+        const std::string q = cfg->get(SETTING_OPENGL_PATHTRACE_QUALITY);
+        if (!q.empty())
+            pt_quality = q;
     }
 
     uint32_t cfg_max_samples = 128u;
@@ -1727,7 +1709,7 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
     // GPU time per frame of the progressive passes, which leaves the rest of a 60 Hz frame to the
     // rasterizer and the UI, and the range of the interactive resolution. Dense close-ups of toolpaths
     // need the low end of that range to keep orbiting at the 8 ms target.
-    m_pathtrace_tile_budget_ms = 10.0f;
+    float tile_budget_ms = 10.0f;
     float min_orbit_scale = 0.18f;
     float max_orbit_scale = 0.65f;
 
@@ -1737,7 +1719,7 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
         max_trans_bounces = 4;
         shadow_max_hits = 4;
         quality_preset = 0;
-        m_pathtrace_tile_budget_ms = 8.0f;
+        tile_budget_ms = 8.0f;
         min_orbit_scale = 0.15f;
         max_orbit_scale = 0.50f;
     } else if (pt_quality == "high") {
@@ -1746,7 +1728,7 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
         max_trans_bounces = 12;
         shadow_max_hits = 8;
         quality_preset = 2;
-        m_pathtrace_tile_budget_ms = 12.0f;
+        tile_budget_ms = 12.0f;
         min_orbit_scale = 0.20f;
         max_orbit_scale = 0.75f;
     } else if (m_canvas_type == ECanvasType::CanvasPreview) {
@@ -1761,16 +1743,16 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
     combine(size_t(quality_preset));
     combine(size_t(_shadow_mode()));
     combine(size_t(glossy_toolpaths));
-    combine(std::hash<float>{}(preview_z_min));
-    combine(std::hash<float>{}(preview_z_max));
-    combine(std::hash<int>{}(preview_move_min));
-    combine(std::hash<int>{}(preview_move_max));
+    combine(preview_z_min);
+    combine(preview_z_max);
+    combine(preview_move_min);
+    combine(preview_move_max);
     const ClippingPlane clip_plane = _get_volumes_clipping_plane();
     const bool clipping_active = clip_plane.is_active();
     combine(size_t(clipping_active));
     if (clipping_active) {
         for (double v : clip_plane.get_data())
-            combine(std::hash<double>{}(v));
+            combine(v);
     }
     // The greying and dimming of the layers around the ones the sliders show, by the top of the layers.
     libvgcode::LayerShading layer_shading;
@@ -1783,9 +1765,9 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
                             layer_shading.grey_below_layer > 0 ? layer_top(layer_shading.grey_below_layer) : -1e9f };
     }
     for (float z : layer_shading_z)
-        combine(std::hash<float>{}(z));
-    combine(std::hash<float>{}(layer_shading.dim_brightness));
-    combine(std::hash<int>{}(layer_shading.kept_vertex));
+        combine(z);
+    combine(layer_shading.dim_brightness);
+    combine(layer_shading.kept_vertex);
     // The object views of Prepare, see slope_active in pathtrace.comp.
     const bool object_views = m_canvas_type == ECanvasType::CanvasView3D;
     const GLVolumeCollection::PrintVolume& print_volume = m_volumes.get_print_volume();
@@ -1800,22 +1782,22 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
             printable_heights = { 2.0f, float(heights->values[0]), float(heights->values[1]) };
     }
     combine(size_t(slope_active));
-    combine(std::hash<float>{}(slope_normal_z));
+    combine(slope_normal_z);
     for (int i = 0; i < 3; ++i)
-        combine(std::hash<float>{}(slope_up[i]));
-    combine(std::hash<int>{}(object_views ? print_volume.type : -1));
+        combine(slope_up[i]);
+    combine(object_views ? print_volume.type : -1);
     for (float v : print_volume.data)
-        combine(std::hash<float>{}(v));
+        combine(v);
     for (float v : print_volume.zs)
-        combine(std::hash<float>{}(v));
+        combine(v);
     for (float v : printable_heights)
-        combine(std::hash<float>{}(v));
+        combine(v);
     // The camera passing below the bed hides it, which no history may carry over.
     combine(size_t(!source_camera.is_looking_downward()));
     // Everything but the camera: the interactive history stays valid while only the camera moves.
     const size_t history_signature = signature;
-    hash_matrix(source_camera.get_view_matrix());
-    hash_matrix(source_camera.get_projection_matrix());
+    combine_matrix(signature, source_camera.get_view_matrix());
+    combine_matrix(signature, source_camera.get_projection_matrix());
     combine(size_t(canvas_size.get_width()));
     combine(size_t(canvas_size.get_height()));
     if (signature == 0)
@@ -1834,432 +1816,414 @@ bool GLCanvas3D::_render_pathtraced_view(const Camera& source_camera, const Size
     m_pathtrace_max_samples = cfg_max_samples;
     m_pathtrace_is_interactive = interactive;
 
-    bool can_use_gpu = false;
-    GLShaderProgram* compute_shader = nullptr;
-    GLShaderProgram* denoise_shader = nullptr;
-#if !SLIC3R_OPENGL_ES
-    if (OpenGLManager::get_gl_info().is_version_greater_or_equal_to(4, 3)) {
-        compute_shader = wxGetApp().get_shader("pathtrace_compute");
-        denoise_shader = wxGetApp().get_shader("pathtrace_denoise");
-        can_use_gpu = compute_shader != nullptr && denoise_shader != nullptr;
-    }
-#endif // !SLIC3R_OPENGL_ES
+    // Both exist, see _is_pathtrace_selected().
+    GLShaderProgram* compute_shader = wxGetApp().get_shader("pathtrace_compute");
+    GLShaderProgram* denoise_shader = wxGetApp().get_shader("pathtrace_denoise");
 
     // A scene this GPU cannot hold leaves an empty one at its signature: the rasterizer stands in until
     // the geometry changes, without building it again every frame.
-    const auto give_up_on_scene = [this](const char* reason) {
+    const auto give_up_on_scene = [this, geom_signature](const char* reason) {
         BOOST_LOG_TRIVIAL(warning) << "Path tracer: falling back to the rasterizer, " << reason;
-        const size_t geom_signature_kept = m_pathtrace_geom_signature;
+        notify_pathtrace_fallback();
         _release_pathtrace_scene();
-        m_pathtrace_geom_signature = geom_signature_kept;
+        m_pathtrace_geom_signature = geom_signature;
         return false;
     };
 
-    if (can_use_gpu) {
-        if (m_pathtrace_gpu_scene_signature != m_pathtrace_geom_signature) {
-            GLint64 max_block_size = 0;
-            glsafe(::glGetInteger64v(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &max_block_size));
-            const size_t largest_buffer = std::max({ m_pathtrace_gpu_scene.nodes.size() * sizeof(PathTraceGpuNode),
-                                                     m_pathtrace_gpu_scene.triangles.size() * sizeof(PathTraceGpuTriangle),
-                                                     m_pathtrace_gpu_scene.shadings.size() * sizeof(PathTraceGpuShading),
-                                                     m_pathtrace_gpu_scene.normals.size() * sizeof(PathTraceGpuNormals) });
-            if (max_block_size > 0 && largest_buffer > size_t(max_block_size))
-                return give_up_on_scene("the scene exceeds the largest shader storage block of this GPU");
+    if (m_pathtrace_gpu_scene_signature != m_pathtrace_geom_signature) {
+        const PathTraceGpuScene& scene = m_pathtrace_gpu_scene;
+        const auto bytes = [](const auto& buffer) { return buffer.size() * sizeof(buffer[0]); };
+        GLint64 max_block_size = 0;
+        glsafe(::glGetInteger64v(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &max_block_size));
+        const size_t largest_buffer = std::max({ bytes(scene.nodes), bytes(scene.triangles), bytes(scene.shadings), bytes(scene.normals) });
+        if (max_block_size > 0 && largest_buffer > size_t(max_block_size))
+            return give_up_on_scene("the scene exceeds the largest shader storage block of this GPU");
 
-            // Errors left by earlier calls say nothing about these uploads.
-            gl_out_of_memory();
-            // Without shading normals the binding still needs a buffer, which the shader never reads.
-            const PathTraceGpuNormals no_normals{};
-            const PathTraceGpuScene& scene = m_pathtrace_gpu_scene;
-            const bool uploaded =
-                upload_storage_buffer(m_pathtrace_gpu_node_buffer, scene.nodes.size() * sizeof(PathTraceGpuNode), scene.nodes.data(), GL_STATIC_DRAW) &&
-                upload_storage_buffer(m_pathtrace_gpu_triangle_buffer, scene.triangles.size() * sizeof(PathTraceGpuTriangle), scene.triangles.data(), GL_DYNAMIC_DRAW) &&
-                upload_storage_buffer(m_pathtrace_gpu_shading_buffer, scene.shadings.size() * sizeof(PathTraceGpuShading), scene.shadings.data(), GL_DYNAMIC_DRAW) &&
-                upload_storage_buffer(m_pathtrace_gpu_normal_buffer, std::max<size_t>(1, scene.normals.size()) * sizeof(PathTraceGpuNormals),
-                                      scene.normals.empty() ? no_normals.data() : scene.normals.front().data(), GL_STATIC_DRAW);
-            glsafe(::glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0));
-            if (!uploaded)
-                return give_up_on_scene("out of GPU memory for the scene");
+        // Without shading normals the binding still needs a buffer, which the shader never reads.
+        const PathTraceGpuNormals no_normals{};
+        const bool uploaded =
+            upload_storage_buffer(m_pathtrace_gpu_node_buffer, bytes(scene.nodes), scene.nodes.data(), GL_STATIC_DRAW) &&
+            upload_storage_buffer(m_pathtrace_gpu_triangle_buffer, bytes(scene.triangles), scene.triangles.data(), GL_DYNAMIC_DRAW) &&
+            upload_storage_buffer(m_pathtrace_gpu_shading_buffer, bytes(scene.shadings), scene.shadings.data(), GL_DYNAMIC_DRAW) &&
+            upload_storage_buffer(m_pathtrace_gpu_normal_buffer, std::max(bytes(scene.normals), sizeof(PathTraceGpuNormals)),
+                                  scene.normals.empty() ? no_normals.data() : scene.normals.front().data(), GL_STATIC_DRAW);
+        glsafe(::glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0));
+        if (!uploaded)
+            return give_up_on_scene("out of GPU memory for the scene");
 
-            m_pathtrace_gpu_scene_signature = m_pathtrace_geom_signature;
-            // Unlike the triangles and shadings, which color changes rewrite, these are only uploaded.
-            m_pathtrace_gpu_scene.nodes.clear();
-            m_pathtrace_gpu_scene.nodes.shrink_to_fit();
-            m_pathtrace_gpu_scene.original_indices.clear();
-            m_pathtrace_gpu_scene.original_indices.shrink_to_fit();
-        }
+        m_pathtrace_gpu_scene_signature = m_pathtrace_geom_signature;
+        // Unlike the triangles and shadings, which color changes rewrite, these are only uploaded.
+        clear_and_shrink(m_pathtrace_gpu_scene.nodes);
+        clear_and_shrink(m_pathtrace_gpu_scene.original_indices);
+    }
 
-        if (m_pathtrace_gpu_instances.empty() || m_pathtrace_transform_signature != transform_signature) {
-            _update_pathtrace_instances_and_tlas(transform_signature);
-        }
+    if (m_pathtrace_gpu_instances.empty() || m_pathtrace_transform_signature != transform_signature) {
+        _update_pathtrace_instances_and_tlas(transform_signature);
+    }
 
-        if (m_pathtrace_gpu_instances.empty())
-            return false;
+    if (m_pathtrace_gpu_instances.empty())
+        return false;
 
 
-        const float active_orbit_scale = std::round(m_pathtrace_dynamic_orbit_scale * 20.0f) * 0.05f;
+    const float active_orbit_scale = std::round(m_pathtrace_dynamic_orbit_scale * 20.0f) * 0.05f;
 
-        // Full render size, at most 1440 pixels on the long side, and the interactive size within it.
-        const uint32_t canvas_width = uint32_t(std::max(1, canvas_size.get_width()));
-        const uint32_t canvas_height = uint32_t(std::max(1, canvas_size.get_height()));
-        const float full_scale = std::min(1.0f, 1440.0f / float(std::max(canvas_width, canvas_height)));
-        const uint32_t full_width = std::max(1u, uint32_t(std::lround(float(canvas_width) * full_scale)));
-        const uint32_t full_height = std::max(1u, uint32_t(std::lround(float(canvas_height) * full_scale)));
-        const uint32_t interactive_width = std::clamp(uint32_t(std::lround(float(full_width) * active_orbit_scale)), 1u, full_width);
-        const uint32_t interactive_height = std::clamp(uint32_t(std::lround(float(full_height) * active_orbit_scale)), 1u, full_height);
+    // Full render size, at most 1440 pixels on the long side, and the interactive size within it.
+    const uint32_t canvas_width = uint32_t(std::max(1, canvas_size.get_width()));
+    const uint32_t canvas_height = uint32_t(std::max(1, canvas_size.get_height()));
+    const float full_scale = std::min(1.0f, 1440.0f / float(std::max(canvas_width, canvas_height)));
+    const uint32_t full_width = std::max(1u, uint32_t(std::lround(float(canvas_width) * full_scale)));
+    const uint32_t full_height = std::max(1u, uint32_t(std::lround(float(canvas_height) * full_scale)));
+    const uint32_t interactive_width = std::clamp(uint32_t(std::lround(float(full_width) * active_orbit_scale)), 1u, full_width);
+    const uint32_t interactive_height = std::clamp(uint32_t(std::lround(float(full_height) * active_orbit_scale)), 1u, full_height);
 
-        // The images only follow the canvas size: switching between the interactive and the full
-        // resolution passes reallocates nothing.
-        if (m_pathtrace_gpu_accumulation_image == 0 ||
-            m_pathtrace_gpu_image_size[0] != full_width ||
-            m_pathtrace_gpu_image_size[1] != full_height) {
-            gl_out_of_memory();
-            bool images_allocated = true;
-            const auto allocate_image = [full_width, full_height, &images_allocated](unsigned int& tex, GLint internal_format, GLenum type, GLint filter) {
-                if (tex == 0)
-                    glsafe(::glGenTextures(1, &tex));
-                glsafe(::glBindTexture(GL_TEXTURE_2D, tex));
-                glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter));
-                glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter));
-                glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-                glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+    // The images only follow the canvas size: switching between the interactive and the full
+    // resolution passes reallocates nothing.
+    if (m_pathtrace_gpu_accumulation_image == 0 ||
+        m_pathtrace_gpu_image_size[0] != full_width ||
+        m_pathtrace_gpu_image_size[1] != full_height) {
+        bool images_allocated = true;
+        const auto allocate_image = [full_width, full_height, &images_allocated](unsigned int& tex, GLint internal_format, GLenum type, GLint filter) {
+            if (tex == 0)
+                glsafe(::glGenTextures(1, &tex));
+            glsafe(::glBindTexture(GL_TEXTURE_2D, tex));
+            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter));
+            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter));
+            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+            images_allocated = gl_allocates([&]() {
                 ::glTexImage2D(GL_TEXTURE_2D, 0, internal_format, GLsizei(full_width), GLsizei(full_height), 0, GL_RGBA, type, nullptr);
-                images_allocated = !gl_out_of_memory() && images_allocated;
-            };
-            glsafe(::glActiveTexture(GL_TEXTURE0));
-            allocate_image(m_pathtrace_gpu_accumulation_image, GL_RGBA32F, GL_FLOAT, GL_NEAREST);
-            allocate_image(m_pathtrace_gpu_trans_accumulation_image, GL_RGBA32F, GL_FLOAT, GL_NEAREST);
-            allocate_image(m_pathtrace_gpu_aux_normal_depth_image, GL_RGBA16F, GL_FLOAT, GL_NEAREST);
-            allocate_image(m_pathtrace_gpu_aux_albedo_image, GL_RGBA8, GL_UNSIGNED_BYTE, GL_NEAREST);
-            allocate_image(m_pathtrace_gpu_moment_image, GL_R32F, GL_FLOAT, GL_NEAREST);
-            for (unsigned int& tex : m_pathtrace_gpu_denoise_images)
-                allocate_image(tex, GL_RGBA16F, GL_FLOAT, GL_NEAREST);
-            allocate_image(m_pathtrace_gpu_display_image, GL_RGBA8, GL_UNSIGNED_BYTE, GL_LINEAR);
-            allocate_image(m_pathtrace_gpu_trans_display_image, GL_RGBA8, GL_UNSIGNED_BYTE, GL_LINEAR);
-            allocate_image(m_pathtrace_gpu_interactive_display_image, GL_RGBA8, GL_UNSIGNED_BYTE, GL_LINEAR);
-            allocate_image(m_pathtrace_gpu_interactive_trans_display_image, GL_RGBA8, GL_UNSIGNED_BYTE, GL_LINEAR);
-            allocate_image(m_pathtrace_gpu_history_images[0], GL_RGBA32F, GL_FLOAT, GL_NEAREST);
-            allocate_image(m_pathtrace_gpu_history_images[1], GL_RGBA32F, GL_FLOAT, GL_NEAREST);
-            allocate_image(m_pathtrace_gpu_history_images[2], GL_RGBA16F, GL_FLOAT, GL_NEAREST);
-            allocate_image(m_pathtrace_gpu_history_images[3], GL_RGBA8, GL_UNSIGNED_BYTE, GL_NEAREST);
-            glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
-            if (!images_allocated)
-                return give_up_on_scene("out of GPU memory for the images");
+            }) && images_allocated;
+        };
+        glsafe(::glActiveTexture(GL_TEXTURE0));
+        allocate_image(m_pathtrace_gpu_accumulation_image, GL_RGBA32F, GL_FLOAT, GL_NEAREST);
+        allocate_image(m_pathtrace_gpu_trans_accumulation_image, GL_RGBA32F, GL_FLOAT, GL_NEAREST);
+        allocate_image(m_pathtrace_gpu_aux_normal_depth_image, GL_RGBA16F, GL_FLOAT, GL_NEAREST);
+        allocate_image(m_pathtrace_gpu_aux_albedo_image, GL_RGBA8, GL_UNSIGNED_BYTE, GL_NEAREST);
+        allocate_image(m_pathtrace_gpu_moment_image, GL_R32F, GL_FLOAT, GL_NEAREST);
+        for (unsigned int& tex : m_pathtrace_gpu_denoise_images)
+            allocate_image(tex, GL_RGBA16F, GL_FLOAT, GL_NEAREST);
+        allocate_image(m_pathtrace_gpu_display_image, GL_RGBA8, GL_UNSIGNED_BYTE, GL_LINEAR);
+        allocate_image(m_pathtrace_gpu_trans_display_image, GL_RGBA8, GL_UNSIGNED_BYTE, GL_LINEAR);
+        allocate_image(m_pathtrace_gpu_interactive_display_image, GL_RGBA8, GL_UNSIGNED_BYTE, GL_LINEAR);
+        allocate_image(m_pathtrace_gpu_interactive_trans_display_image, GL_RGBA8, GL_UNSIGNED_BYTE, GL_LINEAR);
+        allocate_image(m_pathtrace_gpu_history_images[0], GL_RGBA32F, GL_FLOAT, GL_NEAREST);
+        allocate_image(m_pathtrace_gpu_history_images[1], GL_RGBA32F, GL_FLOAT, GL_NEAREST);
+        allocate_image(m_pathtrace_gpu_history_images[2], GL_RGBA16F, GL_FLOAT, GL_NEAREST);
+        allocate_image(m_pathtrace_gpu_history_images[3], GL_RGBA8, GL_UNSIGNED_BYTE, GL_NEAREST);
+        glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+        if (!images_allocated)
+            return give_up_on_scene("out of GPU memory for the images");
 
-            m_pathtrace_gpu_image_size = {full_width, full_height};
-            m_pathtrace_gpu_interactive_size = {0, 0};
-            m_pathtrace_history.valid = false;
-            _reset_pathtrace_accumulation();
-        }
+        m_pathtrace_gpu_image_size = {full_width, full_height};
+        m_pathtrace_gpu_interactive_size = {0, 0};
+        m_pathtrace_history.valid = false;
+        _reset_pathtrace_accumulation();
+    }
 
-        const uint32_t target_max_samples = interactive ? 1u : (cfg_max_samples + 1u);
-        // Nothing on screen yet after a reset: start with the cheap interactive pass, never with a
-        // full resolution frame in a single dispatch.
-        const bool interactive_pass = interactive || m_pathtrace_gpu_samples == 0;
+    const uint32_t target_max_samples = interactive ? 1u : (cfg_max_samples + 1u);
+    // Nothing on screen yet after a reset: start with the cheap interactive pass, never with a
+    // full resolution frame in a single dispatch.
+    const bool interactive_pass = interactive || m_pathtrace_gpu_samples == 0;
 
-        if (!interactive && m_pathtrace_gpu_samples >= 1 && ImGui::IsAnyItemActive()) {
-            schedule_extra_frame(16);
-            _render_pathtrace_composite();
-            return true;
-        }
-
-        // Sections of the frame profiler, so that the overlay splits the path tracing time.
-        m_frame_profiler.mark("pt setup");
-        bool resolve_interactive = false;
-        bool resolve_full = false;
-        bool interactive_history = false;
-        if (m_pathtrace_gpu_samples < target_max_samples) {
-            PathTraceCamera camera;
-            camera.position = source_camera.get_position().cast<float>();
-            camera.right = source_camera.get_dir_right().cast<float>();
-            camera.up = source_camera.get_dir_up().cast<float>();
-            camera.forward = source_camera.get_dir_forward().cast<float>();
-            camera.orthographic = source_camera.get_type() == Camera::EType::Ortho;
-            if (camera.orthographic)
-                camera.orthographic_height = float(source_camera.get_near_height());
-            else
-                camera.vertical_fov_degrees = float(source_camera.get_fov());
-
-            glsafe(::glBindImageTexture(0, m_pathtrace_gpu_accumulation_image, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F));
-            glsafe(::glBindImageTexture(1, m_pathtrace_gpu_aux_normal_depth_image, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F));
-            glsafe(::glBindImageTexture(2, m_pathtrace_gpu_trans_accumulation_image, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F));
-            glsafe(::glBindImageTexture(3, m_pathtrace_gpu_aux_albedo_image, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8));
-            glsafe(::glBindImageTexture(4, m_pathtrace_gpu_moment_image, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32F));
-
-            glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_pathtrace_gpu_node_buffer));
-            glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_pathtrace_gpu_triangle_buffer));
-            glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_pathtrace_gpu_instance_buffer));
-            glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_pathtrace_gpu_shading_buffer));
-            glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, m_pathtrace_gpu_normal_buffer));
-            glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, m_pathtrace_gpu_tlas_buffer));
-
-            const uint32_t render_width = interactive_pass ? interactive_width : full_width;
-            const uint32_t render_height = interactive_pass ? interactive_height : full_height;
-            const Vec3f camera_right = camera.right.normalized();
-            const Vec3f camera_up = camera.up.normalized();
-            const Vec3f camera_forward = camera.forward.normalized();
-            compute_shader->start_using();
-            compute_shader->set_uniform("image_size", std::array<int, 2>{int(render_width), int(render_height)});
-            compute_shader->set_uniform("camera_position", camera.position);
-            compute_shader->set_uniform("camera_right", camera_right);
-            compute_shader->set_uniform("camera_up", camera_up);
-            compute_shader->set_uniform("camera_forward", camera_forward);
-            compute_shader->set_uniform("camera_half_fov",
-                camera.orthographic ? 0.0f : std::tan(camera.vertical_fov_degrees * 3.14159265358979323846f / 360.0f));
-            compute_shader->set_uniform("camera_orthographic_height", camera.orthographic_height);
-            compute_shader->set_uniform("camera_orthographic", camera.orthographic);
-            // The interactive pass runs the same path tracer as the progressive one, so that the image
-            // keeps its look while orbiting, with one indirect bounce.
-            compute_shader->set_uniform("max_bounces", interactive_pass ? std::min(cfg_bounces, 1) : cfg_bounces);
-            compute_shader->set_uniform("z_min", preview_z_min);
-            compute_shader->set_uniform("z_max", preview_z_max);
-            compute_shader->set_uniform("move_min", preview_move_min);
-            compute_shader->set_uniform("move_max", preview_move_max);
-            compute_shader->set_uniform("clipping_plane", clipping_active
-                ? std::array<float, 4>{float(clip_plane.get_data()[0]), float(clip_plane.get_data()[1]),
-                                       float(clip_plane.get_data()[2]), float(clip_plane.get_data()[3])}
-                : std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
-            const Vec3f light_dir = _key_light_dir_world(source_camera.get_view_matrix().matrix().block<3, 3>(0, 0)).cast<float>();
-            // The front light of the shaders, which turns with the camera.
-            const Vec3f fill_dir = (0.6985074f * camera_right + 0.1397015f * camera_up - 0.6985074f * camera_forward).normalized();
-            compute_shader->set_uniform("light_direction_uniform", light_dir);
-            compute_shader->set_uniform("fill_direction_uniform", fill_dir);
-            compute_shader->set_uniform("glossy_toolpaths", glossy_toolpaths);
-            compute_shader->set_uniform("shadows_enabled", _shadow_mode() != EShadowMode::Off);
-            compute_shader->set_uniform("layer_profile_mode", (m_canvas_type == ECanvasType::CanvasPreview) ? 1 : 0);
-            compute_shader->set_uniform("is_preview_canvas", m_canvas_type == ECanvasType::CanvasPreview);
-            compute_shader->set_uniform("bed_hidden", !source_camera.is_looking_downward());
-            compute_shader->set_uniform("lit_layer_z", std::array<float, 2>{ layer_shading_z[0], layer_shading_z[1] });
-            compute_shader->set_uniform("grey_below_z", layer_shading_z[2]);
-            compute_shader->set_uniform("layer_dim", layer_shading.dim_brightness);
-            compute_shader->set_uniform("kept_vertex", layer_shading.kept_vertex);
-            compute_shader->set_uniform("slope_active", slope_active);
-            compute_shader->set_uniform("slope_normal_z", slope_normal_z);
-            compute_shader->set_uniform("slope_up", slope_up);
-            compute_shader->set_uniform("print_volume_type", object_views ? print_volume.type : -1);
-            compute_shader->set_uniform("print_volume_xy", print_volume.data);
-            compute_shader->set_uniform("print_volume_z", print_volume.zs);
-            compute_shader->set_uniform("extruder_printable_heights", printable_heights);
-            compute_shader->set_uniform("instance_count", int(m_pathtrace_gpu_instances.size()));
-            compute_shader->set_uniform("has_vertex_normals", m_pathtrace_gpu_scene.normals.size() == m_pathtrace_gpu_scene.triangles.size() &&
-                                                              !m_pathtrace_gpu_scene.normals.empty());
-            compute_shader->set_uniform("max_trans_bounces", max_trans_bounces);
-            compute_shader->set_uniform("shadow_max_hits", shadow_max_hits);
-            compute_shader->set_uniform("quality_preset", quality_preset);
-
-            if (m_pathtrace_gpu_timer_queries[0] == 0) {
-                glsafe(::glGenQueries(GLsizei(m_pathtrace_gpu_timer_queries.size()), m_pathtrace_gpu_timer_queries.data()));
-                m_pathtrace_gpu_timer_query_in_flight[0] = false;
-                m_pathtrace_gpu_timer_query_in_flight[1] = false;
-            }
-
-            // Read back the GPU time of earlier dispatches. The slot about to be reused was written
-            // two frames ago: still unread, it means the GPU runs that far behind, and its time is
-            // waited for rather than dropped. Dropped, it left the scheduler on a stale reading, and
-            // the scheduler kept adding tiles while frames grew past 100 ms.
-            const int read_query_idx = 1 - m_pathtrace_gpu_timer_query_idx;
-            const int write_query_idx = m_pathtrace_gpu_timer_query_idx;
-            for (const int slot : { write_query_idx, read_query_idx }) {
-                if (!m_pathtrace_gpu_timer_query_in_flight[slot])
-                    continue;
-                GLint available = 1;
-                if (slot == read_query_idx)
-                    glsafe(::glGetQueryObjectiv(m_pathtrace_gpu_timer_queries[2 * slot + 1], GL_QUERY_RESULT_AVAILABLE, &available));
-                if (!available)
-                    continue;
-                GLuint64 begin_ns = 0;
-                GLuint64 end_ns = 0;
-                glsafe(::glGetQueryObjectui64v(m_pathtrace_gpu_timer_queries[2 * slot], GL_QUERY_RESULT, &begin_ns));
-                glsafe(::glGetQueryObjectui64v(m_pathtrace_gpu_timer_queries[2 * slot + 1], GL_QUERY_RESULT, &end_ns));
-                const float elapsed_ms = float(double(end_ns > begin_ns ? end_ns - begin_ns : 0) * 1e-6);
-                m_pathtrace_gpu_dispatch_time_ms = elapsed_ms;
-                if (m_pathtrace_gpu_timer_is_interactive[slot]) {
-                    m_pathtrace_gpu_dispatch_interactive_ms = elapsed_ms;
-                    // The cost of an interactive frame follows its pixel count, so the scale that meets
-                    // the 8 ms target follows from the one measured at once. It drops straight there,
-                    // which takes one frame instead of a dozen when orbiting starts at a high scale, and
-                    // grows back gradually.
-                    if (elapsed_ms > 0.2f && full_width > 0) {
-                        const float measured_scale = float(m_pathtrace_gpu_timer_res[slot][0]) / float(full_width);
-                        const float ideal_scale = measured_scale * std::sqrt(8.0f / elapsed_ms);
-                        const float next_scale = ideal_scale < m_pathtrace_dynamic_orbit_scale
-                            ? ideal_scale
-                            : m_pathtrace_dynamic_orbit_scale + 0.25f * (ideal_scale - m_pathtrace_dynamic_orbit_scale);
-                        m_pathtrace_dynamic_orbit_scale = std::clamp(next_scale, min_orbit_scale, max_orbit_scale);
-                    }
-                } else {
-                    m_pathtrace_gpu_dispatch_full_res_ms = elapsed_ms;
-                    if (m_pathtrace_gpu_timer_tiles[slot] > 0)
-                        m_pathtrace_gpu_ms_per_tile = elapsed_ms / float(m_pathtrace_gpu_timer_tiles[slot]);
-                }
-                m_pathtrace_gpu_timer_query_in_flight[slot] = false;
-            }
-
-            m_pathtrace_gpu_timer_is_interactive[write_query_idx] = interactive_pass;
-            m_pathtrace_gpu_timer_res[write_query_idx] = {render_width, render_height};
-
-            constexpr uint32_t PT_TILE_SIZE = 128u;
-
-            if (interactive_pass) {
-                // Reproject the previous interactive frame, unless the scene changed since.
-                const bool use_history = m_pathtrace_history.valid && m_pathtrace_history.scene_signature == history_signature;
-                interactive_history = use_history;
-                const PathTraceCamera& history_camera = m_pathtrace_history.camera;
-                compute_shader->set_uniform("history_valid", use_history);
-                compute_shader->set_uniform("interactive_frame", int(++m_pathtrace_history.frame & 0xFFFFu));
-                compute_shader->set_uniform("history_size", std::array<int, 2>{int(m_pathtrace_history.size[0]), int(m_pathtrace_history.size[1])});
-                compute_shader->set_uniform("history_camera_position", history_camera.position);
-                compute_shader->set_uniform("history_camera_right", history_camera.right);
-                compute_shader->set_uniform("history_camera_up", history_camera.up);
-                compute_shader->set_uniform("history_camera_forward", history_camera.forward);
-                compute_shader->set_uniform("history_camera_half_fov",
-                    history_camera.orthographic ? 0.0f : std::tan(history_camera.vertical_fov_degrees * 3.14159265358979323846f / 360.0f));
-                compute_shader->set_uniform("history_camera_orthographic_height", history_camera.orthographic_height);
-                compute_shader->set_uniform("history_camera_orthographic", history_camera.orthographic);
-                compute_shader->set_uniform("history_accumulation_tex", 0);
-                compute_shader->set_uniform("history_bed_tex", 1);
-                compute_shader->set_uniform("history_normal_depth_tex", 2);
-                compute_shader->set_uniform("history_albedo_tex", 3);
-                for (size_t i = 0; i < m_pathtrace_gpu_history_images.size(); ++i) {
-                    glsafe(::glActiveTexture(GL_TEXTURE0 + GLenum(i)));
-                    glsafe(::glBindTexture(GL_TEXTURE_2D, m_pathtrace_gpu_history_images[i]));
-                }
-                glsafe(::glActiveTexture(GL_TEXTURE0));
-
-                compute_shader->set_uniform("is_interactive_pass", true);
-                compute_shader->set_uniform("tile_offset", std::array<int, 2>{0, 0});
-                compute_shader->set_uniform("tile_size", std::array<int, 2>{int(render_width), int(render_height)});
-                compute_shader->set_uniform("sample_start", 0);
-                compute_shader->set_uniform("sample_count", 1);
-
-                glsafe(::glQueryCounter(m_pathtrace_gpu_timer_queries[2 * write_query_idx], GL_TIMESTAMP));
-
-                const GLuint groups_x = (render_width + 7u) / 8u;
-                const GLuint groups_y = (render_height + 7u) / 8u;
-                glsafe(::glDispatchCompute(groups_x, groups_y, 1));
-                glsafe(::glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT));
-
-
-                m_pathtrace_gpu_samples = 1;
-                m_pathtrace_tile_cursor = 0;
-                m_pathtrace_last_dispatched_tiles = 0;
-                m_pathtrace_tiles_per_frame = 4u;
-                m_pathtrace_gpu_dispatch_full_res_ms = 0.0f;
-                m_pathtrace_gpu_ms_per_tile = 0.0f;
-                m_pathtrace_gpu_timer_tiles[write_query_idx] = 0;
-                m_pathtrace_gpu_interactive_size = {render_width, render_height};
-                resolve_interactive = true;
-
-                for (int i = int(m_pathtrace_gpu_history_images.size()) - 1; i >= 0; --i) {
-                    glsafe(::glActiveTexture(GL_TEXTURE0 + GLenum(i)));
-                    glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
-                }
-                // This frame becomes the history of the next one.
-                glsafe(::glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT));
-                const std::array<unsigned int, 4> history_sources = { m_pathtrace_gpu_accumulation_image, m_pathtrace_gpu_trans_accumulation_image,
-                                                                       m_pathtrace_gpu_aux_normal_depth_image, m_pathtrace_gpu_aux_albedo_image };
-                for (size_t i = 0; i < history_sources.size(); ++i)
-                    glsafe(::glCopyImageSubData(history_sources[i], GL_TEXTURE_2D, 0, 0, 0, 0,
-                                                m_pathtrace_gpu_history_images[i], GL_TEXTURE_2D, 0, 0, 0, 0,
-                                                GLsizei(render_width), GLsizei(render_height), 1));
-                m_pathtrace_history.valid = true;
-                m_pathtrace_history.scene_signature = history_signature;
-                m_pathtrace_history.size = {render_width, render_height};
-                m_pathtrace_history.camera = camera;
-                m_pathtrace_history.camera.right = camera_right;
-                m_pathtrace_history.camera.up = camera_up;
-                m_pathtrace_history.camera.forward = camera_forward;
-            } else {
-                const uint32_t tiles_x = (render_width + PT_TILE_SIZE - 1u) / PT_TILE_SIZE;
-                const uint32_t tiles_y = (render_height + PT_TILE_SIZE - 1u) / PT_TILE_SIZE;
-                const uint32_t total_tiles = tiles_x * tiles_y;
-
-                uint32_t stride = std::max(1u, uint32_t(std::lround(float(total_tiles) * 0.6180339887f)));
-                while (std::gcd(stride, total_tiles) != 1u) {
-                    ++stride;
-                }
-
-                if (m_pathtrace_gpu_ms_per_tile > 0.0f) {
-                    // Grow smoothly, but cut back at once when over budget.
-                    const uint32_t ideal_tiles = std::clamp(uint32_t(std::floor(m_pathtrace_tile_budget_ms / std::max(0.05f, m_pathtrace_gpu_ms_per_tile))), 1u, total_tiles);
-                    m_pathtrace_tiles_per_frame = ideal_tiles < m_pathtrace_tiles_per_frame
-                        ? ideal_tiles
-                        : std::clamp(uint32_t(std::lround(0.7f * m_pathtrace_tiles_per_frame + 0.3f * ideal_tiles)), 1u, total_tiles);
-                }
-
-                compute_shader->set_uniform("is_interactive_pass", false);
-                compute_shader->set_uniform("sample_start", int(m_pathtrace_gpu_samples));
-                compute_shader->set_uniform("sample_count", 1);
-
-                glsafe(::glQueryCounter(m_pathtrace_gpu_timer_queries[2 * write_query_idx], GL_TIMESTAMP));
-
-                uint32_t count = 0;
-                for (; count < m_pathtrace_tiles_per_frame && m_pathtrace_tile_cursor < total_tiles; ++count, ++m_pathtrace_tile_cursor) {
-                    const uint32_t tile_idx = (m_pathtrace_tile_cursor * stride) % total_tiles;
-                    const uint32_t tx = tile_idx % tiles_x;
-                    const uint32_t ty = tile_idx / tiles_x;
-                    const uint32_t ox = tx * PT_TILE_SIZE;
-                    const uint32_t oy = ty * PT_TILE_SIZE;
-                    const uint32_t tw = std::min(PT_TILE_SIZE, render_width - ox);
-                    const uint32_t th = std::min(PT_TILE_SIZE, render_height - oy);
-
-                    compute_shader->set_uniform("tile_offset", std::array<int, 2>{int(ox), int(oy)});
-                    compute_shader->set_uniform("tile_size", std::array<int, 2>{int(tw), int(th)});
-                    glsafe(::glDispatchCompute((tw + 7u) / 8u, (th + 7u) / 8u, 1));
-                }
-
-                m_pathtrace_last_dispatched_tiles = count;
-                m_pathtrace_gpu_timer_tiles[write_query_idx] = count;
-
-                glsafe(::glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT));
-
-                if (m_pathtrace_tile_cursor >= total_tiles) {
-                    m_pathtrace_tile_cursor = 0;
-                    m_pathtrace_gpu_samples += 1;
-                    // The display only takes whole samples, so it never shows tiles at different sample counts.
-                    resolve_full = true;
-                }
-            }
-
-            compute_shader->stop_using();
-
-            glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0));
-            glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, 0));
-            glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, 0));
-            glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, 0));
-            glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, 0));
-            glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, 0));
-            glsafe(::glBindImageTexture(0, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F));
-            glsafe(::glBindImageTexture(1, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F));
-            glsafe(::glBindImageTexture(2, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F));
-            glsafe(::glBindImageTexture(3, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8));
-            glsafe(::glBindImageTexture(4, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32F));
-            // The end timestamp goes after the images are unbound: right after the dispatches the
-            // driver may write it before they have run, which made a 100 ms frame read as 6 ms.
-            glsafe(::glQueryCounter(m_pathtrace_gpu_timer_queries[2 * write_query_idx + 1], GL_TIMESTAMP));
-            m_pathtrace_gpu_timer_query_in_flight[write_query_idx] = true;
-            m_pathtrace_gpu_timer_query_idx = read_query_idx;
-        }
-
-        m_frame_profiler.mark("pt trace");
-        if (resolve_interactive)
-            // Blended with its history, an interactive frame holds a few samples per pixel.
-            _resolve_pathtrace_image(*denoise_shader, true, interactive_width, interactive_height, interactive_history ? 4u : 1u);
-        else if (resolve_full)
-            _resolve_pathtrace_image(*denoise_shader, false, full_width, full_height, m_pathtrace_gpu_samples - 1u);
-        m_frame_profiler.mark("pt denoise");
-
-        if (m_pathtrace_gpu_samples < target_max_samples) {
-            schedule_extra_frame(1);
-        } else if (recent_change) {
-            schedule_extra_frame(60);
-        }
-
+    if (!interactive && m_pathtrace_gpu_samples >= 1 && ImGui::IsAnyItemActive()) {
+        schedule_extra_frame(16);
         _render_pathtrace_composite();
-        m_frame_profiler.mark("pt composite");
         return true;
     }
-    return false;
+
+    // Sections of the frame profiler, so that the overlay splits the path tracing time.
+    m_frame_profiler.mark("pt setup");
+    bool resolve_interactive = false;
+    bool resolve_full = false;
+    bool interactive_history = false;
+    if (m_pathtrace_gpu_samples < target_max_samples) {
+        PathTraceCamera camera;
+        camera.position = source_camera.get_position().cast<float>();
+        camera.right = source_camera.get_dir_right().cast<float>();
+        camera.up = source_camera.get_dir_up().cast<float>();
+        camera.forward = source_camera.get_dir_forward().cast<float>();
+        camera.orthographic = source_camera.get_type() == Camera::EType::Ortho;
+        if (camera.orthographic)
+            camera.orthographic_height = float(source_camera.get_near_height());
+        else
+            camera.vertical_fov_degrees = float(source_camera.get_fov());
+
+        glsafe(::glBindImageTexture(0, m_pathtrace_gpu_accumulation_image, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F));
+        glsafe(::glBindImageTexture(1, m_pathtrace_gpu_aux_normal_depth_image, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F));
+        glsafe(::glBindImageTexture(2, m_pathtrace_gpu_trans_accumulation_image, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F));
+        glsafe(::glBindImageTexture(3, m_pathtrace_gpu_aux_albedo_image, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8));
+        glsafe(::glBindImageTexture(4, m_pathtrace_gpu_moment_image, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32F));
+
+        glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_pathtrace_gpu_node_buffer));
+        glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_pathtrace_gpu_triangle_buffer));
+        glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_pathtrace_gpu_instance_buffer));
+        glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_pathtrace_gpu_shading_buffer));
+        glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, m_pathtrace_gpu_normal_buffer));
+        glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, m_pathtrace_gpu_tlas_buffer));
+
+        const uint32_t render_width = interactive_pass ? interactive_width : full_width;
+        const uint32_t render_height = interactive_pass ? interactive_height : full_height;
+        const Vec3f camera_right = camera.right.normalized();
+        const Vec3f camera_up = camera.up.normalized();
+        const Vec3f camera_forward = camera.forward.normalized();
+        compute_shader->start_using();
+        compute_shader->set_uniform("image_size", std::array<int, 2>{int(render_width), int(render_height)});
+        compute_shader->set_uniform("camera_position", camera.position);
+        compute_shader->set_uniform("camera_right", camera_right);
+        compute_shader->set_uniform("camera_up", camera_up);
+        compute_shader->set_uniform("camera_forward", camera_forward);
+        compute_shader->set_uniform("camera_half_fov",
+            camera.orthographic ? 0.0f : std::tan(camera.vertical_fov_degrees * 3.14159265358979323846f / 360.0f));
+        compute_shader->set_uniform("camera_orthographic_height", camera.orthographic_height);
+        compute_shader->set_uniform("camera_orthographic", camera.orthographic);
+        // The interactive pass runs the same path tracer as the progressive one, so that the image
+        // keeps its look while orbiting, with one indirect bounce.
+        compute_shader->set_uniform("max_bounces", interactive_pass ? std::min(cfg_bounces, 1) : cfg_bounces);
+        compute_shader->set_uniform("z_min", preview_z_min);
+        compute_shader->set_uniform("z_max", preview_z_max);
+        compute_shader->set_uniform("move_min", preview_move_min);
+        compute_shader->set_uniform("move_max", preview_move_max);
+        compute_shader->set_uniform("clipping_plane", clipping_active
+            ? std::array<float, 4>{float(clip_plane.get_data()[0]), float(clip_plane.get_data()[1]),
+                                   float(clip_plane.get_data()[2]), float(clip_plane.get_data()[3])}
+            : std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+        const Vec3f light_dir = _key_light_dir_world(source_camera.get_view_matrix().matrix().block<3, 3>(0, 0)).cast<float>();
+        // The front light of the shaders, which turns with the camera.
+        const Vec3f fill_dir = (0.6985074f * camera_right + 0.1397015f * camera_up - 0.6985074f * camera_forward).normalized();
+        compute_shader->set_uniform("light_direction_uniform", light_dir);
+        compute_shader->set_uniform("fill_direction_uniform", fill_dir);
+        compute_shader->set_uniform("glossy_toolpaths", glossy_toolpaths);
+        compute_shader->set_uniform("shadows_enabled", _shadow_mode() != EShadowMode::Off);
+        compute_shader->set_uniform("layer_profile_mode", (m_canvas_type == ECanvasType::CanvasPreview) ? 1 : 0);
+        compute_shader->set_uniform("is_preview_canvas", m_canvas_type == ECanvasType::CanvasPreview);
+        compute_shader->set_uniform("bed_hidden", !source_camera.is_looking_downward());
+        compute_shader->set_uniform("lit_layer_z", std::array<float, 2>{ layer_shading_z[0], layer_shading_z[1] });
+        compute_shader->set_uniform("grey_below_z", layer_shading_z[2]);
+        compute_shader->set_uniform("layer_dim", layer_shading.dim_brightness);
+        compute_shader->set_uniform("kept_vertex", layer_shading.kept_vertex);
+        compute_shader->set_uniform("slope_active", slope_active);
+        compute_shader->set_uniform("slope_normal_z", slope_normal_z);
+        compute_shader->set_uniform("slope_up", slope_up);
+        compute_shader->set_uniform("print_volume_type", object_views ? print_volume.type : -1);
+        compute_shader->set_uniform("print_volume_xy", print_volume.data);
+        compute_shader->set_uniform("print_volume_z", print_volume.zs);
+        compute_shader->set_uniform("extruder_printable_heights", printable_heights);
+        compute_shader->set_uniform("instance_count", int(m_pathtrace_gpu_instances.size()));
+        compute_shader->set_uniform("has_vertex_normals", m_pathtrace_gpu_scene.normals.size() == m_pathtrace_gpu_scene.triangles.size() &&
+                                                          !m_pathtrace_gpu_scene.normals.empty());
+        compute_shader->set_uniform("max_trans_bounces", max_trans_bounces);
+        compute_shader->set_uniform("shadow_max_hits", shadow_max_hits);
+        compute_shader->set_uniform("quality_preset", quality_preset);
+
+        if (m_pathtrace_gpu_timer_queries[0] == 0) {
+            glsafe(::glGenQueries(GLsizei(m_pathtrace_gpu_timer_queries.size()), m_pathtrace_gpu_timer_queries.data()));
+            m_pathtrace_gpu_timer_query_in_flight[0] = false;
+            m_pathtrace_gpu_timer_query_in_flight[1] = false;
+        }
+
+        // Read back the GPU time of earlier dispatches. The slot about to be reused was written
+        // two frames ago: still unread, it means the GPU runs that far behind, and its time is
+        // waited for rather than dropped. Dropped, it left the scheduler on a stale reading, and
+        // the scheduler kept adding tiles while frames grew past 100 ms.
+        const int read_query_idx = 1 - m_pathtrace_gpu_timer_query_idx;
+        const int write_query_idx = m_pathtrace_gpu_timer_query_idx;
+        for (const int slot : { write_query_idx, read_query_idx }) {
+            if (!m_pathtrace_gpu_timer_query_in_flight[slot])
+                continue;
+            GLint available = 1;
+            if (slot == read_query_idx)
+                glsafe(::glGetQueryObjectiv(m_pathtrace_gpu_timer_queries[2 * slot + 1], GL_QUERY_RESULT_AVAILABLE, &available));
+            if (!available)
+                continue;
+            GLuint64 begin_ns = 0;
+            GLuint64 end_ns = 0;
+            glsafe(::glGetQueryObjectui64v(m_pathtrace_gpu_timer_queries[2 * slot], GL_QUERY_RESULT, &begin_ns));
+            glsafe(::glGetQueryObjectui64v(m_pathtrace_gpu_timer_queries[2 * slot + 1], GL_QUERY_RESULT, &end_ns));
+            const float elapsed_ms = float(double(end_ns > begin_ns ? end_ns - begin_ns : 0) * 1e-6);
+            m_pathtrace_gpu_dispatch_time_ms = elapsed_ms;
+            if (m_pathtrace_gpu_timer_is_interactive[slot]) {
+                m_pathtrace_gpu_dispatch_interactive_ms = elapsed_ms;
+                // The cost of an interactive frame follows its pixel count, so the scale that meets
+                // the 8 ms target follows from the one measured at once. It drops straight there,
+                // which takes one frame instead of a dozen when orbiting starts at a high scale, and
+                // grows back gradually.
+                if (elapsed_ms > 0.2f && full_width > 0) {
+                    const float measured_scale = float(m_pathtrace_gpu_timer_res[slot][0]) / float(full_width);
+                    const float ideal_scale = measured_scale * std::sqrt(8.0f / elapsed_ms);
+                    const float next_scale = ideal_scale < m_pathtrace_dynamic_orbit_scale
+                        ? ideal_scale
+                        : m_pathtrace_dynamic_orbit_scale + 0.25f * (ideal_scale - m_pathtrace_dynamic_orbit_scale);
+                    m_pathtrace_dynamic_orbit_scale = std::clamp(next_scale, min_orbit_scale, max_orbit_scale);
+                }
+            } else {
+                m_pathtrace_gpu_dispatch_full_res_ms = elapsed_ms;
+                if (m_pathtrace_gpu_timer_tiles[slot] > 0)
+                    m_pathtrace_gpu_ms_per_tile = elapsed_ms / float(m_pathtrace_gpu_timer_tiles[slot]);
+            }
+            m_pathtrace_gpu_timer_query_in_flight[slot] = false;
+        }
+
+        m_pathtrace_gpu_timer_is_interactive[write_query_idx] = interactive_pass;
+        m_pathtrace_gpu_timer_res[write_query_idx] = {render_width, render_height};
+
+        constexpr uint32_t PT_TILE_SIZE = 128u;
+
+        if (interactive_pass) {
+            // Reproject the previous interactive frame, unless the scene changed since.
+            const bool use_history = m_pathtrace_history.valid && m_pathtrace_history.scene_signature == history_signature;
+            interactive_history = use_history;
+            const PathTraceCamera& history_camera = m_pathtrace_history.camera;
+            compute_shader->set_uniform("history_valid", use_history);
+            compute_shader->set_uniform("interactive_frame", int(++m_pathtrace_history.frame & 0xFFFFu));
+            compute_shader->set_uniform("history_size", std::array<int, 2>{int(m_pathtrace_history.size[0]), int(m_pathtrace_history.size[1])});
+            compute_shader->set_uniform("history_camera_position", history_camera.position);
+            compute_shader->set_uniform("history_camera_right", history_camera.right);
+            compute_shader->set_uniform("history_camera_up", history_camera.up);
+            compute_shader->set_uniform("history_camera_forward", history_camera.forward);
+            compute_shader->set_uniform("history_camera_half_fov",
+                history_camera.orthographic ? 0.0f : std::tan(history_camera.vertical_fov_degrees * 3.14159265358979323846f / 360.0f));
+            compute_shader->set_uniform("history_camera_orthographic_height", history_camera.orthographic_height);
+            compute_shader->set_uniform("history_camera_orthographic", history_camera.orthographic);
+            compute_shader->set_uniform("history_accumulation_tex", 0);
+            compute_shader->set_uniform("history_bed_tex", 1);
+            compute_shader->set_uniform("history_normal_depth_tex", 2);
+            compute_shader->set_uniform("history_albedo_tex", 3);
+            for (size_t i = 0; i < m_pathtrace_gpu_history_images.size(); ++i) {
+                glsafe(::glActiveTexture(GL_TEXTURE0 + GLenum(i)));
+                glsafe(::glBindTexture(GL_TEXTURE_2D, m_pathtrace_gpu_history_images[i]));
+            }
+            glsafe(::glActiveTexture(GL_TEXTURE0));
+
+            compute_shader->set_uniform("is_interactive_pass", true);
+            compute_shader->set_uniform("tile_offset", std::array<int, 2>{0, 0});
+            compute_shader->set_uniform("tile_size", std::array<int, 2>{int(render_width), int(render_height)});
+            compute_shader->set_uniform("sample_start", 0);
+            compute_shader->set_uniform("sample_count", 1);
+
+            glsafe(::glQueryCounter(m_pathtrace_gpu_timer_queries[2 * write_query_idx], GL_TIMESTAMP));
+
+            const GLuint groups_x = (render_width + 7u) / 8u;
+            const GLuint groups_y = (render_height + 7u) / 8u;
+            glsafe(::glDispatchCompute(groups_x, groups_y, 1));
+            glsafe(::glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT));
+
+
+            m_pathtrace_gpu_samples = 1;
+            m_pathtrace_tile_cursor = 0;
+            m_pathtrace_tiles_per_frame = 4u;
+            m_pathtrace_gpu_dispatch_full_res_ms = 0.0f;
+            m_pathtrace_gpu_ms_per_tile = 0.0f;
+            m_pathtrace_gpu_timer_tiles[write_query_idx] = 0;
+            m_pathtrace_gpu_interactive_size = {render_width, render_height};
+            resolve_interactive = true;
+
+            for (int i = int(m_pathtrace_gpu_history_images.size()) - 1; i >= 0; --i) {
+                glsafe(::glActiveTexture(GL_TEXTURE0 + GLenum(i)));
+                glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+            }
+            // This frame becomes the history of the next one.
+            glsafe(::glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT));
+            const std::array<unsigned int, 4> history_sources = { m_pathtrace_gpu_accumulation_image, m_pathtrace_gpu_trans_accumulation_image,
+                                                                   m_pathtrace_gpu_aux_normal_depth_image, m_pathtrace_gpu_aux_albedo_image };
+            for (size_t i = 0; i < history_sources.size(); ++i)
+                glsafe(::glCopyImageSubData(history_sources[i], GL_TEXTURE_2D, 0, 0, 0, 0,
+                                            m_pathtrace_gpu_history_images[i], GL_TEXTURE_2D, 0, 0, 0, 0,
+                                            GLsizei(render_width), GLsizei(render_height), 1));
+            m_pathtrace_history.valid = true;
+            m_pathtrace_history.scene_signature = history_signature;
+            m_pathtrace_history.size = {render_width, render_height};
+            m_pathtrace_history.camera = camera;
+            m_pathtrace_history.camera.right = camera_right;
+            m_pathtrace_history.camera.up = camera_up;
+            m_pathtrace_history.camera.forward = camera_forward;
+        } else {
+            const uint32_t tiles_x = (render_width + PT_TILE_SIZE - 1u) / PT_TILE_SIZE;
+            const uint32_t tiles_y = (render_height + PT_TILE_SIZE - 1u) / PT_TILE_SIZE;
+            const uint32_t total_tiles = tiles_x * tiles_y;
+
+            uint32_t stride = std::max(1u, uint32_t(std::lround(float(total_tiles) * 0.6180339887f)));
+            while (std::gcd(stride, total_tiles) != 1u) {
+                ++stride;
+            }
+
+            if (m_pathtrace_gpu_ms_per_tile > 0.0f) {
+                // Grow smoothly, but cut back at once when over budget.
+                const uint32_t ideal_tiles = std::clamp(uint32_t(std::floor(tile_budget_ms / std::max(0.05f, m_pathtrace_gpu_ms_per_tile))), 1u, total_tiles);
+                m_pathtrace_tiles_per_frame = ideal_tiles < m_pathtrace_tiles_per_frame
+                    ? ideal_tiles
+                    : std::clamp(uint32_t(std::lround(0.7f * m_pathtrace_tiles_per_frame + 0.3f * ideal_tiles)), 1u, total_tiles);
+            }
+
+            compute_shader->set_uniform("is_interactive_pass", false);
+            compute_shader->set_uniform("sample_start", int(m_pathtrace_gpu_samples));
+            compute_shader->set_uniform("sample_count", 1);
+
+            glsafe(::glQueryCounter(m_pathtrace_gpu_timer_queries[2 * write_query_idx], GL_TIMESTAMP));
+
+            uint32_t count = 0;
+            for (; count < m_pathtrace_tiles_per_frame && m_pathtrace_tile_cursor < total_tiles; ++count, ++m_pathtrace_tile_cursor) {
+                const uint32_t tile_idx = (m_pathtrace_tile_cursor * stride) % total_tiles;
+                const uint32_t tx = tile_idx % tiles_x;
+                const uint32_t ty = tile_idx / tiles_x;
+                const uint32_t ox = tx * PT_TILE_SIZE;
+                const uint32_t oy = ty * PT_TILE_SIZE;
+                const uint32_t tw = std::min(PT_TILE_SIZE, render_width - ox);
+                const uint32_t th = std::min(PT_TILE_SIZE, render_height - oy);
+
+                compute_shader->set_uniform("tile_offset", std::array<int, 2>{int(ox), int(oy)});
+                compute_shader->set_uniform("tile_size", std::array<int, 2>{int(tw), int(th)});
+                glsafe(::glDispatchCompute((tw + 7u) / 8u, (th + 7u) / 8u, 1));
+            }
+
+            m_pathtrace_gpu_timer_tiles[write_query_idx] = count;
+
+            glsafe(::glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT));
+
+            if (m_pathtrace_tile_cursor >= total_tiles) {
+                m_pathtrace_tile_cursor = 0;
+                m_pathtrace_gpu_samples += 1;
+                // The display only takes whole samples, so it never shows tiles at different sample counts.
+                resolve_full = true;
+            }
+        }
+
+        compute_shader->stop_using();
+
+        glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0));
+        glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, 0));
+        glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, 0));
+        glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, 0));
+        glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, 0));
+        glsafe(::glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, 0));
+        glsafe(::glBindImageTexture(0, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F));
+        glsafe(::glBindImageTexture(1, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F));
+        glsafe(::glBindImageTexture(2, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F));
+        glsafe(::glBindImageTexture(3, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8));
+        glsafe(::glBindImageTexture(4, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32F));
+        // The end timestamp goes after the images are unbound: right after the dispatches the
+        // driver may write it before they have run, which made a 100 ms frame read as 6 ms.
+        glsafe(::glQueryCounter(m_pathtrace_gpu_timer_queries[2 * write_query_idx + 1], GL_TIMESTAMP));
+        m_pathtrace_gpu_timer_query_in_flight[write_query_idx] = true;
+        m_pathtrace_gpu_timer_query_idx = read_query_idx;
+    }
+
+    m_frame_profiler.mark("pt trace");
+    if (resolve_interactive)
+        // Blended with its history, an interactive frame holds a few samples per pixel.
+        _resolve_pathtrace_image(*denoise_shader, true, interactive_width, interactive_height, interactive_history ? 4u : 1u);
+    else if (resolve_full)
+        _resolve_pathtrace_image(*denoise_shader, false, full_width, full_height, m_pathtrace_gpu_samples - 1u);
+    m_frame_profiler.mark("pt denoise");
+
+    if (m_pathtrace_gpu_samples < target_max_samples) {
+        schedule_extra_frame(1);
+    } else if (recent_change) {
+        schedule_extra_frame(60);
+    }
+
+    _render_pathtrace_composite();
+    m_frame_profiler.mark("pt composite");
+    return true;
 }
 
 } // namespace GUI

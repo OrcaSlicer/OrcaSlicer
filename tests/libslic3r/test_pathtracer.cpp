@@ -9,7 +9,6 @@
 
 #include <atomic>
 #include <cmath>
-#include <cstddef>
 #include <vector>
 
 using namespace Slic3r;
@@ -32,15 +31,13 @@ TEST_CASE("Path tracer packs triangle BVH data for the GPU", "[PathTracer]")
     REQUIRE(scene.nodes[0].bounds_max[1] == 1.0f);
 }
 
-TEST_CASE("Path tracer appends transformed mesh triangles", "[PathTracer]")
+TEST_CASE("Path tracer appends mesh triangles", "[PathTracer]")
 {
-    const std::vector<Vec3f> vertices = {Vec3f{0.0f, 0.0f, 0.0f}, Vec3f{1.0f, 0.0f, 0.0f}, Vec3f{0.0f, 1.0f, 0.0f}};
+    const std::vector<Vec3f> vertices = {Vec3f{2.0f, 3.0f, 4.0f}, Vec3f{3.0f, 3.0f, 4.0f}, Vec3f{2.0f, 4.0f, 4.0f}};
     const std::vector<Vec3i32> indices = {Vec3i32{0, 1, 2}};
-    Transform3d transform = Transform3d::Identity();
-    transform.translate(Vec3d{2.0, 3.0, 4.0});
 
     std::vector<PathTraceTriangle> triangles;
-    append_path_trace_triangles(triangles, vertices, indices, transform, Vec3f{0.2f, 0.4f, 0.6f});
+    append_path_trace_triangles(triangles, vertices, indices, Vec3f{0.2f, 0.4f, 0.6f});
 
     REQUIRE(triangles.size() == 1);
     REQUIRE(triangles[0].a.x() == Catch::Approx(2.0f));
@@ -71,9 +68,8 @@ TEST_CASE("Path tracer packs transparent triangles and preserves opacity for GPU
     std::vector<PathTraceTriangle> triangles;
     const std::vector<Vec3f> vertices = {Vec3f{0.0f, 0.0f, 0.0f}, Vec3f{1.0f, 0.0f, 0.0f}, Vec3f{0.0f, 1.0f, 0.0f}};
     const std::vector<Vec3i32> indices = {Vec3i32{0, 1, 2}};
-    Transform3d transform = Transform3d::Identity();
 
-    append_path_trace_triangles(triangles, vertices, indices, transform, Vec4f{0.8f, 0.2f, 0.1f, 0.45f});
+    append_path_trace_triangles(triangles, vertices, indices, Vec4f{0.8f, 0.2f, 0.1f, 0.45f});
 
     REQUIRE(triangles.size() == 1);
     REQUIRE(triangles[0].albedo.x() == Catch::Approx(0.8f));
@@ -142,38 +138,6 @@ TEST_CASE("Path tracer packs shading normals only on request", "[PathTracer]")
     REQUIRE(without_normals.normals.empty());
 }
 
-TEST_CASE("Path tracer keeps the faces of a mirrored mesh facing outward", "[PathTracer]")
-{
-    const float angle = 20.0f * 3.14159265f / 180.0f;
-    const std::vector<Vec3f> vertices = {Vec3f{0.0f, 0.0f, 0.0f}, Vec3f{0.0f, 1.0f, 0.0f}, Vec3f{-1.0f, 0.5f, 0.0f},
-                                         Vec3f{std::cos(angle), 0.5f, std::sin(angle)}};
-    const std::vector<Vec3i32> indices = {Vec3i32{0, 1, 2}, Vec3i32{1, 0, 3}};
-    Transform3d mirror = Transform3d::Identity();
-    mirror.scale(Vec3d{-1.0, 1.0, 1.0});
-    const auto mirrored_x = [](const Vec3f& v) { return Vec3f{-v.x(), v.y(), v.z()}; };
-    const auto face_normal = [](const PathTraceTriangle& t) { return Vec3f((t.b - t.a).cross(t.c - t.a).normalized()); };
-
-    const bool smooth_normals = GENERATE(false, true);
-    std::vector<PathTraceTriangle> plain;
-    std::vector<PathTraceTriangle> mirrored;
-    append_path_trace_triangles(plain, vertices, indices, Transform3d::Identity(), Vec3f{0.5f, 0.5f, 0.5f}, smooth_normals);
-    append_path_trace_triangles(mirrored, vertices, indices, mirror, Vec3f{0.5f, 0.5f, 0.5f}, smooth_normals);
-
-    REQUIRE(mirrored.size() == plain.size());
-    for (size_t i = 0; i < plain.size(); ++i) {
-        REQUIRE_THAT(face_normal(mirrored[i]).dot(mirrored_x(face_normal(plain[i]))), Catch::Matchers::WithinAbs(1.0, 1e-3));
-        if (!smooth_normals)
-            continue;
-        // The corners b and c change places, and each keeps the normal of its vertex.
-        REQUIRE_THAT(unpack_unit_vector_oct(mirrored[i].vertex_normals[0]).dot(mirrored_x(unpack_unit_vector_oct(plain[i].vertex_normals[0]))),
-                     Catch::Matchers::WithinAbs(1.0, 1e-3));
-        REQUIRE_THAT(unpack_unit_vector_oct(mirrored[i].vertex_normals[1]).dot(mirrored_x(unpack_unit_vector_oct(plain[i].vertex_normals[2]))),
-                     Catch::Matchers::WithinAbs(1.0, 1e-3));
-        REQUIRE_THAT(unpack_unit_vector_oct(mirrored[i].vertex_normals[2]).dot(mirrored_x(unpack_unit_vector_oct(plain[i].vertex_normals[1]))),
-                     Catch::Matchers::WithinAbs(1.0, 1e-3));
-    }
-}
-
 TEST_CASE("Path tracer smooths normals across shallow folds and keeps sharp edges", "[PathTracer]")
 {
     // Two triangles sharing the edge from (0, 0, 0) to (0, 1, 0), the second one folded about it.
@@ -183,7 +147,7 @@ TEST_CASE("Path tracer smooths normals across shallow folds and keeps sharp edge
                                              Vec3f{std::cos(angle), 0.5f, std::sin(angle)}};
         const std::vector<Vec3i32> indices = {Vec3i32{0, 1, 2}, Vec3i32{1, 0, 3}};
         std::vector<PathTraceTriangle> triangles;
-        append_path_trace_triangles(triangles, vertices, indices, Transform3d::Identity(), Vec3f{0.5f, 0.5f, 0.5f}, smooth_normals);
+        append_path_trace_triangles(triangles, vertices, indices, Vec3f{0.5f, 0.5f, 0.5f}, smooth_normals);
         return triangles;
     };
 

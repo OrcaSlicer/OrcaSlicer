@@ -793,12 +793,11 @@ private:
         uint32_t tri_count{0};
         Vec3f local_bounds_min{Vec3f::Zero()};
         Vec3f local_bounds_max{Vec3f::Zero()};
-        // GLVolume::geometry_id.second of the volumes: the ID of their ModelInstance, or of the wipe
-        // tower's plate. Object indices go stale when an arrange or an undo reorders the objects of the
-        // model, which keeps the meshes and so this BLAS. 0 for the toolpaths and the plates.
-        size_t instance_id{0};
+        // GLVolume::geometry_id of the part this BLAS holds. Object indices go stale when an arrange or
+        // an undo reorders the objects of the model, which keeps the meshes and so this BLAS. Zero for
+        // the toolpaths and the plates.
+        std::pair<size_t, size_t> geometry_id{0, 0};
         int plate_idx{-1};
-        bool is_wipe_tower{false};
     };
     std::vector<PathTraceVolumeBlas> m_pathtrace_volume_blas;
     std::vector<PathTraceGpuInstance> m_pathtrace_gpu_instances;
@@ -821,17 +820,20 @@ private:
     float m_pathtrace_gpu_dispatch_interactive_ms{0.0f};
     uint32_t m_pathtrace_tile_cursor{ 0 };
     uint32_t m_pathtrace_tiles_per_frame{ 6 };
-    uint32_t m_pathtrace_last_dispatched_tiles{ 0 };
-    float    m_pathtrace_tile_budget_ms{ 6.0f };
-    float    m_pathtrace_dynamic_orbit_scale{ 0.50f };
+    // Starts at the lowest scale of the presets: nothing has been timed yet for the first dispatch, which
+    // could otherwise stall a weak GPU.
+    float    m_pathtrace_dynamic_orbit_scale{ 0.15f };
     struct PathTraceSceneBuildResult {
         size_t geom_signature{0};
+        size_t color_signature{0};
         PathTraceGpuScene gpu_scene;
         std::vector<PathTraceVolumeBlas> volume_blas;
         std::vector<size_t> gpu_tri_vertex_id;
     };
     struct PathTraceBvhJob {
         size_t geom_signature{0};
+        // The colors the triangles are extracted with.
+        size_t color_signature{0};
         bool is_preview{false};
         // Subsurface scattering family of each extruder's filament, read from the presets on the GUI thread.
         std::vector<int> extruder_sss_families;
@@ -844,8 +846,7 @@ private:
         std::vector<float> source_tri_delta_angle;
         std::vector<float> source_tri_opacity;
         struct VolumeGroupTriangles {
-            size_t instance_id{0};
-            bool is_wipe_tower{false};
+            std::pair<size_t, size_t> geometry_id{0, 0};
             std::vector<PathTraceTriangle> triangles;
             std::vector<uint32_t> triangle_extruder_ids;
         };
@@ -1682,6 +1683,9 @@ private:
     void _release_pathtrace_gl_resources();
     // Marks everything on the GPU as never uploaded.
     void _forget_pathtrace_uploads();
+    void _free_pathtrace_cpu_scene();
+    // Whether the path tracer draws this volume, or the rasterizer draws it over the path traced image.
+    static bool _is_path_traced(const GLVolume& volume);
     // Frees the scene, so that it is built anew when next path traced. Without a current OpenGL context
     // its GL objects stay until this canvas next renders, which frees or overwrites them.
     void _release_pathtrace_scene(bool gl_current = true);
