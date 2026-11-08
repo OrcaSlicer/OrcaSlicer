@@ -10008,6 +10008,71 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
         }
     };
 
+    // BBS: generate gcode from arc fitting data, which includes lines and arcs
+    auto extrude_fitted = [&](const Polyline3 &polyline) {
+        const std::vector<PathFittingData>& fitting_result = polyline.fitting_result;
+        for (size_t fitting_index = 0; fitting_index < fitting_result.size(); fitting_index++) {
+            std::string flow_description;
+            switch (fitting_result[fitting_index].path_type) {
+            case EMovePathType::Linear_move: {
+                size_t start_index = fitting_result[fitting_index].start_point_index;
+                size_t end_index = fitting_result[fitting_index].end_point_index;
+                for (size_t point_index = start_index + 1; point_index < end_index + 1; point_index++) {
+                    flow_description.clear();
+                    const Line line = Line(polyline.points[point_index - 1].to_point(), polyline.points[point_index].to_point());
+                    const double line_length = line.length() * SCALING_FACTOR;
+                    if (line_length < EPSILON)
+                        continue;
+                    auto dE = e_per_mm * line_length;
+                    if (_needSAFC(path)) {
+                        auto oldE = dE;
+                        dE = m_small_area_infill_flow_compensator->modify_flow(line_length, dE, path.role());
+
+                        if (m_config.gcode_comments && oldE > 0 && oldE != dE) {
+                            flow_description = description + Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);
+                        }
+                    }
+                    m_writer.extrude_to_xy(gcode,
+                        this->point_to_gcode(line.b),
+                        dE,
+                        flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
+                    check_and_insert_timelapse(line.b); // Inline farthest-point snapshot
+                }
+                break;
+            }
+            case EMovePathType::Arc_move_cw:
+            case EMovePathType::Arc_move_ccw: {
+                const ArcSegment& arc = fitting_result[fitting_index].arc_data;
+                const double arc_length = fitting_result[fitting_index].arc_data.length * SCALING_FACTOR;
+                if (arc_length < EPSILON)
+                    continue;
+                const Vec2d center_offset = this->point_to_gcode(arc.center) - this->point_to_gcode(arc.start_point);
+                auto dE = e_per_mm * arc_length;
+                if (_needSAFC(path)) {
+                    auto oldE = dE;
+                    dE = m_small_area_infill_flow_compensator->modify_flow(arc_length, dE, path.role());
+
+                    if (m_config.gcode_comments && oldE > 0 && oldE != dE) {
+                        flow_description = description + Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, arc_length);
+                    }
+                }
+                m_writer.extrude_arc_to_xy(gcode,
+                    this->point_to_gcode(arc.end_point),
+                    center_offset,
+                    dE,
+                    arc.direction == ArcDirection::Arc_Dir_CCW,
+                    flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
+                check_and_insert_timelapse(arc.end_point); // Inline farthest-point snapshot
+                break;
+            }
+            default:
+                // BBS: should never happen that a empty path_type has been stored
+                assert(0);
+                break;
+            }
+        }
+    };
+
     if (!requires_segmented_extrusion) {
         // F is mm per minute.
         if( (std::abs(writer().get_current_speed() - F) > EPSILON) || (std::abs(_mm3_per_mm - m_last_mm3_mm) > EPSILON) ){
@@ -10131,68 +10196,7 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
                     check_and_insert_timelapse(line.b.to_point()); // Inline farthest-point snapshot
                 }
             } else {
-                // BBS: start to generate gcode from arc fitting data which includes line and arc
-                const std::vector<PathFittingData>& fitting_result = path.polyline.fitting_result;
-                for (size_t fitting_index = 0; fitting_index < fitting_result.size(); fitting_index++) {
-                    std::string flow_description;
-                    switch (fitting_result[fitting_index].path_type) {
-                    case EMovePathType::Linear_move: {
-                        size_t start_index = fitting_result[fitting_index].start_point_index;
-                        size_t end_index = fitting_result[fitting_index].end_point_index;
-                        for (size_t point_index = start_index + 1; point_index < end_index + 1; point_index++) {
-                            flow_description.clear();
-                            const Line line = Line(path.polyline.points[point_index - 1].to_point(), path.polyline.points[point_index].to_point());
-                            const double line_length = line.length() * SCALING_FACTOR;
-                            if (line_length < EPSILON)
-                                continue;
-                            auto dE = e_per_mm * line_length;
-                            if (_needSAFC(path)) {
-                                auto oldE = dE;
-                                dE = m_small_area_infill_flow_compensator->modify_flow(line_length, dE, path.role());
-
-                                if (m_config.gcode_comments && oldE > 0 && oldE != dE) {
-                                    flow_description = description + Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);
-                                }
-                            }
-                            m_writer.extrude_to_xy(gcode,
-                                this->point_to_gcode(line.b),
-                                dE,
-                                flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
-                            check_and_insert_timelapse(line.b); // Inline farthest-point snapshot
-                        }
-                        break;
-                    }
-                    case EMovePathType::Arc_move_cw:
-                    case EMovePathType::Arc_move_ccw: {
-                        const ArcSegment& arc = fitting_result[fitting_index].arc_data;
-                        const double arc_length = fitting_result[fitting_index].arc_data.length * SCALING_FACTOR;
-                        if (arc_length < EPSILON)
-                            continue;
-                        const Vec2d center_offset = this->point_to_gcode(arc.center) - this->point_to_gcode(arc.start_point);
-                        auto dE = e_per_mm * arc_length;
-                        if (_needSAFC(path)) {
-                            auto oldE = dE;
-                            dE = m_small_area_infill_flow_compensator->modify_flow(arc_length, dE, path.role());
-
-                            if (m_config.gcode_comments && oldE > 0 && oldE != dE) {
-                                flow_description = description + Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, arc_length);
-                            }
-                        }
-                        m_writer.extrude_arc_to_xy(gcode,
-                            this->point_to_gcode(arc.end_point),
-                            center_offset,
-                            dE,
-                            arc.direction == ArcDirection::Arc_Dir_CCW,
-                            flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
-                        check_and_insert_timelapse(arc.end_point); // Inline farthest-point snapshot
-                        break;
-                    }
-                    default:
-                        // BBS: should never happen that a empty path_type has been stored
-                        assert(0);
-                        break;
-                    }
-                }
+                extrude_fitted(path.polyline);
             }
         }
     } else {
@@ -10216,6 +10220,14 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
         
         if(path.role() == erInternalBridgeInfill) // ORCA: Add support for separate internal bridge fan speed control
             pre_fan_enabled = true;
+
+        // Fit arcs to the runs that keep one speed and one overhang fan state, as the path would be without the split.
+        const bool fit_arcs = m_config.enable_arc_fitting.value == ArcFittingMode::Enabled && !path.polyline.fitting_result.empty() &&
+                              !m_config.spiral_mode && sloped == nullptr && !path.z_contoured && !this->should_disable_arc_fitting();
+        auto fan_at = [&](size_t idx) {
+            return m_enable_cooling_markers && enable_overhang_bridge_fan &&
+                   overhang_fan_active(new_points[idx].overlap, overhang_fan_threshold, path.role());
+        };
 
         double path_length = 0.;
         for (size_t i = 1; i < new_points.size(); i++) {
@@ -10292,6 +10304,24 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
             } else if ((std::abs(F - new_speed) <= 60)) {
                 m_writer.set_speed(gcode, F, "", comment);
                 last_set_speed = F;
+            }
+            if (fit_arcs) {
+                size_t run_end = i;
+                while (run_end + 1 < new_points.size() && new_points[run_end].speed == pre_processed_point.speed &&
+                       fan_at(run_end + 1) == fan_at(i - 1) && fan_at(i) == fan_at(i - 1))
+                    ++run_end;
+                if (run_end > i) {
+                    Polyline3 run;
+                    for (size_t k = i - 1; k <= run_end; ++k)
+                        run.points.emplace_back(new_points[k].p);
+                    run.simplify_by_fitting_arc(m_scaled_resolution);
+                    if (!run.fitting_result.empty()) {
+                        extrude_fitted(run);
+                        prev = this->point_to_gcode_quantized(new_points[run_end].p);
+                        i    = run_end;
+                        continue;
+                    }
+                }
             }
             auto dE = e_per_mm * line_length;
             if (_needSAFC(path)) {
