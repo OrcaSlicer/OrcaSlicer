@@ -7311,8 +7311,13 @@ void ObjectList::on_plate_selected(int plate_index)
     if (sel == item)
         return;
 
+    // Orca: a programmatic Select() raises no selection event, so run the sidebar's selection
+    // handler as select_item() does; otherwise Plate Settings keeps showing the previous plate.
+    m_prevent_list_events = true;
     UnselectAll();
     Select(item);
+    part_selection_changed();
+    m_prevent_list_events = false;
 }
 
 //BBS: notify partplate the instance added/updated

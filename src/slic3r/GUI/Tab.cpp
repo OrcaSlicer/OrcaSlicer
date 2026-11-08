@@ -104,6 +104,7 @@
 #include "Notebook.hpp"
 
 #include "Widgets/ComboBox.hpp"
+#include "PlateFilamentNozzles.hpp"
 #include "Widgets/Label.hpp"
 #include "Widgets/MultiNozzleSync.hpp"
 #include "Widgets/SwitchButton.hpp"
@@ -3950,6 +3951,9 @@ void TabPrintModel::update_model_config()
             }
         }
     }
+    // Orca: the "Filament nozzles" rows are per plate; refresh them whenever the page loads a plate.
+    if (m_type == Preset::TYPE_PLATE)
+        static_cast<TabPrintPlate *>(this)->update_filament_nozzles();
 }
 
 void TabPrintModel::reset_model_config()
@@ -4000,6 +4004,7 @@ void TabPrintPlate::update_mixed_filament_seq_state()
 
     toggle_option("first_layer_sequence_choice", !has_mixed, -1, mixed_filament_order_reason);
     toggle_option("other_layers_sequence_choice", !has_mixed, -1, mixed_filament_order_reason);
+    update_filament_nozzles();
 }
 
 void TabPrintModel::on_value_change(const std::string& opt_id, const boost::any& value)
@@ -4162,6 +4167,42 @@ void TabPrintPlate::build()
         line.undo_to_sys = true;
     }
     optgroup->have_sys_config = [this] { m_back_to_sys = true; return true; };
+
+    // Orca: which tool each of the plate's filaments prints from, on decoupled printers.
+    m_nozzle_group = page->new_optgroup(L("Filament nozzles"));
+    Line nozzles_line{ "", "" };
+    nozzles_line.full_width = 1;
+    nozzles_line.widget = [this](wxWindow* parent) {
+        m_nozzle_panel = new PlateFilamentNozzlesPanel(parent, [this] {
+            m_nozzle_group->Show(m_nozzle_panel->IsShown());
+            if (m_page_view != nullptr) {
+                m_page_view->Layout();
+                m_page_view->GetParent()->Layout();
+            }
+        });
+        auto* sizer = new wxBoxSizer(wxHORIZONTAL);
+        sizer->Add(m_nozzle_panel, 1, wxEXPAND);
+        return sizer;
+    };
+    m_nozzle_group->append_line(nozzles_line);
+}
+
+void TabPrintPlate::update_filament_nozzles()
+{
+    if (m_nozzle_panel == nullptr || m_nozzle_group == nullptr)
+        return;
+    // The plate whose config the page shows, not the canvas's current one: they differ while the
+    // selection is changing. The map is refreshed only when the object list re-selects, so the plate
+    // it names may have been deleted: find it by address in the plater's list before using it.
+    PartPlate* plate = nullptr;
+    if (!m_object_configs.empty()) {
+        const ObjectBase* named  = m_object_configs.begin()->first;
+        PartPlateList&    plates = wxGetApp().plater()->get_partplate_list();
+        for (int i = 0; i < plates.get_plate_count() && plate == nullptr; ++i)
+            if (static_cast<const ObjectBase*>(plates.get_plate(i)) == named)
+                plate = plates.get_plate(i);
+    }
+    m_nozzle_panel->update(plate);
 }
 
 void TabPrintPlate::reset_model_config()
@@ -4180,9 +4221,14 @@ void TabPrintPlate::reset_model_config()
         plate->set_first_layer_print_sequence({});
         plate->set_other_layers_print_sequence({});
         plate->set_spiral_vase_mode(false, true);
+        if (plate->get_filament_map_mode() == FilamentMapMode::fmmManual) {
+            plate->set_filament_map_mode(FilamentMapMode::fmmAutoForFlush);
+            plate->clear_filament_map();
+        }
         notify_changed(plate_item.first);
     }
     update_model_config();
+    update_filament_nozzles();
     wxGetApp().mainframe->on_config_changed(m_config);
 }
 
