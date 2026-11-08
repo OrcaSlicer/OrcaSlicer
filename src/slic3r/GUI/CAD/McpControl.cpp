@@ -578,7 +578,7 @@ json describe_tools_core()
                      json{{"name", "plane"}, {"type", "string"}, {"enum", json::array({"XY", "XZ", "YZ"})}, {"default", "XY"}},
                      json{{"name", "offset"}, {"type", "number"}, {"unit", "mm"}, {"default", 0}},
                  })}},
-            json{{"name", "import_step"}, {"summary", "Import a STEP file as native B-rep bodies (the reference part to measure)."},
+            json{{"name", "import_step"}, {"summary", "Import a STEP file as native B-rep bodies (the reference part to measure). Other CAD files (.sldprt .f3d .ipt .CATPart .FCStd .3dm .igs .sat) are converted to STEP first by the external cadmpeg tool when it is installed."},
                  {"params", json::array({
                      json{{"name", "path"}, {"type", "string"}},
                  })}},
@@ -1205,8 +1205,8 @@ json import_step(DesignPanel* panel, const json& params)
     if (!params.contains("path")) throw std::runtime_error("import_step needs 'path'");
     const std::string path = params["path"].get<std::string>();
     std::string err;
-    std::vector<TopoDS_Shape> solids = GeometryEngine::read_step_solids(path, err);
-    if (solids.empty()) throw std::runtime_error(err.empty() ? "no solids in STEP" : err);
+    std::vector<TopoDS_Shape> solids = GeometryEngine::read_cad_solids(path, err);
+    if (solids.empty()) throw std::runtime_error(err.empty() ? "no solids in the file" : err);
 
     CadDocument& doc = panel->mcp_doc();
     doc.place_on_bed(solids);
@@ -1316,7 +1316,7 @@ json validate_against(DesignPanel* panel, const json& params)
     TopoDS_Shape ref;
     if (r.contains("step")) {
         std::string err;
-        std::vector<TopoDS_Shape> solids = GeometryEngine::read_step_solids(r["step"].get<std::string>(), err);
+        std::vector<TopoDS_Shape> solids = GeometryEngine::read_cad_solids(r["step"].get<std::string>(), err);
         if (solids.empty()) throw std::runtime_error(err.empty() ? "reference STEP has no solids" : err);
         BRep_Builder b; TopoDS_Compound comp; b.MakeCompound(comp);
         for (const TopoDS_Shape& s : solids) if (!s.IsNull()) b.Add(comp, s);

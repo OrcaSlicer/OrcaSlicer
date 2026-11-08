@@ -61,6 +61,12 @@
 #include <gp_Circ.hxx>
 #include <GCPnts_TangentialDeflection.hxx>
 #include <STEPControl_Reader.hxx>
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/process.hpp>
+#include <chrono>
+#include <cstdlib>
+#include <fstream>
 #include <IFSelect_ReturnStatus.hxx>
 #include <Standard_Failure.hxx>
 #include <BRepExtrema_DistShapeShape.hxx>
@@ -112,6 +118,60 @@ std::vector<TopoDS_Shape> GeometryEngine::read_step_solids(const std::string& pa
         err = *e.what() ? e.what() : _u8L("OCCT failed to read STEP");
         out.clear();
     }
+    return out;
+}
+
+// ---- Native CAD -> STEP through the external cadmpeg CLI ----
+std::vector<TopoDS_Shape> GeometryEngine::read_cad_solids(const std::string& path, std::string& err, std::string* warnings)
+{
+    namespace fs = boost::filesystem;
+    namespace bp = boost::process;
+    const std::string ext = boost::algorithm::to_lower_copy(fs::path(path).extension().string());
+    if (ext == ".step" || ext == ".stp" || ext.empty())
+        return read_step_solids(path, err);
+
+    err.clear();
+    fs::path exe;
+    if (const char* env = std::getenv("ORCA_CADMPEG"); env && *env)
+        exe = env;
+    else
+        exe = bp::search_path("cadmpeg");
+    if (exe.empty() || !fs::exists(exe)) {
+        err = _u8L("Reading this CAD format needs the cadmpeg tool (github.com/cadmpeg/cadmpeg): install it so that `cadmpeg` is on PATH, or set ORCA_CADMPEG to its full path");
+        return {};
+    }
+    const fs::path tmp  = fs::temp_directory_path() / fs::unique_path("orca-cadmpeg-%%%%-%%%%");
+    const fs::path step = tmp.string() + ".step";
+    const fs::path log  = tmp.string() + ".log";
+    int code = -1;
+    try {
+        bp::child c(exe, "convert", path, "-o", step.string(), (bp::std_out & bp::std_err) > log.string());
+        if (!c.wait_for(std::chrono::minutes(5))) { c.terminate(); err = _u8L("cadmpeg took longer than 5 minutes"); }
+        else code = c.exit_code();
+    } catch (const std::exception& e) {
+        err = e.what();
+    }
+    std::vector<TopoDS_Shape> out;
+    if (err.empty()) {
+        if (code == 0 && fs::exists(step)) {
+            out = read_step_solids(step.string(), err);
+            if (warnings) {
+                int n = 0;
+                std::string line;
+                std::ifstream in(log.string());
+                while (std::getline(in, line)) if (line.rfind("  [warning", 0) == 0) ++n;
+                if (n > 0) *warnings = std::to_string(n);
+            }
+        } else {
+            // cadmpeg says what it could not decode (unsupported format/version, failed validation): pass its last lines on.
+            std::string tail, line;
+            std::ifstream in(log.string());
+            while (std::getline(in, line)) { if (!line.empty()) tail = line; }
+            err = _u8L("cadmpeg could not convert this file") + (tail.empty() ? std::string() : ": " + tail);
+        }
+    }
+    boost::system::error_code ec;
+    fs::remove(step, ec); fs::remove(log, ec);
     return out;
 }
 

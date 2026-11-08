@@ -23,6 +23,14 @@ public:
     // already linked via Format/STEP.cpp — no new dependency. err is set on failure (empty result).
     static std::vector<TopoDS_Shape> read_step_solids(const std::string& path, std::string& err);
 
+    // Any CAD file -> top-level solids. STEP/STP go straight to read_step_solids; every other extension
+    // (SolidWorks .sldprt, Fusion .f3d, Inventor .ipt, CATIA .CATPart, FreeCAD .FCStd, Rhino .3dm, IGES, ACIS .sat...)
+    // is first converted to a temporary STEP by the external `cadmpeg` CLI (github.com/cadmpeg/cadmpeg, Apache-2.0,
+    // clean-room native-CAD decoders). It is found through $ORCA_CADMPEG, then PATH; it is not bundled, so without it the
+    // result is empty and err says how to get it. cadmpeg decodes what it can: NX and Creo `.prt` carry no geometry yet.
+    // `warnings`, when given, gets the count of cadmpeg "[warning" findings (e.g. geometry it could not write); "" if none.
+    static std::vector<TopoDS_Shape> read_cad_solids(const std::string& path, std::string& err, std::string* warnings = nullptr);
+
     // Triangle mesh -> B-rep solid. Native port of mesh2step
     // (github.com/tommasobbianchi/mesh2step): vertices and edges are SHARED across triangles
     // at construction time (vertex cache by deduped index, edge cache by unordered index pair),

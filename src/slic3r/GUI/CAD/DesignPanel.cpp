@@ -4943,8 +4943,8 @@ bool DesignPanel::recompute_guarded(const wxString& message)
 
 void DesignPanel::on_import_step()
 {
-    wxFileDialog dlg(this, _L("Import STEP"), wxEmptyString, wxEmptyString,
-                     _L("STEP files (*.step;*.stp)|*.step;*.stp|All files|*.*"),
+    wxFileDialog dlg(this, _L("Import STEP or CAD file"), wxEmptyString, wxEmptyString,
+                     _L("STEP files (*.step;*.stp)|*.step;*.stp|Native CAD, converted with cadmpeg (*.sldprt;*.f3d;*.ipt;*.iam;*.catpart;*.fcstd;*.3dm;*.igs;*.iges;*.sat)|*.sldprt;*.f3d;*.ipt;*.iam;*.catpart;*.fcstd;*.3dm;*.igs;*.iges;*.sat|All files|*.*"),
                      wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     if (dlg.ShowModal() != wxID_OK)
         return;
@@ -4953,9 +4953,10 @@ void DesignPanel::on_import_step()
     // Keep the OCCT B-rep (don't mesh it like the slicer importer): each top-level solid
     // becomes a coexisting CadBody, fully editable by the on-face/edge feature tools.
     std::vector<TopoDS_Shape> solids;
+    std::string cad_warnings;   // cadmpeg findings for a native CAD file
     run_off_ui_thread(this, _L("Reading STEP…"), [&]() {
         try {
-            solids = GeometryEngine::read_step_solids(path, err);
+            solids = GeometryEngine::read_cad_solids(path, err, &cad_warnings);
         } catch (const std::exception& e) {
             err = *e.what() ? e.what() : "OCCT failure";
         }
@@ -4992,11 +4993,11 @@ void DesignPanel::on_import_step()
     refresh_tree();
     set_tree_selection(m_doc.last_added);
     set_status_ok();                // canonical post-recompute viewport/pick/parts refresh
-    set_status(StatusKind::Info, wxString::Format(
+    set_status(cad_warnings.empty() ? StatusKind::Info : StatusKind::Warning, wxString::Format(
         _L_PLURAL("Imported %d solid — pick a face or edge, then Fillet / Cut / Shell to modify",
                   "Imported %d solids — pick a face or edge, then Fillet / Cut / Shell to modify",
                   unsigned(solids.size())),
-        int(solids.size())));
+        int(solids.size())) + (cad_warnings.empty() ? wxString() : wxString::Format(_L(" — the converter reported %s warnings, so check the result"), cad_warnings)));
 }
 
 // Import a triangle mesh as a real B-rep body: the triangles are rebuilt into OCCT faces with
