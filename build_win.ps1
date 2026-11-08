@@ -542,9 +542,9 @@ try {
         Write-Step "[5/7] Skipping dependencies (-SkipDeps)"
     } else {
         Write-Step "[5/7] Checking dependencies..."
-        # Deps tree name mirrors build tree naming (minus arch suffix for shared deps)
-        $depTreeName = $depName
-        $depsBuildDir = Join-Path "deps" $depTreeName
+        # Use shared deps directory (deps/build) that matches cache restore path (deps/build/OrcaSlicer_dep).
+        # This allows all configs to share the same deps cache, like build_win.bat does via DEP_BUILD_DIR.
+        $depsBuildDir = "deps/build"
         $depsCompiler = if ($ClangCl) { $clangClExe } else { $clExe }
         Check-Dependencies -Cmake $cmake -Compiler $depsCompiler -Config $Config -DepsBuildDir $depsBuildDir -MaxJobs $MaxJobs
 
@@ -601,14 +601,10 @@ try {
         # Strawberry Perl's c\include is added to the compiler include path and
         # contains an older jpeglib.h (no JCS_EXT_RGBA) that wins over deps'
         # libjpeg-turbo due to include-path ordering. Explicitly pin JPEG to deps.
-        # Without an explicit -DepsDir the tree is deps/<depName>, not deps/.
-        $depsInstallRoot = if ($DepsDirExplicit) { $DepsDir } else { Join-Path "deps" $depName }
+        # Use shared deps directory (deps/build) that matches cache restore path.
+        $depsInstallRoot = "deps/build"
         $depsInstallDir = Join-Path $depsInstallRoot "OrcaSlicer_dep/usr/local"
         if (Test-Path $depsInstallDir -PathType Container) {
-            # CMakeLists.txt force-derives CMAKE_PREFIX_PATH from DEP_BUILD_DIR, so
-            # pinning CMAKE_PREFIX_PATH alone is ignored. Pass the dependency tree
-            # explicitly whenever it is not the default deps/<build dir>, as
-            # build_win.bat does, so a tree shared by several configurations resolves.
             $depsRootFull = (Resolve-Path -LiteralPath $depsInstallRoot).Path
             $depsInstallDir = Join-Path $depsRootFull "OrcaSlicer_dep/usr/local"
             $cmakeArgs += "-DDEP_BUILD_DIR=$($depsRootFull.Replace('\', '/'))"
