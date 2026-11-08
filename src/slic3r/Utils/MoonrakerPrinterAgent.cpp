@@ -801,7 +801,11 @@ std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::st
     static const std::map<std::string, std::string> type_to_ofl_family = {
         // PLA variants
         {"PLA", "PLA"},
+        {"PLA+", "PLA"},
+        {"PLA PRO", "PLA"},
         {"PLA-CF", "PLA-CF"},
+        {"PLA MATTE", "PLA Matte"},
+        {"PLA-MATTE", "PLA Matte"},
         {"PLA SILK", "PLA Silk"},
         {"PLA-SILK", "PLA Silk"},
         {"PLA HIGH SPEED", "PLA High Speed"},
@@ -810,11 +814,16 @@ std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::st
 
         // ABS/ASA variants
         {"ABS", "ABS"},
+        {"ABS+", "ABS"},
         {"ASA", "ASA"},
 
         // PETG/PET variants
         {"PETG", "PETG"},
+        {"PETG+", "PETG"},
         {"PET", "PETG"},
+        {"PETG HF", "PETG HF"},
+        {"PETG-HF", "PETG HF"},
+        {"PETG-CF", "PETG-CF"},
         {"PCTG", "PCTG"},
 
         // PA/Nylon variants
@@ -830,7 +839,10 @@ std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::st
 
         // PP/PE variants
         {"PE", "PE"},
+        {"PE-CF", "PE-CF"},
         {"PP", "PP"},
+        {"PP-CF", "PP-CF"},
+        {"PP-GF", "PP-GF"},
 
         // Support materials
         {"PVA", "PVA"},
