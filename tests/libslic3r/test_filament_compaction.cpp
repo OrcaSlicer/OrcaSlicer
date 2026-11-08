@@ -84,25 +84,40 @@ TEST_CASE("An object on another plate contributes no filament", "[FilamentCompac
     CHECK(compaction_of(model, plain_config(8), 32).used_slots == std::vector<int>{2});
 }
 
-TEST_CASE("A plate is renumbered only when its highest filament exceeds the namespace", "[FilamentCompaction]")
+TEST_CASE("A plate is renumbered whenever a used filament is not on its own tool", "[FilamentCompaction]")
 {
     CHECK(compaction_of(model_using({1, 2}), plain_config(8), 4).is_identity());
     CHECK(compaction_of(model_using({4, 7}), plain_config(8), 32).is_identity());
     CHECK(compaction_of(model_using({4, 7}), plain_config(8), 7).is_identity());
 
+    // 4 keeps tool 4, 7 takes the free tool 1; tools 2 and 3 hold the unused filaments 2 and 3.
     const FilamentCompaction compaction = compaction_of(model_using({4, 7}), plain_config(8), 4);
-    REQUIRE(compaction.slot_of_tool == std::vector<int>{3, 6});
-    CHECK(compaction.tool_of_slot(3) == 0);
-    CHECK(compaction.tool_of_slot(6) == 1);
+    REQUIRE(compaction.slot_of_tool == std::vector<int>{6, 1, 2, 3});
+    CHECK(compaction.tool_of_slot(3) == 3);
+    CHECK(compaction.tool_of_slot(6) == 0);
     CHECK(compaction.tool_of_slot(0) == -1);
+}
+
+TEST_CASE("A plate's manual map is honoured and a stray one in automatic mode is not", "[FilamentCompaction]")
+{
+    DynamicPrintConfig config = plain_config(8);
+    config.set_key_value("filament_map", new ConfigOptionInts({3, 1, 2, 4, 5, 6, 7, 8}));
+    config.set_key_value("filament_map_mode", new ConfigOptionEnum<FilamentMapMode>(FilamentMapMode::fmmManual));
+    // filament 1 -> tool 3, filament 3 -> tool 2 (pinned); filament 2 takes the free tool 1.
+    CHECK(compaction_of(model_using({1, 2, 3}), config, 4).slot_of_tool == std::vector<int>{1, 2, 0});
+
+    config.set_key_value("filament_map_mode", new ConfigOptionEnum<FilamentMapMode>(FilamentMapMode::fmmAutoForFlush));
+    CHECK(compaction_of(model_using({1, 2, 3}), config, 4).is_identity());
 }
 
 TEST_CASE("A g-code tool number maps back to the project filament it prints", "[FilamentCompaction]")
 {
     const FilamentCompaction compaction = compaction_of(model_using({4, 7}), plain_config(8), 4);
-    REQUIRE(compaction.slot_of_tool == std::vector<int>{3, 6});
-    CHECK(compaction.project_slot_of_tool(0) == 3);
-    CHECK(compaction.project_slot_of_tool(1) == 6);
+    REQUIRE(compaction.slot_of_tool == std::vector<int>{6, 1, 2, 3});
+    CHECK(compaction.project_slot_of_tool(0) == 6);
+    CHECK(compaction.project_slot_of_tool(3) == 3);
+    // A tool holding an unused filament reports that filament.
+    CHECK(compaction.project_slot_of_tool(1) == 1);
 
     // Without compaction the tool number is the project slot.
     const FilamentCompaction identity;
@@ -111,8 +126,13 @@ TEST_CASE("A g-code tool number maps back to the project filament it prints", "[
     CHECK(identity.project_slot_of_tool(5) == 5);
 
     // An uncovered or negative tool passes through for the caller's own range check.
-    CHECK(compaction.project_slot_of_tool(2) == 2);
+    CHECK(compaction.project_slot_of_tool(5) == 5);
     CHECK(compaction.project_slot_of_tool(-1) == -1);
+
+    // A filler tool reports the first used filament, whose column it copies.
+    FilamentCompaction filled;
+    filled.slot_of_tool = {0, -1, -1, 1};
+    CHECK(filled.project_slot_of_tool(2) == 0);
 }
 
 TEST_CASE("Compaction renumbers the model's filament references", "[FilamentCompaction]")
@@ -121,13 +141,14 @@ TEST_CASE("Compaction renumbers the model's filament references", "[FilamentComp
     model.objects[0]->volumes[0]->config.set("extruder", 4);
     model.objects[1]->config.set("support_filament", 7);
 
+    // Filament 4 keeps tool 4; filament 7 takes the free tool 1.
     const FilamentCompaction compaction = compaction_of(model, plain_config(8), 4);
     apply_filament_compaction(model, model, compaction);
 
-    CHECK(model.objects[0]->config.option("extruder")->getInt() == 1);
-    CHECK(model.objects[0]->volumes[0]->config.option("extruder")->getInt() == 1);
-    CHECK(model.objects[1]->config.option("extruder")->getInt() == 2);
-    CHECK(model.objects[1]->config.option("support_filament")->getInt() == 2);
+    CHECK(model.objects[0]->config.option("extruder")->getInt() == 4);
+    CHECK(model.objects[0]->volumes[0]->config.option("extruder")->getInt() == 4);
+    CHECK(model.objects[1]->config.option("extruder")->getInt() == 1);
+    CHECK(model.objects[1]->config.option("support_filament")->getInt() == 1);
 }
 
 TEST_CASE("Compaction gathers per-filament config vectors in dense order", "[FilamentCompaction]")
@@ -195,9 +216,10 @@ TEST_CASE("Recompacting an unchanged source leaves every timestamp unchanged", "
 
 TEST_CASE("A reference to a filament the plate does not print becomes inherit", "[FilamentCompaction]")
 {
-    // Support is off, so filament 2 never prints; in the dense space "2" would name another filament.
+    // Support is off, so filament 6 never prints and gets no tool (filaments 2 and 3 fill the
+    // holes); keeping "6" would name whichever filament holds that tool number.
     Model model = model_using({4, 7});
-    model.objects[0]->config.set("support_filament", 2);
+    model.objects[0]->config.set("support_filament", 6);
     const FilamentCompaction compaction = compaction_of(model, plain_config(8), 4);
     apply_filament_compaction(model, model, compaction);
     CHECK(model.objects[0]->config.option("support_filament")->getInt() == 0);
@@ -221,8 +243,8 @@ TEST_CASE("A renumbered plate numbers part filaments first and support last", "[
     // Support may generate nothing, so it must not push a part filament past the last tool. A slot
     // the last slice showed never prints (`demoted`) is numbered last.
     const auto [demoted, slot_of_tool] = GENERATE(table<std::vector<int>, std::vector<int>>({
-        { {},    { 2, 4, 5, 7, 1 } },
-        { { 2 }, { 4, 5, 7, 1, 2 } },
+        { {},    { 4, 5, 2, 7, 1 } },
+        { { 2 }, { 4, 1, 5, 7, 2 } },
     }));
     Model model = model_using({3, 5, 6, 8});
     DynamicPrintConfig config = plain_config(8);
@@ -286,10 +308,97 @@ TEST_CASE("A painted mix is renumbered in the copy's painted-filament list", "[F
     const DynamicPrintConfig config = mixed_config(8, 8, "4,5");
     CHECK(compaction_of(model, config, 32).used_slots == std::vector<int>{0, 3, 4});
 
-    const FilamentCompaction compaction = compaction_of(model, config, 4);
+    // Three tools: 1 keeps tool 1, 4 and 5 take tools 2 and 3, the mix follows the physical tools.
+    const FilamentCompaction compaction = compaction_of(model, config, 3);
     REQUIRE(compaction.slot_of_tool == std::vector<int>{0, 3, 4, 7});
 
     Model copy = model;
     apply_filament_compaction(copy, model, compaction);
     CHECK(copy.objects[0]->volumes[0]->get_extruders() == std::vector<int>{4, 1});
+}
+
+// resolve_filament_tools: `order` is 0-based used slots, surest first; result is slot_of_tool.
+TEST_CASE("A used filament within the tools keeps its own tool", "[FilamentCompaction]")
+{
+    // 3 keeps T2 (0-based), 5 takes the lowest free tool; T1 is filled with the unused filament 2.
+    CHECK(resolve_filament_tools({2, 4}, {}, {}, 4, 8) == std::vector<int>{4, 1, 2});
+    CHECK(resolve_filament_tools({4, 2}, {}, {}, 4, 8) == std::vector<int>{4, 1, 2});
+    // The U1 plate {1,2,3,5}: filament 5 takes the free tool 4.
+    CHECK(resolve_filament_tools({0, 1, 2, 4}, {}, {}, 4, 8) == std::vector<int>{0, 1, 2, 4});
+    CHECK(resolve_filament_tools({1, 3, 5, 7}, {}, {}, 4, 8) == std::vector<int>{5, 1, 7, 3});
+    CHECK(resolve_filament_tools({4, 5, 6, 7}, {}, {}, 4, 8) == std::vector<int>{4, 5, 6, 7});
+    // Nothing to do when every filament is on its own tool.
+    CHECK(resolve_filament_tools({0, 1, 2}, {}, {}, 4, 8) == std::vector<int>{0, 1, 2});
+}
+
+TEST_CASE("A manual entry pins a filament to its tool and the rest take free tools", "[FilamentCompaction]")
+{
+    // Filament 2 pinned to tool 3; 1 keeps tool 1; 3 takes the lowest free tool 2; 5 takes tool 4.
+    std::vector<int> manual(8, -1);
+    manual[1] = 2;
+    CHECK(resolve_filament_tools({0, 1, 2, 4}, manual, {}, 4, 8) == std::vector<int>{0, 2, 1, 4});
+    // An entry past the last tool is automatic.
+    manual.assign(8, -1);
+    manual[4] = 9;
+    CHECK(resolve_filament_tools({0, 1, 2, 4}, manual, {}, 4, 8) == std::vector<int>{0, 1, 2, 4});
+    // Entries of filaments the plate does not use are ignored.
+    manual.assign(8, -1);
+    manual[7] = 0;
+    CHECK(resolve_filament_tools({0, 1}, manual, {}, 4, 8) == std::vector<int>{0, 1});
+}
+
+TEST_CASE("Two used filaments pinned to one tool are refused", "[FilamentCompaction]")
+{
+    std::vector<int> manual(8, -1);
+    manual[0] = 1;
+    manual[2] = 1;
+    CHECK_THROWS_AS(resolve_filament_tools({0, 2}, manual, {}, 4, 8), DuplicateToolAssignment);
+}
+
+TEST_CASE("A hole below the highest tool is filled with an unused filament or left as a filler", "[FilamentCompaction]")
+{
+    // Two project filaments, filament 2 pinned to tool 4: nothing is left for tools 2 and 3.
+    std::vector<int> manual(2, -1);
+    manual[1] = 3;
+    CHECK(resolve_filament_tools({0, 1}, manual, {}, 4, 2) == std::vector<int>{0, -1, -1, 1});
+}
+
+TEST_CASE("Filaments beyond the tool count are numbered past the last tool, least sure last", "[FilamentCompaction]")
+{
+    CHECK(resolve_filament_tools({0, 1, 2, 3, 4}, {}, {}, 4, 8) == std::vector<int>{0, 1, 2, 3, 4});
+    // The least sure slot overflows even when its own tool is free.
+    CHECK(resolve_filament_tools({0, 1, 2, 5, 3}, {}, {}, 4, 8) == std::vector<int>{0, 1, 2, 5, 3});
+    // Slot 3 was demoted (it never printed last time): it loses its own tool and overflows.
+    CHECK(resolve_filament_tools({0, 1, 2, 3, 5}, {}, {3}, 4, 8) == std::vector<int>{0, 1, 2, 5, 3});
+    CHECK(resolve_filament_tools({0, 1, 2, 3, 5}, {}, {}, 4, 8) == std::vector<int>{0, 1, 2, 3, 5});
+}
+
+// The slice info stores a 1-based extruder per project filament, so the plate's assignment is
+// published in that shape; a filament with no tool reports extruder 1.
+TEST_CASE("The resolved assignment is published per project filament", "[FilamentCompaction]")
+{
+    FilamentCompaction compaction;
+    compaction.slot_of_tool = {4, 1, 2, 3};
+    compaction.used_slots   = {3, 4};
+    CHECK(compaction.project_filament_map(8, 4) == std::vector<int>{1, 2, 3, 4, 1, 1, 1, 1});
+
+    const FilamentCompaction identity;
+    CHECK(identity.project_filament_map(6, 4) == std::vector<int>{1, 2, 3, 4, 1, 1});
+}
+
+// The engine prints an object with no filament of its own with filament 1, read as tool 0.
+TEST_CASE("An object without a filament of its own is pinned to filament 1's tool", "[FilamentCompaction]")
+{
+    Model model = model_using({1, 2});
+    model.objects[0]->config.set("extruder", 0);   // 0 = no filament of its own
+    DynamicPrintConfig config = plain_config(4);
+    config.set_key_value("filament_map", new ConfigOptionInts({3, 1, 2, 4}));
+    config.set_key_value("filament_map_mode", new ConfigOptionEnum<FilamentMapMode>(FilamentMapMode::fmmManual));
+
+    const FilamentCompaction compaction = compaction_of(model, config, 4);
+    REQUIRE(compaction.tool_of_slot(0) == 2);
+    apply_filament_compaction(model, model, compaction);
+    CHECK(model.objects[0]->config.option("extruder")->getInt() == 3);
+    // An object that names its filament is renumbered, not pinned.
+    CHECK(model.objects[1]->config.option("extruder")->getInt() == 1);
 }

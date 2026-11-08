@@ -7224,10 +7224,10 @@ void PrintConfigDef::init_fff_params()
     def = this->add("enable_filament_mapping", coBool);
     def->label = L("Decouple filaments from tools");
     def->tooltip = L("Allow the project to hold more filament profiles than the printer has tools. "
-                     "A plate can use any of them, up to the number of tools. When a plate uses a "
-                     "filament numbered past the last tool, its filaments are renumbered to "
-                     "consecutive tools in the G-code. Only for multi-tool printers without "
-                     "single-extruder multi-material.");
+                     "A plate can use any of them, up to the number of tools. A filament keeps the "
+                     "tool of its own number; one numbered past the last tool prints from a free tool. "
+                     "Plate Settings lets you choose the tool, and so the nozzle, of each filament on "
+                     "the plate. Only for multi-tool printers without single-extruder multi-material.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 

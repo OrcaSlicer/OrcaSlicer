@@ -1577,6 +1577,8 @@ private:
     FilamentCompaction                      m_filament_compaction;
     // Orca: project slots the last slice showed never print; build_filament_compaction numbers them last.
     std::vector<int>                        m_filament_renumber_hint;
+    // Why the plate's manual filament map could not be applied (DuplicateToolAssignment); validate() reports it.
+    std::string                             m_filament_assignment_error;
     // Orca: must outlive apply(): PrintObjects keep raw pointers into the model sliced from.
     Model                                   m_compacted_model;
     PrintObjectConfig                       m_default_object_config;

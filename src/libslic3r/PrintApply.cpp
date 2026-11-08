@@ -1413,17 +1413,26 @@ Print::ApplyStatus Print::apply(const Model &model_in, DynamicPrintConfig new_fu
     check_model_ids_validity(model_in);
 #endif /* _DEBUG */
 
-    // Orca: renumber filaments densely (FilamentCompaction.hpp) before normalization and variant
+    // Orca: number the plate's filaments to tools (FilamentCompaction.hpp) before normalization and variant
     // expansion, which size themselves from the filament count.
     const size_t nozzle_count = new_full_config.option<ConfigOptionFloats>("nozzle_diameter", true)->values.size();
     // process() reads the compaction and writes the renumber hint on the slicing thread.
     std::unique_lock<std::mutex> compaction_lock(this->state_mutex());
     const std::vector<int> previous_slot_of_tool = std::move(m_filament_compaction.slot_of_tool);
     m_filament_compaction = FilamentCompaction();
+    m_filament_assignment_error.clear();
     if (decouples_filaments_from_tools(new_full_config)) {
         const ModelFilaments filaments = collect_model_filaments(model_in, new_full_config, FeatureGate::Printed, /*with_wipe_tower=*/true);
-        m_filament_compaction = build_filament_compaction(filaments, m_filament_renumber_hint, new_full_config,
-                                                          filament_namespace_size(new_full_config, nozzle_count));
+        const size_t namespace_size = filament_namespace_size(new_full_config, nozzle_count);
+        try {
+            m_filament_compaction = build_filament_compaction(filaments, m_filament_renumber_hint, new_full_config, namespace_size);
+        } catch (const DuplicateToolAssignment& error) {
+            // apply() must not throw; number the plate automatically and let validate() refuse it.
+            m_filament_assignment_error = error.what();
+            DynamicPrintConfig automatic = new_full_config;
+            automatic.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode", true)->value = FilamentMapMode::fmmAutoForFlush;
+            m_filament_compaction = build_filament_compaction(filaments, m_filament_renumber_hint, automatic, namespace_size);
+        }
     }
     compaction_lock.unlock();
     const bool compacting = !m_filament_compaction.slot_of_tool.empty();

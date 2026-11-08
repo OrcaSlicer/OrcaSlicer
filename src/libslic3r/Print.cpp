@@ -2432,9 +2432,27 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
     // process(). The full config holds printer options PrintConfig lacks.
     const DynamicPrintConfig& printer_config = this->full_print_config();
     if (decouples_filaments_from_tools(printer_config)) {
+        if (!m_filament_assignment_error.empty())
+            return {m_filament_assignment_error};
         const size_t namespace_size = filament_namespace_size(printer_config, nozzles);
         if (m_filament_compaction.certain_count > namespace_size)
             return {too_many_filaments_error(m_filament_compaction.certain_count, namespace_size)};
+        // Per-filament vectors are gathered by tool here; nozzle_type is per tool. Whether the nozzle
+        // actually installed is hard enough is decided at print time, so this is a warning.
+        const auto& types = m_config.nozzle_type;
+        for (int slot : m_filament_compaction.used_slots) {
+            const int tool = m_filament_compaction.slot_of_tool.empty() ? slot : m_filament_compaction.tool_of_slot(slot);
+            if (tool < 0 || size_t(tool) >= std::min(namespace_size, types.size()) || types.is_nil(size_t(tool)))
+                continue;
+            const int required = m_config.required_nozzle_HRC.get_at(size_t(tool));
+            const auto type    = NozzleType(types.values[size_t(tool)]);
+            if (required <= 0 || type == NozzleType::ntUndefine)
+                continue;
+            if (const int available = get_hrc_by_nozzle_type(type); available < required)
+                warn((boost::format(L("Filament %1% needs a nozzle of %2% HRC or harder, but tool %3% has a %4% nozzle (%5% HRC)."))
+                      % (slot + 1) % required % (tool + 1) % ConfigOptionEnum<NozzleType>::get_enum_names()[int(type)] % available).str(),
+                     "nozzle_type");
+        }
     }
 
     if (nozzles < 2 && extruders.size() > 1) {

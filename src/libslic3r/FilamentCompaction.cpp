@@ -2,7 +2,9 @@
 
 #include "Config.hpp"
 #include "CustomGCode.hpp"
+#include "Exception.hpp"
 #include "FilamentMixer.hpp"
+#include "I18N.hpp"
 #include "Model.hpp"
 #include "Preset.hpp"
 #include "Print.hpp" // ModelFilaments
@@ -10,6 +12,7 @@
 #include "TriangleSelector.hpp"
 
 #include <algorithm>
+#include <boost/format.hpp>
 #include <cstddef>
 #include <cassert>
 #include <memory>
@@ -42,7 +45,97 @@ int FilamentCompaction::tool_of_slot(int slot_0based) const
 
 int FilamentCompaction::project_slot_of_tool(int tool) const
 {
-    return tool >= 0 && size_t(tool) < slot_of_tool.size() ? slot_of_tool[tool] : tool;
+    if (tool < 0 || size_t(tool) >= slot_of_tool.size())
+        return tool;
+    if (slot_of_tool[tool] >= 0)
+        return slot_of_tool[tool];
+    // A filler tool: its column is a copy of the first used slot's.
+    for (int slot : slot_of_tool)
+        if (slot >= 0)
+            return slot;
+    return tool;
+}
+
+std::vector<int> FilamentCompaction::project_filament_map(size_t filament_count, size_t namespace_size) const
+{
+    std::vector<int> map(filament_count, 1);
+    for (size_t slot = 0; slot < filament_count; ++slot) {
+        const int tool = slot_of_tool.empty() ? (slot < namespace_size ? int(slot) : -1) : tool_of_slot(int(slot));
+        if (tool >= 0 && size_t(tool) < namespace_size)
+            map[slot] = tool + 1;
+    }
+    return map;
+}
+
+DuplicateToolAssignment::DuplicateToolAssignment(int tool, int slot_a, int slot_b)
+    : SlicingError((boost::format(L("Filaments %1% and %2% are both assigned to tool %3% on this plate. Give each filament its own tool in Plate Settings."))
+                    % (slot_a + 1) % (slot_b + 1) % (tool + 1)).str())
+    , tool(tool), slot_a(slot_a), slot_b(slot_b)
+{}
+
+std::vector<int> resolve_filament_tools(const std::vector<int>& order, const std::vector<int>& manual, const std::vector<int>& demoted,
+                                        size_t namespace_size, size_t filament_count)
+{
+    const auto is_demoted = [&demoted](int slot) { return std::find(demoted.begin(), demoted.end(), slot) != demoted.end(); };
+    std::vector<int> slot_of_tool(namespace_size, -1);
+    std::vector<int> pending;
+    for (int slot : order) {
+        const int tool = size_t(slot) < manual.size() ? manual[slot] : -1;
+        if (tool < 0 || size_t(tool) >= namespace_size) {
+            pending.push_back(slot);
+            continue;
+        }
+        if (slot_of_tool[tool] >= 0)
+            throw DuplicateToolAssignment(tool, slot_of_tool[tool], slot);
+        slot_of_tool[tool] = slot;
+    }
+    std::stable_partition(pending.begin(), pending.end(), [&](int slot) { return !is_demoted(slot); });
+    // The slots that fit beside the pinned ones are the surest; only they may keep their own tool,
+    // so a less sure slot never pushes a surer one past the tools.
+    const size_t pinned  = size_t(std::count_if(slot_of_tool.begin(), slot_of_tool.end(), [](int slot) { return slot >= 0; }));
+    size_t       fitting = std::min(pending.size(), namespace_size - pinned);
+    for (size_t i = 0; i < fitting;) {
+        const int slot = pending[i];
+        if (!is_demoted(slot) && size_t(slot) < namespace_size && slot_of_tool[slot] < 0) {
+            slot_of_tool[slot] = slot;
+            pending.erase(pending.begin() + i);
+            --fitting;
+        } else
+            ++i;
+    }
+    // The rest take the lowest free tool, surest first; the ones that find none go past the tools.
+    std::vector<int> overflow;
+    for (int slot : pending) {
+        auto free_tool = std::find(slot_of_tool.begin(), slot_of_tool.end(), -1);
+        if (free_tool == slot_of_tool.end())
+            overflow.push_back(slot);
+        else
+            *free_tool = slot;
+    }
+    while (!slot_of_tool.empty() && slot_of_tool.back() < 0)
+        slot_of_tool.pop_back();
+    // Holes hold unused project slots so every tool has a config column.
+    std::vector<bool> taken(filament_count, false);
+    for (int slot : slot_of_tool)
+        if (slot >= 0 && size_t(slot) < filament_count)
+            taken[slot] = true;
+    for (size_t tool = 0; tool < slot_of_tool.size(); ++tool) {
+        if (slot_of_tool[tool] >= 0)
+            continue;
+        int pick = -1;
+        if (tool < filament_count && !taken[tool])
+            pick = int(tool);
+        else
+            for (size_t slot = 0; slot < filament_count && pick < 0; ++slot)
+                if (!taken[slot])
+                    pick = int(slot);
+        if (pick >= 0) {
+            taken[pick]        = true;
+            slot_of_tool[tool] = pick;
+        }
+    }
+    slot_of_tool.insert(slot_of_tool.end(), overflow.begin(), overflow.end());
+    return slot_of_tool;
 }
 
 FilamentCompaction build_filament_compaction(const ModelFilaments& filaments, const std::vector<int>& demoted,
@@ -70,14 +163,21 @@ FilamentCompaction build_filament_compaction(const ModelFilaments& filaments, co
 
     compaction.used_slots = order;
     std::sort(compaction.used_slots.begin(), compaction.used_slots.end());
-    // A plate that fits the namespace keeps project numbering; only one reaching past it is packed.
-    if (compaction.used_slots.empty() || size_t(compaction.used_slots.back()) + 1 <= namespace_size)
+    if (compaction.used_slots.empty())
         return compaction;
 
-    std::stable_partition(order.begin(), order.end(), [&demoted](int slot) {
-        return std::find(demoted.begin(), demoted.end(), slot) == demoted.end();
-    });
-    compaction.slot_of_tool = std::move(order);
+    const auto*  colours        = config.option<ConfigOptionStrings>("filament_colour");
+    const size_t filament_count = std::max(colours == nullptr ? size_t(0) : colours->size(), size_t(compaction.used_slots.back()) + 1);
+    // The plate's own assignment, honoured only in manual mode: automatic mode ignores a stray map.
+    std::vector<int> manual;
+    const auto* mode = config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode");
+    const auto* map  = config.option<ConfigOptionInts>("filament_map");
+    if (mode != nullptr && mode->value == FilamentMapMode::fmmManual && map != nullptr) {
+        manual.reserve(map->values.size());
+        for (int extruder_1based : map->values)
+            manual.push_back(extruder_1based - 1);
+    }
+    compaction.slot_of_tool = resolve_filament_tools(order, manual, demoted, namespace_size, filament_count);
     if (any_mixed)
         for (unsigned int slot : filaments.all())
             if (slot < is_mixed->values.size() && is_mixed->values[slot])
@@ -110,6 +210,20 @@ static void compact_model_config(ModelConfig& model_config, const ModelConfig& s
     for (const char* key : s_filament_keys)
         compact_key(key);
     model_config.mirror_timestamp_of(source_config);
+}
+
+// An object with no filament of its own prints with filament 1, which the engine reads as tool 0.
+// Once filament 1 sits on another tool the object must name that tool.
+static void pin_default_object_filament(ModelConfig& model_config, const ModelConfig& source_config, const FilamentCompaction& compaction)
+{
+    const ConfigOption* opt = model_config.option("extruder");
+    if (opt != nullptr && opt->getInt() > 0)
+        return;
+    const int tool = compaction.tool_of_slot(0);
+    if (tool > 0) {
+        model_config.set("extruder", tool + 1);
+        model_config.mirror_timestamp_of(source_config);
+    }
 }
 
 // The serialized painting is a bitstream whose state width is not addressable in place, so the
@@ -159,6 +273,7 @@ void apply_filament_compaction(Model& model, const Model& source, const Filament
         const ModelObject* source_object = source.objects[obj_i];
         assert(object->id() == source_object->id());
         compact_model_config(object->config, source_object->config, compaction);
+        pin_default_object_filament(object->config, source_object->config, compaction);
         for (auto& layer_range : object->layer_config_ranges) {
             const auto source_range = source_object->layer_config_ranges.find(layer_range.first);
             compact_model_config(layer_range.second,
@@ -214,6 +329,8 @@ void apply_filament_compaction(DynamicPrintConfig& config, const FilamentCompact
     const size_t new_count = compaction.slot_of_tool.size();
     if (old_count == 0 || new_count > old_count)
         return;
+    // A filler tool (-1) copies the column of the slot project_slot_of_tool() reports for it.
+    const auto source_slot = [&compaction](size_t tool) { return size_t(compaction.project_slot_of_tool(int(tool))); };
 
     for (const std::string& key : filament_indexed_keys()) {
         ConfigOption* opt = config.option(key, false);
@@ -225,7 +342,7 @@ void apply_filament_compaction(DynamicPrintConfig& config, const FilamentCompact
             continue;
         const std::unique_ptr<ConfigOption> source(vec->clone());
         for (size_t tool = 0; tool < new_count; ++tool)
-            vec->set_at(source.get(), tool, size_t(compaction.slot_of_tool[tool]));
+            vec->set_at(source.get(), tool, source_slot(tool));
         vec->resize(new_count);
     }
 
@@ -252,8 +369,7 @@ void apply_filament_compaction(DynamicPrintConfig& config, const FilamentCompact
             for (size_t row = 0; row < new_count; ++row)
                 for (size_t col = 0; col < new_count; ++col)
                     gathered[dst_base + row * new_count + col] =
-                        matrix->values[src_base + size_t(compaction.slot_of_tool[row]) * old_count +
-                                       size_t(compaction.slot_of_tool[col])];
+                        matrix->values[src_base + source_slot(row) * old_count + source_slot(col)];
         }
         matrix->values = std::move(gathered);
     }
@@ -265,7 +381,7 @@ void apply_filament_compaction(DynamicPrintConfig& config, const FilamentCompact
         for (size_t tool = 0; tool < new_count; ++tool)
             for (size_t entry = 0; entry < per_filament; ++entry)
                 gathered[tool * per_filament + entry] =
-                    vector->values[size_t(compaction.slot_of_tool[tool]) * per_filament + entry];
+                    vector->values[source_slot(tool) * per_filament + entry];
         vector->values = std::move(gathered);
     }
 
