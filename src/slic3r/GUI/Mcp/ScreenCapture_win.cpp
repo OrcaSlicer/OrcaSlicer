@@ -1,9 +1,13 @@
 // Windows window capture for automation screenshots and recordings (see ScreenCapture.hpp).
 
 #include "ScreenCapture.hpp"
+#include "UiInspector.hpp"
+#include "slic3r/GUI/SyntheticInput.hpp"
 
 #include <wx/gdicmn.h>
 #include <wx/image.h>
+#include <wx/menu.h>
+#include <wx/popupwin.h>
 #include <wx/toplevel.h>
 #include <wx/window.h>
 
@@ -47,6 +51,8 @@
 #include <wrl/event.h>
 #include <wrl/implements.h>
 #include <wrl/wrappers/corewrappers.h>
+
+#include <wx/msw/private.h> // wxFindWinFromHandle()
 
 #ifndef PW_RENDERFULLCONTENT
 #define PW_RENDERFULLCONTENT 0x00000002
@@ -142,30 +148,187 @@ bool print_window(HWND hwnd, wxImage& out, bool& approximate, std::string& note,
     return true;
 }
 
-BOOL CALLBACK collect_own_window(HWND hwnd, LPARAM windows)
+bool has_class(HWND hwnd, const wchar_t* cls)
 {
-    if (IsWindowVisible(hwnd) && GetWindowThreadProcessId(hwnd, nullptr) == GetCurrentThreadId())
-        reinterpret_cast<std::vector<HWND>*>(windows)->push_back(hwnd);
-    return TRUE;
+    wchar_t name[32] = {};
+    return GetClassNameW(hwnd, name, int(std::size(name))) != 0 && wcscmp(name, cls) == 0;
 }
 
 // A menu or submenu, a tooltip, or the list of a native combo box or choice: the system shows each in a
 // top-level window of the thread that asked for it.
 bool is_system_popup(HWND hwnd)
 {
-    wchar_t name[32] = {};
-    if (GetClassNameW(hwnd, name, int(std::size(name))) == 0)
-        return false;
-    return wcscmp(name, L"#32768") == 0 || wcscmp(name, L"tooltips_class32") == 0 || wcscmp(name, L"ComboLBox") == 0;
+    return has_class(hwnd, L"#32768") || has_class(hwnd, L"tooltips_class32") || has_class(hwnd, L"ComboLBox");
 }
 
-wxTopLevelWindow* top_level_window_of(HWND hwnd)
+// A window another process shows as a popup over one of ours: WebView2 shows a page's drop-down lists and
+// context menus from its browser process, in captionless popups owned by the window that hosts the web view.
+// A dialog it opens, such as a file chooser, has a caption.
+bool is_foreign_popup(HWND hwnd, DWORD process)
 {
-    for (wxWindow* w : wxTopLevelWindows)
-        if (w->GetHWND() == hwnd)
-            return dynamic_cast<wxTopLevelWindow*>(w);
+    if (process == GetCurrentProcessId())
+        return false;
+    const auto style = static_cast<DWORD>(GetWindowLongW(hwnd, GWL_STYLE));
+    if ((style & WS_POPUP) == 0 || (style & WS_CAPTION) == WS_CAPTION)
+        return false;
+    const HWND root = GetAncestor(hwnd, GA_ROOTOWNER);
+    return root != nullptr && root != hwnd && GetWindowThreadProcessId(root, nullptr) == GetCurrentThreadId();
+}
+
+// One of our popups: the system's for us, the shadow it draws under one, one of wx's, or another process's.
+bool is_popup(HWND hwnd, DWORD process)
+{
+    if (process != GetCurrentProcessId())
+        return is_foreign_popup(hwnd, process);
+    return is_system_popup(hwnd) || has_class(hwnd, L"SysShadow") || dynamic_cast<wxPopupWindow*>(wxFindWinFromHandle(hwnd)) != nullptr;
+}
+
+// Hidden by DWM though IsWindowVisible() says shown, as a window on another virtual desktop is. A failed query
+// counts as shown.
+bool cloaked(HWND hwnd)
+{
+    DWORD value = 0;
+    return SUCCEEDED(DwmGetWindowAttribute(hwnd, DWMWA_CLOAKED, &value, sizeof(value))) && value != 0;
+}
+
+// A layered window at constant alpha 0: the one sign that a window draws nothing where it is.
+bool draws_nothing(HWND hwnd)
+{
+    BYTE  alpha = 255;
+    DWORD flags = 0;
+    return (static_cast<DWORD>(GetWindowLongW(hwnd, GWL_EXSTYLE)) & WS_EX_LAYERED) != 0 &&
+           GetLayeredWindowAttributes(hwnd, nullptr, &alpha, &flags) && (flags & LWA_ALPHA) != 0 && alpha == 0;
+}
+
+// The window popup_menu() showed the wx menu in the menu window `hwnd` from, the menu itself or one of its
+// submenus; null for a menu the system shows itself.
+wxWindow* wx_menu_from(HWND hwnd)
+{
+    const auto menu_handle = reinterpret_cast<WXHMENU>(SendMessageW(hwnd, MN_GETHMENU, 0, 0));
+    if (menu_handle == nullptr)
+        return nullptr;
+    for (const auto& [menu, from] : shown_menus())
+        if (menu != nullptr && menu->MSWGetMenu(menu_handle) != nullptr)
+            return from;
     return nullptr;
 }
+
+// The window of the UI thread's active menu: the nearest wx window at or above the one TrackPopupMenu was
+// given, or null when that is not in a wx window (a native dialog's control) or no menu is active.
+wxWindow* active_menu_from()
+{
+    GUITHREADINFO info{};
+    info.cbSize = sizeof(info);
+    if (!GetGUIThreadInfo(GetCurrentThreadId(), &info) || (info.flags & GUI_INMENUMODE) == 0)
+        return nullptr;
+    for (HWND h = info.hwndMenuOwner; h != nullptr; h = GetAncestor(h, GA_PARENT)) {
+        if (wxWindow* w = wxFindWinFromHandle(h))
+            return w;
+        if (GetAncestor(h, GA_ROOT) == h)
+            break;
+    }
+    return nullptr;
+}
+
+// The wx top-level window `w` belongs to, unless DWM hides it.
+wxTopLevelWindow* shown_top_level(wxWindow* w)
+{
+    auto* top = dynamic_cast<wxTopLevelWindow*>(owning_window(w));
+    return top != nullptr && !cloaked(static_cast<HWND>(top->GetHWND())) ? top : nullptr;
+}
+
+struct Shown
+{
+    HWND  hwnd = nullptr;
+    RECT  rect{};
+    DWORD process = 0;
+    DWORD thread  = 0;
+
+    bool is_menu() const { return thread == GetCurrentThreadId() && has_class(hwnd, L"#32768"); }
+};
+
+BOOL CALLBACK collect_shown(HWND hwnd, LPARAM windows)
+{
+    Shown s;
+    s.hwnd = hwnd;
+    if (IsWindowVisible(hwnd) && !IsIconic(hwnd) && GetWindowRect(hwnd, &s.rect) && !IsRectEmpty(&s.rect)) {
+        s.thread = GetWindowThreadProcessId(hwnd, &s.process);
+        reinterpret_cast<std::vector<Shown>*>(windows)->push_back(s);
+    }
+    return TRUE;
+}
+
+// The screen's top-level windows, every process's, topmost first as EnumWindows lists them. Popups are read
+// from the screen, so this says which window each shows over and whether the screen shows it unmixed.
+class Screen
+{
+public:
+    Screen()
+    {
+        EnumWindows(collect_shown, reinterpret_cast<LPARAM>(&m_windows));
+        m_wx_menu_shown = std::any_of(m_windows.begin(), m_windows.end(),
+                                      [](const Shown& w) { return w.is_menu() && wx_menu_from(w.hwnd) != nullptr; });
+    }
+
+    const std::vector<Shown>& windows() const { return m_windows; }
+
+    // The wx top-level window the popup at `i` shows over, or null when it shows over a window captures do not
+    // draw, such as a native file dialog or one DWM hides, and is left out with it. A wx popup shows over the
+    // window it opened from, and so does a wx menu (wx shows them recursively, so several may be open). A menu
+    // the system shows itself (an edit control's, a native dialog's) is the active one while no wx menu shows:
+    // with one showing too, the active menu may be that one, and it is left out. Another popup shows over the
+    // first of its owners that is neither a popup nor hidden (Windows makes only top-level windows owners); one
+    // without (the list of a combo box, wx's tooltip control) over the topmost window of ours below it that it
+    // overlaps and the screen shows.
+    wxTopLevelWindow* shown_over(std::size_t i) const
+    {
+        const Shown& p = m_windows[i];
+        if (auto* popup = dynamic_cast<wxPopupWindow*>(wxFindWinFromHandle(p.hwnd)))
+            return dynamic_cast<wxTopLevelWindow*>(owning_window(popup));
+        if (p.is_menu()) {
+            wxWindow* from = wx_menu_from(p.hwnd);
+            if (from == nullptr && !m_wx_menu_shown)
+                from = active_menu_from();
+            return from != nullptr ? shown_top_level(from) : nullptr;
+        }
+        for (HWND o = GetWindow(p.hwnd, GW_OWNER); o != nullptr; o = GetWindow(o, GW_OWNER)) {
+            DWORD process = 0;
+            GetWindowThreadProcessId(o, &process);
+            if (IsWindowVisible(o) && !is_popup(o, process))
+                return cloaked(o) ? nullptr : dynamic_cast<wxTopLevelWindow*>(wxFindWinFromHandle(o));
+        }
+        for (std::size_t j = i + 1; j < m_windows.size(); ++j) {
+            const Shown& w = m_windows[j];
+            RECT         both{};
+            if (w.process == GetCurrentProcessId() && !is_popup(w.hwnd, w.process) && IntersectRect(&both, &p.rect, &w.rect) &&
+                !cloaked(w.hwnd))
+                return dynamic_cast<wxTopLevelWindow*>(wxFindWinFromHandle(w.hwnd));
+        }
+        return nullptr;
+    }
+
+    // Whether the screen mixes another window into the popup at `i`, which shows over `over`. A popup of ours over
+    // the same window that is not covered itself is drawn with this one, after it, as captures draw popups by the
+    // window they show over. Any other window above it that the screen shows there, another application's, a
+    // window of ours the capture may not draw, a popup over another window or one left out, would put its pixels
+    // in this one's.
+    bool covered(std::size_t i, const wxTopLevelWindow* over) const
+    {
+        for (std::size_t j = 0; j < i; ++j) {
+            const Shown& w = m_windows[j];
+            RECT         both{};
+            if (!IntersectRect(&both, &m_windows[i].rect, &w.rect) || cloaked(w.hwnd) || draws_nothing(w.hwnd))
+                continue;
+            if (!is_popup(w.hwnd, w.process) || shown_over(j) != over || covered(j, over))
+                return true;
+        }
+        return false;
+    }
+
+private:
+    std::vector<Shown> m_windows;
+    bool               m_wx_menu_shown = false; // a menu window shows one of wx's menus
+};
 
 void check(HRESULT hr, const char* what)
 {
@@ -478,31 +641,32 @@ bool capture_native_window(wxTopLevelWindow& window, CaptureSessions* sessions, 
 
 bool capture_native_popup(wxWindow& popup, wxImage& out)
 {
-    RECT r{};
-    return GetWindowRect(static_cast<HWND>(popup.GetHWND()), &r) && read_screen(r, out);
+    const auto   hwnd    = static_cast<HWND>(popup.GetHWND());
+    const Screen screen;
+    const auto&  windows = screen.windows();
+    const auto   it      = std::find_if(windows.begin(), windows.end(), [hwnd](const Shown& w) { return w.hwnd == hwnd; });
+    if (it == windows.end() || cloaked(hwnd))
+        return false;
+    const auto i = std::size_t(it - windows.begin());
+    return !screen.covered(i, screen.shown_over(i)) && read_screen(it->rect, out);
 }
 
 std::vector<PopupCapture> capture_native_popups()
 {
-    // The UI thread's shown top-level windows, topmost first, as EnumWindows lists them.
-    std::vector<HWND> windows;
-    EnumWindows(collect_own_window, reinterpret_cast<LPARAM>(&windows));
+    const Screen screen;
+    const auto&  windows = screen.windows();
     std::vector<PopupCapture> out;
     for (std::size_t i = windows.size(); i-- > 0;) {
-        RECT r{};
-        if (!is_system_popup(windows[i]) || !GetWindowRect(windows[i], &r))
+        const Shown& w = windows[i];
+        // wx's popups come from popups_of() in capture_popups().
+        const bool popup = (w.thread == GetCurrentThreadId() && is_system_popup(w.hwnd)) || is_foreign_popup(w.hwnd, w.process);
+        if (!popup || cloaked(w.hwnd))
             continue;
-        // It shows over the topmost of our windows below it that it overlaps, the one it opened over.
         PopupCapture p;
-        for (std::size_t j = i + 1; j < windows.size() && p.owner == nullptr; ++j) {
-            RECT below{}, both{};
-            if (wxTopLevelWindow* top = top_level_window_of(windows[j]);
-                top != nullptr && GetWindowRect(windows[j], &below) && IntersectRect(&both, &r, &below))
-                p.owner = top;
-        }
-        if (p.owner == nullptr || !read_screen(r, p.image))
+        p.owner = screen.shown_over(i);
+        if (p.owner == nullptr || screen.covered(i, p.owner) || !read_screen(w.rect, p.image))
             continue;
-        p.offset = wxPoint(r.left, r.top) - p.owner->ClientToScreen(wxPoint(0, 0));
+        p.offset = wxPoint(w.rect.left, w.rect.top) - p.owner->ClientToScreen(wxPoint(0, 0));
         out.push_back(std::move(p));
     }
     return out;

@@ -87,12 +87,16 @@ struct PopupCapture
 // Our popups shown now, bottom to top, for the captures that leave them out (not Capture::from_screen). Empty on
 // X11, whose captures read them from the screen. On macOS, where its window-server capture is unavailable, wx's
 // popups only: AppKit draws its menus and tooltips in windows of its own, which only the window server shows.
+// Windows reads them from the screen and leaves out those the screen shows mixed with another window.
 std::vector<PopupCapture> capture_popups();
 
 // The OS parts of capture_popups() on Windows and macOS. capture_native_popup() draws one of wx's popups from its
 // GetScreenPosition() on, at its scale: Windows reads it from the screen, where it shows topmost, and macOS
-// draws its view. capture_native_popups() gives the system's popups over our windows, bottom to top: menus,
-// tooltips and the lists of native drop-downs on Windows, none on macOS.
+// draws its view. capture_native_popups() gives the system's popups over our windows, bottom to top: on Windows
+// menus, tooltips and the lists of native drop-downs, and the drop-down lists and context menus web views show
+// from WebView2's browser process, each over the window it belongs to (a menu over the one it was shown from),
+// and none over a native dialog, which captures leave out; none on macOS. Windows leaves out a popup DWM hides
+// or that a window above it covers in part, unless that window is a popup over the same window, drawn with it.
 bool                      capture_native_popup(wxWindow& popup, wxImage& out);
 std::vector<PopupCapture> capture_native_popups();
 

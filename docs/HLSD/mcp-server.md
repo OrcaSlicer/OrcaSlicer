@@ -248,7 +248,11 @@ thread fail until the dialog closes. Otherwise the request keeps waiting. A `run
 out with a native dialog on top fails naming it, instead of reporting a busy UI thread. The dispatcher
 stays `CallAfter`: running closures some other way inside the Cocoa modal session would bypass wx's
 pause and re-enter the app while the dialog is up, so on macOS native dialogs are answered ahead.
-On Windows and Linux a native dialog's own loop runs wx's pending events, so the calls go on.
+On Windows and Linux a native dialog's own loop runs wx's pending events, so the calls go on. On
+Windows wx runs them from a message hook when such a loop, or a menu's, takes a message off the thread's
+queue, and `CallAfter` alone wakes only wx's own loop, so the dispatcher also posts the UI thread a message
+(`wxWakeUpMainThread()`). The loops of menus and system dialogs take any message of the thread, so a call
+made while one is open is picked up at once instead of waiting for an unrelated message.
 
 **Blocking slots.** A request that may block (an inline call, or a job call within its budget)
 first takes one of 32 slots. Without one, a job call returns its `running` envelope at once and an
@@ -2199,8 +2203,19 @@ shows over. wx's popups (`popups_of()`) show over the window they opened from: W
 screen, where it shows topmost, and macOS draws its view as it draws a window's (`capture_native_popup()`),
 while its window is on the screen: wx can still report a drop-down shown after its window has left it.
 Windows also reads the system's popups from the screen (`capture_native_popups()`): menus, tooltips and the
-lists of native drop-downs are top-level windows of the thread that showed them, and each shows over the
-topmost of our windows below it that it overlaps (`EnumWindows` lists windows topmost first). AppKit
+lists of native drop-downs, top-level windows of the thread that showed them, and the drop-down lists and
+context menus of web views, which WebView2 shows in captionless popup windows of its browser process owned
+by the window that hosts the web view. A menu shows over the window it was shown from: one of wx's, found
+among the menus `popup_menu()` shows (`shown_menus()`) by its `HMENU`, submenus included, as wx shows them
+recursively; one the system shows itself, an edit control's or a native dialog's, over the window of the
+thread's active menu (`GetGUIThreadInfo()`), unless a wx menu shows too, which leaves its origin unknown.
+Another popup shows over the first of its owners (`GW_OWNER`) that is neither a popup nor hidden or, without
+one, over the topmost of our windows below it that it overlaps (`EnumWindows` lists windows topmost first).
+When that window is not a wx one, such as a native file dialog, or DWM cloaks it, captures do not draw it,
+and the popup is left out with it. A popup read from the screen holds whatever the screen shows
+there, so Windows leaves out one that DWM cloaks or that a window above it covers in part: another
+application's, a window of ours that is not a popup, or a popup over another window or left out. Only a
+popup over the same window that is drawn itself, and a layered window at constant alpha 0, do not count. AppKit
 draws macOS's menus and tooltips in windows of its own, which only the window server shows, so drawing
 views leaves them out. The full-size PNG goes to `save_path` or `<datadir>/mcp/out/OrcaSlicer-screenshot-<timestamp>.png`. The image
 block is scaled to `max_dim` on the long edge (default 1280, clamped to 256–2000).
@@ -2223,7 +2238,9 @@ client offset, resampled to the main window's content scale off MSW. Modeless wi
 dialogs are left out: `wxTopLevelWindows` is creation order, not stacking order. Where the capture
 does not read the screen, popups, menus and tooltips (on macOS, wx's popups only) are drawn last, over
 the dialogs, rather than into the window each shows over (`CaptureOptions::popups`), so a drop-down list
-reaching past its dialog is not cut off, and the pointer follows a wx popup to its window. A capture that
+reaching past its dialog is not cut off, and the pointer follows a wx popup to its window. They are taken as
+for screenshots, so on Windows a popup over a native dialog, or one partly covered by a window other than
+popups over the same window, is left out, and so is one over a window the recording does not draw. A capture that
 reads the screen (`Capture::from_screen`: X11, and macOS's window-server capture) already shows our
 windows over the main window as they are, modeless ones and native pickers included (a native message box,
 an in-process panel, should show too; OrcaSlicer raises none on demand on macOS to check), and nothing more

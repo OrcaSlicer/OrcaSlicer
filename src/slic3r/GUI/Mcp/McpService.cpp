@@ -40,6 +40,7 @@
 
 #include <wx/app.h>
 #include <wx/event.h>
+#include <wx/thread.h>
 #include <wx/timer.h>
 
 #include <algorithm>
@@ -100,8 +101,15 @@ public:
     {
         // CallAfter queues a thread-safe event; without an app the closure never runs and its
         // caller gives up after the queue timeout.
-        if (wxTheApp != nullptr)
-            wxTheApp->CallAfter(std::move(fn));
+        if (wxTheApp == nullptr)
+            return;
+        wxTheApp->CallAfter(std::move(fn));
+#ifdef __WXMSW__
+        // CallAfter wakes only wx's own loop. In a native modal loop, a menu's or a system dialog's, wx runs
+        // queued events from a message hook when the loop takes a message off the thread's queue, so give it one
+        // rather than wait for an unrelated message.
+        wxWakeUpMainThread();
+#endif
     }
 };
 
