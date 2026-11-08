@@ -308,6 +308,45 @@ int sss_mode_for_extruder(const std::vector<int>& families, size_t extruder_idx,
 
 } // namespace
 
+bool PathTraceRenderer::is_available()
+{
+    return wxGetApp().is_gl_version_greater_or_equal_to(4, 3) && wxGetApp().get_shader("pathtrace_compute") != nullptr &&
+           wxGetApp().get_shader("pathtrace_denoise") != nullptr;
+}
+
+bool PathTraceRenderer::is_selected() const
+{
+    // Only these views of an FFF printer have a path traced branch in _render_scene().
+    if ((m_canvas.m_canvas_type != GLCanvas3D::ECanvasType::CanvasView3D && m_canvas.m_canvas_type != GLCanvas3D::ECanvasType::CanvasPreview) ||
+        m_canvas.current_printer_technology() != ptFFF)
+        return false;
+    const AppConfig* cfg = wxGetApp().app_config;
+    return cfg != nullptr && cfg->get(SETTING_OPENGL_SHADING_MODEL) == "pathtrace" && m_canvas._is_realistic_view_enabled() && is_available();
+}
+
+bool PathTraceRenderer::is_enabled() const
+{
+    if (!is_selected())
+        return false;
+    const GLGizmosManager::EType gizmo = m_canvas.m_gizmos.get_current_type();
+    if (gizmo == GLGizmosManager::Seam ||
+        gizmo == GLGizmosManager::FdmSupports ||
+        gizmo == GLGizmosManager::FuzzySkin ||
+        gizmo == GLGizmosManager::MmSegmentation)
+        return false;
+    // The layer height editor and X-Ray draw the objects through their own shaders, as the painting
+    // gizmos do.
+    if (m_canvas.m_picking_enabled && m_canvas.m_layers_editing.is_enabled() && m_canvas.m_layers_editing.last_object_id != -1 &&
+        m_canvas.m_layers_editing.object_max_z() > 0.0f)
+        return false;
+    return !m_canvas._is_xray_view_active();
+}
+
+bool PathTraceRenderer::draws_volume(const GLVolume& volume)
+{
+    return !volume.is_modifier && volume.printable;
+}
+
 bool PathTraceRenderer::is_frame_final() const
 {
     // A path traced frame is final once it has converged. An empty scene has nothing to converge.
@@ -1030,7 +1069,7 @@ void PathTraceRenderer::extract_prepare_volumes(
     // path traced image, see "overlays" in _render_objects().
     std::set<std::pair<size_t, size_t>> extracted_parts;
     for (const GLVolume* volume : m_canvas.m_volumes.volumes) {
-        if (volume == nullptr || !volume->is_active || !GLCanvas3D::_is_path_traced(*volume))
+        if (volume == nullptr || !volume->is_active || !draws_volume(*volume))
             continue;
         const std::pair<size_t, size_t> part_key = pathtrace_part_key(*volume);
         if (!extracted_parts.insert(part_key).second)
@@ -1112,7 +1151,7 @@ void PathTraceRenderer::update_instances_and_tlas(size_t transform_signature)
     constexpr uint32_t INSTANCE_PARTLY_INSIDE = 1;
     constexpr uint32_t INSTANCE_WIPE_TOWER = 2;
     for (const GLVolume* v : m_canvas.m_volumes.volumes) {
-        if (v == nullptr || !v->is_active || !GLCanvas3D::_is_path_traced(*v))
+        if (v == nullptr || !v->is_active || !draws_volume(*v))
             continue;
         const auto it = part_blases.find(pathtrace_part_key(*v));
         if (it != part_blases.end())
@@ -1934,7 +1973,7 @@ bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_s
     m_max_samples = quality.cfg_max_samples;
     m_is_interactive = interactive;
 
-    // Both exist, see _is_pathtrace_selected().
+    // Both exist, see is_available().
     GLShaderProgram* compute_shader = wxGetApp().get_shader("pathtrace_compute");
     GLShaderProgram* denoise_shader = wxGetApp().get_shader("pathtrace_denoise");
 

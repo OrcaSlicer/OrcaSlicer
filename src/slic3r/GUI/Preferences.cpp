@@ -1,4 +1,5 @@
 #include "Preferences.hpp"
+#include "PathTraceRenderer.hpp"
 #include "CloudProvider.hpp"
 #include "ColorPickerDialog.hpp"
 #include "OptionsGroup.hpp"
@@ -2248,7 +2249,7 @@ void PreferencesDialog::create_items()
     //// GRAPHICS > Realistic view
     g_sizer->Add(create_item_title(_L("Realistic View")), 1, wxEXPAND);
 
-    const bool can_pathtrace = wxGetApp().can_pathtrace();
+    const bool can_pathtrace = PathTraceRenderer::is_available();
     std::vector<wxString> ShadingLabels = { _L("Gouraud"),
                                             _L("Phong") };
     std::vector<std::string> ShadingValues = { "gouraud", "phong" };

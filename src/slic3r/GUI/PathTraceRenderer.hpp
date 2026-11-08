@@ -17,6 +17,7 @@
 namespace Slic3r {
 
 class GLShaderProgram;
+class GLVolume;
 
 namespace GUI {
 
@@ -33,6 +34,16 @@ class PathTraceRenderer
 {
 public:
     explicit PathTraceRenderer(GLCanvas3D& canvas) : m_canvas(canvas) {}
+
+    // OpenGL 4.3 with the shaders of the path tracer built.
+    static bool is_available();
+    // Whether the path tracer draws this volume, or the rasterizer draws it over the path traced image.
+    static bool draws_volume(const GLVolume& volume);
+    // Path tracing is the shading model of this canvas and can run. The scene stays for as long as this
+    // is true.
+    bool is_selected() const;
+    // Whether to path trace now: selected, and no open view that draws the objects through its own shaders.
+    bool is_enabled() const;
 
     // Draws the scene over the rasterized bed, false if the rasterizer has to draw it instead.
     bool render(const Camera& source_camera, const Size& canvas_size);

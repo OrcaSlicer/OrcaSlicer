@@ -4,7 +4,7 @@
 
 The interactive GPU path tracer provides physically based progressive rendering in both the 3D model view (Prepare) and the sliced toolpath preview (Preview). It visualizes material optics, realistic lighting, soft contact shadows, surface gloss, and volumetric transmission through translucent 3D printing filaments. When enabled in application preferences (`SETTING_OPENGL_PATHTRACE`), the path tracer renders continuously in the background during camera stillness and converges progressively across frames, providing accurate depth and material perception without stalling interactive navigation.
 
-It needs compute shaders and shader storage buffers, so OpenGL 4.3 (`GUI_App::can_pathtrace`), and the preference is only offered where its shaders were built. That leaves out macOS, whose OpenGL ends at 4.1, and the OpenGL ES builds. `libslic3r/PathTracer.hpp` and its scene format know nothing of OpenGL; the kernel and the code driving it in `PathTraceRenderer` do.
+It needs compute shaders and shader storage buffers, so OpenGL 4.3 (`PathTraceRenderer::is_available`), and the preference is only offered where its shaders were built. That leaves out macOS, whose OpenGL ends at 4.1, and the OpenGL ES builds. `libslic3r/PathTracer.hpp` and its scene format know nothing of OpenGL; the kernel and the code driving it in `PathTraceRenderer` do.
 
 Quality and performance are controlled by a single preference (`SETTING_OPENGL_PATHTRACE_QUALITY`) with three presets:
 - **Low:** 64 max samples, 1 indirect bounce, 4 max transmission bounces, 4 shadow hits, 8.0 ms tile budget, 15–50% dynamic orbit resolution, no subsurface scattering.
@@ -15,10 +15,10 @@ Quality and performance are controlled by a single preference (`SETTING_OPENGL_P
 
 The path tracer draws the objects itself, and the rasterizer draws them afterwards for their depth only, so that gizmos, modifiers and the selection are hidden behind them. What the object shaders of the rasterizer add to the surfaces is therefore drawn again or rebuilt:
 
-- The painting gizmos, the variable layer height editor and X-Ray draw the objects through their own shaders, which is the point of these views: the path tracer is off while they are open (`_is_pathtrace_enabled`).
+- The painting gizmos, the variable layer height editor and X-Ray draw the objects through their own shaders, which is the point of these views: the path tracer is off while they are open (`PathTraceRenderer::is_enabled`).
 - The overhang view, the darkening of the parts of an object outside the print volume and the band between the printable heights of two extruders are warnings that stay on while working, so the path tracer applies them as `gouraud.fs` does, on the surfaces the camera sees (`object_view_tint` in `pathtrace.comp`). The flags of an object, partly outside the print volume or a wipe tower, ride in its instance. `_update_volumes_state` computes the print volume and the outside state before the path tracer runs.
 - The depth pass covers the whole print, the parts of a translucent filament too, which the rasterizer draws in its transparent pass. It marks the volumes to outline in the stencil, the selection or with persistent outlines all visible ones, so that `SelectionOutline` outlines them over the image as in the plain view. The sinking contours are drawn in a second depth pass with the color writes turned on for them (`ColorWritesOn` in `3DScene.cpp`). The rasterizer hides them where an object is in front by drawing the objects over them, which a depth only pass cannot; the second pass tests them against the depth of all objects instead.
-- The path tracer runs in Prepare and Preview of FFF printers (`_is_pathtrace_selected`). While its BVH is building, the rasterizer stands in for it, and such a frame gets everything a rasterized frame gets: translucent toolpaths, SSAO and FXAA follow whether the frame was path traced, not whether path tracing is selected.
+- The path tracer runs in Prepare and Preview of FFF printers (`PathTraceRenderer::is_selected`). While its BVH is building, the rasterizer stands in for it, and such a frame gets everything a rasterized frame gets: translucent toolpaths, SSAO and FXAA follow whether the frame was path traced, not whether path tracing is selected.
 
 ## Acceleration structure (TLAS / BLAS)
 

@@ -2835,7 +2835,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
     m_shadow_map_valid = false;
     _render_background();
 
-    if (!_is_pathtrace_selected())
+    if (!m_path_tracer->is_selected())
         m_path_tracer->release_scene();
     // Whether this frame shows the path traced image, or the rasterizer stood in for it.
     bool pathtraced_rendered = false;
@@ -2882,7 +2882,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
         m_frame_profiler.mark("plates");
         // Whether the layer editor is open, and the outside state the path tracer tints by.
         _update_volumes_state();
-        if (_is_pathtrace_enabled() && m_path_tracer->render(camera, cnv_size)) {
+        if (m_path_tracer->is_enabled() && m_path_tracer->render(camera, cnv_size)) {
             pathtraced_rendered = true;
             _render_section_view_caps();
 
@@ -2901,7 +2901,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
             for (const GLVolume* volume : m_volumes.volumes) {
                 if (volume == nullptr || !volume->is_active)
                     continue;
-                has_overlays = has_overlays || !_is_path_traced(*volume);
+                has_overlays = has_overlays || !PathTraceRenderer::draws_volume(*volume);
                 has_outline = has_outline || (show_outline && (volume->selected || (persistent_outline && volume->visible)));
                 has_sinking_contours = has_sinking_contours || (m_sinking_contours_enabled && volume->is_sinking());
             }
@@ -2975,7 +2975,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
     }
     /* preview render */
     else if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview) {
-        if (_is_pathtrace_enabled()) {
+        if (m_path_tracer->is_enabled()) {
             m_gcode_viewer.set_clipping_plane(_get_section_view_plane());
             _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
             m_frame_profiler.mark("bed");
@@ -3016,7 +3016,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
             _render_sla_slices();
             _render_selection();
             m_frame_profiler.mark("objects");
-            if (!_is_pathtrace_enabled()) {
+            if (!m_path_tracer->is_enabled()) {
                 _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
                 m_frame_profiler.mark("bed");
                 _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, true, hover_id);
@@ -4772,7 +4772,7 @@ void GLCanvas3D::on_render_timer(wxTimerEvent& evt)
     // wxWakeUpIdle();
     // ORCA: except for the path tracer, whose progressive passes are frames scheduled on this timer
     // that must redraw the scene.
-    if (_is_pathtrace_enabled()) {
+    if (m_path_tracer->is_enabled()) {
         m_dirty = true;
         wxWakeUpIdle();
     }
@@ -8717,39 +8717,6 @@ bool GLCanvas3D::_is_realistic_view_enabled() const
     return m_canvas_type != ECanvasType::CanvasPreview || cfg->get_bool(SETTING_OPENGL_REALISTIC_PREVIEW);
 }
 
-bool GLCanvas3D::_is_pathtrace_selected() const
-{
-    // Only these views of an FFF printer have a path traced branch in _render_scene().
-    if ((m_canvas_type != ECanvasType::CanvasView3D && m_canvas_type != ECanvasType::CanvasPreview) ||
-        current_printer_technology() != ptFFF)
-        return false;
-    const AppConfig* cfg = wxGetApp().app_config;
-    return cfg != nullptr && cfg->get(SETTING_OPENGL_SHADING_MODEL) == "pathtrace" && _is_realistic_view_enabled() && wxGetApp().can_pathtrace();
-}
-
-bool GLCanvas3D::_is_pathtrace_enabled() const
-{
-    if (!_is_pathtrace_selected())
-        return false;
-    const GLGizmosManager::EType gizmo = m_gizmos.get_current_type();
-    if (gizmo == GLGizmosManager::Seam ||
-        gizmo == GLGizmosManager::FdmSupports ||
-        gizmo == GLGizmosManager::FuzzySkin ||
-        gizmo == GLGizmosManager::MmSegmentation)
-        return false;
-    // The layer height editor and X-Ray draw the objects through their own shaders, as the painting
-    // gizmos do.
-    if (m_picking_enabled && m_layers_editing.is_enabled() && m_layers_editing.last_object_id != -1 &&
-        m_layers_editing.object_max_z() > 0.0f)
-        return false;
-    return !_is_xray_view_active();
-}
-
-bool GLCanvas3D::_is_path_traced(const GLVolume& volume)
-{
-    return !volume.is_modifier && volume.printable;
-}
-
 bool GLCanvas3D::_is_ssao_enabled() const
 {
     if (wxGetApp().app_config == nullptr)
@@ -8855,7 +8822,7 @@ bool GLCanvas3D::_is_scene_cache_enabled() const
 
 bool GLCanvas3D::_is_scene_cacheable() const
 {
-    if (_is_pathtrace_enabled() && !m_path_tracer->is_frame_final())
+    if (m_path_tracer->is_enabled() && !m_path_tracer->is_frame_final())
         return false;
     if (!_is_scene_cache_enabled())
         return false;
@@ -8918,7 +8885,7 @@ void GLCanvas3D::_render_fps_overlay(int fps) const
         ImGui::SameLine();
         // The subset of those frames that redrew the scene rather than reusing the cached one.
         imgui.text(std::string("3D: ") + std::to_string(m_render_stats.get_scene_fps()));
-        if (_is_pathtrace_enabled()) {
+        if (m_path_tracer->is_enabled()) {
             m_path_tracer->render_fps_overlay(imgui);
         }
     }
@@ -10016,7 +9983,7 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
                     return !volume.is_modifier;
                 }
                 else if (subset != EObjectsSubset::All) {
-                    return _is_path_traced(volume) == (subset == EObjectsSubset::Print);
+                    return PathTraceRenderer::draws_volume(volume) == (subset == EObjectsSubset::Print);
                 }
                 else {
                     return true;

@@ -1525,11 +1525,6 @@ private:
     void _picking_pass_imex_ghosts();
     bool _is_fxaa_enabled() const;
     bool _is_realistic_view_enabled() const;
-    // Path tracing is the shading model of this canvas and can run. It holds on to its scene for as
-    // long as this is true.
-    bool _is_pathtrace_selected() const;
-    // Whether to path trace now: selected, and no open view that draws the objects through its own shaders.
-    bool _is_pathtrace_enabled() const;
     bool _is_ssao_enabled() const;
     int _get_effective_fps_cap() const;
     bool _is_fps_overlay_enabled() const;
@@ -1549,8 +1544,6 @@ private:
     // scene_dirty is false only for a frame that its requester knows to be overlay-only.
     void _render_frame(bool scene_dirty, bool only_init = false);
     void _render_scene(const Camera& camera, const Size& cnv_size);
-    // Whether the path tracer draws this volume, or the rasterizer draws it over the path traced image.
-    static bool _is_path_traced(const GLVolume& volume);
     // Request a frame that only rebuilds the overlay.
     void _set_overlay_as_dirty() { m_overlay_dirty = true; }
     // These read the hover state _picking_pass() sets.
@@ -1574,7 +1567,6 @@ private:
     // when the bed shape changed.
     void _render_cad_grid(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     //BBS: add outline drawing logic
-    // overlays_only draws only the modifiers and unprintable parts, which the path tracer leaves out.
     // The layer editing object, the print volume and the outside state of the volumes, which the
     // object shaders and the path tracer read.
     void _update_volumes_state();
