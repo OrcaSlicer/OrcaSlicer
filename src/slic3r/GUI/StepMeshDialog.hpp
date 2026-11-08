@@ -52,4 +52,27 @@ private:
     void stop_task();
 };
 
+namespace Slic3r { namespace GUI {
+
+// Automated loads (the web bridge's model imports) cannot answer the STEP meshing dialog or the
+// non-UTF-8 name warning. While one of these is alive, STEP imports mesh with the Preferences values,
+// as they do when "Show options when importing STEP file" is off, and the warning is only logged.
+class NoStepImportDialogs
+{
+public:
+    NoStepImportDialogs() { ++s_depth; }
+    ~NoStepImportDialogs() { --s_depth; }
+    NoStepImportDialogs(const NoStepImportDialogs&)            = delete;
+    NoStepImportDialogs& operator=(const NoStepImportDialogs&) = delete;
+    static bool active() { return s_depth > 0; }
+
+private:
+    static int s_depth;
+};
+
+// "Show options when importing STEP file" is on and no NoStepImportDialogs is alive.
+bool step_mesh_dialog_wanted();
+
+}} // namespace Slic3r::GUI
+
 #endif  // _STEP_MESH_DIALOG_H_

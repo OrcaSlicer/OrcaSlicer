@@ -1,6 +1,10 @@
 #include "libslic3r/Point.hpp"
 
 #include "GLToolbar.hpp"
+#include "ImGuiWrapper.hpp"
+#include "GLModel.hpp"
+
+#include <glad/gl.h>
 
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -780,6 +784,34 @@ int GLToolbar::get_visible_items_cnt() const
     return cnt;
 }
 
+std::vector<int> GLToolbar::get_keyboard_item_ids() const
+{
+    std::vector<int> ids;
+    for (size_t i = 0; i < m_items.size(); ++i) {
+        const GLToolbarItem* item = m_items[i];
+        if (item->is_visible() && !item->is_separator() && item->is_enabled())
+            ids.push_back(int(i));
+    }
+    return ids;
+}
+
+void GLToolbar::set_keyboard_hover(int id)
+{
+    for (size_t i = 0; i < m_items.size(); ++i) {
+        GLToolbarItem* item = m_items[i];
+        if (int(i) == id) {
+            if (item->get_state() == GLToolbarItem::Normal)
+                item->set_state(GLToolbarItem::Hover);
+            else if (item->get_state() == GLToolbarItem::Pressed)
+                item->set_state(GLToolbarItem::HoverPressed);
+        }
+        else if (item->get_state() == GLToolbarItem::Hover)
+            item->set_state(GLToolbarItem::Normal);
+        else if (item->get_state() == GLToolbarItem::HoverPressed)
+            item->set_state(GLToolbarItem::Pressed);
+    }
+}
+
 void GLToolbar::do_action(GLToolbarItem::EActionType type, int item_id, GLCanvas3D& parent, bool check_hover)
 {
     if (m_pressed_toggable_id == -1 || m_pressed_toggable_id == item_id) {
@@ -1247,11 +1279,51 @@ int GLToolbar::contains_mouse_vertical(const Vec2d& mouse_pos, const GLCanvas3D&
     return -1;
 }
 
+static std::optional<ColorRGBA> s_toolbar_bg_override[2]; // [dark theme]
+
+void GLToolbar::set_background_color_override(bool dark, const std::optional<ColorRGBA>& color) { s_toolbar_bg_override[dark ? 1 : 0] = color; }
+
+bool GLToolbar::render_background_override(float left, float top, float right, float bottom)
+{
+    // A theme colour replaces the texture: the shipped textures are flat, so one quad in that colour
+    // (at the light texture's 80% alpha unless overlays are opaque) is the same shape.
+    if (const auto& over = s_toolbar_bg_override[wxGetApp().dark_mode() ? 1 : 0]) {
+        GLShaderProgram* shader = wxGetApp().get_shader("flat");
+        if (shader == nullptr)
+            return false; // nothing drawn: the caller falls back to its texture
+        GLModel::Geometry init_data;
+        init_data.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P2 };
+        init_data.color  = ColorRGBA(over->r(), over->g(), over->b(), ImGuiWrapper::overlay_alpha(0.8f));
+        init_data.add_vertex(Vec2f(left, bottom));
+        init_data.add_vertex(Vec2f(right, bottom));
+        init_data.add_vertex(Vec2f(right, top));
+        init_data.add_vertex(Vec2f(left, top));
+        init_data.add_triangle(0, 1, 2);
+        init_data.add_triangle(2, 3, 0);
+        GLModel quad;
+        quad.init_from(std::move(init_data));
+        glsafe(::glEnable(GL_BLEND));
+        glsafe(::glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
+        shader->start_using();
+        shader->set_uniform("view_model_matrix", Transform3d::Identity());
+        shader->set_uniform("projection_matrix", Transform3d::Identity());
+        quad.render();
+        shader->stop_using();
+        glsafe(::glDisable(GL_BLEND));
+        return true;
+    }
+    return false;
+}
+
 void GLToolbar::render_background(float left, float top, float right, float bottom, float border_w, float border_h) const
 {
+    if (render_background_override(left, top, right, bottom))
+        return;
     const unsigned int tex_id = m_background_texture.texture.get_id();
     const float tex_width = (float)m_background_texture.texture.get_width();
     const float tex_height = (float)m_background_texture.texture.get_height();
+    // The light texture carries an 80% alpha; the preference draws it solid.
+    const bool opaque = ImGuiWrapper::opaque_overlays();
     if (tex_id != 0 && tex_width > 0.0f && tex_height > 0.0f) {
         const float inv_tex_width  = 1.0f / tex_width;
         const float inv_tex_height = 1.0f / tex_height;
@@ -1273,54 +1345,54 @@ void GLToolbar::render_background(float left, float top, float right, float bott
 
         // top-left corner
         if (m_layout.horizontal_orientation == Layout::HO_Left || m_layout.vertical_orientation == Layout::VO_Top)
-            GLTexture::render_sub_texture(tex_id, left, internal_left, internal_top, top, { { internal_left_uv, internal_bottom_uv }, { internal_right_uv, internal_bottom_uv }, { internal_right_uv, internal_top_uv }, { internal_left_uv, internal_top_uv } });
+            GLTexture::render_sub_texture(tex_id, left, internal_left, internal_top, top, { { internal_left_uv, internal_bottom_uv }, { internal_right_uv, internal_bottom_uv }, { internal_right_uv, internal_top_uv }, { internal_left_uv, internal_top_uv } }, opaque);
         else
-            GLTexture::render_sub_texture(tex_id, left, internal_left, internal_top, top, { { left_uv, internal_top_uv }, { internal_left_uv, internal_top_uv }, { internal_left_uv, top_uv }, { left_uv, top_uv } });
+            GLTexture::render_sub_texture(tex_id, left, internal_left, internal_top, top, { { left_uv, internal_top_uv }, { internal_left_uv, internal_top_uv }, { internal_left_uv, top_uv }, { left_uv, top_uv } }, opaque);
 
         // top edge
         if (m_layout.vertical_orientation == Layout::VO_Top)
-            GLTexture::render_sub_texture(tex_id, internal_left, internal_right, internal_top, top, { { internal_left_uv, internal_bottom_uv }, { internal_right_uv, internal_bottom_uv }, { internal_right_uv, internal_top_uv }, { internal_left_uv, internal_top_uv } });
+            GLTexture::render_sub_texture(tex_id, internal_left, internal_right, internal_top, top, { { internal_left_uv, internal_bottom_uv }, { internal_right_uv, internal_bottom_uv }, { internal_right_uv, internal_top_uv }, { internal_left_uv, internal_top_uv } }, opaque);
         else
-            GLTexture::render_sub_texture(tex_id, internal_left, internal_right, internal_top, top, { { internal_left_uv, internal_top_uv }, { internal_right_uv, internal_top_uv }, { internal_right_uv, top_uv }, { internal_left_uv, top_uv } });
+            GLTexture::render_sub_texture(tex_id, internal_left, internal_right, internal_top, top, { { internal_left_uv, internal_top_uv }, { internal_right_uv, internal_top_uv }, { internal_right_uv, top_uv }, { internal_left_uv, top_uv } }, opaque);
 
         // top-right corner
         if (m_layout.horizontal_orientation == Layout::HO_Right || m_layout.vertical_orientation == Layout::VO_Top)
-            GLTexture::render_sub_texture(tex_id, internal_right, right, internal_top, top, { { internal_left_uv, internal_bottom_uv }, { internal_right_uv, internal_bottom_uv }, { internal_right_uv, internal_top_uv }, { internal_left_uv, internal_top_uv } });
+            GLTexture::render_sub_texture(tex_id, internal_right, right, internal_top, top, { { internal_left_uv, internal_bottom_uv }, { internal_right_uv, internal_bottom_uv }, { internal_right_uv, internal_top_uv }, { internal_left_uv, internal_top_uv } }, opaque);
         else
-            GLTexture::render_sub_texture(tex_id, internal_right, right, internal_top, top, { { internal_right_uv, internal_top_uv }, { right_uv, internal_top_uv }, { right_uv, top_uv }, { internal_right_uv, top_uv } });
+            GLTexture::render_sub_texture(tex_id, internal_right, right, internal_top, top, { { internal_right_uv, internal_top_uv }, { right_uv, internal_top_uv }, { right_uv, top_uv }, { internal_right_uv, top_uv } }, opaque);
 
         // center-left edge
         if (m_layout.horizontal_orientation == Layout::HO_Left)
-            GLTexture::render_sub_texture(tex_id, left, internal_left, internal_bottom, internal_top, { { internal_left_uv, internal_bottom_uv }, { internal_right_uv, internal_bottom_uv }, { internal_right_uv, internal_top_uv }, { internal_left_uv, internal_top_uv } });
+            GLTexture::render_sub_texture(tex_id, left, internal_left, internal_bottom, internal_top, { { internal_left_uv, internal_bottom_uv }, { internal_right_uv, internal_bottom_uv }, { internal_right_uv, internal_top_uv }, { internal_left_uv, internal_top_uv } }, opaque);
         else
-            GLTexture::render_sub_texture(tex_id, left, internal_left, internal_bottom, internal_top, { { left_uv, internal_bottom_uv }, { internal_left_uv, internal_bottom_uv }, { internal_left_uv, internal_top_uv }, { left_uv, internal_top_uv } });
+            GLTexture::render_sub_texture(tex_id, left, internal_left, internal_bottom, internal_top, { { left_uv, internal_bottom_uv }, { internal_left_uv, internal_bottom_uv }, { internal_left_uv, internal_top_uv }, { left_uv, internal_top_uv } }, opaque);
 
         // center
-        GLTexture::render_sub_texture(tex_id, internal_left, internal_right, internal_bottom, internal_top, { { internal_left_uv, internal_bottom_uv }, { internal_right_uv, internal_bottom_uv }, { internal_right_uv, internal_top_uv }, { internal_left_uv, internal_top_uv } });
+        GLTexture::render_sub_texture(tex_id, internal_left, internal_right, internal_bottom, internal_top, { { internal_left_uv, internal_bottom_uv }, { internal_right_uv, internal_bottom_uv }, { internal_right_uv, internal_top_uv }, { internal_left_uv, internal_top_uv } }, opaque);
 
         // center-right edge
         if (m_layout.horizontal_orientation == Layout::HO_Right)
-            GLTexture::render_sub_texture(tex_id, internal_right, right, internal_bottom, internal_top, { { internal_left_uv, internal_bottom_uv }, { internal_right_uv, internal_bottom_uv }, { internal_right_uv, internal_top_uv }, { internal_left_uv, internal_top_uv } });
+            GLTexture::render_sub_texture(tex_id, internal_right, right, internal_bottom, internal_top, { { internal_left_uv, internal_bottom_uv }, { internal_right_uv, internal_bottom_uv }, { internal_right_uv, internal_top_uv }, { internal_left_uv, internal_top_uv } }, opaque);
         else
-            GLTexture::render_sub_texture(tex_id, internal_right, right, internal_bottom, internal_top, { { internal_right_uv, internal_bottom_uv }, { right_uv, internal_bottom_uv }, { right_uv, internal_top_uv }, { internal_right_uv, internal_top_uv } });
+            GLTexture::render_sub_texture(tex_id, internal_right, right, internal_bottom, internal_top, { { internal_right_uv, internal_bottom_uv }, { right_uv, internal_bottom_uv }, { right_uv, internal_top_uv }, { internal_right_uv, internal_top_uv } }, opaque);
 
         // bottom-left corner
         if (m_layout.horizontal_orientation == Layout::HO_Left || m_layout.vertical_orientation == Layout::VO_Bottom)
-            GLTexture::render_sub_texture(tex_id, left, internal_left, bottom, internal_bottom, { { internal_left_uv, internal_bottom_uv }, { internal_right_uv, internal_bottom_uv }, { internal_right_uv, internal_top_uv }, { internal_left_uv, internal_top_uv } });
+            GLTexture::render_sub_texture(tex_id, left, internal_left, bottom, internal_bottom, { { internal_left_uv, internal_bottom_uv }, { internal_right_uv, internal_bottom_uv }, { internal_right_uv, internal_top_uv }, { internal_left_uv, internal_top_uv } }, opaque);
         else
-            GLTexture::render_sub_texture(tex_id, left, internal_left, bottom, internal_bottom, { { left_uv, bottom_uv }, { internal_left_uv, bottom_uv }, { internal_left_uv, internal_bottom_uv }, { left_uv, internal_bottom_uv } });
+            GLTexture::render_sub_texture(tex_id, left, internal_left, bottom, internal_bottom, { { left_uv, bottom_uv }, { internal_left_uv, bottom_uv }, { internal_left_uv, internal_bottom_uv }, { left_uv, internal_bottom_uv } }, opaque);
 
         // bottom edge
         if (m_layout.vertical_orientation == Layout::VO_Bottom)
-            GLTexture::render_sub_texture(tex_id, internal_left, internal_right, bottom, internal_bottom, { { internal_left_uv, internal_bottom_uv }, { internal_right_uv, internal_bottom_uv }, { internal_right_uv, internal_top_uv }, { internal_left_uv, internal_top_uv } });
+            GLTexture::render_sub_texture(tex_id, internal_left, internal_right, bottom, internal_bottom, { { internal_left_uv, internal_bottom_uv }, { internal_right_uv, internal_bottom_uv }, { internal_right_uv, internal_top_uv }, { internal_left_uv, internal_top_uv } }, opaque);
         else
-            GLTexture::render_sub_texture(tex_id, internal_left, internal_right, bottom, internal_bottom, { { internal_left_uv, bottom_uv }, { internal_right_uv, bottom_uv }, { internal_right_uv, internal_bottom_uv }, { internal_left_uv, internal_bottom_uv } });
+            GLTexture::render_sub_texture(tex_id, internal_left, internal_right, bottom, internal_bottom, { { internal_left_uv, bottom_uv }, { internal_right_uv, bottom_uv }, { internal_right_uv, internal_bottom_uv }, { internal_left_uv, internal_bottom_uv } }, opaque);
 
         // bottom-right corner
         if (m_layout.horizontal_orientation == Layout::HO_Right || m_layout.vertical_orientation == Layout::VO_Bottom)
-            GLTexture::render_sub_texture(tex_id, internal_right, right, bottom, internal_bottom, { { internal_left_uv, internal_bottom_uv }, { internal_right_uv, internal_bottom_uv }, { internal_right_uv, internal_top_uv }, { internal_left_uv, internal_top_uv } });
+            GLTexture::render_sub_texture(tex_id, internal_right, right, bottom, internal_bottom, { { internal_left_uv, internal_bottom_uv }, { internal_right_uv, internal_bottom_uv }, { internal_right_uv, internal_top_uv }, { internal_left_uv, internal_top_uv } }, opaque);
         else
-            GLTexture::render_sub_texture(tex_id, internal_right, right, bottom, internal_bottom, { { internal_right_uv, bottom_uv }, { right_uv, bottom_uv }, { right_uv, internal_bottom_uv }, { internal_right_uv, internal_bottom_uv } });
+            GLTexture::render_sub_texture(tex_id, internal_right, right, bottom, internal_bottom, { { internal_right_uv, bottom_uv }, { right_uv, bottom_uv }, { right_uv, internal_bottom_uv }, { internal_right_uv, internal_bottom_uv } }, opaque);
     }
 }
 
@@ -1553,26 +1625,29 @@ bool GLToolbar::generate_icons_texture()
     }
 
     std::vector<std::pair<int, bool>> states;
-    //1: white only, 2: gray only, 0 : normal
+    //1: white only, 2: gray only, 3: hover plate, 4: pressed plate, 0 : as authored
     //true/false: apply background or not
+    // A toggled-on item (layers editing, the view toolbars) has to differ from a merely
+    // enabled one by more than the accent path inside its SVG -- the grayscale palette flattens
+    // that path onto the Normal grey. See the ramp in GLTexture::load_from_svg_files_as_sprites_array.
     if (m_type == Normal) {
         states.push_back({ 1, false }); // Normal
-        states.push_back({ 0, false }); // Pressed
+        states.push_back({ 4, false }); // Pressed
         states.push_back({ 2, false }); // Disabled
-        states.push_back({ 0, false }); // Hover
-        states.push_back({ 0, false }); // HoverPressed
+        states.push_back({ 3, false }); // Hover
+        states.push_back({ 4, false }); // HoverPressed
         states.push_back({ 2, false }); // HoverDisabled
-        states.push_back({ 0, false }); // HighlightedShown
+        states.push_back({ 3, false }); // HighlightedShown
         states.push_back({ 2, false }); // HighlightedHidden
     }
     else {
         states.push_back({ 1, false }); // Normal
-        states.push_back({ 0, true });  // Pressed
+        states.push_back({ 4, false }); // Pressed
         states.push_back({ 2, false }); // Disabled
-        states.push_back({ 0, false }); // Hover
-        states.push_back({ 1, true });  // HoverPressed
+        states.push_back({ 3, false }); // Hover
+        states.push_back({ 4, false }); // HoverPressed
         states.push_back({ 1, false }); // HoverDisabled
-        states.push_back({ 0, false }); // HighlightedShown
+        states.push_back({ 3, false }); // HighlightedShown
         states.push_back({ 1, false }); // HighlightedHidden
     }
 

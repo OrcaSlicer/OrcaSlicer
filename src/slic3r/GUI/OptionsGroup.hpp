@@ -66,6 +66,12 @@ public:
 	std::string	label_path;
     bool        undo_to_sys{false}; // BBS: object config
     bool        toggle_visible{true}; // BBS: hide some line
+    // Unlayered: a full-width widget line (no options of its own) can carry a key of its own so
+    // toggle_line(key) reaches it like an option line (e.g. a Browse button under a file-path
+    // field). OptionsGroup::update_visibility applies toggle_visible to it, since the group's
+    // Show(true) re-shows every line otherwise.
+    std::string widget_key;
+    wxSizer*    full_width_sizer {nullptr};
 
     size_t		full_width {0};
     widget_t	widget {nullptr};
@@ -157,6 +163,9 @@ public:
     bool option_label_at_right{false};
     // BBS: new layout
     wxWindow *     stb{ nullptr };
+    // Shown when the pointer rests on the group heading. Applied in activate(), where the heading
+    // widget is created; set it before the page is activated.
+    wxString       title_tooltip;
     const wxString  icon;
     const wxString  title;
     bool            m_labels_hidden{false};

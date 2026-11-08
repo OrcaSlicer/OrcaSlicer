@@ -31,6 +31,13 @@
 using namespace Slic3r;
 using namespace Slic3r::GUI;
 
+int Slic3r::GUI::NoStepImportDialogs::s_depth = 0;
+
+bool Slic3r::GUI::step_mesh_dialog_wanted()
+{
+    return !NoStepImportDialogs::active() && wxGetApp().app_config->get_bool("enable_step_mesh_setting");
+}
+
 static int _scale(const int val) { return val * Slic3r::GUI::wxGetApp().em_unit() / 10; }
 static int _ITEM_WIDTH() { return _scale(30); }
 #define MIN_DIALOG_WIDTH        FromDIP(400)
@@ -87,7 +94,7 @@ bool StepMeshDialog:: validate_number_range(const wxString& value, double min, d
 StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double linear_init, double angle_init)
     : DPIDialog(parent ? parent : static_cast<wxWindow *>(wxGetApp().mainframe),
                 wxID_ANY,
-                _(L("STEP file import parameters")),
+                _(L("Step file import parameters")),
                 wxDefaultPosition,
                 wxDefaultSize,
                 wxDEFAULT_DIALOG_STYLE /* | wxRESIZE_BORDER*/), m_file(file)

@@ -55,6 +55,7 @@ enum ColumnNumber
     colColorPaint      ,
     colSinking         ,
     colEditing         ,    // item editing
+    colDragHandle      ,    // grip the user drags to reorder objects and parts
     colCount           ,
 };
 
@@ -80,6 +81,8 @@ enum class InfoItemType
     FuzzySkin,
     //Sinking
     CutConnectors,
+    // Declarative (non-destructive) multiplanar cut planes.
+    CutPlanes,
 };
 
 class ObjectDataViewModelNode;
@@ -355,6 +358,7 @@ class ObjectDataViewModel :public wxDataViewModel
     wxBitmap                              m_warning_bmp;
     wxBitmap                              m_warning_manifold_bmp;
     wxBitmap                              m_lock_bmp;
+    wxBitmap                              m_drag_handle_bmp;
 
     ObjectDataViewModelNode*                    m_plate_outside;
 

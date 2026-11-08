@@ -387,6 +387,7 @@ public:
     std::vector<size_t> physical_filament_config_indices() const;
 
     int new_project(bool skip_confirm = false, bool silent = false, const wxString& project_name = wxString(), bool reload_presets = true);
+    void skip_next_new_project_confirm(bool skip = true);
     // BBS: save & backup
     void load_project(wxString const & filename = "", wxString const & originfile = "-");
     int save_project(bool saveAs = false);

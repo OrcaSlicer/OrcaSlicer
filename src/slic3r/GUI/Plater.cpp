@@ -3,6 +3,7 @@
 #include "IPrinterAgent.hpp"
 #include "CalibUtils.hpp"
 #include "Flashforge.hpp"
+#include "libslic3r/Fill/InfillMeshTiling.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r_version.h"
 
@@ -7514,7 +7515,9 @@ struct Plater::priv
     // config and plate contents (thin wrapper over GUI::ensure_belt_purge_tower
     // in BeltPurgeTower.cpp). Returns true when the model was mutated.
     bool ensure_belt_purge_tower();
-    std::vector<BeltPurgeSignature> m_belt_purge_sigs;
+    BeltPurgeSignature m_belt_purge_sigs;
+    // Plater::skip_next_new_project_confirm
+    bool skip_next_new_project_confirm{false};
     void delete_all_objects_from_model();
     void reset(bool apply_presets_change = false, bool reload_presets = true);
     void center_selection();
@@ -8130,7 +8133,6 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         view3D_canvas->Bind(EVT_GLCANVAS_RESETGIZMOS, [this](SimpleEvent&) { reset_all_gizmos(); });
         view3D_canvas->Bind(EVT_GLCANVAS_UNDO, [this](SimpleEvent&) { this->undo(); });
         view3D_canvas->Bind(EVT_GLCANVAS_REDO, [this](SimpleEvent&) { this->redo(); });
-        view3D_canvas->Bind(EVT_GLCANVAS_COLLAPSE_SIDEBAR, [this](SimpleEvent&) { this->q->collapse_sidebar(!this->q->is_sidebar_collapsed());  });
         view3D_canvas->Bind(EVT_GLCANVAS_RESET_LAYER_HEIGHT_PROFILE, [this](SimpleEvent&) { this->view3D->get_canvas3d()->reset_layer_height_profile(); });
         view3D_canvas->Bind(EVT_GLCANVAS_ADAPTIVE_LAYER_HEIGHT_PROFILE, [this](Event<float>& evt) { this->view3D->get_canvas3d()->adaptive_layer_height_profile(evt.data); });
         view3D_canvas->Bind(EVT_GLCANVAS_SMOOTH_LAYER_HEIGHT_PROFILE, [this](HeightProfileSmoothEvent& evt) { this->view3D->get_canvas3d()->smooth_layer_height_profile(evt.data); });
@@ -8197,7 +8199,6 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         });
     if (wxGetApp().is_editor()) {
         preview->get_wxglcanvas()->Bind(EVT_GLCANVAS_TAB, [this](SimpleEvent&) { select_next_view_3D(); });
-        preview->get_wxglcanvas()->Bind(EVT_GLCANVAS_COLLAPSE_SIDEBAR, [this](SimpleEvent&) { this->q->collapse_sidebar(!this->q->is_sidebar_collapsed());  });
         preview->get_wxglcanvas()->Bind(EVT_CUSTOMEVT_TICKSCHANGED, [this](wxCommandEvent& event) {
             CustomGCode::Type tick_event_type = (CustomGCode::Type)event.GetInt();
             Model& model = wxGetApp().plater()->model();
@@ -18526,15 +18527,6 @@ void Plater::load_gcode(const wxString& filename)
     current_print.print_statistics().total_cost = total_cost;
 
     current_print.set_gcode_file_ready();
-
-    // Belt printer: detect the belt tilt from the loaded G-code header and enable
-    // belt view mode on the GCodeViewer so the "Show designed view" toggle appears.
-    if (current_result->belt_tilt_angle > 0.f) {
-        float angle = current_result->belt_tilt_angle;
-        p->preview->get_canvas3d()->get_gcode_viewer().set_belt_printer(true, angle);
-    } else {
-        p->preview->get_canvas3d()->get_gcode_viewer().set_belt_printer(false, 0.f);
-    }
 
     // show results
     p->preview->reload_print(m_only_gcode);

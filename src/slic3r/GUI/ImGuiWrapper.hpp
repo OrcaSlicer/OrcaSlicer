@@ -102,11 +102,33 @@ public:
     void set_language(const std::string &language);
     void set_display_size(float w, float h);
     void set_scaling(float font_size, float scale_style, float scale_both);
+    // Preference "ui_font_scale" as a multiplier; applied to font_size in set_scaling.
+    static void set_font_scale(float scale) { s_font_scale = scale; }
     bool update_mouse_data(wxMouseEvent &evt);
     bool update_key_data(wxKeyEvent &evt);
 
     float get_font_size() const { return m_font_size; }
     float get_style_scaling() const { return m_style_scaling; }
+
+    // Preference "opaque_overlays": the floating ImGui panels and the GL toolbars are drawn
+    // without the scene showing through. overlay_alpha() maps a requested background alpha
+    // to 1.0 while the preference is on; callers pass their usual value.
+    static bool  opaque_overlays() { return s_opaque_overlays; }
+    static float overlay_alpha(float requested) { return s_opaque_overlays ? 1.0f : requested; }
+    void         set_opaque_overlays(bool opaque);
+    // Re-bakes the style colours after a mirrored colour changed (ThemeManager::apply_to_state),
+    // at the start of the next frame: inside a frame a push/pop pair in progress would restore
+    // the colours it saved over the new ones.
+    void         request_style_refresh() { m_style_refresh_pending = true; }
+
+    // While one of these is alive, text() (and title()/bold_text(), which route through it)
+    // draws a one-pixel drop shadow under each string in the colour opposite the current text
+    // colour, so labels stay legible over the model. Skipped when overlays are opaque.
+    struct ScopedTextShadow
+    {
+        ScopedTextShadow();
+        ~ScopedTextShadow();
+    };
     const ImWchar *get_glyph_ranges() const { return m_glyph_ranges; } // language specific
 
     void new_frame();
@@ -385,7 +407,11 @@ public:
     static const ImVec4 COL_GREY_LIGHT;
     static const ImVec4 COL_ORANGE_DARK;
     static const ImVec4 COL_ORANGE_LIGHT;
-    static const ImVec4 COL_WINDOW_BACKGROUND;
+    // The translucent dark background of the overlay windows (legend, tool position, plate labels,
+    // tooltips): on the dark base it follows the theme's window colour (ThemeManager::apply_to_state).
+    static ImVec4       COL_WINDOW_BACKGROUND;
+    static const ImVec4 COL_WINDOW_BACKGROUND_DEFAULT;
+    static bool         COL_WINDOW_BACKGROUND_THEMED; // the theme in effect sets the dark window colour
     static const ImVec4 COL_BUTTON_BACKGROUND;
     static const ImVec4 COL_BUTTON_HOVERED;
     static const ImVec4 COL_BUTTON_ACTIVE;
@@ -400,15 +426,26 @@ public:
     static const ImVec4 COL_ACTIVE;
     static const ImVec4 COL_TITLE_BG;
     static const ImVec4 COL_WINDOW_BG;
-    static const ImVec4 COL_WINDOW_BG_DARK;
-    static const ImVec4 COL_TOOLBAR_BG;
-    static const ImVec4 COL_TOOLBAR_BG_DARK;
+    static ImVec4 COL_WINDOW_BG_DARK; // follows the dark window colour, user override included (GUI_App::apply_theme_overrides)
+    // The ImGui toolbar windows across the top of the 3D view (paint toolbar, assembly return,
+    // toolbar popups). They follow the theme's "3D view toolbars" colour for the base in use
+    // (ThemeManager::apply_to_state); the *_DEFAULT values are the shipped ones.
+    static ImVec4 COL_TOOLBAR_BG;
+    static ImVec4 COL_TOOLBAR_BG_DARK;
+    static const ImVec4 COL_TOOLBAR_BG_DEFAULT;
+    static const ImVec4 COL_TOOLBAR_BG_DARK_DEFAULT;
     static const ImVec4 COL_SEPARATOR;
     static const ImVec4 COL_SEPARATOR_DARK;
-    static const ImVec4 COL_ORCA;
-    static const ImVec4 COL_ORCA_DARK;
-    static const ImVec4 COL_ORCA_HOVER;
-    static const ImVec4 COL_ORCA_HOVER_DARK;
+    // The accent in ImGui: follow the theme's "Accent" role (ThemeManager::apply_to_state); the
+    // *_DEFAULT values are the shipped ones.
+    static ImVec4 COL_ORCA;
+    static ImVec4 COL_ORCA_DARK;
+    static ImVec4 COL_ORCA_HOVER;
+    static ImVec4 COL_ORCA_HOVER_DARK;
+    static const ImVec4 COL_ORCA_DEFAULT;
+    static const ImVec4 COL_ORCA_DARK_DEFAULT;
+    static const ImVec4 COL_ORCA_HOVER_DEFAULT;
+    static const ImVec4 COL_ORCA_HOVER_DARK_DEFAULT;
     static const ImVec4 COL_MODIFIED;
     static const ImVec4 COL_WARNING;
 
@@ -437,6 +474,7 @@ public:
     bool display_initialized() const;
 
 private:
+    bool m_style_refresh_pending = false;
     void init_font(bool compress);
     void init_input();
     void init_style();
@@ -446,6 +484,10 @@ private:
 
     static const char* clipboard_get(void* user_data);
     static void clipboard_set(void* user_data, const char* text);
+
+    static bool  s_opaque_overlays;
+    static float s_font_scale;
+    static int  s_text_shadow_depth;
 
     LastSliderStatus m_last_slider_status;
     ImFont* default_font = nullptr;
