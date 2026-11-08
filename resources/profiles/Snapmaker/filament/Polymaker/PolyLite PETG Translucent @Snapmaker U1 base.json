@@ -3,7 +3,7 @@
 	"name": "PolyLite PETG Translucent @Snapmaker U1 base",
 	"inherits": "fdm_filament_petg",
 	"from": "system",
-	"filament_id": "GFL74",
+	"filament_id": "OF0VpkBM",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

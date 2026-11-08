@@ -1,10 +1,17 @@
 #ifndef Slic3r_Measure_hpp_
 #define Slic3r_Measure_hpp_
 
+#include <cassert>
+#include <cstdlib>
+#include <cstddef>
 #include <optional>
 #include <memory>
+#include <utility>
+#include <tuple>
+#include <vector>
 
 #include "Point.hpp"
+#include "libslic3r.h"
 
 struct indexed_triangle_set;
 
@@ -32,15 +39,6 @@ public:
 
     SurfaceFeature(const Vec3d& pt)
     : m_type{SurfaceFeatureType::Point}, m_pt1{pt} {}
-
-    SurfaceFeature(const SurfaceFeature& sf){
-        this->clone(sf);
-        volume                 = sf.volume;
-        plane_indices          = sf.plane_indices;
-        world_tran             = sf.world_tran;
-        world_plane_features   = sf.world_plane_features;
-        origin_surface_feature = sf.origin_surface_feature;
-    }
 
     void clone(const SurfaceFeature &sf)
     {

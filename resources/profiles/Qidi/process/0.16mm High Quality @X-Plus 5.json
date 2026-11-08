@@ -1,10 +1,10 @@
 {
 	"type": "process",
-	"setting_id": "7hYw7osV25Xu2yiu",
 	"name": "0.16mm High Quality @X-Plus 5",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_process_n_common",
+	"from": "system",
+	"setting_id": "7hYw7osV25Xu2yiu",
+	"instantiation": "true",
 	"bottom_color_penetration_layers": "4",
 	"bottom_shell_layers": "4",
 	"bridge_flow": "1",

@@ -3,13 +3,44 @@
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 
 #include "slic3r/GUI/GUI_App.hpp"
-#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Jobs/RotoptimizeJob.hpp"
 
 #include "libslic3r/PresetBundle.hpp"
 
+#include <cstdlib>
+#include <cmath>
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <cstddef>
 #include <glad/gl.h>
+#include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/Point.hpp"
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/GUI_Geometry.hpp"
+#include <utility>
+#include <string>
+#include "libslic3r/Line.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include <math.h>
+#include <imgui.h>
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <memory>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Selection.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -555,7 +586,7 @@ bool GLGizmoRotate3D::on_init()
     for (unsigned int i = 0; i < 3; ++i)
         m_gizmos[i].set_highlight_color(AXES_COLOR[i]);
 
-    m_shortcut_key = WXK_CONTROL_R;
+    m_shortcut = Shortcut::GizmoRotate;
 
     return true;
 }

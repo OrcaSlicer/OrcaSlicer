@@ -12,5 +12,5 @@
 		"0x0"
 	],
 	"hotend_model": "",
-	"default_materials": "Generic PLA @System;Generic PETG @System"
+	"default_materials": "Generic PLA @LONGER LK10 Plus;Generic PETG @LONGER LK10 Plus"
 }

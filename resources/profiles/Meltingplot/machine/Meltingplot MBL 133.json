@@ -1,0 +1,12 @@
+{
+	"type": "machine_model",
+	"name": "Meltingplot MBL 133",
+	"model_id": "Meltingplot-MBL-133",
+	"nozzle_diameter": "0.8;0.4;0.6;1.0;1.2",
+	"machine_tech": "FFF",
+	"family": "Meltingplot",
+	"bed_model": "mbl133-printbed.stl",
+	"bed_texture": "mbl-133-texture.svg",
+	"hotend_model": "",
+	"default_materials": "Meltingplot PLA @0.4 nozzle;Meltingplot PLA @0.6 nozzle;Meltingplot PLA @0.8 nozzle;Meltingplot PLA @1.0 nozzle;Meltingplot PLA;Meltingplot PETG @0.4 nozzle;Meltingplot PETG @0.6 nozzle;Meltingplot PETG @0.8 nozzle;Meltingplot PETG @1.0 nozzle;Meltingplot PETG;Meltingplot ABS @0.4 nozzle;Meltingplot ABS @0.6 nozzle;Meltingplot ABS @0.8 nozzle;Meltingplot ABS @1.0 nozzle;Meltingplot ABS;Meltingplot ASA @0.4 nozzle;Meltingplot ASA @0.6 nozzle;Meltingplot ASA @0.8 nozzle;Meltingplot ASA @1.0 nozzle;Meltingplot ASA"
+}

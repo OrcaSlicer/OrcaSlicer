@@ -14,8 +14,9 @@ namespace Slic3r::plugin_hooks {
 void install();
 
 // Reset every hook to null so none can enter Python after the interpreter
-// finalizes. Called from PluginManager::shutdown(); callers must have stopped
-// background slicing first (resetting a hook while process() runs is a race).
+// finalizes. The lifecycle-event hook drains callbacks already in progress
+// before returning. Other hooks retain their existing caller-side shutdown
+// requirements.
 void uninstall();
 
 } // namespace Slic3r::plugin_hooks

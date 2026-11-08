@@ -4,10 +4,16 @@
 // Implementation file for the AdaptivePAInterpolator class, providing methods to parse data and perform PA interpolation.
 
 #include "AdaptivePAInterpolator.hpp"
+#include <map>
+#include "libslic3r/GCode/PchipInterpolatorHelper.hpp"
+#include <exception>
 #include <stdexcept>
 #include <cmath>
 #include <algorithm>
 #include <sstream>
+#include <string>
+#include <vector>
+#include <utility>
 
 /**
  * @brief Parses the input data and sets up the interpolators.

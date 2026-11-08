@@ -3,7 +3,7 @@
 	"name": "Bambu PETG Basic @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "OGFG00",
+	"filament_id": "OFFvzqcd",
 	"instantiation": "false",
 	"description": "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG.",
 	"cool_plate_temp": [
@@ -28,16 +28,26 @@
 		"10"
 	],
 	"filament_cost": [
-		"24.99"
+		"13.99"
 	],
 	"filament_density": [
 		"1.25"
 	],
-	"filament_flow_ratio": [
-		"0.95"
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
 	],
-	"filament_max_volumetric_speed": [
-		"8"
+	"filament_flow_ratio": [
+		"0.95",
+		"0.95",
+		"0.95",
+		"0.95",
+		"0.95",
+		"0.95"
 	],
 	"filament_multitool_ramming_flow": [
 		"8"

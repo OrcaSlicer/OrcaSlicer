@@ -3,7 +3,7 @@
 	"name": "Snapmaker Dual PETG @base",
 	"inherits": "fdm_filament_petg",
 	"from": "system",
-	"filament_id": "2209001062",
+	"filament_id": "OFBlFMVp",
 	"instantiation": "false",
 	"overhang_fan_speed": [
 		"25"
@@ -28,12 +28,6 @@
 	],
 	"filament_unloading_speed": [
 		"35"
-	],
-	"filament_load_time": [
-		"2"
-	],
-	"filament_unload_time": [
-		"2"
 	],
 	"filament_cooling_moves": [
 		"2"

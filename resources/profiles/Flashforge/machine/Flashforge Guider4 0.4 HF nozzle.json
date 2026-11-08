@@ -23,9 +23,9 @@
 	"cooling_tube_length": "0",
 	"cooling_tube_retraction": "0",
 	"default_filament_profile": [
-		"Flashforge Generic PLA @G3U"
+		"Flashforge PLA Basic @FF G4 HF"
 	],
-	"default_print_profile": "0.20mm Standard @Flashforge G3U 0.4 Nozzle",
+	"default_print_profile": "0.20mm Standard @FF G4 HF",
 	"deretraction_speed": [
 		"45"
 	],
@@ -200,7 +200,6 @@
 		"45"
 	],
 	"scan_first_layer": "0",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"support_air_filtration": "1",
 	"support_chamber_temp_control": "1",

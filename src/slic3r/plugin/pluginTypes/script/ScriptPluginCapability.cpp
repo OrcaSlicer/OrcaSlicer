@@ -3,15 +3,16 @@
 #include "ScriptPluginCapabilityTrampoline.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <memory>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include "slic3r/plugin/PythonPluginInterface.hpp"
 
 namespace py = pybind11;
 
 namespace Slic3r {
-void ScriptPluginCapability::RegisterBindings(pybind11::module_& module, pybind11::enum_<PluginCapabilityType>& pluginTypes)
+void ScriptPluginCapability::RegisterBindings(pybind11::module_& module)
 {
-    (void) pluginTypes;
     BOOST_LOG_TRIVIAL(debug) << "Registering orca.script bindings";
 
     auto script = module.def_submodule("script", "Script Plugins API");

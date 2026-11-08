@@ -4,10 +4,15 @@
 #ifndef CURAENGINE_WALLTOOLPATHS_H
 #define CURAENGINE_WALLTOOLPATHS_H
 
+#include <cstddef>
+#include <boost/container_hash/hash.hpp>
 #include <memory>
 #include <ankerl/unordered_dense.h>
+#include <vector>
+#include <utility>
 
-#include "BeadingStrategy/BeadingStrategyFactory.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Point.hpp"
 #include "utils/ExtrusionLine.hpp"
 #include "../Polygon.hpp"
 #include "../PrintConfig.hpp"

@@ -3,7 +3,7 @@
 	"name": "Snapmaker PETG HF @U1 base2",
 	"inherits": "fdm_filament_petg",
 	"from": "system",
-	"filament_id": "GFG96",
+	"filament_id": "OFL9aRjN",
 	"instantiation": "false",
 	"cool_plate_temp": [
 		"0"
@@ -177,7 +177,7 @@
 		"nil"
 	],
 	"filament_vendor": [
-		"Generic"
+		"Snapmaker"
 	],
 	"filament_prime_volume": [
 		"45"

@@ -3,7 +3,7 @@
 	"name": "QIDI ASA-CF@X-Max 4-Series",
 	"inherits": "fdm_filament_x4_common",
 	"from": "system",
-	"filament_id": "QD_3_1_20",
+	"filament_id": "OF1W7c76",
 	"instantiation": "false",
 	"box_temperature_range_high": [
 		"45"

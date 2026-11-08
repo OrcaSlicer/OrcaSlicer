@@ -1,6 +1,9 @@
 #include "RadioBox.hpp"
 
 #include "../wxExtensions.hpp"
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
 
 #ifdef __WXGTK__
 #include "../GUI_Utils.hpp"
@@ -36,11 +39,6 @@ void RadioBox::SetValue(bool value)
     update();
 }
 
-bool RadioBox::GetValue()
-{
-    return wxBitmapToggleButton::GetValue();
-}
-
 
 void RadioBox::Rescale()
 {
@@ -57,6 +55,14 @@ void RadioBox::Rescale()
     SetMinSize(m_on.GetBmpSize());
 #endif
 }
+
+#ifdef __WXMSW__
+bool RadioBox::MSWCommand(WXUINT param, WXWORD id)
+{
+    // See CheckBox::MSWCommand.
+    return param == BN_DBLCLK || wxBitmapToggleButton::MSWCommand(param, id);
+}
+#endif
 
 void RadioBox::update() {
     if (IsEnabled())

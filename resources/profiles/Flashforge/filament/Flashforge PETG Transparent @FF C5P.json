@@ -4,7 +4,14 @@
 	"inherits": "Generic PETG @System",
 	"from": "system",
 	"setting_id": "66OWHhGyuaFISu6v",
+	"filament_id": "OFwjMiKL",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"activate_air_filtration": [
 		"1"
 	],

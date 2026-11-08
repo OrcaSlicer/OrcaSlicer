@@ -3,6 +3,7 @@
 	"name": "re3D GigabotX 2 1.75 nozzle",
 	"renamed_from": "re3D Gigabot X2 1.75 nozzle",
 	"inherits": "fgf_re3D_common",
+	"setting_id": "ozJ43xjd5bOWGvPH",
 	"instantiation": "true",
 	"machine_tech": "FGF",
 	"model_id": "re3D GBX2",
@@ -29,6 +30,5 @@
 		"re3D rPETG @1.75 nozzle"
 	],
 	"default_print_profile": "1.0 Standard",
-	"printer_settings_id": "re3d_gbx_175",
-	"setting_id": "ozJ43xjd5bOWGvPH"
+	"printer_settings_id": "re3d_gbx_175"
 }

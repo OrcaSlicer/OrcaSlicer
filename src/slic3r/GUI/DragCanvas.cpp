@@ -1,6 +1,18 @@
 #include "DragCanvas.hpp"
 #include "wxExtensions.hpp"
-#include "GUI_App.hpp"
+#include "Widgets/StateColor.hpp"
+#include <wx/colour.h>
+#include <vector>
+#include <string>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <algorithm>
+#include <wx/dcclient.h>
+#include <wx/dragimag.h>
+
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 

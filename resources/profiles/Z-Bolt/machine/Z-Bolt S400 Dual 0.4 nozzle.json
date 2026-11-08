@@ -22,9 +22,11 @@
 		"0.08"
 	],
 	"retraction_length": [
+		"0.8",
 		"0.8"
 	],
 	"retraction_minimum_travel": [
+		"1",
 		"1"
 	],
 	"change_filament_gcode": "G91\nG1 Z{z_hop[0]} F1000\nG90",

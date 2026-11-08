@@ -8,8 +8,13 @@
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/ExPolygon.hpp"
 
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Point.hpp"
+#include <string>
+#include "libslic3r/BoundingBox.hpp"
 #include <tuple>
 #include <array>
+#include <vector>
 
 namespace Slic3r {
 namespace GUI {
@@ -110,6 +115,8 @@ private:
     //GLTexture m_temp_texture;
     GLModel m_model;
     Vec3d m_model_offset{ Vec3d::Zero() };
+    GLModel m_gravity_arrow;
+    float   m_gravity_arrow_length{ 0.f };
     Axes m_axes;
 
     float m_scale_factor{ 1.0f };
@@ -134,10 +141,12 @@ public:
 
     void set_position(Vec2d& position);
     void set_axes_mode(bool origin);
+    void set_axes_origin(const Vec3d& origin) { m_axes.set_origin(origin); }   // Design tab: triad at bed centre
     const Vec2d& get_position() const { return m_position; }
 
     // Build volume geometry for various collision detection tasks.
     const BuildVolume& build_volume() const { return m_build_volume; }
+    BuildVolume& build_volume() { return m_build_volume; }
 
     // Was the model provided, or was it generated procedurally?
     Type get_type() const { return m_type; }
@@ -177,7 +186,8 @@ private:
     void render_model(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     void render_custom(GLCanvas3D& canvas, const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom);
     void render_default(bool bottom, const Transform3d& view_matrix, const Transform3d& projection_matrix);
-    
+    void render_gravity_arrow(const Transform3d& view_matrix, const Transform3d& projection_matrix);
+
     // BBS: remove the bed picking logic
     // void register_raycasters_for_picking(const GLModel::Geometry& geometry, const Transform3d& trafo);
 };

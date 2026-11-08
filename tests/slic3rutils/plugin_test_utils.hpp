@@ -1,5 +1,6 @@
 #pragma once
 
+#include <boost/filesystem/path.hpp>
 #include <libslic3r/Utils.hpp>
 
 #include <boost/filesystem.hpp>
@@ -32,6 +33,26 @@ struct ScopedDataDir
 
     ScopedDataDir(const ScopedDataDir&)            = delete;
     ScopedDataDir& operator=(const ScopedDataDir&) = delete;
+};
+
+// Point resources_dir() at a throwaway directory for the lifetime of a test and restore the
+// previous value afterwards, mirroring ScopedDataDir.
+struct ScopedResourcesDir
+{
+    ScopedTemporaryDir      tmp;
+    boost::filesystem::path dir;
+    std::string             previous;
+
+    explicit ScopedResourcesDir(const std::string& tag)
+        : tmp("orca-" + tag), dir(tmp.path()), previous(resources_dir())
+    {
+        set_resources_dir(dir.string());
+    }
+
+    ~ScopedResourcesDir() { set_resources_dir(previous); }
+
+    ScopedResourcesDir(const ScopedResourcesDir&)            = delete;
+    ScopedResourcesDir& operator=(const ScopedResourcesDir&) = delete;
 };
 
 } // namespace Slic3r

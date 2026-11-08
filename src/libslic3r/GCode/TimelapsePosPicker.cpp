@@ -1,6 +1,26 @@
 #include "ClipperUtils.hpp"
 #include "TimelapsePosPicker.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "Layer.hpp"
+#include "libslic3r/Point.hpp"
+#include <cstdlib>
+#include "libslic3r/PrintConfig.hpp"
+#include <optional>
+#include <vector>
+#include <cstddef>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polygon.hpp"
+#include <utility>
+#include <algorithm>
+#include "libslic3r/Print.hpp"
+#include <cmath>
+#include <queue>
+#include <limits>
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Slicing.hpp"
 
 constexpr int FILTER_THRESHOLD = 5;
 constexpr int MAX_CANDIDATE_SIZE = 5;
@@ -78,9 +98,10 @@ namespace Slic3r {
         m_plate_height = unscale_(bed_bbox.max.y());
         m_plate_width = unscale_(bed_bbox.max.x());
 
-        Polygon bed_exclude_area;
-        for (size_t idx = 0; idx < config.bed_exclude_area.values.size(); ++idx)
-            bed_exclude_area.points.emplace_back(coord_t(scale_(config.bed_exclude_area.values[idx].x())), coord_t(scale_(config.bed_exclude_area.values[idx].y())));
+        // Timelapse positions are selected in the bed plane. Use the resolved
+        // bed-level footprints instead of the legacy flat point array, which
+        // cannot represent multiple or per-nozzle exclusion polygons.
+        const Polygons bed_exclude_areas = get_bed_excluded_area(config);
 
         Point base_wp_pt = print->get_fake_wipe_tower().pos.cast<coord_t>();
         base_wp_pt = Point{ scale_(base_wp_pt.x()),scale_(base_wp_pt.y()) };
@@ -100,7 +121,7 @@ namespace Slic3r {
         wipe_tower_area = expand_object_projection(wipe_tower_area, m_print_seq == PrintSequence::ByObject);
 
         for (size_t idx = 0; idx < extruder_count; ++idx) {
-            ExPolygons printable_area = diff_ex(diff(m_bed_polygon, bed_exclude_area), { wipe_tower_area });
+            ExPolygons printable_area = diff_ex(diff(Polygons{ m_bed_polygon }, bed_exclude_areas), { wipe_tower_area });
             if (idx < config.extruder_printable_area.size()) {
                 Polygon extruder_printable_area;
                 for (size_t j = 0; j < config.extruder_printable_area.values[idx].size(); ++j)

@@ -1,11 +1,13 @@
 {
 	"type": "filament",
-	"filament_id": "GFL99",
-	"setting_id": "hQByQ7FIhAiytli8",
 	"name": "Generic TPU @Sovol SV08 MAX",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Generic TPU @System",
+	"from": "system",
+	"setting_id": "hQByQ7FIhAiytli8",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_flow_ratio": [
 		"0.98"
 	],
@@ -70,8 +72,10 @@
 	"during_print_exhaust_fan_speed": "100",
 	"complete_print_exhaust_fan_speed": "50",
 	"compatible_printers": [
+		"Sovol SV08 MAX 0.2 nozzle",
 		"Sovol SV08 MAX 0.4 nozzle",
 		"Sovol SV08 MAX 0.6 nozzle",
-		"Sovol SV08 MAX 0.8 nozzle"
+		"Sovol SV08 MAX 0.8 nozzle",
+		"Sovol SV08 MAX 1.0 nozzle"
 	]
 }

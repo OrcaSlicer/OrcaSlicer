@@ -3,7 +3,7 @@
 	"name": "QIDI TPU-GF@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_1_1_15",
+	"filament_id": "OF9EHUKK",
 	"instantiation": "false",
 	"filament_adhesiveness_category": [
 		"600"

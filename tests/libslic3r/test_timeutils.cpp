@@ -1,17 +1,21 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/Time.hpp"
 
+#include <ctime>
 #include <sstream>
 #include <iomanip>
 #include <locale>
-
-using namespace Slic3r;
+#include <string>
 
 static void test_time_fmt(Slic3r::Utils::TimeFormat fmt) {
     using namespace Slic3r::Utils;
-    time_t t = get_current_time_utc();
-    
+    // A fixed mid-year time (2019-07-10 08:50:00 UTC) rather than the current one: local
+    // time text can't tell apart the hour that repeats when daylight saving ends, so the
+    // local round trip would fail during that hour.
+    time_t t = 1562748600;
+
     std::string tstr = time2str(t, TimeZone::local, fmt);
     time_t parsedtime = str2time(tstr, TimeZone::local, fmt);
     REQUIRE(t == parsedtime);

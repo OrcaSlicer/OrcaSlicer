@@ -1,0 +1,6 @@
+{
+	"type": "machine",
+	"name": "Bambu Lab H2S 0.4 nozzle template time_lapse_gcode",
+	"instantiation": "false",
+	"time_lapse_gcode": ";========Date 20250925========\n; SKIPPABLE_START\n; SKIPTYPE: timelapse\nM622.1 S1 ; for prev firmware, default turned on\n\nM1002 judge_flag timelapse_record_flag\nM622 J1\n\n{if timelapse_type == 0} ; timelapse without wipe tower\n    M971 S11 C10 O0\n    M1004 S5 P1  ; external shutter\n{elsif timelapse_type == 1} ; timelapse with wipe tower\n\n    G150.3 ; move to garbage can\n    M400\n\n    M1004 S5 P1  ; external shutter\n    M400 P300\n\n    M971 S11 C10 O0\n    M400 P350\n\n    G90\n    G1 Z{max_layer_z + 3.0} F1200\n    G1 Y295 F30000\n    G1 Y265 F18000\n{endif}\nM623\n\n; SKIPPABLE_END\n"
+}

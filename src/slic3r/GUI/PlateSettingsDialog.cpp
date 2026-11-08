@@ -1,6 +1,32 @@
 #include "PlateSettingsDialog.hpp"
 #include "MsgDialog.hpp"
 #include "Widgets/DialogButtons.hpp"
+#include <climits>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include <wx/colour.h>
+#include <wx/string.h>
+#include <wx/valtext.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <algorithm>
+#include <cstdlib>
+#include <wx/textctrl.h>
+#include <string>
+#include <wx/panel.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <vector>
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/sizer.h>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/FilamentMixer.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "libslic3r/ParameterUtils.hpp"
+#include <cstddef>
 
 namespace Slic3r { namespace GUI {
 static constexpr int MIN_LAYER_VALUE = 2;
@@ -405,8 +431,9 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
         }
     }
 
-    if (!wxGetApp().preset_bundle->is_bbl_vendor())
-      m_bed_type_choice->Disable();
+    auto &preset_bundle = *wxGetApp().preset_bundle;
+    const auto &printer_config = preset_bundle.printers.get_edited_preset().config;
+    m_bed_type_choice->Enable(preset_bundle.is_bbl_vendor() || printer_config.opt_bool("support_multi_bed_types"));
 
     wxStaticText* m_bed_type_txt = new wxStaticText(this, wxID_ANY, _L("Bed type"));
     m_bed_type_txt->SetFont(Label::Body_14);
@@ -471,6 +498,31 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     m_other_layers_seq_panel = new OtherLayersSeqPanel(this);
     m_sizer_main->AddSpacer(FromDIP(5));
     m_sizer_main->Add(m_other_layers_seq_panel, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(30));
+
+    // A mixed-color slot resolves to a different physical filament per layer, so a user-defined
+    // filament order cannot be honoured; grey out the choice and explain that in the dialog.
+    {
+        auto &proj_cfg     = wxGetApp().preset_bundle->project_config;
+        auto *is_mixed_opt = proj_cfg.option<ConfigOptionBools>("filament_is_mixed");
+        if (is_mixed_opt && Slic3r::has_any_mixed_filament(is_mixed_opt->values)) {
+            m_first_layer_print_seq_choice->Enable(false);
+            m_other_layers_seq_panel->enable_seq_choice(false);
+
+            auto *warn_sizer = new wxBoxSizer(wxHORIZONTAL);
+            auto *warn_icon  = new wxStaticBitmap(this, wxID_ANY, create_scaled_bitmap("warning", this, 16),
+                                                  wxDefaultPosition, wxSize(FromDIP(16), FromDIP(16)));
+            auto *warn_text  = new wxStaticText(this, wxID_ANY,
+                _L("The filament list contains mixed filaments. Custom filament sequence will not take effect."));
+            warn_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#FF6F00")));
+            warn_text->SetFont(Label::Body_12);
+            warn_text->Wrap(FromDIP(300));
+
+            warn_sizer->Add(warn_icon, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(5));
+            warn_sizer->Add(warn_text, 1, wxALIGN_CENTER_VERTICAL, 0);
+            m_sizer_main->AddSpacer(FromDIP(5));
+            m_sizer_main->Add(warn_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(30));
+        }
+    }
 
     auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
 

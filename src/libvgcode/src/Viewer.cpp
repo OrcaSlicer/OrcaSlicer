@@ -4,6 +4,13 @@
 ///|/
 #include "../include/Viewer.hpp"
 #include "ViewerImpl.hpp"
+#include <array>
+#include <string>
+#include <utility>
+#include "../include/Types.hpp"
+#include <cstddef>
+#include <vector>
+#include <cstdint>
 
 namespace libvgcode {
 
@@ -40,6 +47,46 @@ void Viewer::load(GCodeInputData&& gcode_data)
 void Viewer::render(const Mat4x4& view_matrix, const Mat4x4& projection_matrix)
 {
     m_impl->render(view_matrix, projection_matrix);
+}
+
+void Viewer::render_translucent(const Mat4x4& view_matrix, const Mat4x4& projection_matrix)
+{
+    m_impl->render_translucent(view_matrix, projection_matrix);
+}
+
+bool Viewer::has_translucent_toolpaths() const
+{
+    return m_impl->has_translucent_toolpaths();
+}
+
+void Viewer::render_shadow_casters(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& light_position)
+{
+    m_impl->render_shadow_casters(view_matrix, projection_matrix, light_position);
+}
+
+void Viewer::set_shadow_map(int texture_unit, const Mat4x4& light_view_projection, float intensity, float texel_size)
+{
+    m_impl->set_shadow_map(texture_unit, light_view_projection, intensity, texel_size);
+}
+
+void Viewer::set_light_top_dir(const Vec3& direction)
+{
+    m_impl->set_light_top_dir(direction);
+}
+
+void Viewer::set_gloss(bool gloss)
+{
+    m_impl->set_gloss(gloss);
+}
+
+void Viewer::set_tone(float exposure, float saturation)
+{
+    m_impl->set_tone(exposure, saturation);
+}
+
+void Viewer::set_clipping_plane(const std::array<float, 4>& plane)
+{
+    m_impl->set_clipping_plane(plane);
 }
 
 EViewType Viewer::get_view_type() const
@@ -90,6 +137,16 @@ float Viewer::get_dim_previous_layers_brightness() const
 void Viewer::set_dim_previous_layers_brightness(float value)
 {
     m_impl->set_dim_previous_layers_brightness(value);
+}
+
+bool Viewer::is_translucent_filaments() const
+{
+    return m_impl->is_translucent_filaments();
+}
+
+void Viewer::set_translucent_filaments(bool value)
+{
+    m_impl->set_translucent_filaments(value);
 }
 
 bool Viewer::is_option_visible(EOptionType type) const
@@ -147,12 +204,12 @@ size_t Viewer::get_tool_colors_count() const
     return m_impl->get_tool_colors_count();
 }
 
-const Palette& Viewer::get_tool_colors() const
+const PaletteWithAlpha& Viewer::get_tool_colors() const
 {
     return m_impl->get_tool_colors();
 }
 
-void Viewer::set_tool_colors(const Palette& colors)
+void Viewer::set_tool_colors(const PaletteWithAlpha& colors)
 {
     m_impl->set_tool_colors(colors);
 }
@@ -162,12 +219,12 @@ size_t Viewer::get_color_print_colors_count() const
     return m_impl->get_color_print_colors_count();
 }
 
-const Palette& Viewer::get_color_print_colors() const
+const PaletteWithAlpha& Viewer::get_color_print_colors() const
 {
     return m_impl->get_color_print_colors();
 }
 
-void Viewer::set_color_print_colors(const Palette& colors)
+void Viewer::set_color_print_colors(const PaletteWithAlpha& colors)
 {
     m_impl->set_color_print_colors(colors);
 }

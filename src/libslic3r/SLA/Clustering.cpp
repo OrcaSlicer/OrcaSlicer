@@ -1,8 +1,16 @@
 #include "Clustering.hpp"
 #include "boost/geometry/index/rtree.hpp"
 
+#include <boost/geometry/index/parameters.hpp>
+#include <functional>
+#include <algorithm>
+#include <iterator>
+#include <boost/geometry/index/predicates.hpp>
+#include <Eigen/Core>
 #include <libslic3r/SLA/SpatIndex.hpp>
 #include <libslic3r/SLA/BoostAdapter.hpp>
+#include <vector>
+#include <utility>
 
 namespace Slic3r { namespace sla {
 

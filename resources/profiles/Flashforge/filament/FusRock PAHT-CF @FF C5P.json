@@ -1,10 +1,18 @@
 {
 	"type": "filament",
 	"name": "FusRock PAHT-CF @FF C5P",
+	"renamed_from": "Flashforge PAHT-CF @FF C5P;Flashforge PAHT-CF FF C5P",
 	"inherits": "Generic PA-CF @System",
 	"from": "system",
 	"setting_id": "nJF1lCOavNNh4yHs",
+	"filament_id": "OFKW5hEW",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_vendor": [
+		"FusRock"
+	],
 	"activate_chamber_temp_control": [
 		"1"
 	],

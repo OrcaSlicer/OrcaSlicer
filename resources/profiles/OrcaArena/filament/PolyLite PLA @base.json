@@ -3,7 +3,7 @@
 	"name": "PolyLite PLA @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFL00",
+	"filament_id": "OF5CgdDq",
 	"instantiation": "false",
 	"filament_vendor": [
 		"Polymaker"

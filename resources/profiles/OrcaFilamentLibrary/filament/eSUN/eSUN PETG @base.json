@@ -3,7 +3,7 @@
 	"name": "eSUN PETG @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "ESN03",
+	"filament_id": "OF3kBrdA",
 	"instantiation": "false",
 	"filament_vendor": [
 		"eSUN"

@@ -7,6 +7,8 @@
 
 #include "../include/Types.hpp"
 
+#include <array>
+#include <cstddef>
 #include <map>
 
 namespace libvgcode {
@@ -24,6 +26,8 @@ struct Settings
 		bool dim_previous_layers{ false };
 		// ORCA: how bright those darkened layers are rendered, 1.0 = unchanged, 0.0 = black
 		float dim_previous_layers_brightness{ 0.4f };
+		// ORCA: when disabled, the filaments are drawn opaque whatever their color's opacity
+		bool translucent_filaments{ true };
 		bool spiral_vase_mode{ false };
 		//
 		// Required update flags

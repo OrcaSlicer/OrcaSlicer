@@ -1,11 +1,14 @@
 {
 	"type": "filament",
-	"filament_id": "GFL99",
-	"setting_id": "WAHQZmwHoS4WjoTx",
 	"name": "Generic PLA Silk @Sovol SV08 MAX",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Generic PLA @System",
+	"from": "system",
+	"setting_id": "WAHQZmwHoS4WjoTx",
+	"filament_id": "OFesA6rF",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_flow_ratio": [
 		"0.98"
 	],
@@ -13,9 +16,11 @@
 		"15"
 	],
 	"compatible_printers": [
+		"Sovol SV08 MAX 0.2 nozzle",
 		"Sovol SV08 MAX 0.4 nozzle",
 		"Sovol SV08 MAX 0.6 nozzle",
-		"Sovol SV08 MAX 0.8 nozzle"
+		"Sovol SV08 MAX 0.8 nozzle",
+		"Sovol SV08 MAX 1.0 nozzle"
 	],
 	"nozzle_temperature_initial_layer": [
 		"250"

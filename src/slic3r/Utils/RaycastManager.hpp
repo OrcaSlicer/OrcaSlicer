@@ -1,8 +1,13 @@
 #ifndef slic3r_RaycastManager_hpp_
 #define slic3r_RaycastManager_hpp_
 
+#include <cstddef>
+#include <Eigen/Core>
+#include <algorithm>
 #include <memory> // unique_ptr
 #include <optional>
+#include <utility>
+#include <vector>
 #include "libslic3r/AABBMesh.hpp" // Structure to cast rays
 #include "libslic3r/Point.hpp" // Transform3d
 #include "libslic3r/ObjectID.hpp"

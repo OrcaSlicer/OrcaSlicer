@@ -1,7 +1,8 @@
 {
 	"type": "filament",
 	"name": "Elegoo Rapid PETG @System",
-	"inherits": "Elegoo PETG @base",
+	"renamed_from": "Elegoo Rapid PETG;Elegoo Rapid PETG+;Elegoo RAPID PETG;Elegoo RAPID PETG+",
+	"inherits": "Elegoo Rapid PETG @base",
 	"from": "system",
 	"setting_id": "uUQSVOvP8tAaDqvB",
 	"instantiation": "true",
@@ -32,6 +33,5 @@
 	"nozzle_temperature_initial_layer": [
 		"250"
 	],
-	"compatible_printers": [],
-	"renamed_from": "Elegoo Rapid PETG;Elegoo Rapid PETG+;Elegoo RAPID PETG;Elegoo RAPID PETG+"
+	"compatible_printers": []
 }

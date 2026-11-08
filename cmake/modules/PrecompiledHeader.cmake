@@ -256,6 +256,13 @@ function(add_precompiled_header _target _input)
     message(STATUS "Adding precompiled header ${_input} to target ${_target}.")
     target_precompile_headers(${_target} PRIVATE ${_input})
 
+    # Clang records the modification time of every input in the precompiled
+    # header, which makes it differ between two checkouts of the same source
+    # and defeats a compiler cache. The build system already rebuilds the
+    # header when an input changes.
+    target_compile_options(${_target} PRIVATE
+        "$<$<CXX_COMPILER_ID:Clang,AppleClang>:SHELL:-Xclang -fno-pch-timestamp>")
+
     get_target_property(_sources ${_target} SOURCES)
     list(FILTER _sources INCLUDE REGEX ".*\\.mm?")
 

@@ -3,7 +3,7 @@
 	"name": "QIDI WOOD Rapido@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_1_1_6",
+	"filament_id": "OFvdZ2bx",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [
 		"100"

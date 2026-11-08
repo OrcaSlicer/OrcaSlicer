@@ -4,7 +4,7 @@
 	"inherits": "QIDI ASA",
 	"from": "system",
 	"setting_id": "zku756j16aST1ugn",
-	"filament_id": "GFB99",
+	"filament_id": "OFTsHNQi",
 	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"0"
@@ -19,7 +19,7 @@
 		"16"
 	],
 	"filament_settings_id": [
-		"Qidi Generic ASA @Qidi Q1 Pro 0.4 nozzle"
+		"Generic ASA @Qidi Q1 Pro 0.4 nozzle"
 	],
 	"nozzle_temperature": [
 		"255"

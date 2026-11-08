@@ -1,0 +1,10 @@
+{
+	"type": "machine_model",
+	"name": "M3D Enabler D7500",
+	"model_id": "M3D_D7500",
+	"family": "M3D",
+	"machine_tech": "FFF",
+	"nozzle_diameter": "0.4",
+	"bed_texture": "m3d_enabler_D7500_bed_texture.svg",
+	"default_materials": "Generic PLA @System"
+}

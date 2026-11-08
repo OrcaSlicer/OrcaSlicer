@@ -1,11 +1,11 @@
 {
 	"type": "filament",
 	"name": "Prusament PETG @XL",
-	"inherits": "fdm_filament_pet",
+	"renamed_from": "Prusament PETG XL;Prusament PETG @XL 5T;Prusament PETG XL 5T",
+	"inherits": "Prusament PETG @base",
 	"from": "system",
 	"setting_id": "vPPD8EkKFy5j8pg5",
 	"instantiation": "true",
-	"nozzle_temperature_intial_layer": "240",
 	"nozzle_temperature": "250",
 	"hot_plate_temp_initial_layer": "80",
 	"hot_plate_temp": "80",
@@ -36,8 +36,6 @@
 	"filament_loading_speed": "10",
 	"filament_unloading_speed_start": "100",
 	"filament_unloading_speed": "100",
-	"filament_load_time": "10.5",
-	"filament_unload_time": "8.5",
 	"filament_cooling_moves": "3",
 	"filament_cooling_initial_speed": "5",
 	"filament_cooling_final_speed": "2.5",
@@ -53,6 +51,30 @@
 		"Prusa XL 0.4 nozzle",
 		"Prusa XL 0.5 nozzle",
 		"Prusa XL 0.6 nozzle",
-		"Prusa XL 0.8 nozzle"
+		"Prusa XL 0.8 nozzle",
+		"Prusa XL 5T 0.25 nozzle",
+		"Prusa XL 5T 0.3 nozzle",
+		"Prusa XL 5T 0.4 nozzle",
+		"Prusa XL 5T 0.5 nozzle",
+		"Prusa XL 5T 0.6 nozzle",
+		"Prusa XL 5T 0.8 nozzle"
+	],
+	"filament_multitool_ramming": [
+		"1"
+	],
+	"filament_multitool_ramming_flow": [
+		"40"
+	],
+	"filament_multitool_ramming_volume": [
+		"10"
+	],
+	"filament_stamping_distance": [
+		"45"
+	],
+	"filament_stamping_loading_speed": [
+		"29"
+	],
+	"nozzle_temperature_initial_layer": [
+		"240"
 	]
 }

@@ -1,6 +1,28 @@
 #include "ImGuiWrapper.hpp"
 
+#include <algorithm>
+#include <cstdint>
+#include <cassert>
 #include <cstdio>
+#include "libslic3r/Technologies.hpp"
+#include <map>
+#include <string>
+#include <imgui.h>
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include <cstdlib>
+#include <utility>
+#include <string_view>
+#include <cstring>
+#include <chrono>
+#include "libslic3r/Point.hpp"
+#include <functional>
+#include <optional>
+#include <limits>
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "libslic3r/Exception.hpp"
+#include <tuple>
 #include <vector>
 #include <cmath>
 #include <stdexcept>
@@ -8,6 +30,9 @@
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/filesystem.hpp>
+#include <wx/colour.h>
+#include <wx/utils.h>
+#include <wx/dataobj.h>
 #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/nowide/convert.hpp>
@@ -25,11 +50,14 @@
 #endif
 #include <imgui/imgui_internal.h>
 
+#ifdef __APPLE__
+#include "MacIME.hpp"
+#endif
+
 #include "libslic3r/libslic3r.h"
 #include <libslic3r/ClipperUtils.hpp>
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Color.hpp"
-#include "libslic3r/Shape/TextShape.hpp"
 
 #include "3DScene.hpp"
 #include "GUI.hpp"
@@ -37,12 +65,11 @@
 #include "Search.hpp"
 #include "BitmapCache.hpp"
 #include "GUI_App.hpp"
+#include "KeyChord.hpp"
 
-#include "../Utils/MacDarkMode.hpp"
 #include <nanosvg/nanosvg.h>
 #include <nanosvg/nanosvgrast.h>
 #include "OpenGLManager.hpp"
-#include "GUI_App.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -482,10 +509,17 @@ bool ImGuiWrapper::update_mouse_data(wxMouseEvent& evt)
     io.MouseDown[0] = evt.LeftIsDown();
     io.MouseDown[1] = evt.RightIsDown();
     io.MouseDown[2] = evt.MiddleIsDown();
-    float wheel_delta = static_cast<float>(evt.GetWheelDelta());
-    if (wheel_delta != 0.0f) {
+    // Replaces a modifier left held when its key-up was sent to another window.
+    io.KeyCtrl  = evt.ControlDown();
+    io.KeyShift = evt.ShiftDown();
+    io.KeyAlt   = evt.AltDown();
+    io.KeySuper = evt.MetaDown();
+    // Only a vertical wheel event with a direction is a wheel step. A macOS trackpad reports sideways motion
+    // as separate horizontal events, and its wheel events often carry a rotation of 0: wx truncates the
+    // sub-pixel deltas to whole ones and passes on events with no delta at all. Read as vertical steps,
+    // either kind scrolls against the gesture, and scrolling up bounces back and forth.
+    if (evt.GetWheelAxis() == wxMOUSE_WHEEL_VERTICAL && evt.GetWheelRotation() != 0)
         io.MouseWheel = evt.GetWheelRotation() > 0 ? 1.f : -1.f;
-    }
     unsigned buttons = (evt.LeftIsDown() ? 1 : 0) | (evt.RightIsDown() ? 2 : 0) | (evt.MiddleIsDown() ? 4 : 0);
     m_mouse_buttons = buttons;
 
@@ -505,6 +539,23 @@ bool ImGuiWrapper::update_key_data(wxKeyEvent &evt)
     if (evt.GetEventType() == wxEVT_CHAR) {
         // Char event
         const auto key = evt.GetUnicodeKey();
+        // THE MEASUREMENT THAT CANNOT LIE. This is the ONLY place in the application where ImGui
+        // is ever handed a character, so an ImGui text field that stays empty while reporting
+        // itself active has exactly two possible causes, and this line separates them: no output
+        // at all means the wxEVT_CHAR never reached the GL canvas (a focus problem, upstream of
+        // ImGui entirely), while output with unicode=0 means the character arrived empty and is
+        // being dropped right here.
+        //
+        // It lives here rather than on the canvas because a probe bound on the canvas CANNOT
+        // answer this: GLCanvas3D::on_char is bound later than any constructor-time probe, wx
+        // runs handlers in reverse bind order, and on_char returns without Skip() whenever this
+        // function returns true — so such a probe stays silent whether or not the key arrived.
+        // A day was lost to reading that silence as evidence.
+        if (std::getenv("ORCA_CAD_UXTRACE")) {
+            fprintf(stderr, "[UX] imgui_char unicode=%d keycode=%d want_text=%d\n",
+                    (int) key, evt.GetKeyCode(), (int) io.WantTextInput);
+            fflush(stderr);
+        }
         if (key != 0) {
             io.AddInputCharacter(key);
         }
@@ -537,6 +588,16 @@ void ImGuiWrapper::new_frame()
 
     ImGuiIO& io = ImGui::GetIO();
 
+    // ORCA ImGui times button and key repeat with io.DeltaTime. At its default of 1/60 s per frame the clock
+    // counts frames, so a held +/- button repeats as fast as the canvas renders. Feed it the real frame time,
+    // capped at 1/60 s so the idle gaps of the event-driven canvas don't count as time held.
+    const auto now = std::chrono::steady_clock::now();
+    if (m_last_frame_time != std::chrono::steady_clock::time_point{}) {
+        const float dt = std::chrono::duration<float>(now - m_last_frame_time).count();
+        io.DeltaTime   = std::clamp(dt, 1e-4f, 1.f / 60.f); // ImGui asserts a positive DeltaTime
+    }
+    m_last_frame_time = now;
+
     ImGui::NewFrame();
     m_new_frame_open = true;
 
@@ -544,16 +605,6 @@ void ImGuiWrapper::new_frame()
     // BBL: copy & paste form prusa github repo (https://github.com/prusa3d/PrusaSlicer/blob/master/src/slic3r/GUI/ImGuiWrapper.cpp#L375C5-L402C6)
     // synchronize key states
     // when the application loses the focus it may happen that the key up event is not processed
-
-    // synchronize modifier keys
-    constexpr std::array<std::pair<ImGuiKeyModFlags_, wxKeyCode>, 3> imgui_mod_keys{
-        std::make_pair(ImGuiKeyModFlags_Ctrl, WXK_CONTROL),
-        std::make_pair(ImGuiKeyModFlags_Shift, WXK_SHIFT),
-        std::make_pair(ImGuiKeyModFlags_Alt, WXK_ALT) };
-    for (const std::pair<ImGuiKeyModFlags_, wxKeyCode>& key : imgui_mod_keys) {
-        if ((io.KeyMods & key.first) != 0 && !wxGetKeyState(key.second))
-            io.KeyMods &= ~key.first;
-    }
 
     // Not sure if it is neccessary
     // values from 33 to 126 are reserved for the standard ASCII characters
@@ -573,11 +624,44 @@ void ImGuiWrapper::new_frame()
     // BBL: end copy & paste
 }
 
-void ImGuiWrapper::render()
+ImDrawData* ImGuiWrapper::end_frame()
 {
+#ifdef __APPLE__
+    // io.ImeWindowHandle is the focused canvas' view (GLCanvas3D::on_set_focus()).
+    if (void* view = ImGui::GetIO().ImeWindowHandle)
+        mac_ime_set_active(view, ImGui::GetIO().WantTextInput);
+#endif
     ImGui::Render();
-    render_draw_data(ImGui::GetDrawData());
     m_new_frame_open = false;
+    return ImGui::GetDrawData();
+}
+
+void ImGuiWrapper::render(ImDrawData* draw_data)
+{
+    render_draw_data(draw_data);
+}
+
+ImGuiID ImGuiWrapper::draw_data_signature(const ImDrawData* draw_data)
+{
+    ImGuiID hash = 0;
+    if (draw_data == nullptr)
+        return hash;
+
+    for (int i = 0; i < draw_data->CmdListsCount; ++i) {
+        const ImDrawList* list = draw_data->CmdLists[i];
+        hash = ImHashData(list->VtxBuffer.Data, list->VtxBuffer.Size * sizeof(ImDrawVert), hash);
+        hash = ImHashData(list->IdxBuffer.Data, list->IdxBuffer.Size * sizeof(ImDrawIdx), hash);
+        // ImDrawCmd has padding, and a hovered ImageButton3() differs only in TextureId.
+        for (const ImDrawCmd& cmd : list->CmdBuffer) {
+            hash = ImHashData(&cmd.ClipRect, sizeof(cmd.ClipRect), hash);
+            hash = ImHashData(&cmd.TextureId, sizeof(cmd.TextureId), hash);
+            hash = ImHashData(&cmd.VtxOffset, sizeof(cmd.VtxOffset), hash);
+            hash = ImHashData(&cmd.IdxOffset, sizeof(cmd.IdxOffset), hash);
+            hash = ImHashData(&cmd.ElemCount, sizeof(cmd.ElemCount), hash);
+            hash = ImHashData(&cmd.UserCallback, sizeof(cmd.UserCallback), hash);
+        }
+    }
+    return hash;
 }
 
 ImVec2 ImGuiWrapper::calc_text_size(std::string_view text,
@@ -2064,6 +2148,83 @@ bool ImGuiWrapper::want_any_input() const
     return io.WantCaptureMouse || io.WantCaptureKeyboard || io.WantTextInput;
 }
 
+bool ImGuiWrapper::text_input_active() const
+{
+    // An active InputText requests text input in each frame that draws it, and NewFrame() moves the
+    // request into io.WantTextInput.
+    const ImGuiContext& g = *ImGui::GetCurrentContext();
+    return g.WithinFrameScope ? g.IO.WantTextInput : g.WantTextInputNextFrame == 1;
+}
+
+// A popup stays on the popup stack while its canvas is hidden, so it counts only if the last finished frame
+// drew it, which NewFrame() moves from Active to WasActive.
+static bool drawn_last_frame(const ImGuiWindow* popup)
+{
+    return popup != nullptr && (ImGui::GetCurrentContext()->WithinFrameScope ? popup->WasActive : popup->Active);
+}
+
+bool ImGuiWrapper::modal_popup_open() const
+{
+    return drawn_last_frame(ImGui::GetTopMostPopupModal());
+}
+
+bool ImGuiWrapper::popup_open() const
+{
+    const ImVector<ImGuiPopupData>& stack = ImGui::GetCurrentContext()->OpenPopupStack;
+    return std::any_of(stack.begin(), stack.end(), [](const ImGuiPopupData& popup) { return drawn_last_frame(popup.Window); });
+}
+
+void ImGuiWrapper::close_top_popup()
+{
+    const ImVector<ImGuiPopupData>& stack = ImGui::GetCurrentContext()->OpenPopupStack;
+    for (int level = stack.Size - 1; level >= 0; --level) {
+        const ImGuiWindow* popup = stack[level].Window;
+        if (!drawn_last_frame(popup))
+            continue;
+        if ((popup->Flags & ImGuiWindowFlags_Modal) == 0)
+            ImGui::ClosePopupToLevel(level, true);
+        return;
+    }
+}
+
+bool ImGuiWrapper::owns_key(const KeyChord& chord) const
+{
+    return modal_popup_open() || (chord.edits_text() && text_input_active());
+}
+
+bool ImGuiWrapper::item_held() const
+{
+    return ImGui::GetIO().MouseDown[0] && ImGui::GetActiveID() != 0;
+}
+
+bool ImGuiWrapper::owns_keyboard() const
+{
+    return popup_open() || item_held() || text_input_active();
+}
+
+bool ImGuiWrapper::claim_key_event(const wxKeyEvent& evt)
+{
+    const bool claimed = owns_keyboard();
+    const int  key     = evt.GetKeyCode();
+    if (evt.GetEventType() == wxEVT_KEY_DOWN) {
+        m_char_claim = m_key_claims.try_emplace(key, claimed).first->second;
+        return *m_char_claim;
+    }
+    if (evt.GetEventType() == wxEVT_KEY_UP) {
+        m_char_claim.reset();
+        if (const auto press = m_key_claims.extract(key))
+            return press.mapped();
+        return claimed;
+    }
+    return std::exchange(m_char_claim, std::nullopt).value_or(claimed);
+}
+
+void ImGuiWrapper::forget_key_claims()
+{
+    m_key_claims.clear();
+    m_char_claim.reset();
+}
+
 ImFontAtlasCustomRect* ImGuiWrapper::GetTextureCustomRect(const wchar_t& tex_id)
 {
     auto item = m_custom_glyph_rects_ids.find(tex_id);
@@ -2404,6 +2565,25 @@ void ImGuiWrapper::draw(
     }
 }
 
+void ImGuiWrapper::draw_gradient_ramp(ImDrawList *draw_list, const ImVec2 &top_left, const ImVec2 &bottom_right, const std::vector<wxColour> &ramp)
+{
+    if (draw_list == nullptr || ramp.empty() || bottom_right.x <= top_left.x || bottom_right.y <= top_left.y)
+        return;
+
+    const int    rows  = std::max(1, (int) std::lround(bottom_right.y - top_left.y));
+    const float  row_h = (bottom_right.y - top_left.y) / rows;
+    const size_t last  = ramp.size() - 1;
+    for (int r = 0; r < rows; ++r) {
+        // Row 0 is the top of the rect and so takes the ramp's last entry, the model's top.
+        const double    t = (rows > 1) ? (double) (rows - 1 - r) / (rows - 1) : 0.5;
+        const wxColour &c = ramp[(size_t) (t * last + 0.5)];
+        // The bottom row snaps to the rect's edge so rounding never leaves a sliver uncovered.
+        const float y0 = top_left.y + r * row_h;
+        const float y1 = (r + 1 == rows) ? bottom_right.y : top_left.y + (r + 1) * row_h;
+        draw_list->AddRectFilled({top_left.x, y0}, {bottom_right.x, y1}, IM_COL32(c.Red(), c.Green(), c.Blue(), c.Alpha()));
+    }
+}
+
 void ImGuiWrapper::draw_cross_hair(const ImVec2 &position, float radius, ImU32 color, int num_segments, float thickness) {
     auto draw_list = ImGui::GetOverlayDrawList();
     draw_list->AddCircle(position, radius, color, num_segments, thickness);
@@ -2462,6 +2642,19 @@ static const ImWchar ranges_keyboard_shortcuts[] =
     0,
 };
 #endif // __APPLE__
+
+// Names drawn through the atlas come from file names and CAD data, not from the UI language.
+// GetGlyphRangesDefault() already gives every language the CJK ideographs, which is why a
+// Chinese file name renders under an English UI; these are the alphabetic scripts it omits.
+// Codepoints the font lacks are skipped at build time, so only existing glyphs cost anything.
+static const ImWchar ranges_language_independent[] =
+{
+    0x0100, 0x024F, // Latin Extended-A and Extended-B
+    0x0370, 0x03FF, // Greek and Coptic
+    0x0400, 0x04FF, // Cyrillic
+    0x1E00, 0x1EFF, // Latin Extended Additional (Vietnamese)
+    0,
+};
 
 
 std::vector<unsigned char> ImGuiWrapper::load_svg(const std::string& bitmap_name, unsigned target_width, unsigned target_height, unsigned *outwidth, unsigned *outheight)
@@ -2773,6 +2966,7 @@ void ImGuiWrapper::init_font(bool compress)
     ImFontAtlas::GlyphRangesBuilder builder;
     builder.AddRanges(m_glyph_ranges);
     builder.AddRanges(ImGui::GetIO().Fonts->GetGlyphRangesDefault());
+    builder.AddRanges(ranges_language_independent);
 #ifdef __APPLE__
     if (m_font_cjk)
         // Apple keyboard shortcuts are only contained in the CJK fonts.
@@ -2794,12 +2988,17 @@ void ImGuiWrapper::init_font(bool compress)
     // Orca: temp fix for Korean font
     auto font_name_regular = "HarmonyOS_Sans_SC_Regular.ttf";
     auto font_name_bold = "HarmonyOS_Sans_SC_Bold.ttf";
+    // The Korean and Thai fonts cover their own script and little else, so they need the
+    // default font merged in behind them to reach the full range.
+    bool needs_glyph_fallback = false;
     if(m_glyph_ranges == ImGui::GetIO().Fonts->GetGlyphRangesKorean()) {
         font_name_regular = "NanumGothic-Regular.ttf";
         font_name_bold = "NanumGothic-Bold.ttf";
+        needs_glyph_fallback = true;
     } else if (m_glyph_ranges == ImGui::GetIO().Fonts->GetGlyphRangesThai()) {
         font_name_regular = "Sarabun-Medium.ttf";
         font_name_bold = "Sarabun-SemiBold.ttf";
+        needs_glyph_fallback = true;
     }
     default_font = io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/" + font_name_regular).c_str(), m_font_size, &cfg, ranges.Data);
     if (default_font == nullptr) {
@@ -2809,10 +3008,24 @@ void ImGuiWrapper::init_font(bool compress)
         }
     }
 
+    // A merged font only supplies glyphs the font ahead of it lacks, so this fills the gaps
+    // without restyling anything the script font already covers.
+    if (needs_glyph_fallback) {
+        ImFontConfig fallback_cfg = cfg;
+        fallback_cfg.MergeMode = true;
+        io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/HarmonyOS_Sans_SC_Regular.ttf").c_str(), m_font_size, &fallback_cfg, ranges.Data);
+    }
+
     bold_font        = io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/" + font_name_bold).c_str(), m_font_size, &cfg, ranges.Data);
     if (bold_font == nullptr) {
         bold_font = io.Fonts->AddFontDefault();
         if (bold_font == nullptr) { throw Slic3r::RuntimeError("ImGui: Could not load deafult font"); }
+    }
+
+    if (needs_glyph_fallback) {
+        ImFontConfig fallback_cfg = cfg;
+        fallback_cfg.MergeMode = true;
+        io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/HarmonyOS_Sans_SC_Bold.ttf").c_str(), m_font_size, &fallback_cfg, ranges.Data);
     }
 
     if (m_glyph_ranges == ImGui::GetIO().Fonts->GetGlyphRangesThai()) {
@@ -2864,13 +3077,18 @@ void ImGuiWrapper::init_font(bool compress)
     glsafe(::glGetIntegerv(GL_MAX_TEXTURE_SIZE, &gl_max_tex_size));
     constexpr int max_retries = 6;
     for (int attempt = 0; attempt < max_retries && io.Fonts->TexHeight > gl_max_tex_size; ++attempt) {
-        io.Fonts->TexDesiredWidth = (io.Fonts->TexDesiredWidth > 0 ? io.Fonts->TexDesiredWidth : io.Fonts->TexWidth) * 2;
+        const int width = io.Fonts->TexDesiredWidth > 0 ? io.Fonts->TexDesiredWidth : io.Fonts->TexWidth;
+        // Both dimensions share the same limit, so widening past it would only trade an
+        // illegal height for an illegal width.
+        if (width * 2 > gl_max_tex_size)
+            break;
+        io.Fonts->TexDesiredWidth = width * 2;
         io.Fonts->Build();
     }
     if (io.Fonts->TexHeight > gl_max_tex_size) {
-        // Shouldn't really happen
-        BOOST_LOG_TRIVIAL(error) << "Font atlas height " << io.Fonts->TexHeight
-            << " still exceeds GL_MAX_TEXTURE_SIZE (" << gl_max_tex_size << ")"
+        // Needs both a very large glyph set and a small GL_MAX_TEXTURE_SIZE.
+        BOOST_LOG_TRIVIAL(error) << "Font atlas " << io.Fonts->TexWidth << "x" << io.Fonts->TexHeight
+            << " does not fit GL_MAX_TEXTURE_SIZE (" << gl_max_tex_size << ")"
             << " after " << max_retries << " attempts; rendering may be incomplete";
     }
 
@@ -2939,7 +3157,6 @@ void ImGuiWrapper::load_fonts_texture()
     //    io.Fonts->Flags |= ImFontAtlasFlags_NoPowerOfTwoHeight;
     //    ImFontConfig cfg = ImFontConfig();
     //    cfg.OversampleH = cfg.OversampleV = 1;
-    //    std::map<std::string, std::string> sys_fonts_map = get_occt_fonts_maps(); // map<font name, font path>
     //    im_fonts_map.clear();                                                     // map<font name, ImFont*>
     //    BOOST_LOG_TRIVIAL(info) << "init_im_font start";
     //    for (auto sys_font : sys_fonts_map) {
@@ -3022,6 +3239,14 @@ void ImGuiWrapper::init_input()
 
     // Don't let imgui special-case Mac, wxWidgets already do that
     io.ConfigMacOSXBehaviors = false;
+
+#ifdef __APPLE__
+    // Places the input method's candidate window at the text cursor.
+    io.ImeSetInputScreenPosFn = [](int x, int y) {
+        if (void* view = ImGui::GetIO().ImeWindowHandle)
+            mac_ime_set_caret(view, x, y, int(ImGui::GetFontSize()));
+    };
+#endif
 
     // Setup clipboard interaction callbacks
     io.SetClipboardTextFn = clipboard_set;
@@ -3318,8 +3543,9 @@ const char* ImGuiWrapper::clipboard_get(void* user_data)
             wxTextDataObject data;
             wxTheClipboard->GetData(data);
 
-            if (data.GetTextLength() > 0) {
-                self->m_clipboard_text = into_u8(data.GetText());
+            const wxString text = data.GetText();
+            if (text.Length() > 0) {
+                self->m_clipboard_text = into_u8(text);
                 res = self->m_clipboard_text.c_str();
             }
         }

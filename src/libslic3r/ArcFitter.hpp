@@ -2,6 +2,9 @@
 #define slic3r_ArcFitter_hpp_
 
 #include "Circle.hpp"
+#include <cstddef>
+#include "Point.hpp"
+#include <vector>
 
 namespace Slic3r {
 

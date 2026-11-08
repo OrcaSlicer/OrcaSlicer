@@ -1,6 +1,7 @@
 #ifndef __NETWORK_AGENT_FACTORY_HPP__
 #define __NETWORK_AGENT_FACTORY_HPP__
 
+#include "CloudProvider.hpp"
 #include "ICloudServiceAgent.hpp"
 #include "IPrinterAgent.hpp"
 #include "NetworkAgent.hpp"
@@ -11,11 +12,16 @@
 #include <memory>
 #include <string>
 #include <functional>
+#include <utility>
 #include <vector>
 
 namespace Slic3r {
 static constexpr char ORCA_PRINTER_AGENT_ID[] = "orca";
 static constexpr char BBL_PRINTER_AGENT_ID[] = "bbl";
+static constexpr char MOONRAKER_PRINTER_AGENT_ID[] = "moonraker";
+static constexpr char QIDI_PRINTER_AGENT_ID[] = "qidi";
+static constexpr char SNAPMAKER_PRINTER_AGENT_ID[] = "snapmaker";
+static constexpr char CREALITYPRINT_PRINTER_AGENT_ID[] = "crealityprint";
 
 // Factory function type for creating printer agents
 using PrinterAgentFactory =

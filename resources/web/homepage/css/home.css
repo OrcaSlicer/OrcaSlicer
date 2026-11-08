@@ -4,7 +4,7 @@
 	border: 0px;
 	margin: 0px;
     font-family: "system-ui", "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-sans;
-	border-color: #D7D7D7;
+	border-color: var(--border-color);
 	user-select: none;
 }
 
@@ -17,31 +17,10 @@ html, body {
     font-size: 16px;	
 }
 
-.ZScrol::-webkit-scrollbar {/*滚动条整体样式*/
-    width: 12px;     /*高宽分别对应横竖滚动条的尺寸*/
-    height: 1px;
-	padding: 2px;
-}
-
-.ZScrol::-webkit-scrollbar-thumb {/*滚动条里面小方块*/
-    border-radius: 6px;
-    -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-	box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-    background-color: #AAAAAA;
-}
-
-.ZScrol::-webkit-scrollbar-track {/*滚动条里面轨道*/
-        -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-	    box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-        border-radius: 10px;
-        background: #EDEDED;
-}
-
-
 .RedFont
 {
 	font-size:12px;
-	color: #F07E4A;		
+	color: var(--warn-color);
 }
 
 .LinkBtn
@@ -56,10 +35,13 @@ html, body {
 	text-decoration:underline;
 }
 
+.TextS1 {color:var(--fg-color-text) ;}
+.TextS2 {color:var(--fg-color-label);}
+
 /*------------------*/
 #DebugText
 {
-	height:30px;
+	max-height:30px; /* it will only takes space when it has content with max-height */
 }
 
 /*------------------*/
@@ -67,140 +49,269 @@ body
 {
 	display:flex;
 	justify-content: flex-start;
+	background: var(--bg-color);
 }
 
 #LeftBoard
 {
 	display: none;  /* shown by cloud_providers_info from backend */
-	border-right-width: 1px;
-	border-right-style: solid;
-	width:262px;
+	border-right: 1px solid var(--border-color);
+	width: 220px; /*Match sidebar width with Device / Project / Calibration tabs*/
+	min-width: 220px;
 	height: 100%;
+	background: var(--bg-color-sidebar);
+}
+
+/*------Account rows and account menu------*/
+
+/*----These shadow similar tokens in global.css on purpose: global.css themes on the OS
+      via prefers-color-scheme, while this page themes on the dark.css link that
+      SwitchDarkMode() injects from the app theme, so the two can disagree.----*/
+:root
+{
+	--account-avatar-bg    : #E6EBEA;
+	--account-avatar-glyph : #9AA5A3;
+
+	--glyph-account:
+		url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="12" r="5.6"/><path d="M4.9 29a11.1 11.1 0 0 1 22.2 0Z"/></svg>');
+	--glyph-logout:
+		url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="black" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5H3.5v11h6"/><path d="M11 5.5L14 8l-3 2.5"/><path d="M14 8H6.5"/></svg>');
 }
 
 #LoginArea
 {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	flex-wrap: nowrap;
 	position: relative;
-	width:262px;
+	padding: 10px 8px;
+	box-sizing: border-box;
+	width: 100%;
+	border-bottom: 1px solid var(--border-color);
 }
 
-.AccountSectionLabel
+.AccountRow
 {
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	font-size: 13px;
-	font-weight: 600;
-	color: var(--fg-color-text);
-	padding: 16px 20px 6px;
-	width: 262px;
-	box-sizing: border-box;
-}
-
-.AccountSectionIcon
-{
-	width: 18px;
-	height: 18px;
-	flex: 0 0 auto;
-}
-
-.AccountStatusText
-{
-	font-size: 12px;
-	color: #A8A8A8;
-	margin-top: 8px;
-}
-
-.OrcaAccountText
-{
-	font-weight: bold;
-}
-
-#OrcaLoginSection
-{
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	width: 100%;
-}
-
-#OrcaLogin1
-{
-	display: flex;
-	flex-direction: column;		/*ORCA*/
-	align-items: center;		/*Allow icon centered vertically*/
-	justify-content: center;	/*and use login button in new line*/
+	padding: 8px 10px;  /*----label column lines up with the navigation below----*/
+	border-radius: 8px;
 	user-select: none;
-	padding: 10px 0;
 }
 
-#OrcaLogin2
+.AccountRow:hover
+{
+	background-color: var(--button-bg-hover);
+}
+
+.AccountRow:focus-visible
+{
+	outline: 2px solid var(--main-color);
+	outline-offset: -2px;
+}
+
+.AccountRow.Disabled
+{
+	cursor: default;
+	opacity: 0.5;
+}
+
+.AccountRow.Disabled:hover
+{
+	background-color: transparent;
+}
+
+.AccountRow.Disabled .AccountSignIn
 {
 	display: none;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	text-align: center;
-	padding: 14px 0 16px;
-	box-sizing: border-box;
-	width: 262px;
 }
 
-/* --- Bambu Cloud Section --- */
+/*----Avatar----*/
+.AccountAvatar
+{
+	position: relative;
+	flex: 0 0 auto;
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	background-color: var(--account-avatar-bg);
+}
+
+.AccountAvatar::before  /* placeholder shown until an avatar image loads */
+{
+	content: "";
+	position: absolute;
+	inset: 0;
+	-webkit-mask-image: var(--glyph-account);
+	mask-image: var(--glyph-account);
+	-webkit-mask-size: 100% 100%;
+	mask-size: 100% 100%;
+	background-color: var(--account-avatar-glyph);
+}
+
+.AccountAvatarImg
+{
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	object-fit: cover;
+	display: block;
+}
+
+.AccountAvatarImg:not([src])
+{
+	display: none;
+}
+
+/*----Row labels----*/
+.AccountText
+{
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.AccountName,
+.AccountSecondary  /*----the provider name, or the sign-in state where the row has no name yet----*/
+{
+	font-size: 15px;
+	line-height: 20px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.AccountName
+{
+	display: none;
+	font-weight: 600;
+	color: var(--fg-color-text);
+}
+
+.AccountSecondary
+{
+	color: var(--fg-color-label);
+}
+
+.AccountSignIn
+{
+	flex: 0 0 auto;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--main-color-fixed);
+}
+
+.AccountChevron
+{
+	display: none;
+	flex: 0 0 auto;
+	width: 12px;
+	height: 12px;
+	color: var(--icon-color);
+	transition: transform 0.15s ease;
+}
+
+.AccountRow.SignedIn .AccountName    { display: block; }
+.AccountRow.SignedIn .AccountChevron { display: block; }
+.AccountRow.SignedIn .AccountSignIn  { display: none; }
+.AccountRow.SignedIn .AccountSecondary
+{
+	font-size: 11px;
+	line-height: 14px;
+}
+
+.AccountRow.MenuOpen .AccountChevron { transform: rotate(180deg); }
+
+#NoPluginTip
+{
+	display: none;
+	margin: 4px 0 2px;
+	padding: 8px 10px;
+	border-radius: 6px;
+	background-color: var(--warn-color-bg);
+}
+
+#NoPluginText
+{
+	line-height: 16px;
+}
+
+#NoPluginTip .LinkBtn
+{
+	color: var(--warn-color);
+	text-decoration: underline;
+}
+
+/*----Bambu Cloud, folded under the main account----*/
 #BambuCloudSection
 {
 	display: none;  /* shown by cloud_providers_info from backend */
-	border-top: 1px solid;
-	width: 262px;
+	margin-top: 8px;
+	padding-top: 6px;
+	border-top: 1px solid var(--border-color);
 }
 
 #BambuCloudHeader
 {
-	height: 40px;
 	display: flex;
 	align-items: center;
-	padding: 0 20px;
-	cursor: pointer;
-	font-size: 13px;
-	color: #A8A8A8;
 	gap: 8px;
+	height: 28px;
+	padding: 0 12px 0 8px;
+	border-radius: 6px;
+	font-size: 12px;
+	color: var(--fg-color-label);
+	cursor: pointer;
+	user-select: none;
 }
 
 #BambuCloudHeader:hover
 {
-	color: inherit;
+	color: var(--fg-color-text);
 }
 
-.bambu-chevron
+#BambuCloudHeader:focus-visible
 {
+	outline: 2px solid var(--main-color);
+	outline-offset: -2px;
+}
+
+.SectionChevron
+{
+	flex: 0 0 auto;
 	width: 12px;
 	height: 12px;
 	transition: transform 0.2s ease;
-	transform: rotate(0deg);
 }
 
-.bambu-chevron.expanded
+#BambuCloudHeader.Expanded .SectionChevron
 {
 	transform: rotate(90deg);
 }
 
-.bambu-status-dot
+.SectionLabel
 {
-	width: 8px;
-	height: 8px;
-	border-radius: 50%;
-	background-color: #A8A8A8;
-	margin-left: auto;
+	flex: 1 1 auto;
+	min-width: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
-.bambu-status-dot.online
+#BambuStatusDot
 {
-	background-color: #4CAF50;
+	flex: 0 0 auto;
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background-color: var(--icon-color);
+}
+
+#BambuStatusDot.Online
+{
+	background-color: var(--main-color-fixed);
 }
 
 #BambuCloudBody
@@ -208,124 +319,148 @@ body
 	max-height: 0;
 	overflow: hidden;
 	transition: max-height 0.25s ease;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
 }
 
-#BambuCloudBody.expanded
+#BambuCloudBody.Expanded
 {
 	max-height: 200px;
+	padding-bottom: 2px;
 }
 
-#NoPluginTip
+.AccountRowCompact
 {
-	position: static;
-	display: none;
-	flex-direction: column;
-	padding: 5px 10px;
-	z-index: auto;
+	padding: 6px 10px;
 }
 
-#BambuLogin1
+.AccountRowCompact .AccountAvatar
 {
-	padding: 10px 0;
+	width: 26px;
+	height: 26px;
 }
 
-#BambuLogin2
+.AccountRowCompact .AccountName,
+.AccountRowCompact .AccountSecondary
 {
-	display: none;
-	flex-direction: column;
-	align-items: center;
-	text-align: center;
-	padding: 8px 0;
-	width: 262px;
-}
-
-#BambuAvatarIcon
-{
-	height: 40px;
-	border-radius: 50%;
-}
-
-#BambuUserName
-{
-	white-space: nowrap;
-	text-overflow: ellipsis;
-	overflow: hidden;
-	width: 80%;
-	text-align: center;
 	font-size: 13px;
+	line-height: 17px;
 }
 
-
-#DownloadBtn
+.AccountRowCompact.SignedIn .AccountSecondary  /*----the section header already names this provider----*/
 {
-	color:#00ffd9;
+	display: none;
 }
 
-
-#Icon1
+/*----Account menu----*/
+#AccountMenu
 {
-	margin-right: 10px;	
+	display: none;
+	position: absolute;
+	left: 8px;
+	right: 8px;
+	z-index: 20;
+	padding: 4px;
+	border-radius: 10px;
+	border: 1px solid var(--border-color);
+	background-color: var(--bg-color);
+	box-shadow: var(--menu-shadow);
 }
 
-#BBLIcon
+#AccountMenu.Open
 {
-	height:96px; /*ORCA use bigger icon to fit logo size*/
-}
-
-#UserAvatarIcon
-{
-	width: 64px;
-	height: 64px;
 	display: block;
-	margin: 2px auto 10px;
-	object-fit: cover;
-	border-radius: 50%;
+	animation: AccountMenuIn 0.12s ease-out;
 }
 
-#UserName
+@keyframes AccountMenuIn
 {
+	from { opacity: 0; transform: translateY(-4px); }
+	to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce)
+{
+	#AccountMenu.Open   { animation: none; }
+	.AccountChevron,
+	.SectionChevron,
+	#BambuCloudBody     { transition: none; }
+}
+
+#AccountMenuHandle
+{
+	display: none;
+	padding: 9px 10px;
+	border-bottom: 1px solid var(--border-color);
+	font-size: 12px;
+	line-height: 16px;
+	color: var(--fg-color-label);
 	white-space: nowrap;
+	overflow: hidden;
 	text-overflow: ellipsis;
-	text-align: center;
-	overflow: hidden; 
-	width: 80%;
-	max-width: 190px;
-	line-height: 22px;
 }
 
-#LogoutBtn
+#AccountMenuLogout
 {
-	margin-top: 8px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	height: 34px;
+	padding: 0 10px;
+	border-radius: 6px;
+	font-size: 13px;
+	color: var(--fg-color-text);
 }
+
+#AccountMenuLogout:hover
+{
+	background-color: var(--button-bg-alert);
+	color: var(--button-fg-light);
+}
+
+#AccountMenuLogout:focus-visible
+{
+	outline: 2px solid var(--main-color);
+	outline-offset: -2px;
+}
+
+#AccountMenuLogoutIcon
+{
+	width: 15px;
+	height: 15px;
+	-webkit-mask: var(--glyph-logout) center / contain no-repeat;
+	mask: var(--glyph-logout) center / contain no-repeat;
+	background-color: currentColor;
+}
+
 
 /*------------------*/
 #BtnArea
 {
-	
+	margin-top: 30px;	
 }
-
 
 .BtnItem
 {
-    padding-left:40px;	
-	height:50px;
-	line-height: 50px;
+    padding-left:18px;
+	padding-right:10px;
+	height:44px;
 	display: flex;
-	justify-content:flex-start;
-	cursor: pointer;
+	justify-content:space-between;
+	align-items: center;
+	border: 1px Solid transparent;
+	color:var(--fg-color-label);
 }
 
 .BtnItem:hover
 {
-	background-color: #BFE1DE; /*ORCA color with %25 opacity*/
+	border-color: var(--main-color); /*ORCA color*/
 }
 
 .BtnItemSelected
 {
-	background-color: #BFE1DE; /*ORCA color with %25 opacity*/
+	background-color: var(--focus-bg-item); /*ORCA color with %25 opacity*/
+	border-color: var(--focus-bg-item);		/*ORCA color*/
+	font-weight: 700;
+	color:var(--fg-color-text);
 }
 
 .BtnIcon
@@ -336,15 +471,17 @@ body
 	justify-content: center;
 }
 
+.NavArrow     {--icon-url:var(--icon-nav-arrow);}
+.ShortcutIcon {--icon-url:var(--icon-shortcut );}
+
+.BtnItem .icon16 {
+	background-color: var(--fg-color-text);
+}
+
 .LeftIcon
 {
 	width:20px;
 	height: 20px;
-}
-
-.BtnShortcut
-{
-	padding-right: 18px;
 }
 
 .ShortcutBrandIcon
@@ -355,25 +492,6 @@ body
 	display: block;
 }
 
-.ShortcutTextRow
-{
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	width: 100%;
-	min-width: 0;
-}
-
-.ShortcutMark
-{
-	width: 14px;
-	height: 14px;
-	margin-left: auto;
-	color: currentColor;
-	opacity: 0.72;
-	flex: 0 0 auto;
-}
-
 
 /*--------------------*/
 #RightBoard
@@ -382,6 +500,21 @@ body
 	height: 100%;
 	min-width: 835px;
 	overflow-y:auto;
+	background-color: var(--bg-color-sidebar);
+}
+
+/*---- Cloud mode: OrcaCloud is a native pane to the right of the app panel, so this page
+      is reduced to its left nav column (the class is toggled by SetCloudMode in js/home.js). ----*/
+body.cloud-mode #RightBoard
+{
+	display: none;
+}
+
+body.cloud-mode #LeftBoard
+{
+	/*---- 262px of column plus its 1px separator is the width the app gives the nav. ----*/
+	height: 100%;
+	overflow-y: auto;
 }
 
 #ContentBoard
@@ -413,26 +546,28 @@ body
 {
 	border-width: 1px;
 	border-style: solid;
-	border-radius: 12px;
-	height: 101px;
+	border-radius: 13px; /* Same radius with buttons */
+	height: 100px;
 	width: 253px;
-	padding-left: 20px;
+	padding-left: 22px; /* for equal padding (100(height) - 56(MenuItem_icon_size)) / 2 */
 	display: flex;
 	justify-content: flex-start;
 	align-items: center;
 	margin-right: 16px;
-	cursor: pointer;
 }
 
 .MenuItem:hover
 {
-	border-color: #009688;		/*ORCA color*/
-	background-color: #E5F0EE; /*ORCA color with %25 opacity*/
+	border-color: var(--main-color);		/*ORCA color*/
+	background-color: var(--focus-bg-box); /*ORCA color with %25 opacity*/
 }
 
 .MenuIcon
 {
 	margin-right: 1em;
+	display: flex;
+	flex-direction: column;
+	justify-content: center; /* aligns text content vertically */
 }
 
 .MenuIcon img
@@ -443,7 +578,7 @@ body
 
 .MenuDesc
 {
-	color: #A8A8A8;
+	color: var(--fg-color-disabled);
 }
 
 
@@ -451,6 +586,7 @@ body
 {
 	line-height: 30px;
 	font-weight: 700;
+	margin: 8px 16px 8px 0; /*remove margin from left and Align contents with title*/
 }
 
 #HotspotWEB
@@ -533,8 +669,7 @@ body
     overflow: hidden;
     word-break: break-all;
 	position: relative;
-	cursor: pointer;
-	margin: 8px;
+	margin: 8px 16px 8px 0; /*remove margin from left and Align contents with title*/
 }
 
 .FileTip
@@ -549,10 +684,11 @@ body
 .FileImg
 {
 	text-align: center;
-	background-color: #E4E4E4;
-	border-radius: 8px;
+	background: var(--bg-color-secondary);
+	border-radius: 13px; /* Same radius with buttons */
 	width: 184px;
-	height: 184px;	
+	height: 184px;
+	box-shadow: inset 0 0 1px 1px var(--border-color);
 }
 
 .FileItem img
@@ -564,19 +700,78 @@ body
 	object-fit: cover;
 }
 
-.FileName
+.FileItem:hover .FileImg {
+	background-color: var(--focus-bg-box); 
+	box-shadow: inset 0 0 1px 1px var(--main-color) ;
+}
+
+.FileImg .FileLogoBadge
 {
+	position: absolute;
+	top: 8px;
+	left: 8px;
+	width: 26px;
+	height: 26px;
+	padding: 2px;
+	box-sizing: border-box;
+	background-color: rgba(255,255,255,0.85);
+	border-radius: 50%;
+}
+
+.FileName,
+.FileDate {
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
-    word-break: break-all;	
+    word-break: break-all;
+	height: 20px;
+	line-height: 20px;
 }
 
-.FileDate
+.FileName {
+	color:var(--fg-color-text);
+}
+
+.FileDate {
+	color: var(--fg-color-disabled);
+}
+
+.FileNamePack
 {
-	color: #A8A8A8;
+	margin-top: 5px;
+	display: flex;
+	align-items: center;
+	min-width: 0;
+	overflow: hidden;
 }
 
+.FileNamePack .FileName
+{
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.FileItem:hover .FileNamePack, 
+.FileItem:hover .FileDate {
+	display: none; 
+}
+
+.FilePublishedBadge
+{
+	flex: 0 0 auto;
+	margin-right: 4px;
+	padding: 0 4px;
+	height: 16px;
+	line-height: 16px;
+	font-size: 10px;
+	font-weight: 600;
+	color: var(--button-fg-light);
+	background-color: var(--main-color);
+	border-radius: 2px;
+	white-space: nowrap;
+}
+
+/*
 #recnet_context_menu
 {
 	position: absolute;
@@ -604,7 +799,7 @@ body
 .CT_Item:hover
 {
 	cursor: pointer;
-	background-color:#009688; /*ORCA color*/
+	background-color:#009688;
 	border-radius: 4px;
 	color: #fff;
 }
@@ -657,6 +852,47 @@ body
 	height: 20px;	
 	display: block;
 }
+*/
+
+/*ORCA Hide filename and date on hover and show action buttons*/
+.FileActions {
+	position: relative; /* Allows mouse events for child elements and blocks parent evemts*/
+	display: none;
+	width: 100%;
+	margin-top: 5px;
+}
+
+.FileItem:hover .FileActions {
+	display: flex;
+ 	min-height: 40px;
+	justify-content: space-between;
+}
+
+.FileActionsReveal,
+.FileActionsRemove {
+	position: relative; /* Allows mouse events for child elements and blocks parent evemts*/
+	border: 4px solid var(--bg-color-sidebar); /* increases hitbox size */
+	border-radius: 17px; /* 13 + 4 */
+}
+
+.FileActionsReveal {
+	margin-left: -4px;
+}
+
+.FileActionsRemove {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding-left: 4px;
+	padding-right: 4px;
+	min-width: unset;
+	margin-right: -4px;
+	margin-left:auto;
+	--icon-url: var(--icon-cross);
+}
+
+.FileActionsRemove       .icon16 {background: var(--fg-color-text)}
+.FileActionsRemove:hover .icon16 {background: #FFF}
 
 /*--------Mall------*/
 #MallBoard

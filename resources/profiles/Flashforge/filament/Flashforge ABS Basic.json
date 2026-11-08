@@ -1,10 +1,14 @@
 {
 	"type": "filament",
 	"name": "Flashforge ABS Basic",
-	"inherits": "Flashforge Generic ABS",
+	"inherits": "Generic ABS @Flashforge",
 	"from": "system",
 	"setting_id": "m6QLC2UaS3fW298i",
+	"filament_id": "OFibWuBd",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"filament_settings_id": [
 		"Flashforge ABS Basic"
 	],

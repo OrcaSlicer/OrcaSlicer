@@ -116,15 +116,11 @@
 	"deretraction_speed": [
 		"40"
 	],
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"change_filament_gcode": "",
 	"machine_pause_gcode": "M25 ;pause print",
 	"wipe": [
 		"1"
-	],
-	"default_filament_profile": [
-		"Dremel Generic PLA"
 	],
 	"bed_exclude_area": [
 		"0x0"

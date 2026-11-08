@@ -9,6 +9,10 @@ on:
       arch:
         required: false
         type: string
+      compiler:
+        required: false
+        type: string
+        default: msvc
       build-deps-only:
         required: false
         type: boolean
@@ -16,52 +20,179 @@ on:
         required: false
         type: boolean
   
+# Read by scripts/ci_deps_cache.sh.
+env:
+  REPO: ${{ github.repository }}
+  WORKFLOW_REF: ${{ github.workflow_ref }}
+  BASE_REF: ${{ github.base_ref }}
+
 jobs:
   check_cache: # determines if there is a cache and outputs variables used in caching process
     name: Check Cache
-    runs-on: ${{ inputs.os }}
+    # Hosted macOS runners are scarce, so their lookup runs on Linux.
+    runs-on: ${{ startsWith(inputs.os, 'macos-') && 'ubuntu-24.04' || inputs.os }}
     outputs:
       cache-key: ${{ steps.set_outputs.outputs.cache-key }}
       cache-path: ${{ steps.set_outputs.outputs.cache-path }}
       valid-cache: ${{ steps.cache_deps.outputs.cache-hit }}
+      macos-path: ${{ steps.macos_path.outputs.path }}
+      key-inputs: ${{ steps.wait_check.outputs.key-inputs }}
+      wait-for: ${{ steps.wait_check.outputs.wait-for }}
+      wait-since: ${{ steps.wait_check.outputs.wait-since }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
           lfs: 'false'
+          # The wait check compares the merge commit with its first parent.
+          fetch-depth: ${{ startsWith(inputs.os, 'macos-') && 2 || 1 }}
+          # Fetches only deps/, which the key hashes, and the wait script.
+          sparse-checkout: |
+            /deps/
+            /scripts/ci_deps_cache.sh
+          sparse-checkout-cone-mode: false
         
       - name: set outputs
         id: set_outputs
         env:
-          # Keep macOS/Windows cache keys architecture-specific. amd64 Linux passes
-          # no arch (key stays 'linux-clang', preserving the existing cache);
-          # aarch64 gets its own 'linux-clang-aarch64' key.
-          cache-os: ${{ runner.os == 'macOS' && format('macos-{0}', inputs.arch) || (runner.os == 'Windows' && format('windows-{0}', inputs.arch) || format('linux-clang{0}', inputs.arch && format('-{0}', inputs.arch) || '')) }}
-          # ARM64 builds use the build-arm64 tree (see build_release_vs.bat); x64/other use build.
-          dep-folder-name: ${{ runner.os == 'macOS' && format('/{0}', inputs.arch) || (runner.os == 'Windows' && inputs.arch == 'arm64') && '-arm64/OrcaSlicer_dep' || '/OrcaSlicer_dep' }}
+          # Anything that changes how the tree is built belongs in the key, or a job
+          # restores one it cannot use. Linux amd64 passes no arch deliberately, so
+          # 'linux-clang' keeps the cache it already has.
+          cache-os: ${{ (runner.os == 'macOS' || startsWith(inputs.os, 'macos-')) && format('{0}-{1}', inputs.os, inputs.arch) || (runner.os == 'Windows' && format('windows-{0}-{1}', inputs.arch, inputs.compiler) || format('linux-clang{0}', inputs.arch && format('-{0}', inputs.arch) || '')) }}
+          # The Windows ARM64 deps build in build-arm64, all others under build;
+          # build_deps.yml and build_orca.yml pass the Windows directory to build_win.bat.
+          dep-folder-name: ${{ (runner.os == 'macOS' || startsWith(inputs.os, 'macos-')) && format('/{0}', inputs.arch) || (runner.os == 'Windows' && inputs.arch == 'arm64') && '-arm64/OrcaSlicer_dep' || '/OrcaSlicer_dep' }}
           output-cmd: ${{ runner.os == 'Windows' && '$env:GITHUB_OUTPUT' || '"$GITHUB_OUTPUT"'}}
         run: |
           echo cache-key=${{ env.cache-os }}-cache-orcaslicer_deps-build-${{ hashFiles('deps/**') }} >> ${{ env.output-cmd }}
-          echo cache-path=${{ github.workspace }}/deps/build${{ env.dep-folder-name }} >> ${{ env.output-cmd }}
+          # Relative to the workspace, which differs from the build's when this job runs on Linux.
+          echo cache-path=deps/build${{ env.dep-folder-name }} >> ${{ env.output-cmd }}
             
+      # actions/cache matches the path too, so a Linux lookup for macOS uses the
+      # workspace of a hosted macOS job.
+      - name: macOS cache path
+        id: macos_path
+        if: ${{ startsWith(inputs.os, 'macos-') }}
+        run: echo "path=/Users/runner/work/${GITHUB_REPOSITORY#*/}/${GITHUB_REPOSITORY#*/}/${{ steps.set_outputs.outputs.cache-path }}" >> "$GITHUB_OUTPUT"
+
       - name: load cache
         id: cache_deps
         uses: actions/cache@v6
         with:
-          path: ${{ steps.set_outputs.outputs.cache-path }}
+          path: ${{ steps.macos_path.outputs.path || format('{0}/{1}', github.workspace, steps.set_outputs.outputs.cache-path) }}
           key: ${{ steps.set_outputs.outputs.cache-key }}
           lookup-only: true
         
+      # A pull request that misses the cache can wait for a base branch build of the same deps.
+      - name: check for a base branch build to wait for
+        id: wait_check
+        if: ${{ startsWith(inputs.os, 'macos-') && github.event_name == 'pull_request' && steps.cache_deps.outputs.cache-hit != 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/ci_deps_cache.sh check
+
+  wait_for_deps:
+    name: Wait for base branch deps
+    needs: [check_cache]
+    if: ${{ needs.check_cache.outputs.wait-for != '' }}
+    runs-on: ubuntu-24.04
+    env:
+      WAIT_MINUTES: 120
+    # Must exceed WAIT_MINUTES.
+    timeout-minutes: 130
+    # Waiting runs queue here, and only the first one holds a runner.
+    concurrency:
+      group: deps-wait-${{ github.base_ref }}-${{ needs.check_cache.outputs.cache-key }}
+      queue: max
+    outputs:
+      hit: ${{ steps.lookup.outputs.cache-hit }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/ci_deps_cache.sh
+          sparse-checkout-cone-mode: false
+
+      - name: wait for the deps cache
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEY: ${{ needs.check_cache.outputs.cache-key }}
+          KEY_INPUTS: ${{ needs.check_cache.outputs.key-inputs }}
+          WAIT_FOR: ${{ needs.check_cache.outputs.wait-for }}
+          WAIT_SINCE: ${{ needs.check_cache.outputs.wait-since }}
+          ARCH: ${{ inputs.arch }}
+        run: bash scripts/ci_deps_cache.sh wait
+
+      - name: load cache
+        id: lookup
+        uses: actions/cache@v6
+        with:
+          path: ${{ needs.check_cache.outputs.macos-path }}
+          key: ${{ needs.check_cache.outputs.cache-key }}
+          lookup-only: true
+
+  # Hosted macOS runners are scarce, so a pull request's macOS build waits until
+  # one is free that push and nightly builds do not need. See the script.
+  macos_admission:
+    name: Wait for a macOS runner
+    needs: [check_cache, wait_for_deps]
+    if: ${{ !cancelled() && needs.check_cache.result == 'success' && startsWith(inputs.os, 'macos-') && github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'macos-priority') }}
+    runs-on: ubuntu-24.04
+    env:
+      WAIT_MINUTES: 240
+      PRIORITY: false
+    # Must exceed WAIT_MINUTES.
+    timeout-minutes: 250
+    # One line for every arch of every pull request, and only its first job polls.
+    concurrency:
+      group: macos-admission
+      queue: max
+    steps: &macos_admission_steps
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/ci_macos_admission.py
+          sparse-checkout-cone-mode: false
+
+      - name: wait for a macOS runner
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MACOS_RUNNER_LIMIT: ${{ vars.MACOS_RUNNER_LIMIT }}
+        # -u, or the log shows nothing until the wait ends.
+        run: python3 -u scripts/ci_macos_admission.py
+
+  # The macos-priority label, when the run starts, puts a pull request in its own
+  # line, which the normal one yields to. The names are fixed, because a skipped
+  # job is listed under its unevaluated name, and the script matches both.
+  macos_admission_priority:
+    name: Wait for a macOS runner (priority)
+    needs: [check_cache, wait_for_deps]
+    if: ${{ !cancelled() && needs.check_cache.result == 'success' && startsWith(inputs.os, 'macos-') && github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'macos-priority') }}
+    runs-on: ubuntu-24.04
+    env:
+      WAIT_MINUTES: 240
+      PRIORITY: true
+    # Must exceed WAIT_MINUTES.
+    timeout-minutes: 250
+    concurrency:
+      group: macos-admission-priority
+      queue: max
+    steps: *macos_admission_steps
+
   build_deps: # call next step
     name: Build Deps
-    needs: [check_cache]
+    needs: [check_cache, wait_for_deps, macos_admission, macos_admission_priority]
+    # A failed wait counts as no cache, so the deps are built here. A failed
+    # admission still builds rather than skip macOS.
+    if: ${{ !cancelled() && needs.check_cache.result == 'success' }}
     uses: ./.github/workflows/build_deps.yml
     with:
       cache-key: ${{ needs.check_cache.outputs.cache-key }}
       cache-path: ${{ needs.check_cache.outputs.cache-path }}
-      valid-cache: ${{ needs.check_cache.outputs.valid-cache == 'true' }}
+      valid-cache: ${{ needs.check_cache.outputs.valid-cache == 'true' || needs.wait_for_deps.outputs.hit == 'true' }}
       os: ${{ inputs.os }}
       arch: ${{ inputs.arch }}
+      compiler: ${{ inputs.compiler }}
       build-deps-only: ${{ inputs.build-deps-only }}
       force-build: ${{ inputs.force-build }}
     secrets: inherit

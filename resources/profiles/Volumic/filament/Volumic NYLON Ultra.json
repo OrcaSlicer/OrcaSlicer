@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFN99",
-	"setting_id": "AL4xDgN8EIYb3UrL",
 	"name": "Volumic NYLON Ultra",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pa",
+	"from": "system",
+	"setting_id": "AL4xDgN8EIYb3UrL",
+	"filament_id": "OFWa0NiB",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1.00"
 	],

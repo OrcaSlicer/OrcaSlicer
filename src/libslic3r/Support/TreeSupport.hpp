@@ -1,12 +1,26 @@
 #ifndef TREESUPPORT_H
 #define TREESUPPORT_H
 
+#include <cstddef>
+#include <cmath>
 #include <forward_list>
+#include <list>
+#include <memory>
+#include <unordered_map>
+#include <functional>
+#include <map>
+#include <math.h>
 #include <unordered_set>
+#include <vector>
+#include <utility>
 #include "ExPolygon.hpp"
 #include "Point.hpp"
+#include "libslic3r/Polygon.hpp"
 #include "Slicing.hpp"
 #include "MinimumSpanningTree.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Support/TreeSupportCommon.hpp"
+#include "libslic3r/Support/SupportParameters.hpp"
 #include "tbb/concurrent_unordered_map.h"
 #include "Flow.hpp"
 #include "PrintConfig.hpp"
@@ -121,7 +135,6 @@ struct SupportNode
     TreeNodeType   type            = eCircle;
     bool           is_corner       = false;
     bool           is_processed    = false;
-    bool           need_extra_wall = false;
     bool           is_sharp_tail   = false;
     bool           valid = true;
     ExPolygon      overhang; // when type==ePolygon, set this value to get original overhang area
@@ -204,8 +217,9 @@ public:
         clear_nodes();
     }
 
-    TreeSupportData(TreeSupportData&&) = default;
-    TreeSupportData& operator=(TreeSupportData&&) = default;
+    // Deleted by the tbb::spin_mutex member.
+    TreeSupportData(TreeSupportData&&) = delete;
+    TreeSupportData& operator=(TreeSupportData&&) = delete;
 
     TreeSupportData(const TreeSupportData&) = delete;
     TreeSupportData& operator=(const TreeSupportData&) = delete;
@@ -431,7 +445,6 @@ private:
     size_t          m_highest_overhang_layer = 0;
     std::vector<std::vector<MinimumSpanningTree>> m_spanning_trees;
     std::vector< std::unordered_map<Line, bool, LineHash>> m_mst_line_x_layer_contour_caches;
-    float    DO_NOT_MOVER_UNDER_MM = 0.0;
     coordf_t base_radius                        = 0.0;
     const coordf_t MAX_BRANCH_RADIUS = 10.0;
     const coordf_t MIN_BRANCH_RADIUS = 0.4;
@@ -445,6 +458,17 @@ private:
     bool  is_strong = false;
     bool  is_slim                            = false;
     bool  with_infill                        = false;
+
+    // Belt printer: compute the belt floor print_z at a given XY position (in slicing coords).
+    // Returns -infinity if belt floor is not active.
+    double belt_floor_print_z(const Point &pos_slicing) const;
+    // Whether a node's whole circle (radius in mm) sits at or below the belt at
+    // print_z.  The belt is a tilted plane, so the circle's leading edge crosses it
+    // |shear| * radius lower than its centre; stopping a node when its centre crosses
+    // would leave that edge floating a radius above the belt.
+    bool belt_node_landed(const Point &pos_slicing, double radius, double print_z) const;
+    // The same for a polygon: every point of it is at or below the belt.
+    bool belt_polygon_landed(const ExPolygon &poly, double print_z) const;
 
 
 
@@ -511,9 +535,9 @@ private:
     coordf_t calc_branch_radius(coordf_t base_radius, coordf_t mm_to_top, double diameter_angle_scale_factor, bool use_min_distance=true);
     coordf_t   calc_radius(coordf_t mm_to_top);
     coordf_t get_radius(const SupportNode* node);
-    ExPolygons get_avoidance(coordf_t radius, size_t obj_layer_nr);
+    const ExPolygons& get_avoidance(coordf_t radius, size_t obj_layer_nr);
     // layer's expolygon expanded by radius+m_xy_distance
-    ExPolygons get_collision(coordf_t radius, size_t layer_nr);
+    const ExPolygons& get_collision(coordf_t radius, size_t layer_nr);
     // get Polygons instead of ExPolygons
     Polygons get_collision_polys(coordf_t radius, size_t layer_nr);
 

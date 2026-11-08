@@ -8,6 +8,12 @@
 #include "Settings.hpp"
 #include "SegmentTemplate.hpp"
 #include "OptionTemplate.hpp"
+#include "../include/Types.hpp"
+#include <vector>
+#include <cstddef>
+#include <cstdint>
+#include <map>
+#include <array>
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
 #include "CogMarker.hpp"
 #include "ToolMarker.hpp"
@@ -71,6 +77,30 @@ public:
     // Render the toolpaths
     //
     void render(const Mat4x4& view_matrix, const Mat4x4& projection_matrix);
+    void render_translucent(const Mat4x4& view_matrix, const Mat4x4& projection_matrix);
+    bool has_translucent_toolpaths() const { return m_enabled_translucent_segments_count > 0; }
+    //
+    // ORCA: realistic view. Render the toolpaths as seen from the light, to fill the caller's
+    // shadow map. Only depth matters here, so the caller masks colour writes; light_position
+    // takes the place of the camera when the segment boxes are expanded, which gives their
+    // silhouette as the light sees it.
+    //
+    void render_shadow_casters(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& light_position);
+    //
+    // ORCA: realistic view. The shadow map the toolpaths sample, in the given texture unit.
+    // intensity == 0, the default, turns the lookup off and restores the plain shading.
+    //
+    void set_shadow_map(int texture_unit, const Mat4x4& light_view_projection, float intensity, float texel_size);
+    //
+    // ORCA: tone applied to the shaded toolpaths, to pay back the light the lighting term,
+    // the shadow and the SSAO pass each take off. 1.0/1.0, the default, is a no-op; the
+    // caller decides which of the two it varies with the realistic view setting.
+    //
+    void set_tone(float exposure, float saturation);
+    // ORCA: section view, see Viewer::set_clipping_plane()
+    void set_clipping_plane(const std::array<float, 4>& plane) { m_clipping_plane = plane; }
+    void set_light_top_dir(const Vec3& direction) { m_light_top_dir = direction; }
+    void set_gloss(bool gloss) { m_gloss = gloss; }
 
     EViewType get_view_type() const { return m_settings.view_type; }
     void set_view_type(EViewType type);
@@ -93,6 +123,10 @@ public:
     void set_dim_previous_layers(bool value);
     float get_dim_previous_layers_brightness() const { return m_settings.dim_previous_layers_brightness; }
     void set_dim_previous_layers_brightness(float value);
+
+    // ORCA: whether the filament colors keep their opacity, see get_vertex_alpha()
+    bool is_translucent_filaments() const { return m_settings.translucent_filaments; }
+    void set_translucent_filaments(bool value);
 
     bool is_spiral_vase_mode() const { return m_settings.spiral_vase_mode; }
 
@@ -157,12 +191,12 @@ public:
     std::vector<float> get_layers_estimated_times() const { return m_layers.get_times(m_settings.time_mode); }
 
     size_t get_tool_colors_count() const { return m_tool_colors.size(); }
-    const Palette& get_tool_colors() const { return m_tool_colors; }
-    void set_tool_colors(const Palette& colors);
+    const PaletteWithAlpha& get_tool_colors() const { return m_tool_colors; }
+    void set_tool_colors(const PaletteWithAlpha& colors);
 
     size_t get_color_print_colors_count() const { return m_color_print_colors.size(); }
-    const Palette& get_color_print_colors() const { return m_color_print_colors; }
-    void set_color_print_colors(const Palette& colors);
+    const PaletteWithAlpha& get_color_print_colors() const { return m_color_print_colors; }
+    void set_color_print_colors(const PaletteWithAlpha& colors);
 
     const Color& get_extrusion_role_color(EGCodeExtrusionRole role) const;
     void set_extrusion_role_color(EGCodeExtrusionRole role, const Color& color);
@@ -234,6 +268,21 @@ private:
     //
     std::array<float, TIME_MODES_COUNT> m_total_time{ 0.0f, 0.0f };
     //
+    // Running sum of the vertex estimated times at each layer's first vertex, for each time mode,
+    // so that get_estimated_time_at() only accumulates the vertices of one layer.
+    //
+    std::array<std::vector<float>, TIME_MODES_COUNT> m_layer_start_times;
+    //
+    // For each layer L, the index of the first vertex whose layer_id is >= L (m_vertices.size()
+    // if there is none). Derived from the vertices, so it stays exact whatever order they arrive in.
+    //
+    std::vector<uint32_t> m_layer_first_vertex;
+    //
+    // ORCA: whether the layer ids never decrease along the vertices, so that each layer's vertices
+    // follow m_layer_first_vertex. Not so for a print by object, whose layers start over per object.
+    //
+    bool m_layers_in_vertex_order{ false };
+    //
     // Detected travel moves times
     //
     std::array<float, TIME_MODES_COUNT> m_travels_time{ 0.0f, 0.0f };
@@ -282,7 +331,10 @@ private:
     std::vector<PathVertex> m_vertices;
 
     // Cache for the colors to reduce the need to recalculate colors of all the vertices.
-    std::vector<float> m_vertices_colors;
+    std::vector<ColorWithAlpha> m_vertices_colors;
+    // ORCA: the enabled segments list the translucent ones last, see update_enabled_entities().
+    bool m_has_translucent_colors{ false };
+    size_t m_enabled_translucent_segments_count{ 0 };
 
     //
     // Variables used for toolpaths visibiliity
@@ -309,12 +361,15 @@ private:
     std::array<ColorRange, COLOR_RANGE_TYPES_COUNT> m_layer_time_range{
         ColorRange(EColorRangeType::Linear), ColorRange(EColorRangeType::Logarithmic)
     };
-    Palette m_tool_colors;
-    Palette m_color_print_colors;
+    PaletteWithAlpha m_tool_colors;
+    PaletteWithAlpha m_color_print_colors;
     //
     // OpenGL shaders ids
     //
     unsigned int m_segments_shader_id{ 0 };
+    // ORCA: realistic view. Depth-only ribbons for the shadow caster pass, and the empty vertex array they draw with.
+    unsigned int m_segments_caster_shader_id{ 0 };
+    unsigned int m_segments_caster_vao_id{ 0 };
     unsigned int m_options_shader_id{ 0 };
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     unsigned int m_cog_marker_shader_id{ 0 };
@@ -323,15 +378,46 @@ private:
     //
     // Caches for OpenGL uniforms id for segments shader 
     //
-    int m_uni_segments_view_matrix_id{ -1 };
-    int m_uni_segments_projection_matrix_id{ -1 };
-    int m_uni_segments_camera_position_id{ -1 };
-    int m_uni_segments_positions_tex_id{ -1 };
-    int m_uni_segments_height_width_angle_tex_id{ -1 };
-    int m_uni_segments_colors_tex_id{ -1 };
-    int m_uni_segments_segment_index_tex_id{ -1 };
+    // ORCA: the ones the shaded and the shadow caster programs share.
+    struct SegmentsUniforms
+    {
+        int view_matrix{ -1 };
+        int projection_matrix{ -1 };
+        int camera_position{ -1 };
+        int positions_tex{ -1 };
+        int height_width_angle_tex{ -1 };
+        int colors_tex{ -1 };
+        int segment_index_tex{ -1 };
+        int reverse_order{ -1 };
+        int instances_count{ -1 };
+        int first_instance{ -1 };
+        int clipping_plane{ -1 };
+
+        void init(unsigned int shader_id);
+    };
+    SegmentsUniforms m_uni_segments;
+    SegmentsUniforms m_uni_segments_caster;
+    int m_uni_segments_shadow_map_id{ -1 };
+    int m_uni_segments_shadow_light_vp_id{ -1 };
+    int m_uni_segments_shadow_intensity_id{ -1 };
+    int m_uni_segments_shadow_map_texel_id{ -1 };
+    int m_uni_segments_exposure_id{ -1 };
+    int m_uni_segments_saturation_id{ -1 };
+    int m_uni_segments_light_top_dir_id{ -1 };
+    int m_uni_segments_gloss_id{ -1 };
+    // ORCA: the layers greyed or dimmed around the one the sliders show, in the segments and options shaders.
+    struct LayerColorsUniforms
+    {
+        int lit_layers{ -1 };
+        int grey_below_layer{ -1 };
+        int dim_brightness{ -1 };
+        int kept_vertex{ -1 };
+
+        void init(unsigned int shader_id);
+    };
+    LayerColorsUniforms m_uni_segments_layer_colors;
     //
-    // Caches for OpenGL uniforms id for options shader 
+    // Caches for OpenGL uniforms id for options shader
     //
     int m_uni_options_view_matrix_id{ -1 };
     int m_uni_options_projection_matrix_id{ -1 };
@@ -339,6 +425,8 @@ private:
     int m_uni_options_height_width_angle_tex_id{ -1 };
     int m_uni_options_colors_tex_id{ -1 };
     int m_uni_options_segment_index_tex_id{ -1 };
+    int m_uni_options_clipping_plane_id{ -1 };
+    LayerColorsUniforms m_uni_options_layer_colors;
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     //
     // Caches for OpenGL uniforms id for cog marker shader 
@@ -362,10 +450,11 @@ private:
     {
     public:
         void init(size_t vertices_count);
-        void set_positions(const std::vector<Vec3>& positions);
-        void set_heights_widths_angles(const std::vector<Vec3>& heights_widths_angles);
-        void set_colors(const std::vector<float>& colors);
-        void set_enabled_segments(const std::vector<uint32_t>& enabled_segments);
+        void set_positions(const std::vector<Vec4>& positions);
+        void set_heights_widths_angles(const std::vector<Vec4>& heights_widths_angles);
+        void set_colors(const std::vector<ColorWithAlpha>& colors);
+        // ORCA: sorted by opacity, each texture lists its opaque segments first, then its translucent ones.
+        void set_enabled_segments(const std::vector<uint32_t>& enabled_segments, const std::vector<ColorWithAlpha>& colors, bool sort_by_opacity);
         void set_enabled_options(const std::vector<uint32_t>& enabled_options);
         void reset();
         size_t get_count() const { return m_count; }
@@ -373,6 +462,7 @@ private:
         std::pair<unsigned int, size_t> get_heights_widths_angles_tex_id(size_t id) const;
         std::pair<unsigned int, size_t> get_colors_tex_id(size_t id) const;
         std::pair<unsigned int, size_t> get_enabled_segments_tex_id(size_t id) const;
+        size_t get_enabled_translucent_segments_count(size_t id) const { return m_tex_ids[id].enabled_translucent_segments; }
         std::pair<unsigned int, size_t> get_enabled_options_tex_id(size_t id) const;
 
         size_t get_enabled_segments_count() const;
@@ -421,6 +511,7 @@ private:
             // OpenGL texture to store enabled segments
             //
             std::pair<unsigned int, size_t> enabled_segments{ 0, 0 };
+            size_t enabled_translucent_segments{ 0 };
             //
             // OpenGL texture to store enabled options
             //
@@ -469,11 +560,90 @@ private:
     size_t m_enabled_options_tex_size{ 0 };
 #endif // ENABLE_OPENGL_ES
 
+    //
+    // ORCA: realistic view. Shadow map state set by set_shadow_map(), consumed by the segments
+    // shader. m_rendering_shadow_casters switches render_segments() to the depth-only program.
+    //
+    // Defaults past the four texture units render_segments() binds itself, so the sampler never
+    // aliases one of the buffer textures before the owner of the map has said where it lives.
+    int    m_shadow_map_texture_unit{ 4 };
+    Mat4x4 m_shadow_light_vp{ 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
+    float  m_shadow_intensity{ 0.0f };
+    float  m_shadow_map_texel{ 0.0f };
+    bool   m_rendering_shadow_casters{ false };
+
+    //
+    // ORCA: realistic view. Tone set by set_tone(), consumed by the segments shader.
+    // The identity values leave the shading as it is outside realistic view.
+    //
+    float m_exposure{ 1.0f };
+    float m_saturation{ 1.0f };
+    // ORCA: the light the segments shader shades with, in eye space.
+    Vec3 m_light_top_dir{ -0.4574957f, 0.4574957f, 0.7624929f };
+    // ORCA: the untinted highlight of the filaments, see set_gloss()
+    bool m_gloss{ true };
+
+    // ORCA: section view
+    std::array<float, 4> m_clipping_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
+
+    // ORCA: the depth range the weights of render_translucent_segments() span
+    AABox m_extrusions_box{ Vec3{ 0.0f, 0.0f, 0.0f }, Vec3{ 0.0f, 0.0f, 0.0f } };
+#ifndef ENABLE_OPENGL_ES
+    //
+    // ORCA: order independent transparency, see render_translucent_segments(). Single-sampled whatever
+    // the canvas, see the design doc.
+    //
+    struct TranslucentTargets
+    {
+        unsigned int fbo{ 0 };
+        unsigned int accum_tex{ 0 };
+        unsigned int reveal_tex{ 0 };
+        // the nearest translucent surface, kept out of the weighted mean of the others
+        unsigned int front_tex{ 0 };
+        // the depth of the opaque scene, which hides the translucent segments behind it
+        unsigned int depth_tex{ 0 };
+        // the depth of the nearest translucent surface, in front_depth_fbo
+        unsigned int front_depth_tex{ 0 };
+        unsigned int front_depth_fbo{ 0 };
+        std::array<int, 2> size{ 0, 0 };
+        bool unsupported{ false };
+
+        // false when the targets cannot be made
+        bool update(int width, int height);
+        void release();
+        size_t size_in_bytes() const;
+    };
+    TranslucentTargets m_translucent_targets;
+    unsigned int m_translucent_composite_shader_id{ 0 };
+    int m_uni_translucent_composite_accum_tex_id{ -1 };
+    int m_uni_translucent_composite_reveal_tex_id{ -1 };
+    int m_uni_translucent_composite_front_tex_id{ -1 };
+    int m_uni_translucent_composite_origin_id{ -1 };
+    int m_uni_segments_oit_pass_id{ -1 };
+    int m_uni_segments_opaque_depth_id{ -1 };
+    int m_uni_segments_front_depth_id{ -1 };
+    int m_uni_segments_oit_depth_range_id{ -1 };
+    // the segments shaders built with DEPTH_ONLY, drawing the depth of the nearest translucent surface
+    unsigned int m_segments_depth_shader_id{ 0 };
+    SegmentsUniforms m_uni_segments_depth;
+    int m_uni_segments_depth_opaque_depth_id{ -1 };
+    std::array<float, 2> m_oit_depth_range{ 0.0f, 1.0f };
+#endif // ENABLE_OPENGL_ES
+    // the pass of render_translucent_segments() render_segments() draws: 1 the depth of the nearest
+    // translucent surface, 2 the accumulation, 0 neither
+    int m_translucent_pass{ 0 };
+
+    void apply_pending_updates();
     void update_view_full_range();
     void update_color_ranges();
     void update_heights_widths();
-    void render_segments(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& camera_position);
+    uint8_t get_vertex_alpha(const PathVertex& v) const;
+    // ORCA: translucent draws the segments whose color is translucent, otherwise the opaque ones, or all of them for the shadow casters.
+    void render_segments(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& camera_position, bool translucent = false);
     void render_options(const Mat4x4& view_matrix, const Mat4x4& projection_matrix);
+    void render_translucent_segments(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& camera_position);
+    // ORCA: the program using uni must be current.
+    void set_layer_colors(const LayerColorsUniforms& uni) const;
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     void render_cog_marker(const Mat4x4& view_matrix, const Mat4x4& projection_matrix);
     void render_tool_marker(const Mat4x4& view_matrix, const Mat4x4& projection_matrix);

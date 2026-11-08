@@ -4,6 +4,7 @@
 	"inherits": "Generic PET @base",
 	"from": "system",
 	"setting_id": "Q6wiKjigmzkcMxFz",
+	"filament_id": "OFQdaVZS",
 	"instantiation": "true",
 	"filament_type": [
 		"PET-CF"

@@ -1,0 +1,12 @@
+{
+	"type": "machine_model",
+	"name": "VIRTU E3",
+	"nozzle_diameter": "0.2;0.3;0.4;0.5;0.6",
+	"bed_model": "VIRTU-bed.stl",
+	"bed_texture": "VIRTU-bed-texture.svg",
+	"model_id": "VIRTUE3",
+	"family": "RH3D",
+	"hotend_model": "",
+	"machine_tech": "FFF",
+	"default_materials": "Generic ABS @VIRTU E3;Generic ASA @VIRTU E3;Generic PCCF @VIRTU E3;Generic PETG @VIRTU E3;Generic PLA @VIRTU E3;Generic TPU @VIRTU E3"
+}

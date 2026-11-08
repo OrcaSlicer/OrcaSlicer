@@ -3,6 +3,11 @@
 ///|/ libvgcode is released under the terms of the AGPLv3 or higher
 ///|/
 #include "ExtrusionRoles.hpp"
+#include "../include/Types.hpp"
+#include <array>
+#include <utility>
+#include <cstddef>
+#include <vector>
 
 namespace libvgcode {
 

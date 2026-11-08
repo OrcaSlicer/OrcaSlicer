@@ -1,6 +1,14 @@
 #include "TickCode.hpp"
+#include <string>
+#include "libslic3r/CustomGCode.hpp"
+#include "libslic3r/Color.hpp"
+#include <algorithm>
+#include <set>
 
 namespace Slic3r {
+
+using namespace CustomGCode;
+
 namespace GUI {
 std::string TickCodeInfo::get_color_for_tick(TickCode tick, Type type, const int extruder)
 {
