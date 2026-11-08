@@ -9186,7 +9186,8 @@ void GUI_App::open_preferences(PreferencesTab tab, const std::string& highlight_
     static constexpr const char* opengl_render_setting_keys[] = {
         SETTING_OPENGL_FXAA_ENABLED, SETTING_OPENGL_FPS_CAP, SETTING_OPENGL_SHOW_FPS_OVERLAY, SETTING_OPENGL_SHOW_RENDER_TIMINGS,
         SETTING_OPENGL_SCENE_CACHE, SETTING_OPENGL_SKIP_IDENTICAL_FRAMES, SETTING_OPENGL_REALISTIC_SHADOWS,
-        SETTING_OPENGL_REALISTIC_GLOSS
+        SETTING_OPENGL_REALISTIC_GLOSS, SETTING_OPENGL_OUTLINE_PERSISTENT, SETTING_OPENGL_OUTLINE_COLOR,
+        SETTING_OPENGL_SELECTION_OUTLINE_COLOR
     };
     std::vector<std::string> previous_opengl_render_settings;
     for (const char* key : opengl_render_setting_keys)
