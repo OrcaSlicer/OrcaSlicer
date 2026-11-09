@@ -1,13 +1,15 @@
 // search_tools and call_tool: a generic way to every registered tool and to the operations plugins offer
 // (plugin.<key>.<name>), which tools/list never shows. search_tools's search also reaches the other
-// catalogs an agent calls into: Speed Dial actions, settings, the Python API and the Design tab's methods.
+// catalogs an agent calls into: Speed Dial actions, settings, the Python API and the Design tab's CAD tools.
 
 #include "McpService.hpp"
 #include "McpTools.hpp"
 #include "McpTypes.hpp"
 
 #include "slic3r/GUI/ActionRegistry.hpp"
+#ifdef SLIC3R_CAD
 #include "slic3r/GUI/Mcp/McpToolsCad.hpp"
+#endif
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
@@ -67,8 +69,8 @@ json catalog_hits(Scored scored, const std::string& use)
     return {{"total", scored.size()}, {"items", std::move(items)}, {"use", use}};
 }
 
-// The Speed Dial actions, settings and Design tab methods matching `words` (of `query`), for
-// search_tools. A catalog that can't be read yet (startup, before the main window) is left out. UI thread.
+// The Speed Dial actions, settings and CAD tools matching `words` (of `query`), for search_tools. A
+// catalog that can't be read yet (startup, before the main window) is left out. UI thread.
 json ui_catalog_hits(const std::vector<std::string>& words, const std::string& query)
 {
     json out = json::object();
@@ -97,18 +99,22 @@ json ui_catalog_hits(const std::vector<std::string>& words, const std::string& q
         }
     } catch (const ToolFailure&) {
     }
-    const json methods = cad_describe_tools(json::object());
-    Scored     scored;
-    for (const json& row : methods["tools"]) {
-        const std::pair<int, int> score = match_score(words, row.value("name", ""), row.value("summary", ""));
+#ifdef SLIC3R_CAD
+    // Scored on the details too, so a word that is not in the one-line summary still finds the tool.
+    Scored scored;
+    for (const json& row : cad_tool_table()) {
+        const std::pair<int, int> score = match_score(words, row.at("name").get<std::string>(),
+                                                      row.at("summary").get<std::string>() + ' ' +
+                                                          row.at("details").get<std::string>());
         if (score.first > 0)
-            scored.emplace_back(score, json{{"name", row["name"]}, {"summary", row.value("summary", "")}});
+            scored.emplace_back(score, json{{"name", row.at("name")}, {"summary", row.at("summary")}});
     }
     out["cad"] = catalog_hits(std::move(scored),
                               wxGetApp().is_enable_cad_feature() ?
                                   "call_cad_tool {method, params}; call_cad_tool {method: \"describe_tools\", params: {method}} gives its params" :
                                   "call_cad_tool {method, params}, once the Design tab is on: a person enables it in Preferences and restarts "
                                   "OrcaSlicer");
+#endif
     return out;
 }
 

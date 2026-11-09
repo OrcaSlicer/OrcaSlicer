@@ -136,10 +136,28 @@ const char* feature_type_name(CadFeatureType t)
     return "Unknown";
 }
 
-// --- describe_tools: the parameter schema of record ------------------------------
+// --- The CAD tool table: the parameter schema of record ---------------------------
+
+// Read this before using any face or edge id: describe_cad_tool adds it to a reply that describes
+// a tool taking or giving them.
+const char* const kIdLifetime =
+    "Global face and edge ids are indices into the CURRENT topology and expire the moment "
+    "a feature rebuilds the model. Reading the scene once and then issuing several "
+    "operations addresses the wrong edge on every call after the first, and does NOT "
+    "error, because a stale id still names a real edge. Either re-read query_topology "
+    "before each id-taking call, or pass the 'generation' you were given back with the "
+    "call and have it refused if the model has moved on.";
+
+// list_cad_tools' short form of kIdLifetime.
+const char* const kIdsNote =
+    "Face and edge ids expire when a feature rebuilds the model, and a stale id still names a real face "
+    "or edge. Pass the generation they were read at with the call, and stale ids are refused.";
+
+// How a CAD tool whose kCadTools entry has ok_false reports a rebuild the kernel rejects.
+const char* const kFailureNote = "A rejected rebuild is reported in the reply: ok is false or error is not empty.";
 
 // The `plane` param. A face resolves differently for drilling than for anything else (see
-// cad_resolve_plane), so the row says which frame the method gets.
+// cad_resolve_plane), so the row says which frame the tool gets.
 json plane_param(const json& def, bool drill)
 {
     return json{{"name", "plane"}, {"type", "string|object"}, {"default", def},
@@ -152,40 +170,44 @@ json plane_param(const json& def, bool drill)
                        "body, x from the world axes). The reply's frame gives the axes."}};
 }
 
-// One row per dispatched CAD tool (kCadTools); each row's `access` is added from that table.
-// A param without a default is one the tool requires.
+// One row per dispatched CAD tool (kCadTools), grouped by what the tools do: its name, a summary of
+// one sentence and at most 120 characters, the details (the rest, "" when the summary says it all),
+// params, examples and, for a tool that takes face or edge ids or gives them, "ids": true.
+// cad_tool_table() adds what kCadTools declares; a param without a default is one the tool requires.
 json tool_rows()
 {
     return json{
         {"app", "Orca CAD"},
         {"protocol", "jsonrpc-2.0"},
         {"slice", 5},
-        // Read this before using any face or edge id.
-        {"id_lifetime",
-         "Global face and edge ids are indices into the CURRENT topology and expire the moment "
-         "a feature rebuilds the model. Reading the scene once and then issuing several "
-         "operations addresses the wrong edge on every call after the first, and does NOT "
-         "error, because a stale id still names a real edge. Either re-read query_topology "
-         "before each id-taking call, or pass the 'generation' you were given back with the "
-         "call and have it refused if the model has moved on."},
+        {"id_lifetime", kIdLifetime},
         {"tools", json::array({
-            json{{"name", "describe_tools"}, {"summary", "List callable methods and their parameters. Filter with method (a name or a list of names) and query (text in a name or summary)."},
+            json{{"name", "describe_tools"}, {"summary", "List callable methods and their parameters."},
+                 {"details", "Filter with method (a name or a list of names) and query (text in a name or summary)."},
                  {"params", json::array({
                      json{{"name", "method"}, {"type", "string|array"}, {"default", ""}, {"description", "only these methods"}},
                      json{{"name", "query"},  {"type", "string"}, {"default", ""}, {"description", "only methods whose name or summary contains this, in any case"}},
-                 })}},
-            json{{"name", "describe_scene"}, {"summary", "The Design document: features (bound: fields an expression drives), variables with their values, bodies (bbox, source_feature, visible, color, moved by the Move gizmo), undo_depth / redo_depth and generation."},
-                 {"params", json::array()}},
-            json{{"name", "describe_feature"}, {"summary", "One feature as its card shows it: params, the editable ones with their ranges, expr (bindings), refs (feature and body indices, face and edge ids), a sketch's plane, entities and constraints (angles in degrees), used_by and bodies_made."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "describe_scene"}, {"summary", "The Design document: features, variables with their values, bodies, undo_depth / redo_depth and generation."},
+                 {"details", "A feature's bound lists the fields an expression drives; a body gives bbox, source_feature, visible, color and moved (by the Move gizmo)."},
+                 {"params", json::array()},
+                 {"examples", json::array()}},
+            json{{"name", "describe_feature"}, {"summary", "One feature as its card shows it: params, the editable ones with their ranges, expr, refs, used_by and bodies_made."},
+                 {"details", "expr holds its bindings, and refs the feature and body indices and face and edge ids it uses; a sketch adds its plane, entities and constraints (angles in degrees)."},
                  {"params", json::array({
                      json{{"name", "feature"}, {"type", "integer"}, {"description", "feature index (describe_scene)"}},
-                 })}},
-            json{{"name", "set_feature"}, {"summary", "Change a feature's editable fields as its card's Confirm does when editing: one undo step and a rebuild. A field an expression drives is refused. Reply: changed {field: [old, new]}."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "set_feature"}, {"summary", "Change a feature's editable fields as its card's Confirm does when editing: one undo step and a rebuild."},
+                 {"details", "A field an expression drives is refused. Reply: changed {field: [old, new]}."},
                  {"params", json::array({
                      json{{"name", "feature"}, {"type", "integer"}, {"description", "feature index (describe_scene)"}},
                      json{{"name", "fields"},  {"type", "object"}, {"description", "{field: value} from describe_feature's editable, e.g. {\"distance\": 15}: numbers within its ranges; mode new|union|subtract|intersect; extrude_end blind|symmetric|two_sided|through_all; shape rectangle|circle; xf_* vectors [x, y, z]"}},
-                 })}},
-            json{{"name", "extrude"}, {"summary", "Extrude a committed sketch, or one loop of it, as the Extrude card does; push/pull a planar face of a body; or a profile drawn here: an explicit closed `profile` (list of [x,y]) or a centred width x height rectangle on `plane`. End conditions match Onshape. Reply: extrude_index, the index of its sketch (-1 for a face), the boolean and body used, end, frame."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "extrude"}, {"ids", true}, {"summary", "Extrude a committed sketch, one of its loops, a face or a drawn profile into a body."},
+                 {"details", "A committed sketch, or one loop of it, extrudes as the Extrude card does; push/pull grows a planar face of a body; a profile drawn here is an explicit closed `profile` (list of [x,y]) or a centred width x height rectangle on `plane`. End conditions match Onshape. Reply: extrude_index, the index of its sketch (-1 for a face), the boolean and body used, end, frame."},
                  {"params", json::array({
                      json{{"name", "sketch"},   {"type", "integer"}, {"default", nullptr}, {"description", "a committed Sketch feature to extrude (sketch_commit's sketch_index); profile, width, height and plane are then refused"}},
                      json{{"name", "loop"},     {"type", "integer"}, {"default", nullptr}, {"description", "with sketch: one closed loop (closed_loops[].index of sketch_describe {sketch}) with the loops inside it as holes; a hole is a loop of its own, so its index extrudes the disc. Omit for the whole sketch"}},
@@ -202,8 +224,10 @@ json tool_rows()
                      json{{"name", "up_to_face"},{"type", "integer"}, {"default", -1}, {"description", "face id (query_topology) of the body the extrude works on, when end=up_to_face"}},
                      json{{"name", "taper"},    {"type", "number"}, {"unit", "deg"}, {"default", 0}, {"description", "draft/taper of the side wall"}},
                      json{{"name", "flip"},     {"type", "boolean"}, {"default", false}},
-                 })}},
-            json{{"name", "revolve"}, {"summary", "Revolve a committed sketch as the Revolve card does, about a line of it or a plane axis; or a profile drawn here: an explicit `profile` offset from the axis, or a rectangle. Reply: revolve_index, the index of its sketch, the boolean, body and axis used, frame."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "revolve"}, {"ids", true}, {"summary", "Revolve a committed sketch as the Revolve card does, or a profile drawn here, about an axis."},
+                 {"details", "A sketch turns about a line of it or a plane axis; a profile drawn here is an explicit `profile` offset from the axis, or a rectangle. Reply: revolve_index, the index of its sketch, the boolean, body and axis used, frame."},
                  {"params", json::array({
                      json{{"name", "sketch"},      {"type", "integer"}, {"default", nullptr}, {"description", "a committed Sketch feature to revolve (sketch_commit's sketch_index); profile, width, height and plane are then refused"}},
                      json{{"name", "axis_entity"}, {"type", "integer"}, {"default", nullptr}, {"description", "with sketch: a line of the sketch (entity index) as the axis, or -1 for the plane axis; omit for the sketch's only centerline (construction line) when it has one and axis is not given"}},
@@ -216,20 +240,26 @@ json tool_rows()
                      json{{"name", "profile"}, {"type", "array"}, {"default", json::array()}, {"description", "optional closed contour [[x,y],...] in plane mm; overrides width/height"}},
                      json{{"name", "boolean"}, {"type", "string"}, {"enum", json::array({"new", "union", "subtract", "intersect"})}, {"default", "new"}},
                      json{{"name", "body"},    {"type", "integer"}, {"default", -1}, {"description", "the body to join, subtract from or intersect; omit for the last body"}},
-                 })}},
-            json{{"name", "fillet"}, {"summary", "Round measured edges of a body (edge ids from query_topology on that body)."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "fillet"}, {"ids", true}, {"summary", "Round measured edges of a body (edge ids from query_topology on that body)."},
+                 {"details", ""},
                  {"params", json::array({
                      json{{"name", "edge"},   {"type", "integer|array"}, {"description", "one edge id, or an array of ids rounded together in one feature"}},
                      json{{"name", "radius"}, {"type", "number"}, {"unit", "mm"}, {"default", 1}, {"min", 0.01}},
                      json{{"name", "body"},   {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body. edge id is resolved against THIS body."}},
-                 })}},
-            json{{"name", "chamfer"}, {"summary", "Chamfer measured edges of a body (edge ids from query_topology on that body)."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "chamfer"}, {"ids", true}, {"summary", "Chamfer measured edges of a body (edge ids from query_topology on that body)."},
+                 {"details", ""},
                  {"params", json::array({
                      json{{"name", "edge"},     {"type", "integer|array"}, {"description", "one edge id, or an array of ids chamfered together in one feature"}},
                      json{{"name", "distance"}, {"type", "number"}, {"unit", "mm"}, {"default", 1}, {"min", 0.01}},
                      json{{"name", "body"},     {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body. edge id is resolved against THIS body."}},
-                 })}},
-            json{{"name", "hole"}, {"summary", "Drill a circular hole at (x,y) or `at` on a plane. Reply: hole_index, body, x and y in the frame, off_plane with at, frame."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "hole"}, {"ids", true}, {"summary", "Drill a circular hole at (x,y) or `at` on a plane."},
+                 {"details", "Reply: hole_index, body, x and y in the frame, off_plane with at, frame."},
                  {"params", json::array({
                      json{{"name", "diameter"}, {"type", "number"}, {"unit", "mm"}, {"default", 5}, {"min", 0.01}},
                      json{{"name", "depth"},    {"type", "number"}, {"unit", "mm"}, {"default", 10}, {"min", 0.01}},
@@ -239,8 +269,10 @@ json tool_rows()
                      plane_param("XY", true),
                      json{{"name", "at"},       {"type", "array|object"}, {"default", nullptr}, {"description", "instead of x and y: a world point [x, y, z], projected onto the plane along its normal (off_plane says how far), or {\"body\": b, \"face\": f} a cylindrical face or {\"body\": b, \"edge\": e} a circular edge whose axis the hole shares. A world point moves with modeling_origin; x and y replay on any printer"}},
                      json{{"name", "body"},     {"type", "integer"}, {"default", -1}, {"description", "the body to drill; omit for a face plane's body, else the last body"}},
-                 })}},
-            json{{"name", "hole_styled"}, {"summary", "Drill a hole with optional counterbore (style=1) or countersink (style=2) at (x,y) or `at` on a plane. Reply as hole."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "hole_styled"}, {"ids", true}, {"summary", "Drill a hole with optional counterbore (style=1) or countersink (style=2) at (x,y) or `at` on a plane."},
+                 {"details", "Reply as hole."},
                  {"params", json::array({
                      json{{"name", "diameter"},        {"type", "number"}, {"unit", "mm"}, {"default", 5}, {"min", 0.01}},
                      json{{"name", "depth"},           {"type", "number"}, {"unit", "mm"}, {"default", 10}, {"min", 0.01}},
@@ -256,8 +288,10 @@ json tool_rows()
                      json{{"name", "csink_diameter"},  {"type", "number"}, {"unit", "mm"}, {"default", 0}},
                      json{{"name", "csink_angle"},     {"type", "number"}, {"unit", "deg"}, {"default", 90}},
                      json{{"name", "standard"},        {"type", "string"}, {"default", ""}, {"description", "provenance designation, e.g. M6"}},
-                 })}},
-            json{{"name", "hole_standard"}, {"summary", "Drill a standard clearance hole (ISO 273 / ANSI) at (x,y) or `at` on a plane. style: 0=simple, 1=counterbore, 2=countersink. Reply as hole."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "hole_standard"}, {"ids", true}, {"summary", "Drill a standard clearance hole (ISO 273 / ANSI) at (x,y) or `at` on a plane."},
+                 {"details", "style: 0=simple, 1=counterbore, 2=countersink. Reply as hole."},
                  {"params", json::array({
                      json{{"name", "designation"},  {"type", "string"}, {"description", "e.g. M6, 1/4-20"}},
                      json{{"name", "style"},        {"type", "integer"}, {"default", 0}},
@@ -268,8 +302,10 @@ json tool_rows()
                      plane_param("XY", true),
                      json{{"name", "at"},       {"type", "array|object"}, {"default", nullptr}, {"description", "instead of x and y: a world point [x, y, z], projected onto the plane along its normal (off_plane says how far), or {\"body\": b, \"face\": f} a cylindrical face or {\"body\": b, \"edge\": e} a circular edge whose axis the hole shares. A world point moves with modeling_origin; x and y replay on any printer"}},
                      json{{"name", "body"},     {"type", "integer"}, {"default", -1}, {"description", "the body to drill; omit for a face plane's body, else the last body"}},
-                 })}},
-            json{{"name", "thread"}, {"summary", "Cut a thread as the Thread card does: along a cylindrical face (a bore is tapped, a boss threaded) or a circular edge, or on a plane at (x,y) or `at`. Without designation, a face or edge takes the nearest standard size, ISO metric and UTS alike. Long threads take seconds and the reply may be a job. Reply: thread_index, designation (null when custom), internal, diameter, pitch, depth, length, body, x, y, frame."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "thread"}, {"ids", true}, {"summary", "Cut a thread as the Thread card does, along a cylindrical face or a circular edge, or on a plane."},
+                 {"details", "On a face a bore is tapped, a boss threaded; on a plane the thread goes at (x,y) or `at`. Without designation, a face or edge takes the nearest standard size, ISO metric and UTS alike. Long threads take seconds and the reply may be a job. Reply: thread_index, designation (null when custom), internal, diameter, pitch, depth, length, body, x, y, frame."},
                  {"params", json::array({
                      json{{"name", "face"},        {"type", "integer"}, {"default", nullptr}, {"description", "a cylindrical face id of `body` (query_topology); the thread runs its length from its lower end"}},
                      json{{"name", "edge"},        {"type", "integer"}, {"default", nullptr}, {"description", "instead of face: a circular edge id of `body`, the thread rising along its normal; needs length"}},
@@ -284,16 +320,20 @@ json tool_rows()
                      json{{"name", "x"},           {"type", "number"}, {"unit", "mm"}, {"default", 0}, {"description", "on a plane: offset in the plane's frame from its origin, NOT world"}},
                      json{{"name", "y"},           {"type", "number"}, {"unit", "mm"}, {"default", 0}, {"description", "on a plane: offset in the plane's frame from its origin, NOT world"}},
                      json{{"name", "at"},          {"type", "array|object"}, {"default", nullptr}, {"description", "on a plane, instead of x and y: a world point [x, y, z], or {\"body\": b, \"face\": f} a cylindrical face or {\"body\": b, \"edge\": e} a circular edge whose axis the thread shares, as hole takes it"}},
-                 })}},
+                 })},
+                 {"examples", json::array()}},
             json{{"name", "boolean"}, {"summary", "Combine two bodies: union | subtract (tool from target) | intersect."},
+                 {"details", ""},
                  {"params", json::array({
                      json{{"name", "op"},        {"type", "string"}, {"enum", json::array({"union", "subtract", "intersect"})}, {"default", "subtract"}},
                      json{{"name", "target"},    {"type", "integer"}, {"default", 0}},
                      json{{"name", "tool"},      {"type", "integer"}, {"default", 1}},
                      json{{"name", "keep_tool"}, {"type", "boolean"}, {"default", false}},
                      json{{"name", "tolerance"}, {"type", "number"}, {"unit", "mm"}, {"default", 0}},
-                 })}},
-            json{{"name", "pattern"}, {"summary", "Replicate a body: linear (count along a plane axis at spacing) or circular (count over an angle about the plane normal)."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "pattern"}, {"ids", true}, {"summary", "Replicate a body: linear (count along a plane axis at spacing) or circular (count over an angle about the plane normal)."},
+                 {"details", ""},
                  {"params", json::array({
                      json{{"name", "circular"}, {"type", "boolean"}, {"default", false}},
                      json{{"name", "count"},    {"type", "integer"}, {"default", 3}, {"min", 1}},
@@ -302,34 +342,44 @@ json tool_rows()
                      json{{"name", "angle"},    {"type", "number"}, {"unit", "deg"}, {"default", 360}, {"description", "circular total sweep"}},
                      plane_param("XY", false),
                      json{{"name", "body"},     {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
-                 })}},
-            json{{"name", "pattern_on_curve"}, {"summary", "Replicate a body along a sketch curve: `count` copies placed at equal-parameter points on the entity, each translated by (P_i - P_0)."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "pattern_on_curve"}, {"summary", "Replicate a body along a sketch curve."},
+                 {"details", "`count` copies are placed at equal-parameter points on the entity, each translated by (P_i - P_0)."},
                  {"params", json::array({
                      json{{"name", "count"},  {"type", "integer"}, {"default", 3}, {"min", 1}},
                      json{{"name", "sketch"}, {"type", "integer"}, {"description", "feature index of the sketch holding the guide curve"}},
                      json{{"name", "entity"}, {"type", "integer"}, {"description", "entity index of the guide curve within that sketch"}},
                      json{{"name", "body"},   {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
-                 })}},
-            json{{"name", "shell"}, {"summary", "Hollow a body to a wall thickness (inward); optionally leave one face open."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "shell"}, {"ids", true}, {"summary", "Hollow a body to a wall thickness (inward); optionally leave one face open."},
+                 {"details", ""},
                  {"params", json::array({
                      json{{"name", "thickness"}, {"type", "number"}, {"unit", "mm"}, {"default", 1}, {"min", 0.01}},
                      json{{"name", "face"},      {"type", "integer"}, {"default", -1}, {"description", "face id to leave open (query_topology); omit for a closed hollow"}},
                      json{{"name", "body"},      {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
-                 })}},
-            json{{"name", "draft"}, {"summary", "Taper a body face by an angle about its base (pull direction +Z)."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "draft"}, {"ids", true}, {"summary", "Taper a body face by an angle about its base (pull direction +Z)."},
+                 {"details", ""},
                  {"params", json::array({
                      json{{"name", "face"},  {"type", "integer"}, {"description", "face id to draft (query_topology)"}},
                      json{{"name", "angle"}, {"type", "number"}, {"unit", "deg"}, {"default", 5}},
                      json{{"name", "body"},  {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
-                 })}},
-            json{{"name", "mirror"}, {"summary", "Mirror a body about a base plane. mode=new creates a mirrored copy; mode=add fuses the mirror back into the source."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "mirror"}, {"ids", true}, {"summary", "Mirror a body about a base plane."},
+                 {"details", "mode=new creates a mirrored copy; mode=add fuses the mirror back into the source."},
                  {"params", json::array({
                      plane_param("XZ", false),
                      json{{"name", "mode"},         {"type", "string"}, {"enum", json::array({"new", "add"})},     {"default", "new"}},
                      json{{"name", "keep_original"},{"type", "boolean"}, {"default", true}, {"description", "when mode=new, keep the source body"}},
                      json{{"name", "body"},         {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
-                 })}},
-            json{{"name", "transform"}, {"summary", "Move and/or rotate a body (B-rep transform). copy=true keeps the source and appends the transformed copy as a new body."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "transform"}, {"summary", "Move and/or rotate a body (B-rep transform)."},
+                 {"details", "copy=true keeps the source and appends the transformed copy as a new body."},
                  {"params", json::array({
                      json{{"name", "body"},    {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
                      json{{"name", "dx"},      {"type", "number"}, {"unit", "mm"}, {"default", 0}},
@@ -343,8 +393,10 @@ json tool_rows()
                      json{{"name", "pivot_z"}, {"type", "number"}, {"unit", "mm"}, {"default", 0}},
                      json{{"name", "angle"},   {"type", "number"}, {"unit", "deg"}, {"default", 0}},
                      json{{"name", "copy"},    {"type", "boolean"}, {"default", false}},
-                 })}},
-            json{{"name", "axis"}, {"summary", "Create a datum axis (reference line): two points, face normal, cylinder centreline, plane intersection, or along edge."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "axis"}, {"ids", true}, {"summary", "Create a datum axis (reference line): two points, face normal, cylinder centreline, plane intersection, or along edge."},
+                 {"details", ""},
                  {"params", json::array({
                      json{{"name", "type"},     {"type", "string"}, {"enum", json::array({"two_points", "face_normal", "cylinder", "plane_intersection", "along_edge"})}, {"default", "two_points"}},
                      json{{"name", "p1"},       {"type", "array"}, {"default", json::array({0,0,0})}, {"description", "first point [x,y,z] for two_points"}},
@@ -354,8 +406,10 @@ json tool_rows()
                      json{{"name", "edge"},     {"type", "integer"}, {"default", -1}, {"description", "edge id (query_topology) for along_edge"}},
                      json{{"name", "plane_a"},  {"type", "integer"}, {"default", -1}, {"description", "first datum plane feature index for plane_intersection"}},
                      json{{"name", "plane_b"},  {"type", "integer"}, {"default", -1}, {"description", "second datum plane feature index for plane_intersection"}},
-                 })}},
-            json{{"name", "coordsys"}, {"summary", "Create a datum coordinate system (origin + orthonormal axes). PointWorld aligns to world; FaceAndDirection uses a face for Z and an edge/hint for X."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "coordsys"}, {"ids", true}, {"summary", "Create a datum coordinate system (origin + orthonormal axes)."},
+                 {"details", "PointWorld aligns to world; FaceAndDirection uses a face for Z and an edge/hint for X."},
                  {"params", json::array({
                      json{{"name", "type"},      {"type", "string"}, {"enum", json::array({"point_world", "face_and_direction"})}, {"default", "point_world"}},
                      json{{"name", "point"},     {"type", "array"}, {"default", json::array({0,0,0})}, {"description", "origin [x,y,z] for point_world"}},
@@ -363,8 +417,10 @@ json tool_rows()
                      json{{"name", "face"},      {"type", "integer"}, {"default", -1}, {"description", "face id (query_topology) for Z axis"}},
                      json{{"name", "edge"},      {"type", "integer"}, {"default", -1}, {"description", "edge id (query_topology) for X axis hint"}},
                      json{{"name", "x_hint"},    {"type", "array"}, {"default", json::array({1,0,0})}, {"description", "fallback X direction hint if no edge given"}},
-                 })}},
-            json{{"name", "plane"}, {"summary", "Add a datum plane as the Plane card does, to sketch or build on as {\"datum\": plane_index}: offset from a base plane or a face, at an angle about an edge, midway between two faces, tangent to a cylindrical face, through two edges, or coincident with a base plane or a face. Not the `plane` param of other methods. Reply: plane_index, name, frame."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "plane"}, {"ids", true}, {"summary", "Add a datum plane as the Plane card does, to sketch or build on as {\"datum\": plane_index}."},
+                 {"details", "Offset from a base plane or a face, at an angle about an edge, midway between two faces, tangent to a cylindrical face, through two edges, or coincident with a base plane or a face. Not the `plane` param of other CAD tools. Reply: plane_index, name, frame."},
                  {"params", json::array({
                      json{{"name", "type"},   {"type", "string"}, {"enum", json::array({"offset", "angle", "midplane", "tangent", "two_edges", "coincident"})}, {"default", "offset"}},
                      json{{"name", "base"},   {"type", "string|object"}, {"default", "XY"}, {"description", "\"XY\", \"XZ\" or \"YZ\" through modeling_origin, or {\"datum\": i}: what offset, coincident and angle build on without face_a"}},
@@ -376,8 +432,10 @@ json tool_rows()
                      json{{"name", "edge_a"}, {"type", "object"}, {"default", nullptr}, {"description", "Edge A, {\"body\": b, \"edge\": e}: angle's hinge; two_edges' first edge"}},
                      json{{"name", "edge_b"}, {"type", "object"}, {"default", nullptr}, {"description", "Edge B, {\"body\": b, \"edge\": e}: two_edges' second edge"}},
                      json{{"name", "size"},   {"type", "array"}, {"unit", "mm"}, {"default", json::array({60, 60})}, {"description", "[u, v]: the size the plane is drawn at"}},
-                 })}},
-            json{{"name", "helix"}, {"summary", "Create a helical curve, a sweep path for springs, coils and augers, starting on the plane's x axis at `radius` from its origin. pitch = axial rise per turn. left_handed flips the winding. taper_deg != 0 gives a conical helix. Reply: helix_index, frame, start and tangent (world), to draw a sweep's profile across the curve there."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "helix"}, {"ids", true}, {"summary", "Create a helical curve, a sweep path for springs, coils and augers."},
+                 {"details", "It starts on the plane's x axis at `radius` from its origin. pitch = axial rise per turn. left_handed flips the winding. taper_deg != 0 gives a conical helix. Reply: helix_index, frame, start and tangent (world), to draw a sweep's profile across the curve there."},
                  {"params", json::array({
                      json{{"name", "radius"},      {"type", "number"}, {"unit", "mm"},  {"default", 10}, {"min", 0.01}},
                      json{{"name", "pitch"},       {"type", "number"}, {"unit", "mm"},  {"default", 5},  {"min", 0.01}},
@@ -385,29 +443,37 @@ json tool_rows()
                      json{{"name", "left_handed"}, {"type", "boolean"}, {"default", false}},
                      json{{"name", "taper_deg"},   {"type", "number"}, {"unit", "deg"}, {"default", 0}},
                      plane_param("XY", false),
-                 })}},
-            json{{"name", "sweep"}, {"summary", "Sweep a committed sketch's closed profile along a path, a sketch or a helix, as the Sweep card does. Draw the profile across the path's start (a helix's start and tangent are in its reply); along a helix the profile keeps its angle to the helix axis. Long sweeps take seconds and the reply may be a job. Reply: sweep_index, bodies, boolean, body."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "sweep"}, {"summary", "Sweep a committed sketch's closed profile along a path, a sketch or a helix, as the Sweep card does."},
+                 {"details", "Draw the profile across the path's start (a helix's start and tangent are in its reply); along a helix the profile keeps its angle to the helix axis. Long sweeps take seconds and the reply may be a job. Reply: sweep_index, bodies, boolean, body."},
                  {"params", json::array({
                      json{{"name", "sketch"},  {"type", "integer"}, {"description", "the profile: a committed sketch's feature index"}},
                      json{{"name", "path"},    {"type", "integer"}, {"description", "feature index of a sketch or a helix, other than the profile"}},
                      json{{"name", "boolean"}, {"type", "string"}, {"enum", json::array({"new", "union", "subtract", "intersect"})}, {"default", "new"}},
                      json{{"name", "body"},    {"type", "integer"}, {"default", -1}, {"description", "the body a union, subtract or intersect works on; omit for the last body"}},
-                 })}},
-            json{{"name", "loft"}, {"summary", "Loft a solid through two or more committed sketches, in order, each on its own plane (sketch on datum planes), as the Loft card does. Lofts take seconds and the reply may be a job. Reply: loft_index, bodies, boolean, body."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "loft"}, {"summary", "Loft a solid through two or more committed sketches, in order, as the Loft card does."},
+                 {"details", "Each sketch is on its own plane (sketch on datum planes). Lofts take seconds and the reply may be a job. Reply: loft_index, bodies, boolean, body."},
                  {"params", json::array({
                      json{{"name", "profiles"}, {"type", "array"}, {"description", "sketch feature indices, in loft order"}},
                      json{{"name", "ruled"},    {"type", "boolean"}, {"default", false}, {"description", "straight sections between the profiles instead of a smooth skin"}},
                      json{{"name", "boolean"},  {"type", "string"}, {"enum", json::array({"new", "union", "subtract", "intersect"})}, {"default", "new"}},
                      json{{"name", "body"},     {"type", "integer"}, {"default", -1}, {"description", "the body a union, subtract or intersect works on; omit for the last body"}},
-                 })}},
-            json{{"name", "thicken"}, {"summary", "Offset a face of a body by a wall thickness, producing a new thin solid body."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "thicken"}, {"ids", true}, {"summary", "Offset a face of a body by a wall thickness, producing a new thin solid body."},
+                 {"details", ""},
                  {"params", json::array({
                      json{{"name", "body"},      {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
                      json{{"name", "face"},      {"type", "integer"}, {"description", "face id to thicken (query_topology)"}},
                      json{{"name", "thickness"}, {"type", "number"}, {"unit", "mm"}, {"default", 2}, {"min", 0.01}},
                      json{{"name", "flip"},      {"type", "boolean"}, {"default", false}},
-                 })}},
-            json{{"name", "split"}, {"summary", "Split a body with a plane, as the Cut card does, moved by offset and turned over by flip; or along the plane of a face. The upper piece is on the plane's normal side; keeping both makes two bodies, the lower one right after the upper. Reply: split_index, bodies, body, upper_body and lower_body (the pieces kept), frame (a plane's, after offset and flip)."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "split"}, {"ids", true}, {"summary", "Split a body with a plane, as the Cut card does, moved by offset and turned over by flip; or along the plane of a face."},
+                 {"details", "The upper piece is on the plane's normal side; keeping both makes two bodies, the lower one right after the upper. Reply: split_index, bodies, body, upper_body and lower_body (the pieces kept), frame (a plane's, after offset and flip)."},
                  {"params", json::array({
                      json{{"name", "body"},      {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
                      plane_param(nullptr, false),
@@ -417,47 +483,61 @@ json tool_rows()
                      json{{"name", "face_body"}, {"type", "integer"}, {"default", -1}, {"description", "with face: the body that owns it; -1 = target"}},
                      json{{"name", "keep_upper"},{"type", "boolean"}, {"default", true}},
                      json{{"name", "keep_lower"},{"type", "boolean"}, {"default", true}},
-                 })}},
-             json{{"name", "project"}, {"summary", "Project edges of a solid onto a sketch plane, producing a new sketch feature."},
+                 })},
+                 {"examples", json::array()}},
+             json{{"name", "project"}, {"ids", true}, {"summary", "Project edges of a solid onto a sketch plane, producing a new sketch feature."},
+                  {"details", ""},
                   {"params", json::array({
                       json{{"name", "source_body"}, {"type", "integer"}, {"default", -1}, {"description", "body owning the edges; -1 = last body"}},
                       json{{"name", "face"},        {"type", "integer"}, {"default", -1}, {"description", "global face id on the source body; when set, all its edges are projected"}},
                       json{{"name", "edges"},       {"type", "array"}, {"default", json::array()}, {"description", "global edge ids to project; empty => project the face"}},
                       plane_param("XY", false),
-                  })}},
-             json{{"name", "delete_face"}, {"summary", "Remove faces from a solid, healing the gap via OCCT defeaturing."},
+                  })},
+                  {"examples", json::array()}},
+             json{{"name", "delete_face"}, {"ids", true}, {"summary", "Remove faces from a solid, healing the gap via OCCT defeaturing."},
+                  {"details", ""},
                   {"params", json::array({
                       json{{"name", "body"},  {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
                       json{{"name", "faces"}, {"type", "array"}, {"description", "global face ids to delete"}},
-                  })}},
+                  })},
+                  {"examples", json::array()}},
             json{{"name", "bridge"}, {"summary", "Build a cubic-Bezier G1 bridge (BSpline) between two sketch-entity endpoints within a sketch feature."},
+                  {"details", ""},
                   {"params", json::array({
                       json{{"name", "sketch"}, {"type", "integer"}, {"description", "sketch feature index"}},
                       json{{"name", "ent_a"},  {"type", "integer"}, {"description", "first entity index within the sketch"}},
                       json{{"name", "end_a"},  {"type", "integer"}, {"enum", json::array({0, 1})}, {"default", 1}, {"description", "0 = start/p0 side, 1 = end/p1 side"}},
                       json{{"name", "ent_b"},  {"type", "integer"}, {"description", "second entity index within the sketch"}},
                       json{{"name", "end_b"},  {"type", "integer"}, {"enum", json::array({0, 1})}, {"default", 0}, {"description", "0 = start/p0 side, 1 = end/p1 side"}},
-                  })}},
-            json{{"name", "rib"}, {"summary", "Grow a thin rib wall (stiffener) from an open Line sketch entity, fused to a body. The wall is centred on the line in the sketch plane, thickness wide, and grows depth along the sketch plane's normal."},
+                  })},
+                  {"examples", json::array()}},
+            json{{"name", "rib"}, {"summary", "Grow a thin rib wall (stiffener) from an open Line sketch entity, fused to a body."},
+                  {"details", "The wall is centred on the line in the sketch plane, thickness wide, and grows depth along the sketch plane's normal."},
                   {"params", json::array({
                       json{{"name", "sketch"},    {"type", "integer"}, {"description", "sketch feature index holding the open line"}},
                       json{{"name", "entity"},    {"type", "integer"}, {"description", "entity index of the open Line within the sketch"}},
                       json{{"name", "thickness"}, {"type", "number"}, {"unit", "mm"}, {"default", 2}, {"min", 0.01}},
                       json{{"name", "depth"},     {"type", "number"}, {"unit", "mm"}, {"default", 10}, {"min", 0.01}},
                       json{{"name", "body"},      {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
-                  })}},
+                  })},
+                  {"examples", json::array()}},
             json{{"name", "surface_extrude"}, {"summary", "Extrude a sketch wire with no end caps -> an open sheet body."},
+                  {"details", ""},
                   {"params", json::array({
                       json{{"name", "sketch"},  {"type", "integer"}, {"description", "sketch feature index"}},
                       json{{"name", "distance"},{"type", "number"}, {"unit", "mm"}, {"default", 10}, {"min", 0.01}},
-                  })}},
+                  })},
+                  {"examples", json::array()}},
             json{{"name", "surface_revolve"}, {"summary", "Revolve a sketch wire with no caps -> an open sheet body."},
+                  {"details", ""},
                   {"params", json::array({
                       json{{"name", "sketch"},  {"type", "integer"}, {"description", "sketch feature index"}},
                       json{{"name", "angle"},   {"type", "number"}, {"unit", "deg"}, {"default", 360}},
                       json{{"name", "axis"},    {"type", "integer"}, {"enum", json::array({0, 1})}, {"default", 0}},
-                  })}},
-            json{{"name", "mate"}, {"summary", "Mate two bodies: transform the moving body (cs_b) so its connector lands on the fixed one (cs_a). kind: 0=Fastened, 1=Planar, 2=Revolute, 3=Slider, 4=Cylindrical."},
+                  })},
+                  {"examples", json::array()}},
+            json{{"name", "mate"}, {"summary", "Mate two bodies: transform the moving body (cs_b) so its connector lands on the fixed one (cs_a)."},
+                 {"details", "kind: 0=Fastened, 1=Planar, 2=Revolute, 3=Slider, 4=Cylindrical."},
                  {"params", json::array({
                      json{{"name", "kind"},    {"type", "integer"}, {"default", 0}, {"description", "0=Fastened (rigid), 1=Planar (normal only), 2=Revolute (free rotation about axis), 3=Slider (free translation along axis), 4=Cylindrical (free rotation+translation)"}},
                      json{{"name", "cs_a"},    {"type", "integer"}, {"description", "feature index of the fixed CoordSys (mate connector A)"}},
@@ -465,12 +545,16 @@ json tool_rows()
                      json{{"name", "offset"},  {"type", "number"}, {"unit", "mm"}, {"default", 0}},
                      json{{"name", "angle"},   {"type", "number"}, {"unit", "deg"}, {"default", 0}},
                      json{{"name", "flip"},    {"type", "boolean"}, {"default", false}},
-                 })}},
-            json{{"name", "check_interference"}, {"summary", "Solid bodies that overlap, as {body_a, body_b, volume}. Read-only; bodies that merely touch enclose no volume and are not reported."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "check_interference"}, {"summary", "Solid bodies that overlap, as {body_a, body_b, volume}."},
+                 {"details", "Read-only; bodies that merely touch enclose no volume and are not reported."},
                  {"params", json::array({
                      json{{"name", "min_volume"}, {"type", "number"}, {"unit", "mm^3"}, {"default", 1e-6}, {"description", "overlap volume above which a pair counts as interfering"}},
-                 })}},
-            json{{"name", "query_topology"}, {"summary", "A body's faces (kind, area, centroid, normal, and a cylinder's, cone's, sphere's or torus's numbers) and edges (kind, length, ends, a circle's centre and radius). Face filters (kinds, direction, at_extreme) and edge filters (edge_kinds, direction, convex) narrow their own list; when filters are given, a list none of its filters names is empty, or with adjacency holds the neighbours of the other list. Reply: face_count and edge_count of the body, faces_total and edges_total after filtering, next_offset while a page has more, generation."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "query_topology"}, {"ids", true}, {"summary", "A body's faces and edges, with their kinds and geometry, narrowed by face and edge filters."},
+                 {"details", "Faces give kind, area, centroid, normal, and a cylinder's, cone's, sphere's or torus's numbers; edges give kind, length, ends, a circle's centre and radius. Face filters (kinds, direction, at_extreme) and edge filters (edge_kinds, direction, convex) narrow their own list; when filters are given, a list none of its filters names is empty, or with adjacency holds the neighbours of the other list. Reply: face_count and edge_count of the body, faces_total and edges_total after filtering, next_offset while a page has more, generation."},
                  {"params", json::array({
                      json{{"name", "body"},       {"type", "integer"}, {"default", 0}},
                      json{{"name", "kinds"},      {"type", "array"}, {"default", nullptr}, {"description", "face kinds to list: planar, cylindrical, conical, spherical, toroidal, bezier, bspline, revolution, extrusion, offset, other"}},
@@ -481,95 +565,137 @@ json tool_rows()
                      json{{"name", "adjacency"},  {"type", "boolean"}, {"default", false}, {"description", "faces list their edges; edges list their faces (one for a seam) and say convex true or false, or tangent where the faces meet smoothly"}},
                      json{{"name", "limit"},      {"type", "integer"}, {"default", nullptr}, {"min", 1}, {"description", "page size of both lists; omit for all"}},
                      json{{"name", "offset"},     {"type", "integer"}, {"default", 0}},
-                 })}},
-            json{{"name", "measure"}, {"summary", "Two refs, on one body or two: distance between their representative points (a face's centroid, an edge's middle, an axis's middle), min_distance with closest_a and closest_b, angle_deg when both have a direction, parallel_gap across two parallel planar faces."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "measure"}, {"ids", true}, {"summary", "Measure two refs, on one body or two: distance, closest points, angle and the gap between parallel faces."},
+                 {"details", "distance is between their representative points (a face's centroid, an edge's middle, an axis's middle); min_distance comes with closest_a and closest_b; angle_deg when both have a direction; parallel_gap across two parallel planar faces."},
                  {"params", json::array({
                      json{{"name", "body"}, {"type", "integer"}, {"default", 0}, {"description", "the body of a ref that names none"}},
                      json{{"name", "a"}, {"type", "object"}, {"description", "{\"face\": f}, {\"edge\": e} or {\"point\": [x, y, z]}, with an optional \"body\"; {\"face\": f, \"axis\": true} is a cylindrical face's axis over its length"}},
                      json{{"name", "b"}, {"type", "object"}, {"description", "as a"}},
-                 })}},
+                 })},
+                 {"examples", json::array()}},
             json{{"name", "mass_properties"}, {"summary", "Volume / surface area / centre of mass / inertia tensor of a body."},
+                 {"details", ""},
                  {"params", json::array({
                      json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
-                 })}},
-            json{{"name", "slice_body"}, {"summary", "Cross-section of a body by a base plane at an offset (sections-as-evidence); returns ordered world contours, each flagged closed/open."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "slice_body"}, {"ids", true}, {"summary", "Cross-section of a body by a base plane at an offset (sections-as-evidence)."},
+                 {"details", "Returns ordered world contours, each flagged closed/open."},
                  {"params", json::array({
                      json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
                      json{{"name", "plane"}, {"type", "string"}, {"enum", json::array({"XY", "XZ", "YZ"})}, {"default", "XY"}},
                      json{{"name", "offset"}, {"type", "number"}, {"unit", "mm"}, {"default", 0}},
-                 })}},
+                 })},
+                 {"examples", json::array()}},
             json{{"name", "import_step"}, {"summary", "Import a STEP file as native B-rep bodies (the reference part to measure)."},
+                 {"details", ""},
                  {"params", json::array({
                      json{{"name", "path"}, {"type", "string"}, {"description", "absolute path"}},
-                 })}},
-            json{{"name", "import_mesh"}, {"summary", "Convert a triangle mesh (STL/OBJ) into an editable B-rep body. Reports whether the result is a real solid or an open shell, and why."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "import_mesh"}, {"summary", "Convert a triangle mesh (STL/OBJ) into an editable B-rep body."},
+                 {"details", "Reports whether the result is a real solid or an open shell, and why."},
                  {"params", json::array({
                      json{{"name", "path"}, {"type", "string"}, {"description", "absolute path"}},
                      json{{"name", "tolerance"}, {"type", "number"}, {"default", 0.01}},
                      json{{"name", "merge_angle_deg"}, {"type", "number"}, {"default", 5.0}},
-                 })}},
-            json{{"name", "commit"}, {"summary", "Commit to Plate: send the visible bodies to Prepare at their Move-gizmo positions, as one Prepare undo step, and show Prepare. A lone body is sent even when hidden. A body named in the Bodies list or with body_set names its object or part. Reply: objects (list_objects index after replace, name, volumes), bodies_sent, bodies_hidden, replaced."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "commit"}, {"summary", "Commit to Plate: send the visible bodies to Prepare at their Move-gizmo positions and show Prepare."},
+                 {"details", "It is one Prepare undo step. A lone body is sent even when hidden. A body named in the Bodies list or with body_set names its object or part. Reply: objects (list_objects index after replace, name, volumes), bodies_sent, bodies_hidden, replaced."},
                  {"params", json::array({
                      json{{"name", "mode"},    {"type", "string"}, {"enum", json::array({"assembly", "bodies"})}, {"default", ""}, {"description", "assembly: one object with a part per body; bodies: an object per body. Default: the Commit button's mode, which this leaves as it is."}},
                      json{{"name", "replace"}, {"type", "array"}, {"default", json::array()}, {"description", "list_objects indices to delete in the same undo step, such as an earlier commit. Their settings, modifiers and paint go with them."}},
-                 })}},
-            json{{"name", "new_design"}, {"summary", "New Design: erase every feature, body and variable and the Design undo history. Committed objects stay on the plate. Reply: cleared {features, bodies, variables}."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "new_design"}, {"summary", "New Design: erase every feature, body and variable and the Design undo history."},
+                 {"details", "Committed objects stay on the plate. Reply: cleared {features, bodies, variables}."},
                  {"params", json::array({
                      json{{"name", "discard_changes"}, {"type", "boolean"}, {"default", false}, {"description", "needed when the design is not empty"}},
-                 })}},
-            json{{"name", "export_step"}, {"summary", "Export STEP: write every body to a file as native B-rep, at its Move-gizmo position. Reply: path, bytes, bodies, moved_bodies."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "export_step"}, {"summary", "Export STEP: write every body to a file as native B-rep, at its Move-gizmo position."},
+                 {"details", "Reply: path, bytes, bodies, moved_bodies."},
                  {"params", json::array({
                      json{{"name", "path"},      {"type", "string"}, {"description", "absolute path; its directory must exist"}},
                      json{{"name", "overwrite"}, {"type", "boolean"}, {"default", false}, {"description", "replace an existing file"}},
-                 })}},
-            json{{"name", "undo"}, {"summary", "Edit > Undo in the Design tab: take back the last change to the Design history (a feature added, edited, deleted, moved, shown or hidden, or renamed; a variable), or in a sketch session the last drawn shape. run_action undo undoes Prepare's history instead. Reply: scope (design or sketch), undo_depth, redo_depth, features, bodies; entities in a sketch."},
-                 {"params", json::array()}},
-            json{{"name", "redo"}, {"summary", "Edit > Redo in the Design tab: put back what undo took back, until the next change. Reply as undo's."},
-                 {"params", json::array()}},
-            json{{"name", "feature_delete"}, {"summary", "Delete a feature as its tree row's Delete does; deleting a sketch also deletes the features built on it. One undo step. Later indices shift. Reply: removed (how many features went), features, bodies."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "undo"}, {"summary", "Edit > Undo in the Design tab: take back the last Design change, or in a sketch session the last drawn shape."},
+                 {"details", "A change to the Design history is a feature added, edited, deleted, moved, shown or hidden, or renamed, or a variable changed. run_action undo undoes Prepare's history instead. Reply: scope (design or sketch), undo_depth, redo_depth, features, bodies; entities in a sketch."},
+                 {"params", json::array()},
+                 {"examples", json::array()}},
+            json{{"name", "redo"}, {"summary", "Edit > Redo in the Design tab: put back what undo took back, until the next change."},
+                 {"details", "Reply as undo's."},
+                 {"params", json::array()},
+                 {"examples", json::array()}},
+            json{{"name", "feature_delete"}, {"summary", "Delete a feature as its tree row's Delete does; deleting a sketch also deletes the features built on it."},
+                 {"details", "One undo step. Later indices shift. Reply: removed (how many features went), features, bodies."},
                  {"params", json::array({
                      json{{"name", "feature"}, {"type", "integer"}, {"description", "feature index (describe_scene)"}},
-                 })}},
-            json{{"name", "feature_move"}, {"summary", "Move a feature one place up or down the history, as Move up / Move down do. A feature cannot come before one it uses. One undo step. Reply: feature (its new index), from."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "feature_move"}, {"summary", "Move a feature one place up or down the history, as Move up / Move down do."},
+                 {"details", "A feature cannot come before one it uses. One undo step. Reply: feature (its new index), from."},
                  {"params", json::array({
                      json{{"name", "feature"}, {"type", "integer"}, {"description", "feature index (describe_scene)"}},
                      json{{"name", "delta"},   {"type", "integer"}, {"enum", json::array({-1, 1})}, {"description", "-1 up, 1 down"}},
-                 })}},
-            json{{"name", "feature_set_enabled"}, {"summary", "Show or hide (suppress) a feature as its row's eye does; a hidden feature is left out of the rebuild and bodies may renumber. One undo step, none when it already was. Reply: enabled, changed, bodies."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "feature_set_enabled"}, {"summary", "Show or hide (suppress) a feature as its row's eye does."},
+                 {"details", "A hidden feature is left out of the rebuild and bodies may renumber. One undo step, none when it already was. Reply: enabled, changed, bodies."},
                  {"params", json::array({
                      json{{"name", "feature"}, {"type", "integer"}, {"description", "feature index (describe_scene)"}},
                      json{{"name", "enabled"}, {"type", "boolean"}},
-                 })}},
-            json{{"name", "feature_rename"}, {"summary", "Rename a feature as F2 on its row does. Its own undo step. Reply: name, changed."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "feature_rename"}, {"summary", "Rename a feature as F2 on its row does."},
+                 {"details", "Its own undo step. Reply: name, changed."},
                  {"params", json::array({
                      json{{"name", "feature"}, {"type", "integer"}, {"description", "feature index (describe_scene)"}},
                      json{{"name", "name"},    {"type", "string"}, {"description", "trimmed; not empty"}},
-                 })}},
-            json{{"name", "body_set"}, {"summary", "Rename, colour or show/hide a body, as its Bodies row and the Color button do; give one or more. Not in the undo history. The name and colour are saved with the project and the name names its committed object; visibility is view state, and commit leaves hidden bodies out. Reply: name, color, visible."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "body_set"}, {"summary", "Rename, colour or show/hide a body, as its Bodies row and the Color button do; give one or more."},
+                 {"details", "Not in the undo history. The name and colour are saved with the project and the name names its committed object; visibility is view state, and commit leaves hidden bodies out. Reply: name, color, visible."},
                  {"params", json::array({
                      json{{"name", "body"},    {"type", "integer"}, {"description", "body index (describe_scene)"}},
                      json{{"name", "name"},    {"type", "string"},  {"default", nullptr}, {"description", "trimmed; not empty"}},
                      json{{"name", "color"},   {"type", "string"},  {"default", nullptr}, {"description", "\"#RRGGBB\""}},
                      json{{"name", "visible"}, {"type", "boolean"}, {"default", nullptr}},
-                 })}},
-            json{{"name", "body_delete"}, {"summary", "Delete a body as its row's Delete does: the feature that made it goes, which can take other features and bodies with it. One undo step. Reply: deleted_feature {index, type, name}, removed, features, bodies."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "body_delete"}, {"summary", "Delete a body as its row's Delete does: the feature that made it goes, which can take other features and bodies with it."},
+                 {"details", "One undo step. Reply: deleted_feature {index, type, name}, removed, features, bodies."},
                  {"params", json::array({
                      json{{"name", "body"}, {"type", "integer"}, {"description", "body index (describe_scene)"}},
-                 })}},
-            json{{"name", "validate_against"}, {"summary", "Volume + bbox/centroid + surface deviation (max/mean/rms mm) of a body vs a reference {step:path|body:id} (the RE acceptance metric)."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "validate_against"}, {"summary", "Compare a body with a reference: volume, bbox, centroid and surface deviation (the RE acceptance metric)."},
+                 {"details", "The reference is {step:path|body:id}; the surface deviation is max/mean/rms in mm."},
                  {"params", json::array({
                      json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
                      json{{"name", "reference"}, {"type", "object"}},
-                 })}},
-            json{{"name", "sketch_begin"}, {"summary", "Open a sketch session on a plane, as picking a plane or face for Sketch does. Sketch points are [x, y] in that plane's frame (mm), from its origin: modeling_origin for a base plane. Reply: frame."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "sketch_begin"}, {"ids", true}, {"summary", "Open a sketch session on a plane, as picking a plane or face for Sketch does."},
+                 {"details", "Sketch points are [x, y] in that plane's frame (mm), from its origin: modeling_origin for a base plane. Reply: frame."},
                  {"params", json::array({
                      plane_param("XY", false),
-                 })}},
-            json{{"name", "sketch_commit"}, {"summary", "Commit the open sketch as a Sketch feature, as the sketch's Confirm does, and leave sketch mode. An empty sketch is refused and stays open. Reply: sketch_index, name, features (the new count) and its loops (closed_loops with the index extrude's loop takes, open_ends, defects, buildable)."},
-                 {"params", json::array()}},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "sketch_commit"}, {"summary", "Commit the open sketch as a Sketch feature, as the sketch's Confirm does, and leave sketch mode."},
+                 {"details", "An empty sketch is refused and stays open. Reply: sketch_index, name, features (the new count) and its loops (closed_loops with the index extrude's loop takes, open_ends, defects, buildable)."},
+                 {"params", json::array()},
+                 {"examples", json::array()}},
             json{{"name", "sketch_cancel"}, {"summary", "Discard the open sketch and leave sketch mode."},
-                 {"params", json::array()}},
-            json{{"name", "sketch_add"}, {"summary", "Add entities or shapes to the open sketch: `entities` (a list), or one item's fields beside `type`, or `rect`. Entities: line {p0, p1}, circle {center, radius}, arc {center, radius, start_angle, end_angle}, point {p}. Shapes, built as their drawing tools build them: polygon {center, sides, radius (to a vertex) or across_flats, angle (of that vertex, or of the first edge's midpoint)}, slot {c0, c1, width}, ellipse {center, radius (semi-major), rminor, rotation}, ellipse_arc {the ellipse's fields, start_angle, end_angle: parametric, counter-clockwise}, spline {ctrl: 2 or more poles}. Points are [x, y] in the sketch plane (mm); angles are radians, or degrees as start_angle_deg and the like. A polygon is lines; its side count is not kept once committed. Reply: first_index, added, shapes [{first, count}] per item, entities, dof."},
+                 {"details", ""},
+                 {"params", json::array()},
+                 {"examples", json::array()}},
+            json{{"name", "sketch_add"}, {"summary", "Add entities or shapes to the open sketch: `entities` (a list), or one item's fields beside `type`, or `rect`."},
+                 {"details", "Entities: line {p0, p1}, circle {center, radius}, arc {center, radius, start_angle, end_angle}, point {p}. Shapes, built as their drawing tools build them: polygon {center, sides, radius (to a vertex) or across_flats, angle (of that vertex, or of the first edge's midpoint)}, slot {c0, c1, width}, ellipse {center, radius (semi-major), rminor, rotation}, ellipse_arc {the ellipse's fields, start_angle, end_angle: parametric, counter-clockwise}, spline {ctrl: 2 or more poles}. Points are [x, y] in the sketch plane (mm); angles are radians, or degrees as start_angle_deg and the like. A polygon is lines; its side count is not kept once committed. Reply: first_index, added, shapes [{first, count}] per item, entities, dof."},
                  {"params", json::array({
                      json{{"name", "entities"},     {"type", "array"}, {"default", json::array()}, {"description", "entity or shape objects, each with a type"}},
                      json{{"name", "type"},         {"type", "string"}, {"enum", json::array({"line", "arc", "circle", "point", "polygon", "slot", "ellipse", "ellipse_arc", "spline"})}, {"default", ""}, {"description", "one item, its fields beside it"}},
@@ -577,64 +703,90 @@ json tool_rows()
                      json{{"name", "start_angle"},  {"type", "number"}, {"unit", "rad"}, {"default", 0}, {"description", "arc start, counter-clockwise from the plane's x axis"}},
                      json{{"name", "end_angle"},    {"type", "number"}, {"unit", "rad"}, {"default", 0}},
                      json{{"name", "construction"}, {"type", "boolean"}, {"default", false}},
-                 })}},
-            json{{"name", "sketch_select"}, {"summary", "Select sketch entities by index; an empty list clears the selection. Reply: selected."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "sketch_select"}, {"summary", "Select sketch entities by index; an empty list clears the selection."},
+                 {"details", "Reply: selected."},
                  {"params", json::array({
                      json{{"name", "entities"}, {"type", "array"}, {"default", json::array()}, {"description", "entity indices"}},
-                 })}},
-            json{{"name", "sketch_delete"}, {"summary", "Delete sketch entities. Reply: removed, entities."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "sketch_delete"}, {"summary", "Delete sketch entities."},
+                 {"details", "Reply: removed, entities."},
                  {"params", json::array({
                      json{{"name", "entities"}, {"type", "array"}, {"default", json::array()}, {"description", "entity indices; omit for the selection"}},
-                 })}},
-            json{{"name", "sketch_construction"}, {"summary", "Toggle construction on sketch entities. Reply: changed."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "sketch_construction"}, {"summary", "Toggle construction on sketch entities."},
+                 {"details", "Reply: changed."},
                  {"params", json::array({
                      json{{"name", "entities"}, {"type", "array"}, {"default", json::array()}, {"description", "entity indices; omit for the selection"}},
-                 })}},
-            json{{"name", "sketch_offset"}, {"summary", "Add an offset copy of sketch lines, arcs and circles. Reply: first_index, added, dof."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "sketch_offset"}, {"summary", "Add an offset copy of sketch lines, arcs and circles."},
+                 {"details", "Reply: first_index, added, dof."},
                  {"params", json::array({
                      json{{"name", "distance"}, {"type", "number"}, {"unit", "mm"}, {"description", "signed offset"}},
                      json{{"name", "entities"}, {"type", "array"}, {"default", json::array()}, {"description", "entity indices; omit for the selection, else every entity"}},
-                 })}},
-            json{{"name", "sketch_mirror"}, {"summary", "Add a mirrored copy of sketch entities about the line through axis_a and axis_b. Reply: first_index, added, dof."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "sketch_mirror"}, {"summary", "Add a mirrored copy of sketch entities about the line through axis_a and axis_b."},
+                 {"details", "Reply: first_index, added, dof."},
                  {"params", json::array({
                      json{{"name", "axis_a"},   {"type", "array"}, {"default", json::array({0, 0})}, {"description", "[x, y] in the sketch plane, mm"}},
                      json{{"name", "axis_b"},   {"type", "array"}, {"default", json::array({0, 1})}, {"description", "[x, y] in the sketch plane, mm"}},
                      json{{"name", "entities"}, {"type", "array"}, {"default", json::array()}, {"description", "entity indices; omit for the selection, else every entity"}},
-                 })}},
-            json{{"name", "sketch_describe"}, {"summary", "The open sketch, or a committed one: entities, constraint count and its loops (closed_loops {index, entities, holes, area}, open_ends, defects, buildable). The open sketch adds dof, the armed tool and the selection; a committed one adds its name and plane."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "sketch_describe"}, {"summary", "The open sketch, or a committed one: entities, constraint count and its loops."},
+                 {"details", "The loops are closed_loops {index, entities, holes, area}, open_ends, defects, buildable. The open sketch adds dof, the armed tool and the selection; a committed one adds its name and plane."},
                  {"params", json::array({
                      json{{"name", "sketch"}, {"type", "integer"}, {"default", nullptr}, {"description", "a committed Sketch feature's index; omit for the open sketch"}},
-                 })}},
+                 })},
+                 {"examples", json::array()}},
             json{{"name", "sketch_validate"}, {"summary", "The open sketch's loops (closed_loops, open_ends, defects, buildable) and dof."},
+                 {"details", ""},
                  {"params", json::array({
                      json{{"name", "tolerance"}, {"type", "number"}, {"unit", "mm"}, {"default", 0.001}, {"description", "reported back"}},
-                 })}},
-            json{{"name", "sketch_heal"}, {"summary", "Weld sketch endpoints that nearly meet and constrain them coincident, so loops are closed by construction. Reply: welded and the loops."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "sketch_heal"}, {"summary", "Weld sketch endpoints that nearly meet and constrain them coincident, so loops are closed by construction."},
+                 {"details", "Reply: welded and the loops."},
                  {"params", json::array({
                      json{{"name", "tolerance"},           {"type", "number"}, {"unit", "mm"}, {"default", 0.001}},
                      json{{"name", "ignore_construction"}, {"type", "boolean"}, {"default", true}},
-                 })}},
-            json{{"name", "sketch_set_value"}, {"summary", "Set the dimension of the selected sketch entities, as the value field does: a line's length, a circle's diameter, an arc's radius, or the angle or distance between two. Select them with sketch_select first. Reply: kind, before, value, dof and the loops."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "sketch_set_value"}, {"summary", "Set the dimension of the selected sketch entities, as the value field does."},
+                 {"details", "A line's length, a circle's diameter, an arc's radius, or the angle or distance between two. Select them with sketch_select first. Reply: kind, before, value, dof and the loops."},
                  {"params", json::array({
                      json{{"name", "value"}, {"type", "number"}, {"description", "mm, or degrees for an angle"}},
-                 })}},
-            json{{"name", "sketch_fillet"}, {"summary", "Round the corner of two lines of the open sketch, as the Fillet tool does: both lines are cut back and joined by an arc of `radius`, bound coincident and tangent to them; constraints the sharp corner held are released. Reply: entity (the arc), lines, released_constraints, entities, constraints, dof, solve_ok."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "sketch_fillet"}, {"summary", "Round the corner of two lines of the open sketch, as the Fillet tool does."},
+                 {"details", "Both lines are cut back and joined by an arc of `radius`, bound coincident and tangent to them; constraints the sharp corner held are released. Reply: entity (the arc), lines, released_constraints, entities, constraints, dof, solve_ok."},
                  {"params", json::array({
                      json{{"name", "entities"}, {"type", "array"}, {"default", json::array()}, {"description", "the two line indices; omit for the selection"}},
                      json{{"name", "radius"},   {"type", "number"}, {"unit", "mm"}},
-                 })}},
-            json{{"name", "sketch_chamfer"}, {"summary", "Bevel the corner of two lines of the open sketch, as the Chamfer tool does: both lines are cut back by `distance` from the corner and joined by a line bound coincident to them. Reply: entity (the new line), lines, released_constraints, entities, constraints, dof, solve_ok."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "sketch_chamfer"}, {"summary", "Bevel the corner of two lines of the open sketch, as the Chamfer tool does."},
+                 {"details", "Both lines are cut back by `distance` from the corner and joined by a line bound coincident to them. Reply: entity (the new line), lines, released_constraints, entities, constraints, dof, solve_ok."},
                  {"params", json::array({
                      json{{"name", "entities"}, {"type", "array"}, {"default", json::array()}, {"description", "the two line indices; omit for the selection"}},
                      json{{"name", "distance"}, {"type", "number"}, {"unit", "mm"}, {"description", "setback along each line"}},
-                 })}},
-            json{{"name", "sketch_trim"}, {"summary", "Trim the open sketch's entity nearest `at`, as a Trim click there does: a line or an arc is cut back from its end nearer `at` to the first crossing with another entity beyond `at`; a circle loses the part between the crossings either side of `at` and becomes an arc. With extend, as an Extend click: the line's or arc's end nearer `at` runs out to the next entity. The entity's constraints are released. Reply: entity, geometry (its new fields), released_constraints, entities, dof."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "sketch_trim"}, {"summary", "Trim or extend the open sketch's entity nearest `at`, as a Trim or Extend click there does."},
+                 {"details", "Trim: a line or an arc is cut back from its end nearer `at` to the first crossing with another entity beyond `at`; a circle loses the part between the crossings either side of `at` and becomes an arc. With extend, as an Extend click: the line's or arc's end nearer `at` runs out to the next entity. The entity's constraints are released. Reply: entity, geometry (its new fields), released_constraints, entities, dof."},
                  {"params", json::array({
                      json{{"name", "at"},        {"type", "array"}, {"description", "[x, y] in the sketch plane, mm: a point on the part to cut, or near the end to extend"}},
                      json{{"name", "extend"},    {"type", "boolean"}, {"default", false}},
                      json{{"name", "tolerance"}, {"type", "number"}, {"unit", "mm"}, {"default", 0.05}, {"description", "how far from `at` the entity may be"}},
-                 })}},
-            json{{"name", "sketch_transform"}, {"summary", "Move, rotate, scale or array entities of the open sketch, as the transform tools' Confirm does. move {dx, dy}, rotate {angle, pivot} and scale {scale, pivot} change the entities and release the constraints that no longer hold. array {dx, dy, count} adds copies stepped by dx, dy; polar_array {pivot, angle, count} adds copies every angle/count about pivot (angle is the whole sweep, default 360 degrees). count includes the original, and each copy is bound to its source (equal length and parallel, or its radius). pivot defaults to the entities' centroid. Angles are radians, or degrees as angle_deg. Reply: moved and released_constraints, or first_index, added and bound; pivot; entities, dof."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "sketch_transform"}, {"summary", "Move, rotate, scale or array entities of the open sketch, as the transform tools' Confirm does."},
+                 {"details", "move {dx, dy}, rotate {angle, pivot} and scale {scale, pivot} change the entities and release the constraints that no longer hold. array {dx, dy, count} adds copies stepped by dx, dy; polar_array {pivot, angle, count} adds copies every angle/count about pivot (angle is the whole sweep, default 360 degrees). count includes the original, and each copy is bound to its source (equal length and parallel, or its radius). pivot defaults to the entities' centroid. Angles are radians, or degrees as angle_deg. Reply: moved and released_constraints, or first_index, added and bound; pivot; entities, dof."},
                  {"params", json::array({
                      json{{"name", "op"},        {"type", "string"}, {"enum", json::array({"move", "rotate", "scale", "array", "polar_array"})}},
                      json{{"name", "entities"},  {"type", "array"}, {"default", json::array()}, {"description", "entity indices; omit for the selection"}},
@@ -644,62 +796,85 @@ json tool_rows()
                      json{{"name", "scale"},     {"type", "number"}, {"default", nullptr}},
                      json{{"name", "count"},     {"type", "integer"}, {"default", nullptr}, {"min", 2}, {"max", 1000}},
                      json{{"name", "pivot"},     {"type", "array"}, {"default", nullptr}, {"description", "[x, y] in the sketch plane, mm"}},
-                 })}},
-            json{{"name", "sketch_constrain"}, {"summary", "Add a constraint to the open sketch, as a CONSTRAIN bar button does (sketch_set_value is the value field, V). With `entities`, else the selection, the button's own rules choose the points, and a value it would ask for is `value` or the current one. With `refs` the references are taken as written, in sketch_constraints' form: {entity, role} for a point (role p0, p1 or center; entity also \"origin\") and {entity} for a whole entity (also \"x_axis\", \"y_axis\"). distance, lock_x, lock_y, point_on_line and point_on_object have no button and take refs. A constraint the sketch cannot solve with is rolled back and the call fails. Reply: added (indices), items, constraints, dof, solve_ok."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "sketch_constrain"}, {"summary", "Add a constraint to the open sketch, as a CONSTRAIN bar button does (sketch_set_value is the value field, V)."},
+                 {"details", "With `entities`, else the selection, the button's own rules choose the points, and a value it would ask for is `value` or the current one. With `refs` the references are taken as written, in sketch_constraints' form: {entity, role} for a point (role p0, p1 or center; entity also \"origin\") and {entity} for a whole entity (also \"x_axis\", \"y_axis\"). distance, lock_x, lock_y, point_on_line and point_on_object have no button and take refs. A constraint the sketch cannot solve with is rolled back and the call fails. Reply: added (indices), items, constraints, dof, solve_ok."},
                  {"params", json::array({
                      json{{"name", "type"},     {"type", "string"}, {"enum", json::array({"fix", "coincident", "horizontal", "vertical", "distance", "lock_x", "lock_y", "equal_length", "parallel", "perpendicular", "concentric", "tangent", "midpoint", "symmetric", "angle", "radius", "diameter", "point_on_line", "point_on_object", "equal_radius", "collinear", "distance_x", "distance_y", "symmetric_about_y", "symmetric_about_x", "equal"})}, {"description", "\"equal\" is the Equal button: equal length, or equal radius for two curves"}},
                      json{{"name", "entities"}, {"type", "array"}, {"default", json::array()}, {"description", "1 to 3 entity indices; omit for the selection"}},
                      json{{"name", "refs"},     {"type", "array"}, {"default", json::array()}, {"description", "[{entity, role?}], instead of entities"}},
                      json{{"name", "value"},    {"type", "number"}, {"default", nullptr}, {"description", "mm, or degrees for an angle"}},
-                 })}},
-            json{{"name", "sketch_constraints"}, {"summary", "The constraints of the open sketch, or of a committed one: index, type, refs ({entity, role} for a point, {entity} for a whole entity) and value (mm, or degrees for an angle). Reply: scope (live or committed), items, and dof and solve_ok for the open sketch."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "sketch_constraints"}, {"summary", "The constraints of the open sketch, or of a committed one: index, type, refs and value."},
+                 {"details", "A ref is {entity, role} for a point and {entity} for a whole entity; value is mm, or degrees for an angle. Reply: scope (live or committed), items, and dof and solve_ok for the open sketch."},
                  {"params", json::array({
                      json{{"name", "sketch"}, {"type", "integer"}, {"default", nullptr}, {"description", "a committed Sketch feature's index; omit for the open sketch"}},
-                 })}},
-            json{{"name", "sketch_unconstrain"}, {"summary", "Delete a constraint of the open sketch, as its row's delete button does; the constraints after it move down one index. Reply: removed, constraints, dof, solve_ok."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "sketch_unconstrain"}, {"summary", "Delete a constraint of the open sketch, as its row's delete button does; the constraints after it move down one index."},
+                 {"details", "Reply: removed, constraints, dof, solve_ok."},
                  {"params", json::array({
                      json{{"name", "index"}, {"type", "integer"}, {"description", "sketch_constraints' items[].index"}},
-                 })}},
-            json{{"name", "list_verbs"}, {"summary", "The Design tab's right-click verbs: id, name, key, whether each applies to the current selection, and whether it opens a dialog."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "list_verbs"}, {"summary", "The Design tab's right-click verbs, with id, name, key and whether each applies to the current selection."},
+                 {"details", "Each also says whether it opens a dialog."},
                  {"params", json::array({
                      json{{"name", "applicable_only"}, {"type", "boolean"}, {"default", false}},
                      json{{"name", "sketch_mode"},     {"type", "boolean"}, {"default", nullptr}, {"description", "when given, only sketch-mode (true) or feature-mode (false) verbs"}},
-                 })}},
-            json{{"name", "run_verb"}, {"summary", "Fire a verb from list_verbs as its menu row or key does. It runs on the next event-loop turn, so the reply says only that it was dispatched; a verb that opens a card or dialog leaves it open."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "run_verb"}, {"summary", "Fire a verb from list_verbs as its menu row or key does."},
+                 {"details", "It runs on the next event-loop turn, so the reply says only that it was dispatched; a verb that opens a card or dialog leaves it open."},
                  {"params", json::array({
                      json{{"name", "verb"}, {"type", "string"}, {"description", "verb id"}},
-                 })}},
-            json{{"name", "set_variable"}, {"summary", "Set a design variable to an expression, or remove it with an empty expr; feature fields bound with set_feature_expr follow it."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "set_variable"}, {"summary", "Set a design variable to an expression, or remove it with an empty expr."},
+                 {"details", "Feature fields bound with set_feature_expr follow it."},
                  {"params", json::array({
                      json{{"name", "name"}, {"type", "string"}},
                      json{{"name", "expr"}, {"type", "string"}, {"description", "e.g. \"20\" or \"width / 2 + 3\"; \"\" removes the variable"}},
-                 })}},
-            json{{"name", "set_feature_expr"}, {"summary", "Bind a feature's numeric field to an expression over the design variables, or remove the binding with an empty expr (the field keeps its value)."},
+                 })},
+                 {"examples", json::array()}},
+            json{{"name", "set_feature_expr"}, {"summary", "Bind a feature's numeric field to an expression over the design variables, or unbind it with an empty expr."},
+                 {"details", "Unbound, the field keeps its value."},
                  {"params", json::array({
                      json{{"name", "feature"}, {"type", "integer"}, {"description", "feature index (describe_scene)"}},
                      json{{"name", "field"},   {"type", "string"}, {"description", "a numeric field of describe_feature's params, e.g. width, distance, hole_diameter, thread_diameter"}},
                      json{{"name", "expr"},    {"type", "string"}, {"description", "\"\" removes the binding"}},
-                 })}},
+                 })},
+                 {"examples", json::array()}},
             json{{"name", "surface_loft"}, {"summary", "Skin two or more profile sketches with no end caps -> an open sheet body."},
+                 {"details", ""},
                  {"params", json::array({
                      json{{"name", "profiles"}, {"type", "array"}, {"description", "sketch feature indices, in order"}},
                      json{{"name", "ruled"},    {"type", "boolean"}, {"default", false}},
-                 })}},
+                 })},
+                 {"examples", json::array()}},
             json{{"name", "surface_fill"}, {"summary", "Fill a sketch's closed boundary with one smooth face -> a sheet body."},
+                 {"details", ""},
                  {"params", json::array({
                      json{{"name", "sketch"}, {"type", "integer"}, {"description", "sketch feature index"}},
-                 })}},
+                 })},
+                 {"examples", json::array()}},
             json{{"name", "surface_offset"}, {"summary", "Offset a sheet body by a signed distance -> another sheet body."},
+                 {"details", ""},
                  {"params", json::array({
                      json{{"name", "body"},   {"type", "integer"}, {"default", -1}, {"description", "sheet body; omit for the last body"}},
                      json{{"name", "offset"}, {"type", "number"}, {"unit", "mm"}, {"default", 1}},
-                 })}},
+                 })},
+                 {"examples", json::array()}},
             json{{"name", "thicken_surface"}, {"summary", "Thicken a whole sheet body into a solid."},
+                 {"details", ""},
                  {"params", json::array({
                      json{{"name", "body"},      {"type", "integer"}, {"default", -1}, {"description", "sheet body; omit for the last body"}},
                      json{{"name", "thickness"}, {"type", "number"}, {"unit", "mm"}, {"default", 2}, {"min", 0.01}},
                      json{{"name", "flip"},      {"type", "boolean"}, {"default", false}},
-                 })}},
+                 })},
+                 {"examples", json::array()}},
         })},
     };
 }
@@ -3984,11 +4159,11 @@ struct CadTool
 {
     const char* name;
     CadAccess   access;
-    bool        ok_false;   // legacy: a rejected rebuild is reported in the reply, not as an error
+    bool        ok_false;   // an older tool: a rejected rebuild is reported in the reply, not as an error
     json (*run)(DesignPanel* panel, const json& params);
 };
 
-// Every CAD tool, declared once: run_cad_tool(), the busy gate and describe_tools all read this.
+// Every CAD tool, declared once: run_cad_tool(), the busy gate and cad_tool_table() read this.
 const CadTool kCadTools[] = {
     {"describe_tools",      CadAccess::Read,   false, [](DesignPanel*, const json& p) { return cad_describe_tools(p); }},
     {"describe_scene",      CadAccess::Read,   false, [](DesignPanel* panel, const json&) { return describe_scene(panel); }},
@@ -4117,6 +4292,11 @@ std::string close_cad_tools(const std::string& name)
     return close.empty() ? std::string() : "; did you mean " + close + "?";
 }
 
+const char* access_name(CadAccess access)
+{
+    return access == CadAccess::Read ? "read" : access == CadAccess::Sketch ? "sketch" : "change";
+}
+
 } // namespace
 
 json run_cad_tool(const std::string& tool, const json& args)
@@ -4192,11 +4372,83 @@ json run_cad_tool(const std::string& tool, const json& args)
     }
 }
 
-std::vector<std::string> cad_control_methods()
+std::vector<std::string> cad_tool_names()
 {
     std::vector<std::string> out;
     for (const CadTool& t : kCadTools) out.emplace_back(t.name);
     return out;
+}
+
+const json& cad_tool_table()
+{
+    // Built once: search_tools reads it on every search. A row whose tool kCadTools does not
+    // declare gets no access or failure; the unit tests compare the two tables.
+    static const json table = [] {
+        json all  = tool_rows();
+        json rows = std::move(all["tools"]);
+        for (json& row : rows) {
+            if (const CadTool* t = find_cad_tool(row.at("name").get<std::string>())) {
+                row["access"]  = access_name(t->access);
+                row["failure"] = t->ok_false ? "reply" : "error";
+                if (t->ok_false) row["failure_note"] = kFailureNote;
+            }
+            for (json& p : row.at("params")) p["required"] = !p.contains("default");
+        }
+        return rows;
+    }();
+    return table;
+}
+
+json cad_list_tools(const std::string& query)
+{
+    const std::string q   = lower(query);
+    auto              has = [&q](const json& row, const char* key) {
+        return lower(row.at(key).get<std::string>()).find(q) != std::string::npos;
+    };
+    const json& table = cad_tool_table();
+    json        tools = json::array();
+    for (const json& row : table)
+        if (q.empty() || has(row, "name") || has(row, "summary") || has(row, "details"))
+            tools.push_back({{"name", row.at("name")}, {"access", row.value("access", json())}, {"summary", row.at("summary")}});
+    return json{{"tools", std::move(tools)},
+                {"total", table.size()},
+                {"ids", kIdsNote},
+                {"use", "describe_cad_tool {tool} gives a tool's arguments and examples; call_cad_tool {tool, args} runs it"}};
+}
+
+json cad_describe_tool(const json& tool)
+{
+    const char* const form = "tool takes a name or a list of names";
+    std::vector<std::string> names;
+    if (tool.is_string()) {
+        names.push_back(tool.get<std::string>());
+    } else if (tool.is_array() && !tool.empty()) {
+        for (const json& n : tool) {
+            if (!n.is_string()) throw std::runtime_error(form);
+            names.push_back(n.get<std::string>());
+        }
+    } else {
+        throw std::runtime_error(form);
+    }
+
+    const json&              table = cad_tool_table();
+    json                     rows  = json::array();
+    std::vector<std::string> described;
+    bool                     ids = false;
+    for (const std::string& name : names) {
+        if (name.empty()) throw std::runtime_error(form);
+        if (std::find(described.begin(), described.end(), name) != described.end()) continue;
+        const auto row = std::find_if(table.begin(), table.end(), [&name](const json& r) { return r.at("name") == name; });
+        if (row == table.end()) throw std::runtime_error("Unknown CAD tool: " + name + close_cad_tools(name));
+        described.push_back(name);
+        json out = *row;
+        ids = ids || out.value("ids", false);
+        out.erase("ids");
+        rows.push_back(std::move(out));
+    }
+    json reply{{"tools", std::move(rows)}};
+    if (ids) reply["id_lifetime"] = kIdLifetime;
+    return reply;
 }
 
 json cad_describe_tools(const json& params)
@@ -4229,14 +4481,19 @@ json cad_describe_tools(const json& params)
     if (!q.is_string()) throw std::runtime_error("describe_tools: query must be a string");
     const std::string query = lower(q.get<std::string>());
 
+    // A row's summary is the table's summary and details as one text; its params have no `required`.
     json rows = json::array();
-    for (json& row : out["tools"]) {
-        const std::string name = row.value("name", std::string());
+    for (const json& row : cad_tool_table()) {
+        const std::string name    = row.at("name").get<std::string>();
+        const std::string details = row.at("details").get<std::string>();
+        const std::string summary = row.at("summary").get<std::string>() + (details.empty() ? "" : " " + details);
         if (!names.empty() && std::find(names.begin(), names.end(), name) == names.end()) continue;
-        if (!query.empty() && lower(name + " " + row.value("summary", std::string())).find(query) == std::string::npos) continue;
-        if (const CadTool* t = find_cad_tool(name))
-            row["access"] = t->access == CadAccess::Read ? "read" : t->access == CadAccess::Sketch ? "sketch" : "change";
-        rows.push_back(std::move(row));
+        if (!query.empty() && lower(name + " " + summary).find(query) == std::string::npos) continue;
+        json params = row.at("params");
+        for (json& p : params) p.erase("required");
+        json legacy_row{{"name", name}, {"summary", summary}, {"params", std::move(params)}};
+        if (row.contains("access")) legacy_row["access"] = row.at("access");
+        rows.push_back(std::move(legacy_row));
     }
     out["tools"] = std::move(rows);
     return out;

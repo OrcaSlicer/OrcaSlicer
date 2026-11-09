@@ -1,6 +1,19 @@
 // The Design tab's MCP surface (call_cad_tool): the method table, describe_tools, the plane resolver, the
 // kernel's rollback, reading and editing a feature as its card does, and the open sketch's tools
 // driven on a bare sketch tool. None of it needs a wx application or a Design panel.
+// McpTools.hpp reaches wx's MSW headers through GLCanvas3D.hpp after OCCT has hidden the USER and GDI
+// declarations they need; the Windows headers first keep them, as in test_plugin_host_api.cpp.
+#ifdef WIN32
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+    #include <Windows.h>
+    #include <CommCtrl.h>
+#endif
+
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
@@ -17,6 +30,7 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
+#include "slic3r/GUI/Mcp/McpTools.hpp"
 #include "slic3r/GUI/Mcp/McpToolsCad.hpp"
 
 #include <TopoDS_Edge.hxx>
@@ -132,7 +146,7 @@ void add_bound_block(CadDocument& doc)
 
 TEST_CASE("describe_tools has a row for every dispatched method", "[Mcp][CAD]")
 {
-    std::vector<std::string> methods = GUI::Mcp::cad_control_methods();
+    std::vector<std::string> methods = GUI::Mcp::cad_tool_names();
     std::sort(methods.begin(), methods.end());
     REQUIRE(std::adjacent_find(methods.begin(), methods.end()) == methods.end());
     CHECK(row_names(GUI::Mcp::cad_describe_tools(json::object())) == methods);
@@ -185,7 +199,7 @@ TEST_CASE("describe_tools narrows to the named methods or a query", "[Mcp][CAD]"
 
     // An empty filter is no filter, as the rows' defaults say.
     CHECK(row_names(GUI::Mcp::cad_describe_tools({{"method", ""}, {"query", ""}})).size() ==
-          GUI::Mcp::cad_control_methods().size());
+          GUI::Mcp::cad_tool_names().size());
 }
 
 TEST_CASE("describe_tools names close methods for an unknown one", "[Mcp][CAD]")
@@ -197,6 +211,175 @@ TEST_CASE("describe_tools names close methods for an unknown one", "[Mcp][CAD]")
         CHECK_THAT(std::string(e.what()), ContainsSubstring("extrude"));
     }
     CHECK_THROWS_AS(GUI::Mcp::cad_describe_tools({{"method", 3}}), std::runtime_error);
+}
+
+namespace {
+
+// Every CAD tool's name, as describe_cad_tool takes a list.
+json all_cad_tools()
+{
+    json names = json::array();
+    for (const std::string& n : GUI::Mcp::cad_tool_names()) names.push_back(n);
+    return names;
+}
+
+// The row `reply` lists for `name`, or null.
+json row_of(const json& reply, const std::string& name)
+{
+    for (const json& row : reply.at("tools"))
+        if (row.at("name") == name) return row;
+    return json();
+}
+
+} // namespace
+
+TEST_CASE("list_cad_tools has one row per dispatched tool", "[Mcp][CAD]")
+{
+    std::vector<std::string> names = GUI::Mcp::cad_tool_names();
+    const json reply = GUI::Mcp::cad_list_tools("");
+    std::sort(names.begin(), names.end());
+    REQUIRE(std::adjacent_find(names.begin(), names.end()) == names.end());
+    CHECK(row_names(reply) == names);   // row_names() sorts: the two tables' orders differ
+    CHECK(reply.at("total") == names.size());
+    CHECK_THAT(reply.at("use").get<std::string>(), ContainsSubstring("describe_cad_tool"));
+    CHECK_FALSE(reply.at("ids").get<std::string>().empty());
+    for (const json& row : reply.at("tools")) CHECK(row.size() == 3);   // name, access, summary
+}
+
+TEST_CASE("every CAD tool's summary is one sentence of at most 120 characters", "[Mcp][CAD]")
+{
+    const json reply = GUI::Mcp::cad_list_tools("");
+    for (const json& row : reply.at("tools")) {
+        INFO(row.at("name").get<std::string>());
+        const std::string summary = row.at("summary").get<std::string>();
+        REQUIRE_FALSE(summary.empty());
+        CHECK(summary.size() <= 120);
+        CHECK(GUI::Mcp::first_sentence(summary) == summary);
+        CHECK(summary.back() == '.');
+    }
+}
+
+TEST_CASE("list_cad_tools narrows by a query in any case and keeps the total", "[Mcp][CAD]")
+{
+    const size_t all = GUI::Mcp::cad_tool_names().size();
+
+    const json sketch = GUI::Mcp::cad_list_tools("SKETCH_");
+    const std::vector<std::string> names = row_names(sketch);
+    CHECK(std::find(names.begin(), names.end(), "sketch_add") != names.end());
+    for (const std::string& n : names) CHECK_THAT(n, ContainsSubstring("sketch_"));
+    CHECK(sketch.at("total") == all);
+
+    const json none = GUI::Mcp::cad_list_tools("zzzz");
+    CHECK(none.at("tools").empty());
+    CHECK(none.at("total") == all);
+}
+
+TEST_CASE("list_cad_tools finds a tool by a word only its details hold", "[Mcp][CAD]")
+{
+    const json described = GUI::Mcp::cad_describe_tool("sketch_transform").at("tools").at(0);
+    CHECK(described.at("summary").get<std::string>().find("polar") == std::string::npos);
+    CHECK_THAT(described.at("details").get<std::string>(), ContainsSubstring("polar"));
+
+    const json listed = row_of(GUI::Mcp::cad_list_tools("polar"), "sketch_transform");
+    REQUIRE_FALSE(listed.is_null());
+    CHECK(listed.size() == 3);   // the summary only
+}
+
+TEST_CASE("describe_cad_tool takes a name or a list and describes each once", "[Mcp][CAD]")
+{
+    const json one = GUI::Mcp::cad_describe_tool("extrude");
+    REQUIRE(one.at("tools").size() == 1);
+    const json extrude = one.at("tools").at(0);
+    CHECK(extrude.at("name") == "extrude");
+    CHECK(extrude.at("access") == "change");
+    CHECK_FALSE(extrude.at("summary").get<std::string>().empty());
+    CHECK(extrude.at("details").is_string());
+    CHECK(extrude.at("params").is_array());
+    CHECK(extrude.at("failure") == "error");
+    CHECK_FALSE(extrude.contains("failure_note"));
+    CHECK(extrude.at("examples").is_array());
+
+    const json two = GUI::Mcp::cad_describe_tool(json::array({"hole", "fillet", "hole"}));
+    std::vector<std::string> names;
+    for (const json& row : two.at("tools")) names.push_back(row.at("name").get<std::string>());
+    CHECK(names == std::vector<std::string>{"hole", "fillet"});   // in the order asked, each once
+    const json fillet = row_of(two, "fillet");
+    CHECK(fillet.at("failure") == "reply");
+    CHECK_FALSE(fillet.at("failure_note").get<std::string>().empty());
+}
+
+TEST_CASE("describe_cad_tool refuses an unknown name with the close ones", "[Mcp][CAD]")
+{
+    auto refusal = [](const json& tool) { return failure([&] { GUI::Mcp::cad_describe_tool(tool); }); };
+    CHECK_THAT(refusal("extrud"), ContainsSubstring("Unknown CAD tool: extrud"));
+    CHECK_THAT(refusal("extrud"), ContainsSubstring("extrude"));
+    for (const json& bad : {json(3), json(""), json::array(), json::array({"hole", 3})}) {
+        INFO(bad.dump());
+        CHECK_THAT(refusal(bad), ContainsSubstring("a name or a list of names"));
+    }
+}
+
+TEST_CASE("describe_cad_tool marks a param without a default required", "[Mcp][CAD]")
+{
+    auto param = [](const char* tool, const char* name) {
+        const json reply = GUI::Mcp::cad_describe_tool(tool);
+        for (const json& p : reply.at("tools").at(0).at("params"))
+            if (p.at("name") == name) return p;
+        FAIL(tool << " has no param " << name);
+        return json();
+    };
+    CHECK(param("export_step", "path").at("required") == true);
+    CHECK(param("sketch_transform", "angle").at("required") == false);   // "default": null
+
+    const json all = GUI::Mcp::cad_describe_tool(all_cad_tools());
+    for (const json& row : all.at("tools"))
+        for (const json& p : row.at("params")) {
+            INFO(row.at("name").get<std::string>() << " " << p.at("name").get<std::string>());
+            REQUIRE(p.contains("required"));
+            CHECK(p.at("required").is_boolean());
+            CHECK(p.at("required") == !p.contains("default"));
+        }
+}
+
+TEST_CASE("describe_cad_tool gives id_lifetime only for tools that take or give ids", "[Mcp][CAD]")
+{
+    CHECK(GUI::Mcp::cad_describe_tool("fillet").contains("id_lifetime"));
+    CHECK(GUI::Mcp::cad_describe_tool("query_topology").contains("id_lifetime"));
+    CHECK_FALSE(GUI::Mcp::cad_describe_tool("describe_scene").contains("id_lifetime"));
+    CHECK(GUI::Mcp::cad_describe_tool(json::array({"describe_scene", "fillet"})).contains("id_lifetime"));
+
+    const std::vector<std::string> id_params = {"face", "faces", "edge", "edges", "up_to_face",
+                                                "face_a", "face_b", "edge_a", "edge_b"};
+    const json all = GUI::Mcp::cad_describe_tool(all_cad_tools());
+    for (const json& row : all.at("tools")) {
+        const std::string name = row.at("name").get<std::string>();
+        INFO(name);
+        CHECK_FALSE(row.contains("ids"));
+        bool takes_ids = false;
+        for (const json& p : row.at("params"))
+            if (std::find(id_params.begin(), id_params.end(), p.at("name").get<std::string>()) != id_params.end())
+                takes_ids = true;
+        if (takes_ids) CHECK(GUI::Mcp::cad_describe_tool(name).contains("id_lifetime"));
+    }
+}
+
+TEST_CASE("describe_tools keeps its full summaries until it goes", "[Mcp][CAD]")
+{
+    const json reply = GUI::Mcp::cad_describe_tools(json::object());
+    for (const json& row : reply.at("tools")) {
+        INFO(row.at("name").get<std::string>());
+        CHECK(row.size() == 4);
+        for (const char* key : {"name", "summary", "params", "access"}) CHECK(row.contains(key));
+        for (const json& p : row.at("params")) CHECK_FALSE(p.contains("required"));
+    }
+
+    const json table   = GUI::Mcp::cad_describe_tool("extrude").at("tools").at(0);
+    const json extrude = row_of(reply, "extrude");
+    REQUIRE_FALSE(extrude.is_null());
+    CHECK_THAT(extrude.at("summary").get<std::string>(), ContainsSubstring(table.at("summary").get<std::string>()));
+    CHECK_THAT(extrude.at("summary").get<std::string>(), ContainsSubstring(table.at("details").get<std::string>()));
+
+    CHECK_FALSE(row_of(GUI::Mcp::cad_describe_tools({{"query", "polar"}}), "sketch_transform").is_null());
 }
 
 TEST_CASE("rollback takes back a failed edit and leaves nothing to redo", "[Mcp][CAD]")

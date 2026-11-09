@@ -36,15 +36,33 @@ namespace Mcp {
 // fails is -32000. Throws ToolFailure, whose details carry the code. UI thread only.
 nlohmann::json run_cad_tool(const std::string& tool, const nlohmann::json& args);
 
-// The names of every CAD tool run_cad_tool() dispatches.
-std::vector<std::string> cad_control_methods();
+// The names of every CAD tool run_cad_tool() dispatches, in dispatch order.
+std::vector<std::string> cad_tool_names();
+
+// The CAD tool table, built once, one row per CAD tool grouped by what the tools do: name, access
+// (read, change or sketch), a summary of one sentence, details, params (each with `required`, true
+// when it has no default), failure ("error", or "reply" with a failure_note for an older tool that
+// reports a rejected rebuild in its reply), examples and, for a tool that takes or gives face or
+// edge ids, "ids": true. Needs no Design panel and no UI thread; nor do the two readers below.
+const nlohmann::json& cad_tool_table();
+
+// list_cad_tools' reply: {tools: [{name, access, summary}], total, ids, use} in the table's order.
+// `query` keeps the tools whose name, summary or details hold it, in any case ("" keeps them all);
+// total counts every CAD tool, and ids says how face and edge ids expire.
+nlohmann::json cad_list_tools(const std::string& query);
+
+// describe_cad_tool's reply for `tool`, a name or a list of names: {tools, id_lifetime?}, each
+// named tool's row once, in the order asked, without the ids flag; id_lifetime when one of them
+// takes or gives face or edge ids. Throws std::runtime_error naming close CAD tools for an unknown
+// name, and for an empty name, an empty list, an item that is not a string or another type.
+nlohmann::json cad_describe_tool(const nlohmann::json& tool);
 
 // describe_tools' reply: one row per method with its params and access (read, change or sketch),
 // narrowed by params `method` (a name or a list of names) and `query` (text in a name or summary).
 // Throws std::runtime_error naming close methods for an unknown name. Needs no Design panel.
 nlohmann::json cad_describe_tools(const nlohmann::json& params);
 
-// The `plane` param shared by the plane-taking methods: "XY", "XZ" or "YZ" through the modeling
+// The `plane` param shared by the plane-taking CAD tools: "XY", "XZ" or "YZ" through the modeling
 // origin, {"datum": feature index}, or {"body": b, "face": f} on a planar face. A face gives the
 // sketch-on-face plane (outward normal), or with `drill` the Hole card's inward plane; `face_body`
 // then receives b. Throws std::runtime_error with the message the call fails with.
@@ -72,7 +90,7 @@ std::vector<int> cad_commit_replace(const nlohmann::json& replace, const Model& 
 // finds the loops. Throws std::runtime_error for an index that is not a sketch with entities.
 nlohmann::json cad_sketch_describe(const CadDocument& doc, const DesignSketchTool& tool, int sketch);
 
-// The methods that work on the open sketch alone, run on `tool`'s session: sketch_add,
+// The CAD tools that work on the open sketch alone, run on `tool`'s session: sketch_add,
 // sketch_fillet, sketch_chamfer, sketch_trim, sketch_transform, sketch_constrain,
 // sketch_constraints (the open sketch's) and sketch_unconstrain. Each runs the sketch tool's own
 // step for the button or gesture it stands for, checks every argument before it changes anything,
@@ -122,7 +140,7 @@ nlohmann::json cad_query_topology(const CadDocument& doc, const nlohmann::json& 
 // faces, the gap between them. Throws std::runtime_error naming the ref that does not resolve.
 nlohmann::json cad_measure(const CadDocument& doc, const nlohmann::json& params);
 
-// Where a hole method drills: `plane` from params.plane (a face gives the Hole card's inward plane),
+// Where a hole CAD tool drills: `plane` from params.plane (a face gives the Hole card's inward plane),
 // `target_body` the body (a face plane's own body, else params.body, else -1 for the kernel's last
 // body), and the reply's {body, x, y}: params.x and params.y, or params.at (a world point, or a
 // cylindrical face or circular edge whose axis the hole shares) projected onto the plane, with
