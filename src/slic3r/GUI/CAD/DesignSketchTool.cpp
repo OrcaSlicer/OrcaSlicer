@@ -10677,8 +10677,11 @@ DesignSketchTool::LoopReport DesignSketchTool::loop_report(const std::vector<Ske
                 }
                 cur = Q;
             }
+            // Both integrals are signed by the way the chain runs, which is only the order its
+            // entities were drawn in (the slot tool lays every slot out clockwise), so the sign is
+            // dropped: the area is the region's, as a circle's is.
             if (exact) {
-                li.area = 0.5 * area2;
+                li.area = std::abs(0.5 * area2);
             } else {
                 // Splines and elliptical arcs have no closed form here; the render polyline is
                 // the honest best estimate, and it is flagged as such by being the fallback.
@@ -10687,7 +10690,7 @@ DesignSketchTool::LoopReport DesignSketchTool::loop_report(const std::vector<Ske
                     a += r.poly[i].x() * r.poly[i + 1].y() - r.poly[i + 1].x() * r.poly[i].y();
                 if (r.poly.size() > 2)
                     a += r.poly.back().x() * r.poly.front().y() - r.poly.front().x() * r.poly.back().y();
-                li.area = 0.5 * a;
+                li.area = std::abs(0.5 * a);
             }
         }
         out.loops.push_back(std::move(li));

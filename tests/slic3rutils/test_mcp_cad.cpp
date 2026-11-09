@@ -2213,7 +2213,7 @@ double only_loop_area(const GUI::DesignSketchTool& tool)
     const GUI::DesignSketchTool::LoopReport rep = tool.loop_report();
     REQUIRE(rep.loops.size() == 1);
     CHECK(rep.open_ends.empty());
-    return std::abs(rep.loops[0].area);
+    return rep.loops[0].area;
 }
 
 BoundingBoxf entities_box(const std::vector<SketchEntity>& ents, size_t first, size_t count)
@@ -2273,7 +2273,7 @@ TEST_CASE("sketch_add draws polygons, slots, ellipses and splines as their tools
     for (const auto& l : rep.loops)
         if (l.ents.size() == 4) {
             slot_found = true;
-            CHECK_THAT(std::abs(l.area), WithinAbs(20.0 * 5.0 + PI * 2.5 * 2.5, 1e-6));
+            CHECK_THAT(l.area, WithinAbs(20.0 * 5.0 + PI * 2.5 * 2.5, 1e-6));
         }
     CHECK(slot_found);
     const SketchEntity& el = ents[5];
@@ -2486,6 +2486,27 @@ TEST_CASE("sketch_transform moves, rotates, scales and arrays as the transform t
     CHECK_THAT(refused({{"op", "array"}, {"entities", {1, 1}}, {"dx", 1}, {"count", 2}}), ContainsSubstring("listed twice"));
     CHECK_THAT(refused({{"op", "move"}, {"dx", 1}}), ContainsSubstring("nothing selected"));
     CHECK(ents.size() == n);
+}
+
+TEST_CASE("a loop reports the area it encloses whichever way it runs", "[Mcp][CAD]")
+{
+    GUI::DesignSketchTool tool;
+    begin_sketch(tool);
+    // A 10 mm square drawn clockwise (entities 0-3), and a slot, which the slot tool lays out
+    // clockwise whichever way its centres are given (4-7).
+    sketch(tool, "sketch_add", {{"entities",
+                                 {{{"type", "line"}, {"p0", {0, 0}}, {"p1", {0, 10}}},
+                                  {{"type", "line"}, {"p0", {0, 10}}, {"p1", {10, 10}}},
+                                  {{"type", "line"}, {"p0", {10, 10}}, {"p1", {10, 0}}},
+                                  {{"type", "line"}, {"p0", {10, 0}}, {"p1", {0, 0}}},
+                                  {{"type", "slot"}, {"c0", {30, 0}}, {"c1", {50, 0}}, {"width", 6}}}}});
+    // The report sketch_validate and sketch_describe print as closed_loops.
+    const GUI::DesignSketchTool::LoopReport rep = tool.loop_report();
+    REQUIRE(rep.loops.size() == 2);
+    for (const auto& l : rep.loops) {
+        const bool square = l.ents.at(0) < 4;
+        CHECK_THAT(l.area, WithinAbs(square ? 10.0 * 10.0 : 20.0 * 6.0 + PI * 3.0 * 3.0, 1e-6));
+    }
 }
 
 TEST_CASE("constraints are planned from picks as the CONSTRAIN bar does, or taken from refs as written", "[Mcp][CAD]")

@@ -632,7 +632,7 @@ public:
         std::vector<int>   ents;         // entities of this loop, in chain order
         std::vector<int>   holes;        // indices into LoopReport::loops that this loop encloses
         bool               closed{false};
-        double             area{0.0};    // signed shoelace area of the loop polyline
+        double             area{0.0};    // area the loop encloses (mm^2), its holes not taken out
         bool               defect{false};      // crosses or folds back on itself (see RegionLoop)
         Vec2d              defect_at{0, 0};
     };
