@@ -213,9 +213,9 @@ static ExPolygons bridged_overhangs(const Layer &layer, const ExPolygons &slices
 
 // Orca: Each region of a multi-material object, painted or a part of its own, is printed within its own outline, so a
 // bridge segmented into a region of its own ends at its neighbours, where a single-material bridge reaches on over the
-// supported area around it. Move a strip of the supported neighbours, one outer wall wide, to the bridge to anchor on,
-// which the infill and the bridge detection then see. The walls of the neighbours are still generated over the strip,
-// which is then left to the bridge, see Layer::make_perimeters().
+// supported area around it. Move a strip of the supported neighbours, as wide as their outer wall, to the bridge to
+// anchor on, which the infill and the bridge detection then see. The walls of the neighbours are still generated over
+// the strip, which is then left to the bridge, see Layer::make_perimeters().
 void Layer::anchor_bridges_in_neighbours()
 {
     if (m_regions.size() < 2 || lower_layer == nullptr)
@@ -226,11 +226,17 @@ void Layer::anchor_bridges_in_neighbours()
         const ExPolygons overhangs = bridged_overhangs(*this, slices, coord_t(width));
         if (overhangs.empty())
             continue;
-        // The neighbours keep their outer wall along the outline of the object.
-        const Polygons inside  = offset(lslices, -width);
-        ExPolygons     anchors = diff_ex(intersection_ex(intersection_ex(lower_layer->lslices, offset(overhangs, width)), inside), slices);
+        // The strip replaces the outer wall of the neighbour, which it keeps along the outline of the object.
+        ExPolygons anchors;
+        for (const LayerRegion *neighbour : m_regions)
+            if (neighbour != bridge && ! neighbour->slices.empty()) {
+                const float neighbour_width = float(neighbour->flow(frExternalPerimeter).scaled_width());
+                append(anchors, intersection_ex(intersection_ex(neighbour->slices.surfaces, lower_layer->lslices),
+                                                intersection(offset(overhangs, neighbour_width), offset(lslices, -neighbour_width))));
+            }
         if (anchors.empty())
             continue;
+        const Polygons inside = offset(lslices, -width);
         // The gaps narrower than a wall the anchors leave in the bridge, as of a thin line of a neighbour between two
         // bridges or of a crack between two regions, go to the bridge too, or they would be walled.
         const ExPolygons anchored = union_ex(slices, anchors);

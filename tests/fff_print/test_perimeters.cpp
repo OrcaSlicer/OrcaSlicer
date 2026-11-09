@@ -1837,6 +1837,56 @@ TEST_CASE("Regions sharing their walls keep them where a bridge of one is anchor
     CHECK_THAT(shared_length, Catch::Matchers::WithinAbs(single_length, 0.01));
 }
 
+TEST_CASE("The anchor of a bridge in another filament replaces the outer wall of the neighbour", "[Perimeters]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    const bool  wider_deck     = GENERATE(false, true);
+    CAPTURE(wall_generator, wider_deck);
+
+    // The walls of the deck or of the pillars are wider than those of the other.
+    DynamicPrintConfig wide;
+    wide.set_deserialize_strict({ { "outer_wall_line_width", "0.6" }, { "inner_wall_line_width", "0.6" } });
+    DynamicPrintConfig narrow;
+    narrow.set_deserialize_strict({ { "outer_wall_line_width", "0.42" }, { "inner_wall_line_width", "0.45" } });
+    DynamicPrintConfig config = painted_bridge_config(wall_generator);
+    config.apply(wider_deck ? narrow : wide);
+    const DynamicPrintConfig deck_config = wider_deck ? wide : narrow;
+    Print print;
+    Model model;
+    painted_bridge(print, model, config, false, deck_config);
+    const auto [layer, deck, pillars] = deck_layer(print);
+    REQUIRE(layer != nullptr);
+    REQUIRE(deck != nullptr);
+    REQUIRE(pillars != nullptr);
+    const double  mm2   = SCALING_FACTOR * SCALING_FACTOR;
+    const coord_t outer = pillars->flow(frExternalPerimeter).scaled_width();
+    const coord_t inner = pillars->flow(frPerimeter).scaled_width();
+
+    // The strip is as wide as the outer wall of the pillars, along both sides of the gap but for the outline.
+    const double outer_mm = unscale<double>(outer);
+    const double strip    = area(intersection_ex(deck->slices.surfaces, layer->lower_layer->lslices)) * mm2;
+    CHECK_THAT(strip, Catch::Matchers::WithinRel(2. * outer_mm * (20. - 2. * outer_mm), 0.05));
+
+    // The tops of the pillars along the gap, as deep as their outer wall and half the inner one, are covered once.
+    const ExPolygons gap  = diff_ex(layer->lslices, layer->lower_layer->lslices);
+    const ExPolygons band = intersection_ex(diff_ex(offset_ex(gap, float(outer + inner / 2)), gap), offset(layer->lslices, float(- scale_(1.))));
+    Polygons covered;
+    for (const LayerRegion *layerm : layer->regions()) {
+        layerm->perimeters.polygons_covered_by_width(covered, 0.f);
+        layerm->thin_fills.polygons_covered_by_width(covered, 0.f);
+        layerm->fills.polygons_covered_by_width(covered, 0.f);
+    }
+    Polygons bridge;
+    for_each_extrusion_path(deck->fills, [&bridge](const ExtrusionPath &path) {
+        if (path.role() == erBridgeInfill)
+            path.polygons_covered_by_width(bridge, 0.f);
+    });
+    const double uncovered = area(diff_ex(band, covered)) * mm2;
+    const double doubled   = area(intersection_ex(union_ex(bridge), union_ex(pillars->perimeters.polygons_covered_by_width(0.f)))) * mm2;
+    CHECK(uncovered < 1.5);
+    CHECK(doubled < 2.5);
+}
+
 TEST_CASE("The anchor of a bridge in another filament follows the settings it is reprocessed with", "[Perimeters]")
 {
     const char *wall_generator = GENERATE("classic", "arachne");
