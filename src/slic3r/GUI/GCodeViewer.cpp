@@ -359,9 +359,11 @@ void GCodeViewer::SequentialView::Marker::render(int canvas_width, int canvas_he
     const Camera& camera = wxGetApp().plater()->get_camera();
     const Transform3d& view_matrix = camera.get_view_matrix();
     float scale_factor = m_scale_factor;
-    const Transform3d model_matrix = (Geometry::translation_transform((m_world_position + m_model_z_offset * Vec3f::UnitZ()).cast<double>()) *
-        Geometry::translation_transform(scale_factor * m_model.get_bounding_box().size().z() * Vec3d::UnitZ()) * Geometry::rotation_transform({ M_PI, 0.0, 0.0 })) *
-        Geometry::scale_transform(scale_factor);
+    // ORCA Rotate the model depends on printing angle around nozzle tip
+    const Transform3d tilt(Eigen::Quaterniond::FromTwoVectors(Vec3d::UnitZ(), m_nozzle_axis));
+    const Transform3d model_matrix = Geometry::translation_transform(m_world_position.cast<double>()) * tilt *
+        Geometry::translation_transform((m_model_z_offset + scale_factor * m_model.get_bounding_box().size().z()) * Vec3d::UnitZ()) *
+        Geometry::rotation_transform({ M_PI, 0.0, 0.0 }) * Geometry::scale_transform(scale_factor);
     shader->set_uniform("view_model_matrix", view_matrix * model_matrix);
     shader->set_uniform("projection_matrix", camera.get_projection_matrix());
     const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
@@ -1533,6 +1535,8 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     }
     libvgcode::GCodeInputData data = libvgcode::convert(gcode_result, str_tool_colors, str_color_print_colors, m_viewer,
         apply_belt ? &belt_inv : nullptr);
+    // ORCA Layers lean along build plate tilt, so show them marker along it as well
+    m_sequential_view.marker.set_nozzle_axis(apply_belt ? build_plate_tilt_up_direction() : Vec3d::UnitZ());
 
 //#define ENABLE_DATA_EXPORT 1
 //#if ENABLE_DATA_EXPORT

@@ -87,6 +87,7 @@ public:
             float m_z_offset{ 0.0f };
             // z offset of the model
             float m_model_z_offset{ 0.5f };
+            Vec3d m_nozzle_axis{ Vec3d::UnitZ() }; // ORCA direction of printing, tilted for belt printers
             bool m_visible{ true };
             bool m_is_dark = false;
             // the G-code was exported with high_precision_gcode, so positions are shown with one more decimal
@@ -106,6 +107,7 @@ public:
             void set_world_position(const Vec3f& position) { m_world_position = position; }
             void set_world_offset(const Vec3f& offset) { m_world_offset = offset; }
             void set_z_offset(float z_offset) { m_z_offset = z_offset; }
+            void set_nozzle_axis(const Vec3d& axis) { m_nozzle_axis = axis.normalized(); } // ORCA
             void set_high_precision_gcode(bool high_precision) { m_high_precision_gcode = high_precision; }
 
 #if ENABLE_ACTUAL_SPEED_DEBUG
