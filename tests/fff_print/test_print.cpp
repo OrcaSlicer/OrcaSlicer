@@ -1400,6 +1400,36 @@ TEST_CASE("Sequential printing still rejects two objects over the rod height tha
     CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("too tall"));
 }
 
+TEST_CASE("Sequential print validation projects tall objects onto the gantry travel axis", "[Print][GantryTravel]")
+{
+    const bool separated_in_x = GENERATE(true, false);
+    const std::string axis = GENERATE("", "x", "y");
+    const bool travels_in_x = axis == "x";
+    DynamicPrintConfig cfg = DynamicPrintConfig::full_print_config();
+    cfg.set_deserialize_strict({
+        {"print_sequence", "by object"},
+        {"extruder_clearance_height_to_rod", 25}, {"extruder_clearance_height_to_lid", 100},
+        {"extruder_clearance_radius", 40}, {"skirt_loops", 0}, {"layer_change_gcode", "G92 E0\n"}
+    });
+    if (!axis.empty())
+        cfg.set_deserialize_strict("gantry_travel_axis", axis);
+    REQUIRE(cfg.opt_serialize("gantry_travel_axis") == (travels_in_x ? "x" : "y"));
+    auto a = make_cube(20, 20, 30);
+    auto b = a;
+    a.translate(40, 40, 0);
+    b.translate(separated_in_x ? 150 : 40, separated_in_x ? 40 : 150, 0);
+    Print print;
+    Model model;
+    Test::init_print({a, b}, print, model, cfg, nullptr, /*arrange=*/false);
+    const auto error = print.validate().string;
+    if (separated_in_x == travels_in_x) {
+        INFO(error);
+        CHECK(error.empty());
+    } else {
+        CHECK_THAT(error, Catch::Matchers::ContainsSubstring("too tall"));
+    }
+}
+
 TEST_CASE("Sequential printing keeps copies of one object in their list order", "[Print]")
 {
     // Every copy of an object shares its object index, so ordering by that alone leaves the copies to

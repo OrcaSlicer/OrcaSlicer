@@ -2,6 +2,7 @@
 
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ObjectID.hpp"
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Polygon.hpp"
 
 #include <algorithm>
@@ -39,7 +40,7 @@ inline void sort_sequential_clearance_instances(
 
 // Input follows object-list order with validated print order within each object.
 inline std::vector<std::pair<Polygon, float>> sequential_clearance_height_polygons(
-    const std::vector<SequentialClearanceInstance>& instances, double printable_height, double height_to_lid, double height_to_rod)
+    const std::vector<SequentialClearanceInstance>& instances, double printable_height, double height_to_lid, double height_to_rod, Axis sweep = Y)
 {
     std::vector<std::pair<Polygon, float>> height_polygons;
     height_polygons.reserve(instances.size());
@@ -48,8 +49,8 @@ inline std::vector<std::pair<Polygon, float>> sequential_clearance_height_polygo
         double height = k + 1 == instances.size() ? printable_height : height_to_lid;
         for (size_t i = k + 1; i < instances.size(); ++i) {
             const auto& next_bbox = instances[i].bounding_box;
-            if (std::min(instance.bounding_box.max.y(), next_bbox.max.y()) >
-                std::max(instance.bounding_box.min.y(), next_bbox.min.y())) {
+            if (std::min(instance.bounding_box.max[sweep], next_bbox.max[sweep]) >
+                std::max(instance.bounding_box.min[sweep], next_bbox.min[sweep])) {
                 height = height_to_rod;
                 break;
             }

@@ -7879,7 +7879,7 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         "printable_area", "bed_exclude_area", "bed_exclude_volumes", "bed_exclude_volume_mode", "extruder_bed_exclude_volumes", "extruder_offset",
         "wrapping_exclude_area", "extruder_printable_area", "bed_custom_texture", "bed_custom_model", "print_sequence",
         "extruder_clearance_radius",
-        "extruder_clearance_height_to_lid", "extruder_clearance_height_to_rod",
+        "gantry_travel_axis", "extruder_clearance_height_to_lid", "extruder_clearance_height_to_rod",
 		"nozzle_height", "skirt_type", "skirt_loops", "skirt_speed","min_skirt_length", "skirt_distance", "skirt_start_angle",
         "brim_width", "brim_object_gap", "brim_flow_ratio", "brim_use_efc_outline", "combine_brims", "brim_type", "nozzle_diameter", "single_extruder_multi_material", "preferred_orientation",
         "enable_prime_tower", "wipe_tower_x", "wipe_tower_y", "prime_tower_width", "prime_tower_brim_width", "prime_tower_skip_points", "prime_tower_enable_framework",
@@ -22041,6 +22041,10 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
             || opt_key == "extruder_clearance_height_to_lid"
             || opt_key == "extruder_clearance_height_to_rod") {
             bed_shape_changed = true;
+            update_scheduled = true;
+        }
+        else if (opt_key == "gantry_travel_axis") {
+            p->view3D->get_canvas3d()->reset_sequential_print_clearance();
             update_scheduled = true;
         }
         else if (opt_key == "bed_shape" || opt_key == "bed_custom_texture" || opt_key == "bed_custom_model") {

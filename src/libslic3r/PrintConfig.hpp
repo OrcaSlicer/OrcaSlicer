@@ -335,6 +335,8 @@ enum class SlicingMode
     CloseHoles,
 };
 
+enum class GantryTravelAxis { AlongX, AlongY };
+
 // Axis around which the mesh is rotated before slicing, when
 // `belt_slice_rotation` is set.  None disables the rotation stage.  This is the
 // single "belt tilt" axis: it drives both the pre-slice mesh rotation and the
@@ -806,6 +808,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(NoiseType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(IroningType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SlicingMode)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(GantryTravelAxis)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(BeltRotationAxis)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(RemapAxis)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialPattern)
@@ -883,6 +886,7 @@ extern const PrintConfigDef print_config_def;
 class StaticPrintConfig;
 
 // Minimum object distance for arrangement, based on printer technology.
+Axis gantry_travel_axis(const ConfigBase &cfg);
 double min_object_distance(const ConfigBase &cfg);
 
 // Whether any value is set, a nil value included.
@@ -2030,6 +2034,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionBools,              slow_down_for_layer_cooling))
     ((ConfigOptionInts,               close_fan_the_first_x_layers))
     ((ConfigOptionEnum<DraftShield>,  draft_shield))
+    ((ConfigOptionEnum<GantryTravelAxis>, gantry_travel_axis))
     ((ConfigOptionFloat,              extruder_clearance_dist_to_rod))//BBS
     ((ConfigOptionFloat,              extruder_clearance_height_to_rod))//BBs
     ((ConfigOptionFloat,              extruder_clearance_height_to_lid))//BBS

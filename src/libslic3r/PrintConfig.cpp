@@ -425,6 +425,12 @@ static t_config_enum_values s_keys_map_SlicingMode {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SlicingMode)
 
+static t_config_enum_values s_keys_map_GantryTravelAxis {
+    { "x",    int(GantryTravelAxis::AlongX) },
+    { "y",    int(GantryTravelAxis::AlongY) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(GantryTravelAxis)
+
 static t_config_enum_values s_keys_map_BeltRotationAxis {
     { "none", int(BeltRotationAxis::None) },
     { "x",    int(BeltRotationAxis::X) },
@@ -2819,6 +2825,18 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(40));
+
+    def = this->add("gantry_travel_axis", coEnum);
+    def->label = L("Gantry movement direction");
+    def->tooltip = L("Choose the axis along which the gantry moves relative to the bed. "
+                     "For standard CoreXY machines, select Y (front to back). "
+                     "For rotated CoreXY machines such as the Creator 5 Pro, select X (left to right). "
+                     "Orca uses this direction to arrange objects and check clearance during sequential printing.");
+    def->enum_keys_map = &ConfigOptionEnum<GantryTravelAxis>::get_enum_values();
+    def->enum_values = {"x", "y"};
+    def->enum_labels = {L("X"), L("Y")};
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<GantryTravelAxis>(GantryTravelAxis::AlongY));
 
     def = this->add("extruder_clearance_height_to_rod", coFloat);
     def->label = L("Height to rod");
@@ -10316,6 +10334,12 @@ DynamicPrintConfig* DynamicPrintConfig::new_from_defaults_keys(const std::vector
     auto *out = new DynamicPrintConfig();
     out->apply_only(FullPrintConfig::defaults(), keys);
     return out;
+}
+
+Axis gantry_travel_axis(const ConfigBase &cfg)
+{
+    const ConfigOption *setting = cfg.option("gantry_travel_axis");
+    return setting && setting->getInt() == int(GantryTravelAxis::AlongX) ? X : Y;
 }
 
 double min_object_distance(const ConfigBase &cfg)

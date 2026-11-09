@@ -215,57 +215,44 @@ namespace Slic3r {
             );
         }
 
+        const Axis sweep = gantry_travel_axis(print->config());
+        const int travel_extent = sweep == X ? m_plate_width : m_plate_height;
         std::sort(collision_obj_bboxs.begin(), collision_obj_bboxs.end(), [&](const auto& lbbox, const auto& rbbox) {
-            if (lbbox.min.y() == rbbox.min.y())
-                return lbbox.max.y() < rbbox.max.y();
-            return lbbox.min.y() < rbbox.min.y();
+            if (lbbox.min[sweep] == rbbox.min[sweep])
+                return lbbox.max[sweep] < rbbox.max[sweep];
+            return lbbox.min[sweep] < rbbox.min[sweep];
             });
 
-        std::vector<std::pair<int,int>> object_y_ranges = {{0,0}};
+        std::vector<std::pair<int,int>> ranges = {{0,0}};
         for(auto& bbox : collision_obj_bboxs){
-            if( object_y_ranges.back().second >= bbox.min.y())
-                object_y_ranges.back().second = bbox.max.y();
+            if( ranges.back().second >= bbox.min[sweep])
+                ranges.back().second = bbox.max[sweep];
             else
-                object_y_ranges.emplace_back(bbox.min.y(), bbox.max.y());
+                ranges.emplace_back(bbox.min[sweep], bbox.max[sweep]);
         }
 
-        if (object_y_ranges.back().second < m_plate_height)
-            object_y_ranges.emplace_back(m_plate_height, m_plate_height);
+        if (ranges.back().second < travel_extent)
+            ranges.emplace_back(travel_extent, travel_extent);
 
-        int lower_y_pos = -1, upper_y_pos =-1;
+        int lower = -1, upper =-1;
         Point unscaled_curr_pos = {unscale_(ctx.curr_pos.x())-m_plate_offset.x(), unscale_(ctx.curr_pos.y()) - m_plate_offset.y()};
 
-        for (size_t idx = 1; idx < object_y_ranges.size(); ++idx) {
-            if (unscaled_curr_pos.y() >= object_y_ranges[idx - 1].second && unscaled_curr_pos.y() <= object_y_ranges[idx].first) {
-                lower_y_pos = object_y_ranges[idx - 1].second;
-                upper_y_pos = object_y_ranges[idx].first;
+        for (size_t idx = 1; idx < ranges.size(); ++idx) {
+            if (unscaled_curr_pos[sweep] >= ranges[idx - 1].second && unscaled_curr_pos[sweep] <= ranges[idx].first) {
+                lower = ranges[idx - 1].second;
+                upper = ranges[idx].first;
                 break;
             }
         }
 
-        if(lower_y_pos == -1 && upper_y_pos == -1)
+        if(lower == -1 && upper == -1)
             return { m_bed_polygon };
 
-        Polygons ret;
-
-        ret.emplace_back(
-            Polygon{
-                Point{scale_(0), scale_(0)},
-                Point{scale_(m_plate_width), scale_(0)},
-                Point{scale_(m_plate_width), scale_(lower_y_pos)},
-                Point{scale_(0), scale_(lower_y_pos)}
-            }
-        );
-
-        ret.emplace_back(
-            Polygon{
-                Point{scale_(0), scale_(upper_y_pos)},
-                Point{scale_(m_plate_width), scale_(upper_y_pos)},
-                Point{scale_(m_plate_width), scale_(m_plate_height)},
-                Point{scale_(0), scale_(m_plate_height)}
-            }
-        );
-        return ret;
+        BoundingBox before(Point(0, 0), Point::new_scale(m_plate_width, m_plate_height));
+        BoundingBox after = before;
+        before.max[sweep] = scale_(lower);
+        after.min[sweep] = scale_(upper);
+        return {before.polygon(), after.polygon()};
     }
 
 

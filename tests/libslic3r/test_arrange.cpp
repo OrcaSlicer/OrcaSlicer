@@ -193,6 +193,29 @@ TEST_CASE("overlap_area detects overlap and ignores touching edges", "[Arrange]"
     }
 }
 
+TEST_CASE("Arrange separates tall objects along the gantry travel axis", "[Arrange][GantryTravel]")
+{
+    const bool use_x = GENERATE(false, true);
+    DynamicPrintConfig cfg = bed_config();
+    if (use_x)
+        cfg.set_deserialize_strict("gantry_travel_axis", "x");
+    auto items = squares(2, 20., 60.);
+    for (auto &item : items)
+        item.extrude_ids = {1};
+    auto params = seq_print_params(0);
+    params.clearance_height_to_rod = 40;
+    params.clearance_height_to_lid = 120;
+    update_arrange_params(params, &cfg, items);
+    update_selected_items_inflation(items, &cfg, params);
+    arrange(items, get_shrink_bedpts(&cfg, params), params);
+    REQUIRE(items[0].bed_idx == 0);
+    REQUIRE(items[1].bed_idx == 0);
+    const auto a = items[0].transformed_poly().contour.bounding_box();
+    const auto b = items[1].transformed_poly().contour.bounding_box();
+    const Axis sweep = use_x ? X : Y;
+    CHECK(std::max(a.min[sweep], b.min[sweep]) - std::min(a.max[sweep], b.max[sweep]) >= scaled(CLEARANCE_MM - 0.1));
+}
+
 TEST_CASE("Arrange places every item on the physical bed", "[Arrange]")
 {
     ArrangePolygons items = squares(5, 20.);
