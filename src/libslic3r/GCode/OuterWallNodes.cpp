@@ -5,8 +5,10 @@
 #include <cstddef>
 #include <limits>
 #include <numeric>
+#include <utility>
 #include <vector>
 
+#include "libslic3r/AABBTreeIndirect.hpp"
 #include "libslic3r/AABBTreeLines.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
@@ -95,7 +97,8 @@ public:
     {
         size_t hit_idx = 0;
         Vec2d  hit_pt  = Vec2d::Zero();
-        const double sqr = AABBTreeLines::squared_distance_to_indexed_lines(m_lines, m_tree, pt.cast<double>(), hit_idx, hit_pt);
+        const Vec2d  p   = pt.cast<double>();
+        const double sqr = AABBTreeLines::squared_distance_to_indexed_lines(m_lines, m_tree, p, hit_idx, hit_pt);
         return sqr < 0. ? std::numeric_limits<double>::max() : std::sqrt(sqr);
     }
 
