@@ -1590,10 +1590,10 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBools{ true });
 
     def = this->add("overhang_fan_speed", coInts);
-    def->label = L("Overhangs and external bridges fan speed");
-    def->tooltip = L("Use this part cooling fan speed when printing bridges or overhang walls with an overhang threshold that exceeds "
+    def->label = L("Overhangs fan speed");
+    def->tooltip = L("Use this part cooling fan speed when printing overhang walls with an overhang threshold that exceeds "
                      "the value set in the 'Overhangs cooling threshold' parameter above. Increasing the cooling specifically for overhangs "
-                     "and bridges can improve the overall print quality of these features.\n\n"
+                     "can improve the overall print quality of these features.\n\n"
                      "Please note, this fan speed is clamped on the lower end by the minimum fan speed threshold set above. It is also adjusted "
                      "upwards up to the maximum fan speed threshold when the minimum layer time threshold is not met.");
     def->sidetext = "%";
@@ -4175,7 +4175,19 @@ void PrintConfigDef::init_fff_params()
     def->max = 100;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInts{ -1 });
-    
+
+    // ORCA: Add support for separate external bridge fan speed control
+    def          = this->add("external_bridge_fan_speed", coInts);
+    def->label   = L("External bridges fan speed");
+    def->tooltip = L(
+        "The part cooling fan speed used for all external bridges. Set to -1 to use the overhang fan speed settings instead.\n\n"
+        "Reducing the external bridges fan speed, compared to your regular fan speed, can help reduce risk of blowing the bridges out.");
+    def->sidetext = "%";
+    def->min      = -1;
+    def->max      = 100;
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionInts{-1});
+
     def = this->add("ironing_fan_speed", coInts);
     def->label = L("Ironing fan speed");
     def->tooltip = L("This part cooling fan speed is applied when ironing. Setting this parameter to a lower than regular speed "
