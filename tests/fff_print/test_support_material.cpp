@@ -7,9 +7,15 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/GCodeReader.hpp"
+#include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Flow.hpp"
 #include "libslic3r/Layer.hpp"
+#include "libslic3r/TriangleSelector.hpp"
 
+#include <array>
 #include <cmath>
+#include <limits>
 #include <cstddef>
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/PrintBase.hpp"
@@ -30,11 +36,1433 @@
 // Not self-contained: its inline constructor uses PrintObject, PrintRegion, SlicingParameters and
 // Geometry, so it must follow the headers (pulled in via test_helpers.hpp) that define them.
 #include "libslic3r/Support/SupportParameters.hpp"
-#include "libslic3r/Config.hpp"
 #include "libslic3r/Print.hpp"
 
 using namespace Slic3r::Test;
 using namespace Slic3r;
+
+struct FinRun {
+    size_t first_layer_paths = 0;
+    size_t first_layer_closed_paths = 0;
+    size_t first_layer_islands = 0;
+    size_t contact_layers = 0;
+    size_t gap_layers = 0;
+    double foot_short_span = 0;
+    double foot_long_span = 0;
+    double outer_edge_spread = 0;
+    double contact_edge_overrun = 0;
+    size_t closed_paths = 0;
+    size_t open_paths = 0;
+    size_t contact_starts = 0;
+    double body_thickness = 0;
+    double contact_width = 0;
+    size_t contact_tip_vertices = 0;
+    size_t unsupported_contact_vertices = 0;
+    size_t min_body_paths = std::numeric_limits<size_t>::max();
+    size_t supported_contact_fronts = 0;
+    double unsupported_contact_length = 0;
+    double support_top_z = 0;
+    double contact_top_z = 0;
+    double contact_bottom_z = std::numeric_limits<double>::infinity();
+    std::map<double, double> penetration_by_layer;
+    size_t projection_layers = 0;
+    double projection_front_span = 0;
+    double min_projection_gap = std::numeric_limits<double>::infinity();
+    double top_outer_depth = 0;
+    double first_body_z = 0;
+    size_t first_body_paths = 0;
+    size_t top_body_paths = 0;
+    std::vector<Vec2d> top_body_directions;
+    bool positive_x_sheet = false;
+    bool negative_x_sheet = false;
+    bool lower_y_contact = false;
+    bool upper_y_contact = false;
+    std::vector<double> top_contact_y;
+    double max_fin_center_overlap = 0;
+    double max_projection_side_overrun = 0;
+    double projection_plane_drift = 0;
+    size_t projection_plane_samples = 0;
+    size_t bounded_projection_vertices = 0;
+};
+
+static FinRun slice_fins(double max_spacing, bool paint = true, double lean = 0,
+                         double thickness = 1.2, double contact_width = 1.2,
+                         int wall_count = 0, double projection_angle = 30,
+                         bool contact_percent = false, bool thickness_percent = false, double outer_width = 0.4,
+                         double contact_spacing = 8.0, double expansion_factor = 0,
+                         double model_height = 60, double model_width = 6,
+                         const indexed_triangle_set *custom_mesh = nullptr, double lean_y = 0,
+                         bool paint_all_sides = false, bool measure_projection_bounds = false, bool half_painted_face = false,
+                         bool zaa_enabled = false, double zaa_min_z = 0,
+                         double painted_max_z = std::numeric_limits<double>::infinity(),
+                          const char *fin_style = "simulated",
+                          double painted_min_z = -std::numeric_limits<double>::infinity(),
+                          double object_gap = 0.6, double first_layer_expansion = 2.,
+                          double top_z_distance = 0.2, double layer_height = 0.2,
+                          double contact_penetration = 0.,
+                          const indexed_triangle_set *contact_blocker = nullptr,
+                          double contact_height = 0.6)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "enable_support", 1 }, { "support_type", "fin" }, { "fin_support_style", fin_style },
+        { "fin_support_max_spacing", max_spacing },
+        { "fin_support_depth", 8.0 },
+        { "fin_support_expansion_factor", expansion_factor },
+        { "outer_wall_line_width", outer_width },
+        { "support_object_xy_distance", object_gap }, { "support_line_width", 0.4 },
+        { "support_top_z_distance", top_z_distance },
+        { "raft_first_layer_expansion", first_layer_expansion },
+        { "fin_support_contact_height", contact_height }, { "fin_support_contact_start_height", 0.0 },
+        { "fin_support_contact_penetration", contact_penetration },
+        { "fin_support_contact_spacing", contact_spacing },
+        { "tree_support_wall_count", wall_count }, { "fin_support_contact_projection_angle", projection_angle },
+        { "layer_height", layer_height },
+        { "initial_layer_print_height", layer_height },
+        { "zaa_enabled", zaa_enabled ? 1 : 0 }, { "zaa_min_z", zaa_min_z },
+    });
+    config.set_key_value("fin_support_contact_width", new ConfigOptionFloatOrPercent(contact_width, contact_percent));
+    config.set_key_value("fin_support_thickness", new ConfigOptionFloatOrPercent(thickness, thickness_percent));
+    Model model;
+    Print print;
+    indexed_triangle_set mesh = custom_mesh == nullptr ? its_make_cube(model_width, 60, model_height) : *custom_mesh;
+    for (Vec3f &vertex : mesh.vertices) {
+        vertex.x() += float(lean * vertex.z());
+        vertex.y() += float(lean_y * vertex.z());
+    }
+    init_print({ TriangleMesh(std::move(mesh)) }, print, model, config);
+    if (paint) {
+        ModelVolume *volume = model.objects.front()->volumes.front();
+        TriangleSelector selector(volume->mesh());
+        const indexed_triangle_set &mesh = volume->mesh().its;
+        bool painted_one_face_facet = false;
+        for (size_t i = 0; i < mesh.indices.size(); ++i) {
+            const auto &f = mesh.indices[i];
+            const Vec3f n = (mesh.vertices[f(1)] - mesh.vertices[f(0)]).cross(
+                            mesh.vertices[f(2)] - mesh.vertices[f(0)]).normalized();
+            if (n.x() > 0.5f || (paint_all_sides && n.head<2>().norm() > 0.5f)) {
+                const float facet_mid_z = (mesh.vertices[f(0)].z() + mesh.vertices[f(1)].z() +
+                                           mesh.vertices[f(2)].z()) / 3.f;
+                if (facet_mid_z < painted_min_z || facet_mid_z > painted_max_z)
+                    continue;
+                // A cube's side has two triangles; one is half the same plane.
+                if (half_painted_face && painted_one_face_facet)
+                    continue;
+                selector.set_facet(i, EnforcerBlockerType::ENFORCER);
+                painted_one_face_facet = true;
+            }
+        }
+        REQUIRE(volume->supported_facets.set(selector));
+    }
+    if (contact_blocker != nullptr)
+        model.objects.front()->add_volume(TriangleMesh(*contact_blocker), ModelVolumeType::SUPPORT_BLOCKER);
+    print.apply(model, config);
+    print.process();
+    const PrintObject *object = print.objects().front();
+    const auto layers = object->support_layers();
+    FinRun result;
+    if (layers.empty())
+        return result;
+    result.first_layer_paths = layers.front()->support_fills.entities.size();
+    result.first_layer_islands = layers.front()->support_islands.size();
+    for (const ExtrusionEntity *entity : layers.front()->support_fills.entities) {
+        const auto *path = dynamic_cast<const ExtrusionPath *>(entity);
+        REQUIRE(path != nullptr);
+        result.first_layer_closed_paths += path->first_point() == path->last_point();
+    }
+    for (const ExPolygon &island : layers.front()->support_islands) {
+        const Vec2d size = unscale(get_extents(island).size());
+        result.foot_short_span = std::max(result.foot_short_span, std::min(size.x(), size.y()));
+        result.foot_long_span = std::max(result.foot_long_span, std::max(size.x(), size.y()));
+    }
+    double min_outer = std::numeric_limits<double>::infinity();
+    double max_outer = -std::numeric_limits<double>::infinity();
+    const auto model_layers = object->layers();
+    const double fin_half_width = 0.5 * support_material_flow(object).width();
+    const SupportLayer *previous_layer = nullptr;
+    std::vector<Points> projection_rings;
+    std::vector<Vec2d> projection_front_centers;
+    for (const SupportLayer *layer : layers) {
+        result.support_top_z = std::max(result.support_top_z, layer->print_z);
+        Points points;
+        layer->support_fills.collect_points(points);
+        if (points.empty())
+            continue;
+        const coord_t min_x = std::min_element(points.begin(), points.end(),
+            [](const Point &a, const Point &b) { return a.x() < b.x(); })->x();
+        const auto model_layer = std::find_if(model_layers.begin(), model_layers.end(),
+            [layer](const Layer *candidate) { return std::abs(candidate->print_z - layer->print_z) < 1e-6; });
+        REQUIRE(model_layer != model_layers.end());
+        const BoundingBox model_bounds = get_extents((*model_layer)->lslices);
+        const Vec2d model_size = unscale(model_bounds.size());
+        if (layer->print_z > 15 && layer->print_z < 25 && model_size.y() < 20)
+            result.lower_y_contact |= std::any_of(points.begin(), points.end(), [&](const Point &point) {
+                const double gap = unscale<double>(point.y() - model_bounds.max.y());
+                return std::abs(unscale<double>(point.x() - model_bounds.center().x())) < 1 && gap > 0 && gap < 0.45;
+            });
+        if (layer->print_z > 40 && layer->print_z < 55 && model_size.y() > 50)
+            result.upper_y_contact |= std::any_of(points.begin(), points.end(), [&](const Point &point) {
+                const double gap = unscale<double>(point.y() - model_bounds.max.y());
+                return std::abs(unscale<double>(point.x() - model_bounds.center().x())) < 1 && gap > 0 && gap < 0.45;
+            });
+        const coord_t face_x = model_bounds.max.x();
+        const double distance = unscale<double>(min_x - face_x) - fin_half_width;
+        result.contact_layers += distance < 0.01;
+        if (distance < 0.01) {
+            result.contact_top_z = std::max(result.contact_top_z, layer->print_z);
+            result.contact_bottom_z = std::min(result.contact_bottom_z, layer->print_z);
+        }
+        result.gap_layers += distance > 0.4;
+        if (layer != layers.front()) {
+            // Keep signed distances on every non-foot layer, including gaps.
+            result.penetration_by_layer.emplace(layer->print_z, -distance);
+            ExPolygons fin_center_areas;
+            if (result.first_body_z == 0) {
+                result.first_body_z = layer->print_z;
+                result.first_body_paths = layer->support_fills.entities.size();
+            }
+            if (distance > 0.4)
+                result.min_body_paths = std::min(result.min_body_paths, layer->support_fills.entities.size());
+            for (const ExtrusionEntity *entity : layer->support_fills.entities) {
+                const auto *path = dynamic_cast<const ExtrusionPath *>(entity);
+                REQUIRE(path != nullptr);
+                result.closed_paths += (path->first_point() - path->last_point()).squaredNorm() == 0;
+                result.open_paths += (path->first_point() - path->last_point()).squaredNorm() != 0;
+                result.contact_starts += unscale<double>(path->first_point().x() - face_x) < fin_half_width + 0.01;
+                const Polyline ring_path = path->polyline.to_polyline();
+                const Points &ring = ring_path.points;
+                if (measure_projection_bounds)
+                    projection_rings.push_back(ring);
+                if (wall_count <= 1 && ring.size() >= 4 && ring.front() == ring.back()) {
+                    Points contour = ring;
+                    contour.pop_back();
+                    Polygon polygon(std::move(contour));
+                    polygon.make_counter_clockwise();
+                    const ExPolygon center_area(std::move(polygon));
+                    for (const ExPolygon &other : fin_center_areas) {
+                        const ExPolygons overlap = intersection_ex(ExPolygons{center_area}, ExPolygons{other});
+                        for (const ExPolygon &area : overlap)
+                            result.max_fin_center_overlap = std::max(result.max_fin_center_overlap,
+                                area.area() * SCALING_FACTOR * SCALING_FACTOR);
+                    }
+                    fin_center_areas.push_back(center_area);
+                }
+                const BoundingBox bounds = get_extents(ring);
+                Vec2d longest_edge = Vec2d::Zero();
+                for (size_t i = 1; i < ring.size(); ++i) {
+                    const Vec2d edge = unscale(ring[i] - ring[i - 1]);
+                    if (edge.squaredNorm() > longest_edge.squaredNorm())
+                        longest_edge = edge;
+                }
+                if (longest_edge.norm() > 0 && std::abs(longest_edge.normalized().x()) > 0.95) {
+                    const double offset = unscale<double>(bounds.center().x() - model_bounds.center().x());
+                    result.positive_x_sheet |= offset > 1.;
+                    result.negative_x_sheet |= offset < -1.;
+                }
+                if (layer == layers.back()) {
+                    ++result.top_body_paths;
+                    if (longest_edge.squaredNorm() > 0)
+                        result.top_body_directions.push_back(longest_edge.normalized());
+                    double front_min_y = std::numeric_limits<double>::infinity();
+                    double front_max_y = -std::numeric_limits<double>::infinity();
+                    for (const Point &point : ring)
+                        if (unscale<double>(point.x() - face_x) < fin_half_width + 0.01) {
+                            front_min_y = std::min(front_min_y, unscale<double>(point.y()));
+                            front_max_y = std::max(front_max_y, unscale<double>(point.y()));
+                        }
+                    if (front_max_y >= front_min_y)
+                        result.top_contact_y.push_back(0.5 * (front_min_y + front_max_y) -
+                            unscale<double>(model_bounds.center().y()));
+                }
+                const double front_gap = unscale<double>(bounds.min.x() - face_x) - fin_half_width;
+                if (front_gap > 0.01 && front_gap < 0.4) {
+                    result.min_projection_gap = std::min(result.min_projection_gap, front_gap);
+                    double front_min_y = std::numeric_limits<double>::infinity();
+                    double front_max_y = -std::numeric_limits<double>::infinity();
+                    for (const Point &point : ring)
+                        if (point.x() == bounds.min.x()) {
+                            front_min_y = std::min(front_min_y, unscale<double>(point.y()));
+                            front_max_y = std::max(front_max_y, unscale<double>(point.y()));
+                        }
+                    ++result.projection_layers;
+                    result.projection_front_span = std::max(result.projection_front_span, front_max_y - front_min_y);
+                    projection_front_centers.emplace_back(unscale<double>(bounds.min.x()),
+                                                          0.5 * (front_min_y + front_max_y));
+                }
+                if (front_gap > 0.4 && longest_edge.squaredNorm() > 0) {
+                    const Vec2d axis = longest_edge.normalized();
+                    const Vec2d side(-axis.y(), axis.x());
+                    double minimum = std::numeric_limits<double>::infinity();
+                    double maximum = -std::numeric_limits<double>::infinity();
+                    for (const Point &point : ring) {
+                        const double position = unscale(point).dot(side);
+                        minimum = std::min(minimum, position);
+                        maximum = std::max(maximum, position);
+                    }
+                    result.body_thickness = std::max(result.body_thickness, maximum - minimum + 2 * fin_half_width);
+                }
+                double front_min = std::numeric_limits<double>::infinity();
+                double front_max = -std::numeric_limits<double>::infinity();
+                for (const Point &point : ring) {
+                    if (unscale<double>(point.x() - face_x) - fin_half_width < 0.01) {
+                        front_min = std::min(front_min, unscale<double>(point.y()));
+                        front_max = std::max(front_max, unscale<double>(point.y()));
+                    }
+                }
+                if (front_max >= front_min) {
+                    result.contact_width = std::max(result.contact_width, front_max - front_min);
+                }
+                if (previous_layer != nullptr) {
+                    const ExPolygons supporting_area = offset_ex(previous_layer->support_islands, float(SCALED_EPSILON));
+                    for (const Point &point : ring) {
+                        if (std::abs(unscale<double>(point.x() - face_x) - fin_half_width) >= 0.01)
+                            continue;
+                        ++result.contact_tip_vertices;
+                        const bool supported = std::any_of(supporting_area.begin(), supporting_area.end(),
+                            [&point](const ExPolygon &area) { return area.contains(point); });
+                        result.unsupported_contact_vertices += !supported;
+                    }
+                    for (size_t i = 1; i < ring.size(); ++i) {
+                        const double a_gap = unscale<double>(ring[i - 1].x() - face_x) - fin_half_width;
+                        const double b_gap = unscale<double>(ring[i].x() - face_x) - fin_half_width;
+                        if (std::abs(a_gap) >= 0.01 || std::abs(b_gap) >= 0.01)
+                            continue;
+                        Polyline front;
+                        front.points = {ring[i - 1], ring[i]};
+                        ++result.supported_contact_fronts;
+                        for (const Polyline &unsupported : diff_pl(Polylines{front}, supporting_area))
+                            result.unsupported_contact_length += unscale<double>(unsupported.length());
+                    }
+                }
+            }
+            for (const Point &point : points) {
+                if (unscale<double>(point.x() - face_x) - fin_half_width < 0.2) {
+                    const double clearance = std::min(unscale<double>(point.y() - model_bounds.min.y()),
+                                                      unscale<double>(model_bounds.max.y() - point.y()));
+                    result.contact_edge_overrun = std::max(result.contact_edge_overrun, fin_half_width - clearance);
+                }
+            }
+            const coord_t outer_x = std::max_element(points.begin(), points.end(),
+                [](const Point &a, const Point &b) { return a.x() < b.x(); })->x();
+            min_outer = std::min(min_outer, unscale<double>(outer_x));
+            max_outer = std::max(max_outer, unscale<double>(outer_x));
+            if (layer == layers.back())
+                result.top_outer_depth = unscale<double>(outer_x - face_x) + fin_half_width;
+        }
+        previous_layer = layer;
+    }
+    result.outer_edge_spread = max_outer - min_outer;
+    if (measure_projection_bounds && result.top_body_paths == 1 && result.top_contact_y.size() == 1) {
+        Vec2d direction = result.top_body_directions.front();
+        if (direction.x() < 0)
+            direction = -direction;
+        const Vec2d tangent(-direction.y(), direction.x());
+        if (!projection_front_centers.empty()) {
+            result.projection_plane_samples = projection_front_centers.size();
+            double minimum = std::numeric_limits<double>::infinity();
+            double maximum = -std::numeric_limits<double>::infinity();
+            for (const Vec2d &center : projection_front_centers) {
+                minimum = std::min(minimum, center.dot(tangent));
+                maximum = std::max(maximum, center.dot(tangent));
+            }
+            result.projection_plane_drift = maximum - minimum;
+        }
+        const BoundingBox top_bounds = get_extents(model_layers.back()->lslices);
+        const Vec2d seed(unscale<double>(top_bounds.max.x()),
+                         unscale<double>(top_bounds.center().y()) + result.top_contact_y.front());
+        const double actual_thickness = config.option<ConfigOptionFloatOrPercent>("fin_support_thickness")->get_abs_value(
+            support_material_flow(object).width());
+        const double overlap_end = (0.6 + 0.5 * actual_thickness * std::abs(tangent.x())) / direction.x() +
+                                   3 * fin_half_width;
+        for (const Points &ring : projection_rings)
+            for (const Point &point : ring) {
+                const Vec2d relative = unscale(point) - seed;
+                if (relative.dot(direction) <= overlap_end + 0.01)
+                    continue;
+                ++result.bounded_projection_vertices;
+                result.max_projection_side_overrun = std::max(result.max_projection_side_overrun,
+                    std::abs(relative.dot(tangent)) - 0.5 * actual_thickness + fin_half_width);
+            }
+    }
+    return result;
+}
+
+TEST_CASE("Painted shape contacts stop when upper walls cover more than one fin line width", "[SupportMaterial][Regression]")
+{
+    const double slope = 1.25; // More than 45 degrees from vertical.
+    const double layer_height = GENERATE(0.1, 0.2);
+    const double painted_width = GENERATE(4., 60.);
+    const double height = 30.;
+    const indexed_triangle_set mesh = its_make_cube(6., painted_width, height);
+    // Paint only the lower triangle of the +X face. Its trimmed intent ends
+    // below the model top, so upper model sections exist above the root band.
+    // Narrow and wide patches exercise finite-line and point body inputs.
+    auto slice = [&](double z_gap) {
+        return slice_fins(20, true, slope, 1.2, 0.4, 1, 30,
+            false, false, 0.4, 8, 0, height, 6, &mesh, 0,
+            false, false, false, false, 0, height / 2., "painted_shape",
+            -std::numeric_limits<double>::infinity(), 0.6, 2., z_gap, layer_height);
+    };
+    CAPTURE(slope, layer_height, painted_width);
+    // Zero Z gap retains its existing contact behavior.
+    REQUIRE(slice(0.).first_layer_paths > 0);
+    // At most 0.2 mm upward reaches 0.25 mm into the 0.4 mm-wide fin
+    // contact. The steep face can still make its intended side contact.
+    const FinRun shallow_coverage = slice(0.2);
+    REQUIRE(shallow_coverage.first_layer_paths > 0);
+    REQUIRE(shallow_coverage.contact_layers > 0);
+    // The same angle over a taller inspected interval covers more than one
+    // fin line width. The highest band cannot start under that wall coverage.
+    REQUIRE(slice(0.8).first_layer_paths == 0);
+}
+
+TEST_CASE("Fin style defaults to the existing simulated planner", "[SupportMaterial]")
+{
+    const ConfigOptionDef *style_def = print_config_def.get("fin_support_style");
+    REQUIRE(style_def != nullptr);
+    REQUIRE(style_def->enum_keys_map != nullptr);
+    for (size_t selection = 0; selection < style_def->enum_values.size(); ++selection)
+        REQUIRE(style_def->enum_keys_map->at(style_def->enum_values[selection]) == int(selection));
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    REQUIRE(config.opt_enum<FinSupportStyle>("fin_support_style") == fssSimulated);
+    config.set_deserialize("fin_support_style", "simple");
+    REQUIRE(config.opt_enum<FinSupportStyle>("fin_support_style") == fssSimple);
+    config.set_deserialize("fin_support_style", "painted_shape");
+    REQUIRE(config.opt_enum<FinSupportStyle>("fin_support_style") == fssPaintedShape);
+}
+
+TEST_CASE("Painted shape creates one centered fin for one painted island", "[SupportMaterial]")
+{
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.4, 1, 30,
+                                     false, false, 0.4, 8, 0, 30, 6, nullptr, 0,
+                                     false, false, false, false, 0,
+                                     std::numeric_limits<double>::infinity(), "painted_shape");
+    REQUIRE(result.first_layer_paths > 0);
+    REQUIRE(result.top_body_paths == 1);
+    REQUIRE(result.support_top_z > 15.);
+    REQUIRE(result.support_top_z < 15.5);
+}
+
+TEST_CASE("Painted shape keeps a connected painted shell printable after macro partitioning", "[SupportMaterial]")
+{
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.4, 1, 30,
+                                     false, false, 0.4, 8, 0, 30, 6, nullptr, 0,
+                                     true, false, false, false, 0,
+                                     std::numeric_limits<double>::infinity(), "painted_shape");
+    REQUIRE(result.top_body_paths > 0);
+    REQUIRE(result.top_body_paths <= 8);
+}
+
+TEST_CASE("Painted shape seed authorizes lower contacts on its traced wall", "[SupportMaterial]")
+{
+    // Only the upper side triangle is painted. Its point seed remains strictly
+    // painted, while periodic contacts may follow the same continuous wall below it.
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.4, 1, 30,
+                                     false, false, 0.4, 8, 0, 60, 6, nullptr, 0,
+                                     false, false, false, false, 0,
+                                     std::numeric_limits<double>::infinity(), "painted_shape", 30);
+    REQUIRE(result.first_layer_paths > 0);
+    REQUIRE(result.contact_layers > 3);
+    REQUIRE(result.contact_bottom_z < 20.);
+}
+
+TEST_CASE("Painted shape uses its region normal on a locally upward side", "[SupportMaterial]")
+{
+    // Shearing the cube toward -X makes the painted +X wall face partly upward.
+    // Its connected painted region is still a side surface and must retain one seed.
+    const FinRun result = slice_fins(20, true, -0.1, 1.2, 0.4, 1, 30,
+                                     false, false, 0.4, 8, 0, 30, 6, nullptr, 0,
+                                     false, false, false, false, 0,
+                                     std::numeric_limits<double>::infinity(), "painted_shape");
+    REQUIRE(result.first_layer_paths > 0);
+    REQUIRE(result.top_body_paths == 1);
+}
+
+TEST_CASE("Painted shape retains a high seed on a narrow vertical painted island", "[SupportMaterial]")
+{
+    const indexed_triangle_set mesh = its_make_cube(6, 4, 30);
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.4, 1, 30,
+                                     false, false, 0.4, 8, 0, 30, 6, &mesh, 0,
+                                     false, false, false, false, 0,
+                                     std::numeric_limits<double>::infinity(), "painted_shape");
+    REQUIRE(result.first_layer_paths > 0);
+    REQUIRE(result.top_body_paths == 1);
+    // The highest retained green node follows source trimming; it must not
+    // fall back to the stroke center when its XY projection degenerates.
+    REQUIRE(result.support_top_z > 0.75 * 30.);
+    REQUIRE(std::any_of(result.top_body_directions.begin(), result.top_body_directions.end(),
+                        [](const Vec2d &direction) { return std::abs(direction.x()) > 0.95; }));
+}
+
+TEST_CASE("Painted shape falls one horizontal line intent back to one point", "[SupportMaterial]")
+{
+    // The painted +X face is much wider in Y than it is tall. Its contracted
+    // axis is perpendicular to the face normal, so the complete line intent
+    // exceeds the configured sheet limit and must create one point fin.
+    const indexed_triangle_set mesh = its_make_cube(6, 30, 4);
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.4, 1, 30,
+                                     false, false, 0.4, 8, 0, 4, 6, &mesh, 0,
+                                     false, false, false, false, 0,
+                                     std::numeric_limits<double>::infinity(), "painted_shape");
+    REQUIRE(result.first_layer_paths > 0);
+    REQUIRE(result.top_body_paths == 1);
+}
+
+TEST_CASE("Painted shape keeps nearby disconnected painted islands independent", "[SupportMaterial]")
+{
+    // The 0.3 mm gap is smaller than the 0.4 mm support line width.
+    // Intent extraction must keep these separate painted components independent.
+    indexed_triangle_set mesh = its_make_cube(6, 14, 4);
+    indexed_triangle_set continuation = its_make_cube(6, 14, 4);
+    its_transform(continuation, identity3f().translate(Vec3f{0.f, 14.3f, 0.f}));
+    its_merge(mesh, continuation);
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.4, 1, 30,
+                                     false, false, 0.4, 8, 0, 4, 6, &mesh, 0,
+                                     false, false, false, false, 0,
+                                     std::numeric_limits<double>::infinity(), "painted_shape");
+    REQUIRE(result.first_layer_paths > 0);
+    REQUIRE(result.top_body_paths == 2);
+}
+
+TEST_CASE("Ordinary painted strokes switch to point fins at an eighty degree face angle", "[SupportMaterial]")
+{
+    const double face_angle = GENERATE(79.9, 80.1, 90.);
+    const double lean = std::tan((90. - face_angle) * M_PI / 180.);
+    const double height = 30.;
+    const indexed_triangle_set mesh = its_make_cube(6, 4, height);
+    const FinRun result = slice_fins(20, true, lean, 1.2, 0.4, 1, 30,
+        false, false, 0.4, 8, 0, height, 6, &mesh, 0,
+        false, false, false, false, 0,
+        std::numeric_limits<double>::infinity(), "painted_shape");
+    REQUIRE(result.first_layer_paths > 0);
+    REQUIRE(result.top_body_paths == 1);
+    // End trimming may lower the green high end, but it must not use the
+    // stroke's midpoint. Point fins have no extra relocated line-root stem.
+    REQUIRE(result.support_top_z > 0.75 * height);
+    if (face_angle >= 80.)
+        REQUIRE_THAT(result.top_outer_depth, Catch::Matchers::WithinAbs(8., 0.01));
+    else
+        REQUIRE(result.top_outer_depth > 8.4);
+}
+
+TEST_CASE("Ordinary painted point fins use the full expansion factor on tilted faces", "[SupportMaterial]")
+{
+    const double face_angle = GENERATE(70., 85., 90.);
+    const double lean = std::tan((90. - face_angle) * M_PI / 180.);
+    const double factor = 0.05;
+    // This wide painted face gives a horizontal ordinary intent, so point
+    // expansion is checked on both sides of the near-vertical threshold.
+    const FinRun result = slice_fins(20, true, lean, 1.2, 0.4, 1, 30,
+        false, false, 0.4, 8, factor, 30, 6, nullptr, 0,
+        false, false, false, false, 0,
+        std::numeric_limits<double>::infinity(), "painted_shape");
+    REQUIRE(result.first_layer_paths > 0);
+    REQUIRE(result.top_body_paths == 1);
+    REQUIRE(result.support_top_z > result.first_body_z);
+    REQUIRE_THAT(result.outer_edge_spread, Catch::Matchers::WithinAbs(
+        factor * (result.support_top_z - result.first_body_z), 0.01));
+}
+
+TEST_CASE("Simple fins require painting and emit closed sheets from selected sites", "[SupportMaterial]")
+{
+    auto slice_simple = [](bool paint) {
+        return slice_fins(20, paint, 0, 1.2, 0.4, 1, 30,
+                          false, false, 0.4, 8, 0, 30, 6, nullptr, 0,
+                          false, false, false, false, 0,
+                          std::numeric_limits<double>::infinity(), "simple");
+    };
+    REQUIRE(slice_simple(false).first_layer_paths == 0);
+    const FinRun painted = slice_simple(true);
+    REQUIRE(painted.first_layer_paths > 0);
+    REQUIRE(painted.top_body_paths > 0);
+    REQUIRE(painted.contact_layers > 0);
+    REQUIRE(painted.open_paths == 0);
+}
+
+TEST_CASE("Simple fin contacts fit on the painted island edge", "[SupportMaterial]")
+{
+    const indexed_triangle_set mesh = its_make_cube(6, 1, 30);
+    auto slice_simple = [&](double contact_width) {
+        return slice_fins(20, true, 0, 2, contact_width, 1, 30,
+                          false, false, 0.4, 8, 0, 30, 6, &mesh, 0,
+                          false, false, false, false, 0,
+                          std::numeric_limits<double>::infinity(), "simple");
+    };
+    REQUIRE(slice_simple(1.2).first_layer_paths == 0);
+    REQUIRE(slice_simple(0.2).first_layer_paths > 0);
+}
+
+TEST_CASE("Simple fins reach the highest painted layer on an upward-leaning side", "[SupportMaterial]")
+{
+    const double height = 20.;
+    const FinRun result = slice_fins(20, true, -0.2, 1.2, 0.2, 1, 30,
+                                     false, false, 0.4, 8, 0, height, 6, nullptr, 0,
+                                     false, false, false, false, 0,
+                                     std::numeric_limits<double>::infinity(), "simple");
+    REQUIRE_THAT(result.support_top_z, Catch::Matchers::WithinAbs(height, 0.001));
+}
+
+TEST_CASE("Simple fins start in the top layer when only that layer is painted", "[SupportMaterial]")
+{
+    indexed_triangle_set mesh;
+    for (float z : {0.f, 19.8f, 19.98f, 20.f}) {
+        mesh.vertices.emplace_back(6.f, 60.f, z);
+        mesh.vertices.emplace_back(6.f, 0.f, z);
+        mesh.vertices.emplace_back(0.f, 0.f, z);
+        mesh.vertices.emplace_back(0.f, 60.f, z);
+    }
+    mesh.indices.emplace_back(0, 1, 2);
+    mesh.indices.emplace_back(0, 2, 3);
+    mesh.indices.emplace_back(12, 14, 13);
+    mesh.indices.emplace_back(12, 15, 14);
+    for (int band = 0; band < 3; ++band)
+        for (int side = 0; side < 4; ++side) {
+            const int a = 4 * band + side;
+            const int b = 4 * band + (side + 1) % 4;
+            mesh.indices.emplace_back(a, b + 4, b);
+            mesh.indices.emplace_back(a, a + 4, b + 4);
+        }
+
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.4, 1, 30,
+                                      false, false, 0.4, 8, 0, 20, 6, &mesh, 0,
+                                      false, false, false, false, 0,
+                                      19.98, "simple", 19.8);
+    REQUIRE(result.first_layer_paths > 0);
+    REQUIRE_THAT(result.support_top_z, Catch::Matchers::WithinAbs(20., 0.001));
+    REQUIRE(result.contact_layers == 1);
+    REQUIRE(result.projection_layers > 0);
+}
+
+TEST_CASE("Simple fins unite overlapping first-layer feet", "[SupportMaterial]")
+{
+    indexed_triangle_set mesh = its_make_cube(6, 1.2, 30);
+    indexed_triangle_set other = its_make_cube(6, 1.2, 30);
+    its_transform(other, identity3f().translate(Vec3f{0.f, 1.5f, 0.f}));
+    its_merge(mesh, other);
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.4, 1, 30,
+                                      false, false, 0.4, 8, 0, 30, 6, &mesh, 0,
+                                      false, false, false, false, 0,
+                                      std::numeric_limits<double>::infinity(), "simple");
+    REQUIRE(result.top_body_paths >= 2);
+    REQUIRE(result.first_layer_closed_paths == 1);
+}
+
+TEST_CASE("Simple fin feet use first-layer expansion and contacts follow their projection angle", "[SupportMaterial]")
+{
+    auto slice_simple = [](double expansion) {
+        return slice_fins(20, true, 0, 1.2, 0.4, 1, 60,
+                          false, false, 0.4, 8, 0, 30, 6, nullptr, 0,
+                          false, false, false, false, 0,
+                          std::numeric_limits<double>::infinity(), "simple",
+                          -std::numeric_limits<double>::infinity(), 0.6, expansion);
+    };
+    const FinRun compact = slice_simple(0.);
+    const FinRun expanded = slice_simple(2.);
+    REQUIRE(expanded.first_layer_paths > 0);
+    REQUIRE(expanded.foot_long_span > compact.foot_long_span + 1.8);
+    REQUIRE(expanded.projection_layers > 0);
+    REQUIRE_THAT(expanded.min_projection_gap, Catch::Matchers::WithinAbs(0.2 / std::tan(M_PI / 3), 0.005));
+}
+
+TEST_CASE("Simple fin unavailable ranges stay on their island contour", "[SupportMaterial]")
+{
+    indexed_triangle_set mesh = its_make_cube(6, 6, 30);
+    indexed_triangle_set other = its_make_cube(6, 6, 30);
+    its_transform(other, identity3f().translate(Vec3f{0.f, 10.f, 0.f}));
+    its_merge(mesh, other);
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.4, 1, 30,
+                                     false, false, 0.4, 8, 0, 30, 6, &mesh, 0,
+                                     false, false, false, false, 0,
+                                     std::numeric_limits<double>::infinity(), "simple");
+    REQUIRE(result.top_body_paths >= 2);
+}
+
+TEST_CASE("Fin support does not create contacts without painted sides", "[SupportMaterial]")
+{
+    REQUIRE(slice_fins(20, false).first_layer_paths == 0);
+}
+
+TEST_CASE("Fin count follows directional demand rather than uniform face spacing", "[SupportMaterial]")
+{
+    const FinRun first = slice_fins(30);
+    const FinRun second = slice_fins(10);
+    REQUIRE(first.top_body_paths > 0);
+    REQUIRE(first.top_body_paths <= 8);
+    REQUIRE(second.top_body_paths == first.top_body_paths);
+    const indexed_triangle_set wide = its_make_cube(6, 120, 60);
+    const FinRun large_face = slice_fins(30, true, 0, 1.2, 1.2, 1, 30,
+                                      false, false, 0.4, 8, 0, 60, 6, &wide);
+    REQUIRE(large_face.top_body_paths == first.top_body_paths);
+}
+
+TEST_CASE("The first fin attaches near the middle of a large painted plane", "[SupportMaterial]")
+{
+    const FinRun result = slice_fins(20);
+    REQUIRE(!result.top_contact_y.empty());
+    REQUIRE_THAT(result.top_contact_y.front(), Catch::Matchers::WithinAbs(0, 0.05));
+}
+
+TEST_CASE("Half painting a leaning plane does not rotate its fins", "[SupportMaterial]")
+{
+    const bool half_painted = GENERATE(false, true);
+    const FinRun result = slice_fins(20, true, 0.2, 1.2, 0.2, 1, 30,
+                                  false, false, 0.4, 8, 0, 60, 6, nullptr, 0,
+                                  false, false, half_painted);
+    REQUIRE(!result.top_body_directions.empty());
+    for (const Vec2d &direction : result.top_body_directions)
+        REQUIRE(std::abs(direction.y()) < 0.002);
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("A full painted side starts the fin at its highest printable layer", "[SupportMaterial]")
+{
+    const double height = 60.;
+    const FinRun result = slice_fins(20, true, 0.2, 1.2, 0.2, 1, 30,
+                                  false, false, 0.4, 8, 0, height);
+    REQUIRE(result.top_body_paths > 0);
+    REQUIRE_THAT(result.contact_top_z, Catch::Matchers::WithinAbs(height, 0.001));
+}
+
+TEST_CASE("Fin directions follow a continuous lean instead of angular bins", "[SupportMaterial]")
+{
+    const double angle = GENERATE(7., 17., 26.);
+    const double radians = angle * M_PI / 180.;
+    const FinRun result = slice_fins(20, true, 0.2, 1.2, 0.2, 1, 30,
+                                  false, false, 0.4, 8, 0, 60, 6, nullptr, 0.2 * std::tan(radians));
+    REQUIRE(!result.top_body_directions.empty());
+    const Vec2d expected(std::cos(radians), std::sin(radians));
+    REQUIRE(std::abs(result.top_body_directions.front().dot(expected)) > 0.9999);
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("An unavailable lean direction does not hide other feasible support", "[SupportMaterial]")
+{
+    const double angle = GENERATE(45., 61., 75., 90.);
+    const double radians = angle * M_PI / 180.;
+    const FinRun result = slice_fins(20, true, 0.2 * std::cos(radians), 1.2, 0.2, 1, 30,
+                                  false, false, 0.4, 8, 0, 60, 6, nullptr, 0.2 * std::sin(radians));
+    REQUIRE(result.top_body_paths > 0);
+    // The unavailable lean is not rotated to fit the face. The independently
+    // feasible +X bed demand still supplies a sheet after the lean is blocked.
+    for (const Vec2d &direction : result.top_body_directions)
+        REQUIRE(std::abs(direction.y()) < 0.002);
+}
+
+TEST_CASE("A cube resting on an edge receives fins on both sides of its narrow base", "[SupportMaterial]")
+{
+    const double side = 40.;
+    indexed_triangle_set mesh = its_make_cube(side, side, side);
+    const double c = std::sqrt(0.5);
+    for (Vec3f &vertex : mesh.vertices) {
+        const double x = vertex.x() - side / 2;
+        const double z = vertex.z() - side / 2;
+        vertex.x() = float(c * (x + z));
+        vertex.z() = float(c * (z - x) + side * c);
+    }
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.2, 1, 30,
+                                  false, false, 0.4, 8, 0, side * std::sqrt(2.), side,
+                                  &mesh, 0, true);
+    REQUIRE(result.positive_x_sheet);
+    REQUIRE(result.negative_x_sheet);
+    REQUIRE(result.max_fin_center_overlap < 1e-6);
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("Centered upper expansion supplies a direction beyond the bed axes", "[SupportMaterial]")
+{
+    const double degrees = GENERATE(25., 55.);
+    const double angle = degrees * M_PI / 180.;
+    const double c = std::cos(angle), sn = std::sin(angle);
+    indexed_triangle_set mesh;
+    const std::array<Vec2d, 4> corners{
+        Vec2d(-1, -1), Vec2d(1, -1), Vec2d(1, 1), Vec2d(-1, 1)};
+    for (const Vec2d &corner : corners)
+        mesh.vertices.emplace_back(float(7.5 * corner.x()), float(7.5 * corner.y()), 0.f);
+    for (const Vec2d &corner : corners) {
+        const double x = 30 * corner.x(), y = 4 * corner.y();
+        mesh.vertices.emplace_back(float(c * x - sn * y), float(sn * x + c * y), 60.f);
+    }
+    for (int i = 0; i < 4; ++i) {
+        const int next = (i + 1) % 4;
+        mesh.indices.emplace_back(i, next, next + 4);
+        mesh.indices.emplace_back(i, next + 4, i + 4);
+    }
+    mesh.indices.emplace_back(0, 2, 1);
+    mesh.indices.emplace_back(0, 3, 2);
+    mesh.indices.emplace_back(4, 5, 6);
+    mesh.indices.emplace_back(4, 6, 7);
+    // Opposite vertices preserve the same XY centroid at every height.
+    // The square bed has no preference for the rotated upper long axis.
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.2, 1, 30,
+                                  false, false, 0.4, 8, 0, 60, 15, &mesh, 0, true);
+    REQUIRE(!result.top_body_directions.empty());
+    const Vec2d expansion(c, sn);
+    REQUIRE(std::abs(result.top_body_directions.front().dot(expansion)) > std::cos(M_PI / 18.));
+    REQUIRE(result.max_fin_center_overlap < 1e-6);
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("Fins stay within thirty degrees of the only available painted face normal", "[SupportMaterial]")
+{
+    const FinRun result = slice_fins(20, true, 0.2, 1.2, 1.2, 1, 30,
+                                  false, false, 0.4, 8, 0, 60, 6, nullptr, 0.2 * std::tan(M_PI / 9.));
+    REQUIRE(!result.top_body_directions.empty());
+    const double minimum_alignment = std::cos(M_PI / 6.);
+    for (const Vec2d &direction : result.top_body_directions)
+        REQUIRE(std::abs(direction.x()) >= minimum_alignment - 0.002);
+    // Oblique attachment remains allowed; a tangent Y sheet is not a fallback.
+    REQUIRE(std::abs(result.top_body_directions.front().y()) > 0.1);
+    REQUIRE(result.contact_layers > 6);
+    REQUIRE(result.contact_width > 1.1);
+    REQUIRE(result.open_paths == 0);
+    REQUIRE(result.contact_starts == 0);
+    REQUIRE(result.max_fin_center_overlap < 1e-6);
+}
+
+TEST_CASE("Fins at different seed heights do not emit overlapping sheet contours", "[SupportMaterial]")
+{
+    const double lean = GENERATE(0., 0.2);
+    const FinRun result = slice_fins(20, true, lean, 1.2, 0.4, 1, 30,
+                                  false, false, 0.4, 8, 0.05);
+    REQUIRE(result.closed_paths > 0);
+    REQUIRE(result.max_fin_center_overlap < 1e-6);
+    REQUIRE(result.contact_layers > 6);
+}
+
+TEST_CASE("Oblique contact projections stay inside the sheet after the neck overlap", "[SupportMaterial]")
+{
+    const double angle = GENERATE(30., 60., 80.);
+    const double contact_length = GENERATE(0., 0.2);
+    const FinRun result = slice_fins(20, true, 0.2, 2.4, contact_length, 1, angle,
+                                  false, false, 0.4, 8, 0, 60, 6, nullptr, 0.2 * std::tan(M_PI / 9.), false, true);
+    REQUIRE(result.top_body_paths == 1);
+    REQUIRE(std::abs(result.top_body_directions.front().y()) > 0.1);
+    REQUIRE(result.projection_layers > 0);
+    REQUIRE(result.bounded_projection_vertices > 0);
+    REQUIRE(result.max_projection_side_overrun < 0.002);
+    if (angle >= 60.) {
+        REQUIRE(result.projection_plane_samples > 1);
+        REQUIRE(result.projection_plane_drift < 0.002);
+    }
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("A new demand direction selects a differently facing painted side", "[SupportMaterial]")
+{
+    const FinRun result = slice_fins(20, true, 0, 1.2, 1.2, 1, 30,
+                                  false, false, 0.4, 8, 0, 60, 6, nullptr, 0.4, true);
+    REQUIRE(!result.top_body_directions.empty());
+    // With a +Y-facing side available, the first sheet follows +Y instead of
+    // attaching tangentially to the large +X-facing side.
+    REQUIRE(std::abs(result.top_body_directions.front().y()) > 0.95);
+    REQUIRE(std::any_of(result.top_body_directions.begin(), result.top_body_directions.end(),
+        [](const Vec2d &direction) { return std::abs(direction.x()) > 0.95; }));
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("Thicker fins reduce remaining directional demand without creating more sheets", "[SupportMaterial]")
+{
+    const FinRun thin = slice_fins(20, true, 0, 1.2, 0.2);
+    const FinRun thick = slice_fins(20, true, 0, 2.4, 0.2);
+    REQUIRE(thin.top_body_paths > 0);
+    REQUIRE(thick.top_body_paths > 0);
+    REQUIRE(thick.top_body_paths <= thin.top_body_paths);
+}
+
+TEST_CASE("A centered column with painted sides receives fins in multiple broad directions", "[SupportMaterial]")
+{
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.2, 1, 30,
+                                  false, false, 0.4, 8, 0, 60, 6, nullptr, 0, true);
+    REQUIRE(result.top_body_paths > 1);
+    REQUIRE(result.top_body_paths <= 8);
+    REQUIRE(std::any_of(result.top_body_directions.begin(), result.top_body_directions.end(),
+        [](const Vec2d &direction) { return std::abs(direction.x()) > 0.95; }));
+    REQUIRE(std::any_of(result.top_body_directions.begin(), result.top_body_directions.end(),
+        [](const Vec2d &direction) { return std::abs(direction.y()) > 0.95; }));
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("A centered narrow column can start several fins on one layer", "[SupportMaterial]")
+{
+    const indexed_triangle_set column = its_make_cube(6, 6, 60);
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.2, 1, 30,
+                                  false, false, 0.4, 8, 0, 60, 6, &column, 0, true);
+    REQUIRE(result.first_body_z > 0);
+    REQUIRE(result.first_body_paths >= 2);
+    REQUIRE(result.max_fin_center_overlap < 1e-6);
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("Fin support alternates painted side contacts with side gaps", "[SupportMaterial]")
+{
+    const FinRun result = slice_fins(20);
+    REQUIRE(result.contact_layers > 0);
+    REQUIRE(result.gap_layers > 0);
+}
+
+TEST_CASE("Fin support has a filled first-layer foot", "[SupportMaterial]")
+{
+    const FinRun result = slice_fins(100);
+    REQUIRE(result.foot_short_span > 3.0);
+    REQUIRE(result.foot_long_span > 7.0);
+}
+
+TEST_CASE("Fin feet share one perimeter per merged bed island", "[SupportMaterial]")
+{
+    const double spacing = GENERATE(2.0, 20.0);
+    CAPTURE(spacing);
+    const FinRun result = slice_fins(spacing, true, 0, 1.2, 1.2, 1);
+    REQUIRE(result.first_layer_islands > 0);
+    REQUIRE(result.min_body_paths > 0);
+    REQUIRE(result.first_layer_closed_paths == result.first_layer_islands);
+    REQUIRE(result.first_layer_paths > result.first_layer_closed_paths);
+}
+
+TEST_CASE("Fin outer edge stays vertical while contacts fit a leaning wall", "[SupportMaterial]")
+{
+    const FinRun result = slice_fins(20, true, 0.2);
+    REQUIRE(result.contact_layers > 0);
+    REQUIRE(result.gap_layers > 0);
+    REQUIRE(result.outer_edge_spread < 0.001);
+}
+
+TEST_CASE("Fin expansion widens lower layers and their foot without changing top depth", "[SupportMaterial]")
+{
+    const double factor = GENERATE(0.025, 0.05);
+    const FinRun vertical = slice_fins(20);
+    const FinRun expanded = slice_fins(20, true, 0, 1.2, 1.2, 1, 30, false, false, 0.4, 8, factor);
+    REQUIRE(expanded.contact_layers > 0);
+    REQUIRE_THAT(expanded.top_outer_depth, Catch::Matchers::WithinAbs(8, 0.001));
+    // Constant 6x60mm cross-section: no XY centroid offset, so tan(theta) = k*H/sqrt(A0).
+    const double slope = factor * expanded.support_top_z / std::sqrt(6. * 60.);
+    REQUIRE_THAT(expanded.outer_edge_spread,
+                 Catch::Matchers::WithinAbs(slope * (expanded.support_top_z - expanded.first_body_z), 0.002));
+    REQUIRE(expanded.foot_long_span > vertical.foot_long_span);
+    REQUIRE(expanded.open_paths == 0);
+    REQUIRE(expanded.contact_starts == 0);
+}
+
+TEST_CASE("Fin expansion increases with height and smaller base area", "[SupportMaterial]")
+{
+    auto slice = [](double height, double width) {
+        return slice_fins(20, true, 0, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05, height, width);
+    };
+    const FinRun reference = slice(60, 6);
+    const FinRun taller = slice(80, 6);
+    const FinRun narrower = slice(60, 3);
+    REQUIRE(reference.contact_layers > 0);
+    REQUIRE(taller.contact_layers > 0);
+    REQUIRE(narrower.contact_layers > 0);
+    REQUIRE(taller.outer_edge_spread > reference.outer_edge_spread);
+    REQUIRE(narrower.outer_edge_spread > reference.outer_edge_spread);
+}
+
+TEST_CASE("The seed face outward tilt reduces expansion for the whole fin", "[SupportMaterial]")
+{
+    const FinRun centered = slice_fins(20, true, 0, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05);
+    const FinRun leaning = slice_fins(20, true, 0.2, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05);
+    REQUIRE(centered.contact_layers > 0);
+    REQUIRE(leaning.contact_layers > 0);
+    REQUIRE_THAT(leaning.support_top_z, Catch::Matchers::WithinAbs(centered.support_top_z, 0.001));
+    REQUIRE(leaning.outer_edge_spread > 0);
+    REQUIRE(leaning.outer_edge_spread < centered.outer_edge_spread);
+    // Uniform sheared prism: XY volume centroid is halfway up the printed body.
+    const double tilt_fraction = std::atan(0.2) / (M_PI / 6.);
+    const double weight = (1 - tilt_fraction) * (1 - tilt_fraction);
+    const double base_scale = std::sqrt(6. * 60.);
+    const double offset = 0.2 * (leaning.support_top_z / 2 - 0.1);
+    const double slope = 0.05 * leaning.support_top_z / base_scale * (1 + offset / base_scale) * weight;
+    REQUIRE_THAT(leaning.outer_edge_spread,
+                 Catch::Matchers::WithinAbs(slope * (leaning.support_top_z - leaning.first_body_z), 0.002));
+}
+
+TEST_CASE("Outward tilt of thirty degrees or more leaves the fin outer edge vertical", "[SupportMaterial]")
+{
+    const double tilt = GENERATE(30., 40.);
+    const double lean = std::tan(tilt * M_PI / 180.);
+    const FinRun result = slice_fins(20, true, lean, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05);
+    REQUIRE(result.contact_layers > 0);
+    REQUIRE_THAT(result.outer_edge_spread, Catch::Matchers::WithinAbs(0, 0.001));
+    REQUIRE(result.open_paths == 0);
+    REQUIRE(result.contact_starts == 0);
+}
+
+TEST_CASE("Painted patches containing only upward facing normals do not create fins", "[SupportMaterial]")
+{
+    const FinRun result = slice_fins(20, true, -0.2, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05);
+    REQUIRE(result.first_layer_paths == 0);
+    REQUIRE(result.contact_layers == 0);
+}
+
+TEST_CASE("An L shaped profile retains lower contacts and adds upper contacts", "[SupportMaterial]")
+{
+    indexed_triangle_set mesh;
+    const std::array<float, 4> heights{0.f, 29.9f, 30.1f, 60.f};
+    for (float z : heights) {
+        const float reach = z < 30.f ? 12.f : 60.f;
+        mesh.vertices.emplace_back(0.f, 0.f, z);
+        mesh.vertices.emplace_back(6.f, 0.f, z);
+        mesh.vertices.emplace_back(6.f, reach, z);
+        mesh.vertices.emplace_back(0.f, reach, z);
+    }
+    for (int ring = 0; ring < 3; ++ring)
+        for (int i = 0; i < 4; ++i) {
+            const int a = 4 * ring + i, b = 4 * ring + (i + 1) % 4;
+            mesh.indices.emplace_back(a, b, a + 4);
+            mesh.indices.emplace_back(b, b + 4, a + 4);
+        }
+    mesh.indices.emplace_back(0, 2, 1);
+    mesh.indices.emplace_back(0, 3, 2);
+    mesh.indices.emplace_back(12, 13, 14);
+    mesh.indices.emplace_back(12, 14, 15);
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.2, 1, 30,
+                                  false, false, 0.4, 8, 0, 60, 6, &mesh, 0, true);
+    REQUIRE(result.lower_y_contact);
+    REQUIRE(result.upper_y_contact);
+    REQUIRE(result.max_fin_center_overlap < 1e-6);
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("An active fin stops at the last painted height", "[SupportMaterial]")
+{
+    indexed_triangle_set mesh;
+    for (float z : {0.f, 30.f, 60.f}) {
+        mesh.vertices.emplace_back(0.f, 0.f, z);
+        mesh.vertices.emplace_back(6.f, 0.f, z);
+        mesh.vertices.emplace_back(6.f, 60.f, z);
+        mesh.vertices.emplace_back(0.f, 60.f, z);
+    }
+    for (int ring = 0; ring < 2; ++ring)
+        for (int i = 0; i < 4; ++i) {
+            const int a = 4 * ring + i, b = 4 * ring + (i + 1) % 4;
+            mesh.indices.emplace_back(a, b, a + 4);
+            mesh.indices.emplace_back(b, b + 4, a + 4);
+        }
+    mesh.indices.emplace_back(0, 2, 1);
+    mesh.indices.emplace_back(0, 3, 2);
+    mesh.indices.emplace_back(8, 9, 10);
+    mesh.indices.emplace_back(8, 10, 11);
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.2, 1, 30,
+                                  false, false, 0.4, 8, 0, 60, 6, &mesh, 0,
+                                  false, false, false, false, 0, 30);
+    REQUIRE(result.first_layer_paths > 0);
+    REQUIRE(result.contact_top_z > 20);
+    REQUIRE(result.contact_top_z <= 30.001);
+    REQUIRE(result.support_top_z <= 30.001);
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("Fin contact layers stay below the painted face top", "[SupportMaterial]")
+{
+    const double height = GENERATE(60., 60.1, 60.15);
+    const double lean = GENERATE(0., 0.6);
+    const double slice_offset = GENERATE(-1., 0., 0.05);
+    const FinRun result = slice_fins(20, true, lean, 1.2, 1.2, 1, 30,
+                                    false, false, 0.4, 8, 0.05, height, 6, nullptr, 0,
+                                    false, false, false, slice_offset >= 0, std::max(0., slice_offset));
+    REQUIRE(result.contact_layers > 0);
+    REQUIRE(result.contact_top_z <= height + 0.001);
+    REQUIRE(result.support_top_z <= height + 0.001);
+    if (lean > 0)
+        REQUIRE_THAT(result.outer_edge_spread, Catch::Matchers::WithinAbs(0, 0.001));
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("Curved seed patches allow different normals across width and layer height", "[SupportMaterial]")
+{
+    // A faceted round column bends outward in its last 0.1mm. The last
+    // 0.2mm contact layer spans both vertical and leaning side facets.
+    indexed_triangle_set mesh;
+    constexpr int sides = 90;
+    const std::array<double, 3> zs{0., 59.9, 60.};
+    for (double z : zs)
+        for (int i = 0; i < sides; ++i) {
+            const double angle = 2 * M_PI * i / sides;
+            mesh.vertices.emplace_back(float(6 * std::cos(angle) + std::max(0., z - 59.9) * 0.2),
+                                       float(6 * std::sin(angle)), float(z));
+        }
+    for (int ring = 0; ring < 2; ++ring)
+        for (int i = 0; i < sides; ++i) {
+            const int a = ring * sides + i, b = ring * sides + (i + 1) % sides;
+            mesh.indices.emplace_back(a, b, a + sides);
+            mesh.indices.emplace_back(b, b + sides, a + sides);
+        }
+    const int bottom = int(mesh.vertices.size());
+    mesh.vertices.emplace_back(0.f, 0.f, 0.f);
+    const int top = int(mesh.vertices.size());
+    mesh.vertices.emplace_back(0.02f, 0.f, 60.f);
+    for (int i = 0; i < sides; ++i) {
+        mesh.indices.emplace_back(bottom, (i + 1) % sides, i);
+        mesh.indices.emplace_back(top, 2 * sides + i, 2 * sides + (i + 1) % sides);
+    }
+    const FinRun result = slice_fins(20, true, 0, 1.2, 1.2, 1, 30,
+                                    false, false, 0.4, 8, 0, 60, 6, &mesh);
+    REQUIRE(result.first_layer_paths > 0);
+    REQUIRE_THAT(result.support_top_z, Catch::Matchers::WithinAbs(60, 0.001));
+    REQUIRE(result.closed_paths > 0);
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("An upward facing neighbor does not change a downward facing contact normal", "[SupportMaterial]")
+{
+    auto column = [](double top_slope) {
+        indexed_triangle_set mesh;
+        const std::array<double, 3> zs{0., 59.9, 60.};
+        for (double z : zs) {
+            const double x = z <= 59.9 ? 0.2 * z : 0.2 * 59.9 + top_slope * (z - 59.9);
+            mesh.vertices.emplace_back(float(x), 0.f, float(z));
+            mesh.vertices.emplace_back(float(x + 6), 0.f, float(z));
+            mesh.vertices.emplace_back(float(x + 6), 60.f, float(z));
+            mesh.vertices.emplace_back(float(x), 60.f, float(z));
+        }
+        for (int ring = 0; ring < 2; ++ring)
+            for (int i = 0; i < 4; ++i) {
+                const int a = ring * 4 + i, b = ring * 4 + (i + 1) % 4;
+                mesh.indices.emplace_back(a, b, a + 4);
+                mesh.indices.emplace_back(b, b + 4, a + 4);
+            }
+        mesh.indices.emplace_back(0, 2, 1);
+        mesh.indices.emplace_back(0, 3, 2);
+        mesh.indices.emplace_back(8, 9, 10);
+        mesh.indices.emplace_back(8, 10, 11);
+        return mesh;
+    };
+    const indexed_triangle_set straight = column(0.2);
+    const indexed_triangle_set creased = column(-0.8);
+    // The last layer's top section is upward-facing, while the middle and
+    // bottom lie on the original downward-facing wall. Only its normal applies.
+    auto slice = [](const indexed_triangle_set &mesh) {
+        return slice_fins(20, true, 0, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05, 60, 6, &mesh);
+    };
+    const FinRun reference = slice(straight);
+    const FinRun result = slice(creased);
+    REQUIRE(reference.contact_layers > 0);
+    REQUIRE(result.contact_layers > 0);
+    REQUIRE_THAT(result.support_top_z, Catch::Matchers::WithinAbs(60, 0.001));
+    REQUIRE_THAT(result.outer_edge_spread, Catch::Matchers::WithinAbs(reference.outer_edge_spread, 0.002));
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("Fin contact bead stays inside the wall edges", "[SupportMaterial]")
+{
+    const FinRun result = slice_fins(20);
+    REQUIRE(result.contact_layers > 0);
+    REQUIRE(result.contact_edge_overrun < 0.0001);
+}
+
+TEST_CASE("Fin layers print closed outlines starting away from contacts", "[SupportMaterial]")
+{
+    const FinRun result = slice_fins(20);
+    REQUIRE(result.closed_paths > 0);
+    REQUIRE(result.open_paths == 0);
+    REQUIRE(result.contact_starts == 0);
+}
+
+TEST_CASE("Fin geometry uses separate body thickness and contact width", "[SupportMaterial]")
+{
+    const FinRun result = slice_fins(20, true, 0, 2.4, 1.2);
+    REQUIRE_THAT(result.body_thickness, Catch::Matchers::WithinAbs(2.4, 0.02));
+    REQUIRE_THAT(result.contact_width, Catch::Matchers::WithinAbs(1.2, 0.02));
+}
+
+TEST_CASE("Fin wall loops use the requested count with a minimum of one", "[SupportMaterial]")
+{
+    const size_t one = slice_fins(20, true, 0, 3.2, 3.2, 1).min_body_paths;
+    REQUIRE(one > 0);
+    REQUIRE(one != std::numeric_limits<size_t>::max());
+    REQUIRE(slice_fins(20, true, 0, 3.2, 3.2, 0).min_body_paths == one);
+    REQUIRE(slice_fins(20, true, 0, 3.2, 3.2, 2).min_body_paths == 2 * one);
+    REQUIRE(slice_fins(20, true, 0, 3.2, 3.2, 3).min_body_paths == 3 * one);
+}
+
+TEST_CASE("Thin fins retain the loops that fit and omit the rest", "[SupportMaterial]")
+{
+    const FinRun one = slice_fins(20, true, 0, 1.2, 1.2, 1);
+    const FinRun three = slice_fins(20, true, 0, 1.2, 1.2, 3);
+    REQUIRE(one.min_body_paths > 0);
+    REQUIRE(one.min_body_paths != std::numeric_limits<size_t>::max());
+    REQUIRE(three.min_body_paths == one.min_body_paths);
+    REQUIRE(three.contact_layers == one.contact_layers);
+}
+
+TEST_CASE("Fin contact front paths overlap the extrusion on the layer below", "[SupportMaterial]")
+{
+    const double angle = GENERATE(60., 80., 90.);
+    const double contact_width = GENERATE(0., 0.1, 0.2, 1.2);
+    const FinRun result = slice_fins(20, true, 0, 1.2, contact_width, 1, angle);
+    REQUIRE(result.contact_tip_vertices > 0);
+    REQUIRE(result.unsupported_contact_vertices == 0);
+    REQUIRE(result.unsupported_contact_length < 0.001);
+    if (contact_width > 0)
+        REQUIRE(result.supported_contact_fronts > 0);
+    REQUIRE(result.open_paths == 0);
+    REQUIRE(result.contact_starts == 0);
+}
+
+TEST_CASE("Fin contact spans preserve positive widths below one extrusion line", "[SupportMaterial]")
+{
+    const double contact_width = GENERATE(0., 0.05, 0.1, 0.2, 0.4, 0.8);
+    const FinRun result = slice_fins(20, true, 0, 2.4, contact_width, 3);
+    REQUIRE(result.contact_layers > 0);
+    REQUIRE(result.contact_tip_vertices > 0);
+    REQUIRE_THAT(result.contact_width, Catch::Matchers::WithinAbs(contact_width, 0.001));
+    REQUIRE(result.contact_edge_overrun < 0.0001);
+    REQUIRE(result.open_paths == 0);
+    REQUIRE(result.contact_starts == 0);
+    REQUIRE_THAT(result.body_thickness, Catch::Matchers::WithinAbs(2.4, 0.02));
+}
+
+TEST_CASE("Fin contact projection angle controls how quickly the side gap returns", "[SupportMaterial]")
+{
+    const FinRun normal = slice_fins(20, true, 0, 1.2, 1.2, 1, 0);
+    const FinRun downward = slice_fins(20, true, 0, 1.2, 1.2, 1, 80);
+    REQUIRE(normal.contact_layers > 0);
+    REQUIRE(downward.contact_layers == normal.contact_layers);
+    REQUIRE(normal.gap_layers > downward.gap_layers);
+    REQUIRE(normal.gap_layers > 0);
+    REQUIRE(normal.projection_layers == 0);
+    REQUIRE(normal.unsupported_contact_vertices > 0);
+    REQUIRE(normal.open_paths == 0);
+}
+
+TEST_CASE("Fin projections use the requested angle without a line width retreat cap", "[SupportMaterial]")
+{
+    // With 0.2mm layers and 0.4mm lines, a 30-degree projection advances
+    // 0.2 * cot(30) = 0.3464mm, beyond the former half-line (0.2mm) cap.
+    const FinRun result = slice_fins(20, true, 0, 2.4, 0.1, 1, 30);
+    REQUIRE(result.contact_layers > 0);
+    REQUIRE_THAT(result.min_projection_gap,
+                 Catch::Matchers::WithinAbs(0.2 / std::tan(M_PI / 6), 0.001));
+    REQUIRE(result.unsupported_contact_vertices > 0);
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("Surface normal contact projections preserve the selected fin height", "[SupportMaterial]")
+{
+    const double lean = GENERATE(0., 0.2);
+    const double angle = GENERATE(0., 0.001, 0.01, 0.1, 1., 79., 80., 90.);
+    const FinRun reference = slice_fins(20, true, lean, 2.4, 0.1, 1, 30);
+    const FinRun result = slice_fins(20, true, lean, 2.4, 0.1, 1, angle);
+    REQUIRE(reference.contact_layers > 0);
+    REQUIRE(result.contact_layers > 0);
+    REQUIRE_THAT(result.support_top_z, Catch::Matchers::WithinAbs(reference.support_top_z, 0.001));
+    REQUIRE_THAT(result.contact_top_z, Catch::Matchers::WithinAbs(reference.contact_top_z, 0.001));
+    REQUIRE(result.outer_edge_spread < 0.001);
+}
+
+TEST_CASE("Contact projections merge into the body without lowering the fin", "[SupportMaterial]")
+{
+    // A 0.6mm side gap retracts over about 2mm at this angle. Perturb the
+    // layer alignment to cover very short residual sections at the merge.
+    const double angle = GENERATE(73.29, 73.30, 73.31);
+    const FinRun reference = slice_fins(20, true, 0, 2.4, 0.1, 1, 30);
+    const FinRun result = slice_fins(20, true, 0, 2.4, 0.1, 1, angle);
+    REQUIRE(reference.contact_layers > 0);
+    REQUIRE(result.contact_layers == reference.contact_layers);
+    REQUIRE(result.gap_layers > 0);
+    REQUIRE_THAT(result.support_top_z, Catch::Matchers::WithinAbs(reference.support_top_z, 0.001));
+    REQUIRE(result.unsupported_contact_vertices == 0);
+    REQUIRE(result.open_paths == 0);
+}
+
+TEST_CASE("Overlapping fin contact projections remain supported on all bands", "[SupportMaterial]")
+{
+    // At 80 degrees from a vertical wall's normal, retracting the 0.6mm
+    // gap needs about 3.4mm, exceeding these contact band spacings.
+    const double spacing = GENERATE(2., 3.);
+    const FinRun result = slice_fins(20, true, 0, 2.4, 0.1, 3, 80, false, false, 0.4, spacing);
+    REQUIRE(result.contact_layers > 3);
+    REQUIRE(result.supported_contact_fronts > 0);
+    REQUIRE(result.unsupported_contact_vertices == 0);
+    REQUIRE(result.unsupported_contact_length < 0.001);
+    REQUIRE(result.open_paths == 0);
+    REQUIRE(result.contact_starts == 0);
+    REQUIRE(result.outer_edge_spread < 0.001);
+}
+
+TEST_CASE("Fin percentages resolve against the support line width", "[SupportMaterial]")
+{
+    // Support lines are 0.4mm: 50% is 0.2mm and 200% is 0.8mm.
+    // Use a different outer wall width to distinguish the percentage reference.
+    const FinRun result = slice_fins(20, true, 0, 200, 50, 1, 30, true, true, 0.6);
+    REQUIRE(result.contact_layers > 0);
+    REQUIRE_THAT(result.contact_width, Catch::Matchers::WithinAbs(0.2, 0.001));
+    REQUIRE_THAT(result.body_thickness, Catch::Matchers::WithinAbs(0.8, 0.02));
+}
+
+TEST_CASE("Fin contact penetration scales with outer wall width in every style", "[SupportMaterial][Regression]")
+{
+    const char *style = GENERATE("simple", "simulated", "painted_shape");
+    const double outer_width = GENERATE(0.4, 0.6);
+    const double percent = GENERATE(25., 100.);
+    auto slice = [&](double penetration) {
+        return slice_fins(20, true, 0, 1.2, 0.4, 1, 30,
+            false, false, outer_width, 8, 0, 60, 6, nullptr, 0,
+            false, false, false, false, 0, std::numeric_limits<double>::infinity(), style,
+            -std::numeric_limits<double>::infinity(), 0.6, 2., 0.2, 0.2, penetration);
+    };
+    CAPTURE(style, outer_width, percent);
+    const FinRun touching = slice(0.);
+    const FinRun penetrating = slice(percent);
+    REQUIRE(touching.contact_layers > 0);
+    REQUIRE(penetrating.contact_layers > 0);
+    size_t checked_layers = 0;
+    for (const auto &[z, depth] : touching.penetration_by_layer) {
+        if (depth < -0.01)
+            continue; // Body-only and taper layers have a deliberate model gap.
+        CAPTURE(z);
+        REQUIRE_THAT(depth, Catch::Matchers::WithinAbs(0., 0.01));
+        const auto found = penetrating.penetration_by_layer.find(z);
+        REQUIRE(found != penetrating.penetration_by_layer.end());
+        REQUIRE_THAT(found->second - depth,
+                     Catch::Matchers::WithinAbs(outer_width * percent / 100., 0.01));
+        ++checked_layers;
+    }
+    REQUIRE(checked_layers >= 3); // At least a complete 0.6 mm contact band.
+}
+
+TEST_CASE("Painted contact continuation checks upper walls against its saved penetrated front", "[SupportMaterial][Regression]")
+{
+    constexpr double height = 30.;
+    constexpr double layer_height = 0.2;
+    constexpr double contact_height = 1.;
+    constexpr double slope = -1.25;
+    const double percent = GENERATE(0., 50.);
+    auto slice = [&](double z_gap, const indexed_triangle_set *blocker) {
+        return slice_fins(20, true, slope, 1.2, 0.4, 1, 30,
+            false, false, 0.4, 8, 0, height, 6, nullptr, 0,
+            false, false, false, false, 0, std::numeric_limits<double>::infinity(), "painted_shape",
+            -std::numeric_limits<double>::infinity(), 0.6, 2., z_gap, layer_height, percent,
+            blocker, contact_height);
+    };
+    const FinRun local_contacts = slice(0.2, nullptr);
+    REQUIRE(local_contacts.support_top_z > contact_height);
+    // Use the resolved seed height: a wide painted island starts at its source
+    // intent, which need not coincide with the model top. Leave that layer
+    // unblocked and force the lower band layers to carry its saved front.
+    indexed_triangle_set blocker = its_make_cube(100., 80., contact_height - layer_height);
+    its_transform(blocker, identity3f().translate(Vec3f{-50.f, -10.f,
+        float(local_contacts.support_top_z - contact_height)}));
+    const FinRun reference = slice(0., &blocker);
+    const FinRun covered = slice(0.2, &blocker);
+    REQUIRE_THAT(reference.support_top_z, Catch::Matchers::WithinAbs(local_contacts.support_top_z, 0.001));
+    REQUIRE_THAT(covered.support_top_z, Catch::Matchers::WithinAbs(reference.support_top_z, 0.001));
+    const auto top = reference.penetration_by_layer.find(reference.support_top_z);
+    REQUIRE(top != reference.penetration_by_layer.end());
+    REQUIRE_THAT(top->second, Catch::Matchers::WithinAbs(0.4 * percent / 100., 0.01));
+    size_t checked_layers = 0;
+    for (const auto &[z, depth] : reference.penetration_by_layer) {
+        const double dz = reference.support_top_z - z;
+        if (dz >= contact_height - EPSILON)
+            continue;
+        CAPTURE(percent, z);
+        // The saved front stays at the top wall's X while the wall advances
+        // below it. With zero Z gap, all five layers carry the same front.
+        REQUIRE_THAT(depth, Catch::Matchers::WithinAbs(top->second - slope * dz, 0.01));
+        const auto found = covered.penetration_by_layer.find(z);
+        REQUIRE(found != covered.penetration_by_layer.end());
+        const auto local = local_contacts.penetration_by_layer.find(z);
+        REQUIRE(local != local_contacts.penetration_by_layer.end());
+        REQUIRE_THAT(local->second, Catch::Matchers::WithinAbs(top->second, 0.01));
+        if (dz < 0.5)
+            REQUIRE_THAT(found->second, Catch::Matchers::WithinAbs(depth, 0.01));
+        else
+            // The immediately upper wall now covers the saved neck by more
+            // than 0.4 mm. Stop and taper even though the rejected local
+            // candidate's own surface reference would report no coverage.
+            REQUIRE(found->second < depth - 0.01);
+        ++checked_layers;
+    }
+    REQUIRE(checked_layers == 5);
+}
+
+TEST_CASE("A painted crease advances every root contact layer along its bisector", "[SupportMaterial][Regression]")
+{
+    const double outer_width = GENERATE(0.4, 0.6);
+    const double percent = GENERATE(25., 100.);
+    // Rotating the square leaves exactly two +X-facing painted sides. They
+    // share a convex vertical crease whose exterior bisector is +X.
+    indexed_triangle_set mesh = its_make_cube(6., 6., 30.);
+    const double diagonal = std::sqrt(0.5);
+    for (Vec3f &vertex : mesh.vertices) {
+        const double x = vertex.x(), y = vertex.y();
+        vertex.x() = float(diagonal * (x - y));
+        vertex.y() = float(diagonal * (x + y));
+    }
+    auto slice = [&](double penetration) {
+        return slice_fins(20, true, 0, 1.2, 0., 1, 30,
+            false, false, outer_width, 8, 0, 30, 6, &mesh, 0,
+            false, false, false, false, 0, std::numeric_limits<double>::infinity(), "painted_shape",
+            -std::numeric_limits<double>::infinity(), 0.6, 2., 0.2, 0.2, penetration);
+    };
+    const FinRun touching = slice(0.);
+    const FinRun penetrating = slice(percent);
+    REQUIRE(touching.top_body_paths == 1);
+    REQUIRE(penetrating.top_body_paths == 1);
+    REQUIRE(touching.top_contact_y.size() == 1);
+    REQUIRE(penetrating.top_contact_y.size() == 1);
+    REQUIRE_THAT(touching.top_contact_y.front(), Catch::Matchers::WithinAbs(0., 0.01));
+    REQUIRE_THAT(penetrating.top_contact_y.front(), Catch::Matchers::WithinAbs(0., 0.01));
+    REQUIRE_THAT(penetrating.support_top_z, Catch::Matchers::WithinAbs(touching.support_top_z, 0.001));
+    size_t checked_layers = 0;
+    for (const auto &[z, depth] : touching.penetration_by_layer) {
+        if (touching.support_top_z - z >= 0.6 - EPSILON)
+            continue;
+        CAPTURE(outer_width, percent, z);
+        const auto found = penetrating.penetration_by_layer.find(z);
+        REQUIRE(found != penetrating.penetration_by_layer.end());
+        // The rounded wall corner need not coincide with the nominal vertex;
+        // compare its displacement instead of assuming a zero baseline gap.
+        REQUIRE_THAT(found->second - depth,
+                     Catch::Matchers::WithinAbs(outer_width * percent / 100., 0.01));
+        ++checked_layers;
+    }
+    REQUIRE(checked_layers == 3);
+}
+
+TEST_CASE("Fin defaults use full support line contact length and absolute thickness", "[SupportMaterial]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    const auto *contact = config.option<ConfigOptionFloatOrPercent>("fin_support_contact_width");
+    const auto *thickness = config.option<ConfigOptionFloatOrPercent>("fin_support_thickness");
+    const auto *penetration = config.option<ConfigOptionPercent>("fin_support_contact_penetration");
+    REQUIRE(penetration != nullptr);
+    REQUIRE_THAT(penetration->value, Catch::Matchers::WithinAbs(0., 0.001));
+    REQUIRE(contact->percent);
+    REQUIRE_FALSE(thickness->percent);
+    REQUIRE_THAT(contact->value, Catch::Matchers::WithinAbs(100, 0.001));
+    REQUIRE_THAT(thickness->value, Catch::Matchers::WithinAbs(1.2, 0.001));
+    const FinRun result = slice_fins(20, true, 0, 1.2, 100, 1, 30, true, false, 0.6);
+    REQUIRE_THAT(result.contact_width, Catch::Matchers::WithinAbs(0.4, 0.001));
+    REQUIRE_THAT(result.body_thickness, Catch::Matchers::WithinAbs(1.2, 0.02));
+    // Old project values without a percent suffix remain absolute millimeters.
+    config.set_deserialize("fin_support_contact_width", "0.2");
+    config.set_deserialize("fin_support_thickness", "1.4");
+    contact = config.option<ConfigOptionFloatOrPercent>("fin_support_contact_width");
+    thickness = config.option<ConfigOptionFloatOrPercent>("fin_support_thickness");
+    REQUIRE_FALSE(contact->percent);
+    REQUIRE_FALSE(thickness->percent);
+    REQUIRE_THAT(contact->get_abs_value(0.4), Catch::Matchers::WithinAbs(0.2, 0.001));
+    REQUIRE_THAT(thickness->get_abs_value(0.4), Catch::Matchers::WithinAbs(1.4, 0.001));
+}
+
+TEST_CASE("Painted Shape line angle defaults to forty degrees", "[SupportMaterial]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    const auto *angle = config.option<ConfigOptionFloat>("fin_support_painted_shape_line_angle");
+    REQUIRE_THAT(angle->value, Catch::Matchers::WithinAbs(40, 0.001));
+}
+
+TEST_CASE("Fin projections retain just the projected front segment or point", "[SupportMaterial]")
+{
+    const double length = GENERATE(0., 0.1, 0.2);
+    const FinRun result = slice_fins(20, true, 0, 2.4, length, 1, 60);
+    REQUIRE(result.projection_layers > 0);
+    REQUIRE_THAT(result.projection_front_span, Catch::Matchers::WithinAbs(length, 0.001));
+    REQUIRE(result.unsupported_contact_vertices == 0);
+    REQUIRE(result.unsupported_contact_length < 0.001);
+}
 
 // Distinct layer Z heights carrying support interface extrusion.
 static size_t support_interface_layer_count(const std::string &gcode)

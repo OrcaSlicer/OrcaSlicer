@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 #include <cstddef>
+#include <array>
 
 #include "Voronoi.hpp"
 #include "../ExPolygon.hpp"
@@ -15,8 +16,18 @@ namespace Slic3r::Geometry {
 
 class MedialAxis {
 public:
+    // Geometry in scaled coordinates, independent of the Voronoi implementation.
+    // Entries follow ThickPolyline::width: two measurements per polyline edge.
+    struct WidthMeasurement {
+        enum class Source { segment, start_vertex, end_vertex };
+        Vec2d point = Vec2d::Zero();
+        Line contour_segment;
+        size_t contour_segment_index = 0;
+        Source source = Source::segment;
+    };
+    using WidthMeasurements = std::vector<WidthMeasurement>;
     MedialAxis(double min_width, double max_width, const ExPolygon &expolygon);
-    void build(ThickPolylines* polylines);
+    void build(ThickPolylines* polylines, std::vector<WidthMeasurements>* measurements = nullptr);
     void build(Polylines* polylines);
     
 private:
@@ -43,8 +54,10 @@ private:
         return { m_edge_data[edge_id / 2], (edge_id & 1) != 0 };
     }
     std::vector<EdgeData> m_edge_data;
+    std::vector<std::array<WidthMeasurement, 2>> m_width_measurements;
 
-    void process_edge_neighbors(const VD::edge_type* edge, ThickPolyline* polyline);
+    void process_edge_neighbors(const VD::edge_type* edge, ThickPolyline* polyline,
+                                WidthMeasurements* measurements);
     bool validate_edge(const VD::edge_type* edge);
 };
 

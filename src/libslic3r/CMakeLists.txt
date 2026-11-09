@@ -498,6 +498,8 @@ set(lisbslic3r_sources
     Support/SupportCommon.hpp
     Support/SupportLayer.hpp
     Support/SupportMaterial.cpp
+    Support/FinSupport.cpp
+    Support/FinSupport.hpp
     Support/SupportMaterial.hpp
     Support/SupportParameters.hpp
     Support/SupportSpotsGenerator.cpp

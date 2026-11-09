@@ -467,6 +467,13 @@ static t_config_enum_values s_keys_map_SupportMaterialStyle {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SupportMaterialStyle)
 
+static t_config_enum_values s_keys_map_FinSupportStyle {
+    { "simulated", fssSimulated },
+    { "simple", fssSimple },
+    { "painted_shape", fssPaintedShape }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(FinSupportStyle)
+
 static t_config_enum_values s_keys_map_SupportMaterialInterfacePattern {
     { "auto",           smipAuto },
     { "rectilinear",    smipRectilinear },
@@ -481,7 +488,8 @@ static t_config_enum_values s_keys_map_SupportType{
     { "normal(auto)",   stNormalAuto },
     { "tree(auto)", stTreeAuto },
     { "normal(manual)", stNormal },
-    { "tree(manual)", stTree }
+    { "tree(manual)", stTree },
+    { "fin", stFin }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SupportType)
 
@@ -7323,17 +7331,20 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_type", coEnum);
     def->label = L("Type");
     def->category = L("Support");
-    def->tooltip = L("Normal (auto) and Tree (auto) are used to generate support automatically. "
-                     "If Normal (manual) or Tree (manual) is selected, only support enforcers are generated.");
+    def->tooltip = L("Normal (auto) and Tree (auto) generate support automatically. "
+                     "Normal (manual) and Tree (manual) use support enforcers. "
+                     "Fin generates thin, bed-anchored braces with intermittent contacts on painted side faces.");
     def->enum_keys_map = &ConfigOptionEnum<SupportType>::get_enum_values();
     def->enum_values.push_back("normal(auto)");
     def->enum_values.push_back("tree(auto)");
     def->enum_values.push_back("normal(manual)");
     def->enum_values.push_back("tree(manual)");
+    def->enum_values.push_back("fin");
     def->enum_labels.push_back(L("Normal (auto)"));
     def->enum_labels.push_back(L("Tree (auto)"));
     def->enum_labels.push_back(L("Normal (manual)"));
     def->enum_labels.push_back(L("Tree (manual)"));
+    def->enum_labels.push_back(L("Fin"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<SupportType>(stNormalAuto));
 
@@ -7642,6 +7653,131 @@ void PrintConfigDef::init_fff_params()
 
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<SupportMaterialStyle>(smsDefault));
+
+    def = this->add("fin_support_style", coEnum);
+    def->label = L("Style");
+    def->category = L("Support");
+    def->tooltip = L("Simple selects candidates from remaining painted contour ranges. Painted shape contracts each painted region into point, line or branched intent and uses crease-aware regional normals. Simulated uses the directional printed-prefix planner. Candidate policies control lower-contact authorization and surface normals; all styles share fin geometry, collision checks and toolpath generation after candidate selection.");
+    def->enum_keys_map = &ConfigOptionEnum<FinSupportStyle>::get_enum_values();
+    // Choice stores the selected index for regular enums, so this order must
+    // match FinSupportStyle while the enum values stay stable for compatibility.
+    def->enum_values = { "simple", "simulated", "painted_shape" };
+    def->enum_labels = { L("Simple"), L("Simulated"), L("Painted shape") };
+    // Fin type is available in Simple UI mode, so its style must be available there too.
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionEnum<FinSupportStyle>(fssSimulated));
+
+    def = this->add("fin_support_contact_height", coFloat);
+    def->label = L("Fin contact height");
+    def->category = L("Support");
+    def->tooltip = L("Height of each intermittent side contact between a fin and the painted model surface.");
+    def->sidetext = L("mm");
+    def->min = 0.1;
+    def->max = 10;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.6));
+
+    def = this->add("fin_support_contact_start_height", coFloat);
+    def->label = L("Fin contact start height");
+    def->category = L("Support");
+    def->tooltip = L("Height above the build plate of the top of the first periodic fin contact band. Later bands use the fin contact spacing. The default zero-height band is below the printable volume and is naturally clipped by the build plate.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->max = 1000;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("fin_support_contact_width", coFloatOrPercent);
+    def->label = L("Fin contact length");
+    def->category = L("Support");
+    def->tooltip = L("Contact length along the painted model surface, in millimeters or as a percentage of the support line width. The front centerline segment has this length; only 0 makes a pointed contact. Its endpoints connect to the fin's inner corners. Must not exceed fin thickness. The physical contact depends on extrusion.");
+    def->sidetext = L("mm or %");
+    def->ratio_over = "support_line_width";
+    def->min = 0;
+    def->max = 1000;
+    def->max_literal = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloatOrPercent(100, true));
+
+    def = this->add("fin_support_contact_penetration", coPercent);
+    def->label = L("Fin contact penetration");
+    def->category = L("Support");
+    def->tooltip = L("Depth that the fin contact extends into the model, measured along the contact front normal as a percentage of the outer wall line width for the contacted model region. Zero touches the wall surface; 100 percent penetrates by one outer wall line width.");
+    def->sidetext = L("%");
+    def->ratio_over = "outer_wall_line_width";
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionPercent(0));
+
+    def = this->add("fin_support_thickness", coFloatOrPercent);
+    def->label = L("Fin thickness");
+    def->category = L("Support");
+    def->tooltip = L("Geometric thickness of the fin body, in millimeters or as a percentage of the support line width. Support wall count controls the closed loops generated inside every accepted fin.");
+    def->sidetext = L("mm or %");
+    def->ratio_over = "support_line_width";
+    def->min = 0.1;
+    def->max = 1000;
+    def->max_literal = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloatOrPercent(1.2, false));
+
+    def = this->add("fin_support_contact_spacing", coFloat);
+    def->label = L("Fin contact spacing");
+    def->category = L("Support");
+    def->tooltip = L("Vertical distance between periodic side contact bands. Their top heights are shared by all fins and measured upward from the fin contact start height. The seed contact remains at the top of each fin.");
+    def->sidetext = L("mm");
+    def->min = 1;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(8));
+
+    def = this->add("fin_support_contact_projection_angle", coFloat);
+    def->label = L("Fin contact projection angle");
+    def->category = L("Support");
+    def->tooltip = L("Contact projection angle, from 0 to 90 degrees. Painted Shape clips each lower layer's local contact trapezoid with a fixed plane tilted downward by 90 degrees minus this setting. The plane rotates about the horizontal line through the lowest contact midpoint perpendicular to that layer's contact axis, retaining the fin-body side. Simple and Simulated rotate their projection ray downward by this angle.");
+    def->sidetext = u8"°";
+    def->min = 0;
+    def->max = 90;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(30));
+
+    def = this->add("fin_support_painted_shape_line_angle", coFloat);
+    def->label = L("Painted shape line angle");
+    def->category = L("Support");
+    def->tooltip = L("Maximum XY angle between a fitted Painted shape line and its source macro-surface normal when selecting a line fin candidate. Lines outside this angle fall back to point intent. This does not change the contact projection angle.");
+    def->sidetext = u8"°";
+    def->min = 0;
+    def->max = 90;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(40));
+
+    def = this->add("fin_support_depth", coFloat);
+    def->label = L("Top layer depth");
+    def->category = L("Support");
+    def->tooltip = L("Outward depth of the fin at its top layer. Lower layers expand outward according to the fin expansion factor. Painted shape line fins measure this depth from their relocated root; the initial model-clearance relocation is not included.");
+    def->sidetext = L("mm");
+    def->min = 2;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(4));
+
+    def = this->add("fin_support_expansion_factor", coFloat);
+    def->label = L("Fin expansion factor");
+    def->category = L("Support");
+    def->tooltip = L("Multiplier for outward fin expansion toward the build plate. Simple and Painted shape use a fixed risk multiplier of 1; Simulated uses the printed-prefix risk. Ordinary Painted shape point fins use the full multiplier. For other fins, outward surface tilt reduces expansion with a squared falloff: full strength on vertical surfaces, 25% at 15 degrees and zero at 30 degrees or more. The top-layer depth stays unchanged. Set to 0 for a vertical outer edge.");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.05));
+
+    def = this->add("fin_support_max_spacing", coFloat);
+    def->label = L("Fin placement distance");
+    def->category = L("Support");
+    def->tooltip = L("Simple subtracts unavailable ranges along the selected island contour near a seed and its downward wall intersections. This distance limits how far each subtraction travels. Simulated uses it as preferred spacing and to scale the capacity penalty for long contact necks.");
+    def->sidetext = L("mm");
+    def->min = 2;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(20));
 
     def = this->add("independent_support_layer_height", coBool);
     def->label = L("Independent support layer height");
@@ -7961,9 +8097,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("tree_support_wall_count", coInt);
     def->label = L("Support wall loops");
     def->category = L("Support");
-    def->tooltip = L("This setting specifies the count of support walls in the range of [0,2]. 0 means auto.");
+    def->tooltip = L("Number of support wall loops. 0 means auto for tree supports. Fin supports use at least one loop; 1, 2, 3 request that many loops, and loops that do not fit are omitted.");
     def->min = 0;
-    def->max = 2;
+    def->max = 10;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(0));
 

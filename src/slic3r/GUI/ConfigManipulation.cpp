@@ -1061,6 +1061,12 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool have_support_interface = config->opt_int("support_interface_top_layers") > 0 || config->opt_int("support_interface_bottom_layers") > 0;
     bool have_support_soluble = have_support_material && config->opt_float("support_top_z_distance") == 0;
     auto support_style = config->opt_enum<SupportMaterialStyle>("support_style");
+    bool support_is_fin = support_type == stFin;
+    toggle_line("support_style", !support_is_fin);
+    toggle_line("fin_support_style", support_is_fin);
+    toggle_field("fin_support_style", have_support_material && support_is_fin);
+    for (auto el : { "fin_support_contact_height", "fin_support_contact_start_height", "fin_support_contact_width", "fin_support_contact_penetration", "fin_support_thickness", "fin_support_contact_spacing", "fin_support_contact_projection_angle", "fin_support_painted_shape_line_angle", "fin_support_depth", "fin_support_expansion_factor", "fin_support_max_spacing" })
+        toggle_line(el, have_support_material && support_is_fin);
     for (auto el : { "support_style", "support_base_pattern",
         "support_base_pattern_spacing", "support_expansion", "support_angle",
         "support_interface_pattern", "support_interface_top_layers", "support_interface_bottom_layers",
@@ -1068,9 +1074,18 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
         "support_type", "support_on_build_plate_only", "support_critical_regions_only", "support_interface_not_for_body",
         "support_object_xy_distance", "support_object_first_layer_gap", "independent_support_layer_height"})
         toggle_field(el, have_support_material, -1, support_reason);
-    toggle_field("support_threshold_angle", have_support_material && is_auto(support_type), -1,
+    for (auto el : { "support_base_pattern", "support_base_pattern_spacing", "support_expansion",
+                     "support_angle", "support_interface_pattern", "support_interface_top_layers",
+                     "support_interface_bottom_layers", "support_bottom_z_distance",
+                     "support_on_build_plate_only", "support_critical_regions_only" })
+        toggle_field(el, have_support_material && !support_is_fin, -1,
+                     !have_support_material ? support_reason : _L("This setting is unavailable for Fin supports."));
+    toggle_field("support_top_z_distance", have_support_material &&
+        (!support_is_fin || config->opt_enum<FinSupportStyle>("fin_support_style") == fssPaintedShape), -1,
+        !have_support_material ? support_reason : _L("Select a support type other than Fin, or use the Painted Shape Fin style, to edit the top Z distance."));
+    toggle_field("support_threshold_angle", have_support_material && is_auto(support_type) && !support_is_fin, -1,
                  !have_support_material ? support_reason : _L("Select an automatic support type to edit the threshold angle."));
-    toggle_field("support_threshold_overlap", config->opt_int("support_threshold_angle") == 0 && have_support_material && is_auto(support_type), -1,
+    toggle_field("support_threshold_overlap", config->opt_int("support_threshold_angle") == 0 && have_support_material && is_auto(support_type) && !support_is_fin, -1,
                  !have_support_material ? support_reason : _L("Select an automatic support type and set the threshold angle to zero to edit threshold overlap."));
     //toggle_field("support_closing_radius", have_support_material && support_style == smsSnug);
 
