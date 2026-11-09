@@ -1592,6 +1592,7 @@ bool PrintObject::invalidate_state_by_config_options(
                    opt_key == "support_interface_spacing" || opt_key == "support_bottom_interface_spacing" // BBS
                    || opt_key == "support_base_pattern" || opt_key == "support_style" || opt_key == "support_fin_spacing" ||
                    opt_key == "support_fin_thickness" || opt_key == "support_fin_tine_spacing" || opt_key == "support_fin_tine_base_rows" ||
+                   opt_key == "support_fin_tine_layers" ||
                    opt_key == "support_fin_tine_depth" || opt_key == "support_fin_height" || opt_key == "support_fin_lean_side_only" ||
                    opt_key == "support_fin_cross_spacing" || opt_key == "support_fin_interface_layers" ||
                    opt_key == "support_fin_fallback" || opt_key == "support_object_xy_distance" ||

@@ -8,8 +8,9 @@ namespace Slic3r {
 
 class PrintObject;
 
-// For each object layer, whether its fins get tines: support_fin_tine_spacing apart, with extra rows
-// just above the foot when support_fin_tine_base_rows is set. The layers on the bed never get tines.
+// For each object layer, whether its fins get tines. Each row is support_fin_tine_layers layers tall,
+// rows are support_fin_tine_spacing apart, with extra rows just above the foot when
+// support_fin_tine_base_rows is set. The layers on the bed never get tines.
 std::vector<bool> fin_tine_layers(const PrintObject& object);
 
 // Support type "fins": generates breakaway fins for the object and stores them as its support layers.

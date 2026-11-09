@@ -1050,6 +1050,53 @@ TEST_CASE("SupportMaterial: fin support tines are packed near the bed, then foll
     CHECK(std::count(plain.begin(), plain.end(), true) < std::count(rows.begin(), rows.end(), true));
 }
 
+TEST_CASE("Fin tine rows span the configured number of layers", "[SupportMaterial][Fins]")
+{
+    const int row_layers = GENERATE(1, 2, 3);
+    CAPTURE(row_layers);
+    // The table's fins stand about 10 mm tall under the slab, sliced at 0.2 mm.
+    Slic3r::Print print;
+    Slic3r::Test::init_and_process_print({support_table()}, print,
+                                         {
+                                             {"enable_support", 1},
+                                             {"support_type", "fins"},
+                                             {"support_fin_fallback", "none"},
+                                             {"layer_height", 0.2},
+                                             {"initial_layer_print_height", 0.2},
+                                             {"support_object_xy_distance", 0.3},
+                                             {"support_fin_spacing", 4},
+                                             {"support_fin_thickness", 1.2},
+                                             {"support_fin_tine_spacing", 2},
+                                             {"support_fin_tine_depth", 0.3},
+                                             {"support_fin_tine_layers", row_layers},
+                                         });
+    const PrintObject& object    = *print.objects().front();
+    const std::vector<bool> rows = fin_tine_layers(object);
+    // Lengths of the runs of consecutive tine layers. Only the last one may be cut short by the object top.
+    std::vector<size_t> runs;
+    for (size_t i = 0; i < rows.size(); ++i)
+        if (rows[i]) {
+            if (i == 0 || !rows[i - 1])
+                runs.push_back(0);
+            ++runs.back();
+        }
+    REQUIRE(runs.size() >= 4);
+    for (size_t r = 0; r + 1 < runs.size(); ++r)
+        CHECK(runs[r] == size_t(row_layers));
+    // Every layer of a row bonds to the object, not only the first.
+    size_t row_layers_below = 0;
+    size_t touching         = 0;
+    for (const SupportLayer* layer : object.support_layers()) {
+        const Layer* object_layer = object.get_layer_at_printz(layer->print_z, EPSILON);
+        if (object_layer == nullptr || !rows[object_layer->id()] || layer->print_z > 8.)
+            continue;
+        ++row_layers_below;
+        touching += area(intersection_ex(layer->support_islands, object_layer->lslices)) > scale_(scale_(0.05));
+    }
+    REQUIRE(row_layers_below > 0);
+    CHECK(touching == row_layers_below);
+}
+
 TEST_CASE("SupportMaterial: fin attachments use interface material without top decks", "[SupportMaterial][Fins]")
 {
     for (const char* fallback : {"none", "tree"}) {

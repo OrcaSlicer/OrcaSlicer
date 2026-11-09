@@ -28,7 +28,8 @@
 //     With support_fin_cross_spacing, fins also run across the main fins, bracing them into a scaffold.
 //  3. Within the first kBaseHeight above the bed the strips are widened into a foot.
 //  4. On tine layers, each fin that ends at the object is extended across the XY gap and
-//     support_fin_tine_depth into the object slice. Tine rows are support_fin_tine_spacing apart; with
+//     support_fin_tine_depth into the object slice. A tine row is support_fin_tine_layers layers tall
+//     (one by default). Tine rows are support_fin_tine_spacing apart; with
 //     support_fin_tine_base_rows, extra rows are packed just above the foot, where the object is least
 //     stable (Slant3D). Spacing by distance keeps the number of tines proportional to the fin height.
 //  5. With support_fin_interface_layers, the fin region right under the object is printed as
@@ -81,14 +82,19 @@ std::vector<bool> fin_tine_layers(const PrintObject& object)
     std::vector<bool> rows(layers.size(), false);
     if (spacing <= 0.)
         return rows;
+    // Each row is support_fin_tine_layers consecutive layers; the spacing is the clear gap above a row.
+    const size_t row_layers = size_t(std::max(1, config.support_fin_tine_layers.value));
     // Regular rows, starting just above the foot.
     double next = kBaseHeight;
     double gap  = config.support_fin_tine_base_rows.value ? std::min(kTineGapMin, spacing) : spacing;
     for (size_t i = 1; i < layers.size(); ++i)
         if (layers[i]->bottom_z() > next - EPSILON) {
-            rows[i] = true;
-            next    = layers[i]->print_z + gap;
-            gap     = std::min(gap * kTineGapGrowth, spacing);
+            const size_t last = std::min(i + row_layers, layers.size()) - 1;
+            for (size_t j = i; j <= last; ++j)
+                rows[j] = true;
+            next = layers[last]->print_z + gap;
+            gap  = std::min(gap * kTineGapGrowth, spacing);
+            i    = last;
         }
     return rows;
 }

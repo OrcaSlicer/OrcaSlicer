@@ -7688,6 +7688,16 @@ void PrintConfigDef::init_fff_params()
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
+    def           = this->add("support_fin_tine_layers", coInt);
+    def->label    = L("Tine layers");
+    def->category = L("Support");
+    def->tooltip  = L("Number of consecutive layers in each row of tines. Taller rows hold a tall or heavy object better "
+                      "but are harder to break off. The tine spacing is the gap between the top of one row and the next.");
+    def->sidetext = L("layers");
+    def->min      = 1;
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(1));
+
     def           = this->add("support_fin_tine_depth", coFloat);
     def->label    = L("Tine depth");
     def->category = L("Support");
