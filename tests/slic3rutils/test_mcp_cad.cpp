@@ -17,6 +17,7 @@
 
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
@@ -1241,6 +1242,36 @@ TEST_CASE("revolve takes a line of the sketch, or its only centerline, as the ax
         CHECK_THAT(failure([&] { revolve({{"plane", "XY"}}); }), ContainsSubstring("cannot be given with sketch"));
         CHECK(doc.features.size() == features);
     }
+}
+
+TEST_CASE("revolve without a sketch turns a width by height rectangle lying beside the axis", "[Mcp][CAD]")
+{
+    // Width runs along the axis and height out from it, so a full turn about either plane axis is a
+    // cylinder `width` long of radius `height`.
+    const int axis = GENERATE(0, 1);
+    INFO("axis " << axis);
+    auto revolved_volume = [&](const json& params) {
+        CadDocument doc;
+        const int sk = doc.add_sketch_profile(GUI::Mcp::cad_revolve_profile(params), SketchPlane::XY(), "Sketch 1");
+        doc.add_revolve(sk, 360.0, axis, false, BooleanMode::New, "Revolve");
+        REQUIRE(doc.recompute());
+        return body_volume(doc, 0);
+    };
+
+    const double w = 30, h = 8;
+    const double cylinder = PI * h * h * w;
+    CHECK_THAT(revolved_volume({{"axis", axis}, {"width", w}, {"height", h}}), WithinAbs(cylinder, cylinder * 1e-6));
+    // The row's defaults, 20 x 10.
+    const double fallback = PI * 10.0 * 10.0 * 20.0;
+    CHECK_THAT(revolved_volume({{"axis", axis}}), WithinAbs(fallback, fallback * 1e-6));
+    // An explicit profile is turned as given, offset from the axis: a 10 x 10 square 10 mm out.
+    const json   square = axis == 0 ? json::array({{0, 10}, {10, 10}, {10, 20}, {0, 20}})
+                                    : json::array({{10, 0}, {20, 0}, {20, 10}, {10, 10}});
+    const double ring   = PI * (20.0 * 20.0 - 10.0 * 10.0) * 10.0;
+    CHECK_THAT(revolved_volume({{"axis", axis}, {"profile", square}}), WithinAbs(ring, ring * 1e-6));
+
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_revolve_profile({{"axis", axis}, {"height", 0}}); }),
+               ContainsSubstring("width and height must be > 0"));
 }
 
 TEST_CASE("the sketch-to-solid rows take a sketch, and sketch_begin takes every plane form", "[Mcp][CAD]")

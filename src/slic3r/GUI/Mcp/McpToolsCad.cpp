@@ -263,12 +263,12 @@ json tool_rows()
                          {"tool": "query_topology", "args": {"body": 0, "at_extreme": "+z"}},
                          {"tool": "extrude", "args": {"body": 0, "face": 5, "distance": 3, "generation": {"from_call": 1, "key": "generation"}}}]}])json")}},
             json{{"name", "revolve"}, {"ids", true}, {"summary", "Revolve a committed sketch as the Revolve card does, or a profile drawn here, about an axis."},
-                 {"details", "A sketch turns about a line of it or a plane axis; a profile drawn here is an explicit `profile` offset from the axis, or a rectangle. Reply: revolve_index, the index of its sketch, the boolean, body and axis used, frame."},
+                 {"details", "A sketch turns about a line of it or a plane axis; a profile drawn here is an explicit `profile` offset from the axis, or a width x height rectangle with one edge on the axis, centred along it, so a full turn is a cylinder width long of radius height. Reply: revolve_index, the index of its sketch, the boolean, body and axis used, frame."},
                  {"params", json::array({
                      json{{"name", "sketch"},      {"type", "integer"}, {"default", nullptr}, {"description", "a committed Sketch feature to revolve (sketch_commit's sketch_index); profile, width, height and plane are then refused"}},
                      json{{"name", "axis_entity"}, {"type", "integer"}, {"default", nullptr}, {"description", "with sketch: a line of the sketch (entity index) as the axis, or -1 for the plane axis; omit for the sketch's only centerline (construction line) when it has one and axis is not given"}},
-                     json{{"name", "width"},   {"type", "number"}, {"unit", "mm"}, {"default", 20}, {"min", 0.01}},
-                     json{{"name", "height"},  {"type", "number"}, {"unit", "mm"}, {"default", 10}, {"min", 0.01}},
+                     json{{"name", "width"},   {"type", "number"}, {"unit", "mm"}, {"default", 20}, {"min", 0.01}, {"description", "without sketch or profile: the rectangle's length along the axis"}},
+                     json{{"name", "height"},  {"type", "number"}, {"unit", "mm"}, {"default", 10}, {"min", 0.01}, {"description", "without sketch or profile: how far the rectangle reaches out from the axis, the solid's radius"}},
                      json{{"name", "angle"},   {"type", "number"}, {"unit", "deg"}, {"default", 360}},
                      json{{"name", "axis"},    {"type", "integer"}, {"enum", json::array({0, 1})}, {"default", 0}, {"description", "the plane's X (0) or Y (1) axis through its origin"}},
                      json{{"name", "flip"},    {"type", "boolean"}, {"default", false}},
@@ -3467,18 +3467,10 @@ json action_revolve(DesignPanel* panel, const json& params)
     const BooleanMode mode  = *boolean_arg(params, "new", false);
     const int         body  = std::max(-1, target_body_arg(params, doc));
     check_has_body(mode, doc);
-    SketchProfile prof;
-    const bool has_prof = profile_from(params, prof);
-    double w = 0, h = 0;
-    if (!has_prof) {   // a rectangle centred on the axis may self-overlap; offset it with `profile`
-        w = params.value("width", 20.0); h = params.value("height", 10.0);
-        if (w <= 0 || h <= 0) throw std::runtime_error("width and height must be > 0");
-    }
+    const SketchProfile prof = cad_revolve_profile(params);
     int s = -1;
     json r = add_feature(panel, "revolve_index", [&] {
-        const std::string sketch_name = panel->mcp_feature_name(_L("Sketch"));
-        s = has_prof ? doc.add_sketch_profile(prof, pl, sketch_name)
-                     : doc.add_sketch(SketchShape::Rectangle, pl, w, h, 0.0, sketch_name);
+        s = doc.add_sketch_profile(prof, pl, panel->mcp_feature_name(_L("Sketch")));
         const int rv = doc.add_revolve(s, angle, axis, flip, mode, panel->mcp_feature_name(_L("Revolve")));
         doc.features[rv].target_body = body;
         return rv;
@@ -5405,6 +5397,21 @@ std::function<int(const std::string&)> cad_sketch_revolve(CadDocument& doc, cons
         doc.features[r].target_body         = body;
         return r;
     };
+}
+
+SketchProfile cad_revolve_profile(const json& params)
+{
+    SketchProfile prof;
+    if (profile_from(params, prof)) return prof;
+    const double w = params.value("width", 20.0), h = params.value("height", 10.0);
+    if (w <= 0 || h <= 0) throw std::runtime_error("width and height must be > 0");
+    // On one side of the axis, as make_revolve requires: a rectangle across it would sweep
+    // through itself. Both corner orders run counter-clockwise, as a drawn profile does.
+    const double a = w / 2;
+    prof.points = revolve_axis_arg(params) == 0 ? std::vector<Vec2d>{{-a, 0}, {a, 0}, {a, h}, {-a, h}}
+                                                : std::vector<Vec2d>{{0, -a}, {h, -a}, {h, a}, {0, a}};
+    prof.closed = true;
+    return prof;
 }
 
 std::function<int(const std::string& name)> cad_face_extrude(CadDocument& doc, const json& params, SketchPlane& frame)

@@ -21,6 +21,7 @@ struct CadFeature;
 struct SketchEntity;
 struct SketchEntityConstraintDef;
 struct SketchPlane;
+struct SketchProfile;
 class Model;
 
 namespace GUI {
@@ -121,6 +122,12 @@ std::vector<SketchEntityConstraintDef> cad_constraint_defs(const nlohmann::json&
 std::function<int(const std::string& name)> cad_sketch_extrude(CadDocument& doc, const DesignSketchTool& tool,
                                                                const nlohmann::json& params);
 std::function<int(const std::string& name)> cad_sketch_revolve(CadDocument& doc, const nlohmann::json& params);
+
+// The profile revolve turns when it is given no sketch: params.profile, else a params.width by
+// params.height rectangle (default 20 x 10) beside the plane axis params.axis, one edge on it, the
+// width along it centred on the origin and the height out on its positive side, so a full turn is a
+// cylinder `width` long of radius `height`. Throws std::runtime_error.
+SketchProfile cad_revolve_profile(const nlohmann::json& params);
 
 // extrude {face}: the Extrude card's push/pull of a picked face. Checks params against `doc` and
 // returns the call that adds the face extrude of params.face, a planar face of params.body (default
