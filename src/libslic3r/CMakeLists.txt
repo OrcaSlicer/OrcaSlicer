@@ -697,6 +697,7 @@ target_include_directories(libslic3r SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
 find_package(JPEG REQUIRED)
 find_package(Draco REQUIRED)
 
+# deps/OCCT/OCCT.cmake builds exactly these toolkits; keep its _occt_toolkits list in step.
 set(OCCT_LIBS
     TKDESTEP
     TKDE
@@ -746,6 +747,16 @@ if (SLIC3R_CAD)
 endif ()
 # Published for the Windows packaging step in the top-level CMakeLists.txt.
 set(OCCT_LIBS "${OCCT_LIBS}" CACHE INTERNAL "OCCT toolkits linked by libslic3r")
+# OCCT built with BUILD_USE_PCH exports the precompiled headers of TKernel, TKMath, TKBRep
+# and TKBool to consumers, so CMake would merge them into libslic3r's own precompiled header
+# (pulling <windows.h> into every libslic3r source on Windows). They only speed up OCCT's
+# own build; keep them out of ours. OpenCASCADE_LIBRARIES lists every installed toolkit, so
+# this also covers toolkits reached only through another toolkit's link interface.
+foreach (_occt_lib IN LISTS OpenCASCADE_LIBRARIES OCCT_LIBS)
+    if (TARGET ${_occt_lib})
+        set_property(TARGET ${_occt_lib} PROPERTY INTERFACE_PRECOMPILE_HEADERS "")
+    endif ()
+endforeach ()
 if (WIN32)
     # OCCT installs RelWithDebInfo and Debug builds to bin/occti and bin/occtd, so each build
     # type's DLL directory is read from the imported target, falling back to the first installed

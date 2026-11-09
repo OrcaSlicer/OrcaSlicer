@@ -11,19 +11,27 @@ else()
     set(library_build_type "Static")
 endif()
 
-# SLIC3R_CAD (declared in deps/CMakeLists.txt) builds OCCT's ModelingAlgorithms module
-# (fillet/offset/loft), whose only consumer is the parametric Design/CAD tab. With it OFF
-# the deps prefix matches upstream exactly.
+# Only the toolkits libslic3r links are built, rather than whole modules. OCCT's module
+# flags are all-or-nothing: the DataExchange module alone also builds the IGES, VRML, OBJ,
+# STL and PLY readers and the XML/binary document formats, none of which Orca uses. With
+# every module OFF, OCCT builds BUILD_ADDITIONAL_TOOLKITS plus their dependencies.
 #
-# With it ON OCCT also builds TKFillet (used via BRepFilletAPI), TKOffset (used via
-# BRepOffsetAPI), and TKFeat, TKHelix, TKXMesh and TKExpress, which nothing here references
-# but which the module flag builds anyway, since module flags are all-or-nothing. The
-# module's other toolkits are built either way, because DataExchange (the STEP path)
-# depends on them.
+# This list must match OCCT_LIBS in src/libslic3r/CMakeLists.txt. A toolkit missing here
+# fails the app configure or link; one left here after libslic3r stops using it only costs
+# build time.
 #
-# On macOS/Linux OCCT links statically, so an unreferenced toolkit costs build time and no
-# shipped bytes. Windows ships only the DLLs libslic3r links, so the tab adds the TKFillet,
-# TKOffset and TKBool DLLs. See docs/HLSD/design-tab.md.
+# SLIC3R_CAD (declared in deps/CMakeLists.txt) adds TKFillet (BRepFilletAPI), TKOffset
+# (BRepOffsetAPI) and TKBool, which they need. Their only consumer is the parametric
+# Design/CAD tab. On Windows OCCT builds shared and only the linked toolkits ship, so the
+# tab adds those three DLLs. See docs/HLSD/design-tab.md.
+set(_occt_toolkits
+    TKDESTEP TKDE TKXCAF TKXSBase TKVCAF TKCAF TKLCAF TKCDF TKV3d TKService TKMesh TKBO
+    TKPrim TKHLR TKShHealing TKTopAlgo TKGeomAlgo TKBRep TKGeomBase TKG3d TKG2d TKMath TKernel)
+if (SLIC3R_CAD)
+    list(APPEND _occt_toolkits TKFillet TKOffset TKBool)
+endif ()
+# OCCT reads BUILD_ADDITIONAL_TOOLKITS as a space-separated string.
+string(REPLACE ";" " " _occt_toolkits "${_occt_toolkits}")
 
 if (IN_GIT_REPO)
     set(OCCT_DIRECTORY_FLAG --directory ${BINARY_DIR_REL}/dep_OCCT-prefix/src/dep_OCCT)
@@ -52,12 +60,17 @@ orcaslicer_add_cmake_project(OCCT
         -DUSE_FFMPEG=OFF
         -DUSE_VTK=OFF
         -DBUILD_DOC_Overview=OFF
+        # OCCT's own precompiled headers (off by default). They roughly halve its compile
+        # time, at the cost of disk space for .pch files in the build tree (~2 GB with GCC);
+        # nothing is installed.
+        -DBUILD_USE_PCH=ON
         -DBUILD_MODULE_ApplicationFramework=OFF
-        #-DBUILD_MODULE_DataExchange=OFF
+        -DBUILD_MODULE_DataExchange=OFF
         -DBUILD_MODULE_Draw=OFF
         -DBUILD_MODULE_FoundationClasses=OFF
-        -DBUILD_MODULE_ModelingAlgorithms=${SLIC3R_CAD}
+        -DBUILD_MODULE_ModelingAlgorithms=OFF
         -DBUILD_MODULE_ModelingData=OFF
         -DBUILD_MODULE_Visualization=OFF
+        "-DBUILD_ADDITIONAL_TOOLKITS=${_occt_toolkits}"
         ${_occt_compiler_args}
 )
