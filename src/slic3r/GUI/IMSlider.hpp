@@ -86,6 +86,7 @@ public:
     void SetMaxValue(const int max_value);
     void SetKoefForLabels(const double koef) { m_label_koef = koef; }
     void SetSliderValues(const std::vector<double> &values);
+    int GetTickFromValue(double value) { return get_tick_from_value(value, true); }
     void SetSliderAlternateValues(const std::vector<double> &values) { m_alternate_values = values; }
 
     CustomGCode::Info GetTicksValues() const;
@@ -126,6 +127,12 @@ public:
     //BBS update scroll value changed
     bool is_dirty() { return m_dirty; }
     void set_as_dirty(bool dirty = true) { m_dirty = dirty; }
+    bool consume_user_interaction()
+    {
+        const bool interacted = m_user_interaction;
+        m_user_interaction = false;
+        return interacted;
+    }
     bool is_need_post_tick_event() { return m_is_need_post_tick_changed_event; }
     void reset_post_tick_event(bool val = false) {
         m_is_need_post_tick_changed_event = val;
@@ -189,6 +196,7 @@ private:
     int  m_higher_value;
     int  m_one_layer_value; // ORCA
     bool m_dirty = false;
+    bool m_user_interaction = false;
 
     bool m_render_as_disabled{ false };
 

@@ -4207,6 +4207,7 @@ bool GLCanvas3D::handle_shortcut(const KeyChord& chord)
             apply_selection_rotate(angle_z_rad);
     };
     auto step_slider = [this, held](auto&& step) {
+        get_gcode_viewer().resume_gcode_text_following();
         IMSlider* layers = get_gcode_viewer().get_layers_slider();
         IMSlider* moves  = get_gcode_viewer().get_moves_slider();
         step(layers, moves, held != 0 ? 5 : 1);
@@ -10092,6 +10093,14 @@ void GLCanvas3D::_render_gcode_overlay(int canvas_width, int canvas_height)
         moves_slider->set_as_dirty(false);
         m_gcode_viewer.update_sequential_view_current((moves_slider->GetLowerValueD() - 1.0), static_cast<unsigned int>(moves_slider->GetHigherValueD() - 1.0));
         post_event(SimpleEvent(EVT_GLCANVAS_UPDATE));
+    }
+
+    if (const auto line = m_gcode_viewer.take_gcode_line_request()) {
+        if (m_gcode_viewer.navigate_to_gcode_line(*line)) {
+            set_volumes_z_range({layers_slider->GetLowerValueD(), layers_slider->GetHigherValueD()});
+            m_dirty = true;
+            post_event(SimpleEvent(EVT_GLCANVAS_UPDATE));
+        }
     }
 }
 

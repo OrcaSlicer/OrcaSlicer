@@ -486,6 +486,7 @@ bool IMSlider::check_ticks_changed_event(Type type)
 // switch on/off one layer mode
 bool IMSlider::switch_one_layer_mode()
 {
+    m_user_interaction = true;
     if (m_show_custom_gcode_window)
         return false;
 
@@ -1280,6 +1281,7 @@ bool IMSlider::render(int canvas_width, int canvas_height)
         ImVec2 size  = ImVec2(canvas_width - 2 * std::max(LEFT_MARGIN * m_scale, 0.2f * canvas_width), HORIZONTAL_SLIDER_WINDOW_HEIGHT * m_scale);
         imgui.set_next_window_pos(0.5f * static_cast<float>(canvas_width), canvas_height, ImGuiCond_Always, 0.5f, 1.0f);
         imgui.begin(std::string("moves_slider"), windows_flag);
+        m_user_interaction |= ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0);
         int value = GetHigherValue();
         if (horizontal_slider("moves_slider", &value, GetMinValue(), GetMaxValue(), size, scale)) {
             result = true;
@@ -1290,6 +1292,7 @@ bool IMSlider::render(int canvas_width, int canvas_height)
         ImVec2 size = ImVec2(VERTICAL_SLIDER_WINDOW_WIDTH * m_scale, 0.8f * canvas_height);
         imgui.set_next_window_pos(canvas_width, 0.5f * static_cast<float>(canvas_height), ImGuiCond_Always, 1.0f, 0.5f);
         imgui.begin(std::string("laysers_slider"), windows_flag);
+        m_user_interaction |= ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0);
 
         int higher_value = GetHigherValue();
         int lower_value = GetLowerValue();
@@ -1326,6 +1329,7 @@ bool IMSlider::render(int canvas_width, int canvas_height)
     ImGui::PopStyleVar(3);
     ImGui::PopStyleColor(2);
 
+    m_user_interaction |= result;
     return result;
 }
 
@@ -1407,6 +1411,7 @@ void IMSlider::render_input_custom_gcode(std::string custom_gcode)
 }
 
 void IMSlider::do_go_to_layer(size_t layer_number) {
+    m_user_interaction = true;
     layer_number = std::clamp((int)layer_number, m_min_value, m_max_value);
     GetSelection() == ssLower ? SetLowerValue(layer_number) : SetHigherValue(layer_number);
 }
@@ -1676,6 +1681,7 @@ void IMSlider::on_mouse_wheel(wxMouseEvent& evt) {
             evt.GetPosition().y < moves_slider_window->Pos.y + moves_slider_window->Size.y){
             const int new_pos = GetHigherValue() + wheel;
             SetHigherValue(new_pos);
+            m_user_interaction = true;
             set_as_dirty();
             imgui.set_requires_extra_frame();
         }
@@ -1695,6 +1701,7 @@ void IMSlider::on_mouse_wheel(wxMouseEvent& evt) {
                 m_selection == ssLower ? SetLowerValue(new_pos) : SetHigherValue(new_pos);
             }
             set_as_dirty();
+            m_user_interaction = true;
             imgui.set_requires_extra_frame();
         }
     }

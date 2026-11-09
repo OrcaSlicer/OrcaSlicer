@@ -117,6 +117,7 @@
 #include "libslic3r/SLA/Pad.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/GCodeViewer.hpp"
 #include "slic3r/GUI/GLModel.hpp"
 #include <nlohmann/json.hpp>
 
@@ -6907,6 +6908,11 @@ int PartPlateList::select_plate(int index)
 	//BBS
 	if(m_model)
 		m_model->curr_plate_index = index;
+
+    if (previous_index != index && m_intialized && m_plater != nullptr) {
+        if (GLCanvas3D* canvas = m_plater->get_preview_canvas3D())
+            canvas->get_gcode_viewer().reset_gcode_text_view();
+    }
 
 	//BBS update bed origin
 	if (m_intialized && m_plater) {
