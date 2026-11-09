@@ -762,12 +762,10 @@ static void stb__InitDXT()
 
 void stb_compress_dxt_block(unsigned char *dest, const unsigned char *src, int alpha, int mode)
 {
-   static int init=1;
-   if (init) 
-   {
-      stb__InitDXT();
-      init=0;
-   }
+   // OrcaSlicer: C++ initializes this once even when several threads compress at the same time
+   // (the font atlas and GLTexture::Compressor do). The implementation is only built as C++.
+   static const int init = (stb__InitDXT(), 1);
+   (void)init;
 
    if (alpha) 
    {

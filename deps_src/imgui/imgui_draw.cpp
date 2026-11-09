@@ -2586,8 +2586,8 @@ static bool ImFontAtlasBuildWithStbTruetype(ImFontAtlas* atlas)
 
 const ImFontBuilderIO* ImFontAtlasGetBuilderForStbTruetype()
 {
-    static ImFontBuilderIO io;
-    io.FontBuilder_Build = ImFontAtlasBuildWithStbTruetype;
+    // OrcaSlicer: initialized once rather than written on every call, as atlases are built on two threads.
+    static const ImFontBuilderIO io = [] { ImFontBuilderIO io; io.FontBuilder_Build = ImFontAtlasBuildWithStbTruetype; return io; }();
     return &io;
 }
 
