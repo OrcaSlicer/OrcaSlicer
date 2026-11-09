@@ -140,10 +140,12 @@ def check_from_datadir():
     raises(lambda: OrcaMcp.from_datadir(empty), os.path.join(empty, "mcp", "server.json"), "--mcp")
     ok("from_datadir() without server.json names the file and says to start with --mcp")
 
+    # "cannot read the port" is the unreadable file's own error: a file read some other way (its
+    # url's port, say) would end at the ping instead, whose error also names the file.
     for text in ("{not json", json.dumps({"url": "http://127.0.0.1:1/mcp", "token": "t"})):
         datadir, path = datadir_with(text, "orca-attach-malformed-")
-        raises(lambda: OrcaMcp.from_datadir(datadir), path, "--mcp")
-    ok("from_datadir() with a server.json that is not JSON, or names no port, names the file")
+        raises(lambda: OrcaMcp.from_datadir(datadir), "cannot read the port", path, "--mcp")
+    ok("from_datadir() with a server.json that is not JSON, or names no port, says it cannot read the port, naming the file")
 
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))

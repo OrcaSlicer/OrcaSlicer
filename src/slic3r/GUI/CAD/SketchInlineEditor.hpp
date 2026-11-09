@@ -20,12 +20,11 @@ class ImGuiWrapper;
 // keystroke, with Enter then committing the number it opened with.
 //
 // So the field does not ask. It is drawn INSIDE the GL canvas as an ImGui overlay, and its keys
-// arrive through the canvas's own key events, which
-// GLCanvas3D already feeds to ImGui (see GLCanvas3D::on_key / on_char -> update_key_data). The
-// canvas is part of the main window and already has focus, so there is no second window, no
-// second focus, and no window manager in the path. The dimension labels next to it are already
-// ImGui overlays (DesignSketchTool::draw_dim_label), so this is the same vocabulary, not a new
-// one.
+// arrive through the canvas's own key events, which GLCanvas3D already feeds to ImGui (see
+// GLCanvas3D::on_key / on_char -> update_key_data). The canvas is part of the main window and
+// already has focus, so there is no second window, no second focus, and no window manager in the
+// path. The dimension labels next to it are already ImGui overlays
+// (DesignSketchTool::draw_dim_label), so this is the same vocabulary, not a new one.
 //
 // Ownership: DesignCanvas owns it; DesignSketchTool::render() calls render() once per frame.
 class SketchInlineEditor

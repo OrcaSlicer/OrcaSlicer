@@ -374,11 +374,10 @@ note on how a person turns it on. A call is refused (`-32002`) while the Design 
 runs while a rebuild owns the document, `change` and `sketch` CAD tools do not run under an open
 feature card, the Text dialog, Constrain mode or a body Move, and a `change` one does not run under
 a sketch session, which `sketch` ones drive. `read` CAD tools are refused only during a rebuild.
-Face and edge ids name
-faces and edges of the current model, and a rebuild renumbers them while a stale id still names a
-real face or edge, so the replies carry the model's `generation`: a call that passes ids with the
-`generation` they were read at is refused (`-32010`) once the model has moved on, rather than acting
-on another face or edge.
+Face and edge ids name faces and edges of the current model, and a rebuild renumbers them while a
+stale id still names a real face or edge, so the replies carry the model's `generation`: a call that
+passes ids with the `generation` they were read at is refused (`-32010`) once the model has moved
+on, rather than acting on another face or edge.
 
 The CAD tools add features through the kernel calls the cards use, named as the cards name them,
 one checkpoint per call. A rebuild that fails is taken back with `CadDocument::rollback()`, which

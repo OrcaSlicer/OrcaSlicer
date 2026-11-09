@@ -1012,8 +1012,7 @@ TopoDS_Face SketchEngine::wires_to_face(const std::vector<TopoDS_Wire>& wires,
     }
     if (!fm.IsDone()) throw std::runtime_error(_u8L("sketch loop does not bound a face"));
     // Winding-independent classification of outer vs holes — the same idiom make_extrude_regions
-    // already uses for imported glyphs, which is why holed TEXT extruded correctly all along
-    // while a holed SKETCH did not.
+    // uses for imported glyphs, so a holed sketch extrudes as holed text does.
     ShapeFix_Face sff(fm.Face());
     sff.FixOrientation();
     return checked_profile_face(sff.Face());

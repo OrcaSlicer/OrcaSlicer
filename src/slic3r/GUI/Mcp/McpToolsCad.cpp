@@ -182,7 +182,7 @@ json plane_param(const json& def, bool drill)
 // argument {"from_call": i, "key": k} is the value under k in the reply of call i of the same
 // example, which is how a generation is passed on. `needs` names a file from outside the app, at a
 // placeholder path. tools/mcp/test_cad_examples.py runs them in the app. The text is kept as written
-// here and parsed by tool_rows() once the rows are built, so a parse error names the row it is in.
+// here and parsed by tool_rows() once the rows are built, so an error reading it names its row.
 json examples(const char* text) { return json(text); }
 
 // One row per dispatched CAD tool (kCadTools), grouped by what the tools do: its name, a summary of
@@ -1481,11 +1481,10 @@ json tool_rows()
                          {"tool": "thicken_surface", "args": {"body": 0, "thickness": 1.5, "flip": true}}]}])json")}},
     });
     for (json& row : rows) {
-        const std::string text = row.at("examples").get<std::string>();
         try {
-            row["examples"] = json::parse(text);
-        } catch (const json::parse_error& e) {
-            throw std::runtime_error("the examples of the CAD tool " + row.at("name").get<std::string>() + " do not parse: " + e.what());
+            row["examples"] = json::parse(row.at("examples").get<std::string>());
+        } catch (const json::exception& e) {
+            throw std::runtime_error("the examples of the CAD tool " + row.value("name", std::string()) + " cannot be read: " + e.what());
         }
     }
     return rows;

@@ -181,7 +181,7 @@ private:
 
     // Onshape-style contextual top toolbar: only the active mode's tool group is
     // shown (Feature = sketch/extrude/dress/hole/thread; Sketch = entity tools;
-    // Constrain = constraints + edit ops). Replaces the old always-visible wall.
+    // Constrain = constraints + edit ops), never every tool at once.
     enum class UiMode { Feature, Sketch, Constrain };
     void set_ui_mode(UiMode m);
     void apply_dof_status(int dof, bool ok, bool has_constraints);
@@ -591,8 +591,8 @@ private:
     // Sketch environment banner: a strip across the top of the viewport saying, in words, that
     // this is a sketch and which one. The toolbar and the left card alone look like the rest of
     // the app, which would leave a sketch session and plate preparation one glance apart.
-    // Indicator only: Finish/Cancel stay on the ONE ribbon
-    // action bar (the Design UX contract), and the banner never grows a second pair.
+    // Indicator only: Finish/Cancel stay on the ONE ribbon action bar (the Design UX contract),
+    // and the banner never grows a second pair.
     wxPanel*      m_sketch_banner{nullptr};
     wxStaticText* m_sketch_banner_txt{nullptr};
     wxScrolledWindow* m_toolbar{nullptr};   // horizontally scrollable so the action bar stays reachable on narrow windows

@@ -3070,9 +3070,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // own, so a one-sentence help line under a card sets that card's sizer min width to the
     // width of the entire sentence — the same failure make_combo's explicit width fixes above,
     // and with the same symptom: the card is wider than the sidebar, so every control in it is
-    // clipped at the panel's right edge. Found by click-testing Transform, Mirror and Coord Sys,
-    // whose hints are the longest. 240 px sits under m_form's 264 px minimum, so a wrapped hint
-    // always fits; the short two-column labels are far below it and Wrap() leaves them alone.
+    // clipped at the panel's right edge. Transform, Mirror and Coord Sys have the longest hints.
+    // 240 px sits under m_form's 264 px minimum, so a wrapped hint always fits; the short
+    // two-column labels are far below it and Wrap() leaves them alone.
     for (wxWindow* w : m_cards->GetChildren())
         if (auto* t = dynamic_cast<wxStaticText*>(w))
             t->Wrap(240);
@@ -4130,7 +4130,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         const bool ctrl = e.ControlDown() || e.CmdDown();
         const bool sketching = (m_ui_mode == UiMode::Sketch) && m_viewport && m_viewport->is_sketching();
         // Which key MAP applies is a question about the MODE, not about the canvas tool:
-        // is_sketching() is true in Constrain too, which keeps the feature map. 0ud.
+        // is_sketching() is true in Constrain too, which keeps the feature map.
         const bool sketch_mode = (m_ui_mode == UiMode::Sketch);
         // Never steal editing keys from a focused text field or an open in-canvas value field —
         // Delete/Ctrl+Z there must edit the text, not the model.
@@ -4142,40 +4142,31 @@ DesignPanel::DesignPanel(wxWindow* parent)
                     key, int(m_ui_mode), (m_viewport && m_viewport->is_sketching()) ? 1 : 0, in_text ? 1 : 0,
                     (m_viewport && m_viewport->inline_busy()) ? 1 : 0,
                     // wxString, not a cast: GetClassName() returns const wxChar* — wchar_t* in
-                    // this build — and casting THAT to const char* and printing it with %s emits
-                    // the first byte and stops at the padding NUL. Every focus= field this tracer
-                    // has ever printed was a single letter: "wxGLCanvas" came out as "w", and so
-                    // did "wxWindow". An instrument that silently truncates its most important
-                    // field is worse than no instrument, and this one was trusted for a whole
-                    // day's diagnosis.
+                    // this build — and casting THAT to const char* and printing it with %s would
+                    // emit the first byte and stop at the padding NUL, so "wxGLCanvas" would
+                    // print as "w". An instrument that silently truncates its most important
+                    // field is worse than no instrument.
                     fw ? wxString(fw->GetClassInfo()->GetClassName()).utf8_str().data() : "(none)");
             fflush(stderr);
         }
 
-        // NOTE the position: this sits AFTER the KEYTRACE block on purpose. It returns early,
-        // and putting it first made every forwarded key invisible to the tracer — the one
-        // instrument that diagnosed this bug in the first place.
-        // The in-canvas value field is a borderless, always-on-top top-level frame, so whether it
-        // may take keyboard focus is the platform's decision, not ours: macOS denies key status to a
-        // borderless window, and mutter's focus-stealing prevention refuses a re-mapped window.
-        // When focus is refused, Enter/Esc/Tab are delivered HERE (to the panel)
-        // instead of the field, its own wxEVT_TEXT_ENTER / WXK_ESCAPE bindings never fire, and the
-        // queued-dimension chain (a line queues Length then Angle) becomes unwalkable. Forwarding them
-        // makes the field behave the same everywhere WITHOUT fighting the window manager for focus,
-        // a fight the app cannot win. When the field DOES hold focus we
-        // deliberately do nothing here, so its own bindings run and typing keeps working.
+        // AFTER the KEYTRACE block on purpose: this returns early, and placed first it would hide
+        // the keys it takes from the tracer.
+        // The in-canvas value field (SketchInlineEditor) is an ImGui text widget drawn INSIDE the
+        // GL canvas, fed through the canvas's own key events. While its widget is active it owns
+        // the keyboard, and nothing here touches its keys. A click elsewhere deactivates the
+        // widget but leaves the field open, and ImGui then no longer sees Enter or Tab, so the
+        // panel commits the field for them; otherwise the queued-dimension chain (a line queues
+        // Length then Angle) could not be walked from the keyboard.
         if (m_viewport && m_viewport->inline_busy() && !m_viewport->inline_has_focus()) {
             if (key == WXK_RETURN || key == WXK_NUMPAD_ENTER || key == WXK_TAB) {
                 m_viewport->inline_commit();
                 return;
             }
-            // NO forwarding here any more. The field is drawn INSIDE the GL canvas now, so it
-            // is fed the way every other ImGui widget in this app is fed: GLCanvas3D::on_char ->
-            // ImGuiWrapper::update_key_data -> io.AddInputCharacter. Re-adding a panel-side
-            // forwarder would also mask whether that path works, which is exactly what is being
-            // measured.
-            // Esc is NOT special-cased here any more: escape() routes it, and the open field is
-            // exactly what CadLevel::Transient means, so it closes the field and stops there.
+            // No other key is forwarded. Characters reach the field the way every ImGui widget in
+            // this app is fed (GLCanvas3D::on_char -> ImGuiWrapper::update_key_data ->
+            // io.AddInputCharacter), and Esc goes to escape() below, where the open field is
+            // CadLevel::Transient, so it closes the field and stops there.
         }
 
         // ONE Esc, ONE route, whatever holds focus. Which widget has focus is an accident of where
@@ -6623,9 +6614,9 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
     const int      kind = offer_selection_kind();
     const uint32_t bit  = offer_bit(OfferSel(kind));
     // Which verb MAP applies is a question about the MODE, not about whether a session is
-    // running — the same distinction the keyboard already had to learn (0ud). Gated on
-    // is_sketching() the offer opened on entering a sketch showing the FEATURE rows, every one
-    // of them refusing the sketch selection, so it read as a menu of nine dead entries.
+    // running — the same distinction the keyboard map makes. Gated on is_sketching(), the offer
+    // would open on entering a sketch showing the FEATURE rows, every one of them refusing the
+    // sketch selection: a menu of dead entries.
     const bool     sketching = sketch_map_applies();
     // The offer ladder reads THIS, not the pixels: the trace is emitted from the same loop that
     // builds the menu, so it cannot drift from what the user is shown. Gated on
@@ -8105,14 +8096,14 @@ void DesignPanel::after_tree_edit(bool ok)
         // reachable on screen.
         set_status(idle_hint());
     } else {
-        // nde #19/20: a delete/reorder that leaves bodies behind must re-feed the per-body
-        // GLVolumes — otherwise the viewport keeps showing the pre-edit solid (the deleted
-        // feature's artifact lingered). feed_bodies() is idempotent for the edit/replace path.
+        // A delete/reorder that leaves bodies behind must re-feed the per-body GLVolumes —
+        // otherwise the viewport keeps showing the pre-edit solid, the deleted feature's
+        // artifact included. feed_bodies() is idempotent for the edit/replace path.
         if (m_viewport != nullptr) feed_bodies();
         set_status_ok();
     }
-    // Force a frame: under software GL (llvmpipe on the :10 test box) reload()'s scheduled
-    // Refresh() is dropped, so a deleted solid stayed on screen until the next orbit.
+    // Force a frame: under software GL (llvmpipe) reload()'s scheduled Refresh() is dropped,
+    // which would leave a deleted solid on screen until the next orbit.
     if (m_viewport != nullptr) m_viewport->request_repaint();
     m_status->Refresh();
 }
@@ -11447,9 +11438,9 @@ void DesignPanel::refresh_preview()
         // A mate produces no NEW geometry, but it MOVES a body — and the moved assembly is
         // exactly the ghost worth showing: preview() routes a Mate candidate through apply_mate
         // on a throwaway copy, so this branch shows it rather than clearing the preview. The
-        // card's own gate stays: Confirm is disabled when <2 CoordSys
-        // exist or when A == B, because neither of those is a kernel error, only an unfinished
-        // form, and the kernel's message for them would be worse than these.
+        // card's own gate stays: Confirm is disabled when <2 CoordSys exist or when A == B,
+        // because neither of those is a kernel error, only an unfinished form, and the kernel's
+        // message for them would be worse than these.
         const bool has_two = m_mate_cs_a && m_mate_cs_a->GetCount() >= 2;
         const int sel_a = has_two ? m_mate_cs_a->GetSelection() : wxNOT_FOUND;
         const int sel_b = has_two ? m_mate_cs_b->GetSelection() : wxNOT_FOUND;
@@ -12258,13 +12249,12 @@ void DesignPanel::update_action_bar()
                      || body_move_pending();
     s->Show(m_tb_action, active, true);
     // HIDING THE BAR ORPHANS THE KEYBOARD. The ✓/✗ live in this bar, so the click that confirms
-    // a feature leaves focus on a
-    // button that this very call then hides. wx does not hand that focus anywhere useful, and
-    // wxEVT_CHAR_HOOK is bound on THIS PANEL — it is delivered to the focused window and
-    // propagates up the parent chain, so with focus outside the panel every Design shortcut
-    // stops arriving: without the hand-back below, shift+S after Confirm raises no CHAR_HOOK at
-    // all (not even the modifier) although the main window keeps focus, so it is not a
-    // window-manager problem, and one bare canvas click restores it.
+    // a feature leaves focus on a button that this very call then hides. wx does not hand that
+    // focus anywhere useful, and wxEVT_CHAR_HOOK is bound on THIS PANEL — it is delivered to the
+    // focused window and propagates up the parent chain, so with focus outside the panel every
+    // Design shortcut stops arriving: without the hand-back below, shift+S after Confirm raises
+    // no CHAR_HOOK at all (not even the modifier) although the main window keeps focus, so it is
+    // not a window-manager problem, and one bare canvas click restores it.
     // The canvas is the right owner of the keyboard in this tab, so give it back explicitly.
     if (!active && m_viewport != nullptr) {
         wxWindow* f = wxWindow::FindFocus();
