@@ -9392,10 +9392,21 @@ void DesignSketchTool::confirm_transform()
     };
 
     if (m_mode == Mode::Move || m_mode == Mode::Rotate || m_mode == Mode::Scale) {
-        // MUTATING: map every subject in place, then drop the constraint classes the map
-        // invalidates for any constraint touching a subject. Surviving classes are
-        // satisfied by construction; the re-solve folds in the new placement.
+        // MUTATING: map every subject in place, then release each constraint touching a subject
+        // that the map breaks. What is kept holds by construction, so the re-solve moves nothing.
+        //
+        // A constraint among the subjects alone moved with them under the one map, so it still
+        // holds unless it measures against the sketch's fixed frame (a position, an axis direction,
+        // a projection onto an axis) or, under a scale, a size: a rectangle moved, turned or scaled
+        // whole keeps its corners joined. One reaching past them, to an entity left where it was or
+        // to the origin or an axis, is judged by its class: whether the map can move one end of it
+        // away from the other.
         const Mode mode = m_mode;
+        auto among_subjects = [&](const SketchEntityConstraintDef& d) {
+            for (int e : { d.ea, d.eb, d.ec })
+                if (e != -1 && !is_target(e)) return false;   // -1: unused; a sketch reference stays put
+            return true;
+        };
         for (int ti : targets) {
             if (ti < 0 || ti >= int(m_entities.size())) continue;
             std::vector<SketchEntity> out;
@@ -9409,19 +9420,29 @@ void DesignSketchTool::confirm_transform()
         }
         const int released = erase_constraints([&](int, const SketchEntityConstraintDef& d) {
             if (!(is_target(d.ea) || is_target(d.eb) || is_target(d.ec))) return false;
-            const bool self = (d.ea == d.eb);   // self-length Distance survives translate/rotate
+            if (among_subjects(d)) {
+                switch (d.type) {
+                case CT::Fix:             case CT::LockX:           case CT::LockY:
+                case CT::SymmetricAboutX: case CT::SymmetricAboutY:  return true;   // the fixed frame
+                case CT::Horizontal:      case CT::Vertical:         return mode == Mode::Rotate;
+                case CT::DistanceX:       case CT::DistanceY:        return mode != Mode::Move;
+                case CT::Distance:        case CT::Radius:           case CT::Diameter:
+                    return mode == Mode::Scale;
+                case CT::PointOnLine:     return mode == Mode::Scale && std::abs(d.value) > 1e-9;   // an offset is a size
+                default:                  return false;   // relations the map carries over
+                }
+            }
             if (mode == Mode::Move) {
                 switch (d.type) {
                 case CT::Coincident: case CT::PointOnLine: case CT::PointOnObject:
                 case CT::Concentric: case CT::Symmetric:   case CT::Midpoint:
-                case CT::Fix:        case CT::LockX:        case CT::LockY:   return true;
-                case CT::Distance: return !self;
-                default:           return false;   // orientation/length preserved by translation
+                case CT::Fix:        case CT::LockX:        case CT::LockY:
+                case CT::Distance:   return true;
+                default:             return false;   // orientation/length preserved by translation
                 }
             } else if (mode == Mode::Rotate) {
                 switch (d.type) {
                 case CT::EqualLength: case CT::Radius: case CT::Diameter: return false;
-                case CT::Distance: return !self;
                 default:           return true;    // orientation + position broken by rotation
                 }
             } else {   // Scale (uniform / conformal)

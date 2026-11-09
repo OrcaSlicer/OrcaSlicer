@@ -1022,18 +1022,27 @@ corner drag solves the offset so that the *opposite* corner stays put (`:7690-77
 ### 14.2 Verified current behaviour: the constraint table, read in the right direction
 
 `confirm_transform` (`:8342-8445`) `remove_if`s — **returning true means REMOVED** — over every
-constraint that touches a target (`is_target` checks `ea`, `eb` and `ec`):
+constraint that touches a target (`is_target` checks `ea`, `eb` and `ec`).
+
+A constraint whose every operand is a target moved with them under the one map, so it is kept unless
+it measures against the sketch's fixed frame or, under Scale, a size: `Fix`, `LockX`, `LockY` and
+`SymmetricAboutX/Y` are removed by every map, Horizontal and Vertical by Rotate, `DistanceX/Y` by
+Rotate and Scale, `Distance`, Radius and Diameter by Scale, and a `PointOnLine` with an offset by
+Scale. A rectangle moved, turned or scaled whole keeps its corners joined.
+
+A constraint that reaches past the targets — to an entity left where it was, or to the origin or an
+axis — is judged by its class:
 
 | Mode | Removed | Kept |
 |---|---|---|
-| Move | Coincident, PointOnLine, PointOnObject, Concentric, Symmetric, Midpoint, **Fix, LockX, LockY**, cross-entity `Distance` | Horizontal, Vertical, Parallel, Perpendicular, Angle, EqualLength, Radius, Diameter, Collinear, **self**-`Distance` |
-| Rotate | everything else — Coincident, Concentric, Tangent, Parallel, Perpendicular, Midpoint, Symmetric, PointOnLine/Object, Horizontal, Vertical, Angle, Fix, Lock | EqualLength, Radius, Diameter, self-`Distance` |
+| Move | Coincident, PointOnLine, PointOnObject, Concentric, Symmetric, Midpoint, **Fix, LockX, LockY**, `Distance` | Horizontal, Vertical, Parallel, Perpendicular, Angle, EqualLength, Radius, Diameter, Collinear |
+| Rotate | everything else — Coincident, Concentric, Tangent, Parallel, Perpendicular, Midpoint, Symmetric, PointOnLine/Object, Horizontal, Vertical, Angle, `Distance`, Fix, Lock | EqualLength, Radius, Diameter |
 | Scale | everything except the five orientation types | Horizontal, Vertical, Parallel, Perpendicular, Angle |
 | Array / PolarArray | additive: copies are appended and bound to their source through a ladder — lines get Parallel+EqualLength (linear) or EqualLength alone (polar), arcs/circles a per-copy Radius plus Concentric when the polar pivot *is* the source's centre | the originals are untouched |
 
-Then `resolve_live()`. The rationale in the comment is real — *"Surviving classes are satisfied by
-construction; the re-solve folds in the new placement"* — and the array ladder is the same
-degrade-and-keep-the-first-set pattern as Batch 13's fillet, which is the right instinct.
+Then `resolve_live()`. What is kept holds by construction, so the re-solve moves nothing, and the
+array ladder is the same degrade-and-keep-the-first-set pattern as Batch 13's fillet, which is the
+right instinct.
 
 ### 14.3 The defects
 
@@ -1043,15 +1052,10 @@ degrade-and-keep-the-first-set pattern as Batch 13's fillet, which is the right 
    `reset_tf(); // drop any in-progress transform gizmo` (`:295`). So arming Line with a pending
    fillet keeps the fillet, and arming Line with a pending rotation **throws the rotation away** —
    targets picked, value dialled or typed, ghost visible. Same gesture, opposite outcome, no message.
-2. **The keep/drop table over-removes, silently.** For every mode there are constraint types the map
-   provably preserves that are removed anyway: Move removes Coincident/PointOnLine/PointOnObject even
-   when *all* their operands are targets (a rigid translation of a whole loop preserves them); Rotate
-   removes Coincident, Concentric, Tangent, Parallel, Perpendicular, Midpoint, Symmetric and
-   PointOnObject although a rotation preserves all of them; Scale removes Coincident, Tangent,
-   Midpoint, Symmetric, PointOnLine, PointOnObject and EqualLength although a uniform scale preserves
-   them (and it keeps Horizontal/Vertical, which only a *non-uniform* scale would break — Scale here
-   is uniform, so that half is right). The user sees badges vanish and the DoF readout climb, while the
-   geometry — which *is* correctly mapped — looks fine, so the loss stays invisible until a later edit.
+2. **The class table keeps some relations a move breaks.** For a constraint reaching past the
+   targets, Move keeps Tangent, Collinear, `DistanceX/Y` and `SymmetricAboutX/Y`, although translating one end
+   of them carries it away from the other; the re-solve then pulls the moved geometry back toward
+   the relation, undoing part of the move.
 3. **Move releases an explicit anchor.** `Fix`, `LockX` and `LockY` are removed by a translation. A
    point the user pinned to protect it can be moved, and the protection silently disappears. Either the
    map should obey the anchor (refuse, or carry it) or the release must be reported.
@@ -1139,10 +1143,10 @@ degrade-and-keep-the-first-set pattern as Batch 13's fillet, which is the right 
   none of them these), so the family is reachable only from the offer. Either assign keys from the free
   letters (G I J K N Q U V W Y Z — K is already Constrain) or state that the family is deliberately
   offer-only: `snaporca-fqwu` counts 47 of 86 verbs with no shortcut, and this is a sixth of them.
-- **Batch 14 — derive the keep/drop table, do not maintain it.** `confirm_transform :8357-8387` is a
-  hand-written per-type switch that over-removes in all three mutating modes; for each `(type, map)`
-  pair the answer is a property of the map (does it preserve the relation?), with the genuine
-  exceptions (`Fix`/`Lock`, an absolute `Angle`) named as exceptions.
+- **Batch 14 — derive the keep/drop table, do not maintain it.** For a constraint reaching past the
+  targets, `confirm_transform` is a hand-written per-type switch, and its Move column keeps relations
+  a translation breaks (14.3, 2); whether one end moving away from the other breaks a relation is a
+  property of the map, with the genuine exceptions (`Fix`/`Lock`) named as exceptions.
 - **Phase 2 (3D) needs its batch list written before it starts** — otherwise it will be designed by
   whoever opens the file first.
 

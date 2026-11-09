@@ -2488,6 +2488,51 @@ TEST_CASE("sketch_transform moves, rotates, scales and arrays as the transform t
     CHECK(ents.size() == n);
 }
 
+TEST_CASE("a transform keeps the constraints among the entities it moves together", "[Mcp][CAD]")
+{
+    using T = SketchConstraintType;
+    GUI::DesignSketchTool tool;
+    begin_sketch(tool);
+    sketch(tool, "sketch_add", {{"rect", {-15, -10, 15, 10}}});
+    auto count = [&](T type) {
+        return std::count_if(tool.constraints().begin(), tool.constraints().end(),
+                             [type](const SketchEntityConstraintDef& c) { return c.type == type; });
+    };
+    REQUIRE(count(T::Coincident) == 4);   // the corners
+    REQUIRE(count(T::Horizontal) == 2);
+    REQUIRE(count(T::Vertical) == 2);
+    const int  rect_dof = tool.dof();     // position, width and height
+    const json whole    = {0, 1, 2, 3};
+
+    // Moved or scaled whole, it is still the same rectangle: nothing is released.
+    json r = sketch(tool, "sketch_transform", {{"op", "move"}, {"entities", whole}, {"dx", 5}, {"dy", 3}});
+    CHECK(r.at("released_constraints") == 0);
+    CHECK(r.at("dof") == rect_dof);
+    r = sketch(tool, "sketch_transform", {{"op", "scale"}, {"entities", whole}, {"scale", 2}});
+    CHECK(r.at("released_constraints") == 0);
+    CHECK(r.at("dof") == rect_dof);
+
+    // Turned 30 degrees, its edges are neither horizontal nor vertical, but its corners still meet.
+    r = sketch(tool, "sketch_transform", {{"op", "rotate"}, {"entities", whole}, {"angle_deg", 30}});
+    CHECK(r.at("released_constraints") == 4);
+    CHECK(count(T::Coincident) == 4);
+    CHECK(count(T::Horizontal) == 0);
+    CHECK(count(T::Vertical) == 0);
+    CHECK(r.at("dof") == 4 * 4 - 4 * 2);   // four lines' ends, less two per joined corner
+
+    // A corner pinned to the origin stays behind when the whole rectangle moves: only the pin goes.
+    sketch(tool, "sketch_constrain", {{"type", "coincident"}, {"refs", {{{"entity", 0}, {"role", "p0"}}, {{"entity", "origin"}}}}});
+    REQUIRE(count(T::Coincident) == 5);
+    r = sketch(tool, "sketch_transform", {{"op", "move"}, {"entities", whole}, {"dx", 2}});
+    CHECK(r.at("released_constraints") == 1);
+    CHECK(count(T::Coincident) == 4);
+
+    // One edge moved on its own leaves its neighbours: the two corners it shares are released.
+    r = sketch(tool, "sketch_transform", {{"op", "move"}, {"entities", {0}}, {"dx", 1}});
+    CHECK(r.at("released_constraints") == 2);
+    CHECK(count(T::Coincident) == 2);
+}
+
 TEST_CASE("a loop reports the area it encloses whichever way it runs", "[Mcp][CAD]")
 {
     GUI::DesignSketchTool tool;
