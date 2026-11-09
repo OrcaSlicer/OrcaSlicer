@@ -3089,6 +3089,15 @@ void slice_lower_half_finer(ModelObject &object)
     object.layer_config_ranges[{ 0., 10. }].assign_config(std::move(range));
 }
 
+// prime_tower_config() for a plate with an object from slice_lower_half_finer(). The tower is sized for
+// the 0.1 mm layers, twice as deep as for 0.2 mm ones, more than the corner leaves room for.
+DynamicPrintConfig finer_layers_config(std::initializer_list<Slic3r::ConfigBase::SetDeserializeItem> extra = {})
+{
+    DynamicPrintConfig config = prime_tower_config(extra);
+    config.set_deserialize_strict({ { "wipe_tower_y", 100 } });
+    return config;
+}
+
 void print_upper_part_with_filament_2(ModelObject &object, double from_z, double to_z)
 {
     DynamicPrintConfig range;
@@ -3130,7 +3139,7 @@ TEST_CASE("A plate is sliced with objects that do not share their layers when no
     slice_lower_half_finer(*add_object(model, cube(20), 20., 20.));
     add_object(model, cube(20), 60., 20.);
     Print print;
-    print.apply(model, prime_tower_config(support_interface_on_filament_2));
+    print.apply(model, finer_layers_config(support_interface_on_filament_2));
 
     CHECK(print.validate().string.empty());
     REQUIRE_NOTHROW(print.process());
@@ -3145,7 +3154,7 @@ TEST_CASE("Objects that do not share their layers are refused once their support
     overhang.scale(2.f);
     add_object(model, std::move(overhang), 60., 20.);
     Print print;
-    print.apply(model, prime_tower_config(support_interface_on_filament_2));
+    print.apply(model, finer_layers_config(support_interface_on_filament_2));
 
     // Before slicing it is not known whether the overhang gets support.
     CHECK(print.validate().string.empty());
@@ -3158,7 +3167,7 @@ TEST_CASE("Objects that do not share their layers are refused before slicing whe
     slice_lower_half_finer(*add_object(model, cube(20), 20., 20.));
     add_object(model, cube(20), 60., 20.)->config.set_key_value("extruder", new ConfigOptionInt(2));
     Print print;
-    print.apply(model, prime_tower_config());
+    print.apply(model, finer_layers_config());
 
     CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("prime tower"));
 }
