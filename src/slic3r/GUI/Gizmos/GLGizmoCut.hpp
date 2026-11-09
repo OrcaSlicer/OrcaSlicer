@@ -298,6 +298,9 @@ public:
     // fill the window in its place, as the other modes do. Kept when the tool closes, like the other modes.
     bool is_curve() const { return m_curve; }
     void set_curve(bool curve);
+    // Where this tool's controls start, past the labels (0 until its window has been drawn): the Curve tool
+    // draws the mode row there too, so the buttons stay in place when the mode changes.
+    float label_width() const { return m_label_width; }
 
 protected:
     bool               on_init() override;

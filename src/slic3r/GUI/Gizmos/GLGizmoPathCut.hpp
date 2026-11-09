@@ -184,7 +184,8 @@ private:
     std::shared_ptr<PathCutJob> m_running;       // the cut in flight, to stop it when the tool closes
     bool    m_preview_dirty{true};
     bool    m_busy{false};                     // a cut job is running
-    float   m_window_height{0.f};               // of the settings window, last frame
+    bool    m_limits_open{false};               // the Limits section is expanded (last frame)
+    bool    m_conn_open{false};                 // the Connectors section is expanded (last frame)
 };
 
 } // namespace GUI
