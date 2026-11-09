@@ -1046,14 +1046,14 @@ function RenderPermissions(plugin) {
   const consoleHeader = document.createElement("header");
   consoleHeader.className = "permission-console-header";
   const headerText = document.createElement("div");
+  const title = document.createElement("h2");
+  title.className = "detail-section-title";
+  title.textContent = T("permissions_tab", "Permissions");
+  headerText.appendChild(title);
   const pluginName = document.createElement("p");
   pluginName.className = "permission-console-plugin";
   pluginName.textContent = String(plugin.label || plugin.name || plugin.plugin_id || pluginKey);
   headerText.appendChild(pluginName);
-  const title = document.createElement("h2");
-  title.className = "permission-console-title";
-  title.textContent = T("permissions_tab", "Permissions");
-  headerText.appendChild(title);
   consoleHeader.appendChild(headerText);
   content.appendChild(consoleHeader);
 
@@ -1087,10 +1087,11 @@ function RenderPermissions(plugin) {
   checkbox.checked = fullAccess;
   const fullAccessLocked = !fullAccessAvailable || !installed || !!pendingPermissionSave;
   checkbox.disabled = fullAccessLocked;
+  checkbox.classList.add("SwitchCheck");
   const checkboxInset = document.createElement("span");
-  checkboxInset.className = "permission-checkbox-inset";
+  checkboxInset.className = "SwitchContainer SwitchTypeKnob";
   const checkboxTrack = document.createElement("span");
-  checkboxTrack.className = "permission-switch-track";
+  checkboxTrack.className = "SwitchSlider";
   checkboxTrack.setAttribute("aria-hidden", "true");
   checkboxInset.append(checkbox, checkboxTrack);
   const placeholderText = document.createElement("span");
@@ -1243,10 +1244,11 @@ function RenderPermissions(plugin) {
       threadCheckbox.disabled = !categoryEnabled;
       threadCheckbox.setAttribute("aria-labelledby", heading.id);
       threadCheckbox.setAttribute("aria-describedby", guidanceId);
+      threadCheckbox.classList.add("SwitchCheck");
       const threadInset = document.createElement("span");
-      threadInset.className = "permission-checkbox-inset";
+      threadInset.className = "SwitchContainer SwitchTypeKnob";
       const threadTrack = document.createElement("span");
-      threadTrack.className = "permission-switch-track";
+      threadTrack.className = "SwitchSlider";
       threadTrack.setAttribute("aria-hidden", "true");
       threadInset.append(threadCheckbox, threadTrack);
       threadLabel.appendChild(threadInset);
@@ -1359,6 +1361,7 @@ function PermissionForm(pluginKey, category, categoryName, index, enabled, place
   form.noValidate = true;
   const input = document.createElement("input");
   input.type = "text";
+  input.className = "TextArea mono-font";
   input.id = `permission-input-${category}-${isAdd ? "add" : index}`;
   if (!isAdd) {
     input.dataset.permissionCategory = category;
@@ -1394,6 +1397,7 @@ function PermissionForm(pluginKey, category, categoryName, index, enabled, place
   });
   const submit = document.createElement("button");
   submit.type = "submit";
+  submit.className = "ButtonStyleConfirm ButtonTypeChoice";
   submit.disabled = !enabled || !input.value.trim();
   submit.hidden = !isAdd && input.value === oldValue;
   submit.textContent = isAdd ? T("permissions_add", "Add") : T("permissions_apply", "Apply");
@@ -1412,6 +1416,7 @@ function PermissionForm(pluginKey, category, categoryName, index, enabled, place
   if (!isAdd) {
     const remove = document.createElement("button");
     remove.type = "button";
+    remove.className = "ButtonStyleAlert ButtonTypeChoice";
     remove.disabled = !enabled;
     remove.textContent = T("permissions_remove", "Remove");
     remove.setAttribute("aria-label", T("permissions_remove_label", "Remove %s", oldValue));

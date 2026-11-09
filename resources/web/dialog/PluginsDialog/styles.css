@@ -190,16 +190,14 @@ body {
 
 .check-cell,
 .label-cell,
-.version-cell,
-.status-cell {
+.version-cell {
   display: flex;
   align-items: center;
   min-width: 0;
   gap: 4px;
 }
 
-.version-cell,
-.status-cell {
+.version-cell {
   overflow: visible;
 }
 
@@ -344,6 +342,7 @@ body {
 
 .status-text {
   min-width: 0;
+  color: var(--level, inherit);
   /* truncate */ overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
@@ -356,7 +355,6 @@ body {
 .status-bar.level-warn    { --level: var(--tone-orange)  }
 .status-bar.level-error   { --level: var(--tone-red)     }
 .status-bar.level-info    { --level: var(--tone-inactive)}
-.status-text { color: var(--level, inherit); }
 
 .plugin-expand-icon {
   --icon-url : var(--icon-expand-arrow);
@@ -473,36 +471,34 @@ body {
   max-width: 960px;
   margin: 0 auto;
   container-type: inline-size;
-  padding: 6px 6px 24px;
-  color: var(--dimmed-color);
+  padding: 0 0 24px;
+  color: var(--fg-color-label);
   font-size: 13px;
   line-height: 1.5;
   --permission-surface: var(--bg-color-secondary);
 }
 
+/* Header: plugin name as a small eyebrow line, then the same title as the Description tab
+   (.detail-section-title, set in JS). */
 .permission-console-header {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px 16px;
-  padding: 8px 0 14px;
-  margin-bottom: 14px;
-  border-bottom: 1px solid var(--border-dimmed);
+  padding: 0 0 10px;
+  margin-bottom: 12px;
 }
 
 .permission-console-plugin {
   margin: 0;
-  color: var(--fg-color-text);
-  font-weight: 600;
+  color: var(--dimmed-color);
+  font-size: 12px;
   overflow-wrap: anywhere;
 }
 
-.permission-console-title {
-  margin: 4px 0 0;
-  color: var(--fg-color-text);
-  font-size: 18px;
-  font-weight: 600;
+.permission-console-header .detail-section-title {
+  margin: 0;
 }
 
 .permission-overview {
@@ -523,14 +519,12 @@ body {
   gap: 12px;
   padding: 0;
   margin: 0;
-  color: var(--fg-color-text);
-  font-size: 13px;
-  font-weight: 600;
+  cursor: pointer;
 }
 
 .permission-access-card {
   padding: 12px 16px;
-  border: 1px solid var(--border-dimmed);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   background: var(--permission-surface);
 }
@@ -544,71 +538,9 @@ body {
   opacity: 0.55;
 }
 
-.permission-access-card.is-disabled .permission-checkbox-inset input[type="checkbox"]:disabled + .permission-switch-track {
+/* the card itself is already dimmed; do not dim the switch a second time */
+.permission-access-card.is-disabled .SwitchCheck:disabled + .SwitchSlider {
   opacity: 1;
-}
-
-.permission-checkbox-inset {
-  position: relative;
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 52px;
-  height: 32px;
-}
-
-.permission-checkbox-inset input[type="checkbox"] {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.permission-switch-track {
-  position: relative;
-  box-sizing: border-box;
-  width: 42px;
-  height: 24px;
-  flex: 0 0 auto;
-  border: 2px solid var(--fg-color-text);
-  border-radius: 999px;
-  background: var(--bg-color);
-  transition: background-color 120ms ease;
-  pointer-events: none;
-}
-
-.permission-switch-track::before {
-  content: "";
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--fg-color-text);
-  transition: transform 120ms ease, background-color 120ms ease;
-}
-
-.permission-checkbox-inset input[type="checkbox"]:checked + .permission-switch-track {
-  background: var(--fg-color-text);
-}
-
-.permission-checkbox-inset input[type="checkbox"]:checked + .permission-switch-track::before {
-  transform: translateX(18px);
-  background: var(--bg-color);
-}
-
-.permission-checkbox-inset input[type="checkbox"]:disabled {
-  cursor: default;
-}
-
-.permission-checkbox-inset input[type="checkbox"]:disabled + .permission-switch-track {
-  opacity: 0.55;
 }
 
 .permission-editor {
@@ -635,7 +567,7 @@ body {
 
 .permission-group {
   min-width: 0;
-  border: 1px solid var(--border-dimmed);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   background: var(--permission-surface);
 }
@@ -663,12 +595,6 @@ body {
 
 .permission-group[open] .permission-group-chevron { transform: rotate(45deg); }
 
-.permission-group-title {
-  margin: 0;
-  color: var(--fg-color-text);
-  font-size: 13px;
-  font-weight: 600;
-}
 
 .permission-group-body {
   padding: 0 16px 16px;
@@ -684,11 +610,20 @@ body {
   min-width: 0;
 }
 
-.permission-heading {
-  margin: 0 0 4px;
-  color: var(--fg-color-text);
+/* Sub-headings (group titles, category headings, the Full access label): one style, the
+   panel's text color at the panel's size, bold. */
+.permission-group-title,
+.permission-heading,
+.permission-placeholder {
+  margin: 0;
+  color: var(--fg-color-label);
   font-size: 13px;
   font-weight: 600;
+  line-height: 1.4;
+}
+
+.permission-heading {
+  margin-bottom: 4px;
 }
 
 .permission-list {
@@ -697,7 +632,6 @@ body {
   margin: 0 0 6px;
   padding: 0;
   list-style: none;
-  color: var(--fg-color-text);
   overflow-wrap: anywhere;
   white-space: pre-wrap;
   -webkit-user-select: text;
@@ -716,7 +650,6 @@ body {
   border-left: 3px solid var(--tone-orange);
   border-radius: 6px;
   background: var(--permission-surface);
-  color: var(--fg-color-text);
 }
 
 .permission-guidance {
@@ -732,10 +665,6 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-}
-
-.permission-form[hidden] {
-  display: none;
 }
 
 .permission-filesystem {
@@ -757,92 +686,23 @@ body {
 .permissions-content label.permission-thread-toggle {
   display: inline-flex;
   align-items: center;
-  padding: 4px;
+  padding: 4px 0;
   margin: 0 0 6px;
-  color: var(--fg-color-text);
 }
 
-.permission-form input {
+/* Inputs are the global TextArea (single-line use) and buttons the global ButtonTypeChoice;
+   only the sizes that make them line up in a dense form live here. */
+.permission-form .TextArea {
   flex: 1 1 180px;
-  min-width: 0;
-  box-sizing: border-box;
-  padding: 8px 10px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--bg-color);
-  color: var(--fg-color-text);
-  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
-  user-select: text;
-  -webkit-user-select: text;
+  height: 32px;             /* same as ButtonTypeChoice */
+  padding: 0 8px;
+  line-height: 30px;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
-.permission-form button {
-  min-height: 34px;
-  padding: 6px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--button-bg-normal);
-  color: var(--fg-color-text);
-  font: inherit;
-  cursor: pointer;
-}
-
-.permission-form button[hidden] {
-  display: none;
-}
-
-.permission-form button:hover:not(:disabled) {
-  border-color: var(--main-color);
-}
-
-.permission-form :focus-visible,
-.permission-checkbox-inset input[type="checkbox"]:focus-visible + .permission-switch-track {
-  outline: 2px solid var(--main-color);
-  outline-offset: 2px;
-}
-
-.permission-form button:disabled {
-  cursor: not-allowed;
-  border-style: dashed;
-  color: var(--dimmed-color);
-  background: var(--bg-color);
-}
-
-@media (max-width: 700px) {
-  .permission-section {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 4px;
-  }
-}
-
-@container (max-width: 700px) {
-  .permission-section {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 4px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .permission-switch-track,
-  .permission-switch-track::before {
-    transition: none;
-  }
-}
-
-@media (forced-colors: active) {
-  .permission-switch-track {
-    border-color: CanvasText;
-    background: Canvas;
-  }
-  .permission-switch-track::before {
-    background: CanvasText;
-  }
-  .permission-checkbox-inset input[type="checkbox"]:checked + .permission-switch-track {
-    background: CanvasText;
-  }
-  .permission-checkbox-inset input[type="checkbox"]:checked + .permission-switch-track::before {
-    background: Canvas;
-  }
+.permission-form > button {
+  margin: 0;                /* removes margin from ButtonTypeChoice */
 }
 
 /* Config tab: fixed-width capability sidebar + the capability's configuration view. */

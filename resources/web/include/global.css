@@ -11,7 +11,6 @@ TODO CONTROLS
 Color Swatch
 Jumbo sized controls (TabCtrl for Guide)
 MultiSwitch
-SwitchButton
 RadioGroup
 SpinInput
 Collapsable Section with Header
@@ -299,7 +298,8 @@ button:focus-visible {
 /*--------------------------------------*/
 /*
 DESCRIPTION
-  Used for multiline text edit
+  Used for multiline text edit. The same class styles a single-line
+  <input type="text"> the same way (border, colors, focus, disabled).
 
 STRUCTURE
   <textarea 
@@ -342,6 +342,7 @@ CONTROLLING
 
 .TextArea:focus {
   outline: none;
+  background: var(--focus-bg);
   border-color: var(--main-color);
 }
 
@@ -950,6 +951,151 @@ CONTROLLING
   color: var(--fg-color-disabled);
 }
 
+/*--------------------------------------*/
+/*--- Switch ---------------------------*/
+/*--------------------------------------*/
+/*
+DESCRIPTION
+  Two-state toggle. Use SwitchTypeLabel when both states need a name (e.g. "Manual | Auto"),
+  SwitchTypeKnob for a plain on/off next to a text label.
+
+STRUCTURE (WITH LABELS)
+  <label class="SwitchContainer SwitchTypeLabel" title="Tooltip">
+    <input type="checkbox" class="SwitchCheck" role="switch" aria-label="Description" />
+    <span class="SwitchSlider" aria-hidden="true">
+      <span class="SwitchLabel">Option 1</span>
+      <span class="SwitchLabel">Option 2</span>
+    </span>
+  </label>
+
+STRUCTURE (KNOB ONLY)
+  <label class="SwitchContainer SwitchTypeKnob" title="Tooltip">
+    <span>Visible label (optional, before or after the slider)</span>
+    <input type="checkbox" class="SwitchCheck" role="switch" aria-label="Description" />
+    <span class="SwitchSlider" aria-hidden="true"></span>
+  </label>
+
+  The <label> wrapper needs no id/for pair, so many switches can be generated. A <div>
+  container with <input id> + <label for> also works; only the order input -> slider matters.
+  The input stays in the DOM (invisible, stretched over the control) so keyboard focus,
+  screen readers and the global onkeydown guard keep working.
+
+CONTROLLING
+  STATE > DISABLED
+    JS  > el.disabled = true/false (styling follows automatically)
+  EVENT > VALUE
+    JS  > el.checked              (read)
+    JS  > el.checked = bool       (write)
+    JS  > el.addEventListener("change", ...)
+*/
+.SwitchContainer {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.SwitchCheck {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.SwitchSlider {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  box-sizing: border-box;
+  height: 26px;
+  border: 2px solid var(--bg-color-secondary);
+  border-radius: 20px;
+  background: var(--bg-color-secondary);
+  pointer-events: none;
+  transition: background-color .2s, border-color .2s;
+}
+.SwitchSlider::before {                 /* the moving pill / knob */
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  border-radius: 20px;
+  background: var(--main-color);
+  transition: left .2s, background-color .2s;
+}
+.SwitchCheck:checked + .SwitchSlider::before {
+  left: 50%;
+}
+/* labels: the side under the pill is highlighted, the other side dimmed */
+.SwitchLabel {
+  z-index: 1;
+  padding: 2px 10px;
+  text-align: center;
+  font-size: 0.9em;
+  line-height: 18px;
+  white-space: nowrap;
+  color: var(--fg-color-disabled);
+  transition: color .2s;
+}
+.SwitchCheck:not(:checked) + .SwitchSlider .SwitchLabel:first-child,
+.SwitchCheck:checked       + .SwitchSlider .SwitchLabel:last-child {
+  color: var(--button-fg-light);
+}
+/* knob type: short track, round knob, track takes the main color when on */
+.SwitchTypeKnob .SwitchSlider {
+  display: block;
+  width: 40px;
+  height: 22px;
+  border-color: var(--border-color);
+}
+.SwitchTypeKnob .SwitchSlider::before {
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--dimmed-color);
+}
+.SwitchTypeKnob .SwitchCheck:checked + .SwitchSlider {
+  border-color: var(--main-color);
+  background: var(--main-color);
+}
+.SwitchTypeKnob .SwitchCheck:checked + .SwitchSlider::before {
+  left: calc(100% - 16px);
+  background: var(--button-fg-light);
+}
+/* states */
+.SwitchCheck:focus-visible + .SwitchSlider {
+  outline: 2px solid var(--main-color);
+  outline-offset: 2px;
+}
+.SwitchCheck:disabled,
+.SwitchContainer:has(.SwitchCheck:disabled) {
+  cursor: default;
+}
+.SwitchCheck:disabled + .SwitchSlider {
+  opacity: .5;
+}
+@media (prefers-reduced-motion: reduce) {
+  .SwitchSlider,
+  .SwitchSlider::before,
+  .SwitchLabel {
+    transition: none;
+  }
+}
+@media (forced-colors: active) {
+  .SwitchSlider          { border-color: CanvasText; }
+  .SwitchSlider::before  { forced-color-adjust: none; background: Highlight; }
+  .SwitchLabel           { color: CanvasText; }
+}
 /*--------------------------------------*/
 /*--- TabCtrl --------------------------*/
 /*--------------------------------------*/
