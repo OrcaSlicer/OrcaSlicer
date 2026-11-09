@@ -974,7 +974,6 @@ if (SLIC3R_CAD)
         GUI/CAD/SketchInlineEditor.hpp
         GUI/CAD/McpControl.cpp
         GUI/CAD/McpControl.hpp
-        GUI/Mcp/McpToolsCad.cpp
     )
 endif ()
 
