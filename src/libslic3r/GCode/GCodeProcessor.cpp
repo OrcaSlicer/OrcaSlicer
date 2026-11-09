@@ -1346,7 +1346,7 @@ void GCodeProcessor::run_post_process()
                         char buf[128];
                         sprintf(buf, "; estimated first layer printing time (%s mode) = %s\n",
                                 (mode == PrintEstimatedStatistics::ETimeMode::Normal) ? "normal" : "silent",
-                                get_time_dhms(machine.prepare_time).c_str());
+                                get_time_dhms(machine.first_layer_time).c_str());
                         export_line.append_line(buf);
                         processed = true;
                     }
