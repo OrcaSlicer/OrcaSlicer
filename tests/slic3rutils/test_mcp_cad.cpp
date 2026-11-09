@@ -334,6 +334,93 @@ TEST_CASE("the CAD-off note is given when the UI says the feature is off, and on
     CHECK(GUI::Mcp::cad_feature_note(ctx).is_null());
 }
 
+namespace {
+
+// Whether an example may pass `key` to a tool with these params: one of them, the generation the
+// dispatcher checks on every tool, or <p>_deg for a param <p> in radians, which the tool also reads
+// in degrees.
+bool takes_arg(const json& params, const std::string& key)
+{
+    if (key == "generation") return true;
+    for (const json& p : params) {
+        const std::string name = p.at("name").get<std::string>();
+        if (key == name) return true;
+        if (key == name + "_deg" && p.value("unit", "") == "rad") return true;
+    }
+    return false;
+}
+
+} // namespace
+
+TEST_CASE("every CAD tool example calls real tools with arguments they declare", "[Mcp][CAD]")
+{
+    const std::vector<std::string> names = GUI::Mcp::cad_tool_names();
+    const json all = GUI::Mcp::cad_describe_tool(all_cad_tools());
+    for (const json& row : all.at("tools"))
+        for (const json& example : row.at("examples")) {
+            const std::string title = example.value("title", "");
+            INFO(row.at("name").get<std::string>() << " / " << title);
+            CHECK_FALSE(title.empty());
+            if (example.contains("needs")) CHECK_FALSE(example.at("needs").get<std::string>().empty());
+            const json& calls = example.at("calls");
+            REQUIRE_FALSE(calls.empty());
+            for (size_t i = 0; i < calls.size(); ++i) {
+                const std::string tool = calls[i].at("tool").get<std::string>();
+                INFO("call " << i << ": " << tool);
+                REQUIRE(std::find(names.begin(), names.end(), tool) != names.end());
+                const json  params = row_of(all, tool).at("params");
+                const json& args   = calls[i].at("args");
+                REQUIRE(args.is_object());
+                for (const auto& [key, value] : args.items()) {
+                    INFO("argument " << key);
+                    CHECK(takes_arg(params, key));
+                    if (!value.is_object() || !value.contains("from_call")) continue;
+                    const json& from = value.at("from_call");
+                    REQUIRE(from.is_number_integer());
+                    CHECK(from.get<int>() >= 0);
+                    CHECK(from.get<int>() < int(i));
+                    REQUIRE(value.contains("key"));
+                    REQUIRE(value.at("key").is_string());
+                    CHECK_FALSE(value.at("key").get<std::string>().empty());
+                }
+                for (const json& p : params)
+                    if (p.at("required").get<bool>()) {
+                        INFO("required " << p.at("name").get<std::string>());
+                        CHECK(args.contains(p.at("name").get<std::string>()));
+                    }
+            }
+        }
+}
+
+TEST_CASE("every CAD tool example ends with the tool it describes", "[Mcp][CAD]")
+{
+    const json all = GUI::Mcp::cad_describe_tool(all_cad_tools());
+    for (const json& row : all.at("tools"))
+        for (const json& example : row.at("examples")) {
+            INFO(row.at("name").get<std::string>() << " / " << example.value("title", ""));
+            REQUIRE_FALSE(example.at("calls").empty());
+            CHECK(example.at("calls").back().at("tool") == row.at("name"));
+        }
+}
+
+TEST_CASE("the read and sketch tools each have an example", "[Mcp][CAD]")
+{
+    const json tools = json::array({"describe_scene", "describe_feature", "query_topology", "measure", "mass_properties",
+                                    "slice_body", "check_interference", "list_verbs", "validate_against", "sketch_describe",
+                                    "sketch_validate", "sketch_constraints", "sketch_begin", "sketch_commit", "sketch_cancel",
+                                    "sketch_add", "sketch_select", "sketch_delete", "sketch_construction", "sketch_offset",
+                                    "sketch_mirror", "sketch_heal", "sketch_set_value", "sketch_fillet", "sketch_chamfer",
+                                    "sketch_trim", "sketch_transform", "sketch_constrain", "sketch_unconstrain", "undo", "redo"});
+    REQUIRE(tools.size() == 31);
+    const json described = GUI::Mcp::cad_describe_tool(tools);
+    REQUIRE(described.at("tools").size() == tools.size());
+    for (const json& row : described.at("tools")) {
+        INFO(row.at("name").get<std::string>());
+        CHECK(row.at("examples").size() >= 1);
+        CHECK(row.at("examples").size() <= 3);
+    }
+}
+
 TEST_CASE("rollback takes back a failed edit and leaves nothing to redo", "[Mcp][CAD]")
 {
     CadDocument doc;

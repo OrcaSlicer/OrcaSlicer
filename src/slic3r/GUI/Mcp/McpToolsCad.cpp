@@ -175,6 +175,14 @@ json plane_param(const json& def, bool drill)
                        "body, x from the world axes). The reply's frame gives the axes."}};
 }
 
+// A row's examples, written as JSON text so that each reads as the calls an agent sends:
+// [{title, calls: [{tool, args}], needs?}]. Each runs on a fresh, empty design and ends with the tool
+// its row describes, so its indices and face and edge ids are the ones such a design gives. An
+// argument {"from_call": i, "key": k} is the value under k in the reply of call i of the same
+// example, which is how a generation is passed on. `needs` names a file from outside the app, at a
+// placeholder path. tools/mcp/test_cad_examples.py runs them in the app.
+json examples(const char* text) { return json::parse(text); }
+
 // One row per dispatched CAD tool (kCadTools), grouped by what the tools do: its name, a summary of
 // one sentence and at most 120 characters, the details (the rest, "" when the summary says it all),
 // params, examples and, for a tool that takes face or edge ids or gives them, "ids": true.
@@ -186,13 +194,26 @@ json tool_rows()
             json{{"name", "describe_scene"}, {"summary", "The Design document: features, variables with their values, bodies, undo_depth / redo_depth and generation."},
                  {"details", "A feature's bound lists the fields an expression drives; a body gives bbox, source_feature, visible, color and moved (by the Move gizmo)."},
                  {"params", json::array()},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "An empty design", "calls": [
+                         {"tool": "describe_scene", "args": {}}]},
+                     {"title": "A plate's two features and its body", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "describe_scene", "args": {}}]}])json")}},
             json{{"name", "describe_feature"}, {"ids", true}, {"summary", "One feature as its card shows it: params, the editable ones with their ranges, expr, refs, used_by and bodies_made."},
                  {"details", "expr holds its bindings, and refs the feature and body indices and face and edge ids it uses; a sketch adds its plane, entities and constraints (angles in degrees)."},
                  {"params", json::array({
                      json{{"name", "feature"}, {"type", "integer"}, {"description", "feature index (describe_scene)"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A plate's extrude, with the fields its card edits", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "describe_feature", "args": {"feature": 1}}]},
+                     {"title": "A committed sketch's plane, entities and constraints", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "describe_feature", "args": {"feature": 0}}]}])json")}},
             json{{"name", "set_feature"}, {"summary", "Change a feature's editable fields as its card's Confirm does when editing: one undo step and a rebuild."},
                  {"details", "A field an expression drives is refused. Reply: changed {field: [old, new]}."},
                  {"params", json::array({
@@ -546,7 +567,11 @@ json tool_rows()
                  {"params", json::array({
                      json{{"name", "min_volume"}, {"type", "number"}, {"unit", "mm^3"}, {"default", 1e-6}, {"description", "overlap volume above which a pair counts as interfering"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A post standing in a block: the two overlap", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 10}},
+                         {"tool": "extrude", "args": {"width": 10, "height": 10, "distance": 20, "boolean": "new"}},
+                         {"tool": "check_interference", "args": {}}]}])json")}},
             json{{"name", "query_topology"}, {"ids", true}, {"summary", "A body's faces and edges, with their kinds and geometry, narrowed by face and edge filters."},
                  {"details", "Faces give kind, area, centroid, normal, and a cylinder's, cone's, sphere's or torus's numbers; edges give kind, length, ends, a circle's centre and radius. Face filters (kinds, direction, at_extreme) and edge filters (edge_kinds, direction, convex) narrow their own list; when filters are given, a list none of its filters names is empty, or with adjacency holds the neighbours of the other list. Reply: face_count and edge_count of the body, faces_total and edges_total after filtering, next_offset while a page has more, generation."},
                  {"params", json::array({
@@ -560,7 +585,16 @@ json tool_rows()
                      json{{"name", "limit"},      {"type", "integer"}, {"default", nullptr}, {"min", 1}, {"description", "page size of both lists; omit for all"}},
                      json{{"name", "offset"},     {"type", "integer"}, {"default", 0}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "Every face and edge of a 20 x 20 x 5 mm plate", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "query_topology", "args": {"body": 0}}]},
+                     {"title": "A plate's top face", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "query_topology", "args": {"body": 0, "at_extreme": "+z"}}]},
+                     {"title": "A plate's vertical outside corners, the edges a fillet rounds", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "query_topology", "args": {"body": 0, "edge_kinds": ["line"], "direction": [0, 0, 1], "convex": true}}]}])json")}},
             json{{"name", "measure"}, {"ids", true}, {"summary", "Measure two refs, on one body or two: distance, closest points, angle and the gap between parallel faces."},
                  {"details", "distance is between their representative points (a face's centroid, an edge's middle, an axis's middle); min_distance comes with closest_a and closest_b; angle_deg when both have a direction; parallel_gap across two parallel planar faces."},
                  {"params", json::array({
@@ -568,13 +602,27 @@ json tool_rows()
                      json{{"name", "a"}, {"type", "object"}, {"description", "{\"face\": f}, {\"edge\": e} or {\"point\": [x, y, z]}, with an optional \"body\"; {\"face\": f, \"axis\": true} is a cylindrical face's axis over its length"}},
                      json{{"name", "b"}, {"type", "object"}, {"description", "as a"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A plate's thickness, between its top and bottom faces", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "query_topology", "args": {"body": 0, "kinds": ["planar"]}},
+                         {"tool": "measure", "args": {"body": 0, "a": {"face": 5}, "b": {"face": 4},
+                                                      "generation": {"from_call": 1, "key": "generation"}}}]},
+                     {"title": "The 10 mm gap between two blocks' facing sides", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 10}},
+                         {"tool": "extrude", "args": {"profile": [[20, -5], [30, -5], [30, 5], [20, 5]], "distance": 10, "boolean": "new"}},
+                         {"tool": "query_topology", "args": {"body": 1, "direction": [-1, 0, 0]}},
+                         {"tool": "measure", "args": {"a": {"body": 0, "face": 1}, "b": {"body": 1, "face": 3},
+                                                      "generation": {"from_call": 2, "key": "generation"}}}]}])json")}},
             json{{"name", "mass_properties"}, {"summary", "Volume / surface area / centre of mass / inertia tensor of a body."},
                  {"details", ""},
                  {"params", json::array({
                      json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "The volume and centre of mass of a 20 x 20 x 5 mm plate", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "mass_properties", "args": {"body": 0}}]}])json")}},
             json{{"name", "slice_body"}, {"ids", true}, {"summary", "Cross-section of a body by a base plane at an offset (sections-as-evidence)."},
                  {"details", "Returns ordered world contours, each flagged closed/open."},
                  {"params", json::array({
@@ -582,7 +630,17 @@ json tool_rows()
                      json{{"name", "plane"}, {"type", "string"}, {"enum", json::array({"XY", "XZ", "YZ"})}, {"default", "XY"}},
                      json{{"name", "offset"}, {"type", "number"}, {"unit", "mm"}, {"default", 0}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A plate's cross-section halfway up", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "slice_body", "args": {"body": 0, "plane": "XY", "offset": 2.5}}]},
+                     {"title": "The two contours through a plate with a bore", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [0, 0], "radius": 4}]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "extrude", "args": {"sketch": 0, "distance": 5}},
+                         {"tool": "slice_body", "args": {"body": 0, "plane": "XY", "offset": 2.5}}]}])json")}},
             json{{"name", "import_step"}, {"summary", "Import a STEP file as native B-rep bodies (the reference part to measure)."},
                  {"details", ""},
                  {"params", json::array({
@@ -620,11 +678,29 @@ json tool_rows()
             json{{"name", "undo"}, {"summary", "Edit > Undo in the Design tab: take back the last Design change, or in a sketch session the last drawn shape."},
                  {"details", "A change to the Design history is a feature added, edited, deleted, moved, shown or hidden, or renamed, or a variable changed. run_action undo undoes Prepare's history instead. Reply: scope (design or sketch), undo_depth, redo_depth, features, bodies; entities in a sketch."},
                  {"params", json::array()},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "Take back an extrude, its sketch with it", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "undo", "args": {}}]},
+                     {"title": "Take back the last shape drawn in a sketch", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [0, 0], "radius": 4}]}},
+                         {"tool": "undo", "args": {}}]}])json")}},
             json{{"name", "redo"}, {"summary", "Edit > Redo in the Design tab: put back what undo took back, until the next change."},
                  {"details", "Reply as undo's."},
                  {"params", json::array()},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "Put back an extrude undo took back", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "undo", "args": {}},
+                         {"tool": "redo", "args": {}}]},
+                     {"title": "Put back the shape undo took off a sketch", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [0, 0], "radius": 4}]}},
+                         {"tool": "undo", "args": {}},
+                         {"tool": "redo", "args": {}}]}])json")}},
             json{{"name", "feature_delete"}, {"summary", "Delete a feature as its tree row's Delete does; deleting a sketch also deletes the features built on it."},
                  {"details", "One undo step. Later indices shift. Reply: removed (how many features went), features, bodies."},
                  {"params", json::array({
@@ -673,21 +749,46 @@ json tool_rows()
                      json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
                      json{{"name", "reference"}, {"type", "object"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A 5 mm plate against a 6 mm one", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 6, "boolean": "new"}},
+                         {"tool": "validate_against", "args": {"body": 0, "reference": {"body": 1}}}]},
+                     {"title": "A plate against a reference part's STEP file", "needs": "a STEP file of the reference part", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "validate_against", "args": {"body": 0, "reference": {"step": "/path/to/reference.step"}}}]}])json")}},
             json{{"name", "sketch_begin"}, {"ids", true}, {"summary", "Open a sketch session on a plane, as picking a plane or face for Sketch does."},
                  {"details", "Sketch points are [x, y] in that plane's frame (mm), from its origin: modeling_origin for a base plane. Reply: frame."},
                  {"params", json::array({
                      plane_param("XY", false),
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A sketch on the XY plane", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}}]},
+                     {"title": "A sketch on a plate's top face", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "query_topology", "args": {"body": 0, "at_extreme": "+z"}},
+                         {"tool": "sketch_begin", "args": {"plane": {"body": 0, "face": 5}, "generation": {"from_call": 1, "key": "generation"}}}]},
+                     {"title": "A sketch on a datum plane 20 mm above XY", "calls": [
+                         {"tool": "plane", "args": {"type": "offset", "base": "XY", "offset": 20}},
+                         {"tool": "sketch_begin", "args": {"plane": {"datum": 0}}}]}])json")}},
             json{{"name", "sketch_commit"}, {"summary", "Commit the open sketch as a Sketch feature, as the sketch's Confirm does, and leave sketch mode."},
                  {"details", "An empty sketch is refused and stays open. Reply: sketch_index, name, features (the new count) and its loops (closed_loops with the index extrude's loop takes, open_ends, defects, buildable)."},
                  {"params", json::array()},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A rectangle around a circle, committed as a sketch of two loops", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [0, 0], "radius": 4}]}},
+                         {"tool": "sketch_commit", "args": {}}]}])json")}},
             json{{"name", "sketch_cancel"}, {"summary", "Discard the open sketch and leave sketch mode."},
                  {"details", ""},
                  {"params", json::array()},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "Discard a sketch with a rectangle drawn", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_cancel", "args": {}}]}])json")}},
             json{{"name", "sketch_add"}, {"summary", "Add entities or shapes to the open sketch: `entities` (a list), or one item's fields beside `type`, or `rect`."},
                  {"details", "Entities: line {p0, p1}, circle {center, radius}, arc {center, radius, start_angle, end_angle}, point {p}. Shapes, built as their drawing tools build them: polygon {center, sides, radius (to a vertex) or across_flats, angle (of that vertex, or of the first edge's midpoint)}, slot {c0, c1, width}, ellipse {center, radius (semi-major), rminor, rotation}, ellipse_arc {the ellipse's fields, start_angle, end_angle: parametric, counter-clockwise}, spline {ctrl: 2 or more poles}. Points are [x, y] in the sketch plane (mm); angles are radians, or degrees as start_angle_deg and the like. A polygon is lines; its side count is not kept once committed. Reply: first_index, added, shapes [{first, count}] per item, entities, dof."},
                  {"params", json::array({
@@ -698,32 +799,76 @@ json tool_rows()
                      json{{"name", "end_angle"},    {"type", "number"}, {"unit", "rad"}, {"default", 0}},
                      json{{"name", "construction"}, {"type", "boolean"}, {"default", false}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A 30 x 20 mm rectangle", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}}]},
+                     {"title": "A hexagon 10 mm across flats inside a circle", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [
+                             {"type": "circle", "center": [0, 0], "radius": 12},
+                             {"type": "polygon", "center": [0, 0], "sides": 6, "across_flats": 10}]}}]},
+                     {"title": "A quarter arc given in degrees, and a slot", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [
+                             {"type": "arc", "center": [0, 0], "radius": 20, "start_angle_deg": 0, "end_angle_deg": 90},
+                             {"type": "slot", "c0": [-10, -20], "c1": [10, -20], "width": 6}]}}]}])json")}},
             json{{"name", "sketch_select"}, {"summary", "Select sketch entities by index; an empty list clears the selection."},
                  {"details", "Reply: selected."},
                  {"params", json::array({
                      json{{"name", "entities"}, {"type", "array"}, {"default", json::array()}, {"description", "entity indices"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "Select a rectangle's two long sides", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_select", "args": {"entities": [0, 2]}}]},
+                     {"title": "Clear the selection", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_select", "args": {"entities": [0]}},
+                         {"tool": "sketch_select", "args": {"entities": []}}]}])json")}},
             json{{"name", "sketch_delete"}, {"summary", "Delete sketch entities."},
                  {"details", "Reply: removed, entities."},
                  {"params", json::array({
                      json{{"name", "entities"}, {"type", "array"}, {"default", json::array()}, {"description", "entity indices; omit for the selection"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "Delete a rectangle's top side", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_delete", "args": {"entities": [2]}}]},
+                     {"title": "Delete the selected sides", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_select", "args": {"entities": [1, 3]}},
+                         {"tool": "sketch_delete", "args": {}}]}])json")}},
             json{{"name", "sketch_construction"}, {"summary", "Toggle construction on sketch entities."},
                  {"details", "Reply: changed."},
                  {"params", json::array({
                      json{{"name", "entities"}, {"type", "array"}, {"default", json::array()}, {"description", "entity indices; omit for the selection"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A centre line across a rectangle, made construction so it splits no loop", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "line", "p0": [0, -10], "p1": [0, 10]}]}},
+                         {"tool": "sketch_construction", "args": {"entities": [4]}}]}])json")}},
             json{{"name", "sketch_offset"}, {"summary", "Add an offset copy of sketch lines, arcs and circles."},
                  {"details", "Reply: first_index, added, dof."},
                  {"params", json::array({
                      json{{"name", "distance"}, {"type", "number"}, {"unit", "mm"}, {"description", "signed offset"}},
                      json{{"name", "entities"}, {"type", "array"}, {"default", json::array()}, {"description", "entity indices; omit for the selection, else every entity"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A rectangle's 2 mm inner wall", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_offset", "args": {"distance": 2}}]},
+                     {"title": "A circle grown 2 mm by a negative offset", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [0, 0], "radius": 5}]}},
+                         {"tool": "sketch_offset", "args": {"distance": -2, "entities": [0]}}]}])json")}},
             json{{"name", "sketch_mirror"}, {"summary", "Add a mirrored copy of sketch entities about the line through axis_a and axis_b."},
                  {"details", "Reply: first_index, added, dof."},
                  {"params", json::array({
@@ -731,46 +876,92 @@ json tool_rows()
                      json{{"name", "axis_b"},   {"type", "array"}, {"default", json::array({0, 1})}, {"description", "[x, y] in the sketch plane, mm"}},
                      json{{"name", "entities"}, {"type", "array"}, {"default", json::array()}, {"description", "entity indices; omit for the selection, else every entity"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A circle mirrored across the sketch's y axis", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [10, 0], "radius": 3}]}},
+                         {"tool": "sketch_mirror", "args": {"axis_a": [0, 0], "axis_b": [0, 1]}}]}])json")}},
             json{{"name", "sketch_describe"}, {"summary", "The open sketch, or a committed one: entities, constraint count and its loops."},
                  {"details", "The loops are closed_loops {index, entities, holes, area}, open_ends, defects, buildable. The open sketch adds dof, the armed tool and the selection; a committed one adds its name and plane."},
                  {"params", json::array({
                      json{{"name", "sketch"}, {"type", "integer"}, {"default", nullptr}, {"description", "a committed Sketch feature's index; omit for the open sketch"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "The open sketch: a rectangle with a circle inside it as a hole", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [0, 0], "radius": 4}]}},
+                         {"tool": "sketch_describe", "args": {}}]},
+                     {"title": "A committed sketch's plane, entities and loop", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "sketch_describe", "args": {"sketch": 0}}]}])json")}},
             json{{"name", "sketch_validate"}, {"summary", "The open sketch's loops (closed_loops, open_ends, defects, buildable) and dof."},
                  {"details", ""},
                  {"params", json::array({
                      json{{"name", "tolerance"}, {"type", "number"}, {"unit", "mm"}, {"default", 0.001}, {"description", "reported back"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A triangle with a 0.05 mm gap: two open ends, not buildable", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [
+                             {"type": "line", "p0": [0, 0], "p1": [20, 0]},
+                             {"type": "line", "p0": [20, 0.05], "p1": [20, 10]},
+                             {"type": "line", "p0": [20, 10], "p1": [0, 0]}]}},
+                         {"tool": "sketch_validate", "args": {}}]}])json")}},
             json{{"name", "sketch_heal"}, {"summary", "Weld sketch endpoints that nearly meet and constrain them coincident, so loops are closed by construction."},
                  {"details", "Reply: welded and the loops."},
                  {"params", json::array({
                      json{{"name", "tolerance"},           {"type", "number"}, {"unit", "mm"}, {"default", 0.001}},
                      json{{"name", "ignore_construction"}, {"type", "boolean"}, {"default", true}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "Close a triangle's 0.05 mm gap", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [
+                             {"type": "line", "p0": [0, 0], "p1": [20, 0]},
+                             {"type": "line", "p0": [20, 0.05], "p1": [20, 10]},
+                             {"type": "line", "p0": [20, 10], "p1": [0, 0]}]}},
+                         {"tool": "sketch_heal", "args": {"tolerance": 0.1}}]}])json")}},
             json{{"name", "sketch_set_value"}, {"summary", "Set the dimension of the selected sketch entities, as the value field does."},
                  {"details", "A line's length, a circle's diameter, an arc's radius, or the angle or distance between two. Select them with sketch_select first. Reply: kind, before, value, dof and the loops."},
                  {"params", json::array({
                      json{{"name", "value"}, {"type", "number"}, {"description", "mm, or degrees for an angle"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A rectangle's bottom side made 40 mm long", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_select", "args": {"entities": [0]}},
+                         {"tool": "sketch_set_value", "args": {"value": 40}}]},
+                     {"title": "A circle's diameter set to 12 mm", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [0, 0], "radius": 4}]}},
+                         {"tool": "sketch_select", "args": {"entities": [0]}},
+                         {"tool": "sketch_set_value", "args": {"value": 12}}]}])json")}},
             json{{"name", "sketch_fillet"}, {"summary", "Round the corner of two lines of the open sketch, as the Fillet tool does."},
                  {"details", "Both lines are cut back and joined by an arc of `radius`, bound coincident and tangent to them; constraints the sharp corner held are released. Reply: entity (the arc), lines, released_constraints, entities, constraints, dof, solve_ok."},
                  {"params", json::array({
                      json{{"name", "entities"}, {"type", "array"}, {"default", json::array()}, {"description", "the two line indices; omit for the selection"}},
                      json{{"name", "radius"},   {"type", "number"}, {"unit", "mm"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A rectangle's corner rounded to 3 mm", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_fillet", "args": {"entities": [0, 1], "radius": 3}}]}])json")}},
             json{{"name", "sketch_chamfer"}, {"summary", "Bevel the corner of two lines of the open sketch, as the Chamfer tool does."},
                  {"details", "Both lines are cut back by `distance` from the corner and joined by a line bound coincident to them. Reply: entity (the new line), lines, released_constraints, entities, constraints, dof, solve_ok."},
                  {"params", json::array({
                      json{{"name", "entities"}, {"type", "array"}, {"default", json::array()}, {"description", "the two line indices; omit for the selection"}},
                      json{{"name", "distance"}, {"type", "number"}, {"unit", "mm"}, {"description", "setback along each line"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A rectangle's corner bevelled 2 mm back", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_chamfer", "args": {"entities": [1, 2], "distance": 2}}]}])json")}},
             json{{"name", "sketch_trim"}, {"summary", "Trim or extend the open sketch's entity nearest `at`, as a Trim or Extend click there does."},
                  {"details", "Trim: a line or an arc is cut back from its end nearer `at` to the first crossing with another entity beyond `at`; a circle loses the part between the crossings either side of `at` and becomes an arc. With extend, as an Extend click: the line's or arc's end nearer `at` runs out to the next entity. The entity's constraints are released. Reply: entity, geometry (its new fields), released_constraints, entities, dof."},
                  {"params", json::array({
@@ -778,7 +969,19 @@ json tool_rows()
                      json{{"name", "extend"},    {"type", "boolean"}, {"default", false}},
                      json{{"name", "tolerance"}, {"type", "number"}, {"unit", "mm"}, {"default", 0.05}, {"description", "how far from `at` the entity may be"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A line cut back to the line crossing it", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [
+                             {"type": "line", "p0": [-10, 0], "p1": [10, 0]},
+                             {"type": "line", "p0": [0, -5], "p1": [0, 5]}]}},
+                         {"tool": "sketch_trim", "args": {"at": [5, 0]}}]},
+                     {"title": "A line extended down to the line below it", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [
+                             {"type": "line", "p0": [-10, 0], "p1": [10, 0]},
+                             {"type": "line", "p0": [0, 3], "p1": [0, 8]}]}},
+                         {"tool": "sketch_trim", "args": {"at": [0, 3], "extend": true}}]}])json")}},
             json{{"name", "sketch_transform"}, {"summary", "Move, rotate, scale or array entities of the open sketch, as the transform tools' Confirm does."},
                  {"details", "move {dx, dy}, rotate {angle, pivot} and scale {scale, pivot} change the entities and release the constraints that no longer hold. array {dx, dy, count} adds copies stepped by dx, dy; polar_array {pivot, angle, count} adds copies every angle/count about pivot (angle is the whole sweep, default 360 degrees). count includes the original, and each copy is bound to its source (equal length and parallel, or its radius). pivot defaults to the entities' centroid. Angles are radians, or degrees as angle_deg. Reply: moved and released_constraints, or first_index, added and bound; pivot; entities, dof."},
                  {"params", json::array({
@@ -791,7 +994,19 @@ json tool_rows()
                      json{{"name", "count"},     {"type", "integer"}, {"default", nullptr}, {"min", 2}, {"max", 1000}},
                      json{{"name", "pivot"},     {"type", "array"}, {"default", nullptr}, {"description", "[x, y] in the sketch plane, mm"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A circle moved 10 mm along x", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [0, 0], "radius": 3}]}},
+                         {"tool": "sketch_transform", "args": {"op": "move", "entities": [0], "dx": 10}}]},
+                     {"title": "Six holes on a 40 mm bolt circle", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [20, 0], "radius": 3}]}},
+                         {"tool": "sketch_transform", "args": {"op": "polar_array", "entities": [0], "pivot": [0, 0], "count": 6, "angle_deg": 360}}]},
+                     {"title": "A line turned 30 degrees about its start", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "line", "p0": [0, 0], "p1": [20, 0]}]}},
+                         {"tool": "sketch_transform", "args": {"op": "rotate", "entities": [0], "angle_deg": 30, "pivot": [0, 0]}}]}])json")}},
             json{{"name", "sketch_constrain"}, {"summary", "Add a constraint to the open sketch, as a CONSTRAIN bar button does (sketch_set_value is the value field, V)."},
                  {"details", "With `entities`, else the selection, the button's own rules choose the points, and a value it would ask for is `value` or the current one. With `refs` the references are taken as written, in sketch_constraints' form: {entity, role} for a point (role p0, p1 or center; entity also \"origin\") and {entity} for a whole entity (also \"x_axis\", \"y_axis\"). distance, lock_x, lock_y, point_on_line and point_on_object have no button and take refs. A constraint the sketch cannot solve with is rolled back and the call fails. Reply: added (indices), items, constraints, dof, solve_ok."},
                  {"params", json::array({
@@ -800,26 +1015,60 @@ json tool_rows()
                      json{{"name", "refs"},     {"type", "array"}, {"default", json::array()}, {"description", "[{entity, role?}], instead of entities"}},
                      json{{"name", "value"},    {"type", "number"}, {"default", nullptr}, {"description", "mm, or degrees for an angle"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A sloping line made horizontal", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "line", "p0": [0, 0], "p1": [10, 2]}]}},
+                         {"tool": "sketch_constrain", "args": {"type": "horizontal", "entities": [0]}}]},
+                     {"title": "Two circles given equal radii", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [
+                             {"type": "circle", "center": [0, 0], "radius": 4},
+                             {"type": "circle", "center": [15, 0], "radius": 6}]}},
+                         {"tool": "sketch_constrain", "args": {"type": "equal", "entities": [0, 1]}}]},
+                     {"title": "A line's ends held 25 mm apart, named by refs", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "line", "p0": [0, 0], "p1": [10, 2]}]}},
+                         {"tool": "sketch_constrain", "args": {"type": "distance", "value": 25,
+                                                               "refs": [{"entity": 0, "role": "p0"}, {"entity": 0, "role": "p1"}]}}]}])json")}},
             json{{"name", "sketch_constraints"}, {"summary", "The constraints of the open sketch, or of a committed one: index, type, refs and value."},
                  {"details", "A ref is {entity, role} for a point and {entity} for a whole entity; value is mm, or degrees for an angle. Reply: scope (live or committed), items, and dof and solve_ok for the open sketch."},
                  {"params", json::array({
                      json{{"name", "sketch"}, {"type", "integer"}, {"default", nullptr}, {"description", "a committed Sketch feature's index; omit for the open sketch"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "The coincident, horizontal and vertical constraints a drawn rectangle gets", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_constraints", "args": {}}]},
+                     {"title": "A committed sketch's constraints", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "sketch_constraints", "args": {"sketch": 0}}]}])json")}},
             json{{"name", "sketch_unconstrain"}, {"summary", "Delete a constraint of the open sketch, as its row's delete button does; the constraints after it move down one index."},
                  {"details", "Reply: removed, constraints, dof, solve_ok."},
                  {"params", json::array({
                      json{{"name", "index"}, {"type", "integer"}, {"description", "sketch_constraints' items[].index"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A rectangle's bottom side freed from horizontal", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_constraints", "args": {}},
+                         {"tool": "sketch_unconstrain", "args": {"index": 4}}]}])json")}},
             json{{"name", "list_verbs"}, {"summary", "The Design tab's right-click verbs, with id, name, key and whether each applies to the current selection."},
                  {"details", "Each also says whether it opens a dialog."},
                  {"params", json::array({
                      json{{"name", "applicable_only"}, {"type", "boolean"}, {"default", false}},
                      json{{"name", "sketch_mode"},     {"type", "boolean"}, {"default", nullptr}, {"description", "when given, only sketch-mode (true) or feature-mode (false) verbs"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "The verbs that apply with nothing selected", "calls": [
+                         {"tool": "list_verbs", "args": {"applicable_only": true}}]},
+                     {"title": "The verbs an open sketch offers", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "list_verbs", "args": {"sketch_mode": true, "applicable_only": true}}]}])json")}},
             json{{"name", "run_verb"}, {"summary", "Fire a verb from list_verbs as its menu row or key does."},
                  {"details", "It runs on the next event-loop turn, so the reply says only that it was dispatched; a verb that opens a card or dialog leaves it open."},
                  {"params", json::array({
