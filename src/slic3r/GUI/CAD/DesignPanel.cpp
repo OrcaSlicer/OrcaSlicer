@@ -1706,7 +1706,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         b_export->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_export_step(); });
         add_doc(b_export);
         // The assistant chat (docked pane, or drag its title out to float it).
-        auto* b_llm = doc_btn("design_assistant", _L("Assistant: ask a local AI agent to build or change the design. Set it up in Preferences > LLM / MCP"));
+        auto* b_llm = doc_btn("design_assistant", _L("Assistant: ask a local AI agent to build or change the design. Set it up in the Assistant pane (Settings)"));
         b_llm->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { toggle_assistant(); });
         add_doc(b_llm);
 
@@ -12928,7 +12928,7 @@ void DesignPanel::set_imgui_topbar(bool on)
     b.docs.push_back({"design_step",        _u8L("Import CAD (STEP, SolidWorks, Fusion, ... as an editable B-rep solid)"),                            later([this] { on_import_step(); })});
     b.docs.push_back({"design_import_mesh", _u8L("Import mesh (STL/OBJ) as an editable B-rep solid"),              later([this] { on_import_mesh(); })});
     b.docs.push_back({"design_export",      _u8L("Export STEP…"),                                                  later([this] { on_export_step(); })});
-    b.docs.push_back({"design_assistant",   _u8L("Assistant: ask a local AI agent to build or change the design. Set it up in Preferences > LLM / MCP"), later([this] { toggle_assistant(); })});
+    b.docs.push_back({"design_assistant",   _u8L("Assistant: ask a local AI agent to build or change the design. Set it up in the Assistant pane (Settings)"), later([this] { toggle_assistant(); })});
     // Undo / Redo (the same route as Ctrl+Z) and the grid snap toggle: the wx row that held the checkbox is hidden while this bar is
     // drawn, and the tab has no undo of its own.
     b.docs.push_back({"design_undo", _u8L("Undo (Ctrl+Z)"), later([this] { do_undo_redo(false); }), [this] { return menu_can_undo_redo(false); }});

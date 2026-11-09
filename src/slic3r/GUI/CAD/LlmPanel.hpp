@@ -19,6 +19,7 @@
 
 class wxButton;
 class wxCheckBox;
+class wxPanel;
 class wxStaticText;
 class wxTextCtrl;
 
@@ -46,6 +47,7 @@ private:
     void add_files(const std::vector<std::string>& paths);
     void paste_image();
     void refresh_attachments();
+    void build_settings();   // the settings section, shown by the Settings button
     void refresh_header();   // agent + model, ready dot, setup hint
     void show_examples(bool on);
     void on_tool(const std::string& raw);
@@ -64,6 +66,7 @@ private:
     wxStaticText* m_agent_lbl = nullptr;   // header: "opencode · model"
     wxStaticText* m_setup_lbl = nullptr;   // header: why the agent is not ready
     wxButton*     m_gear      = nullptr;
+    wxPanel*      m_settings  = nullptr;   // the settings section (hidden until the Settings button)
     wxCheckBox*   m_raw       = nullptr;   // show the raw tool call under each action
     wxPanel*      m_examples  = nullptr;   // empty state: click-to-fill prompts
     wxPanel*      m_result    = nullptr;   // end of turn: "N edits" + Undo this turn

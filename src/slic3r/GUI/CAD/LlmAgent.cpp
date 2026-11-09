@@ -121,8 +121,8 @@ std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const st
     const std::string sock   = mcp_socket_path();
     const std::string bridge = bridge_script();
     std::string problem;
-    if (!api && exe.empty())             problem = std::string(oc ? "opencode" : ag ? "Antigravity (agy)" : "Claude Code") + " was not found: install it so that `" + (oc ? "opencode" : ag ? "agy" : "claude") + "` is on PATH, or set its path in Preferences > LLM / MCP";
-    else if (oc && model.empty())        problem = "opencode needs a model in Preferences > LLM / MCP, written provider/model (see `opencode models`)";
+    if (!api && exe.empty())             problem = std::string(oc ? "opencode" : ag ? "Antigravity (agy)" : "Claude Code") + " was not found: install it so that `" + (oc ? "opencode" : ag ? "agy" : "claude") + "` is on PATH, or set its path in the Assistant pane (Settings)";
+    else if (oc && model.empty())        problem = "opencode needs a model in the Assistant pane (Settings), written provider/model (see `opencode models`)";
     else if (sock.empty())               problem = "the MCP socket is off (ORCA_CAD_MCP=0)";
     else if (!api && !fs::exists(bridge)) problem = "the MCP bridge script is missing: " + bridge;
     else if (!api && bp::search_path("python3").empty()) problem = "python3 is needed to run the MCP bridge and was not found on PATH";
@@ -188,7 +188,7 @@ std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const st
                 std::string ver; std::getline(vout, ver); vc.wait();
                 const size_t digit = ver.find_first_of("0123456789");
                 if (digit == std::string::npos || std::atoi(ver.c_str() + digit) < 2)
-                    throw std::runtime_error("opencode 2 or newer is required (found '" + ver + "'); set the path of a newer one in Preferences > LLM / MCP");
+                    throw std::runtime_error("opencode 2 or newer is required (found '" + ver + "'); set the path of a newer one in the Assistant pane (Settings)");
                 // opencode reads ONLY this config (its own XDG_CONFIG_HOME): the user's global servers and shell access are not in play.
                 // Everything is denied except reading and the orca-cad MCP, whose tools opencode exposes through its sandboxed
                 // JavaScript `execute` tool (no shell, no require, no filesystem). Verified with opencode 2.2.5.

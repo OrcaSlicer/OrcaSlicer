@@ -259,8 +259,8 @@ std::string llm_api_run(const LlmApiRequest& rq, const std::function<void(const 
         if (base.empty()) base = anthropic ? "https://api.anthropic.com" : rq.provider == "ollama" ? "http://localhost:11434/v1" : "https://api.openai.com/v1";
         while (!base.empty() && base.back() == '/') base.pop_back();
         if (rq.provider != "ollama" && rq.key.empty())
-            return std::string("no API key: set it in Preferences > LLM / MCP, or in the ") + (anthropic ? "ANTHROPIC_API_KEY" : "OPENAI_API_KEY") + " environment variable";
-        if (rq.model.empty()) return "choose a model in Preferences > LLM / MCP";
+            return std::string("no API key: set it in the Assistant pane (Settings), or in the ") + (anthropic ? "ANTHROPIC_API_KEY" : "OPENAI_API_KEY") + " environment variable";
+        if (rq.model.empty()) return "choose a model in the Assistant pane (Settings)";
 
         // Conversation so far
         std::string sid = rq.session_id;

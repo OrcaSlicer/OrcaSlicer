@@ -2,7 +2,7 @@
 #define slic3r_GUI_LlmAgent_hpp_
 
 // Runs a local agent CLI (phase 1-2: Claude Code) against this app's own MCP socket. The CLI is the user's own install and
-// keeps its own login; Preferences > LLM / MCP only holds where it is, an optional model and extra arguments.
+// keeps its own login; the pane's Settings only hold where it is, an optional model and extra arguments.
 // docs/CAD/SPEC-llm-panel.md
 
 #include <functional>

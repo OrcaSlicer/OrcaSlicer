@@ -6095,7 +6095,7 @@ void server_thread(std::string sock_path)
     }
 }
 
-// Optional TCP listener on 127.0.0.1 for MCP clients that cannot open a Unix socket (Preferences > LLM / MCP, port 0 = off).
+// Optional TCP listener on 127.0.0.1 for MCP clients that cannot open a Unix socket (the Assistant pane's Settings, port 0 = off).
 // Same line-delimited JSON-RPC and the same ORCA_CAD_MCP_TOKEN check as the socket. Loopback only, by design: any local
 // process can reach it, which is the trade a single-user PC accepts; it is never bound to another interface.
 void tcp_server_thread(int port)
