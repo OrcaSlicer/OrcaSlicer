@@ -1001,6 +1001,24 @@ TEST_CASE("The estimated printing time comment stays near the end of the file", 
     CHECK(trailing_lines <= 5);
 }
 
+// The comment carries the first layer's time, not the start G-code's time. A 50 mm move at
+// F60 (1 mm/s) makes the start block about 50 s, so the two times format to different
+// strings and the check below tells them apart.
+TEST_CASE("The estimated first layer time comment reports the first layer", "[Print][Regression]")
+{
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, { { "machine_start_gcode", "G1 X50 Y50 Z0.2 F60" } });
+
+    GCodeProcessorResult result;
+    const std::string gcode = Test::gcode(print, &result);
+
+    const float first_layer_time = result.initial_layer_time;
+    const float start_gcode_time = result.print_statistics.modes[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)].prepare_time;
+    REQUIRE(get_time_dhms(first_layer_time) != get_time_dhms(start_gcode_time));
+    CHECK(gcode.find(std::string("; estimated first layer printing time (normal mode) = ") + get_time_dhms(first_layer_time)) != std::string::npos);
+}
+
 // Custom G-code templates substitute placeholders during export.
 TEST_CASE("Custom G-code placeholders are substituted", "[Print]")
 {
