@@ -149,7 +149,8 @@ int json_diff::diff2all(json const &in, json &out)
 {
     if (!diff2all_base.empty()) {
         out = diff2all_base;
-        Slic3r::merge_json_report(in, out);
+        // Compatibility reloads request the cached report with a null (empty) delta.
+        if (!in.is_null()) Slic3r::merge_json_report(in, out);
     } else {
         BOOST_LOG_TRIVIAL(trace) << "json_c restore base empty";
         decode_error_count++;

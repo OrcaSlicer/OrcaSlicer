@@ -115,6 +115,14 @@ zero decode failures, zero near-black frames, no transport errors and a maximum 
 These counts compare frames received by the SDK with decoder output; they do not measure frames
 discarded inside the printer or SDK. They also do not measure onscreen repainting.
 
+The camera probe source lives in `src/dev-utils/lan_camera_probe.cpp`, which is available in the
+Flatpak staged source tree. SDK-free regressions use fake camera exports and simulated worker
+processes; they also configure the native tools without the repository's `tools/` directory:
+
+```powershell
+py -3 -m unittest discover -s tools/lan_monitor_probe/tests -v
+```
+
 Automated tests also cover stale telemetry, invalid IPC, independent retry backoff, authentication
 failure, callbacks after replacement/removal, camera source isolation and full/delta merging.
 GUI layout, Prepare/Preview switching, real printer power loss and application networking reload

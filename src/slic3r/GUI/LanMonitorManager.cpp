@@ -89,7 +89,7 @@ void LanMonitorManager::retry(const std::string& id)
 
 void LanMonitorManager::sync()
 {
-    if (m_app.is_closing() || !m_app.app_config || !m_app.is_enable_multi_machine()) {
+    if (m_app.is_closing() || !lan_monitoring_enabled(m_app.app_config)) {
         // Keep the timer so enabling the existing preference takes effect without creating a page.
         for (auto& [id, session] : m_sessions) {
             session->active = false;
@@ -110,7 +110,7 @@ void LanMonitorManager::sync()
         wanted.insert(id);
         const auto host = machine->second->get_dev_ip();
         const auto code = machine->second->get_access_code();
-        const auto module = BBLNetworkPlugin::get_versioned_library_path(m_app.app_config->get_network_plugin_version());
+        const auto module = BBLNetworkPlugin::resolve_library_path(m_app.app_config->get_network_plugin_version());
         auto& entry = m_sessions[id];
         if (entry && (entry->host != host || entry->code != code || entry->module != module)) {
             entry->active = false;
@@ -205,6 +205,11 @@ void LanMonitorManager::launch(const std::shared_ptr<Session>& session)
         session->configuration.clear();
         session->status.state = LanMonitorStatus::State::Unavailable;
     }
+}
+
+bool lan_monitoring_enabled(const AppConfig* config)
+{
+    return config && config->get("enable_multi_machine") == "true" && config->get_bool("installed_networking");
 }
 
 wxString lan_monitor_status_text(const LanMonitorStatus* status)

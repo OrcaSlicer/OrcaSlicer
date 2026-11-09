@@ -103,6 +103,8 @@ the active printer agent because a normal LAN agent represents one physical prin
 the Device and Multi-device pages. When Multi-device management is enabled, its six saved selection
 slots also accept paired P1-family Bambu LAN printers, including temporarily offline printers.
 LAN selections are monitoring-only; bulk sending and task management retain their cloud targets.
+Status workers and camera playback both honor the Bambu networking preference. Workers resolve
+the configured SDK through the same installed-library resolver used by the normal Device agent.
 The preference remains disabled by default and the existing selection format is unchanged.
 
 Each selected LAN printer has a child `orca-lan-monitor-worker` process. The Bambu SDK factory

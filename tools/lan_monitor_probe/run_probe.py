@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import queue
+import re
 import shutil
 import subprocess
 import sys
@@ -43,6 +44,20 @@ def selection(config):
     result["app"] = {key: value for key, value in config.get("app", {}).items()
                      if "selected_machine" in key}
     return result
+
+
+def resolve_sdk(data, version):
+    prefix = "bambu_networking" if os.name == "nt" else "libbambu_networking"
+    suffix = ".dll" if os.name == "nt" else ".dylib" if sys.platform == "darwin" else ".so"
+    plugins = data / "plugins"
+    exact = plugins / f"{prefix}_{version}{suffix}"
+    if exact.is_file() or not re.fullmatch(r"\d{2}\.\d{2}\.\d{2}", version):
+        return exact
+    # Match the application's fallback only for a bare managed series, never an explicit build.
+    pattern = re.compile(re.escape(f"{prefix}_{version}") + r"\.\d{2}" + re.escape(suffix))
+    builds = [path for path in plugins.glob(f"{prefix}_{version}.*{suffix}")
+              if path.is_file() and pattern.fullmatch(path.name)]
+    return max(builds, default=exact)
 
 
 def start_worker(executable, settings, events, index, generation=0):
@@ -85,11 +100,7 @@ def run(args):
     sdk = args.sdk_version or config.get("app", {}).get("network_plugin_version")
     if not sdk:
         raise ValueError("No configured networking module version")
-    if os.name == "nt":
-        module = data / "plugins" / f"bambu_networking_{sdk}.dll"
-    else:
-        suffix = "dylib" if sys.platform == "darwin" else "so"
-        module = data / "plugins" / f"libbambu_networking_{sdk}.{suffix}"
+    module = resolve_sdk(data, sdk)
     if not module.is_file():
         raise ValueError("The selected installed networking module is missing")
     executable = Path(args.worker).resolve()
@@ -146,7 +157,7 @@ def run(args):
                 generations[0] += 1
                 finished.discard(0)
                 latest.pop((0, 0), None)
-                settings_list[0]["seconds"] = max(1, args.seconds - int(elapsed))
+                settings_list[0]["seconds"] = 0 if args.application_mode else max(1, args.seconds - int(elapsed))
                 processes[0] = start_worker(executable, settings_list[0], events, 0, generations[0])
                 print(json.dumps({"kind": "worker_restarted", "worker": 0}), flush=True)
             try:

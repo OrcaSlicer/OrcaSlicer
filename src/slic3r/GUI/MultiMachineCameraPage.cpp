@@ -79,10 +79,10 @@ public:
 
     void update(MachineObject& machine, bool visible)
     {
-        m_name->SetLabel(from_u8(machine.get_dev_name()));
+        m_name->SetLabelText(from_u8(machine.get_dev_name()));
         const auto* monitor = wxGetApp().get_lan_monitor();
         const auto* status = monitor ? monitor->status(m_id) : nullptr;
-        m_job->SetLabel(status && status->live() && !status->job.job_name.empty() ? from_u8(status->job.job_name) : _L("Unknown"));
+        m_job->SetLabelText(status && status->live() && !status->job.job_name.empty() ? from_u8(status->job.job_name) : _L("Unknown"));
         m_status->SetLabel(lan_monitor_status_text(status));
         m_progress->SetLabel(lan_monitor_progress_text(status));
         if (!visible) { stop(); return; }
@@ -228,6 +228,10 @@ void MultiMachineCameraPage::resume()
 
 void MultiMachineCameraPage::refresh()
 {
+    if (!lan_monitoring_enabled(wxGetApp().app_config)) {
+        for (auto& [id, tile] : m_tiles) tile->stop();
+        return;
+    }
     if (m_suspended || !m_visible || !IsShownOnScreen() || wxGetApp().is_closing()) return;
     auto* devices = wxGetApp().getDeviceManager();
     if (!devices) return;

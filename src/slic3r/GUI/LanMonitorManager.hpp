@@ -10,6 +10,7 @@
 #include <wx/timer.h>
 
 namespace Slic3r {
+class AppConfig;
 class MachineObject;
 namespace GUI {
 
@@ -35,6 +36,8 @@ private:
     std::map<std::string, std::shared_ptr<Session>> m_sessions;
 };
 
+// Both status workers and camera tiles must honor the networking opt-out.
+bool lan_monitoring_enabled(const AppConfig* config);
 wxString lan_monitor_status_text(const LanMonitorStatus* status);
 wxString lan_monitor_progress_text(const LanMonitorStatus* status);
 

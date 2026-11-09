@@ -212,7 +212,7 @@ void MultiMachineItem::doRender(wxDC& dc)
         dc.SetFont(Label::Body_13);
         if (lan) {
             DrawTextWithEllipsis(dc, lan_monitor_status_text(status), FromDIP(DEVICE_LEFT_PRO_INFO), left, FromDIP(10));
-            DrawTextWithEllipsis(dc, lan_monitor_progress_text(status), FromDIP(DEVICE_LEFT_PRO_INFO), left, FromDIP(31));
+            DrawTextWithEllipsis(dc, lan_monitor_progress_text(status), FromDIP(DEVICE_LEFT_PRO_INFO), left, -FromDIP(10));
         }
         else if (state_device == 0) {
             dc.SetTextForeground(*wxBLACK);

@@ -24,8 +24,7 @@ if (ORCA_TOOLS)
     set(_DEV_DEFS -DBOOST_ALL_NO_LIB -DBOOST_USE_WINAPI_VERSION=0x602 -DBOOST_SYSTEM_USE_UTF8)
 
     if(SLIC3R_GUI)
-        add_executable(lan_camera_decode_probe EXCLUDE_FROM_ALL
-            "${CMAKE_SOURCE_DIR}/tools/lan_monitor_probe/camera.cpp")
+        add_executable(lan_camera_decode_probe EXCLUDE_FROM_ALL lan_camera_probe.cpp)
         set_target_properties(lan_camera_decode_probe PROPERTIES MACOSX_BUNDLE FALSE WIN32_EXECUTABLE FALSE)
         target_compile_definitions(lan_camera_decode_probe PRIVATE LAN_CAMERA_DECODE ${_DEV_DEFS})
         target_include_directories(lan_camera_decode_probe PRIVATE

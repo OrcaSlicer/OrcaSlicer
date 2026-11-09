@@ -12,6 +12,8 @@ add_executable(${_TEST_NAME}_tests
     test_moonraker_printer_agent.cpp
     test_network_discovery.cpp
     test_lan_monitor.cpp
+    test_lan_monitor_manager.cpp
+    test_json_diff.cpp
     test_camera_startup.cpp
     test_process_runner.cpp
     test_filament_bitmap_utils.cpp

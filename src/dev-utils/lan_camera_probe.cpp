@@ -1,5 +1,10 @@
 #ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <winsock2.h>
 #endif
 #include "slic3r/Utils/LanMonitorSdk.hpp"
@@ -171,7 +176,7 @@ int main()
         json result = json::array();
         bool success = true;
         for (auto& camera : cameras) {
-            success = success && camera.frames > 1;
+            success = success && camera.frames > 1 && camera.error == 0;
             if (camera.tunnel) { close(camera.tunnel); destroy(camera.tunnel); }
             std::lock_guard<std::mutex> lock(camera.mutex);
             json record = {{"frames", camera.frames}, {"error", camera.error}, {"diagnostic_codes", camera.diagnostic_codes},
