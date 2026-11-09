@@ -21,6 +21,18 @@ else ()
     set(_wx_edge "-DwxUSE_WEBVIEW_EDGE=OFF")
 endif ()
 
+# wxUSE_EXPAT=sys makes wxxml compile against the expat installed in the deps
+# prefix. That library is static, and upstream expat headers declare its API
+# __declspec(dllimport) unless XML_STATIC is defined, which wx never does.
+if (WIN32)
+    set(_wx_expat_static
+        "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS} -DXML_STATIC"
+        "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS} -DXML_STATIC"
+    )
+else ()
+    set(_wx_expat_static "")
+endif ()
+
 # With a precompiled header, clang-cl can omit an exception type's copy constructor from its throw info,
 # so copies of the exception share and double-free their data: https://github.com/llvm/llvm-project/issues/53486
 if (MSVC AND CMAKE_C_COMPILER_ID STREQUAL "Clang")
@@ -32,7 +44,7 @@ endif ()
 orcaslicer_add_cmake_project(
     wxWidgets
     GIT_REPOSITORY "https://github.com/OrcaSlicer/Orca-deps-wxWidgets"
-    GIT_TAG 5b7e8c0cde6b975d63613188d2ac6c1ab8769fbc
+    GIT_TAG b44c39c100975a0ac0e46f937aa3f3eae5e18631
     GIT_SHALLOW ON
     GIT_SUBMODULES 3rdparty/catch 3rdparty/pcre 3rdparty/libwebp
     DEPENDS ${PNG_PKG} ${ZLIB_PKG} ${EXPAT_PKG} ${JPEG_PKG}
@@ -63,6 +75,7 @@ orcaslicer_add_cmake_project(
         -DwxUSE_LIBTIFF=OFF
         -DwxUSE_LIBWEBP=builtin
         -DwxUSE_EXPAT=sys
+        ${_wx_expat_static}
         -DwxUSE_NANOSVG=OFF
 )
 
