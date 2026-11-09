@@ -11448,11 +11448,15 @@ void GLCanvas3D::_render_section_view_panel(const ImVec2& bottom_left)
     float percent = float(get_section_view_ratio() * 100.);
     ImGui::SameLine();
     ImGui::SetNextItemWidth(imgui.scaled(7.f));
-    bool changed = imgui.bbl_slider_float_style("##section_view", &percent, 0.f, 100.f, "%.0f%%", 1.0f, true);
+    bool changed = imgui.bbl_slider_float_style("##section_view", &percent, 0.f, 100.f, "%.1f%%", 1.0f, true);
+    bool hovered = ImGui::IsItemHovered();
     ImGui::SameLine();
-    ImGui::SetNextItemWidth(ImGui::CalcTextSize("100%").x + 2.f * style.FramePadding.x);
-    changed |= ImGui::BBLDragFloat("##section_view_input", &percent, 1.f, 0.0f, 0.0f, "%.0f%%");
-    if (changed)
+    ImGui::SetNextItemWidth(ImGui::CalcTextSize("100.0%").x + 2.f * style.FramePadding.x);
+    changed |= ImGui::BBLDragFloat("##section_view_input", &percent, 1.f, 0.0f, 0.0f, "%.1f%%");
+    hovered |= ImGui::IsItemHovered();
+    if (const float wheel = ImGui::GetIO().MouseWheel; hovered && wheel != 0.f)
+        set_section_view_ratio(get_section_view_ratio() + (wheel < 0.f ? -0.01 : 0.01));
+    else if (changed)
         set_section_view_ratio(percent / 100.);
 
     ImGui::SameLine();
