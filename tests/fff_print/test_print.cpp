@@ -3090,11 +3090,12 @@ void slice_lower_half_finer(ModelObject &object)
 }
 
 // prime_tower_config() for a plate with an object from slice_lower_half_finer(). The tower is sized for
-// the 0.1 mm layers, twice as deep as for 0.2 mm ones, more than the corner leaves room for.
+// the 0.1 mm layers: the rib tower squares twice the area of a 0.2 mm one, more than the corner leaves
+// room for, so it stands nearer the middle of the bed, still clear of the objects.
 DynamicPrintConfig finer_layers_config(std::initializer_list<Slic3r::ConfigBase::SetDeserializeItem> extra = {})
 {
     DynamicPrintConfig config = prime_tower_config(extra);
-    config.set_deserialize_strict({ { "wipe_tower_y", 100 } });
+    config.set_deserialize_strict({ { "wipe_tower_x", 110 }, { "wipe_tower_y", 110 } });
     return config;
 }
 
