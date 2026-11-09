@@ -463,7 +463,7 @@ static void add_msg_content(wxWindow   *parent,
     }
 
     if (!link_text.IsEmpty() && link_callback) {
-        msg_escaped += "<span><a href=\"#\" style=\"color:rgb(0, 150, 136); text-decoration:underline;\">" + std::string(link_text.ToUTF8().data()) + "</a></span>";
+        msg_escaped += " <span><a href=\"#\" style=\"color:rgb(0, 150, 136); text-decoration:underline;\">" + std::string(link_text.ToUTF8().data()) + "</a></span>";
     }
 
     html->SetPage("<html><body bgcolor=\"" + bgr_clr_str + "\"><font color=\"" + text_clr_str + "\">" + wxString::FromUTF8(msg_escaped.data()) + "</font></body></html>");

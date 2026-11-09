@@ -1,0 +1,35 @@
+{
+	"type": "machine",
+	"name": "BenFab 450 1.0 nozzle",
+	"inherits": "BenFab 450 0.4 nozzle",
+	"from": "system",
+	"setting_id": "Ku6KSIqOvbxdw32X",
+	"instantiation": "true",
+	"nozzle_diameter": [
+		"1.0"
+	],
+	"printer_model": "BenFab 450",
+	"printer_variant": "1.0",
+	"default_filament_profile": [
+		"Generic PLA @System"
+	],
+	"default_print_profile": "0.50mm Standard @BenFab 450 1.0 nozzle",
+	"retraction_minimum_travel": [
+		"2.0"
+	],
+	"wipe_distance": [
+		"2.0"
+	],
+	"retraction_length": [
+		"1.5"
+	],
+	"max_layer_height": [
+		"0.7"
+	],
+	"min_layer_height": [
+		"0.2"
+	],
+	"retract_length_toolchange": [
+		"3.5"
+	]
+}

@@ -365,10 +365,11 @@ if(TARGET dep_ZLIB)
     add_dependencies(dep_python3 dep_ZLIB)
 endif()
 
-if (NOT WIN32 AND NOT APPLE)
-    # CPython's Makefile rules for _ssl and _hashlib depend only on their own
-    # sources, not on the OpenSSL archives, so a rebuilt OpenSSL does not make
-    # them relink and they keep the previous symbols. On an incremental tree,
+if (NOT WIN32)
+    # _ssl and _hashlib embed the static OpenSSL built in deps/ (Windows uses
+    # CPython's prebuilt OpenSSL instead). Their Makefile rules depend only on
+    # their own sources, not on the OpenSSL archives, so a rebuilt OpenSSL does
+    # not make them relink and they keep the previous one. On an incremental tree,
     # drop the built modules and relink them against the current OpenSSL; a
     # fresh build is left alone (its PGO target builds them). "make" alone is a
     # no-op once PGO has run, so sharedmods is invoked explicitly.

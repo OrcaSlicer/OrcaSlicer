@@ -173,7 +173,7 @@ void KBShortcutsDialog::fill_pages()
     using Section              = ShortcutSection;
 
     if (wxGetApp().is_editor()) {
-        page(_L("Global"), _L("Available anywhere in the window, even while typing in a text field."), ShortcutContext::Global, {
+        page(_L("Global"), _L("Available anywhere in the window."), ShortcutContext::Global, {
             fixed(Section::SpeedDial, { alt, "1-9, 0" }, L("Run favorite 1 to 10")),
             fixed(Section::SpeedDial, { ctrl, "B" }, L("Pin or unpin the selected action")),
             // wx cycles notebook pages on Ctrl+Tab, which is Cmd+Tab on macOS and never arrives there.
@@ -438,17 +438,16 @@ ShortcutCaptureDialog::ShortcutCaptureDialog(wxWindow* parent, Shortcut shortcut
     SetBackgroundColour(*wxWHITE);
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
-    // A Global shortcut also runs while a text field has the focus, so its hint names the keys it can use.
+    // A Global shortcut runs before the focused control gets the key, so its hint names the keys it can use.
     const bool     global = (shortcut_info(shortcut).contexts & context_bit(ShortcutContext::Global)) != 0;
     const wxString advice = global_key_advice();
-    const wxString typing = _L("Global shortcuts also apply while typing.");
     const wxString rule   = _L("A key that types a character cannot be a global shortcut.");
-    m_hint      = global ? typing + "\n" + advice : _L("Esc cancels, Enter confirms.");
+    m_hint      = global ? advice : _L("Esc cancels, Enter confirms.");
     m_rejection = rule + "\n" + advice;
 
     // Wide enough for each sentence on a line of its own where the translation allows, within limits.
     int width = FromDIP(450);
-    for (const wxString& sentence : { typing, rule, advice }) {
+    for (const wxString& sentence : { rule, advice }) {
         int extent = 0;
         GetTextExtent(sentence, &extent, nullptr, nullptr, nullptr, &wxGetApp().normal_font());
         width = std::max(width, extent);

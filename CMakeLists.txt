@@ -130,6 +130,8 @@ set(ORCA_BUNDLED_UV_EXECUTABLE "" CACHE FILEPATH "Path to a uv executable to bun
 # be reproducible and the download verified. To upgrade, bump ORCA_UV_VERSION
 # and refresh every hash below from the release's .sha256 assets, e.g.:
 #   curl -sL https://github.com/astral-sh/uv/releases/download/<ver>/uv-<triple>.tar.gz.sha256
+# The Flatpak copy in scripts/flatpak/com.orcaslicer.OrcaSlicer.yml pins the
+# same version and hashes and must be bumped with them.
 set(ORCA_UV_VERSION "0.11.21")
 set(ORCA_UV_SHA256_aarch64-apple-darwin      "1f921d491ba5ffeea774eb04d6681ecee379101341cbb1500394993b541bf3f4")
 set(ORCA_UV_SHA256_x86_64-apple-darwin       "f3c8e5708a84b920c18b691214d54d2b0da6b984789caae95d47c95120cb7765")
@@ -150,6 +152,15 @@ endif()
 # (user-provided paths never live under .uv/).
 if(ORCA_BUNDLED_UV_EXECUTABLE MATCHES "/\\.uv/")
     set(ORCA_BUNDLED_UV_EXECUTABLE "" CACHE FILEPATH "Path to the auto-downloaded uv executable" FORCE)
+endif()
+
+# A Flatpak build has no network and cannot download below: the orca_deps module
+# in scripts/flatpak/com.orcaslicer.OrcaSlicer.yml fetches the same pinned uv and
+# installs it into the app resources, where the runtime looks for it.
+set(ORCA_UV_FLATPAK_BINARY "${CMAKE_INSTALL_FULL_DATAROOTDIR}/OrcaSlicer/tools/uv/uv")
+if(FLATPAK AND NOT ORCA_BUNDLED_UV_EXECUTABLE AND EXISTS "${ORCA_UV_FLATPAK_BINARY}")
+    message(STATUS "Using Flatpak-provided uv: ${ORCA_UV_FLATPAK_BINARY}")
+    set(ORCA_BUNDLED_UV_EXECUTABLE "${ORCA_UV_FLATPAK_BINARY}")
 endif()
 
 if(NOT ORCA_BUNDLED_UV_EXECUTABLE)
@@ -195,10 +206,8 @@ if(NOT ORCA_BUNDLED_UV_EXECUTABLE)
             list(GET ORCA_UV_DL_STATUS 0 ORCA_UV_DL_CODE)
             list(GET ORCA_UV_DL_STATUS 1 ORCA_UV_DL_MSG)
             if(NOT ORCA_UV_DL_CODE EQUAL 0)
-                # Network failure keeps the historical graceful degradation (uv is
-                # optional at build time) -- but a hash mismatch below is fatal.
-                message(WARNING "Failed to download uv: ${ORCA_UV_DL_MSG}")
                 file(REMOVE "${ORCA_UV_ARCHIVE}")
+                message(FATAL_ERROR "Failed to download uv: ${ORCA_UV_DL_MSG}")
             else()
                 file(SHA256 "${ORCA_UV_ARCHIVE}" _orca_uv_actual_sha256)
                 if(NOT _orca_uv_actual_sha256 STREQUAL "${ORCA_UV_SHA256_${ORCA_UV_ARCH}}")
@@ -319,6 +328,14 @@ endif ()
 if (IS_CROSS_COMPILE)
     message("Detected cross compilation setup. Tests and encoding checks will be forcedly disabled!")
     set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+endif ()
+
+# With a precompiled header, clang-cl can omit an exception type's copy constructor from its throw info,
+# so copies of the exception share and double-free their data: https://github.com/llvm/llvm-project/issues/53486
+if (MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    message(STATUS "clang-cl: building without the precompiled header (llvm/llvm-project#53486)")
+    set_property(CACHE SLIC3R_PCH PROPERTY HELPSTRING "Use precompiled headers (ignored with clang-cl, llvm/llvm-project#53486)")
+    set(SLIC3R_PCH OFF)
 endif ()
 
 # Print out the SLIC3R_* cache options
@@ -810,7 +827,6 @@ find_package(TBB REQUIRED)
 
 find_package(OpenSSL REQUIRED)
 find_package(CURL REQUIRED)
-find_package(Freetype REQUIRED)
 
 if (SLIC3R_GUI)
     # LibDataChannel's installed export references its bundled dependencies,
@@ -880,21 +896,11 @@ endif()
 
 ## OPTIONAL packages
 
-# Find expat or use bundled version
-# Always use the system libexpat on Linux.
-
-find_package(EXPAT)
-
-if (NOT EXPAT_FOUND)
-    add_library(expat STATIC
-        ${LIBDIR}/expat/xmlparse.c
-        ${LIBDIR}/expat/xmlrole.c
-        ${LIBDIR}/expat/xmltok.c
-    )
-    set(EXPAT_FOUND 1)
-    set(EXPAT_INCLUDE_DIRS ${LIBDIR}/expat/)
-    set(EXPAT_LIBRARIES expat)
-endif ()
+# Linux links the system libexpat when it is the pinned version; every other case
+# builds that version in the deps project, so all platforms link the same parser.
+# Requiring 2.10.0 rather than the 2.4.0 security floor keeps distro packages that
+# are missing later fixes from slipping in.
+find_package(EXPAT 2.10.0 REQUIRED)
 
 find_package(PNG REQUIRED)
 
@@ -1123,7 +1129,6 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
             "SLIC3R_CAD setting as this project.")
     endif ()
     file(COPY ${_occt_dlls}
-            ${CMAKE_PREFIX_PATH}/bin/freetype.dll
             ${CMAKE_PREFIX_PATH}/bin/avformat-61.dll
             ${CMAKE_PREFIX_PATH}/bin/avcodec-61.dll
             ${CMAKE_PREFIX_PATH}/bin/swresample-5.dll
@@ -1136,7 +1141,6 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
         ${_out_dir}/libmpfr-4.dll
         ${_out_dir}/WebView2Loader.dll
 
-        ${_out_dir}/freetype.dll
         ${_out_dir}/avformat-61.dll
         ${_out_dir}/avcodec-61.dll
         ${_out_dir}/swresample-5.dll
@@ -1296,7 +1300,13 @@ elseif (SLIC3R_FHS)
         PATTERN "*/udev" EXCLUDE
     )
     if(ORCA_BUNDLED_UV_EXECUTABLE)
-        install(PROGRAMS "${ORCA_BUNDLED_UV_EXECUTABLE}" DESTINATION "${SLIC3R_FHS_RESOURCES}/tools/uv" RENAME "${ORCA_BUNDLED_UV_FILENAME}")
+        # A Flatpak build finds uv at this exact path, installed by the orca_deps
+        # module before this one configures (see ORCA_UV_FLATPAK_BINARY above).
+        # Installing it there again would copy the file onto itself.
+        set(_orca_uv_fhs_binary "${SLIC3R_FHS_RESOURCES}/tools/uv/${ORCA_BUNDLED_UV_FILENAME}")
+        if(NOT ORCA_BUNDLED_UV_EXECUTABLE_CONFIG STREQUAL _orca_uv_fhs_binary)
+            install(PROGRAMS "${ORCA_BUNDLED_UV_EXECUTABLE}" DESTINATION "${SLIC3R_FHS_RESOURCES}/tools/uv" RENAME "${ORCA_BUNDLED_UV_FILENAME}")
+        endif()
     endif()
     install(FILES src/dev-utils/platform/unix/com.orcaslicer.OrcaSlicer.desktop DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications)
     foreach(SIZE 32 128 192)
@@ -1368,6 +1378,33 @@ set (CPACK_NSIS_EXECUTABLES_DIRECTORY ".")
 set(CPACK_PACKAGE_EXECUTABLES "orca-slicer;OrcaSlicer")
 set(CPACK_CREATE_DESKTOP_LINKS "orca-slicer")
 set (CPACK_RESOURCE_FILE_LICENSE ${CMAKE_SOURCE_DIR}/LICENSE.txt) # must also include in install command
+
+# CI release builds Authenticode-sign the installer as makensis builds it: the payload before it is
+# compressed, the uninstaller the installer writes, and the installer itself. Only a configure run
+# with ORCA_SIGN_KMS_KEY in its environment (build_orca.yml) wires this in; scripts/sign_windows.ps1
+# lists what signing needs. The commands go into an included file because CPack writes
+# CPACK_NSIS_* values into CPackConfig.cmake unescaped. !include needs a native path, with its
+# backslashes doubled for CPackConfig.cmake. PowerShell 7 is preferred: Windows PowerShell started
+# under a PowerShell 7 session (CI runs cpack from one) inherits its module path and cannot load
+# Get-AuthenticodeSignature.
+if (WIN32 AND DEFINED ENV{ORCA_SIGN_KMS_KEY})
+    find_program(ORCA_SIGN_PWSH pwsh)
+    if (ORCA_SIGN_PWSH)
+        set(_orca_sign_shell pwsh)
+    else ()
+        set(_orca_sign_shell powershell)
+    endif ()
+    set(ORCA_SIGN_COMMAND "${_orca_sign_shell} -NoProfile -ExecutionPolicy Bypass -File \"${CMAKE_SOURCE_DIR}/scripts/sign_windows.ps1\" -Path")
+    string(CONFIGURE [=[
+!system '@ORCA_SIGN_COMMAND@ "${INST_DIR}"' = 0
+!uninstfinalize '@ORCA_SIGN_COMMAND@ "%1"' = 0
+!finalize '@ORCA_SIGN_COMMAND@ "%1"' = 0
+]=] _orca_sign_nsh @ONLY)
+    file(WRITE "${CMAKE_BINARY_DIR}/sign_windows.nsh" "${_orca_sign_nsh}")
+    file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/sign_windows.nsh" _orca_sign_nsh_path)
+    string(REPLACE "\\" "\\\\" _orca_sign_nsh_path "${_orca_sign_nsh_path}")
+    set(CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS "!include \\\"${_orca_sign_nsh_path}\\\"")
+endif ()
 
 set(CPACK_WIX_UPGRADE_GUID "058245e8-20e0-4a95-9ab7-1acfe17ad511")
 set(CPACK_GENERATOR NSIS)
