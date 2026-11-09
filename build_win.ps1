@@ -6,7 +6,7 @@
 #>
 
 param(
-    [ValidateSet("x64-clang", "x64-clang-cache", "x64-clang-debug")]
+    [ValidateSet("x64-clang", "x64-clang-cache", "x64-clang-debug", "x64-clang-unity")]
     [string]$Preset,
     [string]$Config = "Release",
     [string]$Target,
@@ -48,7 +48,8 @@ param(
     [string]$SlicerArgs,
     [string]$Arch,
     [switch]$Verbose,
-    [switch]$DryRun
+    [switch]$DryRun,
+    [switch]$Unity
 )
 
 # --- Actions (mirror build_win.bat) ---
@@ -68,6 +69,7 @@ param(
 # --vs      2019, 2022, 2026
 # --clang-path path to clang-cl.exe
 # --cache   ccache, sccache, off
+# --unity   enable unity (jumbo) build
 # --no-pch  disable precompiled header
 
 # --- Build scope ---
@@ -581,7 +583,7 @@ try {
         Write-Status "generator" $generator
         $compiler = if ($ClangCl) { $clangClExe } else { $clExe }
         $cmakeArgs = @()
-        if ($Cache -eq "ccache") {
+        if ($Cache -eq "ccache" -or $Unity) {
             $cmakeArgs += "-DSLIC3R_UNITY_BUILD=ON"
         }
         if ($Tests) {
