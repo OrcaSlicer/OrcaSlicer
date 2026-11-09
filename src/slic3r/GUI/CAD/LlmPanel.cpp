@@ -20,6 +20,18 @@
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
+#include <cctype>
+#include <cstddef>
+#include <functional>
+#include <string>
+#include <utility>
+#include <vector>
+#include <wx/anybutton.h>
+#include <wx/defs.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/string.h>
 
 namespace Slic3r { namespace GUI {
 

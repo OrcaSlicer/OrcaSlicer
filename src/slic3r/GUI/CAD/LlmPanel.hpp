@@ -12,6 +12,10 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <cstddef>
+#include <utility>
+#include <wx/colour.h>
+#include <wx/string.h>
 
 class wxButton;
 class wxCheckBox;

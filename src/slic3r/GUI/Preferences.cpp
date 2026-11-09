@@ -1,6 +1,7 @@
 #include "Preferences.hpp"
 #include "slic3r/GUI/CAD/LlmAgent.hpp"
 #include "slic3r/GUI/CAD/LlmApi.hpp"
+#include <wx/msgdlg.h>
 #include <wx/textdlg.h>
 #include "slic3r/GUI/CAD/McpControl.hpp"
 #include "CloudProvider.hpp"

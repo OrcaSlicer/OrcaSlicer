@@ -21,6 +21,10 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <exception>
+#include <functional>
+#include <memory>
+#include <utility>
 
 namespace Slic3r { namespace GUI {
 

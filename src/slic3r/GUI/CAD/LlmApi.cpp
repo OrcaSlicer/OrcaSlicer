@@ -1,3 +1,14 @@
+#include <boost/filesystem/path.hpp>
+#include <cctype>
+#include <exception>
+#include <functional>
+#include <ios>
+#include <iterator>
+#include <string>
+#include <utility>
+#include <vector>
+#include <wx/string.h>
+#include "slic3r/GUI/CAD/LlmAgent.hpp"
 #include "slic3r/GUI/CAD/LlmApi.hpp"
 #include "slic3r/Utils/Http.hpp"
 
@@ -65,6 +76,7 @@ json sock_call(const std::string& path, const std::string& method, const json& p
     a.sun_family = AF_UNIX;
     std::strncpy(a.sun_path, path.c_str(), sizeof(a.sun_path) - 1);
     timeval tv{120, 0};
+    // NOLINTNEXTLINE(misc-include-cleaner): POSIX socket constants; <sys/socket.h> is included (the check wants a glibc-internal header)
     ::setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
     if (::connect(fd, (sockaddr*) &a, sizeof a) != 0) { ::close(fd); throw std::runtime_error("the app's MCP socket is unreachable: " + path); }
     const std::string req = json{{"jsonrpc", "2.0"}, {"id", 1}, {"method", method}, {"params", params}}.dump() + "\n";

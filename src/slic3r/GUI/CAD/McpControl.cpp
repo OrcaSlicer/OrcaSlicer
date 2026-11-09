@@ -6103,6 +6103,7 @@ void tcp_server_thread(int port)
     const int sfd = ::socket(AF_INET, SOCK_STREAM, 0);
     if (sfd < 0) { BOOST_LOG_TRIVIAL(error) << "MCP: tcp socket() failed"; return; }
     const int one = 1;
+    // NOLINTNEXTLINE(misc-include-cleaner): POSIX socket constants; <sys/socket.h> is included (the check wants a glibc-internal header)
     ::setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
     sockaddr_in addr{};
     addr.sin_family      = AF_INET;
