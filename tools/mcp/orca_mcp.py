@@ -54,10 +54,12 @@ def default_datadir(exe=None):
     """The datadir OrcaSlicer uses without --datadir, as McpStdioBridge.cpp's default_datadir() picks it.
 
     A portable install keeps it in data_dir beside the binary `exe` (beside the .app on macOS), which
-    is looked for only when `exe` is given; otherwise it is the platform's configuration folder. The
-    binary is located as the app locates itself: on Linux through /proc/self/exe, which resolves
-    symlinks, so a symlinked `exe` is resolved too; on Windows (GetModuleFileName) and macOS
-    (_NSGetExecutablePath) by the path it was started by, symlinks left as they are."""
+    is looked for only when `exe` is given; otherwise it is the platform's configuration folder. On
+    Linux the binary is located as the app locates itself, through /proc/self/exe, which resolves
+    symlinks, so a symlinked `exe` is resolved too; on Windows by GetModuleFileName, which leaves them.
+    On macOS it follows the stdio bridge, whose _NSGetExecutablePath takes the path as given; whether
+    the app itself resolves a symlinked binary there (its lookup goes through the main bundle) is
+    unverified, which matters only for a symlinked binary."""
     if exe:
         exe = os.path.abspath(exe) if sys.platform in ("win32", "darwin") else os.path.realpath(exe)
         folder = os.path.dirname(exe)

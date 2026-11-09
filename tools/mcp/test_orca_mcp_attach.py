@@ -5,12 +5,13 @@
 
 default_datadir() takes a portable data_dir beside the binary (beside the .app on macOS) and
 otherwise the platform's configuration folder; it resolves a symlinked binary on Linux, as the app
-does through /proc/self/exe, and nowhere else (skipped where no symlink can be made). from_datadir()
-refuses a datadir without mcp/server.json, and one whose server.json names a port where nothing
-listens or where another server answers (HTTP 401, a reply that is not JSON), naming the file, giving
-the --mcp advice and chaining the cause. call_cad_tool(), against a stubbed call(), fails at once on
-a dialog, follows a running job, prefixes its errors with the CAD tool's name and returns the tool's
-result. Exits 0 when every check passes.
+does through /proc/self/exe, and takes it as given on Windows, as the app does, and on macOS, as the
+stdio bridge does (skipped where no symlink can be made). from_datadir() refuses a datadir without
+mcp/server.json, and one whose server.json names a port where nothing listens or where another
+server answers (HTTP 401, a reply that is not JSON), naming the file, giving the --mcp advice and
+chaining the cause. call_cad_tool(), against a stubbed call(), fails at once on a dialog, follows a
+running job, prefixes its errors with the CAD tool's name and returns the tool's result. Exits 0
+when every check passes.
 """
 
 import http.server
@@ -96,13 +97,18 @@ def check_symlinked_binary():
     except (OSError, NotImplementedError) as e:
         print(f"skip - default_datadir() with a symlinked binary: no symlink can be made here ({e})")
         return
-    if sys.platform in ("win32", "darwin"):
-        expected, how = os.path.join(linked, "data_dir"), "takes a symlinked binary as it is"
+    if sys.platform == "darwin":
+        # As McpStdioBridge.cpp's _NSGetExecutablePath; whether the app's own lookup (the main
+        # bundle's) resolves a symlinked binary is unverified.
+        expected, how = linked, "takes a symlinked binary as given, as the stdio bridge does"
+    elif sys.platform == "win32":
+        expected, how = linked, "takes a symlinked binary as given, as the app does"
     else:
-        expected, how = os.path.join(real, "data_dir"), "resolves a symlinked binary"
+        expected, how = real, "resolves a symlinked binary, as the app does"
+    expected = os.path.join(expected, "data_dir")
     got = orca_mcp.default_datadir(link)
     assert same_path(got, expected), f"{sys.platform}: {got} != {expected}"
-    ok(f"default_datadir() {how} on {sys.platform}, as the app does")
+    ok(f"default_datadir() {how} on {sys.platform}")
 
 
 def datadir_naming(port, prefix):
