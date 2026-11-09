@@ -1194,6 +1194,31 @@ TEST_CASE("one call bigger than the cap is dropped once it has replied", "[Mcp]"
     CHECK(journal.to_replay("s")["steps"].size() == 1);
 }
 
+TEST_CASE("a job refused at shutdown after it registered ends its journal entry", "[Mcp]")
+{
+    ManualDispatcher ui;
+    McpCore*         core_ptr = nullptr;
+    // A recover call's journal entry reads the open dialogs between the core's two shutdown checks:
+    // shutting down there lets the call register its job, then refuses it.
+    UiInvoker    invoker(ui, [] { return GuardState{}; }, {}, [&core_ptr] {
+        core_ptr->shutdown();
+        return json::array();
+    });
+    JobRegistry  jobs;
+    Journal      journal;
+    ToolRegistry registry;
+    registry.add(tool("answer_dialog", GuardClass::Recover, [](const json&, ToolContext&) { return ToolResult::ok(); }));
+    McpCore core(registry, invoker, jobs, &journal, CoreTiming{});
+    core_ptr = &core;
+
+    const ToolResult r = core.call(*registry.find("answer_dialog"), args_of_mib(65));
+    REQUIRE(r.is_error);
+    CHECK(r.message == "OrcaSlicer is shutting down");
+    // An entry left running would hold its 65 MiB against the cap, so the next call, not it, would go.
+    journal.end(journal.begin("set_settings", {{"values", {{"wall_loops", 3}}}}), ToolResult::ok());
+    CHECK(journal.to_replay("s")["steps"].size() == 1);
+}
+
 TEST_CASE("drain reports a job thread that has not returned", "[Mcp]")
 {
     Harness           h;

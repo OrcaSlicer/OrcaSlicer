@@ -277,9 +277,15 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
     if (journal)
         m_journal->job_started(seq, job);
 
+    // A job that never runs, refused here at shutdown or because its thread can't start, ends in the
+    // journal too: an entry still running would keep its place, and its arguments' bytes, until the
+    // journal is cleared.
     if (!enter()) {
-        m_jobs.finish(job, ToolResult::error("OrcaSlicer is shutting down"));
-        return finish(ToolResult::error("OrcaSlicer is shutting down"));
+        const ToolResult refused = ToolResult::error("OrcaSlicer is shutting down");
+        if (journal)
+            m_journal->job_ended(seq, refused);
+        m_jobs.finish(job, refused);
+        return finish(refused);
     }
     // The job thread owns copies of what it needs; the core outlives it, as the owner destroys the
     // core only once drain() has seen every job thread leave.
@@ -304,6 +310,8 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
         }).detach();
     } catch (const std::system_error& e) {
         const ToolResult failed = ToolResult::error(std::string("Cannot start the call: ") + e.what());
+        if (journal)
+            m_journal->job_ended(seq, failed);
         m_jobs.finish(job, failed);
         leave();
         return finish(failed);
