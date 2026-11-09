@@ -6,6 +6,7 @@
 #include "libslic3r/Circle.hpp"
 #include "CoolingBuffer.hpp"
 #include "LayerTimeSmoothing.hpp"
+#include "OuterWallSpeedSmoothing.hpp"
 #include <algorithm>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -21,6 +22,8 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <map>
+#include <tuple>
 #include <unordered_map>
 #include <vector>
 #include <utility>
@@ -116,6 +119,11 @@ struct CoolingLine
     float   time_max;
     // If marked with the "slowdown" flag, the line has been slowed down.
     bool    slowdown;
+    // Chain of connected outer walls the line belongs to (see OuterWallNodes), -1 when the line is in none.
+    // The chain is identified by the object, its instance and the chain id.
+    unsigned long long chain_object   = 0;
+    unsigned long long chain_instance = 0;
+    int                chain_node     = -1;
 };
 
 // Calculate the required per extruder time stretches.
@@ -442,9 +450,10 @@ static float lts_stretch_layer(std::vector<PerExtruderAdjustments> &layer, float
     return lts_layer_time(layer);
 }
 
-void CoolingBuffer::begin_deferred()
+void CoolingBuffer::begin_deferred(bool parse_outer_wall_chains)
 {
     m_deferred_layers.clear();
+    m_parse_outer_wall_chains = parse_outer_wall_chains;
     m_deferred_extruder = m_current_extruder;
 }
 
@@ -470,6 +479,56 @@ std::vector<std::string> CoolingBuffer::finish_deferred()
 {
     std::vector<DeferredLayer> layers = std::move(m_deferred_layers);
     m_deferred_layers.clear();
+
+    if (m_parse_outer_wall_chains) {
+        // Smooth the speed of every chain of connected outer walls along Z.
+        // chain -> layer -> the (extruder, line) pairs of the outer wall lines of the chain on the layer
+        using ChainKey = std::tuple<unsigned long long, unsigned long long, int>;
+        std::map<ChainKey, std::map<size_t, std::vector<std::pair<size_t, size_t>>>> chains;
+        for (size_t layer_idx = 0; layer_idx < layers.size(); ++ layer_idx)
+            for (size_t extruder_idx = 0; extruder_idx < layers[layer_idx].adjustments.size(); ++ extruder_idx) {
+                const std::vector<CoolingLine> &lines = layers[layer_idx].adjustments[extruder_idx].lines;
+                for (size_t line_idx = 0; line_idx < lines.size(); ++ line_idx)
+                    if (lines[line_idx].chain_node >= 0)
+                        chains[ChainKey(lines[line_idx].chain_object, lines[line_idx].chain_instance, lines[line_idx].chain_node)][layer_idx].emplace_back(extruder_idx, line_idx);
+            }
+        for (const auto &chain : chains) {
+            const size_t first = chain.second.begin()->first;
+            const size_t last  = chain.second.rbegin()->first;
+            std::vector<float> speeds(last - first + 1, 0.f);
+            for (const auto &layer : chain.second)
+                for (const auto &pos : layer.second)
+                    speeds[layer.first - first] = std::max(speeds[layer.first - first], layers[layer.first].adjustments[pos.first].lines[pos.second].feedrate);
+            const std::vector<float> smoothed = smooth_outer_wall_speeds(speeds);
+            for (const auto &layer : chain.second)
+                for (const auto &pos : layer.second) {
+                    CoolingLine &line = layers[layer.first].adjustments[pos.first].lines[pos.second];
+                    const float  speed = smoothed[layer.first - first];
+                    if (speed > 0.f && line.feedrate > speed) {
+                        line.feedrate = speed;
+                        line.slowdown = true;
+                    }
+                    // The outer wall is not slowed down any more by the layer time slow downs.
+                    line.type &= ~CoolingLine::TYPE_ADJUSTABLE;
+                    line.time = (line.feedrate > 0.f && line.length > 0.f) ? line.length / line.feedrate : 0.f;
+                    line.time_max = line.time;
+                }
+        }
+        for (DeferredLayer &layer : layers)
+            layer.layer_time = lts_layer_time(layer.adjustments);
+        m_parse_outer_wall_chains = false;
+    }
+
+    if (! m_config.layer_time_smoothing.value) {
+        std::vector<std::string> out;
+        out.reserve(layers.size());
+        for (DeferredLayer &layer : layers) {
+            out.emplace_back(this->apply_layer_cooldown(layer.gcode, layer.layer_id, layer.layer_time, layer.adjustments));
+            layer.gcode.clear();
+            layer.gcode.shrink_to_fit();
+        }
+        return out;
+    }
 
     LayerTimeSmoother smoother(LayerTimeSmoother::params_from_config(m_config));
     std::vector<float> times, max_times;
@@ -531,6 +590,9 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
     // Time of any other movements before the first extrusion will be excluded from the layer time.
     bool layer_had_extrusion = false;
 
+    struct ChainMarker { unsigned long long object = 0; unsigned long long instance = 0; int node = -1; };
+    ChainMarker chain;
+
     for (; *line_start != 0; line_start = line_end)
     {
         while (*line_end != '\n' && *line_end != 0)
@@ -551,6 +613,12 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
             line.type = CoolingLine::TYPE_G2;
         else if (boost::starts_with(sline, "G3 "))
             line.type = CoolingLine::TYPE_G3;
+        else if (m_parse_outer_wall_chains && boost::starts_with(sline, "; COOLING_NODE: ")) {
+            // "; COOLING_NODE: <object id>:<instance id>:<chain id>", the chain id is -1 for an outer wall that is in no chain.
+            chain = ChainMarker();
+            if (std::sscanf(sline.c_str() + 16, "%llu:%llu:%d", &chain.object, &chain.instance, &chain.node) != 3)
+                chain.node = -1;
+        }
         if (line.type) {
             // G0, G1 or G92
             // Parse the G-code line.
@@ -604,6 +672,11 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
             if (boost::contains(sline, ";_EXTRUDE_SET_SPEED") && ! wipe && adjust_external) {
                 line.type |= CoolingLine::TYPE_ADJUSTABLE;
                 active_speed_modifier = adjustment->lines.size();
+                if (external_perimeter && chain.node >= 0) {
+                    line.chain_object   = chain.object;
+                    line.chain_instance = chain.instance;
+                    line.chain_node     = chain.node;
+                }
             }
             if ((line.type & CoolingLine::TYPE_G92) == 0) {
                 //BBS: G0, G1, G2, G3. Calculate the duration.

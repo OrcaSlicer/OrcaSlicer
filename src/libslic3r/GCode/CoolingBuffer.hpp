@@ -35,7 +35,8 @@ public:
     // Layer time smoothing needs the layer times of the whole print, so the layers are processed in two passes:
     // collect_layer() parses each layer and applies the minimum layer time slow down, finish_deferred() then smooths
     // the layer times over all collected layers and writes the layers. The G-code of all collected layers is held in memory.
-    void                     begin_deferred();
+    // With parse_outer_wall_chains the "; COOLING_NODE" markers of the outer walls are parsed and the outer wall speed is smoothed along Z.
+    void                     begin_deferred(bool parse_outer_wall_chains = false);
     void                     collect_layer(std::string &&gcode, size_t layer_id, bool flush);
     // Returns the adjusted G-code of every collected layer, in order.
     std::vector<std::string> finish_deferred();
@@ -56,6 +57,7 @@ private:
     std::vector<DeferredLayer>  m_deferred_layers;
     // Extruder active at the end of the last collected layer.
     unsigned int                m_deferred_extruder { 0 };
+    bool                        m_parse_outer_wall_chains { false };
     // Internal data.
     // BBS: X,Y,Z,E,F,I,J
     std::vector<char>           m_axis;

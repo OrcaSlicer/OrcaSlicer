@@ -950,6 +950,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     const bool has_layer_time_smoothing = config->opt_bool("layer_time_smoothing");
     toggle_field("layer_time_smoothing", !has_spiral_vase, -1, _L("Layer time smoothing does not work in spiral vase mode."));
+    toggle_field("z_direction_outwall_speed_continuous", !has_spiral_vase, -1, _L("Smoothing the outer wall speed along Z does not work in spiral vase mode."));
     for (const char *el : {"layer_time_max_variation", "layer_time_smoothing_max_slowdown", "layer_time_smoothing_max_time_increase", "layer_time_smoothing_scope"})
         toggle_field(el, has_layer_time_smoothing && !has_spiral_vase);
     toggle_field("top_shell_thickness", ! has_spiral_vase && has_top_shell_layers, -1, _L("Disable spiral vase mode and set top shell layers above zero to edit top shell thickness."));

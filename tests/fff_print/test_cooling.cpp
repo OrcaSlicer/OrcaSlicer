@@ -211,3 +211,32 @@ TEST_CASE("Layer time smoothing smooths each object when printing by object", "[
     CHECK(count_layer_time_smoothing_comments(gcode) >= 180);
     CHECK(gcode.find(";_EXTRUDE_SET_SPEED") == std::string::npos);
 }
+
+TEST_CASE("Smoothing the outer wall speed along Z marks the outer walls with their chain", "[Cooling]")
+{
+    const std::string gcode = slice({ cube(20) }, {
+        { "initial_layer_print_height",         0.2 },
+        { "layer_height",                       0.2 },
+        { "z_direction_outwall_speed_continuous", true },
+    });
+    CHECK(gcode.find("; COOLING_NODE: ") != std::string::npos);
+    CHECK(gcode.find(";_EXTRUDE_SET_SPEED") == std::string::npos);
+}
+
+TEST_CASE("The outer walls are not marked when smoothing the outer wall speed along Z is disabled", "[Cooling]")
+{
+    const std::string gcode = slice({ cube(20) }, {
+        { "layer_height",                       0.2 },
+        { "z_direction_outwall_speed_continuous", false },
+    });
+    CHECK(gcode.find("; COOLING_NODE: ") == std::string::npos);
+}
+
+TEST_CASE("Smoothing the outer wall speed along Z is ignored in spiral vase mode", "[Cooling]")
+{
+    const std::string gcode = slice({ cube(20) }, {
+        { "spiral_mode",                        true },
+        { "z_direction_outwall_speed_continuous", true },
+    });
+    CHECK(gcode.find("; COOLING_NODE: ") == std::string::npos);
+}

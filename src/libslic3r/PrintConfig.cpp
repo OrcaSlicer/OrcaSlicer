@@ -1399,6 +1399,14 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<LayerTimeSmoothingScope>(ltsAll));
 
+    def = this->add("z_direction_outwall_speed_continuous", coBool);
+    def->label = L("Smooth outer wall speed along Z (experimental)");
+    def->category = L("Quality");
+    def->tooltip = L("Smooths the outer wall speed along Z, so that the outer walls of connected layers are printed with a similar speed "
+                     "and the surface has fewer visible steps. The print time increases. This does not work in spiral vase mode.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("max_travel_detour_distance", coFloatOrPercent);
     def->label = L("Avoid crossing walls - Max detour length");
     def->category = L("Quality");

@@ -374,6 +374,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "layer_time_smoothing_max_slowdown",
         "layer_time_smoothing_max_time_increase",
         "layer_time_smoothing_scope",
+        "z_direction_outwall_speed_continuous",
         "standby_temperature_delta",
         "preheat_time",
         "preheat_steps",

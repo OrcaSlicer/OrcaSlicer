@@ -11,6 +11,7 @@
 #include "GCode/PressureEqualizer.hpp"
 #include "GCode/SmallAreaInfillFlowCompensator.hpp"
 #include "GCode/CoolingBuffer.hpp"
+#include "GCode/OuterWallNodes.hpp"
 #include "GCode/AdaptivePAProcessor.hpp"
 #include "CustomGCode.hpp"
 #include "GCode/TimelapsePosPicker.hpp"
@@ -3559,6 +3560,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     if (print.config().spiral_mode.value)
         m_spiral_vase = make_unique<SpiralVase>(print.config());
 
+    if (print.config().z_direction_outwall_speed_continuous.value && ! print.config().spiral_mode.value)
+        m_outer_wall_nodes = std::make_shared<const OuterWallNodes>(OuterWallNodes::build(print));
+
     if (print.config().max_volumetric_extrusion_rate_slope.value > 0){
     		m_pressure_equalizer = make_unique<PressureEqualizer>(print.config());
     		m_enable_extrusion_role_markers = (bool)m_pressure_equalizer;
@@ -5249,11 +5253,11 @@ void GCode::process_layers(
     });
 
     // The pipeline elements are joined using const references, thus no copying is performed.
-    if (m_config.layer_time_smoothing.value && ! m_spiral_vase) {
+    if ((m_config.layer_time_smoothing.value || m_config.z_direction_outwall_speed_continuous.value) && ! m_spiral_vase) {
         // Layer time smoothing needs the times of all layers. The layers are collected by the cooling buffer first,
         // then smoothed and written by a second pipeline.
         auto &cooling_buffer = *this->m_cooling_buffer;
-        cooling_buffer.begin_deferred();
+        cooling_buffer.begin_deferred(m_config.z_direction_outwall_speed_continuous.value);
         const auto cooling_collect = tbb::make_filter<LayerResult, void>(slic3r_tbb_filtermode::serial_in_order,
             [&cooling_buffer](LayerResult in) {
                 if (! in.nop_layer_result)
@@ -5370,11 +5374,11 @@ void GCode::process_layers(
     });
 
     // The pipeline elements are joined using const references, thus no copying is performed.
-    if (m_config.layer_time_smoothing.value && ! m_spiral_vase) {
+    if ((m_config.layer_time_smoothing.value || m_config.z_direction_outwall_speed_continuous.value) && ! m_spiral_vase) {
         // Layer time smoothing needs the times of all layers. The layers are collected by the cooling buffer first,
         // then smoothed and written by a second pipeline.
         auto &cooling_buffer = *this->m_cooling_buffer;
-        cooling_buffer.begin_deferred();
+        cooling_buffer.begin_deferred(m_config.z_direction_outwall_speed_continuous.value);
         const auto cooling_collect = tbb::make_filter<LayerResult, void>(slic3r_tbb_filtermode::serial_in_order,
             [&cooling_buffer](LayerResult in) {
                 if (! in.nop_layer_result)
@@ -7694,6 +7698,8 @@ LayerResult GCode::process_layer(
                 m_config.apply(print.default_region_config());
                 m_config.apply(instance_to_print.print_object.config(), true);
                 m_layer = layer_to_print.layer();
+                if (m_outer_wall_nodes)
+                    m_outer_wall_instance_key = std::to_string(instance_to_print.print_object.get_id()) + ":" + std::to_string(instance_to_print.instance_id);
                 m_object_layer_over_raft = object_layer_over_raft;
                 if (m_config.reduce_crossing_wall)
                     m_avoid_crossing_perimeters.init_layer(*m_layer);
@@ -7928,6 +7934,8 @@ LayerResult GCode::process_layer(
                 m_config.apply(print.default_region_config());
                 m_config.apply(instance_to_print.print_object.config(), true);
                 m_layer = layer_to_print.layer();
+                if (m_outer_wall_nodes)
+                    m_outer_wall_instance_key = std::to_string(instance_to_print.print_object.get_id()) + ":" + std::to_string(instance_to_print.instance_id);
                 m_object_layer_over_raft = object_layer_over_raft;
                 if (m_config.reduce_crossing_wall)
                     m_avoid_crossing_perimeters.init_layer(*m_layer);
@@ -8938,6 +8946,20 @@ std::string GCode::extrude_entity(const ExtrusionEntity&                     ent
                                   double                                     speed,
                                   const std::vector<const ExtrusionEntity*>& region_perimeters,
                                   const WipeInwardSupport*                   wipe_support)
+{
+    // Mark the outer walls with the chain they belong to, the cooling buffer smooths their speed along Z.
+    // The marker is written for every outer wall, -1 for the ones that are not in a chain, so that it never applies to the next entity.
+    if (m_outer_wall_nodes && entity.role() == erExternalPerimeter)
+        return "; COOLING_NODE: " + m_outer_wall_instance_key + ":" + std::to_string(m_outer_wall_nodes->node_of(&entity)) + "\n" +
+               this->extrude_entity_impl(entity, description, speed, region_perimeters, wipe_support);
+    return this->extrude_entity_impl(entity, description, speed, region_perimeters, wipe_support);
+}
+
+std::string GCode::extrude_entity_impl(const ExtrusionEntity&                     entity,
+                                       const std::string&                         description,
+                                       double                                     speed,
+                                       const std::vector<const ExtrusionEntity*>& region_perimeters,
+                                       const WipeInwardSupport*                   wipe_support)
 {
     if (const ExtrusionPath* path = dynamic_cast<const ExtrusionPath*>(&entity))
         return this->extrude_path(*path, description, speed);

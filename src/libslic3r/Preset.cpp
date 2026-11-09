@@ -1208,6 +1208,7 @@ static std::vector<std::string> s_Preset_print_options{
     "layer_time_smoothing_max_slowdown",
     "layer_time_smoothing_max_time_increase",
     "layer_time_smoothing_scope",
+    "z_direction_outwall_speed_continuous",
     "detect_thin_wall",
     "detect_overhang_wall",
     "unsupported_wall_last",

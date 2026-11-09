@@ -2003,6 +2003,8 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionPercent,            layer_time_smoothing_max_slowdown))
     ((ConfigOptionPercent,            layer_time_smoothing_max_time_increase))
     ((ConfigOptionEnum<LayerTimeSmoothingScope>, layer_time_smoothing_scope))
+    // Smooth the outer wall speed of the connected outer walls along Z.
+    ((ConfigOptionBool,               z_direction_outwall_speed_continuous))
     ((ConfigOptionFloatOrPercent,     max_travel_detour_distance))
     ((ConfigOptionPoints,             printable_area))
     ((ConfigOptionPointsGroups,       extruder_printable_area))
