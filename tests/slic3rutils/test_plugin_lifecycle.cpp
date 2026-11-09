@@ -153,18 +153,14 @@ class LifecycleTestPlugin(orca.base):
 )PY";
 
 // In production GUI_App::init_plugin_gui_wiring subscribes the agent-registry
-// callbacks. The test binary has no GUI, so install the same unload-side wiring
-// once so these tests exercise the production deregister-on-unload path.
+// callbacks. The test binary has no GUI, so it installs the same unload-side wiring
+// to exercise the production deregister-on-unload path.
+// PluginManager::shutdown() drops every subscription, so each test installs it again.
 //
 // The load-side (register) wiring is deliberately not installed: duplicate-id
 // coverage registers agents manually in a deterministic order instead.
 void install_agent_registry_wiring()
 {
-    static bool installed = false;
-    if (installed)
-        return;
-    installed = true;
-
     PluginManager& manager = PluginManager::instance();
     manager.subscribe_on_unload_callback(NetworkAgentFactory::deregister_python_plugin);
     manager.subscribe_on_capability_unload_callback([](const PluginCapabilityId& capability) {
