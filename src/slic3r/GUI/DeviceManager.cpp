@@ -4197,13 +4197,13 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                 } else if (jj["command"].get<std::string>() == "project_file") {
                     //ack of project file
                     BOOST_LOG_TRIVIAL(debug) << "parse_json, ack of project_file = " << j.dump(4);
-                    std::string result;
-                    if (jj.contains("result")) {
-                        result = jj["result"].get<std::string>();
-                        if (result == "FAIL") {
-                            wxString text = _L("Failed to start print job");
-                            GUI::wxGetApp().push_notification(this, text);
-                        }
+                    if (jj.contains("result") && boost::iequals(jj["result"].get<std::string>(), "fail")) {
+                        // The printer reports why it refused the job (e.g. 0502-C010: AMS drying) in err_code.
+                        // Acks of studio commands already get their error dialog above.
+                        if (!key_field_only && !is_studio_cmd(sequence_id) && jj.contains("err_code") && jj["err_code"].is_number())
+                            add_command_error_code_dlg(jj["err_code"].get<int>());
+                        wxString text = _L("Failed to start print job");
+                        GUI::wxGetApp().push_notification(this, text);
                     }
                 } else if (jj["command"].get<std::string>() == "ams_filament_setting" && !key_field_only) {
                     // BBS trigger ams UI update
