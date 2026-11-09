@@ -1932,3 +1932,27 @@ TEST_CASE("An empty list applied by index replaces the target list", "[Config][R
     edited.apply_only(saved, {"filament_ids#0"});
     CHECK(edited.option<ConfigOptionStrings>("filament_ids")->values.empty());
 }
+
+TEST_CASE("Only a tool changer without print-time filament mapping ties the filament count to its nozzles", "[Config]")
+{
+    // A plain tool changer feeds filament N from nozzle N, so its nozzle count caps the filaments.
+    // A SEMM printer, or a tool changer that maps filaments to tools at print time, does not.
+    const bool semm  = GENERATE(false, true);
+    const bool remap = GENERATE(false, true);
+
+    DynamicPrintConfig printer_config;
+    printer_config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(semm));
+    printer_config.set_key_value("filament_tool_mapping", new ConfigOptionBool(remap));
+
+    INFO("single_extruder_multi_material = " << semm << ", filament_tool_mapping = " << remap);
+    CHECK(filament_count_follows_extruders(printer_config) == (!semm && !remap));
+}
+
+TEST_CASE("A printer config without the filament mapping key keeps tool changers tied to their nozzles", "[Config]")
+{
+    // Printer profiles written before filament_tool_mapping existed must behave as before.
+    DynamicPrintConfig printer_config;
+    printer_config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
+
+    CHECK(filament_count_follows_extruders(printer_config));
+}
