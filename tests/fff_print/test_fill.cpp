@@ -1301,12 +1301,14 @@ TEST_CASE("Cross hatch infill rounds its transition layers with the smooth facto
     REQUIRE(smooth.length < sharp.length);
 }
 
-TEST_CASE("Trapezoidal grid infill rounds its corners only with more than one line", "[Fill]")
+TEST_CASE("Trapezoidal infill rounds its corners only with more than one line", "[Fill]")
 {
-    auto shape_for = [](int multiline, const std::string &smooth_factor) {
+    const std::string pattern = GENERATE("grid", "quartercubic");
+    CAPTURE(pattern);
+    auto shape_for = [&pattern](int multiline, const std::string &smooth_factor) {
         Print print;
         Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
-                                            {{"sparse_infill_pattern", "grid"},
+                                            {{"sparse_infill_pattern", pattern},
                                              {"sparse_infill_density", "20%"},
                                              {"fill_multiline", multiline},
                                              {"sparse_infill_smooth_factor", smooth_factor},
@@ -1322,7 +1324,7 @@ TEST_CASE("Trapezoidal grid infill rounds its corners only with more than one li
     REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
     REQUIRE(smooth.length < sharp.length);
 
-    // A single line per infill wall is the plain crossing line grid, which has no corner of its own.
+    // A single line per infill wall is the plain crossing lines, which have no corner of their own.
     const SparseInfillShape single_sharp  = shape_for(1, "0%");
     const SparseInfillShape single_smooth = shape_for(1, "100%");
     REQUIRE(single_sharp.point_count > 0);
@@ -1332,7 +1334,7 @@ TEST_CASE("Trapezoidal grid infill rounds its corners only with more than one li
 
 TEST_CASE("Multiline infill of an object matches the infill of a larger object with the same center", "[Fill]")
 {
-    const InfillPattern pattern   = GENERATE(ipGrid, ipTriangles, ipStars, ipCubic);
+    const InfillPattern pattern   = GENERATE(ipGrid, ipTriangles, ipStars, ipCubic, ipQuarterCubic);
     const int           multiline = GENERATE(2, 3);
     // A square with cells as large as itself, whose corners are as far out as the object bounding box
     // reaches, and a strip with small cells, whose extents change with every layer orientation.
@@ -1466,16 +1468,17 @@ TEST_CASE("Multiline infill keeps its lines parallel around a corner", "[Fill]")
 
 TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itself", "[Fill]")
 {
+    const std::string pattern = GENERATE("cubic", "quartercubic");
     const int    multiline = GENERATE(2, 3);
     const double spacing   = 0.45;
-    const double density   = 0.3;
+    const double density   = GENERATE(0.1, 0.3, 0.6);
     const double wall      = multiline * spacing;
-    CAPTURE(multiline);
+    CAPTURE(pattern, multiline, density);
 
     const ExPolygon region{ Slic3r::Points{ Point::new_scale(0., 0.), Point::new_scale(40., 0.),
                                             Point::new_scale(40., 40.), Point::new_scale(0., 40.) } };
-    auto fill = [&region, spacing](int lines, double density, size_t layer_id, double z) {
-        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("cubic"));
+    auto fill = [&region, &pattern, spacing](int lines, double density, size_t layer_id, double z) {
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(pattern));
         filler->spacing  = spacing;
         filler->angle    = float(M_PI / 7.);
         filler->layer_id = layer_id;
@@ -1500,8 +1503,29 @@ TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itsel
         return unscale<double>(distance);
     };
 
-    // One z period of the pattern: sqrt(2) / 3 of the 3 * wall / density line spacing.
-    const double z_period = std::sqrt(2.) * wall / density;
+    // The closest two different paths come, up to a line spacing.
+    auto closest_paths = [&inner, spacing](const Polylines &paths) {
+        Lines               lines;
+        std::vector<size_t> owner;
+        for (size_t i = 0; i < paths.size(); ++i)
+            for (const Line &line : paths[i].lines()) {
+                lines.emplace_back(line);
+                owner.emplace_back(i);
+            }
+        const AABBTreeLines::LinesDistancer<Line> tree(lines);
+        double closest = spacing;
+        for (size_t i = 0; i < paths.size(); ++i)
+            for (const Polyline &piece : intersection_pl(paths[i], inner))
+                for (const Point &point : piece.equally_spaced_points(scale_(0.1)))
+                    for (size_t k : tree.all_lines_in_radius(point, scale_(spacing)))
+                        if (owner[k] != i)
+                            closest = std::min(closest, unscale<double>(lines[k].distance_to(point)));
+        return closest;
+    };
+
+    // One z period of the pattern: sqrt(2) / 3 of the 3 * wall / density line spacing of Cubic, sqrt(2) of the
+    // 4 * wall / density line spacing of Quarter Cubic.
+    const double z_period = std::sqrt(2.) * wall / density * (pattern == "cubic" ? 1. : 4.);
     const size_t layers   = 30;
     for (size_t layer_id = 0; layer_id < layers; ++layer_id) {
         const double z = z_period * (layer_id + 0.5) / layers;
@@ -1511,6 +1535,8 @@ TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itsel
         CHECK(get_intersections(to_lines(walls)).empty());
         // Long paths running out to the boundary, not loops around the cells.
         CHECK(std::none_of(walls.begin(), walls.end(), [](const Polyline &path) { return path.first_point() == path.last_point(); }));
+        // Neighbouring lines stay a line spacing apart, also where two walls touch. Cubic comes a little closer when dense.
+        CHECK(closest_paths(walls) > (pattern == "cubic" ? 0.9 : 0.99) * spacing);
 
         // Single lines at the same spacing: the walls are drawn along them.
         const Polylines lines = fill(1, density / multiline, layer_id, z);
@@ -1518,6 +1544,56 @@ TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itsel
         CHECK(farthest(lines, walls) < 0.5 * wall);
         CHECK(farthest(walls, lines) < 1.5 * wall);
     }
+}
+
+TEST_CASE("Multiline quarter cubic infill keeps parallel lines together like the single line pattern", "[Fill]")
+{
+    const int    multiline = GENERATE(2, 3);
+    const size_t layer_id  = GENERATE(0, 1);
+    const double spacing   = 0.45;
+    const double density   = 0.2;
+    const double wall      = multiline * spacing;
+    const double period    = 4. * wall / density;
+    // The z where a pair of parallel lines is at its closest, with the middle of the pair and of the lines running along it.
+    // The second pair of lines is 0.7071 of a period behind the first in z / sqrt(2).
+    const auto [phase, along_x, across, along] = GENERATE_COPY(table<double, bool, double, double>({ { 0., true, 0., 0.5 * period },
+                                                                                                     { 0.5, true, 0.5 * period, 0.5 * period },
+                                                                                                     { 1. - std::sqrt(0.5), false, 0., 0.5 * period },
+                                                                                                     { 1.5 - std::sqrt(0.5), false, 0.5 * period, 0.5 * period } }));
+    CAPTURE(multiline, layer_id, phase);
+
+    const ExPolygon region{ Slic3r::Points{ Point::new_scale(-60., -60.), Point::new_scale(60., -60.),
+                                            Point::new_scale(60., 60.), Point::new_scale(-60., 60.) } };
+    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(ipQuarterCubic));
+    filler->spacing  = spacing;
+    filler->angle    = float(-M_PI / 2.); // The lines run along x and y.
+    filler->layer_id = layer_id;
+    filler->z        = std::sqrt(2.) * (phase + 0.001) * period;
+
+    FillParams params;
+    params.pattern           = ipQuarterCubic;
+    params.density           = float(density);
+    params.multiline         = multiline;
+    params.dont_adjust       = true;
+    params.anchor_length_max = 0.f; // The bare pattern, without connections along the boundary.
+    Slic3r::Surface surface(stInternal, region);
+    const Polylines paths = filler->fill_surface(&surface, params);
+    REQUIRE_FALSE(paths.empty());
+
+    // Across the pair, away from any crossing: the lines of both walls, a line spacing apart with no gap in the middle.
+    auto probe_point = [along_x = along_x, along = along](double position) {
+        return along_x ? Point::new_scale(position, along) : Point::new_scale(along, position);
+    };
+    const Line probe(probe_point(across - 2. * wall), probe_point(across + 2. * wall));
+    std::vector<double> positions;
+    for (const Polyline &path : paths)
+        for (const Line &line : path.lines())
+            if (Point hit; probe.intersection(line, &hit))
+                positions.emplace_back(unscale<double>(along_x ? hit.x() : hit.y()));
+    std::sort(positions.begin(), positions.end());
+    REQUIRE(positions.size() == size_t(2 * multiline));
+    for (size_t i = 1; i < positions.size(); ++i)
+        CHECK_THAT(positions[i] - positions[i - 1], Catch::Matchers::WithinAbs(spacing, 0.01));
 }
 
 TEST_CASE("Multiline adaptive cubic infill keeps its lines apart without closing them around the cells", "[Fill]")
