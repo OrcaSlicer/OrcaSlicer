@@ -482,6 +482,108 @@ TEST_CASE("Bottom interface layer count matches its setting with top interface o
     REQUIRE(tunnel_interface_layers(support_tunnel(), 0, bottom) == size_t(bottom));
 }
 
+TEST_CASE("Bottom support interfaces survive a zero contact gap", "[SupportMaterial][Regression]")
+{
+    const bool independent = GENERATE(false, true);
+    const double top_gap = GENERATE(0.0, 0.2);
+    CAPTURE(independent, top_gap);
+    const std::string g = slice({ support_tunnel() }, {
+        { "enable_support",                  1 },
+        { "support_type",                    "normal(auto)" },
+        { "layer_height",                    0.2 },
+        { "initial_layer_print_height",      0.2 },
+        { "independent_support_layer_height", independent },
+        { "support_on_build_plate_only",     0 },
+        { "support_top_z_distance",          top_gap },
+        { "support_bottom_z_distance",       0.0 },
+        { "support_interface_top_layers",    0 },
+        { "support_interface_bottom_layers", 2 },
+    });
+    REQUIRE(support_base_layer_count(g) > 0);
+    REQUIRE(support_interface_layer_count(g) == 2);
+}
+
+TEST_CASE("Synchronized bottom support interfaces survive a rounded variable layer gap", "[SupportMaterial][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "enable_support",                  1 },
+        { "support_type",                    "normal(auto)" },
+        { "layer_height",                    0.2 },
+        { "initial_layer_print_height",      0.2 },
+        { "independent_support_layer_height", false },
+        { "support_on_build_plate_only",     0 },
+        { "support_top_z_distance",          0.2 },
+        { "support_bottom_z_distance",       0.2 },
+        { "support_interface_top_layers",    0 },
+        { "support_interface_bottom_layers", 2 },
+        { "gcode_comments",                  true },
+    });
+    Print print;
+    Model model;
+    init_print({ support_capital() }, print, model, config);
+    // The first layer above the 2 mm base is 0.16 mm high, so a synchronized
+    // 0.2 mm gap rounds down and must still exclude the supporting surface.
+    model.objects.front()->layer_height_profile.set(std::vector<coordf_t>{
+        0.0, 0.2, 2.0, 0.2, 2.0, 0.16, 2.16, 0.16, 2.16, 0.2, 14.0, 0.2,
+    });
+    print.apply(model, config);
+    const std::string g = gcode(print);
+    const auto &layers = print.objects().front()->layers();
+    REQUIRE(std::any_of(layers.begin(), layers.end(), [](const Layer *layer) {
+        return std::abs(layer->print_z - 2.16) < EPSILON;
+    }));
+    REQUIRE(support_interface_layer_count(g) == 2);
+}
+
+TEST_CASE("Bottom support interfaces keep clearance from expanding overhang walls", "[SupportMaterial][Regression]")
+{
+    TriangleMesh mesh = make_cube(40, 40, 2);
+    TriangleMesh overhang = make_pyramid(30, 6);
+    overhang.rotate_x(float(M_PI));
+    overhang.translate(20, 20, 7);
+    mesh.merge(overhang);
+
+    Print print;
+    init_and_process_print({ mesh }, print, {
+        { "enable_support",                  1 },
+        { "support_type",                    "normal(auto)" },
+        { "layer_height",                    0.2 },
+        { "initial_layer_print_height",      0.2 },
+        { "independent_support_layer_height", true },
+        { "support_on_build_plate_only",     0 },
+        { "support_top_z_distance",          0.2 },
+        { "support_bottom_z_distance",       0.2 },
+        { "support_object_xy_distance",      0.35 },
+        { "support_interface_top_layers",    0 },
+        { "support_interface_bottom_layers", 2 },
+    });
+    const PrintObject &object = *print.objects().front();
+    size_t interface_layers = 0;
+    size_t checked_layers = 0;
+    for (const SupportLayer *support : object.support_layers()) {
+        if (support->print_z <= 2.0 || support->print_z > 3.0)
+            continue;
+        Polygons interface_polygons;
+        const ExtrusionEntityCollection fills = support->support_fills.flatten();
+        for (const ExtrusionEntity *entity : fills.entities)
+            if (entity->role() == erSupportMaterialInterface)
+                entity->polygons_covered_by_width(interface_polygons, 0.f);
+        if (interface_polygons.empty())
+            continue;
+        ++interface_layers;
+        for (const Layer *layer : object.layers()) {
+            if (layer->bottom_z() < support->print_z - EPSILON && layer->print_z >= support->print_z - EPSILON) {
+                ++checked_layers;
+                CAPTURE(support->print_z);
+                REQUIRE(intersection(interface_polygons, to_polygons(layer->lslices)).empty());
+            }
+        }
+    }
+    REQUIRE(interface_layers > 0);
+    REQUIRE(checked_layers == interface_layers);
+}
+
 // support_interface_bottom_layers = -1 means "same as top".
 TEST_CASE("Support interface bottom layers default to the top layer count", "[SupportMaterial]")
 {
