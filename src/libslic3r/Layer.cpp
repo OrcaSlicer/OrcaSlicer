@@ -241,6 +241,10 @@ void Layer::anchor_bridges_in_neighbours()
         // bridges or of a crack between two regions, go to the bridge too, or they would be walled.
         const ExPolygons anchored = union_ex(slices, anchors);
         append(anchors, intersection_ex(diff_ex(closing_ex(anchored, width / 2), anchored), intersection(offset(anchors, width), inside)));
+        // A top surface of a neighbour would show the bridge's filament.
+        anchors = upper_layer == nullptr ? ExPolygons() : intersection_ex(anchors, upper_layer->lslices);
+        if (anchors.empty())
+            continue;
         for (LayerRegion *neighbour : m_regions)
             if (neighbour != bridge && ! neighbour->slices.empty())
                 neighbour->slices.set(diff_ex(neighbour->slices.surfaces, anchors), stInternal);

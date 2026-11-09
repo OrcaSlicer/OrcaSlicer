@@ -1597,12 +1597,12 @@ DynamicPrintConfig painted_bridge_config(const char *wall_generator, bool thick_
 }
 
 void painted_bridge(Print &print, Model &model, const DynamicPrintConfig &config, bool reverse_filaments = false,
-                    const DynamicPrintConfig &deck_config = DynamicPrintConfig())
+                    const DynamicPrintConfig &deck_config = DynamicPrintConfig(), double pillar_height = 6.)
 {
     ModelObject *object = model.add_object();
     object->name = "painted_bridge.stl";
-    TriangleMesh pillars = make_cube(10., 20., 6.);
-    TriangleMesh far_pillar = make_cube(10., 20., 6.);
+    TriangleMesh pillars = make_cube(10., 20., pillar_height);
+    TriangleMesh far_pillar = make_cube(10., 20., pillar_height);
     far_pillar.translate(20.f, 0.f, 0.f);
     pillars.merge(far_pillar);
     object->add_volume(std::move(pillars))->config.set("extruder", reverse_filaments ? 2 : 1);
@@ -1885,6 +1885,34 @@ TEST_CASE("The anchor of a bridge in another filament replaces the outer wall of
     const double doubled   = area(intersection_ex(union_ex(bridge), union_ex(pillars->perimeters.polygons_covered_by_width(0.f)))) * mm2;
     CHECK(uncovered < 1.5);
     CHECK(doubled < 2.5);
+}
+
+TEST_CASE("A bridge in another filament takes no strip of a top surface of its neighbours", "[Perimeters]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+
+    // The pillars end on the first layer of the deck, which leaves their tops uncovered.
+    Print print;
+    Model model;
+    painted_bridge(print, model, painted_bridge_config(wall_generator), false, DynamicPrintConfig(), 5.2);
+    const auto [layer, deck, pillars] = deck_layer(print);
+    REQUIRE(layer != nullptr);
+    REQUIRE(deck != nullptr);
+    REQUIRE(pillars != nullptr);
+    CHECK(area(intersection_ex(deck->slices.surfaces, layer->lower_layer->lslices)) * SCALING_FACTOR * SCALING_FACTOR < 0.01);
+
+    // The deck still has no walls in mid air along the pillars, and is bridged across the gap.
+    CHECK(y_running_length(deck->perimeters, [](const Line &) { return true; }) < 1.);
+    double along  = 0.;
+    double across = 0.;
+    for_each_extrusion_path(deck->fills, [&along, &across](const ExtrusionPath &path) {
+        if (path.role() == erBridgeInfill)
+            for (const Line &line : path.polyline.to_polyline().lines())
+                (std::abs(line.b.x() - line.a.x()) > std::abs(line.b.y() - line.a.y()) ? along : across) += unscale<double>(line.length());
+    });
+    CHECK(along > 100.);
+    CHECK(across < along / 4.);
 }
 
 TEST_CASE("The anchor of a bridge in another filament follows the settings it is reprocessed with", "[Perimeters]")
