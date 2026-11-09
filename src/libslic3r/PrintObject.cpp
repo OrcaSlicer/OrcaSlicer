@@ -784,6 +784,11 @@ void PrintObject::prepare_infill()
         }
     }
 
+    // defines the first continuous layer under the top surface.
+    // ensures reliable anchoring of the perimeters if they are attached to a sparse infill.
+    this->discover_sub_top_surfaces();
+    m_print->throw_if_canceled();
+
     // the following step needs to be done before combination because it may need
     // to remove only half of the combined infill
     this->bridge_over_infill();
@@ -791,11 +796,6 @@ void PrintObject::prepare_infill()
 
     // combine fill surfaces to honor the "infill every N layers" option
     this->combine_infill();
-    m_print->throw_if_canceled();
-
-    // defines the first continuous layer under the top surface.
-    // ensures reliable anchoring of the perimeters if they are attached to a sparse infill.
-    this->discover_sub_top_surfaces();
     m_print->throw_if_canceled();
 
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
@@ -3316,6 +3316,7 @@ void PrintObject::bridge_over_infill()
                 for (LayerRegion *region : layer->regions()) {
                     ExPolygons sparse_infill = to_expolygons(region->fill_surfaces.filter_by_type(stInternal));
                     ExPolygons solid_infill  = to_expolygons(region->fill_surfaces.filter_by_type(stInternalSolid));
+                    //ExPolygons bridge_infill = to_expolygons(region->fill_surfaces.filter_by_type(stInternalBridge));
 
                     if (sparse_infill.empty()) {
                         break;
@@ -3329,6 +3330,7 @@ void PrintObject::bridge_over_infill()
 
                     solid_infill  = union_safety_offset_ex(solid_infill);
                     sparse_infill = diff_ex(sparse_infill, solid_infill);
+                    //sparse_infill = diff_ex(sparse_infill, offset_ex(bridge_infill, SCALED_EPSILON)); // exclude bridges
 
                     region->fill_surfaces.remove_types({stInternalSolid, stInternal});
                     for (const ExPolygon &ep : solid_infill) {
@@ -5139,8 +5141,12 @@ void PrintObject::discover_sub_top_surfaces()
             top_extents.emplace_back(get_extents(top));
 
         for (LayerRegion *layerm : layer->m_regions) {
-            const float min_width = float(layerm->flow(frSolidInfill).scaled_spacing());
-            ExPolygons crop_mask = layerm->fill_no_overlap_expolygons;
+            const coord_t base_width = layerm->flow(frPerimeter).scaled_width();
+            const coord_t min_area   = base_width * base_width * 25;
+            const float min_width    = float(layerm->flow(frSolidInfill).scaled_spacing());
+            int top_shell_layers     = std::max(layerm->m_region->config().top_shell_layers.value - 2, 0);
+            int bottom_shell_layers  = layerm->m_region->config().bottom_shell_layers.value;
+            ExPolygons crop_mask     = layerm->fill_no_overlap_expolygons;
             // A claimed island keeps its geometry and every other field, only its type changes, so
             // retype in place rather than rebuilding the collection.
 
@@ -5156,20 +5162,47 @@ void PrintObject::discover_sub_top_surfaces()
                 for (size_t i = 0; i < top_mask.size(); ++ i)
                     if (top_extents[i].overlap(island_bbox))
                         append(local_mask, ClipperUtils::clip_clipper_polygons_with_subject_bbox(top_mask[i], island_bbox));
-                if (! local_mask.empty() && ! opening_ex(intersection_ex(surface.expolygon, local_mask, ApplySafetyOffset::Yes), 0.5f * min_width).empty()) {
-                    int number_of_walls    = layerm->m_region->config().wall_loops; // number of internal walls+1 if perimeters will be used
-                    float offset_distance  = (layerm->flow(frPerimeter).scaled_width()) * number_of_walls;
-                    ExPolygons walls_solid   = offset_ex(local_mask, offset_distance);
-                    SurfaceType surface_type = surface.surface_type;
-                    surfaces_append(new_surfaces, diff_ex(surface.expolygon, walls_solid, ApplySafetyOffset::Yes), surface_type);
-                    surface.clear();
-                    if (layerm->m_region->config().top_surface_density.value < 100) {
-                        surfaces_append(new_surfaces, intersection_ex(local_mask, crop_mask, ApplySafetyOffset::Yes), stInternalSolid); // Fix to stSubTop if this type will be used.
-                        surfaces_append(new_surfaces, intersection_ex(diff_ex(walls_solid, local_mask, ApplySafetyOffset::Yes), crop_mask, ApplySafetyOffset::Yes), stInternalBridge);
-                    } else
-                        surfaces_append(new_surfaces, intersection_ex(walls_solid, crop_mask, ApplySafetyOffset::Yes), stInternalSolid);
+                int number_of_walls    = layerm->m_region->config().wall_loops.value; // number of internal walls+1 if perimeters will be used
+                float offset_distance  = base_width * std::max(number_of_walls - 1, 0);
+                ExPolygons walls_solid = offset_ex(local_mask, offset_distance);
+                    
+                for (auto& s : walls_solid) // clear tiny holes
+                    for (auto& h : s.holes)
+                        if (h.area() > -min_area)
+                            h.clear();
+
+                surfaces_append(new_surfaces, diff_ex(surface.expolygon, walls_solid, ApplySafetyOffset::Yes), surface.surface_type);
+                if (layerm->m_region->config().top_surface_density.value < 100) {
+                    surfaces_append(new_surfaces, intersection_ex(local_mask, crop_mask, ApplySafetyOffset::Yes), stInternalSolid); // Fix to stSubTop if this type will be used.
+                    surfaces_append(new_surfaces, intersection_ex(diff_ex(walls_solid, local_mask, ApplySafetyOffset::Yes), crop_mask, ApplySafetyOffset::Yes), stInternalBridge);
+                } else
+                    surfaces_append(new_surfaces, intersection_ex(walls_solid, crop_mask, ApplySafetyOffset::Yes), stInternalSolid);
+                    
+                int penetration = top_shell_layers + offset_distance / scale_(config().layer_height.value);
+                for (int j = 1; j <= penetration; ++j) {
+                    if (idx_layer - j <= bottom_shell_layers)
+                        break;
+                    Layer* lower = m_layers[idx_layer - j];
+                    for (LayerRegion* lowerm : lower->m_regions) {
+                        Surfaces new_lower_surfaces;
+                        ExPolygons crop_mask_lower = lowerm->fill_no_overlap_expolygons;
+                        for (Surface& lower_surface : lowerm->fill_surfaces.surfaces) {
+                            if (j <= top_shell_layers) {
+                                surfaces_append(new_lower_surfaces, diff_ex(lower_surface.expolygon, walls_solid, ApplySafetyOffset::Yes), lower_surface.surface_type);
+                                surfaces_append(new_lower_surfaces, intersection_ex(walls_solid, crop_mask_lower, ApplySafetyOffset::Yes), stInternalSolid);
+                            } else {
+                                ExPolygons wall_stone = diff_ex(walls_solid, local_mask, ApplySafetyOffset::Yes);
+                                surfaces_append(new_lower_surfaces, diff_ex(lower_surface.expolygon, wall_stone, ApplySafetyOffset::Yes), lower_surface.surface_type);
+                                surfaces_append(new_lower_surfaces, intersection_ex(wall_stone, crop_mask_lower, ApplySafetyOffset::Yes), stInternalSolid);
+                            }
+                        }
+                        lowerm->fill_surfaces.clear();
+                        lowerm->fill_surfaces.append(new_lower_surfaces);
+                    }
+                    walls_solid = offset_ex(walls_solid, base_width / 2);
                 }
             }
+            layerm->fill_surfaces.clear();
             layerm->fill_surfaces.append(new_surfaces);
         }
     };
