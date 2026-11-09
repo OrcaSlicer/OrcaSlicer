@@ -1034,7 +1034,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         private:
             std::vector<ExtruderFreeBlock> m_extruder_free_blocks;
             const std::vector<GCodeProcessorResult::MoveVertex>& moves;
-            const std::vector<std::string>& filament_types;
+            [[maybe_unused]] const std::vector<std::string>& filament_types;
             const MultiNozzleUtils::LayeredNozzleGroupResult& nozzle_group_result;
             const std::vector<int>& filament_nozzle_temps;
             const std::vector<int>& filament_nozzle_temps_initial_layer;
@@ -1049,7 +1049,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             const std::vector<std::pair<unsigned int, unsigned int>>& skippable_blocks;
             const std::vector<int>& extruder_max_nozzle_count;
             const std::vector<double>& filament_preheat_temperature_delta;
-            const std::vector<double>& filament_max_temperature_drop_when_ec;
+            [[maybe_unused]] const std::vector<double>& filament_max_temperature_drop_when_ec;
             const unsigned int machine_start_gcode_end_id;
             const unsigned int machine_end_gcode_start_id;
             const std::vector<ExtruderType>& extruder_types;
