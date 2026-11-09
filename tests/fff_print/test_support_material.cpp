@@ -606,6 +606,43 @@ TEST_CASE("Fin support is built from walls no thicker than the fin thickness", "
     REQUIRE(checked > 0);
 }
 
+TEST_CASE("Fin support tapers from the base thickness at the bed to the fin thickness at the top", "[SupportMaterial][Fins]")
+{
+    // Fins under the table's slab stand about 10 mm tall. One loop is about 0.7 mm, so the fins taper
+    // from four loops (about 2.9 mm) at the bed to one loop at the top.
+    auto slice = [](double base_thickness) {
+        auto print = std::make_unique<Slic3r::Print>();
+        Slic3r::Test::init_and_process_print({support_table()}, *print,
+                                             {
+                                                 {"enable_support", 1},
+                                                 {"support_type", "fins"},
+                                                 {"support_fin_fallback", "none"},
+                                                 {"layer_height", 0.2},
+                                                 {"support_fin_spacing", 6},
+                                                 {"support_fin_thickness", 0.7},
+                                                 {"support_fin_base_thickness", base_thickness},
+                                                 {"support_fin_tine_spacing", 0},
+                                             });
+        return print;
+    };
+    // Whether some fin on the layer at `z` is wider than `w` mm.
+    auto wider_than = [](const PrintObject& object, double z, double w) {
+        for (const SupportLayer* layer : object.support_layers())
+            if (layer->print_z > z - EPSILON)
+                return !opening(layer->support_islands, float(scale_(0.5 * w))).empty();
+        FAIL("no support layer at z = " << z);
+        return false;
+    };
+    const auto tapered = slice(2.8);
+    const auto plain   = slice(0.);
+    // Just above the 1.0 mm foot the taper has barely started: about 2.5 mm, so at least three loops.
+    CHECK(wider_than(*tapered->objects().front(), 1.6, 1.8));
+    CHECK_FALSE(wider_than(*plain->objects().front(), 1.6, 0.9));
+    // Near the top the tapered fins are back to one loop, at most 0.8 mm.
+    CHECK_FALSE(wider_than(*tapered->objects().front(), 9.0, 0.9));
+    CHECK(wider_than(*tapered->objects().front(), 9.0, 0.5));
+}
+
 TEST_CASE("Fin support touches the object only on tine layers", "[SupportMaterial][Fins]")
 {
     const double tine_spacing = 3.;

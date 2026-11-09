@@ -26,6 +26,8 @@
 //     With support_fin_lean_side_only, only the fin columns on the side the object leans toward
 //     are kept (see keep_lean_side()).
 //     With support_fin_cross_spacing, fins also run across the main fins, bracing them into a scaffold.
+//     With support_fin_base_thickness, the strips taper from that width at the bed to the fin thickness
+//     at the top of the highest fin.
 //  3. Within the first kBaseHeight above the bed the strips are widened into a foot.
 //  4. On tine layers, each fin that ends at the object is extended across the XY gap and
 //     support_fin_tine_depth into the object slice. A tine row is support_fin_tine_layers layers tall
@@ -54,6 +56,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <map>
 #include <math.h>
 #include <memory>
 #include <utility>
@@ -342,55 +345,83 @@ bool generate_fin_support(PrintObject& object, Polygons* reserved_columns)
     const coord_t spacing = support_params.support_material_flow.scaled_spacing();
     // Fins are filled with concentric loops, two lines per loop. Round the thickness to whole loops:
     // a leftover narrower than a line is not filled and leaves a slot down the middle of the fin.
-    const coord_t thickness = 2 * spacing *
-                              std::max<coord_t>(1,
-                                                coord_t(std::lround(scaled<double>(config.support_fin_thickness.value) / (2. * spacing))));
-    const coord_t pitch     = scaled<coord_t>(config.support_fin_spacing.value) + thickness;
+    auto whole_loops = [spacing](double mm) {
+        return 2 * spacing * std::max<coord_t>(1, coord_t(std::lround(scaled<double>(mm) / (2. * spacing))));
+    };
+    const coord_t thickness = whole_loops(config.support_fin_thickness.value);
+    // With support_fin_base_thickness, fins taper linearly from it at the bed to `thickness` at the top
+    // of the highest fin, one profile for all fins. Each layer's width is rounded to whole loops too.
+    const double base_mm         = config.support_fin_base_thickness.value;
+    const bool taper             = base_mm > 0.;
+    const coord_t base_thickness = taper ? whole_loops(base_mm) : thickness;
+    std::vector<coord_t> width(num_layers, thickness);
+    if (taper) {
+        size_t top = 0;
+        for (size_t i = 0; i < num_layers; ++i)
+            if (!regions[i].empty())
+                top = i;
+        const double top_z = layers[top]->bottom_z();
+        for (size_t i = 0; i < num_layers; ++i) {
+            const double t = top_z > 0. ? std::clamp(layers[i]->bottom_z() / top_z, 0., 1.) : 1.;
+            width[i]       = whole_loops(base_mm + (config.support_fin_thickness.value - base_mm) * t);
+        }
+    }
+    // Fin spacing is the clear gap between neighboring fins at their widest.
+    const coord_t widest = std::max(thickness, base_thickness);
+    const coord_t pitch  = scaled<coord_t>(config.support_fin_spacing.value) + widest;
     // A tine is one bead out and one bead back: two extrusions wide, never wider than the fin.
-    const coord_t tine_width = std::min(thickness, 2 * spacing);
-    const double angle       = fin_angle(regions);
-    Polygons fins            = fin_strips(bbox, angle, pitch, thickness);
-    Polygons feet            = fin_strips(bbox, angle, pitch, coord_t(kBaseWidthRatio * thickness));
-    Polygons tine_strips     = fin_strips(bbox, angle, pitch, tine_width);
-    const BoundingBox rbox   = rotated_extents(bbox, angle, thickness);
+    auto tine_width_at        = [&](coord_t fin_width) { return std::min(fin_width, 2 * spacing); };
+    const double angle        = fin_angle(regions);
+    const BoundingBox rbox    = rotated_extents(bbox, angle, thickness);
+    const Polygons main_fins  = fin_strips(bbox, angle, pitch, thickness);
     // Pieces narrower than half an extrusion cannot be printed; drop them.
     const float min_width = 0.25f * float(spacing);
     // Scaffold: cross fins at right angles to the main fins. Tines stay on the main fins only.
     const double cross_angle     = angle + 0.5 * M_PI;
     const coord_t cross_pitch    = config.support_fin_cross_spacing.value > 0. ?
-                                       scaled<coord_t>(config.support_fin_cross_spacing.value) + thickness :
+                                       scaled<coord_t>(config.support_fin_cross_spacing.value) + widest :
                                        0;
     const BoundingBox cross_rbox = rotated_extents(bbox, cross_angle, thickness);
-    const Polygons main_fins     = fins;
-    if (cross_pitch > 0) {
-        append(fins, fin_strips(bbox, cross_angle, cross_pitch, thickness));
-        append(feet, fin_strips(bbox, cross_angle, cross_pitch, coord_t(kBaseWidthRatio * thickness)));
-    }
     // Regions only narrow going up, so the lowest layer holds every fin column. A column narrower
     // than the fin spacing may fall between two grid fins: give it its own fin through its center,
     // fixed for all layers so the fin stands on itself all the way down to the bed.
+    std::vector<coord_t> own_fins, own_cross_fins;
     for (const Polygons& region : regions)
         if (!region.empty()) {
             for (const ExPolygon& island : union_ex(region))
                 if (intersection(to_polygons(island), main_fins).empty()) {
                     Point c = island.contour.centroid();
                     c.rotate(-angle);
-                    fins.emplace_back(fin_strip(rbox, angle, c.y(), thickness));
-                    feet.emplace_back(fin_strip(rbox, angle, c.y(), coord_t(kBaseWidthRatio * thickness)));
-                    tine_strips.emplace_back(fin_strip(rbox, angle, c.y(), tine_width));
+                    own_fins.push_back(c.y());
                     if (cross_pitch > 0) {
                         // Brace it with a cross fin through the same center.
                         Point cc = island.contour.centroid();
                         cc.rotate(-cross_angle);
-                        fins.emplace_back(fin_strip(cross_rbox, cross_angle, cc.y(), thickness));
-                        feet.emplace_back(fin_strip(cross_rbox, cross_angle, cc.y(), coord_t(kBaseWidthRatio * thickness)));
+                        own_cross_fins.push_back(cc.y());
                     }
                 }
             break;
         }
-    fins                             = union_(fins);
-    feet                             = union_(feet);
-    tine_strips                      = union_(tine_strips);
+    // Fins of one width `w`, with or without the cross fins.
+    auto strips = [&](coord_t w, bool cross) {
+        Polygons out = fin_strips(bbox, angle, pitch, w);
+        for (coord_t y : own_fins)
+            out.emplace_back(fin_strip(rbox, angle, y, w));
+        if (cross && cross_pitch > 0) {
+            append(out, fin_strips(bbox, cross_angle, cross_pitch, w));
+            for (coord_t y : own_cross_fins)
+                out.emplace_back(fin_strip(cross_rbox, cross_angle, y, w));
+        }
+        return union_(out);
+    };
+    // Fins, feet and tine strips for every fin width in use, built once before the layers are shaped.
+    std::map<coord_t, Polygons> fins, feet, tine_strips;
+    for (size_t i = 0; i < num_layers; ++i)
+        if (!regions[i].empty() && fins.find(width[i]) == fins.end()) {
+            fins[width[i]]        = strips(width[i], true);
+            feet[width[i]]        = strips(coord_t(kBaseWidthRatio * width[i]), true);
+            tine_strips[width[i]] = strips(tine_width_at(width[i]), false);
+        }
     const std::vector<bool> tine_row = fin_tine_layers(object);
     const float depth                = float(scale_(config.support_fin_tine_depth.value));
 
@@ -410,7 +441,7 @@ bool generate_fin_support(PrintObject& object, Polygons* reserved_columns)
                 continue;
             const Layer& layer = *layers[i];
             const bool foot    = layer.bottom_z() < kBaseHeight - EPSILON;
-            Polygons out       = opening(intersection(regions[i], foot ? feet : fins), min_width);
+            Polygons out       = opening(intersection(regions[i], foot ? feet.at(width[i]) : fins.at(width[i])), min_width);
 
             // 4. Tines. The first object layer, which sits on the bed, never gets them.
             if (!out.empty() && tine_row[i]) {
@@ -418,7 +449,7 @@ bool generate_fin_support(PrintObject& object, Polygons* reserved_columns)
                 const Polygons object_slices = to_polygons(layer.lslices);
                 // Ring from `depth` inside the object surface out to just past the XY gap.
                 const Polygons ring      = diff(offset(object_slices, gap + float(spacing)), offset(object_slices, -depth));
-                Polygons tines           = intersection(intersection(tine_strips, ring), offset(out, gap + depth + float(spacing)));
+                Polygons tines           = intersection(intersection(tine_strips.at(width[i]), ring), offset(out, gap + depth + float(spacing)));
                 const Polygons fin_touch = offset(out, float(SCALED_EPSILON));
                 tines.erase(std::remove_if(tines.begin(), tines.end(),
                                            [&](const Polygon& tine) {

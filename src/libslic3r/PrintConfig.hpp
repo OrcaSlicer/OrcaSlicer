@@ -1348,7 +1348,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat, support_base_pattern_spacing))((ConfigOptionFloat, support_expansion))(
         (ConfigOptionFloatsNullable, support_speed))((ConfigOptionEnum<SupportMaterialStyle>, support_style))
     // Orca: breakaway fin support (support_type == fins).
-    ((ConfigOptionFloat, support_fin_spacing))((ConfigOptionFloat, support_fin_thickness))((ConfigOptionFloat, support_fin_tine_spacing))((
+    ((ConfigOptionFloat, support_fin_spacing))((ConfigOptionFloat, support_fin_thickness))((ConfigOptionFloat, support_fin_base_thickness))(
+        (ConfigOptionFloat, support_fin_tine_spacing))((
         ConfigOptionBool, support_fin_tine_base_rows))((ConfigOptionInt, support_fin_tine_layers))((ConfigOptionFloat, support_fin_tine_depth))((ConfigOptionFloat, support_fin_height))(
         (ConfigOptionBool, support_fin_lean_side_only))((ConfigOptionFloat, support_fin_cross_spacing))((ConfigOptionInt,
                                                                                                          support_fin_interface_layers))

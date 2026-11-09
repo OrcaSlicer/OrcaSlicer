@@ -7669,6 +7669,18 @@ void PrintConfigDef::init_fff_params()
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(1.6));
 
+    def           = this->add("support_fin_base_thickness", coFloat);
+    def->label    = L("Fin base thickness");
+    def->category = L("Support");
+    def->tooltip  = L("Thickness of each fin at the bed. Fins taper evenly from this thickness at the bed to the fin thickness "
+                      "at the top of the highest fin, which makes tall fins stiffer. The thickness of every layer is rounded to "
+                      "whole loops. Set to 0 to keep the fins the same thickness all the way up.");
+    def->sidetext = L("mm"); // millimeters, CIS languages need translation
+    def->min      = 0;
+    def->max      = 10;
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
     def           = this->add("support_fin_tine_spacing", coFloat);
     def->label    = L("Tine spacing");
     def->category = L("Support");

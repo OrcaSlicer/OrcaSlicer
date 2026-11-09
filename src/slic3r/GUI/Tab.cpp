@@ -3334,6 +3334,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("support_fin_fallback", "support_settings_advanced#fins");
         optgroup->append_single_option_line("support_fin_spacing", "support_settings_advanced#fins");
         optgroup->append_single_option_line("support_fin_thickness", "support_settings_advanced#fins");
+        optgroup->append_single_option_line("support_fin_base_thickness", "support_settings_advanced#fins");
         optgroup->append_single_option_line("support_fin_tine_spacing", "support_settings_advanced#fins");
         optgroup->append_single_option_line("support_fin_tine_base_rows", "support_settings_advanced#fins");
         optgroup->append_single_option_line("support_fin_tine_layers", "support_settings_advanced#fins");

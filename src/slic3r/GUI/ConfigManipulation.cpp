@@ -1108,7 +1108,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("support_critical_regions_only", is_auto(support_type) && support_is_tree, -1, _L("Enable automatic tree supports to show this setting."));
 
     // Fin support: fins are placed from the object shape, not from overhang detection or support patterns.
-    for (auto el : {"support_fin_spacing", "support_fin_thickness", "support_fin_tine_spacing", "support_fin_height",
+    for (auto el : {"support_fin_spacing", "support_fin_thickness", "support_fin_base_thickness", "support_fin_tine_spacing", "support_fin_height",
                     "support_fin_lean_side_only", "support_fin_cross_spacing", "support_fin_interface_layers", "support_fin_fallback"})
         toggle_line(el, support_is_fins);
     const bool fin_tines = support_is_fins && config->opt_float("support_fin_tine_spacing") > 0.;
