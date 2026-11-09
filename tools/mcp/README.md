@@ -83,9 +83,11 @@ port it names fails (nothing listens there, or another server answers), `from_da
 `McpError` saying so, with the failure as its cause.
 
 `call_cad_tool(tool, **args)` calls `call_cad_tool {tool, args}`, follows a running job to its end
-and returns the CAD tool's `result`. A dialog that blocks the call fails it at once, naming the
-dialog, rather than waiting on it. Every `McpError` it raises starts with the CAD tool's name
-(`"extrude: ..."`). `list_cad_tools` and `describe_cad_tool` name the CAD tools and their
+and returns the CAD tool's `result`. A call whose first reply says a dialog blocks it fails at
+once, naming the dialog, rather than waiting on it. A call that first replied `running` and opens a
+dialog later is waited on up to the timeout (600 s), since `wait` reports only that its job is still
+running. Every `McpError` it raises starts with the CAD tool's name (`"extrude: ..."`) and has the
+original error as its cause. `list_cad_tools` and `describe_cad_tool` name the CAD tools and their
 arguments.
 
 ## Smoke test

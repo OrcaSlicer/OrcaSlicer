@@ -54,13 +54,13 @@ def record(client):
     corners = cad(client, "query_topology", body=0, edge_kinds=["line"], direction=[0, 0, 1], convex=True)
     cad(client, "fillet", edge=[e["id"] for e in corners["edges"]], radius=3, body=0,
         generation=corners["generation"])
-    legacy = cad(client, "fillet", edge=corners["edges"][0]["id"], radius=50, body=0)
+    refused_fillet = cad(client, "fillet", edge=corners["edges"][0]["id"], radius=50, body=0)
     bores = cad(client, "query_topology", body=0, kinds=["cylindrical"])
     bore = next(f["id"] for f in bores["faces"] if f.get("internal"))
     thread = client.await_job(client.call("call_cad_tool", _timeout=300, tool="thread",
                                           args={"body": 0, "face": bore, "generation": bores["generation"]}))
     return {"mass": cad(client, "mass_properties", body=0), "scene": cad(client, "describe_scene"),
-            "frame": frame, "empty_commit": empty_commit, "missed_hole": missed_hole, "legacy": legacy,
+            "frame": frame, "empty_commit": empty_commit, "missed_hole": missed_hole, "refused_fillet": refused_fillet,
             "thread": thread.get("result", {})}
 
 
@@ -93,10 +93,11 @@ def main():
          (live["frame"]["origin"], live["mass"]["center_of_mass"], origin)),
         ("an empty sketch_commit fails", bool(live["empty_commit"]), live["empty_commit"]),
         ("a hole that misses fails as an error", bool(live["missed_hole"]), live["missed_hole"]),
-        ("a legacy fillet the kernel refuses answers ok false", live["legacy"].get("ok") is False, live["legacy"]),
+        ("a fillet the kernel refuses reports the rejected rebuild in its reply (ok false)",
+         live["refused_fillet"].get("ok") is False, live["refused_fillet"]),
         ("the thread is M5, inferred from the bore", live["thread"].get("designation") == "M5", live["thread"]),
         ("the export leaves out the failed calls", tools.count("sketch_commit") == 1 and "hole" not in tools, tools),
-        ("the export keeps the legacy ok-false call", tools.count("fillet") == 2, tools),
+        ("the export keeps the fillet that reported a rejected rebuild in its reply", tools.count("fillet") == 2, tools),
         ("the export records no generation", all("generation" not in c.get("args", {}) for c in calls), calls),
         ("the exported session replays", replay.get("passed") is True,
          [s for s in replay.get("steps", []) if not s.get("ok")][:1]),

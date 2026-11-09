@@ -193,9 +193,12 @@ class OrcaMcp:
     def call_cad_tool(self, tool, /, **args):
         """Call one CAD tool of the Design tab through call_cad_tool and return its result.
 
-        A running job is followed to its end. A dialog fails the call at once, since a script that
-        waited would wait on a dialog nobody answers. Every McpError's message starts "<tool>: ". The
-        tool name is positional-only, so a CAD tool's own argument named tool goes to that tool."""
+        A running job is followed to its end. A call whose first reply is blocked_by_dialog fails at
+        once, since a script that waited would wait on a dialog nobody answers. A call that first
+        replied running and opens a dialog later is waited on up to await_job's timeout, since wait
+        reports only that its job is still running. Every McpError's message starts "<tool>: ", with
+        the original error as its cause. The tool name is positional-only, so a CAD tool's own
+        argument named tool goes to that tool."""
         try:
             reply = self.call("call_cad_tool", _timeout=600, tool=tool, args=args)
             if reply.get("status") == "blocked_by_dialog":
@@ -203,7 +206,7 @@ class OrcaMcp:
                 raise McpError(f"blocked by a dialog: {titles} (job {reply.get('job')} goes on once it is answered)", reply)
             return self.await_job(reply)["result"]
         except McpError as e:
-            raise McpError(f"{tool}: {e}", e.payload) from None
+            raise McpError(f"{tool}: {e}", e.payload) from e
 
     def ready(self, timeout=120):
         deadline = time.time() + timeout

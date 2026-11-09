@@ -7,11 +7,12 @@ default_datadir() takes a portable data_dir beside the binary (beside the .app o
 otherwise the platform's configuration folder; it resolves a symlinked binary on Linux, as the app
 does through /proc/self/exe, and takes it as given on Windows, as the app does, and on macOS, as the
 stdio bridge does (skipped where no symlink can be made). from_datadir() refuses a datadir without
-mcp/server.json, and one whose server.json names a port where nothing listens or where another
-server answers (HTTP 401, a reply that is not JSON), naming the file, giving the --mcp advice and
-chaining the cause. call_cad_tool(), against a stubbed call(), fails at once on a dialog, follows a
-running job, prefixes its errors with the CAD tool's name and returns the tool's result. Exits 0
-when every check passes.
+mcp/server.json, or whose server.json is not JSON or names no port, naming the file and giving the
+--mcp advice; and one whose server.json names a port where nothing listens or where another server
+answers (HTTP 401, a reply that is not JSON), also chaining the cause. call_cad_tool(), against a
+stubbed call(), fails at once on a dialog, follows a running job, prefixes its errors with the CAD
+tool's name, chaining the original, and returns the tool's result. Exits 0 when every check passes.
+The folders the checks make are removed when they end.
 """
 
 import http.server
@@ -26,6 +27,13 @@ from unittest import mock
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
 from orca_mcp import McpError, OrcaMcp  # noqa: E402
+
+_ROOT = None  # the temporary folder main() makes, which holds every folder the checks make
+
+
+def scratch(prefix):
+    """A new folder for a check, removed with the rest when main() returns."""
+    return tempfile.mkdtemp(prefix=prefix, dir=_ROOT)
 
 
 def ok(name):
@@ -60,13 +68,13 @@ def binary_in(folder):
 
 
 def check_default_datadir():
-    install = tempfile.mkdtemp(prefix="orca-attach-portable-")
+    install = scratch("orca-attach-portable-")
     os.makedirs(os.path.join(install, "data_dir"))
     assert same_path(orca_mcp.default_datadir(binary_in(install)), os.path.join(install, "data_dir"))
     ok("default_datadir() takes the portable data_dir beside the binary")
 
-    home = tempfile.mkdtemp(prefix="orca-attach-home-")
-    no_portable = binary_in(tempfile.mkdtemp(prefix="orca-attach-installed-"))
+    home = scratch("orca-attach-home-")
+    no_portable = binary_in(scratch("orca-attach-installed-"))
     if sys.platform == "win32":
         cases = [({"APPDATA": home}, os.path.join(home, "OrcaSlicer"))]
     elif sys.platform == "darwin":
@@ -85,7 +93,7 @@ def check_default_datadir():
 
 def check_symlinked_binary():
     # /usr/local/bin/orca-slicer -> /opt/orca/orca-slicer, each folder with a data_dir of its own.
-    real, linked = tempfile.mkdtemp(prefix="orca-attach-real-"), tempfile.mkdtemp(prefix="orca-attach-link-")
+    real, linked = scratch("orca-attach-real-"), scratch("orca-attach-link-")
     real_exe, link = binary_in(real), binary_in(linked)
     for exe in (real_exe, link):
         os.makedirs(os.path.dirname(exe), exist_ok=True)
@@ -111,20 +119,31 @@ def check_symlinked_binary():
     ok(f"default_datadir() {how} on {sys.platform}")
 
 
-def datadir_naming(port, prefix):
-    """A datadir whose mcp/server.json names `port`; returns it and that file's path."""
-    datadir = tempfile.mkdtemp(prefix=prefix)
+def datadir_with(text, prefix):
+    """A datadir whose mcp/server.json holds `text`; returns it and that file's path."""
+    datadir = scratch(prefix)
     os.makedirs(os.path.join(datadir, "mcp"))
     path = os.path.join(datadir, "mcp", "server.json")
     with open(path, "w") as f:
-        json.dump({"url": f"http://127.0.0.1:{port}/mcp", "port": port, "pid": 0, "version": "0", "token": "t"}, f)
+        f.write(text)
     return datadir, path
 
 
+def datadir_naming(port, prefix):
+    """A datadir whose mcp/server.json names `port`; returns it and that file's path."""
+    return datadir_with(json.dumps({"url": f"http://127.0.0.1:{port}/mcp", "port": port, "pid": 0, "version": "0", "token": "t"}),
+                        prefix)
+
+
 def check_from_datadir():
-    empty = tempfile.mkdtemp(prefix="orca-attach-empty-")
+    empty = scratch("orca-attach-empty-")
     raises(lambda: OrcaMcp.from_datadir(empty), os.path.join(empty, "mcp", "server.json"), "--mcp")
     ok("from_datadir() without server.json names the file and says to start with --mcp")
+
+    for text in ("{not json", json.dumps({"url": "http://127.0.0.1:1/mcp", "token": "t"})):
+        datadir, path = datadir_with(text, "orca-attach-malformed-")
+        raises(lambda: OrcaMcp.from_datadir(datadir), path, "--mcp")
+    ok("from_datadir() with a server.json that is not JSON, or names no port, names the file")
 
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
@@ -212,20 +231,25 @@ def check_call_cad_tool():
     assert calls[1][0] == "wait" and calls[1][2]["job"] == "j", calls
     ok("call_cad_tool() follows a running job to its result")
 
-    stub(client, McpError("kernel refused the hole"))
-    message = raises(lambda: client.call_cad_tool("hole"), "kernel refused the hole")
-    assert message.startswith("hole: "), message
+    refused = McpError("kernel refused the hole")
+    stub(client, refused)
+    error = raised(lambda: client.call_cad_tool("hole"), "kernel refused the hole")
+    assert str(error).startswith("hole: "), error
+    assert error.__cause__ is refused, repr(error.__cause__)
     stub(client, {"status": "running", "job": "j"}, McpError("the job failed"))
     message = raises(lambda: client.call_cad_tool("hole"), "the job failed")
     assert message.startswith("hole: "), message
-    ok("call_cad_tool() starts every error with the CAD tool's name")
+    ok("call_cad_tool() starts every error with the CAD tool's name, with the original as its cause")
 
 
 def main():
-    check_default_datadir()
-    check_symlinked_binary()
-    check_from_datadir()
-    check_call_cad_tool()
+    global _ROOT
+    with tempfile.TemporaryDirectory(prefix="orca-attach-") as root:
+        _ROOT = root
+        check_default_datadir()
+        check_symlinked_binary()
+        check_from_datadir()
+        check_call_cad_tool()
     return 0
 
 
