@@ -4381,7 +4381,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_aui.AddPane(m_form, AuiMgr::sidebar_pane_info().MinSize(m_form->GetMinSize()));
     m_aui.AddPane(view_col, wxAuiPaneInfo().Name("main").CenterPane().PaneBorder(false));
     // The assistant chat: docks on the right or drags out as its own window; every turn is one undo step.
-    m_llm_panel = new LlmPanel(body_panel, [this] { return m_doc.undo_depth(); }, [this](size_t d) { m_doc.drop_undo_to(d); });
+    m_llm_panel = new LlmPanel(body_panel, [this] { return m_doc.undo_depth(); }, [this](size_t d) { m_doc.drop_undo_to(d); },
+                                [this] { do_undo_redo(false); });
     m_aui.AddPane(m_llm_panel, wxAuiPaneInfo().Name("assistant").Caption(_L("Assistant")).Right().Layer(1)
                                               .BestSize(FromDIP(380), FromDIP(520)).MinSize(FromDIP(260), FromDIP(240))
                                               .FloatingSize(FromDIP(420), FromDIP(560)).CloseButton(true).Floatable(true).Hide());

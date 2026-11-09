@@ -1,5 +1,9 @@
 #include "slic3r/GUI/CAD/LlmPanel.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Preferences.hpp"
+#include "libslic3r/AppConfig.hpp"
+#include <regex>
 
 #include <algorithm>
 #include <wx/button.h>
@@ -17,10 +21,37 @@
 
 namespace Slic3r { namespace GUI {
 
-LlmPanel::LlmPanel(wxWindow* parent, std::function<size_t()> undo_depth, std::function<void(size_t)> drop_undo_to)
+namespace {
+// One line per tool call, in words: "create_box" -> "Create box". opencode wraps calls in JavaScript, so the verb is read out of
+// `tools["orca-cad"].verb(`; Claude Code sends "verb  {json}". Empty = plumbing (catalogue lookups), not shown.
+std::vector<std::string> action_names(const std::string& raw)
+{
+    std::vector<std::string> v;
+    if (raw.rfind("execute", 0) == 0 || raw.rfind("search", 0) == 0) {
+        static const std::regex re("orca-cad\"\\]\\.([A-Za-z0-9_]+)\\(");
+        for (std::sregex_iterator it(raw.begin(), raw.end(), re), end; it != end; ++it) v.push_back((*it)[1]);
+    } else if (const size_t sp = raw.find("  "); !raw.empty()) v.push_back(raw.substr(0, sp));
+    return v;
+}
+wxString words(std::string n)
+{
+    std::replace(n.begin(), n.end(), '_', ' ');
+    if (!n.empty()) n[0] = char(std::toupper((unsigned char) n[0]));
+    return wxString::FromUTF8(n);
+}
+bool is_read_only(const std::string& n)
+{
+    for (const char* p : {"inspect", "describe", "list", "get_", "screenshot", "measure", "mass_", "query", "find", "check", "ui_"})
+        if (n.rfind(p, 0) == 0) return true;
+    return false;
+}
+} // namespace
+
+LlmPanel::LlmPanel(wxWindow* parent, std::function<size_t()> undo_depth, std::function<void(size_t)> drop_undo_to, std::function<void()> undo_turn)
     : wxPanel(parent, wxID_ANY)
     , m_undo_depth(std::move(undo_depth))
     , m_drop_undo_to(std::move(drop_undo_to))
+    , m_undo_turn(std::move(undo_turn))
 {
     m_log = new wxTextCtrl(this, wxID_ANY, wxString(), wxDefaultPosition, wxSize(FromDIP(320), FromDIP(200)),
                            wxTE_MULTILINE | wxTE_READONLY | wxTE_RICH2 | wxTE_WORDWRAP | wxBORDER_SIMPLE);
@@ -36,14 +67,52 @@ LlmPanel::LlmPanel(wxWindow* parent, std::function<size_t()> undo_depth, std::fu
     m_attach->SetToolTip(_L("Attach images, PDFs, text or CAD files (STEP, SolidWorks, Fusion...). You can also drop files here or paste an image."));
     m_view = new wxCheckBox(this, wxID_ANY, _L("Look at the viewport"));
     m_files_lbl = new wxStaticText(this, wxID_ANY, wxString());
+    m_agent_lbl = new wxStaticText(this, wxID_ANY, wxString());
+    m_agent_lbl->SetFont(m_agent_lbl->GetFont().Bold());
+    m_setup_lbl = new wxStaticText(this, wxID_ANY, wxString());
+    m_setup_lbl->SetForegroundColour(wxColour(190, 40, 40));
+    m_gear = new wxButton(this, wxID_ANY, _L("Settings"));
+    m_gear->SetToolTip(_L("Assistant settings (Preferences > LLM / MCP)"));
+    m_raw = new wxCheckBox(this, wxID_ANY, _L("Raw calls"));
+    m_raw->SetToolTip(_L("Show the exact tool call under each action"));
+    // Empty state: three prompts that work, one click to fill the box.
+    m_examples = new wxPanel(this);
+    auto* ex = new wxBoxSizer(wxVERTICAL);
+    ex->Add(new wxStaticText(m_examples, wxID_ANY, _L("Try asking:")), 0, wxBOTTOM, FromDIP(4));
+    for (const wxString& t : {_L("Make a 20 mm cube and fillet the top edges by 2 mm"),
+                              _L("What is the volume and the bounding box of this part?"),
+                              _L("Add a 6 mm hole through the centre of the top face")}) {
+        auto* b = new wxButton(m_examples, wxID_ANY, t, wxDefaultPosition, wxDefaultSize, wxBU_LEFT);
+        b->Bind(wxEVT_BUTTON, [this, t](wxCommandEvent&) { m_input->SetValue(t); m_input->SetFocus(); m_input->SetInsertionPointEnd(); });
+        ex->Add(b, 0, wxEXPAND | wxBOTTOM, FromDIP(4));
+    }
+    m_examples->SetSizer(ex);
+    // End of turn: how many edits it made, and one button to take them all back.
+    m_result = new wxPanel(this);
+    auto* rs = new wxBoxSizer(wxHORIZONTAL);
+    m_result_lbl = new wxStaticText(m_result, wxID_ANY, wxString());
+    auto* undo = new wxButton(m_result, wxID_ANY, _L("Undo this turn"));
+    rs->Add(m_result_lbl, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
+    rs->Add(undo, 0);
+    m_result->SetSizer(rs);
+    m_result->Hide();
+    undo->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { m_result->Hide(); if (m_undo_turn) m_undo_turn(); Layout(); });
 
     auto* row = new wxBoxSizer(wxHORIZONTAL);
     row->Add(m_new, 0, wxRIGHT, FromDIP(6));
     row->Add(m_status, 1, wxALIGN_CENTER_VERTICAL);
     row->Add(m_stop, 0, wxRIGHT, FromDIP(6));
     row->Add(m_send, 0);
+    auto* head = new wxBoxSizer(wxHORIZONTAL);
+    head->Add(m_raw, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
+    head->Add(m_gear, 0);
     auto* col = new wxBoxSizer(wxVERTICAL);
+    col->Add(m_agent_lbl, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(6));
+    col->Add(head, 0, wxEXPAND | wxALL, FromDIP(6));
+    col->Add(m_setup_lbl, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(6));
+    col->Add(m_examples, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(6));
     col->Add(m_log, 1, wxEXPAND | wxALL, FromDIP(6));
+    col->Add(m_result, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(6));
     col->Add(m_input, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(6));
     auto* att = new wxBoxSizer(wxHORIZONTAL);
     att->Add(m_attach, 0, wxRIGHT, FromDIP(6));
@@ -54,6 +123,9 @@ LlmPanel::LlmPanel(wxWindow* parent, std::function<size_t()> undo_depth, std::fu
     SetSizer(col);
 
     m_send->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { send(); });
+    m_gear->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { wxGetApp().open_preferences(PreferencesTab::Llm); refresh_header(); });
+    Bind(wxEVT_SHOW, [this](wxShowEvent& e) { if (e.IsShown()) refresh_header(); e.Skip(); });
+    refresh_header();
     m_files_lbl->Bind(wxEVT_LEFT_UP, [this](wxMouseEvent&) { m_files.clear(); refresh_attachments(); });
     m_attach->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         wxFileDialog dlg(this, _L("Attach files"), wxEmptyString, wxEmptyString, _L("All files") + "|*",
@@ -150,9 +222,39 @@ void LlmPanel::paste_image()
         add_files({file.string()});
 }
 
+void LlmPanel::refresh_header()
+{
+    AppConfig* c = wxGetApp().app_config;
+    const bool oc = c && c->get("llm_agent") == "opencode";
+    const std::string model = c ? c->get("llm_model") : std::string();
+    m_agent_lbl->SetLabel(wxString::FromUTF8(oc ? "opencode" : "Claude Code") + (model.empty() ? wxString() : wxString::FromUTF8(" \xC2\xB7 ") + wxString::FromUTF8(model)));
+    wxString why;
+    if (llm_agent_executable().empty()) why = oc ? _L("opencode was not found. Open the settings to point to it.") : _L("Claude Code was not found. Open the settings to point to it.");
+    else if (oc && model.empty()) why = _L("opencode needs a model (provider/model). Open the settings.");
+    m_setup_lbl->SetLabel(why);
+    m_setup_lbl->Show(!why.empty());
+    m_setup_lbl->Wrap(std::max(FromDIP(200), GetClientSize().x - FromDIP(16)));
+    Layout();
+}
+
+void LlmPanel::show_examples(bool on) { m_examples->Show(on); Layout(); }
+
+void LlmPanel::on_tool(const std::string& raw)
+{
+    const wxColour grey(110, 110, 110);
+    for (const std::string& n : action_names(raw)) {
+        if (!is_read_only(n)) ++m_turn_edits;
+        append(wxString::FromUTF8("  \xE2\x80\xA2 ") + words(n) + "\n", is_read_only(n) ? wxColour(150, 150, 150) : grey);
+        m_status->SetLabel(words(n) + "...");
+    }
+    if (m_raw->GetValue()) append(wxString("      ") + wxString::FromUTF8(raw) + "\n", wxColour(160, 160, 160));
+}
+
 void LlmPanel::new_chat()
 {
     m_session_id.clear();
+    m_result->Hide();
+    show_examples(true);
     m_files.clear();
     refresh_attachments();
     m_log->Clear();
@@ -172,6 +274,9 @@ void LlmPanel::send()
     append(_L("You") + ": ", wxColour(0, 122, 116), true);
     append(text + "\n", m_log->GetForegroundColour());
     m_undo_at_start = m_undo_depth();
+    m_turn_edits = 0;
+    m_result->Hide();
+    show_examples(false);
     set_busy(true);
     // Attachments ride in the prompt as paths: the agent reads them (images, PDFs, text) or imports them (CAD files).
     std::string prompt(text.ToUTF8());
@@ -195,7 +300,7 @@ void LlmPanel::send()
             if (alive.expired() || !*alive.lock()) return;
             switch (e.kind) {
             case LlmEvent::Text:   append(wxString::FromUTF8(e.text) + "\n", m_log->GetForegroundColour()); break;
-            case LlmEvent::Tool:   append(wxString("  > ") + wxString::FromUTF8(e.text) + "\n", wxColour(110, 110, 110)); break;
+            case LlmEvent::Tool:   on_tool(e.text); break;
             case LlmEvent::Result:
                 if (!e.session_id.empty()) m_session_id = e.session_id;
                 if (e.error) append(wxString::FromUTF8(e.text) + "\n", wxColour(190, 40, 40));
@@ -210,6 +315,11 @@ void LlmPanel::send()
             append("\n", m_log->GetForegroundColour());
             m_run.reset();
             set_busy(false);
+            if (m_turn_edits > 0 && m_undo_depth() > m_undo_at_start) {
+                m_result_lbl->SetLabel(wxString::Format(_L("%d edits in this turn"), m_turn_edits));
+                m_result->Show();
+                Layout();
+            }
             m_input->SetFocus();
         });
 }

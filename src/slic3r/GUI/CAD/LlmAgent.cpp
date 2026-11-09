@@ -139,7 +139,11 @@ std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const st
                 // Everything is denied except reading and the orca-cad MCP, whose tools opencode exposes through its sandboxed
                 // JavaScript `execute` tool (no shell, no require, no filesystem). Verified with opencode 2.2.5.
                 fs::create_directories(tmp.string() + ".oc/opencode");
-                nlohmann::json ext = {{"/tmp/**", "allow"}};
+                // Anything not listed is denied, never "ask": with no one to answer, a prompt would hang the turn. opencode parks oversized
+                // tool results in its data dir and the agent reads them back from there.
+                const char* home = std::getenv("HOME");
+                nlohmann::json ext = {{"*", "deny"}, {"/tmp/**", "allow"}};
+                if (home) ext[std::string(home) + "/.local/share/opencode/tool-output/**"] = "allow";
                 for (const std::string& d : read_dirs) ext[d + "/**"] = "allow";
                 nlohmann::json oj = {
                     {"permission", {{"bash", "deny"}, {"edit", "deny"}, {"write", "deny"}, {"patch", "deny"}, {"webfetch", "deny"},

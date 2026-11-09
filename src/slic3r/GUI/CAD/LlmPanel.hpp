@@ -24,7 +24,8 @@ class LlmPanel : public wxPanel
 {
 public:
     // `undo_depth` / `drop_undo_to` let a turn's edits collapse into ONE undo step (the document's snapshot stack).
-    LlmPanel(wxWindow* parent, std::function<size_t()> undo_depth, std::function<void(size_t)> drop_undo_to);
+    // `undo_turn` takes back the last undo step, which after a turn is the whole turn.
+    LlmPanel(wxWindow* parent, std::function<size_t()> undo_depth, std::function<void(size_t)> drop_undo_to, std::function<void()> undo_turn);
     ~LlmPanel() override;
 
     void focus_input();
@@ -38,6 +39,9 @@ private:
     void add_files(const std::vector<std::string>& paths);
     void paste_image();
     void refresh_attachments();
+    void refresh_header();   // agent + model, ready dot, setup hint
+    void show_examples(bool on);
+    void on_tool(const std::string& raw);
 
     wxTextCtrl*   m_log    = nullptr;
     wxTextCtrl*   m_input  = nullptr;
@@ -49,9 +53,18 @@ private:
     wxStaticText* m_files_lbl = nullptr;
     std::vector<std::string> m_files;   // attached files for the next message
     wxStaticText* m_status = nullptr;
+    wxStaticText* m_agent_lbl = nullptr;   // header: "opencode · model"
+    wxStaticText* m_setup_lbl = nullptr;   // header: why the agent is not ready
+    wxButton*     m_gear      = nullptr;
+    wxCheckBox*   m_raw       = nullptr;   // show the raw tool call under each action
+    wxPanel*      m_examples  = nullptr;   // empty state: click-to-fill prompts
+    wxPanel*      m_result    = nullptr;   // end of turn: "N edits" + Undo this turn
+    wxStaticText* m_result_lbl = nullptr;
+    int           m_turn_edits = 0;
 
     std::function<size_t()>     m_undo_depth;
     std::function<void(size_t)> m_drop_undo_to;
+    std::function<void()>       m_undo_turn;
     std::shared_ptr<LlmAgentRun> m_run;
     std::string  m_session_id;
     size_t       m_undo_at_start = 0;
