@@ -60,10 +60,12 @@ std::vector<PrimeBlock> prime_blocks(const std::string& gcode)
 
 DynamicPrintConfig two_tool_config()
 {
-    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    // Distinct colours, or filament grouping merges the two filaments into one and there is no tool change.
+    DynamicPrintConfig config = multifilament_config(2, {});
     config.set_num_extruders(2);
     config.set_deserialize_strict({
-        { "filament_diameter",            "1.75,1.75" }, // the filament count comes from this, as in a loaded preset
+        { "nozzle_diameter",              "0.4,0.4" },
+        { "filament_self_index",          "1,2" }, // the all-1s default maps every filament onto filament 1
         { "single_extruder_multi_material", false }, // a toolchanger, like the U1
         { "enable_prime_tower",           false },
         { "use_relative_e_distances",     true },
@@ -88,7 +90,7 @@ TEST_CASE("Tool change prime is a step by idle time", "[ToolchangePrime]")
 {
     DynamicPrintConfig config = two_tool_config();
     SECTION("Short parks get the minimum") {
-        std::vector<PrimeBlock> blocks = prime_blocks(slice({TestMesh::cube_20x20x20}, config));
+        std::vector<PrimeBlock> blocks = prime_blocks(slice({cube(20)}, config));
         REQUIRE(blocks.size() > 2);
         // Only the second tool's first use gets the full length (the start G-code primes the first tool).
         size_t first_uses = 0;
@@ -104,7 +106,7 @@ TEST_CASE("Tool change prime is a step by idle time", "[ToolchangePrime]")
     }
     SECTION("Parks of at least the idle time get the maximum") {
         config.set_deserialize_strict({{ "toolchange_prime_idle_time", 0.001 }});
-        std::vector<PrimeBlock> blocks = prime_blocks(slice({TestMesh::cube_20x20x20}, config));
+        std::vector<PrimeBlock> blocks = prime_blocks(slice({cube(20)}, config));
         REQUIRE(blocks.size() > 2);
         for (const PrimeBlock& block : blocks)
             REQUIRE_THAT(block.e, Catch::Matchers::WithinAbs(10., 1e-3));
@@ -113,7 +115,7 @@ TEST_CASE("Tool change prime is a step by idle time", "[ToolchangePrime]")
 
 TEST_CASE("Tool change prime restores the retraction in the chute", "[ToolchangePrime]")
 {
-    std::string gcode = slice({TestMesh::cube_20x20x20}, two_tool_config());
+    std::string gcode = slice({cube(20)}, two_tool_config());
     std::vector<PrimeBlock> blocks = prime_blocks(gcode);
     REQUIRE(blocks.size() > 2);
     // A reused tool was parked with the tool change retraction, which the block restores in the chute.
@@ -143,7 +145,7 @@ TEST_CASE("Tool change prime is skipped below the skip time", "[ToolchangePrime]
 {
     DynamicPrintConfig config = two_tool_config();
     config.set_deserialize_strict({{ "toolchange_prime_skip_time", 36000 }});
-    std::vector<PrimeBlock> blocks = prime_blocks(slice({TestMesh::cube_20x20x20}, config));
+    std::vector<PrimeBlock> blocks = prime_blocks(slice({cube(20)}, config));
 
     REQUIRE(blocks.size() > 2);
     for (const PrimeBlock& block : blocks) {
@@ -158,7 +160,7 @@ TEST_CASE("Tool change prime is never skipped for a park of at least the idle ti
     DynamicPrintConfig config = two_tool_config();
     // The skip time is longer than the idle time: the idle rule wins, as in the printer's macro.
     config.set_deserialize_strict({{ "toolchange_prime_idle_time", 0.001 }, { "toolchange_prime_skip_time", 36000 }});
-    std::vector<PrimeBlock> blocks = prime_blocks(slice({TestMesh::cube_20x20x20}, config));
+    std::vector<PrimeBlock> blocks = prime_blocks(slice({cube(20)}, config));
 
     REQUIRE(blocks.size() > 2);
     for (const PrimeBlock& block : blocks) {
@@ -174,7 +176,7 @@ TEST_CASE("Tool change prime puts an absolute extrusion print back in absolute m
         { "use_relative_e_distances", false },
         { "toolchange_prime_gcode",   "M83\nG1 E{retract_restore_length} F300 ; restore retraction\nG1 E{prime_length} F300 ; prime\n" },
     });
-    std::string gcode = slice({TestMesh::cube_20x20x20}, config);
+    std::string gcode = slice({cube(20)}, config);
     REQUIRE(prime_blocks(gcode).size() > 2);
 
     // Every block is followed by M82 before the next extrusion.
@@ -195,14 +197,14 @@ TEST_CASE("Tool change prime is not emitted for a single extruder multi material
 {
     DynamicPrintConfig config = two_tool_config();
     config.set_deserialize_strict({{ "single_extruder_multi_material", true }});
-    REQUIRE(prime_blocks(slice({TestMesh::cube_20x20x20}, config)).empty());
+    REQUIRE(prime_blocks(slice({cube(20)}, config)).empty());
 }
 
 TEST_CASE("Tool change prime is off unless enabled", "[ToolchangePrime]")
 {
     DynamicPrintConfig config = two_tool_config();
     config.set_deserialize_strict({{ "toolchange_prime_enable", false }});
-    REQUIRE(prime_blocks(slice({TestMesh::cube_20x20x20}, config)).empty());
+    REQUIRE(prime_blocks(slice({cube(20)}, config)).empty());
 }
 
 TEST_CASE("Tool change prime is full length after a pause", "[ToolchangePrime]")
@@ -210,7 +212,7 @@ TEST_CASE("Tool change prime is full length after a pause", "[ToolchangePrime]")
     DynamicPrintConfig config = two_tool_config();
     // A pause on every layer: the slicer can't know how long it lasts, so every reused tool gets the full prime.
     config.set_deserialize_strict({{ "layer_change_gcode", "M600" }, { "toolchange_prime_skip_time", 36000 }});
-    std::vector<PrimeBlock> blocks = prime_blocks(slice({TestMesh::cube_20x20x20}, config));
+    std::vector<PrimeBlock> blocks = prime_blocks(slice({cube(20)}, config));
 
     REQUIRE(blocks.size() > 2);
     for (const PrimeBlock& block : blocks) {
@@ -232,7 +234,7 @@ TEST_CASE("U1 tool change prime moves absolutely in XY before its first extrusio
 
     DynamicPrintConfig config = two_tool_config();
     config.set_deserialize_strict({{ "toolchange_prime_gcode", prime_gcode }, { "toolchange_prime_on_printer", false }});
-    std::string gcode = slice({TestMesh::cube_20x20x20}, config);
+    std::string gcode = slice({cube(20)}, config);
 
     std::istringstream in(gcode);
     std::string        line;
@@ -271,7 +273,7 @@ TEST_CASE("Tool change prime is left to the printer when timed on the printer", 
                                          "MIN=[toolchange_prime_length_min] MAX=[toolchange_prime_length_max] "
                                          "SKIP=[toolchange_prime_skip_time] ; restore retraction\n" },
     });
-    std::string gcode = slice({TestMesh::cube_20x20x20}, config);
+    std::string gcode = slice({cube(20)}, config);
 
     // No tags, so the slicer neither scales nor skips the block (the skip time would otherwise drop every prime).
     CHECK(prime_blocks(gcode).empty());
