@@ -55,6 +55,7 @@
 
 using namespace Slic3r;
 using Catch::Matchers::ContainsSubstring;
+using Catch::Matchers::Equals;
 using Catch::Matchers::WithinAbs;
 using nlohmann::json;
 
@@ -361,12 +362,16 @@ TEST_CASE("every CAD tool example calls real tools with arguments they declare",
             const std::string title = example.value("title", "");
             INFO(row.at("name").get<std::string>() << " / " << title);
             CHECK_FALSE(title.empty());
+            for (const auto& item : example.items())
+                CHECK_THAT(item.key(), Equals("title") || Equals("calls") || Equals("needs"));
             if (example.contains("needs")) CHECK_FALSE(example.at("needs").get<std::string>().empty());
             const json& calls = example.at("calls");
             REQUIRE_FALSE(calls.empty());
             for (size_t i = 0; i < calls.size(); ++i) {
                 const std::string tool = calls[i].at("tool").get<std::string>();
                 INFO("call " << i << ": " << tool);
+                for (const auto& item : calls[i].items())
+                    CHECK_THAT(item.key(), Equals("tool") || Equals("args"));
                 REQUIRE(std::find(names.begin(), names.end(), tool) != names.end());
                 const json  params = row_of(all, tool).at("params");
                 const json& args   = calls[i].at("args");
@@ -412,6 +417,21 @@ TEST_CASE("the read and sketch tools each have an example", "[Mcp][CAD]")
                                     "sketch_mirror", "sketch_heal", "sketch_set_value", "sketch_fillet", "sketch_chamfer",
                                     "sketch_trim", "sketch_transform", "sketch_constrain", "sketch_unconstrain", "undo", "redo"});
     REQUIRE(tools.size() == 31);
+    const json described = GUI::Mcp::cad_describe_tool(tools);
+    REQUIRE(described.at("tools").size() == tools.size());
+    for (const json& row : described.at("tools")) {
+        INFO(row.at("name").get<std::string>());
+        CHECK(row.at("examples").size() >= 1);
+        CHECK(row.at("examples").size() <= 3);
+    }
+}
+
+TEST_CASE("the solid, dress-up and datum tools each have an example", "[Mcp][CAD]")
+{
+    const json tools = json::array({"extrude", "revolve", "fillet", "chamfer", "hole", "hole_styled", "hole_standard",
+                                    "thread", "boolean", "pattern", "pattern_on_curve", "shell", "rib", "draft", "mirror",
+                                    "transform", "thicken", "split", "sweep", "loft", "project", "delete_face", "bridge",
+                                    "axis", "coordsys", "plane", "helix", "mate"});
     const json described = GUI::Mcp::cad_describe_tool(tools);
     REQUIRE(described.at("tools").size() == tools.size());
     for (const json& row : described.at("tools")) {

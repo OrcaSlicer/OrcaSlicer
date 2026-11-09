@@ -240,7 +240,19 @@ json tool_rows()
                      json{{"name", "taper"},    {"type", "number"}, {"unit", "deg"}, {"default", 0}, {"description", "draft/taper of the side wall"}},
                      json{{"name", "flip"},     {"type", "boolean"}, {"default", false}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A 20 x 20 x 5 mm plate on the XY plane", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}}]},
+                     {"title": "A committed sketch extruded 5 mm: a rectangle around a circle makes a plate with a bore", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [0, 0], "radius": 4}]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "extrude", "args": {"sketch": 0, "distance": 5}}]},
+                     {"title": "A plate's top face pushed up 3 mm", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "query_topology", "args": {"body": 0, "at_extreme": "+z"}},
+                         {"tool": "extrude", "args": {"body": 0, "face": 5, "distance": 3, "generation": {"from_call": 1, "key": "generation"}}}]}])json")}},
             json{{"name", "revolve"}, {"ids", true}, {"summary", "Revolve a committed sketch as the Revolve card does, or a profile drawn here, about an axis."},
                  {"details", "A sketch turns about a line of it or a plane axis; a profile drawn here is an explicit `profile` offset from the axis, or a rectangle. Reply: revolve_index, the index of its sketch, the boolean, body and axis used, frame."},
                  {"params", json::array({
@@ -256,7 +268,15 @@ json tool_rows()
                      json{{"name", "boolean"}, {"type", "string"}, {"enum", json::array({"new", "union", "subtract", "intersect"})}, {"default", "new"}},
                      json{{"name", "body"},    {"type", "integer"}, {"default", -1}, {"description", "the body to join, subtract from or intersect; omit for the last body"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A ring: a profile 10 to 15 mm out from the XZ plane's vertical axis, turned a full circle", "calls": [
+                         {"tool": "revolve", "args": {"plane": "XZ", "profile": [[10, 0], [15, 0], [15, 10], [10, 10]], "axis": 1}}]},
+                     {"title": "A committed sketch turned about its centerline, a construction line", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XZ"}},
+                         {"tool": "sketch_add", "args": {"rect": [10, 0, 15, 10]}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "line", "p0": [0, 0], "p1": [0, 10], "construction": true}]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "revolve", "args": {"sketch": 0}}]}])json")}},
             json{{"name", "fillet"}, {"ids", true}, {"summary", "Round measured edges of a body (edge ids from query_topology on that body)."},
                  {"details", ""},
                  {"params", json::array({
@@ -264,7 +284,15 @@ json tool_rows()
                      json{{"name", "radius"}, {"type", "number"}, {"unit", "mm"}, {"default", 1}, {"min", 0.01}},
                      json{{"name", "body"},   {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body. edge id is resolved against THIS body."}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A plate's four vertical corners rounded to 2 mm", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "query_topology", "args": {"body": 0, "edge_kinds": ["line"], "direction": [0, 0, 1], "convex": true}},
+                         {"tool": "fillet", "args": {"body": 0, "edge": [0, 1, 4, 7], "radius": 2, "generation": {"from_call": 1, "key": "generation"}}}]},
+                     {"title": "One top edge of a plate rounded to 1 mm", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "query_topology", "args": {"body": 0, "at_extreme": "+z", "adjacency": true}},
+                         {"tool": "fillet", "args": {"body": 0, "edge": 3, "radius": 1, "generation": {"from_call": 1, "key": "generation"}}}]}])json")}},
             json{{"name", "chamfer"}, {"ids", true}, {"summary", "Chamfer measured edges of a body (edge ids from query_topology on that body)."},
                  {"details", ""},
                  {"params", json::array({
@@ -272,7 +300,11 @@ json tool_rows()
                      json{{"name", "distance"}, {"type", "number"}, {"unit", "mm"}, {"default", 1}, {"min", 0.01}},
                      json{{"name", "body"},     {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body. edge id is resolved against THIS body."}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A plate's top edges chamfered 1 mm", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "query_topology", "args": {"body": 0, "at_extreme": "+z", "adjacency": true}},
+                         {"tool": "chamfer", "args": {"body": 0, "edge": [3, 6, 9, 11], "distance": 1, "generation": {"from_call": 1, "key": "generation"}}}]}])json")}},
             json{{"name", "hole"}, {"ids", true}, {"summary", "Drill a circular hole at (x,y) or `at` on a plane."},
                  {"details", "Reply: hole_index, body, x and y in the frame, off_plane with at, frame."},
                  {"params", json::array({
@@ -285,7 +317,14 @@ json tool_rows()
                      json{{"name", "at"},       {"type", "array|object"}, {"default", nullptr}, {"description", "instead of x and y: a world point [x, y, z], projected onto the plane along its normal (off_plane says how far), or {\"body\": b, \"face\": f} a cylindrical face or {\"body\": b, \"edge\": e} a circular edge whose axis the hole shares. A world point moves with modeling_origin; x and y replay on any printer"}},
                      json{{"name", "body"},     {"type", "integer"}, {"default", -1}, {"description", "the body to drill; omit for a face plane's body, else the last body"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A 5 mm hole through the middle of a plate", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "hole", "args": {"diameter": 5, "through": true}}]},
+                     {"title": "A 4 mm hole 3 mm deep into a plate's top face, 5 mm off centre", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "query_topology", "args": {"body": 0, "at_extreme": "+z"}},
+                         {"tool": "hole", "args": {"plane": {"body": 0, "face": 5}, "diameter": 4, "depth": 3, "x": 5, "generation": {"from_call": 1, "key": "generation"}}}]}])json")}},
             json{{"name", "hole_styled"}, {"ids", true}, {"summary", "Drill a hole with optional counterbore (style=1) or countersink (style=2) at (x,y) or `at` on a plane."},
                  {"details", "Reply as hole."},
                  {"params", json::array({
@@ -304,7 +343,15 @@ json tool_rows()
                      json{{"name", "csink_angle"},     {"type", "number"}, {"unit", "deg"}, {"default", 90}},
                      json{{"name", "standard"},        {"type", "string"}, {"default", ""}, {"description", "provenance designation, e.g. M6"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A counterbored hole for an M6 cap screw through a 10 mm block's top face", "calls": [
+                         {"tool": "extrude", "args": {"width": 30, "height": 30, "distance": 10}},
+                         {"tool": "query_topology", "args": {"body": 0, "at_extreme": "+z"}},
+                         {"tool": "hole_styled", "args": {"plane": {"body": 0, "face": 5}, "diameter": 6.6, "style": 1, "cbore_diameter": 11, "cbore_depth": 6, "generation": {"from_call": 1, "key": "generation"}}}]},
+                     {"title": "A countersunk hole through a plate's top face", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "query_topology", "args": {"body": 0, "at_extreme": "+z"}},
+                         {"tool": "hole_styled", "args": {"plane": {"body": 0, "face": 5}, "diameter": 4.5, "style": 2, "csink_diameter": 9, "csink_angle": 90, "generation": {"from_call": 1, "key": "generation"}}}]}])json")}},
             json{{"name", "hole_standard"}, {"ids", true}, {"summary", "Drill a standard clearance hole (ISO 273 / ANSI) at (x,y) or `at` on a plane."},
                  {"details", "style: 0=simple, 1=counterbore, 2=countersink. Reply as hole."},
                  {"params", json::array({
@@ -318,7 +365,15 @@ json tool_rows()
                      json{{"name", "at"},       {"type", "array|object"}, {"default", nullptr}, {"description", "instead of x and y: a world point [x, y, z], projected onto the plane along its normal (off_plane says how far), or {\"body\": b, \"face\": f} a cylindrical face or {\"body\": b, \"edge\": e} a circular edge whose axis the hole shares. A world point moves with modeling_origin; x and y replay on any printer"}},
                      json{{"name", "body"},     {"type", "integer"}, {"default", -1}, {"description", "the body to drill; omit for a face plane's body, else the last body"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "An M5 clearance hole through a plate's top face", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "query_topology", "args": {"body": 0, "at_extreme": "+z"}},
+                         {"tool": "hole_standard", "args": {"plane": {"body": 0, "face": 5}, "designation": "M5", "generation": {"from_call": 1, "key": "generation"}}}]},
+                     {"title": "An M6 counterbored clearance hole through a 10 mm block's top face", "calls": [
+                         {"tool": "extrude", "args": {"width": 30, "height": 30, "distance": 10}},
+                         {"tool": "query_topology", "args": {"body": 0, "at_extreme": "+z"}},
+                         {"tool": "hole_standard", "args": {"plane": {"body": 0, "face": 5}, "designation": "M6", "style": 1, "generation": {"from_call": 1, "key": "generation"}}}]}])json")}},
             json{{"name", "thread"}, {"ids", true}, {"summary", "Cut a thread as the Thread card does, along a cylindrical face or a circular edge, or on a plane."},
                  {"details", "On a face a bore is tapped, a boss threaded; on a plane the thread goes at (x,y) or `at`. Without designation, a face or edge takes the nearest standard size, ISO metric and UTS alike. Long threads take seconds and the reply may be a job. Reply: thread_index, designation (null when custom), internal, diameter, pitch, depth, length, body, x, y, frame."},
                  {"params", json::array({
@@ -336,7 +391,21 @@ json tool_rows()
                      json{{"name", "y"},           {"type", "number"}, {"unit", "mm"}, {"default", 0}, {"description", "on a plane: offset in the plane's frame from its origin, NOT world"}},
                      json{{"name", "at"},          {"type", "array|object"}, {"default", nullptr}, {"description", "on a plane, instead of x and y: a world point [x, y, z], or {\"body\": b, \"face\": f} a cylindrical face or {\"body\": b, \"edge\": e} a circular edge whose axis the thread shares, as hole takes it"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "An M8 thread tapped into a 6.8 mm hole through a block", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 10}},
+                         {"tool": "hole", "args": {"diameter": 6.8, "through": true}},
+                         {"tool": "query_topology", "args": {"body": 0, "kinds": ["cylindrical"]}},
+                         {"tool": "thread", "args": {"body": 0, "face": 6, "designation": "M8", "generation": {"from_call": 2, "key": "generation"}}}]},
+                     {"title": "An M6 threaded rod 10 mm long, standing on the XY plane", "calls": [
+                         {"tool": "thread", "args": {"plane": "XY", "internal": false, "designation": "M6", "length": 10}}]},
+                     {"title": "A 10 mm boss threaded at the nearest standard size, M10", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [0, 0], "radius": 5}]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "extrude", "args": {"sketch": 0, "distance": 12}},
+                         {"tool": "query_topology", "args": {"body": 0, "kinds": ["cylindrical"]}},
+                         {"tool": "thread", "args": {"body": 0, "face": 0, "generation": {"from_call": 4, "key": "generation"}}}]}])json")}},
             json{{"name", "boolean"}, {"summary", "Combine two bodies: union | subtract (tool from target) | intersect."},
                  {"details", ""},
                  {"params", json::array({
@@ -346,7 +415,15 @@ json tool_rows()
                      json{{"name", "keep_tool"}, {"type", "boolean"}, {"default", false}},
                      json{{"name", "tolerance"}, {"type", "number"}, {"unit", "mm"}, {"default", 0}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A post subtracted from a block", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 10}},
+                         {"tool": "extrude", "args": {"width": 6, "height": 6, "distance": 20, "boolean": "new"}},
+                         {"tool": "boolean", "args": {"op": "subtract", "target": 0, "tool": 1}}]},
+                     {"title": "Two overlapping blocks joined into one body", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 10}},
+                         {"tool": "extrude", "args": {"profile": [[5, -5], [20, -5], [20, 5], [5, 5]], "distance": 10, "boolean": "new"}},
+                         {"tool": "boolean", "args": {"op": "union", "target": 0, "tool": 1}}]}])json")}},
             json{{"name", "pattern"}, {"ids", true}, {"summary", "Replicate a body: linear (count along a plane axis at spacing) or circular (count over an angle about the plane normal)."},
                  {"details", ""},
                  {"params", json::array({
@@ -358,7 +435,13 @@ json tool_rows()
                      plane_param("XY", false),
                      json{{"name", "body"},     {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "Three plates 30 mm apart along X", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "pattern", "args": {"count": 3, "spacing": 30}}]},
+                     {"title": "Six blocks in a circle about the XY plane's normal", "calls": [
+                         {"tool": "extrude", "args": {"profile": [[20, -3], [30, -3], [30, 3], [20, 3]], "distance": 5}},
+                         {"tool": "pattern", "args": {"circular": true, "count": 6}}]}])json")}},
             json{{"name", "pattern_on_curve"}, {"summary", "Replicate a body along a sketch curve."},
                  {"details", "`count` copies are placed at equal-parameter points on the entity, each translated by (P_i - P_0)."},
                  {"params", json::array({
@@ -367,7 +450,13 @@ json tool_rows()
                      json{{"name", "entity"}, {"type", "integer"}, {"description", "entity index of the guide curve within that sketch"}},
                      json{{"name", "body"},   {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "Four pegs spaced along a half circle", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "arc", "center": [0, 0], "radius": 30, "start_angle_deg": 0, "end_angle_deg": 180}]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "extrude", "args": {"profile": [[28, -2], [32, -2], [32, 2], [28, 2]], "distance": 10}},
+                         {"tool": "pattern_on_curve", "args": {"sketch": 0, "entity": 0, "count": 4}}]}])json")}},
             json{{"name", "shell"}, {"ids", true}, {"summary", "Hollow a body to a wall thickness (inward); optionally leave one face open."},
                  {"details", ""},
                  {"params", json::array({
@@ -375,7 +464,14 @@ json tool_rows()
                      json{{"name", "face"},      {"type", "integer"}, {"default", -1}, {"description", "face id to leave open (query_topology); omit for a closed hollow"}},
                      json{{"name", "body"},      {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A 20 x 20 x 10 mm box hollowed to 1.5 mm walls, open at the top", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 10}},
+                         {"tool": "query_topology", "args": {"body": 0, "at_extreme": "+z"}},
+                         {"tool": "shell", "args": {"body": 0, "face": 5, "thickness": 1.5, "generation": {"from_call": 1, "key": "generation"}}}]},
+                     {"title": "A block hollowed to closed 2 mm walls", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 10}},
+                         {"tool": "shell", "args": {"thickness": 2}}]}])json")}},
             json{{"name", "draft"}, {"ids", true}, {"summary", "Taper a body face by an angle about its base (pull direction +Z)."},
                  {"details", ""},
                  {"params", json::array({
@@ -383,7 +479,11 @@ json tool_rows()
                      json{{"name", "angle"}, {"type", "number"}, {"unit", "deg"}, {"default", 5}},
                      json{{"name", "body"},  {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A block's +X side tapered 5 degrees", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 10}},
+                         {"tool": "query_topology", "args": {"body": 0, "direction": [1, 0, 0]}},
+                         {"tool": "draft", "args": {"body": 0, "face": 1, "angle": 5, "generation": {"from_call": 1, "key": "generation"}}}]}])json")}},
             json{{"name", "mirror"}, {"ids", true}, {"summary", "Mirror a body about a base plane."},
                  {"details", "mode=new creates a mirrored copy; mode=add fuses the mirror back into the source."},
                  {"params", json::array({
@@ -392,7 +492,13 @@ json tool_rows()
                      json{{"name", "keep_original"},{"type", "boolean"}, {"default", true}, {"description", "when mode=new, keep the source body"}},
                      json{{"name", "body"},         {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A mirrored copy of a block across the XZ plane", "calls": [
+                         {"tool": "extrude", "args": {"profile": [[-5, 5], [5, 5], [5, 15], [-5, 15]], "distance": 5}},
+                         {"tool": "mirror", "args": {"plane": "XZ"}}]},
+                     {"title": "A block against the XZ plane and its mirror image fused into one body", "calls": [
+                         {"tool": "extrude", "args": {"profile": [[-5, 0], [5, 0], [5, 10], [-5, 10]], "distance": 5}},
+                         {"tool": "mirror", "args": {"plane": "XZ", "mode": "add"}}]}])json")}},
             json{{"name", "transform"}, {"summary", "Move and/or rotate a body (B-rep transform)."},
                  {"details", "copy=true keeps the source and appends the transformed copy as a new body."},
                  {"params", json::array({
@@ -409,7 +515,13 @@ json tool_rows()
                      json{{"name", "angle"},   {"type", "number"}, {"unit", "deg"}, {"default", 0}},
                      json{{"name", "copy"},    {"type", "boolean"}, {"default", false}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A plate moved 30 mm along X", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "transform", "args": {"dx": 30}}]},
+                     {"title": "A copy of a plate 10 mm above it", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "transform", "args": {"dz": 10, "copy": true}}]}])json")}},
             json{{"name", "axis"}, {"ids", true}, {"summary", "Create a datum axis (reference line): two points, face normal, cylinder centreline, plane intersection, or along edge."},
                  {"details", ""},
                  {"params", json::array({
@@ -422,7 +534,20 @@ json tool_rows()
                      json{{"name", "plane_a"},  {"type", "integer"}, {"default", -1}, {"description", "first datum plane feature index for plane_intersection"}},
                      json{{"name", "plane_b"},  {"type", "integer"}, {"default", -1}, {"description", "second datum plane feature index for plane_intersection"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "The axis of a hole through a plate", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "hole", "args": {"diameter": 5, "through": true}},
+                         {"tool": "query_topology", "args": {"body": 0, "kinds": ["cylindrical"]}},
+                         {"tool": "axis", "args": {"type": "cylinder", "body": 0, "face": 6, "generation": {"from_call": 2, "key": "generation"}}}]},
+                     {"title": "The normal through the centre of a plate's top face", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "query_topology", "args": {"body": 0, "at_extreme": "+z"}},
+                         {"tool": "axis", "args": {"type": "face_normal", "body": 0, "face": 5, "generation": {"from_call": 1, "key": "generation"}}}]},
+                     {"title": "The vertical line where two datum planes meet", "calls": [
+                         {"tool": "plane", "args": {"type": "offset", "base": "XZ", "offset": 10}},
+                         {"tool": "plane", "args": {"type": "offset", "base": "YZ", "offset": 10}},
+                         {"tool": "axis", "args": {"type": "plane_intersection", "plane_a": 0, "plane_b": 1}}]}])json")}},
             json{{"name", "coordsys"}, {"ids", true}, {"summary", "Create a datum coordinate system (origin + orthonormal axes)."},
                  {"details", "PointWorld aligns to world; FaceAndDirection uses a face for Z and an edge/hint for X."},
                  {"params", json::array({
@@ -433,7 +558,11 @@ json tool_rows()
                      json{{"name", "edge"},      {"type", "integer"}, {"default", -1}, {"description", "edge id (query_topology) for X axis hint"}},
                      json{{"name", "x_hint"},    {"type", "array"}, {"default", json::array({1,0,0})}, {"description", "fallback X direction hint if no edge given"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A connector on a plate's top face, its x axis along the front edge", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "query_topology", "args": {"body": 0, "at_extreme": "+z", "adjacency": true}},
+                         {"tool": "coordsys", "args": {"type": "face_and_direction", "body": 0, "face": 5, "edge": 3, "generation": {"from_call": 1, "key": "generation"}}}]}])json")}},
             json{{"name", "plane"}, {"ids", true}, {"summary", "Add a datum plane as the Plane card does, to sketch or build on as {\"datum\": plane_index}."},
                  {"details", "Offset from a base plane or a face, at an angle about an edge, midway between two faces, tangent to a cylindrical face, through two edges, or coincident with a base plane or a face. Not the `plane` param of other CAD tools. Reply: plane_index, name, frame."},
                  {"params", json::array({
@@ -448,7 +577,17 @@ json tool_rows()
                      json{{"name", "edge_b"}, {"type", "object"}, {"default", nullptr}, {"description", "Edge B, {\"body\": b, \"edge\": e}: two_edges' second edge"}},
                      json{{"name", "size"},   {"type", "array"}, {"unit", "mm"}, {"default", json::array({60, 60})}, {"description", "[u, v]: the size the plane is drawn at"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A datum plane 20 mm above XY", "calls": [
+                         {"tool": "plane", "args": {"type": "offset", "base": "XY", "offset": 20}}]},
+                     {"title": "A datum plane midway between a block's top and bottom faces", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 10}},
+                         {"tool": "query_topology", "args": {"body": 0, "kinds": ["planar"]}},
+                         {"tool": "plane", "args": {"type": "midplane", "face_a": {"body": 0, "face": 4}, "face_b": {"body": 0, "face": 5}, "generation": {"from_call": 1, "key": "generation"}}}]},
+                     {"title": "A datum plane turned 30 degrees from a plate's top face about its front edge", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "query_topology", "args": {"body": 0, "at_extreme": "+z", "adjacency": true}},
+                         {"tool": "plane", "args": {"type": "angle", "face_a": {"body": 0, "face": 5}, "edge_a": {"body": 0, "edge": 3}, "angle": 30, "generation": {"from_call": 1, "key": "generation"}}}]}])json")}},
             json{{"name", "helix"}, {"ids", true}, {"summary", "Create a helical curve, a sweep path for springs, coils and augers."},
                  {"details", "It starts on the plane's x axis at `radius` from its origin. pitch = axial rise per turn. left_handed flips the winding. taper_deg != 0 gives a conical helix. Reply: helix_index, frame, start and tangent (world), to draw a sweep's profile across the curve there."},
                  {"params", json::array({
@@ -459,7 +598,11 @@ json tool_rows()
                      json{{"name", "taper_deg"},   {"type", "number"}, {"unit", "deg"}, {"default", 0}},
                      plane_param("XY", false),
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A four-turn helix on XY: radius 10 mm, pitch 5 mm, 20 mm tall", "calls": [
+                         {"tool": "helix", "args": {"radius": 10, "pitch": 5, "height": 20}}]},
+                     {"title": "A left-handed conical helix tapering 10 degrees", "calls": [
+                         {"tool": "helix", "args": {"radius": 10, "pitch": 4, "height": 20, "left_handed": true, "taper_deg": 10}}]}])json")}},
             json{{"name", "sweep"}, {"summary", "Sweep a committed sketch's closed profile along a path, a sketch or a helix, as the Sweep card does."},
                  {"details", "Draw the profile across the path's start (a helix's start and tangent are in its reply); along a helix the profile keeps its angle to the helix axis. Long sweeps take seconds and the reply may be a job. Reply: sweep_index, bodies, boolean, body."},
                  {"params", json::array({
@@ -468,7 +611,21 @@ json tool_rows()
                      json{{"name", "boolean"}, {"type", "string"}, {"enum", json::array({"new", "union", "subtract", "intersect"})}, {"default", "new"}},
                      json{{"name", "body"},    {"type", "integer"}, {"default", -1}, {"description", "the body a union, subtract or intersect works on; omit for the last body"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A spring: a 2 mm circle across a helix's start, swept along it", "calls": [
+                         {"tool": "helix", "args": {"radius": 10, "pitch": 5, "height": 20}},
+                         {"tool": "sketch_begin", "args": {"plane": "XZ"}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [10, 0], "radius": 1}]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "sweep", "args": {"sketch": 1, "path": 0}}]},
+                     {"title": "A 6 mm rod swept along a 40 mm line", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "line", "p0": [0, 0], "p1": [0, 40]}]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "sketch_begin", "args": {"plane": "XZ"}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [0, 0], "radius": 3}]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "sweep", "args": {"sketch": 1, "path": 0}}]}])json")}},
             json{{"name", "loft"}, {"summary", "Loft a solid through two or more committed sketches, in order, as the Loft card does."},
                  {"details", "Each sketch is on its own plane (sketch on datum planes). Lofts take seconds and the reply may be a job. Reply: loft_index, bodies, boolean, body."},
                  {"params", json::array({
@@ -477,7 +634,16 @@ json tool_rows()
                      json{{"name", "boolean"},  {"type", "string"}, {"enum", json::array({"new", "union", "subtract", "intersect"})}, {"default", "new"}},
                      json{{"name", "body"},     {"type", "integer"}, {"default", -1}, {"description", "the body a union, subtract or intersect works on; omit for the last body"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A square-to-round transition 20 mm tall, the circle sketched on a datum plane", "calls": [
+                         {"tool": "plane", "args": {"type": "offset", "base": "XY", "offset": 20}},
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-10, -10, 10, 10]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "sketch_begin", "args": {"plane": {"datum": 0}}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [0, 0], "radius": 6}]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "loft", "args": {"profiles": [1, 2]}}]}])json")}},
             json{{"name", "thicken"}, {"ids", true}, {"summary", "Offset a face of a body by a wall thickness, producing a new thin solid body."},
                  {"details", ""},
                  {"params", json::array({
@@ -486,7 +652,11 @@ json tool_rows()
                      json{{"name", "thickness"}, {"type", "number"}, {"unit", "mm"}, {"default", 2}, {"min", 0.01}},
                      json{{"name", "flip"},      {"type", "boolean"}, {"default", false}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A 2 mm skin grown from a plate's top face as a new body", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "query_topology", "args": {"body": 0, "at_extreme": "+z"}},
+                         {"tool": "thicken", "args": {"body": 0, "face": 5, "thickness": 2, "generation": {"from_call": 1, "key": "generation"}}}]}])json")}},
             json{{"name", "split"}, {"ids", true}, {"summary", "Split a body with a plane, as the Cut card does, moved by offset and turned over by flip; or along the plane of a face."},
                  {"details", "The upper piece is on the plane's normal side; keeping both makes two bodies, the lower one right after the upper. Reply: split_index, bodies, body, upper_body and lower_body (the pieces kept), frame (a plane's, after offset and flip)."},
                  {"params", json::array({
@@ -499,7 +669,18 @@ json tool_rows()
                      json{{"name", "keep_upper"},{"type", "boolean"}, {"default", true}},
                      json{{"name", "keep_lower"},{"type", "boolean"}, {"default", true}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A block cut in two at half its height", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 10}},
+                         {"tool": "split", "args": {"plane": "XY", "offset": 5}}]},
+                     {"title": "A block cut at half its height, keeping only the lower half", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 10}},
+                         {"tool": "split", "args": {"plane": "XY", "offset": 5, "keep_upper": false}}]},
+                     {"title": "A block split along the top face of a wider plate", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 10}},
+                         {"tool": "extrude", "args": {"width": 30, "height": 30, "distance": 4, "boolean": "new"}},
+                         {"tool": "query_topology", "args": {"body": 1, "at_extreme": "+z"}},
+                         {"tool": "split", "args": {"body": 0, "face": 5, "face_body": 1, "generation": {"from_call": 2, "key": "generation"}}}]}])json")}},
              json{{"name", "project"}, {"ids", true}, {"summary", "Project edges of a solid onto a sketch plane, producing a new sketch feature."},
                   {"details", ""},
                   {"params", json::array({
@@ -508,14 +689,27 @@ json tool_rows()
                       json{{"name", "edges"},       {"type", "array"}, {"default", json::array()}, {"description", "global edge ids to project; empty => project the face"}},
                       plane_param("XY", false),
                   })},
-                  {"examples", json::array()}},
+                  {"examples", examples(R"json([
+                      {"title": "A plate's top-face outline projected onto the XY plane as a new sketch", "calls": [
+                          {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                          {"tool": "query_topology", "args": {"body": 0, "at_extreme": "+z"}},
+                          {"tool": "project", "args": {"source_body": 0, "face": 5, "plane": "XY", "generation": {"from_call": 1, "key": "generation"}}}]},
+                      {"title": "Two top edges of a plate, meeting at a corner, projected onto the XY plane", "calls": [
+                          {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                          {"tool": "query_topology", "args": {"body": 0, "at_extreme": "+z", "adjacency": true}},
+                          {"tool": "project", "args": {"source_body": 0, "edges": [3, 6], "plane": "XY", "generation": {"from_call": 1, "key": "generation"}}}]}])json")}},
              json{{"name", "delete_face"}, {"ids", true}, {"summary", "Remove faces from a solid, healing the gap via OCCT defeaturing."},
                   {"details", ""},
                   {"params", json::array({
                       json{{"name", "body"},  {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
                       json{{"name", "faces"}, {"type", "array"}, {"description", "global face ids to delete"}},
                   })},
-                  {"examples", json::array()}},
+                  {"examples", examples(R"json([
+                      {"title": "A plate's bore filled in by deleting its cylindrical face", "calls": [
+                          {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                          {"tool": "hole", "args": {"diameter": 5, "through": true}},
+                          {"tool": "query_topology", "args": {"body": 0, "kinds": ["cylindrical"]}},
+                          {"tool": "delete_face", "args": {"body": 0, "faces": [6], "generation": {"from_call": 2, "key": "generation"}}}]}])json")}},
             json{{"name", "bridge"}, {"summary", "Build a cubic-Bezier G1 bridge (BSpline) between two sketch-entity endpoints within a sketch feature."},
                   {"details", ""},
                   {"params", json::array({
@@ -525,7 +719,12 @@ json tool_rows()
                       json{{"name", "ent_b"},  {"type", "integer"}, {"description", "second entity index within the sketch"}},
                       json{{"name", "end_b"},  {"type", "integer"}, {"enum", json::array({0, 1})}, {"default", 0}, {"description", "0 = start/p0 side, 1 = end/p1 side"}},
                   })},
-                  {"examples", json::array()}},
+                  {"examples", examples(R"json([
+                      {"title": "A smooth curve joining the facing ends of two lines in a committed sketch", "calls": [
+                          {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                          {"tool": "sketch_add", "args": {"entities": [{"type": "line", "p0": [-20, 0], "p1": [-5, 0]}, {"type": "line", "p0": [5, 10], "p1": [20, 10]}]}},
+                          {"tool": "sketch_commit", "args": {}},
+                          {"tool": "bridge", "args": {"sketch": 0, "ent_a": 0, "end_a": 1, "ent_b": 1, "end_b": 0}}]}])json")}},
             json{{"name", "rib"}, {"summary", "Grow a thin rib wall (stiffener) from an open Line sketch entity, fused to a body."},
                   {"details", "The wall is centred on the line in the sketch plane, thickness wide, and grows depth along the sketch plane's normal."},
                   {"params", json::array({
@@ -535,7 +734,14 @@ json tool_rows()
                       json{{"name", "depth"},     {"type", "number"}, {"unit", "mm"}, {"default", 10}, {"min", 0.01}},
                       json{{"name", "body"},      {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
                   })},
-                  {"examples", json::array()}},
+                  {"examples", examples(R"json([
+                      {"title": "A 2 mm rib 8 mm tall across a plate's top face", "calls": [
+                          {"tool": "extrude", "args": {"width": 40, "height": 20, "distance": 3}},
+                          {"tool": "query_topology", "args": {"body": 0, "at_extreme": "+z"}},
+                          {"tool": "sketch_begin", "args": {"plane": {"body": 0, "face": 5}, "generation": {"from_call": 1, "key": "generation"}}},
+                          {"tool": "sketch_add", "args": {"entities": [{"type": "line", "p0": [-15, 0], "p1": [15, 0]}]}},
+                          {"tool": "sketch_commit", "args": {}},
+                          {"tool": "rib", "args": {"sketch": 2, "entity": 0, "thickness": 2, "depth": 8}}]}])json")}},
             json{{"name", "surface_extrude"}, {"summary", "Extrude a sketch wire with no end caps -> an open sheet body."},
                   {"details", ""},
                   {"params", json::array({
@@ -561,7 +767,15 @@ json tool_rows()
                      json{{"name", "angle"},   {"type", "number"}, {"unit", "deg"}, {"default", 0}},
                      json{{"name", "flip"},    {"type", "boolean"}, {"default", false}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A block stood on a plate: its bottom-face connector fastened, turned over, to the plate's top-face one", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "extrude", "args": {"profile": [[30, -5], [40, -5], [40, 5], [30, 5]], "distance": 10, "boolean": "new"}},
+                         {"tool": "query_topology", "args": {"body": 0, "at_extreme": "+z"}},
+                         {"tool": "coordsys", "args": {"type": "face_and_direction", "body": 0, "face": 5, "generation": {"from_call": 2, "key": "generation"}}},
+                         {"tool": "query_topology", "args": {"body": 1, "at_extreme": "-z"}},
+                         {"tool": "coordsys", "args": {"type": "face_and_direction", "body": 1, "face": 4, "generation": {"from_call": 4, "key": "generation"}}},
+                         {"tool": "mate", "args": {"cs_a": 4, "cs_b": 5, "kind": 0, "flip": true}}]}])json")}},
             json{{"name", "check_interference"}, {"summary", "Solid bodies that overlap, as {body_a, body_b, volume}."},
                  {"details", "Read-only; bodies that merely touch enclose no volume and are not reported."},
                  {"params", json::array({
