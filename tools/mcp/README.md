@@ -75,8 +75,10 @@ when it starts. Without a datadir it takes `default_datadir()`: `%APPDATA%\OrcaS
 `~/Library/Application Support/OrcaSlicer` on macOS, `$XDG_CONFIG_HOME/OrcaSlicer` (or
 `~/.config/OrcaSlicer`) on Linux. A portable install keeps its datadir in `data_dir` beside the
 binary (beside the `.app` on macOS) and is found only when that datadir is given, or the binary as
-`from_datadir(exe=...)`. When the file is missing, or nothing answers on the port it names,
-`from_datadir()` raises `McpError` saying so.
+`from_datadir(exe=...)`; a symlink to the binary is resolved on Linux, as the app resolves its own,
+and taken as it is on Windows and macOS. When the file is missing, or a ping to the port it names
+fails (nothing listens there, or another server answers), `from_datadir()` raises `McpError` saying
+so, with the failure as its cause.
 
 `call_cad_tool(tool, **args)` calls `call_cad_tool {tool, args}`, follows a running job to its end
 and returns the CAD tool's `result`. A dialog that blocks the call fails it at once, naming the

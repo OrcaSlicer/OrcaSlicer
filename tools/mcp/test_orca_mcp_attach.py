@@ -4,17 +4,22 @@
     python tools/mcp/test_orca_mcp_attach.py
 
 default_datadir() takes a portable data_dir beside the binary (beside the .app on macOS) and
-otherwise the platform's configuration folder. from_datadir() refuses a datadir without
-mcp/server.json and one whose server.json names a port where nothing listens. call_cad_tool(),
-against a stubbed call(), fails at once on a dialog, follows a running job, prefixes its errors with
-the CAD tool's name and returns the tool's result. Exits 0 when every check passes.
+otherwise the platform's configuration folder; it resolves a symlinked binary on Linux, as the app
+does through /proc/self/exe, and nowhere else (skipped where no symlink can be made). from_datadir()
+refuses a datadir without mcp/server.json, and one whose server.json names a port where nothing
+listens or where another server answers (HTTP 401, a reply that is not JSON), naming the file, giving
+the --mcp advice and chaining the cause. call_cad_tool(), against a stubbed call(), fails at once on
+a dialog, follows a running job, prefixes its errors with the CAD tool's name and returns the tool's
+result. Exits 0 when every check passes.
 """
 
+import http.server
 import json
 import os
 import socket
 import sys
 import tempfile
+import threading
 from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -30,16 +35,20 @@ def same_path(a, b):
     return os.path.normcase(os.path.normpath(a)) == os.path.normcase(os.path.normpath(b))
 
 
-def raises(fn, *needles):
-    """Runs fn, which must raise McpError whose message contains every needle; returns the message."""
+def raised(fn, *needles):
+    """Runs fn, which must raise McpError whose message contains every needle; returns the error."""
     try:
         fn()
     except McpError as e:
-        message = str(e)
         for needle in needles:
-            assert needle in message, f"{needle!r} not in {message!r}"
-        return message
+            assert needle in str(e), f"{needle!r} not in {str(e)!r}"
+        return e
     raise AssertionError("no McpError raised")
+
+
+def raises(fn, *needles):
+    """Like raised(), returning the message."""
+    return str(raised(fn, *needles))
 
 
 def binary_in(folder):
@@ -73,6 +82,39 @@ def check_default_datadir():
     ok(f"default_datadir() falls back to the {sys.platform} configuration folder")
 
 
+def check_symlinked_binary():
+    # /usr/local/bin/orca-slicer -> /opt/orca/orca-slicer, each folder with a data_dir of its own.
+    real, linked = tempfile.mkdtemp(prefix="orca-attach-real-"), tempfile.mkdtemp(prefix="orca-attach-link-")
+    real_exe, link = binary_in(real), binary_in(linked)
+    for exe in (real_exe, link):
+        os.makedirs(os.path.dirname(exe), exist_ok=True)
+    open(real_exe, "w").close()
+    for folder in (real, linked):
+        os.makedirs(os.path.join(folder, "data_dir"))
+    try:
+        os.symlink(real_exe, link)
+    except (OSError, NotImplementedError) as e:
+        print(f"skip - default_datadir() with a symlinked binary: no symlink can be made here ({e})")
+        return
+    if sys.platform in ("win32", "darwin"):
+        expected, how = os.path.join(linked, "data_dir"), "takes a symlinked binary as it is"
+    else:
+        expected, how = os.path.join(real, "data_dir"), "resolves a symlinked binary"
+    got = orca_mcp.default_datadir(link)
+    assert same_path(got, expected), f"{sys.platform}: {got} != {expected}"
+    ok(f"default_datadir() {how} on {sys.platform}, as the app does")
+
+
+def datadir_naming(port, prefix):
+    """A datadir whose mcp/server.json names `port`; returns it and that file's path."""
+    datadir = tempfile.mkdtemp(prefix=prefix)
+    os.makedirs(os.path.join(datadir, "mcp"))
+    path = os.path.join(datadir, "mcp", "server.json")
+    with open(path, "w") as f:
+        json.dump({"url": f"http://127.0.0.1:{port}/mcp", "port": port, "pid": 0, "version": "0", "token": "t"}, f)
+    return datadir, path
+
+
 def check_from_datadir():
     empty = tempfile.mkdtemp(prefix="orca-attach-empty-")
     raises(lambda: OrcaMcp.from_datadir(empty), os.path.join(empty, "mcp", "server.json"), "--mcp")
@@ -81,12 +123,53 @@ def check_from_datadir():
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
         port = s.getsockname()[1]
-    stale = tempfile.mkdtemp(prefix="orca-attach-stale-")
-    os.makedirs(os.path.join(stale, "mcp"))
-    with open(os.path.join(stale, "mcp", "server.json"), "w") as f:
-        json.dump({"url": f"http://127.0.0.1:{port}/mcp", "port": port, "pid": 0, "version": "0", "token": "t"}, f)
-    raises(lambda: OrcaMcp.from_datadir(stale), str(port), "--mcp")
-    ok("from_datadir() with a stale server.json says nothing answers on its port")
+    stale, path = datadir_naming(port, "orca-attach-stale-")
+    error = raised(lambda: OrcaMcp.from_datadir(stale), path, str(port), "--mcp")
+    assert isinstance(error.__cause__, OSError), repr(error.__cause__)
+    ok("from_datadir() with a stale server.json names the file and its port, with the refusal as the cause")
+
+    check_port_taken(401, b"Unauthorized", "HTTP 401")
+    check_port_taken(200, b"<html>not MCP</html>", "Expecting value")
+
+
+def check_port_taken(status, body, cause):
+    """from_datadir() on a port where another server answers HTTP `status` with `body`: the error names
+    the file and the port, gives the --mcp advice, and holds and chains the cause (`cause` is in its message)."""
+    with Listener(status, body) as port:
+        datadir, path = datadir_naming(port, "orca-attach-taken-")
+        error = raised(lambda: OrcaMcp.from_datadir(datadir), path, str(port), cause, "--mcp")
+        assert error.__cause__ is not None, f"HTTP {status}: no cause"
+    ok(f"from_datadir() on a port where another server answers HTTP {status} {body.decode()} names the file and the cause")
+
+
+class Listener:
+    """A local HTTP server, on a free port, that answers every POST with `status` and `body`; the
+    context gives its port and shuts it down and closes it on leaving."""
+
+    def __init__(self, status, body):
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_POST(self):
+                self.rfile.read(int(self.headers.get("Content-Length", 0)))
+                self.send_response(status)
+                self.send_header("Content-Type", "text/plain")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, *args):
+                pass
+
+        self.server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+
+    def __enter__(self):
+        self.thread.start()
+        return self.server.server_address[1]
+
+    def __exit__(self, *exc):
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join()
 
 
 def stub(client, *replies):
@@ -134,6 +217,7 @@ def check_call_cad_tool():
 
 def main():
     check_default_datadir()
+    check_symlinked_binary()
     check_from_datadir()
     check_call_cad_tool()
     return 0

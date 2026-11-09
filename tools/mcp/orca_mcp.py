@@ -54,9 +54,13 @@ def default_datadir(exe=None):
     """The datadir OrcaSlicer uses without --datadir, as McpStdioBridge.cpp's default_datadir() picks it.
 
     A portable install keeps it in data_dir beside the binary `exe` (beside the .app on macOS), which
-    is looked for only when `exe` is given; otherwise it is the platform's configuration folder."""
+    is looked for only when `exe` is given; otherwise it is the platform's configuration folder. The
+    binary is located as the app locates itself: on Linux through /proc/self/exe, which resolves
+    symlinks, so a symlinked `exe` is resolved too; on Windows (GetModuleFileName) and macOS
+    (_NSGetExecutablePath) by the path it was started by, symlinks left as they are."""
     if exe:
-        folder = os.path.dirname(os.path.abspath(exe))
+        exe = os.path.abspath(exe) if sys.platform in ("win32", "darwin") else os.path.realpath(exe)
+        folder = os.path.dirname(exe)
         if sys.platform == "darwin":  # <folder>/OrcaSlicer.app/Contents/MacOS/<exe>
             for _ in range(3):
                 folder = os.path.dirname(folder)
@@ -85,7 +89,9 @@ class OrcaMcp:
         """A client of the OrcaSlicer already running on `datadir` (default: default_datadir(exe)).
 
         Its MCP server writes its port and token to <datadir>/mcp/server.json when it starts. Raises
-        McpError when that file is missing, or when nothing answers on the port it names."""
+        McpError when that file is missing, or when a ping to the port it names fails: nothing listens
+        there any more, or something else does (another server, or an OrcaSlicer with another token),
+        with the failure as the error's cause."""
         path = os.path.join(datadir or default_datadir(exe), "mcp", "server.json")
         advice = "start OrcaSlicer with --mcp (or turn on \"MCP server\" under AI features in its Preferences)"
         try:
@@ -97,10 +103,13 @@ class OrcaMcp:
         except (OSError, ValueError, KeyError, TypeError) as e:
             raise McpError(f"cannot read the port from {path} ({e}); {advice}") from None
         client = cls(port, token)
+        # A port the file names may since have gone to anything, so whatever way the ping fails (refused,
+        # timed out, an HTTP error, a reply that is not HTTP or not JSON), this datadir's server is not there.
         try:
             client.request("ping", timeout=10)
-        except OSError:
-            raise McpError(f"nothing answers on port {port}, which {path} names; {advice}") from None
+        except Exception as e:
+            raise McpError(f"OrcaSlicer's MCP server does not answer on port {port}, which {path} names ({e}); "
+                           f"{advice}") from e
         return client
 
     def request(self, method, params=None, timeout=None):
