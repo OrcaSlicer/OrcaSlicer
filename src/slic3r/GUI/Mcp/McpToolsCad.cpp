@@ -1460,7 +1460,7 @@ json tool_rows()
                          {"tool": "surface_extrude", "args": {"sketch": 0, "distance": 20}},
                          {"tool": "surface_offset", "args": {"body": 0, "offset": -2}}]}])json")}},
             json{{"name", "thicken_surface"}, {"summary", "Thicken a whole sheet body into a solid."},
-                 {"details", "A sheet of one face grows along its normal, the one query_topology gives, or against it with flip; a sheet of several faces is capped at its rims and grows into the closed shape that makes, whatever flip says."},
+                 {"details", "A sheet of several faces whose free rims close into planar loops (the walls of a box with no lids) is capped at them and grows inward, into the closed shape that makes, whatever flip says. Any other sheet, a single face or a closed shell, is offset face by face along each face's normal, the one query_topology gives, or against it with flip; a closed shell can fail to thicken this way."},
                  {"params", json::array({
                      json{{"name", "body"},      {"type", "integer"}, {"default", -1}, {"description", "sheet body; omit for the last body"}},
                      json{{"name", "thickness"}, {"type", "number"}, {"unit", "mm"}, {"default", 2}, {"min", 0.01}},

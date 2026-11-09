@@ -3550,8 +3550,8 @@ void CadDocument::apply_thicken_surface(std::vector<CadBody>& bodies, const CadF
     // successfully a few hundred lines up — but it CANNOT be handed an open sheet. In OCCT,
     // BRepOffset_MakeOffset::MakeThickSolid builds the solid only inside `if (!myFaces.IsEmpty())`
     // (BRepOffset_MakeOffset.cxx:1115): with no closing faces it stops after the offset shell and
-    // returns that. So it reports IsDone() and a non-null shape containing no TopAbs_SOLID at all
-    // — which is exactly how two earlier attempts failed, and why no parameter could have fixed it.
+    // returns that. So on an open sheet it reports IsDone() and a non-null shape containing no
+    // TopAbs_SOLID at all, and no parameter changes that.
     //
     // So close the sheet first, then use the working call: cap the free rims, sew into a closed
     // shell, make a solid, and hollow it inward passing the caps as the faces to remove. The caps
@@ -3618,7 +3618,7 @@ void CadDocument::apply_thicken_surface(std::vector<CadBody>& bodies, const CadF
         solid = mts.Shape();
     }
     if (solid.IsNull()) throw std::runtime_error(_u8L("thicken-surface: produced no geometry"));
-    // IsDone() is NOT a success test here — the failed attempts had IsDone() true and no solid.
+    // IsDone() is NOT a success test here: ByJoin on an open sheet reports IsDone() with no solid.
     if (!TopExp_Explorer(solid, TopAbs_SOLID).More())
         throw std::runtime_error(_u8L("thicken-surface: produced a shell, not a solid"));
 
