@@ -2550,6 +2550,12 @@ void GCodeProcessor::UsedFilaments::reset()
 
     total_volume_cache = 0.0f;
     total_volumes_per_filament.clear();
+
+    layer_volumes_per_filament.clear();
+    layer_support_volumes_per_filament.clear();
+    layer_wipe_tower_volumes_per_filament.clear();
+    layer_flush_volumes_per_filament.clear();
+    layers_recorded = 0;
 }
 
 void GCodeProcessor::UsedFilaments::increase_support_caches(double extruded_volume)
@@ -2593,6 +2599,30 @@ void GCodeProcessor::UsedFilaments::process_total_volume_cache(GCodeProcessor* p
             total_volumes_per_filament[active_filament_id] = total_volume_cache;
         total_volume_cache = 0.0f;
     }
+}
+
+void GCodeProcessor::UsedFilaments::record_layer(GCodeProcessor* processor)
+{
+    // Commit what the active filament has extruded so far, then snapshot every filament's model, support,
+    // wipe tower and flush volumes.
+    // Called at each layer change and once at the end, so entry 0 is what was extruded before the
+    // first layer (purge line, priming) and the last entry is the plate's volume.
+    process_model_cache(processor);
+    process_support_cache(processor);
+    process_wipe_tower_cache(processor);
+    const auto snapshot = [this](const std::map<size_t, double>& totals, std::map<size_t, std::vector<double>>& series) {
+        for (const auto& [filament_id, volume] : totals) {
+            std::vector<double>& layers = series[filament_id];
+            // A filament first used after some layers were already recorded extruded nothing until now.
+            layers.resize(layers_recorded, 0.0);
+            layers.push_back(volume);
+        }
+    };
+    snapshot(model_volumes_per_filament, layer_volumes_per_filament);
+    snapshot(support_volumes_per_filament, layer_support_volumes_per_filament);
+    snapshot(wipe_tower_volumes_per_filament, layer_wipe_tower_volumes_per_filament);
+    snapshot(flush_per_filament, layer_flush_volumes_per_filament);
+    ++layers_recorded;
 }
 
 void GCodeProcessor::UsedFilaments::process_model_cache(GCodeProcessor* processor)
@@ -4010,6 +4040,8 @@ void GCodeProcessor::finalize(bool post_process)
     }
 
     m_used_filaments.process_caches(this);
+    // the last layer has no layer-change tag after it
+    m_used_filaments.record_layer(this);
 
     update_estimated_times_stats();
 
@@ -4690,6 +4722,7 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
 
     // layer change tag
     if (comment == reserved_tag(ETags::Layer_Change)) {
+        m_used_filaments.record_layer(this);
         ++m_layer_id;
         return;
     }
@@ -8218,6 +8251,10 @@ void GCodeProcessor::update_estimated_times_stats()
     m_result.print_statistics.flush_per_filament      = m_used_filaments.flush_per_filament;
     m_result.print_statistics.used_filaments_per_role   = m_used_filaments.filaments_per_role;
     m_result.print_statistics.total_volumes_per_extruder = m_used_filaments.total_volumes_per_filament;
+    m_result.print_statistics.layer_volumes_per_extruder = m_used_filaments.layer_volumes_per_filament;
+    m_result.print_statistics.layer_support_volumes_per_extruder = m_used_filaments.layer_support_volumes_per_filament;
+    m_result.print_statistics.layer_wipe_tower_volumes_per_extruder = m_used_filaments.layer_wipe_tower_volumes_per_filament;
+    m_result.print_statistics.layer_flush_volumes_per_extruder = m_used_filaments.layer_flush_volumes_per_filament;
 }
 
 double GCodeProcessor::extract_absolute_position_on_axis(Axis axis, const GCodeReader::GCodeLine& line, double area_filament_cross_section)
