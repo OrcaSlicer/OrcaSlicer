@@ -30,7 +30,7 @@ param(
     [string]$Arch = "",
     # Parallel clang-tidy runs (default: all cores).
     [int]$Jobs = 0,
-    # Apply clang-tidy's fixes (adds the missing includes).
+    # Apply clang-tidy's fixes.
     [switch]$Fix,
     # Install missing tools without asking.
     [switch]$Yes
