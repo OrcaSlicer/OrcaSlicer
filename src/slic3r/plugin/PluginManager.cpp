@@ -40,6 +40,7 @@
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <slic3r/plugin/pluginTypes/script/ScriptPluginCapability.hpp>
 #include <stdexcept>
+#include <string>
 #include <thread>
 #include <unordered_set>
 #include <utility>
@@ -56,6 +57,19 @@ namespace {
 // Sentinel error returned by the registry pre-check when the load was cancelled while it ran.
 // A cancelled load records no error and fires no failure path — it just unwinds.
 const char* const LOAD_CANCELLED = "__plugin_load_cancelled__";
+
+std::vector<std::string>* permission_bucket(PluginPermissions& permissions, PluginPermissionCategory category)
+{
+    switch (category) {
+    case PluginPermissionCategory::FsRead: return &permissions.fs_read;
+    case PluginPermissionCategory::FsReadWrite: return &permissions.fs_readwrite;
+    case PluginPermissionCategory::NetworkHttp: return &permissions.network_http;
+    case PluginPermissionCategory::NetworkSocket: return &permissions.network_socket;
+    case PluginPermissionCategory::Process: return &permissions.process;
+    case PluginPermissionCategory::Events: return &permissions.events;
+    }
+    return nullptr;
+}
 
 } // namespace
 
@@ -129,6 +143,7 @@ bool PluginManager::initialize()
     subscribe_on_unload_callback([this](const std::string& key) {
         if (m_shutting_down.load(std::memory_order_acquire))
             return;
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
         PluginDescriptor descriptor;
         if (!try_get_plugin_descriptor(key, descriptor) || descriptor.plugin_root.empty())
             return;
@@ -657,8 +672,12 @@ std::shared_ptr<PluginCapabilityInterface> PluginManager::get_plugin_capability(
 
 bool PluginManager::get_install_state(const std::string& plugin_key, PluginInstallState& install_state)
 {
+    // Serialize the read against every in-process sidecar writer. Lock order stays
+    // install-state -> m_mutex, matching the writers.
+    std::lock_guard<std::mutex> state_lock(install_state_mutex());
+
     PluginDescriptor descriptor;
-    if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
+    if (!try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty()) {
         return false;
     }
 
@@ -1188,7 +1207,7 @@ void PluginManager::set_capability_enabled(const PluginCapabilityId& id, bool en
 
 void PluginManager::write_loaded_plugin_install_state(const std::string& plugin_key)
 {
-    std::lock_guard<std::mutex> state_lock(m_install_state_mutex);
+    std::lock_guard<std::mutex> state_lock(install_state_mutex());
 
     PluginDescriptor descriptor;
     std::vector<std::pair<std::string, bool>> capabilities;
@@ -1213,7 +1232,7 @@ void PluginManager::write_loaded_plugin_install_state(const std::string& plugin_
 
 void PluginManager::mark_plugin_install_state_disabled(const std::string& plugin_key)
 {
-    std::lock_guard<std::mutex> state_lock(m_install_state_mutex);
+    std::lock_guard<std::mutex> state_lock(install_state_mutex());
 
     PluginDescriptor descriptor;
     if (!try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
@@ -1221,7 +1240,16 @@ void PluginManager::mark_plugin_install_state_disabled(const std::string& plugin
 
     const boost::filesystem::path root(descriptor.plugin_root);
     PluginInstallState state;
-    if (!read_install_state(root, state))
+    // Only a missing sidecar may be seeded. One that exists but cannot be read may still hold
+    // permissions and capability choices that are recoverable, so it must not be replaced by a
+    // fresh one. Report the skip and leave the descriptor alone, exactly as for a failed write.
+    const InstallStateReadStatus status = read_install_state_status(root, state);
+    if (status == InstallStateReadStatus::Unreadable) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Cannot read install state for " << plugin_key
+                                   << "; leaving the sidecar untouched";
+        return;
+    }
+    if (status == InstallStateReadStatus::Absent)
         seed_install_metadata(state, descriptor);
     state.enabled = false;
     if (!write_install_state(root, state))
@@ -1232,9 +1260,74 @@ void PluginManager::mark_plugin_install_state_disabled(const std::string& plugin
         plugin->descriptor.enabled = false;
 }
 
+bool PluginManager::mutate_plugin_permissions(const std::string& plugin_key, const PluginPermissionMutation& mutation,
+                                              PluginPermissions* applied)
+{
+    std::lock_guard<std::mutex> state_lock(install_state_mutex());
+
+    if (plugin_key.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": No plugin key supplied";
+        return false;
+    }
+
+    // Enabling full access is the dangerous direction and must target a loadable (non-invalid)
+    // package. Disabling and plain list edits accept any known installed package.
+    PluginDescriptor descriptor;
+    const bool       enabling_full_access = mutation.full_access && *mutation.full_access;
+    const bool       known = enabling_full_access ? try_get_valid_plugin_descriptor(plugin_key, descriptor)
+                                                  : try_get_plugin_descriptor(plugin_key, descriptor);
+    if (!known || !descriptor.has_local_package() || descriptor.plugin_root.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": No installed plugin to update: " << plugin_key;
+        return false;
+    }
+
+    const boost::filesystem::path root(descriptor.plugin_root);
+    PluginInstallState state;
+    if (!read_install_state(root, state)) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to read install state for " << plugin_key;
+        return false;
+    }
+
+    // Apply against the latest state read under the lock, so a grant another writer added since
+    // the caller last looked is kept. Removals run first: a value named in both lists ends present.
+    for (const PluginPermissionMutation::Entry& entry : mutation.remove) {
+        if (entry.value.empty())
+            continue;
+        std::vector<std::string>* bucket = permission_bucket(state.permissions, entry.category);
+        if (bucket == nullptr)
+            continue;
+        bucket->erase(std::remove(bucket->begin(), bucket->end(), entry.value), bucket->end());
+    }
+    for (const PluginPermissionMutation::Entry& entry : mutation.add) {
+        if (entry.value.empty())
+            continue;
+        std::vector<std::string>* bucket = permission_bucket(state.permissions, entry.category);
+        if (bucket == nullptr)
+            continue;
+        if (std::find(bucket->begin(), bucket->end(), entry.value) == bucket->end())
+            bucket->push_back(entry.value);
+    }
+
+    if (mutation.threading)
+        state.permissions.threading = *mutation.threading;
+    if (mutation.full_access)
+        state.permissions.full_access = *mutation.full_access;
+
+    if (!write_install_state(root, state)) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to write install state for " << plugin_key;
+        return false;
+    }
+
+    if (applied != nullptr)
+        *applied = state.permissions;
+
+    BOOST_LOG_TRIVIAL(info) << "Applied permission changes for plugin " << plugin_key;
+    return true;
+}
+
 void PluginManager::revoke_plugin_permissions(const std::string& plugin_key)
 {
-    std::lock_guard<std::mutex> state_lock(m_install_state_mutex);
+    std::lock_guard<std::mutex> state_lock(install_state_mutex());
 
     PluginDescriptor descriptor;
     if (!try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
@@ -1975,6 +2068,9 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
     // capabilities' audit key must follow, since it is what identifies their owning package.
     std::vector<PluginCapabilityId> rekeyed;
     {
+        // Sidecar read-modify-write first, then the registry lock: that is the lock order every
+        // install-state writer uses (install_state_mutex -> m_mutex).
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
         std::lock_guard<std::mutex> lock(m_mutex);
 
         Plugin* entry = find_plugin_locked(old_key);
@@ -1991,8 +2087,18 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
 
         // Preserve the sidecar's package and capability choices while changing only its origin.
         // Re-keying an installed plugin must not silently re-enable capabilities.
-        PluginInstallState install_state;
-        if (!read_install_state(resolved_root, install_state)) {
+        PluginInstallState           install_state;
+        const InstallStateReadStatus install_state_status = read_install_state_status(resolved_root, install_state);
+        if (install_state_status == InstallStateReadStatus::Unreadable) {
+            // The sidecar exists but cannot be read, so its permissions and capability choices may
+            // still be recoverable: fail without replacing it and without re-keying the registry
+            // entry, leaving the plugin exactly as it was.
+            error = GUI::format(_u8L("Failed to read plugin install state: %1%"),
+                                (resolved_root / INSTALL_STATE_FILE).string());
+            BOOST_LOG_TRIVIAL(warning) << error;
+            return false;
+        }
+        if (install_state_status == InstallStateReadStatus::Absent) {
             install_state.installed_version = !local_descriptor.installed_version.empty()
                                                   ? local_descriptor.installed_version
                                                   : local_descriptor.version;
