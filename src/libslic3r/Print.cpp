@@ -5396,6 +5396,18 @@ bool Print::enable_timelapse_print() const
 }
 
 
+// The area wrapping detection probes, plate-local as the config holds it, or none when the detection is off
+// or has no polygon, as has_wipe_tower() takes it.
+static Polygons wrapping_detection_area(const PrintConfig &config)
+{
+    if (!config.enable_wrapping_detection.value || config.wrapping_exclude_area.values.size() <= 2)
+        return {};
+    Polygon area;
+    for (const Vec2d &point : config.wrapping_exclude_area.values)
+        area.points.emplace_back(scale_(point.x()), scale_(point.y()));
+    return { area };
+}
+
 void Print::_make_wipe_tower(bool move_to_fit)
 {
     // Use the printer's G-code tag format so the processor can classify wipe tower filament usage.
@@ -5802,7 +5814,9 @@ void Print::_make_wipe_tower(bool move_to_fit)
         const bool     outside         = !printable_polys.empty() && !diff(Polygons{footprint}, printable_polys).empty();
         // The cutter/purge corner is a physical obstacle — the brim must stay out like the body.
         const bool     excluded        = !intersection(get_bed_excluded_area(m_config), Polygons{footprint}).empty();
-        if (move_to_fit && (outside || excluded)) {
+        // So is the area wrapping detection probes, which validate() checked only for the estimate.
+        const bool     in_wrapping     = !intersection(wrapping_detection_area(m_config), Polygons{footprint}).empty();
+        if (move_to_fit && (outside || excluded || in_wrapping)) {
             // The estimate the plater placed the tower by can fall short of the generated tower. Move it to
             // the nearest spot where it fits, and generate it again there: the tower plans a few moves by
             // where it stands. The plater takes the new position through wipe_tower_moved_position().
@@ -5838,13 +5852,15 @@ void Print::_make_wipe_tower(bool move_to_fit)
         }
         if (excluded)
             throw Slic3r::SlicingError(L("Prime tower is too close to an exclusion area, and collisions will be caused.\n"));
+        if (in_wrapping)
+            throw Slic3r::SlicingError(L("Prime tower is too close to the clumping detection area, and collisions will be caused.\n"));
     }
 }
 
 std::optional<Vec2d> Print::nearest_fitting_wipe_tower_position(const Polygon &footprint, const Vec2d &position) const
 {
-    // Plate-local, like the generated footprint: the instances and the exclusion areas are kept clear by
-    // WIPE_TOWER_MARGIN, as the plater does when it moves a tower.
+    // Plate-local, like the generated footprint: the instances, the exclusion areas and the area wrapping
+    // detection probes are kept clear by WIPE_TOWER_MARGIN, as the plater does when it moves a tower.
     const Polygons    printable_polys = this->get_extruder_shared_printable_polygon();
     const BoundingBox printable       = get_extents(printable_polys);
     const BoundingBox tower           = get_extents(footprint);
@@ -5854,6 +5870,7 @@ std::optional<Vec2d> Print::nearest_fitting_wipe_tower_position(const Polygon &f
         return std::nullopt;
 
     Polygons obstacles = offset(get_bed_excluded_area(m_config), float(margin));
+    append(obstacles, offset(wrapping_detection_area(m_config), float(margin)));
     const Point plate_shift(scale_(m_origin.x()), scale_(m_origin.y()));
     for (const PrintObject *object : m_objects) {
         const double brim = object->config().brim_type != btNoBrim ? object->config().brim_width.value : 0.;

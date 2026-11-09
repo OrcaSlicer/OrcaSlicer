@@ -529,6 +529,43 @@ TEST_CASE("A tower that does not fit where it was placed is moved to the nearest
     CHECK_THAT(print.config().wipe_tower_y.get_at(0), Catch::Matchers::WithinAbs(moved_y, 1e-9));
 }
 
+TEST_CASE("A tower moved to fit stays clear of the clumping detection area", "[WipeTower]")
+{
+    // The tower of the test above, with wrapping detection probing a strip just in front of it, where
+    // the nearest place for the tower would be. The strip clears the tower body, which is what
+    // validate() checks before slicing, but not its brim.
+    DynamicPrintConfig config = auto_brim_tower_config();
+    Print print;
+    Model model;
+    init_print({ auto_brim_tower_object() }, print, model, config, nullptr, false);
+    print.apply(model, config);
+    REQUIRE(print.wipe_tower_data(2).brim_width > 2.f);
+
+    const double x = 100.;
+    const double y = 200. - print.wipe_tower_data(2).depth - 1.;
+    const double strip_min_y = y - 11.;
+    const double strip_max_y = y - 1.;
+    const std::string strip = "90x" + std::to_string(strip_min_y) + ",160x" + std::to_string(strip_min_y) + ",160x" +
+                              std::to_string(strip_max_y) + ",90x" + std::to_string(strip_max_y);
+    config.set_deserialize_strict({ { "wipe_tower_x", std::to_string(x) },
+                                    { "wipe_tower_y", std::to_string(y) },
+                                    { "enable_wrapping_detection", "1" },
+                                    { "wrapping_exclude_area", strip } });
+    print.apply(model, config);
+    REQUIRE(print.validate().string == "");
+
+    const std::string gcode_out = gcode(print);
+    CHECK_FALSE(gcode_out.empty());
+    REQUIRE(print.wipe_tower_data().wipe_tower_mesh_data.has_value());
+
+    Polygon footprint = print.wipe_tower_data().wipe_tower_mesh_data->bottom;
+    footprint.translate(Point(scale_(print.config().wipe_tower_x.get_at(0)), scale_(print.config().wipe_tower_y.get_at(0))));
+    const Polygon strip_area({ Point(scale_(90.), scale_(strip_min_y)), Point(scale_(160.), scale_(strip_min_y)),
+                               Point(scale_(160.), scale_(strip_max_y)), Point(scale_(90.), scale_(strip_max_y)) });
+    CHECK(intersection(Polygons{ footprint }, Polygons{ strip_area }).empty());
+    CHECK(unscaled(get_extents(footprint).max.y()) <= 200.);
+}
+
 TEST_CASE("A tower that fits nowhere on the plate is still refused", "[WipeTower]")
 {
     // A 55 mm wide bed cannot hold the 50 mm wide tower with a 4 mm brim on each side.
