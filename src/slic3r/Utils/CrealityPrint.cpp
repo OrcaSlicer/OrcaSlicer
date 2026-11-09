@@ -336,7 +336,7 @@ static bool stores_gcode_in_usr_data(const std::string& model)
 {
     static const std::unordered_set<std::string> usr_data_models = {
         "F001", // Ender-3 V3 series
-        "F002", // Ender-3 V3 series
+        "F002", // Ender-3 V3 Plus
         "F003", // CR-10 SE
         "F004", // Ender-5 Max
         "F005", // Ender-3 V3 KE
