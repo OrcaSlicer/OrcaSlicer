@@ -1,42 +1,32 @@
 #!/usr/bin/env python3
-"""Autonomous 2D-sketch loop: drive the Design tab's sketch layer over the MCP socket and
+"""Autonomous 2D-sketch loop: drive the Design tab's sketch layer through the app's MCP server and
 assert the things that decide whether a profile is buildable.
 
-WHY THIS EXISTS. The 2D layer used to be reachable only by clicking, so every question about it
-("is this loop closed?", "did the offset survive?", "is the circle a void or a second body?")
-cost a GUI session and a human. The socket verbs make each one a call, and this script is the
-loop: build a known profile, ask the app what it thinks it has, compare against arithmetic.
+WHY THIS EXISTS. Asked by clicking, every question about the 2D layer ("is this loop closed?", "did
+the offset survive?", "is the circle a void or a second body?") costs a GUI session and a human. The
+CAD tools make each one a call, and this script is the loop: build a known profile, ask the app what
+it thinks it has, compare against arithmetic.
 
-RUN IT AGAINST A RUNNING APP:
-    ORCA_CAD_MCP=/tmp/mcp.sock <binary>          # launch with the socket enabled
-    python3 scripts/CAD/check-mcp-sketch.py [socket] # default /tmp/mcp.sock
+RUN IT AGAINST A RUNNING APP started with --mcp and the CAD feature on, for example:
+    python3 tools/mcp/orca_mcp.py launch --cad --datadir <datadir>
+    python3 scripts/CAD/check-mcp-sketch.py [datadir]
+
+datadir is the running app's data directory (default: $ORCA_DATADIR, else the platform's own); the
+script finds the app's MCP server through the port it writes to <datadir>/mcp/server.json.
 
 Exit 0 = every assertion held. Anything else prints the first mismatch and stops.
 """
-import json, math, socket, sys
+import math, os, sys
 
-SOCK = sys.argv[1] if len(sys.argv) > 1 else "/tmp/mcp.sock"
-_n = 0
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tools", "mcp"))
+import orca_mcp  # noqa: E402
+
+DATADIR = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("ORCA_DATADIR", "")
+APP = orca_mcp.OrcaMcp.from_datadir(DATADIR)
 
 
 def call(method, **params):
-    global _n
-    _n += 1
-    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.settimeout(30)
-    s.connect(SOCK)
-    s.sendall((json.dumps({"jsonrpc": "2.0", "id": _n, "method": method,
-                           "params": params}) + "\n").encode())
-    buf = b""
-    while b"\n" not in buf:
-        d = s.recv(65536)
-        if not d:
-            break
-        buf += d
-    r = json.loads(buf.decode().strip())
-    if "error" in r:
-        raise RuntimeError(f"{method}: {r['error']}")
-    return r["result"]
+    return APP.call_cad_tool(method, **params)
 
 
 def near(a, b, tol=1e-6):

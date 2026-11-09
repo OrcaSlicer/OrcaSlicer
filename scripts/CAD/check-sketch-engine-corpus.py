@@ -20,30 +20,37 @@ agree, and that the engine's own operations preserve what they promise.
   MIRROR    a real closed profile, mirrored, is still exactly one closed loop
   OFFSET    a real closed profile, offset, is still closed
 
-Usage:  check-sketch-engine-corpus.py [--sample N] [--corpus DIR]
+Run it against a running app started with --mcp and the CAD feature on, for example:
+
+    python3 tools/mcp/orca_mcp.py launch --cad --datadir <datadir>
+    python3 scripts/CAD/check-sketch-engine-corpus.py --corpus DIR [--datadir <datadir>]
+            [--step N] [--limit N] [--scale] [--budget S]
+
+DIR is the folder of the StudyCadCam MPD*.pdf sheets. --datadir is the running app's data directory
+(default: $ORCA_DATADIR, else the platform's own); the script finds the app's MCP server through the
+port it writes to <datadir>/mcp/server.json. The sheets are read with poppler's pdftocairo and
+pdfinfo, which must be on the PATH.
 """
 
 import argparse
 import glob
-import json
 import math
 import os
 import re
-import socket
 import subprocess
 import sys
 import tempfile
 import time
 
-SOCK = os.environ.get("ORCA_CAD_MCP", "/tmp/mcp.sock")
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tools", "mcp"))
+import orca_mcp  # noqa: E402
+
+APP = None          # the running app's MCP server, attached to in main()
 TOL = 1e-6          # exact-comparison tolerance (all inputs are lines)
 WELD = 0.05         # endpoint-coincidence tolerance, in PDF units
 
 
-# ── the socket ───────────────────────────────────────────────────────────────
-_id = [0]
-
-
+# ── the app's MCP server ─────────────────────────────────────────────────────
 def try_call(method, **params):
     """sketch_cancel throws when nothing is open, which is not an error to us."""
     try:
@@ -53,24 +60,7 @@ def try_call(method, **params):
 
 
 def call(method, **params):
-    _id[0] += 1
-    req = json.dumps({"jsonrpc": "2.0", "id": _id[0], "method": method,
-                      "params": params}) + "\n"
-    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.settimeout(30)
-    s.connect(SOCK)
-    s.sendall(req.encode())
-    buf = b""
-    while not buf.endswith(b"\n"):
-        chunk = s.recv(65536)
-        if not chunk:
-            break
-        buf += chunk
-    s.close()
-    r = json.loads(buf.decode())
-    if "error" in r:
-        raise RuntimeError(r["error"]["message"])
-    return r["result"]
+    return APP.call_cad_tool(method, **params)
 
 
 # ── SVG → line segments ──────────────────────────────────────────────────────
@@ -349,9 +339,9 @@ def grade(pdf, name, report):
 def grade_scale(pdf, name, report, budget):
     """Same exactness, on a profile of several hundred entities, and timed.
 
-    "Interactive" is measurable from here even though nothing is clicked: every MCP verb is
-    serviced on the UI THREAD, so the time a reply takes is time the window was not repainting.
-    A round trip that stays inside the budget is a window that stayed responsive.
+    "Interactive" is measurable from here even though nothing is clicked: every CAD tool runs on
+    the UI THREAD, so the window was not repainting for at most the time its reply takes. A round
+    trip that stays inside the budget is a window that stayed responsive.
     """
     segs = drawing_segments(pdf)
     loops = find_loops(segs)
@@ -404,8 +394,12 @@ def _pdf_error(path):
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--corpus", default=os.path.expanduser("~/studycadcam"))
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--corpus", required=True, help="the folder of the MPD*.pdf sheets")
+    ap.add_argument("--datadir", default=os.environ.get("ORCA_DATADIR", ""),
+                    help="the running app's data directory (default: $ORCA_DATADIR, else the "
+                         "platform's own)")
     ap.add_argument("--step", type=int, default=20)
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--scale", action="store_true",
@@ -413,6 +407,9 @@ def main():
     ap.add_argument("--budget", type=float, default=2.0,
                     help="seconds; the slowest round trip a scale drawing may take")
     a = ap.parse_args()
+
+    global APP
+    APP = orca_mcp.OrcaMcp.from_datadir(a.datadir)
 
     files = {}
     for f in glob.glob(os.path.join(a.corpus, "MPD*.pdf")):

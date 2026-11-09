@@ -15,37 +15,29 @@ Every rung asserts those. Area appears only as a cross-check, never as the verdi
 
 Entirely 2D: sketch entities only, no extrude, revolve or any solid feature.
 
-    ORCA_CAD_MCP=/tmp/mcp.sock <binary>
-    python3 scripts/CAD/check-sketch-engine.py [socket]
+Run it against a running app started with --mcp and the CAD feature on, for example:
+
+    python3 tools/mcp/orca_mcp.py launch --cad --datadir <datadir>
+    python3 scripts/CAD/check-sketch-engine.py [datadir]
+
+datadir is the running app's data directory (default: $ORCA_DATADIR, else the platform's own); the
+script finds the app's MCP server through the port it writes to <datadir>/mcp/server.json.
 
 Exit 0 = every rung held. Otherwise the first broken property is named and the run stops.
 """
-import json, math, socket, sys
+import math, os, sys
 
-SOCK = sys.argv[1] if len(sys.argv) > 1 else "/tmp/mcp.sock"
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tools", "mcp"))
+import orca_mcp  # noqa: E402
+
+DATADIR = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("ORCA_DATADIR", "")
+APP = orca_mcp.OrcaMcp.from_datadir(DATADIR)
 EPS = 1e-9
-_n = 0
 _fail = 0
 
 
 def call(method, **params):
-    global _n
-    _n += 1
-    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.settimeout(30)
-    s.connect(SOCK)
-    s.sendall((json.dumps({"jsonrpc": "2.0", "id": _n, "method": method,
-                           "params": params}) + "\n").encode())
-    buf = b""
-    while b"\n" not in buf:
-        d = s.recv(65536)
-        if not d:
-            break
-        buf += d
-    r = json.loads(buf.decode().strip())
-    if "error" in r:
-        raise RuntimeError(f"{method}: {r['error']['message']}")
-    return r["result"]
+    return APP.call_cad_tool(method, **params)
 
 
 def check(kind, cond, what):
