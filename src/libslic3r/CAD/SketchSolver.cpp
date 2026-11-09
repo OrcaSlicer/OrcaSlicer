@@ -577,6 +577,13 @@ static int natural_dof(const SketchEntity& e)
     return 0;
 }
 
+int sketch_unconstrained_dof(const std::vector<SketchEntity>& entities)
+{
+    int dof = 0;
+    for (const SketchEntity& e : entities) dof += natural_dof(e);
+    return dof;
+}
+
 static SketchSolveResult solve_partitioned(std::vector<SketchEntity>& entities,
                                            const std::vector<SketchEntityConstraintDef>& constraints,
                                            int dragged_ei, Role dragged_role)

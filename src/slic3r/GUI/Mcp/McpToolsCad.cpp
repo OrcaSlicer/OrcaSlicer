@@ -50,6 +50,7 @@
 
 #include "libslic3r/CAD/CadDocument.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"
+#include "libslic3r/CAD/SketchSolver.hpp"
 #include "libslic3r/CAD/GeometryEngine.hpp"
 #include "libslic3r/CAD/ThreadStandards.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -2949,6 +2950,14 @@ std::vector<int> sketch_targets(const json& params, DesignSketchTool& t, bool al
     return out;
 }
 
+// The open sketch's degrees of freedom, as a reply's dof. The sketch tool keeps -1 while it has no
+// constraints, since it runs no solve then and its own readout stays hidden; the count is still
+// known, and it is the one a solve would give once a constraint arrives.
+int sketch_dof(const DesignSketchTool& t)
+{
+    return t.constraints().empty() ? sketch_unconstrained_dof(t.entities()) : t.dof();
+}
+
 // A sketch's loops. Their indices are the ones extrude's `loop` takes: a region lists the loops
 // inside it under `holes`, and each of those is a loop of its own.
 json sketch_report(const DesignSketchTool::LoopReport& rep)
@@ -3075,7 +3084,7 @@ json action_sketch_offset(DesignPanel* panel, const json& params)
     if (out.empty()) throw std::runtime_error("offset produced nothing (ellipses and splines are not offset)");
     const int base = t.add_entities_scripted(out);
     panel->mcp_viewport()->request_repaint();
-    return json{{"ok", true}, {"first_index", base}, {"added", int(out.size())}, {"dof", t.dof()}};
+    return json{{"ok", true}, {"first_index", base}, {"added", int(out.size())}, {"dof", sketch_dof(t)}};
 }
 
 json action_sketch_mirror(DesignPanel* panel, const json& params)
@@ -3096,7 +3105,7 @@ json action_sketch_mirror(DesignPanel* panel, const json& params)
     const auto out = SketchEngine::mirror_entities(src, a, b);
     const int base = t.add_entities_scripted(out);
     panel->mcp_viewport()->request_repaint();
-    return json{{"ok", true}, {"first_index", base}, {"added", int(out.size())}, {"dof", t.dof()}};
+    return json{{"ok", true}, {"first_index", base}, {"added", int(out.size())}, {"dof", sketch_dof(t)}};
 }
 
 // The `sketch` a CAD tool reads or builds from: a Sketch feature, or a Project feature, whose
@@ -3143,7 +3152,7 @@ json action_sketch_describe(DesignPanel* panel, const json& params)
     json out{{"ok", true},
              {"entities", ents},
              {"constraints", int(t.constraints().size())},
-             {"dof", t.dof()},
+             {"dof", sketch_dof(t)},
              {"solve_ok", t.solve_ok()},
              {"tool", (mi >= 0 && mi < int(sizeof(kModeNames) / sizeof(kModeNames[0])))
                           ? kModeNames[mi] : "unknown"},
@@ -3158,7 +3167,7 @@ json action_sketch_validate(DesignPanel* panel, const json& params)
 {
     DesignSketchTool& t = mcp_sketch(panel);
     const double tol = params.value("tolerance", 1e-3);
-    json out{{"ok", true}, {"tolerance", tol}, {"dof", t.dof()}, {"solve_ok", t.solve_ok()}};
+    json out{{"ok", true}, {"tolerance", tol}, {"dof", sketch_dof(t)}, {"solve_ok", t.solve_ok()}};
     out.update(sketch_report(t.loop_report()));
     return out;
 }
@@ -3171,7 +3180,7 @@ json action_sketch_heal(DesignPanel* panel, const json& params)
     const int welded = t.heal_coincidences(tol, ic);
     panel->mcp_viewport()->request_repaint();
     json out{{"ok", true}, {"welded", welded}, {"tolerance", tol},
-             {"dof", t.dof()}, {"solve_ok", t.solve_ok()}};
+             {"dof", sketch_dof(t)}, {"solve_ok", t.solve_ok()}};
     out.update(sketch_report(t.loop_report()));
     return out;
 }
@@ -3227,7 +3236,7 @@ json action_sketch_set_value(DesignPanel* panel, const json& params)
     panel->mcp_viewport()->request_repaint();
 
     json out{{"ok", true}, {"kind", kind_name}, {"before", before}, {"value", value},
-             {"dof", t.dof()}, {"solve_ok", t.solve_ok()}};
+             {"dof", sketch_dof(t)}, {"solve_ok", t.solve_ok()}};
     out.update(sketch_report(t.loop_report()));
     return out;
 }
@@ -4263,7 +4272,7 @@ int constraints_on(const std::vector<SketchEntityConstraintDef>& cons, int e)
 json solve_state(const DesignSketchTool& t)
 {
     return json{{"entities", int(t.entities().size())}, {"constraints", int(t.constraints().size())},
-                {"dof", t.dof()}, {"solve_ok", t.solve_ok()}};
+                {"dof", sketch_dof(t)}, {"solve_ok", t.solve_ok()}};
 }
 
 // One item of sketch_add: entities added as given (`tool` Select), or a shape a drawing tool builds
@@ -4398,7 +4407,7 @@ json sketch_add(DesignSketchTool& t, const json& params)
         }
     }
     return json{{"ok", true}, {"first_index", before}, {"added", int(t.entities().size()) - before},
-                {"shapes", std::move(shapes)}, {"entities", int(t.entities().size())}, {"dof", t.dof()}};
+                {"shapes", std::move(shapes)}, {"entities", int(t.entities().size())}, {"dof", sketch_dof(t)}};
 }
 
 // sketch_fillet and sketch_chamfer: the Fillet and Chamfer tools on two picked lines.
@@ -4702,7 +4711,7 @@ json sketch_constrain(DesignSketchTool& t, const json& params)
     const int                                    first = t.constrain_scripted(defs);
     if (first < 0)
         throw std::runtime_error("over-constrained: " + param(params, "type").get<std::string>() +
-                                 " was rejected and rolled back (dof " + std::to_string(t.dof()) + ")");
+                                 " was rejected and rolled back (dof " + std::to_string(sketch_dof(t)) + ")");
     json added = json::array(), items = json::array();
     for (int i = first; i < int(t.constraints().size()); ++i) {
         added.push_back(i);

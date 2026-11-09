@@ -2509,6 +2509,30 @@ TEST_CASE("a loop reports the area it encloses whichever way it runs", "[Mcp][CA
     }
 }
 
+TEST_CASE("a sketch with no constraints reports every entity's own degrees of freedom", "[Mcp][CAD]")
+{
+    GUI::DesignSketchTool tool;
+    begin_sketch(tool);
+    CHECK(sketch(tool, "sketch_constraints", json::object()).at("dof") == 0);   // nothing drawn, nothing free
+
+    // A circle: its centre and its radius.
+    json r = sketch(tool, "sketch_add", {{"type", "circle"}, {"center", {0, 0}}, {"radius", 5}});
+    REQUIRE(tool.constraints().empty());
+    CHECK(r.at("dof") == 3);
+    CHECK(sketch(tool, "sketch_constraints", json::object()).at("dof") == 3);
+
+    // An arc beside it: its centre and two ends, the ends held at one radius.
+    r = sketch(tool, "sketch_add", {{"type", "arc"}, {"center", {20, 0}}, {"radius", 3}, {"start_angle_deg", 0}, {"end_angle_deg", 90}});
+    REQUIRE(tool.constraints().empty());
+    CHECK(r.at("dof") == 3 + 5);
+
+    // A horizontal line brings the first constraint, and the solver's count agrees: the curves
+    // keep their 8, and the line has 3 of its 4 left.
+    r = sketch(tool, "sketch_add", {{"type", "line"}, {"p0", {0, 20}}, {"p1", {10, 20}}});
+    REQUIRE(tool.constraints().size() == 1);
+    CHECK(r.at("dof") == 3 + 5 + 3);
+}
+
 TEST_CASE("constraints are planned from picks as the CONSTRAIN bar does, or taken from refs as written", "[Mcp][CAD]")
 {
     using T = SketchConstraintType;

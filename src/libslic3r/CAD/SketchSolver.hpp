@@ -39,6 +39,11 @@ SketchSolveResult sketch_solve_drag(std::vector<SketchEntity>& entities,
                                     const std::vector<SketchEntityConstraintDef>& constraints,
                                     int dragged_ei, SketchPointRole dragged_role);
 
+// The degrees of freedom `entities` have with no constraint on them, counted as a solve counts them
+// (an ellipse is only its centre to the solver). sketch_solve answers -1 for an empty constraint
+// list, since it does not run then; this is the count such a sketch has.
+int sketch_unconstrained_dof(const std::vector<SketchEntity>& entities);
+
 } // namespace Slic3r
 
 #endif
