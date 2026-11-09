@@ -2,36 +2,37 @@
 
 Everything here supports the parametric Design tab (`src/libslic3r/CAD/`,
 `src/slic3r/GUI/CAD/`). Nothing here is needed to build or run OrcaSlicer — these
-are the development and verification tools for that one feature.
+are the development and verification tools for that one feature. The kernel's own unit
+tests are not here: they are part of `libslic3r_tests` and run under `ctest` like any
+other suite.
 
-The verb in the name is the role:
+## Checks against a running app
 
-| | |
-|---|---|
-| `build-…`  | produce a binary |
-| `start-…`  | bring something up and leave it running |
-| `run-…`    | run a suite and report pass/fail |
-| `check-…`  | one specific assertion, usually driving a live app |
+Three checks drive the Design tab through the app's MCP server, with the same CAD tools an
+agent calls, and compare what the app reports with arithmetic. Each needs a running
+OrcaSlicer with the MCP server on (`--mcp`, or "MCP server" under AI features in
+Preferences) and the CAD feature on (Preferences > Features, read at startup).
+`tools/mcp/orca_mcp.py launch --cad` starts one with both. A check finds the app through
+its data directory, where the server writes its port and token: the one passed to the check,
+else `$ORCA_DATADIR`, else the platform's own (`tools/mcp/README.md` describes attaching).
+They run on Windows, macOS and Linux, and exit 0 when every assertion held.
 
-## Verification
-
-| Script | What it proves | Needs |
+| Check | What it proves | Run it |
 |---|---|---|
-| `run-kernel-tests.sh` | The CAD kernel builds and the Catch2 `[CadDocument]` tags pass — every case builds a document, recomputes it and asserts on real geometry. **Exit 0 is the verification contract.** | Docker only. No display. |
-| `run-all-checks.sh` | Every check below, in one command. The gate before pushing a Design-tab change. | Docker + the GUI container |
-| `check-sketch-engine.py` | A ladder of 2D sketches of increasing complexity, judged on loop count, closure and void attribution rather than on area. | Kernel only |
-| `check-sketch-engine-corpus.py` | The same ladder graded against a systematic sample of real drawings instead of shapes we chose. | Kernel + corpus |
-| `check-gui-sketching.py` | The same profiles drawn the way a person draws them — synthetic mouse gestures and typed values. | Headless GUI |
-| `check-gui-context-menu.py` | That right-click is the pivot of the design gesture, and adapts to what was clicked. | Headless GUI |
-| `check-mcp-sketch.py` | The sketch layer driven over the MCP socket, asserting what decides whether a profile is buildable. | Headless GUI + `ORCA_CAD_MCP` |
+| `check-mcp-sketch.py` | The sketch layer, asserting what decides whether a profile is buildable: closed loops, offsets that survive, a circle read as a void rather than a second body. | `python3 scripts/CAD/check-mcp-sketch.py [datadir]` |
+| `check-sketch-engine.py` | A ladder of 2D sketches of increasing complexity, judged on vertices, lengths, radii, tangency, symmetry and closure rather than on area. | `python3 scripts/CAD/check-sketch-engine.py [datadir]` |
+| `check-sketch-engine-corpus.py` | The same ladder graded against real drawings: a systematic sample of the StudyCadCam sheets, each judged against its own vector geometry. | `python3 scripts/CAD/check-sketch-engine-corpus.py --corpus DIR [--datadir DIR] [--step N] [--limit N] [--scale]` |
 
-**`run-kernel-tests.sh` is the only one CI can run.** The rest need a live
-application with an OpenGL canvas and synthetic input, which hosted runners do not
-have. The kernel suite itself is already in CI by an ordinary route: the cases are
-registered in `tests/libslic3r/CMakeLists.txt` under `if (SLIC3R_CAD)`, so they are
-part of `libslic3r_tests` and run under `ctest` on every platform like any other
-unit test. This script exists for the local loop, where it is a two-minute round
-trip instead of a full application build.
+For example:
+
+    python3 tools/mcp/orca_mcp.py launch --cad --datadir <datadir>
+    python3 scripts/CAD/check-sketch-engine.py <datadir>
+    python3 tools/mcp/orca_mcp.py stop
+
+The corpus check takes the folder of `MPD*.pdf` sheets, which is not in the repository, and
+reads them with poppler's `pdftocairo` and `pdfinfo`, which must be on the PATH. It grades
+every 20th sheet by default (`--step`); `--scale` grades the largest drawings instead, each
+round trip within `--budget` seconds.
 
 ## Generated sources
 
@@ -41,28 +42,33 @@ compiled against it cannot drift apart:
 | Generator | Source | Output |
 |---|---|---|
 | `gen_offer_table.py` | `tool_atlas.json` — every offer verb with its row, key, icon, accepted selections and refusal string | `src/slic3r/GUI/CAD/DesignOffer.hpp` |
-| `mate-glyph/emit_glyph_table.py` | `mate-glyph/bear_outline.json`, measured off `mate-glyph/bear.step` by `extract_outline.py` (needs FreeCAD) | the `kBear…` tables in `DesignSketchTool.cpp` |
+| `mate-glyph/emit_glyph_table.py` | `mate-glyph/bear_outline.json`, measured off `mate-glyph/bear.step` by `extract_outline.py` | the `kBear…` tables in `DesignSketchTool.cpp` |
 
 `python3 scripts/CAD/gen_offer_table.py` rewrites the header and `--check` proves the
-checked-in one matches the atlas — `run-all-checks.sh` runs the check as its first rung,
-which is what makes the header's "GENERATED — DO NOT EDIT" enforceable. Edit the atlas,
-never the header.
+checked-in one matches the atlas. The "Check CAD offer table" workflow
+(`.github/workflows/check_cad_offer_table.yml`) runs the check on every push and pull
+request that touches the atlas, the generator or the header, which is what makes the
+header's "GENERATED — DO NOT EDIT" enforceable. Edit the atlas, never the header.
 
-## Build and run
+`mate-glyph/` holds the bear connector the mate glyph is drawn from. `extract_outline.py`
+runs in FreeCAD's Python (it reads the STEP with `Part`) and writes `bear_outline.json`.
+`emit_glyph_table.py` runs in plain Python and simplifies that outline into the C++ tables,
+printing them and writing them to `bear_glyph_table.h` beside it; `DesignSketchTool.cpp`
+holds them as emitted.
 
-| Script | Purpose |
+## GUI checks
+
+`check-gui-sketching.py`, `check-gui-context-menu.py` and `check-gui-click-edit.py` drive
+the app the way a person does, with synthetic mouse and keyboard input from `xdotool` on an
+X display, and grade what the Design tab did. The display needs a window manager (on Xvfb,
+openbox for example): without one no window takes focus, and an unfocused GTK app ignores
+synthetic keys.
+
+| Check | What it proves |
 |---|---|
-| `build-gui.sh` | Build the GUI binary in a throwaway container, writing into the build-cache volume the long-lived GUI container reads. |
-| `build-gui-incremental.sh` | Incremental build against the deps-baked image, for a fast edit/compile loop. |
-| `start-headless-gui.sh` | Bring the app up on a headless X display (Xvfb + a window manager), ready to drive or attach to over VNC. |
+| `check-gui-sketching.py` | The engine ladder's profiles drawn the way a person draws them, with mouse gestures and values typed into the in-canvas field. |
+| `check-gui-context-menu.py` | Right-click opens the offer, which adapts to what was clicked and shows exactly the verbs `DesignOffer.hpp` says apply. Grades the app's `ORCA_CAD_KEYTRACE=1` trace. |
+| `check-gui-click-edit.py` | A value field that opens takes what is typed into it at once, without a click into the field. Grades the app's `ORCA_CAD_UXTRACE=1` trace. |
 
-Two constraints that are not obvious and have each cost a session:
-
-- **Never build inside the GUI container.** Its baked source tree silently
-  reconfigures the shared build directory and this fork's targets vanish.
-- **A window manager is required.** Without one, windows are never focused, and an
-  unfocused GTK app ignores synthetic keys — which looks exactly like a code bug.
-
-`scripts/CAD/rig_build_traps.md` documents these and three more, with symptoms and exact
-recovery commands. Read it before debugging a configure or link failure one of
-these scripts reports.
+They read the results back through a local socket the app does not open, so none of them runs
+until it reads them through the MCP server like the checks above.

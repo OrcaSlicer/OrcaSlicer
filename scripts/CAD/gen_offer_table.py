@@ -195,8 +195,9 @@ def main():
     ]
     text = "\n".join(lines)
     # --check: prove the checked-in header IS what this generator produces, and change nothing.
-    # The header calls itself GENERATED and was hand-edited anyway; a claim like that is only
-    # worth having if something enforces it, so run-all-checks.sh runs this on every gate.
+    # The header calls itself GENERATED; a claim like that is only worth having if something
+    # enforces it, so the check_cad_offer_table.yml workflow runs this on every push and pull
+    # request that touches the atlas, this generator or the header.
     if "--check" in sys.argv:
         have = open(OUT, encoding="utf-8").read() if os.path.exists(OUT) else ""
         if have == text:

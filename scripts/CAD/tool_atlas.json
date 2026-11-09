@@ -6,7 +6,7 @@
     "  verbs + shortcuts + refusal messages -> src/slic3r/GUI/CAD/DesignPanel.cpp (feat_dropdown",
     "    call sites at 524/662/734/790/874/904, sk_key table at 369-400, m_keys_feature)",
     "  kernel coverage            -> src/libslic3r/CAD/CadDocument.hpp  (enum CadFeatureType)",
-    "  headless coverage          -> src/slic3r/GUI/CAD/McpControl.cpp  (method == \"...\")",
+    "  headless coverage          -> src/slic3r/GUI/Mcp/McpToolsCad.cpp (the CAD tool table)",
     "  selection kinds            -> src/slic3r/GUI/CAD/DesignCanvas.hpp (the on_*_selected callbacks)",
     "gen_offer_table.py emits src/slic3r/GUI/CAD/DesignOffer.hpp from this file, so the map",
     "exists once. Edit the atlas and regenerate; never hand-edit the header."

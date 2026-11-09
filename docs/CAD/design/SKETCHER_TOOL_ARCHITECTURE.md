@@ -305,9 +305,9 @@ codebase. Current state, verified:
   support exists, no GUI path yet (row shows disabled)"*, so the row renders as
   **"Measure (no GUI route)"** and is permanently disabled (`DesignPanel.cpp:6519`). With no
   refusal in the row, it contributes nothing to the family's "why" line either.
-- The maths exists, for MCP callers only: `resolve_ref` + `measure` (`McpControl.cpp:522`, `:546`)
-  — refs `{face|edge|point}`, distance = `|pa - pb|` of **representative points** (face centroid,
-  edge mid-sample), angle = `acos(da·db)` when both refs carry a direction.
+- The maths exists, for MCP callers only: the `measure` CAD tool (`cad_measure` in
+  `Mcp/McpToolsCad.cpp`) — refs `{face|edge|point}`, distance = `|pa - pb|` of **representative
+  points** (face centroid, edge mid-sample), angle = `acos(da·db)` when both refs carry a direction.
 - The correct OCCT primitive is already linked and already used: `BRepExtrema_DistShapeShape`
   (`GeometryEngine.cpp:31`, `:457`).
 - The Prepare tab ships a full measure gizmo — `GLGizmoMeasure` (`src/slic3r/GUI/Gizmos/`) over
@@ -439,12 +439,11 @@ gesture has already added a constraint, and nothing says so).
 
 **`apply_dimension` records a poison value.** Its per-case thresholds move nothing for
 `v <= 0` (Length/Diameter/Radius, `:611-613`) or `v < 0` (Distance/DistanceToLine, `:622`, `:639`) —
-and then `record_dimension_constraint(v)` runs **unconditionally** (`:659`). The file's own sibling
-says it best, at the socket boundary: *"a negative/zero/NaN value that moved nothing would still be
-pushed to the solver as a constraint it must satisfy and cannot, silently corrupting the sketch
-rather than failing. (`apply_dimension` has the same flaw for any other caller; this guard protects
-the socket, not the tool.)"* (`McpControl.cpp:1572-1577`). So the agent surface validates and the GUI
-does not — the GUI is the less safe caller of its own function.
+and then `record_dimension_constraint(v)` runs **unconditionally** (`:659`). A negative, zero or NaN
+value that moved nothing is still pushed to the solver as a constraint it must satisfy and cannot,
+silently corrupting the sketch rather than failing. The `sketch_set_value` CAD tool
+(`Mcp/McpToolsCad.cpp`) refuses such a value before it calls `apply_dimension`. So the agent surface
+validates and the GUI does not — the GUI is the less safe caller of its own function.
 
 **`record_dimension_constraint` never dedupes at all.** It `push_back`s unconditionally
 (`:674`, `:684`, `:691`, `:700`), so applying the selection-path dimension twice leaves **two**
@@ -523,8 +522,8 @@ Three rules the type enforces, each closing a defect above:
    contradiction you can see. `drive == Reference` renders `measured` only, and the palette is the
    one already in the tab (green quote = measured, driving colour = driven).
 2. **`apply(value)` returns a `WriteOutcome`** (`Ok | ClampedTo | Refused`, the base-operator type
-   from §0.2) — the same type for the solver path, the geometric path and the socket. The socket
-   guard already written in `McpControl.cpp:1572-1577` moves *into* `apply`, so the GUI cannot be the
+   from §0.2) — the same type for the solver path, the geometric path and the MCP server. The guard
+   `sketch_set_value` runs in `Mcp/McpToolsCad.cpp` moves *into* `apply`, so the GUI cannot be the
    unsafe caller of its own function any more. `Refused` keeps the field open with the typed text
    and the reason, which is also what makes the `Coincident`-flip reversible: the dimension keeps
    its `type` and only its value changes.

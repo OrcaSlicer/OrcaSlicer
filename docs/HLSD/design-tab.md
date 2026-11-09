@@ -347,25 +347,37 @@ An invariant across 93 verbs and 20 selection kinds does not survive by review, 
 exists once, as data: `scripts/CAD/tool_atlas.json` carries every verb with its row, key, icon,
 accepted selections, preconditions and refusal string, and `scripts/CAD/gen_offer_table.py`
 emits `src/slic3r/GUI/CAD/DesignOffer.hpp` from it. The header is checked in and never
-hand-edited; `scripts/CAD/run-all-checks.sh` runs the generator with `--check` as its first
-rung, which is what makes "GENERATED — DO NOT EDIT" a fact rather than a request. The generator
-also refuses an atlas with a duplicate verb id, since `mcp_run_verb` resolves a verb by id and
-would make the second one unreachable.
+hand-edited; the `check_cad_offer_table.yml` workflow runs the generator with `--check` on every
+push and pull request that touches the atlas, the generator or the header, which is what makes
+"GENERATED — DO NOT EDIT" a fact rather than a request. The generator also refuses an atlas with a
+duplicate verb id, since `mcp_run_verb` resolves a verb by id and would make the second one
+unreachable.
 
 The atlas and its generator sit in `scripts/CAD/` rather than in `docs/`: they are build inputs
 for a checked-in header, not documentation.
 
 ## Automation surface
 
-`McpControl` exposes the document over JSON-RPC when `ORCA_CAD_MCP` is set in the environment,
-with `tools/orca_cad_mcp_bridge.py` as the client side, and to the app's MCP server through its
-`call_cad_tool` tool on every platform. It describes the scene, queries topology, measures, and runs
-the same verbs the offer does — it re-implements nothing, so a scripted action and a clicked one
-cannot diverge. The socket is off unless the variable is set. Where a GUI action is bound to a
-selection, a card or a dialog, its work is split into a function both callers share, and the
-automation calls that function with explicit arguments instead of driving the widgets.
+The document is automated through the app's MCP server, on every platform, with three tools:
+`list_cad_tools` lists the Design tab's CAD tools, `describe_cad_tool` gives a CAD tool's arguments,
+how its failure shows and runnable examples, and `call_cad_tool {tool, args}` runs one. The CAD
+tools (`Mcp/McpToolsCad.*`) describe the scene, query topology, measure, and run the same verbs the
+offer does — they re-implement nothing, so a scripted action and a clicked one cannot diverge. Where
+a GUI action is bound to a selection, a card or a dialog, its work is split into a function both
+callers share, and the CAD tool calls that function with explicit arguments instead of driving the
+widgets.
 
-Its methods add features through the kernel calls the cards use, named as the cards name them,
+`call_cad_tool` needs the MCP server on (`--mcp`, or Preferences) and the CAD feature on
+(Preferences > Features, read only at startup); with the feature off it is refused, and the two
+inspect tools still answer, with a note on how a person turns it on. A call is refused (`-32002`)
+while the Design tab is busy: a `change` CAD tool does not run under an open feature card or sketch
+session, nor a `change` or `sketch` one during a body Move, nor any while a rebuild owns the
+document. Face and edge ids name faces and edges of the current model, and a rebuild renumbers
+them while a stale id still names a real face or edge, so the replies carry the model's
+`generation`: a call that passes ids with the `generation` they were read at is refused (`-32010`)
+once the model has moved on, rather than acting on another face or edge.
+
+The CAD tools add features through the kernel calls the cards use, named as the cards name them,
 one checkpoint per call. A rebuild that fails is taken back with `CadDocument::rollback()`, which
 leaves nothing to redo, and the status line says "Edit rejected" as it does for a refused GUI
 edit; the call reports the kernel's reason. Planes are named as in the cards: a
@@ -400,7 +412,7 @@ a value field is pending.
 Topology reads come from the kernel: `GeometryEngine::surface_info()` gives a face's surface type,
 area and analytic numbers, `edge_faces()` the faces along each edge, `edge_convexity()` whether
 two faces meet in an outside or inside corner (OCCT's fillet classification), and
-`min_distance()` the closest points of two shapes. The Plane card's Confirm and the `plane` method
+`min_distance()` the closest points of two shapes. The Plane card's Confirm and the `plane` CAD tool
 share `CadDocument::datum_plane_refusal()`, which refuses a construction that is missing a
 reference, names a face or edge no longer on the model, or puts a tangent plane on a face that is
 not a cylinder, so neither reaches the kernel's silent fallback to an offset plane; a refused
@@ -420,7 +432,7 @@ clicks and drags it at pixels, so a left click picks and a right click opens the
 `wxEVT_CHAR_HOOK` as a real key press does, travelling up from the focused widget, so Escape,
 Enter and the tool shortcuts behave as they do for a person.
 
-`docs/HLSD/mcp-server.md` describes the method table, access rules, error convention and replay
+`docs/HLSD/mcp-server.md` describes the CAD tool table, access rules, error convention and replay
 tests.
 
 ## Where the code lives
@@ -436,7 +448,7 @@ tests.
 | `src/slic3r/GUI/CAD/DesignRowList.*` | the Feature tree and Bodies lists, with per-row actions |
 | `src/slic3r/GUI/CAD/DesignCanvas.*` | viewport integration |
 | `src/slic3r/GUI/CAD/DesignSketchTool.*` | in-canvas sketching |
-| `src/slic3r/GUI/Mcp/McpToolsCad.*` | the automation surface: the method table, shared by `call_cad_tool` and the socket |
+| `src/slic3r/GUI/Mcp/McpToolsCad.*` | the automation surface: the CAD tool table behind the MCP server's `list_cad_tools`, `describe_cad_tool` and `call_cad_tool` |
 | `src/slic3r/GUI/CAD/DesignInteraction.hpp` | the Esc level contract |
 | `src/slic3r/GUI/CAD/DesignOffer.hpp` | generated offer table |
 | `scripts/CAD/tool_atlas.json` | source of truth for the offer |
@@ -445,15 +457,25 @@ tests.
 
 The kernel is covered by Catch2 suites in `tests/libslic3r/` (`test_caddocument`,
 `test_sketchconstraints`, `test_sketchedit`, `test_sketchimport`, `test_sketchinference`,
-`test_sketchprofile`, `test_slvs_constraints`), which need no display;
-`scripts/CAD/run-kernel-tests.sh` builds only `libslic3r_tests` and runs them headless.
+`test_sketchprofile`, `test_slvs_constraints`), which need no display. They are part of
+`libslic3r_tests` in a CAD build and run under `ctest` and CI like any other suite;
+`libslic3r_tests "[CadDocument]"` runs the document's cases.
 
-The GUI half is not covered by CI, which has no OpenGL canvas or synthetic input: the ladders
-in `scripts/CAD/` drive a running application in a local rig instead, and
-`scripts/CAD/run-all-checks.sh` is the gate that runs all of them. A green kernel run says
-nothing about the viewport, so the two are reported separately rather than as one number.
+The automation surface has its own checks. `slic3rutils_tests "[Mcp][CAD]"`
+(`tests/slic3rutils/test_mcp_cad.cpp`) runs the CAD tools' argument checks and kernel calls on a
+`CadDocument` or a bare `DesignSketchTool`, with no panel, and checks the table itself: a row per
+dispatched CAD tool, the summaries, and examples that call only real CAD tools with the arguments
+they declare. On a live application launched with `tools/mcp/orca_mcp.py launch --cad`, the replays
+`tools/mcp/tests/cad_*.json` drive `call_cad_tool`, the live tests `tools/mcp/test_cad_replay.py`,
+`test_cad_slow_build.py` and `test_cad_failed_job.py` cover journaling and replay, the app staying
+live through a long rebuild, and a call whose job fails after its reply, and
+`tools/mcp/test_cad_examples.py` runs every CAD tool's examples, each on a fresh design.
 
-The automation surface has its own checks: `tests/slic3rutils/test_mcp_cad.cpp` runs the methods'
-argument checks and kernel calls on a `CadDocument` or a bare `DesignSketchTool`, with no panel, and
-the replays `tools/mcp/tests/cad_*.json` run the methods on a live application through
-`call_cad_tool`, launched with `tools/mcp/orca_mcp.py launch --cad`.
+Three checks in `scripts/CAD/` drive a running app through its MCP server as an agent does and
+grade the sketch layer against arithmetic: `check-mcp-sketch.py`, `check-sketch-engine.py` and
+`check-sketch-engine-corpus.py`, which grades it against the vector geometry of real drawings.
+They need the MCP server and the CAD feature on and run on every platform, but not in CI, which
+runs no application. `scripts/CAD/README.md` says how to run each.
+
+The offer table is checked in CI: the `check_cad_offer_table.yml` workflow fails when
+`DesignOffer.hpp` is not what `gen_offer_table.py` makes of `tool_atlas.json`.
