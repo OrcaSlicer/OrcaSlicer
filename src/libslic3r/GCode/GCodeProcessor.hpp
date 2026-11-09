@@ -15,6 +15,7 @@
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/GCode/ExclusionVolumePathCheck.hpp"
 #include "libslic3r/GCode/MachineFrameTransform.hpp"
+#include "libslic3r/GCode/ConflictResult.hpp"
 
 #include <cstddef>
 #include <cassert>
@@ -155,22 +156,6 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             total_seam_scarf_distance = 0.0f;
         }
     };
-
-    struct ConflictResult
-    {
-        std::string        _objName1;
-        std::string        _objName2;
-        double             _height;
-        const void *_obj1; // nullptr means wipe tower
-        const void *_obj2;
-        int                layer = -1;
-        ConflictResult(const std::string &objName1, const std::string &objName2, double height, const void *obj1, const void *obj2)
-            : _objName1(objName1), _objName2(objName2), _height(height), _obj1(obj1), _obj2(obj2)
-        {}
-        ConflictResult() = default;
-    };
-
-    using ConflictResultOpt = std::optional<ConflictResult>;
 
     struct GCodeCheckResult
     {
