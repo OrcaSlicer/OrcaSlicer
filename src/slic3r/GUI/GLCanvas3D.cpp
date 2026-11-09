@@ -2019,6 +2019,8 @@ ModelInstanceEPrintVolumeState GLCanvas3D::check_volumes_outside_state(ObjectFil
     return state;
 }
 
+static constexpr double SECTION_VIEW_START_RATIO = 0.5;
+
 void GLCanvas3D::set_section_view_ratio(double ratio)
 {
     ratio = std::clamp(ratio, 0., 1.);
@@ -2038,7 +2040,7 @@ void GLCanvas3D::set_section_view_ratio(double ratio)
 void GLCanvas3D::toggle_section_view()
 {
     const double last_ratio = m_section_view->last_ratio;
-    set_section_view_ratio(is_section_view_active() ? 0. : last_ratio > 0. ? last_ratio : 0.5);
+    set_section_view_ratio(is_section_view_active() ? 0. : last_ratio > 0. ? last_ratio : SECTION_VIEW_START_RATIO);
 }
 
 void GLCanvas3D::align_section_view_to_camera()
@@ -2601,6 +2603,11 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     }
 
     camera.apply_projection(_max_bounding_box(true, true, true));
+
+    if (m_section_view->follow_camera && is_section_view_active() && m_section_view->normal != -camera.get_dir_forward()) {
+        align_section_view_to_camera();
+        scene_dirty = true;
+    }
 
     const ImGuiID active_id = ImGui::GetActiveID();
     wxGetApp().imgui()->new_frame();
@@ -6444,8 +6451,8 @@ void GLCanvas3D::update_compacted_wipe_tower_clearance()
     // the moment that object goes over its limit - which is what makes the pair worth drawing at all.
     // The tier is per object, so a short object gets the narrow nozzle outline rather than the wide
     // body one it is not subject to; without that, a 3 mm object parked beside the tower would be drawn
-    // deep inside the keep-out ring while passing the check. Only the instances that already exceed
-    // allowed_rise also get a height limit plane.
+    // deep inside the keep-out ring while passing the check. Only the instances the validation refuses,
+    // next to the nozzle or within the toolhead radius, also get a height limit plane.
     Polygons                               outlines;
     std::vector<std::pair<Polygon, float>> height_polygons;
     bool                                   body_tier_used = false;
@@ -6460,15 +6467,17 @@ void GLCanvas3D::update_compacted_wipe_tower_clearance()
                 continue;
 
             // Same tiers and the same rise measured from the plate as
-            // Print::compacted_wipe_tower_clearance_valid(), so that the preview and the validation
-            // that follows it never contradict each other.
+            // Print::compacted_wipe_tower_clearance_valid(), so that the preview shows a height limit on
+            // the very objects the validation that follows refuses. Orca: like it, the preview leaves an
+            // object away from the toolhead to the check after slicing, which measures its rise from the
+            // tower as printed, so such an object gets no height limit plane.
             const double                  object_top = model_object->get_instance_max_z(i);
             const CompactedTowerClearance clearance  = compacted_wipe_tower_clearance(config, zone, inst_hull, object_top);
             body_tier_used                           = body_tier_used || compacted_tower_body_tier(clearance);
 
             const Polygon outline = compacted_wipe_tower_offender_outline(inst_hull, clearance.body_clearance);
             outlines.emplace_back(outline);
-            if (object_top <= clearance.allowed_rise + EPSILON)
+            if (! clearance.near_nozzle && ! clearance.near_body)
                 continue;
             height_polygons.emplace_back(outline, float(clearance.allowed_rise));
         }
@@ -11172,9 +11181,11 @@ void GLCanvas3D::_render_canvas_toolbar()
         (m_is_dark ? GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_SECTION_ACTIVE_DARK_HOVER : GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_SECTION_ACTIVE_HOVER) :
         (m_is_dark ? GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_SECTION_DARK_HOVER        : GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_SECTION_HOVER));
 
-    if (ImGui::ImageButton3(s_normal_id, s_hover_id, btn_size))
+    if (ImGui::ImageButton3(s_normal_id, s_hover_id, btn_size)) {
         m_section_view->panel_open = !m_section_view->panel_open;
-    else if (ImGui::IsItemHovered()) {
+        if (m_section_view->panel_open && !section_view)
+            set_section_view_ratio(SECTION_VIEW_START_RATIO);
+    } else if (ImGui::IsItemHovered()) {
         if (const float wheel = ImGui::GetIO().MouseWheel; wheel != 0.f)
             set_section_view_ratio(get_section_view_ratio() + (wheel < 0.f ? -0.01 : 0.01));
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
@@ -11436,18 +11447,28 @@ void GLCanvas3D::_render_section_view_panel(const ImVec2& bottom_left)
     ImGui::AlignTextToFramePadding();
     imgui.text(_L("Section view"));
 
-    float ratio = float(get_section_view_ratio());
+    float percent = float(get_section_view_ratio() * 100.);
     ImGui::SameLine();
     ImGui::SetNextItemWidth(imgui.scaled(7.f));
-    bool changed = imgui.bbl_slider_float_style("##section_view", &ratio, 0.f, 1.f, "%.2f", 1.0f, true);
+    bool changed = imgui.bbl_slider_float_style("##section_view", &percent, 0.f, 100.f, "%.1f%%", 1.0f, true);
+    bool hovered = ImGui::IsItemHovered();
     ImGui::SameLine();
-    ImGui::SetNextItemWidth(1.5f * imgui.get_slider_icon_size().x);
-    changed |= ImGui::BBLDragFloat("##section_view_input", &ratio, 0.05f, 0.0f, 0.0f, "%.2f");
-    if (changed)
-        set_section_view_ratio(ratio);
+    ImGui::SetNextItemWidth(ImGui::CalcTextSize("100.0%").x + 2.f * style.FramePadding.x);
+    changed |= ImGui::BBLDragFloat("##section_view_input", &percent, 1.f, 0.0f, 0.0f, "%.1f%%");
+    hovered |= ImGui::IsItemHovered();
+    if (const float wheel = ImGui::GetIO().MouseWheel; hovered && wheel != 0.f)
+        set_section_view_ratio(get_section_view_ratio() + (wheel < 0.f ? -0.01 : 0.01));
+    else if (changed)
+        set_section_view_ratio(percent / 100.);
 
     ImGui::SameLine();
+    imgui.disabled_begin(m_section_view->follow_camera);
     if (imgui.button(_L("Set viewing angle")))
+        align_section_view_to_camera();
+    imgui.disabled_end();
+
+    ImGui::SameLine();
+    if (imgui.bbl_checkbox(_L("Follow camera"), m_section_view->follow_camera))
         align_section_view_to_camera();
 
     imgui.disabled_begin(!is_section_view_active());
