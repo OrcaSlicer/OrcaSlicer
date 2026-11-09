@@ -240,14 +240,18 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
                     imgui.set_next_window_pos(lr[0] + lr[2] + 4.f * em, lr[1] + 0.5f * lr[3], ImGuiCond_Always, 0.f, 0.5f);   // beside the label, centred on it
                     imgui.begin(std::string("##label_confirm"), ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
                                 ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
-                    const float  s   = ImGui::GetFrameHeight();
-                    const ImVec4 acc = ImGuiWrapper::COL_ORCA;
+                    const float  s   = std::max(lr[3], 16.f * em);   // as tall as the label: a smaller square reads as a checkbox
                     const bool   can = !m_topbar.confirm_enabled || m_topbar.confirm_enabled();
                     auto glyph = [&](const char* id, bool check, bool enabled, const char* tip) {
                         if (!enabled) { ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true); ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f); }
-                        if (check) ImGui::PushStyleColor(ImGuiCol_Button, acc);
+                        // dark field-like fill, grey on hover (the look of the value field next to it)
+                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.11f, 0.15f, 0.22f, 1.f));
+                        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.42f, 0.42f, 0.42f, 1.f));
+                        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.30f, 0.30f, 0.30f, 1.f));
+                        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.f * em);
                         const bool clicked = ImGui::Button(id, ImVec2(s, s));
-                        if (check) ImGui::PopStyleColor();
+                        ImGui::PopStyleVar();
+                        ImGui::PopStyleColor(3);
                         const ImVec2 a = ImGui::GetItemRectMin(), b = ImGui::GetItemRectMax(), c((a.x + b.x) * 0.5f, (a.y + b.y) * 0.5f);
                         const float  u = s * 0.2f, th = std::max(1.5f, s * 0.09f);
                         const ImU32  col = check ? IM_COL32(255, 255, 255, 255) : ImGui::GetColorU32(ImGuiCol_Text);
