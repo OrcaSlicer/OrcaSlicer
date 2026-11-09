@@ -60,6 +60,30 @@ info, pngs = orca.images("screenshot", target="canvas")
 `images()` also returns the PNG bytes of the image blocks. `call_raw()` returns the MCP result
 unchanged.
 
+To drive an OrcaSlicer that is already running with the MCP server on (`--mcp`, or "MCP server"
+under AI features in Preferences), attach to it through its datadir instead of a port and token:
+
+```python
+orca = OrcaMcp.from_datadir()                        # the datadir the app uses without --datadir
+orca = OrcaMcp.from_datadir("/abs/datadir")          # an app started with --datadir /abs/datadir
+scene = orca.call_cad_tool("describe_scene")         # one CAD tool of the Design tab
+orca.call_cad_tool("helix", radius=10, pitch=3, height=30)
+```
+
+`from_datadir()` reads the port and token from `<datadir>/mcp/server.json`, which the server writes
+when it starts. Without a datadir it takes `default_datadir()`: `%APPDATA%\OrcaSlicer` on Windows,
+`~/Library/Application Support/OrcaSlicer` on macOS, `$XDG_CONFIG_HOME/OrcaSlicer` (or
+`~/.config/OrcaSlicer`) on Linux. A portable install keeps its datadir in `data_dir` beside the
+binary (beside the `.app` on macOS) and is found only when that datadir is given, or the binary as
+`from_datadir(exe=...)`. When the file is missing, or nothing answers on the port it names,
+`from_datadir()` raises `McpError` saying so.
+
+`call_cad_tool(tool, **args)` calls `call_cad_tool {tool, args}`, follows a running job to its end
+and returns the CAD tool's `result`. A dialog that blocks the call fails it at once, naming the
+dialog, rather than waiting on it. Every `McpError` it raises starts with the CAD tool's name
+(`"extrude: ..."`). `list_cad_tools` and `describe_cad_tool` name the CAD tools and their
+arguments.
+
 ## Smoke test
 
 `smoke_test.json` is an end-to-end replay that exercises the main paths against a fresh datadir:

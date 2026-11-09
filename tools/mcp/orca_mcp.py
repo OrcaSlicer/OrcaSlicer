@@ -3,7 +3,8 @@
 
 Standard library only. Two halves:
 
-* ``OrcaMcp``: a minimal client for the server's HTTP endpoint (``call(tool, **args)``).
+* ``OrcaMcp``: a minimal client for the server's HTTP endpoint (``call(tool, **args)``), which
+  ``OrcaMcp.from_datadir()`` attaches to an OrcaSlicer already running with the server on.
 * A command line that launches OrcaSlicer for an agent or a test and talks to it::
 
     tools/mcp/orca_mcp.py launch --xvfb             # fresh datadir, wait until ready, print client config
@@ -49,6 +50,28 @@ class McpError(RuntimeError):
         self.payload = payload
 
 
+def default_datadir(exe=None):
+    """The datadir OrcaSlicer uses without --datadir, as McpStdioBridge.cpp's default_datadir() picks it.
+
+    A portable install keeps it in data_dir beside the binary `exe` (beside the .app on macOS), which
+    is looked for only when `exe` is given; otherwise it is the platform's configuration folder."""
+    if exe:
+        folder = os.path.dirname(os.path.abspath(exe))
+        if sys.platform == "darwin":  # <folder>/OrcaSlicer.app/Contents/MacOS/<exe>
+            for _ in range(3):
+                folder = os.path.dirname(folder)
+        portable = os.path.join(folder, "data_dir")
+        if os.path.exists(portable):
+            return portable
+    if sys.platform == "win32":
+        base = os.environ.get("APPDATA", ".")
+    elif sys.platform == "darwin":
+        base = os.path.join(os.path.expanduser("~"), "Library", "Application Support")
+    else:
+        base = os.environ.get("XDG_CONFIG_HOME") or os.path.join(os.path.expanduser("~"), ".config")
+    return os.path.join(base, "OrcaSlicer")
+
+
 class OrcaMcp:
     def __init__(self, port=DEFAULT_PORT, token="", host="127.0.0.1", timeout=120):
         self.url = f"http://{host}:{port}/mcp"
@@ -56,6 +79,29 @@ class OrcaMcp:
         self.token = token
         self.timeout = timeout
         self._id = 0
+
+    @classmethod
+    def from_datadir(cls, datadir=None, exe=None):
+        """A client of the OrcaSlicer already running on `datadir` (default: default_datadir(exe)).
+
+        Its MCP server writes its port and token to <datadir>/mcp/server.json when it starts. Raises
+        McpError when that file is missing, or when nothing answers on the port it names."""
+        path = os.path.join(datadir or default_datadir(exe), "mcp", "server.json")
+        advice = "start OrcaSlicer with --mcp (or turn on \"MCP server\" under AI features in its Preferences)"
+        try:
+            with open(path, encoding="utf-8") as f:
+                info = json.load(f)
+            port, token = int(info["port"]), info.get("token", "")
+        except FileNotFoundError:
+            raise McpError(f"{path} does not exist, so no OrcaSlicer serves MCP on that datadir; {advice}") from None
+        except (OSError, ValueError, KeyError, TypeError) as e:
+            raise McpError(f"cannot read the port from {path} ({e}); {advice}") from None
+        client = cls(port, token)
+        try:
+            client.request("ping", timeout=10)
+        except OSError:
+            raise McpError(f"nothing answers on port {port}, which {path} names; {advice}") from None
+        return client
 
     def request(self, method, params=None, timeout=None):
         self._id += 1
@@ -132,6 +178,21 @@ class OrcaMcp:
                 raise McpError(f"job {result['job']} did not finish in {timeout} s", result)
             result = self.call("wait", **{"for": "job", "job": result["job"], "timeout_s": 45})
         return result
+
+    def call_cad_tool(self, tool, /, **args):
+        """Call one CAD tool of the Design tab through call_cad_tool and return its result.
+
+        A running job is followed to its end. A dialog fails the call at once, since a script that
+        waited would wait on a dialog nobody answers. Every McpError's message starts "<tool>: ". The
+        tool name is positional-only, so a CAD tool's own argument named tool goes to that tool."""
+        try:
+            reply = self.call("call_cad_tool", _timeout=600, tool=tool, args=args)
+            if reply.get("status") == "blocked_by_dialog":
+                titles = ", ".join(f"\"{d.get('title', '')}\"" for d in reply.get("dialogs", []))
+                raise McpError(f"blocked by a dialog: {titles} (job {reply.get('job')} goes on once it is answered)", reply)
+            return self.await_job(reply)["result"]
+        except McpError as e:
+            raise McpError(f"{tool}: {e}", e.payload) from None
 
     def ready(self, timeout=120):
         deadline = time.time() + timeout
