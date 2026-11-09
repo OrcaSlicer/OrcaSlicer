@@ -79,10 +79,11 @@ std::atomic<bool> g_busy{false};
 } // namespace
 
 static bool llm_agent_is_opencode() { return pref("llm_agent") == "opencode"; }
+static bool llm_agent_is_agy() { return pref("llm_agent") == "agy"; }
 
 std::string llm_agent_executable()
 {
-    const std::string name = llm_agent_is_opencode() ? "opencode" : "claude";
+    const std::string name = llm_agent_is_opencode() ? "opencode" : llm_agent_is_agy() ? "agy" : "claude";
     fs::path exe = pref("llm_cli_path");
     if (exe.empty()) exe = bp::search_path(name);
     // A desktop launcher does not run the shell profile, so PATH often lacks where the installer put the CLI.
@@ -101,13 +102,14 @@ std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const st
 
     // Everything read from Preferences is copied here: the worker must not touch app_config.
     const bool        oc     = llm_agent_is_opencode();
+    const bool        ag     = llm_agent_is_agy();
     const std::string exe    = llm_agent_executable();
     const std::string model  = pref("llm_model");
     const std::string extra  = pref("llm_cli_args");
     const std::string sock   = mcp_socket_path();
     const std::string bridge = bridge_script();
     std::string problem;
-    if (exe.empty())                     problem = std::string(oc ? "opencode" : "Claude Code") + " was not found: install it so that `" + (oc ? "opencode" : "claude") + "` is on PATH, or set its path in Preferences > LLM / MCP";
+    if (exe.empty())                     problem = std::string(oc ? "opencode" : ag ? "Antigravity (agy)" : "Claude Code") + " was not found: install it so that `" + (oc ? "opencode" : ag ? "agy" : "claude") + "` is on PATH, or set its path in Preferences > LLM / MCP";
     else if (oc && model.empty())        problem = "opencode needs a model in Preferences > LLM / MCP, written provider/model (see `opencode models`)";
     else if (sock.empty())               problem = "the MCP socket is off (ORCA_CAD_MCP=0)";
     else if (!fs::exists(bridge))        problem = "the MCP bridge script is missing: " + bridge;
@@ -127,7 +129,37 @@ std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const st
             std::vector<std::string> args;
             std::vector<std::string> env_kv;   // opencode only
             fs::path start_dir;
-            if (oc) {
+            fs::path agy_home;   // agy only: the private HOME that also carries the conversation between turns
+            if (ag) {
+                // agy has no per-run config switch, so it gets a private HOME holding only: a symlink to the user's login token (never
+                // copied), our MCP server, and an allow-list. In headless mode anything not allowed is auto-denied: no shell, no
+                // writes outside the throwaway workspace, no reads outside the attachment folders. Verified with agy 1.0.1.
+                const char* home = std::getenv("HOME");
+                const fs::path token = fs::path(home ? home : "") / ".gemini/antigravity-cli/antigravity-oauth-token";
+                if (!fs::exists(token)) throw std::runtime_error("agy is not signed in: run `agy` once in a terminal and sign in");
+                agy_home = session_id.empty() ? fs::path(tmp.string() + ".agy") : fs::path(session_id);
+                const fs::path ws = agy_home / "ws";
+                fs::create_directories(agy_home / ".gemini/antigravity-cli");
+                fs::create_directories(agy_home / ".gemini/config");
+                fs::create_directories(ws);
+                boost::system::error_code lec;
+                fs::create_symlink(token, agy_home / ".gemini/antigravity-cli/antigravity-oauth-token", lec);
+                const fs::path iid = fs::path(home) / ".gemini/antigravity-cli/installation_id";
+                if (fs::exists(iid)) fs::create_symlink(iid, agy_home / ".gemini/antigravity-cli/installation_id", lec);
+                nlohmann::json mj = {{"mcpServers", {{"orca-cad", {{"command", "python3"}, {"args", {bridge, sock}}}}}}};
+                std::ofstream((agy_home / ".gemini/config/mcp_config.json").c_str()) << mj.dump();
+                nlohmann::json allow = nlohmann::json::array({"mcp(orca-cad/*)"});
+                for (const std::string& d : read_dirs) allow.push_back("read_file(" + d + ")");
+                nlohmann::json sj = {{"trustedWorkspaces", {ws.string()}}, {"permissions", {{"allow", allow}}}};
+                if (!model.empty()) sj["model"] = model;
+                std::ofstream((agy_home / ".gemini/antigravity-cli/settings.json").c_str()) << sj.dump();
+                start_dir = ws;
+                args = {"--sandbox"};
+                if (!session_id.empty()) args.push_back("--continue");
+                // --print takes the prompt as its value, so it goes last.
+                args.push_back("--print");
+                args.push_back(std::string(kSystemPrompt) + "\n\n" + prompt);
+            } else if (oc) {
                 // The isolation below (--standalone + private config) exists from opencode 2; v1 would run with the user's global config.
                 bp::ipstream vout;
                 bp::child vc(fs::path(exe), "--version", bp::std_out > vout, bp::std_err > bp::null, bp::std_in.close());
@@ -171,11 +203,13 @@ std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const st
             bp::ipstream out;
             bp::environment env = boost::this_process::environment();
             if (oc) env["XDG_CONFIG_HOME"] = tmp.string() + ".oc";
+            if (ag) env["HOME"] = agy_home.string();
             bp::child c(fs::path(exe), bp::args(args), bp::env = env, bp::start_dir = start_dir.empty() ? fs::temp_directory_path() : start_dir,
                         bp::std_out > out, bp::std_err > errf.string(), bp::std_in.close());
             run->set_child(&c);
-            std::string line, oc_session, oc_text;
+            std::string line, oc_session, oc_text, ag_text;
             while (std::getline(out, line)) {
+                if (ag) { ag_text += line + "\n"; continue; }   // agy --print writes the final answer as plain text
                 if (line.empty() || line[0] != '{') continue;
                 nlohmann::json ev = nlohmann::json::parse(line, nullptr, false);
                 if (ev.is_discarded()) continue;
@@ -224,12 +258,23 @@ std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const st
                 LlmEvent e; e.kind = LlmEvent::Result; e.text = oc_text; e.session_id = oc_session; got_result = true;
                 post([on_event, e]() { on_event(e); });
             }
+            if (ag && !ag_text.empty() && !run->cancelled()) {
+                LlmEvent t; t.kind = LlmEvent::Text; t.text = ag_text;
+                LlmEvent e; e.kind = LlmEvent::Result; e.text = ag_text; e.session_id = agy_home.string(); got_result = true;
+                post([on_event, t, e]() { on_event(t); on_event(e); });
+            }
             ok = got_result && c.exit_code() == 0;
             if (run->cancelled()) err = "stopped";
             else if (!ok) {
                 std::ifstream in(errf.string());
                 std::stringstream ss; ss << in.rdbuf();
                 err = ss.str();
+                // agy ends the whole turn when the model reaches for a tool that is not allowed; say so in plain words.
+                if (const size_t p = err.find("required the \""); ag && p != std::string::npos) {
+                    const size_t q = err.find('"', p + 14);
+                    err = "The agent tried to use a tool that is not allowed here (" + err.substr(p + 14, q == std::string::npos ? 0 : q - p - 14) +
+                          "), so the request was stopped. Rephrase it as a design request.";
+                }
                 if (err.empty()) err = "the agent exited with code " + std::to_string(c.exit_code());
             }
         } catch (const std::exception& e) {

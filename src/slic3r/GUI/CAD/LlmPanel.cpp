@@ -225,11 +225,13 @@ void LlmPanel::paste_image()
 void LlmPanel::refresh_header()
 {
     AppConfig* c = wxGetApp().app_config;
-    const bool oc = c && c->get("llm_agent") == "opencode";
+    const std::string agent = c ? c->get("llm_agent") : std::string();
+    const bool oc = agent == "opencode";
+    const bool ag = agent == "agy";
     const std::string model = c ? c->get("llm_model") : std::string();
-    m_agent_lbl->SetLabel(wxString::FromUTF8(oc ? "opencode" : "Claude Code") + (model.empty() ? wxString() : wxString::FromUTF8(" \xC2\xB7 ") + wxString::FromUTF8(model)));
+    m_agent_lbl->SetLabel(wxString::FromUTF8(oc ? "opencode" : ag ? "Antigravity" : "Claude Code") + (model.empty() ? wxString() : wxString::FromUTF8(" \xC2\xB7 ") + wxString::FromUTF8(model)));
     wxString why;
-    if (llm_agent_executable().empty()) why = oc ? _L("opencode was not found. Open the settings to point to it.") : _L("Claude Code was not found. Open the settings to point to it.");
+    if (llm_agent_executable().empty()) why = oc ? _L("opencode was not found. Open the settings to point to it.") : ag ? _L("agy was not found. Open the settings to point to it.") : _L("Claude Code was not found. Open the settings to point to it.");
     else if (oc && model.empty()) why = _L("opencode needs a model (provider/model). Open the settings.");
     m_setup_lbl->SetLabel(why);
     m_setup_lbl->Show(!why.empty());
@@ -315,8 +317,8 @@ void LlmPanel::send()
             append("\n", m_log->GetForegroundColour());
             m_run.reset();
             set_busy(false);
-            if (m_turn_edits > 0 && m_undo_depth() > m_undo_at_start) {
-                m_result_lbl->SetLabel(wxString::Format(_L("%d edits in this turn"), m_turn_edits));
+            if (m_undo_depth() > m_undo_at_start) {   // agy streams no tool events, so the undo stack is the source of truth
+                m_result_lbl->SetLabel(m_turn_edits > 0 ? wxString::Format(_L("%d edits in this turn"), m_turn_edits) : _L("This turn changed the design"));
                 m_result->Show();
                 Layout();
             }
