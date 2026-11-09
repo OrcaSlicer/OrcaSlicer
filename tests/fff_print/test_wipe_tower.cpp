@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cmath>
+#include <numeric>
 #include <catch2/catch_all.hpp>
 
 #include "libslic3r/Config.hpp"
@@ -426,6 +427,34 @@ static DynamicPrintConfig tower_estimate_config(const char *wall_type, unsigned 
         { "layer_height",                   "0.2"     },
         { "enable_wrapping_detection",      "0"       },
         { "raft_layers",                    "0"       } });
+}
+
+// The filament a Type 1 tower uses on a 20 mm cube whose outer wall is on filament 2, so every layer
+// changes filament, given the process prime volume and the prime volume of each filament.
+static double type1_tower_filament(const char *prime_volume, const char *filament_prime_volume)
+{
+    DynamicPrintConfig config = tower_estimate_config("rectangle");
+    config.set_deserialize_strict({ { "wipe_tower_type",       "type1" },
+                                    { "prime_volume",          prime_volume },
+                                    { "filament_prime_volume", filament_prime_volume },
+                                    { "wipe_tower_x",          "120" },
+                                    { "wipe_tower_y",          "120" } });
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+    print.process();
+    REQUIRE(print.is_step_done(psWipeTower));
+    const std::vector<float> &used = print.wipe_tower_data().used_filament;
+    return std::accumulate(used.begin(), used.end(), 0.);
+}
+
+TEST_CASE("The Type 1 tower purges the prime volume of each filament, not the process one", "[WipeTower]")
+{
+    const double filament_45 = type1_tower_filament("45", "45,45");
+    REQUIRE(filament_45 > 0.);
+    CHECK_THAT(type1_tower_filament("5", "45,45"), Catch::Matchers::WithinRel(filament_45, 1e-6));
+    CHECK_THAT(type1_tower_filament("60", "45,45"), Catch::Matchers::WithinRel(filament_45, 1e-6));
+    CHECK(type1_tower_filament("45", "15,15") < filament_45);
 }
 
 TEST_CASE("The tower is sized for the thinnest layer any object on the plate is sliced at", "[WipeTower]")

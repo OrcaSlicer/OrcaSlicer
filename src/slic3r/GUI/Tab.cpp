@@ -5052,6 +5052,11 @@ void TabFilament::build()
         optgroup->append_single_option_line("filament_tower_interface_purge_volume", "material_multimaterial#multimaterial-wipe-tower-parameters");
         optgroup->append_single_option_line("filament_tower_interface_print_temp", "material_multimaterial#multimaterial-wipe-tower-parameters");
 
+        // Orca: the Type 1 prime tower takes its prime volume from each filament, not from the process.
+        optgroup = page->new_optgroup(L("Prime volume"), "param_tower");
+        optgroup->append_single_option_line("filament_prime_volume", "material_multimaterial#multimaterial-wipe-tower-parameters");
+        optgroup->append_single_option_line("filament_prime_volume_nc", "material_multimaterial#multimaterial-wipe-tower-parameters");
+
         optgroup = page->new_optgroup(L("Multi Filament"));
         // optgroup->append_single_option_line("filament_flush_temp", "", 0);
         // optgroup->append_single_option_line("filament_flush_volumetric_speed", "", 0);
@@ -5288,6 +5293,14 @@ void TabFilament::toggle_options()
         // Orca: hide specific settings for BBL printers
         const wxString bambu_printer_reason = _L("This setting is unavailable for Bambu Lab printers.");
         toggle_option("filament_minimal_purge_on_wipe_tower", !is_BBL_printer, 256 + variant_index, bambu_printer_reason);
+
+        // Orca: only the Type 1 prime tower reads these, the hotend change one only on a printer with more
+        // than one nozzle. Bambu Lab printers always use the Type 1 tower.
+        const bool type1_tower  = is_BBL_printer || printer_cfg.opt_enum<WipeTowerType>("wipe_tower_type") == WipeTowerType::Type1;
+        const bool multi_nozzle = printer_cfg.option<ConfigOptionFloats>("nozzle_diameter")->values.size() > 1;
+        toggle_line("filament_prime_volume", type1_tower, -1, _L("Select wipe tower Type 1 in the printer settings to use this setting."));
+        toggle_line("filament_prime_volume_nc", type1_tower && multi_nozzle, -1,
+                    _L("Select wipe tower Type 1 on a printer with more than one nozzle to use this setting."));
         for (auto el : {"filament_loading_speed_start", "filament_loading_speed",
                         "filament_unloading_speed_start", "filament_unloading_speed", "filament_toolchange_delay", "filament_cooling_moves",
                         "filament_cooling_initial_speed", "filament_cooling_final_speed"})
