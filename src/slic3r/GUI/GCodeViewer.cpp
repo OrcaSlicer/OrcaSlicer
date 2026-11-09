@@ -780,9 +780,15 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
 
         ImGui::BeginGroup(); // group contents to make information area more compact
 
+        // Preview vertices include the plate offset for rendering in scene coordinates.
+        // Show the position relative to the current plate instead.
+        auto pos = vertex.position;
+        const Vec3d plate_origin = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_origin();
+        pos[0] -= static_cast<float>(plate_origin.x());
+        pos[1] -= static_cast<float>(plate_origin.y());
+
         // ORCA Use colorized axis labels & reduce precision on large-scale prints,
         // show one more decimal when the G-code was exported with high precision
-        auto pos       = vertex.position;
         int  max_value = std::round(std::max(std::max(pos[0], pos[1]), pos[2]));
         auto precision = m_high_precision_gcode ? (max_value > 9999 ? "%.2f" : max_value > 999 ? "%.3f" : "%.4f")
                                                 : (max_value > 9999 ? "%.1f" : max_value > 999 ? "%.2f" : "%.3f");
