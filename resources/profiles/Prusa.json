@@ -1,6 +1,6 @@
 {
 	"name": "Prusa",
-	"version": "02.04.00.19",
+	"version": "02.04.00.20",
 	"force_update": "0",
 	"description": "Prusa configurations",
 	"machine_model_list": [
@@ -67,6 +67,14 @@
 		{
 			"name": "Prusa MK4S HF",
 			"sub_path": "machine/Prusa MK4S HF.json"
+		},
+		{
+			"name": "Prusa MK4S MMU3",
+			"sub_path": "machine/Prusa MK4S MMU3.json"
+		},
+		{
+			"name": "Prusa MK4S MMU3 HF",
+			"sub_path": "machine/Prusa MK4S MMU3 HF.json"
 		},
 		{
 			"name": "Prusa XL",
@@ -3283,6 +3291,10 @@
 			"sub_path": "machine/Prusa MK4 MMU3 HF0.4 nozzle.json"
 		},
 		{
+			"name": "fdm_machine_common_mk4s_mmu3",
+			"sub_path": "machine/fdm_machine_common_mk4s_mmu3.json"
+		},
+		{
 			"name": "Prusa MK4S 0.25 nozzle",
 			"sub_path": "machine/Prusa MK4S 0.25 nozzle.json"
 		},
@@ -3317,6 +3329,18 @@
 		{
 			"name": "Prusa CORE One MMU3 0.6 nozzle",
 			"sub_path": "machine/Prusa CORE One MMU3 0.6 nozzle.json"
+		},
+		{
+			"name": "Prusa MK4S MMU3 0.4 nozzle",
+			"sub_path": "machine/Prusa MK4S MMU3 0.4 nozzle.json"
+		},
+		{
+			"name": "Prusa MK4S MMU3 0.6 nozzle",
+			"sub_path": "machine/Prusa MK4S MMU3 0.6 nozzle.json"
+		},
+		{
+			"name": "Prusa MK4S MMU3 HF0.4 nozzle",
+			"sub_path": "machine/Prusa MK4S MMU3 HF0.4 nozzle.json"
 		},
 		{
 			"name": "Prusa MK4S HF0.5 nozzle",

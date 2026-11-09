@@ -6,8 +6,12 @@
     "setting_id": "Jsb4d55uh5AiilFy",
     "filament_id": "OFWRITFw",
     "instantiation": "true",
+    "filament_cooling_final_speed": [
+        "1.5"
+    ],
     "compatible_printers": [
-        "Prusa MK4S 0.6 nozzle"
+        "Prusa MK4S 0.6 nozzle",
+        "Prusa MK4S MMU3 0.6 nozzle"
     ],
     "fan_cooling_layer_time": "22",
     "slow_down_layer_time": "10"

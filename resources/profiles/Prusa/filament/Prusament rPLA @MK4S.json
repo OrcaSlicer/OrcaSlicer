@@ -6,10 +6,14 @@
     "setting_id": "RT3cyjS4ZsddCiM9",
     "filament_id": "OFWRITFw",
     "instantiation": "true",
+    "include": [
+        "fdm_filament_template_nextruder_pla"
+    ],
     "compatible_printers": [
         "Prusa MK4S 0.25 nozzle",
         "Prusa MK4S 0.3 nozzle",
         "Prusa MK4S 0.4 nozzle",
+        "Prusa MK4S MMU3 0.4 nozzle",
         "Prusa MK4S 0.5 nozzle"
     ],
     "fan_cooling_layer_time": "17",
@@ -28,9 +32,6 @@
     ],
     "filament_notes": [
         ""
-    ],
-    "filament_ramming_parameters": [
-        "250 100 40 40 40 40 40 | 0.05 40 0.45 40 0.95 40 1.45 40 1.95 40 2.45 40 2.95 40 3.45 40 3.95 40 4.45 40 4.95 40"
     ],
     "filament_spool_weight": [
         "278"

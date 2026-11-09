@@ -6,11 +6,15 @@
     "setting_id": "Gciz1m8uMxV9wogi",
     "filament_id": "OFmFwUWM",
     "instantiation": "true",
+    "include": [
+        "fdm_filament_template_nextruder_pet"
+    ],
     "close_fan_the_first_x_layers": "4",
     "compatible_printers": [
         "Prusa MK4S 0.25 nozzle",
         "Prusa MK4S 0.3 nozzle",
         "Prusa MK4S 0.4 nozzle",
+        "Prusa MK4S MMU3 0.4 nozzle",
         "Prusa MK4S 0.5 nozzle"
     ],
     "default_filament_colour": "#FFF2EC",
