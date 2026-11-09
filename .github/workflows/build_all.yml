@@ -19,10 +19,15 @@ on:
      - 'build_linux.sh'
      - 'build_win.bat'
      - 'scripts/test_build_win.ps1'
+     - 'scripts/check_exception_throw_info.ps1'
+     - 'scripts/test_check_exception_throw_info.ps1'
      - 'build_release_macos.sh'
      - 'scripts/build_preset_cache.*'
+     - 'scripts/prune_cached_presets.ps1'
+     - 'scripts/test_prune_cached_presets.ps1'
      - 'scripts/flatpak/**'
      - 'scripts/msix/**'
+     - 'scripts/sign_windows.ps1'
      - 'tests/**'
 
   pull_request:
@@ -41,10 +46,15 @@ on:
      - 'build_linux.sh'
      - 'build_win.bat'
      - 'scripts/test_build_win.ps1'
+     - 'scripts/check_exception_throw_info.ps1'
+     - 'scripts/test_check_exception_throw_info.ps1'
      - 'build_release_macos.sh'
      - 'scripts/build_preset_cache.*'
+     - 'scripts/prune_cached_presets.ps1'
+     - 'scripts/test_prune_cached_presets.ps1'
      - 'scripts/flatpak/**'
      - 'scripts/msix/**'
+     - 'scripts/sign_windows.ps1'
      - 'tests/**'
 
 
@@ -84,6 +94,14 @@ jobs:
         shell: powershell
         run: .\scripts\test_build_win.ps1
 
+      - name: Run the exception throw info check tests
+        shell: powershell
+        run: .\scripts\test_check_exception_throw_info.ps1
+
+      - name: Run the preset prune tests
+        shell: powershell
+        run: .\scripts\test_prune_cached_presets.ps1
+
   build_linux:
     strategy:
       fail-fast: false
@@ -112,6 +130,12 @@ jobs:
           && '[{"arch":"x64","os":"orca-win-server","compiler":"clang"}]'
           || '[{"arch":"x64","os":"windows-latest","compiler":"clang"},{"arch":"arm64","os":"windows-11-vs2026-arm","compiler":"clang"}]') }}
     needs: check_build_script
+    # id-token lets release builds sign through Google Cloud Workload Identity Federation (see
+    # "Configure code signing" in build_orca.yml); the rest is what the build already used.
+    permissions:
+      actions: write
+      contents: write
+      id-token: write
     # Don't run scheduled builds on forks:
     if: ${{ !cancelled() && needs.check_build_script.result == 'success' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
@@ -252,6 +276,10 @@ jobs:
         - /opt/ghc:/opt/ghc1
         - /usr/local/share/boost:/usr/local/share/boost1
         - /opt/hostedtoolcache:/opt/hostedtoolcache1
+        # Updating a runtime renames its old deployment, which fails with
+        # "Invalid cross-device link" on hosts whose Docker overlay cannot
+        # rename directories from an image layer. A volume is not overlay.
+        - /var/lib/flatpak
     strategy:
       fail-fast: false
       matrix:

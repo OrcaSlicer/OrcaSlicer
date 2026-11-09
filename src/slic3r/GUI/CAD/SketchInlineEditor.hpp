@@ -68,8 +68,8 @@ public:
     //   (nothing further)                             <- the canvas has nothing to redraw, so it stops
     //
     // This canvas repaints ON DEMAND. ImGui decides whether it wants the keyboard at the END of a
-    // frame, from the active item, and GLCanvas3D::on_char only calls render() when
-    // update_key_data() says ImGui wants it. No frames -> WantTextInput never turns on -> no
+    // frame, from the active item, and GLCanvas3D::on_char only calls render() when ImGui
+    // wants or claims the key. No frames -> WantTextInput never turns on -> no
     // render on a keystroke -> still no frames. The characters sit in ImGui's queue and the field
     // looks exactly as deaf as the window it replaced. One repaint per frame while it is open
     // breaks the circle.

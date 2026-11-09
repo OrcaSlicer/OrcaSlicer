@@ -3,15 +3,23 @@
 #include "libslic3r/Polygon.hpp"
 #include "WipeTower.hpp"
 #include "WipeTower2.hpp"
+#include "../ClipperUtils.hpp"
 #include "../Config.hpp"
+#include "../ExPolygon.hpp"
+#include "../Geometry/ConvexHull.hpp"
+#include "../Line.hpp"
 #include "../FilamentMixer.hpp"
+#include "../Point.hpp"
 #include "../PrintConfig.hpp"
 #include "../libslic3r.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <limits>
+#include <optional>
 #include <set>
+#include <utility>
 #include <vector>
 #include "libslic3r/clonable_ptr.hpp"
 
@@ -234,6 +242,46 @@ WipeTowerFootprint estimate_wipe_tower_footprint(const ConfigBase &config, WipeT
         footprint.brim_width = WipeTower::get_auto_brim_by_height(float(max_object_height));
     footprint.brim_width = WipeTower::estimate_brim_real_width(float(footprint.brim_width), float(nozzle_diameter), float(first_layer_height > EPSILON ? first_layer_height : layer_height), !type1);
     return footprint;
+}
+
+std::optional<Point> nearest_clear_wipe_tower_anchor(const BoundingBox &anchor_bounds, const Polygon &footprint,
+                                                     const Polygons &obstacles, const Point &target)
+{
+    // The anchors that put the footprint on a convex obstacle form the obstacle grown by the
+    // reflected footprint. For two convex shapes that Minkowski sum is the hull of the
+    // differences of their vertices.
+    const Polygon tower = Geometry::convex_hull(footprint.points);
+    Polygons      blocked;
+    blocked.reserve(obstacles.size());
+    for (const Polygon &obstacle : obstacles) {
+        Points differences;
+        differences.reserve(obstacle.size() * tower.size());
+        for (const Point &o : obstacle.points)
+            for (const Point &f : tower.points)
+                differences.emplace_back(o - f);
+        blocked.emplace_back(Geometry::convex_hull(std::move(differences)));
+    }
+
+    // Grown by a hair so bounds pinned to one coordinate on a cramped plate still have an area.
+    BoundingBox bounds = anchor_bounds;
+    bounds.offset(SCALED_EPSILON);
+    const ExPolygons clear = diff_ex(Polygons{ bounds.polygon() }, blocked);
+
+    std::optional<Point> nearest;
+    double               nearest_distance = std::numeric_limits<double>::max();
+    for (const ExPolygon &region : clear) {
+        if (region.contains(target))
+            return target;
+        for (const Line &edge : to_lines(region)) {
+            Point        closest;
+            const double distance = edge.distance_to_squared(target, &closest);
+            if (distance < nearest_distance) {
+                nearest_distance = distance;
+                nearest          = closest;
+            }
+        }
+    }
+    return nearest;
 }
 
 } // namespace Slic3r

@@ -6,10 +6,10 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Fill/FillBase.hpp"
 #include <cstddef>
-#include <iterator>
 #include "libslic3r/Config.hpp"
 #include <limits>
 #include <utility>
+#include <vector>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
@@ -69,19 +69,18 @@ double path_length(const Points &points)
     return length;
 }
 
-double discrete_curvature_at(const Points &points, const Point &point)
+// The edges of the first rounded corner of the order 1 Hilbert curve, which leaves the leg x = 0 and joins the leg y = 1.
+std::vector<double> first_corner_edges(const Points &points)
 {
-    const auto point_it = std::find(points.begin(), points.end(), point);
-    REQUIRE(point_it != points.end());
-    const size_t point_idx = size_t(std::distance(points.begin(), point_it));
-    REQUIRE(point_idx > 0);
-    REQUIRE(point_idx + 1 < points.size());
-
-    const Vec2d incoming = (points[point_idx] - points[point_idx - 1]).cast<double>() / output_scale;
-    const Vec2d outgoing = (points[point_idx + 1] - points[point_idx]).cast<double>() / output_scale;
-    const Vec2d chord     = incoming + outgoing;
-    const double cross   = std::abs(incoming.x() * outgoing.y() - incoming.y() * outgoing.x());
-    return 2. * cross / (incoming.norm() * outgoing.norm() * chord.norm());
+    std::vector<double> edges;
+    for (size_t i = 1; i < points.size(); ++i) {
+        if (points[i - 1].x() == 0 && points[i].x() == 0)
+            continue;
+        if (points[i - 1].y() == coord_t(output_scale) && points[i].y() == coord_t(output_scale))
+            break;
+        edges.push_back((points[i] - points[i - 1]).cast<double>().norm());
+    }
+    return edges;
 }
 
 } // namespace
@@ -140,44 +139,30 @@ TEST_CASE("Smoothed Hilbert curve honors path resolution", "[FillPlanePath]")
     REQUIRE(fine.back() == coarse.back());
 }
 
-TEST_CASE("Smoothed Hilbert corners use a uniform subdivision depth", "[FillPlanePath]")
+TEST_CASE("Smoothed Hilbert corners turn by the same angle at every vertex", "[FillPlanePath]")
 {
+    // A planner slows down at a vertex by how much it turns, so a rounded corner spreads its turn evenly.
     const Points smooth = TestableHilbertCurve().generate_points(0.0035, 1., 1);
-    const Point  curve_entry(0, coord_t(0.5 * output_scale));
-    const Point  curve_exit(coord_t(0.5 * output_scale), coord_t(output_scale));
-
-    const auto entry_it = std::find(smooth.begin(), smooth.end(), curve_entry);
-    REQUIRE(entry_it != smooth.end());
-    const auto exit_it = std::find(entry_it, smooth.end(), curve_exit);
-    REQUIRE(exit_it != smooth.end());
-
-    const size_t segment_count = size_t(std::distance(entry_it, exit_it));
-    REQUIRE(segment_count > 1);
-    REQUIRE((segment_count & (segment_count - 1)) == 0);
-
-    double previous_length = (entry_it[1] - entry_it[0]).cast<double>().norm();
-    REQUIRE(previous_length > 0.);
-    double max_length_ratio = 1.;
-    for (size_t segment = 1; segment < segment_count; ++segment) {
-        const double current_length = (entry_it[segment + 1] - entry_it[segment]).cast<double>().norm();
-        REQUIRE(current_length > 0.);
-        max_length_ratio = std::max(max_length_ratio,
-                                    std::max(current_length / previous_length, previous_length / current_length));
-        previous_length = current_length;
+    std::vector<double> turns;
+    for (size_t i = 1; i + 1 < smooth.size(); ++i) {
+        const Vec2d  incoming = (smooth[i] - smooth[i - 1]).cast<double>().normalized();
+        const Vec2d  outgoing = (smooth[i + 1] - smooth[i]).cast<double>().normalized();
+        const double turn     = std::atan2(std::abs(cross2(incoming, outgoing)), incoming.dot(outgoing));
+        if (turn > 1e-6)
+            turns.push_back(turn);
     }
-    REQUIRE(max_length_ratio < 1.5);
+    REQUIRE(turns.size() > 2);
+    const auto [sharpest, gentlest] = std::minmax_element(turns.begin(), turns.end());
+    REQUIRE_THAT(*gentlest, Catch::Matchers::WithinRel(*sharpest, 0.02));
 }
 
-TEST_CASE("Hilbert smoothing joins straight segments with continuous curvature", "[FillPlanePath]")
+TEST_CASE("Hilbert smoothing eases into the turn", "[FillPlanePath]")
 {
-    const Points coarse = TestableHilbertCurve().generate_points(0.005, 0.5, 1);
-    const Points fine   = TestableHilbertCurve().generate_points(0.0001, 0.5, 1);
-    const Point  first_curve_entry(0, coord_t(0.75 * output_scale));
-
-    const double coarse_entry_curvature = discrete_curvature_at(coarse, first_curve_entry);
-    const double fine_entry_curvature   = discrete_curvature_at(fine, first_curve_entry);
-    REQUIRE(coarse_entry_curvature > 0.);
-    REQUIRE(fine_entry_curvature < 0.25 * coarse_entry_curvature);
+    // Every vertex turns by the same angle, so the edges are as long as the curve is gentle. The curvature starts
+    // from zero at the legs, so the edges shorten away from them.
+    const std::vector<double> edges = first_corner_edges(TestableHilbertCurve().generate_points(0.0002, 1., 1));
+    REQUIRE(edges.size() >= 16);
+    REQUIRE(edges[0] / edges[1] > 1.1);
 }
 
 TEST_CASE("Octagram spiral smoothing rounds the turns of the spiral", "[FillPlanePath]")

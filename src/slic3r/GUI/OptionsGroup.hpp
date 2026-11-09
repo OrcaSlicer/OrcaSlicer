@@ -119,6 +119,37 @@ using column_t = std::function<wxWindow*(wxWindow* parent, const Line&)>;
 using t_optionfield_map = std::map<t_config_option_key, t_field>;
 using t_opt_map = std::map< std::string, std::pair<std::string, int> >;
 
+// The option id a group's option map holds for opt_key, and the index it carries. `opt_index` is
+// an in/out parameter: a negative value asks for the option's single entry, an explicit one selects
+// that index. Returns an empty string when the map does not own the option, or when a negative index
+// matches several entries -- a vector option the GUI edits one index at a time, which has no single
+// value to commit. A group fills the map while its option lines are created (OptionsGroup::append_line
+// / ConfigOptionsGroup::get_option), so this resolves an option even before its controls (and its
+// field) have been built.
+inline std::string option_id_in_map(const t_opt_map& options, const t_config_option_key& opt_key, int& opt_index)
+{
+    if (opt_index >= 0) {
+        for (const auto& opt : options) {
+            if (opt.second.first == opt_key && opt.second.second == opt_index) {
+                opt_index = opt.second.second;
+                return opt.first;
+            }
+        }
+        return {};
+    }
+
+    std::string opt_id;
+    for (const auto& opt : options) {
+        if (opt.second.first != opt_key)
+            continue;
+        if (!opt_id.empty())
+            return {}; // several entries: a vector option, not one value
+        opt_id    = opt.first;
+        opt_index = opt.second.second;
+    }
+    return opt_id;
+}
+
 class OptionsGroup {
 public:
     const bool staticbox{true};
@@ -332,6 +363,15 @@ public:
 	boost::any	get_config_value(const DynamicPrintConfig& config, const std::string& opt_key, int opt_index = -1);
 	// BBS: restore all pages in preset
 	boost::any	get_config_value2(const DynamicPrintConfig& config, const std::string& opt_key, int opt_index = -1);
+	// Re-run this group's committed-change path for one of its options without a widget event:
+	// build the option's value from the config this group edits (get_config_value2, the same form
+	// the option's field reports) and dispatch on_change_OG(), so the group's option-specific
+	// conversion (e.g. the printer_agent canonicalization) and its registered change handler run
+	// exactly as for a hand edit. The option map is filled while the option lines are created, so
+	// this resolves an option whose field is not built yet (a lazy page, or an option the GUI has
+	// no field for). Returns false when this group does not own the option, or when opt_index < 0
+	// matches several entries (a vector option the GUI edits index by index has no single value).
+	bool		commit_config_value(const t_config_option_key& opt_key, int opt_index = -1);
 	Field*		get_fieldc(const t_config_option_key& opt_key, int opt_index);
 	std::pair<OG_CustomCtrl*, bool*>	get_custom_ctrl_with_blinking_ptr(const t_config_option_key& opt_key, int opt_index/* = -1*/);
 

@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "EverLoop rPLA Premium @System",
+	"inherits": "EverLoop rPLA Premium @base",
+	"from": "system",
+	"setting_id": "e9MXIb8l1DHQHR5O",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "QIDI PETG-CF @Qidi X-Smart 5 0.6 nozzle",
+	"inherits": "QIDI PETG-CF@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "OcXfbzk3aNTCxHqx",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.6 nozzle"
+	]
+}

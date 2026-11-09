@@ -13,6 +13,15 @@ namespace Slic3r { class PluginCapabilityInterface; }
 
 namespace Slic3r {
 
+// Install the thread-attribution shim: wraps `_thread.start_new_thread` (and the reference
+// cached by an already-imported `threading` module) so a thread spawned from inside a plugin
+// call runs with that call's plugin key/capability audit scope. The captured identity is held
+// in a private C++ wrapper; nothing is exposed to Python that could set it.
+//
+// Call with the GIL held, after PluginAuditManager::install_hook() and before the interpreter
+// releases the GIL. Safe to call more than once per interpreter.
+void install_python_thread_audit_shim();
+
 // One materialized capability returned from finalize_plugin_capture: the C++ instance
 // and its resolved get_name() (cached while the GIL was held).
 struct CapturedCapability

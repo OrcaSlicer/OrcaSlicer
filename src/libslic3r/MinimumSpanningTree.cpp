@@ -46,61 +46,51 @@ auto MinimumSpanningTree::prim(std::vector<Point> vertices) const -> AdjacencyGr
         return result;
     }
     result.reserve(vertices.size());
-    std::vector<Point> vertices_list(vertices.begin(), vertices.end());
 
-    std::unordered_map<const Point*, coordf_t> smallest_distance;    //The shortest distance to the current tree.
-    std::unordered_map<const Point*, const Point*> smallest_distance_to; //Which point the shortest distance goes towards.
-    smallest_distance.reserve(vertices_list.size());
-    smallest_distance_to.reserve(vertices_list.size());
-    for (size_t vertex_index = 1; vertex_index < vertices_list.size(); vertex_index++)
+    // For each vertex not yet in the tree: its shortest distance to the tree and the tree vertex it goes to.
+    // Every step visits all of them, so they are kept in plain arrays indexed by vertex.
+    std::vector<coordf_t> smallest_distance(vertices.size());
+    std::vector<size_t>   smallest_distance_to(vertices.size(), 0);
+    std::vector<size_t>   candidates;
+    candidates.reserve(vertices.size() - 1);
+    for (size_t vertex_index = 1; vertex_index < vertices.size(); vertex_index++)
     {
-        const auto& vert = vertices_list[vertex_index];
-        smallest_distance[&vert] = vsize2_with_unscale(vert - vertices_list[0]);
-        smallest_distance_to[&vert] = &vertices_list[0];
+        smallest_distance[vertex_index] = vsize2_with_unscale(vertices[vertex_index] - vertices[0]);
+        candidates.push_back(vertex_index);
     }
 
-    while (result.size() < vertices_list.size()) //All of the vertices need to be in the tree at the end.
+    while (!candidates.empty()) //All of the vertices need to be in the tree at the end.
     {
         //Choose the closest vertex to connect to that is not yet in the tree.
         //This search is O(V) right now, which can be made down to O(log(V)). This reduces the overall time complexity from O(V*V) to O(V*log(E)).
         //However that requires an implementation of a heap that supports the decreaseKey operation, which is not in the std library.
-        //TODO: Implement this?
-        // Break equal-distance ties on coordinates: the map is keyed by address, so its
-        // iteration order (and therefore the first minimum) would otherwise depend on where
-        // the vertices were allocated.
-        using MapValue = std::pair<const Point*, coordf_t>;
-        const auto closest = std::min_element(smallest_distance.begin(), smallest_distance.end(),
-                                              [](const MapValue& a, const MapValue& b) {
-                                                  if (a.second != b.second)
-                                                      return a.second < b.second;
-                                                  return *a.first < *b.first;
-                                              });
+        // Break equal-distance ties on coordinates, so the choice does not depend on the order of the candidates.
+        size_t best = 0;
+        for (size_t candidate = 1; candidate < candidates.size(); candidate++)
+        {
+            const size_t a = candidates[candidate];
+            const size_t b = candidates[best];
+            if (smallest_distance[a] != smallest_distance[b] ? smallest_distance[a] < smallest_distance[b] : vertices[a] < vertices[b])
+                best = candidate;
+        }
+        const size_t closest = candidates[best];
+        candidates[best] = candidates.back(); //Remove it so we don't check for this point again.
+        candidates.pop_back();
 
-        //Add this point to the graph and remove it from the candidates.
-        const Point* closest_point = closest->first;
-        const Point other_end = *smallest_distance_to[closest_point];
-        if (result.find(*closest_point) == result.end())
-        {
-            result[*closest_point] = std::vector<Edge>();
-        }
-        result[*closest_point].push_back({*closest_point, other_end});
-        if (result.find(other_end) == result.end())
-        {
-            result[other_end] = std::vector<Edge>();
-        }
-        result[other_end].push_back({other_end, *closest_point});
-        smallest_distance.erase(closest_point); //Remove it so we don't check for these points again.
-        smallest_distance_to.erase(closest_point);
+        //Add this point to the graph.
+        const Point& closest_point = vertices[closest];
+        const Point other_end = vertices[smallest_distance_to[closest]];
+        result[closest_point].push_back({closest_point, other_end});
+        result[other_end].push_back({other_end, closest_point});
 
         //Update the distances of all points that are not in the graph.
-        for (std::pair<const Point*, coordf_t> point_and_distance : smallest_distance)
+        for (const size_t candidate : candidates)
         {
-            const coordf_t new_distance = vsize2_with_unscale(*closest_point - *point_and_distance.first);
-            const coordf_t old_distance = point_and_distance.second;
-            if (new_distance < old_distance) //New point is closer.
+            const coordf_t new_distance = vsize2_with_unscale(closest_point - vertices[candidate]);
+            if (new_distance < smallest_distance[candidate]) //New point is closer.
             {
-                smallest_distance[point_and_distance.first] = new_distance;
-                smallest_distance_to[point_and_distance.first] = closest_point;
+                smallest_distance[candidate] = new_distance;
+                smallest_distance_to[candidate] = closest;
             }
         }
     }

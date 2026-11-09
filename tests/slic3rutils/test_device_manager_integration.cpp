@@ -8,6 +8,7 @@
 #include "slic3r/Utils/IPrinterAgent.hpp"
 #include "slic3r/Utils/CloudProvider.hpp"
 #include <slic3r/Utils/NetworkAgent.hpp>
+#include <slic3r/Utils/NetworkAgentFactory.hpp>
 #include <slic3r/Utils/OrcaCloudServiceAgent.hpp>
 #include <slic3r/Utils/OrcaPrinterAgent.hpp>
 
@@ -178,6 +179,97 @@ TEST_CASE("Device manager filters and rehomes devices by printer-agent ownership
     CHECK(manager.get_my_machine_list("integration-agent-b").count(machine.dev_id) == 1);
 }
 
+TEST_CASE("Device manager remembers the last selected machine per printer agent", "[DeviceManager][integration]")
+{
+    ScopedAppConfig app_config;
+    auto agent_a = std::make_shared<TestPrinterAgent>("integration-agent-a");
+    auto agent_b = std::make_shared<TestPrinterAgent>("integration-agent-b");
+    NetworkAgent network(nullptr, agent_a);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    manager.record_user_last_machine("machine-of-a");
+    network.set_printer_agent(agent_b);
+    manager.record_user_last_machine("machine-of-b");
+
+    network.set_printer_agent(agent_a);
+    CHECK(manager.get_user_last_machine() == "machine-of-a");
+    network.set_printer_agent(agent_b);
+    CHECK(manager.get_user_last_machine() == "machine-of-b");
+
+    network.set_printer_agent(nullptr);
+    manager.record_user_last_machine("machine-without-agent");
+    CHECK(app_config.config.get_section("last_selected_machine").size() == 2);
+
+    // A forget leaves no entry behind, an empty one included.
+    network.set_printer_agent(agent_b);
+    manager.record_user_last_machine("");
+    CHECK(app_config.config.get_section("last_selected_machine").count("integration-agent-b") == 0);
+    app_config.config.set("last_selected_machine", "integration-agent-b", "");
+    manager.record_user_last_machine("");
+    CHECK(app_config.config.get_section("last_selected_machine").count("integration-agent-b") == 0);
+    network.set_printer_agent(agent_a);
+    CHECK(manager.get_user_last_machine() == "machine-of-a");
+}
+
+TEST_CASE("Device manager reads the pre-per-agent last machine for Bambu printers until it records one", "[DeviceManager][integration]")
+{
+    ScopedAppConfig app_config;
+    app_config.config.set("user_last_selected_machine", "legacy-machine");
+    auto other = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, other);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    CHECK(manager.get_user_last_machine() != "legacy-machine");
+    network.set_printer_agent(std::make_shared<TestPrinterAgent>(BBL_PRINTER_AGENT_ID));
+    CHECK(manager.get_user_last_machine() == "legacy-machine");
+
+    // A forget is a record too: the legacy machine must not come back after it.
+    manager.record_user_last_machine("");
+    CHECK_FALSE(app_config.config.has("user_last_selected_machine"));
+    CHECK(manager.get_user_last_machine() != "legacy-machine");
+}
+
+TEST_CASE("Device manager keeps a pending last-machine restore until a cloud list is accepted", "[DeviceManager][integration]")
+{
+    ScopedAppConfig app_config;
+    NetworkAgent network(nullptr, std::make_shared<TestPrinterAgent>("integration-agent"));
+    network.set_printer_agent(std::make_shared<TestPrinterAgent>("integration-agent"));
+    DeviceManager manager(&network, false, &app_config.config);
+    // Remembered but in no list yet, as a cloud printer is until the account's list arrives.
+    manager.record_user_last_machine("remembered-cloud-machine");
+
+    manager.restore_last_machine();
+    REQUIRE(manager.has_pending_last_machine_restore());
+
+    const std::uint64_t generation = network.get_user_machine_list_generation();
+    manager.parse_user_print_info(machine_list_response(ORCA_CLOUD_PROVIDER, "integration-agent", generation + 1, "Superseded"));
+    CHECK(manager.has_pending_last_machine_restore());
+    // Responses that leave the list as it is, with no device list or one that can't be read, don't settle it either.
+    manager.parse_user_print_info("{}");
+    manager.parse_user_print_info(R"({"devices":null})");
+    manager.parse_user_print_info(R"({"devices":"not a list"})");
+    CHECK(manager.has_pending_last_machine_restore());
+
+    // Parsed directly, as the Device tab's printer list and the print dialogs do.
+    manager.parse_user_print_info(machine_list_response(ORCA_CLOUD_PROVIDER, "integration-agent", generation, "Accepted"));
+    CHECK(manager.get_user_machinelist().count("integration-device") == 1);
+    CHECK_FALSE(manager.has_pending_last_machine_restore());
+}
+
+TEST_CASE("Logging out cancels a pending last-machine restore", "[DeviceManager][integration]")
+{
+    ScopedAppConfig app_config;
+    NetworkAgent network(nullptr, std::make_shared<TestPrinterAgent>("integration-agent"));
+    network.set_printer_agent(std::make_shared<TestPrinterAgent>("integration-agent"));
+    DeviceManager manager(&network, false, &app_config.config);
+    manager.record_user_last_machine("remembered-cloud-machine");
+
+    manager.restore_last_machine();
+    REQUIRE(manager.has_pending_last_machine_restore());
+    manager.clean_user_info(true);
+    CHECK_FALSE(manager.has_pending_last_machine_restore());
+}
+
 TEST_CASE("AMS filament settings keep legacy single-color commands compatible", "[DeviceManager][AMSMaterialsSetting][integration]")
 {
     ScopedAppConfig app_config;
@@ -208,7 +300,7 @@ TEST_CASE("AMS filament settings preserve ordered gradient and multicolor RGBA c
     MachineObject object(&manager, &network, "Test printer", "integration-device", "192.0.2.10");
     object.dev_connection_type = GENERATE("lan", "cloud");
     const int color_type = GENERATE(0, 1);
-    const std::vector<std::string> colors{"FF000080", "0000FF40", "00FF00FF"};
+    const std::vector<std::string> colors{"FF000000", "0000FF40", "00FF00FF", "FF000000", "12345601", "FEDCBAFE", "ABCDEF80"};
 
     REQUIRE(object.command_ams_filament_settings(1, 2, "filament-id", "setting-id", colors.front(), "PLA", 190, 220,
                                                  colors, color_type) == 0);

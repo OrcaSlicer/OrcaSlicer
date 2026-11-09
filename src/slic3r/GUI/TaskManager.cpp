@@ -375,7 +375,7 @@ std::map<std::string, TaskStateInfo> TaskManager::get_task_list(int curr_page, i
         task_query_params.limit = page_count;
         task_query_params.offset = curr_page * page_count;
         std::string task_info;
-        int result = agent->get_user_tasks(task_query_params, &task_info);
+        int result = agent->get_user_tasks(task_query_params, &task_info, GUI::wxGetApp().get_printer_cloud_provider());
         BOOST_LOG_TRIVIAL(trace) << "task_manager: get_task_list task_info=" << task_info;
         if (result == 0) {
             try {
