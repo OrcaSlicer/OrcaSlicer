@@ -202,3 +202,20 @@ TEST_CASE("Layer cooling slowdown does not depend on relative extrusion distance
     // Feed rates are written in whole mm/min.
     CHECK_THAT(largest_difference, Catch::Matchers::WithinAbs(0., 1. / MM_PER_MIN));
 }
+
+TEST_CASE("External bridge fan control", "[Cooling]")
+{
+    std::string gcode = slice({TestMesh::bridge}, {
+                                                    {"enable_overhang_speed",   true},
+                                                    {"overhang_fan_speed",        60},
+                                                    {"external_bridge_fan_speed", 80},
+                                                  });
+    REQUIRE(gcode.find("M106 S204") != std::string::npos);
+
+    gcode = slice({TestMesh::bridge},             {
+                                                    {"enable_overhang_speed", true},
+                                                    {"overhang_fan_speed", 60},
+                                                    {"external_bridge_fan_speed", -1},
+                                                  });
+    REQUIRE(gcode.find("M106 S153") != std::string::npos);
+}
