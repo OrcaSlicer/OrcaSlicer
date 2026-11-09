@@ -254,6 +254,9 @@
 		"0.5x271"
 	],
 	"printable_height": "270.05",
+	"extruder_clearance_height_to_rod": "26",
+	"extruder_clearance_dist_to_rod": "41.2",
+	"extruder_clearance_radius": "72.5",
 	"bed_mesh_min": "3,3",
 	"bed_mesh_max": "267,267",
 	"printer_agent": "snapmaker",
