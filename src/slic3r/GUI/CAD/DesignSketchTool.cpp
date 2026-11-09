@@ -445,11 +445,11 @@ bool DesignSketchTool::disarm_tool()
 // Abort an in-progress entity first, then drop a draw tool back to Select, then — only if the
 // session holds NOTHING a user could mourn — leave it.
 //
-// It used to have a fourth layer: refuse once, and let the SECOND consecutive request destroy a
-// drawn sketch. That is the "I pressed Esc twice and my rectangle was gone" report, and no
-// warning makes it acceptable, because the two presses are never deliberate — the first is aimed
-// at a value field or a tool and the second at the tool underneath it. A session holding geometry
-// is now left ONLY through Finish (keep) or Cancel (discard), both of which say which they are.
+// There is deliberately no fourth layer that lets a repeated request discard a drawn sketch: two
+// Esc presses in a row are never a deliberate choice — the first is aimed at a value field or a
+// tool and the second at the tool underneath it — so no warning would make that acceptable. A
+// session holding geometry is left ONLY through Finish (keep) or Cancel (discard), both of which
+// say which they are.
 // This is the single decision point for every caller, keyboard and mouse alike, so the guarantee
 // cannot be re-opened by adding a route.
 void DesignSketchTool::request_exit()
@@ -1276,12 +1276,12 @@ double DesignSketchTool::measure_dim(const DimAnnot& a) const
 // One driving constraint per (kind, operands) — update it in place rather than appending a
 // second one every time its value is edited.
 //
-// Re-typing a quote used to push a duplicate alongside the original: draw a line and accept its
-// length, and you get Distance(P0,P1)=64.9; click the quote later and type 30, and you get a
-// SECOND Distance on the same two points asking for 30. That is over-constrained by
-// construction, so the solver reported "Conflicting constraints" and refused to move anything —
-// the number on screen changed and the geometry did not, which reads as the edit being ignored.
-// A line carrying no dimension yet was unaffected, which is what made it look intermittent.
+// Appending would push a duplicate alongside the original: draw a line and accept its length,
+// and you get Distance(P0,P1)=64.9; click the quote later and type 30, and a SECOND Distance on
+// the same two points would ask for 30. That is over-constrained by construction, so the solver
+// would report "Conflicting constraints" and refuse to move anything — the number on screen
+// changes and the geometry does not, which reads as the edit being ignored. A line carrying no
+// dimension yet would be unaffected, which would make it look intermittent.
 //
 // Operand order is ignored: a Distance from A to B is the same constraint as B to A, and so is
 // an Angle. Returns the index, so callers can keep the annotation's `con` link pointing at the
@@ -1302,7 +1302,7 @@ int DesignSketchTool::upsert_constraint(const SketchEntityConstraintDef& c)
 }
 
 // A Distance and its zero case are ONE dimension slot: typing 0 records a Coincident, and typing
-// 5 after that used to record a second constraint beside it — over-constrained by construction,
+// 5 after that must not record a second constraint beside it — over-constrained by construction,
 // which reads as the edit being ignored. Replace across that pair, then upsert normally.
 int DesignSketchTool::upsert_dimension_constraint(const SketchEntityConstraintDef& c)
 {
@@ -2423,8 +2423,8 @@ std::string DesignSketchTool::dim_text(const DimAnnot& a) const
     }
     if (num == "-0") num = "0";
     // The Design tab models in millimetres whatever the slicer's inch preference says: the
-    // kernel, the value fields and the readouts are all mm. The suffix used to follow that
-    // preference while the number did not, so an inch user read "25.4 in" for one inch.
+    // kernel, the value fields and the readouts are all mm. So the suffix is always mm: one that
+    // followed the inch preference while the number did not would label one inch "25.4 in".
     return std::string(prefix) + num + (a.kind == DimType::Angle ? "\xC2\xB0" : " mm");
 }
 
@@ -2538,13 +2538,13 @@ bool DesignSketchTool::screen_to_plane(GLCanvas3D& canvas, const wxMouseEvent& e
 
 // Closing the loop is THE outcome this tab exists for — a sketch that is not closed cannot be
 // extruded — so it must be as easy and as visible as any other snap, and it must behave the
-// same at every zoom. This used to be a bare `squaredNorm() < 4.0`, i.e. a fixed 2 mm bubble in
-// plane units: a pixel hunt zoomed out, an over-eager magnet zoomed in, and invisible either
-// way — nothing told the user their next click would close the loop rather than place another
-// vertex. Now the chain's first point is a real snap target on the same 8 px screen tolerance
-// as every endpoint snap: hovering it moves the cursor exactly onto it, which makes the rubber
-// band draw the closing segment as a preview and lights the existing snap marker. The click
-// then closes only because it was SNAPPED, never because it was merely nearby.
+// same at every zoom. A fixed radius in plane units would be a pixel hunt zoomed out, an
+// over-eager magnet zoomed in, and invisible either way — nothing would tell the user their next
+// click closes the loop rather than placing another vertex. So the chain's first point is a real
+// snap target on the same 8 px screen tolerance as every endpoint snap: hovering it moves the
+// cursor exactly onto it, which makes the rubber band draw the closing segment as a preview and
+// lights the existing snap marker. The click then closes only because it was SNAPPED, never
+// because it was merely nearby.
 bool DesignSketchTool::snap_chain_start(GLCanvas3D& canvas, const wxMouseEvent& evt, Vec2d& p) const
 {
     if (m_mode != Mode::Polyline || m_points.size() < 3) return false;
@@ -2697,9 +2697,9 @@ bool DesignSketchTool::remove_constraint(int idx)
     return true;
 }
 
-// The endpoint roles an entity exposes to coincidence matching. ONE copy, deliberately: the two
-// file-local lambdas that used to hold this had already diverged (an ellipse arc could be welded
-// by the healer but never auto-inferred coincident at draw time, so the same gesture behaved
+// The endpoint roles an entity exposes to coincidence matching. ONE copy, deliberately, shared
+// by draw-time inference and the healer: separate copies drift apart (an ellipse arc welded by
+// the healer but never auto-inferred coincident at draw time would make the same gesture behave
 // differently depending on which path ran).
 static int sketch_endpoint_roles(const SketchEntity& e, SketchPointRole out[2])
 {
@@ -2749,10 +2749,9 @@ void DesignSketchTool::infer_auto_constraints(int base, double ang_tol_rad, doub
 
     // 2) Horizontal / Vertical on axis-aligned new line segments. Tried as ONE batch first and
     //    only then one at a time, which is the same outcome — a single conflict never drops the
-    //    others — for one solve instead of n. That matters now that large sketches actually
-    //    solve: a bulk add of 1200 axis-aligned segments used to be fast only because every
-    //    solve failed instantly on the unknown limit, and once they started succeeding the
-    //    per-constraint loop turned into 1200 solves and blew the MCP main-thread budget.
+    //    others — for one solve instead of n. That matters because large sketches solve: one
+    //    at a time, a bulk add of 1200 axis-aligned segments would be 1200 solves and blow the
+    //    MCP main-thread budget.
     std::vector<SketchEntityConstraintDef> axes;
     for (int i = base; i < n; ++i) {
         if (m_entities[i].type != SketchEntity::Type::Line) continue;
@@ -4454,7 +4453,7 @@ void DesignSketchTool::clear_extrude_gizmo()
 // cone travels, an open collar receives. No surveyed CAD system encodes this at all; both ends of
 // their mates are drawn identically, which is why "which part moves?" is a standing complaint.
 //
-// ORCA_CAD_GLYPH=A|B selects the treatment while this is being judged on the rig:
+// ORCA_CAD_GLYPH=A|B selects the treatment, so the two can be compared by eye:
 //   A  three short axis arms, no head differentiation  (the Onshape baseline)
 //   B  one-sided Z arrow, filled vs open head          (the proposal)          -- default
 void DesignSketchTool::render_mate_connectors()
@@ -4467,7 +4466,8 @@ void DesignSketchTool::render_mate_connectors()
     // The face treatment, on by default. Read every frame rather than latched in a static, so
     // toggling the preference takes effect on the next repaint instead of at the next launch —
     // it is a look, and a look you cannot A/B without restarting will not get compared.
-    // ORCA_CAD_GLYPH=D forces the disc regardless, which is how the rig drives the other branch.
+    // ORCA_CAD_GLYPH=D forces the disc regardless, so that branch can be viewed with the
+    // preference on.
     const bool face_style = !style_A
                          && wxGetApp().app_config->get_bool("design_connector_face_glyph")
                          && [] { const char* s = ::getenv("ORCA_CAD_GLYPH");
@@ -4483,9 +4483,9 @@ void DesignSketchTool::render_mate_connectors()
     const ColorRGBA gold (0.93f, 0.66f, 0.09f, 1.0f);
     const ColorRGBA blue (0.18f, 0.44f, 0.93f, 1.0f);
     const ColorRGBA grey (0.42f, 0.46f, 0.52f, 1.0f);
-    // F5: roll-undefined was a loud red — the strongest colour in the viewport spent on the LEAST
-    // important connector, which pulled the eye away from the mate being made. It is a "this one
-    // could not be derived" mark, not an error: muted amber says look-here without shouting.
+    // Roll-undefined is a "this one could not be derived" mark, not an error: muted amber says
+    // look-here without shouting. Red, the strongest colour in the viewport, would be spent on the
+    // LEAST important connector and pull the eye away from the mate being made.
     const ColorRGBA warn (0.72f, 0.55f, 0.22f, 1.0f);
 
     const SketchPlane saved = m_plane;
@@ -4500,12 +4500,12 @@ void DesignSketchTool::render_mate_connectors()
         // be billboarded: a disc that always faces the camera cannot show the frame's orientation,
         // which is the only reason it is a disc and not a dot.
         // Lifted off the surface by a sub-pixel epsilon. A connector's disc is EXACTLY coplanar with
-        // the face it sits on, so depth-testing it z-fights: on the rig the disc came out as a broken
-        // dotted arc that flickered with the camera. Depth off floats it through solids, depth on and
+        // the face it sits on, so depth-testing it z-fights: the disc comes out as a broken dotted
+        // arc that flickers with the camera. Depth off floats it through solids, depth on and
         // coplanar tears it — the lift is what buys both. Scaled by upp so it stays sub-pixel at any
         // zoom instead of becoming a visible gap when you zoom in.
         // A face asserts a definite roll. When the roll could NOT be derived, drawing one would be
-        // a confident lie about the very thing that is unknown — the same objection that rejected
+        // a confident lie about the very thing that is unknown — the same objection that rules out
         // billboarding the quadrant — so an underived connector keeps the disc treatment and its
         // hatched quadrant, whatever the preference says.
         if (face_style && !g.roll_undefined) {
@@ -4548,19 +4548,20 @@ void DesignSketchTool::render_mate_connectors()
                     const double a = (M_PI_2 * i) / 5.0;
                     q.emplace_back(Vec2d(0, 0), Vec2d(qr * std::cos(a), qr * std::sin(a)));
                 }
-                // F4: the quadrant collapses to a blob at grazing angles — exactly when the roll
+                // The quadrant collapses to a blob at grazing angles — exactly when the roll
                 // is hardest to read. A radial tick along +X, extending PAST the disc rim, is what
                 // survives that: as the disc flattens to a line the sector loses all area, but a
                 // radial spoke keeps its length and its direction along the one axis that still
                 // projects.
                 //
-                // The alternative on the issue was billboarding the quadrant. Rejected, and not
-                // on taste: at true grazing the view direction lies IN the connector's plane, so
+                // Billboarding the quadrant is no alternative, and not on taste: at true
+                // grazing the view direction lies IN the connector's plane, so
                 // every in-plane direction projects onto the same screen line and the roll is
                 // geometrically unrecoverable. A billboarded quadrant would not recover it — it
                 // would face the camera and read as a definite orientation that is not the frame's.
                 // Better to degrade to a direction you can still trust than to draw a confident
-                // lie. Judge the tick on the rig at a true grazing view before calling F4 closed.
+                // lie. How well the tick reads at a true grazing view is judged by eye; no test
+                // measures it.
                 q.emplace_back(Vec2d(R, 0), Vec2d(R * 1.28, 0));
             }
             draw_strokes(m_mc_stroke_model, q, lw, g.roll_undefined ? warn : gold);
@@ -4660,8 +4661,8 @@ void DesignSketchTool::render_mate_connectors()
 //
 // WHY A RELIEF AND NOT A FLAT DRAWING, which is the non-obvious half. A flat face drawn in the
 // connector's plane foreshortens by sin(elevation) and collapses at a grazing view exactly like
-// the quadrant it replaces -- measured on the rig, the quadrant falls from 89 lit pixels at 47
-// degrees to 3 at 10 and 0 edge-on. A relief does not: at a grazing angle its SILHOUETTE carries
+// the quadrant it replaces -- the quadrant falls from 89 lit pixels at 47 degrees to 3 at 10
+// and 0 edge-on. A relief does not: at a grazing angle its SILHOUETTE carries
 // the information. The same bear rendered flat vs in relief gives 164 vs 210 lit pixels at 16
 // degrees and 66 vs 120 at 6. So the glyph is a small shaded solid, not an outline.
 //
@@ -9532,7 +9533,7 @@ const ColorRGBA* DesignSketchTool::sketch_hl_color(int feature) const
 void DesignSketchTool::emit_step_hint()
 {
     // No session, no step. render() also runs while only the reference planes are up, and m_mode
-    // then holds the last session's tool (Polyline before the first), whose prompt used to replace
+    // then holds the last session's tool (Polyline before the first), whose prompt would replace
     // the panel's own line — "click a reference plane" while Sketch waits for one.
     if (!on_step_changed || !m_active) return;
     int step = 0, picks = 0;
@@ -9629,12 +9630,10 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     // extrude is removed): faces translucent, outlines orange. Each uses its own plane.
     if (!m_display_sketches.empty()) {
         const SketchPlane saved_plane = m_plane;
-        // CYAN/BLUE MEANS SELECTED — nothing else may wear it. The unselected fill used to be
-        // (0.30,0.60,1.0), one shade off the selected (0.30,0.80,1.0), so an ordinary region
-        // read as picked and a picked one added nothing. The outlines already got this right:
-        // orange for a sketch, cyan for the selection. The fill now follows the same logic, so
-        // an unselected region is faint amber — the sketch's own colour — and every blue thing
-        // on screen is something you selected.
+        // CYAN/BLUE MEANS SELECTED — nothing else may wear it. An unselected fill even one shade
+        // off the selection colour reads as picked, and then a pick adds nothing. The fill follows
+        // the outlines' rule (orange for a sketch, cyan for the selection): an unselected region
+        // is a faint neutral grey, so every blue thing on screen is something you selected.
         const ColorRGBA dface = design_idle_face_color();   // unselected: neutral grey, never the selection colour
         const ColorRGBA sface = design_selection_color(0.34f);   // selected region
         const ColorRGBA dwire(1.0f, 0.55f, 0.1f, 1.0f);     // normal orange outline
@@ -9665,8 +9664,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
                 if (m_display_pick_region < int(loops.size())) {
                     // The holes light up with their region. The highlight has to show what will
                     // be EXTRUDED, and a hole is part of that — a plate whose bore stays orange
-                    // while its outline turns cyan would say the circle is not coming along,
-                    // which is precisely the thing that used to be true and is now not.
+                    // while its outline turns cyan would say the circle is not coming along.
                     auto mark = [&](int region) {
                         if (region < 0 || region >= int(loops.size())) return;
                         for (int ei : loops[region].ents)
@@ -9744,8 +9742,8 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     if (m_mode == Mode::Constrain) {
         // The live session's palette, so a sketch looks the same whether you are drawing it or
         // constraining it: picks wear THE selection colour, idle geometry orange (construction
-        // grey). It used to draw everything in the old near-selection cyan and the picks RED —
-        // the colour that means "conflicting" everywhere else in the sketch.
+        // grey). A pick is never red, the colour that means "conflicting" everywhere else in the
+        // sketch.
         const ColorRGBA sel_col = design_selection_color();
         if (m_constrain_entities) {
             std::vector<Vec2d> markers;
@@ -9889,11 +9887,11 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     if (!sel_point_markers.empty())
         draw_vertices(m_highlight_model, sel_point_markers, sel_col);
 
-    // Constraint badges during a LIVE sketch. They used to render only inside Mode::Constrain
-    // on a COMMITTED feature, so every constraint applied while drawing — which is the path the
-    // Constrain buttons take during a session — was invisible and unremovable: you could not
-    // tell whether Parallel had been applied, nor take it back. Same glyphs, same teal, sourced
-    // from this session's m_constraints; click one to delete it (remove_constraint_near).
+    // Constraint badges during a LIVE sketch, not only inside Mode::Constrain on a COMMITTED
+    // feature: a constraint applied while drawing — which is the path the Constrain buttons take
+    // during a session — must be visible and removable, or you cannot tell whether Parallel was
+    // applied, nor take it back. Same glyphs, same teal, sourced from this session's
+    // m_constraints; click one to delete it (remove_constraint_near).
     if (!m_constraints.empty()) {
         std::vector<std::pair<Vec2d, Vec2d>> glyphs;
         build_constraint_glyphs(upp_dash, m_constraints, glyphs);
@@ -10876,18 +10874,17 @@ std::vector<int> DesignSketchTool::connected_loop(int seed) const
     return out;
 }
 
-// Right-click has two jobs in a sketch, and they were resolved by giving one of them everything:
-// the offer was excluded in sketch mode wholesale so a right-click could end a polyline chain,
-// abandon an anchor or exit a tool. That made every sketch row in the atlas unreachable.
-// The honest test is not "which mode are we in" but "did the tool actually USE this right-click",
-// and only the tool knows: take_right_click returns it for every terminator, from the
-// twenty-odd sites that consume a RightDown.
+// Right-click has two jobs in a sketch: end a polyline chain, abandon an anchor or exit a tool,
+// and open the offer. Excluding the offer in sketch mode wholesale would make every sketch row in
+// the atlas unreachable. The honest test is not "which mode are we in" but "did the tool actually
+// USE this right-click", and only the tool knows: take_right_click returns it for every
+// terminator, from the twenty-odd sites that consume a RightDown.
 // Right-click abandons the anchor a draw tool has down. With NOTHING down there is nothing to
-// abandon — and consuming the click anyway made the offer unreachable from every armed draw tool:
-// DesignCanvas's RIGHT_UP handler suppresses the menu whenever the tool used the click, so
-// right-click became a no-op that also hid the one door to half the vocabulary (47 of 86 verbs
-// have no shortcut). Measured on the rig: with Line armed, two right-clicks in a row produced no
-// menu and no tool change; only Escape freed it.
+// abandon, so the click is handed back. Consuming it anyway would make the offer unreachable from
+// every armed draw tool: DesignCanvas's RIGHT_UP handler suppresses the menu whenever the tool
+// used the click, so right-click would be a no-op that also hides the one door to half the
+// vocabulary (47 of 86 verbs have no shortcut) — with Line armed, two right-clicks in a row would
+// open no menu and change no tool, and only Escape would free it.
 // Same rule as xmh6, which said it for the selection: clearing nothing is not a gesture
 // terminator. ghcz.
 bool DesignSketchTool::right_abandon()
@@ -10901,8 +10898,8 @@ bool DesignSketchTool::right_abandon()
 
 // The camera follows Preferences > Control here as in Prepare, so no tool may take a gesture the
 // camera owns. A right press may start whatever drag action the right button is given, and
-// whether it did is known only at the release: ending a chain on the press made every pan or
-// orbit started there end the chain too. The press goes to the camera and is kept;
+// whether it did is known only at the release: ending a chain on the press would make every pan
+// or orbit started there end the chain too. The press goes to the camera and is kept;
 // DesignCanvas's RIGHT_UP handler replays it through take_right_click when it was a click.
 bool DesignSketchTool::on_mouse(wxMouseEvent& evt, GLCanvas3D& canvas)
 {
@@ -10998,8 +10995,8 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                 return true;
             }
             // Right-click opens the offer; the move is kept with Enter/✓ and reverted with Esc/✗,
-            // like every other pending edit. It used to keep the move and close the gizmo — a
-            // commit on the one button the charter reserves for "what can I do here".
+            // like every other pending edit. Keeping the move and closing the gizmo here would be
+            // a commit on the one button the charter reserves for "what can I do here".
             if (evt.RightDown()) return false;
             if (evt.LeftDown()) {
                 int axis = -1;
@@ -11303,9 +11300,9 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                       std::max(std::abs(evt.GetX() - m_pick_press_x),
                                std::abs(evt.GetY() - m_pick_press_y)));
         // Threshold per axis, at GTK's own drag threshold. A hand-held mouse drifts several
-        // pixels during an ordinary click — a tight budget silently swallowed real clicks and
-        // looked exactly like "selection does not work". Synthetic clicks never drift, which
-        // is why the headless rig could not show this.
+        // pixels during an ordinary click — a tight budget silently swallows real clicks and
+        // looks exactly like "selection does not work". Synthetic clicks never drift, so
+        // scripted input cannot catch a budget that is too tight.
         if (std::max(std::abs(evt.GetX() - m_pick_press_x),
                      std::abs(evt.GetY() - m_pick_press_y)) > 8) {
             dp_pick_trace("rejected as drag");
@@ -11569,8 +11566,8 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                 return true;
             }
             // The picks are this mode's selection, and right-click on a selection opens the
-            // offer for it — the constraint verbs. It used to cancel(), wiping the whole session
-            // behind the panel's back. Esc drops the picks.
+            // offer for it — the constraint verbs — rather than cancel(), which would wipe the
+            // whole session behind the panel's back. Esc drops the picks.
             return false;
         }
         if (evt.LeftDown()) {
@@ -11999,16 +11996,15 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
         if (evt.RightDown() && m_points.empty())
             return false;               // no chain to end — ghcz, let the offer open
         if (evt.RightDown()) {
-            // END the chain — do NOT close it. This used to call push_closed_lines() for three
-            // or more points, i.e. it drew a final segment from the last point back to the
-            // first that the user never asked for, and did it silently. No mainstream sketcher
-            // does that: FreeCAD, Fusion and Onshape all end an open chain on right-click and
-            // require the close to be EXPLICIT. Ours has that gesture — click the chain's first
-            // point, which snap_chain_start() previews and snaps onto in the LeftDown branch
-            // above, so the closing segment is on screen BEFORE it is committed. A closed loop
-            // is this tab's goal and it stays a four-action triangle either way; what changes
-            // is that the closing edge is now something the user saw and chose, not one the
-            // app appended on their behalf.
+            // END the chain — do NOT close it. Closing it here (push_closed_lines() for three or
+            // more points) would draw a final segment from the last point back to the first
+            // that the user never asked for, and do it silently. No mainstream sketcher does
+            // that: FreeCAD, Fusion and Onshape all end an open chain on right-click and require
+            // the close to be EXPLICIT. Ours has that gesture — click the chain's first point,
+            // which snap_chain_start() previews and snaps onto in the LeftDown branch above, so
+            // the closing segment is on screen BEFORE it is committed. A closed loop is this
+            // tab's goal and it is a four-action triangle either way; the closing edge is then
+            // something the user saw and chose, not one the app appended on their behalf.
             end_chain();
             return true;
         }

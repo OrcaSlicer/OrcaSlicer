@@ -458,8 +458,9 @@ TEST_CASE("every CAD tool example that passes a face or edge id passes the gener
                     if (!generation.is_object()) continue;
                     CHECK(generation.value("key", "") == "generation");
                     const int from = generation.value("from_call", -1);
-                    REQUIRE(from >= 0);
-                    REQUIRE(from < int(i));
+                    CHECK(from >= 0);
+                    CHECK(from < int(i));
+                    if (from < 0 || from >= int(i)) continue;
                     CHECK(calls[size_t(from)].at("tool") == "query_topology");
                 }
             }

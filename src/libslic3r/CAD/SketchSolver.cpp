@@ -118,9 +118,9 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
             s.center = b.pt2d(G_SK, e.center.x(), e.center.y());
             s.p0     = s.center;                          // p0 mirrors centre for circles
             // A zero-radius circle is degenerate everywhere else (the wire builder, offset and
-            // inference all reject it). It used to be seeded with radius 1 here and written
-            // back, so any unrelated solve silently turned it into a 1 mm circle. It gets no
-            // primitive: its centre still solves, anything needing the rim is skipped.
+            // inference all reject it). It gets no primitive rather than a placeholder radius,
+            // which the write-back would store, so that an unrelated solve cannot silently turn
+            // it into a real circle: its centre still solves, anything needing the rim is skipped.
             if (e.radius > 1e-9) {
                 s.rparam = b.P(G_SK, e.radius);
                 Slvs_hEntity dist = b.E(Slvs_MakeDistance(++b.eh, G_SK, b.wp, s.rparam));
@@ -364,9 +364,9 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
                     b.C(SLVS_C_PT_LINE_DISTANCE, side_of(ci, Role::Center, li) * entities[ci].radius,
                         ptOf(ci, Role::Center), 0, primOf(li), 0);
                 } else {
-                    // The arc endpoint that touches the line is the one the tangency is at. The
-                    // constraint used to bind the START point always, so a fillet — its start on
-                    // one leg, its end on the other — forced both legs parallel.
+                    // The arc endpoint that touches the line is the one the tangency is at.
+                    // Binding the START point regardless would force both legs of a fillet — its
+                    // start on one leg, its end on the other — parallel.
                     int other = 0;
                     if (valid(ci) && valid(li)) {
                         const SketchEntity& A = entities[ci];
@@ -387,8 +387,8 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
         case CT::PointOnLine:
             // slvs' in-workplane point-line distance is SIGNED. A negative stored value is an
             // explicit side; a positive one (what the UI stores) keeps the side the point is on
-            // now. Passing |value| forced every point to the positive side, flipping any that
-            // sat on the other one across the line.
+            // now. Passing |value| would force every point to the positive side, flipping any
+            // that sits on the other one across the line.
             if (std::abs(c.value) < 1e-9)
                 b.C(SLVS_C_PT_ON_LINE, 0, ptOf(c.ea, c.ra), 0, primOf(c.eb), 0);
             else
@@ -398,7 +398,7 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
             break;
         case CT::PointOnObject:
             // Point (ea,ra) lies on entity edge eb: a circle or arc rim -> PT_ON_CIRCLE (slvs
-            // takes both), otherwise the segment line -> PT_ON_LINE. An arc used to fall to
+            // takes both), otherwise the segment line -> PT_ON_LINE. An arc must not fall to
             // PT_ON_LINE, which is not an equation about an arc at all.
             if (valid(c.eb) && (entities[c.eb].type == SketchEntity::Type::Circle ||
                                 entities[c.eb].type == SketchEntity::Type::Arc))
@@ -546,20 +546,20 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
 // entity in the sketch, constrained or not, at 2 params per point — so a sketch of about 480 lines
 // is the last one that fits, and the very next one comes back TOO_MANY_UNKNOWNS.
 //
-// What that did, before this: DesignSketchTool::try_add_constraints rolls the whole batch back
-// when the solve fails, so the auto-constraint pass over a large sketch dropped EVERY constraint
-// it had just inferred. Measured on the rig — 480 lines: 960 constraints, dof 480. 520 lines:
-// 0 constraints, dof unknown. Nothing was said, and from there on no dimension and no constraint
-// could ever be applied to that sketch, because each attempt re-solved the same oversized system
-// and was rejected in turn. A typed length simply did nothing.
+// A failed solve is not local: DesignSketchTool::try_add_constraints rolls the whole batch back
+// when the solve fails, so solving an oversized sketch as one system drops EVERY constraint the
+// auto-constraint pass just inferred. Solved whole, 480 lines keep all 960 inferred constraints
+// (dof 480); 520 lines keep 0 (dof unknown). Nothing says so, and from there on no dimension and
+// no constraint can be applied to that sketch, because each attempt re-solves the same oversized
+// system and is rejected in turn: a typed length simply does nothing.
 //
 // Constraints only couple entities that SHARE a point, so a sketch is naturally a set of
 // independent systems — a plate with 300 cut-outs is 301 little problems, not one big one.
 // Solving them separately keeps every one of them far under the ceiling AND is faster, since the
 // solver's work is superlinear in system size.
 //
-// The whole system is still tried FIRST, and this runs only on TOO_MANY_UNKNOWNS, so every sketch
-// that fits today keeps its exact current behaviour, including its reported degrees of freedom.
+// The whole system is tried FIRST, and this runs only on TOO_MANY_UNKNOWNS, so a sketch that fits
+// is solved as one system and reports the degrees of freedom that solve finds.
 // A genuinely over-constrained sketch still fails: the conflict lives inside one component and
 // that component still rejects it.
 // Degrees of freedom an entity has on its own, as the whole-system solve counts them.

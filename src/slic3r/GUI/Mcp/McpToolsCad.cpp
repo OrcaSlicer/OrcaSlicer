@@ -2408,11 +2408,11 @@ json sketch_entity_to(const SketchEntity& e, int index)
         j["type"] = "point";
         j["p"] = json::array({e.p0.x(), e.p0.y()});
         break;
-    // Ellipses and splines used to serialise as a TYPE NAME and nothing else, so every
-    // parameter they have was invisible to the only read-back this project has. A ladder could
-    // count them and grade the faceted area of the loop they close (2e-2, the faceting error) —
-    // it could not check a single axis, angle or pole. "Precise definition of every aspect"
-    // cannot be asserted about an entity whose aspects the instrument cannot see.
+    // Ellipses and splines serialise every parameter they have, not just a type name: this is
+    // the only read-back the project has, and from a bare type name a caller could only count
+    // them and grade the faceted area of the loop they close (2e-2, the faceting error), never
+    // check a single axis, angle or pole. A precise definition of every aspect cannot be
+    // asserted about an entity whose aspects the read-back does not show.
     case SketchEntity::Type::Ellipse:
         j["type"]     = "ellipse";
         j["center"]   = json::array({e.center.x(), e.center.y()});
