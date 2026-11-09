@@ -398,6 +398,8 @@ set(lisbslic3r_sources
     ParallelResolve.hpp
     ParameterUtils.cpp
     ParameterUtils.hpp
+    PathTracer.cpp
+    PathTracer.hpp
     pchheader.cpp
     pchheader.hpp
     PerimeterGenerator.cpp

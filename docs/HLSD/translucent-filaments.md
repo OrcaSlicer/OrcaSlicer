@@ -157,3 +157,10 @@ they were.
 
 The wireframe overlay draws translucent filament parts too, with blending off, so their lines stay
 solid.
+
+## Path tracer
+
+With path tracing as the shading model, translucent filaments are rendered physically, from the
+same opacity. A printed wall is a thin slab: light goes straight through it, tinted by the dye, or is
+diffused in the filament color, and it is not refracted. Shadow rays take the transmittance of the
+walls they cross, so translucent parts cast colored shadows. See [path-tracer.md](path-tracer.md).
