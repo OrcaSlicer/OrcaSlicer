@@ -66,6 +66,7 @@ private:
         std::string    envelope;            // "running" or "blocked_by_dialog" when the reply was the job's envelope
         bool           dialog_answered = false; // a later call answered a dialog while the job ran
         bool           answers_dialog  = false; // the call acted while a modal dialog was open
+        std::size_t    bytes = 0;               // the serialized size of `args`, counted against kMaxArgBytes
 
         // Whether the outcome is still open: the call has not replied, or its job has not ended.
         bool running() const { return job.empty() ? !finished : !job_ended; }
@@ -75,9 +76,15 @@ private:
         bool unawaited() const { return !envelope.empty() || dialog_answered; }
     };
 
+    // Drops the oldest calls whose outcome is known while the journal is over either bound. Called with
+    // the lock held.
+    void trim();
+
     mutable std::mutex m_mutex;
-    static constexpr std::size_t kMaxEntries = 5000;
+    static constexpr std::size_t kMaxEntries  = 5000;
+    static constexpr std::size_t kMaxArgBytes = 64u << 20; // the entries' `bytes` together
     std::vector<Entry>           m_entries;
+    std::size_t                  m_bytes = 0; // the sum of the entries' `bytes`
     uint64_t           m_next = 1;
 };
 

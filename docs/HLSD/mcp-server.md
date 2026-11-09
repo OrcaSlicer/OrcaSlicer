@@ -2684,8 +2684,11 @@ agents read in English, is shown as a detail under a translated lead. Tool title
 `L()` so the dialog can show them translated while `tools/list` keeps the English.
 
 The session journal records client calls to journaled tools in order: every mutate tool, plus
-`wait` and `screenshot`, which a replay needs. It keeps the last 5000 calls, dropping the oldest
-call whose outcome is known; a call still waiting for its reply or its job keeps its place. GUI tools record locators instead of refs through
+`wait` and `screenshot`, which a replay needs. It keeps at most 5000 calls and 64 MiB of their
+arguments (serialized), so a long CAD run's large `sketch_add` calls can't grow it without bound:
+after each change it drops the oldest calls whose outcome is known until it is within both. A call
+still waiting for its reply or its job keeps its place, so calls still waiting may hold it over for a
+while; they go once they finish like any old call. GUI tools record locators instead of refs through
 `ToolContext::set_journal_args()`. `export_replay` returns it, and with `path` writes it, through `Journal::to_replay()`; `clear`
 starts a new recording. `Journal::to_replay()`
 drops failed calls and an input call that only listed the menu it opened when the next call repeats

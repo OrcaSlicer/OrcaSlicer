@@ -217,6 +217,9 @@ ToolDef tool(const std::string& name, GuardClass guard, ToolHandler handler)
     return d;
 }
 
+// Arguments whose serialized size is just over `mib` MiB.
+json args_of_mib(std::size_t mib) { return {{"s", std::string(mib << 20, 'x')}}; }
+
 } // namespace
 
 TEST_CASE("a UI call that is never picked up is abandoned and never runs", "[Mcp]")
@@ -1083,6 +1086,95 @@ TEST_CASE("the journal keeps a call waiting for its reply when it drops old call
     REQUIRE_FALSE(steps.empty());
     CHECK(steps[0]["tool"] == "slice");
     CHECK(steps.size() == 5000);
+}
+
+TEST_CASE("the journal keeps at most 64 MiB of arguments", "[Mcp]")
+{
+    Journal    journal;
+    const json big = args_of_mib(1);
+    for (int i = 0; i < 100; ++i)
+        journal.end(journal.begin("set_settings", big), ToolResult::ok());
+    const json steps = journal.to_replay("s")["steps"];
+    CHECK(steps.size() < 64);
+    CHECK(steps.size() > 56);
+}
+
+TEST_CASE("calls waiting for their reply outlast the byte cap and go once they finish", "[Mcp]")
+{
+    Journal               journal;
+    const json            big = args_of_mib(1);
+    std::vector<uint64_t> waiting;
+    for (int i = 0; i < 70; ++i)
+        waiting.push_back(journal.begin("set_settings", big));
+    json left;
+    CHECK(journal.to_replay("s", &left)["steps"].empty());
+    CHECK(left.size() == 70);
+    // Each reply trims on its own, with no later begin or set_args.
+    for (const uint64_t seq : waiting)
+        journal.end(seq, ToolResult::ok());
+    CHECK(journal.to_replay("s", &left)["steps"].size() < 64);
+    CHECK(left.empty());
+}
+
+TEST_CASE("a job's call over the byte cap stays until its job ends", "[Mcp]")
+{
+    Journal    journal;
+    const json huge = args_of_mib(65);
+    json       left;
+
+    // The reply comes first, as the job's envelope; the job ends later.
+    const uint64_t seq = journal.begin("call_cad_tool", huge);
+    journal.job_started(seq, "j");
+    journal.end(seq, ToolResult::ok({{"status", "running"}, {"job", "j"}}));
+    CHECK(journal.to_replay("s", &left)["steps"].empty());
+    REQUIRE(left.size() == 1);
+    CHECK(left[0] == json{{"tool", "call_cad_tool"}, {"job", "j"}});
+    journal.job_ended(seq, ToolResult::ok());
+    CHECK(journal.to_replay("s", &left)["steps"].empty());
+    CHECK(left.empty());
+
+    // The job ends before its reply.
+    const uint64_t seq2 = journal.begin("call_cad_tool", huge);
+    journal.job_started(seq2, "k");
+    journal.job_ended(seq2, ToolResult::ok());
+    CHECK(journal.to_replay("s", &left)["steps"].empty());
+    CHECK(left.empty());
+    journal.end(seq2, ToolResult::ok());
+    CHECK(journal.to_replay("s", &left)["steps"].empty());
+    CHECK(left.empty());
+}
+
+TEST_CASE("replacing a call's arguments moves the journal's byte total", "[Mcp]")
+{
+    Journal    journal;
+    const json fifteen = args_of_mib(15);
+    for (int i = 0; i < 4; ++i)
+        journal.end(journal.begin("set_settings", fifteen), ToolResult::ok());
+    // 60 MiB, then 70 MiB once the small call's arguments grow: the first 15 MiB call goes.
+    const uint64_t b = journal.begin("set_settings", {{"values", {{"wall_loops", 3}}}});
+    journal.set_args(b, args_of_mib(10));
+    journal.end(b, ToolResult::ok());
+    CHECK(journal.to_replay("s")["steps"].size() == 4);
+    // Shrinking them back leaves 45 MiB, room for one more 15 MiB call.
+    journal.set_args(b, {{"values", {{"wall_loops", 3}}}});
+    journal.end(journal.begin("set_settings", fifteen), ToolResult::ok());
+    CHECK(journal.to_replay("s")["steps"].size() == 5);
+}
+
+TEST_CASE("one call bigger than the cap is dropped once it has replied", "[Mcp]")
+{
+    Journal        journal;
+    json           left;
+    const uint64_t seq = journal.begin("call_cad_tool", args_of_mib(65));
+    CHECK(journal.to_replay("s", &left)["steps"].empty());
+    REQUIRE(left.size() == 1);
+    CHECK(left[0] == json{{"tool", "call_cad_tool"}});
+    journal.end(seq, ToolResult::ok());
+    CHECK(journal.to_replay("s", &left)["steps"].empty());
+    CHECK(left.empty());
+    // The total is back to what the remaining calls hold, so a small call stays.
+    journal.end(journal.begin("set_settings", {{"values", {{"wall_loops", 3}}}}), ToolResult::ok());
+    CHECK(journal.to_replay("s")["steps"].size() == 1);
 }
 
 TEST_CASE("drain reports a job thread that has not returned", "[Mcp]")

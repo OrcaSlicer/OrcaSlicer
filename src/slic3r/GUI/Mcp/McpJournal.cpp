@@ -19,6 +19,14 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 
 using nlohmann::json;
 
+namespace {
+
+// The size a call's arguments count against the journal's byte bound. Invalid UTF-8 a tool recorded is
+// counted as replacement characters rather than thrown on: the journal only needs the size.
+std::size_t serialized_size(const json& args) { return args.dump(-1, ' ', false, json::error_handler_t::replace).size(); }
+
+} // namespace
+
 json without_expected_ids(const std::string& tool, json args)
 {
     // The tools that take expected ids; any other tool's arguments (a plugin operation's own fields among
@@ -63,25 +71,26 @@ uint64_t Journal::begin(const std::string& tool, const nlohmann::json& args, boo
     e.seq            = m_next++;
     e.tool           = tool;
     e.args           = without_expected_ids(tool, args);
+    e.bytes          = serialized_size(e.args);
     e.answers_dialog = answers_dialog;
+    const uint64_t seq = e.seq;
+    m_bytes += e.bytes;
     m_entries.push_back(std::move(e));
-    // A session kept open for days must not grow without bound; a replay is exported from the
-    // recent calls anyway (export_replay {clear:true} starts afresh). The oldest call whose outcome
-    // is known goes; a call still waiting for its reply or its job keeps its place.
-    if (m_entries.size() > kMaxEntries) {
-        const auto oldest = std::find_if(m_entries.begin(), m_entries.end(), [](const Entry& entry) { return !entry.running(); });
-        if (oldest != m_entries.end())
-            m_entries.erase(oldest);
-    }
-    return m_entries.back().seq;
+    trim();
+    return seq;
 }
 
 void Journal::set_args(uint64_t seq, nlohmann::json args)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     for (Entry& e : m_entries)
-        if (e.seq == seq)
-            e.args = without_expected_ids(e.tool, std::move(args));
+        if (e.seq == seq) {
+            m_bytes -= e.bytes;
+            e.args  = without_expected_ids(e.tool, std::move(args));
+            e.bytes = serialized_size(e.args);
+            m_bytes += e.bytes;
+        }
+    trim();
 }
 
 void Journal::end(uint64_t seq, const ToolResult& result)
@@ -101,6 +110,7 @@ void Journal::end(uint64_t seq, const ToolResult& result)
                 (*status == "running" || *status == "blocked_by_dialog"))
                 e.envelope = status->get<std::string>();
         }
+    trim();
 }
 
 void Journal::job_started(uint64_t seq, const std::string& job)
@@ -119,12 +129,33 @@ void Journal::job_ended(uint64_t seq, const ToolResult& result)
             e.job_ended = true;
             e.failed    = e.failed || result.is_error;
         }
+    // The job may end after its reply, which then trimmed nothing for this call.
+    trim();
 }
 
 void Journal::clear()
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_entries.clear();
+    m_bytes = 0;
+}
+
+void Journal::trim()
+{
+    // A session kept open for days, or one that sends thousands of large calls (a CAD run's sketch_add),
+    // must not grow without bound; a replay is exported from the recent calls anyway (export_replay
+    // {clear:true} starts afresh). The oldest calls whose outcome is known go first; a call still
+    // waiting for its reply or its job keeps its place, even when that holds the journal over a bound
+    // until it finishes.
+    auto it = m_entries.begin();
+    while (it != m_entries.end() && (m_entries.size() > kMaxEntries || m_bytes > kMaxArgBytes)) {
+        if (it->running()) {
+            ++it;
+            continue;
+        }
+        m_bytes -= it->bytes;
+        it = m_entries.erase(it);
+    }
 }
 
 nlohmann::json Journal::to_replay(const std::string& name, nlohmann::json* left_out_running) const
