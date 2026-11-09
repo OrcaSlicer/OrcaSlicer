@@ -171,7 +171,7 @@ def main():
         check("search_tools's search finds the Python API", found.get("python", {}).get("items", [{}])[0].get("name") ==
               "orca.host.TriangleMesh.face_normals", found)
         found = orca.call("search_tools", query="extrude")
-        check("search_tools's search finds the Design tab's methods", found.get("cad", {}).get("items"), found)
+        check("search_tools's search finds the Design tab's CAD tools", found.get("cad", {}).get("items"), found)
         found = orca.call("search_tools", query="?")
         check("a query with no words to search for matches nothing", found.get("total") == 0 and "names" not in found, found)
         journal = orca.call("export_replay")["replay"]["steps"]

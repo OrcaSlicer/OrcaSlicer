@@ -170,7 +170,7 @@ const char* kInstructions =
     "(get_app_state.python.scripts_allowed).\n"
     "- Not sure what does something? search_tools {query} searches every catalog at once: the tools, the operations "
     "plugins offer (plugin.<plugin>.<name>, which the tool list does not show; call_tool runs them), Speed Dial actions, "
-    "settings, the Python API and the Design tab's methods, each match with how to use it.\n"
+    "settings, the Python API and the Design tab's CAD tools, each match with how to use it.\n"
     "API lane:\n"
     "- Typed tools: open_files, select_preset, set_settings, slice, export and the rest.\n"
     "- What a setting does, or which one controls an effect: get_settings with keys, or query with a few words, and no "

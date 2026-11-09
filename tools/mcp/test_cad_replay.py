@@ -6,13 +6,13 @@
 
 Records a session of call_cad_tool client calls (replay steps are not journaled) on the paths a replay
 breaks on: a sketch on a base plane, which passes through modeling_origin as every plane does; an
-empty sketch commit, which fails and must keep the sketch open for the next call; a rewritten
-method failing as an error (a hole that misses), which export_replay must leave out; a legacy
-method answering ok false, which stays in and replays the same rejection; and face and edge ids
-passed with the generation they were read at, which the journal drops, since the replay reaches
-other generation numbers. The thread rebuilds behind the progress dialog. The exported replay is
-replayed into a new project in the same instance, whose generation count has moved on, and the
-body's mass properties and the feature list must match. Exits 0 when all hold.
+empty sketch commit, which fails and must keep the sketch open for the next call; a CAD tool
+failing as an error (a hole that misses), which export_replay must leave out; one that reports a
+rejected rebuild in its reply (ok false), which stays in and replays the same rejection; and face
+and edge ids passed with the generation they were read at, which the journal drops, since the
+replay reaches other generation numbers. The thread rebuilds behind the progress dialog. The
+exported replay is replayed into a new project in the same instance, whose generation count has
+moved on, and the body's mass properties and the feature list must match. Exits 0 when all hold.
 """
 
 import json
@@ -25,14 +25,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
 
 
-def cad(client, method, **params):
-    return client.call("call_cad_tool", _timeout=300, method=method, params=params)["result"]
+def cad(client, tool, **args):
+    return client.call("call_cad_tool", _timeout=300, tool=tool, args=args)["result"]
 
 
-def refused(client, method, **params):
+def refused(client, tool, **args):
     """The error text of a call that must fail, or None when it succeeded."""
     try:
-        cad(client, method, **params)
+        cad(client, tool, **args)
     except orca_mcp.McpError as e:
         return str(e)
     return None
@@ -57,8 +57,8 @@ def record(client):
     legacy = cad(client, "fillet", edge=corners["edges"][0]["id"], radius=50, body=0)
     bores = cad(client, "query_topology", body=0, kinds=["cylindrical"])
     bore = next(f["id"] for f in bores["faces"] if f.get("internal"))
-    thread = client.await_job(client.call("call_cad_tool", _timeout=300, method="thread",
-                                          params={"body": 0, "face": bore, "generation": bores["generation"]}))
+    thread = client.await_job(client.call("call_cad_tool", _timeout=300, tool="thread",
+                                          args={"body": 0, "face": bore, "generation": bores["generation"]}))
     return {"mass": cad(client, "mass_properties", body=0), "scene": cad(client, "describe_scene"),
             "frame": frame, "empty_commit": empty_commit, "missed_hole": missed_hole, "legacy": legacy,
             "thread": thread.get("result", {})}
@@ -78,7 +78,7 @@ def main():
         text = f.read()
     steps = json.loads("\n".join(l for l in text.splitlines() if not l.lstrip().startswith("//")))["steps"]
     calls = [s["args"] for s in steps if s["tool"] == "call_cad_tool"]
-    methods = [c["method"] for c in calls]
+    tools = [c["tool"] for c in calls]
 
     client.call("new_project", discard_changes=True)
     replay = client.await_job(client.call("run_replay", path=path, out_dir=out_dir), timeout=900)
@@ -95,9 +95,9 @@ def main():
         ("a hole that misses fails as an error", bool(live["missed_hole"]), live["missed_hole"]),
         ("a legacy fillet the kernel refuses answers ok false", live["legacy"].get("ok") is False, live["legacy"]),
         ("the thread is M5, inferred from the bore", live["thread"].get("designation") == "M5", live["thread"]),
-        ("the export leaves out the failed calls", methods.count("sketch_commit") == 1 and "hole" not in methods, methods),
-        ("the export keeps the legacy ok-false call", methods.count("fillet") == 2, methods),
-        ("the export records no generation", all("generation" not in c.get("params", {}) for c in calls), calls),
+        ("the export leaves out the failed calls", tools.count("sketch_commit") == 1 and "hole" not in tools, tools),
+        ("the export keeps the legacy ok-false call", tools.count("fillet") == 2, tools),
+        ("the export records no generation", all("generation" not in c.get("args", {}) for c in calls), calls),
         ("the exported session replays", replay.get("passed") is True,
          [s for s in replay.get("steps", []) if not s.get("ok")][:1]),
         ("the same features", kinds(scene) == kinds(live["scene"]), (kinds(scene), kinds(live["scene"]))),

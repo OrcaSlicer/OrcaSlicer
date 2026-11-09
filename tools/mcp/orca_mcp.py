@@ -7,7 +7,7 @@ Standard library only. Two halves:
 * A command line that launches OrcaSlicer for an agent or a test and talks to it::
 
     tools/mcp/orca_mcp.py launch --xvfb             # fresh datadir, wait until ready, print client config
-    tools/mcp/orca_mcp.py launch --cad              # with the Design (CAD) tab on, for call_cad_tool
+    tools/mcp/orca_mcp.py launch --cad              # with the Design (CAD) tab on, for the CAD tools (list_cad_tools, call_cad_tool)
     tools/mcp/orca_mcp.py call get_app_state
     tools/mcp/orca_mcp.py call open_files '{"paths": ["/abs/model.stl"]}'
     tools/mcp/orca_mcp.py screenshot /tmp/shot.png --target canvas
@@ -336,7 +336,7 @@ def main():
     p.add_argument("--printer", help="\"<model>@<nozzle>\" for a fresh datadir, e.g. \"Bambu Lab X1 Carbon@0.4\"")
     p.add_argument("--vendor", default="BBL")
     p.add_argument("--filament")
-    p.add_argument("--cad", action="store_true", help="turn the Design (CAD) tab on, for call_cad_tool")
+    p.add_argument("--cad", action="store_true", help="turn the Design (CAD) tab on, for the CAD tools (list_cad_tools, call_cad_tool)")
     p.add_argument("--timeout", type=int, default=120)
     p.add_argument("--print-config", action="store_true", help="print client setup commands")
     p.add_argument("extra", nargs="*", help="extra orca-slicer arguments after --")

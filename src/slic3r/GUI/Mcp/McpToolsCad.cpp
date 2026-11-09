@@ -1,7 +1,7 @@
-// The CAD tools behind the MCP server's call_cad_tool, and its registration. kCadTools declares
-// every CAD tool's name, access and handler; run_cad_tool() runs one on the UI thread, through the
-// GUI's own CadDocument and DesignPanel's mcp_* hooks, behind the Design tab's busy and stale-id
-// checks. tool_rows() describes them.
+// The CAD tools behind the MCP server's call_cad_tool, and the registration of call_cad_tool,
+// list_cad_tools and describe_cad_tool. kCadTools declares every CAD tool's name, access and handler;
+// run_cad_tool() runs one on the UI thread, through the GUI's own CadDocument and DesignPanel's mcp_*
+// hooks, behind the Design tab's busy and stale-id checks. tool_rows() describes them.
 
 #include "McpToolsCad.hpp"
 #include "libslic3r/Point.hpp"
@@ -156,6 +156,11 @@ const char* const kIdsNote =
 // How a CAD tool whose kCadTools entry has ok_false reports a rebuild the kernel rejects.
 const char* const kFailureNote = "A rejected rebuild is reported in the reply: ok is false or error is not empty.";
 
+// cad_feature_note()'s text: run_cad_tool() refuses every CAD tool while the feature is off, and the
+// app reads the preference only at startup.
+const char* const kCadOffNote = "The CAD feature is off: call_cad_tool is refused until a person enables it in "
+                                "Preferences > Features and restarts OrcaSlicer.";
+
 // The `plane` param. A face resolves differently for drilling than for anything else (see
 // cad_resolve_plane), so the row says which frame the tool gets.
 json plane_param(const json& def, bool drill)
@@ -177,23 +182,12 @@ json plane_param(const json& def, bool drill)
 json tool_rows()
 {
     return json{
-        {"app", "Orca CAD"},
-        {"protocol", "jsonrpc-2.0"},
-        {"slice", 5},
-        {"id_lifetime", kIdLifetime},
         {"tools", json::array({
-            json{{"name", "describe_tools"}, {"summary", "List callable methods and their parameters."},
-                 {"details", "Filter with method (a name or a list of names) and query (text in a name or summary)."},
-                 {"params", json::array({
-                     json{{"name", "method"}, {"type", "string|array"}, {"default", ""}, {"description", "only these methods"}},
-                     json{{"name", "query"},  {"type", "string"}, {"default", ""}, {"description", "only methods whose name or summary contains this, in any case"}},
-                 })},
-                 {"examples", json::array()}},
             json{{"name", "describe_scene"}, {"summary", "The Design document: features, variables with their values, bodies, undo_depth / redo_depth and generation."},
                  {"details", "A feature's bound lists the fields an expression drives; a body gives bbox, source_feature, visible, color and moved (by the Move gizmo)."},
                  {"params", json::array()},
                  {"examples", json::array()}},
-            json{{"name", "describe_feature"}, {"summary", "One feature as its card shows it: params, the editable ones with their ranges, expr, refs, used_by and bodies_made."},
+            json{{"name", "describe_feature"}, {"ids", true}, {"summary", "One feature as its card shows it: params, the editable ones with their ranges, expr, refs, used_by and bodies_made."},
                  {"details", "expr holds its bindings, and refs the feature and body indices and face and edge ids it uses; a sketch adds its plane, entities and constraints (angles in degrees)."},
                  {"params", json::array({
                      json{{"name", "feature"}, {"type", "integer"}, {"description", "feature index (describe_scene)"}},
@@ -1383,7 +1377,7 @@ json action_chamfer(DesignPanel* panel, const json& params)
                 {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
-// A hole method's reply: the feature, where it went (cad_hole_placement) and the frame of its plane.
+// A hole CAD tool's reply: the feature, where it went (cad_hole_placement) and the frame of its plane.
 json hole_reply(json r, const json& placement, const SketchPlane& pl)
 {
     r.update(placement);
@@ -2488,7 +2482,7 @@ json action_sketch_mirror(DesignPanel* panel, const json& params)
     return json{{"ok", true}, {"first_index", base}, {"added", int(out.size())}, {"dof", t.dof()}};
 }
 
-// The `sketch` a method reads or builds from: a Sketch feature, or a Project feature, whose
+// The `sketch` a CAD tool reads or builds from: a Sketch feature, or a Project feature, whose
 // entities the kernel builds as a sketch's.
 int sketch_arg(const json& v, const CadDocument& doc)
 {
@@ -2627,8 +2621,8 @@ json action_sketch_set_value(DesignPanel* panel, const json& params)
 // With `sketch` they are the Extrude and Revolve cards' Confirm on a committed sketch (or one loop
 // of it); without, they draw their own sketch first, a `profile` or a rectangle on `plane`.
 
-// The card's mode choice. "auto" (where allowed) comes back empty. bool_from, which the older
-// methods keep, makes a new body of a word it does not know; here that is an error.
+// The card's mode choice. "auto" (where allowed) comes back empty. bool_from, which boolean's op
+// reads, makes a new body of a word it does not know; here that is an error.
 std::optional<BooleanMode> boolean_arg(const json& params, const char* def, bool allow_auto)
 {
     json v = params.value("boolean", json());
@@ -3596,7 +3590,7 @@ json action_export_step(DesignPanel* panel, const json& params)
 // Each runs the sketch tool's own step for its button or gesture (DesignSketchTool's *_scripted
 // entry points), checks every argument first and throws, leaving the sketch as it was.
 
-size_t      edit_distance(const std::string& a, const std::string& b);   // with the method lookup below
+size_t      edit_distance(const std::string& a, const std::string& b);   // with the CAD tool lookup below
 std::string lower(std::string s);
 
 // SketchEntity::Type's names, as sketch_describe writes them.
@@ -3922,7 +3916,7 @@ json sketch_transform(DesignSketchTool& t, const json& params)
 // CONSTRAIN bar's Equal (equal length, or equal radius for two curves).
 SketchConstraintType constraint_type_arg(const json& v)
 {
-    if (!v.is_string()) throw std::runtime_error("type must be a constraint type, such as \"parallel\" (describe_tools lists them)");
+    if (!v.is_string()) throw std::runtime_error("type must be a constraint type, such as \"parallel\" (describe_cad_tool sketch_constrain lists them)");
     const std::string s = v.get<std::string>();
     if (s == "equal") return SketchConstraintType::EqualLength;
     for (size_t i = 0; i < std::size(kConstraintTypes); ++i)
@@ -3931,7 +3925,7 @@ SketchConstraintType constraint_type_arg(const json& v)
     for (const char* n : kConstraintTypes)
         if (edit_distance(lower(s), n) <= 2 + s.size() / 4) close += std::string(close.empty() ? "" : ", ") + "\"" + n + "\"";
     throw std::runtime_error("unknown constraint type \"" + s + "\"" + (close.empty() ? "" : "; did you mean " + close) +
-                             " (describe_tools lists them)");
+                             " (describe_cad_tool sketch_constrain lists them)");
 }
 
 // Why the CONSTRAIN bar refuses a pick, in ConstraintReject order: a code an agent can test and the
@@ -4126,10 +4120,10 @@ json sketch_unconstrain(DesignSketchTool& t, const json& params)
     return r;
 }
 
-// A method on the open sketch alone, then a repaint.
-json on_open_sketch(DesignPanel* panel, const char* method, const json& params)
+// A CAD tool on the open sketch alone, then a repaint.
+json on_open_sketch(DesignPanel* panel, const char* name, const json& params)
 {
-    json r = cad_sketch_call(mcp_sketch(panel), method, params);
+    json r = cad_sketch_call(mcp_sketch(panel), name, params);
     panel->mcp_viewport()->request_repaint();
     return r;
 }
@@ -4159,13 +4153,12 @@ struct CadTool
 {
     const char* name;
     CadAccess   access;
-    bool        ok_false;   // an older tool: a rejected rebuild is reported in the reply, not as an error
+    bool        ok_false;   // the tool reports a rejected rebuild in its reply (ok false) instead of failing
     json (*run)(DesignPanel* panel, const json& params);
 };
 
 // Every CAD tool, declared once: run_cad_tool(), the busy gate and cad_tool_table() read this.
 const CadTool kCadTools[] = {
-    {"describe_tools",      CadAccess::Read,   false, [](DesignPanel*, const json& p) { return cad_describe_tools(p); }},
     {"describe_scene",      CadAccess::Read,   false, [](DesignPanel* panel, const json&) { return describe_scene(panel); }},
     {"describe_feature",    CadAccess::Read,   false, action_describe_feature},
     {"query_topology",      CadAccess::Read,   false, query_topology},
@@ -4317,8 +4310,11 @@ json run_cad_tool(const std::string& tool, const json& args)
                           {{"code", -32001}});
 
     const CadTool* t = find_cad_tool(tool);
-    if (t == nullptr)
-        throw ToolFailure("Unknown CAD tool: " + tool + close_cad_tools(tool), {{"code", -32601}});
+    if (t == nullptr) {
+        const std::string close = close_cad_tools(tool);
+        throw ToolFailure("Unknown CAD tool: " + tool + (close.empty() ? "." : close) + " list_cad_tools lists them.",
+                          {{"code", -32601}});
+    }
 
     // Only Read tools may run under a GUI editor or a sketch session they do not own. No tool may
     // run during a rebuild, not even these: the rebuild's busy loop runs this call while the GUI's
@@ -4451,52 +4447,15 @@ json cad_describe_tool(const json& tool)
     return reply;
 }
 
-json cad_describe_tools(const json& params)
+json cad_feature_note(ToolContext& ctx)
 {
-    json out = tool_rows();
-    json legacy = json::array();
-    for (const CadTool& t : kCadTools)
-        if (t.ok_false) legacy.push_back(t.name);
-    out["errors"] = "A call that fails is an error and leaves the design as it was. The methods in "
-                    "legacy_ok_false report a rejected rebuild in their reply instead (ok false, or "
-                    "a non-empty error).";
-    out["legacy_ok_false"] = std::move(legacy);
-
-    std::vector<std::string> names;
-    const json want = params.is_object() ? params.value("method", json()) : json();
-    if (want.is_string()) {
-        if (!want.get<std::string>().empty()) names.push_back(want.get<std::string>());
-    } else if (want.is_array()) {
-        for (const json& n : want) {
-            if (!n.is_string()) throw std::runtime_error("describe_tools: method takes a name or a list of names");
-            names.push_back(n.get<std::string>());
-        }
-    } else if (!want.is_null()) {
-        throw std::runtime_error("describe_tools: method takes a name or a list of names");
+    // Preferences may write AppConfig while this runs, so the preference is read on the UI thread.
+    try {
+        if (!ctx.observe_ui([] { return json(wxGetApp().is_enable_cad_feature()); }).get<bool>())
+            return kCadOffNote;
+    } catch (const ToolFailure&) {
     }
-    for (const std::string& n : names)
-        if (find_cad_tool(n) == nullptr)
-            throw std::runtime_error("describe_tools: unknown method '" + n + "'" + close_cad_tools(n));
-    const json q = params.is_object() ? params.value("query", json("")) : json("");
-    if (!q.is_string()) throw std::runtime_error("describe_tools: query must be a string");
-    const std::string query = lower(q.get<std::string>());
-
-    // A row's summary is the table's summary and details as one text; its params have no `required`.
-    json rows = json::array();
-    for (const json& row : cad_tool_table()) {
-        const std::string name    = row.at("name").get<std::string>();
-        const std::string details = row.at("details").get<std::string>();
-        const std::string summary = row.at("summary").get<std::string>() + (details.empty() ? "" : " " + details);
-        if (!names.empty() && std::find(names.begin(), names.end(), name) == names.end()) continue;
-        if (!query.empty() && lower(name + " " + summary).find(query) == std::string::npos) continue;
-        json params = row.at("params");
-        for (json& p : params) p.erase("required");
-        json legacy_row{{"name", name}, {"summary", summary}, {"params", std::move(params)}};
-        if (row.contains("access")) legacy_row["access"] = row.at("access");
-        rows.push_back(std::move(legacy_row));
-    }
-    out["tools"] = std::move(rows);
-    return out;
+    return nullptr;
 }
 
 SketchPlane cad_resolve_plane(const json& plane, const CadDocument& doc, bool drill, int* face_body)
@@ -4700,18 +4659,18 @@ json cad_sketch_describe(const CadDocument& doc, const DesignSketchTool& tool, i
     return out;
 }
 
-json cad_sketch_call(DesignSketchTool& tool, const std::string& method, const json& params)
+json cad_sketch_call(DesignSketchTool& tool, const std::string& name, const json& params)
 {
     const json p = params.is_object() ? params : json::object();
-    if (method == "sketch_add")         return sketch_add(tool, p);
-    if (method == "sketch_fillet")      return sketch_corner(tool, p, false);
-    if (method == "sketch_chamfer")     return sketch_corner(tool, p, true);
-    if (method == "sketch_trim")        return sketch_trim(tool, p);
-    if (method == "sketch_transform")   return sketch_transform(tool, p);
-    if (method == "sketch_constrain")   return sketch_constrain(tool, p);
-    if (method == "sketch_constraints") return sketch_constraints(tool, p);
-    if (method == "sketch_unconstrain") return sketch_unconstrain(tool, p);
-    throw std::runtime_error(method + " is not a CAD tool of the open sketch");
+    if (name == "sketch_add")         return sketch_add(tool, p);
+    if (name == "sketch_fillet")      return sketch_corner(tool, p, false);
+    if (name == "sketch_chamfer")     return sketch_corner(tool, p, true);
+    if (name == "sketch_trim")        return sketch_trim(tool, p);
+    if (name == "sketch_transform")   return sketch_transform(tool, p);
+    if (name == "sketch_constrain")   return sketch_constrain(tool, p);
+    if (name == "sketch_constraints") return sketch_constraints(tool, p);
+    if (name == "sketch_unconstrain") return sketch_unconstrain(tool, p);
+    throw std::runtime_error(name + " is not a CAD tool of the open sketch");
 }
 
 std::vector<SketchEntityConstraintDef> cad_constraint_defs(const json& params, const std::vector<SketchEntity>& ents,
@@ -5534,38 +5493,78 @@ std::function<int(const std::string& name)> cad_split(CadDocument& doc, const js
     };
 }
 
-// call_cad_tool: the Design tab's control surface (sketches, features, measurements) through MCP.
+namespace {
+
+// A reply of list_cad_tools or describe_cad_tool, with the CAD-off note when there is one.
+ToolResult with_feature_note(json reply, ToolContext& ctx)
+{
+    json note = cad_feature_note(ctx);
+    if (!note.is_null()) reply["note"] = std::move(note);
+    return ToolResult::ok(std::move(reply));
+}
+
+} // namespace
+
+// The Design tab through MCP: two tools that read the CAD tool table, which needs no Design panel,
+// so they answer with the CAD feature off too, and call_cad_tool, the one way to run a CAD tool.
 void register_cad_tools(McpService& service)
 {
-    service.registry().add(mutate_tool(
-        "call_cad_tool", L("Call a CAD tool"),
-        "Call a CAD tool: a method of the Design (CAD) tab's control surface. Method \"describe_tools\" lists the methods and their "
-        "params; narrow it with params {\"method\": name or [names]} or {\"query\": text}. Typical calls: describe_scene, "
-        "describe_feature / set_feature (read and edit a feature as its card does), sketch_begin / sketch_add (entities, "
-        "polygon, slot, ellipse, spline) / sketch_commit then extrude or revolve {sketch}; in the sketch, sketch_fillet, "
-        "sketch_trim, sketch_transform (move, rotate, array) and sketch_constrain / sketch_constraints; hole, thread, sweep (along a sketch or helix), loft, split {plane}, "
-        "fillet, boolean, plane (datum), query_topology "
-        "(face kinds, adjacency, filters), measure (min_distance), commit "
-        "(Commit to Plate), undo / redo (the Design history; run_action undo is Prepare's). A method "
-        "that fails is an error and leaves the design as it was; the older ones in describe_tools' legacy_ok_false "
-        "answer ok false instead. thread, sweep and loft can take seconds, and their reply may be a job. Pass the "
-        "\"generation\" from describe_scene or query_topology with face and edge ids so ids read before the model "
-        "changed are refused. Needs the CAD feature enabled in Preferences (it "
-        "takes effect after a restart).",
-        object_schema({{"method", prop("string", "Method name.")}, {"params", {{"type", "object"}, {"description", "Its parameters."}}}},
-                      {"method"}),
+    ToolRegistry& reg = service.registry();
+
+    reg.add(inspect_tool(
+        "list_cad_tools", L("List the CAD tools"),
+        "List the Design (CAD) tab's CAD tools, which call_cad_tool runs: each one's name, access (read; sketch, which "
+        "edits the open sketch; change, which changes the design) and one-line summary, grouped by what they do, and how "
+        "face and edge ids expire. query keeps the tools whose name, summary or details hold it, in any case; total counts "
+        "them all. describe_cad_tool {tool} gives a tool's arguments and examples. With the CAD feature off it still "
+        "answers, with a note on how a person turns the feature on.",
+        object_schema({{"query", prop("string", "Text to look for in each tool's name, summary and details, in any case. "
+                                                "Leave it out for every tool.")}}),
+        [](const json& args, ToolContext& ctx) { return with_feature_note(cad_list_tools(arg_string(args, "query")), ctx); }));
+
+    reg.add(inspect_tool(
+        "describe_cad_tool", L("Describe a CAD tool"),
+        "Describe CAD tools for call_cad_tool: each one's summary, details, params (type, default, unit, limits and "
+        "whether it is required), failure (how a failed call shows: an error, or a reply whose ok is false) and examples. "
+        "Pass one name or a list of names (list_cad_tools lists them). When a described tool takes or gives face or edge "
+        "ids, id_lifetime says how long they stay valid. With the CAD feature off it still answers, with a note on how a "
+        "person turns the feature on.",
+        object_schema({{"tool", {{"type", json::array({"string", "array"})},
+                                 {"items", {{"type", "string"}}},
+                                 {"description", "A CAD tool's name (list_cad_tools), or a list of names."}}}},
+                      {"tool"}),
         [](const json& args, ToolContext& ctx) {
-            const std::string method = arg_string(args, "method");
-            const json        params = args.value("params", json::object());
+            json reply;
+            try {
+                reply = cad_describe_tool(args.value("tool", json()));
+            } catch (const std::runtime_error& e) {
+                throw ToolFailure(e.what());
+            }
+            return with_feature_note(std::move(reply), ctx);
+        }));
+
+    reg.add(mutate_tool(
+        "call_cad_tool", L("Call a CAD tool"),
+        "Run a CAD tool of the Design (CAD) tab: sketches, features, measurements and edits, undo and redo, and commit to "
+        "the plate. list_cad_tools lists the CAD tools, and describe_cad_tool {tool} gives one's arguments and examples. "
+        "A CAD tool that takes long (thread, sweep, loft) may reply with a running job. With face or edge ids, pass the "
+        "generation they were read at (describe_scene, query_topology), so ids from before the model changed are refused. "
+        "Needs the CAD feature, which a person enables in Preferences > Features; it takes effect after a restart.",
+        object_schema({{"tool", prop("string", "A CAD tool's name (list_cad_tools).")},
+                       {"args", {{"type", "object"}, {"description", "Its arguments (describe_cad_tool)."}}}},
+                      {"tool"}),
+        [](const json& args, ToolContext& ctx) {
+            const std::string tool      = arg_string(args, "tool");
+            const json        tool_args = args.value("args", json::object());
             // `generation` guards ids within this session only: a replay rebuilds the same ids by
             // replaying the history, but reaches another generation number, so a recorded one
             // would refuse the replay. Journal the call without it.
-            if (params.is_object() && params.contains("generation")) {
+            if (tool_args.is_object() && tool_args.contains("generation")) {
                 json recorded = args;
-                recorded["params"].erase("generation");
+                recorded["args"].erase("generation");
                 ctx.set_journal_args(std::move(recorded));
             }
-            json result = ctx.run_ui([&] { return run_cad_tool(method, params); });
+            json result = ctx.run_ui([&] { return run_cad_tool(tool, tool_args); });
             settle(ctx);
             return ToolResult::ok({{"result", std::move(result)}});
         }));

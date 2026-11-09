@@ -14,10 +14,10 @@
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},
     {"tool": "new_project", "args": {"discard_changes": true}},
-    {"tool": "call_cad_tool", "args": {"method": "new_design", "params": {"discard_changes": true}}},
+    {"tool": "call_cad_tool", "args": {"tool": "new_design", "args": {"discard_changes": true}}},
     {"tool": "set_view", "args": {"tab": "design", "camera": "iso", "window_size": [1920, 1200]},
      "expect": {"/tab": {"eq": "design"}, "/camera": {"eq": "iso"}}},
-    {"tool": "call_cad_tool", "args": {"method": "extrude", "params": {"width": 20, "height": 20, "distance": 10}},
+    {"tool": "call_cad_tool", "args": {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 10}},
      "expect": {"/result/ok": {"eq": true}}},
     // The Design view has no gizmos, and a change made only in the Design tab marks the project.
     {"tool": "get_app_state", "expect": {"/tab": {"eq": "design"}, "/gizmo": {"eq": null}, "/project/dirty": {"eq": true}}},
@@ -48,20 +48,20 @@
     {"tool": "list_widgets", "args": {"query": "Extrude dist"}, "expect": {"/nodes": {"eq": 1}}},
     {"tool": "press_keys", "args": {"keys": "Escape"}},
     {"tool": "list_widgets", "args": {"query": "Extrude dist"}, "expect": {"/nodes": {"eq": 0}}},
-    {"tool": "call_cad_tool", "args": {"method": "extrude", "params": {"width": 6, "height": 6, "distance": 20}},
+    {"tool": "call_cad_tool", "args": {"tool": "extrude", "args": {"width": 6, "height": 6, "distance": 20}},
      "expect": {"/result/ok": {"eq": true}}},
 
     // A design-only project: saved, changed in the Design tab alone, then opened again.
     {"tool": "save_project", "args": {"path": "${out_dir}/design_only.3mf", "overwrite": true}},
     {"tool": "get_app_state", "expect": {"/project/dirty": {"eq": false}, "/project/name": {"eq": "design_only"}}},
-    {"tool": "call_cad_tool", "args": {"method": "set_variable", "params": {"name": "w", "expr": "5"}}, "expect": {"/result/ok": {"eq": true}}},
+    {"tool": "call_cad_tool", "args": {"tool": "set_variable", "args": {"name": "w", "expr": "5"}}, "expect": {"/result/ok": {"eq": true}}},
     {"tool": "get_app_state", "expect": {"/project/dirty": {"eq": true}}},
     {"tool": "open_files", "args": {"paths": ["${out_dir}/design_only.3mf"]}, "optional": true},
     {"tool": "open_files", "args": {"paths": ["${out_dir}/design_only.3mf"], "discard_changes": true},
      "expect": {"/opened": {"eq": "project"}, "/objects": {"eq": 0}}},
     {"tool": "get_app_state", "expect": {"/project/dirty": {"eq": false}, "/project/name": {"eq": "design_only"},
                                      "/project/path": {"regex": "design_only\\.3mf$"}, "/dialogs": {"empty": true}}},
-    {"tool": "call_cad_tool", "args": {"method": "describe_scene"},
+    {"tool": "call_cad_tool", "args": {"tool": "describe_scene"},
      "expect": {"/result/variables": {"empty": true}, "/result/bodies/1": {"exists": true}}}
   ]
 }

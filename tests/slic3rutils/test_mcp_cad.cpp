@@ -1,6 +1,7 @@
-// The Design tab's MCP surface (call_cad_tool): the method table, describe_tools, the plane resolver, the
-// kernel's rollback, reading and editing a feature as its card does, and the open sketch's tools
-// driven on a bare sketch tool. None of it needs a wx application or a Design panel.
+// The Design tab's MCP surface (list_cad_tools, describe_cad_tool and call_cad_tool): the CAD tool
+// table, the CAD-off note, the plane resolver, the kernel's rollback, reading and editing a feature as
+// its card does, and the open sketch's tools driven on a bare sketch tool. None of it needs a wx
+// application or a Design panel.
 // McpTools.hpp reaches wx's MSW headers through GLCanvas3D.hpp after OCCT has hidden the USER and GDI
 // declarations they need; the Windows headers first keep them, as in test_plugin_host_api.cpp.
 #ifdef WIN32
@@ -32,6 +33,7 @@
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
 #include "slic3r/GUI/Mcp/McpTools.hpp"
 #include "slic3r/GUI/Mcp/McpToolsCad.hpp"
+#include "slic3r/GUI/Mcp/McpTypes.hpp"
 
 #include <TopoDS_Edge.hxx>
 #include <TopoDS_Face.hxx>
@@ -43,7 +45,9 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <functional>
 #include <map>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -142,79 +146,6 @@ void add_bound_block(CadDocument& doc)
     REQUIRE(doc.recompute());
 }
 
-} // namespace
-
-TEST_CASE("describe_tools has a row for every dispatched method", "[Mcp][CAD]")
-{
-    std::vector<std::string> methods = GUI::Mcp::cad_tool_names();
-    std::sort(methods.begin(), methods.end());
-    REQUIRE(std::adjacent_find(methods.begin(), methods.end()) == methods.end());
-    CHECK(row_names(GUI::Mcp::cad_describe_tools(json::object())) == methods);
-}
-
-TEST_CASE("describe_tools rows carry a summary, params and the method's access", "[Mcp][CAD]")
-{
-    const json reply = GUI::Mcp::cad_describe_tools(json::object());
-    for (const json& row : reply.at("tools")) {
-        INFO(row.at("name").get<std::string>());
-        CHECK_FALSE(row.value("summary", std::string()).empty());
-        REQUIRE(row.at("params").is_array());
-        for (const json& p : row.at("params")) {
-            CHECK(p.contains("name"));
-            CHECK(p.contains("type"));
-        }
-        const std::string access = row.value("access", std::string());
-        CHECK((access == "read" || access == "change" || access == "sketch"));
-    }
-
-    auto access_of = [&](const char* name) {
-        for (const json& row : reply.at("tools"))
-            if (row.at("name") == name) return row.at("access").get<std::string>();
-        return std::string();
-    };
-    CHECK(access_of("describe_scene") == "read");
-    CHECK(access_of("sketch_describe") == "read");   // reads, so it also answers under an open card
-    CHECK(access_of("sketch_add") == "sketch");
-    CHECK(access_of("extrude") == "change");
-    CHECK(access_of("run_verb") == "change");
-
-    // The methods this surface fails as errors are not in the legacy list; the old ones are.
-    const json legacy = reply.at("legacy_ok_false");
-    for (const char* rewritten : {"extrude", "revolve", "hole", "hole_styled", "hole_standard", "split"})
-        CHECK(std::find(legacy.begin(), legacy.end(), json(rewritten)) == legacy.end());
-    CHECK(std::find(legacy.begin(), legacy.end(), json("fillet")) != legacy.end());
-}
-
-TEST_CASE("describe_tools narrows to the named methods or a query", "[Mcp][CAD]")
-{
-    CHECK(row_names(GUI::Mcp::cad_describe_tools({{"method", "extrude"}})) == std::vector<std::string>{"extrude"});
-    CHECK(row_names(GUI::Mcp::cad_describe_tools({{"method", {"hole", "fillet"}}})) ==
-          std::vector<std::string>{"fillet", "hole"});
-
-    // The query matches names and summaries in any case.
-    const json sketch = GUI::Mcp::cad_describe_tools({{"query", "SKETCH_"}});
-    const std::vector<std::string> names = row_names(sketch);
-    CHECK(std::find(names.begin(), names.end(), "sketch_add") != names.end());
-    for (const std::string& n : names) CHECK_THAT(n, ContainsSubstring("sketch_"));
-
-    // An empty filter is no filter, as the rows' defaults say.
-    CHECK(row_names(GUI::Mcp::cad_describe_tools({{"method", ""}, {"query", ""}})).size() ==
-          GUI::Mcp::cad_tool_names().size());
-}
-
-TEST_CASE("describe_tools names close methods for an unknown one", "[Mcp][CAD]")
-{
-    try {
-        GUI::Mcp::cad_describe_tools({{"method", "extrud"}});
-        FAIL("an unknown method was accepted");
-    } catch (const std::runtime_error& e) {
-        CHECK_THAT(std::string(e.what()), ContainsSubstring("extrude"));
-    }
-    CHECK_THROWS_AS(GUI::Mcp::cad_describe_tools({{"method", 3}}), std::runtime_error);
-}
-
-namespace {
-
 // Every CAD tool's name, as describe_cad_tool takes a list.
 json all_cad_tools()
 {
@@ -231,6 +162,28 @@ json row_of(const json& reply, const std::string& name)
     return json();
 }
 
+// A call's context whose short reads on the UI thread give `answer`, or fail as they do when the UI
+// does not answer in time.
+struct UiReadContext final : GUI::Mcp::ToolContext
+{
+    json        answer;
+    bool        answers = true;
+    std::string id;
+
+    json observe_ui(const std::function<json()>&) override
+    {
+        if (!answers) throw GUI::Mcp::ToolFailure("the UI did not answer");
+        return answer;
+    }
+    json run_ui(const std::function<json()>& fn) override { return observe_ui(fn); }
+    const std::string& job_id() const override { return id; }
+    bool cancelled() const override { return false; }
+    GUI::Mcp::ToolResult call_child(const std::string&, const json&) override { return GUI::Mcp::ToolResult::error("no children"); }
+    std::set<std::string> lineage() const override { return {}; }
+    void set_journal_args(json) override {}
+    void begin_operation() override {}
+};
+
 } // namespace
 
 TEST_CASE("list_cad_tools has one row per dispatched tool", "[Mcp][CAD]")
@@ -239,6 +192,7 @@ TEST_CASE("list_cad_tools has one row per dispatched tool", "[Mcp][CAD]")
     const json reply = GUI::Mcp::cad_list_tools("");
     std::sort(names.begin(), names.end());
     REQUIRE(std::adjacent_find(names.begin(), names.end()) == names.end());
+    CHECK(std::find(names.begin(), names.end(), "describe_tools") == names.end());
     CHECK(row_names(reply) == names);   // row_names() sorts: the two tables' orders differ
     CHECK(reply.at("total") == names.size());
     CHECK_THAT(reply.at("use").get<std::string>(), ContainsSubstring("describe_cad_tool"));
@@ -345,6 +299,7 @@ TEST_CASE("describe_cad_tool gives id_lifetime only for tools that take or give 
 {
     CHECK(GUI::Mcp::cad_describe_tool("fillet").contains("id_lifetime"));
     CHECK(GUI::Mcp::cad_describe_tool("query_topology").contains("id_lifetime"));
+    CHECK(GUI::Mcp::cad_describe_tool("describe_feature").contains("id_lifetime"));   // its refs hold face and edge ids
     CHECK_FALSE(GUI::Mcp::cad_describe_tool("describe_scene").contains("id_lifetime"));
     CHECK(GUI::Mcp::cad_describe_tool(json::array({"describe_scene", "fillet"})).contains("id_lifetime"));
 
@@ -363,23 +318,20 @@ TEST_CASE("describe_cad_tool gives id_lifetime only for tools that take or give 
     }
 }
 
-TEST_CASE("describe_tools keeps its full summaries until it goes", "[Mcp][CAD]")
+TEST_CASE("the CAD-off note is given when the UI says the feature is off, and only then", "[Mcp][CAD]")
 {
-    const json reply = GUI::Mcp::cad_describe_tools(json::object());
-    for (const json& row : reply.at("tools")) {
-        INFO(row.at("name").get<std::string>());
-        CHECK(row.size() == 4);
-        for (const char* key : {"name", "summary", "params", "access"}) CHECK(row.contains(key));
-        for (const json& p : row.at("params")) CHECK_FALSE(p.contains("required"));
-    }
+    UiReadContext ctx;
+    ctx.answer = false;
+    const json off = GUI::Mcp::cad_feature_note(ctx);
+    REQUIRE(off.is_string());
+    CHECK_THAT(off.get<std::string>(), ContainsSubstring("Preferences"));
 
-    const json table   = GUI::Mcp::cad_describe_tool("extrude").at("tools").at(0);
-    const json extrude = row_of(reply, "extrude");
-    REQUIRE_FALSE(extrude.is_null());
-    CHECK_THAT(extrude.at("summary").get<std::string>(), ContainsSubstring(table.at("summary").get<std::string>()));
-    CHECK_THAT(extrude.at("summary").get<std::string>(), ContainsSubstring(table.at("details").get<std::string>()));
+    ctx.answer = true;
+    CHECK(GUI::Mcp::cad_feature_note(ctx).is_null());
 
-    CHECK_FALSE(row_of(GUI::Mcp::cad_describe_tools({{"query", "polar"}}), "sketch_transform").is_null());
+    // The note is advice: a UI that does not answer leaves it out rather than failing the reply.
+    ctx.answers = false;
+    CHECK(GUI::Mcp::cad_feature_note(ctx).is_null());
 }
 
 TEST_CASE("rollback takes back a failed edit and leaves nothing to redo", "[Mcp][CAD]")
@@ -759,18 +711,19 @@ TEST_CASE("literal edits and bindings reach the same numeric fields", "[Mcp][CAD
 
 TEST_CASE("commit, new_design and export_step change the design or the plate, and fail as errors", "[Mcp][CAD]")
 {
-    const json reply = GUI::Mcp::cad_describe_tools({{"method", {"commit", "new_design", "export_step"}}});
+    const json reply = GUI::Mcp::cad_describe_tool(json::array({"commit", "new_design", "export_step"}));
     REQUIRE(reply.at("tools").size() == 3);
-    for (const json& row : reply.at("tools")) CHECK(row.at("access") == "change");
-    const json legacy = reply.at("legacy_ok_false");
-    for (const char* name : {"commit", "new_design", "export_step"})
-        CHECK(std::find(legacy.begin(), legacy.end(), json(name)) == legacy.end());
+    for (const json& row : reply.at("tools")) {
+        INFO(row.at("name").get<std::string>());
+        CHECK(row.at("access") == "change");
+        CHECK(row.at("failure") == "error");
+    }
 
-    // export_step's path has no default, so the socket bridge makes it required.
+    // export_step's path has no default, so it is required.
     for (const json& row : reply.at("tools"))
         if (row.at("name") == "export_step")
             for (const json& p : row.at("params"))
-                if (p.at("name") == "path") CHECK_FALSE(p.contains("default"));
+                if (p.at("name") == "path") CHECK(p.at("required") == true);
 }
 
 TEST_CASE("commit's replace takes distinct object indices that are not part of a cut", "[Mcp][CAD]")
@@ -823,21 +776,20 @@ TEST_CASE("export_step's STEP file reads back with each body where the Move gizm
 
 TEST_CASE("undo, redo and the tree and body edits are rows with the access their gate needs", "[Mcp][CAD]")
 {
-    const json reply = GUI::Mcp::cad_describe_tools({{"method", {"undo", "redo", "feature_delete", "feature_move", "feature_set_enabled",
-                                                            "feature_rename", "body_set", "body_delete"}}});
+    const json reply = GUI::Mcp::cad_describe_tool(json::array({"undo", "redo", "feature_delete", "feature_move", "feature_set_enabled",
+                                                                "feature_rename", "body_set", "body_delete"}));
     REQUIRE(reply.at("tools").size() == 8);
-    const json legacy = reply.at("legacy_ok_false");
     std::map<std::string, std::vector<std::string>> required;
     for (const json& row : reply.at("tools")) {
         const std::string name = row.at("name").get<std::string>();
         INFO(name);
         // Undo and redo run in a sketch session too, where they act on the drawn shapes.
         CHECK(row.at("access") == (name == "undo" || name == "redo" ? "sketch" : "change"));
-        CHECK(std::find(legacy.begin(), legacy.end(), json(name)) == legacy.end());
+        CHECK(row.at("failure") == "error");
         for (const json& p : row.at("params"))
-            if (!p.contains("default")) required[name].push_back(p.at("name").get<std::string>());
+            if (p.at("required") == true) required[name].push_back(p.at("name").get<std::string>());
     }
-    // The socket bridge makes a param without a default required.
+    // The params each one requires.
     CHECK(required["undo"].empty());
     CHECK(required["feature_delete"] == std::vector<std::string>{"feature"});
     CHECK(required["feature_move"] == std::vector<std::string>{"feature", "delta"});
@@ -1151,18 +1103,23 @@ TEST_CASE("revolve takes a line of the sketch, or its only centerline, as the ax
 
 TEST_CASE("the sketch-to-solid rows take a sketch, and sketch_begin takes every plane form", "[Mcp][CAD]")
 {
-    const json reply = GUI::Mcp::cad_describe_tools({{"method", {"sketch_begin", "sketch_describe", "extrude", "revolve"}}});
+    const json reply = GUI::Mcp::cad_describe_tool(json::array({"sketch_begin", "sketch_describe", "extrude", "revolve"}));
     std::map<std::string, std::map<std::string, json>> params;
-    for (const json& row : reply.at("tools"))
-        for (const json& p : row.at("params")) params[row.at("name").get<std::string>()][p.at("name").get<std::string>()] = p;
+    for (const json& row : reply.at("tools")) {
+        const std::string name = row.at("name").get<std::string>();
+        INFO(name);
+        CHECK(row.at("failure") == "error");
+        for (const json& p : row.at("params")) params[name][p.at("name").get<std::string>()] = p;
+    }
+    CHECK(row_of(reply, "sketch_describe").at("access") == "read");   // reads, so it also answers under an open card
     CHECK(params["sketch_begin"]["plane"].at("type") == "string|object");
-    // Optional everywhere: the socket bridge makes a param without a default required.
-    CHECK(params["sketch_describe"]["sketch"].at("default").is_null());
-    CHECK(params["extrude"]["sketch"].at("default").is_null());
-    CHECK(params["extrude"]["loop"].at("default").is_null());
+    // Optional everywhere: none of these is required.
+    CHECK(params["sketch_describe"]["sketch"].at("required") == false);
+    CHECK(params["extrude"]["sketch"].at("required") == false);
+    CHECK(params["extrude"]["loop"].at("required") == false);
     CHECK(params["extrude"].count("body") == 1);
-    CHECK(params["revolve"]["sketch"].at("default").is_null());
-    CHECK(params["revolve"]["axis_entity"].at("default").is_null());
+    CHECK(params["revolve"]["sketch"].at("required") == false);
+    CHECK(params["revolve"]["axis_entity"].at("required") == false);
     CHECK(params["revolve"].count("body") == 1);
 }
 
@@ -1699,29 +1656,29 @@ TEST_CASE("plane refuses what the card refuses, and what a construction would no
 
 TEST_CASE("the rows for topology, measure, holes, push/pull and plane", "[Mcp][CAD]")
 {
-    const json reply = GUI::Mcp::cad_describe_tools({{"method", {"query_topology", "measure", "hole", "hole_styled", "hole_standard", "extrude", "plane"}}});
+    const json reply = GUI::Mcp::cad_describe_tool(
+        json::array({"query_topology", "measure", "hole", "hole_styled", "hole_standard", "extrude", "plane"}));
     std::map<std::string, json> rows;
     for (const json& row : reply.at("tools")) rows[row.at("name").get<std::string>()] = row;
-    auto param = [&](const char* method, const char* name) {
-        for (const json& p : rows.at(method).at("params"))
+    auto param = [&](const char* tool, const char* name) {
+        for (const json& p : rows.at(tool).at("params"))
             if (p.at("name") == name) return p;
-        FAIL(method << " has no param " << name);
+        FAIL(tool << " has no param " << name);
         return json();
     };
     CHECK(rows.at("plane").at("access") == "change");
     CHECK(rows.at("query_topology").at("access") == "read");
     CHECK(rows.at("measure").at("access") == "read");
-    const json legacy = reply.at("legacy_ok_false");
-    CHECK(std::find(legacy.begin(), legacy.end(), json("plane")) == legacy.end());
-    // Optional everywhere: the socket bridge makes a param without a default required.
+    for (const char* t : {"hole", "hole_styled", "hole_standard", "extrude", "plane"}) CHECK(rows.at(t).at("failure") == "error");
+    // Optional everywhere: none of these is required.
     for (const char* k : {"kinds", "edge_kinds", "direction", "at_extreme", "convex", "limit"})
-        CHECK(param("query_topology", k).at("default").is_null());
+        CHECK(param("query_topology", k).at("required") == false);
     for (const char* hole : {"hole", "hole_styled", "hole_standard"}) {
-        CHECK(param(hole, "at").at("default").is_null());
+        CHECK(param(hole, "at").at("required") == false);
         CHECK(param(hole, "body").at("default") == -1);
     }
-    CHECK(param("extrude", "face").at("default").is_null());
-    for (const char* k : {"face_a", "face_b", "edge_a", "edge_b"}) CHECK(param("plane", k).at("default").is_null());
+    CHECK(param("extrude", "face").at("required") == false);
+    for (const char* k : {"face_a", "face_b", "edge_a", "edge_b"}) CHECK(param("plane", k).at("required") == false);
     CHECK(param("plane", "type").at("enum").size() == 6);
 }
 
@@ -2054,31 +2011,34 @@ TEST_CASE("split cuts a body with a plane and keeps either piece", "[Mcp][CAD]")
 
 TEST_CASE("the rows for thread, sweep, loft, split and helix", "[Mcp][CAD]")
 {
-    const json reply = GUI::Mcp::cad_describe_tools({{"method", {"thread", "sweep", "loft", "split", "helix"}}});
+    const json reply = GUI::Mcp::cad_describe_tool(json::array({"thread", "sweep", "loft", "split", "helix"}));
     std::map<std::string, json> rows;
     for (const json& row : reply.at("tools")) rows[row.at("name").get<std::string>()] = row;
     REQUIRE(rows.size() == 5);
-    auto param = [&](const char* method, const char* name) {
-        for (const json& p : rows.at(method).at("params"))
+    auto param = [&](const char* tool, const char* name) {
+        for (const json& p : rows.at(tool).at("params"))
             if (p.at("name") == name) return p;
-        FAIL(method << " has no param " << name);
+        FAIL(tool << " has no param " << name);
         return json();
     };
-    const json legacy = reply.at("legacy_ok_false");
-    for (const char* m : {"thread", "sweep", "loft", "split"}) {
-        CHECK(rows.at(m).at("access") == "change");
-        CHECK(std::find(legacy.begin(), legacy.end(), json(m)) == legacy.end());
+    for (const char* t : {"thread", "sweep", "loft", "split"}) {
+        INFO(t);
+        CHECK(rows.at(t).at("access") == "change");
+        CHECK(rows.at(t).at("failure") == "error");
     }
-    // Optional on the socket bridge, which makes a param without a default required.
+    // These of thread and split are optional; sweep's and loft's, which have no default, are required.
     for (const char* k : {"face", "edge", "designation", "internal", "diameter", "pitch", "depth", "length", "plane", "at"})
-        CHECK(param("thread", k).at("default").is_null());
-    CHECK_FALSE(param("sweep", "sketch").contains("default"));
-    CHECK_FALSE(param("sweep", "path").contains("default"));
-    CHECK_FALSE(param("loft", "profiles").contains("default"));
-    CHECK(param("split", "plane").at("default").is_null());
-    CHECK(param("split", "face").at("default").is_null());
+        CHECK(param("thread", k).at("required") == false);
+    CHECK(param("sweep", "sketch").at("required") == true);
+    CHECK(param("sweep", "path").at("required") == true);
+    CHECK(param("loft", "profiles").at("required") == true);
+    CHECK(param("split", "plane").at("required") == false);
+    CHECK(param("split", "face").at("required") == false);
     CHECK(param("split", "face_body").at("default") == -1);
-    CHECK_THAT(rows.at("helix").at("summary").get<std::string>(), ContainsSubstring("start and tangent"));
+    // The text may sit in the summary or the details.
+    const json& helix = rows.at("helix");
+    CHECK_THAT(helix.at("summary").get<std::string>() + " " + helix.at("details").get<std::string>(),
+               ContainsSubstring("start and tangent"));
 }
 
 // --- The open sketch: shapes, edit ops and constraints (cad_model A5, A7, A8) -----------------
@@ -2088,9 +2048,9 @@ namespace {
 // A fresh sketch session on XY, as sketch_begin leaves it: the Select tool armed.
 void begin_sketch(GUI::DesignSketchTool& tool) { tool.begin(SketchPlane::XY(), GUI::DesignSketchTool::Mode::Select); }
 
-json sketch(GUI::DesignSketchTool& tool, const char* method, const json& params)
+json sketch(GUI::DesignSketchTool& tool, const char* name, const json& params)
 {
-    return GUI::Mcp::cad_sketch_call(tool, method, params);
+    return GUI::Mcp::cad_sketch_call(tool, name, params);
 }
 
 // The L-bracket's profile: 40 x 30, 4 thick, its inside corner between lines 2 and 3 at (4, 4).
@@ -2518,32 +2478,32 @@ TEST_CASE("sketch_constrain solves with the new constraint or rolls it back, and
 
 TEST_CASE("the rows for the sketch's shapes, edit ops and constraints", "[Mcp][CAD]")
 {
-    const std::vector<const char*> methods = {"sketch_add",       "sketch_fillet",    "sketch_chamfer",     "sketch_trim",
-                                              "sketch_transform", "sketch_constrain", "sketch_constraints", "sketch_unconstrain"};
+    const std::vector<const char*> tools = {"sketch_add",       "sketch_fillet",    "sketch_chamfer",     "sketch_trim",
+                                            "sketch_transform", "sketch_constrain", "sketch_constraints", "sketch_unconstrain"};
     json names = json::array();
-    for (const char* m : methods) names.push_back(m);
-    const json reply = GUI::Mcp::cad_describe_tools({{"method", names}});
+    for (const char* t : tools) names.push_back(t);
+    const json reply = GUI::Mcp::cad_describe_tool(names);
     std::map<std::string, json> rows;
     for (const json& row : reply.at("tools")) rows[row.at("name").get<std::string>()] = row;
-    REQUIRE(rows.size() == methods.size());
-    const json legacy = reply.at("legacy_ok_false");
-    for (const char* m : methods) {
-        CHECK(rows.at(m).at("access") == (std::string(m) == "sketch_constraints" ? "read" : "sketch"));
-        CHECK(std::find(legacy.begin(), legacy.end(), json(m)) == legacy.end());
+    REQUIRE(rows.size() == tools.size());
+    for (const char* t : tools) {
+        INFO(t);
+        CHECK(rows.at(t).at("access") == (std::string(t) == "sketch_constraints" ? "read" : "sketch"));
+        CHECK(rows.at(t).at("failure") == "error");
     }
-    auto param = [&](const char* method, const char* name) {
-        for (const json& p : rows.at(method).at("params"))
+    auto param = [&](const char* tool, const char* name) {
+        for (const json& p : rows.at(tool).at("params"))
             if (p.at("name") == name) return p;
-        FAIL(method << " has no param " << name);
+        FAIL(tool << " has no param " << name);
         return json();
     };
-    // Required on the socket bridge, which makes a param without a default required.
-    for (const auto& [m, k] : std::vector<std::pair<const char*, const char*>>{
+    // Required, as a param without a default is; then optional ones.
+    for (const auto& [t, k] : std::vector<std::pair<const char*, const char*>>{
              {"sketch_fillet", "radius"}, {"sketch_chamfer", "distance"}, {"sketch_trim", "at"}, {"sketch_transform", "op"},
              {"sketch_constrain", "type"}, {"sketch_unconstrain", "index"}})
-        CHECK_FALSE(param(m, k).contains("default"));
-    for (const char* k : {"angle", "scale", "count", "pivot"}) CHECK(param("sketch_transform", k).at("default").is_null());
-    CHECK(param("sketch_constraints", "sketch").at("default").is_null());
+        CHECK(param(t, k).at("required") == true);
+    for (const char* k : {"angle", "scale", "count", "pivot"}) CHECK(param("sketch_transform", k).at("required") == false);
+    CHECK(param("sketch_constraints", "sketch").at("required") == false);
     const json types = param("sketch_add", "type").at("enum");
     for (const char* t : {"polygon", "slot", "ellipse", "ellipse_arc", "spline"})
         CHECK(std::find(types.begin(), types.end(), json(t)) != types.end());

@@ -41,14 +41,14 @@ def main():
     client, _ = orca_mcp.session_client()
     out = tempfile.mkdtemp(prefix="orca-mcp-slow-")
     client.call("new_project", discard_changes=True)
-    client.call("call_cad_tool", method="new_design", params={"discard_changes": True})
-    client.call("call_cad_tool", method="extrude", params=BLOCK)
+    client.call("call_cad_tool", tool="new_design", args={"discard_changes": True})
+    client.call("call_cad_tool", tool="extrude", args=BLOCK)
 
     box = {}
 
     def build():
         try:
-            box["result"] = client.call("call_cad_tool", _timeout=600, method="thread", params=THREAD)
+            box["result"] = client.call("call_cad_tool", _timeout=600, tool="thread", args=THREAD)
         except orca_mcp.McpError as e:
             box["error"] = str(e)
 
@@ -75,14 +75,14 @@ def main():
                     dialog_shot = client.call("screenshot", target=ref, include_image=False,
                                               save_path=os.path.join(out, "progress.png"))
                 try:
-                    client.call("call_cad_tool", method="describe_scene")
+                    client.call("call_cad_tool", tool="describe_scene")
                     refused = False
                 except orca_mcp.McpError as e:
                     refused = str(e)
     worker.join(600)
     seconds = time.time() - started
     result = client.await_job(box.get("result")) if "result" in box else None
-    scene = client.call("call_cad_tool", method="describe_scene")["result"]
+    scene = client.call("call_cad_tool", tool="describe_scene")["result"]
     threads = [f for f in scene["features"] if f["type"] == "Thread"]
 
     print(f"build took {seconds:.1f} s; screenshots in {out}")

@@ -148,8 +148,8 @@ TEST_CASE("every tool of the catalog has the lane the concept gives it", "[Mcp]"
                              "pick_gizmo_file", "run_javascript", "set_view", "screenshot", "start_recording", "stop_recording",
                              "encode_recording", "search_actions", "run_action", "select_objects"})
         CHECK(tool_lane(name) == ToolLane::Ui);
-    for (const char* name : {"set_settings", "slice", "generate_calibration_test", "call_cad_tool", "call_tool", "search_tools",
-                             "get_slice_stats", "plugin.example.measure"})
+    for (const char* name : {"set_settings", "slice", "generate_calibration_test", "list_cad_tools", "describe_cad_tool",
+                             "call_cad_tool", "call_tool", "search_tools", "get_slice_stats", "plugin.example.measure"})
         CHECK(tool_lane(name) == ToolLane::Api);
 }
 

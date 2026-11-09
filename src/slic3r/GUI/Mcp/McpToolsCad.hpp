@@ -1,12 +1,12 @@
 #pragma once
 
-// The CAD tools behind the MCP server's call_cad_tool: the Design tab's sketches, features,
-// measurements and edits. They run on the UI thread through the GUI's own CadDocument (no engine of
-// their own). Every CAD tool is refused (-32002) during a rebuild, whose worker owns the document;
-// one that changes the document is also refused while the Design tab is busy with it — an open
-// feature card, a sketch session. Face and edge ids read at another generation are refused (-32010).
-// The header exists for McpToolsApi.cpp, which reads the table for search_tools, and for the unit
-// tests, which call the cad_* helpers directly.
+// The CAD tools behind the MCP server's call_cad_tool, which list_cad_tools and describe_cad_tool
+// describe: the Design tab's sketches, features, measurements and edits. They run on the UI thread
+// through the GUI's own CadDocument (no engine of their own). Every CAD tool is refused (-32002)
+// during a rebuild, whose worker owns the document; one that changes the document is also refused
+// while the Design tab is busy with it — an open feature card, a sketch session. Face and edge ids
+// read at another generation are refused (-32010). The header exists for McpToolsApi.cpp, which
+// reads the table for search_tools, and for the unit tests, which call the cad_* helpers directly.
 
 #include <nlohmann/json.hpp>
 
@@ -29,6 +29,8 @@ class DesignSketchTool;
 
 namespace Mcp {
 
+class ToolContext;
+
 // Runs CAD tool `tool` with `args` and returns its result. It is refused while the main window is
 // not up, in the G-code viewer (-32001), with the CAD feature off, and while the Design panel cannot
 // be built (-32001); then for an unknown tool (-32601), a busy Design tab (-32002), and a
@@ -41,9 +43,9 @@ std::vector<std::string> cad_tool_names();
 
 // The CAD tool table, built once, one row per CAD tool grouped by what the tools do: name, access
 // (read, change or sketch), a summary of one sentence, details, params (each with `required`, true
-// when it has no default), failure ("error", or "reply" with a failure_note for an older tool that
-// reports a rejected rebuild in its reply), examples and, for a tool that takes or gives face or
-// edge ids, "ids": true. Needs no Design panel and no UI thread; nor do the two readers below.
+// when it has no default), failure ("error", or "reply" with a failure_note for a tool that reports
+// a rejected rebuild in its reply instead of failing), examples and, for a tool that takes or gives
+// face or edge ids, "ids": true. Needs no Design panel and no UI thread; nor do the two readers below.
 const nlohmann::json& cad_tool_table();
 
 // list_cad_tools' reply: {tools: [{name, access, summary}], total, ids, use} in the table's order.
@@ -57,10 +59,11 @@ nlohmann::json cad_list_tools(const std::string& query);
 // name, and for an empty name, an empty list, an item that is not a string or another type.
 nlohmann::json cad_describe_tool(const nlohmann::json& tool);
 
-// describe_tools' reply: one row per method with its params and access (read, change or sketch),
-// narrowed by params `method` (a name or a list of names) and `query` (text in a name or summary).
-// Throws std::runtime_error naming close methods for an unknown name. Needs no Design panel.
-nlohmann::json cad_describe_tools(const nlohmann::json& params);
+// What list_cad_tools and describe_cad_tool add as their `note`: how a person turns the CAD feature
+// on, when the preference read on the UI thread through `ctx` says it is off; null when it is on, and
+// when the UI does not answer, since the note is advice the reply can go without. From a tool's
+// handler, off the UI thread.
+nlohmann::json cad_feature_note(ToolContext& ctx);
 
 // The `plane` param shared by the plane-taking CAD tools: "XY", "XZ" or "YZ" through the modeling
 // origin, {"datum": feature index}, or {"body": b, "face": f} on a planar face. A face gives the
@@ -95,7 +98,7 @@ nlohmann::json cad_sketch_describe(const CadDocument& doc, const DesignSketchToo
 // sketch_constraints (the open sketch's) and sketch_unconstrain. Each runs the sketch tool's own
 // step for the button or gesture it stands for, checks every argument before it changes anything,
 // and throws std::runtime_error with the reason, leaving the sketch as it was. Needs no Design panel.
-nlohmann::json cad_sketch_call(DesignSketchTool& tool, const std::string& method, const nlohmann::json& params);
+nlohmann::json cad_sketch_call(DesignSketchTool& tool, const std::string& name, const nlohmann::json& params);
 
 // sketch_constrain's constraints on the open sketch's entities `ents`, as the CONSTRAIN bar would
 // add them. params.type is a SketchConstraintType in snake_case ("equal_length"; "equal" is the

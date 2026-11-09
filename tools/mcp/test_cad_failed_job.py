@@ -30,8 +30,8 @@ import orca_mcp  # noqa: E402
 REBUILD_S = 60.0
 
 
-def cad(client, method, **params):
-    return client.call("call_cad_tool", _timeout=600, method=method, params=params)
+def cad(client, tool, **args):
+    return client.call("call_cad_tool", _timeout=600, tool=tool, args=args)
 
 
 def coil(client, turns):
@@ -93,9 +93,9 @@ def main():
 
     after = client.call("export_replay", path=path, overwrite=True)
     calls = [s["args"] for s in after["replay"]["steps"] if s["tool"] == "call_cad_tool"]
-    methods = [c["method"] for c in calls]
-    check("the export leaves the failed hole out", "hole" not in methods, methods)
-    check("and keeps the rename made after it", "feature_rename" in methods, methods)
+    tools = [c["tool"] for c in calls]
+    check("the export leaves the failed hole out", "hole" not in tools, tools)
+    check("and keeps the rename made after it", "feature_rename" in tools, tools)
     check("and leaves nothing out", "left_out_running" not in after, after.get("left_out_running"))
 
     # ---- The replay ----

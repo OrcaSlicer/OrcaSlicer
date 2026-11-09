@@ -92,7 +92,7 @@ They say to prefer typed tools over clicks and never retry a call that returned 
 gizmo work), that the camera turns with `set_view` rather than a drag, and which indices are 0-based.
 They also point to `search_tools {query}` as the one search across every catalog an agent calls into:
 the tools, the operations plugins offer (which `tools/list` never shows, so nothing else tells an agent
-they exist), Speed Dial actions, settings, the Python API and the Design tab's methods. An agent rarely
+they exist), Speed Dial actions, settings, the Python API and the Design tab's CAD tools. An agent rarely
 knows which catalog answers "how do I add a brim", and each catalog has its own search with its own
 arguments. Clients that defer tools load only their names and the
 instructions at first, so the instructions are how an agent without a skill learns which tool to
@@ -422,7 +422,9 @@ Script panel, which runs Python.
 | | `search_python_api` | search the `orca` package in the running build: names, signatures and documentation, paged |
 | API | `search_tools` | look up any registered tool or plugin operation by name, list every name, or search every catalog by words |
 | | `call_tool` | call a registered tool or plugin operation by name; runs and is journaled as that tool's own call |
-| CAD | `call_cad_tool` | a method of the Design tab: sketches, features, reads and measurements, feature and body edits, undo, commit to plate; `describe_tools` lists them (CAD builds, Design tab enabled) |
+| CAD | `list_cad_tools` | the Design tab's CAD tools, each with its access and one-line summary, narrowed by a query (CAD builds; answers with the CAD feature off too) |
+| | `describe_cad_tool` | one CAD tool or a list: summary, details, params with `required`, how a failure shows and examples (CAD builds; answers with the CAD feature off too) |
+| | `call_cad_tool` | run a CAD tool of the Design tab: sketches, features, reads and measurements, feature and body edits, undo, commit to plate (CAD builds, Design tab enabled) |
 
 Each tool has a lane, the way it acts, set by `ToolRegistry::add()` from `tool_lane()`: core (the
 session, recovery and Python), API (project data by index and name, JSON in and out) and UI (the GUI
@@ -1043,15 +1045,28 @@ it with `save_preset`; staying in the test project, `set_settings {"reset_all": 
 the preset's scope drops the test's settings there and sets the value in one call. The Speed Dial's `calib_*` commands still open
 the dialogs, and their descriptions point at `generate_calibration_test`.
 
-### Design tab: `call_cad_tool`
+### Design tab: `list_cad_tools`, `describe_cad_tool` and `call_cad_tool`
 
-`call_cad_tool {method, params}` is the one way into the Design tab. Its CAD tools
-(`Mcp/McpToolsCad.cpp`) sit behind one generic tool rather than a schema each, so agents that never
-open the Design tab pay nothing for them. One table, `kCadTools`, declares every CAD tool's name,
-access and handler; `run_cad_tool()`, the busy gate and `describe_tools` all read it.
-`describe_tools` is the parameter schema of record: one row per CAD tool with typed params, units
-and defaults, and its access. `params.method` (a name or a list) and `params.query` (text in a name
-or summary, any case) narrow the reply; an unknown name fails with the close ones.
+`call_cad_tool {tool, args}` is the one way into the Design tab, under the mutate guard. Its CAD
+tools (`Mcp/McpToolsCad.cpp`) sit behind one generic tool rather than a schema each, so agents that
+never open the Design tab pay nothing for them. One table, `kCadTools`, declares every CAD tool's
+name, access and handler; `run_cad_tool()`, the busy gate and `cad_tool_table()` all read it.
+`cad_tool_table()` is the table of record, built once from `tool_rows()` and `kCadTools`: one row
+per CAD tool with a summary of one sentence (at most 120 characters), details, typed params with
+units, defaults and `required` (true for a param without a default), its access, `failure`
+(`error`, or `reply` with a `failure_note` for a tool that reports a rejected rebuild in its reply)
+and examples.
+
+Two inspect tools read the table, which needs no Design panel and no UI thread. `list_cad_tools
+{query?}` gives each CAD tool's name, access and summary in the table's order, which groups them by
+what they do, with `total` (every CAD tool, whatever the query), `ids` (how face and edge ids
+expire) and `use`; `query` keeps the tools whose name, summary or details hold it, in any case.
+`describe_cad_tool {tool}` gives the whole row of a name, or of each name of a list, once and in
+the order asked, and `id_lifetime` when one of them takes or gives face or edge ids; an unknown
+name fails with the close ones. Both answer with the CAD feature off too, and then add a `note` on
+how a person turns it on. That preference lives in `AppConfig`, which Preferences may write
+meanwhile, so it is read with a short UI-thread call (`observe_ui`, `cad_feature_note()`); when the
+UI does not answer, the reply goes out without the note, which is only advice.
 
 `run_cad_tool()` runs the CAD tool on the UI thread, inside `call_cad_tool`'s mutate guard, and
 refuses a call by its cause, in this order. The MCP server is up before the main window, so first
@@ -1061,10 +1076,10 @@ app reads only at startup, so turning it on takes a restart); and a Design panel
 built (`-32001`: no page was made at startup, the page is mid-build, or its build failed), whose
 message says to retry and then restart. The panel is otherwise built on the first call, since in a
 headless session nobody clicks the tab; `get_app_state.design_tab` says whether this session built
-it. Then come an unknown CAD tool (`-32601`, with the close names), a busy Design tab (`-32002`), and
-a `generation` that is not an unsigned integer (`-32602`) or not the model's (`-32010`). Before the
-generation is read, the project's recipe is loaded into an empty document
-(`DesignPanel::hydrate_from_model()`), as showing the tab would.
+it. Then come an unknown CAD tool (`-32601`, with the close names and a pointer to
+`list_cad_tools`), a busy Design tab (`-32002`), and a `generation` that is not an unsigned integer
+(`-32602`) or not the model's (`-32010`). Before the generation is read, the project's recipe is
+loaded into an empty document (`DesignPanel::hydrate_from_model()`), as showing the tab would.
 
 Access decides what `DesignPanel::mcp_busy()` lets through. `read` CAD tools run under an open
 feature card or sketch session, `sketch` CAD tools drive the live sketch session, and `change`
@@ -1075,19 +1090,20 @@ change could point at another body. Nothing runs while a rebuild's worker owns t
 A CAD tool that fails is an error (an `isError` result with `code` `-32000`, `OCCT: …` for a kernel
 exception) and leaves the design as it was, so `export_replay` drops it and a replay never repeats a
 call that did nothing. That holds for argument errors and for a rebuild the kernel rejects alike.
-The exceptions are the older CAD tools `describe_tools` lists in `legacy_ok_false` (`fillet`,
-`chamfer`, `boolean`, `pattern`, `mirror`, `shell`, the surface tools, `import_step`,
-`set_variable` and others): they report a rejected rebuild in their reply, `{ok: false, error}`,
-after the same rollback, so such a call is journaled and replays the same rejection. `extrude`,
-`revolve`, the `hole` tools, `split` and `sketch_add` are not on that list, so none of them fails
-two ways depending on its arguments. The feature tools off the list add through `add_feature()`:
-one checkpoint, a rebuild, and on failure `CadDocument::rollback()`, which restores the checkpoint
-without leaving the refused recipe on the redo stack and with the redo branch the checkpoint
-cleared, then "Edit rejected" on the status line as for a refused GUI edit. Features made through
-`call_cad_tool` are named as the cards name them ("Extrude 3"), from the panel's own counter.
+The exceptions are the CAD tools whose `failure` is `reply` (`fillet`, `chamfer`, `boolean`,
+`pattern`, `mirror`, `shell`, the surface tools, `import_step`, `set_variable` and others): they
+report a rejected rebuild in their reply, `{ok: false, error}`, after the same rollback, so such a
+call is journaled and replays the same rejection. `extrude`, `revolve`, the `hole` tools, `split`
+and `sketch_add` fail as errors, so none of them fails two ways depending on its arguments. The
+feature tools that fail as errors add through `add_feature()`: one checkpoint, a rebuild, and on
+failure `CadDocument::rollback()`, which restores the checkpoint without leaving the refused recipe
+on the redo stack and with the redo branch the checkpoint cleared, then "Edit rejected" on the
+status line as for a refused GUI edit. Features made through `call_cad_tool` are named as the cards
+name them ("Extrude 3"), from the panel's own counter.
 
 `generation` guards face and edge ids within a session, but its value depends on the session's
-history, so the journal records `call_cad_tool` without it and a replay rebuilds the same ids.
+history, so the journal records `call_cad_tool` without `args.generation` and a replay rebuilds the
+same ids.
 
 The plane-taking CAD tools (`sketch_begin`, `extrude`, `revolve`, the `hole` tools, `thread`,
 `split`, `pattern`, `mirror`, `helix`, `project`) share one resolver, `cad_resolve_plane()`: `"XY"`,
@@ -1291,8 +1307,9 @@ backup's change mark. So `get_app_state.project.dirty`, the window title and `op
 show. A project holding only a design loads no objects, and `Plater::load_project()` still names
 it after its file, since a loaded recipe counts as a loaded project.
 
-`tests/slic3rutils/test_mcp_cad.cpp` (`[Mcp][CAD]`) checks the method table against
-`describe_tools`, the plane resolver, the rollbacks, and the methods through their public seams
+`tests/slic3rutils/test_mcp_cad.cpp` (`[Mcp][CAD]`) checks the CAD tool table against `kCadTools`
+and its readers (`cad_list_tools()`, `cad_describe_tool()`), the CAD-off note, the plane resolver,
+the rollbacks, and the CAD tools through their public seams
 (`cad_sketch_extrude()`, `cad_sketch_call()`, `cad_query_topology()`, `cad_thread()` and the rest),
 which take a `CadDocument` or a bare `DesignSketchTool` and need no Design panel. The replay
 replays run on an instance that `tools/mcp/orca_mcp.py launch --cad` starts:
@@ -3070,17 +3087,19 @@ offered again by a new load). The call's job is the caller's, so an operation al
 plugin unloads runs to its end; its own tool calls are refused from then on.
 
 **`search_tools` and `call_tool`.** `search_tools` gives the schema of any registered tool or operation,
-or lists every name; for `call_cad_tool` it points to `describe_tools`, which lists the Design tab's methods.
+or lists every name; for `call_cad_tool` it points to `list_cad_tools` and `describe_cad_tool`, which list
+and describe the Design tab's CAD tools.
 Its search by words is the one search across catalogs: the best five tools and operations that match (more
 with `limit`), a tool with the first sentence of its description, since `tools/list` has its schema, and an
 operation with its schema, which nothing else lists; and beside them the best five of each other catalog with
 its total and how to use it: Speed Dial
 actions, the settings being edited (`search_settings()`, as `get_settings` searches without a scope), the
-Python reference and the Design tab's methods (noting when the Design tab is off). Every catalog is ranked
+Python reference and the Design tab's CAD tools (scored on their details too, and noting when the Design
+tab is off). Every catalog is ranked
 the same way (`query_words()`, `match_score()`): a query word matches where a word of the name or text
 starts with it, CamelCase parts included, and entries matching more words, then more of them in the name,
 come first. Scores of different catalogs don't compare, so each keeps its own list. Actions, settings
-and the Design tab's methods are read on the UI thread: when it can't run the call (a native dialog holds
+and the Design tab's CAD tools are read on the UI thread: when it can't run the call (a native dialog holds
 it, or it is busy) the search leaves those three out, and before the main window exists (the server starts
 ahead of it) it leaves out the settings. The tools, operations and Python reference answer whatever the UI
 thread is doing. `call_tool {tool, args}` is dispatched before it runs

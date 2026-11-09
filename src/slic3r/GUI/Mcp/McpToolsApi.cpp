@@ -111,9 +111,9 @@ json ui_catalog_hits(const std::vector<std::string>& words, const std::string& q
     }
     out["cad"] = catalog_hits(std::move(scored),
                               wxGetApp().is_enable_cad_feature() ?
-                                  "call_cad_tool {method, params}; call_cad_tool {method: \"describe_tools\", params: {method}} gives its params" :
-                                  "call_cad_tool {method, params}, once the Design tab is on: a person enables it in Preferences and restarts "
-                                  "OrcaSlicer");
+                                  "describe_cad_tool {tool} gives its arguments and examples; call_cad_tool {tool, args} runs it" :
+                                  "describe_cad_tool {tool} gives its arguments; call_cad_tool {tool, args} runs it once a person enables "
+                                  "the CAD feature in Preferences and restarts OrcaSlicer");
 #endif
     return out;
 }
@@ -151,9 +151,9 @@ json describe_tool(const ToolDef& def)
              {"read_only", def.read_only},
              {"description", def.description},
              {"input_schema", def.input_schema}};
-    // The Design tab's methods live behind one tool, which lists them itself.
+    // The Design tab's CAD tools live behind one tool, and two others describe them.
     if (def.name == "call_cad_tool")
-        out["methods"] = "call_cad_tool {method: \"describe_tools\"} lists the Design tab's methods with their parameters";
+        out["cad_tools"] = "list_cad_tools lists the CAD tools; describe_cad_tool {tool} gives one's arguments and examples";
     return out;
 }
 
@@ -206,8 +206,8 @@ void register_api_tools(McpService& service)
         "offer (plugin.<plugin>.<name>, not in the tool list) that match, best first, a tool with its first sentence (its "
         "schema is in the tool list, or here with tool) and an operation with its schema; and beside "
         "them the best few matches of each other catalog, with its total and how to use it: actions (Speed Dial commands "
-        "for run_action), settings (get_settings / set_settings), python (the orca API for run_script) and cad (Design tab "
-        "methods for call_cad_tool). With tool: that tool's or operation's description and input schema. With neither: every "
+        "for run_action), settings (get_settings / set_settings), python (the orca API for run_script) and cad (CAD "
+        "tools for call_cad_tool). With tool: that tool's or operation's description and input schema. With neither: every "
         "tool and operation name. Call tools and operations with call_tool.",
         object_schema({{"tool", prop("string", "A tool or operation name: its schema.")},
                        {"query", prop("string", "A few words saying what you want to do or find, e.g. \"brim\" or \"mesh normals\".")},
