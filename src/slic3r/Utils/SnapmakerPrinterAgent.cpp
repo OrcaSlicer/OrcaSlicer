@@ -2,6 +2,7 @@
 #include "Http.hpp"
 #include "MoonrakerPrinterAgent.hpp"
 #include "IPrinterAgent.hpp"
+#include "NetworkAgentFactory.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
@@ -76,7 +77,7 @@ SnapmakerPrinterAgent::SnapmakerPrinterAgent(std::string log_dir) : MoonrakerPri
 
 AgentInfo SnapmakerPrinterAgent::get_agent_info_static()
 {
-    return AgentInfo{"snapmaker", "Snapmaker", SNAPMAKER_AGENT_VERSION, "Snapmaker printer agent"};
+    return AgentInfo{SNAPMAKER_PRINTER_AGENT_ID, "Snapmaker", SNAPMAKER_AGENT_VERSION, "Snapmaker printer agent"};
 }
 
 std::string SnapmakerPrinterAgent::combine_filament_type(const std::string& type, const std::string& sub_type)

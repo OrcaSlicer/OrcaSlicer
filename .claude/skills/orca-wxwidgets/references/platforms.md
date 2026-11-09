@@ -379,9 +379,10 @@ form a chain of parents. Window icons come from the `.desktop` file. The full li
 ### XWayland (GTK3 X11 backend inside a Wayland session)
 
 Users opt in with `GDK_BACKEND=x11…`. GTK then talks X11, so `is_running_on_x11()` is true and Orca
-uses GLX through `PreferGLX()`. `CLI::run` prepares this path before GTK starts (PRIME variables,
-`XInitThreads()`, no WebKit compositing workaround; the source comment says multi-monitor handling
-is compromised there) → [Runtime detection](#runtime-x11wayland-detection),
+uses GLX through `PreferGLX()`. `CLI::run` prepares this path before GTK starts (`XInitThreads()`, no
+WebKit compositing workaround; GPU choice is the `prefer_discrete_gpu` preference on either backend;
+the source comment says multi-monitor handling is compromised there) →
+[Runtime detection](#runtime-x11wayland-detection),
 `references/webview-gl-aui-media.md` §WebKitGTK on Linux sessions. Intel's XWayland GL exposes a
 smaller `GL_MAX_TEXTURE_SIZE`, so the ImGui font atlas is re-packed to fit (22e121f4e4) →
 `references/webview-gl-aui-media.md`.

@@ -63,6 +63,7 @@
 #include "format.hpp"
 #include "Tab.hpp"
 #include "ConfigWizard.hpp"
+#include "ConfigWizardTypes.hpp"
 #include "../Utils/UndoRedo.hpp"
 #include "BitmapCache.hpp"
 #include "SavePresetDialog.hpp"
@@ -74,6 +75,7 @@
 
 #include "DeviceCore/DevManager.h"
 #include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 
 // A workaround for a set of issues related to text fitting into gtk widgets:
 #if defined(__WXGTK20__) || defined(__WXGTK3__)
@@ -311,6 +313,11 @@ int PresetComboBox::update_ams_color()
     auto color_head = static_cast<ConfigOptionStrings*>(cfg->option("filament_colour")->clone()); // single color (the first color if multi-color filament)
     auto color_pack = static_cast<ConfigOptionStrings *>(cfg->option("filament_multi_colour")->clone()); // multi color (all colors in all kinds of filament)
     auto color_type = static_cast<ConfigOptionStrings*>(cfg->option("filament_colour_type")->clone()); // color type
+
+    // The slot can lie past the colour arrays (see sync_colour_config()).
+    if (m_filament_idx >= color_head->values.size()) color_head->values.resize(m_filament_idx + 1);
+    if (m_filament_idx >= color_pack->values.size()) color_pack->values.resize(m_filament_idx + 1);
+    if (m_filament_idx >= color_type->values.size()) color_type->values.resize(m_filament_idx + 1);
 
     color_head->values[m_filament_idx] = color;
     color_type->values[m_filament_idx] = ctype;
@@ -1005,9 +1012,9 @@ PlaterPresetComboBox::~PlaterPresetComboBox()
         clr_picker->Destroy();
 }
 
-static void run_wizard(ConfigWizard::StartPage sp)
+static void run_wizard(StartPage sp)
 {
-    wxGetApp().run_wizard(ConfigWizard::RR_USER, sp);
+    wxGetApp().run_wizard(RunReason::RR_USER, sp);
 }
 
 void PlaterPresetComboBox::OnSelect(wxCommandEvent &evt)
@@ -1027,11 +1034,11 @@ void PlaterPresetComboBox::OnSelect(wxCommandEvent &evt)
         //if (marker == LABEL_ITEM_WIZARD_PRINTERS)
         //    show_add_menu();
         //else {
-            ConfigWizard::StartPage sp = ConfigWizard::SP_WELCOME;
+            StartPage sp = StartPage::SP_WELCOME;
             switch (marker) {
-            case LABEL_ITEM_WIZARD_PRINTERS: sp = ConfigWizard::SP_PRINTERS; break;
-            case LABEL_ITEM_WIZARD_FILAMENTS: sp = ConfigWizard::SP_FILAMENTS; break;
-            case LABEL_ITEM_WIZARD_MATERIALS: sp = ConfigWizard::SP_MATERIALS; break;
+            case LABEL_ITEM_WIZARD_PRINTERS: sp = StartPage::SP_PRINTERS; break;
+            case LABEL_ITEM_WIZARD_FILAMENTS: sp = StartPage::SP_FILAMENTS; break;
+            case LABEL_ITEM_WIZARD_MATERIALS: sp = StartPage::SP_MATERIALS; break;
             default: break;
             }
             wxTheApp->CallAfter([sp]() { run_wizard(sp); });
@@ -1068,16 +1075,15 @@ bool PlaterPresetComboBox::switch_to_tab()
     const Preset* selected_filament_preset = nullptr;
     if (m_type == Preset::TYPE_FILAMENT)
     {
-        const std::string& selected_preset = GetString(GetSelection()).ToUTF8().data();
-        if (!boost::algorithm::starts_with(selected_preset, Preset::suffix_modified()))
+        // Reload the editor only when it has a different preset open than this slot.
+        const std::string& slot_preset_name = wxGetApp().preset_bundle->filament_presets[m_filament_idx];
+        if (slot_preset_name != wxGetApp().preset_bundle->filaments.get_selected_preset_name())
         {
-            const std::string& preset_name = wxGetApp().preset_bundle->filaments.get_preset_name_by_alias(selected_preset);
-            if (wxGetApp().get_tab(m_type)->select_preset(preset_name))
-                wxGetApp().get_tab(m_type)->get_combo_box()->set_filament_idx(m_filament_idx);
-            else {
+            if (!wxGetApp().get_tab(m_type)->select_preset(slot_preset_name))
                 return false;
-            }
         }
+        // Bind the editor to this slot even when its preset is already open.
+        wxGetApp().get_tab(m_type)->get_combo_box()->set_filament_idx(m_filament_idx);
     }
 
     /*
@@ -1126,7 +1132,7 @@ void PlaterPresetComboBox::show_add_menu()
 
     append_menu_item(menu, wxID_ANY, _L("Add/Remove presets"), "",
         [](wxCommandEvent&) {
-            wxTheApp->CallAfter([]() { run_wizard(ConfigWizard::SP_PRINTERS); });
+            wxTheApp->CallAfter([]() { run_wizard(StartPage::SP_PRINTERS); });
         }, "menu_edit_preset", menu, []() { return true; }, wxGetApp().plater());
 
     wxGetApp().plater()->PopupMenu(menu);
@@ -1151,7 +1157,7 @@ void PlaterPresetComboBox::show_edit_menu()
 
     append_menu_item(menu, wxID_ANY, _L("Add/Remove presets"), "",
         [](wxCommandEvent&) {
-            wxTheApp->CallAfter([]() { run_wizard(ConfigWizard::SP_PRINTERS); });
+            wxTheApp->CallAfter([]() { run_wizard(StartPage::SP_PRINTERS); });
         }, "menu_edit_preset", menu, []() { return true; }, wxGetApp().plater());
 
     wxGetApp().plater()->PopupMenu(menu);
@@ -1179,12 +1185,12 @@ void PlaterPresetComboBox::update()
     const Preset* selected_filament_preset = nullptr;
     if (m_type == Preset::TYPE_FILAMENT)
     {
+        // The slot can lie past the colour arrays: it still lists its presets, with a blank swatch.
         std::vector<wxBitmap *> bitmaps = get_extruder_color_icons(true);
-        if (m_filament_idx < bitmaps.size()) {
+        if (m_filament_idx < bitmaps.size())
             clr_picker->SetBitmap(*bitmaps[m_filament_idx]);
-        } else {
-            return;
-        }
+        else
+            clr_picker->SetBitmap(*get_extruder_color_icon("#F0F0F0FF", std::to_string(m_filament_idx + 1), lround(2 * m_em_unit), lround(2 * m_em_unit)));
 #ifdef __WXOSX__
         clr_picker->SetLabel(clr_picker->GetLabel()); // Let setBezelStyle: be called
         clr_picker->Refresh();
@@ -1678,14 +1684,14 @@ void TabPresetComboBox::OnSelect(wxCommandEvent &evt)
     if (marker >= LABEL_ITEM_DISABLED && marker < LABEL_ITEM_MAX) {
         this->SetSelection(m_last_selected);
         // BBS: Add/Remove filaments
-        ConfigWizard::StartPage sp = ConfigWizard::SP_WELCOME;
+        StartPage sp = StartPage::SP_WELCOME;
         switch (marker) {
-        case LABEL_ITEM_WIZARD_PRINTERS: sp = ConfigWizard::SP_PRINTERS; break;
-        case LABEL_ITEM_WIZARD_FILAMENTS: sp = ConfigWizard::SP_FILAMENTS; break;
-        case LABEL_ITEM_WIZARD_MATERIALS: sp = ConfigWizard::SP_MATERIALS; break;
+        case LABEL_ITEM_WIZARD_PRINTERS: sp = StartPage::SP_PRINTERS; break;
+        case LABEL_ITEM_WIZARD_FILAMENTS: sp = StartPage::SP_FILAMENTS; break;
+        case LABEL_ITEM_WIZARD_MATERIALS: sp = StartPage::SP_MATERIALS; break;
         default: break;
         }
-        if (sp != ConfigWizard::SP_WELCOME) {
+        if (sp != StartPage::SP_WELCOME) {
             wxTheApp->CallAfter([sp]() {
                 run_wizard(sp);
             });
