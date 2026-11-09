@@ -475,11 +475,28 @@ void CoolingBuffer::collect_layer(std::string &&gcode, size_t layer_id, bool flu
     m_gcode.clear();
 }
 
+// Remove the "; COOLING_NODE" marker lines of the outer wall chains, they only serve the cooling buffer.
+static std::string remove_chain_markers(const std::string &gcode)
+{
+    static constexpr std::string_view marker = "; COOLING_NODE: ";
+    std::string out;
+    out.reserve(gcode.size());
+    for (size_t pos = 0; pos < gcode.size();) {
+        size_t end = gcode.find('\n', pos);
+        end = end == std::string::npos ? gcode.size() : end + 1;
+        if (gcode.compare(pos, marker.size(), marker) != 0)
+            out.append(gcode, pos, end - pos);
+        pos = end;
+    }
+    return out;
+}
+
 std::vector<std::string> CoolingBuffer::finish_deferred()
 {
     std::vector<DeferredLayer> layers = std::move(m_deferred_layers);
     m_deferred_layers.clear();
 
+    const bool has_chain_markers = m_parse_outer_wall_chains;
     if (m_parse_outer_wall_chains) {
         // Smooth the speed of every chain of connected outer walls along Z.
         // chain -> layer -> the (extruder, line) pairs of the outer wall lines of the chain on the layer
@@ -523,7 +540,8 @@ std::vector<std::string> CoolingBuffer::finish_deferred()
         std::vector<std::string> out;
         out.reserve(layers.size());
         for (DeferredLayer &layer : layers) {
-            out.emplace_back(this->apply_layer_cooldown(layer.gcode, layer.layer_id, layer.layer_time, layer.adjustments));
+            std::string gcode = this->apply_layer_cooldown(layer.gcode, layer.layer_id, layer.layer_time, layer.adjustments);
+            out.emplace_back(has_chain_markers ? remove_chain_markers(gcode) : std::move(gcode));
             layer.gcode.clear();
             layer.gcode.shrink_to_fit();
         }
@@ -552,6 +570,8 @@ std::vector<std::string> CoolingBuffer::finish_deferred()
         DeferredLayer &layer = layers[i];
         std::string    gcode = this->apply_layer_cooldown(layer.gcode, layer.layer_id, layer.layer_time, layer.adjustments);
         // Prepend a diagnostic comment of the smoothing.
+        if (has_chain_markers)
+            gcode = remove_chain_markers(gcode);
         out.emplace_back(smoother.layer_comment(i) + std::move(gcode));
         // The G-code of the layer is no longer needed.
         layer.gcode.clear();

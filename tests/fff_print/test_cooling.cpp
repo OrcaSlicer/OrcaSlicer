@@ -13,6 +13,13 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <functional>
+#include <set>
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/GCode/OuterWallNodes.hpp"
+#include "libslic3r/Layer.hpp"
+#include "libslic3r/Print.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Test;
@@ -212,14 +219,15 @@ TEST_CASE("Layer time smoothing smooths each object when printing by object", "[
     CHECK(gcode.find(";_EXTRUDE_SET_SPEED") == std::string::npos);
 }
 
-TEST_CASE("Smoothing the outer wall speed along Z marks the outer walls with their chain", "[Cooling]")
+TEST_CASE("Smoothing the outer wall speed along Z leaves no chain markers in the G-code", "[Cooling]")
 {
     const std::string gcode = slice({ cube(20) }, {
         { "initial_layer_print_height",         0.2 },
         { "layer_height",                       0.2 },
         { "z_direction_outwall_speed_continuous", true },
     });
-    CHECK(gcode.find("; COOLING_NODE: ") != std::string::npos);
+    // The markers only serve the cooling buffer and are not part of the output.
+    CHECK(gcode.find("; COOLING_NODE: ") == std::string::npos);
     CHECK(gcode.find(";_EXTRUDE_SET_SPEED") == std::string::npos);
 }
 
@@ -239,4 +247,42 @@ TEST_CASE("Smoothing the outer wall speed along Z is ignored in spiral vase mode
         { "z_direction_outwall_speed_continuous", true },
     });
     CHECK(gcode.find("; COOLING_NODE: ") == std::string::npos);
+}
+
+TEST_CASE("The outer walls of a column form a single chain starting above the first layer", "[Cooling]")
+{
+    Print print;
+    init_and_process_print({ cube(20) }, print, {
+        { "initial_layer_print_height", 0.2 },
+        { "layer_height",               0.2 },
+    });
+    const OuterWallNodes nodes = OuterWallNodes::build(print);
+    REQUIRE_FALSE(nodes.empty());
+
+    std::set<int> chain_ids;
+    size_t        first_layer_in_chain = 0;
+    std::function<void(const ExtrusionEntity&, size_t)> visit = [&](const ExtrusionEntity &entity, size_t layer_id) {
+        if (const auto *collection = dynamic_cast<const ExtrusionEntityCollection*>(&entity)) {
+            for (const ExtrusionEntity *child : collection->entities)
+                visit(*child, layer_id);
+        } else if (entity.role() == erExternalPerimeter) {
+            const int node = nodes.node_of(&entity);
+            if (layer_id == 0) {
+                if (node >= 0)
+                    ++ first_layer_in_chain;
+            } else {
+                // Every outer wall above the first layer is in a chain.
+                REQUIRE(node >= 0);
+                chain_ids.insert(node);
+            }
+        }
+    };
+    for (const PrintObject *object : print.objects())
+        for (const Layer *layer : object->layers())
+            for (const LayerRegion *region : layer->regions())
+                for (const ExtrusionEntity *entity : region->perimeters.entities)
+                    visit(*entity, layer->id());
+
+    CHECK(first_layer_in_chain == 0);
+    CHECK(chain_ids.size() == 1);
 }
