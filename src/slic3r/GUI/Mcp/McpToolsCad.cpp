@@ -1,4 +1,4 @@
-#include "slic3r/GUI/CAD/McpControl.hpp"
+#include "slic3r/GUI/Mcp/McpToolsCad.hpp"
 #include "libslic3r/Point.hpp"
 #include <stdexcept>
 #include <math.h>
@@ -45,9 +45,9 @@
 #include "slic3r/GUI/ObjectDataViewModel.hpp"   // itObject
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
-#include "slic3r/GUI/Mcp/McpService.hpp"
-#include "slic3r/GUI/Mcp/McpTools.hpp"
-#include "slic3r/GUI/Mcp/McpTypes.hpp"
+#include "McpService.hpp"
+#include "McpTools.hpp"
+#include "McpTypes.hpp"
 #include "slic3r/GUI/Mcp/McpPaths.hpp"
 #include "slic3r/GUI/Mcp/UiInspector.hpp"   // gizmo_name: the name get_app_state reports
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
@@ -100,7 +100,7 @@
 
 using json = nlohmann::json;
 
-namespace Slic3r { namespace GUI {
+namespace Slic3r { namespace GUI { namespace Mcp {
 
 namespace {
 
@@ -5466,10 +5466,6 @@ json cad_control_call(const std::string& method, const json& params)
         throw CadCallError(reply["error"].value("code", -32000), reply["error"].value("message", std::string("CAD call failed")));
     return reply.value("result", json());
 }
-
-}} // namespace Slic3r::GUI
-
-namespace Slic3r { namespace GUI { namespace Mcp {
 
 // call_cad_tool: the Design tab's control surface (sketches, features, measurements) through MCP.
 void register_cad_tools(McpService& service)

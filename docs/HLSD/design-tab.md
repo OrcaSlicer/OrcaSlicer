@@ -436,7 +436,7 @@ tests.
 | `src/slic3r/GUI/CAD/DesignRowList.*` | the Feature tree and Bodies lists, with per-row actions |
 | `src/slic3r/GUI/CAD/DesignCanvas.*` | viewport integration |
 | `src/slic3r/GUI/CAD/DesignSketchTool.*` | in-canvas sketching |
-| `src/slic3r/GUI/CAD/McpControl.*` | the automation surface: the method table, shared by `call_cad_tool` and the socket |
+| `src/slic3r/GUI/Mcp/McpToolsCad.*` | the automation surface: the method table, shared by `call_cad_tool` and the socket |
 | `src/slic3r/GUI/CAD/DesignInteraction.hpp` | the Esc level contract |
 | `src/slic3r/GUI/CAD/DesignOffer.hpp` | generated offer table |
 | `scripts/CAD/tool_atlas.json` | source of truth for the offer |

@@ -954,7 +954,7 @@ set(SLIC3R_GUI_SOURCES
     Utils/wxInspectorPlugins/Registration.hpp
 )
 
-# Design/CAD tab: parametric sketch UI, its gizmos, and the MCP control socket.
+# Design/CAD tab: parametric sketch UI, its gizmos, and the MCP server's CAD tools.
 # All of it sits behind SLIC3R_CAD and links the CAD kernel in libslic3r.
 if (SLIC3R_CAD)
     list(APPEND SLIC3R_GUI_SOURCES
@@ -972,8 +972,8 @@ if (SLIC3R_CAD)
         GUI/CAD/DesignInteraction.hpp
         GUI/CAD/SketchInlineEditor.cpp
         GUI/CAD/SketchInlineEditor.hpp
-        GUI/CAD/McpControl.cpp
-        GUI/CAD/McpControl.hpp
+        GUI/Mcp/McpToolsCad.cpp
+        GUI/Mcp/McpToolsCad.hpp
     )
 endif ()
 

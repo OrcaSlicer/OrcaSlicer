@@ -1045,7 +1045,7 @@ the dialogs, and their descriptions point at `generate_calibration_test`.
 
 ### Design tab: `call_cad_tool`
 
-`call_cad_tool {method, params}` reaches the Design tab's control surface (`CAD/McpControl.cpp`), the
+`call_cad_tool {method, params}` reaches the Design tab's control surface (`Mcp/McpToolsCad.cpp`), the
 same methods the `ORCA_CAD_MCP` socket serves, as one generic tool rather than a schema per
 method, so agents that never open the Design tab pay nothing for it. It needs the CAD feature on
 (Preferences > Features), which the app reads only at startup; `get_app_state.design_tab` says whether

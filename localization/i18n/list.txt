@@ -154,7 +154,7 @@ src/slic3r/GUI/MainFrame.cpp
 src/slic3r/GUI/Mcp/McpToolsActions.cpp
 src/slic3r/GUI/Mcp/McpToolsApi.cpp
 src/slic3r/GUI/Mcp/McpToolsApp.cpp
-src/slic3r/GUI/CAD/McpControl.cpp
+src/slic3r/GUI/Mcp/McpToolsCad.cpp
 src/slic3r/GUI/Mcp/McpToolsConfig.cpp
 src/slic3r/GUI/Mcp/McpToolsLayers.cpp
 src/slic3r/GUI/Mcp/McpToolsProject.cpp

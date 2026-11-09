@@ -1,5 +1,4 @@
-#ifndef slic3r_GUI_McpControl_hpp_
-#define slic3r_GUI_McpControl_hpp_
+#pragma once
 
 // MCP control surface: a local JSON-RPC 2.0 server, line-delimited over a Unix domain
 // socket, that lets an external MCP bridge drive and perceive the Design tab. Off unless the
@@ -36,6 +35,8 @@ class Model;
 namespace GUI {
 
 class DesignSketchTool;
+
+namespace Mcp {
 
 // Start the server thread iff ORCA_CAD_MCP is set. Safe to call once the MainFrame exists —
 // the Design panel is built on the first request. No-op when the env var is unset or on Windows.
@@ -172,6 +173,4 @@ std::function<int(const std::string& name)> cad_sweep(CadDocument& doc, const nl
 std::function<int(const std::string& name)> cad_loft(CadDocument& doc, const nlohmann::json& params);
 std::function<int(const std::string& name)> cad_split(CadDocument& doc, const nlohmann::json& params, nlohmann::json& resolved);
 
-}} // namespace Slic3r::GUI
-
-#endif // slic3r_GUI_McpControl_hpp_
+}}} // namespace Slic3r::GUI::Mcp

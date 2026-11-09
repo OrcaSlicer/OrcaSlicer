@@ -17,7 +17,7 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
-#include "slic3r/GUI/CAD/McpControl.hpp"
+#include "slic3r/GUI/Mcp/McpToolsCad.hpp"
 
 #include <TopoDS_Edge.hxx>
 #include <TopoDS_Face.hxx>
@@ -53,7 +53,7 @@ std::vector<std::string> row_names(const json& reply)
 std::string error_of(const json& plane, const CadDocument& doc, bool drill = false)
 {
     try {
-        GUI::cad_resolve_plane(plane, doc, drill);
+        GUI::Mcp::cad_resolve_plane(plane, doc, drill);
     } catch (const std::runtime_error& e) {
         return e.what();
     }
@@ -132,15 +132,15 @@ void add_bound_block(CadDocument& doc)
 
 TEST_CASE("describe_tools has a row for every dispatched method", "[Mcp][CAD]")
 {
-    std::vector<std::string> methods = GUI::cad_control_methods();
+    std::vector<std::string> methods = GUI::Mcp::cad_control_methods();
     std::sort(methods.begin(), methods.end());
     REQUIRE(std::adjacent_find(methods.begin(), methods.end()) == methods.end());
-    CHECK(row_names(GUI::cad_describe_tools(json::object())) == methods);
+    CHECK(row_names(GUI::Mcp::cad_describe_tools(json::object())) == methods);
 }
 
 TEST_CASE("describe_tools rows carry a summary, params and the method's access", "[Mcp][CAD]")
 {
-    const json reply = GUI::cad_describe_tools(json::object());
+    const json reply = GUI::Mcp::cad_describe_tools(json::object());
     for (const json& row : reply.at("tools")) {
         INFO(row.at("name").get<std::string>());
         CHECK_FALSE(row.value("summary", std::string()).empty());
@@ -173,30 +173,30 @@ TEST_CASE("describe_tools rows carry a summary, params and the method's access",
 
 TEST_CASE("describe_tools narrows to the named methods or a query", "[Mcp][CAD]")
 {
-    CHECK(row_names(GUI::cad_describe_tools({{"method", "extrude"}})) == std::vector<std::string>{"extrude"});
-    CHECK(row_names(GUI::cad_describe_tools({{"method", {"hole", "fillet"}}})) ==
+    CHECK(row_names(GUI::Mcp::cad_describe_tools({{"method", "extrude"}})) == std::vector<std::string>{"extrude"});
+    CHECK(row_names(GUI::Mcp::cad_describe_tools({{"method", {"hole", "fillet"}}})) ==
           std::vector<std::string>{"fillet", "hole"});
 
     // The query matches names and summaries in any case.
-    const json sketch = GUI::cad_describe_tools({{"query", "SKETCH_"}});
+    const json sketch = GUI::Mcp::cad_describe_tools({{"query", "SKETCH_"}});
     const std::vector<std::string> names = row_names(sketch);
     CHECK(std::find(names.begin(), names.end(), "sketch_add") != names.end());
     for (const std::string& n : names) CHECK_THAT(n, ContainsSubstring("sketch_"));
 
     // An empty filter is no filter, as the rows' defaults say.
-    CHECK(row_names(GUI::cad_describe_tools({{"method", ""}, {"query", ""}})).size() ==
-          GUI::cad_control_methods().size());
+    CHECK(row_names(GUI::Mcp::cad_describe_tools({{"method", ""}, {"query", ""}})).size() ==
+          GUI::Mcp::cad_control_methods().size());
 }
 
 TEST_CASE("describe_tools names close methods for an unknown one", "[Mcp][CAD]")
 {
     try {
-        GUI::cad_describe_tools({{"method", "extrud"}});
+        GUI::Mcp::cad_describe_tools({{"method", "extrud"}});
         FAIL("an unknown method was accepted");
     } catch (const std::runtime_error& e) {
         CHECK_THAT(std::string(e.what()), ContainsSubstring("extrude"));
     }
-    CHECK_THROWS_AS(GUI::cad_describe_tools({{"method", 3}}), std::runtime_error);
+    CHECK_THROWS_AS(GUI::Mcp::cad_describe_tools({{"method", 3}}), std::runtime_error);
 }
 
 TEST_CASE("rollback takes back a failed edit and leaves nothing to redo", "[Mcp][CAD]")
@@ -264,15 +264,15 @@ TEST_CASE("plane resolves base planes on the modeling origin, datums and planar 
     doc.modeling_origin = Vec3d(100, 50, 0);
     add_box(doc);
 
-    const SketchPlane xy = GUI::cad_resolve_plane("XY", doc, false);
+    const SketchPlane xy = GUI::Mcp::cad_resolve_plane("XY", doc, false);
     CHECK((xy.origin - Vec3d(100, 50, 0)).norm() < 1e-9);
     CHECK((xy.normal - Vec3d(0, 0, 1)).norm() < 1e-9);
-    CHECK((GUI::cad_resolve_plane("XZ", doc, false).normal - Vec3d(0, 1, 0)).norm() < 1e-9);
+    CHECK((GUI::Mcp::cad_resolve_plane("XZ", doc, false).normal - Vec3d(0, 1, 0)).norm() < 1e-9);
 
     // A datum is named by its feature index.
     const int datum = doc.add_plane(0 /*XY*/, 30.0, 0.0, 0, "Plane");
     REQUIRE(doc.recompute());
-    const SketchPlane dp = GUI::cad_resolve_plane({{"datum", datum}}, doc, false);
+    const SketchPlane dp = GUI::Mcp::cad_resolve_plane({{"datum", datum}}, doc, false);
     CHECK_THAT(dp.origin.z(), WithinAbs(30.0, 1e-9));
     CHECK((dp.normal - Vec3d(0, 0, 1)).norm() < 1e-9);
 
@@ -280,11 +280,11 @@ TEST_CASE("plane resolves base planes on the modeling origin, datums and planar 
     const int top = face_facing(doc, Vec3d(0, 0, 1));
     REQUIRE(top >= 0);
     int body = -1;
-    const SketchPlane on = GUI::cad_resolve_plane({{"body", 0}, {"face", top}}, doc, false, &body);
+    const SketchPlane on = GUI::Mcp::cad_resolve_plane({{"body", 0}, {"face", top}}, doc, false, &body);
     CHECK(body == 0);
     CHECK_THAT(on.origin.z(), WithinAbs(10.0, 1e-6));
     CHECK((on.normal - Vec3d(0, 0, 1)).norm() < 1e-9);
-    const SketchPlane into = GUI::cad_resolve_plane({{"body", 0}, {"face", top}}, doc, true);
+    const SketchPlane into = GUI::Mcp::cad_resolve_plane({{"body", 0}, {"face", top}}, doc, true);
     CHECK((into.normal - Vec3d(0, 0, -1)).norm() < 1e-9);
 }
 
@@ -325,7 +325,7 @@ TEST_CASE("describe_feature reads a sketch and the extrude bound to a variable",
     CadDocument doc;
     add_bound_block(doc);
 
-    const json sketch = GUI::cad_feature_json(doc, 0);
+    const json sketch = GUI::Mcp::cad_feature_json(doc, 0);
     CHECK(sketch.at("type") == "Sketch");
     CHECK(sketch.at("name") == "Sketch 1");
     CHECK(sketch.at("plane").at("base") == "XY");
@@ -341,7 +341,7 @@ TEST_CASE("describe_feature reads a sketch and the extrude bound to a variable",
     CHECK(sketch.at("used_by") == json::array({1}));
     CHECK(sketch.at("bodies_made").empty());
 
-    const json extrude = GUI::cad_feature_json(doc, 1);
+    const json extrude = GUI::Mcp::cad_feature_json(doc, 1);
     CHECK(extrude.at("type") == "Extrude");
     CHECK_THAT(extrude.at("params").at("distance").get<double>(), WithinAbs(12.0, 1e-9));   // the variable's value
     CHECK(extrude.at("expr").at("distance") == "h");
@@ -352,12 +352,12 @@ TEST_CASE("describe_feature reads a sketch and the extrude bound to a variable",
     CHECK(extrude.at("bodies_made") == json::array({0}));
     CHECK_FALSE(extrude.contains("plane"));   // it builds on its sketch's plane
 
-    const json hole = GUI::cad_feature_json(doc, 2);
+    const json hole = GUI::Mcp::cad_feature_json(doc, 2);
     CHECK_THAT(hole.at("params").at("hole_x").get<double>(), WithinAbs(20.0, 1e-9));
     CHECK(hole.at("params").at("hole_through") == true);
     CHECK(hole.contains("plane"));
 
-    CHECK_THAT(failure([&] { GUI::cad_feature_json(doc, 3); }), ContainsSubstring("feature 3 is out of range"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_feature_json(doc, 3); }), ContainsSubstring("feature 3 is out of range"));
 }
 
 TEST_CASE("describe_feature names constraint references as the solver reads them", "[Mcp][CAD]")
@@ -373,7 +373,7 @@ TEST_CASE("describe_feature names constraint references as the solver reads them
     };
     doc.add_sketch_entities({line(0, 0, 10, 0), line(0, 5, 10, 5)}, SketchPlane::XY(), "Sketch", cons);
 
-    const json c = GUI::cad_feature_json(doc, 0).at("constraints");
+    const json c = GUI::Mcp::cad_feature_json(doc, 0).at("constraints");
     CHECK(c[0].at("refs") == json::array({json{{"entity", 0}}, json{{"entity", 1}}}));   // whole lines, no roles
     CHECK_FALSE(c[0].contains("value"));
     CHECK(c[1].at("type") == "angle");
@@ -391,11 +391,11 @@ TEST_CASE("describe_feature lists the features built on a datum plane", "[Mcp][C
     const int second = doc.add_plane(3 /*the first datum*/, 10.0, 0.0, 0, "Plane 2");
     doc.recompute();
 
-    const json p = GUI::cad_feature_json(doc, first);
+    const json p = GUI::Mcp::cad_feature_json(doc, first);
     CHECK(p.at("used_by") == json::array({second}));
     CHECK_THAT(p.at("plane").at("origin")[2].get<double>(), WithinAbs(30.0, 1e-9));
     CHECK_FALSE(p.at("plane").contains("base"));   // parallel to XY but not through the modeling origin
-    CHECK_THAT(GUI::cad_feature_json(doc, second).at("plane").at("origin")[2].get<double>(), WithinAbs(40.0, 1e-9));
+    CHECK_THAT(GUI::Mcp::cad_feature_json(doc, second).at("plane").at("origin")[2].get<double>(), WithinAbs(40.0, 1e-9));
 }
 
 TEST_CASE("every editable field of every feature type takes back its own value", "[Mcp][CAD]")
@@ -406,7 +406,7 @@ TEST_CASE("every editable field of every feature type takes back its own value",
         f.type = CadFeatureType(t);
         if (f.type == CadFeatureType::Boolean) f.mode = BooleanMode::Cut;   // a Boolean never makes a new body
         doc.features.push_back(f);
-        const json card = GUI::cad_feature_json(doc, 0);
+        const json card = GUI::Mcp::cad_feature_json(doc, 0);
         INFO(card.at("type").get<std::string>());
 
         // A numeric field with a range is one an expression can drive too, and the card edits it.
@@ -421,10 +421,10 @@ TEST_CASE("every editable field of every feature type takes back its own value",
             const std::string k = key.get<std::string>();
             INFO(k);
             CadFeature g = doc.features[0];
-            REQUIRE_NOTHROW(GUI::cad_apply_feature_fields(g, {{k, card.at("params").at(k)}}));
+            REQUIRE_NOTHROW(GUI::Mcp::cad_apply_feature_fields(g, {{k, card.at("params").at(k)}}));
             CadDocument after;
             after.features.push_back(g);
-            CHECK(GUI::cad_feature_json(after, 0).at("params") == card.at("params"));
+            CHECK(GUI::Mcp::cad_feature_json(after, 0).at("params") == card.at("params"));
         }
     }
 }
@@ -433,7 +433,7 @@ TEST_CASE("set_feature writes literal fields and the card's choices", "[Mcp][CAD
 {
     CadFeature ex;
     ex.type = CadFeatureType::Extrude;
-    GUI::cad_apply_feature_fields(ex, {{"distance", 15}, {"mode", "subtract"}, {"flip", true}, {"extrude_end", "symmetric"}});
+    GUI::Mcp::cad_apply_feature_fields(ex, {{"distance", 15}, {"mode", "subtract"}, {"flip", true}, {"extrude_end", "symmetric"}});
     CHECK(ex.distance == 15.0);
     CHECK(ex.mode == BooleanMode::Cut);
     CHECK(ex.flip);
@@ -441,18 +441,18 @@ TEST_CASE("set_feature writes literal fields and the card's choices", "[Mcp][CAD
 
     CadFeature th;
     th.type = CadFeatureType::Thread;
-    GUI::cad_apply_feature_fields(th, {{"thread_diameter", 8}});
+    GUI::Mcp::cad_apply_feature_fields(th, {{"thread_diameter", 8}});
     CHECK(th.thread_radius == 4.0);   // the card's diameter, halved into the kernel's radius
 
     CadFeature rv;
     rv.type                = CadFeatureType::Revolve;
     rv.revolve_axis_entity = 2;
-    GUI::cad_apply_feature_fields(rv, {{"revolve_axis", 1}});
+    GUI::Mcp::cad_apply_feature_fields(rv, {{"revolve_axis", 1}});
     CHECK(rv.revolve_axis == 1);
     CHECK(rv.revolve_axis_entity == -1);   // a plane axis replaces a sketch-line axis, as on the card
 
     CadFeature sk;   // a shape sketch, as the Sketch card makes it
-    GUI::cad_apply_feature_fields(sk, {{"shape", "circle"}, {"radius", 7.5}});
+    GUI::Mcp::cad_apply_feature_fields(sk, {{"shape", "circle"}, {"radius", 7.5}});
     CHECK(sk.shape == SketchShape::Circle);
     CHECK(sk.radius == 7.5);
 }
@@ -464,39 +464,39 @@ TEST_CASE("set_feature refuses what the card would not produce, changing nothing
     CadFeature ex = doc.features[1];
     ex.expr.clear();
 
-    CHECK_THAT(failure([&] { GUI::cad_apply_feature_fields(doc.features[1], {{"distance", 15}}); }),
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(doc.features[1], {{"distance", 15}}); }),
                ContainsSubstring("driven by the expression 'h'"));
-    CHECK_THAT(failure([&] { GUI::cad_apply_feature_fields(ex, {{"depth", 1}}); }),
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(ex, {{"depth", 1}}); }),
                ContainsSubstring("editable: distance, distance2, taper_deg, extrude_end, flip, mode"));
-    CHECK_THAT(failure([&] { GUI::cad_apply_feature_fields(ex, {{"sketch_ref", 2}}); }),
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(ex, {{"sketch_ref", 2}}); }),
                ContainsSubstring("'sketch_ref' is not an editable field"));
-    CHECK_THAT(failure([&] { GUI::cad_apply_feature_fields(doc.features[0], {{"width", 30}}); }),
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(doc.features[0], {{"width", 30}}); }),
                ContainsSubstring("no field set_feature can change"));   // an entity sketch
-    CHECK_THAT(failure([&] { GUI::cad_apply_feature_fields(ex, {{"distance", 2000}}); }),
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(ex, {{"distance", 2000}}); }),
                ContainsSubstring("distance must be between -1000 and 1000"));
-    CHECK_THAT(failure([&] { GUI::cad_apply_feature_fields(ex, {{"distance", "15"}}); }), ContainsSubstring("must be a number"));
-    CHECK_THAT(failure([&] { GUI::cad_apply_feature_fields(ex, {{"mode", "add"}}); }),
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(ex, {{"distance", "15"}}); }), ContainsSubstring("must be a number"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(ex, {{"mode", "add"}}); }),
                ContainsSubstring("mode must be one of new, union, subtract, intersect"));
-    CHECK_THAT(failure([&] { GUI::cad_apply_feature_fields(ex, {{"extrude_end", "up_to_face"}}); }),
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(ex, {{"extrude_end", "up_to_face"}}); }),
                ContainsSubstring("needs a target face"));
-    CHECK_THAT(failure([&] { GUI::cad_apply_feature_fields(ex, json::object()); }), ContainsSubstring("fields must name"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(ex, json::object()); }), ContainsSubstring("fields must name"));
 
     CadFeature boolean;
     boolean.type = CadFeatureType::Boolean;
-    CHECK_THAT(failure([&] { GUI::cad_apply_feature_fields(boolean, {{"mode", "new"}}); }),
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(boolean, {{"mode", "new"}}); }),
                ContainsSubstring("union, subtract or intersect"));
     CadFeature thread;
     thread.type = CadFeatureType::Thread;
     thread.expr["thread_diameter"] = "d";
-    CHECK_THAT(failure([&] { GUI::cad_apply_feature_fields(thread, {{"thread_radius", 3}}); }),
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(thread, {{"thread_radius", 3}}); }),
                ContainsSubstring("thread_diameter"));   // one value: a binding on either drives both
     CadFeature pattern;
     pattern.type = CadFeatureType::Pattern;
-    CHECK_THAT(failure([&] { GUI::cad_apply_feature_fields(pattern, {{"pattern_count", 2.5}}); }),
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(pattern, {{"pattern_count", 2.5}}); }),
                ContainsSubstring("whole number"));
 
     // Fields are checked before any is written: a refused one leaves the others unwritten too.
-    CHECK_THAT(failure([&] { GUI::cad_apply_feature_fields(ex, {{"distance", 15}, {"flip", "yes"}}); }),
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(ex, {{"distance", 15}, {"flip", "yes"}}); }),
                ContainsSubstring("flip must be true or false"));
     CHECK_THAT(ex.distance, WithinAbs(12.0, 1e-9));
 }
@@ -509,7 +509,7 @@ TEST_CASE("a literal edit through replace_feature rebuilds, and undo takes it ba
     REQUIRE(doc.recompute());
 
     CadFeature edited = doc.features[ex];
-    GUI::cad_apply_feature_fields(edited, {{"distance", 15}});
+    GUI::Mcp::cad_apply_feature_fields(edited, {{"distance", 15}});
     doc.checkpoint();
     REQUIRE(doc.replace_feature(ex, edited));
     CHECK(doc.features[ex].sketch_ref == sk);
@@ -535,7 +535,7 @@ TEST_CASE("a refused literal edit leaves the history as it found it", "[Mcp][CAD
 
     // set_feature's sequence for an edit the kernel refuses: a hole that misses the body.
     CadFeature edited = doc.features[hole];
-    GUI::cad_apply_feature_fields(edited, {{"hole_x", 500}});
+    GUI::Mcp::cad_apply_feature_fields(edited, {{"hole_x", 500}});
     doc.checkpoint();
     REQUIRE_FALSE(doc.replace_feature(hole, edited));
     CHECK_THAT(doc.error, ContainsSubstring("no material"));
@@ -576,7 +576,7 @@ TEST_CASE("literal edits and bindings reach the same numeric fields", "[Mcp][CAD
 
 TEST_CASE("commit, new_design and export_step change the design or the plate, and fail as errors", "[Mcp][CAD]")
 {
-    const json reply = GUI::cad_describe_tools({{"method", {"commit", "new_design", "export_step"}}});
+    const json reply = GUI::Mcp::cad_describe_tools({{"method", {"commit", "new_design", "export_step"}}});
     REQUIRE(reply.at("tools").size() == 3);
     for (const json& row : reply.at("tools")) CHECK(row.at("access") == "change");
     const json legacy = reply.at("legacy_ok_false");
@@ -596,10 +596,10 @@ TEST_CASE("commit's replace takes distinct object indices that are not part of a
     for (int i = 0; i < 3; ++i) model.add_object()->name = "object " + std::to_string(i);
     model.objects[2]->cut_id.init();
 
-    CHECK(GUI::cad_commit_replace(json::array(), model).empty());
-    CHECK(GUI::cad_commit_replace({1, 0}, model) == std::vector<int>{0, 1});
+    CHECK(GUI::Mcp::cad_commit_replace(json::array(), model).empty());
+    CHECK(GUI::Mcp::cad_commit_replace({1, 0}, model) == std::vector<int>{0, 1});
 
-    auto refusal = [&](const json& replace) { return failure([&] { GUI::cad_commit_replace(replace, model); }); };
+    auto refusal = [&](const json& replace) { return failure([&] { GUI::Mcp::cad_commit_replace(replace, model); }); };
     CHECK_THAT(refusal(0), ContainsSubstring("list of object indices"));
     CHECK_THAT(refusal({3}), ContainsSubstring("the project has 3 objects"));
     CHECK_THAT(refusal({-1}), ContainsSubstring("out of range"));
@@ -640,7 +640,7 @@ TEST_CASE("export_step's STEP file reads back with each body where the Move gizm
 
 TEST_CASE("undo, redo and the tree and body edits are rows with the access their gate needs", "[Mcp][CAD]")
 {
-    const json reply = GUI::cad_describe_tools({{"method", {"undo", "redo", "feature_delete", "feature_move", "feature_set_enabled",
+    const json reply = GUI::Mcp::cad_describe_tools({{"method", {"undo", "redo", "feature_delete", "feature_move", "feature_set_enabled",
                                                             "feature_rename", "body_set", "body_delete"}}});
     REQUIRE(reply.at("tools").size() == 8);
     const json legacy = reply.at("legacy_ok_false");
@@ -801,7 +801,7 @@ TEST_CASE("a committed sketch's loops are numbered as extrude's loop takes them"
         CHECK(regions[i] == expect);
     }
 
-    const json described = GUI::cad_sketch_describe(doc, tool, sk);
+    const json described = GUI::Mcp::cad_sketch_describe(doc, tool, sk);
     CHECK(described.at("name") == "Sketch 1");
     CHECK(described.at("entities").size() == 9);
     CHECK(described.at("constraints") == 0);
@@ -814,9 +814,9 @@ TEST_CASE("a committed sketch's loops are numbered as extrude's loop takes them"
     // Not a sketch, or one with no entities to describe.
     const int ex = doc.add_extrude(sk, 8.0, false, BooleanMode::New, "Extrude 2");
     const int box = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Sketch 3");
-    CHECK_THAT(failure([&] { GUI::cad_sketch_describe(doc, tool, ex); }), ContainsSubstring("is not a sketch"));
-    CHECK_THAT(failure([&] { GUI::cad_sketch_describe(doc, tool, box); }), ContainsSubstring("not drawn from entities"));
-    CHECK_THAT(failure([&] { GUI::cad_sketch_describe(doc, tool, 9); }), ContainsSubstring("out of range"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_sketch_describe(doc, tool, ex); }), ContainsSubstring("is not a sketch"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_sketch_describe(doc, tool, box); }), ContainsSubstring("not drawn from entities"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_sketch_describe(doc, tool, 9); }), ContainsSubstring("out of range"));
 }
 
 TEST_CASE("extrude takes a committed sketch whole, or one loop with the loops inside it", "[Mcp][CAD]")
@@ -831,7 +831,7 @@ TEST_CASE("extrude takes a committed sketch whole, or one loop with the loops in
 
     SECTION("the whole sketch is the plate with its holes, a new body as nothing is touched")
     {
-        const int e = GUI::cad_sketch_extrude(doc, tool, {{"sketch", sk}, {"distance", 8}})("Extrude 2");
+        const int e = GUI::Mcp::cad_sketch_extrude(doc, tool, {{"sketch", sk}, {"distance", 8}})("Extrude 2");
         CHECK(doc.features[e].sketch_ref == sk);
         CHECK(doc.features[e].mode == BooleanMode::New);
         REQUIRE(doc.recompute());
@@ -840,10 +840,10 @@ TEST_CASE("extrude takes a committed sketch whole, or one loop with the loops in
     }
     SECTION("the plate's loop carries its holes; a hole's loop is the disc")
     {
-        GUI::cad_sketch_extrude(doc, tool, {{"sketch", sk}, {"loop", plate}, {"distance", 8}})("Extrude 2");
+        GUI::Mcp::cad_sketch_extrude(doc, tool, {{"sketch", sk}, {"loop", plate}, {"distance", 8}})("Extrude 2");
         const int disc = plate == 0 ? 1 : 0;
         const json disc_only = {{"sketch", sk}, {"loop", disc}, {"distance", 8}, {"boolean", "new"}};
-        const int  e         = GUI::cad_sketch_extrude(doc, tool, disc_only)("Extrude 3");
+        const int  e         = GUI::Mcp::cad_sketch_extrude(doc, tool, disc_only)("Extrude 3");
         CHECK(doc.features[e].sketch_ref == -1);   // the loop travels with the feature
         CHECK(doc.features[e].entities.size() == 1);
         REQUIRE(doc.recompute());
@@ -858,7 +858,7 @@ TEST_CASE("extrude's auto boolean joins the body the sketch touches, as the card
     CadDocument doc;
     GUI::DesignSketchTool tool;
     const int sk = doc.add_sketch_entities(jig_plate(), SketchPlane::XY(), "Sketch 1");
-    GUI::cad_sketch_extrude(doc, tool, {{"sketch", sk}, {"distance", 8}})("Extrude 2");
+    GUI::Mcp::cad_sketch_extrude(doc, tool, {{"sketch", sk}, {"distance", 8}})("Extrude 2");
     REQUIRE(doc.recompute());
 
     // A lip on the plate's top joins the plate.
@@ -866,7 +866,7 @@ TEST_CASE("extrude's auto boolean joins the body the sketch touches, as the card
     top.origin.z()  = 8;
     const int lip   = doc.add_sketch_entities({line(-80, 20, 80, 20), line(80, 20, 80, 30), line(80, 30, -80, 30), line(-80, 30, -80, 20)},
                                               top, "Sketch 3");
-    const int e     = GUI::cad_sketch_extrude(doc, tool, {{"sketch", lip}, {"distance", 10}})("Extrude 4");
+    const int e     = GUI::Mcp::cad_sketch_extrude(doc, tool, {{"sketch", lip}, {"distance", 10}})("Extrude 4");
     CHECK(doc.features[e].mode == BooleanMode::Add);
     CHECK(doc.features[e].target_body == 0);
     REQUIRE(doc.recompute());
@@ -877,8 +877,8 @@ TEST_CASE("extrude's auto boolean joins the body the sketch touches, as the card
     SketchPlane above = SketchPlane::XY();
     above.origin.z()  = 50;
     const int loose   = doc.add_sketch(SketchShape::Rectangle, above, 10, 10, 0, "Sketch 5");
-    CHECK(doc.features[GUI::cad_sketch_extrude(doc, tool, {{"sketch", loose}})("Extrude 6")].mode == BooleanMode::New);
-    const int cut = GUI::cad_sketch_extrude(doc, tool, {{"sketch", lip}, {"boolean", "subtract"}, {"distance", 2}})("Extrude 7");
+    CHECK(doc.features[GUI::Mcp::cad_sketch_extrude(doc, tool, {{"sketch", loose}})("Extrude 6")].mode == BooleanMode::New);
+    const int cut = GUI::Mcp::cad_sketch_extrude(doc, tool, {{"sketch", lip}, {"boolean", "subtract"}, {"distance", 2}})("Extrude 7");
     CHECK(doc.features[cut].mode == BooleanMode::Cut);
     CHECK(doc.features[cut].target_body == 0);
 }
@@ -892,7 +892,7 @@ TEST_CASE("extrude refuses what the sketch fixes and what is not one of its loop
     const int hole = doc.add_hole(5, 5, true, 0, 0, SketchPlane::XY(), "Hole 3");
     const size_t features = doc.features.size();
     auto refusal = [&](json params) {
-        return failure([&] { GUI::cad_sketch_extrude(doc, tool, params); });
+        return failure([&] { GUI::Mcp::cad_sketch_extrude(doc, tool, params); });
     };
 
     for (const char* fixed : {"plane", "width", "height"})
@@ -927,7 +927,7 @@ TEST_CASE("revolve takes a line of the sketch, or its only centerline, as the ax
     const double ring = PI * (20.0 * 20.0 - 10.0 * 10.0) * 10.0;
     auto revolve = [&](json params) {
         params["sketch"] = sk;
-        return GUI::cad_sketch_revolve(doc, params)("Revolve");
+        return GUI::Mcp::cad_sketch_revolve(doc, params)("Revolve");
     };
 
     SECTION("its only centerline by default")
@@ -968,7 +968,7 @@ TEST_CASE("revolve takes a line of the sketch, or its only centerline, as the ax
 
 TEST_CASE("the sketch-to-solid rows take a sketch, and sketch_begin takes every plane form", "[Mcp][CAD]")
 {
-    const json reply = GUI::cad_describe_tools({{"method", {"sketch_begin", "sketch_describe", "extrude", "revolve"}}});
+    const json reply = GUI::Mcp::cad_describe_tools({{"method", {"sketch_begin", "sketch_describe", "extrude", "revolve"}}});
     std::map<std::string, std::map<std::string, json>> params;
     for (const json& row : reply.at("tools"))
         for (const json& p : row.at("params")) params[row.at("name").get<std::string>()][p.at("name").get<std::string>()] = p;
@@ -1046,7 +1046,7 @@ TEST_CASE("query_topology names a chamfer's cone and a fillet's torus, with thei
     doc.add_chamfer(1.0, circle_at(doc, 0), "Chamfer");
     REQUIRE(doc.recompute());
 
-    const json reply = GUI::cad_query_topology(doc, {{"kinds", {"conical", "toroidal"}}});
+    const json reply = GUI::Mcp::cad_query_topology(doc, {{"kinds", {"conical", "toroidal"}}});
     CHECK(reply.at("faces_total") == 2);
     CHECK(reply.at("edges").empty());   // no edge filter, no adjacency
     CHECK(reply.at("face_count").get<int>() > 2);
@@ -1068,7 +1068,7 @@ TEST_CASE("query_topology names a chamfer's cone and a fillet's torus, with thei
     CHECK_THAT(torus.at("center")[2].get<double>(), WithinAbs(19.0, 1e-6));
 
     // A chamfered cylinder's side is still a cylinder.
-    const json sides = GUI::cad_query_topology(doc, {{"kinds", {"cylindrical"}}});
+    const json sides = GUI::Mcp::cad_query_topology(doc, {{"kinds", {"cylindrical"}}});
     REQUIRE(sides.at("faces_total") == 1);
     CHECK_THAT(sides.at("faces")[0].at("radius").get<double>(), WithinAbs(10.0, 1e-9));
     CHECK_THAT(sides.at("faces")[0].at("area").get<double>(), WithinAbs(2 * PI * 10.0 * 18.0, 1e-3));
@@ -1089,7 +1089,7 @@ TEST_CASE("query_topology reads a revolved half disc as a sphere", "[Mcp][CAD]")
     doc.add_revolve(sk, 360.0, 1, false, BooleanMode::New, "Revolve");
     REQUIRE(doc.recompute());
 
-    const json reply = GUI::cad_query_topology(doc, {{"kinds", {"spherical"}}});
+    const json reply = GUI::Mcp::cad_query_topology(doc, {{"kinds", {"spherical"}}});
     REQUIRE(reply.at("faces_total").get<int>() >= 1);
     double area = 0;
     for (const json& f : reply.at("faces")) {
@@ -1107,7 +1107,7 @@ TEST_CASE("query_topology's adjacency gives each edge its faces and says which c
     {
         CadDocument doc;
         add_box(doc);
-        const json reply = GUI::cad_query_topology(doc, {{"adjacency", true}});
+        const json reply = GUI::Mcp::cad_query_topology(doc, {{"adjacency", true}});
         REQUIRE(reply.at("faces").size() == 6);
         REQUIRE(reply.at("edges").size() == 12);
         for (const json& f : reply.at("faces")) CHECK(f.at("edges").size() == 4);
@@ -1124,7 +1124,7 @@ TEST_CASE("query_topology's adjacency gives each edge its faces and says which c
                                 SketchPlane::XY(), "Sketch");
         doc.add_extrude(0, 20.0, false, BooleanMode::New, "Extrude");
         REQUIRE(doc.recompute());
-        const json concave = GUI::cad_query_topology(doc, {{"convex", false}});
+        const json concave = GUI::Mcp::cad_query_topology(doc, {{"convex", false}});
         REQUIRE(concave.at("edges_total") == 1);
         const json& edge = concave.at("edges")[0];
         CHECK(edge.at("kind") == "line");
@@ -1134,13 +1134,13 @@ TEST_CASE("query_topology's adjacency gives each edge its faces and says which c
         // Without a face filter, the faces listed are the edge's two neighbours.
         CHECK(concave.at("faces_total") == 2);
         CHECK(concave.at("faces").size() == 2);
-        CHECK(GUI::cad_query_topology(doc, {{"convex", true}}).at("edges_total") == 17);
+        CHECK(GUI::Mcp::cad_query_topology(doc, {{"convex", true}}).at("edges_total") == 17);
     }
     SECTION("a cylinder: its seam has one face, and the rims meet the caps in outside corners")
     {
         CadDocument doc;
         add_cylinder(doc);
-        const json reply = GUI::cad_query_topology(doc, {{"adjacency", true}});
+        const json reply = GUI::Mcp::cad_query_topology(doc, {{"adjacency", true}});
         int seams = 0;
         for (const json& e : reply.at("edges")) {
             if (e.at("faces").size() == 1) {
@@ -1159,7 +1159,7 @@ TEST_CASE("query_topology's adjacency gives each edge its faces and says which c
         add_cylinder(doc);
         doc.add_fillet(1.0, circle_at(doc, 20), "Fillet");
         REQUIRE(doc.recompute());
-        const json torus = GUI::cad_query_topology(doc, {{"kinds", {"toroidal"}}, {"adjacency", true}});
+        const json torus = GUI::Mcp::cad_query_topology(doc, {{"kinds", {"toroidal"}}, {"adjacency", true}});
         REQUIRE(torus.at("faces_total") == 1);
         int tangent = 0;
         for (const json& e : torus.at("edges"))   // the torus's own edges, as neighbours
@@ -1174,47 +1174,47 @@ TEST_CASE("query_topology filters by direction, extreme and kind, and pages both
     add_box(doc);
     const int top = face_facing(doc, Vec3d(0, 0, 1));
 
-    const json up = GUI::cad_query_topology(doc, {{"direction", {0, 0, 2}}});
+    const json up = GUI::Mcp::cad_query_topology(doc, {{"direction", {0, 0, 2}}});
     REQUIRE(up.at("faces_total") == 1);
     CHECK(up.at("faces")[0].at("id") == top);
     CHECK(up.at("edges_total") == 4);   // the vertical edges, whichever way they run
     for (const json& e : up.at("edges")) CHECK_THAT(e.at("length").get<double>(), WithinAbs(10.0, 1e-6));
 
-    const json high = GUI::cad_query_topology(doc, {{"at_extreme", "+z"}});
+    const json high = GUI::Mcp::cad_query_topology(doc, {{"at_extreme", "+z"}});
     REQUIRE(high.at("faces_total") == 1);
     CHECK(high.at("faces")[0].at("id") == top);
     CHECK(high.at("edges").empty());
-    CHECK(GUI::cad_query_topology(doc, {{"at_extreme", "-x"}}).at("faces")[0].at("id") == face_facing(doc, Vec3d(-1, 0, 0)));
+    CHECK(GUI::Mcp::cad_query_topology(doc, {{"at_extreme", "-x"}}).at("faces")[0].at("id") == face_facing(doc, Vec3d(-1, 0, 0)));
 
-    const json top_edges = GUI::cad_query_topology(doc, {{"at_extreme", "+z"}, {"adjacency", true}});
+    const json top_edges = GUI::Mcp::cad_query_topology(doc, {{"at_extreme", "+z"}, {"adjacency", true}});
     CHECK(top_edges.at("edges_total") == 4);
-    CHECK(GUI::cad_query_topology(doc, {{"kinds", {"planar"}}, {"adjacency", true}}).at("edges_total") == 12);
-    CHECK(GUI::cad_query_topology(doc, {{"edge_kinds", {"circle"}}}).at("faces").empty());
+    CHECK(GUI::Mcp::cad_query_topology(doc, {{"kinds", {"planar"}}, {"adjacency", true}}).at("edges_total") == 12);
+    CHECK(GUI::Mcp::cad_query_topology(doc, {{"edge_kinds", {"circle"}}}).at("faces").empty());
 
-    const json first = GUI::cad_query_topology(doc, {{"limit", 2}});
+    const json first = GUI::Mcp::cad_query_topology(doc, {{"limit", 2}});
     CHECK(first.at("faces").size() == 2);
     CHECK(first.at("edges").size() == 2);
     CHECK(first.at("faces_total") == 6);
     CHECK(first.at("edges_total") == 12);
     CHECK(first.at("next_offset") == 2);
-    const json last = GUI::cad_query_topology(doc, {{"limit", 2}, {"offset", 10}});
+    const json last = GUI::Mcp::cad_query_topology(doc, {{"limit", 2}, {"offset", 10}});
     CHECK(last.at("faces").empty());
     CHECK(last.at("edges").size() == 2);
     CHECK(last.at("edges")[0].at("id") == 10);
     CHECK_FALSE(last.contains("next_offset"));
 
     // A face kind may be named by its surface's noun.
-    CHECK(GUI::cad_query_topology(doc, {{"kinds", {"plane"}}}).at("faces_total") ==
-          GUI::cad_query_topology(doc, {{"kinds", {"planar"}}}).at("faces_total"));
-    CHECK_THAT(failure([&] { GUI::cad_query_topology(doc, {{"kinds", {"face"}}}); }), ContainsSubstring("kinds must be one of planar"));
-    CHECK_THAT(failure([&] { GUI::cad_query_topology(doc, {{"edge_kinds", "line"}}); }), ContainsSubstring("must be a list"));
-    CHECK_THAT(failure([&] { GUI::cad_query_topology(doc, {{"direction", {0, 0, 0}}}); }), ContainsSubstring("must not be zero"));
-    CHECK_THAT(failure([&] { GUI::cad_query_topology(doc, {{"direction", {0, 1}}}); }), ContainsSubstring("[x, y, z]"));
-    CHECK_THAT(failure([&] { GUI::cad_query_topology(doc, {{"convex", "yes"}}); }), ContainsSubstring("convex must be"));
-    CHECK_THAT(failure([&] { GUI::cad_query_topology(doc, {{"at_extreme", "top"}}); }), ContainsSubstring("at_extreme must be one of"));
-    CHECK_THAT(failure([&] { GUI::cad_query_topology(doc, {{"limit", 0}}); }), ContainsSubstring("limit must be"));
-    CHECK_THAT(failure([&] { GUI::cad_query_topology(doc, {{"offset", -1}}); }), ContainsSubstring("offset must be"));
-    CHECK_THAT(failure([&] { GUI::cad_query_topology(doc, {{"body", 3}}); }), ContainsSubstring("out of range"));
+    CHECK(GUI::Mcp::cad_query_topology(doc, {{"kinds", {"plane"}}}).at("faces_total") ==
+          GUI::Mcp::cad_query_topology(doc, {{"kinds", {"planar"}}}).at("faces_total"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_query_topology(doc, {{"kinds", {"face"}}}); }), ContainsSubstring("kinds must be one of planar"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_query_topology(doc, {{"edge_kinds", "line"}}); }), ContainsSubstring("must be a list"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_query_topology(doc, {{"direction", {0, 0, 0}}}); }), ContainsSubstring("must not be zero"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_query_topology(doc, {{"direction", {0, 1}}}); }), ContainsSubstring("[x, y, z]"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_query_topology(doc, {{"convex", "yes"}}); }), ContainsSubstring("convex must be"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_query_topology(doc, {{"at_extreme", "top"}}); }), ContainsSubstring("at_extreme must be one of"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_query_topology(doc, {{"limit", 0}}); }), ContainsSubstring("limit must be"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_query_topology(doc, {{"offset", -1}}); }), ContainsSubstring("offset must be"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_query_topology(doc, {{"body", 3}}); }), ContainsSubstring("out of range"));
 }
 
 TEST_CASE("measure keeps the centroid distance and adds the minimum distance, across bodies", "[Mcp][CAD]")
@@ -1229,7 +1229,7 @@ TEST_CASE("measure keeps the centroid distance and adds the minimum distance, ac
     REQUIRE(doc.bodies.size() == 2);
     const int top0 = face_facing_on(doc, 0, Vec3d(0, 0, 1)), bottom1 = face_facing_on(doc, 1, Vec3d(0, 0, -1));
 
-    const json gap = GUI::cad_measure(doc, {{"a", {{"face", top0}}}, {"b", {{"body", 1}, {"face", bottom1}}}});
+    const json gap = GUI::Mcp::cad_measure(doc, {{"a", {{"face", top0}}}, {"b", {{"body", 1}, {"face", bottom1}}}});
     CHECK_THAT(gap.at("min_distance").get<double>(), WithinAbs(5.0, 1e-6));
     CHECK_THAT(gap.at("distance").get<double>(), WithinAbs(std::sqrt(30.0 * 30.0 + 5.0 * 5.0), 1e-6));
     CHECK_THAT(gap.at("parallel_gap").get<double>(), WithinAbs(5.0, 1e-6));
@@ -1237,13 +1237,13 @@ TEST_CASE("measure keeps the centroid distance and adds the minimum distance, ac
     CHECK_THAT(gap.at("closest_b")[2].get<double>() - gap.at("closest_a")[2].get<double>(), WithinAbs(5.0, 1e-6));
 
     // A point to a face: the perpendicular, with no angle (a point has no direction).
-    const json drop = GUI::cad_measure(doc, {{"a", {{"point", {0, 0, 30}}}}, {"b", {{"face", top0}}}});
+    const json drop = GUI::Mcp::cad_measure(doc, {{"a", {{"point", {0, 0, 30}}}}, {"b", {{"face", top0}}}});
     CHECK_THAT(drop.at("min_distance").get<double>(), WithinAbs(20.0, 1e-6));
     CHECK_FALSE(drop.contains("angle_deg"));
     CHECK_FALSE(drop.contains("parallel_gap"));
 
     // Two edges of one face meet at a corner.
-    const json edges = GUI::cad_query_topology(doc, {{"at_extreme", "+z"}, {"adjacency", true}});
+    const json edges = GUI::Mcp::cad_query_topology(doc, {{"at_extreme", "+z"}, {"adjacency", true}});
     const json& e0 = edges.at("edges")[0];
     int corner = -1;
     for (const json& e : edges.at("edges"))
@@ -1254,7 +1254,7 @@ TEST_CASE("measure keeps the centroid distance and adds the minimum distance, ac
                                   .normalized())) < 0.5)
             corner = e.at("id");
     REQUIRE(corner >= 0);
-    CHECK_THAT(GUI::cad_measure(doc, {{"a", {{"edge", e0.at("id")}}}, {"b", {{"edge", corner}}}}).at("min_distance").get<double>(),
+    CHECK_THAT(GUI::Mcp::cad_measure(doc, {{"a", {{"edge", e0.at("id")}}}, {"b", {{"edge", corner}}}}).at("min_distance").get<double>(),
                WithinAbs(0.0, 1e-6));
 
     SECTION("a cylinder's axis stands for the hole")
@@ -1262,23 +1262,23 @@ TEST_CASE("measure keeps the centroid distance and adds the minimum distance, ac
         doc.features[doc.add_hole(5, 10, true, 10, 0, SketchPlane::XY(), "Hole")].target_body = 0;
         REQUIRE(doc.recompute());
         const int bore = cylinder_face(doc), right = face_facing_on(doc, 0, Vec3d(1, 0, 0));
-        const json r = GUI::cad_measure(doc, {{"a", {{"face", bore}, {"axis", true}}}, {"b", {{"face", right}}}});
+        const json r = GUI::Mcp::cad_measure(doc, {{"a", {{"face", bore}, {"axis", true}}}, {"b", {{"face", right}}}});
         CHECK_THAT(r.at("min_distance").get<double>(), WithinAbs(10.0, 1e-6));
         CHECK_THAT(r.at("distance").get<double>(), WithinAbs(10.0, 1e-6));   // the axis's middle is the bore's centroid
         CHECK_THAT(r.at("angle_deg").get<double>(), WithinAbs(90.0, 1e-6));
     }
     SECTION("refusals name the ref")
     {
-        CHECK_THAT(failure([&] { GUI::cad_measure(doc, {{"a", {{"face", top0}}}}); }), ContainsSubstring("needs refs 'a' and 'b'"));
-        CHECK_THAT(failure([&] { GUI::cad_measure(doc, {{"a", {{"face", top0}, {"edge", 1}}}, {"b", {{"face", 0}}}}); }),
+        CHECK_THAT(failure([&] { GUI::Mcp::cad_measure(doc, {{"a", {{"face", top0}}}}); }), ContainsSubstring("needs refs 'a' and 'b'"));
+        CHECK_THAT(failure([&] { GUI::Mcp::cad_measure(doc, {{"a", {{"face", top0}, {"edge", 1}}}, {"b", {{"face", 0}}}}); }),
                    ContainsSubstring("could not resolve ref \"a\""));
-        CHECK_THAT(failure([&] { GUI::cad_measure(doc, {{"a", {{"face", top0}}}, {"b", {{"body", 1}, {"face", 99}}}}); }),
+        CHECK_THAT(failure([&] { GUI::Mcp::cad_measure(doc, {{"a", {{"face", top0}}}, {"b", {{"body", 1}, {"face", 99}}}}); }),
                    ContainsSubstring("ref \"b\": face 99 of body 1 does not exist"));
-        CHECK_THAT(failure([&] { GUI::cad_measure(doc, {{"a", {{"face", top0}, {"axis", true}}}, {"b", {{"face", 0}}}}); }),
+        CHECK_THAT(failure([&] { GUI::Mcp::cad_measure(doc, {{"a", {{"face", top0}, {"axis", true}}}, {"b", {{"face", 0}}}}); }),
                    ContainsSubstring("is planar; axis takes a cylindrical face"));
-        CHECK_THAT(failure([&] { GUI::cad_measure(doc, {{"a", {{"body", 5}, {"edge", 0}}}, {"b", {{"face", 0}}}}); }),
+        CHECK_THAT(failure([&] { GUI::Mcp::cad_measure(doc, {{"a", {{"body", 5}, {"edge", 0}}}, {"b", {{"face", 0}}}}); }),
                    ContainsSubstring("body 5 is out of range"));
-        CHECK_THAT(failure([&] { GUI::cad_measure(doc, {{"a", {{"point", {1, 2}}}}, {"b", {{"face", 0}}}}); }),
+        CHECK_THAT(failure([&] { GUI::Mcp::cad_measure(doc, {{"a", {{"point", {1, 2}}}}, {"b", {{"face", 0}}}}); }),
                    ContainsSubstring("point must be [x, y, z]"));
     }
 }
@@ -1291,7 +1291,7 @@ TEST_CASE("a hole drills a face's body at a world point or on a round reference'
     SketchPlane pl;
     int         body = -2;
 
-    const json at = GUI::cad_hole_placement(doc, {{"plane", {{"body", 0}, {"face", top}}}, {"at", {5, 3, 12}}}, pl, body);
+    const json at = GUI::Mcp::cad_hole_placement(doc, {{"plane", {{"body", 0}, {"face", top}}}, {"at", {5, 3, 12}}}, pl, body);
     CHECK(body == 0);
     CHECK(at.at("body") == 0);
     CHECK_THAT(at.at("off_plane").get<double>(), WithinAbs(-2.0, 1e-9));   // 2 mm above, against the inward normal
@@ -1299,7 +1299,7 @@ TEST_CASE("a hole drills a face's body at a world point or on a round reference'
     CHECK((landed - Vec3d(5, 3, 10)).norm() < 1e-9);
 
     // x and y as given, the last body by default on a base plane.
-    const json xy = GUI::cad_hole_placement(doc, {{"x", 4}, {"y", -2}}, pl, body);
+    const json xy = GUI::Mcp::cad_hole_placement(doc, {{"x", 4}, {"y", -2}}, pl, body);
     CHECK(body == -1);
     CHECK(xy.at("body") == 0);
     CHECK(xy.at("x") == 4.0);
@@ -1311,7 +1311,7 @@ TEST_CASE("a hole drills a face's body at a world point or on a round reference'
         doc.add_hole(3, 10, true, 10, 0, SketchPlane::XY(), "Hole");
         REQUIRE(doc.recompute());
         const int bore = cylinder_face(doc), roof = face_facing(doc, Vec3d(0, 0, 1));
-        const json r = GUI::cad_hole_placement(doc, {{"plane", {{"body", 0}, {"face", roof}}}, {"at", {{"body", 0}, {"face", bore}}}}, pl, body);
+        const json r = GUI::Mcp::cad_hole_placement(doc, {{"plane", {{"body", 0}, {"face", roof}}}, {"at", {{"body", 0}, {"face", bore}}}}, pl, body);
         const Vec3d on = pl.origin + pl.x_axis * r.at("x").get<double>() + pl.y_axis * r.at("y").get<double>();
         CHECK((on - Vec3d(10, 0, 10)).norm() < 1e-6);
         // A counterbore there widens the bore's top.
@@ -1321,18 +1321,18 @@ TEST_CASE("a hole drills a face's body at a world point or on a round reference'
         REQUIRE(doc.recompute());
         CHECK_THAT(before - body_volume(doc, 0), WithinAbs(PI * (9.0 - 2.25) * 2.0, 1e-3));
         // Its rim, a circular edge, names the same axis.
-        const json rim = GUI::cad_query_topology(doc, {{"edge_kinds", {"circle"}}});
+        const json rim = GUI::Mcp::cad_query_topology(doc, {{"edge_kinds", {"circle"}}});
         int        e   = -1;
         for (const json& c : rim.at("edges"))
             if (std::abs(c.at("radius").get<double>() - 3.0) < 1e-6) e = c.at("id");
         REQUIRE(e >= 0);
-        const json r2 = GUI::cad_hole_placement(doc, {{"plane", {{"body", 0}, {"face", face_facing(doc, Vec3d(0, 0, 1))}}}, {"at", {{"body", 0}, {"edge", e}}}}, pl, body);
+        const json r2 = GUI::Mcp::cad_hole_placement(doc, {{"plane", {{"body", 0}, {"face", face_facing(doc, Vec3d(0, 0, 1))}}}, {"at", {{"body", 0}, {"edge", e}}}}, pl, body);
         CHECK((pl.origin + pl.x_axis * r2.at("x").get<double>() + pl.y_axis * r2.at("y").get<double>() - Vec3d(10, 0, 10)).norm() < 1e-6);
     }
     SECTION("a countersink from a side face leaves its cone in that face")
     {
         const int side = face_facing(doc, Vec3d(0, 1, 0));   // y = 10, 40 x 10
-        const json r = GUI::cad_hole_placement(doc, {{"plane", {{"body", 0}, {"face", side}}}}, pl, body);
+        const json r = GUI::Mcp::cad_hole_placement(doc, {{"plane", {{"body", 0}, {"face", side}}}}, pl, body);
         CHECK(body == 0);
         const int h = doc.add_hole_styled(4, 20, true, r.at("x"), r.at("y"), pl, 2, 0, 0, 8, 90, "", "Hole");
         doc.features[h].target_body = body;
@@ -1340,7 +1340,7 @@ TEST_CASE("a hole drills a face's body at a world point or on a round reference'
         // A 4 mm bore through 20 mm, and a 90 degree seat 2 mm deep from 8 mm to 4 mm.
         const double removed = PI * 4.0 * 20.0 + PI * 2.0 / 3.0 * (16.0 + 8.0 + 4.0) - PI * 4.0 * 2.0;
         CHECK_THAT(body_volume(doc, 0), WithinAbs(8000.0 - removed, 1e-2));
-        const json cones = GUI::cad_query_topology(doc, {{"kinds", {"conical"}}});
+        const json cones = GUI::Mcp::cad_query_topology(doc, {{"kinds", {"conical"}}});
         REQUIRE(cones.at("faces_total") == 1);
         const json& cone = cones.at("faces")[0];
         CHECK(cone.at("internal") == true);
@@ -1352,22 +1352,22 @@ TEST_CASE("a hole drills a face's body at a world point or on a round reference'
     SECTION("refusals")
     {
         add_box(doc);   // a second body
-        CHECK_THAT(failure([&] { GUI::cad_hole_placement(doc, {{"plane", {{"body", 0}, {"face", top}}}, {"body", 1}}, pl, body); }),
+        CHECK_THAT(failure([&] { GUI::Mcp::cad_hole_placement(doc, {{"plane", {{"body", 0}, {"face", top}}}, {"body", 1}}, pl, body); }),
                    ContainsSubstring("the plane is a face of body 0"));
-        CHECK_THAT(failure([&] { GUI::cad_hole_placement(doc, {{"at", {1, 2, 3}}, {"x", 1}}, pl, body); }), ContainsSubstring("not both"));
-        CHECK_THAT(failure([&] { GUI::cad_hole_placement(doc, {{"at", {1, 2}}}, pl, body); }), ContainsSubstring("at must be [x, y, z]"));
-        CHECK_THAT(failure([&] { GUI::cad_hole_placement(doc, {{"at", {{"body", 0}, {"face", top}}}}, pl, body); }),
+        CHECK_THAT(failure([&] { GUI::Mcp::cad_hole_placement(doc, {{"at", {1, 2, 3}}, {"x", 1}}, pl, body); }), ContainsSubstring("not both"));
+        CHECK_THAT(failure([&] { GUI::Mcp::cad_hole_placement(doc, {{"at", {1, 2}}}, pl, body); }), ContainsSubstring("at must be [x, y, z]"));
+        CHECK_THAT(failure([&] { GUI::Mcp::cad_hole_placement(doc, {{"at", {{"body", 0}, {"face", top}}}}, pl, body); }),
                    ContainsSubstring("is planar; \"at\" takes a cylindrical face or a circular edge"));
-        CHECK_THAT(failure([&] { GUI::cad_hole_placement(doc, {{"body", 7}}, pl, body); }), ContainsSubstring("out of range"));
+        CHECK_THAT(failure([&] { GUI::Mcp::cad_hole_placement(doc, {{"body", 7}}, pl, body); }), ContainsSubstring("out of range"));
         doc.features[doc.add_hole(3, 10, true, 0, 0, SketchPlane::XY(), "Hole")].target_body = 0;
         REQUIRE(doc.recompute());
         const int bore = cylinder_face(doc), side = face_facing(doc, Vec3d(1, 0, 0));
         CHECK_THAT(failure([&] {
-                       GUI::cad_hole_placement(doc, {{"plane", {{"body", 0}, {"face", side}}}, {"at", {{"body", 0}, {"face", bore}}}}, pl, body);
+                       GUI::Mcp::cad_hole_placement(doc, {{"plane", {{"body", 0}, {"face", side}}}, {"at", {{"body", 0}, {"face", bore}}}}, pl, body);
                    }),
                    ContainsSubstring("is not square to the plane"));
         CadDocument empty;
-        CHECK_THAT(failure([&] { GUI::cad_hole_placement(empty, json::object(), pl, body); }), ContainsSubstring("no body to drill"));
+        CHECK_THAT(failure([&] { GUI::Mcp::cad_hole_placement(empty, json::object(), pl, body); }), ContainsSubstring("no body to drill"));
     }
 }
 
@@ -1378,7 +1378,7 @@ TEST_CASE("extrude pushes or pulls a planar face of a body", "[Mcp][CAD]")
     const int   top = face_facing(doc, Vec3d(0, 0, 1));
     SketchPlane frame;
 
-    const int e = GUI::cad_face_extrude(doc, {{"face", top}, {"distance", 5}}, frame)("Extrude");
+    const int e = GUI::Mcp::cad_face_extrude(doc, {{"face", top}, {"distance", 5}}, frame)("Extrude");
     CHECK(doc.features[e].mode == BooleanMode::Add);   // joins the face's body, as the card does
     CHECK(doc.features[e].target_body == 0);
     CHECK_THAT(frame.origin.z(), WithinAbs(10.0, 1e-6));
@@ -1389,14 +1389,14 @@ TEST_CASE("extrude pushes or pulls a planar face of a body", "[Mcp][CAD]")
 
     // Inward and cutting: 3 mm off the new top.
     const int roof = face_facing(doc, Vec3d(0, 0, 1));
-    GUI::cad_face_extrude(doc, {{"face", roof}, {"distance", 3}, {"flip", true}, {"boolean", "subtract"}}, frame)("Extrude");
+    GUI::Mcp::cad_face_extrude(doc, {{"face", roof}, {"distance", 3}, {"flip", true}, {"boolean", "subtract"}}, frame)("Extrude");
     REQUIRE(doc.recompute());
     CHECK_THAT(body_volume(doc, 0), WithinAbs(40.0 * 20.0 * 12.0, 1e-6));
 
     const size_t features = doc.features.size();
     auto refusal = [&](json params) {
         params["face"] = params.value("face", json(roof));
-        return failure([&] { GUI::cad_face_extrude(doc, params, frame); });
+        return failure([&] { GUI::Mcp::cad_face_extrude(doc, params, frame); });
     };
     CHECK_THAT(refusal({{"sketch", 0}}), ContainsSubstring("sketch cannot be given with face"));
     CHECK_THAT(refusal({{"plane", "XY"}}), ContainsSubstring("plane cannot be given with face"));
@@ -1409,7 +1409,7 @@ TEST_CASE("extrude pushes or pulls a planar face of a body", "[Mcp][CAD]")
 
     CadDocument cyl;
     add_cylinder(cyl);
-    CHECK_THAT(failure([&] { GUI::cad_face_extrude(cyl, {{"face", cylinder_face(cyl)}}, frame); }),
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_face_extrude(cyl, {{"face", cylinder_face(cyl)}}, frame); }),
                ContainsSubstring("is cylindrical; a push/pull needs a planar face"));
 }
 
@@ -1419,7 +1419,7 @@ TEST_CASE("plane adds the datum plane each construction gives, as the Plane card
     doc.modeling_origin = Vec3d(100, 50, 0);
     add_box(doc);   // centred on the world origin, z 0..10
     auto add_plane = [&](const json& params) {
-        const int i = GUI::cad_datum_plane(doc, params)("Plane");
+        const int i = GUI::Mcp::cad_datum_plane(doc, params)("Plane");
         REQUIRE(doc.recompute());
         int ordinal = 0;
         for (int k = 0; k < i; ++k)
@@ -1449,7 +1449,7 @@ TEST_CASE("plane adds the datum plane each construction gives, as the Plane card
     CHECK((xz.normal - Vec3d(0, 1, 0)).norm() < 1e-9);
     CHECK_THAT(xz.origin.y(), WithinAbs(50.0, 1e-9));
 
-    const json top_edges = GUI::cad_query_topology(doc, {{"at_extreme", "+z"}, {"adjacency", true}});
+    const json top_edges = GUI::Mcp::cad_query_topology(doc, {{"at_extreme", "+z"}, {"adjacency", true}});
     const int  ea = top_edges.at("edges")[0].at("id"), eb = top_edges.at("edges")[1].at("id");
     const auto [p2, two] = add_plane({{"type", "two_edges"}, {"edge_a", {{"body", 0}, {"edge", ea}}}, {"edge_b", {{"body", 0}, {"edge", eb}}}});
     CHECK_THAT(two.origin.z(), WithinAbs(10.0, 1e-9));
@@ -1462,7 +1462,7 @@ TEST_CASE("plane adds the datum plane each construction gives, as the Plane card
 
     CadDocument cyl;
     add_cylinder(cyl);
-    const int i = GUI::cad_datum_plane(cyl, {{"type", "tangent"}, {"face_a", {{"body", 0}, {"face", cylinder_face(cyl)}}}})("Plane");
+    const int i = GUI::Mcp::cad_datum_plane(cyl, {{"type", "tangent"}, {"face_a", {{"body", 0}, {"face", cylinder_face(cyl)}}}})("Plane");
     REQUIRE(cyl.recompute());
     const SketchPlane touch = cyl.resolve_datum_planes().at(0).second;
     CHECK(i == 2);
@@ -1477,7 +1477,7 @@ TEST_CASE("plane refuses what the card refuses, and what a construction would no
     const int top = face_facing(doc, Vec3d(0, 0, 1));
     const json face_a = {{"body", 0}, {"face", top}};
     const size_t features = doc.features.size();
-    auto refusal = [&](const json& params) { return failure([&] { GUI::cad_datum_plane(doc, params); }); };
+    auto refusal = [&](const json& params) { return failure([&] { GUI::Mcp::cad_datum_plane(doc, params); }); };
 
     CHECK_THAT(refusal({{"type", "angle"}}), ContainsSubstring("An angled plane needs an edge"));
     CHECK_THAT(refusal({{"type", "midplane"}, {"face_a", face_a}}), ContainsSubstring("A midplane needs two faces"));
@@ -1516,7 +1516,7 @@ TEST_CASE("plane refuses what the card refuses, and what a construction would no
 
 TEST_CASE("the rows for topology, measure, holes, push/pull and plane", "[Mcp][CAD]")
 {
-    const json reply = GUI::cad_describe_tools({{"method", {"query_topology", "measure", "hole", "hole_styled", "hole_standard", "extrude", "plane"}}});
+    const json reply = GUI::Mcp::cad_describe_tools({{"method", {"query_topology", "measure", "hole", "hole_styled", "hole_standard", "extrude", "plane"}}});
     std::map<std::string, json> rows;
     for (const json& row : reply.at("tools")) rows[row.at("name").get<std::string>()] = row;
     auto param = [&](const char* method, const char* name) {
@@ -1559,14 +1559,14 @@ void add_standoff(CadDocument& doc)
 // The first circular edge of body 0 of radius r.
 int circle_edge(const CadDocument& doc, double r)
 {
-    const json rims = GUI::cad_query_topology(doc, {{"edge_kinds", {"circle"}}});
+    const json rims = GUI::Mcp::cad_query_topology(doc, {{"edge_kinds", {"circle"}}});
     for (const json& e : rims.at("edges"))
         if (std::abs(e.at("radius").get<double>() - r) < 1e-6) return e.at("id").get<int>();
     return -1;
 }
 
 // The first straight edge of body 0.
-int line_edge(const CadDocument& doc) { return GUI::cad_query_topology(doc, {{"edge_kinds", {"line"}}}).at("edges").at(0).at("id").get<int>(); }
+int line_edge(const CadDocument& doc) { return GUI::Mcp::cad_query_topology(doc, {{"edge_kinds", {"line"}}}).at("edges").at(0).at("id").get<int>(); }
 
 BoundingBoxf3 body_box(const CadDocument& doc, size_t body) { return doc.display_body_meshes.at(body).bounding_box(); }
 
@@ -1622,7 +1622,7 @@ TEST_CASE("thread on a bore takes the nearest standard and the whole bore, as th
     CadDocument doc;
     add_standoff(doc);
     json       r;
-    const auto add = GUI::cad_thread(doc, {{"face", cylinder_face(doc)}}, r);
+    const auto add = GUI::Mcp::cad_thread(doc, {{"face", cylinder_face(doc)}}, r);
     CHECK(r.at("designation") == "M5");
     CHECK(r.at("internal") == true);
     CHECK_THAT(r.at("diameter").get<double>(), WithinAbs(5.0, 1e-12));
@@ -1644,7 +1644,7 @@ TEST_CASE("thread on a bore takes the nearest standard and the whole bore, as th
         CadDocument plane_doc;
         add_standoff(plane_doc);
         json r2;
-        GUI::cad_thread(plane_doc, {{"plane", "XY"}, {"designation", "M5"}, {"internal", true}, {"length", 15}}, r2)("Thread");
+        GUI::Mcp::cad_thread(plane_doc, {{"plane", "XY"}, {"designation", "M5"}, {"internal", true}, {"length", 15}}, r2)("Thread");
         CHECK(r2.at("body") == 0);
         CHECK(r2.at("x") == 0.0);
         REQUIRE(plane_doc.recompute());
@@ -1653,10 +1653,10 @@ TEST_CASE("thread on a bore takes the nearest standard and the whole bore, as th
     SECTION("a designation and a pitch replace what was inferred")
     {
         json r3;
-        GUI::cad_thread(doc, {{"face", cylinder_face(doc)}, {"designation", "M6"}}, r3);
+        GUI::Mcp::cad_thread(doc, {{"face", cylinder_face(doc)}, {"designation", "M6"}}, r3);
         CHECK(r3.at("designation") == "M6");
         CHECK_THAT(r3.at("depth").get<double>(), WithinAbs(find_thread_standard("M6")->internal_depth_mm(), 1e-12));
-        GUI::cad_thread(doc, {{"face", cylinder_face(doc)}, {"pitch", 0.5}}, r3);
+        GUI::Mcp::cad_thread(doc, {{"face", cylinder_face(doc)}, {"pitch", 0.5}}, r3);
         CHECK(r3.at("designation").is_null());   // no longer the standard's
         CHECK_THAT(r3.at("depth").get<double>(), WithinAbs(0.5 * 1.0825 * 0.5, 1e-12));
     }
@@ -1666,7 +1666,7 @@ TEST_CASE("a custom thread on a plane threads a rod from nothing", "[Mcp][CAD]")
 {
     CadDocument doc;
     json        r;
-    GUI::cad_thread(doc, {{"plane", "XY"}, {"internal", false}, {"diameter", 6}, {"pitch", 1}, {"length", 10}}, r)("Thread");
+    GUI::Mcp::cad_thread(doc, {{"plane", "XY"}, {"internal", false}, {"diameter", 6}, {"pitch", 1}, {"length", 10}}, r)("Thread");
     CHECK(r.at("designation").is_null());
     CHECK_THAT(r.at("depth").get<double>(), WithinAbs(0.6134, 1e-12));
     REQUIRE(doc.recompute());
@@ -1684,7 +1684,7 @@ TEST_CASE("thread refuses a target it cannot cut, before anything changes", "[Mc
     const size_t n    = doc.features.size();
     auto refusal = [&](const json& params) {
         json r;
-        return failure([&] { GUI::cad_thread(doc, params, r); });
+        return failure([&] { GUI::Mcp::cad_thread(doc, params, r); });
     };
     CHECK_THAT(refusal({{"face", top}}), ContainsSubstring("is planar; a thread needs a cylindrical face or a circular edge"));
     CHECK_THAT(refusal({{"face", 99}}), ContainsSubstring("face 99 of body 0 does not exist"));
@@ -1707,9 +1707,9 @@ TEST_CASE("thread refuses a target it cannot cut, before anything changes", "[Mc
 
     CadDocument empty;
     json        r;
-    CHECK_THAT(failure([&] { GUI::cad_thread(empty, {{"internal", true}, {"designation", "M5"}, {"length", 5}}, r); }),
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_thread(empty, {{"internal", true}, {"designation", "M5"}, {"length", 5}}, r); }),
                ContainsSubstring("needs a body to tap"));
-    CHECK_THAT(failure([&] { GUI::cad_thread(empty, {{"face", 0}}, r); }), ContainsSubstring("no body to thread"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_thread(empty, {{"face", 0}}, r); }), ContainsSubstring("no body to thread"));
 }
 
 TEST_CASE("a sweep along a helix keeps its profile at the same angle to the helix axis", "[Mcp][CAD]")
@@ -1724,7 +1724,7 @@ TEST_CASE("a sweep along a helix keeps its profile at the same angle to the heli
     SECTION("a round wire")
     {
         const int s = doc.add_sketch_entities({circle(10, 0, 1.5)}, SketchPlane::XZ(), "Sketch");
-        GUI::cad_sweep(doc, {{"sketch", s}, {"path", helix}})("Sweep");
+        GUI::Mcp::cad_sweep(doc, {{"sketch", s}, {"path", helix}})("Sweep");
         REQUIRE(doc.recompute());
         REQUIRE(doc.bodies.size() == 1);
         CHECK_THAT(body_volume(doc, 0), Catch::Matchers::WithinRel(PI * 1.5 * 1.5 * across * length, 0.01));
@@ -1733,7 +1733,7 @@ TEST_CASE("a sweep along a helix keeps its profile at the same angle to the heli
     {
         const int s = doc.add_sketch_entities({line(9, -1, 11, -1), line(11, -1, 11, 1), line(11, 1, 9, 1), line(9, 1, 9, -1)},
                                               SketchPlane::XZ(), "Sketch");
-        GUI::cad_sweep(doc, {{"sketch", s}, {"path", helix}, {"boolean", "new"}})("Sweep");
+        GUI::Mcp::cad_sweep(doc, {{"sketch", s}, {"path", helix}, {"boolean", "new"}})("Sweep");
         REQUIRE(doc.recompute());
         REQUIRE(doc.bodies.size() == 1);
         CHECK_THAT(body_volume(doc, 0), Catch::Matchers::WithinRel(4.0 * across * length, 0.01));
@@ -1753,7 +1753,7 @@ TEST_CASE("sweep takes a sketch or a helix as its path and refuses anything else
     const int s     = doc.add_sketch_entities({circle(10, 0, 1.5)}, SketchPlane::XZ(), "Sketch");
     const int spine = doc.add_sketch_entities({line(0, 0, 0, 30)}, SketchPlane::YZ(), "Spine");
     const size_t n  = doc.features.size();
-    auto refusal = [&](const json& params) { return failure([&] { GUI::cad_sweep(doc, params); }); };
+    auto refusal = [&](const json& params) { return failure([&] { GUI::Mcp::cad_sweep(doc, params); }); };
     CHECK(refusal({{"sketch", s}, {"path", spine}}).empty());
     CHECK_THAT(refusal({{"sketch", s}}), ContainsSubstring("path must be the feature index of a sketch or a helix"));
     CHECK_THAT(refusal({{"sketch", s}, {"path", s}}), ContainsSubstring("cannot be the profile sketch"));
@@ -1776,7 +1776,7 @@ TEST_CASE("loft skins sketches on two planes in order, and refuses what is not a
                                              SketchPlane::XY(), "Base");
     const int top  = doc.add_sketch_entities({circle(0, 0, 8)}, up, "Top");
     const size_t n = doc.features.size();
-    auto refusal = [&](const json& params) { return failure([&] { GUI::cad_loft(doc, params); }); };
+    auto refusal = [&](const json& params) { return failure([&] { GUI::Mcp::cad_loft(doc, params); }); };
     CHECK_THAT(refusal({{"profiles", json::array({base})}}), ContainsSubstring("2 or more"));
     CHECK_THAT(refusal({{"profiles", base}}), ContainsSubstring("profiles must be a list"));
     CHECK_THAT(refusal({{"profiles", {base, base}}}), ContainsSubstring("listed twice"));
@@ -1786,7 +1786,7 @@ TEST_CASE("loft skins sketches on two planes in order, and refuses what is not a
     CHECK_THAT(refusal({{"profiles", {base, top}}, {"boolean", "subtract"}}), ContainsSubstring("needs a body"));
     CHECK(doc.features.size() == n);
 
-    const int l = GUI::cad_loft(doc, {{"profiles", {base, top}}})("Loft");
+    const int l = GUI::Mcp::cad_loft(doc, {{"profiles", {base, top}}})("Loft");
     CHECK(doc.features[l].loft_profile_refs == std::vector<int>({base, top}));
     REQUIRE(doc.recompute());
     REQUIRE(doc.bodies.size() == 1);
@@ -1807,7 +1807,7 @@ TEST_CASE("split cuts a body with a plane and keeps either piece", "[Mcp][CAD]")
 
     SECTION("both pieces, the upper one in the body's place")
     {
-        GUI::cad_split(doc, {{"plane", "XY"}, {"offset", 4}}, r)("Cut");
+        GUI::Mcp::cad_split(doc, {{"plane", "XY"}, {"offset", 4}}, r)("Cut");
         CHECK(doc.features.back().type == CadFeatureType::Cut);
         CHECK(r.at("upper_body") == 0);
         CHECK(r.at("lower_body") == 1);
@@ -1819,14 +1819,14 @@ TEST_CASE("split cuts a body with a plane and keeps either piece", "[Mcp][CAD]")
     }
     SECTION("flip turns the plane over")
     {
-        GUI::cad_split(doc, {{"plane", "XY"}, {"offset", 4}, {"flip", true}}, r)("Cut");
+        GUI::Mcp::cad_split(doc, {{"plane", "XY"}, {"offset", 4}, {"flip", true}}, r)("Cut");
         CHECK_THAT(r.at("frame").at("normal")[2].get<double>(), WithinAbs(-1.0, 1e-12));
         REQUIRE(doc.recompute());
         CHECK_THAT(body_volume(doc, 0), WithinAbs(800.0 * 4.0, 1e-6));
     }
     SECTION("one piece")
     {
-        GUI::cad_split(doc, {{"plane", "XY"}, {"offset", 4}, {"keep_upper", false}}, r)("Cut");
+        GUI::Mcp::cad_split(doc, {{"plane", "XY"}, {"offset", 4}, {"keep_upper", false}}, r)("Cut");
         CHECK_FALSE(r.contains("upper_body"));
         CHECK(r.at("lower_body") == 0);
         REQUIRE(doc.recompute());
@@ -1835,14 +1835,14 @@ TEST_CASE("split cuts a body with a plane and keeps either piece", "[Mcp][CAD]")
     }
     SECTION("a face's plane, 3 mm into the body")
     {
-        GUI::cad_split(doc, {{"plane", {{"body", 0}, {"face", face_facing(doc, Vec3d(0, 0, 1))}}}, {"offset", -3}}, r)("Cut");
+        GUI::Mcp::cad_split(doc, {{"plane", {{"body", 0}, {"face", face_facing(doc, Vec3d(0, 0, 1))}}}, {"offset", -3}}, r)("Cut");
         REQUIRE(doc.recompute());
         REQUIRE(doc.bodies.size() == 2);
         CHECK_THAT(body_volume(doc, 0), WithinAbs(800.0 * 3.0, 1e-6));   // outside the face's plane
     }
     SECTION("along a face, as before")
     {
-        GUI::cad_split(doc, {{"face", 2}, {"keep_lower", false}}, r)("Split");
+        GUI::Mcp::cad_split(doc, {{"face", 2}, {"keep_lower", false}}, r)("Split");
         CHECK(doc.features.back().cut_face == 2);
         CHECK(doc.features.back().cut_keep_lower == false);
         CHECK(r.at("upper_body") == 0);
@@ -1851,7 +1851,7 @@ TEST_CASE("split cuts a body with a plane and keeps either piece", "[Mcp][CAD]")
     SECTION("refusals")
     {
         const size_t n = doc.features.size();
-        auto refusal = [&](const json& params) { return failure([&] { GUI::cad_split(doc, params, r); }); };
+        auto refusal = [&](const json& params) { return failure([&] { GUI::Mcp::cad_split(doc, params, r); }); };
         CHECK_THAT(refusal({{"plane", "XY"}, {"face", 2}}), ContainsSubstring("not both"));
         CHECK_THAT(refusal(json::object()), ContainsSubstring("split needs plane"));
         CHECK_THAT(refusal({{"plane", "XY"}, {"offset", 20}}), ContainsSubstring("the plane misses body 0: all of it lies on its lower side"));
@@ -1865,13 +1865,13 @@ TEST_CASE("split cuts a body with a plane and keeps either piece", "[Mcp][CAD]")
         CHECK_THAT(refusal({{"plane", "QQ"}}), ContainsSubstring("plane must be"));
         CHECK(doc.features.size() == n);
         CadDocument empty;
-        CHECK_THAT(failure([&] { GUI::cad_split(empty, {{"plane", "XY"}}, r); }), ContainsSubstring("no body to split"));
+        CHECK_THAT(failure([&] { GUI::Mcp::cad_split(empty, {{"plane", "XY"}}, r); }), ContainsSubstring("no body to split"));
     }
 }
 
 TEST_CASE("the rows for thread, sweep, loft, split and helix", "[Mcp][CAD]")
 {
-    const json reply = GUI::cad_describe_tools({{"method", {"thread", "sweep", "loft", "split", "helix"}}});
+    const json reply = GUI::Mcp::cad_describe_tools({{"method", {"thread", "sweep", "loft", "split", "helix"}}});
     std::map<std::string, json> rows;
     for (const json& row : reply.at("tools")) rows[row.at("name").get<std::string>()] = row;
     REQUIRE(rows.size() == 5);
@@ -1907,7 +1907,7 @@ void begin_sketch(GUI::DesignSketchTool& tool) { tool.begin(SketchPlane::XY(), G
 
 json sketch(GUI::DesignSketchTool& tool, const char* method, const json& params)
 {
-    return GUI::cad_sketch_call(tool, method, params);
+    return GUI::Mcp::cad_sketch_call(tool, method, params);
 }
 
 // The L-bracket's profile: 40 x 30, 4 thick, its inside corner between lines 2 and 3 at (4, 4).
@@ -2225,7 +2225,7 @@ TEST_CASE("constraints are planned from picks as the CONSTRAIN bar does, or take
     pt.type = SketchEntity::Type::Point;
     pt.p0   = Vec2d(5, 5);
     ents.insert(ents.end(), {circ, arc, pt});
-    auto defs = [&](const json& params, const std::vector<int>& sel = {}) { return GUI::cad_constraint_defs(params, ents, sel); };
+    auto defs = [&](const json& params, const std::vector<int>& sel = {}) { return GUI::Mcp::cad_constraint_defs(params, ents, sel); };
     auto refused = [&](const json& params) { return failure([&] { defs(params); }); };
 
     // Picks: the planner's points and the current value, an angle in degrees stored in radians.
@@ -2339,7 +2339,7 @@ TEST_CASE("the rows for the sketch's shapes, edit ops and constraints", "[Mcp][C
                                               "sketch_transform", "sketch_constrain", "sketch_constraints", "sketch_unconstrain"};
     json names = json::array();
     for (const char* m : methods) names.push_back(m);
-    const json reply = GUI::cad_describe_tools({{"method", names}});
+    const json reply = GUI::Mcp::cad_describe_tools({{"method", names}});
     std::map<std::string, json> rows;
     for (const json& row : reply.at("tools")) rows[row.at("name").get<std::string>()] = row;
     REQUIRE(rows.size() == methods.size());

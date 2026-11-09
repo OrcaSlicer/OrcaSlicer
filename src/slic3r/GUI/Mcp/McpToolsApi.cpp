@@ -7,7 +7,7 @@
 #include "McpTypes.hpp"
 
 #include "slic3r/GUI/ActionRegistry.hpp"
-#include "slic3r/GUI/CAD/McpControl.hpp"
+#include "slic3r/GUI/Mcp/McpToolsCad.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
