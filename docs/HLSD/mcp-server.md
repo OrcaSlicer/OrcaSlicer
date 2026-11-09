@@ -1083,11 +1083,13 @@ unsigned integer (`-32602`) or not the model's (`-32010`). Before the generation
 project's recipe is loaded into an empty document (`DesignPanel::hydrate_from_model()`), as showing
 the tab would.
 
-Access decides what `DesignPanel::mcp_busy()` lets through. `read` CAD tools run under an open
-feature card or sketch session, `sketch` CAD tools drive the live sketch session, and `change`
-CAD tools are refused under either, as the GUI would not let the edit land there. Neither `change`
-nor `sketch` CAD tools run while a body Move is open, since its session holds a body index that a
-change could point at another body. Nothing runs while a rebuild's worker owns the document.
+Access decides what `DesignPanel::mcp_busy()` lets through. Nothing runs while a rebuild's worker
+owns the document; otherwise `read` CAD tools always run. `change` and `sketch` CAD tools are
+refused under an open feature card, the Text dialog, Constrain mode or an open body Move. A card
+holds a candidate built from the document as it was when it opened, which a change underneath would
+overwrite, or be overwritten by, on Confirm; the Move holds a body index that a change could point
+at another body. A sketch session lets `sketch` CAD tools through, since driving it is their point,
+and refuses `change` ones, as the GUI would not let the edit land there.
 
 A CAD tool that fails is an error (an `isError` result with `code` `-32000`, `OCCT: …` for a kernel
 exception) and leaves the design as it was, so `export_replay` drops it and a replay never repeats a

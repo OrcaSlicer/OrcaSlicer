@@ -181,8 +181,9 @@ json plane_param(const json& def, bool drill)
 // its row describes, so its indices and face and edge ids are the ones such a design gives. An
 // argument {"from_call": i, "key": k} is the value under k in the reply of call i of the same
 // example, which is how a generation is passed on. `needs` names a file from outside the app, at a
-// placeholder path. tools/mcp/test_cad_examples.py runs them in the app.
-json examples(const char* text) { return json::parse(text); }
+// placeholder path. tools/mcp/test_cad_examples.py runs them in the app. The text is kept as written
+// here and parsed by tool_rows() once the rows are built, so a parse error names the row it is in.
+json examples(const char* text) { return json(text); }
 
 // One row per dispatched CAD tool (kCadTools), grouped by what the tools do: its name, a summary of
 // one sentence and at most 120 characters, the details (the rest, "" when the summary says it all),
@@ -190,8 +191,7 @@ json examples(const char* text) { return json::parse(text); }
 // cad_tool_table() adds what kCadTools declares; a param without a default is one the tool requires.
 json tool_rows()
 {
-    return json{
-        {"tools", json::array({
+    json rows = json::array({
             json{{"name", "describe_scene"}, {"summary", "The Design document: features, variables with their values, bodies, undo_depth / redo_depth and generation."},
                  {"details", "A feature's bound lists the fields an expression drives; a body gives bbox, source_feature, visible, color and moved (by the Move gizmo)."},
                  {"params", json::array()},
@@ -407,7 +407,7 @@ json tool_rows()
                          {"tool": "thread", "args": {"body": 0, "face": 6, "designation": "M8", "generation": {"from_call": 2, "key": "generation"}}}]},
                      {"title": "An M6 threaded rod 10 mm long, standing on the XY plane", "calls": [
                          {"tool": "thread", "args": {"plane": "XY", "internal": false, "designation": "M6", "length": 10}}]},
-                     {"title": "A 10 mm boss threaded at the nearest standard size, M10", "calls": [
+                     {"title": "A 10 mm boss threaded at the nearest standard size, which the reply's designation names", "calls": [
                          {"tool": "sketch_begin", "args": {"plane": "XY"}},
                          {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [0, 0], "radius": 5}]}},
                          {"tool": "sketch_commit", "args": {}},
@@ -772,7 +772,7 @@ json tool_rows()
                   {"params", json::array({
                       json{{"name", "sketch"},  {"type", "integer"}, {"description", "sketch feature index"}},
                       json{{"name", "angle"},   {"type", "number"}, {"unit", "deg"}, {"default", 360}},
-                      json{{"name", "axis"},    {"type", "integer"}, {"enum", json::array({0, 1})}, {"default", 0}},
+                      json{{"name", "axis"},    {"type", "integer"}, {"enum", json::array({0, 1})}, {"default", 0}, {"description", "the sketch plane's X (0) or Y (1) axis through its origin"}},
                   })},
                   {"examples", examples(R"json([
                       {"title": "A cylinder's wall: a line 10 mm out from the XZ plane's vertical axis, turned a full circle", "calls": [
@@ -780,7 +780,7 @@ json tool_rows()
                           {"tool": "sketch_add", "args": {"entities": [{"type": "line", "p0": [10, 0], "p1": [10, 20]}]}},
                           {"tool": "sketch_commit", "args": {}},
                           {"tool": "surface_revolve", "args": {"sketch": 0, "axis": 1}}]},
-                      {"title": "Half a cone's wall: a sloping line turned 180 degrees about the XZ plane's vertical axis", "calls": [
+                      {"title": "Half a truncated cone's wall: a sloping line turned 180 degrees about the XZ plane's vertical axis", "calls": [
                           {"tool": "sketch_begin", "args": {"plane": "XZ"}},
                           {"tool": "sketch_add", "args": {"entities": [{"type": "line", "p0": [5, 0], "p1": [15, 20]}]}},
                           {"tool": "sketch_commit", "args": {}},
@@ -853,9 +853,10 @@ json tool_rows()
                      {"title": "The 10 mm gap between two blocks' facing sides", "calls": [
                          {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 10}},
                          {"tool": "extrude", "args": {"profile": [[20, -5], [30, -5], [30, 5], [20, 5]], "distance": 10, "boolean": "new"}},
+                         {"tool": "query_topology", "args": {"body": 0, "direction": [1, 0, 0]}},
                          {"tool": "query_topology", "args": {"body": 1, "direction": [-1, 0, 0]}},
                          {"tool": "measure", "args": {"a": {"body": 0, "face": 1}, "b": {"body": 1, "face": 3},
-                                                      "generation": {"from_call": 2, "key": "generation"}}}]}])json")}},
+                                                      "generation": {"from_call": 3, "key": "generation"}}}]}])json")}},
             json{{"name", "mass_properties"}, {"summary", "Volume / surface area / centre of mass / inertia tensor of a body."},
                  {"details", ""},
                  {"params", json::array({
@@ -1440,7 +1441,7 @@ json tool_rows()
                          {"tool": "sketch_commit", "args": {}},
                          {"tool": "surface_fill", "args": {"sketch": 0}}]}])json")}},
             json{{"name", "surface_offset"}, {"summary", "Offset a sheet body by a signed distance -> another sheet body."},
-                 {"details", ""},
+                 {"details", "A positive offset moves each face along its normal, the one query_topology gives, and a negative one against it, so the side depends on how the sheet was made: an extruded circle's normal points inward."},
                  {"params", json::array({
                      json{{"name", "body"},   {"type", "integer"}, {"default", -1}, {"description", "sheet body; omit for the last body"}},
                      json{{"name", "offset"}, {"type", "number"}, {"unit", "mm"}, {"default", 1}},
@@ -1459,7 +1460,7 @@ json tool_rows()
                          {"tool": "surface_extrude", "args": {"sketch": 0, "distance": 20}},
                          {"tool": "surface_offset", "args": {"body": 0, "offset": -2}}]}])json")}},
             json{{"name", "thicken_surface"}, {"summary", "Thicken a whole sheet body into a solid."},
-                 {"details", ""},
+                 {"details", "A sheet of one face grows along its normal, the one query_topology gives, or against it with flip; a sheet of several faces is capped at its rims and grows into the closed shape that makes, whatever flip says."},
                  {"params", json::array({
                      json{{"name", "body"},      {"type", "integer"}, {"default", -1}, {"description", "sheet body; omit for the last body"}},
                      json{{"name", "thickness"}, {"type", "number"}, {"unit", "mm"}, {"default", 2}, {"min", 0.01}},
@@ -1478,8 +1479,16 @@ json tool_rows()
                          {"tool": "sketch_commit", "args": {}},
                          {"tool": "surface_extrude", "args": {"sketch": 0, "distance": 20}},
                          {"tool": "thicken_surface", "args": {"body": 0, "thickness": 1.5, "flip": true}}]}])json")}},
-        })},
-    };
+    });
+    for (json& row : rows) {
+        const std::string text = row.at("examples").get<std::string>();
+        try {
+            row["examples"] = json::parse(text);
+        } catch (const json::parse_error& e) {
+            throw std::runtime_error("the examples of the CAD tool " + row.at("name").get<std::string>() + " do not parse: " + e.what());
+        }
+    }
+    return rows;
 }
 
 json describe_scene(DesignPanel* panel)
@@ -4752,9 +4761,10 @@ json action_sketch_constraints(DesignPanel* panel, const json& params)
 
 // --- dispatcher ---------------------------------------------------------------------
 
-// What mcp_busy() lets through. Read only looks, so it runs under an open card or a sketch
-// session; Sketch drives the live sketch session; Change edits the feature list or variables,
-// which neither a card nor a sketch session may have changed under it.
+// What mcp_busy() lets through. Read only looks, so it runs under anything but a rebuild. Sketch
+// drives the live sketch session and Change edits the feature list or variables; both are refused
+// under an open card, the Text dialog, Constrain mode or a body Move, and Change under a sketch
+// session too, which is about to commit into the feature list.
 enum class CadAccess { Read, Change, Sketch };
 
 struct CadTool
@@ -4988,8 +4998,7 @@ const json& cad_tool_table()
     // Built once: search_tools reads it on every search. A row whose tool kCadTools does not
     // declare gets no access or failure; the unit tests compare the two tables.
     static const json table = [] {
-        json all  = tool_rows();
-        json rows = std::move(all["tools"]);
+        json rows = tool_rows();
         for (json& row : rows) {
             if (const CadTool* t = find_cad_tool(row.at("name").get<std::string>())) {
                 row["access"]  = access_name(t->access);

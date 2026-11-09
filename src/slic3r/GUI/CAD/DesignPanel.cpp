@@ -4839,7 +4839,7 @@ bool DesignPanel::mcp_busy(bool read_only, bool sketch_method, std::string& why)
     // The Move holds a body index that any change to the document, an undo included, could point
     // at another body; the tree edits and Undo refuse under it too.
     if (body_move_pending()) { why = "a body Move is open in the Design tab"; return true; }
-    // Sketch methods drive the live sketch session, which is the point of them; everything else
+    // Sketch CAD tools drive the live sketch session, which is the point of them; everything else
     // changes the feature list, which a live sketch session is about to commit into.
     if (!sketch_method && m_ui_mode == UiMode::Sketch) { why = "a sketch is open in the Design tab"; return true; }
     return false;

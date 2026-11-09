@@ -370,9 +370,11 @@ widgets.
 `call_cad_tool` needs the MCP server on (`--mcp`, or Preferences) and the CAD feature on
 (Preferences > Features; the main window creates the Design page only at startup, so turning it on
 takes a restart); with the feature off it is refused, and the two inspect tools still answer, with a
-note on how a person turns it on. A call is refused (`-32002`) while the Design tab is busy: a
-`change` CAD tool does not run under an open feature card or sketch session, nor a `change` or
-`sketch` one during a body Move, nor any while a rebuild owns the document. Face and edge ids name
+note on how a person turns it on. A call is refused (`-32002`) while the Design tab is busy: none
+runs while a rebuild owns the document, `change` and `sketch` CAD tools do not run under an open
+feature card, the Text dialog, Constrain mode or a body Move, and a `change` one does not run under
+a sketch session, which `sketch` ones drive. `read` CAD tools are refused only during a rebuild.
+Face and edge ids name
 faces and edges of the current model, and a rebuild renumbers them while a stale id still names a
 real face or edge, so the replies carry the model's `generation`: a call that passes ids with the
 `generation` they were read at is refused (`-32010`) once the model has moved on, rather than acting

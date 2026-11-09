@@ -84,7 +84,7 @@ add_executable(${_TEST_NAME}_tests
 
 if (SLIC3R_CAD)
     target_sources(${_TEST_NAME}_tests PRIVATE test_design_sketch_tool.cpp)
-    # The Design tab's MCP surface (call_cad_tool).
+    # The Design tab's MCP surface: list_cad_tools, describe_cad_tool and call_cad_tool.
     target_sources(${_TEST_NAME}_tests PRIVATE test_mcp_cad.cpp)
 endif ()
 
