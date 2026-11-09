@@ -9233,7 +9233,7 @@ static float overhang_fan_overlap_threshold(int overhang_fan_threshold)
 
 static bool overhang_fan_active(float overlap, int overhang_fan_threshold, ExtrusionRole role)
 {
-    if (role == erBridgeInfill || role == erOverhangPerimeter)
+    if (role == erOverhangPerimeter)
         return true;
     if (overhang_fan_threshold == Overhang_threshold_none)
         return is_external_perimeter(role);
