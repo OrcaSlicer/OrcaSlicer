@@ -7,6 +7,7 @@
 #include "libslic3r/Semver.hpp"
 #include "libslic3r/ProjectTask.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/SaveObjectGuard.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -275,8 +276,6 @@ extern void release_PlateData_list(PlateDataPtrs& plate_data_list);
 
 // backup & restore project
 
-extern void save_object_mesh(ModelObject& object);
-
 extern void delete_object_mesh(ModelObject& object);
 
 extern void backup_soon();
@@ -296,12 +295,6 @@ extern void put_other_changes();
 extern void clear_other_changes(bool backup);
 
 extern bool has_other_changes(bool backup);
-
-class SaveObjectGaurd {
-public:
-    SaveObjectGaurd(ModelObject& object);
-    ~SaveObjectGaurd();
-};
 
 } // namespace Slic3r
 

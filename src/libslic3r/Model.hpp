@@ -17,19 +17,12 @@
 #include "BrimEarsPoint.hpp"
 #include "TriangleMesh.hpp"
 #include "CustomGCode.hpp"
-#include "calib.hpp"
 #include "TextConfiguration.hpp"
 #include "EmbossShape.hpp"
 #include "TriangleSelector.hpp"
 #include "TextureDisplacement.hpp"
-
-//BBS: add bbs 3mf
-#include "Format/bbs_3mf.hpp"
-//BBS: add step
-#include "Format/STEP.hpp"
-//BBS: add stl
-#include "Format/STL.hpp"
-#include "Format/OBJ.hpp"
+#include "Format/ProjectStrategy.hpp"
+#include "SaveObjectGuard.hpp"
 
 #include <array>
 #include <cereal/access.hpp>
@@ -75,6 +68,13 @@ class TriangleSelector;
 //BBS: add Preset
 class Preset;
 class BBLProject;
+class CalibPressureAdvancePattern;
+class Step;
+struct PlateData;
+using PlateDataPtrs = std::vector<PlateData*>;
+using Import3mfProgressFn = std::function<void(int import_stage, int current, int total, bool& cancel)>;
+using ImportStepProgressFn = std::function<void(int load_stage, int current, int total, bool& cancel)>;
+using StepIsUtf8Fn = std::function<void(bool isUtf8)>;
 
 class KeyStore;
 struct MeshRepairStats;
