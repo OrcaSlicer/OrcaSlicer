@@ -30,6 +30,7 @@
 #include "libslic3r/Surface.hpp"
 #include <limits>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -1595,7 +1596,8 @@ DynamicPrintConfig painted_bridge_config(const char *wall_generator, bool thick_
     });
 }
 
-void painted_bridge(Print &print, Model &model, const DynamicPrintConfig &config, bool reverse_filaments = false)
+void painted_bridge(Print &print, Model &model, const DynamicPrintConfig &config, bool reverse_filaments = false,
+                    const DynamicPrintConfig &deck_config = DynamicPrintConfig())
 {
     ModelObject *object = model.add_object();
     object->name = "painted_bridge.stl";
@@ -1606,7 +1608,9 @@ void painted_bridge(Print &print, Model &model, const DynamicPrintConfig &config
     object->add_volume(std::move(pillars))->config.set("extruder", reverse_filaments ? 2 : 1);
     TriangleMesh deck = make_cube(10., 20., 1.);
     deck.translate(10.f, 0.f, 5.f);
-    object->add_volume(std::move(deck))->config.set("extruder", reverse_filaments ? 1 : 2);
+    ModelVolume *deck_volume = object->add_volume(std::move(deck));
+    deck_volume->config.set("extruder", reverse_filaments ? 1 : 2);
+    deck_volume->config.apply(deck_config);
     object->add_instance();
     object->ensure_on_bed();
 
@@ -1795,6 +1799,42 @@ TEST_CASE("A bridge in another filament is anchored on a neighbour two walls thi
     });
     CHECK(spans > 10);
     CHECK(anchored > spans * 9 / 10);
+}
+
+TEST_CASE("Regions sharing their walls keep them where a bridge of one is anchored on the other", "[Perimeters]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+
+    // Total length and open paths of the walls on the first layer of the deck, and the strip the deck took.
+    const auto walls = [wall_generator](const DynamicPrintConfig &deck_config) {
+        Print print;
+        Model model;
+        painted_bridge(print, model, painted_bridge_config(wall_generator), false, deck_config);
+        const auto [layer, deck, pillars] = deck_layer(print);
+        REQUIRE(layer != nullptr);
+        double length = 0.;
+        size_t open   = 0;
+        for (const LayerRegion *layerm : layer->regions()) {
+            for_each_extrusion_path(layerm->perimeters, [&length](const ExtrusionPath &path) { length += unscale<double>(path.length()); });
+            for (const ExtrusionEntity *entity : layerm->perimeters.flatten().entities)
+                open += size_t(! entity->is_loop());
+        }
+        const double anchor = deck == nullptr ? 0. : area(intersection_ex(deck->slices.surfaces, layer->lower_layer->lslices));
+        return std::make_tuple(length, open, anchor);
+    };
+
+    // The deck differs only in its infill, so the walls are shared as on a single region.
+    DynamicPrintConfig shared;
+    shared.set_deserialize_strict({ { "extruder", "1" }, { "sparse_infill_density", "20%" } });
+    DynamicPrintConfig single;
+    single.set_deserialize_strict("extruder", "1");
+    const auto [shared_length, shared_open, shared_anchor] = walls(shared);
+    const auto [single_length, single_open, single_anchor] = walls(single);
+
+    CHECK(shared_anchor > 0.);
+    CHECK(shared_open == single_open);
+    CHECK_THAT(shared_length, Catch::Matchers::WithinAbs(single_length, 0.01));
 }
 
 TEST_CASE("The anchor of a bridge in another filament follows the settings it is reprocessed with", "[Perimeters]")

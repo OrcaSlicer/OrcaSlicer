@@ -415,9 +415,13 @@ void Layer::make_perimeters()
 	        // Orca: The walls of these regions are generated over the neighbours along their bridges and over the strips they
 	        // handed to bridges of other regions to anchor on, then removed from there.
 	        ExPolygons clipped = neighbours_along_overhangs(*this, layerms);
+	        Polygons   group_slices;
+	        for (const LayerRegion *l : layerms)
+	            polygons_append(group_slices, to_polygons(l->slices.surfaces));
 	        for (const LayerRegion *l : layerms)
 	            if (const ExPolygons slices = to_expolygons(l->slices.surfaces); slices != l->raw_slices)
-	                append(clipped, diff_ex(l->raw_slices, slices));
+	                // A strip handed to a region of this group keeps the walls they share.
+	                append(clipped, diff_ex(l->raw_slices, group_slices));
 	        clipped = union_ex(clipped);
 	        if (layerms.size() == 1 && clipped.empty()) {  // optimization
 	            (*layerm)->fill_surfaces.surfaces.clear();
