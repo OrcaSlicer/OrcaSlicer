@@ -5938,6 +5938,7 @@ void DesignSketchTool::render_extrude_gizmo()
         segs.emplace_back(tip2, back - nrm * (as * 0.5));
         draw_strokes(m_ex_arrow_model, segs, std::max(0.7 * upp, 1e-4), arrowc);
         DimAnnot a; a.kind = DimType::Distance; a.value = depth;
+        note_label(tip2 + u * (th * 1.4));
         draw_text(m_line_model, dim_text(a), tip2 + u * (th * 1.4), th, arrowc);
     };
 
@@ -8030,6 +8031,7 @@ void DesignSketchTool::render_draft_gizmo()
     glsafe(::glDisable(GL_DEPTH_TEST));
     draw_strokes(m_dr_stroke_model, segs, std::max(0.8 * upp, 1e-4), arcc);
     DimAnnot da; da.kind = DimType::Angle; da.value = m_dr_angle;
+    note_label(tip * 1.14);
     draw_text(m_line_model, dim_text(da), tip * 1.14, th, arcc);
     m_plane = saved;
 }
@@ -8264,6 +8266,7 @@ void DesignSketchTool::render_revolve_gizmo()
     glsafe(::glDisable(GL_DEPTH_TEST));
     draw_strokes(m_rv_stroke_model, segs, std::max(0.8 * upp, 1e-4), arcc);
     DimAnnot da; da.kind = DimType::Angle; da.value = m_rv_angle;
+    note_label(tip * 1.14);
     draw_text(m_line_model, dim_text(da), tip * 1.14, th, arcc);
     // The axis itself, dashed, past both ends of the sweep: which line is being revolved about
     // is the one thing the card's list cannot show.
@@ -8448,6 +8451,7 @@ void DesignSketchTool::render_pattern_gizmo()
     glsafe(::glDisable(GL_DEPTH_TEST));
     draw_strokes(m_pt_stroke_model, segs, std::max(0.8 * upp, 1e-4), col);
     DimAnnot da; da.kind = DimType::Angle; da.value = m_pt_angle;
+    note_label(tip * 1.14);
     draw_text(m_line_model, dim_text(da), tip * 1.14, th, col);
     m_plane = saved;
 }
