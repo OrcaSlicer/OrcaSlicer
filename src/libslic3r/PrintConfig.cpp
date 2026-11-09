@@ -13889,6 +13889,37 @@ Points get_bed_shape(const PrintConfig &cfg, bool use_share)
 
 Points get_bed_shape(const SLAPrinterConfig &cfg) { return to_points(make_counter_clockwise(cfg.printable_area.values)); }
 
+bool is_valid_bed_exclude_area(const Pointfs &points)
+{
+    if (points.size() < 3)
+        return false;
+
+    for (const Vec2d &point : points) {
+        if (!std::isfinite(point.x()) || !std::isfinite(point.y()))
+            return false;
+    }
+
+    const Polygon polygon = Polygon::new_scale(points);
+    if (has_duplicate_points(polygon))
+        return false;
+
+    const Points &vertices = polygon.points;
+    if (polygon.area() == 0.0)
+        return false;
+
+    const size_t count = vertices.size();
+    for (size_t idx = 0; idx + 2 < count; ++idx) {
+        const size_t end = idx == 0 ? count - 1 : count;
+        for (size_t other = idx + 2; other < end; ++other) {
+            if (Geometry::segments_intersect(
+                    vertices[idx], vertices[idx + 1], vertices[other], vertices[(other + 1) % count]))
+                return false;
+        }
+    }
+
+    return true;
+}
+
 namespace {
 
 static bool looks_like_bed_exclusion_volume_syntax(const std::string &value)
@@ -13964,15 +13995,13 @@ static std::optional<Polygon> parse_exclude_polygon_points(const std::string &po
             return std::nullopt;
         points.emplace_back(x, y);
     }
-    if (points.size() < 3)
+    if (!is_valid_bed_exclude_area(points))
         return std::nullopt;
 
     Polygon polygon;
     polygon.points.reserve(points.size());
     for (const Vec2d &pt : points)
         polygon.points.emplace_back(scale_(pt.x()), scale_(pt.y()));
-    if (polygon.area() == 0.0)
-        return std::nullopt;
     polygon.make_counter_clockwise();
     return polygon;
 }
@@ -13982,7 +14011,7 @@ static void append_legacy_bed_exclude_regions(
     const Pointfs &legacy_points,
     const double printable_height)
 {
-    if (legacy_points.size() < 3)
+    if (!is_valid_bed_exclude_area(legacy_points))
         return;
 
     Polygon polygon;

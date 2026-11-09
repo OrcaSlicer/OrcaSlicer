@@ -726,6 +726,7 @@ private:
         double ratio{ 0. }; // 0 = off
         double last_ratio{ 0. }; // before it was switched off
         Vec3d  normal{ Vec3d::Zero() }; // zero until first aimed
+        bool   follow_camera{ false };
         bool   panel_open{ false };
         const GLCanvas3D* owner; // whose objects place the plane
     };
@@ -943,7 +944,7 @@ public:
     // The last scene pass, for frames that only rebuild the overlay.
     SceneCache m_scene_cache;
     SelectionOutline m_selection_outline;
-    // Selected volumes the object passes of this frame drew, outlined after them.
+    // Volumes the object passes of this frame drew and collected for outlining after them.
     std::vector<GLVolume*> m_outlined_volumes;
     // Signature of the overlay on screen; empty after render(), a paint request or a frame drawn but
     // not shown, so the next frame is presented regardless.
