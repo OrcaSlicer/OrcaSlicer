@@ -231,18 +231,13 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
         }
         if (m_palette.is_open()) m_canvas->set_as_dirty();   // keep frames coming: the box takes focus on the frame AFTER it opens
         if (m_quotes_on) m_quotes.render(imgui, wxGetApp().plater()->get_camera(), m_canvas->get_scale());   // under the bars: they draw after
-        {   // The small confirm / cancel under the value label of a 3D gizmo (fillet, chamfer, hole, shell...): the same Confirm / Cancel the bar has.
-            Vec3d lw;
-            if (m_sketch_tool.take_label_anchor(lw) && m_topbar.action_active && m_topbar.action_active()) {
-                const Camera& cam = wxGetApp().plater()->get_camera();
-                const Eigen::Vector4d clip = (cam.get_projection_matrix().matrix() * cam.get_view_matrix().matrix()) * lw.homogeneous();
-                if (clip.w() > 1e-9) {
-                    const auto vp = cam.get_viewport();
-                    const Vec3d ndc = clip.head<3>() / clip.w();
-                    const ImVec2 at(float(vp[0] + (ndc.x() * 0.5 + 0.5) * vp[2]), float(vp[1] + (1.0 - (ndc.y() * 0.5 + 0.5)) * vp[3]));
+        {   // The small confirm beside the value label of a 3D gizmo (fillet, chamfer, hole, shell...): the same Confirm / Cancel the bar has.
+            float lr[4];
+            if (m_sketch_tool.take_label_rect(lr) && m_topbar.action_active && m_topbar.action_active()) {
+                {
                     ImGuiWrapper::push_common_window_style(m_canvas->get_scale());
                     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2.f * em, 2.f * em));
-                    imgui.set_next_window_pos(at.x, at.y + 10.f * em, ImGuiCond_Always, 0.f, 0.f);
+                    imgui.set_next_window_pos(lr[0] + lr[2] + 4.f * em, lr[1] + 0.5f * lr[3], ImGuiCond_Always, 0.f, 0.5f);   // beside the label, centred on it
                     imgui.begin(std::string("##label_confirm"), ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
                                 ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
                     const float  s   = ImGui::GetFrameHeight();

@@ -460,7 +460,7 @@ public:
     void clear_fillet_gizmo();
     bool filleting() const { return m_fl_active; }
     // The world position of the value label a 3D gizmo drew this frame (consumed once): the canvas hangs a small confirm/cancel under it.
-    bool take_label_anchor(Vec3d& w) { const bool v = m_label_valid; m_label_valid = false; w = m_label_world; return v; }
+    bool take_label_rect(float r[4]) { const bool v = m_label_valid; m_label_valid = false; for (int i = 0; i < 4; ++i) r[i] = m_label_rect[i]; return v; }   // x, y, w, h on screen
     std::function<void(double radius)> on_fillet_radius_changed;
 
     // Visual Hole gizmo. Like Dressup, the Hole tool is a DesignPanel docked card, so the sketch
@@ -1706,9 +1706,9 @@ private:
 
     // Fillet/Chamfer radius gizmo state (single world-space arrow at the picked edge midpoint).
     bool        m_fl_active{false};
-    Vec3d       m_label_world{Vec3d::Zero()};
-    bool        m_label_valid{false};
-    void        note_label(const Vec2d& p) { m_label_world = m_plane.origin + p.x() * m_plane.x_axis + p.y() * m_plane.y_axis; m_label_valid = true; }
+    float       m_label_rect[4]{0, 0, 0, 0};
+    bool        m_label_valid{false}, m_label_pending{false};
+    void        note_label(const Vec2d&) { m_label_pending = true; }   // the next draw_text is the gizmo's value label
     Vec3d       m_fl_anchor{Vec3d::Zero()};    // edge midpoint (world, already body-transformed)
     Vec3d       m_fl_dir{Vec3d::UnitZ()};      // unit radius direction (perp to edge, outward)
     double      m_fl_radius{1.0};              // current radius (= dressup size)

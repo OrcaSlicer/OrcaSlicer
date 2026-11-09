@@ -9239,6 +9239,7 @@ void DesignSketchTool::draw_dim_label(const std::string& txt, const Vec2d& plane
             ImGui::SetWindowPos(wp, ImGuiCond_Always);
         }
         m_label_rects.push_back({double(wp.x), double(wp.y), double(ws.x), double(ws.y)});
+        if (m_label_pending) { m_label_rect[0] = wp.x; m_label_rect[1] = wp.y; m_label_rect[2] = ws.x; m_label_rect[3] = ws.y; m_label_valid = true; }
     }
     const ImVec2 pos = ImGui::GetCursorScreenPos();
     const ImGuiStyle& st = ImGui::GetStyle();
@@ -9270,8 +9271,9 @@ void DesignSketchTool::draw_text(GLModel& /*model*/, const std::string& s, const
     // every value twice while the auto-edit chain runs (confirmed for rounded rect W/H/R, and
     // the chain is shared, so Rect/Circle/Slot/Polygon/ArcSlot behave identically). Position
     // compare is exact — the chain stores the very same Vec2d the label draws from.
-    if ((center - m_autoedit_label_pos).squaredNorm() < 1e-9) return;
+    if ((center - m_autoedit_label_pos).squaredNorm() < 1e-9) { m_label_pending = false; return; }
     draw_dim_label(s, center);
+    m_label_pending = false;
 }
 
 // Draw every placed dimension: extension lines, the offset dimension line, arrowheads
