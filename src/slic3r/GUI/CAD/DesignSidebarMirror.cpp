@@ -113,6 +113,7 @@ std::string fmt_number(double v, int digits)
 // What the field being typed in holds, and which control owns it.
 const void* g_edit_owner = nullptr;
 std::string g_edit_text;
+bool        g_text_enter = false;   // the last text_field commit came from Enter (not from focus loss)
 
 // An ImGui text field over a value the user types: shows the control's value until it is clicked into, keeps the typed text
 // while it is active, and hands it back on Enter or when focus leaves after an edit.
@@ -127,6 +128,7 @@ bool text_field(const void* owner, const char* id, const std::string& shown, std
     if (ImGui::IsItemActive()) wxGetApp().imgui()->set_requires_extra_frame();   // keep frames coming while a field is being typed in
     if (g_edit_owner == owner) g_edit_text = buf;
     bool commit = enter || ImGui::IsItemDeactivatedAfterEdit();
+    if (commit) g_text_enter = enter;
     if (commit || ImGui::IsItemDeactivated()) { if (g_edit_owner == owner) g_edit_owner = nullptr; }
     if (commit) out = buf;
     return commit;
@@ -153,6 +155,38 @@ struct DisabledScope {   // a field that cannot be edited is dimmed and takes no
     }
     ~DisabledScope() { if (on) { ImGui::PopStyleVar(); ImGui::PopItemFlag(); } }
 };
+
+// Inline confirm / cancel next to a card's primary value, so the user need not travel to the ribbon bar. The glyph is drawn with
+// the draw list (no font dependency). Returns true on a click that may act.
+bool inline_action_button(const char* id, bool check, bool enabled, const std::string& tip)
+{
+    const float  s = ImGui::GetFrameHeight();
+    const ImVec4 acc = ImGuiWrapper::COL_ORCA;
+    if (!enabled) { ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true); ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f); }
+    if (check) {
+        ImGui::PushStyleColor(ImGuiCol_Button, acc);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(std::min(acc.x + 0.12f, 1.f), std::min(acc.y + 0.12f, 1.f), std::min(acc.z + 0.12f, 1.f), acc.w));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(acc.x * 0.8f, acc.y * 0.8f, acc.z * 0.8f, acc.w));
+    }
+    const bool clicked = ImGui::Button(id, ImVec2(s, s));
+    if (check) ImGui::PopStyleColor(3);
+    const ImVec2 a = ImGui::GetItemRectMin(), b = ImGui::GetItemRectMax();
+    const ImVec2 c((a.x + b.x) * 0.5f, (a.y + b.y) * 0.5f);
+    const float  u = s * 0.2f, th = std::max(1.5f, s * 0.09f);
+    const ImU32  col = check ? IM_COL32(255, 255, 255, 255) : ImGui::GetColorU32(ImGuiCol_Text);
+    ImDrawList*  dl = ImGui::GetWindowDrawList();
+    if (check) {
+        const ImVec2 pts[3] = {ImVec2(c.x - u * 1.1f, c.y), ImVec2(c.x - u * 0.3f, c.y + u * 0.8f), ImVec2(c.x + u * 1.2f, c.y - u * 0.8f)};
+        dl->AddPolyline(pts, 3, col, 0, th);
+    } else {
+        dl->AddLine(ImVec2(c.x - u, c.y - u), ImVec2(c.x + u, c.y + u), col, th);
+        dl->AddLine(ImVec2(c.x - u, c.y + u), ImVec2(c.x + u, c.y - u), col, th);
+    }
+    if (!enabled) { ImGui::PopStyleVar(); ImGui::PopItemFlag(); }
+    // a disabled item takes no hover, so the tip (the reason, when greyed) is shown from the raw rect
+    if (!tip.empty() && ImGui::IsMouseHoveringRect(a, b)) ImGui::SetTooltip("%s", tip.c_str());
+    return clicked && enabled;
+}
 
 void draw_num_field(NumField* sp, float em, float width)
 {
@@ -595,6 +629,9 @@ void DesignPanel::mirror_card(CardModel& card, SidebarCtx& cx)
         case CardField::Kind::Text:     ImGui::AlignTextToFramePadding(); draw_card_text(static_cast<CardText*>(f)); break;
         }
     };
+    // A parameter card of the open tool carries ✓/✗ beside its first number. (Not the Sketch/Constrain session cards: no m_active.)
+    bool inline_ok = m_active != Tool::None && action_bar_active()
+        && std::any_of(m_card_models.begin(), m_card_models.end(), [&card](const auto& c) { return c.get() == &card; });
     for (const CardRow& row : card.rows()) {
         CardField* f = row.field;
         if (!f->IsShown() || (row.group != nullptr && !row.group->IsShown())) continue;
@@ -618,7 +655,26 @@ void DesignPanel::mirror_card(CardModel& card, SidebarCtx& cx)
             ImGui::TextWrapped("%s", u8(row.field2 != nullptr ? static_cast<CardText*>(row.field2)->GetLabel() : row.label).c_str());
             ImGui::PopTextWrapPos();
             ImGui::SameLine(lw + ImGui::GetStyle().WindowPadding.x);
-            cell(f);
+            if (inline_ok && f->kind() == CardField::Kind::Num) {
+                // The card's primary value (its first number): ✓ / ✗ right after it, the same handlers as the ribbon bar.
+                inline_ok = false;
+                const float  bw = ImGui::GetFrameHeight(), sp = ImGui::GetStyle().ItemSpacing.x;
+                const float  w  = std::max(ImGui::GetContentRegionAvail().x - 2.f * (bw + sp), 60.f * em);
+                g_text_enter = false;
+                draw_num_field(static_cast<NumField*>(f), em, w);
+                const bool entered = g_text_enter;
+                g_text_enter = false;
+                const bool can = confirm_enabled();
+                std::string why = u8(_L("Confirm (Enter)"));
+                if (!can) { const wxString need = missing_reference_text(m_active); why = need.IsEmpty() ? u8(_L("Nothing to confirm yet")) : u8(need); }
+                ImGui::SameLine(0.f, sp);
+                if (inline_action_button("##inl_ok", true, can, why)) CallAfter([this] { if (confirm_enabled()) tool_confirm(); });
+                ImGui::SameLine(0.f, sp);
+                if (inline_action_button("##inl_no", false, true, u8(_L("Cancel (Esc)")))) CallAfter([this] { tool_cancel(); });
+                // Enter in the field commits the number first (queued), then confirms, in that order.
+                if (entered && can) CallAfter([this] { if (confirm_enabled()) tool_confirm(); });
+            } else
+                cell(f);
         }
         ImGui::PopID();
         ImGui::Spacing();
