@@ -3745,7 +3745,7 @@ Polylines FillCubic::fill_surface(const Surface *surface, const FillParams &para
 Polylines FillQuarterCubic::fill_surface(const Surface* surface, const FillParams& params)
 {
     Polylines polylines_out;
-    if (params.multiline > 1) {
+    if (params.multiline > 1 && !stretched_across_layers(params)) {
         if (!this->fill_surface_trapezoidal(surface, params, polylines_out, 4))
             BOOST_LOG_TRIVIAL(error) << "FillQuarterCubic::fill_surface_trapezoidal() failed.";
         return polylines_out;
