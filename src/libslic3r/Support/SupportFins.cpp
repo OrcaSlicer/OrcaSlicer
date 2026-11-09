@@ -373,9 +373,9 @@ bool generate_fin_support(PrintObject& object, Polygons* reserved_columns)
     // support_fin_tine_width widens it along the object wall, rounded to whole out-and-back pairs.
     const coord_t tine_width = config.support_fin_tine_width.value > 0. ? whole_loops(config.support_fin_tine_width.value) : 2 * spacing;
     auto tine_width_at       = [&](coord_t fin_width) { return std::min(fin_width, tine_width); };
-    const double angle        = fin_angle(regions);
-    const BoundingBox rbox    = rotated_extents(bbox, angle, thickness);
-    const Polygons main_fins  = fin_strips(bbox, angle, pitch, thickness);
+    const double angle       = fin_angle(regions);
+    const BoundingBox rbox   = rotated_extents(bbox, angle, thickness);
+    const Polygons main_fins = fin_strips(bbox, angle, pitch, thickness);
     // Pieces narrower than half an extrusion cannot be printed; drop them.
     const float min_width = 0.25f * float(spacing);
     // Scaffold: cross fins at right angles to the main fins. Tines stay on the main fins only.
@@ -450,8 +450,8 @@ bool generate_fin_support(PrintObject& object, Polygons* reserved_columns)
                 const float gap              = float(scale_(support_params.gap_xy));
                 const Polygons object_slices = to_polygons(layer.lslices);
                 // Ring from `depth` inside the object surface out to just past the XY gap.
-                const Polygons ring      = diff(offset(object_slices, gap + float(spacing)), offset(object_slices, -depth));
-                Polygons tines           = intersection(intersection(tine_strips.at(width[i]), ring), offset(out, gap + depth + float(spacing)));
+                const Polygons ring = diff(offset(object_slices, gap + float(spacing)), offset(object_slices, -depth));
+                Polygons tines      = intersection(intersection(tine_strips.at(width[i]), ring), offset(out, gap + depth + float(spacing)));
                 const Polygons fin_touch = offset(out, float(SCALED_EPSILON));
                 tines.erase(std::remove_if(tines.begin(), tines.end(),
                                            [&](const Polygon& tine) {
