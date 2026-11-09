@@ -501,6 +501,16 @@ void SendMultiMachinePage::refresh_user_device()
             it = m_device_items.erase(it);
         }
     }
+    bool selected_lan = false;
+    auto monitors = dev->get_multi_machine_list();
+    for (int i = 0; i < PICK_DEVICE_MAX; ++i) {
+        const auto id = app_config->get("multi_devices", std::to_string(i));
+        auto it = monitors.find(id);
+        if (it != monitors.end() && it->second->supports_lan_monitoring()) selected_lan = true;
+    }
+    m_tip_text->SetLabel(selected_lan ?
+        _L("LAN printers support monitoring only. Select a cloud-connected printer to send a task.") :
+        _L("Please select the devices you would like to manage here (up to 6 devices)"));
     m_tip_text->Show(m_device_items.empty());
     m_button_add->Show(m_device_items.empty());
     sizer_machine_list->Layout();

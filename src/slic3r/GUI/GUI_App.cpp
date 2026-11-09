@@ -6,6 +6,8 @@
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Platform.hpp"
 #include "GUI_App.hpp"
+#include "LanMonitorManager.hpp"
+#include "MultiMachinePage.hpp"
 #include "BBLTopbar.hpp"
 #include "Shortcuts.hpp"
 #include "DeviceCore/DevConfigUtil.h"
@@ -2038,6 +2040,8 @@ void GUI_App::migrate_network_plugin_config()
 
 bool GUI_App::hot_reload_network_plugin()
 {
+    MultiMachinePage::when_built([](MultiMachinePage& page) { page.suspend_cameras(); });
+    if (m_lan_monitor) m_lan_monitor->stop();
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": starting hot reload";
 
     wxBusyCursor busy;
@@ -2141,6 +2145,7 @@ bool GUI_App::hot_reload_network_plugin()
     }
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": hot reload " << (success ? "successful" : "failed");
+    MultiMachinePage::when_built([](MultiMachinePage& page) { page.resume_cameras(); });
     return success;
 }
 
@@ -2929,6 +2934,8 @@ bool GUI_App::OnInit()
 
 int GUI_App::OnExit()
 {
+    MultiMachinePage::when_built([](MultiMachinePage& page) { page.suspend_cameras(); });
+    m_lan_monitor.reset();
     stop_http_server();
     stop_sync_user_preset();
     if (m_startup_cloud_plugin_fetch_thread.joinable())
@@ -2986,6 +2993,7 @@ int GUI_App::OnExit()
 
 void GUI_App::CleanUp()
 {
+    m_lan_monitor.reset();
     // OnExit() does not run when OnInit() fails, and m_agent is then still set. Stop the check before
     // wxApp::CleanUp() resets wxTheApp, which a result posted from the worker would still be using.
     stop_orca_health_check(m_agent);
@@ -3276,6 +3284,8 @@ bool GUI_App::on_init_inner()
     // Unload the Bambu network plugin too. Its static destructors abort if its agent's threads are still running.
     // Stop the Orca Cloud health check as OnExit() does, so no request is in flight while exit() tears down.
     wxGetApp().Bind(wxEVT_END_SESSION, [this](wxCloseEvent &e) {
+        MultiMachinePage::when_built([](MultiMachinePage& page) { page.suspend_cameras(); });
+        m_lan_monitor.reset();
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "received wxEVT_END_SESSION";
         stop_sync_user_preset();
         stop_orca_health_check(m_agent);
@@ -4271,6 +4281,9 @@ bool GUI_App::on_init_network(bool try_backup)
     // A version pinned to something other than the latest series is a deliberate choice, so it
     // is exempt from the upgrade prompt the same way the legacy pin already is - otherwise the
     // dialog reappears on every launch for as long as the pin is held.
+    if (!m_lan_monitor) m_lan_monitor = std::make_unique<LanMonitorManager>(*this);
+    else m_lan_monitor->start();
+
     const std::string pinned_version = app_config->get_network_plugin_version();
     const bool pinned_to_older_series = !pinned_version.empty() &&
         network_plugin_series(pinned_version) != network_plugin_series(get_latest_network_version());

@@ -1,4 +1,5 @@
 #include "MultiMachineManagerPage.hpp"
+#include "LanMonitorManager.hpp"
 #include "GUI_App.hpp"
 #include "I18N.hpp"
 #include "MainFrame.hpp"
@@ -186,7 +187,10 @@ void MultiMachineItem::doRender(wxDC& dc)
     if (obj_) {
         //dev name
         wxString dev_name = wxString::FromUTF8(obj_->get_dev_name());
-        if (!obj_->is_online()) {
+        const bool lan = obj_->supports_lan_monitoring();
+        const auto* monitor = wxGetApp().get_lan_monitor();
+        const auto* status = lan && monitor ? monitor->status(obj_->get_dev_id()) : nullptr;
+        if (!lan && !obj_->is_online()) {
             dev_name = dev_name + "(" + _L("Offline") + ")";
         }
         dc.SetFont(Label::Body_13);
@@ -194,8 +198,10 @@ void MultiMachineItem::doRender(wxDC& dc)
         left += FromDIP(DEVICE_LEFT_DEV_NAME);
 
         //project name
-        wxString project_name = _L("No task");
-        if (obj_->is_in_printing()) {
+        wxString project_name = lan ? _L("Unknown") : _L("No task");
+        if (lan && status && !status->job.job_name.empty()) {
+            project_name = from_u8(status->job.job_name);
+        } else if (!lan && obj_->is_in_printing()) {
             project_name = wxString::Format("%s", GUI::from_u8(obj_->subtask_name));
         }
         dc.SetFont(Label::Body_13);
@@ -204,7 +210,11 @@ void MultiMachineItem::doRender(wxDC& dc)
 
         //state
         dc.SetFont(Label::Body_13);
-        if (state_device == 0) {
+        if (lan) {
+            DrawTextWithEllipsis(dc, lan_monitor_status_text(status), FromDIP(DEVICE_LEFT_PRO_INFO), left, FromDIP(10));
+            DrawTextWithEllipsis(dc, lan_monitor_progress_text(status), FromDIP(DEVICE_LEFT_PRO_INFO), left, FromDIP(31));
+        }
+        else if (state_device == 0) {
             dc.SetTextForeground(*wxBLACK);
             DrawTextWithEllipsis(dc, get_state_device(), FromDIP(DEVICE_LEFT_PRO_INFO), left);
         }
@@ -553,7 +563,7 @@ void MultiMachineManagerPage::refresh_user_device(bool clear)
     Slic3r::DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
     if (!dev) return;
 
-    auto all_machine = dev->get_my_cloud_machine_list();
+    auto all_machine = dev->get_multi_machine_list();
     auto user_machine = std::map<std::string, MachineObject*>();
 
     //selected machine
@@ -593,7 +603,7 @@ void MultiMachineManagerPage::refresh_user_device(bool clear)
         m_device_items.push_back(di);
         m_sizer_machine_list->Add(m_device_items[i], 0, wxALL | wxEXPAND, 0);
 
-        subscribe_list.push_back(dev_id);
+        if (!machine->is_lan_mode_printer()) subscribe_list.push_back(dev_id);
     }
 
     dev->subscribe_device_list(subscribe_list);
@@ -632,25 +642,28 @@ void MultiMachineManagerPage::sync_state(MachineObject* obj_)
         state_obj.dev_id = obj_->get_dev_id();
         state_obj.state_dev_name = obj_->get_dev_name();
 
-        if (obj_->print_status == "IDLE") {
+        const auto* monitor = wxGetApp().get_lan_monitor();
+        const auto* status = obj_->supports_lan_monitoring() && monitor ? monitor->status(obj_->get_dev_id()) : nullptr;
+        const auto print_status = obj_->supports_lan_monitoring() ? (status && status->live() ? status->job.print_state : "") : obj_->print_status;
+        if (print_status == "IDLE") {
             state_obj.state_device = 0;
         }
-        else if (obj_->print_status == "FINISH") {
+        else if (print_status == "FINISH") {
             state_obj.state_device = 1;
         }
-        else if (obj_->print_status == "FAILED") {
+        else if (print_status == "FAILED") {
             state_obj.state_device = 2;
         }
-        else if (obj_->print_status == "RUNNING") {
+        else if (print_status == "RUNNING") {
             state_obj.state_device = 3;
         }
-        else if (obj_->print_status == "PAUSE") {
+        else if (print_status == "PAUSE") {
             state_obj.state_device = 4;
         }
-        else if (obj_->print_status == "PREPARE") {
+        else if (print_status == "PREPARE") {
             state_obj.state_device = 5;
         }
-        else if (obj_->print_status == "SLICING") {
+        else if (print_status == "SLICING") {
             state_obj.state_device = 6;
         }
         else {

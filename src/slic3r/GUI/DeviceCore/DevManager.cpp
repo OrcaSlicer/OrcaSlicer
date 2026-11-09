@@ -895,6 +895,16 @@ namespace Slic3r
         return result;
     }
 
+    std::map<std::string, MachineObject*> DeviceManager::get_multi_machine_list()
+    {
+        auto result = get_my_cloud_machine_list();
+        for (const auto& [id, machine] : localMachineList) {
+            if (machine && machine->supports_lan_monitoring() && machine->has_access_right())
+                result[id] = machine;
+        }
+        return result;
+    }
+
     std::string DeviceManager::get_first_online_user_machine() const
     {
         for (auto it = userMachineList.begin(); it != userMachineList.end(); it++)

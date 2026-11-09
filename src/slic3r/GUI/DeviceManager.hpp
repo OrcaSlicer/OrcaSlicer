@@ -219,6 +219,7 @@ public:
     std::string dev_connection_type;    /* lan | cloud */
     std::string connection_type() const { return dev_connection_type; }
     bool is_lan_mode_printer() const { return dev_connection_type == "lan"; }
+    bool supports_lan_monitoring() const;
     bool is_cloud_mode_printer() const { return dev_connection_type == "cloud"; }
 
     std::chrono::system_clock::time_point last_cloud_msg_time_;

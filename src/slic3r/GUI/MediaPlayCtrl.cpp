@@ -1,5 +1,6 @@
 #include "MediaPlayCtrl.h"
 #include "PrinterNetworkTypes.hpp"
+#include "slic3r/Utils/BambuCameraSource.hpp"
 #include "WebMediaController.hpp"
 #include "IPrinterAgent.hpp"
 #include "Widgets/Button.hpp"
@@ -473,18 +474,17 @@ void MediaPlayCtrl::Play()
     std::string  agent_version = agent ? agent->get_version() : "";
     if (m_lan_proto > LiveviewLocal::LVL_Disable && (m_lan_mode || !m_remote_proto) && !m_disable_lan && !m_lan_ip.empty()) {
         m_disable_lan = m_remote_proto && !m_lan_mode; // try remote next time
-        std::string url;
-        if (m_lan_proto == LiveviewLocal::LVL_Local)
-            url = "bambu:///local/" + m_lan_ip + ".?port=6000&user=" + m_lan_user + "&passwd=" + m_lan_passwd;
-        else if (m_lan_proto == LiveviewLocal::LVL_Rtsps)
-            url = "bambu:///rtsps___" + m_lan_user + ":" + m_lan_passwd + "@" + m_lan_ip + "/streaming/live/1?proto=rtsps";
-        else if (m_lan_proto == LiveviewLocal::LVL_Rtsp)
-            url = "bambu:///rtsp___" + m_lan_user + ":" + m_lan_passwd + "@" + m_lan_ip + "/streaming/live/1?proto=rtsp";
-        url += "&device=" + m_machine;
-        url += "&net_ver=" + agent_version;
-        url += "&dev_ver=" + m_dev_ver;
-        url += "&cli_id=" + wxGetApp().app_config->get("slicer_uuid");
-        url += "&cli_ver=" + std::string(SLIC3R_VERSION);
+        BambuCameraSource source;
+        source.protocol = static_cast<LiveviewLocal>(m_lan_proto);
+        source.host = m_lan_ip;
+        source.user = m_lan_user;
+        source.password = m_lan_passwd;
+        source.device = m_machine;
+        source.network_version = agent_version;
+        source.device_version = m_dev_ver;
+        source.client_id = wxGetApp().app_config->get("slicer_uuid");
+        source.client_version = SLIC3R_VERSION;
+        std::string url = source.url();
         BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl: " << hide_passwd(hide_id_middle_string(url, url.find(m_lan_ip), m_lan_ip.length()), {m_lan_passwd});
         m_url = url;
         load();
@@ -811,15 +811,14 @@ void MediaPlayCtrl::ToggleStream()
         if (res == wxID_CANCEL) return;
     }
     if (m_lan_proto > LiveviewLocal::LVL_Disable && (m_lan_mode || !m_remote_proto) && !m_disable_lan && !m_lan_ip.empty()) {
-        std::string url;
-        if (m_lan_proto == LiveviewLocal::LVL_Local)
-            url = "bambu:///local/" + m_lan_ip + ".?port=6000&user=" + m_lan_user + "&passwd=" + m_lan_passwd;
-        else if (m_lan_proto == LiveviewLocal::LVL_Rtsps)
-            url = "bambu:///rtsps___" + m_lan_user + ":" + m_lan_passwd + "@" + m_lan_ip + "/streaming/live/1?proto=rtsps";
-        else if (m_lan_proto == LiveviewLocal::LVL_Rtsp)
-            url = "bambu:///rtsp___" + m_lan_user + ":" + m_lan_passwd + "@" + m_lan_ip + "/streaming/live/1?proto=rtsp";
-        url += "&device=" + into_u8(m_machine);
-        url += "&dev_ver=" + m_dev_ver;
+        BambuCameraSource source;
+        source.protocol = static_cast<LiveviewLocal>(m_lan_proto);
+        source.host = m_lan_ip;
+        source.user = m_lan_user;
+        source.password = m_lan_passwd;
+        source.device = into_u8(m_machine);
+        source.device_version = m_dev_ver;
+        std::string url = source.url();
         BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl::ToggleStream: " << hide_passwd(hide_id_middle_string(url, url.find(m_lan_ip), m_lan_ip.length()), {m_lan_passwd});
         std::string             file_url = data_dir() + "/cameratools/url.txt";
         boost::nowide::ofstream file(file_url);

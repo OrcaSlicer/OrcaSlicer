@@ -396,3 +396,6 @@ src/slic3r/GUI/PostProcessor.cpp
 src/slic3r/GUI/TaskManager.cpp
 src/slic3r/GUI/Widgets/ProgressDialog.hpp
 src/slic3r/GUI/Widgets/StepCtrl.cpp
+
+src/slic3r/GUI/LanMonitorManager.cpp
+src/slic3r/GUI/MultiMachineCameraPage.cpp

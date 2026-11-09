@@ -420,6 +420,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/MultiMachineManagerPage.hpp
     GUI/MultiMachinePage.cpp
     GUI/MultiMachinePage.hpp
+    GUI/LanMonitorManager.cpp
+    GUI/LanMonitorManager.hpp
+    GUI/MultiMachineCameraPage.cpp
+    GUI/MultiMachineCameraPage.hpp
     GUI/MultiPrintJob.cpp
     GUI/MultiPrintJob.hpp
     GUI/MultiSendMachineModel.cpp

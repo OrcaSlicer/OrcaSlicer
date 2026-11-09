@@ -1,6 +1,7 @@
 #include "PrinterNetworkTypes.hpp"
 #include <nlohmann/json.hpp>
 #include "DeviceManager.hpp"
+#include "slic3r/Utils/LanMonitorSnapshot.hpp"
 #include "HMS.hpp"
 #include "I18N.hpp"
 #include "libslic3r/Thread.hpp"
@@ -533,6 +534,14 @@ bool MachineObject::HasRecentLanMessage()
 bool MachineObject::has_access_right() const
 {
     return !m_access_revoked && (printer_agent_id == MOONRAKER_PRINTER_AGENT_ID || !get_access_code().empty());
+}
+
+bool MachineObject::supports_lan_monitoring() const
+{
+    return is_lan_mode_printer() && !dev_id.empty() &&
+           dev_id.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789") == std::string::npos &&
+           (printer_agent_id.empty() || printer_agent_id == BBL_PRINTER_AGENT_ID) &&
+           (printer_type == "C11" || printer_type == "C12");
 }
 
 void MachineObject::revoke_access()
@@ -3457,12 +3466,9 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                         if (jj["mc_print_error_code"].is_number())
                             mc_print_error_code = jj["mc_print_error_code"].get<int>();
                     }
-                    if (jj.contains("mc_remaining_time")) {
-                        if (jj["mc_remaining_time"].is_string())
-                            mc_left_time = stoi(j["print"]["mc_remaining_time"].get<std::string>()) * 60;
-                        else if (jj["mc_remaining_time"].is_number_integer())
-                            mc_left_time = j["print"]["mc_remaining_time"].get<int>() * 60;
-                    }
+                    LanMonitorSnapshot job_fields;
+                    job_fields.update(j);
+                    if (job_fields.remaining_seconds) mc_left_time = *job_fields.remaining_seconds;
                     if (jj.contains("print_error")) {
                         if (jj["print_error"].is_number())
                             print_error = jj["print_error"].get<int>();

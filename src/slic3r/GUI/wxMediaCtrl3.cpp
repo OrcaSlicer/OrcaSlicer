@@ -8,7 +8,9 @@
 #include <string>
 #include <chrono>
 #include <thread>
-#include <wx/dcclient.h>
+#include <wx/brush.h>
+#include <wx/dc.h>
+#include <wx/dcbuffer.h>
 #include <cstdarg>
 #include <cstdlib>
 #include <cstring>
@@ -43,6 +45,7 @@ END_EVENT_TABLE()
 struct StaticBambuLib : BambuLib
 {
     static StaticBambuLib &get(BambuLib *);
+    static void forget(BambuLib *);
 };
 
 wxMediaCtrl3::wxMediaCtrl3(wxWindow *parent)
@@ -51,6 +54,8 @@ wxMediaCtrl3::wxMediaCtrl3(wxWindow *parent)
     , m_thread([this] { PlayThread(); })
 {
     SetBackgroundColour("#000001ff");
+    // Present the background and picture together instead of exposing a separate black erase.
+    SetBackgroundStyle(wxBG_STYLE_PAINT);
 }
 
 wxMediaCtrl3::~wxMediaCtrl3()
@@ -62,6 +67,7 @@ wxMediaCtrl3::~wxMediaCtrl3()
         m_cond.notify_all();
     }
     m_thread.join();
+    StaticBambuLib::forget(this);
 }
 
 static void adjust_frame_size(wxSize& frame, wxSize const& video, wxSize const& window);
@@ -73,6 +79,8 @@ void wxMediaCtrl3::Load(wxURI url)
         return;
     m_video_size = wxDefaultSize;
     m_error = 0;
+    m_playback_error = 0;
+    m_has_video_frame = false;
     m_url.reset(new wxURI(url));
     m_cond.notify_all();
 }
@@ -95,10 +103,12 @@ void wxMediaCtrl3::Stop()
 {
     std::unique_lock<std::mutex> lk(m_mutex);
     m_url.reset();
+    m_playback_error = 0;
+    m_has_video_frame = false;
     m_frame = wxImage(m_idle_image);
     NotifyStopped();
     m_cond.notify_all();
-    Refresh();
+    Refresh(false);
 }
 
 void wxMediaCtrl3::SetExternalFrame(const wxImage& frame, wxSize videoSize)
@@ -110,10 +120,11 @@ void wxMediaCtrl3::SetExternalFrame(const wxImage& frame, wxSize videoSize)
         if (!m_external)
             return;
         m_frame = frame;
+        m_has_video_frame = true;
         m_video_size = videoSize.IsFullySpecified() ? videoSize : frame.GetSize();
         adjust_frame_size(m_frame_size, m_video_size, GetSize());
     }
-    CallAfter([this] { Refresh(); });
+    queue_refresh();
 }
 
 #ifdef _WIN32
@@ -126,10 +137,11 @@ void wxMediaCtrl3::SetExternalFrame(const wxBitmap& frame, wxSize videoSize)
         if (!m_external)
             return;
         m_frame = frame;
+        m_has_video_frame = true;
         m_video_size = videoSize.IsFullySpecified() ? videoSize : frame.GetSize();
         adjust_frame_size(m_frame_size, m_video_size, GetSize());
     }
-    CallAfter([this] { Refresh(); });
+    queue_refresh();
 }
 #endif
 
@@ -137,24 +149,26 @@ void wxMediaCtrl3::BeginExternalStream()
 {
     std::unique_lock<std::mutex> lk(m_mutex);
     m_external = true;
+    m_has_video_frame = false;
     m_url.reset();
     m_active_url.reset();
     m_video_size = wxDefaultSize;
     m_frame = wxImage(m_idle_image);
     m_cond.notify_all();
-    Refresh();
+    Refresh(false);
 }
 
 void wxMediaCtrl3::EndExternalStream()
 {
     std::unique_lock<std::mutex> lk(m_mutex);
     m_external = false;
+    m_has_video_frame = false;
     m_url.reset();
     m_active_url.reset();
     m_video_size = wxDefaultSize;
     m_frame = wxImage(m_idle_image);
     m_cond.notify_all();
-    Refresh();
+    Refresh(false);
 }
 
 void wxMediaCtrl3::SetIdleImage(wxString const &image)
@@ -166,7 +180,7 @@ void wxMediaCtrl3::SetIdleImage(wxString const &image)
         std::unique_lock<std::mutex> lk(m_mutex);
         m_frame = wxImage(m_idle_image);
         assert(m_frame.IsOk());
-        Refresh();
+        Refresh(false);
     }
 }
 
@@ -180,6 +194,18 @@ int wxMediaCtrl3::GetLastError() const
 {
     std::unique_lock<std::mutex> lk(m_mutex);
     return m_error;
+}
+
+int wxMediaCtrl3::GetPlaybackError() const
+{
+    std::unique_lock<std::mutex> lk(m_mutex);
+    return m_playback_error;
+}
+
+bool wxMediaCtrl3::HasVideoFrame() const
+{
+    std::unique_lock<std::mutex> lk(m_mutex);
+    return m_has_video_frame;
 }
 
 wxSize wxMediaCtrl3::GetVideoSize() const
@@ -203,8 +229,14 @@ static void adjust_frame_size(wxSize & frame, wxSize const & video, wxSize const
 
 void wxMediaCtrl3::paintEvent(wxPaintEvent &evt)
 {
-    wxPaintDC dc(this);
-    auto      size = GetSize();
+    wxAutoBufferedPaintDC dc(this);
+    draw_frame(dc, GetClientSize());
+}
+
+void wxMediaCtrl3::draw_frame(wxDC &dc, wxSize size)
+{
+    dc.SetBackground(wxBrush(GetBackgroundColour()));
+    dc.Clear(); // Buffered DCs reuse storage, including the letterbox area and empty streams.
     if (size.x <= 0 || size.y <= 0)
         return;
     std::unique_lock<std::mutex> lk(m_mutex);
@@ -229,6 +261,16 @@ void wxMediaCtrl3::paintEvent(wxPaintEvent &evt)
     dc.DrawBitmap(m_frame, size3.x, size3.y);
 }
 
+void wxMediaCtrl3::queue_refresh()
+{
+    if (!m_refresh_pending.exchange(true)) {
+        CallAfter([this] {
+            m_refresh_pending.store(false);
+            Refresh(false);
+        });
+    }
+}
+
 void wxMediaCtrl3::DoSetSize(int x, int y, int width, int height, int sizeFlags)
 {
     wxWindow::DoSetSize(x, y, width, height, sizeFlags);
@@ -236,7 +278,7 @@ void wxMediaCtrl3::DoSetSize(int x, int y, int width, int height, int sizeFlags)
     wxMediaCtrl_OnSize(this, m_video_size, width, height);
     std::unique_lock<std::mutex> lk(m_mutex);
     adjust_frame_size(m_frame_size, m_video_size, GetSize());
-    Refresh();
+    Refresh(false);
 }
 
 void wxMediaCtrl3::bambu_log(void *ctx, int level, tchar const *msg2)
@@ -455,13 +497,10 @@ int wxMediaCtrl3::PlayFfmpeg(std::shared_ptr<wxURI> const &url, std::unique_lock
                 lock.lock();
                 if (m_url != url)
                     break;
-                if (frame.IsOk())
+                if (frame.IsOk()) {
                     m_frame = frame;
-                if (!m_refresh_pending.exchange(true)) {
-                    CallAfter([this] {
-                        m_refresh_pending.store(false);
-                        Refresh();
-                    });
+                    m_has_video_frame = true;
+                    queue_refresh();
                 }
             }
         }
@@ -484,6 +523,7 @@ void wxMediaCtrl3::PlayThread()
             continue;
         if (!url->HasScheme())
             break;
+        m_last_PTS = 0;
         const wxString scheme = url->GetScheme();
         const bool generic_ffmpeg = scheme.CmpNoCase("http") == 0 || scheme.CmpNoCase("https") == 0 ||
                                     scheme.CmpNoCase("rtsp") == 0 || scheme.CmpNoCase("rtsps") == 0;
@@ -493,7 +533,7 @@ void wxMediaCtrl3::PlayThread()
         } else {
             lk.unlock();
             Bambu_Tunnel tunnel = nullptr;
-            error = Bambu_Create(&tunnel, m_url->BuildURI().ToUTF8());
+            error = Bambu_Create(&tunnel, url->BuildURI().ToUTF8());
             if (error == 0) {
                 Bambu_SetLogger(tunnel, &wxMediaCtrl3::bambu_log, this);
                 error = Bambu_Open(tunnel);
@@ -520,7 +560,7 @@ void wxMediaCtrl3::PlayThread()
                 decoder.open(info);
                 m_video_size = { info.format.video.width, info.format.video.height };
                 adjust_frame_size(m_frame_size, m_video_size, GetSize());
-                minFrameDuration = 800 / info.format.video.frame_rate; // 80%
+                minFrameDuration = 800 / std::max(1, info.format.video.frame_rate); // 80%
                 NotifyStopped();
             }
             Bambu_Sample sample;
@@ -555,16 +595,21 @@ void wxMediaCtrl3::PlayThread()
                         break;
                     }
                     if (bm.IsOk()) {
-                        auto now = std::chrono::system_clock::now();
+                        auto now = std::chrono::steady_clock::now();
                         if (m_last_PTS && (sample.decode_time - m_last_PTS) < 30000000ULL) { // 3s
                             auto next_PTS_expected = m_last_PTS_expected + std::chrono::milliseconds((sample.decode_time - m_last_PTS) / 10000ULL);
                             // The frame is late, catch up a little
                             auto next_PTS_practical = m_last_PTS_practical + std::chrono::milliseconds(minFrameDuration);
                             auto next_PTS = std::max(next_PTS_expected, next_PTS_practical);
-                            if(now < next_PTS)
-                                std::this_thread::sleep_until(next_PTS);
-                            else
+                            // Waiting with the frame mutex held blocks paint, status and Stop().
+                            if (now < next_PTS) {
+                                if (m_cond.wait_until(lk, next_PTS, [this, &url] { return m_url != url; })) {
+                                    error = 1;
+                                    break;
+                                }
+                            } else {
                                 next_PTS = now;
+                            }
                             //auto text = wxString::Format(L"wxMediaCtrl3 pts diff %ld\n", std::chrono::duration_cast<std::chrono::milliseconds>(next_PTS - next_PTS_expected).count());
                             //OutputDebugString(text);
                             m_last_PTS = sample.decode_time;
@@ -577,8 +622,9 @@ void wxMediaCtrl3::PlayThread()
                             m_last_PTS_practical = now;
                         }
                         m_frame = bm;
+                        m_has_video_frame = true;
+                        queue_refresh();
                     }
-                    CallAfter([this] { Refresh(); });
                 }
             }
             if (tunnel) {
@@ -589,8 +635,10 @@ void wxMediaCtrl3::PlayThread()
                 lk.lock();
             }
         }
-        if (m_url == url)
+        if (m_url == url) {
             m_error = error;
+            m_playback_error = error;
+        }
         m_frame_size = wxDefaultSize;
         m_video_size = wxDefaultSize;
         NotifyStopped();

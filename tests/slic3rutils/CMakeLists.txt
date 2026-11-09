@@ -11,6 +11,9 @@ add_executable(${_TEST_NAME}_tests
     test_device_access.cpp
     test_moonraker_printer_agent.cpp
     test_network_discovery.cpp
+    test_lan_monitor.cpp
+    test_camera_startup.cpp
+    test_process_runner.cpp
     test_filament_bitmap_utils.cpp
     test_colour_picker_field.cpp
     test_filament_color_picker.cpp
@@ -74,6 +77,11 @@ if (MSVC)
 endif ()
 
 target_link_libraries(${_TEST_NAME}_tests test_common libslic3r_gui libslic3r pybind11::embed Catch2::Catch2WithMain)
+add_executable(process_runner_test_child EXCLUDE_FROM_ALL process_runner_test_child.cpp)
+set_target_properties(process_runner_test_child PROPERTIES
+    MACOSX_BUNDLE FALSE WIN32_EXECUTABLE FALSE
+    RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:${_TEST_NAME}_tests>")
+add_dependencies(${_TEST_NAME}_tests process_runner_test_child)
 if (SLIC3R_PCH AND NOT SLIC3R_SYNTAXONLY)
     add_precompiled_header(${_TEST_NAME}_tests ${CMAKE_SOURCE_DIR}/src/slic3r/pchheader.hpp FORCEINCLUDE)
 endif ()

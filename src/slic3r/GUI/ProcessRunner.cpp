@@ -13,6 +13,13 @@
 
 namespace Slic3r { namespace GUI {
 
+namespace {
+// Boost temporarily makes the child's pipe ends inheritable while creating the process.
+// Concurrent launches can inherit each other's output handles, preventing EOF after termination.
+// Only launch setup is serialized; running children and their readers remain independent.
+std::mutex process_launch_mutex;
+}
+
 ProcessRunner::ProcessRunner()
     : m_poll_timer(this, wxID_ANY)
 {
@@ -135,6 +142,7 @@ bool ProcessRunner::run_command_line_async(const std::string& command_line,
         namespace bp = boost::process;
 
         try {
+            std::unique_lock<std::mutex> launch_lock(process_launch_mutex);
             auto stdout_pipe = std::make_unique<bp::ipstream>();
             auto stderr_pipe = std::make_unique<bp::ipstream>();
             auto stdin_pipe  = std::make_unique<bp::opstream>();
@@ -150,6 +158,7 @@ bool ProcessRunner::run_command_line_async(const std::string& command_line,
                 bp::std_in < *stdin_pipe,
                 bp::std_out > *stdout_pipe,
                 bp::std_err > *stderr_pipe);
+            launch_lock.unlock();
 
             m_stdout_pipe = std::move(stdout_pipe);
             m_stderr_pipe = std::move(stderr_pipe);
@@ -211,6 +220,11 @@ void ProcessRunner::write_stdin(const std::string& data)
     m_stdin_pipe->flush();
 }
 
+bool ProcessRunner::can_write_stdin() const
+{
+    return !m_launching.load() && m_stdin_pipe && m_process && m_process->running();
+}
+
 bool ProcessRunner::is_running() const
 {
     return m_launching.load() || (m_process && m_process->running());
@@ -224,12 +238,14 @@ ProcessRunner::SyncResult ProcessRunner::run_sync(const std::string& executable,
     try {
         namespace bp = boost::process;
 
+        std::unique_lock<std::mutex> launch_lock(process_launch_mutex);
         bp::ipstream std_out;
         bp::ipstream std_err;
 
         bp::child child(executable, bp::args(args),
                         bp::std_out > std_out,
                         bp::std_err > std_err);
+        launch_lock.unlock();
 
         // Read both streams on separate threads while the process runs
         std::thread stdout_reader([&]() {

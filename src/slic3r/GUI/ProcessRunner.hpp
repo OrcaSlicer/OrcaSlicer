@@ -50,6 +50,7 @@ public:
 
     // Write data to the running process's stdin (async mode only).
     void write_stdin(const std::string& data);
+    bool can_write_stdin() const;
 
     // True while an async process is launching or running.
     bool is_running() const;

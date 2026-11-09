@@ -196,6 +196,10 @@ echo -n "[9/9] Generating Linux app..."
         exit 1
     fi
     cp -fl "${ORIGINAL_BINARY_LOCATION}" "$BIN_DIR/@SLIC3R_APP_CMD@"
+    LAN_MONITOR_WORKER="$(dirname "${ORIGINAL_BINARY_LOCATION}")/orca-lan-monitor-worker"
+    if [ -f "$LAN_MONITOR_WORKER" ]; then
+        cp -fl "$LAN_MONITOR_WORKER" "$BIN_DIR/orca-lan-monitor-worker"
+    fi
 
     # Bundle the embedded Python runtime (interpreter + stdlib) that CMake staged
     # next to the binary. OrcaSlicer resolves PYTHONHOME at <resources_dir>/../lib/python,
