@@ -107,6 +107,11 @@ ExternalProject_Add(dep_OpenSSL
         no-asm
         no-ssl3-method
         no-dynamic-engine
+        # Skip OpenSSL's ~180 test and ~10 fuzz programs. Orca never builds or
+        # runs them, and install_sw installs the same libraries, headers and
+        # openssl tool either way. Each test program links the full static
+        # libcrypto, and on Windows nmake builds them one at a time.
+        no-tests
     BUILD_IN_SOURCE ON
     BUILD_COMMAND ${_make_cmd}
     INSTALL_COMMAND ${_install_cmd}
