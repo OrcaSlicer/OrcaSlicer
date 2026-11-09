@@ -4537,6 +4537,21 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     }
 
 
+    // Curve of the layer time over the layers, so that steps between adjacent layers (and the effect of the layer time smoothing) are visible.
+    auto append_layer_time_graph = [this, window_padding]() {
+        const std::vector<float> layer_times = m_viewer.get_layers_estimated_times();
+        if (layer_times.size() < 2)
+            return;
+        const float max_time = *std::max_element(layer_times.begin(), layer_times.end());
+        ImGui::Dummy({ window_padding, window_padding });
+        ImGui::SameLine();
+        // TRN Title of the graph of the print time of each layer in the preview legend.
+        ImGui::TextUnformatted(_u8L("Layer time (s) by layer").c_str());
+        ImGui::Dummy({ window_padding, 1 });
+        ImGui::SameLine();
+        ImGui::PlotLines("##layer_time_graph", layer_times.data(), int(layer_times.size()), 0, nullptr, 0.0f, max_time, ImVec2(180.0f * m_scale, 60.0f * m_scale));
+    };
+
     // extrusion paths section -> title
     ImGui::Dummy({ window_padding, window_padding });
     ImGui::SameLine();
@@ -4890,8 +4905,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     case libvgcode::EViewType::Temperature:              { append_range(m_viewer.get_color_range(libvgcode::EViewType::Temperature), 0); break; }
 // ORCA: Add Pressure Advance visualization support
     case libvgcode::EViewType::PressureAdvance:          { append_range(m_viewer.get_color_range(libvgcode::EViewType::PressureAdvance), 3); break; }
-    case libvgcode::EViewType::LayerTimeLinear:          { append_range(m_viewer.get_color_range(libvgcode::EViewType::LayerTimeLinear), true); break; }
-    case libvgcode::EViewType::LayerTimeLogarithmic:     { append_range(m_viewer.get_color_range(libvgcode::EViewType::LayerTimeLogarithmic), true); break; }
+    case libvgcode::EViewType::LayerTimeLinear:          { append_range(m_viewer.get_color_range(libvgcode::EViewType::LayerTimeLinear), true); append_layer_time_graph(); break; }
+    case libvgcode::EViewType::LayerTimeLogarithmic:     { append_range(m_viewer.get_color_range(libvgcode::EViewType::LayerTimeLogarithmic), true); append_layer_time_graph(); break; }
     case libvgcode::EViewType::VolumetricFlowRate:       { append_range(m_viewer.get_color_range(libvgcode::EViewType::VolumetricFlowRate), 2); break; }
     case libvgcode::EViewType::ActualVolumetricFlowRate: { append_range(m_viewer.get_color_range(libvgcode::EViewType::ActualVolumetricFlowRate), 2); break; }
     case libvgcode::EViewType::Tool:
