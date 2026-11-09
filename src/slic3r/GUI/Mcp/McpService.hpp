@@ -5,8 +5,8 @@
 #include "McpJournal.hpp"
 #include "McpOptions.hpp"
 #include "McpProtocol.hpp"
-#include "McpScript.hpp"
-#include "McpScriptRun.hpp"
+#include "McpReplay.hpp"
+#include "McpPersonRun.hpp"
 #include "McpServicePtr.hpp"
 #include "McpTypes.hpp"
 #include "UiInvoker.hpp"
@@ -45,7 +45,7 @@ class WebPresses;
 struct AutoAnswerRule;
 struct RequestGate;
 
-// Whose a dialog_auto_answer call's rules are ("script", "plugin" or "session"), the tracker layer they went into (0 for
+// Whose an auto_answer_dialogs call's rules are ("run", "plugin" or "session"), the tracker layer they went into (0 for
 // none), and whether they start paused: a Run Script session's rules registered between its works answer nothing, an open
 // dialog included, until its next work.
 struct AutoAnswerSet
@@ -56,10 +56,10 @@ struct AutoAnswerSet
 };
 
 // The MCP server inside the running app: owns the tool catalog, the UI invoker, jobs, the session
-// journal, the modal-dialog tracker and the HTTP endpoint, and runs a --mcp-script once the app is
+// journal, the modal-dialog tracker and the HTTP endpoint, and runs a --mcp-run once the app is
 // ready. Created by GUI_App; started, suspended and stopped on the UI thread.
 //
-// Off unless the preference or --mcp/--mcp-script asks for it; when off, none of this exists.
+// Off unless the preference or --mcp/--mcp-run asks for it; when off, none of this exists.
 // Held in an McpServicePtr, whose deleter is the only way to destroy one.
 class McpService
 {
@@ -76,9 +76,9 @@ public:
     // What initialize and server/discover report: the server's name, version and instructions.
     static ServerInfo server_info();
 
-    // Builds the catalog and, when `serve` is true, opens the HTTP endpoint. A script from
+    // Builds the catalog and, when `serve` is true, opens the HTTP endpoint. A replay or script from
     // `options` runs after mark_ready(). Returns false with `err` set when the endpoint can't start;
-    // the catalog stays usable for the script either way.
+    // the catalog stays usable for it either way.
     bool start(const McpLaunchOptions& options, bool serve, std::string& err);
     // Stops everything; idempotent, and final: start() refuses afterwards. Wakes every waiting call
     // and closes the endpoint, but frees nothing: a call may still be on the UI thread's stack inside
@@ -89,7 +89,7 @@ public:
     // destroyed under it.
     bool drain(std::chrono::milliseconds timeout);
     // Closes the HTTP endpoint and removes the discovery file; the catalog, running jobs and a
-    // launch script carry on, and start() with `serve` opens the endpoint again. This is what
+    // launch run carry on, and start() with `serve` opens the endpoint again. This is what
     // turning the server off in Preferences does: a running call may have opened that very dialog,
     // so the service itself must outlive it.
     void stop_serving();
@@ -121,48 +121,48 @@ public:
     UiInvoker&    ui() { return *m_invoker; }
     McpCore&      core() { return *m_core; }
     ModalTracker& modals() { return *m_modals; }
-    // Refs from ui_snapshot live here, so they survive between calls. UI thread only.
+    // Refs from list_widgets live here, so they survive between calls. UI thread only.
     UiInspector&  inspector() { return *m_inspector; }
-    // The presses ui_mouse downs left on pages, the web counterpart of the inspector's held press.
+    // The presses mouse_gesture downs left on pages, the web counterpart of the inspector's held press.
     // Any thread.
     WebPresses&   web_presses() { return *m_web_presses; }
     // start_recording and its kin; also told about every call, for the captions.
     McpRecorder&  recorder() { return *m_recorder; }
 
-    // Auto-answer rules from dialog_auto_answer. Rules registered from inside a script (the nearest
-    // running script in `ancestry`, the caller's job chain, nearest first) last until that script
+    // Auto-answer rules from auto_answer_dialogs. Rules registered from inside a run (the nearest
+    // running replay or script in `ancestry`, the caller's job chain, nearest first) last until that run
     // ends; a client's rules replace the ones it registered before, and end when the endpoint
     // closes: with no endpoint open (the server turned off meanwhile), a client's rules are refused.
-    // A script scope that is paused (set_script_scope_paused()) gets them paused. Any thread.
+    // A run scope that is paused (set_run_scope_paused()) gets them paused. Any thread.
     AutoAnswerSet set_auto_answer(std::vector<AutoAnswerRule> rules, const std::vector<std::string>& ancestry);
-    // run_script brackets its steps with these. A mouse press the script left held is released
+    // run_replay and run_script bracket their runs with these. A mouse press the run left held is released
     // when it ends, and so is a recording it started; `wait_recording` waits for that recording's file,
     // unless the run already did.
-    void begin_script_scope(const std::string& job);
-    void end_script_scope(const std::string& job, bool wait_recording = true);
+    void begin_run_scope(const std::string& job);
+    void end_run_scope(const std::string& job, bool wait_recording = true);
     // Pauses or resumes every rule layer of `job`'s scope (ModalTracker::set_paused); a layer the scope adds while it
     // is paused starts paused. Any thread.
-    void set_script_scope_paused(const std::string& job, bool paused);
+    void set_run_scope_paused(const std::string& job, bool paused);
     // Releases the mouse presses `job`'s calls left held, on widgets and pages, as the end of its scope does. Any
     // thread.
-    void release_script_presses(const std::string& job);
-    // Cancels the operations whose lineage holds `job`, as the cancel tool does: a background job through the worker,
+    void release_run_presses(const std::string& job);
+    // Cancels the operations whose lineage holds `job`, as cancel_job does: a background job through the worker,
     // a slice or an export through the plater. UI thread.
     void cancel_operations_of(const std::string& job);
-    // The job of the nearest running script in `ancestry`, else the scope of the plugin whose call it is,
+    // The job of the nearest running replay or script in `ancestry`, else the scope of the plugin whose call it is,
     // or "" for a client's own call. Any thread.
-    std::string script_owner(const std::vector<std::string>& ancestry) const;
+    std::string run_owner(const std::vector<std::string>& ancestry) const;
     // Keeps the service from being destroyed while a caller outside the core uses it: a plugin's call holds
     // a lease from the moment the UI thread hands it the service until the call returns, and drain() waits
     // for every lease. False once the service is stopping. Any thread.
     bool acquire_lease();
     void release_lease();
     // A plugin's calls own what they leave behind (auto-answer rules, a recording, a held press) as a
-    // script's do, until the plugin unloads: begin is called before each of its calls (idempotent), end when
+    // run's do, until the plugin unloads: begin is called before each of its calls (idempotent), end when
     // it unloads. Any thread.
     // begin returns false for a plugin whose scope ended (it unloaded) until plugin_loaded() is called for
     // it again; end also stops the plugin's running calls, and a call of its that would leave something
-    // behind after that is refused (script_owner, set_auto_answer throw).
+    // behind after that is refused (run_owner, set_auto_answer throw).
     bool begin_plugin_scope(const std::string& plugin_key);
     void end_plugin_scope(const std::string& plugin_key);
     void plugin_loaded(const std::string& plugin_key);
@@ -171,47 +171,47 @@ public:
     bool endpoint_open() const;
 
     // {serving, ready, version, port, url, token_file, token_source, discovery_file,
-    // discovery_error} for Preferences and get_state.
+    // discovery_error} for Preferences and get_app_state.
     nlohmann::json describe() const;
     // Where the token in use comes from: "file", "ORCA_MCP_TOKEN" or "--mcp-token".
     const std::string& token_source() const { return m_token_source; }
 
-    // Exit code of a --mcp-script run (0 passed, 1 failed, 2 invalid), -1 when none ran. Read by
+    // Exit code of a --mcp-run run (0 passed, 1 failed, 2 invalid), -1 when none ran. Read by
     // GUI_Run after the event loop ends; wx ignores OnExit()'s return value.
-    static int script_exit_code();
+    static int run_exit_code();
 
-    // Runs a replay for the Action Replay window: an unjournaled mutate job, as run_script runs one,
+    // Runs a replay for the Action Replay window: an unjournaled mutate job, as run_replay runs one,
     // whose steps report through `events`. A thread the service owns follows the job to its end, past a
     // running or blocked_by_dialog reply, and posts `finished`; stop() joins it. `only_step` runs one
     // step (no result.json). `discard_authorized`: the user chose not to save before a run that
     // replaces the project, so the replacing tools may drop unsaved changes while it runs. nullptr when
     // the service is not started or is stopping. UI thread.
-    std::shared_ptr<ScriptRun> start_script_run(Script script, ScriptContext sctx, std::optional<std::size_t> only_step,
-                                                bool discard_authorized, ScriptRun::Events events);
-    // Hosts the Run Script panel's `session` as an unjournaled person's run_python job (run_python_session_job()) on a
-    // thread the service owns, which stop() joins and stop_script_runs() stops. `file` is the session's file; empty
+    std::shared_ptr<PersonRun> start_replay_run(Replay replay, ReplayContext sctx, std::optional<std::size_t> only_step,
+                                                bool discard_authorized, PersonRun::Events events);
+    // Hosts the Run Script panel's `session` as an unjournaled person's run_script job (run_python_session_job()) on a
+    // thread the service owns, which stop() joins and stop_person_runs() stops. `file` is the session's file; empty
     // for an unsaved script. `events.finished` is posted only for a job refused before its handler ran or a handler
     // that refused (Python scripts off), as {"error": message}; the session's end is PythonSession::ended(), which a
     // refused job sets too. nullptr when the service is not started or is stopping. UI thread.
-    std::shared_ptr<ScriptRun> start_python_session(std::shared_ptr<PythonSession> session, const boost::filesystem::path& file,
-                                                    ScriptRun::Events events);
-    // True when a run a person started (the script runner dialog, --mcp-script) is in `lineage`: a
-    // run_python there runs as the person's script, not an agent's. Any thread.
+    std::shared_ptr<PersonRun> start_python_session(std::shared_ptr<PythonSession> session, const boost::filesystem::path& file,
+                                                    PersonRun::Events events);
+    // True when a run a person started (Action Replay, the Run Script panel, --mcp-run) is in `lineage`: a
+    // run_script there runs as the person's script, not an agent's. Any thread.
     bool person_run(const std::set<std::string>& lineage) const;
     // Stops `job` and what it runs: every call it and its descendants make sees itself cancelled
     // (JobRegistry::request_stop). Any thread.
     void request_stop(const std::string& job);
     // True while a run in `lineage` that the user let drop unsaved changes is running. Any thread.
     bool discard_authorized(const std::set<std::string>& lineage) const;
-    // Stops every run start_script_run() started, while the main window is still the one they run in.
+    // Stops every run start_replay_run() started, while the main window is still the one they run in.
     // suspend() and stop() call it first. UI thread.
-    void stop_script_runs();
+    void stop_person_runs();
     bool stopping() const { return m_stopping; }
     // Queues `fn` on the UI thread; nothing runs once the app is gone. Any thread.
     void post_ui(std::function<void()> fn);
     // Encodes a recording once its file is closed: encode_recording with `args` as an unjournaled job, which
     // a thread the service owns follows to its end before posting `done` its result on the UI thread. The job
-    // is cancelled like any encode (cancel {job}, stop()), and `done` is not called once the service stops.
+    // is cancelled like any encode (cancel_job {job}, stop()), and `done` is not called once the service stops.
     // False when the service is not started or is stopping. Any thread.
     bool encode_when_closed(nlohmann::json args, std::function<void(const ToolResult&)> done);
     // Starts encode_recording with `args` as an unjournaled job of its own and returns at once: the job's
@@ -230,7 +230,7 @@ private:
     // the service owns calls it.
     std::optional<ToolResult> call_to_end(const ToolDef& def, const nlohmann::json& args);
     void set_ready();
-    void run_launch_script();
+    void run_launch_file();
     GuardState guards_on_ui() const;
 
     McpLaunchOptions m_options;
@@ -257,7 +257,7 @@ private:
     std::shared_ptr<WebPresses>    m_web_presses;
 
     mutable std::mutex                      m_rules_mutex;
-    std::map<std::string, std::vector<int>> m_script_rule_layers; // running script job -> layers
+    std::map<std::string, std::vector<int>> m_run_rule_layers; // running replay's or script's job -> layers
     std::set<std::string>                   m_paused_scopes;      // jobs whose layers are paused
     int                                     m_session_rule_layer = 0;
     bool                                    m_endpoint_open      = false;
@@ -269,13 +269,13 @@ private:
     std::atomic<bool>     m_stopping{false};
     std::atomic<int>      m_leases{0};
     std::atomic<uint64_t> m_generation{1};
-    std::thread           m_script_thread;
+    std::thread           m_launch_thread;
 
-    // Runs of the script runner dialog, each with the thread that follows its job.
+    // Runs a person started (Action Replay, the Run Script panel), each with the thread that follows its job.
     struct RunThread
     {
         std::thread                thread;
-        std::shared_ptr<ScriptRun> run;
+        std::shared_ptr<PersonRun> run;
     };
     std::mutex             m_runs_mutex;
     std::vector<RunThread> m_run_threads;

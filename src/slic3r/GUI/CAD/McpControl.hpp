@@ -15,7 +15,7 @@
 // the socket refuses it: only the MCP server runs it, under its mutate guard.
 //
 // The socket is POSIX only; on Windows the same methods are reached through the app's MCP server
-// (its cad_call tool), which calls cad_control_call().
+// (its call_cad_tool tool), which calls cad_control_call().
 
 #include <nlohmann/json.hpp>
 

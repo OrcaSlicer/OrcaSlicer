@@ -1,25 +1,25 @@
 // Assigns filaments to objects and parts through set_settings, as the object list's Change Filament
 // does, and reads them back with get_settings' effective values; then sets the project's slot colours,
 // flushing volumes, plate type and prime tower position through the project scope. Run it with
-//   tools/mcp/orca_mcp.py run-script tools/mcp/tests/multicolor.json --out /tmp/multicolor
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/multicolor.json --out /tmp/multicolor
 {
-  "orca_script": 1,
+  "orca_replay": 1,
   "name": "object and part filaments",
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},
-    {"tool": "dialog_auto_answer", "args": {"rules": [{"match": "unsaved changes", "button": "no"},
+    {"tool": "auto_answer_dialogs", "args": {"rules": [{"match": "unsaved changes", "button": "no"},
                                                       {"match": "restore", "button": "no"},
                                                       {"match": "Uniform scale", "button": "ok"}]}},
     {"tool": "new_project", "args": {"discard_changes": true}},
     {"tool": "set_view", "args": {"tab": "prepare", "window_size": [1920, 1200]}},
     // A second filament (or one more, on a datadir an earlier run left with several).
-    {"tool": "ui_click", "args": {"target": {"label": "Add one filament"}}},
-    {"tool": "get_state", "expect": {"/presets/filaments/1": {"exists": true}}},
+    {"tool": "click", "args": {"target": {"label": "Add one filament"}}},
+    {"tool": "get_app_state", "expect": {"/presets/filaments/1": {"exists": true}}},
 
     // Object 0 a cube, object 1 a cylinder.
     {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
     {"tool": "wait", "args": {"for": "idle"}},
-    {"tool": "select", "args": {"none": true}},
+    {"tool": "select_objects", "args": {"none": true}},
     {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cylinder:orca"}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "transform", "args": {"object": 0, "translate": [100, 100, 12.8], "mode": "absolute"}},
@@ -42,10 +42,10 @@
     {"tool": "set_settings", "args": {"scope": "object", "object": 1, "values": {"extruder": 2}}},
 
     // ---- A text part on the cube takes filament 2; the object's reply lists it apart ----
-    {"tool": "select", "args": {"objects": [0]}},
-    {"tool": "ui_click", "args": {"target": {"gizmo": "Text"}}, "expect": {"/created": {"eq": true}, "/active": {"eq": true}}},
+    {"tool": "select_objects", "args": {"objects": [0]}},
+    {"tool": "click", "args": {"target": {"gizmo": "Text"}}, "expect": {"/created": {"eq": true}, "/active": {"eq": true}}},
     {"tool": "wait", "args": {"for": "idle"}},
-    {"tool": "ui_click", "args": {"target": {"imgui": "Done"}}},
+    {"tool": "click", "args": {"target": {"imgui": "Done"}}},
     {"tool": "list_objects", "expect": {"/items/0/volumes/1/text": {"exists": true}}},
     {"tool": "set_settings", "args": {"scope": "volume", "object": 0, "volume": 1, "values": {"extruder": 2}}, "expect": {"/applied/extruder": {"eq": "2"}}},
     {"tool": "get_settings", "args": {"scope": "volume", "object": 0, "volume": 1, "keys": ["extruder"]},

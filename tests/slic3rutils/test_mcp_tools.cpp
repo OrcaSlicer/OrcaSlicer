@@ -87,7 +87,7 @@ TEST_CASE("a listing summary is a documentation's first sentence on one line", "
     CHECK(first_sentence("") == "");
 }
 
-TEST_CASE("python_api's reference covers the orca package with constructors and named instances", "[Mcp][Python]")
+TEST_CASE("search_python_api's reference covers the orca package with constructors and named instances", "[Mcp][Python]")
 {
     (void) import_orca_module();
     const json                  reference = python_api_reference();
@@ -141,14 +141,15 @@ TEST_CASE("python_api's reference covers the orca package with constructors and 
 
 TEST_CASE("every tool of the catalog has the lane the concept gives it", "[Mcp]")
 {
-    for (const char* name : {"get_state", "wait", "cancel", "get_log", "run_script", "export_script", "dialog_respond",
-                             "dialog_auto_answer", "run_python", "python_api"})
+    for (const char* name : {"get_app_state", "wait", "cancel_job", "get_log", "run_replay", "export_replay", "answer_dialog",
+                             "auto_answer_dialogs", "run_script", "search_python_api"})
         CHECK(tool_lane(name) == ToolLane::Core);
-    for (const char* name : {"list_windows", "ui_snapshot", "ui_click", "ui_input", "ui_key", "ui_mouse", "gizmo_file", "webview_eval", "set_view",
-                             "screenshot", "start_recording", "stop_recording", "encode_recording", "list_actions", "run_action",
-                             "select"})
+    for (const char* name : {"list_windows", "list_widgets", "click", "set_widget_value", "press_keys", "mouse_gesture",
+                             "pick_gizmo_file", "run_javascript", "set_view", "screenshot", "start_recording", "stop_recording",
+                             "encode_recording", "search_actions", "run_action", "select_objects"})
         CHECK(tool_lane(name) == ToolLane::Ui);
-    for (const char* name : {"set_settings", "slice", "cad_call", "api_call", "api_describe", "plugin.example.measure"})
+    for (const char* name : {"set_settings", "slice", "generate_calibration_test", "call_cad_tool", "call_tool", "search_tools",
+                             "get_slice_stats", "plugin.example.measure"})
         CHECK(tool_lane(name) == ToolLane::Api);
 }
 
@@ -156,11 +157,11 @@ TEST_CASE("a registered tool's description starts with its lane, once", "[Mcp]")
 {
     ToolRegistry registry;
     ToolDef      def;
-    def.name        = "ui_click";
+    def.name        = "click";
     def.description = "Click a widget.";
     def.read_only   = false;
     registry.add(def);
-    const ToolDef* added = registry.find("ui_click");
+    const ToolDef* added = registry.find("click");
     REQUIRE(added != nullptr);
     CHECK(added->lane == ToolLane::Ui);
     CHECK(added->description == "[ui] Click a widget.");
@@ -168,7 +169,7 @@ TEST_CASE("a registered tool's description starts with its lane, once", "[Mcp]")
 
     // A def copied from the registry and added again keeps one tag.
     registry.add(*added);
-    CHECK(registry.find("ui_click")->description == "[ui] Click a widget.");
+    CHECK(registry.find("click")->description == "[ui] Click a widget.");
 }
 
 TEST_CASE("a call naming an object's id is refused once its index names another object", "[Mcp]")
@@ -197,33 +198,35 @@ TEST_CASE("a call naming an object's id is refused once its index names another 
 TEST_CASE("the journal records indices without expected ids, except a Python step's arguments", "[Mcp]")
 {
     CHECK(without_expected_ids("set_settings", json{{"object", 0}, {"object_id", 7}, {"volume_id", 8}}) == json{{"object", 0}});
-    const json script{{"script", {{"orca_script", 1},
+    CHECK(without_expected_ids("set_height_ranges", json{{"object", 0}, {"object_id", 7}}) == json{{"object", 0}});
+    CHECK(without_expected_ids("set_variable_layer_height", json{{"object", 0}, {"object_id", 7}}) == json{{"object", 0}});
+    const json replay{{"replay", {{"orca_replay", 1},
                                   {"steps", {{{"tool", "transform"}, {"args", {{"object", 1}, {"object_id", 9}}}},
-                                             {{"tool", "run_python"}, {"args", {{"code", "x"}, {"args", {{"object_id", 9}}}}}}}}}}};
-    const json recorded = without_expected_ids("run_script", script);
-    CHECK(recorded["script"]["steps"][0]["args"] == json{{"object", 1}});
-    CHECK(recorded["script"]["steps"][1]["args"]["args"]["object_id"] == 9);
-    CHECK(without_expected_ids("run_python", json{{"code", "x"}, {"args", {{"object_id", 3}}}})["args"]["object_id"] == 3);
+                                             {{"tool", "run_script"}, {"args", {{"code", "x"}, {"args", {{"object_id", 9}}}}}}}}}}};
+    const json recorded = without_expected_ids("run_replay", replay);
+    CHECK(recorded["replay"]["steps"][0]["args"] == json{{"object", 1}});
+    CHECK(recorded["replay"]["steps"][1]["args"]["args"]["object_id"] == 9);
+    CHECK(without_expected_ids("run_script", json{{"code", "x"}, {"args", {{"object_id", 3}}}})["args"]["object_id"] == 3);
 }
 
-TEST_CASE("the journal records an inline script given as JSON text as its object, without expected ids", "[Mcp]")
+TEST_CASE("the journal records an inline replay given as JSON text as its object, without expected ids", "[Mcp]")
 {
-    const json as_text{{"script", "// moves the lid\n"
-                                  R"({"orca_script": 1, "steps": [{"tool": "transform", "args": {"object": 1, "object_id": 9}}]})"}};
-    const json recorded = without_expected_ids("run_script", as_text);
-    REQUIRE(recorded["script"].is_object());
-    CHECK(recorded["script"]["steps"][0]["args"] == json{{"object", 1}});
+    const json as_text{{"replay", "// moves the lid\n"
+                                  R"({"orca_replay": 1, "steps": [{"tool": "transform", "args": {"object": 1, "object_id": 9}}]})"}};
+    const json recorded = without_expected_ids("run_replay", as_text);
+    REQUIRE(recorded["replay"].is_object());
+    CHECK(recorded["replay"]["steps"][0]["args"] == json{{"object", 1}});
     // Text that doesn't parse is the call's error; it is recorded as given.
-    CHECK(without_expected_ids("run_script", json{{"script", "{\"orca_script\": 1,"}}) == json{{"script", "{\"orca_script\": 1,"}});
+    CHECK(without_expected_ids("run_replay", json{{"replay", "{\"orca_replay\": 1,"}}) == json{{"replay", "{\"orca_replay\": 1,"}});
 }
 
-TEST_CASE("the journal strips expected ids through api_call and only from the tools that take them", "[Mcp]")
+TEST_CASE("the journal strips expected ids through call_tool and only from the tools that take them", "[Mcp]")
 {
-    CHECK(without_expected_ids("api_call", json{{"tool", "transform"}, {"args", {{"object", 1}, {"object_id", 9}}}}) ==
+    CHECK(without_expected_ids("call_tool", json{{"tool", "transform"}, {"args", {{"object", 1}, {"object_id", 9}}}}) ==
           json{{"tool", "transform"}, {"args", {{"object", 1}}}});
     // A plugin operation's own fields of the same names are its arguments, recorded as given.
     CHECK(without_expected_ids("plugin.measure.area", json{{"object_id", 4}}) == json{{"object_id", 4}});
-    CHECK(without_expected_ids("api_call", json{{"tool", "plugin.measure.area"}, {"args", {{"object_id", 4}}}})["args"]["object_id"] == 4);
-    CHECK(without_expected_ids("select", json{{"objects", {0, 1}}, {"object_ids", {5, 6}}}) == json{{"objects", {0, 1}}});
-    CHECK(without_expected_ids("select", json{{"instances", {{0, 1}}}, {"instance_object_ids", {5}}}) == json{{"instances", {{0, 1}}}});
+    CHECK(without_expected_ids("call_tool", json{{"tool", "plugin.measure.area"}, {"args", {{"object_id", 4}}}})["args"]["object_id"] == 4);
+    CHECK(without_expected_ids("select_objects", json{{"objects", {0, 1}}, {"object_ids", {5, 6}}}) == json{{"objects", {0, 1}}});
+    CHECK(without_expected_ids("select_objects", json{{"instances", {{0, 1}}}, {"instance_object_ids", {5}}}) == json{{"instances", {{0, 1}}}});
 }

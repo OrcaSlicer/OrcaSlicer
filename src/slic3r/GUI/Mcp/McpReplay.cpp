@@ -1,4 +1,4 @@
-#include "McpScript.hpp"
+#include "McpReplay.hpp"
 #include "McpPaths.hpp"
 #include "McpTypes.hpp"
 
@@ -28,10 +28,10 @@ bool is_job_envelope(const ToolResult& r)
 }
 
 // Resolves one placeholder body ("vars.model", "env:HOME", ...) to a JSON value.
-std::optional<json> resolve_placeholder(const std::string& key, const Script& script, const ScriptContext& ctx)
+std::optional<json> resolve_placeholder(const std::string& key, const Replay& replay, const ReplayContext& ctx)
 {
-    if (key == "script_dir")
-        return json(path_to_utf8(ctx.script_dir));
+    if (key == "replay_dir")
+        return json(path_to_utf8(ctx.replay_dir));
     if (key == "out_dir")
         return json(path_to_utf8(ctx.out_dir));
     if (key.rfind("env:", 0) == 0) {
@@ -39,8 +39,8 @@ std::optional<json> resolve_placeholder(const std::string& key, const Script& sc
         return json(v ? std::string(v) : std::string());
     }
     if (key.rfind("vars.", 0) == 0) {
-        auto it = script.vars.find(key.substr(5));
-        if (it != script.vars.end())
+        auto it = replay.vars.find(key.substr(5));
+        if (it != replay.vars.end())
             return std::optional<json>(it.value());
         return std::nullopt;
     }
@@ -54,7 +54,7 @@ std::optional<json> resolve_placeholder(const std::string& key, const Script& sc
 }
 
 // How a substitution went: in lenient mode an unresolvable placeholder is kept as written; otherwise
-// the first one fails the substitution and is recorded here, so run_script can say why.
+// the first one fails the substitution and is recorded here, so run_replay can say why.
 struct Substitution
 {
     bool        lenient = false;
@@ -63,24 +63,24 @@ struct Substitution
 };
 
 // The 1-based index of the step that saves its job as `name`, or 0.
-std::size_t step_saving(const Script& script, const std::string& name)
+std::size_t step_saving(const Replay& replay, const std::string& name)
 {
-    for (std::size_t i = 0; i < script.steps.size(); ++i)
-        if (script.steps[i].save_as == name)
+    for (std::size_t i = 0; i < replay.steps.size(); ++i)
+        if (replay.steps[i].save_as == name)
             return i + 1;
     return 0;
 }
 
-void fail_placeholder(Substitution& sub, const std::string& key, const std::string& text, const Script& script)
+void fail_placeholder(Substitution& sub, const std::string& key, const std::string& text, const Replay& replay)
 {
     sub.failed = key;
     sub.err    = "unknown placeholder " + text;
     if (key.rfind("jobs.", 0) == 0)
-        if (const std::size_t saver = step_saving(script, key.substr(5)); saver != 0)
+        if (const std::size_t saver = step_saving(replay, key.substr(5)); saver != 0)
             sub.err += ": no job is saved as " + key.substr(5) + " yet; step " + std::to_string(saver) + " saves it";
 }
 
-json substitute_value(const json& value, const Script& script, const ScriptContext& ctx, Substitution& sub, int depth)
+json substitute_value(const json& value, const Replay& replay, const ReplayContext& ctx, Substitution& sub, int depth)
 {
     if (depth > 8) {
         sub.err = "variable substitution nests too deeply";
@@ -89,7 +89,7 @@ json substitute_value(const json& value, const Script& script, const ScriptConte
     if (value.is_array() || value.is_object()) {
         json out = value;
         for (auto it = out.begin(); it != out.end(); ++it)
-            *it = substitute_value(*it, script, ctx, sub, depth);
+            *it = substitute_value(*it, replay, ctx, sub, depth);
         return out;
     }
     if (!value.is_string())
@@ -98,14 +98,14 @@ json substitute_value(const json& value, const Script& script, const ScriptConte
     const std::string       text = value.get<std::string>();
     std::smatch             whole;
     if (std::regex_match(text, whole, placeholder)) {
-        auto v = resolve_placeholder(whole[1].str(), script, ctx);
+        auto v = resolve_placeholder(whole[1].str(), replay, ctx);
         if (!v) {
             if (!sub.lenient)
-                fail_placeholder(sub, whole[1].str(), text, script);
+                fail_placeholder(sub, whole[1].str(), text, replay);
             return value;
         }
-        // A var may itself contain placeholders (e.g. "${script_dir}/part.stl").
-        return substitute_value(*v, script, ctx, sub, depth + 1);
+        // A var may itself contain placeholders (e.g. "${replay_dir}/part.stl").
+        return substitute_value(*v, replay, ctx, sub, depth + 1);
     }
     std::string out;
     auto        begin = std::sregex_iterator(text.begin(), text.end(), placeholder);
@@ -113,16 +113,16 @@ json substitute_value(const json& value, const Script& script, const ScriptConte
     for (auto it = begin; it != std::sregex_iterator(); ++it) {
         out.append(text, last, std::size_t(it->position()) - last);
         last   = std::size_t(it->position() + it->length());
-        auto v = resolve_placeholder((*it)[1].str(), script, ctx);
+        auto v = resolve_placeholder((*it)[1].str(), replay, ctx);
         if (!v) {
             if (!sub.lenient) {
-                fail_placeholder(sub, (*it)[1].str(), it->str(), script);
+                fail_placeholder(sub, (*it)[1].str(), it->str(), replay);
                 return value;
             }
             out += it->str();
             continue;
         }
-        const json resolved = substitute_value(*v, script, ctx, sub, depth + 1);
+        const json resolved = substitute_value(*v, replay, ctx, sub, depth + 1);
         out += resolved.is_string() ? resolved.get<std::string>() : resolved.dump();
     }
     out.append(text, last, std::string::npos);
@@ -196,9 +196,9 @@ std::optional<std::string> check_matcher(const std::string& pointer, const json&
 
 } // namespace
 
-std::string inline_script_text(const json& script) { return script.is_string() ? script.get<std::string>() : script.dump(); }
+std::string inline_replay_text(const json& replay) { return replay.is_string() ? replay.get<std::string>() : replay.dump(); }
 
-std::optional<Script> parse_script(const std::string& text, std::string& err)
+std::optional<Replay> parse_replay(const std::string& text, std::string& err)
 {
     json doc;
     try {
@@ -208,31 +208,31 @@ std::optional<Script> parse_script(const std::string& text, std::string& err)
         // syntax error ..."; keep the reason after the first ": " and give the position in one form.
         const std::string what = e.what();
         const auto        sep  = what.find(": ");
-        err = "the script is not valid JSON: " + text_position(text, e.byte) + ": " + (sep == std::string::npos ? what : what.substr(sep + 2));
+        err = "the replay is not valid JSON: " + text_position(text, e.byte) + ": " + (sep == std::string::npos ? what : what.substr(sep + 2));
         return std::nullopt;
     }
-    if (!doc.is_object() || !doc.contains("orca_script") || doc["orca_script"] != 1) {
-        err = "the script must be an object with \"orca_script\": 1";
+    if (!doc.is_object() || !doc.contains("orca_replay") || doc["orca_replay"] != 1) {
+        err = "the replay must be an object with \"orca_replay\": 1";
         return std::nullopt;
     }
     if (!doc.contains("steps") || !doc["steps"].is_array()) {
-        err = "the script needs a \"steps\" array";
+        err = "the replay needs a \"steps\" array";
         return std::nullopt;
     }
-    Script script;
+    Replay replay;
     if (doc.contains("name")) {
         if (!doc["name"].is_string()) {
             err = "\"name\" must be a string";
             return std::nullopt;
         }
-        script.name = doc["name"].get<std::string>();
+        replay.name = doc["name"].get<std::string>();
     }
     if (doc.contains("vars")) {
         if (!doc["vars"].is_object()) {
             err = "\"vars\" must be an object";
             return std::nullopt;
         }
-        script.vars = doc["vars"];
+        replay.vars = doc["vars"];
     }
     for (std::size_t i = 0; i < doc["steps"].size(); ++i) {
         const json&       s     = doc["steps"][i];
@@ -248,7 +248,7 @@ std::optional<Script> parse_script(const std::string& text, std::string& err)
         };
         if (!s["tool"].is_string())
             return bad("tool", "a string");
-        ScriptStep step;
+        ReplayStep step;
         step.tool = s["tool"].get<std::string>();
         if (s.contains("args")) {
             if (!s["args"].is_object())
@@ -284,69 +284,69 @@ std::optional<Script> parse_script(const std::string& text, std::string& err)
             err = where + ": \"await\": false needs \"save_as\" so a later step can wait for the job";
             return std::nullopt;
         }
-        script.steps.push_back(std::move(step));
+        replay.steps.push_back(std::move(step));
     }
-    return script;
+    return replay;
 }
 
 // A step's arguments with their placeholders filled in, except Python source, which runs as written (D7):
-// the code of a run_python call, of one an api_call makes, and of the Python steps of an inline script.
-json substitute_args(const std::string& tool, const json& args, const Script& script, const ScriptContext& ctx, Substitution& sub)
+// the code of a run_script call, of one a call_tool makes, and of the Python steps of an inline replay.
+json substitute_args(const std::string& tool, const json& args, const Replay& replay, const ReplayContext& ctx, Substitution& sub)
 {
     if (!args.is_object())
-        return substitute_value(args, script, ctx, sub, 0);
+        return substitute_value(args, replay, ctx, sub, 0);
     json out = json::object();
     for (auto it = args.begin(); it != args.end(); ++it) {
         const std::string& key = it.key();
-        if (tool == "run_python" && key == "code") {
+        if (tool == "run_script" && key == "code") {
             out[key] = it.value();
-        } else if (tool == "api_call" && key == "args" && it.value().is_object()) {
-            const json target = substitute_value(args.value("tool", json()), script, ctx, sub, 0);
-            out[key]          = substitute_args(target.is_string() ? target.get<std::string>() : std::string(), it.value(), script, ctx, sub);
-        } else if (tool == "run_script" && key == "script" && it.value().is_object() && it.value().contains("steps") &&
+        } else if (tool == "call_tool" && key == "args" && it.value().is_object()) {
+            const json target = substitute_value(args.value("tool", json()), replay, ctx, sub, 0);
+            out[key]          = substitute_args(target.is_string() ? target.get<std::string>() : std::string(), it.value(), replay, ctx, sub);
+        } else if (tool == "run_replay" && key == "replay" && it.value().is_object() && it.value().contains("steps") &&
                    it.value()["steps"].is_array()) {
             json nested = json::object();
             for (auto field = it.value().begin(); field != it.value().end(); ++field) {
                 if (field.key() != "steps") {
-                    nested[field.key()] = substitute_value(field.value(), script, ctx, sub, 0);
+                    nested[field.key()] = substitute_value(field.value(), replay, ctx, sub, 0);
                     continue;
                 }
                 json steps = json::array();
                 for (const json& step : field.value()) {
                     if (!step.is_object()) {
-                        steps.push_back(substitute_value(step, script, ctx, sub, 0));
+                        steps.push_back(substitute_value(step, replay, ctx, sub, 0));
                         continue;
                     }
                     json done = json::object();
                     for (auto part = step.begin(); part != step.end(); ++part)
-                        done[part.key()] = part.key() == "args" ? substitute_args(step.value("tool", std::string()), part.value(), script, ctx, sub) :
-                                                                  substitute_value(part.value(), script, ctx, sub, 0);
+                        done[part.key()] = part.key() == "args" ? substitute_args(step.value("tool", std::string()), part.value(), replay, ctx, sub) :
+                                                                  substitute_value(part.value(), replay, ctx, sub, 0);
                     steps.push_back(std::move(done));
                 }
                 nested["steps"] = std::move(steps);
             }
             out[key] = std::move(nested);
         } else {
-            out[key] = substitute_value(it.value(), script, ctx, sub, 0);
+            out[key] = substitute_value(it.value(), replay, ctx, sub, 0);
         }
     }
     return out;
 }
 
-json substitute(const json& value, const Script& script, const ScriptContext& ctx, std::string& err)
+json substitute(const json& value, const Replay& replay, const ReplayContext& ctx, std::string& err)
 {
     Substitution sub;
-    json         out = substitute_value(value, script, ctx, sub, 0);
+    json         out = substitute_value(value, replay, ctx, sub, 0);
     if (!sub.err.empty())
         err = sub.err;
     return out;
 }
 
-json substitute_lenient(const json& value, const Script& script, const ScriptContext& ctx)
+json substitute_lenient(const json& value, const Replay& replay, const ReplayContext& ctx)
 {
     Substitution sub;
     sub.lenient = true;
-    return substitute_value(value, script, ctx, sub, 0);
+    return substitute_value(value, replay, ctx, sub, 0);
 }
 
 std::optional<ExpectFailure> check_expect_detail(const json& result, const json& expect)
@@ -386,12 +386,12 @@ std::optional<std::string> check_expect(const json& result, const json& expect)
     return std::nullopt;
 }
 
-json run_script(const Script& script, ScriptContext& ctx, const ScriptHost& host, std::optional<std::size_t> only_step)
+json run_replay(const Replay& replay, ReplayContext& ctx, const ReplayHost& host, std::optional<std::size_t> only_step)
 {
-    std::size_t first = 0, last = script.steps.size();
+    std::size_t first = 0, last = replay.steps.size();
     if (only_step) {
-        if (*only_step < 1 || *only_step > script.steps.size())
-            throw std::out_of_range("the script has no step " + std::to_string(*only_step));
+        if (*only_step < 1 || *only_step > replay.steps.size())
+            throw std::out_of_range("the replay has no step " + std::to_string(*only_step));
         first = *only_step - 1;
         last  = *only_step;
     }
@@ -405,7 +405,7 @@ json run_script(const Script& script, ScriptContext& ctx, const ScriptHost& host
         steps.push_back(std::move(entry));
     };
     for (std::size_t i = first; i < last; ++i) {
-        const ScriptStep& step = script.steps[i];
+        const ReplayStep& step = replay.steps[i];
         json              entry{{"index", i + 1}, {"tool", step.tool}};
         if (stopping()) {
             entry.update({{"ok", false}, {"error", "cancelled"}, {"cancelled", true}, {"reason", {{"kind", "cancelled"}}}, {"duration_ms", 0}});
@@ -418,14 +418,14 @@ json run_script(const Script& script, ScriptContext& ctx, const ScriptHost& host
             host.step_started(i + 1);
         const auto   start = std::chrono::steady_clock::now();
         Substitution sub;
-        const json   args = substitute_args(step.tool, step.args, script, ctx, sub);
+        const json   args = substitute_args(step.tool, step.args, replay, ctx, sub);
         ToolResult   result;
         json         reason;
         if (!sub.err.empty()) {
             result = ToolResult::error(sub.err);
             if (sub.failed.rfind("jobs.", 0) == 0) {
                 const std::string name  = sub.failed.substr(5);
-                const std::size_t saver = step_saving(script, name);
+                const std::size_t saver = step_saving(replay, name);
                 reason = {{"kind", "missing_job"}, {"name", name}, {"saved_by", saver != 0 ? json(saver) : json()}};
             } else if (!sub.failed.empty())
                 reason = {{"kind", "placeholder"}, {"text", "${" + sub.failed + "}"}};
@@ -447,7 +447,7 @@ json run_script(const Script& script, ScriptContext& ctx, const ScriptHost& host
                     if (const json dialogs = host.open_dialogs ? host.open_dialogs() : json::array();
                         dialogs.is_array() && !dialogs.empty()) {
                         message += " with the dialog \"" + dialogs.back().value("title", std::string()) +
-                                   "\" open: a step can't answer a dialog it opens, so register a dialog_auto_answer rule for it "
+                                   "\" open: a step can't answer a dialog it opens, so register an auto_answer_dialogs rule for it "
                                    "before the step, or give the step \"await\": false and answer the dialog in the steps after it";
                         details["dialogs"] = dialogs;
                     }
@@ -463,11 +463,11 @@ json run_script(const Script& script, ScriptContext& ctx, const ScriptHost& host
         bool ok       = !result.is_error;
         if (ok) {
             entry["result"] = result.data;
-            // run_python reports a script that raised, was cancelled or ran out of time in a successful
-            // result, as run_script reports a failed step; inside a script that fails the step, also when an
-            // api_call made the call. A job left running (await: false) has no outcome yet.
-            const std::string target = step.tool == "api_call" ? args.value("tool", std::string()) : step.tool;
-            if (target == "run_python" && !is_job_envelope(result) && result.data.value("status", "") != "finished") {
+            // run_script reports a script that raised, was cancelled or ran out of time in a successful
+            // result, as run_replay reports a failed step; inside a replay that fails the step, also when an
+            // call_tool made the call. A job left running (await: false) has no outcome yet.
+            const std::string target = step.tool == "call_tool" ? args.value("tool", std::string()) : step.tool;
+            if (target == "run_script" && !is_job_envelope(result) && result.data.value("status", "") != "finished") {
                 entry["error"] = result.data.value("message", "the Python script did not finish");
                 reason         = {{"kind", "python"}, {"status", result.data.value("status", "")}};
                 ok             = false;
@@ -507,9 +507,9 @@ json run_script(const Script& script, ScriptContext& ctx, const ScriptHost& host
             break;
         }
     }
-    if (host.end_script)
-        host.end_script();
-    json out{{"passed", passed}, {"name", script.name}, {"steps", std::move(steps)}};
+    if (host.end_replay)
+        host.end_replay();
+    json out{{"passed", passed}, {"name", replay.name}, {"steps", std::move(steps)}};
     if (failed > 0)
         out["failed_step"] = failed;
     return out;

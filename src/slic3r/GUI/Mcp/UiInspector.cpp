@@ -626,8 +626,8 @@ std::string no_modal_dialog(McpService& service)
     if (open.empty())
         return "No modal dialog is open";
     return "No modal dialog is open. Open without blocking the app: " + open + ". list_windows lists such a window with its ref: "
-           "screenshot captures it with the ref as target, ui_snapshot reads it alone with the ref as root, and the window's own "
-           "close button or ui_key Escape with its ref as target closes it";
+           "screenshot captures it with the ref as target, list_widgets reads it alone with the ref as root, and the window's own "
+           "close button or press_keys Escape with its ref as target closes it";
 }
 
 // Stable English gizmo names for refs and locators: the names Orca uses for the gizmos it names,
@@ -666,7 +666,7 @@ GLGizmosManager::EType gizmo_from_name(const std::string& name)
     return GLGizmosManager::Undefined;
 }
 
-// The mouse tools' modifiers, named as in ui_key's chords so both mean the same keys: ctrl (or cmd) is
+// The mouse tools' modifiers, named as in press_keys's chords so both mean the same keys: ctrl (or cmd) is
 // the shortcut modifier, Command on macOS, and rawctrl is the macOS Control key.
 int parse_modifiers(const std::vector<std::string>& mods)
 {
@@ -1911,7 +1911,7 @@ std::vector<std::pair<wxWindow*, ListRow>> find_rows(const std::vector<wxWindow*
 json click_row(wxWindow& list, const ListRow& row, const std::string& column, const ClickOptions& o)
 {
     if (!list.IsShownOnScreen())
-        throw ToolFailure("The list is no longer shown; take a new ui_snapshot");
+        throw ToolFailure("The list is no longer shown; call list_widgets again");
     if (!list.IsEnabled())
         throw ToolFailure("The list is disabled");
     if (!row.enabled)
@@ -1947,7 +1947,7 @@ json click_row(wxWindow& list, const ListRow& row, const std::string& column, co
 json input_row(wxWindow& list, const ListRow& row, const std::string& column, const json& value)
 {
     if (!list.IsShownOnScreen())
-        throw ToolFailure("The list is no longer shown; take a new ui_snapshot");
+        throw ToolFailure("The list is no longer shown; call list_widgets again");
     if (!list.IsEnabled())
         throw ToolFailure("The list is disabled");
     if (dynamic_cast<wxGrid*>(&list) != nullptr)
@@ -1981,7 +1981,7 @@ json input_row(wxWindow& list, const ListRow& row, const std::string& column, co
         }
         return {{"row", joined(row.path, ">")}, {"checked", checks->IsChecked(n)}};
     }
-    throw ToolFailure("This row has no checkbox; use ui_click");
+    throw ToolFailure("This row has no checkbox; use click");
 }
 
 // ---- snapshot ---------------------------------------------------------------------------------
@@ -2274,7 +2274,7 @@ void UiInspector::add_imgui_items(GLCanvas3D& canvas, int depth, std::vector<UiN
             header.x = at.x, header.y = at.y, header.w = br.x - at.x, header.h = br.y - at.y;
             if (w->ScrollMax.y > 0.f)
                 header.note = "scroll " + std::to_string(int(w->Scroll.y)) + "/" + std::to_string(int(w->ScrollMax.y)) +
-                              "; ui_mouse wheel over it scrolls it";
+                              "; mouse_gesture wheel over it scrolls it";
         }
         push_plain(std::move(header));
 
@@ -2314,7 +2314,7 @@ void UiInspector::add_imgui_items(GLCanvas3D& canvas, int depth, std::vector<UiN
             if ((node.cls == "slider" || node.cls == "drag") && (item.flags & ImGuiItemStatusFlags_Inputable) == 0)
                 node.note = "no typing";
             if (item.clipped)
-                node.note += std::string(node.note.empty() ? "" : ", ") + "clipped: ui_click and ui_input scroll it into view";
+                node.note += std::string(node.note.empty() ? "" : ", ") + "clipped: click and set_widget_value scroll it into view";
             node.depth = depth + 1;
             node.x = at.x, node.y = at.y, node.w = br.x - at.x, node.h = br.y - at.y;
             UiTarget t;
@@ -2621,10 +2621,10 @@ json UiInspector::windows()
         if (tlw->GetName() == kHiddenFromAutomation) {
             w["hidden"] = true;
         } else if (dlg != nullptr && is_native_dialog(dlg)) {
-            // dialog_respond answers it; no other tool reaches into it.
+            // answer_dialog answers it; no other tool reaches into it.
             w["native"] = true;
         } else {
-            // The locator ui_snapshot gives the window, so a journal records the same.
+            // The locator list_widgets gives the window, so a journal records the same.
             UiTarget t;
             t.kind    = UiTarget::Kind::Window;
             t.window  = tlw;
@@ -2685,13 +2685,13 @@ UiTarget UiInspector::resolve(const json& target)
         return out;
     }
     if (!target.is_object())
-        throw ToolFailure("target must be a ref from ui_snapshot or a locator object");
+        throw ToolFailure("target must be a ref from list_widgets or a locator object");
     // A ref written the way locators are, {ref: "w12"}.
     if (target.size() == 1 && target.contains("ref") && target["ref"].is_string())
         return resolve(target["ref"]);
     if (is_web_locator(target))
-        throw ToolFailure("A {css} or {web} locator names an element of a web page, which ui_click, ui_input, ui_key, ui_mouse and "
-                          "webview_eval take; here give a widget's ref or locator");
+        throw ToolFailure("A {css} or {web} locator names an element of a web page, which click, set_widget_value, press_keys, "
+                          "mouse_gesture and run_javascript take; here give a widget's ref or locator");
 
     UiTarget t;
     t.locator = target;
@@ -2699,7 +2699,7 @@ UiTarget UiInspector::resolve(const json& target)
         int         id   = -1;
         const std::string path = target["menu"].get<std::string>();
         if (find_menu_path(path, id) == nullptr)
-            throw ToolFailure("No menu item " + path + " (ui_snapshot lists them)");
+            throw ToolFailure("No menu item " + path + " (list_widgets lists them)");
         t.kind      = UiTarget::Kind::MenuItem;
         t.window    = wxGetApp().mainframe;
         t.menu_id   = id;
@@ -2752,14 +2752,14 @@ UiTarget UiInspector::resolve(const json& target)
                     names.push_back(gizmo_name(g));
                 throw ToolFailure("No gizmo " + t.name, {{"gizmos", names}});
             }
-            t.name = gizmo_name(t.gizmo); // replies name it as get_state does
+            t.name = gizmo_name(t.gizmo); // replies name it as get_app_state does
             return t;
         }
         // ImGui item: search the named canvas, or every canvas when none was named.
         const auto matches = match_imgui(target);
         const int  index   = target.value("index", -1);
         if (matches.empty())
-            throw ToolFailure("No ImGui item matches " + target.dump() + " in the last frame; show its panel first (ui_snapshot lists them)");
+            throw ToolFailure("No ImGui item matches " + target.dump() + " in the last frame; show its panel first (list_widgets lists them)");
         if (matches.size() > 1 && index < 0)
             throw ToolFailure(std::to_string(matches.size()) + " ImGui items match " + target.dump() + "; add \"index\" (0-based) or use a ref");
         if (index >= int(matches.size()))
@@ -2795,8 +2795,8 @@ UiTarget UiInspector::resolve(const json& target)
             // Global/Objects switch is on Objects.
             if (any.empty())
                 throw ToolFailure("No shown list has any rows; the Prepare sidebar's object list shows when its Global/Objects "
-                                  "switch, the SwitchButton ui_snapshot labels \"Process\", is on Objects (ui_click it)");
-            throw ToolFailure("No shown list has a row " + target["row"].dump() + "; take a ui_snapshot", {{"rows", similar.empty() ? any : similar}});
+                                  "switch, the SwitchButton list_widgets labels \"Process\", is on Objects (click it)");
+            throw ToolFailure("No shown list has a row " + target["row"].dump() + "; call list_widgets", {{"rows", similar.empty() ? any : similar}});
         }
         if (matches.size() > 1 && index < 0)
             throw ToolFailure(std::to_string(matches.size()) + " rows match " + target.dump() + "; add \"index\" (0-based) or use a ref");
@@ -2813,7 +2813,7 @@ UiTarget UiInspector::resolve(const json& target)
     if (target.contains("tab")) {
         const auto matches = match_tabs(target);
         if (matches.empty())
-            throw ToolFailure("No tab " + target.dump() + "; take a ui_snapshot");
+            throw ToolFailure("No tab " + target.dump() + "; call list_widgets");
         if (matches.size() > 1 && index < 0)
             throw ToolFailure(std::to_string(matches.size()) + " tabs match " + target.dump() + "; add \"index\" (0-based) or use a ref");
         if (index >= int(matches.size()))
@@ -2831,7 +2831,7 @@ UiTarget UiInspector::resolve(const json& target)
         throw ToolFailure("A locator needs option, label, name or class (or menu, tab, row, gltoolbar, gizmo, imgui, imgui_name)");
     const std::vector<wxWindow*> matches = match_windows(target);
     if (matches.empty())
-        throw ToolFailure("Nothing matches " + target.dump() + "; take a ui_snapshot");
+        throw ToolFailure("Nothing matches " + target.dump() + "; call list_widgets");
     if (matches.size() > 1 && index < 0)
         throw ToolFailure(std::to_string(matches.size()) + " elements match " + target.dump() + "; add \"index\" (0-based) or use a ref");
     if (index >= int(matches.size()))
@@ -3040,7 +3040,7 @@ ImGuiWrapper::RecordedItem UiInspector::imgui_record(const UiTarget& t) const
     const auto items = wxGetApp().imgui()->recorded_items(t.canvas);
     if (const auto at = imgui_find_item(items, t.imgui_id, t.imgui_name, t.imgui_window, t.imgui_twins))
         return items[*at];
-    throw ToolFailure("\"" + t.imgui_label + "\" is no longer shown; take a new ui_snapshot");
+    throw ToolFailure("\"" + t.imgui_label + "\" is no longer shown; call list_widgets again");
 }
 
 GLCanvas3D* UiInspector::canvas_of(const UiTarget* target) const
@@ -3077,7 +3077,7 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
         wxMenu*     owner = nullptr;
         wxMenuItem* item  = find_menu_item(t.menu_id, nullptr, &owner);
         if (item == nullptr || owner == nullptr)
-            throw ToolFailure("The menu item is gone; take a new ui_snapshot");
+            throw ToolFailure("The menu item is gone; call list_widgets again");
         if (!item->IsEnabled())
             throw ToolFailure("The menu item " + t.menu_path + " is disabled");
         int checked = -1;
@@ -3160,7 +3160,7 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
         wxWindow*                    list = t.window.get();
         const std::optional<ListRow> row  = list != nullptr ? find_row(*list, t.row_path, t.row_twin) : std::nullopt;
         if (!row)
-            throw ToolFailure("The row is gone; take a new ui_snapshot");
+            throw ToolFailure("The row is gone; call list_widgets again");
         return click_row(*list, *row, t.column, o);
     }
     case UiTarget::Kind::PlateIcon: {
@@ -3173,7 +3173,7 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
             throw ToolFailure("A plate icon takes a single left or right click");
         if (canvas.is_layers_editing_enabled())
             throw ToolFailure("Plate icons take no clicks while variable layer height is being edited; close it with "
-                              "ui_click {\"target\": {\"gltoolbar\": \"layersediting\"}} first");
+                              "click {\"target\": {\"gltoolbar\": \"layersediting\"}} first");
         if (const auto open = canvas.get_gizmos_manager().get_current_type(); open != GLGizmosManager::Undefined)
             throw ToolFailure("Close the " + gizmo_name(open) + " gizmo first: plate icons take no clicks while it is open");
         Plater&        plater = *wxGetApp().plater();
@@ -3220,20 +3220,20 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
 
     wxWindow* w = t.window.get();
     if (w == nullptr)
-        throw ToolFailure("The element is gone; take a new ui_snapshot");
+        throw ToolFailure("The element is gone; call list_widgets again");
     if (!w->IsEnabled())
         throw ToolFailure("The element is disabled");
     scroll_into_view(w);
     if (t.page >= 0) {
         auto* book = dynamic_cast<wxBookCtrlBase*>(w);
         if (book == nullptr || t.page >= int(book->GetPageCount()))
-            throw ToolFailure("The tab is gone; take a new ui_snapshot");
+            throw ToolFailure("The tab is gone; call list_widgets again");
         book->SetSelection(size_t(t.page)); // sends the page-changing and page-changed events
         return {{"clicked", t.name}, {"page", t.page}};
     }
     if (o.at_point && dynamic_cast<wxGLCanvas*>(w) == nullptr) {
         if (is_native_control(w))
-            throw ToolFailure("x/y clicks a point of a custom-drawn widget; this is a native control, so use ui_click without x/y");
+            throw ToolFailure("x/y clicks a point of a custom-drawn widget; this is a native control, so use click without x/y");
         click_window(w, o);
         return {{"clicked", label_of(w)}, {"at", {o.x, o.y}}};
     }
@@ -3288,11 +3288,11 @@ json UiInspector::input(const UiTarget& t, const json& value, bool submit)
         wxWindow*                    list = t.window.get();
         const std::optional<ListRow> row  = list != nullptr ? find_row(*list, t.row_path, t.row_twin) : std::nullopt;
         if (!row)
-            throw ToolFailure("The row is gone; take a new ui_snapshot");
+            throw ToolFailure("The row is gone; call list_widgets again");
         return input_row(*list, *row, t.column, value);
     }
     if (t.kind != UiTarget::Kind::Window || t.window.get() == nullptr)
-        throw ToolFailure("ui_input works on controls, list rows and ImGui fields");
+        throw ToolFailure("set_widget_value works on controls, list rows and ImGui fields");
     wxWindow* w = t.window.get();
     if (!w->IsEnabled())
         throw ToolFailure("The control is disabled");
@@ -3304,7 +3304,7 @@ json UiInspector::input(const UiTarget& t, const json& value, bool submit)
         // An option, as a radio button, is unselected by selecting another; a click would only select it again.
         if (!want && checked_of(w) == 1 && (selector_option(w).selector != nullptr || dynamic_cast<wxRadioButton*>(w) != nullptr ||
                       dynamic_cast<Slic3r::GUI::RadioBox*>(w) != nullptr))
-            throw ToolFailure("An option is unselected by selecting another one; ui_input true on that one");
+            throw ToolFailure("An option is unselected by selecting another one; set_widget_value true on that one");
         if ((checked_of(w) == 1) != want)
             click(t, ClickOptions{});
         return {{"checked", checked_of(w) == 1}};
@@ -3359,7 +3359,7 @@ json UiInspector::input(const UiTarget& t, const json& value, bool submit)
         }
         return {{"value", into_u8(te->GetValue())}};
     }
-    throw ToolFailure("This element (" + short_class(w) + ") takes no input; use ui_click");
+    throw ToolFailure("This element (" + short_class(w) + ") takes no input; use click");
 }
 
 // Sets an ImGui control the way a person does, chosen by its kind, and reads the value back.
@@ -3457,10 +3457,10 @@ json UiInspector::imgui_input(UiTarget t, const json& value, bool submit)
             }
         }
         if (field_kind == "slider" && (item.flags & ImGuiItemStatusFlags_Inputable) == 0)
-            throw ToolFailure("\"" + t.imgui_label + "\" is a slider that takes no typing and has no number field beside it; drag it with ui_mouse");
+            throw ToolFailure("\"" + t.imgui_label + "\" is a slider that takes no typing and has no number field beside it; drag it with mouse_gesture");
     }
     if (field_kind != "input" && field_kind != "multiline" && field_kind != "drag" && field_kind != "slider")
-        throw ToolFailure("\"" + t.imgui_label + "\" is a " + field_kind + ", which takes no typed value; use ui_click");
+        throw ToolFailure("\"" + t.imgui_label + "\" is a " + field_kind + ", which takes no typed value; use click");
 
     // A Ctrl+click turns a slider or drag into a text field; an input field takes a plain click.
     ClickOptions focus;
@@ -3499,7 +3499,7 @@ wxWindow* UiInspector::key_target(const UiTarget* t) const
     if (t != nullptr)
         return t->window.get();
     wxWindow* focus = wxWindow::FindFocus();
-    // Focus left in a window the tools don't see (the script runner) is no target for keys.
+    // Focus left in a window the tools don't see (the Action Replay window) is no target for keys.
     if (focus != nullptr && hidden_from_automation(focus))
         focus = nullptr;
     if (wxDialog* top = m_service.modals().top())
@@ -3608,7 +3608,7 @@ json UiInspector::mouse(GLCanvas3D& canvas, const json& g, const std::string& ow
         if (p.is_array() && p.size() != 2)
             throw ToolFailure("A pixel is [x, y]");
         if (!p.is_array() && design)
-            throw ToolFailure("Points of the model name Prepare objects; on the Design view give x/y (cad_call query_topology gives faces)");
+            throw ToolFailure("Points of the model name Prepare objects; on the Design view give x/y (call_cad_tool query_topology gives faces)");
         const wxPoint px = p.is_array() ? wxPoint(p[0].get<int>(), p[1].get<int>()) : target_pixel(canvas, p, check, tolerance);
         pixels.push_back({px.x, px.y});
         return px;

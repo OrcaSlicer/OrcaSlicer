@@ -88,7 +88,7 @@ const std::string& page_agent_version();
 // The script that asks `request` of the agent: when `install`, it installs the agent first.
 std::string page_script(const nlohmann::json& request, bool install);
 
-// A page snapshot (the agent's reply) as ui_snapshot lines at `depth`, in the window-client frame
+// A page snapshot (the agent's reply) as list_widgets lines at `depth`, in the window-client frame
 // widgets use: CSS pixels times `scale` (logical pixels per CSS pixel), offset by `origin`, the web
 // view's place in its window. `key` is the element the line stands for (null for none).
 struct PageNode
@@ -118,7 +118,7 @@ std::string redact_url(const std::string& url);
 std::optional<int> journal_index(const std::vector<WebHandle>& webs, const std::vector<PageReply>& replies, WebHandle web,
                                  const nlohmann::json& key);
 
-// What a ui_key chord is to the agent: {key: {key, code, keyCode, charCode, text?}, mods: {ctrl,
+// What a press_keys chord is to the agent: {key: {key, code, keyCode, charCode, text?}, mods: {ctrl,
 // shift, alt, meta}}, with Ctrl/Cmd the Command key on macOS and RawCtrl its Control key. Throws
 // ToolFailure for a chord KeyChord::parse() refuses.
 nlohmann::json web_key(const std::string& chord);
@@ -140,7 +140,7 @@ struct PressAgent
 // of the page document `doc`.
 PressAgent press_agent(WebHandle web, const std::string& doc, const nlohmann::json& key);
 
-// The presses ui_mouse downs left on pages, each on record from before its down is sent until its
+// The presses mouse_gesture downs left on pages, each on record from before its down is sent until its
 // agent confirms a release, so the records cover every press a page may hold; one already released
 // only answers its release at once. Each press has its own id, so a release confirmed for one never
 // takes a later press of the same agent off record. A down not yet sent is left out of what an up
@@ -153,7 +153,7 @@ public:
     {
         PressAgent    agent;
         std::uint64_t id = 0;
-        std::string   owner; // as UiInspector's held press: "" for a client, else the script's job
+        std::string   owner; // as UiInspector's held press: "" for a client, else the run's job
     };
     // A down about to be sent to `agent` for `owner`: its id. The agent's earlier presses stay on
     // record, as the down releases them only if the page takes it.
@@ -181,7 +181,7 @@ private:
 };
 
 // Asks the agents of the presses `owner` made (every one when null) to release them, without
-// waiting, where no call is there to wait: as a script ends, the endpoint closes, the service stops
+// waiting, where no call is there to wait: as a run ends, the endpoint closes, the service stops
 // or an auto-answer rule presses a button. Each release names its press, which the page ends only if
 // it still holds it, so it carries no deadline: a page busy now releases once free. A press its page
 // confirms is dropped. A frame's release, which its page forwards, reaches the frame before any

@@ -10,7 +10,7 @@
 namespace Slic3r { namespace GUI { namespace Mcp {
 
 // UTF-8 text to a native path and back: wide on Windows, where boost's narrow conversion uses the
-// ANSI code page. Agents, scripts, JSON and Orca's data_dir() all speak UTF-8.
+// ANSI code page. Agents, replays, scripts, JSON and Orca's data_dir() all speak UTF-8.
 boost::filesystem::path path_from_utf8(const std::string& utf8);
 std::string             path_to_utf8(const boost::filesystem::path& path);
 
@@ -19,7 +19,7 @@ std::string             path_to_utf8(const boost::filesystem::path& path);
 // separator; on macOS also in the decomposed form its file systems compare in.
 std::string path_compare_key(const boost::filesystem::path& path);
 
-// A file argument from an agent or a script. Paths are UTF-8 and must be absolute: a relative path
+// A file argument from an agent, a replay or a script. Paths are UTF-8 and must be absolute: a relative path
 // would resolve against <datadir>/log, where the GUI keeps its working directory.
 std::optional<boost::filesystem::path> resolve_input_path(const std::string& path, std::string& err);
 
@@ -30,7 +30,7 @@ std::optional<boost::filesystem::path> resolve_output_path(const std::string& pa
 // An existing directory (multi-file exports).
 std::optional<boost::filesystem::path> resolve_output_dir(const std::string& path, std::string& err);
 
-// Where screenshots, recordings and script outputs go when no path is given: <datadir>/mcp/out, created
+// Where screenshots, recordings and replay outputs go when no path is given: <datadir>/mcp/out, created
 // when missing.
 boost::filesystem::path output_dir();
 

@@ -1,6 +1,6 @@
-#include "McpScriptSummary.hpp"
+#include "McpReplaySummary.hpp"
 #include "McpPaths.hpp"
-#include "McpScript.hpp"
+#include "McpReplay.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/path.hpp>
@@ -25,7 +25,7 @@ namespace fs = boost::filesystem;
 
 namespace {
 
-// Nested scripts are read this deep; a deeper one counts as unreadable.
+// Nested replays are read this deep; a deeper one counts as unreadable.
 constexpr int kMaxDepth = 4;
 
 constexpr std::size_t kFlagCount = 4;
@@ -177,7 +177,7 @@ void describe_action(Builder& b, const json& args)
         // A plate to show, or a setting to show in the sidebar: they change nothing.
         b.d.what = {{"kind", "value"}, {"text", middle}};
     } else {
-        // Plugin scripts and pages, or an id this list doesn't know: code whose effect can't be read.
+        // Plugin replays and pages, or an id this list doesn't know: code whose effect can't be read.
         // Plugin code doesn't read the runner's permission to drop unsaved changes.
         b.d.what = {{"kind", "value"}, {"text", id}};
         b.every_flag("app_asked");
@@ -194,16 +194,16 @@ std::optional<std::string> read_text(const fs::path& path)
     return ss.str();
 }
 
-// A run_script step: the nested script, read in the context its run will have.
-void describe_nested(Builder& b, const json& args, const ScriptContext& outer, int depth)
+// A run_replay step: the nested replay, read in the context its run will have.
+void describe_nested(Builder& b, const json& args, const ReplayContext& outer, int depth)
 {
-    std::optional<Script> nested;
-    ScriptContext         ctx;
+    std::optional<Replay> nested;
+    ReplayContext         ctx;
     std::string           err;
-    if (args.contains("script") && (args["script"].is_object() || args["script"].is_string())) {
-        nested = parse_script(inline_script_text(args["script"]), err);
-        // An inline script is part of the step's args, which the outer script substitutes before the
-        // nested run starts: its placeholders are the outer script's, already applied to `args`, and
+    if (args.contains("replay") && (args["replay"].is_object() || args["replay"].is_string())) {
+        nested = parse_replay(inline_replay_text(args["replay"]), err);
+        // An inline replay is part of the step's args, which the outer replay substitutes before the
+        // nested run starts: its placeholders are the outer replay's, already applied to `args`, and
         // its files land where the outer ${out_dir} points. A placeholder left is one the run fails on,
         // so the nested vars must not resolve it here.
         ctx = outer;
@@ -214,10 +214,10 @@ void describe_nested(Builder& b, const json& args, const ScriptContext& outer, i
     } else if (args.contains("path") && args["path"].is_string()) {
         const fs::path path = path_from_utf8(args["path"].get<std::string>());
         if (const auto text = read_text(path))
-            nested = parse_script(*text, err);
+            nested = parse_replay(*text, err);
         if (!nested)
             b.d.what = {{"kind", "files"}, {"names", {file_name(path_to_utf8(path))}}};
-        ctx.script_dir = path.parent_path();
+        ctx.replay_dir = path.parent_path();
         if (args.contains("out_dir") && args["out_dir"].is_string())
             ctx.out_dir = path_from_utf8(args["out_dir"].get<std::string>());
         else {
@@ -229,12 +229,12 @@ void describe_nested(Builder& b, const json& args, const ScriptContext& outer, i
                 nested->vars[key] = value;
     }
     if (nested)
-        b.d.what = {{"kind", "script"}, {"steps", nested->steps.size()}};
+        b.d.what = {{"kind", "replay"}, {"steps", nested->steps.size()}};
     if (!nested || depth >= kMaxDepth) {
         b.every_flag("checked");
         return;
     }
-    for (const ScriptStep& step : nested->steps)
+    for (const ReplayStep& step : nested->steps)
         b.join(describe_step(step, *nested, ctx, depth + 1));
 }
 
@@ -260,7 +260,7 @@ json describe_what(const std::string& tool, const json& args)
         return {{"kind", "plates"}, {"plates", args.contains("plates") ? args["plates"] : json(tool == "slice" ? "current" : "all")}};
     if (tool == "wait")
         return text("for");
-    if (tool == "dialog_respond")
+    if (tool == "answer_dialog")
         return text("button");
     if (args.contains("paths") && args["paths"].is_array()) {
         json names = json::array();
@@ -290,7 +290,7 @@ json describe_call(const std::string& tool, const json& args)
         describe_action(b, args);
         return b.d.what;
     }
-    if (tool == "run_script")
+    if (tool == "run_replay")
         return args.contains("path") && args["path"].is_string() ? json{{"kind", "files"}, {"names", {file_name(args["path"].get<std::string>())}}} :
                                                                     json();
     return describe_what(tool, args);
@@ -307,9 +307,9 @@ const char* flag_id(StepFlag flag)
     return "";
 }
 
-StepDescription describe_step(const ScriptStep& step, const Script& script, const ScriptContext& ctx, int depth)
+StepDescription describe_step(const ReplayStep& step, const Replay& replay, const ReplayContext& ctx, int depth)
 {
-    const json        args = substitute_lenient(step.args, script, ctx);
+    const json        args = substitute_lenient(step.args, replay, ctx);
     const std::string tool = step.tool;
     Builder           b;
     b.d.checks_result = !step.expect.empty();
@@ -318,7 +318,7 @@ StepDescription describe_step(const ScriptStep& step, const Script& script, cons
         describe_action(b, args);
         return b.done();
     }
-    if (tool == "run_script") {
+    if (tool == "run_replay") {
         describe_nested(b, args, ctx, depth);
         return b.done();
     }
@@ -339,13 +339,13 @@ StepDescription describe_step(const ScriptStep& step, const Script& script, cons
         if (args.contains("delete_source") && args["delete_source"].is_boolean() && args["delete_source"].get<bool>())
             writes_outside("path");
     }
-    if (tool == "export_script")
+    if (tool == "export_replay")
         writes_outside("path");
-    if (tool == "gizmo_file" && args.value("action", std::string()) == "svg_save_as")
+    if (tool == "pick_gizmo_file" && args.value("action", std::string()) == "svg_save_as")
         writes_outside("path");
-    if (one_of(tool, {"save_preset", "delete_preset", "calibrate"}))
+    if (one_of(tool, {"save_preset", "delete_preset", "generate_calibration_test"}))
         b.flag(StepFlag::ChangesPresets);
-    if (one_of(tool, {"new_project", "calibrate"})) {
+    if (one_of(tool, {"new_project", "generate_calibration_test"})) {
         b.flag(StepFlag::ReplacesProject);
         b.replace("checked");
     }
@@ -360,7 +360,7 @@ StepDescription describe_step(const ScriptStep& step, const Script& script, cons
             b.replace("checked");
         }
     }
-    b.d.answers_dialogs = one_of(tool, {"dialog_auto_answer", "dialog_respond", "ui_click", "ui_key"});
+    b.d.answers_dialogs = one_of(tool, {"auto_answer_dialogs", "answer_dialog", "click", "press_keys"});
     return b.done();
 }
 
@@ -375,7 +375,8 @@ json describe_result(const std::string& tool, const json& result)
     };
     if (tool == "open_files" && result.value("opened", std::string()) == "gcode")
         return file_of("path");
-    if (one_of(tool, {"open_files", "new_project", "calibrate"}) && result.contains("objects") && result["objects"].is_number_integer())
+    if (one_of(tool, {"open_files", "new_project", "generate_calibration_test"}) && result.contains("objects") &&
+        result["objects"].is_number_integer())
         return {{"kind", "objects"}, {"count", result["objects"]}};
     if (tool == "slice" && result.contains("plates") && result["plates"].is_array()) {
         int ok = 0, other = 0;
@@ -385,10 +386,10 @@ json describe_result(const std::string& tool, const json& result)
     }
     if (one_of(tool, {"export", "save_project", "screenshot"}))
         return file_of("path");
-    if (tool == "gizmo_file")
+    if (tool == "pick_gizmo_file")
         return file_of("saved");
-    if (tool == "run_script" && result.contains("passed") && result["passed"].is_boolean()) {
-        json out{{"kind", "script"}, {"passed", result["passed"]}};
+    if (tool == "run_replay" && result.contains("passed") && result["passed"].is_boolean()) {
+        json out{{"kind", "replay"}, {"passed", result["passed"]}};
         if (result.contains("failed_step"))
             out["failed_step"] = result["failed_step"];
         return out;

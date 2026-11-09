@@ -202,7 +202,7 @@ bool read_image(CGImageRef image, wxImage& out)
 }
 
 // The window numbers of what a capture leaves out, sorted: our shown windows that automation leaves alone (the
-// script runner), their wx popups, and the menus and tooltips AppKit shows over them. AppKit does not say which
+// Action Replay window), their wx popups, and the menus and tooltips AppKit shows over them. AppKit does not say which
 // window a menu or tooltip opened from; it shows over that one, so each of our windows that is not wx's goes
 // with the topmost of wx's windows below it that it overlaps, as on Windows.
 std::vector<NSInteger> excluded_windows()

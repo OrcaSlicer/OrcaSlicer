@@ -13163,15 +13163,15 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->cli_params = "token";
     def->set_default_value(new ConfigOptionString());
 
-    def = this->add("mcp_script", coString);
-    def->label = L("MCP script");
-    def->tooltip = L("Run an MCP script once the GUI is ready, write its results, and exit: 0 when it passed, 1 when a step failed, 2 when the script is invalid.");
+    def = this->add("mcp_run", coString);
+    def->label = L("Run a replay or script");
+    def->tooltip = L("Run a replay (.json) or a Python script (.py) once the GUI is ready, then exit: 0 when it passed or finished, 1 when a step failed or the script did not finish, 2 when the file is invalid or cannot be read.");
     def->cli_params = "file";
     def->set_default_value(new ConfigOptionString());
 
-    def = this->add("mcp_script_out", coString);
-    def->label = L("MCP script output directory");
-    def->tooltip = L("Where --mcp-script writes result.json and screenshots. Defaults to <script name>.out next to the script.");
+    def = this->add("mcp_run_out", coString);
+    def->label = L("Replay output directory");
+    def->tooltip = L("Where --mcp-run writes a replay's result.json and screenshots. Defaults to <replay name>.out next to the replay.");
     def->cli_params = "dir";
     def->set_default_value(new ConfigOptionString());
 

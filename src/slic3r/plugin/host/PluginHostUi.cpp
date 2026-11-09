@@ -90,7 +90,7 @@ CallablePtr make_holder(py::object obj)
 }
 
 // The script run the calling code's UI belongs to: the run bound to the thread when it owns its UI (a person's or an
-// agent's script). None for a plugin's code, a plugin's run_python included, whose UI belongs to the plugin as always.
+// agent's script). None for a plugin's code, a plugin's run_script included, whose UI belongs to the plugin as always.
 std::shared_ptr<PythonRunScope> owning_run()
 {
     const PythonRunBinding& binding = current_python_run();

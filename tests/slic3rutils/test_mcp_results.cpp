@@ -32,7 +32,7 @@
 #include "slic3r/GUI/Mcp/JobRegistry.hpp"
 #include "slic3r/GUI/Mcp/McpCore.hpp"
 #include "slic3r/GUI/Mcp/McpJournal.hpp"
-#include "slic3r/GUI/Mcp/McpScript.hpp"
+#include "slic3r/GUI/Mcp/McpReplay.hpp"
 #include "slic3r/GUI/Mcp/McpService.hpp"
 #include "slic3r/GUI/Mcp/McpServicePtr.hpp"
 #include "slic3r/GUI/Mcp/McpTools.hpp"
@@ -253,7 +253,7 @@ TEST_CASE("a toolbar item reads the enabled state its callback gives now, not th
     toolbar.update_items_state(); // the last idle event, before the selection
     REQUIRE(toolbar.get_item("layersediting")->is_disabled());
 
-    can_edit     = true; // `select` picked an object
+    can_edit     = true; // `select_objects` picked an object
     bool changed = false;
     CHECK_FALSE(toolbar_items(toolbar, &changed).front()->is_disabled());
     CHECK(changed);
@@ -290,7 +290,7 @@ TEST_CASE("an auto-answer rule presses a wx dialog's button, and answers a nativ
         CHECK(tracker.top() == nullptr);
         CHECK(tracker.rules_json()[0]["uses"] == 1);
 
-        // A modal opened above it before its loop ran leaves it to dialog_respond.
+        // A modal opened above it before its loop ran leaves it to answer_dialog.
         wxDialog above(nullptr, wxID_ANY, "Other");
         CHECK(wxModalDialogHook::CallEnter(&dialog) == wxID_NONE);
         CHECK(wxModalDialogHook::CallEnter(&above) == wxID_NONE);
@@ -681,7 +681,7 @@ TEST_CASE("a preview object carries its list_objects index only when its name is
         CHECK_FALSE(object.contains("object"));
 }
 
-TEST_CASE("set_view's legend keys name one feature type or option each, as get_preview lists them", "[Mcp]")
+TEST_CASE("set_view's legend keys name one feature type or option each, as get_slice_stats lists them", "[Mcp]")
 {
     // A feature type goes by the English name of its ;FEATURE: tag, which names no other role.
     std::set<std::string> features;
@@ -847,38 +847,38 @@ TEST_CASE("a menu listing names disabled and checked items apart from the item p
     CHECK(menu_listing(plain) == nlohmann::json({{"items", {"Delete"}}}));
 }
 
-TEST_CASE("a click that only listed a menu is dropped from the script when the next call picks an item of it", "[Mcp]")
+TEST_CASE("a click that only listed a menu is dropped from the replay when the next call picks an item of it", "[Mcp]")
 {
     const nlohmann::json click{{"action", "click"}, {"button", "right"}, {"at", {{"object", 0}, {"spot", "top"}}}};
     nlohmann::json       pick = click;
     pick["popup_item"]        = "Add Modifier>Cylinder";
     const ToolResult listed   = ToolResult::ok({{"popup_menu", {{"items", {"Add Modifier>Cylinder"}}}}});
     const ToolResult ran      = ToolResult::ok({{"ran", "Add Modifier>Cylinder"}});
-    auto steps = [](Journal& journal) { return journal.to_script("t")["steps"]; };
+    auto steps = [](Journal& journal) { return journal.to_replay("t")["steps"]; };
 
     Journal journal;
-    journal.end(journal.begin("ui_mouse", click), listed);
-    journal.end(journal.begin("ui_mouse", pick), ran);
+    journal.end(journal.begin("mouse_gesture", click), listed);
+    journal.end(journal.begin("mouse_gesture", pick), ran);
     REQUIRE(steps(journal).size() == 1);
     CHECK(steps(journal)[0]["args"] == pick);
 
     // A failed pick in between does not count; the listing click then stays, as it changed the selection.
     Journal kept;
-    kept.end(kept.begin("ui_mouse", click), listed);
-    kept.end(kept.begin("ui_mouse", pick), ToolResult::error("The menu has no item"));
+    kept.end(kept.begin("mouse_gesture", click), listed);
+    kept.end(kept.begin("mouse_gesture", pick), ToolResult::error("The menu has no item"));
     CHECK(steps(kept).size() == 1);
     CHECK(steps(kept)[0]["args"] == click);
     // Nor does a pick after another call, or one on another target.
     Journal other;
-    other.end(other.begin("ui_mouse", click), listed);
-    other.end(other.begin("select", {{"objects", {0}}}), ToolResult::ok());
-    other.end(other.begin("ui_mouse", pick), ran);
+    other.end(other.begin("mouse_gesture", click), listed);
+    other.end(other.begin("select_objects", {{"objects", {0}}}), ToolResult::ok());
+    other.end(other.begin("mouse_gesture", pick), ran);
     CHECK(steps(other).size() == 3);
     nlohmann::json elsewhere = pick;
     elsewhere["at"]["spot"]  = "front";
     Journal moved;
-    moved.end(moved.begin("ui_mouse", click), listed);
-    moved.end(moved.begin("ui_mouse", elsewhere), ran);
+    moved.end(moved.begin("mouse_gesture", click), listed);
+    moved.end(moved.begin("mouse_gesture", elsewhere), ran);
     CHECK(steps(moved).size() == 2);
 }
 
@@ -890,18 +890,19 @@ TEST_CASE("the UI activity hook brackets each closure that runs, not one its gua
     UiInvoker invoker(
         dispatcher, [&] { GuardState g; g.modal = modal; return g; }, {}, {},
         [&seen](const std::string& tool, bool running) { seen.emplace_back(tool, running); });
-    invoker.run(GuardClass::Mutate, "ui_click", [&] {
-        invoker.run(GuardClass::Inspect, "get_state", [] { return nlohmann::json(); });
+    invoker.run(GuardClass::Mutate, "click", [&] {
+        invoker.run(GuardClass::Inspect, "get_app_state", [] { return nlohmann::json(); });
         return nlohmann::json();
     });
-    CHECK(seen == std::vector<std::pair<std::string, bool>>{{"ui_click", true}, {"get_state", true}, {"get_state", false}, {"ui_click", false}});
+    CHECK(seen ==
+          std::vector<std::pair<std::string, bool>>{{"click", true}, {"get_app_state", true}, {"get_app_state", false}, {"click", false}});
     seen.clear();
     // A closure that throws still ends; one refused before it runs never starts.
-    CHECK_THROWS_AS(invoker.run(GuardClass::Mutate, "ui_key", []() -> nlohmann::json { throw ToolFailure("no"); }), ToolFailure);
-    CHECK(seen == std::vector<std::pair<std::string, bool>>{{"ui_key", true}, {"ui_key", false}});
+    CHECK_THROWS_AS(invoker.run(GuardClass::Mutate, "press_keys", []() -> nlohmann::json { throw ToolFailure("no"); }), ToolFailure);
+    CHECK(seen == std::vector<std::pair<std::string, bool>>{{"press_keys", true}, {"press_keys", false}});
     seen.clear();
     modal = true;
-    CHECK_THROWS_AS(invoker.run(GuardClass::Mutate, "select", [] { return nlohmann::json(); }), ToolFailure);
+    CHECK_THROWS_AS(invoker.run(GuardClass::Mutate, "select_objects", [] { return nlohmann::json(); }), ToolFailure);
     CHECK(seen.empty());
 }
 
@@ -948,7 +949,7 @@ TEST_CASE("a menu opened while a call acts on the UI is listed, run by its path 
         // A person's menu, with no call acting on the UI, is shown, not taken.
         CHECK_FALSE(inspector.on_menu(menu, frame));
 
-        inspector.ui_activity("ui_click", true);
+        inspector.ui_activity("click", true);
         int token = inspector.arm_menu("");
         CHECK(popup_menu(frame, menu));
         nlohmann::json out = inspector.disarm_menu(token);
@@ -985,15 +986,15 @@ TEST_CASE("a menu opened while a call acts on the UI is listed, run by its path 
         CHECK(popup_menu(frame, menu));
         CHECK(inspector.disarm_menu(token)["menus_closed"] == 1);
         CHECK(inspector.closed_menus().size() == 1);
-        inspector.ui_activity("ui_click", false);
+        inspector.ui_activity("click", false);
 
         // A menu from a call that armed nothing is closed unseen, until the first idle after the call.
-        inspector.ui_activity("cad_call", true);
-        inspector.ui_activity("cad_call", false);
+        inspector.ui_activity("call_cad_tool", true);
+        inspector.ui_activity("call_cad_tool", false);
         CHECK(popup_menu(frame, menu));
         const nlohmann::json closed = inspector.closed_menus();
         REQUIRE(closed.size() == 2);
-        CHECK(closed[1]["tool"] == "cad_call");
+        CHECK(closed[1]["tool"] == "call_cad_tool");
         CHECK(closed[1]["items"].size() == 7);
         wxTheApp->ProcessPendingEvents();
         wxIdleEvent idle;
@@ -1001,25 +1002,25 @@ TEST_CASE("a menu opened while a call acts on the UI is listed, run by its path 
         CHECK_FALSE(inspector.on_menu(menu, frame));
 
         // Past a second a person's menu shows even when no idle came, as while events keep queuing.
-        inspector.ui_activity("cad_call", true);
-        inspector.ui_activity("cad_call", false);
+        inspector.ui_activity("call_cad_tool", true);
+        inspector.ui_activity("call_cad_tool", false);
         wxMilliSleep(1100);
         CHECK_FALSE(inspector.on_menu(menu, frame));
 
         // Only menus of the event loop the call ran in are taken: a person's right click in a dialog's
         // loop shows its menu.
-        inspector.ui_activity("ui_click", true);
+        inspector.ui_activity("click", true);
         {
             wxEventLoop          dialog_loop;
             wxEventLoopActivator inside(&dialog_loop);
             CHECK_FALSE(inspector.on_menu(menu, frame));
         }
         CHECK(inspector.on_menu(menu, frame));
-        // get_state keeps the last three.
+        // get_app_state keeps the last three.
         CHECK(inspector.on_menu(menu, frame));
         CHECK(inspector.closed_menus().size() == 3);
-        CHECK(inspector.closed_menus()[2]["tool"] == "ui_click");
-        inspector.ui_activity("ui_click", false);
+        CHECK(inspector.closed_menus()[2]["tool"] == "click");
+        inspector.ui_activity("click", false);
         inspector.capture_menus(false);
     }
 }
@@ -1861,7 +1862,7 @@ TEST_CASE("a long label is cut where a character starts, and a toggle's tooltip 
         wxDialog dialog(nullptr, wxID_ANY, "Overlay");
         auto*    toggle = new wxBitmapToggleButton(&dialog, wxID_ANY, wxBitmap(16, 16));
         toggle->SetToolTip(wxString::FromUTF8(tip));
-        // ui_snapshot's label is cut at 120 bytes, where a character starts.
+        // list_widgets's label is cut at 120 bytes, where a character starts.
         const std::string label = label_of(toggle);
         CHECK(label.size() < tip.size());
         CHECK(label.substr(label.size() - 3) == "...");
@@ -2007,7 +2008,7 @@ TEST_CASE("a dialog that can't be described is still listed, by its title", "[Mc
     }
 }
 
-TEST_CASE("ui_input false is refused on a selected radio button, which selecting another unselects", "[Mcp]")
+TEST_CASE("set_widget_value false is refused on a selected radio button, which selecting another unselects", "[Mcp]")
 {
 #if defined(__linux__)
     if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
@@ -2265,7 +2266,7 @@ struct JobJournal
 
 } // namespace
 
-TEST_CASE("a mutation whose job fails after its reply is dropped from the script, which replays the rest", "[Mcp]")
+TEST_CASE("a mutation whose job fails after its reply is dropped from the replay, which replays the rest", "[Mcp]")
 {
     JobJournal h;
     h.build_result          = ToolResult::error("The thread could not be built");
@@ -2276,28 +2277,28 @@ TEST_CASE("a mutation whose job fails after its reply is dropped from the script
     CHECK_FALSE(h.call("edit", {{"value", 3}}).is_error);
 
     nlohmann::json running;
-    const nlohmann::json script = h.journal.to_script("t", &running);
-    REQUIRE(script["steps"].size() == 1);
-    CHECK(script["steps"][0]["tool"] == "edit");
-    CHECK(script["steps"][0]["args"] == nlohmann::json{{"value", 3}});
+    const nlohmann::json exported = h.journal.to_replay("t", &running);
+    REQUIRE(exported["steps"].size() == 1);
+    CHECK(exported["steps"][0]["tool"] == "edit");
+    CHECK(exported["steps"][0]["args"] == nlohmann::json{{"value", 3}});
     CHECK(running.empty());
 
-    // The replay runs the edit alone, as a run_script job's children.
+    // The replay runs the edit alone, as a run_replay job's children.
     std::string                 err;
-    const std::optional<Script> parsed = parse_script(script.dump(), err);
+    const std::optional<Replay> parsed = parse_replay(exported.dump(), err);
     REQUIRE(parsed.has_value());
-    const std::string parent = h.jobs.create("run_script", "");
-    ScriptContext     sctx;
-    ScriptHost        host;
+    const std::string parent = h.jobs.create("run_replay", "");
+    ReplayContext     sctx;
+    ReplayHost        host;
     host.call     = [&](const std::string& tool, const nlohmann::json& args) { return h.core->call_child(*h.registry.find(tool), args, parent); };
     host.wait_job = [&](const std::string& id, int timeout_s) { return h.jobs.wait(id, std::chrono::seconds(timeout_s)); };
-    const nlohmann::json replay = run_script(*parsed, sctx, host);
+    const nlohmann::json replay = run_replay(*parsed, sctx, host);
     h.jobs.finish(parent, ToolResult::ok());
     CHECK(replay["passed"] == true);
     CHECK(h.builds.load() == 1);
     CHECK(h.edits.load() == 2);
-    // A script's own steps are not journaled.
-    CHECK(h.journal.to_script("t")["steps"].size() == 1);
+    // A replay's own steps are not journaled.
+    CHECK(h.journal.to_replay("t")["steps"].size() == 1);
 }
 
 TEST_CASE("an export while a mutation's job runs leaves the call out and names it, and keeps it once the job is done", "[Mcp]")
@@ -2311,14 +2312,14 @@ TEST_CASE("an export while a mutation's job runs leaves the call out and names i
     CHECK(still.data["status"] == "running");
 
     nlohmann::json running;
-    nlohmann::json steps = h.journal.to_script("t", &running)["steps"];
+    nlohmann::json steps = h.journal.to_replay("t", &running)["steps"];
     REQUIRE(steps.size() == 1);
     CHECK(steps[0]["tool"] == "edit");
     CHECK(running == nlohmann::json::array({{{"tool", "build"}, {"job", job}}}));
 
     h.release = true;
     CHECK(h.call("wait", {{"for", "job"}, {"job", job}}).data["built"] == true);
-    steps = h.journal.to_script("t", &running)["steps"];
+    steps = h.journal.to_replay("t", &running)["steps"];
     CHECK(running.empty());
     REQUIRE(steps.size() == 4);
     CHECK(steps[0]["tool"] == "build");
@@ -2330,13 +2331,13 @@ TEST_CASE("an export while a mutation's job runs leaves the call out and names i
     CHECK(steps[3]["args"]["job"] == "${jobs.job1}");
 }
 
-TEST_CASE("a job that waits on a dialog stays in the script, and a call yet to reply is left out", "[Mcp]")
+TEST_CASE("a job that waits on a dialog stays in the replay, and a call yet to reply is left out", "[Mcp]")
 {
     Journal        journal;
     const uint64_t open = journal.begin("run_action", {{"id", "orca_command:open_preferences:orca"}});
     journal.job_started(open, "j1");
     journal.end(open, ToolResult::ok({{"status", "blocked_by_dialog"}, {"job", "j1"}, {"tool", "run_action"}}));
-    const uint64_t answer = journal.begin("dialog_respond", {{"button", "cancel"}});
+    const uint64_t answer = journal.begin("answer_dialog", {{"button", "cancel"}});
     journal.job_started(answer, "j2");
     journal.job_ended(answer, ToolResult::ok());
     journal.end(answer, ToolResult::ok());
@@ -2345,17 +2346,17 @@ TEST_CASE("a job that waits on a dialog stays in the script, and a call yet to r
     journal.begin("screenshot", {{"target", "canvas"}});
 
     nlohmann::json running;
-    nlohmann::json steps = journal.to_script("t", &running)["steps"];
+    nlohmann::json steps = journal.to_replay("t", &running)["steps"];
     REQUIRE(steps.size() == 2);
     CHECK(steps[0]["save_as"] == "job1");
-    CHECK(steps[1]["tool"] == "dialog_respond");
+    CHECK(steps[1]["tool"] == "answer_dialog");
     CHECK(running == nlohmann::json::array({{{"tool", "slice"}, {"job", "j3"}}, {{"tool", "screenshot"}}}));
 
-    // The dialog's answer follows it in the script, so it stays when its job then fails.
+    // The dialog's answer follows it in the replay, so it stays when its job then fails.
     journal.job_ended(open, ToolResult::error("Cancelled"));
-    // A job that ends before its reply is recorded is in the script at once.
+    // A job that ends before its reply is recorded is in the replay at once.
     journal.job_ended(slice, ToolResult::ok());
-    steps = journal.to_script("t", &running)["steps"];
+    steps = journal.to_replay("t", &running)["steps"];
     REQUIRE(steps.size() == 3);
     CHECK(steps[0]["tool"] == "run_action");
     CHECK(steps[2]["tool"] == "slice");
@@ -2363,13 +2364,13 @@ TEST_CASE("a job that waits on a dialog stays in the script, and a call yet to r
     CHECK(running == nlohmann::json::array({{{"tool", "screenshot"}}}));
 }
 
-TEST_CASE("a job that was running when a dialog was answered stays in the script before the answer", "[Mcp]")
+TEST_CASE("a job that was running when a dialog was answered stays in the replay before the answer", "[Mcp]")
 {
-    // A script past its reply budget opens Preferences, which a later call answers.
+    // A replay past its reply budget opens Preferences, which a later call answers.
     Journal        journal;
-    const uint64_t script = journal.begin("run_script", {{"path", "s.json"}});
-    journal.job_started(script, "j1");
-    journal.end(script, ToolResult::ok({{"status", "running"}, {"job", "j1"}, {"tool", "run_script"}}));
+    const uint64_t replay_call = journal.begin("run_replay", {{"path", "s.json"}});
+    journal.job_started(replay_call, "j1");
+    journal.end(replay_call, ToolResult::ok({{"status", "running"}, {"job", "j1"}, {"tool", "run_replay"}}));
     // A call still within its reply budget, whose dialog is answered before it replies.
     const uint64_t open = journal.begin("run_action", {{"id", "orca_command:open_preferences:orca"}});
     journal.job_started(open, "j2");
@@ -2377,81 +2378,81 @@ TEST_CASE("a job that was running when a dialog was answered stays in the script
     journal.job_started(slice, "j3");
     journal.end(slice, ToolResult::ok({{"status", "running"}, {"job", "j3"}, {"tool", "slice"}}));
     journal.job_ended(slice, ToolResult::error("Cancelled"));
-    const uint64_t answer = journal.begin("dialog_respond", {{"button", "close"}}, true);
+    const uint64_t answer = journal.begin("answer_dialog", {{"button", "close"}}, true);
     journal.job_started(answer, "j4");
     journal.job_ended(answer, ToolResult::ok());
     journal.end(answer, ToolResult::ok());
     // Input with no dialog open ties nothing to the jobs then running.
-    const uint64_t click = journal.begin("ui_click", {{"target", "w1"}});
+    const uint64_t click = journal.begin("click", {{"target", "w1"}});
     journal.job_started(click, "j5");
     journal.job_ended(click, ToolResult::ok());
     journal.end(click, ToolResult::ok());
     const uint64_t later = journal.begin("run_action", {{"id", "obj_arrange"}});
     journal.job_started(later, "j6");
     journal.end(later, ToolResult::ok({{"status", "running"}, {"job", "j6"}, {"tool", "run_action"}}));
-    journal.begin("ui_click", {{"target", "w2"}});
+    journal.begin("click", {{"target", "w2"}});
 
     nlohmann::json running;
-    nlohmann::json steps = journal.to_script("t", &running)["steps"];
+    nlohmann::json steps = journal.to_replay("t", &running)["steps"];
     REQUIRE(steps.size() == 5);
-    CHECK(steps[0]["tool"] == "run_script");
+    CHECK(steps[0]["tool"] == "run_replay");
     CHECK(steps[0]["await"] == false);
     CHECK(steps[1]["tool"] == "run_action");
     CHECK(steps[1]["await"] == false);
     // The answer waits for its dialog, which the replayed job may open later than its reply.
     CHECK(steps[2] == nlohmann::json({{"tool", "wait"}, {"args", {{"for", "dialog"}, {"timeout_s", 50}}}, {"expect", {{"/satisfied", {{"eq", true}}}}}}));
-    CHECK(steps[3]["tool"] == "dialog_respond");
-    CHECK(steps[4]["tool"] == "ui_click");
-    CHECK(running == nlohmann::json::array({{{"tool", "run_action"}, {"job", "j6"}}, {{"tool", "ui_click"}}}));
+    CHECK(steps[3]["tool"] == "answer_dialog");
+    CHECK(steps[4]["tool"] == "click");
+    CHECK(running == nlohmann::json::array({{{"tool", "run_action"}, {"job", "j6"}}, {{"tool", "click"}}}));
 
     // They stay whatever their jobs' results: the answer after them needs a dialog one of them opens.
-    journal.job_ended(script, ToolResult::error("Step 4 failed"));
+    journal.job_ended(replay_call, ToolResult::error("Step 4 failed"));
     journal.job_ended(open, ToolResult::ok());
     journal.end(open, ToolResult::ok({{"ran", "orca_command:open_preferences:orca"}}));
-    steps = journal.to_script("t")["steps"];
+    steps = journal.to_replay("t")["steps"];
     REQUIRE(steps.size() == 5);
-    CHECK(steps[0]["tool"] == "run_script");
+    CHECK(steps[0]["tool"] == "run_replay");
     CHECK(steps[1]["await"] == false);
 }
 
 TEST_CASE("an exported answer to a dialog a job opens after its reply replays once the dialog is open", "[Mcp]")
 {
-    // A script replies running, opens Preferences later, and is answered while it keeps running.
+    // A replay replies running, opens Preferences later, and is answered while it keeps running.
     Journal        journal;
-    const uint64_t script = journal.begin("run_script", {{"path", "s.json"}});
-    journal.job_started(script, "j1");
-    journal.end(script, ToolResult::ok({{"status", "running"}, {"job", "j1"}, {"tool", "run_script"}}));
-    const uint64_t answer = journal.begin("dialog_respond", {{"button", "close"}}, true);
+    const uint64_t replay_call = journal.begin("run_replay", {{"path", "s.json"}});
+    journal.job_started(replay_call, "j1");
+    journal.end(replay_call, ToolResult::ok({{"status", "running"}, {"job", "j1"}, {"tool", "run_replay"}}));
+    const uint64_t answer = journal.begin("answer_dialog", {{"button", "close"}}, true);
     journal.job_started(answer, "j2");
     journal.job_ended(answer, ToolResult::ok());
     journal.end(answer, ToolResult::ok());
     const uint64_t waited = journal.begin("wait", {{"for", "job"}, {"job", "j1"}});
     journal.end(waited, ToolResult::ok());
-    journal.job_ended(script, ToolResult::ok());
+    journal.job_ended(replay_call, ToolResult::ok());
 
     std::string                 err;
-    const std::optional<Script> parsed = parse_script(journal.to_script("t").dump(), err);
+    const std::optional<Replay> parsed = parse_replay(journal.to_replay("t").dump(), err);
     REQUIRE(parsed.has_value());
-    // The replayed script opens its dialog 300 ms after its reply; an answer before that is refused.
+    // The replay opens its dialog 300 ms after its reply; an answer before that is refused.
     std::atomic<bool> dialog{false};
     std::thread       opener;
     std::vector<std::string> calls;
-    ScriptHost        host;
+    ReplayHost        host;
     host.call = [&](const std::string& tool, const nlohmann::json& args) {
         calls.push_back(tool);
-        if (tool == "run_script") {
+        if (tool == "run_replay") {
             opener = std::thread([&dialog] {
                 std::this_thread::sleep_for(std::chrono::milliseconds(300));
                 dialog = true;
             });
-            return ToolResult::ok({{"status", "running"}, {"job", "r1"}, {"tool", "run_script"}});
+            return ToolResult::ok({{"status", "running"}, {"job", "r1"}, {"tool", "run_replay"}});
         }
         if (tool == "wait" && args["for"] == "dialog") {
             for (int i = 0; i < 100 && !dialog; ++i)
                 std::this_thread::sleep_for(std::chrono::milliseconds(20));
             return ToolResult::ok({{"satisfied", dialog.load()}});
         }
-        if (tool == "dialog_respond") {
+        if (tool == "answer_dialog") {
             if (!dialog)
                 return ToolResult::error("No modal dialog is open");
             dialog = false;
@@ -2461,11 +2462,11 @@ TEST_CASE("an exported answer to a dialog a job opens after its reply replays on
         return ToolResult::ok({{"done", true}});
     };
     host.wait_job = [](const std::string&, int) { return std::optional<ToolResult>(ToolResult::ok()); };
-    ScriptContext        sctx;
-    const nlohmann::json replay = run_script(*parsed, sctx, host);
+    ReplayContext        sctx;
+    const nlohmann::json replay = run_replay(*parsed, sctx, host);
     opener.join();
     CHECK(replay["passed"] == true);
-    CHECK(calls == std::vector<std::string>{"run_script", "wait", "dialog_respond", "wait"});
+    CHECK(calls == std::vector<std::string>{"run_replay", "wait", "answer_dialog", "wait"});
 }
 
 TEST_CASE("an upload's row reaches 100 percent only once the host has answered", "[Mcp][PrintHost]")
@@ -2490,5 +2491,5 @@ TEST_CASE("the send command is a Slice & Export command that takes no param", "[
     CHECK(send->group == "Slice & Export");
     CHECK(send->param.type == CommandParamType::None);
     CHECK(send->completion == CommandCompletion::None);
-    CHECK(send->description.find("get_state.uploads") != std::string::npos);
+    CHECK(send->description.find("get_app_state.uploads") != std::string::npos);
 }

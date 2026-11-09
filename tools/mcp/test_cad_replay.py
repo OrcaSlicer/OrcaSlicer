@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Checks that a Design-tab session exported with export_script replays to the same part.
+"""Checks that a Design-tab session exported with export_replay replays to the same part.
 
     tools/mcp/orca_mcp.py launch --cad
     tools/mcp/test_cad_replay.py
 
-Records a session of cad_call client calls (script steps are not journaled) on the paths a replay
+Records a session of call_cad_tool client calls (replay steps are not journaled) on the paths a replay
 breaks on: a sketch on a base plane, which passes through modeling_origin as every plane does; an
 empty sketch commit, which fails and must keep the sketch open for the next call; a rewritten
-method failing as an error (a hole that misses), which export_script must leave out; a legacy
+method failing as an error (a hole that misses), which export_replay must leave out; a legacy
 method answering ok false, which stays in and replays the same rejection; and face and edge ids
 passed with the generation they were read at, which the journal drops, since the replay reaches
-other generation numbers. The thread rebuilds behind the progress dialog. The exported script is
+other generation numbers. The thread rebuilds behind the progress dialog. The exported replay is
 replayed into a new project in the same instance, whose generation count has moved on, and the
 body's mass properties and the feature list must match. Exits 0 when all hold.
 """
@@ -26,7 +26,7 @@ import orca_mcp  # noqa: E402
 
 
 def cad(client, method, **params):
-    return client.call("cad_call", _timeout=300, method=method, params=params)["result"]
+    return client.call("call_cad_tool", _timeout=300, method=method, params=params)["result"]
 
 
 def refused(client, method, **params):
@@ -40,7 +40,7 @@ def refused(client, method, **params):
 
 def record(client):
     """The session to export; returns the reads the replay must match and the refusals seen."""
-    client.call("export_script", clear=True)
+    client.call("export_replay", clear=True)
     client.call("new_project", discard_changes=True)
     cad(client, "new_design", discard_changes=True)
     frame = cad(client, "sketch_begin", plane="XY")["frame"]
@@ -57,7 +57,7 @@ def record(client):
     legacy = cad(client, "fillet", edge=corners["edges"][0]["id"], radius=50, body=0)
     bores = cad(client, "query_topology", body=0, kinds=["cylindrical"])
     bore = next(f["id"] for f in bores["faces"] if f.get("internal"))
-    thread = client.await_job(client.call("cad_call", _timeout=300, method="thread",
+    thread = client.await_job(client.call("call_cad_tool", _timeout=300, method="thread",
                                           params={"body": 0, "face": bore, "generation": bores["generation"]}))
     return {"mass": cad(client, "mass_properties", body=0), "scene": cad(client, "describe_scene"),
             "frame": frame, "empty_commit": empty_commit, "missed_hole": missed_hole, "legacy": legacy,
@@ -73,15 +73,15 @@ def main():
     live = record(client)
     out_dir = tempfile.mkdtemp(prefix="orca-mcp-cad-replay-")
     path = os.path.join(out_dir, "session.json")
-    client.call("export_script", path=path, overwrite=True)
+    client.call("export_replay", path=path, overwrite=True)
     with open(path) as f:
         text = f.read()
     steps = json.loads("\n".join(l for l in text.splitlines() if not l.lstrip().startswith("//")))["steps"]
-    calls = [s["args"] for s in steps if s["tool"] == "cad_call"]
+    calls = [s["args"] for s in steps if s["tool"] == "call_cad_tool"]
     methods = [c["method"] for c in calls]
 
     client.call("new_project", discard_changes=True)
-    replay = client.await_job(client.call("run_script", path=path, out_dir=out_dir), timeout=900)
+    replay = client.await_job(client.call("run_replay", path=path, out_dir=out_dir), timeout=900)
     mass = cad(client, "mass_properties", body=0)
     scene = cad(client, "describe_scene")
     kinds = lambda s: [f["type"] for f in s["features"]]  # noqa: E731 (names count on across projects)
@@ -111,7 +111,7 @@ def main():
          all(same(a, b) for a, b in zip(mass["center_of_mass"], live["mass"]["center_of_mass"])),
          (mass["center_of_mass"], live["mass"]["center_of_mass"])),
     ]
-    print(f"volume {live['mass']['volume']:.3f} mm3; script and replay in {out_dir}")
+    print(f"volume {live['mass']['volume']:.3f} mm3; replay and its run in {out_dir}")
     failures = 0
     for name, ok, detail in checks:
         print(("ok   " if ok else "FAIL ") + name + ("" if ok else f": {detail}"))

@@ -1,5 +1,5 @@
-// The MCP server's agent inside a web page: lists the page as ui_snapshot shows it and acts on its
-// elements for ui_click, ui_input, ui_key, ui_mouse and dialog_respond. OrcaSlicer injects it on
+// The MCP server's agent inside a web page: lists the page as list_widgets shows it and acts on its
+// elements for click, set_widget_value, press_keys, mouse_gesture and answer_dialog. OrcaSlicer injects it on
 // demand into any of its web views (src/slic3r/GUI/Mcp/WebPages.cpp), so no page or host includes
 // it. It runs as the body of `function (V, SRC)`, V the version OrcaSlicer stamps it with and SRC
 // this source, which it hands to the plugin configuration frames it relays to, and installs
@@ -175,7 +175,7 @@ function jqueryHandles(el) {
 
 function isFrame(el) { return el.localName === 'iframe' || el.localName === 'frame'; }
 
-// The kind ui_snapshot lists an element as, in the vocabulary of wx widgets, or '' when it is only a
+// The kind list_widgets lists an element as, in the vocabulary of wx widgets, or '' when it is only a
 // container. `pointerAbove` says whether its parent already shows the pointer cursor or is a listed
 // button or link, so a clickable element counts once, not with every child inside it.
 function kindOf(el, st, pointerAbove) {
@@ -483,7 +483,7 @@ function topRect(el) {
 
 // ---- the walk ------------------------------------------------------------------------------
 
-// Visits the page as ui_snapshot lists it: visit(el, info, depth) for each listed element and
+// Visits the page as list_widgets lists it: visit(el, info, depth) for each listed element and
 // text(text, depth, block) for each run of text outside one. Hidden subtrees are left out; open
 // shadow roots are walked through their slots and same-origin frames entered.
 function walkPage(visit, text) {
@@ -1050,7 +1050,7 @@ function aimAt(el, dx, dy, hitTest) {
   // What a press lands on must be the element; a move or release may be anywhere (a drag's).
   if (hitTest && ((dx !== undefined && (dx < 0 || dx > r.width)) || (dy !== undefined && (dy < 0 || dy > r.height))))
     fail('point', 'The point x, y is outside the element: they count from its top left, within the width and height ' +
-         'ui_snapshot lists for it');
+         'list_widgets lists for it');
   var at = {x: dx === undefined ? r.left + r.width / 2 : r.left + dx, y: dy === undefined ? r.top + r.height / 2 : r.top + dy};
   if (hitTest) {
     var root = el.getRootNode ? el.getRootNode() : el.ownerDocument;
@@ -1766,7 +1766,7 @@ var CHANGES_MAX = 20;
 var WATCHES_MAX = 16;
 var watches = {}; // outlines taken before actions, by the tools' id for the action: {at, lines}
 
-// The page as ui_snapshot lists it, a line per element (kind, label, value, state and notes) and per
+// The page as list_widgets lists it, a line per element (kind, label, value, state and notes) and per
 // run of text, and the configuration frames, whose agents outline their own pages.
 function outline() {
   var lines = [];
@@ -1885,10 +1885,10 @@ function changes(req) {
 
 function element(req) {
   if (req.doc !== docToken)
-    fail('stale', 'The page changed (it navigated or reloaded); take a new ui_snapshot');
+    fail('stale', 'The page changed (it navigated or reloaded); call list_widgets again');
   var el = byKey.get(req.k);
   if (!el || !el.isConnected)
-    fail('stale', 'The element is gone from the page; take a new ui_snapshot');
+    fail('stale', 'The element is gone from the page; call list_widgets again');
   return el;
 }
 
@@ -1917,7 +1917,7 @@ function forward(req) {
   var parts = String(req.k).split('/');
   var frame = byKey.get(Number(parts[0]));
   if (!frame || !frame.isConnected || !relayFrame(frame))
-    fail('stale', 'The element\'s frame is gone; take a new ui_snapshot');
+    fail('stale', 'The element\'s frame is gone; call list_widgets again');
   var inner = {};
   for (var p in req)
     inner[p] = req[p];
@@ -1948,7 +1948,7 @@ function release(req) {
 function act(req) {
   if (typeof req.k === 'string' && req.k.indexOf('/') > 0) {
     if (req.doc !== docToken)
-      fail('stale', 'The page changed (it navigated or reloaded); take a new ui_snapshot');
+      fail('stale', 'The page changed (it navigated or reloaded); call list_widgets again');
     watch(req);
     return forward(req);
   }
@@ -1956,7 +1956,7 @@ function act(req) {
   var el = req.k ? element(req) : null;
   if (req.action === 'key') {
     if (el && hiddenFromView(el))
-      fail('hidden', 'The element is not shown; take a new ui_snapshot');
+      fail('hidden', 'The element is not shown; call list_widgets again');
     // A disabled control (its fieldset's included) takes no focus, so keys would go elsewhere.
     if (el) {
       var keyed = infoOf(el);
@@ -1993,7 +1993,7 @@ function act(req) {
   if (!el)
     fail('target', 'No element');
   if (hiddenFromView(el))
-    fail('hidden', 'The element is not shown; take a new ui_snapshot');
+    fail('hidden', 'The element is not shown; call list_widgets again');
   var info = infoOf(el);
   if (disabledOf(info.control || el, info.st))
     fail('disabled', 'The ' + info.kind + ' "' + clip(info.label, 40) + '" is disabled');
@@ -2037,7 +2037,7 @@ function press(req) {
 
 function evalScript(req) {
   if (typeof req.k === 'string')
-    fail('relayed', 'The element is in a plugin configuration frame, which webview_eval does not reach; use the ui_* tools');
+    fail('relayed', 'The element is in a plugin configuration frame, which run_javascript does not reach; use click, set_widget_value and press_keys');
   var el = req.k ? element(req) : undefined;
   // A page whose Content-Security-Policy forbids eval refuses to build the runner, before any of the
   // script runs; the agent itself, installed as inline code, still works there.
@@ -2045,7 +2045,7 @@ function evalScript(req) {
   try {
     run = new Function('el', 'return eval(arguments[1]);');
   } catch (e) {
-    fail('csp', 'This page\'s Content-Security-Policy forbids eval, which webview_eval runs scripts with; the ui_* tools ' +
+    fail('csp', 'This page\'s Content-Security-Policy forbids eval, which run_javascript runs scripts with; click, set_widget_value and press_keys ' +
          'still work on it');
   }
   var res = run(el, String(req.script));

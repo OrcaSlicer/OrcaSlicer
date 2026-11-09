@@ -5,8 +5,8 @@
     tools/mcp/test_list_windows.py
 
 The main window comes first. The Plugins window, which doesn't block the app, is listed with a ref:
-a screenshot of that ref captures the window, ui_snapshot with it as root reads that window alone,
-and ui_key Escape sent to it closes it, after which the list leaves it out. Preferences, a modal
+a screenshot of that ref captures the window, list_widgets with it as root reads that window alone,
+and press_keys Escape sent to it closes it, after which the list leaves it out. Preferences, a modal
 dialog, comes last. Action Replay is listed as hidden, without a ref. Exits 0 when every check passes.
 """
 
@@ -64,12 +64,12 @@ def main():
         check("a screenshot of its ref captures it", shot.get("path") and shot.get("width", 0) > 0, shot)
         check("and not the main window", (shot.get("width"), shot.get("height")) != (whole.get("width"), whole.get("height")),
               f"{shot} / {whole}")
-        _snap, texts = client.call_with_text("ui_snapshot", root=plugins["ref"], include_web=False)
+        _snap, texts = client.call_with_text("list_widgets", root=plugins["ref"], include_web=False)
         tree = texts[0] if texts else ""
         first = tree.splitlines()[0] if tree else ""
-        check("ui_snapshot with its ref reads that window alone", '"Plugins"' in first and "MainFrame" not in tree, first)
-        client.call("ui_key", keys="Escape", target=plugins["ref"])
-        check("ui_key Escape on its ref closes it", wait_for(lambda: find("Plugins") is None, 10), windows())
+        check("list_widgets with its ref reads that window alone", '"Plugins"' in first and "MainFrame" not in tree, first)
+        client.call("press_keys", keys="Escape", target=plugins["ref"])
+        check("press_keys Escape on its ref closes it", wait_for(lambda: find("Plugins") is None, 10), windows())
 
     # A modal dialog comes last.
     prefs = client.call("run_action", id="orca_command:open_preferences:orca")
@@ -77,12 +77,12 @@ def main():
     listed = windows()
     check("Preferences is listed as modal, with a ref", modal and modal.get("modal") is True and modal.get("ref"), listed)
     check("the modal dialog comes last", listed and listed[-1].get("title") == "Preferences", listed)
-    client.call("dialog_respond", dialog={"title": "Preferences"}, button="close")
+    client.call("answer_dialog", dialog={"title": "Preferences"}, button="close")
     client.await_job(prefs)
     check("Preferences is gone from the list once closed", find("Preferences") is None, windows())
 
     # Action Replay is the person's own window: listed, but out of reach.
-    client.call("run_action", id="orca_command:open_script_runner:orca")
+    client.call("run_action", id="orca_command:open_action_replay:orca")
     replay = wait_for(lambda: find("Action Replay"), 15)
     check("Action Replay is listed as hidden", replay and replay.get("hidden") is True, windows())
     check("without a ref", replay is not None and "ref" not in replay, replay)

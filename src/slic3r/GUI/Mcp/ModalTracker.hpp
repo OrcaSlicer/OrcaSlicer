@@ -57,7 +57,7 @@ public:
     std::uint64_t serial(const wxDialog* dialog) const;
     bool          is_open(std::uint64_t serial) const;
 
-    // Rule sets are layered so a script can add its own and drop exactly those when it ends.
+    // Rule sets are layered so a run can add its own and drop exactly those when it ends.
     // Returns the layer id to pass to pop_rules(). A layer pushed `paused` is never in force until resumed (set_paused()).
     // Any thread.
     int  push_rules(std::vector<AutoAnswerRule> rules, bool paused = false);
@@ -78,7 +78,7 @@ public:
     bool           any_open() const;
 
     // What runs right before a rule presses a button, its wx one or its page's: as before any other
-    // click, the presses ui_mouse downs left on pages end first. UI thread only.
+    // click, the presses mouse_gesture downs left on pages end first. UI thread only.
     void set_before_press(std::function<void()> fn) { m_before_press = std::move(fn); }
     void before_press() const
     {
@@ -109,7 +109,7 @@ private:
 // {title, message, class, native, buttons:[{id,label,enabled?}], web?} for a dialog. A wx dialog's
 // message reads it as a person does: its text, and its controls with their values and states, row by
 // row (DialogReader in the .cpp); `enabled` is false for a disabled button. `web` is true for a dialog
-// with a web view, whose page holds its controls (ui_snapshot root=dialog lists them). `text`, when
+// with a web view, whose page holds its controls (list_widgets root=dialog lists them). `text`, when
 // given, receives the dialog's own text: its static text and html, one per line, without its
 // controls, which auto-answer rules also search (rule_matches()). UI thread only.
 nlohmann::json describe_dialog(wxDialog* dialog, std::string* text = nullptr);

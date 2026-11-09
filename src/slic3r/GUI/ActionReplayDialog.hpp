@@ -25,15 +25,15 @@ class wxWindow;
 namespace Slic3r { namespace GUI {
 
 namespace Mcp {
-class ScriptRun;
-struct Script;
-struct ScriptContext;
+class PersonRun;
+struct Replay;
+struct ReplayContext;
 } // namespace Mcp
 
-// The Action Replay window: a person opens or writes a replay file (an orca_script, the JSON list of tool calls an
+// The Action Replay window: a person opens or writes a replay file (an orca_replay, the JSON list of tool calls an
 // agent session exports), saves it, reads its steps and replays it, whole or one step at a time, watching each step's
 // outcome. The page (resources/web/dialog/ActionReplay) shows; this host parses, describes, words and runs, through the
-// MCP service's script runner without opening its endpoint. A Python script opened or dropped here is offered to the Run
+// MCP service's replay runner without opening its endpoint. A Python script opened or dropped here is offered to the Run
 // Script panel instead. Modeless, one at a time (MainFrame::show_action_replay), and invisible to the MCP GUI tools, so
 // a replay can't act on it.
 class ActionReplayDialog : public WebViewHostDialog, public CodeEditorWindow
@@ -72,9 +72,9 @@ private:
 
     // The context a run of the current source gets: its folders and, for a single step, the jobs
     // earlier runs saved.
-    Mcp::ScriptContext context() const;
+    Mcp::ReplayContext context() const;
     boost::filesystem::path out_dir() const;
-    nlohmann::json          describe(const Mcp::Script& script) const;
+    nlohmann::json          describe(const Mcp::Replay& replay) const;
     nlohmann::json          step_view(const nlohmann::json& entry) const;
     nlohmann::json          finished_view(const nlohmann::json& result) const;
 
@@ -96,7 +96,7 @@ private:
     mutable boost::filesystem::path m_draft_out_dir;
     nlohmann::json                  m_jobs = nlohmann::json::object(); // jobs earlier runs saved
 
-    std::shared_ptr<Mcp::ScriptRun>       m_run;
+    std::shared_ptr<Mcp::PersonRun>       m_run;
     std::optional<std::size_t>            m_single;
     std::size_t                           m_total = 0;
     std::chrono::steady_clock::time_point m_started;

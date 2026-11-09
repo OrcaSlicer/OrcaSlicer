@@ -299,7 +299,7 @@ bool encode_when_closed(const boost::filesystem::path& path, const Mcp::Recordin
 // into the folder the settings name. The dialog shows the remembered settings, with what `param` overrides,
 // and remembers what it starts with; a silent `param` starts with them at once and remembers
 // nothing. Encoding needs an ffmpeg: the dialog says so and records without encoding, and a silent start that
-// would encode is refused. Neither a script's end nor the server turning off ends the recording. Whatever does
+// would encode is refused. Neither a run's end nor the server turning off ends the recording. Whatever does
 // end it says where it went: Stop Recording itself, or the recording's `ended` for an agent's stop_recording,
 // the limit or a write error; with encode, `ended` also encodes it.
 AppActionRunResult start_recording(const std::string& param)
@@ -497,10 +497,10 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"new_project", "Start a new, empty project (asks first if the current one has unsaved changes)."},
         {"undo", "Undo the last change to the project."},
         {"redo", "Redo the last undone change."},
-        {"open_script_runner", "Open the Action Replay window, where a person opens a replay file (an orca_script), reads its steps "
-                               "and replays them. Agents run replays with the run_script tool instead."},
+        {"open_action_replay", "Open the Action Replay window, where a person opens a replay file (an orca_replay), reads its steps "
+                               "and replays them. Agents run replays with the run_replay tool instead."},
         {"toggle_run_script", "Show or hide the Run Script panel, where a person writes and runs Python scripts cell by cell. Agents "
-                              "run Python with the run_python tool instead."},
+                              "run Python with the run_script tool instead."},
         {"take_screenshot", "Save a PNG of the main window in the folder Start Recording saves in (the person's Downloads unless "
                             "they chose another) and show the person a notification naming it; the reply has its path. Agents use "
                             "the screenshot tool, which returns the image."},
@@ -508,13 +508,13 @@ void describe_commands(std::vector<NativeCommand>& commands)
                             "Recording dialog remembers: JPEG quality, whether tool calls are captioned and the pointer highlighted, "
                             "whether and how it is encoded to MP4 once it ends, and the "
                             "folder both go in (the person's Downloads unless they chose another). Without silent, the dialog opens "
-                            "with them (the param's values filled in): set its controls with ui_input (each is named after its "
-                            "param key) and answer it with dialog_respond \"Start recording\"; it remembers what it starts with. "
+                            "with them (the param's values filled in): set its controls with set_widget_value (each is named after its "
+                            "param key) and answer it with answer_dialog \"Start recording\"; it remembers what it starts with. "
                             "With silent, the recording starts at once and nothing is remembered; one that would encode is refused "
-                            "when no ffmpeg is found. The reply has the path and the settings used. Neither a script's end nor the "
-                            "server turning off ends it. With encode, the encode starts once the recording's file is closed, as an "
-                            "encode_recording job in get_state.jobs: wait {for: \"job\"} with its id returns the MP4's path, or "
-                            "an error. Agents record with start_recording instead.",
+                            "when no ffmpeg is found. The reply has the path and the settings used. Neither the end of a replay or script "
+                            "nor the server turning off ends it. With encode, the encode starts once the recording's file is closed, as "
+                            "an encode_recording job in get_app_state.jobs: wait {for: \"job\"} with its id returns the MP4's path, or an "
+                            "error. Agents record with start_recording instead.",
          CommandParamType::Text,
          "JSON object, all optional: quality (30-95), captions (bool), pointer (bool), encode (bool), encode_preset (small, "
          "balanced, quality, compatible; applied before the fields), codec (h265, h264), crf (0-51), speed (ultrafast ... "
@@ -523,10 +523,10 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"stop_recording", "Stop the running recording, whoever started it, without waiting for its file, and show the person a "
                            "notification naming it; the reply has its path. A later stop_recording reports it as ended "
                            "stopped_in_app. A recording Start Recording made with encode is then encoded: find its "
-                           "encode_recording job in get_state.jobs. Agents stop their own recordings with stop_recording, which "
+                           "encode_recording job in get_app_state.jobs. Agents stop their own recordings with stop_recording, which "
                            "waits and reports."},
         {"open_preferences", "Open the Preferences dialog on a tab, scrolled to one preference when given (shown on its own tab). Its "
-                             "controls are named after their preference keys: ui_input {\"target\": {\"name\": key, \"within\": "
+                             "controls are named after their preference keys: set_widget_value {\"target\": {\"name\": key, \"within\": "
                              "\"Preferences\"}} changes one through the dialog; get_settings scope preferences reads them.",
          CommandParamType::Text, "general, files, behaviour, control, graphics, online or developer, optionally :<key>, e.g. behaviour:auto_arrange"},
         {"mode_simple", "Switch the settings view to Simple mode."},
@@ -538,7 +538,7 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"export_3mf", "Export the model as a .3mf without slicing data. With a path, writes there without a dialog.", CommandParamType::Path, "absolute .3mf path, or {\"path\": ..., \"overwrite\": true}"},
         {"export_sliced_file", "Export the current plate's sliced file (.gcode.3mf). With a path, writes there without a dialog.", CommandParamType::Path, "absolute .3mf path, or {\"path\": ..., \"overwrite\": true}"},
         {"export_all_sliced_file", "Export every plate's sliced file into one .gcode.3mf. With a path, writes there without a dialog.", CommandParamType::Path, "absolute .3mf path, or {\"path\": ..., \"overwrite\": true}"},
-        {"send_gcode", "Open the Send G-code to printer host dialog for the current plate, as the Print button does for a printer with a print host (OctoPrint, Moonraker, PrusaLink, Duet...). Set the file name with ui_input and press Upload or Upload and Print with dialog_respond; the plate is sliced if needed, then uploaded in the background: get_state.uploads shows the row's state, and a failed upload also opens an error dialog. A replay uploads again. Fails for a printer without a print host, or one that prints through the Bambu network or printer agents."},
+        {"send_gcode", "Open the Send G-code to printer host dialog for the current plate, as the Print button does for a printer with a print host (OctoPrint, Moonraker, PrusaLink, Duet...). Set the file name with set_widget_value and press Upload or Upload and Print with answer_dialog; the plate is sliced if needed, then uploaded in the background: get_app_state.uploads shows the row's state, and a failed upload also opens an error dialog. A replay uploads again. Fails for a printer without a print host, or one that prints through the Bambu network or printer agents."},
         {"export_stl_multi", "Export each object as its own STL. With a directory, writes there without a dialog.", CommandParamType::Path, "absolute path of an existing directory"},
         {"export_drc_single", "Export all objects as one Draco (.drc) file."},
         {"export_drc_multi", "Export each object as its own Draco (.drc) file."},
@@ -577,7 +577,7 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"obj_orient", "Auto-orient the selection, or every object when nothing is selected; the call returns when it is done."},
         // Object structure: the object list's Change Type, Rename, instance and Assemble items, and the plate
         // menu's Order By. A param stands in for the item's dialog.
-        {"obj_type_part", "Make the selected parts (select {volumes} first) solid parts, as Change Type does. Parts are listed by type, so part indices change."},
+        {"obj_type_part", "Make the selected parts (select_objects {volumes} first) solid parts, as Change Type does. Parts are listed by type, so part indices change."},
         {"obj_type_negative", "Make the selected parts negative parts, as Change Type does; not the object's last solid part. Parts are listed by type, so part indices change."},
         {"obj_type_modifier", "Make the selected parts modifiers, as Change Type does; not the object's last solid part. Parts are listed by type, so part indices change."},
         {"obj_type_support_blocker", "Make the selected parts support blockers, as Change Type does; not the object's last solid part, nor a text or SVG part. Parts are listed by type, so part indices change."},
@@ -586,7 +586,7 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"obj_rename", "Rename the selected object or part (select one). With a name, skips the Rename dialog; a name with characters a file name cannot hold is refused.", CommandParamType::Text, "the new name"},
         {"obj_set_instances", "Give the selected object this many instances, in one undo step. With a number, skips the dialog. New instances overlap; arrange afterwards. The reply has object and instances.", CommandParamType::Index, "total number of instances, 1-1000"},
         {"obj_assemble", "Assemble two or more selected objects into one object of parts named Assembly. They are removed and it is added last, so object indices change; the reply has its index (object) and name."},
-        {"obj_instances_to_objects", "Make each instance of the selected object a separate object (select {objects: [n]}); with some of its instances selected, only those. New objects are added last; the reply lists the objects the instances are in now (objects)."},
+        {"obj_instances_to_objects", "Make each instance of the selected object a separate object (select_objects {objects: [n]}); with some of its instances selected, only those. New objects are added last; the reply lists the objects the instances are in now (objects)."},
         {"obj_order_by_name", "Order the current plate's objects by name, which sets the object list and print order, as the plate menu's Order By does. Choosing the order they already have reverses it. Object indices change; the reply lists the new order (order: [{object, name, plate}]) and descending.", CommandParamType::Text, "all, to order every plate"},
         {"obj_order_by_filament", "Order the current plate's objects by filament, which sets the object list and print order, as the plate menu's Order By does. Choosing the order they already have reverses it. Object indices change; the reply lists the new order (order: [{object, name, plate}]) and descending.", CommandParamType::Text, "all, to order every plate"},
         {"obj_order_by_height", "Order the current plate's objects by height, which sets the object list and print order, as the plate menu's Order By does. Choosing the order they already have reverses it. Object indices change; the reply lists the new order (order: [{object, name, plate}]) and descending.", CommandParamType::Text, "all, to order every plate"},
@@ -625,7 +625,7 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"install_plugin", "Open the plugin hub to install a plugin."},
         {"install_local_plugin", "Install a plugin from a .py or .whl file, as the Plugins dialog's Install local plugin does. With a "
                                  "path, installs that file without a dialog. Replacing a plugin installed already asks first "
-                                 "(answer with dialog_respond); the message names the plugin installed, or why it was not.",
+                                 "(answer with answer_dialog); the message names the plugin installed, or why it was not.",
          CommandParamType::Path, "absolute path of a .py or .whl plugin package"},
         // Filament slots
         {"filament_add", "Add a filament slot, as the + button above the filament list does; the message names the new slot. It "
@@ -643,7 +643,8 @@ void describe_commands(std::vector<NativeCommand>& commands)
             c.param       = {it->param, it->param_help};
             c.completion  = it->completion;
         } else if (c.key.rfind("calib_", 0) == 0) {
-            c.description = "Open the " + c.title + " dialog; the calibrate tool runs the same test with typed parameters and no dialog.";
+            c.description = "Open the " + c.title +
+                            " dialog; the generate_calibration_test tool runs the same test with typed parameters and no dialog.";
         } else if (c.key.rfind("view_", 0) == 0) {
             c.description = "Point the 3D camera: " + c.title + ".";
         } else if (c.key.rfind("add_primitive_", 0) == 0 || c.key.rfind("add_handy_", 0) == 0) {
@@ -770,7 +771,7 @@ std::vector<NativeCommand> build_command_catalog()
             wxGetApp().run_script_panel().toggle();
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
-    add_with_icon("open_script_runner", L("Action Replay"), L("Commands"), "loop", [](const std::string&) {
+    add_with_icon("open_action_replay", L("Action Replay"), L("Commands"), "loop", [](const std::string&) {
         if (MainFrame* mf = wxGetApp().mainframe)
             mf->show_action_replay();
         return AppActionRunResult{AppActionRunResult::Level::Success};
@@ -823,7 +824,7 @@ std::vector<NativeCommand> build_command_catalog()
             return AppActionRunResult{AppActionRunResult::Level::Info, _L("No recording is running."), false};
         // What the window shows now, even if the timer has not ticked since, before the notification shows.
         service->recorder().capture_now();
-        // The recording may be an agent's or a script's; the person stopped it all the same, so they are told
+        // The recording may be an agent's, a replay's or a script's; the person stopped it all the same, so they are told
         // where it went. Before it ends: a person's recording that is to be encoded says so instead, as it ends.
         const boost::filesystem::path path = Mcp::path_from_utf8(state["path"].get<std::string>());
         notify_saved(_L("Recording saved"), path);

@@ -639,7 +639,7 @@ TEST_CASE("Plugin host API exposes TriangleMesh geometry to Python", "[PluginHos
 
 TEST_CASE("every public member of the orca package has documentation and named parameters", "[PluginHost][Python]")
 {
-    // python_api serves this documentation to agents writing scripts and plugins: a member without it, or
+    // search_python_api serves this documentation to agents writing scripts and plugins: a member without it, or
     // with a parameter pybind11 names argN, is one they can only guess at. A constant's documentation is
     // the documentation that names it, and a class's goes on with what its constructors say; an enum's
     // constructor takes one of the values its documentation lists.

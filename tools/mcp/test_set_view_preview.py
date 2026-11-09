@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Checks what set_view does to the Preview of a sliced cube where a script cannot look.
+"""Checks what set_view does to the Preview of a sliced cube where a replay cannot look.
 
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_set_view_preview.py
@@ -39,7 +39,7 @@ def main():
             return str(e)
 
     def legend():
-        return client.call("get_preview", include=["view"])["view"]["legend"]
+        return client.call("get_slice_stats", include=["view"])["view"]["legend"]
 
     def last_view_type(expected):
         # The app writes its config at an idle moment, so wait for it.
@@ -57,7 +57,7 @@ def main():
             time.sleep(0.1)
         return value
 
-    client.call("dialog_auto_answer", rules=[{"match": "Uniform scale", "button": "ok"}])
+    client.call("auto_answer_dialogs", rules=[{"match": "Uniform scale", "button": "ok"}])
     client.call("new_project", discard_changes=True)
     check("legend rows need a slice", "slice first" in refusal(legend={"travel": False}))
     client.call("run_action", id="orca_command:add_primitive_cube:orca")
@@ -65,10 +65,10 @@ def main():
     sliced = client.await_job(client.call("slice"))["plates"][0]
     client.call("set_view", view_type="feature_type", layer_range=[1, 128])
 
-    # A click on the legend row and get_preview's legend are one state. The snapshot draws the legend
+    # A click on the legend row and get_slice_stats's legend are one state. The snapshot draws the legend
     # first, since a window the desktop hides may not have drawn it since the slice.
-    client.call("ui_snapshot", query="Sparse infill")
-    client.call("ui_click", target={"imgui_name": "Sparse infill"})
+    client.call("list_widgets", query="Sparse infill")
+    client.call("click", target={"imgui_name": "Sparse infill"})
     check("a legend row's click hides its feature type", legend()["features"]["Sparse infill"] is False)
     client.call("set_view", view_type="speed")
     check("the pick is remembered", last_view_type("speed") == "speed", last_view_type("speed"))
@@ -77,7 +77,7 @@ def main():
     check("picking Line Type shows it again", legend()["features"]["Sparse infill"] is True)
     check("Line Type is remembered", last_view_type("feature_type") == "feature_type", last_view_type("feature_type"))
 
-    # Each change is captured twice. One script runs the calls back to back, which seldom leaves the app
+    # Each change is captured twice. One replay runs the calls back to back, which seldom leaves the app
     # an idle frame between a change and its first capture to draw the change before the capture does.
     # The last view type is the one picked above.
     out_dir = os.path.join(session["datadir"], "set_view_captures")
@@ -89,9 +89,9 @@ def main():
         steps += [{"tool": "screenshot", "args": {"target": "canvas", "save_path": f"${{out_dir}}/{i}{shot}.png",
                                                   "overwrite": True, "include_image": False}}
                   for shot in "ab"]
-    ran = client.await_job(client.call("run_script", script={"orca_script": 1, "name": "captures after view changes", "steps": steps},
+    ran = client.await_job(client.call("run_replay", replay={"orca_replay": 1, "name": "captures after view changes", "steps": steps},
                                        out_dir=out_dir))
-    check("the capture script runs", ran.get("passed") is True, ran)
+    check("the capture replay runs", ran.get("passed") is True, ran)
     if ran.get("passed") is True:
         def png(name):
             with open(os.path.join(out_dir, name), "rb") as f:
@@ -112,14 +112,14 @@ def main():
     check("layer with layer_z is refused", "not both" in refusal(layer=3, layer_z=1.0))
     message = refusal(view_type="speed", legend={"Infill": False})
     check("an unknown row is refused with the print's rows", "Sparse infill" in message and "travel" in message, message)
-    check("a refused call leaves the view type", client.call("get_state")["preview"]["view_type"] == "feature_type")
+    check("a refused call leaves the view type", client.call("get_app_state")["preview"]["view_type"] == "feature_type")
     check("a value that is not true or false is refused", "true (show) or false (hide)" in refusal(legend={"travel": "yes"}))
     if "silent_time_s" not in sliced:
         message = refusal(time_mode="silent")
         check("silent mode without its own estimate is refused", "no separate silent-mode estimate" in message, message)
     check("normal mode is always offered", client.call("set_view", time_mode="normal").get("time_mode") == "normal")
 
-    client.call("dialog_auto_answer", rules=[])
+    client.call("auto_answer_dialogs", rules=[])
     client.call("new_project", discard_changes=True)
     failures = 0
     for name, ok, detail in checks:

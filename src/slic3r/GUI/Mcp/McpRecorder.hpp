@@ -52,7 +52,7 @@ struct RecordingOptions
     bool                    captions    = false; // the current tool call's caption
     bool                    pointer     = false; // the pointer highlighted, its clicks rippling
     boost::filesystem::path path;
-    std::string             owner; // the job of the script that started it, "" for a client, kPersonOwner
+    std::string             owner; // the job of the run (a replay or a script) that started it, "" for a client, kPersonOwner
     // encode_recording's arguments, path included, for the stop_recording that reports this recording to run;
     // null for none.
     nlohmann::json encode;
@@ -61,7 +61,7 @@ struct RecordingOptions
     std::function<void(const std::string& reason)> ended;
 };
 
-// The owner of a recording the person started from the app's own commands: neither a script's end nor the
+// The owner of a recording the person started from the app's own commands: neither a run's end nor the
 // endpoint closing ends it. Job ids never take this form.
 inline constexpr const char* kPersonOwner = "person";
 
@@ -69,7 +69,7 @@ inline constexpr const char* kPersonOwner = "person";
 // the pointer highlighted when asked for. At most one recording at a time. The UI thread captures a frame
 // per tick of a timer (the main window with the modal dialogs on it, or the 3D view shown); everything
 // after that, scaling, drawing the captions, JPEG and the file, runs on a RecordingSink's threads. A
-// recording ends when stopped, at its time limit, when the script that started it ends, when the
+// recording ends when stopped, at its time limit, when the replay or script that started it ends, when the
 // endpoint closes for a client's, on a write error and at exit; the sink then finalizes the file on its
 // own threads, so ending it needs no UI round trip. Created and destroyed on the UI thread with the
 // service; the CallObserver methods come from call threads.
@@ -91,10 +91,10 @@ public:
     void capture_now();
     // Any thread. Ends the recording, if one runs, for `reason`; returns without waiting for its file.
     void end(const std::string& reason);
-    // Any thread. Notes that the script `owner` (a job) has ended, so a start of its that runs later is
-    // refused; end_owned_by() notes it too. Call it before the script's scope goes away.
+    // Any thread. Notes that the run `owner` (a job) has ended, so a start of its that runs later is
+    // refused; end_owned_by() notes it too. Call it before the run's scope goes away.
     void owner_ended(const std::string& owner);
-    // Any thread. Whether a script in `ancestry` (a call's job chain) has ended: a call from it is no client's.
+    // Any thread. Whether a run in `ancestry` (a call's job chain) has ended: a call from it is no client's.
     bool owner_ended_in(const std::vector<std::string>& ancestry) const;
     // Any thread. Ends the recording `owner` started ("" for a client's), and with `wait`, waits up to 30 s
     // for its file to be closed. Returns the path of a file still being written after that wait.
@@ -103,7 +103,7 @@ public:
     // one that ended on its own, once. Null when there is none. `encode` gets the recording's
     // RecordingOptions::encode.
     nlohmann::json stop_and_report(std::chrono::milliseconds timeout, nlohmann::json& encode);
-    // get_state's recording: {path, target, seconds, frames} while one runs, else null.
+    // get_app_state's recording: {path, target, seconds, frames} while one runs, else null.
     nlohmann::json state() const;
     // A recording is being written or finalized.
     bool active() const;
@@ -164,7 +164,7 @@ private:
         std::vector<nlohmann::json> args;
     };
     std::map<uint64_t, Captioned> m_captioned;
-    // Scripts whose end end_owned_by() has seen: a start of theirs that runs later is refused. Job ids are
+    // Runs whose end end_owned_by() has seen: a start of theirs that runs later is refused. Job ids are
     // never reused.
     std::set<std::string> m_ended_owners;
 

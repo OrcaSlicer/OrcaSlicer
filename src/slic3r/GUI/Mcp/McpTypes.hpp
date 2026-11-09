@@ -16,11 +16,11 @@
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
-// The name of a top-level window the MCP GUI tools never see: ui_snapshot and locators skip it, web
-// view scripts never pick it, keys sent without a target never go to it, window screenshots leave it
+// The name of a top-level window the MCP GUI tools never see: list_widgets and locators skip it,
+// run_javascript never picks its web views, keys sent without a target never go to it, window screenshots leave it
 // out, and as a modal dialog it is not tracked, so the dialog tools and auto-answer rules never reach
-// it. The script runner dialog carries it, so a script it runs can't act on it, and so does the
-// window that changes the Python scripts setting, so no agent or script can turn it on.
+// it. Action Replay carries it, so a replay it runs can't act on it, and so does the window that
+// changes the Python scripts setting, so no agent, replay or script can turn it on.
 inline constexpr char kHiddenFromAutomation[] = "OrcaHiddenFromMcp";
 
 // The name of a text field that holds a secret its dialog shows in plain text, such as a printer's
@@ -89,9 +89,9 @@ public:
     // Id of the job this call runs as; empty for inline (inspect/recover) calls.
     virtual const std::string& job_id() const = 0;
     // True once the service is stopping, or a stop was asked for this call's job or one of its
-    // ancestors (a script run the user stopped); long-running handlers poll it between steps.
+    // ancestors (a replay or script the user stopped); long-running handlers poll it between steps.
     virtual bool cancelled() const = 0;
-    // Calls another tool as a child of this call (script steps). Returns what a client would get:
+    // Calls another tool as a child of this call (replay steps and a script's calls). Returns what a client would get:
     // the result, or a job envelope when the child outlives its reply budget.
     virtual ToolResult call_child(const std::string& tool, const nlohmann::json& args) = 0;
     // This call's job and its ancestors, which `wait {for:"idle"}` must not wait for.
@@ -110,7 +110,7 @@ public:
     // inline calls.
     virtual void works_in_dialog(std::uint64_t /*dialog*/) {}
     // The plugin whose code made this call, directly or through a call it made (a step of its script);
-    // empty for a client's call and a person's or an agent's script.
+    // empty for a client's call, a replay, and a person's or an agent's script.
     virtual const std::string& caller_plugin() const
     {
         static const std::string none;
@@ -131,11 +131,11 @@ struct ToolDef
     // The tool's access label, sent as MCP's annotations. Clients act on them: Codex asks a person before every call
     // of a destructive tool, and Claude Code runs read-only calls in parallel and retries idempotent ones. read_only:
     // it changes nothing in the app or the project; screenshot is, since its PNG replaces no file without overwrite,
-    // and export_script, which can clear the journal, is not. destructive: every call deletes what a person made, with
+    // and export_replay, which can clear the journal, is not. destructive: every call deletes what a person made, with
     // no undo: delete_preset. A tool that can lose work only when an argument asks for it is not: new_project,
-    // calibrate and open_files drop unsaved changes only with discard_changes, an output replaces a file only with
+    // generate_calibration_test and open_files drop unsaved changes only with discard_changes, an output replaces a file only with
     // overwrite, and encode_recording deletes its source only with delete_source. Nor is a tool that runs what its
-    // arguments name (the ui_* tools, run_action, api_call, run_script, run_python), though what it runs may be. The
+    // arguments name (click and the other input tools, run_action, call_tool, run_replay, run_script), though what it runs may be. The
     // client sees both in the arguments, and the label would ask on every call. open_world: it can reach outside
     // OrcaSlicer (a printer, the cloud account, the network, or anything the computer allows), including through what
     // it runs.
@@ -147,12 +147,12 @@ struct ToolDef
     // Pure observation: runs on the request thread and is never a job. Everything that can activate
     // UI runs as a job instead, because activating UI can open a modal that blocks the call.
     bool           inline_call = false;
-    // May run while an MCP slice/export operation holds the project (cancel).
+    // May run while an MCP slice/export operation holds the project (cancel_job).
     bool           allowed_during_operation = false;
-    // `cancel {job}` stops a running call of this tool that is not an operation (encode_recording): the
+    // `cancel_job {job}` stops a running call of this tool that is not an operation (encode_recording): the
     // handler sees ToolContext::cancelled() and ends.
     bool           cancellable = false;
-    // Recorded by the session journal for export_script. Observation tools turn this off, except
+    // Recorded by the session journal for export_replay. Observation tools turn this off, except
     // wait and screenshot, which a replay needs.
     bool           journal   = true;
     // How long a call may run before the reply returns a job envelope and the call continues.
@@ -161,7 +161,7 @@ struct ToolDef
 };
 
 // The lane of the tool `name`: the session and recovery tools and Python are Core, the GUI-driving
-// tools Ui, everything else (the typed tools, api_call, plugin operations) Api.
+// tools Ui, everything else (the typed tools, call_tool, plugin operations) Api.
 ToolLane tool_lane(const std::string& name);
 // "core", "api" or "ui": the tag that starts each tool's description.
 const char* lane_name(ToolLane lane);
@@ -188,7 +188,7 @@ private:
     std::function<std::shared_ptr<const ToolDef>(const std::string&)>        m_dynamic;
 };
 
-// For a call of api_call ({tool, args}): replaces `def` and `args` with its target's, normalized and
+// For a call of call_tool ({tool, args}): replaces `def` and `args` with its target's, normalized and
 // validated, so the call runs and is journaled as the target's own. Returns an error message, or "" (also
 // for any other tool, which it leaves as it is).
 std::string resolve_api_call(const ToolRegistry& registry, std::shared_ptr<const ToolDef>& def, nlohmann::json& args);

@@ -1,6 +1,6 @@
-// set_layer_ranges: an object's height range modifiers (the object list's Height Range Modifier),
-// given as the whole set of ranges. set_layer_height_profile: the Variable layer height panel's
-// Adaptive, Smooth and Reset on an object. And how list_objects reports both. set_layer_gcode: the
+// set_height_ranges: an object's height range modifiers (the object list's Height Range Modifier),
+// given as the whole set of ranges. set_variable_layer_height: the Variable layer height panel's
+// Adaptive, Smooth and Reset on an object. And how list_objects reports both. set_custom_gcode_at_layer: the
 // pauses, custom G-codes and filament changes of a plate's layers, through the Preview's layer slider.
 
 #include "McpService.hpp"
@@ -115,7 +115,7 @@ ModelObject& layer_object(Plater& plater, const json& args)
     return *objects[std::size_t(oi)];
 }
 
-// The object set_layer_height_profile names, after the checks that need no view, such as an argument
+// The object set_variable_layer_height names, after the checks that need no view, such as an argument
 // that goes with another action.
 ModelObject& profile_object(Plater& plater, const json& args)
 {
@@ -130,7 +130,7 @@ ModelObject& profile_object(Plater& plater, const json& args)
 
 // What the panel's Adaptive, Smooth and Reset buttons run, on the object selected as the panel's
 // object is, without opening the panel. Reset of an object without a profile changes nothing.
-json set_layer_height_profile(Plater& plater, const json& args)
+json set_variable_layer_height(Plater& plater, const json& args)
 {
     ModelObject&      object = profile_object(plater, args);
     const int         oi     = arg_int(args, "object", -1);
@@ -164,7 +164,7 @@ json set_layer_height_profile(Plater& plater, const json& args)
 
 // What the object list does when a person adds, edits and removes ranges, with the whole set given at
 // once. Everything the arguments can tell is checked before anything changes.
-json set_layer_ranges(Plater& plater, const json& args)
+json set_height_ranges(Plater& plater, const json& args)
 {
     ModelObject*          object = &layer_object(plater, args);
     const int             oi     = arg_int(args, "object", -1);
@@ -193,7 +193,7 @@ json set_layer_ranges(Plater& plater, const json& args)
     return out;
 }
 
-// The plate set_layer_gcode names (default: the current one), after the checks that need neither its
+// The plate set_custom_gcode_at_layer names (default: the current one), after the checks that need neither its
 // layers nor a view.
 int gcode_plate(Plater& plater, const json& args)
 {
@@ -259,7 +259,7 @@ json plate_layer_gcode(const CustomGCode::Info& codes, const std::vector<double>
     return out;
 }
 
-// set_layer_gcode's reply, once the plater has the slider's codes. UI thread.
+// set_custom_gcode_at_layer's reply, once the plater has the slider's codes. UI thread.
 json layer_gcode_reply(Plater& plater, int index, bool changed, const json& args)
 {
     const Model&              model = plater.model();
@@ -280,7 +280,7 @@ json layer_gcode_reply(Plater& plater, int index, bool changed, const json& args
     return out;
 }
 
-// Selects the plate set_layer_gcode names and shows it in the Preview, unless the Preview shows its layers
+// Selects the plate set_custom_gcode_at_layer names and shows it in the Preview, unless the Preview shows its layers
 // already, and returns its index. Refused calls leave the view alone. Only a plate with an up-to-date slice
 // is opened: opening the Preview on one that is not starts a slice.
 int show_plate_layers(Plater& plater, const json& args)
@@ -303,7 +303,7 @@ int show_plate_layers(Plater& plater, const json& args)
 
 // The edit itself: the plate's layers are in the Preview's layer slider, which takes the codes, and the
 // next frame (or this call, at once) hands them to the plater, as for a person's edit.
-json set_layer_gcode(Plater& plater, int index, const json& args, CustomGCode::Info& handed_over)
+json set_custom_gcode_at_layer(Plater& plater, int index, const json& args, CustomGCode::Info& handed_over)
 {
     gcode_plate(plater, args);
     if (!preview_shows_plate(plater, index))
@@ -585,7 +585,7 @@ void register_layer_tools(McpService& service)
         {"min_z", "max_z"});
 
     reg.add(mutate_tool(
-        "set_layer_ranges", L("Set height range modifiers"),
+        "set_height_ranges", L("Set height range modifiers"),
         "Replace an object's height range modifiers (Height Range Modifier in the object list): Z ranges in mm, each printed "
         "with its own layer_height, filament and process settings, starting from the object's layer height and filament. "
         "Ranges may touch but not overlap; [] removes them all. One undo step; the object is selected. Reply: the "
@@ -596,13 +596,13 @@ void register_layer_tools(McpService& service)
                        {"layer_config_ranges", array_prop(range, "The object's ranges afterwards, in any order.")}},
                       {"object", "layer_config_ranges"}),
         [](const json& args, ToolContext& ctx) {
-            json out = ctx.run_ui([&] { return set_layer_ranges(ui_plater(), args); });
+            json out = ctx.run_ui([&] { return set_height_ranges(ui_plater(), args); });
             settle(ctx);
             return ToolResult::ok(out);
         }));
 
     reg.add(mutate_tool(
-        "set_layer_height_profile", L("Set a variable layer height profile"),
+        "set_variable_layer_height", L("Set a variable layer height profile"),
         "Run the Variable layer height panel's Adaptive, Smooth or Reset on an object, without opening the panel: adaptive "
         "computes layer heights from the object's shape (inside a height range, the range's layer_height), smooth smooths "
         "its profile (or the one its height ranges give), reset goes back to its layer height and ranges. One undo step; "
@@ -632,7 +632,7 @@ void register_layer_tools(McpService& service)
                     return canvas->is_initialized() && !canvas->is_reload_delayed() ? json(true) : json();
                 },
                 std::chrono::seconds(15), "the Prepare view to draw");
-            json out = ctx.run_ui([&] { return set_layer_height_profile(ui_plater(), args); });
+            json out = ctx.run_ui([&] { return set_variable_layer_height(ui_plater(), args); });
             settle(ctx);
             return ToolResult::ok(out);
         }));
@@ -640,7 +640,7 @@ void register_layer_tools(McpService& service)
     const json layer = {{"type", "integer"}, {"minimum", 1}, {"description", "1-based, as the Preview's layer slider numbers layers."}};
     const json z     = {{"type", "number"}, {"minimum", 0}, {"description", "mm: the layer whose top is at or above it."}};
     reg.add(mutate_tool(
-        "set_layer_gcode", L("Set layer G-codes"),
+        "set_custom_gcode_at_layer", L("Set custom G-code at a layer"),
         "Add or remove pauses, custom G-code, custom templates and filament changes at the start of a layer, as the Preview "
         "layer slider's menu does; they are saved per plate in the project. They go on the plate's sliced layers, so the "
         "plate needs an up-to-date slice, or must be the one the Preview still shows after an earlier edit; the call selects "
@@ -679,7 +679,7 @@ void register_layer_tools(McpService& service)
                 },
                 std::chrono::seconds(15), "the Preview to show plate " + std::to_string(plate) + "'s layers");
             CustomGCode::Info handed_over;
-            json              out = ctx.run_ui([&] { return set_layer_gcode(ui_plater(), plate, args, handed_over); });
+            json              out = ctx.run_ui([&] { return set_custom_gcode_at_layer(ui_plater(), plate, args, handed_over); });
             if (!out.is_null())
                 return ToolResult::ok(out);
             // The plater's handler writes the codes into the plate as the event arrives.

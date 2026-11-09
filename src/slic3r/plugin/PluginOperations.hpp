@@ -14,7 +14,7 @@ namespace Slic3r {
 
 // An operation a plugin offers to agents and scripts (D4): declared with orca.register_operation() while
 // the plugin loads, offered only once the person has granted it, and gone when the plugin unloads. Agents
-// reach it through api_describe and api_call, scripts through orca.host.tools.call, as
+// reach it through search_tools and call_tool, scripts through orca.host.tools.call, as
 // "plugin.<plugin key>.<name>"; it is never in tools/list.
 struct PluginOperation
 {

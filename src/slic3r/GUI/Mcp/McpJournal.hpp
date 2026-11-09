@@ -12,7 +12,7 @@
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
-// The session's client calls, in the order they were made, for export_script. A call that returned
+// The session's client calls, in the order they were made, for export_replay. A call that returned
 // a job envelope is replayed with `await:false` and a name its later `wait` refers to, so a step
 // that opened a dialog can be followed by the steps that answered it. An input call that only listed
 // the menu it opened is kept, since it may have changed the selection, unless the next call repeats
@@ -21,21 +21,21 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 // A call that runs as a job takes its job's final result, not its reply: a job that fails after its
 // reply came back as running is left out like a call that failed at once, and one still running is
 // left out because its outcome is not known yet. A job whose reply said it waits on a dialog stays
-// in the script whatever becomes of it, since the steps after it answer that dialog. So does a job
+// in the replay whatever becomes of it, since the steps after it answer that dialog. So does a job
 // that was running while a later call answered a dialog: the dialog may be one the job opened, after
 // its reply or before it, and the answer depends on it. Such a job replays with `await:false`, and a
 // call that answered a dialog replays after a `wait {for:"dialog"}`, since the dialog may open later
 // than the job's replayed reply. Thread-safe.
 // `args` of a `tool` call as the journal records them: expected object_id and volume_id are left out,
-// as ids are allocated per process and a replay addresses by index. Inside a run_script's inline steps
-// too; a run_python call's code and args stay as written, since a script reads the ids it uses.
+// as ids are allocated per process and a replay addresses by index. Inside a run_replay's inline steps
+// too; a run_script call's code and args stay as written, since a script reads the ids it uses.
 nlohmann::json without_expected_ids(const std::string& tool, nlohmann::json args);
 
 class Journal
 {
 public:
-    // Starts an entry; returns its sequence number. Calls made by scripts are not recorded.
-    // `answers_dialog`: the call acts while a modal dialog is open (dialog_respond, input to it).
+    // Starts an entry; returns its sequence number. Calls made by replays and scripts are not recorded.
+    // `answers_dialog`: the call acts while a modal dialog is open (answer_dialog, input to it).
     uint64_t begin(const std::string& tool, const nlohmann::json& args, bool answers_dialog = false);
     void     set_args(uint64_t seq, nlohmann::json args);
     // The call's reply.
@@ -47,10 +47,10 @@ public:
     void     job_ended(uint64_t seq, const ToolResult& result);
     void     clear();
 
-    // {"orca_script":1, "name":..., "steps":[...]} with job names substituted and screenshot paths
+    // {"orca_replay":1, "name":..., "steps":[...]} with job names substituted and screenshot paths
     // rewritten to ${out_dir}/<file name>. The calls left out because their outcome is still open go
     // to `left_out_running` as [{tool, job}] (no job for a call that is not one).
-    nlohmann::json to_script(const std::string& name, nlohmann::json* left_out_running = nullptr) const;
+    nlohmann::json to_replay(const std::string& name, nlohmann::json* left_out_running = nullptr) const;
 
 private:
     struct Entry
@@ -69,7 +69,7 @@ private:
 
         // Whether the outcome is still open: the call has not replied, or its job has not ended.
         bool running() const { return job.empty() ? !finished : !job_ended; }
-        // Whether the call goes into a script.
+        // Whether the call goes into a replay.
         bool kept() const { return envelope == "blocked_by_dialog" || dialog_answered || (!failed && !running()); }
         // Whether the step replays without waiting for its job: the steps after it answer its dialog.
         bool unawaited() const { return !envelope.empty() || dialog_answered; }

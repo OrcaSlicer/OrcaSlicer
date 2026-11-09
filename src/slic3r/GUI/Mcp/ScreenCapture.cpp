@@ -194,7 +194,7 @@ std::optional<Capture> capture_canvas(GLCanvas3D& canvas, std::string& err, cons
 #if defined(__WXGTK__) && defined(wxHAVE_GDK_X11)
 namespace {
 
-// An X11 window capture reads the screen, so a window the tools don't see (the script runner) that
+// An X11 window capture reads the screen, so a window the tools don't see (the Action Replay window) that
 // covers the target would show in it. Such windows are hidden for the moment of the capture, and the
 // target repainted where they were.
 class HideCovering

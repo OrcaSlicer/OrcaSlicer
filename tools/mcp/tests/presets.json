@@ -9,15 +9,15 @@
 // Preset Bundle dialog to its out_dir and imports it again with a path, and changes a preference in the
 // Preferences dialog, reading it back with get_settings. It starts from the harness's default printer
 // (Bambu Lab X1 Carbon, Bambu PLA Basic) with one filament slot in Simple mode; it deletes other slots and
-// selects the mode first, so it also runs after scripts that leave more slots or another mode. Preset files
-// stay in the datadir, so the first save of each name passes overwrite and the script reruns. Run it with
-//   tools/mcp/orca_mcp.py run-script tools/mcp/tests/presets.json --out /tmp/presets
+// selects the mode first, so it also runs after replays that leave more slots or another mode. Preset files
+// stay in the datadir, so the first save of each name passes overwrite and the replay reruns. Run it with
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/presets.json --out /tmp/presets
 {
-  "orca_script": 1,
+  "orca_replay": 1,
   "name": "save presets and drop edits",
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},
-    {"tool": "dialog_auto_answer", "args": {"rules": [{"match": "restore", "button": "no"}, {"match": "Uniform scale", "button": "ok"}]}},
+    {"tool": "auto_answer_dialogs", "args": {"rules": [{"match": "restore", "button": "no"}, {"match": "Uniform scale", "button": "ok"}]}},
     // Unsaved edits a person (or an earlier run) left are dropped first, so nothing below asks about them.
     {"tool": "new_project", "args": {"discard_changes": true, "changes": "discard"}},
     {"tool": "set_view", "args": {"window_size": [1920, 1200]}},
@@ -30,7 +30,7 @@
     {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}, "optional": true},
     {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}, "optional": true},
     {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}, "optional": true},
-    {"tool": "get_state", "expect": {"/presets/filaments/1": {"exists": false}}},
+    {"tool": "get_app_state", "expect": {"/presets/filaments/1": {"exists": false}}},
     {"tool": "select_preset", "args": {"type": "printer", "name": "Bambu Lab X1 Carbon 0.4 nozzle"}},
     {"tool": "select_preset", "args": {"type": "process", "name": "0.20mm Standard @BBL X1C"}},
     {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu PLA Basic", "filament_slot": 1}},
@@ -48,7 +48,7 @@
     // one of those rather than on the default filament.
     {"tool": "select_preset", "args": {"type": "printer", "name": "Bambu Lab A1 mini 0.4 nozzle", "changes": "discard"},
      "expect": {"/selected": {"eq": "Bambu Lab A1 mini 0.4 nozzle"}}},
-    {"tool": "get_state", "expect": {"/presets/filaments/0": {"regex": "@BBL A1M$"}}},
+    {"tool": "get_app_state", "expect": {"/presets/filaments/0": {"regex": "@BBL A1M$"}}},
     {"tool": "select_preset", "args": {"type": "printer", "name": "Bambu Lab X1 Carbon 0.4 nozzle", "changes": "discard"}},
     {"tool": "select_preset", "args": {"type": "process", "name": "0.20mm Standard @BBL X1C", "changes": "discard"}},
     {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu PLA Basic", "filament_slot": 1},
@@ -143,7 +143,7 @@
      "expect": {"/items/0/value": {"eq": "2"}}},
     {"tool": "get_settings", "args": {"scope": "process", "preset": "0.16mm Optimal @BBL X1C", "keys": ["layer_height"], "include_meta": false},
      "expect": {"/items/0/value": {"eq": "0.16"}}},
-    {"tool": "get_state", "expect": {"/presets/process": {"eq": "0.20mm Standard @BBL X1C"}}},
+    {"tool": "get_app_state", "expect": {"/presets/process": {"eq": "0.20mm Standard @BBL X1C"}}},
     {"tool": "get_settings", "args": {"scope": "process", "compare": "0.16mm Optimal @BBL X1C", "keys": ["layer_height", "wall_loops"]},
      "expect": {"/right": {"eq": "0.16mm Optimal @BBL X1C"}, "/items/0/key": {"eq": "layer_height"}, "/items/0/value": {"eq": "0.2"},
                 "/items/0/other": {"eq": "0.16"}, "/items/1/key": {"eq": "wall_loops"}, "/items/1/other": {"eq": "2"}}},
@@ -170,7 +170,7 @@
     {"tool": "set_settings", "args": {"scope": "filament", "reset_all": true}, "expect": {"/changed/nozzle_temperature": {"eq": "220,220"}}},
 
     // ---- changed shows what the app adjusts in turn: spiral vase, confirmed in its dialog ----
-    {"tool": "dialog_auto_answer", "args": {"rules": [{"match": "Spiral mode only works", "button": "yes"}]}},
+    {"tool": "auto_answer_dialogs", "args": {"rules": [{"match": "Spiral mode only works", "button": "yes"}]}},
     {"tool": "set_settings", "args": {"scope": "process", "values": {"spiral_mode": true}},
      "expect": {"/applied/spiral_mode": {"eq": "1"}, "/changed/spiral_mode": {"eq": "1"}, "/changed/wall_loops": {"eq": "1"},
                 "/changed/top_shell_layers": {"eq": "0"}, "/changed/sparse_infill_density": {"eq": "0%"}}},
@@ -218,8 +218,8 @@
     // ---- select_preset: without changes the Transfer-or-discard prompt opens, as before ----
     {"tool": "select_preset", "args": {"type": "process", "name": "0.16mm Optimal @BBL X1C"}, "await": false, "save_as": "switch"},
     {"tool": "wait", "args": {"for": "dialog"}},
-    {"tool": "get_state", "expect": {"/dialogs/0/title": {"eq": "Transfer or discard changes"}}},
-    {"tool": "dialog_respond", "args": {"button": "Transfer"}},
+    {"tool": "get_app_state", "expect": {"/dialogs/0/title": {"eq": "Transfer or discard changes"}}},
+    {"tool": "answer_dialog", "args": {"button": "Transfer"}},
     {"tool": "wait", "args": {"for": "job", "job": "${jobs.switch}"},
      "expect": {"/selected": {"eq": "0.16mm Optimal @BBL X1C"}, "/modified/process/keys": {"eq": ["sparse_infill_density"]}}},
     {"tool": "get_settings", "args": {"scope": "process", "keys": ["sparse_infill_density"], "include_meta": false}, "expect": {"/items/0/value": {"eq": "25%"}}},
@@ -252,7 +252,7 @@
     {"tool": "select_preset", "args": {"type": "filament", "name": "MCP Test PLA", "filament_slot": 1}},
     {"tool": "set_settings", "args": {"scope": "filament", "values": {"slow_down_layer_time": 8}}},
     {"tool": "select_preset", "args": {"type": "filament", "name": "MCP Test PETG", "filament_slot": 1, "changes": "transfer"}, "optional": true},
-    {"tool": "get_state", "expect": {"/presets/filaments/0": {"eq": "MCP Test PLA"}}},
+    {"tool": "get_app_state", "expect": {"/presets/filaments/0": {"eq": "MCP Test PLA"}}},
     {"tool": "select_preset", "args": {"type": "filament", "name": "MCP Test PETG", "filament_slot": 1, "changes": "discard"},
      "expect": {"/selected": {"eq": "MCP Test PETG"}, "/discarded/filament/name": {"eq": "MCP Test PLA"},
                 "/discarded/filament/keys": {"eq": ["slow_down_layer_time"]}}},
@@ -324,17 +324,17 @@
     // ---- Presets exported with the Export Preset Bundle dialog to a directory, then imported with a path ----
     // A detached filament is listed in the dialog under its own name. A rerun finds the last run's archive,
     // which the dialog asks before replacing.
-    {"tool": "dialog_auto_answer", "args": {"rules": [{"match": "already exists", "button": "yes"}]}},
+    {"tool": "auto_answer_dialogs", "args": {"rules": [{"match": "already exists", "button": "yes"}]}},
     {"tool": "run_action", "args": {"id": "orca_command:toggle_developer_mode:orca"}},
     {"tool": "save_preset", "args": {"type": "filament", "name": "MCP Export PLA", "detach": true, "overwrite": true},
      "expect": {"/inherits": {"exists": false}}},
     {"tool": "run_action", "args": {"id": "orca_command:toggle_developer_mode:orca"}},
     {"tool": "run_action", "args": {"id": "orca_command:export_config:orca", "param": "${out_dir}"}, "await": false, "save_as": "export"},
-    {"tool": "ui_click", "args": {"target": {"label": "Filament presets(.zip)", "within": "Export Preset Bundle"}}},
-    {"tool": "ui_input", "args": {"target": {"name": "MCP Export PLA", "within": "Export Preset Bundle"}, "value": true}},
-    {"tool": "dialog_respond", "args": {"dialog": {"title": "Export Preset Bundle"}, "button": "ok"}, "await": false, "save_as": "export_ok"},
-    {"tool": "get_state", "expect": {"/dialogs/1/message": {"eq": "Export successful"}}},
-    {"tool": "dialog_respond", "args": {"dialog": {"title": "Info"}, "button": "ok"}},
+    {"tool": "click", "args": {"target": {"label": "Filament presets(.zip)", "within": "Export Preset Bundle"}}},
+    {"tool": "set_widget_value", "args": {"target": {"name": "MCP Export PLA", "within": "Export Preset Bundle"}, "value": true}},
+    {"tool": "answer_dialog", "args": {"dialog": {"title": "Export Preset Bundle"}, "button": "ok"}, "await": false, "save_as": "export_ok"},
+    {"tool": "get_app_state", "expect": {"/dialogs/1/message": {"eq": "Export successful"}}},
+    {"tool": "answer_dialog", "args": {"dialog": {"title": "Info"}, "button": "ok"}},
     {"tool": "wait", "args": {"for": "job", "job": "${jobs.export_ok}"}},
     {"tool": "wait", "args": {"for": "job", "job": "${jobs.export}"}, "expect": {"/level": {"eq": "success"}}},
     // The preset exists: the import keeps it by default, and the message names it.
@@ -347,7 +347,7 @@
     {"tool": "list_presets", "args": {"type": "filament", "query": "MCP Export PLA"}, "expect": {"/total": {"eq": 1}, "/items/0/user": {"eq": true}}},
     {"tool": "delete_preset", "args": {"type": "filament", "name": "MCP Export PLA"}},
     // One preset file, inheriting a system filament.
-    {"tool": "run_action", "args": {"id": "orca_command:import_configs:orca", "param": "${script_dir}/fixtures/mcp_import_pla.json"},
+    {"tool": "run_action", "args": {"id": "orca_command:import_configs:orca", "param": "${replay_dir}/fixtures/mcp_import_pla.json"},
      "expect": {"/message": {"eq": "Imported presets: MCP Import PLA."}}},
     {"tool": "list_presets", "args": {"type": "filament", "query": "MCP Import PLA"}, "expect": {"/items/0/inherits": {"eq": "Bambu PLA Basic @BBL X1C"}}},
     {"tool": "get_settings", "args": {"scope": "filament", "preset": "MCP Import PLA", "keys": ["filament_cost"], "include_meta": false},
@@ -361,23 +361,23 @@
     // set_settings refuses the scope (expected to fail), and so does open_preferences an unknown tab; no dialog opens.
     {"tool": "set_settings", "args": {"scope": "preferences", "values": {"auto_arrange": false}}, "optional": true},
     {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca", "param": "advanced"}, "optional": true},
-    {"tool": "get_state", "expect": {"/dialogs": {"empty": true}}},
+    {"tool": "get_app_state", "expect": {"/dialogs": {"empty": true}}},
     {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca", "param": "behaviour:auto_arrange"}, "await": false, "save_as": "prefs"},
-    {"tool": "ui_input", "args": {"target": {"name": "auto_arrange", "within": "Preferences"}, "value": false}, "expect": {"/checked": {"eq": false}}},
-    {"tool": "dialog_respond", "args": {"dialog": {"title": "Preferences"}, "button": "close"}},
+    {"tool": "set_widget_value", "args": {"target": {"name": "auto_arrange", "within": "Preferences"}, "value": false}, "expect": {"/checked": {"eq": false}}},
+    {"tool": "answer_dialog", "args": {"dialog": {"title": "Preferences"}, "button": "close"}},
     {"tool": "wait", "args": {"for": "job", "job": "${jobs.prefs}"}},
     {"tool": "get_settings", "args": {"scope": "preferences", "keys": ["auto_arrange"]}, "expect": {"/items/0/value": {"eq": "false"}}},
     // A key on another tab than the one named is shown on its own tab, where it can be changed.
     {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca", "param": "general:auto_arrange"}, "await": false, "save_as": "prefs2"},
-    {"tool": "ui_input", "args": {"target": {"name": "auto_arrange", "within": "Preferences"}, "value": true}, "expect": {"/checked": {"eq": true}}},
-    {"tool": "dialog_respond", "args": {"dialog": {"title": "Preferences"}, "button": "close"}},
+    {"tool": "set_widget_value", "args": {"target": {"name": "auto_arrange", "within": "Preferences"}, "value": true}, "expect": {"/checked": {"eq": true}}},
+    {"tool": "answer_dialog", "args": {"dialog": {"title": "Preferences"}, "button": "close"}},
     {"tool": "wait", "args": {"for": "job", "job": "${jobs.prefs2}"}},
     {"tool": "get_settings", "args": {"scope": "preferences", "keys": ["auto_arrange"]}, "expect": {"/items/0/value": {"eq": "true"}}},
 
     // ---- A printer preset, deleted once selected, then back to the system printer ----
     {"tool": "save_preset", "args": {"type": "printer", "name": "MCP Test Printer", "overwrite": true},
      "expect": {"/user": {"eq": true}, "/inherits": {"eq": "Bambu Lab X1 Carbon 0.4 nozzle"}, "/selected": {"eq": true}}},
-    {"tool": "get_state", "expect": {"/presets/printer": {"eq": "MCP Test Printer"}}},
+    {"tool": "get_app_state", "expect": {"/presets/printer": {"eq": "MCP Test Printer"}}},
     {"tool": "new_project", "args": {"discard_changes": true}},
     {"tool": "select_preset", "args": {"type": "printer", "name": "Bambu Lab X1 Carbon 0.4 nozzle"}},
     // A printer that is not selected is refused (expected to fail): switching printers is no round trip.

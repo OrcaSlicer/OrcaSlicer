@@ -38,7 +38,8 @@ template<class Fn> void notify(CallObserver* observer, Fn&& fn)
 // What a mutating call is told while another job's operation holds the project.
 std::string busy_message(const std::string& op)
 {
-    return "Busy: job " + op + " is running an operation (slice, export, arrange or another background job); wait for it or cancel it";
+    return "Busy: job " + op +
+           " is running an operation (slice, export, arrange or another background job); wait for it or stop it with cancel_job";
 }
 
 class CallContext final : public ToolContext
@@ -232,7 +233,7 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
         return ToolResult::error("OrcaSlicer is shutting down");
     struct Leave { McpCore* core; ~Leave() { core->leave(); } } leave_on_return{this};
 
-    // Only client calls are journaled; a script's own steps replay through the script, and a plugin's calls
+    // Only client calls are journaled; a replay's own steps run again through the replay, and a plugin's calls
     // are not the agent's.
     const bool     journal = m_journal != nullptr && parent.empty() && plugin.empty() && def.journal;
     const uint64_t seq     = journal ? m_journal->begin(def.name, args, def.guard == GuardClass::Recover && !m_ui.open_dialogs().empty()) : 0;
@@ -262,7 +263,7 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
     }
 
     // Operation admission: an MCP operation holds the project until it finishes; only recovery
-    // input and the tools that may run during an operation (cancel) get through.
+    // input and the tools that may run during an operation (cancel_job) get through.
     if (def.guard == GuardClass::Mutate && !def.allowed_during_operation)
         if (const auto busy = m_jobs.running_operations(); !busy.empty())
             return finish(ToolResult::error(busy_message(busy.front()) + " before changing the project", {{"job", busy.front()}}));
@@ -294,7 +295,7 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
                 result = await_worker(job, def.name, invoke(def, args, ctx));
                 notify(m_observer, [&](CallObserver& o) { o.call_ended(call, result); });
             }
-            // Before finish(): an export_script right after the wait that sees the result must know it.
+            // Before finish(): an export_replay right after the wait that sees the result must know it.
             if (seq != 0)
                 m_journal->job_ended(seq, result);
             m_jobs.finish(job, std::move(result));
@@ -315,7 +316,7 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
     };
     const std::string running_note = "The call is still running and will finish on its own; do not retry it. "
                                      "Use wait {for:\"job\", job:\"" + job + "\"} for its result.";
-    // dialog_respond presses a native message box by the buttons ModalTracker lists for it, but not a
+    // answer_dialog presses a native message box by the buttons ModalTracker lists for it, but not a
     // picker, nor a dialog while it holds the UI thread (macOS), so their note asks for a person.
     auto blocked = [&](nlohmann::json dialogs, bool ui_held) {
         std::string note;
@@ -323,16 +324,16 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
         const bool  pressable = native && !ui_held && !dialogs.back().value("buttons", nlohmann::json::array()).empty();
         if (pressable) {
             note = "The call is waiting on a native message box and continues after it closes; do not retry it. Answer it "
-                   "with dialog_respond and one of its buttons, then wait {for:\"job\", job:\"" + job + "\"}.";
+                   "with answer_dialog and one of its buttons, then wait {for:\"job\", job:\"" + job + "\"}.";
         } else if (native) {
-            note = "The call is waiting on a native dialog, which only a person can answer (dialog_respond can't); do not retry it. ";
+            note = "The call is waiting on a native dialog, which only a person can answer (answer_dialog can't); do not retry it. ";
             if (ui_held)
                 note += "Until it closes, tools that need the UI thread fail. ";
             note += "Once it is answered, wait {for:\"job\", job:\"" + job +
-                    "\"}. Register dialog_auto_answer before a step that opens a native dialog.";
+                    "\"}. Register auto_answer_dialogs before a step that opens a native dialog.";
         } else {
             note = "The call is waiting on a dialog and continues after it closes; do not retry it. "
-                   "Answer the dialog (ui_snapshot, dialog_respond), then wait {for:\"job\", job:\"" + job + "\"}.";
+                   "Answer the dialog (list_widgets, answer_dialog), then wait {for:\"job\", job:\"" + job + "\"}.";
         }
         return envelope("blocked_by_dialog", {{"dialogs", std::move(dialogs)}, {"note", note}});
     };

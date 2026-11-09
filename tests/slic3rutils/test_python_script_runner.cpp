@@ -232,7 +232,7 @@ TEST_CASE("code run from a file sees the file's path as __file__, and code under
     REQUIRE(from_file.status == "finished");
     CHECK(from_file.result == json{{"file", path}, {"name", "__main__"}});
 
-    const PythonRunOutcome from_name = run_file("<run_python>", code);
+    const PythonRunOutcome from_name = run_file("<run_script>", code);
     REQUIRE(from_name.status == "finished");
     CHECK(from_name.result["file"].is_null());
 }
@@ -597,7 +597,7 @@ TEST_CASE("a script that raises reports the exception and its traceback", "[Pyth
     const PythonRunOutcome out = run("print('before')\nraise ValueError('x')");
     CHECK(out.status == "raised");
     CHECK(out.message == "ValueError: x");
-    CHECK_THAT(out.traceback, ContainsSubstring("<run_python>"));
+    CHECK_THAT(out.traceback, ContainsSubstring("<run_script>"));
     CHECK_THAT(out.traceback, ContainsSubstring("ValueError: x"));
     CHECK(out.output == "before\n");
 
@@ -672,7 +672,7 @@ TEST_CASE("an agent's script may touch any file but the categorically denied one
 
 namespace {
 
-// Answers tool calls as the MCP core would for a run: get_state and run_script succeed, anything else is
+// Answers tool calls as the MCP core would for a run: get_app_state and run_replay succeed, anything else is
 // an error.
 struct FakeBridge : ToolBridge
 {
@@ -702,11 +702,11 @@ struct FakeBridge : ToolBridge
         if (hook)
             if (std::optional<json> answer = hook(tool, args))
                 return *answer;
-        if (tool == "get_state")
+        if (tool == "get_app_state")
             return json{{"ready", true}, {"args", args}};
-        if (tool == "run_script")
+        if (tool == "run_replay")
             return json{{"passed", true}};
-        throw ToolCallError("Unknown tool: " + tool, json{{"did_you_mean", {"get_state"}}});
+        throw ToolCallError("Unknown tool: " + tool, json{{"did_you_mean", {"get_app_state"}}});
     }
 };
 
@@ -722,7 +722,7 @@ TEST_CASE("a script calls tools through its run's bridge, and an error result ra
     ScopedToolBridge       bound(bridge);
     const PythonRunOutcome out = run(R"PY(
 import orca
-state = orca.host.tools.call("get_state", {"verbose": True})
+state = orca.host.tools.call("get_app_state", {"verbose": True})
 try:
     orca.host.tools.call("no_such_tool")
     error = None
@@ -733,11 +733,11 @@ result = {"state": state, "error": error}
     REQUIRE(out.status == "finished");
     CHECK(out.result["state"] == json{{"ready", true}, {"args", {{"verbose", true}}}});
     CHECK(out.result["error"]["message"] == "Unknown tool: no_such_tool");
-    CHECK(out.result["error"]["details"] == json{{"did_you_mean", {"get_state"}}});
-    CHECK(bridge.calls == std::vector<std::string>{"get_state", "no_such_tool"});
+    CHECK(out.result["error"]["details"] == json{{"did_you_mean", {"get_app_state"}}});
+    CHECK(bridge.calls == std::vector<std::string>{"get_app_state", "no_such_tool"});
 }
 
-TEST_CASE("a script hands run_script a script given as JSON text as it is, with its vars", "[PythonScript][Python]")
+TEST_CASE("a script hands run_replay a script given as JSON text as it is, with its vars", "[PythonScript][Python]")
 {
     RunnerHarness harness;
     if (!harness.initialized)
@@ -747,13 +747,13 @@ TEST_CASE("a script hands run_script a script given as JSON text as it is, with 
     ScopedToolBridge       bound(bridge);
     const PythonRunOutcome out = run(R"PY(
 import orca
-text = '{"orca_script": 1, "steps": []}  // replayed'
-result = orca.host.tools.run_script(text, {"part": "lid"})
+text = '{"orca_replay": 1, "steps": []}  // replayed'
+result = orca.host.tools.run_replay(text, {"part": "lid"})
 )PY");
     REQUIRE(out.status == "finished");
     CHECK(out.result == json{{"passed", true}});
-    CHECK(bridge.calls == std::vector<std::string>{"run_script"});
-    CHECK(bridge.last_args == json{{"script", R"({"orca_script": 1, "steps": []}  // replayed)"}, {"vars", {{"part", "lid"}}}});
+    CHECK(bridge.calls == std::vector<std::string>{"run_replay"});
+    CHECK(bridge.last_args == json{{"replay", R"({"orca_replay": 1, "steps": []}  // replayed)"}, {"vars", {{"part", "lid"}}}});
 }
 
 TEST_CASE("a run waits for the non-daemon threads it starts, which call tools through it", "[PythonScript][Python]")
@@ -765,10 +765,10 @@ TEST_CASE("a run waits for the non-daemon threads it starts, which call tools th
     FakeBridge             bridge;
     ScopedToolBridge       bound(bridge);
     const PythonRunOutcome out = run("import orca, threading, time\n"
-                                     "def work():\n    time.sleep(0.2)\n    orca.host.tools.call('get_state')\n"
+                                     "def work():\n    time.sleep(0.2)\n    orca.host.tools.call('get_app_state')\n"
                                      "threading.Thread(target=work).start()\n");
     CHECK(out.status == "finished");
-    CHECK(bridge.calls == std::vector<std::string>{"get_state"});
+    CHECK(bridge.calls == std::vector<std::string>{"get_app_state"});
 }
 
 TEST_CASE("a run on a thread Python didn't start waits for the threads it starts", "[PythonScript][Python]")
@@ -783,12 +783,12 @@ TEST_CASE("a run on a thread Python didn't start waits for the threads it starts
     std::thread      job([&] {
         ScopedToolBridge bound(bridge);
         out = run("import orca, threading, time\n"
-                  "def work(orca=orca, time=time):\n    time.sleep(0.2)\n    orca.host.tools.call('get_state')\n"
+                  "def work(orca=orca, time=time):\n    time.sleep(0.2)\n    orca.host.tools.call('get_app_state')\n"
                   "threading.Thread(target=work).start()\n");
     });
     job.join();
     CHECK(out.status == "finished");
-    CHECK(bridge.calls == std::vector<std::string>{"get_state"});
+    CHECK(bridge.calls == std::vector<std::string>{"get_app_state"});
 }
 
 TEST_CASE("a thread started just before the code returns is waited for", "[PythonScript][Python]")
@@ -799,8 +799,10 @@ TEST_CASE("a thread started just before the code returns is waited for", "[Pytho
 
     FakeBridge       bridge;
     ScopedToolBridge bound(bridge);
-    CHECK(run("import orca, threading\nthreading.Thread(target=lambda: orca.host.tools.call('get_state')).start()\n").status == "finished");
-    CHECK(bridge.calls == std::vector<std::string>{"get_state"});
+    CHECK(run("import orca, threading\n"
+              "threading.Thread(target=lambda: orca.host.tools.call('get_app_state')).start()\n")
+              .status == "finished");
+    CHECK(bridge.calls == std::vector<std::string>{"get_app_state"});
 }
 
 TEST_CASE("a thread started by another of the run's threads after the code returned is waited for", "[PythonScript][Python]")
@@ -812,11 +814,11 @@ TEST_CASE("a thread started by another of the run's threads after the code retur
     FakeBridge       bridge;
     ScopedToolBridge bound(bridge);
     CHECK(run("import orca, threading, time\n"
-              "def second():\n    time.sleep(0.3)\n    orca.host.tools.call('get_state')\n"
+              "def second():\n    time.sleep(0.3)\n    orca.host.tools.call('get_app_state')\n"
               "def first():\n    time.sleep(0.3)\n    threading.Thread(target=second).start()\n"
               "threading.Thread(target=first).start()\n")
               .status == "finished");
-    CHECK(bridge.calls == std::vector<std::string>{"get_state"});
+    CHECK(bridge.calls == std::vector<std::string>{"get_app_state"});
 }
 
 TEST_CASE("a callback already running when the code returns is waited for, and the thread it starts too", "[PythonScript][Python]")
@@ -845,14 +847,14 @@ TEST_CASE("a callback already running when the code returns is waited for, and t
             if (!run_scope->callback_entering())
                 return;
             py_run("import orca, threading, time, _cb\n_cb.entered.set()\ntime.sleep(0.3)\n"
-                   "threading.Thread(target=lambda: orca.host.tools.call('get_state')).start()\n");
+                   "threading.Thread(target=lambda: orca.host.tools.call('get_app_state')).start()\n");
             run_scope->callback_left();
         });
     };
     const PythonRunOutcome out = run("import orca, _cb\norca.host.tools.call('capture_run')\n_cb.entered.wait(10)\n");
     callback.join();
     CHECK(out.status == "finished");
-    CHECK(bridge.calls == std::vector<std::string>{"capture_run", "get_state"});
+    CHECK(bridge.calls == std::vector<std::string>{"capture_run", "get_app_state"});
 }
 
 TEST_CASE("a raw thread can't start a thread after its run has ended", "[PythonScript][Python]")
@@ -883,10 +885,10 @@ TEST_CASE("a script that exits with sys.exit(0) still waits for its threads", "[
     FakeBridge       bridge;
     ScopedToolBridge bound(bridge);
     CHECK(run("import orca, sys, threading, time\n"
-              "def work():\n    time.sleep(0.2)\n    orca.host.tools.call('get_state')\n"
+              "def work():\n    time.sleep(0.2)\n    orca.host.tools.call('get_app_state')\n"
               "threading.Thread(target=work).start()\nsys.exit(0)\n")
               .status == "finished");
-    CHECK(bridge.calls == std::vector<std::string>{"get_state"});
+    CHECK(bridge.calls == std::vector<std::string>{"get_app_state"});
 }
 
 TEST_CASE("a daemon thread still running after its run is refused tool calls", "[PythonScript][Python]")
@@ -899,7 +901,7 @@ TEST_CASE("a daemon thread still running after its run is refused tool calls", "
     FakeBridge       bridge;
     ScopedToolBridge bound(bridge);
     REQUIRE(run("import orca, threading, _late\n"
-                "def work(orca=orca, late=_late):\n    late.go.wait(10)\n    try:\n        orca.host.tools.call('get_state')\n"
+                "def work(orca=orca, late=_late):\n    late.go.wait(10)\n    try:\n        orca.host.tools.call('get_app_state')\n"
                 "    except RuntimeError as e:\n        late.error = str(e)\n    late.done.set()\n"
                 "threading.Thread(target=work, daemon=True).start()\n")
                 .status == "finished");
@@ -925,7 +927,7 @@ TEST_CASE("a tool call in flight when the run ends finishes before the run does"
     ScopedToolBridge bound(bridge);
     const auto       start = std::chrono::steady_clock::now();
     REQUIRE(run("import orca, threading, _late\n"
-                "def work(orca=orca, late=_late):\n    late.result = orca.host.tools.call('get_state')\n"
+                "def work(orca=orca, late=_late):\n    late.result = orca.host.tools.call('get_app_state')\n"
                 "threading.Thread(target=work, daemon=True).start()\n_late.in_call.wait(10)\n")
                 .status == "finished");
     CHECK(std::chrono::steady_clock::now() - start >= std::chrono::seconds(1));
@@ -953,7 +955,7 @@ TEST_CASE("a stop during the in-flight wait still ends the run as cancelled", "[
     int              stops = 0;
     PythonRunRequest request;
     request.code       = "import orca, threading, _late\n"
-                         "threading.Thread(target=lambda: orca.host.tools.call('get_state'), daemon=True).start()\n"
+                         "threading.Thread(target=lambda: orca.host.tools.call('get_app_state'), daemon=True).start()\n"
                          "_late.in_call.wait(10)\n";
     request.identity   = kScriptIdentityAgent;
     request.budget     = by_budget ? std::chrono::milliseconds(1000) : std::chrono::minutes(1);
@@ -991,13 +993,13 @@ TEST_CASE("a task the run submits is waited for and runs inside the run", "[Pyth
                "pool = libpool_task.POOL\n";
     const std::string code = "import orca, time, _kept\n" + make +
                              "_kept.pool = pool\n"
-                             "def task():\n    time.sleep(0.3)\n    orca.host.tools.call('get_state')\n"
+                             "def task():\n    time.sleep(0.3)\n    orca.host.tools.call('get_app_state')\n"
                              "pool.submit(task)\n";
     FakeBridge             bridge;
     ScopedToolBridge       bound(bridge);
     const PythonRunOutcome out = run_file(macro.write("main.py", code), code, std::chrono::seconds(20));
     CHECK(out.status == "finished");
-    CHECK(bridge.calls == std::vector<std::string>{"get_state"});
+    CHECK(bridge.calls == std::vector<std::string>{"get_app_state"});
     CHECK(shared.get("pool._shutdown") == (where != "library"));
     if (where == "library") {
         CHECK(py_json("__import__('_kept').pool.submit(int, '3').result()") == 3);
@@ -1021,11 +1023,11 @@ TEST_CASE("a pool worker another run started runs this run's task inside this ru
     }
     {
         ScopedToolBridge bound(bridge_b);
-        REQUIRE(run("import orca, _kept\n_kept.pool.submit(lambda: orca.host.tools.call('get_state')).result()\n").status ==
+        REQUIRE(run("import orca, _kept\n_kept.pool.submit(lambda: orca.host.tools.call('get_app_state')).result()\n").status ==
                 "finished");
     }
     CHECK(bridge_a.calls.empty());
-    CHECK(bridge_b.calls == std::vector<std::string>{"get_state"});
+    CHECK(bridge_b.calls == std::vector<std::string>{"get_app_state"});
     py_run("import _kept\n_kept.pool.shutdown()\n");
 }
 
@@ -1114,11 +1116,11 @@ TEST_CASE("a task's done callbacks run inside the run that submitted it, and it 
         shared.set("release");
     });
     const PythonRunOutcome out = run("import orca, time, _cb\n"
-                                     "def cb(future):\n    time.sleep(0.3)\n    print('callback ran')\n    orca.host.tools.call('get_state')\n"
+                                     "def cb(future):\n    time.sleep(0.3)\n    print('callback ran')\n    orca.host.tools.call('get_app_state')\n"
                                      "_cb.pool.submit(_cb.release.wait, 10).add_done_callback(cb)\n");
     releaser.join();
     CHECK(out.status == "finished");
-    CHECK(bridge.calls == std::vector<std::string>{"get_state"});
+    CHECK(bridge.calls == std::vector<std::string>{"get_app_state"});
     CHECK_THAT(out.output, ContainsSubstring("callback ran"));
     py_run("import _cb\n_cb.pool.shutdown()\n");
 }
@@ -1211,12 +1213,12 @@ TEST_CASE("a pool's initializer runs inside the run that started its worker", "[
     FakeBridge             bridge;
     ScopedToolBridge       bound(bridge);
     const PythonRunOutcome out = run("import orca\nfrom concurrent.futures import ThreadPoolExecutor\n"
-                                     "def init():\n    print('init ran')\n    orca.host.tools.call('get_state')\n"
+                                     "def init():\n    print('init ran')\n    orca.host.tools.call('get_app_state')\n"
                                      "pool = ThreadPoolExecutor(1, initializer=init)\nresult = pool.submit(int, '5').result(10)\n");
     CHECK(out.status == "finished");
     CHECK(out.result == 5);
     CHECK_THAT(out.output, ContainsSubstring("init ran"));
-    CHECK(bridge.calls == std::vector<std::string>{"get_state"});
+    CHECK(bridge.calls == std::vector<std::string>{"get_app_state"});
 }
 
 TEST_CASE("a pool's initializer in a plugin's run runs under the plugin's identity", "[PythonScript][Python]")
@@ -1254,13 +1256,13 @@ TEST_CASE("a run waits for a pool's initializer whose task it cancelled", "[Pyth
     });
     const PythonRunOutcome out = run("import orca, _ini\nfrom concurrent.futures import ThreadPoolExecutor\n"
                                      "def init():\n    _ini.entered.set()\n    _ini.go.wait(10)\n    print('init done')\n"
-                                     "    orca.host.tools.call('get_state')\n"
+                                     "    orca.host.tools.call('get_app_state')\n"
                                      "pool = ThreadPoolExecutor(1, initializer=init)\nf = pool.submit(int)\n_ini.entered.wait(10)\n"
                                      "cancelled = f.cancel()\n");
     releaser.join();
     CHECK(out.status == "finished");
     CHECK_THAT(out.output, ContainsSubstring("init done"));
-    CHECK(bridge.calls == std::vector<std::string>{"get_state"});
+    CHECK(bridge.calls == std::vector<std::string>{"get_app_state"});
 }
 
 TEST_CASE("a thread of an ended run can't start a pool worker whose initializer would run outside it", "[PythonScript][Python]")
@@ -1414,9 +1416,9 @@ TEST_CASE("an untagged pool is still a pool to a run", "[PythonScript][Python]")
     FakeBridge       bridge;
     ScopedToolBridge bound(bridge);
     const auto       start = std::chrono::steady_clock::now();
-    CHECK(run("import orca, _kept\n_kept.pool.submit(lambda: orca.host.tools.call('get_state'))\n").status == "finished");
+    CHECK(run("import orca, _kept\n_kept.pool.submit(lambda: orca.host.tools.call('get_app_state'))\n").status == "finished");
     CHECK(std::chrono::steady_clock::now() - start < std::chrono::seconds(5));
-    CHECK(bridge.calls == std::vector<std::string>{"get_state"});
+    CHECK(bridge.calls == std::vector<std::string>{"get_app_state"});
     py_run("import _kept\n_kept.pool.shutdown()\n");
 }
 
@@ -1702,7 +1704,7 @@ TEST_CASE("a window callback of a run is refused tool calls", "[PythonScript][Py
     ScopedPythonRun in_run(scope, PythonRunThread::Callback);
     PythonGILState  gil;
     py::dict        ns;
-    py::exec("import orca\ntry:\n    orca.host.tools.call('get_state')\n    error = None\nexcept RuntimeError as e:\n    error = str(e)\n", ns);
+    py::exec("import orca\ntry:\n    orca.host.tools.call('get_app_state')\n    error = None\nexcept RuntimeError as e:\n    error = str(e)\n", ns);
     CHECK_THAT(ns["error"].cast<std::string>(), ContainsSubstring("window callbacks"));
     CHECK(bridge.calls.empty());
 }
@@ -1789,10 +1791,10 @@ import orca, threading, _cb
 def on_message(data):
     _cb.storage = orca.host.plugin.storage()
     try:
-        orca.host.tools.call("get_state")
+        orca.host.tools.call("get_app_state")
     except RuntimeError as e:
         _cb.refused = str(e)
-    worker = threading.Thread(target=lambda: orca.host.tools.call("get_state"))
+    worker = threading.Thread(target=lambda: orca.host.tools.call("get_app_state"))
     worker.start()
     worker.join()
     _cb.done.set()
@@ -1804,7 +1806,7 @@ _cb.done.wait(10)
     delivery.join();
     CHECK(utf8_path(shared.get("storage").get<std::string>()) == macro.dir);
     CHECK_THAT(shared.get("refused").get<std::string>(), ContainsSubstring("window callbacks"));
-    CHECK(bridge.calls == std::vector<std::string>{"take_callback", "get_state"});
+    CHECK(bridge.calls == std::vector<std::string>{"take_callback", "get_app_state"});
 }
 
 TEST_CASE("a run's callbacks do nothing and its threads open no UI once its UI is closed", "[PythonScript][Python]")
@@ -1898,7 +1900,7 @@ TEST_CASE("orca.host.tools refuses code that is neither a plugin nor a script", 
 
     // Code with no audit identity: a plugin window's callback today.
     PythonRunRequest request;
-    request.code     = "import orca\ntry:\n    orca.host.tools.call('get_state')\n    result = 'called'\nexcept RuntimeError as e:\n    result = str(e)";
+    request.code     = "import orca\ntry:\n    orca.host.tools.call('get_app_state')\n    result = 'called'\nexcept RuntimeError as e:\n    result = str(e)";
     request.identity = "";
     const PythonRunOutcome out = run_python_code(request);
     REQUIRE(out.status == "finished");
@@ -1998,7 +2000,8 @@ TEST_CASE("a plugin calls tools only from a thread that may wait for the UI thre
         return json{{"plugin", plugin}};
     });
     PythonRunRequest request;
-    request.code     = "import orca\ntry:\n    result = orca.host.tools.call('get_state')\nexcept RuntimeError as e:\n    result = str(e)";
+    request.code     = "import orca\ntry:\n    result = orca.host.tools.call('get_app_state')\n"
+                       "except RuntimeError as e:\n    result = str(e)";
     request.identity = "measure";
 
     // A thread that is no Script worker (a slicing hook's, a callback's) is refused before anything waits.
@@ -2013,7 +2016,7 @@ TEST_CASE("a plugin calls tools only from a thread that may wait for the UI thre
         REQUIRE(called.status == "finished");
         CHECK(called.result == json{{"plugin", "measure"}});
     }
-    CHECK(calls == std::vector<std::string>{"measure:get_state"});
+    CHECK(calls == std::vector<std::string>{"measure:get_app_state"});
     set_plugin_tool_caller({});
 }
 
@@ -2236,7 +2239,7 @@ struct HostedSession
     std::thread       host;
     std::atomic<bool> returned{false};
 
-    static PythonSessionRequest person_session(std::string filename = "<run_python>")
+    static PythonSessionRequest person_session(std::string filename = "<run_script>")
     {
         PythonSessionRequest request;
         request.identity = kScriptIdentityPerson;
@@ -2416,7 +2419,7 @@ TEST_CASE("a cell ending in an expression shows its value, and so does a file ru
     CHECK(file.finished->status == "finished");
     CHECK(file.output() == "2\n");
 
-    const PythonRunOutcome agent = run_file("<run_python>", "1 + 1\n[1, 2]\n");
+    const PythonRunOutcome agent = run_file("<run_script>", "1 + 1\n[1, 2]\n");
     CHECK(agent.status == "finished");
     CHECK(agent.output.empty());
 }

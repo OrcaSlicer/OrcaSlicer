@@ -2010,7 +2010,7 @@ void register_config_tools(McpService& service)
         "Save the printer, process or filament preset being edited, with its unsaved changes, as a preset called name, "
         "which is then selected: what the tab's Save button does through its dialog. A filament is filament_slot's "
         "(default 1), and every slot using the old preset takes the new one. Replacing another existing preset needs "
-        "overwrite (pass it in scripts meant to be rerun). Reply: saved, user, project, inherits, filament_slots. A "
+        "overwrite (pass it in replays and scripts meant to be rerun). Reply: saved, user, project, inherits, filament_slots. A "
         "temperature warning or an unsaved-changes prompt makes it blocked_by_dialog. To keep only some edits, set_settings "
         "{reset_all: true, values} first.",
         object_schema({{"type", enum_prop({"printer", "process", "filament"}, "Preset category.")},
@@ -2227,7 +2227,7 @@ void register_config_tools(McpService& service)
             // writing the key would skip.
             if (arg_string(args, "scope") == "preferences")
                 throw ToolFailure("Preferences change in the Preferences dialog: run_action orca_command:open_preferences:orca "
-                                  "with param \"<tab>:<key>\", then ui_input {\"target\": {\"name\": \"<key>\", \"within\": "
+                                  "with param \"<tab>:<key>\", then set_widget_value {\"target\": {\"name\": \"<key>\", \"within\": "
                                   "\"Preferences\"}, \"value\": ...}");
             if (arg_string(args, "scope") == "project")
                 return set_project_settings(args, ctx);

@@ -1,4 +1,4 @@
-// The Design tab's MCP surface (cad_call): the method table, describe_tools, the plane resolver, the
+// The Design tab's MCP surface (call_cad_tool): the method table, describe_tools, the plane resolver, the
 // kernel's rollback, reading and editing a feature as its card does, and the open sketch's tools
 // driven on a bare sketch tool. None of it needs a wx application or a Design panel.
 #include <catch2/catch_message.hpp>
@@ -377,7 +377,7 @@ TEST_CASE("describe_feature names constraint references as the solver reads them
     CHECK(c[0].at("refs") == json::array({json{{"entity", 0}}, json{{"entity", 1}}}));   // whole lines, no roles
     CHECK_FALSE(c[0].contains("value"));
     CHECK(c[1].at("type") == "angle");
-    CHECK_THAT(c[1].at("value").get<double>(), WithinAbs(90.0, 1e-9));           // degrees, as cad_call takes angles
+    CHECK_THAT(c[1].at("value").get<double>(), WithinAbs(90.0, 1e-9));           // degrees, as call_cad_tool takes angles
     CHECK(c[2].at("refs")[1] == json{{"entity", "origin"}});
     CHECK(c[3].at("type") == "point_on_line");
     CHECK(c[3].at("refs") == json::array({json{{"entity", 1}, {"role", "p1"}}, json{{"entity", 0}}}));

@@ -1,4 +1,4 @@
-// open_files, new_project, save_project and export: files in and out without file dialogs. calibrate: the
+// open_files, new_project, save_project and export: files in and out without file dialogs. generate_calibration_test: the
 // Calibration menu's tests, which start a new project.
 
 #include "libslic3r/Format/ProjectStrategy.hpp"
@@ -90,7 +90,7 @@ bool is_belt(const DynamicPrintConfig& printer)
     return belt != nullptr && belt->value;
 }
 
-// calibrate's test_model values, as each test's dialog lists its models.
+// generate_calibration_test's test_model values, as each test's dialog lists its models.
 std::vector<std::string> calib_test_models(CalibMode mode)
 {
     switch (mode) {
@@ -467,7 +467,7 @@ void register_project_tools(McpService& service)
         }));
 
     reg.add(mutate_tool(
-        "calibrate", L("Generate a calibration test"),
+        "generate_calibration_test", L("Generate a calibration test"),
         "Generate a Calibration menu test as its dialog's OK does: a new project named after the test with the test "
         "model, and the process, filament and printer presets changed as the test needs (presets_changed). The test prints "
         "with filament slot 1, so the filament tab is pointed at slot 1's preset. Omitted parameters take the dialog's "
@@ -696,7 +696,7 @@ void register_project_tools(McpService& service)
             });
             if (format == "gcode")
                 return await_gcode_export(ctx, started["before"], started["after"], started["revision"],
-                                          "The export did not start; check get_state.notifications");
+                                          "The export did not start; check get_app_state.notifications");
             settle(ctx);
             if (!fs::exists(*path))
                 throw ToolFailure("The file was not written (see get_log)");

@@ -20,8 +20,8 @@ struct PluginPermissions;
 // reader maps that form onto the boolean permission.
 inline constexpr const char* kThreadPermissionTarget = "thread";
 
-// The audit identities of a Python script a person (the Run Script dialog, --mcp-script) or an agent
-// (run_python) starts. Every audited access is allowed to them and logged under them, apart from the
+// The audit identities of a Python script a person (the Run Script dialog, --mcp-run) or an agent
+// (run_script) starts. Every audited access is allowed to them and logged under them, apart from the
 // categorical denies (is_denied_path). They are reserved: no plugin key may equal them, so code running
 // under one is never taken for a plugin, and the orca.host functions only plugins may call refuse them.
 inline constexpr char kScriptIdentityPerson[] = "script";

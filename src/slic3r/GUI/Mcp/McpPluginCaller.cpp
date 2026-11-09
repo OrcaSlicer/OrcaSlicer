@@ -38,7 +38,7 @@ struct Admission
 
 // Admits a plugin's call on the UI thread, which owns the service and runs the plugin's unload: the plugin
 // must still be loaded and its scope not ended, and the service is started in its catalog-only mode (no
-// endpoint) when MCP is off, as the script runner dialog starts it. Returns the service with a lease taken,
+// endpoint) when MCP is off, as Action Replay starts it. Returns the service with a lease taken,
 // or throws. A caller that stops waiting because the app closes marks the admission abandoned, under the
 // lock the UI thread answers it under, so no lease is taken that nobody releases.
 McpService* admit_plugin_call(const std::string& plugin)

@@ -131,18 +131,18 @@ void register_tools(py::module_& host)
         "pool tasks it starts, while its run lasts, but not from its window callbacks; a plugin needs the tools "
         "permission and calls from a Script worker, never the UI thread.");
     tools.def(
-        "run_script",
-        [tools](const py::object& script, const py::object& vars) mutable {
+        "run_replay",
+        [tools](const py::object& replay, const py::object& vars) mutable {
             py::dict args;
-            args["script"] = script;
+            args["replay"] = replay;
             if (!vars.is_none())
                 args["vars"] = vars;
-            return json_to_py(call_tool(tools, "run_script", args));
+            return json_to_py(call_tool(tools, "run_replay", args));
         },
-        py::arg("script"), py::arg("vars") = py::none(),
-        "Run a script of tool calls ({orca_script: 1, steps: [...]}) as run_script does, and return its result. "
-        "`script` is the script as a dict or as its JSON text, which may hold comments as a script file does; "
-        "`vars` override the script's vars. For a script file, call(\"run_script\", {\"path\": ...}).");
+        py::arg("replay"), py::arg("vars") = py::none(),
+        "Run a replay ({orca_replay: 1, steps: [...]}) as the run_replay tool does, and return its result. "
+        "`replay` is the replay as a dict or as its JSON text, which may hold comments as a replay file does; "
+        "`vars` override the replay's vars. For a replay file, call(\"run_replay\", {\"path\": ...}).");
 }
 
 } // namespace host_bindings

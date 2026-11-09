@@ -1,4 +1,4 @@
-#include "McpScriptRun.hpp"
+#include "McpPersonRun.hpp"
 #include "McpService.hpp"
 
 #include <cstddef>
@@ -9,15 +9,15 @@
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
-ScriptRun::ScriptRun(McpService& service, Events events) : m_service(service), m_events(std::move(events)) {}
+PersonRun::PersonRun(McpService& service, Events events) : m_service(service), m_events(std::move(events)) {}
 
-std::string ScriptRun::job() const
+std::string PersonRun::job() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_job;
 }
 
-void ScriptRun::set_job(const std::string& job)
+void PersonRun::set_job(const std::string& job)
 {
     bool stop = false;
     {
@@ -29,7 +29,7 @@ void ScriptRun::set_job(const std::string& job)
         m_service.request_stop(job);
 }
 
-void ScriptRun::stop()
+void PersonRun::stop()
 {
     std::string job;
     {
@@ -40,13 +40,13 @@ void ScriptRun::stop()
     if (job.empty() || m_service.stopping())
         return;
     m_service.request_stop(job);
-    // The step's own operation stops too, as the cancel tool stops it.
+    // The step's own operation stops too, as cancel_job stops it.
     m_service.cancel_operations_of(job);
 }
 
-void ScriptRun::detach() { m_detached = true; }
+void PersonRun::detach() { m_detached = true; }
 
-void ScriptRun::post_step_started(std::size_t index)
+void PersonRun::post_step_started(std::size_t index)
 {
     m_service.post_ui([self = shared_from_this(), index] {
         if (!self->m_detached && self->m_events.step_started)
@@ -54,7 +54,7 @@ void ScriptRun::post_step_started(std::size_t index)
     });
 }
 
-void ScriptRun::post_step_finished(nlohmann::json entry)
+void PersonRun::post_step_finished(nlohmann::json entry)
 {
     m_service.post_ui([self = shared_from_this(), entry = std::move(entry)] {
         if (!self->m_detached && self->m_events.step_finished)
@@ -62,7 +62,7 @@ void ScriptRun::post_step_finished(nlohmann::json entry)
     });
 }
 
-void ScriptRun::post_finished(nlohmann::json result, nlohmann::json jobs)
+void PersonRun::post_finished(nlohmann::json result, nlohmann::json jobs)
 {
     m_service.post_ui([self = shared_from_this(), result = std::move(result), jobs = std::move(jobs)] {
         if (!self->m_detached && self->m_events.finished)

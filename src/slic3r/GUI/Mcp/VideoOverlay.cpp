@@ -1,6 +1,6 @@
 #include "VideoOverlay.hpp"
 
-#include "McpScriptSummary.hpp"
+#include "McpReplaySummary.hpp"
 
 #include <algorithm>
 #include <array>
@@ -443,7 +443,7 @@ void CaptionBoard::call_started(uint64_t id, std::string title, std::string deta
     c.detail = std::move(detail);
     m_calls.push_back(std::move(c));
     // A burst of quick calls, all lingering at once: the oldest finished ones go. Running calls stay, so a
-    // script still running shows again once its steps have faded; they are few (a script and its step).
+    // replay still running shows again once its steps have faded; they are few (a replay and its step).
     while (m_calls.size() > 64) {
         const auto finished = std::find_if(m_calls.begin(), m_calls.end(), [](const Call& x) { return x.status != CaptionStatus::Running; });
         if (finished == m_calls.end())
@@ -585,15 +585,15 @@ std::vector<std::string> hidden_values(const std::string& tool, const json& args
     sensitive_values(args, out);
     if (!args.is_object())
         return out;
-    if (tool == "ui_input") {
+    if (tool == "set_widget_value") {
         const json&       target = args.contains("target") ? args["target"] : json();
         const std::string option = target.is_object() ? str(target, "option") : std::string();
         if ((option.empty() || is_sensitive_key(option)) && args.contains("value"))
             scalars(args["value"], out);
     }
-    if (tool == "ui_key" && args.contains("text"))
+    if (tool == "press_keys" && args.contains("text"))
         scalars(args["text"], out);
-    if (tool == "webview_eval")
+    if (tool == "run_javascript")
         scalars(args, out);
     return out;
 }
@@ -636,7 +636,7 @@ std::string caption_detail(const std::string& tool, const json& args)
 {
     if (!args.is_object())
         return {};
-    if (tool == "ui_input") {
+    if (tool == "set_widget_value") {
         std::string out = target_text(args.value("target", json()));
         // Only a setting field's value: a field found by its label, or a ref not yet resolved, may be a
         // password box.
@@ -646,24 +646,24 @@ std::string caption_detail(const std::string& tool, const json& args)
             out += " = " + scalar_text(args["value"]);
         return out;
     }
-    if (tool == "ui_key") {
+    if (tool == "press_keys") {
         // Typed text shows as keys in the input caption, masked where it goes into a password field.
         const std::string keys   = str(args, "keys");
         const std::string target = target_text(args.value("target", json()));
         return keys.empty() ? target : (target.empty() ? keys : keys + " - " + target);
     }
-    if (tool == "ui_click" || tool == "ui_mouse" || tool == "dialog_respond") {
+    if (tool == "click" || tool == "mouse_gesture" || tool == "answer_dialog") {
         std::string out = target_text(args.value("target", json()));
-        if (tool == "ui_mouse")
+        if (tool == "mouse_gesture")
             out = str(args, "action");
-        if (tool == "dialog_respond")
+        if (tool == "answer_dialog")
             out = str(args, "button");
         if (const std::string item = str(args, "popup_item"); !item.empty())
             out += (out.empty() ? "" : " > ") + path_text(item);
         return out;
     }
-    if (tool == "webview_eval")
-        return {}; // a script's text may carry anything
+    if (tool == "run_javascript")
+        return {}; // the code may carry anything
     if (args.contains("values") && args["values"].is_object()) {
         std::vector<std::string> pairs;
         for (const auto& [key, value] : args["values"].items())

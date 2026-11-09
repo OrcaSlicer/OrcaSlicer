@@ -3375,7 +3375,7 @@ bool GUI_App::on_init_inner()
     // post_init() has run.
     if (init_params != nullptr) {
         const bool serve = init_params->mcp.enable || app_config->get_bool("mcp_enabled");
-        if (serve || !init_params->mcp.script.empty())
+        if (serve || !init_params->mcp.run_file.empty())
             start_mcp_service(serve);
     }
     if (is_editor()) {
@@ -8509,7 +8509,7 @@ void GUI_App::stop_http_server()
 
 bool GUI_App::start_mcp_service(bool serve, std::string* error)
 {
-    // Only the launch options from the command line carry a script; a later start from Preferences
+    // Only the launch options from the command line carry a file to run (--mcp-run); a later start from Preferences
     // must not run it again.
     Mcp::McpLaunchOptions options;
     if (init_params != nullptr && !m_post_initialized)

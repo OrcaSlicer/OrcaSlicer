@@ -161,17 +161,17 @@ set(SLIC3R_GUI_SOURCES
     GUI/Mcp/McpJournal.hpp
     GUI/Mcp/McpOperations.cpp
     GUI/Mcp/McpOperations.hpp
+    GUI/Mcp/McpPersonRun.cpp
+    GUI/Mcp/McpPersonRun.hpp
     GUI/Mcp/McpProtocol.cpp
     GUI/Mcp/McpProtocol.hpp
     GUI/Mcp/McpRecorder.cpp
     GUI/Mcp/McpRecorder.hpp
     GUI/Mcp/McpOptions.hpp
-    GUI/Mcp/McpScript.cpp
-    GUI/Mcp/McpScript.hpp
-    GUI/Mcp/McpScriptRun.cpp
-    GUI/Mcp/McpScriptRun.hpp
-    GUI/Mcp/McpScriptSummary.cpp
-    GUI/Mcp/McpScriptSummary.hpp
+    GUI/Mcp/McpReplay.cpp
+    GUI/Mcp/McpReplay.hpp
+    GUI/Mcp/McpReplaySummary.cpp
+    GUI/Mcp/McpReplaySummary.hpp
     GUI/Mcp/McpService.cpp
     GUI/Mcp/McpService.hpp
     GUI/Mcp/McpServicePtr.hpp
@@ -194,8 +194,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Mcp/McpToolsProject.cpp
     GUI/Mcp/McpToolsPython.cpp
     GUI/Mcp/McpToolsRecord.cpp
+    GUI/Mcp/McpToolsReplay.cpp
     GUI/Mcp/McpToolsScene.cpp
-    GUI/Mcp/McpToolsScript.cpp
     GUI/Mcp/McpToolsUi.cpp
     GUI/Mcp/McpToolsView.cpp
     GUI/Mcp/ScreenCapture.cpp

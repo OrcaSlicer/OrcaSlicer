@@ -1,4 +1,4 @@
-// list_objects, select, transform, add_part, arrange, slice and cancel: the model on the plates, the
+// list_objects, select_objects, transform, add_part, arrange, slice and cancel_job: the model on the plates, the
 // arrange and Fill bed jobs, and the slice operation, which reports its own outcome per plate (see
 // McpOperations).
 
@@ -103,7 +103,7 @@ GLCanvas3D& require_prepare_scene(Plater& plater)
         throw ToolFailure("Leave the assemble view first (set_view {view: \"3d\"})");
     GLCanvas3D& canvas = object_canvas();
     if (const auto type = canvas.get_gizmos_manager().get_current_type(); type != GLGizmosManager::Undefined)
-        throw ToolFailure("Close the " + gizmo_name(type) + " gizmo first (ui_click {target: {gizmo: \"" + gizmo_name(type) + "\"}})");
+        throw ToolFailure("Close the " + gizmo_name(type) + " gizmo first (click {target: {gizmo: \"" + gizmo_name(type) + "\"}})");
     // A canvas hidden while the model changed loads its scene on its next draw; the selection needs
     // it now, as when the Prepare tab is requested while shown (Plater::priv::set_current_panel()).
     if (canvas.is_reload_delayed())
@@ -908,12 +908,12 @@ void register_scene_tools(McpService& service)
         "object's frame; mirrored; triangle count; mesh_volume, the unscaled mesh's mm3; painted facets: supports and "
         "seam enforcers/blockers, fuzzy_skin, mmu per filament, texture per layer; a text part's text and font, an SVG "
         "part's file); its height range modifiers when it has any (layer_config_ranges: [{min_z, max_z, values}], as "
-        "set_layer_ranges takes them) and its variable layer height profile when it has one (layer_height_profile: "
+        "set_height_ranges takes them) and its variable layer height profile when it has one (layer_height_profile: "
         "{points, min_height, max_height}). A bbox is {min, max, size} in mm of model parts only, so unlike the panel's Size it "
-        "leaves out modifiers. Indices are what select, transform, ui_mouse targets and the object/volume settings scopes take. "
+        "leaves out modifiers. Indices are what select_objects, transform, mouse_gesture targets and the object/volume settings scopes take. "
         "Each object and part also has an id, which stays with it when a delete, split or assemble shifts the indices: pass "
-        "it as object_id / volume_id to transform, add_part, set_settings, set_layer_ranges and set_layer_height_profile "
-        "(object_ids, volume_ids and instance_object_ids to select), and a call whose index names another one now is "
+        "it as object_id / volume_id to transform, add_part, set_settings, set_height_ranges and set_variable_layer_height "
+        "(object_ids, volume_ids and instance_object_ids to select_objects), and a call whose index names another one now is "
         "refused instead of acting on it.",
         object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Only objects on this plate."}}},
                        {"screen", prop("boolean", "Add each instance's rectangle in the shown 3D view, logical pixels [x, y, w, h].")},
@@ -922,10 +922,10 @@ void register_scene_tools(McpService& service)
         [](const json& args, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return list_objects(args); })); }));
 
     reg.add(mutate_tool(
-        "select", L("Select objects"),
+        "select_objects", L("Select objects"),
         "Select objects, instances or parts in the 3D view (the assemble view while it is shown, else Prepare, switching to it), as clicking them would. Give objects, "
         "instances ([[object, instance], ...]) or volumes ([[object, part], ...]); add keeps the current selection; all / "
-        "none select everything or nothing. The reply is the selection as get_state.selection gives it.",
+        "none select everything or nothing. The reply is the selection as get_app_state.selection gives it.",
         object_schema({{"objects", array_prop({{"type", "integer"}}, "Object indices.")},
                        {"instances", array_prop({{"type", "array"}}, "[[object, instance], ...]")},
                        {"volumes", array_prop({{"type", "array"}}, "[[object, part], ...]")},
@@ -1157,7 +1157,7 @@ void register_scene_tools(McpService& service)
         "edited the project while it ran. An ok plate has time_s (silent_time_s when the printer estimates it), "
         "filament_m and filament_g including flush, filament_cost, layers, max_z, filament_changes, and filaments[i] for "
         "slot i+1 with m, g and the grams of model_g, support_g, flush_g and tower_g. Other changes are refused until it "
-        "finishes; cancel stops it.",
+        "finishes; cancel_job stops it.",
         object_schema({{"plates", {{"type", {"string", "integer"}}, {"description", "\"current\" (default), \"all\", or a plate index."}}},
                        {"timeout_s", {{"type", "integer"}, {"minimum", 10}, {"maximum", 7200}, {"description", "Give up after this long (default 1800)."}}}}),
         [](const json& args, ToolContext& ctx) {
@@ -1287,11 +1287,11 @@ void register_scene_tools(McpService& service)
     reg.add(slice);
 
     ToolDef cancel = mutate_tool(
-        "cancel", L("Cancel an operation"),
+        "cancel_job", L("Cancel a job"),
         "Stop the running operation: a slice or G-code export, as the slicing progress's cancel button does, or a "
         "background job an MCP call started (an arrange, orient or fill bed). Its job then reports cancelled; a background "
         "job keeps other changes out until it has really stopped. With job, only that job is stopped: the running "
-        "operation, a run_python run or an encode_recording. Allowed while an operation holds the project.",
+        "operation, a run_script run or an encode_recording. Allowed while an operation holds the project.",
         object_schema({{"job", prop("string", "The operation's job to cancel, e.g. \"j12\".")}}),
         [&service](const json& args, ToolContext& ctx) {
             const auto ops = service.jobs().running_operations();

@@ -44,8 +44,8 @@ namespace Mcp {
 
 class McpService;
 class ToolRegistry;
-struct Script;
-struct ScriptContext;
+struct Replay;
+struct ReplayContext;
 
 // Each tool family registers itself with the service.
 void register_app_tools(McpService& service);
@@ -55,29 +55,29 @@ void register_config_tools(McpService& service);
 void register_scene_tools(McpService& service);
 void register_view_tools(McpService& service);
 void register_ui_tools(McpService& service);
-void register_script_tools(McpService& service);
+void register_replay_tools(McpService& service);
 void register_record_tools(McpService& service);
 void register_cad_tools(McpService& service);
 void register_python_tools(McpService& service);
 void register_api_tools(McpService& service);
 
-// How run_script_job() runs a script beyond what the script says.
-struct ScriptRunOptions
+// How run_replay_job() runs a replay beyond what the replay says.
+struct ReplayRunOptions
 {
-    std::optional<std::size_t> only_step;    // 1-based; the whole script when empty
+    std::optional<std::size_t> only_step;    // 1-based; the whole replay when empty
     bool                       write_result = true; // result.json in the output folder
-    // Called on the job thread as each step starts and ends (see ScriptHost).
+    // Called on the job thread as each step starts and ends (see ReplayHost).
     std::function<void(std::size_t)>           step_started;
     std::function<void(const nlohmann::json&)> step_finished;
 };
 
-// Runs a parsed script as the calling job, as run_script does: steps are child calls, dialog rules
-// the script registers end with it, and result.json goes to sctx.out_dir (created if missing). It
+// Runs a parsed replay as the calling job, as run_replay does: steps are child calls, dialog rules
+// the replay registers end with it, and result.json goes to sctx.out_dir (created if missing). It
 // stops before the next step, and stops waiting on a step's job, once the call is cancelled: the
 // service stops, or a stop was asked for any job in the call's lineage (McpService::request_stop), so
-// a nested run_script stops with the run that holds it. Returns run_script()'s result with out_dir (and result_file).
-nlohmann::json run_script_job(McpService& service, ToolContext& ctx, const Script& script, ScriptContext& sctx,
-                              const ScriptRunOptions& options);
+// a nested run_replay stops with the run that holds it. Returns run_replay()'s result with out_dir (and result_file).
+nlohmann::json run_replay_job(McpService& service, ToolContext& ctx, const Replay& replay, ReplayContext& sctx,
+                              const ReplayRunOptions& options);
 
 // ---- schema helpers --------------------------------------------------------------------------
 
@@ -146,7 +146,7 @@ std::string to_config_string(const nlohmann::json& value, const std::string& key
 
 // ---- Python (McpToolsPython.cpp) -------------------------------------------------------------
 
-// python_api's reference: every public module, class, function, method, property, named instance (such
+// search_python_api's reference: every public module, class, function, method, property, named instance (such
 // as orca.host.preset.process) and constant (such as orca.host.ui.PD_CAN_ABORT) of the orca package, in
 // the order the package lists them, each {name, kind, signature, doc}. signature holds the signature lines
 // pybind11 starts a docstring with (a class's are its constructors, joined with " | "), and doc the rest
@@ -164,7 +164,7 @@ nlohmann::json rank_python_api(const nlohmann::json& reference, const std::strin
 // Takes the GIL, as python_api_reference() does.
 bool python_has_numpy();
 
-// The Run Script panel's session as the calling job, a person's run_python job: refused while Python scripts are off.
+// The Run Script panel's session as the calling job, a person's run_script job: refused while Python scripts are off.
 // The job is idle for `wait {for: "idle"}`, and owns what the session's tool calls leave behind (auto-answer rules, a
 // recording, a held press) until the session ends, with its rules paused between works and its presses released as each
 // work ends. The calls hang under a lineage node of the job, which a stop cancels, inline calls included, and which the
@@ -210,7 +210,7 @@ nlohmann::json option_meta(const ConfigOptionDef& def);
 // the query has longer ones.
 std::vector<std::string> rank_settings(const std::string& query, const std::vector<std::string>& within, std::size_t limit);
 
-// get_settings' search without a scope, for api_describe: the process, filament and printer settings being
+// get_settings' search without a scope, for search_tools: the process, filament and printer settings being
 // edited that `query` describes, best first, {total, items: [{key, scope, label, where}]} with at most
 // `limit` items. UI thread.
 nlohmann::json search_settings(const std::string& query, std::size_t limit);
@@ -318,14 +318,14 @@ std::string edit_filament_slot(int slot);
 
 // ---- calibration (McpToolsProject.cpp) -------------------------------------------------------
 
-// calibrate's arguments as the test's dialog takes them on `printer`: its defaults for what is left out (the
+// generate_calibration_test's arguments as the test's dialog takes them on `printer`: its defaults for what is left out (the
 // pressure advance ones by the printer's extruder type, an input shaping Y range or frequency by the X one),
 // temperatures clamped to the dialog field's 155-500 °C and rounded down to its 5 °C, and the dialog's rules
 // (check_calib_params()). Adds to `warnings` what the dialog would say without refusing. Throws ToolFailure
 // for an argument the test does not take, a value the dialog refuses, or a choice the printer does not offer.
 Calib_Params calib_params_from_args(const nlohmann::json& args, const DynamicPrintConfig& printer, std::vector<std::string>& warnings);
 
-// The parameters `params` holds for calibrate's `args`, in its argument names and units: what calibrate
+// The parameters `params` holds for generate_calibration_test's `args`, in its argument names and units: what generate_calibration_test
 // reports and records in the journal, so a replay does not depend on the dialogs' defaults.
 nlohmann::json calib_params_json(const nlohmann::json& args, const Calib_Params& params, const DynamicPrintConfig& printer);
 
@@ -380,7 +380,7 @@ nlohmann::json object_info(const ModelObject& object, std::size_t index);
 // rotation and scale in the object's frame, mesh, paint, and what a text or SVG part was made from.
 nlohmann::json volume_info(const ModelVolume& volume, std::size_t index);
 
-// What `canvas` has selected, in the indices select takes: its objects, the instances [[object, instance]]
+// What `canvas` has selected, in the indices select_objects takes: its objects, the instances [[object, instance]]
 // they are selected in and, when the selection holds parts rather than whole instances, those parts
 // [[object, part]]; wipe_tower when a prime tower is selected. UI thread.
 nlohmann::json selection_state(GLCanvas3D& canvas);
@@ -402,28 +402,28 @@ void register_layer_tools(McpService& service);
 // The settings a height range modifier takes: layer_height, the per-region process settings the object
 // list offers a part or a range (with `filaments` filament slots), and extruder, the range's filament.
 std::vector<std::string> layer_range_option_keys(int filaments);
-// set_layer_ranges' ranges as an object's layer_config_ranges. Each starts from `defaults`, what the
+// set_height_ranges' ranges as an object's layer_config_ranges. Each starts from `defaults`, what the
 // object list gives a new range, and takes its values, parsed strictly. Throws ToolFailure for a range
 // that is not 0 <= min_z < max_z or that overlaps another (touching is fine), a key a range does not
 // take, an invalid value, an extruder above `filaments`, or a layer_height given outside
 // `layer_height_bounds(extruder)`.
 t_layer_config_ranges layer_config_ranges_from_json(const nlohmann::json& ranges, const DynamicPrintConfig& defaults, int filaments,
                                                     const std::function<std::pair<double, double>(int extruder)>& layer_height_bounds);
-// An object's height range modifiers as list_objects and set_layer_ranges report them:
+// An object's height range modifiers as list_objects and set_height_ranges report them:
 // [{min_z, max_z, values: {key: value serialized as get_settings returns it}}], lowest first.
 nlohmann::json layer_config_ranges_json(const t_layer_config_ranges& ranges);
-// An object's layer_height_profile ([z0, h0, z1, h1, ...]) as list_objects and set_layer_height_profile
+// An object's layer_height_profile ([z0, h0, z1, h1, ...]) as list_objects and set_variable_layer_height
 // report it: {points, min_height, max_height}, heights to 0.001 mm; null unless the object list marks the
 // object's layer height as variable (more than 4 entries).
 nlohmann::json layer_height_profile_json(const std::vector<double>& profile);
 
-// The names set_layer_gcode and list_plates give the types of layer codes: pause, custom, template,
+// The names set_custom_gcode_at_layer and list_plates give the types of layer codes: pause, custom, template,
 // change_filament, and color_change for an old project's colour change.
 const char* custom_gcode_type_name(CustomGCode::Type type);
-// The type set_layer_gcode adds for a name; CustomGCode::Unknown for any other, color_change included,
+// The type set_custom_gcode_at_layer adds for a name; CustomGCode::Unknown for any other, color_change included,
 // since the layer slider adds none.
 CustomGCode::Type custom_gcode_type_from_name(const std::string& name);
-// set_layer_gcode's clear, remove and add, in that order, on a layer slider that holds a plate's layers
+// set_custom_gcode_at_layer's clear, remove and add, in that order, on a layer slider that holds a plate's layers
 // and codes. Everything is checked against the slider's layers and codes before it changes, with the
 // rules of its menus: one code per layer, a template only when the printer has one (`has_template`), a
 // filament change only with two or more filaments, as many as the slider has (`filaments`, the slots now),
@@ -460,7 +460,7 @@ namespace Mcp {
 // leaves out, come from `result`.
 nlohmann::json plate_summary(const nlohmann::json& statistics, const GCodeProcessorResult& result);
 
-// get_preview's tables, from the same parsed statistics, which sum the moves as the Preview does.
+// get_slice_stats's tables, from the same parsed statistics, which sum the moves as the Preview does.
 // Per feature type, keyed by the English names of the G-code's ;FEATURE: tags: seconds, share of
 // the print time and grams, plus a Travel row with its distance. The shares need not add up to 100:
 // the print time also counts retractions, wipes, Z moves, tool changes and the prepare time.
@@ -480,7 +480,7 @@ nlohmann::json preview_state(GCodeViewer& viewer);
 // Whether the Preview's toolpaths are `result`'s. It loads a plate's only while it is shown, so after
 // another plate is selected it keeps the last one's. UI thread.
 bool viewer_holds(const GCodeViewer& viewer, const GCodeProcessorResult* result);
-// The names get_preview and set_view give the legend's rows: a feature type by the English name of
+// The names get_slice_stats and set_view give the legend's rows: a feature type by the English name of
 // its ;FEATURE: tag, an option by a key; null for the options that are markers, not rows.
 std::string legend_feature_key(libvgcode::EGCodeExtrusionRole role);
 const char* legend_option_key(libvgcode::EOptionType type);

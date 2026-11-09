@@ -57,10 +57,10 @@ using namespace std::chrono_literals;
 
 namespace {
 
-// The locator grammar is spelled out once, in ui_snapshot's description, which hands out the refs.
+// The locator grammar is spelled out once, in list_widgets's description, which hands out the refs.
 const json kTargetSchema = {{"type", json::array({"string", "object"})},
-                            {"description", "A ref from the latest ui_snapshot (\"w12\") or a locator, such as {label: \"OK\", "
-                                            "within: \"Preferences\"} or {menu: \"File>Export>Export G-code\"}; ui_snapshot's "
+                            {"description", "A ref from the latest list_widgets call (\"w12\") or a locator, such as {label: \"OK\", "
+                                            "within: \"Preferences\"} or {menu: \"File>Export>Export G-code\"}; list_widgets's "
                                             "description lists every kind."}};
 
 const json kPageTimeoutSchema = {{"type", "integer"},
@@ -70,7 +70,7 @@ const json kPageTimeoutSchema = {{"type", "integer"},
 
 const json kModifiersSchema = {{"type", "array"},
                                {"items", {{"type", "string"}, {"enum", {"ctrl", "cmd", "rawctrl", "shift", "alt"}}}},
-                               {"description", "Modifier keys held during the click, as in ui_key: ctrl and cmd are both Command on macOS "
+                               {"description", "Modifier keys held during the click, as in press_keys: ctrl and cmd are both Command on macOS "
                                                "and Ctrl elsewhere; rawctrl is the macOS Control key."}};
 
 bool in_top_dialog(McpService& service, wxWindow* window)
@@ -222,7 +222,7 @@ wxWebView* default_webview(McpService& service)
         json urls = json::array();
         for (wxWebView* w : webs)
             urls.push_back(redact_url(into_u8(w->GetCurrentURL())));
-        throw ToolFailure("Several web views are shown" + where + "; pass target (ui_snapshot query=webview)", {{"web_views", urls}});
+        throw ToolFailure("Several web views are shown" + where + "; pass target (list_widgets query=webview)", {{"web_views", urls}});
     }
     return webs.front();
 }
@@ -246,7 +246,7 @@ void guard_page(McpService& service, ToolContext& ctx, wxWebView* web)
 // The input tools reach a page element through its page's agent (WebPages.hpp): resolve it, guard
 // its web view as any widget's window, ask the page to act, and observe what followed.
 
-// A "d" ref from ui_snapshot, also written {ref: "d12"}, or a {css}/{web} locator.
+// A "d" ref from list_widgets, also written {ref: "d12"}, or a {css}/{web} locator.
 bool is_web_target(const json& target)
 {
     const json& ref = target.is_object() && target.size() == 1 && target.contains("ref") ? target["ref"] : target;
@@ -275,13 +275,13 @@ WebHandle web_view_target(McpService& service, ToolContext& ctx, const json& tar
     return out;
 }
 
-// ui_click and ui_input on a web view: the page's elements are the targets.
+// click and set_widget_value on a web view: the page's elements are the targets.
 void refuse_web_view(McpService& service, ToolContext& ctx, const json& target)
 {
     std::string within;
     if (web_view_target(service, ctx, target, within) != 0)
         throw ToolFailure("That is a web view, whose page wx events don't reach; target one of its page elements: a d ref from "
-                          "ui_snapshot, or a {web} / {css} locator");
+                          "list_widgets, or a {web} / {css} locator");
 }
 
 // A page element an input tool acts on.
@@ -418,10 +418,10 @@ void check_page_reply(const PageReply& r, std::chrono::seconds timeout, bool act
     case PageReply::State::Failed: throw ToolFailure("The page could not run the request: " + r.error);
     case PageReply::State::NoAnswer:
         if (ctx.cancelled())
-            throw ToolFailure("Cancelled: OrcaSlicer is closing or the script was stopped");
+            throw ToolFailure("Cancelled: OrcaSlicer is closing or the replay or script was stopped");
         throw ToolFailure("The page did not answer within " + std::to_string(timeout.count()) + " s" +
-                          (acting ? ", so the outcome is unknown: the action may have run, or may still run once the page is free. Take "
-                                    "a ui_snapshot before trying again (timeout_s waits longer)" :
+                          (acting ? ", so the outcome is unknown: the action may have run, or may still run once the page is free. Call "
+                                    "list_widgets before trying again (timeout_s waits longer)" :
                                     "; it may be busy"));
     }
     if (r.value.contains("error")) {
@@ -433,7 +433,7 @@ void check_page_reply(const PageReply& r, std::chrono::seconds timeout, bool act
 }
 
 // The pages a locator looks in: the shown ones within `within`, in snapshot order. Without `within`
-// while the topmost modal dialog shows a page, only that dialog's pages, the ones ui_snapshot reads
+// while the topmost modal dialog shows a page, only that dialog's pages, the ones list_widgets reads
 // and the only ones input can reach, so a page behind it never makes a label ambiguous.
 std::vector<wxWebView*> locator_pages(McpService& service, const std::string& within)
 {
@@ -460,7 +460,7 @@ WebTarget resolve_web(McpService& service, ToolContext& ctx, const json& target,
                 throw ToolFailure("The ref is not a page element");
             auto* web = dynamic_cast<wxWebView*>(t.window.get());
             if (web == nullptr)
-                throw ToolFailure("The page's web view is gone; take a new ui_snapshot");
+                throw ToolFailure("The page's web view is gone; call list_widgets again");
             out.web    = web_handle(web);
             out.key    = t.web_key;
             out.doc    = t.web_doc;
@@ -561,10 +561,10 @@ WebTarget resolve_web(McpService& service, ToolContext& ctx, const json& target,
         throw ToolFailure("No page element matches " + target.dump() + " in what answered" +
                               (unknown.empty() ? "" : "; " + unknown + " did not answer or failed the search") +
                               (failed == 0 ? "" : "; " + count(failed, "page", "pages") + " could not run the page agent") +
-                              "; nothing was done. " + (unknown.empty() ? "Take a ui_snapshot" : "Try again once they answer"),
+                              "; nothing was done. " + (unknown.empty() ? "Call list_widgets" : "Try again once they answer"),
                           {{"unread_pages", unread}});
     if (matches.empty())
-        throw ToolFailure("No page element matches " + target.dump() + "; take a ui_snapshot");
+        throw ToolFailure("No page element matches " + target.dump() + "; call list_widgets");
     if (matches.size() > 1 && index < 0) {
         json listed = json::array();
         for (const Match& m : matches)
@@ -610,7 +610,7 @@ json web_locator(McpService& service, ToolContext& ctx, const WebTarget& t, cons
     return loc;
 }
 
-// Why dialog_respond does not press a button refused_press() refuses.
+// Why answer_dialog does not press a button refused_press() refuses.
 std::string refused_button(const std::string& button, DialogPress refused)
 {
     if (refused == DialogPress::Hidden)
@@ -653,7 +653,7 @@ std::string watch_id()
 // document behind the page (a reload, or a form posted to the same URL). Not IsBusy(), which WebView2
 // also reports while a page only works. Failing those, for an action the page outlined itself before
 // (before.watch), `page`: whether what the page lists changed by then (changed), the lines it lists
-// that it did not (added) and those it no longer does (removed), as ui_snapshot writes them, partial
+// that it did not (added) and those it no longer does (removed), as list_widgets writes them, partial
 // when a configuration frame could not be compared (then changed only when a line was found), and how
 // many messages the page itself sent OrcaSlicer during the action (posted). A change after that is the
 // next snapshot's to show.
@@ -744,11 +744,11 @@ struct WebActed
     json locator; // for the journal
 };
 
-// A ui_mouse down's press (WebPresses), which web_act marks sent with its request.
+// A mouse_gesture down's press (WebPresses), which web_act marks sent with its request.
 struct DownPress
 {
     std::uint64_t id     = 0;
-    bool          client = false; // a client's, not a script's
+    bool          client = false; // a client's, not a run's
 };
 
 // Runs `action` on a page element, waiting up to `timeout` for the page.
@@ -766,7 +766,7 @@ WebActed web_act(McpService& service, ToolContext& ctx, const WebTarget& t, cons
             throw ToolFailure("The MCP server was turned off before this gesture ran; it was not performed");
         wxWebView* web = web_view_of(t.web);
         if (web == nullptr || !web->IsShownOnScreen())
-            throw ToolFailure("The page's web view is gone or hidden; take a new ui_snapshot");
+            throw ToolFailure("The page's web view is gone or hidden; call list_widgets again");
         guard_page(service, ctx, web);
         if (in_top_dialog(service, web))
             before.modal = service.modals().serial(service.modals().top());
@@ -812,7 +812,7 @@ WebActed web_act(McpService& service, ToolContext& ctx, const WebTarget& t, cons
     return out;
 }
 
-// The DOM modifier flags of a click or gesture's `modifiers`, named as ui_key chords name them: ctrl
+// The DOM modifier flags of a click or gesture's `modifiers`, named as press_keys chords name them: ctrl
 // and cmd are Command on macOS and Ctrl elsewhere, rawctrl the macOS Control key.
 json web_modifiers(const json& args)
 {
@@ -844,9 +844,9 @@ void journal_web(ToolContext& ctx, const json& args, const json& locator)
 
 PressAgent agent_of(const WebTarget& t) { return press_agent(t.web, t.doc, t.key); }
 
-// Ends every press ui_mouse downs left on pages but `keep`'s, each released where it was pressed,
+// Ends every press mouse_gesture downs left on pages but `keep`'s, each released where it was pressed,
 // all asked at once so an agent that doesn't answer holds up none of the others. Every gesture,
-// click and dialog_respond does this first, even one the tool then refuses, except that a move or an
+// click and answer_dialog does this first, even one the tool then refuses, except that a move or an
 // up keeps the press of the agent it is on, which it belongs to; keys and input leave the presses, as
 // a person can type while holding the mouse. One whose agent did not take the release (busy,
 // failing) stays on record, so the next gesture asks again; a release taken late is past its
@@ -890,7 +890,7 @@ void end_web_press(McpService& service, ToolContext& ctx, const std::optional<Pr
 ToolResult web_click(McpService& service, ToolContext& ctx, const json& args)
 {
     if (args.contains("popup_item"))
-        throw ToolFailure("popup_item is for the menus OrcaSlicer opens; a page's own menu is part of the page, so take a ui_snapshot after "
+        throw ToolFailure("popup_item is for the menus OrcaSlicer opens; a page's own menu is part of the page, so call list_widgets after "
                           "the click");
     const auto timeout = web_timeout(args);
     WebTarget  t       = resolve_web(service, ctx, args["target"], timeout);
@@ -931,7 +931,7 @@ ToolResult web_input(McpService& service, ToolContext& ctx, const json& args)
 ToolResult web_keys(McpService& service, ToolContext& ctx, const json& args, WebTarget t)
 {
     if (args.contains("popup_item"))
-        throw ToolFailure("popup_item is for the menus OrcaSlicer opens; a page's own menu is part of the page, so take a ui_snapshot after "
+        throw ToolFailure("popup_item is for the menus OrcaSlicer opens; a page's own menu is part of the page, so call list_widgets after "
                           "the keys");
     const std::string keys = arg_string(args, "keys"), text = arg_string(args, "text");
     json              a{{"text", text}};
@@ -990,13 +990,13 @@ ToolResult web_mouse(McpService& service, ToolContext& ctx, const json& args)
             a["path"].push_back(point(p));
     }
     // A down is on record before it is sent, as one whose reply never comes may still have pressed;
-    // it belongs to the script running the call, as a widget's press does, for the cleanup when that
+    // it belongs to the replay or script running the call, as a widget's press does, for the cleanup when that
     // ends. An up ends the presses its agent held when it was sent, not one a later down made. One
     // that failed or timed out ends none: past its deadline the page does not run it, so the press may
     // still be held, and a release of one that is not only answers.
     WebPresses&                      presses = service.web_presses();
     const PressAgent                 agent   = agent_of(t);
-    const std::string                owner   = service.script_owner(service.jobs().ancestry(ctx.job_id()));
+    const std::string                owner   = service.run_owner(service.jobs().ancestry(ctx.job_id()));
     const std::uint64_t              pressed = action == "down" ? presses.hold(agent, owner) : 0;
     const std::vector<std::uint64_t> ended   = action == "up" ? presses.of(agent) : std::vector<std::uint64_t>();
     // The page keeps the press's id, so a release ends that press and no later one.
@@ -1048,11 +1048,11 @@ void register_ui_tools(McpService& service)
         "list_windows", L("List the windows"),
         "List OrcaSlicer's open windows: the main window, then the windows that don't block the app (Plugins, an "
         "object's settings, a dock panel floating on its own), then the modal dialogs in the order they opened, the "
-        "topmost last. A window's ref goes to screenshot as target to capture that window, to ui_snapshot as root to "
-        "list it alone, and to ui_key as target; its title is the within of locators for its widgets.\n"
+        "topmost last. A window's ref goes to screenshot as target to capture that window, to list_widgets as root to "
+        "list it alone, and to press_keys as target; its title is the within of locators for its widgets.\n"
         "Reply: each window's title, kind (main, window, dialog, or panel: a dock panel floating on its own), modal, "
         "ref, web (it shows a web page), x and y on screen (not on Wayland, which doesn't say), width and height.\n"
-        "A native dialog (a message box, a file picker) has native: true and no ref: dialog_respond answers it. hidden: "
+        "A native dialog (a message box, a file picker) has native: true and no ref: answer_dialog answers it. hidden: "
         "true marks the person's own windows (Action Replay, the Run Script panel and their prompts, the Python scripts "
         "setting), which no tool reaches and screenshots leave out.",
         object_schema({{"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 200}, {"description", "Default 100."}}},
@@ -1063,15 +1063,15 @@ void register_ui_tools(McpService& service)
 
     {
         ToolDef def = inspect_tool(
-            "ui_snapshot", L("List the GUI"),
-            "Describe what is on screen as an indented tree, one element per line with a ref to pass to ui_click, ui_input, "
-            "ui_key and webview_eval (a page element's to ui_mouse too): the widgets of every shown window, the rows of lists, "
+            "list_widgets", L("List the widgets"),
+            "Describe what is on screen as an indented tree, one element per line with a ref to pass to click, set_widget_value, "
+            "press_keys and run_javascript (a page element's to mouse_gesture too): the widgets of every shown window, the rows of lists, "
             "trees and tables, each shown popup after the window it opened from, the main menus, the 3D canvas's toolbar "
             "items and gizmos, each ImGui panel drawn in the last frame with its items and text, and the elements of each "
             "shown web page (dialogs, the setup wizard, sign-in, plugin windows) under its web view. With a modal dialog "
-            "open, only the topmost dialog's pages are read. Refs go stale when their element goes away: take a new snapshot "
-            "then. Prefer run_action and the typed tools when one fits.\n"
-            "A locator names an element without a ref, in any session (export_script records them); index (0-based) picks "
+            "open, only the topmost dialog's pages are read. Refs go stale when their element goes away: call list_widgets "
+            "again then. Prefer run_action and the typed tools when one fits.\n"
+            "A locator names an element without a ref, in any session (export_replay records them); index (0-based) picks "
             "one of several matches:\n"
             "- a widget: {label, class, name, within, index}, within being its window's title; a notebook page: {tab: "
             "\"General\", within}\n"
@@ -1083,7 +1083,7 @@ void register_ui_tools(McpService& service)
             "- a plate or one of its icons in the Prepare view: {plate_icon: \"lock\", plate: 0}, the icon being plate, "
             "delete, orient, arrange, lock, settings, name, move_to_front, filament_map or imex_mode\n"
             "- a web page's element: {web: \"Next\", kind?: \"button\", css?: \"#AcceptBtn\", within?, index?}, by the label "
-            "the snapshot lists (exactly, else ignoring case, else a part of it), its kind, a CSS selector (the id a line "
+            "list_widgets lists (exactly, else ignoring case, else a part of it), its kind, a CSS selector (the id a line "
             "shows as name: name=#save is {css: \"#save\"}), or together. Without within it looks in the topmost dialog's "
             "pages while one is open, else in every shown page, and it waits up to 3 s for its element.",
             object_schema({{"root", prop("string", "all (default), main, dialog (the topmost modal), popup, or a window's ref (list_windows).")},
@@ -1151,7 +1151,7 @@ void register_ui_tools(McpService& service)
     }
 
     reg.add(recover_input_tool(
-        "ui_click", L("Click an element"),
+        "click", L("Click an element"),
         "Click a GUI element as a person would. Menu items, buttons, checkboxes, toggles, radio buttons, toolbar items and "
         "gizmos are activated the way their owners expect: a gizmo opens and a second click closes it (Text on an object "
         "without text creates a text part: created). Other widgets and ImGui items get a mouse click once scrolled into "
@@ -1166,7 +1166,7 @@ void register_ui_tools(McpService& service)
         "refused when something else covers that point. The reply reads back checked, and has closed when the click closed "
         "its dialog (with dialogs, those still open under it, which still need an answer), navigated (with url) when it "
         "changed the page, or dialogs when it opened another. Otherwise page says what changed on the page within 300 ms: "
-        "changed (false when its lines are as before), the ui_snapshot lines added and removed, partial when a plugin "
+        "changed (false when its lines are as before), the list_widgets lines added and removed, partial when a plugin "
         "configuration frame could not be compared, and posted, how many messages the page sent OrcaSlicer.",
         object_schema({{"target", kTargetSchema},
                        {"button", enum_prop({"left", "right", "middle"}, "Default left.")},
@@ -1257,8 +1257,8 @@ void register_ui_tools(McpService& service)
         }));
 
     reg.add(recover_input_tool(
-        "ui_input", L("Set a control's value"),
-        "Set a control's value and send the events a person's edit would. Widgets: text fields (submit, the default, also "
+        "set_widget_value", L("Set a widget's value"),
+        "Set a widget's value and send the events a person's edit would. Widgets: text fields (submit, the default, also "
         "presses Enter and leaves the field, which is when Orca's setting fields commit), spin controls, sliders, choice, "
         "combo and list boxes (by option text or index), checkboxes, toggles and a row's checkbox (true or false), and a "
         "radio button (an Orca radio box too) or a selector's option, as the dialog message shows them (*) / ( ) (true "
@@ -1268,8 +1268,8 @@ void register_ui_tools(McpService& service)
         "beside it, multiline text with \\n), a combo's option is picked by its text or 0-based index, and a checkbox, radio "
         "or toggle is clicked when it differs. A web page's fields, as typing would leave them: text, number, range, colour "
         "and date fields and editable text get the value with input and change events (submit then leaves the field; "
-        "ui_key Return presses Enter), a select its option by text, value or index, and a checkbox or radio is clicked when "
-        "it differs; the value is read back and page says what changed, as for ui_click. File fields can't be set. For "
+        "press_keys Return presses Enter), a select its option by text, value or index, and a checkbox or radio is clicked when "
+        "it differs; the value is read back and page says what changed, as for click. File fields can't be set. For "
         "settings, set_settings is more reliable.",
         object_schema({{"target", kTargetSchema},
                        {"value", {{"type", json::array({"string", "number", "boolean"})}, {"description", "The new value."}}},
@@ -1293,15 +1293,15 @@ void register_ui_tools(McpService& service)
         }));
 
     reg.add(recover_input_tool(
-        "ui_key", L("Press keys"),
+        "press_keys", L("Press keys"),
         "Send a key chord (\"Ctrl+S\", \"Escape\", \"Return\", \"Delete\", \"Shift+Tab\", \"Left\", \"F5\") and/or type text to "
         "a target or, without one, to the focused window (the topmost dialog while one is open, the shown 3D view when "
         "nothing has focus). As with a real key press, the shortcut handling of the target's panels and window sees the keys "
-        "first. Typing reaches ImGui fields and key handlers; fill a widget's text field with ui_input. A menu the keys open "
+        "first. Typing reaches ImGui fields and key handlers; fill a widget's text field with set_widget_value. A menu the keys open "
         "is listed as popup_menu, or popup_item runs one of its items. Keys for a web page (its element, or without a "
         "target the focused web view or the topmost dialog's only page) go to the page's focused element with the "
         "browser's default actions: typing, Backspace/Delete, Enter (submits a form, activates a button), Space, Tab moving "
-        "the focus, arrows stepping a select, range or radio group; page says what they changed, as for ui_click.",
+        "the focus, arrows stepping a select, range or radio group; page says what they changed, as for click.",
         object_schema({{"target", kTargetSchema},
                        {"keys", prop("string", "Key chord.")},
                        {"text", prop("string", "Characters to type.")},
@@ -1370,7 +1370,7 @@ void register_ui_tools(McpService& service)
     mouse_canvases.insert(mouse_canvases.end() - 1, "design");
 #endif
     reg.add(recover_input_tool(
-        "ui_mouse", L("Mouse gesture on the 3D view"),
+        "mouse_gesture", L("Mouse gesture on the 3D view"),
         "Make a mouse gesture on a 3D canvas as a person would: move, down, up, click, drag or wheel. It starts at `at`, a "
         "point of the model, which is projected through the camera and by default checked to land on that part (check "
         "\"point\" only projects it), or at x/y, logical pixels from the canvas's top left. A drag goes through `path` to "
@@ -1385,7 +1385,7 @@ void register_ui_tools(McpService& service)
         "With target, the gesture is on a web page's element instead (a canvas such as the colour picker's spectrum, a "
         "slider, a sortable or scrolled list): x/y, to and path are logical pixels from its top left, a drag keeps the "
         "pointer captured where the page asks for it, and a wheel scrolls what is under the pointer unless the page takes "
-        "it; page says what the gesture changed there, as for ui_click.",
+        "it; page says what the gesture changed there, as for click.",
         object_schema({{"action", enum_prop({"move", "down", "up", "click", "drag", "wheel"}, "Default click.")},
                        {"canvas", enum_prop(mouse_canvases, "Default current, the view shown. design takes x/y only.")},
                        {"at", target_schema},
@@ -1409,11 +1409,11 @@ void register_ui_tools(McpService& service)
                 return web_mouse(service, ctx, args);
             end_web_press(service, ctx); // a gesture elsewhere ends a press held on a page, even one refused here
             if (args.contains("target"))
-                throw ToolFailure("ui_mouse's target is a web page's element; a 3D canvas is chosen with canvas");
+                throw ToolFailure("mouse_gesture's target is a web page's element; a 3D canvas is chosen with canvas");
             const std::string action = arg_string(args, "action", "click");
             if (args.contains("popup_item") && action != "click" && action != "up")
                 throw ToolFailure("popup_item goes with action click or up, which open a right click's menu");
-            const std::string owner = service.script_owner(service.jobs().ancestry(ctx.job_id()));
+            const std::string owner = service.run_owner(service.jobs().ancestry(ctx.job_id()));
             PopupCapture      menu(service, ctx, arg_string(args, "popup_item"));
             json out = ctx.run_ui([&] {
                 // A client's press that runs after the endpoint closed would stay held, with no one left
@@ -1454,12 +1454,12 @@ void register_ui_tools(McpService& service)
         }));
 
     reg.add(mutate_tool(
-        "gizmo_file", L("Use a file in the open gizmo"),
+        "pick_gizmo_file", L("Pick a file for the open gizmo"),
         "Do what a file picker inside the open gizmo does, with a path instead of its dialog: svg_change loads another SVG "
         "file into the SVG part being edited, svg_save_as writes that part's SVG to a new file (an existing one only with "
         "overwrite), texture_import imports a height-map image into the texture library and puts it on Texture "
         "Displacement's active layer. To add an SVG part, use run_action add_primitive_svg with a path. Gizmos open with "
-        "ui_click {target: {gizmo: name}}, and their panels take ui_input / ui_click on the ImGui items ui_snapshot lists.",
+        "click {target: {gizmo: name}}, and their panels take set_widget_value / click on the ImGui items list_widgets lists.",
         object_schema({{"action", enum_prop({"svg_change", "svg_save_as", "texture_import"}, "What to do.")},
                        {"path", prop("string", "Absolute path of the file to read or write.")},
                        {"overwrite", prop("boolean", "svg_save_as: replace an existing file.")}},
@@ -1501,17 +1501,17 @@ void register_ui_tools(McpService& service)
         }));
 
     reg.add(recover_input_tool(
-        "dialog_respond", L("Answer a dialog"),
+        "answer_dialog", L("Answer a dialog"),
         "Press a button of the topmost modal dialog: yes, no, ok, cancel, close, apply, a button's label, or a numeric id. "
         "A disabled button (enabled: false) is refused, the dialog's message showing what it still needs, and so is one on "
         "a page the dialog does not show, except a hidden cancel or close, which ends the dialog. The label of an option of a "
         "selector made of buttons (Orca's radio groups, tab bars and multi-switches, shown as (*) / ( ) in the message) "
-        "selects that option and leaves the dialog open; set other radio buttons and switches with ui_click or ui_input "
-        "true, and notebook tabs with ui_click. "
+        "selects that option and leaves the dialog open; set other radio buttons and switches with click or set_widget_value "
+        "true, and notebook tabs with click. "
         "dialog.title, text the dialog's title contains, makes sure which dialog that is; it must be the topmost. Reply: "
         "closed: true when it closed, and dialogs, those still open. A native message box (native: true) is pressed through "
-        "the OS, by one of the buttons get_state.dialogs lists for it; a file or folder picker can't be answered here, nor "
-        "any native dialog on macOS (its buttons list is empty): register dialog_auto_answer before opening them. A web "
+        "the OS, by one of the buttons get_app_state.dialogs lists for it; a file or folder picker can't be answered here, nor "
+        "any native dialog on macOS (its buttons list is empty): register auto_answer_dialogs before opening them. A web "
         "dialog's buttons are on its page: a label is pressed there, waiting up to 3 s for it to show, so the page's own "
         "handler runs. With no such page button, or a page busy for those 3 s, cancel and close end the dialog, and ok, yes, "
         "no and apply are refused rather than skip the page's commit; page_buttons then lists the page's buttons.",
@@ -1548,7 +1548,7 @@ void register_ui_tools(McpService& service)
                 }
                 if (is_native_dialog(dialog) && message_box_buttons(dialog).empty())
                     throw ToolFailure("This native dialog (a file or folder picker, or a message box on macOS) can't be pressed; "
-                                      "register dialog_auto_answer before the action that opens it",
+                                      "register auto_answer_dialogs before the action that opens it",
                                       {{"dialog", describe_dialog(dialog)}});
                 return dialog;
             };
@@ -1579,7 +1579,7 @@ void register_ui_tools(McpService& service)
                     throw ToolFailure(refused_button(button, *refused), {{"dialog", describe_dialog(dialog)}});
                 const DialogPress press = press_dialog_button(dialog, id);
                 if (press == DialogPress::Failed)
-                    throw ToolFailure("The message box is not shown, so its button could not be pressed; take a new ui_snapshot",
+                    throw ToolFailure("The message box is not shown, so its button could not be pressed; call list_widgets again",
                                       {{"dialog", describe_dialog(dialog)}});
                 return {{"dialog", dialog_title}, {"button", button}, {"id", id}, {"pressed", press == DialogPress::Pressed}};
             });
@@ -1613,7 +1613,7 @@ void register_ui_tools(McpService& service)
                     wxDialog*  dialog = find_dialog();
                     wxWebView* web    = web_view_of(page.web);
                     if (dialog != web_dialog || web == nullptr)
-                        throw ToolFailure("The dialog changed while its page was being asked; take a new ui_snapshot");
+                        throw ToolFailure("The dialog changed while its page was being asked; call list_widgets again");
                     before.modal = service.modals().serial(dialog);
                     before.stack = service.modals().stack().size();
                     before.url   = into_u8(web->GetCurrentURL());
@@ -1675,12 +1675,12 @@ void register_ui_tools(McpService& service)
 
     {
         ToolDef def = recover_input_tool(
-            "dialog_auto_answer", L("Pre-answer dialogs"),
+            "auto_answer_dialogs", L("Answer dialogs automatically"),
             "Answer modal dialogs automatically when their title or message matches a rule's regex (case-insensitive). "
-            "get_state.auto_answer_rules lists the rules in force. Called from a script, the rules last until the script "
+            "get_app_state.auto_answer_rules lists the rules in force. Called from a replay or script, the rules last until it "
             "ends; otherwise they replace the ones this session set before, and an empty list clears them. A native dialog "
             "returns the rule's button at once and never shows (a file picker can only be cancelled). A wx dialog has the "
-            "button pressed as dialog_respond does, so its handler runs. A matching dialog already open is answered too "
+            "button pressed as answer_dialog does, so its handler runs. A matching dialog already open is answered too "
             "(answered_open_dialog), so a prompt that shows around the same time, such as the restore prompt after startup, "
             "is caught either way. A web dialog is matched by its title: a button that names one of its shown wx buttons (by "
             "label, standard name or id) is pressed as for a wx dialog, any other on its page once it shows there, for up to "
@@ -1702,7 +1702,7 @@ void register_ui_tools(McpService& service)
                 // Paused rules leave the dialog that is open now to the person, as they leave the ones that open later.
                 json answered = set.paused ? json() : ctx.run_ui([&]() -> json {
                     wxDialog* top = service.modals().top();
-                    // A message box is pressed as dialog_respond presses it; a picker can't be.
+                    // A message box is pressed as answer_dialog presses it; a picker can't be.
                     const bool native = top != nullptr && is_native_dialog(top);
                     if (top == nullptr || (native && message_box_buttons(top).empty()))
                         return json();
@@ -1727,7 +1727,7 @@ void register_ui_tools(McpService& service)
                             // dialog open.
                             if (const std::optional<DialogPress> refused = refused_press(top, id))
                                 return {{"dialog", info["title"]}, {"button", rule.button}, {*refused == DialogPress::Hidden ? "hidden" : "disabled", true}};
-                            // As before any other press, the presses ui_mouse downs left on pages end first.
+                            // As before any other press, the presses mouse_gesture downs left on pages end first.
                             service.modals().before_press();
                             if (press_dialog_button(top, id) != DialogPress::Failed) {
                                 service.modals().count_use(set.layer, rule.pattern, rule.button);
@@ -1748,26 +1748,26 @@ void register_ui_tools(McpService& service)
     }
 
     ToolDef eval = recover_input_tool(
-        "webview_eval", L("Run JavaScript in a web view"),
+        "run_javascript", L("Run JavaScript in a web view"),
         "Evaluate JavaScript in one of OrcaSlicer's web views (Home, the device page, dialogs, plugin windows). Prefer "
-        "ui_snapshot and the ui_* tools, which see and drive pages as they do widgets. The script runs in the target's page: "
-        "a web view's (kind webview in ui_snapshot), or a page element's, with the element as `el`; without a target, in "
+        "list_widgets and the input tools (click, set_widget_value, press_keys, mouse_gesture), which see and drive pages as they do widgets. The code runs in the target's page: "
+        "a web view's (kind webview in list_widgets), or a page element's, with the element as `el`; without a target, in "
         "the topmost dialog's web view, else in the only shown one. While a modal dialog is open, only its pages run "
-        "scripts. Reply: result, the value of the last expression (JSON values come back parsed), and url; closed: true when "
-        "the script closed its dialog, navigated: true when it changed the page, dialogs when it opened another. Messages "
-        "the page posts to OrcaSlicer reach it once the script has returned. Scripts run through eval, which a page whose "
-        "Content-Security-Policy forbids it may refuse (the ui_* tools still work there).",
-        object_schema({{"script", prop("string", "JavaScript to run.")},
+        "code. Reply: result, the value of the last expression (JSON values come back parsed), and url; closed: true when "
+        "the code closed its dialog, navigated: true when it changed the page, dialogs when it opened another. Messages "
+        "the page posts to OrcaSlicer reach it once the code has returned. It runs through eval, which a page whose "
+        "Content-Security-Policy forbids it may refuse (list_widgets and the input tools still work there).",
+        object_schema({{"code", prop("string", "JavaScript to run.")},
                        {"target", kTargetSchema},
-                       {"timeout_s", {{"type", "integer"}, {"minimum", 1}, {"maximum", 120}, {"description", "Seconds the script gets (default 10)."}}}},
-                      {"script"}),
+                       {"timeout_s", {{"type", "integer"}, {"minimum", 1}, {"maximum", 120}, {"description", "Seconds the code gets (default 10)."}}}},
+                      {"code"}),
         [&service](const json& args, ToolContext& ctx) {
-            const std::string script   = arg_string(args, "script");
+            const std::string code     = arg_string(args, "code");
             const auto        timeout  = std::chrono::seconds(std::clamp(arg_int(args, "timeout_s", 10), 1, 120));
             const bool        element  = args.contains("target") && is_web_target(args["target"]);
             WebTarget         page     = element ? resolve_web(service, ctx, args["target"], timeout) : WebTarget();
             const auto        deadline = std::chrono::steady_clock::now() + timeout;
-            json              request{{"op", "eval"}, {"script", script}, {"expires", page_expiry(deadline)}};
+            json              request{{"op", "eval"}, {"script", code}, {"expires", page_expiry(deadline)}};
             if (element) {
                 request["doc"] = page.doc;
                 request["k"]   = page.key;
@@ -1784,11 +1784,11 @@ void register_ui_tools(McpService& service)
                     locator    = service.inspector().locator_for(t);
                     web        = dynamic_cast<wxWebView*>(target_window(t));
                     if (web == nullptr)
-                        throw ToolFailure("The target is not a web view (ui_snapshot lists them as kind webview)");
+                        throw ToolFailure("The target is not a web view (list_widgets lists them as kind webview)");
                 } else
                     web = default_webview(service);
                 if (web == nullptr)
-                    throw ToolFailure("The page's web view is gone; take a new ui_snapshot");
+                    throw ToolFailure("The page's web view is gone; call list_widgets again");
                 guard_page(service, ctx, web);
                 page.web     = web_handle(web);
                 before.modal = in_top_dialog(service, web) ? service.modals().serial(service.modals().top()) : 0;
@@ -1816,7 +1816,7 @@ void register_ui_tools(McpService& service)
                 return ToolResult::ok(out);
             }
             if (r.state == PageReply::State::Answered && r.value.value("code", std::string()) == "error")
-                throw ToolFailure("The script failed: " + r.value.value("error", std::string()));
+                throw ToolFailure("The JavaScript failed: " + r.value.value("error", std::string()));
             check_page_reply(r, timeout, true, ctx);
             const std::string text  = r.value.value("value", std::string());
             json              value = json::parse(text, nullptr, false);

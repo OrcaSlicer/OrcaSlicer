@@ -150,7 +150,7 @@ PAGE = r"""
 </script>
 """
 
-# Its Content-Security-Policy forbids eval, which the page agent doesn't need and webview_eval may
+# Its Content-Security-Policy forbids eval, which the page agent doesn't need and run_javascript may
 # (where the port holds injected scripts to the page's policy).
 PANEL = r"""
 <meta http-equiv="Content-Security-Policy" content="script-src 'unsafe-inline'">

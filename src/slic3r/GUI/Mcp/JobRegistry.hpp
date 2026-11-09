@@ -26,7 +26,7 @@ inline constexpr char kPluginUnloaded[] = "The plugin that made this call has be
 // Bookkeeping for mutate tool calls that run on their own threads. A call that outlives its reply
 // budget stays here until it finishes, so a later `wait {for:"job"}` can return its result; the
 // most recent finished jobs are kept for that purpose, and so is a finished job whose parent (a
-// running script) may still wait for it, up to kKeepFinishedMax in all. Thread-safe.
+// running replay) may still wait for it, up to kKeepFinishedMax in all. Thread-safe.
 class JobRegistry
 {
 public:
@@ -34,7 +34,7 @@ public:
     static constexpr std::size_t kKeepFinished = 64;
     static constexpr std::size_t kKeepFinishedMax = 1024;
 
-    // Registers a running job. `owner` is the plugin whose call it is ("" for a client's or a script's);
+    // Registers a running job. `owner` is the plugin whose call it is ("" for anyone else's);
     // a child job takes its parent's. Throws ToolFailure when kMaxRunning jobs are already running, and
     // kPluginUnloaded when its plugin is unloaded(), which is asked once the job is registered: a plugin
     // found loaded then was loaded while the job was there for its unload to find, so every job of the
@@ -47,7 +47,7 @@ public:
     // plugin manager's own state, so it changes the moment the plugin unloads, while the block comes later
     // from the UI thread. Set once, before any job is created.
     void set_owner_liveness(std::function<bool(const std::string&)> loaded) { m_owner_loaded = std::move(loaded); }
-    // The plugin that owns `id`, or "" for a client's or script's job, or one no longer known.
+    // The plugin that owns `id`, or "" for anyone else's job, or one no longer known.
     std::string owner(const std::string& id) const;
     // The running jobs `owner` (a plugin) owns.
     std::vector<std::string> running_owned_by(const std::string& owner) const;
@@ -77,7 +77,7 @@ public:
     bool stop_requested(const std::string& id) const;
     // True when a running job exists that is not in `excluded` and isn't set idle.
     bool any_running_except(const std::set<std::string>& excluded) const;
-    // Marks a running job as one that leaves `wait {for: "idle"}` to the calls it makes: a run_python run, which may
+    // Marks a running job as one that leaves `wait {for: "idle"}` to the calls it makes: a run_script run, which may
     // wait for a person in its window for minutes. list() shows it as idle.
     void set_idle(const std::string& id);
     // Operation admission: a job marked as an operation holds the project until it finishes.
@@ -85,7 +85,7 @@ public:
     std::string              begin_operation(const std::string& id);
     std::vector<std::string> running_operations() const;
 
-    // [{id, tool, parent, state, age_ms}] for get_state.
+    // [{id, tool, parent, state, age_ms}] for get_app_state.
     nlohmann::json list() const;
     // The tool of `id` while it runs; empty for an unknown or finished job.
     std::string running_tool(const std::string& id) const;

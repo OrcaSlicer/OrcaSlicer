@@ -668,8 +668,8 @@ public:
     void            start_http_server(int port, const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            stop_http_server();
 
-    // MCP server for AI agents, from Preferences or --mcp/--mcp-script. `serve` opens the HTTP
-    // endpoint; a --mcp-script alone needs only the tool catalog. While another window that shares
+    // MCP server for AI agents, from Preferences or --mcp/--mcp-run. `serve` opens the HTTP
+    // endpoint; a --mcp-run alone needs only the tool catalog. While another window that shares
     // the configuration folder holds the port, this one keeps trying and takes it over when that
     // window closes. UI thread.
     bool            start_mcp_service(bool serve, std::string* error = nullptr);

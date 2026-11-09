@@ -174,13 +174,13 @@ void host_bindings::register_app(py::module_& host)
             require_main_thread("project_path");
             return GUI::into_u8(plater.get_project_filename(".3mf"));
         }, "Path of the project's .3mf file, where it was last opened from or saved to; empty while it has never been "
-           "saved. UI thread only: from a worker thread, where run_python scripts run, it raises RuntimeError.")
+           "saved. UI thread only: from a worker thread, where run_script scripts run, it raises RuntimeError.")
         .def("export_3mf_copy", &export_3mf_copy, py::arg("path"),
              "Write the current project, unsaved changes included, to path as a 3MF copy. The project's "
              "file name and saved state are not changed, and the signed-in account is not written as the designer. "
              "The path must end in .3mf (ValueError otherwise), and writing it goes through the same permission check "
              "as open(path, \"w\"). Raises RuntimeError while the 3D view is not ready yet. UI thread only: from a "
-             "worker thread, where run_python scripts run, it raises RuntimeError.");
+             "worker thread, where run_script scripts run, it raises RuntimeError.");
 
     host.def("plater", &current_plater, py::return_value_policy::reference,
              "The app's Plater, which holds the live project. Raises RuntimeError before the app's main window is up.");
@@ -197,14 +197,14 @@ void host_bindings::register_app(py::module_& host)
              "The running app: version, build, mode, language, app_config_version (the version that wrote the app config "
              "before this run, empty when there was none), stealth_mode, is_signed_in (Orca Cloud), is_bambu_signed_in (Bambu Cloud), network_plugin_version (empty "
              "when the Bambu network plugin is not loaded) and network_plugin_error (empty unless it failed to load). "
-             "UI thread only: from a worker thread, where run_python scripts run, it raises RuntimeError.");
+             "UI thread only: from a worker thread, where run_script scripts run, it raises RuntimeError.");
     host.def("gl_info", &gl_info,
              "OpenGL vendor, renderer, version, glsl_version and core_profile of the 3D view; None before it has been created.");
     host.def("selected_printer", &selected_printer,
              "Agent, model_id, connection ('lan' or 'cloud'), online, connected and firmware of the printer selected in the "
              "device list; model_id and firmware are empty for non-Bambu agents. None when none is selected. Print hosts "
              "configured in the printer preset (OctoPrint and the like) are not in the device list. UI thread only: from "
-             "a worker thread, where run_python scripts run, it raises RuntimeError.");
+             "a worker thread, where run_script scripts run, it raises RuntimeError.");
 }
 
 } // namespace Slic3r

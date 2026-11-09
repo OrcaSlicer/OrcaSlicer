@@ -477,7 +477,8 @@ int run_stdio_bridge(int argc, char** argv)
                     endpoint = fresh;
             if (is_request)
                 write_line(error_reply(msg["id"], -32603,
-                                       sent ? "OrcaSlicer did not reply; the call may have run. Check with get_state before repeating it."
+                                       sent ? "OrcaSlicer did not reply; the call may have run. Check with get_app_state before "
+                                              "repeating it."
                                             : "OrcaSlicer's MCP server is not reachable.")
                                .dump());
             continue;

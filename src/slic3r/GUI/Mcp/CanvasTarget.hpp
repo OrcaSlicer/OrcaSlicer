@@ -15,7 +15,7 @@ namespace GUI {
 class ClippingPlane;
 namespace Mcp {
 
-// ui_mouse aims at points of the model instead of pixels guessed from a screenshot: a point is
+// mouse_gesture aims at points of the model instead of pixels guessed from a screenshot: a point is
 // projected through the camera the canvas was last drawn with, and the ray a click there casts is
 // checked to land on that point's mesh. Pure functions of the camera and the meshes, so they are
 // tested without the app.

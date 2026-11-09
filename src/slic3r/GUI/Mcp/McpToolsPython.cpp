@@ -1,4 +1,4 @@
-// run_python and python_api: Python scripts against orca.host, the plugin API, and the orca package's
+// run_script and search_python_api: Python scripts against orca.host, the plugin API, and the orca package's
 // reference.
 
 #include "JobRegistry.hpp"
@@ -36,7 +36,7 @@ namespace py = pybind11;
 
 namespace {
 
-// A run's orca.host.tools calls, as child calls of the run_python job, so each has its tool's guards,
+// A run's orca.host.tools calls, as child calls of the run_script job, so each has its tool's guards,
 // admission and undo, and a cancel of the run reaches them.
 class RunBridge final : public ToolBridge
 {
@@ -61,7 +61,7 @@ class SessionBridge final : public ToolBridge
 {
 public:
     SessionBridge(McpService& service, const std::string& session_job)
-        : m_service(service), m_node(service.jobs(), "run_python", session_job)
+        : m_service(service), m_node(service.jobs(), "run_script", session_job)
     {}
     json call(const std::string& tool, const json& args) override
     {
@@ -71,7 +71,7 @@ public:
         return r.data;
     }
     // A stop or time-out, from the session's watcher: the node's calls are cancelled, and its operations, as the
-    // cancel tool cancels them.
+    // cancel_job cancels them.
     void stop_calls()
     {
         const std::string node = m_node.id();
@@ -256,13 +256,13 @@ ToolResult run_python_session_job(McpService& service, ToolContext& ctx, PythonS
     // The session waits for the person between works: `wait {for: "idle"}` counts only the calls it makes.
     service.jobs().set_idle(job);
     // What its calls leave behind is the session's, as a run's is; its rules act only while a work runs.
-    service.begin_script_scope(job);
-    service.set_script_scope_paused(job, true);
+    service.begin_run_scope(job);
+    service.set_run_scope_paused(job, true);
     struct ScopeEnd
     {
         McpService& service;
         std::string job;
-        ~ScopeEnd() { service.end_script_scope(job); }
+        ~ScopeEnd() { service.end_run_scope(job); }
     } scope_end{service, job};
 
     SessionBridge        bridge(service, job);
@@ -274,11 +274,11 @@ ToolResult run_python_session_job(McpService& service, ToolContext& ctx, PythonS
     request.stop_calls   = [&bridge] { bridge.stop_calls(); };
     request.work_started = [&service, &bridge, job] {
         bridge.renew_after_stop();
-        service.set_script_scope_paused(job, false);
+        service.set_run_scope_paused(job, false);
     };
     request.work_ended = [&service, job] {
-        service.set_script_scope_paused(job, true);
-        service.release_script_presses(job);
+        service.set_run_scope_paused(job, true);
+        service.release_run_presses(job);
     };
     host_python_session(request, session);
     return ToolResult::ok({{"status", "ended"}});
@@ -289,23 +289,23 @@ void register_python_tools(McpService& service)
     ToolRegistry& reg = service.registry();
 
     ToolDef run = mutate_tool(
-        "run_python", L("Run Python code"),
+        "run_script", L("Run a Python script"),
         "Run Python code inside OrcaSlicer as its main program (__name__ == \"__main__\") against orca.host, the whole plugin "
-        "API (python_api searches it): read objects, meshes and settings, compute, use orca.host.ui and the preset "
+        "API (search_python_api searches it): read objects, meshes and settings, compute, use orca.host.ui and the preset "
         "API, and call these same tools, with their guards and undo, through orca.host.tools.call(name, args), from the code "
         "and from the threads and pool tasks it starts while the run lasts. Mesh and matrix arrays need numpy, which "
-        "python_api says is installed or not; a file run's PEP 723 block can install it. The code runs on a worker "
+        "search_python_api says is installed or not; a file run's PEP 723 block can install it. The code runs on a worker "
         "thread, where calls documented as UI thread only raise RuntimeError. The run ends once its code and the non-daemon "
         "threads and pool tasks it started are done; its windows close with it. `args` holds the args you pass; set `result` "
         "to a JSON value to return it; print() output comes back as output. Reply: {status: finished | raised | cancelled | "
         "timed_out, result, output, traceback?, message?}; a script that raised changed what it changed before. Python runs "
         "with OrcaSlicer's full access to the computer, so a person must allow Python scripts in Preferences first. Recorded "
-        "by export_script as one step with its code, which a replay runs again against the project as it is then.",
+        "by export_replay as one step with its code, which a replay runs again against the project as it is then.",
         object_schema({{"code", prop("string", "Python source, run as a module body.")},
                        {"args", {{"type", "object"}, {"description", "Bound to the name `args` in the code."}}},
                        {"timeout_s", {{"type", "integer"}, {"minimum", 1}, {"maximum", 3600},
                                       {"description", "The run is stopped as timed_out after this many seconds (default 300)."}}},
-                       {"filename", prop("string", "The name tracebacks show for the code (default <run_python>). An existing file's "
+                       {"filename", prop("string", "The name tracebacks show for the code (default <run_script>). An existing file's "
                                                    "path makes it a file run, as `python file.py` runs it: __file__, sys.argv, imports "
                                                    "from its folder and its PEP 723 dependencies; any other name only names it.")}},
                       {"code"}),
@@ -328,12 +328,12 @@ void register_python_tools(McpService& service)
             const std::string job = ctx.job_id();
             // A run may wait for a person in its window: `wait {for: "idle"}` counts only the calls it makes.
             service.jobs().set_idle(job);
-            service.begin_script_scope(job);
+            service.begin_run_scope(job);
             struct ScopeEnd
             {
                 McpService& service;
                 std::string job;
-                ~ScopeEnd() { service.end_script_scope(job); }
+                ~ScopeEnd() { service.end_run_scope(job); }
             } scope_end{service, job};
 
             RunBridge        bridge(ctx);
@@ -342,7 +342,7 @@ void register_python_tools(McpService& service)
             request.code      = arg_string(args, "code");
             request.args      = args.value("args", json::object());
             request.identity  = identity;
-            request.filename  = arg_string(args, "filename", "<run_python>");
+            request.filename  = arg_string(args, "filename", "<run_script>");
             // 0, below the schema's minimum, is passed only in process, by the Run Script dialog, whose Stop ends a run:
             // every external path validates the arguments. It means no time limit.
             request.budget    = std::chrono::seconds(arg_int(args, "timeout_s", 300));
@@ -358,19 +358,19 @@ void register_python_tools(McpService& service)
                 data["traceback"] = out.traceback;
             if (!out.message.empty())
                 data["message"] = out.message;
-            // A run that did not finish is reported, not failed, as run_script reports a failed step: the
+            // A run that did not finish is reported, not failed, as run_replay reports a failed step: the
             // journal keeps it, and a replay of it fails again (D7).
             return ToolResult::ok(std::move(data));
         });
-    // cancel {job} stops a run: its code is interrupted at its next bytecode.
+    // cancel_job {job} stops a run: its code is interrupted at its next bytecode.
     run.cancellable = true;
     // Python has the app's full access to the computer.
     run.open_world = true;
     reg.add(run);
 
     reg.add(inspect_tool(
-        "python_api", L("Search the Python API"),
-        "Search orca, the Python API of run_python scripts and plugins, in the running build: orca.host (the project's "
+        "search_python_api", L("Search the Python API"),
+        "Search orca, the Python API of run_script scripts and plugins, in the running build: orca.host (the project's "
         "model and meshes, presets and their editors, slicing data, orca.host.ui windows and dialogs, orca.host.tools "
         "calling these tools) and the classes, events and pages plugins build on. Each entry has its kind, signature (a "
         "class's constructors) and documentation. A query ranks them, best match first; without one, the whole package is "

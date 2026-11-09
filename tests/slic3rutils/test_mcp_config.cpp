@@ -753,7 +753,7 @@ Calib_Params calib_args(const json& args, const DynamicPrintConfig& printer = ca
 
 } // namespace
 
-TEST_CASE("calibrate arguments map to the dialog's calibration modes", "[Mcp]")
+TEST_CASE("generate_calibration_test arguments map to the dialog's calibration modes", "[Mcp]")
 {
     for (const auto& [args, mode] : std::initializer_list<std::pair<json, CalibMode>>{
              {{{"test", "temperature"}}, CalibMode::Calib_Temp_Tower},
@@ -772,7 +772,7 @@ TEST_CASE("calibrate arguments map to the dialog's calibration modes", "[Mcp]")
     CHECK_THROWS_AS(calib_args({{"test", "flow_ratio"}, {"method", "tower"}}), ToolFailure);
 }
 
-TEST_CASE("omitted calibrate parameters take the dialog defaults", "[Mcp]")
+TEST_CASE("omitted generate_calibration_test parameters take the dialog defaults", "[Mcp]")
 {
     const Calib_Params temp = calib_args({{"test", "temperature"}});
     CHECK((temp.start == 230 && temp.end == 190 && temp.nozzle_based_resize));
@@ -805,7 +805,7 @@ TEST_CASE("omitted calibrate parameters take the dialog defaults", "[Mcp]")
     CHECK(calib_args({{"test", "cornering"}}, calib_printer(gcfKlipper, etDirectDrive, 0.1)).end == 15);
 }
 
-TEST_CASE("calibrate refuses arguments its test does not take", "[Mcp]")
+TEST_CASE("generate_calibration_test refuses arguments its test does not take", "[Mcp]")
 {
     using Catch::Matchers::ContainsSubstring;
     CHECK_THROWS_WITH(calib_args({{"test", "pressure_advance"}, {"speeds", {100}}}),
@@ -845,7 +845,7 @@ TEST_CASE("the input shaping Y range defaults to the X range, and RepRapFirmware
     CHECK(check_calib_params(p, calib_printer()) == CalibParamsError::Range);
 }
 
-TEST_CASE("calibrate clamps temperatures to 155-500 C and rounds them down to a multiple of 5, as the dialog's fields do", "[Mcp]")
+TEST_CASE("generate_calibration_test clamps temperatures to 155-500 C, rounded down to 5 C steps, as the dialog does", "[Mcp]")
 {
     using Catch::Matchers::ContainsSubstring;
     std::vector<std::string> warnings;
@@ -955,7 +955,7 @@ TEST_CASE("VFA's auto-adjust lowers the layer height, else the end speed, to sta
     CHECK(fit_vfa_speed(p, printer, print, filament, true, candidates).kind == VfaSpeedFit::Fits);
 }
 
-TEST_CASE("calibrate records the parameters a test ran with, defaults included", "[Mcp]")
+TEST_CASE("generate_calibration_test records the parameters a test ran with, defaults included", "[Mcp]")
 {
     const DynamicPrintConfig printer = calib_printer();
     const json tower = {{"test", "pressure_advance"}, {"end", 0.06}};

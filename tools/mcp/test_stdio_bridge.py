@@ -104,10 +104,10 @@ def main():
                     "params": {"protocolVersion": legacy, "capabilities": {}, "clientInfo": {"name": "test", "version": "1"}}}),
         json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized"}),
         json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/list"}),
-        json.dumps({"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "get_state", "arguments": {}}}),
+        json.dumps({"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "get_app_state", "arguments": {}}}),
         "{not json",
         json.dumps({"jsonrpc": "2.0", "id": 4, "method": "tools/call",
-                    "params": {"name": "get_state", "arguments": {},
+                    "params": {"name": "get_app_state", "arguments": {},
                                "_meta": {"io.modelcontextprotocol/protocolVersion": modern}}}),
         json.dumps({"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {"name": "no_such_tool", "arguments": {}}}),
     ], env)
@@ -123,9 +123,9 @@ def main():
     check("initialize negotiates the client's version", init.get("protocolVersion") == legacy, replies.get(1))
     check("the notification gets no reply", set(replies) <= {1, 2, 3, 4, 5, None}, sorted(map(str, replies)))
     names = [t["name"] for t in replies.get(2, {}).get("result", {}).get("tools", [])]
-    check("tools/list lists get_state and ui_snapshot", "get_state" in names and "ui_snapshot" in names, names[:5])
+    check("tools/list lists get_app_state and list_widgets", "get_app_state" in names and "list_widgets" in names, names[:5])
     state = json.loads(replies.get(3, {}).get("result", {}).get("content", [{}])[0].get("text", "{}"))
-    check("get_state answers through the bridge", state.get("ready") is True, state)
+    check("get_app_state answers through the bridge", state.get("ready") is True, state)
     check("malformed input is a parse error", replies.get(None, {}).get("error", {}).get("code") == -32700, replies.get(None))
     modern_result = replies.get(4, {}).get("result", {})
     check("a 2026-07-28 request is served without a handshake", modern_result.get("resultType") == "complete", replies.get(4))
@@ -171,7 +171,7 @@ def main():
         launched = bridge(binary, fresh, [
             json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize",
                         "params": {"protocolVersion": legacy, "capabilities": {}, "clientInfo": {"name": "test", "version": "1"}}}),
-            json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "get_state", "arguments": {}}}),
+            json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "get_app_state", "arguments": {}}}),
         ], launch_env, ["--mcp-port", str(port)])
         text = launched.get(2, {}).get("result", {}).get("content", [{}])[0].get("text", "")
         state = json.loads(text) if text.startswith("{") else {}

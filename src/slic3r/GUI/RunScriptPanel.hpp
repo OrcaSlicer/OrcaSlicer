@@ -24,13 +24,13 @@ class wxWebView;
 namespace Slic3r { namespace GUI {
 
 namespace Mcp {
-class ScriptRun;
+class PersonRun;
 }
 class RunScriptPane;
 
 // The Run Script panel: a dock pane under the 3D view (it can float) whose page (resources/web/dialog/RunScript) edits a
 // Python script in `# %%` cells and runs them, one at a time or the whole file, in a live session (PythonSession) hosted
-// by the MCP service as a person's run_python job. One per app, owned by GUI_App: the script's text, file and unsaved
+// by the MCP service as a person's run_script job. One per app, owned by GUI_App: the script's text, file and unsaved
 // state, the session and the recent scripts live here, so they survive the pane, which a main-window rebuild (a language
 // change) destroys and the panel builds again. The pane and everything in it are hidden from the automation tools.
 // UI thread.
@@ -122,7 +122,7 @@ private:
 
     // The session, and the run going in it.
     std::shared_ptr<PythonSession>     m_session;
-    std::shared_ptr<Mcp::ScriptRun>    m_session_run;
+    std::shared_ptr<Mcp::PersonRun>    m_session_run;
     std::string                        m_session_file; // the name the session's tracebacks use
     bool                               m_detached       = false;
     bool                               m_session_ending = false;

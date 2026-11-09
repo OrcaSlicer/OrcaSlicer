@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Checks that a Design-tab call whose job fails after its reply is left out of export_script.
+"""Checks that a Design-tab call whose job fails after its reply is left out of export_replay.
 
     tools/mcp/orca_mcp.py launch --cad
     tools/mcp/test_cad_failed_job.py
@@ -8,7 +8,7 @@ A coil swept along a helix makes every rebuild of the design slow, so a hole tha
 the kernel refuses only after the rebuild and takes back with another, replies with a running job
 past the 45 s budget and then fails. An export while it runs leaves it out and names it in
 left_out_running; once it has failed, a rename made after it is in the export, the hole is not, and
-the script replays into a new project to the same features and coil. The coil's turns are sized
+the replay runs into a new project to the same features and coil. The coil's turns are sized
 from a short calibration build, taking a build's time to grow with the cube of the turns, so the
 failing call outlives the budget on a faster or slower machine; a busy machine bends that curve, so
 when the hole still fails inside the budget the session is made again with a bigger coil. Takes four
@@ -31,7 +31,7 @@ REBUILD_S = 60.0
 
 
 def cad(client, method, **params):
-    return client.call("cad_call", _timeout=600, method=method, params=params)
+    return client.call("call_cad_tool", _timeout=600, method=method, params=params)
 
 
 def coil(client, turns):
@@ -62,7 +62,7 @@ def main():
 
     # ---- The session to export ----
     while True:
-        client.call("export_script", clear=True)
+        client.call("export_replay", clear=True)
         client.call("new_project", discard_changes=True)
         coil(client, turns)
         start = time.time()
@@ -77,9 +77,9 @@ def main():
             turns = min(40, turns + 4)
     check("the missed hole replies with its running job", started.get("status") == "running",
           f"{started.get('status')} after {time.time() - start:.1f} s; the coil rebuilds too fast")
-    during = client.call("export_script")
+    during = client.call("export_replay")
     check("an export while it runs leaves it out and names it",
-          during.get("left_out_running") == [{"tool": "cad_call", "job": started.get("job")}], during.get("left_out_running"))
+          during.get("left_out_running") == [{"tool": "call_cad_tool", "job": started.get("job")}], during.get("left_out_running"))
     failure = None
     try:
         client.await_job(started)
@@ -91,8 +91,8 @@ def main():
     live_scene = cad(client, "describe_scene")["result"]
     live_mass = cad(client, "mass_properties", body=0)["result"]
 
-    after = client.call("export_script", path=path, overwrite=True)
-    calls = [s["args"] for s in after["script"]["steps"] if s["tool"] == "cad_call"]
+    after = client.call("export_replay", path=path, overwrite=True)
+    calls = [s["args"] for s in after["replay"]["steps"] if s["tool"] == "call_cad_tool"]
     methods = [c["method"] for c in calls]
     check("the export leaves the failed hole out", "hole" not in methods, methods)
     check("and keeps the rename made after it", "feature_rename" in methods, methods)
@@ -100,7 +100,7 @@ def main():
 
     # ---- The replay ----
     client.call("new_project", discard_changes=True)
-    replay = client.await_job(client.call("run_script", path=path, out_dir=out_dir), timeout=900)
+    replay = client.await_job(client.call("run_replay", path=path, out_dir=out_dir), timeout=900)
     check("the exported session replays", replay.get("passed") is True,
           json.dumps([s for s in replay.get("steps", []) if not s.get("ok")][:1]))
     scene = cad(client, "describe_scene")["result"]
@@ -111,7 +111,7 @@ def main():
           (scene["features"], live_scene["features"]))
     check("the same coil", math.isclose(mass["volume"], live_mass["volume"], rel_tol=1e-6), (mass["volume"], live_mass["volume"]))
 
-    print(f"script and replay in {out_dir}")
+    print(f"replay and its run in {out_dir}")
     failed = [c for c in checks if not c[1]]
     for name, ok, detail in checks:
         print(("PASS " if ok else "FAIL ") + name + ("" if ok or detail == "" else f": {detail}"))

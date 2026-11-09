@@ -25,7 +25,7 @@ enum class PythonRunThread {
     Callback, // a window callback of the run, on the UI thread
 };
 
-// One run_python run, shared by the thread that runs its code, the threads it starts, the pool tasks it submits and
+// One run_script run, shared by the thread that runs its code, the threads it starts, the pool tasks it submits and
 // its window callbacks: who it runs as, its file, its tool bridge, the work it waits for before it ends, and whether
 // it still takes new work and opens UI. Runs can overlap, so everything a run changes is keyed by it.
 //
@@ -42,7 +42,7 @@ public:
     // The file the code was read from; empty for code sent as text.
     const boost::filesystem::path& file() const { return m_file; }
     // A script's windows belong to its run ("script/<id>"; '/' never occurs in a plugin key) and close when it ends;
-    // a plugin's run_python leaves them to the plugin, which closes them when it unloads.
+    // a plugin's run_script leaves them to the plugin, which closes them when it unloads.
     bool                           owns_ui() const;
     std::string                    ui_owner() const;
 

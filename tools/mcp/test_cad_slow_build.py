@@ -4,10 +4,10 @@
     tools/mcp/orca_mcp.py launch --cad
     tools/mcp/test_cad_slow_build.py
 
-cad_call thread, sweep and loft rebuild as their cards do, off the UI thread behind the progress
-dialog (DesignPanel::recompute_guarded). While a long thread builds: get_state answers, a screenshot
-of the main window succeeds, ui_snapshot lists the progress dialog and a screenshot of that window
-captures it (not on Windows, where the dialog is the system's task dialog), and another cad_call is refused rather than run inside the rebuild. The thread then
+call_cad_tool thread, sweep and loft rebuild as their cards do, off the UI thread behind the progress
+dialog (DesignPanel::recompute_guarded). While a long thread builds: get_app_state answers, a screenshot
+of the main window succeeds, list_widgets lists the progress dialog and a screenshot of that window
+captures it (not on Windows, where the dialog is the system's task dialog), and another call_cad_tool is refused rather than run inside the rebuild. The thread then
 lands as one feature. Exits 0 when all hold.
 """
 
@@ -28,8 +28,8 @@ THREAD = {"plane": "XY", "internal": True, "designation": "M8", "length": 60}
 
 
 def progress_dialog_ref(client):
-    """The ref of the rebuild's progress dialog (titled "Design") in ui_snapshot, or None."""
-    _, texts = client.call_with_text("ui_snapshot")
+    """The ref of the rebuild's progress dialog (titled "Design") in list_widgets, or None."""
+    _, texts = client.call_with_text("list_widgets")
     for line in "\n".join(texts).splitlines():
         m = re.match(r'\[(w\d+)\] (?:window|dialog) "Design" \((\w+)\)', line)
         if m and "Progress" in m.group(2):
@@ -41,14 +41,14 @@ def main():
     client, _ = orca_mcp.session_client()
     out = tempfile.mkdtemp(prefix="orca-mcp-slow-")
     client.call("new_project", discard_changes=True)
-    client.call("cad_call", method="new_design", params={"discard_changes": True})
-    client.call("cad_call", method="extrude", params=BLOCK)
+    client.call("call_cad_tool", method="new_design", params={"discard_changes": True})
+    client.call("call_cad_tool", method="extrude", params=BLOCK)
 
     box = {}
 
     def build():
         try:
-            box["result"] = client.call("cad_call", _timeout=600, method="thread", params=THREAD)
+            box["result"] = client.call("call_cad_tool", _timeout=600, method="thread", params=THREAD)
         except orca_mcp.McpError as e:
             box["error"] = str(e)
 
@@ -57,7 +57,7 @@ def main():
     worker.start()
 
     # On Windows the progress dialog is the system's task dialog, on a thread of its own: no wx window
-    # ui_snapshot lists. There the probes start once the build has run for 2 s, past the dialog's delay.
+    # list_widgets lists. There the probes start once the build has run for 2 s, past the dialog's delay.
     native_dialog = sys.platform == "win32"
     probed, state_ms, window_shot, dialog_shot, refused = False, None, None, None, None
     while worker.is_alive() and time.time() - started < 300:
@@ -67,7 +67,7 @@ def main():
             if ref is not None or (native_dialog and time.time() - started > 2):
                 probed = True
                 t0 = time.time()
-                client.call("get_state")
+                client.call("get_app_state")
                 state_ms = (time.time() - t0) * 1000
                 window_shot = client.call("screenshot", target="window", include_image=False,
                                           save_path=os.path.join(out, "window.png"))
@@ -75,28 +75,28 @@ def main():
                     dialog_shot = client.call("screenshot", target=ref, include_image=False,
                                               save_path=os.path.join(out, "progress.png"))
                 try:
-                    client.call("cad_call", method="describe_scene")
+                    client.call("call_cad_tool", method="describe_scene")
                     refused = False
                 except orca_mcp.McpError as e:
                     refused = str(e)
     worker.join(600)
     seconds = time.time() - started
     result = client.await_job(box.get("result")) if "result" in box else None
-    scene = client.call("cad_call", method="describe_scene")["result"]
+    scene = client.call("call_cad_tool", method="describe_scene")["result"]
     threads = [f for f in scene["features"] if f["type"] == "Thread"]
 
     print(f"build took {seconds:.1f} s; screenshots in {out}")
     failures = 0
     checks = [
         ("the thread call succeeds", result is not None and result.get("result", {}).get("ok") is True, box),
-        ("get_state answers during the build", state_ms is not None, state_ms),
+        ("get_app_state answers during the build", state_ms is not None, state_ms),
         ("a window screenshot succeeds during the build", bool(window_shot and window_shot.get("width")), window_shot),
-        ("another cad_call is refused during the build", bool(refused) and "Busy" in refused, refused),
+        ("another call_cad_tool is refused during the build", bool(refused) and "Busy" in refused, refused),
         ("one thread feature and one body", len(threads) == 1 and len(scene["bodies"]) == 1, scene["features"]),
     ]
     if not native_dialog:
         checks[1:1] = [
-            ("the progress dialog is listed while it builds", dialog_shot is not None, "no window \"Design\" in ui_snapshot"),
+            ("the progress dialog is listed while it builds", dialog_shot is not None, "no window \"Design\" in list_widgets"),
             ("a screenshot of the progress dialog captures it",
              bool(dialog_shot and dialog_shot.get("width")) and dialog_shot.get("width") < (window_shot or {}).get("width", 0), dialog_shot),
         ]

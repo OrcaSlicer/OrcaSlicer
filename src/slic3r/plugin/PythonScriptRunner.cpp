@@ -850,7 +850,7 @@ boost::filesystem::path utf8_path(const std::string& utf8)
 #endif
 }
 
-// A file run names an existing file; any other name (<run_python>, a bare traceback name) is code sent as text.
+// A file run names an existing file; any other name (<run_script>, a bare traceback name) is code sent as text.
 boost::filesystem::path run_file(const std::string& filename)
 {
     if (filename.empty() || filename.front() == '<')

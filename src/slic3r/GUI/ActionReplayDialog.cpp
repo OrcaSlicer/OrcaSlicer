@@ -11,9 +11,9 @@
 #include "RunScriptPanel.hpp"
 #include "format.hpp"
 #include "Mcp/McpPaths.hpp"
-#include "Mcp/McpScript.hpp"
-#include "Mcp/McpScriptRun.hpp"
-#include "Mcp/McpScriptSummary.hpp"
+#include "Mcp/McpReplay.hpp"
+#include "Mcp/McpPersonRun.hpp"
+#include "Mcp/McpReplaySummary.hpp"
 #include "Mcp/McpService.hpp"
 #include "Mcp/McpTools.hpp"
 #include "Mcp/McpTypes.hpp"
@@ -86,8 +86,8 @@ std::string timestamp()
 std::string file_name_for(const std::string& text)
 {
     std::string err;
-    const auto  script = Mcp::parse_script(text, err);
-    std::string name   = script ? sanitize_filename(script->name) : std::string();
+    const auto  replay = Mcp::parse_replay(text, err);
+    std::string name   = replay ? sanitize_filename(replay->name) : std::string();
     boost::trim_if(name, boost::is_any_of(" ."));
     return (name.empty() ? std::string("replay") : name) + ".json";
 }
@@ -144,10 +144,10 @@ std::pair<std::string, std::string> what_text(const json& what)
             return {format(_u8L("Plate %1%"), plates.get<int>() + 1), {}};
         return {value_text(plates), {}};
     }
-    if (kind == "script") {
+    if (kind == "replay") {
         const int n = what.value("steps", 0);
-        // TRN A step that runs another script; %1% is how many steps that script has.
-        return {format(_L_PLURAL("A script of %1% step", "A script of %1% steps", n), n), {}};
+        // TRN A step that runs another replay; %1% is how many steps that replay has.
+        return {format(_L_PLURAL("A replay of %1% step", "A replay of %1% steps", n), n), {}};
     }
     if (kind == "value")
         return {what.value("text", ""), {}};
@@ -321,7 +321,7 @@ nlohmann::json ActionReplayDialog::localized_strings() const
         {"key_run", ctrl + enter},
         {"key_save", ctrl + "S"},
         {"key_save_as", ctrl + shortkey_shift_prefix() + "S"},
-        {"open_script", _u8L("Open replay…")},
+        {"open_replay", _u8L("Open replay…")},
         {"save", _u8L("Save")},
         // TRN Saves a new replay file: the button opens a file dialog.
         {"save_new", _u8L("Save…")},
@@ -330,10 +330,10 @@ nlohmann::json ActionReplayDialog::localized_strings() const
         {"saved", _u8L("Saved")},
         {"edited", _u8L("(edited)")},
         // TRN The name a new replay starts with, in the editor of the Action Replay window.
-        {"untitled_script", _u8L("Untitled replay")},
+        {"untitled_replay", _u8L("Untitled replay")},
         {"steps", _u8L("Steps")},
         {"steps_hint", _u8L("Steps appear here as you write them.")},
-        {"script_source", _u8L("Replay file")},
+        {"replay_source", _u8L("Replay file")},
         {"source_placeholder", _u8L("Write a replay here, or open one.")},
         // TRN The first comment line a new replay starts with. MCP is the protocol AI agents use to drive OrcaSlicer.
         {"draft_about", _u8L("A replay file runs OrcaSlicer's tools in order, the way an AI agent does through MCP.")},
@@ -555,7 +555,7 @@ bool ActionReplayDialog::save(bool pick)
         call_web_handler({{"command", "error"}, {"message", format(_u8L("Can't save %1%."), target)}});
         return false;
     }
-    // Saved somewhere new, the replay is that file's: ${script_dir} and the output folder follow it.
+    // Saved somewhere new, the replay is that file's: ${replay_dir} and the output folder follow it.
     const bool moved = path != m_file;
     m_file           = path;
     m_edited         = false;
@@ -593,30 +593,30 @@ fs::path ActionReplayDialog::out_dir() const
         return dir;
     }
     if (m_draft_out_dir.empty())
-        m_draft_out_dir = Mcp::output_dir() / ("script-" + timestamp());
+        m_draft_out_dir = Mcp::output_dir() / ("replay-" + timestamp());
     return m_draft_out_dir;
 }
 
-Mcp::ScriptContext ActionReplayDialog::context() const
+Mcp::ReplayContext ActionReplayDialog::context() const
 {
-    Mcp::ScriptContext ctx;
+    Mcp::ReplayContext ctx;
     ctx.out_dir    = out_dir();
-    ctx.script_dir = m_file.empty() ? ctx.out_dir : m_file.parent_path();
+    ctx.replay_dir = m_file.empty() ? ctx.out_dir : m_file.parent_path();
     ctx.jobs       = m_jobs;
     return ctx;
 }
 
-json ActionReplayDialog::describe(const Mcp::Script& script) const
+json ActionReplayDialog::describe(const Mcp::Replay& replay) const
 {
     Mcp::McpService* s = service();
     // ${jobs.NAME} stays as written: a full run starts from no saved jobs and a single step uses the
     // ones saved when it runs, so a job id resolved now would be one neither of them uses.
-    Mcp::ScriptContext ctx = context();
+    Mcp::ReplayContext ctx = context();
     ctx.jobs               = json::object();
     json               steps = json::array();
-    for (std::size_t i = 0; i < script.steps.size(); ++i) {
-        const Mcp::ScriptStep&      step = script.steps[i];
-        const Mcp::StepDescription  d    = Mcp::describe_step(step, script, ctx);
+    for (std::size_t i = 0; i < replay.steps.size(); ++i) {
+        const Mcp::ReplayStep&      step = replay.steps[i];
+        const Mcp::StepDescription  d    = Mcp::describe_step(step, replay, ctx);
         const Mcp::ToolDef*         def  = s != nullptr ? s->registry().find(step.tool) : nullptr;
         json                        flags = json::array();
         for (Mcp::StepFlag f : d.flags)
@@ -627,7 +627,7 @@ json ActionReplayDialog::describe(const Mcp::Script& script) const
                   {"flags", std::move(flags)},
                   {"checks_result", d.checks_result},
                   {"optional", step.optional},
-                  {"args", Mcp::substitute_lenient(step.args, script, ctx)},
+                  {"args", Mcp::substitute_lenient(step.args, replay, ctx)},
                   {"expect", step.expect},
                   {"checks", checks_view(step.expect)}};
         const auto [what, param] = what_text(d.what);
@@ -646,22 +646,22 @@ void ActionReplayDialog::parse(const nlohmann::json& payload)
     try {
         Mcp::McpService* s = service();
         std::string      err;
-        const auto       script = Mcp::parse_script(m_text, err);
+        const auto       replay = Mcp::parse_replay(m_text, err);
         if (s == nullptr)
             reply["error"] = _u8L("Replays can't run while OrcaSlicer is starting or closing.");
-        else if (!script)
+        else if (!replay)
             reply["error"] = err;
         else {
-            for (std::size_t i = 0; i < script->steps.size() && !reply.contains("error"); ++i)
-                if (s->registry().lookup(script->steps[i].tool) == nullptr)
+            for (std::size_t i = 0; i < replay->steps.size() && !reply.contains("error"); ++i)
+                if (s->registry().lookup(replay->steps[i].tool) == nullptr)
                     // TRN %1% is a step number, %2% the name of the tool the replay asks for.
                     reply["error"] = format(_u8L("Step %1% uses a tool this version of OrcaSlicer doesn't have: %2%"), i + 1,
-                                            script->steps[i].tool);
+                                            replay->steps[i].tool);
             if (!reply.contains("error")) {
-                const int n = int(script->steps.size());
+                const int n = int(replay->steps.size());
                 reply.update({{"ok", true},
-                              {"name", script->name},
-                              {"steps", describe(*script)},
+                              {"name", replay->name},
+                              {"steps", describe(*replay)},
                               {"count_text", format(_L_PLURAL("%1% step", "%1% steps", n), n)}});
             }
         }
@@ -686,29 +686,29 @@ void ActionReplayDialog::run(const nlohmann::json& payload)
         return;
     }
     std::string err;
-    auto        script = Mcp::parse_script(m_text, err);
-    if (!script) {
+    auto        replay = Mcp::parse_replay(m_text, err);
+    if (!replay) {
         refuse(_u8L("The replay could not run."), err);
         return;
     }
     std::optional<std::size_t> only;
     if (payload.contains("step") && payload["step"].is_number_unsigned()) {
         only = payload["step"].get<std::size_t>();
-        if (*only < 1 || *only > script->steps.size()) {
+        if (*only < 1 || *only > replay->steps.size()) {
             refuse(_u8L("The replay could not run."));
             return;
         }
     }
     // A full run starts from no saved jobs; the ones earlier runs saved stay until a run starts.
-    Mcp::ScriptContext ctx = context();
+    Mcp::ReplayContext ctx = context();
     if (!only)
         ctx.jobs = json::object();
 
     // The runner asks about unsaved changes only before replacements it can answer for (steps that
     // check them themselves), or ones the replay may answer the app's own question for.
     bool checked = false, app_asked = false, answers = false;
-    for (std::size_t i = only ? *only - 1 : 0; i < (only ? *only : script->steps.size()); ++i) {
-        const Mcp::StepDescription d = Mcp::describe_step(script->steps[i], *script, ctx);
+    for (std::size_t i = only ? *only - 1 : 0; i < (only ? *only : replay->steps.size()); ++i) {
+        const Mcp::StepDescription d = Mcp::describe_step(replay->steps[i], *replay, ctx);
         checked                      = checked || d.replace == "checked";
         app_asked                    = app_asked || d.replace == "app_asked";
         answers                      = answers || d.answers_dialogs;
@@ -746,7 +746,7 @@ void ActionReplayDialog::run(const nlohmann::json& payload)
                 canvas->force_set_focus();
     }
 
-    Mcp::ScriptRun::Events events;
+    Mcp::PersonRun::Events events;
     auto                   alive = m_alive;
     events.step_started          = [this, alive](std::size_t index) {
         if (alive->load())
@@ -770,9 +770,9 @@ void ActionReplayDialog::run(const nlohmann::json& payload)
         restore_z_order();
     };
     m_single  = only;
-    m_total   = script->steps.size();
+    m_total   = replay->steps.size();
     m_started = std::chrono::steady_clock::now();
-    m_run     = s->start_script_run(std::move(*script), ctx, only, discard, std::move(events));
+    m_run     = s->start_replay_run(std::move(*replay), ctx, only, discard, std::move(events));
     if (!m_run) {
         refuse(_u8L("Replays can't run while OrcaSlicer is starting or closing."));
         return;
@@ -841,7 +841,7 @@ json ActionReplayDialog::step_view(const json& entry) const
 
     const json result = entry.value("result", json());
     json       lines  = json::array();
-    if (tool == "run_python" && result.is_object()) {
+    if (tool == "run_script" && result.is_object()) {
         // What the script printed, then what it returned.
         std::istringstream output(result.value("output", std::string()));
         std::string        line;
@@ -867,9 +867,9 @@ json ActionReplayDialog::step_view(const json& entry) const
             lines.push_back(format(_L_PLURAL("%1% plate sliced", "%1% plates sliced", ok), ok));
             if (other > 0)
                 lines.push_back(format(_L_PLURAL("%1% plate did not slice", "%1% plates did not slice", other), other));
-        } else if (kind == "script" && !summary.value("passed", true)) {
-            // TRN %1% is the number of the step of the nested script that failed.
-            view["warning_text"] = format(_u8L("The nested script failed at step %1%."), summary.value("failed_step", 0));
+        } else if (kind == "replay" && !summary.value("passed", true)) {
+            // TRN %1% is the number of the step of the nested replay that failed.
+            view["warning_text"] = format(_u8L("The nested replay failed at step %1%."), summary.value("failed_step", 0));
         }
     }
     view["result_lines"] = std::move(lines);
@@ -897,7 +897,7 @@ json ActionReplayDialog::finished_view(const json& result) const
     for (const json& step : steps) {
         stopped = stopped || step.value("cancelled", false);
         const json summary = Mcp::describe_result(step.value("tool", ""), step.value("result", json()));
-        nested_failed = nested_failed || (summary.is_object() && summary.value("kind", "") == "script" && !summary.value("passed", true));
+        nested_failed = nested_failed || (summary.is_object() && summary.value("kind", "") == "replay" && !summary.value("passed", true));
     }
     const int failed = result.value("failed_step", 0);
     const int total  = int(m_total);
@@ -913,7 +913,7 @@ json ActionReplayDialog::finished_view(const json& result) const
                      // TRN %1% is the step that failed, %2% how many steps the replay has.
                      {"outcome_text", m_single ? _u8L("The step failed.") : format(_u8L("Failed at step %1% of %2%"), failed, total)}});
     else if (nested_failed)
-        view.update({{"outcome_kind", "warn"}, {"outcome_text", _u8L("Finished, but a nested script failed.")}});
+        view.update({{"outcome_kind", "warn"}, {"outcome_text", _u8L("Finished, but a nested replay failed.")}});
     else if (m_single)
         view.update({{"outcome_kind", "pass"}, {"outcome_text", _u8L("The step passed.")}});
     else {

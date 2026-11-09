@@ -2,7 +2,7 @@
 // operations raise before the 3D view has drawn, arrange's options, the admission that holds a
 // UI worker job a call starts, how list_objects describes objects, instances and parts,
 // add_part's type names and shape sizes, the params of the object structure commands, the height
-// ranges set_layer_ranges takes and list_objects reports, and set_layer_gcode's edits of the layer slider.
+// ranges set_height_ranges takes and list_objects reports, and set_custom_gcode_at_layer's edits of the layer slider.
 // GLCanvas3D.hpp reaches wx's MSW headers after OCCT has hidden the USER and GDI declarations they need;
 // the Windows headers first keep them, as in test_plugin_host_api.cpp.
 #ifdef WIN32
@@ -254,7 +254,7 @@ struct Harness
             });
             return Mcp::ToolResult::ok({{"ran", "obj_arrange"}});
         });
-        add("ui_click", Mcp::GuardClass::Recover, [this](const json&, Mcp::ToolContext& ctx) {
+        add("click", Mcp::GuardClass::Recover, [this](const json&, Mcp::ToolContext& ctx) {
             ctx.run_ui([&] {
                 core->admit({}); // the target is outside any dialog
                 ui.post([this] { worker.start(job_length); });
@@ -263,19 +263,19 @@ struct Harness
             ctx.observe_ui([] { return json(); }); // settle
             return Mcp::ToolResult::ok();
         });
-        add("ui_key", Mcp::GuardClass::Recover, [this](const json&, Mcp::ToolContext& ctx) {
+        add("press_keys", Mcp::GuardClass::Recover, [this](const json&, Mcp::ToolContext& ctx) {
             return Mcp::ToolResult::ok(ctx.run_ui([&] {
                 core->admit({});
                 return json("deleted");
             }));
         });
-        add("dialog_respond", Mcp::GuardClass::Recover,
+        add("answer_dialog", Mcp::GuardClass::Recover,
             [](const json&, Mcp::ToolContext& ctx) { return Mcp::ToolResult::ok(ctx.run_ui([] { return json("pressed"); })); });
         add("edit", Mcp::GuardClass::Mutate,
             [](const json&, Mcp::ToolContext& ctx) { return Mcp::ToolResult::ok(ctx.run_ui([] { return json("edited"); })); });
         add("read", Mcp::GuardClass::Inspect,
             [this](const json&, Mcp::ToolContext& ctx) { return Mcp::ToolResult::ok(ctx.run_ui([&] { return json(worker.busy()); })); });
-        add("cancel", Mcp::GuardClass::Recover, [this](const json&, Mcp::ToolContext& ctx) {
+        add("cancel_job", Mcp::GuardClass::Recover, [this](const json&, Mcp::ToolContext& ctx) {
             return Mcp::ToolResult::ok(ctx.run_ui([&] {
                 for (const std::string& op : jobs.running_operations())
                     if (core->cancel_worker(op))
@@ -298,7 +298,7 @@ struct Harness
         d.name                     = name;
         d.guard                    = guard;
         d.inline_call              = guard == Mcp::GuardClass::Inspect;
-        d.allowed_during_operation = name == "cancel";
+        d.allowed_during_operation = name == "cancel_job";
         d.budget_ms                = 200;
         d.handler                  = std::move(handler);
         registry.add(std::move(d));
@@ -348,11 +348,11 @@ TEST_CASE("a cancelled worker job keeps admission until the worker is really idl
     Harness h;
     h.job_length          = 10s;
     h.worker.cancel_delay = 800ms; // slower than the reply budget
-    SECTION("cancel")
+    SECTION("cancel_job")
     {
         h.start();
         const std::string job       = h.start_job("arrange");
-        const Mcp::ToolResult cancel = h.call("cancel");
+        const Mcp::ToolResult cancel = h.call("cancel_job");
         REQUIRE_FALSE(cancel.is_error);
         CHECK(cancel.data == job);
         CHECK(h.refused_by(h.call("edit"), job));
@@ -388,7 +388,7 @@ TEST_CASE("a cancelled worker job keeps admission until the worker is really idl
 TEST_CASE("a change is refused while an arrange an MCP call started runs, however it started", "[Mcp][Scene]")
 {
     // The typed arrange, run_action obj_arrange, and a recover input whose click queues the job.
-    for (const char* starter : {"arrange", "run_action", "ui_click"}) {
+    for (const char* starter : {"arrange", "run_action", "click"}) {
         DYNAMIC_SECTION(starter)
         {
             Harness h;
@@ -409,11 +409,11 @@ TEST_CASE("a scene-changing input is refused while that job runs, and a dialog a
     Harness h;
     h.start();
     const std::string job = h.start_job("run_action");
-    CHECK(h.refused_by(h.call("ui_key"), job));   // Delete on the canvas
-    CHECK(h.refused_by(h.call("ui_click"), job)); // a GL toolbar item
-    CHECK_FALSE(h.call("dialog_respond").is_error);
+    CHECK(h.refused_by(h.call("press_keys"), job));   // Delete on the canvas
+    CHECK(h.refused_by(h.call("click"), job)); // a GL toolbar item
+    CHECK_FALSE(h.call("answer_dialog").is_error);
     REQUIRE(h.jobs.wait(job, 5000ms).has_value());
-    CHECK_FALSE(h.call("ui_key").is_error);
+    CHECK_FALSE(h.call("press_keys").is_error);
 }
 
 TEST_CASE("a worker job that starts between a call's closures is the call's, whoever started it", "[Mcp][Scene]")
@@ -442,12 +442,12 @@ TEST_CASE("a worker job that starts between a call's closures is the call's, who
     CHECK_FALSE(h.worker.busy());
 }
 
-TEST_CASE("a worker job a person started refuses changes but not reads, and cancel leaves it", "[Mcp][Scene]")
+TEST_CASE("a worker job a person started refuses changes but not reads, and cancel_job leaves it", "[Mcp][Scene]")
 {
     Harness h;
     h.start();
     h.worker.start(800ms); // Text typing
-    for (const char* change : {"edit", "ui_key"}) {
+    for (const char* change : {"edit", "press_keys"}) {
         const Mcp::ToolResult refused = h.call(change);
         CHECK(refused.is_error);
         CHECK(refused.message.find("Busy: a background job") != std::string::npos);
@@ -455,7 +455,7 @@ TEST_CASE("a worker job a person started refuses changes but not reads, and canc
     const Mcp::ToolResult read = h.call("read");
     CHECK_FALSE(read.is_error);
     CHECK(read.data == true);
-    CHECK(h.call("cancel").data.is_null());
+    CHECK(h.call("cancel_job").data.is_null());
     CHECK(h.worker.cancels == 0);
     while (h.worker.busy())
         std::this_thread::sleep_for(20ms);
@@ -683,7 +683,7 @@ DynamicPrintConfig new_range_config()
     return config;
 }
 
-// set_layer_ranges' parse on a two-filament printer whose layer heights are 0.08-0.28.
+// set_height_ranges' parse on a two-filament printer whose layer heights are 0.08-0.28.
 t_layer_config_ranges parse_ranges(const json& ranges)
 {
     return Mcp::layer_config_ranges_from_json(ranges, new_range_config(), 2, [](int) { return std::make_pair(0.08, 0.28); });

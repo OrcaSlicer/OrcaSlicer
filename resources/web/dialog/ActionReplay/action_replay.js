@@ -72,15 +72,15 @@ function scheduleParse(delay) {
 }
 
 // What the editor holds when the dialog opens: a replay that runs as it is, with comments on the format.
-function draftScript() {
+function draftReplay() {
   return [
     "// " + T("draft_about", "A replay file runs OrcaSlicer's tools in order, the way an AI agent does through MCP."),
     "// " + T("draft_steps", "Each step names a \"tool\" and its \"args\"; \"expect\" checks the result before the next step."),
     "// " + T("draft_out_dir", "%s is this run's output folder.", "${out_dir}"),
     "// " + T("draft_keys", "%s shows suggestions, %s replays the file.", T("key_suggest", "Ctrl+Space"), T("key_run", "Ctrl+Enter")),
     "{",
-    '  "orca_script": 1,',
-    '  "name": ' + JSON.stringify(T("untitled_script", "Untitled replay")) + ",",
+    '  "orca_replay": 1,',
+    '  "name": ' + JSON.stringify(T("untitled_replay", "Untitled replay")) + ",",
     '  "steps": [',
     '    {"tool": "wait", "args": {"for": "ready"}},',
     '    {"tool": "slice", "expect": {"/status": {"eq": "done"}}},',
@@ -122,7 +122,7 @@ function onSourceInput() {
 }
 
 function renderChip() {
-  $("chip-name").textContent = state.fileName || state.name || T("untitled_script", "Untitled replay");
+  $("chip-name").textContent = state.fileName || state.name || T("untitled_replay", "Untitled replay");
   $("chip-edited").hidden = !(state.fileName && edited());
 }
 
@@ -586,7 +586,7 @@ function OnInit() {
       runAll();
     }
   });
-  setSource(draftScript());
+  setSource(draftReplay());
   send("init");
   // The keys the editor takes, which the host keeps from its menus while this window has the focus.
   send("editor_keys", { chords: editorChords(ed.editor) });

@@ -24,7 +24,7 @@ std::string imgui_label_name(const std::string& label);
 // windows ("Move##gizmo/##body_1A2B3C4D") count as the panel.
 std::string imgui_window_label(const std::string& window);
 
-// One line of a ui_snapshot.
+// One line of list_widgets' reply.
 struct UiNode
 {
     std::string ref;     // "w12", "m3", "t5", "z2", "g7"
@@ -93,7 +93,7 @@ std::string plate_icon_name(int action);
 // {plate, action} of a bed picking id.
 std::pair<int, int> plate_icon_of(int picking_id);
 
-// The refs ui_snapshot hands out. Ids are never reused, so two clients can't confuse each other's
+// The refs list_widgets hands out. Ids are never reused, so two clients can't confuse each other's
 // refs; each stores what it points at and how to tell whether that still exists, plus the UI
 // generation it was taken in (a rebuilt main window invalidates every ref).
 template<class Payload> class RefTable
@@ -118,11 +118,11 @@ public:
     {
         auto it = m_entries.find(ref);
         if (it == m_entries.end()) {
-            err = "Unknown ref " + ref + "; take a new ui_snapshot";
+            err = "Unknown ref " + ref + "; call list_widgets again";
             return nullptr;
         }
         if (it->second.generation != generation || (it->second.alive && !it->second.alive())) {
-            err = "Stale ref " + ref + ": the element is gone or the window was rebuilt; take a new ui_snapshot";
+            err = "Stale ref " + ref + ": the element is gone or the window was rebuilt; call list_widgets again";
             return nullptr;
         }
         return &it->second.payload;

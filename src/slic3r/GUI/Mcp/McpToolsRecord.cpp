@@ -107,7 +107,7 @@ void register_record_tools(McpService& service)
         "the 3D view shown (canvas). Frames are MJPEG in a Matroska (.mkv) file with their real timestamps. With captions, "
         "the tool call acting on the app shows as a caption at the bottom (secret setting values never show); with pointer, "
         "the pointer is highlighted, its clicks rippling. Capture takes at most about a third of the UI thread, so "
-        "the frame rate drops where capturing is slow. One recording at a time: one a script starts ends with the script, a "
+        "the frame rate drops where capturing is slow. One recording at a time: one a replay or script starts ends with it, a "
         "client's when the server is turned off. With encode, the stop_recording that reports it also encodes it to an MP4 "
         "beside it, as the Start Recording command does; encode_recording makes an MP4 of any recording later.",
         object_schema({{"target", enum_prop({"window", "canvas"}, "window (default): the main window and its dialogs; canvas: the 3D view shown.")},
@@ -165,12 +165,12 @@ void register_record_tools(McpService& service)
                 if (arg_bool(args, "overwrite", false))
                     o.encode["overwrite"] = true;
             }
-            // Like auto-answer rules: a script's recording ends with the script, a client's with the endpoint.
+            // Like auto-answer rules: a run's recording ends with the run, a client's with the endpoint.
             const std::vector<std::string> ancestry = service.jobs().ancestry(ctx.job_id());
-            o.owner                                 = service.script_owner(ancestry);
-            // A step of a script that has ended (its scope gone before this ran): not a client's call.
+            o.owner                                 = service.run_owner(ancestry);
+            // A call of a run that has ended (its scope gone before this ran): not a client's call.
             if (o.owner.empty() && service.recorder().owner_ended_in(ancestry))
-                throw ToolFailure("The script that started the recording has ended");
+                throw ToolFailure("The replay or script that started the recording has ended");
             // Reserved here, off the UI thread: comparing paths may touch the disk. start() keeps the
             // reservation for the recording or releases it.
             const std::shared_ptr<RecordingFiles>& files = service.recorder().files();
@@ -215,7 +215,7 @@ void register_record_tools(McpService& service)
                         "Stop the running recording and return its file once it is written: seconds, frames captured and "
                         "written, frames dropped when encoding fell behind, failed when they could not be encoded, or "
                         "skipped when the window could not be captured, "
-                        "the size, the mean UI-thread time a capture took (capture_ms), and why it ended. A recording that ended on its own (max_seconds, its script ended, a "
+                        "the size, the mean UI-thread time a capture took (capture_ms), and why it ended. A recording that ended on its own (max_seconds, the replay or script that started it ended, a "
                         "write error) is reported once by the next stop_recording. For a recording started with encode, it then "
                         "starts the MP4 encode and returns it under encode: a job, whose wait {for: \"job\"} returns "
                         "encode_recording's result.",
@@ -244,7 +244,7 @@ void register_record_tools(McpService& service)
         "encode_recording", L("Encode a recording"),
         "Encode a recording into an H.265 (or H.264) MP4 with the system ffmpeg (ORCA_FFMPEG, else ffmpeg on PATH; it "
         "needs libx265 or libx264), keeping its timing. Takes this session's last finished recording unless path names "
-        "one, and writes beside it unless save_path says where. A long encode returns a job: wait for it, or cancel {job} "
+        "one, and writes beside it unless save_path says where. A long encode returns a job: wait for it, or cancel_job {job} "
         "stops it. delete_source removes the .mkv afterwards, only for a recording this session made.",
         object_schema({{"path", prop("string", "Absolute .mkv of a finished recording; default this session's last.")},
                        {"save_path", prop("string", "Absolute .mp4 path; default the recording's, with .mp4.")},

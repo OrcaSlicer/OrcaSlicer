@@ -74,7 +74,7 @@ using nlohmann::json;
 namespace {
 
 constexpr std::size_t kMaxMessage = 2000;
-// Rows of one list a message shows; ui_snapshot lists them all.
+// Rows of one list a message shows; list_widgets lists them all.
 constexpr std::size_t kMaxListRows = 25;
 
 std::string lower(std::string s)
@@ -395,7 +395,7 @@ private:
             text += (text.empty() ? "" : "\n") + line;
         }
         if (rows.size() > kMaxListRows)
-            text += "\n- … more rows (ui_snapshot lists them)";
+            text += "\n- … more rows (list_widgets lists them)";
         return content(w, text);
     }
 
@@ -1032,7 +1032,7 @@ int ModalTracker::Enter(wxDialog* dialog)
     // An exception must never escape into ShowModal().
     try {
         // A window hidden from automation (the Python scripts setting) is the person's alone: no rule
-        // answers it, and leaving it off the stack keeps it out of the dialog tools and get_state.
+        // answers it, and leaving it off the stack keeps it out of the dialog tools and get_app_state.
         if (dialog != nullptr && dialog->GetName() == kHiddenFromAutomation)
             return wxID_NONE;
         // A description that fails leaves the dialog matched by its title alone, and tracked all the same.
@@ -1089,10 +1089,10 @@ int ModalTracker::Enter(wxDialog* dialog)
         }
         // A wx dialog's buttons do its work in their handlers (Transfer, Discard, Clone's Fill), which
         // a returned id would skip. So it opens, and the button is pressed once its modal loop runs, as
-        // dialog_respond does; the rule counts as used once that pressed the button or ended the
+        // answer_dialog does; the rule counts as used once that pressed the button or ended the
         // dialog. A button disabled by then leaves the dialog open. Queued on the dialog, the press goes
         // with it if it is destroyed first; a modal opened above it before then leaves it to
-        // dialog_respond. The tracker lives as long as the app.
+        // answer_dialog. The tracker lives as long as the app.
         if (wx_rule)
             dialog->CallAfter([this, dialog, answer, title, rule = *wx_rule] {
                 const auto& [layer, pattern, button] = rule;

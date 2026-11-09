@@ -1,12 +1,12 @@
 // The replay editor's language: a replay's highlighting (the orca_replay mode), and suggestions for its keys, tool
 // names, a tool's args and their allowed values, and ${…} placeholders, with what accepting one and Return write. The
-// editor is Ace, set up by ../js/code_editor.js; the pure functions here are also loaded by script_editor.test.js.
+// editor is Ace, set up by ../js/code_editor.js; the pure functions here are also loaded by replay_editor.test.js.
 
-// The keys of a script and of a step, with the JSON type of their values. Accepting a key writes a
+// The keys of a replay and of a step, with the JSON type of their values. Accepting a key writes a
 // value of that type after its colon (an empty string, object or array with the caret inside, or true),
 // or the item's own `then`; for a number the caret waits after the colon.
 const ROOT_KEYS = [
-  { label: "orca_script", detail: "integer", then: "1" },
+  { label: "orca_replay", detail: "integer", then: "1" },
   { label: "name", detail: "string" },
   { label: "vars", detail: "object" },
   { label: "steps", detail: "array" },
@@ -84,7 +84,7 @@ function defineReplayMode() {
 // Walks the tokens before `at` keeping a frame per open object ({key, colon, keys, tool}) and
 // array ({array, index}). Returns the frames, the string `at` is in (after its opening quote) if
 // any, and the vars and saved job names seen; null when `at` is in a comment.
-function readScript(text, at) {
+function readReplay(text, at) {
   const frames = [];
   const vars = new Set();
   const jobs = new Set();
@@ -170,7 +170,7 @@ function valueItems(frames, path) {
 // Inside a string that is a key or a value, or after an unclosed ${ in a string; elsewhere only when
 // asked (`explicit`), at a key or value position.
 function suggestionsAt(text, at, explicit) {
-  const read = readScript(text, at);
+  const read = readReplay(text, at);
   if (!read || !read.frames.length) return null;
   const { frames, string } = read;
   const top = frames[frames.length - 1];
@@ -180,7 +180,7 @@ function suggestionsAt(text, at, explicit) {
     const typed = text.slice(string.start + 1, at);
     const open = typed.lastIndexOf("${");
     if (open >= 0 && typed.indexOf("}", open) < 0) {
-      const items = ["script_dir", "out_dir", ...[...read.vars].map((k) => "vars." + k), ...[...read.jobs].map((k) => "jobs." + k)];
+      const items = ["replay_dir", "out_dir", ...[...read.vars].map((k) => "vars." + k), ...[...read.jobs].map((k) => "jobs." + k)];
       return { kind: "var", from: string.start + 3 + open, to: wordEnd, items: items.map((label) => ({ label })) };
     }
   } else if (!explicit) return null;
@@ -268,4 +268,4 @@ function initEditor(onChange, commands) {
 
 // The language's pure functions, for the page's tests (node --test), which load this file as a module.
 if (typeof module === "object" && module.exports)
-  module.exports = { readScript, suggestionsAt, acceptEdit, newlineEdit, setEditorTools };
+  module.exports = { readReplay, suggestionsAt, acceptEdit, newlineEdit, setEditorTools };

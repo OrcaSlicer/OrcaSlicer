@@ -5,7 +5,7 @@
     tools/mcp/test_recovery_under_load.py
 
 With Preferences open in a running job, 32 `wait` calls block on it (every blocking slot) and 32
-more connections sit idle or half-sent, which fills the server's 64 connections. A `dialog_respond`
+more connections sit idle or half-sent, which fills the server's 64 connections. An `answer_dialog`
 on a new connection must still close the dialog, and the waits must then return. Exits 0 when both
 the idle and the half-sent variants pass.
 """
@@ -72,9 +72,9 @@ def run(port, token, half_sent):
     time.sleep(1)
 
     started = time.time()
-    answer, failed = call(port, token, "dialog_respond", {"button": "close"})
+    answer, failed = call(port, token, "answer_dialog", {"button": "close"})
     if failed:
-        return f"dialog_respond failed: {answer}"
+        return f"answer_dialog failed: {answer}"
     if answer.get("status") == "running":  # no blocking slot: the job runs on, follow it
         answer, failed = call(port, token, "wait", {"for": "job", "job": answer["job"], "timeout_s": 30})
     for t in waits:

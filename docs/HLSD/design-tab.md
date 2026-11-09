@@ -359,7 +359,7 @@ for a checked-in header, not documentation.
 
 `McpControl` exposes the document over JSON-RPC when `ORCA_CAD_MCP` is set in the environment,
 with `tools/orca_cad_mcp_bridge.py` as the client side, and to the app's MCP server through its
-`cad_call` tool on every platform. It describes the scene, queries topology, measures, and runs
+`call_cad_tool` tool on every platform. It describes the scene, queries topology, measures, and runs
 the same verbs the offer does — it re-implements nothing, so a scripted action and a clicked one
 cannot diverge. The socket is off unless the variable is set. Where a GUI action is bound to a
 selection, a card or a dialog, its work is split into a function both callers share, and the
@@ -414,9 +414,9 @@ as the cards do, so the window stays live during a long build.
 
 The viewport is a canvas target like Prepare's for the app's MCP server (`DesignCanvas::gl_canvas()`):
 `set_view {tab: "design"}` shows the tab and points its camera, `screenshot` captures the view
-(sketch overlay and status line included) and composites it into window captures, `ui_mouse`
+(sketch overlay and status line included) and composites it into window captures, `mouse_gesture`
 clicks and drags it at pixels, so a left click picks and a right click opens the offer, and
-`ui_snapshot` lists its in-canvas value fields. Keys sent with `ui_key` reach the panel's
+`list_widgets` lists its in-canvas value fields. Keys sent with `press_keys` reach the panel's
 `wxEVT_CHAR_HOOK` as a real key press does, travelling up from the focused widget, so Escape,
 Enter and the tool shortcuts behave as they do for a person.
 
@@ -436,7 +436,7 @@ tests.
 | `src/slic3r/GUI/CAD/DesignRowList.*` | the Feature tree and Bodies lists, with per-row actions |
 | `src/slic3r/GUI/CAD/DesignCanvas.*` | viewport integration |
 | `src/slic3r/GUI/CAD/DesignSketchTool.*` | in-canvas sketching |
-| `src/slic3r/GUI/CAD/McpControl.*` | the automation surface: the method table, shared by `cad_call` and the socket |
+| `src/slic3r/GUI/CAD/McpControl.*` | the automation surface: the method table, shared by `call_cad_tool` and the socket |
 | `src/slic3r/GUI/CAD/DesignInteraction.hpp` | the Esc level contract |
 | `src/slic3r/GUI/CAD/DesignOffer.hpp` | generated offer table |
 | `scripts/CAD/tool_atlas.json` | source of truth for the offer |
@@ -455,5 +455,5 @@ nothing about the viewport, so the two are reported separately rather than as on
 
 The automation surface has its own checks: `tests/slic3rutils/test_mcp_cad.cpp` runs the methods'
 argument checks and kernel calls on a `CadDocument` or a bare `DesignSketchTool`, with no panel, and
-the replay scripts `tools/mcp/tests/cad_*.json` run the methods on a live application through
-`cad_call`, launched with `tools/mcp/orca_mcp.py launch --cad`.
+the replays `tools/mcp/tests/cad_*.json` run the methods on a live application through
+`call_cad_tool`, launched with `tools/mcp/orca_mcp.py launch --cad`.

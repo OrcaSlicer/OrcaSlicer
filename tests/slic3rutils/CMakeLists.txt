@@ -28,9 +28,9 @@ add_executable(${_TEST_NAME}_tests
     test_mcp_operations.cpp
     test_mcp_protocol.cpp
     test_mcp_recording.cpp
+    test_mcp_replay.cpp
+    test_mcp_replay_summary.cpp
     test_mcp_scene.cpp
-    test_mcp_script.cpp
-    test_mcp_script_summary.cpp
     test_mcp_setup.cpp
     test_mcp_token.cpp
     test_mcp_tools.cpp
@@ -84,7 +84,7 @@ add_executable(${_TEST_NAME}_tests
 
 if (SLIC3R_CAD)
     target_sources(${_TEST_NAME}_tests PRIVATE test_design_sketch_tool.cpp)
-    # The Design tab's MCP surface (cad_call).
+    # The Design tab's MCP surface (call_cad_tool).
     target_sources(${_TEST_NAME}_tests PRIVATE test_mcp_cad.cpp)
 endif ()
 

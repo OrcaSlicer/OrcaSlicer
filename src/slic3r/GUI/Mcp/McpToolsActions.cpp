@@ -1,4 +1,4 @@
-// list_actions and run_action: every Speed Dial action - built-in commands, plates, recent projects,
+// search_actions and run_action: every Speed Dial action - built-in commands, plates, recent projects,
 // plugin scripts and pages, and (on request) settings - is reachable through these two tools.
 
 #include "McpOperations.hpp"
@@ -87,7 +87,7 @@ const AppAction& find_action(ActionRegistry& actions, std::string& id)
     json similar = json::array();
     for (std::size_t i = 0; i < scored.size() && similar.size() < 3 && scored[i].first <= id.size() / 3 + 2; ++i)
         similar.push_back(scored[i].second);
-    throw ToolFailure("Unknown action id " + id + "; search with list_actions", {{"similar", similar}});
+    throw ToolFailure("Unknown action id " + id + "; find it with search_actions", {{"similar", similar}});
 }
 
 const char* level_name(AppActionRunResult::Level level)
@@ -139,7 +139,7 @@ void register_action_tools(McpService& service)
     ToolRegistry& reg = service.registry();
 
     reg.add(inspect_tool(
-        "list_actions", L("Search Speed Dial actions"),
+        "search_actions", L("Search Speed Dial actions"),
         "Search everything the Speed Dial can run: built-in commands (slice, export, views, object operations, plates, "
         "calibration wizards, help), recent projects, plugin scripts and pages. Each entry has an id for run_action, a "
         "description and, when it takes one, a param (type and help). include_settings also lists settings (each jumps "
@@ -161,16 +161,16 @@ void register_action_tools(McpService& service)
 
     ToolDef run = mutate_tool(
         "run_action", L("Run a Speed Dial action"),
-        "Run one action by the id list_actions returned (orca_command:view_front:orca, or the name inside it, view_front), "
+        "Run one action by the id search_actions returned (orca_command:view_front:orca, or the name inside it, view_front), "
         "with its param when it takes one (a percent, tab id, plate index, "
         "or an absolute path - commands with a path parameter skip their file dialog; outputs need {\"path\": ..., "
         "\"overwrite\": true} to replace a file). Actions that open a dialog return blocked_by_dialog; answer it with "
-        "dialog_respond, or, for a native one it can't press (a file picker), register dialog_auto_answer before the call. "
+        "answer_dialog, or, for a native one it can't press (a file picker), register auto_answer_dialogs before the call. "
         "An export_gcode with a path "
         "completes when the file is written; an action that starts a background job (obj_arrange, obj_orient) when the "
         "job ends. An action that does nothing (no object selected) is an error. Some commands add what they did to the "
         "reply (the obj_order_by_* order, the object obj_assemble made).",
-        object_schema({{"id", prop("string", "Action id from list_actions, or the name inside it.")},
+        object_schema({{"id", prop("string", "Action id from search_actions, or the name inside it.")},
                        {"param", prop("string", "Parameter, when the action takes one.")}},
                       {"id"}),
         [](const json& args, ToolContext& ctx) {

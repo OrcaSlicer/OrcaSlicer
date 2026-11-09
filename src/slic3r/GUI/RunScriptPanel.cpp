@@ -11,7 +11,7 @@
 #include "Shortcuts.hpp"
 #include "format.hpp"
 #include "Mcp/McpPaths.hpp"
-#include "Mcp/McpScriptRun.hpp"
+#include "Mcp/McpPersonRun.hpp"
 #include "Mcp/McpService.hpp"
 #include "Mcp/McpTools.hpp"
 #include "Mcp/McpTypes.hpp"
@@ -908,7 +908,7 @@ bool RunScriptPanel::start_session()
         return false;
     }
     auto session           = std::make_shared<PythonSession>();
-    Mcp::ScriptRun::Events events;
+    Mcp::PersonRun::Events events;
     // Only a job refused before the session was hosted (or one whose handler refused) reports here.
     events.finished = [this, alive = m_alive, session](const json& result, const json&) {
         if (!alive->load() || session != m_session || !m_running)
@@ -922,7 +922,7 @@ bool RunScriptPanel::start_session()
         return false;
     }
     m_session        = std::move(session);
-    m_session_file   = m_file.empty() ? std::string("<run_python>") : Mcp::path_to_utf8(m_file);
+    m_session_file   = m_file.empty() ? std::string("<run_script>") : Mcp::path_to_utf8(m_file);
     m_session_ending = false;
     m_timer.Start(100);
     send_session_state();

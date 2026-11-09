@@ -12,9 +12,9 @@
 Side-load it into a test data directory (test_plugin_tools.py does) and run its scripts from run_action.
 Each script writes what happened to out_<name>.json in the plugin's storage folder, which the test reads back:
 {"ok": true, "result": ...} or {"ok": false, "error": "...", "details": ...}. It asks for the tools
-permission unless ORCA_MCP_TOOLS_FIXTURE_ASK is 0. "call" calls get_state,
+permission unless ORCA_MCP_TOOLS_FIXTURE_ASK is 0. "call" calls get_app_state,
 "thread" calls it from a thread the script starts, "rule" registers an auto-answer rule, "export" asks for
-export_script, which a plugin is refused, and "handle" opens a progress dialog and keeps its handle in
+export_replay, which a plugin is refused, and "handle" opens a progress dialog and keeps its handle in
 HANDLE, for a script to find and use. The plugin also offers the operation "measure", which
 doubles its argument a.
 """
@@ -42,7 +42,7 @@ def call_from_thread():
 
     def work():
         try:
-            seen["ready"] = orca.host.tools.call("get_state").get("ready")
+            seen["ready"] = orca.host.tools.call("get_app_state").get("ready")
         except Exception as e:
             seen["error"] = f"{type(e).__name__}: {e}"
 
@@ -59,7 +59,7 @@ class CallTool(orca.script.ScriptPluginCapabilityBase):
         return "MCP tools fixture call"
 
     def execute(self):
-        return record("call", lambda: orca.host.tools.call("get_state").get("ready"))
+        return record("call", lambda: orca.host.tools.call("get_app_state").get("ready"))
 
 
 class CallFromThread(orca.script.ScriptPluginCapabilityBase):
@@ -76,15 +76,15 @@ class SetRule(orca.script.ScriptPluginCapabilityBase):
 
     def execute(self):
         rules = {"rules": [{"match": "^MCP tools fixture never shown$", "button": "cancel"}]}
-        return record("rule", lambda: orca.host.tools.call("dialog_auto_answer", rules).get("scope"))
+        return record("rule", lambda: orca.host.tools.call("auto_answer_dialogs", rules).get("scope"))
 
 
-class ExportScript(orca.script.ScriptPluginCapabilityBase):
+class ExportReplay(orca.script.ScriptPluginCapabilityBase):
     def get_name(self):
         return "MCP tools fixture export"
 
     def execute(self):
-        return record("export", lambda: orca.host.tools.call("export_script"))
+        return record("export", lambda: orca.host.tools.call("export_replay"))
 
 
 # The progress dialog the "handle" script opens; a script that finds it here uses it as the plugin can.
@@ -119,5 +119,5 @@ class FixturePackage(orca.base):
             orca.request_permissions(tools=True)
         orca.register_operation("measure", "Doubles a.", {"type": "object", "properties": {"a": {"type": "number"}}}, measure,
                                 changes=False)
-        for capability in (CallTool, CallFromThread, SetRule, ExportScript, HoldHandle):
+        for capability in (CallTool, CallFromThread, SetRule, ExportReplay, HoldHandle):
             orca.register_capability(capability)

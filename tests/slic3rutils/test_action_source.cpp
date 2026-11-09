@@ -274,7 +274,7 @@ TEST_CASE("Native command catalog includes the Help and developer-mode commands"
 // Recording takes its settings as a parameter, which an agent passes to skip its dialog.
 TEST_CASE("Native command catalog has the screenshot and recording commands", "[ActionSource][SpeedDial]")
 {
-    const Slic3r::GUI::NativeCommand* runner = Slic3r::GUI::NativeCommands::find("open_script_runner");
+    const Slic3r::GUI::NativeCommand* runner = Slic3r::GUI::NativeCommands::find("open_action_replay");
     REQUIRE(runner != nullptr);
     for (const char* key : {"take_screenshot", "start_recording", "stop_recording"}) {
         INFO(key);
@@ -291,7 +291,7 @@ TEST_CASE("Native command catalog has the screenshot and recording commands", "[
 // that open it still do.
 TEST_CASE("Native command catalog has the Run Script panel and Action Replay commands", "[ActionSource][SpeedDial]")
 {
-    const Slic3r::GUI::NativeCommand* replay = Slic3r::GUI::NativeCommands::find("open_script_runner");
+    const Slic3r::GUI::NativeCommand* replay = Slic3r::GUI::NativeCommands::find("open_action_replay");
     REQUIRE(replay != nullptr);
     CHECK(std::string(replay->title) == "Action Replay");
     const Slic3r::GUI::NativeCommand* panel = Slic3r::GUI::NativeCommands::find("toggle_run_script");

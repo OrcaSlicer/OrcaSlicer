@@ -7,12 +7,12 @@ Standard library only. Two halves:
 * A command line that launches OrcaSlicer for an agent or a test and talks to it::
 
     tools/mcp/orca_mcp.py launch --xvfb             # fresh datadir, wait until ready, print client config
-    tools/mcp/orca_mcp.py launch --cad              # with the Design (CAD) tab on, for cad_call
-    tools/mcp/orca_mcp.py call get_state
+    tools/mcp/orca_mcp.py launch --cad              # with the Design (CAD) tab on, for call_cad_tool
+    tools/mcp/orca_mcp.py call get_app_state
     tools/mcp/orca_mcp.py call open_files '{"paths": ["/abs/model.stl"]}'
     tools/mcp/orca_mcp.py screenshot /tmp/shot.png --target canvas
-    tools/mcp/orca_mcp.py snapshot
-    tools/mcp/orca_mcp.py run-script tools/mcp/smoke_test.json --out /tmp/smoke
+    tools/mcp/orca_mcp.py widgets
+    tools/mcp/orca_mcp.py run-replay tools/mcp/smoke_test.json --out /tmp/smoke
     tools/mcp/orca_mcp.py stop
 
 ``launch`` records the instance (port, token, pid, datadir) in a session file
@@ -95,11 +95,11 @@ class OrcaMcp:
         """Call a tool and return its JSON result; raise McpError when the tool reports an error.
 
         A call that returns a job envelope (running / blocked_by_dialog) is returned as is. The tool
-        name is positional-only, so an argument named tool (api_call's) goes to the tool."""
+        name is positional-only, so an argument named tool (call_tool's) goes to the tool."""
         return self.call_with_text(tool, _timeout, **args)[0]
 
     def call_with_text(self, tool, /, _timeout=None, **args):
-        """Like call(), plus the text blocks after the JSON one (ui_snapshot's tree)."""
+        """Like call(), plus the text blocks after the JSON one (list_widgets's tree)."""
         result = self.call_raw(tool, args, timeout=_timeout)
         texts = [c["text"] for c in result.get("content", []) if c.get("type") == "text"]
         text = texts[0] if texts else ""
@@ -336,7 +336,7 @@ def main():
     p.add_argument("--printer", help="\"<model>@<nozzle>\" for a fresh datadir, e.g. \"Bambu Lab X1 Carbon@0.4\"")
     p.add_argument("--vendor", default="BBL")
     p.add_argument("--filament")
-    p.add_argument("--cad", action="store_true", help="turn the Design (CAD) tab on, for cad_call")
+    p.add_argument("--cad", action="store_true", help="turn the Design (CAD) tab on, for call_cad_tool")
     p.add_argument("--timeout", type=int, default=120)
     p.add_argument("--print-config", action="store_true", help="print client setup commands")
     p.add_argument("extra", nargs="*", help="extra orca-slicer arguments after --")
@@ -349,15 +349,15 @@ def main():
     p.add_argument("--wait", action="store_true", help="follow a returned job to its result")
 
     sub.add_parser("tools", help="list tools")
-    p = sub.add_parser("snapshot", help="print the ui_snapshot tree")
-    p.add_argument("args", nargs="?", help="ui_snapshot arguments as JSON")
+    p = sub.add_parser("widgets", help="print the list_widgets tree")
+    p.add_argument("args", nargs="?", help="list_widgets arguments as JSON")
 
     p = sub.add_parser("screenshot", help="save a screenshot")
     p.add_argument("out")
     p.add_argument("--target", default="window")
 
-    p = sub.add_parser("run-script", help="run an MCP script in the launched instance")
-    p.add_argument("script")
+    p = sub.add_parser("run-replay", help="run a replay in the launched instance")
+    p.add_argument("replay")
     p.add_argument("--out", help="output directory")
 
     args = ap.parse_args()
@@ -377,18 +377,18 @@ def main():
         elif args.cmd == "tools":
             for t in client.tools():
                 print(f"{t['name']:20} {t.get('description', '').splitlines()[0][:100]}")
-        elif args.cmd == "snapshot":
+        elif args.cmd == "widgets":
             a = json.loads(args.args) if getattr(args, "args", None) else {}
-            data, texts = client.call_with_text("ui_snapshot", **a)
+            data, texts = client.call_with_text("list_widgets", **a)
             print("\n".join(texts) or json.dumps(data, indent=2))
         elif args.cmd == "screenshot":
             out = os.path.abspath(args.out)
             print(json.dumps(client.call("screenshot", target=args.target, save_path=out, overwrite=True, include_image=False), indent=2))
-        elif args.cmd == "run-script":
-            a = {"path": os.path.abspath(args.script)}
+        elif args.cmd == "run-replay":
+            a = {"path": os.path.abspath(args.replay)}
             if args.out:
                 a["out_dir"] = os.path.abspath(args.out)
-            result = client.await_job(client.call("run_script", **a), timeout=3600)
+            result = client.await_job(client.call("run_replay", **a), timeout=3600)
             print(json.dumps(result, indent=2))
             return 0 if result.get("passed") else 1
     except McpError as e:

@@ -1,10 +1,10 @@
 // Opens a model, changes a print setting, slices and captures the preview: the smallest end-to-end
-// check of --mcp-script. Run from anywhere:
-//   orca-slicer --mcp-script tools/mcp/tests/script_basic.json --mcp-script-out /tmp/out
+// check of --mcp-run. Run from anywhere:
+//   orca-slicer --mcp-run tools/mcp/tests/replay_basic.json --mcp-run-out /tmp/out
 {
-  "orca_script": 1,
+  "orca_replay": 1,
   "name": "basic slice",
-  "vars": {"model": "${script_dir}/../../../resources/handy_models/OrcaCube_v2.drc"},
+  "vars": {"model": "${replay_dir}/../../../resources/handy_models/OrcaCube_v2.drc"},
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},
     {"tool": "new_project", "args": {"discard_changes": true}},

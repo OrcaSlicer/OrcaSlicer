@@ -4,11 +4,11 @@
 // direction as set_view's view, transform's position, wait with no condition, a gizmo by its toolbar
 // title, legend rows as agents name them, export without a format, and get_settings' whole listing
 // without meta. Run on a live app:
-//   python3 tools/mcp/orca_mcp.py run-script tools/mcp/tests/agent_forms.json --out <dir>
+//   python3 tools/mcp/orca_mcp.py run-replay tools/mcp/tests/agent_forms.json --out <dir>
 {
-  "orca_script": 1,
+  "orca_replay": 1,
   "name": "agent argument forms",
-  "vars": {"cube": "${script_dir}/../../../resources/handy_models/OrcaCube_v2.drc"},
+  "vars": {"cube": "${replay_dir}/../../../resources/handy_models/OrcaCube_v2.drc"},
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},
     {"tool": "new_project", "args": {"discard_changes": true}},
@@ -17,7 +17,7 @@
     // ---- A lone path for paths; object and a string index for objects; an action's name for its id ----
     {"tool": "open_files", "args": {"paths": "${vars.cube}"}, "expect": {"/added": {"eq": 1}}},
     {"tool": "open_files", "args": {"paths": ["${vars.cube}"]}, "expect": {"/added": {"eq": 1}}},
-    {"tool": "select", "args": {"object": "1"}},
+    {"tool": "select_objects", "args": {"object": "1"}},
     {"tool": "run_action", "args": {"id": "obj_rename", "param": "renamed"}, "expect": {"/ran": {"eq": "orca_command:obj_rename:orca"}}},
     {"tool": "list_objects", "expect": {"/items/1/name": {"eq": "renamed"}, "/items/0/name": {"ne": "renamed"}}},
     {"tool": "run_action", "args": {"action": "view_top"}, "expect": {"/ran": {"eq": "orca_command:view_top:orca"}}},
@@ -27,14 +27,14 @@
     {"tool": "transform", "args": {"object": 0, "position": [100, 110, 0]}},
     {"tool": "list_objects", "expect": {"/items/0/instances/0/offset/0": {"ge": 99.99, "le": 100.01},
                                         "/items/0/instances/0/offset/1": {"ge": 109.99, "le": 110.01}}},
-    {"tool": "ui_key", "args": {"key": "Escape"}},
+    {"tool": "press_keys", "args": {"key": "Escape"}},
     {"tool": "wait", "args": {}, "expect": {"/satisfied": {"eq": true}}},
 
-    // ---- A gizmo by its toolbar title, in any case; replies name it as get_state does ----
-    {"tool": "select", "args": {"objects": [0]}},
-    {"tool": "ui_click", "args": {"target": {"gizmo": "Support Painting"}}, "expect": {"/gizmo": {"eq": "FdmSupports"}, "/active": {"eq": true}}},
-    {"tool": "get_state", "expect": {"/gizmo/name": {"eq": "FdmSupports"}}},
-    {"tool": "ui_click", "args": {"target": {"gizmo": "support painting"}}, "expect": {"/active": {"eq": false}}},
+    // ---- A gizmo by its toolbar title, in any case; replies name it as get_app_state does ----
+    {"tool": "select_objects", "args": {"objects": [0]}},
+    {"tool": "click", "args": {"target": {"gizmo": "Support Painting"}}, "expect": {"/gizmo": {"eq": "FdmSupports"}, "/active": {"eq": true}}},
+    {"tool": "get_app_state", "expect": {"/gizmo/name": {"eq": "FdmSupports"}}},
+    {"tool": "click", "args": {"target": {"gizmo": "support painting"}}, "expect": {"/active": {"eq": false}}},
 
     // ---- plate for plates, as a string; export's format from the path ----
     {"tool": "arrange", "args": {"plate": "0"}},

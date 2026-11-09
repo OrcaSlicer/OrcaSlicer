@@ -2,7 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
-#include "slic3r/GUI/Mcp/McpScript.hpp"
+#include "slic3r/GUI/Mcp/McpReplay.hpp"
 #include "slic3r/GUI/Mcp/McpTypes.hpp"
 
 #include <nlohmann/json.hpp>
@@ -25,16 +25,16 @@ using nlohmann::json;
 
 namespace {
 
-Script parse_ok(const std::string& text)
+Replay parse_ok(const std::string& text)
 {
     std::string err;
-    auto        s = parse_script(text, err);
+    auto        s = parse_replay(text, err);
     INFO(err);
     REQUIRE(s.has_value());
     return *s;
 }
 
-// A script host whose tools are lambdas; records calls and rule cleanup.
+// A replay host whose tools are lambdas; records calls and rule cleanup.
 struct FakeHost
 {
     std::map<std::string, std::function<ToolResult(const json&)>> tools;
@@ -43,9 +43,9 @@ struct FakeHost
     bool                                                          ended  = false;
     bool                                                          cancel = false;
 
-    ScriptHost host()
+    ReplayHost host()
     {
-        ScriptHost h;
+        ReplayHost h;
         h.call = [this](const std::string& tool, const json& args) {
             calls.emplace_back(tool, args);
             auto it = tools.find(tool);
@@ -57,7 +57,7 @@ struct FakeHost
                 return std::nullopt;
             return it->second;
         };
-        h.end_script = [this] { ended = true; };
+        h.end_replay = [this] { ended = true; };
         h.cancelled  = [this] { return cancel; };
         return h;
     }
@@ -65,11 +65,11 @@ struct FakeHost
 
 } // namespace
 
-TEST_CASE("scripts allow comments and read their fields", "[Mcp]")
+TEST_CASE("replays allow comments and read their fields", "[Mcp]")
 {
-    const Script s = parse_ok(R"({
+    const Replay s = parse_ok(R"({
         // a comment
-        "orca_script": 1, "name": "repro", /* block */ "vars": {"n": 3},
+        "orca_replay": 1, "name": "repro", /* block */ "vars": {"n": 3},
         "steps": [{"tool": "slice", "expect": {"/ok": {"eq": true}}, "optional": true, "timeout_s": 5},
                   {"tool": "run_action", "await": false, "save_as": "prefs"}]
     })");
@@ -81,42 +81,43 @@ TEST_CASE("scripts allow comments and read their fields", "[Mcp]")
     CHECK(s.steps[1].save_as == "prefs");
 }
 
-TEST_CASE("invalid scripts are rejected with a reason", "[Mcp]")
+TEST_CASE("invalid replays are rejected with a reason", "[Mcp]")
 {
     const auto [text, reason] = GENERATE(table<std::string, std::string>({
         {"{", "not valid JSON"},
-        {R"({"orca_script": 2, "steps": []})", "orca_script"},
-        {R"({"orca_script": 1})", "steps"},
-        {R"({"orca_script": 1, "steps": [{"args": {}}]})", "step 1"},
-        {R"({"orca_script": 1, "steps": [{"tool": "x", "await": false}]})", "save_as"},
-        {R"({"orca_script": 1, "steps": [{"tool": "x", "args": []}]})", "args"},
+        {R"({"orca_script": 1, "steps": []})", "orca_replay"},
+        {R"({"orca_replay": 2, "steps": []})", "orca_replay"},
+        {R"({"orca_replay": 1})", "steps"},
+        {R"({"orca_replay": 1, "steps": [{"args": {}}]})", "step 1"},
+        {R"({"orca_replay": 1, "steps": [{"tool": "x", "await": false}]})", "save_as"},
+        {R"({"orca_replay": 1, "steps": [{"tool": "x", "args": []}]})", "args"},
     }));
     std::string err;
-    CHECK_FALSE(parse_script(text, err).has_value());
+    CHECK_FALSE(parse_replay(text, err).has_value());
     CHECK(err.find(reason) != std::string::npos);
 }
 
 TEST_CASE("vars, env and jobs substitute recursively", "[Mcp]")
 {
-    const Script s = parse_ok(R"({"orca_script": 1, "vars": {"model": "${script_dir}/part.stl", "count": 3}, "steps": []})");
-    ScriptContext ctx;
-    ctx.script_dir = "/scripts";
+    const Replay s = parse_ok(R"({"orca_replay": 1, "vars": {"model": "${replay_dir}/part.stl", "count": 3}, "steps": []})");
+    ReplayContext ctx;
+    ctx.replay_dir = "/replays";
     ctx.out_dir    = "/out";
     ctx.jobs       = {{"prefs", "j9"}};
 #ifdef _WIN32
-    _putenv_s("MCP_SCRIPT_TEST", "hello");
+    _putenv_s("MCP_REPLAY_TEST", "hello");
 #else
-    setenv("MCP_SCRIPT_TEST", "hello", 1);
+    setenv("MCP_REPLAY_TEST", "hello", 1);
 #endif
     std::string err;
     const json  out = substitute({{"paths", {"${vars.model}"}},
                                   {"n", "${vars.count}"},
                                   {"shot", "${out_dir}/a.png"},
                                   {"job", "${jobs.prefs}"},
-                                  {"greeting", "say ${env:MCP_SCRIPT_TEST}"}},
+                                  {"greeting", "say ${env:MCP_REPLAY_TEST}"}},
                                  s, ctx, err);
     CHECK(err.empty());
-    CHECK(out["paths"][0] == "/scripts/part.stl");
+    CHECK(out["paths"][0] == "/replays/part.stl");
     CHECK(out["n"] == 3);
     CHECK(out["shot"] == "/out/a.png");
     CHECK(out["job"] == "j9");
@@ -157,9 +158,9 @@ TEST_CASE("a job-returning step is awaited before its expect is checked", "[Mcp]
     FakeHost f;
     f.tools["slice"]    = [](const json&) { return ToolResult::ok({{"status", "running"}, {"job", "j3"}}); };
     f.job_results["j3"] = ToolResult::ok({{"plates", {{{"outcome", "ok"}}}}});
-    const Script  s     = parse_ok(R"({"orca_script": 1, "steps": [{"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}}]})");
-    ScriptContext ctx;
-    const json    out = run_script(s, ctx, f.host());
+    const Replay  s     = parse_ok(R"({"orca_replay": 1, "steps": [{"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}}]})");
+    ReplayContext ctx;
+    const json    out = run_replay(s, ctx, f.host());
     CHECK(out["passed"] == true);
     CHECK(f.ended);
 }
@@ -168,14 +169,14 @@ TEST_CASE("await false stores the job under save_as for later steps", "[Mcp]")
 {
     FakeHost f;
     f.tools["run_action"]     = [](const json&) { return ToolResult::ok({{"status", "blocked_by_dialog"}, {"job", "j5"}}); };
-    f.tools["dialog_respond"] = [](const json&) { return ToolResult::ok(); };
+    f.tools["answer_dialog"] = [](const json&) { return ToolResult::ok(); };
     f.tools["wait"]           = [](const json& a) { return ToolResult::ok({{"job", a["job"]}}); };
-    const Script s = parse_ok(R"({"orca_script": 1, "steps": [
+    const Replay s = parse_ok(R"({"orca_replay": 1, "steps": [
         {"tool": "run_action", "await": false, "save_as": "prefs"},
-        {"tool": "dialog_respond", "args": {"button": "close"}},
+        {"tool": "answer_dialog", "args": {"button": "close"}},
         {"tool": "wait", "args": {"for": "job", "job": "${jobs.prefs}"}, "expect": {"/job": {"eq": "j5"}}}]})");
-    ScriptContext ctx;
-    const json    out = run_script(s, ctx, f.host());
+    ReplayContext ctx;
+    const json    out = run_replay(s, ctx, f.host());
     CHECK(out["passed"] == true);
     REQUIRE(f.calls.size() == 3);
     CHECK(f.calls[2].second["job"] == "j5");
@@ -186,15 +187,15 @@ TEST_CASE("a run stops at the first failed step unless it is optional", "[Mcp]")
     FakeHost f;
     f.tools["ok"]   = [](const json&) { return ToolResult::ok({{"v", 1}}); };
     f.tools["fail"] = [](const json&) { return ToolResult::error("nope"); };
-    const Script s = parse_ok(R"({"orca_script": 1, "steps": [
+    const Replay s = parse_ok(R"({"orca_replay": 1, "steps": [
         {"tool": "fail", "optional": true}, {"tool": "ok", "expect": {"/v": {"eq": 2}}}, {"tool": "ok"}]})");
-    ScriptContext ctx;
-    const json    out = run_script(s, ctx, f.host());
+    ReplayContext ctx;
+    const json    out = run_replay(s, ctx, f.host());
     CHECK(out["passed"] == false);
     CHECK(out["failed_step"] == 2);
     CHECK(out["steps"].size() == 2);
     CHECK(out["steps"][1]["expect_failure"].get<std::string>().find("/v") == 0);
-    CHECK(f.ended); // script-scoped rules are dropped even when it fails
+    CHECK(f.ended); // replay-scoped rules are dropped even when it fails
 }
 
 TEST_CASE("a run reports each step as it starts and ends", "[Mcp]")
@@ -202,17 +203,17 @@ TEST_CASE("a run reports each step as it starts and ends", "[Mcp]")
     FakeHost f;
     f.tools["a"] = [](const json&) { return ToolResult::ok(); };
     f.tools["b"] = [](const json&) { return ToolResult::ok(); };
-    const Script             s = parse_ok(R"({"orca_script": 1, "steps": [{"tool": "a"}, {"tool": "b"}]})");
+    const Replay             s = parse_ok(R"({"orca_replay": 1, "steps": [{"tool": "a"}, {"tool": "b"}]})");
     std::vector<std::string> events;
-    ScriptHost               h = f.host();
+    ReplayHost               h = f.host();
     h.step_started             = [&](std::size_t index) { events.push_back("started " + std::to_string(index)); };
     h.step_finished            = [&](const json& entry) {
         events.push_back("finished " + std::to_string(entry["index"].get<int>()));
         CHECK(entry["ok"] == true);
         CHECK(entry["duration_ms"].get<long long>() >= 0);
     };
-    ScriptContext ctx;
-    run_script(s, ctx, h);
+    ReplayContext ctx;
+    run_replay(s, ctx, h);
     CHECK(events == std::vector<std::string>{"started 1", "finished 1", "started 2", "finished 2"});
 }
 
@@ -221,15 +222,15 @@ TEST_CASE("only_step runs one step and reports its own index", "[Mcp]")
     FakeHost f;
     for (const char* name : {"a", "b", "c"})
         f.tools[name] = [](const json&) { return ToolResult::ok(); };
-    const Script  s = parse_ok(R"({"orca_script": 1, "steps": [{"tool": "a"}, {"tool": "b"}, {"tool": "c"}]})");
-    ScriptContext ctx;
-    const json    out = run_script(s, ctx, f.host(), 2);
+    const Replay  s = parse_ok(R"({"orca_replay": 1, "steps": [{"tool": "a"}, {"tool": "b"}, {"tool": "c"}]})");
+    ReplayContext ctx;
+    const json    out = run_replay(s, ctx, f.host(), 2);
     REQUIRE(f.calls.size() == 1);
     CHECK(f.calls[0].first == "b");
     REQUIRE(out["steps"].size() == 1);
     CHECK(out["steps"][0]["index"] == 2);
     CHECK(out["passed"] == true);
-    CHECK_THROWS_AS(run_script(s, ctx, f.host(), 4), std::out_of_range);
+    CHECK_THROWS_AS(run_replay(s, ctx, f.host(), 4), std::out_of_range);
 }
 
 TEST_CASE("jobs saved by an earlier run resolve in a later single step", "[Mcp]")
@@ -237,31 +238,31 @@ TEST_CASE("jobs saved by an earlier run resolve in a later single step", "[Mcp]"
     FakeHost f;
     f.tools["x"]    = [](const json&) { return ToolResult::ok({{"status", "running"}, {"job", "j7"}}); };
     f.tools["wait"] = [](const json& a) { return ToolResult::ok({{"job", a["job"]}}); };
-    const Script s  = parse_ok(R"({"orca_script": 1, "steps": [
+    const Replay s  = parse_ok(R"({"orca_replay": 1, "steps": [
         {"tool": "x", "await": false, "save_as": "prefs"},
         {"tool": "wait", "args": {"job": "${jobs.prefs}"}},
         {"tool": "wait", "args": {"job": "${jobs.none}"}}]})");
 
-    ScriptContext fresh;
-    const json    alone = run_script(s, fresh, f.host(), 2);
+    ReplayContext fresh;
+    const json    alone = run_replay(s, fresh, f.host(), 2);
     CHECK(alone["steps"][0]["ok"] == false);
     CHECK(alone["steps"][0]["error"].get<std::string>().find("no job is saved as prefs yet; step 1 saves it") != std::string::npos);
     CHECK(alone["steps"][0]["reason"] == json{{"kind", "missing_job"}, {"name", "prefs"}, {"saved_by", 1}});
 
-    ScriptContext shared;
-    run_script(s, shared, f.host(), 1);
-    run_script(s, shared, f.host(), 2);
+    ReplayContext shared;
+    run_replay(s, shared, f.host(), 1);
+    run_replay(s, shared, f.host(), 2);
     CHECK(f.calls.back().second["job"] == "j7");
 
-    const json unsaved = run_script(s, shared, f.host(), 3);
+    const json unsaved = run_replay(s, shared, f.host(), 3);
     CHECK(unsaved["steps"][0]["reason"]["kind"] == "missing_job");
     CHECK(unsaved["steps"][0]["reason"]["saved_by"].is_null());
 }
 
 TEST_CASE("a stop during a step marks that step, even the last one", "[Mcp]")
 {
-    const std::string text = GENERATE(as<std::string>{}, R"({"orca_script": 1, "steps": [{"tool": "stopper"}]})",
-                                      R"({"orca_script": 1, "steps": [{"tool": "stopper", "optional": true}]})");
+    const std::string text = GENERATE(as<std::string>{}, R"({"orca_replay": 1, "steps": [{"tool": "stopper"}]})",
+                                      R"({"orca_replay": 1, "steps": [{"tool": "stopper", "optional": true}]})");
     const bool        single = GENERATE(false, true);
     FakeHost          f;
     f.tools["stopper"] = [&f](const json&) {
@@ -269,11 +270,11 @@ TEST_CASE("a stop during a step marks that step, even the last one", "[Mcp]")
         return ToolResult::ok({{"plates", json::array()}});
     };
     json       reported;
-    ScriptHost h       = f.host();
+    ReplayHost h       = f.host();
     h.step_finished    = [&](const json& entry) { reported = entry; };
-    const Script  s    = parse_ok(text);
-    ScriptContext ctx;
-    const json    out = single ? run_script(s, ctx, h, 1) : run_script(s, ctx, h);
+    const Replay  s    = parse_ok(text);
+    ReplayContext ctx;
+    const json    out = single ? run_replay(s, ctx, h, 1) : run_replay(s, ctx, h);
     for (const json& entry : {reported, out["steps"][0]}) {
         CHECK(entry["cancelled"] == true);
         CHECK(entry["ok"] == false);
@@ -287,21 +288,21 @@ TEST_CASE("a stop during a job wait is a cancel, not a timeout", "[Mcp]")
 {
     FakeHost f;
     f.tools["slow"] = [](const json&) { return ToolResult::ok({{"status", "running"}, {"job", "j1"}}); };
-    const Script s  = parse_ok(R"({"orca_script": 1, "steps": [{"tool": "slow"}]})");
+    const Replay s  = parse_ok(R"({"orca_replay": 1, "steps": [{"tool": "slow"}]})");
 
-    ScriptHost stopping = f.host();
+    ReplayHost stopping = f.host();
     stopping.wait_job   = [&f](const std::string&, int) -> std::optional<ToolResult> {
         f.cancel = true;
         return std::nullopt;
     };
-    ScriptContext ctx;
-    const json    stopped = run_script(s, ctx, stopping);
+    ReplayContext ctx;
+    const json    stopped = run_replay(s, ctx, stopping);
     CHECK(stopped["steps"][0]["cancelled"] == true);
     CHECK(stopped["steps"][0]["reason"]["kind"] == "cancelled");
 
     FakeHost   g;
     g.tools        = f.tools;
-    const json out = run_script(s, ctx, g.host());
+    const json out = run_replay(s, ctx, g.host());
     CHECK(out["steps"][0]["reason"] == json{{"kind", "timeout"}, {"seconds", 120}});
 }
 
@@ -309,19 +310,19 @@ TEST_CASE("a job wait that times out names the dialog left open", "[Mcp]")
 {
     FakeHost f;
     f.tools["opens"] = [](const json&) { return ToolResult::ok({{"status", "blocked_by_dialog"}, {"job", "j1"}}); };
-    const Script s   = parse_ok(R"({"orca_script": 1, "steps": [{"tool": "opens"}]})");
+    const Replay s   = parse_ok(R"({"orca_replay": 1, "steps": [{"tool": "opens"}]})");
 
     const json dialogs = json::array({{{"title", "Uniform scale"}, {"native", false}}, {{"title", "Preferences"}, {"native", false}}});
-    ScriptHost host    = f.host();
+    ReplayHost host    = f.host();
     host.open_dialogs  = [&dialogs] { return dialogs; };
-    ScriptContext ctx;
-    const json out          = run_script(s, ctx, host);
+    ReplayContext ctx;
+    const json out          = run_replay(s, ctx, host);
     const json& step        = out["steps"][0];
     const std::string error = step["error"].get<std::string>();
     CHECK(step["reason"]["kind"] == "timeout");
     // The topmost dialog, the last one listed, is the one named.
     CHECK(error.find("\"Preferences\"") != std::string::npos);
-    CHECK(error.find("dialog_auto_answer") != std::string::npos);
+    CHECK(error.find("auto_answer_dialogs") != std::string::npos);
     CHECK(step["details"]["dialogs"] == dialogs);
 }
 
@@ -329,9 +330,9 @@ TEST_CASE("a failed expectation carries its parts", "[Mcp]")
 {
     FakeHost f;
     f.tools["slice"] = [](const json&) { return ToolResult::ok({{"plates", {{{"outcome", "error"}}}}}); };
-    const Script  s  = parse_ok(R"({"orca_script": 1, "steps": [{"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}}]})");
-    ScriptContext ctx;
-    const json    entry = run_script(s, ctx, f.host())["steps"][0];
+    const Replay  s  = parse_ok(R"({"orca_replay": 1, "steps": [{"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}}]})");
+    ReplayContext ctx;
+    const json    entry = run_replay(s, ctx, f.host())["steps"][0];
     CHECK(entry["reason"] == json{{"kind", "expect"}, {"pointer", "/plates/0/outcome"}, {"op", "eq"},
                                   {"expected", "ok"},  {"actual", "error"},              {"exists", true}});
     CHECK(entry["expect_failure"].get<std::string>().find("/plates/0/outcome: expected eq \"ok\"") == 0);
@@ -341,31 +342,31 @@ TEST_CASE("a matcher that is not an object is a malformed expectation", "[Mcp]")
 {
     FakeHost f;
     f.tools["slice"] = [](const json&) { return ToolResult::ok({{"outcome", "ok"}}); };
-    const Script  s  = parse_ok(R"({"orca_script": 1, "steps": [{"tool": "slice", "expect": {"/outcome": "ok"}}]})");
-    ScriptContext ctx;
-    const json    entry = run_script(s, ctx, f.host())["steps"][0];
+    const Replay  s  = parse_ok(R"({"orca_replay": 1, "steps": [{"tool": "slice", "expect": {"/outcome": "ok"}}]})");
+    ReplayContext ctx;
+    const json    entry = run_replay(s, ctx, f.host())["steps"][0];
     CHECK(entry["ok"] == false);
     CHECK(entry["reason"] == json{{"kind", "expect_invalid"}});
     CHECK(entry["expect_failure"].get<std::string>().find("must be an object") != std::string::npos);
 }
 
-// The script runner's step descriptions mirror this: an inline nested script reads its placeholders
-// from the outer script, whose substitution runs before the nested run starts.
-TEST_CASE("an inline nested script's placeholders are the outer script's", "[Mcp]")
+// Action Replay's step descriptions mirror this: an inline nested replay reads its placeholders
+// from the outer replay, whose substitution runs before the nested run starts.
+TEST_CASE("an inline nested replay's placeholders are the outer replay's", "[Mcp]")
 {
     FakeHost f;
-    f.tools["run_script"] = [](const json&) { return ToolResult::ok({{"passed", true}}); };
-    const Script with_outer = parse_ok(R"({"orca_script": 1, "vars": {"p": "outer.stl"}, "steps": [{"tool": "run_script",
-        "args": {"vars": {"p": "step.stl"}, "script": {"orca_script": 1, "steps": [{"tool": "open_files", "args": {"paths": ["${vars.p}"]}}]}}}]})");
-    ScriptContext ctx;
-    CHECK(run_script(with_outer, ctx, f.host())["passed"] == true);
+    f.tools["run_replay"] = [](const json&) { return ToolResult::ok({{"passed", true}}); };
+    const Replay with_outer = parse_ok(R"({"orca_replay": 1, "vars": {"p": "outer.stl"}, "steps": [{"tool": "run_replay",
+        "args": {"vars": {"p": "step.stl"}, "replay": {"orca_replay": 1, "steps": [{"tool": "open_files", "args": {"paths": ["${vars.p}"]}}]}}}]})");
+    ReplayContext ctx;
+    CHECK(run_replay(with_outer, ctx, f.host())["passed"] == true);
     REQUIRE(f.calls.size() == 1);
-    CHECK(f.calls[0].second["script"]["steps"][0]["args"]["paths"][0] == "outer.stl");
+    CHECK(f.calls[0].second["replay"]["steps"][0]["args"]["paths"][0] == "outer.stl");
 
     FakeHost     g;
-    const Script step_only = parse_ok(R"({"orca_script": 1, "steps": [{"tool": "run_script",
-        "args": {"vars": {"p": "step.stl"}, "script": {"orca_script": 1, "steps": [{"tool": "open_files", "args": {"paths": ["${vars.p}"]}}]}}}]})");
-    const json   out = run_script(step_only, ctx, g.host());
+    const Replay step_only = parse_ok(R"({"orca_replay": 1, "steps": [{"tool": "run_replay",
+        "args": {"vars": {"p": "step.stl"}, "replay": {"orca_replay": 1, "steps": [{"tool": "open_files", "args": {"paths": ["${vars.p}"]}}]}}}]})");
+    const json   out = run_replay(step_only, ctx, g.host());
     CHECK(out["passed"] == false);
     CHECK(out["steps"][0]["reason"] == json{{"kind", "placeholder"}, {"text", "${vars.p}"}});
     CHECK(g.calls.empty());
@@ -373,27 +374,27 @@ TEST_CASE("an inline nested script's placeholders are the outer script's", "[Mcp
 
 TEST_CASE("lenient substitution keeps what it cannot resolve", "[Mcp]")
 {
-    const Script  s = parse_ok(R"({"orca_script": 1, "vars": {"model": "C:/m/part.stl"}, "steps": []})");
-    ScriptContext ctx;
+    const Replay  s = parse_ok(R"({"orca_replay": 1, "vars": {"model": "C:/m/part.stl"}, "steps": []})");
+    ReplayContext ctx;
     CHECK(substitute_lenient("${vars.model}", s, ctx) == "C:/m/part.stl");
     CHECK(substitute_lenient("${jobs.none}/x", s, ctx) == "${jobs.none}/x");
     CHECK(substitute_lenient(json{{"p", "${vars.nope}"}}, s, ctx) == json{{"p", "${vars.nope}"}});
 }
 
-TEST_CASE("malformed scripts are errors, not exceptions", "[Mcp]")
+TEST_CASE("malformed replays are errors, not exceptions", "[Mcp]")
 {
     const auto [text, field] = GENERATE(table<std::string, std::string>({
-        {R"({"orca_script": "1", "steps": []})", "orca_script"},
-        {R"({"orca_script": 1, "name": 5, "steps": []})", "name"},
-        {R"({"orca_script": 1, "steps": [{"tool": 3}]})", "step 1: \"tool\""},
-        {R"({"orca_script": 1, "steps": [{"tool": "a", "timeout_s": "9"}]})", "step 1: \"timeout_s\""},
-        {R"({"orca_script": 1, "steps": [{"tool": "a", "optional": "yes"}]})", "step 1: \"optional\""},
-        {R"([])", "orca_script"},
-        {R"({})", "orca_script"},
+        {R"({"orca_replay": "1", "steps": []})", "orca_replay"},
+        {R"({"orca_replay": 1, "name": 5, "steps": []})", "name"},
+        {R"({"orca_replay": 1, "steps": [{"tool": 3}]})", "step 1: \"tool\""},
+        {R"({"orca_replay": 1, "steps": [{"tool": "a", "timeout_s": "9"}]})", "step 1: \"timeout_s\""},
+        {R"({"orca_replay": 1, "steps": [{"tool": "a", "optional": "yes"}]})", "step 1: \"optional\""},
+        {R"([])", "orca_replay"},
+        {R"({})", "orca_replay"},
     }));
     std::string          err;
-    std::optional<Script> s;
-    CHECK_NOTHROW(s = parse_script(text, err));
+    std::optional<Replay> s;
+    CHECK_NOTHROW(s = parse_replay(text, err));
     CHECK_FALSE(s.has_value());
     CHECK(err.find(field) != std::string::npos);
 }
@@ -401,36 +402,36 @@ TEST_CASE("malformed scripts are errors, not exceptions", "[Mcp]")
 TEST_CASE("broken JSON says where", "[Mcp]")
 {
     std::string err;
-    CHECK_FALSE(parse_script("{\n  \"orca_script\": 1,\n  \"steps\": [ {\"tool\": \"a\",, } ]\n}", err).has_value());
+    CHECK_FALSE(parse_replay("{\n  \"orca_replay\": 1,\n  \"steps\": [ {\"tool\": \"a\",, } ]\n}", err).has_value());
     CHECK(err.find("line 3, column") != std::string::npos);
 }
 
 TEST_CASE("a Python step's code runs as written while its other arguments substitute", "[Mcp]")
 {
-    const Script s = parse_ok(R"({"orca_script": 1, "vars": {"a": "seven"}, "steps": [
-        {"tool": "run_python", "args": {"code": "label = '${vars.a}'", "args": {"label": "${vars.a}"}}}]})");
+    const Replay s = parse_ok(R"({"orca_replay": 1, "vars": {"a": "seven"}, "steps": [
+        {"tool": "run_script", "args": {"code": "label = '${vars.a}'", "args": {"label": "${vars.a}"}}}]})");
     FakeHost fake;
-    fake.tools["run_python"] = [](const json&) { return ToolResult::ok({{"status", "finished"}, {"result", nullptr}, {"output", ""}}); };
-    ScriptContext ctx;
-    const json    out = run_script(s, ctx, fake.host(), std::nullopt);
+    fake.tools["run_script"] = [](const json&) { return ToolResult::ok({{"status", "finished"}, {"result", nullptr}, {"output", ""}}); };
+    ReplayContext ctx;
+    const json    out = run_replay(s, ctx, fake.host(), std::nullopt);
     CHECK(out["passed"] == true);
     REQUIRE(fake.calls.size() == 1);
     CHECK(fake.calls[0].second["code"] == "label = '${vars.a}'");
     CHECK(fake.calls[0].second["args"]["label"] == "seven");
 }
 
-TEST_CASE("a Python step that did not finish fails its script", "[Mcp]")
+TEST_CASE("a Python step that did not finish fails its replay", "[Mcp]")
 {
-    const Script s = parse_ok(R"S({"orca_script": 1, "steps": [
-        {"tool": "run_python", "args": {"code": "raise ValueError('x')"}},
-        {"tool": "get_state"}]})S");
+    const Replay s = parse_ok(R"S({"orca_replay": 1, "steps": [
+        {"tool": "run_script", "args": {"code": "raise ValueError('x')"}},
+        {"tool": "get_app_state"}]})S");
     FakeHost fake;
-    fake.tools["run_python"] = [](const json&) {
+    fake.tools["run_script"] = [](const json&) {
         return ToolResult::ok({{"status", "raised"}, {"message", "ValueError: x"}, {"traceback", "..."}, {"output", ""}});
     };
-    fake.tools["get_state"] = [](const json&) { return ToolResult::ok(); };
-    ScriptContext ctx;
-    const json    out = run_script(s, ctx, fake.host(), std::nullopt);
+    fake.tools["get_app_state"] = [](const json&) { return ToolResult::ok(); };
+    ReplayContext ctx;
+    const json    out = run_replay(s, ctx, fake.host(), std::nullopt);
     CHECK(out["passed"] == false);
     CHECK(out["failed_step"] == 1);
     CHECK(out["steps"][0]["error"] == "ValueError: x");
@@ -441,46 +442,46 @@ TEST_CASE("a Python step that did not finish fails its script", "[Mcp]")
 
 TEST_CASE("a Python step left running with await false keeps its job for later steps", "[Mcp]")
 {
-    const Script s = parse_ok(R"({"orca_script": 1, "steps": [
-        {"tool": "run_python", "args": {"code": "x = 1"}, "await": false, "save_as": "py"},
-        {"tool": "get_state"}]})");
+    const Replay s = parse_ok(R"({"orca_replay": 1, "steps": [
+        {"tool": "run_script", "args": {"code": "x = 1"}, "await": false, "save_as": "py"},
+        {"tool": "get_app_state"}]})");
     FakeHost fake;
-    fake.tools["run_python"] = [](const json&) { return ToolResult::ok({{"status", "running"}, {"job", "j5"}}); };
-    fake.tools["get_state"]  = [](const json&) { return ToolResult::ok(); };
-    ScriptContext ctx;
-    const json    out = run_script(s, ctx, fake.host(), std::nullopt);
+    fake.tools["run_script"] = [](const json&) { return ToolResult::ok({{"status", "running"}, {"job", "j5"}}); };
+    fake.tools["get_app_state"]  = [](const json&) { return ToolResult::ok(); };
+    ReplayContext ctx;
+    const json    out = run_replay(s, ctx, fake.host(), std::nullopt);
     CHECK(out["passed"] == true);
     CHECK(ctx.jobs["py"] == "j5");
 }
 
-TEST_CASE("Python reached through api_call or a nested script follows the Python step rules", "[Mcp]")
+TEST_CASE("Python reached through call_tool or a nested replay follows the Python step rules", "[Mcp]")
 {
     // Its code runs as written however the step reaches it.
-    const Script s = parse_ok(R"S({"orca_script": 1, "vars": {"a": "seven"}, "steps": [
-        {"tool": "api_call", "args": {"tool": "run_python", "args": {"code": "x = '${vars.a}'", "args": {"v": "${vars.a}"}}}},
-        {"tool": "run_script", "args": {"script": {"orca_script": 1, "steps": [
-            {"tool": "run_python", "args": {"code": "y = '${vars.a}'"}},
+    const Replay s = parse_ok(R"S({"orca_replay": 1, "vars": {"a": "seven"}, "steps": [
+        {"tool": "call_tool", "args": {"tool": "run_script", "args": {"code": "x = '${vars.a}'", "args": {"v": "${vars.a}"}}}},
+        {"tool": "run_replay", "args": {"replay": {"orca_replay": 1, "steps": [
+            {"tool": "run_script", "args": {"code": "y = '${vars.a}'"}},
             {"tool": "set_settings", "args": {"note": "${vars.a}"}}]}}}]})S");
     FakeHost fake;
-    fake.tools["api_call"]   = [](const json&) { return ToolResult::ok({{"status", "finished"}, {"result", nullptr}, {"output", ""}}); };
-    fake.tools["run_script"] = [](const json&) { return ToolResult::ok({{"passed", true}}); };
-    ScriptContext ctx;
-    const json    out = run_script(s, ctx, fake.host(), std::nullopt);
+    fake.tools["call_tool"]   = [](const json&) { return ToolResult::ok({{"status", "finished"}, {"result", nullptr}, {"output", ""}}); };
+    fake.tools["run_replay"] = [](const json&) { return ToolResult::ok({{"passed", true}}); };
+    ReplayContext ctx;
+    const json    out = run_replay(s, ctx, fake.host(), std::nullopt);
     CHECK(out["passed"] == true);
     REQUIRE(fake.calls.size() == 2);
     CHECK(fake.calls[0].second["args"]["code"] == "x = '${vars.a}'");
     CHECK(fake.calls[0].second["args"]["args"]["v"] == "seven");
-    const json nested = fake.calls[1].second["script"]["steps"];
+    const json nested = fake.calls[1].second["replay"]["steps"];
     CHECK(nested[0]["args"]["code"] == "y = '${vars.a}'");
     CHECK(nested[1]["args"]["note"] == "seven");
 
-    // A run that raised through api_call fails its step.
-    const Script failing = parse_ok(R"({"orca_script": 1, "steps": [
-        {"tool": "api_call", "args": {"tool": "run_python", "args": {"code": "x"}}}]})");
+    // A run that raised through call_tool fails its step.
+    const Replay failing = parse_ok(R"({"orca_replay": 1, "steps": [
+        {"tool": "call_tool", "args": {"tool": "run_script", "args": {"code": "x"}}}]})");
     FakeHost raising;
-    raising.tools["api_call"] = [](const json&) { return ToolResult::ok({{"status", "raised"}, {"message", "NameError: x"}}); };
-    ScriptContext ctx2;
-    const json    failed = run_script(failing, ctx2, raising.host(), std::nullopt);
+    raising.tools["call_tool"] = [](const json&) { return ToolResult::ok({{"status", "raised"}, {"message", "NameError: x"}}); };
+    ReplayContext ctx2;
+    const json    failed = run_replay(failing, ctx2, raising.host(), std::nullopt);
     CHECK(failed["passed"] == false);
     CHECK(failed["steps"][0]["reason"]["kind"] == "python");
 }

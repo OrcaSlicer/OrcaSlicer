@@ -14,13 +14,13 @@
   <script type="text/javascript" src="../../include/ace/ext-searchbox.js"></script>
   <script type="text/javascript" src="../../include/ace/mode-json.js"></script>
   <script type="text/javascript" src="../js/code_editor.js"></script>
-  <script type="text/javascript" src="./script_editor.js"></script>
+  <script type="text/javascript" src="./replay_editor.js"></script>
   <script type="text/javascript" src="./action_replay.js"></script>
 </head>
 <body onload="OnInit()">
   <div class="runner">
     <header class="source-bar">
-      <button type="button" id="open-file" class="btn" data-i18n="open_script">Open replay…</button>
+      <button type="button" id="open-file" class="btn" data-i18n="open_replay">Open replay…</button>
       <span class="chip">
         <span id="chip-name"></span>
         <span id="chip-edited" class="chip-note" hidden data-i18n="edited">(edited)</span>
@@ -46,7 +46,7 @@
         <div class="section-row">
           <button type="button" class="section-head" aria-expanded="true" aria-controls="source-body">
             <span class="chevron" aria-hidden="true"></span>
-            <span class="section-title" data-i18n="script_source">Replay file</span>
+            <span class="section-title" data-i18n="replay_source">Replay file</span>
           </button>
           <div class="section-actions">
             <span id="save-note" class="save-note" hidden role="status" data-i18n="saved">Saved</span>

@@ -203,7 +203,7 @@ void normalize_arguments(const json& schema, json& args)
     for (const auto& [alias, names] : argument_aliases()) {
         if (!args.contains(alias) || props.contains(alias))
             continue;
-        // Only where the value fits: ui_click's action "click" is no button, and its error should name action.
+        // Only where the value fits: the click tool's action "click" is no button, and its error should name action.
         for (const std::string& name : names) {
             if (!props.contains(name) || args.contains(name))
                 continue;
@@ -245,12 +245,12 @@ void normalize_arguments(const json& schema, json& args)
 
 ToolLane tool_lane(const std::string& name)
 {
-    static const std::set<std::string> core{"get_state",   "wait",          "cancel",          "get_log",
-                                            "run_script",  "export_script", "dialog_respond",  "dialog_auto_answer",
-                                            "run_python",  "python_api"};
-    static const std::set<std::string> ui{"list_windows",    "ui_snapshot",    "ui_click",         "ui_input",     "ui_key",       "ui_mouse",
-                                          "gizmo_file",      "webview_eval",   "set_view",         "screenshot",   "start_recording",
-                                          "stop_recording",  "encode_recording", "list_actions",   "run_action",   "select"};
+    static const std::set<std::string> core{"get_app_state", "wait",          "cancel_job",          "get_log",    "run_replay",
+                                            "export_replay", "answer_dialog", "auto_answer_dialogs", "run_script", "search_python_api"};
+    static const std::set<std::string> ui{"list_windows",     "list_widgets",   "click",           "set_widget_value",
+                                          "press_keys",       "mouse_gesture",  "pick_gizmo_file", "run_javascript",
+                                          "set_view",         "screenshot",     "start_recording", "stop_recording",
+                                          "encode_recording", "search_actions", "run_action",      "select_objects"};
     if (core.count(name) != 0)
         return ToolLane::Core;
     if (ui.count(name) != 0)
@@ -297,7 +297,7 @@ std::shared_ptr<const ToolDef> ToolRegistry::lookup(const std::string& name) con
 
 std::string resolve_api_call(const ToolRegistry& registry, std::shared_ptr<const ToolDef>& def, json& args)
 {
-    if (!def || def->name != "api_call")
+    if (!def || def->name != "call_tool")
         return {};
     const std::string target = args.value("tool", std::string());
     std::shared_ptr<const ToolDef> inner = registry.lookup(target);
@@ -307,8 +307,8 @@ std::string resolve_api_call(const ToolRegistry& registry, std::shared_ptr<const
             message += " (did you mean " + close.front() + "?)";
         return message;
     }
-    if (inner->name == "api_call")
-        return "api_call calls another tool, not itself";
+    if (inner->name == "call_tool")
+        return "call_tool calls another tool, not itself";
     json inner_args = args.contains("args") && args["args"].is_object() ? args["args"] : json::object();
     normalize_arguments(inner->input_schema, inner_args);
     if (std::string err = validate_arguments(inner->input_schema, inner_args); !err.empty())

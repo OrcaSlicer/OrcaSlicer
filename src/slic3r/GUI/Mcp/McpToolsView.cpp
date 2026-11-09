@@ -1,4 +1,4 @@
-// screenshot, get_preview and set_view: what the agent looks at and reads off the Preview, and
+// screenshot, get_slice_stats and set_view: what the agent looks at and reads off the Preview, and
 // pointing the view before looking.
 
 #include "libvgcode/include/ColorRange.hpp"
@@ -343,11 +343,11 @@ void register_view_tools(McpService& service)
         "window), \"canvas\" (the visible 3D view exactly as rendered: scene, toolpaths, toolbars, ImGui panels; on the "
         "Design tab its view), "
         "\"dialog\" (the topmost modal dialog), or a ref: a window's from list_windows (one that is not modal, say), or a "
-        "widget's from ui_snapshot, cropped to that widget (a page element's ref captures its whole web view). The result "
+        "widget's from list_widgets, cropped to that widget (a page element's ref captures its whole web view). The result "
         "says when parts may differ from the "
         "screen (approximate). Point the view first with set_view.",
         object_schema({{"target", {{"type", json::array({"string", "object"})},
-                                    {"description", "window (default), canvas, dialog, or a widget's ref or locator from ui_snapshot."}}},
+                                    {"description", "window (default), canvas, dialog, or a widget's ref or locator from list_widgets."}}},
                        {"max_dim", {{"type", "integer"}, {"minimum", 256}, {"maximum", 2000}, {"description", "Long edge of the returned image."}}},
                        {"save_path", prop("string", "Absolute .png path for the full-size image.")},
                        {"overwrite", prop("boolean", "Replace an existing save_path.")},
@@ -416,9 +416,9 @@ void register_view_tools(McpService& service)
                             // A tab: its page, which only the selected tab shows.
                             auto* book = dynamic_cast<wxBookCtrlBase*>(w);
                             if (book == nullptr || t.page >= int(book->GetPageCount()))
-                                throw ToolFailure("The tab is gone; take a new ui_snapshot");
+                                throw ToolFailure("The tab is gone; call list_widgets again");
                             if (book->GetSelection() != t.page)
-                                throw ToolFailure("The tab's page is not shown; click the tab (ui_click) first");
+                                throw ToolFailure("The tab's page is not shown; click the tab (click) first");
                             w = book->GetPage(size_t(t.page));
                         }
                         if (GLCanvas3D* canvas = service.inspector().canvas_of(&t); canvas != nullptr && canvas->get_wxglcanvas() == w) {
@@ -427,7 +427,7 @@ void register_view_tools(McpService& service)
                             wxWindow* top = wxGetTopLevelParent(w);
                             // A popup is a native window of its own, which its window's capture draws in.
                             if (dynamic_cast<wxPopupWindow*>(top) != nullptr)
-                                throw ToolFailure("The widget is in a popup; a screenshot of its window shows the popup, and ui_snapshot "
+                                throw ToolFailure("The widget is in a popup; a screenshot of its window shows the popup, and list_widgets "
                                                   "{root: \"popup\"} lists it");
                             auto* tlw = dynamic_cast<wxTopLevelWindow*>(top);
                             if (tlw == nullptr)
@@ -496,7 +496,7 @@ void register_view_tools(McpService& service)
     reg.add(screenshot);
 
     reg.add(inspect_tool(
-        "get_preview", L("Read the Preview"),
+        "get_slice_stats", L("Get slice statistics"),
         "What the Preview shows for a sliced plate. summary: the slice reply's, plus prepare and travel time and travel "
         "distance. features: seconds, share of the print time and grams per feature type (the Line Type legend), and "
         "travel. layers: per layer (1-based, as set_view's layer) Z, height, seconds and grams, paged; layer_features adds "
@@ -602,7 +602,7 @@ void register_view_tools(McpService& service)
                        {"layer_z", {{"type", "number"}, {"minimum", 0}, {"description", "Preview: show layers up to the first whose top is at or above this height (mm), as the slider places a custom G-code."}}},
                        {"view_type", enum_prop(view_types, "Preview color scheme.")},
                        {"legend", {{"type", "object"}, {"additionalProperties", {{"type", "boolean"}}},
-                                   {"description", "Preview: show (true) or hide (false) legend rows: feature types by name as get_preview lists them "
+                                   {"description", "Preview: show (true) or hide (false) legend rows: feature types by name as get_slice_stats lists them "
                                                    "(\"Sparse infill\"), and travel, wipe, retract, unretract, seams, filament_changes, color_changes, "
                                                    "pauses, custom_gcode, in any case and with _ or a space between words. Hiding a row this "
                                                    "print lacks does nothing. Applied after view_type."}}},
@@ -714,7 +714,7 @@ void register_view_tools(McpService& service)
                             hi = std::clamp(r[1].get<int>() - 1, lo, max);
                         }
                         if (args.contains("layer_z")) {
-                            // The slider's own rule for a height, which set_layer_gcode's z follows too.
+                            // The slider's own rule for a height, which set_custom_gcode_at_layer's z follows too.
                             const double z = args["layer_z"].get<double>();
                             hi             = layers->get_tick_from_value(z, true);
                             if (hi < 0 || hi > max)

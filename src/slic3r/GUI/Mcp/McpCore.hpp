@@ -55,7 +55,7 @@ public:
     virtual void call_ended(uint64_t call, const ToolResult& result) = 0;
 };
 
-// Executes tool calls for the protocol layer and for scripts: observation tools inline on the
+// Executes tool calls for the protocol layer, replays and scripts: observation tools inline on the
 // calling thread, everything else as a job on a thread of its own, with the reply budget, the
 // blocked-by-dialog probe, blocking slots, operation admission and the session journal. Independent
 // of wx so the threading contract is unit-testable with a hand-driven UiDispatcher.
@@ -76,7 +76,7 @@ public:
 
     // A call from a client. Mutate tools become top-level jobs.
     ToolResult call(const ToolDef& def, const nlohmann::json& args) override;
-    // A call made by a running job (a script step). The new job's parent is `parent_job`, so a
+    // A call made by a running job (a replay step or a script's call). The new job's parent is `parent_job`, so a
     // `wait {for:"idle"}` from that job does not wait for it, and the journal leaves it out.
     ToolResult call_child(const ToolDef& def, const nlohmann::json& args, const std::string& parent_job,
                           const std::string& plugin = {});

@@ -1,4 +1,4 @@
-// get_state, wait and get_log: what an agent reads before and after acting.
+// get_app_state, wait and get_log: what an agent reads before and after acting.
 
 #include "JobRegistry.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -167,7 +167,7 @@ json app_state(McpService& service)
         }
     state["objects"]      = plater->model().objects.size();
     state["slicing"]      = plater->is_slicing_any();
-    // The selection select acts on: the assemble view's while it is shown, else Prepare's.
+    // The selection select_objects acts on: the assemble view's while it is shown, else Prepare's.
     GLCanvas3D* assemble = plater->get_assmeble_canvas3D();
     GLCanvas3D* scene    = assemble != nullptr && plater->get_current_canvas3D() == assemble ? assemble : plater->get_view3D_canvas3D();
     state["selection"]   = scene != nullptr ? selection_state(*scene) : json();
@@ -221,21 +221,21 @@ void register_app_tools(McpService& service)
     ToolRegistry& reg = service.registry();
 
     reg.add(inspect_tool(
-        "get_state", L("Get app state"),
+        "get_app_state", L("Get app state"),
         "Snapshot of OrcaSlicer. Call it first and whenever you are unsure what the app is doing. The app: version, platform "
         "and display backend, whether it is ready, the main window, the MCP endpoint (mcp), python (available: Python runs "
-        "in this build; scripts_allowed: run_python may run, which only a person turns on, in Preferences > AI features > "
-        "Python scripts) and design_tab (the Design tab and cad_call are on; a person turns the CAD feature on in "
+        "in this build; scripts_allowed: run_script may run, which only a person turns on, in Preferences > AI features > "
+        "Python scripts) and design_tab (the Design tab and call_cad_tool are on; a person turns the CAD feature on in "
         "Preferences and restarts). The project: current tab and mode, printer technology, name, path and unsaved changes, "
         "selected printer/process/filament presets, plates (count, current), object count, the selection (objects, the "
         "instances [[object, instance]] they are selected in and, when parts rather than whole instances are selected, "
-        "volumes [[object, part]], in the indices select takes; wipe_tower when a prime tower is selected; canvas is the 3D "
+        "volumes [[object, part]], in the indices select_objects takes; wipe_tower when a prime tower is selected; canvas is the 3D "
         "view it belongs to), slicing state, and "
         "the Preview's view type, time mode and layer range (1-based, with their Z). What is going on: open modal "
         "dialogs, each with its title, buttons (enabled: false when disabled) and a message that reads it as shown: its "
         "text and its controls row by row, fields [value], choices [value ▾], checkboxes [x] / [ ] / [-], radio and "
         "selector options (*) / ( ), list rows \"- row | cells\", secrets [******], \" (disabled)\" after a disabled "
-        "control; menus closed unseen (a menu a call opened that no reply listed), dialog_auto_answer rules in force, "
+        "control; menus closed unseen (a menu a call opened that no reply listed), auto_answer_dialogs rules in force, "
         "notifications, print host uploads (state, progress, error), the open gizmo, running jobs and a running "
         "recording.",
         object_schema({}), [&service](const json&, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&service] { return app_state(service); })); }));
@@ -243,7 +243,7 @@ void register_app_tools(McpService& service)
     ToolDef wait = inspect_tool(
         "wait", L("Wait for a condition"),
         "Block until a condition holds or timeout_s passes (max 50). for: \"ready\" (startup finished), \"idle\" (no dialog, "
-        "no running job, nothing slicing or arranging, no gizmo working in the background; a run_python run counts only "
+        "no running job, nothing slicing or arranging, no gizmo working in the background; a run_script run counts only "
         "through the calls it makes), \"dialog\" / \"no_dialog\", or \"job\" with a job id an earlier call returned, whose "
         "result is then the reply. On timeout the reply is {satisfied: false}: call it again.",
         object_schema({{"for", enum_prop({"ready", "idle", "dialog", "no_dialog", "job"}, "What to wait for; default job when job "

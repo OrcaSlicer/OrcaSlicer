@@ -219,7 +219,7 @@ TEST_CASE("Ctrl in a chord is the platform's command key on a page", "[Mcp]")
 {
     const json mods = web_key("Ctrl+S")["mods"];
 #ifdef __APPLE__
-    // Command on macOS, as ui_key's Ctrl is for widgets; RawCtrl is the Control key.
+    // Command on macOS, as press_keys's Ctrl is for widgets; RawCtrl is the Control key.
     CHECK(mods["meta"] == true);
     CHECK(mods["ctrl"] == false);
     const json raw = web_key("RawCtrl+S")["mods"];
@@ -502,18 +502,18 @@ TEST_CASE("a press is released only once its down came back, and a confirmed rel
     CHECK(kept[0].id == other);
 }
 
-TEST_CASE("a script's presses are told from a client's for the cleanup when either ends", "[Mcp]")
+TEST_CASE("a run's presses are told from a client's for the cleanup when either ends", "[Mcp]")
 {
-    WebPresses       presses;
+    WebPresses presses;
     const PressAgent a{1, "d", ""}, b{2, "d", ""};
-    const auto       client = presses.hold(a, "");
-    const auto       script = presses.hold(b, "job-7");
+    const auto client    = presses.hold(a, "");
+    const auto run_press = presses.hold(b, "job-7");
     presses.sent(client);
-    presses.sent(script);
+    presses.sent(run_press);
     const std::string job = "job-7", none;
-    const auto        by_script = presses.owned(&job);
-    REQUIRE(by_script.size() == 1);
-    CHECK(by_script[0].id == script);
+    const auto by_run     = presses.owned(&job);
+    REQUIRE(by_run.size() == 1);
+    CHECK(by_run[0].id == run_press);
     const auto by_client = presses.owned(&none);
     REQUIRE(by_client.size() == 1);
     CHECK(by_client[0].id == client);

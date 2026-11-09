@@ -7100,7 +7100,7 @@ bool DesignPanel::on_add_plane()
     // Tangent and confirming with nothing selected used to produce an offset plane reported as
     // a success — the user asks for one construction and silently receives another. The kernel
     // keeps its fallback (it must return SOMETHING), but no user gesture should reach it. The
-    // rules are the kernel's, shared with cad_call's `plane`.
+    // rules are the kernel's, shared with call_cad_tool's `plane`.
     CadFeature candidate;
     apply_plane_refs(candidate);
     if (const std::string why = m_doc.datum_plane_refusal(candidate); !why.empty()) {

@@ -49,7 +49,7 @@ std::string JobRegistry::register_job(const std::string& tool, const std::string
     std::lock_guard<std::mutex> lock(m_mutex);
     const std::size_t running = std::count_if(m_jobs.begin(), m_jobs.end(), [](const auto& kv) { return !kv.second.finished; });
     if (running >= kMaxRunning)
-        throw ToolFailure("Too many running jobs; wait for some to finish (see get_state.jobs)");
+        throw ToolFailure("Too many running jobs; wait for some to finish (see get_app_state.jobs)");
     std::string id = "j" + std::to_string(m_next++);
     Job job;
     job.tool    = tool;
@@ -150,7 +150,7 @@ void JobRegistry::finish(const std::string& id, ToolResult result)
         it->second.result   = std::move(result);
         m_finished_order.push_back(id);
         // Forget the oldest finished jobs beyond the limit, except those a running parent may
-        // still wait for (a script's await:false steps) while fewer than kKeepFinishedMax are kept.
+        // still wait for (a replay's await:false steps) while fewer than kKeepFinishedMax are kept.
         auto old = m_finished_order.begin();
         while (m_finished_order.size() > kKeepFinished && old != m_finished_order.end()) {
             const auto job    = m_jobs.find(*old);

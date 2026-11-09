@@ -1525,11 +1525,11 @@ int CLI::run(int argc, char **argv)
             params.mcp.port = opt->value;
         if (const auto *opt = m_config.opt<ConfigOptionString>("mcp_token"))
             params.mcp.token = opt->value;
-        // Resolved now: the GUI moves the working directory to <data_dir>/log before the script runs.
-        if (const auto *opt = m_config.opt<ConfigOptionString>("mcp_script"))
-            params.mcp.script = resolve_cli_input_path(opt->value);
-        if (const auto *opt = m_config.opt<ConfigOptionString>("mcp_script_out"))
-            params.mcp.script_out = resolve_cli_input_path(opt->value);
+        // Resolved now: the GUI moves the working directory to <data_dir>/log before the replay or script runs.
+        if (const auto *opt = m_config.opt<ConfigOptionString>("mcp_run"))
+            params.mcp.run_file = resolve_cli_input_path(opt->value);
+        if (const auto *opt = m_config.opt<ConfigOptionString>("mcp_run_out"))
+            params.mcp.run_out = resolve_cli_input_path(opt->value);
 
         BOOST_LOG_TRIVIAL(info) << "begin to launch OrcaSlicer GUI soon";
         return Slic3r::GUI::GUI_Run(params);

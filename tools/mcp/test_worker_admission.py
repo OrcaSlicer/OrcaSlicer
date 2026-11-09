@@ -6,8 +6,8 @@
 
 Fills the bed with small cubes, so an arrange with rotation runs for many seconds, and starts it three
 ways: the typed `arrange`, `run_action obj_arrange`, and a click on the Arrange options panel's
-Arrange button, a recover input. While each runs, a `transform`, `ui_key Delete` on the canvas and a
-GL toolbar click are refused and `list_objects` answers; `cancel` stops it, the call reports it
+Arrange button, a recover input. While each runs, a `transform`, `press_keys Delete` on the canvas and a
+GL toolbar click are refused and `list_objects` answers; `cancel_job` stops it, the call reports it
 cancelled, and a change is admitted once the worker is idle. Exits 0 when every check passes.
 """
 
@@ -24,7 +24,7 @@ import orca_mcp  # noqa: E402
 STARTERS = {
     "arrange": ("arrange", {"rotate": True}),
     "run_action": ("run_action", {"id": "orca_command:obj_arrange:orca"}),
-    "ui_click": ("ui_click", {"target": {"imgui": "Arrange", "window": "Arrange options"}}),
+    "click": ("click", {"target": {"imgui": "Arrange", "window": "Arrange options"}}),
 }
 
 
@@ -54,14 +54,14 @@ def main():
     c.call("new_project", discard_changes=True)
     c.call("set_view", tab="prepare")
     for size in ["6 6 6", "4 9 5", "7 3 5"]:
-        c.call("select", none=True)
+        c.call("select_objects", none=True)
         c.call("run_action", id="orca_command:add_primitive_cube:orca", param=size)
     for o in range(3):
         c.call("arrange", fill=o, spacing=0, rotate=False)
 
     for name, (tool, args) in STARTERS.items():
-        if name == "ui_click" and c.call("ui_snapshot", query="Arrange options", include_menus=False).get("nodes", 0) == 0:
-            c.call("ui_click", target={"gltoolbar": "arrange"})
+        if name == "click" and c.call("list_widgets", query="Arrange options", include_menus=False).get("nodes", 0) == 0:
+            c.call("click", target={"gltoolbar": "arrange"})
         out = {}
 
         def run():
@@ -74,12 +74,12 @@ def main():
         check(name + ": transform refused", not ok and "Busy: job" in reply, reply)
         ok, reply = attempt(c, "list_objects", limit=1)
         check(name + ": list_objects answers", ok, reply)
-        ok, reply = attempt(c, "ui_key", keys="Delete")
-        check(name + ": ui_key Delete refused", not ok and "Busy: job" in reply, reply)
-        ok, reply = attempt(c, "ui_click", target={"gltoolbar": "orient"})
+        ok, reply = attempt(c, "press_keys", keys="Delete")
+        check(name + ": press_keys Delete refused", not ok and "Busy: job" in reply, reply)
+        ok, reply = attempt(c, "click", target={"gltoolbar": "orient"})
         check(name + ": GL toolbar click refused", not ok and "Busy: job" in reply, reply)
-        ok, reply = attempt(c, "cancel")
-        check(name + ": cancel stops it", ok and reply.get("was_running") and reply.get("job"), reply)
+        ok, reply = attempt(c, "cancel_job")
+        check(name + ": cancel_job stops it", ok and reply.get("was_running") and reply.get("job"), reply)
         starter.join(300)
         ok, reply = out.get("reply", (True, None))
         check(name + ": the call reports it cancelled", not ok and "cancelled" in reply, reply)

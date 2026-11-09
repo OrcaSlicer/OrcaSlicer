@@ -42,7 +42,7 @@ public:
 
         m_about = new Label(this, Label::Body_13,
                             _L("When this is on, you can run Python scripts (.py files) in the Run Script panel and with "
-                               "--mcp-script, and AI agents connected to the MCP server can send Python code to run inside "
+                               "--mcp-run, and AI agents connected to the MCP server can send Python code to run inside "
                                "OrcaSlicer."));
         m_about->Wrap(FromDIP(kTextWidth));
         sizer->Add(m_about, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(16));

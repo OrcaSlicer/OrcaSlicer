@@ -46,7 +46,7 @@
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include "slic3r/GUI/Mcp/McpPaths.hpp"
-#include "slic3r/GUI/Mcp/UiInspector.hpp"   // gizmo_name: the name get_state reports
+#include "slic3r/GUI/Mcp/UiInspector.hpp"   // gizmo_name: the name get_app_state reports
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
 #include "slic3r/GUI/CAD/DesignCanvas.hpp"
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
@@ -859,7 +859,7 @@ json plane_json(const SketchPlane& p, const Vec3d& modeling_origin)
 // `add` creates them and returns the index reported under `index_key`. A rebuild that fails, or an
 // `add` that throws, leaves the document as it was with nothing to redo, puts "Edit rejected" on
 // the status line as a refused GUI edit does, and fails the call with the kernel's reason, so the
-// failed call can be left out of an exported script.
+// failed call can be left out of an exported replay.
 // `slow` rebuilds as the cards do, off the UI thread behind the progress dialog (recompute_guarded),
 // for features whose helical pipes and skins can take seconds: the window keeps painting and
 // inspection calls keep answering meanwhile, while the rebuild refuses every Design call.
@@ -1675,7 +1675,7 @@ json sketch_entity_to(const SketchEntity& e, int index)
 
 // --- A feature as its card shows it: describe_feature and set_feature ------------------------
 
-// Names in the cad_call vocabulary, in enum order.
+// Names in the call_cad_tool vocabulary, in enum order.
 const char* const kModes[]          = {"new", "union", "subtract", "intersect"};   // BooleanMode
 const char* const kShapes[]         = {"rectangle", "circle"};                     // SketchShape
 const char* const kExtrudeEnds[]    = {"blind", "symmetric", "two_sided", "through_all", "up_to_face", "up_to_vertex"};
@@ -1708,7 +1708,7 @@ template<size_t N> int enum_index(const std::string& key, const json& v, const c
     throw std::runtime_error(key + " must be one of " + list);
 }
 
-// A constraint's value as cad_call states it: an angle in degrees (the recipe holds radians), a
+// A constraint's value as call_cad_tool states it: an angle in degrees (the recipe holds radians), a
 // length in mm. Null for the types that carry none.
 json constraint_value(SketchConstraintType t, double v)
 {
@@ -2223,8 +2223,8 @@ json action_sketch_begin(DesignPanel* panel, const json& params)
 }
 
 // The sketch's Confirm. An empty sketch is refused before anything changes, where the GUI's commit
-// drops it with a status line: a failed call is left out of an exported script, so the session
-// must still be open when the script's next sketch call replays.
+// drops it with a status line: a failed call is left out of an exported replay, so the session
+// must still be open when the replay's next sketch call runs.
 json action_sketch_commit(DesignPanel* panel, const json& params)
 {
     (void)params;
@@ -4006,7 +4006,7 @@ struct CadMethod
     CadAccess   access;
     bool        ok_false;   // legacy: a rejected rebuild is reported in the reply, not as an error
     json (*run)(DesignPanel* panel, const json& params);
-    // It changes Prepare's model, so only the MCP server's cad_call, under its mutate guard, may
+    // It changes Prepare's model, so only the MCP server's call_cad_tool, under its mutate guard, may
     // run it; the socket would run it with no modal check, inside any nested event loop.
     bool        prepare = false;
 };
@@ -4177,7 +4177,7 @@ std::string handle_on_main(const std::string& method, const json& params, const 
     //
     // So a caller may pass back the "generation" it got from describe_scene or query_topology,
     // and a mismatch is refused instead of silently obeyed. Optional by design: omitting it
-    // keeps every existing script working exactly as before, and supplying it is what buys the
+    // keeps every existing replay and caller working exactly as before, and supplying it is what buys the
     // guarantee. One check at the dispatcher rather than one per handler, so a method added
     // later cannot forget it.
     //
@@ -4222,7 +4222,7 @@ std::string dispatch_request(const std::string& line)
     json params        = req.contains("params") ? req["params"] : json::object();
     if (method.empty()) return rpc_error(id, -32600, "missing method");
     if (const CadMethod* m = find_method(method); m != nullptr && m->prepare)
-        return rpc_error(id, -32601, method + " changes the plate; call it through the app's MCP server (cad_call)");
+        return rpc_error(id, -32601, method + " changes the plate; call it through the app's MCP server (call_cad_tool)");
 
     auto prom = std::make_shared<std::promise<std::string>>();
     auto fut  = prom->get_future();
@@ -4596,7 +4596,7 @@ std::vector<int> cad_commit_replace(const json& replace, const Model& model)
         // Deleting one opens the "part of a cut object" warning, which the person answers.
         if (model.objects[size_t(i)]->is_cut())
             throw std::runtime_error("object " + std::to_string(i) +
-                                     " is part of a cut object; delete it with select + run_action obj_delete, which asks first");
+                                     " is part of a cut object; delete it with select_objects + run_action obj_delete, which asks first");
         out.push_back(int(i));
     }
     std::sort(out.begin(), out.end());

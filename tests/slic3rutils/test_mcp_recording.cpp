@@ -478,7 +478,7 @@ TEST_CASE("finish returns at once, and the sink drains, writes the end and close
     REQUIRE(slow.wait_for_waiter());
     std::atomic<bool> returned{false};
     std::thread       other([&] {
-        sink.finish(300, "script_ended");
+        sink.finish(300, "run_ended");
         returned = true;
     });
     other.join();
@@ -489,7 +489,7 @@ TEST_CASE("finish returns at once, and the sink drains, writes the end and close
     REQUIRE(sink.wait_finalized(5000ms));
     const SinkResult r = sink.result();
     CHECK(r.written == 5);
-    CHECK(r.ended == "script_ended");
+    CHECK(r.ended == "run_ended");
     std::lock_guard<std::mutex> lock(file->mutex);
     CHECK(file->writes.back().first == 300);
     CHECK(file->closed);
@@ -997,12 +997,12 @@ TEST_CASE("the caption is the newest call that runs or lingers", "[Mcp][Recordin
     CaptionBoard board;
     const auto   t0 = CaptionBoard::Clock::now();
     CHECK_FALSE(board.current(t0).has_value());
-    board.call_started(1, "Run a script", "demo.json", t0);
+    board.call_started(1, "Run a replay", "demo.json", t0);
     REQUIRE(board.current(t0).has_value());
     CHECK(board.current(t0)->id == 1);
     CHECK(board.current(t0)->status == CaptionStatus::Running);
 
-    // A step replaces the script at once, and lingers after it ends.
+    // A step replaces the replay at once, and lingers after it ends.
     board.call_started(2, "Slice", "", t0 + 100ms);
     CHECK(board.current(t0 + 100ms)->id == 2);
     board.call_ended(2, true, "", t0 + 1s);
@@ -1016,7 +1016,7 @@ TEST_CASE("the caption is the newest call that runs or lingers", "[Mcp][Recordin
     CHECK(line->id == 2);
     CHECK_THAT(line->alpha, WithinAbs(0.5, 0.01));
 
-    // Faded: the script, still running, shows again, and lingers in turn when it ends.
+    // Faded: the replay, still running, shows again, and lingers in turn when it ends.
     line = board.current(t0 + 5500ms);
     REQUIRE(line.has_value());
     CHECK(line->id == 1);
@@ -1031,18 +1031,18 @@ TEST_CASE("the caption is the newest call that runs or lingers", "[Mcp][Recordin
     CHECK_FALSE(board.current(t0 + 10500ms).has_value());
 }
 
-TEST_CASE("a burst of quick steps never pushes out the script still running", "[Mcp][Recording]")
+TEST_CASE("a burst of quick steps never pushes out the replay still running", "[Mcp][Recording]")
 {
     CaptionBoard board;
     const auto   t0 = CaptionBoard::Clock::now();
-    board.call_started(1, "Run a script", "long.json", t0);
+    board.call_started(1, "Run a replay", "long.json", t0);
     for (uint64_t id = 2; id <= 101; ++id) {
         board.call_started(id, "Mouse gesture on the 3D view", "drag", t0 + 10ms * id);
         board.call_ended(id, true, "", t0 + 10ms * id + 5ms);
     }
     REQUIRE(board.current(t0 + 1100ms).has_value());
     CHECK(board.current(t0 + 1100ms)->id == 101);
-    // The last step has faded: the script shows again.
+    // The last step has faded: the replay shows again.
     const std::optional<CaptionBoard::Line> line = board.current(t0 + 6s);
     REQUIRE(line.has_value());
     CHECK(line->id == 1);
@@ -1057,23 +1057,23 @@ TEST_CASE("a failure's caption hides what the call's caption hides", "[Mcp][Reco
     CHECK(caption_error("set_settings", settings, R"(Unsupported value [{"value":"SECRET42"}])") ==
           "Unsupported value [{\"value\":\"" + dots + "\"}]");
     // A value typed into a field found by its label may be a password.
-    CHECK(caption_error("ui_input", {{"target", {{"label", "Password"}}}, {"value", "hunter22"}}, "Cannot set hunter22") ==
+    CHECK(caption_error("set_widget_value", {{"target", {{"label", "Password"}}}, {"value", "hunter22"}}, "Cannot set hunter22") ==
           "Cannot set " + dots);
     // A setting field's value is shown in the caption, so its error stays as it is.
-    CHECK(caption_error("ui_input", {{"target", {{"option", "layer_height"}}}, {"value", "0.33"}}, "0.33 is out of range") ==
+    CHECK(caption_error("set_widget_value", {{"target", {{"option", "layer_height"}}}, {"value", "0.33"}}, "0.33 is out of range") ==
           "0.33 is out of range");
-    CHECK(caption_error("ui_key", {{"text", "pa55word"}}, "typed pa55word into nothing") == "typed " + dots + " into nothing");
-    // A secret in a step of an inline script is found under its key.
-    const json script = {{"script", {{"orca_script", 1}, {"steps", json::array({{{"tool", "set_settings"}, {"args", {{"values", {{"printhost_password", "letmein9"}}}}}}})}}}};
-    CHECK(caption_error("run_script", script, "step 1 failed: letmein9 rejected") == "step 1 failed: " + dots + " rejected");
+    CHECK(caption_error("press_keys", {{"text", "pa55word"}}, "typed pa55word into nothing") == "typed " + dots + " into nothing");
+    // A secret in a step of an inline replay is found under its key.
+    const json replay = {{"replay", {{"orca_replay", 1}, {"steps", json::array({{{"tool", "set_settings"}, {"args", {{"values", {{"printhost_password", "letmein9"}}}}}}})}}}};
+    CHECK(caption_error("run_replay", replay, "step 1 failed: letmein9 rejected") == "step 1 failed: " + dots + " rejected");
     // Too short to take out safely: the error is left out.
-    CHECK(caption_error("ui_key", {{"text", "ab"}}, "typed ab").empty());
+    CHECK(caption_error("press_keys", {{"text", "ab"}}, "typed ab").empty());
     // As JSON quotes it inside an error that dumps the arguments.
     const json quoted = {{"values", {{"printhost_apikey", "alpha\"omega"}}}};
     CHECK(caption_error("set_settings", quoted, R"(Unsupported value "alpha\"omega")") == "Unsupported value \"" + dots + "\"");
     // Masked in the whole error before it is shortened, so no start of a value is left past the cut.
     const std::string long_error = std::string(95, 'x') + " SECRETVALUE";
-    const std::string masked     = shorten(caption_error("ui_key", {{"text", "SECRETVALUE"}}, long_error), 100);
+    const std::string masked     = shorten(caption_error("press_keys", {{"text", "SECRETVALUE"}}, long_error), 100);
     CHECK(masked.find("SECRE") == std::string::npos);
 }
 
@@ -1088,23 +1088,23 @@ TEST_CASE("an error is shortened to its first line at a character boundary", "[M
 
 TEST_CASE("captions name what a call acts on and never show secrets", "[Mcp][Recording]")
 {
-    CHECK(caption_detail("ui_click", {{"target", {{"label", "Slice plate"}}}}) == "Slice plate");
-    CHECK(caption_detail("ui_click", {{"target", {{"menu", "File>Export>Export G-code"}}}}) == "File > Export > Export G-code");
-    CHECK(caption_detail("ui_click", {{"target", {{"row", "Plate 1>Cube"}, {"column", "Printable"}}}}) == "Plate 1 > Cube (Printable)");
-    CHECK(caption_detail("ui_click", {{"target", "w12"}}).empty()); // a ref: its locator comes later
-    CHECK(caption_detail("ui_input", {{"target", {{"option", "layer_height"}}}, {"value", 0.2}}) == "layer_height = 0.2");
-    CHECK(caption_detail("ui_input", {{"target", {{"option", "printhost_apikey"}}}, {"value", "s3cret"}}) == "printhost_apikey");
-    CHECK(caption_detail("ui_input", {{"target", {{"label", "Password"}}}, {"value", "s3cret"}}) == "Password");
-    CHECK(caption_detail("ui_input", {{"target", "w3"}, {"value", "s3cret"}}).empty());
-    CHECK(caption_detail("ui_key", {{"keys", "ctrl+s"}, {"text", "s3cret"}}) == "ctrl+s");
-    CHECK(caption_detail("ui_key", {{"text", "s3cret"}}).empty());
+    CHECK(caption_detail("click", {{"target", {{"label", "Slice plate"}}}}) == "Slice plate");
+    CHECK(caption_detail("click", {{"target", {{"menu", "File>Export>Export G-code"}}}}) == "File > Export > Export G-code");
+    CHECK(caption_detail("click", {{"target", {{"row", "Plate 1>Cube"}, {"column", "Printable"}}}}) == "Plate 1 > Cube (Printable)");
+    CHECK(caption_detail("click", {{"target", "w12"}}).empty()); // a ref: its locator comes later
+    CHECK(caption_detail("set_widget_value", {{"target", {{"option", "layer_height"}}}, {"value", 0.2}}) == "layer_height = 0.2");
+    CHECK(caption_detail("set_widget_value", {{"target", {{"option", "printhost_apikey"}}}, {"value", "s3cret"}}) == "printhost_apikey");
+    CHECK(caption_detail("set_widget_value", {{"target", {{"label", "Password"}}}, {"value", "s3cret"}}) == "Password");
+    CHECK(caption_detail("set_widget_value", {{"target", "w3"}, {"value", "s3cret"}}).empty());
+    CHECK(caption_detail("press_keys", {{"keys", "ctrl+s"}, {"text", "s3cret"}}) == "ctrl+s");
+    CHECK(caption_detail("press_keys", {{"text", "s3cret"}}).empty());
     const std::string settings =
         caption_detail("set_settings", {{"scope", "printer"}, {"values", {{"printhost_password", "s3cret"}, {"nozzle_diameter", "0.4"}}}});
     CHECK(settings.find("s3cret") == std::string::npos);
     CHECK(settings.find("nozzle_diameter = 0.4") != std::string::npos);
     CHECK(caption_detail("open_files", {{"paths", {"C:/models/part.stl", "/tmp/b.3mf"}}}) == "part.stl, b.3mf");
     CHECK(caption_detail("run_action", {{"id", "orca_command:obj_arrange:orca"}}) == "obj_arrange");
-    CHECK(caption_detail("webview_eval", {{"script", "login('s3cret')"}}).empty());
+    CHECK(caption_detail("run_javascript", {{"code", "login('s3cret')"}}).empty());
     CHECK(is_sensitive_key("printhost_apikey"));
     CHECK(is_sensitive_key("cloud_Token"));
     CHECK_FALSE(is_sensitive_key("layer_height"));
@@ -1456,7 +1456,7 @@ TEST_CASE("a recording an encode deleted is no longer the last one", "[Mcp][Reco
     CHECK_FALSE(files.is_finished(fs::path("C:/out/two.mkv")));
 }
 
-TEST_CASE("an exported script encodes the recording it makes and leaves other sources alone", "[Mcp][Recording]")
+TEST_CASE("an exported replay encodes the recording it makes and leaves other sources alone", "[Mcp][Recording]")
 {
     Journal j;
     auto    ok = [&](const std::string& tool, const json& args) { j.end(j.begin(tool, args), ToolResult::ok()); };
@@ -1464,7 +1464,7 @@ TEST_CASE("an exported script encodes the recording it makes and leaves other so
     ok("stop_recording", json::object());
     ok("encode_recording", {{"path", "C:/Users/me/out/rec.mkv"}, {"save_path", "C:/Users/me/out/rec.mp4"}});
     ok("encode_recording", {{"path", "D:/videos/old.mkv"}});
-    const json steps = j.to_script("s")["steps"];
+    const json steps = j.to_replay("s")["steps"];
     REQUIRE(steps.size() == 4);
     CHECK(steps[0]["args"]["save_path"] == "${out_dir}/rec.mkv");
     CHECK(steps[2]["args"]["path"] == "${out_dir}/rec.mkv");

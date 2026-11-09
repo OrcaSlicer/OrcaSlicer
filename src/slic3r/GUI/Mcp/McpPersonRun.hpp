@@ -13,10 +13,11 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 
 class McpService;
 
-// A script run the script runner dialog started through McpService::start_script_run(): an
-// unjournaled job whose steps report as they start and end. The service owns the thread that follows
-// it; the dialog holds it to stop it and drops its events when it closes.
-class ScriptRun : public std::enable_shared_from_this<ScriptRun>
+// A run a person started from a window: a replay Action Replay starts through McpService::start_replay_run(),
+// or a Run Script panel session through start_python_session(). An unjournaled job whose steps report as
+// they start and end. The service owns the thread that follows it; the window holds it to stop it and drops
+// its events when it closes.
+class PersonRun : public std::enable_shared_from_this<PersonRun>
 {
 public:
     // Called on the UI thread, never after detach().
@@ -24,17 +25,17 @@ public:
     {
         std::function<void(std::size_t index)>          step_started;
         std::function<void(const nlohmann::json& entry)> step_finished;
-        // Exactly once: run_script's result, or {"error": message} when the run failed as a call (refused,
+        // Exactly once: run_replay's result, or {"error": message} when the run failed as a call (refused,
         // or its job ended in an error or was lost); `jobs` are the jobs the run saved, for later steps,
         // or null when it was refused before it started.
         std::function<void(const nlohmann::json& result, const nlohmann::json& jobs)> finished;
     };
 
-    ScriptRun(McpService& service, Events events);
+    PersonRun(McpService& service, Events events);
 
     // UI thread. Latches the stop, so one asked before the job exists still counts, asks the service to
     // stop the job's lineage once it is known, and cancels the run's operation (a slice, an export, a
-    // background job) as the cancel tool does. Does nothing once the service is stopping.
+    // background job) as cancel_job does. Does nothing once the service is stopping.
     void stop();
     // UI thread: the events are dropped from now on; the run carries on to its end.
     void detach();

@@ -243,7 +243,7 @@ TEST_CASE("a UI call that times out behind a native dialog names the dialog", "[
     std::string      error;
     json             details;
     try {
-        invoker.run(GuardClass::Inspect, "get_state", [&] { ran = true; return json(); }, 100ms);
+        invoker.run(GuardClass::Inspect, "get_app_state", [&] { ran = true; return json(); }, 100ms);
     } catch (const ToolFailure& f) {
         error   = f.what();
         details = f.details;
@@ -262,7 +262,7 @@ TEST_CASE("a UI call that times out behind a wx dialog keeps the busy message", 
     UiInvoker  invoker(ui, [] { return GuardState{}; }, {}, [&] { return dialogs; });
     std::string error;
     try {
-        invoker.run(GuardClass::Inspect, "get_state", [] { return json(); }, 100ms);
+        invoker.run(GuardClass::Inspect, "get_app_state", [] { return json(); }, 100ms);
     } catch (const ToolFailure& f) {
         error = f.what();
     }
@@ -367,7 +367,7 @@ TEST_CASE("a recover call that targets outside the dialog applies the mutate gua
     auto attempt = [&]() -> std::string {
         auto fut = std::async(std::launch::async, [&]() -> std::string {
             try {
-                invoker.run(GuardClass::Recover, "ui_click", [&] {
+                invoker.run(GuardClass::Recover, "click", [&] {
                     invoker.require_mutate();
                     return json();
                 });
@@ -390,7 +390,7 @@ TEST_CASE("a recover call that targets outside the dialog applies the mutate gua
         return invoker.run(GuardClass::Mutate, "outer", [&] {
             auto m = std::async(std::launch::async, [&]() -> std::string {
                 try {
-                    invoker.run(GuardClass::Recover, "ui_click", [&] {
+                    invoker.run(GuardClass::Recover, "click", [&] {
                         invoker.require_mutate();
                         return json();
                     });
@@ -575,7 +575,7 @@ TEST_CASE("a native dialog that the probe sees gets the native note", "[Mcp]")
     CHECK(h.jobs.wait(envelope.data["job"], 3000ms).has_value());
 }
 
-TEST_CASE("a native message box with buttons gets the dialog_respond note", "[Mcp]")
+TEST_CASE("a native message box with buttons gets the answer_dialog note", "[Mcp]")
 {
     // As ModalTracker describes a message box whose buttons can be pressed (Windows, Linux).
     const json box = json::array({{{"title", "Plugin permission request"},
@@ -599,7 +599,7 @@ TEST_CASE("a native message box with buttons gets the dialog_respond note", "[Mc
     REQUIRE(envelope.data["status"] == "blocked_by_dialog");
     CHECK(envelope.data["dialogs"] == box);
     const std::string note = envelope.data.value("note", "");
-    CHECK(note.find("dialog_respond") != std::string::npos);
+    CHECK(note.find("answer_dialog") != std::string::npos);
     CHECK(note.find("only a person") == std::string::npos);
     CHECK(h.jobs.wait(envelope.data["job"], 3000ms).has_value());
 }
@@ -655,7 +655,7 @@ TEST_CASE("a recover call that opens another modal returns blocked_by_dialog", "
     CHECK(h.jobs.wait(r.data["job"], 3000ms).has_value());
 }
 
-TEST_CASE("every mutate call is refused while a slice job runs, but cancel and recover tools run", "[Mcp]")
+TEST_CASE("every mutate call is refused while a slice job runs, but cancel_job and recover tools run", "[Mcp]")
 {
     Harness           h;
     std::atomic<bool> release{false};
@@ -668,7 +668,7 @@ TEST_CASE("every mutate call is refused while a slice job runs, but cancel and r
     slice.budget_ms = 100;
     h.registry.add(slice);
     h.registry.add(tool("new_project", GuardClass::Mutate, [](const json&, ToolContext&) { return ToolResult::ok(); }));
-    ToolDef cancel = tool("cancel", GuardClass::Mutate, [&](const json&, ToolContext&) {
+    ToolDef cancel = tool("cancel_job", GuardClass::Mutate, [&](const json&, ToolContext&) {
         release = true;
         return ToolResult::ok();
     });
@@ -681,9 +681,9 @@ TEST_CASE("every mutate call is refused while a slice job runs, but cancel and r
     REQUIRE(running.data["status"] == "running");
     const ToolResult refused = h.call("new_project");
     CHECK(refused.is_error);
-    CHECK(refused.message.find("wait for it or cancel it") != std::string::npos);
+    CHECK(refused.message.find("wait for it or stop it with cancel_job") != std::string::npos);
     CHECK_FALSE(h.call("answer").is_error);
-    CHECK_FALSE(h.call("cancel").is_error);
+    CHECK_FALSE(h.call("cancel_job").is_error);
     CHECK(h.jobs.wait(running.data["job"], 3000ms).has_value());
     CHECK_FALSE(h.call("new_project").is_error);
 }
@@ -727,7 +727,7 @@ TEST_CASE("the call observer hears inline, job and child calls, and not calls re
         ctx.set_journal_args({{"target", {{"label", "Slice"}}}});
         return ToolResult::error("gone");
     }));
-    h.registry.add(tool("script", GuardClass::Mutate, [](const json&, ToolContext& ctx) { return ctx.call_child("click", json::object()); }));
+    h.registry.add(tool("replay", GuardClass::Mutate, [](const json&, ToolContext& ctx) { return ctx.call_child("click", json::object()); }));
     std::atomic<bool> release{false};
     ToolDef           slice = tool("slice", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
         ctx.begin_operation();
@@ -743,14 +743,14 @@ TEST_CASE("the call observer hears inline, job and child calls, and not calls re
     CHECK(heard.take() == std::vector<std::string>{"start look", "end ok"});
     CHECK(h.call("click").is_error);
     CHECK(heard.take() == std::vector<std::string>{"start click", R"(args {"target":{"label":"Slice"}})", "end error"});
-    h.call("script");
+    h.call("replay");
     CHECK(heard.take() ==
-          std::vector<std::string>{"start script", "start click in a job", R"(args {"target":{"label":"Slice"}})", "end error", "end error"});
+          std::vector<std::string>{"start replay", "start click in a job", R"(args {"target":{"label":"Slice"}})", "end error", "end error"});
 
     const ToolResult running = h.call("slice");
     REQUIRE(running.data["status"] == "running");
     CHECK(heard.take() == std::vector<std::string>{"start slice"});
-    CHECK(h.call("script").is_error); // refused by admission: it never ran
+    CHECK(h.call("replay").is_error); // refused by admission: it never ran
     CHECK(heard.take().empty());
     release = true;
     REQUIRE(h.jobs.wait(running.data["job"], 3000ms).has_value());
@@ -816,10 +816,10 @@ TEST_CASE("without a blocking slot a job call returns its envelope at once and a
 TEST_CASE("idle ignores the caller and its ancestors", "[Mcp]")
 {
     JobRegistry jobs;
-    const std::string script = jobs.create("run_script", "");
-    const std::string step   = jobs.create("slice", script);
+    const std::string replay_job = jobs.create("run_replay", "");
+    const std::string step   = jobs.create("slice", replay_job);
     const std::string other  = jobs.create("open_files", "");
-    CHECK(jobs.lineage(step) == std::set<std::string>{step, script});
+    CHECK(jobs.lineage(step) == std::set<std::string>{step, replay_job});
     CHECK(jobs.any_running_except(jobs.lineage(step)));
     jobs.finish(other, ToolResult::ok());
     CHECK_FALSE(jobs.any_running_except(jobs.lineage(step)));
@@ -830,7 +830,7 @@ TEST_CASE("idle ignores the caller and its ancestors", "[Mcp]")
 TEST_CASE("idle skips a job set idle, but not the calls it makes", "[Mcp]")
 {
     JobRegistry       jobs;
-    const std::string run = jobs.create("run_python", "");
+    const std::string run = jobs.create("run_script", "");
     jobs.set_idle(run);
     const std::string child = jobs.create("slice", run);
     CHECK(jobs.any_running_except({}));
@@ -960,21 +960,21 @@ TEST_CASE("only one operation runs at a time", "[Mcp]")
 TEST_CASE("ancestry lists the job chain nearest first", "[Mcp]")
 {
     JobRegistry       jobs;
-    const std::string outer = jobs.create("run_script", "");
-    const std::string inner = jobs.create("run_script", outer);
-    const std::string step  = jobs.create("dialog_auto_answer", inner);
+    const std::string outer = jobs.create("run_replay", "");
+    const std::string inner = jobs.create("run_replay", outer);
+    const std::string step  = jobs.create("auto_answer_dialogs", inner);
     CHECK(jobs.ancestry(step) == std::vector<std::string>{step, inner, outer});
 }
 
 TEST_CASE("a stop asked for a job reaches its descendants and no other job", "[Mcp]")
 {
     JobRegistry       jobs;
-    const std::string script = jobs.create("run_script", "");
-    const std::string step   = jobs.create("slice", script);
+    const std::string replay_job = jobs.create("run_replay", "");
+    const std::string step   = jobs.create("slice", replay_job);
     const std::string other  = jobs.create("open_files", "");
     CHECK_FALSE(jobs.stop_requested(step));
-    jobs.request_stop(script);
-    CHECK(jobs.stop_requested(script));
+    jobs.request_stop(replay_job);
+    CHECK(jobs.stop_requested(replay_job));
     CHECK(jobs.stop_requested(step));
     CHECK_FALSE(jobs.stop_requested(other));
     CHECK_FALSE(jobs.stop_requested(""));
@@ -1011,12 +1011,12 @@ TEST_CASE("a call made by a stopped job sees itself cancelled", "[Mcp]")
     });
     spin.inline_call = true;
     h.registry.add(spin);
-    ToolDef script = tool("script", GuardClass::Mutate, [](const json&, ToolContext& ctx) { return ctx.call_child("spin", json::object()); });
-    script.budget_ms = 50;
-    h.registry.add(script);
+    ToolDef replay = tool("replay", GuardClass::Mutate, [](const json&, ToolContext& ctx) { return ctx.call_child("spin", json::object()); });
+    replay.budget_ms = 50;
+    h.registry.add(replay);
     h.start();
 
-    const ToolResult envelope = h.call("script");
+    const ToolResult envelope = h.call("replay");
     REQUIRE(envelope.data["status"] == "running");
     const auto asked = std::chrono::steady_clock::now();
     h.jobs.request_stop(envelope.data["job"]);
@@ -1029,8 +1029,8 @@ TEST_CASE("a call made by a stopped job sees itself cancelled", "[Mcp]")
 TEST_CASE("a live descendant keeps its lineage after its ancestors are evicted", "[Mcp]")
 {
     JobRegistry       jobs;
-    const std::string root  = jobs.create("run_script", "");
-    const std::string inner = jobs.create("run_script", root);
+    const std::string root  = jobs.create("run_replay", "");
+    const std::string inner = jobs.create("run_replay", root);
     const std::string leaf  = jobs.create("wait", inner);
     jobs.finish(inner, ToolResult::ok());
     jobs.finish(root, ToolResult::ok());
@@ -1043,31 +1043,31 @@ TEST_CASE("a live descendant keeps its lineage after its ancestors are evicted",
     CHECK(jobs.ancestry(leaf) == std::vector<std::string>{leaf, inner, root});
 }
 
-TEST_CASE("a finished job stays while its parent script runs", "[Mcp]")
+TEST_CASE("a finished job stays while its parent replay runs", "[Mcp]")
 {
     JobRegistry       jobs;
-    const std::string script = jobs.create("run_script", "");
-    const std::string saved  = jobs.create("run_action", script);
+    const std::string replay_job = jobs.create("run_replay", "");
+    const std::string saved  = jobs.create("run_action", replay_job);
     jobs.finish(saved, ToolResult::ok({{"x", 1}}));
     for (std::size_t i = 0; i < JobRegistry::kKeepFinished + 5; ++i)
         jobs.finish(jobs.create("t", ""), ToolResult::ok());
     CHECK(jobs.wait(saved, 0ms).has_value());
-    jobs.finish(script, ToolResult::ok());
+    jobs.finish(replay_job, ToolResult::ok());
     for (std::size_t i = 0; i < JobRegistry::kKeepFinished + 5; ++i)
         jobs.finish(jobs.create("t", ""), ToolResult::ok());
     CHECK_THROWS_AS(jobs.wait(saved, 0ms), ToolFailure);
 }
 
-TEST_CASE("finished jobs stay bounded while their parent script runs", "[Mcp]")
+TEST_CASE("finished jobs stay bounded while their parent replay runs", "[Mcp]")
 {
     JobRegistry       jobs;
-    const std::string script = jobs.create("run_script", "");
-    const std::string first  = jobs.create("t", script);
+    const std::string replay_job = jobs.create("run_replay", "");
+    const std::string first  = jobs.create("t", replay_job);
     jobs.finish(first, ToolResult::ok());
     for (std::size_t i = 0; i < JobRegistry::kKeepFinishedMax; ++i)
-        jobs.finish(jobs.create("t", script), ToolResult::ok());
+        jobs.finish(jobs.create("t", replay_job), ToolResult::ok());
     CHECK_THROWS_AS(jobs.wait(first, 0ms), ToolFailure);
-    const std::string recent = jobs.create("t", script);
+    const std::string recent = jobs.create("t", replay_job);
     jobs.finish(recent, ToolResult::ok());
     CHECK(jobs.wait(recent, 0ms).has_value());
 }
@@ -1079,7 +1079,7 @@ TEST_CASE("the journal keeps a call waiting for its reply when it drops old call
     for (int i = 0; i < 6000; ++i)
         journal.end(journal.begin("set_settings", {{"values", {{"wall_loops", i}}}}), ToolResult::ok());
     journal.end(waiting, ToolResult::ok());
-    const json steps = journal.to_script("s")["steps"];
+    const json steps = journal.to_replay("s")["steps"];
     REQUIRE_FALSE(steps.empty());
     CHECK(steps[0]["tool"] == "slice");
     CHECK(steps.size() == 5000);
@@ -1136,7 +1136,7 @@ TEST_CASE("the journal records client calls in order and replays jobs with await
     const uint64_t a = journal.begin("run_action", {{"id", "orca_command:open_preferences:orca"}});
     journal.job_started(a, "j7");
     journal.end(a, ToolResult::ok({{"status", "blocked_by_dialog"}, {"job", "j7"}}));
-    const uint64_t b = journal.begin("dialog_respond", {{"button", "close"}});
+    const uint64_t b = journal.begin("answer_dialog", {{"button", "close"}});
     journal.end(b, ToolResult::ok());
     const uint64_t c = journal.begin("wait", {{"for", "job"}, {"job", "j7"}});
     journal.end(c, ToolResult::ok());
@@ -1145,19 +1145,19 @@ TEST_CASE("the journal records client calls in order and replays jobs with await
     const uint64_t e = journal.begin("set_settings", {{"values", {{"wall_loops", 3}}}});
     journal.end(e, ToolResult::error("no"));
 
-    const json script = journal.to_script("repro");
-    REQUIRE(script["steps"].size() == 4);
-    CHECK(script["steps"][0]["await"] == false);
-    CHECK(script["steps"][0]["save_as"] == "job1");
-    CHECK(script["steps"][1]["tool"] == "dialog_respond");
-    CHECK(script["steps"][2]["args"]["job"] == "${jobs.job1}");
-    CHECK(script["steps"][3]["args"]["save_path"] == "${out_dir}/after.png");
+    const json exported = journal.to_replay("repro");
+    REQUIRE(exported["steps"].size() == 4);
+    CHECK(exported["steps"][0]["await"] == false);
+    CHECK(exported["steps"][0]["save_as"] == "job1");
+    CHECK(exported["steps"][1]["tool"] == "answer_dialog");
+    CHECK(exported["steps"][2]["args"]["job"] == "${jobs.job1}");
+    CHECK(exported["steps"][3]["args"]["save_path"] == "${out_dir}/after.png");
 }
 
 TEST_CASE("only client calls of journaled tools reach the journal", "[Mcp]")
 {
     Harness h;
-    ToolDef look = tool("get_state", GuardClass::Inspect, [](const json&, ToolContext&) { return ToolResult::ok(); });
+    ToolDef look = tool("get_app_state", GuardClass::Inspect, [](const json&, ToolContext&) { return ToolResult::ok(); });
     look.inline_call = true;
     look.journal     = false;
     h.registry.add(look);
@@ -1169,10 +1169,10 @@ TEST_CASE("only client calls of journaled tools reach the journal", "[Mcp]")
         return ToolResult::ok();
     }));
     h.start();
-    h.call("get_state");
+    h.call("get_app_state");
     h.call("wait", {{"for", "idle"}});
     h.call("set_settings", {{"values", {{"wall_loops", 3}}}});
-    const json steps = h.journal.to_script("x")["steps"];
+    const json steps = h.journal.to_replay("x")["steps"];
     REQUIRE(steps.size() == 2);
     CHECK(steps[0]["tool"] == "wait");
     CHECK(steps[1]["args"]["scope"] == "print");
@@ -1182,14 +1182,14 @@ TEST_CASE("a plugin's call runs as the plugin's own job and never reaches the jo
 {
     Harness h;
     std::string seen, child_seen;
-    h.registry.add(tool("get_state", GuardClass::Inspect, [&child_seen](const json&, ToolContext& ctx) {
+    h.registry.add(tool("get_app_state", GuardClass::Inspect, [&child_seen](const json&, ToolContext& ctx) {
         child_seen = ctx.caller_plugin();
         return ToolResult::ok();
     }));
     h.registry.add(tool("set_settings", GuardClass::Mutate, [&seen](const json&, ToolContext& ctx) {
         seen = ctx.caller_plugin();
-        // A call it makes, as a script step does, is the plugin's too.
-        ctx.call_child("get_state", json::object());
+        // A call it makes, as a replay step does, is the plugin's too.
+        ctx.call_child("get_app_state", json::object());
         return ToolResult::ok({{"job", ctx.job_id()}});
     }));
     h.start();
@@ -1198,27 +1198,27 @@ TEST_CASE("a plugin's call runs as the plugin's own job and never reaches the jo
     CHECK(seen == "measure-plugin");
     CHECK(child_seen == "measure-plugin");
     CHECK(h.jobs.owner(r.data["job"].get<std::string>()) == "measure-plugin");
-    CHECK(h.journal.to_script("x")["steps"].empty());
+    CHECK(h.journal.to_replay("x")["steps"].empty());
 
     // A client's call has no plugin.
     h.call("set_settings");
     CHECK(seen.empty());
-    CHECK(h.journal.to_script("x")["steps"].size() == 1);
+    CHECK(h.journal.to_replay("x")["steps"].size() == 1);
 }
 
-TEST_CASE("api_call is journaled as the tool it calls", "[Mcp]")
+TEST_CASE("call_tool is journaled as the tool it calls", "[Mcp]")
 {
     Harness h;
     h.registry.add(tool("set_settings", GuardClass::Mutate, [](const json&, ToolContext&) { return ToolResult::ok(); }));
-    ToolDef api = tool("api_call", GuardClass::Mutate, [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("not dispatched"); });
+    ToolDef api = tool("call_tool", GuardClass::Mutate, [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("not dispatched"); });
     api.input_schema = {{"type", "object"}, {"properties", {{"tool", {{"type", "string"}}}, {"args", {{"type", "object"}}}}}};
     h.registry.add(api);
     h.start();
     McpProtocol protocol(h.registry, *h.core, ServerInfo{"orcaslicer", "OrcaSlicer", "9.9.9", ""});
     const PostReply reply = protocol.handle_post(PostRequest{json{{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/call"},
-        {"params", {{"name", "api_call"}, {"arguments", {{"tool", "set_settings"}, {"args", {{"values", {{"wall_loops", 3}}}}}}}}}}.dump()});
+        {"params", {{"name", "call_tool"}, {"arguments", {{"tool", "set_settings"}, {"args", {{"values", {{"wall_loops", 3}}}}}}}}}}.dump()});
     CHECK(json::parse(reply.body)["result"].value("isError", false) == false);
-    const json steps = h.journal.to_script("x")["steps"];
+    const json steps = h.journal.to_replay("x")["steps"];
     REQUIRE(steps.size() == 1);
     CHECK(steps[0]["tool"] == "set_settings");
     CHECK(steps[0]["args"]["values"]["wall_loops"] == 3);
@@ -1392,9 +1392,9 @@ TEST_CASE("a call under a lineage node sees a stop asked for the node, inline ca
     h.timing.soft_budget = 10000ms;
     h.start();
 
-    const std::string session = h.jobs.create("run_python", "");
+    const std::string session = h.jobs.create("run_script", "");
     h.jobs.set_idle(session);
-    LineageNode node(h.jobs, "run_python", session);
+    LineageNode node(h.jobs, "run_script", session);
     const auto  call = [&](const char* tool, int for_ms) {
         return std::async(std::launch::async, [&h, &node, tool, for_ms] {
             return h.core->call_child_named(tool, {{"for_ms", for_ms}}, node.id());
@@ -1423,20 +1423,20 @@ TEST_CASE("a call under a lineage node sees a stop asked for the node, inline ca
 TEST_CASE("lineage nodes leave no running job behind", "[Mcp]")
 {
     JobRegistry       jobs;
-    const std::string session  = jobs.create("run_python", "");
+    const std::string session  = jobs.create("run_script", "");
     const auto        running_nodes = [&] {
         int count = 0;
         for (const json& job : jobs.list())
-            if (job["tool"] == "run_python" && job.value("parent", std::string()) == session && job["state"] == "running")
+            if (job["tool"] == "run_script" && job.value("parent", std::string()) == session && job["state"] == "running")
                 ++count;
         return count;
     };
     {
-        LineageNode node(jobs, "run_python", session);
+        LineageNode node(jobs, "run_script", session);
         CHECK(running_nodes() == 1);
     }
     for (int round = 0; round < 10; ++round) {
-        LineageNode node(jobs, "run_python", session);
+        LineageNode node(jobs, "run_script", session);
         for (int renewal = 0; renewal < 3; ++renewal)
             node.renew();
         CHECK(running_nodes() == 1);

@@ -13,7 +13,7 @@
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
-struct ScriptStep
+struct ReplayStep
 {
     std::string    tool;
     nlohmann::json args   = nlohmann::json::object();
@@ -26,35 +26,35 @@ struct ScriptStep
     int            timeout_s = 120;
 };
 
-struct Script
+struct Replay
 {
     std::string             name;
     nlohmann::json          vars = nlohmann::json::object();
-    std::vector<ScriptStep> steps;
+    std::vector<ReplayStep> steps;
 };
 
-struct ScriptContext
+struct ReplayContext
 {
-    boost::filesystem::path script_dir;
+    boost::filesystem::path replay_dir;
     boost::filesystem::path out_dir;
     nlohmann::json          jobs = nlohmann::json::object(); // save_as name -> job id
 };
 
-// Parses a script (JSON with // and /* */ comments). nullopt with `err` set when invalid.
-std::optional<Script> parse_script(const std::string& text, std::string& err);
+// Parses a replay (JSON with // and /* */ comments). nullopt with `err` set when invalid.
+std::optional<Replay> parse_replay(const std::string& text, std::string& err);
 
-// The text of a run_script inline script, which is given as the script object or as its JSON text.
-std::string inline_script_text(const nlohmann::json& script);
+// The text of a run_replay inline replay, which is given as the replay object or as its JSON text.
+std::string inline_replay_text(const nlohmann::json& replay);
 
-// Replaces ${script_dir}, ${out_dir}, ${env:NAME}, ${vars.NAME} and ${jobs.NAME} in every string of
+// Replaces ${replay_dir}, ${out_dir}, ${env:NAME}, ${vars.NAME} and ${jobs.NAME} in every string of
 // `value`. A string that is exactly one placeholder takes the referenced JSON value (so a var can
 // hold a number or an array); otherwise the placeholder's text is spliced in. Unknown placeholders
 // are an error.
-nlohmann::json substitute(const nlohmann::json& value, const Script& script, const ScriptContext& ctx, std::string& err);
+nlohmann::json substitute(const nlohmann::json& value, const Replay& replay, const ReplayContext& ctx, std::string& err);
 
 // As substitute(), but a placeholder that can't be resolved stays in the text and is never an error:
 // for describing steps before a run, when saved jobs and the like may not exist yet.
-nlohmann::json substitute_lenient(const nlohmann::json& value, const Script& script, const ScriptContext& ctx);
+nlohmann::json substitute_lenient(const nlohmann::json& value, const Replay& replay, const ReplayContext& ctx);
 
 // Checks `expect` ({"/json/pointer": {"op": operand, ...}, ...}) against a step's result. nullopt
 // when every matcher passes, else a message naming the pointer and matcher that failed.
@@ -74,20 +74,20 @@ struct ExpectFailure
 };
 std::optional<ExpectFailure> check_expect_detail(const nlohmann::json& result, const nlohmann::json& expect);
 
-// What run_script needs from its host: calling a tool as a child of the script's job, waiting for
-// a job's result, and dropping script-scoped dialog auto-answer rules when the script ends.
+// What run_replay needs from its host: calling a tool as a child of the replay's job, waiting for
+// a job's result, and dropping replay-scoped dialog auto-answer rules when the replay ends.
 // step_started and step_finished, when set, report each step as it runs: step_started (1-based
 // index) before its arguments are substituted, step_finished with the entry as it goes into the
 // result, after the check for a stop during the step.
-struct ScriptHost
+struct ReplayHost
 {
     std::function<ToolResult(const std::string& tool, const nlohmann::json& args)>              call;
     std::function<std::optional<ToolResult>(const std::string& job, int timeout_s)>            wait_job;
-    std::function<void()>                                                                       end_script;
+    std::function<void()>                                                                       end_replay;
     std::function<bool()>                                                                       cancelled;
     std::function<void(std::size_t index)>                                                      step_started;
     std::function<void(const nlohmann::json& entry)>                                            step_finished;
-    // The open modal dialogs, topmost last, as get_state lists them. Optional.
+    // The open modal dialogs, topmost last, as get_app_state lists them. Optional.
     std::function<nlohmann::json()>                                                             open_dialogs;
 };
 
@@ -99,7 +99,7 @@ struct ScriptHost
 // exists} | expect_invalid | placeholder {text} | missing_job {name, saved_by} | tool}.
 // `only_step` (1-based) runs just that step, with the jobs `ctx` holds from earlier runs; out of
 // range throws std::out_of_range.
-nlohmann::json run_script(const Script& script, ScriptContext& ctx, const ScriptHost& host,
+nlohmann::json run_replay(const Replay& replay, ReplayContext& ctx, const ReplayHost& host,
                           std::optional<std::size_t> only_step = std::nullopt);
 
 }}} // namespace Slic3r::GUI::Mcp

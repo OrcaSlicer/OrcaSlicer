@@ -584,7 +584,7 @@ bool install_local_plugin_package(const boost::filesystem::path& package_file, w
 
     if (existing_installation) {
         const wxString plugin_name = from_u8(plugin_descriptor.name.empty() ? package_file.filename().string() : plugin_descriptor.name);
-        // Orca's own message dialog rather than a native box, which dialog_respond can't press on every platform.
+        // Orca's own message dialog rather than a native box, which answer_dialog can't press on every platform.
         MessageDialog dialog(parent,
                              wxString::Format(_L("Plugin \"%s\" is already installed.\n\nInstalling this package will overwrite the existing plugin."),
                                               plugin_name),

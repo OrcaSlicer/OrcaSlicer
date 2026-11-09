@@ -23,25 +23,25 @@ json without_expected_ids(const std::string& tool, json args)
 {
     // The tools that take expected ids; any other tool's arguments (a plugin operation's own fields among
     // them) are recorded as given.
-    static const std::set<std::string> takes_ids{"set_settings", "transform", "add_part", "set_layer_ranges",
-                                                 "set_layer_height_profile", "select"};
+    static const std::set<std::string> takes_ids{"set_settings", "transform", "add_part", "set_height_ranges",
+                                                 "set_variable_layer_height", "select_objects"};
     if (!args.is_object())
         return args;
-    if (tool == "api_call") {
+    if (tool == "call_tool") {
         if (args.contains("args") && args["args"].is_object())
             args["args"] = without_expected_ids(args.value("tool", std::string()), std::move(args["args"]));
         return args;
     }
-    if (tool == "run_script") {
-        // An inline script given as JSON text is recorded as the object it parses to, so its steps are
+    if (tool == "run_replay") {
+        // An inline replay given as JSON text is recorded as the object it parses to, so its steps are
         // stripped too. Text that doesn't parse stays as given: the call fails, and no replay keeps it.
-        if (args.contains("script") && args["script"].is_string()) {
-            json parsed = json::parse(args["script"].get<std::string>(), nullptr, /*allow_exceptions=*/false, /*ignore_comments=*/true);
+        if (args.contains("replay") && args["replay"].is_string()) {
+            json parsed = json::parse(args["replay"].get<std::string>(), nullptr, /*allow_exceptions=*/false, /*ignore_comments=*/true);
             if (parsed.is_object())
-                args["script"] = std::move(parsed);
+                args["replay"] = std::move(parsed);
         }
-        if (args.contains("script") && args["script"].is_object() && args["script"].contains("steps") && args["script"]["steps"].is_array())
-            for (json& step : args["script"]["steps"])
+        if (args.contains("replay") && args["replay"].is_object() && args["replay"].contains("steps") && args["replay"]["steps"].is_array())
+            for (json& step : args["replay"]["steps"])
                 if (step.is_object() && step.contains("args"))
                     step["args"] = without_expected_ids(step.value("tool", std::string()), std::move(step["args"]));
         return args;
@@ -65,8 +65,8 @@ uint64_t Journal::begin(const std::string& tool, const nlohmann::json& args, boo
     e.args           = without_expected_ids(tool, args);
     e.answers_dialog = answers_dialog;
     m_entries.push_back(std::move(e));
-    // A session kept open for days must not grow without bound; a script is exported from the
-    // recent calls anyway (export_script {clear:true} starts afresh). The oldest call whose outcome
+    // A session kept open for days must not grow without bound; a replay is exported from the
+    // recent calls anyway (export_replay {clear:true} starts afresh). The oldest call whose outcome
     // is known goes; a call still waiting for its reply or its job keeps its place.
     if (m_entries.size() > kMaxEntries) {
         const auto oldest = std::find_if(m_entries.begin(), m_entries.end(), [](const Entry& entry) { return !entry.running(); });
@@ -127,15 +127,15 @@ void Journal::clear()
     m_entries.clear();
 }
 
-nlohmann::json Journal::to_script(const std::string& name, nlohmann::json* left_out_running) const
+nlohmann::json Journal::to_replay(const std::string& name, nlohmann::json* left_out_running) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     nlohmann::json                     steps = nlohmann::json::array();
-    std::map<std::string, std::string> job_names;  // live job id -> script name
-    std::map<std::string, std::string> recordings; // a recording's path_compare_key() -> its path in the script
+    std::map<std::string, std::string> job_names;  // live job id -> replay name
+    std::map<std::string, std::string> recordings; // a recording's path_compare_key() -> its path in the replay
     if (left_out_running != nullptr)
         *left_out_running = nlohmann::json::array();
-    // Whether the next call in the script is `e` again, choosing an item of the menu it listed.
+    // Whether the next call in the replay is `e` again, choosing an item of the menu it listed.
     auto repeated_with_item = [this](std::vector<Entry>::const_iterator e) {
         const auto next = std::find_if(std::next(e), m_entries.end(), [](const Entry& n) { return n.kept(); });
         if (next == m_entries.end() || next->tool != e->tool || !next->args.is_object() || !next->args.contains("popup_item"))
@@ -175,7 +175,7 @@ nlohmann::json Journal::to_script(const std::string& name, nlohmann::json* left_
             step["args"]["save_path"]                                = in_out_dir("save_path");
             recordings[path_compare_key(path_from_utf8(e.args["save_path"].get<std::string>()))] = step["args"]["save_path"];
         }
-        // An encode of a recording this script makes reads it where the replay writes it; any other
+        // An encode of a recording this replay makes reads it where the replay writes it; any other
         // source stays where it is.
         if (e.tool == "encode_recording" && has_path("path"))
             if (auto it = recordings.find(path_compare_key(path_from_utf8(e.args["path"].get<std::string>()))); it != recordings.end())
@@ -190,7 +190,7 @@ nlohmann::json Journal::to_script(const std::string& name, nlohmann::json* left_
             steps.push_back({{"tool", "wait"}, {"args", {{"for", "dialog"}, {"timeout_s", 50}}}, {"expect", {{"/satisfied", {{"eq", true}}}}}});
         steps.push_back(std::move(step));
     }
-    return {{"orca_script", 1}, {"name", name}, {"steps", std::move(steps)}};
+    return {{"orca_replay", 1}, {"name", name}, {"steps", std::move(steps)}};
 }
 
 }}} // namespace Slic3r::GUI::Mcp

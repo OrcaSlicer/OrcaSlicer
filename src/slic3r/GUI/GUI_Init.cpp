@@ -79,9 +79,9 @@ int GUI_Run(GUI_InitParams &params)
         } else {
             result = wxEntry(params.argc, params.argv);
         }
-        // An --mcp-script run reports its outcome as the process exit code.
-        if (const int script_code = Mcp::McpService::script_exit_code(); script_code >= 0)
-            return script_code;
+        // A --mcp-run file reports its outcome as the process exit code.
+        if (const int run_code = Mcp::McpService::run_exit_code(); run_code >= 0)
+            return run_code;
         return result;
     } catch (const Slic3r::Exception &ex) {
         BOOST_LOG_TRIVIAL(error) << ex.what() << std::endl;

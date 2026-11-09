@@ -13,8 +13,8 @@
 #include "UiInspector.hpp"
 #include "WebPages.hpp"
 #include "McpPaths.hpp"
-#include "McpScript.hpp"
-#include "McpScriptRun.hpp"
+#include "McpReplay.hpp"
+#include "McpPersonRun.hpp"
 #include "JobRegistry.hpp"
 #include "slic3r/GUI/SyntheticInput.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
@@ -88,7 +88,7 @@ namespace fs = boost::filesystem;
 
 namespace {
 
-std::atomic<int> g_script_exit_code{-1};
+std::atomic<int> g_run_exit_code{-1};
 
 std::string shutting_down_reply()
 {
@@ -153,23 +153,23 @@ const char* kInstructions =
     "Each tool's description starts with its lane: [core] runs the session and recovers from dialogs, [api] acts on "
     "project data by index and name with JSON in and out, [ui] drives the GUI itself. Every tool is callable; prefer "
     "[api] tools, and use [ui] tools for what no [api] tool reaches or to see what a person sees.\n"
-    "Workflow: get_state (is it ready? which presets, plates, dialogs?) -> act -> check the result with the reading "
-    "tools (list_objects, list_plates, get_settings, slice's reply, get_preview); screenshot only to see what they "
+    "Workflow: get_app_state (is it ready? which presets, plates, dialogs?) -> act -> check the result with the reading "
+    "tools (list_objects, list_plates, get_settings, slice's reply, get_slice_stats); screenshot only to see what they "
     "do not report.\n"
     "Core:\n"
     "- A call that takes long or opens a dialog returns {status:\"running\"|\"blocked_by_dialog\", job}. It keeps "
-    "running: never retry it. Answer dialogs with dialog_respond (see get_state.dialogs), then wait {for:\"job\"}. "
-    "A native message box (native: true) is answered with dialog_respond by one of the buttons listed for it; a file or "
-    "folder picker, or a native dialog whose buttons list is empty (any on macOS), can't be: register dialog_auto_answer "
+    "running: never retry it. Answer dialogs with answer_dialog (see get_app_state.dialogs), then wait {for:\"job\"}. "
+    "A native message box (native: true) is answered with answer_dialog by one of the buttons listed for it; a file or "
+    "folder picker, or a native dialog whose buttons list is empty (any on macOS), can't be: register auto_answer_dialogs "
     "before the step that opens one.\n"
     "- While an operation (slice, export, arrange or another background job) runs, other changes are refused; use wait "
-    "or cancel.\n"
-    "- export_script saves this session's calls as a replayable script; run_script replays one.\n"
-    "- run_python runs Python against orca.host, the plugin API (python_api searches it), computing over meshes and "
+    "or cancel_job.\n"
+    "- export_replay saves this session's calls as a replay that run_replay runs.\n"
+    "- run_script runs Python against orca.host, the plugin API (search_python_api searches it), computing over meshes and "
     "settings and calling tools through orca.host.tools, once the person has allowed Python scripts in Preferences "
-    "(get_state.python.scripts_allowed).\n"
-    "- Not sure what does something? api_describe {query} searches every catalog at once: the tools, the operations "
-    "plugins offer (plugin.<plugin>.<name>, which the tool list does not show; api_call runs them), Speed Dial actions, "
+    "(get_app_state.python.scripts_allowed).\n"
+    "- Not sure what does something? search_tools {query} searches every catalog at once: the tools, the operations "
+    "plugins offer (plugin.<plugin>.<name>, which the tool list does not show; call_tool runs them), Speed Dial actions, "
     "settings, the Python API and the Design tab's methods, each match with how to use it.\n"
     "API lane:\n"
     "- Typed tools: open_files, select_preset, set_settings, slice, export and the rest.\n"
@@ -179,19 +179,20 @@ const char* kInstructions =
     "group).\n"
     "- Objects, parts (volume in argument names) and plates are 0-based indices, as list_objects and list_plates give "
     "them; filament slots and Preview layers are 1-based.\n"
-    "- Lists come in pages: {items, offset, total}, with next_offset while more remain (list_actions names its items "
+    "- Lists come in pages: {items, offset, total}, with next_offset while more remain (search_actions names its items "
     "actions); call again with that offset to read on.\n"
     "- Paths are absolute. Outputs never overwrite an existing file unless overwrite is true.\n"
     "UI lane:\n"
-    "- run_action runs every Speed Dial command (list_actions to search): prefer it to GUI clicks.\n"
-    "- ui_snapshot lists widgets, menus, 3D toolbar items, gizmos, ImGui items and web page elements with refs; ui_click "
-    "/ ui_input / ui_key / ui_mouse act on refs from the latest snapshot, or on locators, which its description lists.\n"
+    "- run_action runs every Speed Dial command (search_actions finds them): prefer it to GUI clicks.\n"
+    "- list_widgets lists widgets, menus, 3D toolbar items, gizmos, ImGui items and web page elements with refs; click "
+    "/ set_widget_value / press_keys / mouse_gesture act on refs from the latest list_widgets call, or on locators, which "
+    "its description lists.\n"
     "- list_windows lists the open windows, modal or not, with refs: a window's ref as screenshot's target captures "
-    "that window, and as ui_snapshot's root lists it alone.\n"
-    "- Gizmos (Cut, Text, SVG, the painting tools...): ui_click {target: {gizmo: \"Cut\"}} opens one; its panel's "
-    "fields and buttons are ImGui items for ui_input / ui_click, and painting is a ui_mouse drag starting on the "
+    "that window, and as list_widgets's root lists it alone.\n"
+    "- Gizmos (Cut, Text, SVG, the painting tools...): click {target: {gizmo: \"Cut\"}} opens one; its panel's "
+    "fields and buttons are ImGui items for set_widget_value / click, and painting is a mouse_gesture drag starting on the "
     "object. Turn the camera with set_view camera or orbit, never a drag: what a drag does follows the user's mouse "
-    "settings. gizmo_file only stands in for a file picker inside an open gizmo.\n"
+    "settings. pick_gizmo_file only stands in for a file picker inside an open gizmo.\n"
     "- screenshot returns a downscaled image plus the full-size PNG path; target \"canvas\" is the 3D view.\n"
     "- start_recording / stop_recording record a video (MJPEG .mkv), with the tool calls as captions and the pointer "
     "highlighted when captions and pointer ask for them; with encode, stop_recording then encodes it to an MP4 with "
@@ -230,11 +231,11 @@ ServerInfo McpService::server_info()
     return info;
 }
 
-// Reached only through McpServiceDeleter, after stop() joined the script thread and drain() saw
+// Reached only through McpServiceDeleter, after stop() joined the launch thread and drain() saw
 // every thread leave.
 McpService::~McpService() = default;
 
-int McpService::script_exit_code() { return g_script_exit_code.load(); }
+int McpService::run_exit_code() { return g_run_exit_code.load(); }
 
 bool McpService::serving() const { return m_http != nullptr && m_http->running(); }
 
@@ -368,7 +369,7 @@ bool McpService::start(const McpLaunchOptions& options, bool serve, std::string&
                           {"token", token}},
                          m_discovery_error))
         // Serving anyway: clients configured with the URL and token still connect; the stdio
-        // bridge and the harness, which need the file, see the reason in get_state.
+        // bridge and the harness, which need the file, see the reason in get_app_state.
         BOOST_LOG_TRIVIAL(warning) << "MCP server: " << m_discovery_error;
     BOOST_LOG_TRIVIAL(info) << "MCP server listening on http://127.0.0.1:" << m_http->port() << "/mcp";
     return true;
@@ -379,7 +380,7 @@ void McpService::stop()
     // Before the stop flag: a run's stop does nothing once the service is stopping, and it must cancel
     // the run's slice while the main window is still there.
     if (m_core != nullptr && !m_stopping)
-        stop_script_runs();
+        stop_person_runs();
     if (m_core == nullptr || m_stopping.exchange(true))
         return;
     BOOST_LOG_TRIVIAL(info) << "MCP server stopping";
@@ -392,8 +393,8 @@ void McpService::stop()
     m_jobs.wake_all();
     m_core->shutdown();
     stop_serving();
-    if (m_script_thread.joinable())
-        m_script_thread.join();
+    if (m_launch_thread.joinable())
+        m_launch_thread.join();
     {
         std::lock_guard<std::mutex> lock(m_runs_mutex);
         for (RunThread& r : m_run_threads)
@@ -406,12 +407,12 @@ void McpService::stop()
         m_encode_threads.clear();
     }
     {
-        // Script rules too: no script survives the stop.
+        // Run rules too: no run survives the stop.
         std::lock_guard<std::mutex> lock(m_rules_mutex);
-        for (const auto& [job, layers] : m_script_rule_layers)
+        for (const auto& [job, layers] : m_run_rule_layers)
             for (int layer : layers)
                 m_modals->pop_rules(layer);
-        m_script_rule_layers.clear();
+        m_run_rule_layers.clear();
     }
     if (m_inspector) {
         m_inspector->release_held(nullptr);
@@ -462,20 +463,20 @@ bool McpService::drain(std::chrono::milliseconds timeout)
 
 AutoAnswerSet McpService::set_auto_answer(std::vector<AutoAnswerRule> rules, const std::vector<std::string>& ancestry)
 {
-    // A plugin's call is owned by its plugin's scope when no script in its chain is nearer.
+    // A plugin's call is owned by its plugin's scope when no run in its chain is nearer.
     const std::string plugin = ancestry.empty() ? std::string() : m_jobs.owner(ancestry.front());
     std::lock_guard<std::mutex> lock(m_rules_mutex);
-    // The nearest running script in the caller's job chain owns the rules.
+    // The nearest running replay or script in the caller's job chain owns the rules.
     for (const std::string& job : ancestry)
-        if (auto it = m_script_rule_layers.find(job); it != m_script_rule_layers.end()) {
+        if (auto it = m_run_rule_layers.find(job); it != m_run_rule_layers.end()) {
             const bool paused = m_paused_scopes.count(job) != 0;
             if (rules.empty())
-                return {"script", 0, paused};
+                return {"run", 0, paused};
             it->second.push_back(m_modals->push_rules(std::move(rules), paused));
-            return {"script", it->second.back(), paused};
+            return {"run", it->second.back(), paused};
         }
     if (!plugin.empty()) {
-        if (auto it = m_script_rule_layers.find(plugin_scope_key(plugin)); it != m_script_rule_layers.end()) {
+        if (auto it = m_run_rule_layers.find(plugin_scope_key(plugin)); it != m_run_rule_layers.end()) {
             if (rules.empty())
                 return {"plugin", 0, false};
             it->second.push_back(m_modals->push_rules(std::move(rules)));
@@ -493,40 +494,40 @@ AutoAnswerSet McpService::set_auto_answer(std::vector<AutoAnswerRule> rules, con
     return {"session", m_session_rule_layer, false};
 }
 
-void McpService::begin_script_scope(const std::string& job)
+void McpService::begin_run_scope(const std::string& job)
 {
     std::lock_guard<std::mutex> lock(m_rules_mutex);
-    m_script_rule_layers.emplace(job, std::vector<int>{});
+    m_run_rule_layers.emplace(job, std::vector<int>{});
 }
 
-void McpService::end_script_scope(const std::string& job, bool wait_recording)
+void McpService::end_run_scope(const std::string& job, bool wait_recording)
 {
-    // Noted before the scope goes: from then on a call of this script finds no live scope, and must not be
+    // Noted before the scope goes: from then on a call of this run finds no live scope, and must not be
     // taken for a client's.
     if (m_recorder)
         m_recorder->owner_ended(job);
     {
         std::lock_guard<std::mutex> lock(m_rules_mutex);
-        auto it = m_script_rule_layers.find(job);
-        if (it == m_script_rule_layers.end())
+        auto it = m_run_rule_layers.find(job);
+        if (it == m_run_rule_layers.end())
             return;
         if (m_modals)
             for (int layer : it->second)
                 m_modals->pop_rules(layer);
-        m_script_rule_layers.erase(it);
+        m_run_rule_layers.erase(it);
         m_paused_scopes.erase(job);
     }
-    // A recording the script started ends with it, its file closed before the script's call returns.
+    // A recording the run started ends with it, its file closed before the run's call returns.
     if (m_recorder)
-        m_recorder->end_owned_by(job, "script_ended", wait_recording);
-    release_script_presses(job);
+        m_recorder->end_owned_by(job, "run_ended", wait_recording);
+    release_run_presses(job);
 }
 
-void McpService::set_script_scope_paused(const std::string& job, bool paused)
+void McpService::set_run_scope_paused(const std::string& job, bool paused)
 {
     std::lock_guard<std::mutex> lock(m_rules_mutex);
-    auto                        it = m_script_rule_layers.find(job);
-    if (it == m_script_rule_layers.end())
+    auto                        it = m_run_rule_layers.find(job);
+    if (it == m_run_rule_layers.end())
         return;
     if (paused)
         m_paused_scopes.insert(job);
@@ -537,7 +538,7 @@ void McpService::set_script_scope_paused(const std::string& job, bool paused)
             m_modals->set_paused(layer, paused);
 }
 
-void McpService::release_script_presses(const std::string& job)
+void McpService::release_run_presses(const std::string& job)
 {
     // Found again on the UI thread: the service may be gone by the time the closure runs.
     if (m_dispatcher && !m_stopping)
@@ -557,14 +558,14 @@ void McpService::cancel_operations_of(const std::string& job)
                 plater->cancel_slicing();
 }
 
-std::string McpService::script_owner(const std::vector<std::string>& ancestry) const
+std::string McpService::run_owner(const std::vector<std::string>& ancestry) const
 {
     const std::string           plugin = ancestry.empty() ? std::string() : m_jobs.owner(ancestry.front());
     std::lock_guard<std::mutex> lock(m_rules_mutex);
     for (const std::string& job : ancestry)
-        if (m_script_rule_layers.count(job) != 0)
+        if (m_run_rule_layers.count(job) != 0)
             return job;
-    if (!plugin.empty() && m_script_rule_layers.count(plugin_scope_key(plugin)) != 0)
+    if (!plugin.empty() && m_run_rule_layers.count(plugin_scope_key(plugin)) != 0)
         return plugin_scope_key(plugin);
     // A call of an unloaded plugin must not leave anything nothing would end.
     if (!plugin.empty() && m_unloaded_plugins.count(plugin) != 0)
@@ -577,7 +578,7 @@ bool McpService::begin_plugin_scope(const std::string& plugin_key)
     std::lock_guard<std::mutex> lock(m_rules_mutex);
     if (m_unloaded_plugins.count(plugin_key) != 0)
         return false;
-    m_script_rule_layers.emplace(plugin_scope_key(plugin_key), std::vector<int>{});
+    m_run_rule_layers.emplace(plugin_scope_key(plugin_key), std::vector<int>{});
     return true;
 }
 
@@ -588,12 +589,12 @@ void McpService::end_plugin_scope(const std::string& plugin_key)
         m_unloaded_plugins.insert(plugin_key);
     }
     // No call of the plugin starts from now on, one it was admitted for included, and the ones running stop,
-    // as a stopped script's steps do.
+    // as a stopped replay's steps do.
     m_jobs.block_owner(plugin_key);
     for (const std::string& job : m_jobs.running_owned_by(plugin_key))
         m_jobs.request_stop(job);
     // Not waited for: an unloading plugin's recording is closed by the recorder's own threads.
-    end_script_scope(plugin_scope_key(plugin_key), false);
+    end_run_scope(plugin_scope_key(plugin_key), false);
 }
 
 void McpService::plugin_loaded(const std::string& plugin_key)
@@ -614,10 +615,10 @@ bool McpService::endpoint_open() const
 void McpService::stop_serving()
 {
     m_port_held_by_other = false;
-    // A client's recording ends with its endpoint; a script's carries on until its script ends.
+    // A client's recording ends with its endpoint; a run's carries on until the run ends.
     if (m_recorder)
         m_recorder->end_owned_by({}, "endpoint_closed", false);
-    // So does a press a client's ui_mouse left held, on a widget or a page.
+    // So does a press a client's mouse_gesture left held, on a widget or a page.
     if (m_inspector) {
         const std::string client;
         m_inspector->release_held(&client);
@@ -645,7 +646,7 @@ void McpService::stop_serving()
 void McpService::suspend()
 {
     // The main window is about to be rebuilt; runs stop while its plater is still the current one.
-    stop_script_runs();
+    stop_person_runs();
     if (m_recorder)
         m_recorder->suspend();
     m_suspended = true;
@@ -695,8 +696,8 @@ void McpService::mark_ready()
 void McpService::set_ready()
 {
     m_ready = true;
-    if (!m_options.script.empty())
-        run_launch_script();
+    if (!m_options.run_file.empty())
+        run_launch_file();
 }
 
 json McpService::describe() const
@@ -724,7 +725,7 @@ void McpService::register_tools()
     register_layer_tools(*this);
     register_view_tools(*this);
     register_ui_tools(*this);
-    register_script_tools(*this);
+    register_replay_tools(*this);
     register_record_tools(*this);
 #ifdef SLIC3R_CAD
     register_cad_tools(*this);
@@ -766,32 +767,32 @@ bool McpService::person_run(const std::set<std::string>& lineage) const
     return false;
 }
 
-void McpService::run_launch_script()
+void McpService::run_launch_file()
 {
-    m_script_thread = std::thread([this] {
+    m_launch_thread = std::thread([this] {
         int code = 2;
         try {
-            const fs::path script = path_from_utf8(m_options.script);
-            const bool     python = boost::algorithm::iequals(path_to_utf8(script.extension()), ".py");
+            const fs::path file   = path_from_utf8(m_options.run_file);
+            const bool     python = boost::algorithm::iequals(path_to_utf8(file.extension()), ".py");
             json           args;
             if (python) {
-                boost::nowide::ifstream in(m_options.script.c_str(), std::ios::binary);
+                boost::nowide::ifstream in(m_options.run_file.c_str(), std::ios::binary);
                 if (!in)
-                    throw std::runtime_error("Cannot read " + m_options.script);
+                    throw std::runtime_error("Cannot read " + m_options.run_file);
                 std::ostringstream raw;
                 raw << in.rdbuf();
                 std::string text, encoding, error;
                 if (!decode_python_source(raw.str(), text, encoding, error))
-                    throw std::runtime_error("Cannot read " + m_options.script + " as Python source: " + error);
-                args = {{"code", text}, {"filename", m_options.script}};
+                    throw std::runtime_error("Cannot read " + m_options.run_file + " as Python source: " + error);
+                args = {{"code", text}, {"filename", m_options.run_file}};
             } else {
-                args = {{"path", m_options.script}};
-                if (!m_options.script_out.empty())
-                    args["out_dir"] = m_options.script_out;
+                args = {{"path", m_options.run_file}};
+                if (!m_options.run_out.empty())
+                    args["out_dir"] = m_options.run_out;
             }
-            const ToolDef def = as_person(*m_registry.find(python ? "run_python" : "run_script"));
+            const ToolDef def = as_person(*m_registry.find(python ? "run_script" : "run_replay"));
             ToolResult    r   = m_core->call(def, args);
-            // A script that opened a dialog and answers it itself replies blocked_by_dialog first.
+            // A replay or script that opened a dialog and answers it itself replies blocked_by_dialog first.
             const std::string status = r.is_error ? std::string() : r.data.value("status", "");
             if ((status == "running" || status == "blocked_by_dialog") && r.data.contains("job")) {
                 std::optional<ToolResult> done;
@@ -801,22 +802,22 @@ void McpService::run_launch_script()
                     r = *done;
             }
             if (r.is_error)
-                BOOST_LOG_TRIVIAL(error) << "MCP script: " << r.message;
+                BOOST_LOG_TRIVIAL(error) << "--mcp-run: " << r.message;
             if (python) {
                 if (!r.is_error && r.data.value("status", "") != "finished")
-                    BOOST_LOG_TRIVIAL(error) << "MCP script: " << r.data.value("message", std::string()) << "\n"
+                    BOOST_LOG_TRIVIAL(error) << "--mcp-run: " << r.data.value("message", std::string()) << "\n"
                                              << r.data.value("traceback", std::string());
                 code = !r.is_error && r.data.value("status", "") == "finished" ? 0 : 1;
             } else
                 code = r.is_error ? (r.data.value("invalid", false) ? 2 : 1) : (r.data.value("passed", false) ? 0 : 1);
         } catch (const std::exception& e) {
-            BOOST_LOG_TRIVIAL(error) << "MCP script: " << e.what();
+            BOOST_LOG_TRIVIAL(error) << "--mcp-run: " << e.what();
         }
-        g_script_exit_code = code;
-        BOOST_LOG_TRIVIAL(info) << "MCP script finished with exit code " << code;
+        g_run_exit_code = code;
+        BOOST_LOG_TRIVIAL(info) << "--mcp-run finished with exit code " << code;
         if (m_stopping || wxTheApp == nullptr)
             return;
-        // Close without the unsaved-project prompt: the script owns this session.
+        // Close without the unsaved-project prompt: the run owns this session.
         m_dispatcher->post([] {
             if (wxTheApp != nullptr && wxGetApp().mainframe != nullptr)
                 wxGetApp().mainframe->Close(true);
@@ -855,7 +856,7 @@ bool McpService::encode_when_closed(json args, std::function<void(const ToolResu
     const ToolDef* encode = started() ? m_registry.find("encode_recording") : nullptr;
     if (encode == nullptr || m_stopping)
         return false;
-    // A person's encode, outside the session journal like the script runner's runs.
+    // A person's encode, outside the session journal like Action Replay's runs.
     ToolDef def = *encode;
     def.journal = false;
     std::lock_guard<std::mutex> lock(m_runs_mutex);
@@ -911,9 +912,9 @@ bool McpService::discard_authorized(const std::set<std::string>& lineage) const
     return false;
 }
 
-void McpService::stop_script_runs()
+void McpService::stop_person_runs()
 {
-    std::vector<std::shared_ptr<ScriptRun>> runs;
+    std::vector<std::shared_ptr<PersonRun>> runs;
     {
         std::lock_guard<std::mutex> lock(m_runs_mutex);
         for (const RunThread& r : m_run_threads)
@@ -924,11 +925,11 @@ void McpService::stop_script_runs()
         run->stop();
 }
 
-std::shared_ptr<ScriptRun> McpService::start_script_run(Script script, ScriptContext sctx, std::optional<std::size_t> only_step,
-                                                        bool discard_authorized, ScriptRun::Events events)
+std::shared_ptr<PersonRun> McpService::start_replay_run(Replay replay, ReplayContext sctx, std::optional<std::size_t> only_step,
+                                                        bool discard_authorized, PersonRun::Events events)
 {
-    const ToolDef* run_script_def = started() ? m_registry.find("run_script") : nullptr;
-    if (run_script_def == nullptr || m_stopping)
+    const ToolDef* run_replay_def = started() ? m_registry.find("run_replay") : nullptr;
+    if (run_replay_def == nullptr || m_stopping)
         return nullptr;
     {
         // Threads whose run has ended are done or about to be; joining them keeps the list short.
@@ -944,11 +945,11 @@ std::shared_ptr<ScriptRun> McpService::start_script_run(Script script, ScriptCon
         }
     }
 
-    auto run      = std::make_shared<ScriptRun>(*this, std::move(events));
-    auto shared   = std::make_shared<Script>(std::move(script));
-    auto ctx_held = std::make_shared<ScriptContext>(std::move(sctx));
-    // run_script's properties, outside the session journal: a person's run is not an agent's call.
-    ToolDef def = *run_script_def;
+    auto run      = std::make_shared<PersonRun>(*this, std::move(events));
+    auto shared   = std::make_shared<Replay>(std::move(replay));
+    auto ctx_held = std::make_shared<ReplayContext>(std::move(sctx));
+    // run_replay's properties, outside the session journal: a person's run is not an agent's call.
+    ToolDef def = *run_replay_def;
     def.journal = false;
     def.handler = [this, run, shared, ctx_held, only_step, discard_authorized](const json&, ToolContext& ctx) {
         const std::string job = ctx.job_id();
@@ -970,12 +971,12 @@ std::shared_ptr<ScriptRun> McpService::start_script_run(Script script, ScriptCon
             std::lock_guard<std::mutex> lock(m_run_state_mutex);
             m_discard_jobs.insert(job);
         }
-        ScriptRunOptions options;
+        ReplayRunOptions options;
         options.only_step     = only_step;
         options.write_result  = !only_step;
         options.step_started  = [run](std::size_t index) { run->post_step_started(index); };
         options.step_finished = [run](const json& entry) { run->post_step_finished(entry); };
-        return ToolResult::ok(run_script_job(*this, ctx, *shared, *ctx_held, options));
+        return ToolResult::ok(run_replay_job(*this, ctx, *shared, *ctx_held, options));
     };
     def = as_person(def);
 
@@ -995,11 +996,11 @@ std::shared_ptr<ScriptRun> McpService::start_script_run(Script script, ScriptCon
     return run;
 }
 
-std::shared_ptr<ScriptRun> McpService::start_python_session(std::shared_ptr<PythonSession> session, const fs::path& file,
-                                                           ScriptRun::Events events)
+std::shared_ptr<PersonRun> McpService::start_python_session(std::shared_ptr<PythonSession> session, const fs::path& file,
+                                                           PersonRun::Events events)
 {
-    const ToolDef* run_python = started() ? m_registry.find("run_python") : nullptr;
-    if (run_python == nullptr || m_stopping || !session)
+    const ToolDef* run_script = started() ? m_registry.find("run_script") : nullptr;
+    if (run_script == nullptr || m_stopping || !session)
         return nullptr;
     {
         // Threads whose run has ended are done or about to be; joining them keeps the list short.
@@ -1014,11 +1015,11 @@ std::shared_ptr<ScriptRun> McpService::start_python_session(std::shared_ptr<Pyth
             it = m_run_threads.erase(it);
         }
     }
-    auto run      = std::make_shared<ScriptRun>(*this, std::move(events));
+    auto run      = std::make_shared<PersonRun>(*this, std::move(events));
     auto hosted   = std::make_shared<std::atomic<bool>>(false);
-    auto filename = file.empty() ? std::string("<run_python>") : path_to_utf8(file);
-    // run_python's properties, outside the session journal, as a person's run.
-    ToolDef def = as_person(*run_python);
+    auto filename = file.empty() ? std::string("<run_script>") : path_to_utf8(file);
+    // run_script's properties, outside the session journal, as a person's run.
+    ToolDef def = as_person(*run_script);
     def.journal = false;
     def.handler = [this, run, session, hosted, filename](const json&, ToolContext& ctx) {
         run->set_job(ctx.job_id());

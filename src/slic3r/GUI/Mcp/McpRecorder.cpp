@@ -157,7 +157,7 @@ std::shared_ptr<const TextMask> render_text(const std::string& text, const wxFon
     return mask;
 }
 
-// One recording. Shared between the recorder, a stop or a script end waiting on it, and its posted cleanup,
+// One recording. Shared between the recorder, a stop or a run's end waiting on it, and its posted cleanup,
 // so any of those threads may drop it last. Its wx members and window captures are UI-thread objects that
 // cleanup_ui() releases on the UI thread before then; the timer and the input state, which must stay on the
 // UI thread, are the recorder's.
@@ -505,11 +505,11 @@ json McpRecorder::start(const RecordingOptions& options, uint64_t files_owner)
             wxEvtHandler::AddFilter(m_filter.get());
             m_filter_installed = true;
         }
-        // Published under the mutex end_owned_by() takes: either the script that started it ended first,
-        // and the start is refused, or the script's end finds it running and ends it.
+        // Published under the mutex end_owned_by() takes: either the run that started it ended first,
+        // and the start is refused, or the run's end finds it running and ends it.
         std::lock_guard<std::mutex> lock(m_mutex);
         if (!options.owner.empty() && m_ended_owners.count(options.owner) != 0)
-            throw ToolFailure("The script that started the recording has ended");
+            throw ToolFailure("The replay or script that started the recording has ended");
         m_rec = rec;
         m_captioned.clear();
     } catch (...) {
@@ -692,7 +692,7 @@ std::optional<std::string> McpRecorder::end_owned_by(const std::string& owner, c
     std::shared_ptr<Recording> rec;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        // A start of this script's still waiting for the UI thread must not begin after this (start()).
+        // A start of this run's still waiting for the UI thread must not begin after this (start()).
         if (!owner.empty())
             m_ended_owners.insert(owner);
         if (!m_rec || m_rec->options.owner != owner)
@@ -975,7 +975,7 @@ void McpRecorder::on_event(wxEvent& event)
         return;
     }
 
-    // A real click sent its press first; a command alone is a click made without the mouse (ui_click).
+    // A real click sent its press first; a command alone is a click made without the mouse (click).
     wxWindow* pressed = in.pressed_window.get();
     if (pressed != nullptr && now - in.pressed_at < kSemanticClick && (pressed == window || window->IsDescendant(pressed)))
         return;

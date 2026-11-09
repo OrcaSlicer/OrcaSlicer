@@ -762,7 +762,7 @@ not a capability.)pbdoc");
         R"pbdoc(Offer an operation to AI agents and scripts while OrcaSlicer loads your module.
 
 The person is asked whether to allow each operation; an allowed one is reached as
-"plugin.<plugin>.<name>" through api_call and orca.host.tools.call. handler, which is required, is
+"plugin.<plugin>.<name>" through call_tool and orca.host.tools.call. handler, which is required, is
 called as handler(args) with the arguments as a dict, validated against schema (a JSON Schema object,
 or None for an operation that takes no arguments); it runs under the plugin's identity and permissions
 and returns a JSON value. Pass handler by position after schema, or as handler= on its own.

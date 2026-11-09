@@ -48,7 +48,7 @@ struct Fixture
 {
     ToolRegistry registry;
     DirectCaller caller;
-    McpProtocol  protocol{registry, caller, ServerInfo{"orcaslicer", "OrcaSlicer", "9.9.9", "Use get_state first."}};
+    McpProtocol  protocol{registry, caller, ServerInfo{"orcaslicer", "OrcaSlicer", "9.9.9", "Use get_app_state first."}};
 
     Fixture()
     {
@@ -97,7 +97,7 @@ TEST_CASE("initialize echoes a supported client version", "[Mcp]")
     CHECK(result["protocolVersion"] == "2025-06-18");
     CHECK(result["serverInfo"]["name"] == "orcaslicer");
     CHECK(result["capabilities"].contains("tools"));
-    CHECK(result["instructions"] == "Use get_state first.");
+    CHECK(result["instructions"] == "Use get_app_state first.");
 }
 
 TEST_CASE("initialize answers an unsupported version with the latest supported one", "[Mcp]")
@@ -137,7 +137,7 @@ TEST_CASE("tools/list keeps registration order and maps annotations", "[Mcp]")
 TEST_CASE("tools/list lists the core tools, then the API lane, then the UI lane", "[Mcp]")
 {
     Fixture f;
-    for (const char* name : {"ui_click", "get_state"}) {
+    for (const char* name : {"click", "get_app_state"}) {
         ToolDef def;
         def.name    = name;
         def.handler = [](const json&, ToolContext&) { return ToolResult::ok(); };
@@ -145,10 +145,10 @@ TEST_CASE("tools/list lists the core tools, then the API lane, then the UI lane"
     }
     const json tools = body(f.post({{"jsonrpc", "2.0"}, {"id", 2}, {"method", "tools/list"}}))["result"]["tools"];
     REQUIRE(tools.size() == 4);
-    CHECK(tools[0]["name"] == "get_state");
+    CHECK(tools[0]["name"] == "get_app_state");
     CHECK(tools[1]["name"] == "echo");
     CHECK(tools[2]["name"] == "fail");
-    CHECK(tools[3]["name"] == "ui_click");
+    CHECK(tools[3]["name"] == "click");
     CHECK(tools[3]["description"] == "[ui] ");
 }
 
@@ -222,7 +222,7 @@ TEST_CASE("the stdio bridge derives no headers from a line that is not a message
 {
     CHECK(bridge_headers(json::array({{{"method", "ping"}}}), "2025-06-18").empty());
     CHECK(bridge_headers(json(42), {}).empty());
-    CHECK(bridge_headers({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/call"}, {"params", {{"name", "get_state"}}}}, "2025-06-18")
+    CHECK(bridge_headers({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/call"}, {"params", {{"name", "get_app_state"}}}}, "2025-06-18")
               .count("MCP-Protocol-Version") == 1);
     // Members of the wrong type are left out rather than thrown on.
     CHECK(bridge_headers({{"jsonrpc", "2.0"}, {"id", 1}, {"method", 5}}, "").empty());
@@ -237,8 +237,9 @@ TEST_CASE("the catalog the stdio bridge lists without the app holds every tool f
         CHECK(names.insert(def.name).second);
         CHECK(def.description.rfind(std::string("[") + lane_name(def.lane) + "] ", 0) == 0);
     }
-    for (const char* name : {"get_state", "run_action", "open_files", "set_settings", "slice", "set_layer_ranges", "set_view",
-                             "ui_snapshot", "run_script", "start_recording", "run_python", "api_call"})
+    for (const char* name : {"get_app_state", "run_action", "open_files", "set_settings", "slice", "set_height_ranges", "set_view",
+                             "list_widgets", "run_replay", "start_recording", "run_script", "call_tool", "set_variable_layer_height",
+                             "set_custom_gcode_at_layer"})
         CHECK(names.count(name) == 1);
     // Built once, for the life of the process.
     CHECK(&McpService::offline_catalog() == &catalog);
@@ -436,11 +437,11 @@ TEST_CASE("argument normalization moves a value outside its enum to the argument
     CHECK(unknown == json{{"view", "sideways"}});
 }
 
-TEST_CASE("api_call runs and is journaled as the tool it names", "[Mcp]")
+TEST_CASE("call_tool runs and is journaled as the tool it names", "[Mcp]")
 {
     Fixture f;
     ToolDef api;
-    api.name         = "api_call";
+    api.name         = "call_tool";
     api.input_schema = {{"type", "object"},
                         {"properties", {{"tool", {{"type", "string"}}}, {"args", {{"type", "object"}}}}},
                         {"required", {"tool"}}};
@@ -448,17 +449,17 @@ TEST_CASE("api_call runs and is journaled as the tool it names", "[Mcp]")
     f.registry.add(api);
 
     const json result = body(f.post({{"jsonrpc", "2.0"}, {"id", 4}, {"method", "tools/call"},
-                                     {"params", {{"name", "api_call"}, {"arguments", {{"tool", "echo"}, {"args", {{"text", "hi"}}}}}}}}))["result"];
+                                     {"params", {{"name", "call_tool"}, {"arguments", {{"tool", "echo"}, {"args", {{"text", "hi"}}}}}}}}))["result"];
     CHECK(json::parse(result["content"][0]["text"].get<std::string>()) == json{{"echo", "hi"}});
     REQUIRE(f.caller.called.size() == 1);
     CHECK(f.caller.called.back() == "echo");
 
     // The target's arguments are checked against its schema, and an unknown tool is named.
     const json invalid = body(f.post({{"jsonrpc", "2.0"}, {"id", 5}, {"method", "tools/call"},
-                                      {"params", {{"name", "api_call"}, {"arguments", {{"tool", "echo"}, {"args", json::object()}}}}}}))["result"];
+                                      {"params", {{"name", "call_tool"}, {"arguments", {{"tool", "echo"}, {"args", json::object()}}}}}}))["result"];
     CHECK(invalid["isError"] == true);
     const json unknown = body(f.post({{"jsonrpc", "2.0"}, {"id", 6}, {"method", "tools/call"},
-                                      {"params", {{"name", "api_call"}, {"arguments", {{"tool", "ech"}}}}}}))["result"];
+                                      {"params", {{"name", "call_tool"}, {"arguments", {{"tool", "ech"}}}}}}))["result"];
     CHECK(unknown["isError"] == true);
     CHECK(unknown["content"][0]["text"].get<std::string>().find("did you mean echo") != std::string::npos);
 }

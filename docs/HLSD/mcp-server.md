@@ -5,14 +5,14 @@
 The MCP server lets an AI agent drive a running OrcaSlicer through the Model Context Protocol.
 The same tools serve two audiences. A developer's agent reproduces a GitHub issue: it loads the
 files, picks presets, changes settings, clicks through the GUI and slices. It also takes
-screenshots before and after a fix and replays the steps from a script file. A user can drive
+screenshots before and after a fix and replays the steps from a replay file. A user can drive
 OrcaSlicer from Claude Code, Codex, Cursor or Claude Desktop.
 
 The server runs inside the GUI process, because most of what an agent reproduces is GUI
-behaviour, and reuses the Speed Dial catalog, so a feature added to the palette reaches agents and
-scripts too. It is off by default; until it is first turned on, `McpService` does not exist, so
+behaviour, and reuses the Speed Dial catalog, so a feature added to the palette reaches agents,
+replays and scripts too. It is off by default; until it is first turned on, `McpService` does not exist, so
 there is no thread, socket, modal-dialog hook, ImGui item recording or synthetic input state. The code is in
-`src/slic3r/GUI/Mcp/`; the protocol, transport, threading core, script runner and operation logic
+`src/slic3r/GUI/Mcp/`; the protocol, transport, threading core, replay runner and operation logic
 don't use wx, so they can be unit-tested.
 
 ```
@@ -67,12 +67,12 @@ A tool result is one compact JSON text block plus any image blocks; no tool decl
 Claude Code shows its model a tool's description and input schema but never its output schema, and
 fails a call whose structured content does not match that schema, so a schema would teach its agents
 nothing and could turn a call that already ran into an error. Clients that prefer structured content
-over the content blocks would also drop the images and `ui_snapshot`'s tree. Tool failures, invalid
+over the content blocks would also drop the images and `list_widgets`'s tree. Tool failures, invalid
 arguments included, are `isError` results the model can act on; an unknown tool is a JSON-RPC
 `-32602` error naming close matches. `validate_arguments()` checks arguments against the tool's
 schema first. Before it,
 `normalize_arguments()` reads what agents commonly send in place of the schema's form, for calls and
-script steps alike, so the journal records the schema's form. An argument under a name the tool does
+replay steps alike, so the journal records the schema's form. An argument under a name the tool does
 not take is read as one it does, when the call leaves that one out and the value fits it: `ref` as `target`, `key` as `keys`, `text`
 as `value`, `action` as `id` or `button`, `object` as `objects`, `plate` as `plates`, `filter` as
 `query`, `settings` as `values`, `target` as `root`. A value in another JSON form is converted: a
@@ -84,13 +84,13 @@ too had agents give it there beside a `camera`. Anything that still does not fit
 validator to report. The bench's transcripts are where these come from: each was an agent's first
 guess, many times over, and each cost a failed call and a retry.
 
-The server `instructions` (under the 4096 characters clients keep) give the workflow: `get_state`,
+The server `instructions` (under the 4096 characters clients keep) give the workflow: `get_app_state`,
 act, then check the result with the reading tools, keeping screenshots for what those do not report.
 They say to prefer typed tools over clicks and never retry a call that returned a job, point to
 `get_settings`' meta and search for what a setting does, say how a gizmo opens and is driven (and that
-`gizmo_file` only stands in for a file picker inside one, since its name draws agents to it for any
+`pick_gizmo_file` only stands in for a file picker inside one, since its name draws agents to it for any
 gizmo work), that the camera turns with `set_view` rather than a drag, and which indices are 0-based.
-They also point to `api_describe {query}` as the one search across every catalog an agent calls into:
+They also point to `search_tools {query}` as the one search across every catalog an agent calls into:
 the tools, the operations plugins offer (which `tools/list` never shows, so nothing else tells an agent
 they exist), Speed Dial actions, settings, the Python API and the Design tab's methods. An agent rarely
 knows which catalog answers "how do I add a brim", and each catalog has its own search with its own
@@ -104,7 +104,7 @@ The bearer token is 32 random bytes as 64 hex characters in `<datadir>/mcp/token
 and file created 0600 with `O_CREAT|O_EXCL` on POSIX, the per-user ACL of `%APPDATA%` on Windows.
 It stays out of AppConfig, whose writes and backups use default permissions. `ORCA_MCP_TOKEN`
 (preferred, as it stays out of the process list) or `--mcp-token` overrides it for one run;
-`get_state.mcp.token_source` says which is in force. Every start of the endpoint reads the file, so
+`get_app_state.mcp.token_source` says which is in force. Every start of the endpoint reads the file, so
 deleting it and turning the server off and on in Preferences issues a new token. While
 serving, `<datadir>/mcp/server.json` holds `{url, port, pid, version, token}` with the token in
 use, so the stdio bridge and the harness connect without the launch environment. It is written
@@ -116,8 +116,8 @@ file, and one that stops must not hide another's server from the stdio bridge.
 
 `GUI_App::on_init_inner()` starts the service once AppConfig is loaded. That is before the first
 startup dialog, such as the TLS prompt or the setup wizard, so an agent can answer those dialogs.
-`--mcp` or the `mcp_enabled` preference opens the endpoint, while `--mcp-script` alone, or opening
-Action Replay or the Run Script panel, only builds the catalog. `get_state.ready` stays false until `post_init()` calls `mark_ready()`, the Prepare
+`--mcp` or the `mcp_enabled` preference opens the endpoint, while `--mcp-run` alone, or opening
+Action Replay or the Run Script panel, only builds the catalog. `get_app_state.ready` stays false until `post_init()` calls `mark_ready()`, the Prepare
 canvas has loaded OpenGL and the main window has built its tab pages, and tools that need the main
 window fail with "still starting". Starting on Home, the canvas loads OpenGL at idle after
 `post_init()` (MainFrame's GL prebuild), and before that a 3MF save would draw its thumbnail with no
@@ -127,7 +127,7 @@ loop, and on GTK calls that came in meanwhile have left that wait unfinished for
 view made afterwards gets `window.wx` and a dialog page's own buttons do nothing. So `mark_ready()`
 polls every 100 ms until both are done. A hidden canvas that can't get a GL context loads OpenGL on
 its first draw instead, and the pages build only while no input arrives, so after 10 s ready no
-longer waits for either. Becoming ready also starts a command-line script. Notifications don't depend on this: one pushed or updated before the first
+longer waits for either. Becoming ready also starts the `--mcp-run` file. Notifications don't depend on this: one pushed or updated before the first
 ImGui frame has built the font waits for its first render to measure its text.
 
 The service stops, idempotently, at the start of `MainFrame::shutdown()` when the app closes
@@ -168,7 +168,7 @@ the stdio bridge by `--datadir`. The server makes no attempt to route between wi
 Preferences turns the server on with `GUI_App::start_mcp_service()` and off with
 `GUI_App::stop_mcp_endpoint()`, which stops the takeover retries and calls
 `McpService::stop_serving()` to close only the endpoint and remove the discovery file. The
-catalog, running jobs and a launch script carry on, because the call that opened Preferences may
+catalog, running jobs and a launch run carry on, because the call that opened Preferences may
 itself be an MCP call still on the stack. The port field shows the port in use, `--mcp-port`'s
 included, and only an edit of it is saved and reopens the endpoint, through
 `GUI_App::restart_mcp_endpoint()`: the field also commits when focus merely passes through it. A
@@ -178,7 +178,7 @@ that a call still running registers afterwards are refused, so a person using th
 never has a prompt answered for them. Closing doesn't wait for in-flight requests, which
 may be waiting on the UI thread that closes it; their replies are dropped. A bind failure is
 logged, shown as a notification and in Preferences, and a start from Preferences never reruns a
-command-line script. The modal tracker is created with the service and picks up modal dialogs that
+`--mcp-run` file. The modal tracker is created with the service and picks up modal dialogs that
 are already open, such as Preferences when the server is turned on from there.
 
 ## Threading
@@ -202,32 +202,32 @@ out and paints it only in a frame, and after each frame it shows it waits for th
 go-ahead, which doesn't come. Waits on the UI then time out, a list can't scroll to a row and the 3D
 views capture blank, none of it for the reason the call would give. `undrawn_window()` asks the main
 window's frame clock for a frame and waits up to half a second for it to run, so only a call that
-failed asks it: a `poll_ui()` timeout, a blank canvas capture and a row `ui_click` can't place say the
+failed asks it: a `poll_ui()` timeout, a blank canvas capture and a row `click` can't place say the
 window isn't being drawn when it isn't.
 
 `GuardClass` decides what may run when:
 
 | Class | Tools | Runs behind a modal or inside another call |
 |---|---|---|
-| `Inspect` | get_state, wait, get_log, list tools, get_settings, screenshot, ui_snapshot, start_recording, stop_recording, encode_recording | yes |
-| `Recover` | dialog_respond, dialog_auto_answer, GUI input aimed at the topmost modal | yes |
+| `Inspect` | get_app_state, wait, get_log, list tools, get_settings, screenshot, list_widgets, start_recording, stop_recording, encode_recording | yes |
+| `Recover` | answer_dialog, auto_answer_dialogs, GUI input aimed at the topmost modal | yes |
 | `Mutate` | everything else | no |
 
 The closure checks the guards on the UI thread, since the app can change between posting and
 running. A closing app or a stopped service fails the call with "shutting down". A frame being
 recreated fails it with "retry". A mutate call is refused while a modal dialog is open, and the
 refusal lists the dialogs. It is also refused when it would run inside another UI call's nested
-event loop: a modal, `ProgressDialog::Update` or `wxYield`. The GUI input tools (`ui_click`,
-`ui_input`, `ui_key`) and `dialog_respond` run as recover calls. Once a target resolves outside the
+event loop: a modal, `ProgressDialog::Update` or `wxYield`. The GUI input tools (`click`,
+`set_widget_value`, `press_keys`) and `answer_dialog` run as recover calls. Once a target resolves outside the
 topmost modal, they apply the mutate checks themselves (`UiInvoker::require_mutate()`), along with
-operation admission (`McpCore::admit()`). `cancel` is a recover call too, so neither a dialog the
+operation admission (`McpCore::admit()`). `cancel_job` is a recover call too, so neither a dialog the
 operation opened nor another call's nested loop keeps it out.
 
 `ToolDef::inline_call` decides where a call runs. Pure observation tools run on the request
 thread. Every tool that can activate UI runs as a job on its own thread, recover tools that click
 in dialogs included, since a click can open another modal (Preferences, Keyboard shortcuts, Edit).
 `JobRegistry` names jobs `j1`, `j2`, …, records each job's tool and parent, allows 64 running and
-keeps the last 64 results, plus finished jobs whose parent (a running script) may still wait for
+keeps the last 64 results, plus finished jobs whose parent (a running replay) may still wait for
 them, up to 1024 in all. The request thread waits up to `ToolDef::budget_ms` (45 s, under
 Codex's 60 s tool timeout); after that the reply is `{status: "running", job, tool, note}` and the
 job keeps going until `wait {for: "job"}` (at most 50 s per call) returns its result. The server
@@ -237,8 +237,8 @@ never retries a mutating call, and every envelope tells the model not to either.
 request thread posts a probe closure, which runs inside a wx dialog's loop and returns the
 `ModalTracker` snapshot as JSON; no `wxDialog*` crosses threads. With a modal open, the reply is
 `{status: "blocked_by_dialog", job, dialogs}`. Its note says how to answer the topmost dialog:
-`dialog_respond` for a wx dialog or a native message box whose buttons are listed, a person for any
-other dialog marked `native: true` (a picker, or any native dialog on macOS), which `dialog_respond`
+`answer_dialog` for a wx dialog or a native message box whose buttons are listed, a person for any
+other dialog marked `native: true` (a picker, or any native dialog on macOS), which `answer_dialog`
 can't press.
 
 On macOS a file picker, folder picker or message box pauses wx's pending events while it is open
@@ -267,7 +267,7 @@ Slicing and G-code export finish in the background process. Their handlers call
 `ToolContext::begin_operation()` in a short UI closure before starting the work; that fails if
 another operation runs. An export starts in that same closure. A slice first waits for the
 background update that a change made just before has scheduled, which validates the new state, and
-then requests the slice. A `cancel` that comes while it waits moves on `Plater::slice_cancel_seq()`,
+then requests the slice. A `cancel_job` that comes while it waits moves on `Plater::slice_cancel_seq()`,
 so the slice never starts and reports its plates `cancelled`. `poll_ui()` then checks on the work
 through `observe_ui()` every 200 ms, so a dialog that opens meanwhile doesn't stop the watch, until
 the work ends or the deadline passes. The deadline is `slice.timeout_s` (default 30 minutes) for a
@@ -284,23 +284,23 @@ own job then ends only once the worker is idle again, its finalization included,
 `ModelInstance` pointers until then. (`Worker::is_idle()` reads true from the moment the worker takes
 the finalize message, so a dialog finalization opens, such as an arrange's geometry error, ends the
 hold early; the modal guard keeps changes out until it closes.) Its reply waits within the reply budget and
-then becomes a running job, as for any call. `cancel` (or the call's own timeout, 30 minutes unless
+then becomes a running job, as for any call. `cancel_job` (or the call's own timeout, 30 minutes unless
 the tool sets a shorter one, as `arrange` does) asks the job to stop, but `Worker::cancel()` does not
-wait, so the call keeps the operation until the worker is idle and then fails as cancelled. `cancel`
+wait, so the call keeps the operation until the worker is idle and then fails as cancelled. `cancel_job`
 stops only a job an MCP call claimed. The worker doesn't record who queued a job, so a job a person
 starts while a call is still between its closures, after one that found the worker idle, is claimed
 by that call too: its reply then waits for that job. The window is the call's own length, a
 second or so for most calls and up to its poll timeout for a call that waits on the UI.
 
 **Admission.** While an operation job runs, every other `Mutate` call is refused ("Busy: job j12 is
-running an operation (slice, export, arrange or another background job)"), whichever client or script
+running an operation (slice, export, arrange or another background job)"), whichever client, replay or script
 sends it. So an agent can't change the project under its own operation. While the worker runs a job
 no call holds, a person's (typing in the Text gizmo) or one not yet claimed, changes are refused too
 ("Busy: a background job ..."); reads are not. The check, `McpCore::admit()`, runs when the call
 arrives (operations only, since the worker lives on the UI thread) and again in each of its UI
 closures, where operations start, so a call admitted just before an operation began still can't
 change the project under it. Inline tools, recover tools answering the topmost modal and
-`allowed_during_operation` tools (`cancel`) still run; the GUI input tools apply the same check once
+`allowed_during_operation` tools (`cancel_job`) still run; the GUI input tools apply the same check once
 their target is outside the topmost modal.
 
 **Identity.** An operation must never take another's completion for its own. `Plater` numbers
@@ -343,7 +343,7 @@ flush and prime tower grams. The silent-mode time and extruder changes, which th
 out, come from the result's estimates, and only when the printer has them. The summary is read in
 the poll closure that decides the outcome, since a UI call of its own would wait behind the
 preview's loading of the new result; the serializer's one pass over the moves is short next to
-that. `cancel` also drops a pending automatic reslice: it stops the delay timer,
+that. `cancel_job` also drops a pending automatic reslice: it stops the delay timer,
 whose callback wx then never delivers, and moves on a generation that a zero-delay reslice already
 queued with `CallAfter` checks. An export is numbered in `export_seq` once scheduled, so an
 unchanged number means it never started; otherwise its `ExportRecord` ends `ok`, `failed`,
@@ -358,22 +358,29 @@ and the UI job worker (arrange, orient) is idle, and no gizmo on any canvas repo
 `GLGizmoBase::is_busy()`: work a gizmo started in the background whose result it has yet to show
 (Simplify's calculation until `worker_finished()` has run, Texture Displacement's adjustment
 preview). It also needs no job running other than the caller and its ancestors,
-so a script waiting for idle doesn't wait on itself. Only the job registry, the `ModalTracker`
+so a replay or script waiting for idle doesn't wait on itself. Only the job registry, the `ModalTracker`
 snapshot and the journal are shared between threads, each behind a mutex. All app state is read on
 the UI thread.
 
 ## Tool catalog
 
+A tool's name says what it does in the words the GUI uses, so a person's request and an agent's search for a
+tool meet: `set_height_ranges` edits what the object list calls height ranges (Height Range Modifier),
+`set_variable_layer_height` runs the Variable layer height panel, and `run_replay` runs what Action Replay calls
+a replay file. Where the GUI has no name for the thing, the name is a plain verb and noun (`list_widgets`,
+`answer_dialog`), and a word the GUI uses for something else is avoided: `run_script` would read as the Run
+Script panel, which runs Python.
+
 | Group | Tool | Purpose |
 |---|---|---|
-| App | `get_state` | version, platform and display backend, ready, window, the MCP endpoint, whether Python runs and Python scripts are allowed, whether the Design tab is on, tab, mode, project, presets, plates, objects, the selection, slicing, the Preview's view type, time mode and layer range, print host uploads, the open gizmo, dialogs, menus closed unseen, auto-answer rules, notifications, jobs |
+| App | `get_app_state` | version, platform and display backend, ready, window, the MCP endpoint, whether Python runs and Python scripts are allowed, whether the Design tab is on, tab, mode, project, presets, plates, objects, the selection, slicing, the Preview's view type, time mode and layer range, print host uploads, the open gizmo, dialogs, menus closed unseen, auto-answer rules, notifications, jobs |
 | | `wait` | `ready`, `idle`, `dialog`, `no_dialog` or a `job` (default the job given, else `idle`); `timeout_s` up to 50 |
 | | `get_log` | end of the current log file, filtered by minimum level |
-| Speed Dial | `list_actions` | search the action catalog, paged |
+| Speed Dial | `search_actions` | search the action catalog, paged |
 | | `run_action` | run an action by id (or the name inside it), with its optional `param`; an error when the action did nothing; waits for a background job it starts (arrange, orient) |
 | Project | `open_files` | load models, a project or G-code by absolute path, with no dialog |
 | | `new_project` | start an empty project (`discard_changes` if it has unsaved changes); `changes` keeps or discards modified presets |
-| | `calibrate` | a Calibration menu test with typed parameters and no dialog: a new project with the test model and the preset changes the test needs, printed with filament slot 1; refused while presets are modified unless `changes` keeps or discards them |
+| | `generate_calibration_test` | a Calibration menu test with typed parameters and no dialog: a new project with the test model and the preset changes the test needs, printed with filament slot 1; refused while presets are modified unless `changes` keeps or discards them |
 | | `save_project` | save the project as `.3mf` to a path (a `.gcode.3mf` path is refused: that is `export` `sliced_3mf`) |
 | | `export` | `gcode`, `sliced_3mf`, `3mf` or `stl` to a path, by default the one its extension names; `gcode` is an export operation |
 | Presets | `list_presets` | printer, process or filament presets with flags (system, user, inside the project, the preset inherited from), paged |
@@ -384,38 +391,38 @@ the UI thread.
 | | `delete_preset` | delete a user or project preset, selected or not, as the tab's Delete does (destructive) |
 | Objects | `list_objects` | objects (filament, auto drop, overrides, brim ears, height range modifiers, variable layer height profile), instances (placement, mirrored, bounding box, canvas rectangle on request) and parts (type, filament, placement and bounding box on the bed, scaled and mesh volume, painted facets, text and SVG sources), paged |
 | | `list_plates` | plates with the settings they print with and those they set themselves, objects, name, lock, slice state, prime tower position and layer G-codes, paged |
-| | `select` | select objects, instances or parts (indices checked against what the object has), all, or none |
+| | `select_objects` | select objects, instances or parts (indices checked against what the object has), all, or none |
 | | `transform` | translate, rotate, scale or size one instance, relative or absolute, move it to a `position` or to another plate; or the same for one part (`volume`) |
 | | `add_part` | add a part, negative part, modifier, support blocker or enforcer, or precise seam to an object: a shape at a size or a model file, optionally at a position |
 | | `arrange` | arrange every unlocked plate or one plate, or fill an object's plate with instances or copies, with the Arrange options panel's settings; waits for the job |
-| | `set_layer_ranges` | replace an object's height range modifiers: Z ranges with their own layer height, filament and process settings |
-| | `set_layer_height_profile` | the Variable layer height panel's Adaptive (with its quality), Smooth (radius, keep min) or Reset on an object |
+| | `set_height_ranges` | replace an object's height range modifiers: Z ranges with their own layer height, filament and process settings |
+| | `set_variable_layer_height` | the Variable layer height panel's Adaptive (with its quality), Smooth (radius, keep min) or Reset on an object |
 | Slice | `slice` | current, one or all plates, then the Preview tab as after the Slice button; outcome for each plate, and for an `ok` one its time, filament totals with the flush, cost, layers, max Z, filament changes and grams per slot by use |
-| | `cancel` | stop the running slice or G-code export, a pending automatic reslice, or a background job an MCP call started (optionally only a given job), or with `job` a running `encode_recording`; allowed during an operation |
-| | `set_layer_gcode` | add or remove a plate's pauses, custom G-code, custom templates and filament changes on its sliced layers, as the Preview layer slider's menu does |
+| | `cancel_job` | stop the running slice or G-code export, a pending automatic reslice, or a background job an MCP call started (optionally only a given job), or with `job` a running `encode_recording`; allowed during an operation |
+| | `set_custom_gcode_at_layer` | add or remove a plate's pauses, custom G-code, custom templates and filament changes on its sliced layers, as the Preview layer slider's menu does |
 | View | `set_view` | tab (Design included), 3D view (Prepare, preview, assemble), camera (a direction also as `view`; the Design view's on the Design tab) and `orbit` around what it looks at by degrees, preview layers (by number or height), color scheme as the legend's combo picks it, legend rows and time estimate, window size |
 | | `screenshot` | window, the 3D view shown (the Design view on the Design tab), topmost dialog or one widget: a downscaled image and a full-size PNG |
-| | `get_preview` | a sliced plate's summary, time and grams per feature type, per-layer Z, height, time and grams (paged), grams per object instance, and the Preview's legend state and colour ranges |
+| | `get_slice_stats` | a sliced plate's summary, time and grams per feature type, per-layer Z, height, time and grams (paged), grams per object instance, and the Preview's legend state and colour ranges |
 | Recording | `start_recording` | record the main window with its modal dialogs, or the 3D view shown, into an MJPEG `.mkv`, with the current tool call as a caption and the pointer highlighted when asked for, and with `encode` an MP4 of it once stopped |
 | | `stop_recording` | capture the last state, end the recording and report its file once written: length, frames, drops, the mean UI time of a capture, size and why it ended; the job of the encode `start_recording` asked for |
 | | `encode_recording` | encode a recording into an H.265 or H.264 MP4 with the system ffmpeg; cancellable |
-| GUI | `list_windows` | the open windows, modal or not, with refs for `screenshot`, `ui_snapshot` and the input tools, paged |
-| | `ui_snapshot` | widgets, rows of lists, trees and tables, popups, menus, GL toolbar items, gizmos, the Prepare view's plates and plate icons, and ImGui items, with refs |
-| | `ui_click` | activate a ref or locator, click a row's cell or a plate icon, or click a point of a 3D canvas or custom-drawn widget; list the menu it opens, or run one of its items |
-| | `ui_input` | set a control's text, value, selection or checked state, or a row's checkbox |
-| | `ui_key` | send a key chord to a target or the focused window, whose panels' key hooks see it first; list or run the menu it opens |
-| | `ui_mouse` | canvas gestures: move, down, up, click, drag, wheel, at pixels or at points of the model (the Design view at pixels); list or run a right click's menu; reports when a gesture moved the camera |
-| | `gizmo_file` | what the open gizmo's file pickers do, with a path: SVG change file and save as, texture import |
-| | `dialog_respond` | press a button of the topmost wx dialog or native message box, or of its page for a web dialog |
-| | `dialog_auto_answer` | answer matching modals as they open (native ones unseen, web ones on their page), and one already open |
-| | `webview_eval` | run JavaScript in a web view (the topmost dialog's while a modal is open), with a page element as `el`, and return the result |
-| Scripts | `run_script` | run a script file or inline script, with results per step |
-| | `export_script` | write the session journal as a script that can be replayed; calls whose job is still running are left out and listed |
-| | `run_python` | run Python code against `orca.host`, calling tools through `orca.host.tools`; needs the Python setting (see Python scripts); cancellable |
-| | `python_api` | search the `orca` package in the running build: names, signatures and documentation, paged |
-| API | `api_describe` | look up any registered tool or plugin operation by name, list every name, or search every catalog by words |
-| | `api_call` | call a registered tool or plugin operation by name; runs and is journaled as that tool's own call |
-| CAD | `cad_call` | a method of the Design tab: sketches, features, reads and measurements, feature and body edits, undo, commit to plate; `describe_tools` lists them (CAD builds, Design tab enabled) |
+| GUI | `list_windows` | the open windows, modal or not, with refs for `screenshot`, `list_widgets` and the input tools, paged |
+| | `list_widgets` | widgets, rows of lists, trees and tables, popups, menus, GL toolbar items, gizmos, the Prepare view's plates and plate icons, and ImGui items, with refs |
+| | `click` | activate a ref or locator, click a row's cell or a plate icon, or click a point of a 3D canvas or custom-drawn widget; list the menu it opens, or run one of its items |
+| | `set_widget_value` | set a widget's text, value, selection or checked state, or a row's checkbox |
+| | `press_keys` | send a key chord to a target or the focused window, whose panels' key hooks see it first; list or run the menu it opens |
+| | `mouse_gesture` | canvas gestures: move, down, up, click, drag, wheel, at pixels or at points of the model (the Design view at pixels); list or run a right click's menu; reports when a gesture moved the camera |
+| | `pick_gizmo_file` | what the open gizmo's file pickers do, with a path: SVG change file and save as, texture import |
+| | `answer_dialog` | press a button of the topmost wx dialog or native message box, or of its page for a web dialog |
+| | `auto_answer_dialogs` | answer matching modals as they open (native ones unseen, web ones on their page), and one already open |
+| | `run_javascript` | run JavaScript in a web view (the topmost dialog's while a modal is open), with a page element as `el`, and return the result |
+| Replays and scripts | `run_replay` | run a replay file or inline replay, with results per step |
+| | `export_replay` | write the session journal as a replay; calls whose job is still running are left out and listed |
+| | `run_script` | run Python code against `orca.host`, calling tools through `orca.host.tools`; needs the Python setting (see Python scripts); cancellable |
+| | `search_python_api` | search the `orca` package in the running build: names, signatures and documentation, paged |
+| API | `search_tools` | look up any registered tool or plugin operation by name, list every name, or search every catalog by words |
+| | `call_tool` | call a registered tool or plugin operation by name; runs and is journaled as that tool's own call |
+| CAD | `call_cad_tool` | a method of the Design tab: sketches, features, reads and measurements, feature and body edits, undo, commit to plate; `describe_tools` lists them (CAD builds, Design tab enabled) |
 
 Each tool has a lane, the way it acts, set by `ToolRegistry::add()` from `tool_lane()`: core (the
 session, recovery and Python), API (project data by index and name, JSON in and out) and UI (the GUI
@@ -431,42 +438,42 @@ So the label marks what a call does by its nature, not everything a call could r
 a confirmation on calls an agent makes all the time.
 
 `read_only`: the tool changes nothing in the app or the project. `screenshot` is read-only, since its
-PNG replaces no file without `overwrite`; `export_script`, which can clear the journal, is not.
+PNG replaces no file without `overwrite`; `export_replay`, which can clear the journal, is not.
 `destructive`: every call deletes what a person made, with no undo: `delete_preset`, which takes the
 preset's file and its cloud copy. A tool that can lose work only when an argument asks for it is not:
-`new_project`, `calibrate` and `open_files` drop unsaved changes only with `discard_changes`, an output
+`new_project`, `generate_calibration_test` and `open_files` drop unsaved changes only with `discard_changes`, an output
 replaces a file only with `overwrite: true`, and `encode_recording` deletes its source only with
-`delete_source`. Nor is a tool that runs what its arguments name: the `ui_*` tools, which press
-whatever is on screen, a Delete button included, `run_action`, `api_call`, `run_script` and
-`run_python`. What they run may be destructive, but the client sees both in the arguments, and the
+`delete_source`. Nor is a tool that runs what its arguments name: the input tools (`click`, `set_widget_value`, `press_keys`, `mouse_gesture`), which press
+whatever is on screen, a Delete button included, `run_action`, `call_tool`, `run_replay` and
+`run_script`. What they run may be destructive, but the client sees both in the arguments, and the
 label would ask on every call. `open_world` (`openWorldHint`): the tool can reach outside OrcaSlicer, to a
 printer, the cloud account or the network: `save_preset` (user presets sync), `delete_preset` (the cloud
-copy), `webview_eval` (the page's own reach), and through what they run `run_action` (`send_gcode`,
-`sync_presets`), `api_call`, `run_script` and `run_python`, which has the app's access to the computer.
+copy), `run_javascript` (the page's own reach), and through what they run `run_action` (`send_gcode`,
+`sync_presets`), `call_tool`, `run_replay` and `run_script`, which has the app's access to the computer.
 No client is known to ask on it. `idempotent`: the same call again changes nothing more.
 
 The tools that take an object index (`set_settings` object and volume scopes, `transform`, `add_part`,
-`set_layer_ranges`, `set_layer_height_profile`) also take an optional `object_id`, and where they take a
-part index a `volume_id`; `select` takes `object_ids`, `instance_object_ids` and `volume_ids`, one per
+`set_height_ranges`, `set_variable_layer_height`) also take an optional `object_id`, and where they take a
+part index a `volume_id`; `select_objects` takes `object_ids`, `instance_object_ids` and `volume_ids`, one per
 entry of `objects`, `instances` and `volumes`: the `ObjectID` values `list_objects` reports as `id`, which `orca.host` shows
 too. `check_expected_ids()` refuses the call before anything changes when the index names another object
-or part now, so a script addresses what it read. `list_objects`' description says what the ids are for
+or part now, so a replay or script addresses what it read. `list_objects`' description says what the ids are for
 and names the tools that take them, so each property only points back at it. Ids are allocated per
 process, so the journal leaves them out of those tools' calls (`without_expected_ids()`), through
-`api_call` and inline `run_script` steps too, and a replay addresses by index; a `run_python` step's code
+`call_tool` and inline `run_replay` steps too, and a replay addresses by index; a `run_script` step's code
 and `args`, and a plugin operation's own arguments, are kept as written.
 
 Descriptions keep one order: what the tool does, the arguments that change it, `Reply:` with the
 fields it has, then edge cases; a long one puts each case on a line of its own (the scopes of
-`get_settings` and `set_settings`, `ui_click`'s web pages). What several tools share is written once,
-since every session loads the whole tool list: the locator grammar in `ui_snapshot`'s description,
+`get_settings` and `set_settings`, `click`'s web pages). What several tools share is written once,
+since every session loads the whole tool list: the locator grammar in `list_widgets`'s description,
 which hands out the refs, each `target` giving two examples and pointing there; the paging shape, and
 that a part is a `volume` in argument names, in the server instructions. A tool that takes one plate
 calls it `plate`, an index; one that also takes `"current"` or `"all"` calls it `plates`.
 
 Each tool family registers itself from its own `McpTools*.cpp` through `register_*_tools()`.
 List tools take `limit` and `offset` and reply `{items, offset, total}` (`page()`), with `next_offset` while
-more remain; `list_actions` names its items `actions`. The server instructions give that shape once, rather
+more remain; `search_actions` names its items `actions`. The server instructions give that shape once, rather
 than every description, and each `limit` states its default. `McpPaths.hpp` requires
 absolute paths, since a relative one would resolve against `<datadir>/log`, the GUI's working
 directory; an output's directory must exist, and an existing file is replaced only with
@@ -493,7 +500,7 @@ negative parts, support blockers and enforcers, and precise seams. A precise sea
 names without their prefix). The `transform` reply on a part carries the same `volume_info`. An
 object with height range modifiers lists them as `layer_config_ranges` (`layer_config_ranges_json()`),
 each with its whole config serialized as `get_settings` serializes values, so a range always shows
-its `layer_height` and `extruder`, and the list can be handed back to `set_layer_ranges` unchanged. An
+its `layer_height` and `extruder`, and the list can be handed back to `set_height_ranges` unchanged. An
 object whose `layer_height_profile` has more than a flat bottom-to-top pair, which the object list marks
 as a variable layer height, reports it as `layer_height_profile: {points, min_height, max_height}`
 (`layer_height_profile_json()`): the number of (z, height) points and the extreme heights, to 0.001 mm.
@@ -575,9 +582,9 @@ An arrange sorts the model's objects by arrange order
 (`PartPlateList::rebuild_plates_after_arrangement()`), so indices may change. After `timeout_s`
 (default 300) the call cancels the job.
 
-### set_layer_ranges
+### set_height_ranges
 
-`set_layer_ranges` gives an object's whole set of height ranges (`ModelObject::layer_config_ranges`),
+`set_height_ranges` gives an object's whole set of height ranges (`ModelObject::layer_config_ranges`),
 which a person builds with the object list's Height Range Modifier, its "+" buttons and the range
 editors in the sidebar, one gesture and one undo step at a time. Each range starts from what the object
 list gives a new one, `ObjectList::get_default_layer_config()` (the object's layer height, else the
@@ -604,9 +611,9 @@ layer height. The dialog the menu shows when the process uses mixed colour subla
 heights instead of the ranges' `layer_height` (`PrintObject::update_layer_height_profile()` falls back to
 the ranges only without a valid profile).
 
-### set_layer_height_profile
+### set_variable_layer_height
 
-`set_layer_height_profile` runs what the Variable layer height panel's Adaptive, Smooth and Reset buttons
+`set_variable_layer_height` runs what the Variable layer height panel's Adaptive, Smooth and Reset buttons
 post: `GLCanvas3D::adaptive_layer_height_profile(quality)`, `smooth_layer_height_profile({radius,
 keep_min})` and `reset_layer_height_profile()`, each with the GUI's undo snapshot ("Variable layer height -
 Adaptive", "- Smooth all", "- Reset"), followed by a background update and the object list's variable
@@ -634,9 +641,9 @@ also passes on the warning the panel shows when the process mixes colours in sub
 stored per object, saved in the 3MF, and discarded by the slicer when it no longer ends at the object's
 top (after a scale, for example).
 
-### set_layer_gcode
+### set_custom_gcode_at_layer
 
-`set_layer_gcode` places what the Preview layer slider's right-click menu adds at the start of a layer
+`set_custom_gcode_at_layer` places what the Preview layer slider's right-click menu adds at the start of a layer
 (Add Pause, Add Custom G-code, Add Custom Template, Change Filament > Filament N) and removes them, on one
 plate. The codes are a plate's `Model::plates_custom_gcodes` entry, saved in the 3MF
 (`custom_gcode_per_layer.xml`) and read back by `list_plates` as `layer_gcode`, with the same type names
@@ -650,7 +657,7 @@ edits the slider with its own functions (`IMSlider::add_code_as_tick()`, `add_cu
 plate's entry rewritten, its slice invalidated, the project dirty and its revision raised.
 
 Codes sit on the layers of the plate's slice. `layer` is the slider's value plus one, as `set_view` and
-`get_preview` number layers; `z` takes the layer whose top is at or above it
+`get_slice_stats` number layers; `z` takes the layer whose top is at or above it
 (`IMSlider::get_tick_from_value(z, true)`, the rule the slider uses for a stored height), so a code is
 always stored at a layer's top, where the slider and the G-code generator agree on its layer. The reply
 gives both for every code. A plate's layers are in the slider only while the Preview shows that plate's
@@ -715,7 +722,7 @@ the plain Save. A new preset goes where the edited one is (user or inside the pr
 choice. `detach` is refused outside Developer mode, where the dialog has no such checkbox. For a
 printer, the selected physical printer, if any, takes the dialog's default action
 (`SavePresetDialog::update_physical_printers()` with `ChangePreset`). Preset files live in the
-datadir, not the project, so a script meant to be rerun passes `overwrite`. A filament temperature
+datadir, not the project, so a replay or script meant to be rerun passes `overwrite`. A filament temperature
 warning, the unresolved-plugin confirmation or the unsaved-changes prompt of a slot switch makes the
 reply `blocked_by_dialog`.
 
@@ -875,8 +882,8 @@ the preset being edited again, which would drop its unsaved changes (filament) o
 (process), so they are refused while it has any.
 
 The reply carries `selected`, the preset of that type selected afterwards, `filaments`, each slot's
-preset, and `discarded`/`modified` as `select_preset`'s. A replayed script needs the preset to exist,
-so scripts create it first with `save_preset`.
+preset, and `discarded`/`modified` as `select_preset`'s. A replay needs the preset to exist,
+so replays create it first with `save_preset`.
 
 ### Project settings
 
@@ -977,19 +984,19 @@ handlers carry its effects (dark mode, the language, which recreates the GUI, th
 mode, render settings redrawn after the dialog closes, and this server's own `mcp_enabled` and `mcp_port`,
 which close the endpoint the call came through). Writing the key would skip all of them.
 
-The dialog's controls are named after their AppConfig keys, so `ui_snapshot` shows the key and
-`ui_input {"target": {"name": "export_statistics", "within": "Preferences"}, "value": true}` changes one
+The dialog's controls are named after their AppConfig keys, so `list_widgets` shows the key and
+`set_widget_value {"target": {"name": "export_statistics", "within": "Preferences"}, "value": true}` changes one
 through its own handler. The Speed Dial's `open_preferences` takes `<tab>[:<key>]` (`general`, `files`,
 `behaviour`, `control`, `graphics`, `online` or `developer`) and opens the dialog there through `GUI_App::open_preferences()`,
 scrolled to the key's control and focused; a key on another tab is shown on its own tab. Checkboxes,
 number and text fields and the language combobox change this way. The other comboboxes (those of
 `create_item_combobox()`, the log level, the login region and the network plug-in version) save from a
-handler on their drop-down list, where a person's pick arrives, while `ui_input` sends the selection to the
+handler on their drop-down list, where a person's pick arrives, while `set_widget_value` sends the selection to the
 combobox itself: it shows the new choice and saves nothing.
 
 ### Calibration tests
 
-`calibrate` runs a Calibration menu test (temperature, max volumetric speed, pressure advance as tower,
+`generate_calibration_test` runs a Calibration menu test (temperature, max volumetric speed, pressure advance as tower,
 line or pattern, flow ratio in its four passes, retraction, VFA, cornering, input shaping frequency and
 damping) one level below its dialog: it calls the same `Plater::calib_*` the dialog's OK calls, with
 the `Calib_Params` the dialog would build, and never shows the dialog. The dialogs only collect and check
@@ -1014,7 +1021,7 @@ Every test starts a new project, whose prompts the tool answers itself (`skip_co
 `calib_*`): a project with unsaved changes needs `discard_changes`, and modified presets need `changes`,
 `"keep"` to run the test with them or `"discard"` to drop them first through
 `GUI_App::discard_current_preset_changes()`. Unlike `new_project`, which keeps modified presets silently,
-`calibrate` refuses without `changes` and lists the modified keys: a previous test's settings would
+`generate_calibration_test` refuses without `changes` and lists the modified keys: a previous test's settings would
 otherwise spoil this one. With `"discard"` the test's rules and defaults come from the saved printer
 preset, which is what remains. The tests write their filament settings to the preset the filament tab
 edits, while the test objects print with slot 1, so the tool first points the tab at slot 1's preset
@@ -1034,14 +1041,14 @@ computed from the presets again on replay. To keep a measured value, the agent l
 `new_project {"discard_changes": true, "changes": "discard"}`, sets the value with `set_settings` and saves
 it with `save_preset`; staying in the test project, `set_settings {"reset_all": true, "values": ...}` on
 the preset's scope drops the test's settings there and sets the value in one call. The Speed Dial's `calib_*` commands still open
-the dialogs, and their descriptions point at `calibrate`.
+the dialogs, and their descriptions point at `generate_calibration_test`.
 
-### Design tab: `cad_call`
+### Design tab: `call_cad_tool`
 
-`cad_call {method, params}` reaches the Design tab's control surface (`CAD/McpControl.cpp`), the
+`call_cad_tool {method, params}` reaches the Design tab's control surface (`CAD/McpControl.cpp`), the
 same methods the `ORCA_CAD_MCP` socket serves, as one generic tool rather than a schema per
 method, so agents that never open the Design tab pay nothing for it. It needs the CAD feature on
-(Preferences > Features), which the app reads only at startup; `get_state.design_tab` says whether
+(Preferences > Features), which the app reads only at startup; `get_app_state.design_tab` says whether
 this session built the tab. One table, `kCadMethods`, declares
 every method's name, access and handler; the dispatcher, the busy gate and `describe_tools` all
 read it. `describe_tools` is the parameter schema of record: one row per method with typed params,
@@ -1055,7 +1062,7 @@ nor `sketch` methods run while a body Move is open, since its session holds a bo
 change could point at another body. Nothing runs while a rebuild's worker owns the document.
 
 A method that fails is an error (`CadCallError` → `isError`) and leaves the design as it was, so
-`export_script` drops it and a script never replays a call that did nothing. That holds for
+`export_replay` drops it and a replay never repeats a call that did nothing. That holds for
 argument errors and for a rebuild the kernel rejects alike. The exceptions are the older methods
 `describe_tools` lists in `legacy_ok_false` (`fillet`, `chamfer`, `boolean`, `pattern`, `mirror`,
 `shell`, the surface methods, `import_step`, `set_variable` and others): they report a rejected
@@ -1065,11 +1072,11 @@ are not on that list, so none of them fails two ways depending on its arguments.
 methods off the list add through `add_feature()`: one checkpoint, a rebuild, and on failure
 `CadDocument::rollback()`, which restores the checkpoint without leaving the refused recipe on the
 redo stack and with the redo branch the checkpoint cleared, then "Edit rejected" on the status line
-as for a refused GUI edit. Features made through `cad_call` are named as the cards name them
+as for a refused GUI edit. Features made through `call_cad_tool` are named as the cards name them
 ("Extrude 3"), from the panel's own counter.
 
 `generation` guards face and edge ids within a session, but its value depends on the session's
-history, so the journal records `cad_call` without it and a replay rebuilds the same ids.
+history, so the journal records `call_cad_tool` without it and a replay rebuilds the same ids.
 
 The plane-taking methods (`sketch_begin`, `extrude`, `revolve`, the `hole` methods, `thread`,
 `split`, `pattern`, `mirror`, `helix`, `project`) share one resolver, `cad_resolve_plane()`: `"XY"`,
@@ -1079,7 +1086,7 @@ The plane-taking methods (`sketch_begin`, `extrude`, `revolve`, the `hole` metho
 `CadDocument::inward_plane_of_face()`, the Hole card's plane (normal into the body, x along the
 longest edge), and the hole or thread goes into that face's body. Their replies carry the `frame`
 used. Because a sketch's base plane passes through `modeling_origin` like every feature's, a sketch
-lands where the features drawn on the same plane land, and the coordinates in a script are relative
+lands where the features drawn on the same plane land, and the coordinates in a replay are relative
 to the modeling origin on any printer.
 
 `describe_scene` reads the document: the features, each with the fields an expression drives
@@ -1112,7 +1119,7 @@ through `DesignPanel::begin_sketch_session()`, the code a plane or face pick run
 menu that follows the click. `sketch_commit` is the sketch's ✓, whose commit handler adds the Sketch
 feature and solves its dimensions; the reply reads the committed feature back: `sketch_index`, its
 name and its loops. An empty sketch is refused before anything changes and the session stays open,
-because an exported script leaves the failed call out and its next sketch call needs that session.
+because an exported replay leaves the failed call out and its next sketch call needs that session.
 `sketch_describe {sketch}` describes a committed sketch as the open one is described, through
 `DesignSketchTool::loop_report(entities)`. Its loop indices are those `extrude {loop}` takes: a
 region lists the loops inside it under `holes`, and each of those is a loop of its own.
@@ -1206,10 +1213,10 @@ the lower one follows it.
 Thread, sweep and loft rebuild as their cards do, through `DesignPanel::recompute_guarded()`: the
 kernel works on a worker thread while the UI thread waits in `wxYield()` behind a progress dialog
 that appears after 300 ms. A long thread or sweep takes seconds, and meanwhile the window paints
-and inspection tools answer from inside that loop: `get_state`, `ui_snapshot` (the dialog is a
+and inspection tools answer from inside that loop: `get_app_state`, `list_widgets` (the dialog is a
 non-modal `wxProgressDialog` titled "Design") and `screenshot`, of the window or of the dialog's own
 ref. On Windows the dialog is the system's task dialog, run on a thread of its own, so it is no wx
-window and `ui_snapshot` does not list it; the other tools answer as elsewhere. Mutating calls are refused by `UiInvoker` as running inside `cad_call`, and the `ORCA_CAD_MCP`
+window and `list_widgets` does not list it; the other tools answer as elsewhere. Mutating calls are refused by `UiInvoker` as running inside `call_cad_tool`, and the `ORCA_CAD_MCP`
 socket's requests by `mcp_busy()`, since the worker owns the document. A call past the reply budget
 becomes a running job; the socket waits on such a request past its 15 s queue timeout once it has
 started.
@@ -1262,12 +1269,12 @@ view (iso, fitted), `fit_objects` its `fit_view()`, and `fit_selection` the pick
 nothing is picked. The camera is applied in a second UI closure after `settle()`, because the tab
 takes the shared camera only when its page shows (`DesignPanel::on_tab_shown()`). `fit_bed`, `view`
 and the Preview fields are refused with the Design tab, since they show Prepare or Preview. The
-Design view is a canvas target for the `ui_*` tools and screenshots (see GUI automation and
+Design view is a canvas target for `list_widgets`, the input tools and screenshots (see GUI automation and
 Screenshots).
 
 A change made only in the Design tab marks the project modified, as other project data outside
 Prepare's undo stack does: `sync_recipe_to_model()` sets the plater's dirty flag besides the
-backup's change mark. So `get_state.project.dirty`, the window title and `open_files` /
+backup's change mark. So `get_app_state.project.dirty`, the window title and `open_files` /
 `new_project {discard_changes}` agree with the unsaved-changes prompt that Open and New Project
 show. A project holding only a design loads no objects, and `Plater::load_project()` still names
 it after its file, since a loaded recipe counts as a loaded project.
@@ -1276,7 +1283,7 @@ it after its file, since a loaded recipe counts as a loaded project.
 `describe_tools`, the plane resolver, the rollbacks, and the methods through their public seams
 (`cad_sketch_extrude()`, `cad_sketch_call()`, `cad_query_topology()`, `cad_thread()` and the rest),
 which take a `CadDocument` or a bare `DesignSketchTool` and need no Design panel. The replay
-scripts run on an instance that `tools/mcp/orca_mcp.py launch --cad` starts:
+replays run on an instance that `tools/mcp/orca_mcp.py launch --cad` starts:
 `tools/mcp/tests/cad_sketch_to_solid.json`, `cad_sketch_edit.json`, `cad_topology_targets.json`,
 `cad_features.json`, `cad_doc.json` and `cad_canvas.json` (the Design view as a canvas target, its
 key hook, and the dirty flag). `tools/mcp/test_cad_replay.py` records a session with
@@ -1287,13 +1294,13 @@ properties; `tools/mcp/test_cad_slow_build.py` checks the window during a guarde
 
 ## Speed Dial catalog
 
-`list_actions` and `run_action` serve the Speed Dial's `ActionRegistry`: built-in commands, plates,
+`search_actions` and `run_action` serve the Speed Dial's `ActionRegistry`: built-in commands, plates,
 recent projects, plugin scripts and pages, and, on request, settings. Built-in commands are
 `NativeCommand`s in `NativeCommands.cpp`, with three fields for automation that the palette never
 shows: `description` (English, for agents), `param` (a `CommandParam {type, help}`, typed `None`,
 `Percent`, `Tab`, `Path`, `Index` or `Text`) and `completion` (`Export` when the effect finishes in
 the background after `run()` returns). `describe_commands()` fills them from one table, with a
-key-prefix rule for calibration dialogs (pointing at `calibrate`), camera views and primitives, and `CommandAction` copies
+key-prefix rule for calibration dialogs (pointing at `generate_calibration_test`), camera views and primitives, and `CommandAction` copies
 them into the `AppAction`. The palette keeps `input` for its picker and never passes a path.
 
 `ActionRegistry::describe(Query)` searches id, title, group, source and description, including the
@@ -1326,7 +1333,7 @@ turns a bad path into an Error result.
 | `export_stl_multi` | existing directory | `Plater::export_stl(..., multiple, dir)` |
 | `add_primitive_svg` | `.svg` | `GLGizmoSVG::create_volume(path, type)`: a new object, or a part of the selected one; a job |
 | `export_config` | existing directory | `ExportConfigsDialog(parent, dir)`: the dialog still opens, and its OK writes there |
-| `install_local_plugin` | `.py`, `.whl` | `install_local_plugin_package(path, parent, message)`, the Plugins dialog's install: it still asks before replacing an installed plugin, in Orca's own "Overwrite Plugin" message dialog, which `dialog_respond` answers on every platform. Cancel makes the command an error saying that the plugin was not installed. A file that is not a `.py` or `.whl` is refused before that. A package that fails inspection or installation is an Error whose message is "Plugin installation failed:" and the reason, such as a `.py` without a name in its PEP 723 `[tool.orcaslicer.plugin]` table |
+| `install_local_plugin` | `.py`, `.whl` | `install_local_plugin_package(path, parent, message)`, the Plugins dialog's install: it still asks before replacing an installed plugin, in Orca's own "Overwrite Plugin" message dialog, which `answer_dialog` answers on every platform. Cancel makes the command an error saying that the plugin was not installed. A file that is not a `.py` or `.whl` is refused before that. A package that fails inspection or installation is an Error whose message is "Plugin installation failed:" and the reason, such as a `.py` without a name in its PEP 723 `[tool.orcaslicer.plugin]` table |
 
 The six shape commands (`add_primitive_cube`, `_cylinder`, `_sphere`, `_cone`, `_disc`, `_torus`)
 take a `Text` param, the size the Primitive size dialog asks for (`"40 40 10"`, `"90 4"`), and then
@@ -1335,7 +1342,7 @@ with the wrong count of positive numbers is an Error result. With an object sele
 nothing (`ObjectList::can_add_shape_object()`), and say so as an Error, in the palette too.
 
 The object structure commands stand for the object list's context-menu items and the plate menu's
-Order By. Like those items, they act on the object list's selected rows, which `select` sets:
+Order By. Like those items, they act on the object list's selected rows, which `select_objects` sets:
 
 | Command | Param | Entry point | Refused when |
 |---|---|---|---|
@@ -1387,8 +1394,8 @@ the printer first. A `.gcode` still loads the settings it was sliced with throug
 
 `export_config` with a directory still opens the Export Preset Bundle dialog, given that directory: its
 OK writes there instead of asking for a folder. The agent picks the kind by clicking its label
-(`ui_click`), checks presets with `ui_input` on their checkboxes, which are named after the preset, printer
-or filament they stand for, presses OK with `dialog_respond`, and answers the result message. The command
+(`click`), checks presets with `set_widget_value` on their checkboxes, which are named after the preset, printer
+or filament they stand for, presses OK with `answer_dialog`, and answers the result message. The command
 is an Error when the dialog is closed without exporting. Preset files are not exported without the
 dialog: its archive functions read its own checkboxes.
 
@@ -1411,7 +1418,7 @@ Most features need only a Speed Dial command:
 3. If the effect finishes in the background after `run()` returns, set
    `CommandCompletion::Export` so that `run_action` waits for the file.
 
-The command then appears in the palette, in `list_actions` and `run_action`, and in scripts.
+The command then appears in the palette, in `search_actions` and `run_action`, and in replays.
 
 When an agent needs structured arguments or results, or has to wait for the effect, add a typed
 tool to the matching `McpTools*.cpp`. Use `inspect_tool()` for pure observation, which runs inline,
@@ -1429,7 +1436,7 @@ operation (see Worker jobs). Describe the tool in English, including what the re
 
 ## GUI automation
 
-`ui_snapshot` (`UiInspector`) returns a compact text tree of the shown top-level windows, each
+`list_widgets` (`UiInspector`) returns a compact text tree of the shown top-level windows, each
 followed by the popups that opened from it, the rows of their lists, the menus, the GL toolbar items
 and gizmos, and each canvas's last-frame ImGui items, capped by `max_nodes` and filtered by `query`.
 The tree is a second text block of the result, and each shown web page's elements are listed under
@@ -1441,7 +1448,7 @@ option's definition. Failing that, the label to its left on the same row names i
 tooltip. A control's state reads `[checked]` or `[unchecked]`, or `[mixed]` for a checkbox that shows
 neither (a three-state one undetermined, Orca's `CheckBox` half-checked for an unset nullable
 setting). An option of a selector Orca builds of buttons (`RadioGroup`, `TabCtrl`, `MultiSwitchButton`)
-is a button that reads checked while it is the selected one (`selector_option()`), so `ui_input true`
+is a button that reads checked while it is the selected one (`selector_option()`), so `set_widget_value true`
 selects it, and a `SwitchButton` with a label at each end has the one it is on as its value.
 
 Input tools take a `target`: a ref (also read written as `{ref: "w12"}`), or a locator, which is
@@ -1459,15 +1466,15 @@ stable across runs and is what the journal stores. A locator is one of:
 - `{web: "Next", kind, css, within, index}` for an element of a web page, by its label, kind or a CSS
   selector (see Web pages below).
 
-`select` selects objects, instances and parts and replies with the selection as `get_state.selection`
-gives it (`selection_state()`): in `select`'s own indices, the objects, the instances they are selected
+`select_objects` selects objects, instances and parts and replies with the selection as `get_app_state.selection`
+gives it (`selection_state()`): in `select_objects`'s own indices, the objects, the instances they are selected
 in and, when the selection holds parts rather than whole instances, those parts. An agent reads it
 before an operation that acts on the selection: `run_action` runs the object operations the catalog
 has (delete, split, mirror, center, drop, instances, arrange, orient, change type, rename, assemble,
 set as individual objects, order by), and `set_settings` with the object or volume scope edits their
 settings and filament. `add_part` adds parts, modifiers and support shapes,
-`set_layer_ranges` sets height range modifiers, and `set_layer_height_profile` runs the Variable layer
-height panel's buttons. `set_layer_gcode` does what the Preview layer slider's right-click menu does.
+`set_height_ranges` sets height range modifiers, and `set_variable_layer_height` runs the Variable layer
+height panel's buttons. `set_custom_gcode_at_layer` does what the Preview layer slider's right-click menu does.
 The rest of the object menu is reached through a right click on the object in the 3D view, or on
 its row of the object list, with `popup_item` (see Menus below).
 
@@ -1486,17 +1493,17 @@ gestures and ImGui items get synthesized wx events with a render between steps. 
 plain window gets the context menu event a person's would: on macOS wx makes it from the right press
 the window's handlers pass on, elsewhere the system sends it, so the click sends it there. A GL toolbar item's
 visibility and enabled state are brought up to date (`GLToolbar::update_items_state()`, what the
-canvas's idle handler does) before `ui_snapshot` lists them and before a click checks them, so an
-item a `select` just enabled is not read as disabled. A click on an ImGui item whose centre lies
+canvas's idle handler does) before `list_widgets` lists them and before a click checks them, so an
+item a `select_objects` just enabled is not read as disabled. A click on an ImGui item whose centre lies
 under another ImGui window (a notification over a panel's button) is refused, naming that window.
 `ImGuiWrapper::set_item_recording()` supplies the ImGui items (see below). `SyntheticInput` holds
 a gesture's keys, buttons and pointer for code that reads hardware state through `get_key_state()`
 and `get_mouse_state()`: the canvas, gizmos, and the object list's Ctrl/Shift multi-select. Mouse
-modifiers take the names `ui_key` chords use, through `KeyChord::parse_modifier()`, so `ctrl` means
+modifiers take the names `press_keys` chords use, through `KeyChord::parse_modifier()`, so `ctrl` means
 the shortcut modifier (Command on macOS) in both, and `rawctrl` the macOS Control key. Held
-keys are released however the gesture ends; a `ui_mouse` `down` keeps its button held, and a
+keys are released however the gesture ends; a `mouse_gesture` `down` keeps its button held, and a
 `move` drags with it, until an `up`, another gesture (one that fails included; a request the server
-rejects for its arguments never runs and changes nothing), the end of the script that pressed it,
+rejects for its arguments never runs and changes nothing), the end of the replay or script that pressed it,
 the closing of the endpoint for a client's press, or the service's stop. A client's gesture that
 reaches the UI thread after its endpoint closed is refused. Keys without a target go to the
 focused window inside the topmost modal, else that modal, else the focused window, else the 3D view
@@ -1510,26 +1517,26 @@ its own hook sees the keys sent to its widgets, as the Design tab's does for Esc
 tool shortcuts, and the main frame's hook still sees what none below it takes.
 
 The Design tab's view is a `GLCanvas3D` of its own (`DesignCanvas::gl_canvas()`), outside the
-plater's three. `live_canvases()` lists the plater's, which `get_state.gizmo` and the idle checks
-read, since the Design view has no gizmos; `ui_canvases()` adds the Design view for what the `ui_*`
-tools and screenshots reach: `ui_snapshot` lists its ImGui items, `ui_click` and `ui_key` act on it,
-and `ui_mouse` takes `canvas: "design"` (`"current"` is the view shown, `shown_canvas()`). A click
+plater's three. `live_canvases()` lists the plater's, which `get_app_state.gizmo` and the idle checks
+read, since the Design view has no gizmos; `ui_canvases()` adds the Design view for what `list_widgets`, the input
+tools and screenshots reach: `list_widgets` lists its ImGui items, `click` and `press_keys` act on it,
+and `mouse_gesture` takes `canvas: "design"` (`"current"` is the view shown, `shown_canvas()`). A click
 there goes to the Design view's own handlers, so a left click picks a face, edge or body and a right
 click opens the offer menu, which is listed or run like any other. Points of the model name
-Prepare's objects, so on the Design view `ui_mouse` takes pixels only; `cad_call query_topology`
+Prepare's objects, so on the Design view `mouse_gesture` takes pixels only; `call_cad_tool query_topology`
 gives its faces.
 
 ### Windows
 
-`list_windows` (`UiInspector::windows()`) lists the open windows without their widgets, in `ui_snapshot`'s
+`list_windows` (`UiInspector::windows()`) lists the open windows without their widgets, in `list_widgets`'s
 order: the main window, the windows that don't block in the order they were created, then the modal
 stack, the topmost last. wx keeps top-level windows in creation order, not stacking order, so only the
-modal stack orders by what is on top. Each window has the ref `ui_snapshot` gives its node, with the same
-locator, so `screenshot` captures that window by it, `ui_snapshot` takes it as `root`, the input tools as
+modal stack orders by what is on top. Each window has the ref `list_widgets` gives its node, with the same
+locator, so `screenshot` captures that window by it, `list_widgets` takes it as `root`, the input tools as
 `target`, and the journal records the locator; its title is what `within` takes. A window says whether it
 is modal and whether it shows a web view (outside a hidden pane), with its size and, where the platform
 knows it (not Wayland, `window_positions_known()`), its place on screen. A native dialog of the modal
-stack, which only `dialog_respond` reaches, is listed with `native` and no ref, whether or not wx reports
+stack, which only `answer_dialog` reaches, is listed with `native` and no ref, whether or not wx reports
 it shown. A window named `kHiddenFromAutomation` is listed by its title and kind with `hidden` and
 nothing more: without a ref no tool acts on it, and an agent learns why a window it was told about is out
 of its reach. The Python scripts window is the one modal window the tracker leaves off its stack, so it is
@@ -1552,8 +1559,8 @@ another, shows its menu, and a call working inside that dialog has a window of i
 
 The capture does what `wxWindowBase::PopupMenu()` does before it shows a menu: it sets the invoking
 window and calls `UpdateUI()`, so the `wxEVT_UPDATE_UI` handlers MenuFactory binds on the main frame
-set each item's enabled and checked state as a person would see them. `ui_click`, `ui_mouse` and
-`ui_key` arm a capture in the closure that delivers their input (`arm_menu()`). The first menu that
+set each item's enabled and checked state as a person would see them. `click`, `mouse_gesture` and
+`press_keys` arm a capture in the closure that delivers their input (`arm_menu()`). The first menu that
 opens goes to it: without `popup_item` it is listed in the reply as `popup_menu` (`items`, and the
 `disabled` and `checked` ones) and nothing runs, as if the person pressed Escape; with one, that item
 runs: a check item is toggled or a radio item checked, then `SendEvent()` on the submenu holding it,
@@ -1564,9 +1571,9 @@ command that opens a dialog from the 3D view's queued right click leaves it open
 returns; the reply then lists it under `dialogs`. The call waits for that queued click by queuing a
 `CallAfter` on the canvas behind it (one handler's queue is first in, first out) before it settles
 and reads the capture. A later menu in the same call is closed unseen and counted (`menus_closed`);
-a menu that opens in a window where nothing is armed (a `cad_call run_verb` whose offer opens later)
+a menu that opens in a window where nothing is armed (a `call_cad_tool run_verb` whose offer opens later)
 is closed unseen too. The last three such menus, with the tool whose window took them, are in
-`get_state.closed_menus`.
+`get_app_state.closed_menus`.
 
 A menu path is the item labels joined with `>`, as `GetItemLabelText()` gives them, matched without
 case; a trailing `...` may be left out. A label repeated among its siblings is numbered from its
@@ -1576,7 +1583,7 @@ the numbering and the matching, so a path recorded with another slot in use stil
 item. A path that names a submenu, a disabled item or nothing fails with the items to pick from, and
 so does a `popup_item` when the input opened no menu (a right click on empty space while objects are
 selected, in the Preview, or with a gizmo open). Paths are the UI language's text, as other locators
-are. With `x`/`y`, `ui_click` clicks that point of a custom-drawn widget (such as the Design tab's
+are. With `x`/`y`, `click` clicks that point of a custom-drawn widget (such as the Design tab's
 feature tree) as well as of a 3D canvas; a native control, which acts on what the system tells it
 rather than on wx mouse events, is refused.
 
@@ -1630,7 +1637,7 @@ native list starts editing an editable icon cell instead, which the object list 
 actions, so a click that names such a column sends `wxEVT_DATAVIEW_ITEM_EDITING_STARTED` too. A
 double click sends `wxEVT_DATAVIEW_ITEM_ACTIVATED` (the object list frames the object, or opens the
 filament editor on the Filament column), a right click `wxEVT_DATAVIEW_ITEM_CONTEXT_MENU`, whose menu
-is captured like any other. `ui_input` with true or false sets a checkbox cell through
+is captured like any other. `set_widget_value` with true or false sets a checkbox cell through
 `ChangeValue()`, as the toggle renderer does, which tells the owner. A list box row is selected with
 `wxEVT_LISTBOX` and a checklist row ticked with `wxEVT_CHECKLISTBOX`; a drop-down row is picked with
 `DropDown::ClickItem()`, which does what a release over it does; a table row's cell is made current
@@ -1639,7 +1646,7 @@ object scope writes the same values. A Design list row is clicked at its centre,
 icon whose tooltip `column` gives, through the list's own mouse handlers.
 
 Popups (`wxPopupWindow`: the print button's menu, drop-down lists) report themselves top-level but
-are children of the window they opened from. `ui_snapshot` lists each shown one as a `popup` right
+are children of the window they opened from. `list_widgets` lists each shown one as a `popup` right
 after its window (`popups_of()`), and `root: "popup"` lists only them. A widget in a popup belongs
 to that window (`owning_window()`), so it is inside the topmost modal for the input guards when its
 popup opened from there, and its locator's `within` names that window. A screenshot of a widget in
@@ -1649,7 +1656,7 @@ a popup is refused: a screenshot of its window shows the popup.
 
 A plate and its icons in the Prepare view (delete, orient, arrange, lock, settings, name, move to
 front, filament grouping, IDEX mode) are GL picking models, which a person reaches only by pointing at
-them. `ui_snapshot` lists under the Prepare canvas a `plate_icon` node for each plate, named as the
+them. `list_widgets` lists under the Prepare canvas a `plate_icon` node for each plate, named as the
 object list names it, then the icons of the current plate; the lock icon carries the plate's lock
 state. A locator `{plate_icon, plate}` names any plate's icon by the picking action `PartPlate` gives
 it: `plate` (the plate itself), `delete`, `orient`, `arrange`, `lock`, `settings`, `name`,
@@ -1699,7 +1706,7 @@ a reorder it names the control now in its place. Call sites give each control a 
 through the code's own click test. Nothing about the controls changes for a person, and the call costs one branch while
 recording is off.
 
-`ui_snapshot` lists each ImGui window (its scroll range when it scrolls), then its items and text in
+`list_widgets` lists each ImGui window (its scroll range when it scrolls), then its items and text in
 reading order. An item is listed by its shown label, or, for a field with none, by the text left of
 it on its row, which only the first field after that text takes; its name is the one it was given or
 its label's `##` part (`##cursor_radius` → `cursor_radius`). Orca's icon glyphs are not label text.
@@ -1711,7 +1718,7 @@ windows it is a child of, to bring it into view (`SetScrollFromPosY()`, then two
 draws no item for rows out of view, such as Texture Displacement's library, is scrolled with the
 mouse wheel over its window, as a person does.
 
-`ui_input` on an ImGui item acts by its kind and reads the value back, failing when the field shows
+`set_widget_value` on an ImGui item acts by its kind and reads the value back, failing when the field shows
 something else (numbers compared at the precision it prints): a checkbox, radio button or named
 toggle is clicked when its state differs; an input is clicked, its text selected and replaced,
 then Return pressed; a multiline input gets Return only between lines; a drag or a slider that takes
@@ -1723,18 +1730,18 @@ A gizmo is listed per canvas as its toolbar shows it (`GLGizmosManager::is_on_to
 on the Prepare canvas Simplify and SVG too while they can open (Simplify when activable, SVG on a
 selected SVG part). Clicking one does what its icon does (`click_toolbar_icon()`): it opens, or
 closes the open one; Text with no text selected starts a job that creates a text part and opens the
-gizmo, which `ui_click` waits for. A `gizmo` locator takes the name `get_state.gizmo` gives, or
+gizmo, which `click` waits for. A `gizmo` locator takes the name `get_app_state.gizmo` gives, or
 the English title of its toolbar button where that differs (Support Painting for FdmSupports), in
-any case; the reply uses the first, and an unknown name's error lists them. `get_state.gizmo`
+any case; the reply uses the first, and an unknown name's error lists them. `get_app_state.gizmo`
 names the open gizmo and its canvas. The
 assemble view is entered and left with `set_view view` (leaving does what its Return button does;
 entering returns once the canvas has loaded its objects, which waits for its GL surface on Wayland),
-and `select` and `list_objects` act on it while it is shown. Grabbers are not dragged: a gizmo's
-panel fields or `transform` set those values. Pickers inside a gizmo go through `gizmo_file`, whose
+and `select_objects` and `list_objects` act on it while it is shown. Grabbers are not dragged: a gizmo's
+panel fields or `transform` set those values. Pickers inside a gizmo go through `pick_gizmo_file`, whose
 actions are the bodies of those pickers (`GLGizmoSVG::change_file()`, `save_svg_as()`,
 `GLGizmoTextureDisplacement::import_texture()`).
 
-`ui_mouse` takes points of the model (`CanvasTarget`): `{object, instance, volume}` with `point` in
+`mouse_gesture` takes points of the model (`CanvasTarget`): `{object, instance, volume}` with `point` in
 the part's mesh coordinates (`frame: "volume"`, mapped by `GLVolume::world_matrix()`, which follows
 the assemble view's offset and explosion) or in the scene's (`"world"`), or `spot`, where a ray along
 an axis through the part's displayed bounding box first meets it. A point is projected through the
@@ -1764,7 +1771,7 @@ its position so the result is the same on every install; it is how an agent look
 named directions, which the bench showed agents otherwise reach by dragging the canvas edge on the
 assumption that the left button rotates. A painting gizmo (`GLGizmoPainterBase`) takes a press only
 where the cursor hits the object it paints; a press that misses falls through to the canvas and moves
-the camera, and the stroke paints nothing. `ui_mouse` refuses a down or drag that starts there,
+the camera, and the stroke paints nothing. `mouse_gesture` refuses a down or drag that starts there,
 testing the start pixel's ray against the selected instance's parts, so a misaimed stroke fails
 instead of silently turning the view under the screenshot the agent aimed from. The refusal names
 the first pixel along the stroke that lands on the object, so a stroke swept in from outside it is
@@ -1773,7 +1780,7 @@ moves the camera anyway (a drag off the model outside the painters, a wheel) say
 `camera_moved` in its reply, compared from the view matrix and zoom before and after.
 
 Every point of a
-gesture is resolved before its first event, and the journal keeps the model points, so a script
+gesture is resolved before its first event, and the journal keeps the model points, so a replay
 replays at another window size or camera. A gesture's modifiers are pressed as a keyboard does: a
 key-down event each before it and a key-up after, which is what switches Measure and Assembly to
 point picking and the painters to their Shift and Alt modes.
@@ -1782,7 +1789,7 @@ point picking and the painters to their Shift and Alt modes.
 
 `ModalTracker`, a `wxModalDialogHook`, sees every `ShowModal()`, native dialogs included, and
 publishes the snapshot `[{title, message, class, native, buttons}]`, which other threads read. Read on
-the UI thread, as `get_state`, the `blocked_by_dialog` probe, the guards' refusals and the input tools'
+the UI thread, as `get_app_state`, the `blocked_by_dialog` probe, the guards' refusals and the input tools'
 `dialogs` read it, the snapshot describes the open dialogs again first. So it shows a dialog as it is
 now: text the dialog filled in once it showed (a printer's name, a list from a scan), a field typed in,
 a page switched. Should describing fail, the last description stands. Only a native dialog that holds
@@ -1790,13 +1797,13 @@ the UI thread (macOS) leaves readers with the description published before it; i
 change. A dialog that can't be described is listed by its title, class, `native` and `web` flags, with no
 message or buttons, so the guards still see it and a rule matches it by its title. Message boxes and file and folder pickers are native; a box's message is its text, and a
 picker's is its prompt, such as "Choose Download Directory", since its title is often empty. Colour and
-font choosers are not classified as native, because on GTK they are wx dialogs that `dialog_respond`
-ends; on macOS and Windows they are OS choosers, best answered ahead with a `dialog_auto_answer` rule.
+font choosers are not classified as native, because on GTK they are wx dialogs that `answer_dialog`
+ends; on macOS and Windows they are OS choosers, best answered ahead with an `auto_answer_dialogs` rule.
 
 A wx dialog's message reads it as a person does, so an agent can tell what the dialog asks and what
 each button will do without a screenshot (`DialogReader`). Each shown child becomes a cell. Nested
 dialogs, popups, web views and canvases are left out; a nested dialog is described on its own.
-Controls are read through the readers `ui_snapshot` uses (`kind_of`, `value_of`, `checked_of`,
+Controls are read through the readers `list_widgets` uses (`kind_of`, `value_of`, `checked_of`,
 `selector_choices`, `list_rows`), so the two say the same about each one:
 
 - Static text, html and custom widgets that show a label (`StaticLine` titles) read as their text, and
@@ -1811,7 +1818,7 @@ Controls are read through the readers `ui_snapshot` uses (`kind_of`, `value_of`,
 - A selector Orca builds of buttons (`RadioGroup`, `TabCtrl`, `MultiSwitchButton`), a `SwitchButton`
   with a label at each end, and a notebook's tabs read as one line, `(*) A | ( ) B`; an icon option
   reads as its tooltip. A notebook's tabs are followed by the page shown.
-- A list reads one line per shown row, up to 25, then a line saying `ui_snapshot` lists the rest.
+- A list reads one line per shown row, up to 25, then a line saying `list_widgets` lists the rest.
 - A gauge reads `[45%]`.
 - A disabled control adds ` (disabled)`. Disabled is judged between the control and its dialog, so a
   dialog under another modal does not read as all disabled.
@@ -1860,14 +1867,14 @@ label. Web dialogs are read through their page (below).
 
 `buttons` lists the wx buttons a dialog shows, with `enabled: false` for a disabled one. The options of
 a selector made of buttons (`RadioGroup`, `TabCtrl`, `MultiSwitchButton`) are not listed, since pressing
-one only selects it. `dialog_respond`, and a rule, still find such an option by its label (its tooltip
+one only selects it. `answer_dialog`, and a rule, still find such an option by its label (its tooltip
 for an icon option, in full even where a message cut at its cap shows only its start) and select it, and
-`ui_snapshot` shows the selected option checked, under the same full label. `ui_input false` on the
+`list_widgets` shows the selected option checked, under the same full label. `set_widget_value false` on the
 selected one, or on a selected radio button or radio box, is refused, since an option is unselected by
 selecting another. Other radio buttons and switches are set
-with `ui_click` or `ui_input true`, and notebook tabs with `ui_click` on the tab.
+with `click` or `set_widget_value true`, and notebook tabs with `click` on the tab.
 
-`dialog_respond` presses the topmost wx dialog's button, so the dialog's own handler runs.
+`answer_dialog` presses the topmost wx dialog's button, so the dialog's own handler runs.
 `press_dialog_button()` tells what it did:
 
 - **Pressed:** the button was pressed.
@@ -1875,24 +1882,24 @@ with `ui_click` or `ui_input true`, and notebook tabs with `ui_click` on the tab
   without a Cancel button. One whose Cancel or Close is on a page it does not show ends the same way.
 - **Disabled:** the button is shown but disabled, so nothing is pressed or stood in for. The dialog
   disabled it on purpose: OK while a name is invalid, Send until a box is ticked, Cancel while a
-  cancel is under way. `dialog_respond` refuses a disabled button, its message showing what the dialog
+  cancel is under way. `answer_dialog` refuses a disabled button, its message showing what the dialog
   still needs.
 - **Hidden:** the button is only on a page the dialog does not show, such as a wizard's Finish, so
-  nothing is pressed or stood in for, and `dialog_respond` refuses it. Buttons are looked up among the
+  nothing is pressed or stood in for, and `answer_dialog` refuses it. Buttons are looked up among the
   dialog's own windows, not a popup's or a nested dialog's.
 - **Failed:** a native message box could not be pressed.
 
-On Windows and Linux `dialog_respond` also presses an open native message box. The tracker lists the
+On Windows and Linux `answer_dialog` also presses an open native message box. The tracker lists the
 buttons wx gives the box for its style (Yes and No or OK, and Cancel; not Help, which on Windows shows
 help without closing the box), and a press goes to the OS's box by message. On Windows that is a
 `WM_COMMAND` to a message box, or a `TDM_CLICK_BUTTON` to the task dialog wx shows where Windows has
 one, found among the UI thread's windows by class and caption, the active one first. On GTK it is
 `gtk_dialog_response()` on the dialog's widget. The box closes once its own loop runs again, which
-`dialog_respond` waits up to 1 s for, so its reply says `closed`. A box that is no longer shown is
+`answer_dialog` waits up to 1 s for, so its reply says `closed`. A box that is no longer shown is
 refused. This is how a plugin's permission prompt is answered. On macOS a message box lists no buttons,
 since no call reaches one (above).
 
-A picker, and on macOS any native dialog, can only be answered ahead with a `dialog_auto_answer` rule:
+A picker, and on macOS any native dialog, can only be answered ahead with an `auto_answer_dialogs` rule:
 a regex and a button. The regex is searched in three places:
 
 - the title and message joined by a newline
@@ -1907,24 +1914,24 @@ showing the dialog, and logs it; a file or folder picker can only be cancelled, 
 would return without a path.
 
 A wx dialog that matches a rule opens, and the tracker presses the button once the dialog's modal loop
-runs (`press_dialog_button()`, queued on the dialog), as `dialog_respond` does. Its buttons do the
+runs (`press_dialog_button()`, queued on the dialog), as `answer_dialog` does. Its buttons do the
 dialog's work in their handlers (`UnsavedChangesDialog`'s Transfer and Discard, `CloneDialog`'s Fill),
 which a returned id would skip. The rule counts as used once the press pressed the button or ended the
 dialog. A button disabled by then leaves the dialog open, logged, and a modal opened above it before
-then leaves it to `dialog_respond`.
+then leaves it to `answer_dialog`.
 
-A new rule also answers a matching dialog that is already open, as `dialog_respond` would, a message
+A new rule also answers a matching dialog that is already open, as `answer_dialog` would, a message
 box included where it can be pressed. The first rule that names one of its buttons decides: if that
 button is disabled or hidden, the dialog stays open and the reply says `disabled: true` or
 `hidden: true` (a hidden Cancel or Close ends the dialog, as above). A prompt posted around
 the same time, such as the restore prompt after startup, is handled whether it opens before or after
-the rule. A script's rules end with the script, a client's call replaces its earlier rules, and
-`get_state` lists the rules in force.
+the rule. A replay's or script's rules end with it, a client's call replaces its earlier rules, and
+`get_app_state` lists the rules in force.
 
 A dialog that hosts a web view is described with `web: true`; its controls are on its page, which
-`ui_snapshot root=dialog` lists and the input tools drive like any widget (see Web pages below). It
+`list_widgets root=dialog` lists and the input tools drive like any widget (see Web pages below). It
 has no text of its own, so a rule matches it by title. Its page is the one its shown web view holds; a web
-view the dialog keeps hidden has no page to press on. `dialog_respond` looks a name or label up as a
+view the dialog keeps hidden has no page to press on. `answer_dialog` looks a name or label up as a
 wx button label first, then among the page's buttons and links, waiting up to 3 s for one to show
 (each ask expires with those 3 s, so the page never presses one later), and clicks it there, hit
 tested as a click is, so the page's own handler runs (`{pressed: true, web: true}`). With no such
@@ -1939,13 +1946,13 @@ only time a complete document is shown and restarts when the document changes, s
 bootstrap page replaced by its content is waited out; past it, or after 2 s with no web view shown,
 `cancel` and `close` end the dialog natively and any other answer gives up, logged.
 
-`webview_eval` runs JavaScript in a page through its agent, as a recover call: in a web view of the
+`run_javascript` runs JavaScript in a page through its agent, as a recover call: in a web view of the
 topmost modal dialog whatever the dialog, in one under it never, and elsewhere with a mutate call's
 checks. Without a target the topmost dialog's web view is used, else the only shown one; a web view's
 locator names it by kind (`class: "webview"`), since its class differs per platform, and a page
-element's ref or locator runs the script in its page with the element bound to `el`. The job thread
-waits up to `timeout_s` (default 10) without the UI; a JSON result comes back parsed, and the script
-reports `closed`, `navigated` and `dialogs` as the input tools do. The agent runs the script through
+element's ref or locator runs the code in its page with the element bound to `el`. The job thread
+waits up to `timeout_s` (default 10) without the UI; a JSON result comes back parsed, and the call
+reports `closed`, `navigated` and `dialogs` as the input tools do. The agent runs the code through
 `eval`, which a page whose Content-Security-Policy forbids it may refuse ("…forbids eval"), where the
 port holds injected scripts to the page's policy (WebView2 does not); the agent itself is installed
 as inline code, so the input tools work on such a page either way.
@@ -1990,7 +1997,7 @@ hidden checkbox is listed as its label, and open shadow roots and same-origin fr
 navigation or reload changes, so a ref from before is stale ("the page changed"). Page lines have
 their own budget, `max_web_nodes` (default 300), so a large page never pushes widgets listed after it
 out of `max_nodes`. With a modal dialog open only the topmost dialog's pages are read, since no input
-reaches the others, which get the note `behind a modal dialog`. `ui_snapshot` waits up to 2 s for a
+reaches the others, which get the note `behind a modal dialog`. `list_widgets` waits up to 2 s for a
 page still loading, then reads every page at once, for up to 3 s together.
 
 A locator `{web, kind, css, within, index}` matches the label exactly, else case aside, else as a
@@ -2006,14 +2013,14 @@ among the matches of every candidate page and its configuration frames, as a rep
 (`journal_index()`); with no `index` when one of them was not heard from (silent, failing the search
 or unable to run the agent) or the action took the element away, so a replay that finds several asks
 for one rather than taking another. A screenshot of a page element is journalled as one of its web view, which it
-captures. A web view's own ref is no page element: `ui_click` and `ui_input` refuse it, pointing to
-the page's elements, and `ui_key` sends to its page's focused element.
+captures. A web view's own ref is no page element: `click` and `set_widget_value` refuse it, pointing to
+the page's elements, and `press_keys` sends to its page's focused element.
 
 An action runs synchronously in one task of the page. The element is scrolled into view and hit
 tested: one covered at its centre is refused naming what covers it, a disabled one and a file input
 are refused. A click sends what a person's does — pointer and mouse over, down (focusing the element),
 up, then `click` — so the browser's default actions follow: a label reaches its control, a link
-navigates, a submit button submits its form with itself as the submitter. `ui_input` sets a value
+navigates, a submit button submits its form with itself as the submitter. `set_widget_value` sets a value
 through the element's own setter and sends `input` and `change`, which framework-controlled fields
 follow; a choice is picked by its option's text, a checkbox through a click, editable text through
 `insertText`. Keys go as `keydown`, `keypress`, the default action (text, Enter submitting the form
@@ -2023,10 +2030,10 @@ fieldset's first legend keeps its controls), arrows in a radio group, Left/Right
 on a selection, to its start or end) and `keyup`; Ctrl is Command on macOS, as for widgets. A disabled
 target is refused, and a read-only field takes no text. In editable content where the editing
 command is unavailable or refuses (WebKit), the text goes in, or a character goes, at the selection
-as the command would. `ui_mouse` gestures send pointer events from a synthetic pointer whose capture
+as the command would. `mouse_gesture` gestures send pointer events from a synthetic pointer whose capture
 the agent emulates while it is pressed, as a canvas that captures the pointer (the colour picker's
 spectrum) needs; a `down`'s button and modifiers stay pressed through later moves until its `up`, or
-until any other gesture, click, `dialog_respond` or auto-answer press, a widget's included and even
+until any other gesture, click, `answer_dialog` or auto-answer press, a widget's included and even
 one the tool then refuses, releases them where they were pressed. A move or an `up` keeps a press only on the agent
 that holds it: a page's own, or one of its configuration frames', which are told apart, so an `up`
 on a frame's page ends a press in the frame. Each agent has one synthetic pointer, which every
@@ -2042,7 +2049,7 @@ anything sent after it. An up that fails or times out ends nothing: past its dea
 not run it. The releases are asked all at once and get one second together, so a page that doesn't
 answer holds up none of the others, and the call still names the dialog it works in before the
 soft budget, past which an open dialog would read as what it waits on. Like the widgets' held
-press, a page's belongs to the client or the script that made it: a script's ends with the script,
+press, a page's belongs to the client, replay or script that made it: a replay's or script's ends with it,
 a client's when the endpoint closes, every one when the service stops, and a client's down sent
 after the endpoint closed is refused. These releases, and an auto-answer rule's before it presses a
 button, are made on the UI thread without waiting (`release_web_presses()`) and with no deadline,
@@ -2056,7 +2063,7 @@ a read-only number field as it is. Coordinates map between logical and CSS pixel
 scale factor.
 
 A page closes its dialog by a message to the host (`window.wx`, `chrome.webview`, a WebKit message
-handler), which ends the modal loop and destroys the web view. So while an action or a script runs,
+handler), which ends the modal loop and destroys the web view. So while an action, a replay or a script runs,
 the page's messages are held, even through a reference to the channel kept from before, and posted in
 order once it has returned. The tool then waits up to 1 s for the page to have posted them, lets wx
 run their events, and looks for 300 ms at what followed: the web view destroyed or its dialog off the
@@ -2067,7 +2074,7 @@ after the action (a fragment change, which WebView2 reports no URL for on a page
 once the 300 ms have passed, by asking the page for its document's token, which a reload or a form
 posted to the same URL changes; not by `IsBusy()`, which WebView2 also reports while a page only
 works. Failing those, the reply's `page` says what the action changed on its page: the page outlines
-itself before the action, a line per element (with its value, state and the notes `ui_snapshot`
+itself before the action, a line per element (with its value, state and the notes `list_widgets`
 gives it, such as a select's options) and per run of text, under an id the tool gives the action,
 and is asked afterwards which lines it lists now that it did not (`added`) and which it no longer
 lists (`removed`), counted as a multiset so an element rebuilt as it was, or text that moved, is no
@@ -2081,7 +2088,7 @@ worked, and `posted` how many messages the page itself sent the host meanwhile, 
 handler say. An outline is dropped once compared, and a page keeps at most 16, none past a minute. A
 change that comes later is the next snapshot's to show.
 
-A URL a reply shows (`navigated`'s, `webview_eval`'s, a web view's value in `ui_snapshot`) reads
+A URL a reply shows (`navigated`'s, `run_javascript`'s, a web view's value in `list_widgets`) reads
 `REDACTED` for the user info of its authority and for the value of each query or fragment parameter
 one of whose name's words names a credential (`token`, `key`, `secret`, `password`, `auth`, `session`,
 `signature`, `code` and the like; `redact_url()`), after OpenTelemetry's rule for URLs in telemetry.
@@ -2113,7 +2120,7 @@ Limits: a web view in a popup window is not read, which in Orca is the setting t
 (`MarkdownTip`, a transient popup); a dialog whose web view is hidden is answered as a wx dialog; a
 page element's screenshot captures its whole web view, not a crop of the element; points in a frame
 that a CSS transform or zoom scales are where the untransformed frame would put them; a page button
-whose handler outlasts `dialog_respond`'s 3 s may still be running when `cancel` or `close` ends the
+whose handler outlasts `answer_dialog`'s 3 s may still be running when `cancel` or `close` ends the
 dialog natively; cross-origin frames other than plugin configuration UIs are listed but not read.
 
 ## Screenshots
@@ -2243,11 +2250,11 @@ block is scaled to `max_dim` on the long edge (default 1280, clamped to 256–20
 
 ## Recording
 
-`start_recording` records what OrcaSlicer shows into a video while an agent, a script or a person
+`start_recording` records what OrcaSlicer shows into a video while an agent, a replay, a script or a person
 works, and `encode_recording` turns it into an MP4 to attach to an issue. Recording has to stay light,
 since it runs while the app works: frames are kept as JPEG in a Matroska file (MJPEG), and the H.265
 encode, which costs far more, comes after it. There is no audio. `McpRecorder` holds at most one
-recording; `get_state.recording` shows it while it runs.
+recording; `get_app_state.recording` shows it while it runs.
 
 **Capture.** The UI thread captures a frame per tick of a one-shot `wxTimer`, which fires inside
 modal loops too. `start_recording` takes the first frame in its own UI closure: it fixes the video's
@@ -2265,8 +2272,8 @@ reads the screen (`Capture::from_screen`: X11, and macOS's window-server capture
 windows over the main window as they are, modeless ones and native pickers included (a native message box,
 an in-process panel, should show too; OrcaSlicer raises none on demand on macOS to check), and nothing more
 is composited; the frame decides, so a macOS recording that falls back to drawing views composites them
-from then on. Popups reaching past the window are cut at its edge, as everywhere. X11 shows the script
-runner when it covers the window (a reparenting window manager's frame is searched for our window inside
+from then on. Popups reaching past the window are cut at its edge, as everywhere. X11 shows Action
+Replay when it covers the window (a reparenting window manager's frame is searched for our window inside
 it); macOS leaves it out. The capture records the
 rectangles it drew another of our windows in (`Capture::covered`) and composites the 3D views
 everywhere else, so they are not pasted over those windows (screenshots get this too). A macOS
@@ -2316,14 +2323,14 @@ real, uneven times; one file rather than a folder of JPEGs because it plays as i
 **Ending.** `stop_recording` first captures one more frame in a UI closure, when the UI thread can run
 it, so the last call's effect is in the video even if the timer has not ticked since. A recording ends on
 `stop_recording`, after `max_seconds`, at 4 GiB, on a write error, when
-the script that started it ends (`run_script_job()`, which names a file still being written after 30 s
+the replay or script that started it ends (`run_replay_job()`, which names a file still being written after 30 s
 as the result's `unfinished_recording`), when the endpoint closes for a client's
-(`stop_serving()`; a script's carries on), and at exit. Ending from any thread sets a flag the next tick
+(`stop_serving()`; a run's carries on), and at exit. Ending from any thread sets a flag the next tick
 reads, tells the sink to finish, and posts the timer and input filter's cleanup to the UI thread; the
 sink drains its queue, writes the last frame again at the end time so the video lasts until then,
-closes the file and calls back, on its own thread. So ending never needs a UI round trip: a script's
-end waits for the file without deadlocking against `McpService::stop()`, which joins script threads on
-the UI thread, and a step after the script sees a closed file. At exit `stop()` waits 5 s for the
+closes the file and calls back, on its own thread. So ending never needs a UI round trip: a run's
+end waits for the file without deadlocking against `McpService::stop()`, which joins run threads on
+the UI thread, and a step after the replay sees a closed file. At exit `stop()` waits 5 s for the
 file, then drops what is still queued and leaves the sink to its threads, which own its state. A
 recording counts as active until its file is closed, for the one-at-a-time rule and for encodes.
 
@@ -2350,10 +2357,10 @@ one recording, and with `silent` starts at once without the dialog and remembers
 that would encode without an ffmpeg is refused rather than recording unencoded. The encode is
 `encode_recording` itself, run by `McpService::encode_when_closed()` as an unjournaled job once the
 recording's file is closed (`McpRecorder::wait_closed()`), so it can be cancelled like any encode. No reply
-names the job, which only exists once the file is closed: an agent finds it in `get_state.jobs` and waits
+names the job, which only exists once the file is closed: an agent finds it in `get_app_state.jobs` and waits
 for it by its id, as the command's description says.
 Start Recording starts the service without its endpoint when the server is off, as Action Replay and the
-Run Script panel do. The person's recording has its own owner (`kPersonOwner`), so neither a script's end nor the
+Run Script panel do. The person's recording has its own owner (`kPersonOwner`), so neither a run's end nor the
 endpoint closing ends it. Whatever ends it tells the person where it went, in a notification whose button
 opens the folder: Stop Recording itself, which stops any recording, an agent's too, ending it as
 `stopped_in_app`; or `RecordingOptions::ended`, which the recorder runs on the UI thread when an agent's
@@ -2373,16 +2380,16 @@ dot changed is queued.
 **Captions.** `McpCore` reports each call it runs to a `CallObserver`: when its handler starts, when
 `set_journal_args()` replaces its arguments (refs become locators), and its final result (a job's,
 worker job included). Calls refused before they run are not reported. The recorder captions calls
-that are not `Inspect` (mutate and recover tools, script steps included) as the tool's translated
+that are not `Inspect` (mutate and recover tools, replay steps included) as the tool's translated
 title and what it acts on (`caption_detail()`), with a mark: a ring while it runs, then a dot, red
 with the failure's first line, from which `caption_error()` takes out every value the caption hides.
 One caption shows at a time, the current call's (`CaptionBoard::current()`): of the calls that run or
-linger (4 s after they end, then fading), the one started last, so a script's steps replace one another
-and a script still running between them shows again once its step has faded. Clicks and keys are not
+linger (4 s after they end, then fading), the one started last, so a replay's steps replace one another
+and a replay still running between them shows again once its step has faded. Clicks and keys are not
 captioned. With `pointer`, a `wxEventFilter` sees every mouse and click-type command event, a person's
 and the ones the GUI tools synthesize alike: mouse events move the pointer, presses add a ripple, and a
 button, checkbox, toggle or radio command with no press on it just before is a click made without the
-mouse (`ui_click`), shown at the control's centre. Events in windows the frame doesn't show, and in
+mouse (`click`), shown at the control's centre. Events in windows the frame doesn't show, and in
 windows hidden from automation, are ignored. Both are off unless asked for, `captions` and `pointer`
 turning on one each; without the pointer no filter is installed.
 
@@ -2400,9 +2407,9 @@ only when it changes, as a coverage mask (`wxMemoryDC`, white on black) the enco
 
 What a caption adds must not leak secrets, although the screen itself shows whatever its fields show.
 A setting whose key names a password, API key, access code, token or secret (`is_sensitive_key()`;
-`printhost_apikey` is a plain text field) shows `•••` for its value; `ui_input` shows its value only
+`printhost_apikey` is a plain text field) shows `•••` for its value; `set_widget_value` shows its value only
 for a non-sensitive setting located by its key, since a field located by its label, or a ref not yet
-resolved, may be a password box; and `ui_key` shows its chord, never its text.
+resolved, may be a password box; and `press_keys` shows its chord, never its text.
 
 **Encoding.** The bundled FFmpeg only decodes, so `encode_recording` runs the system `ffmpeg`:
 `ORCA_FFMPEG`, else `PATH`, else on macOS the Homebrew and MacPorts folders, which an app started from
@@ -2418,7 +2425,7 @@ falls to almost nothing while the window is still and rises for the motion, wher
 spend it evenly; the video's length in the reply is
 the MP4's movie header's (`mp4_duration()`); an ffmpeg without the encoder is refused, naming what is needed. It runs
 without a console window, polled every 100 ms and terminated when the call is cancelled
-(`ToolDef::cancellable`: `cancel {job}` stops it through `McpService::request_stop()`). On Windows it is
+(`ToolDef::cancellable`: `cancel_job {job}` stops it through `McpService::request_stop()`). On Windows it is
 ended with `TerminateProcess()` on its handle and waited for on that handle, since `TerminateProcess()`
 returns before the process is gone and boost's `terminate()` closes the handle right after it; a child not
 gone within 5 s keeps its files, which the error names, and its source and destination stay reserved for
@@ -2432,7 +2439,7 @@ only a recording this session made.
 
 ## Preview data
 
-`get_preview` reads what the Preview shows for a plate without selecting the plate. Its tables
+`get_slice_stats` reads what the Preview shows for a plate without selecting the plate. Its tables
 come from the plate's `gcode_statistics_json()`, the serializer behind the slice reply's statistics
 and the exported `statistics.json`, which sums the moves as the legend does: `summary` is the slice
 reply's `plate_summary()` with the prepare and travel times and the travel distance; `features` has
@@ -2440,7 +2447,7 @@ each feature type's seconds, share of the normal-mode print time and grams, keye
 `;FEATURE:` names (`ExtrusionEntity::role_to_string()`), and a `Travel` row (the shares leave out
 retractions, wipes, Z moves, tool changes and the prepare time, as the legend's do); `layers`,
 paged, numbers layers as the slider's value (G-code layer index + 1, which `set_view {layer}` and
-`get_state.preview` use) and carries each one's Z, so tools that number layers by the slider's label
+`get_app_state.preview` use) and carries each one's Z, so tools that number layers by the slider's label
 can be joined on Z. `objects` lists the G-code's object instances, which it names by object and
 instance number; an entry gets the `list_objects` index only when one model object has that name.
 The wx-free shaping (`preview_features()`, `preview_layers()`, `preview_objects()`) is unit tested.
@@ -2453,7 +2460,7 @@ the layer slider's range with its Z, which feature types and options are visible
 type's colour range. The viewer recomputes ranges at its next frame after a legend change, so the
 closure draws the Preview first; the ranges span the whole print but count travels, wipes and Custom
 extrusions only while those rows are shown. For another plate `view` is null and a `note` says how to
-show it. `get_state.preview` is the same state without the legend, or null when the Preview holds no
+show it. `get_app_state.preview` is the same state without the legend, or null when the Preview holds no
 toolpaths of the current plate.
 
 The tool refuses while anything slices or exports (`Plater::is_slicing_any()`), since a worker may be
@@ -2470,7 +2477,7 @@ thread, about 15 ms on a plate of 4 million moves.
 the Preview as the same clicks would. Picking a view type therefore shows every feature type again
 when it is Line Type, and is written to the app config as `preview_last_view_type`, which the "Last
 used" preview default restores. Before a slice there is no legend to pick from, and `view_type` only
-sets the type the next toolpaths show. `legend` names rows as `get_preview` lists them, in any case
+sets the type the next toolpaths show. `legend` names rows as `get_slice_stats` lists them, in any case
 and with `_` or a space between words, and clicks a row only when its state differs. Hiding a row
 the print lacks, a feature type or option some other print has, does nothing, since agents hiding
 everything but one feature name rows from the whole list. The viewer keeps one visibility set, so feature types can be set
@@ -2488,7 +2495,7 @@ Sending G-code to a print host (OctoPrint, Moonraker, PrusaLink, Duet and the ot
 `PrintHost::get_print_host()`) goes through the GUI's own dialog. The Speed Dial command
 `send_gcode` ("Send G-code to printer host", the dialog's title) calls `Plater::send_gcode_legacy()`,
 which the Print button calls for such a printer: it opens the Send dialog, whose file name an agent
-sets with `ui_input` and whose Upload or Upload and Print button it presses with `dialog_respond`.
+sets with `set_widget_value` and whose Upload or Upload and Print button it presses with `answer_dialog`.
 The plate is then sliced if needed, its G-code exported in the background process, and the upload
 queued. Host settings are printer settings (`host_type`, `print_host`, `printhost_apikey`, and
 `bbl_use_printhost` on a Bambu printer), written with `set_settings {scope: "printer"}`. Where the
@@ -2497,13 +2504,13 @@ through the Bambu network or printer agents (`PresetBundle::use_bbl_network()`,
 `use_printer_agents`), or has no `print_host`, the condition `MainFrame::can_send_gcode()` gives the
 button. It is journaled like any `run_action`, so a replay uploads again.
 
-`get_state.uploads` lists the session's rows of the upload queue (`PrintHostQueueDialog`), as the
+`get_app_state.uploads` lists the session's rows of the upload queue (`PrintHostQueueDialog`), as the
 queue window shows them: `id` (its ID column, from 1), `state` (`queued`, `uploading`, `error`,
 `cancelling`, `cancelled` or `completed`), `progress` (percent), `host`, `filename`, and `error`, the
 queue's message, when there is one. Uploads a person started are listed too, so an agent can wait
 for any of them by polling. A failed upload also opens the queue's error dialog
 (`PrintHostQueueDialog::on_error()`), which blocks changes until it is closed with
-`dialog_respond`.
+`answer_dialog`.
 
 Two properties of the queue make its rows a reliable answer. A row reads `completed` only once the
 host has accepted the file: while the bytes go out, `PrintHostJobQueue::sent_percent()` stops at 99,
@@ -2514,67 +2521,67 @@ slicing thread, reads what the row shows (host, upload path, file size) before t
 remove the source file, and posts `append_job()` to the queue dialog itself, the handler the upload
 thread's progress and error events go to, so the row exists before any of them is handled.
 
-## Scripts and the journal
+## Replays and the journal
 
 ```jsonc
-{ "orca_script": 1, "name": "repro #12345",
-  "vars": {"model": "${script_dir}/part.stl"},
+{ "orca_replay": 1, "name": "repro #12345",
+  "vars": {"model": "${replay_dir}/part.stl"},
   "steps": [
     {"tool": "open_files", "args": {"paths": ["${vars.model}"]}},
     {"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}},
     {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca"}, "await": false, "save_as": "prefs"},
-    {"tool": "dialog_respond", "args": {"dialog": {"title": "Preferences"}, "button": "close"}},
+    {"tool": "answer_dialog", "args": {"dialog": {"title": "Preferences"}, "button": "close"}},
     {"tool": "wait", "args": {"for": "job", "job": "${jobs.prefs}"}},
     {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/preview.png", "overwrite": true}}
   ]}
 ```
 
-A script is JSON with comments allowed. `run_script` runs a file or an inline script as a job whose
+A replay is JSON with comments allowed. `run_replay` runs a file or an inline replay as a job whose
 steps call tools as its children (`ToolContext::call_child()`), so steps are not journaled and a
-script's `wait {for: "idle"}` doesn't wait for the script. An inline script is the script object or
-its JSON text, comments included, so a caller holding a script file's text passes it as read; the
+replay's `wait {for: "idle"}` doesn't wait for the replay. An inline replay is the replay object or
+its JSON text, comments included, so a caller holding a replay file's text passes it as read; the
 journal records the text as the object it parses to. Every string is substituted recursively
-with `${script_dir}`, `${out_dir}`, `${env:NAME}`, `${vars.NAME}` and `${jobs.NAME}`; a string that
-is just one placeholder becomes the referenced JSON value. A JSON script's own `run_script` step
-gives its nested script as an object: the outer run splices placeholders into a text script as plain
+with `${replay_dir}`, `${out_dir}`, `${env:NAME}`, `${vars.NAME}` and `${jobs.NAME}`; a string that
+is just one placeholder becomes the referenced JSON value. A replay's own `run_replay` step
+gives its nested replay as an object: the outer run splices placeholders into a text replay as plain
 text, so a value holding a quote or a backslash, such as a Windows path, breaks its JSON. A step that returns a job is awaited,
 up to `timeout_s` (default 120), before its `expect` is checked; a wait that times out with a dialog
 open names the topmost one, since a step can't answer a dialog it opened. `"await": false` returns the job
 at once and stores it under `save_as`, so later steps can answer a dialog it opened and then
 `wait` for it. `expect` maps JSON pointers into the result to matchers (`eq ne gt ge lt le contains
 regex exists empty`). A failed step or expectation stops the run unless the step is `optional`.
-Auto-answer rules registered by a script end with it. `vars` passed to `run_script` override the
-script's. A step naming an unknown tool makes the script invalid before anything runs; so does any
+Auto-answer rules registered by a replay end with it. `vars` passed to `run_replay` override the
+replay's. A step naming an unknown tool makes the replay invalid before anything runs; so does any
 field of the wrong type, and broken JSON is reported with its line and column. The result, also
 written to `<out_dir>/result.json`, is `{passed, name, failed_step, steps: [{index, tool, args, ok,
 duration_ms, result | error, expect_failure, cancelled, reason}], out_dir, result_file}`. A failed
 step's `reason` says why in parts a host can word: `cancelled`, `timeout {seconds}`, `expect {pointer,
 op, expected, actual, exists}`, `expect_invalid`, `placeholder {text}`, `missing_job {name,
-saved_by}` (the step that saves that job, when one does) or `tool` (the tool's own error). A script
-file's `out_dir` defaults to `<script name>.out` beside it. An inline script's defaults to
-`<datadir>/mcp/out/script-<timestamp>`, which is also its `${script_dir}`.
+saved_by}` (the step that saves that job, when one does) or `tool` (the tool's own error). A replay
+file's `out_dir` defaults to `<replay name>.out` beside it. An inline replay's defaults to
+`<datadir>/mcp/out/replay-<timestamp>`, which is also its `${replay_dir}`.
 
-The engine (`McpScript.cpp`, wx-free) and the job around it (`run_script_job()` in
-`McpToolsScript.cpp`) are shared by `run_script`, `--mcp-script` and Action Replay. A run
+The engine (`McpReplay.cpp`, wx-free) and the job around it (`run_replay_job()` in
+`McpToolsReplay.cpp`) are shared by `run_replay`, `--mcp-run` and Action Replay. A run
 stops before its next step, and stops waiting on a step's job, once the service stops or a stop was
-asked for any job in its lineage (`McpService::request_stop()`), so a nested `run_script` stops with
+asked for any job in its lineage (`McpService::request_stop()`), so a nested `run_replay` stops with
 the run that holds it. Stop requests last the session, and `JobRegistry` records each job's ancestor
 chain when it is created, so a descendant still reaches its root after finished ancestors are
 forgotten. A step during which the stop came is failed as `cancelled` whatever it returned (a
 cancelled slice still reports its plates) and ends the run, `optional` or not. The engine reports
 each step as it starts and ends, and can run a single step with the jobs earlier runs saved.
 
-`orca-slicer --mcp-script FILE [--mcp-script-out DIR]` runs a script once the GUI is ready. It
-doesn't open the endpoint unless `--mcp` is also given. It writes `result.json` and screenshots to
-the output directory, which defaults to `<script name>.out` next to the script. Then it closes the
-app without prompting and exits 0 if the script passed, 1 if a step failed, and 2 if the script is
-invalid. `OrcaSlicer.cpp` resolves both paths against the original working directory, since the
-GUI changes it. wx ignores `OnExit()`'s return value, so `GUI_Run()` returns
-`McpService::script_exit_code()` after `wxEntry()`.
+`orca-slicer --mcp-run FILE [--mcp-run-out DIR]` runs a replay (`.json`) or a Python script (`.py`) once
+the GUI is ready. It doesn't open the endpoint unless `--mcp` is also given. A replay writes `result.json`
+and screenshots to the output directory, which defaults to `<replay name>.out` next to the replay. Then
+it closes the app without prompting and exits 0 if the replay passed or the script finished, 1 if a step
+failed or the script did not finish, and 2 if the file is invalid or can't be read. `OrcaSlicer.cpp`
+resolves both paths against the original working directory, since the GUI changes it. wx ignores
+`OnExit()`'s return value, so `GUI_Run()` returns `McpService::run_exit_code()` after `wxEntry()`.
 
 ### Action Replay
 
-File › Action Replay… and the Speed Dial command `open_script_runner` (an id kept because exported
+File › Action Replay… and the Speed Dial command `open_action_replay` (an id kept because exported
 replays and agent sessions already call it) open `ActionReplayDialog`, where a person opens or writes a
 replay file, reads its steps and replays it whole or one step at a time. It is a `WebViewHostDialog` page
 (`resources/web/dialog/ActionReplay/`), modeless and one at a time (`MainFrame::show_action_replay()`).
@@ -2591,11 +2598,11 @@ draft and suggests the replay's keys, tool names, a tool's arguments and their a
 `${…}` placeholders; the tool part comes from the registry, which the dialog sends once the service is
 ready, so the suggestions match the build. Save writes the text back to the file it was opened from, or
 asks where to put a new replay file and offers the replay's name as the file name. A replay saved
-somewhere new is that file's from then on: `${script_dir}` and its output folder follow the file, as for
+somewhere new is that file's from then on: `${replay_dir}` and its output folder follow the file, as for
 an opened one. Closing the window, or opening another replay, with unsaved edits asks first. The page
 reports every edit to the host, which parses, runs and saves that one copy of the text, so the host can
 ask and save even when the window's close box starts the close. Opening the window starts the service
-without the endpoint, as `--mcp-script` does, so a person replays files with the server off.
+without the endpoint, as `--mcp-run` does, so a person replays files with the server off.
 
 **The editor.** Action Replay and the Run Script panel edit in Ace (`ace-builds` 1.45.2, BSD-3-Clause),
 vendored unmodified in `resources/web/include/ace/` (its `src-min-noconflict` core, the JSON and Python
@@ -2610,36 +2617,36 @@ suggestion list, the read-only note, folding and its ARIA labels) is translated:
 `WebViewHostDialog::code_editor_strings()` under `code_editor` in the page's strings, keyed by Ace's
 message keys, and `code_editor.js` hands them to `ace.config.setMessages()`. Each page reports the
 chords its editor binds (`editor_keys`), which the main frame's menu rule reads (Keys, under Run Script
-panel). Action Replay's language is a JSON mode of its own (`orca_replay`, `script_editor.js`).
+panel). Action Replay's language is a JSON mode of its own (`orca_replay`, `replay_editor.js`).
 
-`McpService::start_script_run()` runs the script as a job of `run_script`'s kind but outside the
+`McpService::start_replay_run()` runs the replay as a job of `run_replay`'s kind but outside the
 session journal, since a person's run is not an agent's call. A thread the service owns follows the
 job past a `running` or `blocked_by_dialog` reply to its result, posts it once, and is joined by
 `stop()`. Step reports and the result reach the dialog through the service's dispatcher as
-`ScriptRun` events, which the dialog drops once it is gone. `ScriptRun::stop()` latches, so a stop
+`PersonRun` events, which the dialog drops once it is gone. `PersonRun::stop()` latches, so a stop
 asked before the job exists still counts, requests the stop for the job (`JobRegistry::request_stop()`)
-and cancels its operation as the `cancel` tool does. Every call the run and its nested scripts make
+and cancels its operation as `cancel_job` does. Every call the run and its nested replays make
 then sees `ToolContext::cancelled()`, so a step that waits, such as `wait`, returns at once. `suspend()` and `stop()` stop every run first, while the main
 window they run in is still the current one.
 
-Before a run the dialog describes each step with `describe_step()` (`McpScriptSummary.cpp`, wx-free):
+Before a run the dialog describes each step with `describe_step()` (`McpReplaySummary.cpp`, wx-free):
 what it acts on, and flags for effects beyond the open project (writes a file outside the output
 folder, changes presets, replaces the project, sends to a printer). It reads the
-arguments after substitution, and nested scripts as their run sees them: an inline one with the outer
-script's placeholders already applied, as `run_script` substitutes the whole step first, and a file
+arguments after substitution, and nested replays as their run sees them: an inline one with the outer
+replay's placeholders already applied, as `run_replay` substitutes the whole step first, and a file
 with its own vars and output folder; a step whose effect can't be
-read (a plugin action, a nested script too deep or unreadable) gets every flag. Flags only inform. A
+read (a plugin action, a nested replay too deep or unreadable) gets every flag. Flags only inform. A
 replacing step either checks unsaved changes itself (`new_project`, `open_files` of a project,
-`calibrate`) or goes through the app's own save question (`close_with_confirm()`). When the project
+`generate_calibration_test`) or goes through the app's own save question (`close_with_confirm()`). When the project
 has unsaved changes and the steps to run hold a step of the first kind, or one of the second kind
 with a step that can answer a dialog, the dialog asks whether to save first. Yes saves; No lets the
 run's replacing tools treat the run as `discard_changes: true` (`McpService::discard_authorized()`,
 read from the job lineage when the tool checks), so changes are dropped only when a step really
 replaces the project. The runner never answers the app's own question.
 
-The window is named `kHiddenFromAutomation`: `ui_snapshot` and locators skip it, `list_windows` lists
-it as hidden with no ref, web view
-scripts never pick it, a key sent without a target never goes to the focus inside it, and on X11,
+The window is named `kHiddenFromAutomation`: `list_widgets` and locators skip it, `list_windows` lists
+it as hidden with no ref,
+`run_javascript` never picks its web views, a key sent without a target never goes to the focus inside it, and on X11,
 where a window capture reads the screen, it hides for the moment of the capture. Every prompt and
 file dialog it opens is named so too, so no auto-answer rule a replay registers answers the person's
 own question. Its own wording is
@@ -2650,8 +2657,8 @@ agents read in English, is shown as a detail under a translated lead. Tool title
 The session journal records client calls to journaled tools in order: every mutate tool, plus
 `wait` and `screenshot`, which a replay needs. It keeps the last 5000 calls, dropping the oldest
 call whose outcome is known; a call still waiting for its reply or its job keeps its place. GUI tools record locators instead of refs through
-`ToolContext::set_journal_args()`. `export_script` returns it, and with `path` writes it, through `Journal::to_script()`; `clear`
-starts a new recording. `Journal::to_script()`
+`ToolContext::set_journal_args()`. `export_replay` returns it, and with `path` writes it, through `Journal::to_replay()`; `clear`
+starts a new recording. `Journal::to_replay()`
 drops failed calls and an input call that only listed the menu it opened when the next call repeats
 it with a `popup_item` (otherwise it stays: its right click changed the selection), turns a call that
 returned a job into a step with `"await": false` and
@@ -2664,18 +2671,18 @@ A call that runs as a job is judged by its job's final result, not by its reply.
 journal the job's id when it starts it (`Journal::job_started()`) and its result when the handler
 returns (`Journal::job_ended()`), before `JobRegistry::finish()`, so an export right after the
 `wait` that saw the result already knows it. A job that fails after its reply came back as
-`running` is dropped like a call that failed at once, so a script never replays a call that did
+`running` is dropped like a call that failed at once, so a replay never repeats a call that did
 nothing (a slow CAD rebuild that then fails). A call whose outcome is still open, because its job
-is still running or it has not replied yet, is left out, and `export_script`'s reply lists it in
+is still running or it has not replied yet, is left out, and `export_replay`'s reply lists it in
 `left_out_running: [{tool, job}]` (`job` is absent for a call that is not one); a later export
 includes it once its job has succeeded. A call whose reply was `blocked_by_dialog` stays in the
-script while its job runs and whatever its job's result: the steps after it answer its dialog, and
+replay while its job runs and whatever its job's result: the steps after it answer its dialog, and
 a replay without it would fail at the first of them. A call whose job was still running when a later
-call acted with a modal open (`dialog_respond`, or a recover tool's input while
+call acted with a modal open (`answer_dialog`, or a recover tool's input while
 `UiInvoker::open_dialogs()` lists one) stays the same way, whether it had replied yet or not, since that
 dialog may be one its job opened; the journal can't tell whose dialog it was, so it keeps every such
 job, as a step with `"await": false`. Its replayed reply can come before the dialog opens, so each
-call that acted with a modal open is preceded in the script by `wait {"for": "dialog"}`, expected to
+call that acted with a modal open is preceded in the replay by `wait {"for": "dialog"}`, expected to
 be satisfied. Only the call's own job counts as its job: a
 `wait` that timed out names the job it waits on in its reply, and stays a plain step.
 
@@ -2683,21 +2690,21 @@ be satisfied. Only the call's own job counts as its job: a
 
 A Python script is a `.py` file or a code string that runs on the plugin interpreter as an embedded macro: the
 main program of a run inside OrcaSlicer, with the whole plugin API (`orca.host`), without being packaged as a
-plugin. A person runs one in the Run Script panel or with `--mcp-script file.py`; an agent sends one with
-`run_python {code, args, timeout_s, filename}`; a plugin's code may call `run_python` too. A script that runs
+plugin. A person runs one in the Run Script panel or with `--mcp-run file.py`; an agent sends one with
+`run_script {code, args, timeout_s, filename}`; a plugin's code may call `run_script` too. A script that runs
 under `python file.py` runs the same way here, and code written for a plugin's `execute()` (windows, progress,
 presets, storage) runs from a script unchanged. A script is not a plugin: it gets no permission prompt and no
 grants, is never in the Plugins list, and ends when its work ends, leaving nothing loaded.
 
 **Entry contract.** `run_python_code()` (`plugin/PythonScriptRunner.cpp`) runs the code on the calling thread, the
-MCP job that runs `run_python`, holding an interpreter lease and the GIL, as a session with one file work (Run
+MCP job that runs `run_script`, holding an interpreter lease and the GIL, as a session with one file work (Run
 Script panel, below). The code is text, compiled as Python
 compiles any code string, so a coding line in it changes nothing; a file's bytes are decoded first as Python reads
 a source file, by its BOM or its PEP 263 declaration, else as UTF-8 (`decode_python_source()`). It runs as the main
 program, in a `types.ModuleType("__main__")` of its own, with `args` bound and `orca` importable. A run is a *file
-run* when `filename` names an existing file (a saved script's in the panel and `--mcp-script`'s do): `__file__` and
+run* when `filename` names an existing file (a saved script's in the panel and `--mcp-run`'s do): `__file__` and
 `sys.argv` (`[path]`) name it, its folder serves its imports, and its PEP 723 dependencies are installed first.
-Any other name (the default `<run_python>`, a bare traceback name) is code sent as text, which gets none of that;
+Any other name (the default `<run_script>`, a bare traceback name) is code sent as text, which gets none of that;
 `filename` still names it in tracebacks. The value left in `result` is read once when the body returns; in code
 sent as text, one that is not JSON (a dict with string keys, a list, a string, a finite number, a boolean or None,
 nested) makes the run `raised`, while in a file run, where a standalone script may well have a variable of that
@@ -2705,7 +2712,7 @@ name, it is no result, and the output ends with a line saying it was not JSON. `
 finishes the run. Output is captured up to 256 KiB by a stream installed once over `sys.stdout` and `sys.stderr`
 that routes writes by the run bound to the writing thread: the run's own thread, the threads it starts, its pool
 tasks and its window callbacks; other threads print through. The outcome is `finished`, `raised` (with the
-traceback), `cancelled` or `timed_out`, reported in a successful result, as `run_script` reports a failed step.
+traceback), `cancelled` or `timed_out`, reported in a successful result, as `run_replay` reports a failed step.
 
 **The run scope.** `PythonRunScope` (`plugin/PythonRunScope.hpp`) is the run's state that its threads, pool tasks
 and window callbacks share: identity, file, tool bridge, the work it waits for, admission, and whether its UI is
@@ -2791,8 +2798,8 @@ records its modules only after its import returns), and then runs at the next en
 run's code, on its thread, under its identity and watcher, with the output in its capture. A daemon thread still
 running after the run sees the run's globals, and its evicted helpers', cleared, and is refused tool calls.
 
-**Cancellation.** A watcher thread interrupts the run with `PyThreadState_SetAsyncExc` when `cancel {job}` stops
-the job (`run_python` is `cancellable`) or the time budget (`timeout_s`, default 300 s; the panel's session has
+**Cancellation.** A watcher thread interrupts the run with `PyThreadState_SetAsyncExc` when `cancel_job {job}` stops
+the job (`run_script` is `cancellable`) or the time budget (`timeout_s`, default 300 s; the panel's session has
 none, since its Stop ends what runs) runs out, again every second until it ends. What it interrupts follows the run's phase,
 which is set, and read before each interrupt, under the GIL: in *Body* (the code) and *Exit* (`atexit` functions,
 the result's own code, the UI teardown, the namespace's finalizers, the folder's teardown, dropping what the script
@@ -2819,28 +2826,28 @@ code. The install isn't covered by the watcher; uv's 120 s timeout bounds it.
 
 **Identity.** A person's script runs under the audit identity `script`, an agent's under `mcp`
 (`kScriptIdentityPerson`, `kScriptIdentityAgent`); `McpService::person_run()` tells them apart by the run's
-lineage, since the panel's and `--mcp-script`'s jobs are marked as a person's (`as_person()`). Every audited
+lineage, since the panel's and `--mcp-run`'s jobs are marked as a person's (`as_person()`). Every audited
 access is allowed to these identities and logged under them (reads at debug level), apart from the categorical
 denies every plugin has (`is_denied_path()`): nothing contains the code, and the setting is the boundary. The
 threads, pool tasks and window callbacks of a run carry its identity. A run owns what its calls leave behind, as a
-JSON script does (`begin_script_scope()`): auto-answer rules, a recording and a held press end with it. The
+replay does (`begin_run_scope()`): auto-answer rules, a recording and a held press end with it. The
 identities are reserved: a plugin whose key equals one is refused before any of its code runs. A plugin's
-`run_python` runs under the plugin's own identity and grants instead, with the same main-program environment, but
+`run_script` runs under the plugin's own identity and grants instead, with the same main-program environment, but
 its windows, callbacks and storage stay the plugin's.
 
 **The setting.** One switch, `mcp_python_scripts`, off by default, lets both a person's scripts and an agent's
-`run_python` run; with it off they are refused (a plugin's `run_python` needs none). It is changed only in
+`run_script` run; with it off they are refused (a plugin's `run_script` needs none). It is changed only in
 `PythonScriptsDialog`, opened from Preferences › AI features › Python scripts, which is named
 `kHiddenFromAutomation`: the UI tools never see it and `ModalTracker` leaves it off the stack, so no dialog tool or
-auto-answer rule reaches it. No tool writes the key, and `get_state.python.scripts_allowed` reads it, so an
-agent learns that `run_python` is off before it plans a run rather than from the refusal.
+auto-answer rule reaches it. No tool writes the key, and `get_app_state.python.scripts_allowed` reads it, so an
+agent learns that `run_script` is off before it plans a run rather than from the refusal.
 
 **The host surface and the bridge.** A script reaches the whole `orca.host`, as a plugin does: reads, `orca.host.ui`
 (message boxes, progress dialogs, HTML windows, dock panels, notifications), the staged preset update, bundle
 reload and the 3MF copy; nothing is plugin-only. `orca.host.plugin.storage()` is a script's own folder, the folder
-of its file; code sent as text has none. `orca.host.tools.call(name, args)` and `run_script(script, vars)`, whose
-script is a dict or its JSON text (`plugin/host/PluginHostTools.cpp`), reach the tools from any thread of the run
-while it lasts, through the run's bridge: its calls are `ToolContext::call_child()` of the `run_python` job, so
+of its file; code sent as text has none. `orca.host.tools.call(name, args)` and `run_replay(replay, vars)`, whose
+replay is a dict or its JSON text (`plugin/host/PluginHostTools.cpp`), reach the tools from any thread of the run
+while it lasts, through the run's bridge: its calls are `ToolContext::call_child()` of the `run_script` job, so
 each has its tool's guards, admission and undo, and the GIL is released while it waits. At the end the bridge
 closes, and the run waits for calls already inside it before its `ToolContext` goes. An error result raises
 `orca.host.tools.ToolError` with its data as `details`. Code with no audit identity at all is refused.
@@ -2858,17 +2865,17 @@ counted as active work; it runs on the UI thread, so it is refused tool calls (t
 and hands its work to the script's own code, through a `queue.Queue` say, which can call them. While a modal the
 run opened is up, tool calls that change the project are refused by the modal guard, the run's own included, so
 interactive macros use modeless windows. A script's dock panel keeps its saved layout under the script identity and
-its title. A plugin's `run_python` leaves all of this to the plugin.
+its title. A plugin's `run_script` leaves all of this to the plugin.
 
-**Idle.** A `run_python` job doesn't count as busy for `wait {for: "idle"}` (`JobRegistry::set_idle()`); the
+**Idle.** A `run_script` job doesn't count as busy for `wait {for: "idle"}` (`JobRegistry::set_idle()`); the
 calls it makes, and what they start, do. A macro waiting for the person in its window would otherwise hold every
 agent's idle wait, and a `tools/mcp` driver run from the panel against the same app would wait on its own run.
 
-**Journal and replay.** `run_python` is journaled as one step holding its code, kept when the code failed
-partway; its tool calls are not journaled. In a JSON script a `run_python` step's `code` is never
+**Journal and replay.** `run_script` is journaled as one step holding its code, kept when the code failed
+partway; its tool calls are not journaled. In a replay a `run_script` step's `code` is never
 substituted, and a step whose outcome is not `finished` fails.
 
-**The reference.** `python_api` serves the reference `python_api_reference()` builds from the running
+**The reference.** `search_python_api` serves the reference `python_api_reference()` builds from the running
 build's `orca` package: `orca.host`, and the classes, events and pages plugins build on. It walks the
 modules and lists each public class, function, method, property, named instance (such as
 `orca.host.preset.process`) and constant (such as `orca.host.ui.PD_CAN_ABORT`) with its signature and
@@ -2922,14 +2929,14 @@ with streaming, quoting, Cell events and cell results off and a stop closing eve
 keeps the run described above.
 
 **The session job.** `McpService::start_python_session()` hosts the panel's session as an unjournaled person's
-`run_python` job (`run_python_session_job()`) on a thread the service owns, which `stop()` joins and
-`stop_script_runs()` stops. The job is idle for `wait {for: "idle"}` as any `run_python` job is, so agents' and
+`run_script` job (`run_python_session_job()`) on a thread the service owns, which `stop()` joins and
+`stop_person_runs()` stops. The job is idle for `wait {for: "idle"}` as any `run_script` job is, so agents' and
 plugins' runs overlap with it, sharing no state, tracebacks included. It owns what its calls leave behind for the
-whole session, as a run does (`begin_script_scope()`): auto-answer rules, recordings, held presses. Between works its
+whole session, as a run does (`begin_run_scope()`): auto-answer rules, recordings, held presses. Between works its
 rule layer is paused (`ModalTracker::set_paused()`; the rules listing shows it as paused), so a rule a cell
 registered never answers the person's own dialogs between runs and answers again in the next one (a rule a thread of
 the session registers between works starts paused, and leaves the dialog open then to the person too), and its held
-presses are released as each work ends (`release_script_presses()`). Its `orca.host.tools` calls are child calls of a
+presses are released as each work ends (`release_run_presses()`). Its `orca.host.tools` calls are child calls of a
 `LineageNode`, a running idle job under the session's job that only parents calls: a stop requests the stop for the
 node and cancels its operations (`cancel_operations_of()`), so every call in flight, inline ones such as `wait`
 included, returns at once while the session goes on, and the next work after a stop starts once that cancelling is done,
@@ -2978,7 +2985,7 @@ ends rather than as it moves.
 **Out of the tools' reach.** Like Action Replay's page, the page navigates nowhere but its own loads: a dropped
 `.py` opens in the panel, and any other navigation is vetoed. The pane is named `kHiddenFromAutomation`, as are the frame it floats in
 (`AuiMgr::CreateFloatingFrame()`) and every prompt and file dialog it opens. `skipped_by_walks()` keeps the walks of
-`ui_snapshot`, locators and `webview_eval`'s search for a web view out of it, and a key sent without a target never
+`list_widgets`, locators and `run_javascript`'s search for a web view out of it, and a key sent without a target never
 goes to the focus inside it, so a script never acts on the panel that runs it. `list_windows` lists the floating
 frame as hidden, with no ref. Docked, the panel is part of the main
 window and shows in its screenshots and recordings; floating, it is a window of its own and stays out of them, as the
@@ -3003,7 +3010,7 @@ A plugin's code calls the tools through `orca.host.tools` once it holds the `too
 it at load in its own prompt (`request_tools_permission()`), apart from the plugin's other permissions,
 and a refusal leaves the plugin loading without it. With the permission a plugin can do what an agent can:
 work in the GUI, answer dialogs, replace the project, write presets and files; the prompt says so. A plugin's
-`run_python` is the plugin's own code: its identity and grants, its windows and storage, though it runs as a main
+`run_script` is the plugin's own code: its identity and grants, its windows and storage, though it runs as a main
 program as any script does.
 
 A plugin's call waits for the UI thread, so it comes only from a thread nothing there waits for: a Script
@@ -3016,8 +3023,8 @@ call then holds a lease the service's drain waits for. A caller that stops waiti
 marks its admission abandoned, so no lease is taken that nobody releases. The call runs as
 `McpCore::call_plugin()`: a top-level job owned by the plugin
 (`JobRegistry::owner()`), never journaled, whose children inherit the plugin
-(`ToolContext::caller_plugin()`). The session tools are scoped to the plugin: `export_script` is refused,
-and `cancel {job}` and `wait {for: "job"}` act only on its own jobs (`require_own_job()`). What its calls
+(`ToolContext::caller_plugin()`). The session tools are scoped to the plugin: `export_replay` is refused,
+and `cancel_job {job}` and `wait {for: "job"}` act only on its own jobs (`require_own_job()`). What its calls
 leave behind (auto-answer rules, a recording, a held press) belongs to the plugin's scope
 (`begin_plugin_scope()`), which ends when the plugin unloads. From the moment the plugin manager unloads
 it, no call of the plugin starts, inline or as a job, nor a child of one of its jobs, a call admitted just
@@ -3034,14 +3041,14 @@ so each call is logged as `[MCP plugin] plugin=… tool=… outcome=… paths=[�
 since plugin code may write the log folder. A plugin's window callbacks run without its audit identity,
 so their calls are refused.
 
-**Plugin operations.** A plugin may offer operations to agents and scripts with
+**Plugin operations.** A plugin may offer operations to agents, replays and scripts with
 `orca.register_operation(name, description, schema, handler, changes)` while it loads. The person grants
 each one in its own prompt (`request_operation_permission()`, saved in `PluginPermissions::operations`);
 a refused one is not offered. Granted operations are staged and offered once the plugin's load has committed
 (`PluginOperations::activate()`, in one step under the lock an unload's withdrawal takes); any exit of a
 load that did not commit, an exception included, drops them, and they are withdrawn when the plugin
 unloads. An operation is reached as
-`plugin.<plugin key>.<name>` through `api_call`, `orca.host.tools.call` and script steps, and never
+`plugin.<plugin key>.<name>` through `call_tool`, `orca.host.tools.call` and replay steps, and never
 appears in `tools/list`: `ToolRegistry::set_dynamic()` resolves those names (`ToolRegistry::lookup()`).
 It runs as a job, under the mutate guard and journaled when it changes something, under the inspect guard
 otherwise; its handler runs under the plugin's identity and grants, and each call is logged with the
@@ -3050,8 +3057,8 @@ by `PluginOperations::invoke()` when the operation found is no longer the one of
 offered again by a new load). The call's job is the caller's, so an operation already running when its
 plugin unloads runs to its end; its own tool calls are refused from then on.
 
-**`api_describe` and `api_call`.** `api_describe` gives the schema of any registered tool or operation,
-or lists every name; for `cad_call` it points to `describe_tools`, which lists the Design tab's methods.
+**`search_tools` and `call_tool`.** `search_tools` gives the schema of any registered tool or operation,
+or lists every name; for `call_cad_tool` it points to `describe_tools`, which lists the Design tab's methods.
 Its search by words is the one search across catalogs: the best five tools and operations that match (more
 with `limit`), a tool with the first sentence of its description, since `tools/list` has its schema, and an
 operation with its schema, which nothing else lists; and beside them the best five of each other catalog with
@@ -3064,7 +3071,7 @@ come first. Scores of different catalogs don't compare, so each keeps its own li
 and the Design tab's methods are read on the UI thread: when it can't run the call (a native dialog holds
 it, or it is busy) the search leaves those three out, and before the main window exists (the server starts
 ahead of it) it leaves out the settings. The tools, operations and Python reference answer whatever the UI
-thread is doing. `api_call {tool, args}` is dispatched before it runs
+thread is doing. `call_tool {tool, args}` is dispatched before it runs
 (`resolve_api_call()`, in the protocol, in child calls and in the plugin caller): the target's arguments
 are normalized and validated, and the call runs as the target's own, with its guard, mode, budget and
 journal flag, so the journal records the target.
@@ -3118,7 +3125,7 @@ A line that is valid JSON but not one message object, such as a batch, gets an e
 ## Configuration
 
 The CLI options are in `CLIMiscConfigDef`, so the GUI still starts: `--mcp`, `--mcp-port N`,
-`--mcp-token T`, `--mcp-script FILE`, `--mcp-script-out DIR` and `--mcp-stdio`. The AppConfig `app`
+`--mcp-token T`, `--mcp-run FILE`, `--mcp-run-out DIR` and `--mcp-stdio`. The AppConfig `app`
 section holds `mcp_enabled` (false) and `mcp_port` (13619). Preferences › General › AI features
 opens with a line on what agents can do and who can connect, then has five rows:
 
@@ -3165,13 +3172,13 @@ Unit tests are Catch2 cases tagged `[Mcp]` in `tests/slic3rutils/test_mcp_*.cpp`
 who owns the discovery file and when a port counts as held by another window; `test_mcp_core`
 `UiInvoker`, `McpCore` and `JobRegistry` on a hand-stepped dispatcher (guards, abandoned calls,
 jobs, blocked_by_dialog, admission, slots, idle, journal); `test_mcp_operations` the slice and
-export outcomes; `test_mcp_script` parsing, substitution, matchers and await; `test_mcp_ui` labels,
+export outcomes; `test_mcp_replay` parsing, substitution, matchers and await; `test_mcp_ui` labels,
 snapshot text, ref liveness, synthetic key state, a key's way through the hooks of its target's
 parents (with a display), how ImGui items are labelled and named, value
 matching and the model-target projection and surface check (`CanvasTarget`); `test_mcp_results`
 what covers a canvas click (`imgui_window_at()`), the surface meshes of a modifier target, fresh GL
 toolbar state and the auto-answer press (with a display), the slice reply's plate summary,
-`get_preview`'s feature, layer and object tables, the legend rows' names, the slider's layer for
+`get_slice_stats`'s feature, layer and object tables, the legend rows' names, the slider's layer for
 a height, menu paths and listings, the UI activity hook, the journal's dropped listing clicks and
 calls whose job failed or still runs (with a replay of the export), the
 menu capture on real wx menus, row paths and their snapshot text, (with a display) the rows of
@@ -3192,12 +3199,12 @@ effective values, the names and places `save_preset` accepts, enum labels and de
 per-variant entries and their writes, preset comparison, `changed`, which unsaved changes a call discarded, which presets
 `delete_preset` refuses or deletes with a custom printer, the project scope's slot colours,
 flushing multipliers and matrix, and the plate scope's filament orders and layer ranges and
-`list_plates`' layer numbers and layer G-codes, the preferences scope's keys, and `calibrate`'s arguments,
+`list_plates`' layer numbers and layer G-codes, the preferences scope's keys, and `generate_calibration_test`'s arguments,
 defaults, the dialogs' shared rules, VFA's auto-adjust and the parameters the journal records. End to end, `tools/mcp/orca_mcp.py` launches
 the app on a private Xvfb display on Linux (with `-noreset`, and the pointer parked in a corner so no
 tooltip lands in a screenshot), or on the desktop on macOS and Windows, and runs
-`tools/mcp/smoke_test.json`. `tools/mcp/tests/script_basic.json`
-checks `--mcp-script` headless, `tools/mcp/tests/gizmos.json` every gizmo through the GUI tools,
+`tools/mcp/smoke_test.json`. `tools/mcp/tests/replay_basic.json`
+checks `--mcp-run` headless, `tools/mcp/tests/gizmos.json` every gizmo through the GUI tools,
 `tools/mcp/tests/multicolor.json` object and part filaments and the project scope, `tools/mcp/tests/presets.json` saving,
 reading and comparing presets, explaining settings, per-variant entries, `changed`, reverting keys, answering the
 unsaved-changes prompts of a preset switch and a new project, deleting presets, exporting and importing
@@ -3206,14 +3213,14 @@ presets with a path, and reading a preference changed in the Preferences dialog,
 `tools/mcp/tests/calibration.json` every calibration test and its preset answers,
 `tools/mcp/tests/dialogs_canvas_input.json` auto-answers that run a button's handler and canvas
 targets on negative parts and from below the bed, `tools/mcp/tests/slice_stats.json` the slice
-reply's statistics on one and two colours, `tools/mcp/tests/preview.json` `get_preview`,
-`get_state.preview` and `set_view`'s preview arguments, `tools/mcp/tests/context_menus.json` context
+reply's statistics on one and two colours, `tools/mcp/tests/preview.json` `get_slice_stats`,
+`get_app_state.preview` and `set_view`'s preview arguments, `tools/mcp/tests/context_menus.json` context
 and button menus listed and run without one ever showing, `tools/mcp/tests/rows.json` object list
 rows, checklist rows, the object settings table and the print button's popup,
 `tools/mcp/tests/recording.json` a recording with clicks, a dialog and a slice, stopped and encoded,
-and one a script ends, `tools/mcp/tests/plate_icons.json` plate icons (lock, settings, arrange, the plate menu, move to
-front), `tools/mcp/tests/webview_modal.json` scripts in the preset bundle dialog and the setup
-wizard, `tools/mcp/test_webview_modal.py` the web views scripts are refused in and a page that
+and one a replay ends, `tools/mcp/tests/plate_icons.json` plate icons (lock, settings, arrange, the plate menu, move to
+front), `tools/mcp/tests/webview_modal.json` JavaScript in the preset bundle dialog and the setup
+wizard, `tools/mcp/test_webview_modal.py` the web views `run_javascript` is refused in and a page that
 closes its dialog, `tools/mcp/tests/web_dialogs.json` the preset bundle dialog, the colour picker
 (hex field and spectrum) and the setup wizard's first steps through the GUI tools alone,
 `tools/mcp/test_web_ui.py` every page control kind, action, refusal, locator, timeout and close of
@@ -3222,7 +3229,7 @@ the MCP web fixture plugin's dialog, window, dock panel and configuration UI (si
 legend combo's semantics of `set_view {view_type}`, a canvas screenshot straight after a layer or
 view type change, and the preview refusals of `set_view`,
 `tools/mcp/test_export_running_job.py` an export during and after a job that outlived its reply,
-`tools/mcp/test_send_gcode.py` `send_gcode` and `get_state.uploads` against a stub print host that
+`tools/mcp/test_send_gcode.py` `send_gcode` and `get_app_state.uploads` against a stub print host that
 answers 200 or 500,
 `tools/mcp/test_stdio_bridge.py` the stdio bridge, and
 `tools/mcp/test_recovery_under_load.py` answering a dialog while stalled clients hold every
@@ -3234,11 +3241,11 @@ worker-job admission on a stand-in worker (a job past the reply budget, a slow c
 three ways to start one, recover input and a person's job), `list_objects`' descriptions of a `Model`
 built in the test (placement and boxes on the bed, mirrors, filament fallback, precise seam subtypes,
 height ranges, the summary of a variable layer height profile), `add_part`'s type names and shape
-sizes, the object structure commands' params, the height ranges `set_layer_ranges` accepts (order,
-overlaps, bounds, keys), and `set_layer_gcode`'s edits of a layer slider built in the test (by layer
+sizes, the object structure commands' params, the height ranges `set_height_ranges` accepts (order,
+overlaps, bounds, keys), and `set_custom_gcode_at_layer`'s edits of a layer slider built in the test (by layer
 and height, in-place edits, refusals that leave the slider as it was, the type names). On the app,
 `tools/mcp/tests/scene.json` checks object structure and placement (transform on instances, plates and
-parts, what `list_objects` reports of them, the selection `select` and `get_state` report, shapes at a
+parts, what `list_objects` reports of them, the selection `select_objects` and `get_app_state` report, shapes at a
 size, arrange and Fill bed, `add_part`, the
 object structure commands, then all of them on one scene through to a slice);
 `tools/mcp/tests/layers.json` height range modifiers and variable layer height profiles (set, read

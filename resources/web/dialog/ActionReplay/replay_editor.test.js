@@ -1,7 +1,7 @@
 "use strict";
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const editor = require("./script_editor.js");
+const editor = require("./replay_editor.js");
 
 // Two tools, as the host's catalog lists them: one taking a plain number, one an enum and a nullable number.
 editor.setEditorTools([
@@ -13,12 +13,12 @@ editor.setEditorTools([
 function at(text, explicit) { return editor.suggestionsAt(text, text.length, !!explicit); }
 function labels(found) { return found.items.map((item) => item.label); }
 
-test("a script's root keys are suggested in a key's string", () => {
+test("a replay's root keys are suggested in a key's string", () => {
   const found = at('{\n  "');
   assert.equal(found.kind, "key");
   assert.equal(found.from, 5);
   assert.equal(found.to, 5);
-  assert.deepEqual(labels(found), ["orca_script", "name", "vars", "steps"]);
+  assert.deepEqual(labels(found), ["orca_replay", "name", "vars", "steps"]);
 });
 
 test("a step's keys are suggested inside steps[], leaving out the ones it has", () => {
@@ -60,7 +60,7 @@ test("a placeholder suggests the folders, the vars and the saved jobs", () => {
   assert.equal(found.kind, "var");
   assert.equal(found.from, text.length);
   assert.equal(found.to, text.length);
-  assert.deepEqual(labels(found), ["script_dir", "out_dir", "vars.part", "jobs.s1"]);
+  assert.deepEqual(labels(found), ["replay_dir", "out_dir", "vars.part", "jobs.s1"]);
 });
 
 test("nothing is suggested outside a string unless asked for, nor in a comment", () => {
@@ -80,8 +80,8 @@ test("an accepted key gets its colon and an empty value with the caret inside", 
   const name = found.items.find((item) => item.label === "name");
   assert.deepEqual(editor.acceptEdit(text, found, name), { from: 2, to: 2, insert: 'name": ""', back: 1, reopen: true });
   // A number waits after the colon.
-  const version = found.items.find((item) => item.label === "orca_script");
-  assert.deepEqual(editor.acceptEdit(text, found, version), { from: 2, to: 2, insert: 'orca_script": 1', back: 0, reopen: false });
+  const version = found.items.find((item) => item.label === "orca_replay");
+  assert.deepEqual(editor.acceptEdit(text, found, version), { from: 2, to: 2, insert: 'orca_replay": 1', back: 0, reopen: false });
 });
 
 test("a key accepted before an existing colon replaces only the key", () => {

@@ -98,7 +98,7 @@ nlohmann::json UiInvoker::run(GuardClass guard, const std::string& tool, const s
             else if (shared->generation && shared->generation() != generation)
                 error = "The UI was recreated (language change) before the call ran; it was not run, so it is safe to retry";
             else if (guard == GuardClass::Mutate && g.modal) {
-                error   = "A modal dialog is open; answer it first (ui_snapshot, dialog_respond)";
+                error   = "A modal dialog is open; answer it first (list_widgets, answer_dialog)";
                 details = {{"dialogs", g.dialogs}};
             } else if (guard == GuardClass::Mutate && !shared->running_tools.empty())
                 error = "Busy: " + shared->running_tools.front() + " is still running; only inspection and dialog tools can run now";
@@ -139,7 +139,7 @@ nlohmann::json UiInvoker::run(GuardClass guard, const std::string& tool, const s
             throw ToolFailure("OrcaSlicer is shutting down");
         if (nlohmann::json dialogs = open_dialogs(); topmost_dialog_is_native(dialogs))
             throw ToolFailure("A native dialog holds the UI thread until a person answers it, so the call was not run; register "
-                              "dialog_auto_answer before the step that opens one",
+                              "auto_answer_dialogs before the step that opens one",
                               {{"dialogs", std::move(dialogs)}});
         throw ToolFailure("The UI thread is busy and did not run the call; it was not run, so it is safe to retry");
     }
@@ -190,7 +190,7 @@ void UiInvoker::require_mutate() const
     if (m_shared->guards_on_ui) {
         const GuardState g = m_shared->guards_on_ui();
         if (g.modal)
-            throw ToolFailure("A modal dialog is open; answer it first (ui_snapshot, dialog_respond)", {{"dialogs", g.dialogs}});
+            throw ToolFailure("A modal dialog is open; answer it first (list_widgets, answer_dialog)", {{"dialogs", g.dialogs}});
     }
     if (m_shared->running_tools.size() > 1)
         throw ToolFailure("Busy: " + m_shared->running_tools.front() +
