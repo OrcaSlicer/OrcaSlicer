@@ -447,6 +447,40 @@ TEST_CASE("The tower is sized for the thinnest layer any object on the plate is 
     CHECK_THAT(print.wipe_tower_data(2).depth, Catch::Matchers::WithinAbs(20., 1e-4));
 }
 
+TEST_CASE("A constant layer height keeps the tower estimate at the preset's layer height", "[WipeTower]")
+{
+    // Neither a variable layer height nor a height range, so the thinnest layer of each object is the
+    // preset's 0.2 mm: one purge, 100 / (0.2 * 50) = 10 mm, no deeper.
+    const DynamicPrintConfig config = tower_estimate_config("rectangle");
+    Print print;
+    Model model;
+    init_print({ cube(20), cube(20) }, print, model, config);
+    CHECK_THAT(print.wipe_tower_data(2).depth, Catch::Matchers::WithinAbs(10., 1e-4));
+}
+
+TEST_CASE("Cyclic tool change ordering sizes the tower for the change back to the first filament", "[WipeTower]")
+{
+    // The outer wall is on filament 2 and the rest on filament 1, so every layer prints both. Cyclic
+    // ordering starts each layer on filament 1 again: two purges per layer, 100 / (0.2 * 50) twice,
+    // which is 20 mm instead of 10 mm.
+    DynamicPrintConfig config = tower_estimate_config("rectangle");
+    config.set_deserialize_strict({ { "toolchange_ordering", "cyclic" },
+                                    { "wipe_tower_x",        "120" },
+                                    { "wipe_tower_y",        "120" } });
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+
+    const float estimate = print.wipe_tower_data(2).depth;
+    CHECK_THAT(estimate, Catch::Matchers::WithinAbs(20., 1e-4));
+    print.process();
+    REQUIRE(print.is_step_done(psWipeTower));
+    const float generated = print.wipe_tower_data().depth;
+    INFO("estimated depth " << estimate << ", generated depth " << generated);
+    // The estimate leaves out the line shape and the perimeter, so it is close to the tower, not equal.
+    CHECK_THAT(estimate, Catch::Matchers::WithinRel(generated, 0.2f));
+}
+
 TEST_CASE("A variable layer height thinner than the preset deepens the estimate as much as the tower", "[WipeTower]")
 {
     // A 20 mm cube under a 0.2 mm preset, printed at 0.1 mm above its first layer by its variable layer
