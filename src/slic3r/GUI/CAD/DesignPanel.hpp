@@ -42,6 +42,7 @@ class wxCheckListBox;
 class wxSpinCtrl;
 class wxSpinCtrlDouble;
 class wxStaticText;
+namespace Slic3r { namespace GUI { class LlmPanel; } }
 class wxStaticLine;
 class Button;      // Orca-styled button (Widgets/Button.hpp)
 class CheckBox;    // Orca teal checkbox (Widgets/CheckBox.hpp)
@@ -638,6 +639,8 @@ private:
     // move to the other side, float, be resized and be collapsed, and the layout is kept between
     // sessions.
     AuiMgr   m_aui;
+    void toggle_assistant();   // show/hide the assistant chat pane
+    LlmPanel* m_llm_panel = nullptr;   // the assistant chat, an AUI pane (docked or floating), hidden until its button is pressed
     wxString m_default_layout;
     bool     m_sidebar_collapsed{false};
     bool     m_laid_out{false};   // the tab has been shown, so the panel has its size

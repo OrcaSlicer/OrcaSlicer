@@ -11,6 +11,7 @@
 #include <TopoDS_Vertex.hxx>
 #include "libslic3r_version.h"
 #include "slic3r/GUI/CAD/DesignCanvas.hpp"
+#include "slic3r/GUI/CAD/LlmPanel.hpp"
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
 #include "slic3r/GUI/CAD/DesignTextDialog.hpp"           // Text: font, height, live outline
 #include "slic3r/GUI/CAD/DesignCardModel.hpp"
@@ -1704,6 +1705,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
         auto* b_export = doc_btn("design_export", _L("Export STEP…"));
         b_export->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_export_step(); });
         add_doc(b_export);
+        // The assistant chat (docked pane, or drag its title out to float it).
+        auto* b_llm = doc_btn("design_assistant", _L("Assistant: ask a local AI agent (Claude Code) to build or change the design. Set it up in Preferences > LLM / MCP"));
+        b_llm->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { toggle_assistant(); });
+        add_doc(b_llm);
 
         // Sketch leads the feature group. Momentary like the imports: start_sketch() may only ask
         // for a plane, or refuse, and a teal active-tool state would outlive either.
@@ -4375,6 +4380,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_aui.init(body_panel);
     m_aui.AddPane(m_form, AuiMgr::sidebar_pane_info().MinSize(m_form->GetMinSize()));
     m_aui.AddPane(view_col, wxAuiPaneInfo().Name("main").CenterPane().PaneBorder(false));
+    // The assistant chat: docks on the right or drags out as its own window; every turn is one undo step.
+    m_llm_panel = new LlmPanel(body_panel, [this] { return m_doc.undo_depth(); }, [this](size_t d) { m_doc.drop_undo_to(d); });
+    m_aui.AddPane(m_llm_panel, wxAuiPaneInfo().Name("assistant").Caption(_L("Assistant")).Right().Layer(1)
+                                              .BestSize(FromDIP(380), FromDIP(520)).MinSize(FromDIP(260), FromDIP(240))
+                                              .FloatingSize(FromDIP(420), FromDIP(560)).CloseButton(true).Floatable(true).Hide());
     m_default_layout = m_aui.SavePerspective();
     load_window_layout();
     m_aui.track_docked_size(m_form);
@@ -8055,6 +8065,8 @@ void DesignPanel::shutdown()
     // frames).
     if (sidebar.IsFloating())
         m_aui.DetachPane(m_form);
+    if (m_llm_panel != nullptr && m_aui.GetPane(m_llm_panel).IsOk() && m_aui.GetPane(m_llm_panel).IsFloating())
+        m_aui.DetachPane(m_llm_panel);   // same reason: a floating frame must not outlive m_aui
 }
 
 void DesignPanel::reset_window_layout()
@@ -12883,6 +12895,15 @@ void DesignPanel::set_imgui_ribbon(bool on)
     }
 }
 
+void DesignPanel::toggle_assistant()
+{
+    if (m_llm_panel == nullptr) return;
+    wxAuiPaneInfo& p = m_aui.GetPane(m_llm_panel);
+    p.Show(!p.IsShown());
+    m_aui.Update();
+    if (p.IsShown()) m_llm_panel->focus_input();
+}
+
 void DesignPanel::set_imgui_topbar(bool on)
 {
     m_imgui_topbar = on;
@@ -12898,6 +12919,7 @@ void DesignPanel::set_imgui_topbar(bool on)
     b.docs.push_back({"design_step",        _u8L("Import CAD (STEP, SolidWorks, Fusion, ... as an editable B-rep solid)"),                            later([this] { on_import_step(); })});
     b.docs.push_back({"design_import_mesh", _u8L("Import mesh (STL/OBJ) as an editable B-rep solid"),              later([this] { on_import_mesh(); })});
     b.docs.push_back({"design_export",      _u8L("Export STEP…"),                                                  later([this] { on_export_step(); })});
+    b.docs.push_back({"design_assistant",   _u8L("Assistant: ask a local AI agent (Claude Code) to build or change the design. Set it up in Preferences > LLM / MCP"), later([this] { toggle_assistant(); })});
     // Undo / Redo (the same route as Ctrl+Z) and the grid snap toggle: the wx row that held the checkbox is hidden while this bar is
     // drawn, and the tab has no undo of its own.
     b.docs.push_back({"design_undo", _u8L("Undo (Ctrl+Z)"), later([this] { do_undo_redo(false); }), [this] { return menu_can_undo_redo(false); }});
