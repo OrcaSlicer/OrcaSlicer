@@ -79,6 +79,8 @@ private:
     struct Line { wxString text; unsigned long rgb; bool bold; };
     std::vector<Line> m_hist;            // what the log shows, so it can be saved and restored
     wxColour      m_fg;                  // body text colour of a reply
+    bool          m_nosave = false;      // this project keeps no chat; stored in the 3MF as the text "off"
+    wxCheckBox*   m_nosave_cb = nullptr;
     std::string   m_chat_json;           // last chat handed to / received from the project
     std::function<void(const std::string&)> m_chat_sink;
 

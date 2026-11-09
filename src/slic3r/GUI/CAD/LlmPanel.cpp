@@ -251,10 +251,10 @@ void LlmPanel::build_settings()
     text(_L("API URL"), "llm_api_url", _L("API agents only. Empty = the provider's own (Anthropic, OpenAI) or http://localhost:11434/v1 for Ollama. Any OpenAI-compatible server works: set its /v1 address."));
     text(_L("Extra arguments"), "llm_cli_args", _L("Appended to the agent's command line, split on spaces."));
     text(_L("Loopback TCP port"), "llm_mcp_port", _L("0 or empty: off. Otherwise the app's control socket also listens on 127.0.0.1:<port>, for MCP clients that cannot open a Unix socket. Any program on this PC can reach it. Needs a restart. The assistant itself does not use it."));
-    auto* nosave = new wxCheckBox(m_settings, wxID_ANY, _L("Do not save the chat in the project file"));
-    nosave->SetValue(cfg && cfg->get("llm_no_chat_save") == "1");
-    nosave->SetToolTip(_L("By default the chat is saved inside the project (.3mf) so it comes back when you reopen it. Tick this to keep it out of saved files."));
-    nosave->Bind(wxEVT_CHECKBOX, [nosave](wxCommandEvent&) { if (wxGetApp().app_config) wxGetApp().app_config->set("llm_no_chat_save", nosave->GetValue() ? "1" : "0"); });
+    auto* nosave = new wxCheckBox(m_settings, wxID_ANY, _L("Do not save the chat in this project"));
+    m_nosave_cb = nosave;
+    nosave->SetToolTip(_L("By default the chat is saved inside the project (.3mf) so it comes back when you reopen it. Tick this to keep this project's chat out of its saved file. The choice belongs to the project."));
+    nosave->Bind(wxEVT_CHECKBOX, [this, nosave](wxCommandEvent&) { m_nosave = nosave->GetValue(); save_chat(); });
     auto* key = new wxButton(m_settings, wxID_ANY, _L("API key..."));
     key->SetToolTip(_L("API agents only. Stored in the system keyring, never in the settings file. The ANTHROPIC_API_KEY / OPENAI_API_KEY / ORCA_LLM_API_KEY environment variables also work."));
     key->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
@@ -464,9 +464,9 @@ void LlmPanel::on_tool(const std::string& raw)
 
 void LlmPanel::save_chat()
 {
-    AppConfig* c = wxGetApp().app_config;
     std::string out;
-    if (!(c && c->get("llm_no_chat_save") == "1") && !m_hist.empty()) {
+    if (m_nosave) out = "off";
+    else if (!m_hist.empty()) {
         // Keep the tail: a long session must not bloat every save of the project.
         size_t total = 0, from = m_hist.size();
         while (from > 0 && total < 200000) total += m_hist[--from].text.length();
@@ -482,6 +482,8 @@ void LlmPanel::load_chat(const std::string& json)
 {
     if (m_busy || json == m_chat_json) return;   // the project we already show (this runs every time the tab is shown)
     m_chat_json = json;
+    m_nosave = json == "off";
+    if (m_nosave_cb) m_nosave_cb->SetValue(m_nosave);
     m_hist.clear();
     m_session_id.clear();   // an agent session belongs to one conversation on one machine
     m_result->Hide();
