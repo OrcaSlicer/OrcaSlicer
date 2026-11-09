@@ -249,7 +249,7 @@ TEST_CASE("Smoothing the outer wall speed along Z is ignored in spiral vase mode
     CHECK(gcode.find("; COOLING_NODE: ") == std::string::npos);
 }
 
-TEST_CASE("The outer walls of a column form a single chain starting above the first layer", "[Cooling]")
+TEST_CASE("The outer walls of a column form a single chain", "[Cooling]")
 {
     Print print;
     init_and_process_print({ cube(20) }, print, {
@@ -260,29 +260,22 @@ TEST_CASE("The outer walls of a column form a single chain starting above the fi
     REQUIRE_FALSE(nodes.empty());
 
     std::set<int> chain_ids;
-    size_t        first_layer_in_chain = 0;
-    std::function<void(const ExtrusionEntity&, size_t)> visit = [&](const ExtrusionEntity &entity, size_t layer_id) {
+    std::function<void(const ExtrusionEntity&)> visit = [&](const ExtrusionEntity &entity) {
         if (const auto *collection = dynamic_cast<const ExtrusionEntityCollection*>(&entity)) {
             for (const ExtrusionEntity *child : collection->entities)
-                visit(*child, layer_id);
+                visit(*child);
         } else if (entity.role() == erExternalPerimeter) {
+            // Every outer wall is in a chain.
             const int node = nodes.node_of(&entity);
-            if (layer_id == 0) {
-                if (node >= 0)
-                    ++ first_layer_in_chain;
-            } else {
-                // Every outer wall above the first layer is in a chain.
-                REQUIRE(node >= 0);
-                chain_ids.insert(node);
-            }
+            REQUIRE(node >= 0);
+            chain_ids.insert(node);
         }
     };
     for (const PrintObject *object : print.objects())
         for (const Layer *layer : object->layers())
             for (const LayerRegion *region : layer->regions())
                 for (const ExtrusionEntity *entity : region->perimeters.entities)
-                    visit(*entity, layer->id());
+                    visit(*entity);
 
-    CHECK(first_layer_in_chain == 0);
     CHECK(chain_ids.size() == 1);
 }

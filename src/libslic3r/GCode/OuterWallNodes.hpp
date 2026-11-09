@@ -12,7 +12,7 @@ class Print;
 class OuterWallNodes
 {
 public:
-    // Find the chains of the outer walls of all objects of the print. The outer walls of the first layer are not part of any chain.
+    // Find the chains of the outer walls of all objects of the print.
     static OuterWallNodes build(const Print &print);
 
     // Id of the chain the outer wall entity belongs to, -1 when it is not in any chain.

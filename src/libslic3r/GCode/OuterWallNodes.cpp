@@ -142,15 +142,14 @@ OuterWallNodes OuterWallNodes::build(const Print &print)
     int            next_id = 0;
 
     for (const PrintObject *object : print.objects()) {
-        // Contours of every layer, the first layer is left out.
+        // Contours of every layer.
         std::vector<std::vector<Contour>> layers;
         layers.reserve(object->layers().size());
         for (const Layer *layer : object->layers()) {
             std::vector<Contour> contours;
-            if (layer->id() > 0)
-                for (const LayerRegion *region : layer->regions())
-                    for (const ExtrusionEntity *entity : region->perimeters.entities)
-                        collect_contours(*entity, contours);
+            for (const LayerRegion *region : layer->regions())
+                for (const ExtrusionEntity *entity : region->perimeters.entities)
+                    collect_contours(*entity, contours);
             layers.emplace_back(std::move(contours));
         }
 
