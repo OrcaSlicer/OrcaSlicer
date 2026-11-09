@@ -1,5 +1,7 @@
 #include "Preferences.hpp"
 #include "slic3r/GUI/CAD/LlmAgent.hpp"
+#include "slic3r/GUI/CAD/LlmApi.hpp"
+#include <wx/textdlg.h>
 #include "slic3r/GUI/CAD/McpControl.hpp"
 #include "CloudProvider.hpp"
 #include "ColorPickerDialog.hpp"
@@ -2525,10 +2527,24 @@ void PreferencesDialog::create_items()
     //// LLM / MCP > Agent
     g_sizer->Add(create_item_title(_L("Agent")), 1, wxEXPAND);
     g_sizer->Add(create_item_combobox(_L("Agent"), _L("The CLI that drives the design. Claude Code runs with only the orca-cad tools and file reading. opencode and agy run with their own private config: every tool is denied except the orca-cad tools and reading files (no shell)."), "llm_agent",
-                                      std::vector<wxString>{"Claude Code", "opencode", "Antigravity (agy)"}, std::vector<std::string>{"claude", "opencode", "agy"}));
+                                      std::vector<wxString>{"Claude Code", "opencode", "Antigravity (agy)", "Anthropic API", "OpenAI-compatible API", "Ollama (local)"},
+                                      std::vector<std::string>{"claude", "opencode", "agy", "anthropic", "openai", "ollama"}));
     g_sizer->Add(create_item_checkbox(_L("Do not save the chat in the project file"), _L("By default the assistant chat is saved inside the project (.3mf) so it comes back when you reopen it. Tick this to keep it out of saved files."), "llm_no_chat_save"));
     g_sizer->Add(create_item_text(_L("Executable"), _L("Full path of the agent CLI. Leave empty to find it on PATH."), "llm_cli_path", "claude"));
-    g_sizer->Add(create_item_text(_L("Model"), _L("Claude Code: passed as --model, empty for its default. opencode: required, written provider/model (see `opencode models`)."), "llm_model"));
+    g_sizer->Add(create_item_text(_L("Model"), _L("Claude Code: passed as --model, empty for its default. opencode: required, written provider/model (see `opencode models`). API backends: the model name (e.g. claude-sonnet-5-5, gpt-..., qwen3.8:27b)."), "llm_model"));
+    g_sizer->Add(create_item_text(_L("API URL"), _L("API backends only. Empty = the provider's own (Anthropic, OpenAI) or http://localhost:11434/v1 for Ollama. Any OpenAI-compatible server works: set its /v1 address."), "llm_api_url"));
+    g_sizer->Add(create_item_button(_L("API key"), _L("Set..."), _L("API backends only. Stored in the system keyring, never in the settings file. The ANTHROPIC_API_KEY / OPENAI_API_KEY / ORCA_LLM_API_KEY environment variables also work."), "", []() {
+        const std::string agent = wxGetApp().app_config->get("llm_agent");
+        if (!llm_agent_is_api(agent)) {
+            wxMessageBox(_L("Choose an API agent (Anthropic, OpenAI-compatible or Ollama) first."), _L("API key"), wxOK | wxICON_INFORMATION);
+            return;
+        }
+        wxPasswordEntryDialog dlg(nullptr, _L("API key for the selected provider. It is kept in the system keyring. Leave empty to remove the stored key."), _L("API key"));
+        if (dlg.ShowModal() != wxID_OK) return;
+        const bool ok = llm_api_key_save(agent, std::string(dlg.GetValue().ToUTF8()));
+        wxMessageBox(ok ? _L("Saved in the system keyring.") : _L("The system keyring is not available; use the ANTHROPIC_API_KEY or OPENAI_API_KEY environment variable instead."),
+                     _L("API key"), wxOK | (ok ? wxICON_INFORMATION : wxICON_WARNING));
+    }));
     g_sizer->Add(create_item_text(_L("Extra arguments"), _L("Appended to the command line, split on spaces."), "llm_cli_args"));
     g_sizer->Add(create_item_button(_L("Test the agent"), _L("Test"), _L("Starts the agent against this app's MCP and asks it to read the open document."), "", []() {
         llm_agent_run("Use the orca-cad MCP tools: call inspect_design once, then reply with one short sentence saying how many bodies the open document has.",

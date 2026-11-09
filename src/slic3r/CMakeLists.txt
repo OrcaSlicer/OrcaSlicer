@@ -869,6 +869,8 @@ if (SLIC3R_CAD)
         GUI/CAD/DesignImGuiUi.hpp
         GUI/CAD/DesignQuotes.cpp
         GUI/CAD/LlmAgent.cpp
+        GUI/CAD/LlmApi.cpp
+        GUI/CAD/LlmApi.hpp
         GUI/CAD/LlmAgent.hpp
         GUI/CAD/LlmPanel.cpp
         GUI/CAD/LlmPanel.hpp

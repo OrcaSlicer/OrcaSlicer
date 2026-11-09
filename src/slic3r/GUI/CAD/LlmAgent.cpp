@@ -1,4 +1,5 @@
 #include "slic3r/GUI/CAD/LlmAgent.hpp"
+#include "slic3r/GUI/CAD/LlmApi.hpp"
 #include "slic3r/GUI/CAD/McpControl.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "libslic3r/AppConfig.hpp"
@@ -65,12 +66,15 @@ public:
         std::lock_guard<std::mutex> lk(m_mutex);
         m_cancelled = true;
         if (m_child && m_child->running()) m_child->terminate();
+        if (m_canceller) m_canceller();
     }
+    void set_canceller(std::function<void()> f) { std::lock_guard<std::mutex> lk(m_mutex); m_canceller = std::move(f); }
     void set_child(bp::child* c) { std::lock_guard<std::mutex> lk(m_mutex); m_child = c; }
     bool cancelled() { std::lock_guard<std::mutex> lk(m_mutex); return m_cancelled; }
 private:
     std::mutex m_mutex;
     bp::child* m_child     = nullptr;
+    std::function<void()> m_canceller;   // API backends: aborts the request in flight
     bool       m_cancelled = false;
 };
 
@@ -103,17 +107,21 @@ std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const st
     // Everything read from Preferences is copied here: the worker must not touch app_config.
     const bool        oc     = llm_agent_is_opencode();
     const bool        ag     = llm_agent_is_agy();
+    const std::string agent  = pref("llm_agent");
+    const bool        api    = llm_agent_is_api(agent);
+    const std::string api_url = pref("llm_api_url");
+    const std::string api_key = api ? llm_api_key(agent) : std::string();   // keyring: UI thread
     const std::string exe    = llm_agent_executable();
     const std::string model  = pref("llm_model");
     const std::string extra  = pref("llm_cli_args");
     const std::string sock   = mcp_socket_path();
     const std::string bridge = bridge_script();
     std::string problem;
-    if (exe.empty())                     problem = std::string(oc ? "opencode" : ag ? "Antigravity (agy)" : "Claude Code") + " was not found: install it so that `" + (oc ? "opencode" : ag ? "agy" : "claude") + "` is on PATH, or set its path in Preferences > LLM / MCP";
+    if (!api && exe.empty())             problem = std::string(oc ? "opencode" : ag ? "Antigravity (agy)" : "Claude Code") + " was not found: install it so that `" + (oc ? "opencode" : ag ? "agy" : "claude") + "` is on PATH, or set its path in Preferences > LLM / MCP";
     else if (oc && model.empty())        problem = "opencode needs a model in Preferences > LLM / MCP, written provider/model (see `opencode models`)";
     else if (sock.empty())               problem = "the MCP socket is off (ORCA_CAD_MCP=0)";
-    else if (!fs::exists(bridge))        problem = "the MCP bridge script is missing: " + bridge;
-    else if (bp::search_path("python3").empty()) problem = "python3 is needed to run the MCP bridge and was not found on PATH";
+    else if (!api && !fs::exists(bridge)) problem = "the MCP bridge script is missing: " + bridge;
+    else if (!api && bp::search_path("python3").empty()) problem = "python3 is needed to run the MCP bridge and was not found on PATH";
     if (!problem.empty()) { g_busy = false; done(false, problem); return nullptr; }
 
     auto run = std::make_shared<Run>();
@@ -125,6 +133,16 @@ std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const st
         const fs::path errf = tmp.string() + ".err";
         auto post = [](std::function<void()> f) { wxGetApp().CallAfter(std::move(f)); };
         bool got_result = false;
+        if (api) {
+            // No child process: the app runs the tool loop itself against its own MCP socket (LlmApi.cpp).
+            LlmApiRequest rq{agent, api_url, api_key, model, sock, prompt, session_id, kSystemPrompt};
+            err = llm_api_run(rq, [&](const LlmEvent& e) { post([on_event, e]() { on_event(e); }); }, [&]() { return run->cancelled(); },
+                              [&](std::function<void()> f) { run->set_canceller(std::move(f)); });
+            ok = err.empty();
+            g_busy = false;
+            post([done, ok, err]() { done(ok, err); });
+            return;
+        }
         try {
             std::vector<std::string> args;
             std::vector<std::string> env_kv;   // opencode only
