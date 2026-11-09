@@ -105,6 +105,8 @@ public:
     static bool is_scene_canvas(const wxWindow* window);
     static const GLInfo& get_gl_info() { return s_gl_info; }
     static bool force_power_of_two_textures() { return s_force_power_of_two_textures; }
+    // Of the bound draw framebuffer.
+    static int stencil_bits();
 
 private:
     static void detect_multisample(int* attribList);

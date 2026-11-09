@@ -45,6 +45,10 @@ public:
 
     bool SetBackgroundColour(const wxColour& colour) override;
 
+#ifdef __WXMSW__
+    bool MSWCommand(WXUINT param, WXWORD id) override;
+#endif
+
 protected:
 #if wxUSE_ACCESSIBILITY
     // ORCA: this is a 2-state switch (e.g. Global/Objects), not a plain

@@ -17,6 +17,7 @@
 #include <cctype>
 #include <cmath>
 #include <cstddef>
+#include <cstdlib>
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polyline.hpp"
@@ -1409,22 +1410,30 @@ TEST_CASE("Belt brim coexists with support material", "[SkirtBrim][belt]")
     CHECK(role_passes(gc, "brim") > 0);
 }
 
-// With a 0.3 mm first layer at 45 degrees the brim band on the belt is wider than one bead,
-// so its lines go on the nominal lattice instead of at a fixed fraction of the band. A
-// lattice line can then land where the belt is almost at the band's print_z; it must be
-// moved uphill to the same 0.75 fraction the single-line case uses, not laid scraping the
-// belt with its flow clamped to half a layer.
+// On a shallow belt (25 degrees, 0.3 mm layers) the brim band on the belt is wider than one
+// bead, so its lines go on the nominal lattice instead of at one fixed clearance. A lattice
+// line can then land where the belt is almost at the band's print_z; it must be moved to the
+// clearance of the object's outer wall, where every line of a steep belt sits, not laid
+// scraping the belt with its flow clamped to half a layer.
 TEST_CASE("Belt brim lattice lines keep their clearance above the belt", "[SkirtBrim][belt]")
 {
+    const double layer_height = 0.3;
+    const double wall_width   = 0.42;
+    const double tilt_deg     = 25.;
     DynamicPrintConfig config = belt_brim_config();
     config.set_deserialize_strict({
-        { "layer_height",               0.3 },
-        { "initial_layer_print_height", 0.3 },
+        { "belt_slice_rotation_angle",  tilt_deg },
+        { "layer_height",               layer_height },
+        { "initial_layer_print_height", layer_height },
+        { "outer_wall_line_width",      wall_width },
         { "brim_type",                  "outer_only" },
         { "brim_width",                 4 },
         { "brim_object_gap",            0 },
     });
     const std::string gcode = slice({ cube(20) }, config);
+    // Along slice Z: half a layer down to where the slice meets the belt, then half a wall
+    // width inwards, where the belt lies lower by that times tan(tilt).
+    const double wall_clearance = 0.5 * layer_height + 0.5 * wall_width * std::tan(Geometry::deg2rad(tilt_deg));
 
     // Heights of the brim extrusions, from the ;HEIGHT: tags inside ;TYPE:Brim sections.
     std::vector<double> brim_heights;
@@ -1437,10 +1446,244 @@ TEST_CASE("Belt brim lattice lines keep their clearance above the belt", "[Skirt
             brim_heights.push_back(std::stod(line.substr(8)));
     }
     REQUIRE(! brim_heights.empty());
+    // Lattice lines have clearances of their own; a single clearance would mean the band
+    // took the steep-belt branch and the lattice went untested.
+    std::set<long> distinct_heights;
+    for (const double h : brim_heights)
+        distinct_heights.insert(std::lround(h * 1000.));
+    REQUIRE(distinct_heights.size() > 1);
     for (const double h : brim_heights) {
-        CHECK(h >= 0.75 * 0.3 - 1e-3);
-        CHECK(h <= 0.3 + 1e-3);
+        CHECK(h >= wall_clearance - 1e-3);
+        CHECK(h <= layer_height + 1e-3);
     }
+}
+
+// Lowest gantry Y of the `type` extrusions on each layer, keyed by machine Z, which is the
+// belt position and therefore one value per tilted layer.  Under the belt remap the gantry is
+// the height above the belt, so for a role resting on the belt this is its nozzle clearance.
+static std::map<long, double> belt_layer_lowest_y(const std::string &gcode, const std::string &type)
+{
+    std::map<long, double> lowest;
+    bool                   in_type = false;
+    GCodeReader            reader;
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (boost::starts_with(line.raw(), ";TYPE:")) {
+            in_type = line.raw().substr(6) == type;
+            return;
+        }
+        if (! in_type || ! line.extruding(self) || line.dist_XY(self) <= EPSILON)
+            return;
+        const double y = std::min(self.y(), line.new_Y(self));
+        auto [it, inserted] = lowest.emplace(std::lround(line.new_Z(self) * 1000.), y);
+        if (! inserted)
+            it->second = std::min(it->second, y);
+    });
+    return lowest;
+}
+
+// The brim is the first thing laid on the belt, so it is what a user levels the belt height
+// against (endstop, extruder offset).  Its lines must then sit exactly as high above the belt
+// as the object's outer wall does where it rests on the belt, or a belt levelled for the brim
+// lays the part too high to stick.
+TEST_CASE("Belt brim sits as high above the belt as the object's outer wall", "[SkirtBrim][belt][Regression]")
+{
+    const double layer_height = GENERATE(0.2, 0.32);
+    // A wider first-layer line widens only the walls of object layer 0, so it must not lift
+    // the brim off the walls of the layers that rest on the belt.  0 keeps the outer wall's.
+    const double first_width  = GENERATE(0., 0.6);
+    // XY contour compensation moves the slice's edge, and with it the wall, toward or away
+    // from the belt, also by more than half the wall's width.  Shrinking it by half a layer or
+    // more lifts it off the belt's contact band, and the object gets no brim.
+    const double compensation = GENERATE(0., 0.05, -0.05, 0.25);
+    DYNAMIC_SECTION("layer_height=" << layer_height << " initial_layer_line_width=" << first_width
+                    << " xy_contour_compensation=" << compensation) {
+        const double wall_width = 0.4;
+        DynamicPrintConfig config = belt_brim_config();
+        config.set_deserialize_strict({
+            { "layer_height",               layer_height },
+            { "initial_layer_print_height", layer_height },
+            { "outer_wall_line_width",      wall_width },
+            { "initial_layer_line_width",   first_width },
+            { "xy_contour_compensation",    compensation },
+            { "print_flow_ratio",           1 },
+            { "brim_flow_ratio",            1 },
+            { "filament_diameter",          "1.75" },
+            { "brim_type",                  "outer_only" },
+            { "brim_width",                 4 },
+            { "brim_object_gap",            0 },
+        });
+        const std::string gcode = slice({ cube(20) }, config);
+        const std::map<long, double> brim = belt_layer_lowest_y(gcode, "Brim");
+        const std::map<long, double> wall = belt_layer_lowest_y(gcode, "Outer wall");
+        REQUIRE(! brim.empty());
+        REQUIRE(! wall.empty());
+
+        // The wall's clearance on the layers it rests on the belt, i.e. the most common lowest
+        // Y.  Not the lowest one: the sliver at the first contact can carry a narrower wall,
+        // which sits lower; and layers past the part's bottom face do not reach the belt.
+        std::map<long, int> votes;
+        for (const auto &[z, y] : wall)
+            ++ votes[std::lround(y * 1000.)];
+        const auto   typical = std::max_element(votes.begin(), votes.end(),
+                                                [](const auto &a, const auto &b) { return a.second < b.second; });
+        const double wall_y  = 0.001 * typical->first;
+        for (const auto &[z, y] : brim)
+            CHECK_THAT(y, Catch::Matchers::WithinAbs(wall_y, 0.005));
+
+        // Each brim line fills the cell between it and the next, one band apart on the belt
+        // (the layer height / sin(45 deg)) and as tall as its clearance (its ;HEIGHT:), also
+        // where the clearance is small.
+        const double filament_area = 0.25 * PI * 1.75 * 1.75;
+        const double pitch         = layer_height * std::sqrt(2.);
+        size_t       long_moves    = 0;
+        double       clearance     = 0.;
+        bool         in_brim       = false;
+        GCodeReader  reader;
+        reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+            if (boost::starts_with(line.raw(), ";TYPE:"))
+                in_brim = line.raw().substr(6) == "Brim";
+            else if (boost::starts_with(line.raw(), ";HEIGHT:"))
+                clearance = std::stod(line.raw().substr(8));
+            else if (in_brim && line.extruding(self) && line.dist_XY(self) >= 1.) {
+                ++ long_moves;
+                CHECK_THAT(line.dist_E(self) / line.dist_XY(self) * filament_area,
+                           Catch::Matchers::WithinRel(pitch * clearance, 0.01));
+            }
+        });
+        CHECK(long_moves > 20);
+    }
+}
+
+// A modifier that gives the part a narrower outer wall away from the belt shares the tilted
+// layers with the wall that rests on the belt.  The brim must be levelled with the wall that
+// rests on the belt, not with the narrowest wall in the layer.
+TEST_CASE("Belt brim follows the wall that rests on the belt rather than a modifier's", "[SkirtBrim][belt][Regression]")
+{
+    DynamicPrintConfig config = belt_brim_config();
+    config.set_deserialize_strict({
+        { "gcode_comments",        1 },
+        { "outer_wall_line_width", 0.6 },
+        { "brim_type",             "outer_only" },
+        { "brim_width",            4 },
+        { "brim_object_gap",       0 },
+    });
+    // The top half of the cube, 10 mm and more above the belt, gets a 0.4 mm outer wall.
+    DynamicPrintConfig modifier_config;
+    modifier_config.set_deserialize_strict({ { "outer_wall_line_width", 0.4 } });
+    TriangleMesh modifier = make_cube(22., 22., 11.);
+    modifier.translate(-1.f, -1.f, 10.f);
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, config, nullptr, false);
+    model.objects.front()->add_volume(std::move(modifier), ModelVolumeType::PARAMETER_MODIFIER, false)->config.apply(modifier_config);
+    print.apply(model, config);
+    const std::string out = gcode(print);
+
+    // Both walls print.
+    std::set<long> wall_widths;
+    bool           in_wall = false;
+    std::istringstream lines(out);
+    for (std::string line; std::getline(lines, line); ) {
+        if (boost::starts_with(line, ";TYPE:"))
+            in_wall = line.substr(6) == "Outer wall";
+        else if (in_wall && boost::starts_with(line, ";WIDTH:"))
+            wall_widths.insert(std::lround(std::stod(line.substr(7)) * 100.));
+    }
+    REQUIRE(wall_widths.count(40) == 1);
+    REQUIRE(wall_widths.count(60) == 1);
+
+    const std::map<long, double> brim = belt_layer_lowest_y(out, "Brim");
+    const std::map<long, double> wall = belt_layer_lowest_y(out, "Outer wall");
+    REQUIRE(! brim.empty());
+    std::map<long, int> votes;
+    for (const auto &[z, y] : wall)
+        ++ votes[std::lround(y * 1000.)];
+    const auto   typical = std::max_element(votes.begin(), votes.end(),
+                                            [](const auto &a, const auto &b) { return a.second < b.second; });
+    const double wall_y  = 0.001 * typical->first;
+    // Half a 0.2 mm layer plus half the 0.6 mm wall, x tan(45 deg).
+    CHECK_THAT(wall_y, Catch::Matchers::WithinAbs(0.1 + 0.3, 0.005));
+    for (const auto &[z, y] : brim)
+        CHECK_THAT(y, Catch::Matchers::WithinAbs(wall_y, 0.005));
+}
+
+// The brim rests on the belt, so it prints, and is reached, with first-layer settings, even
+// though raising it to the outer wall's clearance puts the nozzle further above the belt than
+// one first layer.  With thin layers its lines are also far narrower than a bead, as narrow as
+// the bands are far apart, so their width must not decide it either.
+TEST_CASE("Belt brim lines print with first-layer settings", "[SkirtBrim][belt][Regression]")
+{
+    const double layer_height = GENERATE(0.2, 0.08);
+    CAPTURE(layer_height);
+    DynamicPrintConfig config = belt_brim_config();
+    config.set_deserialize_strict({
+        { "layer_height",                  layer_height },
+        { "initial_layer_print_height",    0.2 },
+        { "outer_wall_line_width",         0.45 },
+        { "brim_type",                     "outer_only" },
+        { "brim_width",                    4 },
+        { "brim_object_gap",               0 },
+        { "z_hop",                         0 },
+        { "travel_speed",                  200 },
+        { "initial_layer_travel_speed",    50 },
+        { "initial_layer_speed",           15 },
+        { "filament_max_volumetric_speed", 20 },
+        { "slow_down_for_layer_cooling",   0 },
+        // The fan is on everywhere but in the band above the belt.
+        { "close_fan_the_first_x_layers",  1 },
+        { "full_fan_speed_layer",          0 },
+        { "fan_min_speed",                 100 },
+        { "fan_max_speed",                 100 },
+        { "fan_cooling_layer_time",        1000 },
+        { "reduce_fan_stop_start_freq",    0 },
+    });
+    const std::string gcode = slice({ cube(20) }, config);
+
+    // The feedrate of the last travel before each brim line, and the feedrate and fan of
+    // each of its moves.
+    size_t      brim_lines = 0, fast_travels = 0, brim_moves = 0, brim_fast = 0, brim_fan_on = 0, fan_on_moves = 0;
+    std::string type;
+    double      travel_f  = 0.;
+    bool        travelled = false, fan_on = false;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (boost::starts_with(line.raw(), ";TYPE:")) {
+            type = line.raw().substr(6);
+            return;
+        }
+        if (line.cmd_is("M107")) {
+            fan_on = false;
+            return;
+        }
+        if (line.cmd_is("M106")) {
+            const size_t s = line.raw().find('S');
+            fan_on = s != std::string::npos && std::atof(line.raw().c_str() + s + 1) > 0.;
+            return;
+        }
+        if (! line.cmd_is("G1") || line.dist_XY(self) <= EPSILON)
+            return;
+        if (! line.extruding(self)) {
+            travel_f  = line.new_F(self);
+            travelled = true;
+            return;
+        }
+        fan_on_moves += fan_on;
+        if (type == "Brim") {
+            if (travelled) {
+                ++ brim_lines;
+                fast_travels += std::abs(travel_f - 50. * 60.) > 1.;
+            }
+            ++ brim_moves;
+            brim_fast   += std::abs(line.new_F(self) - 15. * 60.) > 1.;
+            brim_fan_on += fan_on;
+        }
+        travelled = false;
+    });
+    REQUIRE(brim_lines > 20);
+    REQUIRE(fan_on_moves > 0);
+    CHECK(fast_travels == 0);
+    CHECK(brim_fast == 0);
+    CHECK(brim_fan_on == 0);
 }
 
 // The brim prints in the object's outer wall filament even when every extrusion of the object

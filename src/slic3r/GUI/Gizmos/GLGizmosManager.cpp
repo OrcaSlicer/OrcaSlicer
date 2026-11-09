@@ -49,7 +49,6 @@
 #include <wx/colour.h>
 #include <wx/event.h>
 #include <optional>
-#include "libslic3r/AppConfig.hpp"
 
 #include "libslic3r/Model.hpp"
 
@@ -1484,11 +1483,6 @@ bool GLGizmosManager::activate_gizmo(EType type)
 
     if (type == Undefined) {
         // it is deactivation of gizmo
-        if (m_restore_realistic_view_after_paint && wxGetApp().app_config != nullptr) {
-            wxGetApp().app_config->set_bool(SETTING_OPENGL_REALISTIC_MODE, true);
-            wxGetApp().app_config->save();
-            m_restore_realistic_view_after_paint = false;
-        }
         m_current = Undefined;
         return true;
     }
@@ -1496,16 +1490,6 @@ bool GLGizmosManager::activate_gizmo(EType type)
     // set up new gizmo
     GLGizmoBase& new_gizmo = *m_gizmos[type];
     if (!new_gizmo.is_activable()) return false;
-
-    if (type == Seam || type == FdmSupports || type == FuzzySkin) {
-        if (wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_MODE)) {
-            m_restore_realistic_view_after_paint = true;
-            wxGetApp().app_config->set_bool(SETTING_OPENGL_REALISTIC_MODE, false);
-            wxGetApp().app_config->save();
-        }
-    } else {
-        m_restore_realistic_view_after_paint = false;
-    }
 
     if (!m_serializing && new_gizmo.wants_enter_leave_snapshots())
         Plater::TakeSnapshot snapshot(wxGetApp().plater(),

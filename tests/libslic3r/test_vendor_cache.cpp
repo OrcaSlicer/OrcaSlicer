@@ -15,6 +15,7 @@
 #include <iterator>
 #include "libslic3r/Semver.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include <memory>
 #include <numeric>
 #include <random>
@@ -36,7 +37,6 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PresetCacheFormat.hpp"
 #include "libslic3r/Preset.hpp"
-#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Utils.hpp"
 
 using namespace Slic3r;
@@ -1958,33 +1958,149 @@ TEST_CASE("an option the build no longer knows is dropped, and the rest still lo
     CHECK(out.opt_string("printer_model") == "Test Model");
 }
 
-TEST_CASE("an option whose type changed is dropped, and the rest still load", "[VendorCache]")
+namespace {
+
+// A payload from a build whose dictionary this build did not produce: only
+// such a dictionary can type a key differently from print_config_def. `write`
+// emits the option values in the order of `keys`.
+DynamicPrintConfig load_foreign_payload(const std::vector<std::string>& keys, const std::vector<uint16_t>& types,
+                                        const std::vector<std::string>& enum_names,
+                                        const std::function<void(cereal::BinaryOutputArchive&)>& write)
 {
-    // A payload from a build where layer_height was a coString. This one has it
-    // as a coFloat, so nothing can be done with the value - but the dictionary
-    // says how it was written, so its bytes are still consumed and printer_model
-    // behind it still lands. Hand-written rather than round-tripped: only a
-    // dictionary this build did not produce can disagree with it.
     std::ostringstream os(std::ios::binary);
     {
         cereal::BinaryOutputArchive ar(os);
-        const std::vector<std::string> keys  { "layer_height", "printer_model" };
-        const std::vector<uint16_t>    types { uint16_t(coString), uint16_t(coString) };
-        const std::vector<std::string> enums { std::string() };   // the ENUM_UNNAMED slot
+        std::vector<std::string> enums { std::string() };   // the ENUM_UNNAMED slot
+        enums.insert(enums.end(), enum_names.begin(), enum_names.end());
         ar(keys, types, enums);
-        ar(uint32_t(2));
-        ar(uint16_t(0)); ar(ConfigOptionString("0.28"));
-        ar(uint16_t(1)); ar(ConfigOptionString("Test Model"));
+        ar(uint32_t(keys.size()));
+        write(ar);
     }
-
     std::istringstream is(os.str(), std::ios::binary);
     cereal::BinaryInputArchive ar(is);
     CacheDictionary rdict;
     rdict.load(ar);
     DynamicPrintConfig out;
     REQUIRE_NOTHROW(load_config(ar, out, rdict));
-    CHECK(out.option("layer_height") == nullptr);
+    return out;
+}
+
+} // namespace
+
+TEST_CASE("an option whose type changed is read as a JSON profile's text, and the rest still load", "[VendorCache]")
+{
+    // A payload from a build where layer_height was a coString. This one has it
+    // as a coFloat, so the value goes in as the text "0.28" would from a JSON
+    // profile, and printer_model behind it still lands.
+    REQUIRE(print_config_def.get("layer_height")->type == coFloat);
+    const DynamicPrintConfig out = load_foreign_payload(
+        { "layer_height", "printer_model" }, { uint16_t(coString), uint16_t(coString) }, {},
+        [](cereal::BinaryOutputArchive& ar) {
+            ar(uint16_t(0)); ar(ConfigOptionString("0.28"));
+            ar(uint16_t(1)); ar(ConfigOptionString("Test Model"));
+        });
+    REQUIRE(out.option("layer_height") != nullptr);
+    CHECK_THAT(out.opt_float("layer_height"), Catch::Matchers::WithinAbs(0.28, 1e-9));
     CHECK(out.opt_string("printer_model") == "Test Model");
+}
+
+TEST_CASE("a bool an older build cached is read by the enum that replaced it", "[VendorCache]")
+{
+    // enable_arc_fitting was a coBool until it became an enum. A cache written
+    // before that carries true/false; this build maps them through handle_legacy
+    // to enabled/disabled, as it does for a JSON profile, instead of dropping the
+    // key and leaving the preset at the collection default.
+    REQUIRE(print_config_def.get("enable_arc_fitting")->type == coEnum);
+    const DynamicPrintConfig out = load_foreign_payload(
+        { "enable_arc_fitting", "printer_model" }, { uint16_t(coBool), uint16_t(coString) }, {},
+        [](cereal::BinaryOutputArchive& ar) {
+            ar(uint16_t(0)); ar(ConfigOptionBool(true));
+            ar(uint16_t(1)); ar(ConfigOptionString("Test Model"));
+        });
+    REQUIRE(out.option("enable_arc_fitting") != nullptr);
+    CHECK(out.option("enable_arc_fitting")->serialize() == "enabled");
+    CHECK(out.opt_string("printer_model") == "Test Model");
+}
+
+TEST_CASE("an enum a newer build cached is read by the bool this build still has", "[VendorCache]")
+{
+    // The other direction: a cache from a build that turned a bool into an enum,
+    // read by a build where the key is still a bool. The enum travels by name,
+    // and the name is substituted the way a JSON profile's would be.
+    REQUIRE(print_config_def.get("reduce_crossing_wall")->type == coBool);
+    const DynamicPrintConfig out = load_foreign_payload(
+        { "reduce_crossing_wall", "printer_model" }, { uint16_t(coEnum), uint16_t(coString) }, { "enabled" },
+        [](cereal::BinaryOutputArchive& ar) {
+            ar(uint16_t(0)); ar(uint32_t(1)); ar(uint16_t(1));   // one value, enum name index 1 = "enabled"
+            ar(uint16_t(1)); ar(ConfigOptionString("Test Model"));
+        });
+    REQUIRE(out.option("reduce_crossing_wall") != nullptr);
+    CHECK(out.opt_bool("reduce_crossing_wall") == true);
+    CHECK(out.opt_string("printer_model") == "Test Model");
+}
+
+TEST_CASE("a retyped value this build cannot parse is dropped, and the rest still load", "[VendorCache]")
+{
+    // A string that is no number for a key this build types as a float: nothing
+    // to substitute it with, so the key alone is dropped, as from a JSON profile.
+    REQUIRE(print_config_def.get("layer_height")->type == coFloat);
+    const DynamicPrintConfig out = load_foreign_payload(
+        { "layer_height", "printer_model" }, { uint16_t(coString), uint16_t(coString) }, {},
+        [](cereal::BinaryOutputArchive& ar) {
+            ar(uint16_t(0)); ar(ConfigOptionString("thick"));
+            ar(uint16_t(1)); ar(ConfigOptionString("Test Model"));
+        });
+    CHECK(out.option("layer_height") == nullptr);
+    CHECK(out.keys() == t_config_option_keys{ "printer_model" });
+}
+
+TEST_CASE("a nullable vector cached under another type keeps its nil entries", "[VendorCache]")
+{
+    // default_acceleration is a nullable coFloats. Written as coInts by a build
+    // that typed it so, its nil entry must come back as nil, not as the int the
+    // sentinel happens to be.
+    const ConfigOptionDef* def = print_config_def.get("default_acceleration");
+    REQUIRE(def->type == coFloats);
+    REQUIRE(def->nullable);
+    const DynamicPrintConfig out = load_foreign_payload(
+        { "default_acceleration", "printer_model" }, { uint16_t(coInts), uint16_t(coString) }, {},
+        [](cereal::BinaryOutputArchive& ar) {
+            ar(uint16_t(0)); ar(ConfigOptionInts({ ConfigOptionIntsNullable::nil_value(), 5000 }));
+            ar(uint16_t(1)); ar(ConfigOptionString("Test Model"));
+        });
+    const auto* accel = out.option<ConfigOptionFloatsNullable>("default_acceleration");
+    REQUIRE(accel != nullptr);
+    REQUIRE(accel->values.size() == 2);
+    CHECK(accel->is_nil(0));
+    CHECK_THAT(accel->values[1], Catch::Matchers::WithinAbs(5000., 1e-9));
+    CHECK(out.opt_string("printer_model") == "Test Model");
+}
+
+TEST_CASE("skip_config consumes a config with options this build cannot place", "[VendorCache]")
+{
+    // The entries a name peek reads past may be ones this build would replay
+    // from text; skipping must still consume exactly their bytes.
+    std::ostringstream os(std::ios::binary);
+    {
+        cereal::BinaryOutputArchive ar(os);
+        const std::vector<std::string> keys  { "enable_arc_fitting", "sparse_infill_pattern", "no_such_option" };
+        const std::vector<uint16_t>    types { uint16_t(coBool), uint16_t(coEnum), uint16_t(coString) };
+        const std::vector<std::string> enums { std::string(), "zig-zag" };
+        ar(keys, types, enums);
+        ar(uint32_t(3));
+        ar(uint16_t(0)); ar(ConfigOptionBool(true));
+        ar(uint16_t(1)); ar(uint32_t(1)); ar(uint16_t(1));
+        ar(uint16_t(2)); ar(ConfigOptionString("x"));
+        ar(std::string("sentinel"));
+    }
+    std::istringstream is(os.str(), std::ios::binary);
+    cereal::BinaryInputArchive ar(is);
+    CacheDictionary rdict;
+    rdict.load(ar);
+    skip_config(ar, rdict);
+    std::string sentinel;
+    ar(sentinel);
+    CHECK(sentinel == "sentinel");
 }
 
 TEST_CASE("skip_config consumes a config without building one", "[VendorCache]")

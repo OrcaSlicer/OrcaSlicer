@@ -18,6 +18,7 @@
 #include "nlohmann/json.hpp"
 
 #include <algorithm>
+#include <initializer_list>
 #include <string>
 #include <exception>
 #include <boost/none.hpp>
@@ -412,6 +413,13 @@ void AppConfig::set_defaults()
 
     if (get("show_outline").empty())
         set_bool("show_outline", false);
+
+    if (get(SETTING_OPENGL_OUTLINE_PERSISTENT).empty())
+        set_bool(SETTING_OPENGL_OUTLINE_PERSISTENT, false);
+    if (get(SETTING_OPENGL_OUTLINE_COLOR).empty())
+        set(SETTING_OPENGL_OUTLINE_COLOR, "#FFFFFF");
+    if (get(SETTING_OPENGL_SELECTION_OUTLINE_COLOR).empty())
+        set(SETTING_OPENGL_SELECTION_OUTLINE_COLOR, "#FFFFFF");
     
     if (get("show_axes").empty())
         set_bool("show_axes", true);
@@ -703,8 +711,29 @@ void AppConfig::set_defaults()
         set("angle_deflection", "0.5");
     }
     if (get("is_split_compound").empty()) {
-        set_bool("is_split_compound", false);
+        // Splitting keeps the bodies of a multi-body part, and with them their original names.
+        set_bool("is_split_compound", true);
     }
+    // Geometry-import choices are editor preferences, never project print settings.
+    for (const std::string format : {"step", "amf", "3mf"}) {
+        const std::string prefix = "import_names_" + format + "_";
+        if (get(prefix + "keep").empty())
+            set_bool(prefix + "keep", true);
+        if (get(prefix + "sort").empty())
+            set_bool(prefix + "sort", false);
+        if (format != "3mf" && get(prefix + "assembly").empty())
+            set_bool(prefix + "assembly", true);
+        if (format == "amf" && get(prefix + "separate").empty())
+            set_bool(prefix + "separate", true);
+        if (format != "step" && get(prefix + "show_dialog").empty())
+            set_bool(prefix + "show_dialog", true);
+    }
+    if (get("import_names_cleanup_show_dialog").empty())
+        set_bool("import_names_cleanup_show_dialog", true);
+    if (get("import_names_cleanup_remove").empty())
+        set_bool("import_names_cleanup_remove", false);
+    if (get("import_names_cleanup_replacement").empty())
+        set("import_names_cleanup_replacement", "_");
     if (get("enable_primitive_size_dialog").empty()) {
         set_bool("enable_primitive_size_dialog", true);
     }
@@ -725,11 +754,6 @@ void AppConfig::set_defaults()
     {
         // false = legacy behavior using print hosts
         set_bool("use_printer_agents", false);
-    }
-
-    if (get("enable_ota").empty())
-    {
-        set_bool("enable_ota", false);
     }
 
     // Remove legacy window positions/sizes

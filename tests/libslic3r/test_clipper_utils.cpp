@@ -803,3 +803,70 @@ TEST_CASE("A clockwise sliver with nothing around it comes back as Clipper2 retu
     CHECK(std::all_of(result.begin(), result.end(), [](const ExPolygon &expoly) { return expoly.holes.empty(); }));
     CHECK_THAT(area(result), Catch::Matchers::WithinRel(area(diff(subject, clip)), 1e-9));
 }
+
+static ExPolygon circle(const Vec2d &centre, double radius)
+{
+    Polygon circle;
+    for (int k = 0; k < 32; ++ k)
+        circle.points.emplace_back(Point::new_scale(centre + radius * Vec2d(std::cos(2. * PI * k / 32), std::sin(2. * PI * k / 32))));
+    return ExPolygon(std::move(circle));
+}
+
+static ExPolygon square(double x0, double y0)
+{
+    return ExPolygon(Polygon::new_scale({ { x0, y0 }, { x0 + 1., y0 }, { x0 + 1., y0 + 1. }, { x0, y0 + 1. } }));
+}
+
+static size_t hole_count(const ExPolygons &expolygons)
+{
+    size_t holes = 0;
+    for (const ExPolygon &expolygon : expolygons)
+        holes += expolygon.holes.size();
+    return holes;
+}
+
+TEST_CASE("Uniting overlapping polygons in groups gives the same region as one union", "[ClipperUtils]") {
+    std::mt19937 rng(1);
+    const auto   uniform = [&rng](double from, double to) { return from + (to - from) * double(rng()) / double(std::mt19937::max()); };
+    ExPolygons   polygons;
+    SECTION("Dense circles") {
+        // Branch circles of a support layer, overlapping into a few large pieces with holes between them.
+        for (int i = 0; i < 1500; ++ i)
+            polygons.emplace_back(circle(Vec2d(uniform(0., 30.), uniform(0., 30.)), uniform(0.5, 1.5)));
+    }
+    SECTION("Rings with an island in each hole") {
+        for (int i = 0; i < 60; ++ i) {
+            const Vec2d centre(3. * (i % 10), 3. * (i / 10));
+            ExPolygon   ring = circle(centre, 2.);
+            Polygon     hole = circle(centre, 1.).contour;
+            hole.reverse();
+            ring.holes.emplace_back(std::move(hole));
+            polygons.emplace_back(std::move(ring));
+            polygons.emplace_back(circle(centre, 0.4));
+        }
+    }
+    SECTION("Squares sharing their edges") {
+        for (int i = 0; i < 20; ++ i)
+            for (int j = 0; j < 20; ++ j)
+                polygons.emplace_back(square(i, j));
+    }
+    SECTION("Separate squares") {
+        for (int i = 0; i < 20; ++ i)
+            for (int j = 0; j < 20; ++ j)
+                polygons.emplace_back(square(2 * i, 2 * j));
+    }
+    const ExPolygons single  = union_ex(polygons);
+    const ExPolygons grouped = union_overlapping_ex(polygons);
+    CHECK(grouped.size() == single.size());
+    CHECK(hole_count(grouped) == hole_count(single));
+    // Grouping only changes the rounding, so the two differ by far less than a square micron.
+    CHECK(area(diff_ex(single, grouped)) + area(diff_ex(grouped, single)) < sqr(scaled<double>(0.001)));
+}
+
+TEST_CASE("Uniting a few polygons in groups is one union", "[ClipperUtils]") {
+    ExPolygons polygons;
+    for (int i = 0; i < 16; ++ i)
+        polygons.emplace_back(circle(Vec2d(0.7 * i, 0.), 0.5));
+    CHECK(union_overlapping_ex(polygons) == union_ex(polygons));
+    CHECK(union_overlapping_ex({}).empty());
+}

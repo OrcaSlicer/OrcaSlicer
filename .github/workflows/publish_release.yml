@@ -3,6 +3,7 @@ name: Publish to draft release
 # Manually pulls the platform binaries produced by a "Build all" run and uploads
 # them to an existing DRAFT release. Decoupled from the build so you can test a
 # build first, then publish exactly that run's artifacts once you're happy.
+# It also writes an ordered download table into the draft's release notes.
 #
 # Trigger: Actions tab -> "Publish to draft release" -> Run workflow.
 # Locked to a single person: the first step aborts unless the actor matches the
@@ -129,3 +130,68 @@ jobs:
           gh release upload "$TAG" upload/* --repo "$GITHUB_REPOSITORY" --clobber
           echo "Uploaded to draft release: $TAG"
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name'
+
+      # GitHub lists release assets alphabetically by filename whatever order they
+      # are uploaded in, so the platform order users see comes from this table in
+      # the release notes. The table sits between the two markers: a rerun
+      # replaces it in place, and notes without markers get it appended. Text
+      # outside the markers is kept. Links use the tag's download URL, which only
+      # resolves once the draft is published.
+      - name: Write download table into release notes
+        run: |
+          set -euo pipefail
+          start='<!-- downloads:start -->'
+          end='<!-- downloads:end -->'
+
+          # Sort key and label of an asset, in the order the table lists them.
+          describe() {
+            case "$1" in
+              *Windows_Installer_*_x64.exe)   echo "01|Windows installer (x64)" ;;
+              *Windows_Installer_*_arm64.exe) echo "02|Windows installer (ARM64)" ;;
+              *_x64_portable.zip)             echo "03|Windows portable (x64)" ;;
+              *_arm64_portable.zip)           echo "04|Windows portable (ARM64)" ;;
+              *.dmg)                          echo "05|macOS (Apple Silicon and Intel)" ;;
+              *_aarch64_*.AppImage)           echo "07|Linux AppImage (aarch64)" ;;
+              *.AppImage)                     echo "06|Linux AppImage (x86_64)" ;;
+              *_x86_64.flatpak)               echo "08|Linux Flatpak (x86_64)" ;;
+              *_aarch64.flatpak)              echo "09|Linux Flatpak (aarch64)" ;;
+              Debug_PDB_*)                    echo "10|Windows debug symbols (for developers)" ;;
+              *)                              echo "99|$1" ;;
+            esac
+          }
+
+          {
+            echo "$start"
+            echo
+            echo "## Downloads"
+            echo
+            echo "| Platform | File |"
+            echo "| --- | --- |"
+            gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | while read -r name; do
+              echo "$(describe "$name")|$name"
+            done | sort | while IFS='|' read -r _ label name; do
+              echo "| $label | [$name](https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$name) |"
+            done
+            echo
+            echo "$end"
+          } > table.md
+
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq '.body' > notes.md
+          starts=$(grep -cF "$start" notes.md || true)
+          ends=$(grep -cF "$end" notes.md || true)
+          if [ "$starts" -ne "$ends" ] || [ "$starts" -gt 1 ]; then
+            echo "::error::The release notes must contain each download-table marker exactly once, or neither. Fix them by hand and rerun."
+            exit 1
+          fi
+          if [ "$starts" -eq 1 ]; then
+            awk -v start="$start" -v end="$end" '
+              index($0, start) { while ((getline line < "table.md") > 0) print line; skip = 1; next }
+              index($0, end)   { skip = 0; next }
+              !skip
+              END { exit skip }
+            ' notes.md > notes.new || { echo "::error::The download-table end marker must be on its own line, after the start marker."; exit 1; }
+          else
+            { cat notes.md; echo; cat table.md; } > notes.new
+          fi
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file notes.new
+          cat table.md

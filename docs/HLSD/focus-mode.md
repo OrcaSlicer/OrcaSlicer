@@ -50,7 +50,10 @@ plate toolbar takes their place: a column of plate thumbnails in the top left co
 toolbar, shown when the project has more than one plate and no gizmo is open. The thumbnails are the
 ones the Preview toolbar shows (`PartPlate::thumbnail_data`); the canvas rebuilds its textures when
 `Plater::plate_toolbar_image_version()` changes, a counter each consumer tracks on its own so that the
-Preview toolbar's dirty flag is left alone. That counter moves after almost every edit, so the
+Preview toolbar's dirty flag is left alone. Geometry changes, including adding primitives and pasting
+objects, advance the counter after reloading the scene and updating the volumes' printable state, so
+an earlier render during object-list selection cannot leave the thumbnails cached from the old scene.
+That counter moves after edits, so the
 thumbnail of the current plate, the only one edited while the others are hidden, is drawn again each
 time, and the other plates' only once an edit to them has invalidated theirs. The current plate has an
 accent border, a hovered one the gray border of the Preview toolbar, empty plates are dimmed and the

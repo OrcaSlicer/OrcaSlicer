@@ -483,6 +483,23 @@ bool OpenGLManager::is_scene_canvas(const wxWindow* window)
     return window != nullptr && window->GetName() == SCENE_CANVAS_NAME;
 }
 
+int OpenGLManager::stencil_bits()
+{
+    GLint bits = 0;
+    ::glGetError(); // drop anything pending, so the check below sees only this query
+    ::glGetIntegerv(GL_STENCIL_BITS, &bits); // compatibility profiles
+    if (::glGetError() != GL_NO_ERROR) {
+        bits = 0;
+        GLint fbo = 0;
+        ::glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &fbo);
+        // The default framebuffer names its stencil buffer, a framebuffer object its stencil attachment.
+        ::glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, fbo == 0 ? GL_STENCIL : GL_STENCIL_ATTACHMENT,
+                                                GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE, &bits);
+        ::glGetError();
+    }
+    return std::max(0, int(bits));
+}
+
 void OpenGLManager::detect_multisample(int* attribList)
 {
     int wxVersion = wxMAJOR_VERSION * 10000 + wxMINOR_VERSION * 100 + wxRELEASE_NUMBER;

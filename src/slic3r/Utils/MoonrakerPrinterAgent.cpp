@@ -679,6 +679,13 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
                 if (tray->nozzle_temp > 0) {
                     tray_json["nozzle_temp_max"] = std::to_string(tray->nozzle_temp);
                 }
+                // A spool that resolved to no preset (the printer cannot name it, or no preset
+                // of its type is installed) gives the project no filament, so the sync keeps
+                // the project filament in that position as it does for an empty slot. The
+                // tray still exists, so the mapping dialog shows it in its colour.
+                if (tray->tray_info_idx.empty()) {
+                    tray_json["tray_slot_placeholder"] = "1";
+                }
             } else {
                 tray_json["tray_info_idx"] = "";
                 tray_json["tray_type"] = "";
@@ -1580,7 +1587,9 @@ void MoonrakerPrinterAgent::announce_printhost_device()
     nlohmann::json payload;
     payload["dev_name"]     = dev_name;
     payload["dev_id"]       = device_info.dev_id;
-    payload["dev_ip"]       = device_info.dev_ip;
+    // With its port: the saved device record takes its dev_ip from here and the next connection
+    // reads the port back from it, so a bare IP would mean port 80.
+    payload["dev_ip"]       = Http::get_host_header_value(device_info.base_url);
     payload["dev_type"]     = model_id.empty() ? dev_name : model_id;
     payload["dev_signal"]   = "0";
     payload["connect_type"] = "lan";

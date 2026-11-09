@@ -36,6 +36,7 @@ protected:
 
 #ifdef __WXMSW__
     virtual State GetNormalState() const wxOVERRIDE;
+    virtual bool MSWCommand(WXUINT param, WXWORD id) wxOVERRIDE;
 #endif
     
 #ifdef __WXOSX__

@@ -37,7 +37,7 @@ namespace Slic3r { namespace GUI {
 #define DESIGN_LEFT_MARGIN 25
 
 // The tabs other dialogs open Preferences on.
-enum class PreferencesTab { General, Control, Graphics, Online };
+enum class PreferencesTab { General, Files, Behaviour, Control, Graphics, Online };
 
 class PreferencesDialog : public DPIDialog
 {
@@ -87,6 +87,8 @@ public:
     ::CheckBox * m_skip_identical_frames_checkbox = {nullptr};
     ::TextInput *m_backup_interval_textinput = {nullptr};
     ::SpinInput *m_dim_previous_layers_brightness_input = {nullptr};
+    // Disabled while persistent outlines are off.
+    wxWindow *   m_persistent_outline_color_button = {nullptr};
     ::ComboBox * m_network_version_combo     = {nullptr};
     std::vector<NetworkLibraryVersionInfo> m_available_versions;
 

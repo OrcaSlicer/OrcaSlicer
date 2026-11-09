@@ -1047,11 +1047,22 @@ body.pane-resizing {
 .detail-tabs {
   display: flex;
   min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
   border-bottom: 1px solid var(--border-strong);
 }
 
+.detail-tabs::-webkit-scrollbar {
+  height: 5px;
+}
+
+.detail-tabs::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: var(--border-strong);
+}
+
 .detail-tab {
-  flex: 1 1 0;
+  flex: 1 0 auto;
   min-width: 0;
   padding: 7px 10px;
   border: 0;
@@ -1105,6 +1116,12 @@ body.pane-resizing {
   display: none;
 }
 
+/* Keep the same content width when permission groups expand, including on WebViews
+   that do not support scrollbar-gutter. Overlay scrollbars remain platform-controlled. */
+#permissionsPanel {
+  overflow-y: scroll;
+}
+
 .plugin-info-layout {
   min-height: 100%;
   display: grid;
@@ -1151,6 +1168,386 @@ body.pane-resizing {
 .detail-empty[hidden],
 .detail-table[hidden] {
   display: none;
+}
+
+.permissions-content {
+  max-width: 960px;
+  margin: 0 auto;
+  container-type: inline-size;
+  padding: 6px 6px 24px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  --permission-surface: #f6f6f6;
+}
+
+:root[data-orca-theme="dark"] .permissions-content {
+  --permission-surface: #333333;
+}
+
+.permission-console-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 8px 0 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.permission-console-plugin {
+  margin: 0;
+  color: var(--text);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.permission-console-title {
+  margin: 4px 0 0;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.permission-overview {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.permission-full-access-help {
+  margin: 0;
+  color: var(--muted);
+}
+
+.permissions-content label.permission-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.permission-access-card {
+  padding: 12px 16px;
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  background: var(--permission-surface);
+}
+
+.permission-access-card.is-active {
+  border-color: var(--plugin-status-warn);
+}
+
+.permission-access-card.is-disabled,
+.permission-editor:disabled {
+  opacity: 0.55;
+}
+
+.permission-access-card.is-disabled .permission-checkbox-inset input[type="checkbox"]:disabled + .permission-switch-track {
+  opacity: 1;
+}
+
+.permission-checkbox-inset {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 32px;
+}
+
+.permission-checkbox-inset input[type="checkbox"] {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.permission-switch-track {
+  position: relative;
+  box-sizing: border-box;
+  width: 42px;
+  height: 24px;
+  flex: 0 0 auto;
+  border: 2px solid var(--text);
+  border-radius: 999px;
+  background: var(--bg);
+  transition: background-color 120ms ease;
+  pointer-events: none;
+}
+
+.permission-switch-track::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text);
+  transition: transform 120ms ease, background-color 120ms ease;
+}
+
+.permission-checkbox-inset input[type="checkbox"]:checked + .permission-switch-track {
+  background: var(--text);
+}
+
+.permission-checkbox-inset input[type="checkbox"]:checked + .permission-switch-track::before {
+  transform: translateX(18px);
+  background: var(--bg);
+}
+
+.permission-checkbox-inset input[type="checkbox"]:disabled {
+  cursor: default;
+}
+
+.permission-checkbox-inset input[type="checkbox"]:disabled + .permission-switch-track {
+  opacity: 0.55;
+}
+
+.permission-editor {
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.permission-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  align-items: start;
+  min-width: 0;
+  padding: 14px 0;
+  border-top: 1px solid var(--border-soft);
+}
+
+.permission-rows {
+  display: grid;
+  gap: 12px;
+}
+
+.permission-group {
+  min-width: 0;
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  background: var(--permission-surface);
+}
+
+.permission-group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.permission-group-header::-webkit-details-marker { display: none; }
+.permission-group-header:focus-visible { outline: 2px solid var(--main-color); outline-offset: -2px; }
+
+.permission-group-chevron {
+  width: 7px;
+  height: 7px;
+  margin-left: auto;
+  border-right: 1.5px solid var(--muted);
+  border-bottom: 1.5px solid var(--muted);
+  transform: rotate(-45deg);
+}
+
+.permission-group[open] .permission-group-chevron { transform: rotate(45deg); }
+
+.permission-group-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.permission-group-body {
+  padding: 0 16px 16px;
+}
+
+.permission-group-body .permission-section:first-child,
+.permission-group-guidance + .permission-section {
+  border-top: 0;
+}
+
+.permission-description,
+.permission-controls {
+  min-width: 0;
+}
+
+.permission-heading {
+  margin: 0 0 4px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.permission-list {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+  color: var(--text);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.permission-notice {
+  margin: 3px 0 8px;
+  color: var(--muted);
+}
+
+.permission-access-notice {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-soft);
+  border-left: 3px solid var(--plugin-status-warn);
+  border-radius: 6px;
+  background: var(--permission-surface);
+  color: var(--text);
+}
+
+.permission-guidance {
+  margin: 0 0 8px;
+  color: var(--muted);
+}
+
+.permission-group-guidance {
+  margin: 8px 0 12px;
+}
+
+.permission-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.permission-form[hidden] {
+  display: none;
+}
+
+.permission-filesystem {
+  min-width: 0;
+}
+
+.permission-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.permission-filesystem-bucket + .permission-filesystem-bucket { margin-top: 17px; }
+
+.permissions-content label.permission-thread-toggle {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px;
+  margin: 0 0 6px;
+  color: var(--text);
+}
+
+.permission-form input {
+  flex: 1 1 180px;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.permission-form button {
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--btn-bg);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.permission-form button[hidden] {
+  display: none;
+}
+
+.permission-form button:hover:not(:disabled) {
+  border-color: var(--main-color);
+}
+
+.permission-form :focus-visible,
+.permission-checkbox-inset input[type="checkbox"]:focus-visible + .permission-switch-track {
+  outline: 2px solid var(--main-color);
+  outline-offset: 2px;
+}
+
+.permission-form button:disabled {
+  cursor: not-allowed;
+  border-style: dashed;
+  color: var(--muted);
+  background: var(--bg);
+}
+
+@media (max-width: 700px) {
+  .permission-section {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+}
+
+@container (max-width: 700px) {
+  .permission-section {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .permission-switch-track,
+  .permission-switch-track::before {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .permission-switch-track {
+    border-color: CanvasText;
+    background: Canvas;
+  }
+  .permission-switch-track::before {
+    background: CanvasText;
+  }
+  .permission-checkbox-inset input[type="checkbox"]:checked + .permission-switch-track {
+    background: CanvasText;
+  }
+  .permission-checkbox-inset input[type="checkbox"]:checked + .permission-switch-track::before {
+    background: Canvas;
+  }
 }
 
 /* Config tab: fixed-width capability sidebar + the capability's configuration view. */

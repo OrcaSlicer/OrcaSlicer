@@ -63,6 +63,9 @@ enum class ObjectOrder { Name, Filament, Height, Size };
 // Stable sort by natural name order, filament, top Z, or bounding box volume of the first instance.
 void sort_objects(std::vector<ModelObject*>& objects, ObjectOrder order, bool descending = false);
 
+// Set import-only presentation ranks without changing part order used by slicing.
+void set_import_volume_order(ModelObject& object, bool sort_names);
+
 class PartPlate;
 
 wxDECLARE_EVENT(EVT_OBJ_LIST_OBJECT_SELECT, SimpleEvent);

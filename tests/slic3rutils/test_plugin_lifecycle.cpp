@@ -328,6 +328,64 @@ TEST_CASE("A discovered script plugin loads and materializes its capability", "[
     manager.unload_plugin("Echo_Plugin");
 }
 
+TEST_CASE("Permissions can be edited while a plugin is loaded", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("permission-edit-while-loaded");
+    const fs::path plugin_dir = write_plugin(data_dir_guard, "Echo_Plugin", ECHO_PLUGIN_SOURCE);
+
+    PluginInstallState initial;
+    initial.installed_from    = "local";
+    initial.installed_version = "1.0";
+    initial.plugin_name       = "Echo Plugin";
+    REQUIRE(write_install_state(plugin_dir, initial));
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "Echo_Plugin", error));
+    INFO("load error: " << error);
+    REQUIRE(manager.is_plugin_loaded("Echo_Plugin"));
+
+    // A running plugin no longer locks its own permissions: the next audited operation re-reads
+    // the sidecar, so an edit and the full-access toggle both take effect without a reload.
+    PluginPermissionMutation while_loaded;
+    while_loaded.add         = {{PluginPermissionCategory::FsRead, "/while/loaded"}};
+    while_loaded.full_access = true;
+    REQUIRE(manager.mutate_plugin_permissions("Echo_Plugin", while_loaded));
+
+    PluginInstallState stored;
+    REQUIRE(manager.get_install_state("Echo_Plugin", stored));
+    CHECK(stored.permissions.fs_read == std::vector<std::string>{"/while/loaded"});
+    CHECK(stored.permissions.full_access);
+
+    // A second granular mutation also applies while the plugin stays loaded, and leaves the
+    // earlier edit's other grants alone.
+    PluginPermissionMutation mutation;
+    mutation.add       = {{PluginPermissionCategory::NetworkHttp, "https://while-loaded.example"}};
+    mutation.remove    = {{PluginPermissionCategory::FsRead, "/while/loaded"}};
+    mutation.threading = true;
+    PluginPermissions applied;
+    REQUIRE(manager.mutate_plugin_permissions("Echo_Plugin", mutation, &applied));
+    CHECK(applied.fs_read.empty());
+    CHECK(applied.network_http == std::vector<std::string>{"https://while-loaded.example"});
+    CHECK(applied.threading);
+    CHECK(applied.full_access);
+
+    REQUIRE(manager.get_install_state("Echo_Plugin", stored));
+    CHECK(stored.permissions.fs_read.empty());
+    CHECK(stored.permissions.network_http == applied.network_http);
+    CHECK(stored.permissions.threading);
+    CHECK(stored.permissions.full_access);
+    CHECK(manager.is_plugin_loaded("Echo_Plugin"));
+
+    manager.unload_plugin("Echo_Plugin");
+}
+
 TEST_CASE("A printer-agent plugin registers and deregisters with its lifecycle", "[PluginLifecycle][Python]")
 {
     ScopedPluginManager plugin_system;

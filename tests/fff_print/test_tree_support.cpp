@@ -5,6 +5,9 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/ClipperUtils.hpp"
 #include <cstddef>
 #include "libslic3r/libslic3r.h"
 
@@ -14,6 +17,7 @@
 #include "libslic3r/TriangleMesh.hpp"
 
 #include "test_helpers.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/Print.hpp"
 
@@ -197,4 +201,75 @@ TEST_CASE("Tree support toolpaths do not depend on the MST tie order", "[TreeSup
         { "tree_support_branch_angle",    40 },
         { "support_line_width",           0.4 },
     });
+}
+
+// Branches landing on the lower plate get the bottom gap and then every bottom interface layer asked for. The contact
+// search stops at the gap and interface height below each layer, so it must still reach the plate from the highest
+// interface layer, and the layers above must not get an interface.
+TEST_CASE("Tree support resting on the model gets every bottom interface layer above the gap", "[TreeSupport]")
+{
+    const int    interface_layers = 2;
+    const double lower_top = 3., upper_bottom = 16.; // two_tier_mesh()
+    Slic3r::Print print;
+    slice_with_tree_support(two_tier_mesh(), print, "tree_slim", 30, 0, 0, {
+        { "support_interface_top_layers",    interface_layers },
+        { "support_interface_bottom_layers", interface_layers },
+        { "support_bottom_z_distance",       0.2 },
+    });
+
+    int above_plate = 0, between_plates = 0;
+    for (const SupportLayer *layer : print.objects().front()->support_layers()) {
+        bool has_interface = false;
+        for (const ExtrusionEntity *entity : layer->support_fills.flatten().entities)
+            has_interface |= entity->role() == erSupportMaterialInterface;
+        if (! has_interface)
+            continue;
+        if (layer->print_z > lower_top && layer->print_z < lower_top + 1.5)
+            ++above_plate;
+        else if (layer->print_z < upper_bottom - 1.5)
+            ++between_plates;
+    }
+    CHECK(above_plate == interface_layers);
+    CHECK(between_plates == 0);
+}
+
+// Each node under an overhang adds the whole overhang to its roof list, so the top interface is a solid sheet rather
+// than the branch circles alone. Counting interface layers would not notice the sheet missing.
+TEST_CASE("Tree support top interface covers the whole overhang", "[TreeSupport]")
+{
+    const double upper_bottom = 16.; // two_tier_mesh()
+    Slic3r::Print print;
+    slice_with_tree_support(two_tier_mesh(), print, "tree_slim", 30, 0, 0, {
+        // The test print is centred on the origin, and tree support drops nodes off the bed.
+        { "printable_area",               "-100x-100,100x-100,100x100,-100x100" },
+        { "support_interface_top_layers", 2 },
+        { "support_interface_spacing",    0 },
+    });
+    const PrintObject &object = *print.objects().front();
+
+    // The underside of the upper plate, less the column and a margin for the xy distance kept around it.
+    ExPolygons underside, column;
+    for (const Layer *layer : object.layers())
+        if (layer->print_z < upper_bottom)
+            column = layer->lslices;
+        else if (underside.empty())
+            underside = layer->lslices;
+    const ExPolygons overhang = diff_ex(underside, offset_ex(column, scaled<float>(2.)));
+    REQUIRE(area(overhang) > 0);
+
+    const SupportLayer *top_interface = nullptr;
+    for (const SupportLayer *layer : object.support_layers())
+        if (layer->print_z < upper_bottom)
+            for (const ExtrusionEntity *entity : layer->support_fills.flatten().entities)
+                if (entity->role() == erSupportMaterialInterface)
+                    top_interface = layer;
+    REQUIRE(top_interface != nullptr);
+
+    Polygons covered;
+    for (const ExtrusionEntity *entity : top_interface->support_fills.flatten().entities)
+        if (entity->role() == erSupportMaterialInterface)
+            entity->polygons_covered_by_width(covered, scaled<float>(0.05));
+    const double uncovered = area(diff_ex(overhang, covered)) / area(overhang);
+    INFO("uncovered fraction " << uncovered);
+    CHECK(uncovered < 0.02);
 }

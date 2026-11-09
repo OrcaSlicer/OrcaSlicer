@@ -5378,6 +5378,16 @@ Preset *PresetBundle::get_similar_printer_preset(std::string printer_model, std:
     return printer_presets.begin()->second;
 }
 
+void PresetBundle::install_slot_filaments(AppConfig &config)
+{
+    // User presets have no vendor, so the filaments section never hides them.
+    for (const std::string &name : filament_presets)
+        if (Preset *preset = filaments.find_preset(name, false, true); preset != nullptr && preset->is_system) {
+            preset->is_visible = true;
+            config.set(AppConfig::SECTION_FILAMENTS, preset->name, "true");
+        }
+}
+
 //BBS: check whether this is the only edited filament
 bool PresetBundle::is_the_only_edited_filament(unsigned int filament_index)
 {
@@ -6469,6 +6479,9 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
 
 	this->update_compatible(PresetSelectCompatibleType::Never);
     this->update_multi_material_filament_presets();
+    // The call above does not resize the colour and map arrays, which must match filament_presets.
+    if (printer_technology == ptFFF && this->filament_presets.size() > this->project_config.option<ConfigOptionStrings>("filament_colour")->values.size())
+        this->set_num_filaments(this->filament_presets.size());
 
     // A "published" 3MF project overlays the author-selected published keys onto the user's
     // currently-selected (edited) process preset. Keys that cannot be applied are collected for

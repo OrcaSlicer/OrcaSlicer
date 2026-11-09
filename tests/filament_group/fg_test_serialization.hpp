@@ -61,7 +61,8 @@ inline void to_json(nlohmann::json& j, const MachineFilamentInfo& mfi) {
         {"is_support", mfi.is_support},
         {"usage_type", (int)mfi.usage_type},
         {"extruder_id", mfi.extruder_id},
-        {"is_extended", mfi.is_extended}
+        {"is_extended", mfi.is_extended},
+        {"filament_id", mfi.filament_id}
     };
 }
 
@@ -72,6 +73,8 @@ inline void from_json(const nlohmann::json& j, MachineFilamentInfo& mfi) {
     mfi.usage_type = (FilamentUsageType)j.at("usage_type").get<int>();
     j.at("extruder_id").get_to(mfi.extruder_id);
     j.at("is_extended").get_to(mfi.is_extended);
+    if (j.contains("filament_id"))
+        j.at("filament_id").get_to(mfi.filament_id);
 }
 
 } // namespace FilamentGroupUtils

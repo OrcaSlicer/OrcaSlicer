@@ -56,7 +56,10 @@ closes the open gizmo, so neither tab ever shows a stale cut.
 - **Cut faces.** Clipping only discards fragments, which would leave the cut volumes hollow.
   `_render_section_view_caps()` draws their cut faces with one `MeshClipper` per model part the
   plane passes through. A clipper recomputes its face only when the plane or the volume moves.
-  Modifiers, the wipe tower and SLA auxiliaries get no face.
+  Each face is drawn unlit in its part's render colour, so it follows the part's selection and
+  disabled states. The lit faces of a part show between about a third of that colour and most of
+  it, so the cut face is darkened below that range, or lifted above it on a dark part, to read as
+  the inside. Modifiers, the wipe tower and SLA auxiliaries get no face.
 - **Toolpaths.** libvgcode takes the plane through `Viewer::set_clipping_plane()`. It draws each
   extrusion as only the faces of a diamond-section prism that turn towards the camera, so
   discarding the fragments on the clipped side would leave open shells. Instead, the segment
