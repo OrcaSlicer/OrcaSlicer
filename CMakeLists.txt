@@ -111,6 +111,7 @@ endif()
 option(SLIC3R_STATIC            "Compile OrcaSlicer with static libraries (Boost, TBB)" ${SLIC3R_STATIC_INITIAL})
 option(SLIC3R_GUI               "Compile OrcaSlicer with GUI components (OpenGL, wxWidgets)" 1)
 option(SLIC3R_CAD               "Compile OrcaSlicer with the parametric Design/CAD tab (needs OCCT ModelingAlgorithms)" 1)
+option(SLIC3R_OPENVDB           "Compile OrcaSlicer with OpenVDB (used only by SLA hollowing)" 0)
 option(SLIC3R_FHS               "Assume OrcaSlicer is to be installed in a FHS directory structure" 0)
 option(SLIC3R_PROFILE           "Compile OrcaSlicer with an invasive Shiny profiler" 0)
 option(SLIC3R_PCH               "Use precompiled headers" 1)
@@ -1045,19 +1046,24 @@ target_compile_definitions(pybind11_embed INTERFACE PYBIND11_SIMPLE_GIL_MANAGEME
 add_library(pybind11::embed ALIAS pybind11_embed)
 
 
-if(SLIC3R_STATIC)
-    set(OPENVDB_USE_STATIC_LIBS ON)
-    set(USE_BLOSC TRUE)
-endif ()
+if (SLIC3R_OPENVDB)
+    if(SLIC3R_STATIC)
+        set(OPENVDB_USE_STATIC_LIBS ON)
+        set(USE_BLOSC TRUE)
+    endif ()
 
-find_package(OpenVDB 5.0 COMPONENTS openvdb)
-if(OpenVDB_FOUND)
-    slic3r_remap_configs(IlmBase::Half RelWithDebInfo Release)
-    slic3r_remap_configs(Blosc::blosc RelWithDebInfo Release)
+    find_package(OpenVDB 5.0 COMPONENTS openvdb)
+    if(OpenVDB_FOUND)
+        slic3r_remap_configs(IlmBase::Half RelWithDebInfo Release)
+        slic3r_remap_configs(Blosc::blosc RelWithDebInfo Release)
+    else ()
+        message(FATAL_ERROR "OpenVDB could not be found with the bundled find module. "
+                       "You can try to specify the find module location of your "
+                       "OpenVDB installation with the OPENVDB_FIND_MODULE_PATH cache variable, "
+                       "or configure with -DSLIC3R_OPENVDB=OFF to build without SLA hollowing.")
+    endif ()
 else ()
-    message(FATAL_ERROR "OpenVDB could not be found with the bundled find module. "
-                   "You can try to specify the find module location of your "
-                   "OpenVDB installation with the OPENVDB_FIND_MODULE_PATH cache variable.")
+    message(STATUS "SLIC3R_OPENVDB is OFF: building without OpenVDB (SLA hollowing disabled).")
 endif ()
 
 find_path(SPNAV_INCLUDE_DIR spnav.h)

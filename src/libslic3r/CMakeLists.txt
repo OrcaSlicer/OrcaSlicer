@@ -803,6 +803,7 @@ endif ()
 
 if (TARGET OpenVDB::openvdb)
     target_link_libraries(libslic3r PRIVATE OpenVDB::openvdb)
+    target_compile_definitions(libslic3r PRIVATE SLIC3R_HAS_OPENVDB)
 endif()
 
 if (SLIC3R_CAD)
