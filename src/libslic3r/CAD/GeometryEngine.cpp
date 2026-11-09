@@ -1,4 +1,6 @@
 #include "libslic3r/CAD/GeometryEngine.hpp"
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include "libslic3r/Point.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/I18N.hpp"

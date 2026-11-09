@@ -1,4 +1,10 @@
 #include "slic3r/GUI/CAD/McpControl.hpp"
+#include <Standard_Handle.hxx>
+#include <GeomAbs_CurveType.hxx>
+#include <locale>
+#include <array>
+#include <Eigen/Geometry>
+#include <ratio>
 #include "libslic3r/Point.hpp"
 #include <functional>
 #include <stdexcept>

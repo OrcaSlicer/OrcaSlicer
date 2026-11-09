@@ -1,4 +1,6 @@
 #include "libslic3r/CAD/SketchEngine.hpp"
+#include <BRepBuilderAPI_TransitionMode.hxx>
+#include <string>
 #include "libslic3r/Point.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/I18N.hpp"

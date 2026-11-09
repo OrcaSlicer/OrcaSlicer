@@ -2,6 +2,7 @@
 #define slic3r_DesignSketchTool_hpp_
 
 #include "libslic3r/Point.hpp"
+#include <limits>
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Line.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"

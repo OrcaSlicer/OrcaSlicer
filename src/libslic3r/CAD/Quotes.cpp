@@ -1,4 +1,6 @@
 #include "Quotes.hpp"
+#include <Standard_TypeDef.hxx>
+#include <libslic3r/Point.hpp>
 #include "CadDocument.hpp"
 
 #include <BRepAdaptor_Surface.hxx>

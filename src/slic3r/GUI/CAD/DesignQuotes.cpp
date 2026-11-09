@@ -1,4 +1,7 @@
 #include "slic3r/GUI/CAD/DesignQuotes.hpp"
+#include <libslic3r/CAD/Quotes.hpp>
+#include <Eigen/Core>
+#include <libslic3r/Point.hpp>
 
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"

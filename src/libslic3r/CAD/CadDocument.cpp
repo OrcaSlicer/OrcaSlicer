@@ -1,4 +1,7 @@
 #include "libslic3r/CAD/CadDocument.hpp"
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+#include <locale>
 #include "libslic3r/CAD/TopoRemap.hpp"
 #include "libslic3r/I18N.hpp"
 #include "libslic3r/format.hpp"

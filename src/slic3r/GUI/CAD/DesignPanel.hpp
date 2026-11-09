@@ -2,6 +2,8 @@
 #define slic3r_DesignPanel_hpp_
 
 #include <cstdint>
+#include <cstddef>
+#include <libslic3r/Color.hpp>
 #include <string>
 #include <utility>
 #include "libslic3r/Point.hpp"

@@ -1,4 +1,6 @@
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
+#include <iterator>
+#include <libslic3r/CAD/Quotes.hpp>
 #include <BRepAdaptor_Surface.hxx>
 #include <GeomAbs_SurfaceType.hxx>
 #include <BRepAdaptor_Curve.hxx>
