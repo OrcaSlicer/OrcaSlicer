@@ -369,8 +369,10 @@ bool generate_fin_support(PrintObject& object, Polygons* reserved_columns)
     // Fin spacing is the clear gap between neighboring fins at their widest.
     const coord_t widest = std::max(thickness, base_thickness);
     const coord_t pitch  = scaled<coord_t>(config.support_fin_spacing.value) + widest;
-    // A tine is one bead out and one bead back: two extrusions wide, never wider than the fin.
-    auto tine_width_at        = [&](coord_t fin_width) { return std::min(fin_width, 2 * spacing); };
+    // A tine is one bead out and one bead back: two extrusions wide by default, never wider than the fin.
+    // support_fin_tine_width widens it along the object wall, rounded to whole out-and-back pairs.
+    const coord_t tine_width = config.support_fin_tine_width.value > 0. ? whole_loops(config.support_fin_tine_width.value) : 2 * spacing;
+    auto tine_width_at       = [&](coord_t fin_width) { return std::min(fin_width, tine_width); };
     const double angle        = fin_angle(regions);
     const BoundingBox rbox    = rotated_extents(bbox, angle, thickness);
     const Polygons main_fins  = fin_strips(bbox, angle, pitch, thickness);

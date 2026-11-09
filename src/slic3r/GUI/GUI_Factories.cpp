@@ -103,6 +103,7 @@ static SettingsFactory::Bundle FREQ_SETTINGS_BUNDLE_FFF = {// BBS
                                                              "support_fin_tine_base_rows",
                                                              "support_fin_tine_layers",
                                                              "support_fin_tine_depth",
+                                                             "support_fin_tine_width",
                                                              "support_fin_height",
                                                              "support_fin_lean_side_only",
                                                              "support_fin_cross_spacing",

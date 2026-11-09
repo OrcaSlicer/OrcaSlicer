@@ -1112,7 +1112,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
                     "support_fin_lean_side_only", "support_fin_cross_spacing", "support_fin_interface_layers", "support_fin_fallback"})
         toggle_line(el, support_is_fins);
     const bool fin_tines = support_is_fins && config->opt_float("support_fin_tine_spacing") > 0.;
-    for (auto el : {"support_fin_tine_depth", "support_fin_tine_base_rows", "support_fin_tine_layers"})
+    for (auto el : {"support_fin_tine_depth", "support_fin_tine_base_rows", "support_fin_tine_layers", "support_fin_tine_width"})
         toggle_line(el, fin_tines);
     for (auto el :
          {"support_style", "support_threshold_angle", "support_threshold_overlap", "support_on_build_plate_only", "support_base_pattern",

@@ -7720,6 +7720,17 @@ void PrintConfigDef::init_fff_params()
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.3));
 
+    def           = this->add("support_fin_tine_width", coFloat);
+    def->label    = L("Tine width");
+    def->category = L("Support");
+    def->tooltip  = L("Width of each tine along the object wall. Wider tines hold better but leave a larger mark after removal. "
+                      "The width is rounded to whole pairs of lines and is never wider than the fin. "
+                      "Set to 0 for two lines, one out and one back.");
+    def->sidetext = L("mm"); // millimeters, CIS languages need translation
+    def->min      = 0;
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
     def           = this->add("support_fin_height", coFloat);
     def->label    = L("Fin height");
     def->category = L("Support");

@@ -643,6 +643,40 @@ TEST_CASE("Fin support tapers from the base thickness at the bed to the fin thic
     CHECK(wider_than(*tapered->objects().front(), 9.0, 0.5));
 }
 
+TEST_CASE("Fin tine contact with the object grows with the tine width", "[SupportMaterial][Fins]")
+{
+    // With the default 0.4 mm line a 1.6 mm fin is two loops (about 1.4 mm); an automatic tine is one pair of lines.
+    auto contact_area = [](double tine_width) {
+        Slic3r::Print print;
+        Slic3r::Test::init_and_process_print({support_table()}, print,
+                                             {
+                                                 {"enable_support", 1},
+                                                 {"support_type", "fins"},
+                                                 {"support_fin_fallback", "none"},
+                                                 {"layer_height", 0.2},
+                                                 {"support_object_xy_distance", 0.3},
+                                                 {"support_fin_spacing", 4},
+                                                 {"support_fin_thickness", 1.6},
+                                                 {"support_fin_tine_spacing", 2},
+                                                 {"support_fin_tine_depth", 0.3},
+                                                 {"support_fin_tine_width", tine_width},
+                                             });
+        const PrintObject& object = *print.objects().front();
+        double contact            = 0.;
+        for (const SupportLayer* layer : object.support_layers())
+            if (const Layer* object_layer = object.get_layer_at_printz(layer->print_z, EPSILON))
+                contact += area(intersection_ex(layer->support_islands, object_layer->lslices));
+        return contact;
+    };
+    const double automatic = contact_area(0.);
+    const double two_pairs = contact_area(1.4);
+    REQUIRE(automatic > scale_(scale_(0.1)));
+    // Two pairs of lines bond about twice the area of one.
+    CHECK(two_pairs > 1.5 * automatic);
+    // A tine is never wider than its fin, so asking for more than the fin thickness changes nothing.
+    CHECK_THAT(contact_area(5.), Catch::Matchers::WithinRel(two_pairs, 0.05));
+}
+
 TEST_CASE("Fin support touches the object only on tine layers", "[SupportMaterial][Fins]")
 {
     const double tine_spacing = 3.;
