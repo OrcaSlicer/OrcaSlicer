@@ -89,7 +89,7 @@ std::string llm_agent_executable()
     return (!exe.empty() && fs::exists(exe)) ? exe.string() : std::string();
 }
 
-std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const std::string& session_id,
+std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const std::string& session_id, const std::vector<std::string>& read_dirs,
                                              std::function<void(const LlmEvent&)> on_event,
                                              std::function<void(bool, const std::string&)> done)
 {
@@ -121,8 +121,9 @@ std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const st
             nlohmann::json j = {{"mcpServers", {{"orca-cad", {{"command", "python3"}, {"args", {bridge, sock}}}}}}};
             std::ofstream(cfg.string()) << j.dump();
             std::vector<std::string> args = {"-p", prompt, "--output-format", "stream-json", "--verbose",
-                                             "--mcp-config", cfg.string(), "--strict-mcp-config", "--allowedTools", "mcp__orca-cad",
+                                             "--mcp-config", cfg.string(), "--strict-mcp-config", "--allowedTools", "mcp__orca-cad,Read",
                                              "--append-system-prompt", kSystemPrompt};
+            for (const std::string& d : read_dirs) { args.push_back("--add-dir"); args.push_back(d); }
             if (!session_id.empty()) { args.push_back("--resume"); args.push_back(session_id); }
             if (!model.empty()) { args.push_back("--model"); args.push_back(model); }
             for (const std::string& a : split_args(extra)) args.push_back(a);
@@ -183,7 +184,7 @@ std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const st
 void llm_agent_run(const std::string& prompt, std::function<void(bool, const std::string&)> done)
 {
     auto reply = std::make_shared<std::string>();
-    llm_agent_start(prompt, "",
+    llm_agent_start(prompt, "", {},
         [reply](const LlmEvent& e) { if (e.kind == LlmEvent::Result) *reply = e.text; },
         [reply, done](bool ok, const std::string& err) { done(ok, ok ? *reply : err); });
 }

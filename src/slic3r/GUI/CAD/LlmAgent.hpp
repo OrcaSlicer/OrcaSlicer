@@ -8,6 +8,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace Slic3r { namespace GUI {
 
@@ -29,9 +30,10 @@ public:
 };
 
 // Start one agent turn. Runs on a worker thread; `on_event` and `done` are called on the UI thread, `done` exactly once
-// (ok=false carries the reason). `session_id` continues an earlier turn ("" starts a conversation). Only one run at a
+// (ok=false carries the reason). `session_id` continues an earlier turn ("" starts a conversation). `read_dirs` are the folders
+// of attached files: the agent may read inside them (and only them) besides driving the MCP. Only one run at a
 // time: a second call while one is in flight is refused through `done` and returns null.
-std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const std::string& session_id,
+std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const std::string& session_id, const std::vector<std::string>& read_dirs,
                                              std::function<void(const LlmEvent&)> on_event,
                                              std::function<void(bool ok, const std::string& err)> done);
 

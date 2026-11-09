@@ -1486,7 +1486,14 @@ std::vector<int> edge_ids_arg(const json& params, const char* verb)
 {
     if (!params.contains("edge"))
         throw std::runtime_error(std::string(verb) + " needs 'edge' (id or array of ids from query_topology)");
-    const json& e = params["edge"];
+    json e = params["edge"];
+    // Some MCP clients (an LLM filling a one-type schema) send the list as text: "[3,6,9,11]", "3,6,9,11" or "3".
+    if (e.is_string()) {
+        std::string t = e.get<std::string>();
+        if (!t.empty() && t.front() != '[') t = "[" + t + "]";
+        e = json::parse(t, nullptr, false);
+        if (e.is_discarded()) throw std::runtime_error(std::string(verb) + ": 'edge' must be an id or an array of ids");
+    }
     std::vector<int> ids;
     if (e.is_array()) for (const json& v : e) ids.push_back(v.get<int>());
     else              ids.push_back(e.get<int>());

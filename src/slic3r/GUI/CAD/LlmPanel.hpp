@@ -11,8 +11,10 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <vector>
 
 class wxButton;
+class wxCheckBox;
 class wxStaticText;
 class wxTextCtrl;
 
@@ -33,12 +35,19 @@ private:
     void new_chat();
     void append(const wxString& text, const wxColour& colour, bool bold = false);
     void set_busy(bool busy);
+    void add_files(const std::vector<std::string>& paths);
+    void paste_image();
+    void refresh_attachments();
 
     wxTextCtrl*   m_log    = nullptr;
     wxTextCtrl*   m_input  = nullptr;
     wxButton*     m_send   = nullptr;
     wxButton*     m_stop   = nullptr;
     wxButton*     m_new    = nullptr;
+    wxButton*     m_attach = nullptr;
+    wxCheckBox*   m_view   = nullptr;
+    wxStaticText* m_files_lbl = nullptr;
+    std::vector<std::string> m_files;   // attached files for the next message
     wxStaticText* m_status = nullptr;
 
     std::function<size_t()>     m_undo_depth;
