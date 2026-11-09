@@ -11,7 +11,7 @@ other suite.
 Three checks drive the Design tab through the app's MCP server, with the same CAD tools an
 agent calls, and compare what the app reports with arithmetic. Each needs a running
 OrcaSlicer with the MCP server on (`--mcp`, or "MCP server" under AI features in
-Preferences) and the CAD feature on (Preferences > Features, read at startup).
+Preferences) and the CAD feature on (Preferences > Features, which takes effect after a restart).
 `tools/mcp/orca_mcp.py launch --cad` starts one with both. A check finds the app through
 its data directory, where the server writes its port and token: the one passed to the check,
 else `$ORCA_DATADIR`, else the platform's own (`tools/mcp/README.md` describes attaching).
@@ -21,7 +21,7 @@ They run on Windows, macOS and Linux, and exit 0 when every assertion held.
 |---|---|---|
 | `check-mcp-sketch.py` | The sketch layer, asserting what decides whether a profile is buildable: closed loops, offsets that survive, a circle read as a void rather than a second body. | `python3 scripts/CAD/check-mcp-sketch.py [datadir]` |
 | `check-sketch-engine.py` | A ladder of 2D sketches of increasing complexity, judged on vertices, lengths, radii, tangency, symmetry and closure rather than on area. | `python3 scripts/CAD/check-sketch-engine.py [datadir]` |
-| `check-sketch-engine-corpus.py` | The same ladder graded against real drawings: a systematic sample of the StudyCadCam sheets, each judged against its own vector geometry. | `python3 scripts/CAD/check-sketch-engine-corpus.py --corpus DIR [--datadir DIR] [--step N] [--limit N] [--scale]` |
+| `check-sketch-engine-corpus.py` | The same ladder graded against real drawings: a systematic sample of the StudyCadCam sheets, each judged against its own vector geometry. | `python3 scripts/CAD/check-sketch-engine-corpus.py --corpus DIR [--datadir DIR] [--step N] [--limit N] [--scale] [--budget S]` |
 
 For example:
 

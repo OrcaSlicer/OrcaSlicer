@@ -1071,8 +1071,8 @@ UI does not answer, the reply goes out without the note, which is only advice.
 `run_cad_tool()` runs the CAD tool on the UI thread, inside `call_cad_tool`'s mutate guard, and
 refuses a call by its cause, in this order. The MCP server is up before the main window, so first
 come `ui_plater()`'s "shutting down" and "still starting" refusals, as for any tool. Then the G-code
-viewer, which has no Design tab (`-32001`); the CAD feature off (Preferences > Features, which the
-app reads only at startup, so turning it on takes a restart); and a Design panel that cannot be
+viewer, which has no Design tab (`-32001`); the CAD feature off (Preferences > Features; the Design
+page is built only at startup, so turning it on takes a restart); and a Design panel that cannot be
 built (`-32001`: no page was made at startup, the page is mid-build, or its build failed), whose
 message says to retry and then restart. The panel is otherwise built on the first call, since in a
 headless session nobody clicks the tab; `get_app_state.design_tab` says whether this session built

@@ -296,9 +296,8 @@ void DesignSketchTool::set_tool(Mode mode)
     // includes inline_busy(), so letters are swallowed while a field is open — the switch has to
     // come from the menu, the toolbar or the MCP server's call_cad_tool.)
     //
-    // reset_autoedit() is the existing helper for exactly this and its comment already says it
-    // "mirrors set_tool's resync" — the three lines that used to be here were that mirror drifting
-    // out of step, missing the two members that matter. The already-queued CallAfter then finds
+    // reset_autoedit() drains the queue: besides the flags and the seen baseline it clears
+    // m_autoedit_dims and sets m_autoedit_dim_idx to -1, so the already-queued CallAfter finds
     // m_autoedit_dim_idx == -1 and returns through the guard at the top of open_next_autoedit_dim.
     //
     // The current value is COMMITTED rather than cancelled, matching the ready-edit-op rule a few

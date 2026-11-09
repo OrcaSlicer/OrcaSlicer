@@ -157,7 +157,7 @@ const char* const kIdsNote =
 const char* const kFailureNote = "A rejected rebuild is reported in the reply: ok is false or error is not empty.";
 
 // cad_feature_note()'s text: run_cad_tool() refuses every CAD tool while the feature is off, and the
-// app reads the preference only at startup.
+// Design page is built only at startup, so turning the feature on takes a restart.
 const char* const kCadOffNote = "The CAD feature is off: call_cad_tool is refused until a person enables it in "
                                 "Preferences > Features and restarts OrcaSlicer.";
 
@@ -6158,7 +6158,7 @@ void register_cad_tools(McpService& service)
         "A CAD tool that takes long (thread, sweep, loft) may reply with a running job. With face or edge ids, pass the "
         "generation they were read at (describe_scene, query_topology), so ids from before the model changed are refused. "
         "Needs the CAD feature, which a person enables in Preferences > Features; it takes effect after a restart.",
-        object_schema({{"tool", prop("string", "A CAD tool's name (list_cad_tools).")},
+        object_schema({{"tool", prop("string", "A CAD tool's name (list_cad_tools); its arguments go in args.")},
                        {"args", {{"type", "object"}, {"description", "Its arguments (describe_cad_tool)."}}}},
                       {"tool"}),
         [](const json& args, ToolContext& ctx) {

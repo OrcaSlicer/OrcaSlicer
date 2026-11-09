@@ -437,13 +437,17 @@ cleared anyway (`:10689-10699`); abort a value field and the placed dimension **
 its measured value (`cancel_dimension_value`, `:2174` — deliberate, but it means a cancelled
 gesture has already added a constraint, and nothing says so).
 
-**`apply_dimension` records a poison value.** Its per-case thresholds move nothing for
-`v <= 0` (Length/Diameter/Radius, `:611-613`) or `v < 0` (Distance/DistanceToLine, `:622`, `:639`) —
-and then `record_dimension_constraint(v)` runs **unconditionally** (`:659`). A negative, zero or NaN
-value that moved nothing is still pushed to the solver as a constraint it must satisfy and cannot,
-silently corrupting the sketch rather than failing. The `sketch_set_value` CAD tool
-(`Mcp/McpToolsCad.cpp`) refuses such a value before it calls `apply_dimension`. So the agent surface
-validates and the GUI does not — the GUI is the less safe caller of its own function.
+**`apply_dimension` refuses an out-of-range value before it records anything.** Its per-case
+thresholds move nothing for `v <= 0` (Length/Diameter/Radius, `:611-613`) or `v < 0`
+(Distance/DistanceToLine, `:622`, `:639`), and `record_dimension_constraint(v)` after them runs
+**unconditionally** (`:659`): a negative, zero or NaN value that moved nothing would be pushed to the
+solver as a constraint it must satisfy and cannot, silently corrupting the sketch. So a guard at the
+top of `apply_dimension` refuses a value that is not finite, not above zero for a length, radius or
+diameter, or negative for a distance, and says why on the status line, before it moves or records
+anything. The `sketch_set_value` CAD tool (`Mcp/McpToolsCad.cpp`) checks the same rule, and refuses a
+selection with nothing to dimension, before it calls `apply_dimension`, so that its call fails with
+the reason rather than reporting a value the sketch tool refused only on its status line. The GUI
+and the agent surface are equally safe callers of the function.
 
 **`record_dimension_constraint` never dedupes at all.** It `push_back`s unconditionally
 (`:674`, `:684`, `:691`, `:700`), so applying the selection-path dimension twice leaves **two**
@@ -522,11 +526,12 @@ Three rules the type enforces, each closing a defect above:
    contradiction you can see. `drive == Reference` renders `measured` only, and the palette is the
    one already in the tab (green quote = measured, driving colour = driven).
 2. **`apply(value)` returns a `WriteOutcome`** (`Ok | ClampedTo | Refused`, the base-operator type
-   from §0.2) — the same type for the solver path, the geometric path and the MCP server. The guard
-   `sketch_set_value` runs in `Mcp/McpToolsCad.cpp` moves *into* `apply`, so the GUI cannot be the
-   unsafe caller of its own function any more. `Refused` keeps the field open with the typed text
-   and the reason, which is also what makes the `Coincident`-flip reversible: the dimension keeps
-   its `type` and only its value changes.
+   from §0.2) — the same type for the solver path, the geometric path and the MCP server. The
+   range guard `apply_dimension` runs becomes `apply`'s `Refused`, so every caller learns of a
+   refusal from the result rather than from the status line, and `sketch_set_value` in
+   `Mcp/McpToolsCad.cpp` keeps no copy of the check. `Refused` keeps the field open with the typed
+   text and the reason, which is also what makes the `Coincident`-flip reversible: the dimension
+   keeps its `type` and only its value changes.
 3. **One dimension per (type, operand pair) lives in one `std::vector<Dimension>`**, and the
    constraint slot is a *projection* of it (`upsert` semantics from `:1074-1130`, kept). The click
    path and the selection path both become thin callers of one `Dimension` builder, so the operand

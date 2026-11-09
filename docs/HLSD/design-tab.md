@@ -368,8 +368,9 @@ callers share, and the CAD tool calls that function with explicit arguments inst
 widgets.
 
 `call_cad_tool` needs the MCP server on (`--mcp`, or Preferences) and the CAD feature on
-(Preferences > Features, read only at startup); with the feature off it is refused, and the two
-inspect tools still answer, with a note on how a person turns it on. A call is refused (`-32002`)
+(Preferences > Features; the Design page is built only at startup, so turning it on takes a
+restart); with the feature off it is refused, and the two inspect tools still answer, with a note
+on how a person turns it on. A call is refused (`-32002`)
 while the Design tab is busy: a `change` CAD tool does not run under an open feature card or sketch
 session, nor a `change` or `sketch` one during a body Move, nor any while a rebuild owns the
 document. Face and edge ids name faces and edges of the current model, and a rebuild renumbers
@@ -474,8 +475,8 @@ live through a long rebuild, and a call whose job fails after its reply, and
 Three checks in `scripts/CAD/` drive a running app through its MCP server as an agent does and
 grade the sketch layer against arithmetic: `check-mcp-sketch.py`, `check-sketch-engine.py` and
 `check-sketch-engine-corpus.py`, which grades it against the vector geometry of real drawings.
-They need the MCP server and the CAD feature on and run on every platform, but not in CI, which
-runs no application. `scripts/CAD/README.md` says how to run each.
+They need the MCP server and the CAD feature on and run on every platform; no CI job runs them.
+`scripts/CAD/README.md` says how to run each.
 
 The offer table is checked in CI: the `check_cad_offer_table.yml` workflow fails when
 `DesignOffer.hpp` is not what `gen_offer_table.py` makes of `tool_atlas.json`.

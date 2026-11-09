@@ -7464,10 +7464,9 @@ void DesignPanel::load_recipe(const std::string& blob)
     if (!m_doc.deserialize_recipe(blob)) {
         // Carry the kernel's reason. deserialize_recipe distinguishes three cases that matter
         // very differently to the person reading this — saved by a NEWER build, saved by an
-        // OLDER one, or genuinely unreadable — and replacing all three with one sentence left
-        // the user unable to tell "update OrcaSlicer" from "your file is damaged". Same
-        // error-loss class as the 31 Mcp/McpToolsCad.cpp sites (1de72de9ed): the message
-        // exists, it was simply not passed on.
+        // OLDER one, or genuinely unreadable — and one sentence for all three would leave the
+        // user unable to tell "update OrcaSlicer" from "your file is damaged". The generic
+        // sentence is only for a failure that set no reason.
         set_status(StatusKind::Error, m_doc.error.empty()
                    ? _L("Could not restore the CAD model from this project")
                    : wxString::Format(_L("Could not restore the CAD model: %s"), wxString::FromUTF8(m_doc.error)));
