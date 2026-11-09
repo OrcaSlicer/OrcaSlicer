@@ -2,6 +2,7 @@
 #include <boost/log/trivial.hpp>
 #include <cctype>
 #include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include <nlohmann/json.hpp>

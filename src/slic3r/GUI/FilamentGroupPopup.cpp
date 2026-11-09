@@ -1,5 +1,6 @@
 #include "FilamentGroupPopup.hpp"
 #include "GUI_App.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include "MsgDialog.hpp"
 #include "wx/dcgraph.h"
 #include "I18N.hpp"
