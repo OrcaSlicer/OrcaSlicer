@@ -24,6 +24,7 @@
 #include <cstdlib>
 
 #include <imgui.h>
+#include <imgui/imgui_internal.h>
 #include <wx/colour.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
@@ -230,6 +231,50 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
         }
         if (m_palette.is_open()) m_canvas->set_as_dirty();   // keep frames coming: the box takes focus on the frame AFTER it opens
         if (m_quotes_on) m_quotes.render(imgui, wxGetApp().plater()->get_camera(), m_canvas->get_scale());   // under the bars: they draw after
+        {   // The small confirm / cancel under the value label of a 3D gizmo (fillet, chamfer, hole, shell...): the same Confirm / Cancel the bar has.
+            Vec3d lw;
+            if (m_sketch_tool.take_label_anchor(lw) && m_topbar.action_active && m_topbar.action_active()) {
+                const Camera& cam = wxGetApp().plater()->get_camera();
+                const Eigen::Vector4d clip = (cam.get_projection_matrix().matrix() * cam.get_view_matrix().matrix()) * lw.homogeneous();
+                if (clip.w() > 1e-9) {
+                    const auto vp = cam.get_viewport();
+                    const Vec3d ndc = clip.head<3>() / clip.w();
+                    const ImVec2 at(float(vp[0] + (ndc.x() * 0.5 + 0.5) * vp[2]), float(vp[1] + (1.0 - (ndc.y() * 0.5 + 0.5)) * vp[3]));
+                    ImGuiWrapper::push_common_window_style(m_canvas->get_scale());
+                    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2.f * em, 2.f * em));
+                    imgui.set_next_window_pos(at.x, at.y + 10.f * em, ImGuiCond_Always, 0.f, 0.f);
+                    imgui.begin(std::string("##label_confirm"), ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
+                                ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
+                    const float  s   = ImGui::GetFrameHeight();
+                    const ImVec4 acc = ImGuiWrapper::COL_ORCA;
+                    const bool   can = !m_topbar.confirm_enabled || m_topbar.confirm_enabled();
+                    auto glyph = [&](const char* id, bool check, bool enabled, const char* tip) {
+                        if (!enabled) { ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true); ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f); }
+                        if (check) ImGui::PushStyleColor(ImGuiCol_Button, acc);
+                        const bool clicked = ImGui::Button(id, ImVec2(s, s));
+                        if (check) ImGui::PopStyleColor();
+                        const ImVec2 a = ImGui::GetItemRectMin(), b = ImGui::GetItemRectMax(), c((a.x + b.x) * 0.5f, (a.y + b.y) * 0.5f);
+                        const float  u = s * 0.2f, th = std::max(1.5f, s * 0.09f);
+                        const ImU32  col = check ? IM_COL32(255, 255, 255, 255) : ImGui::GetColorU32(ImGuiCol_Text);
+                        ImDrawList*  dl = ImGui::GetWindowDrawList();
+                        if (check) {
+                            const ImVec2 pts[3] = {ImVec2(c.x - u * 1.1f, c.y), ImVec2(c.x - u * 0.3f, c.y + u * 0.8f), ImVec2(c.x + u * 1.2f, c.y - u * 0.8f)};
+                            dl->AddPolyline(pts, 3, col, 0, th);
+                        } else {
+                            dl->AddLine(ImVec2(c.x - u, c.y - u), ImVec2(c.x + u, c.y + u), col, th);
+                            dl->AddLine(ImVec2(c.x - u, c.y + u), ImVec2(c.x + u, c.y - u), col, th);
+                        }
+                        if (!enabled) { ImGui::PopStyleVar(); ImGui::PopItemFlag(); }
+                        if (ImGui::IsMouseHoveringRect(a, b)) ImGui::SetTooltip("%s", tip);
+                        return clicked && enabled;
+                    };
+                    if (glyph("##lbl_ok", true, can, "Confirm (Enter)") && m_topbar.confirm) m_topbar.confirm();
+                    imgui.end();
+                    ImGui::PopStyleVar();
+                    ImGuiWrapper::pop_common_window_style();
+                }
+            }
+        }
         float left = 34.f * em;   // clear of the corner collapse button
         if (m_topbar_on) {   // the document actions, the toolbox and Confirm / Cancel: one row from the canvas's left edge, the panel hangs under it
             m_topbar.render(imgui, m_canvas->get_scale(), m_sidebar_on ? 0.f : left);

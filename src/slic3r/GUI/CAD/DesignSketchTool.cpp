@@ -7359,6 +7359,7 @@ void DesignSketchTool::render_fillet_gizmo()
         glsafe(::glDisable(GL_DEPTH_TEST));
         draw_strokes(m_fl_arrow_model, segs, std::max(0.7 * upp, 1e-4), arrowc);
         DimAnnot da; da.kind = DimType::Radius; da.value = m_fl_radius;
+        note_label(tip2 + u * (th * 1.4));
         draw_text(m_line_model, dim_text(da), tip2 + u * (th * 1.4), th, arrowc);
     }
     m_plane = saved;
@@ -7503,6 +7504,7 @@ void DesignSketchTool::render_hole_gizmo()
         segs.emplace_back(tip2, back - nrm2 * (as * 0.5));
         glsafe(::glDisable(GL_DEPTH_TEST));
         draw_strokes(m_hl_stroke_model, segs, std::max(0.7 * upp, 1e-4), col);
+        note_label(tip2 + u * (th * 1.4));
         draw_text(m_line_model, dim_text(da), tip2 + u * (th * 1.4), th, col);
     };
 
@@ -7738,6 +7740,7 @@ void DesignSketchTool::render_thread_gizmo()
         segs.emplace_back(tip2, back - nrm2 * (as * 0.5));
         glsafe(::glDisable(GL_DEPTH_TEST));
         draw_strokes(m_th_stroke_model, segs, std::max(0.7 * upp, 1e-4), col);
+        note_label(tip2 + u * (th * 1.4));
         draw_text(m_line_model, dim_text(da), tip2 + u * (th * 1.4), th, col);
     };
 
@@ -7896,6 +7899,7 @@ void DesignSketchTool::render_shell_gizmo()
         glsafe(::glDisable(GL_DEPTH_TEST));
         draw_strokes(m_sh_stroke_model, segs, std::max(0.7 * upp, 1e-4), teal);
         DimAnnot da; da.kind = DimType::Distance; da.value = m_sh_thickness;
+        note_label(tip2 + u * (th * 1.4));
         draw_text(m_line_model, dim_text(da), tip2 + u * (th * 1.4), th, teal);
     }
     m_plane = saved;
@@ -8151,6 +8155,7 @@ void DesignSketchTool::render_cut_gizmo()
             glsafe(::glDisable(GL_DEPTH_TEST));
             draw_strokes(m_ct_stroke_model, segs, std::max(0.7 * upp, 1e-4), teal);
             DimAnnot da; da.kind = DimType::Distance; da.value = m_ct_offset;
+            note_label(tip2 + u * (th * 1.4));
             draw_text(m_line_model, dim_text(da), tip2 + u * (th * 1.4), th, teal);
         }
         m_plane = saved;
