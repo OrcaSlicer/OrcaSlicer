@@ -1,0 +1,18 @@
+{
+	"type": "filament",
+	"name": "Cubicon PLA+ @Cubicon xCeler-Plus HS 0.4 nozzle",
+	"inherits": "Cubicon PLA+ @base",
+	"from": "system",
+	"setting_id": "exhyj42idAntKJbg",
+	"filament_id": "OF7tt7DO",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Cubicon xCeler-Plus HS 0.4 nozzle"
+	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	]
+}

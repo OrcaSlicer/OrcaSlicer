@@ -13,5 +13,8 @@
 	],
 	"temperature_vitrification": [
 		"45"
+	],
+	"filament_max_volumetric_speed": [
+		"21"
 	]
 }

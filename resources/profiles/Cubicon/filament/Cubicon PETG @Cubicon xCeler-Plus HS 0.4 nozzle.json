@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Cubicon PETG @Cubicon xCeler-Plus HS 0.4 nozzle",
+	"inherits": "Cubicon PETG @base",
+	"setting_id": "J4csKU2Sl3GQrtPJ",
+	"filament_id": "OFoBTKmn",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Cubicon xCeler-Plus HS 0.4 nozzle"
+	],
+	"filament_settings_id": [
+		"Cubicon PETG @Cubicon xCeler-Plus HS 0.4 nozzle"
+	]
+}

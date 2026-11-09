@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Cubicon PC @Cubicon xCeler-Plus HS 0.4 nozzle",
+	"inherits": "Cubicon PC @base",
+	"setting_id": "BNMhRLvTe5DGCtgJ",
+	"filament_id": "OFEj7sca",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Cubicon xCeler-Plus HS 0.4 nozzle"
+	],
+	"filament_settings_id": [
+		"Cubicon PC @Cubicon xCeler-Plus HS 0.4 nozzle"
+	]
+}

@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Cubicon ABSk @Cubicon xCeler-Plus HS 0.4 nozzle",
+	"inherits": "Cubicon ABSk @base",
+	"setting_id": "8QMO5U9qHIZabnt2",
+	"filament_id": "OForhBi4",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Cubicon xCeler-Plus HS 0.4 nozzle"
+	],
+	"filament_settings_id": [
+		"Cubicon ABSk @Cubicon xCeler-Plus HS 0.4 nozzle"
+	]
+}
