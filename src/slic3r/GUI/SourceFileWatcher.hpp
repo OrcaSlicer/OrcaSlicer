@@ -13,6 +13,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <utility>
 
 namespace Slic3r { namespace GUI {
 

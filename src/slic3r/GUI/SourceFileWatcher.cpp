@@ -1,18 +1,30 @@
 #include "SourceFileWatcher.hpp"
 
+#include <wx/filename.h>
+#include <wx/fswatcher.h>
 #include <wx/modalhook.h>
+#include <wx/string.h>
+#include <wx/timer.h>
 
-#include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <algorithm>
+#include <chrono>
+#include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <limits>
+#include <map>
+#include <set>
+#include <string>
 #include <system_error>
 #include <thread>
+#include <utility>
 
 #ifdef _WIN32
     #define WIN32_LEAN_AND_MEAN

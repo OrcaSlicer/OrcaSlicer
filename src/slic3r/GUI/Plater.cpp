@@ -90,6 +90,7 @@
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PluginResolver.hpp>
 #include <utility>
+#include <tuple>
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>

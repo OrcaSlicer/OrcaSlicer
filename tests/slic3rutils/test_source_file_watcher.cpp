@@ -11,15 +11,18 @@
     #include <Windows.h>
 #endif
 
-#include <catch2/catch_all.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include <wx/app.h>
 #include <wx/timer.h>
 
-#include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 
 #include <chrono>
+#include <cstddef>
 #include <fstream>
+#include <ios>
 #include <set>
 #include <string>
 #include <thread>
