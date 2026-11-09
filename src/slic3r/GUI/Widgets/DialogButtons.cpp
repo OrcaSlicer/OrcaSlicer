@@ -9,6 +9,7 @@
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <wx/colour.h>
 #include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/KeyChord.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
 #include <wx/event.h>
 #include <set>
@@ -186,7 +187,7 @@ void DialogButtons::SetLeftAlignedButtonsCount(int left_aligned_buttons_count){
 
 void DialogButtons::on_keydown(wxKeyEvent& e) {
     wxObject* current = e.GetEventObject();
-    int key = e.GetKeyCode();
+    const KeyChord chord = KeyChord::from_event(e);
     int cnt = m_buttons.size();
     if(cnt > 1){
         int i = -1;
@@ -196,8 +197,8 @@ void DialogButtons::on_keydown(wxKeyEvent& e) {
                 break;
         }
         // possible issue if button hidden
-        if (key == WXK_LEFT || key == WXK_RIGHT)
-            m_buttons[row_focus_target(i, cnt, key)]->SetFocus();
+        if (chord == KeyChord{WXK_LEFT} || chord == KeyChord{WXK_RIGHT})
+            m_buttons[row_focus_target(i, cnt, chord)]->SetFocus();
     }
     e.Skip();
 }

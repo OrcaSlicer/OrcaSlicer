@@ -34,6 +34,7 @@
 #include "GUI_App.hpp"
 #include "GUI_ObjectList.hpp"
 #include "I18N.hpp"
+#include "KeyChord.hpp"
 #include "GUI_Utils.hpp"
 #include "Plater.hpp"
 #include "BitmapComboBox.hpp"
@@ -437,17 +438,20 @@ int em_unit(wxWindow* win)
     return Slic3r::GUI::wxGetApp().em_unit();
 }
 
-int row_focus_target(int current, int count, int key_code)
+int row_focus_target(int current, int count, const Slic3r::GUI::KeyChord& chord)
 {
+    using Slic3r::GUI::KeyChord;
     if (count <= 0)
         return -1;
-    switch (key_code) {
-    case WXK_LEFT:  return (current + count - 1) % count;
-    case WXK_RIGHT: return (current + 1) % count;
-    case WXK_HOME:  return 0;
-    case WXK_END:   return count - 1;
-    default:        return -1;
-    }
+    if (chord == KeyChord{WXK_LEFT})
+        return (current + count - 1) % count;
+    if (chord == KeyChord{WXK_RIGHT})
+        return (current + 1) % count;
+    if (chord == KeyChord{WXK_HOME})
+        return 0;
+    if (chord == KeyChord{WXK_END})
+        return count - 1;
+    return -1;
 }
 
 wxBitmap create_menu_bitmap(const std::string& bmp_name)

@@ -3,6 +3,7 @@
 //#ifdef _WIN32
 
 #include "GUI_App.hpp"
+#include "KeyChord.hpp"
 #include "wxExtensions.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/StateColor.hpp"
@@ -310,9 +311,11 @@ bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /*
     // meaning - Left/Right move focus among the tab buttons and wrap at the
     // ends (stock Tab traversal walks on into the side tools sharing this
     // strip), Home/End jump to the first/last tab, and Up/Down stay swallowed,
-    // as a horizontal tab list should. Enter/Space still activates via
-    // Button::keyDownUp's click simulation. This dynamic handler runs before
-    // Button's static event table, so it wins for the keys it takes.
+    // as a horizontal tab list should. Keys are matched as whole chords, so
+    // Ctrl+Shift+Left is not Left and stays free for other handlers.
+    // Enter/Space still activates via Button::keyDownUp's click simulation.
+    // This dynamic handler runs before Button's static event table, so it wins
+    // for the keys it takes.
     btn->Bind(wxEVT_KEY_DOWN, [this, btn](wxKeyEvent& evt) {
         auto it = std::find(m_pageButtons.begin(), m_pageButtons.end(), btn);
         if (it == m_pageButtons.end()) {
@@ -323,10 +326,11 @@ bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /*
         // click; flag it so SetSelection can take focus back afterwards. Every other key
         // clears the flag rather than leaving it set for an unrelated selection change.
         m_activating_from_keyboard = evt.GetKeyCode() == WXK_RETURN || evt.GetKeyCode() == WXK_SPACE;
-        const int key = evt.GetKeyCode();
-        if (key == WXK_UP || key == WXK_DOWN)
+        using Slic3r::GUI::KeyChord;
+        const KeyChord chord = KeyChord::from_event(evt);
+        if (chord == KeyChord{WXK_UP} || chord == KeyChord{WXK_DOWN})
             return;
-        const int next = row_focus_target(int(it - m_pageButtons.begin()), int(m_pageButtons.size()), key);
+        const int next = row_focus_target(int(it - m_pageButtons.begin()), int(m_pageButtons.size()), chord);
         if (next < 0) {
             evt.Skip();
             return;
