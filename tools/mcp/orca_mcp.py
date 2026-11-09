@@ -248,7 +248,8 @@ def write_conf(conf, data):
 
 def seed_datadir(datadir, printer, cad=False):
     """Seed a fresh datadir's OrcaSlicer.conf. A datadir that has one keeps it, except that cad turns
-    the Design tab on there too, since the app reads that setting only at startup."""
+    the Design tab on there too, since the app creates the Design tab only at startup, when that
+    setting is on."""
     vendor, model, nozzle, filament = printer
     os.makedirs(datadir, exist_ok=True)
     conf = os.path.join(datadir, "OrcaSlicer.conf")

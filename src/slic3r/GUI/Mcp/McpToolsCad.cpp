@@ -157,7 +157,8 @@ const char* const kIdsNote =
 const char* const kFailureNote = "A rejected rebuild is reported in the reply: ok is false or error is not empty.";
 
 // cad_feature_note()'s text: run_cad_tool() refuses every CAD tool while the feature is off, and the
-// Design page is built only at startup, so turning the feature on takes a restart.
+// main window creates the Design page only at startup (its panel is built on first use), so turning
+// the feature on takes a restart.
 const char* const kCadOffNote = "The CAD feature is off: call_cad_tool is refused until a person enables it in "
                                 "Preferences > Features and restarts OrcaSlicer.";
 
@@ -3167,11 +3168,10 @@ json action_sketch_heal(DesignPanel* panel, const json& params)
     return out;
 }
 
-// Why sketch_set_value exists: committing a typed dimension could previously only be exercised
-// by driving the in-canvas value field, and the rig's window manager never gives that frame
-// keyboard focus, so the behaviour of apply_dimension on CONSTRAINED geometry was untestable.
-// This calls the same function the widget calls, so the geometry can be asserted with no window
-// manager involved. Note apply_dimension clears the selection.
+// sketch_set_value commits a typed dimension by calling apply_dimension, the function the in-canvas
+// value field calls, so what a typed value does to the geometry, constrained geometry included, can
+// be asserted without a window manager giving that field keyboard focus. apply_dimension clears the
+// selection.
 json action_sketch_set_value(DesignPanel* panel, const json& params)
 {
     DesignSketchTool& t = mcp_sketch(panel);

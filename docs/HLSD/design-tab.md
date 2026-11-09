@@ -368,15 +368,15 @@ callers share, and the CAD tool calls that function with explicit arguments inst
 widgets.
 
 `call_cad_tool` needs the MCP server on (`--mcp`, or Preferences) and the CAD feature on
-(Preferences > Features; the Design page is built only at startup, so turning it on takes a
-restart); with the feature off it is refused, and the two inspect tools still answer, with a note
-on how a person turns it on. A call is refused (`-32002`)
-while the Design tab is busy: a `change` CAD tool does not run under an open feature card or sketch
-session, nor a `change` or `sketch` one during a body Move, nor any while a rebuild owns the
-document. Face and edge ids name faces and edges of the current model, and a rebuild renumbers
-them while a stale id still names a real face or edge, so the replies carry the model's
-`generation`: a call that passes ids with the `generation` they were read at is refused (`-32010`)
-once the model has moved on, rather than acting on another face or edge.
+(Preferences > Features; the main window creates the Design page only at startup, so turning it on
+takes a restart); with the feature off it is refused, and the two inspect tools still answer, with a
+note on how a person turns it on. A call is refused (`-32002`) while the Design tab is busy: a
+`change` CAD tool does not run under an open feature card or sketch session, nor a `change` or
+`sketch` one during a body Move, nor any while a rebuild owns the document. Face and edge ids name
+faces and edges of the current model, and a rebuild renumbers them while a stale id still names a
+real face or edge, so the replies carry the model's `generation`: a call that passes ids with the
+`generation` they were read at is refused (`-32010`) once the model has moved on, rather than acting
+on another face or edge.
 
 The CAD tools add features through the kernel calls the cards use, named as the cards name them,
 one checkpoint per call. A rebuild that fails is taken back with `CadDocument::rollback()`, which

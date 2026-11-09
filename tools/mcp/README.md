@@ -19,7 +19,7 @@ Python. It uses only the standard library. `docs/HLSD/mcp-server.md` covers the 
 an `OrcaSlicer.conf` that has a finished setup wizard and one printer and filament (Bambu Lab X1
 Carbon 0.4 by default), with update checks and daily tips turned off. `--cad` turns the Design
 (CAD) tab on, which `call_cad_tool` needs: it sets `enable_cad_feature` in a fresh datadir's
-`OrcaSlicer.conf`, and in a reused one too, since the app reads that setting only at startup. The token comes from
+`OrcaSlicer.conf`, and in a reused one too, since the app creates the Design tab only at startup, when that setting is on. The token comes from
 `ORCA_MCP_TOKEN` or is generated, and it reaches the app through the environment, not the command
 line. On Linux, `launch` also sets `SSL_CERT_FILE`, so a fresh datadir doesn't prompt for a CA
 bundle. On Windows, it gives the instance its own WebView2 profile in the datadir, apart from the one
