@@ -218,7 +218,8 @@ static ExPolygons bridged_overhangs(const Layer &layer, const ExPolygons &slices
 // the strip, which is then left to the bridge, see Layer::make_perimeters().
 void Layer::anchor_bridges_in_neighbours()
 {
-    if (m_regions.size() < 2 || lower_layer == nullptr)
+    // On the last layer every anchor would be a top surface.
+    if (m_regions.size() < 2 || lower_layer == nullptr || upper_layer == nullptr)
         return;
     for (LayerRegion *bridge : m_regions) {
         const float      width     = float(bridge->flow(frExternalPerimeter).scaled_width());
@@ -226,13 +227,18 @@ void Layer::anchor_bridges_in_neighbours()
         const ExPolygons overhangs = bridged_overhangs(*this, slices, coord_t(width));
         if (overhangs.empty())
             continue;
+        // A top surface of a neighbour would show the bridge's filament. The slivers narrower than a wall the outline of
+        // a sloped object leaves uncovered are not surfaces to see.
+        const ExPolygons top = opening_ex(diff_ex(lslices, upper_layer->lslices), width / 2);
         // The strip replaces the outer wall of the neighbour, which it keeps along the outline of the object.
         ExPolygons anchors;
         for (const LayerRegion *neighbour : m_regions)
             if (neighbour != bridge && ! neighbour->slices.empty()) {
                 const float neighbour_width = float(neighbour->flow(frExternalPerimeter).scaled_width());
-                append(anchors, intersection_ex(intersection_ex(neighbour->slices.surfaces, lower_layer->lslices),
-                                                intersection(offset(overhangs, neighbour_width), offset(lslices, -neighbour_width))));
+                Polygons    reach           = intersection(offset(overhangs, neighbour_width), offset(lslices, -neighbour_width));
+                if (! top.empty())
+                    reach = diff(reach, top);
+                append(anchors, intersection_ex(intersection_ex(neighbour->slices.surfaces, lower_layer->lslices), reach));
             }
         if (anchors.empty())
             continue;
@@ -240,11 +246,12 @@ void Layer::anchor_bridges_in_neighbours()
         // The gaps narrower than a wall the anchors leave in the bridge, as of a thin line of a neighbour between two
         // bridges or of a crack between two regions, go to the bridge too, or they would be walled.
         const ExPolygons anchored = union_ex(slices, anchors);
-        append(anchors, intersection_ex(diff_ex(closing_ex(anchored, width / 2), anchored), intersection(offset(anchors, width), inside)));
-        // A top surface of a neighbour would show the bridge's filament.
-        anchors = upper_layer == nullptr ? ExPolygons() : intersection_ex(anchors, upper_layer->lslices);
-        if (anchors.empty())
-            continue;
+        ExPolygons gaps = intersection_ex(diff_ex(closing_ex(anchored, width / 2), anchored), intersection(offset(anchors, width), inside));
+        // A gap is kept or left whole: cutting it would leave a crack along the bridge, which would be walled.
+        if (! top.empty())
+            gaps.erase(std::remove_if(gaps.begin(), gaps.end(), [&top](const ExPolygon &gap) { return ! intersection_ex(gap, top).empty(); }),
+                       gaps.end());
+        append(anchors, std::move(gaps));
         for (LayerRegion *neighbour : m_regions)
             if (neighbour != bridge && ! neighbour->slices.empty())
                 neighbour->slices.set(diff_ex(neighbour->slices.surfaces, anchors), stInternal);
