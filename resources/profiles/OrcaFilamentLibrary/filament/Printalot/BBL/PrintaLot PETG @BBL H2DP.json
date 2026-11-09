@@ -1,0 +1,36 @@
+{
+	"type": "filament",
+	"name": "PrintaLot PETG @BBL H2DP",
+	"inherits": "PrintaLot PETG @base",
+	"from": "system",
+	"setting_id": "VQiE7XlWM120KXZg",
+	"instantiation": "true",
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"hot_plate_temp": [
+		"70"
+	],
+	"hot_plate_temp_initial_layer": [
+		"70"
+	],
+	"long_retractions_when_ec": [
+		"1",
+		"1"
+	],
+	"textured_plate_temp": [
+		"70"
+	],
+	"textured_plate_temp_initial_layer": [
+		"70"
+	],
+	"compatible_printers": [
+		"Bambu Lab H2D Pro 0.4 nozzle",
+		"Bambu Lab H2D Pro 0.6 nozzle",
+		"Bambu Lab H2D Pro 0.8 nozzle"
+	]
+}

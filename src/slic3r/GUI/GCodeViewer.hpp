@@ -520,7 +520,7 @@ private:
     void render_toolpaths();
     // The sequential markers and the IDEX/IQEX toolhead boxes.
     void render_markers(int canvas_width, int canvas_height);
-    void render_shells(int canvas_width, int canvas_height);
+    void render_shells();
     // ORCA: a filament color as the toolpaths show it, opaque unless translucent filaments are shown
     ColorRGBA shown_filament_color(ColorRGBA color) const;
 

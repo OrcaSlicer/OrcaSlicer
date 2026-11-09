@@ -1,12 +1,16 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 
 #include <libslic3r/Model.hpp>
 #include <libslic3r/Point.hpp>
 #include <libslic3r/TriangleMesh.hpp>
+#include <libslic3r/TriangleSelector.hpp>
 
 #include <string>
+#include <cstddef>
 #include <vector>
 
 using namespace Slic3r;
@@ -87,4 +91,111 @@ TEST_CASE("Objects sort by bounding box volume", "[ObjectList]")
     add_box(model, "cube", {10., 10., 10.});  // 1000 mm3
 
     CHECK(sorted_names(model, ObjectOrder::Size) == std::vector<std::string>{"cube", "tall", "flat"});
+}
+
+TEST_CASE("Imported part names sort only their presentation and survive cloning", "[ObjectList][OriginalNames]")
+{
+    Model model;
+    ModelObject* object = model.add_object();
+    // Include a modifier to ensure display sorting never changes its slicing precedence.
+    auto* ten = object->add_volume(make_cube(10., 10., 10.));
+    ten->name = "Part10";
+    auto* two = object->add_volume(make_cube(2., 2., 2.));
+    two->name = "part2";
+    auto* duplicate = object->add_volume(make_cube(3., 3., 3.));
+    duplicate->name = "part2";
+    duplicate->set_type(ModelVolumeType::PARAMETER_MODIFIER);
+    const auto slicing_order = object->volumes;
+    set_import_volume_order(*object, true);
+    CHECK(object->volumes == slicing_order);
+    CHECK(two->import_display_order < duplicate->import_display_order);
+    CHECK(duplicate->import_display_order < ten->import_display_order);
+
+    Model clone;
+    const ModelObject* copied = clone.add_object(*object);
+    REQUIRE(copied->volumes.size() == object->volumes.size());
+    for (size_t i = 0; i < copied->volumes.size(); ++i) {
+        CHECK(copied->volumes[i]->id() != object->volumes[i]->id());
+        CHECK(copied->volumes[i]->import_display_order == object->volumes[i]->import_display_order);
+    }
+}
+
+TEST_CASE("Unsorted imports preserve source presentation through type grouping", "[ObjectList][OriginalNames]")
+{
+    Model model;
+    ModelObject* object = model.add_object();
+    auto* modifier = object->add_volume(make_cube(2., 2., 2.));
+    modifier->name = "Z modifier";
+    modifier->set_type(ModelVolumeType::PARAMETER_MODIFIER);
+    auto* part = object->add_volume(make_cube(10., 10., 10.));
+    part->name = "A part";
+    set_import_volume_order(*object, false);
+    object->sort_volumes(true);
+    CHECK(object->volumes.front() == part);
+    CHECK(modifier->import_display_order < part->import_display_order);
+}
+
+TEST_CASE("Adding a part or modifier reveals a single-object import", "[ObjectList][OriginalNames]")
+{
+    const auto type = GENERATE(ModelVolumeType::MODEL_PART, ModelVolumeType::PARAMETER_MODIFIER);
+    Model model;
+    ModelObject* object = model.add_object();
+    object->add_volume(make_cube(10., 10., 10.));
+    object->add_volume(make_cube(2., 2., 2.));
+    object->imported_parts_hidden = true;
+    // An editing operation must not leave the newly added, effective geometry invisible.
+    object->add_volume(make_cube(3., 3., 3.), type);
+    CHECK_FALSE(object->imported_parts_hidden);
+    REQUIRE(object->volumes.size() == 3);
+    CHECK(object->volumes.back()->type() == type);
+}
+
+TEST_CASE("Part settings show a single-object import without changing it", "[ObjectList][OriginalNames]")
+{
+    Model model;
+    ModelObject* object = model.add_object();
+    object->add_volume(make_cube(10., 10., 10.));
+    ModelVolume* body = object->add_volume(make_cube(2., 2., 2.));
+    object->imported_parts_hidden = true;
+    REQUIRE(object->hides_imported_parts());
+
+    // The check only reads the object: the stored choice survives while part settings show the parts.
+    body->config.set("wall_loops", 3);
+    CHECK_FALSE(object->hides_imported_parts());
+    CHECK(object->imported_parts_hidden);
+    CHECK(body->config.has("wall_loops"));
+
+    body->config.erase("wall_loops");
+    CHECK(object->hides_imported_parts());
+
+    TriangleSelector selector(body->mesh());
+    selector.set_facet(0, EnforcerBlockerType::ENFORCER);
+    REQUIRE(body->seam_facets.set(selector));
+    CHECK_FALSE(object->hides_imported_parts());
+    CHECK(object->imported_parts_hidden);
+
+    body->seam_facets.reset();
+    CHECK(object->hides_imported_parts());
+}
+
+TEST_CASE("A part that repeats the object's filament has no settings of its own", "[ObjectList][OriginalNames]")
+{
+    struct Case { int object_filament; int part_filament; bool extra_setting; bool individual; };
+    // object_filament 0 means no object filament, which prints with filament 1.
+    const Case c = GENERATE(Case{0, 1, false, false}, Case{2, 2, false, false}, Case{2, 0, false, false},
+                            Case{2, 1, false, true}, Case{0, 2, false, true}, Case{2, 2, true, true});
+    CAPTURE(c.object_filament, c.part_filament, c.extra_setting);
+    Model model;
+    ModelObject* object = model.add_object();
+    object->config.erase("extruder");
+    if (c.object_filament > 0)
+        object->config.set("extruder", c.object_filament);
+    object->add_volume(make_cube(10., 10., 10.));
+    ModelVolume* body = object->add_volume(make_cube(2., 2., 2.));
+    body->config.set("extruder", c.part_filament);
+    if (c.extra_setting)
+        body->config.set("wall_loops", 3);
+    object->imported_parts_hidden = true;
+    CHECK(object->has_individual_part_settings() == c.individual);
+    CHECK(object->hides_imported_parts() == !c.individual);
 }
