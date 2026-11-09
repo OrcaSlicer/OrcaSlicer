@@ -584,9 +584,9 @@ void GLGizmoPathCut::on_render()
                 m.render();
             };
             glsafe(::glEnable(GL_DEPTH_TEST));
-            draw(m_piece_stay, Vec3d::Zero(), PREVIEW_STAY_COLOR);
-            draw(m_piece_moved, m_piece_shift, PREVIEW_MOVED_COLOR);
-            draw(m_preview_pegs, m_pegs_on_moved ? m_piece_shift : Vec3d::Zero(), PREVIEW_PEG_COLOR);
+            draw(m_piece_stay, m_piece_lift, PREVIEW_STAY_COLOR);
+            draw(m_piece_moved, m_piece_shift + m_piece_lift, PREVIEW_MOVED_COLOR);
+            draw(m_preview_pegs, (m_pegs_on_moved ? m_piece_shift : Vec3d::Zero()) + m_piece_lift, PREVIEW_PEG_COLOR);
             glsafe(::glDisable(GL_DEPTH_TEST));
             shader->stop_using();
         }
@@ -995,8 +995,10 @@ void GLGizmoPathCut::on_render_input_window(float x, float y, float bottom_limit
     } else {
         // Editing: place points, then compute the preview. The cut is only performed from the preview.
         GLGizmoUtils::begin_right_aligned_buttons({_L("Clear"), _L("Preview cut"), _L("Perform cut")});
-        if (m_imgui->button(_L("Clear"), ImVec2(0, 0), !m_points.empty()))
+        if (m_imgui->button(_L("Clear"), ImVec2(0, 0), !m_points.empty())) {
             reset_path();
+            m_message.clear();
+        }
         ImGui::SameLine();
         if (m_imgui->button(_L("Preview cut"), ImVec2(0, 0), m_points.size() >= min_pts))
             wxGetApp().CallAfter([this]() { perform_cut(); });
@@ -1178,6 +1180,10 @@ static std::vector<unsigned char> extras_in_sides(const std::vector<PathCutJob::
 
 void GLGizmoPathCut::clear_pending()
 {
+    // The notes about the pending cut (preview, placing connectors) go with it; errors stay until the
+    // next action replaces them.
+    if (m_pending && !m_message_is_error)
+        m_message.clear();
     m_pending.reset();
     m_routes.clear();
     m_routes_model.reset();
@@ -1263,6 +1269,7 @@ void GLGizmoPathCut::rebuild_pieces_preview()
     m_piece_moved.reset();
     m_preview_pegs.reset();
     m_piece_shift   = Vec3d::Zero();
+    m_piece_lift    = Vec3d::Zero();
     m_pegs_on_moved = false;
     if (!m_pending)
         return;
@@ -1280,6 +1287,7 @@ void GLGizmoPathCut::rebuild_pieces_preview()
         m_pegs_on_moved = st.connectors_from_a == a_moves;
     }
     m_piece_shift = PathCut::preview_shift(moved, stay);
+    m_piece_lift  = Vec3d(0., 0., PathCut::preview_lift(moved, stay, m_piece_shift));
 }
 
 // The cut face shown and clicked while placing connectors. The picking tree refers to the face kept by

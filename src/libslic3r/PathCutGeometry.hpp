@@ -2648,6 +2648,22 @@ inline V3 preview_shift(const indexed_triangle_set &moved, const indexed_triangl
     return dir.normalized() * std::clamp(0.1 * (m1 - m0).norm(), 6., 30.);
 }
 
+// Preview of a cut: how far both pieces are drawn raised so that the detached piece, drawn `shift` apart,
+// does not go below the lowest point of the object, where the object rests on the bed. When it is
+// drawn downwards, it then rests there and the piece that stays is drawn above it. Zero otherwise.
+inline double preview_lift(const indexed_triangle_set &moved, const indexed_triangle_set &stay, const V3 &shift)
+{
+    if (moved.indices.empty() || stay.indices.empty())
+        return 0.;
+    auto min_z = [](const indexed_triangle_set &its) {
+        double z = std::numeric_limits<double>::max();
+        for (const auto &v : its.vertices) z = std::min(z, double(v.z()));
+        return z;
+    };
+    const double moved_z = min_z(moved);
+    return std::max(0., std::min(moved_z, min_z(stay)) - (moved_z + shift.z()));
+}
+
 inline void its_append(indexed_triangle_set &dst, const indexed_triangle_set &src)
 {
     const int off = int(dst.vertices.size());

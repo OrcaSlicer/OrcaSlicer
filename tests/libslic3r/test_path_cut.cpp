@@ -487,6 +487,24 @@ TEST_CASE("The preview draws the detached piece apart from the rest", "[PathCut]
     for (Vec3f &v : big.vertices) v += Vec3f(0.f, 0.f, 20.f);
     CHECK_THAT(PathCut::preview_shift(big, stay).norm(), WithinAbs(30., 1e-9));
     CHECK(PathCut::preview_shift(indexed_triangle_set{}, stay).norm() == 0.);
+    // Drawn above the other piece, nothing has to be raised.
+    CHECK_THAT(PathCut::preview_lift(moved, stay, shift), WithinAbs(0., 1e-9));
+}
+
+TEST_CASE("The preview never draws a piece below the object", "[PathCut]")
+{
+    // The detached piece is the 10 mm cube under a 20 mm one: drawn 6 mm further down, it would sink
+    // below the bed. Both pieces are raised so that it rests where the object rested, the other above it.
+    indexed_triangle_set stay  = its_make_cube(20., 20., 20.);
+    indexed_triangle_set moved = its_make_cube(10., 10., 10.);
+    for (Vec3f &v : stay.vertices) v += Vec3f(0.f, 0.f, 10.f);
+    for (Vec3f &v : moved.vertices) v += Vec3f(5.f, 5.f, 0.f);
+    const PathCut::V3 shift = PathCut::preview_shift(moved, stay);
+    REQUIRE(shift.z() < 0.);
+    const double lift = PathCut::preview_lift(moved, stay, shift);
+    CHECK_THAT(lift, WithinAbs(-shift.z(), 1e-9));
+    CHECK_THAT(bounding_box(moved).min.z() + shift.z() + lift, WithinAbs(0., 1e-6));
+    CHECK_THAT(PathCut::preview_lift(indexed_triangle_set{}, stay, shift), WithinAbs(0., 1e-9));
 }
 
 TEST_CASE("A tilted loop around a cylinder detaches its end", "[PathCut]")

@@ -138,6 +138,7 @@ private:
     GLModel m_preview_pegs;                      // preview: the automatic connectors, on the piece they stick out of
     bool    m_pegs_on_moved{false};
     Vec3d   m_piece_shift{Vec3d::Zero()};        // preview: how far the detached piece is drawn apart
+    Vec3d   m_piece_lift{Vec3d::Zero()};         // preview: both pieces raised so that none goes below the bed
     Vec3d   m_preview_offset{Vec3d::Zero()};     // preview: object coordinates -> world
     bool    m_object_hidden{false};              // the object is hidden while its preview is shown
 
