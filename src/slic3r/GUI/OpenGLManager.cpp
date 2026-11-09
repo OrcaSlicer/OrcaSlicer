@@ -19,6 +19,7 @@
 #include <boost/log/trivial.hpp>
 
 #include <string>
+#include <optional>
 #include <ostream>
 #include "libslic3r/Utils.hpp"
 #include <vector>
@@ -47,6 +48,57 @@
 
 namespace Slic3r {
 namespace GUI {
+
+#ifdef __linux__
+// On NVIDIA under Wayland the launcher (AppRun) asks for Mesa's zink with ORCA_ZINK_OVERRIDE=1. The zink variables
+// are set only while the first GL canvas and context are created, not for the whole process: child processes
+// inherit the environment, and WebKit's web processes would render and decode video through zink on whichever
+// Vulkan device it picks, on a hybrid system the integrated GPU, where they leak GPU memory without bound and can
+// hang the GPU. A new instance (start_new_slicer) inherits ORCA_ZINK_OVERRIDE and does the same.
+static const char* const ZINK_OVERRIDE_VARS[][2] = {
+    {"__GLX_VENDOR_LIBRARY_NAME", "mesa"},
+    {"__EGL_VENDOR_LIBRARY_FILENAMES", "/usr/share/glvnd/egl_vendor.d/50_mesa.json"},
+    {"MESA_LOADER_DRIVER_OVERRIDE", "zink"},
+    {"GALLIUM_DRIVER", "zink"},
+};
+
+enum class ZinkOverride { Off, Pending, Applied, Done };
+static ZinkOverride s_zink_override = ZinkOverride::Pending;
+// The values the variables had before apply_zink_override(), restored by restore_zink_override().
+static std::vector<std::optional<std::string>> s_zink_saved_vars;
+
+// Before GL is loaded: glvnd picks its vendor and Mesa its driver when the first display and context are created.
+static void apply_zink_override()
+{
+    if (s_zink_override != ZinkOverride::Pending)
+        return;
+    const char* value = ::getenv("ORCA_ZINK_OVERRIDE");
+    if (value == nullptr || std::string(value) != "1") {
+        s_zink_override = ZinkOverride::Off;
+        return;
+    }
+    for (const auto& var : ZINK_OVERRIDE_VARS) {
+        const char* old = ::getenv(var[0]);
+        s_zink_saved_vars.emplace_back(old != nullptr ? std::optional<std::string>(old) : std::nullopt);
+        ::setenv(var[0], var[1], /* replace */ true);
+    }
+    s_zink_override = ZinkOverride::Applied;
+}
+
+static void restore_zink_override()
+{
+    if (s_zink_override != ZinkOverride::Applied)
+        return;
+    for (size_t i = 0; i < s_zink_saved_vars.size(); ++i) {
+        if (s_zink_saved_vars[i])
+            ::setenv(ZINK_OVERRIDE_VARS[i][0], s_zink_saved_vars[i]->c_str(), /* replace */ true);
+        else
+            ::unsetenv(ZINK_OVERRIDE_VARS[i][0]);
+    }
+    s_zink_override = ZinkOverride::Done;
+    BOOST_LOG_TRIVIAL(info) << "GL context created with the zink override; zink variables restored for child processes.";
+}
+#endif
 
 // A safe wrapper around glGetString to report a "N/A" string in case glGetString returns nullptr.
 std::string gl_get_string_safe(GLenum param, const std::string& default_value)
@@ -422,7 +474,9 @@ wxGLContext* OpenGLManager::init_glcontext(wxGLCanvas& canvas, const std::pair<i
             // if no valid context was created use the default one
             m_context = new wxGLContext(&canvas, nullptr, &attrs);
         }
-
+#ifdef __linux__
+        restore_zink_override();
+#endif
     }
     return m_context;
 }
@@ -431,6 +485,9 @@ static const char* const SCENE_CANVAS_NAME = "OrcaSceneCanvas";
 
 wxGLCanvas* OpenGLManager::create_wxglcanvas(wxWindow& parent)
 {
+#ifdef __linux__
+    apply_zink_override();
+#endif
     int antialiasing_samples = 4;
     if (const AppConfig* app_config = get_app_config(); app_config != nullptr) {
         const std::string value = app_config->get(SETTING_OPENGL_AA_SAMPLES);
