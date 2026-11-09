@@ -163,6 +163,14 @@ json row_of(const json& reply, const std::string& name)
     return json();
 }
 
+// Whether a CAD tool param by this name takes face or edge ids.
+bool is_id_param(const std::string& name)
+{
+    static const std::vector<std::string> ids = {"face",   "faces",  "edge",   "edges", "up_to_face",
+                                                 "face_a", "face_b", "edge_a", "edge_b"};
+    return std::find(ids.begin(), ids.end(), name) != ids.end();
+}
+
 // A call's context whose short reads on the UI thread give `answer`, or fail as they do when the UI
 // does not answer in time.
 struct UiReadContext final : GUI::Mcp::ToolContext
@@ -304,8 +312,6 @@ TEST_CASE("describe_cad_tool gives id_lifetime only for tools that take or give 
     CHECK_FALSE(GUI::Mcp::cad_describe_tool("describe_scene").contains("id_lifetime"));
     CHECK(GUI::Mcp::cad_describe_tool(json::array({"describe_scene", "fillet"})).contains("id_lifetime"));
 
-    const std::vector<std::string> id_params = {"face", "faces", "edge", "edges", "up_to_face",
-                                                "face_a", "face_b", "edge_a", "edge_b"};
     const json all = GUI::Mcp::cad_describe_tool(all_cad_tools());
     for (const json& row : all.at("tools")) {
         const std::string name = row.at("name").get<std::string>();
@@ -313,8 +319,7 @@ TEST_CASE("describe_cad_tool gives id_lifetime only for tools that take or give 
         CHECK_FALSE(row.contains("ids"));
         bool takes_ids = false;
         for (const json& p : row.at("params"))
-            if (std::find(id_params.begin(), id_params.end(), p.at("name").get<std::string>()) != id_params.end())
-                takes_ids = true;
+            if (is_id_param(p.at("name").get<std::string>())) takes_ids = true;
         if (takes_ids) CHECK(GUI::Mcp::cad_describe_tool(name).contains("id_lifetime"));
     }
 }
@@ -348,6 +353,17 @@ bool takes_arg(const json& params, const std::string& key)
         if (key == name) return true;
         if (key == name + "_deg" && p.value("unit", "") == "rad") return true;
     }
+    return false;
+}
+
+// Whether an example passes a face or edge id as `key`: a param that takes ids, or a reference that
+// names a face or an edge, as plane takes {"body": b, "face": f} (and hole's at, measure's a and b).
+bool passes_id(const std::string& key, const json& value)
+{
+    if (is_id_param(key)) return true;
+    if (!value.is_object()) return false;
+    for (const char* id : {"face", "faces", "edge", "edges"})
+        if (value.contains(id)) return true;
     return false;
 }
 
@@ -408,33 +424,38 @@ TEST_CASE("every CAD tool example ends with the tool it describes", "[Mcp][CAD]"
         }
 }
 
-TEST_CASE("the read and sketch tools each have an example", "[Mcp][CAD]")
+// A stale id still names a real face or edge, so an example that passes ids shows the safe pattern:
+// read them with query_topology and pass that reply's generation with the call.
+TEST_CASE("every CAD tool example that passes a face or edge id passes the generation it was read at", "[Mcp][CAD]")
 {
-    const json tools = json::array({"describe_scene", "describe_feature", "query_topology", "measure", "mass_properties",
-                                    "slice_body", "check_interference", "list_verbs", "validate_against", "sketch_describe",
-                                    "sketch_validate", "sketch_constraints", "sketch_begin", "sketch_commit", "sketch_cancel",
-                                    "sketch_add", "sketch_select", "sketch_delete", "sketch_construction", "sketch_offset",
-                                    "sketch_mirror", "sketch_heal", "sketch_set_value", "sketch_fillet", "sketch_chamfer",
-                                    "sketch_trim", "sketch_transform", "sketch_constrain", "sketch_unconstrain", "undo", "redo"});
-    REQUIRE(tools.size() == 31);
-    const json described = GUI::Mcp::cad_describe_tool(tools);
-    REQUIRE(described.at("tools").size() == tools.size());
-    for (const json& row : described.at("tools")) {
-        INFO(row.at("name").get<std::string>());
-        CHECK(row.at("examples").size() >= 1);
-        CHECK(row.at("examples").size() <= 3);
-    }
+    const json all = GUI::Mcp::cad_describe_tool(all_cad_tools());
+    for (const json& row : all.at("tools"))
+        for (const json& example : row.at("examples")) {
+            INFO(row.at("name").get<std::string>() << " / " << example.value("title", ""));
+            const json& calls = example.at("calls");
+            for (size_t i = 0; i < calls.size(); ++i) {
+                const json& args = calls[i].at("args");
+                for (const auto& [key, value] : args.items()) {
+                    if (!passes_id(key, value)) continue;
+                    INFO("call " << i << ": " << calls[i].at("tool").get<std::string>() << " passes " << key);
+                    const json generation = args.value("generation", json());
+                    CHECK(generation.is_object());
+                    if (!generation.is_object()) continue;
+                    CHECK(generation.value("key", "") == "generation");
+                    const int from = generation.value("from_call", -1);
+                    REQUIRE(from >= 0);
+                    REQUIRE(from < int(i));
+                    CHECK(calls[size_t(from)].at("tool") == "query_topology");
+                }
+            }
+        }
 }
 
-TEST_CASE("the solid, dress-up and datum tools each have an example", "[Mcp][CAD]")
+TEST_CASE("every CAD tool has one to three examples", "[Mcp][CAD]")
 {
-    const json tools = json::array({"extrude", "revolve", "fillet", "chamfer", "hole", "hole_styled", "hole_standard",
-                                    "thread", "boolean", "pattern", "pattern_on_curve", "shell", "rib", "draft", "mirror",
-                                    "transform", "thicken", "split", "sweep", "loft", "project", "delete_face", "bridge",
-                                    "axis", "coordsys", "plane", "helix", "mate"});
-    const json described = GUI::Mcp::cad_describe_tool(tools);
-    REQUIRE(described.at("tools").size() == tools.size());
-    for (const json& row : described.at("tools")) {
+    const json all = GUI::Mcp::cad_describe_tool(all_cad_tools());
+    REQUIRE(all.at("tools").size() == GUI::Mcp::cad_tool_names().size());
+    for (const json& row : all.at("tools")) {
         INFO(row.at("name").get<std::string>());
         CHECK(row.at("examples").size() >= 1);
         CHECK(row.at("examples").size() <= 3);

@@ -220,7 +220,14 @@ json tool_rows()
                      json{{"name", "feature"}, {"type", "integer"}, {"description", "feature index (describe_scene)"}},
                      json{{"name", "fields"},  {"type", "object"}, {"description", "{field: value} from describe_feature's editable, e.g. {\"distance\": 15}: numbers within its ranges; mode new|union|subtract|intersect; extrude_end blind|symmetric|two_sided|through_all; shape rectangle|circle; xf_* vectors [x, y, z]"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A plate made 15 mm thick", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "set_feature", "args": {"feature": 1, "fields": {"distance": 15}}}]},
+                     {"title": "A plate's hole widened from 5 to 8 mm", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "hole", "args": {"diameter": 5, "through": true}},
+                         {"tool": "set_feature", "args": {"feature": 2, "fields": {"hole_diameter": 8}}}]}])json")}},
             json{{"name", "extrude"}, {"ids", true}, {"summary", "Extrude a committed sketch, one of its loops, a face or a drawn profile into a body."},
                  {"details", "A committed sketch, or one loop of it, extrudes as the Extrude card does; push/pull grows a planar face of a body; a profile drawn here is an explicit closed `profile` (list of [x,y]) or a centred width x height rectangle on `plane`. End conditions match Onshape. Reply: extrude_index, the index of its sketch (-1 for a face), the boolean and body used, end, frame."},
                  {"params", json::array({
@@ -748,7 +755,17 @@ json tool_rows()
                       json{{"name", "sketch"},  {"type", "integer"}, {"description", "sketch feature index"}},
                       json{{"name", "distance"},{"type", "number"}, {"unit", "mm"}, {"default", 10}, {"min", 0.01}},
                   })},
-                  {"examples", json::array()}},
+                  {"examples", examples(R"json([
+                      {"title": "A 30 mm line extruded 10 mm into a flat sheet", "calls": [
+                          {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                          {"tool": "sketch_add", "args": {"entities": [{"type": "line", "p0": [-15, 0], "p1": [15, 0]}]}},
+                          {"tool": "sketch_commit", "args": {}},
+                          {"tool": "surface_extrude", "args": {"sketch": 0, "distance": 10}}]},
+                      {"title": "A circle extruded 20 mm into an open tube, with no end caps", "calls": [
+                          {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                          {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [0, 0], "radius": 10}]}},
+                          {"tool": "sketch_commit", "args": {}},
+                          {"tool": "surface_extrude", "args": {"sketch": 0, "distance": 20}}]}])json")}},
             json{{"name", "surface_revolve"}, {"summary", "Revolve a sketch wire with no caps -> an open sheet body."},
                   {"details", ""},
                   {"params", json::array({
@@ -756,7 +773,17 @@ json tool_rows()
                       json{{"name", "angle"},   {"type", "number"}, {"unit", "deg"}, {"default", 360}},
                       json{{"name", "axis"},    {"type", "integer"}, {"enum", json::array({0, 1})}, {"default", 0}},
                   })},
-                  {"examples", json::array()}},
+                  {"examples", examples(R"json([
+                      {"title": "A cylinder's wall: a line 10 mm out from the XZ plane's vertical axis, turned a full circle", "calls": [
+                          {"tool": "sketch_begin", "args": {"plane": "XZ"}},
+                          {"tool": "sketch_add", "args": {"entities": [{"type": "line", "p0": [10, 0], "p1": [10, 20]}]}},
+                          {"tool": "sketch_commit", "args": {}},
+                          {"tool": "surface_revolve", "args": {"sketch": 0, "axis": 1}}]},
+                      {"title": "Half a cone's wall: a sloping line turned 180 degrees about the XZ plane's vertical axis", "calls": [
+                          {"tool": "sketch_begin", "args": {"plane": "XZ"}},
+                          {"tool": "sketch_add", "args": {"entities": [{"type": "line", "p0": [5, 0], "p1": [15, 20]}]}},
+                          {"tool": "sketch_commit", "args": {}},
+                          {"tool": "surface_revolve", "args": {"sketch": 0, "axis": 1, "angle": 180}}]}])json")}},
             json{{"name", "mate"}, {"summary", "Mate two bodies: transform the moving body (cs_b) so its connector lands on the fixed one (cs_a)."},
                  {"details", "kind: 0=Fastened, 1=Planar, 2=Revolute, 3=Slider, 4=Cylindrical."},
                  {"params", json::array({
@@ -860,7 +887,9 @@ json tool_rows()
                  {"params", json::array({
                      json{{"name", "path"}, {"type", "string"}, {"description", "absolute path"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A part read from a STEP file as a body", "needs": "a STEP file of the part", "calls": [
+                         {"tool": "import_step", "args": {"path": "/path/to/part.step"}}]}])json")}},
             json{{"name", "import_mesh"}, {"summary", "Convert a triangle mesh (STL/OBJ) into an editable B-rep body."},
                  {"details", "Reports whether the result is a real solid or an open shell, and why."},
                  {"params", json::array({
@@ -868,27 +897,44 @@ json tool_rows()
                      json{{"name", "tolerance"}, {"type", "number"}, {"default", 0.01}},
                      json{{"name", "merge_angle_deg"}, {"type", "number"}, {"default", 5.0}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "An STL mesh turned into an editable body", "needs": "an STL or OBJ mesh file", "calls": [
+                         {"tool": "import_mesh", "args": {"path": "/path/to/part.stl"}}]}])json")}},
             json{{"name", "commit"}, {"summary", "Commit to Plate: send the visible bodies to Prepare at their Move-gizmo positions and show Prepare."},
                  {"details", "It is one Prepare undo step. A lone body is sent even when hidden. A body named in the Bodies list or with body_set names its object or part. Reply: objects (list_objects index after replace, name, volumes), bodies_sent, bodies_hidden, replaced."},
                  {"params", json::array({
                      json{{"name", "mode"},    {"type", "string"}, {"enum", json::array({"assembly", "bodies"})}, {"default", ""}, {"description", "assembly: one object with a part per body; bodies: an object per body. Default: the Commit button's mode, which this leaves as it is."}},
                      json{{"name", "replace"}, {"type", "array"}, {"default", json::array()}, {"description", "list_objects indices to delete in the same undo step, such as an earlier commit. Their settings, modifiers and paint go with them."}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A plate sent to Prepare as one object", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "commit", "args": {}}]},
+                     {"title": "Two bodies sent to Prepare as an object each", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "extrude", "args": {"profile": [[20, -5], [30, -5], [30, 5], [20, 5]], "distance": 10, "boolean": "new"}},
+                         {"tool": "commit", "args": {"mode": "bodies"}}]}])json")}},
             json{{"name", "new_design"}, {"summary", "New Design: erase every feature, body and variable and the Design undo history."},
                  {"details", "Committed objects stay on the plate. Reply: cleared {features, bodies, variables}."},
                  {"params", json::array({
                      json{{"name", "discard_changes"}, {"type", "boolean"}, {"default", false}, {"description", "needed when the design is not empty"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A plate's design erased", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "new_design", "args": {"discard_changes": true}}]},
+                     {"title": "An empty design started over, which needs no discard_changes", "calls": [
+                         {"tool": "new_design", "args": {}}]}])json")}},
             json{{"name", "export_step"}, {"summary", "Export STEP: write every body to a file as native B-rep, at its Move-gizmo position."},
                  {"details", "Reply: path, bytes, bodies, moved_bodies."},
                  {"params", json::array({
                      json{{"name", "path"},      {"type", "string"}, {"description", "absolute path; its directory must exist"}},
                      json{{"name", "overwrite"}, {"type", "boolean"}, {"default", false}, {"description", "replace an existing file"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A plate written to a STEP file", "needs": "a folder to write the STEP file in", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "export_step", "args": {"path": "/path/to/part.step"}}]}])json")}},
             json{{"name", "undo"}, {"summary", "Edit > Undo in the Design tab: take back the last Design change, or in a sketch session the last drawn shape."},
                  {"details", "A change to the Design history is a feature added, edited, deleted, moved, shown or hidden, or renamed, or a variable changed. run_action undo undoes Prepare's history instead. Reply: scope (design or sketch), undo_depth, redo_depth, features, bodies; entities in a sketch."},
                  {"params", json::array()},
@@ -920,28 +966,54 @@ json tool_rows()
                  {"params", json::array({
                      json{{"name", "feature"}, {"type", "integer"}, {"description", "feature index (describe_scene)"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A plate's hole deleted", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "hole", "args": {"diameter": 5, "through": true}},
+                         {"tool": "feature_delete", "args": {"feature": 2}}]},
+                     {"title": "A committed sketch deleted, and the extrude built on it with it", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "extrude", "args": {"sketch": 0, "distance": 5}},
+                         {"tool": "feature_delete", "args": {"feature": 0}}]}])json")}},
             json{{"name", "feature_move"}, {"summary", "Move a feature one place up or down the history, as Move up / Move down do."},
                  {"details", "A feature cannot come before one it uses. One undo step. Reply: feature (its new index), from."},
                  {"params", json::array({
                      json{{"name", "feature"}, {"type", "integer"}, {"description", "feature index (describe_scene)"}},
                      json{{"name", "delta"},   {"type", "integer"}, {"enum", json::array({-1, 1})}, {"description", "-1 up, 1 down"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A datum plane moved up the history, above the extrude before it", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "plane", "args": {"type": "offset", "base": "XY", "offset": 20}},
+                         {"tool": "feature_move", "args": {"feature": 2, "delta": -1}}]}])json")}},
             json{{"name", "feature_set_enabled"}, {"summary", "Show or hide (suppress) a feature as its row's eye does."},
                  {"details", "A hidden feature is left out of the rebuild and bodies may renumber. One undo step, none when it already was. Reply: enabled, changed, bodies."},
                  {"params", json::array({
                      json{{"name", "feature"}, {"type", "integer"}, {"description", "feature index (describe_scene)"}},
                      json{{"name", "enabled"}, {"type", "boolean"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A plate's hole hidden: the plate rebuilds without it", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "hole", "args": {"diameter": 5, "through": true}},
+                         {"tool": "feature_set_enabled", "args": {"feature": 2, "enabled": false}}]},
+                     {"title": "A hidden hole shown again", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "hole", "args": {"diameter": 5, "through": true}},
+                         {"tool": "feature_set_enabled", "args": {"feature": 2, "enabled": false}},
+                         {"tool": "feature_set_enabled", "args": {"feature": 2, "enabled": true}}]}])json")}},
             json{{"name", "feature_rename"}, {"summary", "Rename a feature as F2 on its row does."},
                  {"details", "Its own undo step. Reply: name, changed."},
                  {"params", json::array({
                      json{{"name", "feature"}, {"type", "integer"}, {"description", "feature index (describe_scene)"}},
                      json{{"name", "name"},    {"type", "string"}, {"description", "trimmed; not empty"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A plate's extrude renamed Base plate", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "feature_rename", "args": {"feature": 1, "name": "Base plate"}}]}])json")}},
             json{{"name", "body_set"}, {"summary", "Rename, colour or show/hide a body, as its Bodies row and the Color button do; give one or more."},
                  {"details", "Not in the undo history. The name and colour are saved with the project and the name names its committed object; visibility is view state, and commit leaves hidden bodies out. Reply: name, color, visible."},
                  {"params", json::array({
@@ -950,13 +1022,24 @@ json tool_rows()
                      json{{"name", "color"},   {"type", "string"},  {"default", nullptr}, {"description", "\"#RRGGBB\""}},
                      json{{"name", "visible"}, {"type", "boolean"}, {"default", nullptr}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A plate's body named Base and coloured blue", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "body_set", "args": {"body": 0, "name": "Base", "color": "#3366CC"}}]},
+                     {"title": "The second of two bodies hidden", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "extrude", "args": {"profile": [[20, -5], [30, -5], [30, 5], [20, 5]], "distance": 10, "boolean": "new"}},
+                         {"tool": "body_set", "args": {"body": 1, "visible": false}}]}])json")}},
             json{{"name", "body_delete"}, {"summary", "Delete a body as its row's Delete does: the feature that made it goes, which can take other features and bodies with it."},
                  {"details", "One undo step. Reply: deleted_feature {index, type, name}, removed, features, bodies."},
                  {"params", json::array({
                      json{{"name", "body"}, {"type", "integer"}, {"description", "body index (describe_scene)"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "The second of two bodies deleted, with the extrude that made it", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "extrude", "args": {"profile": [[20, -5], [30, -5], [30, 5], [20, 5]], "distance": 10, "boolean": "new"}},
+                         {"tool": "body_delete", "args": {"body": 1}}]}])json")}},
             json{{"name", "validate_against"}, {"summary", "Compare a body with a reference: volume, bbox, centroid and surface deviation (the RE acceptance metric)."},
                  {"details", "The reference is {step:path|body:id}; the surface deviation is max/mean/rms in mm."},
                  {"params", json::array({
@@ -1004,14 +1087,14 @@ json tool_rows()
                          {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
                          {"tool": "sketch_cancel", "args": {}}]}])json")}},
             json{{"name", "sketch_add"}, {"summary", "Add entities or shapes to the open sketch: `entities` (a list), or one item's fields beside `type`, or `rect`."},
-                 {"details", "Entities: line {p0, p1}, circle {center, radius}, arc {center, radius, start_angle, end_angle}, point {p}. Shapes, built as their drawing tools build them: polygon {center, sides, radius (to a vertex) or across_flats, angle (of that vertex, or of the first edge's midpoint)}, slot {c0, c1, width}, ellipse {center, radius (semi-major), rminor, rotation}, ellipse_arc {the ellipse's fields, start_angle, end_angle: parametric, counter-clockwise}, spline {ctrl: 2 or more poles}. Points are [x, y] in the sketch plane (mm); angles are radians, or degrees as start_angle_deg and the like. A polygon is lines; its side count is not kept once committed. Reply: first_index, added, shapes [{first, count}] per item, entities, dof."},
+                 {"details", "Entities: line {p0, p1}, circle {center, radius}, arc {center, radius, start_angle, end_angle}, point {p}. Shapes, built as their drawing tools build them: polygon {center, sides, radius (to a vertex) or across_flats, angle (of that vertex, or of the first edge's midpoint)}, slot {c0, c1, width}, ellipse {center, radius (semi-major), rminor, rotation}, ellipse_arc {the ellipse's fields, start_angle, end_angle: parametric, counter-clockwise}, spline {ctrl: 2 or more poles}. Each item of entities may carry its own construction: true; the top-level construction applies only to rect and to the single-type form. Points are [x, y] in the sketch plane (mm); angles are radians, or degrees as start_angle_deg and the like. A polygon is lines; its side count is not kept once committed. Reply: first_index, added, shapes [{first, count}] per item, entities, dof."},
                  {"params", json::array({
                      json{{"name", "entities"},     {"type", "array"}, {"default", json::array()}, {"description", "entity or shape objects, each with a type"}},
                      json{{"name", "type"},         {"type", "string"}, {"enum", json::array({"line", "arc", "circle", "point", "polygon", "slot", "ellipse", "ellipse_arc", "spline"})}, {"default", ""}, {"description", "one item, its fields beside it"}},
                      json{{"name", "rect"},         {"type", "array"}, {"default", json::array()}, {"description", "[x0, y0, x1, y1]: a closed rectangle of four lines"}},
                      json{{"name", "start_angle"},  {"type", "number"}, {"unit", "rad"}, {"default", 0}, {"description", "arc start, counter-clockwise from the plane's x axis"}},
                      json{{"name", "end_angle"},    {"type", "number"}, {"unit", "rad"}, {"default", 0}},
-                     json{{"name", "construction"}, {"type", "boolean"}, {"default", false}},
+                     json{{"name", "construction"}, {"type", "boolean"}, {"default", false}, {"description", "for rect and the single-type form; an item of entities carries its own"}},
                  })},
                  {"examples", examples(R"json([
                      {"title": "A 30 x 20 mm rectangle", "calls": [
@@ -1288,14 +1371,24 @@ json tool_rows()
                  {"params", json::array({
                      json{{"name", "verb"}, {"type", "string"}, {"description", "verb id"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "Sketch, as Shift+S fires it: with nothing picked, the Design tab offers the planes to sketch on", "calls": [
+                         {"tool": "run_verb", "args": {"verb": "sketch"}}]}])json")}},
             json{{"name", "set_variable"}, {"summary", "Set a design variable to an expression, or remove it with an empty expr."},
                  {"details", "Feature fields bound with set_feature_expr follow it."},
                  {"params", json::array({
                      json{{"name", "name"}, {"type", "string"}},
                      json{{"name", "expr"}, {"type", "string"}, {"description", "e.g. \"20\" or \"width / 2 + 3\"; \"\" removes the variable"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A variable w of 20", "calls": [
+                         {"tool": "set_variable", "args": {"name": "w", "expr": "20"}}]},
+                     {"title": "A variable worked out from another: h = w / 2 + 3, which is 13", "calls": [
+                         {"tool": "set_variable", "args": {"name": "w", "expr": "20"}},
+                         {"tool": "set_variable", "args": {"name": "h", "expr": "w / 2 + 3"}}]},
+                     {"title": "A variable removed with an empty expression", "calls": [
+                         {"tool": "set_variable", "args": {"name": "w", "expr": "20"}},
+                         {"tool": "set_variable", "args": {"name": "w", "expr": ""}}]}])json")}},
             json{{"name", "set_feature_expr"}, {"summary", "Bind a feature's numeric field to an expression over the design variables, or unbind it with an empty expr."},
                  {"details", "Unbound, the field keeps its value."},
                  {"params", json::array({
@@ -1303,27 +1396,67 @@ json tool_rows()
                      json{{"name", "field"},   {"type", "string"}, {"description", "a numeric field of describe_feature's params, e.g. width, distance, hole_diameter, thread_diameter"}},
                      json{{"name", "expr"},    {"type", "string"}, {"description", "\"\" removes the binding"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A plate's thickness bound to the variable t", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "set_variable", "args": {"name": "t", "expr": "8"}},
+                         {"tool": "set_feature_expr", "args": {"feature": 1, "field": "distance", "expr": "t"}}]},
+                     {"title": "A plate's thickness unbound, keeping the 8 mm the binding gave it", "calls": [
+                         {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                         {"tool": "set_variable", "args": {"name": "t", "expr": "8"}},
+                         {"tool": "set_feature_expr", "args": {"feature": 1, "field": "distance", "expr": "t"}},
+                         {"tool": "set_feature_expr", "args": {"feature": 1, "field": "distance", "expr": ""}}]}])json")}},
             json{{"name", "surface_loft"}, {"summary", "Skin two or more profile sketches with no end caps -> an open sheet body."},
                  {"details", ""},
                  {"params", json::array({
                      json{{"name", "profiles"}, {"type", "array"}, {"description", "sketch feature indices, in order"}},
                      json{{"name", "ruled"},    {"type", "boolean"}, {"default", false}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "An open funnel skinned from a circle on XY to a wider one on a datum plane 20 mm up", "calls": [
+                         {"tool": "plane", "args": {"type": "offset", "base": "XY", "offset": 20}},
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [0, 0], "radius": 5}]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "sketch_begin", "args": {"plane": {"datum": 0}}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [0, 0], "radius": 15}]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "surface_loft", "args": {"profiles": [1, 2]}}]}])json")}},
             json{{"name", "surface_fill"}, {"summary", "Fill a sketch's closed boundary with one smooth face -> a sheet body."},
                  {"details", ""},
                  {"params", json::array({
                      json{{"name", "sketch"}, {"type", "integer"}, {"description", "sketch feature index"}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A circle filled with a disc-shaped sheet", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [0, 0], "radius": 10}]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "surface_fill", "args": {"sketch": 0}}]},
+                     {"title": "A rectangle filled with a flat sheet", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "surface_fill", "args": {"sketch": 0}}]}])json")}},
             json{{"name", "surface_offset"}, {"summary", "Offset a sheet body by a signed distance -> another sheet body."},
                  {"details", ""},
                  {"params", json::array({
                      json{{"name", "body"},   {"type", "integer"}, {"default", -1}, {"description", "sheet body; omit for the last body"}},
                      json{{"name", "offset"}, {"type", "number"}, {"unit", "mm"}, {"default", 1}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A rectangular sheet copied 5 mm above itself", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "surface_fill", "args": {"sketch": 0}},
+                         {"tool": "surface_offset", "args": {"offset": 5}}]},
+                     {"title": "An open tube of radius 10 mm offset -2 mm, against its inward normal, to one of radius 12 mm", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [0, 0], "radius": 10}]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "surface_extrude", "args": {"sketch": 0, "distance": 20}},
+                         {"tool": "surface_offset", "args": {"body": 0, "offset": -2}}]}])json")}},
             json{{"name", "thicken_surface"}, {"summary", "Thicken a whole sheet body into a solid."},
                  {"details", ""},
                  {"params", json::array({
@@ -1331,7 +1464,19 @@ json tool_rows()
                      json{{"name", "thickness"}, {"type", "number"}, {"unit", "mm"}, {"default", 2}, {"min", 0.01}},
                      json{{"name", "flip"},      {"type", "boolean"}, {"default", false}},
                  })},
-                 {"examples", json::array()}},
+                 {"examples", examples(R"json([
+                     {"title": "A 30 x 20 mm sheet thickened into a 2 mm plate, a new body", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "surface_fill", "args": {"sketch": 0}},
+                         {"tool": "thicken_surface", "args": {"thickness": 2}}]},
+                     {"title": "An open tube thickened 1.5 mm outward into a pipe: flip, as its normal points inward", "calls": [
+                         {"tool": "sketch_begin", "args": {"plane": "XY"}},
+                         {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [0, 0], "radius": 10}]}},
+                         {"tool": "sketch_commit", "args": {}},
+                         {"tool": "surface_extrude", "args": {"sketch": 0, "distance": 20}},
+                         {"tool": "thicken_surface", "args": {"body": 0, "thickness": 1.5, "flip": true}}]}])json")}},
         })},
     };
 }
