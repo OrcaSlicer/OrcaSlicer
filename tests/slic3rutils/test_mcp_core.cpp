@@ -1148,17 +1148,34 @@ TEST_CASE("replacing a call's arguments moves the journal's byte total", "[Mcp]"
 {
     Journal    journal;
     const json fifteen = args_of_mib(15);
+    json       left;
     for (int i = 0; i < 4; ++i)
         journal.end(journal.begin("set_settings", fifteen), ToolResult::ok());
-    // 60 MiB, then 70 MiB once the small call's arguments grow: the first 15 MiB call goes.
+    // 60 MiB, then 70 MiB once the small call's arguments grow: the first 15 MiB call goes at once,
+    // while the grown call still waits for its reply.
     const uint64_t b = journal.begin("set_settings", {{"values", {{"wall_loops", 3}}}});
     journal.set_args(b, args_of_mib(10));
+    CHECK(journal.to_replay("s", &left)["steps"].size() == 3);
+    CHECK(left.size() == 1);
     journal.end(b, ToolResult::ok());
     CHECK(journal.to_replay("s")["steps"].size() == 4);
     // Shrinking them back leaves 45 MiB, room for one more 15 MiB call.
     journal.set_args(b, {{"values", {{"wall_loops", 3}}}});
     journal.end(journal.begin("set_settings", fifteen), ToolResult::ok());
     CHECK(journal.to_replay("s")["steps"].size() == 5);
+}
+
+TEST_CASE("clearing the journal resets its byte total", "[Mcp]")
+{
+    Journal    journal;
+    const json fifteen = args_of_mib(15);
+    for (int i = 0; i < 4; ++i)
+        journal.end(journal.begin("set_settings", fifteen), ToolResult::ok());
+    journal.clear();
+    // Were the cleared calls' 60 MiB still counted, this 15 MiB call would go once it replied.
+    journal.end(journal.begin("set_settings", fifteen), ToolResult::ok());
+    journal.end(journal.begin("set_settings", {{"values", {{"wall_loops", 3}}}}), ToolResult::ok());
+    CHECK(journal.to_replay("s")["steps"].size() == 2);
 }
 
 TEST_CASE("one call bigger than the cap is dropped once it has replied", "[Mcp]")

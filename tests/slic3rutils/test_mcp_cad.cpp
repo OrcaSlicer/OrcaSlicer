@@ -171,8 +171,15 @@ bool is_id_param(const std::string& name)
     return std::find(ids.begin(), ids.end(), name) != ids.end();
 }
 
-// A call's context whose short reads on the UI thread give `answer`, or fail as they do when the UI
-// does not answer in time.
+// Whether a CAD tool param is a plane that may also be a planar face, {"body": b, "face": f}.
+bool takes_face_plane(const json& param)
+{
+    return param.at("name") == "plane" &&
+           param.value("description", std::string()).find("{\"body\": b, \"face\": f}") != std::string::npos;
+}
+
+// A call's context whose short reads on the UI thread (observe_ui) give `answer`, or fail as they do
+// when the UI does not answer in time. A run_ui call fails the test.
 struct UiReadContext final : GUI::Mcp::ToolContext
 {
     json        answer;
@@ -184,7 +191,11 @@ struct UiReadContext final : GUI::Mcp::ToolContext
         if (!answers) throw GUI::Mcp::ToolFailure("the UI did not answer");
         return answer;
     }
-    json run_ui(const std::function<json()>& fn) override { return observe_ui(fn); }
+    json run_ui(const std::function<json()>&) override
+    {
+        FAIL("cad_feature_note must read the preference through observe_ui");
+        return json();
+    }
     const std::string& job_id() const override { return id; }
     bool cancelled() const override { return false; }
     GUI::Mcp::ToolResult call_child(const std::string&, const json&) override { return GUI::Mcp::ToolResult::error("no children"); }
@@ -312,15 +323,18 @@ TEST_CASE("describe_cad_tool gives id_lifetime only for tools that take or give 
     CHECK_FALSE(GUI::Mcp::cad_describe_tool("describe_scene").contains("id_lifetime"));
     CHECK(GUI::Mcp::cad_describe_tool(json::array({"describe_scene", "fillet"})).contains("id_lifetime"));
 
+    // A tool takes ids through a face or edge param, or through a plane that may be a planar face; these
+    // give them in their replies.
+    const std::set<std::string> gives_ids = {"query_topology", "measure", "slice_body", "describe_feature"};
     const json all = GUI::Mcp::cad_describe_tool(all_cad_tools());
     for (const json& row : all.at("tools")) {
         const std::string name = row.at("name").get<std::string>();
         INFO(name);
         CHECK_FALSE(row.contains("ids"));
-        bool takes_ids = false;
+        bool ids = gives_ids.count(name) != 0;
         for (const json& p : row.at("params"))
-            if (is_id_param(p.at("name").get<std::string>())) takes_ids = true;
-        if (takes_ids) CHECK(GUI::Mcp::cad_describe_tool(name).contains("id_lifetime"));
+            if (is_id_param(p.at("name").get<std::string>()) || takes_face_plane(p)) ids = true;
+        CHECK(GUI::Mcp::cad_describe_tool(name).contains("id_lifetime") == ids);
     }
 }
 
