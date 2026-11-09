@@ -1,4 +1,6 @@
 #include "Preferences.hpp"
+#include "slic3r/GUI/CAD/LlmAgent.hpp"
+#include "slic3r/GUI/CAD/McpControl.hpp"
 #include "CloudProvider.hpp"
 #include "ColorPickerDialog.hpp"
 #include "OptionsGroup.hpp"
@@ -797,6 +799,28 @@ wxBoxSizer *PreferencesDialog::create_item_input(wxString title, wxString title2
         e.Skip();
     });
 
+    return m_sizer;
+}
+
+wxBoxSizer *PreferencesDialog::create_item_text(wxString title, wxString tooltip, std::string param, const wxString placeholder)
+{
+    auto tip = tooltip.IsEmpty() ? title : tooltip;
+    wxBoxSizer *m_sizer = create_item_label(title, tip);
+
+    auto       input = new ::TextInput(m_parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(260), DESIGN_INPUT_SIZE.GetHeight()), wxTE_PROCESS_ENTER);
+    StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled), std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
+    input->SetBackgroundColor(input_bg);
+    input->GetTextCtrl()->SetValue(wxString::FromUTF8(app_config->get(param)));
+    if (!placeholder.IsEmpty()) input->GetTextCtrl()->SetHint(placeholder);
+    input->SetToolTip(tip);
+    m_sizer->Add(input, 0, wxALIGN_CENTER_VERTICAL);
+
+    auto save = [this, param, input]() {
+        app_config->set(param, std::string(input->GetTextCtrl()->GetValue().ToUTF8()));
+        app_config->save();
+    };
+    input->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [save](wxCommandEvent &e) { save(); e.Skip(); });
+    input->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [save](wxFocusEvent &e) { save(); e.Skip(); });
     return m_sizer;
 }
 
@@ -2486,6 +2510,43 @@ void PreferencesDialog::create_items()
 
     auto item_plugin_version = create_item_network_plugin_version(_L("Network plug-in version"), _L("Select the network plug-in version to use"));
     g_sizer->Add(item_plugin_version);
+
+    g_sizer->AddSpacer(FromDIP(10));
+    sizer_page->Add(g_sizer, 0, wxEXPAND);
+
+    //////////////////////////
+    //// LLM / MCP TAB
+    /////////////////////////////////////
+    m_pref_tabs->AppendItem(_L("LLM / MCP"));
+    f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
+    g_sizer = f_sizers.back();
+    g_sizer->AddGrowableCol(0, 1);
+
+    //// LLM / MCP > Agent
+    g_sizer->Add(create_item_title(_L("Agent")), 1, wxEXPAND);
+    g_sizer->Add(create_item_text(_L("Executable"), _L("Full path of the agent CLI. Leave empty to use `claude` from PATH."), "llm_cli_path", "claude"));
+    g_sizer->Add(create_item_text(_L("Model"), _L("Passed as --model. Leave empty for the CLI's own default."), "llm_model"));
+    g_sizer->Add(create_item_text(_L("Extra arguments"), _L("Appended to the command line, split on spaces."), "llm_cli_args"));
+    g_sizer->Add(create_item_button(_L("Test the agent"), _L("Test"), _L("Starts the agent against this app's MCP and asks it to read the open document."), "", []() {
+        llm_agent_run("Use the orca-cad MCP tools: call inspect_design once, then reply with one short sentence saying how many bodies the open document has.",
+                      [](bool ok, const std::string& text) {
+            wxMessageDialog dlg(nullptr, wxString::FromUTF8(text.empty() ? std::string("(no output)") : text),
+                                ok ? _L("Agent test: OK") : _L("Agent test: failed"), wxOK | (ok ? wxICON_INFORMATION : wxICON_ERROR));
+            dlg.ShowModal();
+        });
+    }));
+
+    //// LLM / MCP > MCP
+    g_sizer->Add(create_item_title(_L("MCP server")), 1, wxEXPAND);
+    g_sizer->Add(create_item_text(_L("Loopback TCP port"), _L("0 or empty: off. Otherwise the MCP also listens on 127.0.0.1:<port>, for clients that cannot open a Unix socket. Any program on this PC can reach it. Requires restart."), "llm_mcp_port", "0"));
+    {
+        const std::string sock = mcp_socket_path();
+        auto note = new wxStaticText(m_parent, wxID_ANY, sock.empty() ? _L("The Unix socket is off (ORCA_CAD_MCP=0).")
+                                                                       : wxString::Format(_L("Unix socket: %s"), wxString::FromUTF8(sock)));
+        note->SetForegroundColour(DESIGN_GRAY900_COLOR);
+        note->SetFont(::Label::Body_14);
+        g_sizer->Add(note, 0, wxLEFT, FromDIP(14));
+    }
 
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);

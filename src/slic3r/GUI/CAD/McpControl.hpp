@@ -17,11 +17,16 @@
 // ponytail: Unix-socket only (POSIX). Windows compiles this to a no-op; add a named
 // pipe transport when a Windows agent actually needs it.
 
+#include <string>
+
 namespace Slic3r { namespace GUI {
 
 // Start the server thread unless ORCA_CAD_MCP is 0/off. Safe to call once the MainFrame exists —
 // the Design panel is built on the first request. No-op when opted out or on Windows.
 void start_mcp_control_if_enabled();
+
+// Path of the control socket the app listens on (same rule as above); empty when ORCA_CAD_MCP=0|off or on Windows.
+std::string mcp_socket_path();
 
 }} // namespace Slic3r::GUI
 

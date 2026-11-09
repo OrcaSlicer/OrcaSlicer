@@ -18,6 +18,8 @@
 
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <sys/stat.h>   // umask/chmod: the socket's file mode IS its access control
 #include <unistd.h>
 #include <cstdlib>
@@ -6086,18 +6088,59 @@ void server_thread(std::string sock_path)
     }
 }
 
+// Optional TCP listener on 127.0.0.1 for MCP clients that cannot open a Unix socket (Preferences > LLM / MCP, port 0 = off).
+// Same line-delimited JSON-RPC and the same ORCA_CAD_MCP_TOKEN check as the socket. Loopback only, by design: any local
+// process can reach it, which is the trade a single-user PC accepts; it is never bound to another interface.
+void tcp_server_thread(int port)
+{
+    const int sfd = ::socket(AF_INET, SOCK_STREAM, 0);
+    if (sfd < 0) { BOOST_LOG_TRIVIAL(error) << "MCP: tcp socket() failed"; return; }
+    const int one = 1;
+    ::setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+    sockaddr_in addr{};
+    addr.sin_family      = AF_INET;
+    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    addr.sin_port        = htons(static_cast<uint16_t>(port));
+    if (::bind(sfd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0 || ::listen(sfd, 8) < 0) {
+        BOOST_LOG_TRIVIAL(error) << "MCP: cannot listen on 127.0.0.1:" << port;
+        ::close(sfd); return;
+    }
+    BOOST_LOG_TRIVIAL(info) << "MCP control listening on 127.0.0.1:" << port;
+    for (;;) {
+        const int cfd = ::accept(sfd, nullptr, nullptr);
+        if (cfd < 0) continue;
+        static std::once_flag watchdog_once;
+        std::call_once(watchdog_once, [] { wxGetApp().CallAfter([] { install_ui_watchdog(); }); });
+#if !defined(MSG_NOSIGNAL) && defined(SO_NOSIGPIPE)
+        ::setsockopt(cfd, SOL_SOCKET, SO_NOSIGPIPE, &one, sizeof(one));
+#endif
+        static std::atomic<int> clients{0};
+        if (clients.load() >= 8) { ::close(cfd); continue; }
+        ++clients;
+        std::thread([cfd]() { serve_client(cfd); ::close(cfd); --clients; }).detach();
+    }
+}
+
 } // namespace
+
+std::string mcp_socket_path()
+{
+    const char* env = std::getenv("ORCA_CAD_MCP");
+    if (env && (std::strcmp(env, "0") == 0 || std::strcmp(env, "off") == 0)) return {};
+    return (!env || !*env || std::strcmp(env, "1") == 0) ? "/tmp/orca-cad-mcp.sock" : env;
+}
 
 void start_mcp_control_if_enabled()
 {
     // On by default (the Design tab must be enabled to get here); ORCA_CAD_MCP=0|off opts out.
-    const char* env = std::getenv("ORCA_CAD_MCP");
-    if (env && (std::strcmp(env, "0") == 0 || std::strcmp(env, "off") == 0)) return;
-    const std::string path = (!env || !*env || std::strcmp(env, "1") == 0) ? "/tmp/orca-cad-mcp.sock" : env;
+    const std::string path = mcp_socket_path();
+    if (path.empty()) return;
     static bool started = false;
     if (started) return;
     started = true;
     std::thread(server_thread, path).detach();
+    const int port = std::atoi(wxGetApp().app_config->get("llm_mcp_port").c_str());
+    if (port > 0 && port < 65536) std::thread(tcp_server_thread, port).detach();
 }
 
 }} // namespace Slic3r::GUI
@@ -6106,6 +6149,7 @@ void start_mcp_control_if_enabled()
 
 namespace Slic3r { namespace GUI {
 void start_mcp_control_if_enabled() {}   // ponytail: no Windows transport yet
+std::string mcp_socket_path() { return {}; }
 }}
 
 #endif

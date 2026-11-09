@@ -868,6 +868,8 @@ if (SLIC3R_CAD)
         GUI/CAD/DesignImGuiUi.cpp
         GUI/CAD/DesignImGuiUi.hpp
         GUI/CAD/DesignQuotes.cpp
+        GUI/CAD/LlmAgent.cpp
+        GUI/CAD/LlmAgent.hpp
         GUI/CAD/DesignQuotes.hpp
         GUI/CAD/DesignCardModel.hpp
         GUI/CAD/DesignRibbonTable.hpp
