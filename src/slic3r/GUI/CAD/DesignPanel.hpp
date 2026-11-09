@@ -132,12 +132,11 @@ public:
     {
         return b >= 0 && b < int(m_body_xform.size()) && !m_body_xform[b].isApprox(Transform3d::Identity());
     }
-    // Put the PANEL into (or out of) sketch mode, not just the canvas tool. Measured on the
-    // rig: a sketch started straight through DesignCanvas::begin_sketch leaves m_ui_mode at
-    // Feature, and the keyboard map is dispatched on `m_ui_mode == UiMode::Sketch` while the
-    // offer menu is dispatched on the looser sketch_map_applies() — so the menu offered the
-    // line's verbs while every sketch shortcut was dead (KEYTRACE: key=81 ui_mode=0
-    // is_sketching=1). Half-entering a mode is worse than not entering it.
+    // Put the PANEL into (or out of) sketch mode, not just the canvas tool. A sketch started
+    // straight through DesignCanvas::begin_sketch leaves m_ui_mode at Feature, and the keyboard
+    // map is dispatched on `m_ui_mode == UiMode::Sketch` while the offer menu is dispatched on
+    // the looser sketch_map_applies() — so the menu would offer the line's verbs while every
+    // sketch shortcut is dead. Half-entering a mode is worse than not entering it.
     void mcp_set_sketch_mode(bool on)
     {
         set_ui_mode(on ? UiMode::Sketch : UiMode::Feature);
@@ -191,9 +190,9 @@ private:
     void tool_cancel();         // ✗ : cancel the active feature / discard / exit
     // Esc. ONE press unwinds ONE level of the interaction stack (DesignInteraction.hpp), and no
     // level of it destroys committed work. escape_level() answers which level the press belongs
-    // to; escape() acts on exactly that one. Every Esc in the tab routes through here — the key
-    // used to be handled in four places that could not see each other, and that is how two
-    // presses in a row reached past a tool and discarded the sketch under it.
+    // to; escape() acts on exactly that one. Every Esc in the tab routes through here: handled
+    // in places that cannot see each other, two presses in a row could reach past a tool and
+    // discard the sketch under it.
     CadLevel escape_level() const;
     bool confirm_enabled() const;   // would the ✓ act right now? (its greying follows this)
     void     escape();
@@ -255,9 +254,9 @@ private:
     // >= 0 = the bodies as they existed just before that feature index (Boolean re-edit, so a
     // consumed tool body still appears and its saved selection round-trips).
     // Which body a tool should act on when it opens: the one picked in the VIEWPORT, else
-    // the first. Selection comes first and the tool consumes it — every body combo used to
-    // default to index 0, so picking body 3 and opening Mirror silently mirrored body 1.
-    // Clamped to the list, so it is safe to hand straight to SetSelection. e1p.
+    // the first. Selection comes first and the tool consumes it: with every body combo on
+    // index 0, picking body 3 and opening Mirror would silently mirror body 1. Clamped to the
+    // list, so it is safe to hand straight to SetSelection.
     int  selected_body_default() const;
     void populate_body_choices(int as_of_feature = -1);
     // Fill `c` with the bodies as they existed just before `as_of_feature` and select
@@ -590,9 +589,9 @@ private:
     // Top contextual toolbar (parented to the panel, above the form/viewport row).
     UiMode    m_ui_mode{UiMode::Feature};
     // Sketch environment banner: a strip across the top of the viewport saying, in words, that
-    // this is a sketch and which one. The mode used to be legible only from the toolbar and the
-    // left card — both of which look like the rest of the app — so a sketch session and plate
-    // preparation were one glance apart. Indicator only: Finish/Cancel stay on the ONE ribbon
+    // this is a sketch and which one. The toolbar and the left card alone look like the rest of
+    // the app, which would leave a sketch session and plate preparation one glance apart.
+    // Indicator only: Finish/Cancel stay on the ONE ribbon
     // action bar (the Design UX contract), and the banner never grows a second pair.
     wxPanel*      m_sketch_banner{nullptr};
     wxStaticText* m_sketch_banner_txt{nullptr};
@@ -1069,8 +1068,8 @@ private:
     // reliable way to tell a chosen colour (the error red) from the default. See set_status().
     // The guidance sentence for the step the armed sketch tool is on, kept so a transient
     // readout (the live length/angle while a segment is being dragged) can be appended to it
-    // instead of replacing it — the guidance used to vanish on the first mouse move after a
-    // click, which is precisely when it is needed. 1c0c.
+    // instead of replacing it; replaced, the guidance would vanish on the first mouse move
+    // after a click, which is precisely when it is needed.
     wxString          m_sketch_step;
     // mode is a DesignSketchTool::Mode; passed as an int because this header deliberately does
     // not include the tool's, and the .cpp (which does) casts it back.

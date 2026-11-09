@@ -868,7 +868,7 @@ bool CadDocument::solve_sketch_feature(int index)
         case SketchConstraintType::EqualLength:  if ((valid = ok_idx({c.a, c.b, c.c, c.d}))) sc.equal_length(c.a, c.b, c.c, c.d); break;
         case SketchConstraintType::Parallel:     if ((valid = ok_idx({c.a, c.b, c.c, c.d}))) sc.parallel(c.a, c.b, c.c, c.d); break;
         case SketchConstraintType::Perpendicular:if ((valid = ok_idx({c.a, c.b, c.c, c.d}))) sc.perpendicular(c.a, c.b, c.c, c.d); break;
-        // The legacy solver implements these too; they used to be dropped without a word.
+        // The legacy solver implements these too, so they are passed on, not dropped.
         case SketchConstraintType::Midpoint:     if ((valid = ok_idx({c.a, c.b, c.c}))) sc.midpoint(c.a, c.b, c.c); break;
         case SketchConstraintType::Symmetric:    if ((valid = ok_idx({c.a, c.b, c.c, c.d}))) sc.symmetric(c.a, c.b, c.c, c.d); break;
         case SketchConstraintType::Angle:        if ((valid = ok_idx({c.a, c.b, c.c, c.d}))) sc.angle(c.a, c.b, c.c, c.d, c.value); break;
@@ -2189,8 +2189,8 @@ bool CadDocument::rollback()
 
 
 // A feature's body index: -1 means "the last body", anything else must exist. An index past
-// the end used to fall back to the last body in silence, so a feature whose body had gone away
-// went on to work on a different one.
+// the end is refused rather than taken as the last body, so a feature whose body has gone away
+// does not go on to work on a different one.
 static int pick_body(int ref, int nb)
 {
     if (ref == -1) return nb - 1;
@@ -2567,10 +2567,10 @@ TopoDS_Wire CadDocument::build_sketch_wire(const CadFeature& sketch, bool closed
         // An entity sketch that yields no wire is an ERROR, not a cue to fall through. The
         // legacy tail of this function ends in a default rectangle built from width/height,
         // which for an entity sketch are whatever they happened to be initialised to — so a
-        // sketch entities_to_wire cannot handle (a circle coexisting with a line, two circles:
-        // 88v) used to extrude into a box the user never drew, silently. Failing here
-        // costs the caller an error message; falling through cost them wrong geometry that
-        // looked deliberate. The legacy profile/shape paths below are still reached by sketches
+        // sketch entities_to_wire cannot handle (a circle coexisting with a line, two circles)
+        // would extrude into a box the user never drew, silently. Failing here costs the
+        // caller an error message; falling through would cost them wrong geometry that looks
+        // deliberate. The legacy profile/shape paths below are still reached by sketches
         // that legitimately carry no entities at all.
         throw std::runtime_error(
             open_loop_message(sketch,
@@ -2818,8 +2818,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         if (wire.IsNull()) throw std::runtime_error(_u8L("surface-revolve: empty profile"));
         gp_Ax1 axis = revolve_axis_of(f, sk);
         // Same angle rules as the solid Revolve (flip reverses it, and a negative sweep is a
-        // positive one about the reversed axis — MakeRevol wants (0, 2 pi]); this surface
-        // version used to ignore both.
+        // positive one about the reversed axis — MakeRevol wants (0, 2 pi]).
         double ang = (f.flip ? -f.revolve_angle : f.revolve_angle) * M_PI / 180.0;
         if (ang < 0) { axis.Reverse(); ang = -ang; }
         BRepPrimAPI_MakeRevol rev(wire, axis, ang, false);
@@ -4555,8 +4554,8 @@ std::string CadDocument::serialize_recipe() const
         ar(blen);
         ar(cereal::binary_data(bb.data(), bb.size()));
         // DOCUMENT EXTRAS, appended after the body names on the same terms (older builds stop
-        // reading before it): the modeling origin, and the body colours. A colour set with the
-        // Color tool used to live only until the project was closed.
+        // reading before it): the modeling origin, and the body colours, so a colour set with
+        // the Color tool is saved with the project.
         std::map<uint32_t, std::array<float, 4>> colours;
         for (uint32_t i = 0; i < bodies.size(); ++i)
             if (bodies[i].has_color)

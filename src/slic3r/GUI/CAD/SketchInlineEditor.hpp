@@ -13,20 +13,14 @@ class ImGuiWrapper;
 
 // Onshape-style in-canvas value editor.
 //
-// IT IS NOT A WINDOW. It used to be a borderless top-level wxFrame holding a wxTextCtrl, and
-// that is the whole history of this file: a separate top-level window can only receive typing
-// if the window manager grants it focus, and whether it does is not ours to decide. openbox
-// grants it; mutter's focus-stealing prevention refuses it, so on a GNOME desktop the field
-// appeared, showed its value selected, and silently ignored every keystroke — Enter then
-// committed the number it opened with. Seven workarounds were tried against that (a real X11
-// server timestamp for gtk_window_present, re-asserted SetFocus, dropping the _UTILITY hint,
-// keeping the frame mapped between two queued fields, forwarding keys from the panel's
-// CHAR_HOOK), one of them caused a macOS regression, and the test harness ended up clicking the
-// field before typing — which is the workaround a user cannot be asked to perform, and is
-// exactly the "label value not editable" report.
+// IT IS NOT A WINDOW. A separate top-level window, such as a borderless wxFrame holding a
+// wxTextCtrl, can only receive typing if the window manager grants it focus, and whether it does
+// is not ours to decide. openbox grants it; mutter's focus-stealing prevention refuses it, so on a
+// GNOME desktop such a field would appear, show its value selected, and silently ignore every
+// keystroke, with Enter then committing the number it opened with.
 //
-// So the field stops asking. It is now drawn INSIDE the GL canvas as an ImGui overlay, at the
-// same screen point as before, and its keys arrive through the canvas's own key events, which
+// So the field does not ask. It is drawn INSIDE the GL canvas as an ImGui overlay, and its keys
+// arrive through the canvas's own key events, which
 // GLCanvas3D already feeds to ImGui (see GLCanvas3D::on_key / on_char -> update_key_data). The
 // canvas is part of the main window and already has focus, so there is no second window, no
 // second focus, and no window manager in the path. The dimension labels next to it are already

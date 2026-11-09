@@ -2,10 +2,10 @@
 """Autonomous 2D-sketch loop: drive the Design tab's sketch layer through the app's MCP server and
 assert the things that decide whether a profile is buildable.
 
-WHY THIS EXISTS. Asked by clicking, every question about the 2D layer ("is this loop closed?", "did
-the offset survive?", "is the circle a void or a second body?") costs a GUI session and a human. The
-CAD tools make each one a call, and this script is the loop: build a known profile, ask the app what
-it thinks it has, compare against arithmetic.
+WHY THIS EXISTS. Every question about the 2D layer ("is this loop closed?", "did the offset
+survive?", "is the circle a void or a second body?"), asked by clicking, costs a GUI session and a
+human. The CAD tools make each one a call, and this script is the loop: build a known profile, ask
+the app what it thinks it has, compare against arithmetic.
 
 RUN IT AGAINST A RUNNING APP started with --mcp and the CAD feature on, for example:
     python3 tools/mcp/orca_mcp.py launch --cad --datadir <datadir>
@@ -21,6 +21,9 @@ import math, os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tools", "mcp"))
 import orca_mcp  # noqa: E402
 
+if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
+    print(__doc__)
+    sys.exit(0)
 DATADIR = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("ORCA_DATADIR", "")
 APP = orca_mcp.OrcaMcp.from_datadir(DATADIR)
 

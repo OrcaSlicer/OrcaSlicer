@@ -30,6 +30,9 @@ import math, os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tools", "mcp"))
 import orca_mcp  # noqa: E402
 
+if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
+    print(__doc__)
+    sys.exit(0)
 DATADIR = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("ORCA_DATADIR", "")
 APP = orca_mcp.OrcaMcp.from_datadir(DATADIR)
 EPS = 1e-9

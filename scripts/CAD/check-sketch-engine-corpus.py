@@ -265,27 +265,26 @@ def grade(pdf, name, report):
     mine = sorted(shoelace(x) for x in rings)
     theirs = sorted(abs(l["area"]) for l in got)
     # The bar: 1e-3 absolute, or 1e-6 relative for the big loops. Not bit-exactness — the
-    # auto-constraint pass still snaps segments that are already axis-aligned to within its
-    # 1e-4 rad tolerance, which moves an area by ~1e-4. It is deliberately tight enough to
-    # have caught the real defect this rung was written for: with the old 3 degree gesture
-    # slack applied to scripted input, a flattened circle came back 0.067% small — 0.266 on
-    # an area of 397, some 300x above this line.
+    # auto-constraint pass snaps segments that are already axis-aligned to within its 1e-4 rad
+    # tolerance, which moves an area by ~1e-4. It is tight enough to catch a gesture's snap
+    # slack applied to scripted input: a 3 degree slack flattens a circle to 0.067% small,
+    # 0.266 on an area of 397, some 300x above this line.
     same = len(mine) == len(theirs) and all(
         abs(a - b) <= max(1e-3, 1e-6 * a) for a, b in zip(mine, theirs))
     ok &= report(name, "AREA", "every loop area matches the shoelace value exactly", same)
 
     # VOID — a loop belongs to the SMALLEST loop that contains it, not to every loop that
     # encloses it. A hole inside a boss inside the part is a void of the boss, and the part
-    # owns the boss. Comparing against "everything inside the outline" was measuring my own
-    # sloppiness: on MPD781 that counted 36 voids where 26 of them are nested inside another
-    # void. So compute the same rule here, independently, and compare the whole attribution.
+    # owns the boss. Counting everything inside the outline as its void overcounts: on MPD781
+    # 26 of the 36 loops inside the outline are nested inside another void. So compute the
+    # same rule here, independently, and compare the whole attribution.
     if got:
         rings = [outer] + voids
         # Probe from a point STRICTLY INSIDE each ring, never from one of its vertices — the
-        # same rule the engine now uses (DesignSketchTool::region_loops). A vertex is exactly
-        # where two loops touch in a real drawing, and a ray cast from a point lying ON the
-        # polygon under test answers by rounding: that alone accounted for every one of the 6
-        # sheets where the two attributions used to disagree. 5hvl.
+        # rule the engine uses too (DesignSketchTool::region_loops). A vertex is exactly where
+        # two loops touch in a real drawing, and a ray cast from a point lying ON the polygon
+        # under test answers by rounding, so probing from vertices would make the two
+        # attributions disagree on such sheets for no fault of either.
         probes = [interior_point(r) for r in rings]
         mine_parent = {}
         for i, r in enumerate(rings):
@@ -416,9 +415,9 @@ def main():
         m = re.search(r"MPD(\d+)", os.path.basename(f))
         if m:
             files[int(m.group(1))] = f
-    # step 1 means EVERY sheet. Written as `n % step == 1` it silently selected nothing, because
-    # n % 1 is always 0 — and the run then printed "RUNG 9 HELD" over zero drawings graded. A
-    # gate that passes by grading nothing is worse than no gate, so the count is checked below.
+    # step 1 means EVERY sheet, which `n % step == 1` alone would never select, since n % 1 is
+    # always 0. A gate that passes by grading nothing is worse than no gate, so the count is
+    # checked below.
     picks = [files[n] for n in sorted(files) if a.step <= 1 or n % a.step == 1]
     if a.scale:
         # The heaviest real profiles in the corpus, biggest first — up to ~1300 entities.

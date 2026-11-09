@@ -414,8 +414,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // Parented to the panel (sits above the form/viewport row). Only the active
     // mode's group is shown; the others are hidden by set_ui_mode().
     // Scrollable ribbon: on a narrow/windowed screen the far-right action bar (Confirm/Cancel)
-    // used to be clipped off the edge with no way to reach it. Horizontal-only scroll (vertical
-    // rate 0) keeps it reachable; on a wide screen the stretch spacer still pins it far-right.
+    // would otherwise be clipped off the edge with no way to reach it. Horizontal-only scroll
+    // (vertical rate 0) keeps it reachable; on a wide screen the stretch spacer still pins it
+    // far-right.
     m_toolbar = new wxScrolledWindow(this, wxID_ANY);
     m_toolbar->SetScrollRate(15, 0);
     m_toolbar->ShowScrollbars(wxSHOW_SB_DEFAULT, wxSHOW_SB_NEVER);
@@ -635,10 +636,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
             // REGISTER FIRST, BUILD SECOND. A verb's two addresses — "fly:<family>#<row>" for the
             // offer and its Shift+key — are data. The widget is one door onto them, not their
             // owner. Doing this before any wxWindow exists is what lets the build below be skipped
-            // outright for a family the bar no longer carries. It used to sit INSIDE the build
-            // loop, so a retired family still had to be constructed and then Hide()n: skipping it
-            // would have deleted 42 verbs from the offer while their rows still rendered and did
-            // nothing when picked. 7ih.
+            // outright for a family the bar no longer carries. Registered INSIDE the build loop,
+            // a retired family would still have to be constructed and then Hide()n, since skipping
+            // it would delete its verbs from the offer while their rows still rendered and do
+            // nothing when picked.
             // Keyed on "fly:<family>#<row>" so the generated table can name a variant without the
             // item struct growing a field at 26 call sites.
             for (size_t i = 0; i < vars.size(); ++i) {
@@ -819,8 +820,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 open_tool(Tool::Rib);
              }, 'R'},   // plain R, not SHIFT+R (that is Revolve): every SHIFT letter A-Z
                        // was already taken, and the feature map already carries unshifted
-                       // keys (P, A, X). Rib was the only verb in this dropdown with no
-                       // shortcut at all, which also made its card unreachable to the rig.
+                       // keys (P, A, X). Without it Rib would be the only verb in this
+                       // dropdown with no shortcut, its card unreachable from the keyboard.
         });
 
         auto* b_pattern = icon_btn("design_pattern", _L_CONTEXT("Pattern", "Design"));
@@ -1058,9 +1059,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
         };
         m_verb_actions["btn:rename"] = rename_feature;
         m_keys_feature[WXK_F2]        = rename_feature;   // a function key, so no letter space spent
-        // The sketch's own Delete. It used to share "btn:delete" with the feature tree, so
-        // choosing Delete on a selected LINE ran on_delete_feature() and removed a tree row (or
-        // nothing) while the line stayed — the reported "I click a line and cannot remove it".
+        // The sketch's own Delete, apart from the feature tree's "btn:delete": sharing that one,
+        // Delete on a selected LINE would run on_delete_feature() and remove a tree row (or
+        // nothing) while the line stayed.
         m_verb_actions["btn:sk_delete"] = [this] {
             if (m_viewport && m_viewport->is_sketching())
                 m_viewport->delete_selected_sketch_entities();
@@ -1126,8 +1127,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 m_hole_has_bounds = false;
                 set_hole_target_label(-1);
                 // The hole goes where the user pointed (L1): a picked face. The keyboard route
-                // used to invent one — the top face of the first body — while the offer refused
-                // the same verb with nothing picked; both routes now say the same thing.
+                // invents none (such as the top face of the first body); with nothing picked it
+                // refuses the verb, as the offer does.
                 const int hb = m_sel_solid_body, hf = m_sel_solid_face;
                 if (hf < 0 || hb < 0 || hb >= int(m_doc.bodies.size())) {
                     set_status(StatusKind::Error, _L("Pick a face or a plane to drill into"));
@@ -1390,10 +1391,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
             {"design_polararray", DesignSketchTool::Mode::PolarArray, _L("Polar array (about centroid)"), _L("Pick entities, drag the sweep handle, click the count; click empty to apply")} });
 
         // Polygon's side count and fit are TOOL PARAMETERS, so they are chosen from the tool:
-        // the offer's Create > Polygon submenu. They used to sit inline in this row, then in a
-        // sidebar card; both put the choice somewhere you had to leave the geometry to reach,
-        // and the count cannot be recovered afterwards (a drawn polygon's inline editor offers
-        // Side and Angle, never the count). e1p.
+        // the offer's Create > Polygon submenu. Inline in this row, or in a sidebar card, the
+        // choice would sit somewhere you have to leave the geometry to reach, and the count
+        // cannot be recovered afterwards (a drawn polygon's inline editor offers Side and Angle,
+        // never the count).
         auto arm_polygon = [this, select_tool] {
             push_polygon_params();
             select_tool(DesignSketchTool::Mode::Polygon,
@@ -1433,8 +1434,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_verb_actions["btn:dress#1"] = [this, open_feature] {
             if (m_dressup_type) m_dressup_type->SetSelection(1); open_feature(k_dress); };
         // Same order for all three families: choose the variant, then open, so the card, its
-        // header and the first preview are built for the variant that was picked (a circular
-        // pattern used to open showing the linear ghost and gizmo).
+        // header and the first preview are built for the variant that was picked (otherwise a
+        // circular pattern would open showing the linear ghost and gizmo).
         for (int op = 0; op < 3; ++op)
             m_verb_actions["btn:bool#" + std::to_string(op)] = [this, open_feature, op] {
                 if (m_bool_op) m_bool_op->SetSelection(op);   // the variant first, so the card opens on it
@@ -2664,8 +2665,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_del_face_add_btn = new ::Button(m_cards, _L("Add picked face"));
         m_del_face_add_btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
         m_del_face_add_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
-            // Say why nothing happened. Clicking with no face picked used to be a silent no-op,
-            // which is indistinguishable from the button being broken.
+            // Say why nothing happened. Clicking with no face picked would otherwise be a silent
+            // no-op, which is indistinguishable from the button being broken.
             if (m_sel_solid_face < 0) {
                 set_status(StatusKind::Error, _L("Click a face on the body first, then Add picked face"));
                 return;
@@ -3077,7 +3078,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
             t->Wrap(240);
 
     // Feature tree card. Same idiom as Prepare's sections (icon + Head_14 title + rule) via the
-    // shared card_header helper, instead of the bare micro-label this used to be. What acts on one
+    // shared card_header helper rather than a bare micro-label. What acts on one
     // feature sits on that feature's row; the header keeps reordering and the interference check.
     m_tree_box = make_card(m_form);
     auto* tree_inner = new wxBoxSizer(wxVERTICAL);
@@ -3187,8 +3188,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         menu.Append(id_rename, _L("Rename\tF2"));
         menu.Append(id_edit,   _L("Edit"));
         // Scale artwork acts on THIS feature's imported outline, so it belongs to the row and
-        // is offered only where it means something. It used to hide inside the header's Move
-        // button, which otherwise moved a body — two different subjects on one icon.
+        // is offered only where it means something, not inside the header's Move button, which
+        // moves a body: that would be two different subjects on one icon.
         const bool art = row < int(m_doc.features.size()) &&
                          !m_doc.features[row].imported_regions.empty();
         if (art) menu.Append(id_art, _L("Scale artwork"));
@@ -3249,9 +3250,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // trow IS the header sizer — already added to root above the tree.
     }
 
-    // Parts list (Onshape's Features + Parts split). Bodies used to be appended after the
-    // features INSIDE the feature tree, so they were pushed out of view as the history grew —
-    // with no way to select a body at all. Their own list keeps them reachable regardless.
+    // Parts list (Onshape's Features + Parts split). Bodies appended after the features INSIDE
+    // the feature tree would be pushed out of view as the history grows, with no way to select a
+    // body at all. Their own list keeps them reachable regardless.
     m_parts_box = make_card(m_form);
     auto* parts_inner = new wxBoxSizer(wxVERTICAL);
     m_parts_box->SetSizer(parts_inner);
@@ -3292,11 +3293,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_parts_label->Hide();
     // Taking a body from the list means the SAME state change however it was asked for, so the
     // normalisation lives here and not inside a selection handler. That distinction is not
-    // pedantry: selecting a row that is ALREADY selected notifies nobody, so a version of this
-    // that only ran on selection left a stale vertex/edge from an earlier viewport pick in place
-    // — and offer_selection_kind() tests vertex FIRST, so right-clicking the body row served the
+    // pedantry: selecting a row that is ALREADY selected notifies nobody, so code that ran only
+    // on selection would leave a stale vertex/edge from an earlier viewport pick in place — and
+    // offer_selection_kind() tests vertex FIRST, so right-clicking the body row would serve the
     // VERTEX offer (Fillet greyed, Mirror in place of Repeat) while the row sat highlighted.
-    // Measured on the rig 2026-08-02; it is invisible from the code alone.
     auto apply_body_row = [this](int b) {
         if (!m_viewport || b < 0) return;
         // One selection at a time: a body row and a feature row mean different things to the
@@ -4157,12 +4157,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // instrument that diagnosed this bug in the first place.
         // The in-canvas value field is a borderless, always-on-top top-level frame, so whether it
         // may take keyboard focus is the platform's decision, not ours: macOS denies key status to a
-        // borderless window, mutter's focus-stealing prevention refuses a re-mapped window, and the
-        // rig never grants it. When focus is refused, Enter/Esc/Tab are delivered HERE (to the panel)
+        // borderless window, and mutter's focus-stealing prevention refuses a re-mapped window.
+        // When focus is refused, Enter/Esc/Tab are delivered HERE (to the panel)
         // instead of the field, its own wxEVT_TEXT_ENTER / WXK_ESCAPE bindings never fire, and the
         // queued-dimension chain (a line queues Length then Angle) becomes unwalkable. Forwarding them
         // makes the field behave the same everywhere WITHOUT fighting the window manager for focus,
-        // which is what seven earlier attempts did unsuccessfully. When the field DOES hold focus we
+        // a fight the app cannot win. When the field DOES hold focus we
         // deliberately do nothing here, so its own bindings run and typing keeps working.
         if (m_viewport && m_viewport->inline_busy() && !m_viewport->inline_has_focus()) {
             if (key == WXK_RETURN || key == WXK_NUMPAD_ENTER || key == WXK_TAB) {
@@ -4180,11 +4180,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
         // ONE Esc, ONE route, whatever holds focus. Which widget has focus is an accident of where
         // the user last clicked (a toolbar button, the Construction checkbox), and Esc must not
-        // depend on it. It used to be answered in four places — the inline field above, a sketch
-        // branch, a feature-card branch, and the canvas — none of which could see the others, so
-        // a press aimed at one of them fell through to the next and the SECOND press reached a
-        // layer that discarded the live sketch. escape() picks the single deepest live level and
-        // acts on that one only; see DesignInteraction.hpp for the ladder and its invariant.
+        // depend on it. Answered in places that cannot see each other (the inline field above, a
+        // sketch branch, a feature-card branch, the canvas), a press aimed at one of them would
+        // fall through to the next and a SECOND press could reach a layer that discards the live
+        // sketch. escape() picks the single deepest live level and acts on that one only; see
+        // DesignInteraction.hpp for the ladder and its invariant.
         if (key == WXK_ESCAPE) { escape(); return; }
 
         // Enter mirrors the ✓ as Esc mirrors the ✗ (charter 4.2, L9): a ready sketch edit-op or
@@ -4505,13 +4505,13 @@ void DesignPanel::set_ui_mode(UiMode m)
 
     // Say where you are, in words, across the top of the viewport.
     //
-    // THE BED IS NOT MUTED HERE, and it was: "a plate grid and a sketch grid are the same visual
-    // language" is true and still the wrong call, because there IS no sketch grid to replace it.
-    // Seen on the rig: pick XY, arm Line, and the viewport is an empty grey field — no bed, no
-    // grid, no origin, nothing to judge a length or a direction against. The plate grid was
-    // carrying the ground reference for the whole tab. The banner already says where you are;
-    // taking the floor away as well only made the sketch harder to draw. The Feature tree's Bed
-    // row is the one thing that governs the bed, in every mode.
+    // THE BED IS NOT MUTED HERE: "a plate grid and a sketch grid are the same visual language" is
+    // true and still the wrong call, because there IS no sketch grid to replace it. With the bed
+    // muted, picking XY and arming Line would leave the viewport an empty grey field — no bed, no
+    // grid, no origin, nothing to judge a length or a direction against. The plate grid carries
+    // the ground reference for the whole tab. The banner already says where you are; taking the
+    // floor away as well would only make the sketch harder to draw. The Feature tree's Bed row is
+    // the one thing that governs the bed, in every mode.
     if (m_sketch_banner != nullptr) {
         const bool sketching = (m == UiMode::Sketch);
         if (sketching && m_sketch_banner_txt != nullptr)
@@ -4847,15 +4847,14 @@ bool DesignPanel::mcp_busy(bool read_only, bool sketch_method, std::string& why)
 
 // Keep the Model's copy of the recipe in step with the document.
 //
-// This used to be written in exactly ONE place — on_commit(), as a side effect of Commit to
-// Plate — so a user who modelled for an hour and pressed Ctrl+S saved a project containing no
-// feature history at all, and the app reported success (vjk5). The 3MF exporter was
-// never at fault: nothing had handed it a recipe.
+// Written only on Commit to Plate, the recipe would be missing from a project saved with Ctrl+S
+// after an hour of modelling: no feature history at all, while the app reports success. The 3MF
+// exporter saves the recipe it is handed and nothing else.
 //
 // Every save path (Ctrl+S, Save As, autosave, crash recovery) reads model.cad_recipe, so
 // keeping it current after each document change is what makes all of them correct at once,
 // rather than teaching each one to ask the Design tab. Commit to Plate means "send this to the
-// slicer"; making saving depend on it was the bug, not the cure.
+// slicer"; saving must not depend on it.
 //
 // Cost is a serialization per recompute — tens of KB against an OCCT rebuild that just ran.
 void DesignPanel::sync_recipe_to_model()
@@ -6629,8 +6628,8 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
     // of them refusing the sketch selection, so it read as a menu of nine dead entries.
     const bool     sketching = sketch_map_applies();
     // The offer ladder reads THIS, not the pixels: the trace is emitted from the same loop that
-    // builds the menu, so it cannot drift from what the user is shown. Gated on the existing
-    // ORCA_CAD_KEYTRACE so a rig run needs one env var, not two. <offer ladder>.
+    // builds the menu, so it cannot drift from what the user is shown. Gated on
+    // ORCA_CAD_KEYTRACE, so one env var traces the keys and the offer alike.
     offer_trace("open kind=%d sketching=%d bodies=%d", kind, sketching ? 1 : 0,
                 int(m_doc.bodies.size()));
 
@@ -6915,14 +6914,13 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
 
     // Hovering a row explains it. The offer is the only door to these tools now, so a bare
     // name is not enough — and the hint arrives while you are still choosing.
-    // BOUND TO THE VERB ID RANGE, NOT THE WHOLE MENU. These two used to be unfiltered, and
-    // wxWidgets pushes dynamic entries to the FRONT of the handler list, so being bound LAST made
-    // them run FIRST for every id — including the mate rows at mate_base+1 (base+501) above. Both
-    // fall out of `bound`'s range there and return WITHOUT e.Skip(), which wx reads as "handled",
-    // so the mate handlers never ran: hovering a mate kind showed no ghost and left the previous
-    // status message on screen, and clicking one created nothing at all. The whole mate palette
-    // enumerated perfectly and fired nothing. Restricting the range keeps each half to its own ids
-    // regardless of bind order.
+    // BOUND TO THE VERB ID RANGE, NOT THE WHOLE MENU. wxWidgets pushes dynamic entries to the
+    // FRONT of the handler list, so these two, bound LAST, run FIRST; unfiltered, they would run
+    // for every id, the mate rows at mate_base+1 (base+501) above included. Both fall out of
+    // `bound`'s range there and return WITHOUT e.Skip(), which wx reads as "handled", so the mate
+    // handlers would never run: hovering a mate kind would show no ghost and leave the previous
+    // status message on screen, and clicking one would create nothing at all. Restricting the
+    // range keeps each half to its own ids regardless of bind order.
     menu.Bind(wxEVT_MENU_HIGHLIGHT, [this, &bound](wxMenuEvent& e) {
         const int i = e.GetMenuId() - base;
         if (i < 0 || i >= int(bound.size()) || bound[i] == nullptr || bound[i]->hint == nullptr)
@@ -7097,7 +7095,7 @@ bool DesignPanel::on_add_plane()
 {
     // Refuse here rather than let the kernel substitute. Every method in CadDocument's plane
     // dispatch falls back to offset_angle_plane() when its references are missing, so picking
-    // Tangent and confirming with nothing selected used to produce an offset plane reported as
+    // Tangent and confirming with nothing selected would produce an offset plane reported as
     // a success — the user asks for one construction and silently receives another. The kernel
     // keeps its fallback (it must return SOMETHING), but no user gesture should reach it. The
     // rules are the kernel's, shared with call_cad_tool's `plane`.
@@ -7237,7 +7235,7 @@ const std::string* DesignPanel::mate_conflict_reason(int feature) const
 
 // What to say when nothing is selected and no tool is open. Lives in one place because it is
 // needed from two: after an edit empties the document, and at startup — where after_tree_edit()
-// has never run, which is exactly why a fresh tab used to show a blank line.
+// has never run, so a fresh tab would otherwise show a blank line.
 wxString DesignPanel::idle_hint() const
 {
     return m_doc.features.empty()
@@ -8102,8 +8100,9 @@ void DesignPanel::after_tree_edit(bool ok)
     if (m_doc.display_mesh.its.indices.empty()) {
         if (m_viewport != nullptr) m_viewport->clear_mesh();
         sync_sketch_display();   // empty body: show any un-consumed committed sketch
-        // An empty document used to blank this line — no guidance at the one moment a newcomer
-        // has none. Name the three real ways in, in the order they are reachable on screen.
+        // An empty document must not blank this line, which would leave no guidance at the one
+        // moment a newcomer has none. Name the three real ways in, in the order they are
+        // reachable on screen.
         set_status(idle_hint());
     } else {
         // nde #19/20: a delete/reorder that leaves bodies behind must re-feed the per-body
@@ -11033,8 +11032,8 @@ void DesignPanel::update_extrude_gizmo()
         // along its outward normal. The face id is LOCAL to the owner body — route_feature reads
         // it from `context` (the target, else the last body) — so look it up on that SAME body,
         // never the whole-document compound (m_doc.body). from_face's plane origin sits at the
-        // plane's canonical point near the world origin, NOT on the face, which is why the arrow
-        // used to land on the bed. Carry the body's display Move transform so the arrow sits where
+        // plane's canonical point near the world origin, NOT on the face, so an arrow placed there
+        // would land on the bed. Carry the body's display Move transform so the arrow sits where
         // the body is actually shown.
         const int b = int(m_doc.bodies.size()) - 1;   // matches route_feature's default context
         TopoDS_Face srcf = GeometryEngine::face_by_index(m_doc.bodies[b].shape, m_extrude_face_src);
@@ -11446,10 +11445,9 @@ void DesignPanel::refresh_preview()
 
     if (m_active == Tool::Mate) {
         // A mate produces no NEW geometry, but it MOVES a body — and the moved assembly is
-        // exactly the ghost worth showing. This branch used to clear the preview outright,
-        // saying a mate has no 3D ghost; the kernel had no such opinion (preview() routes a
-        // Mate candidate through apply_mate on a throwaway copy), so that one line was the
-        // whole of gap G3. The card's own gate stays: Confirm is disabled when <2 CoordSys
+        // exactly the ghost worth showing: preview() routes a Mate candidate through apply_mate
+        // on a throwaway copy, so this branch shows it rather than clearing the preview. The
+        // card's own gate stays: Confirm is disabled when <2 CoordSys
         // exist or when A == B, because neither of those is a kernel error, only an unfinished
         // form, and the kernel's message for them would be worse than these.
         const bool has_two = m_mate_cs_a && m_mate_cs_a->GetCount() >= 2;
@@ -11863,10 +11861,10 @@ void DesignPanel::open_tool(Tool t)
     case Tool::None:    break;
     }
 
-    // A card that consumes a face must say WHICH face the moment it appears. These labels used to
-    // be written only by the pick handler, which runs while a card is already open — so a card
-    // opened FROM a selection (the offer's whole premise) showed the previous pick, or the "(pick
-    // one)" placeholder over a face it was in fact about to use. Same law as the Construction
+    // A card that consumes a face must say WHICH face the moment it appears. The pick handler,
+    // which runs while a card is already open, cannot be these labels' only writer: a card opened
+    // FROM a selection (the offer's whole premise) would show the previous pick, or the "(pick
+    // one)" placeholder over a face it is in fact about to use. Same law as the Construction
     // toggle: a control that carries state has to show it. One writer, on open, for all three.
     {
         const bool have = m_sel_solid_face >= 0;
@@ -12097,10 +12095,9 @@ void DesignPanel::tool_cancel()
         return;
     }
     if (m_ui_mode == UiMode::Sketch) {
-        // THE explicit discard. Esc no longer arrives here at all (it routes through escape(),
-        // which cannot destroy anything), so this button is now the only way a drawn sketch is
-        // thrown away — and being the only way, it has to ask. It used to refuse instead, telling
-        // the user to press the very button they had just pressed: a sketch could be kept but
+        // THE explicit discard. Esc never arrives here (it routes through escape(), which cannot
+        // destroy anything), so this button is the only way a drawn sketch is thrown away — and
+        // being the only way, it has to ask rather than refuse, or a sketch could be kept but
         // never discarded.
         if (m_viewport && m_viewport->live_sketch_has_work()) {
             RichMessageDialog dlg(this,
@@ -12174,8 +12171,8 @@ void DesignPanel::escape()
     switch (escape_level()) {
     case CadLevel::Transient:
         // Close just the field. The tool stays armed and the geometry is untouched, which is the
-        // whole reason this level exists: dismissing a number people press Esc for reflexively
-        // used to cascade down the stack and take the sketch with it.
+        // whole reason this level exists: dismissing a number, which people press Esc for
+        // reflexively, must not cascade down the stack and take the sketch with it.
         if (m_value_cont)                      { cancel_value(); return; }
         if (m_viewport)                        { m_viewport->inline_cancel(); return; }
         return;
@@ -12260,15 +12257,14 @@ void DesignPanel::update_action_bar()
                      || m_ui_mode == UiMode::Constrain
                      || body_move_pending();
     s->Show(m_tb_action, active, true);
-    // HIDING THE BAR ORPHANS THE KEYBOARD, and that is the "app does not consent to sketch"
-    // report. The ✓/✗ live in this bar, so the click that confirms a feature leaves focus on a
+    // HIDING THE BAR ORPHANS THE KEYBOARD. The ✓/✗ live in this bar, so the click that confirms
+    // a feature leaves focus on a
     // button that this very call then hides. wx does not hand that focus anywhere useful, and
     // wxEVT_CHAR_HOOK is bound on THIS PANEL — it is delivered to the focused window and
     // propagates up the parent chain, so with focus outside the panel every Design shortcut
-    // stops arriving. Measured on the rig: after Confirm, shift+S produced ZERO CHAR_HOOK lines
-    // (not even the modifier), while X kept focus on the main window throughout — so it was
-    // never a window-manager problem. One bare canvas click restored it, which is exactly the
-    // workaround users found and reported as "shift+s works but it is not intuitive".
+    // stops arriving: without the hand-back below, shift+S after Confirm raises no CHAR_HOOK at
+    // all (not even the modifier) although the main window keeps focus, so it is not a
+    // window-manager problem, and one bare canvas click restores it.
     // The canvas is the right owner of the keyboard in this tab, so give it back explicitly.
     if (!active && m_viewport != nullptr) {
         wxWindow* f = wxWindow::FindFocus();
