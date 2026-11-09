@@ -16,7 +16,6 @@
 #include <nlohmann/json.hpp>
 
 #include <memory>
-#include <optional>
 #include <cstdint>
 #include <string>
 #include <utility>
@@ -335,7 +334,8 @@ TEST_CASE("AMS filament settings default a supplied single-color list to type tw
 
 namespace {
 
-std::vector<std::string> chamber_light_nodes_sent(const std::optional<json>& lights_report)
+// lights_report == nullptr: the printer has not reported its lights yet.
+std::vector<std::string> chamber_light_nodes_sent(const json* lights_report)
 {
     ScopedAppConfig app_config;
     auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
@@ -361,7 +361,7 @@ TEST_CASE("Chamber light skips the second light on a printer that reports only o
     const json report = json::array({{{"node", "chamber_light"}, {"mode", "off"}},
                                      {{"node", "work_light"}, {"mode", "flashing"}}});
 
-    CHECK(chamber_light_nodes_sent(report) == std::vector<std::string>{"chamber_light"});
+    CHECK(chamber_light_nodes_sent(&report) == std::vector<std::string>{"chamber_light"});
 }
 
 TEST_CASE("Chamber light switches both lights on a printer that reports two", "[DeviceManager][Lamp][integration]")
@@ -369,12 +369,12 @@ TEST_CASE("Chamber light switches both lights on a printer that reports two", "[
     const json report = json::array({{{"node", "chamber_light"}, {"mode", "off"}},
                                      {{"node", "chamber_light2"}, {"mode", "off"}}});
 
-    CHECK(chamber_light_nodes_sent(report) == std::vector<std::string>{"chamber_light", "chamber_light2"});
+    CHECK(chamber_light_nodes_sent(&report) == std::vector<std::string>{"chamber_light", "chamber_light2"});
 }
 
 TEST_CASE("Chamber light switches both lights before the printer reports its lights", "[DeviceManager][Lamp][integration]")
 {
-    CHECK(chamber_light_nodes_sent(std::nullopt) == std::vector<std::string>{"chamber_light", "chamber_light2"});
+    CHECK(chamber_light_nodes_sent(nullptr) == std::vector<std::string>{"chamber_light", "chamber_light2"});
 }
 
 TEST_CASE("Lights report updates the chamber light state", "[DeviceManager][Lamp][integration]")
