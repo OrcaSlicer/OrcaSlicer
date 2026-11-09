@@ -1635,6 +1635,14 @@ TEST_CASE("background removal keys out corner or chosen colours into alpha witho
     CHECK(rgb.x() > 0.8f);
     CHECK(sample_layer_height(keyed, layer, Vec3f(1.5f, -1.5f, 0.f), Vec3f::UnitZ()) > layer.midlevel);
 
+    // On a curved surface where the dominant plane (XY) lands on a keyed-out background texel
+    // (3.5, -0.5 -> alpha 0) while a secondary grazing plane (YZ, sampling y=-0.5, z=1.5 -> opaque
+    // red block at (1..2, 1..2)) is opaque, triplanar blending must not renormalize the secondary
+    // plane to 100% opaque across the transparent background.
+    const Vec3f curved_n = Vec3f(0.25f, 0.f, 0.968f).normalized();
+    CHECK_FALSE(sample_layer_color(keyed, layer, Vec3f(3.5f, -1.5f, 1.5f), curved_n, rgb));
+    CHECK_THAT(sample_layer_height(keyed, layer, Vec3f(3.5f, -1.5f, 1.5f), curved_n), WithinAbs(layer.midlevel, 1e-6f));
+
     // Explicit colour key overrides the corners.
     adj.bg_from_corners = false;
     adj.bg_color[0]     = 220.f / 255.f;

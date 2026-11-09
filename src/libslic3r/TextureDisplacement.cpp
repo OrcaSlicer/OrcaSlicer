@@ -716,8 +716,9 @@ TextureDetail analyze_texture_detail(const TextureDisplacementLayer &layer)
     TextureDetail out;
     if (layer.empty())
         return out;
-    const void *key = layer.image_data.get();
-    {
+    const bool  can_cache = layer.preview_adjust.identity();
+    const void *key       = layer.image_data.get();
+    if (can_cache) {
         std::lock_guard<std::mutex> lock(g_texture_detail_cache.mutex);
         auto it = g_texture_detail_cache.entries.find(key);
         if (it != g_texture_detail_cache.entries.end() && it->second.first.lock() == layer.image_data)
@@ -752,26 +753,38 @@ TextureDetail analyze_texture_detail(const TextureDisplacementLayer &layer)
         // Colour spread: a coarse histogram (8 levels per channel, 64 levels for a grey image) and
         // the share of the eight fullest bins. Tiles, logos and camouflage put nearly everything in a
         // handful of bins even with some texture noise; a photograph spreads across hundreds.
+        // Transparent background pixels are excluded so keyed-out backgrounds do not skew the share.
         std::vector<uint32_t> bins(size_t(8 * 8 * 8), 0);
-        const size_t          npx = size_t(w) * size_t(h);
+        const size_t          npx      = size_t(w) * size_t(h);
+        size_t                n_opaque = 0;
         if (tex.has_color())
-            for (size_t i = 0; i < npx; ++i)
+            for (size_t i = 0; i < npx; ++i) {
+                if (tex.has_alpha() && tex.alpha[i] < 128)
+                    continue;
                 ++bins[size_t(tex.rgb[i * 3] >> 5) * 64 + size_t(tex.rgb[i * 3 + 1] >> 5) * 8 + size_t(tex.rgb[i * 3 + 2] >> 5)];
+                ++n_opaque;
+            }
         else
-            for (size_t i = 0; i < npx; ++i)
+            for (size_t i = 0; i < npx; ++i) {
+                if (tex.has_alpha() && tex.alpha[i] < 128)
+                    continue;
                 ++bins[size_t(tex.pixels[i] >> 2) * 8]; // 64 grey levels, spread over distinct bins
+                ++n_opaque;
+            }
         std::partial_sort(bins.begin(), bins.begin() + 8, bins.end(), std::greater<uint32_t>());
         uint64_t top = 0;
         for (int i = 0; i < 8; ++i)
             top += bins[size_t(i)];
-        out.flat_share  = float(double(top) / double(npx));
+        out.flat_share  = n_opaque > 0 ? float(double(top) / double(n_opaque)) : 0.f;
         out.flat_colors = out.flat_share >= 0.85f;
     }
-    std::lock_guard<std::mutex> lock(g_texture_detail_cache.mutex);
-    auto &entries = g_texture_detail_cache.entries;
-    for (auto it = entries.begin(); it != entries.end();)
-        it = it->second.first.expired() ? entries.erase(it) : std::next(it);
-    entries[key] = { std::weak_ptr<const std::vector<unsigned char>>(layer.image_data), out };
+    if (can_cache) {
+        std::lock_guard<std::mutex> lock(g_texture_detail_cache.mutex);
+        auto &entries = g_texture_detail_cache.entries;
+        for (auto it = entries.begin(); it != entries.end();)
+            it = it->second.first.expired() ? entries.erase(it) : std::next(it);
+        entries[key] = { std::weak_ptr<const std::vector<unsigned char>>(layer.image_data), out };
+    }
     return out;
 }
 
@@ -2419,9 +2432,22 @@ float sample_layer_height(const DecodedHeightTexture &texture, const TextureDisp
     // Each plane drops the axis it is named for and is oriented for the side of that plane the normal
     // points to, matching project_planar()'s own convention (which the GUI's on-canvas placement
     // gizmo also relies on). See box_plane_yz() for why the orientation is not simply (y, z).
-    return w.x() * sample_at(box_plane_yz(position, normal.x())) +
-           w.y() * sample_at(box_plane_xz(position, normal.y())) +
-           w.z() * sample_at(box_plane_xy(position, normal.z()));
+    const std::array<Vec2f, 3> planes = { box_plane_yz(position, normal.x()),
+                                          box_plane_xz(position, normal.y()),
+                                          box_plane_xy(position, normal.z()) };
+    if (texture.has_alpha()) {
+        // When the dominant projection plane lands on a transparent background texel (or outside an
+        // untiled decal), do not let secondary grazing planes bleed relief into the cutout on curved
+        // surfaces. Matches the fast preview shader's dominant-axis alpha cutout.
+        const int   max_i = (w.x() >= w.y() && w.x() >= w.z()) ? 0 : (w.y() >= w.z() ? 1 : 2);
+        const Vec2f uv    = xf(planes[size_t(max_i)]);
+        if ((!layer.tile_enabled && !(uv.x() >= 0.f && uv.x() < 1.f && uv.y() >= 0.f && uv.y() < 1.f)) ||
+            texture.sample_alpha(uv, layer.tile_enabled, layer.tile_method) < 0.5f)
+            return layer.midlevel;
+    }
+    return w.x() * sample_at(planes[0]) +
+           w.y() * sample_at(planes[1]) +
+           w.z() * sample_at(planes[2]);
 }
 
 bool sample_layer_color(const DecodedHeightTexture &texture, const TextureDisplacementLayer &layer,
@@ -2522,9 +2548,17 @@ bool sample_layer_color(const DecodedHeightTexture &texture, const TextureDispla
 
     // A blend of three planes is only "not covered" where *every* contributing plane is outside the
     // placement; where some are, the covered ones are renormalised so the colour does not fade toward
-    // black at the edge of an untiled tri-planar layer.
+    // black at the edge of an untiled tri-planar layer. However, when the texture has an alpha mask
+    // (such as a removed background around a circular logo on a cylinder), if the dominant projection
+    // plane itself is transparent or outside the untiled placement, a secondary grazing plane with a
+    // tiny weight must not be renormalised to 100% opaque across the cutout.
     const std::array<Vec2f, 3> planes = { box_plane_yz(position, normal.x()), box_plane_xz(position, normal.y()),
                                           box_plane_xy(position, normal.z()) };
+    if (texture.has_alpha()) {
+        const int max_i = (w.x() >= w.y() && w.x() >= w.z()) ? 0 : (w.y() >= w.z() ? 1 : 2);
+        if (!covered(planes[size_t(max_i)]))
+            return false;
+    }
     Vec3f acc     = Vec3f::Zero();
     float acc_w   = 0.f;
     for (int i = 0; i < 3; ++i)
@@ -2995,8 +3029,10 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
     // horizontal slivers, and the triangle budget went on drawing a pattern the eye is meant to blend
     // away. Faces the paint excludes are skipped by the pipeline itself.
     const TextureBake::ColorSampleFn color_sample =
-        color_sampler ? TextureBake::ColorSampleFn([&color_sampler](const Vec3f &p, const Vec3f &n) {
-                            return color_sampler(p, n);
+        color_sampler ? TextureBake::ColorSampleFn([&color_sampler, &painted_closest](const Vec3f &p, const Vec3f &) {
+                            Vec3f foot = p, base_n = Vec3f::UnitZ();
+                            painted_closest(p, &foot, &base_n);
+                            return color_sampler(foot, base_n);
                         })
                       : TextureBake::ColorSampleFn{};
     // The pipeline works on `oriented`, whose winding was reversed above for a mirrored placement, so
@@ -3039,7 +3075,7 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
             for (const TextureDisplacementLayer &layer : layers)
                 max_depth = std::max(max_depth, std::abs(layer.depth_mm));
             const float relief_tol = max_depth + paint_tol;
-            std::vector<int> palette(out.indices.size(), -1);
+            std::vector<int>        palette(out.indices.size(), -1);
             const std::vector<int> &face_mask      = result.face_color;
             const bool              have_face_mask = face_mask.size() == out.indices.size();
             tbb::parallel_for(tbb::blocked_range<size_t>(0, out.indices.size()), [&](const tbb::blocked_range<size_t> &r) {
@@ -3065,7 +3101,8 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
                     // appeared there too. Only the position to sample at still comes from the base
                     // surface, for the projection reason above.
                     if (have_face_mask) {
-                        if (face_mask[i] == TextureBake::FACE_UNPAINTED)
+                        if (face_mask[i] == TextureBake::FACE_UNPAINTED ||
+                            face_mask[i] == TextureBake::FACE_NO_COLOUR)
                             continue;
                     } else if (!all_painted && d2 >= relief_tol * relief_tol) {
                         continue;
@@ -3085,15 +3122,9 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
             for (size_t i = 0; i < out.indices.size(); ++i) {
                 if (palette[i] < 0)
                     continue;
-                const stl_triangle_vertex_indices &t = out.indices[i];
-                const Vec3f &a = out.vertices[size_t(t[0])], &b = out.vertices[size_t(t[1])], &c = out.vertices[size_t(t[2])];
-                const Vec3f  centroid = (a + b + c) / 3.f;
-                Vec3f        normal   = (b - a).cross(c - a);
-                const float  nl       = normal.norm();
-                normal                = (nl > 0.f) ? Vec3f(normal / nl) : Vec3f::UnitZ();
                 const int filament = palette[i];
                 if (filament >= 0)
-                    out_color[i] = uint8_t(std::min(filament + 1, 255));
+                    out_color[i] = uint8_t(std::min(filament + 1, 254));
             }
         }
         *color->out_triangle = std::move(out_color);
@@ -3559,15 +3590,9 @@ static indexed_triangle_set build_texture_displacement_in_place(
         for (size_t i = 0; i < mesh.indices.size(); ++i) {
             if (triangle_palette[i] < 0)
                 continue;
-            const stl_triangle_vertex_indices &t = mesh.indices[i];
-            const Vec3f &a = mesh.vertices[size_t(t[0])], &b = mesh.vertices[size_t(t[1])], &c = mesh.vertices[size_t(t[2])];
-            const Vec3f  centroid = (a + b + c) / 3.f;
-            Vec3f        normal   = (b - a).cross(c - a);
-            const float  nl       = normal.norm();
-            normal                = (nl > 0.f) ? Vec3f(normal / nl) : Vec3f::UnitZ();
             const int filament = triangle_palette[i];
             if (filament >= 0)
-                out_color[i] = uint8_t(std::min(filament + 1, 255));
+                out_color[i] = uint8_t(std::min(filament + 1, 254));
         }
         // Handed over only on a run that completed: every early return above is a cancellation, and
         // the caller must not commit a half-computed colouring any more than a half-displaced mesh.
@@ -5900,6 +5925,21 @@ std::string texture_displacement_layers_to_json(const std::vector<TextureDisplac
         j["blend_mode"]        = int(l.blend_mode);
         j["color_enabled"]     = l.color_enabled;
 
+        if (!l.preview_adjust.identity()) {
+            nlohmann::json &adj    = j["preview_adjust"];
+            adj["brightness"]      = l.preview_adjust.brightness;
+            adj["contrast"]        = l.preview_adjust.contrast;
+            adj["sharpness"]       = l.preview_adjust.sharpness;
+            adj["blur"]            = l.preview_adjust.blur;
+            adj["hue_deg"]         = l.preview_adjust.hue_deg;
+            adj["bg_remove"]       = l.preview_adjust.bg_remove;
+            adj["bg_tolerance"]    = l.preview_adjust.bg_tolerance;
+            adj["bg_from_corners"] = l.preview_adjust.bg_from_corners;
+            adj["bg_color"]        = nlohmann::json::array({ l.preview_adjust.bg_color[0],
+                                                             l.preview_adjust.bg_color[1],
+                                                             l.preview_adjust.bg_color[2] });
+        }
+
         j["lscm_seam_angle_deg"] = l.lscm_seam_angle_deg;
         j["island_padding_mm"]   = l.island_padding_mm;
 
@@ -6005,6 +6045,20 @@ bool texture_displacement_layers_from_json(const std::string                    
 
                 read(j, "tile_enabled", l.tile_enabled);
                 read(j, "color_enabled", l.color_enabled);
+                if (const auto a = j.find("preview_adjust"); a != j.end() && a->is_object()) {
+                    const nlohmann::json &adj = *a;
+                    read(adj, "brightness", l.preview_adjust.brightness);
+                    read(adj, "contrast", l.preview_adjust.contrast);
+                    read(adj, "sharpness", l.preview_adjust.sharpness);
+                    read(adj, "blur", l.preview_adjust.blur);
+                    read(adj, "hue_deg", l.preview_adjust.hue_deg);
+                    read(adj, "bg_remove", l.preview_adjust.bg_remove);
+                    read(adj, "bg_tolerance", l.preview_adjust.bg_tolerance);
+                    read(adj, "bg_from_corners", l.preview_adjust.bg_from_corners);
+                    if (const auto c = adj.find("bg_color"); c != adj.end() && c->is_array() && c->size() == 3)
+                        for (size_t k = 0; k < 3; ++k)
+                            l.preview_adjust.bg_color[k] = std::clamp((*c)[k].get<float>(), 0.f, 1.f);
+                }
                 int tile_method = int(l.tile_method), projection = int(l.projection_method), blend = int(l.blend_mode);
                 read_enum(j, "tile_method", tile_method);
                 read_enum(j, "projection_method", projection);

@@ -5447,6 +5447,7 @@ void GLGizmoTextureDisplacement::swap_layer_slots(int slot_a, int slot_b)
     std::swap(m_thumbnails[a], m_thumbnails[b]);
     std::swap(m_thumbnail_source[a], m_thumbnail_source[b]);
     std::swap(m_thumbnail_smoothing[a], m_thumbnail_smoothing[b]);
+    std::swap(m_thumbnail_adjust[a], m_thumbnail_adjust[b]);
     std::swap(m_layer_expanded[a], m_layer_expanded[b]);
     if (m_active_layer_slot == slot_a)
         m_active_layer_slot = slot_b;
@@ -6793,7 +6794,7 @@ GLTexture *GLGizmoTextureDisplacement::get_layer_thumbnail(const TextureDisplace
 
     const size_t slot = size_t(layer.slot);
     if (m_thumbnails[slot] && m_thumbnail_source[slot].lock() == layer.image_data &&
-        m_thumbnail_smoothing[slot] == layer.smoothing)
+        m_thumbnail_smoothing[slot] == layer.smoothing && m_thumbnail_adjust[slot] == layer.preview_adjust)
         return m_thumbnails[slot].get();
 
     // Reuses the already-decoded, already-cached grayscale pixels (see decode_height_texture()'s
@@ -6807,6 +6808,7 @@ GLTexture *GLGizmoTextureDisplacement::get_layer_thumbnail(const TextureDisplace
     m_thumbnails[slot]          = std::move(texture);
     m_thumbnail_source[slot]    = layer.image_data;
     m_thumbnail_smoothing[slot] = layer.smoothing;
+    m_thumbnail_adjust[slot]    = layer.preview_adjust;
     return m_thumbnails[slot].get();
 }
 
@@ -6814,7 +6816,8 @@ GLTexture *GLGizmoTextureDisplacement::get_layer_color_texture(const TextureDisp
 {
     if (layer.empty() || !layer.color_enabled)
         return nullptr;
-    if (m_color_tex && m_color_tex_source.lock() == layer.image_data && m_color_tex_smoothing == layer.smoothing)
+    if (m_color_tex && m_color_tex_source.lock() == layer.image_data && m_color_tex_smoothing == layer.smoothing &&
+        m_color_tex_adjust == layer.preview_adjust)
         return m_color_tex.get();
 
     std::unique_ptr<GLTexture> texture = upload_color_texture(decode_height_texture(layer), HEIGHT_TEX_MAX_PX);
@@ -6826,6 +6829,7 @@ GLTexture *GLGizmoTextureDisplacement::get_layer_color_texture(const TextureDisp
     m_color_tex           = std::move(texture);
     m_color_tex_source    = layer.image_data;
     m_color_tex_smoothing = layer.smoothing;
+    m_color_tex_adjust    = layer.preview_adjust;
     return m_color_tex.get();
 }
 
@@ -6836,7 +6840,8 @@ GLTexture *GLGizmoTextureDisplacement::get_layer_height_texture(const TextureDis
 
     // One slot, not one per layer: the preview shader only ever shades the *active* layer, so a single
     // full-resolution upload is enough and the VRAM cost stays at one texture rather than eight.
-    if (m_height_tex && m_height_tex_source.lock() == layer.image_data && m_height_tex_smoothing == layer.smoothing)
+    if (m_height_tex && m_height_tex_source.lock() == layer.image_data && m_height_tex_smoothing == layer.smoothing &&
+        m_height_tex_adjust == layer.preview_adjust)
         return m_height_tex.get();
 
     std::unique_ptr<GLTexture> texture = upload_height_thumbnail(decode_height_texture(layer), HEIGHT_TEX_MAX_PX);
@@ -6846,6 +6851,7 @@ GLTexture *GLGizmoTextureDisplacement::get_layer_height_texture(const TextureDis
     m_height_tex           = std::move(texture);
     m_height_tex_source    = layer.image_data;
     m_height_tex_smoothing = layer.smoothing;
+    m_height_tex_adjust    = layer.preview_adjust;
     return m_height_tex.get();
 }
 

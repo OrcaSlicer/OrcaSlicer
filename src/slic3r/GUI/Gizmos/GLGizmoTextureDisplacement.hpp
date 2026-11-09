@@ -1135,21 +1135,24 @@ private:
     // an image freed and replaced by another at the same address must not pass for it.
     std::array<std::unique_ptr<GLTexture>, TEXTURE_DISPLACEMENT_MAX_LAYERS>                       m_thumbnails;
     std::array<std::weak_ptr<const std::vector<unsigned char>>, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_thumbnail_source;
-    // The smoothing each cached thumbnail was built at, so a smoothing change re-uploads it.
+    // The smoothing and preview adjustments each cached thumbnail was built at, so changes re-upload it.
     std::array<float, TEXTURE_DISPLACEMENT_MAX_LAYERS>                                            m_thumbnail_smoothing{};
+    std::array<TextureAdjustments, TEXTURE_DISPLACEMENT_MAX_LAYERS>                               m_thumbnail_adjust{};
 
     // Full-resolution height texture for the preview shader, keyed the same way (see
-    // get_layer_height_texture()). A smoothing change re-uploads it, so the fast preview shows the
-    // blur the bake will apply.
+    // get_layer_height_texture()). A smoothing or adjust change re-uploads it, so the fast preview shows the
+    // blur and background removal the bake will apply.
     std::unique_ptr<GLTexture>                      m_height_tex;
     std::weak_ptr<const std::vector<unsigned char>> m_height_tex_source;
     float                                           m_height_tex_smoothing = -1.f;
+    TextureAdjustments                              m_height_tex_adjust{};
 
     // The same, for the layer's *colour*, which the fast preview quantizes per fragment so it shows
     // the image at texel resolution rather than at the mesh's. Null for a grayscale texture.
     std::unique_ptr<GLTexture>                      m_color_tex;
     std::weak_ptr<const std::vector<unsigned char>> m_color_tex_source;
     float                                           m_color_tex_smoothing = -1.f;
+    TextureAdjustments                              m_color_tex_adjust{};
 
     // Library textures the picker has shown at least once, keyed by file path (see LibraryTexture).
     std::map<std::string, LibraryTexture> m_library_textures;
