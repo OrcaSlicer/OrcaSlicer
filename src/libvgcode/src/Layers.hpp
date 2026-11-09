@@ -8,6 +8,7 @@
 #include "Range.hpp"
 #include <cstdint>
 #include <cstddef>
+#include <cfloat>
 #include "../include/Types.hpp"
 #include <array>
 #include <vector>
@@ -27,6 +28,7 @@ public:
 
     std::vector<float> get_times(ETimeMode mode) const;
     std::vector<float> get_zs() const;
+    std::vector<double> get_extrusion_volumes() const;
     
     float get_layer_time(ETimeMode mode, std::size_t layer_id) const {
         return (mode < ETimeMode::COUNT&& layer_id < m_items.size()) ?
@@ -53,11 +55,13 @@ private:
         float z{ 0.0f };
         Range range;
         std::array<float, TIME_MODES_COUNT> times{ 0.0f, 0.0f };
+        double extrusion_volume{ 0.0 }; // mm³ of filament extruded on this layer
         bool contains_colorprint_options{ false };
     };
     
     std::vector<Item> m_items;
     Range m_view_range;
+    Vec3 m_last_position{ FLT_MAX, FLT_MAX, FLT_MAX };
 };
 
 } // namespace libvgcode

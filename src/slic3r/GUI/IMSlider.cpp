@@ -907,8 +907,14 @@ void IMSlider::draw_tick_on_mouse_position(const ImRect& slideable_region) {
     ImGui::RenderFrame(tick_left.Min, tick_left.Max, tick_clr, false);
     ImGui::RenderFrame(tick_right.Min, tick_right.Max, tick_clr, false);
     
-    // draw layer time
+    // draw layer time and cumulative filament
     std::string label = get_label(tick, ltEstimatedTime);
+    std::string filament_str = get_filament_label(tick);
+    if (!filament_str.empty()) {
+        if (!label.empty())
+            label += "\n";
+        label += filament_str;
+    }
     show_tooltip(label);
 }
 
@@ -1780,6 +1786,28 @@ std::string IMSlider::get_label(int tick, LabelType label_type)
     }
 
     return "";
+}
+
+std::string IMSlider::get_filament_label(int tick) const
+{
+    if (m_layers_filament.empty() || tick < 0 || static_cast<size_t>(tick) >= m_layers_filament.size())
+        return "";
+
+    const size_t idx = static_cast<size_t>(tick);
+    const double mm = m_layers_filament[idx];
+    char len_buf[32];
+    if (mm >= 1000.0)
+        ::sprintf(len_buf, "%.2f m", mm / 1000.0);
+    else
+        ::sprintf(len_buf, "%.1f mm", mm);
+
+    if (idx < m_layers_filament_g.size()) {
+        char g_buf[32];
+        ::sprintf(g_buf, "%.2f g", m_layers_filament_g[idx]);
+        return _u8L("Filament") + ": " + g_buf + " (" + len_buf + ")";
+    }
+
+    return _u8L("Filament") + ": " + len_buf;
 }
 
 double IMSlider::get_double_value(const SelectedSlider &selection)
