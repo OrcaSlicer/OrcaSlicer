@@ -1398,6 +1398,8 @@ void MainFrame::shutdown()
         // Store the device parameter database back to appconfig.
         m_plater->get_mouse3d_controller().save_config(*wxGetApp().app_config);
     }
+    if (PrinterWebView* view = PrinterWebView::if_built())
+        view->save_zoom();
 
     // stop agent
     NetworkAgent* agent = wxGetApp().getAgent();

@@ -116,6 +116,18 @@ void WKWebView_force_display(void * web)
     [[webView layer] setNeedsDisplay];
 }
 
+// The zoom Safari's View > Zoom sets. wxWebView's zoom factor is WKWebView's magnification, which
+// scales the page like a pinch instead of laying it out again at the new size.
+double WKWebView_pageZoom(void * web)
+{
+    return ((WKWebView*)web).pageZoom;
+}
+
+void WKWebView_setPageZoom(void * web, double zoom)
+{
+    ((WKWebView*)web).pageZoom = zoom;
+}
+
 void openFolderForFile(wxString const & file)
 {
     NSArray *fileURLs = [NSArray arrayWithObjects:wxCFStringRef(file).AsNSString(), /* ... */ nil];

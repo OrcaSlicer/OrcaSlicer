@@ -51,6 +51,8 @@ public:
     void OnNewWindow(wxWebViewEvent& evt);
     void OnScriptMessage(wxWebViewEvent& evt);
     void reload();
+    // Keeps the page's current zoom in the app config, to apply to the pages loaded later.
+    void save_zoom();
     void update_mode();
 
     bool Show(bool show = true) override;
@@ -59,6 +61,8 @@ private:
     friend class PrinterWebViewHandler;
 
     void SendAPIKey();
+    // Moves the zoom one level up (step > 0) or down (step < 0), or back to 100% (step 0).
+    void step_zoom(int step);
     void create_browser();
     void reset_browser();
 
