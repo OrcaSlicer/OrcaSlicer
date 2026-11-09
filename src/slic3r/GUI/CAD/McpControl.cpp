@@ -286,9 +286,10 @@ json describe_tools_core()
                      json{{"name", "profile"}, {"type", "array"}, {"default", json::array()}, {"description", "optional closed contour [[x,y],...] in plane mm; overrides width/height"}},
                      json{{"name", "boolean"}, {"type", "string"}, {"enum", json::array({"new", "union", "subtract", "intersect"})}, {"default", "new"}},
                  })}},
-            json{{"name", "fillet"}, {"summary", "Round measured edges of a body (edge ids from query_topology on that body)."},
+            json{{"name", "fillet"}, {"summary", "Round measured edges of a body: edge ids, or `where` to pick the edges by what they are in the same call (e.g. {\"extreme\":\"max_z\",\"kind\":\"line\"} = the top edges)."},
                  {"params", json::array({
                      json{{"name", "edge"},   {"type", "integer|array"}, {"description", "one edge id, or an array of ids rounded together in one feature"}},
+                     json{{"name", "where"},  {"type", "object"}, {"description", "instead of `edge`: a select_topology filter (normal, kind, radius, length_min/max, parallel, z, extreme max_z|min_x.., near), resolved on the target body"}},
                      json{{"name", "radius"}, {"type", "number"}, {"unit", "mm"}, {"default", 1}, {"min", 0.01}},
                      json{{"name", "body"},   {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body. edge id is resolved against THIS body."}},
                      json{{"name", "radius_end"}, {"type", "number"}, {"unit", "mm"}, {"min", 0}, {"description", "variable fillet: the radius runs linearly from `radius` to this along each edge (0 closes the round to a point)"}},
@@ -333,9 +334,10 @@ json describe_tools_core()
             json{{"name", "sm_unfold"}, {"summary", "Unfold every bend into a flat pattern (the first sheet face stays put)."}, {"params", json::array()}},
             json{{"name", "sm_refold"}, {"summary", "Fold an unfolded sheet back; cuts made while flat are carried into the folded part."},
                  {"params", json::array({ json{{"name", "unfold"}, {"type", "integer"}, {"description", "feature index returned by sm_unfold"}} })}},
-            json{{"name", "chamfer"}, {"summary", "Chamfer measured edges of a body (edge ids from query_topology on that body)."},
+            json{{"name", "chamfer"}, {"summary", "Chamfer measured edges of a body: edge ids, or `where` to pick the edges by what they are in the same call."},
                  {"params", json::array({
                      json{{"name", "edge"},     {"type", "integer|array"}, {"description", "one edge id, or an array of ids chamfered together in one feature"}},
+                     json{{"name", "where"},    {"type", "object"}, {"description", "instead of `edge`: a select_topology filter (see fillet), resolved on the target body"}},
                      json{{"name", "distance"}, {"type", "number"}, {"unit", "mm"}, {"default", 1}, {"min", 0.01}},
                      json{{"name", "body"},     {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body. edge id is resolved against THIS body."}},
                  })}},
@@ -409,9 +411,10 @@ json describe_tools_core()
                      json{{"name", "entity"}, {"type", "integer"}, {"description", "entity index of the guide curve within that sketch"}},
                      json{{"name", "body"},   {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
                  })}},
-            json{{"name", "shell"}, {"summary", "Hollow a body to a wall thickness (inward); optionally leave one face open."},
+            json{{"name", "shell"}, {"summary", "Hollow a body to a wall thickness (inward); optionally leave faces open: ids, or `where` to pick them by what they are (e.g. {\"normal\":\"+z\"} = the top face)."},
                  {"params", json::array({
                      json{{"name", "thickness"}, {"type", "number"}, {"unit", "mm"}, {"default", 1}, {"min", 0.01}},
+                     json{{"name", "where"},     {"type", "object"}, {"description", "instead of `face`/`faces`: a select_topology face filter (normal, kind, radius, z, extreme, near)"}},
                      json{{"name", "face"},      {"type", "integer"}, {"default", -1}, {"description", "face id to leave open (query_topology); omit for a closed hollow"}},
                      json{{"name", "faces"},     {"type", "array"}, {"description", "several face ids to leave open"}},
                      json{{"name", "body"},      {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
@@ -1480,12 +1483,29 @@ int target_body_arg(const json& params, const CadDocument& doc)
     return bi;   // <0 -> kernel uses the last body
 }
 
+// `where` instead of ids: the same filter as select_topology (normal, kind, radius, extreme, near...), resolved against the target body
+// (the last one when `body` is omitted) in this same call, so a fillet or a shell is one call instead of select_topology + verb.
+std::vector<int> ids_from_where(DesignPanel* panel, const json& params, const char* type, const char* verb)
+{
+    CadDocument& doc = panel->mcp_doc();
+    if (doc.bodies.empty()) throw std::runtime_error(std::string(verb) + ": no body");
+    json b = params.contains("body") ? params["body"] : json(-1);
+    if (b.is_null() || (b.is_number_integer() && b.get<int>() < 0)) b = int(doc.bodies.size()) - 1;   // omitted = the last body, as fillet does
+    const json q = {{"type", type}, {"where", params["where"]}, {"limit", 1000}, {"body", b}};
+    const json r = action_select_topology(panel, q);
+    std::vector<int> ids;
+    for (const json& v : r["ids"]) ids.push_back(v.get<int>());
+    if (ids.empty()) throw std::runtime_error(std::string(verb) + ": `where` matched no " + type + " on that body (select_topology shows what is there)");
+    return ids;
+}
+
 // `edge` is one id or an array of ids; an array becomes ONE feature, every id resolved
 // against the same body (a chain of single-edge features would see the ids drift).
-std::vector<int> edge_ids_arg(const json& params, const char* verb)
+std::vector<int> edge_ids_arg(DesignPanel* panel, const json& params, const char* verb)
 {
+    if (!params.contains("edge") && params.contains("where")) return ids_from_where(panel, params, "edge", verb);
     if (!params.contains("edge"))
-        throw std::runtime_error(std::string(verb) + " needs 'edge' (id or array of ids from query_topology)");
+        throw std::runtime_error(std::string(verb) + " needs 'edge' (id or array of ids from query_topology) or 'where' (a select_topology filter)");
     json e = params["edge"];
     // Some MCP clients (an LLM filling a one-type schema) send the list as text: "[3,6,9,11]", "3,6,9,11" or "3".
     if (e.is_string()) {
@@ -1503,7 +1523,7 @@ std::vector<int> edge_ids_arg(const json& params, const char* verb)
 
 json action_fillet(DesignPanel* panel, const json& params)
 {
-    const std::vector<int> edges = edge_ids_arg(params, "fillet");
+    const std::vector<int> edges = edge_ids_arg(panel, params, "fillet");
     const double radius = params.value("radius", 1.0);
     if (radius <= 0) throw std::runtime_error("radius must be > 0");
     CadDocument& doc = panel->mcp_doc();
@@ -1550,7 +1570,7 @@ json action_fillet(DesignPanel* panel, const json& params)
 
 json action_chamfer(DesignPanel* panel, const json& params)
 {
-    const std::vector<int> edges = edge_ids_arg(params, "chamfer");
+    const std::vector<int> edges = edge_ids_arg(panel, params, "chamfer");
     const double dist = params.value("distance", 1.0);
     if (dist <= 0) throw std::runtime_error("distance must be > 0");
     CadDocument& doc = panel->mcp_doc();
@@ -1685,7 +1705,7 @@ json action_sheet(DesignPanel* panel, const std::string& m, const json& params)
         make = [&, sk] { return doc.add_sm_base(sk, flip, "Base flange"); };
     } else if (m == "sm_flange") {
         if (doc.bodies.empty()) throw std::runtime_error("no sheet body to flange");
-        const std::vector<int> edges = edge_ids_arg(params, "sm_flange");
+        const std::vector<int> edges = edge_ids_arg(panel, params, "sm_flange");
         const double h = num("height", 20.0, 1e-3, 1e5), a = num("angle", 90.0, 1e-3, 170.0);
         make = [&, edges, h, a] { return doc.add_sm_edge_flange(edges, h, a, flip, "Edge flange"); };
     } else if (m == "sm_contour") {
@@ -1695,7 +1715,7 @@ json action_sheet(DesignPanel* panel, const std::string& m, const json& params)
         make = [&, sk, w] { return doc.add_sm_contour_flange(sk, w, flip, "Contour flange"); };
     } else if (m == "sm_hem") {
         if (doc.bodies.empty()) throw std::runtime_error("no sheet body to hem");
-        const std::vector<int> edges = edge_ids_arg(params, "sm_hem");
+        const std::vector<int> edges = edge_ids_arg(panel, params, "sm_hem");
         const double len = num("length", 8.0, 1e-3, 1e5);
         make = [&, edges, len] { return doc.add_sm_hem(edges.front(), len, "Hem"); };
     } else if (m == "sm_unfold") {
@@ -1882,6 +1902,10 @@ json action_shell(DesignPanel* panel, const json& params)
     int bi = target_body_arg(params, doc);
     doc.checkpoint();
     int s = doc.add_shell(thickness, face, bi, "Shell");
+    if (params.contains("where") && face < 0 && !params.contains("faces")) {
+        try { for (int id : ids_from_where(panel, params, "face", "shell")) doc.features[s].shell_faces.push_back(id); }
+        catch (...) { doc.undo(); throw; }
+    }
     if (params.contains("faces")) {
         if (!params["faces"].is_array() || params["faces"].size() > 64) { doc.undo(); throw std::runtime_error("faces must be an array of face ids"); }
         for (const json& x : params["faces"]) {

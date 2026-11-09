@@ -143,6 +143,7 @@ LlmPanel::LlmPanel(wxWindow* parent, std::function<size_t()> undo_depth, std::fu
     m_web = WebView::CreateWebView(this, "");
     if (m_web) {
         m_log->Hide();
+        m_web->SetMinSize(wxSize(FromDIP(100), FromDIP(80)));   // a webview ignores a short slot and paints over its neighbours
         col->Add(m_web, 1, wxEXPAND | wxALL, FromDIP(6));
         // Links in a reply open in the browser, never inside the pane.
         m_web->Bind(wxEVT_WEBVIEW_NAVIGATING, [](wxWebViewEvent& e) {
@@ -167,7 +168,7 @@ LlmPanel::LlmPanel(wxWindow* parent, std::function<size_t()> undo_depth, std::fu
         m_gear->SetLabel(m_settings->IsShown() ? _L("Close settings") : _L("Settings"));
         if (!m_settings->IsShown() && wxGetApp().app_config) wxGetApp().app_config->save();
         refresh_header();
-        Layout();
+        show_examples(m_hist.empty());
     });
     Bind(wxEVT_SHOW, [this](wxShowEvent& e) { if (e.IsShown()) refresh_header(); e.Skip(); });
     refresh_header();
@@ -251,6 +252,13 @@ void LlmPanel::build_settings()
     text(_L("API URL"), "llm_api_url", _L("API agents only. Empty = the provider's own (Anthropic, OpenAI) or http://localhost:11434/v1 for Ollama. Any OpenAI-compatible server works: set its /v1 address."));
     text(_L("Extra arguments"), "llm_cli_args", _L("Appended to the agent's command line, split on spaces."));
     text(_L("Loopback TCP port"), "llm_mcp_port", _L("0 or empty: off. Otherwise the app's control socket also listens on 127.0.0.1:<port>, for MCP clients that cannot open a Unix socket. Any program on this PC can reach it. Needs a restart. The assistant itself does not use it."));
+    auto* sugg = new wxCheckBox(m_settings, wxID_ANY, _L("Show suggestions"));
+    sugg->SetValue(!(cfg && cfg->get("llm_hide_suggestions") == "1"));
+    sugg->SetToolTip(_L("The example prompts shown in an empty chat. Switch them off once you know what to ask."));
+    sugg->Bind(wxEVT_CHECKBOX, [this, sugg](wxCommandEvent&) {
+        if (wxGetApp().app_config) wxGetApp().app_config->set("llm_hide_suggestions", sugg->GetValue() ? "0" : "1");
+        show_examples(m_hist.empty());
+    });
     auto* nosave = new wxCheckBox(m_settings, wxID_ANY, _L("Do not save the chat in this project"));
     m_nosave_cb = nosave;
     nosave->SetToolTip(_L("By default the chat is saved inside the project (.3mf) so it comes back when you reopen it. Tick this to keep this project's chat out of its saved file. The choice belongs to the project."));
@@ -287,6 +295,7 @@ void LlmPanel::build_settings()
     auto* col = new wxBoxSizer(wxVERTICAL);
     col->Add(grid, 0, wxEXPAND | wxALL, FromDIP(6));
     col->Add(nosave, 0, wxLEFT | wxRIGHT, FromDIP(6));
+    col->Add(sugg, 0, wxLEFT | wxRIGHT, FromDIP(6));
     col->Add(btns, 0, wxALL, FromDIP(6));
     col->Add(note, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(6));
     m_settings->SetSizer(col);
@@ -449,7 +458,14 @@ void LlmPanel::refresh_header()
     Layout();
 }
 
-void LlmPanel::show_examples(bool on) { m_examples->Show(on); Layout(); }
+// The "Try asking" prompts are for the first sessions; the Settings checkbox (llm_hide_suggestions) turns them off for good.
+void LlmPanel::show_examples(bool on)
+{
+    AppConfig* c = wxGetApp().app_config;
+    // Hidden while the Settings section is open: both do not fit the pane.
+    m_examples->Show(on && !(m_settings && m_settings->IsShown()) && !(c && c->get("llm_hide_suggestions") == "1"));
+    Layout();
+}
 
 void LlmPanel::on_tool(const std::string& raw)
 {
