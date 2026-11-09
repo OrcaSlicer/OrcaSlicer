@@ -571,7 +571,8 @@ try {
         # --- 6. Configure and build ---
         Write-Step "[6/7] Configuring and building..."
         # Determine VS generator from install path (like build_win.bat does)
-        $vsMajor = if ($vsInstall -match '\\\((1[6-9]|[2-9][0-9])\\\)') { $matches[1] } else { "17" }
+        # Path is like C:\Program Files\Microsoft Visual Studio\2026\Enterprise
+        $vsMajor = if ($vsInstall -match '\\(1[6-9]|[2-9][0-9])\\') { $matches[0].Trim('\\') } else { "17" }
         $vsGenMap = @{ 16 = "Visual Studio 16 2019"; 17 = "Visual Studio 17 2022"; 18 = "Visual Studio 18 2026" }
         $generator = if ($Msbuild) { $vsGenMap[$vsMajor] } else { "Ninja Multi-Config" }
         if (-not $generator) { $generator = "Visual Studio 17 2022" }
